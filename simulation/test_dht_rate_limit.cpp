@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "simulator/simulator.hpp"
 
+#include "libtorrent/aux_/session_listen_socket.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
@@ -56,16 +57,9 @@ using namespace std::placeholders;
 
 struct obs : dht::dht_observer
 {
-	void set_external_address(address const& /* addr */
+	void set_external_address(lt::aux::session_listen_socket*, address const& /* addr */
 		, address const& /* source */) override
 	{}
-	address external_address(udp proto) override
-	{
-		if (proto == udp::v4())
-			return address_v4::from_string("40.30.20.10");
-		else
-			return address_v6();
-	}
 	void get_peers(sha1_hash const&) override {}
 	void outgoing_get_peers(sha1_hash const& /* target */
 		, sha1_hash const& /* sent_target */, udp::endpoint const& /* ep */) override {}
@@ -91,6 +85,25 @@ struct obs : dht::dht_observer
 #endif
 };
 
+struct mock_socket : lt::aux::session_listen_socket
+{
+	address get_external_address() override
+	{
+		return get_local_endpoint().address();
+	}
+
+	tcp::endpoint get_local_endpoint() override
+	{
+		return tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
+	}
+};
+
+void send_packet(lt::udp_socket& sock, lt::aux::session_listen_socket*, udp::endpoint const& ep
+	, span<char const> p, error_code& ec, int flags)
+{
+	sock.send(ep, p, ec, flags);
+}
+
 #endif // #if !defined TORRENT_DISABLE_DHT
 
 TORRENT_TEST(dht_rate_limit)
@@ -104,6 +117,7 @@ TORRENT_TEST(dht_rate_limit)
 	// receiver (the DHT under test)
 	lt::udp_socket sock(dht_ios);
 	obs o;
+	mock_socket ds;
 	error_code ec;
 	sock.bind(udp::endpoint(address_v4::from_string("40.30.20.10"), 8888), ec);
 	dht_settings dhtsett;
@@ -117,8 +131,9 @@ TORRENT_TEST(dht_rate_limit)
 	dht::dht_state state;
 	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(dhtsett));
 	auto dht = std::make_shared<lt::dht::dht_tracker>(
-		&o, dht_ios, std::bind(&udp_socket::send, &sock, _1, _2, _3, _4)
+		&o, dht_ios, std::bind(&send_packet, std::ref(sock), _1, _2, _3, _4, _5)
 		, dhtsett, cnt, *dht_storage, state);
+	dht->new_socket(&ds);
 
 	bool stop = false;
 	std::function<void(error_code const&, size_t)> on_read

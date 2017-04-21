@@ -110,13 +110,11 @@ TORRENT_TEST(dht_state)
 	sett.max_peers = 20000;
 
 	dht_state s;
-	s.nid = to_hash("0000000000000000000000000000000000000001");
+	s.nids.emplace_back(addr4("0.0.0.0"), to_hash("0000000000000000000000000000000000000001"));
 	s.nodes.push_back(uep("1.1.1.1", 1));
 	s.nodes.push_back(uep("2.2.2.2", 2));
 	// not important that IPv6 is disabled here
-	s.nid6 = to_hash("0000000000000000000000000000000000000002");
-	s.nodes6.push_back(uep("3.3.3.3", 3));
-	s.nodes6.push_back(uep("4.4.4.4", 4));
+	s.nids.emplace_back(addr6("::"), to_hash("0000000000000000000000000000000000000002"));
 
 	session_params params(p);
 	params.dht_settings = sett;
@@ -140,9 +138,11 @@ TORRENT_TEST(dht_state)
 	TEST_EQUAL(params1.dht_settings.max_peers, 20000);
 
 	// not a chance the nid will be the fake initial ones
-	TEST_CHECK(params1.dht_state.nid != s.nid);
+	TEST_CHECK(params1.dht_state.nids[0].second != s.nids[0].second);
 #if TORRENT_USE_IPV6
-	TEST_CHECK(params1.dht_state.nid6 != s.nid6);
+	// the host machine may not have IPv6 support in which case there will only be one entry
+	if (params1.dht_state.nids.size() > 1)
+		TEST_CHECK(params1.dht_state.nids[1].second != s.nids[1].second);
 #endif
 }
 #endif

@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
+#include "libtorrent/aux_/session_listen_socket.hpp"
 
 #include "setup_dht.hpp"
 
@@ -78,28 +79,30 @@ namespace {
 
 } // anonymous namespace
 
-struct dht_node final : lt::dht::udp_socket_interface
+struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 {
 	dht_node(sim::simulation& sim, lt::dht_settings const& sett, lt::counters& cnt
 		, int const idx, std::uint32_t const flags)
 		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
 		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))
-#if LIBSIMULATOR_USE_MOVE
-		, m_socket(m_io_service)
-		, m_dht((flags & dht_network::bind_ipv6) ? udp::v6() : udp::v4()
-			, this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt, m_nodes, *m_dht_storage)
-#else
-		, m_socket(new asio::ip::udp::socket(m_io_service))
-		, m_dht(new lt::dht::node((flags & dht_network::bind_ipv6) ? udp::v6() : udp::v4()
-			, this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt, m_nodes, *m_dht_storage))
-#endif
 		, m_add_dead_nodes((flags & dht_network::add_dead_nodes) != 0)
 		, m_ipv6((flags & dht_network::bind_ipv6) != 0)
+#if LIBSIMULATOR_USE_MOVE
+		, m_socket(m_io_service)
+		, m_dht(this, this, sett, id_from_addr(m_io_service.get_ips().front())
+			, nullptr, cnt
+			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
+			, *m_dht_storage)
+#else
+		, m_socket(new asio::ip::udp::socket(m_io_service))
+		, m_dht(new lt::dht::node(this, this, sett
+			, id_from_addr(m_io_service.get_ips().front())
+			, nullptr, cnt
+			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
+			, *m_dht_storage))
+#endif
 	{
 		m_dht_storage->update_node_ids({id_from_addr(m_io_service.get_ips().front())});
-		m_nodes.insert(std::make_pair(dht().protocol_family_name(), &dht()));
 		error_code ec;
 		sock().open(m_ipv6 ? asio::ip::udp::v6() : asio::ip::udp::v4());
 		sock().bind(asio::ip::udp::endpoint(
@@ -124,10 +127,13 @@ struct dht_node final : lt::dht::udp_socket_interface
 	// movable and make sure it never needs to be moved (for instance, by
 	// reserving space in the vector before emplacing any nodes).
 	dht_node(dht_node&& n) noexcept
-		: m_socket(std::move(n.m_socket))
-		, m_dht(n.m_ipv6 ? udp::v6() : udp::v4(), this, n.m_dht.settings(), n.m_dht.nid()
+		: m_add_dead_nodes(n.m_add_dead_nodes)
+		, m_ipv6(n.m_ipv6)
+		, m_socket(std::move(n.m_socket))
+		, m_dht(this, this, n.m_dht.settings(), n.m_dht.nid()
 			, n.m_dht.observer(), n.m_dht.stats_counters()
-			, std::map<std::string, lt::dht::node*>(), *n.m_dht_storage)
+			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
+			, *n.m_dht_storage)
 	{
 		assert(false && "dht_node is not movable");
 		throw std::runtime_error("dht_node is not movable");
@@ -167,7 +173,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 	}
 
 	bool has_quota() override { return true; }
-	bool send_packet(entry& e, udp::endpoint const& addr) override
+	bool send_packet(lt::aux::session_listen_socket* s, entry& e, udp::endpoint const& addr) override
 	{
 		// since the simulaton is single threaded, we can get away with allocating
 		// just a single send buffer
@@ -179,6 +185,18 @@ struct dht_node final : lt::dht::udp_socket_interface
 
 		sock().send_to(boost::asio::const_buffers_1(send_buf.data(), int(send_buf.size())), addr);
 		return true;
+	}
+
+	address get_external_address() override
+	{
+		return get_local_endpoint().address();
+	}
+
+	tcp::endpoint get_local_endpoint() override
+	{
+		if (sock().is_open()) return tcp::endpoint(sock().local_endpoint().address(), sock().local_endpoint().port());
+		if (m_ipv6) return tcp::endpoint(address_v6(), 0);
+		return tcp::endpoint(address_v4(), 0);
 	}
 
 	// the node_id and IP address of this node
@@ -257,7 +275,8 @@ struct dht_node final : lt::dht::udp_socket_interface
 private:
 	asio::io_service m_io_service;
 	std::shared_ptr<dht::dht_storage_interface> m_dht_storage;
-	std::map<std::string, lt::dht::node*> m_nodes;
+	bool const m_add_dead_nodes;
+	bool const m_ipv6;
 #if LIBSIMULATOR_USE_MOVE
 	lt::udp::socket m_socket;
 	lt::udp::socket& sock() { return m_socket; }
@@ -268,8 +287,6 @@ private:
 	std::shared_ptr<lt::dht::node> m_dht;
 #endif
 	lt::udp::endpoint m_ep;
-	bool m_add_dead_nodes;
-	bool m_ipv6;
 	char m_buffer[1300];
 };
 

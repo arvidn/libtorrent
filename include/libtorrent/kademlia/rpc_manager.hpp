@@ -45,12 +45,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
-namespace libtorrent { struct dht_settings; class entry; }
+namespace libtorrent { struct dht_settings; class entry; namespace aux { struct session_listen_socket; } }
 
 namespace libtorrent { namespace dht {
 
 struct dht_logger;
-struct udp_socket_interface;
+struct socket_manager;
 
 struct TORRENT_EXTRA_EXPORT null_observer : public observer
 {
@@ -68,7 +68,8 @@ public:
 	rpc_manager(node_id const& our_id
 		, dht_settings const& settings
 		, routing_table& table
-		, udp_socket_interface* sock
+		, aux::session_listen_socket* sock
+		, socket_manager* sock_man
 		, dht_logger* log);
 	~rpc_manager();
 
@@ -118,7 +119,8 @@ private:
 
 	std::unordered_multimap<int, observer_ptr> m_transactions;
 
-	udp_socket_interface* m_sock;
+	aux::session_listen_socket* m_sock;
+	socket_manager* m_sock_man;
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_logger* m_log;
 #endif
