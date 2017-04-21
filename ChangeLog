@@ -67,6 +67,8 @@
 	* require C++11 to build libtorrent
 
 
+	* fix memory leak in the disk cache
+	* fix double free in disk cache
 	* forward declaring libtorrent types is discouraged. a new fwd.hpp header is provided
 
 1.1.3 release

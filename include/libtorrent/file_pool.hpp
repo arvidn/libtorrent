@@ -101,7 +101,7 @@ namespace libtorrent {
 
 	private:
 
-		void remove_oldest(std::unique_lock<std::mutex>& l);
+		file_handle remove_oldest(std::unique_lock<std::mutex>&);
 
 		int m_size;
 		bool m_low_prio_io = false;

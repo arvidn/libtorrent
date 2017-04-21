@@ -336,7 +336,7 @@ namespace libtorrent {
 		int dec_refcount()
 		{
 			TORRENT_ASSERT(m_references > 0);
-			return m_references--;
+			return --m_references;
 		}
 		void inc_refcount() { ++m_references; }
 	private:

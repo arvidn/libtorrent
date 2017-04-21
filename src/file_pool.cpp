@@ -175,7 +175,7 @@ namespace libtorrent {
 		{
 			// the file cache is at its maximum size, close
 			// the least recently used (lru) file from it
-			remove_oldest(l);
+			defer_destruction = remove_oldest(l);
 		}
 		return file_ptr;
 	}
@@ -226,21 +226,20 @@ namespace libtorrent {
 		return ret;
 	}
 
-	void file_pool::remove_oldest(std::unique_lock<std::mutex>& l)
+	file_handle file_pool::remove_oldest(std::unique_lock<std::mutex>&)
 	{
 		using value_type = decltype(m_files)::value_type;
 		auto const i = std::min_element(m_files.begin(), m_files.end()
 			, [] (value_type const& lhs, value_type const& rhs)
 				{ return lhs.second.last_use < rhs.second.last_use; });
-		if (i == m_files.end()) return;
+		if (i == m_files.end()) return file_handle();
 
 		file_handle file_ptr = i->second.file_ptr;
 		m_files.erase(i);
 
 		// closing a file may be long running operation (mac os x)
-		l.unlock();
-		file_ptr.reset();
-		l.lock();
+		// let the calling function destruct it after releasing the mutex
+		return file_ptr;
 	}
 
 	void file_pool::release(storage_index_t const st, file_index_t file_index)
@@ -309,6 +308,9 @@ namespace libtorrent {
 
 	void file_pool::resize(int size)
 	{
+		// these are destructed _after_ the mutex is released
+		std::vector<file_handle> defer_destruction;
+
 		std::unique_lock<std::mutex> l(m_mutex);
 
 		TORRENT_ASSERT(size > 0);
@@ -319,7 +321,7 @@ namespace libtorrent {
 
 		// close the least recently used files
 		while (int(m_files.size()) > m_size)
-			remove_oldest(l);
+			defer_destruction.push_back(remove_oldest(l));
 	}
 
 	void file_pool::close_oldest()

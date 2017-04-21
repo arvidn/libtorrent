@@ -271,7 +271,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 
 			std::printf("tick: %d\n", ticks);
 
-			const int timeout = type == swarm_test::download ? 20 : 91;
+			const int timeout = type == swarm_test::download ? 20 : 100;
 			if (ticks > timeout)
 			{
 				TEST_ERROR("timeout");

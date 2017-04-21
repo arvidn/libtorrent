@@ -277,7 +277,7 @@ void test_evict()
 	// this should make it not be evicted
 	// just free the buffers
 	++pe->piece_refcount;
-	bc.evict_piece(pe, jobs);
+	bc.evict_piece(pe, jobs, block_cache::allow_ghost);
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -291,7 +291,7 @@ void test_evict()
 	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	--pe->piece_refcount;
-	bc.evict_piece(pe, jobs);
+	bc.evict_piece(pe, jobs, block_cache::allow_ghost);
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -392,7 +392,7 @@ void test_arc_unghost()
 	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	tailqueue<disk_io_job> jobs;
-	bc.evict_piece(pe, jobs);
+	bc.evict_piece(pe, jobs, block_cache::allow_ghost);
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -482,5 +482,30 @@ TORRENT_TEST(block_cache)
 	// TODO: test free_piece
 	// TODO: test abort_dirty
 	// TODO: test unaligned reads
+}
+
+TORRENT_TEST(delete_piece)
+{
+	TEST_SETUP;
+
+	TEST_CHECK(bc.num_pieces() == 0);
+
+	INSERT(0, 0);
+
+	TEST_CHECK(bc.num_pieces() == 1);
+
+	rj.action = disk_io_job::read;
+	rj.d.io.offset = 0x2000;
+	rj.d.io.buffer_size = 0x4000;
+	rj.piece = piece_index_t(0);
+	rj.storage = pm;
+	rj.requester = (void*)1;
+	rj.argument = 0;
+	ret = bc.try_read(&rj, alloc);
+
+	cached_piece_entry* pe_ = bc.find_piece(pm.get(), piece_index_t(0));
+	bc.mark_for_eviction(pe_, block_cache::disallow_ghost);
+
+	TEST_CHECK(bc.num_pieces() == 0);
 }
 

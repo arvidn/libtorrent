@@ -50,7 +50,8 @@ namespace libtorrent {
 		: m_allocator(h.m_allocator), m_buf(h.m_buf), m_ref(h.m_ref)
 	{
 		// we own this buffer now
-		h.release();
+		h.m_buf = nullptr;
+		h.m_ref = aux::block_cache_reference();
 	}
 
 	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc
@@ -76,6 +77,7 @@ namespace libtorrent {
 
 	char* disk_buffer_holder::release() noexcept
 	{
+		TORRENT_ASSERT(m_ref.cookie == aux::block_cache_reference::none);
 		char* ret = m_buf;
 		m_buf = nullptr;
 		m_ref = aux::block_cache_reference();

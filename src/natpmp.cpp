@@ -130,7 +130,7 @@ void natpmp::start()
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
 	{
-		if (i->protocol != portmap_protocol::none
+		if (i->protocol == portmap_protocol::none
 			|| i->act != mapping_t::action::none)
 			continue;
 		i->act = mapping_t::action::add;
