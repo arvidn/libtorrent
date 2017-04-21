@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dos_blocker.hpp>
 #include <libtorrent/kademlia/dht_state.hpp>
 
+#include <libtorrent/aux_/session_listen_socket.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/deadline_timer.hpp>
 #include <libtorrent/span.hpp>
@@ -56,10 +57,11 @@ namespace libtorrent {
 namespace libtorrent { namespace dht {
 
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
-		: udp_socket_interface
+		: socket_manager
 		, std::enable_shared_from_this<dht_tracker>
 	{
-		using send_fun_t = std::function<void(udp::endpoint const&
+		using send_fun_t = std::function<void(
+			aux::session_listen_socket*, udp::endpoint const&
 			, span<char const>, error_code&, int)>;
 
 		dht_tracker(dht_observer* observer
@@ -69,14 +71,23 @@ namespace libtorrent { namespace dht {
 			, counters& cnt
 			, dht_storage_interface& storage
 			, dht_state state);
-		virtual ~dht_tracker();
+
+#if defined(_MSC_VER) && _MSC_VER < 1910
+		// workaround for a bug in msvc 14.0
+		// it attempts to generate a copy constructor for some strange reason
+		// and fails because tracker_node is not copyable
+		dht_tracker(dht_tracker const&) = delete;
+#endif
 
 		void start(find_data::nodes_callback const& f);
 		void stop();
 
 		// tell the node to recalculate its node id based on the current
 		// understanding of its external address (which may have changed)
-		void update_node_id();
+		void update_node_id(aux::session_listen_socket* s);
+
+		void new_socket(aux::session_listen_socket* s);
+		void delete_socket(aux::session_listen_socket* s);
 
 		void add_node(udp::endpoint const& node);
 		void add_router_node(udp::endpoint const& node);
@@ -128,18 +139,33 @@ namespace libtorrent { namespace dht {
 		std::vector<std::pair<node_id, udp::endpoint>> live_nodes(node_id const& nid);
 
 	private:
+		struct tracker_node
+		{
+			tracker_node(io_service& ios
+				, aux::session_listen_socket* s, socket_manager* sock
+				, libtorrent::dht_settings const& settings
+				, node_id const& nid
+				, dht_observer* observer, counters& cnt
+				, get_foreign_node_t get_foreign_node
+				, dht_storage_interface& storage);
+
+			node dht;
+			deadline_timer connection_timer;
+		};
+		using tracker_nodes_t = std::map<aux::session_listen_socket*, tracker_node>;
 
 		std::shared_ptr<dht_tracker> self()
 		{ return shared_from_this(); }
 
-		void connection_timeout(node& n, error_code const& e);
+		void connection_timeout(tracker_node& n, error_code const& e);
 		void refresh_timeout(error_code const& e);
 		void refresh_key(error_code const& e);
 		void update_storage_node_ids();
+		node* get_node(node_id const& id, std::string const& family_name);
 
-		// implements udp_socket_interface
+		// implements socket_manager
 		virtual bool has_quota() override;
-		virtual bool send_packet(entry& e, udp::endpoint const& addr) override;
+		virtual bool send_packet(aux::session_listen_socket* s, entry& e, udp::endpoint const& addr) override;
 
 		// this is the bdecode_node DHT messages are parsed into. It's a member
 		// in order to avoid having to deallocate and re-allocate it for every
@@ -149,27 +175,18 @@ namespace libtorrent { namespace dht {
 		counters& m_counters;
 		dht_storage_interface& m_storage;
 		dht_state m_state; // to be used only once
-		node m_dht;
-#if TORRENT_USE_IPV6
-		node m_dht6;
-#endif
+		tracker_nodes_t m_nodes;
 		send_fun_t m_send_fun;
-		dht_logger* m_log;
+		dht_observer* m_log;
 
 		std::vector<char> m_send_buf;
 		dos_blocker m_blocker;
 
 		deadline_timer m_key_refresh_timer;
-		deadline_timer m_connection_timer;
-#if TORRENT_USE_IPV6
-		deadline_timer m_connection_timer6;
-#endif
 		deadline_timer m_refresh_timer;
 		dht_settings const& m_settings;
 
-		std::map<std::string, node*> m_nodes;
-
-		bool m_abort;
+		bool m_running;
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;

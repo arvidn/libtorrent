@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/session_listen_socket.hpp"
 
 #include <functional>
 #include <memory>
@@ -137,6 +138,9 @@ namespace libtorrent { namespace aux {
 		};
 
 		virtual void set_external_address(address const& ip
+			, int source_type, address const& source) = 0;
+		virtual void set_external_address(tcp::endpoint const& local_endpoint
+			, address const& ip
 			, int source_type, address const& source) = 0;
 		virtual external_ip external_address() const = 0;
 
