@@ -810,12 +810,14 @@ namespace libtorrent
 			// otherwise it will turn into a read piece
 		}
 
-		// mark_for_deletion may erase the piece from the cache, that's
+		// mark_for_eviction may erase the piece from the cache, that's
 		// why we don't have the 'i' iterator referencing it at this point
 		if (flags & (flush_read_cache | flush_delete_cache))
 		{
 			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), pe->jobs, completed_jobs);
-			m_disk_cache.mark_for_deletion(pe);
+			// we're removing the torrent, don't keep any entries around in the
+			// ghost list
+			m_disk_cache.mark_for_eviction(pe, block_cache::disallow_ghost);
 		}
 	}
 
@@ -830,6 +832,7 @@ namespace libtorrent
 			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
 				, end(pieces.end()); i != end; ++i)
 			{
+				TORRENT_ASSERT((*i)->get_storage() == storage);
 				if ((*i)->get_storage() != storage) continue;
 				piece_index.push_back((*i)->piece);
 			}
@@ -1819,12 +1822,21 @@ namespace libtorrent
 		disk_io_job* qj = m_queued_jobs.get_all();
 		jobqueue_t to_abort;
 
+		// if we encounter any read jobs in the queue, we need to clear the
+		// "outstanding_read" flag on its piece, as we abort the job
+		std::vector<std::pair<piece_manager*, int> > pieces;
+
 		while (qj)
 		{
 			disk_io_job* next = qj->next;
 #if TORRENT_USE_ASSERTS
 			qj->next = NULL;
 #endif
+			if (qj->action == disk_io_job::read)
+			{
+				pieces.push_back(std::make_pair(qj->storage.get(), int(qj->piece)));
+			}
+
 			if (qj->storage.get() == storage)
 				to_abort.push_back(qj);
 			else
@@ -1834,6 +1846,15 @@ namespace libtorrent
 		l2.unlock();
 
 		mutex::scoped_lock l(m_cache_mutex);
+		for (std::vector<std::pair<piece_manager*, int> >::iterator i = pieces.begin()
+			, end(pieces.end()); i != end; ++i)
+		{
+			cached_piece_entry* pe = m_disk_cache.find_piece(i->first, i->second);
+			if (pe == NULL) continue;
+			TORRENT_ASSERT(pe->outstanding_read == 1);
+			pe->outstanding_read = 0;
+		}
+
 		flush_cache(storage, flush_delete_cache, completed_jobs, l);
 		l.unlock();
 
@@ -2056,7 +2077,7 @@ namespace libtorrent
 			, end(cache.end()); i != end; )
 		{
 			jobqueue_t temp;
-			if (m_disk_cache.evict_piece(*(i++), temp))
+			if (m_disk_cache.evict_piece(*(i++), temp, block_cache::disallow_ghost))
 				jobs.append(temp);
 		}
 		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
@@ -2103,7 +2124,7 @@ namespace libtorrent
 		// in fact, no jobs should really be hung on this piece
 		// at this point
 		jobqueue_t jobs;
-		bool ok = m_disk_cache.evict_piece(pe, jobs);
+		bool ok = m_disk_cache.evict_piece(pe, jobs, block_cache::allow_ghost);
 		TORRENT_PIECE_ASSERT(ok, pe);
 		TORRENT_UNUSED(ok);
 		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
@@ -2561,7 +2582,8 @@ namespace libtorrent
 
 		mutex::scoped_lock l(m_cache_mutex);
 
-		flush_cache(j->storage.get(), flush_delete_cache | flush_expect_clear
+		flush_cache(j->storage.get()
+			, flush_read_cache | flush_delete_cache | flush_expect_clear
 			, completed_jobs, l);
 		l.unlock();
 
@@ -3020,14 +3042,14 @@ namespace libtorrent
 		// are still outstanding operations on it, in which case
 		// try again later
 		jobqueue_t jobs;
-		if (m_disk_cache.evict_piece(pe, jobs))
+		if (m_disk_cache.evict_piece(pe, jobs, block_cache::allow_ghost))
 		{
 			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
 				, jobs, completed_jobs);
 			return 0;
 		}
 
-		m_disk_cache.mark_for_deletion(pe);
+		m_disk_cache.mark_for_eviction(pe, block_cache::allow_ghost);
 		if (pe->num_blocks == 0) return 0;
 
 		// we should always be able to evict the piece, since
@@ -3065,8 +3087,7 @@ namespace libtorrent
 		{
 			mutex::scoped_lock l(m_job_mutex);
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
-			// prioritize fence jobs since they're blocking other jobs
-			m_queued_jobs.push_front(j);
+			m_queued_jobs.push_back(j);
 			l.unlock();
 
 			// discard the flush job
