@@ -157,4 +157,4 @@ private:
 
 }
 
-#endif // BTORRENT_BUFFER_HPP_INCLUDED
+#endif // TORRENT_BUFFER_HPP_INCLUDED

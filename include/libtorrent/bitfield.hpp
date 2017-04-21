@@ -70,7 +70,7 @@ namespace libtorrent {
 			resize(bits);
 			if (bits > 0)
 			{
-				std::memcpy(buf(), b, size_t((bits + 7) / 8));
+				std::memcpy(buf(), b, std::size_t((bits + 7) / 8));
 				clear_trailing_bits();
 			}
 		}
@@ -229,13 +229,13 @@ namespace libtorrent {
 		void set_all()
 		{
 			if (size() == 0) return;
-			std::memset(buf(), 0xff, size_t(num_words() * 4));
+			std::memset(buf(), 0xff, std::size_t(num_words() * 4));
 			clear_trailing_bits();
 		}
 		void clear_all()
 		{
 			if (size() == 0) return;
-			std::memset(buf(), 0x00, size_t(num_words() * 4));
+			std::memset(buf(), 0x00, std::size_t(num_words() * 4));
 		}
 
 		// make the bitfield empty, of zero size.

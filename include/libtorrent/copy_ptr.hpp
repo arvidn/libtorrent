@@ -67,4 +67,3 @@ namespace libtorrent {
 }
 
 #endif // TORRENT_COPY_PTR
-

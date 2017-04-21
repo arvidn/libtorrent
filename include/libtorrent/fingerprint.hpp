@@ -97,4 +97,3 @@ namespace libtorrent {
 }
 
 #endif // TORRENT_FINGERPRINT_HPP_INCLUDED
-

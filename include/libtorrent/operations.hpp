@@ -105,4 +105,3 @@ namespace libtorrent {
 }
 
 #endif // TORRENT_OPERATIONS_HPP_INCLUDED
-
