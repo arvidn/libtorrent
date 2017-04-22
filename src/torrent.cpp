@@ -4865,14 +4865,11 @@ namespace libtorrent {
 		if (m_file_priority.end_index() < limit)
 			m_file_priority.resize(static_cast<int>(limit), default_piece_priority);
 
-		std::copy(files.begin(), files.begin() + static_cast<int>(limit)
-			, m_file_priority.begin());
-
-		// initialize pad files to priority 0
-		for (file_index_t i(0); i < limit; ++i)
+		auto si = files.begin();
+		for (file_index_t i(0); i < limit; ++i, ++si)
 		{
-			if (!fs.pad_file_at(i)) continue;
-			m_file_priority[i] = 0;
+			// initialize pad files to priority 0
+			m_file_priority[i] = fs.pad_file_at(i) ? 0 : aux::numeric_cast<std::uint8_t>(*si);
 		}
 
 		// storage may be nullptr during construction and shutdown

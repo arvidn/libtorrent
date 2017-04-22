@@ -68,7 +68,7 @@ namespace detail {
 	Addr zero()
 	{
 		Addr zero;
-		std::fill(zero.begin(), zero.end(), 0);
+		std::fill(zero.begin(), zero.end(), static_cast<typename Addr::value_type>(0));
 		return zero;
 	}
 
