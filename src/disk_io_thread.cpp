@@ -204,6 +204,7 @@ namespace libtorrent {
 
 	storage_interface* disk_io_thread::get_torrent(storage_index_t const storage)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		return m_torrents[storage].get();
 	}
 

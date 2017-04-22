@@ -1161,6 +1161,10 @@ namespace libtorrent {
 			, storage_error const& error);
 		void on_cache_flushed();
 
+		// this is used when a torrent is being removed.It synchronizes with the
+		// disk thread
+		void on_torrent_aborted();
+
 		// upload and download rate limits for the torrent
 		void set_limit_impl(int limit, int channel, bool state_update = true);
 		int limit_impl(int channel) const;

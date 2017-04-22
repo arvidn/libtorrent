@@ -5717,6 +5717,8 @@ namespace {
 //		TORRENT_ASSERT(is_not_thread());
 // TODO: asserts that no outstanding async operations are still in flight
 
+		TORRENT_ASSERT(m_torrents.empty());
+
 #if defined TORRENT_ASIO_DEBUGGING
 		FILE* f = fopen("wakeups.log", "w+");
 		if (f != nullptr)
