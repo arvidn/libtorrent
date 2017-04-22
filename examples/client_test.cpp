@@ -1720,14 +1720,17 @@ MAGNETURL is a magnet link
 			{
 				for (announce_entry const& ae : h.trackers())
 				{
+					auto best_ae = std::min_element(ae.endpoints.begin(), ae.endpoints.end()
+						, [](announce_endpoint const& l, announce_endpoint const& r) { return l.fails < r.fails; } );
+
 					if (pos + 1 >= terminal_height) break;
 					std::snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
-						, ae.tier, ae.url.c_str(), ae.fails, ae.fail_limit, ae.verified?"OK ":"-  "
-						, ae.updating?"updating"
-							:to_string(int(total_seconds(ae.next_announce - now)), 8).c_str()
-						, int(ae.min_announce > now ? total_seconds(ae.min_announce - now) : 0)
-						, ae.last_error ? ae.last_error.message().c_str() : ""
-						, ae.message.c_str());
+						, ae.tier, ae.url.c_str()
+						, best_ae != ae.endpoints.end() ? best_ae->fails : 0, ae.fail_limit, ae.verified?"OK ":"-  "
+						, to_string(int(total_seconds(best_ae->next_announce - now)), 8).c_str()
+						, int(best_ae->min_announce > now ? total_seconds(best_ae->min_announce - now) : 0)
+						, best_ae != ae.endpoints.end() && best_ae->last_error ? best_ae->last_error.message().c_str() : ""
+						, best_ae != ae.endpoints.end() ? best_ae->message.c_str() : "");
 					out += str;
 					pos += 1;
 				}

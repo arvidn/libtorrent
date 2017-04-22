@@ -138,8 +138,9 @@ namespace libtorrent {
 		utp_mtu = std::min(mtu, restrict_mtu());
 	}
 
-	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p
-		, int const len, error_code& ec, int const flags)
+	void utp_socket_manager::send_packet(std::weak_ptr<utp_socket_interface> sock
+		, udp::endpoint const& ep, char const* p
+		, int const len, error_code& ec, int flags)
 	{
 #if !defined TORRENT_HAS_DONT_FRAGMENT && !defined TORRENT_DEBUG_MTU
 		TORRENT_UNUSED(flags);
@@ -150,13 +151,13 @@ namespace libtorrent {
 		if ((flags & dont_fragment) && len > TORRENT_DEBUG_MTU) return;
 #endif
 
-		m_send_fun(ep, {p, std::size_t(len)}, ec
+		m_send_fun(sock, ep, {p, std::size_t(len)}, ec
 			, ((flags & dont_fragment) ? udp_socket::dont_fragment : 0)
 				| udp_socket::peer_connection);
 	}
 
-	bool utp_socket_manager::incoming_packet(udp::endpoint const& ep
-			, span<char const> p)
+	bool utp_socket_manager::incoming_packet(std::weak_ptr<utp_socket_interface> socket
+		, udp::endpoint const& ep, span<char const> p)
 	{
 //		UTP_LOGV("incoming packet size:%d\n", size);
 
@@ -230,6 +231,7 @@ namespace libtorrent {
 			int link_mtu, utp_mtu;
 			mtu_for_dest(ep.address(), link_mtu, utp_mtu);
 			utp_init_mtu(str->get_impl(), link_mtu, utp_mtu);
+			utp_init_socket(str->get_impl(), socket);
 			bool ret = utp_incoming_packet(str->get_impl(), p, ep, receive_time);
 			if (!ret) return false;
 			m_cb(c);
@@ -302,6 +304,17 @@ namespace libtorrent {
 		TORRENT_ASSERT(std::find(m_drained_event.begin(), m_drained_event.end(), s)
 			== m_drained_event.end());
 		m_drained_event.push_back(s);
+	}
+
+	void utp_socket_manager::remove_udp_socket(std::weak_ptr<utp_socket_interface> sock)
+	{
+		for (auto& s : m_utp_sockets)
+		{
+			if (!bound_to_udp_socket(s.second, sock))
+				continue;
+
+			utp_abort(s.second);
+		}
 	}
 
 	void utp_socket_manager::remove_socket(std::uint16_t id)

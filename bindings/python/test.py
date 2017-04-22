@@ -98,10 +98,14 @@ class test_torrent_handle(unittest.TestCase):
         trackers = [tracker]
         self.h.replace_trackers(trackers)
         tracker_list = [tracker for tracker in self.h.trackers()]
+        # wait a bit until the endpoints list gets populated
+        while len(tracker_list[0]['endpoints']) == 0:
+            time.sleep(0.1)
+            tracker_list = [tracker for tracker in self.h.trackers()]
         pickled_trackers = pickle.dumps(tracker_list)
         unpickled_trackers = pickle.loads(pickled_trackers)
         self.assertEqual(unpickled_trackers[0]['url'], 'udp://tracker1.com')
-        self.assertEqual(unpickled_trackers[0]['last_error']['value'], 0)
+        self.assertEqual(unpickled_trackers[0]['endpoints'][0]['last_error']['value'], 0)
 
     def test_file_status(self):
         self.setup()
@@ -129,8 +133,8 @@ class test_torrent_handle(unittest.TestCase):
         self.setup()
         self.h.add_tracker({'url':'udp://tracker1.com'})
         tr = self.h.trackers()[0]
-        # wait a bit until a valid timestamp appears
-        while tr['next_announce'] == None:
+        # wait a bit until the endpoints list gets populated
+        while len(tr['endpoints']) == 0:
             time.sleep(0.1)
             tr = self.h.trackers()[0]
         import json
@@ -281,10 +285,10 @@ class test_torrent_info(unittest.TestCase):
 
     def test_announce_entry(self):
         ae = lt.announce_entry('test')
-        self.assertEquals(ae.can_announce(False), True)
-        self.assertEquals(ae.scrape_incomplete, -1)
-        self.assertEquals(ae.next_announce, None)
-        self.assertEquals(ae.last_error.value(), 0)
+        self.assertEquals(ae.url, 'test')
+        self.assertEquals(ae.tier, 0)
+        self.assertEquals(ae.verified, False)
+        self.assertEquals(ae.source, 0)
 
 class test_alerts(unittest.TestCase):
 

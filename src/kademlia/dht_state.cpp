@@ -38,12 +38,40 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht {
 namespace {
 
-	node_id extract_node_id(bdecode_node const& e, string_view key)
+	node_ids_t extract_node_ids(bdecode_node const& e, string_view key)
 	{
-		if (e.type() != bdecode_node::dict_t) return node_id();
-		auto nid = e.dict_find_string_value(key);
-		if (nid.size() != 20) return node_id();
-		return node_id(nid);
+		if (e.type() != bdecode_node::dict_t) return node_ids_t();
+		node_ids_t ret;
+		// first look for an old-style nid
+		auto old_nid = e.dict_find_string_value(key);
+		if (old_nid.size() == 20)
+		{
+			ret.emplace_back(address(), node_id(old_nid));
+			return ret;
+		}
+		auto nids = e.dict_find_list(key);
+		if (!nids) return ret;
+		for (int i = 0; i < nids.list_size(); i++)
+		{
+			bdecode_node nid = nids.list_at(i);
+			if (nid.type() != bdecode_node::string_t) continue;
+			if (nid.string_length() < 20) continue;
+			char const* in = nid.string_ptr();
+			node_id id(in);
+			in += id.size();
+			address addr;
+			if (nid.string_length() == 24)
+				addr = detail::read_v4_address(in);
+#if TORRENT_USE_IPV6
+			else if (nid.string_length() == 36)
+				addr = detail::read_v6_address(in);
+#endif
+			else
+				continue;
+			ret.emplace_back(addr, id);
+		}
+
+		return ret;
 	}
 
 	entry save_nodes(std::vector<udp::endpoint> const& nodes)
@@ -63,8 +91,8 @@ namespace {
 
 	void dht_state::clear()
 	{
-		nid.clear();
-		nid6.clear();
+		nids.clear();
+		nids.shrink_to_fit();
 
 		nodes.clear();
 		nodes.shrink_to_fit();
@@ -78,17 +106,10 @@ namespace {
 
 		if (e.type() != bdecode_node::dict_t) return ret;
 
-		ret.nid = extract_node_id(e, "node-id");
-#if TORRENT_USE_IPV6
-		ret.nid6 = extract_node_id(e, "node-id6");
-#endif
+		ret.nids = extract_node_ids(e, "node-id");
 
 		if (bdecode_node const nodes = e.dict_find_list("nodes"))
 			ret.nodes = detail::read_endpoint_list<udp::endpoint>(nodes);
-#if TORRENT_USE_IPV6
-		if (bdecode_node const nodes = e.dict_find_list("nodes6"))
-			ret.nodes6 = detail::read_endpoint_list<udp::endpoint>(nodes);
-#endif
 
 		return ret;
 	}
@@ -96,11 +117,17 @@ namespace {
 	entry save_dht_state(dht_state const& state)
 	{
 		entry ret(entry::dictionary_t);
-		ret["node-id"] = state.nid.to_string();
+		auto& nids = ret["node-id"].list();
+		for (auto const& n : state.nids)
+		{
+			std::string nid;
+			std::copy(n.second.begin(), n.second.end(), std::back_inserter(nid));
+			detail::write_address(n.first, std::back_inserter(nid));
+			nids.emplace_back(std::move(nid));
+		}
 		entry const nodes = save_nodes(state.nodes);
 		if (!nodes.list().empty()) ret["nodes"] = nodes;
 #if TORRENT_USE_IPV6
-		ret["node-id6"] = state.nid6.to_string();
 		entry const nodes6 = save_nodes(state.nodes6);
 		if (!nodes6.list().empty()) ret["nodes6"] = nodes6;
 #endif

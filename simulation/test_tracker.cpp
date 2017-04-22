@@ -92,6 +92,10 @@ void test_interval(int interval)
 	std::vector<lt::time_point> announce_alerts;
 
 	lt::settings_pack default_settings = settings();
+	// since the test tracker is only listening on IPv4 we need to configure the
+	// client to do the same so that the number of tracker_announce_alerts matches
+	// the number of announces seen by the tracker
+	default_settings.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
 	lt::add_torrent_params default_add_torrent;
 
 	setup_swarm(1, swarm_test::upload, sim, default_settings, default_add_torrent
@@ -262,6 +266,8 @@ TORRENT_TEST(announce_interval_1200)
 
 struct sim_config : sim::default_config
 {
+	explicit sim_config(bool ipv6 = true) : ipv6(ipv6) {}
+
 	chrono::high_resolution_clock::duration hostname_lookup(
 		asio::ip::address const& requestor
 		, std::string hostname
@@ -271,12 +277,15 @@ struct sim_config : sim::default_config
 		if (hostname == "tracker.com")
 		{
 			result.push_back(address_v4::from_string("10.0.0.2"));
-			result.push_back(address_v6::from_string("ff::dead:beef"));
+			if (ipv6)
+				result.push_back(address_v6::from_string("ff::dead:beef"));
 			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
 		}
 
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
+
+	bool ipv6;
 };
 
 void on_alert_notify(lt::session* ses)
@@ -338,11 +347,23 @@ TORRENT_TEST(ipv6_support)
 		return sim::send_response(200, "OK", size) + response;
 	});
 
+	static const int num_interfaces = 3;
+
 	{
 		lt::session_proxy zombie;
 
-		asio::io_service ios(sim, { address_v4::from_string("10.0.0.3")
-			, address_v6::from_string("ffff::1337") });
+		std::vector<asio::ip::address> ips;
+
+		for (int i = 0; i < num_interfaces; i++)
+		{
+			char ep[30];
+			std::snprintf(ep, sizeof(ep), "10.0.0.%d", i + 1);
+			ips.push_back(address::from_string(ep));
+			std::snprintf(ep, sizeof(ep), "ffff::1337:%d", i + 1);
+			ips.push_back(address::from_string(ep));
+		}
+
+		asio::io_service ios(sim, ips);
 		lt::settings_pack sett = settings();
 		std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
 
@@ -381,7 +402,8 @@ TORRENT_TEST(ipv6_support)
 
 	// 2 because there's one announce on startup and one when shutting down
 	TEST_EQUAL(v4_announces, 2);
-	TEST_EQUAL(v6_announces, 2);
+	// IPv6 will send announces for each interface
+	TEST_EQUAL(v6_announces, num_interfaces * 2);
 }
 
 // this runs a simulation of a torrent with tracker(s), making sure the request
@@ -401,11 +423,14 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	sim::simulation sim{network_cfg};
 
 	sim::asio::io_service tracker_ios(sim, address_v4::from_string("10.0.0.2"));
+	sim::asio::io_service tracker_ios6(sim, address_v6::from_string("ff::dead:beef"));
 
 	// listen on port 8080
 	sim::http_server http(tracker_ios, 8080);
+	sim::http_server http6(tracker_ios6, 8080);
 
 	http.register_handler(url_path, a);
+	http6.register_handler(url_path, a);
 
 	lt::session_proxy zombie;
 
@@ -492,11 +517,14 @@ TORRENT_TEST(test_error)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), false);
-			TEST_EQUAL(ae.message, "test");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
-			TEST_EQUAL(ae.last_error, error_code(errors::tracker_failure));
-			TEST_EQUAL(ae.fails, 1);
+			for (auto const& aep : ae.endpoints)
+			{
+				TEST_EQUAL(aep.is_working(), false);
+				TEST_EQUAL(aep.message, "test");
+				TEST_EQUAL(aep.last_error, error_code(errors::tracker_failure));
+				TEST_EQUAL(aep.fails, 1);
+			}
 		});
 }
 
@@ -514,11 +542,14 @@ TORRENT_TEST(test_warning)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), true);
-			TEST_EQUAL(ae.message, "test2");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
-			TEST_EQUAL(ae.last_error, error_code());
-			TEST_EQUAL(ae.fails, 0);
+			for (auto const& aep : ae.endpoints)
+			{
+				TEST_EQUAL(aep.is_working(), true);
+				TEST_EQUAL(aep.message, "test2");
+				TEST_EQUAL(aep.last_error, error_code());
+				TEST_EQUAL(aep.fails, 0);
+			}
 		});
 }
 
@@ -537,14 +568,17 @@ TORRENT_TEST(test_scrape_data_in_announce)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), true);
-			TEST_EQUAL(ae.message, "");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
-			TEST_EQUAL(ae.last_error, error_code());
-			TEST_EQUAL(ae.fails, 0);
-			TEST_EQUAL(ae.scrape_complete, 1);
-			TEST_EQUAL(ae.scrape_incomplete, 2);
-			TEST_EQUAL(ae.scrape_downloaded, 3);
+			for (auto const& aep : ae.endpoints)
+			{
+				TEST_EQUAL(aep.is_working(), true);
+				TEST_EQUAL(aep.message, "");
+				TEST_EQUAL(aep.last_error, error_code());
+				TEST_EQUAL(aep.fails, 0);
+				TEST_EQUAL(aep.scrape_complete, 1);
+				TEST_EQUAL(aep.scrape_incomplete, 2);
+				TEST_EQUAL(aep.scrape_downloaded, 3);
+			}
 		});
 }
 
@@ -571,9 +605,12 @@ TORRENT_TEST(test_scrape)
 
 			TEST_EQUAL(tr.size(), 1);
 			announce_entry const& ae = tr[0];
-			TEST_EQUAL(ae.scrape_incomplete, 2);
-			TEST_EQUAL(ae.scrape_complete, 1);
-			TEST_EQUAL(ae.scrape_downloaded, 3);
+			for (auto const& aep : ae.endpoints)
+			{
+				TEST_EQUAL(aep.scrape_incomplete, 2);
+				TEST_EQUAL(aep.scrape_complete, 1);
+				TEST_EQUAL(aep.scrape_downloaded, 3);
+			}
 		}
 		, "/scrape");
 }
@@ -589,11 +626,14 @@ TORRENT_TEST(test_http_status)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), false);
-			TEST_EQUAL(ae.message, "Not A Tracker");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
-			TEST_EQUAL(ae.last_error, error_code(410, http_category()));
-			TEST_EQUAL(ae.fails, 1);
+			for (auto const& aep : ae.endpoints)
+			{
+				TEST_EQUAL(aep.is_working(), false);
+				TEST_EQUAL(aep.message, "Not A Tracker");
+				TEST_EQUAL(aep.last_error, error_code(410, http_category()));
+				TEST_EQUAL(aep.fails, 1);
+			}
 		});
 }
 
@@ -611,11 +651,14 @@ TORRENT_TEST(test_interval)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), true);
-			TEST_EQUAL(ae.message, "");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
-			TEST_EQUAL(ae.last_error, error_code());
-			TEST_EQUAL(ae.fails, 0);
+			for (auto const& aep : ae.endpoints)
+			{
+				TEST_EQUAL(aep.is_working(), true);
+				TEST_EQUAL(aep.message, "");
+				TEST_EQUAL(aep.last_error, error_code());
+				TEST_EQUAL(aep.fails, 0);
+			}
 
 			TEST_EQUAL(ae.trackerid, "testtest");
 		});
@@ -635,12 +678,15 @@ TORRENT_TEST(test_invalid_bencoding)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), false);
-			TEST_EQUAL(ae.message, "");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
-			TEST_EQUAL(ae.last_error, error_code(bdecode_errors::expected_value
-				, bdecode_category()));
-			TEST_EQUAL(ae.fails, 1);
+			for (auto const& aep : ae.endpoints)
+			{
+				TEST_EQUAL(aep.is_working(), false);
+				TEST_EQUAL(aep.message, "");
+				TEST_EQUAL(aep.last_error, error_code(bdecode_errors::expected_value
+					, bdecode_category()));
+				TEST_EQUAL(aep.fails, 1);
+			}
 		});
 }
 
@@ -686,22 +732,31 @@ TORRENT_TEST(try_next)
 				std::printf("tracker \"%s\"\n", tr[i].url.c_str());
 				if (tr[i].url == "http://tracker.com:8080/announce")
 				{
-					TEST_EQUAL(tr[i].fails, 0);
+					for (auto const& aep : tr[i].endpoints)
+					{
+						TEST_EQUAL(aep.fails, 0);
+					}
 					TEST_EQUAL(tr[i].verified, true);
 				}
 				else if (tr[i].url == "http://failing-tracker.com/announce")
 				{
-					TEST_CHECK(tr[i].fails >= 1);
+					for (auto const& aep : tr[i].endpoints)
+					{
+						TEST_CHECK(aep.fails >= 1);
+						TEST_EQUAL(aep.last_error
+							, error_code(boost::asio::error::host_not_found));
+					}
 					TEST_EQUAL(tr[i].verified, false);
-					TEST_EQUAL(tr[i].last_error
-						, error_code(boost::asio::error::host_not_found));
 				}
 				else if (tr[i].url == "udp://failing-tracker.com/announce")
 				{
-					TEST_CHECK(tr[i].fails >= 1);
 					TEST_EQUAL(tr[i].verified, false);
-					TEST_EQUAL(tr[i].last_error
-						, error_code(boost::asio::error::host_not_found));
+					for (auto const& aep : tr[i].endpoints)
+					{
+						TEST_CHECK(aep.fails >= 1);
+						TEST_EQUAL(aep.last_error
+							, error_code(boost::asio::error::host_not_found));
+					}
 				}
 				else
 				{
