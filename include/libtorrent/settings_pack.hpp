@@ -729,6 +729,8 @@ namespace libtorrent {
 			// ``stop_tracker_timeout`` is the number of seconds to wait when
 			// sending a stopped message before considering a tracker to have
 			// timed out. This is usually shorter, to make the client quit faster.
+			// If the value is set to 0, the connections to trackers with the
+			// stopped event are suppressed.
 			stop_tracker_timeout,
 
 			// this is the maximum number of bytes in a tracker response. If a

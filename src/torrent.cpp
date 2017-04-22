@@ -2584,6 +2584,18 @@ namespace libtorrent {
 
 		if (m_abort) e = tracker_request::stopped;
 
+		// having stop_tracker_timeout <= 0 means that there is
+		// no need to send any request to trackers or trigger any
+		// related logic when the event is stopped
+		if (e == tracker_request::stopped
+			&& settings().get_int(settings_pack::stop_tracker_timeout) <= 0)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("*** announce: event == stopped && stop_tracker_timeout <= 0");
+#endif
+			return;
+		}
+
 		// if we're not announcing to trackers, only allow
 		// stopping
 		if (e != tracker_request::stopped && !m_announce_to_trackers)

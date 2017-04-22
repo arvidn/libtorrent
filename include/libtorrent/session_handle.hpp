@@ -776,7 +776,7 @@ namespace libtorrent {
 		// in the download queue is vacated and avery subsequent torrent in the
 		// queue has their queue positions updated. This can potentially cause a
 		// large state_update to be posted. When removing all torrents, it is
-		// adviced to remove them from the back of the queue, to minimize the
+		// advised to remove them from the back of the queue, to minimize the
 		// shifting.
 		void remove_torrent(const torrent_handle& h, int options = 0);
 
