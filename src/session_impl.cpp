@@ -307,6 +307,7 @@ namespace aux {
 		TORRENT_SETTING(integer, urlseed_timeout)
 		TORRENT_SETTING(integer, urlseed_pipeline_size)
 		TORRENT_SETTING(integer, urlseed_wait_retry)
+		TORRENT_SETTING(integer, web_seed_name_lookup_retry_minutes)
 		TORRENT_SETTING(integer, file_pool_size)
 		TORRENT_SETTING(boolean, allow_multiple_connections_per_ip)
 		TORRENT_SETTING(integer, max_failcount)

@@ -1253,6 +1253,7 @@ namespace libtorrent
 		, urlseed_timeout(20)
 		, urlseed_pipeline_size(5)
 		, urlseed_wait_retry(30)
+		, web_seed_name_lookup_retry_minutes(30)
 		, file_pool_size(40)
 		, allow_multiple_connections_per_ip(false)
 		, max_failcount(3)
