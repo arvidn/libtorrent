@@ -766,6 +766,7 @@ lib torrent
 
 	: # default build
 	<threading>multi
+	<c++-template-depth>512
 
 	: # usage requirements
 	$(usage-requirements)
