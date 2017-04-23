@@ -4869,7 +4869,7 @@ namespace libtorrent {
 		for (file_index_t i(0); i < limit; ++i, ++si)
 		{
 			// initialize pad files to priority 0
-			m_file_priority[i] = fs.pad_file_at(i) ? 0 : aux::numeric_cast<std::uint8_t>(*si);
+			m_file_priority[i] = fs.pad_file_at(i) ? 0 : aux::clamp(*si, 0, 7) & 0xff;
 		}
 
 		// storage may be nullptr during construction and shutdown

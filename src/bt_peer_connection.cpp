@@ -2716,7 +2716,7 @@ namespace libtorrent {
 					disconnect(errors::no_memory, op_encryption);
 					return;
 				}
-				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, static_cast<char>(0));
+				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, char{0});
 				rc4_decrypt({m_sync_vc.get(), 8});
 			}
 
