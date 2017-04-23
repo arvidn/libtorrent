@@ -59,6 +59,8 @@ struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 
 	virtual void set_cache_timeout(seconds timeout) override;
 
+	virtual void clear() override;
+
 private:
 
 	void on_lookup(error_code const& ec, tcp::resolver::iterator i

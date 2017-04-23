@@ -140,4 +140,9 @@ namespace libtorrent {
 		else
 			m_timeout = seconds(0);
 	}
+
+	void resolver::clear()
+	{
+		m_ios.post([this]() { m_cache.clear(); });
+	}
 }
