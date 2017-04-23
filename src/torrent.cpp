@@ -3308,8 +3308,8 @@ namespace libtorrent
 			}
 
 			ae.updating = true;
-			ae.next_announce = now + seconds(20);
-			ae.min_announce = now + seconds(10);
+			ae.next_announce = now;
+			ae.min_announce = now;
 
 			if (m_ses.alerts().should_post<tracker_announce_alert>())
 			{
