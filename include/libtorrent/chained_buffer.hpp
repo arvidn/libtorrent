@@ -153,7 +153,7 @@ namespace libtorrent {
 		// tries to copy the given buffer to the end of the
 		// last chained buffer. If there's not enough room
 		// it returns nullptr
-		char* append(char const* buf, int s);
+		char* append(span<char const> buf);
 
 		// tries to allocate memory from the end
 		// of the last buffer. If there isn't

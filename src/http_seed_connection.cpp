@@ -192,7 +192,7 @@ namespace libtorrent {
 		peer_log(peer_log_alert::outgoing_message, "REQUEST", "%s", request.c_str());
 #endif
 
-		send_buffer(request.c_str(), int(request.size()), message_type_request);
+		send_buffer(request, message_type_request);
 	}
 
 	// --------------------------
