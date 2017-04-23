@@ -289,7 +289,7 @@ namespace libtorrent {
 			int tmp[] = {0, (detail::write_int32(args, ptr), 0)...};
 			TORRENT_UNUSED(tmp);
 
-			send_buffer(msg, sizeof(msg), flags);
+			send_buffer(msg, flags);
 
 			stats_counters().inc_stats_counter(counter);
 		}
@@ -318,8 +318,8 @@ namespace libtorrent {
 		void write_pe3_sync();
 		void write_pe4_sync(int crypto_select);
 
-		void write_pe_vc_cryptofield(char* write_buf, int len
-			, int crypto_field, int pad_size);
+		void write_pe_vc_cryptofield(span<char> write_buf
+			, int crypto_field, std::size_t pad_size);
 
 		// Returns offset at which bytestream (src, src + src_size)
 		// matches bytestream(target, target + target_size).

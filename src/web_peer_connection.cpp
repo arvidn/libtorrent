@@ -464,7 +464,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	peer_log(peer_log_alert::outgoing_message, "REQUEST", "%s", request.c_str());
 #endif
 
-	send_buffer(request.c_str(), int(request.size()), message_type_request);
+	send_buffer(request, message_type_request);
 }
 
 namespace {

@@ -232,7 +232,7 @@ TORRENT_TEST(chained_buffer)
 		TEST_CHECK(!b.empty());
 		TEST_EQUAL(b.space_in_last_buffer(), 512 - 6);
 
-		bool ret = b.append(data, 6) != nullptr;
+		bool ret = b.append({data, 6}) != nullptr;
 
 		TEST_CHECK(ret == true);
 		TEST_EQUAL(b.capacity(), 512 - 3);
@@ -241,7 +241,7 @@ TORRENT_TEST(chained_buffer)
 		TEST_EQUAL(b.space_in_last_buffer(), 512 - 12);
 
 		char data2[1024];
-		ret = b.append(data2, 1024) != nullptr;
+		ret = b.append(data2) != nullptr;
 
 		TEST_CHECK(ret == false);
 
@@ -290,11 +290,11 @@ TORRENT_TEST(chained_buffer)
 		b.append_buffer(holder(b4), 20, 12);
 		TEST_CHECK(b.space_in_last_buffer() == 8);
 
-		ret = b.append(data, 6) != nullptr;
+		ret = b.append({data, 6}) != nullptr;
 		TEST_CHECK(ret == true);
 		TEST_CHECK(b.space_in_last_buffer() == 2);
 		std::cout << b.space_in_last_buffer() << std::endl;
-		ret = b.append(data, 2) != nullptr;
+		ret = b.append({data, 2}) != nullptr;
 		TEST_CHECK(ret == true);
 		TEST_CHECK(b.space_in_last_buffer() == 0);
 		std::cout << b.space_in_last_buffer() << std::endl;

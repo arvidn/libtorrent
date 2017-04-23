@@ -78,13 +78,10 @@ namespace libtorrent {
 	namespace mp = boost::multiprecision;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	namespace {
+namespace {
 
-	enum
-	{
-		handshake_len = 68,
-		dh_key_len = 96
-	};
+	std::size_t const handshake_len = 68;
+	std::size_t const dh_key_len = 96;
 
 	// stream key (info hash of attached torrent)
 	// secret is the DH shared secret
@@ -126,7 +123,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	} // anonymous namespace
+} // anonymous namespace
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -353,7 +350,7 @@ namespace libtorrent {
 		char msg[] = {0,0,0,3, msg_dht_port, 0, 0};
 		char* ptr = msg + 5;
 		detail::write_uint16(listen_port, ptr);
-		send_buffer(msg, sizeof(msg));
+		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
 	}
@@ -502,22 +499,22 @@ namespace libtorrent {
 			return;
 		}
 
-		int const pad_size = int(random(512));
+		std::size_t const pad_size = random(512);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %d", pad_size);
+		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %zu", pad_size);
 #endif
 
 		char msg[dh_key_len + 512];
 		char* ptr = msg;
-		int const buf_size = dh_key_len + pad_size;
+		std::size_t const buf_size = dh_key_len + pad_size;
 
 		std::array<char, dh_key_len> const local_key = export_key(m_dh_key_exchange->get_local_key());
 		std::memcpy(ptr, local_key.data(), dh_key_len);
 		ptr += dh_key_len;
 
 		std::generate(ptr, ptr + pad_size, random_byte);
-		send_buffer(msg, buf_size);
+		send_buffer({msg, buf_size});
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "ENCRYPTION", "sent DH key");
@@ -541,7 +538,7 @@ namespace libtorrent {
 		key_t const secret_key = m_dh_key_exchange->get_secret();
 		std::array<char, dh_key_len> const secret = export_key(secret_key);
 
-		int const pad_size = int(random(512));
+		std::size_t const pad_size = random(512);
 
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
 		char msg[20 + 20 + 8 + 4 + 2 + 512 + 2];
@@ -590,7 +587,7 @@ namespace libtorrent {
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 
 		// write the verification constant and crypto field
-		int const encrypt_size = int(sizeof(msg)) - 512 + pad_size - 40;
+		std::size_t const encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
 		// this is an invalid setting, but let's just make the best of the situation
 		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
@@ -604,10 +601,10 @@ namespace libtorrent {
 			, "%s", level[crypto_provide - 1]);
 #endif
 
-		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
+		write_pe_vc_cryptofield({ptr, encrypt_size}, crypto_provide, pad_size);
 		span<char> vec(ptr, aux::numeric_cast<std::size_t>(encrypt_size));
 		m_rc4->encrypt(vec);
-		send_buffer(msg, int(sizeof(msg)) - 512 + pad_size);
+		send_buffer({msg, sizeof(msg) - 512 + pad_size});
 	}
 
 	void bt_peer_connection::write_pe4_sync(int crypto_select)
@@ -620,15 +617,15 @@ namespace libtorrent {
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		int const pad_size = int(random(512));
+		std::size_t const pad_size = random(512);
 
-		int const buf_size = 8 + 4 + 2 + pad_size;
+		std::size_t const buf_size = 8 + 4 + 2 + pad_size;
 		char msg[512 + 8 + 4 + 2];
-		write_pe_vc_cryptofield(msg, sizeof(msg), crypto_select, pad_size);
+		write_pe_vc_cryptofield(msg, crypto_select, pad_size);
 
-		span<char> vec(msg, aux::numeric_cast<std::size_t>(buf_size));
+		span<char> vec(msg, buf_size);
 		m_rc4->encrypt(vec);
-		send_buffer(msg, buf_size);
+		send_buffer(vec);
 
 		// encryption method has been negotiated
 		if (crypto_select == 0x02)
@@ -642,10 +639,10 @@ namespace libtorrent {
 #endif
 	}
 
-	void bt_peer_connection::write_pe_vc_cryptofield(char* write_buf
-		, int const len
+	void bt_peer_connection::write_pe_vc_cryptofield(
+		span<char> write_buf
 		, int const crypto_field
-		, int const pad_size)
+		, std::size_t const pad_size)
 	{
 		INVARIANT_CHECK;
 #if !TORRENT_USE_ASSERTS
@@ -654,26 +651,27 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(crypto_field <= 0x03 && crypto_field > 0);
 		// vc,crypto_field,len(pad),pad, (len(ia))
-		TORRENT_ASSERT((len >= 8+4+2+pad_size+2 && is_outgoing())
-			|| (len >= 8+4+2+pad_size && !is_outgoing()));
+		TORRENT_ASSERT((write_buf.size() >= 8+4+2+pad_size+2
+				&& is_outgoing())
+			|| (write_buf.size() >= 8+4+2+pad_size && !is_outgoing()));
 		TORRENT_ASSERT(!m_sent_handshake);
 
 		// encrypt(vc, crypto_provide/select, len(Pad), len(IA))
 		// len(pad) is zero for now, len(IA) only for outgoing connections
 
 		// vc
-		std::memset(write_buf, 0, 8);
-		write_buf += 8;
+		std::memset(write_buf.data(), 0, 8);
+		write_buf = write_buf.subspan(8);
 
-		detail::write_uint32(crypto_field, write_buf);
-		detail::write_uint16(pad_size, write_buf); // len (pad)
+		aux::write_uint32(crypto_field, write_buf);
+		aux::write_uint16(pad_size, write_buf); // len (pad)
 
-		std::generate(write_buf, write_buf + pad_size, random_byte);
-		write_buf += pad_size;
+		std::generate(write_buf.data(), write_buf.data() + pad_size, random_byte);
+		write_buf = write_buf.subspan(pad_size);
 
 		// append len(ia) if we are initiating
 		if (is_outgoing())
-			detail::write_uint16(handshake_len, write_buf); // len(IA)
+			aux::write_uint16(handshake_len, write_buf); // len(IA)
 	}
 
 	// TODO: 3 use span instead of (pointer,len) pairs
@@ -796,7 +794,7 @@ namespace libtorrent {
 				, "ih: %s", aux::to_hex(ih).c_str());
 		}
 #endif
-		send_buffer(handshake, sizeof(handshake));
+		send_buffer(handshake);
 	}
 
 	piece_block_progress bt_peer_connection::downloading_piece_progress() const
@@ -1592,7 +1590,7 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(ptr <= buf + sizeof(buf));
 
-		send_buffer(buf, int(ptr - buf));
+		send_buffer({buf, std::size_t(ptr - buf)});
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 	}
@@ -1963,7 +1961,7 @@ namespace libtorrent {
 		// they have downloaded a single piece, although we'll
 		// make another piece available
 		detail::write_uint8(t->is_upload_only() && !t->super_seeding(), ptr);
-		send_buffer(msg, sizeof(msg));
+		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 	}
@@ -1979,7 +1977,7 @@ namespace libtorrent {
 		char* ptr = msg + 5;
 		detail::write_uint8(m_share_mode_id, ptr);
 		detail::write_uint8(t->share_mode(), ptr);
-		send_buffer(msg, sizeof(msg));
+		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 	}
@@ -1998,7 +1996,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_sent_handshake);
 
 		static const char msg[] = {0,0,0,0};
-		send_buffer(msg, sizeof(msg));
+		send_buffer(msg);
 	}
 
 	void bt_peer_connection::write_cancel(peer_request const& r)
@@ -2075,7 +2073,7 @@ namespace libtorrent {
 
 		const int packet_size = (num_pieces + 7) / 8 + 5;
 
-		TORRENT_ALLOCA(msg, std::uint8_t, packet_size);
+		TORRENT_ALLOCA(msg, char, packet_size);
 		if (msg.data() == nullptr) return; // out of memory
 		auto ptr = msg.begin();
 
@@ -2087,7 +2085,7 @@ namespace libtorrent {
 			std::fill_n(ptr, packet_size - 5, 0xff);
 
 			// Clear trailing bits
-			msg.back() = (0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff;
+			msg.back() = static_cast<char>((0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff);
 		}
 		else
 		{
@@ -2128,7 +2126,7 @@ namespace libtorrent {
 #endif
 		m_sent_bitfield = true;
 
-		send_buffer(reinterpret_cast<char const*>(msg.data()), int(msg.size()));
+		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_bitfield);
 	}
@@ -2232,8 +2230,8 @@ namespace libtorrent {
 		detail::write_uint8(msg_extended, ptr);
 		// signal handshake message
 		detail::write_uint8(0, ptr);
-		send_buffer(msg, sizeof(msg));
-		send_buffer(&dict_msg[0], int(dict_msg.size()));
+		send_buffer(msg);
+		send_buffer(dict_msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_ext_handshake);
 
@@ -2316,7 +2314,7 @@ namespace libtorrent {
 		char msg[] = {0,0,0,6,msg_extended,char(m_dont_have_id),0,0,0,0};
 		char* ptr = msg + 6;
 		detail::write_int32(static_cast<int>(index), ptr);
-		send_buffer(msg, sizeof(msg));
+		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 #else
@@ -2376,12 +2374,12 @@ namespace libtorrent {
 			detail::write_int32(r.length + 1 + 4 + 4 + 4 + int(piece_list_buf.size())
 				, ptr2);
 
-			send_buffer(msg, 17);
-			send_buffer(&piece_list_buf[0], int(piece_list_buf.size()));
+			send_buffer({msg, 17});
+			send_buffer(piece_list_buf);
 		}
 		else
 		{
-			send_buffer(msg, 13);
+			send_buffer({msg, 13});
 		}
 
 		if (buffer.is_mutable())

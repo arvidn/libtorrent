@@ -267,21 +267,26 @@ namespace libtorrent {namespace {
 				TORRENT_ASSERT(offset + metadata_piece_size <= int(m_tp.get_metadata_size()));
 			}
 
+			// TODO: 3 use the aux::write_* functions and the span here instead, it
+			// will fit better with send_buffer()
 			char msg[200];
 			char* header = msg;
 			char* p = &msg[6];
-			int len = bencode(p, e);
-			int total_size = 2 + len + metadata_piece_size;
+			int const len = bencode(p, e);
+			int const total_size = 2 + len + metadata_piece_size;
 			namespace io = detail;
 			io::write_uint32(total_size, header);
 			io::write_uint8(bt_peer_connection::msg_extended, header);
 			io::write_uint8(m_message_index, header);
 
-			m_pc.send_buffer(msg, len + 6);
+			m_pc.send_buffer({msg, static_cast<std::size_t>(len + 6)});
 			// TODO: we really need to increment the refcounter on the torrent
 			// while this buffer is still in the peer's send buffer
-			if (metadata_piece_size) m_pc.append_const_send_buffer(
-				aux::non_owning_handle(const_cast<char*>(metadata)), metadata_piece_size);
+			if (metadata_piece_size)
+			{
+				m_pc.append_const_send_buffer(
+					aux::non_owning_handle(const_cast<char*>(metadata)), metadata_piece_size);
+			}
 
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_metadata);

@@ -89,7 +89,7 @@ int read_message(tcp::socket& s, char* buffer, int max_size)
 	if (length > max_size)
 	{
 		log("message size: %d", length);
-		TEST_ERROR("message size exceeds max limt");
+		TEST_ERROR("message size exceeds max limit");
 		return -1;
 	}
 

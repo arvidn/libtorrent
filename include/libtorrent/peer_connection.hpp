@@ -620,7 +620,7 @@ namespace aux {
 		virtual piece_block_progress downloading_piece_progress() const;
 
 		enum message_type_flags { message_type_request = 1 };
-		void send_buffer(char const* begin, int size, std::uint32_t flags = 0);
+		void send_buffer(span<char const> buf, std::uint32_t flags = 0);
 		void setup_send();
 
 		template <typename Holder>
