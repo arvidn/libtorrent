@@ -302,6 +302,7 @@ namespace libtorrent {
 				{
 					iovec_t const v = {buf.data(), buf.size()};
 					std::int64_t const ret = f->writev(file_offset, v, ec.ec);
+					TORRENT_UNUSED(ret);
 					TORRENT_ASSERT(ec || ret == std::int64_t(v.iov_len));
 				}, fs.file_offset(i), fs.file_size(i), ec.ec);
 

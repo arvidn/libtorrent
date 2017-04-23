@@ -5675,7 +5675,6 @@ namespace libtorrent {
 		}
 		if (size <= 0) return;
 
-		int i = 0;
 		while (size > 0)
 		{
 			aux::ses_buffer_holder session_buf = m_ses.allocate_buffer();
@@ -5686,7 +5685,6 @@ namespace libtorrent {
 			buf += buf_size;
 			size -= buf_size;
 			m_send_buffer.append_buffer(std::move(session_buf), alloc_buf_size, buf_size);
-			++i;
 		}
 		setup_send();
 	}

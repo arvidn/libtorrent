@@ -57,8 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct TORRENT_EXTRA_EXPORT ut_pex_peer_store
 	{
