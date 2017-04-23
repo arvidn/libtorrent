@@ -156,6 +156,7 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::delete_socket(aux::session_listen_socket* s)
 	{
+		TORRENT_ASSERT(m_nodes.count(s) == 1);
 		m_nodes.erase(s);
 	}
 
