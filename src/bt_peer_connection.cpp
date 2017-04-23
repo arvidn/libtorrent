@@ -2084,7 +2084,7 @@ namespace libtorrent {
 
 		if (t->is_seed())
 		{
-			std::fill_n(ptr, packet_size - 5, static_cast<std::uint8_t>(0xff));
+			std::fill_n(ptr, packet_size - 5, std::uint8_t{0xff});
 
 			// Clear trailing bits
 			msg.back() = (0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff;
