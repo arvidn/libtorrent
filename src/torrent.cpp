@@ -8194,7 +8194,6 @@ namespace libtorrent {
 		}
 
 		m_need_save_resume_data = false;
-		m_last_saved_resume = aux::time_now32();
 		m_save_resume_flags = aux::numeric_cast<std::uint8_t>(flags);
 		state_updated();
 
