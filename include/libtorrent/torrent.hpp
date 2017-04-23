@@ -527,13 +527,7 @@ namespace libtorrent {
 		void force_recheck();
 		void save_resume_data(int flags);
 
-		bool need_save_resume_data() const
-		{
-			// save resume data every 15 minutes regardless, just to
-			// keep stats up to date
-			return m_need_save_resume_data ||
-				aux::time_now32() - m_last_saved_resume > minutes(15);
-		}
+		bool need_save_resume_data() const { return m_need_save_resume_data; }
 
 		void set_need_save_resume()
 		{
@@ -1359,8 +1353,6 @@ namespace libtorrent {
 
 		// m_num_verified = m_verified.count()
 		std::uint32_t m_num_verified = 0;
-
-		time_point32 m_last_saved_resume = aux::time_now32();
 
 		// if this torrent is running, this was the time
 		// when it was started. This is used to have a
