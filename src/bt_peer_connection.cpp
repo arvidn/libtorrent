@@ -2084,7 +2084,7 @@ namespace libtorrent {
 
 		if (t->is_seed())
 		{
-			std::fill_n(ptr, packet_size - 5, 0xff);
+			std::fill_n(ptr, packet_size - 5, std::uint8_t{0xff});
 
 			// Clear trailing bits
 			msg.back() = (0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff;
@@ -2716,7 +2716,7 @@ namespace libtorrent {
 					disconnect(errors::no_memory, op_encryption);
 					return;
 				}
-				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, 0);
+				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, char{0});
 				rc4_decrypt({m_sync_vc.get(), 8});
 			}
 

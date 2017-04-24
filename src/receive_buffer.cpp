@@ -125,7 +125,7 @@ void receive_buffer::cut(int const size, int const packet_size, int const offset
 		m_recv_end -= size;
 
 #if TORRENT_USE_ASSERTS
-		std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0xcc);
+		std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), std::uint8_t{0xcc});
 #endif
 	}
 	else
@@ -209,7 +209,7 @@ void receive_buffer::normalize(int const force_shrink)
 	m_recv_start = 0;
 
 #if TORRENT_USE_ASSERTS
-	std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0xcc);
+	std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), std::uint8_t{0xcc});
 #endif
 }
 

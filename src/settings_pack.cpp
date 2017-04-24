@@ -576,7 +576,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 	{
 		TORRENT_ASSERT((name & type_mask) == string_type_base);
 		if ((name & type_mask) != string_type_base) return;
-		std::pair<std::uint16_t, std::string> v(name, std::move(val));
+		std::pair<std::uint16_t, std::string> v(aux::numeric_cast<std::uint16_t>(name), std::move(val));
 		insort_replace(m_strings, std::move(v));
 	}
 
@@ -584,7 +584,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 	{
 		TORRENT_ASSERT((name & type_mask) == int_type_base);
 		if ((name & type_mask) != int_type_base) return;
-		std::pair<std::uint16_t, int> v(name, val);
+		std::pair<std::uint16_t, int> v(aux::numeric_cast<std::uint16_t>(name), val);
 		insort_replace(m_ints, v);
 	}
 
@@ -592,7 +592,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 	{
 		TORRENT_ASSERT((name & type_mask) == bool_type_base);
 		if ((name & type_mask) != bool_type_base) return;
-		std::pair<std::uint16_t, bool> v(name, val);
+		std::pair<std::uint16_t, bool> v(aux::numeric_cast<std::uint16_t>(name), val);
 		insort_replace(m_bools, v);
 	}
 
@@ -606,7 +606,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 				// i.e. has every key, we don't need to search, it's just a lookup
 				if (m_strings.size() == settings_pack::num_string_settings)
 					return true;
-				std::pair<std::uint16_t, std::string> v(name, std::string());
+				std::pair<std::uint16_t, std::string> v(aux::numeric_cast<std::uint16_t>(name), std::string());
 				auto i = std::lower_bound(m_strings.begin(), m_strings.end(), v
 						, &compare_first<std::string>);
 				return i != m_strings.end() && i->first == name;
@@ -617,7 +617,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 				// i.e. has every key, we don't need to search, it's just a lookup
 				if (m_ints.size() == settings_pack::num_int_settings)
 					return true;
-				std::pair<std::uint16_t, int> v(name, 0);
+				std::pair<std::uint16_t, int> v(aux::numeric_cast<std::uint16_t>(name), 0);
 				auto i = std::lower_bound(m_ints.begin(), m_ints.end(), v
 						, &compare_first<int>);
 				return i != m_ints.end() && i->first == name;
@@ -628,7 +628,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 				// i.e. has every key, we don't need to search, it's just a lookup
 				if (m_bools.size() == settings_pack::num_bool_settings)
 					return true;
-				std::pair<std::uint16_t, bool> v(name, false);
+				std::pair<std::uint16_t, bool> v(aux::numeric_cast<std::uint16_t>(name), false);
 				auto i = std::lower_bound(m_bools.begin(), m_bools.end(), v
 						, &compare_first<bool>);
 				return i != m_bools.end() && i->first == name;
@@ -651,7 +651,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 			TORRENT_ASSERT(m_strings[name & index_mask].first == name);
 			return m_strings[name & index_mask].second;
 		}
-		std::pair<std::uint16_t, std::string> v(name, std::string());
+		std::pair<std::uint16_t, std::string> v(aux::numeric_cast<std::uint16_t>(name), std::string());
 		auto i = std::lower_bound(m_strings.begin(), m_strings.end(), v
 				, &compare_first<std::string>);
 		if (i != m_strings.end() && i->first == name) return i->second;
@@ -670,7 +670,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 			TORRENT_ASSERT(m_ints[name & index_mask].first == name);
 			return m_ints[name & index_mask].second;
 		}
-		std::pair<std::uint16_t, int> v(name, 0);
+		std::pair<std::uint16_t, int> v(aux::numeric_cast<std::uint16_t>(name), 0);
 		auto i = std::lower_bound(m_ints.begin(), m_ints.end(), v
 				, &compare_first<int>);
 		if (i != m_ints.end() && i->first == name) return i->second;
@@ -689,7 +689,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 			TORRENT_ASSERT(m_bools[name & index_mask].first == name);
 			return m_bools[name & index_mask].second;
 		}
-		std::pair<std::uint16_t, bool> v(name, false);
+		std::pair<std::uint16_t, bool> v(aux::numeric_cast<std::uint16_t>(name), false);
 		auto i = std::lower_bound(m_bools.begin(), m_bools.end(), v
 					, &compare_first<bool>);
 		if (i != m_bools.end() && i->first == name) return i->second;
@@ -709,7 +709,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		{
 			case string_type_base:
 			{
-				std::pair<std::uint16_t, std::string> v(name, std::string());
+				std::pair<std::uint16_t, std::string> v(aux::numeric_cast<std::uint16_t>(name), std::string());
 				auto const i = std::lower_bound(m_strings.begin(), m_strings.end()
 					, v, &compare_first<std::string>);
 				if (i != m_strings.end() && i->first == name) m_strings.erase(i);
@@ -717,7 +717,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 			}
 			case int_type_base:
 			{
-				std::pair<std::uint16_t, int> v(name, 0);
+				std::pair<std::uint16_t, int> v(aux::numeric_cast<std::uint16_t>(name), 0);
 				auto const i = std::lower_bound(m_ints.begin(), m_ints.end()
 					, v, &compare_first<int>);
 				if (i != m_ints.end() && i->first == name) m_ints.erase(i);
@@ -725,7 +725,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 			}
 			case bool_type_base:
 			{
-				std::pair<std::uint16_t, bool> v(name, false);
+				std::pair<std::uint16_t, bool> v(aux::numeric_cast<std::uint16_t>(name), false);
 				auto const i = std::lower_bound(m_bools.begin(), m_bools.end()
 					, v, &compare_first<bool>);
 				if (i != m_bools.end() && i->first == name) m_bools.erase(i);
