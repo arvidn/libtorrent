@@ -514,6 +514,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_ICONV
+namespace {
 	std::string iconv_convert_impl(std::string const& s, iconv_t h)
 	{
 		std::string ret;
@@ -525,9 +526,9 @@ namespace libtorrent
 		// posix has a weird iconv signature. implementations
 		// differ on what this signature should be, so we use
 		// a macro to let config.hpp determine it
-		size_t retval = iconv(h, TORRENT_ICONV_ARG &in, &insize,
+		size_t retval = iconv(h, TORRENT_ICONV_ARG(&in), &insize,
 			&out, &outsize);
-		if (retval == (size_t)-1) return s;
+		if (retval == size_t(-1)) return s;
 		// if this string has an invalid utf-8 sequence in it, don't touch it
 		if (insize != 0) return s;
 		// not sure why this would happen, but it seems to be possible
@@ -537,6 +538,7 @@ namespace libtorrent
 		ret.resize(ret.size() - outsize);
 		return ret;
 	}
+} // anonymous namespace
 
 	std::string convert_to_native(std::string const& s)
 	{

@@ -199,7 +199,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // FreeBSD has a reasonable iconv signature
 // unless we're on glibc
 #ifndef __GLIBC__
-# define TORRENT_ICONV_ARG (const char**)
+# define TORRENT_ICONV_ARG(x) (x)
 #endif
 #endif // __APPLE__
 
@@ -344,7 +344,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_USE_SYSCTL 1
 #define TORRENT_USE_IPV6 0
-#define TORRENT_ICONV_ARG (const char**)
+#define TORRENT_ICONV_ARG(x) (x)
 #define TORRENT_USE_WRITEV 0
 #define TORRENT_USE_READV 0
 
@@ -457,7 +457,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #ifndef TORRENT_ICONV_ARG
-#define TORRENT_ICONV_ARG (char**)
+#define TORRENT_ICONV_ARG(x) const_cast<char**>(x)
 #endif
 
 #if defined __GNUC__ || defined __clang__
