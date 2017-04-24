@@ -49,9 +49,18 @@ namespace libtorrent {
 	struct utp_socket_impl;
 	struct counters;
 
+	// interface/handle to the underlying udp socket
+	struct TORRENT_EXTRA_EXPORT utp_socket_interface
+	{
+		virtual udp::endpoint local_endpoint() = 0;
+	protected:
+		virtual ~utp_socket_interface() = default;
+	};
+
 	struct utp_socket_manager final
 	{
-		typedef std::function<void(udp::endpoint const&
+		typedef std::function<void(std::weak_ptr<utp_socket_interface>
+			, udp::endpoint const&
 			, span<char const>
 			, error_code&, int)> send_fun_t;
 
@@ -67,7 +76,8 @@ namespace libtorrent {
 		~utp_socket_manager();
 
 		// return false if this is not a uTP packet
-		bool incoming_packet(udp::endpoint const& ep, span<char const> p);
+		bool incoming_packet(std::weak_ptr<utp_socket_interface> socket
+			, udp::endpoint const& ep, span<char const> p);
 
 		// if the UDP socket failed with an EAGAIN or EWOULDBLOCK, this will be
 		// called once the socket is writeable again
@@ -82,9 +92,12 @@ namespace libtorrent {
 
 		// flags for send_packet
 		enum { dont_fragment = 1 };
-		void send_packet(udp::endpoint const& ep, char const* p, int len
+		void send_packet(std::weak_ptr<utp_socket_interface> sock, udp::endpoint const& ep
+			, char const* p, int len
 			, error_code& ec, int flags = 0);
 		void subscribe_writable(utp_socket_impl* s);
+
+		void remove_udp_socket(std::weak_ptr<utp_socket_interface> sock);
 
 		// internal, used by utp_stream
 		void remove_socket(std::uint16_t id);
