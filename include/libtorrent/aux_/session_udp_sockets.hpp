@@ -61,15 +61,15 @@ namespace libtorrent { namespace aux {
 
 	struct outgoing_udp_socket final : session_udp_socket
 	{
-		explicit outgoing_udp_socket(io_service& ios, std::string const& dev, bool ssl_)
+		outgoing_udp_socket(io_service& ios, std::string const& dev, bool ssl_)
 			: session_udp_socket(ios), device(dev), ssl(ssl_) {}
 
 		// the name of the device the socket is bound to, may be empty
 		// if the socket is not bound to a device
-		std::string device;
+		std::string const device;
 
 		// set to true if this is an SSL socket
-		bool ssl = false;
+		bool const ssl;
 	};
 
 	// sockets used for outoing utp connections
@@ -90,6 +90,7 @@ namespace libtorrent { namespace aux {
 		void close();
 
 		std::vector<std::shared_ptr<outgoing_udp_socket>> sockets;
+	private:
 		// round-robin index into sockets
 		// one dimention for IPv4/IPv6 and a second for SSL/non-SSL
 		mutable std::uint8_t index[2][2] = { {0, 0}, {0, 0} };

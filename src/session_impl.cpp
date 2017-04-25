@@ -2053,6 +2053,8 @@ namespace {
 						, ep.device.c_str(), ec.message().c_str());
 				}
 #endif
+				if (m_alerts.should_post<udp_error_alert>())
+					m_alerts.emplace_alert<udp_error_alert>(udp_bind_ep, ec);
 				continue;
 			}
 
@@ -2069,6 +2071,9 @@ namespace {
 							, ep.device.c_str(), ec.message().c_str());
 					}
 #endif // TORRENT_DISABLE_LOGGING
+
+					if (m_alerts.should_post<udp_error_alert>())
+						m_alerts.emplace_alert<udp_error_alert>(udp_bind_ep, ec);
 					continue;
 				}
 			}
@@ -2084,6 +2089,8 @@ namespace {
 						, ep.device.c_str(), ec.message().c_str());
 				}
 #endif
+				if (m_alerts.should_post<udp_error_alert>())
+					m_alerts.emplace_alert<udp_error_alert>(udp_bind_ep, ec);
 				continue;
 			}
 

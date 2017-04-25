@@ -57,7 +57,7 @@ namespace libtorrent {
 		virtual ~utp_socket_interface() = default;
 	};
 
-	struct utp_socket_manager final
+	struct utp_socket_manager
 	{
 		typedef std::function<void(std::weak_ptr<utp_socket_interface>
 			, udp::endpoint const&

@@ -45,14 +45,14 @@ namespace libtorrent { namespace aux {
 				, [&sock](listen_endpoint_t const& ep)
 			{
 				return ep.device == sock->device
-					&& ep.addr == sock->sock.local_endpoint().address();
+					&& ep.addr == sock->sock.local_endpoint().address()
+					&& ep.ssl == sock->ssl;
 			});
 
 			if (match != eps.end())
 			{
-				// remove the matched endpoint so that another socket can't match it
-				// this also signals to the caller that it doesn't need to create a
-				// socket for the endpoint
+				// remove the matched endpoint to signal the caller that it
+				// doesn't need to create a socket for the endpoint
 				eps.erase(match);
 				return true;
 			}
