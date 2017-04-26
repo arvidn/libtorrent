@@ -281,6 +281,7 @@ namespace aux {
 
 			void on_ip_change(error_code const& ec);
 			void reopen_listen_sockets();
+			void reopen_outgoing_sockets();
 
 			torrent_peer_allocator_interface* get_peer_allocator() override
 			{ return &m_peer_allocator; }
@@ -913,6 +914,8 @@ namespace aux {
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
 
+			outgoing_sockets m_outgoing_sockets;
+
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
 			std::shared_ptr<socket_type> m_i2p_listen_socket;
@@ -1059,7 +1062,14 @@ namespace aux {
 			int m_outstanding_router_lookups = 0;
 #endif
 
-			void send_udp_packet_hostname(char const* hostname
+			void send_udp_packet_hostname_deprecated(char const* hostname
+				, int port
+				, span<char const> p
+				, error_code& ec
+				, int flags);
+
+			void send_udp_packet_hostname(std::weak_ptr<utp_socket_interface> sock
+				, char const* hostname
 				, int port
 				, span<char const> p
 				, error_code& ec
@@ -1070,9 +1080,19 @@ namespace aux {
 				, int port
 				, span<char const> p
 				, error_code& ec
+				, int flags)
+			{
+				listen_socket_t* s = static_cast<listen_socket_t*>(sock);
+				send_udp_packet_hostname(s->udp_sock, hostname, port, p, ec, flags);
+			}
+
+			void send_udp_packet_deprecated(bool ssl
+				, udp::endpoint const& ep
+				, span<char const> p
+				, error_code& ec
 				, int flags);
 
-			void send_udp_packet(bool ssl
+			void send_udp_packet(std::weak_ptr<utp_socket_interface> sock
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
@@ -1082,7 +1102,11 @@ namespace aux {
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
-				, int flags);
+				, int flags)
+			{
+				listen_socket_t* s = static_cast<listen_socket_t*>(sock);
+				send_udp_packet(s->udp_sock, ep, p, ec, flags);
+			}
 
 			void on_udp_writeable(std::weak_ptr<session_udp_socket> s, error_code const& ec);
 

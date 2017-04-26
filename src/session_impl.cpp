@@ -423,8 +423,8 @@ namespace aux {
 		, m_upload_rate(peer_connection::upload_channel)
 		, m_host_resolver(m_io_service)
 		, m_tracker_manager(
-			std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
-			, std::bind(&session_impl::send_udp_packet_hostname, this, _1, _2, _3, _4, _5)
+			std::bind(&session_impl::send_udp_packet_deprecated, this, false, _1, _2, _3, _4)
+			, std::bind(&session_impl::send_udp_packet_hostname_deprecated, this, _1, _2, _3, _4, _5)
 			, m_stats_counters
 			, m_host_resolver
 			, m_settings
@@ -446,13 +446,13 @@ namespace aux {
 		, m_dht_announce_timer(m_io_service)
 #endif
 		, m_utp_socket_manager(
-			std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
+			std::bind(&session_impl::send_udp_packet, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::incoming_connection, this, _1)
 			, m_io_service
 			, m_settings, m_stats_counters, nullptr)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_utp_socket_manager(
-			std::bind(&session_impl::send_udp_packet, this, true, _1, _2, _3, _4)
+			std::bind(&session_impl::send_udp_packet, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::on_incoming_utp_ssl, this, _1)
 			, m_io_service
 			, m_settings, m_stats_counters
@@ -943,6 +943,8 @@ namespace aux {
 			}
 		}
 
+		m_outgoing_sockets.close();
+
 #if TORRENT_USE_I2P
 		if (m_i2p_listen_socket && m_i2p_listen_socket->is_open())
 		{
@@ -1351,6 +1353,11 @@ namespace {
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
+		bool const reopen_outgoing_port =
+			(pack.has_val(settings_pack::outgoing_interfaces)
+				&& pack.get_str(settings_pack::outgoing_interfaces)
+					!= m_settings.get_str(settings_pack::outgoing_interfaces));
+
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("applying settings pack, init=%s, reopen_listen_port=%s"
 			, init ? "true" : "false", reopen_listen_port ? "true" : "false");
@@ -1370,6 +1377,9 @@ namespace {
 		{
 			reopen_listen_sockets();
 		}
+
+		if (init || reopen_outgoing_port)
+			reopen_outgoing_sockets();
 	}
 
 	// TODO: 3 try to remove these functions. They are misleading and not very
@@ -1761,6 +1771,7 @@ namespace {
 		m_ip_notifier->async_wait([this] (error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
 		reopen_listen_sockets();
+		reopen_outgoing_sockets();
 	}
 
 	void session_impl::interface_to_endpoints(std::string const& device, int const port
@@ -1973,6 +1984,143 @@ namespace {
 #endif
 	}
 
+	void session_impl::reopen_outgoing_sockets()
+	{
+		// first build a list of endpoints we should be listening on
+		// we need to remove any unneeded sockets first to avoid the possibility
+		// of a new socket failing to bind due to a conflict with a stale socket
+		std::vector<listen_endpoint_t> eps;
+
+		for (auto const& iface : m_outgoing_interfaces)
+		{
+			interface_to_endpoints(iface, 0, false, eps);
+#ifdef TORRENT_USE_OPENSSL
+			interface_to_endpoints(iface, 0, true, eps);
+#endif
+		}
+
+		// if no outgoing interfaces are specified, create sockets to use
+		// any interface
+		if (eps.empty())
+		{
+			eps.emplace_back(address_v4(), 0, "", false);
+#if TORRENT_USE_IPV6
+			eps.emplace_back(address_v6(), 0, "", false);
+#endif
+#ifdef TORRENT_USE_OPENSSL
+			eps.emplace_back(address_v4(), 0, "", true);
+#if TORRENT_USE_IPV6
+			eps.emplace_back(address_v6(), 0, "", true);
+#endif
+#endif
+		}
+
+		auto remove_iter = m_outgoing_sockets.partition_outgoing_sockets(eps);
+
+		for (auto i = remove_iter; i != m_outgoing_sockets.sockets.end(); ++i)
+		{
+			auto& remove_sock = *i;
+			m_utp_socket_manager.remove_udp_socket(remove_sock);
+
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				session_log("Closing outgoing UDP socket for %s on device \"%s\""
+					, print_endpoint(remove_sock->local_endpoint()).c_str()
+					, remove_sock->device.c_str());
+			}
+#endif
+			remove_sock->sock.close();
+		}
+
+		m_outgoing_sockets.sockets.erase(remove_iter, m_outgoing_sockets.sockets.end());
+
+		// open new sockets on any endpoints that didn't match with
+		// an existing socket
+		for (auto const& ep : eps)
+		{
+			error_code ec;
+			udp::endpoint const udp_bind_ep(ep.addr, 0);
+
+			auto udp_sock = std::make_shared<outgoing_udp_socket>(m_io_service, ep.device, ep.ssl);
+			udp_sock->sock.open(udp_bind_ep.protocol(), ec);
+			if (ec)
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log())
+				{
+					session_log("failed to open UDP socket: %s: %s"
+						, ep.device.c_str(), ec.message().c_str());
+				}
+#endif
+				if (m_alerts.should_post<udp_error_alert>())
+					m_alerts.emplace_alert<udp_error_alert>(udp_bind_ep, ec);
+				continue;
+			}
+
+#if TORRENT_HAS_BINDTODEVICE
+			if (!ep.device.empty())
+			{
+				udp_sock->sock.set_option(bind_to_device(ep.device.c_str()), ec);
+				if (ec)
+				{
+#ifndef TORRENT_DISABLE_LOGGING
+					if (should_log())
+					{
+						session_log("bind to device failed (device: %s): %s"
+							, ep.device.c_str(), ec.message().c_str());
+					}
+#endif // TORRENT_DISABLE_LOGGING
+
+					if (m_alerts.should_post<udp_error_alert>())
+						m_alerts.emplace_alert<udp_error_alert>(udp_bind_ep, ec);
+					continue;
+				}
+			}
+#endif
+			udp_sock->sock.bind(udp_bind_ep, ec);
+
+			if (ec)
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log())
+				{
+					session_log("failed to bind UDP socket: %s: %s"
+						, ep.device.c_str(), ec.message().c_str());
+				}
+#endif
+				if (m_alerts.should_post<udp_error_alert>())
+					m_alerts.emplace_alert<udp_error_alert>(udp_bind_ep, ec);
+				continue;
+			}
+
+			error_code err;
+			set_socket_buffer_size(udp_sock->sock, m_settings, err);
+			if (err)
+			{
+				if (m_alerts.should_post<udp_error_alert>())
+					m_alerts.emplace_alert<udp_error_alert>(udp_sock->sock.local_endpoint(ec), err);
+			}
+
+			udp_sock->sock.set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
+			// this call is necessary here because, unless the settings actually
+			// change after the session is up and listening, at no other point
+			// set_proxy_settings is called with the correct proxy configuration,
+			// internally, this method handle the SOCKS5's connection logic
+			udp_sock->sock.set_proxy_settings(proxy());
+
+			// TODO: 2 use a handler allocator here
+			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
+			udp_sock->sock.async_read(std::bind(&session_impl::on_udp_packet
+				, this, udp_sock, ep.ssl, _1));
+
+			if (!ec && udp_sock)
+			{
+				m_outgoing_sockets.sockets.push_back(udp_sock);
+			}
+		}
+	}
+
 	namespace {
 		template <typename MapProtocol, typename ProtoType, typename EndpointType>
 		void map_port(MapProtocol& m, ProtoType protocol, EndpointType const& ep
@@ -2101,7 +2249,7 @@ namespace {
 	}
 #endif
 
-	void session_impl::send_udp_packet_hostname(char const* hostname
+	void session_impl::send_udp_packet_hostname_deprecated(char const* hostname
 		, int const port
 		, span<char const> p
 		, error_code& ec
@@ -2114,20 +2262,27 @@ namespace {
 			if (!i.udp_sock) continue;
 			if (i.ssl) continue;
 
-			send_udp_packet_hostname_listen(&i, hostname, port, p, ec, flags);
+			send_udp_packet_hostname(i.udp_sock, hostname, port, p, ec, flags);
 			return;
 		}
 		ec = boost::asio::error::operation_not_supported;
 	}
 
-	void session_impl::send_udp_packet_hostname_listen(aux::session_listen_socket* sock
+	void session_impl::send_udp_packet_hostname(std::weak_ptr<utp_socket_interface> sock
 		, char const* hostname
 		, int const port
 		, span<char const> p
 		, error_code& ec
 		, int const flags)
 	{
-		auto s = static_cast<listen_socket_t*>(sock)->udp_sock;
+		auto si = sock.lock();
+		if (!si)
+		{
+			ec = boost::asio::error::bad_descriptor;
+			return;
+		}
+
+		auto s = std::static_pointer_cast<session_udp_socket>(si);
 
 		s->sock.send_hostname(hostname, port, p, ec, flags);
 
@@ -2141,7 +2296,7 @@ namespace {
 		}
 	}
 
-	void session_impl::send_udp_packet(bool const ssl
+	void session_impl::send_udp_packet_deprecated(bool const ssl
 		, udp::endpoint const& ep
 		, span<char const> p
 		, error_code& ec
@@ -2157,27 +2312,32 @@ namespace {
 			if (i.local_endpoint.address().is_v4() != ep.address().is_v4())
 				continue;
 
-			send_udp_packet_listen(&i, ep, p, ec, flags);
+			send_udp_packet(i.udp_sock, ep, p, ec, flags);
 			return;
 		}
 		ec = boost::asio::error::operation_not_supported;
 	}
 
-	void session_impl::send_udp_packet_listen(aux::session_listen_socket* sock
+	void session_impl::send_udp_packet(std::weak_ptr<utp_socket_interface> sock
 		, udp::endpoint const& ep
 		, span<char const> p
 		, error_code& ec
 		, int const flags)
 	{
-		auto s = static_cast<listen_socket_t*>(sock)->udp_sock;
+		auto si = sock.lock();
+		if (!si)
+		{
+			ec = boost::asio::error::bad_descriptor;
+			return;
+		}
+
+		auto s = std::static_pointer_cast<session_udp_socket>(si);
 
 		TORRENT_ASSERT(s->sock.local_endpoint().protocol() == ep.protocol());
 
 		s->sock.send(ep, p, ec, flags);
 
-		if ((ec == error::would_block
-				|| ec == error::try_again)
-			&& !s->write_blocked)
+		if ((ec == error::would_block || ec == error::try_again) && !s->write_blocked)
 		{
 			s->write_blocked = true;
 			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_writeable");
@@ -2280,7 +2440,7 @@ namespace {
 
 				// give the uTP socket manager first dis on the packet. Presumably
 				// the majority of packets are uTP packets.
-				if (!mgr.incoming_packet(packet.from, buf))
+				if (!mgr.incoming_packet(socket, packet.from, buf))
 				{
 					// if it wasn't a uTP packet, try the other users of the UDP
 					// socket
@@ -4835,6 +4995,13 @@ namespace {
 			bind_ep.port(std::uint16_t(next_port()));
 		}
 
+		if (is_utp(s))
+		{
+			auto ep = m_outgoing_sockets.bind(s, remote_address);
+			if (ep.port() != 0)
+				return ep;
+		}
+
 		if (!m_outgoing_interfaces.empty())
 		{
 			if (m_interface_index >= m_outgoing_interfaces.size()) m_interface_index = 0;
@@ -5097,6 +5264,7 @@ namespace {
 	{
 		for (auto& i : m_listen_sockets)
 			i.udp_sock->sock.set_proxy_settings(proxy());
+		m_outgoing_sockets.update_proxy(proxy());
 	}
 
 	void session_impl::update_upnp()

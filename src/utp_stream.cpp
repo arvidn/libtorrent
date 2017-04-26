@@ -322,6 +322,7 @@ public:
 #endif
 
 	utp_socket_manager& m_sm;
+	std::weak_ptr<utp_socket_interface> m_sock;
 
 	// userdata pointer passed along
 	// with any callback. This is initialized to 0
@@ -658,9 +659,21 @@ void delete_utp_impl(utp_socket_impl* s)
 	delete s;
 }
 
+void utp_abort(utp_socket_impl* s)
+{
+	s->m_error = boost::asio::error::connection_aborted;
+	s->set_state(utp_socket_impl::UTP_STATE_ERROR_WAIT);
+	s->test_socket_state();
+}
+
 bool should_delete(utp_socket_impl* s)
 {
 	return s->should_delete();
+}
+
+bool bound_to_udp_socket(utp_socket_impl* s, std::weak_ptr<utp_socket_interface> sock)
+{
+	return s->m_sock.lock() == sock.lock();
 }
 
 void tick_utp_impl(utp_socket_impl* s, time_point now)
@@ -671,6 +684,11 @@ void tick_utp_impl(utp_socket_impl* s, time_point now)
 void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu)
 {
 	s->init_mtu(link_mtu, utp_mtu);
+}
+
+void utp_init_socket(utp_socket_impl* s, std::weak_ptr<utp_socket_interface> sock)
+{
+	s->m_sock = sock;
 }
 
 bool utp_incoming_packet(utp_socket_impl* s
@@ -812,8 +830,18 @@ utp_stream::endpoint_type utp_stream::local_endpoint(error_code& ec) const
 	if (m_impl == nullptr)
 	{
 		ec = boost::asio::error::not_connected;
+		return endpoint_type();
 	}
-	return endpoint_type();
+
+	auto s = m_impl->m_sock.lock();
+	if (!s)
+	{
+		ec = boost::asio::error::not_connected;
+		return endpoint_type();
+	}
+
+	udp::endpoint ep = s->local_endpoint();
+	return endpoint_type(ep.address(), ep.port());
 }
 
 utp_stream::~utp_stream()
@@ -1307,7 +1335,7 @@ void utp_socket_impl::send_syn()
 #endif
 
 	error_code ec;
-	m_sm.send_packet(udp::endpoint(m_remote_address, m_port)
+	m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
 		, reinterpret_cast<char const*>(h) , sizeof(utp_header), ec);
 
 	if (ec == error::would_block || ec == error::try_again)
@@ -1398,7 +1426,7 @@ void utp_socket_impl::send_reset(utp_header const* ph)
 
 	// ignore errors here
 	error_code ec;
-	m_sm.send_packet(udp::endpoint(m_remote_address, m_port)
+	m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
 		, reinterpret_cast<char const*>(&h), sizeof(h), ec);
 	if (ec)
 	{
@@ -1934,7 +1962,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 #endif
 
 	error_code ec;
-	m_sm.send_packet(udp::endpoint(m_remote_address, m_port)
+	m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
 		, reinterpret_cast<char const*>(h), p->size, ec
 		, p->mtu_probe ? utp_socket_manager::dont_fragment : 0);
 
@@ -1963,7 +1991,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: re-sending\n", static_cast<void*>(this));
 #endif
-		m_sm.send_packet(udp::endpoint(m_remote_address, m_port)
+		m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
 			, reinterpret_cast<char const*>(h), p->size, ec, 0);
 	}
 
@@ -2135,7 +2163,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	h->ack_nr = m_ack_nr;
 
 	error_code ec;
-	m_sm.send_packet(udp::endpoint(m_remote_address, m_port)
+	m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
 		, reinterpret_cast<char const*>(p->buf), p->size, ec);
 	++m_out_packets;
 	m_sm.inc_stats_counter(counters::utp_packets_out);

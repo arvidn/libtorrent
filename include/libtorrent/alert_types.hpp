@@ -1188,8 +1188,8 @@ namespace libtorrent {
 		virtual std::string message() const override;
 	};
 
-	// This alert is posted when there is an error on the UDP socket. The
-	// UDP socket is used for all uTP, DHT and UDP tracker traffic. It's
+	// This alert is posted when there is an error on a UDP socket. The
+	// UDP sockets are used for all uTP, DHT and UDP tracker traffic. They are
 	// global to the session.
 	struct TORRENT_EXPORT udp_error_alert final : alert
 	{

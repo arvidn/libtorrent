@@ -619,6 +619,7 @@ SOURCES =
 	session_handle
 	session_impl
 	session_call
+	session_udp_sockets
 	settings_pack
 	sha1_hash
 	socket_io
