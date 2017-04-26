@@ -238,9 +238,8 @@ void traversal_algorithm::add_entry(node_id const& id
 	}
 
 	TORRENT_ASSERT(std::size_t(m_sorted_results) <= m_results.size());
-	auto end = m_results.begin() + m_sorted_results;
-
-	TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), end
+	TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin()
+		, m_results.begin() + m_sorted_results
 		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
 		{ return compare_ref(lhs->id(), rhs->id(), m_target); }));
 
