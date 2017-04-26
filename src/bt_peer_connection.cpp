@@ -645,9 +645,6 @@ namespace {
 		, std::size_t const pad_size)
 	{
 		INVARIANT_CHECK;
-#if !TORRENT_USE_ASSERTS
-		TORRENT_UNUSED(len);
-#endif
 
 		TORRENT_ASSERT(crypto_field <= 0x03 && crypto_field > 0);
 		// vc,crypto_field,len(pad),pad, (len(ia))
