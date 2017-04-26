@@ -516,10 +516,6 @@ namespace aux {
 
 		aux::session_settings m_settings;
 
-		// userdata pointer for the complete_job function, which
-		// is posted to the network thread when jobs complete
-		void* m_userdata;
-
 		// the last time we expired write blocks from the cache
 		time_point m_last_cache_expiry = min_time();
 
