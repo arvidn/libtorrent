@@ -698,7 +698,7 @@ void upnp::post(upnp::rootdevice const& d, string_view const soap
 		"Soapaction: \"%s#%*s\"\r\n\r\n"
 		"%*s"
 		, d.path.c_str(), d.hostname.c_str(), d.port
-		, int(soap.size()), d.service_namespace.c_str(),
+		, int(soap.size()), d.service_namespace.c_str()
 		, int(soap_action.size()), soap_action.data()
 		, int(soap.size()), soap.data());
 
