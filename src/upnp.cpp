@@ -683,7 +683,7 @@ void upnp::try_map_upnp(bool timer)
 	}
 }
 
-void upnp::post(upnp::rootdevice const& d, char const* soap
+void upnp::post(upnp::rootdevice const& d, std::string const& soap
 	, char const* soap_action)
 {
 	TORRENT_ASSERT(is_single_thread());
@@ -698,14 +698,30 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 		"Soapaction: \"%s#%s\"\r\n\r\n"
 		"%s"
 		, d.path.c_str(), d.hostname.c_str(), d.port
-		, int(strlen(soap)), d.service_namespace.c_str(), soap_action
-		, soap);
+		, int(soap.length()), d.service_namespace.c_str(), soap_action
+		, soap.c_str());
 
 	d.upnp_connection->m_sendbuffer = header;
 
 #ifndef TORRENT_DISABLE_LOGGING
 	log("sending: %s", header);
 #endif
+}
+
+std::string upnp::create_soap(char const* soap_action, std::string const& service_namespace, char const* part)
+{
+	char soap[2048];
+	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
+		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+		"<s:Body><u:%s xmlns:u=\"%s\">"
+		"%s"
+		"</u:%s></s:Body></s:Envelope>"
+		, soap_action
+		, service_namespace.c_str()
+		, part
+		, soap_action);
+	return soap;
 }
 
 void upnp::create_port_mapping(http_connection& c, rootdevice& d, int const i)
@@ -726,13 +742,10 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int const i)
 	char const* soap_action = "AddPortMapping";
 
 	error_code ec;
-	std::string local_endpoint = print_address(c.socket().local_endpoint(ec).address());
+	std::string const local_endpoint = print_address(c.socket().local_endpoint(ec).address());
 
-	char soap[2048];
-	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
-		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
-		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
-		"<s:Body><u:%s xmlns:u=\"%s\">"
+	char soap_body[2048];
+	std::snprintf(soap_body, sizeof(soap_body),
 		"<NewRemoteHost></NewRemoteHost>"
 		"<NewExternalPort>%u</NewExternalPort>"
 		"<NewProtocol>%s</NewProtocol>"
@@ -741,13 +754,16 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int const i)
 		"<NewEnabled>1</NewEnabled>"
 		"<NewPortMappingDescription>%s at %s:%d</NewPortMappingDescription>"
 		"<NewLeaseDuration>%u</NewLeaseDuration>"
-		"</u:%s></s:Body></s:Envelope>"
-		, soap_action, d.service_namespace.c_str(), d.mapping[i].external_port
-		, (d.mapping[i].protocol == portmap_protocol::udp ? "UDP" : "TCP")
+		, d.mapping[i].external_port
+		, d.mapping[i].get_protocol_name()
 		, d.mapping[i].local_port
 		, local_endpoint.c_str()
-		, m_user_agent.c_str(), local_endpoint.c_str(), d.mapping[i].local_port
-		, d.lease_duration, soap_action);
+		, m_user_agent.c_str()
+		, local_endpoint.c_str()
+		, d.mapping[i].local_port
+		, d.lease_duration);
+
+	auto const soap = create_soap(soap_action, d.service_namespace, soap_body);
 
 	post(d, soap, soap_action);
 }
@@ -851,20 +867,15 @@ void upnp::delete_port_mapping(rootdevice& d, int const i)
 
 	char const* soap_action = "DeletePortMapping";
 
-	char soap[2048];
-	error_code ec;
-	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
-		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
-		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
-		"<s:Body><u:%s xmlns:u=\"%s\">"
+	char soap_body[2048];
+	std::snprintf(soap_body, sizeof(soap_body),
 		"<NewRemoteHost></NewRemoteHost>"
 		"<NewExternalPort>%u</NewExternalPort>"
 		"<NewProtocol>%s</NewProtocol>"
-		"</u:%s></s:Body></s:Envelope>"
-		, soap_action, d.service_namespace.c_str()
 		, d.mapping[i].external_port
-		, (d.mapping[i].protocol == portmap_protocol::udp ? "UDP" : "TCP")
-		, soap_action);
+		, d.mapping[i].get_protocol_name());
+
+	auto const soap = create_soap(soap_action, d.service_namespace, soap_body);
 
 	post(d, soap, soap_action);
 }
@@ -1057,17 +1068,9 @@ void upnp::get_ip_address(rootdevice& d)
 	}
 
 	char const* soap_action = "GetExternalIPAddress";
+	auto const soap_result = create_soap(soap_action, d.service_namespace, "");
 
-	char soap[2048];
-	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
-		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
-		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
-		"<s:Body><u:%s xmlns:u=\"%s\">"
-		"</u:%s></s:Body></s:Envelope>"
-		, soap_action, d.service_namespace.c_str()
-		, soap_action);
-
-	post(d, soap, soap_action);
+	post(d, soap_result, soap_action);
 }
 
 void upnp::disable(error_code const& ec)
@@ -1106,7 +1109,7 @@ void find_error_code(int const type, string_view string, error_code_parse_state&
 	}
 	else if (type == xml_string && state.in_error_code)
 	{
-		std::string error_code_str(string.begin(), string.end());
+		std::string const error_code_str(string.begin(), string.end());
 		state.error_code = std::atoi(error_code_str.c_str());
 		state.exit = true;
 	}
