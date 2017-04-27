@@ -83,6 +83,13 @@ struct sim_config : sim::default_config
 			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
 		}
 
+		if (hostname == "dual-stack.test-hostname.com")
+		{
+			result.push_back(address_v4::from_string("10.0.0.2"));
+			result.push_back(address_v6::from_string("ff::dead:beef"));
+			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
+		}
+
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
 };
@@ -225,8 +232,12 @@ void run_suite(lt::aux::proxy_settings ps)
 	if (ps.type != settings_pack::socks5
 		&& ps.type != settings_pack::http)
 	{
+		auto expected_code = ps.type == settings_pack::socks4 ?
+			boost::system::errc::address_family_not_supported :
+			boost::system::errc::address_not_available;
+
 		run_test(ps, "http://[ff::dead:beef]:8080/test_file", 0, -1
-			, error_condition(boost::system::errc::address_family_not_supported, generic_category())
+			, error_condition(expected_code, generic_category())
 			, {0,1});
 	}
 
@@ -436,6 +447,47 @@ TORRENT_TEST(http_connection_socks5_proxy_names)
 	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks5);
 	ps.proxy_hostnames = true;
 	run_suite(ps);
+}
+
+TORRENT_TEST(http_connection_timeout)
+{
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_service server_ios(sim, address_v4::from_string("10.0.0.2"));
+	sim::asio::io_service server_ios_ipv6(sim, address_v6::from_string("ff::dead:beef"));
+
+	sim::asio::io_service client_ios(sim, {address_v4::from_string("10.0.0.1"),
+			                               address_v6::from_string("ff::abad:cafe")});
+	lt::resolver resolver(client_ios);
+
+	const unsigned short http_port = 8080;
+	sim::http_server http(server_ios, http_port);
+	sim::http_server http_ipv6(server_ios_ipv6, http_port);
+
+	http.register_stall_handler("/timeout");
+	http_ipv6.register_stall_handler("/timeout");
+
+	char data_buffer[4000];
+	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+
+	int connect_counter = 0;
+	int handler_counter = 0;
+
+	error_condition timed_out(boost::system::errc::timed_out, boost::system::generic_category());
+
+	auto c = test_request(client_ios, resolver
+		, "http://dual-stack.test-hostname.com:8080/timeout", data_buffer, -1, -1
+        , timed_out, lt::aux::proxy_settings()
+		, &connect_counter, &handler_counter);
+
+	error_code e;
+	sim.run(e);
+	TEST_CHECK(!e);
+	TEST_EQUAL(2, connect_counter);
+	TEST_EQUAL(1, handler_counter);
+
+	TEST_CHECK(c->socket().local_endpoint().address().is_v6());
 }
 
 void test_proxy_failure(lt::settings_pack::proxy_type_t proxy_type)

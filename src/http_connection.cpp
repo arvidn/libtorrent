@@ -449,12 +449,14 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 			error_code ec;
 			c->m_sock.close(ec);
 			if (!c->m_connecting) c->connect();
+			c->m_last_receive = now;
+			c->m_start_time = c->m_last_receive;
 		}
 		else
 		{
 			c->callback(boost::asio::error::timed_out);
+			return;
 		}
-		return;
 	}
 	else
 	{
