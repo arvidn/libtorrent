@@ -241,9 +241,9 @@ private:
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
 	void post(upnp::rootdevice const& d, string_view const soap
-		, char const* soap_action);
-	std::string create_soap(char const* soap_action
-		, std::string const& service_namespace, char const* part);
+		, string_view const soap_action);
+	std::string create_soap(string_view const soap_action
+		, string_view const service_namespace, string_view const part);
 
 	int num_mappings() const { return int(m_mappings.size()); }
 

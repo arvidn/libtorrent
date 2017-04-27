@@ -684,7 +684,7 @@ void upnp::try_map_upnp(bool timer)
 }
 
 void upnp::post(upnp::rootdevice const& d, string_view const soap
-	, char const* soap_action)
+	, string_view const soap_action)
 {
 	TORRENT_ASSERT(is_single_thread());
 	TORRENT_ASSERT(d.magic == 1337);
@@ -695,10 +695,11 @@ void upnp::post(upnp::rootdevice const& d, string_view const soap
 		"Host: %s:%u\r\n"
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
 		"Content-Length: %d\r\n"
-		"Soapaction: \"%s#%s\"\r\n\r\n"
+		"Soapaction: \"%s#%*s\"\r\n\r\n"
 		"%*s"
 		, d.path.c_str(), d.hostname.c_str(), d.port
-		, int(soap.size()), d.service_namespace.c_str(), soap_action
+		, int(soap.size()), d.service_namespace.c_str(),
+		, int(soap_action.size()), soap_action.data()
 		, int(soap.size()), soap.data());
 
 	d.upnp_connection->m_sendbuffer = header;
@@ -708,19 +709,20 @@ void upnp::post(upnp::rootdevice const& d, string_view const soap
 #endif
 }
 
-std::string upnp::create_soap(char const* soap_action, std::string const& service_namespace, char const* part)
+std::string upnp::create_soap(string_view const soap_action
+	, string_view const service_namespace, string_view const part)
 {
 	char soap[2048];
 	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
-		"<s:Body><u:%s xmlns:u=\"%s\">"
-		"%s"
-		"</u:%s></s:Body></s:Envelope>"
-		, soap_action
-		, service_namespace.c_str()
-		, part
-		, soap_action);
+		"<s:Body><u:%*s xmlns:u=\"%*s\">"
+		"%*s"
+		"</u:%*s></s:Body></s:Envelope>"
+		, int(soap_action.size()), soap_action.data()
+		, int(service_namespace.size()), service_namespace.data()
+		, int(part.size()), part.data()
+		, int(soap_action.size()), soap_action.data());
 	return soap;
 }
 
