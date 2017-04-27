@@ -683,7 +683,7 @@ void upnp::try_map_upnp(bool timer)
 	}
 }
 
-void upnp::post(upnp::rootdevice const& d, std::string const& soap
+void upnp::post(upnp::rootdevice const& d, string_view const soap
 	, char const* soap_action)
 {
 	TORRENT_ASSERT(is_single_thread());
@@ -696,10 +696,10 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
 		"Content-Length: %d\r\n"
 		"Soapaction: \"%s#%s\"\r\n\r\n"
-		"%s"
+		"%*s"
 		, d.path.c_str(), d.hostname.c_str(), d.port
-		, int(soap.length()), d.service_namespace.c_str(), soap_action
-		, soap.c_str());
+		, int(soap.size()), d.service_namespace.c_str(), soap_action
+		, int(soap.size()), soap.data());
 
 	d.upnp_connection->m_sendbuffer = header;
 
@@ -755,7 +755,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int const i)
 		"<NewPortMappingDescription>%s at %s:%d</NewPortMappingDescription>"
 		"<NewLeaseDuration>%u</NewLeaseDuration>"
 		, d.mapping[i].external_port
-		, d.mapping[i].get_protocol_name()
+		, d.mapping[i].protocol_name()
 		, d.mapping[i].local_port
 		, local_endpoint.c_str()
 		, m_user_agent.c_str()
@@ -873,7 +873,7 @@ void upnp::delete_port_mapping(rootdevice& d, int const i)
 		"<NewExternalPort>%u</NewExternalPort>"
 		"<NewProtocol>%s</NewProtocol>"
 		, d.mapping[i].external_port
-		, d.mapping[i].get_protocol_name());
+		, d.mapping[i].protocol_name());
 
 	auto const soap = create_soap(soap_action, d.service_namespace, soap_body);
 
@@ -1068,9 +1068,9 @@ void upnp::get_ip_address(rootdevice& d)
 	}
 
 	char const* soap_action = "GetExternalIPAddress";
-	auto const soap_result = create_soap(soap_action, d.service_namespace, "");
+	auto const soap = create_soap(soap_action, d.service_namespace, "");
 
-	post(d, soap_result, soap_action);
+	post(d, soap, soap_action);
 }
 
 void upnp::disable(error_code const& ec)
@@ -1109,8 +1109,7 @@ void find_error_code(int const type, string_view string, error_code_parse_state&
 	}
 	else if (type == xml_string && state.in_error_code)
 	{
-		std::string const error_code_str(string.begin(), string.end());
-		state.error_code = std::atoi(error_code_str.c_str());
+		state.error_code = std::atoi(string.to_string().c_str());
 		state.exit = true;
 	}
 }

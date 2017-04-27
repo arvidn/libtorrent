@@ -240,7 +240,7 @@ private:
 	void get_ip_address(rootdevice& d);
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
-	void post(upnp::rootdevice const& d, std::string const& soap
+	void post(upnp::rootdevice const& d, string_view const soap
 		, char const* soap_action);
 	std::string create_soap(char const* soap_action
 		, std::string const& service_namespace, char const* part);
@@ -278,7 +278,7 @@ private:
 		// the number of times this mapping has failed
 		int failcount = 0;
 
-		const char* get_protocol_name() const
+		char const* protocol_name() const
 		{
 			return protocol == aux::portmap_protocol::udp ? "UDP" : "TCP";
 		}
