@@ -35,6 +35,43 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/typed_span.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include <iterator> // for iterator_traits
+#include <memory> // for addressof
+
+namespace libtorrent { namespace aux {
+
+template<class ForwardIt>
+inline void uninitialized_default_construct(ForwardIt first, ForwardIt last)
+{
+	using Value = typename std::iterator_traits<ForwardIt>::value_type;
+	ForwardIt current = first;
+	try {
+		for (; current != last; ++current) {
+			::new (static_cast<void*>(std::addressof(*current))) Value;
+		}
+	}  catch (...) {
+		for (; first != current; ++first) {
+			first->~Value();
+		}
+		throw;
+	}
+}
+
+template <typename T>
+struct alloca_destructor
+{
+	span<T> objects;
+	~alloca_destructor()
+	{
+		for (auto& o : objects)
+		{
+			TORRENT_UNUSED(o);
+			o.~T();
+		}
+	}
+};
+
+}}
 
 #if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
@@ -42,7 +79,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::aux::typed_span<t> v; { \
 	std::size_t TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::size_t>(n); \
 	t* TORRENT_ALLOCA_tmp = static_cast<t*>(_alloca(sizeof(t) * TORRENT_ALLOCA_size)); \
-	v = ::libtorrent::aux::typed_span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
+	v = ::libtorrent::aux::typed_span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
+	::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
+	} \
+	::libtorrent::aux::alloca_destructor<t> v##_destructor{v};
 
 #elif defined TORRENT_BSD
 
@@ -50,7 +90,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::aux::typed_span<t> v; { \
 	std::size_t TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::size_t>(n); \
 	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * TORRENT_ALLOCA_size)); \
-	v = ::libtorrent::aux::typed_span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
+	v = ::libtorrent::aux::typed_span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
+	::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
+	} \
+	::libtorrent::aux::alloca_destructor<t> v##_destructor{v};
 
 #else
 
@@ -58,7 +101,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::aux::typed_span<t> v; { \
 	std::size_t TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::size_t>(n); \
 	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * TORRENT_ALLOCA_size)); \
-	v = ::libtorrent::aux::typed_span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
+	v = ::libtorrent::aux::typed_span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
+	::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
+	} \
+	::libtorrent::aux::alloca_destructor<t> v##_destructor{v};
 
 #endif
 
