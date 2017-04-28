@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for is_space
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/session_listen_socket.hpp"
 
 namespace libtorrent {
 
@@ -46,47 +47,55 @@ namespace libtorrent {
 		minutes32 constexpr tracker_retry_delay_max{60};
 	}
 
-	announce_entry::announce_entry(string_view u)
-		: url(u.to_string())
+	announce_endpoint::announce_endpoint(aux::session_listen_socket* s)
+		: local_endpoint(s ? s->get_local_endpoint() : tcp::endpoint())
+		, socket(s)
 		, fails(0)
 		, updating(false)
-		, source(0)
-		, verified(false)
 		, start_sent(false)
 		, complete_sent(false)
 		, triggered_manually(false)
 	{}
 
-	announce_entry::announce_entry()
-		: fails(0)
-		, updating(false)
+	announce_entry::announce_entry(string_view u)
+		: url(u.to_string())
 		, source(0)
 		, verified(false)
+#ifndef TORRENT_NO_DEPRECATE
+		, fails(0)
+		, send_stats(false)
 		, start_sent(false)
 		, complete_sent(false)
 		, triggered_manually(false)
+		, updating(false)
+#endif
+	{}
+
+	announce_entry::announce_entry()
+		: source(0)
+		, verified(false)
+#ifndef TORRENT_NO_DEPRECATE
+		, fails(0)
+		, send_stats(false)
+		, start_sent(false)
+		, complete_sent(false)
+		, triggered_manually(false)
+		, updating(false)
+#endif
 	{}
 
 	announce_entry::~announce_entry() = default;
 	announce_entry::announce_entry(announce_entry const&) = default;
 	announce_entry& announce_entry::operator=(announce_entry const&) = default;
 
-#ifndef TORRENT_NO_DEPRECATE
-	int announce_entry::next_announce_in() const
-	{ return int(total_seconds(next_announce - aux::time_now())); }
-
-	int announce_entry::min_announce_in() const
-	{ return int(total_seconds(min_announce - aux::time_now())); }
-#endif
-
-	void announce_entry::reset()
+	void announce_endpoint::reset()
 	{
 		start_sent = false;
 		next_announce = time_point32::min();
 		min_announce = time_point32::min();
 	}
 
-	void announce_entry::failed(int const backoff_ratio, seconds32 const retry_interval)
+	void announce_endpoint::failed(int const backoff_ratio, seconds32 const retry_interval)
 	{
 		++fails;
 		// the exponential back-off ends up being:
@@ -98,11 +107,11 @@ namespace libtorrent {
 				, tracker_retry_delay_min
 					+ fail_square * tracker_retry_delay_min * backoff_ratio / 100
 			));
-		next_announce = aux::time_now32() + delay;
+		if (!is_working()) next_announce = aux::time_now32() + delay;
 		updating = false;
 	}
 
-	bool announce_entry::can_announce(time_point now, bool is_seed) const
+	bool announce_endpoint::can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const
 	{
 		// if we're a seed and we haven't sent a completed
 		// event, we need to let this announce through
@@ -112,6 +121,34 @@ namespace libtorrent {
 			&& (now >= min_announce || need_send_complete)
 			&& (fails < fail_limit || fail_limit == 0)
 			&& !updating;
+	}
+
+	void announce_entry::reset()
+	{
+		for (auto& aep : endpoints)
+			aep.reset();
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	bool announce_entry::can_announce(time_point now, bool is_seed) const
+	{
+		return std::any_of(endpoints.begin(), endpoints.end()
+			, [&](announce_endpoint const& aep) { return aep.can_announce(now, is_seed, fail_limit); });
+	}
+
+	bool announce_entry::is_working() const
+	{
+		return std::any_of(endpoints.begin(), endpoints.end()
+			, [](announce_endpoint const& aep) { return aep.is_working(); });
+	}
+#endif
+
+	announce_endpoint* announce_entry::find_endpoint(aux::session_listen_socket* s)
+	{
+		auto aep = std::find_if(endpoints.begin(), endpoints.end()
+			, [&](announce_endpoint const& a) { return a.socket == s; });
+		if (aep != endpoints.end()) return &*aep;
+		else return nullptr;
 	}
 
 	void announce_entry::trim()

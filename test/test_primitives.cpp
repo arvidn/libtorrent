@@ -50,16 +50,13 @@ TORRENT_TEST(primitives)
 	// make sure the retry interval keeps growing
 	// on failing announces
 	announce_entry ae("dummy");
+	ae.endpoints.emplace_back(nullptr);
 	int last = 0;
 	auto const tracker_backoff = 250;
 	for (int i = 0; i < 10; ++i)
 	{
-		ae.failed(tracker_backoff, seconds32(5));
-#ifndef TORRENT_NO_DEPRECATE
-		int const delay = ae.next_announce_in();
-#else
-		int const delay = static_cast<int>(total_seconds(ae.next_announce - clock_type::now()));
-#endif
+		ae.endpoints.front().failed(tracker_backoff, seconds32(5));
+		int const delay = static_cast<int>(total_seconds(ae.endpoints.front().next_announce - clock_type::now()));
 		TEST_CHECK(delay > last);
 		last = delay;
 		std::printf("%d, ", delay);

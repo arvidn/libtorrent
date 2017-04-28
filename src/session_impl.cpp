@@ -291,6 +291,49 @@ namespace aux {
 		});
 	}
 
+	// To comply with BEP 45 multi homed clients must run separate DHT nodes
+	// on each interface they use to talk to the DHT. For IPv6 this is enforced
+	// by prohibiting creating a listen socket on [::]. Instead the list of
+	// interfaces is enumerated and sockets are created for each of them.
+	// This is not enforced for 0.0.0.0 because multi homed IPv4 configurations
+	// are much less common and the presence of NAT means that we cannot
+	// automatically determine which interfaces should have DHT nodes started on
+	// them.
+	void expand_unspecified_address(std::vector<ip_interface> const& ifs
+		, std::vector<listen_endpoint_t>& eps)
+	{
+		auto unspeficied_begin = std::partition(eps.begin(), eps.end()
+			, [](listen_endpoint_t const& ep) { return !(ep.addr.is_v6() && ep.addr.is_unspecified()); });
+		std::vector<listen_endpoint_t> unspecified_eps(unspeficied_begin, eps.end());
+		eps.erase(unspeficied_begin, eps.end());
+		for (auto const& uep : unspecified_eps)
+		{
+			for (auto const& ipface : ifs)
+			{
+				if (ipface.interface_address.is_v4())
+					continue;
+				if (ipface.interface_address.is_loopback())
+					continue;
+				if (!uep.device.empty() && uep.device != ipface.name)
+					continue;
+				if (std::any_of(eps.begin(), eps.end(), [&](listen_endpoint_t const& e)
+				{
+					// ignore device name because we don't want to create
+					// duplicates if the user explicitly configured an address
+					// without a device name
+					return e.addr == ipface.interface_address
+						&& e.port == uep.port
+						&& e.ssl == uep.ssl;
+				}))
+				{
+					continue;
+				}
+
+				eps.emplace_back(ipface.interface_address, uep.port, uep.device, uep.ssl);
+			}
+		}
+	}
+
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -423,8 +466,8 @@ namespace aux {
 		, m_upload_rate(peer_connection::upload_channel)
 		, m_host_resolver(m_io_service)
 		, m_tracker_manager(
-			std::bind(&session_impl::send_udp_packet_deprecated, this, false, _1, _2, _3, _4)
-			, std::bind(&session_impl::send_udp_packet_hostname_deprecated, this, _1, _2, _3, _4, _5)
+			std::bind(&session_impl::send_udp_packet_listen, this, _1, _2, _3, _4, _5)
+			, std::bind(&session_impl::send_udp_packet_hostname_listen, this, _1, _2, _3, _4, _5, _6)
 			, m_stats_counters
 			, m_host_resolver
 			, m_settings
@@ -1151,18 +1194,6 @@ namespace {
 	void session_impl::queue_tracker_request(tracker_request& req
 		, std::weak_ptr<request_callback> c)
 	{
-		req.listen_port = listen_port();
-		if (m_key) req.key = m_key;
-
-#ifdef TORRENT_USE_OPENSSL
-		// SSL torrents use the SSL listen port
-		// TODO: 2 this need to be more thought through. There isn't necessarily
-		// just _one_ SSL listen port, which one we use depends on which interface
-		// we announce from.
-		if (req.ssl_ctx) req.listen_port = ssl_listen_port();
-		req.ssl_ctx = &m_ssl_ctx;
-#endif
-
 #if TORRENT_USE_I2P
 		if (!m_settings.get_str(settings_pack::i2p_hostname).empty())
 		{
@@ -1170,8 +1201,36 @@ namespace {
 		}
 #endif
 
-//TODO: should there be an option to announce once per listen interface?
-		m_tracker_manager.queue_request(get_io_service(), req, c);
+		if (m_key) req.key = m_key;
+
+#ifdef TORRENT_USE_OPENSSL
+		bool use_ssl = req.ssl_ctx != nullptr;
+		req.ssl_ctx = &m_ssl_ctx;
+#endif
+
+		if (req.outgoing_socket)
+		{
+			listen_socket_t* ls = static_cast<listen_socket_t*>(req.outgoing_socket);
+			req.listen_port = listen_port(ls);
+#ifdef TORRENT_USE_OPENSSL
+			// SSL torrents use the SSL listen port
+			if (use_ssl) req.listen_port = ssl_listen_port(ls);
+#endif
+			m_tracker_manager.queue_request(get_io_service(), req, c);
+		}
+		else
+		{
+			for (auto& ls : m_listen_sockets)
+			{
+				req.listen_port = listen_port(&ls);
+#ifdef TORRENT_USE_OPENSSL
+				// SSL torrents use the SSL listen port
+				if (use_ssl) req.listen_port = ssl_listen_port(&ls);
+#endif
+				req.outgoing_socket = &ls;
+				m_tracker_manager.queue_request(get_io_service(), req, c);
+			}
+		}
 	}
 
 	void session_impl::set_peer_class(peer_class_t cid, peer_class_info const& pci)
@@ -1875,6 +1934,14 @@ namespace {
 			// with that device.
 			interface_to_endpoints(device, port, ssl, eps);
 		}
+
+#if TORRENT_USE_IPV6
+		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
+		if (!ec)
+		{
+			expand_unspecified_address(ifs, eps);
+		}
+#endif
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
