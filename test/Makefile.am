@@ -47,7 +47,8 @@ test_programs = \
   test_linked_list           \
   test_direct_dht            \
   test_ffs                   \
-  test_session_params
+  test_session_params        \
+  test_span
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
@@ -241,6 +242,7 @@ test_linked_list_SOURCES = test_linked_list.cpp
 test_direct_dht_SOURCES = test_direct_dht.cpp
 test_ffs_SOURCES = test_ffs.cpp
 test_session_params_SOURCES = test_session_params.cpp
+test_span_SOURCES = test_span.cpp
 
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
