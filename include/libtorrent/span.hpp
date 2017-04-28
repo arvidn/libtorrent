@@ -39,12 +39,35 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+namespace aux {
+
+	template <typename From, typename To>
+	struct compatible_type
+	{
+		// conversions that are OK
+		// int -> int
+		// int const -> int const
+		// int -> int const
+		// int -> int volatile
+		// int -> int const volatile
+		// int volatile -> int const volatile
+		// int const -> int const volatile
+
+		static const bool value = std::is_same<From, To>::value
+			|| std::is_same<From, typename std::remove_const<To>::type>::value
+			|| std::is_same<From, typename std::remove_volatile<To>::type>::value
+			|| std::is_same<From, typename std::remove_cv<To>::type>::value
+			;
+	};
+}
+
 	template <typename T>
 	struct span
 	{
 		span() : m_ptr(nullptr), m_len(0) {}
 
-		template <typename U>
+		template <typename U, typename
+			= typename std::enable_if<aux::compatible_type<U, T>::value>::type>
 		span(span<U> const& v) // NOLINT
 			: m_ptr(v.data()), m_len(v.size()) {}
 
@@ -60,7 +83,10 @@ namespace libtorrent {
 			: m_ptr(&arr[0]), m_len(N) {}
 
 		// anything with a .data() member function is considered a container
-		template <typename Cont, typename = decltype(std::declval<Cont>().data())>
+		// but only if the value type is compatible with T
+		template <typename Cont
+			, typename U = typename std::remove_reference<decltype(*std::declval<Cont>().data())>::type
+			, typename = typename std::enable_if<aux::compatible_type<U, T>::value>::type>
 		span(Cont& c) // NOLINT
 			: m_ptr(c.data()), m_len(c.size()) {}
 
@@ -114,6 +140,14 @@ namespace libtorrent {
 		T* m_ptr;
 		std::size_t m_len;
 	};
+
+	template <class T, class U>
+	inline bool operator==(span<T> const& lhs, span<U> const& rhs)
+	{
+		return  lhs.size()  == rhs.size()
+			&& (lhs.begin() == rhs.begin() || std::equal(lhs.begin(), lhs.end(), rhs.begin()));
+	}
+
 }
 
 #endif // TORRENT_SPAN_HPP_INCLUDED

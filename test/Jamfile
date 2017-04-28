@@ -158,6 +158,7 @@ test-suite libtorrent :
 		]
 
 	[ run test_sha1_hash.cpp ]
+	[ run test_span.cpp ]
 	[ run test_bitfield.cpp ]
 	[ run test_crc32.cpp ]
 	[ run test_ffs.cpp ]
