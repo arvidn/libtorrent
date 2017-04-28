@@ -102,6 +102,7 @@ namespace {
 
 	struct stack_frame
 	{
+		stack_frame() : token(0), state(0) {}
 		explicit stack_frame(int const t): token(std::uint32_t(t)), state(0) {}
 		// this is an index into m_tokens
 		std::uint32_t token:31;

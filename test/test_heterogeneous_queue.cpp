@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/heterogeneous_queue.hpp"
 
+namespace {
+
 struct A
 {
 	int a;
@@ -142,6 +144,8 @@ struct G : A
 	int type() override { return 3; }
 	std::int64_t g;
 };
+
+} // anonymous namespace
 
 // test emplace_back of heterogeneous types
 // and retrieval of their pointers
