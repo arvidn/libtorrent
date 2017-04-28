@@ -103,7 +103,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2
 	, std::shared_ptr<lt::torrent_info>* torrent2 = 0);
 
 EXPORT int start_web_server(bool ssl = false, bool chunked = false
-	, bool keepalive = true);
+	, bool keepalive = true, int min_interval = 30);
 
 EXPORT void stop_web_server();
 EXPORT int start_proxy(int type);

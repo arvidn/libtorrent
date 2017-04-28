@@ -620,7 +620,9 @@ TORRENT_TEST(tracker_proxy)
 
 void test_stop_tracker_timeout(bool nostop)
 {
-	int port = start_web_server();
+	// trick the min interval so that the stopped anounce is permitted immediately
+	// after the initial announce
+	int port = start_web_server(false, false, true, -1);
 
 	auto count_stopped_events = [](session& ses)
 	{
@@ -655,6 +657,7 @@ void test_stop_tracker_timeout(bool nostop)
 	p.set_bool(settings_pack::announce_to_all_trackers, true);
 	p.set_bool(settings_pack::announce_to_all_tiers, true);
 	p.set_int(settings_pack::alert_mask, alert::all_categories);
+	p.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
 	if (nostop)
 		p.set_int(settings_pack::stop_tracker_timeout, 0);
 
@@ -678,11 +681,16 @@ void test_stop_tracker_timeout(bool nostop)
 	char tracker_url[200];
 	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", port);
 	announce_entry ae{tracker_url};
-	// trick to avoid use of tracker immediately
-	// FIXME
-	//ae.next_announce = aux::time_now32() + seconds32(1);
-	//ae.min_announce = aux::time_now32() + seconds32(1);
 	h.add_tracker(ae);
+
+	while (true)
+	{
+		std::vector<alert*> alerts;
+		s.pop_alerts(&alerts);
+		if (std::any_of(alerts.begin(), alerts.end()
+			, [](alert* a) { return a->type() == tracker_reply_alert::alert_type; }))
+			break;
+	}
 
 	s.remove_torrent(h);
 

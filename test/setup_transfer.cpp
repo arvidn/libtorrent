@@ -921,7 +921,7 @@ namespace {
 pid_type web_server_pid = 0;
 }
 
-int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
+int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_interval)
 {
 	int port = 2000 + static_cast<int>(lt::random(6000));
 	error_code ec;
@@ -938,8 +938,8 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 	} while (ec);
 
 	char buf[200];
-	std::snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d"
-		, port, chunked_encoding , ssl, keepalive);
+	std::snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d %d"
+		, port, chunked_encoding, ssl, keepalive, min_interval);
 
 	std::printf("%s starting web_server on port %d...\n", time_now_string(), port);
 
