@@ -203,3 +203,68 @@ TORRENT_TEST(partition_listen_sockets_op_ports)
 	TEST_EQUAL(eps.size(), 2);
 }
 
+TORRENT_TEST(expand_unspecified)
+{
+	std::vector<ip_interface> ifs;
+	std::vector<aux::listen_endpoint_t> eps;
+
+	ip_interface ipi;
+	ipi.interface_address = address::from_string("127.0.0.1");
+	strcpy(ipi.name, "lo");
+	ifs.push_back(ipi);
+	ipi.interface_address = address::from_string("192.168.1.2");
+	strcpy(ipi.name, "eth0");
+	ifs.push_back(ipi);
+	ipi.interface_address = address::from_string("24.172.48.90");
+	strcpy(ipi.name, "eth1");
+	ifs.push_back(ipi);
+	ipi.interface_address = address::from_string("::1");
+	strcpy(ipi.name, "lo");
+	ifs.push_back(ipi);
+	ipi.interface_address = address::from_string("fe80::d250:99ff:fe0c:9b74");
+	strcpy(ipi.name, "eth0");
+	ifs.push_back(ipi);
+	ipi.interface_address = address::from_string("2601:646:c600:a3:d250:99ff:fe0c:9b74");
+	ifs.push_back(ipi);
+
+	aux::listen_endpoint_t v4_nossl(address::from_string("0.0.0.0"), 6881, std::string(), false);
+	aux::listen_endpoint_t v4_ssl(address::from_string("0.0.0.0"), 6882, std::string(), true);
+	aux::listen_endpoint_t v6_unsp_nossl(address::from_string("::"), 6883, std::string(), false);
+	aux::listen_endpoint_t v6_unsp_ssl(address::from_string("::"), 6884, std::string(), true);
+	aux::listen_endpoint_t v6_ll_nossl(address::from_string("fe80::d250:99ff:fe0c:9b74"), 6883, std::string(), false);
+	aux::listen_endpoint_t v6_ll_ssl(address::from_string("fe80::d250:99ff:fe0c:9b74"), 6884, std::string(), true);
+	aux::listen_endpoint_t v6_g_nossl(address::from_string("2601:646:c600:a3:d250:99ff:fe0c:9b74"), 6883, std::string(), false);
+	aux::listen_endpoint_t v6_g_ssl(address::from_string("2601:646:c600:a3:d250:99ff:fe0c:9b74"), 6884, std::string(), true);
+
+	eps.push_back(v4_nossl);
+	eps.push_back(v4_ssl);
+	eps.push_back(v6_unsp_nossl);
+	eps.push_back(v6_unsp_ssl);
+
+	aux::expand_unspecified_address(ifs, eps);
+
+	TEST_EQUAL(eps.size(), 6);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_nossl) == 0);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_ssl) == 0);
+
+	// test that a user configured endpoint is not duplicated
+	aux::listen_endpoint_t v6_g_nossl_dev(address::from_string("2601:646:c600:a3:d250:99ff:fe0c:9b74"), 6883, "eth0", false);
+
+	eps.clear();
+	eps.push_back(v6_unsp_nossl);
+	eps.push_back(v6_g_nossl_dev);
+
+	aux::expand_unspecified_address(ifs, eps);
+
+	TEST_EQUAL(eps.size(), 2);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 0);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl_dev) == 1);
+}
+

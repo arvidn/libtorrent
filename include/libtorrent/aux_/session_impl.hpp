@@ -195,6 +195,11 @@ namespace aux {
 			listen_endpoint_t(address adr, int p, std::string dev, bool s)
 				: addr(adr), port(p), device(dev), ssl(s) {}
 
+			bool operator==(listen_endpoint_t const& o) const
+			{
+				return addr == o.addr && port == o.port && device == o.device && ssl == o.ssl;
+			}
+
 			address addr;
 			int port;
 			std::string device;
@@ -209,6 +214,11 @@ namespace aux {
 		partition_listen_sockets(
 			std::vector<listen_endpoint_t>& eps
 			, std::list<listen_socket_t>& sockets);
+
+		// expand [::] to all IPv6 interfaces for BEP 45 compliance
+		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
+			std::vector<ip_interface> const& ifs
+			, std::vector<listen_endpoint_t>& eps);
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
@@ -562,6 +572,14 @@ namespace aux {
 			std::uint16_t listen_port(listen_socket_t* sock) const;
 			std::uint16_t ssl_listen_port() const override;
 			std::uint16_t ssl_listen_port(listen_socket_t* sock) const;
+
+			void for_each_listen_socket(std::function<void(aux::session_listen_socket*)> f) override
+			{
+				for (auto& s : m_listen_sockets)
+				{
+					f(&s);
+				}
+			}
 
 			alert_manager& alerts() override { return m_alerts; }
 			disk_interface& disk_thread() override { return m_disk_thread; }

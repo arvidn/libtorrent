@@ -198,6 +198,8 @@ namespace libtorrent { namespace aux {
 		virtual std::uint16_t listen_port() const = 0;
 		virtual std::uint16_t ssl_listen_port() const = 0;
 
+		virtual void for_each_listen_socket(std::function<void(aux::session_listen_socket*)> f) = 0;
+
 		// ask for which interface and port to bind outgoing peer connections on
 		virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address const&
 			remote_address, error_code& ec) const = 0;

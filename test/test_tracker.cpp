@@ -679,8 +679,9 @@ void test_stop_tracker_timeout(bool nostop)
 	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", port);
 	announce_entry ae{tracker_url};
 	// trick to avoid use of tracker immediately
-	ae.next_announce = aux::time_now32() + seconds32(1);
-	ae.min_announce = aux::time_now32() + seconds32(1);
+	// FIXME
+	//ae.next_announce = aux::time_now32() + seconds32(1);
+	//ae.min_announce = aux::time_now32() + seconds32(1);
 	h.add_tracker(ae);
 
 	s.remove_torrent(h);
