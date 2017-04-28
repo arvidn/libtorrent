@@ -79,6 +79,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		elif s.path.startswith('/announce'):
 			s.send_response(200)
 			response = 'd8:intervali1800e8:completei1e10:incompletei1e' + \
+				'12:min intervali' + min_interval + 'e' + \
 				'5:peers12:AAAABBCCCCDD' + \
 				'6:peers618:EEEEEEEEEEEEEEEEFF' + \
 				'e'
@@ -182,6 +183,7 @@ if __name__ == '__main__':
 	chunked_encoding = sys.argv[2] != '0'
 	use_ssl = sys.argv[3] != '0'
 	keepalive = sys.argv[4] != '0'
+	min_interval = sys.argv[5]
 
 	http_handler.protocol_version = 'HTTP/1.1'
 	httpd = http_server_with_timeout(('127.0.0.1', port), http_handler)
