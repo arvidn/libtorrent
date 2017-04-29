@@ -195,17 +195,16 @@ namespace libtorrent {
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (auto& i : iov)
 		{
-			i.iov_base = allocate_buffer_impl(l, "pending read");
-			i.iov_len = std::size_t(block_size());
-			if (i.iov_base == nullptr)
+			i = { allocate_buffer_impl(l, "pending read"), std::size_t(block_size())};
+			if (i.data() == nullptr)
 			{
 				// uh oh. We failed to allocate the buffer!
 				// we need to roll back and free all the buffers
 				// we've already allocated
 				for (auto j : iov)
 				{
-					if (j.iov_base == nullptr) break;
-					char* buf = static_cast<char*>(j.iov_base);
+					if (j.data() == nullptr) break;
+					char* buf = j.data();
 					TORRENT_ASSERT(is_disk_buffer(buf, l));
 					free_buffer_impl(buf, l);
 					remove_buffer_in_use(buf);
@@ -222,7 +221,7 @@ namespace libtorrent {
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (auto i : iov)
 		{
-			char* buf = static_cast<char*>(i.iov_base);
+			char* buf = i.data();
 			TORRENT_ASSERT(is_disk_buffer(buf, l));
 			free_buffer_impl(buf, l);
 			remove_buffer_in_use(buf);

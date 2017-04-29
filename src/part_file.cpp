@@ -96,8 +96,8 @@ namespace libtorrent {
 		if (ec) return;
 
 		// parse header
-		std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
-		iovec_t b = {header.get(), std::size_t(m_header_size)};
+		std::vector<char> header(static_cast<std::size_t>(m_header_size));
+		iovec_t b = header;
 		int n = int(m_file.readv(0, b, ec));
 		if (ec) return;
 
@@ -105,7 +105,7 @@ namespace libtorrent {
 		if (n < m_header_size) return;
 		using namespace libtorrent::detail;
 
-		char* ptr = reinterpret_cast<char*>(header.get());
+		char* ptr = header.data();
 		// we have a header. Parse it
 		int const num_pieces_ = int(read_uint32(ptr));
 		int const piece_size_ = int(read_uint32(ptr));
@@ -313,9 +313,10 @@ namespace libtorrent {
 				l.unlock();
 
 				iovec_t v = {buf.get(), std::size_t(block_to_copy)};
-				v.iov_len = std::size_t(m_file.readv(slot_offset + piece_offset, v, ec));
+				auto bytes_read = std::size_t(m_file.readv(slot_offset + piece_offset, v, ec));
+				v = v.first(bytes_read);
 				TORRENT_ASSERT(!ec);
-				if (ec || v.iov_len == 0) return;
+				if (ec || v.size() == 0) return;
 
 				f(file_offset, {buf.get(), std::size_t(block_to_copy)});
 
@@ -377,12 +378,11 @@ namespace libtorrent {
 		open_file(file::read_write, ec);
 		if (ec) return;
 
-		std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
+		std::vector<char> header(static_cast<std::size_t>(m_header_size));
 
 		using namespace libtorrent::detail;
 
-		char* ptr = reinterpret_cast<char*>(header.get());
-
+		char* ptr = header.data();
 		write_uint32(m_max_pieces, ptr);
 		write_uint32(m_piece_size, ptr);
 
@@ -393,9 +393,8 @@ namespace libtorrent {
 				? slot_index_t(-1) : i->second);
 			write_int32(static_cast<int>(slot), ptr);
 		}
-		std::memset(ptr, 0, std::size_t(m_header_size - (ptr - reinterpret_cast<char*>(header.get()))));
-
-		iovec_t b = {header.get(), std::size_t(m_header_size)};
+		std::memset(ptr, 0, std::size_t(m_header_size - (ptr - header.data())));
+		iovec_t b = header;
 		m_file.writev(0, b, ec);
 	}
 }

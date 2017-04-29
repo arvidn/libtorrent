@@ -40,10 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp" // for status_t
 
-#ifndef TORRENT_WINDOWS
-#include <sys/uio.h> // for iovec
-#endif
-
 namespace libtorrent {
 
 	class file_storage;
@@ -52,19 +48,14 @@ namespace libtorrent {
 	struct stat_cache;
 	struct add_torrent_params;
 
-#ifdef TORRENT_WINDOWS
-	struct iovec_t
-	{
-		void* iov_base;
-		size_t iov_len;
-	};
-#else
-	using iovec_t = ::iovec;
-#endif
+	// TODO: 3 remove this typedef, and use span<char const> for disk write
+	// operations
+	using iovec_t = span<char>;
 
 	namespace aux {
 
-	TORRENT_EXTRA_EXPORT int copy_bufs(span<iovec_t const> bufs, int bytes, span<iovec_t> target);
+	TORRENT_EXTRA_EXPORT int copy_bufs(span<iovec_t const> bufs
+		, int bytes, span<iovec_t> target);
 	TORRENT_EXTRA_EXPORT span<iovec_t> advance_bufs(span<iovec_t> bufs, int bytes);
 
 	// this identifies a read or write operation so that readwritev() knows

@@ -1272,14 +1272,14 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<iovec_t 
 	for (auto const& buf : iov)
 	{
 		// each iovec buffer has to be the size of a block (or the size of the last block)
-		TORRENT_PIECE_ASSERT(int(buf.iov_len) == std::min(block_size()
+		TORRENT_PIECE_ASSERT(int(buf.size()) == std::min(block_size()
 			, pe->storage->files().piece_size(pe->piece) - block * block_size()), pe);
 
 		// no nullptrs allowed
-		TORRENT_ASSERT(buf.iov_base != nullptr);
+		TORRENT_ASSERT(buf.data() != nullptr);
 
 #ifdef TORRENT_DEBUG_BUFFERS
-		TORRENT_PIECE_ASSERT(is_disk_buffer(static_cast<char*>(buf.iov_base)), pe);
+		TORRENT_PIECE_ASSERT(is_disk_buffer(buf.data()), pe);
 #endif
 
 		if (pe->blocks[block].buf && (flags & blocks_inc_refcount))
@@ -1290,13 +1290,13 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<iovec_t 
 		// either free the block or insert it. Never replace a block
 		if (pe->blocks[block].buf)
 		{
-			free_buffer(static_cast<char*>(buf.iov_base));
+			free_buffer(buf.data());
 		}
 		else
 		{
-			pe->blocks[block].buf = static_cast<char*>(buf.iov_base);
+			pe->blocks[block].buf = buf.data();
 
-			TORRENT_PIECE_ASSERT(buf.iov_base != nullptr, pe);
+			TORRENT_PIECE_ASSERT(buf.data() != nullptr, pe);
 			TORRENT_PIECE_ASSERT(pe->blocks[block].dirty == false, pe);
 			++pe->num_blocks;
 			++m_read_cache_size;

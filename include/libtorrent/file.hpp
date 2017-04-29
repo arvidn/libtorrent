@@ -214,9 +214,6 @@ namespace libtorrent {
 		static bool has_manage_volume_privs;
 #endif
 	};
-
-	TORRENT_EXTRA_EXPORT int bufs_size(span<iovec_t const> bufs);
-
 }
 
 #endif // TORRENT_FILE_HPP_INCLUDED

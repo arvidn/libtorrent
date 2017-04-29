@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/aux_/path.hpp" // for bufs_size
 
 #include <functional>
 #include <memory>

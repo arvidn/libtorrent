@@ -44,7 +44,6 @@ using namespace lt;
 
 TORRENT_TEST(primitives)
 {
-	using namespace lt;
 	error_code ec;
 
 	// make sure the retry interval keeps growing

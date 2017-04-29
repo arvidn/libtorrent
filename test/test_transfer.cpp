@@ -102,7 +102,7 @@ struct test_storage : default_storage
 			return 0;
 		}
 
-		for (auto const& b : bufs) m_written += int(b.iov_len);
+		for (auto const& b : bufs) m_written += int(b.size());
 		l.unlock();
 		return default_storage::writev(bufs, piece_index, offset, flags, se);
 	}

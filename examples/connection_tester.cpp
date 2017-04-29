@@ -63,6 +63,7 @@ using namespace lt::detail; // for write_* and read_*
 
 using namespace std::placeholders;
 
+// TODO: this should take a span
 void generate_block(std::uint32_t* buffer, piece_index_t const piece, int start, int length)
 {
 	std::uint32_t fill = (static_cast<int>(piece) << 8) | ((start / 0x4000) & 0xff);
@@ -867,7 +868,8 @@ void generate_data(char const* path, torrent_info const& ti)
 		{
 			generate_block(piece, i, j, 0x4000);
 			int const left_in_piece = ti.piece_size(i) - j;
-			iovec_t const b = { piece, size_t(std::min(left_in_piece, 0x4000))};
+			iovec_t const b = { reinterpret_cast<char*>(piece)
+				, size_t(std::min(left_in_piece, 0x4000))};
 			storage_error error;
 			st->writev(b, i, j, 0, error);
 			if (error)

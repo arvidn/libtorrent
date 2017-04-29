@@ -80,7 +80,7 @@ namespace libtorrent {
 	void clear_bufs(span<iovec_t const> bufs)
 	{
 		for (auto buf : bufs)
-			std::memset(buf.iov_base, 0, buf.iov_len);
+			std::memset(buf.data(), 0, buf.size());
 	}
 
 	struct write_fileop final : aux::fileop
@@ -303,7 +303,7 @@ namespace libtorrent {
 					iovec_t const v = {buf.data(), buf.size()};
 					std::int64_t const ret = f->writev(file_offset, v, ec.ec);
 					TORRENT_UNUSED(ret);
-					TORRENT_ASSERT(ec || ret == std::int64_t(v.iov_len));
+					TORRENT_ASSERT(ec || ret == std::int64_t(v.size()));
 				}, fs.file_offset(i), fs.file_size(i), ec.ec);
 
 				if (ec)
@@ -817,8 +817,8 @@ namespace {
 				int ret = 0;
 				for (auto const& b : bufs)
 				{
-					std::memset(b.iov_base, 0, b.iov_len);
-					ret += int(b.iov_len);
+					std::memset(b.data(), 0, b.size());
+					ret += int(b.size());
 				}
 				return 0;
 			}
@@ -827,7 +827,7 @@ namespace {
 			{
 				int ret = 0;
 				for (auto const& b : bufs)
-					ret += int(b.iov_len);
+					ret += int(b.size());
 				return 0;
 			}
 

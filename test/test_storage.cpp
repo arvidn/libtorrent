@@ -55,8 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 using namespace lt;
 
-const int piece_size = 16 * 1024 * 16;
-const int half = piece_size / 2;
+std::size_t const piece_size = 16 * 1024 * 16;
+std::size_t const half = piece_size / 2;
 
 void signal_bool(bool* b, char const* string)
 {
@@ -178,7 +178,7 @@ std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	return s;
 }
 
-std::vector<char> new_piece(int size)
+std::vector<char> new_piece(std::size_t const size)
 {
 	std::vector<char> ret(size);
 	std::generate(ret.begin(), ret.end(), random_byte);
@@ -245,54 +245,46 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	ret = s->writev(iov, piece_index_t(0), 0, 0, ec);
 	if (ret != half) print_error("writev", ret, ec);
 
-	iov.iov_base = piece1.data() + half;
-	iov.iov_len = half;
+	iov = { piece1.data() + half, half };
 	ret = s->writev(iov, piece_index_t(0), half, 0, ec);
 	if (ret != half) print_error("writev", ret, ec);
 
 	// test unaligned read (where the bytes are aligned)
-	iov.iov_base = piece + 3;
-	iov.iov_len = piece_size - 9;
+	iov = { piece + 3, piece_size - 9};
 	ret = s->readv(iov, piece_index_t(0), 3, 0, ec);
 	if (ret != piece_size - 9) print_error("readv",ret, ec);
 	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1.data()+3));
 
 	// test unaligned read (where the bytes are not aligned)
-	iov.iov_base = piece;
-	iov.iov_len = piece_size - 9;
+	iov = { piece, piece_size - 9};
 	ret = s->readv(iov, piece_index_t(0), 3, 0, ec);
 	TEST_CHECK(ret == piece_size - 9);
 	if (ret != piece_size - 9) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1.data()+3));
 
 	// verify piece 1
-	iov.iov_base = piece;
-	iov.iov_len = piece_size;
+	iov = { piece, piece_size };
 	ret = s->readv(iov, piece_index_t(0), 0, 0, ec);
 	TEST_CHECK(ret == piece_size);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1.data()));
 
 	// do the same with piece 0 and 2 (in slot 1 and 2)
-	iov.iov_base = piece0.data();
-	iov.iov_len = piece_size;
+	iov = { piece0.data(), piece_size };
 	ret = s->writev(iov, piece_index_t(1), 0, 0, ec);
 	if (ret != piece_size) print_error("writev", ret, ec);
 
-	iov.iov_base = piece2.data();
-	iov.iov_len = piece_size;
+	iov = { piece2.data(), piece_size };
 	ret = s->writev(iov, piece_index_t(2), 0, 0, ec);
 	if (ret != piece_size) print_error("writev", ret, ec);
 
 	// verify piece 0 and 2
-	iov.iov_base = piece;
-	iov.iov_len = piece_size;
+	iov = { piece, piece_size };
 	ret = s->readv(iov, piece_index_t(1), 0, 0, ec);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0.data()));
 
-	iov.iov_base = piece;
-	iov.iov_len = piece_size;
+	iov = { piece, piece_size };
 	ret = s->readv(iov, piece_index_t(2), 0, 0, ec);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2.data()));
@@ -558,8 +550,8 @@ void run_test(bool unbuffered)
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
 	std::printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n"
 		, int(file_size(combine_path(base, "test7.tmp")))
-		, int(last_file_size - piece_size), last_file_size, piece_size);
-	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - piece_size);
+		, int(last_file_size - piece_size), last_file_size, int(piece_size));
+	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - int(piece_size));
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
 		std::cout << "remove_all '" << combine_path(test_path, "temp_storage")
@@ -931,20 +923,20 @@ void alloc_iov(iovec_t* iov, int num_bufs)
 {
 	for (int i = 0; i < num_bufs; ++i)
 	{
-		iov[i].iov_base = malloc(num_bufs * (i + 1));
-		iov[i].iov_len  = num_bufs * (i + 1);
+		iov[i] = { new char[num_bufs * (i + 1)]
+			, static_cast<std::size_t>(num_bufs * (i + 1)) };
 	}
 }
 
+// TODO: this should take a span of iovec_ts
 void fill_pattern(iovec_t* iov, int num_bufs)
 {
 	int counter = 0;
 	for (int i = 0; i < num_bufs; ++i)
 	{
-		unsigned char* buf = (unsigned char*)iov[i].iov_base;
-		for (int k = 0; k < int(iov[i].iov_len); ++k)
+		for (char& v : iov[i])
 		{
-			buf[k] = counter & 0xff;
+			v = counter & 0xff;
 			++counter;
 		}
 	}
@@ -961,22 +953,22 @@ bool check_pattern(std::vector<char> const& buf, int counter)
 	return true;
 }
 
+// TODO: this should take a span
 void fill_pattern2(iovec_t* iov, int num_bufs)
 {
 	for (int i = 0; i < num_bufs; ++i)
 	{
-		unsigned char* buf = (unsigned char*)iov[i].iov_base;
-		memset(buf, 0xfe, int(iov[i].iov_len));
+		memset(iov[i].data(), 0xfe, iov[i].size());
 	}
 }
 
+// TODO: this should take a span
 void free_iov(iovec_t* iov, int num_bufs)
 {
 	for (int i = 0; i < num_bufs; ++i)
 	{
-		free(iov[i].iov_base);
-		iov[i].iov_len = 0;
-		iov[i].iov_base = nullptr;
+		delete[] iov[i].data();
+		iov[i] = { nullptr, 0 };
 	}
 }
 
@@ -999,10 +991,9 @@ TORRENT_TEST(iovec_copy_bufs)
 	int counter = 0;
 	for (int i = 0; i < num_bufs; ++i)
 	{
-		unsigned char* buf = (unsigned char*)iov2[i].iov_base;
-		for (int k = 0; k < int(iov2[i].iov_len); ++k)
+		for (char v : iov2[i])
 		{
-			TEST_EQUAL(int(buf[k]), (counter & 0xff));
+			TEST_EQUAL(int(v), (counter & 0xff));
 			++counter;
 		}
 	}
@@ -1020,10 +1011,9 @@ TORRENT_TEST(iovec_clear_bufs)
 	clear_bufs({iov, 10});
 	for (int i = 0; i < 10; ++i)
 	{
-		unsigned char* buf = (unsigned char*)iov[i].iov_base;
-		for (int k = 0; k < int(iov[i].iov_len); ++k)
+		for (char v : iov[i])
 		{
-			TEST_EQUAL(int(buf[k]), 0);
+			TEST_EQUAL(int(v), 0);
 		}
 	}
 	free_iov(iov, 10);
@@ -1064,10 +1054,9 @@ TORRENT_TEST(iovec_advance_bufs)
 	int counter = 13;
 	for (auto buf : iov)
 	{
-		unsigned char* buf_base = (unsigned char*)buf.iov_base;
-		for (int k = 0; k < int(buf.iov_len); ++k)
+		for (char v : buf)
 		{
-			TEST_EQUAL(int(buf_base[k]), (counter & 0xff));
+			TEST_EQUAL(v, static_cast<char>(counter));
 			++counter;
 		}
 	}
@@ -1115,8 +1104,8 @@ struct test_fileop : aux::fileop
 		int left = write_size;
 		while (left > 0)
 		{
-			const int copy_size = (std::min)(left, int(bufs.front().iov_len));
-			memcpy(&file[offset], bufs.front().iov_base, copy_size);
+			const int copy_size = std::min(left, int(bufs.front().size()));
+			memcpy(&file[offset], bufs.front().data(), copy_size);
 			bufs = bufs.subspan(1);
 			offset += copy_size;
 			left -= copy_size;
@@ -1140,11 +1129,11 @@ struct test_read_fileop : aux::fileop
 		const int read = local_size;
 		while (local_size > 0)
 		{
-			unsigned char* p = (unsigned char*)bufs.front().iov_base;
-			const int len = (std::min)(int(bufs.front().iov_len), local_size);
-			for (int i = 0; i < len; ++i)
+			int const len = std::min(int(bufs.front().size()), local_size);
+			auto local_buf = bufs.front().first(len);
+			for (char& v : local_buf)
 			{
-				p[i] = m_counter & 0xff;
+				v = m_counter & 0xff;
 				++m_counter;
 			}
 			local_size -= len;
@@ -1188,7 +1177,7 @@ int count_bufs(iovec_t const* bufs, int bytes)
 	if (bytes == 0) return 0;
 	for (iovec_t const* i = bufs;; ++i, ++count)
 	{
-		size += int(i->iov_len);
+		size += int(i->size());
 		if (size >= bytes) return count;
 	}
 }
