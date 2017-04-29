@@ -1080,12 +1080,6 @@ namespace aux {
 			int m_outstanding_router_lookups = 0;
 #endif
 
-			void send_udp_packet_hostname_deprecated(char const* hostname
-				, int port
-				, span<char const> p
-				, error_code& ec
-				, int flags);
-
 			void send_udp_packet_hostname(std::weak_ptr<utp_socket_interface> sock
 				, char const* hostname
 				, int port
@@ -1103,12 +1097,6 @@ namespace aux {
 				listen_socket_t* s = static_cast<listen_socket_t*>(sock);
 				send_udp_packet_hostname(s->udp_sock, hostname, port, p, ec, flags);
 			}
-
-			void send_udp_packet_deprecated(bool ssl
-				, udp::endpoint const& ep
-				, span<char const> p
-				, error_code& ec
-				, int flags);
 
 			void send_udp_packet(std::weak_ptr<utp_socket_interface> sock
 				, udp::endpoint const& ep

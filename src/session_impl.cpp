@@ -2316,25 +2316,6 @@ namespace {
 	}
 #endif
 
-	void session_impl::send_udp_packet_hostname_deprecated(char const* hostname
-		, int const port
-		, span<char const> p
-		, error_code& ec
-		, int const flags)
-	{
-		// for now, just pick the first socket with a matching address family
-		// TODO: remove this function once all callers are updated to specify a socket
-		for (auto& i : m_listen_sockets)
-		{
-			if (!i.udp_sock) continue;
-			if (i.ssl) continue;
-
-			send_udp_packet_hostname(i.udp_sock, hostname, port, p, ec, flags);
-			return;
-		}
-		ec = boost::asio::error::operation_not_supported;
-	}
-
 	void session_impl::send_udp_packet_hostname(std::weak_ptr<utp_socket_interface> sock
 		, char const* hostname
 		, int const port
@@ -2361,28 +2342,6 @@ namespace {
 			s->sock.async_write(std::bind(&session_impl::on_udp_writeable
 				, this, s, _1));
 		}
-	}
-
-	void session_impl::send_udp_packet_deprecated(bool const ssl
-		, udp::endpoint const& ep
-		, span<char const> p
-		, error_code& ec
-		, int const flags)
-	{
-		// for now, just pick the first socket with a matching address family
-		// TODO: 3 for proper multi-homed support, we may want to do something
-		// else here. Probably let the caller decide which interface to send over
-		for (auto& i : m_listen_sockets)
-		{
-			if (i.ssl != ssl) continue;
-			if (!i.udp_sock) continue;
-			if (i.local_endpoint.address().is_v4() != ep.address().is_v4())
-				continue;
-
-			send_udp_packet(i.udp_sock, ep, p, ec, flags);
-			return;
-		}
-		ec = boost::asio::error::operation_not_supported;
 	}
 
 	void session_impl::send_udp_packet(std::weak_ptr<utp_socket_interface> sock
