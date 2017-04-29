@@ -2825,52 +2825,52 @@ namespace libtorrent {
 			}
 #endif
 
-				req.outgoing_socket = aep.socket;
+			req.outgoing_socket = aep.socket;
 
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d fails: %d upd: %d"
-					, req.url.c_str()
-					, (req.event == tracker_request::stopped ? "stopped"
-						: req.event == tracker_request::started ? "started" : "")
-					, m_abort
-					, aep.fails
-					, aep.updating);
+			debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d fails: %d upd: %d"
+				, req.url.c_str()
+				, (req.event == tracker_request::stopped ? "stopped"
+					: req.event == tracker_request::started ? "started" : "")
+				, m_abort
+				, aep.fails
+				, aep.updating);
 
-				// if we're not logging session logs, don't bother creating an
-				// observer object just for logging
-				if (m_abort && m_ses.should_log())
-				{
-					auto tl = std::make_shared<aux::tracker_logger>(m_ses);
-					m_ses.queue_tracker_request(req, tl);
-				}
-				else
+			// if we're not logging session logs, don't bother creating an
+			// observer object just for logging
+			if (m_abort && m_ses.should_log())
+			{
+				auto tl = std::make_shared<aux::tracker_logger>(m_ses);
+				m_ses.queue_tracker_request(req, tl);
+			}
+			else
 #endif
-				{
-					m_ses.queue_tracker_request(req, shared_from_this());
-				}
-
-				aep.updating = true;
-				aep.next_announce = now + seconds32(20);
-				aep.min_announce = now + seconds32(10);
-
-				if (m_ses.alerts().should_post<tracker_announce_alert>())
-				{
-					m_ses.alerts().emplace_alert<tracker_announce_alert>(
-						get_handle(), req.url, req.event);
-				}
-
-				state.sent_announce = true;
-				if (aep.is_working()
-					&& !settings().get_bool(settings_pack::announce_to_all_trackers)
-					&& !settings().get_bool(settings_pack::announce_to_all_tiers))
-				{
-					state.done = true;
-				}
+			{
+				m_ses.queue_tracker_request(req, shared_from_this());
 			}
 
-			if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
-				, [](announce_state const& s) { return s.done; }))
-				break;
+			aep.updating = true;
+			aep.next_announce = now + seconds32(20);
+			aep.min_announce = now + seconds32(10);
+
+			if (m_ses.alerts().should_post<tracker_announce_alert>())
+			{
+				m_ses.alerts().emplace_alert<tracker_announce_alert>(
+					get_handle(), req.url, req.event);
+			}
+
+			state.sent_announce = true;
+			if (aep.is_working()
+				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
+				&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+			{
+				state.done = true;
+			}
+		}
+
+		if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
+			, [](announce_state const& s) { return s.done; }))
+			break;
 		}
 		update_tracker_timer(now);
 	}
