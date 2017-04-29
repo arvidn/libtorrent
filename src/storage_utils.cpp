@@ -44,34 +44,35 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-	int copy_bufs(span<iovec_t const> bufs, int const bytes, span<iovec_t> target)
+	int copy_bufs(span<iovec_t const> bufs, int bytes
+		, span<iovec_t> target)
 	{
-		int size = 0;
-		for (int i = 0;; i++)
+		TORRENT_ASSERT(bytes >= 0);
+		auto dst = target.begin();
+		int ret = 0;
+		if (bytes == 0) return ret;
+		for (iovec_t const& src : bufs)
 		{
-			std::size_t const idx = std::size_t(i);
-			target[idx] = bufs[idx];
-			size += int(bufs[idx].iov_len);
-			if (size >= bytes)
-			{
-				TORRENT_ASSERT(target[idx].iov_len >= aux::numeric_cast<std::size_t>(size - bytes));
-				target[idx].iov_len -= aux::numeric_cast<std::size_t>(size - bytes);
-				return i + 1;
-			}
+			std::size_t const to_copy = std::min(src.size(), std::size_t(bytes));
+			*dst = src.first(to_copy);
+			bytes -= int(to_copy);
+			++ret;
+			++dst;
+			if (bytes <= 0) return ret;
 		}
+		return ret;
 	}
 
 	span<iovec_t> advance_bufs(span<iovec_t> bufs, int const bytes)
 	{
-		int size = 0;
+		TORRENT_ASSERT(bytes >= 0);
+		std::size_t size = 0;
 		for (;;)
 		{
-			size += int(bufs.front().iov_len);
-			if (size >= bytes)
+			size += bufs.front().size();
+			if (size >= std::size_t(bytes))
 			{
-				bufs.front().iov_base = reinterpret_cast<char*>(bufs.front().iov_base)
-					+ bufs.front().iov_len - (size - bytes);
-				bufs.front().iov_len = aux::numeric_cast<std::size_t>(size - bytes);
+				bufs.front() = bufs.front().last(size - std::size_t(bytes));
 				return bufs;
 			}
 			bufs = bufs.subspan(1);
@@ -83,14 +84,16 @@ namespace libtorrent { namespace aux {
 
 	int count_bufs(span<iovec_t const> bufs, int bytes)
 	{
-		int size = 0;
-		int count = 1;
-		if (bytes == 0) return 0;
-		for (auto i = bufs.begin();; ++i, ++count)
+		std::size_t size = 0;
+		int count = 0;
+		if (bytes == 0) return count;
+		for (auto b : bufs)
 		{
-			size += int(i->iov_len);
-			if (size >= bytes) return count;
+			++count;
+			size += b.size();
+			if (size >= std::size_t(bytes)) return count;
 		}
+		return count;
 	}
 
 	}

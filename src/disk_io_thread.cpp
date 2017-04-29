@@ -631,8 +631,7 @@ namespace libtorrent {
 			TORRENT_UNUSED(locked);
 
 			flushing[num_flushing++] = i + block_base_index;
-			iov[iov_len].iov_base = pe->blocks[i].buf;
-			iov[iov_len].iov_len = aux::numeric_cast<std::size_t>(std::min(block_size, size_left));
+			iov[iov_len] = { pe->blocks[i].buf, aux::numeric_cast<std::size_t>(std::min(block_size, size_left)) };
 			++iov_len;
 			pe->blocks[i].pending = true;
 
@@ -1302,9 +1301,10 @@ namespace libtorrent {
 
 		// if this is the last piece, adjust the size of the
 		// last buffer to match up
-		iov[iov_len - 1].iov_len = aux::numeric_cast<std::size_t>(std::min(int(piece_size - adjusted_offset)
-			- (iov_len - 1) * block_size, block_size));
-		TORRENT_ASSERT(iov[iov_len - 1].iov_len > 0);
+		iov[iov_len - 1] = iov[iov_len - 1].first(aux::numeric_cast<std::size_t>(
+				std::min(int(piece_size - adjusted_offset)
+			- (iov_len - 1) * block_size, block_size)));
+		TORRENT_ASSERT(iov[iov_len - 1].size() > 0);
 
 		// at this point, all the buffers are allocated and iov is initialized
 		// and the blocks have their refcounters incremented, so no other thread
@@ -2162,8 +2162,7 @@ namespace libtorrent {
 		std::uint32_t const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 
-		iovec_t iov;
-		iov.iov_base = m_disk_cache.allocate_buffer("hashing");
+		iovec_t iov = { m_disk_cache.allocate_buffer("hashing"), 0x4000 };
 		hasher h;
 		int ret = 0;
 		int offset = 0;
@@ -2174,10 +2173,11 @@ namespace libtorrent {
 
 			time_point const start_time = clock_type::now();
 
-			iov.iov_len = aux::numeric_cast<std::size_t>(std::min(block_size, piece_size - offset));
+			iov = iov.first(aux::numeric_cast<std::size_t>(std::min(block_size, piece_size - offset)));
 			ret = j->storage->readv(iov, j->piece
 				, offset, file_flags, j->error);
 			if (ret < 0) break;
+			iov = iov.first(std::size_t(ret));
 
 			if (!j->error.ec)
 			{
@@ -2191,10 +2191,10 @@ namespace libtorrent {
 			}
 
 			offset += block_size;
-			h.update(static_cast<char const*>(iov.iov_base), int(iov.iov_len));
+			h.update(iov);
 		}
 
-		m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
+		m_disk_cache.free_buffer(iov.data());
 
 		sha1_hash piece_hash = h.final();
 		std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
@@ -2326,23 +2326,22 @@ namespace libtorrent {
 		int next_locked_block = 0;
 		for (int i = offset / block_size; i < blocks_in_piece; ++i)
 		{
-			iovec_t iov;
-			iov.iov_len = aux::numeric_cast<std::size_t>(std::min(block_size, piece_size - offset));
-
 			if (next_locked_block < num_locked_blocks
 				&& locked_blocks[next_locked_block] == i)
 			{
+				int const len = std::min(block_size, piece_size - offset);
 				++next_locked_block;
 				TORRENT_PIECE_ASSERT(pe->blocks[i].buf, pe);
 				TORRENT_PIECE_ASSERT(offset == i * block_size, pe);
-				offset += int(iov.iov_len);
-				ph->h.update({pe->blocks[i].buf, iov.iov_len});
+				offset += len;
+				ph->h.update({pe->blocks[i].buf, aux::numeric_cast<std::size_t>(len)});
 			}
 			else
 			{
-				iov.iov_base = m_disk_cache.allocate_buffer("hashing");
+				iovec_t const iov = { m_disk_cache.allocate_buffer("hashing")
+					, aux::numeric_cast<std::size_t>(std::min(block_size, piece_size - offset))};
 
-				if (iov.iov_base == nullptr)
+				if (iov.data() == nullptr)
 				{
 					l.lock();
 
@@ -2374,19 +2373,19 @@ namespace libtorrent {
 				{
 					ret = status_t::fatal_disk_error;
 					TORRENT_ASSERT(j->error.ec && j->error.operation != 0);
-					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
+					m_disk_cache.free_buffer(iov.data());
 					break;
 				}
 
 				// treat a short read as an error. The hash will be invalid, the
 				// block cannot be cached and the main thread should skip the rest
 				// of this file
-				if (read_ret != int(iov.iov_len))
+				if (read_ret != int(iov.size()))
 				{
 					ret = status_t::fatal_disk_error;
 					j->error.ec = boost::asio::error::eof;
 					j->error.operation = storage_error::read;
-					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
+					m_disk_cache.free_buffer(iov.data());
 					break;
 				}
 
@@ -2403,8 +2402,8 @@ namespace libtorrent {
 				}
 
 				TORRENT_PIECE_ASSERT(offset == i * block_size, pe);
-				offset += int(iov.iov_len);
-				ph->h.update({static_cast<char const*>(iov.iov_base), iov.iov_len});
+				offset += int(iov.size());
+				ph->h.update(iov);
 
 				l.lock();
 				m_disk_cache.insert_blocks(pe, i, iov, j);

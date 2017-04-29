@@ -291,14 +291,14 @@ TORRENT_TEST(file)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 	if (ec) std::printf("%s\n", ec.message().c_str());
-	iovec_t b = {(void*)"test", 4};
+	char test[] = "test";
+	iovec_t b = {test, 4};
 	TEST_EQUAL(f.writev(0, b, ec), 4);
 	if (ec)
 		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);
 	char test_buf[5] = {0};
-	b.iov_base = test_buf;
-	b.iov_len = 4;
+	b = { test_buf, 4 };
 	TEST_EQUAL(f.readv(0, b, ec), 4);
 	if (ec)
 		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
@@ -321,7 +321,8 @@ TORRENT_TEST(hard_link)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 
-	iovec_t b = {(void*)"abcdefghijklmnopqrstuvwxyz", 26};
+	char str[] = "abcdefghijklmnopqrstuvwxyz";
+	iovec_t b = { str, 26 };
 	TEST_EQUAL(f.writev(0, b, ec), 26);
 	if (ec)
 		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
@@ -340,9 +341,8 @@ TORRENT_TEST(hard_link)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 
-	char test_buf[27] = {0};
-	b.iov_base = test_buf;
-	b.iov_len = 27;
+	char test_buf[27] = {};
+	b = { test_buf, 27 };
 	TEST_EQUAL(f.readv(0, b, ec), 26);
 	if (ec)
 		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
@@ -368,18 +368,18 @@ TORRENT_TEST(coalesce_buffer)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 	if (ec) std::printf("%s\n", ec.message().c_str());
-	iovec_t b[2] = {{(void*)"test", 4}, {(void*)"foobar", 6}};
-	TEST_EQUAL(f.writev(0, {b, 2}, ec, file::coalesce_buffers), 4 + 6);
+	char test[] = "test";
+	char foobar[] = "foobar";
+	iovec_t b[2] = {{test, 4}, {foobar, 6}};
+	TEST_EQUAL(f.writev(0, b, ec, file::coalesce_buffers), 4 + 6);
 	if (ec)
 		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);
 	char test_buf1[5] = {0};
 	char test_buf2[7] = {0};
-	b[0].iov_base = test_buf1;
-	b[0].iov_len = 4;
-	b[1].iov_base = test_buf2;
-	b[1].iov_len = 6;
-	TEST_EQUAL(f.readv(0, {b, 2}, ec), 4 + 6);
+	b[0] = { test_buf1, 4 };
+	b[1] = { test_buf2, 6 };
+	TEST_EQUAL(f.readv(0, b, ec), 4 + 6);
 	if (ec)
 	{
 		std::printf("readv failed: [%s] %s\n"

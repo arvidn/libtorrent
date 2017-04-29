@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #ifdef __GNUC__
@@ -49,6 +50,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #define _FILE_OFFSET_BITS 64
 #define _LARGE_FILES 1
 
+#ifndef TORRENT_WINDOWS
+#include <sys/uio.h> // for iovec
+#else
+namespace {
+struct iovec
+{
+	void* iov_base;
+	std::size_t iov_len;
+};
+} // anonymous namespace
+#endif
+
 // on mingw this is necessary to enable 64-bit time_t, specifically used for
 // the stat struct. Without this, modification times returned by stat may be
 // incorrect and consistently fail resume data
@@ -66,7 +79,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -165,7 +177,7 @@ namespace {
 		return WAIT_FAILED;
 	}
 
-	int preadv(HANDLE fd, libtorrent::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
+	int preadv(HANDLE fd, ::iovec const* bufs, int num_bufs, std::int64_t file_offset)
 	{
 		TORRENT_ALLOCA(ol, OVERLAPPED, num_bufs);
 		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
@@ -235,7 +247,7 @@ done:
 		return ret;
 	}
 
-	int pwritev(HANDLE fd, libtorrent::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
+	int pwritev(HANDLE fd, ::iovec const* bufs, int num_bufs, std::int64_t file_offset)
 	{
 		TORRENT_ALLOCA(ol, OVERLAPPED, num_bufs);
 		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
@@ -329,12 +341,6 @@ static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0
 #endif // TORRENT_WINDOWS
 
 namespace libtorrent {
-
-	template <typename T>
-	std::unique_ptr<T, decltype(&std::free)> make_free_holder(T* ptr)
-	{
-		return std::unique_ptr<T, decltype(&std::free)>(ptr, &std::free);
-	}
 
 	directory::directory(std::string const& path, error_code& ec)
 		: m_done(false)
@@ -796,8 +802,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		std::size_t offset = 0;
 		for (auto buf : bufs)
 		{
-			std::memcpy(dst + offset, buf.iov_base, buf.iov_len);
-			offset += buf.iov_len;
+			std::memcpy(dst + offset, buf.data(), buf.size());
+			offset += buf.size();
 		}
 	}
 
@@ -806,8 +812,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		std::size_t offset = 0;
 		for (auto buf : bufs)
 		{
-			std::memcpy(buf.iov_base, src + offset, buf.iov_len);
-			offset += buf.iov_len;
+			std::memcpy(buf.data(), src + offset, buf.size());
+			offset += buf.size();
 		}
 	}
 
@@ -815,10 +821,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		, iovec_t& tmp)
 	{
 		std::size_t const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
-		char* buf = static_cast<char*>(std::malloc(buf_size));
+		char* buf = new char[buf_size];
 		if (!buf) return false;
-		tmp.iov_base = buf;
-		tmp.iov_len = buf_size;
+		tmp = { buf, buf_size };
 		bufs = span<iovec_t const>(tmp);
 		return true;
 	}
@@ -827,21 +832,30 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		, char* const buf, bool const copy)
 	{
 		if (copy) scatter_copy(bufs, buf);
-		std::free(buf);
+		delete[] buf;
 	}
 
 	bool coalesce_write_buffers(span<iovec_t const>& bufs
 		, iovec_t& tmp)
 	{
 		std::size_t const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
-		char* buf = static_cast<char*>(std::malloc(buf_size));
+		char* buf = new char[buf_size];
 		if (!buf) return false;
 		gather_copy(bufs, buf);
-		tmp.iov_base = buf;
-		tmp.iov_len = buf_size;
+		tmp = { buf, buf_size };
 		bufs = span<iovec_t const>(tmp);
 		return true;
 	}
+#else
+
+namespace {
+	int bufs_size(span<::iovec> bufs)
+	{
+		std::size_t size = 0;
+		for (auto buf : bufs) size += buf.iov_len;
+		return int(size);
+	}
+}
 #endif // TORRENT_USE_PREADV
 
 	template <class Fun>
@@ -850,13 +864,22 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	{
 #if TORRENT_USE_PREADV
 
+		TORRENT_ALLOCA(vec, ::iovec, bufs.size());
+		auto it = vec.begin();
+		for (auto const& b : bufs)
+		{
+			it->iov_base = b.data();
+			it->iov_len = b.size();
+			++it;
+		}
+
 		int ret = 0;
-		while (!bufs.empty())
+		while (!vec.empty())
 		{
 #ifdef IOV_MAX
-			auto const nbufs = bufs.first((std::min)(int(bufs.size()), IOV_MAX));
+			auto const nbufs = vec.first(std::min(int(vec.size()), IOV_MAX));
 #else
-			auto const nbufs = bufs;
+			auto const nbufs = vec;
 #endif
 
 			int tmp_ret = 0;
@@ -880,7 +903,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			const int expected_len = bufs_size(nbufs);
 			if (tmp_ret < expected_len) break;
 
-			bufs = bufs.subspan(nbufs.size());
+			vec = vec.subspan(nbufs.size());
 		}
 		return ret;
 
@@ -889,7 +912,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		std::int64_t ret = 0;
 		for (auto i : bufs)
 		{
-			std::int64_t const tmp_ret = f(fd, i.iov_base, i.iov_len, file_offset);
+			std::int64_t const tmp_ret = f(fd, i.data(), i.size(), file_offset);
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
@@ -901,7 +924,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 			file_offset += tmp_ret;
 			ret += tmp_ret;
-			if (tmp_ret < int(i.iov_len)) break;
+			if (tmp_ret < int(i.size())) break;
 		}
 
 		return ret;
@@ -926,7 +949,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		for (auto i : bufs)
 		{
-			int tmp_ret = f(fd, i.iov_base, i.iov_len);
+			int tmp_ret = f(fd, i.data(), i.size());
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
@@ -938,7 +961,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 			file_offset += tmp_ret;
 			ret += tmp_ret;
-			if (tmp_ret < int(i.iov_len)) break;
+			if (tmp_ret < int(i.size())) break;
 		}
 
 		return ret;
@@ -968,7 +991,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 #if TORRENT_USE_PREADV
 		TORRENT_UNUSED(flags);
-
 		std::int64_t ret = iov(&::preadv, native_handle(), file_offset, bufs, ec);
 #else
 
@@ -995,7 +1017,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		if ((flags & file::coalesce_buffers))
 			coalesce_read_buffers_end(bufs
-				, static_cast<char*>(tmp.iov_base), !ec);
+				, tmp.data(), !ec);
 
 #endif
 		return ret;
@@ -1049,7 +1071,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 
 		if (flags & file::coalesce_buffers)
-			std::free(tmp.iov_base);
+			delete[] tmp.data();
 
 #endif
 #if TORRENT_USE_FDATASYNC \
