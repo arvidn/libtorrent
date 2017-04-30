@@ -43,6 +43,8 @@ namespace libtorrent { namespace aux {
 	struct listen_endpoint_t;
 	struct proxy_settings;
 
+	enum class transport : std::uint8_t { plaintext, ssl };
+
 	struct session_udp_socket : utp_socket_interface
 	{
 		explicit session_udp_socket(io_service& ios)
@@ -61,7 +63,7 @@ namespace libtorrent { namespace aux {
 
 	struct outgoing_udp_socket final : session_udp_socket
 	{
-		outgoing_udp_socket(io_service& ios, std::string const& dev, bool ssl_)
+		outgoing_udp_socket(io_service& ios, std::string const& dev, transport ssl_)
 			: session_udp_socket(ios), device(dev), ssl(ssl_) {}
 
 		// the name of the device the socket is bound to, may be empty
@@ -69,7 +71,7 @@ namespace libtorrent { namespace aux {
 		std::string const device;
 
 		// set to true if this is an SSL socket
-		bool const ssl;
+		transport const ssl;
 	};
 
 	// sockets used for outoing utp connections
@@ -93,7 +95,7 @@ namespace libtorrent { namespace aux {
 	private:
 		// round-robin index into sockets
 		// one dimention for IPv4/IPv6 and a second for SSL/non-SSL
-		mutable std::uint8_t index[2][2] = { {0, 0}, {0, 0} };
+		mutable std::array<std::array<std::uint8_t, 2>, 2> index = {{ {{0, 0}}, {{0, 0}} }};
 	};
 
 } }

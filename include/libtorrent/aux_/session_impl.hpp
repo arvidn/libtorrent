@@ -114,9 +114,24 @@ namespace libtorrent {
 
 namespace dht {
 
-		struct dht_tracker;
-		class item;
-	}
+	struct dht_tracker;
+	class item;
+
+}
+
+namespace aux {
+
+		struct session_impl;
+		struct session_settings;
+
+#ifndef TORRENT_DISABLE_LOGGING
+		struct tracker_logger;
+#endif
+
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_EXTRA_EXPORT dht_settings read_dht_settings(bdecode_node const& e);
+		TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
+#endif
 
 	struct listen_socket_t final : aux::session_listen_socket
 	{
@@ -164,8 +179,8 @@ namespace dht {
 		int tcp_port_mapping[2];
 		int udp_port_mapping[2];
 
-		// set to true if this is an SSL listen socket
-		bool ssl = false;
+		// indicates whether this is an SSL listen socket or not
+		transport ssl = transport::plaintext;
 
 		// the actual sockets (TCP listen socket and UDP socket)
 		// An entry does not necessarily have a UDP or TCP socket. One of these
@@ -176,23 +191,9 @@ namespace dht {
 		std::shared_ptr<aux::session_udp_socket> udp_sock;
 	};
 
-namespace aux {
-
-		struct session_impl;
-		struct session_settings;
-
-#ifndef TORRENT_DISABLE_LOGGING
-		struct tracker_logger;
-#endif
-
-#ifndef TORRENT_DISABLE_DHT
-		TORRENT_EXTRA_EXPORT dht_settings read_dht_settings(bdecode_node const& e);
-		TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
-#endif
-
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
 		{
-			listen_endpoint_t(address adr, int p, std::string dev, bool s)
+			listen_endpoint_t(address adr, int p, std::string dev, transport s)
 				: addr(adr), port(p), device(dev), ssl(s) {}
 
 			bool operator==(listen_endpoint_t const& o) const
@@ -203,7 +204,7 @@ namespace aux {
 			address addr;
 			int port;
 			std::string device;
-			bool ssl;
+			transport ssl;
 		};
 
 		// partitions sockets based on whether they match one of the given endpoints
@@ -315,9 +316,9 @@ namespace aux {
 			tcp::endpoint get_ipv6_interface() const override;
 			tcp::endpoint get_ipv4_interface() const override;
 
-			void async_accept(std::shared_ptr<tcp::acceptor> const& listener, bool ssl);
+			void async_accept(std::shared_ptr<tcp::acceptor> const& listener, transport ssl);
 			void on_accept_connection(std::shared_ptr<socket_type> const& s
-				, std::weak_ptr<tcp::acceptor> listener, error_code const& e, bool ssl);
+				, std::weak_ptr<tcp::acceptor> listener, error_code const& e, transport ssl);
 
 			void incoming_connection(std::shared_ptr<socket_type> const& s);
 
@@ -1117,7 +1118,7 @@ namespace aux {
 			void on_udp_writeable(std::weak_ptr<session_udp_socket> s, error_code const& ec);
 
 			void on_udp_packet(std::weak_ptr<session_udp_socket> s
-				, bool ssl, error_code const& ec);
+				, transport ssl, error_code const& ec);
 
 			libtorrent::utp_socket_manager m_utp_socket_manager;
 
