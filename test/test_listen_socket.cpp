@@ -57,7 +57,7 @@ namespace
 		TEST_EQUAL(e1.device, dev);
 	}
 
-	ip_interface iface(char const* ip, char const* device)
+	ip_interface ifc(char const* ip, char const* device)
 	{
 		ip_interface ipi;
 		ipi.interface_address = address::from_string(ip);
@@ -229,12 +229,12 @@ TORRENT_TEST(partition_listen_sockets_op_ports)
 TORRENT_TEST(expand_unspecified)
 {
 	std::vector<ip_interface> const ifs = {
-		iface("127.0.0.1", "lo")
-		, iface("192.168.1.2", "eth0")
-		, iface("24.172.48.90", "eth1")
-		, iface("::1", "lo")
-		, iface("fe80::d250:99ff:fe0c:9b74", "eth0")
-		, iface( "2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0")
+		ifc("127.0.0.1", "lo")
+		, ifc("192.168.1.2", "eth0")
+		, ifc("24.172.48.90", "eth1")
+		, ifc("::1", "lo")
+		, ifc("fe80::d250:99ff:fe0c:9b74", "eth0")
+		, ifc( "2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0")
 	};
 
 	auto v4_nossl      = ep("0.0.0.0", 6881);
