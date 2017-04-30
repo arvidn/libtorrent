@@ -5218,10 +5218,6 @@ namespace {
 		}
 
 		std::vector<listen_interface_t> new_ifaces;
-		for (auto& ls : current_ifaces)
-		{
-			ls.ssl = true;
-		}
 		std::transform(current_ifaces.begin(), current_ifaces.end()
 			, std::back_inserter(new_ifaces), [](listen_interface_t in)
 			{ in.ssl = true; return in; });
