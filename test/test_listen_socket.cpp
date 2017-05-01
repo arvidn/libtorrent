@@ -37,60 +37,96 @@ using namespace lt;
 
 namespace
 {
-	void test_equal(listen_socket_t const& s, address addr, int port, std::string dev, bool ssl)
+	using tp = aux::transport;
+
+	void test_equal(aux::listen_socket_t const& s, address addr, int port
+		, std::string dev, tp ssl)
 	{
-		TEST_EQUAL(s.ssl, ssl);
+		TEST_CHECK(s.ssl == ssl);
 		TEST_EQUAL(s.local_endpoint.address(), addr);
 		TEST_EQUAL(s.original_port, port);
 		TEST_EQUAL(s.device, dev);
 	}
 
-	void test_equal(aux::listen_endpoint_t const& e1, address addr, int port, std::string dev, bool ssl)
+	void test_equal(aux::listen_endpoint_t const& e1, address addr, int port
+		, std::string dev, tp ssl)
 	{
-		TEST_EQUAL(e1.ssl, ssl);
+		TEST_CHECK(e1.ssl == ssl);
 		TEST_EQUAL(e1.port, port);
 		TEST_EQUAL(e1.addr, addr);
 		TEST_EQUAL(e1.device, dev);
 	}
-}
+
+	ip_interface ifc(char const* ip, char const* device)
+	{
+		ip_interface ipi;
+		ipi.interface_address = address::from_string(ip);
+		strncpy(ipi.name, device, sizeof(ipi.name));
+		return ipi;
+	}
+
+	aux::listen_endpoint_t ep(char const* ip, int port
+		, tp ssl = tp::plaintext
+		, std::string device = {})
+	{
+		return aux::listen_endpoint_t(address::from_string(ip), port, device, ssl);
+	}
+
+	aux::listen_endpoint_t ep(char const* ip, int port
+		, std::string device
+		, tp ssl = tp::plaintext)
+	{
+		return aux::listen_endpoint_t(address::from_string(ip), port, device, ssl);
+	}
+
+	aux::listen_socket_t sock(char const* ip, int const port
+		, int const original_port, char const* device = "")
+	{
+		aux::listen_socket_t s;
+		s.local_endpoint = tcp::endpoint(address::from_string(ip), port);
+		s.original_port = original_port;
+		s.device = device;
+		return s;
+	}
+
+	aux::listen_socket_t sock(char const* ip, int const port, char const* dev)
+	{ return sock(ip, port, port, dev); }
+
+	aux::listen_socket_t sock(char const* ip, int const port)
+	{ return sock(ip, port, port); }
+
+} // anonymous namespace
 
 TORRENT_TEST(partition_listen_sockets_wildcard2specific)
 {
-	std::list<listen_socket_t> sockets;
-	listen_socket_t s;
-	s.local_endpoint = tcp::endpoint(tcp::v4(), 6881);
-	s.original_port = 6881;
-	sockets.push_back(s);
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("4.4.4.4"), 6881);
-	sockets.push_back(s);
+	std::list<aux::listen_socket_t> sockets = {
+		sock("0.0.0.0", 6881), sock("4.4.4.4", 6881)
+	};
 
 	// remove the wildcard socket and replace it with a specific IP
-	std::vector<aux::listen_endpoint_t> eps;
-	eps.emplace_back(address_v4::from_string("4.4.4.4"), 6881, "", false);
-	eps.emplace_back(address_v4::from_string("4.4.4.5"), 6881, "", false);
+	std::vector<aux::listen_endpoint_t> eps = {
+		ep("4.4.4.4", 6881), ep("4.4.4.5", 6881)
+	};
+
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_EQUAL(eps.size(), 1);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(sockets.front(), address_v4::from_string("4.4.4.4"), 6881, "", false);
-	test_equal(sockets.back(), address_v4(), 6881, "", false);
-	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "", false);
+	test_equal(sockets.front(), address_v4::from_string("4.4.4.4"), 6881, "", tp::plaintext);
+	test_equal(sockets.back(), address_v4(), 6881, "", tp::plaintext);
+	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
 }
 
 TORRENT_TEST(partition_listen_sockets_port_change)
 {
-	std::list<listen_socket_t> sockets;
-	listen_socket_t s;
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("4.4.4.4"), 6881);
-	s.original_port = 6881;
-	sockets.push_back(s);
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("4.4.4.5"), 6881);
-	sockets.push_back(s);
+	std::list<aux::listen_socket_t> sockets = {
+		sock("4.4.4.4", 6881), sock("4.4.4.5", 6881)
+	};
 
 	// change the ports
-	std::vector<aux::listen_endpoint_t> eps;
-	eps.emplace_back(address_v4::from_string("4.4.4.4"), 6882, "", false);
-	eps.emplace_back(address_v4::from_string("4.4.4.5"), 6882, "", false);
+	std::vector<aux::listen_endpoint_t> eps = {
+		ep("4.4.4.4", 6882), ep("4.4.4.5", 6882)
+	};
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_CHECK(sockets.begin() == remove_iter);
 	TEST_EQUAL(eps.size(), 2);
@@ -98,66 +134,58 @@ TORRENT_TEST(partition_listen_sockets_port_change)
 
 TORRENT_TEST(partition_listen_sockets_device_bound)
 {
-	std::list<listen_socket_t> sockets;
-	listen_socket_t s;
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("4.4.4.5"), 6881);
-	s.original_port = 6881;
-	sockets.push_back(s);
-	s.local_endpoint = tcp::endpoint(tcp::v4(), 6881);
-	sockets.push_back(s);
-
+	std::list<aux::listen_socket_t> sockets = {
+		sock("4.4.4.5", 6881), sock("0.0.0.0", 6881)
+	};
 
 	// replace the wildcard socket with a pair of device bound sockets
-	std::vector<aux::listen_endpoint_t> eps;
-	eps.emplace_back(address_v4::from_string("4.4.4.5"), 6881, "", false);
-	eps.emplace_back(address_v4::from_string("4.4.4.6"), 6881, "eth1", false);
-	eps.emplace_back(address_v4::from_string("4.4.4.7"), 6881, "eth1", false);
+	std::vector<aux::listen_endpoint_t> eps = {
+		ep("4.4.4.5", 6881)
+		, ep("4.4.4.6", 6881, "eth1")
+		, ep("4.4.4.7", 6881, "eth1")
+	};
+
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(sockets.front(), address_v4::from_string("4.4.4.5"), 6881, "", false);
-	test_equal(sockets.back(), address_v4(), 6881, "", false);
+	test_equal(sockets.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
+	test_equal(sockets.back(), address_v4(), 6881, "", tp::plaintext);
 	TEST_EQUAL(eps.size(), 2);
 }
 
 TORRENT_TEST(partition_listen_sockets_device_ip_change)
 {
-	std::list<listen_socket_t> sockets;
-	listen_socket_t s;
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("10.10.10.10"), 6881);
-	s.device = "enp3s0";
-	s.original_port = 6881;
-	sockets.push_back(s);
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("4.4.4.4"), 6881);
-	sockets.push_back(s);
+	std::list<aux::listen_socket_t> sockets = {
+		sock("10.10.10.10", 6881, "enp3s0")
+		, sock("4.4.4.4", 6881, "enp3s0")
+	};
 
 	// change the IP of a device bound socket
-	std::vector<aux::listen_endpoint_t> eps;
-	eps.emplace_back(address_v4::from_string("10.10.10.10"), 6881, "enp3s0", false);
-	eps.emplace_back(address_v4::from_string("4.4.4.5"), 6881, "enp3s0", false);
+	std::vector<aux::listen_endpoint_t> eps = {
+		ep("10.10.10.10", 6881, "enp3s0")
+		, ep("4.4.4.5", 6881, "enp3s0")
+	};
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(sockets.front(), address_v4::from_string("10.10.10.10"), 6881, "enp3s0", false);
-	test_equal(sockets.back(), address_v4::from_string("4.4.4.4"), 6881, "enp3s0", false);
+	test_equal(sockets.front(), address_v4::from_string("10.10.10.10"), 6881, "enp3s0", tp::plaintext);
+	test_equal(sockets.back(), address_v4::from_string("4.4.4.4"), 6881, "enp3s0", tp::plaintext);
 	TEST_EQUAL(eps.size(), 1);
-	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "enp3s0", false);
+	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "enp3s0", tp::plaintext);
 }
 
 TORRENT_TEST(partition_listen_sockets_original_port)
 {
-	std::list<listen_socket_t> sockets;
-	listen_socket_t s;
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("10.10.10.10"), 6883);
-	s.original_port = 6881;
-	sockets.push_back(s);
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("4.4.4.4"), 6883);
-	sockets.push_back(s);
+	std::list<aux::listen_socket_t> sockets = {
+		sock("10.10.10.10", 6883, 6881), sock("4.4.4.4", 6883, 6881)
+	};
 
 	// make sure all sockets are kept when the actual port is different from the original
-	std::vector<aux::listen_endpoint_t> eps;
-	eps.emplace_back(address_v4::from_string("10.10.10.10"), 6881, "", false);
-	eps.emplace_back(address_v4::from_string("4.4.4.4"), 6881, "", false);
+	std::vector<aux::listen_endpoint_t> eps = {
+		ep("10.10.10.10", 6881)
+		, ep("4.4.4.4", 6881)
+	};
+
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_CHECK(remove_iter == sockets.end());
 	TEST_CHECK(eps.empty());
@@ -165,20 +193,18 @@ TORRENT_TEST(partition_listen_sockets_original_port)
 
 TORRENT_TEST(partition_listen_sockets_ssl)
 {
-	std::list<listen_socket_t> sockets;
-	listen_socket_t s;
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("10.10.10.10"), 6881);
-	s.original_port = 6881;
-	sockets.push_back(s);
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("4.4.4.4"), 6881);
-	sockets.push_back(s);
+	std::list<aux::listen_socket_t> sockets = {
+		sock("10.10.10.10", 6881), sock("4.4.4.4", 6881)
+	};
 
 	// add ssl sockets
-	std::vector<aux::listen_endpoint_t> eps;
-	eps.emplace_back(address_v4::from_string("10.10.10.10"), 6881, "", false);
-	eps.emplace_back(address_v4::from_string("4.4.4.4"), 6881, "", false);
-	eps.emplace_back(address_v4::from_string("10.10.10.10"), 6881, "", true);
-	eps.emplace_back(address_v4::from_string("4.4.4.4"), 6881, "", true);
+	std::vector<aux::listen_endpoint_t> eps = {
+		ep("10.10.10.10", 6881)
+		, ep("4.4.4.4", 6881)
+		, ep("10.10.10.10", 6881, tp::ssl)
+		, ep("4.4.4.4", 6881, tp::ssl)
+	};
+
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_CHECK(remove_iter == sockets.end());
 	TEST_EQUAL(eps.size(), 2);
@@ -186,18 +212,15 @@ TORRENT_TEST(partition_listen_sockets_ssl)
 
 TORRENT_TEST(partition_listen_sockets_op_ports)
 {
-	std::list<listen_socket_t> sockets;
-	listen_socket_t s;
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("10.10.10.10"), 6881);
-	s.original_port = 0;
-	sockets.push_back(s);
-	s.local_endpoint = tcp::endpoint(address_v4::from_string("4.4.4.4"), 6881);
-	sockets.push_back(s);
+	std::list<aux::listen_socket_t> sockets = {
+		sock("10.10.10.10", 6881, 0), sock("4.4.4.4", 6881)
+	};
 
 	// replace OS assigned ports with explicit ports
-	std::vector<aux::listen_endpoint_t> eps;
-	eps.emplace_back(address_v4::from_string("10.10.10.10"), 6882, "", false);
-	eps.emplace_back(address_v4::from_string("4.4.4.4"), 6882, "", false);
+	std::vector<aux::listen_endpoint_t> eps ={
+		ep("10.10.10.10", 6882),
+		ep("4.4.4.4", 6882),
+	};
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_CHECK(remove_iter == sockets.begin());
 	TEST_EQUAL(eps.size(), 2);
@@ -205,41 +228,27 @@ TORRENT_TEST(partition_listen_sockets_op_ports)
 
 TORRENT_TEST(expand_unspecified)
 {
-	std::vector<ip_interface> ifs;
-	std::vector<aux::listen_endpoint_t> eps;
+	std::vector<ip_interface> const ifs = {
+		ifc("127.0.0.1", "lo")
+		, ifc("192.168.1.2", "eth0")
+		, ifc("24.172.48.90", "eth1")
+		, ifc("::1", "lo")
+		, ifc("fe80::d250:99ff:fe0c:9b74", "eth0")
+		, ifc( "2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0")
+	};
 
-	ip_interface ipi;
-	ipi.interface_address = address::from_string("127.0.0.1");
-	strcpy(ipi.name, "lo");
-	ifs.push_back(ipi);
-	ipi.interface_address = address::from_string("192.168.1.2");
-	strcpy(ipi.name, "eth0");
-	ifs.push_back(ipi);
-	ipi.interface_address = address::from_string("24.172.48.90");
-	strcpy(ipi.name, "eth1");
-	ifs.push_back(ipi);
-	ipi.interface_address = address::from_string("::1");
-	strcpy(ipi.name, "lo");
-	ifs.push_back(ipi);
-	ipi.interface_address = address::from_string("fe80::d250:99ff:fe0c:9b74");
-	strcpy(ipi.name, "eth0");
-	ifs.push_back(ipi);
-	ipi.interface_address = address::from_string("2601:646:c600:a3:d250:99ff:fe0c:9b74");
-	ifs.push_back(ipi);
+	auto v4_nossl      = ep("0.0.0.0", 6881);
+	auto v4_ssl        = ep("0.0.0.0", 6882, tp::ssl);
+	auto v6_unsp_nossl = ep("::", 6883);
+	auto v6_unsp_ssl   = ep("::", 6884, tp::ssl);
+	auto v6_ll_nossl   = ep("fe80::d250:99ff:fe0c:9b74", 6883);
+	auto v6_ll_ssl     = ep("fe80::d250:99ff:fe0c:9b74", 6884, tp::ssl);
+	auto v6_g_nossl    = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883);
+	auto v6_g_ssl      = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6884, tp::ssl);
 
-	aux::listen_endpoint_t v4_nossl(address::from_string("0.0.0.0"), 6881, std::string(), false);
-	aux::listen_endpoint_t v4_ssl(address::from_string("0.0.0.0"), 6882, std::string(), true);
-	aux::listen_endpoint_t v6_unsp_nossl(address::from_string("::"), 6883, std::string(), false);
-	aux::listen_endpoint_t v6_unsp_ssl(address::from_string("::"), 6884, std::string(), true);
-	aux::listen_endpoint_t v6_ll_nossl(address::from_string("fe80::d250:99ff:fe0c:9b74"), 6883, std::string(), false);
-	aux::listen_endpoint_t v6_ll_ssl(address::from_string("fe80::d250:99ff:fe0c:9b74"), 6884, std::string(), true);
-	aux::listen_endpoint_t v6_g_nossl(address::from_string("2601:646:c600:a3:d250:99ff:fe0c:9b74"), 6883, std::string(), false);
-	aux::listen_endpoint_t v6_g_ssl(address::from_string("2601:646:c600:a3:d250:99ff:fe0c:9b74"), 6884, std::string(), true);
-
-	eps.push_back(v4_nossl);
-	eps.push_back(v4_ssl);
-	eps.push_back(v6_unsp_nossl);
-	eps.push_back(v6_unsp_ssl);
+	std::vector<aux::listen_endpoint_t> eps = {
+		v4_nossl, v4_ssl, v6_unsp_nossl, v6_unsp_ssl
+	};
 
 	aux::expand_unspecified_address(ifs, eps);
 
@@ -254,7 +263,7 @@ TORRENT_TEST(expand_unspecified)
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_ssl) == 0);
 
 	// test that a user configured endpoint is not duplicated
-	aux::listen_endpoint_t v6_g_nossl_dev(address::from_string("2601:646:c600:a3:d250:99ff:fe0c:9b74"), 6883, "eth0", false);
+	auto v6_g_nossl_dev = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883, "eth0");
 
 	eps.clear();
 	eps.push_back(v6_unsp_nossl);

@@ -1482,7 +1482,7 @@ namespace {
 #endif
 
 		listen_socket_t ret;
-		ret.ssl = (flags & open_ssl_socket) != 0;
+		ret.ssl = (flags & open_ssl_socket) != 0 ? transport::ssl : transport::plaintext;
 		ret.original_port = bind_ep.port();
 		int last_op = 0;
 		socket_type_t const sock_type
@@ -1844,7 +1844,8 @@ namespace {
 #if !TORRENT_USE_IPV6
 			if (adr.is_v4())
 #endif
-				eps.emplace_back(adr, port, std::string(), ssl);
+				eps.emplace_back(adr, port, std::string()
+					, ssl ? transport::ssl : transport::plaintext);
 		}
 		else
 		{
@@ -1877,7 +1878,8 @@ namespace {
 				// (which must be of the same family as the address we're
 				// connecting to)
 				if (device != ipface.name) continue;
-				eps.emplace_back(ipface.interface_address, port, device, ssl);
+				eps.emplace_back(ipface.interface_address, port, device
+					, ssl ? transport::ssl : transport::plaintext);
 			}
 		}
 	}
@@ -1971,7 +1973,7 @@ namespace {
 		{
 			listen_socket_t const s = setup_listener(ep.device
 				, tcp::endpoint(ep.addr, std::uint16_t(ep.port))
-				, flags | (ep.ssl ? open_ssl_socket : 0), ec);
+				, flags | (ep.ssl == transport::ssl ? open_ssl_socket : 0), ec);
 
 			if (!ec && (s.sock || s.udp_sock))
 			{
@@ -2006,7 +2008,7 @@ namespace {
 					if (!err)
 					{
 						socket_type_t const socket_type
-							= l.ssl
+							= l.ssl == transport::ssl
 							? socket_type_t::tcp_ssl
 							: socket_type_t::tcp;
 
@@ -2021,7 +2023,7 @@ namespace {
 					if (!err && l.udp_sock->sock.is_open())
 					{
 						socket_type_t const socket_type
-							= l.ssl
+							= l.ssl == transport::ssl
 							? socket_type_t::utp_ssl
 							: socket_type_t::udp;
 
@@ -2070,14 +2072,14 @@ namespace {
 		// any interface
 		if (eps.empty())
 		{
-			eps.emplace_back(address_v4(), 0, "", false);
+			eps.emplace_back(address_v4(), 0, "", transport::plaintext);
 #if TORRENT_USE_IPV6
-			eps.emplace_back(address_v6(), 0, "", false);
+			eps.emplace_back(address_v6(), 0, "", transport::plaintext);
 #endif
 #ifdef TORRENT_USE_OPENSSL
-			eps.emplace_back(address_v4(), 0, "", true);
+			eps.emplace_back(address_v4(), 0, "", transport::ssl);
 #if TORRENT_USE_IPV6
-			eps.emplace_back(address_v6(), 0, "", true);
+			eps.emplace_back(address_v6(), 0, "", transport::ssl);
 #endif
 #endif
 		}
@@ -2391,7 +2393,7 @@ namespace {
 		// notify the utp socket manager it can start sending on the socket again
 		struct utp_socket_manager& mgr =
 #ifdef TORRENT_USE_OPENSSL
-			(i != m_listen_sockets.end() && i->ssl) ? m_ssl_utp_socket_manager :
+			(i != m_listen_sockets.end() && i->ssl == transport::ssl) ? m_ssl_utp_socket_manager :
 #endif
 			m_utp_socket_manager;
 
@@ -2400,7 +2402,7 @@ namespace {
 
 
 	void session_impl::on_udp_packet(std::weak_ptr<session_udp_socket> socket
-		, bool const ssl, error_code const& ec)
+		, transport const ssl, error_code const& ec)
 	{
 		COMPLETE_ASYNC("session_impl::on_udp_packet");
 		if (ec)
@@ -2434,7 +2436,7 @@ namespace {
 
 		struct utp_socket_manager& mgr =
 #ifdef TORRENT_USE_OPENSSL
-			ssl ? m_ssl_utp_socket_manager :
+			ssl == transport::ssl ? m_ssl_utp_socket_manager :
 #endif
 			m_utp_socket_manager;
 
@@ -2545,14 +2547,15 @@ namespace {
 			, this, socket, ssl, _1));
 	}
 
-	void session_impl::async_accept(std::shared_ptr<tcp::acceptor> const& listener, bool ssl)
+	void session_impl::async_accept(std::shared_ptr<tcp::acceptor> const& listener
+		, transport const ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
 		std::shared_ptr<socket_type> c = std::make_shared<socket_type>(m_io_service);
 		tcp::socket* str = nullptr;
 
 #ifdef TORRENT_USE_OPENSSL
-		if (ssl)
+		if (ssl == transport::ssl)
 		{
 			// accept connections initializing the SSL connection to
 			// use the generic m_ssl_ctx context. However, since it has
@@ -2571,7 +2574,7 @@ namespace {
 		ADD_OUTSTANDING_ASYNC("session_impl::on_accept_connection");
 
 #ifdef TORRENT_USE_OPENSSL
-		TORRENT_ASSERT(ssl == is_ssl(*c));
+		TORRENT_ASSERT((ssl == transport::ssl) == is_ssl(*c));
 #endif
 
 		listener->async_accept(*str
@@ -2581,7 +2584,7 @@ namespace {
 
 	void session_impl::on_accept_connection(std::shared_ptr<socket_type> const& s
 		, std::weak_ptr<tcp::acceptor> listen_socket, error_code const& e
-		, bool const ssl)
+		, transport const ssl)
 	{
 		COMPLETE_ASYNC("session_impl::on_accept_connection");
 		m_stats_counters.inc_stats_counter(counters::on_accept_counter);
@@ -2655,14 +2658,14 @@ namespace {
 				error_code err;
 				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string(err)
 					, ep, listen_failed_alert::accept, e
-					, ssl ? socket_type_t::tcp_ssl : socket_type_t::tcp);
+					, ssl == transport::ssl ? socket_type_t::tcp_ssl : socket_type_t::tcp);
 			}
 			return;
 		}
 		async_accept(listener, ssl);
 
 #ifdef TORRENT_USE_OPENSSL
-		if (ssl)
+		if (ssl == transport::ssl)
 		{
 			TORRENT_ASSERT(is_ssl(*s));
 
@@ -5188,14 +5191,6 @@ namespace {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-namespace {
-
-		listen_interface_t set_ssl_flag(listen_interface_t in)
-		{
-			in.ssl = true;
-			return in;
-		}
-	}
 
 	void session_impl::update_ssl_listen()
 	{
@@ -5224,7 +5219,8 @@ namespace {
 
 		std::vector<listen_interface_t> new_ifaces;
 		std::transform(current_ifaces.begin(), current_ifaces.end()
-			, std::back_inserter(new_ifaces), &set_ssl_flag);
+			, std::back_inserter(new_ifaces), [](listen_interface_t in)
+			{ in.ssl = true; return in; });
 
 		current_ifaces.insert(current_ifaces.end(), new_ifaces.begin(), new_ifaces.end());
 
@@ -5396,7 +5392,7 @@ namespace {
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
 		for (auto const& s : m_listen_sockets)
 		{
-			if (s.ssl) return std::uint16_t(s.tcp_external_port);
+			if (s.ssl == transport::ssl) return std::uint16_t(s.tcp_external_port);
 		}
 #else
 		TORRENT_UNUSED(sock);
