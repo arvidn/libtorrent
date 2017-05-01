@@ -107,6 +107,10 @@ To get a python dictionary of the settings, call ``session::get_settings``.
 
 .. _`library reference`: reference.html
 
+Retrieving session statistics in Python is more convenient than that in C++.
+The statistics are stored as an array in ``session_stats_alert``, which will be posted after calling ``post_session_stats()`` in the ``session`` object.
+In order to interpret the statistics array, in C++ it is required to call ``session_stats_metrics()`` to get the indices of these metrics, while in Python it can be done using ``session_stats_alert.values["NAME_OF_METRIC"]``, where ``NAME_OF_METRIC`` is the name of a metric.
+
 For an example python program, see ``client.py`` in the ``bindings/python``
 directory.
 
