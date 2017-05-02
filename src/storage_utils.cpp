@@ -104,8 +104,8 @@ namespace libtorrent { namespace aux {
 	// and writing. This function is a template, and the fileop decides what to
 	// do with the file and the buffers.
 	int readwritev(file_storage const& files, span<iovec_t const> const bufs
-		, piece_index_t const piece, const int offset, fileop& op
-		, storage_error& ec)
+		, piece_index_t const piece, const int offset
+		, storage_error& ec, fileop op)
 	{
 		TORRENT_ASSERT(piece >= piece_index_t(0));
 		TORRENT_ASSERT(piece < files.end_piece());
@@ -169,7 +169,7 @@ namespace libtorrent { namespace aux {
 			// file_bytes_left bytes, i.e. just this one operation
 			int tmp_bufs_used = copy_bufs(current_buf, file_bytes_left, tmp_buf);
 
-			int bytes_transferred = op.file_op(file_index, file_offset
+			int bytes_transferred = op(file_index, file_offset
 				, tmp_buf.first(tmp_bufs_used), ec);
 			if (ec) return -1;
 
