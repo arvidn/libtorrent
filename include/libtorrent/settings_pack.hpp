@@ -1430,7 +1430,7 @@ namespace libtorrent {
 			max_metadata_size,
 
 #ifndef TORRENT_NO_DEPRECATE
-			// DEPRECTED: use aio_threads instead
+			// DEPRECATED: use aio_threads instead
 
 			// ``hashing_threads`` is the number of threads to use for piece hash
 			// verification. It defaults to 1. For very high download rates, on

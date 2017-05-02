@@ -379,10 +379,10 @@ namespace libtorrent {
 
 		// returns the index of the one-past-end file in the file storage
 		file_index_t end_file() const
-		{ return file_index_t(int(m_files.size())); }
+		{ return m_files.end_index(); }
 
 		file_index_t last_file() const
-		{ return file_index_t(int(m_files.size()) - 1); }
+		{ return --m_files.end_index(); }
 
 		// returns the total number of bytes all the files in this torrent spans
 		std::int64_t total_size() const { return m_total_size; }
