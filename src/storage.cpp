@@ -83,164 +83,6 @@ namespace libtorrent {
 			std::memset(buf.data(), 0, buf.size());
 	}
 
-	struct write_fileop final : aux::fileop
-	{
-		write_fileop(default_storage& st, std::uint32_t const flags)
-			: m_storage(st)
-			, m_flags(flags)
-		{}
-
-		int file_op(file_index_t const file_index
-			, std::int64_t const file_offset
-			, span<iovec_t const> bufs, storage_error& ec)
-			final
-		{
-			if (m_storage.files().pad_file_at(file_index))
-			{
-				// writing to a pad-file is a no-op
-				return bufs_size(bufs);
-			}
-
-			if (file_index < m_storage.m_file_priority.end_index()
-				&& m_storage.m_file_priority[file_index] == 0)
-			{
-				m_storage.need_partfile();
-
-				error_code e;
-				peer_request map = m_storage.files().map_file(file_index
-					, file_offset, 0);
-				int ret = m_storage.m_part_file->writev(bufs
-					, map.piece, map.start, e);
-
-				if (e)
-				{
-					ec.ec = e;
-					ec.file(file_index);
-					ec.operation = storage_error::partfile_write;
-					return -1;
-				}
-				return ret;
-			}
-
-			// invalidate our stat cache for this file, since
-			// we're writing to it
-			m_storage.m_stat_cache.set_dirty(file_index);
-
-			file_handle handle = m_storage.open_file(file_index
-				, file::read_write, ec);
-			if (ec) return -1;
-
-			// please ignore the adjusted_offset. It's just file_offset.
-			std::int64_t adjusted_offset =
-#ifndef TORRENT_NO_DEPRECATE
-				m_storage.files().file_base_deprecated(file_index) +
-#endif
-				file_offset;
-
-			error_code e;
-			int const ret = int(handle->writev(adjusted_offset
-				, bufs, e, m_flags));
-
-			// set this unconditionally in case the upper layer would like to treat
-			// short reads as errors
-			ec.operation = storage_error::write;
-
-				// we either get an error or 0 or more bytes read
-			TORRENT_ASSERT(e || ret >= 0);
-			TORRENT_ASSERT(ret <= bufs_size(bufs));
-
-			if (e)
-			{
-				ec.ec = e;
-				ec.file(file_index);
-				return -1;
-			}
-
-			return ret;
-		}
-	private:
-		default_storage& m_storage;
-		std::uint32_t const m_flags;
-	};
-
-	struct read_fileop final : aux::fileop
-	{
-		read_fileop(default_storage& st, std::uint32_t const flags)
-			: m_storage(st)
-			, m_flags(flags)
-		{}
-
-		int file_op(file_index_t const file_index
-			, std::int64_t const file_offset
-			, span<iovec_t const> bufs, storage_error& ec)
-			final
-		{
-			if (m_storage.files().pad_file_at(file_index))
-			{
-				// reading from a pad file yields zeroes
-				clear_bufs(bufs);
-				return bufs_size(bufs);
-			}
-
-			if (file_index < m_storage.m_file_priority.end_index()
-				&& m_storage.m_file_priority[file_index] == 0)
-			{
-				m_storage.need_partfile();
-
-				error_code e;
-				peer_request map = m_storage.files().map_file(file_index
-					, file_offset, 0);
-				int ret = m_storage.m_part_file->readv(bufs
-					, map.piece, map.start, e);
-
-				if (e)
-				{
-					ec.ec = e;
-					ec.file(file_index);
-					ec.operation = storage_error::partfile_read;
-					return -1;
-				}
-				return ret;
-			}
-
-			file_handle handle = m_storage.open_file(file_index
-				, file::read_only | m_flags, ec);
-			if (ec) return -1;
-
-			// please ignore the adjusted_offset. It's just file_offset.
-			std::int64_t adjusted_offset =
-#ifndef TORRENT_NO_DEPRECATE
-				m_storage.files().file_base_deprecated(file_index) +
-#endif
-				file_offset;
-
-			error_code e;
-			int const ret = int(handle->readv(adjusted_offset
-				, bufs, e, m_flags));
-
-			// set this unconditionally in case the upper layer would like to treat
-			// short reads as errors
-			ec.operation = storage_error::read;
-
-				// we either get an error or 0 or more bytes read
-			TORRENT_ASSERT(e || ret >= 0);
-			TORRENT_ASSERT(ret <= bufs_size(bufs));
-
-			if (e)
-			{
-				ec.ec = e;
-				ec.file(file_index);
-				return -1;
-			}
-
-			return ret;
-		}
-
-	private:
-		default_storage& m_storage;
-		std::uint32_t const m_flags;
-	};
-
 	default_storage::default_storage(storage_params const& params
 		, file_pool& pool)
 		: storage_interface(*params.files)
@@ -622,22 +464,150 @@ namespace libtorrent {
 
 	int default_storage::readv(span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, std::uint32_t const flags, storage_error& ec)
+		, std::uint32_t const flags, storage_error& error)
 	{
-		read_fileop op(*this, flags);
-
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
 #endif
-		return readwritev(files(), bufs, piece, offset, op, ec);
+		return readwritev(files(), bufs, piece, offset, error
+			, [this, flags](file_index_t const file_index
+				, std::int64_t const file_offset
+				, span<iovec_t const> vec, storage_error& ec)
+		{
+			if (files().pad_file_at(file_index))
+			{
+				// reading from a pad file yields zeroes
+				clear_bufs(vec);
+				return bufs_size(vec);
+			}
+
+			if (file_index < m_file_priority.end_index()
+				&& m_file_priority[file_index] == 0)
+			{
+				need_partfile();
+
+				error_code e;
+				peer_request map = files().map_file(file_index
+					, file_offset, 0);
+				int const ret = m_part_file->readv(vec
+					, map.piece, map.start, e);
+
+				if (e)
+				{
+					ec.ec = e;
+					ec.file(file_index);
+					ec.operation = storage_error::partfile_read;
+					return -1;
+				}
+				return ret;
+			}
+
+			file_handle handle = open_file(file_index
+				, file::read_only | flags, ec);
+			if (ec) return -1;
+
+			// please ignore the adjusted_offset. It's just file_offset.
+			std::int64_t const adjusted_offset =
+#ifndef TORRENT_NO_DEPRECATE
+				files().file_base_deprecated(file_index) +
+#endif
+				file_offset;
+
+			error_code e;
+			int const ret = int(handle->readv(adjusted_offset
+				, vec, e, flags));
+
+			// set this unconditionally in case the upper layer would like to treat
+			// short reads as errors
+			ec.operation = storage_error::read;
+
+				// we either get an error or 0 or more bytes read
+			TORRENT_ASSERT(e || ret >= 0);
+			TORRENT_ASSERT(ret <= bufs_size(vec));
+
+			if (e)
+			{
+				ec.ec = e;
+				ec.file(file_index);
+				return -1;
+			}
+
+			return ret;
+		});
 	}
 
 	int default_storage::writev(span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, std::uint32_t const flags, storage_error& ec)
+		, std::uint32_t const flags, storage_error& error)
 	{
-		write_fileop op(*this, flags);
-		return readwritev(files(), bufs, piece, offset, op, ec);
+		return readwritev(files(), bufs, piece, offset, error
+			, [this, flags](file_index_t const file_index
+				, std::int64_t const file_offset
+				, span<iovec_t const> vec, storage_error& ec)
+		{
+			if (files().pad_file_at(file_index))
+			{
+				// writing to a pad-file is a no-op
+				return bufs_size(vec);
+			}
+
+			if (file_index < m_file_priority.end_index()
+				&& m_file_priority[file_index] == 0)
+			{
+				need_partfile();
+
+				error_code e;
+				peer_request map = files().map_file(file_index
+					, file_offset, 0);
+				int const ret = m_part_file->writev(vec
+					, map.piece, map.start, e);
+
+				if (e)
+				{
+					ec.ec = e;
+					ec.file(file_index);
+					ec.operation = storage_error::partfile_write;
+					return -1;
+				}
+				return ret;
+			}
+
+			// invalidate our stat cache for this file, since
+			// we're writing to it
+			m_stat_cache.set_dirty(file_index);
+
+			file_handle handle = open_file(file_index
+				, file::read_write, ec);
+			if (ec) return -1;
+
+			// please ignore the adjusted_offset. It's just file_offset.
+			std::int64_t const adjusted_offset =
+#ifndef TORRENT_NO_DEPRECATE
+				files().file_base_deprecated(file_index) +
+#endif
+				file_offset;
+
+			error_code e;
+			int const ret = int(handle->writev(adjusted_offset
+				, vec, e, flags));
+
+			// set this unconditionally in case the upper layer would like to treat
+			// short reads as errors
+			ec.operation = storage_error::write;
+
+				// we either get an error or 0 or more bytes read
+			TORRENT_ASSERT(e || ret >= 0);
+			TORRENT_ASSERT(ret <= bufs_size(vec));
+
+			if (e)
+			{
+				ec.ec = e;
+				ec.file(file_index);
+				return -1;
+			}
+
+			return ret;
+		});
 	}
 
 	file_handle default_storage::open_file(file_index_t const file
