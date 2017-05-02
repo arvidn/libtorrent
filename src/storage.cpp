@@ -521,7 +521,7 @@ namespace libtorrent {
 			// short reads as errors
 			ec.operation = storage_error::read;
 
-				// we either get an error or 0 or more bytes read
+			// we either get an error or 0 or more bytes read
 			TORRENT_ASSERT(e || ret >= 0);
 			TORRENT_ASSERT(ret <= bufs_size(vec));
 
@@ -595,7 +595,7 @@ namespace libtorrent {
 			// short reads as errors
 			ec.operation = storage_error::write;
 
-				// we either get an error or 0 or more bytes read
+			// we either get an error or 0 or more bytes read
 			TORRENT_ASSERT(e || ret >= 0);
 			TORRENT_ASSERT(ret <= bufs_size(vec));
 
