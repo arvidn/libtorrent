@@ -1475,8 +1475,7 @@ namespace libtorrent {
 				web_seed_entry ent(maybe_url_encode(url.string_value().to_string())
 					, web_seed_entry::url_seed);
 				if ((m_flags & multifile) && ent.url[ent.url.size() - 1] != '/') ent.url += '/';
-				auto const uniq = unique.insert(ent.url);
-				if (uniq.second == false) continue;
+				if (!unique.insert(ent.url).second) continue;
 				m_web_seeds.push_back(ent);
 			}
 		}
@@ -1498,8 +1497,7 @@ namespace libtorrent {
 				bdecode_node const url = http_seeds.list_at(i);
 				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
 				std::string const u = maybe_url_encode(url.string_value().to_string());
-				auto const uniq = unique.insert(u);
-				if (uniq.second == false) continue;
+				if (!unique.insert(u).second) continue;
 				m_web_seeds.push_back(web_seed_entry(u, web_seed_entry::http_seed));
 			}
 		}
