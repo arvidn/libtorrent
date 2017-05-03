@@ -85,7 +85,7 @@ namespace libtorrent {
 
 		// URL and type comparison
 		bool operator==(web_seed_entry const& e) const
-		{ return url == e.url && type == e.type; }
+		{ return type == e.type && url == e.url; }
 
 		// URL and type less-than comparison
 		bool operator<(web_seed_entry const& e) const

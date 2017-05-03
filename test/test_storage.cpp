@@ -1079,12 +1079,12 @@ file_storage make_fs()
 	return fs;
 }
 
-struct test_fileop : aux::fileop
+struct test_fileop
 {
 	explicit test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
 
-	int file_op(file_index_t const file_index, std::int64_t const file_offset
-		, span<iovec_t const> bufs, storage_error& ec) override
+	int operator()(file_index_t const file_index, std::int64_t const file_offset
+		, span<iovec_t const> bufs, storage_error& ec)
 	{
 		size_t offset = size_t(file_offset);
 		if (file_index >= m_file_data.end_index())
@@ -1117,13 +1117,13 @@ struct test_fileop : aux::fileop
 	aux::vector<std::vector<char>, file_index_t> m_file_data;
 };
 
-struct test_read_fileop : aux::fileop
+struct test_read_fileop
 {
 	// EOF after size bytes read
 	explicit test_read_fileop(int size) : m_size(size), m_counter(0) {}
 
-	int file_op(file_index_t const file_index, std::int64_t const file_offset
-		, span<iovec_t const> bufs, storage_error& ec) override
+	int operator()(file_index_t const file_index, std::int64_t const file_offset
+		, span<iovec_t const> bufs, storage_error& ec)
 	{
 		int local_size = std::min(m_size, bufs_size(bufs));
 		const int read = local_size;
@@ -1147,14 +1147,14 @@ struct test_read_fileop : aux::fileop
 	int m_counter;
 };
 
-struct test_error_fileop : aux::fileop
+struct test_error_fileop
 {
 	// EOF after size bytes read
 	explicit test_error_fileop(file_index_t error_file)
 		: m_error_file(error_file) {}
 
-	int file_op(file_index_t const file_index, std::int64_t const file_offset
-		, span<iovec_t const> bufs, storage_error& ec) override
+	int operator()(file_index_t const file_index, std::int64_t const file_offset
+		, span<iovec_t const> bufs, storage_error& ec)
 	{
 		if (m_error_file == file_index)
 		{
@@ -1201,7 +1201,8 @@ TORRENT_TEST(readwritev_stripe_1)
 	int num_bufs2 = count_bufs(iov2, int(fs.total_size()));
 	TEST_CHECK(num_bufs2 <= num_bufs);
 
-	int ret = readwritev(fs, {iov2, size_t(num_bufs2)}, piece_index_t(0), 0, fop, ec);
+	int ret = readwritev(fs, {iov2, size_t(num_bufs2)}, piece_index_t(0), 0, ec
+		, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
@@ -1228,7 +1229,7 @@ TORRENT_TEST(readwritev_single_buffer)
 	iovec_t iov = { &buf[0], buf.size() };
 	fill_pattern(&iov, 1);
 
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
@@ -1253,7 +1254,7 @@ TORRENT_TEST(readwritev_read)
 	iovec_t iov = { &buf[0], buf.size() };
 
 	// read everything
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
@@ -1270,7 +1271,7 @@ TORRENT_TEST(readwritev_read_short)
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
 
 	TEST_EQUAL(static_cast<int>(ec.file()), 3);
 
@@ -1290,7 +1291,7 @@ TORRENT_TEST(readwritev_error)
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, -1);
 	TEST_EQUAL(static_cast<int>(ec.file()), 2);
@@ -1317,7 +1318,7 @@ TORRENT_TEST(readwritev_zero_size_files)
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));

@@ -4049,7 +4049,7 @@ namespace libtorrent {
 
 				// the peer implementation can ask not to be disconnected.
 				// this is used for web seeds for instance, to instead of
-				// disconnecting, mark the file as not being haved.
+				// disconnecting, mark the file as not being had.
 				allow_disconnect = peer->received_invalid_data(index, single_peer);
 			}
 
