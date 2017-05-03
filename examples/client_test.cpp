@@ -44,11 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #endif
 
-#include "libtorrent/extensions/ut_metadata.hpp"
-#include "libtorrent/extensions/ut_pex.hpp"
-#include "libtorrent/extensions/smart_ban.hpp"
-
-#include "libtorrent/aux_/max_path.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/entry.hpp"
@@ -58,15 +53,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/magnet_uri.hpp"
-#include "libtorrent/bitfield.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/create_torrent.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/disk_interface.hpp" // for open_file_state
 
 #include "torrent_view.hpp"
 #include "session_view.hpp"
@@ -79,7 +73,7 @@ using lt::total_milliseconds;
 #include <windows.h>
 #include <conio.h>
 
-bool sleep_and_input(int* c, int sleep)
+bool sleep_and_input(int* c, lt::time_duration const sleep)
 {
 	for (int i = 0; i < 2; ++i)
 	{
@@ -88,7 +82,7 @@ bool sleep_and_input(int* c, int sleep)
 			*c = _getch();
 			return true;
 		}
-		Sleep(sleep / 2);
+		std::this_thread::sleep_for(sleep / 2);
 	}
 	return false;
 };
@@ -129,15 +123,16 @@ private:
 	termios stored_settings;
 };
 
-bool sleep_and_input(int* c, int sleep)
+bool sleep_and_input(int* c, lt::time_duration const sleep)
 {
-	lt::time_point const start = lt::clock_type::now();
+	lt::time_point const done = lt::clock_type::now() + sleep;
 	int ret = 0;
 retry:
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
-	timeval tv = {sleep/ 1000, (sleep % 1000) * 1000 };
+	int const delay = total_milliseconds(done - lt::clock_type::now());
+	timeval tv = {delay / 1000, (delay % 1000) * 1000 };
 	ret = select(1, &set, nullptr, nullptr, &tv);
 	if (ret > 0)
 	{
@@ -146,7 +141,7 @@ retry:
 	}
 	if (errno == EINTR)
 	{
-		if (total_milliseconds(lt::clock_type::now() - start) < sleep)
+		if (lt::clock_type::now() < done)
 			goto retry;
 		return false;
 	}
@@ -1082,7 +1077,7 @@ MAGNETURL is a magnet link
 	settings.set_int(settings_pack::cache_size, cache_size);
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
-	int refresh_delay = 500;
+	lt::time_duration refresh_delay = lt::milliseconds(500);
 	bool rate_limit_locals = false;
 
 	std::deque<std::string> events;
@@ -1172,7 +1167,7 @@ MAGNETURL is a magnet link
 			case 'm': monitor_dir = make_absolute_path(arg); break;
 			case 'Q': share_mode = true; --i; break;
 			case 't': poll_interval = atoi(arg); break;
-			case 'F': refresh_delay = atoi(arg); break;
+			case 'F': refresh_delay = lt::milliseconds(atoi(arg)); break;
 			case 'a': allocation_mode = (arg == std::string("sparse"))
 				? lt::storage_mode_sparse
 				: lt::storage_mode_allocate;
@@ -1622,10 +1617,10 @@ MAGNETURL is a magnet link
 						"[7] toggle send buffers column\n"
 						);
 					int tmp;
-					while (sleep_and_input(&tmp, 500) == false);
+					while (sleep_and_input(&tmp, lt::milliseconds(500)) == false);
 				}
 
-			} while (sleep_and_input(&c, 0));
+			} while (sleep_and_input(&c, lt::milliseconds(0)));
 			if (c == 'q') break;
 		}
 

@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/file_pool.hpp"
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 
 #include <functional>
