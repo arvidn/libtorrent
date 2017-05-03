@@ -453,12 +453,14 @@ TORRENT_TEST(http_connection_timeout)
 {
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
-
+	// server has two ip addresses (ipv4/ipv6)
 	sim::asio::io_service server_ios(sim, address_v4::from_string("10.0.0.2"));
 	sim::asio::io_service server_ios_ipv6(sim, address_v6::from_string("ff::dead:beef"));
-
-	sim::asio::io_service client_ios(sim, {address_v4::from_string("10.0.0.1"),
-			                               address_v6::from_string("ff::abad:cafe")});
+	// same for client
+	sim::asio::io_service client_ios(sim, {
+		address_v4::from_string("10.0.0.1"),
+		address_v6::from_string("ff::abad:cafe")
+	});
 	lt::resolver resolver(client_ios);
 
 	const unsigned short http_port = 8080;
@@ -478,7 +480,7 @@ TORRENT_TEST(http_connection_timeout)
 
 	auto c = test_request(client_ios, resolver
 		, "http://dual-stack.test-hostname.com:8080/timeout", data_buffer, -1, -1
-        , timed_out, lt::aux::proxy_settings()
+		, timed_out, lt::aux::proxy_settings()
 		, &connect_counter, &handler_counter);
 
 	error_code e;
@@ -486,8 +488,6 @@ TORRENT_TEST(http_connection_timeout)
 	TEST_CHECK(!e);
 	TEST_EQUAL(2, connect_counter);
 	TEST_EQUAL(1, handler_counter);
-
-	TEST_CHECK(c->socket().local_endpoint().address().is_v6());
 }
 
 void test_proxy_failure(lt::settings_pack::proxy_type_t proxy_type)
