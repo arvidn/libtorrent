@@ -178,6 +178,30 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
 // TODO: verify_encoding with a string that triggers character replacement
 
+TORRENT_TEST(url_list_and_httpseeds)
+{
+	entry info;
+	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+	info["name.utf-8"] = "test1";
+	info["name"] = "test__";
+	info["piece length"] = 16 * 1024;
+	info["length"] = 3245;
+	entry::list_type l;
+	l.push_back(entry("http://foo.com/bar1"));
+	l.push_back(entry("http://foo.com/bar1"));
+	l.push_back(entry("http://foo.com/bar2"));
+	entry const e(l);
+	entry torrent;
+	torrent["url-list"] = e;
+	torrent["httpseeds"] = e;
+	torrent["info"] = info;
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), torrent);
+	error_code ec;
+	torrent_info ti(&buf[0], int(buf.size()), ec);
+	TEST_EQUAL(ti.web_seeds().size(), 4);
+}
+
 TORRENT_TEST(add_url_seed)
 {
 	torrent_info ti(sha1_hash("                   "));
