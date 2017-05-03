@@ -366,8 +366,7 @@ namespace libtorrent {
 		bool m_include_symlinks:1;
 	};
 
-namespace detail {
-
+	namespace detail {
 		inline void nop(piece_index_t) {}
 	}
 
