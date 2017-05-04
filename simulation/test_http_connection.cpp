@@ -232,7 +232,7 @@ void run_suite(lt::aux::proxy_settings ps)
 	if (ps.type != settings_pack::socks5
 		&& ps.type != settings_pack::http)
 	{
-		auto expected_code = ps.type == settings_pack::socks4 ?
+		const auto expected_code = ps.type == settings_pack::socks4 ?
 			boost::system::errc::address_family_not_supported :
 			boost::system::errc::address_not_available;
 
@@ -449,6 +449,9 @@ TORRENT_TEST(http_connection_socks5_proxy_names)
 	run_suite(ps);
 }
 
+// tests the error scenario of a http server listening on two sockets (ipv4/ipv6) which
+// both accept the incoming connection but never send anything back. we test that
+// both ip addresses get tried in turn and that the connection attempts time out as expected.
 TORRENT_TEST(http_connection_timeout)
 {
 	sim_config network_cfg;
@@ -486,8 +489,8 @@ TORRENT_TEST(http_connection_timeout)
 	error_code e;
 	sim.run(e);
 	TEST_CHECK(!e);
-	TEST_EQUAL(2, connect_counter);
-	TEST_EQUAL(1, handler_counter);
+	TEST_EQUAL(2, connect_counter); // both endpoints are connected to
+	TEST_EQUAL(1, handler_counter); // the handler only gets called once with error_code == timed_out
 }
 
 void test_proxy_failure(lt::settings_pack::proxy_type_t proxy_type)
