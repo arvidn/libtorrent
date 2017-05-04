@@ -367,9 +367,8 @@ namespace libtorrent {
 	};
 
 namespace detail {
-
-		inline void nop(piece_index_t) {}
-	}
+	inline void nop(piece_index_t) {}
+}
 
 	// Adds the file specified by ``path`` to the file_storage object. In case ``path``
 	// refers to a directory, files will be added recursively from the directory.
