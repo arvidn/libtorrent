@@ -452,7 +452,7 @@ TORRENT_TEST(http_connection_socks5_proxy_names)
 // tests the error scenario of a http server listening on two sockets (ipv4/ipv6) which
 // both accept the incoming connection but never send anything back. we test that
 // both ip addresses get tried in turn and that the connection attempts time out as expected.
-TORRENT_TEST(http_connection_timeout)
+TORRENT_TEST(http_connection_timeout_server_stalls)
 {
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -490,6 +490,58 @@ TORRENT_TEST(http_connection_timeout)
 	sim.run(e);
 	TEST_CHECK(!e);
 	TEST_EQUAL(2, connect_counter); // both endpoints are connected to
+	TEST_EQUAL(1, handler_counter); // the handler only gets called once with error_code == timed_out
+}
+
+// tests the error scenario of a http server listening on two sockets (ipv4/ipv6) neither of which
+// accept incoming connections. we test that both ip addresses get tried in turn and that the
+// connection attempts time out as expected.
+TORRENT_TEST(http_connection_timeout_server_does_not_accept)
+{
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+	// server has two ip addresses (ipv4/ipv6)
+	sim::asio::io_service server_ios(sim, {
+		address_v4::from_string("10.0.0.2"),
+		address_v6::from_string("ff::dead:beef")
+	});
+	// same for client
+	sim::asio::io_service client_ios(sim, {
+		address_v4::from_string("10.0.0.1"),
+		address_v6::from_string("ff::abad:cafe")
+	});
+	lt::resolver resolver(client_ios);
+
+	const unsigned short http_port = 8080;
+
+	// listen on two sockets, but don't accept connections
+	asio::ip::tcp::acceptor server_socket_ipv4(server_ios);
+	server_socket_ipv4.open(tcp::v4());
+	server_socket_ipv4.bind(tcp::endpoint(address_v4::any(), http_port));
+	server_socket_ipv4.listen();
+
+	asio::ip::tcp::acceptor server_socket_ipv6(server_ios);
+	server_socket_ipv6.open(tcp::v6());
+	server_socket_ipv6.bind(tcp::endpoint(address_v6::any(), http_port));
+	server_socket_ipv6.listen();
+
+	int connect_counter = 0;
+	int handler_counter = 0;
+
+	error_condition timed_out(boost::system::errc::timed_out, boost::system::generic_category());
+
+	char data_buffer[4000];
+	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+
+	auto c = test_request(client_ios, resolver
+		, "http://dual-stack.test-hostname.com:8080/timeout_server_does_not_accept", data_buffer, -1, -1
+		, timed_out, lt::aux::proxy_settings()
+		, &connect_counter, &handler_counter);
+
+	error_code e;
+	sim.run(e);
+	TEST_CHECK(!e);
+	TEST_EQUAL(0, connect_counter); // no connection takes place
 	TEST_EQUAL(1, handler_counter); // the handler only gets called once with error_code == timed_out
 }
 
