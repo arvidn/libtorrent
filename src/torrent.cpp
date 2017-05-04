@@ -266,7 +266,7 @@ namespace libtorrent {
 			// correct URLs to end with a "/" for multi-file torrents
 			std::string& url = ws.back().url;
 			if (multi_file)
-				add_trailing_slash(url);
+				ensure_trailing_slash(url);
 		}
 
 		for (auto const& e : p.http_seeds)

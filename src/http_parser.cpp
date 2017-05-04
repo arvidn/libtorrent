@@ -121,7 +121,7 @@ namespace libtorrent {
 			// however, we may still need to insert a '/' in case neither side
 			// has one. We know the location doesn't start with a / already.
 			// so, if the referrer doesn't end with one, add it.
-			add_trailing_slash(url);
+			ensure_trailing_slash(url);
 			url += location;
 		}
 		return url;
