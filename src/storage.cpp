@@ -506,15 +506,8 @@ namespace libtorrent {
 				, file::read_only | flags, ec);
 			if (ec) return -1;
 
-			// please ignore the adjusted_offset. It's just file_offset.
-			std::int64_t const adjusted_offset =
-#ifndef TORRENT_NO_DEPRECATE
-				files().file_base_deprecated(file_index) +
-#endif
-				file_offset;
-
 			error_code e;
-			int const ret = int(handle->readv(adjusted_offset
+			int const ret = int(handle->readv(file_offset
 				, vec, e, flags));
 
 			// set this unconditionally in case the upper layer would like to treat
@@ -580,15 +573,8 @@ namespace libtorrent {
 				, file::read_write, ec);
 			if (ec) return -1;
 
-			// please ignore the adjusted_offset. It's just file_offset.
-			std::int64_t const adjusted_offset =
-#ifndef TORRENT_NO_DEPRECATE
-				files().file_base_deprecated(file_index) +
-#endif
-				file_offset;
-
 			error_code e;
-			int const ret = int(handle->writev(adjusted_offset
+			int const ret = int(handle->writev(file_offset
 				, vec, e, flags));
 
 			// set this unconditionally in case the upper layer would like to treat

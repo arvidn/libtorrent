@@ -180,7 +180,7 @@ namespace {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	file_entry::file_entry(): offset(0), size(0), file_base(0)
+	file_entry::file_entry(): offset(0), size(0)
 		, mtime(0), pad_file(false), hidden_attribute(false)
 		, executable_attribute(false)
 		, symlink_attribute(false)
@@ -461,11 +461,7 @@ namespace {
 			{
 				file_slice f;
 				f.file_index = file_index_t(int(file_iter - m_files.begin()));
-				f.offset = file_offset
-#ifndef TORRENT_NO_DEPRECATE
-					+ file_base_deprecated(f.file_index)
-#endif
-					;
+				f.offset = file_offset;
 				f.size = std::min(std::int64_t(file_iter->size) - file_offset, std::int64_t(size));
 				TORRENT_ASSERT(f.size <= size);
 				size -= int(f.size);
@@ -492,7 +488,6 @@ namespace {
 		ret.path = file_path(index);
 		ret.offset = ife.offset;
 		ret.size = ife.size;
-		ret.file_base = file_base(index);
 		ret.mtime = mtime(index);
 		ret.pad_file = ife.pad_file;
 		ret.hidden_attribute = ife.hidden_attribute;
@@ -831,25 +826,6 @@ namespace {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	void file_storage::set_file_base(int index, std::int64_t off)
-	{
-		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		if (int(m_file_base.size()) <= index) m_file_base.resize(index + 1, 0);
-		m_file_base[index] = off;
-	}
-
-	std::int64_t file_storage::file_base_deprecated(int index) const
-	{
-		if (index >= int(m_file_base.size())) return 0;
-		return m_file_base[index];
-	}
-
-	std::int64_t file_storage::file_base(int index) const
-	{
-		if (index >= int(m_file_base.size())) return 0;
-		return m_file_base[index];
-	}
-
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = int(&fe - &m_files[0]);
@@ -875,21 +851,6 @@ namespace {
 		int index = int(&fe - &m_files[0]);
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		return index;
-	}
-
-	void file_storage::set_file_base(internal_file_entry const& fe, std::int64_t off)
-	{
-		int index = int(&fe - &m_files[0]);
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
-		if (int(m_file_base.size()) <= index) m_file_base.resize(index + 1, 0);
-		m_file_base[index] = off;
-	}
-
-	std::int64_t file_storage::file_base(internal_file_entry const& fe) const
-	{
-		int index = int(&fe - &m_files[0]);
-		if (index >= int(m_file_base.size())) return 0;
-		return m_file_base[index];
 	}
 
 	std::string file_storage::file_path(internal_file_entry const& fe
@@ -942,14 +903,6 @@ namespace {
 			if (int(m_file_hashes.size()) < index) m_file_hashes.resize(index + 1, nullptr);
 			std::iter_swap(m_file_hashes.begin() + dst, m_file_hashes.begin() + index);
 		}
-#ifndef TORRENT_NO_DEPRECATE
-		if (!m_file_base.empty())
-		{
-			TORRENT_ASSERT(m_file_base.size() == m_files.size());
-			if (int(m_file_base.size()) < index) m_file_base.resize(index + 1, 0);
-			std::iter_swap(m_file_base.begin() + dst, m_file_base.begin() + index);
-		}
-#endif // TORRENT_DEPRECATED
 	}
 
 	void file_storage::optimize(int const pad_file_limit, int alignment
@@ -1098,9 +1051,6 @@ namespace {
 
 		if (!m_mtime.empty()) m_mtime.resize(index + 1, 0);
 		if (!m_file_hashes.empty()) m_file_hashes.resize(index + 1, nullptr);
-#ifndef TORRENT_NO_DEPRECATE
-		if (!m_file_base.empty()) m_file_base.resize(index + 1, 0);
-#endif
 
 		if (index != cur_index) reorder_file(index, cur_index);
 	}
