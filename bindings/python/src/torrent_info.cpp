@@ -168,8 +168,6 @@ namespace
     bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
     std::int64_t get_size(file_entry const& fe) { return fe.size; }
     std::int64_t get_offset(file_entry const& fe) { return fe.offset; }
-    std::int64_t get_file_base(file_entry const& fe) { return fe.file_base; }
-    void set_file_base(file_entry& fe, int b) { fe.file_base = b; }
     bool get_pad_file(file_entry const& fe) { return fe.pad_file; }
     bool get_executable_attribute(file_entry const& fe) { return fe.executable_attribute; }
     bool get_hidden_attribute(file_entry const& fe) { return fe.hidden_attribute; }
@@ -329,7 +327,6 @@ void bind_torrent_info()
         .add_property("symlink_attribute", &get_symlink_attribute)
         .add_property("offset", &get_offset)
         .add_property("size", &get_size)
-        .add_property("file_base", &get_file_base, &set_file_base)
         ;
 #endif
 

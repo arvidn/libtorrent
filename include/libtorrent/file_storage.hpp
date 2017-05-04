@@ -75,14 +75,6 @@ namespace libtorrent {
 		// before it in the list.
 		std::int64_t size;
 
-		// the offset in the file where the storage should start. The normal
-		// case is to have this set to 0, so that the storage starts saving data at the start
-		// if the file. In cases where multiple files are mapped into the same file though,
-		// the ``file_base`` should be set to an offset so that the different regions do
-		// not overlap. This is used when mapping "unselected" files into a so-called part
-		// file.
-		std::int64_t file_base;
-
 		// the modification time of this file specified in posix time.
 		std::time_t mtime;
 
@@ -420,9 +412,6 @@ namespace libtorrent {
 			swap(ti.m_file_hashes, m_file_hashes);
 			swap(ti.m_symlinks, m_symlinks);
 			swap(ti.m_mtime, m_mtime);
-#ifndef TORRENT_NO_DEPRECATE
-			swap(ti.m_file_base, m_file_base);
-#endif
 			swap(ti.m_paths, m_paths);
 			swap(ti.m_name, m_name);
 			swap(ti.m_total_size, m_total_size);
@@ -532,13 +521,6 @@ namespace libtorrent {
 		int file_name_len(file_index_t index) const;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 1.1
-		std::int64_t file_base_deprecated(int index) const;
-		TORRENT_DEPRECATED
-		std::int64_t file_base(int index) const;
-		TORRENT_DEPRECATED
-		void set_file_base(int index, std::int64_t off);
-
 		// these were deprecated in 1.0. Use the versions that take an index instead
 		TORRENT_DEPRECATED
 		sha1_hash hash(internal_file_entry const& fe) const;
@@ -548,10 +530,6 @@ namespace libtorrent {
 		std::time_t mtime(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
 		int file_index(internal_file_entry const& fe) const;
-		TORRENT_DEPRECATED
-		std::int64_t file_base(internal_file_entry const& fe) const;
-		TORRENT_DEPRECATED
-		void set_file_base(internal_file_entry const& fe, std::int64_t off);
 		TORRENT_DEPRECATED
 		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const;
 		TORRENT_DEPRECATED
@@ -610,13 +588,6 @@ namespace libtorrent {
 		// each element corresponds to the file with the same
 		// index in m_files
 		aux::vector<std::time_t, file_index_t> m_mtime;
-
-#ifndef TORRENT_NO_DEPRECATE
-		// if any file has a non-zero file base (i.e. multiple
-		// files residing in the same physical file at different
-		// offsets)
-		aux::vector<std::int64_t, file_index_t> m_file_base;
-#endif
 
 		// all unique paths files have. The internal_file_entry::path_index
 		// points into this array. The paths don't include the root directory

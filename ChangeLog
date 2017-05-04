@@ -1,3 +1,4 @@
+	* removed deprecated support for file_base in file_storage
 	* added support for running separate DHT nodes on each network interface
 	* added support for establishing UTP connections on any network interface
 	* added support for sending tracker announces on every network interface
