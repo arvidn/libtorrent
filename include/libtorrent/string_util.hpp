@@ -53,6 +53,11 @@ namespace libtorrent {
 	// internal
 	inline bool is_digit(char c)
 	{ return c >= '0' && c <= '9'; }
+	inline void ensure_trailing_slash(std::string& url)
+	{
+		if (url.empty() || url[url.size() - 1] != '/')
+			url += '/';
+	}
 
 	TORRENT_EXTRA_EXPORT bool is_print(char c);
 	TORRENT_EXTRA_EXPORT bool is_space(char c);

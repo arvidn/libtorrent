@@ -95,8 +95,8 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	{
 		// handle incorrect .torrent files which are multi-file
 		// but have web seeds not ending with a slash
-		if (m_path.empty() || m_path[m_path.size() - 1] != '/') m_path += '/';
-		if (m_url.empty() || m_url[m_url.size() - 1] != '/') m_url += '/';
+		ensure_trailing_slash(m_path);
+		ensure_trailing_slash(m_url);
 	}
 	else
 	{

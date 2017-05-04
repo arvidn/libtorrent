@@ -1460,7 +1460,8 @@ namespace libtorrent {
 		{
 			web_seed_entry ent(maybe_url_encode(url_seeds.string_value().to_string())
 				, web_seed_entry::url_seed);
-			if ((m_flags & multifile) && ent.url[ent.url.size() - 1] != '/') ent.url += '/';
+			if (m_flags & multifile)
+				ensure_trailing_slash(ent.url);
 			m_web_seeds.push_back(ent);
 		}
 		else if (url_seeds && url_seeds.type() == bdecode_node::list_t)
@@ -1474,7 +1475,8 @@ namespace libtorrent {
 				if (url.string_length() == 0) continue;
 				web_seed_entry ent(maybe_url_encode(url.string_value().to_string())
 					, web_seed_entry::url_seed);
-				if ((m_flags & multifile) && ent.url[ent.url.size() - 1] != '/') ent.url += '/';
+				if (m_flags & multifile)
+					ensure_trailing_slash(ent.url);
 				if (!unique.insert(ent.url).second) continue;
 				m_web_seeds.push_back(ent);
 			}
