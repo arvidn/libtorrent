@@ -1267,53 +1267,48 @@ MAGNETURL is a magnet link
 		else add_torrent(ses, i.to_string());
 	}
 
-	// load resume files
-	std::string const resume_dir = path_append(save_path, ".resume");
-	std::vector<std::string> ents = list_dir(resume_dir
-		, [](lt::string_view p) { return p.size() > 7 && p.substr(p.size() - 7) == ".resume"; }, ec);
-	if (ec)
+	std::thread resume_data_loader([&ses]
 	{
+		// load resume files
+		error_code ec;
+		std::string const resume_dir = path_append(save_path, ".resume");
+		std::vector<std::string> ents = list_dir(resume_dir
+			, [](lt::string_view p) { return p.size() > 7 && p.substr(p.size() - 7) == ".resume"; }, ec);
+		if (ec)
+		{
 		std::fprintf(stderr, "failed to list resume directory \"%s\": (%s : %d) %s\n"
 			, resume_dir.c_str(), ec.category().name(), ec.value(), ec.message().c_str());
-	}
-	else
-	{
-		int idx = 0;
-		for (auto const& e : ents)
+		}
+		else
 		{
-			std::string const file = path_append(resume_dir, e);
-
-			std::vector<char> resume_data;
-			load_file(file, resume_data, ec);
-			if (ec)
+			for (auto const& e : ents)
 			{
-				std::printf("  failed to load resume file \"%s\": %s\n"
-					, file.c_str(), ec.message().c_str());
-				continue;
-			}
-			add_torrent_params p = lt::read_resume_data(resume_data, ec);
-			if (ec)
-			{
-				std::printf("  failed to parse resume data \"%s\": %s\n"
-					, file.c_str(), ec.message().c_str());
-				continue;
-			}
+				std::string const file = path_append(resume_dir, e);
 
-			// we're loading this torrent from resume data. There's no need to
-			// re-save the resume data immediately.
-			p.flags &= ~add_torrent_params::flag_need_save_resume;
+				std::vector<char> resume_data;
+				load_file(file, resume_data, ec);
+				if (ec)
+				{
+					std::printf("  failed to load resume file \"%s\": %s\n"
+						, file.c_str(), ec.message().c_str());
+					continue;
+				}
+				add_torrent_params p = lt::read_resume_data(resume_data, ec);
+				if (ec)
+				{
+					std::printf("  failed to parse resume data \"%s\": %s\n"
+						, file.c_str(), ec.message().c_str());
+					continue;
+				}
 
-			ses.async_add_torrent(std::move(p));
+				// we're loading this torrent from resume data. There's no need to
+				// re-save the resume data immediately.
+				p.flags &= ~add_torrent_params::flag_need_save_resume;
 
-			++idx;
-			if ((idx % 32) == 0)
-			{
-				// regularly, pop and handle alerts, to avoid the alert queue from
-				// filling up with add_torrent_alerts
-				pop_alerts(view, ses_view, ses, events);
+				ses.async_add_torrent(std::move(p));
 			}
 		}
-	}
+	});
 
 	// main loop
 	std::vector<peer_info> peers;
@@ -1934,6 +1929,8 @@ MAGNETURL is a magnet link
 			next_dir_scan = now + seconds(poll_interval);
 		}
 	}
+
+	resume_data_loader.join();
 
 	ses.pause();
 	std::printf("saving resume data\n");
