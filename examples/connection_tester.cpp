@@ -63,14 +63,11 @@ using namespace lt::detail; // for write_* and read_*
 
 using namespace std::placeholders;
 
-// TODO: this should take a span
-void generate_block(std::uint32_t* buffer, piece_index_t const piece, int start, int length)
+void generate_block(span<std::uint32_t> buffer, piece_index_t const piece
+	, int const offset)
 {
-	std::uint32_t fill = (static_cast<int>(piece) << 8) | ((start / 0x4000) & 0xff);
-	for (int i = 0; i < length / 4; ++i)
-	{
-		buffer[i] = fill;
-	}
+	std::uint32_t const fill = (static_cast<int>(piece) << 8) | ((offset / 0x4000) & 0xff);
+	for (auto& w : buffer) w = fill;
 }
 
 // in order to circumvent the restricton of only
@@ -694,7 +691,8 @@ struct peer_conn
 
 	void write_piece(piece_index_t const piece, int start, int length)
 	{
-		generate_block(write_buffer, piece, start, length);
+		generate_block({write_buffer, static_cast<std::size_t>(length / 4)}
+			, piece, start);
 
 		if (corrupt)
 		{
@@ -781,8 +779,8 @@ void hasher_thread(lt::create_torrent* t, piece_index_t const start_piece
 		hasher ph;
 		for (int j = 0; j < piece_size; j += 0x4000)
 		{
-			generate_block(piece, i, j, 0x4000);
-			ph.update((char*)piece, 0x4000);
+			generate_block(piece, i, j);
+			ph.update(reinterpret_cast<char*>(piece), 0x4000);
 		}
 		t->set_hash(i, ph.final());
 		int const range = static_cast<int>(end_piece) - static_cast<int>(start_piece);
@@ -866,7 +864,7 @@ void generate_data(char const* path, torrent_info const& ti)
 	{
 		for (int j = 0; j < ti.piece_size(i); j += 0x4000)
 		{
-			generate_block(piece, i, j, 0x4000);
+			generate_block(piece, i, j);
 			int const left_in_piece = ti.piece_size(i) - j;
 			iovec_t const b = { reinterpret_cast<char*>(piece)
 				, size_t(std::min(left_in_piece, 0x4000))};
