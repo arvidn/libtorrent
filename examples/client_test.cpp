@@ -93,6 +93,7 @@ bool sleep_and_input(int* c, lt::time_duration const sleep)
 #include <sys/ioctl.h>
 #include <csignal>
 #include <utility>
+#include <dirent.h>
 
 struct set_keypress
 {
@@ -1873,9 +1874,9 @@ MAGNETURL is a magnet link
 					if (f != file_status.end() && f->file_index == i)
 					{
 						title += " [ ";
-						if ((f->open_mode & file_open_mode::rw_mask) == file::read_write) title += "read/write ";
-						else if ((f->open_mode & file_open_mode::rw_mask) == file::read_only) title += "read ";
-						else if ((f->open_mode & file_open_mode::rw_mask) == file::write_only) title += "write ";
+						if ((f->open_mode & file_open_mode::rw_mask) == file_open_mode::read_write) title += "read/write ";
+						else if ((f->open_mode & file_open_mode::rw_mask) == file_open_mode::read_only) title += "read ";
+						else if ((f->open_mode & file_open_mode::rw_mask) == file_open_mode::write_only) title += "write ";
 						if (f->open_mode & file_open_mode::random_access) title += "random_access ";
 						if (f->open_mode & file_open_mode::locked) title += "locked ";
 						if (f->open_mode & file_open_mode::sparse) title += "sparse ";
