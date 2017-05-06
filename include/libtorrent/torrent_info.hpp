@@ -300,7 +300,7 @@ namespace libtorrent {
 			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
 		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }
-		void set_web_seeds(std::vector<web_seed_entry> seeds);
+		void set_web_seeds(std::vector<web_seed_entry> const& seeds);
 
 		// ``total_size()``, ``piece_length()`` and ``num_pieces()`` returns the
 		// total number of bytes the torrent-file represents (all the files in
