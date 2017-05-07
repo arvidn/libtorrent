@@ -524,7 +524,10 @@ namespace libtorrent
 			m_allocate_files = false;
 #endif
 
-		m_file_created.resize(files().num_files(), false);
+		{
+			mutex::scoped_lock l(m_file_created_mutex);
+			m_file_created.resize(files().num_files(), false);
+		}
 
 		// first, create all missing directories
 		std::string last_path;
@@ -1494,6 +1497,7 @@ namespace libtorrent
 
 		if (m_allocate_files && (mode & file::rw_mask) != file::read_only)
 		{
+			mutex::scoped_lock l(m_file_created_mutex);
 			if (m_file_created.size() != files().num_files())
 				m_file_created.resize(files().num_files(), false);
 
@@ -1504,10 +1508,11 @@ namespace libtorrent
 			// the file right away, to allocate it on the filesystem.
 			if (m_file_created[file] == false)
 			{
+				m_file_created.set_bit(file);
+				l.unlock();
 				error_code e;
 				boost::int64_t const size = files().file_size(file);
 				h->set_size(size, e);
-				m_file_created.set_bit(file);
 				if (e)
 				{
 					ec.ec = e;
