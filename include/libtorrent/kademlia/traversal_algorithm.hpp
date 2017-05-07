@@ -80,6 +80,7 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 #ifndef TORRENT_DISABLE_LOGGING
 	std::uint32_t id() const { return m_id; }
 #endif
+	void look_for_nodes(bdecode_node const& r, bool const is_traverse);
 
 protected:
 

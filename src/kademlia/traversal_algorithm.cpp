@@ -593,6 +593,28 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.last_sent = last_sent;
 }
 
+void traversal_algorithm::look_for_nodes(bdecode_node const& r,bool const is_traverse)
+{
+	udp const protocol = get_node().protocol();
+	int const protocol_size = int(detail::address_size(protocol));
+	char const* nodes_key = get_node().protocol_nodes_key();
+	bdecode_node const n = r.dict_find_string(nodes_key);
+	if (n)
+	{
+		char const* nodes = n.string_ptr();
+		char const* end = nodes + n.string_length();
+
+		while (end - nodes >= 20 + protocol_size + 2)
+		{
+			node_endpoint const nep = read_node_endpoint(protocol, nodes);
+			if(is_traverse)
+				traverse(nep.id, nep.ep);
+			else
+				get_node().m_table.heard_about(nep.id, nep.ep);
+		}
+	}
+}
+
 void traversal_observer::reply(msg const& m)
 {
 	bdecode_node const r = m.message.dict_find_dict("r");
@@ -623,22 +645,7 @@ void traversal_observer::reply(msg const& m)
 	}
 #endif
 
-	// look for nodes
-	udp const protocol = algorithm()->get_node().protocol();
-	int const protocol_size = int(detail::address_size(protocol));
-	char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
-	bdecode_node const n = r.dict_find_string(nodes_key);
-	if (n)
-	{
-		char const* nodes = n.string_ptr();
-		char const* end = nodes + n.string_length();
-
-		while (end - nodes >= 20 + protocol_size + 2)
-		{
-			node_endpoint nep = read_node_endpoint(protocol, nodes);
-			algorithm()->traverse(nep.id, nep.ep);
-		}
-	}
+	algorithm()->look_for_nodes(r, true);
 
 	bdecode_node const id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)

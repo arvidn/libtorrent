@@ -532,7 +532,7 @@ namespace libtorrent { namespace dht {
 		m_log->log_packet(dht_logger::incoming_message, buf, ep);
 #endif
 
-		libtorrent::dht::msg m(m_msg, ep);
+		libtorrent::dht::msg const m(m_msg, ep);
 		for (auto& n : m_nodes)
 			n.second.dht.incoming(m);
 		return true;
