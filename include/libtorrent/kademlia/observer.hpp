@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/time.hpp>
 #include <libtorrent/address.hpp>
+#include <libtorrent/bdecode.hpp>
 
 namespace libtorrent { namespace dht {
 struct dht_observer;
@@ -122,6 +123,7 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 protected:
 
 	void done();
+	void reply_r(msg const&, bdecode_node const& r_id);
 
 private:
 

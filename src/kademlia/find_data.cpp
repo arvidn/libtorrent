@@ -45,7 +45,7 @@ namespace libtorrent { namespace dht {
 
 void find_data_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -73,7 +73,7 @@ void find_data_observer::reply(msg const& m)
 			node_id(id.string_ptr()), token.string_value().to_string());
 	}
 
-	traversal_observer::reply(m);
+	traversal_observer::reply_r(m,r);
 	done();
 }
 

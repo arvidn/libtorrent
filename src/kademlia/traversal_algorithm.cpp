@@ -615,21 +615,8 @@ void traversal_algorithm::look_for_nodes(bdecode_node const& r,bool const is_tra
 	}
 }
 
-void traversal_observer::reply(msg const& m)
-{
-	bdecode_node const r = m.message.dict_find_dict("r");
-	if (!r)
+void observer::reply_r(msg const&, bdecode_node const& r)
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-		if (get_observer() != nullptr)
-		{
-			get_observer()->log(dht_logger::traversal
-				, "[%u] missing response dict"
-				, algorithm()->id());
-		}
-#endif
-		return;
-	}
 
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_observer* logger = get_observer();
@@ -663,6 +650,23 @@ void traversal_observer::reply(msg const& m)
 	// in case we didn't know the id of this peer when we sent the message to
 	// it. For instance if it's a bootstrap node.
 	set_id(node_id(id.string_ptr()));
+}
+void traversal_observer::reply(msg const& m)
+{
+	bdecode_node const r = m.message.dict_find_dict("r");
+	if (!r)
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		if (get_observer() != nullptr)
+		{
+			get_observer()->log(dht_logger::traversal
+				, "[%u] missing response dict"
+				, algorithm()->id());
+		}
+#endif
+		return;
+	}
+	reply_r(m, r);
 }
 
 } } // namespace libtorrent::dht

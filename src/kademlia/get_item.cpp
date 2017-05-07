@@ -175,7 +175,7 @@ void get_item_observer::reply(msg const& m)
 	signature sig;
 	sequence_number seq{0};
 
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -211,7 +211,7 @@ void get_item_observer::reply(msg const& m)
 		static_cast<get_item*>(algorithm())->got_data(v, pk, seq, sig);
 	}
 
-	find_data_observer::reply(m);
+	find_data_observer::reply_r(m,r);
 }
 
 } } // namespace libtorrent::dht

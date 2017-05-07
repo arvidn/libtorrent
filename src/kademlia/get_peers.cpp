@@ -44,7 +44,7 @@ namespace libtorrent { namespace dht {
 
 void get_peers_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -84,7 +84,7 @@ void get_peers_observer::reply(msg const& m)
 		static_cast<get_peers*>(algorithm())->got_peers(peer_list);
 	}
 
-	find_data_observer::reply(m);
+	find_data_observer::reply_r(m,r);
 }
 #ifndef TORRENT_DISABLE_LOGGING
 void get_peers_observer::log_peers(msg const& m, bdecode_node const& r, int const size) const
@@ -318,7 +318,7 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 		return;
 	}
 
-	traversal_observer::reply(m);
+	traversal_observer::reply_r(m,r);
 
 	done();
 }
