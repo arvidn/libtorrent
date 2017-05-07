@@ -1,3 +1,4 @@
+	* fix race condition in disk I/O storage class
 	* fix http connection timeout on multi-homed hosts
 	* removed depdendency on boost::uintptr_t for better compatibility
 	* fix memory leak in the disk cache
