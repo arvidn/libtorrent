@@ -598,6 +598,55 @@ TORRENT_TEST(http_connection_http_error)
 	test_proxy_failure(settings_pack::http);
 }
 
+// Requests a proxied SSL connection. This test just ensures that the correct CONNECT request
+// is sent to the proxy server.
+TORRENT_TEST(http_connection_ssl_proxy)
+{
+	using sim::asio::ip::address_v4;
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_service client_ios(sim, address_v4::from_string("10.0.0.1"));
+	sim::asio::io_service server_ios(sim, address_v4::from_string("10.0.0.2"));
+	sim::asio::io_service proxy_ios(sim, address_v4::from_string("50.50.50.50"));
+	lt::resolver res(client_ios);
+
+	sim::http_server http(server_ios, 8080);
+	sim::http_server http_proxy(proxy_ios, 4445);
+
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::http);
+
+	int handler_counter = 0;
+	int server_counter = 0;
+
+	http_proxy.register_handler("/10.0.0.2:8080"
+		, [&handler_counter](std::string method, std::string req, std::map<std::string, std::string>& headers)
+		{
+			handler_counter++;
+			TEST_EQUAL(method, "CONNECT");
+			return sim::send_response(403, "Not supported", 1337);
+		});
+
+	auto h = boost::make_shared<http_connection>(client_ios
+		, res
+		, [&server_counter](error_code const& ec, http_parser const& parser
+		, char const* data, const int size, http_connection& c)
+		{
+			server_counter++;
+			TEST_EQUAL(ec, boost::asio::error::operation_not_supported);
+		});
+
+	h->start("10.0.0.2", 8080, seconds(1), 0, &ps, true /*ssl*/);
+
+	error_code e;
+	sim.run(e);
+
+	TEST_EQUAL(1, handler_counter);
+	TEST_EQUAL(1, server_counter);
+	if (e) std::cerr << " run failed: " << e.message() << std::endl;
+	TEST_EQUAL(e, error_code());
+}
+
 // TODO: test http proxy with password
 // TODO: test socks5 with password
 // TODO: test SSL
