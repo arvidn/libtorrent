@@ -73,7 +73,7 @@ void find_data_observer::reply(msg const& m)
 			node_id(id.string_ptr()), token.string_value().to_string());
 	}
 
-	traversal_observer::reply_r(m,r);
+	observer::reply(m,r);
 	done();
 }
 

@@ -615,7 +615,7 @@ void traversal_algorithm::look_for_nodes(bdecode_node const& r,bool const is_tra
 	}
 }
 
-void observer::reply_r(msg const&, bdecode_node const& r)
+void observer::reply(msg const&, bdecode_node const& r)
 	{
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -651,6 +651,7 @@ void observer::reply_r(msg const&, bdecode_node const& r)
 	// it. For instance if it's a bootstrap node.
 	set_id(node_id(id.string_ptr()));
 }
+
 void traversal_observer::reply(msg const& m)
 {
 	bdecode_node const r = m.message.dict_find_dict("r");
@@ -666,7 +667,7 @@ void traversal_observer::reply(msg const& m)
 #endif
 		return;
 	}
-	reply_r(m, r);
+	observer::reply(m, r);
 }
 
 } } // namespace libtorrent::dht
