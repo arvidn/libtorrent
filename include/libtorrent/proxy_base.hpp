@@ -252,8 +252,8 @@ protected:
 	bool handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h);
 
 	tcp::socket m_sock;
-	std::string m_hostname;
-	int m_port;
+	std::string m_hostname; // proxy host
+	int m_port;             // proxy port
 
 	endpoint_type m_remote_endpoint;
 
