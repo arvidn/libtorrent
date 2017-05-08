@@ -73,6 +73,9 @@
 	* require C++11 to build libtorrent
 
 
+	* fix race condition in disk I/O storage class
+	* fix http connection timeout on multi-homed hosts
+	* removed depdendency on boost::uintptr_t for better compatibility
 	* fix memory leak in the disk cache
 	* fix double free in disk cache
 	* forward declaring libtorrent types is discouraged. a new fwd.hpp header is provided

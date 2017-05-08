@@ -2851,8 +2851,8 @@ namespace libtorrent {
 			}
 
 			aep.updating = true;
-			aep.next_announce = now + seconds32(20);
-			aep.min_announce = now + seconds32(10);
+			aep.next_announce = now;
+			aep.min_announce = now;
 
 			if (m_ses.alerts().should_post<tracker_announce_alert>())
 			{
