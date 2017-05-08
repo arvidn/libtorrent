@@ -166,7 +166,7 @@ void upnp::discover_device_impl(mutex::scoped_lock& l)
 }
 
 // returns a reference to a mapping or -1 on failure
-int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
+int upnp::add_mapping(upnp::protocol_type p, int external_port, tcp::endpoint local_ep)
 {
 	// external port 0 means _every_ port
 	TORRENT_ASSERT(external_port != 0);
@@ -175,8 +175,8 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 
 	char msg[500];
 	snprintf(msg, sizeof(msg), "adding port map: [ protocol: %s ext_port: %u "
-		"local_port: %u ] %s", (p == tcp?"tcp":"udp"), external_port
-		, local_port, m_disabled ? "DISABLED": "");
+		"local_ep: %s ] %s", (p == tcp?"tcp":"udp"), external_port
+		, print_endpoint(local_ep).c_str(), m_disabled ? "DISABLED": "");
 	log(msg, l);
 	if (m_disabled) return -1;
 
@@ -192,7 +192,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 
 	mapping_it->protocol = p;
 	mapping_it->external_port = external_port;
-	mapping_it->local_port = local_port;
+	mapping_it->local_ep = local_ep;
 
 	int mapping_index = mapping_it - m_mappings.begin();
 
@@ -209,7 +209,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 		m.action = mapping_t::action_add;
 		m.protocol = p;
 		m.external_port = external_port;
-		m.local_port = local_port;
+		m.local_ep = local_ep;
 
 		if (!d.service_namespace.empty()) update_map(d, mapping_index, l);
 	}
@@ -227,8 +227,8 @@ void upnp::delete_mapping(int mapping)
 
 	char msg[500];
 	snprintf(msg, sizeof(msg), "deleting port map: [ protocol: %s ext_port: %u "
-		"local_port: %u ]", (m.protocol == tcp?"tcp":"udp"), m.external_port
-		, m.local_port);
+		"local_ep: %s ]", (m.protocol == tcp?"tcp":"udp"), m.external_port
+		, print_endpoint(m.local_ep).c_str());
 	log(msg, l);
 
 	if (m.protocol == none) return;
@@ -246,13 +246,13 @@ void upnp::delete_mapping(int mapping)
 	}
 }
 
-bool upnp::get_mapping(int index, int& local_port, int& external_port, int& protocol) const
+bool upnp::get_mapping(int index, tcp::endpoint& local_ep, int& external_port, int& protocol) const
 {
 	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
 	if (index >= int(m_mappings.size()) || index < 0) return false;
 	global_mapping_t const& m = m_mappings[index];
 	if (m.protocol == none) return false;
-	local_port = m.local_port;
+	local_ep = m.local_ep;
 	external_port = m.external_port;
 	protocol = m.protocol;
 	return true;
@@ -537,7 +537,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		{
 			mapping_t m;
 			m.action = mapping_t::action_add;
-			m.local_port = j->local_port;
+			m.local_ep = j->local_ep;
 			m.external_port = j->external_port;
 			m.protocol = j->protocol;
 			d.mapping.push_back(m);
@@ -700,9 +700,9 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 		"</u:%s></s:Body></s:Envelope>"
 		, soap_action, d.service_namespace.c_str(), d.mapping[i].external_port
 		, (d.mapping[i].protocol == udp ? "UDP" : "TCP")
-		, d.mapping[i].local_port
+		, d.mapping[i].local_ep.port()
 		, local_endpoint.c_str()
-		, m_user_agent.c_str(), local_endpoint.c_str(), d.mapping[i].local_port
+		, m_user_agent.c_str(), local_endpoint.c_str(), d.mapping[i].local_ep.port()
 		, d.lease_duration, soap_action);
 
 	post(d, soap, soap_action, l);
@@ -772,7 +772,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 			, boost::bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), 1);
+			, seconds(10), 1, NULL, false, 5, m.local_ep.address());
 	}
 	else if (m.action == mapping_t::action_delete)
 	{
@@ -783,7 +783,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
 			, boost::bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), 1);
+			, seconds(10), 1, NULL, false, 5, m.local_ep.address());
 	}
 
 	m.action = mapping_t::action_none;

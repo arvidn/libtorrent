@@ -1,3 +1,4 @@
+	* bind upnp requests to correct local address
 	* save resume data when removing web seeds
 	* fix proxying of https connections
 	* fix race condition in disk I/O storage class

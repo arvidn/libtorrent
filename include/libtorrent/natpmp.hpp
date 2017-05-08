@@ -75,7 +75,7 @@ public:
 	void close();
 
 private:
-	
+
 	boost::shared_ptr<natpmp> self() { return shared_from_this(); }
 
 	void update_mapping(int i, mutex::scoped_lock& l);

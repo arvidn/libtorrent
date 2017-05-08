@@ -2249,7 +2249,8 @@ retry:
 		if ((mask & 2) && m_upnp)
 		{
 			if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
-			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port, tcp_port);
+			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port
+				, tcp::endpoint(m_listen_interface.address(), tcp_port));
 #ifdef TORRENT_USE_OPENSSL
 			if (m_ssl_tcp_mapping[1] != -1)
 			{
@@ -2257,7 +2258,7 @@ retry:
 				m_ssl_tcp_mapping[1] = -1;
 			}
 			if (ssl_port > 0) m_ssl_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
-				, ssl_port, ssl_port);
+				, ssl_port, tcp::endpoint(m_listen_interface.address(), ssl_port));
 #endif
 		}
 	}
@@ -5992,7 +5993,8 @@ retry:
 	void session_impl::maybe_update_udp_mapping(int const nat, bool const ssl
 		, int const local_port, int const external_port)
 	{
-		int local, external, protocol;
+		int external, protocol;
+		tcp::endpoint local_ep;
 #ifdef TORRENT_USE_OPENSSL
 		int* mapping = ssl ? m_ssl_udp_mapping : m_udp_mapping;
 #else
@@ -6001,6 +6003,7 @@ retry:
 #endif
 		if (nat == 0 && m_natpmp)
 		{
+			int local = 0;
 			if (mapping[nat] != -1)
 			{
 				if (m_natpmp->get_mapping(mapping[nat], local, external, protocol))
@@ -6012,23 +6015,24 @@ retry:
 				m_natpmp->delete_mapping(mapping[nat]);
 			}
 			mapping[nat] = m_natpmp->add_mapping(natpmp::udp
-				, local_port, external_port);
+				, external_port, local_port);
 			return;
 		}
 		else if (nat == 1 && m_upnp)
 		{
 			if (mapping[nat] != -1)
 			{
-				if (m_upnp->get_mapping(mapping[nat], local, external, protocol))
+				if (m_upnp->get_mapping(mapping[nat], local_ep, external, protocol))
 				{
 					// we already have a mapping. If it's the same, don't do anything
-					if (local == local_port && external == external_port && protocol == natpmp::udp)
+					if (local_ep.port() == local_port && external == external_port && protocol == natpmp::udp)
 						return;
 				}
 				m_upnp->delete_mapping(mapping[nat]);
 			}
+			local_ep.port(local_port);
 			mapping[nat] = m_upnp->add_mapping(upnp::udp
-				, local_port, external_port);
+				, external_port, local_ep);
 			return;
 		}
 	}
@@ -6784,13 +6788,13 @@ retry:
 		if (m_udp_socket.is_open())
 		{
 			m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
-				, m_listen_interface.port(), m_listen_interface.port());
+				, m_listen_interface.port(), m_listen_interface);
 		}
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl_udp_socket.is_open() && ssl_port > 0)
 		{
 			m_ssl_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
-				, ssl_port, ssl_port);
+				, ssl_port, tcp::endpoint(m_listen_interface.address(), ssl_port));
 		}
 #endif
 		return m_upnp.get();
@@ -6801,9 +6805,9 @@ retry:
 	{
 		int ret = 0;
 		if (m_upnp) ret = m_upnp->add_mapping(static_cast<upnp::protocol_type>(t), external_port
-			, local_port);
-		if (m_natpmp) ret = m_natpmp->add_mapping(static_cast<natpmp::protocol_type>(t), external_port
-			, local_port);
+			, tcp::endpoint(m_listen_interface.address(), local_port));
+		if (m_natpmp) ret = m_natpmp->add_mapping(static_cast<natpmp::protocol_type>(t)
+			, external_port, local_port);
 		return ret;
 	}
 
