@@ -617,7 +617,7 @@ TORRENT_TEST(http_connection_ssl_proxy)
 	int client_counter = 0;
 	int proxy_counter = 0;
 
-	http_proxy.register_handler("/10.0.0.2:8080"
+	http_proxy.register_handler("10.0.0.2:8080"
 		, [&proxy_counter](std::string method, std::string req, std::map<std::string, std::string>& headers)
 		{
 			proxy_counter++;
