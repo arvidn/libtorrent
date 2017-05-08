@@ -104,7 +104,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	std::string m_sendbuffer;
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
-		, int prio = 0, aux::proxy_settings const* ps = 0, int handle_redirects = 5
+		, int prio = 0, aux::proxy_settings const* ps = NULL, int handle_redirects = 5
 		, std::string const& user_agent = std::string()
 		, address const& bind_addr = address_v4::any()
 		, int resolve_flags = 0, std::string const& auth_ = std::string()
@@ -114,7 +114,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		);
 
 	void start(std::string const& hostname, int port
-		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = 0
+		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = NULL
 		, bool ssl = false, int handle_redirect = 5
 		, address const& bind_addr = address_v4::any()
 		, int resolve_flags = 0
