@@ -11344,7 +11344,11 @@ namespace libtorrent
 			, (boost::bind(&web_seed_t::url, _1)
 				== url && boost::bind(&web_seed_t::type, _1) == type));
 
-		if (i != m_web_seeds.end()) remove_web_seed(i);
+		if (i != m_web_seeds.end())
+		{
+			remove_web_seed(i);
+			set_need_save_resume();
+		}
 	}
 
 	void torrent::disconnect_web_seed(peer_connection* p)
