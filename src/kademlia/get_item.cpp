@@ -211,7 +211,7 @@ void get_item_observer::reply(msg const& m)
 		static_cast<get_item*>(algorithm())->got_data(v, pk, seq, sig);
 	}
 
-	observer::reply(m,r);
+	find_data_observer::reply(m);
 }
 
 } } // namespace libtorrent::dht
