@@ -1743,8 +1743,9 @@ namespace aux {
 			error_code err;
 #ifdef TORRENT_WINDOWS
 			ret.sock->set_option(exclusive_address_use(true), err);
-#endif
+#else
 			ret.sock->set_option(tcp::acceptor::reuse_address(true), err);
+#endif
 		}
 
 #if TORRENT_USE_IPV6
@@ -5066,8 +5067,9 @@ retry:
 		{
 #ifdef TORRENT_WINDOWS
 			s.set_option(exclusive_address_use(true), ec);
-#endif
+#else
 			s.set_option(tcp::acceptor::reuse_address(true), ec);
+#endif
 			// ignore errors because the underlying socket may not
 			// be opened yet. This happens when we're routing through
 			// a proxy. In that case, we don't yet know the address of
