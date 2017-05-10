@@ -606,11 +606,11 @@ void traversal_algorithm::look_for_nodes(bdecode_node const& r, std::function<vo
 
 		while (end - nodes >= 20 + protocol_size + 2)
 		{
-			node_endpoint const nep = read_node_endpoint(protocol, nodes);
-			f(nep);
+			f(read_node_endpoint(protocol, nodes));
 		}
 	}
 }
+
 void traversal_observer::reply(msg const& m)
 {
 	bdecode_node const r = m.message.dict_find_dict("r");
