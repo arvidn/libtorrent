@@ -1682,6 +1682,7 @@ namespace libtorrent
 		: m_files(*files)
 		, m_storage(storage_impl)
 		, m_torrent(torrent)
+		, checked_fastresume(false)
 	{
 	}
 
@@ -1757,6 +1758,9 @@ namespace libtorrent
 		, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
+
+		if (checked_fastresume) return check_no_fastresume(ec);
+		checked_fastresume = true;
 
 		// if we don't have any resume data, return
 		if (rd.type() == bdecode_node::none_t) return check_no_fastresume(ec);

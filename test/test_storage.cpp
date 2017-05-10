@@ -93,6 +93,32 @@ void on_check_resume_data(disk_io_job const* j, bool* done)
 	*done = true;
 }
 
+void on_checked_resume_data(disk_io_job const* j, int n, bool* done)
+{
+	TEST_CHECK(n == 1 || n == 2 || n == 3)
+
+	std::cerr << time_now_string() << " on_checked_resume_data ret: " << j->ret;
+
+	if (n == 1)
+	{
+		TEST_EQUAL(j->ret, piece_manager::no_error);
+		TEST_EQUAL(j->error.ec.value(), errors::not_a_dictionary);
+	}
+	if (n == 2)
+	{
+		TEST_EQUAL(j->ret, piece_manager::no_error);
+		TEST_EQUAL(j->error.ec.value(), 0);
+	}
+	if (n == 3)
+	{
+		TEST_EQUAL(j->ret, piece_manager::no_error);
+		TEST_EQUAL(j->error.ec.value(), 0);
+		*done = true;
+	}
+
+	std::cerr << std::endl;
+}
+
 void print_error(char const* call, int ret, storage_error const& ec)
 {
 	fprintf(stderr, "%s: %s() returned: %d error: \"%s\" in file: %d operation: %d\n"
@@ -1453,3 +1479,51 @@ TORRENT_TEST(dont_move_intermingled_files)
 		, combine_path("_folder3", "alien_folder1")))));
 }
 
+TORRENT_TEST(double_call_to_check_fastresume)
+{
+	file_storage fs;
+	aux::session_settings set;
+	file_pool fp;
+	boost::asio::io_service ios;
+	counters cnt;
+	disk_io_thread io(ios, cnt, NULL);
+	io.set_num_threads(1);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
+	storage_params p;
+	p.files = &fs;
+	p.pool = &fp;
+	boost::shared_ptr<void> dummy;
+
+	boost::shared_ptr<piece_manager> pm = boost::make_shared<piece_manager>(new default_storage(p), dummy, &fs);
+
+	bool done = false;
+
+	char b[] = "li12453e3:aaae";
+	bdecode_node e;
+	error_code ec;
+	bdecode(b, b + sizeof(b) - 1, e, ec);
+	boost::scoped_ptr<bdecode_node> rd(new bdecode_node());
+	bdecode_node* rd1 = rd.get();
+	bdecode_node* rd2 = rd.get();
+	bdecode_node* rd3 = rd.get();
+	std::vector<std::string> links;
+
+	*rd1 = e;
+
+	io.async_check_fastresume(pm.get(), rd1, links
+		, boost::bind(&on_checked_resume_data, _1, 1, &done));
+
+	// no error since it was already checked out
+	io.async_check_fastresume(pm.get(), rd2, links
+		, boost::bind(&on_checked_resume_data, _1, 2, &done));
+
+	// no error here either
+	io.async_check_fastresume(pm.get(), rd3, links
+		, boost::bind(&on_checked_resume_data, _1, 3, &done));
+
+	io.submit_jobs();
+	ios.reset();
+	run_until(ios, done);
+
+	io.set_num_threads(0);
+}
