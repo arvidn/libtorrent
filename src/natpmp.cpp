@@ -229,7 +229,7 @@ void natpmp::delete_mapping(int const index)
 }
 
 int natpmp::add_mapping(portmap_protocol const p, int const external_port
-	, int const local_port)
+	, tcp::endpoint const local_ep)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -244,7 +244,7 @@ int natpmp::add_mapping(portmap_protocol const p, int const external_port
 	}
 	i->protocol = p;
 	i->external_port = external_port;
-	i->local_port = local_port;
+	i->local_port = local_ep.port();
 	i->act = mapping_t::action::add;
 
 	int const mapping_index = int(i - m_mappings.begin());

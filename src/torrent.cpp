@@ -9776,7 +9776,11 @@ namespace libtorrent {
 		auto const i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 			, [&] (web_seed_t const& w) { return w.url == url && w.type == type; });
 
-		if (i != m_web_seeds.end()) remove_web_seed_iter(i);
+		if (i != m_web_seeds.end())
+		{
+			remove_web_seed_iter(i);
+			set_need_save_resume();
+		}
 	}
 
 	void torrent::disconnect_web_seed(peer_connection* p)

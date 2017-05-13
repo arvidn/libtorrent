@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/hex.hpp"
+#include "setup_transfer.hpp" // for addr6
 #include "settings.hpp"
 
 #include "test.hpp"
@@ -112,8 +113,10 @@ TORRENT_TEST(dht_state)
 	s.nids.emplace_back(addr4("0.0.0.0"), to_hash("0000000000000000000000000000000000000001"));
 	s.nodes.push_back(uep("1.1.1.1", 1));
 	s.nodes.push_back(uep("2.2.2.2", 2));
+#if TORRENT_USE_IPV6
 	// not important that IPv6 is disabled here
 	s.nids.emplace_back(addr6("::"), to_hash("0000000000000000000000000000000000000002"));
+#endif
 
 	session_params params(p);
 	params.dht_settings = sett;

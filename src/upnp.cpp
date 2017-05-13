@@ -182,7 +182,7 @@ void upnp::discover_device_impl()
 
 // returns a reference to a mapping or -1 on failure
 int upnp::add_mapping(portmap_protocol const p, int const external_port
-	, int const local_port)
+	, tcp::endpoint const local_ep)
 {
 	TORRENT_ASSERT(is_single_thread());
 	// external port 0 means _every_ port
@@ -190,9 +190,9 @@ int upnp::add_mapping(portmap_protocol const p, int const external_port
 
 #ifndef TORRENT_DISABLE_LOGGING
 	log("adding port map: [ protocol: %s ext_port: %u "
-		"local_port: %u ] %s", (p == portmap_protocol::tcp?"tcp":"udp")
+		"local_ep: %s ] %s", (p == portmap_protocol::tcp?"tcp":"udp")
 		, external_port
-		, local_port, m_disabled ? "DISABLED": "");
+		, print_endpoint(local_ep).c_str(), m_disabled ? "DISABLED": "");
 #endif
 	if (m_disabled) return -1;
 
@@ -208,7 +208,7 @@ int upnp::add_mapping(portmap_protocol const p, int const external_port
 
 	mapping_it->protocol = p;
 	mapping_it->external_port = external_port;
-	mapping_it->local_port = local_port;
+	mapping_it->local_ep = local_ep;
 
 	int const mapping_index = int(mapping_it - m_mappings.begin());
 
@@ -224,7 +224,7 @@ int upnp::add_mapping(portmap_protocol const p, int const external_port
 		m.act = mapping_t::action::add;
 		m.protocol = p;
 		m.external_port = external_port;
-		m.local_port = local_port;
+		m.local_ep = local_ep;
 
 		if (!d.service_namespace.empty()) update_map(d, mapping_index);
 	}
@@ -242,8 +242,8 @@ void upnp::delete_mapping(int const mapping)
 
 #ifndef TORRENT_DISABLE_LOGGING
 	log("deleting port map: [ protocol: %s ext_port: %u "
-		"local_port: %u ]", (m.protocol == portmap_protocol::tcp?"tcp":"udp"), m.external_port
-		, m.local_port);
+		"local_ep: %s ]", (m.protocol == portmap_protocol::tcp?"tcp":"udp"), m.external_port
+		, print_endpoint(m.local_ep).c_str());
 #endif
 
 	if (m.protocol == portmap_protocol::none) return;
@@ -261,7 +261,7 @@ void upnp::delete_mapping(int const mapping)
 }
 
 bool upnp::get_mapping(int const index
-	, int& local_port
+	, tcp::endpoint& local_ep
 	, int& external_port
 	, portmap_protocol& protocol) const
 {
@@ -270,7 +270,7 @@ bool upnp::get_mapping(int const index
 	if (index >= int(m_mappings.size()) || index < 0) return false;
 	global_mapping_t const& m = m_mappings[index];
 	if (m.protocol == portmap_protocol::none) return false;
-	local_port = m.local_port;
+	local_ep = m.local_ep;
 	external_port = m.external_port;
 	protocol = m.protocol;
 	return true;
@@ -586,7 +586,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		{
 			mapping_t m;
 			m.act = mapping_t::action::add;
-			m.local_port = j.local_port;
+			m.local_ep = j.local_ep;
 			m.external_port = j.external_port;
 			m.protocol = j.protocol;
 			d.mapping.push_back(m);
@@ -744,9 +744,9 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int const i)
 		"</u:%s></s:Body></s:Envelope>"
 		, soap_action, d.service_namespace.c_str(), d.mapping[i].external_port
 		, (d.mapping[i].protocol == portmap_protocol::udp ? "UDP" : "TCP")
-		, d.mapping[i].local_port
+		, d.mapping[i].local_ep.port()
 		, local_endpoint.c_str()
-		, m_user_agent.c_str(), local_endpoint.c_str(), d.mapping[i].local_port
+		, m_user_agent.c_str(), local_endpoint.c_str(), d.mapping[i].local_ep.port()
 		, d.lease_duration, soap_action);
 
 	post(d, soap, soap_action);
@@ -817,7 +817,7 @@ void upnp::update_map(rootdevice& d, int const i)
 			, std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i));
 
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), 1);
+			, seconds(10), 1, NULL, false, 5, m.local_ep.address());
 	}
 	else if (m.act == mapping_t::action::del)
 	{
@@ -828,7 +828,7 @@ void upnp::update_map(rootdevice& d, int const i)
 			, std::ref(d), i, _5), true, default_max_bottled_buffer_size
 			, std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i));
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), 1);
+			, seconds(10), 1, NULL, false, 5, m.local_ep.address());
 	}
 
 	m.act = mapping_t::action::none;

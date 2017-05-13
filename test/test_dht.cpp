@@ -135,6 +135,7 @@ struct mock_dht_socket final : aux::session_listen_socket
 	tcp::endpoint m_local_endpoint;
 };
 
+#if TORRENT_USE_IPV6
 struct mock_dht_socket6 final : aux::session_listen_socket
 {
 	address get_external_address() override { return m_external_address; }
@@ -143,6 +144,7 @@ struct mock_dht_socket6 final : aux::session_listen_socket
 	address m_external_address = addr6("2002::1");
 	tcp::endpoint m_local_endpoint = tcp::endpoint(addr6("2002::1"), 6881);
 };
+#endif
 
 node* get_foreign_node_stub(node_id const&, std::string const&)
 {

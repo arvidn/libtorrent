@@ -1528,7 +1528,7 @@ namespace {
 				}
 #endif // TORRENT_DISABLE_LOGGING
 			}
-#endif // TORRENT_WINDOWS
+#else
 
 			{
 				// this is best-effort. ignore errors
@@ -1542,6 +1542,7 @@ namespace {
 				}
 #endif // TORRENT_DISABLE_LOGGING
 			}
+#endif // TORRENT_WINDOWS
 
 #if TORRENT_USE_IPV6
 			if (bind_ep.address().is_v6())
@@ -2200,7 +2201,12 @@ namespace {
 
 			// only update this mapping if we actually have a socket listening
 			if (ep != EndpointType())
-				map_handle = m.add_mapping(protocol, ep.port(), ep.port());
+				map_handle = m.add_mapping(protocol, ep.port(), ep);
+		}
+
+		tcp::endpoint to_tcp(udp::endpoint const ep)
+		{
+			return tcp::endpoint(ep.address(), ep.port());
 		}
 	}
 
@@ -2213,12 +2219,12 @@ namespace {
 		if ((mask & remap_natpmp) && m_natpmp)
 		{
 			map_port(*m_natpmp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[0]);
-			map_port(*m_natpmp, portmap_protocol::udp, udp_ep, s.udp_port_mapping[0]);
+			map_port(*m_natpmp, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[0]);
 		}
 		if ((mask & remap_upnp) && m_upnp)
 		{
 			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[1]);
-			map_port(*m_upnp, portmap_protocol::udp, udp_ep, s.udp_port_mapping[1]);
+			map_port(*m_upnp, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[1]);
 		}
 	}
 
@@ -5011,8 +5017,9 @@ namespace {
 		{
 #ifdef TORRENT_WINDOWS
 			s.set_option(exclusive_address_use(true), ec);
-#endif
+#else
 			s.set_option(tcp::acceptor::reuse_address(true), ec);
+#endif
 			// ignore errors because the underlying socket may not
 			// be opened yet. This happens when we're routing through
 			// a proxy. In that case, we don't yet know the address of
@@ -6613,9 +6620,9 @@ namespace {
 	{
 		int ret = 0;
 		if (m_upnp) ret = m_upnp->add_mapping(static_cast<portmap_protocol>(t), external_port
-			, local_port);
+			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port)));
 		if (m_natpmp) ret = m_natpmp->add_mapping(static_cast<portmap_protocol>(t), external_port
-			, local_port);
+			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port)));
 		return ret;
 	}
 

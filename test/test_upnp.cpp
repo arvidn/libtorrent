@@ -198,8 +198,8 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 	std::cout << "router: " << upnp_handler->router_model() << std::endl;
 	TEST_EQUAL(upnp_handler->router_model(), router_model);
 
-	int mapping1 = upnp_handler->add_mapping(portmap_protocol::tcp, 500, 500);
-	int mapping2 = upnp_handler->add_mapping(portmap_protocol::udp, 501, 501);
+	int const mapping1 = upnp_handler->add_mapping(portmap_protocol::tcp, 500, ep("127.0.0.1", 500));
+	int const mapping2 = upnp_handler->add_mapping(portmap_protocol::udp, 501, ep("127.0.0.1", 501));
 
 	for (int i = 0; i < 40; ++i)
 	{

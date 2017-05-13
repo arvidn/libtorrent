@@ -73,6 +73,9 @@
 	* require C++11 to build libtorrent
 
 
+	* bind upnp requests to correct local address
+	* save resume data when removing web seeds
+	* fix proxying of https connections
 	* fix race condition in disk I/O storage class
 	* fix http connection timeout on multi-homed hosts
 	* removed depdendency on boost::uintptr_t for better compatibility
