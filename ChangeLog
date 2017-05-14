@@ -1,3 +1,4 @@
+	* deprecate partial_piece_info::piece_state
 	* bind upnp requests to correct local address
 	* save resume data when removing web seeds
 	* fix proxying of https connections
