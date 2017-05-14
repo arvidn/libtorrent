@@ -1013,6 +1013,8 @@ namespace aux {
 				TORRENT_ASSERT(!ec);
 			}
 
+			// TODO: 3 closing the udp sockets here means that
+			// the uTP connections cannot be closed gracefully
 			if (l.udp_sock)
 			{
 				l.udp_sock->sock.close();
