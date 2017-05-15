@@ -197,6 +197,39 @@ namespace libtorrent
 		return convert_from_wide<sizeof(wchar_t)>::convert(
 			&src_start, src_start + wide.size(), utf8);
 	}
+
+	// returns the unicode codepoint and the number of bytes of the utf8 sequence
+	// that was parsed. The codepoint is -1 if it's invalid
+	std::pair<boost::int32_t, int> parse_utf8_codepoint(char const* str, int const len)
+	{
+		int const sequence_len = trailingBytesForUTF8[static_cast<boost::uint8_t>(*str)] + 1;
+		if (sequence_len > len) return std::make_pair(-1, len);
+
+		if (sequence_len > 4)
+		{
+			return std::make_pair(-1, sequence_len);
+		}
+
+		if (!isLegalUTF8(reinterpret_cast<UTF8 const*>(str), sequence_len))
+		{
+			return std::make_pair(-1, sequence_len);
+		}
+
+		boost::uint32_t ch = 0;
+		for (int i = 0; i < sequence_len; ++i)
+		{
+			ch <<= 6;
+			ch += static_cast<boost::uint8_t>(str[i]);
+		}
+		ch -= offsetsFromUTF8[sequence_len-1];
+
+		if (ch > 0x7fffffff)
+		{
+			return std::make_pair(-1, sequence_len);
+		}
+
+		return std::make_pair(static_cast<boost::int32_t>(ch), sequence_len);
+	}
 }
 
 #ifdef __clang__
