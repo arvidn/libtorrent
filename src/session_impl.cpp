@@ -969,25 +969,6 @@ namespace aux {
 		}
 		m_incoming_sockets.clear();
 
-		// close the listen sockets
-		for (auto const& l : m_listen_sockets)
-		{
-			if (l.sock)
-			{
-				l.sock->close(ec);
-				TORRENT_ASSERT(!ec);
-			}
-
-			// TODO: 3 closing the udp sockets here means that
-			// the uTP connections cannot be closed gracefully
-			if (l.udp_sock)
-			{
-				l.udp_sock->sock.close();
-			}
-		}
-
-		m_outgoing_sockets.close();
-
 #if TORRENT_USE_I2P
 		if (m_i2p_listen_socket && m_i2p_listen_socket->is_open())
 		{
@@ -1022,6 +1003,25 @@ namespace aux {
 		auto conns = m_connections;
 		for (auto const& p : conns)
 			p->disconnect(errors::stopping_torrent, op_bittorrent);
+
+		// close the listen sockets
+		for (auto const& l : m_listen_sockets)
+		{
+			if (l.sock)
+			{
+				l.sock->close(ec);
+				TORRENT_ASSERT(!ec);
+			}
+
+			// TODO: 3 closing the udp sockets here means that
+			// the uTP connections cannot be closed gracefully
+			if (l.udp_sock)
+			{
+				l.udp_sock->sock.close();
+			}
+		}
+
+		m_outgoing_sockets.close();
 
 		// we need to give all the sockets an opportunity to actually have their handlers
 		// called and cancelled before we continue the shutdown. This is a bit
