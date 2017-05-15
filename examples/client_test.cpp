@@ -1719,8 +1719,8 @@ COLUMN OPTIONS
 					std::snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
 						, ae.tier, ae.url.c_str()
 						, best_ae != ae.endpoints.end() ? best_ae->fails : 0, ae.fail_limit, ae.verified?"OK ":"-  "
-						, to_string(int(total_seconds(best_ae->next_announce - now)), 8).c_str()
-						, int(best_ae->min_announce > now ? total_seconds(best_ae->min_announce - now) : 0)
+						, to_string(best_ae != ae.endpoints.end() ? int(total_seconds(best_ae->next_announce - now)) : 0, 8).c_str()
+						, best_ae != ae.endpoints.end() && best_ae->min_announce > now ? int(total_seconds(best_ae->min_announce - now)) : 0
 						, best_ae != ae.endpoints.end() && best_ae->last_error ? best_ae->last_error.message().c_str() : ""
 						, best_ae != ae.endpoints.end() ? best_ae->message.c_str() : "");
 					out += str;
