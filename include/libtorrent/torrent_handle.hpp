@@ -151,6 +151,15 @@ namespace libtorrent { namespace aux {
 	// or outstanding writes
 	struct TORRENT_EXPORT partial_piece_info
 	{
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+		partial_piece_info() = default;
+		partial_piece_info(partial_piece_info&&) = default;
+		partial_piece_info(partial_piece_info const&) = default;
+		partial_piece_info& operator=(partial_piece_info const&) = default;
+		partial_piece_info& operator=(partial_piece_info&&) = default;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 		// the index of the piece in question. ``blocks_in_piece`` is the number
 		// of blocks in this particular piece. This number will be the same for
 		// most pieces, but
