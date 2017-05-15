@@ -2851,8 +2851,8 @@ namespace libtorrent {
 			}
 
 			aep.updating = true;
-			aep.next_announce = now + seconds32(20);
-			aep.min_announce = now + seconds32(10);
+			aep.next_announce = now;
+			aep.min_announce = now;
 
 			if (m_ses.alerts().should_post<tracker_announce_alert>())
 			{
@@ -9776,7 +9776,11 @@ namespace libtorrent {
 		auto const i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 			, [&] (web_seed_t const& w) { return w.url == url && w.type == type; });
 
-		if (i != m_web_seeds.end()) remove_web_seed_iter(i);
+		if (i != m_web_seeds.end())
+		{
+			remove_web_seed_iter(i);
+			set_need_save_resume();
+		}
 	}
 
 	void torrent::disconnect_web_seed(peer_connection* p)

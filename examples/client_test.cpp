@@ -419,7 +419,7 @@ int print_peer_info(std::string& out
 
 		if (print_fails)
 		{
-			std::snprintf(str, sizeof(str), "%3d %3d "
+			std::snprintf(str, sizeof(str), "%4d %4d "
 				, i->failcount, i->num_hashfails);
 			out += str;
 		}
@@ -962,21 +962,19 @@ void print_piece(lt::partial_piece_info const* pp
 
 	std::snprintf(str, sizeof(str), "%5d:[", piece);
 	out += str;
-	char const* last_color = nullptr;
+	string_view last_color;
 	for (int j = 0; j < num_blocks; ++j)
 	{
-		int index = pp ? peer_index(pp->blocks[j].peer(), peers) % 36 : -1;
-		char chr = '+';
-		if (index >= 0)
-			chr = char((index < 10)?'0' + index:'A' + index - 10);
-		bool snubbed = index >= 0 ? ((peers[index].flags & peer_info::snubbed) != 0) : false;
+		int const index = pp ? peer_index(pp->blocks[j].peer(), peers) % 36 : -1;
+		char const* chr = " ";
+		bool const snubbed = index >= 0 ? ((peers[index].flags & peer_info::snubbed) != 0) : false;
 
 		char const* color = "";
 
 		if (pp == nullptr)
 		{
 			color = cs->blocks[j] ? esc("34;7") : esc("0");
-			chr = ' ';
+			chr = " ";
 		}
 		else
 		{
@@ -985,24 +983,35 @@ void print_piece(lt::partial_piece_info const* pp
 			else if (pp->blocks[j].bytes_progress > 0
 					&& pp->blocks[j].state == block_info::requested)
 			{
-				if (pp->blocks[j].num_peers > 1) color = esc("1;7");
-				else color = snubbed ? esc("35;7") : esc("33;7");
-				chr = char('0' + (pp->blocks[j].bytes_progress * 10 / pp->blocks[j].block_size));
+				if (pp->blocks[j].num_peers > 1) color = esc("0;1");
+				else color = snubbed ? esc("0;35") : esc("0;33");
+
+#ifndef TORRENT_WINDOWS
+				static char const* const progress[] = {
+					"\u2581", "\u2582", "\u2583", "\u2584",
+					"\u2585", "\u2586", "\u2587", "\u2588"
+				};
+				chr = progress[pp->blocks[j].bytes_progress * 8 / pp->blocks[j].block_size];
+#else
+				static char const* const progress[] = { "\xb0", "\xb1", "\xb2" };
+				chr = progress[pp->blocks[j].bytes_progress * 3 / pp->blocks[j].block_size];
+#endif
 			}
 			else if (pp->blocks[j].state == block_info::finished) color = esc("32;7");
 			else if (pp->blocks[j].state == block_info::writing) color = esc("36;7");
-			else if (pp->blocks[j].state == block_info::requested) color = snubbed ? esc("35;7") : esc("0");
-			else { color = esc("0"); chr = ' '; }
+			else if (pp->blocks[j].state == block_info::requested)
+			{
+				color = snubbed ? esc("0;35") : esc("0");
+				chr = "=";
+			}
+			else { color = esc("0"); chr = " "; }
 		}
-		if (last_color == nullptr || std::strcmp(last_color, color) != 0)
+		if (last_color != color)
 		{
-			std::snprintf(str, sizeof(str), "%s%c", color, chr);
-			out += str;
+			out += color;
+			last_color = color;
 		}
-		else
-			out += chr;
-
-		last_color = color;
+		out += chr;
 	}
 	out += esc("0");
 	out += "]";
@@ -1268,59 +1277,52 @@ MAGNETURL is a magnet link
 		else add_torrent(ses, i.to_string());
 	}
 
-	// load resume files
-	std::string const resume_dir = path_append(save_path, ".resume");
-	std::vector<std::string> ents = list_dir(resume_dir
-		, [](lt::string_view p) { return p.size() > 7 && p.substr(p.size() - 7) == ".resume"; }, ec);
-	if (ec)
+	std::thread resume_data_loader([&ses]
 	{
+		// load resume files
+		error_code ec;
+		std::string const resume_dir = path_append(save_path, ".resume");
+		std::vector<std::string> ents = list_dir(resume_dir
+			, [](lt::string_view p) { return p.size() > 7 && p.substr(p.size() - 7) == ".resume"; }, ec);
+		if (ec)
+		{
 		std::fprintf(stderr, "failed to list resume directory \"%s\": (%s : %d) %s\n"
 			, resume_dir.c_str(), ec.category().name(), ec.value(), ec.message().c_str());
-	}
-	else
-	{
-		int idx = 0;
-		for (auto const& e : ents)
+		}
+		else
 		{
-			std::string const file = path_append(resume_dir, e);
-
-			std::vector<char> resume_data;
-			load_file(file, resume_data, ec);
-			if (ec)
+			for (auto const& e : ents)
 			{
-				std::printf("  failed to load resume file \"%s\": %s\n"
-					, file.c_str(), ec.message().c_str());
-				continue;
-			}
-			add_torrent_params p = lt::read_resume_data(resume_data, ec);
-			if (ec)
-			{
-				std::printf("  failed to parse resume data \"%s\": %s\n"
-					, file.c_str(), ec.message().c_str());
-				continue;
-			}
+				std::string const file = path_append(resume_dir, e);
 
-			// we're loading this torrent from resume data. There's no need to
-			// re-save the resume data immediately.
-			p.flags &= ~add_torrent_params::flag_need_save_resume;
+				std::vector<char> resume_data;
+				load_file(file, resume_data, ec);
+				if (ec)
+				{
+					std::printf("  failed to load resume file \"%s\": %s\n"
+						, file.c_str(), ec.message().c_str());
+					continue;
+				}
+				add_torrent_params p = lt::read_resume_data(resume_data, ec);
+				if (ec)
+				{
+					std::printf("  failed to parse resume data \"%s\": %s\n"
+						, file.c_str(), ec.message().c_str());
+					continue;
+				}
 
-			ses.async_add_torrent(std::move(p));
+				// we're loading this torrent from resume data. There's no need to
+				// re-save the resume data immediately.
+				p.flags &= ~add_torrent_params::flag_need_save_resume;
 
-			++idx;
-			if ((idx % 32) == 0)
-			{
-				// regularly, pop and handle alerts, to avoid the alert queue from
-				// filling up with add_torrent_alerts
-				pop_alerts(view, ses_view, ses, events);
+				ses.async_add_torrent(std::move(p));
 			}
 		}
-	}
+	});
 
 	// main loop
 	std::vector<peer_info> peers;
 	std::vector<partial_piece_info> queue;
-
-	int tick = 0;
 
 #ifndef _WIN32
 	signal(SIGTERM, signal_handler);
@@ -1329,7 +1331,6 @@ MAGNETURL is a magnet link
 
 	while (!quit)
 	{
-		++tick;
 		ses.post_torrent_updates();
 		ses.post_session_stats();
 		ses.post_dht_stats();
@@ -1345,17 +1346,17 @@ MAGNETURL is a magnet link
 		{
 
 #ifdef _WIN32
-#define ESCAPE_SEQ 224
-#define LEFT_ARROW 75
-#define RIGHT_ARROW 77
-#define UP_ARROW 72
-#define DOWN_ARROW 80
+			constexpr int escape_seq = 224;
+			constexpr int left_arrow = 75;
+			constexpr int right_arrow = 77;
+			constexpr int up_arrow = 72;
+			constexpr int down_arrow = 80;
 #else
-#define ESCAPE_SEQ 27
-#define LEFT_ARROW 68
-#define RIGHT_ARROW 67
-#define UP_ARROW 65
-#define DOWN_ARROW 66
+			constexpr int escape_seq = 27;
+			constexpr int left_arrow = 68;
+			constexpr int right_arrow = 67;
+			constexpr int up_arrow = 65;
+			constexpr int down_arrow = 66;
 #endif
 
 			torrent_handle h = view.get_active_handle();
@@ -1363,7 +1364,7 @@ MAGNETURL is a magnet link
 			if (c == EOF) { break; }
 			do
 			{
-				if (c == ESCAPE_SEQ)
+				if (c == escape_seq)
 				{
 					// escape code, read another character
 #ifdef _WIN32
@@ -1375,37 +1376,31 @@ MAGNETURL is a magnet link
 					c2 = getc(stdin);
 #endif
 					if (c2 == EOF) break;
-					if (c2 == LEFT_ARROW)
+					if (c2 == left_arrow)
 					{
-						// arrow left
-						int filter = view.filter();
+						int const filter = view.filter();
 						if (filter > 0)
 						{
-							--filter;
-							view.set_filter(filter);
+							view.set_filter(filter - 1);
 							h = view.get_active_handle();
 						}
 					}
-					else if (c2 == RIGHT_ARROW)
+					else if (c2 == right_arrow)
 					{
-						// arrow right
-						int filter = view.filter();
+						int const filter = view.filter();
 						if (filter < torrent_view::torrents_max - 1)
 						{
-							++filter;
-							view.set_filter(filter);
+							view.set_filter(filter + 1);
 							h = view.get_active_handle();
 						}
 					}
-					else if (c2 == UP_ARROW)
+					else if (c2 == up_arrow)
 					{
-						// arrow up
 						view.arrow_up();
 						h = view.get_active_handle();
 					}
-					else if (c2 == DOWN_ARROW)
+					else if (c2 == down_arrow)
 					{
-						// arrow down
 						view.arrow_down();
 						h = view.get_active_handle();
 					}
@@ -1589,34 +1584,36 @@ MAGNETURL is a magnet link
 					clear_screen();
 					set_cursor_pos(0,0);
 					print(
-						"HELP SCREEN (press any key to dismiss)\n\n"
-						"CLIENT OPTIONS\n"
-						"[q] quit client                                 [m] add magnet link\n"
-						"\n"
-						"TORRENT ACTIONS\n"
-						"[p] pause/unpause selected torrent              [C] toggle disk cache\n"
-						"[s] toggle sequential download                  [j] force recheck\n"
-						"[space] toggle session pause                    [c] clear error\n"
-						"[v] scrape                                      [D] delete torrent and data\n"
-						"[r] force reannounce                            [R] save resume data for all torrents\n"
-						"[o] set piece deadlines (sequential dl)         [P] toggle auto-managed\n"
-						"[k] toggle force-started                        [W] remove all web seeds\n"
-						"\n"
-						"DISPLAY OPTIONS\n"
-						"left/right arrow keys: select torrent filter\n"
-						"up/down arrow keys: select torrent\n"
-						"[i] toggle show peers                           [d] toggle show downloading pieces\n"
-						"[u] show uTP stats                              [f] toggle show files\n"
-						"[g] show DHT                                    [x] toggle disk cache stats\n"
-						"[t] show trackers                               [l] toggle show log\n"
-						"[P] show pad files (in file list)               [y] toggle show piece matrix\n"
-						"\n"
-						"COLUMN OPTIONS\n"
-						"[1] toggle IP column                            [2]\n"
-						"[3] toggle timers column                        [4] toggle block progress column\n"
-						"[5] toggle peer rate column                     [6] toggle failures column\n"
-						"[7] toggle send buffers column\n"
-						);
+R"(HELP SCREEN (press any key to dismiss)
+
+CLIENT OPTIONS
+
+[q] quit client                                 [m] add magnet link
+
+TORRENT ACTIONS
+[p] pause/unpause selected torrent              [C] toggle disk cache
+[s] toggle sequential download                  [j] force recheck
+[space] toggle session pause                    [c] clear error
+[v] scrape                                      [D] delete torrent and data
+[r] force reannounce                            [R] save resume data for all torrents
+[o] set piece deadlines (sequential dl)         [P] toggle auto-managed
+[k] toggle force-started                        [W] remove all web seeds
+
+DISPLAY OPTIONS
+left/right arrow keys: select torrent filter
+up/down arrow keys: select torrent
+[i] toggle show peers                           [d] toggle show downloading pieces
+[u] show uTP stats                              [f] toggle show files
+[g] show DHT                                    [x] toggle disk cache stats
+[t] show trackers                               [l] toggle show log
+[P] show pad files (in file list)               [y] toggle show piece matrix
+
+COLUMN OPTIONS
+[1] toggle IP column                            [2]
+[3] toggle timers column                        [4] toggle block progress column
+[5] toggle peer rate column                     [6] toggle failures column
+[7] toggle send buffers column
+)");
 					int tmp;
 					while (sleep_and_input(&tmp, lt::milliseconds(500)) == false);
 				}
@@ -1722,8 +1719,8 @@ MAGNETURL is a magnet link
 					std::snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
 						, ae.tier, ae.url.c_str()
 						, best_ae != ae.endpoints.end() ? best_ae->fails : 0, ae.fail_limit, ae.verified?"OK ":"-  "
-						, to_string(int(total_seconds(best_ae->next_announce - now)), 8).c_str()
-						, int(best_ae->min_announce > now ? total_seconds(best_ae->min_announce - now) : 0)
+						, to_string(best_ae != ae.endpoints.end() ? int(total_seconds(best_ae->next_announce - now)) : 0, 8).c_str()
+						, best_ae != ae.endpoints.end() && best_ae->min_announce > now ? int(total_seconds(best_ae->min_announce - now)) : 0
 						, best_ae != ae.endpoints.end() && best_ae->last_error ? best_ae->last_error.message().c_str() : ""
 						, best_ae != ae.endpoints.end() ? best_ae->message.c_str() : "");
 					out += str;
@@ -1734,7 +1731,7 @@ MAGNETURL is a magnet link
 			if (print_matrix)
 			{
 				int height = 0;
-				print(piece_matrix(s.pieces, terminal_width, &height).c_str());
+				print(piece_matrix(s.pieces, std::min(terminal_width, 160), &height).c_str());
 				pos += height;
 			}
 
@@ -1818,7 +1815,7 @@ MAGNETURL is a magnet link
 					pos += 1;
 				}
 
-				std::snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed\x1b[K\n"
+				std::snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed | = requested\x1b[K\n"
 					, esc("34;7"), esc("0") // read cache
 					, esc("33;7"), esc("0") // downloading
 					, esc("36;7"), esc("0") // cached
@@ -1935,6 +1932,8 @@ MAGNETURL is a magnet link
 			next_dir_scan = now + seconds(poll_interval);
 		}
 	}
+
+	resume_data_loader.join();
 
 	ses.pause();
 	std::printf("saving resume data\n");

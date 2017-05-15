@@ -348,12 +348,12 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		// we do get a late response, keep the handler
 		// around for some more, but open up the slot
 		// by increasing the branch factor
-		if ((o->flags & observer::flag_short_timeout) == 0)
+		if ((o->flags & observer::flag_short_timeout) == 0
+			&& m_branch_factor < std::numeric_limits<std::int8_t>::max())
 		{
-			TORRENT_ASSERT(m_branch_factor < (std::numeric_limits<std::int8_t>::max)());
 			++m_branch_factor;
+			o->flags |= observer::flag_short_timeout;
 		}
-		o->flags |= observer::flag_short_timeout;
 #ifndef TORRENT_DISABLE_LOGGING
 		log_timeout(o, "1ST_");
 #endif

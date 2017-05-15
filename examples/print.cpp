@@ -248,7 +248,7 @@ std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 			ret += chars[c];
 			piece += 2;
 		}
-		ret += '\n';
+		ret += "\x1b[K\n";
 		++*height;
 		piece += width * 2; // skip another row, as we've already printed it
 	}

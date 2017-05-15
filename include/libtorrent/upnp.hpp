@@ -172,13 +172,13 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	// portmap_alert_ respectively. If The mapping fails immediately, the return value
 	// is -1, which means failure. There will not be any error alert notification for
 	// mappings that fail with a -1 return value.
-	int add_mapping(aux::portmap_protocol p, int external_port, int local_port);
+	int add_mapping(aux::portmap_protocol p, int external_port, tcp::endpoint local_ep);
 
 	// This function removes a port mapping. ``mapping_index`` is the index that refers
 	// to the mapping you want to remove, which was returned from add_mapping().
 	void delete_mapping(int mapping_index);
 
-	bool get_mapping(int mapping_index, int& local_port, int& external_port
+	bool get_mapping(int mapping_index, tcp::endpoint& local_ep, int& external_port
 		, aux::portmap_protocol& protocol) const;
 
 	void discover_device();
@@ -249,7 +249,7 @@ private:
 	{
 		aux::portmap_protocol protocol = aux::portmap_protocol::none;
 		int external_port = 0;
-		int local_port = 0;
+		tcp::endpoint local_ep;
 	};
 
 	struct mapping_t
@@ -263,7 +263,7 @@ private:
 
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use
-		int local_port = 0;
+		tcp::endpoint local_ep;
 
 		// the external (on the NAT router) port
 		// for the mapping. This is the port we

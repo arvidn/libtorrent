@@ -433,8 +433,9 @@ void udp_socket::open(udp const& protocol, error_code& ec)
 	error_code err;
 #ifdef TORRENT_WINDOWS
 	m_socket.set_option(exclusive_address_use(true), err);
-#endif
+#else
 	m_socket.set_option(boost::asio::socket_base::reuse_address(true), err);
+#endif
 }
 
 void udp_socket::bind(udp::endpoint const& ep, error_code& ec)

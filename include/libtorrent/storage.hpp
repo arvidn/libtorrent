@@ -442,6 +442,7 @@ namespace libtorrent {
 		// whose bit is 0, we set the file size, to make the file allocated
 		// on disk (in full allocation mode) and just sparsely allocated in
 		// case of sparse allocation mode
+		mutable std::mutex m_file_created_mutex;
 		mutable typed_bitfield<file_index_t> m_file_created;
 
 		bool m_allocate_files;
