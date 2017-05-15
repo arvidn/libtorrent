@@ -134,6 +134,11 @@ TORRENT_EXTRA_EXPORT ConversionResult ConvertUTF32toUTF16 (
 TORRENT_EXTRA_EXPORT Boolean isLegalUTF8Sequence(const UTF8 *source,
 		const UTF8 *sourceEnd);
 
+TORRENT_EXTRA_EXPORT Boolean isLegalUTF8(const UTF8 *source, int length);
+
+extern const char trailingBytesForUTF8[256];
+extern const UTF32 offsetsFromUTF8[6];
+
 #ifdef __cplusplus
 }
 #endif

@@ -60,24 +60,44 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <unordered_set>
+#include <cstdint>
 #include <iterator>
 #include <algorithm>
 #include <set>
 #include <ctime>
+#include <array>
 
 namespace libtorrent {
 
 	namespace {
 
-	bool valid_path_character(char c)
+	bool valid_path_character(std::int32_t const c)
 	{
 #ifdef TORRENT_WINDOWS
 		static const char invalid_chars[] = "?<>\"|\b*:";
 #else
 		static const char invalid_chars[] = "";
 #endif
-		if (c >= 0 && c < 32) return false;
-		return std::strchr(invalid_chars, c) == nullptr;
+		if (c < 32) return false;
+		if (c > 127) return true;
+		return std::strchr(invalid_chars, static_cast<char>(c)) == nullptr;
+	}
+
+	bool filter_path_character(std::int32_t const c)
+	{
+		// these unicode characters change the writing writing direction of the
+		// string and can be used for attacks:
+		// https://security.stackexchange.com/questions/158802/how-can-this-executable-have-an-avi-extension
+		static const std::array<std::int32_t, 7> bad_cp = {{0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x200e, 0x200f}};
+		if (std::find(bad_cp.begin(), bad_cp.end(), c) != bad_cp.end()) return true;
+
+#ifdef TORRENT_WINDOWS
+		static const char invalid_chars[] = "/\\:";
+#else
+		static const char invalid_chars[] = "/\\";
+#endif
+		if (c > 127) return false;
+		return std::strchr(invalid_chars, static_cast<char>(c)) != NULL;
 	}
 
 	} // anonymous namespace
@@ -209,118 +229,36 @@ namespace libtorrent {
 		// the number of dots we've added
 		char num_dots = 0;
 		bool found_extension = false;
-		for (std::size_t i = 0; i < element.size(); ++i)
+
+		int seq_len = 0;
+		for (std::size_t i = 0; i < element.size(); i += std::size_t(seq_len))
 		{
-			if (element[i] == '/'
-				|| element[i] == '\\'
-#ifdef TORRENT_WINDOWS
-				|| element[i] == ':'
-#endif
-				)
+			std::int32_t code_point;
+			std::tie(code_point, seq_len) = parse_utf8_codepoint(element.data() + i
+				, int(element.size() - i));
+
+			if (code_point >= 0 && filter_path_character(code_point))
+			{
 				continue;
+			}
 
-			if (element[i] == '.') ++num_dots;
-
-			int last_len = 0;
-
-			if ((element[i] & 0x80) == 0)
+			if (code_point < 0
+				|| !valid_path_character(code_point))
 			{
-				// 1 byte
-				if (valid_path_character(element[i]))
-				{
-					path += element[i];
-				}
-				else
-				{
-					path += '_';
-				}
-				last_len = 1;
-			}
-			else if ((element[i] & 0xe0) == 0xc0)
-			{
-				// 2 bytes
-				if (element.size() - i < 2
-					|| (element[i + 1] & 0xc0) != 0x80)
-				{
-					path += '_';
-					last_len = 1;
-				}
-				else if ((element[i] & 0x1f) == 0)
-				{
-					// overlong sequences are invalid
-					path += '_';
-					last_len = 1;
-				}
-				else
-				{
-					path += element[i];
-					path += element[i + 1];
-					last_len = 2;
-				}
-				i += 1;
-			}
-			else if ((element[i] & 0xf0) == 0xe0)
-			{
-				// 3 bytes
-				if (element.size() - i < 3
-					|| (element[i + 1] & 0xc0) != 0x80
-					|| (element[i + 2] & 0xc0) != 0x80
-					)
-				{
-					path += '_';
-					last_len = 1;
-				}
-				else if ((element[i] & 0x0f) == 0)
-				{
-					// overlong sequences are invalid
-					path += '_';
-					last_len = 1;
-				}
-				else
-				{
-					path += element[i];
-					path += element[i + 1];
-					path += element[i + 2];
-					last_len = 3;
-				}
-				i += 2;
-			}
-			else if ((element[i] & 0xf8) == 0xf0)
-			{
-				// 4 bytes
-				if (element.size() - i < 4
-					|| (element[i + 1] & 0xc0) != 0x80
-					|| (element[i + 2] & 0xc0) != 0x80
-					|| (element[i + 3] & 0xc0) != 0x80
-					)
-				{
-					path += '_';
-					last_len = 1;
-				}
-				else if ((element[i] & 0x07) == 0
-					&& (element[i + 1] & 0x3f) == 0)
-				{
-					// overlong sequences are invalid
-					path += '_';
-					last_len = 1;
-				}
-				else
-				{
-					path += element[i];
-					path += element[i + 1];
-					path += element[i + 2];
-					path += element[i + 3];
-					last_len = 4;
-				}
-				i += 3;
-			}
-			else
-			{
+				// invalid utf8 sequence, replace with "_"
 				path += '_';
-				last_len = 1;
+				++added;
+				++unicode_chars;
+				continue;
 			}
 
-			added += last_len;
+			// validation passed, add it to the output string
+			for (std::size_t k = i; k < i + std::size_t(seq_len); ++k)
+				path.push_back(element[k]);
+
+			if (code_point == '.') ++num_dots;
+
+			added += seq_len;
 			++unicode_chars;
 
 			// any given path element should not

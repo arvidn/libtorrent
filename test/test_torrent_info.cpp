@@ -493,7 +493,7 @@ TORRENT_TEST(sanitize_path)
 	// 5-byte utf-8 sequence (not allowed)
 	path.clear();
 	sanitize_append_path_element(path, "filename\xf8\x9f\x9f\x9f\x9f" "foobar");
-	TEST_EQUAL(path, "filename_____foobar");
+	TEST_EQUAL(path, "filename_foobar");
 
 	// redundant (overlong) 2-byte sequence
 	// ascii code 0x2e encoded with a leading 0
@@ -512,6 +512,23 @@ TORRENT_TEST(sanitize_path)
 	path.clear();
 	sanitize_append_path_element(path, "filename\xf0\x80\x80\xae");
 	TEST_EQUAL(path, "filename_");
+
+	// a filename where every character is filtered is not replaced by an understcore
+	path.clear();
+	sanitize_append_path_element(path, "//\\");
+	TEST_EQUAL(path, "");
+
+	// make sure suspicious unicode characters are filtered out
+	path.clear();
+	// that's utf-8 for U+200e LEFT-TO-RIGHT MARK
+	sanitize_append_path_element(path, "foo\xe2\x80\x8e" "bar");
+	TEST_EQUAL(path, "foobar");
+
+	// make sure suspicious unicode characters are filtered out
+	path.clear();
+	// that's utf-8 for U+202b RIGHT-TO-LEFT EMBEDDING
+	sanitize_append_path_element(path, "foo\xe2\x80\xab" "bar");
+	TEST_EQUAL(path, "foobar");
 }
 
 TORRENT_TEST(verify_encoding)

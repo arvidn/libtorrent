@@ -6283,6 +6283,11 @@ namespace libtorrent {
 			pi.finished = int(i->finished);
 			pi.writing = int(i->writing);
 			pi.requested = int(i->requested);
+#ifndef TORRENT_NO_DEPRECATE
+			pi.piece_state = partial_piece_info::none;
+#else
+			pi.deprecated_piece_state = partial_piece_info::none;
+#endif
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
 			pi.blocks = &blk[std::size_t(counter * blocks_per_piece)];
 			int const piece_size = torrent_file().piece_size(i->index);

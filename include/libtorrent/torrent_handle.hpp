@@ -177,6 +177,7 @@ namespace libtorrent { namespace aux {
 		//	get_download_queue() is called, it will be invalidated.
 		block_info* blocks;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the speed classes. These may be used by the piece picker to
 		// coalesce requests of similar download rates
 		enum state_t { none, slow, medium, fast };
@@ -193,7 +194,12 @@ namespace libtorrent { namespace aux {
 		// downloaded pieces down. Pieces set to ``none`` can be converted into
 		// any of ``fast``, ``medium`` or ``slow`` as soon as a peer want to
 		// download from it.
-		state_t piece_state;
+		state_t TORRENT_DEPRECATED_MEMBER piece_state;
+#else
+		// hidden
+		enum deprecated_state_t { none, slow, medium, fast };
+		deprecated_state_t deprecated_piece_state;
+#endif
 	};
 
 	// for std::hash (and to support using this type in unordered_map etc.)

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // convert_to_native and convert_from_native
 #if TORRENT_USE_WSTRING || defined TORRENT_WINDOWS
 
+#include <cstdint>
 #include <string>
 #include <cwchar>
 
@@ -78,6 +79,10 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::wstring utf8_wchar(string_view utf8);
 	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide, error_code& ec);
 	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide);
+
+	// TODO: 3 take a string_view here
+	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
+		parse_utf8_codepoint(char const* str, int len);
 }
 #endif // !BOOST_NO_STD_WSTRING
 
