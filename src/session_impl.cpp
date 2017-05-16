@@ -4794,7 +4794,11 @@ namespace {
 
 		// if this was an existing torrent, we can't start it again, or add
 		// another set of plugins etc. we're done
-		if (!added) return handle;
+		if (!added)
+		{
+			abort_torrent.disarm();
+			return handle;
+		}
 
 		torrent_ptr->set_ip_filter(m_ip_filter);
 		torrent_ptr->start(params);
