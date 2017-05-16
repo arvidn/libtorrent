@@ -2753,7 +2753,7 @@ namespace libtorrent {
 				continue;
 
 			if (ae.tier > state.tier && state.sent_announce
-				&& !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
+				&& !settings().get_bool(settings_pack::announce_to_all_tiers)) continue;
 			if (aep.is_working()) { state.tier = ae.tier; state.sent_announce = false; }
 			if (!aep.can_announce(now, is_seed(), ae.fail_limit))
 			{
