@@ -10763,18 +10763,26 @@ namespace {
 			int fails = 0;
 			if (ae)
 			{
-				for (auto& aep : ae->endpoints)
+				auto aep = std::find_if(ae->endpoints.begin(), ae->endpoints.end()
+					, [&](announce_endpoint const& e) { return e.socket == r.outgoing_socket; });
+
+				if (aep != ae->endpoints.end())
 				{
-					if (aep.socket != r.outgoing_socket) continue;
-					aep.failed(settings().get_int(settings_pack::tracker_backoff)
+					aep->failed(settings().get_int(settings_pack::tracker_backoff)
 						, retry_interval);
-					aep.last_error = ec;
-					aep.message = msg;
+					aep->last_error = ec;
+					aep->message = msg;
 #ifndef TORRENT_DISABLE_LOGGING
-					debug_log("*** increment tracker fail count [%d]", aep.fails);
+					debug_log("*** increment tracker fail count [%d]", aep->fails);
 #endif
-					break;
 				}
+				else
+				{
+#ifndef TORRENT_DISABLE_LOGGING
+					debug_log("*** no matching endpoint for request [%s, %s]", r.url.c_str(), print_endpoint(r.outgoing_socket->get_local_endpoint()).c_str());
+#endif
+				}
+
 
 				int const tracker_index = int(ae - m_trackers.data());
 
