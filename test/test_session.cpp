@@ -151,6 +151,41 @@ TORRENT_TEST(async_add_torrent_duplicate)
 	TEST_CHECK(!a->error);
 }
 
+TORRENT_TEST(async_add_torrent_duplicate_back_to_back)
+{
+	settings_pack p = settings();
+	p.set_int(settings_pack::alert_mask, ~0);
+	lt::session ses(p);
+
+	add_torrent_params atp;
+	atp.info_hash.assign("abababababababababab");
+	atp.save_path = ".";
+	atp.flags |= add_torrent_params::flag_paused;
+	atp.flags &= ~add_torrent_params::flag_apply_ip_filter;
+	atp.flags &= ~add_torrent_params::flag_auto_managed;
+	ses.async_add_torrent(atp);
+
+	atp.flags &= ~add_torrent_params::flag_duplicate_is_error;
+	ses.async_add_torrent(atp);
+
+	auto* a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
+	TEST_CHECK(a);
+	if (a == nullptr) return;
+	torrent_handle h = a->handle;
+	TEST_CHECK(!a->error);
+
+	a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
+	TEST_CHECK(a);
+	if (a == nullptr) return;
+	TEST_CHECK(a->handle == h);
+	TEST_CHECK(!a->error);
+
+	torrent_status st = h.status();
+	TEST_CHECK(st.paused);
+	TEST_CHECK(!st.ip_filter_applies);
+	TEST_CHECK(!st.auto_managed);
+}
+
 TORRENT_TEST(load_empty_file)
 {
 	settings_pack p = settings();
