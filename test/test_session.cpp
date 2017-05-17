@@ -168,13 +168,15 @@ TORRENT_TEST(async_add_torrent_duplicate_back_to_back)
 	atp.flags &= ~add_torrent_params::flag_duplicate_is_error;
 	ses.async_add_torrent(atp);
 
-	auto* a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
+	auto* a = alert_cast<add_torrent_alert>(wait_for_alert(ses
+			, add_torrent_alert::alert_type, "ses", pop_alerts::cache_alerts));
 	TEST_CHECK(a);
 	if (a == nullptr) return;
 	torrent_handle h = a->handle;
 	TEST_CHECK(!a->error);
 
-	a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
+	a = alert_cast<add_torrent_alert>(wait_for_alert(ses
+		, add_torrent_alert::alert_type, "ses", pop_alerts::cache_alerts));
 	TEST_CHECK(a);
 	if (a == nullptr) return;
 	TEST_CHECK(a->handle == h);

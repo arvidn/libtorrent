@@ -174,8 +174,16 @@ bool should_print(lt::alert* a)
 	return true;
 }
 }
-alert const* wait_for_alert(lt::session& ses, int type, char const* name, int num)
+alert const* wait_for_alert(lt::session& ses, int type, char const* name
+	, pop_alerts const p)
 {
+	// we pop alerts in batches, but we wait for individual messages. This is a
+	// cache to keep around alerts that came *after* the one we're waiting for.
+	// To let subsequent calls to this function be able to pick those up, despite
+	// already being popped off the sessions alert queue.
+	static std::map<lt::session*, std::vector<alert*>> cache;
+	auto& alerts = cache[&ses];
+
 	time_point end_time = lt::clock_type::now() + seconds(10);
 	while (true)
 	{
@@ -184,11 +192,14 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name, int nu
 
 		alert const* ret = nullptr;
 
-		ses.wait_for_alert(end_time - now);
-		std::vector<alert*> alerts;
-		ses.pop_alerts(&alerts);
-		for (auto a : alerts)
+		if (alerts.empty())
 		{
+			ses.wait_for_alert(end_time - now);
+			ses.pop_alerts(&alerts);
+		}
+		for (auto i = alerts.begin(); i != alerts.end(); ++i)
+		{
+			auto a = *i;
 			if (should_print(a))
 			{
 				std::printf("%s: %s: [%s] %s\n", time_now_string(), name
@@ -197,10 +208,12 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name, int nu
 			if (a->type() == type)
 			{
 				ret = a;
-				--num;
+				if (p == pop_alerts::pop_all) alerts.clear();
+				else alerts.erase(alerts.begin(), std::next(i));
+				return ret;
 			}
 		}
-		if (num == 0) return ret;
+		alerts.clear();
 	}
 }
 

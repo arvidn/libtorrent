@@ -62,8 +62,11 @@ EXPORT lt::sha1_hash to_hash(char const* s);
 
 EXPORT std::map<std::string, std::int64_t> get_counters(lt::session& s);
 
+enum class pop_alerts { pop_all, cache_alerts };
+
 EXPORT lt::alert const* wait_for_alert(
-	lt::session& ses, int type, char const* name = "", int num = 1);
+	lt::session& ses, int type, char const* name = ""
+	, pop_alerts const p = pop_alerts::pop_all);
 
 EXPORT void print_ses_rate(float time
 	, lt::torrent_status const* st1

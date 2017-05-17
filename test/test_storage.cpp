@@ -770,8 +770,13 @@ TORRENT_TEST(rename_file)
 		h.add_piece(i, &tmp[0]);
 
 	// wait for the files to have been written
-	alert const* pf = wait_for_alert(ses, piece_finished_alert::alert_type, "ses", info->num_pieces());
-	TEST_CHECK(pf);
+
+	for (int i = 0; i < info->num_pieces(); ++i)
+	{
+		alert const* pf = wait_for_alert(ses, piece_finished_alert::alert_type
+			, "ses", pop_alerts::cache_alerts);
+		TEST_CHECK(pf);
+	}
 
 	// now rename them. This is the test
 	for (file_index_t i(0); i < fs.end_file(); ++i)
@@ -780,9 +785,13 @@ TORRENT_TEST(rename_file)
 		h.rename_file(i, "temp_storage__" + name.substr(12));
 	}
 
-	// wait fir the files to have been renamed
-	alert const* fra = wait_for_alert(ses, file_renamed_alert::alert_type, "ses", info->num_files());
-	TEST_CHECK(fra);
+	// wait for the files to have been renamed
+	for (int i = 0; i < info->num_files(); ++i)
+	{
+		alert const* fra = wait_for_alert(ses, file_renamed_alert::alert_type
+			, "ses", pop_alerts::cache_alerts);
+		TEST_CHECK(fra);
+	}
 
 	TEST_CHECK(exists(info->name() + "__"));
 
