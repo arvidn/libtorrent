@@ -1186,6 +1186,9 @@ namespace libtorrent
 		void connect_peer(tcp::endpoint const& adr, int source = 0
 			, int flags = 0x1 + 0x4 + 0x8) const;
 
+                void set_keep_redundant_connections(bool keep) const;
+                bool keep_redundant_connections() const;
+
 		// ``set_max_uploads()`` sets the maximum number of peers that's unchoked
 		// at the same time on this torrent. If you set this to -1, there will be
 		// no limit. This defaults to infinite. The primary setting controlling

@@ -59,6 +59,11 @@ class test_torrent_handle(unittest.TestCase):
 		self.h.prioritize_pieces([(0, 1)])
 		self.assertEqual(self.h.piece_priorities(), [1])
 
+	def test_redundant_connections(self):
+		self.assertFalse(self.h.keep_redundant_connections())
+		self.h.set_keep_redundant_connections(True)
+		self.assertTrue(self.h.keep_redundant_connections())
+
 	def test_replace_trackers(self):
 		self.setup()
 		trackers = []
