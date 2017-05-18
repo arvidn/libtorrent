@@ -111,6 +111,12 @@ private:
 
 		// set to true while we're waiting for a response
 		bool outstanding_request = false;
+
+		void set_none()
+		{
+			protocol = aux::portmap_protocol::none;
+			act = action::none;
+		}
 	};
 
 	aux::portmap_callback& m_callback;
