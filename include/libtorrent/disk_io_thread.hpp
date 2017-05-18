@@ -571,6 +571,7 @@ namespace aux {
 		// storages that have had write activity recently and will get ticked
 		// soon, for deferred actions (say, flushing partfile metadata)
 		std::vector<std::pair<time_point, std::weak_ptr<storage_interface>>> m_need_tick;
+		std::mutex m_need_tick_mutex;
 
 		// this is protected by the completed_jobs_mutex. It's true whenever
 		// there's a call_job_handlers message in-flight to the network thread. We

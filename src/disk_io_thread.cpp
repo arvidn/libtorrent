@@ -689,8 +689,11 @@ namespace libtorrent {
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
 
-		if (!pe->storage->set_need_tick())
-			m_need_tick.push_back({aux::time_now() + minutes(2), pe->storage});
+		{
+			std::lock_guard<std::mutex> l(m_need_tick_mutex);
+			if (!pe->storage->set_need_tick())
+				m_need_tick.push_back({aux::time_now() + minutes(2), pe->storage});
+		}
 
 		if (!failed)
 		{
@@ -1128,7 +1131,7 @@ namespace libtorrent {
 
 		std::shared_ptr<storage_interface> storage = j->storage;
 
-		// TODO: instead of doing this. pass in the settings to each storage_interface
+		// TODO: 4 instead of doing this. pass in the settings to each storage_interface
 		// call. Each disk thread could hold its most recent understanding of the settings
 		// in a shared_ptr, and update it every time it wakes up from a job. That way
 		// each access to the settings won't require a std::mutex to be held.
@@ -1493,8 +1496,11 @@ namespace libtorrent {
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 		}
 
-		if (!j->storage->set_need_tick())
-			m_need_tick.push_back({aux::time_now() + minutes(2), j->storage});
+		{
+			std::lock_guard<std::mutex> l(m_need_tick_mutex);
+			if (!j->storage->set_need_tick())
+				m_need_tick.push_back({aux::time_now() + minutes(2), j->storage});
+		}
 
 		return ret != j->d.io.buffer_size
 			? status_t::fatal_disk_error : status_t::no_error;
@@ -3100,11 +3106,19 @@ namespace libtorrent {
 				maybe_flush_write_blocks();
 
 				time_point const now = aux::time_now();
-				while (!m_need_tick.empty() && m_need_tick.front().first < now)
 				{
-					std::shared_ptr<storage_interface> st = m_need_tick.front().second.lock();
-					m_need_tick.erase(m_need_tick.begin());
-					if (st) st->tick();
+					std::unique_lock<std::mutex> l2(m_need_tick_mutex);
+					while (!m_need_tick.empty() && m_need_tick.front().first < now)
+					{
+						std::shared_ptr<storage_interface> st = m_need_tick.front().second.lock();
+						m_need_tick.erase(m_need_tick.begin());
+						if (st)
+						{
+							l2.unlock();
+							st->tick();
+							l2.lock();
+						}
+					}
 				}
 
 				if (now > m_next_close_oldest_file)
