@@ -156,6 +156,12 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::delete_socket(aux::session_listen_socket* s)
 	{
+#if TORRENT_USE_IPV6
+		address local_address = s->get_local_endpoint().address();
+		// since we don't start nodes on local IPv6 interfaces we don't need to remove them either
+		if (local_address.is_v6() && is_local(local_address))
+			return;
+#endif
 		TORRENT_ASSERT(m_nodes.count(s) == 1);
 		m_nodes.erase(s);
 	}
