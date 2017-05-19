@@ -50,6 +50,12 @@ namespace libtorrent
 	struct add_torrent_params;
 	struct cache_status;
 
+	struct TORRENT_EXTRA_EXPORT resume_data_t
+	{
+		std::vector<char> buf;
+		bdecode_node node;
+	};
+
 	struct TORRENT_EXTRA_EXPORT disk_interface
 	{
 		virtual void async_read(piece_manager* storage, peer_request const& r
@@ -67,7 +73,7 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>()) = 0;
 		virtual void async_check_fastresume(piece_manager* storage
-			, bdecode_node const* resume_data
+			, resume_data_t const* resume_data
 			, std::vector<std::string>& links
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 #ifndef TORRENT_NO_DEPRECATE

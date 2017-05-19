@@ -316,7 +316,7 @@ namespace libtorrent
 		void async_delete_files(piece_manager* storage, int options
 			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
 		void async_check_fastresume(piece_manager* storage
-			, bdecode_node const* resume_data
+			, resume_data_t const* resume_data
 			, std::vector<std::string>& links
 			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
 		void async_save_resume_data(piece_manager* storage
