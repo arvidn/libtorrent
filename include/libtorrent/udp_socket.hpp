@@ -234,6 +234,7 @@ namespace libtorrent
 		void connect1(error_code const& e);
 		void connect2(error_code const& e);
 		void hung_up(error_code const& e);
+		void retry_socks_connect(error_code const& ec);
 
 		void drain_queue();
 
@@ -268,6 +269,7 @@ namespace libtorrent
 #endif
 
 		tcp::socket m_socks5_sock;
+		deadline_timer m_retry_timer;
 		aux::proxy_settings m_proxy_settings;
 		tcp::resolver m_resolver;
 		char m_tmp_buf[270];
