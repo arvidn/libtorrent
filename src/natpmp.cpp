@@ -278,7 +278,8 @@ void natpmp::try_next_mapping(int const i)
 
 	auto const m = std::find_if(
 		m_mappings.begin(), m_mappings.end()
-		, [] (mapping_t const& ma) { return ma.act != mapping_t::action::none; });
+		, [] (mapping_t const& ma) { return ma.act != mapping_t::action::none
+			&& ma.protocol != portmap_protocol::none; });
 
 	if (m == m_mappings.end())
 	{
