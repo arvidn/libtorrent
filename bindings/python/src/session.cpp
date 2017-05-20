@@ -108,11 +108,16 @@ namespace
 
 	void make_settings_pack(lt::settings_pack& p, dict const& sett_dict)
 	{
-		list iterkeys = (list)sett_dict.keys();
-		int const len = int(boost::python::len(iterkeys));
-		for (int i = 0; i < len; i++)
+		const object dictkeys = sett_dict.keys();
+		const size_t len = size_t(boost::python::len(dictkeys));
+		const object dictkeys_iter = dictkeys.attr("__iter__")();
+		for (size_t i = 0; i < len; i++)
 		{
-			std::string const key = extract<std::string>(iterkeys[i]);
+#if PY_VERSION_HEX >= 0x03000000
+			std::string const key = extract<std::string>(dictkeys_iter.attr("__next__")());
+#else
+			std::string const key = extract<std::string>(dictkeys_iter.attr("next")());
+#endif
 
 			int sett = setting_by_name(key);
 			if (sett < 0)
