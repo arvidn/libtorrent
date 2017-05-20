@@ -1,3 +1,4 @@
+	* fix NAT-PMP crash when removing a mapping at the wrong time
 	* improve path sanitization (filter unicode text direction characters)
 	* deprecate partial_piece_info::piece_state
 	* bind upnp requests to correct local address
