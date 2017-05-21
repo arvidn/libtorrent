@@ -212,10 +212,9 @@ namespace libtorrent
 		int& m_cnt;
 		increment_guard(int& c) : m_cnt(c) { TORRENT_ASSERT(m_cnt >= 0); ++m_cnt; }
 		~increment_guard() { --m_cnt; TORRENT_ASSERT(m_cnt >= 0); }
-		increment_guard(increment_guard const&) = delete;
-		increment_guard(increment_guard&&) = delete;
-		increment_guard operator=(increment_guard const&) = delete;
-		increment_guard operator=(increment_guard&&) = delete;
+	private:
+		increment_guard(increment_guard const&);
+		increment_guard operator=(increment_guard const&);
 	};
 #define TORRENT_INCREMENT(x) increment_guard inc_(x)
 #else
