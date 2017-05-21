@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DEBUG_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
 #if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 #include <pthread.h>
@@ -203,6 +204,22 @@ namespace libtorrent
 		void thread_started() {}
 		bool is_not_thread() const {return true; }
 	};
+#endif
+
+#if TORRENT_USE_ASSERTS
+	struct increment_guard
+	{
+		int& m_cnt;
+		increment_guard(int& c) : m_cnt(c) { TORRENT_ASSERT(m_cnt >= 0); ++m_cnt; }
+		~increment_guard() { --m_cnt; TORRENT_ASSERT(m_cnt >= 0); }
+		increment_guard(increment_guard const&) = delete;
+		increment_guard(increment_guard&&) = delete;
+		increment_guard operator=(increment_guard const&) = delete;
+		increment_guard operator=(increment_guard&&) = delete;
+	};
+#define TORRENT_INCREMENT(x) increment_guard inc_(x)
+#else
+#define TORRENT_INCREMENT(x) do {} while (false)
 #endif
 }
 
