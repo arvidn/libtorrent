@@ -286,6 +286,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		, m_resume_data_loaded(false)
 		, m_was_started(false)
+		, m_iterating_connections(0)
 #endif
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
@@ -1045,6 +1046,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
 			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
 			p->write_share_mode();
@@ -1062,6 +1064,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++idx)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			// since the call to disconnect_if_redundant() may
 			// delete the entry from this container, make sure
 			// to increment the iterator early
@@ -1131,6 +1134,7 @@ namespace libtorrent
 			for (peer_iterator i = m_connections.begin()
 				, end(m_connections.end()); i != end; ++i)
 			{
+				TORRENT_INCREMENT(m_iterating_connections);
 				peer_connection* p = (*i);
 				// we may want to disconnect other upload-only peers
 				if (p->upload_only())
@@ -1153,6 +1157,7 @@ namespace libtorrent
 			for (peer_iterator i = m_connections.begin()
 				, end(m_connections.end()); i != end; ++i)
 			{
+				TORRENT_INCREMENT(m_iterating_connections);
 				peer_connection* p = (*i);
 				// we may be interested now, or no longer interested
 				p->update_interest();
@@ -1373,6 +1378,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			peer_has((*i)->get_bitfield(), *i);
 		}
 	}
@@ -1493,7 +1499,10 @@ namespace libtorrent
 		// suggest this piece to all peers
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
+		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			(*i)->send_suggest(j->piece);
+		}
 	}
 
 	void torrent::on_disk_tick_done(disk_io_job const* j)
@@ -1557,6 +1566,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			peer_connection* p = *i;
 			boost::shared_ptr<peer_plugin> pp(tp->new_connection(peer_connection_handle(p->self())));
 			if (pp) p->add_extension(pp);
@@ -2284,6 +2294,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (const_peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
 			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
 			if (!p->supports_holepunch()) continue;
@@ -2301,6 +2312,7 @@ namespace libtorrent
 	{
 		for (const_peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			peer_connection* p = *i;
 			if (p->type() != peer_connection::bittorrent_connection) continue;
 			if (p->remote() == ep) return static_cast<bt_peer_connection*>(p);
@@ -2312,6 +2324,7 @@ namespace libtorrent
 	{
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			peer_connection* p = *i;
 			if (p->pid() == pid) return p;
 		}
@@ -4315,6 +4328,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			peer_connection* p = *i;
 			// update_interest may disconnect the peer and
 			// invalidate the iterator
@@ -4453,6 +4467,7 @@ namespace libtorrent
 		for (peer_iterator p = m_connections.begin()
 			, end(m_connections.end()); p != end; ++p)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 #ifndef TORRENT_DISABLE_LOGGING
 			(*p)->peer_log(peer_log_alert::outgoing, "PREDICTIVE_HAVE", "piece: %d expected in %d ms"
 				, index, milliseconds);
@@ -4491,6 +4506,7 @@ namespace libtorrent
 			for (peer_iterator p = m_connections.begin()
 				, end(m_connections.end()); p != end; ++p)
 			{
+				TORRENT_INCREMENT(m_iterating_connections);
 				// send reject messages for
 				// potential outstanding requests to this piece
 				(*p)->reject_piece(index);
@@ -4693,6 +4709,7 @@ namespace libtorrent
 		for (std::vector<peer_connection*>::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			peer_connection* p = *i;
 			std::vector<pending_block> const& dq = p->download_queue();
 			std::vector<pending_block> const& rq = p->request_queue();
@@ -4838,6 +4855,7 @@ namespace libtorrent
 			for (peer_iterator p = m_connections.begin()
 				, end(m_connections.end()); p != end; ++p)
 			{
+				TORRENT_INCREMENT(m_iterating_connections);
 				(*p)->send_suggest(index);
 			}
 
@@ -4920,6 +4938,7 @@ namespace libtorrent
 				for (const_peer_iterator j = m_connections.begin()
 					, end2(m_connections.end()); j != end2; ++j)
 				{
+					TORRENT_INCREMENT(m_iterating_connections);
 					peer_connection* peer = *j;
 					if (peer->has_piece(p.piece_index)) ++p.num_peers;
 				}
@@ -4942,7 +4961,10 @@ namespace libtorrent
 		{
 			for (peer_iterator p = m_connections.begin();
 				p != m_connections.end(); ++p)
+			{
+				TORRENT_INCREMENT(m_iterating_connections);
 				(*p)->send_suggest(i->piece_index);
+			}
 		}
 	}
 
@@ -5185,6 +5207,7 @@ namespace libtorrent
 		for (std::vector<peer_connection*>::iterator i
 			= m_connections.begin(), end(m_connections.end()); i != end; ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			// for each peer, go through its download and request queue
 			// and cancel everything, except pieces that are time critical
 			peer_connection* p = *i;
@@ -6025,6 +6048,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			(*i)->cancel_request(block);
 		}
 	}
@@ -6207,6 +6231,7 @@ namespace libtorrent
 		peers_erased(st.erased);
 
 		p->set_peer_info(0);
+		TORRENT_ASSERT(m_iterating_connections == 0);
 		TORRENT_ASSERT(i != m_connections.end());
 		m_connections.erase(i);
 
@@ -6679,6 +6704,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(!c->m_in_constructor);
 			// add the newly connected peer to this torrent's peer list
+			TORRENT_ASSERT(m_iterating_connections == 0);
 			sorted_insert(m_connections, boost::get_pointer(c));
 			update_want_peers();
 			update_want_tick();
@@ -7848,6 +7874,7 @@ namespace libtorrent
 #endif
 
 			// add the newly connected peer to this torrent's peer list
+			TORRENT_ASSERT(m_iterating_connections == 0);
 			sorted_insert(m_connections, boost::get_pointer(c));
 			m_ses.insert_peer(c);
 			need_peer_list();
@@ -7865,6 +7892,7 @@ namespace libtorrent
 		}
 		TORRENT_CATCH (std::exception&)
 		{
+			TORRENT_ASSERT(m_iterating_connections == 0);
 			peer_iterator i = sorted_find(m_connections, boost::get_pointer(c));
 			if (i != m_connections.end())
 			{
@@ -8171,6 +8199,7 @@ namespace libtorrent
 			return false;
 		}
 		TORRENT_ASSERT(sorted_find(m_connections, p) == m_connections.end());
+		TORRENT_ASSERT(m_iterating_connections == 0);
 		sorted_insert(m_connections, p);
 		update_want_peers();
 		update_want_tick();
@@ -8424,6 +8453,7 @@ namespace libtorrent
 // doesn't work with the !m_allow_peers -> m_num_peers == 0 condition
 //		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(m_iterating_connections == 0);
 		while (!m_connections.empty())
 		{
 			peer_connection* p = *m_connections.begin();
@@ -8494,6 +8524,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			// make sure this peer is not a dangling pointer
 			TORRENT_ASSERT(m_ses.has_peer(*i));
 		}
@@ -8553,6 +8584,7 @@ namespace libtorrent
 			for (peer_iterator i = m_connections.begin();
 				i != m_connections.end(); ++i)
 			{
+				TORRENT_INCREMENT(m_iterating_connections);
 				peer_connection* p = *i;
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 				if (p->upload_only())
@@ -8791,6 +8823,7 @@ namespace libtorrent
 		for (torrent::peer_iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			peer_connection* pc = *i;
 			++i;
 
@@ -9882,6 +9915,7 @@ namespace libtorrent
 			for (peer_iterator i = m_connections.begin();
 				i != m_connections.end(); ++i)
 			{
+				TORRENT_INCREMENT(m_iterating_connections);
 				peer_connection* p = *i;
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
@@ -10535,6 +10569,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
 			peer_connection* p = *i;
 			if (p->is_connecting()) continue;
 			if (p->is_disconnecting()) continue;
