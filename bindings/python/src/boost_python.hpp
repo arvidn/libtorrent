@@ -7,6 +7,7 @@
 
 #include <libtorrent/aux_/disable_warnings_push.hpp>
 #include <boost/python.hpp>
+#include <boost/python/stl_iterator.hpp>
 #include <libtorrent/aux_/disable_warnings_pop.hpp>
 
 #endif

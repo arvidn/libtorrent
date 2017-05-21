@@ -106,11 +106,10 @@ namespace
 
 	void make_settings_pack(lt::settings_pack& p, dict const& sett_dict)
 	{
-		list iterkeys = (list)sett_dict.keys();
-		int const len = boost::python::len(iterkeys);
-		for (int i = 0; i < len; i++)
+		stl_input_iterator<std::string> i(sett_dict.keys()), end;
+		for (; i != end; ++i)
 		{
-			std::string const key = extract<std::string>(iterkeys[i]);
+			std::string const key = *i;
 
 			int sett = setting_by_name(key);
 			if (sett < 0)
