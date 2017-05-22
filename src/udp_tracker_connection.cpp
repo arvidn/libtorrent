@@ -112,13 +112,12 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_tracker_connection::name_lookup");
 #endif
-			// when stopping, pass in the prefer cache flag, because we
+			// when stopping, pass in the cache-only flag, because we
 			// don't want to get stuck on DNS lookups when shutting down
-			// if we can avoid it
 			m_man.host_resolver().async_resolve(hostname
 				, tracker_req().event == tracker_request::stopped
-					? resolver_interface::prefer_cache
-					: resolver_interface::abort_on_shutdown
+					? resolver_interface::cache_only : 0
+					| resolver_interface::abort_on_shutdown
 				, boost::bind(&udp_tracker_connection::name_lookup
 					, shared_from_this(), _1, _2, port));
 
