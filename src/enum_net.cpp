@@ -901,7 +901,8 @@ namespace libtorrent
 	{
 		rtm = reinterpret_cast<rt_msghdr*>(next);
 		if (rtm->rtm_version != RTM_VERSION
-			|| rtm->rtm_type != RTM_ADD)
+			|| (rtm->rtm_type != RTM_ADD
+			&& rtm->rtm_type != RTM_GET))
 		{
 			continue;
 		}
