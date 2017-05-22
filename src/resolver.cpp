@@ -118,7 +118,7 @@ namespace libtorrent
 		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
-			m_ios.post(boost::bind(h, boost::asio::error::netdb_errors::host_not_found
+			m_ios.post(boost::bind(h, boost::asio::error::host_not_found
 					, std::vector<address>()));
 			return;
 		}
