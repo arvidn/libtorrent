@@ -213,7 +213,7 @@ namespace libtorrent {
 	struct increment_guard
 	{
 		int& m_cnt;
-		increment_guard(int& c) : m_cnt(c) { TORRENT_ASSERT(m_cnt >= 0); ++m_cnt; }
+		explicit increment_guard(int& c) : m_cnt(c) { TORRENT_ASSERT(m_cnt >= 0); ++m_cnt; }
 		~increment_guard() { --m_cnt; TORRENT_ASSERT(m_cnt >= 0); }
 	private:
 		increment_guard(increment_guard const&);
