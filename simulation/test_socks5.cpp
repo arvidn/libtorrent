@@ -246,3 +246,40 @@ TORRENT_TEST(udp_tracker)
 	TEST_CHECK(announced);
 }
 
+TORRENT_TEST(socks5_udp_retry)
+{
+	// this test is asserting that when a UDP associate command fails, we have a
+	// 5 second delay before we try again. There is no need to actually add a
+	// torrent for this test, just to open the udp socket with a socks5 proxy
+	using namespace libtorrent;
+
+	// setup the simulation
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	std::unique_ptr<sim::asio::io_service> ios = make_io_service(sim, 0);
+	lt::session_proxy zombie;
+
+	sim::asio::io_service proxy_ios{sim, addr("50.50.50.50") };
+	// close UDP associate connectons prematurely
+	sim::socks_server socks5(proxy_ios, 5555, 5, socks_flag::disconnect_udp_associate);
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "50.50.50.50:6881");
+	// create session
+	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, *ios);
+	set_proxy(*ses, settings_pack::socks5);
+
+	// run for 60 seconds.The sokcks5 retry interval is expected to be 5 seconds,
+	// meaning there should have been 12 connection attempts
+	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const& ec)
+	{
+		fprintf(stderr, "shutting down\n");
+		// shut down
+		zombie = ses->abort();
+		ses.reset();
+	});
+	sim.run();
+
+	// number of UDP ASSOCIATE commands invoked on the socks proxy
+	TEST_EQUAL(socks5.cmd_counts()[2], 12);
+}

@@ -131,12 +131,11 @@ struct dict_to_map
         dict o(borrowed(x));
         std::map<T1, T2> m;
 
-        list iterkeys = (list)o.keys();
-        int const len = int(boost::python::len(iterkeys));
-        for (int i = 0; i < len; i++)
+        stl_input_iterator<T1> i(o.keys()), end;
+        for (; i != end; ++i)
         {
-            object key = iterkeys[i];
-            m[extract<T1>(key)] = extract<T2>(o[key]);
+            T1 const& key = *i;
+            m[key] = extract<T2>(o[key]);
         }
         new (storage) std::map<T1, T2>(m);
         data->convertible = storage;

@@ -64,6 +64,7 @@ struct socks5 : std::enable_shared_from_this<socks5>
 		: m_socks5_sock(ios)
 		, m_resolver(ios)
 		, m_timer(ios)
+		, m_retry_timer(ios)
 		, m_abort(false)
 		, m_active(false)
 	{
@@ -91,10 +92,12 @@ private:
 	void connect1(error_code const& e);
 	void connect2(error_code const& e);
 	void hung_up(error_code const& e);
+	void retry_socks_connect(error_code const& e);
 
 	tcp::socket m_socks5_sock;
 	tcp::resolver m_resolver;
 	deadline_timer m_timer;
+	deadline_timer m_retry_timer;
 	char m_tmp_buf[270];
 
 	aux::proxy_settings m_proxy_settings;
@@ -738,7 +741,15 @@ void socks5::hung_up(error_code const& e)
 
 	if (e == boost::asio::error::operation_aborted || m_abort) return;
 
-	// the socks connection was closed, re-open it
+	// the socks connection was closed, re-open it in a bit
+	m_retry_timer.expires_from_now(seconds(5));
+	m_retry_timer.async_wait(std::bind(&socks5::retry_socks_connect
+		, self(), _1));
+}
+
+void socks5::retry_socks_connect(error_code const& e)
+{
+	if (e) return;
 	start(m_proxy_settings);
 }
 

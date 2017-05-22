@@ -1660,6 +1660,10 @@ namespace libtorrent {
 		// set to true when torrent is start()ed. It may only be started once
 		bool m_was_started = false;
 		bool m_outstanding_check_files = false;
+
+		// this is set to true while we're looping over m_connections. We may not
+		// mutate the list while doing this
+		mutable int m_iterating_connections = 0;
 #endif
 	};
 }
