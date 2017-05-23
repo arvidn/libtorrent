@@ -426,9 +426,8 @@ namespace libtorrent
 	{
 		TORRENT_UNUSED(ios); // this may be unused depending on configuration
 		std::vector<ip_interface> ret;
+		ec.clear();
 #if defined TORRENT_BUILD_SIMULATOR
-
-		TORRENT_UNUSED(ec);
 
 		std::vector<address> ips = ios.get_ips();
 
