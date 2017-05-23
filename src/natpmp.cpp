@@ -367,7 +367,7 @@ void natpmp::send_map_request(int const i)
 		log("==> port map [ mapping: %d action: %s"
 			" proto: %s local: %u external: %u ttl: %u ]"
 			, i, m.act == mapping_t::action::add ? "add" : "delete"
-			, m.protocol == portmap_protocol::udp ? "udp" : "tcp"
+			, m.protocol_name()
 			, m.local_port, m.external_port, ttl);
 	}
 #endif

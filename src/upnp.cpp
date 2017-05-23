@@ -743,7 +743,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int const i)
 		"<NewLeaseDuration>%u</NewLeaseDuration>"
 		"</u:%s></s:Body></s:Envelope>"
 		, soap_action, d.service_namespace.c_str(), d.mapping[i].external_port
-		, (d.mapping[i].protocol == portmap_protocol::udp ? "UDP" : "TCP")
+		, d.mapping[i].protocol_name()
 		, d.mapping[i].local_ep.port()
 		, local_endpoint.c_str()
 		, m_user_agent.c_str(), local_endpoint.c_str(), d.mapping[i].local_ep.port()
@@ -863,7 +863,7 @@ void upnp::delete_port_mapping(rootdevice& d, int const i)
 		"</u:%s></s:Body></s:Envelope>"
 		, soap_action, d.service_namespace.c_str()
 		, d.mapping[i].external_port
-		, (d.mapping[i].protocol == portmap_protocol::udp ? "UDP" : "TCP")
+		, d.mapping[i].protocol_name()
 		, soap_action);
 
 	post(d, soap, soap_action);
