@@ -699,7 +699,6 @@ namespace libtorrent {
 		{
 			TORRENT_PIECE_ASSERT(!error, pe);
 			std::int64_t write_time = total_microseconds(clock_type::now() - start_time);
-			m_write_time.add_sample(write_time / num_blocks);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written, num_blocks);
 			m_stats_counters.inc_stats_counter(counters::num_write_ops);
@@ -1140,8 +1139,6 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(j->action < sizeof(job_functions) / sizeof(job_functions[0]));
 
-		time_point const start_time = clock_type::now();
-
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, 1);
 
 		// call disk function
@@ -1219,8 +1216,6 @@ namespace libtorrent {
 
 		j->ret = ret;
 
-		time_point now = clock_type::now();
-		m_job_time.add_sample(total_microseconds(now - start_time));
 		completed_jobs.push_back(j);
 	}
 
@@ -1250,7 +1245,6 @@ namespace libtorrent {
 		if (!j->error.ec)
 		{
 			std::int64_t read_time = total_microseconds(clock_type::now() - start_time);
-			m_read_time.add_sample(read_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back);
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
@@ -1324,7 +1318,6 @@ namespace libtorrent {
 		if (!j->error.ec)
 		{
 			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
-			m_read_time.add_sample(read_time / iov_len);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read, iov_len);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -1487,8 +1480,7 @@ namespace libtorrent {
 
 		if (!j->error.ec)
 		{
-			std::int64_t write_time = total_microseconds(clock_type::now() - start_time);
-			m_write_time.add_sample(write_time);
+			std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written);
 			m_stats_counters.inc_stats_counter(counters::num_write_ops);
@@ -2106,8 +2098,6 @@ namespace libtorrent {
 		TORRENT_PIECE_ASSERT(pe->hashing, pe);
 		TORRENT_PIECE_ASSERT(pe->hash, pe);
 
-		m_hash_time.add_sample(hash_time / (end - cursor));
-
 		m_stats_counters.inc_stats_counter(counters::num_blocks_hashed, end - cursor);
 		m_stats_counters.inc_stats_counter(counters::disk_hash_time, hash_time);
 		m_stats_counters.inc_stats_counter(counters::disk_job_time, hash_time);
@@ -2189,7 +2179,6 @@ namespace libtorrent {
 			if (!j->error.ec)
 			{
 				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
-				m_read_time.add_sample(read_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 				m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -2398,8 +2387,7 @@ namespace libtorrent {
 
 				if (!j->error.ec)
 				{
-					std::int64_t read_time = total_microseconds(clock_type::now() - start_time);
-					m_read_time.add_sample(read_time);
+					std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 
 					m_stats_counters.inc_stats_counter(counters::num_read_back);
 					m_stats_counters.inc_stats_counter(counters::num_blocks_read);
