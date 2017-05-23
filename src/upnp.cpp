@@ -238,7 +238,7 @@ void upnp::delete_mapping(int const mapping)
 
 	if (mapping >= int(m_mappings.size())) return;
 
-	global_mapping_t& m = m_mappings[mapping];
+	global_mapping_t const& m = m_mappings[mapping];
 
 #ifndef TORRENT_DISABLE_LOGGING
 	log("deleting port map: [ protocol: %s ext_port: %u "
@@ -1106,8 +1106,7 @@ void find_error_code(int const type, string_view string, error_code_parse_state&
 	}
 	else if (type == xml_string && state.in_error_code)
 	{
-		std::string error_code_str(string.begin(), string.end());
-		state.error_code = std::atoi(error_code_str.c_str());
+		state.error_code = std::atoi(string.to_string().c_str());
 		state.exit = true;
 	}
 }

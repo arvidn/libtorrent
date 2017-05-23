@@ -253,12 +253,11 @@ int natpmp::add_mapping(portmap_protocol const p, int const external_port
 	{
 		natpmp::mapping_t const& m = *i;
 		log("add-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
-			, (m.protocol == portmap_protocol::none
-				? "none" : m.protocol == portmap_protocol::tcp ? "tcp" : "udp")
+			, m.protocol == portmap_protocol::none
+				? "none" : m.protocol_name()
 			, m.external_port
 			, m.local_port
-			, (m.act == mapping_t::action::none
-				? "none" : m.act == mapping_t::action::add ? "add" : "delete")
+			, m.act_name()
 			, total_seconds(m.expires - aux::time_now()));
 	}
 #endif
@@ -315,12 +314,11 @@ void natpmp::update_mapping(int const i)
 	if (should_log())
 	{
 		log("update-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
-			, (m.protocol == portmap_protocol::none
-				? "none" : m.protocol == portmap_protocol::tcp ? "tcp" : "udp")
+			, m.protocol == portmap_protocol::none
+				? "none" : m.protocol_name()
 			, m.external_port
 			, m.local_port
-			, (m.act == mapping_t::action::none
-				? "none" : m.act == mapping_t::action::add ? "add" : "delete")
+			, m.act_name()
 			, total_seconds(m.expires - aux::time_now()));
 	}
 #endif
@@ -366,7 +364,7 @@ void natpmp::send_map_request(int const i)
 	{
 		log("==> port map [ mapping: %d action: %s"
 			" proto: %s local: %u external: %u ttl: %u ]"
-			, i, m.act == mapping_t::action::add ? "add" : "delete"
+			, i, m.act_name()
 			, m.protocol_name()
 			, m.local_port, m.external_port, ttl);
 	}
