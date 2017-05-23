@@ -86,6 +86,10 @@ namespace libtorrent { namespace aux {
 		{
 			return protocol == aux::portmap_protocol::udp ? "UDP" : "TCP";
 		}
+		char const* act_name() const
+		{
+			return act == action::none ? "none" : act == action::add ? "add" : "delete";
+		}
 	};
 }}
 
