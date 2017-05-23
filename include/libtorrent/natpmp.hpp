@@ -84,27 +84,11 @@ private:
 
 	void disable(error_code const& ec);
 
-	struct mapping_t
+	struct mapping_t : public aux::base_mapping_t
 	{
-		enum class action : std::uint8_t { none, add, del };
-
-		// indicates that the mapping has changed
-		// and needs an update
-		action act = action::none;
-
-		// the time the port mapping will expire
-		time_point expires;
-
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use
 		int local_port = 0;
-
-		// the external (on the NAT router) port
-		// for the mapping. This is the port we
-		// should announce to others
-		int external_port = 0;
-
-		aux::portmap_protocol protocol = aux::portmap_protocol::none;
 
 		// set to true when the first map request is sent
 		bool map_sent = false;

@@ -565,13 +565,13 @@ void natpmp::on_reply(error_code const& e
 	if (result != 0)
 	{
 		// TODO: 3 it would be nice to have a separate NAT-PMP error category
-		errors::error_code_enum errors[] =
+		static errors::error_code_enum const errors[] =
 		{
 			errors::unsupported_protocol_version,
 			errors::natpmp_not_authorized,
 			errors::network_failure,
 			errors::no_resources,
-			errors::unsupported_opcode,
+			errors::unsupported_opcode
 		};
 		errors::error_code_enum ev = errors::no_error;
 		if (result >= 1 && result <= 5) ev = errors[result - 1];
