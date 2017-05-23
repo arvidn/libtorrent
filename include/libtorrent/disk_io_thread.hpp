@@ -543,18 +543,6 @@ namespace aux {
 
 		counters& m_stats_counters;
 
-		// average read time for cache misses (in microseconds)
-		average_accumulator m_read_time;
-
-		// average write time (in microseconds)
-		average_accumulator m_write_time;
-
-		// average hash time (in microseconds)
-		average_accumulator m_hash_time;
-
-		// average time to serve a job (any job) in microseconds
-		average_accumulator m_job_time;
-
 		// this is the main thread io_service. Callbacks are
 		// posted on this in order to have them execute in
 		// the main thread.
