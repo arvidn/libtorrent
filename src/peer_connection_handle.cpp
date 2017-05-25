@@ -57,7 +57,7 @@ void peer_connection_handle::add_extension(std::shared_ptr<peer_plugin> ext)
 #endif
 }
 
-peer_plugin const* peer_connection_handle::find_plugin(span<char const> type)
+peer_plugin const* peer_connection_handle::find_plugin(string_view type)
 {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	std::shared_ptr<peer_connection> pc = native_handle();

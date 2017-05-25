@@ -372,7 +372,7 @@ namespace libtorrent {
 
 		// This function is expected to return the name of
 		// the plugin.
-		virtual span<char const> type() const { return span<char const>(); }
+		virtual string_view type() const { return {}; }
 
 		// can add entries to the extension handshake
 		// this is not called for web seeds
