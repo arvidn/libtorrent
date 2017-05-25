@@ -433,9 +433,8 @@ namespace libtorrent {
 	{
 		TORRENT_UNUSED(ios); // this may be unused depending on configuration
 		std::vector<ip_interface> ret;
+		ec.clear();
 #if defined TORRENT_BUILD_SIMULATOR
-
-		TORRENT_UNUSED(ec);
 
 		std::vector<address> ips = ios.get_ips();
 
@@ -879,7 +878,8 @@ namespace libtorrent {
 	{
 		rtm = reinterpret_cast<rt_msghdr*>(next);
 		if (rtm->rtm_version != RTM_VERSION
-			|| rtm->rtm_type != RTM_ADD)
+			|| (rtm->rtm_type != RTM_ADD
+			&& rtm->rtm_type != RTM_GET))
 		{
 			continue;
 		}
