@@ -1083,7 +1083,24 @@ MAGNETURL is a magnet link
 	torrent_view view;
 	session_view ses_view;
 
-	settings_pack settings;
+	session_params params;
+
+	error_code ec;
+
+#ifndef TORRENT_DISABLE_DHT
+	params.dht_settings.privacy_lookups = true;
+
+	std::vector<char> in;
+	load_file(".ses_state", in, ec);
+	if (!ec)
+	{
+		bdecode_node e;
+		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
+			params = read_session_params(e, session_handle::save_dht_state);
+	}
+#endif
+
+	auto& settings = params.settings;
 	settings.set_int(settings_pack::cache_size, cache_size);
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
@@ -1238,7 +1255,7 @@ MAGNETURL is a magnet link
 		+ alert::picker_log_notification
 		));
 
-	lt::session ses(settings);
+	lt::session ses(std::move(params));
 
 	if (rate_limit_locals)
 	{
@@ -1254,22 +1271,6 @@ MAGNETURL is a magnet link
 	}
 
 	ses.set_ip_filter(loaded_ip_filter);
-
-	error_code ec;
-
-#ifndef TORRENT_DISABLE_DHT
-	dht_settings dht;
-	dht.privacy_lookups = true;
-	ses.set_dht_settings(dht);
-
-	std::vector<char> in;
-	if (load_file(".ses_state", in, ec) == 0)
-	{
-		bdecode_node e;
-		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
-			ses.load_state(e, session::save_dht_state);
-	}
-#endif
 
 	for (auto const& i : torrents)
 	{
