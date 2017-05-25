@@ -303,6 +303,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(std::shared_ptr<peer_plugin>);
+		peer_plugin const* find_plugin(string_view type);
 #endif
 
 		// this function is called once the torrent associated

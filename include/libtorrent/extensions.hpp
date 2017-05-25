@@ -370,6 +370,10 @@ namespace libtorrent {
 		// hidden
 		virtual ~peer_plugin() {}
 
+		// This function is expected to return the name of
+		// the plugin.
+		virtual string_view type() const { return {}; }
+
 		// can add entries to the extension handshake
 		// this is not called for web seeds
 		virtual void add_handshake(entry&) {}

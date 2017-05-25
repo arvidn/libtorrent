@@ -518,6 +518,14 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		m_extensions.push_back(ext);
 	}
+
+	peer_plugin const* peer_connection::find_plugin(string_view type)
+	{
+		TORRENT_ASSERT(is_single_thread());
+		auto p = std::find_if(m_extensions.begin(), m_extensions.end()
+			, [&](std::shared_ptr<peer_plugin> const& e) { return e->type() == type; });
+		return p != m_extensions.end() ? p->get() : nullptr;
+	}
 #endif
 
 	void peer_connection::send_allowed_set()
