@@ -200,7 +200,7 @@ void natpmp::disable(error_code const& ec)
 	{
 		if (i->protocol == portmap_protocol::none) continue;
 		portmap_protocol const proto = i->protocol;
-		i->protocol = portmap_protocol::none;
+		i->set_none();
 		int const index = int(i - m_mappings.begin());
 		m_callback.on_port_mapping(index, address(), 0, proto, ec
 			, aux::portmap_transport::natpmp);
@@ -219,8 +219,7 @@ void natpmp::delete_mapping(int const index)
 	if (m.protocol == portmap_protocol::none) return;
 	if (!m.map_sent)
 	{
-		m.act = mapping_t::action::none;
-		m.protocol = portmap_protocol::none;
+		m.set_none();
 		return;
 	}
 
@@ -554,7 +553,7 @@ void natpmp::on_reply(error_code const& e
 	{
 		// this means the mapping was
 		// successfully closed
-		m->protocol = portmap_protocol::none;
+		m->set_none();
 	}
 	else
 	{
@@ -565,13 +564,13 @@ void natpmp::on_reply(error_code const& e
 	if (result != 0)
 	{
 		// TODO: 3 it would be nice to have a separate NAT-PMP error category
-		errors::error_code_enum errors[] =
+		static errors::error_code_enum const errors[] =
 		{
 			errors::unsupported_protocol_version,
 			errors::natpmp_not_authorized,
 			errors::network_failure,
 			errors::no_resources,
-			errors::unsupported_opcode,
+			errors::unsupported_opcode
 		};
 		errors::error_code_enum ev = errors::no_error;
 		if (result >= 1 && result <= 5) ev = errors[result - 1];
