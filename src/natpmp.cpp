@@ -254,10 +254,10 @@ int natpmp::add_mapping(portmap_protocol const p, int const external_port
 		natpmp::mapping_t const& m = *i;
 		log("add-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
 			, m.protocol == portmap_protocol::none
-				? "none" : m.protocol_name()
+				? "none" : aux::to_string(m.protocol)
 			, m.external_port
 			, m.local_port
-			, m.act_name()
+			, aux::to_string(m.act)
 			, total_seconds(m.expires - aux::time_now()));
 	}
 #endif
@@ -315,10 +315,10 @@ void natpmp::update_mapping(int const i)
 	{
 		log("update-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
 			, m.protocol == portmap_protocol::none
-				? "none" : m.protocol_name()
+				? "none" : aux::to_string(m.protocol)
 			, m.external_port
 			, m.local_port
-			, m.act_name()
+			, aux::to_string(m.act)
 			, total_seconds(m.expires - aux::time_now()));
 	}
 #endif
@@ -364,8 +364,8 @@ void natpmp::send_map_request(int const i)
 	{
 		log("==> port map [ mapping: %d action: %s"
 			" proto: %s local: %u external: %u ttl: %u ]"
-			, i, m.act_name()
-			, m.protocol_name()
+			, i, aux::to_string(m.act)
+			, aux::to_string(m.protocol)
 			, m.local_port, m.external_port, ttl);
 	}
 #endif

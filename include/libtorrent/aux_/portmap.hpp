@@ -66,7 +66,8 @@ namespace libtorrent { namespace aux {
 	protected:
 		~portmap_callback() {}
 	};
-	struct base_mapping_t
+
+		struct base_mapping
 	{
 		enum class action : std::uint8_t { none, add, del };
 
@@ -80,17 +81,17 @@ namespace libtorrent { namespace aux {
 		// should announce to others
 		int external_port = 0;
 
-		aux::portmap_protocol protocol = aux::portmap_protocol::none;
+			portmap_protocol protocol = portmap_protocol::none;
+		};
 
-		char const* protocol_name() const
+		inline char const* to_string(portmap_protocol const p)
 		{
-			return protocol == aux::portmap_protocol::udp ? "UDP" : "TCP";
+			return p == portmap_protocol::udp ? "UDP" : "TCP";
 		}
-		char const* act_name() const
+		inline char const* to_string(base_mapping::action const act)
 		{
-			return act == action::none ? "none" : act == action::add ? "add" : "delete";
+			return act == base_mapping::action::none ? "none" : act == base_mapping::action::add ? "add" : "delete";
 		}
-	};
 }}
 
 #endif // LIBTORRENT_PORTMAP_HPP

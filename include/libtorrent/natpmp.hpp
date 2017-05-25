@@ -84,7 +84,7 @@ private:
 
 	void disable(error_code const& ec);
 
-	struct mapping_t : public aux::base_mapping_t
+	struct mapping_t : public aux::base_mapping
 	{
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use
