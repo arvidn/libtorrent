@@ -208,9 +208,9 @@ namespace libtorrent {
 		// error. If there's an error, the ``storage_error`` must be filled out
 		// to represent the error that occurred.
 		virtual int readv(span<iovec_t const> bufs
-			, piece_index_t piece, int offset, std::uint32_t flags, storage_error& ec) = 0;
+			, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) = 0;
 		virtual int writev(span<iovec_t const> bufs
-			, piece_index_t piece, int offset, std::uint32_t flags, storage_error& ec) = 0;
+			, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) = 0;
 
 		// This function is called when first checking (or re-checking) the
 		// storage for a torrent. It should return true if any of the files that
@@ -398,9 +398,9 @@ namespace libtorrent {
 		virtual bool tick() override;
 
 		int readv(span<iovec_t const> bufs
-			, piece_index_t piece, int offset, std::uint32_t flags, storage_error& ec) override;
+			, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) override;
 		int writev(span<iovec_t const> bufs
-			, piece_index_t piece, int offset, std::uint32_t flags, storage_error& ec) override;
+			, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) override;
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
@@ -424,8 +424,8 @@ namespace libtorrent {
 		mutable stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
-		file_handle open_file(file_index_t file, std::uint32_t mode, storage_error& ec) const;
-		file_handle open_file_impl(file_index_t file, std::uint32_t mode, error_code& ec) const;
+		file_handle open_file(file_index_t file, open_mode_t mode, storage_error& ec) const;
+		file_handle open_file_impl(file_index_t file, open_mode_t mode, error_code& ec) const;
 
 		aux::vector<std::uint8_t, file_index_t> m_file_priority;
 		std::string m_save_path;

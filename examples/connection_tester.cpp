@@ -869,7 +869,7 @@ void generate_data(char const* path, torrent_info const& ti)
 			iovec_t const b = { reinterpret_cast<char*>(piece)
 				, size_t(std::min(left_in_piece, 0x4000))};
 			storage_error error;
-			st->writev(b, i, j, 0, error);
+			st->writev(b, i, j, open_mode_t::write_only, error);
 			if (error)
 				std::fprintf(stderr, "storage error: %s\n", error.ec.message().c_str());
 		}

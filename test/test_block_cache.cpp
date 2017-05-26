@@ -51,12 +51,12 @@ struct test_storage_impl : storage_interface
 	void initialize(storage_error& ec) override {}
 
 	int readv(span<iovec_t const> bufs
-		, piece_index_t piece, int offset, std::uint32_t flags, storage_error& ec) override
+		, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) override
 	{
 		return bufs_size(bufs);
 	}
 	int writev(span<iovec_t const> bufs
-		, piece_index_t piece, int offset, std::uint32_t flags, storage_error& ec) override
+		, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) override
 	{
 		return bufs_size(bufs);
 	}

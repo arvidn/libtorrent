@@ -64,7 +64,7 @@ namespace libtorrent {
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
 		file_handle open_file(storage_index_t st, std::string const& p
-			, file_index_t file_index, file_storage const& fs, std::uint32_t m
+			, file_index_t file_index, file_storage const& fs, open_mode_t m
 			, error_code& ec);
 		// release all files belonging to the specified storage_interface (``st``)
 		// the overload that takes ``file_index`` releases only the file with
@@ -111,7 +111,7 @@ namespace libtorrent {
 			file_handle file_ptr;
 			time_point const opened{aux::time_now()};
 			time_point last_use{opened};
-			std::uint32_t mode = 0;
+			open_mode_t mode = open_mode_t::none;
 		};
 
 		// maps storage pointer, file index pairs to the

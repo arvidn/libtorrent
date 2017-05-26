@@ -117,12 +117,12 @@ namespace libtorrent {
 
 #endif // DEBUG_DISK_THREAD
 
-	std::uint32_t file_flags_for_job(disk_io_job* j
+	open_mode_t file_flags_for_job(disk_io_job* j
 		, bool const coalesce_buffers)
 	{
-		std::uint32_t ret = 0;
-		if (!(j->flags & disk_interface::sequential_access)) ret |= file::random_access;
-		if (coalesce_buffers) ret |= file::coalesce_buffers;
+		open_mode_t ret = open_mode_t::none;
+		if (!(j->flags & disk_interface::sequential_access)) ret |= open_mode_t::random_access;
+		if (coalesce_buffers) ret |= open_mode_t::coalesce_buffers;
 		return ret;
 	}
 
@@ -664,8 +664,8 @@ namespace libtorrent {
 		DLOG("]\n");
 #endif
 
-		std::uint32_t const file_flags = m_settings.get_bool(settings_pack::coalesce_writes)
-			? file::coalesce_buffers : static_cast<file::open_mode_t>(0);
+	open_mode_t const file_flags = m_settings.get_bool(settings_pack::coalesce_writes)
+			? open_mode_t::coalesce_buffers : open_mode_t::none;
 
 		// issue the actual write operation
 		auto iov_start = iov;
@@ -1232,7 +1232,7 @@ namespace libtorrent {
 
 		time_point const start_time = clock_type::now();
 
-		std::uint32_t const file_flags = file_flags_for_job(j
+		open_mode_t const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 		iovec_t b = {buffer.get(), std::size_t(j->d.io.buffer_size)};
 
@@ -1308,7 +1308,7 @@ namespace libtorrent {
 		// can remove them. We can now release the cache std::mutex and dive into the
 		// disk operations.
 
-		std::uint32_t const file_flags = file_flags_for_job(j
+		open_mode_t const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 		time_point const start_time = clock_type::now();
 
@@ -1467,7 +1467,7 @@ namespace libtorrent {
 		auto buffer = std::move(boost::get<disk_buffer_holder>(j->argument));
 
 		iovec_t const b = { buffer.get(), std::size_t(j->d.io.buffer_size)};
-		std::uint32_t const file_flags = file_flags_for_job(j
+		open_mode_t const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_writes));
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
@@ -2155,7 +2155,7 @@ namespace libtorrent {
 		int const piece_size = j->storage->files().piece_size(j->piece);
 		int const block_size = m_disk_cache.block_size();
 		int const blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		std::uint32_t const file_flags = file_flags_for_job(j
+		open_mode_t const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 
 		iovec_t iov = { m_disk_cache.allocate_buffer("hashing")
@@ -2200,7 +2200,7 @@ namespace libtorrent {
 	status_t disk_io_thread::do_hash(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		int const piece_size = j->storage->files().piece_size(j->piece);
-		std::uint32_t const file_flags = file_flags_for_job(j
+		open_mode_t const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);

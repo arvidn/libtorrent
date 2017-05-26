@@ -132,7 +132,7 @@ void test_checking(int flags = read_only_files)
 			path = combine_path(path, name);
 
 			error_code ec;
-			file f(path, file::read_write, ec);
+			file f(path, open_mode_t::read_write, ec);
 			if (ec) std::printf("ERROR: opening file \"%s\": (%d) %s\n"
 				, path.c_str(), ec.value(), ec.message().c_str());
 			f.set_size(file_sizes[i] / 2, ec);

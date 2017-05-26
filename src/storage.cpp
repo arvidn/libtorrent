@@ -135,7 +135,7 @@ namespace libtorrent {
 			if (old_prio == 0 && new_prio != 0)
 			{
 				// move stuff out of the part file
-				file_handle f = open_file(i, file::read_write, ec);
+				file_handle f = open_file(i, open_mode_t::read_write, ec);
 				if (ec) return;
 
 				need_partfile();
@@ -165,7 +165,7 @@ namespace libtorrent {
 				if (exists(fp))
 					new_prio = 1;
 /*
-				file_handle f = open_file(i, file::read_only, ec);
+				file_handle f = open_file(i, open_mode_t::read_only, ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
 					if (ec) return;
@@ -272,8 +272,8 @@ namespace libtorrent {
 					}
 				}
 				ec.ec.clear();
-				file_handle f = open_file(file_index, file::read_write
-					| file::random_access, ec);
+				file_handle f = open_file(file_index, open_mode_t::read_write
+					| open_mode_t::random_access, ec);
 				if (ec)
 				{
 					ec.file(file_index);
@@ -467,7 +467,7 @@ namespace libtorrent {
 
 	int default_storage::readv(span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, std::uint32_t const flags, storage_error& error)
+		, open_mode_t const flags, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
@@ -506,7 +506,7 @@ namespace libtorrent {
 			}
 
 			file_handle handle = open_file(file_index
-				, file::read_only | flags, ec);
+				, open_mode_t::read_only | flags, ec);
 			if (ec) return -1;
 
 			error_code e;
@@ -534,7 +534,7 @@ namespace libtorrent {
 
 	int default_storage::writev(span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, std::uint32_t const flags, storage_error& error)
+		, open_mode_t const flags, storage_error& error)
 	{
 		return readwritev(files(), bufs, piece, offset, error
 			, [this, flags](file_index_t const file_index
@@ -573,7 +573,7 @@ namespace libtorrent {
 			m_stat_cache.set_dirty(file_index);
 
 			file_handle handle = open_file(file_index
-				, file::read_write, ec);
+				, open_mode_t::read_write, ec);
 			if (ec) return -1;
 
 			error_code e;
@@ -600,10 +600,10 @@ namespace libtorrent {
 	}
 
 	file_handle default_storage::open_file(file_index_t const file
-		, std::uint32_t mode, storage_error& ec) const
+		, open_mode_t mode, storage_error& ec) const
 	{
 		file_handle h = open_file_impl(file, mode, ec.ec);
-		if (((mode & file::rw_mask) != file::read_only)
+		if (((mode & open_mode_t::rw_mask) != open_mode_t::read_only)
 			&& ec.ec == boost::system::errc::no_such_file_or_directory)
 		{
 			// this means the directory the file is in doesn't exist.
@@ -631,7 +631,7 @@ namespace libtorrent {
 		}
 		TORRENT_ASSERT(h);
 
-		if (m_allocate_files && (mode & file::rw_mask) != file::read_only)
+		if (m_allocate_files && (mode & open_mode_t::rw_mask) != open_mode_t::read_only)
 		{
 			std::unique_lock<std::mutex> l(m_file_created_mutex);
 			if (m_file_created.size() != files().num_files())
@@ -662,37 +662,37 @@ namespace libtorrent {
 		return h;
 	}
 
-	file_handle default_storage::open_file_impl(file_index_t file, std::uint32_t mode
+	file_handle default_storage::open_file_impl(file_index_t file, open_mode_t mode
 		, error_code& ec) const
 	{
 		bool const lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
-		if (lock_files) mode |= file::lock_file;
+		if (lock_files) mode |= open_mode_t::lock_file;
 
-		if (!m_allocate_files) mode |= file::sparse;
+		if (!m_allocate_files) mode |= open_mode_t::sparse;
 
 		// files with priority 0 should always be sparse
 		if (m_file_priority.end_index() > file && m_file_priority[file] == 0)
-			mode |= file::sparse;
+			mode |= open_mode_t::sparse;
 
-		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
+		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= open_mode_t::no_atime;
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
 		if (m_settings
 			&& settings().get_int(settings_pack::disk_io_write_mode)
 			== settings_pack::disable_os_cache)
 		{
-			mode |= file::no_cache;
+			mode |= open_mode_t::no_cache;
 		}
 
 		file_handle ret = m_pool.open_file(storage_index(), m_save_path, file
 			, files(), mode, ec);
-		if (ec && (mode & file::lock_file))
+		if (ec && test(mode & open_mode_t::lock_file))
 		{
 			// we failed to open the file and we're trying to lock it. It's
 			// possible we're failing because we have another handle to this
 			// file in use (but waiting to be closed). Just retry to open it
 			// without locking.
-			mode &= ~file::lock_file;
+			mode &= ~open_mode_t::lock_file;
 			ret = m_pool.open_file(storage_index(), m_save_path, file, files()
 				, mode, ec);
 		}
@@ -740,12 +740,12 @@ namespace {
 			status_t move_storage(std::string const&, int, storage_error&) override { return status_t::no_error; }
 
 			int readv(span<iovec_t const> bufs
-				, piece_index_t, int, std::uint32_t, storage_error&) override
+				, piece_index_t, int, open_mode_t, storage_error&) override
 			{
 				return bufs_size(bufs);
 			}
 			int writev(span<iovec_t const> bufs
-				, piece_index_t, int, std::uint32_t, storage_error&) override
+				, piece_index_t, int, open_mode_t, storage_error&) override
 			{
 				return bufs_size(bufs);
 			}
@@ -773,7 +773,7 @@ namespace {
 			void initialize(storage_error&) override {}
 
 			int readv(span<iovec_t const> bufs
-				, piece_index_t, int, std::uint32_t, storage_error&) override
+				, piece_index_t, int, open_mode_t, storage_error&) override
 			{
 				int ret = 0;
 				for (auto const& b : bufs)
@@ -784,7 +784,7 @@ namespace {
 				return 0;
 			}
 			int writev(span<iovec_t const> bufs
-				, piece_index_t, int, std::uint32_t, storage_error&) override
+				, piece_index_t, int, open_mode_t, storage_error&) override
 			{
 				int ret = 0;
 				for (auto const& b : bufs)
