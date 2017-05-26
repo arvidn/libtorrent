@@ -146,7 +146,7 @@ void write_test_file()
 	std::srand(unsigned(std::time(nullptr)));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
 	error_code ec;
-	file test_file("test_file", file::write_only, ec);
+	file test_file("test_file", open_mode_t::write_only, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("file error: %s\n", ec.message().c_str());
 	iovec_t b = { data_buffer, 3216};

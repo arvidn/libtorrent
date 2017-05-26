@@ -326,10 +326,6 @@ done:
 # endif
 #endif
 
-static_assert((libtorrent::file::rw_mask & libtorrent::file::sparse) == 0, "internal flags error");
-static_assert((libtorrent::file::rw_mask & libtorrent::file::attribute_mask) == 0, "internal flags error");
-static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0, "internal flags error");
-
 #if defined TORRENT_WINDOWS && defined UNICODE && !TORRENT_USE_WSTRING
 
 #ifdef _MSC_VER
@@ -341,6 +337,10 @@ static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0
 #endif // TORRENT_WINDOWS
 
 namespace libtorrent {
+
+static_assert((open_mode_t::rw_mask & open_mode_t::sparse) == open_mode_t::none, "internal flags error");
+static_assert((open_mode_t::rw_mask & open_mode_t::attribute_mask) == open_mode_t::none, "internal flags error");
+static_assert((open_mode_t::sparse & open_mode_t::attribute_mask) == open_mode_t::none, "internal flags error");
 
 	directory::directory(std::string const& path, error_code& ec)
 		: m_done(false)
@@ -505,14 +505,11 @@ namespace libtorrent {
 	bool file::has_manage_volume_privs = get_manage_volume_privs();
 #endif
 
-	file::file()
-		: m_file_handle(INVALID_HANDLE_VALUE)
-		, m_open_mode(0)
+	file::file() : m_file_handle(INVALID_HANDLE_VALUE)
 	{}
 
-	file::file(std::string const& path, std::uint32_t const mode, error_code& ec)
+	file::file(std::string const& path, open_mode_t const mode, error_code& ec)
 		: m_file_handle(INVALID_HANDLE_VALUE)
-		, m_open_mode(0)
 	{
 		// the return value is not important, since the
 		// error code contains the same information
@@ -524,20 +521,20 @@ namespace libtorrent {
 		close();
 	}
 
-	bool file::open(std::string const& path, std::uint32_t mode, error_code& ec)
+	bool file::open(std::string const& path, open_mode_t mode, error_code& ec)
 	{
 		close();
 		native_path_string file_path = convert_to_native_path_string(path);
 
 #ifdef TORRENT_WINDOWS
 
-		struct open_mode_t
+		struct win_open_mode_t
 		{
 			DWORD rw_mode;
 			DWORD create_mode;
 		};
 
-		static const open_mode_t mode_array[] =
+		static std::array<win_open_mode_t, 3> const mode_array{
 		{
 			// read_only
 			{GENERIC_READ, OPEN_EXISTING},
@@ -545,15 +542,15 @@ namespace libtorrent {
 			{GENERIC_WRITE, OPEN_ALWAYS},
 			// read_write
 			{GENERIC_WRITE | GENERIC_READ, OPEN_ALWAYS},
-		};
+		}};
 
-		static const DWORD attrib_array[] =
+		static std::array<DWORD, 4> const attrib_array{
 		{
 			FILE_ATTRIBUTE_NORMAL, // no attrib
 			FILE_ATTRIBUTE_HIDDEN, // hidden
 			FILE_ATTRIBUTE_NORMAL, // executable
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
-		};
+		}};
 
 #if TORRENT_USE_WSTRING
 #define CreateFile_ CreateFileW
@@ -561,21 +558,21 @@ namespace libtorrent {
 #define CreateFile_ CreateFileA
 #endif
 
-		TORRENT_ASSERT((mode & rw_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
-		open_mode_t const& m = mode_array[mode & rw_mask];
-		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
+		TORRENT_ASSERT(static_cast<std::size_t>(mode & open_mode_t::rw_mask) < mode_array.size());
+		win_open_mode_t const& m = mode_array[static_cast<std::size_t>(mode & open_mode_t::rw_mask)];
+		DWORD a = attrib_array[static_cast<std::size_t>(mode & open_mode_t::attribute_mask) >> 12];
 
 		// one might think it's a good idea to pass in FILE_FLAG_RANDOM_ACCESS. It
 		// turns out that it isn't. That flag will break your operating system:
 		// http://support.microsoft.com/kb/2549369
 
-		DWORD flags = ((mode & random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
+		DWORD const flags = (test(mode & open_mode_t::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL)
 			| FILE_FLAG_OVERLAPPED
-			| ((mode & no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
+			| (test(mode & open_mode_t::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
 		handle_type handle = CreateFile_(file_path.c_str(), m.rw_mode
-			, (mode & lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
+			, test(mode & open_mode_t::lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
 
 #undef CreateFile_
@@ -591,7 +588,8 @@ namespace libtorrent {
 
 		// try to make the file sparse if supported
 		// only set this flag if the file is opened for writing
-		if ((mode & file::sparse) && (mode & rw_mask) != read_only)
+		if (test(mode & open_mode_t::sparse)
+			&& (mode & open_mode_t::rw_mask) != open_mode_t::read_only)
 		{
 			DWORD temp;
 			overlapped_t ol;
@@ -609,7 +607,7 @@ namespace libtorrent {
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
-		if (mode & attribute_executable)
+		if (test(mode & open_mode_t::attribute_executable))
 			permissions |= S_IXGRP | S_IXOTH | S_IXUSR;
 #ifdef O_BINARY
 		static const int mode_array[] = {O_RDONLY | O_BINARY, O_WRONLY | O_CREAT | O_BINARY, O_RDWR | O_CREAT | O_BINARY};
@@ -619,26 +617,27 @@ namespace libtorrent {
 
 		int open_mode = 0
 #ifdef O_NOATIME
-			| ((mode & no_atime) ? O_NOATIME : 0)
+			| (test(mode & open_mode_t::no_atime) ? O_NOATIME : 0)
 #endif
 #ifdef O_SYNC
-			| ((mode & no_cache) ? O_SYNC : 0)
+			| (test(mode & open_mode_t::no_cache) ? O_SYNC : 0)
 #endif
 			;
 
 		handle_type handle = ::open(file_path.c_str()
-			, mode_array[mode & rw_mask] | open_mode
+			, mode_array[static_cast<std::size_t>(mode & open_mode_t::rw_mask)] | open_mode
 			, permissions);
 
 #ifdef O_NOATIME
 		// O_NOATIME is not allowed for files we don't own
 		// so, if we get EPERM when we try to open with it
 		// try again without O_NOATIME
-		if (handle == -1 && (mode & no_atime) && errno == EPERM)
+		if (handle == -1 && test(mode & open_mode_t::no_atime) && errno == EPERM)
 		{
-			mode &= ~no_atime;
+			mode &= ~open_mode_t::no_atime;
 			open_mode &= ~O_NOATIME;
-			handle = ::open(file_path.c_str(), mode_array[mode & rw_mask] | open_mode
+			handle = ::open(file_path.c_str()
+				, mode_array[static_cast<std::size_t>(mode & open_mode_t::rw_mask)] | open_mode
 				, permissions);
 		}
 #endif
@@ -659,7 +658,7 @@ namespace libtorrent {
 
 #ifdef DIRECTIO_ON
 		// for solaris
-		if (mode & no_cache)
+		if (test(mode & open_mode_t::no_cache))
 		{
 			int yes = 1;
 			directio(native_handle(), DIRECTIO_ON);
@@ -668,7 +667,7 @@ namespace libtorrent {
 
 #ifdef F_NOCACHE
 		// for BSD/Mac
-		if (mode & no_cache)
+		if (test(mode & open_mode_t::no_cache))
 		{
 			int yes = 1;
 			fcntl(native_handle(), F_NOCACHE, &yes);
@@ -681,7 +680,7 @@ namespace libtorrent {
 #endif
 
 #ifdef POSIX_FADV_RANDOM
-		if (mode & random_access)
+		if (test(mode & open_mode_t::random_access))
 		{
 			// disable read-ahead
 			posix_fadvise(native_handle(), 0, 0, POSIX_FADV_RANDOM);
@@ -758,9 +757,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// if this file is open for writing, has the sparse
 		// flag set, but there are no sparse regions, unset
 		// the flag
-		std::uint32_t rw_mode = m_open_mode & rw_mask;
-		if ((rw_mode != read_only)
-			&& (m_open_mode & sparse)
+		open_mode_t const rw_mode = m_open_mode & open_mode_t::rw_mask;
+		if ((rw_mode != open_mode_t::read_only)
+			&& test(m_open_mode & open_mode_t::sparse)
 			&& !is_sparse(native_handle()))
 		{
 			overlapped_t ol;
@@ -791,7 +790,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		m_file_handle = INVALID_HANDLE_VALUE;
 
-		m_open_mode = 0;
+		m_open_mode = open_mode_t::none;
 	}
 
 	namespace {
@@ -974,7 +973,7 @@ namespace {
 	// this has to be thread safe and atomic. i.e. on posix systems it has to be
 	// turned into a series of pread() calls
 	std::int64_t file::readv(std::int64_t file_offset, span<iovec_t const> bufs
-		, error_code& ec, std::uint32_t flags)
+		, error_code& ec, open_mode_t flags)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
@@ -985,7 +984,8 @@ namespace {
 #endif
 			return -1;
 		}
-		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
+		TORRENT_ASSERT((m_open_mode & open_mode_t::rw_mask) == open_mode_t::read_only
+			|| (m_open_mode & open_mode_t::rw_mask) == open_mode_t::read_write);
 		TORRENT_ASSERT(!bufs.empty());
 		TORRENT_ASSERT(is_open());
 
@@ -997,16 +997,16 @@ namespace {
 		// there's no point in coalescing single buffer writes
 		if (bufs.size() == 1)
 		{
-			flags &= ~file::coalesce_buffers;
+			flags &= ~open_mode_t::coalesce_buffers;
 		}
 
 		iovec_t tmp;
 		span<iovec_t const> tmp_bufs = bufs;
-		if ((flags & file::coalesce_buffers))
+		if (test(flags & open_mode_t::coalesce_buffers))
 		{
 			if (!coalesce_read_buffers(tmp_bufs, tmp))
 				// ok, that failed, don't coalesce this read
-				flags &= ~file::coalesce_buffers;
+				flags &= ~open_mode_t::coalesce_buffers;
 		}
 
 #if TORRENT_USE_PREAD
@@ -1015,7 +1015,7 @@ namespace {
 		std::int64_t ret = iov(&::read, native_handle(), file_offset, tmp_bufs, ec);
 #endif
 
-		if ((flags & file::coalesce_buffers))
+		if (test(flags & open_mode_t::coalesce_buffers))
 			coalesce_read_buffers_end(bufs
 				, tmp.data(), !ec);
 
@@ -1027,7 +1027,7 @@ namespace {
 	// that means, on posix this has to be turned into a series of
 	// pwrite() calls
 	std::int64_t file::writev(std::int64_t file_offset, span<iovec_t const> bufs
-		, error_code& ec, std::uint32_t flags)
+		, error_code& ec, open_mode_t flags)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
@@ -1038,7 +1038,8 @@ namespace {
 #endif
 			return -1;
 		}
-		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
+		TORRENT_ASSERT((m_open_mode & open_mode_t::rw_mask) == open_mode_t::write_only
+			|| (m_open_mode & open_mode_t::rw_mask) == open_mode_t::read_write);
 		TORRENT_ASSERT(!bufs.empty());
 		TORRENT_ASSERT(is_open());
 
@@ -1053,15 +1054,15 @@ namespace {
 		// there's no point in coalescing single buffer writes
 		if (bufs.size() == 1)
 		{
-			flags &= ~file::coalesce_buffers;
+			flags &= ~open_mode_t::coalesce_buffers;
 		}
 
 		iovec_t tmp;
-		if (flags & file::coalesce_buffers)
+		if (test(flags & open_mode_t::coalesce_buffers))
 		{
 			if (!coalesce_write_buffers(bufs, tmp))
 				// ok, that failed, don't coalesce writes
-				flags &= ~file::coalesce_buffers;
+				flags &= ~open_mode_t::coalesce_buffers;
 		}
 
 #if TORRENT_USE_PREAD
@@ -1070,14 +1071,14 @@ namespace {
 		std::int64_t ret = iov(&::write, native_handle(), file_offset, bufs, ec);
 #endif
 
-		if (flags & file::coalesce_buffers)
+		if (test(flags & open_mode_t::coalesce_buffers))
 			delete[] tmp.data();
 
 #endif
 #if TORRENT_USE_FDATASYNC \
 	&& !defined F_NOCACHE && \
 	!defined DIRECTIO_ON
-		if (m_open_mode & no_cache)
+		if (test(m_open_mode & open_mode_t::no_cache))
 		{
 			if (fdatasync(native_handle()) != 0
 				&& errno != EINVAL
@@ -1192,7 +1193,7 @@ namespace {
 		}
 
 #if _WIN32_WINNT >= 0x0600 // only if Windows Vista or newer
-		if ((m_open_mode & sparse) == 0)
+		if (!test(m_open_mode & open_mode_t::sparse))
 		{
 			typedef DWORD (WINAPI *GetFileInformationByHandleEx_t)(HANDLE hFile
 				, FILE_INFO_BY_HANDLE_CLASS FileInformationClass
@@ -1247,7 +1248,7 @@ namespace {
 		// is less than the file size. Otherwise we would just
 		// update the modification time of the file for no good
 		// reason.
-		if ((m_open_mode & sparse) == 0
+		if (!test(m_open_mode & open_mode_t::sparse)
 			&& std::int64_t(st.st_blocks) < (s + st.st_blksize - 1) / st.st_blksize)
 		{
 			// How do we know that the file is already allocated?

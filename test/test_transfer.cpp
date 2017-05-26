@@ -89,7 +89,7 @@ struct test_storage : default_storage
 		span<iovec_t const> bufs
 		, piece_index_t piece_index
 		, int offset
-		, std::uint32_t const flags
+		, open_mode_t const flags
 		, storage_error& se) override
 	{
 		std::unique_lock<std::mutex> l(m_mutex);

@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
+#include "libtorrent/flags.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -125,77 +126,86 @@ namespace libtorrent {
 
 	using file_handle = std::shared_ptr<file>;
 
+	// the open mode for files. Used for the file constructor or
+	// file::open().
+	enum class open_mode_t : std::uint32_t
+	{
+		none = 0,
+
+		// open the file for reading only
+		read_only = 0,
+
+		// open the file for writing only
+		write_only = 1,
+
+		// open the file for reading and writing
+		read_write = 2,
+
+		// the mask for the bits determining read or write mode
+		rw_mask = read_only | write_only | read_write,
+
+		// open the file in sparse mode (if supported by the
+		// filesystem).
+		sparse = 0x4,
+
+		// don't update the access timestamps on the file (if
+		// supported by the operating system and filesystem).
+		// this generally improves disk performance.
+		no_atime = 0x8,
+
+		// open the file for random access. This disables read-ahead
+		// logic
+		random_access = 0x10,
+
+		// prevent the file from being opened by another process
+		// while it's still being held open by this handle
+		lock_file = 0x20,
+
+		// don't put any pressure on the OS disk cache
+		// because of access to this file. We expect our
+		// files to be fairly large, and there is already
+		// a cache at the bittorrent block level. This
+		// may improve overall system performance by
+		// leaving running applications in the page cache
+		no_cache = 0x40,
+
+		// this is only used for readv/writev flags
+		coalesce_buffers = 0x100,
+
+		// when creating a file, set the hidden attribute (windows only)
+		attribute_hidden = 0x200,
+
+		// when creating a file, set the executable attribute
+		attribute_executable = 0x400,
+
+		// the mask of all attribute bits
+		attribute_mask = attribute_hidden | attribute_executable
+	};
+
+namespace flags {
+	template <>
+	struct enable_flag_operators<open_mode_t> : std::true_type {};
+}
+
+	using namespace flags;
+
 	struct TORRENT_EXTRA_EXPORT file : boost::noncopyable
 	{
-		// the open mode for files. Used for the file constructor or
-		// file::open().
-		enum open_mode_t : std::uint32_t
-		{
-			// open the file for reading only
-			read_only = 0,
-
-			// open the file for writing only
-			write_only = 1,
-
-			// open the file for reading and writing
-			read_write = 2,
-
-			// the mask for the bits determining read or write mode
-			rw_mask = read_only | write_only | read_write,
-
-			// open the file in sparse mode (if supported by the
-			// filesystem).
-			sparse = 0x4,
-
-			// don't update the access timestamps on the file (if
-			// supported by the operating system and filesystem).
-			// this generally improves disk performance.
-			no_atime = 0x8,
-
-			// open the file for random access. This disables read-ahead
-			// logic
-			random_access = 0x10,
-
-			// prevent the file from being opened by another process
-			// while it's still being held open by this handle
-			lock_file = 0x20,
-
-			// don't put any pressure on the OS disk cache
-			// because of access to this file. We expect our
-			// files to be fairly large, and there is already
-			// a cache at the bittorrent block level. This
-			// may improve overall system performance by
-			// leaving running applications in the page cache
-			no_cache = 0x40,
-
-			// this is only used for readv/writev flags
-			coalesce_buffers = 0x100,
-
-			// when creating a file, set the hidden attribute (windows only)
-			attribute_hidden = 0x200,
-
-			// when creating a file, set the executable attribute
-			attribute_executable = 0x400,
-
-			// the mask of all attribute bits
-			attribute_mask = attribute_hidden | attribute_executable
-		};
-
 		file();
-		file(std::string const& p, std::uint32_t m, error_code& ec);
+		file(std::string const& p, open_mode_t m, error_code& ec);
 		~file();
 
-		bool open(std::string const& p, std::uint32_t m, error_code& ec);
+		bool open(std::string const& p, open_mode_t m, error_code& ec);
 		bool is_open() const;
 		void close();
 		bool set_size(std::int64_t size, error_code& ec);
 
-		std::uint32_t open_mode() const { return m_open_mode; }
+		open_mode_t open_mode() const { return m_open_mode; }
 
 		std::int64_t writev(std::int64_t file_offset, span<iovec_t const> bufs
-			, error_code& ec, std::uint32_t flags = 0);
+			, error_code& ec, open_mode_t flags = open_mode_t::none);
 		std::int64_t readv(std::int64_t file_offset, span<iovec_t const> bufs
-			, error_code& ec, std::uint32_t flags = 0);
+			, error_code& ec, open_mode_t flags = open_mode_t::none);
 
 		std::int64_t get_size(error_code& ec) const;
 
@@ -209,7 +219,7 @@ namespace libtorrent {
 
 		handle_type m_file_handle;
 
-		std::uint32_t m_open_mode;
+		open_mode_t m_open_mode = open_mode_t::none;
 #if defined TORRENT_WINDOWS
 		static bool has_manage_volume_privs;
 #endif

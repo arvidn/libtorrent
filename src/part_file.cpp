@@ -92,7 +92,7 @@ namespace libtorrent {
 
 		error_code ec;
 		std::string fn = combine_path(m_path, m_name);
-		m_file.open(fn, file::read_only, ec);
+		m_file.open(fn, open_mode_t::read_only, ec);
 		if (ec) return;
 
 		// parse header
@@ -178,7 +178,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(offset >= 0);
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		open_file(file::read_write, ec);
+		open_file(open_mode_t::read_write, ec);
 		if (ec) return -1;
 
 		auto const i = m_piece_map.find(piece);
@@ -206,7 +206,7 @@ namespace libtorrent {
 		}
 
 		slot_index_t const slot = i->second;
-		open_file(file::read_write, ec);
+		open_file(open_mode_t::read_write, ec);
 		if (ec) return -1;
 
 		l.unlock();
@@ -215,15 +215,15 @@ namespace libtorrent {
 		return int(m_file.readv(slot_offset + offset, bufs, ec));
 	}
 
-	void part_file::open_file(std::uint32_t const mode, error_code& ec)
+	void part_file::open_file(open_mode_t const mode, error_code& ec)
 	{
 		if (m_file.is_open()
-			&& ((m_file.open_mode() & file::rw_mask) == mode
-				|| mode == file::read_only)) return;
+			&& ((m_file.open_mode() & open_mode_t::rw_mask) == mode
+				|| mode == open_mode_t::read_only)) return;
 
 		std::string fn = combine_path(m_path, m_name);
 		m_file.open(fn, mode, ec);
-		if (((mode & file::rw_mask) != file::read_only)
+		if (((mode & open_mode_t::rw_mask) != open_mode_t::read_only)
 			&& ec == boost::system::errc::no_such_file_or_directory)
 		{
 			// this means the directory the file is in doesn't exist.
@@ -301,7 +301,7 @@ namespace libtorrent {
 			if (i != m_piece_map.end())
 			{
 				slot_index_t const slot = i->second;
-				open_file(file::read_only, ec);
+				open_file(open_mode_t::read_only, ec);
 				if (ec) return;
 
 				if (!buf) buf.reset(new char[m_piece_size]);
@@ -375,7 +375,7 @@ namespace libtorrent {
 			return;
 		}
 
-		open_file(file::read_write, ec);
+		open_file(open_mode_t::read_write, ec);
 		if (ec) return;
 
 		std::vector<char> header(static_cast<std::size_t>(m_header_size));
