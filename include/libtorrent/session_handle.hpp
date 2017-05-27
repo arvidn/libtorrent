@@ -75,14 +75,6 @@ namespace libtorrent {
 			: m_impl(impl)
 		{}
 
-		// moveable
-		session_handle(session_handle&&) = default;
-		session_handle& operator=(session_handle&&) = default;
-
-		// non copyable
-		session_handle(session_handle const&) = delete;
-		session_handle& operator=(session_handle const&) = delete;
-
 		bool is_valid() const { return m_impl != nullptr; }
 
 		// TODO: 2 the ip filter should probably be saved here too
