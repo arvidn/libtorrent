@@ -1759,7 +1759,7 @@ namespace {
 		return ret;
 	}
 
-	span<std::int64_t const> session_stats_alert::counters()
+	span<std::int64_t const> session_stats_alert::counters() const
 	{
 		return values;
 	}

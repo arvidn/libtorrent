@@ -1902,13 +1902,25 @@ namespace libtorrent {
 		// interpret these values throughout the process' runtime.
 		//
 		// For more information, see the session-statistics_ section.
-		span<std::int64_t const> counters();
+		span<std::int64_t const> counters() const;
 
 #ifdef TORRENT_NO_DEPRECATE
 	private:
-#endif
 		// TODO: allocate this on the alert_stack in the future
+		std::array<std::int64_t, counters::num_counters> const values;
+#else
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+		session_stats_alert(session_stats_alert&&) = default;
+		session_stats_alert& operator=(session_stats_alert&&) = default;
 		std::array<std::int64_t, counters::num_counters> const TORRENT_DEPRECATED_MEMBER values;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+#endif
 	};
 
 #ifndef TORRENT_NO_DEPRECATE
