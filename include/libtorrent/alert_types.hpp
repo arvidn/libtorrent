@@ -1620,11 +1620,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT cache_flushed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
-		cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h, bitfield const& pieces);
 
 		TORRENT_DEFINE_ALERT(cache_flushed_alert, 58)
 
 		static const int static_category = alert::storage_notification;
+
+		bitfield pieces;
 	};
 
 	// This alert is posted when a bittorrent feature is blocked because of the

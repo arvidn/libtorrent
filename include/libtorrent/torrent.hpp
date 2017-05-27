@@ -543,6 +543,8 @@ namespace libtorrent
 
 		void status(torrent_status* st, boost::uint32_t flags);
 
+		void fill_pieces(bitfield* pieces, bool complete);
+
 		// this torrent changed state, if the user is subscribing to
 		// it, add it to the m_state_updates list in session_impl
 		void state_updated();
@@ -1166,7 +1168,7 @@ namespace libtorrent
 		void on_storage_moved(disk_io_job const* j);
 		void on_save_resume_data(disk_io_job const* j);
 		void on_file_renamed(disk_io_job const* j);
-		void on_cache_flushed(disk_io_job const* j);
+		void on_cache_flushed(disk_io_job const* j, boost::shared_ptr<bitfield> pieces);
 
 		// upload and download rate limits for the torrent
 		void set_limit_impl(int limit, int channel, bool state_update = true);

@@ -10,7 +10,7 @@
 using namespace boost::python;
 using namespace libtorrent;
 
-object bitfield_to_list(bitfield const& bf)
+static object bitfield_to_list(bitfield const& bf)
 {
 	list ret;
 

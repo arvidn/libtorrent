@@ -5004,14 +5004,20 @@ namespace libtorrent
 		if (m_storage.get())
 		{
 			inc_refcount("release_files");
+			boost::shared_ptr<bitfield> pieces(new bitfield);
+			fill_pieces(pieces.get(), true);
 			m_ses.disk_thread().async_stop_torrent(m_storage.get()
-				, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+				, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, pieces));
 		}
 		else
 		{
 			TORRENT_ASSERT(m_abort);
 			if (alerts().should_post<cache_flushed_alert>())
-				alerts().emplace_alert<cache_flushed_alert>(get_handle());
+			{
+				bitfield pieces;
+				pieces.resize(m_torrent_file->num_pieces(), false);
+				alerts().emplace_alert<cache_flushed_alert>(get_handle(), pieces);
+			}
 		}
 
 		m_storage.reset();
@@ -8608,8 +8614,10 @@ namespace libtorrent
 		{
 			// we need to keep the object alive during this operation
 			inc_refcount("release_files");
+			boost::shared_ptr<bitfield> pieces(new bitfield);
+			fill_pieces(pieces.get(), true);
 			m_ses.disk_thread().async_release_files(m_storage.get()
-				, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+				, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, pieces));
 		}
 
 		// this torrent just completed downloads, which means it will fall
@@ -9792,12 +9800,14 @@ namespace libtorrent
 			TORRENT_ASSERT(m_abort);
 			return;
 		}
+		boost::shared_ptr<bitfield> pieces(new bitfield);
+		fill_pieces(pieces.get(), true);
 		inc_refcount("release_files");
 		m_ses.disk_thread().async_release_files(m_storage.get()
-			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, pieces));
 	}
 
-	void torrent::on_cache_flushed(disk_io_job const*)
+	void torrent::on_cache_flushed(disk_io_job const*, boost::shared_ptr<bitfield> pieces)
 	{
 		dec_refcount("release_files");
 		TORRENT_ASSERT(is_single_thread());
@@ -9805,7 +9815,7 @@ namespace libtorrent
 		if (m_ses.is_aborted()) return;
 
 		if (alerts().should_post<cache_flushed_alert>())
-			alerts().emplace_alert<cache_flushed_alert>(get_handle());
+			alerts().emplace_alert<cache_flushed_alert>(get_handle(), *pieces);
 	}
 
 	bool torrent::is_paused() const
@@ -12263,21 +12273,7 @@ namespace libtorrent
 #endif
 		}
 
-		int num_pieces = m_torrent_file->num_pieces();
-		if (has_picker() && (flags & torrent_handle::query_pieces))
-		{
-			st->pieces.resize(num_pieces, false);
-			for (int i = 0; i < num_pieces; ++i)
-				if (m_picker->has_piece_passed(i)) st->pieces.set_bit(i);
-		}
-		else if (m_have_all)
-		{
-			st->pieces.resize(num_pieces, true);
-		}
-		else
-		{
-			st->pieces.resize(num_pieces, false);
-		}
+		fill_pieces(&st->pieces, flags & torrent_handle::query_pieces);
 		st->num_pieces = num_have();
 		st->num_seeds = num_seeds();
 		if ((flags & torrent_handle::query_distributed_copies) && m_picker.get())
@@ -12299,6 +12295,25 @@ namespace libtorrent
 		}
 
 		st->last_seen_complete = m_swarm_last_seen_complete;
+	}
+
+	void torrent::fill_pieces(bitfield* pieces, bool complete)
+	{
+		int num_pieces = m_torrent_file->num_pieces();
+		if (has_picker() && complete)
+		{
+			pieces->resize(num_pieces, false);
+			for (int i = 0; i < num_pieces; ++i)
+				if (m_picker->has_piece_passed(i)) pieces->set_bit(i);
+		}
+		else if (m_have_all)
+		{
+			pieces->resize(num_pieces, true);
+		}
+		else
+		{
+			pieces->resize(num_pieces, false);
+		}
 	}
 
 	void torrent::add_redundant_bytes(int b, torrent::wasted_reason_t reason)

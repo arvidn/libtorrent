@@ -1097,8 +1097,10 @@ namespace libtorrent {
 	}
 
 	cache_flushed_alert::cache_flushed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h) {}
+		, torrent_handle const& h, bitfield const& p)
+		: torrent_alert(alloc, h)
+		, pieces(p)
+		{}
 
 	anonymous_mode_alert::anonymous_mode_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, int k, std::string const& s)
