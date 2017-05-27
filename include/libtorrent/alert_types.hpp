@@ -1902,7 +1902,13 @@ namespace libtorrent {
 		// interpret these values throughout the process' runtime.
 		//
 		// For more information, see the session-statistics_ section.
-		std::array<std::int64_t, counters::num_counters> const values;
+		span<std::int64_t const> counters();
+
+#ifdef TORRENT_NO_DEPRECATE
+	private:
+#endif
+		// TODO: allocate this on the alert_stack in the future
+		std::array<std::int64_t, counters::num_counters> const TORRENT_DEPRECATED_MEMBER values;
 	};
 
 #ifndef TORRENT_NO_DEPRECATE
