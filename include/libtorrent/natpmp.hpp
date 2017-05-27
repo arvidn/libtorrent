@@ -77,11 +77,6 @@ private:
 	void mapping_expired(error_code const& e, int i);
 	void close_impl();
 
-#ifndef TORRENT_DISABLE_LOGGING
-	bool should_log() const;
-	void log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
-#endif
-
 	void disable(error_code const& ec);
 
 	struct mapping_t : public aux::base_mapping
@@ -96,6 +91,12 @@ private:
 		// set to true while we're waiting for a response
 		bool outstanding_request = false;
 	};
+
+#ifndef TORRENT_DISABLE_LOGGING
+	bool should_log() const;
+	void log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
+	void mapping_log(char const* op, mapping_t const& m) const;
+#endif
 
 	aux::portmap_callback& m_callback;
 

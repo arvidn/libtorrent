@@ -176,6 +176,21 @@ bool natpmp::should_log() const
 	return m_callback.should_log_portmap(aux::portmap_transport::natpmp);
 }
 
+void natpmp::mapping_log(char const* op, mapping_t const& m) const
+{
+	if (should_log())
+	{
+		log("%s-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
+			, op
+			, m.protocol == portmap_protocol::none
+			? "none" : to_string(m.protocol)
+			, m.external_port
+			, m.local_port
+			, to_string(m.act)
+			, total_seconds(m.expires - aux::time_now()));
+	}
+}
+
 TORRENT_FORMAT(2, 3)
 void natpmp::log(char const* fmt, ...) const
 {
@@ -249,17 +264,7 @@ int natpmp::add_mapping(portmap_protocol const p, int const external_port
 
 	int const mapping_index = int(i - m_mappings.begin());
 #ifndef TORRENT_DISABLE_LOGGING
-	if (should_log())
-	{
-		natpmp::mapping_t const& m = *i;
-		log("add-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
-			, m.protocol == portmap_protocol::none
-				? "none" : to_string(m.protocol)
-			, m.external_port
-			, m.local_port
-			, to_string(m.act)
-			, total_seconds(m.expires - aux::time_now()));
-	}
+	mapping_log("add",*i);
 #endif
 
 	update_mapping(mapping_index);
@@ -311,16 +316,7 @@ void natpmp::update_mapping(int const i)
 	natpmp::mapping_t const& m = m_mappings[i];
 
 #ifndef TORRENT_DISABLE_LOGGING
-	if (should_log())
-	{
-		log("update-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
-			, m.protocol == portmap_protocol::none
-				? "none" : to_string(m.protocol)
-			, m.external_port
-			, m.local_port
-			, to_string(m.act)
-			, total_seconds(m.expires - aux::time_now()));
-	}
+	mapping_log("update", m);
 #endif
 
 	if (m.act == portmap_action::none
