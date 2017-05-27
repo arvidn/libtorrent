@@ -123,11 +123,11 @@ dict session_stats_values(session_stats_alert const& alert)
 {
     std::vector<stats_metric> map = session_stats_metrics();
     dict d;
+    auto counters = alert.counters();
 
-    for (std::vector<stats_metric>::const_iterator i = map.begin();
-       i != map.end(); ++i)
+    for (stats_metric const& m : map)
     {
-        d[i->name] = alert.values[i->value_index];
+        d[m.name] = counters[m.value_index];
     }
     return d;
 }
