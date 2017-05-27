@@ -48,9 +48,9 @@ namespace libtorrent { namespace aux {
 		none, tcp, udp
 	};
 
-	enum class portmap_action : std::uint8_t 
-	{ 
-		none, add, del 
+	enum class portmap_action : std::uint8_t
+	{
+		none, add, del
 	};
 
 	struct TORRENT_EXTRA_EXPORT portmap_callback
