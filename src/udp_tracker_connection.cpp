@@ -103,13 +103,12 @@ namespace libtorrent {
 		{
 			using namespace std::placeholders;
 			ADD_OUTSTANDING_ASYNC("udp_tracker_connection::name_lookup");
-			// when stopping, pass in the prefer cache flag, because we
+			// when stopping, pass in the cache-only flag, because we
 			// don't want to get stuck on DNS lookups when shutting down
-			// if we can avoid it
 			m_man.host_resolver().async_resolve(hostname
 				, tracker_req().event == tracker_request::stopped
-					? resolver_interface::prefer_cache
-					: resolver_interface::abort_on_shutdown
+					? resolver_interface::cache_only : 0
+					| resolver_interface::abort_on_shutdown
 				, std::bind(&udp_tracker_connection::name_lookup
 					, shared_from_this(), _1, _2, port));
 

@@ -48,10 +48,11 @@ struct TORRENT_EXTRA_EXPORT resolver_interface
 
 	enum flags_t
 	{
-		// this flag will make async_resolve() always use the cache if we have an
-		// entry, regardless of how old it is. This is useful when completing the
-		// lookup quickly is more important than accuracy
-		prefer_cache = 1,
+		// this flag will make async_resolve() only use the cache and fail if we
+		// don't have a cache entry, regardless of how old it is. This is usefull
+		// when completing the lookup quickly is more important than accuracy,
+		// like on shutdown
+		cache_only = 1,
 
 		// set this flag for lookups that are not critical during shutdown. i.e.
 		// for looking up tracker names _except_ when stopping a tracker.
