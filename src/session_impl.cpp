@@ -890,7 +890,7 @@ namespace aux {
 			m_ses_extensions[plugins_dht_request_idx].push_back(ext);
 		if (features & plugin::alert_feature)
 			m_alerts.add_extension(ext);
-		session_handle h(this);
+		session_handle h(shared_from_this());
 		ext->added(h);
 	}
 

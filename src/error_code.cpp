@@ -168,7 +168,7 @@ namespace libtorrent {
 			"invalid SSL certificate",
 			"not an SSL torrent",
 			"banned by port filter",
-			"",
+			"invalid session handle used",
 			"",
 			"",
 			"",

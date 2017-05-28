@@ -69,21 +69,17 @@ namespace libtorrent {
 
 	struct TORRENT_EXPORT session_handle
 	{
-		session_handle() : m_impl(nullptr) {}
+		friend class session;
+		friend struct aux::session_impl;
 
-		explicit session_handle(aux::session_impl* impl)
-			: m_impl(impl)
-		{}
+		session_handle() {}
 
-		// moveable
-		session_handle(session_handle&&) = default;
+		session_handle(session_handle const& t) = default;
+		session_handle(session_handle&& t) = default;
+		session_handle& operator=(session_handle const&) = default;
 		session_handle& operator=(session_handle&&) = default;
 
-		// non copyable
-		session_handle(session_handle const&) = delete;
-		session_handle& operator=(session_handle const&) = delete;
-
-		bool is_valid() const { return m_impl != nullptr; }
+		bool is_valid() const { return !m_impl.expired(); }
 
 		// TODO: 2 the ip filter should probably be saved here too
 
@@ -1021,8 +1017,8 @@ namespace libtorrent {
 
 		// This function is intended only for use by plugins. This type does
 		// not have a stable API and should be relied on as little as possible.
-		aux::session_impl* native_handle() const
-		{ return m_impl; }
+		std::shared_ptr<aux::session_impl> native_handle() const
+		{ return m_impl.lock(); }
 
 	private:
 
@@ -1035,7 +1031,11 @@ namespace libtorrent {
 		template <typename Ret, typename Fun, typename... Args>
 		Ret sync_call_ret(Fun f, Args&&... a) const;
 
-		aux::session_impl* m_impl;
+		explicit session_handle(std::weak_ptr<aux::session_impl> impl)
+			: m_impl(impl)
+		{}
+
+		std::weak_ptr<aux::session_impl> m_impl;
 	};
 
 } // namespace libtorrent

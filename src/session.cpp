@@ -306,7 +306,7 @@ namespace libtorrent {
 		}
 
 		m_impl = std::make_shared<aux::session_impl>(*ios);
-		*static_cast<session_handle*>(this) = session_handle(m_impl.get());
+		*static_cast<session_handle*>(this) = session_handle(m_impl);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& ext : params.extensions)

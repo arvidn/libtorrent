@@ -320,6 +320,8 @@ namespace libtorrent {
 			// peer was banned because its listen port is within a banned port
 			// range, as specified by the port_filter.
 			banned_by_port_filter,
+			// The session_handle is not referring to a valid session_impl
+			invalid_session_handle,
 
 
 			// The NAT-PMP router responded with an unsupported protocol version
