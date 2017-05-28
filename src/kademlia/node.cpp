@@ -591,7 +591,7 @@ struct ping_observer : observer
 #endif
 			return;
 		}
-		algorithm()->look_for_nodes(r, [this](node_endpoint const& nep)
+		look_for_nodes(algorithm()->get_node(), r, [this](node_endpoint const& nep)
 				{ algorithm()->get_node().m_table.heard_about(nep.id, nep.ep); });
 	}
 };

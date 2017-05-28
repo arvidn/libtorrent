@@ -593,11 +593,11 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.last_sent = last_sent;
 }
 
-void traversal_algorithm::look_for_nodes(bdecode_node const& r, std::function<void(const node_endpoint&)> f)
+void look_for_nodes(node const& node, bdecode_node const& r, std::function<void(const node_endpoint&)> f)
 {
-	udp const protocol = get_node().protocol();
+	udp const protocol = node.protocol();
 	int const protocol_size = int(detail::address_size(protocol));
-	char const* nodes_key = get_node().protocol_nodes_key();
+	char const* nodes_key = node.protocol_nodes_key();
 	bdecode_node const n = r.dict_find_string(nodes_key);
 	if (n)
 	{
@@ -641,7 +641,7 @@ void traversal_observer::reply(msg const& m)
 	}
 #endif
 
-	algorithm()->look_for_nodes(r, [this](node_endpoint const& nep) { algorithm()->traverse(nep.id, nep.ep); });
+	look_for_nodes(algorithm()->get_node(), r, [this](node_endpoint const& nep) { algorithm()->traverse(nep.id, nep.ep); });
 
 	bdecode_node const id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)

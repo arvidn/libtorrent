@@ -81,7 +81,6 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 #ifndef TORRENT_DISABLE_LOGGING
 	std::uint32_t id() const { return m_id; }
 #endif
-	void look_for_nodes(bdecode_node const& r, std::function<void(node_endpoint const&)> f);
 
 protected:
 
@@ -142,6 +141,8 @@ private:
 	void log_timeout(observer_ptr const& o, char const* prefix) const;
 #endif
 };
+
+void look_for_nodes(node const& node, bdecode_node const& r, std::function<void(node_endpoint const&)> f);
 
 struct traversal_observer : observer
 {
