@@ -196,7 +196,7 @@ received (and we know how many files there are).
 
 In this case, when the metadata is received from the swarm, the torrent will
 still be running, but it will disconnect the majority of peers (since connections
-to peers that already have the metadata are redundancy). It will keep seeding the
+to peers that already have the metadata are redundant). It will keep seeding the
 *metadata* only.
 
 queuing
