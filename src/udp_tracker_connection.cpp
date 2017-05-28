@@ -106,9 +106,9 @@ namespace libtorrent {
 			// when stopping, pass in the cache-only flag, because we
 			// don't want to get stuck on DNS lookups when shutting down
 			m_man.host_resolver().async_resolve(hostname
-				, tracker_req().event == tracker_request::stopped
-					? resolver_interface::cache_only : 0
-					| resolver_interface::abort_on_shutdown
+				, (tracker_req().event == tracker_request::stopped
+					? resolver_flags::cache_only : resolver_flags::none)
+					| resolver_flags::abort_on_shutdown
 				, std::bind(&udp_tracker_connection::name_lookup
 					, shared_from_this(), _1, _2, port));
 

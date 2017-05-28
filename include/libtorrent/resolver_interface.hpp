@@ -39,27 +39,37 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/flags.hpp"
 
 namespace libtorrent {
+
+enum class resolver_flags : std::uint8_t
+{
+	none = 0,
+
+	// this flag will make async_resolve() only use the cache and fail if we
+	// don't have a cache entry, regardless of how old it is. This is usefull
+	// when completing the lookup quickly is more important than accuracy,
+	// like on shutdown
+	cache_only = 1,
+
+	// set this flag for lookups that are not critical during shutdown. i.e.
+	// for looking up tracker names _except_ when stopping a tracker.
+	abort_on_shutdown = 2
+};
+
+namespace flags {
+	template <>
+	struct enable_flag_operators<resolver_flags> : std::true_type {};
+}
+
+using namespace flags;
 
 struct TORRENT_EXTRA_EXPORT resolver_interface
 {
 	using callback_t = std::function<void(error_code const&, std::vector<address> const&)>;
 
-	enum flags_t
-	{
-		// this flag will make async_resolve() only use the cache and fail if we
-		// don't have a cache entry, regardless of how old it is. This is usefull
-		// when completing the lookup quickly is more important than accuracy,
-		// like on shutdown
-		cache_only = 1,
-
-		// set this flag for lookups that are not critical during shutdown. i.e.
-		// for looking up tracker names _except_ when stopping a tracker.
-		abort_on_shutdown = 2
-	};
-
-	virtual void async_resolve(std::string const& host, int flags
+	virtual void async_resolve(std::string const& host, resolver_flags flags
 		, callback_t const& h) = 0;
 
 	virtual void abort() = 0;

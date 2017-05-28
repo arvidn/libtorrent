@@ -88,7 +88,7 @@ http_connection::http_connection(io_service& ios
 	, m_rate_limit(0)
 	, m_download_quota(0)
 	, m_priority(0)
-	, m_resolve_flags(0)
+	, m_resolve_flags(resolver_flags::none)
 	, m_port(0)
 	, m_bottled(bottled)
 	, m_called(false)
@@ -109,7 +109,7 @@ http_connection::~http_connection()
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, boost::optional<address> const& bind_addr, int resolve_flags, std::string const& auth_
+	, boost::optional<address> const& bind_addr, resolver_flags const resolve_flags, std::string const& auth_
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
@@ -226,7 +226,7 @@ void http_connection::start(std::string const& hostname, int port
 	, time_duration timeout, int prio, aux::proxy_settings const* ps, bool ssl
 	, int handle_redirects
 	, boost::optional<address> const& bind_addr
-	, int resolve_flags
+	, resolver_flags const resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
