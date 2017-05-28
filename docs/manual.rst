@@ -188,14 +188,15 @@ The format of the magnet URI is:
 
 In order to download *just* the metadata (.torrent file) from a magnet link, set
 file priorities to 0 in add_torrent_params::file_priorities. It's OK to set the
-priority for more files than what eventually will turn out to be in the torrent,
-extra file priorities will just be ignored. By setting a large number of files
+priority for more files than what is in the torrent. It may not be trivial to
+know how many files a torrent has before the metadata has been downloaded.
+Additional file priorities will be ignored. By setting a large number of files
 to priority 0, chances are that they will all be set to 0 once the metadata is
 received (and we know how many files there are).
 
 In this case, when the metadata is received from the swarm, the torrent will
 still be running, but it will disconnect the majority of peers (since connections
-to peers that already have the metadata are redundany). It will keep seeding the
+to peers that already have the metadata are redundancy). It will keep seeding the
 *metadata* only.
 
 queuing
@@ -278,10 +279,12 @@ Any torrent added force-started or force-stopped (i.e. the auto managed flag is
 *not* set), will not be subject to this limit and they will all check
 independently and in parallel.
 
-In order to add a torrent, have its resume data and potentially files checked
-but not start downloading, the torrent can be started in ``stop_when_ready`` mode.
+Once a torrent completes the checking of its files, or fastresume data, it will
+be put in the queue for downloading and potentially start downloading immediately.
+In order to add a torrent and check its files without starting the download, it
+can be added in ``stop_when_ready`` mode.
 See add_torrent_params::flag_stop_when_ready. This flag will stop the torrent
-instead of starting the download, once any potential checking is done.
+once it is ready to start downloading.
 
 This is conceptually the same as waiting for the ``torrent_checked_alert`` and
 then call::
@@ -289,7 +292,7 @@ then call::
 	h.auto_managed(false);
 	h.pause();
 
-With the important distinction that it entierly avoids the brief window where
+With the important distinction that it entirely avoids the brief window where
 the torrent is in downloading state.
 
 downloading queue
