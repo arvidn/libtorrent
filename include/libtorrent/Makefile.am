@@ -207,6 +207,7 @@ nobase_include_HEADERS = \
   aux_/typed_span.hpp               \
   aux_/array.hpp                    \
   aux_/ip_notifier.hpp              \
+  aux_/noexcept_movable.hpp         \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

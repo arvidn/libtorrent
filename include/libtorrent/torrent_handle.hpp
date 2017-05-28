@@ -155,10 +155,10 @@ namespace libtorrent { namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 		partial_piece_info() = default;
-		partial_piece_info(partial_piece_info&&) = default;
+		partial_piece_info(partial_piece_info&&) noexcept = default;
 		partial_piece_info(partial_piece_info const&) = default;
 		partial_piece_info& operator=(partial_piece_info const&) = default;
-		partial_piece_info& operator=(partial_piece_info&&) = default;
+		partial_piece_info& operator=(partial_piece_info&&) noexcept = default;
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 		// the index of the piece in question. ``blocks_in_piece`` is the number
@@ -258,12 +258,12 @@ namespace libtorrent { namespace aux {
 
 		// constructs a torrent handle that does not refer to a torrent.
 		// i.e. is_valid() will return false.
-		torrent_handle() {}
+		torrent_handle() noexcept {}
 
 		torrent_handle(torrent_handle const& t) = default;
-		torrent_handle(torrent_handle&& t) = default;
+		torrent_handle(torrent_handle&& t) noexcept = default;
 		torrent_handle& operator=(torrent_handle const&) = default;
-		torrent_handle& operator=(torrent_handle&&) = default;
+		torrent_handle& operator=(torrent_handle&&) noexcept = default;
 
 		// flags for add_piece().
 		enum flags_t { overwrite_existing = 1 };
@@ -1314,9 +1314,14 @@ namespace libtorrent { namespace aux {
 		{ if (!t.expired()) m_torrent = t; }
 
 		std::weak_ptr<torrent> m_torrent;
-
 	};
 
+	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_move_assignable<torrent_handle>::value
+		, "should be nothrow move assignable");
+	static_assert(std::is_nothrow_default_constructible<torrent_handle>::value
+		, "should be nothrow default constructible");
 }
 
 namespace std

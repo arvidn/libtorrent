@@ -262,8 +262,8 @@ struct TORRENT_EXPORT bdecode_node
 	// underlying buffer remains the same.
 	bdecode_node(bdecode_node const&);
 	bdecode_node& operator=(bdecode_node const&);
-	bdecode_node(bdecode_node&&);
-	bdecode_node& operator=(bdecode_node&&);
+	bdecode_node(bdecode_node&&) noexcept;
+	bdecode_node& operator=(bdecode_node&&) noexcept;
 
 	// the types of bdecoded nodes
 	enum type_t

@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp" // for time_duration
 #include "libtorrent/storage_defs.hpp" // for storage_mode_t
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/noexcept_movable.hpp"
 
 #include <cstdint>
 #include <string>
@@ -52,11 +53,13 @@ namespace libtorrent {
 	struct TORRENT_EXPORT torrent_status
 	{
 		// hidden
-		torrent_status();
+		torrent_status() noexcept;
 		~torrent_status();
 		torrent_status(torrent_status const&);
 		torrent_status& operator=(torrent_status const&);
-		torrent_status(torrent_status&&);
+		torrent_status(torrent_status&&) noexcept;
+		// TODO: 2 msvc and GCC did not make std::string nothrow move-assignable
+		// until C++17
 		torrent_status& operator=(torrent_status&&);
 
 		// compares if the torrent status objects come from the same torrent. i.e.
@@ -557,6 +560,13 @@ namespace libtorrent {
 		seconds finished_duration;
 		seconds seeding_duration;
 	};
+
+	static_assert(std::is_nothrow_move_constructible<torrent_status>::value
+		, "should be nothrow move constructible");
+//	static_assert(std::is_nothrow_move_assignable<torrent_status>::value
+//		, "should be nothrow move assignable");
+	static_assert(std::is_nothrow_default_constructible<torrent_status>::value
+		, "should be nothrow default constructible");
 }
 
 namespace std

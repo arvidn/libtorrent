@@ -11,6 +11,7 @@
 #include "libtorrent/units.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/disk_interface.hpp" // for open_file_state
+#include "libtorrent/aux_/noexcept_movable.hpp"
 #include <vector>
 
 using namespace boost::python;
@@ -70,9 +71,10 @@ struct pair_to_tuple
     }
 };
 
+template <typename Addr>
 struct address_to_tuple
 {
-    static PyObject* convert(lt::address const& addr)
+    static PyObject* convert(Addr const& addr)
     {
         lt::error_code ec;
         return incref(bp::object(addr.to_string(ec)).ptr());
@@ -145,7 +147,7 @@ struct dict_to_map
 template<class T>
 struct vector_to_list
 {
-    static PyObject* convert(const std::vector<T>& v)
+    static PyObject* convert(T const& v)
     {
         list l;
         for (int i = 0; i < int(v.size()); ++i)
@@ -162,7 +164,7 @@ struct list_to_vector
     list_to_vector()
     {
         converter::registry::push_back(
-            &convertible, &construct, type_id<std::vector<T>>()
+            &convertible, &construct, type_id<T>()
         );
     }
 
@@ -174,17 +176,17 @@ struct list_to_vector
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
     {
         void* storage = ((converter::rvalue_from_python_storage<
-            std::vector<T>>*)data)->storage.bytes;
+            T>*)data)->storage.bytes;
 
-        std::vector<T> p;
+        T p;
         int const size = int(PyList_Size(x));
         p.reserve(size);
         for (int i = 0; i < size; ++i)
         {
            object o(borrowed(PyList_GetItem(x, i)));
-           p.push_back(extract<T>(o));
+           p.push_back(extract<typename T::value_type>(o));
         }
-        std::vector<T>* ptr = new (storage) std::vector<T>();
+        T* ptr = new (storage) T();
         ptr->swap(p);
         data->convertible = storage;
     }
@@ -234,21 +236,38 @@ void bind_converters()
     to_python_converter<std::pair<lt::piece_index_t, int>, pair_to_tuple<lt::piece_index_t, int>>();
     to_python_converter<lt::tcp::endpoint, endpoint_to_tuple<lt::tcp::endpoint>>();
     to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint>>();
-    to_python_converter<lt::address, address_to_tuple>();
+    to_python_converter<lt::address, address_to_tuple<lt::address>>();
     to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
 
-    to_python_converter<std::vector<lt::stats_metric>, vector_to_list<lt::stats_metric>>();
-    to_python_converter<std::vector<lt::open_file_state>, vector_to_list<lt::open_file_state>>();
-    to_python_converter<std::vector<lt::sha1_hash>, vector_to_list<lt::sha1_hash>>();
-    to_python_converter<std::vector<std::string>, vector_to_list<std::string>>();
-    to_python_converter<std::vector<int>, vector_to_list<int>>();
-    to_python_converter<std::vector<std::uint8_t>, vector_to_list<std::uint8_t>>();
-    to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<lt::tcp::endpoint>>();
-    to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<lt::udp::endpoint>>();
-    to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::pair<std::string, int>>>();
+    to_python_converter<std::vector<lt::stats_metric>, vector_to_list<std::vector<lt::stats_metric>>>();
+    to_python_converter<std::vector<lt::open_file_state>, vector_to_list<std::vector<lt::open_file_state>>>();
+    to_python_converter<std::vector<lt::sha1_hash>, vector_to_list<std::vector<lt::sha1_hash>>>();
+    to_python_converter<std::vector<std::string>, vector_to_list<std::vector<std::string>>>();
+    to_python_converter<std::vector<int>, vector_to_list<std::vector<int>>>();
+    to_python_converter<std::vector<std::uint8_t>, vector_to_list<std::vector<std::uint8_t>>>();
+    to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<std::vector<lt::tcp::endpoint>>>();
+    to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<std::vector<lt::udp::endpoint>>>();
+    to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::vector<std::pair<std::string, int>>>>();
 
     to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
     to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
+
+    // work-around types
+    to_python_converter<lt::aux::noexcept_movable<lt::address>, address_to_tuple<
+        lt::aux::noexcept_movable<lt::address>>>();
+    to_python_converter<lt::aux::noexcept_movable<lt::tcp::endpoint>, endpoint_to_tuple<
+        lt::aux::noexcept_movable<lt::tcp::endpoint>>>();
+    to_python_converter<lt::aux::noexcept_movable<lt::udp::endpoint>, endpoint_to_tuple<
+        lt::aux::noexcept_movable<lt::udp::endpoint>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::stats_metric>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::stats_metric>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::open_file_state>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::open_file_state>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::sha1_hash>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::sha1_hash>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::vector<std::string>>, vector_to_list<lt::aux::noexcept_movable<std::vector<std::string>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::vector<int>>, vector_to_list<lt::aux::noexcept_movable<std::vector<int>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::vector<std::uint8_t>>, vector_to_list<lt::aux::noexcept_movable<std::vector<std::uint8_t>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>, vector_to_list<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>>>();
 
     // python -> C++ conversions
     tuple_to_pair<int, int>();
@@ -257,12 +276,20 @@ void bind_converters()
     tuple_to_endpoint<lt::udp::endpoint>();
     tuple_to_pair<lt::piece_index_t, int>();
     dict_to_map<lt::file_index_t, std::string>();
-    list_to_vector<int>();
-    list_to_vector<std::uint8_t>();
-    list_to_vector<std::string>();
-    list_to_vector<lt::tcp::endpoint>();
-    list_to_vector<lt::udp::endpoint>();
-    list_to_vector<std::pair<std::string, int>>();
+    list_to_vector<std::vector<int>>();
+    list_to_vector<std::vector<std::uint8_t>>();
+    list_to_vector<std::vector<std::string>>();
+    list_to_vector<std::vector<lt::tcp::endpoint>>();
+    list_to_vector<std::vector<lt::udp::endpoint>>();
+    list_to_vector<std::vector<std::pair<std::string, int>>>();
+
+    // work-around types
+    list_to_vector<lt::aux::noexcept_movable<std::vector<int>>>();
+    list_to_vector<lt::aux::noexcept_movable<std::vector<std::uint8_t>>>();
+    list_to_vector<lt::aux::noexcept_movable<std::vector<std::string>>>();
+    list_to_vector<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>>();
+    list_to_vector<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>>();
+    list_to_vector<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>>();
 
     to_strong_typedef<lt::piece_index_t>();
     to_strong_typedef<lt::file_index_t>();

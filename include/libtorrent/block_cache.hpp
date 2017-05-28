@@ -166,8 +166,8 @@ namespace aux {
 	{
 		cached_piece_entry();
 		~cached_piece_entry();
-		cached_piece_entry(cached_piece_entry&&) = default;
-		cached_piece_entry& operator=(cached_piece_entry&&) = default;
+		cached_piece_entry(cached_piece_entry&&) noexcept = default;
+		cached_piece_entry& operator=(cached_piece_entry&&) noexcept = default;
 
 		bool ok_to_evict(bool ignore_hash = false) const
 		{

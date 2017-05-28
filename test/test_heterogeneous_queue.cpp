@@ -39,6 +39,7 @@ struct A
 {
 	int a;
 	explicit A(int a_) : a(a_) {}
+	A(A&&) noexcept = default;
 	virtual int type() = 0;
 	virtual ~A() = default;
 };
@@ -47,6 +48,7 @@ struct B : A
 {
 	int b;
 	explicit B(int a_, int b_) : A(a_), b(b_) {}
+	B(B&&) noexcept = default;
 	int type() override { return 1; }
 };
 
@@ -57,6 +59,7 @@ struct C : A
 	{
 		memset(c, c_, sizeof(c));
 	}
+	C(C&&) noexcept = default;
 	int type() override { return 2; }
 };
 
@@ -65,6 +68,7 @@ struct D
 	static int instances;
 	D() { ++instances; }
 	D(D const& d) { ++instances; }
+	D(D&&) noexcept { ++instances; }
 
 	~D() { --instances; }
 };
@@ -72,6 +76,7 @@ struct D
 struct E
 {
 	explicit E(char const* msg) : string_member(msg) {}
+	E(E&&) noexcept = default;
 	std::string string_member;
 };
 
@@ -98,7 +103,7 @@ struct F
 		TEST_EQUAL(f_.gutted, false);
 	}
 
-	F(F&& f_)
+	F(F&& f_) noexcept
 		: self(this)
 		, f(f_.f)
 		, constructed(f_.constructed)
@@ -141,6 +146,7 @@ private:
 struct G : A
 {
 	G(int base, int v) : A(base), g(v) {}
+	G(G&&) noexcept = default;
 	int type() override { return 3; }
 	std::int64_t g;
 };

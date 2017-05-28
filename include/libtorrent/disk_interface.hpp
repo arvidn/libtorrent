@@ -212,14 +212,14 @@ namespace libtorrent {
 		storage_holder(storage_holder const&) = delete;
 		storage_holder& operator=(storage_holder const&) = delete;
 
-		storage_holder(storage_holder&& rhs)
+		storage_holder(storage_holder&& rhs) noexcept
 			: m_disk_io(rhs.m_disk_io)
 			, m_idx(rhs.m_idx)
 		{
 				rhs.m_disk_io = nullptr;
 		}
 
-		storage_holder& operator=(storage_holder&& rhs)
+		storage_holder& operator=(storage_holder&& rhs) noexcept
 		{
 			if (m_disk_io) m_disk_io->remove_torrent(m_idx);
 			m_disk_io = rhs.m_disk_io;

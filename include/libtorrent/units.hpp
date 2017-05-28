@@ -52,8 +52,9 @@ namespace libtorrent { namespace aux {
 		using underlying_type = UnderlyingType;
 		using diff_type = strong_typedef<UnderlyingType, difference_tag<Tag>>;
 
-		constexpr strong_typedef(strong_typedef const& rhs) : m_val(rhs.m_val) {}
-		strong_typedef() = default;
+		constexpr strong_typedef(strong_typedef const& rhs) noexcept = default;
+		constexpr strong_typedef(strong_typedef&& rhs) noexcept = default;
+		strong_typedef() noexcept = default;
 #ifndef TORRENT_NO_DEPRECATE
 		constexpr strong_typedef(UnderlyingType val) : m_val(val) {}
 		constexpr operator UnderlyingType() const { return m_val; }
@@ -87,7 +88,8 @@ namespace libtorrent { namespace aux {
 		strong_typedef& operator-=(diff_type rhs)
 		{ m_val -= static_cast<UnderlyingType>(rhs); return *this; }
 
-		strong_typedef& operator=(strong_typedef rhs) { m_val = rhs.m_val; return *this; }
+		strong_typedef& operator=(strong_typedef const& rhs) noexcept = default;
+		strong_typedef& operator=(strong_typedef&& rhs) noexcept = default;
 	private:
 		UnderlyingType m_val;
 	};

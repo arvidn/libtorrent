@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/noexcept_movable.hpp"
 
 namespace libtorrent {
 
@@ -58,6 +59,8 @@ namespace libtorrent {
 		~file_entry();
 		file_entry(file_entry const&) = default;
 		file_entry& operator=(file_entry const&) = default;
+		file_entry(file_entry&&) noexcept = default;
+		file_entry& operator=(file_entry&&) noexcept = default;
 
 		// the full path of this file. The paths are unicode strings
 		// encoded in UTF-8.
@@ -114,8 +117,8 @@ namespace libtorrent {
 		internal_file_entry();
 		internal_file_entry(internal_file_entry const& fe);
 		internal_file_entry& operator=(internal_file_entry const& fe);
-		internal_file_entry(internal_file_entry&& fe);
-		internal_file_entry& operator=(internal_file_entry&& fe);
+		internal_file_entry(internal_file_entry&& fe) noexcept;
+		internal_file_entry& operator=(internal_file_entry&& fe) noexcept;
 		~internal_file_entry();
 
 		void set_name(char const* n, bool borrow_string = false, int string_len = 0);
@@ -202,8 +205,8 @@ namespace libtorrent {
 		~file_storage();
 		file_storage(file_storage const&);
 		file_storage& operator=(file_storage const&);
-		file_storage(file_storage&&);
-		file_storage& operator=(file_storage&&);
+		file_storage(file_storage&&) noexcept;
+		file_storage& operator=(file_storage&&) noexcept;
 
 		// returns true if the piece length has been initialized
 		// on the file_storage. This is typically taken as a proxy
@@ -329,8 +332,8 @@ namespace libtorrent {
 		// all functions depending on internal_file_entry
 		// were deprecated in 1.0. Use the variants that take an
 		// index instead
-		typedef std::vector<internal_file_entry>::const_iterator iterator;
-		typedef std::vector<internal_file_entry>::const_reverse_iterator reverse_iterator;
+		using iterator = std::vector<internal_file_entry>::const_iterator;
+		using reverse_iterator = std::vector<internal_file_entry>::const_reverse_iterator;
 
 		TORRENT_DEPRECATED
 		iterator file_at_offset(std::int64_t offset) const;
@@ -405,7 +408,7 @@ namespace libtorrent {
 		std::string const& name() const { return m_name; }
 
 		// swap all content of *this* with *ti*.
-		void swap(file_storage& ti)
+		void swap(file_storage& ti) noexcept
 		{
 			using std::swap;
 			swap(ti.m_files, m_files);
@@ -598,7 +601,7 @@ namespace libtorrent {
 
 		// name of torrent. For multi-file torrents
 		// this is always the root directory
-		std::string m_name;
+		aux::noexcept_movable<std::string> m_name;
 
 		// the sum of all file sizes
 		std::int64_t m_total_size;

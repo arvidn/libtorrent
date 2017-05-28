@@ -55,7 +55,7 @@ namespace libtorrent {
 		using protocol_type = Protocol;
 		using data_type = boost::asio::detail::socket_addr_type;
 
-		basic_nl_endpoint() : basic_nl_endpoint(protocol_type(), 0, 0) {}
+		basic_nl_endpoint() noexcept : basic_nl_endpoint(protocol_type(), 0, 0) {}
 
 		basic_nl_endpoint(protocol_type netlink_family, std::uint32_t group, std::uint32_t pid = 0)
 			: m_proto(netlink_family)
@@ -66,18 +66,16 @@ namespace libtorrent {
 			m_sockaddr.nl_pid = pid;
 		}
 
-		basic_nl_endpoint(basic_nl_endpoint const& other)
-		{
-			m_sockaddr = other.m_sockaddr;
-		}
+		basic_nl_endpoint(basic_nl_endpoint const& other) = default;
+		basic_nl_endpoint(basic_nl_endpoint&& other) noexcept = default;
 
-		basic_nl_endpoint& operator=(const basic_nl_endpoint& other)
+		basic_nl_endpoint& operator=(basic_nl_endpoint const& other)
 		{
 			m_sockaddr = other.m_sockaddr;
 			return *this;
 		}
 
-		basic_nl_endpoint& operator=(const basic_nl_endpoint&& other)
+		basic_nl_endpoint& operator=(basic_nl_endpoint&& other) noexcept
 		{
 			m_sockaddr = other.m_sockaddr;
 			return *this;

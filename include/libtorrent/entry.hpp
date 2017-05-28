@@ -176,7 +176,7 @@ namespace aux {
 
 		// hidden
 		entry(entry const& e);
-		entry(entry&& e);
+		entry(entry&& e) noexcept;
 
 		// hidden
 		entry();
@@ -195,7 +195,7 @@ namespace aux {
 #endif
 		entry& operator=(bdecode_node const&);
 		entry& operator=(entry const&);
-		entry& operator=(entry&&);
+		entry& operator=(entry&&) noexcept;
 		entry& operator=(dictionary_type);
 		entry& operator=(span<char const>);
 		template <typename U, typename Cond = typename std::enable_if<
@@ -274,7 +274,7 @@ namespace aux {
 		const preformatted_type& preformatted() const;
 
 		// swaps the content of *this* with ``e``.
-		void swap(entry& e);
+		void swap(entry& e) noexcept;
 
 		// All of these functions requires the entry to be a dictionary, if it
 		// isn't they will throw ``system_error``.

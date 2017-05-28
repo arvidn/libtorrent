@@ -186,7 +186,7 @@ namespace libtorrent {
 #if defined __GNUC__ && defined _GLIBCXX_DEBUG
 		// this works around a bug in libstdc++'s checked iterators
 		// http://stackoverflow.com/questions/22915325/avoiding-self-assignment-in-stdshuffle
-		web_seed_t& operator=(web_seed_t&& rhs)
+		web_seed_t& operator=(web_seed_t&& rhs) noexcept
 		{
 			if (&rhs == this) return *this;
 

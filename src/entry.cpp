@@ -132,7 +132,7 @@ namespace {
 		return *this;
 	}
 
-	entry& entry::operator=(entry&& e)
+	entry& entry::operator=(entry&& e) noexcept
 	{
 		swap(e);
 		return *this;
@@ -269,7 +269,7 @@ namespace {
 #endif
 	}
 
-	entry::entry(entry&& e)
+	entry::entry(entry&& e) noexcept
 		: m_type(undefined_t)
 	{
 #if TORRENT_USE_ASSERTS
@@ -572,7 +572,7 @@ namespace {
 #endif
 	}
 
-	void entry::swap(entry& e)
+	void entry::swap(entry& e) noexcept
 	{
 		bool clear_this = false;
 		bool clear_that = false;

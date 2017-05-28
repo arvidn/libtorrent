@@ -46,16 +46,16 @@ namespace libtorrent { namespace aux {
 
 	struct allocation_slot
 	{
-		allocation_slot() : m_idx(-1) {}
-		allocation_slot(allocation_slot const&) = default;
-		allocation_slot(allocation_slot&&) = default;
+		allocation_slot() noexcept : m_idx(-1) {}
+		allocation_slot(allocation_slot const&) noexcept = default;
+		allocation_slot(allocation_slot&&) noexcept = default;
 		allocation_slot& operator=(allocation_slot const&) = default;
-		allocation_slot& operator=(allocation_slot&&) = default;
+		allocation_slot& operator=(allocation_slot&&) noexcept = default;
 		bool operator==(allocation_slot const& s) const { return m_idx == s.m_idx; }
 		bool operator!=(allocation_slot const& s) const { return m_idx != s.m_idx; }
 		friend struct stack_allocator;
 	private:
-		explicit allocation_slot(int idx) : m_idx(idx) {}
+		explicit allocation_slot(int idx) noexcept : m_idx(idx) {}
 		int val() const { return m_idx; }
 		int m_idx;
 	};
