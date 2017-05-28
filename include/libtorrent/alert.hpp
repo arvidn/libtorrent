@@ -76,7 +76,7 @@ namespace libtorrent {
 
 		alert(alert const& rhs) = delete;
 		alert& operator=(alert const&) = delete;
-		alert(alert&& rhs) = default;
+		alert(alert&& rhs) noexcept = default;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// only here for backwards compatibility

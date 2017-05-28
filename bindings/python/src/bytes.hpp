@@ -13,8 +13,8 @@ struct bytes
 	bytes(std::string const& s): arr(s) {}
 	bytes(std::string&& s): arr(std::move(s)) {}
 	bytes(bytes const&) = default;
-	bytes(bytes&&) = default;
-	bytes& operator=(bytes&&) = default;
+	bytes(bytes&&) noexcept = default;
+	bytes& operator=(bytes&&) noexcept = default;
 	bytes() {}
 	std::string arr;
 };

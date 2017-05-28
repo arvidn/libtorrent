@@ -404,6 +404,8 @@ namespace {
 	{}
 	session_proxy::session_proxy(session_proxy const&) = default;
 	session_proxy& session_proxy::operator=(session_proxy const&) = default;
+	session_proxy::session_proxy(session_proxy&&) noexcept = default;
+	session_proxy& session_proxy::operator=(session_proxy&&) noexcept = default;
 	session_proxy::~session_proxy()
 	{
 		if (m_thread && m_thread.unique())

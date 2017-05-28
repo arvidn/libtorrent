@@ -75,9 +75,9 @@ namespace libtorrent {
 		session_handle() {}
 
 		session_handle(session_handle const& t) = default;
-		session_handle(session_handle&& t) = default;
+		session_handle(session_handle&& t) noexcept = default;
 		session_handle& operator=(session_handle const&) = default;
-		session_handle& operator=(session_handle&&) = default;
+		session_handle& operator=(session_handle&&) noexcept = default;
 
 		bool is_valid() const { return !m_impl.expired(); }
 

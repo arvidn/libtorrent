@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/aux_/noexcept_movable.hpp"
 
 namespace libtorrent {
 
@@ -85,9 +86,9 @@ namespace libtorrent {
 		// which determines the storage mechanism for the downloaded or seeding
 		// data for the torrent. For more information, see the ``storage`` field.
 		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor)
-			: storage(sc) {}
-		add_torrent_params(add_torrent_params&&) = default;
-		add_torrent_params& operator=(add_torrent_params&&) = default;
+			: storage(storage_constructor_type(sc)) {}
+		add_torrent_params(add_torrent_params&&) noexcept = default;
+		add_torrent_params& operator=(add_torrent_params&&) noexcept = default;
 		add_torrent_params(add_torrent_params const&) = default;
 		add_torrent_params& operator=(add_torrent_params const&) = default;
 
@@ -285,18 +286,18 @@ namespace libtorrent {
 
 		// If the torrent doesn't have a tracker, but relies on the DHT to find
 		// peers, the ``trackers`` can specify tracker URLs for the torrent.
-		std::vector<std::string> trackers;
+		aux::noexcept_movable<std::vector<std::string>> trackers;
 
 		// the tiers the URLs in ``trackers`` belong to. Trackers belonging to
 		// different tiers may be treated differently, as defined by the multi
 		// tracker extension. This is optional, if not specified trackers are
 		// assumed to be part of tier 0, or whichever the last tier was as
 		// iterating over the trackers.
-		std::vector<int> tracker_tiers;
+		aux::noexcept_movable<std::vector<int>> tracker_tiers;
 
 		// a list of hostname and port pairs, representing DHT nodes to be added
 		// to the session (if DHT is enabled). The hostname may be an IP address.
-		std::vector<std::pair<std::string, int>> dht_nodes;
+		aux::noexcept_movable<std::vector<std::pair<std::string, int>>> dht_nodes;
 
 		std::string name;
 
@@ -321,7 +322,11 @@ namespace libtorrent {
 		// or encrypt the content on disk for instance. For more information
 		// about the storage_interface that needs to be implemented for a custom
 		// storage, see storage_interface.
+#ifdef __clang__
 		storage_constructor_type storage;
+#else
+		aux::noexcept_movable<storage_constructor_type> storage;
+#endif
 
 		// The ``userdata`` parameter is optional and will be passed on to the
 		// extension constructor functions, if any
@@ -331,7 +336,7 @@ namespace libtorrent {
 		// can be set to control the initial file priorities when adding a
 		// torrent. The semantics are the same as for
 		// ``torrent_handle::prioritize_files()``.
-		std::vector<std::uint8_t> file_priorities;
+		aux::noexcept_movable<std::vector<std::uint8_t>> file_priorities;
 
 		// torrent extension construction functions can be added to this vector
 		// to have them be added immediately when the torrent is constructed.
@@ -339,7 +344,7 @@ namespace libtorrent {
 		// to avoid race conditions. For instance it may be important to have the
 		// plugin catch events that happen very early on after the torrent is
 		// created.
-		std::vector<std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>>
+		aux::noexcept_movable<std::vector<std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>>>
 			extensions;
 
 		// the default tracker id to be used when announcing to trackers. By
@@ -434,20 +439,20 @@ namespace libtorrent {
 		//
 		// url_seeds expects URLs to regular web servers, aka "get right" style,
 		// specified in `BEP 19`_.
-		std::vector<std::string> http_seeds;
-		std::vector<std::string> url_seeds;
+		aux::noexcept_movable<std::vector<std::string>> http_seeds;
+		aux::noexcept_movable<std::vector<std::string>> url_seeds;
 
 		// peers to add to the torrent, to be tried to be connected to as
 		// bittorrent peers.
-		std::vector<tcp::endpoint> peers;
+		aux::noexcept_movable<std::vector<tcp::endpoint>> peers;
 
 		// peers banned from this torrent. The will not be connected to
-		std::vector<tcp::endpoint> banned_peers;
+		aux::noexcept_movable<std::vector<tcp::endpoint>> banned_peers;
 
 		// this is a map of partially downloaded piece. The key is the piece index
 		// and the value is a bitfield where each bit represents a 16 kiB block.
 		// A set bit means we have that block.
-		std::map<piece_index_t, bitfield> unfinished_pieces;
+		aux::noexcept_movable<std::map<piece_index_t, bitfield>> unfinished_pieces;
 
 		// this is a bitfield indicating which pieces we already have of this
 		// torrent.
@@ -462,16 +467,16 @@ namespace libtorrent {
 		// element in the vector represent the piece with the same index. If you
 		// set both file- and piece priorities, file priorities will take
 		// precedence.
-		std::vector<std::uint8_t> piece_priorities;
+		aux::noexcept_movable<std::vector<std::uint8_t>> piece_priorities;
 
 		// if this is a merkle tree torrent, and you're seeding, this field must
 		// be set. It is all the hashes in the binary tree, with the root as the
 		// first entry. See torrent_info::set_merkle_tree() for more info.
-		std::vector<sha1_hash> merkle_tree;
+		aux::noexcept_movable<std::vector<sha1_hash>> merkle_tree;
 
 		// this is a map of file indices in the torrent and new filenames to be
 		// applied before the torrent is added.
-		std::map<file_index_t, std::string> renamed_files;
+		aux::noexcept_movable<std::map<file_index_t, std::string>> renamed_files;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
@@ -501,7 +506,7 @@ namespace libtorrent {
 		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
 		// will be swapped into the running torrent instance with
 		// ``std::vector::swap()``.
-		std::vector<char> TORRENT_DEPRECATED_MEMBER resume_data;
+		aux::noexcept_movable<std::vector<char>> TORRENT_DEPRECATED_MEMBER resume_data;
 
 		// to support the deprecated use case of reading the resume data into
 		// resume_data field and getting a reject alert, any parse failure is
@@ -514,11 +519,24 @@ namespace libtorrent {
 		std::string deprecated5;
 		std::string deprecated1;
 		std::string deprecated2;
-		std::vector<char> deprecated3;
+		aux::noexcept_movable<std::vector<char>> deprecated3;
 		error_code deprecated4;
 #endif
 
 	};
+
+	static_assert(std::is_nothrow_move_constructible<add_torrent_params>::value
+		, "should be nothrow move constructible");
+
+	// TODO: pre C++17, GCC and msvc does not make std::string nothrow move
+	// assignable, which means no type containing a string will be nothrow move
+	// assignable by default either
+//	static_assert(std::is_nothrow_move_assignable<add_torrent_params>::value
+//		, "should be nothrow move assignable");
+
+	// TODO: it would be nice if this was nothrow default constructible
+//	static_assert(std::is_nothrow_default_constructible<add_torrent_params>::value
+//		, "should be nothrow default constructible");
 }
 
 #endif

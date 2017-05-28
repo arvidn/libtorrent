@@ -70,6 +70,8 @@ namespace libtorrent {
 	// of libtorrent and properly exported by the .dll.
 	file_storage::file_storage(file_storage const&) = default;
 	file_storage& file_storage::operator=(file_storage const&) = default;
+	file_storage::file_storage(file_storage&&) noexcept = default;
+	file_storage& file_storage::operator=(file_storage&&) noexcept = default;
 
 	void file_storage::reserve(int num_files)
 	{
@@ -242,7 +244,7 @@ namespace {
 		return *this;
 	}
 
-	internal_file_entry::internal_file_entry(internal_file_entry&& fe)
+	internal_file_entry::internal_file_entry(internal_file_entry&& fe) noexcept
 		: offset(fe.offset)
 		, symlink_index(fe.symlink_index)
 		, no_root_dir(fe.no_root_dir)
@@ -259,7 +261,7 @@ namespace {
 		fe.name = nullptr;
 	}
 
-	internal_file_entry& internal_file_entry::operator=(internal_file_entry&& fe)
+	internal_file_entry& internal_file_entry::operator=(internal_file_entry&& fe) noexcept
 	{
 		offset = fe.offset;
 		size = fe.size;
@@ -277,9 +279,6 @@ namespace {
 		fe.name = nullptr;
 		return *this;
 	}
-
-	file_storage::file_storage(file_storage&&) = default;
-	file_storage& file_storage::operator=(file_storage&&) = default;
 
 	// if borrow_chars >= 0, don't take ownership over n, just
 	// point to it. It points to borrow_chars number of characters.

@@ -117,6 +117,8 @@ namespace aux {
 		~session_proxy();
 		session_proxy(session_proxy const&);
 		session_proxy& operator=(session_proxy const&);
+		session_proxy(session_proxy&&) noexcept;
+		session_proxy& operator=(session_proxy&&) noexcept;
 	private:
 		session_proxy(
 			std::shared_ptr<io_service> ios

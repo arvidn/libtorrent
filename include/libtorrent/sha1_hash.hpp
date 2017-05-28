@@ -74,12 +74,10 @@ namespace aux {
 		static constexpr std::size_t size() { return N / 8; }
 
 		// constructs an all-zero digest
-		digest32() { clear(); }
+		digest32() noexcept { clear(); }
 
-		digest32(digest32 const&) = default;
-		digest32(digest32&&) = default;
-		digest32& operator=(digest32 const&) = default;
-		digest32& operator=(digest32&&) = default;
+		digest32(digest32 const&) noexcept = default;
+		digest32& operator=(digest32 const&) noexcept = default;
 
 		// returns an all-F digest. i.e. the maximum value
 		// representable by an N bit number (N/8 bytes). This is
@@ -132,7 +130,7 @@ namespace aux {
 		char* data() { return reinterpret_cast<char*>(&m_number[0]); }
 
 		// set the digest to all zeroes.
-		void clear() { std::memset(m_number, 0, size()); }
+		void clear() noexcept { std::memset(m_number, 0, size()); }
 
 		// return true if the digest is all zero.
 		bool is_all_zeros() const
@@ -277,6 +275,13 @@ namespace aux {
 	// In libtorrent it is primarily used to hold info-hashes, piece-hashes,
 	// peer IDs, node IDs etc.
 	using sha1_hash = digest32<160>;
+
+	static_assert(std::is_nothrow_move_constructible<sha1_hash>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_move_assignable<sha1_hash>::value
+		, "should be nothrow move assignable");
+	static_assert(std::is_nothrow_default_constructible<sha1_hash>::value
+		, "should be nothrow default constructible");
 
 #if TORRENT_USE_IOSTREAM
 

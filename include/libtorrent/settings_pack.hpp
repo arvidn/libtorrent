@@ -86,9 +86,9 @@ namespace libtorrent {
 
 		settings_pack() = default;
 		settings_pack(settings_pack const&) = default;
-		settings_pack(settings_pack&&) = default;
+		settings_pack(settings_pack&&) noexcept = default;
 		settings_pack& operator=(settings_pack const&) = default;
-		settings_pack& operator=(settings_pack&&) = default;
+		settings_pack& operator=(settings_pack&&) noexcept = default;
 
 		void set_str(int name, std::string val);
 		void set_int(int name, int val);

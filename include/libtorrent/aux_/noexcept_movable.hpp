@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,36 +29,44 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
+#ifndef TORRENT_NOEXCEPT_MOVABLE_HPP_INCLUDED
+#define TORRENT_NOEXCEPT_MOVABLE_HPP_INCLUDED
 
-#ifndef TORRENT_SCOPE_END_HPP_INCLUDED
-#define TORRENT_SCOPE_END_HPP_INCLUDED
+namespace libtorrent {
+namespace aux {
 
-#include <utility>
-
-namespace libtorrent { namespace aux {
-
-	template <typename Fun>
-	struct scope_end_impl
+	// this is a silly wrapper for address and endpoint to make their move
+	// constructors be noexcept (because boost.asio is incorrectly making them
+	// potentially throwing). This can be removed once libtorrent uses the
+	// networking TS.
+	template <typename T>
+	struct noexcept_movable : T
 	{
-		explicit scope_end_impl(Fun f) : m_fun(std::move(f)) {}
-		~scope_end_impl() { if (m_armed) m_fun(); }
+		noexcept_movable() noexcept {}
+		noexcept_movable(noexcept_movable<T>&& rhs) noexcept
+			: T(std::forward<T>(rhs))
+		{}
+		noexcept_movable(noexcept_movable<T> const& rhs)
+			: T(static_cast<T const&>(rhs))
+		{}
+		noexcept_movable(T&& rhs) noexcept : T(std::forward<T>(rhs)) {} // NOLINT
+		noexcept_movable(T const& rhs) : T(rhs) {} // NOLINT
+		noexcept_movable& operator=(noexcept_movable&& rhs) noexcept
+		{
+			this->T::operator=(std::forward<T>(rhs));
+			return *this;
+		}
+		noexcept_movable& operator=(noexcept_movable const& rhs)
+		{
+			this->T::operator=(rhs);
+			return *this;
+		}
 
-		// movable
-		scope_end_impl(scope_end_impl&&) noexcept = default;
-		scope_end_impl& operator=(scope_end_impl&&) noexcept = default;
-
-		// non-copyable
-		scope_end_impl(scope_end_impl const&) = delete;
-		scope_end_impl& operator=(scope_end_impl const&) = delete;
-		void disarm() { m_armed = false; }
-	private:
-		Fun m_fun;
-		bool m_armed = true;
+		using T::T;
+		using T::operator=;
 	};
 
-	template <typename Fun>
-	scope_end_impl<Fun> scope_end(Fun f) { return scope_end_impl<Fun>(std::move(f)); }
-}}
+}
+}
 
 #endif
-
