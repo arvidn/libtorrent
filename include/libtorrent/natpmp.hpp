@@ -77,34 +77,13 @@ private:
 	void mapping_expired(error_code const& e, int i);
 	void close_impl();
 
-#ifndef TORRENT_DISABLE_LOGGING
-	bool should_log() const;
-	void log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
-#endif
-
 	void disable(error_code const& ec);
 
-	struct mapping_t
+	struct mapping_t : public aux::base_mapping
 	{
-		enum class action : std::uint8_t { none, add, del };
-
-		// indicates that the mapping has changed
-		// and needs an update
-		action act = action::none;
-
-		// the time the port mapping will expire
-		time_point expires;
-
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use
 		int local_port = 0;
-
-		// the external (on the NAT router) port
-		// for the mapping. This is the port we
-		// should announce to others
-		int external_port = 0;
-
-		aux::portmap_protocol protocol = aux::portmap_protocol::none;
 
 		// set to true when the first map request is sent
 		bool map_sent = false;
@@ -112,6 +91,12 @@ private:
 		// set to true while we're waiting for a response
 		bool outstanding_request = false;
 	};
+
+#ifndef TORRENT_DISABLE_LOGGING
+	bool should_log() const;
+	void log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
+	void mapping_log(char const* op, mapping_t const& m) const;
+#endif
 
 	aux::portmap_callback& m_callback;
 

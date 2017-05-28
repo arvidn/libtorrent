@@ -48,6 +48,11 @@ namespace libtorrent { namespace aux {
 		none, tcp, udp
 	};
 
+	enum class portmap_action : std::uint8_t
+	{
+		none, add, del
+	};
+
 	struct TORRENT_EXTRA_EXPORT portmap_callback
 	{
 		// int: port-mapping index
@@ -66,6 +71,30 @@ namespace libtorrent { namespace aux {
 	protected:
 		~portmap_callback() {}
 	};
+
+	struct base_mapping
+	{
+		// the time the port mapping will expire
+		time_point expires;
+
+		portmap_action act = portmap_action::none;
+
+		// the external (on the NAT router) port
+		// for the mapping. This is the port we
+		// should announce to others
+		int external_port = 0;
+
+		portmap_protocol protocol = portmap_protocol::none;
+	};
+
+	inline char const* to_string(portmap_protocol const p)
+	{
+		return p == portmap_protocol::udp ? "UDP" : "TCP";
+	}
+	inline char const* to_string(portmap_action const act)
+	{
+		return act == portmap_action::none ? "none" : act == portmap_action::add ? "add" : "delete";
+	}
 }}
 
 #endif // LIBTORRENT_PORTMAP_HPP
