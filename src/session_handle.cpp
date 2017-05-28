@@ -54,19 +54,21 @@ namespace libtorrent {
 	template <typename Fun, typename... Args>
 	void session_handle::async_call(Fun f, Args&&... a) const
 	{
-		m_impl->get_io_service().dispatch([=]() mutable
+		std::shared_ptr<session_impl> s = m_impl.lock();
+		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
+		s->get_io_service().dispatch([=]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(m_impl->*f)(std::forward<Args>(a)...);
+				(s.get()->*f)(std::forward<Args>(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (system_error const& e) {
-				m_impl->alerts().emplace_alert<session_error_alert>(e.code(), e.what());
+				s->alerts().emplace_alert<session_error_alert>(e.code(), e.what());
 			} catch (std::exception const& e) {
-				m_impl->alerts().emplace_alert<session_error_alert>(error_code(), e.what());
+				s->alerts().emplace_alert<session_error_alert>(error_code(), e.what());
 			} catch (...) {
-				m_impl->alerts().emplace_alert<session_error_alert>(error_code(), "unknown error");
+				s->alerts().emplace_alert<session_error_alert>(error_code(), "unknown error");
 			}
 #endif
 		});
@@ -75,58 +77,64 @@ namespace libtorrent {
 	template<typename Fun, typename... Args>
 	void session_handle::sync_call(Fun f, Args&&... a) const
 	{
+		std::shared_ptr<session_impl> s = m_impl.lock();
+		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
+
 		// this is the flag to indicate the call has completed
 		// capture them by pointer to allow everything to be captured by value
 		// and simplify the capture expression
 		bool done = false;
 
 		std::exception_ptr ex;
-		m_impl->get_io_service().dispatch([=, &done, &ex]() mutable
+		s->get_io_service().dispatch([=, &done, &ex]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(m_impl->*f)(std::forward<Args>(a)...);
+				(s.get()->*f)(std::forward<Args>(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
 			}
 #endif
-			std::unique_lock<std::mutex> l(m_impl->mut);
+			std::unique_lock<std::mutex> l(s->mut);
 			done = true;
-			m_impl->cond.notify_all();
+			s->cond.notify_all();
 		});
 
-		aux::torrent_wait(done, *m_impl);
+		aux::torrent_wait(done, *s);
 		if (ex) std::rethrow_exception(ex);
 	}
 
 	template<typename Ret, typename Fun, typename... Args>
 	Ret session_handle::sync_call_ret(Fun f, Args&&... a) const
 	{
+		std::shared_ptr<session_impl> s = m_impl.lock();
+		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
+
 		// this is the flag to indicate the call has completed
 		// capture them by pointer to allow everything to be captured by value
 		// and simplify the capture expression
 		bool done = false;
 		Ret r;
 		std::exception_ptr ex;
-		m_impl->get_io_service().dispatch([=, &r, &done, &ex]() mutable
+		s->get_io_service().dispatch([=, &r, &done, &ex]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				r = (m_impl->*f)(std::forward<Args>(a)...);
+				r = (s.get()->*f)(std::forward<Args>(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
 			}
 #endif
-			std::unique_lock<std::mutex> l(m_impl->mut);
+			std::unique_lock<std::mutex> l(s->mut);
 			done = true;
-			m_impl->cond.notify_all();
+			s->cond.notify_all();
 		});
 
-		aux::torrent_wait(done, *m_impl);
+		aux::torrent_wait(done, *s);
 		if (ex) std::rethrow_exception(ex);
 		return r;
 	}
@@ -175,7 +183,9 @@ namespace libtorrent {
 
 	io_service& session_handle::get_io_service()
 	{
-		return m_impl->get_io_service();
+		std::shared_ptr<session_impl> s = m_impl.lock();
+		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
+		return s->get_io_service();
 	}
 
 	torrent_handle session_handle::find_torrent(sha1_hash const& info_hash) const
@@ -1055,17 +1065,23 @@ namespace {
 	// the alerts are const, they may not be deleted by the client
 	void session_handle::pop_alerts(std::vector<alert*>* alerts)
 	{
-		m_impl->pop_alerts(alerts);
+		std::shared_ptr<session_impl> s = m_impl.lock();
+		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
+		s->pop_alerts(alerts);
 	}
 
 	alert* session_handle::wait_for_alert(time_duration max_wait)
 	{
-		return m_impl->wait_for_alert(max_wait);
+		std::shared_ptr<session_impl> s = m_impl.lock();
+		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
+		return s->wait_for_alert(max_wait);
 	}
 
 	void session_handle::set_alert_notify(std::function<void()> const& fun)
 	{
-		m_impl->alerts().set_notify_function(fun);
+		std::shared_ptr<session_impl> s = m_impl.lock();
+		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
+		s->alerts().set_notify_function(fun);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

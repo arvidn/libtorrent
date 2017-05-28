@@ -184,7 +184,6 @@ namespace aux {
 		// configuring it, you can pass in a session_params object. Its settings
 		// will take effect before the session starts up.
 		explicit session(session_params params = session_params())
-			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
 			start(std::move(params), nullptr);
@@ -204,7 +203,6 @@ namespace aux {
 		// 	destruct the session object, then sync with the io_service, then
 		// 	destruct the session_proxy object.
 		session(session_params params, io_service& ios)
-			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
 			start(std::move(params), &ios);
@@ -223,7 +221,6 @@ namespace aux {
 		// pass 0 as the flags parameter.
 		session(settings_pack pack
 			, int flags = start_default_features | add_default_plugins)
-			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
 			start(flags, std::move(pack), nullptr);
@@ -253,7 +250,6 @@ namespace aux {
 		session(settings_pack pack
 			, io_service& ios
 			, int flags = start_default_features | add_default_plugins)
-			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
 			start(flags, std::move(pack), &ios);
@@ -276,7 +272,6 @@ namespace aux {
 		session(fingerprint const& print
 			, int flags = start_default_features | add_default_plugins
 			, std::uint32_t alert_mask = alert::error_notification)
-			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
 			settings_pack pack;
@@ -299,7 +294,6 @@ namespace aux {
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
 			, int alert_mask = alert::error_notification)
-			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first > 0);

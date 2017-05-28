@@ -92,6 +92,8 @@ namespace libtorrent {
 			invalid_escaped_string,
 			// Operation is not permitted since the session is shutting down
 			session_is_closing,
+			// The session_handle is not referring to a valid session_impl
+			invalid_session_handle,
 			// There's already a torrent with that info-hash added to the
 			// session
 			duplicate_torrent,

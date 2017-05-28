@@ -231,6 +231,7 @@ namespace aux {
 			, boost::noncopyable
 			, single_threaded
 			, aux::error_handler_interface
+			, std::enable_shared_from_this<session_impl>
 		{
 			// the size of each allocation that is chained in the send buffer
 			enum { send_buffer_size_impl = 128 };
