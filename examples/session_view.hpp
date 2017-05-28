@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "libtorrent/session_stats.hpp"
+#include "libtorrent/span.hpp"
 
 struct session_view
 {
@@ -53,8 +54,7 @@ struct session_view
 	void print_utp_stats(bool p) { m_print_utp_stats = p; }
 	bool print_utp_stats() const { return m_print_utp_stats; }
 
-	void update_counters(std::int64_t const* stats_counters, int num_cnt
-		, std::uint64_t t);
+	void update_counters(lt::span<std::int64_t const> stats_counters, std::uint64_t t);
 
 private:
 

@@ -150,7 +150,7 @@ std::map<std::string, std::int64_t> get_counters(lt::session& s)
 
 	static std::vector<stats_metric> metrics = session_stats_metrics();
 	for (auto const& m : metrics)
-		ret[m.name] = sa->values[static_cast<std::size_t>(m.value_index)];
+		ret[m.name] = sa->counters()[static_cast<std::size_t>(m.value_index)];
 	return ret;
 }
 namespace {

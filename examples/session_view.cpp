@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm> // for std::max
 
+using libtorrent::span;
+
 session_view::session_view()
 	: m_position(0)
 	, m_print_utp_stats(false)
@@ -190,8 +192,8 @@ void session_view::render()
 	}
 }
 
-void session_view::update_counters(std::int64_t const* stats_counters
-	, int num_cnt, std::uint64_t t)
+void session_view::update_counters(span<std::int64_t const> stats_counters
+	, std::uint64_t const t)
 {
 	// only update the previous counters if there's been enough
 	// time since it was last updated
@@ -201,7 +203,7 @@ void session_view::update_counters(std::int64_t const* stats_counters
 		m_timestamp[1] = m_timestamp[0];
 	}
 
-	m_cnt[0].assign(stats_counters, stats_counters + num_cnt);
+	m_cnt[0].assign(stats_counters.begin(), stats_counters.end());
 	m_timestamp[0] = t;
 	render();
 }

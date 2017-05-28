@@ -1740,7 +1740,7 @@ namespace {
 		}
 	}
 
-	session_stats_alert::session_stats_alert(aux::stack_allocator&, counters const& cnt)
+	session_stats_alert::session_stats_alert(aux::stack_allocator&, struct counters const& cnt)
 		: values(counters_to_array(cnt))
 	{}
 
@@ -1757,6 +1757,11 @@ namespace {
 			ret += msg;
 		}
 		return ret;
+	}
+
+	span<std::int64_t const> session_stats_alert::counters() const
+	{
+		return values;
 	}
 
 	dht_stats_alert::dht_stats_alert(aux::stack_allocator&

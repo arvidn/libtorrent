@@ -1888,7 +1888,19 @@ namespace libtorrent {
 	struct TORRENT_EXPORT session_stats_alert final : alert
 	{
 		session_stats_alert(aux::stack_allocator& alloc, counters const& cnt);
+
+#ifndef TORRENT_NO_DEPRECATE
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#endif
 		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70)
+#ifndef TORRENT_NO_DEPRECATE
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#endif
 
 		static const int static_category = alert::stats_notification;
 		virtual std::string message() const override;
@@ -1902,7 +1914,15 @@ namespace libtorrent {
 		// interpret these values throughout the process' runtime.
 		//
 		// For more information, see the session-statistics_ section.
+		span<std::int64_t const> counters() const;
+
+#ifdef TORRENT_NO_DEPRECATE
+	private:
+		// TODO: allocate this on the alert_stack in the future
 		std::array<std::int64_t, counters::num_counters> const values;
+#else
+		std::array<std::int64_t, counters::num_counters> const TORRENT_DEPRECATED_MEMBER values;
+#endif
 	};
 
 #ifndef TORRENT_NO_DEPRECATE
