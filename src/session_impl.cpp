@@ -5766,7 +5766,7 @@ namespace {
 	void session_impl::add_dht_node_name(std::pair<std::string, int> const& node)
 	{
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_name_lookup");
-		m_host_resolver.async_resolve(node.first, resolver_interface::abort_on_shutdown
+		m_host_resolver.async_resolve(node.first, resolver_flags::abort_on_shutdown
 			, std::bind(&session_impl::on_dht_name_lookup
 				, this, _1, _2, node.second));
 	}
@@ -5795,7 +5795,7 @@ namespace {
 	{
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_router_name_lookup");
 		++m_outstanding_router_lookups;
-		m_host_resolver.async_resolve(node.first, resolver_interface::abort_on_shutdown
+		m_host_resolver.async_resolve(node.first, resolver_flags::abort_on_shutdown
 			, std::bind(&session_impl::on_dht_router_name_lookup
 				, this, _1, _2, node.second));
 	}

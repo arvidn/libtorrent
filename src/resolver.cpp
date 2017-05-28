@@ -83,7 +83,7 @@ namespace libtorrent {
 		}
 	}
 
-	void resolver::async_resolve(std::string const& host, int const flags
+	void resolver::async_resolve(std::string const& host, resolver_flags const flags
 		, resolver_interface::callback_t const& h)
 	{
 		// special handling for raw IP addresses. There's no need to get in line
@@ -103,7 +103,7 @@ namespace libtorrent {
 		if (i != m_cache.end())
 		{
 			// keep cache entries valid for m_timeout seconds
-			if ((flags & resolver_interface::cache_only)
+			if (test(flags & resolver_flags::cache_only)
 				|| i->second.last_seen + m_timeout >= aux::time_now())
 			{
 				m_ios.post(std::bind(h, ec, i->second.addresses));
@@ -111,7 +111,7 @@ namespace libtorrent {
 			}
 		}
 
-		if (flags & resolver_interface::cache_only)
+		if (test(flags & resolver_flags::cache_only))
 		{
 			// we did not find a cache entry, fail the lookup
 			m_ios.post(std::bind(h, boost::asio::error::host_not_found
@@ -124,7 +124,7 @@ namespace libtorrent {
 
 		using namespace std::placeholders;
 		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
-		if (flags & resolver_interface::abort_on_shutdown)
+		if (test(flags & resolver_flags::abort_on_shutdown))
 		{
 			m_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));

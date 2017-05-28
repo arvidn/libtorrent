@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/resolver_interface.hpp"
 
 namespace libtorrent {
 
@@ -103,7 +104,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, int prio = 0, aux::proxy_settings const* ps = NULL, int handle_redirects = 5
 		, std::string const& user_agent = std::string()
 		, boost::optional<address> const& bind_addr = boost::optional<address>()
-		, int resolve_flags = 0, std::string const& auth_ = std::string()
+		, resolver_flags resolve_flags = resolver_flags::none, std::string const& auth_ = std::string()
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
 #endif
@@ -113,7 +114,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = NULL
 		, bool ssl = false, int handle_redirect = 5
 		, boost::optional<address> const& bind_addr = boost::optional<address>()
-		, int resolve_flags = 0
+		, resolver_flags resolve_flags = resolver_flags::none
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
 #endif
@@ -215,7 +216,7 @@ private:
 	int m_priority;
 
 	// used for DNS lookups
-	int m_resolve_flags;
+	resolver_flags m_resolve_flags;
 
 	std::uint16_t m_port;
 

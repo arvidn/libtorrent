@@ -179,7 +179,7 @@ std::shared_ptr<http_connection> test_request(io_service& ios
 		});
 
 	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", boost::optional<address>()
-		, 0, auth);
+		, resolver_flags::none, auth);
 	return h;
 }
 
