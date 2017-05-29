@@ -593,6 +593,22 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.last_sent = last_sent;
 }
 
+void look_for_nodes(char const* nodes_key, udp const& protocol, bdecode_node const& r, std::function<void(const node_endpoint&)> f)
+{
+	bdecode_node const n = r.dict_find_string(nodes_key);
+	if (n)
+	{
+		char const* nodes = n.string_ptr();
+		char const* end = nodes + n.string_length();
+		int const protocol_size = int(detail::address_size(protocol));
+
+		while (end - nodes >= 20 + protocol_size + 2)
+		{
+			f(read_node_endpoint(protocol, nodes));
+		}
+	}
+}
+
 void traversal_observer::reply(msg const& m)
 {
 	bdecode_node const r = m.message.dict_find_dict("r");
@@ -609,13 +625,14 @@ void traversal_observer::reply(msg const& m)
 		return;
 	}
 
+	bdecode_node const id = r.dict_find_string("id");
+
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_observer* logger = get_observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
-		bdecode_node const nid = r.dict_find_string("id");
 		char hex_id[41];
-		aux::to_hex({nid.string_ptr(), 20}, hex_id);
+		aux::to_hex({id.string_ptr(), 20}, hex_id);
 		logger->log(dht_logger::traversal
 			, "[%u] RESPONSE id: %s invoke-count: %d addr: %s type: %s"
 			, algorithm()->id(), hex_id, algorithm()->invoke_count()
@@ -623,24 +640,9 @@ void traversal_observer::reply(msg const& m)
 	}
 #endif
 
-	// look for nodes
-	udp const protocol = algorithm()->get_node().protocol();
-	int const protocol_size = int(detail::address_size(protocol));
-	char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
-	bdecode_node const n = r.dict_find_string(nodes_key);
-	if (n)
-	{
-		char const* nodes = n.string_ptr();
-		char const* end = nodes + n.string_length();
+	look_for_nodes(algorithm()->get_node().protocol_nodes_key(), algorithm()->get_node().protocol(), r,
+		[this](node_endpoint const& nep) { algorithm()->traverse(nep.id, nep.ep); });
 
-		while (end - nodes >= 20 + protocol_size + 2)
-		{
-			node_endpoint nep = read_node_endpoint(protocol, nodes);
-			algorithm()->traverse(nep.id, nep.ep);
-		}
-	}
-
-	bdecode_node const id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING

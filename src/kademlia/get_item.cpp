@@ -175,7 +175,7 @@ void get_item_observer::reply(msg const& m)
 	signature sig;
 	sequence_number seq{0};
 
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING

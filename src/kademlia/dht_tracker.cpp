@@ -514,7 +514,7 @@ namespace libtorrent { namespace dht {
 
 		int pos;
 		error_code err;
-		int ret = bdecode(buf.data(), buf.data() + buf_size, m_msg, err, &pos, 10, 500);
+		int const ret = bdecode(buf.data(), buf.data() + buf_size, m_msg, err, &pos, 10, 500);
 		if (ret != 0)
 		{
 			m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
@@ -538,7 +538,7 @@ namespace libtorrent { namespace dht {
 		m_log->log_packet(dht_logger::incoming_message, buf, ep);
 #endif
 
-		libtorrent::dht::msg m(m_msg, ep);
+		libtorrent::dht::msg const m(m_msg, ep);
 		for (auto& n : m_nodes)
 			n.second.dht.incoming(m);
 		return true;

@@ -50,6 +50,7 @@ namespace libtorrent { struct dht_lookup; }
 namespace libtorrent { namespace dht {
 
 class node;
+struct node_endpoint;
 
 // this class may not be instantiated as a stack object
 struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
@@ -140,6 +141,9 @@ private:
 	void log_timeout(observer_ptr const& o, char const* prefix) const;
 #endif
 };
+
+void look_for_nodes(char const* nodes_key, udp const& protocol
+	, bdecode_node const& r, std::function<void(node_endpoint const&)> f);
 
 struct traversal_observer : observer
 {
