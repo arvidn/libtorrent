@@ -142,7 +142,8 @@ private:
 #endif
 };
 
-void look_for_nodes(node const& node, bdecode_node const& r, std::function<void(node_endpoint const&)> f);
+void look_for_nodes(char const* nodes_key, udp const& protocol
+	, bdecode_node const& r, std::function<void(node_endpoint const&)> f);
 
 struct traversal_observer : observer
 {
