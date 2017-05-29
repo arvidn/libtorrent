@@ -127,7 +127,7 @@ else:
 
         ext = [Extension(
             'libtorrent',
-            sources=source_list,
+            sources=sorted(source_list),
             language='c++',
             include_dirs=flags.include_dirs,
             library_dirs=flags.library_dirs,
