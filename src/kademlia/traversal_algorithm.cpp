@@ -625,13 +625,14 @@ void traversal_observer::reply(msg const& m)
 		return;
 	}
 
+	bdecode_node const id = r.dict_find_string("id");
+
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_observer* logger = get_observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
-		bdecode_node const nid = r.dict_find_string("id");
 		char hex_id[41];
-		aux::to_hex({nid.string_ptr(), 20}, hex_id);
+		aux::to_hex({id.string_ptr(), 20}, hex_id);
 		logger->log(dht_logger::traversal
 			, "[%u] RESPONSE id: %s invoke-count: %d addr: %s type: %s"
 			, algorithm()->id(), hex_id, algorithm()->invoke_count()
@@ -642,7 +643,6 @@ void traversal_observer::reply(msg const& m)
 	look_for_nodes(algorithm()->get_node().protocol_nodes_key(), algorithm()->get_node().protocol(), r,
 		[this](node_endpoint const& nep) { algorithm()->traverse(nep.id, nep.ep); });
 
-	bdecode_node const id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
