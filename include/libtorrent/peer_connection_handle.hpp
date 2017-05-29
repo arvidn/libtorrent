@@ -57,7 +57,7 @@ struct TORRENT_EXPORT peer_connection_handle
 	connection_type type() const;
 
 	void add_extension(std::shared_ptr<peer_plugin>);
-	peer_plugin const* find_plugin(string_view type);
+	peer_plugin const* find_plugin(string_view type) const;
 
 	bool is_seed() const;
 
