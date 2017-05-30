@@ -1243,7 +1243,11 @@ namespace libtorrent { namespace aux {
 		// well. This goes for files that have been renamed to absolute paths
 		// that still end up inside the save path.
 		void move_storage(std::string const& save_path
-			, move_flags_t flags = move_flags_t::always_replace_files) const;
+			, move_flags_t flags
+#ifndef TORRENT_NO_DEPRECATE
+			= move_flags_t::always_replace_files
+#endif
+			) const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
