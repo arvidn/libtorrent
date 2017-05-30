@@ -617,6 +617,7 @@ namespace libtorrent {
 				{
 					if (!valid_addr_family(unicast->Address.lpSockaddr->sa_family))
 						continue;
+					r.preferred = unicast->DadState == IpDadStatePreferred;
 					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
 					ret.push_back(r);
 				}
