@@ -1367,7 +1367,7 @@ TORRENT_TEST(move_storage_to_self)
 	TEST_CHECK(exists(combine_path(test_path, combine_path("folder2", "test3.tmp"))));
 	TEST_CHECK(exists(combine_path(test_path, combine_path("_folder3", "test4.tmp"))));
 
-	s->move_storage(save_path, 0, se);
+	s->move_storage(save_path, move_flags_t::always_replace_files, se);
 	TEST_EQUAL(se.ec, boost::system::errc::success);
 
 	TEST_CHECK(exists(test_path));
@@ -1394,7 +1394,7 @@ TORRENT_TEST(move_storage_into_self)
 	s->writev(b, piece_index_t(2), 0, open_mode_t::read_write, se);
 
 	std::string const test_path = combine_path(save_path, combine_path("temp_storage", "folder1"));
-	s->move_storage(test_path, 0, se);
+	s->move_storage(test_path, move_flags_t::always_replace_files, se);
 	TEST_EQUAL(se.ec, boost::system::errc::success);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
@@ -1453,7 +1453,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	f.close();
 	TEST_EQUAL(ec, boost::system::errc::success);
 
-	s->move_storage(test_path, 0, se);
+	s->move_storage(test_path, move_flags_t::always_replace_files, se);
 	TEST_EQUAL(se.ec, boost::system::errc::success);
 
 	// torrent files moved to new place

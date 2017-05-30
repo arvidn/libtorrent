@@ -212,18 +212,25 @@ namespace libtorrent {
 		return sync_call_ret<int>(0, &torrent::download_limit);
 	}
 
-	void torrent_handle::move_storage(
-		std::string const& save_path, int flags) const
+	void torrent_handle::move_storage(std::string const& save_path, move_flags_t flags) const
 	{
 		async_call(&torrent::move_storage, save_path, flags);
 	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	void torrent_handle::move_storage(
+		std::string const& save_path, int const flags) const
+	{
+		async_call(&torrent::move_storage, save_path, static_cast<move_flags_t>(flags));
+	}
+#endif
 
 #if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
 	void torrent_handle::move_storage(
 		std::wstring const& save_path, int flags) const
 	{
-		async_call(&torrent::move_storage, wchar_utf8(save_path), flags);
+		async_call(&torrent::move_storage, wchar_utf8(save_path), static_cast<move_flags_t>(flags));
 	}
 
 	void torrent_handle::rename_file(file_index_t index, std::wstring const& new_name) const

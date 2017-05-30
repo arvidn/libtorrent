@@ -306,7 +306,7 @@ namespace aux {
 			, std::uint8_t flags = 0) override;
 		void async_hash(storage_index_t storage, piece_index_t piece, std::uint8_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler, void* requester) override;
-		void async_move_storage(storage_index_t storage, std::string p, std::uint8_t flags
+		void async_move_storage(storage_index_t storage, std::string p, move_flags_t flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override;
 		void async_release_files(storage_index_t storage
 			, std::function<void()> handler = std::function<void()>()) override;

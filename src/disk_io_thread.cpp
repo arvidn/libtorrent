@@ -1805,14 +1805,14 @@ namespace libtorrent {
 	}
 
 	void disk_io_thread::async_move_storage(storage_index_t const storage
-		, std::string p, std::uint8_t const flags
+		, std::string p, move_flags_t const flags
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::move_storage);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->argument = std::move(p);
 		j->callback = std::move(handler);
-		j->flags = flags;
+		j->move_flags = flags;
 
 		add_fence_job(j);
 	}
@@ -2447,7 +2447,7 @@ namespace libtorrent {
 
 		// if files have to be closed, that's the storage's responsibility
 		return j->storage->move_storage(boost::get<std::string>(j->argument)
-			, j->flags, j->error);
+			, j->move_flags, j->error);
 	}
 
 	status_t disk_io_thread::do_release_files(disk_io_job* j, jobqueue_t& completed_jobs)

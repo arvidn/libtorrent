@@ -72,7 +72,7 @@ namespace libtorrent {
 	};
 
 	// flags for async_move_storage
-	enum move_flags_t
+	enum class move_flags_t : std::uint8_t
 	{
 		// replace any files in the destination when copying
 		// or moving the storage
@@ -91,6 +91,15 @@ namespace libtorrent {
 		// of the ones we may have in the source.
 		dont_replace
 	};
+
+#ifndef TORRENT_NO_DEPRECATE
+	enum deprecated_move_flags_t
+	{
+		always_replace_files,
+		fail_if_exist,
+		dont_replace
+	};
+#endif
 
 	struct TORRENT_EXPORT storage_params
 	{

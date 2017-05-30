@@ -234,8 +234,8 @@ namespace libtorrent {
 		// like ``release_files()``.
 		//
 		//If an error occurs, ``storage_error`` should be set to reflect it.
-		virtual status_t move_storage(std::string const& save_path, int flags
-			, storage_error& ec) = 0;
+		virtual status_t move_storage(std::string const& save_path
+			, move_flags_t flags, storage_error& ec) = 0;
 
 		// This function should verify the resume data ``rd`` with the files
 		// on disk. If the resume data seems to be up-to-date, return true. If
@@ -390,8 +390,8 @@ namespace libtorrent {
 		virtual void release_files(storage_error& ec) override;
 		virtual void delete_files(int options, storage_error& ec) override;
 		virtual void initialize(storage_error& ec) override;
-		virtual status_t move_storage(std::string const& save_path, int flags
-			, storage_error& ec) override;
+		virtual status_t move_storage(std::string const& save_path
+			, move_flags_t flags, storage_error& ec) override;
 		virtual bool verify_resume_data(add_torrent_params const& rd
 			, aux::vector<std::string, file_index_t> const& links
 			, storage_error& error) override;

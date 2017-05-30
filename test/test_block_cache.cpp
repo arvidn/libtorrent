@@ -64,7 +64,7 @@ struct test_storage_impl : storage_interface
 	bool has_any_file(storage_error& ec) override { return false; }
 	void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& prio
 		, storage_error& ec) override {}
-	status_t move_storage(std::string const& save_path, int flags
+	status_t move_storage(std::string const& save_path, move_flags_t flags
 		, storage_error& ec) override { return status_t::no_error; }
 	bool verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links

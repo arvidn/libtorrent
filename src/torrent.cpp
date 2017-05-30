@@ -7516,7 +7516,7 @@ namespace libtorrent {
 		return;
 	}
 
-	void torrent::move_storage(std::string const& save_path, int const flags)
+	void torrent::move_storage(std::string const& save_path, move_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -7547,7 +7547,7 @@ namespace libtorrent {
 #else
 			std::string path = save_path;
 #endif
-			m_ses.disk_thread().async_move_storage(m_storage, std::move(path), std::uint8_t(flags)
+			m_ses.disk_thread().async_move_storage(m_storage, std::move(path), flags
 				, std::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2, _3));
 			m_moving_storage = true;
 		}

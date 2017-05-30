@@ -450,8 +450,8 @@ namespace libtorrent {
 			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
-	status_t default_storage::move_storage(std::string const& sp, int const flags
-		, storage_error& ec)
+	status_t default_storage::move_storage(std::string const& sp
+		, move_flags_t const flags, storage_error& ec)
 	{
 		m_pool.release(storage_index());
 
@@ -737,7 +737,7 @@ namespace {
 			void release_files(storage_error&) override {}
 			void delete_files(int, storage_error&) override {}
 			void initialize(storage_error&) override {}
-			status_t move_storage(std::string const&, int, storage_error&) override { return status_t::no_error; }
+			status_t move_storage(std::string const&, move_flags_t, storage_error&) override { return status_t::no_error; }
 
 			int readv(span<iovec_t const> bufs
 				, piece_index_t, int, open_mode_t, storage_error&) override
@@ -796,7 +796,7 @@ namespace {
 			void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& /* prio */
 				, storage_error&) override {}
 			status_t move_storage(std::string const& /* save_path */
-				, int /* flags */, storage_error&) override { return status_t::no_error; }
+				, move_flags_t, storage_error&) override { return status_t::no_error; }
 			bool verify_resume_data(add_torrent_params const& /* rd */
 				, aux::vector<std::string, file_index_t> const& /* links */
 				, storage_error&) override
