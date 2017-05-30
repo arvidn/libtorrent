@@ -1244,7 +1244,7 @@ namespace libtorrent { namespace aux {
 		// that still end up inside the save path.
 		void move_storage(std::string const& save_path
 			, move_flags_t flags
-#ifndef TORRENT_NO_DEPRECATE
+#ifdef TORRENT_NO_DEPRECATE
 			= move_flags_t::always_replace_files
 #endif
 			) const;
