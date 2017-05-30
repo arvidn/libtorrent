@@ -310,6 +310,8 @@ namespace aux {
 		{
 			for (auto const& ipface : ifs)
 			{
+				if (!ipface.preferred)
+					continue;
 				if (ipface.interface_address.is_v4())
 					continue;
 				if (ipface.interface_address.is_loopback())

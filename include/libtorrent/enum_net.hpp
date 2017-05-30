@@ -62,6 +62,9 @@ namespace libtorrent {
 		address netmask;
 		char name[64];
 		int mtu;
+		// an interface is preferred if its address is
+		// not tenative/duplicate/deprecated
+		bool preferred = true;
 	};
 
 	struct ip_route
