@@ -159,13 +159,6 @@ namespace libtorrent {
 		, m_state(torrent_status::checking_resume_data)
 	{}
 
-	void torrent_hot_members::remove_connection(peer_connection const* p)
-	{
-		auto const i = sorted_find(m_connections, p);
-		if (i != m_connections.end())
-			m_connections.erase(i);
-	}
-
 	torrent::torrent(
 		aux::session_interface& ses
 		, int const block_size
@@ -5341,6 +5334,14 @@ namespace libtorrent {
 
 #endif
 
+	void torrent::remove_connection(peer_connection const* p)
+	{
+		TORRENT_ASSERT(m_iterating_connections == 0);
+		auto const i = sorted_find(m_connections, p);
+		if (i != m_connections.end())
+			m_connections.erase(i);
+	}
+
 	void torrent::remove_peer(peer_connection* p)
 	{
 		TORRENT_ASSERT(p != nullptr);
@@ -8482,10 +8483,10 @@ namespace libtorrent {
 
 		if (log_peers)
 		{
-			for (auto const c : m_connections)
+			for (auto const p : m_connections)
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
-				c->peer_log(peer_log_alert::info, "TORRENT", "%s", message);
+				p->peer_log(peer_log_alert::info, "TORRENT", "%s", message);
 			}
 		}
 

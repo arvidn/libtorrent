@@ -302,8 +302,6 @@ namespace libtorrent {
 		std::uint32_t m_state:3;
 
 		std::unique_ptr<peer_list> m_peer_list;
-
-		void remove_connection(peer_connection const* p);
 	};
 
 	// a torrent is a class that holds information
@@ -686,7 +684,9 @@ namespace libtorrent {
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
 
 		void update_auto_sequential();
-
+	private:
+		void remove_connection(peer_connection const* p);
+	public:
 // --------------------------------------------
 		// TRACKER MANAGEMENT
 
