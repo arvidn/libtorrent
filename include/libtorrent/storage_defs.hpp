@@ -93,11 +93,12 @@ namespace libtorrent {
 	};
 
 #ifndef TORRENT_NO_DEPRECATE
+	// deprecated in 1.2
 	enum deprecated_move_flags_t
 	{
-		always_replace_files,
-		fail_if_exist,
-		dont_replace
+		always_replace_files TORRENT_DEPRECATED_ENUM,
+		fail_if_exist TORRENT_DEPRECATED_ENUM,
+		dont_replace TORRENT_DEPRECATED_ENUM
 	};
 #endif
 

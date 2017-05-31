@@ -1212,10 +1212,6 @@ namespace libtorrent { namespace aux {
 		// The ``flags`` argument determines the behavior of the copying/moving
 		// of the files in the torrent. see move_flags_t.
 		//
-		// 	* always_replace_files = 0
-		// 	* fail_if_exist = 1
-		// 	* dont_replace = 2
-		//
 		// ``always_replace_files`` is the default and replaces any file that
 		// exist in both the source directory and the target directory.
 		//
@@ -1250,6 +1246,7 @@ namespace libtorrent { namespace aux {
 			) const;
 
 #ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		TORRENT_DEPRECATED
 		void move_storage(std::string const& save_path, int flags = 0) const;
 #endif
