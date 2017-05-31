@@ -1243,6 +1243,7 @@ namespace libtorrent
 		, tracker_receive_timeout(10)
 		, stop_tracker_timeout(5)
 		, tracker_maximum_response_length(1024*1024)
+		, max_allowed_message_length(1024*1024)
 		, piece_timeout(20)
 		, request_timeout(50)
 		, request_queue_time(3)

@@ -297,6 +297,7 @@ namespace aux {
 		TORRENT_SETTING(integer, tracker_receive_timeout)
 		TORRENT_SETTING(integer, stop_tracker_timeout)
 		TORRENT_SETTING(integer, tracker_maximum_response_length)
+		TORRENT_SETTING(integer, max_allowed_message_length)
 		TORRENT_SETTING(integer, piece_timeout)
 		TORRENT_SETTING(integer, request_timeout)
 		TORRENT_SETTING(integer, request_queue_time)
