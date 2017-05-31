@@ -49,6 +49,9 @@ namespace libtorrent { namespace aux {
 
 		// pull in constructors from base class
 		using base::base;
+		// implicit constructor needed for template based member functions
+		typed_span() = default;
+		typed_span(span<T> const& v) : base(v) {} // NOLINT
 
 		auto operator[](IndexType idx) const ->
 #if TORRENT_AUTO_RETURN_TYPES

@@ -84,7 +84,6 @@ namespace libtorrent {
 
 		virtual void on_timeout(error_code const&) {}
 
-		tracker_manager& m_man;
 		std::shared_ptr<http_connection> m_tracker_connection;
 		address m_tracker_ip;
 #if TORRENT_USE_I2P

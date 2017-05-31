@@ -258,11 +258,6 @@ private:
 		// to 0, the mapping is not in use
 		tcp::endpoint local_ep;
 
-		// the external (on the NAT router) port
-		// for the mapping. This is the port we
-		// should announce to others
-		int external_port = 0;
-
 		// the number of times this mapping has failed
 		int failcount = 0;
 	};

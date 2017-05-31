@@ -274,7 +274,7 @@ namespace aux {
 		// do in the constructor).
 		virtual void start();
 
-		virtual ~peer_connection();
+		virtual ~peer_connection() override;
 
 		void set_peer_info(torrent_peer* pi) override
 		{
