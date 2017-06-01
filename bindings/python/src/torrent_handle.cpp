@@ -441,7 +441,7 @@ void bind_torrent_handle()
     int (torrent_handle::*piece_priority0)(piece_index_t) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(piece_index_t, int) const = &torrent_handle::piece_priority;
 
-    void (torrent_handle::*move_storage0)(std::string const&, move_flags_t) const = &torrent_handle::move_storage;
+    void (torrent_handle::*move_storage0)(std::string const&, lt::move_flags_t) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file0)(file_index_t, std::string const&) const = &torrent_handle::rename_file;
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
@@ -452,6 +452,12 @@ void bind_torrent_handle()
     std::vector<open_file_state> (torrent_handle::*file_status0)() const = &torrent_handle::file_status;
 
 #define _ allow_threads
+
+    enum_<move_flags_t>("move_flags_t")
+        .value("always_replace_files", move_flags_t::always_replace_files)
+        .value("fail_if_exist", move_flags_t::fail_if_exist)
+        .value("dont_replace", move_flags_t::dont_replace)
+    ;
 
     class_<torrent_handle>("torrent_handle")
         .def(self == self)
@@ -605,11 +611,6 @@ void bind_torrent_handle()
         .value("query_verified_pieces", torrent_handle::query_verified_pieces)
     ;
 
-    enum_<move_flags_t>("move_flags_t")
-        .value("always_replace_files", move_flags_t::always_replace_files)
-        .value("fail_if_exist", move_flags_t::fail_if_exist)
-        .value("dont_replace", move_flags_t::dont_replace)
-    ;
 }
 
 #ifdef _MSC_VER
