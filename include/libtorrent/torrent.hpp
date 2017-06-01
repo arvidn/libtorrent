@@ -684,7 +684,9 @@ namespace libtorrent {
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
 
 		void update_auto_sequential();
-
+	private:
+		void remove_connection(peer_connection const* p);
+	public:
 // --------------------------------------------
 		// TRACKER MANAGEMENT
 

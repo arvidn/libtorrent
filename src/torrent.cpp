@@ -5334,6 +5334,14 @@ namespace libtorrent {
 
 #endif
 
+	void torrent::remove_connection(peer_connection const* p)
+	{
+		TORRENT_ASSERT(m_iterating_connections == 0);
+		auto const i = sorted_find(m_connections, p);
+		if (i != m_connections.end())
+			m_connections.erase(i);
+	}
+
 	void torrent::remove_peer(peer_connection* p)
 	{
 		TORRENT_ASSERT(p != nullptr);
@@ -5367,9 +5375,7 @@ namespace libtorrent {
 			// if the peer was inserted in m_connections but instructed to
 			// be removed from this torrent, just remove it from it, see
 			// attach_peer logic.
-			auto const i = sorted_find(m_connections, p);
-			if (i != m_connections.end())
-				m_connections.erase(i);
+			remove_connection(p);
 		}
 
 		torrent_peer* pp = p->peer_info_struct();
@@ -5443,9 +5449,7 @@ namespace libtorrent {
 			TORRENT_ASSERT(p != nullptr);
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
-			auto const i = sorted_find(m_connections, p);
-			if (i != m_connections.end())
-				m_connections.erase(i);
+			remove_connection(p);
 			m_ses.close_connection(p);
 		}
 
@@ -8437,7 +8441,7 @@ namespace libtorrent {
 			// disconnect all peers with no outstanding data to receive
 			// and choke all remaining peers to prevent responding to new
 			// requests
-			for (peer_connection* p : m_connections)
+			for (auto p : m_connections)
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
@@ -8479,9 +8483,10 @@ namespace libtorrent {
 
 		if (log_peers)
 		{
-			for (auto const c : m_connections)
+			for (auto const p : m_connections)
 			{
-				c->peer_log(peer_log_alert::info, "TORRENT", "%s", message);
+				TORRENT_INCREMENT(m_iterating_connections);
+				p->peer_log(peer_log_alert::info, "TORRENT", "%s", message);
 			}
 		}
 
@@ -8969,6 +8974,8 @@ namespace libtorrent {
 		m_swarm_last_seen_complete = m_last_seen_complete;
 		for (auto p : m_connections)
 		{
+			TORRENT_INCREMENT(m_iterating_connections);
+
 			// look for the peer that saw a seed most recently
 			m_swarm_last_seen_complete = (std::max)(p->last_seen_complete(), m_swarm_last_seen_complete);
 
