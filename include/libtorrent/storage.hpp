@@ -380,7 +380,7 @@ namespace libtorrent {
 		explicit default_storage(storage_params const& params, file_pool&);
 
 		// hidden
-		~default_storage();
+		~default_storage() override;
 
 		virtual bool has_any_file(storage_error& ec) override;
 		virtual void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& prio

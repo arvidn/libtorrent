@@ -112,7 +112,7 @@ namespace libtorrent {
 			if (!m_abort)
 			{
 				auto new_end = std::remove_if(m_threads.begin(), m_threads.end()
-					, [id, &l](std::thread& t)
+					, [id](std::thread& t)
 				{
 					if (t.get_id() == id)
 					{

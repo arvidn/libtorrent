@@ -107,7 +107,7 @@ namespace libtorrent {
 			share_mode_msg = 8
 		};
 
-		~bt_peer_connection();
+		~bt_peer_connection() override;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		bool supports_encryption() const
@@ -413,7 +413,18 @@ namespace libtorrent {
 		// true if rc4, false if plaintext
 		bool m_rc4_encrypted:1;
 
+// this is a legitimate use of a shadow field
+#ifdef __clang__
+#pragma clang diagnostic push
+// macOS clang doesn't have -Wshadow-field
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#pragma clang diagnostic ignored "-Wshadow-field"
+#endif
 		crypto_receive_buffer m_recv_buffer;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #endif
 
 		std::string m_client_version;

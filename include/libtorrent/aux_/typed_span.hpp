@@ -72,7 +72,8 @@ namespace libtorrent { namespace aux {
 		typed_span first(underlying_index n) const
 		{
 			TORRENT_ASSERT(n >= 0);
-			return this->base::first(std::size_t(n));
+			auto s = this->base::first(std::size_t(n));
+			return {s.data(), s.size()};
 		}
 
 		typed_span first(std::size_t n) const
@@ -86,7 +87,8 @@ namespace libtorrent { namespace aux {
 		typed_span last(underlying_index n) const
 		{
 			TORRENT_ASSERT(n >= 0);
-			return this->base::last(std::size_t(n));
+			auto s = this->base::last(std::size_t(n));
+			return {s.data(), s.size()};
 		}
 
 		typed_span last(std::size_t n) const
@@ -100,7 +102,8 @@ namespace libtorrent { namespace aux {
 		typed_span subspan(underlying_index offset) const
 		{
 			TORRENT_ASSERT(offset >= 0);
-			return this->base::subspan(std::size_t(offset));
+			auto s = this->base::subspan(std::size_t(offset));
+			return {s.data(), s.size()};
 		}
 
 		template <typename U = underlying_index, typename Cond
@@ -109,7 +112,8 @@ namespace libtorrent { namespace aux {
 		{
 			TORRENT_ASSERT(offset >= 0);
 			TORRENT_ASSERT(count >= 0);
-			return this->base::subspan(std::size_t(offset), std::size_t(count));
+			auto s = this->base::subspan(std::size_t(offset), std::size_t(count));
+			return {s.data(), s.size()};
 		}
 
 		typed_span subspan(std::size_t offset) const
