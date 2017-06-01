@@ -1014,7 +1014,7 @@ namespace libtorrent {
 		// RESOURCE MANAGEMENT
 
 		// flags are defined in storage.hpp
-		void move_storage(std::string const& save_path, int flags);
+		void move_storage(std::string const& save_path, move_flags_t flags);
 
 		// renames the file with the given index to the new name
 		// the name may include a directory path

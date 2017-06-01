@@ -441,17 +441,23 @@ void bind_torrent_handle()
     int (torrent_handle::*piece_priority0)(piece_index_t) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(piece_index_t, int) const = &torrent_handle::piece_priority;
 
-    void (torrent_handle::*move_storage0)(std::string const&, int flags) const = &torrent_handle::move_storage;
+    void (torrent_handle::*move_storage0)(std::string const&, lt::move_flags_t) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file0)(file_index_t, std::string const&) const = &torrent_handle::rename_file;
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
-    void (torrent_handle::*move_storage1)(std::wstring const&, int flags) const = &torrent_handle::move_storage;
+    void (torrent_handle::*move_storage1)(std::wstring const&, int) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file1)(file_index_t, std::wstring const&) const = &torrent_handle::rename_file;
 #endif
 
     std::vector<open_file_state> (torrent_handle::*file_status0)() const = &torrent_handle::file_status;
 
 #define _ allow_threads
+
+    enum_<move_flags_t>("move_flags_t")
+        .value("always_replace_files", move_flags_t::always_replace_files)
+        .value("fail_if_exist", move_flags_t::fail_if_exist)
+        .value("dont_replace", move_flags_t::dont_replace)
+    ;
 
     class_<torrent_handle>("torrent_handle")
         .def(self == self)
@@ -548,13 +554,13 @@ void bind_torrent_handle()
 #ifndef TORRENT_NO_DEPRECATE
         .def("set_tracker_login", &torrent_handle::set_tracker_login)
 #endif
-        .def("move_storage", _(move_storage0), (arg("path"), arg("flags") = 0))
+        .def("move_storage", _(move_storage0), (arg("path"), arg("flags") = move_flags_t::always_replace_files))
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("force_recheck", _(&torrent_handle::force_recheck))
         .def("rename_file", _(rename_file0))
         .def("set_ssl_certificate", &torrent_handle::set_ssl_certificate, (arg("cert"), arg("private_key"), arg("dh_params"), arg("passphrase")=""))
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
-        .def("move_storage", _(move_storage1), (arg("path"), arg("flags") = 0))
+        .def("move_storage", _(move_storage1), (arg("path"), arg("flags") = always_replace_files))
         .def("rename_file", _(rename_file1))
 #endif
         ;
@@ -605,11 +611,6 @@ void bind_torrent_handle()
         .value("query_verified_pieces", torrent_handle::query_verified_pieces)
     ;
 
-    enum_<move_flags_t>("move_flags_t")
-        .value("always_replace_files", always_replace_files)
-        .value("fail_if_exist", fail_if_exist)
-        .value("dont_replace", dont_replace)
-    ;
 }
 
 #ifdef _MSC_VER

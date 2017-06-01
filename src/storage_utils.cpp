@@ -199,13 +199,13 @@ namespace libtorrent { namespace aux {
 		, std::string const& save_path
 		, std::string const& destination_save_path
 		, part_file* pf
-		, int const flags, storage_error& ec)
+		, move_flags_t const flags, storage_error& ec)
 	{
 		status_t ret = status_t::no_error;
 		std::string const new_save_path = complete(destination_save_path);
 
 		// check to see if any of the files exist
-		if (flags == fail_if_exist)
+		if (flags == move_flags_t::fail_if_exist)
 		{
 			file_status s;
 			error_code err;
@@ -269,7 +269,7 @@ namespace libtorrent { namespace aux {
 			std::string const old_path = combine_path(save_path, f.file_path(i));
 			std::string const new_path = combine_path(new_save_path, f.file_path(i));
 
-			if (flags == dont_replace && exists(new_path))
+			if (flags == move_flags_t::dont_replace && exists(new_path))
 			{
 				if (ret == status_t::no_error) ret = status_t::need_full_check;
 				continue;

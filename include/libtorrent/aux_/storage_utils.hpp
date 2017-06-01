@@ -77,7 +77,7 @@ namespace libtorrent {
 		, std::string const& save_path
 		, std::string const& destination_save_path
 		, part_file* pf
-		, int const flags, storage_error& ec);
+		, move_flags_t flags, storage_error& ec);
 
 	// deletes the files on fs from save_path according to options. Options may
 	// opt to only delete the partfile

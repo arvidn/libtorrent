@@ -204,6 +204,8 @@ namespace libtorrent {
 		// flags controlling this job
 		std::uint8_t flags = 0;
 
+		move_flags_t move_flags = move_flags_t::always_replace_files;
+
 #if TORRENT_USE_ASSERTS
 		bool in_use = false;
 

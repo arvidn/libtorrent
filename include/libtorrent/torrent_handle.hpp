@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/storage_defs.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -1211,10 +1212,6 @@ namespace libtorrent { namespace aux {
 		// The ``flags`` argument determines the behavior of the copying/moving
 		// of the files in the torrent. see move_flags_t.
 		//
-		// 	* always_replace_files = 0
-		// 	* fail_if_exist = 1
-		// 	* dont_replace = 2
-		//
 		// ``always_replace_files`` is the default and replaces any file that
 		// exist in both the source directory and the target directory.
 		//
@@ -1241,7 +1238,18 @@ namespace libtorrent { namespace aux {
 		// torrent but are stored in the torrent's directory may be moved as
 		// well. This goes for files that have been renamed to absolute paths
 		// that still end up inside the save path.
+		void move_storage(std::string const& save_path
+			, move_flags_t flags
+#ifdef TORRENT_NO_DEPRECATE
+			= move_flags_t::always_replace_files
+#endif
+			) const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
+		TORRENT_DEPRECATED
 		void move_storage(std::string const& save_path, int flags = 0) const;
+#endif
 
 		// Renames the file with the given index asynchronously. The rename
 		// operation is complete when either a file_renamed_alert or
