@@ -166,7 +166,7 @@ namespace libtorrent {
 		std::string ret;
 		for (auto const& i : in)
 		{
-			if (!ret.empty()) ret += ",";
+			if (!ret.empty()) ret += ',';
 
 #if TORRENT_USE_IPV6
 			error_code ec;
@@ -174,18 +174,18 @@ namespace libtorrent {
 			if (!ec)
 			{
 				// IPv6 addresses must be wrapped in square brackets
-				ret += "[";
+				ret += '[';
 				ret += i.device;
-				ret += "]";
+				ret += ']';
 			}
 			else
 #endif
 			{
 				ret += i.device;
 			}
-			ret += ":";
+			ret += ':';
 			ret += to_string(i.port).data();
-			if (i.ssl) ret += "s";
+			if (i.ssl) ret += 's';
 		}
 
 		return ret;

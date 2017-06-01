@@ -634,18 +634,18 @@ namespace {
 					if (i < e.list_size() - 1) ret += (one_liner?", ":indent_str);
 					else ret += (one_liner?" ":indent_str+1);
 				}
-				ret += "]";
+				ret += ']';
 				return ret;
 			}
 			case lazy_entry::dict_t:
 			{
-				ret += "{";
+				ret += '{';
 				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
 
 				if (!one_liner) ret += indent_str+1;
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
-					if (i == 0 && one_liner) ret += " ";
+					if (i == 0 && one_liner) ret += ' ';
 					std::pair<std::string, lazy_entry const*> ent = e.dict_at(i);
 					print_string(ret, ent.first.c_str(), int(ent.first.size()), true);
 					ret += ": ";

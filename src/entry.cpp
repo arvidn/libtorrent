@@ -644,12 +644,12 @@ namespace {
 	void entry::to_string_impl(std::string& out, int indent) const
 	{
 		TORRENT_ASSERT(indent >= 0);
-		for (int i = 0; i < indent; ++i) out += " ";
+		for (int i = 0; i < indent; ++i) out += ' ';
 		switch (type())
 		{
 		case int_t:
 			out += libtorrent::to_string(integer()).data();
-			out += "\n";
+			out += '\n';
 			break;
 		case string_t:
 			{
@@ -665,12 +665,12 @@ namespace {
 				if (binary_string)
 				{
 					out += aux::to_hex(string());
-					out += "\n";
+					out += '\n';
 				}
 				else
 				{
 					out += string();
-					out += "\n";
+					out += '\n';
 				}
 			} break;
 		case list_t:
@@ -695,16 +695,16 @@ namespace {
 							break;
 						}
 					}
-					for (int j = 0; j < indent + 1; ++j) out += " ";
-					out += "[";
+					for (int j = 0; j < indent + 1; ++j) out += ' ';
+					out += '[';
 					if (binary_string) out += aux::to_hex(i->first);
 					else out += i->first;
-					out += "]";
+					out += ']';
 
 					if (i->second.type() != entry::string_t
 						&& i->second.type() != entry::int_t)
-						out += "\n";
-					else out += " ";
+						out += '\n';
+					else out += ' ';
 					i->second.to_string_impl(out, indent + 2);
 				}
 			} break;

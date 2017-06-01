@@ -288,7 +288,7 @@ namespace libtorrent {
 		{
 			std::string ret;
 			ret += to_string(ev).data();
-			ret += " ";
+			ret += ' ';
 			switch (ev)
 			{
 				case errors::cont: ret += "Continue"; break;
