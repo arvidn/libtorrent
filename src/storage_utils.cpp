@@ -174,7 +174,8 @@ namespace libtorrent { namespace aux {
 			if (ec) return -1;
 
 			// advance our position in the iovec array and the file offset.
-			current_buf = advance_bufs(current_buf, bytes_transferred);
+			auto const s = advance_bufs(current_buf, bytes_transferred);
+			current_buf = {s.data(), s.size()};
 			bytes_left -= bytes_transferred;
 			file_offset += bytes_transferred;
 
