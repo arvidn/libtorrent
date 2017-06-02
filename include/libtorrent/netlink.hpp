@@ -106,6 +106,9 @@ namespace libtorrent {
 			return sizeof(m_sockaddr);
 		}
 
+		// commented the comparison operators for now, until the
+		// same operators are implemented for sockaddr_nl
+		/*
 		friend bool operator==(const basic_nl_endpoint<Protocol>& l
 			, const basic_nl_endpoint<Protocol>& r)
 		{
@@ -141,6 +144,7 @@ namespace libtorrent {
 		{
 			return !(l < r);
 		}
+		*/
 
 		private:
 			protocol_type m_proto;
