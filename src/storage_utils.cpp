@@ -63,7 +63,7 @@ namespace libtorrent { namespace aux {
 		return ret;
 	}
 
-	span<iovec_t> advance_bufs(span<iovec_t> bufs, int const bytes)
+	typed_span<iovec_t> advance_bufs(typed_span<iovec_t> bufs, int const bytes)
 	{
 		TORRENT_ASSERT(bytes >= 0);
 		std::size_t size = 0;
