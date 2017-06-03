@@ -64,22 +64,22 @@ namespace aux {
 	template <typename T>
 	struct span
 	{
-		span() : m_ptr(nullptr), m_len(0) {}
+		span() noexcept : m_ptr(nullptr), m_len(0) {}
 
 		template <typename U, typename
 			= typename std::enable_if<aux::compatible_type<U, T>::value>::type>
-		span(span<U> const& v) // NOLINT
+		span(span<U> const& v) noexcept // NOLINT
 			: m_ptr(v.data()), m_len(v.size()) {}
 
-		span(T& p) : m_ptr(&p), m_len(1) {} // NOLINT
-		span(T* p, std::size_t const l) : m_ptr(p), m_len(l) {} // NOLINT
+		span(T& p) noexcept : m_ptr(&p), m_len(1) {} // NOLINT
+		span(T* p, std::size_t const l) noexcept : m_ptr(p), m_len(l) {} // NOLINT
 
 		template <typename U, std::size_t N>
-		span(std::array<U, N>& arr) // NOLINT
+		span(std::array<U, N>& arr) noexcept // NOLINT
 			: m_ptr(arr.data()), m_len(arr.size()) {}
 
 		template <typename U, std::size_t N>
-		span(U (&arr)[N]) // NOLINT
+		span(U (&arr)[N]) noexcept // NOLINT
 			: m_ptr(&arr[0]), m_len(N) {}
 
 		// anything with a .data() member function is considered a container
@@ -90,20 +90,20 @@ namespace aux {
 		span(Cont& c) // NOLINT
 			: m_ptr(c.data()), m_len(c.size()) {}
 
-		std::size_t size() const { return m_len; }
-		bool empty() const { return m_len == 0; }
-		T* data() const { return m_ptr; }
+		std::size_t size() const noexcept { return m_len; }
+		bool empty() const noexcept { return m_len == 0; }
+		T* data() const noexcept { return m_ptr; }
 
 		using iterator = T*;
 		using reverse_iterator = std::reverse_iterator<T*>;
 
-		T* begin() const { return m_ptr; }
-		T* end() const { return m_ptr + m_len; }
-		reverse_iterator rbegin() const { return reverse_iterator(end()); }
-		reverse_iterator rend() const { return reverse_iterator(begin()); }
+		T* begin() const noexcept { return m_ptr; }
+		T* end() const noexcept { return m_ptr + m_len; }
+		reverse_iterator rbegin() const noexcept { return reverse_iterator(end()); }
+		reverse_iterator rend() const noexcept { return reverse_iterator(begin()); }
 
-		T& front() const { TORRENT_ASSERT(m_len > 0); return m_ptr[0]; }
-		T& back() const { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len - 1]; }
+		T& front() const noexcept { TORRENT_ASSERT(m_len > 0); return m_ptr[0]; }
+		T& back() const noexcept { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len - 1]; }
 
 		span<T> first(std::size_t const n) const
 		{

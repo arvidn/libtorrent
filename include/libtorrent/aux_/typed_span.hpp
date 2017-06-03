@@ -47,8 +47,36 @@ namespace libtorrent { namespace aux {
 		using base = span<T>;
 		using underlying_index = typename underlying_index_t<IndexType>::type;
 
-		// pull in constructors from base class
-		using base::base;
+		// disallow conversions from other index types
+		template <typename OtherIndex>
+		typed_span(typed_span<T, OtherIndex> const&) = delete;
+		typed_span() noexcept = default;
+		typed_span(typed_span const&) noexcept = default;
+		typed_span& operator=(typed_span const&) noexcept = default;
+
+		template <typename U, typename
+			= typename std::enable_if<aux::compatible_type<U, T>::value>::type>
+		typed_span(typed_span<U> const& v) noexcept // NOLINT
+			: span<T>(v) {}
+
+		typed_span(T& p) noexcept : span<T>(p) {} // NOLINT
+		typed_span(T* p, std::size_t const l) noexcept : span<T>(p, l) {} // NOLINT
+
+		template <typename U, std::size_t N>
+		typed_span(std::array<U, N>& arr) noexcept // NOLINT
+			: span<T>(arr.data(), arr.size()) {}
+
+		template <typename U, std::size_t N>
+		typed_span(U (&arr)[N]) noexcept // NOLINT
+			: span<T>(&arr[0], N) {}
+
+		// anything with a .data() member function is considered a container
+		// but only if the value type is compatible with T
+		template <typename Cont
+			, typename U = typename std::remove_reference<decltype(*std::declval<Cont>().data())>::type
+			, typename = typename std::enable_if<aux::compatible_type<U, T>::value>::type>
+		typed_span(Cont& c) : span<T>(c.data(), c.size())// NOLINT
+		{}
 
 		auto operator[](IndexType idx) const ->
 #if TORRENT_AUTO_RETURN_TYPES
