@@ -459,6 +459,14 @@ void bind_torrent_handle()
         .value("dont_replace", move_flags_t::dont_replace)
     ;
 
+#ifndef TORRENT_NO_DEPRECATE
+	enum_<deprecated_move_flags_t>("deprecated_move_flags_t")
+        .value("always_replace_files", deprecated_move_flags_t::always_replace_files)
+        .value("fail_if_exist", deprecated_move_flags_t::fail_if_exist)
+        .value("dont_replace", deprecated_move_flags_t::dont_replace)
+    ;
+#endif
+
     class_<torrent_handle>("torrent_handle")
         .def(self == self)
         .def(self != self)
