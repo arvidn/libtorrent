@@ -33,7 +33,7 @@ EXTRA_DIST = \
 if ENABLE_PYTHON_BINDING
 
 all-local:
-	$(PYTHON) $(srcdir)/setup.py build
+	CXX="$(CXX)" $(PYTHON) $(srcdir)/setup.py build
 
 install-exec-local:
 	$(PYTHON) $(srcdir)/setup.py install @PYTHON_INSTALL_PARAMS@
