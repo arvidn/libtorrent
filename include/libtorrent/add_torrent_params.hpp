@@ -525,18 +525,13 @@ namespace libtorrent {
 
 	};
 
-	static_assert(std::is_nothrow_move_constructible<add_torrent_params>::value
-		, "should be nothrow move constructible");
-
+	TORRENT_ASSERT_NOTHROW_MOVE_CONSTRUCTIBLE(add_torrent_params);
 	// TODO: pre C++17, GCC and msvc does not make std::string nothrow move
 	// assignable, which means no type containing a string will be nothrow move
 	// assignable by default either
-//	static_assert(std::is_nothrow_move_assignable<add_torrent_params>::value
-//		, "should be nothrow move assignable");
-
+	//TORRENT_ASSERT_NOTHROW_MOVE_ASSIGNABLE(add_torrent_params);
 	// TODO: it would be nice if this was nothrow default constructible
-//	static_assert(std::is_nothrow_default_constructible<add_torrent_params>::value
-//		, "should be nothrow default constructible");
+	//TORRENT_ASSERT_NOTHROW_DEFAULT_CONSTRUCTIBLE(add_torrent_params);
 }
 
 #endif

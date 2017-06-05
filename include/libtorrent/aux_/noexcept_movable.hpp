@@ -69,4 +69,29 @@ namespace aux {
 }
 }
 
+#ifndef TORRENT_ASSERT_NOTHROW_MOVE_CONSTRUCTIBLE
+#define TORRENT_ASSERT_NOTHROW_MOVE_CONSTRUCTIBLE(T) \
+	static_assert(std::is_nothrow_move_constructible<T>::value \
+		, "should be nothrow move constructible");
+#endif
+
+#ifndef TORRENT_ASSERT_NOTHROW_MOVE_ASSIGNABLE
+#define TORRENT_ASSERT_NOTHROW_MOVE_ASSIGNABLE(T) \
+	static_assert(std::is_nothrow_move_assignable<T>::value \
+		, "should be nothrow move assignable");
+#endif
+
+#ifndef TORRENT_ASSERT_NOTHROW_DEFAULT_CONSTRUCTIBLE
+#define TORRENT_ASSERT_NOTHROW_DEFAULT_CONSTRUCTIBLE(T) \
+	static_assert(std::is_nothrow_default_constructible<T>::value \
+		, "should be nothrow default constructible");
+#endif
+
+#ifndef TORRENT_ASSERT_NOTHROW_TYPE
+#define TORRENT_ASSERT_NOTHROW_TYPE(T) \
+	TORRENT_ASSERT_NOTHROW_MOVE_CONSTRUCTIBLE(T); \
+	TORRENT_ASSERT_NOTHROW_MOVE_ASSIGNABLE(T); \
+	TORRENT_ASSERT_NOTHROW_DEFAULT_CONSTRUCTIBLE(T);
+#endif
+
 #endif
