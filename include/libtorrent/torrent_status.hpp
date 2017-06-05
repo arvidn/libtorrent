@@ -561,12 +561,9 @@ namespace libtorrent {
 		seconds seeding_duration;
 	};
 
-	static_assert(std::is_nothrow_move_constructible<torrent_status>::value
-		, "should be nothrow move constructible");
-//	static_assert(std::is_nothrow_move_assignable<torrent_status>::value
-//		, "should be nothrow move assignable");
-	static_assert(std::is_nothrow_default_constructible<torrent_status>::value
-		, "should be nothrow default constructible");
+	TORRENT_ASSERT_NOTHROW_MOVE_CONSTRUCTIBLE(torrent_status);
+	//TORRENT_ASSERT_NOTHROW_MOVE_ASSIGNABLE(torrent_status);
+	TORRENT_ASSERT_NOTHROW_DEFAULT_CONSTRUCTIBLE(torrent_status);
 }
 
 namespace std

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/unique_ptr.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/aux_/noexcept_movable.hpp" // for TORRENT_ASSERT_NOTHROW_TYPE
 
 #include <cstring> // for memset and memcpy
 #include <cstdint> // uint32_t
@@ -256,12 +257,7 @@ namespace libtorrent {
 		aux::unique_ptr<std::uint32_t[]> m_buf;
 	};
 
-	static_assert(std::is_nothrow_move_constructible<bitfield>::value
-		, "should be nothrow move constructible");
-	static_assert(std::is_nothrow_move_assignable<bitfield>::value
-		, "should be nothrow move assignable");
-	static_assert(std::is_nothrow_default_constructible<bitfield>::value
-		, "should be nothrow default constructible");
+	TORRENT_ASSERT_NOTHROW_TYPE(bitfield);
 
 	template <typename IndexType>
 	struct typed_bitfield : bitfield
@@ -302,12 +298,7 @@ namespace libtorrent {
 		IndexType end_index() const { return IndexType(this->size()); }
 	};
 
-	static_assert(std::is_nothrow_move_constructible<typed_bitfield<int>>::value
-		, "should be nothrow move constructible");
-	static_assert(std::is_nothrow_move_assignable<typed_bitfield<int>>::value
-		, "should be nothrow move assignable");
-	static_assert(std::is_nothrow_default_constructible<typed_bitfield<int>>::value
-		, "should be nothrow default constructible");
+	TORRENT_ASSERT_NOTHROW_TYPE(typed_bitfield<int>);
 
 }
 
