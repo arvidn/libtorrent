@@ -213,4 +213,18 @@ namespace libtorrent {
 			? (num - 1) * 32 + ext
 			: size - (aux::count_trailing_ones({&m_buf[1], std::size_t(num - 1)}) + ext);
 	}
+
+	static_assert(std::is_nothrow_move_constructible<bitfield>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_move_assignable<bitfield>::value
+		, "should be nothrow move assignable");
+	static_assert(std::is_nothrow_default_constructible<bitfield>::value
+		, "should be nothrow default constructible");
+
+	static_assert(std::is_nothrow_move_constructible<typed_bitfield<int>>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_move_assignable<typed_bitfield<int>>::value
+		, "should be nothrow move assignable");
+	static_assert(std::is_nothrow_default_constructible<typed_bitfield<int>>::value
+		, "should be nothrow default constructible");
 }

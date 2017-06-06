@@ -256,13 +256,6 @@ namespace libtorrent {
 		aux::unique_ptr<std::uint32_t[]> m_buf;
 	};
 
-	static_assert(std::is_nothrow_move_constructible<bitfield>::value
-		, "should be nothrow move constructible");
-	static_assert(std::is_nothrow_move_assignable<bitfield>::value
-		, "should be nothrow move assignable");
-	static_assert(std::is_nothrow_default_constructible<bitfield>::value
-		, "should be nothrow default constructible");
-
 	template <typename IndexType>
 	struct typed_bitfield : bitfield
 	{
@@ -301,14 +294,6 @@ namespace libtorrent {
 
 		IndexType end_index() const { return IndexType(this->size()); }
 	};
-
-	static_assert(std::is_nothrow_move_constructible<typed_bitfield<int>>::value
-		, "should be nothrow move constructible");
-	static_assert(std::is_nothrow_move_assignable<typed_bitfield<int>>::value
-		, "should be nothrow move assignable");
-	static_assert(std::is_nothrow_default_constructible<typed_bitfield<int>>::value
-		, "should be nothrow default constructible");
-
 }
 
 #endif // TORRENT_BITFIELD_HPP_INCLUDED

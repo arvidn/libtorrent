@@ -750,4 +750,11 @@ namespace libtorrent {
 		// for expired weak_ptrs. So, we're left with a hack
 		return std::size_t(*reinterpret_cast<void* const*>(&th.m_torrent));
 	}
+
+	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_move_assignable<torrent_handle>::value
+		, "should be nothrow move assignable");
+	static_assert(std::is_nothrow_default_constructible<torrent_handle>::value
+		, "should be nothrow default constructible");
 }
