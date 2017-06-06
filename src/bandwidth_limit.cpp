@@ -61,16 +61,12 @@ namespace libtorrent {
 	{
 		if (m_limit == 0) return;
 
+		m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
+		if (m_quota_left / 3 > m_limit) m_quota_left = m_limit * 3;
+
 		// avoid integer overflow
-		if (m_limit >= (std::int64_t(std::numeric_limits<int>::max()) * 1000) / dt_milliseconds)
-		{
-			m_quota_left = std::numeric_limits<int>::max();
-		}
-		else
-		{
-			m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
-			if (m_quota_left / 3 > m_limit) m_quota_left = m_limit * 3;
-		}
+		m_quota_left = std::min(m_quota_left, std::int64_t(std::numeric_limits<int>::max()));
+
 		distribute_quota = int(std::max(m_quota_left, std::int64_t(0)));
 	}
 
