@@ -62,7 +62,7 @@ namespace libtorrent {
 		if (m_limit == 0) return;
 
 		// avoid integer overflow
-		if (m_limit >= std::numeric_limits<int>::max() / dt_milliseconds)
+		if (m_limit >= (std::int64_t(std::numeric_limits<int>::max()) * 1000) / dt_milliseconds)
 		{
 			m_quota_left = std::numeric_limits<int>::max();
 		}
