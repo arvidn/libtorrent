@@ -61,7 +61,7 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT_VAL(m_limit >= 0, m_limit);
 
-		TORRENT_ASSERT_VAL(m_limit < inf, m_limit);
+		TORRENT_ASSERT_VAL(m_limit <= inf, m_limit);
 
 		if (m_limit == 0) return;
 
