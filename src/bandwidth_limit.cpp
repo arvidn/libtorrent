@@ -45,9 +45,9 @@ namespace libtorrent {
 	// 0 means infinite
 	void bandwidth_channel::throttle(int limit)
 	{
-		TORRENT_ASSERT(limit >= 0);
+		TORRENT_ASSERT_VAL(limit >= 0, limit);
 		// if the throttle is more than this, we might overflow
-		TORRENT_ASSERT(limit < inf);
+		TORRENT_ASSERT_VAL(limit < inf, limit);
 		m_limit = limit;
 	}
 
@@ -60,15 +60,14 @@ namespace libtorrent {
 	void bandwidth_channel::update_quota(int dt_milliseconds)
 	{
 		TORRENT_ASSERT_VAL(m_limit >= 0, m_limit);
-
-		TORRENT_ASSERT_VAL(m_limit <= inf, m_limit);
+		TORRENT_ASSERT_VAL(m_limit < inf, m_limit);
 
 		if (m_limit == 0) return;
 
 		// "to_add" should never have int64 overflow: "m_limit" contains < "<int>::max"
 		std::int64_t to_add = (m_limit * dt_milliseconds + 500) / 1000;
 
-		if (to_add > inf)
+		if (to_add > inf - m_quota_left)
 		{
 			m_quota_left = inf;
 		}
