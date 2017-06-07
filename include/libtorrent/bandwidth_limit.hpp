@@ -51,8 +51,9 @@ struct TORRENT_EXTRA_EXPORT bandwidth_channel
 	void throttle(int limit);
 	int throttle() const
 	{
+		TORRENT_ASSERT_VAL(m_limit >= 0, m_limit);
 		TORRENT_ASSERT_VAL(m_limit < inf, m_limit);
-		return int(m_limit);
+		return m_limit;
 	}
 
 	int quota_left() const;
@@ -92,7 +93,7 @@ private:
 
 	// the limit is the number of bytes
 	// per second we are allowed to use.
-	std::int64_t m_limit;
+	int m_limit;
 };
 
 }
