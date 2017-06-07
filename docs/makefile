@@ -9,6 +9,10 @@ ifndef RST2HTML
 RST2HTML:=rst2html
 endif
 
+ifndef AAFIGURE
+AAFIGURE=aafigure
+endif
+
 REFERENCE_TARGETS = \
 	manual-ref \
 	reference \
@@ -120,7 +124,7 @@ ifneq ($(STAGE),)
 endif
 
 %.png:%.diagram
-	aafigure --scale 0.6 -o $@ $?
+	$(AAFIGURE) --scale 0.6 -o $@ $?
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
