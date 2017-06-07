@@ -452,8 +452,8 @@ namespace libtorrent {
 		// posted, regardless of the alert mask.
 		void dht_live_nodes(sha1_hash const& nid);
 
-		// Query the DHT to retrieve a sample of the infohashes that the specific
-		// node currently have in their storage.
+		// Query the DHT node specified by ``ep`` to retrieve a sample of the
+		// infohashes that the node currently have in their storage.
 		// The ``target`` is included for iterative lookups so that indexing nodes
 		// can perform a keyspace traversal with a single RPC per node by adjusting
 		// the target value for each RPC. It has no effect on the returned sample value.

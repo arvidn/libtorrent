@@ -2604,7 +2604,7 @@ namespace libtorrent {
 
 		virtual std::string message() const override;
 
-		udp::endpoint const endpoint;
+		aux::noexcept_movable<udp::endpoint> endpoint;
 
 		time_duration const interval;
 
@@ -2616,7 +2616,13 @@ namespace libtorrent {
 		int num_samples() const;
 		std::vector<sha1_hash> samples() const;
 
+		// The total number of nodes returned by ``nodes()``.
 		int num_nodes() const;
+
+		// This is the set of more DHT nodes returned by the request.
+		//
+		// The information is included so that indexing nodes can perform a keyspace
+		// traversal with a single RPC per node by adjusting the target value for each RPC.
 		std::vector<std::pair<sha1_hash, udp::endpoint>> nodes() const;
 
 	private:

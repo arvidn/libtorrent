@@ -138,6 +138,8 @@ void sample_infohashes_observer::reply(msg const& m)
 	}
 
 	traversal_observer::reply(m);
+	// this is necessary to play nice with
+	// observer::abort(), observer::done() and observer::timeout()
 	flags |= flag_done;
 }
 

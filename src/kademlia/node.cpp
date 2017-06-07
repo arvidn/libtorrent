@@ -589,10 +589,9 @@ void node::sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 #endif
 
 	entry e;
-	entry& a = e["a"];
 
 	e["q"] = "sample_infohashes";
-	a["target"] = target.to_string();
+	e["a"]["target"] = target;
 
 	stats_counters().inc_stats_counter(counters::dht_sample_infohashes_out);
 
@@ -1154,7 +1153,7 @@ void node::incoming_request(msg const& m, entry& e)
 		}
 
 		m_counters.inc_stats_counter(counters::dht_sample_infohashes_in);
-		sha1_hash target(msg_keys[0].string_ptr());
+		sha1_hash const target(msg_keys[0].string_ptr());
 
 		// TODO: keep the returned value to pass as a limit
 		// to write_nodes_entries when implemented
