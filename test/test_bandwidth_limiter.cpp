@@ -466,6 +466,7 @@ TORRENT_TEST(equal_connection)
 	test_equal_connections(33,   60000);
 	test_equal_connections(33,  500000);
 	test_equal_connections( 1, 1000000);
+	test_equal_connections( 1, 6000000);
 }
 
 TORRENT_TEST(conn_var_rate)
