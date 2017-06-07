@@ -1560,7 +1560,7 @@ namespace libtorrent {
 
 	void disk_io_thread::async_read(storage_index_t storage, peer_request const& r
 		, std::function<void(disk_buffer_holder block, std::uint32_t const flags
-		, storage_error const& se)> handler, void* requester, std::uint8_t const flags)
+		, storage_error const& se)> handler, std::uint8_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
@@ -1575,7 +1575,6 @@ namespace libtorrent {
 		j->d.io.buffer_size = std::uint16_t(r.length);
 		j->argument = disk_buffer_holder(*this, nullptr);
 		j->flags = flags;
-		j->requester = requester;
 		j->callback = std::move(handler);
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
@@ -1767,14 +1766,13 @@ namespace libtorrent {
 
 	void disk_io_thread::async_hash(storage_index_t const storage
 		, piece_index_t piece, std::uint8_t flags
-		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler, void* requester)
+		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::hash);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = piece;
 		j->callback = std::move(handler);
 		j->flags = flags;
-		j->requester = requester;
 
 		int piece_size = j->storage->files().piece_size(piece);
 
@@ -2212,7 +2210,9 @@ namespace libtorrent {
 #if TORRENT_USE_ASSERTS
 			pe->piece_log.push_back(piece_log_t(j->action));
 #endif
-			m_disk_cache.cache_hit(pe, j->requester, (j->flags & disk_interface::volatile_read) != 0);
+			int const block_size = m_disk_cache.block_size();
+			m_disk_cache.cache_hit(pe, j->d.io.offset / block_size
+				, (j->flags & disk_interface::volatile_read) != 0);
 
 			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 			{

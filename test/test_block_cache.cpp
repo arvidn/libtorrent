@@ -149,7 +149,6 @@ static void nop() {}
 	rj.d.io.buffer_size = 0x4000; \
 	rj.piece = piece_index_t(p); \
 	rj.storage = pm; \
-	rj.requester = (void*)(r); \
 	rj.argument = disk_buffer_holder(alloc, nullptr); \
 	ret = bc.try_read(&rj, alloc)
 
@@ -163,7 +162,6 @@ static void nop() {}
 
 #define INSERT(p, b) \
 	wj.piece = piece_index_t(p); \
-	wj.requester = (void*)1; \
 	pe = bc.allocate_piece(&wj, cached_piece_entry::read_lru1); \
 	ret = bc.allocate_iovec(iov); \
 	TEST_EQUAL(ret, 0); \
@@ -408,7 +406,7 @@ void test_arc_unghost()
 
 	// the block is now a ghost. If we cache-hit it,
 	// it should be promoted back to the main list
-	bc.cache_hit(pe, (void*)1, false);
+	bc.cache_hit(pe, 0, false);
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -446,7 +444,6 @@ void test_unaligned_read()
 	rj.d.io.buffer_size = 0x4000;
 	rj.piece = piece_index_t(0);
 	rj.storage = pm;
-	rj.requester = (void*)1;
 	rj.argument = disk_buffer_holder(alloc, nullptr);
 	ret = bc.try_read(&rj, alloc);
 
@@ -500,7 +497,6 @@ TORRENT_TEST(delete_piece)
 	rj.d.io.buffer_size = 0x4000;
 	rj.piece = piece_index_t(0);
 	rj.storage = pm;
-	rj.requester = (void*)1;
 	rj.argument = 0;
 	ret = bc.try_read(&rj, alloc);
 

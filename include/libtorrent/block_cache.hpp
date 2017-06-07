@@ -119,14 +119,15 @@ namespace aux {
 		cached_block_entry()
 			: buf(0)
 			, refcount(0)
-			, dirty(false)
-			, pending(false)
+			, dirty(0)
+			, pending(0)
+			, cache_hit(0)
 		{
 		}
 
 		char* buf;
 
-		enum { max_refcount = (1 << 30) - 1 };
+		enum { max_refcount = (1 << 29) - 1 };
 
 		// the number of references to this buffer. These references
 		// might be in outstanding asynchronous requests or in peer
@@ -134,7 +135,7 @@ namespace aux {
 		// all references are gone and refcount reaches 0. The buf
 		// pointer in this struct doesn't count as a reference and
 		// is always the last to be cleared
-		std::uint32_t refcount:30;
+		std::uint32_t refcount:29;
 
 		// if this is true, this block needs to be written to
 		// disk before it's freed. Typically all blocks in a piece
@@ -149,6 +150,11 @@ namespace aux {
 		// If the dirty flag is set, it means there's an outstanding
 		// write job to write this block.
 		std::uint32_t pending:1;
+
+		// this is set to 1 if this block has been read at least once. If the same
+		// block is read twice, the whole piece is considered *frequently* used,
+		// not just recently used.
+		std::uint32_t cache_hit:1;
 
 #if TORRENT_USE_ASSERTS
 		// this many of the references are held by hashing operations
@@ -199,10 +205,6 @@ namespace aux {
 		// for this piece. This member stores the interim
 		// state while we're calculating the hash.
 		std::unique_ptr<partial_hash> hash;
-
-		// set to a unique identifier of a peer that last
-		// requested from this piece.
-		void* last_requester = nullptr;
 
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
@@ -394,7 +396,7 @@ namespace aux {
 		// called when we're reading and we found the piece we're
 		// reading from in the hash table (not necessarily that we
 		// hit the block we needed)
-		void cache_hit(cached_piece_entry* p, void* requester, bool volatile_read);
+		void cache_hit(cached_piece_entry* p, int block, bool volatile_read);
 
 		// free block from piece entry
 		void free_block(cached_piece_entry* pe, int block);
