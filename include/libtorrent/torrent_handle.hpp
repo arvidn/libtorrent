@@ -1312,13 +1312,6 @@ namespace libtorrent { namespace aux {
 
 		std::weak_ptr<torrent> m_torrent;
 	};
-
-	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value
-		, "should be nothrow move constructible");
-	static_assert(std::is_nothrow_move_assignable<torrent_handle>::value
-		, "should be nothrow move assignable");
-	static_assert(std::is_nothrow_default_constructible<torrent_handle>::value
-		, "should be nothrow default constructible");
 }
 
 namespace std

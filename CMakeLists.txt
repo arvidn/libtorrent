@@ -123,6 +123,7 @@ set(sources
 	xml_parse
 	version
 	ffs
+	add_torrent_params
 
 # -- extensions --
 	ut_pex

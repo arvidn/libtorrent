@@ -276,13 +276,6 @@ namespace aux {
 	// peer IDs, node IDs etc.
 	using sha1_hash = digest32<160>;
 
-	static_assert(std::is_nothrow_move_constructible<sha1_hash>::value
-		, "should be nothrow move constructible");
-	static_assert(std::is_nothrow_move_assignable<sha1_hash>::value
-		, "should be nothrow move assignable");
-	static_assert(std::is_nothrow_default_constructible<sha1_hash>::value
-		, "should be nothrow default constructible");
-
 #if TORRENT_USE_IOSTREAM
 
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits

@@ -666,6 +666,7 @@ SOURCES =
 	proxy_settings
 	file_progress
 	ffs
+	add_torrent_params
 
 # -- extensions --
 	ut_pex

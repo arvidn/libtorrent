@@ -137,4 +137,11 @@ namespace aux {
 		}
 	}
 }
+
+	static_assert(std::is_nothrow_move_constructible<sha1_hash>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_move_assignable<sha1_hash>::value
+		, "should be nothrow move assignable");
+	static_assert(std::is_nothrow_default_constructible<sha1_hash>::value
+		, "should be nothrow default constructible");
 }

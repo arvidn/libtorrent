@@ -160,6 +160,7 @@ libtorrent_rasterbar_la_SOURCES = \
   version.cpp                     \
   file_progress.cpp               \
   ffs.cpp                         \
+  add_torrent_params.cpp          \
   \
   $(KADEMLIA_SOURCES)             \
   \

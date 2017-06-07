@@ -85,12 +85,12 @@ namespace libtorrent {
 		// The constructor can be used to initialize the storage constructor,
 		// which determines the storage mechanism for the downloaded or seeding
 		// data for the torrent. For more information, see the ``storage`` field.
-		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor)
-			: storage(storage_constructor_type(sc)) {}
-		add_torrent_params(add_torrent_params&&) noexcept = default;
-		add_torrent_params& operator=(add_torrent_params&&) noexcept = default;
-		add_torrent_params(add_torrent_params const&) = default;
-		add_torrent_params& operator=(add_torrent_params const&) = default;
+		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor);
+		add_torrent_params(add_torrent_params&&) noexcept;
+		// TODO: GCC did not make std::string nothrow move-assignable
+		add_torrent_params& operator=(add_torrent_params&&);
+		add_torrent_params(add_torrent_params const&);
+		add_torrent_params& operator=(add_torrent_params const&);
 
 		// values for the ``flags`` field
 		enum flags_t : std::uint64_t
@@ -524,19 +524,6 @@ namespace libtorrent {
 #endif
 
 	};
-
-	static_assert(std::is_nothrow_move_constructible<add_torrent_params>::value
-		, "should be nothrow move constructible");
-
-	// TODO: pre C++17, GCC and msvc does not make std::string nothrow move
-	// assignable, which means no type containing a string will be nothrow move
-	// assignable by default either
-//	static_assert(std::is_nothrow_move_assignable<add_torrent_params>::value
-//		, "should be nothrow move assignable");
-
-	// TODO: it would be nice if this was nothrow default constructible
-//	static_assert(std::is_nothrow_default_constructible<add_torrent_params>::value
-//		, "should be nothrow default constructible");
 }
 
 #endif

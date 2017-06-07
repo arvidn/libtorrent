@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015-2016, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,27 +30,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/torrent_status.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 
 namespace libtorrent {
 
-	file_index_t constexpr torrent_status::error_file_none;
-	file_index_t constexpr torrent_status::error_file_url;
-	file_index_t constexpr torrent_status::error_file_ssl_ctx;
-	file_index_t constexpr torrent_status::error_file_metadata;
-	file_index_t constexpr torrent_status::error_file_exception;
+	add_torrent_params::add_torrent_params(storage_constructor_type sc)
+		: storage(storage_constructor_type(sc)) {}
+	add_torrent_params::add_torrent_params(add_torrent_params&&) noexcept = default;
+	add_torrent_params& add_torrent_params::operator=(add_torrent_params&&) = default;
+	add_torrent_params::add_torrent_params(add_torrent_params const&) = default;
+	add_torrent_params& add_torrent_params::operator=(add_torrent_params const&) = default;
 
-	torrent_status::torrent_status() noexcept {}
-	torrent_status::~torrent_status() = default;
-	torrent_status::torrent_status(torrent_status const&) = default;
-	torrent_status& torrent_status::operator=(torrent_status const&) = default;
-	torrent_status::torrent_status(torrent_status&&) noexcept = default;
-	torrent_status& torrent_status::operator=(torrent_status&&) = default;
-
-	static_assert(std::is_nothrow_move_constructible<torrent_status>::value
+	static_assert(std::is_nothrow_move_constructible<add_torrent_params>::value
 		, "should be nothrow move constructible");
-//	static_assert(std::is_nothrow_move_assignable<torrent_status>::value
+
+	// TODO: pre C++17, GCC and msvc does not make std::string nothrow move
+	// assignable, which means no type containing a string will be nothrow move
+	// assignable by default either
+//	static_assert(std::is_nothrow_move_assignable<add_torrent_params>::value
 //		, "should be nothrow move assignable");
-	static_assert(std::is_nothrow_default_constructible<torrent_status>::value
-		, "should be nothrow default constructible");
+
+	// TODO: it would be nice if this was nothrow default constructible
+//	static_assert(std::is_nothrow_default_constructible<add_torrent_params>::value
+//		, "should be nothrow default constructible");
 }
