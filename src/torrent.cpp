@@ -858,7 +858,7 @@ namespace libtorrent {
 			r.length = (std::min)(piece_size - r.start, block_size());
 			m_ses.disk_thread().async_read(m_storage, r
 				, std::bind(&torrent::on_disk_read_complete
-				, shared_from_this(), _1, _2, _3, r, rp), reinterpret_cast<void*>(1));
+				, shared_from_this(), _1, _2, _3, r, rp));
 		}
 	}
 
@@ -2242,7 +2242,7 @@ namespace libtorrent {
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece
 				, disk_interface::sequential_access | disk_interface::volatile_read
 				, std::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2, _3), reinterpret_cast<void*>(1));
+					, shared_from_this(), _1, _2, _3));
 			++m_checking_piece;
 			if (m_checking_piece >= m_torrent_file->end_piece()) break;
 		}
@@ -2365,7 +2365,7 @@ namespace libtorrent {
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece
 				, disk_interface::sequential_access | disk_interface::volatile_read
 				, std::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2, _3), reinterpret_cast<void*>(1));
+					, shared_from_this(), _1, _2, _3));
 			++m_checking_piece;
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("on_piece_hashed, m_checking_piece: %d"
@@ -10092,8 +10092,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_storage);
 
 		m_ses.disk_thread().async_hash(m_storage, piece, 0
-			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, _3)
-			, reinterpret_cast<void*>(1));
+			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, _3));
 	}
 
 	announce_entry* torrent::find_tracker(std::string const& url)

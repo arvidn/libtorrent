@@ -5102,7 +5102,7 @@ namespace libtorrent {
 				// verified this piece (r.piece)
 				m_disk_thread.async_hash(t->storage(), r.piece, 0
 					, std::bind(&peer_connection::on_seed_mode_hashed, self()
-						, _1, _2, _3), this);
+						, _1, _2, _3));
 				t->verifying(r.piece);
 				continue;
 			}
@@ -5138,7 +5138,7 @@ namespace libtorrent {
 
 				m_disk_thread.async_read(t->storage(), r
 					, std::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, _3, r, clock_type::now()), this);
+					, self(), _1, _2, _3, r, clock_type::now()));
 			}
 			m_last_sent_payload = clock_type::now();
 			m_requests.erase(m_requests.begin() + i);

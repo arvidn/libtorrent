@@ -375,7 +375,7 @@ int block_cache::try_read(disk_io_job* j, buffer_allocator_interface& allocator
 #if TORRENT_USE_ASSERTS
 	p->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
 #endif
-	cache_hit(p, j->requester, (j->flags & disk_interface::volatile_read) != 0);
+	cache_hit(p, j->d.io.offset / block_size(), (j->flags & disk_interface::volatile_read) != 0);
 
 	ret = copy_from_piece(p, j, allocator, expect_no_fail);
 	if (ret < 0) return ret;
@@ -398,7 +398,7 @@ void block_cache::bump_lru(cached_piece_entry* p)
 
 // this is called for pieces that we're reading from, when they
 // are in the cache (including the ghost lists)
-void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatile_read)
+void block_cache::cache_hit(cached_piece_entry* p, int block, bool volatile_read)
 {
 // this can be pretty expensive
 //	INVARIANT_CHECK;
@@ -408,15 +408,12 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 
 	// move the piece into this queue. Whenever we have a cache
 	// hit, we move the piece into the lru2 queue (i.e. the most
-	// frequently used piece). However, we only do that if the
-	// requester is different than the last one. This is to
-	// avoid a single requester making it look like a piece is
-	// frequently requested, when in fact it's only a single peer
+	// frequently used piece).
 	std::uint16_t target_queue = cached_piece_entry::read_lru2;
 
-	if (p->last_requester == requester || requester == nullptr)
+	if (p->blocks[block].cache_hit == 0)
 	{
-		// if it's the same requester and the piece isn't in
+		// if it's not a duplicate hit and the piece isn't in
 		// any of the ghost lists, ignore it
 		if (p->cache_state == cached_piece_entry::read_lru1
 			|| p->cache_state == cached_piece_entry::read_lru2
@@ -437,9 +434,6 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 		// we need to promote it to lru1
 		target_queue = cached_piece_entry::read_lru1;
 	}
-
-	if (requester != nullptr)
-		p->last_requester = requester;
 
 	// if we have this piece anywhere in L1 or L2, it's a "hit"
 	// and it should be bumped to the highest priority in L2
@@ -626,7 +620,6 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, std::uint1
 
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!pe.blocks) return nullptr;
-		pe.last_requester = j->requester;
 		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(std::move(pe)).first);
 
 		j->storage->add_piece(p);
@@ -1265,7 +1258,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<iovec_t 
 	TORRENT_ASSERT(pe->in_use);
 	TORRENT_PIECE_ASSERT(iov.size() > 0, pe);
 
-	cache_hit(pe, j->requester, (j->flags & disk_interface::volatile_read) != 0);
+	cache_hit(pe, j->d.io.offset / block_size(), (j->flags & disk_interface::volatile_read) != 0);
 
 	TORRENT_ASSERT(pe->in_use);
 
@@ -1722,6 +1715,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 		// refcount, we're handing the ownership of the reference to the calling
 		// thread.
 		cached_block_entry& bl = pe->blocks[start_block];
+		bl.cache_hit = 1;
 
 		// make sure it didn't wrap
 		TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
@@ -1758,6 +1752,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 				+ buffer_offset
 			, pe->blocks[block].buf + block_offset
 			, aux::numeric_cast<std::size_t>(to_copy));
+		pe->blocks[block].cache_hit = 1;
 		size -= to_copy;
 		block_offset = 0;
 		buffer_offset += to_copy;

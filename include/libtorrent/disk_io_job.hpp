@@ -121,9 +121,6 @@ namespace libtorrent {
 		// is not dirty anymore
 		bool completed(cached_piece_entry const* pe, int block_size);
 
-		// unique identifier for the peer when reading
-		void* requester = nullptr;
-
 		// for read and write, this is the disk_buffer_holder
 		// for other jobs, it may point to other job-specific types
 		// for move_storage and rename_file this is a string

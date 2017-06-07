@@ -95,8 +95,7 @@ namespace {
 				{
 					m_torrent.session().disk_thread().async_read(m_torrent.storage()
 						, r, std::bind(&smart_ban_plugin::on_read_ok_block
-						, shared_from_this(), *i, i->second.peer->address(), _1, r.length, _2, _3)
-						, reinterpret_cast<void*>(1));
+						, shared_from_this(), *i, i->second.peer->address(), _1, r.length, _2, _3));
 					i = m_block_hashes.erase(i);
 				}
 				else
@@ -152,7 +151,6 @@ namespace {
 					m_torrent.session().disk_thread().async_read(m_torrent.storage(), r
 						, std::bind(&smart_ban_plugin::on_read_failed_block
 						, shared_from_this(), pb, i->address(), _1, r.length, _2, _3)
-						, reinterpret_cast<torrent_peer*>(1)
 						, disk_io_job::force_copy);
 				}
 
