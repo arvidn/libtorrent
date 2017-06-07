@@ -134,7 +134,7 @@ script:
 
   - cd docs
   - 'if [ "$docs" == "1" ]; then
-      make RST2HTML=rst2html.py;
+      make RST2HTML=rst2html.py AAFIGURE=echo;
     fi'
   - cd ..
 
