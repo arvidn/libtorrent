@@ -45,9 +45,9 @@ namespace libtorrent {
 	// 0 means infinite
 	void bandwidth_channel::throttle(int limit)
 	{
-		TORRENT_ASSERT(limit >= 0);
+		TORRENT_ASSERT_VAL(limit >= 0, limit);
 		// if the throttle is more than this, we might overflow
-		TORRENT_ASSERT(limit < inf);
+		TORRENT_ASSERT_VAL(limit < inf, limit);
 		m_limit = limit;
 	}
 
@@ -59,18 +59,26 @@ namespace libtorrent {
 
 	void bandwidth_channel::update_quota(int dt_milliseconds)
 	{
+		TORRENT_ASSERT_VAL(m_limit >= 0, m_limit);
+		TORRENT_ASSERT_VAL(m_limit < inf, m_limit);
+
 		if (m_limit == 0) return;
 
-		// avoid integer overflow
-		if (m_limit >= std::numeric_limits<int>::max() / dt_milliseconds)
+		// "to_add" should never have int64 overflow: "m_limit" contains < "<int>::max"
+		std::int64_t to_add = (std::int64_t(m_limit) * dt_milliseconds + 500) / 1000;
+
+		if (to_add > inf - m_quota_left)
 		{
-			m_quota_left = std::numeric_limits<int>::max();
+			m_quota_left = inf;
 		}
 		else
 		{
-			m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
-			if (m_quota_left / 3 > m_limit) m_quota_left = m_limit * 3;
+			m_quota_left += to_add;
+			if (m_quota_left / 3 > m_limit) m_quota_left = std::int64_t(m_limit) * 3;
+			// "m_quota_left" will never have int64 overflow but may exceed "<int>::max"
+			m_quota_left = std::min(m_quota_left, std::int64_t(inf));
 		}
+
 		distribute_quota = int(std::max(m_quota_left, std::int64_t(0)));
 	}
 
