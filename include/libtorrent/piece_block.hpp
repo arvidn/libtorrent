@@ -61,7 +61,7 @@ namespace libtorrent {
 		{ return piece_index == b.piece_index && block_index == b.block_index; }
 
 		bool operator!=(piece_block const& b) const
-		{ return piece_index != b.piece_index || block_index != b.block_index; }
+		{ return !(*this == b); }
 	};
 }
 #endif

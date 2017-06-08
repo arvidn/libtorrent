@@ -181,7 +181,7 @@ namespace libtorrent {
 			{ return buf == rhs.buf && bit == rhs.bit; }
 
 			bool operator!=(const_iterator const& rhs) const
-			{ return buf != rhs.buf || bit != rhs.bit; }
+			{ return !(*this == rhs); }
 
 		private:
 			void inc()

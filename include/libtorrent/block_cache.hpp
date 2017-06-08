@@ -193,7 +193,7 @@ namespace aux {
 		void* get_storage() const { return storage.get(); }
 
 		bool operator==(cached_piece_entry const& rhs) const
-		{ return storage.get() == rhs.storage.get() && piece == rhs.piece; }
+			{ return piece == rhs.piece && storage.get() == rhs.storage.get(); }
 
 		// if this is set, we'll be calculating the hash
 		// for this piece. This member stores the interim

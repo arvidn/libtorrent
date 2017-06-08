@@ -161,7 +161,7 @@ namespace aux {
 		}
 		bool operator!=(digest32 const& n) const
 		{
-			return !std::equal(n.m_number, n.m_number + number_size, m_number);
+			return !(*this == n);
 		}
 		bool operator<(digest32 const& n) const
 		{

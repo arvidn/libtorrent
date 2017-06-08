@@ -110,7 +110,7 @@ struct TORRENT_EXPORT peer_connection_handle
 	bool operator==(peer_connection_handle const& o) const
 	{ return !lt(m_connection, o.m_connection) && !lt(o.m_connection, m_connection); }
 	bool operator!=(peer_connection_handle const& o) const
-	{ return lt(m_connection, o.m_connection) || lt(o.m_connection, m_connection); }
+	{ return !(*this == o); }
 	bool operator<(peer_connection_handle const& o) const
 	{ return lt(m_connection, o.m_connection); }
 
