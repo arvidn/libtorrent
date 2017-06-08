@@ -1279,7 +1279,7 @@ namespace libtorrent { namespace aux {
 		bool operator==(const torrent_handle& h) const
 		{ return !m_torrent.owner_before(h.m_torrent) && !h.m_torrent.owner_before(m_torrent); }
 		bool operator!=(const torrent_handle& h) const
-		{ return !(*this == h); }
+		{ return m_torrent.owner_before(h.m_torrent) || h.m_torrent.owner_before(m_torrent); }
 		bool operator<(const torrent_handle& h) const
 		{ return m_torrent.owner_before(h.m_torrent); }
 
