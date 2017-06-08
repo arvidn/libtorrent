@@ -33,12 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/integer_traits.hpp>
-#include <boost/cstdint.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <cstdint>
+#include <limits>
 
 #include "libtorrent/assert.hpp"
 
@@ -47,7 +43,7 @@ namespace libtorrent {
 // member of peer_connection
 struct TORRENT_EXTRA_EXPORT bandwidth_channel
 {
-	static const int inf = boost::integer_traits<int>::const_max;
+	static constexpr int inf = std::numeric_limits<std::int32_t>::max();
 
 	bandwidth_channel();
 
@@ -55,8 +51,9 @@ struct TORRENT_EXTRA_EXPORT bandwidth_channel
 	void throttle(int limit);
 	int throttle() const
 	{
-		TORRENT_ASSERT_VAL(m_limit < INT_MAX, m_limit);
-		return int(m_limit);
+		TORRENT_ASSERT_VAL(m_limit >= 0, m_limit);
+		TORRENT_ASSERT_VAL(m_limit < inf, m_limit);
+		return m_limit;
 	}
 
 	int quota_left() const;
@@ -92,14 +89,13 @@ private:
 
 	// this is the amount of bandwidth we have
 	// been assigned without using yet.
-	boost::int64_t m_quota_left;
+	std::int64_t m_quota_left;
 
 	// the limit is the number of bytes
 	// per second we are allowed to use.
-	boost::int64_t m_limit;
+	std::int32_t m_limit;
 };
 
 }
 
 #endif
-
