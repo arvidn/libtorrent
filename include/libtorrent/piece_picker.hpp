@@ -644,7 +644,7 @@ namespace libtorrent {
 			}
 
 			bool operator!=(piece_pos const& p) const
-			{ return !(*this == p); }
+			{ return index != p.index || peer_count != p.peer_count; }
 
 			bool operator==(piece_pos const& p) const
 			{ return index == p.index && peer_count == p.peer_count; }
