@@ -133,8 +133,8 @@ TORRENT_TEST(session_stats)
 			if (!ss) return;
 
 			// there's one downloading torrent
-			TEST_EQUAL(ss->values[downloading_idx], 1);
-			TEST_EQUAL(ss->values[incoming_extended_idx], 1);
+			TEST_EQUAL(ss->counters()[downloading_idx], 1);
+			TEST_EQUAL(ss->counters()[incoming_extended_idx], 1);
 		}
 		// terminate
 		, [](int const ticks, lt::session& ses) -> bool

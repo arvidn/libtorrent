@@ -128,7 +128,7 @@ TORRENT_TEST(dht_bootstrap)
 			else if (lt::session_stats_alert const* sa = lt::alert_cast<lt::session_stats_alert>(a))
 			{
 				int const dht_nodes = lt::find_metric_idx("dht.nodes");
-				TEST_CHECK(sa->values[dht_nodes] > 2);
+				TEST_CHECK(sa->counters()[dht_nodes] > 2);
 			}
 		}
 		// terminate?

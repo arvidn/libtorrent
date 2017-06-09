@@ -113,7 +113,7 @@ namespace libtorrent {
 	std::string peer_alert::message() const
 	{
 		return torrent_alert::message() + " peer (" + print_endpoint(endpoint)
-			+ ", " + identify_client(pid) + ")";
+			+ ", " + aux::identify_client_impl(pid) + ")";
 	}
 
 	tracker_alert::tracker_alert(aux::stack_allocator& alloc
