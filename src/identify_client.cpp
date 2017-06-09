@@ -368,6 +368,13 @@ namespace libtorrent {
 
 	std::string identify_client(peer_id const& p)
 	{
+		return aux::identify_client_impl(p);
+	}
+
+namespace aux {
+
+	std::string identify_client_impl(peer_id const& p)
+	{
 		char const* PID = p.data();
 
 		if (p.is_all_zeros()) return "Unknown";
@@ -424,5 +431,7 @@ namespace libtorrent {
 		unknown += "]";
 		return unknown;
 	}
-}
+
+} // aux
+} // libtorrent
 

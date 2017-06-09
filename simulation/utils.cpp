@@ -89,8 +89,8 @@ int get_cache_size(lt::session& ses)
 	{
 		if (auto const* st = alert_cast<session_stats_alert>(a))
 		{
-			cache_size = st->values[read_cache_idx];
-			cache_size += st->values[write_cache_idx];
+			cache_size = st->counters()[read_cache_idx];
+			cache_size += st->counters()[write_cache_idx];
 			break;
 		}
 	}

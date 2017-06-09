@@ -48,13 +48,20 @@ POSSIBILITY OF SUCH DAMAGE.
 // remove its internal use
 namespace libtorrent {
 
+namespace aux {
+
+	TORRENT_EXTRA_EXPORT
+	std::string identify_client_impl(const peer_id& p);
+
+}
+
 	// these functions don't really need to be public. This mechanism of
 	// advertising client software and version is also out-dated.
 
 	// This function can can be used to extract a string describing a client
 	// version from its peer-id. It will recognize most clients that have this
 	// kind of identification in the peer-id.
-	TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED
+	TORRENT_DEPRECATED_EXPORT
 	std::string identify_client(const peer_id& p);
 
 #ifndef TORRENT_NO_DEPRECATE

@@ -37,14 +37,12 @@ using namespace lt;
 
 TORRENT_TEST(identify_client)
 {
-#ifndef TORRENT_NO_DEPRECATE
-	TEST_EQUAL(identify_client(peer_id("-AZ123B-............")), "Azureus 1.2.3.11");
-	TEST_EQUAL(identify_client(peer_id("-AZ1230-............")), "Azureus 1.2.3");
-	TEST_EQUAL(identify_client(peer_id("S123--..............")), "Shadow 1.2.3");
-	TEST_EQUAL(identify_client(peer_id("S\x1\x2\x3....\0...........")), "Shadow 1.2.3");
-	TEST_EQUAL(identify_client(peer_id("M1-2-3--............")), "Mainline 1.2.3");
-	TEST_EQUAL(identify_client(peer_id("\0\0\0\0\0\0\0\0\0\0\0\0........")), "Generic");
-	TEST_EQUAL(identify_client(peer_id("-xx1230-............")), "xx 1.2.3");
-#endif
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-AZ123B-............")), "Azureus 1.2.3.11");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-AZ1230-............")), "Azureus 1.2.3");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("S123--..............")), "Shadow 1.2.3");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("S\x1\x2\x3....\0...........")), "Shadow 1.2.3");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("M1-2-3--............")), "Mainline 1.2.3");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("\0\0\0\0\0\0\0\0\0\0\0\0........")), "Generic");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-xx1230-............")), "xx 1.2.3");
 }
 
