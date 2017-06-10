@@ -124,7 +124,7 @@ namespace aux {
 		// busy request at a time in each peer's queue
 		std::uint32_t busy:1;
 
-		bool operator==(pending_block const& b)
+		bool operator==(pending_block const& b) const
 		{
 			return b.block == block
 				&& b.not_wanted == not_wanted
