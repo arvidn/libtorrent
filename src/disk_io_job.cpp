@@ -103,7 +103,6 @@ namespace libtorrent {
 	disk_io_job::disk_io_job()
 		: argument(0)
 		, piece(0)
-		, action(read)
 	{
 		d.io.offset = 0;
 		d.io.buffer_size = 0;
@@ -116,7 +115,7 @@ namespace libtorrent {
 
 	bool disk_io_job::completed(cached_piece_entry const* pe, int block_size)
 	{
-		if (action != write) return false;
+		if (action != job_action_t::write) return false;
 
 		int block_offset = d.io.offset & (block_size - 1);
 		int size = d.io.buffer_size;

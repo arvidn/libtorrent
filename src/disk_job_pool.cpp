@@ -48,20 +48,20 @@ namespace libtorrent {
 //		TORRENT_ASSERT(m_jobs_in_use == 0);
 	}
 
-	disk_io_job* disk_job_pool::allocate_job(int type)
+	disk_io_job* disk_job_pool::allocate_job(job_action_t const type)
 	{
 		std::unique_lock<std::mutex> l(m_job_mutex);
 		disk_io_job* ptr = static_cast<disk_io_job*>(m_job_pool.malloc());
 		m_job_pool.set_next_size(100);
 		if (ptr == nullptr) return nullptr;
 		++m_jobs_in_use;
-		if (type == disk_io_job::read) ++m_read_jobs;
-		else if (type == disk_io_job::write) ++m_write_jobs;
+		if (type == job_action_t::read) ++m_read_jobs;
+		else if (type == job_action_t::write) ++m_write_jobs;
 		l.unlock();
 		TORRENT_ASSERT(ptr);
 
 		new (ptr) disk_io_job;
-		ptr->action = static_cast<disk_io_job::action_t>(type);
+		ptr->action = type;
 #if TORRENT_USE_ASSERTS
 		ptr->in_use = true;
 #endif
@@ -76,11 +76,11 @@ namespace libtorrent {
 		TORRENT_ASSERT(j->in_use);
 		j->in_use = false;
 #endif
-		int type = j->action;
+		job_action_t const type = j->action;
 		j->~disk_io_job();
 		std::lock_guard<std::mutex> l(m_job_mutex);
-		if (type == disk_io_job::read) --m_read_jobs;
-		else if (type == disk_io_job::write) --m_write_jobs;
+		if (type == job_action_t::read) --m_read_jobs;
+		else if (type == job_action_t::write) --m_write_jobs;
 		--m_jobs_in_use;
 		m_job_pool.free(j);
 	}
@@ -93,10 +93,10 @@ namespace libtorrent {
 		int write_jobs = 0;
 		for (int i = 0; i < num; ++i)
 		{
-			int type = j[i]->action;
+			job_action_t const type = j[i]->action;
 			j[i]->~disk_io_job();
-			if (type == disk_io_job::read) ++read_jobs;
-			else if (type == disk_io_job::write) ++write_jobs;
+			if (type == job_action_t::read) ++read_jobs;
+			else if (type == job_action_t::write) ++write_jobs;
 		}
 
 		std::lock_guard<std::mutex> l(m_job_mutex);

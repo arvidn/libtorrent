@@ -273,7 +273,7 @@ namespace aux {
 
 		// counts only fence jobs that are currently blocking jobs
 		// not fences that are themself blocked
-		int num_fence_jobs[disk_io_job::num_job_ids];
+		int num_fence_jobs[static_cast<int>(job_action_t::num_job_ids)];
 #endif
 	};
 

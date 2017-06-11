@@ -58,6 +58,27 @@ namespace libtorrent {
 	class torrent_info;
 	struct add_torrent_params;
 
+	enum class job_action_t : std::uint8_t
+	{
+		read
+		, write
+		, hash
+		, move_storage
+		, release_files
+		, delete_files
+		, check_fastresume
+		, rename_file
+		, stop_torrent
+		, flush_piece
+		, flush_hashed
+		, flush_storage
+		, trim_cache
+		, file_priority
+		, clear_piece
+		, resolve_links
+		, num_job_ids
+	};
+
 	// disk_io_jobs are allocated in a pool allocator in disk_io_thread
 	// they are always allocated from the network thread, posted
 	// (as pointers) to the disk I/O thread, and then passed back
@@ -77,27 +98,6 @@ namespace libtorrent {
 		disk_io_job& operator=(disk_io_job const&) = delete;
 
 		void call_callback();
-
-		enum action_t : std::uint8_t
-		{
-			read
-			, write
-			, hash
-			, move_storage
-			, release_files
-			, delete_files
-			, check_fastresume
-			, rename_file
-			, stop_torrent
-			, flush_piece
-			, flush_hashed
-			, flush_storage
-			, trim_cache
-			, file_priority
-			, clear_piece
-			, resolve_links
-			, num_job_ids
-		};
 
 		enum flags_t
 		{
@@ -193,7 +193,7 @@ namespace libtorrent {
 		};
 
 		// the type of job this is
-		action_t action;
+		job_action_t action = job_action_t::read;
 
 		// return value of operation
 		status_t ret = status_t::no_error;
