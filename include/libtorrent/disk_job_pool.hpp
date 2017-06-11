@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DISK_JOB_POOL
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/disk_io_job.hpp" // for job_action_t
 #include <mutex>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -49,7 +50,7 @@ namespace libtorrent {
 		disk_job_pool();
 		~disk_job_pool();
 
-		disk_io_job* allocate_job(int type);
+		disk_io_job* allocate_job(job_action_t type);
 		void free_job(disk_io_job* j);
 		void free_jobs(disk_io_job** j, int num);
 

@@ -208,11 +208,9 @@ const char* const job_action_name[] =
 	"resolve_links"
 };
 
-#if __cplusplus >= 201103L
 // make sure the job names array covers all the job IDs
 static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
-	== disk_io_job::num_job_ids, "disk-job-action and action-name-array mismatch");
-#endif
+	== static_cast<int>(job_action_t::num_job_ids), "disk-job-action and action-name-array mismatch");
 
 #if TORRENT_USE_ASSERTS || !defined TORRENT_DISABLE_LOGGING
 
@@ -227,8 +225,9 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 		"set_outstanding_jobs",
 	};
 
-	char const* job_name(int const j)
+	char const* job_name(job_action_t const job)
 	{
+		int const j = static_cast<int>(job);
 		if (j < 0 || j >= piece_log_t::last_job)
 			return "unknown";
 

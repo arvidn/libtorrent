@@ -136,7 +136,7 @@ static void nop() {}
 
 #define WRITE_BLOCK(p, b) \
 	wj.flags = disk_io_job::in_progress; \
-	wj.action = disk_io_job::write; \
+	wj.action = job_action_t::write; \
 	wj.d.io.offset = (b) * 0x4000; \
 	wj.d.io.buffer_size = 0x4000; \
 	wj.piece = piece_index_t(p); \
@@ -144,7 +144,7 @@ static void nop() {}
 	pe = bc.add_dirty_block(&wj)
 
 #define READ_BLOCK(p, b, r) \
-	rj.action = disk_io_job::read; \
+	rj.action = job_action_t::read; \
 	rj.d.io.offset = (b) * 0x4000; \
 	rj.d.io.buffer_size = 0x4000; \
 	rj.piece = piece_index_t(p); \
@@ -439,7 +439,7 @@ void test_unaligned_read()
 	INSERT(0, 0);
 	INSERT(0, 1);
 
-	rj.action = disk_io_job::read;
+	rj.action = job_action_t::read;
 	rj.d.io.offset = 0x2000;
 	rj.d.io.buffer_size = 0x4000;
 	rj.piece = piece_index_t(0);
@@ -492,7 +492,7 @@ TORRENT_TEST(delete_piece)
 
 	TEST_CHECK(bc.num_pieces() == 1);
 
-	rj.action = disk_io_job::read;
+	rj.action = job_action_t::read;
 	rj.d.io.offset = 0x2000;
 	rj.d.io.buffer_size = 0x4000;
 	rj.piece = piece_index_t(0);

@@ -72,15 +72,15 @@ namespace aux {
 
 	struct piece_log_t
 	{
-		explicit piece_log_t(int j, int b= -1): job(j), block(b) {}
-		int job;
+		explicit piece_log_t(job_action_t j, int b = -1): job(j), block(b) {}
+		job_action_t job;
 		int block;
 
 		// these are "jobs" thar cause piece_refcount
 		// to be incremented
 		enum artificial_jobs
 		{
-			flushing = disk_io_job::num_job_ids, // 20
+			flushing = static_cast<int>(job_action_t::num_job_ids), // 20
 			flush_expired,
 			try_flush_write_blocks,
 			try_flush_write_blocks2,
@@ -90,11 +90,12 @@ namespace aux {
 
 			last_job
 		};
+		explicit piece_log_t(artificial_jobs j, int b = -1): job(static_cast<job_action_t>(j)), block(b) {}
 
 		static char const* const job_names[7];
 	};
 
-	char const* job_name(int j);
+	char const* job_name(job_action_t j);
 
 #endif // TORRENT_DISABLE_LOGGING
 
