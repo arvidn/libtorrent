@@ -2590,11 +2590,56 @@ namespace libtorrent {
 		virtual std::string message() const override;
 	};
 
+	struct TORRENT_EXPORT dht_sample_infohashes_alert final : alert
+	{
+		dht_sample_infohashes_alert(aux::stack_allocator& alloc
+			, udp::endpoint const& endp
+			, time_duration interval
+			, int num
+			, std::vector<sha1_hash> const& samples
+			, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes);
+
+		static const int static_category = alert::dht_operation_notification;
+		TORRENT_DEFINE_ALERT(dht_sample_infohashes_alert, 93)
+
+		virtual std::string message() const override;
+
+		aux::noexcept_movable<udp::endpoint> endpoint;
+
+		time_duration const interval;
+
+		// This field indicates how many infohash keys are currently in the node's storage.
+		// If the value is larger than the number of returned samples it indicates that the
+		// indexer may obtain additional samples after waiting out the interval.
+		int const num_infohashes;
+
+		int num_samples() const;
+		std::vector<sha1_hash> samples() const;
+
+		// The total number of nodes returned by ``nodes()``.
+		int num_nodes() const;
+
+		// This is the set of more DHT nodes returned by the request.
+		//
+		// The information is included so that indexing nodes can perform a keyspace
+		// traversal with a single RPC per node by adjusting the target value for each RPC.
+		std::vector<std::pair<sha1_hash, udp::endpoint>> nodes() const;
+
+	private:
+		std::reference_wrapper<aux::stack_allocator> m_alloc;
+		int const m_num_samples;
+		aux::allocation_slot m_samples_idx;
+		int m_v4_num_nodes = 0;
+		int m_v6_num_nodes = 0;
+		aux::allocation_slot m_v4_nodes_idx;
+		aux::allocation_slot m_v6_nodes_idx;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 
-	enum { num_alert_types = 93 }; // this enum represents "max_alert_index" + 1
+	enum { num_alert_types = 94 }; // this enum represents "max_alert_index" + 1
 }
 
 #endif

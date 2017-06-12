@@ -623,6 +623,16 @@ namespace {
 #endif
 	}
 
+	void session_handle::dht_sample_infohashes(udp::endpoint const& ep, sha1_hash const& target)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		async_call(&session_impl::dht_sample_infohashes, ep, target);
+#else
+		TORRENT_UNUSED(ep);
+		TORRENT_UNUSED(target);
+#endif
+	}
+
 	void session_handle::dht_direct_request(udp::endpoint const& ep, entry const& e, void* userdata)
 	{
 #ifndef TORRENT_DISABLE_DHT

@@ -452,6 +452,14 @@ namespace libtorrent {
 		// posted, regardless of the alert mask.
 		void dht_live_nodes(sha1_hash const& nid);
 
+		// Query the DHT node specified by ``ep`` to retrieve a sample of the
+		// infohashes that the node currently have in their storage.
+		// The ``target`` is included for iterative lookups so that indexing nodes
+		// can perform a keyspace traversal with a single RPC per node by adjusting
+		// the target value for each RPC. It has no effect on the returned sample value.
+		// The result is posted as a ``dht_sample_infohashes_alert``.
+		void dht_sample_infohashes(udp::endpoint const& ep, sha1_hash const& target);
+
 		// Send an arbitrary DHT request directly to the specified endpoint. This
 		// function is intended for use by plugins. When a response is received
 		// or the request times out, a dht_direct_response_alert will be posted

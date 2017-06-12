@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/get_item.hpp"
 #include "libtorrent/kademlia/msg.hpp"
 #include <libtorrent/kademlia/put_data.hpp>
+#include <libtorrent/kademlia/sample_infohashes.hpp>
 
 using namespace std::placeholders;
 
@@ -563,6 +564,38 @@ void node::put_item(public_key const& pk, std::string const& salt
 		, std::bind(&put_data_cb, _1, _2, put_ta, data_cb)
 		, std::bind(&put, _1, put_ta));
 	ta->start();
+}
+
+void node::sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
+	, std::function<void(time_duration
+		, int, std::vector<sha1_hash>
+		, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f)
+{
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
+	{
+		m_observer->log(dht_logger::node, "starting sample_infohashes for [ node: %s, target: %s ]"
+			, print_endpoint(ep).c_str(), aux::to_hex(target).c_str());
+	}
+#endif
+
+	// not an actual traversal
+	auto ta = std::make_shared<dht::sample_infohashes>(*this, node_id(), std::move(f));
+
+	auto o = m_rpc.allocate_observer<sample_infohashes_observer>(ta, ep, node_id());
+	if (!o) return;
+#if TORRENT_USE_ASSERTS
+	o->m_in_constructor = false;
+#endif
+
+	entry e;
+
+	e["q"] = "sample_infohashes";
+	e["a"]["target"] = target;
+
+	stats_counters().inc_stats_counter(counters::dht_sample_infohashes_out);
+
+	m_rpc.invoke(e, ep, o);
 }
 
 struct ping_observer : observer
@@ -1103,6 +1136,30 @@ void node::incoming_request(msg const& m, entry& e)
 				, sequence_number(msg_keys[0].int_value()), false
 				, reply);
 		}
+	}
+	else if (query == "sample_infohashes")
+	{
+		key_desc_t const msg_desc[] = {
+			{"target", bdecode_node::string_t, 20, 0},
+			{"want", bdecode_node::list_t, 0, key_desc_t::optional},
+		};
+
+		bdecode_node msg_keys[2];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string))
+		{
+			m_counters.inc_stats_counter(counters::dht_invalid_sample_infohashes);
+			incoming_error(e, error_string);
+			return;
+		}
+
+		m_counters.inc_stats_counter(counters::dht_sample_infohashes_in);
+		sha1_hash const target(msg_keys[0].string_ptr());
+
+		// TODO: keep the returned value to pass as a limit
+		// to write_nodes_entries when implemented
+		m_storage.get_infohashes_sample(reply);
+
+		write_nodes_entries(target, msg_keys[1], reply);
 	}
 	else
 	{

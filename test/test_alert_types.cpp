@@ -160,10 +160,11 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(session_error_alert, 90, 0, alert::error_notification);
 	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, 0, alert::dht_notification);
 	TEST_ALERT_TYPE(session_stats_header_alert, 92, 0, alert::stats_notification);
+	TEST_ALERT_TYPE(dht_sample_infohashes_alert, 93, 0, alert::dht_operation_notification);
 
 #undef TEST_ALERT_TYPE
 
-	TEST_EQUAL(num_alert_types, 93);
+	TEST_EQUAL(num_alert_types, 94);
 	TEST_EQUAL(num_alert_types, count_alert_types);
 }
 
@@ -262,4 +263,61 @@ TORRENT_TEST(session_stats_alert)
 	auto const* v = alert_cast<session_stats_alert>(alerts[1]);
 	TEST_CHECK(v != nullptr);
 	TEST_CHECK(v->message().find("session stats (") != std::string::npos);
+}
+
+TORRENT_TEST(dht_sample_infohashes_alert)
+{
+	alert_manager mgr(1, dht_sample_infohashes_alert::static_category);
+
+	TEST_EQUAL(mgr.should_post<dht_sample_infohashes_alert>(), true);
+
+	udp::endpoint const endpoint = rand_udp_ep();
+	time_duration const interval = seconds(10);
+	int const num = 100;
+	sha1_hash const h1 = rand_hash();
+	sha1_hash const h2 = rand_hash();
+	sha1_hash const h3 = rand_hash();
+	sha1_hash const h4 = rand_hash();
+	sha1_hash const h5 = rand_hash();
+
+	std::vector<sha1_hash> const v = {h1, h2, h3, h4, h5};
+
+	sha1_hash const nh1 = rand_hash();
+	sha1_hash const nh2 = rand_hash();
+	sha1_hash const nh3 = rand_hash();
+	sha1_hash const nh4 = rand_hash();
+	sha1_hash const nh5 = rand_hash();
+	udp::endpoint const nep1 = rand_udp_ep(rand_v4);
+	udp::endpoint const nep2 = rand_udp_ep(rand_v4);
+	udp::endpoint const nep3 = rand_udp_ep(rand_v4);
+#if TORRENT_USE_IPV6
+	udp::endpoint const nep4 = rand_udp_ep(rand_v6);
+	udp::endpoint const nep5 = rand_udp_ep(rand_v6);
+#else
+	udp::endpoint const nep4 = rand_udp_ep(rand_v4);
+	udp::endpoint const nep5 = rand_udp_ep(rand_v4);
+#endif
+	std::vector<std::pair<sha1_hash, udp::endpoint>> nv;
+	nv.emplace_back(nh1, nep1);
+	nv.emplace_back(nh2, nep2);
+	nv.emplace_back(nh3, nep3);
+	nv.emplace_back(nh4, nep4);
+	nv.emplace_back(nh5, nep5);
+
+	mgr.emplace_alert<dht_sample_infohashes_alert>(endpoint, interval, num, v, nv);
+
+	auto const* a = alert_cast<dht_sample_infohashes_alert>(mgr.wait_for_alert(seconds(0)));
+	TEST_CHECK(a != nullptr);
+
+	TEST_EQUAL(a->endpoint, endpoint);
+	TEST_CHECK(a->interval == interval);
+	TEST_EQUAL(a->num_infohashes, num);
+	TEST_EQUAL(a->num_samples(), 5);
+	TEST_CHECK(a->samples() == v);
+	TEST_EQUAL(a->num_nodes(), 5);
+
+	auto nodes = a->nodes();
+	std::sort(nv.begin(), nv.end());
+	std::sort(nodes.begin(), nodes.end());
+	TEST_CHECK(nv == nodes);
 }

@@ -58,7 +58,7 @@ namespace libtorrent {
 namespace detail {
 
 		template <class Proto>
-		size_t address_size(Proto p)
+		std::size_t address_size(Proto p)
 		{
 			TORRENT_UNUSED(p);
 #if TORRENT_USE_IPV6

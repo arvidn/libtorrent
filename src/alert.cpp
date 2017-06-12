@@ -2275,4 +2275,62 @@ namespace {
 		return stats_header;
 	}
 
+	dht_sample_infohashes_alert::dht_sample_infohashes_alert(aux::stack_allocator& alloc
+		, udp::endpoint const& endp
+		, time_duration _interval
+		, int _num
+		, std::vector<sha1_hash> const& samples
+		, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes)
+		: endpoint(endp)
+		, interval(_interval)
+		, num_infohashes(_num)
+		, m_alloc(alloc)
+		, m_num_samples(aux::numeric_cast<int>(samples.size()))
+	{
+		m_samples_idx = alloc.allocate(m_num_samples * 20);
+
+		char *ptr = alloc.ptr(m_samples_idx);
+		std::memcpy(ptr, samples.data(), samples.size() * 20);
+
+		std::tie(m_v4_num_nodes, m_v4_nodes_idx, m_v6_num_nodes, m_v6_nodes_idx)
+			= write_nodes(alloc, nodes);
+	}
+
+	std::string dht_sample_infohashes_alert::message() const
+	{
+		char msg[200];
+		std::snprintf(msg, sizeof(msg)
+			, "incoming dht sample_infohashes reply from: %s, samples %d"
+			, print_endpoint(endpoint).c_str(), m_num_samples);
+		return msg;
+	}
+
+	int dht_sample_infohashes_alert::num_samples() const
+	{
+		return m_num_samples;
+	}
+
+	std::vector<sha1_hash> dht_sample_infohashes_alert::samples() const
+	{
+		aux::vector<sha1_hash> samples;
+		samples.resize(m_num_samples);
+
+		const char *ptr = m_alloc.get().ptr(m_samples_idx);
+		std::memcpy(samples.data(), ptr, samples.size() * 20);
+
+		return samples;
+	}
+
+	int dht_sample_infohashes_alert::num_nodes() const
+	{
+		return m_v4_num_nodes + m_v6_num_nodes;
+	}
+
+	std::vector<std::pair<sha1_hash, udp::endpoint>> dht_sample_infohashes_alert::nodes() const
+	{
+		return read_nodes(m_alloc.get()
+			, m_v4_num_nodes, m_v4_nodes_idx
+			, m_v6_num_nodes, m_v6_nodes_idx);
+	}
+
 } // namespace libtorrent

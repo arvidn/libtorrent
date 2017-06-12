@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/kademlia/direct_request.hpp>
 #include <libtorrent/kademlia/get_item.hpp>
+#include <libtorrent/kademlia/sample_infohashes.hpp>
 
 #include <libtorrent/socket_io.hpp> // for print_endpoint
 #include <libtorrent/hasher.hpp>
@@ -143,6 +144,7 @@ using observer_storage = aux::aligned_union<1
 	, get_item_observer
 	, get_peers_observer
 	, obfuscated_get_peers_observer
+	, sample_infohashes_observer
 	, null_observer
 	, traversal_observer>::type;
 

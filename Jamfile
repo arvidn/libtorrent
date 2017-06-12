@@ -693,6 +693,7 @@ KADEMLIA_SOURCES =
 	get_item
 	put_data
 	ed25519
+	sample_infohashes
 	;
 
 ED25519_SOURCES =
