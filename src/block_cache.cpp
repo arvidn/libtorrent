@@ -188,8 +188,8 @@ void log_refcounts(cached_piece_entry const* pe)
 }
 #endif
 
-const char* const job_action_name[] =
-{
+std::array<const char*, 15> const job_action_name =
+{{
 	"read",
 	"write",
 	"hash",
@@ -205,17 +205,16 @@ const char* const job_action_name[] =
 	"trim_cache",
 	"set_file_priority",
 	"clear_piece",
-	"resolve_links"
-};
+}};
 
 // make sure the job names array covers all the job IDs
-static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
-	== static_cast<int>(job_action_t::num_job_ids), "disk-job-action and action-name-array mismatch");
+static_assert(int(job_action_name.size()) == static_cast<int>(job_action_t::num_job_ids)
+	, "disk-job-action and action-name-array mismatch");
 
 #if TORRENT_USE_ASSERTS || !defined TORRENT_DISABLE_LOGGING
 
-	char const* const piece_log_t::job_names[7] =
-	{
+	std::array<char const*, 7> const piece_log_t::job_names =
+	{{
 		"flushing",
 		"flush_expired",
 		"try_flush_write_blocks",
@@ -223,7 +222,7 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 		"flush_range",
 		"clear_outstanding_jobs",
 		"set_outstanding_jobs",
-	};
+	}};
 
 	char const* job_name(job_action_t const job)
 	{
@@ -232,8 +231,8 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 			return "unknown";
 
 		if (j < piece_log_t::flushing)
-			return job_action_name[j];
-		return piece_log_t::job_names[j - piece_log_t::flushing];
+			return job_action_name[static_cast<std::size_t>(j)];
+		return piece_log_t::job_names[static_cast<std::size_t>(j - piece_log_t::flushing)];
 	}
 
 #endif // TORRENT_DISABLE_LOGGING
