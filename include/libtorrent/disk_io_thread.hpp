@@ -382,7 +382,6 @@ namespace aux {
 		status_t do_trim_cache(disk_io_job* j, jobqueue_t& completed_jobs);
 		status_t do_file_priority(disk_io_job* j, jobqueue_t& completed_jobs);
 		status_t do_clear_piece(disk_io_job* j, jobqueue_t& completed_jobs);
-		status_t do_resolve_links(disk_io_job* j, jobqueue_t& completed_jobs);
 
 		void call_job_handlers();
 

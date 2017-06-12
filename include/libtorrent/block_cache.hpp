@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <vector>
 #include <unordered_set>
+#include <array>
 
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
@@ -92,7 +93,7 @@ namespace aux {
 		};
 		explicit piece_log_t(artificial_jobs j, int b = -1): job(static_cast<job_action_t>(j)), block(b) {}
 
-		static char const* const job_names[7];
+		static std::array<char const*, 7> const job_names;
 	};
 
 	char const* job_name(job_action_t j);
@@ -104,7 +105,7 @@ namespace aux {
 	void assert_print_piece(cached_piece_entry const* pe);
 #endif
 
-	extern const char* const job_action_name[];
+	extern std::array<const char*, 15> const job_action_name;
 
 	struct TORRENT_EXTRA_EXPORT partial_hash
 	{
