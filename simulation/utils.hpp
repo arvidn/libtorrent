@@ -30,6 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_UTILS_HPP_INCLUDED
+#define TORRENT_UTILS_HPP_INCLUDED
+
 #include <functional>
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
@@ -60,4 +63,6 @@ void set_proxy(lt::session& ses, int proxy_type, int flags = 0
 void print_alerts(lt::session& ses
 	, std::function<void(lt::session&, lt::alert const*)> on_alert
 		= [](lt::session&, lt::alert const*) {});
+
+#endif
 

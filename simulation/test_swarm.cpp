@@ -39,7 +39,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/time.hpp"
 #include "settings.hpp"
+#include "setup_transfer.hpp" // for ep()
+#include "fake_peer.hpp"
+
+#include "simulator/queue.hpp"
+#include "utils.hpp"
 
 using namespace lt;
 
@@ -368,6 +374,70 @@ TORRENT_TEST(shutdown)
 			TEST_EQUAL(is_seed(ses), false);
 			return true;
 		});
+}
+
+// make the delays on the connections unreasonable long, so libtorrent times-out
+// the connection attempts
+struct timeout_config : sim::default_config
+{
+	virtual sim::route incoming_route(lt::address ip) override
+	{
+		auto it = m_incoming.find(ip);
+		if (it != m_incoming.end()) return sim::route().append(it->second);
+		it = m_incoming.insert(it, std::make_pair(ip, std::make_shared<queue>(
+			std::ref(m_sim->get_io_service())
+			, 1000
+			, lt::duration_cast<lt::time_duration>(seconds(10))
+			, 1000, "packet-loss modem in")));
+		return sim::route().append(it->second);
+	}
+
+	virtual sim::route outgoing_route(lt::address ip) override
+	{
+		auto it = m_outgoing.find(ip);
+		if (it != m_outgoing.end()) return sim::route().append(it->second);
+		it = m_outgoing.insert(it, std::make_pair(ip, std::make_shared<queue>(
+			std::ref(m_sim->get_io_service()), 1000
+			, lt::duration_cast<lt::time_duration>(seconds(5)), 200 * 1000, "packet-loss out")));
+		return sim::route().append(it->second);
+	}
+};
+
+// make sure peers that are no longer alive are handled correctly.
+TORRENT_TEST(dead_peers)
+{
+	int num_connect_timeout = 0;
+
+	timeout_config network_cfg;
+	sim::simulation sim{network_cfg};
+	setup_swarm(1, swarm_test::download, sim
+		// add session
+		, [](lt::settings_pack& p) {
+			p.set_int(settings_pack::peer_connect_timeout, 1);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.peers.assign({
+				ep("66.66.66.60", 9999)
+				, ep("66.66.66.61", 9999)
+				, ep("66.66.66.62", 9999)
+			});
+		}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			auto* e = alert_cast<peer_disconnected_alert>(a);
+			if (e
+				&& e->operation == op_connect
+				&& e->error == error_code(errors::timed_out))
+			{
+				++num_connect_timeout;
+			}
+		}
+		// terminate
+		, [](int t, lt::session&) -> bool
+		{ return t > 100; });
+
+	TEST_EQUAL(num_connect_timeout, 3);
 }
 
 TORRENT_TEST(delete_files)
