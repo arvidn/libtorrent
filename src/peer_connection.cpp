@@ -4019,10 +4019,27 @@ namespace libtorrent {
 		{
 			m_peer_info->supports_utp = false;
 			// reconnect immediately using TCP
-			torrent_peer* pi = peer_info_struct();
 			fast_reconnect(true);
 			disconnect(e, op_connect, 0);
-			if (t && pi) t->connect_to_peer(pi, true);
+			if (t && m_peer_info)
+			{
+				std::weak_ptr<torrent> weak_t = t;
+				std::weak_ptr<peer_connection> weak_self = shared_from_this();
+
+				// we can't touch m_connections here, since we're likely looping
+				// over it. So defer the actual reconnection to after we've handled
+				// the existing message queue
+				m_ses.get_io_service().post([weak_t, weak_self]()
+				{
+					std::shared_ptr<torrent> tor = weak_t.lock();
+					std::shared_ptr<peer_connection> p = weak_self.lock();
+					if (tor && p)
+					{
+						torrent_peer* pi = p->peer_info_struct();
+						tor->connect_to_peer(pi, true);
+					}
+				});
+			}
 			return;
 		}
 
