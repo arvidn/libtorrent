@@ -1036,15 +1036,13 @@ namespace {
 		, char const* op)
 		: torrent_alert(alloc, h)
 		, error(ec)
+		, operation(op)
 #ifndef TORRENT_NO_DEPRECATE
 		, file(f)
+		, msg(convert_from_native(error.message()))
 #endif
-		, operation(op)
 		, m_path_idx(alloc.copy_string(f))
 	{
-#ifndef TORRENT_NO_DEPRECATE
-		msg = convert_from_native(error.message());
-#endif
 	}
 
 	std::string fastresume_rejected_alert::message() const
@@ -1394,29 +1392,7 @@ namespace {
 	}
 #endif
 
-	peer_error_alert::peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, tcp::endpoint const& ep, peer_id const& peer_id, int op
-		, error_code const& e)
-		: peer_alert(alloc, h, ep, peer_id)
-		, operation(op)
-		, error(e)
-	{
-#ifndef TORRENT_NO_DEPRECATE
-		msg = convert_from_native(error.message());
-#endif
-	}
-
-	std::string peer_error_alert::message() const
-	{
-		char buf[200];
-		std::snprintf(buf, sizeof(buf), "%s peer error [%s] [%s]: %s"
-			, peer_alert::message().c_str()
-			, operation_name(operation), error.category().name()
-			, convert_from_native(error.message()).c_str());
-		return buf;
-	}
-
-	char const* operation_name(int op)
+	char const* operation_name(operation_t const op)
 	{
 		static char const* names[] = {
 			"bittorrent",
@@ -1440,10 +1416,40 @@ namespace {
 			"unknown",
 		};
 
-		if (op < 0 || op >= int(sizeof(names)/sizeof(names[0])))
+		int const idx = static_cast<int>(op);
+		if (idx < 0 || idx >= int(sizeof(names)/sizeof(names[0])))
 			return "unknown operation";
 
-		return names[op];
+		return names[idx];
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	char const* operation_name(int const op)
+	{
+		return operation_name(static_cast<operation_t>(op));
+	}
+#endif
+
+	peer_error_alert::peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		, tcp::endpoint const& ep, peer_id const& peer_id, operation_t const op_
+		, error_code const& e)
+		: peer_alert(alloc, h, ep, peer_id)
+		, op(op_)
+		, error(e)
+#ifndef TORRENT_NO_DEPRECATE
+		, operation(static_cast<int>(op_))
+		, msg(convert_from_native(error.message()))
+#endif
+	{}
+
+	std::string peer_error_alert::message() const
+	{
+		char buf[200];
+		std::snprintf(buf, sizeof(buf), "%s peer error [%s] [%s]: %s"
+			, peer_alert::message().c_str()
+			, operation_name(op), error.category().name()
+			, convert_from_native(error.message()).c_str());
+		return buf;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1466,18 +1472,18 @@ namespace {
 
 	peer_disconnected_alert::peer_disconnected_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, peer_id const& peer_id, operation_t op, int type, error_code const& e
+		, peer_id const& peer_id, operation_t op_, int type, error_code const& e
 		, close_reason_t r)
 		: peer_alert(alloc, h, ep, peer_id)
 		, socket_type(type)
-		, operation(op)
+		, op(op_)
 		, error(e)
 		, reason(r)
-	{
 #ifndef TORRENT_NO_DEPRECATE
-		msg = convert_from_native(error.message());
+		, operation(static_cast<int>(op))
+		, msg(convert_from_native(error.message()))
 #endif
-	}
+	{}
 
 	std::string peer_disconnected_alert::message() const
 	{
@@ -1485,7 +1491,7 @@ namespace {
 		std::snprintf(buf, sizeof(buf), "%s disconnecting (%s) [%s] [%s]: %s (reason: %d)"
 			, peer_alert::message().c_str()
 			, socket_type_str[socket_type]
-			, operation_name(operation), error.category().name()
+			, operation_name(op), error.category().name()
 			, convert_from_native(error.message()).c_str()
 			, int(reason));
 		return buf;

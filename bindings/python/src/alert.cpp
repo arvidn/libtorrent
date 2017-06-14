@@ -289,6 +289,29 @@ void bind_alert()
 
     }
 
+    enum_<operation_t>("operation_t")
+       .value("bittorrent", operation_t::bittorrent)
+       .value("iocontrol", operation_t::iocontrol)
+       .value("getpeername", operation_t::getpeername)
+       .value("getname", operation_t::getname)
+       .value("alloc_recvbuf", operation_t::alloc_recvbuf)
+       .value("alloc_sndbuf", operation_t::alloc_sndbuf)
+       .value("file_write", operation_t::file_write)
+       .value("file_read", operation_t::file_read)
+       .value("file", operation_t::file)
+       .value("sock_write", operation_t::sock_write)
+       .value("sock_read", operation_t::sock_read)
+       .value("sock_open", operation_t::sock_open)
+       .value("sock_bind", operation_t::sock_bind)
+       .value("available", operation_t::available)
+       .value("encryption", operation_t::encryption)
+       .value("connect", operation_t::connect)
+       .value("ssl_handshake", operation_t::ssl_handshake)
+       .value("get_interface", operation_t::get_interface)
+       .value("unknown", operation_t::unknown)
+       ;
+
+
     class_<torrent_alert, bases<alert>, noncopyable>(
         "torrent_alert", no_init)
         .def_readonly("handle", &torrent_alert::handle)
@@ -367,6 +390,7 @@ void bind_alert()
     class_<peer_error_alert, bases<peer_alert>, noncopyable>(
         "peer_error_alert", no_init)
         .def_readonly("error", &peer_error_alert::error)
+        .def_readonly("op", &peer_error_alert::op)
         ;
 
     class_<invalid_request_alert, bases<peer_alert>, noncopyable>(
@@ -690,7 +714,10 @@ void bind_alert()
 
     class_<peer_disconnected_alert, bases<peer_alert>, noncopyable>(
         "peer_disconnected_alert", no_init)
+        .def_readonly("socket_type", &peer_disconnected_alert::socket_type)
+        .def_readonly("op", &peer_disconnected_alert::op)
         .def_readonly("error", &peer_disconnected_alert::error)
+        .def_readonly("reason", &peer_disconnected_alert::reason)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &peer_disconnected_alert::msg)
 #endif
