@@ -198,7 +198,6 @@ namespace libtorrent {
 		, m_stats_counters(cnt)
 		, m_ios(ios)
 	{
-		ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
 		m_disk_cache.set_settings(m_settings);
 	}
 
@@ -3174,8 +3173,6 @@ namespace libtorrent {
 		abort_jobs();
 
 		TORRENT_ASSERT(m_magic == 0x1337);
-
-		COMPLETE_ASYNC("disk_io_thread::work");
 	}
 
 	void disk_io_thread::abort_jobs()
