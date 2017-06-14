@@ -96,7 +96,7 @@ install:
 script:
 # disable invoking docutils for now, until we can have a modern version of it
   - cd docs
-  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then make RST2HTML=rst2html.py; fi
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then make RST2HTML=rst2html.py AAFIGURE=echo; fi
   - cd ..
 
   - cd test
