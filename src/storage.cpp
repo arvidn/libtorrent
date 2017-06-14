@@ -1239,6 +1239,8 @@ namespace libtorrent
 			if (flags == dont_replace && exists(new_path))
 			{
 				if (ret == piece_manager::no_error) ret = piece_manager::need_full_check;
+				// this is a new file, clear our cached version
+				m_stat_cache.set_dirty(i);
 				continue;
 			}
 
@@ -1250,7 +1252,12 @@ namespace libtorrent
 			// if the source file doesn't exist. That's not a problem
 			// we just ignore that file
 			if (e == boost::system::errc::no_such_file_or_directory)
+			{
 				e.clear();
+				// the source file doesn't exist, but it may exist at the
+				// destination, we don't know.
+				m_stat_cache.set_dirty(i);
+			}
 			else if (e
 				&& e != boost::system::errc::invalid_argument
 				&& e != boost::system::errc::permission_denied)
