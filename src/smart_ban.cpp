@@ -226,7 +226,7 @@ namespace {
 #endif
 					m_torrent.ban_peer(p);
 					if (p->connection) p->connection->disconnect(
-						errors::peer_banned, op_bittorrent);
+						errors::peer_banned, operation_t::bittorrent);
 				}
 				// we already have this exact entry in the map
 				// we don't have to insert it
@@ -302,7 +302,7 @@ namespace {
 #endif
 			m_torrent.ban_peer(p);
 			if (p->connection) p->connection->disconnect(
-				errors::peer_banned, op_bittorrent);
+				errors::peer_banned, operation_t::bittorrent);
 		}
 
 		torrent& m_torrent;

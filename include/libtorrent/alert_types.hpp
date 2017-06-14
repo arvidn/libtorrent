@@ -62,7 +62,11 @@ namespace libtorrent {
 
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
 	// to its name. See peer_connection for the constants
-	TORRENT_EXPORT char const* operation_name(int op);
+	TORRENT_EXPORT char const* operation_name(operation_t op);
+
+#ifndef TORRENT_NO_DEPRECATE
+	TORRENT_DEPRECATED_EXPORT char const* operation_name(int op);
+#endif
 
 	// user defined alerts should use IDs greater than this
 	static const int user_alert_id = 10000;
@@ -648,7 +652,7 @@ namespace libtorrent {
 	{
 		// internal
 		peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int op
+			, tcp::endpoint const& ep, peer_id const& peer_id, operation_t op
 			, error_code const& e);
 
 		TORRENT_DEFINE_ALERT(peer_error_alert, 22)
@@ -658,12 +662,13 @@ namespace libtorrent {
 
 		// a 0-terminated string of the low-level operation that failed, or nullptr if
 		// there was no low level disk operation.
-		int const operation;
+		operation_t op;
 
 		// tells you what error caused this alert.
 		error_code const error;
 
 #ifndef TORRENT_NO_DEPRECATE
+		int const TORRENT_DEPRECATED_MEMBER operation;
 		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	};
@@ -703,7 +708,7 @@ namespace libtorrent {
 
 		// the operation or level where the error occurred. Specified as an
 		// value from the operation_t enum. Defined in operations.hpp.
-		operation_t const operation;
+		operation_t const op;
 
 		// tells you what error caused peer to disconnect.
 		error_code const error;
@@ -712,6 +717,7 @@ namespace libtorrent {
 		close_reason_t const reason;
 
 #ifndef TORRENT_NO_DEPRECATE
+		int const TORRENT_DEPRECATED_MEMBER operation;
 		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	};
@@ -1253,7 +1259,7 @@ namespace libtorrent {
 	struct TORRENT_EXPORT listen_failed_alert final : alert
 	{
 #ifndef TORRENT_NO_DEPRECATE
-		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
+		enum socket_type_t : std::uint8_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
 #endif
 
 		// internal
@@ -1321,7 +1327,7 @@ namespace libtorrent {
 	struct TORRENT_EXPORT listen_succeeded_alert final : alert
 	{
 #ifndef TORRENT_NO_DEPRECATE
-		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
+		enum socket_type_t : std::uint8_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
 #endif
 
 		// internal
@@ -1480,11 +1486,6 @@ namespace libtorrent {
 
 		error_code error;
 
-#ifndef TORRENT_NO_DEPRECATE
-		// If the error happened to a specific file, ``file`` is the path to it.
-		std::string TORRENT_DEPRECATED_MEMBER file;
-#endif
-
 		// If the error happened to a specific file, this returns the path to it.
 		char const* file_path() const;
 
@@ -1493,6 +1494,8 @@ namespace libtorrent {
 		char const* operation;
 
 #ifndef TORRENT_NO_DEPRECATE
+		// If the error happened to a specific file, ``file`` is the path to it.
+		std::string TORRENT_DEPRECATED_MEMBER file;
 		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	private:

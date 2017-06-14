@@ -835,7 +835,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		// ignore failures to connect and peers not responding with a
 		// handshake. The peers that we successfully connect to and then
 		// disconnect is more interesting.
-		if (pd->operation == op_connect
+		if (pd->op == operation_t::connect
 			|| pd->error == errors::timed_out_no_handshake)
 			return true;
 	}

@@ -1038,7 +1038,7 @@ namespace libtorrent {
 			if (alerts().should_post<file_error_alert>())
 				alerts().emplace_alert<file_error_alert>(error.ec
 					, resolve_filename(error.file()), error.operation_str(), get_handle());
-			if (c) c->disconnect(errors::no_memory, op_file);
+			if (c) c->disconnect(errors::no_memory, operation_t::file);
 			return;
 		}
 
@@ -2132,7 +2132,7 @@ namespace libtorrent {
 
 		clear_error();
 
-		disconnect_all(errors::stopping_torrent, op_bittorrent);
+		disconnect_all(errors::stopping_torrent, operation_t::bittorrent);
 		stop_announcing();
 
 		// we're checking everything anyway, no point in assuming we are a seed
@@ -4113,7 +4113,7 @@ namespace libtorrent {
 					}
 					peer->peer_log(peer_log_alert::info, "BANNING_PEER", "Too many corrupt pieces");
 #endif
-					peer->disconnect(errors::too_many_corrupt_pieces, op_bittorrent);
+					peer->disconnect(errors::too_many_corrupt_pieces, operation_t::bittorrent);
 				}
 			}
 		}
@@ -4313,7 +4313,7 @@ namespace libtorrent {
 
 		// disconnect all peers and close all
 		// files belonging to the torrents
-		disconnect_all(errors::torrent_aborted, op_bittorrent);
+		disconnect_all(errors::torrent_aborted, operation_t::bittorrent);
 
 		// make sure to destruct the peers immediately
 		on_remove_peers();
@@ -5487,7 +5487,7 @@ namespace libtorrent {
 				// disconnect it and clear its reference to the peer_info object
 				// that's part of the web_seed_t we're about to remove
 				TORRENT_ASSERT(peer->m_in_use == 1337);
-				peer->disconnect(boost::asio::error::operation_aborted, op_bittorrent);
+				peer->disconnect(boost::asio::error::operation_aborted, operation_t::bittorrent);
 				peer->set_peer_info(nullptr);
 			}
 			if (has_picker()) picker().clear_peer(&web->peer_info);
@@ -6553,7 +6553,7 @@ namespace libtorrent {
 		TORRENT_CATCH (std::exception const&)
 		{
 			TORRENT_ASSERT(m_iterating_connections == 0);
-			c->disconnect(errors::no_error, op_bittorrent, 1);
+			c->disconnect(errors::no_error, operation_t::bittorrent, 1);
 			return false;
 		}
 
@@ -6675,14 +6675,14 @@ namespace libtorrent {
 			if (ssl_conn == nullptr)
 			{
 				// don't allow non SSL peers on SSL torrents
-				p->disconnect(errors::requires_ssl_connection, op_bittorrent);
+				p->disconnect(errors::requires_ssl_connection, operation_t::bittorrent);
 				return false;
 			}
 
 			if (!m_ssl_ctx)
 			{
 				// we don't have a valid cert, don't accept any connection!
-				p->disconnect(errors::invalid_ssl_cert, op_ssl_handshake);
+				p->disconnect(errors::invalid_ssl_cert, operation_t::ssl_handshake);
 				return false;
 			}
 
@@ -6693,7 +6693,7 @@ namespace libtorrent {
 				// connected to one torrent, and the BitTorrent protocol
 				// to a different one. This is probably an attempt to circumvent
 				// access control. Don't allow it.
-				p->disconnect(errors::invalid_ssl_cert, op_bittorrent);
+				p->disconnect(errors::invalid_ssl_cert, operation_t::bittorrent);
 				return false;
 			}
 		}
@@ -6705,7 +6705,7 @@ namespace libtorrent {
 		{
 			// Don't accidentally allow seeding of SSL torrents, just
 			// because libtorrent wasn't built with SSL support
-			p->disconnect(errors::requires_ssl_connection, op_ssl_handshake);
+			p->disconnect(errors::requires_ssl_connection, operation_t::ssl_handshake);
 			return false;
 		}
 #endif // TORRENT_USE_OPENSSL
@@ -6722,7 +6722,7 @@ namespace libtorrent {
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
 					, p->remote(), peer_blocked_alert::ip_filter);
-			p->disconnect(errors::banned_by_ip_filter, op_bittorrent);
+			p->disconnect(errors::banned_by_ip_filter, operation_t::bittorrent);
 			return false;
 		}
 
@@ -6730,19 +6730,19 @@ namespace libtorrent {
 			|| m_state == torrent_status::checking_resume_data)
 			&& valid_metadata())
 		{
-			p->disconnect(errors::torrent_not_ready, op_bittorrent);
+			p->disconnect(errors::torrent_not_ready, operation_t::bittorrent);
 			return false;
 		}
 
 		if (!m_ses.has_connection(p))
 		{
-			p->disconnect(errors::peer_not_constructed, op_bittorrent);
+			p->disconnect(errors::peer_not_constructed, operation_t::bittorrent);
 			return false;
 		}
 
 		if (m_ses.is_aborted())
 		{
-			p->disconnect(errors::session_closing, op_bittorrent);
+			p->disconnect(errors::session_closing, operation_t::bittorrent);
 			return false;
 		}
 
@@ -6778,10 +6778,10 @@ namespace libtorrent {
 				if (i == end() || !(*i)->is_connecting() || (*i)->is_disconnecting())
 				{
 					// this seems odd, but we might as well handle it
-					p->disconnect(errors::too_many_connections, op_bittorrent);
+					p->disconnect(errors::too_many_connections, operation_t::bittorrent);
 					return false;
 				}
-				(*i)->disconnect(errors::too_many_connections, op_bittorrent);
+				(*i)->disconnect(errors::too_many_connections, operation_t::bittorrent);
 
 				// if this peer was let in via connections slack,
 				// it has done its duty of causing the disconnection
@@ -6817,7 +6817,7 @@ namespace libtorrent {
 					, m_max_connections);
 			}
 #endif
-			p->disconnect(errors::too_many_connections, op_bittorrent);
+			p->disconnect(errors::too_many_connections, operation_t::bittorrent);
 			return false;
 		}
 		peers_erased(st.erased);
@@ -6869,7 +6869,7 @@ namespace libtorrent {
 						, m_max_connections);
 				}
 #endif
-				peer->disconnect(errors::too_many_connections, op_bittorrent);
+				peer->disconnect(errors::too_many_connections, operation_t::bittorrent);
 				p->peer_disconnected_other();
 			}
 			else
@@ -6884,7 +6884,7 @@ namespace libtorrent {
 						, m_max_connections);
 				}
 #endif
-				p->disconnect(errors::too_many_connections, op_bittorrent);
+				p->disconnect(errors::too_many_connections, operation_t::bittorrent);
 				// we have to do this here because from the peer's point of view
 				// it wasn't really attached to the torrent, but we do need
 				// to let peer_list know we're removing it
@@ -7152,7 +7152,7 @@ namespace libtorrent {
 		for (auto p : range(to_disconnect.begin(), end))
 		{
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
-			p->disconnect(ec, op_bittorrent);
+			p->disconnect(ec, operation_t::bittorrent);
 		}
 		return static_cast<int>(end - to_disconnect.begin());
 	}
@@ -7204,7 +7204,7 @@ namespace libtorrent {
 			}
 			std::for_each(seeds.begin(), seeds.end()
 				, std::bind(&peer_connection::disconnect, _1, errors::torrent_finished
-				, op_bittorrent, 0));
+				, operation_t::bittorrent, 0));
 		}
 
 		if (m_abort) return;
@@ -8029,7 +8029,7 @@ namespace libtorrent {
 		log_to_all_peers("deleting files");
 #endif
 
-		disconnect_all(errors::torrent_removed, op_bittorrent);
+		disconnect_all(errors::torrent_removed, operation_t::bittorrent);
 		stop_announcing();
 
 		// storage may be nullptr during shutdown
@@ -8414,7 +8414,7 @@ namespace libtorrent {
 				if (alerts().should_post<torrent_paused_alert>())
 					alerts().emplace_alert<torrent_paused_alert>(get_handle());
 			}
-			disconnect_all(errors::torrent_paused, op_bittorrent);
+			disconnect_all(errors::torrent_paused, operation_t::bittorrent);
 			return;
 		}
 
@@ -8434,7 +8434,7 @@ namespace libtorrent {
 					alerts().emplace_alert<torrent_paused_alert>(get_handle());
 			}
 
-			disconnect_all(errors::torrent_paused, op_bittorrent);
+			disconnect_all(errors::torrent_paused, operation_t::bittorrent);
 		}
 		else
 		{
@@ -8466,7 +8466,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 				p->peer_log(peer_log_alert::info, "CLOSING_CONNECTION", "torrent_paused");
 #endif
-				p->disconnect(errors::torrent_paused, op_bittorrent);
+				p->disconnect(errors::torrent_paused, operation_t::bittorrent);
 			}
 		}
 
@@ -9149,7 +9149,7 @@ namespace libtorrent {
 			TORRENT_ASSERT(to_disconnect <= seeds.end_index());
 			for (int i = 0; i < to_disconnect; ++i)
 				seeds[i]->disconnect(errors::upload_upload_connection
-					, op_bittorrent);
+					, operation_t::bittorrent);
 		}
 
 		if (num_downloaders == 0) return;

@@ -304,7 +304,7 @@ namespace libtorrent {namespace {
 				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
 					, "packet too big %d", length);
 #endif
-				m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
+				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, 2);
 				return true;
 			}
 
@@ -318,7 +318,7 @@ namespace libtorrent {namespace {
 				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
 					, "not a dictionary");
 #endif
-				m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
+				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, 2);
 				return true;
 			}
 
@@ -331,7 +331,7 @@ namespace libtorrent {namespace {
 				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
 					, "missing or invalid keys");
 #endif
-				m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
+				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, 2);
 				return true;
 			}
 			int type = int(type_ent->integer());
