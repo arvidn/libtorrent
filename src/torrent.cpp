@@ -8931,12 +8931,17 @@ namespace libtorrent
 		}
 
 		// if we don't have metadata yet, we don't know anything about the file
-		// structure and we have to assume we don't have any file. Deleting files
-		// in this mode would cause us to (recursively) delete m_save_path, which
-		// is bad.
+		// structure and we have to assume we don't have any file.
 		if (!valid_metadata())
 		{
-			alerts().emplace_alert<torrent_deleted_alert>(get_handle(), m_torrent_file->info_hash());
+			if (alerts().should_post<storage_moved_alert>())
+				alerts().emplace_alert<storage_moved_alert>(get_handle(), save_path);
+#if TORRENT_USE_UNC_PATHS
+			std::string path = canonicalize_path(save_path);
+#else
+			std::string const& path = save_path;
+#endif
+			m_save_path = complete(path);
 			return;
 		}
 

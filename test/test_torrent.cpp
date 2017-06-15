@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/magnet_uri.hpp"
 #include "settings.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/make_shared.hpp>
@@ -500,5 +501,21 @@ TORRENT_TEST(queue)
 	TEST_EQUAL(torrents[2].queue_position(), 2);
 	TEST_EQUAL(torrents[4].queue_position(), 3);
 	TEST_EQUAL(torrents[3].queue_position(), 4);
+}
+
+TORRENT_TEST(test_move_storage_no_metadata)
+{
+	lt::session ses(settings());
+	add_torrent_params p;
+	p.save_path = "save_path";
+	error_code ec;
+	parse_magnet_uri("magnet?xt=urn:btih:abababababababababababababababababababab", p, ec);
+	torrent_handle h = ses.add_torrent(p);
+
+	TEST_EQUAL(h.status().save_path, complete("save_path"));
+
+	h.move_storage("save_path_1");
+
+	TEST_EQUAL(h.status().save_path, complete("save_path_1"));
 }
 
