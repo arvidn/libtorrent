@@ -122,6 +122,7 @@ namespace libtorrent {namespace {
 	}
 #endif
 
+#if !TORRENT_USE_NETLINK
 	int sockaddr_len(sockaddr const* sin)
 	{
 #if TORRENT_HAS_SALEN
@@ -148,6 +149,7 @@ namespace libtorrent {namespace {
 #endif
 		return address();
 	}
+#endif
 
 	bool valid_addr_family(int family)
 	{
@@ -292,6 +294,129 @@ namespace libtorrent {namespace {
 //		if (ioctl(s, SIOCGIFNETMASK, &req) == 0) {
 //			rt_info->netmask = sockaddr_to_address(&req.ifr_addr, req.ifr_addr.sa_family);
 //		}
+		return true;
+	}
+
+	int parse_nl_link(nlmsghdr* nl_hdr, ip_interface* link_info)
+	{
+		ifinfomsg* link_msg = reinterpret_cast<ifinfomsg*>(NLMSG_DATA(nl_hdr));
+
+		link_info->name[0] = 0;
+		link_info->mtu = 0;
+
+		int rt_len = int(IFLA_PAYLOAD(nl_hdr));
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
+		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(IFLA_RTA(link_msg));
+			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
+		{
+			switch(rt_attr->rta_type)
+			{
+			case IFLA_MTU:
+				link_info->mtu = int(*reinterpret_cast<unsigned int*>(RTA_DATA(rt_attr)));
+				break;
+			case IFLA_IFNAME:
+				strncpy(link_info->name, reinterpret_cast<char*>(RTA_DATA(rt_attr)), sizeof(link_info->name));
+				break;
+			}
+		}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+		return link_msg->ifi_index;
+	}
+
+	bool parse_nl_address(std::map<int, ip_interface> const& link_info, nlmsghdr* nl_hdr, ip_interface* ip_info)
+	{
+		ifaddrmsg* addr_msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl_hdr));
+
+		if (!valid_addr_family(addr_msg->ifa_family))
+			return false;
+
+		ip_info->preferred = (addr_msg->ifa_flags & (IFA_F_DADFAILED | IFA_F_DEPRECATED | IFA_F_TENTATIVE)) == 0;
+
+#if TORRENT_USE_IPV6
+		if (addr_msg->ifa_family == AF_INET6)
+		{
+			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 128);
+			if (addr_msg->ifa_prefixlen > 0)
+			{
+				address_v6::bytes_type mask = {};
+				auto it = mask.begin();
+				if (addr_msg->ifa_prefixlen > 64)
+				{
+					detail::write_uint64(0xffffffffffffffffULL, it);
+					addr_msg->ifa_prefixlen -= 64;
+				}
+				if (addr_msg->ifa_prefixlen > 0)
+				{
+					std::uint64_t const m = ~((1ULL << (64 - addr_msg->ifa_prefixlen)) - 1);
+					detail::write_uint64(m, it);
+				}
+				ip_info->netmask = address_v6(mask);
+			}
+		}
+		else
+#endif
+		{
+			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 32);
+			if (addr_msg->ifa_prefixlen != 0)
+			{
+				std::uint32_t const m = ~((1U << (32 - addr_msg->ifa_prefixlen)) - 1);
+				ip_info->netmask = address_v4(m);
+			}
+		}
+
+		// intiialize name to be empty
+		ip_info->name[0] = '\0';
+
+		int rt_len = int(IFA_PAYLOAD(nl_hdr));
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
+		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(IFA_RTA(addr_msg));
+			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
+		{
+			switch(rt_attr->rta_type)
+			{
+			case IFA_ADDRESS:
+#if TORRENT_USE_IPV6
+				if (addr_msg->ifa_family == AF_INET6)
+				{
+					address_v6 addr = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
+					if (addr_msg->ifa_scope == RT_SCOPE_LINK)
+						addr.scope_id(addr_msg->ifa_index);
+					ip_info->interface_address = addr;
+				}
+				else
+#endif
+				{
+					ip_info->interface_address = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
+				}
+				break;
+			case IFA_LABEL:
+				strncpy(ip_info->name, reinterpret_cast<char*>(RTA_DATA(rt_attr)), sizeof(ip_info->name));
+				break;
+			}
+		}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+		auto ifi_info = link_info.find(addr_msg->ifa_index);
+		if (ifi_info != link_info.end())
+		{
+			ip_info->mtu = ifi_info->second.mtu;
+			// for some reason IPv6 entries don't include an IFA_LABEL attribute
+			// so get it from the link in that case
+			if (ip_info->name[0] == '\0')
+				strncpy(ip_info->name, ifi_info->second.name, sizeof(ip_info->name));
+		}
+
 		return true;
 	}
 #endif // TORRENT_USE_NETLINK
@@ -483,7 +608,73 @@ namespace libtorrent {
 			wan.mtu = ios.sim().config().path_mtu(ip, ip);
 			ret.push_back(wan);
 		}
+#elif TORRENT_USE_NETLINK
+		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		if (sock < 0)
+		{
+			ec = error_code(errno, system_category());
+			return ret;
+		}
 
+		std::uint32_t seq = 0;
+		std::map<int, ip_interface> link_info;
+
+		{
+			char msg[NL_BUFSIZE] = {};
+			nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
+			int len = nl_dump_request(sock, RTM_GETLINK, seq++, AF_UNSPEC, msg, sizeof(ifinfomsg));
+			if (len < 0)
+			{
+				ec = error_code(errno, system_category());
+				close(sock);
+				return ret;
+			}
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+			// NLMSG_OK uses signed/unsigned compare in the same expression
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
+			for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
+			{
+				ip_interface iface;
+				int ifi_index = parse_nl_link(nl_msg, &iface);
+				if (ifi_index >= 0) link_info.emplace(ifi_index, iface);
+			}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+		}
+
+		{
+			char msg[NL_BUFSIZE] = {};
+			nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
+			int len = nl_dump_request(sock, RTM_GETADDR, seq++, AF_PACKET, msg, sizeof(ifaddrmsg));
+			if (len < 0)
+			{
+				ec = error_code(errno, system_category());
+				close(sock);
+				return ret;
+			}
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+			// NLMSG_OK uses signed/unsigned compare in the same expression
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
+			for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
+			{
+				ip_interface iface;
+				if (parse_nl_address(link_info, nl_msg, &iface)) ret.push_back(iface);
+			}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+		}
+
+		close(sock);
 #elif TORRENT_USE_IFADDRS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
