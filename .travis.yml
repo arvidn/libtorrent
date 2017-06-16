@@ -62,8 +62,8 @@ before_install:
     travis_retry brew install docutils;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
     echo ''import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")'' >> /Users/travis/Library/Python/2.7/lib/python/site-packages/homebrew.pth;
-    sudo easy_install Pygments;
-    sudo easy_install -U aafigure;
+    easy_install --user Pygments;
+    easy_install --user aafigure;
     travis_retry brew install graphviz;
     travis_retry brew install Homebrew/python/pillow;
     fi'

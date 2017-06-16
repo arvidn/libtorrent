@@ -74,6 +74,7 @@
 	* require C++11 to build libtorrent
 
 
+	* move_storage did not work for torrents without metadata
 	* improve shutdown time by only announcing to trackers whose IP we know
 	* fix python3 portability issue in python binding
 	* delay 5 seconds before reconnecting socks5 proxy for UDP ASSOCIATE

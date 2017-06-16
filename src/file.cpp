@@ -1218,7 +1218,7 @@ namespace {
 				offs = inf.AllocationSize;
 			}
 
-			if (offs.QuadPart != s)
+			if (offs.QuadPart < s)
 			{
 				// if the user has permissions, avoid filling
 				// the file with zeroes, but just fill it with
