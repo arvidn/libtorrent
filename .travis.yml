@@ -52,8 +52,8 @@ before_install:
     brew install --quiet docutils;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
     echo ''import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")'' >> /Users/travis/Library/Python/2.7/lib/python/site-packages/homebrew.pth;
-    sudo easy_install Pygments;
-    sudo easy_install -U aafigure;
+    easy_install --user Pygments;
+    easy_install --user aafigure;
     brew install --quiet graphviz;
     brew install --quiet Homebrew/python/pillow;
     fi'
@@ -96,7 +96,7 @@ install:
 script:
 # disable invoking docutils for now, until we can have a modern version of it
   - cd docs
-  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then make RST2HTML=rst2html.py AAFIGURE=echo; fi
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then make RST2HTML=rst2html.py; fi
   - cd ..
 
   - cd test
