@@ -119,10 +119,10 @@ namespace libtorrent {
 	tracker_alert::tracker_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, string_view u)
 		: torrent_alert(alloc, h)
+		, m_url_idx(alloc.copy_string(u))
 #ifndef TORRENT_NO_DEPRECATE
 		, url(u)
 #endif
-		, m_url_idx(alloc.copy_string(u))
 	{}
 
 	char const* tracker_alert::tracker_url() const
@@ -192,11 +192,11 @@ namespace libtorrent {
 	file_renamed_alert::file_renamed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, string_view n, file_index_t const idx)
 		: torrent_alert(alloc, h)
+		, index(idx)
+		, m_name_idx(alloc.copy_string(n))
 #ifndef TORRENT_NO_DEPRECATE
 		, name(n)
 #endif
-		, index(idx)
-		, m_name_idx(alloc.copy_string(n))
 	{}
 
 	char const* file_renamed_alert::new_name() const
@@ -290,10 +290,10 @@ namespace libtorrent {
 		, times_in_row(times)
 		, status_code(status)
 		, error(e)
+		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
 #endif
-		, m_msg_idx(alloc.copy_string(m))
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -316,10 +316,10 @@ namespace libtorrent {
 	tracker_warning_alert::tracker_warning_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, string_view u, string_view m)
 		: tracker_alert(alloc, h, u)
+		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
 #endif
-		, m_msg_idx(alloc.copy_string(m))
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -354,11 +354,11 @@ namespace libtorrent {
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, string_view u, error_code const& e)
 		: tracker_alert(alloc, h, u)
+		, error(e)
+		, m_msg_idx()
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(convert_from_native(e.message()))
 #endif
-		, error(e)
-		, m_msg_idx()
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -366,11 +366,11 @@ namespace libtorrent {
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, string_view u, string_view m)
 		: tracker_alert(alloc, h, u)
+		, error(errors::tracker_failure)
+		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
 #endif
-		, error(errors::tracker_failure)
-		, m_msg_idx(alloc.copy_string(m))
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -592,11 +592,11 @@ namespace libtorrent {
 		, tcp::endpoint const& ep
 		, peer_id const& peer_id, int block_num, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
+		, block_index(block_num)
+		, piece_index(piece_num)
 #ifndef TORRENT_NO_DEPRECATE
 		, peer_speedmsg("")
 #endif
-		, block_index(block_num)
-		, piece_index(piece_num)
 	{
 		TORRENT_ASSERT(block_index >= 0 && piece_index >= piece_index_t(0));
 	}
@@ -630,10 +630,10 @@ namespace libtorrent {
 	storage_moved_alert::storage_moved_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, string_view p)
 		: torrent_alert(alloc, h)
+		, m_path_idx(alloc.copy_string(p))
 #ifndef TORRENT_NO_DEPRECATE
 		, path(p)
 #endif
-		, m_path_idx(alloc.copy_string(p))
 	{}
 
 	std::string storage_moved_alert::message() const
@@ -652,11 +652,11 @@ namespace libtorrent {
 		, string_view f, char const* op)
 		: torrent_alert(alloc, h)
 		, error(e)
+		, operation(op)
+		, m_file_idx(alloc.copy_string(f))
 #ifndef TORRENT_NO_DEPRECATE
 		, file(f)
 #endif
-		, operation(op)
-		, m_file_idx(alloc.copy_string(f))
 	{}
 
 	char const* storage_moved_failed_alert::file_path() const
@@ -687,10 +687,10 @@ namespace libtorrent {
 		: torrent_alert(alloc, h)
 		, error(e)
 		, info_hash(ih)
-	{
 #ifndef TORRENT_NO_DEPRECATE
-		msg = convert_from_native(error.message());
+		, msg(convert_from_native(error.message()))
 #endif
+	{
 	}
 
 	std::string torrent_delete_failed_alert::message() const
@@ -704,10 +704,10 @@ namespace libtorrent {
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
 		, params(std::move(p))
-	{
 #ifndef TORRENT_NO_DEPRECATE
-		resume_data = std::make_shared<entry>(write_resume_data(params));
+		, resume_data(std::make_shared<entry>(write_resume_data(params)))
 #endif
+	{
 	}
 
 	std::string save_resume_data_alert::message() const
@@ -719,10 +719,10 @@ namespace libtorrent {
 		, torrent_handle const& h, error_code const& e)
 		: torrent_alert(alloc, h)
 		, error(e)
-	{
 #ifndef TORRENT_NO_DEPRECATE
-		msg = convert_from_native(error.message());
+		, msg(convert_from_native(error.message()))
 #endif
+	{
 	}
 
 	std::string save_resume_data_failed_alert::message() const
@@ -810,12 +810,12 @@ namespace {
 		, socket_type(t)
 		, address(listen_addr)
 		, port(listen_port)
+		, m_alloc(alloc)
+		, m_interface_idx(alloc.copy_string(iface))
 #ifndef TORRENT_NO_DEPRECATE
 		, endpoint(listen_addr, std::uint16_t(listen_port))
 		, sock_type(static_cast<socket_type_t>(sock_type_idx(t)))
 #endif
-		, m_alloc(alloc)
-		, m_interface_idx(alloc.copy_string(iface))
 	{}
 
 	listen_failed_alert::listen_failed_alert(
@@ -981,11 +981,10 @@ namespace {
 	portmap_error_alert::portmap_error_alert(aux::stack_allocator&
 		, int i, int t, error_code const& e)
 		:  mapping(i), map_type(t), error(e)
-	{
 #ifndef TORRENT_NO_DEPRECATE
-		msg = convert_from_native(error.message());
+		, msg(convert_from_native(error.message()))
 #endif
-	}
+	{}
 
 	std::string portmap_error_alert::message() const
 	{
@@ -1008,11 +1007,11 @@ namespace {
 
 	portmap_log_alert::portmap_log_alert(aux::stack_allocator& alloc, int t, const char* m)
 		: map_type(t)
+		, m_alloc(alloc)
+		, m_log_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
 #endif
-		, m_alloc(alloc)
-		, m_log_idx(alloc.copy_string(m))
 	{}
 
 	char const* portmap_log_alert::log_message() const
@@ -1037,11 +1036,11 @@ namespace {
 		: torrent_alert(alloc, h)
 		, error(ec)
 		, operation(op)
+		, m_path_idx(alloc.copy_string(f))
 #ifndef TORRENT_NO_DEPRECATE
 		, file(f)
 		, msg(convert_from_native(error.message()))
 #endif
-		, m_path_idx(alloc.copy_string(f))
 	{
 	}
 
@@ -1213,10 +1212,10 @@ namespace {
 		, string_view u
 		, const std::string& id)
 		: tracker_alert(alloc, h, u)
+		, m_tracker_idx(alloc.copy_string(id))
 #ifndef TORRENT_NO_DEPRECATE
 		, trackerid(id)
 #endif
-		, m_tracker_idx(alloc.copy_string(id))
 	{}
 
 	char const* trackerid_alert::tracker_id() const
@@ -1243,10 +1242,10 @@ namespace {
 		, error_code const& e, string_view f)
 		: torrent_alert(alloc, h)
 		, error(e)
+		, m_file_idx(alloc.copy_string(f))
 #ifndef TORRENT_NO_DEPRECATE
 		, error_file(f)
 #endif
-		, m_file_idx(alloc.copy_string(f))
 	{}
 
 	std::string torrent_error_alert::message() const
@@ -1790,24 +1789,24 @@ namespace {
 	url_seed_alert::url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, string_view u, error_code const& e)
 		: torrent_alert(alloc, h)
+		, error(e)
+		, m_url_idx(alloc.copy_string(u))
+		, m_msg_idx()
 #ifndef TORRENT_NO_DEPRECATE
 		, url(u)
 		, msg(convert_from_native(e.message()))
 #endif
-		, error(e)
-		, m_url_idx(alloc.copy_string(u))
-		, m_msg_idx()
 	{}
 
 	url_seed_alert::url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, string_view u, string_view m)
 		: torrent_alert(alloc, h)
+		, m_url_idx(alloc.copy_string(u))
+		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
 		, url(u)
 		, msg(m)
 #endif
-		, m_url_idx(alloc.copy_string(u))
-		, m_msg_idx(alloc.copy_string(m))
 	{}
 
 	std::string url_seed_alert::message() const
@@ -1831,17 +1830,14 @@ namespace {
 		, error_code const& ec, string_view f, char const* op
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
-#ifndef TORRENT_NO_DEPRECATE
-		, file(f)
-#endif
 		, error(ec)
 		, operation(op)
 		, m_file_idx(alloc.copy_string(f))
-	{
 #ifndef TORRENT_NO_DEPRECATE
-		msg = convert_from_native(error.message());
+		, file(f)
+		, msg(convert_from_native(error.message()))
 #endif
-	}
+	{}
 
 	char const* file_error_alert::filename() const
 	{
@@ -1905,12 +1901,12 @@ namespace {
 		, udp::endpoint const& ep)
 		: direction(d)
 		, node(std::move(ep))
-#ifndef TORRENT_NO_DEPRECATE
-		, dir(d)
-#endif
 		, m_alloc(alloc)
 		, m_msg_idx(alloc.copy_buffer(buf))
 		, m_size(int(buf.size()))
+#ifndef TORRENT_NO_DEPRECATE
+		, dir(d)
+#endif
 	{}
 
 	span<char const> dht_pkt_alert::pkt_buf() const
@@ -2014,12 +2010,12 @@ namespace {
 		aux::stack_allocator& alloc, void* userdata_
 		, udp::endpoint const& addr_, bdecode_node const& response)
 		: userdata(userdata_), endpoint(addr_)
-#ifndef TORRENT_NO_DEPRECATE
-		, addr(addr_)
-#endif
 		, m_alloc(alloc)
 		, m_response_idx(alloc.copy_buffer(response.data_section()))
 		, m_response_size(int(response.data_section().size()))
+#ifndef TORRENT_NO_DEPRECATE
+		, addr(addr_)
+#endif
 	{}
 
 	dht_direct_response_alert::dht_direct_response_alert(
@@ -2027,12 +2023,12 @@ namespace {
 		, void* userdata_
 		, udp::endpoint const& addr_)
 		: userdata(userdata_), endpoint(addr_)
-#ifndef TORRENT_NO_DEPRECATE
-		, addr(addr_)
-#endif
 		, m_alloc(alloc)
 		, m_response_idx()
 		, m_response_size(0)
+#ifndef TORRENT_NO_DEPRECATE
+		, addr(addr_)
+#endif
 	{}
 
 	std::string dht_direct_response_alert::message() const
