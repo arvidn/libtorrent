@@ -649,12 +649,13 @@ namespace libtorrent {
 
 	storage_moved_failed_alert::storage_moved_failed_alert(
 		aux::stack_allocator& alloc, torrent_handle const& h, error_code const& e
-		, string_view f, char const* op)
+		, string_view f, operation_t const op_)
 		: torrent_alert(alloc, h)
 		, error(e)
-		, operation(op)
+		, op(op_)
 		, m_file_idx(alloc.copy_string(f))
 #ifndef TORRENT_NO_DEPRECATE
+		, operation(operation_name(op_))
 		, file(f)
 #endif
 	{}
@@ -667,7 +668,7 @@ namespace libtorrent {
 	std::string storage_moved_failed_alert::message() const
 	{
 		return torrent_alert::message() + " storage move failed. "
-			+ (operation?operation:"") + " (" + file_path() + "): "
+			+ operation_name(op) + " (" + file_path() + "): "
 			+ convert_from_native(error.message());
 	}
 
@@ -763,56 +764,126 @@ namespace libtorrent {
 
 namespace {
 
-		int sock_type_idx(socket_type_t type)
-		{
-			int idx =
-				static_cast<std::underlying_type<socket_type_t>::type>(type);
-			TORRENT_ASSERT(0 <= idx && idx < 6);
-			return idx;
-		}
-
-		char const* sock_type_str(socket_type_t type)
-		{
-			static char const* type_str[] =
-				{ "TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL" };
-
-			return type_str[sock_type_idx(type)];
-		}
-
-		static char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
-
-		static char const* const protocol_str[] = {"TCP", "UDP"};
-
-		static char const* const socket_type_str[] = {
-			"null",
-			"TCP",
-			"Socks5/TCP",
-			"HTTP",
-			"uTP",
-			"i2p",
-			"SSL/TCP",
-			"SSL/Socks5",
-			"HTTPS",
-			"SSL/uTP"
-		};
+	int sock_type_idx(socket_type_t type)
+	{
+		int idx =
+			static_cast<std::underlying_type<socket_type_t>::type>(type);
+		TORRENT_ASSERT(0 <= idx && idx < 6);
+		return idx;
 	}
+
+	char const* sock_type_str(socket_type_t type)
+	{
+		static char const* type_str[] =
+			{ "TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL" };
+
+		return type_str[sock_type_idx(type)];
+	}
+
+	static char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
+
+	static char const* const protocol_str[] = {"TCP", "UDP"};
+
+	static char const* const socket_type_str[] = {
+		"null",
+		"TCP",
+		"Socks5/TCP",
+		"HTTP",
+		"uTP",
+		"i2p",
+		"SSL/TCP",
+		"SSL/Socks5",
+		"HTTPS",
+		"SSL/uTP"
+	};
+
+#ifndef TORRENT_NO_DEPRECATE
+
+	int to_op_t(operation_t op)
+	{
+		using o = operation_t;
+		using lfo = listen_failed_alert::op_t;
+
+		// we have to use deprecated enum values here. suppress the warnings
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+		switch (op)
+		{
+			case o::bittorrent: return -1;
+			case o::iocontrol: return -1;
+			case o::getpeername: return -1;
+			case o::getname: return lfo::get_socket_name;
+			case o::alloc_recvbuf: return -1;
+			case o::alloc_sndbuf: return -1;
+			case o::file_write: return -1;
+			case o::file_read: return -1;
+			case o::file: return -1;
+			case o::sock_write: return -1;
+			case o::sock_read: return -1;
+			case o::sock_open: return lfo::open;
+			case o::sock_bind: return lfo::bind;
+			case o::available: return -1;
+			case o::encryption: return -1;
+			case o::connect: return -1;
+			case o::ssl_handshake: return -1;
+			case o::get_interface: return -1;
+			case o::unknown: return -1;
+			case o::sock_listen: return lfo::listen;
+			case o::sock_bind_to_device: return lfo::bind_to_device;
+			case o::sock_accept: return lfo::accept;
+			case o::parse_address: return lfo::parse_addr;
+			case o::enum_if: return lfo::enum_if;
+			case o::file_stat: return -1;
+			case o::file_copy: return -1;
+			case o::file_fallocate: return -1;
+			case o::file_hard_link: return -1;
+			case o::file_remove: return -1;
+			case o::file_rename: return -1;
+			case o::file_open: return -1;
+			case o::mkdir: return -1;
+			case o::check_resume: return -1;
+			case o::exception: return -1;
+			case o::alloc_cache_piece: return -1;
+			case o::partfile_move: return -1;
+			case o::partfile_read: return -1;
+			case o::partfile_write: return -1;
+		};
+		return -1;
+	}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+#endif // TORRENT_NO_DEPRECATE
+} // anonymous namespace
 
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
 		, string_view iface
 		, libtorrent::address const& listen_addr
 		, int listen_port
-		, int op
+		, operation_t const op_
 		, error_code const& ec
 		, libtorrent::socket_type_t t)
 		: error(ec)
-		, operation(op)
+		, op(op_)
 		, socket_type(t)
 		, address(listen_addr)
 		, port(listen_port)
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
 #ifndef TORRENT_NO_DEPRECATE
+		, operation(to_op_t(op_))
 		, endpoint(listen_addr, std::uint16_t(listen_port))
 		, sock_type(static_cast<socket_type_t>(sock_type_idx(t)))
 #endif
@@ -822,14 +893,14 @@ namespace {
 		aux::stack_allocator& alloc
 		, string_view iface
 		, tcp::endpoint const& ep
-		, int op
+		, operation_t const op_
 		, error_code const& ec
 		, libtorrent::socket_type_t t)
 		: listen_failed_alert(alloc
 			, iface
 			, ep.address()
 			, ep.port()
-			, op
+			, op_
 			, ec
 			, t)
 	{}
@@ -838,14 +909,14 @@ namespace {
 		aux::stack_allocator& alloc
 		, string_view iface
 		, udp::endpoint const& ep
-		, int op
+		, operation_t const op_
 		, error_code const& ec
 		, libtorrent::socket_type_t t)
 		: listen_failed_alert(alloc
 			, iface
 			, ep.address()
 			, ep.port()
-			, op
+			, op_
 			, ec
 			, t)
 	{}
@@ -853,14 +924,14 @@ namespace {
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
 		, string_view iface
-		, int op
+		, operation_t const op_
 		, error_code const& ec
 		, libtorrent::socket_type_t t)
 		: listen_failed_alert(alloc
 			, iface
 			, libtorrent::address()
 			, 0
-			, op
+			, op_
 			, ec
 			, t)
 	{}
@@ -872,22 +943,11 @@ namespace {
 
 	std::string listen_failed_alert::message() const
 	{
-		static char const* op_str[] =
-		{
-			"parse_addr",
-			"open",
-			"bind",
-			"listen",
-			"get_socket_name",
-			"accept",
-			"enum_if",
-			"bind_to_device"
-		};
 		char ret[300];
 		std::snprintf(ret, sizeof(ret), "listening on %s (device: %s) failed: [%s] [%s] %s"
 			, print_endpoint(address, port).c_str()
 			, listen_interface()
-			, op_str[operation]
+			, operation_name(op)
 			, sock_type_str(socket_type)
 			, convert_from_native(error.message()).c_str());
 		return ret;
@@ -1394,6 +1454,7 @@ namespace {
 	char const* operation_name(operation_t const op)
 	{
 		static char const* names[] = {
+			"unknown",
 			"bittorrent",
 			"iocontrol",
 			"getpeername",
@@ -1412,7 +1473,25 @@ namespace {
 			"connect",
 			"ssl_handshake",
 			"get_interface",
-			"unknown",
+			"sock_listen",
+			"sock_bind_to_device",
+			"sock_accept",
+			"parse_address",
+			"enum_if",
+			"file_stat",
+			"file_copy",
+			"file_fallocate",
+			"file_hard_link",
+			"file_remove",
+			"file_rename",
+			"file_open",
+			"mkdir",
+			"check_resume",
+			"exception",
+			"alloc_cache_piece",
+			"partfile_move",
+			"partfile_read",
+			"partfile_write",
 		};
 
 		int const idx = static_cast<int>(op);
@@ -1827,13 +1906,14 @@ namespace {
 	}
 
 	file_error_alert::file_error_alert(aux::stack_allocator& alloc
-		, error_code const& ec, string_view f, char const* op
+		, error_code const& ec, string_view f, operation_t const op_
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
 		, error(ec)
-		, operation(op)
+		, op(op_)
 		, m_file_idx(alloc.copy_string(f))
 #ifndef TORRENT_NO_DEPRECATE
+		, operation(operation_name(op_))
 		, file(f)
 		, msg(convert_from_native(error.message()))
 #endif
@@ -1847,7 +1927,7 @@ namespace {
 	std::string file_error_alert::message() const
 	{
 		return torrent_alert::message() + " "
-			+ (operation?operation:"") + " (" + filename()
+			+ operation_name(op) + " (" + filename()
 			+ ") error: " + convert_from_native(error.message());
 	}
 

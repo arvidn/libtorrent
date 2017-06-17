@@ -42,9 +42,12 @@ namespace libtorrent {
 	// peer to disconnect
 	enum class operation_t : std::uint8_t
 	{
+		// the error was unexpected and it is unknown which operation caused it
+		unknown,
+
 		// this is used when the bittorrent logic
 		// determines to disconnect
-		bittorrent = 0,
+		bittorrent,
 
 		// a call to iocontrol failed
 		iocontrol,
@@ -100,16 +103,51 @@ namespace libtorrent {
 		// a connection failed to satisfy the bind interface setting
 		get_interface,
 
-		// the error was unexpected and it is unknown which operation caused it
-		unknown,
+		// a call to listen() on a socket
+		sock_listen,
+
+		// a call to the ioctl to bind a socket to a specific network device or
+		// adaptor
+		sock_bind_to_device,
+
+		// a call to accept() on a socket
+		sock_accept,
+
+		// convert a string into a valid network address
+		parse_address,
+
+		// enumeration network devices or adapters
+		enum_if,
+
+		file_stat,
+		file_copy,
+		file_fallocate,
+		file_hard_link,
+		file_remove,
+		file_rename,
+		file_open,
+		mkdir,
+		check_resume,
+		exception,
+		alloc_cache_piece,
+		partfile_move,
+		partfile_read,
+		partfile_write,
 	};
+
+	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
+	// to its name. See peer_connection for the constants
+	TORRENT_EXPORT char const* operation_name(operation_t op);
 
 #ifndef TORRENT_NO_DEPRECATE
 	enum deprecated_operation_t : std::uint8_t
 	{
+		// the error was unexpected and it is unknown which operation caused it
+		op_unknown TORRENT_DEPRECATED_ENUM,
+
 		// this is used when the bittorrent logic
 		// determines to disconnect
-		op_bittorrent TORRENT_DEPRECATED_ENUM = 0,
+		op_bittorrent TORRENT_DEPRECATED_ENUM ,
 
 		// a call to iocontrol failed
 		op_iocontrol TORRENT_DEPRECATED_ENUM,
@@ -164,9 +202,6 @@ namespace libtorrent {
 
 		// a connection failed to satisfy the bind interface setting
 		op_get_interface TORRENT_DEPRECATED_ENUM,
-
-		// the error was unexpected and it is unknown which operation caused it
-		op_unknown TORRENT_DEPRECATED_ENUM,
 	};
 #endif
 

@@ -98,9 +98,9 @@ void on_check_resume_data(status_t const status, storage_error const& error, boo
 
 void print_error(char const* call, int ret, storage_error const& ec)
 {
-	std::printf("%s: %s() returned: %d error: \"%s\" in file: %d operation: %d\n"
+	std::printf("%s: %s() returned: %d error: \"%s\" in file: %d operation: %s\n"
 		, time_now_string(), call, ret, ec.ec.message().c_str()
-		, static_cast<int>(ec.file()), ec.operation);
+		, static_cast<int>(ec.file()), operation_name(ec.operation));
 }
 
 void run_until(io_service& ios, bool const& done)
@@ -1170,7 +1170,7 @@ struct test_error_fileop
 			ec.file(file_index);
 			ec.ec.assign(boost::system::errc::permission_denied
 				, boost::system::generic_category());
-			ec.operation = storage_error::read;
+			ec.operation = operation_t::file_read;
 			return -1;
 		}
 		return bufs_size(bufs);
@@ -1304,7 +1304,7 @@ TORRENT_TEST(readwritev_error)
 
 	TEST_EQUAL(ret, -1);
 	TEST_EQUAL(static_cast<int>(ec.file()), 2);
-	TEST_EQUAL(ec.operation, storage_error::read);
+	TEST_CHECK(ec.operation == operation_t::file_read);
 	TEST_EQUAL(ec.ec, boost::system::errc::permission_denied);
 	std::printf("error: %s\n", ec.ec.message().c_str());
 }

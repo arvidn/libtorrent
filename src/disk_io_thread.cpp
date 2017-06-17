@@ -1152,24 +1152,24 @@ namespace libtorrent {
 		{
 			ret = status_t::fatal_disk_error;
 			j->error.ec = err.code();
-			j->error.operation = storage_error::exception;
+			j->error.operation = operation_t::exception;
 		}
 		catch (std::bad_alloc const&)
 		{
 			ret = status_t::fatal_disk_error;
 			j->error.ec = errors::no_memory;
-			j->error.operation = storage_error::exception;
+			j->error.operation = operation_t::exception;
 		}
 		catch (std::exception const&)
 		{
 			ret = status_t::fatal_disk_error;
 			j->error.ec = boost::asio::error::fault;
-			j->error.operation = storage_error::exception;
+			j->error.operation = operation_t::exception;
 		}
 
 		// note that -2 errors are OK
 		TORRENT_ASSERT(ret != status_t::fatal_disk_error
-			|| (j->error.ec && j->error.operation != 0));
+			|| (j->error.ec && j->error.operation != operation_t::unknown));
 
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 
@@ -1226,7 +1226,7 @@ namespace libtorrent {
 		if (buffer.get() == nullptr)
 		{
 			j->error.ec = error::no_memory;
-			j->error.operation = storage_error::alloc_cache_piece;
+			j->error.operation = operation_t::alloc_cache_piece;
 			return status_t::fatal_disk_error;
 		}
 
@@ -1514,7 +1514,7 @@ namespace libtorrent {
 				!= boost::get<disk_buffer_holder>(j->argument).get());
 			TORRENT_ASSERT(pe->blocks[j->d.io.offset / 16 / 1024].buf != nullptr);
 			j->error.ec = error::operation_aborted;
-			j->error.operation = storage_error::write;
+			j->error.operation = operation_t::file_write;
 			return status_t::fatal_disk_error;
 		}
 
@@ -1619,7 +1619,7 @@ namespace libtorrent {
 		else if (ret == -2)
 		{
 			j->error.ec = error::no_memory;
-			j->error.operation = storage_error::alloc_cache_piece;
+			j->error.operation = operation_t::alloc_cache_piece;
 			j->ret = status_t::fatal_disk_error;
 			return 0;
 		}
@@ -1651,7 +1651,7 @@ namespace libtorrent {
 		{
 			j->ret = status_t::fatal_disk_error;
 			j->error.ec = error::no_memory;
-			j->error.operation = storage_error::read;
+			j->error.operation = operation_t::file_read;
 			return 0;
 		}
 		if (pe->outstanding_read)
@@ -2254,7 +2254,7 @@ namespace libtorrent {
 		if (pe == nullptr)
 		{
 			j->error.ec = error::no_memory;
-			j->error.operation = storage_error::alloc_cache_piece;
+			j->error.operation = operation_t::alloc_cache_piece;
 			return status_t::fatal_disk_error;
 		}
 
@@ -2352,7 +2352,7 @@ namespace libtorrent {
 					m_disk_cache.maybe_free_piece(pe);
 
 					j->error.ec = errors::no_memory;
-					j->error.operation = storage_error::alloc_cache_piece;
+					j->error.operation = operation_t::alloc_cache_piece;
 					return status_t::fatal_disk_error;
 				}
 
@@ -2368,7 +2368,7 @@ namespace libtorrent {
 				if (read_ret < 0)
 				{
 					ret = status_t::fatal_disk_error;
-					TORRENT_ASSERT(j->error.ec && j->error.operation != 0);
+					TORRENT_ASSERT(j->error.ec && j->error.operation != operation_t::unknown);
 					m_disk_cache.free_buffer(iov.data());
 					break;
 				}
@@ -2380,7 +2380,7 @@ namespace libtorrent {
 				{
 					ret = status_t::fatal_disk_error;
 					j->error.ec = boost::asio::error::eof;
-					j->error.operation = storage_error::read;
+					j->error.operation = operation_t::file_read;
 					m_disk_cache.free_buffer(iov.data());
 					break;
 				}
@@ -2435,7 +2435,7 @@ namespace libtorrent {
 
 		m_disk_cache.maybe_free_piece(pe);
 
-		TORRENT_ASSERT(ret == status_t::no_error || (j->error.ec && j->error.operation != 0));
+		TORRENT_ASSERT(ret == status_t::no_error || (j->error.ec && j->error.operation != operation_t::unknown));
 
 		return ret;
 	}

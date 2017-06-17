@@ -5267,7 +5267,7 @@ namespace libtorrent {
 			if (t->alerts().should_post<file_error_alert>())
 				t->alerts().emplace_alert<file_error_alert>(error.ec
 					, t->resolve_filename(error.file())
-					, error.operation_str(), t->get_handle());
+					, error.operation, t->get_handle());
 
 			++m_disk_read_failures;
 			if (m_disk_read_failures > 100) disconnect(error.ec, operation_t::file_read);

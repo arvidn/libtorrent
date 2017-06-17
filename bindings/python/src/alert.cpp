@@ -290,6 +290,7 @@ void bind_alert()
     }
 
     enum_<operation_t>("operation_t")
+       .value("unknown", operation_t::unknown)
        .value("bittorrent", operation_t::bittorrent)
        .value("iocontrol", operation_t::iocontrol)
        .value("getpeername", operation_t::getpeername)
@@ -308,9 +309,26 @@ void bind_alert()
        .value("connect", operation_t::connect)
        .value("ssl_handshake", operation_t::ssl_handshake)
        .value("get_interface", operation_t::get_interface)
-       .value("unknown", operation_t::unknown)
+       .value("sock_listen", operation_t::sock_listen)
+       .value("sock_bind_to_device", operation_t::sock_bind_to_device)
+       .value("sock_accept", operation_t::sock_accept)
+       .value("parse_address", operation_t::parse_address)
+       .value("enum_if", operation_t::enum_if)
+       .value("file_stat", operation_t::file_stat)
+       .value("file_copy", operation_t::file_copy)
+       .value("file_fallocate", operation_t::file_fallocate)
+       .value("file_hard_link", operation_t::file_hard_link)
+       .value("file_remove", operation_t::file_remove)
+       .value("file_rename", operation_t::file_rename)
+       .value("file_open", operation_t::file_open)
+       .value("mkdir", operation_t::mkdir)
+       .value("check_resume", operation_t::check_resume)
+       .value("exception", operation_t::exception)
+       .value("alloc_cache_piece", operation_t::alloc_cache_piece)
+       .value("partfile_move", operation_t::partfile_move)
+       .value("partfile_read", operation_t::partfile_read)
+       .value("partfile_write", operation_t::partfile_write)
        ;
-
 
     class_<torrent_alert, bases<alert>, noncopyable>(
         "torrent_alert", no_init)
@@ -445,7 +463,10 @@ void bind_alert()
         "storage_moved_failed_alert", no_init)
         .def_readonly("error", &storage_moved_failed_alert::error)
         .def("file_path", &storage_moved_failed_alert::file_path)
+        .def_readonly("op", &storage_moved_failed_alert::op)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("operation", &storage_moved_failed_alert::operation)
+#endif
         ;
 
     class_<torrent_deleted_alert, bases<torrent_alert>, noncopyable>(
@@ -497,8 +518,9 @@ void bind_alert()
         .def_readonly("port", &listen_failed_alert::port)
         .def("listen_interface", &listen_failed_alert::listen_interface)
         .def_readonly("error", &listen_failed_alert::error)
-        .def_readonly("operation", &listen_failed_alert::operation)
+        .def_readonly("op", &listen_failed_alert::op)
 #ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("operation", &listen_failed_alert::operation)
         .def_readonly("sock_type", &listen_failed_alert::sock_type)
 #endif
         .def_readonly("socket_type", &listen_failed_alert::socket_type)

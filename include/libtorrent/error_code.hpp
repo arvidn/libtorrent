@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/system_error.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/operations.hpp"
 
 namespace libtorrent {
 
@@ -486,7 +487,6 @@ namespace libtorrent {
 	using boost::system::system_error;
 
 #ifndef BOOST_NO_EXCEPTIONS
-
 #ifndef TORRENT_NO_DEPRECATE
 	TORRENT_DEPRECATED
 	inline boost::system::error_category& get_libtorrent_category()
@@ -503,8 +503,8 @@ namespace libtorrent {
 	// error happened on
 	struct TORRENT_EXPORT storage_error
 	{
-		storage_error(): file_idx(-1), operation(0) {}
-		explicit storage_error(error_code e): ec(e), file_idx(-1), operation(0) {}
+		storage_error(): file_idx(-1), operation(operation_t::unknown) {}
+		explicit storage_error(error_code e): ec(e), file_idx(-1), operation(operation_t::unknown) {}
 
 		explicit operator bool() const { return ec.value() != 0; }
 
@@ -519,42 +519,13 @@ namespace libtorrent {
 
 		// A code from file_operation_t enum, indicating what
 		// kind of operation failed.
-		std::uint32_t operation:8;
-
-		enum file_operation_t {
-			none,
-			stat,
-			mkdir,
-			open,
-			rename,
-			remove,
-			copy,
-			read,
-			write,
-			fallocate,
-			alloc_cache_piece,
-			partfile_move,
-			partfile_read,
-			partfile_write,
-			check_resume,
-			hard_link,
-			exception
-		};
+		operation_t operation;
 
 		// Returns a string literal representing the file operation
 		// that failed. If there were no failure, it returns
 		// an empty string.
 		char const* operation_str() const
-		{
-			static char const* ops[] =
-			{
-				"", "stat", "mkdir", "open", "rename", "remove", "copy"
-				, "read", "write", "fallocate", "allocate cache piece"
-				, "partfile move", "partfile read", "partfile write"
-				, "check resume", "hard_link", "exception"
-			};
-			return ops[operation];
-		}
+		{ return operation_name(operation); }
 	};
 
 }

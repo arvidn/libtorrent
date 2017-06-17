@@ -1037,8 +1037,8 @@ namespace libtorrent {
 		{
 			if (alerts().should_post<file_error_alert>())
 				alerts().emplace_alert<file_error_alert>(error.ec
-					, resolve_filename(error.file()), error.operation_str(), get_handle());
-			if (c) c->disconnect(errors::no_memory, operation_t::file);
+					, resolve_filename(error.file()), error.operation, get_handle());
+			if (c) c->disconnect(errors::no_memory, error.operation);
 			return;
 		}
 
@@ -1047,7 +1047,7 @@ namespace libtorrent {
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
 			alerts().emplace_alert<file_error_alert>(error.ec
-				, resolve_filename(error.file()), error.operation_str(), get_handle());
+				, resolve_filename(error.file()), error.operation, get_handle());
 
 		// if a write operation failed, and future writes are likely to
 		// fail, while reads may succeed, just set the torrent to upload mode
@@ -2294,7 +2294,7 @@ namespace libtorrent {
 				m_num_checked_pieces = piece_index_t{0};
 				if (m_ses.alerts().should_post<file_error_alert>())
 					m_ses.alerts().emplace_alert<file_error_alert>(error.ec,
-						resolve_filename(error.file()), error.operation_str(), get_handle());
+						resolve_filename(error.file()), error.operation, get_handle());
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
@@ -7528,8 +7528,9 @@ namespace libtorrent {
 		if (m_abort)
 		{
 			if (alerts().should_post<storage_moved_failed_alert>())
-				alerts().emplace_alert<storage_moved_failed_alert>(get_handle(), boost::asio::error::operation_aborted
-					, "", "");
+				alerts().emplace_alert<storage_moved_failed_alert>(get_handle()
+					, boost::asio::error::operation_aborted
+					, "", operation_t::unknown);
 			return;
 		}
 
@@ -7597,7 +7598,7 @@ namespace libtorrent {
 		{
 			if (alerts().should_post<storage_moved_failed_alert>())
 				alerts().emplace_alert<storage_moved_failed_alert>(get_handle(), error.ec
-					, resolve_filename(error.file()), error.operation_str());
+					, resolve_filename(error.file()), error.operation);
 		}
 	}
 	catch (...) { handle_exception(); }
