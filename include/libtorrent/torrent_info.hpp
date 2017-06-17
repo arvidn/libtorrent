@@ -206,7 +206,7 @@ namespace libtorrent
 		// filename is reflected by the ``file_storage`` returned by ``files()``
 		// but not by the one returned by ``orig_files()``.
 		// 
-		// If you want to rename the base name of the torrent (for a multifile
+		// If you want to rename the base name of the torrent (for a multi file
 		// torrent), you can copy the ``file_storage`` (see files() and
 		// orig_files() ), change the name, and then use `remap_files()`_.
 		// 
@@ -253,13 +253,13 @@ namespace libtorrent
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
-		// These two functions are related to BEP38_ (mutable torrents). The
+		// These two functions are related to `BEP 38`_ (mutable torrents). The
 		// vectors returned from these correspond to the "similar" and
 		// "collections" keys in the .torrent file. Both info-hashes and
 		// collections from within the info-dict and from outside of it are
 		// included.
 		// 
-		// .. _BEP38: http://www.bittorrent.org/beps/bep_0038.html
+		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
 		std::vector<sha1_hash> similar_torrents() const;
 		std::vector<std::string> collections() const;
 
@@ -518,7 +518,7 @@ namespace libtorrent
 		std::map<int, sha1_hash> build_merkle_list(int piece) const;
 
 		// returns whether or not this is a merkle torrent.
-		// see BEP30__.
+		// see `BEP 30`__.
 		//
 		// __ http://bittorrent.org/beps/bep_0030.html
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
@@ -550,7 +550,7 @@ namespace libtorrent
 		// filenames are preserved.
 		copy_ptr<const file_storage> m_orig_files;
 
-		// the urls to the trackers
+		// the URLs to the trackers
 		std::vector<announce_entry> m_urls;
 		std::vector<web_seed_entry> m_web_seeds;
 		nodes_t m_nodes;
@@ -587,7 +587,7 @@ namespace libtorrent
 		boost::shared_array<char> m_info_section;
 
 		// this is a pointer into the m_info_section buffer
-		// pointing to the first byte of the first sha-1 hash
+		// pointing to the first byte of the first SHA-1 hash
 		char const* m_piece_hashes;
 
 		// if a comment is found in the torrent file
@@ -619,7 +619,7 @@ namespace libtorrent
 
 		// this is used when creating a torrent. If there's
 		// only one file there are cases where it's impossible
-		// to know if it should be written as a multifile torrent
+		// to know if it should be written as a multi file torrent
 		// or not. e.g. test/test  there's one file and one directory
 		// and they have the same name.
 		bool m_multifile:1;

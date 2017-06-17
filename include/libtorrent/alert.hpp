@@ -288,7 +288,7 @@ namespace libtorrent {
 #endif
 
 	private:
-		// explicitly disallow assignment and copyconstruction
+		// explicitly disallow assignment and copy construction
 		alert& operator=(alert const&);
 
 		time_point m_timestamp;

@@ -259,7 +259,7 @@ namespace libtorrent
 		// download queue
 		int timed_out_requests;
 
-		// the number of busy requests in the download queue. A budy request is a
+		// the number of busy requests in the download queue. A busy request is a
 		// request for a block we've also requested from a different peer
 		int busy_requests;
 

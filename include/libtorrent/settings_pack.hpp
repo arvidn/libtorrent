@@ -849,7 +849,7 @@ namespace libtorrent
 			// suggest messages to create a bias of its peers to request certain
 			// pieces. The modes are:
 			// 
-			// * ``no_piece_suggestsions`` which is the default and will not send
+			// * ``no_piece_suggestions`` which is the default and will not send
 			//   out suggest messages.
 			// * ``suggest_read_cache`` which will send out suggest messages for
 			//   the most recent pieces that are in the read cache.

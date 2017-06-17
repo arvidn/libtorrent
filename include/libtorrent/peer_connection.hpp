@@ -1081,7 +1081,7 @@ namespace libtorrent
 		// by sending choke, unchoke.
 		int m_num_invalid_requests;
 
-		// if [0] is -1, superseeding is not active. If it is >= 0
+		// if [0] is -1, super-seeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
 		// these two pieces can be downloaded from us by this peer.
 		// This will remain the current piece for this peer until

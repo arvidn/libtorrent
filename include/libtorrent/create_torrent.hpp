@@ -140,10 +140,10 @@ namespace libtorrent
 			symlinks = 8,
 
 			// to create a torrent that can be updated via a *mutable torrent*
-			// (see BEP38_). This also needs to be enabled for torrents that update
+			// (see `BEP 38`_). This also needs to be enabled for torrents that update
 			// another torrent.
 			// 
-			// .. _BEP38: http://www.bittorrent.org/beps/bep_0038.html
+			// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
 			mutable_torrent_support = 16
 		};
 
@@ -155,7 +155,7 @@ namespace libtorrent
 		// the specified number of bytes will be preceded by a pad file to align it
 		// with the start of a piece. The pad_file_limit is ignored unless the
 		// ``optimize_alignment`` flag is passed. Typically it doesn't make sense
-		// to set this any lower than 4kiB.
+		// to set this any lower than 4 kiB.
 		// 
 		// The overload that takes a ``torrent_info`` object will make a verbatim
 		// copy of its info dictionary (to preserve the info-hash). The copy of
@@ -309,7 +309,7 @@ namespace libtorrent
 		// the info dictionary
 		entry m_info_dict;
 
-		// the urls to the trackers
+		// the URLs to the trackers
 		typedef std::pair<std::string, int> announce_entry;
 		std::vector<announce_entry> m_urls;
 

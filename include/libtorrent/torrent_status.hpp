@@ -342,7 +342,7 @@ namespace libtorrent
 		// piece(s). Divide this number by 1000 to get the fraction.
 		// 
 		// For example, if ``distributed_full_copies`` is 2 and
-		// ``distrbuted_fraction`` is 500, it means that the rarest pieces have
+		// ``distributed_fraction`` is 500, it means that the rarest pieces have
 		// only 2 copies among the peers this torrent is connected to, and that
 		// 50% of all the pieces have more than two copies.
 		// 

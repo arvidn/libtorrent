@@ -2124,7 +2124,7 @@ namespace libtorrent
 			// and don't send a bitfield
 			m_sent_bitfield = true;
 
-			// bootstrap superseeding by sending two have message
+			// bootstrap super-seeding by sending two have message
 			int piece = t->get_piece_to_super_seed(get_bitfield());
 			if (piece >= 0) superseed_piece(-1, piece);
 			piece = t->get_piece_to_super_seed(get_bitfield());
