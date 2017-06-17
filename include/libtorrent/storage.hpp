@@ -126,7 +126,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //				// if there are padding files, those blocks will be considered
 //				// completed even though they haven't been written to the storage.
 //				// in this case, just extend the piece buffer to its full size
-//				// and fill it with zeroes.
+//				// and fill it with zeros.
 //				if (data.size() < piece_size) data.resize(piece_size, 0);
 //				ph.h.update(&data[ph.offset], left);
 //			}
@@ -184,7 +184,7 @@ namespace libtorrent
 	// the torrent in the way one would assume a torrent is saved to disk.
 	// Implementing your own storage interface makes it possible to store all
 	// data in RAM, or in some optimized order on disk (the order the pieces are
-	// received for instance), or saving multifile torrents in a single file in
+	// received for instance), or saving multi file torrents in a single file in
 	// order to be able to take advantage of optimized disk-I/O.
 	// 
 	// It is also possible to write a thin class that uses the default storage
@@ -321,7 +321,7 @@ namespace libtorrent
 		// 
 		virtual void release_files(storage_error& ec) = 0;
 
-		// Rename file with index ``file`` to the thame ``new_name``.
+		// Rename the file with index ``file`` to name ``new_name``.
 		// 
 		// If an error occurs, ``storage_error`` should be set to reflect it.
 		// 
@@ -336,21 +336,22 @@ namespace libtorrent
 		// If an error occurs, ``storage_error`` should be set to reflect it.
 		// 
 		// The ``disk_buffer_pool`` is used to allocate and free disk buffers. It
-		// has the following members::
+		// has the following members:
 		// 
-		//	struct disk_buffer_pool : boost::noncopyable
-		//	{
-		//		char* allocate_buffer(char const* category);
-		//		void free_buffer(char* buf);
-		//
-		//		char* allocate_buffers(int blocks, char const* category);
-		//		void free_buffers(char* buf, int blocks);
-		//
-		//		int block_size() const { return m_block_size; }
-		//
-		//		void release_memory();
-		//	};
+		// .. code:: c++
 		// 
+		//		struct disk_buffer_pool : boost::noncopyable
+		//		{
+		//			char* allocate_buffer(char const* category);
+		//			void free_buffer(char* buf);
+		//
+		//			char* allocate_buffers(int blocks, char const* category);
+		//			void free_buffers(char* buf, int blocks);
+		//
+		//			int block_size() const { return m_block_size; }
+		//
+		//			void release_memory();
+		//		};
 		virtual void delete_files(int options, storage_error& ec) = 0;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -513,7 +514,7 @@ namespace libtorrent
 		virtual void write_resume_data(entry&, storage_error&) const TORRENT_OVERRIDE {}
 	};
 
-	// this storage implementation always reads zeroes, and always discards
+	// this storage implementation always reads zeros, and always discards
 	// anything written to it
 	struct zero_storage TORRENT_FINAL : storage_interface
 	{

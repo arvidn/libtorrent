@@ -317,7 +317,7 @@ It limits the number of started seeds to settings_pack::active_seeds.
 
 On top of this basic bias, *seed priority* can be controller by specifying a
 seed ratio (the upload to download ratio), a seed-time ratio (the download
-time to seeding time ratio) and a seed-time (the abosulte time to be seeding a
+time to seeding time ratio) and a seed-time (the absolute time to be seeding a
 torrent). Until all those targets are hit, the torrent will be prioritized for
 seeding.
 
@@ -352,7 +352,7 @@ anything. If peers are allowed, torrents may:
 2. announce to the DHT
 3. announce to local peer discovery (local service discovery)
 
-Each of those actions are associated with a cost and hence may need a seprarate
+Each of those actions are associated with a cost and hence may need a separate
 limit. These limits are controlled by settings_pack::active_tracker_limit,
 settings_pack::active_dht_limit and settings_pack::active_lsd_limit
 respectively.
@@ -601,7 +601,7 @@ It will of course still check for existing pieces and fast resume data. The main
 drawbacks of this mode are:
 
  * It may take longer to start the torrent, since it will need to fill the files
-   with zeroes. This delay is linear to the size of the download.
+   with zeros. This delay is linear to the size of the download.
 
  * The download may occupy unnecessary disk space between download sessions.
 
@@ -835,7 +835,9 @@ rate limits.
 When the rate limits are adjusted for a specific torrent, a class is created
 implicitly for that torrent.
 
-The default peer class IDs are defined as enums in the ``session`` class::
+The default peer class IDs are defined as enums in the ``session`` class:
+
+.. code:: c++
 
 	enum {
 		global_peer_class_id,

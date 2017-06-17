@@ -96,8 +96,11 @@ ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
 
-$(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst settings.rst stats_counters.rst
-	python gen_reference_doc.py
+$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst settings.rst stats_counters.rst
+	python gen_reference_doc.py --plain-output
+
+spell:plain_text_out.txt
+	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l plain_text_out.txt
 
 %.epub:%.rst
 	rst2epub --exit-status=2 $? $@

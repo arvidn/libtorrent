@@ -159,7 +159,7 @@ namespace libtorrent
 	{
 	public:
 
-		// Constructs the session obects which acts as the container of torrents.
+		// Constructs the session objects which acts as the container of torrents.
 		// It provides configuration options across torrents (such as rate limits,
 		// disk cache, ip filter etc.). In order to avoid a race condition between
 		// starting the session and configuring it, you can pass in a

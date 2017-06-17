@@ -1180,7 +1180,7 @@ namespace libtorrent
 		file_storage files;
 		files.set_piece_length(piece_length);
 
-		// extract file name (or the directory name if it's a multifile libtorrent)
+		// extract file name (or the directory name if it's a multi file libtorrent)
 		bdecode_node name_ent = info.dict_find_string("name.utf-8");
 		if (!name_ent) name_ent = info.dict_find_string("name");
 		if (!name_ent)

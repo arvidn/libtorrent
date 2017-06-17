@@ -92,7 +92,7 @@ namespace libtorrent
 		// the modification time of this file specified in posix time.
 		std::time_t mtime;
 
-		// a sha-1 hash of the content of the file, or zeroes, if no
+		// a sha-1 hash of the content of the file, or zeros, if no
 		// file hash was present in the torrent file. It can be used to potentially
 		// find alternative sources for the file.
 		sha1_hash filehash;
@@ -241,7 +241,7 @@ namespace libtorrent
 		// file attribute flags
 		enum flags_t
 		{
-			// the file is a pad file. It's required to contain zeroes
+			// the file is a pad file. It's required to contain zeros
 			// at it will not be saved to disk. Its purpose is to make
 			// the following file start on a piece boundary.
 			pad_file = 1,
@@ -346,7 +346,7 @@ namespace libtorrent
 
 		// returns a peer_request representing the piece index, byte offset
 		// and size the specified file range overlaps. This is the inverse
-		// mapping ove map_block(). Note that the ``peer_request`` return type
+		// mapping over map_block(). Note that the ``peer_request`` return type
 		// is meant to hold bittorrent block requests, which may not be larger
 		// than 16 kiB. Mapping a range larger than that may return an overflown
 		// integer.
@@ -404,7 +404,7 @@ namespace libtorrent
 		int num_pieces() const { TORRENT_ASSERT(m_piece_length > 0); return m_num_pieces; }
 
 		// set and get the size of each piece in this torrent. This size is typically an even power
-		// of 2. It doesn't have to be though. It should be divisible by 16kiB however.
+		// of 2. It doesn't have to be though. It should be divisible by 16 kiB however.
 		void set_piece_length(int l)  { m_piece_length = l; }
 		int piece_length() const { TORRENT_ASSERT(m_piece_length > 0); return m_piece_length; }
 
@@ -506,7 +506,7 @@ namespace libtorrent
 		{
 			// this file is a pad file. The creator of the
 			// torrent promises the file is entirely filled with
-			// zeroes and does not need to be downloaded. The
+			// zeros and does not need to be downloaded. The
 			// purpose is just to align the next file to either
 			// a block or piece boundary.
 			flag_pad_file = 1,
@@ -634,7 +634,7 @@ namespace libtorrent
 		// all unique paths files have. The internal_file_entry::path_index
 		// points into this array. The paths don't include the root directory
 		// name for multi-file torrents. The m_name field need to be
-		// prepended to these paths, and the filename of a specific file
+		// pre-pended to these paths, and the filename of a specific file
 		// entry appended, to form full file paths
 		std::vector<std::string> m_paths;
 

@@ -2199,7 +2199,7 @@ namespace libtorrent
 		if (m_refcount == 0)
 			inc_stats_counter(counters::num_pinned_torrents, p ? 1 : -1);
 
-		// if the torrent was just un-pinned, we need to insert
+		// if the torrent was just unpinned, we need to insert
 		// it into the LRU
 		m_ses.bump_torrent(this, true);
 	}
@@ -5076,7 +5076,7 @@ namespace libtorrent
 			{
 				if ((*j)->super_seeded_piece(i))
 				{
-					// avoid superseeding the same piece to more than one
+					// avoid super-seeding the same piece to more than one
 					// peer if we can avoid it. Do this by artificially
 					// increase the availability
 					availability = 999;

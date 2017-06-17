@@ -316,7 +316,7 @@ namespace libtorrent
 		// 	paths. This means they must use backslashes as directory separators
 		// 	and may not contain the special directories "." or "..".
 		// 
-		// Setting this to an absolute path is slightly more performant than a
+		// Setting this to an absolute path performs slightly better than a
 		// relative path.
 		std::string save_path;
 

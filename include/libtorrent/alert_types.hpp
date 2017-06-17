@@ -585,7 +585,7 @@ namespace libtorrent
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		// tells how many peers the tracker returned in this response. This is
-		// not expected to be more thant the ``num_want`` settings. These are not necessarily
+		// not expected to be greater than the ``num_want`` settings. These are not necessarily
 		// all new peers, some of them may already be connected.
 		int num_peers;
 	};
@@ -786,7 +786,7 @@ namespace libtorrent
 		bool peer_interested;
 
 		// if this is true, the peer is not allowed to download this piece because
-		// of superseeding rules.
+		// of super-seeding rules.
 		bool withheld;
 	};
 
