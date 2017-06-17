@@ -1486,7 +1486,7 @@ namespace {
 		listen_socket_t ret;
 		ret.ssl = (flags & open_ssl_socket) != 0 ? transport::ssl : transport::plaintext;
 		ret.original_port = bind_ep.port();
-		int last_op = 0;
+		operation_t last_op = operation_t::unknown;
 		socket_type_t const sock_type
 			= (flags & open_ssl_socket)
 			? socket_type_t::tcp_ssl
@@ -1500,7 +1500,7 @@ namespace {
 		{
 			ret.sock = std::make_shared<tcp::acceptor>(m_io_service);
 			ret.sock->open(bind_ep.protocol(), ec);
-			last_op = listen_failed_alert::open;
+			last_op = operation_t::sock_open;
 			if (ec)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1589,7 +1589,7 @@ namespace {
 					}
 #endif // TORRENT_DISABLE_LOGGING
 
-					last_op = listen_failed_alert::bind_to_device;
+					last_op = operation_t::sock_bind_to_device;
 					if (m_alerts.should_post<listen_failed_alert>())
 					{
 						m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
@@ -1601,7 +1601,7 @@ namespace {
 			}
 
 			ret.sock->bind(bind_ep, ec);
-			last_op = listen_failed_alert::bind;
+			last_op = operation_t::sock_bind;
 
 			while (ec == error_code(error::address_in_use) && retries > 0)
 			{
@@ -1631,7 +1631,7 @@ namespace {
 				bind_ep.port(0);
 				ec.clear();
 				ret.sock->bind(bind_ep, ec);
-				last_op = listen_failed_alert::bind;
+				last_op = operation_t::sock_bind;
 			}
 
 			if (ec)
@@ -1658,7 +1658,7 @@ namespace {
 			}
 			ret.local_endpoint = ret.sock->local_endpoint(ec);
 			ret.device = device;
-			last_op = listen_failed_alert::get_socket_name;
+			last_op = operation_t::getname;
 			if (ec)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1680,7 +1680,7 @@ namespace {
 				|| bind_ep.port() == 0);
 
 			ret.sock->listen(m_settings.get_int(settings_pack::listen_queue_size), ec);
-			last_op = listen_failed_alert::listen;
+			last_op = operation_t::sock_listen;
 
 			if (ec)
 			{
@@ -1718,7 +1718,7 @@ namespace {
 			}
 #endif
 
-			last_op = listen_failed_alert::open;
+			last_op = operation_t::sock_open;
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(device
 					, bind_ep, last_op, ec, udp_sock_type);
@@ -1740,7 +1740,7 @@ namespace {
 				}
 #endif // TORRENT_DISABLE_LOGGING
 
-				last_op = listen_failed_alert::bind_to_device;
+				last_op = operation_t::sock_bind_to_device;
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
 					m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
@@ -1752,7 +1752,7 @@ namespace {
 #endif
 		ret.udp_sock->sock.bind(udp_bind_ep, ec);
 
-		last_op = listen_failed_alert::bind;
+		last_op = operation_t::sock_bind;
 		if (ec)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1869,7 +1869,7 @@ namespace {
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
 					m_alerts.emplace_alert<listen_failed_alert>(device
-						, listen_failed_alert::enum_if, err
+						, operation_t::enum_if, err
 						, socket_type_t::tcp);
 				}
 				return;
@@ -1925,7 +1925,7 @@ namespace {
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
 					m_alerts.emplace_alert<listen_failed_alert>(device
-						, listen_failed_alert::open
+						, operation_t::sock_open
 						, boost::asio::error::operation_not_supported
 						, socket_type_t::tcp_ssl);
 				}
@@ -2312,7 +2312,7 @@ namespace {
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				m_alerts.emplace_alert<listen_failed_alert>("i2p"
-					, listen_failed_alert::accept
+					, operation_t::sock_accept
 					, e, socket_type_t::i2p);
 			}
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2665,7 +2665,7 @@ namespace {
 			{
 				error_code err;
 				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string(err)
-					, ep, listen_failed_alert::accept, e
+					, ep, operation_t::sock_accept, e
 					, ssl == transport::ssl ? socket_type_t::tcp_ssl : socket_type_t::tcp);
 			}
 			return;

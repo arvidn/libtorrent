@@ -427,7 +427,7 @@ TORRENT_TEST(dead_peers)
 		, [&](lt::alert const* a, lt::session&) {
 			auto* e = alert_cast<peer_disconnected_alert>(a);
 			if (e
-				&& e->operation == op_connect
+				&& e->op == operation_t::connect
 				&& e->error == error_code(errors::timed_out))
 			{
 				++num_connect_timeout;

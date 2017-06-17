@@ -223,7 +223,7 @@ namespace libtorrent { namespace aux {
 					{
 						ec.ec = err;
 						ec.file(i);
-						ec.operation = storage_error::stat;
+						ec.operation = operation_t::file_stat;
 						return { status_t::file_exist, save_path };
 					}
 				}
@@ -242,7 +242,7 @@ namespace libtorrent { namespace aux {
 				{
 					ec.ec = err;
 					ec.file(file_index_t(-1));
-					ec.operation = storage_error::mkdir;
+					ec.operation = operation_t::mkdir;
 					return { status_t::fatal_disk_error, save_path };
 				}
 			}
@@ -250,7 +250,7 @@ namespace libtorrent { namespace aux {
 			{
 				ec.ec = err;
 				ec.file(file_index_t(-1));
-				ec.operation = storage_error::stat;
+				ec.operation = operation_t::file_stat;
 				return { status_t::fatal_disk_error, save_path };
 			}
 		}
@@ -300,7 +300,7 @@ namespace libtorrent { namespace aux {
 			{
 				ec.ec = e;
 				ec.file(i);
-				ec.operation = storage_error::rename;
+				ec.operation = operation_t::file_rename;
 				break;
 			}
 		}
@@ -312,7 +312,7 @@ namespace libtorrent { namespace aux {
 			{
 				ec.ec = e;
 				ec.file(file_index_t(-1));
-				ec.operation = storage_error::partfile_move;
+				ec.operation = operation_t::partfile_move;
 			}
 		}
 
@@ -419,7 +419,7 @@ namespace libtorrent { namespace aux {
 					}
 				}
 				delete_one_file(p, ec.ec);
-				if (ec) { ec.file(i); ec.operation = storage_error::remove; }
+				if (ec) { ec.file(i); ec.operation = operation_t::file_remove; }
 			}
 
 			// remove the directories. Reverse order to delete
@@ -434,7 +434,7 @@ namespace libtorrent { namespace aux {
 				{
 					ec.file(file_index_t(-1));
 					ec.ec = error;
-					ec.operation = storage_error::remove;
+					ec.operation = operation_t::file_remove;
 				}
 			}
 		}
@@ -448,7 +448,7 @@ namespace libtorrent { namespace aux {
 			{
 				ec.file(file_index_t(-1));
 				ec.ec = error;
-				ec.operation = storage_error::remove;
+				ec.operation = operation_t::file_remove;
 			}
 		}
 	}
@@ -492,7 +492,7 @@ namespace libtorrent { namespace aux {
 
 				ec.ec = err;
 				ec.file(idx);
-				ec.operation = storage_error::hard_link;
+				ec.operation = operation_t::file_hard_link;
 				return false;
 			}
 		}
@@ -528,14 +528,14 @@ namespace libtorrent { namespace aux {
 				{
 					ec.ec = error;
 					ec.file(file_index);
-					ec.operation = storage_error::stat;
+					ec.operation = operation_t::file_stat;
 					return false;
 				}
 				else
 				{
 					ec.ec = errors::mismatching_file_size;
 					ec.file(file_index);
-					ec.operation = storage_error::stat;
+					ec.operation = operation_t::file_stat;
 					return false;
 				}
 			}
@@ -546,7 +546,7 @@ namespace libtorrent { namespace aux {
 				// the wrong size. Reject the resume data
 				ec.ec = errors::mismatching_file_size;
 				ec.file(file_index);
-				ec.operation = storage_error::check_resume;
+				ec.operation = operation_t::check_resume;
 				return false;
 			}
 

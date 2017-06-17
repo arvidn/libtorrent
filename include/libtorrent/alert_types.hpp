@@ -60,10 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
-	// to its name. See peer_connection for the constants
-	TORRENT_EXPORT char const* operation_name(operation_t op);
-
 #ifndef TORRENT_NO_DEPRECATE
 	TORRENT_DEPRECATED_EXPORT char const* operation_name(int op);
 #endif
@@ -912,7 +908,7 @@ namespace libtorrent {
 		// internal
 		storage_moved_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& e, string_view file
-			, char const* op);
+			, operation_t op);
 
 		TORRENT_DEFINE_ALERT(storage_moved_failed_alert, 34)
 
@@ -924,13 +920,13 @@ namespace libtorrent {
 		// If the error happened for a specific file, this returns its path.
 		char const* file_path() const;
 
-		// If the error happened in a specific disk operation this is a nullptr
-		// terminated string naming which one, otherwise it's nullptr.
-		char const* operation;
+		// this indicates what underlying operation caused the error
+		operation_t op;
 	private:
 		aux::allocation_slot m_file_idx;
 #ifndef TORRENT_NO_DEPRECATE
 	public:
+		char const* TORRENT_DEPRECATED_MEMBER operation;
 		// If the error happened for a specific file, ``file`` is its path.
 		std::string TORRENT_DEPRECATED_MEMBER file;
 #endif
@@ -1116,7 +1112,7 @@ namespace libtorrent {
 	{
 		// internal
 		file_error_alert(aux::stack_allocator& alloc, error_code const& ec
-			, string_view file, char const* op, torrent_handle const& h);
+			, string_view file, operation_t op, torrent_handle const& h);
 
 		TORRENT_DEFINE_ALERT(file_error_alert, 43)
 
@@ -1127,7 +1123,9 @@ namespace libtorrent {
 
 		// the error code describing the error.
 		error_code const error;
-		char const* operation;
+
+		// indicates which underlying operation caused the error
+		operation_t op;
 
 		// the file that experienced the error
 		char const* filename() const;
@@ -1136,6 +1134,7 @@ namespace libtorrent {
 		aux::allocation_slot m_file_idx;
 #ifndef TORRENT_NO_DEPRECATE
 	public:
+		char const* TORRENT_DEPRECATED_MEMBER operation;
 		// the path to the file that was accessed when the error occurred.
 		std::string TORRENT_DEPRECATED_MEMBER file;
 		std::string TORRENT_DEPRECATED_MEMBER msg;
@@ -1268,18 +1267,18 @@ namespace libtorrent {
 		// internal
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
 			, libtorrent::address const& listen_addr, int listen_port
-			, int op, error_code const& ec, libtorrent::socket_type_t t);
+			, operation_t op, error_code const& ec, libtorrent::socket_type_t t);
 
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
-			, tcp::endpoint const& ep, int op, error_code const& ec
+			, tcp::endpoint const& ep, operation_t op, error_code const& ec
 			, libtorrent::socket_type_t t);
 
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
-			, udp::endpoint const& ep, int op, error_code const& ec
+			, udp::endpoint const& ep, operation_t op, error_code const& ec
 			, libtorrent::socket_type_t t);
 
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
-			, int op, error_code const& ec, libtorrent::socket_type_t t);
+			, operation_t op, error_code const& ec, libtorrent::socket_type_t t);
 
 		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48)
 
@@ -1292,13 +1291,8 @@ namespace libtorrent {
 		// the error the system returned
 		error_code const error;
 
-		enum op_t
-		{
-			parse_addr, open, bind, listen, get_socket_name, accept, enum_if, bind_to_device
-		};
-
-		// the specific low level operation that failed. See op_t.
-		int const operation;
+		// the underlying operation that failed
+		operation_t op;
 
 		// the type of listen socket this alert refers to.
 		libtorrent::socket_type_t const socket_type;
@@ -1316,6 +1310,21 @@ namespace libtorrent {
 		aux::allocation_slot m_interface_idx;
 #ifndef TORRENT_NO_DEPRECATE
 	public:
+		enum op_t
+		{
+			parse_addr TORRENT_DEPRECATED_ENUM,
+			open TORRENT_DEPRECATED_ENUM,
+			bind TORRENT_DEPRECATED_ENUM,
+			listen TORRENT_DEPRECATED_ENUM,
+			get_socket_name TORRENT_DEPRECATED_ENUM,
+			accept TORRENT_DEPRECATED_ENUM,
+			enum_if TORRENT_DEPRECATED_ENUM,
+			bind_to_device TORRENT_DEPRECATED_ENUM
+		};
+
+		// the specific low level operation that failed. See op_t.
+		int const TORRENT_DEPRECATED_MEMBER operation;
+
 		// the address and port libtorrent attempted to listen on
 		aux::noexcept_movable<tcp::endpoint> TORRENT_DEPRECATED_MEMBER endpoint;
 
@@ -1882,7 +1891,7 @@ namespace libtorrent {
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-#endif
+#endif // TORRENT_NO_DEPRECATE
 
 	// The session_stats_alert is posted when the user requests session statistics by
 	// calling post_session_stats() on the session object. Its category is
