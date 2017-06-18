@@ -521,11 +521,13 @@ namespace libtorrent {
 		// kind of operation failed.
 		operation_t operation;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// Returns a string literal representing the file operation
 		// that failed. If there were no failure, it returns
 		// an empty string.
-		char const* operation_str() const
+		char const* operation_str() const TORRENT_DEPRECATED_MEMBER
 		{ return operation_name(operation); }
+#endif
 	};
 
 }

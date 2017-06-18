@@ -854,6 +854,7 @@ namespace {
 			case o::partfile_move: return -1;
 			case o::partfile_read: return -1;
 			case o::partfile_write: return -1;
+			case o::hostname_lookup: return -1;
 		};
 		return -1;
 	}
@@ -1092,12 +1093,13 @@ namespace {
 		, torrent_handle const& h
 		, error_code const& ec
 		, string_view f
-		, char const* op)
+		, operation_t const op_)
 		: torrent_alert(alloc, h)
 		, error(ec)
-		, operation(op)
+		, op(op_)
 		, m_path_idx(alloc.copy_string(f))
 #ifndef TORRENT_NO_DEPRECATE
+		, operation(operation_name(op_))
 		, file(f)
 		, msg(convert_from_native(error.message()))
 #endif
@@ -1107,7 +1109,7 @@ namespace {
 	std::string fastresume_rejected_alert::message() const
 	{
 		return torrent_alert::message() + " fast resume rejected. "
-			+ (operation?operation:"") + "(" + file_path() + "): "
+			+ operation_name(op) + "(" + file_path() + "): "
 			+ convert_from_native(error.message());
 	}
 
@@ -1492,6 +1494,7 @@ namespace {
 			"partfile_move",
 			"partfile_read",
 			"partfile_write",
+			"hostname_lookup"
 		};
 
 		int const idx = static_cast<int>(op);
@@ -1575,26 +1578,22 @@ namespace {
 		return buf;
 	}
 
-	dht_error_alert::dht_error_alert(aux::stack_allocator&, int op
+	dht_error_alert::dht_error_alert(aux::stack_allocator&
+		, operation_t const op_
 		, error_code const& ec)
-		: error(ec), operation(op_t(op))
+		: error(ec)
+		, op(op_)
+#ifndef TORRENT_NO_DEPRECATE
+		, operation(op_ == operation_t::hostname_lookup
+			? op_t::hostname_lookup : op_t::unknown)
+#endif
 	{}
 
 	std::string dht_error_alert::message() const
 	{
-		static const char* const operation_names[] =
-		{
-			"unknown",
-			"hostname lookup"
-		};
-
-		int op = operation;
-		if (op < 0 || op >= int(sizeof(operation_names)/sizeof(operation_names[0])))
-			op = 0;
-
 		char msg[600];
 		std::snprintf(msg, sizeof(msg), "DHT error [%s] (%d) %s"
-			, operation_names[op]
+			, operation_name(op)
 			, error.value()
 			, convert_from_native(error.message()).c_str());
 		return msg;

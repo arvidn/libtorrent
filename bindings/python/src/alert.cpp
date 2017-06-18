@@ -7,6 +7,7 @@
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/piece_picker.hpp> // for piece_block
 #include <libtorrent/session_stats.hpp>
+#include <libtorrent/operations.hpp>
 #include <memory>
 #include "bytes.hpp"
 
@@ -328,7 +329,10 @@ void bind_alert()
        .value("partfile_move", operation_t::partfile_move)
        .value("partfile_read", operation_t::partfile_read)
        .value("partfile_write", operation_t::partfile_write)
+       .value("hostname_lookup", operation_t::hostname_lookup)
        ;
+
+    def("operation_name", static_cast<char const*(*)(operation_t)>(&lt::operation_name));
 
     class_<torrent_alert, bases<alert>, noncopyable>(
         "torrent_alert", no_init)
@@ -605,11 +609,12 @@ void bind_alert()
     class_<fastresume_rejected_alert, bases<torrent_alert>, noncopyable>(
         "fastresume_rejected_alert", no_init)
         .def_readonly("error", &fastresume_rejected_alert::error)
+        .def("file_path", &fastresume_rejected_alert::file_path)
+        .def_readonly("op", &fastresume_rejected_alert::op)
 #ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("operation", &fastresume_rejected_alert::operation)
         .def_readonly("msg", &fastresume_rejected_alert::msg)
 #endif
-        .def("file_path", &fastresume_rejected_alert::file_path)
-        .def_readonly("operation", &fastresume_rejected_alert::operation)
         ;
 
     class_<peer_blocked_alert, bases<peer_alert>, noncopyable>(

@@ -595,7 +595,8 @@ namespace libtorrent {
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 		{
 			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
-				, m_add_torrent_params->internal_resume_data_error, "", "");
+				, m_add_torrent_params->internal_resume_data_error, ""
+				, operation_t::unknown);
 		}
 #endif
 
@@ -1028,7 +1029,8 @@ namespace libtorrent {
 		{
 			debug_log("disk error: (%d) %s [%*s : %s] in file: %s"
 				, error.ec.value(), error.ec.message().c_str()
-				, int(job_name.size()), job_name.data(), error.operation_str()
+				, int(job_name.size()), job_name.data()
+				, operation_name(error.operation)
 				, resolve_filename(error.file()).c_str());
 		}
 #endif
@@ -1982,7 +1984,7 @@ namespace libtorrent {
 			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
 				, error.ec
 				, resolve_filename(error.file())
-				, error.operation_str());
+				, error.operation);
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING

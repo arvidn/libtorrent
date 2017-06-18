@@ -5782,7 +5782,7 @@ namespace {
 		{
 			if (m_alerts.should_post<dht_error_alert>())
 				m_alerts.emplace_alert<dht_error_alert>(
-					dht_error_alert::hostname_lookup, e);
+					operation_t::hostname_lookup, e);
 			return;
 		}
 
@@ -5812,7 +5812,7 @@ namespace {
 		{
 			if (m_alerts.should_post<dht_error_alert>())
 				m_alerts.emplace_alert<dht_error_alert>(
-					dht_error_alert::hostname_lookup, e);
+					operation_t::hostname_lookup, e);
 
 			if (m_outstanding_router_lookups == 0) update_dht();
 			return;
