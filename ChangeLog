@@ -1,3 +1,4 @@
+	* handle invalid arguments to set_piece_deadline()
 	* move_storage did not work for torrents without metadata
 	* improve shutdown time by only announcing to trackers whose IP we know
 	* fix python3 portability issue in python binding

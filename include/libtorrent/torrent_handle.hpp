@@ -375,14 +375,14 @@ namespace libtorrent
 		// deadline (and flags) of a piece can be changed by calling this
 		// function again.
 		// 
-		// The ``flags`` parameter can be used to ask libtorrent to send an alert
+		// The ``flags`` parameter can be used to ask libtorrent to post an alert
 		// once the piece has been downloaded, by passing alert_when_available.
 		// When set, the read_piece_alert alert will be delivered, with the piece
 		// data, when it's downloaded.
 		// 
 		// If the piece is already downloaded when this call is made, nothing
 		// happens, unless the alert_when_available flag is set, in which case it
-		// will do the same thing as calling read_piece() for ``index``.
+		// will have the same effect as calling read_piece() for ``index``.
 		// 
 		// ``deadline`` is the number of milliseconds until this piece should be
 		// completed.

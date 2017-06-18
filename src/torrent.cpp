@@ -5235,7 +5235,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (m_abort)
+		TORRENT_ASSERT_PRECOND(piece >= 0);
+		TORRENT_ASSERT_PRECOND(valid_metadata());
+		TORRENT_ASSERT_PRECOND(valid_metadata() && piece < m_torrent_file->num_pieces());
+
+		if (m_abort || !valid_metadata()
+			|| piece < 0
+			|| piece >= m_torrent_file->num_pieces())
 		{
 			// failed
 			if (flags & torrent_handle::alert_when_available)
