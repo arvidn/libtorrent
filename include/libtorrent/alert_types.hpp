@@ -1488,7 +1488,7 @@ namespace libtorrent {
 		// internal
 		fastresume_rejected_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& ec, string_view file
-			, char const* op);
+			, operation_t op);
 
 		TORRENT_DEFINE_ALERT(fastresume_rejected_alert, 53)
 
@@ -1501,14 +1501,17 @@ namespace libtorrent {
 		// If the error happened to a specific file, this returns the path to it.
 		char const* file_path() const;
 
-		// If the error happened in a disk operation. a 0-terminated string of
-		// the name of that operation. ``operation`` is nullptr otherwise.
-		char const* operation;
+		// the underlying operation that failed
+		operation_t op;
 
 	private:
 		aux::allocation_slot m_path_idx;
 #ifndef TORRENT_NO_DEPRECATE
 	public:
+		// If the error happened in a disk operation. a 0-terminated string of
+		// the name of that operation. ``operation`` is nullptr otherwise.
+		char const* TORRENT_DEPRECATED_MEMBER operation;
+
 		// If the error happened to a specific file, ``file`` is the path to it.
 		std::string TORRENT_DEPRECATED_MEMBER file;
 		std::string TORRENT_DEPRECATED_MEMBER msg;
@@ -1989,7 +1992,8 @@ namespace libtorrent {
 	struct TORRENT_EXPORT dht_error_alert final : alert
 	{
 		// internal
-		dht_error_alert(aux::stack_allocator& alloc, int op, error_code const& ec);
+		dht_error_alert(aux::stack_allocator& alloc, operation_t op
+			, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT(dht_error_alert, 73)
 
@@ -1999,14 +2003,19 @@ namespace libtorrent {
 		// the error code
 		error_code error;
 
+		// the operation that failed
+		operation_t op;
+
+#ifndef TORRENT_NO_DEPRECATE
 		enum op_t
 		{
-			unknown,
-			hostname_lookup
+			unknown TORRENT_DEPRECATED_ENUM,
+			hostname_lookup TORRENT_DEPRECATED_ENUM
 		};
 
 		// the operation that failed
-		op_t const operation;
+		op_t const TORRENT_DEPRECATED_MEMBER operation;
+#endif
 	};
 
 	// this alert is posted as a response to a call to session::get_item(),

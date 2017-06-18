@@ -133,6 +133,7 @@ namespace libtorrent {
 		partfile_move,
 		partfile_read,
 		partfile_write,
+		hostname_lookup,
 	};
 
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
