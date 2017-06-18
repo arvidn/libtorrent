@@ -352,8 +352,9 @@ namespace libtorrent
 		file_entry file_at(int index) const { return m_files.at_deprecated(index); }
 #endif // TORRENT_NO_DEPRECATE
 
-		// If you need index-access to files you can use the ``num_files()`` and
-		// ``file_path()`` et.al. to access files using indices.
+		// If you need index-access to files you can use the ``num_files()`` along
+		// with the ``file_path()``, ``file_size()``-family of functions to access
+		// files using indices.
 		int num_files() const { return m_files.num_files(); }
 
 		// This function will map a piece index, a byte offset within that piece

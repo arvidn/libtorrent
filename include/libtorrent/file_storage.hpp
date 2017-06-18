@@ -92,7 +92,7 @@ namespace libtorrent
 		// the modification time of this file specified in posix time.
 		std::time_t mtime;
 
-		// a sha-1 hash of the content of the file, or zeros, if no
+		// a SHA-1 hash of the content of the file, or zeros, if no
 		// file hash was present in the torrent file. It can be used to potentially
 		// find alternative sources for the file.
 		sha1_hash filehash;
@@ -458,7 +458,7 @@ namespace libtorrent
 		// These functions are used to query attributes of files at
 		// a given index.
 		// 
-		// The ``hash()`` is a sha-1 hash of the file, or 0 if none was
+		// The ``hash()`` is a SHA-1 hash of the file, or 0 if none was
 		// provided in the torrent file. This can potentially be used to
 		// join a bittorrent network with other file sharing networks.
 		// 
@@ -634,7 +634,7 @@ namespace libtorrent
 		// all unique paths files have. The internal_file_entry::path_index
 		// points into this array. The paths don't include the root directory
 		// name for multi-file torrents. The m_name field need to be
-		// pre-pended to these paths, and the filename of a specific file
+		// prepended to these paths, and the filename of a specific file
 		// entry appended, to form full file paths
 		std::vector<std::string> m_paths;
 
