@@ -1444,7 +1444,7 @@ namespace libtorrent
 
 	private:
 
-		// TODO: 2 should the alert baseclass have this object instead?
+		// TODO: 2 should the alert base class have this object instead?
 		aux::stack_allocator const& m_alloc;
 
 		int m_log_idx;
@@ -2007,7 +2007,7 @@ namespace libtorrent
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		// the target hash of the immutable item. This must
-		// match the sha-1 hash of the bencoded form of ``item``.
+		// match the SHA-1 hash of the bencoded form of ``item``.
 		sha1_hash target;
 
 		// the data for this item

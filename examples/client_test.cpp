@@ -1912,7 +1912,7 @@ int main(int argc, char* argv[])
 						"[q] quit client                                 [m] add magnet link\n"
 						"\n"
 						"TORRENT ACTIONS\n"
-						"[p] pause/unpause selected torrent              [C] toggle disk cache\n"
+						"[p] pause/resume selected torrent               [C] toggle disk cache\n"
 						"[s] toggle sequential download                  [j] force recheck\n"
 						"[space] toggle session pause                    [c] clear error\n"
 						"[v] scrape                                      [D] delete torrent and data\n"

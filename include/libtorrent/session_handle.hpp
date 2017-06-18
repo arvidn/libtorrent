@@ -407,7 +407,7 @@ namespace libtorrent
 
 		// store the given bencoded data as an immutable item in the DHT.
 		// the returned hash is the key that is to be used to look the item
-		// up again. It's just the sha-1 hash of the bencoded form of the
+		// up again. It's just the SHA-1 hash of the bencoded form of the
 		// structure.
 		sha1_hash dht_put_item(entry data);
 
@@ -444,7 +444,7 @@ namespace libtorrent
 		// it is critical to not perform any blocking operations. Ideally not
 		// even locking a mutex. Pass any data required for this function along
 		// with the function object's context and make the function entirely
-		// self-contained. The only reason data blobs' values are computed
+		// self-contained. The only reason data blob's value is computed
 		// via a function instead of just passing in the new value is to avoid
 		// race conditions. If you want to *update* the value in the DHT, you
 		// must first retrieve it, then modify it, then write it back. The way
@@ -671,7 +671,7 @@ namespace libtorrent
 		void set_peer_class_type_filter(peer_class_type_filter const& f);
 
 		// Creates a new peer class (see peer-classes_) with the given name. The
-		// returned integer is the new peer class' identifier. Peer classes may
+		// returned integer is the new peer class identifier. Peer classes may
 		// have the same name, so each invocation of this function creates a new
 		// class and returns a unique identifier.
 		//

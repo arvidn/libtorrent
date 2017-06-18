@@ -166,8 +166,8 @@ namespace libtorrent
 		// settings_pack object. Its settings will take effect before the session
 		// starts up.
 		// 
-		// The ``flags`` parameter can be used to start default features (upnp &
-		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
+		// The ``flags`` parameter can be used to start default features (UPnP &
+		// NAT-PMP) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
 		session(settings_pack const& pack = settings_pack()

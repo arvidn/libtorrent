@@ -121,7 +121,7 @@ namespace libtorrent
 		char const* data() const { return reinterpret_cast<char const*>(&m_number[0]); }
 		char* data() { return reinterpret_cast<char*>(&m_number[0]); }
 
-		// set the sha1-hash to all zeroes.
+		// set the sha1-hash to all zeros.
 		void clear() { std::memset(m_number, 0, size); }
 
 		// return true if the sha1-hash is all zero.

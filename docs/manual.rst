@@ -62,7 +62,7 @@ how to find out about it and what to do about it.
 
 Make sure to keep track of the paused state, the error state and the upload
 mode of your torrents. By default, torrents are auto-managed, which means
-libtorrent will pause them, unpause them, scrape them and take them out
+libtorrent will pause, resume, scrape them and take them out
 of upload-mode automatically.
 
 Whenever a torrent encounters a fatal error, it will be stopped, and the

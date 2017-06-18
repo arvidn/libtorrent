@@ -331,7 +331,7 @@ namespace libtorrent
 		int receive_quota;
 
 		// an estimated round trip time to this peer, in milliseconds. It is
-		// estimated by timing the the tcp ``connect()``. It may be 0 for
+		// estimated by timing the the TCP ``connect()``. It may be 0 for
 		// incoming connections.
 		int rtt;
 

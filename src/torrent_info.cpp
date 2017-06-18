@@ -1225,7 +1225,7 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(!files.name().empty());
 
-		// extract sha-1 hashes for all pieces
+		// extract SHA-1 hashes for all pieces
 		// we want this division to round upwards, that's why we have the
 		// extra addition
 

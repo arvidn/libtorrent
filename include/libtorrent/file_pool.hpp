@@ -144,7 +144,7 @@ namespace libtorrent
 		};
 
 		// maps storage pointer, file index pairs to the
-		// lru entry for the file
+		// LRU entry for the file
 		typedef std::map<std::pair<void*, int>, lru_file_entry> file_set;
 
 		file_set m_files;
