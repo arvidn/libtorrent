@@ -85,18 +85,16 @@ namespace libtorrent {
 
 	default_storage::default_storage(storage_params const& params
 		, file_pool& pool)
-		: storage_interface(*params.files)
+		: storage_interface(params.files)
+		, m_file_priority(params.priorities)
 		, m_pool(pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
 		if (params.mapped_files) m_mapped_files.reset(new file_storage(*params.mapped_files));
-		if (params.priorities) m_file_priority = *params.priorities;
 
 		TORRENT_ASSERT(files().num_files() > 0);
 		m_save_path = complete(params.path);
-		m_part_file_name = "." + (params.info
-			? aux::to_hex(params.info->info_hash())
-			: params.files->name()) + ".parts";
+		m_part_file_name = "." + aux::to_hex(params.info_hash) + ".parts";
 	}
 
 	default_storage::~default_storage()
@@ -758,7 +756,7 @@ namespace {
 
 	storage_interface* disabled_storage_constructor(storage_params const& params, file_pool&)
 	{
-		return new disabled_storage(*params.files);
+		return new disabled_storage(params.files);
 	}
 
 	// -- zero_storage ------------------------------------------------------
@@ -810,7 +808,7 @@ namespace {
 
 	storage_interface* zero_storage_constructor(storage_params const& params, file_pool&)
 	{
-		return new zero_storage(*params.files);
+		return new zero_storage(params.files);
 	}
 
 } // namespace libtorrent

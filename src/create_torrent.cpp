@@ -272,11 +272,16 @@ namespace libtorrent {
 		counters cnt;
 		disk_io_thread disk_thread(ios, cnt);
 
-		storage_params params;
-		params.files = &t.files();
-		params.mapped_files = nullptr;
-		params.path = path;
-		params.mode = storage_mode_sparse;
+		aux::vector<std::uint8_t, file_index_t> priorities;
+		sha1_hash info_hash;
+		storage_params params{
+			t.files(),
+			nullptr,
+			path,
+			storage_mode_t::storage_mode_sparse,
+			priorities,
+			info_hash
+		};
 
 		storage_holder storage = disk_thread.new_torrent(default_storage_constructor, std::move(params), std::shared_ptr<void>());
 

@@ -158,10 +158,16 @@ std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 {
 	std::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
 
-	storage_params p;
-	p.files = &fs;
-	p.path = test_path;
-	p.mode = storage_mode_allocate;
+	aux::vector<std::uint8_t, file_index_t> priorities;
+	sha1_hash info_hash;
+	storage_params p{
+		fs,
+		nullptr,
+		test_path,
+		storage_mode_allocate,
+		priorities,
+		info_hash
+	};
 	std::shared_ptr<default_storage> s(new default_storage(p, fp));
 	s->m_settings = &set;
 
@@ -226,10 +232,17 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	file_pool fp;
 	boost::asio::io_service ios;
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
-	storage_params p;
-	p.path = test_path;
-	p.files = &fs;
-	p.mode = storage_mode;
+
+	aux::vector<std::uint8_t, file_index_t> priorities;
+	sha1_hash info_hash;
+	storage_params p{
+		fs,
+		nullptr,
+		test_path,
+		storage_mode,
+		priorities,
+		info_hash
+	};
 	std::unique_ptr<storage_interface> s(new default_storage(p, fp));
 	s->m_settings = &set;
 
@@ -462,10 +475,17 @@ void test_check_files(std::string const& test_path
 	io.set_settings(&sett);
 
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
-	storage_params p;
-	p.files = &fs;
-	p.path = test_path;
-	p.mode = storage_mode;
+
+	aux::vector<std::uint8_t, file_index_t> priorities;
+	sha1_hash info_hash;
+	storage_params p{
+		fs,
+		nullptr,
+		test_path,
+		storage_mode,
+		priorities,
+		info_hash
+	};
 
 	auto st = io.new_torrent(default_storage_constructor, std::move(p)
 		, std::shared_ptr<void>());

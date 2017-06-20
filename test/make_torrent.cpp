@@ -170,9 +170,16 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 {
 	file_pool fp;
 
-	storage_params params;
-	params.files = &ti.files();
-	params.path = path;
+	aux::vector<std::uint8_t, file_index_t> priorities;
+	sha1_hash info_hash;
+	storage_params params{
+		ti.files(),
+		nullptr,
+		path,
+		storage_mode_t::storage_mode_sparse,
+		priorities,
+		info_hash
+	};
 
 	default_storage st(params, fp);
 

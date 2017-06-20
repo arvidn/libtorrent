@@ -846,11 +846,16 @@ void generate_data(char const* path, torrent_info const& ti)
 
 	file_pool fp;
 
-	storage_params params;
-	params.files = &const_cast<file_storage&>(fs);
-	params.mapped_files = nullptr;
-	params.path = path;
-	params.mode = storage_mode_sparse;
+	aux::vector<std::uint8_t, file_index_t> priorities;
+	sha1_hash info_hash;
+	storage_params params{
+		fs,
+		nullptr,
+		path,
+		storage_mode_sparse,
+		priorities,
+		info_hash
+	};
 
 	std::unique_ptr<storage_interface> st(default_storage_constructor(params, fp));
 
