@@ -778,6 +778,9 @@ void upnp::update_map(rootdevice& d, int const i)
 
 	if (d.upnp_connection) return;
 
+	// this should not happen, but in case it does, don't fail at runtime
+	if (i >= int(d.mapping.size())) return;
+
 	std::shared_ptr<upnp> me(self());
 
 	mapping_t& m = d.mapping[i];
