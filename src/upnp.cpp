@@ -196,8 +196,7 @@ int upnp::add_mapping(portmap_protocol const p, int const external_port
 #endif
 	if (m_disabled) return -1;
 
-	std::vector<global_mapping_t>::iterator mapping_it = std::find_if(
-		m_mappings.begin(), m_mappings.end()
+	auto mapping_it = std::find_if(m_mappings.begin(), m_mappings.end()
 		, [](global_mapping_t const& m) { return m.protocol == portmap_protocol::none; });
 
 	if (mapping_it == m_mappings.end())
@@ -337,7 +336,7 @@ void upnp::resend_request(error_code const& ec)
 }
 
 void upnp::on_reply(udp::endpoint const& from, char* buffer
-	, std::size_t bytes_transferred)
+	, std::size_t const bytes_transferred)
 {
 	TORRENT_ASSERT(is_single_thread());
 	std::shared_ptr<upnp> me(self());
@@ -407,7 +406,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	bool non_router = false;
 	if (m_ignore_non_routers)
 	{
-		std::vector<ip_route> const routes = enum_routes(m_io_service, ec);
+		auto const routes = enum_routes(m_io_service, ec);
 		if (std::none_of(routes.begin(), routes.end()
 			, [from] (ip_route const& rt) { return rt.gateway == from.address(); }))
 		{
@@ -450,7 +449,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 	http_parser p;
 	bool error = false;
-	p.incoming(span<char const>(buffer, bytes_transferred), error);
+	p.incoming({buffer, bytes_transferred}, error);
 	if (error)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -511,7 +510,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	rootdevice d;
 	d.url = url;
 
-	std::set<rootdevice>::iterator i = m_devices.find(d);
+	auto i = m_devices.find(d);
 
 	if (i == m_devices.end())
 	{
@@ -619,7 +618,7 @@ void upnp::map_timer(error_code const& ec)
 	try_map_upnp(true);
 }
 
-void upnp::try_map_upnp(bool timer)
+void upnp::try_map_upnp(bool const timer)
 {
 	TORRENT_ASSERT(is_single_thread());
 	if (m_devices.empty()) return;
@@ -640,8 +639,7 @@ void upnp::try_map_upnp(bool timer)
 #endif
 	}
 
-	for (std::set<rootdevice>::iterator i = m_devices.begin()
-		, end(m_devices.end()); i != end; ++i)
+	for (auto i = m_devices.begin(), end(m_devices.end()); i != end; ++i)
 	{
 		// if we're ignoring non-routers, skip them. If on_timer is
 		// set, we expect to have received all responses and if we don't
@@ -762,7 +760,7 @@ void upnp::next(rootdevice& d, int const i)
 	else
 	{
 		auto const j = std::find_if(d.mapping.begin(), d.mapping.end()
-			, [] (mapping_t const& m) { return m.act != portmap_action::none; });
+			, [](mapping_t const& m) { return m.act != portmap_action::none; });
 		if (j == d.mapping.end()) return;
 
 		update_map(d, int(j - d.mapping.begin()));
@@ -1079,8 +1077,7 @@ void upnp::disable(error_code const& ec)
 	m_disabled = true;
 
 	// kill all mappings
-	for (std::vector<global_mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
+	for (auto i = m_mappings.begin(), end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol == portmap_protocol::none) continue;
 		portmap_protocol const proto = i->protocol;
@@ -1542,11 +1539,10 @@ void upnp::on_expire(error_code const& ec)
 	COMPLETE_ASYNC("upnp::on_expire");
 	if (ec) return;
 
-	time_point now = aux::time_now();
+	time_point const now = aux::time_now();
 	time_point next_expire = max_time();
 
-	for (std::set<rootdevice>::iterator i = m_devices.begin()
-		, end(m_devices.end()); i != end; ++i)
+	for (auto i = m_devices.begin(), end(m_devices.end()); i != end; ++i)
 	{
 		rootdevice& d = const_cast<rootdevice&>(*i);
 		TORRENT_ASSERT(d.magic == 1337);
@@ -1586,14 +1582,12 @@ void upnp::close()
 	m_closing = true;
 	m_socket.close();
 
-	for (std::set<rootdevice>::iterator i = m_devices.begin()
-		, end(m_devices.end()); i != end; ++i)
+	for (auto i = m_devices.begin(), end(m_devices.end()); i != end; ++i)
 	{
 		rootdevice& d = const_cast<rootdevice&>(*i);
 		TORRENT_ASSERT(d.magic == 1337);
 		if (d.control_url.empty()) continue;
-		for (std::vector<mapping_t>::iterator j = d.mapping.begin()
-			, end2(d.mapping.end()); j != end2; ++j)
+		for (auto j = d.mapping.begin(), end2(d.mapping.end()); j != end2; ++j)
 		{
 			if (j->protocol == portmap_protocol::none) continue;
 			if (j->act == portmap_action::add)

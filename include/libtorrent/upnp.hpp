@@ -184,7 +184,7 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	void discover_device();
 	void close();
 
-	// This is only available for UPnP routers. If the model is advertized by
+	// This is only available for UPnP routers. If the model is advertised by
 	// the router, it can be queried through this function.
 	std::string router_model()
 	{
