@@ -4550,7 +4550,7 @@ namespace libtorrent {
 		}
 	}
 
-	void torrent::set_piece_deadline(piece_index_t piece, int t, int flags)
+	void torrent::set_piece_deadline(piece_index_t const piece, int const t, int const flags)
 	{
 		INVARIANT_CHECK;
 
@@ -4565,7 +4565,7 @@ namespace libtorrent {
 			return;
 		}
 
-		time_point deadline = aux::time_now() + milliseconds(t);
+		time_point const deadline = aux::time_now() + milliseconds(t);
 
 		// if we already have the piece, no need to set the deadline.
 		// however, if the user asked to get the piece data back, we still
@@ -4588,7 +4588,7 @@ namespace libtorrent {
 			m_ses.get_io_service().post([self] { self->wrap(&torrent::cancel_non_critical); });
 		}
 
-		for (std::vector<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
+		for (auto i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
 			if (i->piece != piece) continue;
@@ -4622,8 +4622,7 @@ namespace libtorrent {
 		p.deadline = deadline;
 		p.peers = 0;
 		p.piece = piece;
-		std::vector<time_critical_piece>::iterator critical_piece_it
-			= std::upper_bound(m_time_critical_pieces.begin()
+		auto const critical_piece_it = std::upper_bound(m_time_critical_pieces.begin()
 			, m_time_critical_pieces.end(), p);
 		m_time_critical_pieces.insert(critical_piece_it, p);
 
@@ -4642,7 +4641,7 @@ namespace libtorrent {
 		m_picker->get_downloaders(downloaders, piece);
 
 		int block = 0;
-		for (std::vector<torrent_peer*>::iterator i = downloaders.begin()
+		for (auto i = downloaders.begin()
 			, end(downloaders.end()); i != end; ++i, ++block)
 		{
 			torrent_peer* tp = *i;
@@ -4657,7 +4656,7 @@ namespace libtorrent {
 		remove_time_critical_piece(piece);
 	}
 
-	void torrent::remove_time_critical_piece(piece_index_t piece, bool finished)
+	void torrent::remove_time_critical_piece(piece_index_t const piece, bool const finished)
 	{
 		for (auto i = m_time_critical_pieces.begin(), end(m_time_critical_pieces.end());
 			i != end; ++i)
@@ -4753,7 +4752,7 @@ namespace libtorrent {
 		m_picker->get_availability(avail);
 	}
 
-	void torrent::set_piece_priority(piece_index_t const index, int priority)
+	void torrent::set_piece_priority(piece_index_t const index, int const priority)
 	{
 //		INVARIANT_CHECK;
 
