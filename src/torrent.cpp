@@ -1580,22 +1580,15 @@ namespace libtorrent {
 
 	void torrent::construct_storage()
 	{
-		storage_params params;
-
-		if (&m_torrent_file->orig_files() != &m_torrent_file->files())
-		{
-			params.mapped_files = &m_torrent_file->files();
-			params.files = &m_torrent_file->orig_files();
-		}
-		else
-		{
-			params.files = &m_torrent_file->files();
-			params.mapped_files = nullptr;
-		}
-		params.path = m_save_path;
-		params.mode = static_cast<storage_mode_t>(m_storage_mode);
-		params.priorities = &m_file_priority;
-		params.info = m_torrent_file.get();
+		storage_params params{
+			m_torrent_file->orig_files(),
+			&m_torrent_file->orig_files() != &m_torrent_file->files()
+				? &m_torrent_file->files() : nullptr,
+			m_save_path,
+			static_cast<storage_mode_t>(m_storage_mode),
+			m_file_priority,
+			m_info_hash
+		};
 
 		TORRENT_ASSERT(m_storage_constructor);
 
