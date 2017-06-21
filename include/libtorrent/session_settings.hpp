@@ -189,13 +189,13 @@ namespace libtorrent {
 		// incoming requests will be dropped until the quota has been replenished.
 		int upload_rate_limit;
 
-		// the infohashes sample recomputation interval (in seconds).
-		// The node will precompute a subset of the tracked infohashes and return
+		// the info-hashes sample recomputation interval (in seconds).
+		// The node will precompute a subset of the tracked info-hashes and return
 		// that instead of calculating it upon each request. The permissible range
 		// is between 0 and 21600 seconds (inclusive).
 		int sample_infohashes_interval = 21600;
 
-		// the maximum number of elements in the sampled subset of infohashes.
+		// the maximum number of elements in the sampled subset of info-hashes.
 		// If this number is too big, expect the DHT storage implementations
 		// to clamp it in order to allow UDP packets go through
 		int max_infohashes_sample_count = 20;

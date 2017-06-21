@@ -7,6 +7,10 @@ import sys
 verbose = '--verbose' in sys.argv
 dump = '--dump' in sys.argv
 internal = '--internal' in sys.argv
+plain_output = '--plain-output' in sys.argv
+if plain_output:
+	plain_file = open('plain_text_out.txt', 'w+')
+in_code = None
 
 paths = ['include/libtorrent/*.hpp', 'include/libtorrent/kademlia/*.hpp', 'include/libtorrent/extensions/*.hpp']
 
@@ -329,6 +333,24 @@ def parse_class(lno, lines, filename):
 
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
+
+			# plain output prints just descriptions and filters out c++ code.
+			# it's used to run spell checker over
+			if plain_output:
+				line = l.split('//')[1]
+				# if the first character is a space, strip it
+				if len(line) > 0 and line[0] == ' ': line = line[1:]
+				global in_code
+				if in_code != None and not line.startswith(in_code) and len(line) > 1:
+					in_code = None
+
+				if line.strip().startswith('.. code::'):
+					in_code = line.split('.. code::')[0] + '\t'
+
+				# strip out C++ code from the plain text output since it's meant for
+				# running spell checking over
+				if not line.strip().startswith('.. ') and in_code == None:
+					plain_file.write(line + '\n')
 			l = l[2:]
 			if len(l) and l[0] == ' ': l = l[1:]
 			context += l + '\n'

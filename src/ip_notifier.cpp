@@ -77,7 +77,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			, netlink::endpoint(netlink(NETLINK_ROUTE), RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR))
 	{}
 
-	// noncopyable
+	// non-copyable
 	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
 	ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
 
@@ -199,7 +199,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			cancel();
 	}
 
-	// noncopyable
+	// non-copyable
 	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
 	ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
 
@@ -291,7 +291,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			cancel();
 	}
 
-	// noncopyable
+	// non-copyable
 	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
 	ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
 
@@ -335,7 +335,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		m_ovl.hEvent = m_hnd.native_handle();
 	}
 
-	// noncopyable
+	// non-copyable
 	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
 	ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
 

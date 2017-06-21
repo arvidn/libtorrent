@@ -348,7 +348,7 @@ struct TORRENT_EXPORT bdecode_node
 	// Swap contents.
 	void swap(bdecode_node& n);
 
-	// pre-allocate memory for the specified numbers of tokens. This is
+	// preallocate memory for the specified numbers of tokens. This is
 	// useful if you know approximately how many tokens are in the file
 	// you are about to parse. Doing so will save realloc operations
 	// while parsing. You should only call this on the root node, before

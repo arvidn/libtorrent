@@ -112,7 +112,7 @@ namespace aux {
 		partial_hash(): offset(0) {}
 		// the number of bytes in the piece that has been hashed
 		int offset;
-		// the sha-1 context
+		// the SHA-1 context
 		hasher h;
 	};
 

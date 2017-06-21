@@ -66,7 +66,7 @@ are mandatory. However, RSS items will be used as examples in this BEP::
 	                                           +---------+
 
 The ``next`` pointer is at least 20 byte ID in the DHT key space pointing to where the next
-item in the list is announced. The list is terminated with an ID of all zeroes.
+item in the list is announced. The list is terminated with an ID of all zeros.
 
 The ID an items is announced to is determined by the SHA1 hash of the bencoded representation
 of the item iteself. This contains all fields in the item, except the signature.

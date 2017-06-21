@@ -136,7 +136,7 @@ namespace aux {
 	{
 		// This constructor can be used to start with the default plugins
 		// (ut_metadata, ut_pex and smart_ban). The default values in the
-		// settings is to start the default features like upnp, nat-pmp,
+		// settings is to start the default features like upnp, NAT-PMP,
 		// and dht for example.
 		explicit session_params(settings_pack sp = settings_pack());
 		// This constructor helps to configure the set of initial plugins
@@ -217,8 +217,8 @@ namespace aux {
 		// settings_pack object. Its settings will take effect before the session
 		// starts up.
 		//
-		// The ``flags`` parameter can be used to start default features (upnp &
-		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
+		// The ``flags`` parameter can be used to start default features (UPnP &
+		// NAT-PMP) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
 		session(settings_pack pack
@@ -228,11 +228,11 @@ namespace aux {
 			start(flags, std::move(pack), nullptr);
 		}
 
-		// moveable
+		// movable
 		session(session&&) = default;
 		session& operator=(session&&) = default;
 
-		// noncopyable
+		// non-copyable
 		session(session const&) = delete;
 		session& operator=(session const&) = delete;
 

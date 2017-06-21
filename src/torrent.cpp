@@ -4386,7 +4386,7 @@ namespace libtorrent {
 			{
 				if (pc->super_seeded_piece(i))
 				{
-					// avoid superseeding the same piece to more than one
+					// avoid super-seeding the same piece to more than one
 					// peer if we can avoid it. Do this by artificially
 					// increase the availability
 					availability = 999;
@@ -4554,7 +4554,13 @@ namespace libtorrent {
 	{
 		INVARIANT_CHECK;
 
-		if (m_abort)
+		TORRENT_ASSERT_PRECOND(piece >= piece_index_t(0));
+		TORRENT_ASSERT_PRECOND(valid_metadata());
+		TORRENT_ASSERT_PRECOND(valid_metadata() && piece < m_torrent_file->end_piece());
+
+		if (m_abort || !valid_metadata()
+			|| piece < piece_index_t(0)
+			|| piece >= m_torrent_file->end_piece())
 		{
 			// failed
 			if (flags & torrent_handle::alert_when_available)

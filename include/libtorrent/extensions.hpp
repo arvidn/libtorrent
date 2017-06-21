@@ -311,12 +311,12 @@ namespace libtorrent {
 		// easy for plugins to do timed events, for sending messages or whatever.
 		virtual void tick() {}
 
-		// These hooks are called when the torrent is paused and unpaused respectively.
+		// These hooks are called when the torrent is paused and resumed respectively.
 		// The return value indicates if the event was handled. A return value of
 		// ``true`` indicates that it was handled, and no other plugin after this one
 		// will have this hook function called, and the standard handler will also not be
 		// invoked. So, returning true effectively overrides the standard behavior of
-		// pause or unpause.
+		// pause or resume.
 		//
 		// Note that if you call ``pause()`` or ``resume()`` on the torrent from your
 		// handler it will recurse back into your handler, so in order to invoke the
@@ -390,10 +390,10 @@ namespace libtorrent {
 		// throwing an exception from any of the handlers (except add_handshake)
 		// closes the connection
 
-		// this is called when the initial BT handshake is received. Returning false
-		// means that the other end doesn't support this extension and will remove
-		// it from the list of plugins.
-		// this is not called for web seeds
+		// this is called when the initial bittorrent handshake is received.
+		// Returning false means that the other end doesn't support this extension
+		// and will remove it from the list of plugins. this is not called for web
+		// seeds
 		virtual bool on_handshake(span<char const> /*reserved_bits*/) { return true; }
 
 		// called when the extension handshake from the other end is received
@@ -489,7 +489,7 @@ namespace libtorrent {
 		// are now ready to be sent to the lower layer. This must be at least
 		// as large as the number of bytes passed in and may be larger if there
 		// is additional data to be inserted at the head of the send buffer.
-		// The additional data is returned as the second tupled value. Any
+		// The additional data is returned as the second tuple value. Any
 		// returned buffer as well as the iovec itself, to be prepended to the
 		// send buffer, must be owned by the crypto plugin and guaranteed to stay
 		// alive until the crypto_plugin is destructed or this function is called

@@ -1840,9 +1840,9 @@ namespace libtorrent {
 
 		if (t->super_seeding() && !m_settings.get_bool(settings_pack::strict_super_seeding))
 		{
-			// if we're superseeding and the peer just told
-			// us that it completed the piece we're superseeding
-			// to it, change the superseeding piece for this peer
+			// if we're super-seeding and the peer just told
+			// us that it completed the piece we're super-seeding
+			// to it, change the super-seeding piece for this peer
 			// if the peer optimizes out redundant have messages
 			// this will be handled when the peer sends not-interested
 			// instead.

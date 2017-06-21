@@ -380,7 +380,7 @@ namespace libtorrent { namespace aux {
 		//
 		// If the piece is already downloaded when this call is made, nothing
 		// happens, unless the alert_when_available flag is set, in which case it
-		// will do the same thing as calling read_piece() for ``index``.
+		// will have the same effect as calling read_piece() for ``index``.
 		//
 		// ``deadline`` is the number of milliseconds until this piece should be
 		// completed.
@@ -413,7 +413,7 @@ namespace libtorrent { namespace aux {
 		// priority, but the priority is used as a weight.
 		//
 		// Peers whose Torrent has a higher priority will take precedence when
-		// distributing unchoke slots. This is a strict prioritization where
+		// distributing unchoke slots. This is a strict prioritisation where
 		// every interested peer on a high priority torrent will be unchoked
 		// before any other, lower priority, torrents have any peers unchoked.
 		// deprecated in 1.2
@@ -503,7 +503,7 @@ namespace libtorrent { namespace aux {
 		// pieces from it, unless it's paused, queued, checking or seeding.
 		// ``remove_url_seed()`` removes the given url if it exists already.
 		// ``url_seeds()`` return a set of the url seeds currently in this
-		// torrent. Note that urls that fails may be removed automatically from
+		// torrent. Note that URLs that fails may be removed automatically from
 		// the list.
 		//
 		// See http-seeding_ for more information.
@@ -577,7 +577,7 @@ namespace libtorrent { namespace aux {
 		// .. note::
 		// 	Torrents that are auto-managed may be automatically resumed again. It
 		// 	does not make sense to pause an auto-managed torrent without making it
-		// 	not automanaged first. Torrents are auto-managed by default when added
+		// 	not auto-managed first. Torrents are auto-managed by default when added
 		// 	to the session. For more information, see queuing_.
 		//
 		void pause(int flags = 0) const;
@@ -881,7 +881,7 @@ namespace libtorrent { namespace aux {
 		//
 		// Note that when a torrent first starts up, and it needs a certificate,
 		// it will suspend connecting to any peers until it has one. It's
-		// typically desirable to resume the torrent after setting the ssl
+		// typically desirable to resume the torrent after setting the SSL
 		// certificate.
 		//
 		// If you receive a torrent_need_cert_alert, you need to call this to
@@ -1118,7 +1118,7 @@ namespace libtorrent { namespace aux {
 		// Magnet links, and other torrents that start out without having
 		// metadata are pinned automatically. This is to give the client a chance
 		// to get the metadata and save it before it's unloaded. In this case, it
-		// may be useful to un-pin the torrent once its metadata has been saved
+		// may be useful to unpin the torrent once its metadata has been saved
 		// to disk.
 		//
 		// For more information about dynamically loading and unloading torrents,
@@ -1143,7 +1143,7 @@ namespace libtorrent { namespace aux {
 		// can be done by using this other than an unnecessary connection attempt
 		// is made. If the torrent is uninitialized or in queued or checking
 		// mode, this will throw system_error. The second (optional)
-		// argument will be bitwised ORed into the source mask of this peer.
+		// argument will be bitwise ORed into the source mask of this peer.
 		// Typically this is one of the source flags in peer_info. i.e.
 		// ``tracker``, ``pex``, ``dht`` etc.
 		//
@@ -1157,7 +1157,7 @@ namespace libtorrent { namespace aux {
 		// 0x04 supports uTP. If this is not set, the peer will only be contacted
 		//      over TCP.
 		//
-		// 0x08 supports holepunching protocol. If this
+		// 0x08 supports hole punching protocol. If this
 		//      flag is received from a peer, it can be
 		//      used as a rendezvous point in case direct
 		//      connections to the peer fail

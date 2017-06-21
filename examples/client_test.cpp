@@ -1592,7 +1592,7 @@ CLIENT OPTIONS
 [q] quit client                                 [m] add magnet link
 
 TORRENT ACTIONS
-[p] pause/unpause selected torrent              [C] toggle disk cache
+[p] pause/resume selected torrent               [C] toggle disk cache
 [s] toggle sequential download                  [j] force recheck
 [space] toggle session pause                    [c] clear error
 [v] scrape                                      [D] delete torrent and data

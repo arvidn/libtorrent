@@ -394,7 +394,7 @@ namespace libtorrent {
 
 		// store the given bencoded data as an immutable item in the DHT.
 		// the returned hash is the key that is to be used to look the item
-		// up again. It's just the sha-1 hash of the bencoded form of the
+		// up again. It's just the SHA-1 hash of the bencoded form of the
 		// structure.
 		sha1_hash dht_put_item(entry data);
 
@@ -411,7 +411,7 @@ namespace libtorrent {
 		// 	to be set to the value to be stored by the function.
 		//
 		// std::array<char,64>& signature
-		// 	the signature authenticating the current value. This may be zeroes
+		// 	the signature authenticating the current value. This may be zeros
 		// 	if there is currently no value stored. The function is expected to
 		// 	fill in this buffer with the signature of the new value to store.
 		// 	To generate the signature, you may want to use the
@@ -431,7 +431,7 @@ namespace libtorrent {
 		// it is critical to not perform any blocking operations. Ideally not
 		// even locking a mutex. Pass any data required for this function along
 		// with the function object's context and make the function entirely
-		// self-contained. The only reason data blobs' values are computed
+		// self-contained. The only reason data blob's value is computed
 		// via a function instead of just passing in the new value is to avoid
 		// race conditions. If you want to *update* the value in the DHT, you
 		// must first retrieve it, then modify it, then write it back. The way
@@ -453,9 +453,9 @@ namespace libtorrent {
 		void dht_live_nodes(sha1_hash const& nid);
 
 		// Query the DHT node specified by ``ep`` to retrieve a sample of the
-		// infohashes that the node currently have in their storage.
+		// info-hashes that the node currently have in their storage.
 		// The ``target`` is included for iterative lookups so that indexing nodes
-		// can perform a keyspace traversal with a single RPC per node by adjusting
+		// can perform a key space traversal with a single RPC per node by adjusting
 		// the target value for each RPC. It has no effect on the returned sample value.
 		// The result is posted as a ``dht_sample_infohashes_alert``.
 		void dht_sample_infohashes(udp::endpoint const& ep, sha1_hash const& target);
@@ -489,7 +489,7 @@ namespace libtorrent {
 		// 	directly. Makes it possible to join a swarm with just a tracker and
 		// 	info-hash.
 		//
-		// ::
+		// .. code:: c++
 		//
 		// 	#include <libtorrent/extensions/ut_metadata.hpp>
 		// 	ses.add_extension(&libtorrent::create_ut_metadata_plugin);
@@ -497,7 +497,7 @@ namespace libtorrent {
 		// uTorrent peer exchange
 		// 	Exchanges peers between clients.
 		//
-		// ::
+		// .. code:: c++
 		//
 		// 	#include <libtorrent/extensions/ut_pex.hpp>
 		// 	ses.add_extension(&libtorrent::create_ut_pex_plugin);
@@ -507,7 +507,7 @@ namespace libtorrent {
 		// 	that sends bad data with very high accuracy. Should
 		// 	eliminate most problems on poisoned torrents.
 		//
-		// ::
+		// .. code:: c++
 		//
 		// 	#include <libtorrent/extensions/smart_ban.hpp>
 		// 	ses.add_extension(&libtorrent::create_smart_ban_plugin);
@@ -621,7 +621,9 @@ namespace libtorrent {
 		// For more info, see ip_filter.
 		//
 		// For example, to make all peers in the range 200.1.1.0 - 200.1.255.255
-		// belong to their own peer class, apply the following filter::
+		// belong to their own peer class, apply the following filter:
+		// 
+		// .. code:: c++
 		//
 		// 	ip_filter f;
 		// 	peer_class_t my_class = ses.create_peer_class("200.1.x.x IP range");
@@ -661,7 +663,7 @@ namespace libtorrent {
 		void set_peer_class_type_filter(peer_class_type_filter const& f);
 
 		// Creates a new peer class (see peer-classes_) with the given name. The
-		// returned integer is the new peer class' identifier. Peer classes may
+		// returned integer is the new peer class identifier. Peer classes may
 		// have the same name, so each invocation of this function creates a new
 		// class and returns a unique identifier.
 		//
@@ -777,7 +779,7 @@ namespace libtorrent {
 		// the torrent is deleted, a torrent_deleted_alert is posted.
 		//
 		// Note that when a queued or downloading torrent is removed, its position
-		// in the download queue is vacated and avery subsequent torrent in the
+		// in the download queue is vacated and every subsequent torrent in the
 		// queue has their queue positions updated. This can potentially cause a
 		// large state_update to be posted. When removing all torrents, it is
 		// advised to remove them from the back of the queue, to minimize the
@@ -973,7 +975,7 @@ namespace libtorrent {
 		std::uint32_t get_alert_mask() const;
 
 		// Starts and stops Local Service Discovery. This service will broadcast
-		// the infohashes of all the non-private torrents on the local network to
+		// the info-hashes of all the non-private torrents on the local network to
 		// look for peers on the same swarm within multicast reach.
 		//
 		// deprecated. use settings_pack::enable_lsd instead

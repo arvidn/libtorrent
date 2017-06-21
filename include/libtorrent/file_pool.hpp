@@ -115,7 +115,7 @@ namespace libtorrent {
 		};
 
 		// maps storage pointer, file index pairs to the
-		// lru entry for the file
+		// LRU entry for the file
 		std::map<std::pair<storage_index_t, file_index_t>, lru_file_entry> m_files;
 #if TORRENT_USE_ASSERTS
 		std::vector<std::pair<std::string, void const*>> m_deleted_storages;

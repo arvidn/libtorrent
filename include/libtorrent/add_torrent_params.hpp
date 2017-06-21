@@ -308,7 +308,7 @@ namespace libtorrent {
 		// 	paths. This means they must use backslashes as directory separators
 		// 	and may not contain the special directories "." or "..".
 		//
-		// Setting this to an absolute path is slightly more performant than a
+		// Setting this to an absolute path performs slightly better than a
 		// relative path.
 		std::string save_path;
 
@@ -366,7 +366,7 @@ namespace libtorrent {
 		// set this to the info hash of the torrent to add in case the info-hash
 		// is the only known property of the torrent. i.e. you don't have a
 		// .torrent file nor a magnet link.
-		// To add a magnet link, use parse_magnet_uri() to populatefields in the
+		// To add a magnet link, use parse_magnet_uri() to populate fields in the
 		// add_torrent_params object.
 		sha1_hash info_hash;
 

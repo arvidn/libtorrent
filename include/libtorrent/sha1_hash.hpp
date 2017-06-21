@@ -129,7 +129,7 @@ namespace aux {
 		char const* data() const { return reinterpret_cast<char const*>(&m_number[0]); }
 		char* data() { return reinterpret_cast<char*>(&m_number[0]); }
 
-		// set the digest to all zeroes.
+		// set the digest to all zeros.
 		void clear() noexcept { std::memset(m_number, 0, size()); }
 
 		// return true if the digest is all zero.

@@ -545,7 +545,7 @@ namespace libtorrent {
 		virtual std::string message() const override;
 
 		// tells how many peers the tracker returned in this response. This is
-		// not expected to be more thant the ``num_want`` settings. These are not necessarily
+		// not expected to be greater than the ``num_want`` settings. These are not necessarily
 		// all new peers, some of them may already be connected.
 		int const num_peers;
 	};
@@ -748,7 +748,7 @@ namespace libtorrent {
 		bool const peer_interested;
 
 		// if this is true, the peer is not allowed to download this piece because
-		// of superseeding rules.
+		// of super-seeding rules.
 		bool const withheld;
 	};
 
@@ -1298,11 +1298,11 @@ namespace libtorrent {
 		libtorrent::socket_type_t const socket_type;
 
 		// the address libtorrent attempted to listen on
-		// see alert's documentation for validity of this value
+		// see alert documentation for validity of this value
 		aux::noexcept_movable<libtorrent::address> address;
 
 		// the port libtorrent attempted to listen on
-		// see alert's documentation for validity of this value
+		// see alert documentation for validity of this value
 		int const port;
 
 	private:
@@ -2032,7 +2032,7 @@ namespace libtorrent {
 		virtual std::string message() const override;
 
 		// the target hash of the immutable item. This must
-		// match the sha-1 hash of the bencoded form of ``item``.
+		// match the SHA-1 hash of the bencoded form of ``item``.
 		sha1_hash target;
 
 		// the data for this item
@@ -2635,7 +2635,7 @@ namespace libtorrent {
 
 		time_duration const interval;
 
-		// This field indicates how many infohash keys are currently in the node's storage.
+		// This field indicates how many info-hash keys are currently in the node's storage.
 		// If the value is larger than the number of returned samples it indicates that the
 		// indexer may obtain additional samples after waiting out the interval.
 		int const num_infohashes;
@@ -2648,8 +2648,9 @@ namespace libtorrent {
 
 		// This is the set of more DHT nodes returned by the request.
 		//
-		// The information is included so that indexing nodes can perform a keyspace
-		// traversal with a single RPC per node by adjusting the target value for each RPC.
+		// The information is included so that indexing nodes can perform a key
+		// space traversal with a single RPC per node by adjusting the target
+		// value for each RPC.
 		std::vector<std::pair<sha1_hash, udp::endpoint>> nodes() const;
 
 	private:

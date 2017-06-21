@@ -670,7 +670,7 @@ namespace libtorrent {
 			enable_natpmp,
 
 			// Starts and stops Local Service Discovery. This service will
-			// broadcast the infohashes of all the non-private torrents on the
+			// broadcast the info-hashes of all the non-private torrents on the
 			// local network to look for peers on the same swarm within multicast
 			// reach.
 			enable_lsd,
