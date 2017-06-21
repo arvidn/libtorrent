@@ -622,7 +622,7 @@ namespace libtorrent {
 		//
 		// For example, to make all peers in the range 200.1.1.0 - 200.1.255.255
 		// belong to their own peer class, apply the following filter:
-		// 
+		//
 		// .. code:: c++
 		//
 		// 	ip_filter f;
