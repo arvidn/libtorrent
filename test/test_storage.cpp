@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -1037,7 +1038,7 @@ TORRENT_TEST(iovec_clear_bufs)
 	alloc_iov(iov, 10);
 	fill_pattern(iov, 10);
 
-	clear_bufs({iov, 10});
+	lt::aux::clear_bufs({iov, 10});
 	for (int i = 0; i < 10; ++i)
 	{
 		for (char v : iov[i])

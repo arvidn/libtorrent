@@ -53,11 +53,12 @@ namespace libtorrent {
 	// operations
 	using iovec_t = span<char>;
 
-	namespace aux {
+namespace aux {
 
 	TORRENT_EXTRA_EXPORT int copy_bufs(span<iovec_t const> bufs
 		, int bytes, span<iovec_t> target);
 	TORRENT_EXTRA_EXPORT typed_span<iovec_t> advance_bufs(typed_span<iovec_t> bufs, int bytes);
+	TORRENT_EXTRA_EXPORT void clear_bufs(span<iovec_t const> bufs);
 
 	// this is a read or write operation so that readwritev() knows
 	// what to do when it's actually touching the file
