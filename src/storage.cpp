@@ -77,12 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	void clear_bufs(span<iovec_t const> bufs)
-	{
-		for (auto buf : bufs)
-			std::memset(buf.data(), 0, buf.size());
-	}
-
 	default_storage::default_storage(storage_params const& params
 		, file_pool& pool)
 		: storage_interface(params.files)
@@ -478,7 +472,7 @@ namespace libtorrent {
 			if (files().pad_file_at(file_index))
 			{
 				// reading from a pad file yields zeroes
-				clear_bufs(vec);
+				aux::clear_bufs(vec);
 				return bufs_size(vec);
 			}
 

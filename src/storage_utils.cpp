@@ -79,6 +79,12 @@ namespace libtorrent { namespace aux {
 		}
 	}
 
+	void clear_bufs(span<iovec_t const> bufs)
+	{
+		for (auto buf : bufs)
+			std::memset(buf.data(), 0, buf.size());
+	}
+
 #if TORRENT_USE_ASSERTS
 	namespace {
 

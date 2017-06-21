@@ -133,8 +133,6 @@ namespace libtorrent {
 	namespace aux { struct session_settings; }
 	struct add_torrent_params;
 
-	TORRENT_EXTRA_EXPORT void clear_bufs(span<iovec_t const> bufs);
-
 	struct disk_io_thread;
 
 	// The storage interface is a pure virtual class that can be implemented to
