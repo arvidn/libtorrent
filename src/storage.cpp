@@ -293,27 +293,11 @@ namespace libtorrent {
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		file_storage const& fs = files();
-		for (file_index_t i(0); i < fs.end_file(); ++i)
-		{
-			std::int64_t const sz = m_stat_cache.get_filesize(
-				i, files(), m_save_path, ec.ec);
+		if (aux::has_any_file(files(), m_save_path, m_stat_cache, ec))
+			return true;
 
-			if (sz < 0)
-			{
-				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
-				{
-					ec.file(i);
-					ec.operation = operation_t::file_stat;
-					m_stat_cache.clear();
-					return false;
-				}
-				// some files not existing is expected and not an error
-				ec.ec.clear();
-			}
+		if (ec) return false;
 
-			if (sz > 0) return true;
-		}
 		file_status s;
 		stat_file(combine_path(m_save_path, m_part_file_name), &s, ec.ec);
 		if (!ec) return true;
