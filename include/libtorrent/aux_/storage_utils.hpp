@@ -95,6 +95,14 @@ namespace aux {
 		, stat_cache& stat
 		, std::string const& save_path
 		, storage_error& ec);
+
+	// given the save_path, stat all files on file_storage until one exists. If a
+	// file exists, return true, otherwise return false.
+	TORRENT_EXTRA_EXPORT bool has_any_file(
+		file_storage const& fs
+		, std::string const& save_path
+		, stat_cache& stat
+		, storage_error& ec);
 }}
 
 #endif
