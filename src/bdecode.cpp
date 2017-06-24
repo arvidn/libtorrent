@@ -113,7 +113,7 @@ namespace {
 		// reading a key or a vale. 'false' means key 'true' is value
 		bool state() const
 		{
-			return m_token_state & 0x80000000;
+			return (m_token_state & 0x80000000) == 0x80000000;
 		}
 		void change_state()
 		{
