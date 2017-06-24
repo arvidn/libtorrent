@@ -796,6 +796,7 @@ namespace {
 					std::int64_t len = t - '0';
 					char const* const str_start = start;
 					++start;
+					if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
 					start = parse_int(start, end, ':', len, e);
 					if (e)
