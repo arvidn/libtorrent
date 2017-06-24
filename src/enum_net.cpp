@@ -191,7 +191,7 @@ namespace libtorrent {namespace {
 
 			if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
 
-		} while((nl_hdr->nlmsg_seq != seq) || (int(nl_hdr->nlmsg_pid) != pid));
+		} while((nl_hdr->nlmsg_seq == seq) && (int(nl_hdr->nlmsg_pid) == pid));
 		return msg_len;
 	}
 
@@ -1052,7 +1052,7 @@ namespace libtorrent {
 		nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(rtmsg));
 		nl_msg->nlmsg_type = RTM_GETROUTE;
 		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-		nl_msg->nlmsg_seq = seq++;
+		nl_msg->nlmsg_seq = seq;
 		nl_msg->nlmsg_pid = std::uint32_t(getpid());
 
 		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
