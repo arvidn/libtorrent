@@ -166,7 +166,7 @@ struct bdecode_token
 	enum type_t
 	{ none, dict, list, string, integer, end };
 
-	enum limits_t
+	enum limits_t : std::uint32_t
 	{
 		max_offset = (1 << 29) - 1,
 		max_next_item = (1 << 29) - 1,
