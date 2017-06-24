@@ -160,13 +160,13 @@ namespace libtorrent {namespace {
 
 #if TORRENT_USE_NETLINK
 
-	int read_nl_sock(int sock, char *buf, int bufsize, std::uint32_t const seq, int const pid)
+	int read_nl_sock(int sock, char *buf, int bufsize, std::uint32_t const seq, std::uint32_t const pid)
 	{
 		nlmsghdr* nl_hdr;
 
 		int msg_len = 0;
 
-		do
+		for (;;)
 		{
 			int read_len = int(recv(sock, buf, std::size_t(bufsize - msg_len), 0));
 			if (read_len < 0) return -1;
@@ -184,14 +184,18 @@ namespace libtorrent {namespace {
 #pragma clang diagnostic pop
 #endif
 
+			// this function doesn't handle multiple requests at the same time
+			// so report an error if the message does not have the expected seq and pid
+			if (nl_hdr->nlmsg_seq != seq || nl_hdr->nlmsg_pid != pid)
+				return -1;
+
 			if (nl_hdr->nlmsg_type == NLMSG_DONE) break;
 
 			buf += read_len;
 			msg_len += read_len;
 
 			if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
-
-		} while((nl_hdr->nlmsg_seq == seq) && (int(nl_hdr->nlmsg_pid) == pid));
+		}
 		return msg_len;
 	}
 
@@ -1053,7 +1057,10 @@ namespace libtorrent {
 		nl_msg->nlmsg_type = RTM_GETROUTE;
 		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
 		nl_msg->nlmsg_seq = seq;
-		nl_msg->nlmsg_pid = std::uint32_t(getpid());
+		// in theory nlmsg_pid should be set to the netlink port ID (NOT the process ID)
+		// of the sender, but the kernel ignores this field so it is typically set to
+		// zero
+		nl_msg->nlmsg_pid = 0;
 
 		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
 		{
@@ -1062,13 +1069,27 @@ namespace libtorrent {
 			return std::vector<ip_route>();
 		}
 
-		int len = read_nl_sock(sock, msg, BUFSIZE, seq, getpid());
+		// get the socket's port ID so that we can verify it in the repsonse
+		sockaddr_nl sock_addr;
+		socklen_t sock_addr_len = sizeof(sock_addr);
+		if (getsockname(sock, (sockaddr*)&sock_addr, &sock_addr_len) < 0)
+		{
+			ec = error_code(errno, system_category());
+			close(sock);
+			return std::vector<ip_route>();
+		}
+
+		int len = read_nl_sock(sock, msg, BUFSIZE, seq, sock_addr.nl_pid);
 		if (len < 0)
 		{
 			ec = error_code(errno, system_category());
 			close(sock);
 			return std::vector<ip_route>();
 		}
+
+		// seq should be incremented between requests so do it here
+		// just in case someone adds another send below
+		++seq;
 
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
