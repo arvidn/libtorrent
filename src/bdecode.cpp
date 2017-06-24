@@ -103,12 +103,24 @@ namespace {
 	struct stack_frame
 	{
 		stack_frame() : token(0), state(0) {}
-		explicit stack_frame(int const t): token(std::uint32_t(t)), state(0) {}
+		explicit stack_frame(int const t): m_token_state(std::uint32_t(t & 0x7FFFFFFF)) {}
 		// this is an index into m_tokens
-		std::uint32_t token:31;
+		std::uint32_t token() const
+		{
+			return m_token_state & 0x7FFFFFFF;
+		}
 		// this is used for dictionaries to indicate whether we're
-		// reading a key or a vale. 0 means key 1 is value
-		std::uint32_t state:1;
+		// reading a key or a vale. 'false' means key 'true' is value
+		bool state() const
+		{
+			return m_token_state & 0x80000000;
+		}
+		void change_state()
+		{
+			m_token_state ^= 0x80000000;
+		}
+	private:
+		std::uint32_t m_token_state;
 	};
 
 	// diff between current and next item offset
@@ -700,9 +712,9 @@ namespace {
 			// if we're currently parsing a dictionary, assert that
 			// every other node is a string.
 			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
+				&& ret.m_tokens[stack[current_frame - 1].token()].type == bdecode_token::dict)
 			{
-				if (stack[current_frame - 1].state == 0)
+				if (stack[current_frame - 1].state() == false)
 				{
 					// the current parent is a dict and we are parsing a key.
 					// only allow a digit (for a string) or 'e' to terminate
@@ -759,8 +771,8 @@ namespace {
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
 					if (sp > 0
-						&& ret.m_tokens[stack[sp - 1].token].type == bdecode_token::dict
-						&& stack[sp - 1].state == 1)
+						&& ret.m_tokens[stack[sp - 1].token()].type == bdecode_token::dict
+						&& stack[sp - 1].state() == true)
 					{
 						// this means we're parsing a dictionary and about to parse a
 						// value associated with a key. Instead, we got a termination
@@ -772,7 +784,7 @@ namespace {
 
 					// and back-patch the start of this sequence with the offset
 					// to the next token we'll insert
-					int const top = stack[sp - 1].token;
+					uint32_t const top = stack[sp - 1].token();
 					// subtract the token's own index, since this is a relative
 					// offset
 					if (int(ret.m_tokens.size()) - top > bdecode_token::max_next_item)
@@ -825,10 +837,10 @@ namespace {
 			}
 
 			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
+				&& ret.m_tokens[stack[current_frame - 1].token()].type == bdecode_token::dict)
 			{
 				// the next item we parse is the opposite
-				stack[current_frame - 1].state = ~stack[current_frame - 1].state;
+				stack[current_frame - 1].change_state();
 			}
 
 			// this terminates the top level node, we're done!
@@ -846,15 +858,15 @@ done:
 
 			// we may need to insert a dummy token to properly terminate the tree,
 			// in case we just parsed a key to a dict and failed in the value
-			if (ret.m_tokens[stack[sp].token].type == bdecode_token::dict
-				&& stack[sp].state == 1)
+			if (ret.m_tokens[stack[sp].token()].type == bdecode_token::dict
+				&& stack[sp].state() == true)
 			{
 				// insert an empty dictionary as the value
 				ret.m_tokens.push_back({start - orig_start, 2, bdecode_token::dict});
 				ret.m_tokens.push_back({start - orig_start, bdecode_token::end});
 			}
 
-			int const top = stack[sp].token;
+			uint32_t const top = stack[sp].token();
 			TORRENT_ASSERT(int(ret.m_tokens.size()) - top <= bdecode_token::max_next_item);
 			ret.m_tokens[std::size_t(top)].next_item = std::uint32_t(int(ret.m_tokens.size()) - top);
 			ret.m_tokens.push_back({start - orig_start, 1, bdecode_token::end});
