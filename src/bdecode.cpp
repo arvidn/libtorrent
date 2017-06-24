@@ -105,7 +105,7 @@ namespace {
 		stack_frame() : token(0), state(0) {}
 		explicit stack_frame(int const t): m_token_state(std::uint32_t(t & 0x7FFFFFFF)) {}
 		// this is an index into m_tokens
-		std::uint32_t token() const
+		std::uint32_t index() const
 		{
 			return m_token_state & 0x7FFFFFFF;
 		}
@@ -712,7 +712,7 @@ namespace {
 			// if we're currently parsing a dictionary, assert that
 			// every other node is a string.
 			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame - 1].token()].type == bdecode_token::dict)
+				&& ret.m_tokens[stack[current_frame - 1].index()].type == bdecode_token::dict)
 			{
 				if (stack[current_frame - 1].state() == false)
 				{
@@ -771,7 +771,7 @@ namespace {
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
 					if (sp > 0
-						&& ret.m_tokens[stack[sp - 1].token()].type == bdecode_token::dict
+						&& ret.m_tokens[stack[sp - 1].index()].type == bdecode_token::dict
 						&& stack[sp - 1].state() == true)
 					{
 						// this means we're parsing a dictionary and about to parse a
@@ -784,7 +784,7 @@ namespace {
 
 					// and back-patch the start of this sequence with the offset
 					// to the next token we'll insert
-					uint32_t const top = stack[sp - 1].token();
+					uint32_t const top = stack[sp - 1].index();
 					// subtract the token's own index, since this is a relative
 					// offset
 					if (int(ret.m_tokens.size()) - top > bdecode_token::max_next_item)
@@ -837,7 +837,7 @@ namespace {
 			}
 
 			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame - 1].token()].type == bdecode_token::dict)
+				&& ret.m_tokens[stack[current_frame - 1].index()].type == bdecode_token::dict)
 			{
 				// the next item we parse is the opposite
 				stack[current_frame - 1].change_state();
@@ -858,7 +858,7 @@ done:
 
 			// we may need to insert a dummy token to properly terminate the tree,
 			// in case we just parsed a key to a dict and failed in the value
-			if (ret.m_tokens[stack[sp].token()].type == bdecode_token::dict
+			if (ret.m_tokens[stack[sp].index()].type == bdecode_token::dict
 				&& stack[sp].state() == true)
 			{
 				// insert an empty dictionary as the value
@@ -866,7 +866,7 @@ done:
 				ret.m_tokens.push_back({start - orig_start, bdecode_token::end});
 			}
 
-			uint32_t const top = stack[sp].token();
+			uint32_t const top = stack[sp].index();
 			TORRENT_ASSERT(int(ret.m_tokens.size()) - top <= bdecode_token::max_next_item);
 			ret.m_tokens[std::size_t(top)].next_item = std::uint32_t(int(ret.m_tokens.size()) - top);
 			ret.m_tokens.push_back({start - orig_start, 1, bdecode_token::end});
