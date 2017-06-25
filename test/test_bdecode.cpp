@@ -162,6 +162,9 @@ TORRENT_TEST(dict)
 	TEST_EQUAL(e.dict_find("c").string_value(), std::string("bbb"));
 	TEST_EQUAL(e.dict_find("c").string_length(), 3);
 	TEST_EQUAL(e.dict_find_string_value("X"), "0123456789");
+	char error_string[200];
+	TEST_CHECK(e.has_soft_error(error_string));
+	TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
 }
 
 // test dictionary with a key without a value
@@ -204,6 +207,69 @@ TORRENT_TEST(dict_null_key)
 	bdecode_node d = e.dict_find(std::string("a\0b", 3));
 	TEST_EQUAL(d.type(), bdecode_node::int_t);
 	TEST_EQUAL(d.int_value(), 1);
+}
+
+// soft error reported for dictionary with unordered keys
+TORRENT_TEST(dict_unordered_keys)
+{
+	char error_string[200];
+	{
+		char b[] = "d2:abi1e2:aai2ee";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b) - 1, e, ec);
+		TEST_EQUAL(ret, 0);
+		TEST_CHECK(e.has_soft_error(error_string));
+		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+	}
+	{
+		char b[] = "d2:bai1e2:aai2ee";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b) - 1, e, ec);
+		TEST_EQUAL(ret, 0);
+		TEST_CHECK(e.has_soft_error(error_string));
+		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+	}
+	{
+		char b[] = "d2:aai1e1:ai2ee";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b) - 1, e, ec);
+		TEST_EQUAL(ret, 0);
+		TEST_CHECK(e.has_soft_error(error_string));
+		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+	}
+	{
+		char b[] = "d1:ai1e2:aai2ee";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b) - 1, e, ec);
+		TEST_EQUAL(ret, 0);
+		TEST_CHECK(!e.has_soft_error(error_string));
+		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+	}
+	{
+		char b[] = "d2:aai1e1:bi2ee";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b) - 1, e, ec);
+		TEST_EQUAL(ret, 0);
+		TEST_CHECK(!e.has_soft_error(error_string));
+		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+	}
+}
+
+TORRENT_TEST(dict_duplicate_key)
+{
+	char b[] = "d2:aai1e2:aai2ee";
+	bdecode_node e;
+	error_code ec;
+	int ret = bdecode(b, b + sizeof(b) - 1, e, ec);
+	TEST_EQUAL(ret, 0);
+	char error_string[200];
+	TEST_CHECK(e.has_soft_error(error_string));
+	TEST_EQUAL(std::string(error_string), std::string("duplicate dictionary key"));
 }
 
 // premature e
@@ -272,6 +338,20 @@ TORRENT_TEST(overflow_length_prefix2)
 	TEST_EQUAL(ret, -1);
 	TEST_EQUAL(pos, 0);
 	TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded));
+	std::printf("%s\n", print_entry(e).c_str());
+}
+
+TORRENT_TEST(leading_zero_length_prefix)
+{
+	char b[] = "06:foobar";
+	bdecode_node e;
+	error_code ec;
+	int pos;
+	int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
+	TEST_EQUAL(ret, 0);
+	char error_string[200];
+	TEST_CHECK(e.has_soft_error(error_string));
+	TEST_EQUAL(std::string(error_string), std::string("leading zero in string length"));
 	std::printf("%s\n", print_entry(e).c_str());
 }
 
@@ -356,6 +436,19 @@ TORRENT_TEST(int_truncated)
 	TEST_EQUAL(ret, -1);
 	TEST_EQUAL(pos, 2);
 	TEST_EQUAL(ec,  error_code(bdecode_errors::unexpected_eof));
+	std::printf("%s\n", print_entry(e).c_str());
+}
+
+TORRENT_TEST(int_leading_zero)
+{
+	char b[] = "i01e";
+	bdecode_node e;
+	error_code ec;
+	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
+	TEST_EQUAL(ret, 0);
+	char error_string[200];
+	TEST_CHECK(e.has_soft_error(error_string));
+	TEST_EQUAL(std::string(error_string), std::string("leading zero in integer"));
 	std::printf("%s\n", print_entry(e).c_str());
 }
 
