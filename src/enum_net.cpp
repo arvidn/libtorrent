@@ -199,6 +199,38 @@ namespace libtorrent {namespace {
 		return msg_len;
 	}
 
+	enum { NL_BUFSIZE = 8192 };
+
+	int nl_dump_request(int sock, int type, std::uint32_t seq, char family, char msg[NL_BUFSIZE], std::size_t msg_len)
+	{
+		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
+		nl_msg->nlmsg_len = NLMSG_LENGTH(msg_len);
+		nl_msg->nlmsg_type = type;
+		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+		nl_msg->nlmsg_seq = seq;
+		// in theory nlmsg_pid should be set to the netlink port ID (NOT the process ID)
+		// of the sender, but the kernel ignores this field so it is typically set to
+		// zero
+		nl_msg->nlmsg_pid = 0;
+		// first byte of routing messages is always the family
+		msg[sizeof(nlmsghdr)] = family;
+
+		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
+		{
+			return -1;
+		}
+
+		// get the socket's port ID so that we can verify it in the repsonse
+		sockaddr_nl sock_addr;
+		socklen_t sock_addr_len = sizeof(sock_addr);
+		if (getsockname(sock, (sockaddr*)&sock_addr, &sock_addr_len) < 0)
+		{
+			return -1;
+		}
+
+		return read_nl_sock(sock, msg, NL_BUFSIZE, seq, sock_addr.nl_pid);
+	}
+
 	bool parse_route(int s, nlmsghdr* nl_hdr, ip_route* rt_info)
 	{
 		rtmsg* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
@@ -1039,8 +1071,6 @@ namespace libtorrent {
 		// Free memory
 		free(routes);
 #elif TORRENT_USE_NETLINK
-		enum { BUFSIZE = 8192 };
-
 		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
@@ -1050,46 +1080,15 @@ namespace libtorrent {
 
 		std::uint32_t seq = 0;
 
-		char msg[BUFSIZE] = {};
+		char msg[NL_BUFSIZE] = {};
 		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
-
-		nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(rtmsg));
-		nl_msg->nlmsg_type = RTM_GETROUTE;
-		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-		nl_msg->nlmsg_seq = seq;
-		// in theory nlmsg_pid should be set to the netlink port ID (NOT the process ID)
-		// of the sender, but the kernel ignores this field so it is typically set to
-		// zero
-		nl_msg->nlmsg_pid = 0;
-
-		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
-		{
-			ec = error_code(errno, system_category());
-			close(sock);
-			return std::vector<ip_route>();
-		}
-
-		// get the socket's port ID so that we can verify it in the repsonse
-		sockaddr_nl sock_addr;
-		socklen_t sock_addr_len = sizeof(sock_addr);
-		if (getsockname(sock, (sockaddr*)&sock_addr, &sock_addr_len) < 0)
-		{
-			ec = error_code(errno, system_category());
-			close(sock);
-			return std::vector<ip_route>();
-		}
-
-		int len = read_nl_sock(sock, msg, BUFSIZE, seq, sock_addr.nl_pid);
+		int len = nl_dump_request(sock, RTM_GETROUTE, seq++, AF_UNSPEC, msg, sizeof(rtmsg));
 		if (len < 0)
 		{
 			ec = error_code(errno, system_category());
 			close(sock);
 			return std::vector<ip_route>();
 		}
-
-		// seq should be incremented between requests so do it here
-		// just in case someone adds another send below
-		++seq;
 
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
