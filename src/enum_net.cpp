@@ -162,7 +162,7 @@ namespace libtorrent {namespace {
 
 #if TORRENT_USE_NETLINK
 
-	int read_nl_sock(int sock, char *buf, int bufsize, std::uint32_t const seq, std::uint32_t const pid)
+	int read_nl_sock(int sock, span<char> buf, std::uint32_t const seq, std::uint32_t const pid)
 	{
 		nlmsghdr* nl_hdr;
 
@@ -170,10 +170,11 @@ namespace libtorrent {namespace {
 
 		for (;;)
 		{
-			int read_len = int(recv(sock, buf, std::size_t(bufsize - msg_len), 0));
+			auto next_msg = buf.subspan(msg_len);
+			int read_len = int(recv(sock, next_msg.data(), next_msg.size(), 0));
 			if (read_len < 0) return -1;
 
-			nl_hdr = reinterpret_cast<nlmsghdr*>(buf);
+			nl_hdr = reinterpret_cast<nlmsghdr*>(next_msg.data());
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -193,7 +194,6 @@ namespace libtorrent {namespace {
 
 			if (nl_hdr->nlmsg_type == NLMSG_DONE) break;
 
-			buf += read_len;
 			msg_len += read_len;
 
 			if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
@@ -203,9 +203,9 @@ namespace libtorrent {namespace {
 
 	enum { NL_BUFSIZE = 8192 };
 
-	int nl_dump_request(int sock, int type, std::uint32_t seq, char family, char msg[NL_BUFSIZE], std::size_t msg_len)
+	int nl_dump_request(int sock, int type, std::uint32_t seq, char family, span<char> msg, std::size_t msg_len)
 	{
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
+		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
 		nl_msg->nlmsg_len = NLMSG_LENGTH(msg_len);
 		nl_msg->nlmsg_type = type;
 		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
@@ -230,7 +230,7 @@ namespace libtorrent {namespace {
 			return -1;
 		}
 
-		return read_nl_sock(sock, msg, NL_BUFSIZE, seq, sock_addr.nl_pid);
+		return read_nl_sock(sock, msg, seq, sock_addr.nl_pid);
 	}
 
 	bool parse_route(int s, nlmsghdr* nl_hdr, ip_route* rt_info)
