@@ -194,25 +194,6 @@ namespace libtorrent {
 
 			ec = error_code();
 
-			// if_nametoindex was introduced in vista
-#if TORRENT_USE_IPV6 \
-		&& (!defined TORRENT_WINDOWS || _WIN32_WINNT >= 0x0600) \
-		&& !defined TORRENT_MINGW
-
-			if (i->interface_address.is_v6() &&
-				i->interface_address.to_v6().is_link_local())
-			{
-				address_v6 addr6 = i->interface_address.to_v6();
-				addr6.scope_id(if_nametoindex(i->name));
-				open_multicast_socket(ios, addr6, loopback, ec);
-
-				address_v4 const& mask = i->netmask.is_v4()
-					? i->netmask.to_v4() : address_v4();
-				open_unicast_socket(ios, addr6, mask);
-				continue;
-			}
-
-#endif
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
 			open_unicast_socket(ios, i->interface_address
 				, i->netmask.is_v4() ? i->netmask.to_v4() : address_v4());
