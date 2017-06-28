@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,67 +30,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_SAVE_RESUME_HPP
-#define TORRENT_SAVE_RESUME_HPP
+#ifndef TORRENT_HEX_HPP
+#define TORRENT_HEX_HPP
 
-#include "libtorrent/session.hpp"
-#include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/error_code.hpp"
-#include "alert_observer.hpp"
-
+#include "libtorrent/span.hpp"
 #include <string>
-#include <mutex>
-#include <unordered_map>
 
-#include <sqlite3.h>
+namespace libtorrent {
 
-namespace libtorrent
-{
-	struct alert_handler;
-
-	struct save_resume : alert_observer
-	{
-		save_resume(session& s, std::string const& resume_file, alert_handler* alerts);
-		~save_resume();
-
-		void load(error_code& ec, add_torrent_params model);
-
-		// implements alert_observer
-		virtual void handle_alert(alert const* a);
-
-		void save_all();
-		bool ok_to_quit() const;
-
-		void load_torrent(libtorrent::sha1_hash const& ih
-			, std::vector<char>& buf, libtorrent::error_code& ec);
-
-	private:
-
-		session& m_ses;
-		alert_handler* m_alerts;
-		sqlite3* m_db;
-
-		// all torrents currently loaded
-		std::unordered_set<torrent_handle> m_torrents;
-
-		// the next torrent to save (may point to end)
-		std::unordered_set<torrent_handle>::iterator m_cursor;
-
-		// the last time we visited a torrent to potentially
-		// save its fast-resume
-		time_point m_last_save;
-
-		// save resum data for all torrents every X seconds
-		// must be at least 1
-		time_duration m_interval;
-
-		int m_num_in_flight;
-
-		// when set, we stop saving periodically, and just wait
-		// for all outstanding saves to return.
-		bool m_shutting_down;
-	};
+	std::string to_hex(span<char const> in);
+	void to_hex(span<char const> in, char* out);
+	bool from_hex(span<char const> in, char* out);
 }
 
 #endif

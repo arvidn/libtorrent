@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <memory>
+
 #include "file_requests.hpp"
 
 #include "libtorrent/alert_types.hpp"
@@ -56,7 +58,7 @@ void file_requests::on_alert(alert const* a)
 	read_piece_alert const* p = alert_cast<read_piece_alert>(a);
 	if (p)
 	{
-		shared_ptr<torrent> t = p->handle.native_handle();
+		std::shared_ptr<torrent> t = p->handle.native_handle();
 
 		piece_request rq;
 		rq.info_hash = t->info_hash();
@@ -94,7 +96,7 @@ void file_requests::on_alert(alert const* a)
 	if (pf)
 	{
 		DLOG("piece_finished: %d\n", pf->piece_index);
-		libtorrent::shared_ptr<torrent> t = pf->handle.native_handle();
+		std::shared_ptr<torrent> t = pf->handle.native_handle();
 		piece_request rq;
 		rq.info_hash = t->info_hash();
 		rq.piece = pf->piece_index;
@@ -153,7 +155,7 @@ void file_requests::on_tick()
 	if (m_next_timeout == m_requests.end())
 		m_next_timeout = m_requests.begin();
 
-	ptime now = time_now();
+	auto const now = lt::clock_type::now();
 
 	if (m_next_timeout != m_requests.end())
 	{
@@ -170,7 +172,8 @@ void file_requests::on_tick()
 	}
 }
 
-std::shared_future<piece_entry> file_requests::read_piece(torrent_handle const& h, int piece, int timeout_ms)
+std::shared_future<piece_entry> file_requests::read_piece(torrent_handle const& h
+	, piece_index_t const piece, lt::clock_type::duration const timeout_ms)
 {
 	TORRENT_ASSERT(piece >= 0);
 	TORRENT_ASSERT(piece < h.torrent_file()->num_pieces());
@@ -179,7 +182,7 @@ std::shared_future<piece_entry> file_requests::read_piece(torrent_handle const& 
 	rq.info_hash = h.info_hash();
 	rq.piece = piece;
 	rq.promise.reset(new std::promise<piece_entry>());
-	rq.timeout = time_now() + milliseconds(timeout_ms);
+	rq.timeout = lt::clock_type::now() + timeout_ms;
 
 	std::unique_lock<std::mutex> l(m_mutex);
 	m_requests.insert(rq);
@@ -190,7 +193,7 @@ std::shared_future<piece_entry> file_requests::read_piece(torrent_handle const& 
 //	h.set_piece_deadline(piece, 0, torrent_handle::alert_when_available);
 	if (m_have_pieces[rq.info_hash].count(piece))
 	{
-		DLOG("read_piece: %d\n", piece);
+		DLOG("read_piece: %d\n", static_cast<int>(piece));
 		h.read_piece(piece);
 	}
 	return std::shared_future<piece_entry>(rq.promise->get_future());

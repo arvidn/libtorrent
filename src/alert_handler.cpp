@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	alert_handler::alert_handler(session& ses)
+	alert_handler::alert_handler(lt::session& ses)
 		: m_abort(false)
 		, m_ses(ses)
 	{}
@@ -181,60 +181,6 @@ namespace libtorrent
 				(*i)->set_value(NULL);
 			}
 		}
-	}
-
-	namespace
-	{
-		struct wait_alert_observer : alert_observer
-		{
-			wait_alert_observer(alert_handler& h, int type)
-				: m_handler(h)
-				, m_type(type)
-			{
-				m_handler.subscribe(this, 0, type, NULL);
-			}
-
-			void handle_alert(alert const* a)
-			{
-				if (a->type() != m_type) return;
-				m_type = -1;
-
-				m_handler.unsubscribe(this);
-
-				std::unique_lock<std::mutex> l(m_mutex);
-				m_alert = a->clone();
-				m_cond.notify_one();
-			}
-
-			std::auto_ptr<alert> wait()
-			{
-				std::unique_lock<std::mutex> l(m_mutex);
-				m_cond.wait(l);
-				return m_alert;
-			}
-
-			~wait_alert_observer()
-			{
-				if (m_type >= 0) m_handler.unsubscribe(this);
-			}
-
-		private:
-			alert_handler& m_handler;
-
-			std::auto_ptr<alert> m_alert;
-
-			// the alert type we're waiting for
-			int m_type;
-
-			std::mutex m_mutex;
-			std::condition_variable m_cond;
-		};
-	};
-
-	std::auto_ptr<alert> wait_for_alert(alert_handler& h, int type)
-	{
-		wait_alert_observer obs(h, type);
-		return obs.wait();
 	}
 
 }

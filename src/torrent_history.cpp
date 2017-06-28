@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "torrent_history.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "alert_handler.hpp"
+#include <cinttypes>
 
 namespace libtorrent
 {

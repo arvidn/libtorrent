@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,68 +30,73 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_SAVE_RESUME_HPP
-#define TORRENT_SAVE_RESUME_HPP
-
-#include "libtorrent/session.hpp"
-#include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/error_code.hpp"
-#include "alert_observer.hpp"
-
+#include "libtorrent/span.hpp"
 #include <string>
-#include <mutex>
-#include <unordered_map>
 
-#include <sqlite3.h>
+namespace libtorrent {
 
-namespace libtorrent
-{
-	struct alert_handler;
-
-	struct save_resume : alert_observer
+	int hex_to_int(char in)
 	{
-		save_resume(session& s, std::string const& resume_file, alert_handler* alerts);
-		~save_resume();
+		if (in >= '0' && in <= '9') return int(in) - '0';
+		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;
+		if (in >= 'a' && in <= 'f') return int(in) - 'a' + 10;
+		return -1;
+	}
 
-		void load(error_code& ec, add_torrent_params model);
+	bool is_hex(span<char const> in)
+	{
+		for (char const c : in)
+		{
+			int const t = hex_to_int(c);
+			if (t == -1) return false;
+		}
+		return true;
+	}
 
-		// implements alert_observer
-		virtual void handle_alert(alert const* a);
+	bool from_hex(span<char const> in, char* out)
+	{
+		for (auto i = in.begin(), end = in.end(); i != end; ++i, ++out)
+		{
+			int const t1 = hex_to_int(*i);
+			if (t1 == -1) return false;
+			*out = char(t1 << 4);
+			++i;
+			int const t2 = hex_to_int(*i);
+			if (t2 == -1) return false;
+			*out |= t2 & 15;
+		}
+		return true;
+	}
 
-		void save_all();
-		bool ok_to_quit() const;
+	extern char const hex_chars[];
 
-		void load_torrent(libtorrent::sha1_hash const& ih
-			, std::vector<char>& buf, libtorrent::error_code& ec);
+	char const hex_chars[] = "0123456789abcdef";
+	void to_hex(char const* in, size_t const len, char* out)
+	{
+		int idx = 0;
+		for (size_t i=0; i < len; ++i)
+		{
+			out[idx++] = hex_chars[std::uint8_t(in[i]) >> 4];
+			out[idx++] = hex_chars[std::uint8_t(in[i]) & 0xf];
+		}
+	}
 
-	private:
+	std::string to_hex(span<char const> in)
+	{
+		std::string ret;
+		if (!in.empty())
+		{
+			ret.resize(in.size() * 2);
+			to_hex(in.data(), in.size(), &ret[0]);
+		}
+		return ret;
+	}
 
-		session& m_ses;
-		alert_handler* m_alerts;
-		sqlite3* m_db;
+	void to_hex(span<char const> in, char* out)
+	{
+		to_hex(in.data(), in.size(), out);
+		out[in.size() * 2] = '\0';
+	}
 
-		// all torrents currently loaded
-		std::unordered_set<torrent_handle> m_torrents;
-
-		// the next torrent to save (may point to end)
-		std::unordered_set<torrent_handle>::iterator m_cursor;
-
-		// the last time we visited a torrent to potentially
-		// save its fast-resume
-		time_point m_last_save;
-
-		// save resum data for all torrents every X seconds
-		// must be at least 1
-		time_duration m_interval;
-
-		int m_num_in_flight;
-
-		// when set, we stop saving periodically, and just wait
-		// for all outstanding saves to return.
-		bool m_shutting_down;
-	};
 }
-
-#endif
 

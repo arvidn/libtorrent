@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/io_service.hpp"
 #include <mutex>
+#include <thread>
 
 namespace libtorrent
 {
@@ -92,7 +93,7 @@ namespace libtorrent
 		// last in the constructor. This way the object is
 		// guaranteed to be completely constructed by the time
 		// the thread function is started
-		thread m_thread;
+		std::thread m_thread;
 	};
 }
 

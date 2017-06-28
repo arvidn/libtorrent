@@ -37,12 +37,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "auth_interface.hpp"
 #include "auth.hpp"
 #include "no_auth.hpp"
+#include "hex.hpp"
+#include "libtorrent/time.hpp"
 
 #include <string.h> // for strcmp()
 #include <stdio.h>
 #include <vector>
 #include <map>
 #include <cstdint>
+#include <cinttypes>
 #include <boost/tuple/tuple.hpp>
 #include <boost/asio/error.hpp>
 
@@ -113,7 +116,7 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 {
 	// we expect a "method" in the top level
 	jsmntok_t* method = find_key(tokens, buffer, "method", JSMN_STRING);
-	if (method == NULL)
+	if (method == nullptr)
 	{
 		return_failure(buf, "missing method in request", -1);
 		return;
@@ -122,7 +125,7 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 	bool handled = false;
 	buffer[method->end] = 0;
 	char const* m = &buffer[method->start];
-	jsmntok_t* args = NULL;
+	jsmntok_t* args = nullptr;
 	for (int i = 0; i < sizeof(handlers)/sizeof(handlers[0]); ++i)
 	{
 		if (strcmp(m, handlers[i].method_name)) continue;
@@ -179,7 +182,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	else if (!url.empty())
 	{
 		error_code ec;
-		shared_ptr<torrent_info> ti = libtorrent::make_shared<torrent_info>(url, std::ref(ec), 0);
+		auto ti = std::make_shared<torrent_info>(url, std::ref(ec), 0);
 		if (ec)
 		{
 			return_failure(buf, ec.message().c_str(), tag);
@@ -191,7 +194,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	{
 		std::string metainfo = base64decode(find_string(args, buffer, "metainfo"));
 		error_code ec;
-		shared_ptr<torrent_info> ti = libtorrent::make_shared<torrent_info>(&metainfo[0], metainfo.size(), std::ref(ec), 0);
+		auto ti = std::make_shared<torrent_info>(&metainfo[0], metainfo.size(), std::ref(ec), 0);
 		if (ec)
 		{
 			return_failure(buf, ec.message().c_str(), tag);
@@ -213,7 +216,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": { \"torrent-added\": { \"hashString\": \"%s\", "
 		"\"id\": %u, \"name\": \"%s\"}}}"
-		, tag, to_hex(st.info_hash.to_string()).c_str()
+		, tag, to_hex(st.info_hash).c_str()
 		, h.id(), escape_json(st.name).c_str());
 }
 
@@ -333,7 +336,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 	jsmntok_t* field_ent = find_key(args, buffer, "fields", JSMN_ARRAY);
-	if (field_ent == NULL)
+	if (field_ent == nullptr)
 	{
 		return_failure(buf, "missing 'field' argument", tag);
 		return;
@@ -367,7 +370,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 	for (int i = 0; i < t.size(); ++i)
 	{
 		torrent_info const* ti = &empty;
-		shared_ptr<torrent_info const> holder;
+		std::shared_ptr<torrent_info const> holder;
 		if (t[i].has_metadata)
 		{
 			holder = t[i].torrent_file.lock();
@@ -386,14 +389,15 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("addedDate", "%" PRId64, ts.added_time);
 		TORRENT_PROPERTY("comment", "\"%s\"", escape_json(ti->comment()).c_str());
 		TORRENT_PROPERTY("creator", "\"%s\"", escape_json(ti->creator()).c_str());
-		TORRENT_PROPERTY("dateCreated", "%" PRId64, ti->creation_date() ? ti->creation_date().get() : 0);
+		TORRENT_PROPERTY("dateCreated", "%" PRId64, ti->creation_date() ? ti->creation_date() : 0);
 		TORRENT_PROPERTY("doneDate", "%" PRId64, ts.completed_time);
 		TORRENT_PROPERTY("downloadDir", "\"%s\"", escape_json(ts.save_path).c_str());
 		TORRENT_PROPERTY("error", "%d", ts.errc ? 0 : 1);
 		TORRENT_PROPERTY("errorString", "\"%s\"", escape_json(ts.errc.message()).c_str());
 		TORRENT_PROPERTY("eta", "%d", ts.download_payload_rate <= 0 ? -1
 			: (ts.total_wanted - ts.total_wanted_done) / ts.download_payload_rate);
-		TORRENT_PROPERTY("hashString", "\"%s\"", to_hex(ts.handle.info_hash().to_string()).c_str());
+
+		TORRENT_PROPERTY("hashString", "\"%s\"", to_hex(ts.info_hash).c_str());
 		TORRENT_PROPERTY("downloadedEver", "%" PRId64, ts.all_time_download);
 		TORRENT_PROPERTY("downloadLimit", "%d", ts.handle.download_limit());
 		TORRENT_PROPERTY("downloadLimited", "%s", to_bool(ts.handle.download_limit() > 0));
@@ -589,10 +593,10 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			for (int i = 0; i < trackers.size(); ++i)
 			{
 				announce_entry const& a = trackers[i];
-				using boost::tuples::ignore;
+				using std::ignore;
 				error_code ec;
 				std::string hostname;
-				boost::tie(ignore, ignore, hostname, ignore, ignore)
+				std::tie(ignore, ignore, hostname, ignore, ignore)
 					= parse_url_components(a.url, ec);
 				appendf(buf, ", { \"announce\": \"%s\""
 					", \"announceState\": %u"
@@ -632,14 +636,14 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 					, tracker_id(a)
 					, to_bool(false)
 					, 0 // lastAnnouncePeerCount
-					, a.last_error.message().c_str() // lastAnnounceResult
+					, a.endpoints.empty() ? "" : a.endpoints.front().last_error.message().c_str() // lastAnnounceResult
 					, 0 // lastAnnounceStartTime
-					, to_bool(!a.last_error) // lastAnnounceSucceeded
+					, to_bool(a.endpoints.empty() ? false : !a.endpoints.front().last_error) // lastAnnounceSucceeded
 					, 0 // lastAnnounceTime
-					, to_bool(a.last_error == boost::asio::error::timed_out) // lastAnnounceTimeOut
+					, to_bool(a.endpoints.empty() ? false : a.endpoints.front().last_error == boost::asio::error::timed_out) // lastAnnounceSucceeded
 					, 0, "", 0, "false", 0, "false"
 					, 0 // leecherCount
-					, time(NULL) + a.next_announce_in()
+					, a.endpoints.empty() ? 0 : time(nullptr) + duration_cast<seconds>(a.endpoints.front().next_announce - lt::clock_type::now()).count()
 					, 0
 					, a.url.c_str()
 					, 0
@@ -1281,14 +1285,14 @@ transmission_webui::transmission_webui(session& s, save_settings_interface* sett
 	, m_settings(sett)
 	, m_auth(auth)
 {
-	if (m_auth == NULL)
+	if (m_auth == nullptr)
 	{
 		const static no_auth n;
 		m_auth = &n;
 	}
 
 	m_params_model.save_path = ".";
-	m_start_time = time(NULL);
+	m_start_time = time(nullptr);
 
 	if (m_settings)
 	{
@@ -1313,7 +1317,7 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		return false;
 
 	permissions_interface const* perms = parse_http_auth(conn, m_auth);
-	if (perms == NULL)
+	if (perms == nullptr)
 	{
 		mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
 			"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
@@ -1358,7 +1362,7 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 
 	char const* cl = mg_get_header(conn, "content-length");
 	std::vector<char> post_body;
-	if (cl != NULL)
+	if (cl != nullptr)
 	{
 		int content_length = atoi(cl);
 		if (content_length > 0 && content_length < 10 * 1024 * 1024)

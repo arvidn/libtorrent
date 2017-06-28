@@ -35,10 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "base64.hpp"
 #include "auth.hpp"
 #include "no_auth.hpp"
-#include "disk_space.hpp"
+#include "hex.hpp"
 
-#include <string.h> // for strcmp()
-#include <stdio.h>
+#include <cstring> // for strcmp()
+#include <cstdio>
+#include <cinttypes>
 #include <vector>
 #include <map>
 #include <boost/cstdint.hpp>
@@ -59,13 +60,13 @@ extern "C" {
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
 #include "libtorrent/aux_/escape_string.hpp" // for unescape_string
 #include "libtorrent/string_util.hpp" // for string_begins_no_case
+#include "libtorrent/span.hpp"
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp"
 #include "escape_json.hpp"
 #include "auto_load.hpp"
 #include "save_settings.hpp"
 #include "torrent_history.hpp"
-#include "rss_filter.hpp"
 
 namespace libtorrent
 {
@@ -82,19 +83,19 @@ utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
 	, m_settings(sett)
 	, m_rss_filter(rss_filter)
 	, m_hist(hist)
-	, m_listener(NULL)
+	, m_listener(nullptr)
 {
-	if (m_auth == NULL)
+	if (m_auth == nullptr)
 	{
 		const static no_auth n;
 		m_auth = &n;
 	}
 
-	m_start_time = time(NULL);
+	m_start_time = time(nullptr);
 	m_version = 1;
 
 	std::uint64_t seed = clock_type::now().time_since_epoch().count();
-	m_token = to_hex(hasher((char const*)&seed, sizeof(seed)).final().to_string());
+	m_token = to_hex(hasher(span<char const>{reinterpret_cast<char const*>(&seed), sizeof(seed)}).final());
 
 	m_params_model.save_path = ".";
 	m_webui_cookie = "{}";
@@ -171,7 +172,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 	// redirect to /gui/
 	if (strcmp(request_info->uri, "/gui") == 0
 		|| (strcmp(request_info->uri, "/gui/") == 0
-			&& request_info->query_string == NULL))
+			&& request_info->query_string == nullptr))
 	{
 		mg_printf(conn, "HTTP/1.1 301 Moved Permanently\r\n"
 			"Content-Length: 0\r\n"
@@ -212,7 +213,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 
 	if (strcmp(request_info->uri, "/gui/") != 0) return false;
 
-	if (request_info->query_string == NULL)
+	if (request_info->query_string == nullptr)
 	{
 		mg_printf(conn, "HTTP/1.1 400 Invalid Request (no query string)\r\n"
 			"Connection: close\r\n\r\n");
@@ -664,10 +665,10 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 	{
 		s += 3;
 		char const* key_end = strchr(s, '&');
-		if (key_end == NULL) continue;
+		if (key_end == nullptr) continue;
 		if (strncmp(key_end, "&v=", 3) != 0) continue;
 		char const* v_end = strchr(key_end + 3, '&');
-		if (v_end == NULL) v_end = s + strlen(s);
+		if (v_end == nullptr) v_end = s + strlen(s);
 
 		std::string key(s, key_end - s);
 		std::string value(key_end + 3, v_end - key_end - 3);
@@ -862,11 +863,11 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 	{
 		i->handle.file_progress(progress);
 		file_prio = i->handle.file_priorities();
-		shared_ptr<const torrent_info> ti = i->torrent_file.lock();
+		std::shared_ptr<const torrent_info> ti = i->torrent_file.lock();
 		if (!ti || !ti->is_valid()) continue;
 		file_storage const& files = ti->files();
 
-		appendf(response, ",\"%s\",["+first, to_hex(ti->info_hash().to_string()).c_str());
+		appendf(response, ",\"%s\",["+first, to_hex(ti->info_hash()).c_str());
 		int first_file = 1;
 		for (int i = 0; i < files.num_files(); ++i)
 		{
@@ -948,7 +949,7 @@ void utorrent_webui::get_properties(std::vector<char>& response, char const* arg
 		, end(t.end()); i != end; ++i)
 	{
 		torrent_status const& st = *i;
-		shared_ptr<const torrent_info> ti = st.torrent_file.lock();
+		std::shared_ptr<const torrent_info> ti = st.torrent_file.lock();
 		appendf(response, ",{\"hash\":\"%s\","
 			"\"trackers\":\"%s\","
 			"\"ulrate\":%d,"
@@ -961,7 +962,7 @@ void utorrent_webui::get_properties(std::vector<char>& response, char const* arg
 			"\"seed_time\": %d,"
 			"\"ulslots\": %d,"
 			"\"seed_num\": %d}" + first
-			, ti ? to_hex(ti->info_hash().to_string()).c_str() : ""
+			, ti ? to_hex(ti->info_hash()).c_str() : ""
 			, trackers_as_string(i->handle).c_str()
 			, st.handle.download_limit()
 			, st.handle.upload_limit()
@@ -1046,11 +1047,11 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 	for (std::vector<torrent_status>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
 	{
-		shared_ptr<const torrent_info> ti = i->torrent_file.lock();
+		std::shared_ptr<const torrent_info> ti = i->torrent_file.lock();
 		if (!ti || !ti->is_valid()) continue;
 
 		appendf(response, ",\"%s\",[" + first
-			, to_hex(i->info_hash.to_string()).c_str());
+			, to_hex(i->info_hash).c_str());
 
 		int first_peer = 1;
 		std::vector<peer_info> peers;
@@ -1101,7 +1102,7 @@ void utorrent_webui::get_version(std::vector<char>& response, char const* args, 
 		",\"product_code\": \"server\""
 		"}"
 		, LIBTORRENT_REVISION, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR
-		, to_hex(m_ses.id().to_string()).c_str(), m_ses.get_settings().get_str(settings_pack::user_agent).c_str());
+		, to_hex(m_ses.id()).c_str(), m_ses.get_settings().get_str(settings_pack::user_agent).c_str());
 }
 
 void utorrent_webui::rss_update(std::vector<char>& response, char const* args, permissions_interface const* p)
@@ -1133,14 +1134,14 @@ void utorrent_webui::rss_update(std::vector<char>& response, char const* args, p
 		// TOOD: if update is set, just refresh the feed
 	}
 }
-
+/*
 int get_feed_id(feed_status const& st)
 {
 	sha1_hash h = hasher(st.url.c_str(), st.url.length()).final();
 	char const* ptr = (char const*)&h[0];
 	return io::read_uint32(ptr) & 0x7fffffff;
 }
-
+*/
 void utorrent_webui::rss_remove(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
 /*
@@ -1341,9 +1342,9 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 	for (std::vector<torrent_status>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
 	{
-		shared_ptr<const torrent_info> ti = i->torrent_file.lock();
+		std::shared_ptr<const torrent_info> ti = i->torrent_file.lock();
 		appendf(response, ",[\"%s\",%d,\"%s\",%" PRId64 ",%d,%" PRId64 ",%" PRId64 ",%f,%d,%d,%d,\"%s\",%d,%d,%d,%d,%d,%d,%" PRId64 "" + first
-			, to_hex(i->info_hash.to_string()).c_str()
+			, to_hex(i->info_hash).c_str()
 			, utorrent_status(*i)
 			, escape_json(i->name).c_str()
 			, ti ? ti->total_size() : 0
@@ -1371,7 +1372,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 			, "" // url this torrent came from
 			, "" // feed URL this torrent belongs to
 			, escape_json(utorrent_message(*i)).c_str()
-			, to_hex(i->info_hash.to_string()).c_str()
+			, to_hex(i->info_hash).c_str()
 			, i->added_time
 			, i->completed_time
 			, "" // app
@@ -1394,7 +1395,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 	for (std::vector<sha1_hash>::iterator i = removed.begin()
 		, end(removed.end()); i != end; ++i)
 	{
-		appendf(response, ",\"%s\"" + first, to_hex(i->to_string()).c_str());
+		appendf(response, ",\"%s\"" + first, to_hex(*i).c_str());
 		first = 0;
 	}
 	// TODO: support labels
@@ -1538,10 +1539,10 @@ std::vector<torrent_status> utorrent_webui::parse_torrents(char const* args) con
 	{
 		hash += 6;
 		char const* end = strchr(hash, '&');
-		if (end != NULL && end - hash != 40) continue;
-		if (end == NULL && strlen(hash) != 40) continue;
+		if (end != nullptr && end - hash != 40) continue;
+		if (end == nullptr && strlen(hash) != 40) continue;
 		sha1_hash h;
-		bool ok = from_hex(hash, 40, (char*)&h[0]);
+		bool ok = from_hex({hash, 40}, h.data());
 		if (!ok) continue;
 		torrent_status ts = m_hist->get_torrent_status(h);
 		if (!ts.handle.is_valid()) continue;

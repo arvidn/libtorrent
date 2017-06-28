@@ -34,10 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ESCAPE_JSON_HPP
 
 #include <string>
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent
 {
-	std::string escape_json(std::string const& in);
+	std::string escape_json(string_view in);
 }
 
 #endif

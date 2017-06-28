@@ -14,7 +14,6 @@
 #include "libtorrent/session.hpp"
 #include "alert_handler.hpp"
 #include "stats_logging.hpp"
-#include "rss_filter.hpp"
 
 #include <signal.h>
 

@@ -152,7 +152,7 @@ namespace libtorrent
 	};
 
 	inline std::size_t hash_value(torrent_history_entry const& te)
-	{ return hash_value(te.status.info_hash); }
+	{ return std::hash<lt::sha1_hash>{}(te.status.info_hash); }
 
 	struct torrent_history : alert_observer
 	{

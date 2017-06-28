@@ -33,29 +33,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALERT_HANDLER_HPP_INCLUDED
 #define TORRENT_ALERT_HANDLER_HPP_INCLUDED
 
-#include "libtorrent/alert_types.hpp" // for num_alert_types
 #include <vector>
 #include <memory>
 #include <mutex>
 #include <deque>
 #include <future>
+#include "libtorrent/fwd.hpp"
+#include "libtorrent/alert_types.hpp" // for num_alert_types
 
 namespace libtorrent
 {
 
-struct alert_observer;
-struct alert_handler;
-
-// block until the specified alert is posted to
-// the alert_handler, return a copy of the alert
-// keep in mind that this has to be called from a
-// different thread than the one calling dispatch_alerts(),
-// otherwise you'll have a deadlock.
-TORRENT_EXPORT std::auto_ptr<alert> wait_for_alert(alert_handler& h, int type);
+	struct alert_observer;
 
 struct TORRENT_EXPORT alert_handler
 {
-	alert_handler(session& ses);
+	alert_handler(lt::session& ses);
 
 	// TODO 2: move the responsibility of picking which
 	// alert types to subscribe to to the observer

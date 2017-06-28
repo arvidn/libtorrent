@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "deluge.hpp"
 #include "rencode.hpp"
 #include "base64.hpp"
+#include "hex.hpp"
 #include <zlib.h>
 
 using namespace libtorrent;
@@ -626,7 +627,7 @@ void deluge::handle_get_torrents_status(conn_state* st)
 		, end(torrents.end()); i != end; ++i)
 	{
 		// key in the dict
-		out.append_string(to_hex(i->info_hash.to_string()));
+		out.append_string(to_hex(i->info_hash));
 
 		// the value, is a dict
 		bool need_term = out.append_dict(num_keys);
@@ -733,7 +734,7 @@ void deluge::handle_add_torrent_file(conn_state* st)
 	add_torrent_params p = m_params_model;
 
 	error_code ec;
-	p.ti = make_shared<torrent_info>(&file[0], file.size(), boost::ref(ec), 0);
+	p.ti = std::make_shared<torrent_info>(&file[0], file.size(), std::ref(ec), 0);
 	if (ec)
 	{
 		output_error(id, ec.message().c_str(), out);
@@ -750,7 +751,11 @@ void deluge::handle_add_torrent_file(conn_state* st)
 		if (key == "add_paused")
 		{
 			if (options[1].type() != type_bool) continue;
-			p.paused = options[1].boolean(buf);
+			if (options[1].boolean(buf))
+			{
+				p.flags |= add_torrent_params::flag_paused;
+				p.flags &= ~add_torrent_params::flag_auto_managed;
+			}
 		}
 		else if (key == "max_download_speed")
 		{

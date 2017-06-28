@@ -33,8 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_FILE_DOWNLOADER_HPP
 #define TORRENT_FILE_DOWNLOADER_HPP
 
-#include "libtorrent/torrent_handle.hpp" // for shared_ptr
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "webui.hpp"
 #include <mutex>
 #include <set>
@@ -61,7 +60,7 @@ namespace libtorrent
 		session& m_ses;
 		auth_interface const* m_auth;
 
-		libtorrent::shared_ptr<piece_alert_dispatch> m_dispatch;
+		std::shared_ptr<piece_alert_dispatch> m_dispatch;
 
 		int m_queue_size;
 

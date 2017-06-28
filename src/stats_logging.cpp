@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <functional>
+#include <cinttypes>
 
 #include "stats_logging.hpp"
 #include "libtorrent/session.hpp"
@@ -112,7 +113,7 @@ void stats_logging::rotate_stats_log()
 #endif
 	snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", pid, m_log_seq);
 	m_stats_logger = fopen(filename, "w+");
-	m_last_log_rotation = time_now();
+	m_last_log_rotation = lt::clock_type::now();
 	if (m_stats_logger == 0)
 	{
 		fprintf(stderr, "Failed to create session stats log file \"%s\": (%d) %s\n"
@@ -153,7 +154,7 @@ void stats_logging::handle_alert(alert const* a)
 		return;
 	}
 
-	if (time_now_hires() - m_last_log_rotation > hours(1))
+	if (lt::clock_type::now() - m_last_log_rotation > hours(1))
 		rotate_stats_log();
 
 	fprintf(m_stats_logger, "%f", double(total_microseconds(s->timestamp() - m_last_log_rotation)) / 1000000.0);

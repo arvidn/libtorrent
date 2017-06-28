@@ -44,7 +44,7 @@ using namespace libtorrent;
 bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_code& ec)
 {
 	char const* cl = mg_get_header(conn, "content-length");
-	if (cl == NULL) return false;
+	if (cl == nullptr) return false;
 
 	std::vector<char> post_body;
 
@@ -69,30 +69,30 @@ bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_c
 
 	// expect a multipart message here
 	char const* content_type = mg_get_header(conn, "content-type");
-	if (strstr(content_type, "multipart/form-data") == NULL) return false;
+	if (strstr(content_type, "multipart/form-data") == nullptr) return false;
 
 	char const* boundary = strstr(content_type, "boundary=");
-	if (boundary == NULL) return false;
+	if (boundary == nullptr) return false;
 
 	boundary += 9;
 
 	char const* body_end = &post_body[0] + content_length;
 
 	char const* part_start = strstr(&post_body[0], boundary);
-	if (part_start == NULL) return false;
+	if (part_start == nullptr) return false;
 
 	part_start += strlen(boundary);
-	char const* part_end = NULL;
+	char const* part_end = nullptr;
 
 	// loop through all parts
 	for(; part_start < body_end; part_start = (std::min)(body_end, part_end + strlen(boundary)))
 	{
 		part_end = strstr(part_start, boundary);
-		if (part_end == NULL) part_end = body_end;
+		if (part_end == nullptr) part_end = body_end;
 
 		http_parser part;
 		bool error = false;
-		part.incoming(buffer::const_interval(part_start, part_end), error);
+		part.incoming(span<char const>(part_start, part_end - part_start), error);
 /*
 		std::multimap<std::string, std::string> const& part_headers = part.headers();
 		for (std::multimap<std::string, std::string>::const_iterator i = part_headers.begin()
@@ -105,8 +105,8 @@ bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_c
 		if (disposition != "application/octet-stream"
 			&& disposition != "application/x-bittorrent") continue;
 
-		char const* torrent_start = part.get_body().begin;
-		params.ti = make_shared<torrent_info>(torrent_start, part_end - torrent_start, boost::ref(ec), 0);
+		char const* torrent_start = part.get_body().data();
+		params.ti = std::make_shared<torrent_info>(torrent_start, part_end - torrent_start, std::ref(ec), 0);
 		if (ec) return false;
 		return true;
 	}

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "save_settings.hpp"
 #include "base64.hpp"
+#include "hex.hpp"
 
 extern "C" {
 #include "local_mongoose.h"
@@ -196,13 +197,13 @@ void auth::save_accounts(std::string const& filename, error_code& ec) const
 
 	std::unique_lock<std::mutex> l(m_mutex);
 
-	for (std::map<std::string, account_t>::const_iterator i = m_accounts.begin()
-		, end(m_accounts.end()); i != end; ++i)
+	for (auto i = m_accounts.begin(), end(m_accounts.end()); i != end; ++i)
 	{
 		account_t const& a = i->second;
-		char salthash[21];
-		to_hex(a.salt, 10, salthash);
-		fprintf(f, "%s\t%s\t%s\t%d\n", i->first.c_str(), to_hex(a.hash.to_string()).c_str(), salthash, i->second.group);
+		fprintf(f, "%s\t%s\t%s\t%d\n", i->first.c_str()
+			, to_hex(a.hash).c_str()
+			, to_hex(a.salt).c_str()
+			, i->second.group);
 	}
 
 	fclose(f);
@@ -226,19 +227,23 @@ void auth::load_accounts(std::string const& filename, error_code& ec)
 
 	m_accounts.clear();
 
-	char username[512];
-	char pwdhash[41];
-	char salt[21];
+	std::array<char, 512> username;
+	std::array<char, 41> pwdhash;
+	std::array<char, 21> salt;
 	int group;
 
-	while (fscanf(f, "%511s\t%40s\t%20s\t%d\n", username, pwdhash, salt, &group) == 4)
+	while (fscanf(f, "%511s\t%40s\t%20s\t%d\n"
+		, username.data()
+		, pwdhash.data()
+		, salt.data()
+		, &group) == 4)
 	{
 		account_t a;
-		if (!from_hex(pwdhash, 40, (char*)&a.hash[0])) continue;
-		if (!from_hex(salt, 20, a.salt)) continue;
+		if (!from_hex({pwdhash.data(), 40}, a.hash.data())) continue;
+		if (!from_hex({salt.data(), 20}, a.salt)) continue;
 		if (group < 0) continue;
 		a.group = group;
-		m_accounts[username] = a;
+		m_accounts[std::string(username.data())] = a;
 	}
 
 	fclose(f);

@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-std::string escape_json(std::string const& input)
+std::string escape_json(string_view input)
 {
 	if (input.empty()) return "";
 
@@ -61,8 +61,8 @@ std::string escape_json(std::string const& input)
 
 	size_t insize = input.size();
 	size_t outsize = insize * sizeof(std::uint32_t);
-	char const* in = input.c_str();
-	char* out = (char*)&wide[0];
+	char const* in = input.data();
+	char* out = reinterpret_cast<char*>(wide.data());
 	size_t retval = iconv(iconv_handle, (char**)&in, &insize
 		, &out, &outsize);
 	l.unlock();

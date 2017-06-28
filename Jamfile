@@ -40,10 +40,10 @@ SOURCES =
 	http_whitelist
 	error_logger
 	websocket_handler
-	rss_filter
 	alert_handler
 	file_requests
 	stats_logging
+	hex
 	;
 
 lib torrent-webui
@@ -51,7 +51,7 @@ lib torrent-webui
 	src/$(SOURCES).cpp src/mongoose.c src/jsmn.c src/cdecode.c
 
 	: # requirements
-	<library>/torrent//torrent/<crypto>openssl
+	<library>/torrent//torrent/<crypto>libcrypto/<ssl>openssl
 	<library>zlib
 	<library>sqlite
 #	<library>libiconv

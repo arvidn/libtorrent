@@ -40,7 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "local_mongoose.h"
 #include "auth.hpp"
 #include "torrent_history.hpp"
-#include <string.h>
+
+#include <cstring>
+#include <memory>
 
 #include "alert_handler.hpp"
 
@@ -739,16 +741,15 @@ namespace libtorrent
 			= m_alert->subscribe<session_stats_alert>();
 		m_ses.post_session_stats();
 		// wait for the alert to arrive
-		std::auto_ptr<session_stats_alert> ss((session_stats_alert*)f.get());
+		auto* ss = alert_cast<session_stats_alert>(f.get());
 
-		if (ss.get() == NULL) return error(st, no_such_function);
-		TORRENT_ASSERT(ss.get());
+		if (ss == nullptr) return error(st, no_such_function);
 
 		std::unique_lock<std::mutex> l(m_stats_mutex);
 		++m_stats_frame;
 		io::write_uint32(m_stats_frame, ptr);
 
-		std::uint64_t* stats = ss->values;
+		span<std::int64_t const> stats = ss->counters();
 
 		if (m_stats.size() < counters::num_counters)
 			m_stats.resize(counters::num_counters
@@ -810,7 +811,7 @@ namespace libtorrent
 		std::vector<std::int64_t> fp;
 		h.file_progress(fp, torrent_handle::piece_granularity);
 
-		shared_ptr<const torrent_info> t = h.torrent_file();
+		std::shared_ptr<const torrent_info> t = h.torrent_file();
 		if (!t) return error(st, resource_not_found);
 
 		file_storage const& fs = t->files();

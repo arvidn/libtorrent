@@ -62,7 +62,7 @@ struct file_requests : libtorrent::plugin
 	void on_alert(libtorrent::alert const* a);
 	void on_tick();
 	std::shared_future<piece_entry> read_piece(libtorrent::torrent_handle const& h
-		, int piece, int timeout_ms);
+		, piece_index_t piece, lt::clock_type::duration timeout_ms);
 
 private:
 

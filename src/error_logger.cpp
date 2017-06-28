@@ -74,7 +74,6 @@ namespace libtorrent
 				, metadata_failed_alert::alert_type
 				, udp_error_alert::alert_type
 				, listen_failed_alert::alert_type
-				, rss_alert::alert_type
 				, invalid_request_alert::alert_type
 				, mmap_cache_alert::alert_type
 				, 0);
@@ -225,15 +224,6 @@ namespace libtorrent
 					fprintf(m_file, "%s\tlisten-error (%s:%d) %s\n", timestamp
 						, lf->error.category().name(), lf->error.value()
 						, lf->message().c_str());
-			}
-			case rss_alert::alert_type:
-			{
-				rss_alert const* ra = alert_cast<rss_alert>(a);
-				if (ra && ra->state == rss_alert::state_error)
-					fprintf(m_file, "%s\trss-error (%s:%d) %s %s\n", timestamp
-						, ra->error.category().name(), ra->error.value()
-						, ra->error.message().c_str()
-						, ra->url.c_str());
 			}
 			case invalid_request_alert::alert_type:
 			{
