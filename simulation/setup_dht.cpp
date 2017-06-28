@@ -125,13 +125,13 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 			, *n.m_dht_storage)
 	{
 		assert(false && "dht_node is not movable");
-		throw std::runtime_error("dht_node is not movable");
+		std::terminate();
 	}
 	dht_node& operator=(dht_node&&)
 		noexcept
 	{
 		assert(false && "dht_node is not movable");
-		throw std::runtime_error("dht_node is not movable");
+		std::terminate();
 	}
 
 	void on_read(lt::error_code const& ec, std::size_t bytes_transferred)
