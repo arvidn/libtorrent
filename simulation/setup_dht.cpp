@@ -112,27 +112,9 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 
 	// it's also not movable, because it passes in its this-pointer to the async
 	// receive function, which pins this object down. However, std::vector cannot
-	// hold non-movable and non-copyable types. Instead, pretend that it's
-	// movable and make sure it never needs to be moved (for instance, by
-	// reserving space in the vector before emplacing any nodes).
-	dht_node(dht_node&& n) noexcept
-		: m_add_dead_nodes(n.m_add_dead_nodes)
-		, m_ipv6(n.m_ipv6)
-		, m_socket(std::move(n.m_socket))
-		, m_dht(this, this, n.m_dht.settings(), n.m_dht.nid()
-			, n.m_dht.observer(), n.m_dht.stats_counters()
-			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
-			, *n.m_dht_storage)
-	{
-		assert(false && "dht_node is not movable");
-		std::terminate();
-	}
-	dht_node& operator=(dht_node&&)
-		noexcept
-	{
-		assert(false && "dht_node is not movable");
-		std::terminate();
-	}
+	// hold non-movable and non-copyable types.
+	dht_node(dht_node&& n) = delete;
+	dht_node& operator=(dht_node&&) = delete;
 
 	void on_read(lt::error_code const& ec, std::size_t bytes_transferred)
 	{
@@ -271,7 +253,6 @@ dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flag
 {
 	m_sett.ignore_dark_internet = false;
 	m_sett.restrict_routing_ips = false;
-	m_nodes.reserve(num_nodes);
 
 // TODO: how can we introduce churn among peers?
 

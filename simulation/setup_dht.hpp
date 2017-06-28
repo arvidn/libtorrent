@@ -72,7 +72,7 @@ private:
 	// used for all the nodes in the network
 	lt::counters m_cnt;
 	lt::dht_settings m_sett;
-	std::vector<dht_node> m_nodes;
+	std::list<dht_node> m_nodes;
 };
 
 #endif
