@@ -86,20 +86,11 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))
 		, m_add_dead_nodes((flags & dht_network::add_dead_nodes) != 0)
 		, m_ipv6((flags & dht_network::bind_ipv6) != 0)
-#if LIBSIMULATOR_USE_MOVE
 		, m_socket(m_io_service)
 		, m_dht(this, this, sett, id_from_addr(m_io_service.get_ips().front())
 			, nullptr, cnt
 			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
 			, *m_dht_storage)
-#else
-		, m_socket(new asio::ip::udp::socket(m_io_service))
-		, m_dht(new lt::dht::node(this, this, sett
-			, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt
-			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
-			, *m_dht_storage))
-#endif
 	{
 		m_dht_storage->update_node_ids({id_from_addr(m_io_service.get_ips().front())});
 		error_code ec;
@@ -114,7 +105,6 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 				{ this->on_read(ec, bytes_transferred); });
 	}
 
-#if LIBSIMULATOR_USE_MOVE
 	// This type is not copyable, because the socket and the dht node is not
 	// copyable.
 	dht_node(dht_node const&) = delete;
@@ -143,7 +133,6 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 		assert(false && "dht_node is not movable");
 		throw std::runtime_error("dht_node is not movable");
 	}
-#endif
 
 	void on_read(lt::error_code const& ec, std::size_t bytes_transferred)
 	{
@@ -263,28 +252,17 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 		sock().close();
 	}
 
-#if LIBSIMULATOR_USE_MOVE
 	lt::dht::node& dht() { return m_dht; }
 	lt::dht::node const& dht() const { return m_dht; }
-#else
-	lt::dht::node& dht() { return *m_dht; }
-	lt::dht::node const& dht() const { return *m_dht; }
-#endif
 
 private:
 	asio::io_service m_io_service;
 	std::shared_ptr<dht::dht_storage_interface> m_dht_storage;
 	bool const m_add_dead_nodes;
 	bool const m_ipv6;
-#if LIBSIMULATOR_USE_MOVE
 	lt::udp::socket m_socket;
 	lt::udp::socket& sock() { return m_socket; }
 	lt::dht::node m_dht;
-#else
-	std::shared_ptr<lt::udp::socket> m_socket;
-	lt::udp::socket& sock() { return *m_socket; }
-	std::shared_ptr<lt::dht::node> m_dht;
-#endif
 	lt::udp::endpoint m_ep;
 	char m_buffer[1300];
 };
