@@ -1515,7 +1515,9 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 			first = 0;
 		}
 	}
+#endif
 	appendf(response, "],\"rssfilterm\":[");
+#if 0
 	if (cid > 0)
 	{
 		first =1;
