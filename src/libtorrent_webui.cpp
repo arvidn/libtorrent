@@ -737,6 +737,9 @@ namespace libtorrent
 		io::write_uint16(st->transaction_id, ptr);
 		io::write_uint8(no_error, ptr);
 
+		// TODO: 4 this needs resolving
+/*
+#error separate handling alerts and responding to this request
 		std::future<alert*> f
 			= m_alert->subscribe<session_stats_alert>();
 		m_ses.post_session_stats();
@@ -750,6 +753,8 @@ namespace libtorrent
 		io::write_uint32(m_stats_frame, ptr);
 
 		span<std::int64_t const> stats = ss->counters();
+*/
+		std::int64_t stats[300];
 
 		if (m_stats.size() < counters::num_counters)
 			m_stats.resize(counters::num_counters

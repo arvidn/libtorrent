@@ -42,10 +42,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/peer_id.hpp" // for sha1_hash
 #include "libtorrent/extensions.hpp" // for plugin
-#include "libtorrent/time.hpp" // for ptime
+#include "libtorrent/time.hpp" // for time_point
 
 using libtorrent::sha1_hash;
 using std::mutex;
+
+namespace libtorrent {
 
 struct piece_entry
 {
@@ -62,16 +64,16 @@ struct file_requests : libtorrent::plugin
 	void on_alert(libtorrent::alert const* a);
 	void on_tick();
 	std::shared_future<piece_entry> read_piece(libtorrent::torrent_handle const& h
-		, piece_index_t piece, lt::clock_type::duration timeout_ms);
+		, lt::piece_index_t piece, lt::clock_type::duration timeout_ms);
 
 private:
 
 	struct piece_request
 	{
 		sha1_hash info_hash;
-		int piece;
+		lt::piece_index_t piece;
 		std::shared_ptr<std::promise<piece_entry> > promise;
-		libtorrent::ptime timeout;
+		lt::clock_type::time_point timeout;
 		bool operator==(piece_request const& rq) const
 		{ return rq.info_hash == info_hash && rq.piece == piece; }
 		bool operator<(piece_request const& rq) const
@@ -88,6 +90,8 @@ private:
 	// TOOD: figure out a way to clear out info-hashes
 	std::map<sha1_hash, std::set<int> > m_have_pieces;
 };
+
+}
 
 #endif // FILE_REQUESTS_HPP_
 

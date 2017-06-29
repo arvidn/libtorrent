@@ -66,6 +66,7 @@ extern "C" {
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/io.hpp" // for read_int32
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
+#include "libtorrent/hasher.hpp"
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp" // for parse_torrent_post
 #include "escape_json.hpp" // for escape_json
@@ -229,7 +230,7 @@ bool all_torrents(torrent_status const& s)
 
 std::uint32_t tracker_id(announce_entry const& ae)
 {
-	sha1_hash urlhash = hasher(ae.url.c_str(), ae.url.size()).final();
+	sha1_hash urlhash = lt::hasher(ae.url).final();
 	return ae.tier
 		+ (std::uint32_t(urlhash[0]) << 8)
 		+ (std::uint32_t(urlhash[1]) << 16)

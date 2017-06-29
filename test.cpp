@@ -110,10 +110,9 @@ int main(int argc, char *const argv[])
 //	external_ip_observer eip(ses, &alerts);
 
 	auto_load al(ses, &sett);
-	rss_filter_handler rss_filter(alerts, ses);
 
 	transmission_webui tr_handler(ses, &sett, &authorizer);
-	utorrent_webui ut_handler(ses, &sett, &al, &hist, &rss_filter, &authorizer);
+	utorrent_webui ut_handler(ses, &sett, &al, &hist, &authorizer);
 	file_downloader file_handler(ses, &authorizer);
 	libtorrent_webui lt_handler(ses, &hist, &authorizer, &alerts);
 	stats_logging log(ses, &alerts);

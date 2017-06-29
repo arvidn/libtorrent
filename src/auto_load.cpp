@@ -40,10 +40,71 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "save_settings.hpp"
 
+#include "libtorrent/aux_/path.hpp"
+
 using namespace std::placeholders;
 
 namespace libtorrent
 {
+
+	// TODO: get rid of these dependencies
+using lt::remove;
+using lt::combine_path;
+
+namespace {
+
+std::vector<std::string> list_dir(std::string path
+	, bool (*filter_fun)(lt::string_view)
+	, lt::error_code& ec)
+{
+	std::vector<std::string> ret;
+#ifdef TORRENT_WINDOWS
+	if (!path.empty() && path[path.size()-1] != '\\') path += "\\*";
+	else path += "*";
+
+	WIN32_FIND_DATAA fd;
+	HANDLE handle = FindFirstFileA(path.c_str(), &fd);
+	if (handle == INVALID_HANDLE_VALUE)
+	{
+		ec.assign(GetLastError(), boost::system::system_category());
+		return ret;
+	}
+
+	do
+	{
+		lt::string_view p = fd.cFileName;
+		if (filter_fun(p))
+			ret.push_back(p.to_string());
+
+	} while (FindNextFileA(handle, &fd));
+	FindClose(handle);
+#else
+
+	if (!path.empty() && path[path.size()-1] == '/')
+		path.resize(path.size()-1);
+
+	DIR* handle = opendir(path.c_str());
+	if (handle == nullptr)
+	{
+		ec.assign(errno, boost::system::system_category());
+		return ret;
+	}
+
+	struct dirent de;
+	dirent* dummy;
+	while (readdir_r(handle, &de, &dummy) == 0)
+	{
+		if (dummy == nullptr) break;
+
+		lt::string_view p(de.d_name);
+		if (filter_fun(p))
+			ret.push_back(p.to_string());
+	}
+	closedir(handle);
+#endif
+	return ret;
+}
+}
 
 auto_load::auto_load(session& s, save_settings_interface* sett)
 	: m_ses(s)
@@ -171,22 +232,23 @@ void auto_load::on_scan(error_code const& e)
 	l.unlock();
 
 	error_code ec;
-	for (directory dir(path, ec); !ec && !dir.done(); dir.next(ec))
+	std::vector<std::string> ents = list_dir(path
+		, [](lt::string_view p) { return p.size() > 8 && p.substr(p.size() - 8) == ".torrent"; }, ec);
+	for (auto const& file : ents)
 	{
-		if (extension(dir.file()) != ".torrent") continue;
-		if (m_already_loaded.count(dir.file()))
+		if (m_already_loaded.count(file))
 		{
 			if (remove_files)
 			{
-				std::string file_path = combine_path(path, dir.file());
+				std::string file_path = combine_path(path, file);
 				remove(file_path, ec);
-				if (!ec) m_already_loaded.erase(m_already_loaded.find(dir.file()));
+				if (!ec) m_already_loaded.erase(m_already_loaded.find(file));
 			}
 			continue;
 		}
 
 		error_code tec;
-		std::string file_path = combine_path(path, dir.file());
+		std::string file_path = combine_path(path, file);
 		auto ti = std::make_shared<torrent_info>(file_path, std::ref(tec));
 
 		// assume the file isn't fully written yet.
@@ -204,7 +266,7 @@ void auto_load::on_scan(error_code const& e)
 		if (remove_files)
 			remove(file_path, ec);
 		else
-			m_already_loaded.insert(dir.file());
+			m_already_loaded.insert(file);
 	}
 
 	l.lock();

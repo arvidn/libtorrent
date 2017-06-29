@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	struct alert_observer;
+struct alert_observer;
 
 struct TORRENT_EXPORT alert_handler
 {
@@ -54,30 +54,19 @@ struct TORRENT_EXPORT alert_handler
 	// alert types to subscribe to to the observer
 	// TODO 3: make subscriptions automatically enable
 	// the corresponding category of alerts in the session somehow
+	// TODO: 3 make this a variadic template
 	void subscribe(alert_observer* o, int flags = 0, ...);
 	void dispatch_alerts(std::vector<alert*>& alerts) const;
 	void dispatch_alerts() const;
 	void unsubscribe(alert_observer* o);
-
-	// the future may return NULL if the alert_handler is aborted.
-	template <class T>
-	std::future<alert*> subscribe()
-	{
-		return subscribe_impl(T::alert_type);
-	}
 
 	void abort();
 
 private:
 
 	void subscribe_impl(int const* type_list, int num_types, alert_observer* o, int flags);
-	std::future<alert*> subscribe_impl(int cat);
 
 	std::vector<alert_observer*> m_observers[num_alert_types];
-
-	mutable std::mutex m_mutex;
-	using promise_t = std::shared_ptr<std::promise<alert*> >;
-	mutable std::deque<promise_t> m_promises[num_alert_types];
 
 	// when set to true, all outstanding (std::future-based) subscriptions
 	// are cancelled, and new such subscriptions are disabled, by failing

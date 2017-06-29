@@ -42,15 +42,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 
 namespace libtorrent
 {
+
+// TODO: get rid of these dependencies
+using lt::exists;
+using lt::remove;
 
 int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit)
 {
 	ec.clear();
 	file f;
-	if (!f.open(filename, file::read_only, ec)) return -1;
+	if (!f.open(filename, open_mode_t::read_only, ec)) return -1;
 	std::int64_t s = f.get_size(ec);
 	if (ec) return -1;
 	if (s > limit)
@@ -60,8 +65,8 @@ int load_file(std::string const& filename, std::vector<char>& v, error_code& ec,
 	}
 	v.resize(s);
 	if (s == 0) return 0;
-	file::iovec_t b = {&v[0], size_t(s) };
-	std::int64_t read = f.readv(0, &b, 1, ec);
+	iovec_t b = {&v[0], size_t(s) };
+	std::int64_t read = f.readv(0, b, ec);
 	if (read != s) return -3;
 	if (ec) return -3;
 	return 0;
@@ -70,10 +75,10 @@ int load_file(std::string const& filename, std::vector<char>& v, error_code& ec,
 int save_file(std::string const& filename, std::vector<char>& v, error_code& ec)
 {
 	file f;
-	if (!f.open(filename, file::write_only, ec)) return -1;
+	if (!f.open(filename, open_mode_t::write_only, ec)) return -1;
 	if (ec) return -1;
-	file::iovec_t b = {&v[0], v.size()};
-	std::int64_t written = f.writev(0, &b, 1, ec);
+	iovec_t b = {&v[0], v.size()};
+	std::int64_t written = f.writev(0, b, ec);
 	if (written != int(v.size())) return -3;
 	if (ec) return -3;
 	return 0;

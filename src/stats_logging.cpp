@@ -39,8 +39,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "alert_handler.hpp"
 #include "libtorrent/session_stats.hpp"
 
-using namespace libtorrent;
+#include "libtorrent/aux_/path.hpp"
+
+namespace libtorrent {
+
 using namespace std::placeholders;
+
+// TODO: get rid of these dependencies
+using lt::create_directories;
 
 /*
 
@@ -163,5 +169,7 @@ void stats_logging::handle_alert(alert const* a)
 		fprintf(m_stats_logger, "\t%" PRId64, s->values[i]);
 	}
 	fprintf(m_stats_logger, "\n");
+}
+
 }
 

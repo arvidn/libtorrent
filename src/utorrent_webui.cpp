@@ -61,6 +61,7 @@ extern "C" {
 #include "libtorrent/aux_/escape_string.hpp" // for unescape_string
 #include "libtorrent/string_util.hpp" // for string_begins_no_case
 #include "libtorrent/span.hpp"
+#include "libtorrent/hasher.hpp"
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp"
 #include "escape_json.hpp"
@@ -75,13 +76,12 @@ namespace libtorrent
 
 utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
 	, auto_load* al, torrent_history* hist
-	, rss_filter_handler* rss_filter
 	, auth_interface const* auth)
 	: m_ses(s)
 	, m_al(al)
 	, m_auth(auth)
 	, m_settings(sett)
-	, m_rss_filter(rss_filter)
+//	, m_rss_filter(rss_filter)
 	, m_hist(hist)
 	, m_listener(nullptr)
 {
@@ -95,7 +95,8 @@ utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
 	m_version = 1;
 
 	std::uint64_t seed = clock_type::now().time_since_epoch().count();
-	m_token = to_hex(hasher(span<char const>{reinterpret_cast<char const*>(&seed), sizeof(seed)}).final());
+	auto hash = lt::hasher(reinterpret_cast<char const*>(&seed), sizeof(seed)).final();
+	m_token = to_hex(hash);
 
 	m_params_model.save_path = ".";
 	m_webui_cookie = "{}";
@@ -289,7 +290,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		&& atoi(buf) > 0)
 	{
 		send_torrent_list(response, request_info->query_string, perms);
-//		send_rss_list(response, request_info->query_string, perms);
+		send_rss_list(response, request_info->query_string, perms);
 	}
 
 	// we need a null terminator
@@ -1094,6 +1095,7 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 
 void utorrent_webui::get_version(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+	auto const our_peer_id = m_ses.id();
 	appendf(response, ",\"version\":{\"engine_version\": \"%s\""
 		",\"major_version\": %d"
 		",\"minor_version\": %d"
@@ -1102,9 +1104,9 @@ void utorrent_webui::get_version(std::vector<char>& response, char const* args, 
 		",\"product_code\": \"server\""
 		"}"
 		, LIBTORRENT_REVISION, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR
-		, to_hex(m_ses.id()).c_str(), m_ses.get_settings().get_str(settings_pack::user_agent).c_str());
+		, to_hex(our_peer_id).c_str(), m_ses.get_settings().get_str(settings_pack::user_agent).c_str());
 }
-
+/*
 void utorrent_webui::rss_update(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
 	char buf[20];
@@ -1134,17 +1136,16 @@ void utorrent_webui::rss_update(std::vector<char>& response, char const* args, p
 		// TOOD: if update is set, just refresh the feed
 	}
 }
-/*
+
 int get_feed_id(feed_status const& st)
 {
 	sha1_hash h = hasher(st.url.c_str(), st.url.length()).final();
 	char const* ptr = (char const*)&h[0];
 	return io::read_uint32(ptr) & 0x7fffffff;
 }
-*/
+
 void utorrent_webui::rss_remove(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
-/*
 	char buf[20];
 	int ret = mg_get_var(args, strlen(args), "feed-id", buf, sizeof(buf));
 	if (ret < 0) return;
@@ -1161,7 +1162,6 @@ void utorrent_webui::rss_remove(std::vector<char>& response, char const* args, p
 		m_ses.remove_feed(*i);
 		return;
 	}
-*/
 }
 
 void utorrent_webui::rss_filter_update(std::vector<char>& response, char const* args, permissions_interface const* p)
@@ -1181,7 +1181,7 @@ void utorrent_webui::rss_filter_update(std::vector<char>& response, char const* 
 	{
 		r = m_rss_filter->get_rule(filter_id);
 	}
-		
+
 	ret = mg_get_var(args, strlen(args), "filter", buf, sizeof(buf));
 	if (ret > 0) r.search = buf;
 	ret = mg_get_var(args, strlen(args), "not-filter", buf, sizeof(buf));
@@ -1239,6 +1239,7 @@ void utorrent_webui::rss_filter_remove(std::vector<char>& response, char const* 
 	while (m_removed_rss_filters.size() > 40)
 		m_removed_rss_filters.pop_front();
 }
+*/
 
 enum ut_state_t
 {
@@ -1471,7 +1472,6 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 		first = 0;
 	}
 #endif
-	// TODO: support removing feeds
 	appendf(response, "], \"rssfeedm\": []");
 
 /*

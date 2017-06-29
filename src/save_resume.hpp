@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <mutex>
-#include <unordered_map>
+#include <unordered_set>
 
 #include <sqlite3.h>
 

@@ -161,7 +161,7 @@ void file_requests::on_tick()
 	{
 		if (m_next_timeout->timeout < now)
 		{
-			requests_t::iterator to_remove = m_next_timeout;
+			auto to_remove = m_next_timeout;
 			++m_next_timeout;
 			m_requests.erase(to_remove);
 		}
@@ -172,8 +172,10 @@ void file_requests::on_tick()
 	}
 }
 
-std::shared_future<piece_entry> file_requests::read_piece(torrent_handle const& h
-	, piece_index_t const piece, lt::clock_type::duration const timeout_ms)
+std::shared_future<piece_entry> file_requests::read_piece(
+	torrent_handle const& h
+	, lt::piece_index_t const piece
+	, lt::clock_type::duration const timeout_ms)
 {
 	TORRENT_ASSERT(piece >= 0);
 	TORRENT_ASSERT(piece < h.torrent_file()->num_pieces());
