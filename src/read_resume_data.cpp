@@ -45,21 +45,22 @@ namespace libtorrent {
 
 namespace {
 
-		void apply_flag(std::uint64_t& current_flags
-			, bdecode_node const& n
-			, char const* name
-			, std::uint64_t const flag)
+	void apply_flag(std::uint64_t& current_flags
+		, bdecode_node const& n
+		, char const* name
+		, std::uint64_t const flag)
+	{
+		if (n.dict_find_int_value(name, 0) == 0)
 		{
-			if (n.dict_find_int_value(name, 0) == 0)
-			{
-				current_flags &= ~flag;
-			}
-			else
-			{
-				current_flags |= flag;
-			}
+			current_flags &= ~flag;
+		}
+		else
+		{
+			current_flags |= flag;
 		}
 	}
+
+} // anonyous namespace
 
 	add_torrent_params read_resume_data(bdecode_node const& rd, error_code& ec)
 	{
@@ -89,7 +90,6 @@ namespace {
 
 		ret.info_hash.assign(info_hash.data());
 
-		// TODO: 4 add unit test for this, and all other fields of the resume data
 		bdecode_node const info = rd.dict_find_dict("info");
 		if (info)
 		{
