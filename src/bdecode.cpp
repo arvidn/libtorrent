@@ -351,7 +351,7 @@ namespace libtorrent
 	}
 
 	std::string bdecode_node::list_string_value_at(int i
-		, char const* default_val)
+		, char const* default_val) const
 	{
 		bdecode_node n = list_at(i);
 		if (n.type() != bdecode_node::string_t) return default_val;
@@ -359,7 +359,7 @@ namespace libtorrent
 	}
 
 	boost::int64_t bdecode_node::list_int_value_at(int i
-		, boost::int64_t default_val)
+		, boost::int64_t default_val) const
 	{
 		bdecode_node n = list_at(i);
 		if (n.type() != bdecode_node::int_t) return default_val;
