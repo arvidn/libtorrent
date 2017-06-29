@@ -55,7 +55,7 @@ namespace libtorrent
 		m_alerts->unsubscribe(this);
 	}
 
-	void torrent_history::handle_alert(alert const* a)
+	void torrent_history::handle_alert(alert const* a) try
 	{
 		add_torrent_alert const* ta = alert_cast<add_torrent_alert>(a);
 		torrent_removed_alert const* td = alert_cast<torrent_removed_alert>(a);
@@ -92,7 +92,7 @@ namespace libtorrent
 			TORRENT_ASSERT(st.handle == ta->handle);
 
 			std::unique_lock<std::mutex> l(m_mutex);
-			m_queue.left.push_front(std::make_pair(m_frame + 1, torrent_history_entry(st, m_frame + 1)));
+			m_queue.left.push_front(std::make_pair(m_frame + 1, torrent_history_entry(std::move(st), m_frame + 1)));
 			m_deferred_frame_count = true;
 		}
 		else if (td)
@@ -141,6 +141,7 @@ namespace libtorrent
 */
 		}
 	}
+	catch (std::exception const&) {}
 
 	void torrent_history::removed_since(int frame, std::vector<sha1_hash>& torrents) const
 	{

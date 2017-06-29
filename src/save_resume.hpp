@@ -62,9 +62,6 @@ namespace libtorrent
 		void save_all();
 		bool ok_to_quit() const;
 
-		void load_torrent(libtorrent::sha1_hash const& ih
-			, std::vector<char>& buf, libtorrent::error_code& ec);
-
 	private:
 
 		session& m_ses;

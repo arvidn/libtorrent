@@ -70,16 +70,6 @@ save_resume::save_resume(session& s, std::string const& resume_file, alert_handl
 		, torrent_finished_alert::alert_type
 		, 0);
 
-	// we can use the save_resume object to reload torrents. There is a
-	// potential race condition when adding torrents. We may add a torrent
-	// asynchronously, libtorrent will know about the torrent before we receive
-	// the torrent_added_alert and the resume data won't have saved it yet. for
-	// this reason all torrents must be pinned until we receive the
-	// torrent_added_alert. Once we've saved the resume data into our resume
-	// file, we can unpin it
-	m_ses.set_load_function(std::bind(
-		&save_resume::load_torrent, this, s::_1, s::_2, s::_3));
-
 	int ret = sqlite3_open(resume_file.c_str(), &m_db);
 	if (ret != SQLITE_OK)
 	{
@@ -104,55 +94,7 @@ save_resume::~save_resume()
 	m_db = nullptr;
 }
 
-void save_resume::load_torrent(libtorrent::sha1_hash const& ih
-	, std::vector<char>& buf, libtorrent::error_code& ec)
-{
-	ec.clear();
-
-	sqlite3_stmt* stmt = nullptr;
-	int ret = sqlite3_prepare_v2(m_db
-		, "SELECT RESUME FROM TORRENTS WHERE INFOHASH = :ih;", -1, &stmt, nullptr);
-
-	if (ret != SQLITE_OK)
-	{
-		printf("failed to prepare select statement: %s\n", sqlite3_errmsg(m_db));
-		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
-		return;
-	}
-	ret = sqlite3_bind_text(stmt, 1, to_hex(ih).c_str(), 40, SQLITE_STATIC);
-	if (ret != SQLITE_OK)
-	{
-		printf("failed to bind select statement: %s\n", sqlite3_errmsg(m_db));
-		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
-		sqlite3_finalize(stmt);
-		return;
-	}
-	ret = sqlite3_step(stmt);
-	if (ret != SQLITE_ROW)
-	{
-		printf("failed to step remove statement: %s\n", sqlite3_errmsg(m_db));
-		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
-		sqlite3_finalize(stmt);
-		return;
-	}
-
-	int bytes = sqlite3_column_bytes(stmt, 0);
-	if (bytes == 0)
-	{
-		printf("empty resume data buffer");
-		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
-		sqlite3_finalize(stmt);
-		return;
-	}
-
-	void const* buffer = sqlite3_column_blob(stmt, 0);
-	buf.assign((char*)buffer, ((char*)buffer) + bytes);
-
-	sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-}
-
-void save_resume::handle_alert(alert const* a)
+void save_resume::handle_alert(alert const* a) try
 {
 	add_torrent_alert const* ta = alert_cast<add_torrent_alert>(a);
 	torrent_removed_alert const* td = alert_cast<torrent_removed_alert>(a);
@@ -327,6 +269,7 @@ void save_resume::handle_alert(alert const* a)
 		m_last_save = lt::clock_type::now();
 	}
 }
+catch (std::exception const&) {}
 
 void save_resume::save_all()
 {

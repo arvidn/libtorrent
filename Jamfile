@@ -51,7 +51,7 @@ lib torrent-webui
 	src/$(SOURCES).cpp src/mongoose.c src/jsmn.c src/cdecode.c
 
 	: # requirements
-	<library>/torrent//torrent/<crypto>libcrypto/<ssl>openssl
+	<library>/torrent//torrent/<crypto>libcrypto/<ssl>openssl/<link>static
 	<library>zlib
 	<library>sqlite
 #	<library>libiconv
