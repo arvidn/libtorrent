@@ -50,6 +50,7 @@ TARGETS = index \
 	hacking \
 	streaming \
 	tutorial \
+	upgrade_to_1.2 \
 	single-page-ref \
 	$(REFERENCE_TARGETS)
 
