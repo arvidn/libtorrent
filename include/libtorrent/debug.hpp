@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <cstring>
 #include <deque>
+#include <mutex>
 
 #ifdef __MACH__
 #include <mach/task_info.h>
