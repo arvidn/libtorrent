@@ -1109,13 +1109,13 @@ void node::incoming_request(msg const& m, entry& e)
 		}
 
 		m_counters.inc_stats_counter(counters::dht_get_in);
-		sha1_hash target(msg_keys[1].string_ptr());
+		sha1_hash const target(msg_keys[1].string_ptr());
 
 //		std::fprintf(stderr, "%s GET target: %s\n"
 //			, msg_keys[1] ? "mutable":"immutable"
 //			, aux::to_hex(target).c_str());
 
-		reply["token"] = generate_token(m.addr, sha1_hash(msg_keys[1].string_ptr()));
+		reply["token"] = generate_token(m.addr, target);
 
 		// always return nodes as well as peers
 		write_nodes_entries(target, msg_keys[2], reply);
