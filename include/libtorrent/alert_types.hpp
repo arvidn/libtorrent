@@ -2663,11 +2663,27 @@ namespace libtorrent {
 		aux::allocation_slot m_v6_nodes_idx;
 	};
 
+	struct TORRENT_EXPORT block_uploaded_alert final : peer_alert
+	{
+		// internal
+		block_uploaded_alert(aux::stack_allocator& alloc, torrent_handle h
+			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
+			, int piece_num);
+
+		TORRENT_DEFINE_ALERT(block_uploaded_alert, 94)
+
+		static const int static_category = alert::progress_notification;
+		virtual std::string message() const override;
+
+		int block_index;
+		int piece_index;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 
-	enum { num_alert_types = 94 }; // this enum represents "max_alert_index" + 1
+	enum { num_alert_types = 95 }; // this enum represents "max_alert_index" + 1
 }
 
 #endif
