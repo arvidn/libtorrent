@@ -584,7 +584,7 @@ void bind_torrent_handle()
         .def("rename_file", _(rename_file1))
 #endif
         .def("get_flags", _(&torrent_handle::get_flags))
-        .def("set_flags", _(&torrent_handle::set_flags, arg("flags") = 0xffffffffffffffff))
+        .def("set_flags", _(&torrent_handle::set_flags), arg("flags") = 0xffffffffffffffff)
         ;
 
     class_<open_file_state>("open_file_state")
