@@ -21,6 +21,8 @@ import pickle
 if os.name != 'nt':
     import pty
 
+HAVE_DEPRECATED_APIS = hasattr(lt, 'version')
+
 class test_create_torrent(unittest.TestCase):
 
     def test_from_torrent_info(self):
@@ -262,9 +264,8 @@ class test_torrent_info(unittest.TestCase):
             self.assertEqual(web_seeds[i]["type"], ws[i]["type"])
 
     def test_iterable_files(self):
-        # this detects whether libtorrent was built with deprecated APIs
         # the file_strage object is only iterable for backwards compatibility
-        if not hasattr(lt, 'version'):
+        if not HAVE_DEPRECATED_APIS:
             return
 
         lt.session({'alert_mask': lt.alert.category_t.all_categories,
@@ -323,7 +324,8 @@ class test_alerts(unittest.TestCase):
         print(st.progress)
         print(st.num_pieces)
         print(st.distributed_copies)
-        print(st.paused)
+        if HAVE_DEPRECATED_APIS:
+            print(st.paused)
         print(st.info_hash)
         print(st.seeding_duration)
         print(st.last_upload)

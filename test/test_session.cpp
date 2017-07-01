@@ -183,9 +183,9 @@ TORRENT_TEST(async_add_torrent_duplicate_back_to_back)
 	TEST_CHECK(!a->error);
 
 	torrent_status st = h.status();
-	TEST_CHECK(st.paused);
-	TEST_CHECK(!st.ip_filter_applies);
-	TEST_CHECK(!st.auto_managed);
+	TEST_CHECK(st.flags & add_torrent_params::flag_paused);
+	TEST_CHECK(!(st.flags & add_torrent_params::flag_apply_ip_filter));
+	TEST_CHECK(!(st.flags & add_torrent_params::flag_auto_managed));
 }
 
 TORRENT_TEST(load_empty_file)
@@ -237,7 +237,7 @@ TORRENT_TEST(paused_session)
 	h.resume();
 	std::this_thread::sleep_for(lt::milliseconds(1000));
 
-	TEST_CHECK(!h.status().paused);
+	TEST_EQUAL(h.flags() & add_torrent_params::flag_paused, 0);
 }
 
 TORRENT_TEST(get_cache_info)
