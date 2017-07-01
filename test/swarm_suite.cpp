@@ -158,7 +158,7 @@ void test_swarm(int flags)
 		if (flags & super_seeding)
 		{
 			TEST_CHECK(st1.is_seeding);
-			TEST_CHECK(st1.super_seeding);
+			TEST_CHECK(tor1.get_flags() & add_torrent_params::flag_super_seeding);
 		}
 
 		if (st2.progress < 1.f && st2.progress > 0.5f)

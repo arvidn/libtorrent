@@ -243,14 +243,6 @@ namespace libtorrent { namespace aux {
 	//
 	struct TORRENT_EXPORT torrent_handle
 	{
-		// TODO: 3 consider replacing all the setters and getters for pause,
-		// resume, stop-when-ready, share-mode, upload-mode, super-seeding,
-		// apply-ip-filter, pinned, sequential-download,
-		// seed-mode
-		// with just set_flags() and clear_flags() using the flags from
-		// add_torrent_params. Perhaps those flags should have a more generic
-		// name.
-
 		friend struct aux::session_impl;
 		friend struct session_handle;
 		friend class torrent;
@@ -583,6 +575,26 @@ namespace libtorrent { namespace aux {
 		void pause(int flags = 0) const;
 		void resume() const;
 
+		// reflects the torrent's flags. The bits in the return value
+		// correspond to the flags found in
+		// ``add_torrent_params::flags_t``. The currently supported
+		// flags are:
+		// ``seed_mode``, ``upload_mode``, ``share_mode``,
+		// ``apply_ip_filter``, ``paused``,
+		// ``auto_managed``, ``super_seeding``,
+		// ``sequential_download``, ``pinned``, and
+		// ``stop_when_ready``.
+		boost::uint64_t get_flags() const;
+		// sets the ``add_torrent_params::flags_t`` flags
+		// reflected by ``torrent_handle::get_flags()``. For each bit
+		// set in the ``mask`` argument, that flag will be set to the
+		// value of the corresponding bit in the ``flags`` argument.
+		// Note that ``seed_mode`` can only be set when adding a
+		// torrent, and cannot be set with ``set_flags()``. Any
+		// unsupported flags will be silently ignored.
+		void set_flags(boost::uint64_t mask, boost::uint64_t flags = 0xffffffffffffffff) const;
+
+#ifndef TORRENT_NO_DEPRECATE
 		// set or clear the stop-when-ready flag. When this flag is set, the
 		// torrent will *force stop* whenever it transitions from a
 		// non-data-transferring state into a data-transferring state (referred to
@@ -612,6 +624,7 @@ namespace libtorrent { namespace aux {
 		// for the state_changed_alert and then call pause(). The download/seeding
 		// will most likely start in between posting the alert and receiving the
 		// call to pause.
+		TORRENT_DEPRECATED
 		void stop_when_ready(bool b) const;
 
 		// Explicitly sets the upload mode of the torrent. In upload mode, the
@@ -626,6 +639,7 @@ namespace libtorrent { namespace aux {
 		// To test if a torrent is in upload mode, call
 		// ``torrent_handle::status()`` and inspect
 		// ``torrent_status::upload_mode``.
+		TORRENT_DEPRECATED
 		void set_upload_mode(bool b) const;
 
 		// Enable or disable share mode for this torrent. When in share mode, the
@@ -633,7 +647,9 @@ namespace libtorrent { namespace aux {
 		// of it. Only parts that are likely to be distributed to more than 2
 		// other peers are downloaded, and only if the previous prediction was
 		// correct.
+		TORRENT_DEPRECATED
 		void set_share_mode(bool b) const;
+#endif
 
 		// Instructs libtorrent to flush all the disk caches for this torrent and
 		// close all file handles. This is done asynchronously and you will be
@@ -645,10 +661,13 @@ namespace libtorrent { namespace aux {
 		// ``torrent_handle::flush_cache()`` has been written to disk.
 		void flush_cache() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// Set to true to apply the session global IP filter to this torrent
 		// (which is the default). Set to false to make this torrent ignore the
 		// IP filter.
+		TORRENT_DEPRECATED
 		void apply_ip_filter(bool b) const;
+#endif
 
 		// ``force_recheck`` puts the torrent back in a state where it assumes to
 		// have no resume data. All peers will be disconnected and the torrent
@@ -821,9 +840,12 @@ namespace libtorrent { namespace aux {
 		//	handled in order for this function to be meaningful.
 		bool need_save_resume_data() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// changes whether the torrent is auto managed or not. For more info,
 		// see queuing_.
+		TORRENT_DEPRECATED
 		void auto_managed(bool m) const;
+#endif
 
 		// Every torrent that is added is assigned a queue position exactly one
 		// greater than the greatest queue position of all existing torrents.
@@ -1124,8 +1146,8 @@ namespace libtorrent { namespace aux {
 		// For more information about dynamically loading and unloading torrents,
 		// see dynamic-loading-of-torrent-files_.
 		//
+		TORRENT_DEPRECATED
 		void set_pinned(bool p) const;
-#endif
 
 		// ``set_sequential_download()`` enables or disables *sequential
 		// download*. When enabled, the piece picker will pick pieces in sequence
@@ -1135,7 +1157,9 @@ namespace libtorrent { namespace aux {
 		//
 		// Enabling sequential download will affect the piece distribution
 		// negatively in the swarm. It should be used sparingly.
+		TORRENT_DEPRECATED
 		void set_sequential_download(bool sd) const;
+#endif
 
 		// ``connect_peer()`` is a way to manually connect to peers that one
 		// believe is a part of the torrent. If the peer does not respond, or is
@@ -1261,11 +1285,12 @@ namespace libtorrent { namespace aux {
 		void move_storage(std::wstring const& save_path, int flags = 0) const;
 		TORRENT_DEPRECATED
 		void rename_file(file_index_t index, std::wstring const& new_name) const;
-#endif // TORRENT_NO_DEPRECATE
 
 		// Enables or disabled super seeding/initial seeding for this torrent.
 		// The torrent needs to be a seed for this to take effect.
+		TORRENT_DEPRECATED
 		void super_seeding(bool on) const;
+#endif // TORRENT_NO_DEPRECATE
 
 		// ``info_hash()`` returns the info-hash of the torrent. If this handle
 		// is to a torrent that hasn't loaded yet (for instance by being added)

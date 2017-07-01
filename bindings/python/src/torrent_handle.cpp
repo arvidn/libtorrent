@@ -489,11 +489,15 @@ void bind_torrent_handle()
         .def("is_valid", _(&torrent_handle::is_valid))
         .def("pause", _(&torrent_handle::pause), arg("flags") = 0)
         .def("resume", _(&torrent_handle::resume))
+#ifndef TORRENT_NO_DEPRECATE
         .def("stop_when_ready", _(&torrent_handle::stop_when_ready))
+#endif
         .def("clear_error", _(&torrent_handle::clear_error))
+#ifndef TORRENT_NO_DEPRECATE
         .def("super_seeding", super_seeding1)
 
         .def("auto_managed", _(&torrent_handle::auto_managed))
+#endif
         .def("queue_position", _(&torrent_handle::queue_position))
         .def("queue_position_up", _(&torrent_handle::queue_position_up))
         .def("queue_position_down", _(&torrent_handle::queue_position_down))
@@ -504,12 +508,16 @@ void bind_torrent_handle()
 #ifndef TORRENT_NO_DEPRECATE
         .def("set_priority", _(&torrent_handle::set_priority))
         .def("get_torrent_info", &get_torrent_info)
+#ifndef TORRENT_NO_DEPRECATE
         .def("super_seeding", super_seeding0)
+#endif
         .def("write_resume_data", _(&torrent_handle::write_resume_data))
         .def("is_seed", _(&torrent_handle::is_seed))
         .def("is_finished", _(&torrent_handle::is_finished))
+#ifndef TORRENT_NO_DEPRECATE
         .def("is_paused", _(&torrent_handle::is_paused))
         .def("is_auto_managed", _(&torrent_handle::is_auto_managed))
+#endif
         .def("has_metadata", _(&torrent_handle::has_metadata))
         .def("use_interface", &torrent_handle::use_interface)
         .def("name", _(&torrent_handle::name))
@@ -539,16 +547,20 @@ void bind_torrent_handle()
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
 #endif
         .def("scrape_tracker", _(&torrent_handle::scrape_tracker), arg("index") = -1)
+#ifndef TORRENT_NO_DEPRECATE
         .def("set_upload_mode", _(&torrent_handle::set_upload_mode))
         .def("set_share_mode", _(&torrent_handle::set_share_mode))
+#endif
         .def("flush_cache", &torrent_handle::flush_cache)
+#ifndef TORRENT_NO_DEPRECATE
         .def("apply_ip_filter", &torrent_handle::apply_ip_filter)
+#endif
         .def("set_upload_limit", _(&torrent_handle::set_upload_limit))
         .def("upload_limit", _(&torrent_handle::upload_limit))
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
         .def("download_limit", _(&torrent_handle::download_limit))
-        .def("set_sequential_download", _(&torrent_handle::set_sequential_download))
 #ifndef TORRENT_NO_DEPRECATE
+        .def("set_sequential_download", _(&torrent_handle::set_sequential_download))
         .def("set_peer_upload_limit", &torrent_handle::set_peer_upload_limit)
         .def("set_peer_download_limit", &torrent_handle::set_peer_download_limit)
         .def("set_ratio", _(&torrent_handle::set_ratio))
@@ -571,6 +583,8 @@ void bind_torrent_handle()
         .def("move_storage", _(move_storage1), (arg("path"), arg("flags") = always_replace_files))
         .def("rename_file", _(rename_file1))
 #endif
+        .def("get_flags", _(&torrent_handle::get_flags))
+        .def("set_flags", _(&torrent_handle::set_flags, arg("flags") = 0xffffffffffffffff))
         ;
 
     class_<open_file_state>("open_file_state")

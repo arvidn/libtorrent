@@ -836,7 +836,10 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		std::printf("ses1.add_torrent: %s\n", ec.message().c_str());
 		return std::make_tuple(torrent_handle(), torrent_handle(), torrent_handle());
 	}
-	tor1.super_seeding(super_seeding);
+	if (super_seeding)
+	{
+		tor1.set_flags(add_torrent_params::flag_super_seeding);
+	}
 
 	// the downloader cannot use seed_mode
 	param.flags &= ~add_torrent_params::flag_seed_mode;

@@ -237,7 +237,7 @@ TORRENT_TEST(paused_session)
 	h.resume();
 	std::this_thread::sleep_for(lt::milliseconds(1000));
 
-	TEST_CHECK(!h.status().paused);
+	TEST_EQUAL(h.get_flags() & add_torrent_params::flag_paused, 0);
 }
 
 TORRENT_TEST(get_cache_info)
