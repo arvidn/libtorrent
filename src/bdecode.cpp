@@ -344,14 +344,14 @@ namespace {
 
 						std::uint32_t const v2 = k2 + tokens[k2].next_item;
 
-						auto const k1_start = tokens[k1].offset + tokens[k1].start_offset();
-						auto const k1_len = tokens[v1].offset - k1_start;
-						auto const k2_start = tokens[k2].offset + tokens[k2].start_offset();
-						auto const k2_len = tokens[v2].offset - k2_start;
+						std::uint32_t const k1_start = tokens[k1].offset + tokens[k1].start_offset();
+						std::uint32_t const k1_len = tokens[v1].offset - k1_start;
+						std::uint32_t const k2_start = tokens[k2].offset + tokens[k2].start_offset();
+						std::uint32_t const k2_len = tokens[v2].offset - k2_start;
 
-						auto const min_len = std::min(k1_len, k2_len);
+						std::uint32_t const min_len = std::min(k1_len, k2_len);
 
-						auto cmp = std::memcmp(m_buffer + k1_start, m_buffer + k2_start, min_len);
+						int cmp = std::memcmp(m_buffer + k1_start, m_buffer + k2_start, min_len);
 						if (cmp > 0 || (cmp == 0 && k1_len > k2_len))
 						{
 							std::snprintf(error.data(), error.size(), "unsorted dictionary key");
