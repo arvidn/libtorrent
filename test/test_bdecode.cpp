@@ -343,16 +343,29 @@ TORRENT_TEST(overflow_length_prefix2)
 
 TORRENT_TEST(leading_zero_length_prefix)
 {
-	char b[] = "06:foobar";
-	bdecode_node e;
-	error_code ec;
-	int pos;
-	int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
-	TEST_EQUAL(ret, 0);
-	char error_string[200];
-	TEST_CHECK(e.has_soft_error(error_string));
-	TEST_EQUAL(std::string(error_string), std::string("leading zero in string length"));
-	std::printf("%s\n", print_entry(e).c_str());
+	{
+		char b[] = "06:foobar";
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b) - 1, e, ec, &pos);
+		TEST_EQUAL(ret, 0);
+		char error_string[200];
+		TEST_CHECK(e.has_soft_error(error_string));
+		TEST_EQUAL(std::string(error_string), std::string("leading zero in string length"));
+		std::printf("%s\n", print_entry(e).c_str());
+	}
+	{
+		char b[] = "0:";
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b) - 1, e, ec, &pos);
+		TEST_EQUAL(ret, 0);
+		char error_string[200];
+		TEST_CHECK(!e.has_soft_error(error_string));
+		std::printf("%s\n", print_entry(e).c_str());
+	}
 }
 
 // test integer without any digits
@@ -441,15 +454,27 @@ TORRENT_TEST(int_truncated)
 
 TORRENT_TEST(int_leading_zero)
 {
-	char b[] = "i01e";
-	bdecode_node e;
-	error_code ec;
-	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
-	TEST_EQUAL(ret, 0);
-	char error_string[200];
-	TEST_CHECK(e.has_soft_error(error_string));
-	TEST_EQUAL(std::string(error_string), std::string("leading zero in integer"));
-	std::printf("%s\n", print_entry(e).c_str());
+	{
+		char b[] = "i01e";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b) - 1, e, ec);
+		TEST_EQUAL(ret, 0);
+		char error_string[200];
+		TEST_CHECK(e.has_soft_error(error_string));
+		TEST_EQUAL(std::string(error_string), std::string("leading zero in integer"));
+		std::printf("%s\n", print_entry(e).c_str());
+	}
+	{
+		char b[] = "i0e";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b) - 1, e, ec);
+		TEST_EQUAL(ret, 0);
+		char error_string[200];
+		TEST_CHECK(!e.has_soft_error(error_string));
+		std::printf("%s\n", print_entry(e).c_str());
+	}
 }
 
 // bdecode_error

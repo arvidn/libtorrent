@@ -305,14 +305,16 @@ namespace {
 			switch (tokens[token].type)
 			{
 			case bdecode_token::integer:
-				if (m_buffer[tokens[token].offset + 1] == '0')
+				if (m_buffer[tokens[token].offset + 1] == '0'
+					&& m_buffer[tokens[token].offset + 2] != 'e')
 				{
 					std::snprintf(error.data(), error.size(), "leading zero in integer");
 					return true;
 				}
 				break;
 			case bdecode_token::string:
-				if (m_buffer[tokens[token].offset] == '0')
+				if (m_buffer[tokens[token].offset] == '0'
+					&& m_buffer[tokens[token].offset + 1] != ':')
 				{
 					std::snprintf(error.data(), error.size(), "leading zero in string length");
 					return true;
@@ -344,9 +346,9 @@ namespace {
 
 						std::uint32_t const v2 = k2 + tokens[k2].next_item;
 
-						std::uint32_t const k1_start = tokens[k1].offset + tokens[k1].start_offset();
+						std::uint32_t const k1_start = tokens[k1].offset + std::uint32_t(tokens[k1].start_offset());
 						std::uint32_t const k1_len = tokens[v1].offset - k1_start;
-						std::uint32_t const k2_start = tokens[k2].offset + tokens[k2].start_offset();
+						std::uint32_t const k2_start = tokens[k2].offset + std::uint32_t(tokens[k2].start_offset());
 						std::uint32_t const k2_len = tokens[v2].offset - k2_start;
 
 						std::uint32_t const min_len = std::min(k1_len, k2_len);
