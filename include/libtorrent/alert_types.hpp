@@ -2672,7 +2672,7 @@ namespace libtorrent {
 		// internal
 		block_uploaded_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, int piece_num);
+			, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(block_uploaded_alert, 94)
 

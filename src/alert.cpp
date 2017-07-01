@@ -2416,19 +2416,19 @@ namespace {
 
 	block_uploaded_alert::block_uploaded_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-		, int piece_num)
+		, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
-		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= piece_index_t{0});
 	}
 
 	std::string block_uploaded_alert::message() const
 	{
 		char ret[200];
 		snprintf(ret, sizeof(ret), "%s block uploaded to a peer (piece: %u block: %u)"
-			, torrent_alert::message().c_str(), piece_index, block_index);
+			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
