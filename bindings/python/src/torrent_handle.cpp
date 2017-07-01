@@ -444,7 +444,7 @@ void bind_torrent_handle()
     void (torrent_handle::*move_storage0)(std::string const&, lt::move_flags_t) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file0)(file_index_t, std::string const&) const = &torrent_handle::rename_file;
 
-#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
+#if !defined TORRENT_NO_DEPRECATE
     void (torrent_handle::*move_storage1)(std::wstring const&, int) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file1)(file_index_t, std::wstring const&) const = &torrent_handle::rename_file;
 #endif
@@ -567,7 +567,7 @@ void bind_torrent_handle()
         .def("force_recheck", _(&torrent_handle::force_recheck))
         .def("rename_file", _(rename_file0))
         .def("set_ssl_certificate", &torrent_handle::set_ssl_certificate, (arg("cert"), arg("private_key"), arg("dh_params"), arg("passphrase")=""))
-#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
+#if !defined TORRENT_NO_DEPRECATE
         .def("move_storage", _(move_storage1), (arg("path"), arg("flags") = always_replace_files))
         .def("rename_file", _(rename_file1))
 #endif

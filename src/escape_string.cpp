@@ -499,7 +499,7 @@ namespace libtorrent {
 		return url.substr(pos, find(url, "&", pos) - pos);
 	}
 
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#if defined TORRENT_WINDOWS
 	std::wstring convert_to_wstring(std::string const& s)
 	{
 		error_code ec;

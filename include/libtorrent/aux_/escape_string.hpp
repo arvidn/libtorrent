@@ -96,7 +96,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim
 		, char const* end);
 
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#if defined TORRENT_WINDOWS
 	TORRENT_EXTRA_EXPORT std::wstring convert_to_wstring(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string convert_from_wstring(std::wstring const& s);
 #endif

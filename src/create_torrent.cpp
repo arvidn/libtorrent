@@ -62,13 +62,8 @@ namespace libtorrent {
 		{
 #ifdef TORRENT_WINDOWS
 			WIN32_FILE_ATTRIBUTE_DATA attr;
-#if TORRENT_USE_WSTRING
 			std::wstring path = convert_to_wstring(p);
 			GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attr);
-#else
-			std::string path = convert_to_native(p);
-			GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &attr);
-#endif // TORRENT_USE_WSTRING
 			if (attr.dwFileAttributes == INVALID_FILE_ATTRIBUTES) return 0;
 			if (attr.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
 			return 0;
@@ -198,7 +193,6 @@ namespace libtorrent {
 
 	} // anonymous namespace
 
-#if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
 
 	void add_files(file_storage& fs, std::wstring const& wfile
@@ -231,7 +225,6 @@ namespace libtorrent {
 		set_piece_hashes(t, utf8, f, ec);
 	}
 #endif // TORRENT_NO_DEPRECATE
-#endif // TORRENT_USE_WSTRING
 
 	void add_files(file_storage& fs, std::string const& file
 		, std::function<bool(std::string)> p, std::uint32_t flags)

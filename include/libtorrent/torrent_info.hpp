@@ -163,7 +163,6 @@ namespace libtorrent {
 		TORRENT_DEPRECATED
 		torrent_info(lazy_entry const& torrent_file, error_code& ec
 			, int flags = 0);
-#if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
 		// -> utf8 conversion functions and pass in utf8 strings
 		TORRENT_DEPRECATED
@@ -171,7 +170,6 @@ namespace libtorrent {
 			, int flags = 0);
 		TORRENT_DEPRECATED
 		explicit torrent_info(std::wstring const& filename, int flags = 0);
-#endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
 		// frees all storage associated with this torrent_info object
@@ -220,13 +218,11 @@ namespace libtorrent {
 			m_files.rename_file(index, new_filename);
 		}
 #ifndef TORRENT_NO_DEPRECATE
-#if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
 		TORRENT_DEPRECATED
 		void rename_file(file_index_t index, std::wstring const& new_filename);
-#endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
 		// Remaps the file storage to a new file layout. This can be used to, for

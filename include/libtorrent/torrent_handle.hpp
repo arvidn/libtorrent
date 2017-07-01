@@ -1254,7 +1254,6 @@ namespace libtorrent { namespace aux {
 		void rename_file(file_index_t index, std::string const& new_name) const;
 
 #ifndef TORRENT_NO_DEPRECATE
-#if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
@@ -1262,7 +1261,6 @@ namespace libtorrent { namespace aux {
 		void move_storage(std::wstring const& save_path, int flags = 0) const;
 		TORRENT_DEPRECATED
 		void rename_file(file_index_t index, std::wstring const& new_name) const;
-#endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
 		// Enables or disabled super seeding/initial seeding for this torrent.
