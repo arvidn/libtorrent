@@ -31,13 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "setup_transfer.hpp"
-#include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/torrent_info.hpp" // for announce_entry
-#include "libtorrent/announce_entry.hpp"
+#include "libtorrent/torrent_info.hpp"
 #include "settings.hpp"
 
 using namespace libtorrent;
