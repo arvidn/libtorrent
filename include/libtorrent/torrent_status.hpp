@@ -460,6 +460,7 @@ namespace libtorrent {
 		// was saved.
 		bool need_save_resume = false;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// true if the session global IP filter applies
 		// to this torrent. This defaults to true.
 		bool ip_filter_applies = false;
@@ -495,6 +496,16 @@ namespace libtorrent {
 		// true when the torrent is in sequential download mode. In this mode
 		// pieces are downloaded in order rather than rarest first.
 		bool sequential_download = false;
+#else
+		// hidden
+		bool deprecated_ip_filter_applies = false;
+		bool deprecated_upload_mode = false;
+		bool deprecated_share_mode = false;
+		bool deprecated_super_seeding = false;
+		bool deprecated_paused = false;
+		bool deprecated_auto_managed = false;
+		bool deprecated_sequential_download = false;
+#endif
 
 		// true if all pieces have been downloaded.
 		bool is_seeding = false;
@@ -515,10 +526,15 @@ namespace libtorrent {
 		// torrent.
 		bool has_incoming = false;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// true if the torrent is in seed_mode. If the torrent was started in
 		// seed mode, it will leave seed mode once all pieces have been checked
 		// or as soon as one piece fails the hash check.
 		bool seed_mode = false;
+#else
+		// hidden
+		bool deprecated_seed_mode = false;
+#endif
 
 		// this is true if this torrent's storage is currently being moved from
 		// one location to another. This may potentially be a long operation
@@ -543,10 +559,15 @@ namespace libtorrent {
 		bool announcing_to_lsd = false;
 		bool announcing_to_dht = false;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// this reflects whether the ``stop_when_ready`` flag is currently enabled
 		// on this torrent. For more information, see
 		// torrent_handle::stop_when_ready().
 		bool stop_when_ready = false;
+#else
+		// hidden
+		bool deprecated_stop_when_ready = false;
+#endif
 
 		// the info-hash for this torrent
 		sha1_hash info_hash;
@@ -559,6 +580,10 @@ namespace libtorrent {
 		seconds active_duration;
 		seconds finished_duration;
 		seconds seeding_duration;
+
+		// reflects several of the torrent's flags. For more
+		// information, see ``torrent_handle::flags()``.
+		boost::uint64_t flags = 0;
 	};
 }
 

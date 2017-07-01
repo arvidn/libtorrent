@@ -36,10 +36,12 @@ void bind_torrent_status()
         .def_readonly("info_hash", &torrent_status::info_hash)
         .add_property("torrent_file", &get_torrent_file)
         .def_readonly("state", &torrent_status::state)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("paused", &torrent_status::paused)
         .def_readonly("stop_when_ready", &torrent_status::stop_when_ready)
         .def_readonly("auto_managed", &torrent_status::auto_managed)
         .def_readonly("sequential_download", &torrent_status::sequential_download)
+#endif
         .def_readonly("is_seeding", &torrent_status::is_seeding)
         .def_readonly("is_finished", &torrent_status::is_finished)
         .def_readonly("has_metadata", &torrent_status::has_metadata)
@@ -88,11 +90,11 @@ void bind_torrent_status()
         .def_readonly("all_time_download", &torrent_status::all_time_download)
         .def_readonly("seed_rank", &torrent_status::seed_rank)
         .def_readonly("has_incoming", &torrent_status::has_incoming)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("seed_mode", &torrent_status::seed_mode)
         .def_readonly("upload_mode", &torrent_status::upload_mode)
         .def_readonly("share_mode", &torrent_status::share_mode)
         .def_readonly("super_seeding", &torrent_status::super_seeding)
-#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("active_time", &torrent_status::active_time)
         .def_readonly("finished_time", &torrent_status::finished_time)
         .def_readonly("seeding_time", &torrent_status::seeding_time)
@@ -111,7 +113,9 @@ void bind_torrent_status()
         .def_readonly("last_seen_complete", &torrent_status::last_seen_complete)
         .def_readonly("queue_position", &torrent_status::queue_position)
         .def_readonly("need_save_resume", &torrent_status::need_save_resume)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("ip_filter_applies", &torrent_status::ip_filter_applies)
+#endif
         .def_readonly("moving_storage", &torrent_status::moving_storage)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("is_loaded", &torrent_status::is_loaded)
@@ -125,6 +129,7 @@ void bind_torrent_status()
         .add_property("active_duration", make_getter(&torrent_status::active_duration, by_value()))
         .add_property("finished_duration", make_getter(&torrent_status::finished_duration, by_value()))
         .add_property("seeding_duration", make_getter(&torrent_status::seeding_duration, by_value()))
+        .def_readonly("flags", &torrent_status::flags)
         ;
 
     enum_<torrent_status::state_t>("states")
