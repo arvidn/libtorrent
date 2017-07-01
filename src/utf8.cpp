@@ -32,10 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-// on windows we need these functions for
-// convert_to_native and convert_from_native
-#if TORRENT_USE_WSTRING || defined TORRENT_WINDOWS
-
 #include <iterator>
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/assert.hpp"
@@ -307,4 +303,3 @@ namespace {
 #pragma clang diagnostic pop
 #endif
 
-#endif

@@ -326,16 +326,6 @@ done:
 # endif
 #endif
 
-#if defined TORRENT_WINDOWS && defined UNICODE && !TORRENT_USE_WSTRING
-
-#ifdef _MSC_VER
-#pragma message ( "wide character support not available. Files will be saved using narrow string names" )
-#else
-#warning "wide character support not available. Files will be saved using narrow string names"
-#endif
-
-#endif // TORRENT_WINDOWS
-
 namespace libtorrent {
 
 static_assert((open_mode_t::rw_mask & open_mode_t::sparse) == open_mode_t::none, "internal flags error");
@@ -364,19 +354,13 @@ static_assert((open_mode_t::sparse & open_mode_t::attribute_mask) == open_mode_t
 #ifdef TORRENT_WINDOWS
 		m_inode = 0;
 
-#if TORRENT_USE_WSTRING
-#define FindFirstFile_ FindFirstFileW
-#else
-#define FindFirstFile_ FindFirstFileA
-#endif
-		m_handle = FindFirstFile_(f.c_str(), &m_fd);
+		m_handle = FindFirstFileW(f.c_str(), &m_fd);
 		if (m_handle == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), system_category());
 			m_done = true;
 			return;
 		}
-#undef FindFirstFile_
 #else
 
 		std::memset(&m_dirent, 0, sizeof(dirent));
@@ -426,19 +410,13 @@ static_assert((open_mode_t::sparse & open_mode_t::attribute_mask) == open_mode_t
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-#define FindNextFile_ FindNextFileW
-#else
-#define FindNextFile_ FindNextFileA
-#endif
-		if (FindNextFile_(m_handle, &m_fd) == 0)
+		if (FindNextFileW(m_handle, &m_fd) == 0)
 		{
 			m_done = true;
 			int err = GetLastError();
 			if (err != ERROR_NO_MORE_FILES)
 				ec.assign(err, system_category());
 		}
-#undef FindNextFile_
 		++m_inode;
 #else
 		dirent* dummy;
@@ -552,12 +530,6 @@ static_assert((open_mode_t::sparse & open_mode_t::attribute_mask) == open_mode_t
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
 		}};
 
-#if TORRENT_USE_WSTRING
-#define CreateFile_ CreateFileW
-#else
-#define CreateFile_ CreateFileA
-#endif
-
 		TORRENT_ASSERT(static_cast<std::size_t>(mode & open_mode_t::rw_mask) < mode_array.size());
 		win_open_mode_t const& m = mode_array[static_cast<std::size_t>(mode & open_mode_t::rw_mask)];
 		DWORD a = attrib_array[static_cast<std::size_t>(mode & open_mode_t::attribute_mask) >> 12];
@@ -571,11 +543,9 @@ static_assert((open_mode_t::sparse & open_mode_t::attribute_mask) == open_mode_t
 			| FILE_FLAG_OVERLAPPED
 			| (test(mode & open_mode_t::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
-		handle_type handle = CreateFile_(file_path.c_str(), m.rw_mode
+		handle_type handle = CreateFileW(file_path.c_str(), m.rw_mode
 			, test(mode & open_mode_t::lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
-
-#undef CreateFile_
 
 		if (handle == INVALID_HANDLE_VALUE)
 		{

@@ -414,13 +414,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_LOCALE 0
 #endif
 
-#ifndef TORRENT_USE_WSTRING
-#if !defined BOOST_NO_STD_WSTRING
-#define TORRENT_USE_WSTRING 1
-#else
-#define TORRENT_USE_WSTRING 0
-#endif // BOOST_NO_STD_WSTRING
-#endif // TORRENT_USE_WSTRING
+#if defined BOOST_NO_STD_WSTRING
+#error your C++ standard library appears to be missing std::wstring. This type is required on windows
+#endif
 
 #ifndef TORRENT_HAS_FALLOCATE
 #define TORRENT_HAS_FALLOCATE 1

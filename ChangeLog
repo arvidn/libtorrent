@@ -1,3 +1,4 @@
+	* drop support for windows compilers without std::wstring
 	* implemented support for DHT infohash indexing, BEP51
 	* removed deprecated support for file_base in file_storage
 	* added support for running separate DHT nodes on each network interface

@@ -106,11 +106,7 @@ namespace libtorrent {
 #ifdef TORRENT_WINDOWS
 		HANDLE m_handle;
 		int m_inode;
-#if TORRENT_USE_WSTRING
 		WIN32_FIND_DATAW m_fd;
-#else
-		WIN32_FIND_DATAA m_fd;
-#endif
 #else
 		DIR* m_handle;
 		// the dirent struct contains a zero-sized

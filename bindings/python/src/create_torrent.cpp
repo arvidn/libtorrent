@@ -101,13 +101,11 @@ namespace
     FileIter end_files(file_storage const& self)
     { return FileIter(self, self.end_file()); }
 
-#if TORRENT_USE_WSTRING
     void add_file_wstring(file_storage& fs, std::wstring const& file, std::int64_t size
        , int flags, std::time_t md, std::string link)
     {
        fs.add_file(file, size, flags, md, link);
     }
-#endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
     void add_files_callback(file_storage& fs, std::string const& file
@@ -132,7 +130,7 @@ void bind_create_torrent()
 {
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
     void (file_storage::*rename_file0)(file_index_t, std::string const&) = &file_storage::rename_file;
-#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
+#if !defined TORRENT_NO_DEPRECATE
     void (file_storage::*set_name1)(std::wstring const&) = &file_storage::set_name;
     void (file_storage::*rename_file1)(file_index_t, std::wstring const&) = &file_storage::rename_file;
 #endif
@@ -163,9 +161,7 @@ void bind_create_torrent()
         .def("add_file", add_file_deprecated, arg("entry"))
         .def("__iter__", boost::python::range(&begin_files, &end_files))
         .def("__len__", &file_storage::num_files)
-#if TORRENT_USE_WSTRING
         .def("add_file", add_file_wstring, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
-#endif
 #endif // TORRENT_NO_DEPRECATE
         .def("hash", file_storage_hash)
         .def("symlink", file_storage_symlink, return_value_policy<copy_const_reference>())
@@ -182,7 +178,7 @@ void bind_create_torrent()
         .def("piece_size", &file_storage::piece_size)
         .def("set_name", set_name0)
         .def("rename_file", rename_file0)
-#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
+#if !defined TORRENT_NO_DEPRECATE
         .def("set_name", set_name1)
         .def("rename_file", rename_file1)
 #endif

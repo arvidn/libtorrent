@@ -697,10 +697,8 @@ namespace {
 	int session_handle::as_for_ip(address const&)
 	{ return 0; }
 
-#if TORRENT_USE_WSTRING
 	void session_handle::load_asnum_db(wchar_t const*) {}
 	void session_handle::load_country_db(wchar_t const*) {}
-#endif // TORRENT_USE_WSTRING
 
 	void session_handle::load_state(entry const& ses_state
 		, std::uint32_t const flags)

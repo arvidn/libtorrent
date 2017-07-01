@@ -423,9 +423,6 @@ namespace detail {
 	}
 #endif
 
-#if TORRENT_USE_WSTRING
-	// wstring versions
-
 	// all wstring APIs are deprecated since 0.16.11
 	// instead, use the wchar -> utf8 conversion functions
 	// and pass in utf8 strings
@@ -473,7 +470,6 @@ namespace detail {
 		set_piece_hashes_deprecated(t, p, detail::nop, ec);
 	}
 #endif // TORRENT_NO_DEPRECATE
-#endif // TORRENT_USE_WSTRING
 
 }
 

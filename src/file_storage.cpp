@@ -347,7 +347,6 @@ namespace {
 			, fe.symlink_path);
 	}
 
-#if TORRENT_USE_WSTRING
 	void file_storage::set_name(std::wstring const& n)
 	{
 		m_name = wchar_utf8(n);
@@ -369,7 +368,6 @@ namespace {
 	{
 		rename_file_deprecated(index, new_filename);
 	}
-#endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
 	void file_storage::rename_file(file_index_t const index
