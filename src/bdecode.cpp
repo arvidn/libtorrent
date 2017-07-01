@@ -898,7 +898,9 @@ namespace {
 
 					// skip ':'
 					++start;
-					if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+					// no need to range check start here
+					// the check above ensures that the buffer is long enough to hold
+					// the string's length which guarantees that start <= end
 
 					// the bdecode_token only has 8 bits to keep the header size
 					// in. If it overflows, fail!
