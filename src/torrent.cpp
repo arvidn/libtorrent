@@ -901,7 +901,7 @@ namespace libtorrent {
 #endif
 	}
 
-	boost::uint64_t torrent::get_flags() const
+	boost::uint64_t torrent::flags() const
 	{
 		boost::uint64_t ret = 0;
 		if (m_seed_mode) {
@@ -937,7 +937,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	void torrent::set_flags(boost::uint64_t mask, boost::uint64_t flags)
+	void torrent::set_flags(boost::uint64_t flags, boost::uint64_t mask)
 	{
 		if (mask & add_torrent_params::flag_seed_mode) {
 			if ((flags & add_torrent_params::flag_seed_mode) == 0) {
@@ -10822,7 +10822,7 @@ namespace {
 
 		st->last_seen_complete = m_swarm_last_seen_complete;
 
-		st->flags = get_flags();
+		st->flags = this->flags();
 	}
 
 	void torrent::add_redundant_bytes(int const b, waste_reason const reason)

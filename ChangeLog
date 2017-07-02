@@ -1,4 +1,4 @@
-	* add get_flags()/set_flags() to torrent_handle, deprecate individual functions
+	* add flags()/set_flags()/unset_flags() to torrent_handle, deprecate individual functions
 	* drop support for windows compilers without std::wstring
 	* implemented support for DHT infohash indexing, BEP51
 	* removed deprecated support for file_base in file_storage

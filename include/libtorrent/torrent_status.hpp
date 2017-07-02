@@ -582,7 +582,7 @@ namespace libtorrent {
 		seconds seeding_duration;
 
 		// reflects several of the torrent's flags. For more
-		// information, see ``torrent_handle::get_flags()``.
+		// information, see ``torrent_handle::flags()``.
 		boost::uint64_t flags = 0;
 	};
 }

@@ -45,11 +45,15 @@ std::string torrent_state(lt::torrent_status const& s)
 
 	if (s.errc) return s.errc.message();
 	std::string ret;
+#ifndef TORRENT_NO_DEPRECATE
 	if (s.paused && !s.auto_managed) ret += "paused";
 	else if (s.paused && s.auto_managed) ret += "queued";
 	else if (s.upload_mode) ret += "upload mode";
 	else ret += state_str[s.state];
 	if (!s.paused && !s.auto_managed) ret += " [F]";
+#else
+	ret += state_str[s.state];
+#endif
 	char buf[10];
 	std::snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.f);
 	ret += buf;
@@ -337,7 +341,9 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 
 	color_code progress_bar_color = col_yellow;
 	if (s.errc) progress_bar_color = col_red;
+#ifndef TORRENT_NO_DEPRECATE
 	else if (s.paused) progress_bar_color = col_blue;
+#endif
 	else if (s.state == lt::torrent_status::downloading_metadata)
 		progress_bar_color = col_magenta;
 	else if (s.current_tracker.empty())

@@ -584,15 +584,19 @@ namespace libtorrent { namespace aux {
 		// ``auto_managed``, ``super_seeding``,
 		// ``sequential_download``, ``pinned``, and
 		// ``stop_when_ready``.
-		boost::uint64_t get_flags() const;
+		boost::uint64_t flags() const;
 		// sets the ``add_torrent_params::flags_t`` flags
-		// reflected by ``torrent_handle::get_flags()``. For each bit
+		// reflected by ``torrent_handle::flags()``. For each bit
 		// set in the ``mask`` argument, that flag will be set to the
 		// value of the corresponding bit in the ``flags`` argument.
 		// Note that ``seed_mode`` can only be set when adding a
 		// torrent, and cannot be set with ``set_flags()``. Any
 		// unsupported flags will be silently ignored.
-		void set_flags(boost::uint64_t mask, boost::uint64_t flags = 0xffffffffffffffff) const;
+		void set_flags(boost::uint64_t flags, boost::uint64_t mask) const;
+		// an alias for ``set_flags(0xffffffffffffffff, flags)``
+		void set_flags(boost::uint64_t flags) const;
+		// an alias for ``set_flags(0, flags)``
+		void unset_flags(boost::uint64_t flags) const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// set or clear the stop-when-ready flag. When this flag is set, the

@@ -435,8 +435,10 @@ void bind_torrent_handle()
 
 #ifndef TORRENT_NO_DEPRECATE
     bool (torrent_handle::*super_seeding0)() const = &torrent_handle::super_seeding;
-#endif
     void (torrent_handle::*super_seeding1)(bool) const = &torrent_handle::super_seeding;
+#endif
+    void (torrent_handle::*set_flags0)(boost::uint64_t) const = &torrent_handle::set_flags;
+    void (torrent_handle::*set_flags1)(boost::uint64_t, boost::uint64_t) const = &torrent_handle::set_flags;
 
     int (torrent_handle::*piece_priority0)(piece_index_t) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(piece_index_t, int) const = &torrent_handle::piece_priority;
@@ -583,8 +585,10 @@ void bind_torrent_handle()
         .def("move_storage", _(move_storage1), (arg("path"), arg("flags") = always_replace_files))
         .def("rename_file", _(rename_file1))
 #endif
-        .def("get_flags", _(&torrent_handle::get_flags))
-        .def("set_flags", _(&torrent_handle::set_flags), arg("flags") = 0xffffffffffffffff)
+        .def("flags", _(&torrent_handle::flags))
+        .def("set_flags", _(set_flags0))
+        .def("set_flags", _(set_flags1))
+        .def("unset_flags", _(&torrent_handle::unset_flags))
         ;
 
     class_<open_file_state>("open_file_state")

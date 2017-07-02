@@ -46,13 +46,13 @@ void test_add_and_get_flags(boost::uint64_t flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = boost::shared_ptr<torrent_info>(
-		new torrent_info("../test_torrents/base.torrent", ec));
+	p.ti = boost::make_shared<torrent_info>("../test_torrents/base.torrent",
+		boost::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = flags;
-	torrent_handle h = ses.add_torrent(p);
+	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());
-	TEST_EQUAL(h.get_flags() & flags, flags);
+	TEST_EQUAL(h.flags() & flags, flags);
 }
 
 void test_set_after_add(boost::uint64_t flags)
@@ -61,15 +61,15 @@ void test_set_after_add(boost::uint64_t flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = boost::shared_ptr<torrent_info>(
-		new torrent_info("../test_torrents/base.torrent", ec));
+	p.ti = boost::make_shared<torrent_info>("../test_torrents/base.torrent",
+		boost::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = 0xffffffffffffffff & ~flags;
-	torrent_handle h = ses.add_torrent(p);
+	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());
-	TEST_EQUAL(h.get_flags() & flags, 0);
+	TEST_EQUAL(h.flags() & flags, 0);
 	h.set_flags(flags);
-	TEST_EQUAL(h.get_flags() & flags, flags);
+	TEST_EQUAL(h.flags() & flags, flags);
 }
 
 void test_unset_after_add(boost::uint64_t flags)
@@ -78,15 +78,15 @@ void test_unset_after_add(boost::uint64_t flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = boost::shared_ptr<torrent_info>(
-		new torrent_info("../test_torrents/base.torrent", ec));
+	p.ti = boost::make_shared<torrent_info>("../test_torrents/base.torrent",
+		boost::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = flags;
-	torrent_handle h = ses.add_torrent(p);
+	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());
-	TEST_EQUAL(h.get_flags() & flags, flags);
-	h.set_flags(flags, 0);
-	TEST_EQUAL(h.get_flags() & flags, 0);
+	TEST_EQUAL(h.flags() & flags, flags);
+	h.unset_flags(flags);
+	TEST_EQUAL(h.flags() & flags, 0);
 }
 
 TORRENT_TEST(flag_seed_mode)

@@ -285,7 +285,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 		// TODO: factor out the disk-full test into its own unit test
 		if (test_disk_full &&
-				((tor2.get_flags() & add_torrent_params::flag_upload_mode) != 0) &&
+				((tor2.flags() & add_torrent_params::flag_upload_mode) != 0) &&
 				++upload_mode_timer > 10)
 		{
 			test_disk_full = false;
@@ -305,7 +305,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			lt::error_code err = tor2.status().errc;
 			std::printf("error: \"%s\"\n", err.message().c_str());
 			TEST_CHECK(!err);
-			tor2.set_flags(add_torrent_params::flag_upload_mode, 0);
+			tor2.unset_flags(add_torrent_params::flag_upload_mode);
 
 			// at this point we probably disconnected the seed
 			// so we need to reconnect as well
