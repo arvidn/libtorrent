@@ -73,8 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/hex.hpp" // to_hex
-// for convert_to_wstring and convert_to_native
-#include "libtorrent/aux_/escape_string.hpp"
+//#include "libtorrent/aux_/escape_string.hpp"
 
 namespace libtorrent {
 
@@ -233,7 +232,7 @@ namespace libtorrent {
 
 #ifdef TORRENT_WINDOWS
 		// don't do full file allocations on network drives
-		std::wstring file_name = convert_to_wstring(m_save_path);
+		auto const file_name = convert_to_native_path_string(m_save_path);
 		int const drive_type = GetDriveTypeW(file_name.c_str());
 
 		if (drive_type == DRIVE_REMOTE)
