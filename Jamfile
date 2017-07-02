@@ -58,7 +58,7 @@ else
 		: : $(boost-include-path) ;
 }
 
-VERSION = 1.1.3 ;
+VERSION = 1.1.4 ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
