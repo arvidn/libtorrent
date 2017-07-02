@@ -192,6 +192,8 @@ namespace libtorrent {
 		}
 
 #if !TORRENT_USE_UNC_PATHS && defined TORRENT_WINDOWS
+#pragma message ("building for windows without UNC paths is deprecated")
+
 		// if we're not using UNC paths on windows, there
 		// are certain filenames we're not allowed to use
 		static const char const* reserved_names[] =

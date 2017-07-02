@@ -178,7 +178,6 @@ nobase_include_HEADERS = \
   aux_/generate_peer_id.hpp         \
   aux_/io.hpp                       \
   aux_/listen_socket_handle.hpp     \
-  aux_/max_path.hpp                 \
   aux_/path.hpp                     \
   aux_/merkle.hpp                   \
   aux_/session_call.hpp             \

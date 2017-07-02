@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/aux_/escape_string.hpp" // for convert_to_wstring
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/aux_/merkle.hpp" // for merkle_*()
 #include "libtorrent/torrent_info.hpp"
@@ -69,16 +68,17 @@ namespace {
 
 	file_flags_t get_file_attributes(std::string const& p)
 	{
+		auto const path = convert_to_native_path_string(p);
+
 #ifdef TORRENT_WINDOWS
 		WIN32_FILE_ATTRIBUTE_DATA attr;
-		std::wstring path = convert_to_wstring(p);
 		GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attr);
 		if (attr.dwFileAttributes == INVALID_FILE_ATTRIBUTES) return {};
 		if (attr.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) return file_storage::flag_hidden;
 		return {};
 #else
 		struct ::stat s;
-		if (::lstat(convert_to_native(p).c_str(), &s) < 0) return {};
+		if (::lstat(path.c_str(), &s) < 0) return {};
 		file_flags_t file_attr = {};
 		if (s.st_mode & S_IXUSR)
 			file_attr |= file_storage::flag_executable;
@@ -94,12 +94,12 @@ namespace {
 		constexpr int MAX_SYMLINK_PATH = 200;
 
 		char buf[MAX_SYMLINK_PATH];
-		std::string f = convert_to_native(path);
+		std::string f = convert_to_native_path_string(path);
 		int char_read = int(readlink(f.c_str(), buf, MAX_SYMLINK_PATH));
 		if (char_read < 0) return "";
 		if (char_read < MAX_SYMLINK_PATH) buf[char_read] = 0;
 		else buf[0] = 0;
-		return convert_from_native(buf);
+		return convert_from_native_path(buf);
 	}
 #endif
 

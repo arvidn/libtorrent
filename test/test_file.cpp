@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <thread>
+#include <iostream>
 
 using namespace lt;
 
@@ -56,11 +57,13 @@ int touch_file(std::string const& filename, int size)
 	file f;
 	error_code ec;
 	if (!f.open(filename, open_mode::write_only, ec)) return -1;
+	TEST_EQUAL(ec, error_code());
 	if (ec) return -1;
 	iovec_t b = {v};
 	std::int64_t written = f.writev(0, b, ec);
 	if (written != int(v.size())) return -3;
 	if (ec) return -3;
+	TEST_EQUAL(ec, error_code());
 	return 0;
 }
 
@@ -447,31 +450,31 @@ TORRENT_TEST(stat_file)
 	TEST_EQUAL(ec, boost::system::errc::no_such_file_or_directory);
 }
 
-// specificaly UNC tests
+// UNC tests
 #if TORRENT_USE_UNC_PATHS
 
 namespace {
-std::tuple<int, bool> fill_current_directory_caps()
+std::tuple<int, bool> current_directory_caps()
 {
 #ifdef TORRENT_WINDOWS
-	error_code ec;
-	DWORD dw_maximum_component_length;
-	DWORD dw_file_system_flags;
-	if (!GetVolumeInformationA(nullptr, nullptr, 0, nullptr, &dw_maximum_component_length, &dw_file_system_flags, nullptr, 0))
+	DWORD maximum_component_length = FILENAME_MAX;
+	DWORD file_system_flags = 0;
+	if (GetVolumeInformation(nullptr
+		, nullptr, 0, nullptr
+		, &maximum_component_length, &file_system_flags, nullptr, 0) == 0)
 	{
-		ec.assign(GetLastError(), system_category());
-		std::printf("GetVolumeInformation: [%s] %s\n"
-			, ec.category().name(), ec.message().c_str());
-		return std::make_tuple(0, false);
+		error_code ec(GetLastError(), system_category());
+		std::printf("GetVolumeInformation: [%s : %d] %s\n"
+			, ec.category().name(), ec.value(), ec.message().c_str());
+		// ignore errors, this is best-effort
 	}
-	int maximum_component_length = int(dw_maximum_component_length);
-	bool support_hard_links = ((dw_file_system_flags & FILE_SUPPORTS_HARD_LINKS) != 0);
-	return std::make_tuple(maximum_component_length, support_hard_links);
+	bool const support_hard_links = ((file_system_flags & FILE_SUPPORTS_HARD_LINKS) != 0);
+	return std::make_tuple(int(maximum_component_length), support_hard_links);
 #else
-	return std::make_tuple(TORRENT_MAX_PATH, true);
+	return std::make_tuple(255, true);
 #endif
 }
-}
+} // anonymous namespace
 
 TORRENT_TEST(unc_tests)
 {
@@ -497,7 +500,7 @@ TORRENT_TEST(unc_tests)
 
 	for (std::string special_name : special_names)
 	{
-		TEST_EQUAL(touch_file(special_name, 10), 0);
+		touch_file(special_name, 10);
 		TEST_CHECK(lt::exists(special_name));
 		lt::remove(special_name, ec);
 		TEST_EQUAL(ec, error_code());
@@ -506,61 +509,88 @@ TORRENT_TEST(unc_tests)
 
 	int maximum_component_length;
 	bool support_hard_links;
-	std::tie(maximum_component_length, support_hard_links) = fill_current_directory_caps();
+	std::tie(maximum_component_length, support_hard_links) = current_directory_caps();
 
-	if (maximum_component_length > 0)
+	std::cout << "max file path component length: " << maximum_component_length << "\n"
+		<< "support hard links: " << (support_hard_links?"yes":"no") << "\n";
+
+	std::string long_dir_name;
+	maximum_component_length -= 12;
+	long_dir_name.resize(size_t(maximum_component_length));
+	for (int i = 0; i < maximum_component_length; ++i)
+		long_dir_name[i] = static_cast<char>((i % 26) + 'A');
+
+	std::string long_file_name1 = combine_path(long_dir_name, long_dir_name);
+	long_file_name1.back() = '1';
+	std::string long_file_name2 = long_file_name1;
+	long_file_name2.back() = '2';
+
+	lt::create_directory(long_dir_name, ec);
+	TEST_EQUAL(ec, error_code());
+	if (ec)
 	{
-		std::string long_component_name;
-		long_component_name.resize(size_t(maximum_component_length));
-		for (int i = 0; i < maximum_component_length; ++i)
-			long_component_name[i] = static_cast<char>((i % 26) + 'A');
+		std::cout << "create_directory \"" << long_dir_name << "\" failed: " << ec.message() << "\n";
+		std::wcout << convert_to_native_path_string(long_dir_name) << L"\n";
+	}
+	TEST_CHECK(lt::exists(long_dir_name));
+	TEST_CHECK(lt::is_directory(long_dir_name, ec));
+	TEST_EQUAL(ec, error_code());
+	if (ec)
+	{
+		std::cout << "is_directory \"" << long_dir_name << "\" failed " << ec.message() << "\n";
+		std::wcout << convert_to_native_path_string(long_dir_name) << L"\n";
+	}
 
-		std::string long_file_name1 =  combine_path(long_component_name, long_component_name);
-		long_file_name1.back() = '1';
-		std::string long_file_name2 { long_file_name1 };
-		long_file_name2.back() = '2';
+	touch_file(long_file_name1, 10);
+	TEST_CHECK(lt::exists(long_file_name1));
 
-		lt::create_directory(long_component_name, ec);
+	lt::rename(long_file_name1, long_file_name2, ec);
+	TEST_EQUAL(ec, error_code());
+	if (ec)
+	{
+		std::cout << "rename \"" << long_file_name1 << "\" failed " << ec.message() << "\n";
+		std::wcout << convert_to_native_path_string(long_file_name1) << L"\n";
+	}
+	TEST_CHECK(!lt::exists(long_file_name1));
+	TEST_CHECK(lt::exists(long_file_name2));
+
+	lt::copy_file(long_file_name2, long_file_name1, ec);
+	TEST_EQUAL(ec, error_code());
+	if (ec)
+	{
+		std::cout << "copy_file \"" << long_file_name2 << "\" failed " << ec.message() << "\n";
+		std::wcout << convert_to_native_path_string(long_file_name2) << L"\n";
+	}
+	TEST_CHECK(lt::exists(long_file_name1));
+
+	std::set<std::string> files;
+
+	for (lt::directory i(long_dir_name, ec); !i.done(); i.next(ec))
+	{
+		std::string f = i.file();
+		files.insert(f);
+	}
+
+	TEST_EQUAL(files.size(), 4);
+
+	lt::remove(long_file_name1, ec);
+	TEST_EQUAL(ec, error_code());
+	if (ec)
+	{
+		std::cout << "remove \"" << long_file_name1 << "\" failed " << ec.message() << "\n";
+		std::wcout << convert_to_native_path_string(long_file_name1) << L"\n";
+	}
+	TEST_CHECK(!lt::exists(long_file_name1));
+
+	if (support_hard_links)
+	{
+		lt::hard_link(long_file_name2, long_file_name1, ec);
 		TEST_EQUAL(ec, error_code());
-		TEST_CHECK(lt::exists(long_component_name));
-		TEST_CHECK(lt::is_directory(long_component_name, ec));
-
-		TEST_EQUAL(touch_file(long_file_name1, 10), 0);
 		TEST_CHECK(lt::exists(long_file_name1));
-
-		lt::rename(long_file_name1, long_file_name2, ec);
-		TEST_EQUAL(ec, error_code());
-		TEST_CHECK(!lt::exists(long_file_name1));
-		TEST_CHECK(lt::exists(long_file_name2));
-
-		lt::copy_file(long_file_name2, long_file_name1, ec);
-		TEST_EQUAL(ec, error_code());
-		TEST_CHECK(lt::exists(long_file_name1));
-
-		std::set<std::string> files;
-
-		for (lt::directory i(long_component_name, ec); !i.done(); i.next(ec))
-		{
-			std::string f = i.file();
-			files.insert(f);
-		}
-
-		TEST_EQUAL(files.size(), 4);
 
 		lt::remove(long_file_name1, ec);
 		TEST_EQUAL(ec, error_code());
 		TEST_CHECK(!lt::exists(long_file_name1));
-
-		if (support_hard_links)
-		{
-			lt::hard_link(long_file_name2, long_file_name1, ec);
-			TEST_EQUAL(ec, error_code());
-			TEST_CHECK(lt::exists(long_file_name1));
-
-			lt::remove(long_file_name1, ec);
-			TEST_EQUAL(ec, error_code());
-			TEST_CHECK(!lt::exists(long_file_name1));
-		}
 	}
 }
 

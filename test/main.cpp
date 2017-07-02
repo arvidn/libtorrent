@@ -230,12 +230,12 @@ void change_directory(std::string const& f, error_code& ec)
 {
 	ec.clear();
 
+	native_path_string const n = convert_to_native_path_string(f);
+
 #ifdef TORRENT_WINDOWS
-	native_path_string const n = convert_to_wstring(f);
 	if (SetCurrentDirectoryW(n.c_str()) == 0)
 		ec.assign(GetLastError(), system_category());
 #else
-	native_path_string const n = convert_to_native_path_string(f);
 	int ret = ::chdir(n.c_str());
 	if (ret != 0)
 		ec.assign(errno, system_category());
@@ -430,6 +430,7 @@ int EXPORT main(int argc, char const* argv[])
 			return 1;
 		}
 
+		std::printf("cwd: %s\n", unit_dir.c_str());
 		unit_test_t& t = _g_unit_tests[i];
 
 		if (redirect_stdout || redirect_stderr)

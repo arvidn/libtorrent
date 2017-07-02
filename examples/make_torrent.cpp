@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 
 #include <functional>
 #include <cstdio>
@@ -259,17 +258,24 @@ int main(int argc_, char const* argv_[]) try
 	if (full_path[0] != '/')
 #endif
 	{
-		char cwd[TORRENT_MAX_PATH];
+		char cwd[2048];
 #ifdef TORRENT_WINDOWS
-		_getcwd(cwd, sizeof(cwd));
-		full_path = cwd + ("\\" + full_path);
+#define getcwd_ _getcwd
 #else
-		char const* ret = getcwd(cwd, sizeof(cwd));
+#define getcwd_ getcwd
+#endif
+
+		char const* ret = getcwd_(cwd, sizeof(cwd));
 		if (ret == nullptr) {
 			std::cerr << "failed to get current working directory: "
 				<< strerror(errno) << "\n";
 			return 1;
 		}
+
+#undef getcwd_
+#ifdef TORRENT_WINDOWS
+		full_path = cwd + ("\\" + full_path);
+#else
 		full_path = cwd + ("/" + full_path);
 #endif
 	}
