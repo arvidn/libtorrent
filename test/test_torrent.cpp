@@ -451,7 +451,7 @@ TORRENT_TEST(torrent_status)
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_exception), -5);
 }
 
-TORRENT_TEST(queue)
+void test_queue(add_torrent_params p)
 {
 	lt::settings_pack pack = settings();
 	// we're not testing the hash check, just accept the data we write
@@ -469,7 +469,7 @@ TORRENT_TEST(queue)
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());
-		std::shared_ptr<torrent_info> ti = std::make_shared<torrent_info>(&buf[0], int(buf.size()));
+		auto ti = std::make_shared<torrent_info>(buf.data(), int(buf.size()));
 		add_torrent_params p;
 		p.ti = ti;
 		p.save_path = ".";
@@ -555,6 +555,19 @@ TORRENT_TEST(queue)
 	TEST_EQUAL(torrents[2].queue_position(), 2);
 	TEST_EQUAL(torrents[4].queue_position(), 3);
 	TEST_EQUAL(torrents[3].queue_position(), 4);
+}
+
+TORRENT_TEST(queue)
+{
+	test_queue(add_torrent_params());
+}
+
+TORRENT_TEST(queue_paused)
+{
+	add_torrent_params p;
+	p.flags |= add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
+	test_queue(p);
 }
 
 TORRENT_TEST(test_move_storage_no_metadata)

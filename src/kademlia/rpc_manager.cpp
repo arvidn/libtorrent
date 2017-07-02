@@ -350,7 +350,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		return false;
 	}
 
-	node_id nid = node_id(node_id_ent.string_ptr());
+	node_id const nid = node_id(node_id_ent.string_ptr());
 	if (m_settings.enforce_node_id && !verify_id(nid, m.addr.address()))
 	{
 		o->timeout();

@@ -539,7 +539,6 @@ namespace libtorrent {
 		void load_country_db(char const* file);
 		TORRENT_DEPRECATED
 		int as_for_ip(address const& addr);
-#if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
@@ -547,7 +546,6 @@ namespace libtorrent {
 		void load_country_db(wchar_t const* file);
 		TORRENT_DEPRECATED
 		void load_asnum_db(wchar_t const* file);
-#endif // TORRENT_USE_WSTRING
 
 		// deprecated in 0.15
 		// use load_state and save_state instead

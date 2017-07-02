@@ -170,7 +170,7 @@ namespace libtorrent {namespace {
 
 		for (;;)
 		{
-			auto next_msg = buf.subspan(msg_len);
+			auto next_msg = buf.subspan(std::size_t(msg_len));
 			int read_len = int(recv(sock, next_msg.data(), next_msg.size(), 0));
 			if (read_len < 0) return -1;
 
@@ -203,7 +203,7 @@ namespace libtorrent {namespace {
 
 	enum { NL_BUFSIZE = 8192 };
 
-	int nl_dump_request(int sock, int type, std::uint32_t seq, char family, span<char> msg, std::size_t msg_len)
+	int nl_dump_request(int sock, std::uint16_t type, std::uint32_t seq, char family, span<char> msg, std::size_t msg_len)
 	{
 		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
 		nl_msg->nlmsg_len = NLMSG_LENGTH(msg_len);
@@ -225,7 +225,7 @@ namespace libtorrent {namespace {
 		// get the socket's port ID so that we can verify it in the repsonse
 		sockaddr_nl sock_addr;
 		socklen_t sock_addr_len = sizeof(sock_addr);
-		if (getsockname(sock, (sockaddr*)&sock_addr, &sock_addr_len) < 0)
+		if (getsockname(sock, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len) < 0)
 		{
 			return -1;
 		}
@@ -407,7 +407,7 @@ namespace libtorrent {namespace {
 #pragma clang diagnostic pop
 #endif
 
-		auto ifi_info = link_info.find(addr_msg->ifa_index);
+		auto ifi_info = link_info.find(int(addr_msg->ifa_index));
 		if (ifi_info != link_info.end())
 		{
 			ip_info->mtu = ifi_info->second.mtu;

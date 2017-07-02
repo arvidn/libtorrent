@@ -225,7 +225,6 @@ namespace libtorrent {
 	}
 #endif
 
-#if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
 	void torrent_handle::move_storage(
 		std::wstring const& save_path, int flags) const
@@ -238,7 +237,6 @@ namespace libtorrent {
 		async_call(&torrent::rename_file, index, wchar_utf8(new_name));
 	}
 #endif // TORRENT_NO_DEPRECATE
-#endif // TORRENT_USE_WSTRING
 
 	void torrent_handle::rename_file(file_index_t index, std::string const& new_name) const
 	{

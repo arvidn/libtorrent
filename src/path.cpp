@@ -134,10 +134,10 @@ namespace libtorrent {
 		return int(size);
 	}
 
-	std::string convert_from_native_path(char const* s) { return convert_from_native(s); }
-
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#if defined TORRENT_WINDOWS
 	std::string convert_from_native_path(wchar_t const* s) { return convert_from_wstring(s); }
+#else
+	std::string convert_from_native_path(char const* s) { return convert_from_native(s); }
 #endif
 
 	template <typename T>
@@ -170,20 +170,16 @@ namespace libtorrent {
 			prepared_path = path;
 		else
 		{
-			std::string sep_path { path };
+			std::string sep_path = path;
 			std::replace(sep_path.begin(), sep_path.end(), '/', '\\');
-			prepared_path = "\\\\?\\" + (is_complete(sep_path) ? sep_path : combine_path(current_working_directory(), sep_path));
+			prepared_path = "\\\\?\\" + (is_complete(sep_path) ? sep_path : complete(sep_path));
 		}
 #else
-		std::string prepared_path { path };
+		std::string prepared_path = path;
 		std::replace(prepared_path.begin(), prepared_path.end(), '/', '\\');
 #endif
 
-#if TORRENT_USE_WSTRING
 		return convert_to_wstring(prepared_path);
-#else
-		return convert_to_native(prepared_path);
-#endif
 #else // TORRENT_WINDOWS
 		return convert_to_native(path);
 #endif
@@ -198,16 +194,9 @@ namespace libtorrent {
 
 		TORRENT_UNUSED(flags);
 
-#if TORRENT_USE_WSTRING
-#define CreateFile_ CreateFileW
-#else
-#define CreateFile_ CreateFileA
-#endif
-
 		// in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
-		HANDLE h = CreateFile_(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
+		HANDLE h = CreateFileW(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
 			| FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-#undef CreateFile_
 		if (h == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), system_category());
@@ -273,8 +262,8 @@ namespace libtorrent {
 		native_path_string f1 = convert_to_native_path_string(inf);
 		native_path_string f2 = convert_to_native_path_string(newf);
 
-#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
-#define RenameFunction_ _wrename
+#if defined TORRENT_WINDOWS
+#define RenameFunction_ ::_wrename
 #else
 #define RenameFunction_ ::rename
 #endif
@@ -308,16 +297,9 @@ namespace libtorrent {
 
 		native_path_string n = convert_to_native_path_string(f);
 #ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-#define CreateDirectory_ CreateDirectoryW
-#else
-#define CreateDirectory_ CreateDirectoryA
-#endif // TORRENT_USE_WSTRING
-
-		if (CreateDirectory_(n.c_str(), 0) == 0
+		if (CreateDirectoryW(n.c_str(), 0) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
 			ec.assign(GetLastError(), system_category());
-#undef CreateDirectory_
 #else
 		int ret = ::mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
@@ -332,18 +314,12 @@ namespace libtorrent {
 		native_path_string n_link = convert_to_native_path_string(link);
 #ifdef TORRENT_WINDOWS
 
-#if TORRENT_USE_WSTRING
-#define CreateHardLink_ CreateHardLinkW
-#else
-#define CreateHardLink_ CreateHardLinkA
-#endif
-		BOOL ret = CreateHardLink_(n_link.c_str(), n_exist.c_str(), nullptr);
+		BOOL ret = CreateHardLinkW(n_link.c_str(), n_exist.c_str(), nullptr);
 		if (ret)
 		{
 			ec.clear();
 			return;
 		}
-#undef CreateHardLink_
 		// something failed. Does the filesystem not support hard links?
 		// TODO: 3 find out what error code is reported when the filesystem
 		// does not support hard links.
@@ -425,15 +401,9 @@ namespace libtorrent {
 		native_path_string f2 = convert_to_native_path_string(newf);
 
 #ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-#define CopyFile_ CopyFileW
-#else
-#define CopyFile_ CopyFileA
-#endif
 
-		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
+		if (CopyFileW(f1.c_str(), f2.c_str(), false) == 0)
 			ec.assign(GetLastError(), system_category());
-#undef CopyFile_
 
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		// this only works on 10.5
@@ -756,11 +726,7 @@ namespace libtorrent {
 	std::string current_working_directory()
 	{
 #if defined TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
 #define GetCurrentDir_ ::_wgetcwd
-#else
-#define GetCurrentDir_ ::_getcwd
-#endif // TORRENT_USE_WSTRING
 #else
 #define GetCurrentDir_ ::getcwd
 #endif
@@ -875,25 +841,17 @@ namespace libtorrent {
 			f.back() == '/' ||
 			f.back() == '\\'
 			)) f.pop_back();
-#if TORRENT_USE_WSTRING
-#define DeleteFile_ DeleteFileW
-#define RemoveDirectory_ RemoveDirectoryW
-#else
-#define DeleteFile_ DeleteFileA
-#define RemoveDirectory_ RemoveDirectoryA
-#endif
-		if (DeleteFile_(f.c_str()) == 0)
+
+		if (DeleteFileW(f.c_str()) == 0)
 		{
 			if (GetLastError() == ERROR_ACCESS_DENIED)
 			{
-				if (RemoveDirectory_(f.c_str()) != 0)
+				if (RemoveDirectoryW(f.c_str()) != 0)
 					return;
 			}
 			ec.assign(GetLastError(), system_category());
 			return;
 		}
-#undef DeleteFile_
-#undef RemoveDirectory_
 #else // TORRENT_WINDOWS
 		if (::remove(f.c_str()) < 0)
 		{
