@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
+#include "libtorrent/alert_manager.hpp" // for alert_manager
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 #include "libtorrent/pe_crypto.hpp"
@@ -2395,6 +2396,12 @@ namespace {
 		setup_send();
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_piece);
+
+		if (t->alerts().should_post<block_uploaded_alert>())
+		{
+			t->alerts().emplace_alert<block_uploaded_alert>(t->get_handle(),
+				remote(), pid(), r.start / t->block_size() , r.piece);
+		}
 	}
 
 	// --------------------------

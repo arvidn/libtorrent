@@ -537,6 +537,51 @@ TORRENT_TEST(torrent_completed_alert)
 	TEST_EQUAL(num_file_completed, 1);
 }
 
+TORRENT_TEST(block_uploaded_alert)
+{
+	// blocks[piece count][number of blocks per piece] (each block's element will
+	// be set to true when a block_uploaded_alert alert is received for that block)
+	std::vector<std::vector<bool>> blocks;
+
+	setup_swarm(2, swarm_test::upload
+		// add session
+		, [](lt::settings_pack& pack)
+		{
+			pack.set_int(lt::settings_pack::alert_mask,
+				alert::progress_notification | alert::status_notification);
+		}
+		// add torrent
+		, [](lt::add_torrent_params&) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
+			{
+				// init blocks vector, MUST happen before any block_uploaded_alert alerts
+				int blocks_per_piece = at->handle.torrent_file()->piece_length() / 0x4000;
+				blocks.resize(at->handle.torrent_file()->num_pieces(), std::vector<bool>(blocks_per_piece, false));
+			}
+			else if (auto at = lt::alert_cast<lt::block_uploaded_alert>(a))
+			{
+				TEST_EQUAL(blocks[at->piece_index][at->block_index], false);
+				blocks[at->piece_index][at->block_index] = true;
+			}
+		}
+		// terminate
+		, [](int, lt::session&) -> bool
+		{ return false; });
+
+		// ensure a block_uploaded_alert was received for each block in the torrent
+		TEST_CHECK(std::all_of(blocks.begin(), blocks.end(),
+			[](std::vector<bool> const& piece_row) {
+				return std::all_of(piece_row.begin(), piece_row.end(),
+					[](bool upload_alert_received) {
+						return upload_alert_received;
+					}
+				);
+			}
+		));
+}
+
 // template for testing running swarms with edge case settings
 template <typename SettingsFun>
 void test_settings(SettingsFun fun)

@@ -161,10 +161,11 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, 0, alert::dht_notification);
 	TEST_ALERT_TYPE(session_stats_header_alert, 92, 0, alert::stats_notification);
 	TEST_ALERT_TYPE(dht_sample_infohashes_alert, 93, 0, alert::dht_operation_notification);
+	TEST_ALERT_TYPE(block_uploaded_alert, 94, 0, alert::progress_notification);
 
 #undef TEST_ALERT_TYPE
 
-	TEST_EQUAL(num_alert_types, 94);
+	TEST_EQUAL(num_alert_types, 95);
 	TEST_EQUAL(num_alert_types, count_alert_types);
 }
 
