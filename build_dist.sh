@@ -3,7 +3,8 @@
 make clean
 
 cd docs
-make RST2HTML=rst2html-3.4.py
+make clean
+make RST2HTML=rst2html.py
 cd ..
 
 #clear out any extended attributes that Finder may add
