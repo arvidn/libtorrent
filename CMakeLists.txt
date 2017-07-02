@@ -173,7 +173,6 @@ option(static_runtime "build libtorrent with static runtime" OFF)
 option(pool-allocators "Uses a pool allocator for disk and piece buffers" ON)
 option(encryption "link against openssl and enable encryption" ON)
 option(dht "enable support for Mainline DHT" ON)
-option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
 option(disk-stats "enable disk activity logging feature" OFF)
 option(exceptions "build with exception support" ON)
@@ -319,10 +318,6 @@ endif (libiconv)
 
 if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
-endif()
-
-if (unicode)
-	add_definitions(-DUNICODE -D_UNICODE)
 endif()
 
 if (NOT deprecated-functions)
