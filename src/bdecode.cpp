@@ -292,11 +292,11 @@ namespace {
 	bool bdecode_node::has_soft_error(span<char> error) const
 	{
 		bdecode_token const* tokens = m_root_tokens;
-		std::uint32_t token = std::uint32_t(m_token_idx);
+		int token = m_token_idx;
 
 		// we don't know what the original depth_limit was
 		// so this has to go on the heap
-		std::vector<uint32_t> stack;
+		std::vector<int> stack;
 		// make the initial allocation the default depth_limit
 		stack.reserve(100);
 
@@ -332,28 +332,28 @@ namespace {
 				{
 					// this is the end of a non-empty dict
 					// check the sort order of the keys
-					std::uint32_t k1 = parent + 1;
+					int k1 = parent + 1;
 					for (;;)
 					{
 						// skip to the first key's value
-						std::uint32_t const v1 = k1 + tokens[k1].next_item;
+						int const v1 = k1 + tokens[k1].next_item;
 						// then to the next key
-						std::uint32_t const k2 = v1 + tokens[v1].next_item;
+						int const k2 = v1 + tokens[v1].next_item;
 
 						// check if k1 was the last key in the dict
 						if (k2 == token)
 							break;
 
-						std::uint32_t const v2 = k2 + tokens[k2].next_item;
+						int const v2 = k2 + tokens[k2].next_item;
 
-						std::uint32_t const k1_start = tokens[k1].offset + std::uint32_t(tokens[k1].start_offset());
-						std::uint32_t const k1_len = tokens[v1].offset - k1_start;
-						std::uint32_t const k2_start = tokens[k2].offset + std::uint32_t(tokens[k2].start_offset());
-						std::uint32_t const k2_len = tokens[v2].offset - k2_start;
+						int const k1_start = tokens[k1].offset + tokens[k1].start_offset();
+						int const k1_len = tokens[v1].offset - k1_start;
+						int const k2_start = tokens[k2].offset + tokens[k2].start_offset();
+						int const k2_len = tokens[v2].offset - k2_start;
 
-						std::uint32_t const min_len = std::min(k1_len, k2_len);
+						int const min_len = std::min(k1_len, k2_len);
 
-						int cmp = std::memcmp(m_buffer + k1_start, m_buffer + k2_start, min_len);
+						int cmp = std::memcmp(m_buffer + k1_start, m_buffer + k2_start, std::size_t(min_len));
 						if (cmp > 0 || (cmp == 0 && k1_len > k2_len))
 						{
 							std::snprintf(error.data(), error.size(), "unsorted dictionary key");
