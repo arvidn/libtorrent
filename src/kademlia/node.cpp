@@ -966,8 +966,12 @@ void node::incoming_request(msg const& m, entry& e)
 		};
 
 		// attempt to parse the message
+		// also reject the message if it has any non-fatal encoding errors
+		// because put messages contain a signed value they must have correct bencoding
+		// otherwise the value will not round-trip without breaking the signature
 		bdecode_node msg_keys[7];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string)
+			|| arg_ent.has_soft_error(error_string))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, error_string);

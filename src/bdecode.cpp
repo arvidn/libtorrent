@@ -289,6 +289,95 @@ namespace {
 		m_buffer = buf;
 	}
 
+	bool bdecode_node::has_soft_error(span<char> error) const
+	{
+		if (type() == none_t) return false;
+
+		bdecode_token const* tokens = m_root_tokens;
+		int token = m_token_idx;
+
+		// we don't know what the original depth_limit was
+		// so this has to go on the heap
+		std::vector<int> stack;
+		// make the initial allocation the default depth_limit
+		stack.reserve(100);
+
+		do
+		{
+			switch (tokens[token].type)
+			{
+			case bdecode_token::integer:
+				if (m_buffer[tokens[token].offset + 1] == '0'
+					&& m_buffer[tokens[token].offset + 2] != 'e')
+				{
+					std::snprintf(error.data(), error.size(), "leading zero in integer");
+					return true;
+				}
+				break;
+			case bdecode_token::string:
+				if (m_buffer[tokens[token].offset] == '0'
+					&& m_buffer[tokens[token].offset + 1] != ':')
+				{
+					std::snprintf(error.data(), error.size(), "leading zero in string length");
+					return true;
+				}
+				break;
+			case bdecode_token::dict:
+			case bdecode_token::list:
+				stack.push_back(token);
+				break;
+			case bdecode_token::end:
+				auto const parent = stack.back();
+				stack.pop_back();
+				if (tokens[parent].type == bdecode_token::dict
+					&& token != parent + 1)
+				{
+					// this is the end of a non-empty dict
+					// check the sort order of the keys
+					int k1 = parent + 1;
+					for (;;)
+					{
+						// skip to the first key's value
+						int const v1 = k1 + tokens[k1].next_item;
+						// then to the next key
+						int const k2 = v1 + tokens[v1].next_item;
+
+						// check if k1 was the last key in the dict
+						if (k2 == token)
+							break;
+
+						int const v2 = k2 + tokens[k2].next_item;
+
+						int const k1_start = tokens[k1].offset + tokens[k1].start_offset();
+						int const k1_len = tokens[v1].offset - k1_start;
+						int const k2_start = tokens[k2].offset + tokens[k2].start_offset();
+						int const k2_len = tokens[v2].offset - k2_start;
+
+						int const min_len = std::min(k1_len, k2_len);
+
+						int cmp = std::memcmp(m_buffer + k1_start, m_buffer + k2_start, std::size_t(min_len));
+						if (cmp > 0 || (cmp == 0 && k1_len > k2_len))
+						{
+							std::snprintf(error.data(), error.size(), "unsorted dictionary key");
+							return true;
+						}
+						else if (cmp == 0 && k1_len == k2_len)
+						{
+							std::snprintf(error.data(), error.size(), "duplicate dictionary key");
+							return true;
+						}
+
+						k1 = k2;
+					}
+				}
+				break;
+			}
+
+			++token;
+		} while (!stack.empty());
+		return false;
+	}
+
 	bdecode_node::type_t bdecode_node::type() const
 	{
 		if (m_token_idx == -1) return none_t;
@@ -811,7 +900,9 @@ namespace {
 
 					// skip ':'
 					++start;
-					if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+					// no need to range check start here
+					// the check above ensures that the buffer is long enough to hold
+					// the string's length which guarantees that start <= end
 
 					// the bdecode_token only has 8 bits to keep the header size
 					// in. If it overflows, fail!

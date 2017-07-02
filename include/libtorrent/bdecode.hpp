@@ -360,6 +360,10 @@ struct TORRENT_EXPORT bdecode_node
 	// decode().
 	void switch_underlying_buffer(char const* buf);
 
+	// returns true if there is a non-fatal error in the bencoding of this node
+	// or its children
+	bool has_soft_error(span<char> error) const;
+
 private:
 	bdecode_node(detail::bdecode_token const* tokens, char const* buf
 		, int len, int idx);
