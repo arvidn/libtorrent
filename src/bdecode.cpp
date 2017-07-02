@@ -291,6 +291,8 @@ namespace {
 
 	bool bdecode_node::has_soft_error(span<char> error) const
 	{
+		if (type() == none_t) return false;
+
 		bdecode_token const* tokens = m_root_tokens;
 		int token = m_token_idx;
 
