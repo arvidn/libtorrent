@@ -2663,11 +2663,31 @@ namespace libtorrent {
 		aux::allocation_slot m_v6_nodes_idx;
 	};
 
+	// This alert is posted when a block intended to be sent to a peer is placed in the
+	// send buffer. Note that if the connection is closed before the send buffer is sent,
+	// the alert may be posted without the bytes having been sent to the peer.
+	// It belongs to the ``progress_notification`` category.
+	struct TORRENT_EXPORT block_uploaded_alert final : peer_alert
+	{
+		// internal
+		block_uploaded_alert(aux::stack_allocator& alloc, torrent_handle h
+			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
+			, piece_index_t piece_num);
+
+		TORRENT_DEFINE_ALERT(block_uploaded_alert, 94)
+
+		static const int static_category = alert::progress_notification;
+		virtual std::string message() const override;
+
+		int const block_index;
+		piece_index_t const piece_index;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 
-	enum { num_alert_types = 94 }; // this enum represents "max_alert_index" + 1
+	enum { num_alert_types = 95 }; // this enum represents "max_alert_index" + 1
 }
 
 #endif
