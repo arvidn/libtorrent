@@ -822,6 +822,7 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 	}
 
+#if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
 	torrent_info::torrent_info(std::wstring const& filename
 		, int const flags)
@@ -848,6 +849,7 @@ namespace libtorrent {
 		m_files.rename_file_deprecated(index, new_filename);
 	}
 #endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_USE_WSTRING
 #endif
 
 	torrent_info::torrent_info(bdecode_node const& torrent_file
@@ -887,6 +889,7 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 	}
 
+#if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
 	torrent_info::torrent_info(std::wstring const& filename
 		, error_code& ec
@@ -904,6 +907,7 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 	}
 #endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_USE_WSTRING
 
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date

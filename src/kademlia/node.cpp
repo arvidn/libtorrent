@@ -781,7 +781,7 @@ void node::incoming_request(msg const& m, entry& e)
 	e["y"] = "r";
 	e["t"] = m.message.dict_find_string_value("t").to_string();
 
-	static key_desc_t const top_desc[] = {
+	key_desc_t const top_desc[] = {
 		{"q", bdecode_node::string_t, 0, 0},
 		{"ro", bdecode_node::int_t, 0, key_desc_t::optional},
 		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
@@ -798,9 +798,9 @@ void node::incoming_request(msg const& m, entry& e)
 
 	e["ip"] = endpoint_to_bytes(m.addr);
 
-	bdecode_node const arg_ent = top_level[2];
-	bool const read_only = top_level[1] && top_level[1].int_value() != 0;
-	node_id const id(top_level[3].string_ptr());
+	bdecode_node arg_ent = top_level[2];
+	bool read_only = top_level[1] && top_level[1].int_value() != 0;
+	node_id id(top_level[3].string_ptr());
 
 	// if this nodes ID doesn't match its IP, tell it what
 	// its IP is with an error
@@ -833,7 +833,7 @@ void node::incoming_request(msg const& m, entry& e)
 	}
 	else if (query == "get_peers")
 	{
-		static key_desc_t const msg_desc[] = {
+		key_desc_t const msg_desc[] = {
 			{"info_hash", bdecode_node::string_t, 20, 0},
 			{"noseed", bdecode_node::int_t, 0, key_desc_t::optional},
 			{"scrape", bdecode_node::int_t, 0, key_desc_t::optional},
@@ -855,12 +855,14 @@ void node::incoming_request(msg const& m, entry& e)
 		// always return nodes as well as peers
 		write_nodes_entries(info_hash, msg_keys[3], reply);
 
-		bool const noseed = msg_keys[1] && msg_keys[1].int_value() != 0;
-		bool const scrape = msg_keys[2] && msg_keys[2].int_value() != 0;
+		bool noseed = false;
+		bool scrape = false;
+		if (msg_keys[1] && msg_keys[1].int_value() != 0) noseed = true;
+		if (msg_keys[2] && msg_keys[2].int_value() != 0) scrape = true;
 		// If our storage is full we want to withhold the write token so that
 		// announces will spill over to our neighbors. This widens the
 		// perimeter of nodes which store peers for this torrent
-		bool const full = lookup_peers(info_hash, reply, noseed, scrape, m.addr.address());
+		bool full = lookup_peers(info_hash, reply, noseed, scrape, m.addr.address());
 		if (!full) reply["token"] = generate_token(m.addr, info_hash);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -873,7 +875,7 @@ void node::incoming_request(msg const& m, entry& e)
 	}
 	else if (query == "find_node")
 	{
-		static key_desc_t const msg_desc[] = {
+		key_desc_t const msg_desc[] = {
 			{"target", bdecode_node::string_t, 20, 0},
 			{"want", bdecode_node::list_t, 0, key_desc_t::optional},
 		};
@@ -887,13 +889,13 @@ void node::incoming_request(msg const& m, entry& e)
 		}
 
 		m_counters.inc_stats_counter(counters::dht_find_node_in);
-		sha1_hash const target(msg_keys[0].string_ptr());
+		sha1_hash target(msg_keys[0].string_ptr());
 
 		write_nodes_entries(target, msg_keys[1], reply);
 	}
 	else if (query == "announce_peer")
 	{
-		static key_desc_t const msg_desc[] = {
+		key_desc_t const msg_desc[] = {
 			{"info_hash", bdecode_node::string_t, 20, 0},
 			{"port", bdecode_node::int_t, 0, 0},
 			{"token", bdecode_node::string_t, 0, 0},
@@ -924,7 +926,7 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		sha1_hash const info_hash(msg_keys[0].string_ptr());
+		sha1_hash info_hash(msg_keys[0].string_ptr());
 
 		if (m_observer)
 			m_observer->announce(info_hash, m.addr.address(), port);
@@ -944,9 +946,9 @@ void node::incoming_request(msg const& m, entry& e)
 		// the table get a chance to add it.
 		m_table.node_seen(id, m.addr, 0xffff);
 
-		tcp::endpoint const addr = tcp::endpoint(m.addr.address(), std::uint16_t(port));
-		string_view const name = msg_keys[3] ? msg_keys[3].string_value() : string_view();
-		bool const seed = msg_keys[4] && msg_keys[4].int_value();
+		tcp::endpoint addr = tcp::endpoint(m.addr.address(), std::uint16_t(port));
+		string_view name = msg_keys[3] ? msg_keys[3].string_value() : string_view();
+		bool seed = msg_keys[4] && msg_keys[4].int_value();
 
 		m_storage.announce_peer(info_hash, addr, name, seed);
 	}
@@ -954,7 +956,7 @@ void node::incoming_request(msg const& m, entry& e)
 	{
 		// the first 2 entries are for both mutable and
 		// immutable puts
-		static key_desc_t const msg_desc[] = {
+		static const key_desc_t msg_desc[] = {
 			{"token", bdecode_node::string_t, 0, 0},
 			{"v", bdecode_node::none_t, 0, 0},
 			{"seq", bdecode_node::int_t, 0, key_desc_t::optional},
@@ -977,7 +979,7 @@ void node::incoming_request(msg const& m, entry& e)
 		m_counters.inc_stats_counter(counters::dht_put_in);
 
 		// is this a mutable put?
-		bool const mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
+		bool mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
 
 		// public key (only set if it's a mutable put)
 		char const* pub_key = nullptr;
@@ -1107,13 +1109,13 @@ void node::incoming_request(msg const& m, entry& e)
 		}
 
 		m_counters.inc_stats_counter(counters::dht_get_in);
-		sha1_hash const target(msg_keys[1].string_ptr());
+		sha1_hash target(msg_keys[1].string_ptr());
 
 //		std::fprintf(stderr, "%s GET target: %s\n"
 //			, msg_keys[1] ? "mutable":"immutable"
 //			, aux::to_hex(target).c_str());
 
-		reply["token"] = generate_token(m.addr, target);
+		reply["token"] = generate_token(m.addr, sha1_hash(msg_keys[1].string_ptr()));
 
 		// always return nodes as well as peers
 		write_nodes_entries(target, msg_keys[2], reply);
@@ -1137,7 +1139,7 @@ void node::incoming_request(msg const& m, entry& e)
 	}
 	else if (query == "sample_infohashes")
 	{
-		static key_desc_t const msg_desc[] = {
+		key_desc_t const msg_desc[] = {
 			{"target", bdecode_node::string_t, 20, 0},
 			{"want", bdecode_node::list_t, 0, key_desc_t::optional},
 		};
@@ -1175,7 +1177,7 @@ void node::incoming_request(msg const& m, entry& e)
 			}
 		}
 
-		sha1_hash const target(target_ent.string_ptr());
+		sha1_hash target(target_ent.string_ptr());
 		// always return nodes as well as peers
 		write_nodes_entries(target, arg_ent.dict_find_list("want"), reply);
 		return;

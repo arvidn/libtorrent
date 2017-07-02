@@ -1,5 +1,4 @@
 	* added alert for block being sent to the send buffer
-	* drop support for windows compilers without std::wstring
 	* implemented support for DHT infohash indexing, BEP51
 	* removed deprecated support for file_base in file_storage
 	* added support for running separate DHT nodes on each network interface
@@ -76,8 +75,6 @@
 	* require C++11 to build libtorrent
 
 
-	* corrected missing const qualifiers on bdecode_node
-	* fix changing queue position of paused torrents (1.1.3 regression)
 	* fix re-check issue after move_storage
 	* handle invalid arguments to set_piece_deadline()
 	* move_storage did not work for torrents without metadata

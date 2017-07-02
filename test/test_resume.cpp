@@ -751,80 +751,19 @@ TORRENT_TEST(zero_file_prio_deprecated)
 {
 	test_zero_file_prio(true);
 }
-
-TORRENT_TEST(backwards_compatible_resume_info_dict)
-{
-	// make sure the "info" dictionary is picked up correctly from the
-	// resume data in backwards compatible mode
-
-	std::shared_ptr<torrent_info> ti = generate_torrent();
-	entry rd;
-	rd["file-format"] = "libtorrent resume file";
-	rd["name"] = ti->name();
-	rd["info-hash"] = ti->info_hash();
-	auto metainfo = ti->metadata();
-	rd["info"] = bdecode(metainfo.get(), metainfo.get() + ti->metadata_size());
-	std::vector<char> resume_data;
-	bencode(back_inserter(resume_data), rd);
-
-	add_torrent_params atp;
-	atp.resume_data = std::move(resume_data);
-	atp.save_path = ".";
-
-	session ses;
-	torrent_handle h = ses.add_torrent(atp);
-	auto torrent = h.torrent_file();
-	TEST_CHECK(torrent->info_hash() == ti->info_hash());
-	torrent_status s = h.status();
-}
 #endif
-
-TORRENT_TEST(resume_info_dict)
-{
-	// make sure the "info" dictionary is picked up correctly from the
-	// resume data
-
-	std::shared_ptr<torrent_info> ti = generate_torrent();
-	entry rd;
-	rd["file-format"] = "libtorrent resume file";
-	rd["name"] = ti->name();
-	rd["info-hash"] = ti->info_hash();
-	auto metainfo = ti->metadata();
-	rd["info"] = bdecode(metainfo.get(), metainfo.get() + ti->metadata_size());
-	std::vector<char> resume_data;
-	bencode(back_inserter(resume_data), rd);
-
-	error_code ec;
-	add_torrent_params atp = read_resume_data(resume_data, ec);
-	TEST_CHECK(atp.ti->info_hash() == ti->info_hash());
-}
 
 TORRENT_TEST(zero_file_prio)
 {
 	test_zero_file_prio();
 }
 
-enum class test_mode_t
+void test_seed_mode(bool const file_prio, bool const pieces_have, bool const piece_prio
+	, bool const all_files_zero = false, bool const test_deprecated = false)
 {
-	none = 0,
-	file_prio = 1,
-	pieces_have = 2,
-	piece_prio = 4,
-	all_files_zero = 8,
-	deprecated = 16
-};
+	std::printf("test_seed_mode file_prio: %d pieces_have: %d piece_prio: %d\n"
+		, file_prio, pieces_have, piece_prio);
 
-namespace libtorrent {
-namespace flags {
-
-template <>
-struct enable_flag_operators<test_mode_t> : std::true_type {};
-
-}
-}
-
-void test_seed_mode(test_mode_t const flags)
-{
 	lt::session ses(settings());
 	std::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
@@ -838,12 +777,12 @@ void test_seed_mode(test_mode_t const flags)
 	rd["info-hash"] = ti->info_hash().to_string();
 	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
 
-	if (test(flags & test_mode_t::file_prio))
+	if (file_prio)
 	{
 		// this should take it out of seed_mode
 		entry::list_type& file_prio = rd["file_priority"].list();
 		file_prio.push_back(entry(0));
-		if (test(flags & test_mode_t::all_files_zero))
+		if (all_files_zero)
 		{
 			for (int i = 0; i < 100; ++i)
 			{
@@ -853,14 +792,14 @@ void test_seed_mode(test_mode_t const flags)
 	}
 
 	std::string pieces(ti->num_pieces(), '\x01');
-	if (test(flags & test_mode_t::pieces_have))
+	if (pieces_have)
 	{
 		pieces[0] = '\0';
 	}
 	rd["pieces"] = pieces;
 
 	std::string pieces_prio(ti->num_pieces(), '\x01');
-	if (test(flags & test_mode_t::piece_prio))
+	if (piece_prio)
 	{
 		pieces_prio[0] = '\0';
 	}
@@ -872,7 +811,7 @@ void test_seed_mode(test_mode_t const flags)
 	bencode(back_inserter(resume_data), rd);
 
 #ifndef TORRENT_NO_DEPRECATE
-	if (test(flags & test_mode_t::deprecated))
+	if (test_deprecated)
 	{
 		p.resume_data = resume_data;
 	}
@@ -889,9 +828,7 @@ void test_seed_mode(test_mode_t const flags)
 	torrent_handle h = ses.add_torrent(p);
 
 	torrent_status s = h.status();
-	if (test(flags & (test_mode_t::file_prio
-		| test_mode_t::piece_prio
-		| test_mode_t::pieces_have)))
+	if (file_prio || piece_prio || pieces_have)
 	{
 		TEST_EQUAL(s.seed_mode, false);
 	}
@@ -903,43 +840,43 @@ void test_seed_mode(test_mode_t const flags)
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(seed_mode_file_prio_deprecated)
 {
-	test_seed_mode(test_mode_t::file_prio | test_mode_t::deprecated);
+	test_seed_mode(true, false, false, true);
 }
 
 TORRENT_TEST(seed_mode_piece_prio_deprecated)
 {
-	test_seed_mode(test_mode_t::pieces_have | test_mode_t::deprecated);
+	test_seed_mode(false, true, false, true);
 }
 
 TORRENT_TEST(seed_mode_piece_have_deprecated)
 {
-	test_seed_mode(test_mode_t::piece_prio | test_mode_t::deprecated);
+	test_seed_mode(false, false, true, true);
 }
 
 TORRENT_TEST(seed_mode_preserve_deprecated)
 {
-	test_seed_mode(test_mode_t::deprecated);
+	test_seed_mode(false, false, false, true);
 }
 #endif
 
 TORRENT_TEST(seed_mode_file_prio)
 {
-	test_seed_mode(test_mode_t::file_prio);
+	test_seed_mode(true, false, false);
 }
 
 TORRENT_TEST(seed_mode_piece_prio)
 {
-	test_seed_mode(test_mode_t::pieces_have);
+	test_seed_mode(false, true, false);
 }
 
 TORRENT_TEST(seed_mode_piece_have)
 {
-	test_seed_mode(test_mode_t::piece_prio);
+	test_seed_mode(false, false, true);
 }
 
 TORRENT_TEST(seed_mode_preserve)
 {
-	test_seed_mode(test_mode_t::none);
+	test_seed_mode(false, false, false);
 }
 
 TORRENT_TEST(resume_save_load)

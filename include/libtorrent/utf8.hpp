@@ -35,6 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/export.hpp"
 
+// on windows we need these functions for
+// convert_to_native and convert_from_native
+#if TORRENT_USE_WSTRING || defined TORRENT_WINDOWS
+
 #include <cstdint>
 #include <string>
 #include <cwchar>
@@ -80,5 +84,6 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
 		parse_utf8_codepoint(char const* str, int len);
 }
+#endif // !BOOST_NO_STD_WSTRING
 
 #endif

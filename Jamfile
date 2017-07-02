@@ -465,6 +465,9 @@ feature.compose <crypto>libgcrypt : <define>TORRENT_USE_LIBGCRYPT ;
 feature ssl : off openssl : composite propagated ;
 feature.compose <ssl>openssl : <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
 
+feature character-set : unicode ansi : composite propagated link-incompatible ;
+feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
+
 feature deprecated-functions : on off : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
 
@@ -748,8 +751,6 @@ lib torrent
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
-	<target-os>windows:<define>UNICODE
-	<target-os>windows:<define>_UNICODE
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp

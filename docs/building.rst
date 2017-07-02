@@ -316,6 +316,14 @@ Build features:
 |                          | * ``profile`` - builds libtorrent with profile     |
 |                          |   information.                                     |
 +--------------------------+----------------------------------------------------+
+| ``character-set``        | This setting will only have an affect on windows.  |
+|                          | Other platforms are expected to support UTF-8.     |
+|                          |                                                    |
+|                          | * ``unicode`` - The unicode version of the win32   |
+|                          |   API is used. This is default.                    |
+|                          | * ``ansi`` - The ansi version of the win32 API is  |
+|                          |   used.                                            |
++--------------------------+----------------------------------------------------+
 | ``invariant-checks``     | This setting only affects debug builds (where      |
 |                          | ``NDEBUG`` is not defined). It defaults to ``on``. |
 |                          |                                                    |
@@ -526,6 +534,11 @@ defines you can use to control the build.
 |                                        | checks in the storage, including logging of     |
 |                                        | piece sorting.                                  |
 +----------------------------------------+-------------------------------------------------+
+| ``UNICODE``                            | If building on windows this will make sure the  |
+|                                        | UTF-8 strings in pathnames are converted into   |
+|                                        | UTF-16 before they are passed to the file       |
+|                                        | operations.                                     |
++----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_POOL_ALLOCATOR``     | Disables use of ``boost::pool<>``.              |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_MUTABLE_TORRENTS``   | Disables mutable torrent support (`BEP 38`_)    |
@@ -562,6 +575,10 @@ defines you can use to control the build.
 | ``TORRENT_DISABLE_EXTENSIONS``         | When defined, libtorrent plugin support is      |
 |                                        | disabled along with support for the extension   |
 |                                        | handskake (BEP 10).                             |
++----------------------------------------+-------------------------------------------------+
+| ``_UNICODE``                           | On windows, this will cause the file IO         |
+|                                        | use wide character API, to properly support     |
+|                                        | non-ansi characters.                            |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_INVARIANT_CHECKS``       | If defined to non-zero, this will enable        |
 |                                        | internal invariant checks in libtorrent.        |

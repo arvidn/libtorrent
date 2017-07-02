@@ -11,7 +11,6 @@
 * examples_
 * overview_
 * documentation_
-* `libtorrent 1.2`_
 * contributing_
 * building_
 * troubleshooting_
@@ -68,7 +67,6 @@ libtorrent
 .. _examples: examples.html
 .. _overview: manual-ref.html
 .. _documentation: reference.html
-.. _`libtorrent 1.2`: upgrade_to_1.2.html
 .. _troubleshooting: troubleshooting.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
