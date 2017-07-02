@@ -166,7 +166,7 @@ TORRENT_TEST(alerts_types)
 
 #undef TEST_ALERT_TYPE
 
-	TEST_EQUAL(num_alert_types, 94);
+	TEST_EQUAL(num_alert_types, 95);
 	TEST_EQUAL(num_alert_types, count_alert_types);
 }
 
