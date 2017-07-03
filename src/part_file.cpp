@@ -173,7 +173,7 @@ namespace libtorrent {
 	}
 
 	int part_file::writev(span<iovec_t const> bufs, piece_index_t const piece
-		, int offset, error_code& ec)
+		, int const offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
 		std::unique_lock<std::mutex> l(m_mutex);
@@ -236,7 +236,7 @@ namespace libtorrent {
 		}
 	}
 
-	void part_file::free_piece(piece_index_t piece)
+	void part_file::free_piece(piece_index_t const piece)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 
