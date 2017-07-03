@@ -663,14 +663,14 @@ namespace libtorrent {
 		DLOG("]\n");
 #endif
 
-	open_mode_t const file_flags = m_settings.get_bool(settings_pack::coalesce_writes)
+		open_mode_t const file_flags = m_settings.get_bool(settings_pack::coalesce_writes)
 			? open_mode_t::coalesce_buffers : open_mode_t::none;
 
 		// issue the actual write operation
 		auto iov_start = iov;
 		std::size_t flushing_start = 0;
 		piece_index_t const piece = pe->piece;
-		int const blocks_in_piece = pe->blocks_in_piece;
+		int const blocks_in_piece = int(pe->blocks_in_piece);
 		bool failed = false;
 		std::size_t const n_blocks = aux::numeric_cast<std::size_t>(num_blocks);
 		for (std::size_t i = 1; i <= n_blocks; ++i)
