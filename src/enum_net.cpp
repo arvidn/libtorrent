@@ -206,7 +206,7 @@ namespace libtorrent {namespace {
 	int nl_dump_request(int sock, std::uint16_t type, std::uint32_t seq, char family, span<char> msg, std::size_t msg_len)
 	{
 		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
-		nl_msg->nlmsg_len = NLMSG_LENGTH(msg_len);
+		nl_msg->nlmsg_len = std::uint32_t(NLMSG_LENGTH(msg_len));
 		nl_msg->nlmsg_type = type;
 		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
 		nl_msg->nlmsg_seq = seq;
