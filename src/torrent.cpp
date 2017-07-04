@@ -928,9 +928,6 @@ namespace libtorrent {
 		if (m_sequential_download) {
 			ret |= add_torrent_params::flag_sequential_download;
 		}
-		if (m_pinned) {
-			ret |= add_torrent_params::flag_pinned;
-		}
 		if (m_stop_when_ready) {
 			ret |= add_torrent_params::flag_stop_when_ready;
 		}
@@ -964,13 +961,10 @@ namespace libtorrent {
 			auto_managed((flags & add_torrent_params::flag_auto_managed) != 0);
 		}
 		if (mask & add_torrent_params::flag_super_seeding) {
-			super_seeding((flags & add_torrent_params::flag_super_seeding) != 0);
+			set_super_seeding((flags & add_torrent_params::flag_super_seeding) != 0);
 		}
 		if (mask & add_torrent_params::flag_sequential_download) {
 			set_sequential_download((flags & add_torrent_params::flag_sequential_download) != 0);
-		}
-		if (mask & add_torrent_params::flag_pinned) {
-			set_pinned((flags & add_torrent_params::flag_pinned) != 0);
 		}
 		if (mask & add_torrent_params::flag_stop_when_ready) {
 			stop_when_ready((flags & add_torrent_params::flag_stop_when_ready) != 0);
