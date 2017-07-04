@@ -46,8 +46,8 @@ void test_add_and_get_flags(boost::uint64_t flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = boost::make_shared<torrent_info>("../test_torrents/base.torrent",
-		boost::ref(ec));
+	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
+		std::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = flags;
 	const torrent_handle h = ses.add_torrent(p);
@@ -61,8 +61,8 @@ void test_set_after_add(boost::uint64_t flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = boost::make_shared<torrent_info>("../test_torrents/base.torrent",
-		boost::ref(ec));
+	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
+		std::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = 0xffffffffffffffff & ~flags;
 	const torrent_handle h = ses.add_torrent(p);
@@ -78,8 +78,8 @@ void test_unset_after_add(boost::uint64_t flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = boost::make_shared<torrent_info>("../test_torrents/base.torrent",
-		boost::ref(ec));
+	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
+		std::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = flags;
 	const torrent_handle h = ses.add_torrent(p);
@@ -151,14 +151,6 @@ TORRENT_TEST(flag_sequential_download)
 	test_add_and_get_flags(add_torrent_params::flag_sequential_download);
 	test_set_after_add(add_torrent_params::flag_sequential_download);
 	test_unset_after_add(add_torrent_params::flag_sequential_download);
-}
-
-TORRENT_TEST(flag_pinned)
-{
-	// pinned
-	test_add_and_get_flags(add_torrent_params::flag_pinned);
-	test_set_after_add(add_torrent_params::flag_pinned);
-	test_unset_after_add(add_torrent_params::flag_pinned);
 }
 
 TORRENT_TEST(flag_stop_when_ready)
