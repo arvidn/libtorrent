@@ -254,7 +254,16 @@ struct unit_directory_guard
 			return;
 		}
 		remove_all(dir, ec);
-		if (ec) TEST_ERROR("Failed to remove unit test directory: " + ec.message());
+#ifdef TORRENT_WINDOWS
+		if (ec.value() == ERROR_SHARING_VIOLATION)
+		{
+			// on windows, files are removed in the background, and we may need
+			// to wait a little bit
+			std::this_thread::sleep_for(milliseconds(400));
+			remove_all(dir, ec);
+		}
+#endif
+		if (ec) std::cerr << "Failed to remove unit test directory: " << ec.message() << "\n";
 	}
 };
 
