@@ -132,6 +132,8 @@ script:
     bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib;
     LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
     fi'
+  - objdump -T libtorrent.so | grep keep_redundant_connections
+  - objdump -T ../../lib/libtorrent.so.1.1.4 | grep keep_redundant_connections
   - cd ../..
 
   - cd simulation
