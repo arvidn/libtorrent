@@ -10733,6 +10733,7 @@ namespace {
 #endif
 
 		st->state = static_cast<torrent_status::state_t>(m_state);
+		st->flags = this->flags();
 
 #if TORRENT_USE_ASSERTS
 		if (st->state == torrent_status::finished
@@ -10815,8 +10816,6 @@ namespace {
 		}
 
 		st->last_seen_complete = m_swarm_last_seen_complete;
-
-		st->flags = this->flags();
 	}
 
 	void torrent::add_redundant_bytes(int const b, waste_reason const reason)

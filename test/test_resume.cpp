@@ -897,11 +897,11 @@ void test_seed_mode(test_mode_t const flags)
 		| test_mode_t::piece_prio
 		| test_mode_t::pieces_have)))
 	{
-		TEST_EQUAL(s.seed_mode, false);
+		TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
 	}
 	else
 	{
-		TEST_EQUAL(s.seed_mode, true);
+		TEST_CHECK(s.flags & add_torrent_params::flag_seed_mode);
 	}
 }
 #ifndef TORRENT_NO_DEPRECATE
@@ -1047,14 +1047,14 @@ TORRENT_TEST(plain)
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.sequential_download, false);
-	TEST_EQUAL(s.paused, false);
-	TEST_EQUAL(s.auto_managed, false);
-	TEST_EQUAL(s.seed_mode, false);
-	TEST_EQUAL(s.super_seeding, false);
-	TEST_EQUAL(s.share_mode, false);
-	TEST_EQUAL(s.upload_mode, false);
-	TEST_EQUAL(s.ip_filter_applies, false);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1070,14 +1070,14 @@ TORRENT_TEST(seed_mode)
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.sequential_download, false);
-	TEST_EQUAL(s.paused, false);
-	TEST_EQUAL(s.auto_managed, false);
-	TEST_EQUAL(s.seed_mode, true);
-	TEST_EQUAL(s.super_seeding, false);
-	TEST_EQUAL(s.share_mode, false);
-	TEST_EQUAL(s.upload_mode, false);
-	TEST_EQUAL(s.ip_filter_applies, false);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
+	TEST_CHECK(s.flags & add_torrent_params::flag_seed_mode);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1092,14 +1092,14 @@ TORRENT_TEST(upload_mode)
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.sequential_download, false);
-	TEST_EQUAL(s.paused, false);
-	TEST_EQUAL(s.auto_managed, false);
-	TEST_EQUAL(s.seed_mode, false);
-	TEST_EQUAL(s.super_seeding, false);
-	TEST_EQUAL(s.share_mode, false);
-	TEST_EQUAL(s.upload_mode, true);
-	TEST_EQUAL(s.ip_filter_applies, false);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
+	TEST_CHECK(s.flags & add_torrent_params::flag_upload_mode);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1115,14 +1115,14 @@ TORRENT_TEST(share_mode)
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.sequential_download, false);
-	TEST_EQUAL(s.paused, false);
-	TEST_EQUAL(s.auto_managed, false);
-	TEST_EQUAL(s.seed_mode, false);
-	TEST_EQUAL(s.super_seeding, false);
-	TEST_EQUAL(s.share_mode, true);
-	TEST_EQUAL(s.upload_mode, false);
-	TEST_EQUAL(s.ip_filter_applies, false);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
+	TEST_CHECK(s.flags & add_torrent_params::flag_share_mode);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1138,14 +1138,14 @@ TORRENT_TEST(auto_managed)
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.sequential_download, false);
-	TEST_EQUAL(s.paused, false);
-	TEST_EQUAL(s.auto_managed, true);
-	TEST_EQUAL(s.seed_mode, false);
-	TEST_EQUAL(s.super_seeding, false);
-	TEST_EQUAL(s.share_mode, false);
-	TEST_EQUAL(s.upload_mode, false);
-	TEST_EQUAL(s.ip_filter_applies, false);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
+	TEST_CHECK(s.flags & add_torrent_params::flag_auto_managed);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1161,14 +1161,14 @@ TORRENT_TEST(paused)
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.sequential_download, false);
-	TEST_EQUAL(s.paused, true);
-	TEST_EQUAL(s.auto_managed, false);
-	TEST_EQUAL(s.seed_mode, false);
-	TEST_EQUAL(s.super_seeding, false);
-	TEST_EQUAL(s.share_mode, false);
-	TEST_EQUAL(s.upload_mode, false);
-	TEST_EQUAL(s.ip_filter_applies, false);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
+	TEST_CHECK(s.flags & add_torrent_params::flag_paused);
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
+	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 
