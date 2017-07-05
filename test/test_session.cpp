@@ -183,9 +183,6 @@ TORRENT_TEST(async_add_torrent_duplicate_back_to_back)
 	TEST_CHECK(!a->error);
 
 	torrent_status st = h.status();
-	std::printf("paused = %d\n", st.paused);
-	std::printf("flags = 0x%x\n", st.flags);
-	std::printf("flags & flag_paused = 0x%x\n", st.flags & add_torrent_params::flag_paused);
 	TEST_CHECK(st.flags & add_torrent_params::flag_paused);
 	TEST_CHECK(!(st.flags & add_torrent_params::flag_apply_ip_filter));
 	TEST_CHECK(!(st.flags & add_torrent_params::flag_auto_managed));
