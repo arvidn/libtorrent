@@ -403,8 +403,6 @@ namespace libtorrent {
 
 		boost::uint64_t flags() const;
 		void set_flags(boost::uint64_t flags, boost::uint64_t mask);
-		void set_flags(boost::uint64_t flags) { set_flags(0xffffffffffffffff, flags); }
-		void unset_flags(boost::uint64_t flags) { set_flags(0, flags); }
 
 		void set_upload_mode(bool b);
 		bool upload_mode() const { return m_upload_mode || m_graceful_pause_mode; }

@@ -272,19 +272,17 @@ namespace libtorrent {
 
 	void torrent_handle::set_flags(boost::uint64_t flags, boost::uint64_t mask) const
 	{
-		void (torrent::*set_flags)(boost::uint64_t, boost::uint64_t) = &torrent::set_flags;
-		async_call(set_flags, flags, mask);
+		async_call(&torrent::set_flags, flags, mask);
 	}
 
 	void torrent_handle::set_flags(boost::uint64_t flags) const
 	{
-		void (torrent::*set_flags)(boost::uint64_t) = &torrent::set_flags;
-		async_call(set_flags, flags);
+		async_call(&torrent::set_flags, 0xffffffffffffffff, flags);
 	}
 
 	void torrent_handle::unset_flags(boost::uint64_t flags) const
 	{
-		async_call(&torrent::unset_flags, flags);
+		async_call(&torrent::set_flags, 0, flags);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
