@@ -275,6 +275,17 @@ namespace libtorrent
 			// added.
 			flag_stop_when_ready = 0x4000,
 
+			// specifies whether we should keep open any connections where both ends
+			// have no utility in keeping the connections open. For instance if both
+			// ends have completed their downloads, there's no point in keeping them
+			// open. This can be useful if a partial set of pieces are requested,
+			// and all have been downloaded, but you know that you may request more
+			// soon.
+			//
+			// This acts as a per-torrent override to
+			// ``settings_pack::close_redundant_connections``.
+			flag_keep_redundant_connections = 0x20000,
+
 			// internal
 			default_flags = flag_pinned | flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
 
