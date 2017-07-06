@@ -236,7 +236,7 @@ namespace libtorrent
 		, m_finished_time(0)
 		, m_sequential_download(false)
 		, m_auto_sequential(false)
-		, m_keep_redundant_connections(false)
+		, m_keep_redundant_connections((p.flags & add_torrent_params::flag_keep_redundant_connections) != 0)
 		, m_seed_mode(false)
 		, m_super_seeding(false)
 		, m_override_resume_data((p.flags & add_torrent_params::flag_override_resume_data) != 0)
@@ -283,7 +283,6 @@ namespace libtorrent
 		, m_use_resume_save_path((p.flags & add_torrent_params::flag_use_resume_save_path) != 0)
 		, m_merge_resume_http_seeds((p.flags & add_torrent_params::flag_merge_resume_http_seeds) != 0)
 		, m_stop_when_ready((p.flags & add_torrent_params::flag_stop_when_ready) != 0)
-		, m_keep_redundant_connections((p.flags & add_torrent_params::flag_keep_redundant_connections) != 0)
 #if TORRENT_USE_ASSERTS
 		, m_resume_data_loaded(false)
 		, m_was_started(false)
