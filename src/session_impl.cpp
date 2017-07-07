@@ -260,35 +260,12 @@ namespace aux {
 	}
 #endif // TORRENT_DISABLE_DHT
 
-	std::list<listen_socket_t>::iterator partition_listen_sockets(
-		std::vector<listen_endpoint_t>& eps
-		, std::list<listen_socket_t>& sockets)
+	bool operator==(listen_endpoint_t const& ep, listen_socket_t const& sock)
 	{
-		return std::partition(sockets.begin(), sockets.end()
-			, [&eps](listen_socket_t const& sock)
-		{
-			auto match = std::find_if(eps.begin(), eps.end()
-				, [&sock](listen_endpoint_t const& ep)
-			{
-				return ep.ssl == sock.ssl
-					&& ep.port == sock.original_port
-					&& ep.device == sock.device
-					&& ep.addr == sock.local_endpoint.address();
-			});
-
-			if (match != eps.end())
-			{
-				// remove the matched endpoint so that another socket can't match it
-				// this also signals to the caller that it doesn't need to create a
-				// socket for the endpoint
-				eps.erase(match);
-				return true;
-			}
-			else
-			{
-				return false;
-			}
-		});
+		return ep.ssl == sock.ssl
+			&& ep.port == sock.original_port
+			&& ep.device == sock.device
+			&& ep.addr == sock.local_endpoint.address();
 	}
 
 	// To comply with BEP 45 multi homed clients must run separate DHT nodes
@@ -1887,6 +1864,50 @@ namespace {
 		}
 	}
 
+	void session_impl::remove_listen_sockets(std::vector<listen_endpoint_t>& eps)
+	{
+		m_listen_sockets.remove_if([&eps, this](listen_socket_t const& sock)
+		{
+			auto match = std::find_if(eps.begin(), eps.end()
+				, [&sock](listen_endpoint_t const& ep)
+			{
+				return ep == sock;
+			});
+
+			if (match != eps.end())
+			{
+				// remove the matched endpoint so that another socket can't match it
+				// this also signals to the caller that it doesn't need to create a
+				// socket for the endpoint
+				eps.erase(match);
+				return false;
+			}
+			else
+			{
+#ifndef TORRENT_DISABLE_DHT
+				if (m_dht)
+					// const_cast only because the dht holds non-const pointers
+					m_dht->delete_socket(const_cast<listen_socket_t*>(&sock));
+#endif
+
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log())
+				{
+					session_log("closing listen socket for %s on device \"%s\""
+						, print_endpoint(sock.local_endpoint).c_str()
+						, sock.device.c_str());
+				}
+#endif
+
+				error_code ec;
+				if (sock.sock) sock.sock->close(ec);
+				if (sock.udp_sock) sock.udp_sock->sock.close();
+
+				return true;
+			}
+		});
+	}
+
 	void session_impl::reopen_listen_sockets()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1948,27 +1969,7 @@ namespace {
 		}
 #endif
 
-		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
-
-		while (remove_iter != m_listen_sockets.end())
-		{
-#ifndef TORRENT_DISABLE_DHT
-			if (m_dht)
-				m_dht->delete_socket(&*remove_iter);
-#endif
-
-#ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
-			{
-				session_log("closing listen socket for %s on device \"%s\""
-					, print_endpoint(remove_iter->local_endpoint).c_str()
-					, remove_iter->device.c_str());
-			}
-#endif
-			if (remove_iter->sock) remove_iter->sock->close(ec);
-			if (remove_iter->udp_sock) remove_iter->udp_sock->sock.close();
-			remove_iter = m_listen_sockets.erase(remove_iter);
-		}
+		remove_listen_sockets(eps);
 
 		// open new sockets on any endpoints that didn't match with
 		// an existing socket
