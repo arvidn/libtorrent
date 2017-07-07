@@ -39,24 +39,6 @@ namespace
 {
 	using tp = aux::transport;
 
-	void test_equal(aux::listen_socket_t const& s, address addr, int port
-		, std::string dev, tp ssl)
-	{
-		TEST_CHECK(s.ssl == ssl);
-		TEST_EQUAL(s.local_endpoint.address(), addr);
-		TEST_EQUAL(s.original_port, port);
-		TEST_EQUAL(s.device, dev);
-	}
-
-	void test_equal(aux::listen_endpoint_t const& e1, address addr, int port
-		, std::string dev, tp ssl)
-	{
-		TEST_CHECK(e1.ssl == ssl);
-		TEST_EQUAL(e1.port, port);
-		TEST_EQUAL(e1.addr, addr);
-		TEST_EQUAL(e1.device, dev);
-	}
-
 	ip_interface ifc(char const* ip, char const* device)
 	{
 		ip_interface ipi;
@@ -80,14 +62,18 @@ namespace
 	}
 
 	aux::listen_socket_t sock(char const* ip, int const port
-		, int const original_port, char const* device = "")
+		, int const original_port, char const* device = "", tp ssl = tp::plaintext)
 	{
 		aux::listen_socket_t s;
 		s.local_endpoint = tcp::endpoint(address::from_string(ip), port);
 		s.original_port = original_port;
 		s.device = device;
+		s.ssl = ssl;
 		return s;
 	}
+
+	aux::listen_socket_t sock(char const* ip, int const port, tp ssl)
+	{ return sock(ip, port, port, "", ssl); }
 
 	aux::listen_socket_t sock(char const* ip, int const port, char const* dev)
 	{ return sock(ip, port, port, dev); }
@@ -97,133 +83,31 @@ namespace
 
 } // anonymous namespace
 
-TORRENT_TEST(partition_listen_sockets_wildcard2specific)
+bool operator!=(aux::listen_endpoint_t const& ep, aux::listen_socket_t const& socket)
 {
-	std::list<aux::listen_socket_t> sockets = {
-		sock("0.0.0.0", 6881), sock("4.4.4.4", 6881)
-	};
-
-	// remove the wildcard socket and replace it with a specific IP
-	std::vector<aux::listen_endpoint_t> eps = {
-		ep("4.4.4.4", 6881), ep("4.4.4.5", 6881)
-	};
-
-	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
-	TEST_EQUAL(eps.size(), 1);
-	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
-	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(sockets.front(), address_v4::from_string("4.4.4.4"), 6881, "", tp::plaintext);
-	test_equal(sockets.back(), address_v4(), 6881, "", tp::plaintext);
-	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
+	return !(ep == socket);
 }
 
-TORRENT_TEST(partition_listen_sockets_port_change)
+TORRENT_TEST(listen_socket_endpoint_compare)
 {
-	std::list<aux::listen_socket_t> sockets = {
-		sock("4.4.4.4", 6881), sock("4.4.4.5", 6881)
-	};
+	TEST_CHECK(ep("4.4.4.4", 6881) != sock("0.0.0.0", 6881));
+	TEST_CHECK(ep("4.4.4.4", 6881) == sock("4.4.4.4", 6881));
+	TEST_CHECK(ep("4.4.4.4", 6881) != sock("4.4.4.5", 6881));
 
-	// change the ports
-	std::vector<aux::listen_endpoint_t> eps = {
-		ep("4.4.4.4", 6882), ep("4.4.4.5", 6882)
-	};
-	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
-	TEST_CHECK(sockets.begin() == remove_iter);
-	TEST_EQUAL(eps.size(), 2);
-}
+	TEST_CHECK(ep("4.4.4.4", 6881) != sock("4.4.4.4", 6882));
 
-TORRENT_TEST(partition_listen_sockets_device_bound)
-{
-	std::list<aux::listen_socket_t> sockets = {
-		sock("4.4.4.5", 6881), sock("0.0.0.0", 6881)
-	};
+	TEST_CHECK(ep("4.4.4.6", 6881, "eth1") == sock("4.4.4.6", 6881, "eth1"));
+	TEST_CHECK(ep("4.4.4.6", 6881, "eth1") != sock("4.4.4.6", 6881, "enp3s0"));
+	TEST_CHECK(ep("4.4.4.6", 6881, "eth1") != sock("4.4.4.6", 6881));
 
-	// replace the wildcard socket with a pair of device bound sockets
-	std::vector<aux::listen_endpoint_t> eps = {
-		ep("4.4.4.5", 6881)
-		, ep("4.4.4.6", 6881, "eth1")
-		, ep("4.4.4.7", 6881, "eth1")
-	};
+	TEST_CHECK(ep("4.4.4.4", 6881, "eth1") != sock("4.4.4.6", 6881, "eth1"));
 
-	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
-	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
-	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(sockets.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
-	test_equal(sockets.back(), address_v4(), 6881, "", tp::plaintext);
-	TEST_EQUAL(eps.size(), 2);
-}
+	TEST_CHECK(ep("4.4.4.4", 6881) == sock("4.4.4.4", 6883, 6881));
 
-TORRENT_TEST(partition_listen_sockets_device_ip_change)
-{
-	std::list<aux::listen_socket_t> sockets = {
-		sock("10.10.10.10", 6881, "enp3s0")
-		, sock("4.4.4.4", 6881, "enp3s0")
-	};
+	TEST_CHECK(ep("4.4.4.4", 6881, tp::ssl) == sock("4.4.4.4", 6881, tp::ssl));
+	TEST_CHECK(ep("4.4.4.4", 6881, tp::ssl) != sock("4.4.4.4", 6881));
 
-	// change the IP of a device bound socket
-	std::vector<aux::listen_endpoint_t> eps = {
-		ep("10.10.10.10", 6881, "enp3s0")
-		, ep("4.4.4.5", 6881, "enp3s0")
-	};
-	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
-	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
-	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(sockets.front(), address_v4::from_string("10.10.10.10"), 6881, "enp3s0", tp::plaintext);
-	test_equal(sockets.back(), address_v4::from_string("4.4.4.4"), 6881, "enp3s0", tp::plaintext);
-	TEST_EQUAL(eps.size(), 1);
-	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "enp3s0", tp::plaintext);
-}
-
-TORRENT_TEST(partition_listen_sockets_original_port)
-{
-	std::list<aux::listen_socket_t> sockets = {
-		sock("10.10.10.10", 6883, 6881), sock("4.4.4.4", 6883, 6881)
-	};
-
-	// make sure all sockets are kept when the actual port is different from the original
-	std::vector<aux::listen_endpoint_t> eps = {
-		ep("10.10.10.10", 6881)
-		, ep("4.4.4.4", 6881)
-	};
-
-	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
-	TEST_CHECK(remove_iter == sockets.end());
-	TEST_CHECK(eps.empty());
-}
-
-TORRENT_TEST(partition_listen_sockets_ssl)
-{
-	std::list<aux::listen_socket_t> sockets = {
-		sock("10.10.10.10", 6881), sock("4.4.4.4", 6881)
-	};
-
-	// add ssl sockets
-	std::vector<aux::listen_endpoint_t> eps = {
-		ep("10.10.10.10", 6881)
-		, ep("4.4.4.4", 6881)
-		, ep("10.10.10.10", 6881, tp::ssl)
-		, ep("4.4.4.4", 6881, tp::ssl)
-	};
-
-	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
-	TEST_CHECK(remove_iter == sockets.end());
-	TEST_EQUAL(eps.size(), 2);
-}
-
-TORRENT_TEST(partition_listen_sockets_op_ports)
-{
-	std::list<aux::listen_socket_t> sockets = {
-		sock("10.10.10.10", 6881, 0), sock("4.4.4.4", 6881)
-	};
-
-	// replace OS assigned ports with explicit ports
-	std::vector<aux::listen_endpoint_t> eps ={
-		ep("10.10.10.10", 6882),
-		ep("4.4.4.4", 6882),
-	};
-	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
-	TEST_CHECK(remove_iter == sockets.begin());
-	TEST_EQUAL(eps.size(), 2);
+	TEST_CHECK(ep("4.4.4.4", 6882) != sock("4.4.4.4", 6881, 0));
 }
 
 TORRENT_TEST(expand_unspecified)

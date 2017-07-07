@@ -207,14 +207,8 @@ namespace aux {
 			transport ssl;
 		};
 
-		// partitions sockets based on whether they match one of the given endpoints
-		// all matched sockets are ordered before unmatched sockets
-		// matched endpoints are removed from the vector
-		// returns an iterator to the first unmatched socket
-		TORRENT_EXTRA_EXPORT std::list<listen_socket_t>::iterator
-		partition_listen_sockets(
-			std::vector<listen_endpoint_t>& eps
-			, std::list<listen_socket_t>& sockets);
+		TORRENT_EXTRA_EXPORT bool operator==(listen_endpoint_t const& ep
+			, listen_socket_t const& sock);
 
 		// expand [::] to all IPv6 interfaces for BEP 45 compliance
 		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
@@ -775,6 +769,10 @@ namespace aux {
 
 			void interface_to_endpoints(std::string const& device, int const port
 				, bool const ssl, std::vector<listen_endpoint_t>& eps);
+
+			// remove any sockets which do not match one of the given endpoints
+			// matched endpoints will be removed from the vector
+			void remove_listen_sockets(std::vector<listen_endpoint_t>& eps);
 
 			// the settings for the client
 			aux::session_settings m_settings;
