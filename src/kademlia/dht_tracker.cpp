@@ -247,6 +247,8 @@ namespace libtorrent { namespace dht {
 		if (e || !m_running) return;
 
 		auto const it = m_nodes.find(s);
+		// this could happen if the task is about to be executed (and not cancellable) and
+		// the socket is just removed
 		if (it == m_nodes.end()) return; // node already destroyed
 
 		tracker_node& n = it->second;
@@ -648,16 +650,7 @@ namespace libtorrent { namespace dht {
 
 	bool dht_tracker::send_packet(aux::session_listen_socket* s, entry& e, udp::endpoint const& addr)
 	{
-		// this check is necessary because this function is triggered by the m_refresh_timer
-		// via dht.tick, if the pair (socket, node) is removed from the map while this operation
-		// is right to go executed, this address becomes invalid
-		if (m_nodes.find(s) == m_nodes.end()) // socket already removed
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			m_log->log(dht_logger::tracker, "ignoring send_packet due to removed listen socket");
-#endif
-			return false;
-		}
+		TORRENT_ASSERT(m_nodes.find(s) != m_nodes.end());
 
 		static char const version_str[] = {'L', 'T'
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR};

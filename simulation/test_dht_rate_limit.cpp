@@ -227,3 +227,50 @@ TORRENT_TEST(dht_rate_limit)
 
 #endif // #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 }
+
+// TODO: put test here to take advantage of existing code, refactor
+TORRENT_TEST(dht_delete_socket)
+{
+#ifndef TORRENT_DISABLE_DHT
+
+	sim::default_config cfg;
+	sim::simulation sim(cfg);
+	sim::asio::io_service dht_ios(sim, lt::address_v4::from_string("40.30.20.10"));
+
+	lt::udp_socket sock(dht_ios);
+	error_code ec;
+	sock.bind(udp::endpoint(address_v4::from_string("40.30.20.10"), 8888), ec);
+
+	obs o;
+	mock_socket ds;
+	dht_settings dhtsett;
+	counters cnt;
+	dht::dht_state state;
+	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(dhtsett));
+	auto dht = std::make_shared<lt::dht::dht_tracker>(
+		&o, dht_ios, std::bind(&send_packet, std::ref(sock), _1, _2, _3, _4, _5)
+		, dhtsett, cnt, *dht_storage, state);
+
+	dht->start([](std::vector<std::pair<dht::node_entry, std::string>> const&){});
+	dht->new_socket(&ds);
+
+	// schedule the removal of the socket at exactly 2 second,
+	// this simulates the fact that the internal scheduled call
+	// to connection_timeout will be executed right after leaving
+	// the state of cancellable
+	asio::high_resolution_timer t1(dht_ios);
+	t1.expires_from_now(chrono::seconds(2));
+	t1.async_wait([&](error_code const&)
+		{
+			dht->delete_socket(&ds);
+		});
+
+	// stop the DHT
+	asio::high_resolution_timer t2(dht_ios);
+	t2.expires_from_now(chrono::seconds(3));
+	t2.async_wait([&](error_code const&) { dht->stop(); });
+
+	sim.run();
+
+#endif // TORRENT_DISABLE_DHT
+}
