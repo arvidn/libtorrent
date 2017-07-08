@@ -327,15 +327,12 @@ else()
 endif()
 
 if (MSVC)
-# disable bogus deprecation warnings on msvc8
-	add_definitions(-D_SCL_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_DEPRECATE)
-# these compiler settings just makes the compiler standard conforming
-	add_definitions(/Zc:wchar_t /Zc:forScope)
-# for multi-core compilation
-	add_definitions(/MP)
-
-#$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
-#$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:REF
+	# disable bogus deprecation warnings on msvc8
+	target_compile_definitions(torrent-rasterbar PUBLIC _SCL_SECURE_NO_DEPRECATE _CRT_SECURE_NO_DEPRECATE)
+	# these compiler settings just make the compiler standard conforming
+	target_compile_options(torrent-rasterbar PUBLIC /Zc:wchar_t /Zc:forScope)
+	# for multi-core compilation
+	target_compile_options(torrent-rasterbar PUBLIC /MP)
 endif()
 
 target_compile_definitions(torrent-rasterbar PUBLIC _FILE_OFFSET_BITS=64)
