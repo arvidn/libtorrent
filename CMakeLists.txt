@@ -179,18 +179,8 @@ option(libiconv "enable linking against system libiconv" OFF)
 option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
 
-set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
-
-if (NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release FORCE)
-endif()
-
 # add_definitions() doesn't seem to let you say wich build type to apply it to
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DTORRENT_DEBUG")
-if(UNIX)
-	set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -g")
-	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-endif()
 
 find_package(Threads REQUIRED)
 
@@ -347,8 +337,6 @@ if (MSVC)
 
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:REF
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	add_definitions(-fcolor-diagnostics)
 endif()
 
 target_compile_definitions(torrent-rasterbar PUBLIC _FILE_OFFSET_BITS=64)
