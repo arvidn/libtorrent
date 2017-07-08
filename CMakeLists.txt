@@ -365,11 +365,45 @@ else()
 	set (LIBDIR "lib")
 endif()
 
-install(TARGETS torrent-rasterbar DESTINATION ${LIBDIR})
-install(DIRECTORY include/libtorrent
-	DESTINATION include
-	PATTERN ".svn" EXCLUDE)
+install(TARGETS torrent-rasterbar EXPORT torrent-rasterbarTargets
+	DESTINATION ${LIBDIR} INCLUDES DESTINATION include)
+install(DIRECTORY include/libtorrent DESTINATION include)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar.pc DESTINATION ${LIBDIR}/pkgconfig)
+
+# === generate a CMake Config File ===
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfigVersion.cmake"
+	VERSION ${VERSION}
+	COMPATIBILITY ExactVersion
+)
+
+export(EXPORT torrent-rasterbarTargets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarTargets.cmake"
+	NAMESPACE Libtorrent::
+)
+
+configure_file(libtorrent-rasterbarConfig.cmake
+	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfig.cmake"
+	COPYONLY
+)
+
+set(ConfigPackageLocation lib/cmake/libtorrent-rasterbar)
+install(EXPORT torrent-rasterbarTargets
+	FILE
+		libtorrent-rasterbarTargets.cmake
+	NAMESPACE
+		Libtorrent::
+	DESTINATION
+		${ConfigPackageLocation}
+)
+install(
+	FILES
+		libtorrent-rasterbarConfig.cmake
+		"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfigVersion.cmake"
+	DESTINATION
+		${ConfigPackageLocation}
+)
 
 # === set up examples directory as an independent project ===
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/examples)
