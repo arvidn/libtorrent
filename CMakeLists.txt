@@ -179,9 +179,6 @@ option(libiconv "enable linking against system libiconv" OFF)
 option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
 
-# add_definitions() doesn't seem to let you say wich build type to apply it to
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DTORRENT_DEBUG")
-
 find_package(Threads REQUIRED)
 
 include_directories(${includes})
@@ -241,6 +238,8 @@ else()
 	set(Boost_USE_STATIC_LIBS ON)
 	add_library(torrent-rasterbar STATIC ${sources2})
 endif()
+
+target_compile_definitions(torrent-rasterbar PUBLIC $<$<CONFIG:Debug>:TORRENT_DEBUG>)
 
 target_compile_definitions(torrent-rasterbar PRIVATE TORRENT_BUILDING_LIBRARY)
 
