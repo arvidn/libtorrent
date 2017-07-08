@@ -162,7 +162,7 @@ namespace libtorrent { namespace dht {
 		std::shared_ptr<dht_tracker> self()
 		{ return shared_from_this(); }
 
-		void connection_timeout(tracker_node& n, error_code const& e);
+		void connection_timeout(aux::session_listen_socket* s, error_code const& e);
 		void refresh_timeout(error_code const& e);
 		void refresh_key(error_code const& e);
 		void update_storage_node_ids();

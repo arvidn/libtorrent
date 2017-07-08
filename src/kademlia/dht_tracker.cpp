@@ -149,8 +149,8 @@ namespace libtorrent { namespace dht {
 			error_code ec;
 			n.first->second.connection_timer.expires_from_now(seconds(1), ec);
 			n.first->second.connection_timer.async_wait(
-				std::bind(&dht_tracker::connection_timeout, self(), std::ref(n.first->second), _1));
-			n.first->second.dht.bootstrap(std::vector<udp::endpoint>(), find_data::nodes_callback());
+				std::bind(&dht_tracker::connection_timeout, self(), n.first->first, _1));
+			n.first->second.dht.bootstrap({}, find_data::nodes_callback());
 		}
 	}
 
@@ -176,7 +176,7 @@ namespace libtorrent { namespace dht {
 		{
 			n.second.connection_timer.expires_from_now(seconds(1), ec);
 			n.second.connection_timer.async_wait(
-				std::bind(&dht_tracker::connection_timeout, self(), std::ref(n.second), _1));
+				std::bind(&dht_tracker::connection_timeout, self(), n.first, _1));
 #if TORRENT_USE_IPV6
 			if (n.first->get_local_endpoint().protocol() == tcp::v6())
 				n.second.dht.bootstrap(concat(m_state.nodes6, m_state.nodes), f);
@@ -242,15 +242,21 @@ namespace libtorrent { namespace dht {
 			add_dht_counters(n.second.dht, c);
 	}
 
-	void dht_tracker::connection_timeout(tracker_node& n, error_code const& e)
+	void dht_tracker::connection_timeout(aux::session_listen_socket* s, error_code const& e)
 	{
 		if (e || !m_running) return;
 
-		time_duration d = n.dht.connection_timeout();
+		auto const it = m_nodes.find(s);
+		// this could happen if the task is about to be executed (and not cancellable) and
+		// the socket is just removed
+		if (it == m_nodes.end()) return; // node already destroyed
+
+		tracker_node& n = it->second;
+		time_duration const d = n.dht.connection_timeout();
 		error_code ec;
 		deadline_timer& timer = n.connection_timer;
 		timer.expires_from_now(d, ec);
-		timer.async_wait(std::bind(&dht_tracker::connection_timeout, self(), std::ref(n), _1));
+		timer.async_wait(std::bind(&dht_tracker::connection_timeout, self(), s, _1));
 	}
 
 	void dht_tracker::refresh_timeout(error_code const& e)
@@ -644,6 +650,8 @@ namespace libtorrent { namespace dht {
 
 	bool dht_tracker::send_packet(aux::session_listen_socket* s, entry& e, udp::endpoint const& addr)
 	{
+		TORRENT_ASSERT(m_nodes.find(s) != m_nodes.end());
+
 		static char const version_str[] = {'L', 'T'
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR};
 		e["v"] = std::string(version_str, version_str + 4);
