@@ -192,42 +192,17 @@ if(UNIX)
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 endif()
 
-if (build_tests)
-	# this will make some internal functions available in the
-	# DLL interface, for the tests to access
-	add_definitions(-DTORRENT_EXPORT_EXTRA)
-endif (build_tests)
-
 find_package(Threads REQUIRED)
 
 include_directories(${includes})
 
-add_definitions(-DTORRENT_BUILDING_LIBRARY)
-
-if (libiconv)
-	find_package(Iconv REQUIRED)
-	add_definitions(-DTORRENT_USE_ICONV)
-	include_directories(SYSTEM ${ICONV_INCLUDE_DIR})
-endif (libiconv)
-
 if (encryption)
 	list(APPEND sources pe_crypto)
-	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
-		FIND_PACKAGE(OpenSSL REQUIRED)
-	endif()
-	add_definitions(-DTORRENT_USE_OPENSSL)
-	add_definitions(-DTORRENT_USE_LIBCRYPTO)
-	include_directories(${OPENSSL_INCLUDE_DIR})
 else()
-	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
 	if (NOT WIN32 AND NOT APPLE)
 		list(APPEND sources sha1)
 	endif()
 endif (encryption)
-
-if (NOT logging)
-	add_definitions(-DTORRENT_DISABLE_LOGGING)
-endif()
 
 foreach(s ${sources})
 	list(APPEND sources2 src/${s})
@@ -244,13 +219,11 @@ if (dht)
 	if (NOT encryption AND NOT WIN32 AND NOT APPLE)
 		list(APPEND sources2 src/sha512)
 	endif()
-else()
-	add_definitions(-DTORRENT_DISABLE_DHT)
 endif()
 
 if (shared)
-	add_definitions(-DTORRENT_BUILDING_SHARED)
 	add_library(torrent-rasterbar SHARED ${sources2})
+	target_compile_definitions(torrent-rasterbar PRIVATE TORRENT_BUILDING_SHARED)
 	if(NOT MSVC)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
@@ -279,6 +252,38 @@ else()
 	add_library(torrent-rasterbar STATIC ${sources2})
 endif()
 
+target_compile_definitions(torrent-rasterbar PRIVATE TORRENT_BUILDING_LIBRARY)
+
+if (build_tests)
+	# this will make some internal functions available in the
+	# DLL interface, for the tests to access
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPORT_EXTRA)
+endif (build_tests)
+
+if (libiconv)
+	find_package(Iconv REQUIRED)
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_ICONV)
+	target_include_directories(torrent-rasterbar SYSTEM PUBLIC ${ICONV_INCLUDE_DIR})
+endif (libiconv)
+
+if (encryption)
+	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
+		FIND_PACKAGE(OpenSSL REQUIRED)
+	endif()
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_OPENSSL TORRENT_USE_LIBCRYPTO)
+	target_include_directories(torrent-rasterbar PUBLIC ${OPENSSL_INCLUDE_DIR})
+else()
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_ENCRYPTION)
+endif()
+
+if (NOT logging)
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_LOGGING)
+endif()
+
+if (NOT dht)
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
+endif()
+
 # Boost
 if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
 	FIND_PACKAGE(Boost REQUIRED COMPONENTS system)
@@ -286,16 +291,14 @@ endif()
 include_directories(${Boost_INCLUDE_DIRS})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
-add_definitions(-DBOOST_ASIO_HAS_STD_CHRONO=1 )
-
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32 Iphlpapi)
-	add_definitions(-D_WIN32_WINNT=0x0600)
+	# target Windows Vista or later
+	target_compile_definitions(torrent-rasterbar PUBLIC _WIN32_WINNT=0x0600)
 	# prevent winsock1 to be included
-	add_definitions(-DWIN32_LEAN_AND_MEAN)
+	target_compile_definitions(torrent-rasterbar PUBLIC WIN32_LEAN_AND_MEAN)
 	if (MSVC)
-		add_definitions(-DBOOST_ALL_NO_LIB)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # multicore compilation
+		target_compile_definitions(torrent-rasterbar PUBLIC BOOST_ALL_NO_LIB)
 	endif()
 endif()
 
@@ -313,11 +316,11 @@ if (libiconv)
 endif (libiconv)
 
 if (NOT pool-allocators)
-	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_POOL_ALLOCATOR)
 endif()
 
 if (NOT deprecated-functions)
-	add_definitions(-DTORRENT_NO_DEPRECATE)
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_NO_DEPRECATE)
 endif()
 
 if (exceptions)
@@ -348,10 +351,10 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 	add_definitions(-fcolor-diagnostics)
 endif()
 
-add_definitions(-D_FILE_OFFSET_BITS=64)
-add_definitions(-DBOOST_EXCEPTION_DISABLE)
-add_definitions(-DBOOST_ASIO_ENABLE_CANCELIO)
-add_definitions(-DBOOST_ASIO_HAS_STD_CHRONO)
+target_compile_definitions(torrent-rasterbar PUBLIC _FILE_OFFSET_BITS=64)
+target_compile_definitions(torrent-rasterbar PUBLIC BOOST_EXCEPTION_DISABLE)
+target_compile_definitions(torrent-rasterbar PUBLIC BOOST_ASIO_ENABLE_CANCELIO)
+target_compile_definitions(torrent-rasterbar PUBLIC BOOST_ASIO_HAS_STD_CHRONO)
 
 set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION ${SOVERSION})
