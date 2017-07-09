@@ -33,17 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
 
-#include <cstdint>
-#include <limits>
-
 #include "libtorrent/assert.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/cstdint.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <limits>
 
 namespace libtorrent {
 
 // member of peer_connection
 struct TORRENT_EXTRA_EXPORT bandwidth_channel
 {
-	static constexpr int inf = std::numeric_limits<std::int32_t>::max();
+	static constexpr int inf = std::numeric_limits<boost::int32_t>::max();
 
 	bandwidth_channel();
 
@@ -89,11 +92,11 @@ private:
 
 	// this is the amount of bandwidth we have
 	// been assigned without using yet.
-	std::int64_t m_quota_left;
+	boost::int64_t m_quota_left;
 
 	// the limit is the number of bytes
 	// per second we are allowed to use.
-	std::int32_t m_limit;
+    boost::int32_t m_limit;
 };
 
 }

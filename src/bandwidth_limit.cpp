@@ -65,7 +65,7 @@ namespace libtorrent {
 		if (m_limit == 0) return;
 
 		// "to_add" should never have int64 overflow: "m_limit" contains < "<int>::max"
-		std::int64_t to_add = (std::int64_t(m_limit) * dt_milliseconds + 500) / 1000;
+		boost::int64_t to_add = (boost::int64_t(m_limit) * dt_milliseconds + 500) / 1000;
 
 		if (to_add > inf - m_quota_left)
 		{
@@ -74,12 +74,12 @@ namespace libtorrent {
 		else
 		{
 			m_quota_left += to_add;
-			if (m_quota_left / 3 > m_limit) m_quota_left = std::int64_t(m_limit) * 3;
+			if (m_quota_left / 3 > m_limit) m_quota_left = boost::int64_t(m_limit) * 3;
 			// "m_quota_left" will never have int64 overflow but may exceed "<int>::max"
-			m_quota_left = std::min(m_quota_left, std::int64_t(inf));
+			m_quota_left = std::min(m_quota_left, boost::int64_t(inf));
 		}
 
-		distribute_quota = int(std::max(m_quota_left, std::int64_t(0)));
+		distribute_quota = int(std::max(m_quota_left, boost::int64_t(0)));
 	}
 
 	// this is used when connections disconnect with
