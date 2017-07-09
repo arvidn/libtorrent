@@ -408,7 +408,8 @@ entry read_ut_metadata_msg(tcp::socket& s, char* recv_buffer, int size)
 
 std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	, std::shared_ptr<lt::session>& ses, bool incoming = true
-	, int flags = 0, torrent_handle* th = nullptr)
+	, torrent_flags_t const flags = torrent_flags_t{}
+	, torrent_handle* th = nullptr)
 {
 	std::shared_ptr<torrent_info> t = ::create_torrent();
 	ih = t->info_hash();
@@ -427,8 +428,8 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 
 	error_code ec;
 	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
 	p.flags |= flags;
 	p.ti = t;
 	p.save_path = "./tmp1_fast";
@@ -440,7 +441,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	if (th) *th = ret;
 
 	// wait for the torrent to be ready
-	if ((flags & add_torrent_params::flag_seed_mode) == 0)
+	if (!(flags & torrent_flags::seed_mode))
 	{
 		wait_for_downloading(*ses, "ses");
 	}
@@ -795,7 +796,8 @@ TORRENT_TEST(dont_have)
 	std::shared_ptr<lt::session> ses;
 	io_service ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, true, 0, &th);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, true
+		, torrent_flags_t{}, &th);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -970,7 +972,7 @@ void have_all_test(bool const incoming)
 	std::shared_ptr<lt::session> ses;
 	io_service ios;
 	tcp::socket s(ios);
-	setup_peer(s, ih, ses, incoming, add_torrent_params::flag_seed_mode);
+	setup_peer(s, ih, ses, incoming, torrent_flags::seed_mode);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);

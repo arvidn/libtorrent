@@ -48,8 +48,8 @@ void test_remove_url(std::string url)
 {
 	lt::session s(settings());
 	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
 	p.url = url;
 	p.save_path = ".";
 	torrent_handle h = s.add_torrent(p);
@@ -111,8 +111,8 @@ TORRENT_TEST(magnet)
 
 	// test magnet link parsing
 	add_torrent_params model;
-	model.flags &= ~add_torrent_params::flag_paused;
-	model.flags &= ~add_torrent_params::flag_auto_managed;
+	model.flags &= ~torrent_flags::paused;
+	model.flags &= ~torrent_flags::auto_managed;
 	model.save_path = ".";
 	error_code ec;
 	add_torrent_params p = model;

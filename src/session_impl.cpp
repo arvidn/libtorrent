@@ -4866,7 +4866,7 @@ namespace {
 		// we want to put it off again anyway. So that while we're adding
 		// a boat load of torrents, we postpone the recalculation until
 		// we're done adding them all (since it's kind of an expensive operation)
-		if (params.flags & add_torrent_params::flag_auto_managed)
+		if (params.flags & torrent_flags::auto_managed)
 		{
 			const int max_downloading = settings().get_int(settings_pack::active_downloads);
 			const int max_seeds = settings().get_int(settings_pack::active_seeds);
@@ -4984,7 +4984,7 @@ namespace {
 
 		if (torrent_ptr)
 		{
-			if ((params.flags & add_torrent_params::flag_duplicate_is_error) == 0)
+			if (!(params.flags & torrent_flags::duplicate_is_error))
 			{
 #ifndef TORRENT_NO_DEPRECATE
 				//deprecated in 1.2

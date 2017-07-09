@@ -95,8 +95,8 @@ void test_transfer()
 
 	// for performance testing
 	add_torrent_params atp;
-	atp.flags &= ~add_torrent_params::flag_paused;
-	atp.flags &= ~add_torrent_params::flag_auto_managed;
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
 //	atp.storage = &disabled_storage_constructor;
 
 	// test using piece sizes smaller than 16kB

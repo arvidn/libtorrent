@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/write_resume_data.hpp"
+#include "libtorrent/torrent_flags.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/peer_info.hpp" // for peer_list_entry
@@ -265,24 +266,25 @@ namespace libtorrent {
 		async_call(&torrent::pause, bool(flags & graceful_pause));
 	}
 
-	boost::uint64_t torrent_handle::flags() const
+	torrent_flags_t torrent_handle::flags() const
 	{
-		return sync_call_ret<boost::uint64_t>(0, &torrent::flags);
+		return sync_call_ret<torrent_flags_t>(torrent_flags_t{}, &torrent::flags);
 	}
 
-	void torrent_handle::set_flags(boost::uint64_t flags, boost::uint64_t mask) const
+	void torrent_handle::set_flags(torrent_flags_t const flags
+		, torrent_flags_t const mask) const
 	{
 		async_call(&torrent::set_flags, flags, mask);
 	}
 
-	void torrent_handle::set_flags(boost::uint64_t flags) const
+	void torrent_handle::set_flags(torrent_flags_t const flags) const
 	{
-		async_call(&torrent::set_flags, 0xffffffffffffffffull, flags);
+		async_call(&torrent::set_flags, torrent_flags::all, flags);
 	}
 
-	void torrent_handle::unset_flags(boost::uint64_t flags) const
+	void torrent_handle::unset_flags(torrent_flags_t const flags) const
 	{
-		async_call(&torrent::set_flags, 0ull, flags);
+		async_call(&torrent::set_flags, torrent_flags_t{}, flags);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

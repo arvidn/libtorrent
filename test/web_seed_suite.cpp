@@ -128,13 +128,13 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 	}
 
 	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
 
 	// the reason to set sequential download is to make sure that the order in
 	// which files are requested from the web server is consistent. Any specific
 	// scenario that needs testing should be an explicit test case
-	p.flags |= add_torrent_params::flag_sequential_download;
+	p.flags |= torrent_flags::sequential_download;
 	p.ti = torrent_file;
 	p.save_path = save_path;
 	torrent_handle th = ses.add_torrent(p, ec);

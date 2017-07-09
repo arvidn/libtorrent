@@ -292,8 +292,8 @@ done:
 		p = read_resume_data(resume_data, ec);
 		TEST_CHECK(!ec);
 	}
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
 	p.ti = t;
 	p.save_path = "tmp2_priority";
 
@@ -404,8 +404,8 @@ TORRENT_TEST(no_metadata_file_prio)
 	lt::session ses(pack);
 
 	add_torrent_params addp;
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
 	addp.info_hash = sha1_hash("abababababababababab");
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);
@@ -424,8 +424,8 @@ TORRENT_TEST(no_metadata_piece_prio)
 	lt::session ses(pack);
 
 	add_torrent_params addp;
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
 	addp.info_hash = sha1_hash("abababababababababab");
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);

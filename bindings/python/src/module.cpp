@@ -34,6 +34,7 @@ BOOST_PYTHON_MODULE(libtorrent)
     Py_Initialize();
     PyEval_InitThreads();
 
+    bind_converters();
     bind_error_code();
     bind_utility();
     bind_fingerprint();
@@ -51,6 +52,5 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_peer_info();
     bind_ip_filter();
     bind_magnet_uri();
-    bind_converters();
     bind_create_torrent();
 }

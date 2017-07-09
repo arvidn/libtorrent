@@ -216,7 +216,7 @@ namespace {
 		if (ec) return;
 
 		// now, merge resume_data into atp according to the merge flags
-		if (atp.flags & add_torrent_params::flag_use_resume_save_path
+		if ((atp.flags & add_torrent_params::flag_use_resume_save_path)
 			&& !resume_data.save_path.empty())
 		{
 			atp.save_path = std::move(resume_data.save_path);
@@ -236,31 +236,31 @@ namespace {
 			atp.tracker_tiers.insert(atp.tracker_tiers.end()
 				, resume_data.tracker_tiers.begin()
 				, resume_data.tracker_tiers.end());
-			if ((resume_data.flags & add_torrent_params::flag_merge_resume_trackers) == 0)
+			if (!(resume_data.flags & add_torrent_params::flag_merge_resume_trackers))
 				atp.flags |= add_torrent_params::flag_override_trackers;
 		}
 
 		if (!resume_data.url_seeds.empty())
 		{
-			if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
 				atp.url_seeds.clear();
 
 			atp.url_seeds.insert(atp.url_seeds.end()
 				, resume_data.url_seeds.begin()
 				, resume_data.url_seeds.end());
-			if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
 				atp.flags |= add_torrent_params::flag_override_web_seeds;
 		}
 
 		if (!resume_data.http_seeds.empty())
 		{
-			if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
 				atp.http_seeds.clear();
 
 			atp.http_seeds.insert(atp.http_seeds.end()
 				, resume_data.http_seeds.begin()
 				, resume_data.http_seeds.end());
-			if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
 				atp.flags |= add_torrent_params::flag_override_web_seeds;
 		}
 
@@ -294,7 +294,7 @@ namespace {
 
 		atp.renamed_files = std::move(resume_data.renamed_files);
 
-		if ((atp.flags & add_torrent_params::flag_override_resume_data) == 0)
+		if (!(atp.flags & add_torrent_params::flag_override_resume_data))
 		{
 			atp.download_limit = resume_data.download_limit;
 			atp.upload_limit = resume_data.upload_limit;
@@ -304,7 +304,7 @@ namespace {
 			if (!resume_data.file_priorities.empty())
 				atp.file_priorities = resume_data.file_priorities;
 
-			std::uint64_t const mask =
+			torrent_flags_t const mask =
 				add_torrent_params::flag_seed_mode
 				| add_torrent_params::flag_super_seeding
 				| add_torrent_params::flag_auto_managed

@@ -401,8 +401,8 @@ namespace libtorrent {
 		// before disconnecting
 		bool graceful_pause() const { return m_graceful_pause_mode; }
 
-		boost::uint64_t flags() const;
-		void set_flags(boost::uint64_t flags, boost::uint64_t mask);
+		torrent_flags_t flags() const;
+		void set_flags(torrent_flags_t flags, torrent_flags_t mask);
 
 		void set_upload_mode(bool b);
 		bool upload_mode() const { return m_upload_mode || m_graceful_pause_mode; }

@@ -8,6 +8,7 @@
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_stats.hpp" // for stats_metric
 #include "libtorrent/time.hpp"
+#include "libtorrent/torrent_flags.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/disk_interface.hpp" // for open_file_state
@@ -229,6 +230,43 @@ struct to_strong_typedef
     }
 };
 
+template<class T>
+struct from_bitfield_flag
+{
+    using underlying_type = typename T::underlying_type;
+
+    static PyObject* convert(T const v)
+    {
+        object o(static_cast<underlying_type>(v));
+        return incref(o.ptr());
+    }
+};
+
+template<typename T>
+struct to_bitfield_flag
+{
+   using underlying_type = typename T::underlying_type;
+
+   to_bitfield_flag()
+   {
+        converter::registry::push_back(
+            &convertible, &construct, type_id<T>()
+        );
+    }
+
+    static void* convertible(PyObject* x)
+    {
+        return PyNumber_Check(x) ? x : nullptr;
+    }
+
+    static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
+    {
+        void* storage = ((converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
+        new (storage) T(extract<underlying_type>(object(borrowed(x))));
+        data->convertible = storage;
+    }
+};
+
 void bind_converters()
 {
     // C++ -> python conversions
@@ -251,6 +289,7 @@ void bind_converters()
 
     to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
     to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
+    to_python_converter<lt::torrent_flags_t, from_bitfield_flag<lt::torrent_flags_t>>();
 
     // work-around types
     to_python_converter<lt::aux::noexcept_movable<lt::address>, address_to_tuple<
@@ -293,4 +332,5 @@ void bind_converters()
 
     to_strong_typedef<lt::piece_index_t>();
     to_strong_typedef<lt::file_index_t>();
+    to_bitfield_flag<lt::torrent_flags_t>();
 }

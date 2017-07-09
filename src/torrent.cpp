@@ -145,15 +145,15 @@ namespace libtorrent {
 		, bool const session_paused)
 		: m_ses(ses)
 		, m_complete(0xffffff)
-		, m_upload_mode((p.flags & add_torrent_params::flag_upload_mode) != 0)
+		, m_upload_mode(p.flags & torrent_flags::upload_mode)
 		, m_connections_initialized(false)
 		, m_abort(false)
-		, m_paused((p.flags & add_torrent_params::flag_paused) != 0)
+		, m_paused(p.flags & torrent_flags::paused)
 		, m_session_paused(session_paused)
-		, m_share_mode((p.flags & add_torrent_params::flag_share_mode) != 0)
+		, m_share_mode(p.flags & torrent_flags::share_mode)
 		, m_have_all(false)
 		, m_graceful_pause_mode(false)
-		, m_state_subscription((p.flags & add_torrent_params::flag_update_subscribe) != 0)
+		, m_state_subscription(p.flags & torrent_flags::update_subscribe)
 		, m_max_connections(0xffffff)
 		, m_block_size_shift(root2(block_size))
 		, m_state(torrent_status::checking_resume_data)
@@ -180,8 +180,8 @@ namespace libtorrent {
 		, m_info_hash(info_hash)
 		, m_error_file(torrent_status::error_file_none)
 		, m_sequence_number(-1)
-		, m_announce_to_trackers((p.flags & add_torrent_params::flag_paused) == 0)
-		, m_announce_to_lsd((p.flags & add_torrent_params::flag_paused) == 0)
+		, m_announce_to_trackers(!(p.flags & torrent_flags::paused))
+		, m_announce_to_lsd(!(p.flags & torrent_flags::paused))
 		, m_has_incoming(false)
 		, m_files_checked(false)
 		, m_storage_mode(p.storage_mode)
@@ -191,25 +191,25 @@ namespace libtorrent {
 		, m_auto_sequential(false)
 		, m_seed_mode(false)
 		, m_super_seeding(false)
-		, m_stop_when_ready((p.flags & add_torrent_params::flag_stop_when_ready) != 0)
-		, m_need_save_resume_data((p.flags & add_torrent_params::flag_need_save_resume) != 0)
+		, m_stop_when_ready(p.flags & torrent_flags::stop_when_ready)
+		, m_need_save_resume_data(p.flags & torrent_flags::need_save_resume)
 		, m_max_uploads((1 << 24) - 1)
 		, m_save_resume_flags(0)
 		, m_num_uploads(0)
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
 		, m_magnet_link(false)
-		, m_apply_ip_filter((p.flags & add_torrent_params::flag_apply_ip_filter) != 0)
+		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
 		, m_pending_active_change(false)
 		, m_padding(0)
 		, m_incomplete(0xffffff)
-		, m_announce_to_dht((p.flags & add_torrent_params::flag_paused) == 0)
+		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
 		, m_in_state_updates(false)
 		, m_is_active_download(false)
 		, m_is_active_finished(false)
 		, m_ssl_torrent(false)
 		, m_deleted(false)
-		, m_auto_managed((p.flags & add_torrent_params::flag_auto_managed) != 0)
+		, m_auto_managed(p.flags & torrent_flags::auto_managed)
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
 		, m_inactive(false)
@@ -249,7 +249,7 @@ namespace libtorrent {
 		// if override web seed flag is set, don't load any web seeds from the
 		// torrent file.
 		std::vector<web_seed_t> ws;
-		if ((p.flags & add_torrent_params::flag_override_web_seeds) == 0)
+		if (!(p.flags & torrent_flags::override_web_seeds))
 		{
 			for (auto const& e : m_torrent_file->web_seeds())
 				ws.emplace_back(e);
@@ -278,7 +278,7 @@ namespace libtorrent {
 		// --- TRACKERS ---
 
 		// if override trackers flag is set, don't load trackers from torrent file
-		if ((p.flags & add_torrent_params::flag_override_trackers) == 0)
+		if (!(p.flags & torrent_flags::override_trackers))
 		{
 			auto const& trackers = m_torrent_file->trackers();
 			m_trackers = {trackers.begin(), trackers.end()};
@@ -338,7 +338,7 @@ namespace libtorrent {
 			// so assume the seed mode flag is not intended and don't enable it in
 			// that case. Also, if the resume data says we're missing a piece, we
 			// can't be in seed-mode.
-			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0
+			m_seed_mode = (p.flags & torrent_flags::seed_mode)
 				&& std::find(p.file_priorities.begin(), p.file_priorities.end(), 0) == p.file_priorities.end()
 				&& std::find(p.piece_priorities.begin(), p.piece_priorities.end(), 0) == p.piece_priorities.end()
 				&& std::find(p.have_pieces.begin(), p.have_pieces.end(), false) == p.have_pieces.end();
@@ -613,36 +613,36 @@ namespace libtorrent {
 				, p.max_connections
 				, p.upload_limit
 				, p.download_limit
-				, (p.flags & add_torrent_params::flag_seed_mode)
+				, (p.flags & torrent_flags::seed_mode)
 					? "seed-mode " : ""
-				, (p.flags & add_torrent_params::flag_upload_mode)
+				, (p.flags & torrent_flags::upload_mode)
 					? "upload-mode " : ""
-				, (p.flags & add_torrent_params::flag_share_mode)
+				, (p.flags & torrent_flags::share_mode)
 					? "share-mode " : ""
-				, (p.flags & add_torrent_params::flag_apply_ip_filter)
+				, (p.flags & torrent_flags::apply_ip_filter)
 					? "apply-ip-filter " : ""
-				, (p.flags & add_torrent_params::flag_paused)
+				, (p.flags & torrent_flags::paused)
 					? "paused " : ""
-				, (p.flags & add_torrent_params::flag_auto_managed)
+				, (p.flags & torrent_flags::auto_managed)
 					? "auto-managed " : ""
-				, (p.flags & add_torrent_params::flag_update_subscribe)
+				, (p.flags & torrent_flags::update_subscribe)
 					? "update-subscribe " : ""
-				, (p.flags & add_torrent_params::flag_super_seeding)
+				, (p.flags & torrent_flags::super_seeding)
 					? "super-seeding " : ""
-				, (p.flags & add_torrent_params::flag_sequential_download)
+				, (p.flags & torrent_flags::sequential_download)
 					? "sequential-download " : ""
-				, (p.flags & add_torrent_params::flag_override_trackers)
+				, (p.flags & torrent_flags::override_trackers)
 					? "override-trackers"  : ""
-				, (p.flags & add_torrent_params::flag_override_web_seeds)
+				, (p.flags & torrent_flags::override_web_seeds)
 					? "override-web-seeds " : ""
 				, p.save_path.c_str()
 				);
 		}
 #endif
-		if (p.flags & add_torrent_params::flag_sequential_download)
+		if (p.flags & torrent_flags::sequential_download)
 			m_sequential_download = true;
 
-		if (p.flags & add_torrent_params::flag_super_seeding)
+		if (p.flags & torrent_flags::super_seeding)
 		{
 			m_super_seeding = true;
 			set_need_save_resume();
@@ -901,74 +901,59 @@ namespace libtorrent {
 #endif
 	}
 
-	boost::uint64_t torrent::flags() const
+	torrent_flags_t torrent::flags() const
 	{
-		boost::uint64_t ret = 0;
-		if (m_seed_mode) {
-			ret |= add_torrent_params::flag_seed_mode;
-		}
-		if (m_upload_mode) {
-			ret |= add_torrent_params::flag_upload_mode;
-		}
-		if (m_share_mode) {
-			ret |= add_torrent_params::flag_share_mode;
-		}
-		if (m_apply_ip_filter) {
-			ret |= add_torrent_params::flag_apply_ip_filter;
-		}
-		if (is_torrent_paused()) {
-			ret |= add_torrent_params::flag_paused;
-		}
-		if (m_auto_managed) {
-			ret |= add_torrent_params::flag_auto_managed;
-		}
-		if (m_super_seeding) {
-			ret |= add_torrent_params::flag_super_seeding;
-		}
-		if (m_sequential_download) {
-			ret |= add_torrent_params::flag_sequential_download;
-		}
-		if (m_stop_when_ready) {
-			ret |= add_torrent_params::flag_stop_when_ready;
-		}
+		torrent_flags_t ret = torrent_flags_t{};
+		if (m_seed_mode)
+			ret |= torrent_flags::seed_mode;
+		if (m_upload_mode)
+			ret |= torrent_flags::upload_mode;
+		if (m_share_mode)
+			ret |= torrent_flags::share_mode;
+		if (m_apply_ip_filter)
+			ret |= torrent_flags::apply_ip_filter;
+		if (is_torrent_paused())
+			ret |= torrent_flags::paused;
+		if (m_auto_managed)
+			ret |= torrent_flags::auto_managed;
+		if (m_super_seeding)
+			ret |= torrent_flags::super_seeding;
+		if (m_sequential_download)
+			ret |= torrent_flags::sequential_download;
+		if (m_stop_when_ready)
+			ret |= torrent_flags::stop_when_ready;
 		return ret;
 	}
 
-	void torrent::set_flags(boost::uint64_t flags, boost::uint64_t mask)
+	void torrent::set_flags(torrent_flags_t const flags
+		, torrent_flags_t const mask)
 	{
-		if (mask & add_torrent_params::flag_seed_mode) {
-			if ((flags & add_torrent_params::flag_seed_mode) == 0) {
-				leave_seed_mode(false);
-			}
+		if ((mask & torrent_flags::seed_mode)
+			&& !(flags & torrent_flags::seed_mode))
+		{
+			leave_seed_mode(false);
 		}
-		if (mask & add_torrent_params::flag_upload_mode) {
-			set_upload_mode((flags & add_torrent_params::flag_upload_mode) != 0);
-		}
-		if (mask & add_torrent_params::flag_share_mode) {
-			set_share_mode((flags & add_torrent_params::flag_share_mode) != 0);
-		}
-		if (mask & add_torrent_params::flag_apply_ip_filter) {
-			set_apply_ip_filter((flags & add_torrent_params::flag_apply_ip_filter) != 0);
-		}
-		if (mask & add_torrent_params::flag_paused) {
-			if ((flags & add_torrent_params::flag_paused) != 0) {
+		if (mask & torrent_flags::upload_mode)
+			set_upload_mode(bool(flags & torrent_flags::upload_mode));
+		if (mask & torrent_flags::share_mode)
+			set_share_mode(bool(flags & torrent_flags::share_mode));
+		if (mask & torrent_flags::apply_ip_filter)
+			set_apply_ip_filter(bool(flags & torrent_flags::apply_ip_filter));
+		if (mask & torrent_flags::paused)
+		{
+			if (flags & torrent_flags::paused)
 				graceful_pause();
-			} else {
+			else
 				resume();
-			}
 		}
-		if (mask & add_torrent_params::flag_auto_managed) {
-			auto_managed((flags & add_torrent_params::flag_auto_managed) != 0);
-		}
-		if (mask & add_torrent_params::flag_super_seeding) {
-			set_super_seeding((flags & add_torrent_params::flag_super_seeding) != 0);
-		}
-		if (mask & add_torrent_params::flag_sequential_download) {
-			set_sequential_download((flags & add_torrent_params::flag_sequential_download) != 0);
-		}
-		if (mask & add_torrent_params::flag_stop_when_ready) {
-			stop_when_ready((flags & add_torrent_params::flag_stop_when_ready) != 0);
-		}
+		if (mask & torrent_flags::auto_managed)
+			auto_managed(bool(flags & torrent_flags::auto_managed));
+		if (mask & torrent_flags::super_seeding)
+			set_super_seeding(bool(flags & torrent_flags::super_seeding));
+		if (mask & torrent_flags::sequential_download)
+			set_sequential_download(bool(flags & torrent_flags::sequential_download));
+		if (mask & torrent_flags::stop_when_ready)
+			stop_when_ready(bool(flags & torrent_flags::stop_when_ready));
 	}
 
 	void torrent::set_share_mode(bool s)
@@ -6075,12 +6060,12 @@ namespace libtorrent {
 		ret.num_incomplete = m_incomplete;
 		ret.num_downloaded = m_downloaded;
 
-		ret.flags = 0;
-		if (m_sequential_download) ret.flags |= add_torrent_params::flag_sequential_download;
-		if (m_seed_mode ) ret.flags |= add_torrent_params::flag_seed_mode;
-		if (m_super_seeding ) ret.flags |= add_torrent_params::flag_super_seeding;
-		if (is_torrent_paused()) ret.flags |= add_torrent_params::flag_paused;
-		if (m_auto_managed ) ret.flags |= add_torrent_params::flag_auto_managed;
+		ret.flags = torrent_flags_t{};
+		if (m_sequential_download) ret.flags |= torrent_flags::sequential_download;
+		if (m_seed_mode ) ret.flags |= torrent_flags::seed_mode;
+		if (m_super_seeding ) ret.flags |= torrent_flags::super_seeding;
+		if (is_torrent_paused()) ret.flags |= torrent_flags::paused;
+		if (m_auto_managed ) ret.flags |= torrent_flags::auto_managed;
 
 		ret.added_time = m_added_time;
 		ret.completed_time = m_completed_time;

@@ -823,12 +823,12 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	// file pool will complain if two torrents are trying to
 	// use the same files
 	add_torrent_params param;
-	param.flags &= ~add_torrent_params::flag_paused;
-	param.flags &= ~add_torrent_params::flag_auto_managed;
+	param.flags &= ~torrent_flags::paused;
+	param.flags &= ~torrent_flags::auto_managed;
 	if (p) param = *p;
 	param.ti = clone_ptr(t);
 	param.save_path = "tmp1" + suffix;
-	param.flags |= add_torrent_params::flag_seed_mode;
+	param.flags |= torrent_flags::seed_mode;
 	error_code ec;
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
 	if (ec)
@@ -838,11 +838,11 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	}
 	if (super_seeding)
 	{
-		tor1.set_flags(add_torrent_params::flag_super_seeding);
+		tor1.set_flags(torrent_flags::super_seeding);
 	}
 
 	// the downloader cannot use seed_mode
-	param.flags &= ~add_torrent_params::flag_seed_mode;
+	param.flags &= ~torrent_flags::seed_mode;
 
 	TEST_CHECK(!ses1->get_torrents().empty());
 

@@ -86,8 +86,8 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	add_torrent_params params;
 	params.save_path = ".";
 	params.storage_mode = storage_mode;
-	params.flags &= ~add_torrent_params::flag_paused;
-	params.flags &= ~add_torrent_params::flag_auto_managed;
+	params.flags &= ~torrent_flags::paused;
+	params.flags &= ~torrent_flags::auto_managed;
 	params.ti = t;
 
 	torrent_handle tor1 = ses.add_torrent(params);

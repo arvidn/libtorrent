@@ -230,13 +230,13 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	TEST_CHECK(exists(combine_path("tmp1_transfer", "temporary")));
 
 	add_torrent_params addp(&test_storage_constructor);
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
 
 	add_torrent_params params;
 	params.storage_mode = storage_mode;
-	params.flags &= ~add_torrent_params::flag_paused;
-	params.flags &= ~add_torrent_params::flag_auto_managed;
+	params.flags &= ~torrent_flags::paused;
+	params.flags &= ~torrent_flags::auto_managed;
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");
@@ -284,9 +284,9 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		// back into upload mode) before we restart it.
 
 		// TODO: factor out the disk-full test into its own unit test
-		if (test_disk_full &&
-				((tor2.flags() & add_torrent_params::flag_upload_mode) != 0) &&
-				++upload_mode_timer > 10)
+		if (test_disk_full
+			&& !(tor2.flags() & torrent_flags::upload_mode)
+			&& ++upload_mode_timer > 10)
 		{
 			test_disk_full = false;
 			((test_storage*)tor2.get_storage_impl())->set_limit(16 * 1024 * 1024);
@@ -305,7 +305,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			lt::error_code err = tor2.status().errc;
 			std::printf("error: \"%s\"\n", err.message().c_str());
 			TEST_CHECK(!err);
-			tor2.unset_flags(add_torrent_params::flag_upload_mode);
+			tor2.unset_flags(torrent_flags::upload_mode);
 
 			// at this point we probably disconnected the seed
 			// so we need to reconnect as well

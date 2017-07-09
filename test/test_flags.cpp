@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-void test_add_and_get_flags(boost::uint64_t flags)
+void test_add_and_get_flags(torrent_flags_t const flags)
 {
 	session ses(settings());
 	add_torrent_params p;
@@ -55,7 +55,7 @@ void test_add_and_get_flags(boost::uint64_t flags)
 	TEST_EQUAL(h.flags() & flags, flags);
 }
 
-void test_set_after_add(boost::uint64_t flags)
+void test_set_after_add(torrent_flags_t const flags)
 {
 	session ses(settings());
 	add_torrent_params p;
@@ -64,15 +64,15 @@ void test_set_after_add(boost::uint64_t flags)
 	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
 		std::ref(ec));
 	TEST_CHECK(!ec);
-	p.flags = 0xffffffffffffffff & ~flags;
+	p.flags = torrent_flags::all & ~flags;
 	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());
-	TEST_EQUAL(h.flags() & flags, 0);
+	TEST_EQUAL(h.flags() & flags, torrent_flags_t{});
 	h.set_flags(flags);
 	TEST_EQUAL(h.flags() & flags, flags);
 }
 
-void test_unset_after_add(boost::uint64_t flags)
+void test_unset_after_add(torrent_flags_t const flags)
 {
 	session ses(settings());
 	add_torrent_params p;
@@ -86,79 +86,79 @@ void test_unset_after_add(boost::uint64_t flags)
 	TEST_CHECK(h.is_valid());
 	TEST_EQUAL(h.flags() & flags, flags);
 	h.unset_flags(flags);
-	TEST_EQUAL(h.flags() & flags, 0);
+	TEST_EQUAL(h.flags() & flags, torrent_flags_t{});
 }
 
 TORRENT_TEST(flag_seed_mode)
 {
 	// seed-mode (can't be set after adding)
-	test_add_and_get_flags(add_torrent_params::flag_seed_mode);
-	test_unset_after_add(add_torrent_params::flag_seed_mode);
+	test_add_and_get_flags(torrent_flags::seed_mode);
+	test_unset_after_add(torrent_flags::seed_mode);
 }
 
 TORRENT_TEST(flag_upload_mode)
 {
 	// upload-mode
-	test_add_and_get_flags(add_torrent_params::flag_upload_mode);
-	test_set_after_add(add_torrent_params::flag_upload_mode);
-	test_unset_after_add(add_torrent_params::flag_upload_mode);
+	test_add_and_get_flags(torrent_flags::upload_mode);
+	test_set_after_add(torrent_flags::upload_mode);
+	test_unset_after_add(torrent_flags::upload_mode);
 }
 
 TORRENT_TEST(flag_share_mode)
 {
 	// share-mode
-	test_add_and_get_flags(add_torrent_params::flag_share_mode);
-	test_set_after_add(add_torrent_params::flag_share_mode);
-	test_unset_after_add(add_torrent_params::flag_share_mode);
+	test_add_and_get_flags(torrent_flags::share_mode);
+	test_set_after_add(torrent_flags::share_mode);
+	test_unset_after_add(torrent_flags::share_mode);
 }
 
 TORRENT_TEST(flag_apply_ip_filter)
 {
 	// apply-ip-filter
-	test_add_and_get_flags(add_torrent_params::flag_apply_ip_filter);
-	test_set_after_add(add_torrent_params::flag_apply_ip_filter);
-	test_unset_after_add(add_torrent_params::flag_apply_ip_filter);
+	test_add_and_get_flags(torrent_flags::apply_ip_filter);
+	test_set_after_add(torrent_flags::apply_ip_filter);
+	test_unset_after_add(torrent_flags::apply_ip_filter);
 }
 
 TORRENT_TEST(flag_paused)
 {
 	// paused
-	test_add_and_get_flags(add_torrent_params::flag_paused);
+	test_add_and_get_flags(torrent_flags::paused);
 	// TODO: change to a different test setup. currently always paused.
-	//test_set_after_add(add_torrent_params::flag_paused);
-	//test_unset_after_add(add_torrent_params::flag_paused);
+	//test_set_after_add(torrent_flags::paused);
+	//test_unset_after_add(torrent_flags::paused);
 }
 
 TORRENT_TEST(flag_auto_managed)
 {
 	// auto-managed
-	test_add_and_get_flags(add_torrent_params::flag_auto_managed);
-	test_set_after_add(add_torrent_params::flag_auto_managed);
-	test_unset_after_add(add_torrent_params::flag_auto_managed);
+	test_add_and_get_flags(torrent_flags::auto_managed);
+	test_set_after_add(torrent_flags::auto_managed);
+	test_unset_after_add(torrent_flags::auto_managed);
 }
 
 TORRENT_TEST(flag_super_seeding)
 {
 	// super-seeding
-	test_add_and_get_flags(add_torrent_params::flag_super_seeding);
-	test_set_after_add(add_torrent_params::flag_super_seeding);
-	test_unset_after_add(add_torrent_params::flag_super_seeding);
+	test_add_and_get_flags(torrent_flags::super_seeding);
+	test_set_after_add(torrent_flags::super_seeding);
+	test_unset_after_add(torrent_flags::super_seeding);
 }
 
 TORRENT_TEST(flag_sequential_download)
 {
 	// sequential-download
-	test_add_and_get_flags(add_torrent_params::flag_sequential_download);
-	test_set_after_add(add_torrent_params::flag_sequential_download);
-	test_unset_after_add(add_torrent_params::flag_sequential_download);
+	test_add_and_get_flags(torrent_flags::sequential_download);
+	test_set_after_add(torrent_flags::sequential_download);
+	test_unset_after_add(torrent_flags::sequential_download);
 }
 
 TORRENT_TEST(flag_stop_when_ready)
 {
 	// stop-when-ready
-	test_add_and_get_flags(add_torrent_params::flag_stop_when_ready);
+	test_add_and_get_flags(torrent_flags::stop_when_ready);
 	// setting stop-when-ready when already stopped has no effect.
 	// TODO: change to a different test setup. currently always paused.
-	//test_set_after_add(add_torrent_params::flag_stop_when_ready);
-	test_unset_after_add(add_torrent_params::flag_stop_when_ready);
+	//test_set_after_add(torrent_flags::stop_when_ready);
+	test_unset_after_add(torrent_flags::stop_when_ready);
 }

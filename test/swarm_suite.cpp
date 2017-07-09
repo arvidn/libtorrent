@@ -50,16 +50,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4706 )
 #endif
 
-void test_swarm(int flags)
+void test_swarm(test_flags_t const flags)
 {
 	using namespace lt;
 
 	std::printf("\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
-		, (flags & super_seeding) ? "super-seeding ": ""
-		, (flags & strict_super_seeding) ? "strict-super-seeding ": ""
-		, (flags & seed_mode) ? "seed-mode ": ""
-		, (flags & time_critical) ? "time-critical ": ""
-		, (flags & suggest) ? "suggest ": ""
+		, (flags & test_flags::super_seeding) ? "super-seeding ": ""
+		, (flags & test_flags::strict_super_seeding) ? "strict-super-seeding ": ""
+		, (flags & test_flags::seed_mode) ? "seed-mode ": ""
+		, (flags & test_flags::time_critical) ? "time-critical ": ""
+		, (flags & test_flags::suggest) ? "suggest ": ""
 		);
 
 	// in case the previous run was terminated
@@ -88,10 +88,10 @@ void test_swarm(int flags)
 	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 
-	if (flags & strict_super_seeding)
+	if (flags & test_flags::strict_super_seeding)
 		pack.set_bool(settings_pack::strict_super_seeding, true);
 
-	if (flags & suggest)
+	if (flags & test_flags::suggest)
 		pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
 
 	// this is to avoid everything finish from a single peer
@@ -126,14 +126,14 @@ void test_swarm(int flags)
 	torrent_handle tor3;
 
 	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
-	if (flags & seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
+	if (flags & test_flags::seed_mode) p.flags |= torrent_flags::seed_mode;
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 8 * 1024, nullptr, flags & super_seeding, &p);
+		, false, true, "_swarm", 8 * 1024, nullptr, bool(flags & test_flags::super_seeding), &p);
 
-	if (flags & time_critical)
+	if (flags & test_flags::time_critical)
 	{
 		tor2.set_piece_deadline(piece_index_t(2), 0);
 		tor2.set_piece_deadline(piece_index_t(5), 1000);
@@ -155,10 +155,10 @@ void test_swarm(int flags)
 		torrent_status st2 = tor2.status();
 		torrent_status st3 = tor3.status();
 
-		if (flags & super_seeding)
+		if (flags & test_flags::super_seeding)
 		{
 			TEST_CHECK(st1.is_seeding);
-			TEST_CHECK(tor1.flags() & add_torrent_params::flag_super_seeding);
+			TEST_CHECK(tor1.flags() & torrent_flags::super_seeding);
 		}
 
 		if (st2.progress < 1.f && st2.progress > 0.5f)
