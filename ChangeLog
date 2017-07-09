@@ -1,3 +1,5 @@
+	* fix inconsistency in file_priorities and override_resume_data behavior
+
 1.1.4 release
 
 	* corrected missing const qualifiers on bdecode_node
