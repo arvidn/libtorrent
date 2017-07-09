@@ -133,7 +133,7 @@ namespace aux {
 		TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
 #endif
 
-	struct listen_socket_t final : aux::session_listen_socket
+	struct listen_socket_impl : aux::session_listen_socket
 	{
 		address get_external_address() override
 		{ return external_address.external_address(); }
@@ -141,7 +141,7 @@ namespace aux {
 		tcp::endpoint get_local_endpoint() override
 		{ return local_endpoint; }
 
-		listen_socket_t()
+		listen_socket_impl()
 		{
 			tcp_port_mapping[0] = -1;
 			tcp_port_mapping[1] = -1;
@@ -190,6 +190,18 @@ namespace aux {
 		std::shared_ptr<tcp::acceptor> sock;
 		std::shared_ptr<aux::session_udp_socket> udp_sock;
 	};
+
+		struct listen_socket_t final : listen_socket_impl
+		{
+			listen_socket_t(listen_socket_t const&) = delete;
+			listen_socket_t(listen_socket_t&&) = delete;
+			listen_socket_t& operator=(listen_socket_t const&) = delete;
+			listen_socket_t& operator=(listen_socket_t&&) = delete;
+
+			listen_socket_t(listen_socket_impl const& i)
+				: listen_socket_impl(i)
+			{}
+		};
 
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
 		{
@@ -954,7 +966,7 @@ namespace aux {
 				open_ssl_socket = 0x10
 			};
 
-			listen_socket_t setup_listener(std::string const& device
+			listen_socket_impl setup_listener(std::string const& device
 				, tcp::endpoint bind_ep, int flags, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT

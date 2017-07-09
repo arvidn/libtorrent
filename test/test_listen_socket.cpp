@@ -61,10 +61,10 @@ namespace
 		return aux::listen_endpoint_t(address::from_string(ip), port, device, ssl);
 	}
 
-	aux::listen_socket_t sock(char const* ip, int const port
+	aux::listen_socket_impl sock(char const* ip, int const port
 		, int const original_port, char const* device = "", tp ssl = tp::plaintext)
 	{
-		aux::listen_socket_t s;
+		aux::listen_socket_impl s;
 		s.local_endpoint = tcp::endpoint(address::from_string(ip), port);
 		s.original_port = original_port;
 		s.device = device;
@@ -72,13 +72,13 @@ namespace
 		return s;
 	}
 
-	aux::listen_socket_t sock(char const* ip, int const port, tp ssl)
+	aux::listen_socket_impl sock(char const* ip, int const port, tp ssl)
 	{ return sock(ip, port, port, "", ssl); }
 
-	aux::listen_socket_t sock(char const* ip, int const port, char const* dev)
+	aux::listen_socket_impl sock(char const* ip, int const port, char const* dev)
 	{ return sock(ip, port, port, dev); }
 
-	aux::listen_socket_t sock(char const* ip, int const port)
+	aux::listen_socket_impl sock(char const* ip, int const port)
 	{ return sock(ip, port, port); }
 
 } // anonymous namespace

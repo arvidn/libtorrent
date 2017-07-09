@@ -1447,7 +1447,7 @@ namespace {
 
 	enum { listen_no_system_port = 0x02 };
 
-	listen_socket_t session_impl::setup_listener(std::string const& device
+	listen_socket_impl session_impl::setup_listener(std::string const& device
 		, tcp::endpoint bind_ep, int flags, error_code& ec)
 	{
 		int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
@@ -1460,7 +1460,7 @@ namespace {
 		}
 #endif
 
-		listen_socket_t ret;
+		listen_socket_impl ret;
 		ret.ssl = (flags & open_ssl_socket) != 0 ? transport::ssl : transport::plaintext;
 		ret.original_port = bind_ep.port();
 		operation_t last_op = operation_t::unknown;
@@ -1975,13 +1975,13 @@ namespace {
 		// an existing socket
 		for (auto const& ep : eps)
 		{
-			listen_socket_t const s = setup_listener(ep.device
+			listen_socket_impl const s = setup_listener(ep.device
 				, tcp::endpoint(ep.addr, std::uint16_t(ep.port))
 				, flags | (ep.ssl == transport::ssl ? open_ssl_socket : 0), ec);
 
 			if (!ec && (s.sock || s.udp_sock))
 			{
-				m_listen_sockets.push_back(s);
+				m_listen_sockets.emplace_back(s);
 
 #ifndef TORRENT_DISABLE_DHT
 				if (m_dht)
