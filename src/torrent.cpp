@@ -5637,7 +5637,7 @@ namespace libtorrent
 		{
 			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
-				, m_file_priority, boost::bind(&torrent::on_file_priority, this));
+				, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this()));
 		}
 
 		update_piece_priorities();
@@ -5676,7 +5676,7 @@ namespace libtorrent
 		{
 			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
-				, m_file_priority, boost::bind(&torrent::on_file_priority, this));
+				, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this()));
 		}
 		update_piece_priorities();
 	}
@@ -7041,9 +7041,7 @@ namespace libtorrent
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
-		// load file priorities except if the add_torrent_param file was set to
-		// override resume data
-		if (!m_override_resume_data || m_file_priority.empty())
+		if (m_file_priority.empty())
 		{
 			bdecode_node file_priority = rd.dict_find_list("file_priority");
 			if (file_priority)
@@ -7069,6 +7067,14 @@ namespace libtorrent
 				{
 					if (!fs.pad_file_at(i)) continue;
 					m_file_priority[i] = 0;
+				}
+
+				// storage may be NULL during shutdown
+				if (m_storage)
+				{
+					inc_refcount("file_priority");
+					m_ses.disk_thread().async_set_file_priority(m_storage.get()
+						, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this()));
 				}
 
 				update_piece_priorities();

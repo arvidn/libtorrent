@@ -308,6 +308,45 @@ TORRENT_TEST(file_priorities_default)
 	TEST_EQUAL(file_priorities[2], 4);
 }
 
+// As long as the add_torrent_params priorities are empty, the file_priorities
+// from the resume data should take effect
+TORRENT_TEST(file_priorities_in_resume)
+{
+	lt::session ses(settings());
+	std::vector<int> file_priorities = test_resume_flags(ses, 0, "", "123").file_priorities();
+
+	TEST_EQUAL(file_priorities.size(), 3);
+	TEST_EQUAL(file_priorities[0], 1);
+	TEST_EQUAL(file_priorities[1], 2);
+	TEST_EQUAL(file_priorities[2], 3);
+}
+
+// if both resume data and add_torrent_params has file_priorities, the
+// add_torrent_params one take precedence
+TORRENT_TEST(file_priorities_in_resume_and_params)
+{
+	lt::session ses(settings());
+	std::vector<int> file_priorities = test_resume_flags(ses, 0, "456", "123").file_priorities();
+
+	TEST_EQUAL(file_priorities.size(), 3);
+	TEST_EQUAL(file_priorities[0], 4);
+	TEST_EQUAL(file_priorities[1], 5);
+	TEST_EQUAL(file_priorities[2], 6);
+}
+
+// if we set flag_override_resume_data, it should no affect file priorities
+TORRENT_TEST(file_priorities_override_resume)
+{
+	lt::session ses(settings());
+	std::vector<int> file_priorities = test_resume_flags(ses
+		, add_torrent_params::flag_override_resume_data, "", "123").file_priorities();
+
+	TEST_EQUAL(file_priorities.size(), 3);
+	TEST_EQUAL(file_priorities[0], 1);
+	TEST_EQUAL(file_priorities[1], 2);
+	TEST_EQUAL(file_priorities[2], 3);
+}
+
 TORRENT_TEST(file_priorities_resume_seed_mode)
 {
 	// in share mode file priorities should always be 0
