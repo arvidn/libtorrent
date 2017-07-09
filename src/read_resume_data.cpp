@@ -45,10 +45,10 @@ namespace libtorrent {
 
 namespace {
 
-	void apply_flag(std::uint64_t& current_flags
+	void apply_flag(torrent_flags_t& current_flags
 		, bdecode_node const& n
 		, char const* name
-		, std::uint64_t const flag)
+		, torrent_flags_t const flag)
 	{
 		if (n.dict_find_int_value(name, 0) == 0)
 		{
@@ -133,11 +133,11 @@ namespace {
 		ret.download_limit = int(rd.dict_find_int_value("download_rate_limit", -1));
 
 		// torrent state
-		apply_flag(ret.flags, rd, "seed_mode", add_torrent_params::flag_seed_mode);
-		apply_flag(ret.flags, rd, "super_seeding", add_torrent_params::flag_super_seeding);
-		apply_flag(ret.flags, rd, "auto_managed", add_torrent_params::flag_auto_managed);
-		apply_flag(ret.flags, rd, "sequential_download", add_torrent_params::flag_sequential_download);
-		apply_flag(ret.flags, rd, "paused", add_torrent_params::flag_paused);
+		apply_flag(ret.flags, rd, "seed_mode", torrent_flags::seed_mode);
+		apply_flag(ret.flags, rd, "super_seeding", torrent_flags::super_seeding);
+		apply_flag(ret.flags, rd, "auto_managed", torrent_flags::auto_managed);
+		apply_flag(ret.flags, rd, "sequential_download", torrent_flags::sequential_download);
+		apply_flag(ret.flags, rd, "paused", torrent_flags::paused);
 
 		ret.save_path = rd.dict_find_string_value("save_path").to_string();
 
@@ -177,7 +177,7 @@ namespace {
 				// this is suspicious, leave seed mode
 				if (ret.file_priorities[idx] == 0)
 				{
-					ret.flags &= ~add_torrent_params::flag_seed_mode;
+					ret.flags &= ~torrent_flags::seed_mode;
 				}
 			}
 		}
@@ -189,7 +189,7 @@ namespace {
 			// resume data with an empty trackers list. Since we found a trackers
 			// list here, these should replace whatever we find in the .torrent
 			// file.
-			ret.flags |= add_torrent_params::flag_override_trackers;
+			ret.flags |= torrent_flags::override_trackers;
 
 			int tier = 0;
 			for (int i = 0; i < trackers.list_size(); ++i)
@@ -217,7 +217,7 @@ namespace {
 		{
 			// since we found http seeds in the resume data, they should replace
 			// whatever web seeds are specified in the .torrent, by default
-			ret.flags |= add_torrent_params::flag_override_web_seeds;
+			ret.flags |= torrent_flags::override_web_seeds;
 		}
 
 		if (url_list)
@@ -327,7 +327,7 @@ namespace {
 			}
 		}
 
-		ret.flags &= ~add_torrent_params::flag_need_save_resume;
+		ret.flags &= ~torrent_flags::need_save_resume;
 
 		return ret;
 	}

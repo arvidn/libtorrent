@@ -155,12 +155,12 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	t->add_tracker(udp_tracker_url, 1);
 
 	add_torrent_params addp;
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
 
 	// we don't want to waste time checking the torrent, just go straight into
 	// seeding it, announcing to trackers and connecting to peers
-	addp.flags |= add_torrent_params::flag_seed_mode;
+	addp.flags |= torrent_flags::seed_mode;
 
 	addp.ti = t;
 	addp.save_path = "tmp1_privacy";

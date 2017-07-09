@@ -354,9 +354,9 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	t->add_tracker(tracker_url, 0);
 
 	add_torrent_params addp;
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
-	addp.flags |= add_torrent_params::flag_seed_mode;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.flags |= torrent_flags::seed_mode;
 	addp.ti = t;
 	addp.save_path = "tmp1_tracker";
 	torrent_handle h = s->add_torrent(addp);
@@ -448,9 +448,9 @@ TORRENT_TEST(http_peers)
 	t->add_tracker(tracker_url, 0);
 
 	add_torrent_params addp;
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
-	addp.flags |= add_torrent_params::flag_seed_mode;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.flags |= torrent_flags::seed_mode;
 	addp.ti = t;
 	addp.save_path = "tmp2_tracker";
 	torrent_handle h = s->add_torrent(addp);
@@ -524,9 +524,9 @@ TORRENT_TEST(current_tracker)
 	t->add_tracker(tracker_url, 0);
 
 	add_torrent_params addp;
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
-	addp.flags |= add_torrent_params::flag_seed_mode;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.flags |= torrent_flags::seed_mode;
 	addp.ti = t;
 	addp.save_path = "tmp3_tracker";
 	torrent_handle h = s->add_torrent(addp);
@@ -584,9 +584,9 @@ void test_proxy(bool proxy_trackers)
 	t->add_tracker(tracker_url, 0);
 
 	add_torrent_params addp;
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
-	addp.flags |= add_torrent_params::flag_seed_mode;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.flags |= torrent_flags::seed_mode;
 	addp.ti = t;
 	addp.save_path = "tmp2_tracker";
 	torrent_handle h = s->add_torrent(addp);
@@ -674,9 +674,9 @@ void test_stop_tracker_timeout(bool nostop)
 	file.close();
 
 	add_torrent_params tp;
-	tp.flags &= ~add_torrent_params::flag_paused;
-	tp.flags &= ~add_torrent_params::flag_auto_managed;
-	tp.flags |= add_torrent_params::flag_seed_mode;
+	tp.flags &= ~torrent_flags::paused;
+	tp.flags &= ~torrent_flags::auto_managed;
+	tp.flags |= torrent_flags::seed_mode;
 	tp.ti = t;
 	tp.save_path = "tmp4_tracker";
 	torrent_handle h = s.add_torrent(tp);

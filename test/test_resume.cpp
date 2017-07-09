@@ -48,6 +48,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+torrent_flags_t const flags_mask
+	= torrent_flags::sequential_download
+	| torrent_flags::paused
+	| torrent_flags::auto_managed
+	| torrent_flags::seed_mode
+	| torrent_flags::super_seeding
+	| torrent_flags::share_mode
+	| torrent_flags::upload_mode
+	| torrent_flags::apply_ip_filter;
+
 std::shared_ptr<torrent_info> generate_torrent()
 {
 	file_storage fs;
@@ -130,7 +140,8 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	return ret;
 }
 
-torrent_handle test_resume_flags(lt::session& ses, int flags
+torrent_handle test_resume_flags(lt::session& ses
+	, torrent_flags_t const flags = torrent_flags_t{}
 	, char const* file_priorities = "1111", char const* resume_file_prio = ""
 	, bool const test_deprecated = false)
 {
@@ -282,7 +293,8 @@ TORRENT_TEST(piece_priorities)
 TORRENT_TEST(file_priorities_default_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "", "", true).file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses
+		, torrent_flags_t{}, "", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 4);
@@ -334,7 +346,7 @@ TORRENT_TEST(file_priorities_resume_seed_mode_deprecated)
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
 	std::vector<int> file_priorities = test_resume_flags(ses,
-		add_torrent_params::flag_share_mode, "", "123", true).file_priorities();
+		torrent_flags::share_mode, "", "123", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 0);
@@ -347,7 +359,7 @@ TORRENT_TEST(file_priorities_seed_mode_deprecated)
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
 	std::vector<int> file_priorities = test_resume_flags(ses,
-		add_torrent_params::flag_share_mode, "123", "", true).file_priorities();
+		torrent_flags::share_mode, "123", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 0);
@@ -358,7 +370,7 @@ TORRENT_TEST(file_priorities_seed_mode_deprecated)
 TORRENT_TEST(resume_save_load_deprecated)
 {
 	lt::session ses(settings());
-	torrent_handle h = test_resume_flags(ses, 0, "123", "", true);
+	torrent_handle h = test_resume_flags(ses, torrent_flags_t{}, "123", "", true);
 
 	h.save_resume_data();
 
@@ -380,7 +392,7 @@ TORRENT_TEST(resume_save_load_deprecated)
 TORRENT_TEST(resume_save_load_resume_deprecated)
 {
 	lt::session ses(settings());
-	torrent_handle h = test_resume_flags(ses, 0, "", "123", true);
+	torrent_handle h = test_resume_flags(ses, torrent_flags_t{}, "", "123", true);
 
 	h.save_resume_data();
 
@@ -406,7 +418,7 @@ TORRENT_TEST(file_priorities_resume_override_deprecated)
 	// flag is set.
 	lt::session ses(settings());
 	std::vector<int> file_priorities = test_resume_flags(ses,
-		add_torrent_params::flag_override_resume_data, "", "123", true).file_priorities();
+		torrent_flags::override_resume_data, "", "123", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 1);
@@ -417,7 +429,7 @@ TORRENT_TEST(file_priorities_resume_override_deprecated)
 TORRENT_TEST(file_priorities_resume_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "", "123", true).file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses, torrent_flags_t{}, "", "123", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 1);
@@ -428,7 +440,7 @@ TORRENT_TEST(file_priorities_resume_deprecated)
 TORRENT_TEST(file_priorities1_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "010", "", true).file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses, torrent_flags_t{}, "010", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 0);
@@ -441,7 +453,7 @@ TORRENT_TEST(file_priorities1_deprecated)
 TORRENT_TEST(file_priorities2_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "123", "", true).file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses, torrent_flags_t{}, "123", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 1);
@@ -452,7 +464,7 @@ TORRENT_TEST(file_priorities2_deprecated)
 TORRENT_TEST(file_priorities3_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "4321", "", true).file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses, torrent_flags_t{}, "4321", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 4);
@@ -464,21 +476,14 @@ TORRENT_TEST(plain_deprecated)
 {
 	lt::session ses(settings());
 
-	torrent_status s = test_resume_flags(ses, 0, "", "", true).status();
+	torrent_status s = test_resume_flags(ses, torrent_flags_t{}, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.flags & add_torrent_params::flag_sequential_download, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_paused, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_auto_managed, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_seed_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_super_seeding, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_share_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_upload_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_apply_ip_filter, 0);
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags_t{});
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -487,21 +492,14 @@ TORRENT_TEST(use_resume_save_path_deprecated)
 {
 	lt::session ses(settings());
 	torrent_status s = test_resume_flags(ses
-		, add_torrent_params::flag_use_resume_save_path, "", "", true).status();
+		, torrent_flags::use_resume_save_path, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\resume_data save_path");
 #else
 	TEST_EQUAL(s.save_path, "/resume_data save_path");
 #endif
-	TEST_EQUAL(s.flags & add_torrent_params::flag_sequential_download, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_paused, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_auto_managed, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_seed_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_super_seeding, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_share_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_upload_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_apply_ip_filter, 0);
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags_t{});
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -510,8 +508,8 @@ TORRENT_TEST(override_resume_data_deprecated)
 {
 	lt::session ses(settings());
 	torrent_status s = test_resume_flags(ses
-		, add_torrent_params::flag_override_resume_data
-		| add_torrent_params::flag_paused, "", "", true).status();
+		, torrent_flags::override_resume_data
+		| torrent_flags::paused, "", "", true).status();
 
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
@@ -519,15 +517,7 @@ TORRENT_TEST(override_resume_data_deprecated)
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.flags & add_torrent_params::flag_sequential_download, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_paused,
-		add_torrent_params::flag_paused);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_auto_managed, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_seed_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_super_seeding, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_share_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_upload_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_apply_ip_filter, 0);
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::paused);
 	TEST_EQUAL(s.connections_limit, 2);
 	TEST_EQUAL(s.uploads_limit, 1);
 }
@@ -535,23 +525,15 @@ TORRENT_TEST(override_resume_data_deprecated)
 TORRENT_TEST(seed_mode_deprecated)
 {
 	lt::session ses(settings());
-	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_override_resume_data
-		| add_torrent_params::flag_seed_mode, "", "", true).status();
+	torrent_status s = test_resume_flags(ses, torrent_flags::override_resume_data
+		| torrent_flags::seed_mode, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.flags & add_torrent_params::flag_sequential_download, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_paused, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_auto_managed, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_seed_mode,
-		add_torrent_params::flag_seed_mode);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_super_seeding, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_share_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_upload_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_apply_ip_filter, 0);
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
 	TEST_EQUAL(s.connections_limit, 2);
 	TEST_EQUAL(s.uploads_limit, 1);
 }
@@ -560,22 +542,14 @@ TORRENT_TEST(upload_mode_deprecated)
 {
 	lt::session ses(settings());
 	torrent_status s = test_resume_flags(ses
-		, add_torrent_params::flag_upload_mode, "", "", true).status();
+		, torrent_flags::upload_mode, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.flags & add_torrent_params::flag_sequential_download, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_paused, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_auto_managed, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_seed_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_super_seeding, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_share_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_upload_mode,
-		add_torrent_params::flag_upload_mode);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_apply_ip_filter, 0);
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::upload_mode);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -584,23 +558,15 @@ TORRENT_TEST(share_mode_deprecated)
 {
 	lt::session ses(settings());
 	torrent_status s = test_resume_flags(ses
-		, add_torrent_params::flag_override_resume_data
-		| add_torrent_params::flag_share_mode, "", "", true).status();
+		, torrent_flags::override_resume_data
+		| torrent_flags::share_mode, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.flags & add_torrent_params::flag_sequential_download, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_paused, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_auto_managed, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_seed_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_super_seeding, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_share_mode,
-		add_torrent_params::flag_share_mode);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_upload_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_apply_ip_filter, 0);
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::share_mode);
 	TEST_EQUAL(s.connections_limit, 2);
 	TEST_EQUAL(s.uploads_limit, 1);
 }
@@ -610,21 +576,14 @@ TORRENT_TEST(auto_managed_deprecated)
 	lt::session ses(settings());
 	// resume data overrides the auto-managed flag
 	torrent_status s = test_resume_flags(ses
-		, add_torrent_params::flag_auto_managed, "", "", true).status();
+		, torrent_flags::auto_managed, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.flags & add_torrent_params::flag_sequential_download, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_paused, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_auto_managed, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_seed_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_super_seeding, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_share_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_upload_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_apply_ip_filter, 0);
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags_t{});
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -633,21 +592,14 @@ TORRENT_TEST(paused_deprecated)
 {
 	lt::session ses(settings());
 	// resume data overrides the paused flag
-	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_paused, "", "", true).status();
+	torrent_status s = test_resume_flags(ses, torrent_flags::paused, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.flags & add_torrent_params::flag_sequential_download, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_paused, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_auto_managed, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_seed_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_super_seeding, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_share_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_upload_mode, 0);
-	TEST_EQUAL(s.flags & add_torrent_params::flag_apply_ip_filter, 0);
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags_t{});
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 
@@ -662,7 +614,7 @@ TORRENT_TEST(url_seed_resume_data_deprecated)
 	std::printf("flags: merge_resume_http_seeds\n");
 	lt::session ses(settings());
 	torrent_handle h = test_resume_flags(ses,
-		add_torrent_params::flag_merge_resume_http_seeds, "", "", true);
+		torrent_flags::merge_resume_http_seeds, "", "", true);
 	std::set<std::string> us = h.url_seeds();
 	std::set<std::string> ws = h.http_seeds();
 
@@ -685,7 +637,7 @@ TORRENT_TEST(resume_override_torrent_deprecated)
 	std::printf("flags: no merge_resume_http_seed\n");
 	lt::session ses(settings());
 	torrent_handle h = test_resume_flags(ses,
-		add_torrent_params::flag_merge_resume_trackers, "", "", true);
+		torrent_flags::merge_resume_trackers, "", "", true);
 	std::set<std::string> us = h.url_seeds();
 	std::set<std::string> ws = h.http_seeds();
 
@@ -702,7 +654,7 @@ TORRENT_TEST(resume_override_torrent_deprecated)
 TORRENT_TEST(file_priorities_default)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "", "").file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses, torrent_flags_t{}, "", "").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 4);
@@ -715,7 +667,7 @@ TORRENT_TEST(file_priorities_resume_seed_mode)
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
 	std::vector<int> file_priorities = test_resume_flags(ses,
-		add_torrent_params::flag_share_mode, "", "123").file_priorities();
+		torrent_flags::share_mode, "", "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 0);
@@ -728,7 +680,7 @@ TORRENT_TEST(file_priorities_seed_mode)
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
 	std::vector<int> file_priorities = test_resume_flags(ses,
-		add_torrent_params::flag_share_mode, "123", "").file_priorities();
+		torrent_flags::share_mode, "123", "").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 0);
@@ -930,11 +882,11 @@ void test_seed_mode(test_mode_t const flags)
 		| test_mode::piece_prio
 		| test_mode::pieces_have))
 	{
-		TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
+		TEST_CHECK(!(s.flags & torrent_flags::seed_mode));
 	}
 	else
 	{
-		TEST_CHECK(s.flags & add_torrent_params::flag_seed_mode);
+		TEST_CHECK(s.flags & torrent_flags::seed_mode);
 	}
 }
 #ifndef TORRENT_NO_DEPRECATE
@@ -982,7 +934,7 @@ TORRENT_TEST(seed_mode_preserve)
 TORRENT_TEST(resume_save_load)
 {
 	lt::session ses(settings());
-	torrent_handle h = test_resume_flags(ses, 0, "123", "");
+	torrent_handle h = test_resume_flags(ses, torrent_flags_t{}, "123", "");
 
 	h.save_resume_data();
 
@@ -1004,7 +956,7 @@ TORRENT_TEST(resume_save_load)
 TORRENT_TEST(resume_save_load_resume)
 {
 	lt::session ses(settings());
-	torrent_handle h = test_resume_flags(ses, 0, "", "123");
+	torrent_handle h = test_resume_flags(ses, torrent_flags_t{}, "", "123");
 
 	h.save_resume_data();
 
@@ -1026,7 +978,7 @@ TORRENT_TEST(resume_save_load_resume)
 TORRENT_TEST(file_priorities_resume)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "", "123").file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses, torrent_flags_t{}, "", "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 1);
@@ -1037,7 +989,7 @@ TORRENT_TEST(file_priorities_resume)
 TORRENT_TEST(file_priorities1)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "010").file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses, torrent_flags_t{}, "010").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 0);
@@ -1050,7 +1002,7 @@ TORRENT_TEST(file_priorities1)
 TORRENT_TEST(file_priorities2)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "123").file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses, torrent_flags_t{}, "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 1);
@@ -1061,7 +1013,7 @@ TORRENT_TEST(file_priorities2)
 TORRENT_TEST(file_priorities3)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, 0, "4321").file_priorities();
+	std::vector<int> file_priorities = test_resume_flags(ses, torrent_flags_t{}, "4321").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 4);
@@ -1073,21 +1025,14 @@ TORRENT_TEST(plain)
 {
 	lt::session ses(settings());
 
-	torrent_status s = test_resume_flags(ses, 0).status();
+	torrent_status s = test_resume_flags(ses).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags_t{});
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1096,21 +1041,14 @@ TORRENT_TEST(seed_mode)
 {
 	lt::session ses(settings());
 	torrent_status s = test_resume_flags(ses
-		, add_torrent_params::flag_seed_mode).status();
+		, torrent_flags::seed_mode).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
-	TEST_CHECK(s.flags & add_torrent_params::flag_seed_mode);
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1118,21 +1056,14 @@ TORRENT_TEST(seed_mode)
 TORRENT_TEST(upload_mode)
 {
 	lt::session ses(settings());
-	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_upload_mode).status();
+	torrent_status s = test_resume_flags(ses, torrent_flags::upload_mode).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
-	TEST_CHECK(s.flags & add_torrent_params::flag_upload_mode);
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::upload_mode);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1141,21 +1072,14 @@ TORRENT_TEST(share_mode)
 {
 	lt::session ses(settings());
 	torrent_status s = test_resume_flags(ses
-		, add_torrent_params::flag_share_mode).status();
+		, torrent_flags::share_mode).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
-	TEST_CHECK(s.flags & add_torrent_params::flag_share_mode);
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::share_mode);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1164,21 +1088,14 @@ TORRENT_TEST(auto_managed)
 {
 	lt::session ses(settings());
 	// resume data overrides the auto-managed flag
-	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_auto_managed).status();
+	torrent_status s = test_resume_flags(ses, torrent_flags::auto_managed).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_paused));
-	TEST_CHECK(s.flags & add_torrent_params::flag_auto_managed);
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::auto_managed);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
@@ -1187,21 +1104,14 @@ TORRENT_TEST(paused)
 {
 	lt::session ses(settings());
 	// resume data overrides the paused flag
-	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_paused).status();
+	torrent_status s = test_resume_flags(ses, torrent_flags::paused).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_sequential_download));
-	TEST_CHECK(s.flags & add_torrent_params::flag_paused);
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_auto_managed));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_seed_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_super_seeding));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_share_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_upload_mode));
-	TEST_CHECK(!(s.flags & add_torrent_params::flag_apply_ip_filter));
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::paused);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 

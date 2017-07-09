@@ -188,8 +188,8 @@ void test_ssl(int test_idx, bool use_utp)
 
 	add_torrent_params addp;
 	addp.save_path = "tmp1_ssl";
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
 
 	peer_disconnects = 0;
 	ssl_peer_disconnects = 0;
@@ -573,8 +573,8 @@ void test_malicious_peer()
 
 	add_torrent_params addp;
 	addp.save_path = "tmp3_ssl";
-	addp.flags &= ~add_torrent_params::flag_paused;
-	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
 	addp.ti = t;
 
 	torrent_handle tor1 = ses1.add_torrent(addp, ec);

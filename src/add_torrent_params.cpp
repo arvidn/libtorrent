@@ -41,6 +41,33 @@ namespace libtorrent {
 	add_torrent_params::add_torrent_params(add_torrent_params const&) = default;
 	add_torrent_params& add_torrent_params::operator=(add_torrent_params const&) = default;
 
+#ifndef TORRENT_NO_DEPRECATE
+#define DECL_FLAG(name) \
+	constexpr torrent_flags_t add_torrent_params::flag_##name
+
+			DECL_FLAG(seed_mode);
+			DECL_FLAG(upload_mode);
+			DECL_FLAG(share_mode);
+			DECL_FLAG(apply_ip_filter);
+			DECL_FLAG(paused);
+			DECL_FLAG(auto_managed);
+			DECL_FLAG(duplicate_is_error);
+			DECL_FLAG(update_subscribe);
+			DECL_FLAG(super_seeding);
+			DECL_FLAG(sequential_download);
+			DECL_FLAG(pinned);
+			DECL_FLAG(stop_when_ready);
+			DECL_FLAG(override_trackers);
+			DECL_FLAG(override_web_seeds);
+			DECL_FLAG(need_save_resume);
+			DECL_FLAG(override_resume_data);
+			DECL_FLAG(merge_resume_trackers);
+			DECL_FLAG(use_resume_save_path);
+			DECL_FLAG(merge_resume_http_seeds);
+			DECL_FLAG(default_flags);
+#undef DECL_FLAG
+#endif // TORRENT_NO_DEPRECATE
+
 	static_assert(std::is_nothrow_move_constructible<add_torrent_params>::value
 		, "should be nothrow move constructible");
 

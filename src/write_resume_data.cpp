@@ -68,10 +68,10 @@ namespace libtorrent {
 		ret["num_incomplete"] = atp.num_incomplete;
 		ret["num_downloaded"] = atp.num_downloaded;
 
-		ret["sequential_download"] = atp.flags & add_torrent_params::flag_sequential_download;
+		ret["sequential_download"] = bool(atp.flags & torrent_flags::sequential_download);
 
-		ret["seed_mode"] = atp.flags & add_torrent_params::flag_seed_mode;
-		ret["super_seeding"] = atp.flags & add_torrent_params::flag_super_seeding;
+		ret["seed_mode"] = bool(atp.flags & torrent_flags::seed_mode);
+		ret["super_seeding"] = bool(atp.flags & torrent_flags::super_seeding);
 
 		ret["added_time"] = atp.added_time;
 		ret["completed_time"] = atp.completed_time;
@@ -224,8 +224,8 @@ namespace libtorrent {
 		ret["download_rate_limit"] = atp.download_limit;
 		ret["max_connections"] = atp.max_connections;
 		ret["max_uploads"] = atp.upload_limit;
-		ret["paused"] = atp.flags & add_torrent_params::flag_paused;
-		ret["auto_managed"] = atp.flags & add_torrent_params::flag_auto_managed;
+		ret["paused"] = bool(atp.flags & torrent_flags::paused);
+		ret["auto_managed"] = bool(atp.flags & torrent_flags::auto_managed);
 
 		if (!atp.file_priorities.empty())
 		{

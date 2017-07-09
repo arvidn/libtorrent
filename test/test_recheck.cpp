@@ -93,11 +93,11 @@ TORRENT_TEST(recheck)
 	file.close();
 
 	add_torrent_params param;
-	param.flags &= ~add_torrent_params::flag_paused;
-	param.flags &= ~add_torrent_params::flag_auto_managed;
+	param.flags &= ~torrent_flags::paused;
+	param.flags &= ~torrent_flags::auto_managed;
 	param.ti = t;
 	param.save_path = "tmp1_recheck";
-	param.flags |= add_torrent_params::flag_seed_mode;
+	param.flags |= torrent_flags::seed_mode;
 	torrent_handle tor1 = ses1.add_torrent(param, ec);
 	if (ec) std::printf("add_torrent: %s\n", ec.message().c_str());
 

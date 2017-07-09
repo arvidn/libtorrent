@@ -583,7 +583,7 @@ namespace libtorrent {
 
 		// reflects several of the torrent's flags. For more
 		// information, see ``torrent_handle::flags()``.
-		boost::uint64_t flags = 0;
+		torrent_flags_t flags{};
 	};
 }
 

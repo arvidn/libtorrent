@@ -105,12 +105,12 @@ void test_read_piece(int flags)
 	lt::session ses(sett);
 
 	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
 	p.save_path = "tmp1_read_piece";
 	p.ti = ti;
-	if (flags & seed_mode)
-		p.flags |= add_torrent_params::flag_seed_mode;
+	if (flags & flags_t::seed_mode)
+		p.flags |= torrent_flags::seed_mode;
 	torrent_handle tor1 = ses.add_torrent(p, ec);
 	if (ec) std::printf("ERROR: add_torrent: (%d) %s\n"
 		, ec.value(), ec.message().c_str());

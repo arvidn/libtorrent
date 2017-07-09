@@ -61,8 +61,8 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	aux::vector<std::uint8_t, file_index_t> zeroes;
 	zeroes.resize(1000, 0);
 	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
 	p.ti = info;
 	p.save_path = ".";
 
@@ -357,9 +357,9 @@ TORRENT_TEST(duplicate_is_not_error)
 
 	add_torrent_params p;
 	p.ti = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
-	p.flags &= ~add_torrent_params::flag_duplicate_is_error;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
+	p.flags &= ~torrent_flags::duplicate_is_error;
 	p.save_path = ".";
 	p.extensions.push_back(creator);
 
@@ -427,8 +427,8 @@ TORRENT_TEST(async_load_deprecated)
 	lt::session ses(pack);
 
 	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
 	std::string dir = parent_path(current_working_directory());
 
 	p.url = "file://" + combine_path(combine_path(dir, "test_torrents"), "base.torrent");
@@ -569,8 +569,8 @@ TORRENT_TEST(queue)
 TORRENT_TEST(queue_paused)
 {
 	add_torrent_params p;
-	p.flags |= add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags |= torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
 	test_queue(p);
 }
 

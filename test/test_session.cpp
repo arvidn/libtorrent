@@ -116,7 +116,7 @@ TORRENT_TEST(async_add_torrent_duplicate_error)
 	TEST_CHECK(a);
 	if (a == nullptr) return;
 
-	atp.flags |= add_torrent_params::flag_duplicate_is_error;
+	atp.flags |= torrent_flags::duplicate_is_error;
 	ses.async_add_torrent(atp);
 	a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
 	TEST_CHECK(a);
@@ -142,7 +142,7 @@ TORRENT_TEST(async_add_torrent_duplicate)
 	torrent_handle h = a->handle;
 	TEST_CHECK(!a->error);
 
-	atp.flags &= ~add_torrent_params::flag_duplicate_is_error;
+	atp.flags &= ~torrent_flags::duplicate_is_error;
 	ses.async_add_torrent(atp);
 	a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
 	TEST_CHECK(a);
@@ -160,12 +160,12 @@ TORRENT_TEST(async_add_torrent_duplicate_back_to_back)
 	add_torrent_params atp;
 	atp.info_hash.assign("abababababababababab");
 	atp.save_path = ".";
-	atp.flags |= add_torrent_params::flag_paused;
-	atp.flags &= ~add_torrent_params::flag_apply_ip_filter;
-	atp.flags &= ~add_torrent_params::flag_auto_managed;
+	atp.flags |= torrent_flags::paused;
+	atp.flags &= ~torrent_flags::apply_ip_filter;
+	atp.flags &= ~torrent_flags::auto_managed;
 	ses.async_add_torrent(atp);
 
-	atp.flags &= ~add_torrent_params::flag_duplicate_is_error;
+	atp.flags &= ~torrent_flags::duplicate_is_error;
 	ses.async_add_torrent(atp);
 
 	auto* a = alert_cast<add_torrent_alert>(wait_for_alert(ses
@@ -183,9 +183,9 @@ TORRENT_TEST(async_add_torrent_duplicate_back_to_back)
 	TEST_CHECK(!a->error);
 
 	torrent_status st = h.status();
-	TEST_CHECK(st.flags & add_torrent_params::flag_paused);
-	TEST_CHECK(!(st.flags & add_torrent_params::flag_apply_ip_filter));
-	TEST_CHECK(!(st.flags & add_torrent_params::flag_auto_managed));
+	TEST_CHECK(st.flags & torrent_flags::paused);
+	TEST_CHECK(!(st.flags & torrent_flags::apply_ip_filter));
+	TEST_CHECK(!(st.flags & torrent_flags::auto_managed));
 }
 
 TORRENT_TEST(load_empty_file)
@@ -228,7 +228,7 @@ TORRENT_TEST(paused_session)
 	lt::add_torrent_params ps;
 	std::ofstream file("temporary");
 	ps.ti = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
-	ps.flags = lt::add_torrent_params::flag_paused;
+	ps.flags = lt::torrent_flags::paused;
 	ps.save_path = ".";
 
 	torrent_handle h = s.add_torrent(std::move(ps));
@@ -237,7 +237,7 @@ TORRENT_TEST(paused_session)
 	h.resume();
 	std::this_thread::sleep_for(lt::milliseconds(1000));
 
-	TEST_EQUAL(h.flags() & add_torrent_params::flag_paused, 0);
+	TEST_CHECK(!(h.flags() & torrent_flags::paused));
 }
 
 TORRENT_TEST(get_cache_info)

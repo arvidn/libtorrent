@@ -46,20 +46,20 @@ std::string torrent_state(lt::torrent_status const& s)
 
 	if (s.errc) return s.errc.message();
 	std::string ret;
-	if ((s.flags & lt::add_torrent_params::flag_paused) &&
-		!(s.flags & lt::add_torrent_params::flag_auto_managed))
+	if ((s.flags & lt::torrent_flags::paused) &&
+		!(s.flags & lt::torrent_flags::auto_managed))
 	{
 		ret += "paused";
 	}
-	else if ((s.flags & lt::add_torrent_params::flag_paused) &&
-		(s.flags & lt::add_torrent_params::flag_auto_managed))
+	else if ((s.flags & lt::torrent_flags::paused) &&
+		(s.flags & lt::torrent_flags::auto_managed))
 	{
 		ret += "queued";
 	}
-	else if (s.flags & lt::add_torrent_params::flag_upload_mode) ret += "upload mode";
+	else if ((s.flags & lt::torrent_flags::upload_mode)) ret += "upload mode";
 	else ret += state_str[s.state];
-	if (!(s.flags & lt::add_torrent_params::flag_paused) &&
-		!(s.flags & lt::add_torrent_params::flag_auto_managed))
+	if (!(s.flags & lt::torrent_flags::paused) &&
+		!(s.flags & lt::torrent_flags::auto_managed))
 	{
 		ret += " [F]";
 	}
@@ -351,7 +351,7 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 
 	color_code progress_bar_color = col_yellow;
 	if (s.errc) progress_bar_color = col_red;
-	else if (s.flags & lt::add_torrent_params::flag_paused) progress_bar_color = col_blue;
+	else if (s.flags & lt::torrent_flags::paused) progress_bar_color = col_blue;
 	else if (s.state == lt::torrent_status::downloading_metadata)
 		progress_bar_color = col_magenta;
 	else if (s.current_tracker.empty())
@@ -388,21 +388,21 @@ bool torrent_view::show_torrent(lt::torrent_status const& st)
 	{
 		case torrents_all: return true;
 		case torrents_downloading:
-			return !(st.flags & lt::add_torrent_params::flag_paused)
+			return !(st.flags & lt::torrent_flags::paused)
 				&& st.state != lt::torrent_status::seeding
 				&& st.state != lt::torrent_status::finished;
 		case torrents_not_paused:
-			return !(st.flags & lt::add_torrent_params::flag_paused);
+			return !(st.flags & lt::torrent_flags::paused);
 		case torrents_seeding:
-			return !(st.flags & lt::add_torrent_params::flag_paused)
+			return !(st.flags & lt::torrent_flags::paused)
 				&& (st.state == lt::torrent_status::seeding
 				|| st.state == lt::torrent_status::finished);
 		case torrents_queued:
-			return (st.flags & lt::add_torrent_params::flag_paused)
-				&& (st.flags & lt::add_torrent_params::flag_auto_managed);
+			return (st.flags & lt::torrent_flags::paused)
+				&& (st.flags & lt::torrent_flags::auto_managed);
 		case torrents_stopped:
-			return (st.flags & lt::add_torrent_params::flag_paused)
-				&& !(st.flags & lt::add_torrent_params::flag_auto_managed);
+			return (st.flags & lt::torrent_flags::paused)
+				&& !(st.flags & lt::torrent_flags::auto_managed);
 		case torrents_checking: return st.state == lt::torrent_status::checking_files;
 	}
 	return true;

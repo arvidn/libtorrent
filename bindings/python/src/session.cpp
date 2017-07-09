@@ -229,7 +229,7 @@ namespace
             object const value = item[1];
             // torrent_info objects are always held by a shared_ptr in the
             // python binding, skip it if it is a object
-            if(key == "ti" && value != boost::python::object())
+            if (key == "ti" && value != boost::python::object())
             {
                 // make a copy here. We don't want to end up holding a python-owned
                 // object inside libtorrent. If the last reference goes out of scope
@@ -308,7 +308,7 @@ namespace
             }
             else if(key == "flags")
             {
-                p.flags = extract<std::uint64_t>(value);
+                p.flags = extract<lt::torrent_flags_t>(value);
                 continue;
             }
             else if(key == "trackerid")
@@ -560,6 +560,10 @@ namespace
 
 } // namespace unnamed
 
+struct dummy1 {};
+#ifndef TORRENT_NO_DEPRECATE
+struct dummy2 {};
+#endif
 
 void bind_session()
 {
@@ -706,28 +710,48 @@ void bind_session()
         .value("start_default_features", lt::session::start_default_features)
     ;
 
-    enum_<add_torrent_params::flags_t>("add_torrent_params_flags_t")
-        .value("flag_seed_mode", add_torrent_params::flag_seed_mode)
-        .value("flag_upload_mode", add_torrent_params::flag_upload_mode)
-        .value("flag_share_mode", add_torrent_params::flag_share_mode)
-        .value("flag_apply_ip_filter", add_torrent_params::flag_apply_ip_filter)
-        .value("flag_paused", add_torrent_params::flag_paused)
-        .value("flag_auto_managed", add_torrent_params::flag_auto_managed)
-        .value("flag_duplicate_is_error", add_torrent_params::flag_duplicate_is_error)
-        .value("flag_update_subscribe", add_torrent_params::flag_update_subscribe)
-        .value("flag_super_seeding", add_torrent_params::flag_super_seeding)
-        .value("flag_sequential_download", add_torrent_params::flag_sequential_download)
-        .value("flag_stop_when_ready", add_torrent_params::flag_stop_when_ready)
-        .value("flag_override_trackers", add_torrent_params::flag_override_trackers)
-        .value("flag_override_web_seeds", add_torrent_params::flag_override_web_seeds)
+
+    {
+    scope s = class_<dummy1>("torrent_flags");
+    s.attr("seed_mode") = torrent_flags::seed_mode;
+    s.attr("upload_mode") = torrent_flags::upload_mode;
+    s.attr("share_mode") = torrent_flags::share_mode;
+    s.attr("apply_ip_filter") = torrent_flags::apply_ip_filter;
+    s.attr("paused") = torrent_flags::paused;
+    s.attr("auto_managed") = torrent_flags::auto_managed;
+    s.attr("duplicate_is_error") = torrent_flags::duplicate_is_error;
+    s.attr("update_subscribe") = torrent_flags::update_subscribe;
+    s.attr("super_seeding") = torrent_flags::super_seeding;
+    s.attr("sequential_download") = torrent_flags::sequential_download;
+    s.attr("stop_when_ready") = torrent_flags::stop_when_ready;
+    s.attr("override_trackers") = torrent_flags::override_trackers;
+    s.attr("override_web_seeds") = torrent_flags::override_web_seeds;
+    }
+
 #ifndef TORRENT_NO_DEPRECATE
-        .value("flag_pinned", add_torrent_params::flag_pinned)
-        .value("flag_override_resume_data", add_torrent_params::flag_override_resume_data)
-        .value("flag_merge_resume_trackers", add_torrent_params::flag_merge_resume_trackers)
-        .value("flag_use_resume_save_path", add_torrent_params::flag_use_resume_save_path)
-        .value("flag_merge_resume_http_seeds", add_torrent_params::flag_merge_resume_http_seeds)
+    {
+    scope s = class_<dummy2>("add_torrent_params_flags_t");
+    s.attr("flag_seed_mode") = add_torrent_params::flag_seed_mode;
+    s.attr("flag_upload_mode") = add_torrent_params::flag_upload_mode;
+    s.attr("flag_share_mode") = add_torrent_params::flag_share_mode;
+    s.attr("flag_apply_ip_filter") = add_torrent_params::flag_apply_ip_filter;
+    s.attr("flag_paused") = add_torrent_params::flag_paused;
+    s.attr("flag_auto_managed") = add_torrent_params::flag_auto_managed;
+    s.attr("flag_duplicate_is_error") = add_torrent_params::flag_duplicate_is_error;
+    s.attr("flag_update_subscribe") = add_torrent_params::flag_update_subscribe;
+    s.attr("flag_super_seeding") = add_torrent_params::flag_super_seeding;
+    s.attr("flag_sequential_download") = add_torrent_params::flag_sequential_download;
+    s.attr("flag_stop_when_ready") = add_torrent_params::flag_stop_when_ready;
+    s.attr("flag_override_trackers") = add_torrent_params::flag_override_trackers;
+    s.attr("flag_override_web_seeds") = add_torrent_params::flag_override_web_seeds;
+    s.attr("flag_pinned") = add_torrent_params::flag_pinned;
+    s.attr("flag_override_resume_data") = add_torrent_params::flag_override_resume_data;
+    s.attr("flag_merge_resume_trackers") = add_torrent_params::flag_merge_resume_trackers;
+    s.attr("flag_use_resume_save_path") = add_torrent_params::flag_use_resume_save_path;
+    s.attr("flag_merge_resume_http_seeds") = add_torrent_params::flag_merge_resume_http_seeds;
+    }
 #endif
-    ;
+
     class_<cache_status>("cache_status")
         .add_property("pieces", cache_status_pieces)
 #ifndef TORRENT_NO_DEPRECATE

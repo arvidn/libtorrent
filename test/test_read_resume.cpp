@@ -92,11 +92,15 @@ TORRENT_TEST(read_resume)
 	TEST_EQUAL(atp.download_limit, 1344);
 	TEST_EQUAL(atp.max_connections, 1345);
 	TEST_EQUAL(atp.max_uploads, 1346);
-	TEST_CHECK((atp.flags & add_torrent_params::flag_seed_mode) == 0);
-	TEST_CHECK((atp.flags & add_torrent_params::flag_super_seeding) == 0);
-	TEST_CHECK((atp.flags & add_torrent_params::flag_auto_managed) == 0);
-	TEST_CHECK((atp.flags & add_torrent_params::flag_sequential_download) == 0);
-	TEST_CHECK((atp.flags & add_torrent_params::flag_paused) == 0);
+
+	torrent_flags_t const flags_mask
+		= torrent_flags::seed_mode
+		| torrent_flags::super_seeding
+		| torrent_flags::auto_managed
+		| torrent_flags::paused
+		| torrent_flags::sequential_download;
+
+	TEST_CHECK(!(atp.flags & flags_mask));
 	TEST_EQUAL(atp.added_time, 1347);
 	TEST_EQUAL(atp.completed_time, 1348);
 	TEST_EQUAL(atp.finished_time, 1352);

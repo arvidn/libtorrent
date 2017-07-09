@@ -726,8 +726,8 @@ void test_fastresume(bool const test_deprecated)
 			TEST_CHECK(!ec);
 		}
 
-		p.flags &= ~add_torrent_params::flag_paused;
-		p.flags &= ~add_torrent_params::flag_auto_managed;
+		p.flags &= ~torrent_flags::paused;
+		p.flags &= ~torrent_flags::auto_managed;
 		p.ti = std::make_shared<torrent_info>(std::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_sparse;
