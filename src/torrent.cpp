@@ -5003,9 +5003,8 @@ namespace libtorrent
 		// the torrent object from there
 		if (m_storage.get())
 		{
-			inc_refcount("release_files");
 			m_ses.disk_thread().async_stop_torrent(m_storage.get()
-				, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+				, boost::bind(&torrent::on_torrent_aborted, shared_from_this()));
 		}
 		else
 		{
@@ -5013,8 +5012,6 @@ namespace libtorrent
 			if (alerts().should_post<cache_flushed_alert>())
 				alerts().emplace_alert<cache_flushed_alert>(get_handle());
 		}
-
-		m_storage.reset();
 
 		// TODO: 2 abort lookups this torrent has made via the
 		// session host resolver interface
@@ -9819,6 +9816,15 @@ namespace libtorrent
 
 		if (alerts().should_post<cache_flushed_alert>())
 			alerts().emplace_alert<cache_flushed_alert>(get_handle());
+	}
+
+	void torrent::on_torrent_aborted()
+	{
+	    TORRENT_ASSERT(is_single_thread());
+
+	    // there should be no more disk activity for this torrent now, we can
+	    // release the disk io handle
+	    m_storage.reset();
 	}
 
 	bool torrent::is_paused() const

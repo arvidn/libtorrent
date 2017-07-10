@@ -1168,6 +1168,10 @@ namespace libtorrent
 		void on_file_renamed(disk_io_job const* j);
 		void on_cache_flushed(disk_io_job const* j);
 
+		// this is used when a torrent is being removed.It synchronizes with the
+		// disk thread
+		void on_torrent_aborted();
+
 		// upload and download rate limits for the torrent
 		void set_limit_impl(int limit, int channel, bool state_update = true);
 		int limit_impl(int channel) const;
