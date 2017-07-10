@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+    boost::int32_t const bandwidth_channel::inf = std::numeric_limits<boost::int32_t>::max();
+
 	bandwidth_channel::bandwidth_channel()
 		: tmp(0)
 		, distribute_quota(0)
