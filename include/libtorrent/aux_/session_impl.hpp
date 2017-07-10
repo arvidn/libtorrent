@@ -133,14 +133,8 @@ namespace aux {
 		TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
 #endif
 
-	struct listen_socket_impl : aux::session_listen_socket
+	struct listen_socket_impl
 	{
-		address get_external_address() override
-		{ return external_address.external_address(); }
-
-		tcp::endpoint get_local_endpoint() override
-		{ return local_endpoint; }
-
 		listen_socket_impl()
 		{
 			tcp_port_mapping[0] = -1;
@@ -148,8 +142,6 @@ namespace aux {
 			udp_port_mapping[0] = -1;
 			udp_port_mapping[1] = -1;
 		}
-
-		virtual ~listen_socket_impl() = default;
 
 		// this may be empty but can be set
 		// to the WAN IP address of a NAT router
@@ -193,12 +185,18 @@ namespace aux {
 		std::shared_ptr<aux::session_udp_socket> udp_sock;
 	};
 
-		struct listen_socket_t final : listen_socket_impl
+		struct listen_socket_t final : listen_socket_impl, aux::session_listen_socket
 		{
 			listen_socket_t(listen_socket_t const&) = delete;
 			listen_socket_t(listen_socket_t&&) = delete;
 			listen_socket_t& operator=(listen_socket_t const&) = delete;
 			listen_socket_t& operator=(listen_socket_t&&) = delete;
+
+			address get_external_address() override
+			{ return external_address.external_address(); }
+
+			tcp::endpoint get_local_endpoint() override
+			{ return local_endpoint; }
 
 			listen_socket_t(listen_socket_impl const& i) // NOLINT
 				: listen_socket_impl(i)
