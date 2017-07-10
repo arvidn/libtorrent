@@ -9820,11 +9820,11 @@ namespace libtorrent
 
 	void torrent::on_torrent_aborted()
 	{
-	    TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(is_single_thread());
 
-	    // there should be no more disk activity for this torrent now, we can
-	    // release the disk io handle
-	    m_storage.reset();
+		// there should be no more disk activity for this torrent now, we can
+		// release the disk io handle
+		m_storage.reset();
 	}
 
 	bool torrent::is_paused() const
