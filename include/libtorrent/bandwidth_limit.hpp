@@ -46,7 +46,7 @@ namespace libtorrent {
 // member of peer_connection
 struct TORRENT_EXTRA_EXPORT bandwidth_channel
 {
-	static constexpr int inf = std::numeric_limits<boost::int32_t>::max();
+	static boost::int32_t const inf = std::numeric_limits<boost::int32_t>::max();
 
 	bandwidth_channel();
 
