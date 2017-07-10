@@ -149,6 +149,8 @@ namespace aux {
 			udp_port_mapping[1] = -1;
 		}
 
+		virtual ~listen_socket_impl() = default;
+
 		// this may be empty but can be set
 		// to the WAN IP address of a NAT router
 		ip_voter external_address;
@@ -198,7 +200,7 @@ namespace aux {
 			listen_socket_t& operator=(listen_socket_t const&) = delete;
 			listen_socket_t& operator=(listen_socket_t&&) = delete;
 
-			listen_socket_t(listen_socket_impl const& i)
+			listen_socket_t(listen_socket_impl const& i) // NOLINT
 				: listen_socket_impl(i)
 			{}
 		};
