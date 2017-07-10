@@ -7,14 +7,14 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
 
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in
-      the documentation and/or other materials provided with the distribution.
-    * Neither the name of the author nor the names of its
-      contributors may be used to endorse or promote products derived
-      from this software without specific prior written permission.
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in
+	  the documentation and/or other materials provided with the distribution.
+	* Neither the name of the author nor the names of its
+	  contributors may be used to endorse or promote products derived
+	  from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -37,16 +37,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/cstdint.hpp>
+#include <boost/integer_traits.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include <limits>
 
 namespace libtorrent {
 
 // member of peer_connection
 struct TORRENT_EXTRA_EXPORT bandwidth_channel
 {
-    static boost::int32_t const inf;
+	static boost::int32_t const inf = boost::integer_traits<boost::int32_t>::const_max;
 
 	bandwidth_channel();
 
@@ -96,7 +95,7 @@ private:
 
 	// the limit is the number of bytes
 	// per second we are allowed to use.
-    boost::int32_t m_limit;
+	boost::int32_t m_limit;
 };
 
 }
