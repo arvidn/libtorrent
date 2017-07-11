@@ -169,6 +169,8 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 		return tcp::endpoint(address_v4(), 0);
 	}
 
+	bool is_ssl() override { return false; }
+
 	// the node_id and IP address of this node
 	std::pair<dht::node_id, lt::udp::endpoint> node_info() const
 	{

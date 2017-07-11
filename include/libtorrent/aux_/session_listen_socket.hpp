@@ -47,6 +47,8 @@ namespace libtorrent { namespace aux {
 		virtual address get_external_address() = 0;
 		virtual tcp::endpoint get_local_endpoint() = 0;
 
+		virtual bool is_ssl() = 0;
+
 		session_listen_socket() = default;
 
 	protected:

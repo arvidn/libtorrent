@@ -198,6 +198,9 @@ namespace aux {
 			tcp::endpoint get_local_endpoint() override
 			{ return local_endpoint; }
 
+			bool is_ssl() override
+			{ return ssl == transport::ssl; }
+
 			listen_socket_t(listen_socket_impl const& i) // NOLINT
 				: listen_socket_impl(i)
 			{}
