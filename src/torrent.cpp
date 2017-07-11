@@ -2700,6 +2700,8 @@ namespace libtorrent {
 			// and removing entries for non-existent ones
 			std::vector<announce_endpoint>::size_type valid_endpoints = 0;
 			m_ses.for_each_listen_socket([&](aux::session_listen_socket* s) {
+				if (s->is_ssl() != is_ssl_torrent())
+					return;
 				for (auto& aep : ae.endpoints)
 				{
 					if (aep.socket != s) continue;

@@ -116,6 +116,8 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::new_socket(aux::session_listen_socket* s)
 	{
+		if (s->is_ssl()) return;
+
 		address local_address = s->get_local_endpoint().address();
 #if TORRENT_USE_IPV6
 		// don't try to start dht nodes on non-global IPv6 addresses
@@ -156,6 +158,8 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::delete_socket(aux::session_listen_socket* s)
 	{
+		if (s->is_ssl()) return;
+
 #if TORRENT_USE_IPV6
 		address local_address = s->get_local_endpoint().address();
 		// since we don't start nodes on local IPv6 interfaces we don't need to remove them either

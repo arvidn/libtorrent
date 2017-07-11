@@ -95,6 +95,8 @@ struct mock_socket : lt::aux::session_listen_socket
 	{
 		return tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
 	}
+
+	bool is_ssl() override { return false; }
 };
 
 void send_packet(lt::udp_socket& sock, lt::aux::session_listen_socket*, udp::endpoint const& ep
