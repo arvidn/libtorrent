@@ -207,6 +207,7 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 		, m_need_save_resume_data(true)
+		, m_file_priorities_set(!p.file_priorities.empty())
 		, m_seeding_time(0)
 		, m_time_scaler(0)
 		, m_max_uploads((1<<24)-1)
@@ -5410,7 +5411,7 @@ namespace libtorrent
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
-		if (!m_override_resume_data)
+		if (!m_file_priorities_set)
 		{
 			lazy_entry const* file_priority = rd.dict_find_list("file_priority");
 			if (file_priority)
@@ -5422,6 +5423,11 @@ namespace libtorrent
 					m_file_priority[i] = file_priority->list_int_value_at(i, 1);
 					// this is suspicious, leave seed mode
 					if (m_file_priority[i] == 0) m_seed_mode = false;
+				}
+				if (m_storage)
+				{
+					filesystem().async_set_file_priority(m_file_priority
+						, boost::bind(&nop));
 				}
 				update_piece_priorities();
 			}

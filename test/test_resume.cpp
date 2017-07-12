@@ -239,6 +239,44 @@ void test_file_prio()
 	TEST_EQUAL(s.total_wanted, 0);
 }
 
+void test_file_prio_override()
+{
+	fprintf(stderr, "test_file_prio_override_resume\n");
+
+	session ses;
+	boost::intrusive_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	p.flags |= add_torrent_params::flag_override_resume_data;
+
+	entry rd;
+
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = ti->info_hash().to_string();
+	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
+
+	entry::list_type& file_prio = rd["file_priority"].list();
+	for (int i = 0; i < 100; ++i)
+	{
+		file_prio.push_back(entry(0));
+	}
+
+	std::string pieces(ti->num_pieces(), '\x01');
+	rd["pieces"] = pieces;
+
+	std::string pieces_prio(ti->num_pieces(), '\x01');
+	rd["piece_priority"] = pieces_prio;
+
+	bencode(back_inserter(p.resume_data), rd);
+
+	torrent_handle h = ses.add_torrent(p);
+
+	torrent_status s = h.status();
+	TEST_EQUAL(s.total_wanted, 0);
+}
+
 void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio
 	, bool all_files_zero = false)
 {
@@ -306,6 +344,7 @@ void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio
 int test_main()
 {
 	test_file_prio();
+	test_file_prio_override();
 
 	test_seed_mode(true, false, false);
 	test_seed_mode(false, true, false);

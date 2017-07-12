@@ -330,7 +330,7 @@ namespace libtorrent
 		// ============ end deprecation =============
 
 		void piece_availability(std::vector<int>& avail) const;
-		
+
 		void set_piece_priority(int index, int priority);
 		int piece_priority(int index) const;
 
@@ -1213,7 +1213,7 @@ namespace libtorrent
 		// the DNS request queue, only one ip is resolved
 		// at a time.
 		mutable bool m_resolving_country:1;
-		
+
 		// this is true if the user has enabled
 		// country resolution in this torrent
 		bool m_resolve_countries:1;
@@ -1221,6 +1221,9 @@ namespace libtorrent
 		// set to false when saving resume data. Set to true
 		// whenever something is downloaded
 		bool m_need_save_resume_data:1;
+
+		// true if the file priorities were set via add_torrent_params
+		bool m_file_priorities_set:1;
 
 // ----
 
