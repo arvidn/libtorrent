@@ -117,12 +117,12 @@ build_script:
 - if not defined x64 (
   cd %ROOT_DIRECTORY%\examples
   & if %compiler% == msvc-14.0 (
-    b2.exe --hash -j2 address-model=32 %compiler% variant=%variant%  debug-iterators=on picker-debugging=on invariant-checks=full linkflags=%linkflags% include=%include% link=shared bt-get bt-get2
+    b2.exe --hash -j2 openssl-version=pre1.1 address-model=32 %compiler% variant=%variant% debug-iterators=on picker-debugging=on invariant-checks=full linkflags=%linkflags% include=%include% link=shared bt-get bt-get2
   ) else (
-    b2.exe --hash -j2 address-model=32 %compiler% variant=%variant% debug-iterators=on picker-debugging=on invariant-checks=full linkflags=%linkflags% include=%include% link=shared
+    b2.exe --hash -j2 openssl-version=pre1.1 address-model=32 %compiler% variant=%variant% debug-iterators=on picker-debugging=on invariant-checks=full linkflags=%linkflags% include=%include% link=shared
   )
   & cd %ROOT_DIRECTORY%\bindings\python
-  & b2.exe --hash -j2 %compiler% stage_module install-dependencies=on variant=%variant% libtorrent-link=shared linkflags=%linkflags% include=%include%
+  & b2.exe --hash -j2 openssl-version=pre1.1 %compiler% stage_module install-dependencies=on variant=%variant% libtorrent-link=shared linkflags=%linkflags% include=%include%
   & python test.py
   & if defined python_package ( python setup.py --bjam bdist_msi )
   )
@@ -130,13 +130,13 @@ build_script:
 test_script:
 - cd %ROOT_DIRECTORY%\test
 - if defined x64 (
-  appveyor-retry b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
+  appveyor-retry b2.exe --hash -j2 openssl-version=pre1.1 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
   ) else (
-  appveyor-retry b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
+  appveyor-retry b2.exe --hash -j2 openssl-version=pre1.1 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
   )
 - if defined sim (
   cd %ROOT_DIRECTORY%\simulation
-  & b2.exe --hash -j2 link=shared crypto=built-in %compiler%
+  & b2.exe --hash -j2 openssl-version=pre1.1 link=shared crypto=built-in %compiler%
   )
 
 artifacts:

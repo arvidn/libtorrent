@@ -67,25 +67,36 @@ rule linking ( properties * )
 	local result ;
 
 	# openssl libraries, if enabled
+	# exclude gcc from a regular windows build to make mingw
+	# link against the regular unix library name
 	if <crypto>openssl in $(properties)
 	{
-		# exclude gcc from a regular windows build to make mingw
-		# link against the regular unix library name
-		if <target-os>windows in $(properties)
-		   && ! <toolset>gcc in $(properties)
+		if <openssl-version>pre1.1 in $(properties)
+			&& <target-os>windows in $(properties)
+			&& ! <toolset>gcc in $(properties)
 		{
 			result += <library>ssleay32
 				<library>libeay32
-				<library>advapi32
-				<library>user32
-				<library>shell32
-				<library>gdi32
 			;
 		}
 		else
 		{
+			# on windows the library names were changed to be in line with other
+			# system starting with OpenSSL 1.1
 			result += <library>crypto <library>ssl ;
 		}
+	}
+
+	# windows needs some more libraries when using openSSL
+	if <crypto>openssl in $(properties)
+		&& <target-os>windows in $(properties)
+		&& ! <toolset>gcc in $(properties)
+	{
+		result += <library>advapi32
+			<library>user32
+			<library>shell32
+			<library>gdi32
+		;
 	}
 
 	if <simulator>on in $(properties)
@@ -470,6 +481,8 @@ feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS
 feature crypto : built-in openssl gcrypt : composite propagated ;
 feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
+
+feature openssl-version : 1.1 pre1.1 : composite propagated ;
 
 feature resolve-countries : on off : composite propagated link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
