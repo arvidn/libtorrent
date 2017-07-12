@@ -329,7 +329,8 @@ namespace libtorrent
 
 		// can be set to control the initial file priorities when adding a
 		// torrent. The semantics are the same as for
-		// ``torrent_handle::prioritize_files()``.
+		// ``torrent_handle::prioritize_files()``. If file priorities are
+		// specified here, they override any file priorities from the resume data.
 		std::vector<boost::uint8_t> file_priorities;
 
 		// torrent extension construction functions can be added to this vector
