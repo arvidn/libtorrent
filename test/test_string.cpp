@@ -91,6 +91,8 @@ TORRENT_TEST(is_space)
 	TEST_CHECK(is_space('\t'));
 	TEST_CHECK(is_space('\n'));
 	TEST_CHECK(is_space('\r'));
+	TEST_CHECK(is_space('\f'));
+	TEST_CHECK(is_space('\v'));
 }
 
 TORRENT_TEST(to_lower)
