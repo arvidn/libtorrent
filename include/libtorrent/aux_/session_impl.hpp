@@ -133,15 +133,29 @@ namespace aux {
 		TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
 #endif
 
-	struct listen_socket_impl
+	struct listen_socket_t final : aux::session_listen_socket
 	{
-		listen_socket_impl()
+		listen_socket_t()
 		{
 			tcp_port_mapping[0] = -1;
 			tcp_port_mapping[1] = -1;
 			udp_port_mapping[0] = -1;
 			udp_port_mapping[1] = -1;
 		}
+
+		listen_socket_t(listen_socket_t const&) = delete;
+		listen_socket_t(listen_socket_t&&) = delete;
+		listen_socket_t& operator=(listen_socket_t const&) = delete;
+		listen_socket_t& operator=(listen_socket_t&&) = delete;
+
+		address get_external_address() override
+		{ return external_address.external_address(); }
+
+		tcp::endpoint get_local_endpoint() override
+		{ return local_endpoint; }
+
+		bool is_ssl() override
+		{ return ssl == transport::ssl; }
 
 		// this may be empty but can be set
 		// to the WAN IP address of a NAT router
@@ -185,27 +199,6 @@ namespace aux {
 		std::shared_ptr<aux::session_udp_socket> udp_sock;
 	};
 
-		struct listen_socket_t final : listen_socket_impl, aux::session_listen_socket
-		{
-			listen_socket_t(listen_socket_t const&) = delete;
-			listen_socket_t(listen_socket_t&&) = delete;
-			listen_socket_t& operator=(listen_socket_t const&) = delete;
-			listen_socket_t& operator=(listen_socket_t&&) = delete;
-
-			address get_external_address() override
-			{ return external_address.external_address(); }
-
-			tcp::endpoint get_local_endpoint() override
-			{ return local_endpoint; }
-
-			bool is_ssl() override
-			{ return ssl == transport::ssl; }
-
-			listen_socket_t(listen_socket_impl const& i) // NOLINT
-				: listen_socket_impl(i)
-			{}
-		};
-
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
 		{
 			listen_endpoint_t(address adr, int p, std::string dev, transport s)
@@ -226,10 +219,10 @@ namespace aux {
 		// all matched sockets are ordered before unmatched sockets
 		// matched endpoints are removed from the vector
 		// returns an iterator to the first unmatched socket
-		TORRENT_EXTRA_EXPORT std::list<listen_socket_t>::iterator
+		TORRENT_EXTRA_EXPORT std::vector<std::shared_ptr<aux::listen_socket_t>>::iterator
 		partition_listen_sockets(
 			std::vector<listen_endpoint_t>& eps
-			, std::list<listen_socket_t>& sockets);
+			, std::vector<std::shared_ptr<aux::listen_socket_t>>& sockets);
 
 		// expand [::] to all IPv6 interfaces for BEP 45 compliance
 		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
@@ -595,7 +588,7 @@ namespace aux {
 			{
 				for (auto& s : m_listen_sockets)
 				{
-					f(&s);
+					f(s.get());
 				}
 			}
 
@@ -623,7 +616,7 @@ namespace aux {
 			{
 				for (auto const& s : m_listen_sockets)
 				{
-					if (s.udp_sock) return s.udp_external_port;
+					if (s->udp_sock) return s->udp_external_port;
 				}
 				return -1;
 			}
@@ -948,7 +941,7 @@ namespace aux {
 
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
-			std::list<listen_socket_t> m_listen_sockets;
+			std::vector<std::shared_ptr<listen_socket_t>> m_listen_sockets;
 
 			outgoing_sockets m_outgoing_sockets;
 
@@ -971,7 +964,7 @@ namespace aux {
 				open_ssl_socket = 0x10
 			};
 
-			listen_socket_impl setup_listener(std::string const& device
+			std::shared_ptr<listen_socket_t> setup_listener(std::string const& device
 				, tcp::endpoint bind_ep, int flags, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT

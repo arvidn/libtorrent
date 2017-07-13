@@ -79,27 +79,27 @@ namespace
 		return aux::listen_endpoint_t(address::from_string(ip), port, device, ssl);
 	}
 
-	aux::listen_socket_impl sock(char const* ip, int const port
+	std::shared_ptr<aux::listen_socket_t> sock(char const* ip, int const port
 		, int const original_port, char const* device = "")
 	{
-		aux::listen_socket_impl s;
-		s.local_endpoint = tcp::endpoint(address::from_string(ip), port);
-		s.original_port = original_port;
-		s.device = device;
+		auto s = std::make_shared<aux::listen_socket_t>();
+		s->local_endpoint = tcp::endpoint(address::from_string(ip), port);
+		s->original_port = original_port;
+		s->device = device;
 		return s;
 	}
 
-	aux::listen_socket_impl sock(char const* ip, int const port, char const* dev)
+	std::shared_ptr<aux::listen_socket_t> sock(char const* ip, int const port, char const* dev)
 	{ return sock(ip, port, port, dev); }
 
-	aux::listen_socket_impl sock(char const* ip, int const port)
+	std::shared_ptr<aux::listen_socket_t> sock(char const* ip, int const port)
 	{ return sock(ip, port, port); }
 
 } // anonymous namespace
 
 TORRENT_TEST(partition_listen_sockets_wildcard2specific)
 {
-	std::list<aux::listen_socket_t> sockets = {
+	std::vector<std::shared_ptr<aux::listen_socket_t>> sockets = {
 		sock("0.0.0.0", 6881), sock("4.4.4.4", 6881)
 	};
 
@@ -112,14 +112,14 @@ TORRENT_TEST(partition_listen_sockets_wildcard2specific)
 	TEST_EQUAL(eps.size(), 1);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(sockets.front(), address_v4::from_string("4.4.4.4"), 6881, "", tp::plaintext);
-	test_equal(sockets.back(), address_v4(), 6881, "", tp::plaintext);
+	test_equal(*sockets.front(), address_v4::from_string("4.4.4.4"), 6881, "", tp::plaintext);
+	test_equal(*sockets.back(), address_v4(), 6881, "", tp::plaintext);
 	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
 }
 
 TORRENT_TEST(partition_listen_sockets_port_change)
 {
-	std::list<aux::listen_socket_t> sockets = {
+	std::vector<std::shared_ptr<aux::listen_socket_t>> sockets = {
 		sock("4.4.4.4", 6881), sock("4.4.4.5", 6881)
 	};
 
@@ -134,7 +134,7 @@ TORRENT_TEST(partition_listen_sockets_port_change)
 
 TORRENT_TEST(partition_listen_sockets_device_bound)
 {
-	std::list<aux::listen_socket_t> sockets = {
+	std::vector<std::shared_ptr<aux::listen_socket_t>> sockets = {
 		sock("4.4.4.5", 6881), sock("0.0.0.0", 6881)
 	};
 
@@ -148,14 +148,14 @@ TORRENT_TEST(partition_listen_sockets_device_bound)
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(sockets.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
-	test_equal(sockets.back(), address_v4(), 6881, "", tp::plaintext);
+	test_equal(*sockets.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
+	test_equal(*sockets.back(), address_v4(), 6881, "", tp::plaintext);
 	TEST_EQUAL(eps.size(), 2);
 }
 
 TORRENT_TEST(partition_listen_sockets_device_ip_change)
 {
-	std::list<aux::listen_socket_t> sockets = {
+	std::vector<std::shared_ptr<aux::listen_socket_t>> sockets = {
 		sock("10.10.10.10", 6881, "enp3s0")
 		, sock("4.4.4.4", 6881, "enp3s0")
 	};
@@ -168,15 +168,15 @@ TORRENT_TEST(partition_listen_sockets_device_ip_change)
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(sockets.front(), address_v4::from_string("10.10.10.10"), 6881, "enp3s0", tp::plaintext);
-	test_equal(sockets.back(), address_v4::from_string("4.4.4.4"), 6881, "enp3s0", tp::plaintext);
+	test_equal(*sockets.front(), address_v4::from_string("10.10.10.10"), 6881, "enp3s0", tp::plaintext);
+	test_equal(*sockets.back(), address_v4::from_string("4.4.4.4"), 6881, "enp3s0", tp::plaintext);
 	TEST_EQUAL(eps.size(), 1);
 	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "enp3s0", tp::plaintext);
 }
 
 TORRENT_TEST(partition_listen_sockets_original_port)
 {
-	std::list<aux::listen_socket_t> sockets = {
+	std::vector<std::shared_ptr<aux::listen_socket_t>> sockets = {
 		sock("10.10.10.10", 6883, 6881), sock("4.4.4.4", 6883, 6881)
 	};
 
@@ -193,7 +193,7 @@ TORRENT_TEST(partition_listen_sockets_original_port)
 
 TORRENT_TEST(partition_listen_sockets_ssl)
 {
-	std::list<aux::listen_socket_t> sockets = {
+	std::vector<std::shared_ptr<aux::listen_socket_t>> sockets = {
 		sock("10.10.10.10", 6881), sock("4.4.4.4", 6881)
 	};
 
@@ -212,7 +212,7 @@ TORRENT_TEST(partition_listen_sockets_ssl)
 
 TORRENT_TEST(partition_listen_sockets_op_ports)
 {
-	std::list<aux::listen_socket_t> sockets = {
+	std::vector<std::shared_ptr<aux::listen_socket_t>> sockets = {
 		sock("10.10.10.10", 6881, 0), sock("4.4.4.4", 6881)
 	};
 
