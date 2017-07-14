@@ -290,6 +290,14 @@ Build features:
 |                          |   torrents over ssl feature. Requires              |
 |                          |   the option crypto=libcrypto.                     |
 +--------------------------+----------------------------------------------------+
+| ``openssl-version``      | This can be used on windows to link against the    |
+|                          | special OpenSSL library names used on windows      |
+|                          | prior to OpenSSL 1.1.                              |
+|                          | * ``1.1`` - link against the normal openssl        |
+|                          |   library name. (default)                          |
+|                          | * ``pre1.1`` - link against the old windows names  |
+|                          |   (i.e. ``ssleay32`` and ``libeay32``.             |
++--------------------------+----------------------------------------------------+
 | ``allocator``            | * ``pool`` - default, uses pool allocators for     |
 |                          |   send buffers.                                    |
 |                          | * ``system`` - uses ``malloc()`` and ``free()``    |

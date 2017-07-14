@@ -61,22 +61,20 @@ rule linking ( properties * )
 	}
 
 	# openssl libraries, if enabled
+	# exclude gcc from a regular windows build to make mingw
+	# link against the regular unix library name
 	if <ssl>openssl in $(properties)
 	{
-		# exclude gcc from a regular windows build to make mingw
-		# link against the regular unix library name
-		if <target-os>windows in $(properties)
+		if <openssl-version>pre1.1 in $(properties)
+			&& <target-os>windows in $(properties)
 			&& ! <toolset>gcc in $(properties)
 		{
-			result += <library>ssleay32
-				<library>advapi32
-				<library>user32
-				<library>shell32
-				<library>gdi32
-			;
+			result += <library>ssleay32 ;
 		}
 		else
 		{
+			# on windows the library names were changed to be in line with other
+			# system starting with OpenSSL 1.1
 			result += <library>ssl ;
 		}
 	}
@@ -85,21 +83,29 @@ rule linking ( properties * )
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
-		if <target-os>windows in $(properties)
+		if <openssl-version>pre1.1 in $(properties)
+			&& <target-os>windows in $(properties)
 			&& ! <toolset>gcc in $(properties)
 		{
 			# it should be possible to cleanup this list, but this is safe for now
-			result += <library>libeay32
-				<library>advapi32
-				<library>user32
-				<library>shell32
-				<library>gdi32
-			;
+			result += <library>libeay32 ;
 		}
 		else
 		{
 			result += <library>crypto ;
 		}
+	}
+
+	# windows needs some more libraries when using openSSL
+	if <ssl>openssl in $(properties)
+		&& <target-os>windows in $(properties)
+		&& ! <toolset>gcc in $(properties)
+	{
+		result += <library>advapi32
+			<library>user32
+			<library>shell32
+			<library>gdi32
+		;
 	}
 
 	if <simulator>on in $(properties)
@@ -463,6 +469,8 @@ feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS
 feature crypto : built-in libcrypto libgcrypt : composite propagated ;
 feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
 feature.compose <crypto>libgcrypt : <define>TORRENT_USE_LIBGCRYPT ;
+
+feature openssl-version : 1.1 pre1.1 : composite propagated ;
 
 feature ssl : off openssl : composite propagated ;
 feature.compose <ssl>openssl : <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;

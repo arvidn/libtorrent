@@ -74,32 +74,32 @@ cache:
 build_script:
 # examples
 - cd %ROOT_DIRECTORY%\examples
-- b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto%
+- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto%
 
 # tools
 - cd %ROOT_DIRECTORY%\tools
-- b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto%
+- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto%
 
 # test
 - cd %ROOT_DIRECTORY%\test
-- b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% win-tests test_upnp test_natpmp testing.execute=off
+- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% win-tests test_upnp test_natpmp testing.execute=off
 
 # python binding
 - cd %ROOT_DIRECTORY%\bindings\python
 # we use 64 bit python builds
 - if defined python (
-  b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% libtorrent-link=shared stage_module install-dependencies=on 
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% libtorrent-link=shared stage_module install-dependencies=on
   )
 
 # simulations
 - cd %ROOT_DIRECTORY%\simulation
 - if defined sim (
-  b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=built-in testing.execute=off
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=built-in testing.execute=off
   )
 
 test_script:
 - cd %ROOT_DIRECTORY%\test
-- appveyor-retry b2.exe -l400 --hash warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% win-tests
+- appveyor-retry b2.exe -l400 --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% win-tests
 
 - cd %ROOT_DIRECTORY%\bindings\python
 # we use 64 bit python build
@@ -108,5 +108,5 @@ test_script:
 # simulation tests
 - cd %ROOT_DIRECTORY%\simulation
 - if defined sim (
-  b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=built-in
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=built-in
   )
