@@ -74,6 +74,8 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix inconsistency in file_priorities and override_resume_data behavior
+
 1.1.4 release
 
 	* corrected missing const qualifiers on bdecode_node

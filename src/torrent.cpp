@@ -4940,7 +4940,7 @@ namespace libtorrent {
 		if (m_torrent_file->num_pieces() > 0 && m_storage)
 		{
 			m_ses.disk_thread().async_set_file_priority(m_storage
-				, m_file_priority, std::bind(&torrent::on_file_priority, this, _1));
+				, m_file_priority, std::bind(&torrent::on_file_priority, shared_from_this(), _1));
 		}
 
 		update_piece_priorities();
@@ -4979,7 +4979,7 @@ namespace libtorrent {
 		if (m_storage)
 		{
 			m_ses.disk_thread().async_set_file_priority(m_storage
-				, m_file_priority, std::bind(&torrent::on_file_priority, this, _1));
+				, m_file_priority, std::bind(&torrent::on_file_priority, shared_from_this(), _1));
 		}
 		update_piece_priorities();
 	}
