@@ -87,6 +87,7 @@ project
 	<toolset>msvc:<cflags>/wd4275
 # disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
 	<toolset>msvc:<cflags>/wd4373
+	<toolset>msvc:<cflags>/wd4503
 	<toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
 	<export-extra>on
 	: default-build
