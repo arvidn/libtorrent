@@ -283,6 +283,8 @@ rule warnings ( properties * )
 		# C4268: 'identifier' : 'const' static/global data initialized
 		#        with compiler generated default constructor fills the object with zeros
 		result += <cflags>/wd4268 ;
+		# C4503: 'identifier': decorated name length exceeded, name was truncated
+		result += <cflags>/wd4503 ;
 	}
 
 	return $(result) ;
