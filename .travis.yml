@@ -4,7 +4,7 @@ matrix:
   fast_finish: true
   include:
     - env: variant=test_debug lint=1 tests=1 toolset=gcc-sanitizer
-    - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc-sanitizer
+    - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
     - os: osx
@@ -12,7 +12,7 @@ matrix:
       env: variant=test_release docs=1 tests=1 toolset=darwin
     - os: osx
       osx_image: xcode7.3
-      env: variant=test_debug ssl=openssl tests=1 crypto=libcrypto toolset=darwin
+      env: variant=test_debug crypto=openssl tests=1 toolset=darwin
     - os: osx
       osx_image: xcode7.3
       env: variant=test_barebones tools=1 examples=1 toolset=darwin python=1
@@ -52,7 +52,6 @@ addons:
 before_install:
 
   - git submodule update --init --recursive
-  - 'if [[ $ssl == "" ]]; then export ssl=off; fi'
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" ) ]]; then
     travis_retry brew update > /dev/null && brew install ccache boost-build;
@@ -146,7 +145,7 @@ script:
 # libtorrent is the name of the test suite target
   - cd test
   - 'if [ "$tests" == "1" ]; then
-      travis_retry bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant libtorrent test_natpmp enum_if -l300 &&
+      travis_retry bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant libtorrent test_natpmp enum_if -l300 &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
@@ -154,13 +153,13 @@ script:
 
   - cd ../examples
   - 'if [ "$examples" == "1" ]; then
-      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared;
+      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
   - cd ..
 
   - cd tools
   - 'if [ "$tools" == "1" ]; then
-      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared;
+      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
   - cd ..
 
@@ -169,13 +168,13 @@ script:
 # as the main library, so we cannot stage them to the same directory
 # here we specify the temporary lib dir as a path to look for the main library
   - 'if [ "$python" == "1" ]; then
-      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared install location=./lib;
+      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared install location=./lib;
     fi'
 
 # a binary built with sanitizer does not interact well with python
   - cd bindings/python
   - 'if [[ "$python" == "1" ]]; then
-      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
+      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
       LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
     fi'
   - cd ../..;
@@ -183,7 +182,7 @@ script:
 # simulation
   - cd simulation
   - 'if [[ "$sim" == "1" ]]; then
-      bjam -j2 crypto=built-in ssl=off warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full $toolset;
+      bjam -j2 crypto=built-in warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full $toolset;
     fi'
   - cd ..
 
@@ -202,6 +201,6 @@ script:
   - cd test
   - 'if [[ "$arch" == "arm" ]];
     then
-      bjam arm-tests warnings-as-errors=on ssl=$ssl crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
+      bjam arm-tests warnings-as-errors=on crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'
   - cd ..

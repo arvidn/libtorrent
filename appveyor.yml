@@ -19,15 +19,13 @@ environment:
     compiler: msvc-14.0
     model: 64
     python: 1
-    ssl: openssl
-    crypto: libcrypto
+    crypto: openssl
     linkflags: 'linkflags="/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
     include: 'include="c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
     compiler: gcc
     model: 32
-    ssl: openssl
-    crypto: libcrypto
+    crypto: openssl
     linkflags: 'linkflags="-LC:\\OpenSSL-Win32\\lib"'
     include: 'include="c:\\OpenSSL-Win32\\include"'
 
@@ -35,11 +33,11 @@ install:
 - if defined sim ( git submodule update --init --recursive )
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
-- if %compiler% == msvc-14.0 if defined ssl if not exist openssl-1.0.1p-vs2015.7z (
+- if %compiler% == msvc-14.0 if defined crypto if not exist openssl-1.0.1p-vs2015.7z (
     echo downloading openssl-2015
     & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
   )
-- if %compiler% == msvc-14.0 if defined ssl (
+- if %compiler% == msvc-14.0 if defined crypto (
     echo extracting openssl-2015
     & 7z x -oc:\ -aoa openssl-1.0.1p-vs2015.7z > nul
     & copy c:\openssl-1.0.1p-vs2015\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib64\ssleay32.lib
@@ -47,7 +45,6 @@ install:
     & copy c:\openssl-1.0.1p-vs2015\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib\ssleay32.lib
     & copy c:\openssl-1.0.1p-vs2015\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib\libeay32.lib
   )
-- if not defined ssl ( set ssl=off )
 - if not defined crypto ( set crypto=built-in )
 - if not defined linkflags ( set linkflags="" )
 - if not defined include ( set include="" )
@@ -74,21 +71,21 @@ cache:
 build_script:
 # examples
 - cd %ROOT_DIRECTORY%\examples
-- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto%
+- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% crypto=%crypto%
 
 # tools
 - cd %ROOT_DIRECTORY%\tools
-- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto%
+- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% crypto=%crypto%
 
 # test
 - cd %ROOT_DIRECTORY%\test
-- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% win-tests test_upnp test_natpmp testing.execute=off
+- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% crypto=%crypto% win-tests test_upnp test_natpmp testing.execute=off
 
 # python binding
 - cd %ROOT_DIRECTORY%\bindings\python
 # we use 64 bit python builds
 - if defined python (
-  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% libtorrent-link=shared stage_module install-dependencies=on
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% crypto=%crypto% libtorrent-link=shared stage_module install-dependencies=on
   )
 
 # simulations
@@ -99,7 +96,7 @@ build_script:
 
 test_script:
 - cd %ROOT_DIRECTORY%\test
-- appveyor-retry b2.exe -l400 --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% win-tests
+- appveyor-retry b2.exe -l400 --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% crypto=%crypto% win-tests
 
 - cd %ROOT_DIRECTORY%\bindings\python
 # we use 64 bit python build

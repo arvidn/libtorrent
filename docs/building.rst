@@ -279,16 +279,13 @@ Build features:
 | ``crypto``               | * ``built-in`` - (default) uses built-in SHA-1     |
 |                          |   implementation. In macOS/iOS it uses             |
 |                          |   CommonCrypto SHA-1 implementation.               |
+|                          | * ``openssl`` - links against openssl to enable    |
+|                          |   torrents over ssl feature.                       |
+|                          |   the option crypto=libcrypto.                     |
 |                          | * ``libcrypto`` - links against libcrypto          |
 |                          |   to use the SHA-1 implementation.                 |
-|                          | * ``libgcrypt`` - links against libgcrypt          |
+|                          | * ``gcrypt`` - links against libgcrypt             |
 |                          |   to use the SHA-1 implementation.                 |
-+--------------------------+----------------------------------------------------+
-| ``ssl``                  | * ``off`` - (default) disable torrents over ssl    |
-|                          |   feature.                                         |
-|                          | * ``openssl`` - links against openssl to enable    |
-|                          |   torrents over ssl feature. Requires              |
-|                          |   the option crypto=libcrypto.                     |
 +--------------------------+----------------------------------------------------+
 | ``openssl-version``      | This can be used on windows to link against the    |
 |                          | special OpenSSL library names used on windows      |

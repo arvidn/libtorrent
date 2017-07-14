@@ -51,31 +51,22 @@ rule linking ( properties * )
 {
 	local result ;
 
-	# ssl=openssl => crypto=libcrypto
-	# this match the previous behavior
-	if <ssl>openssl in $(properties)
-		&& ! <crypto>libcrypto in $(properties)
-	{
-		ECHO "with ssl=openssl the value for crypto must be libcrypto" ;
-		result += <build>no ;
-	}
-
 	# openssl libraries, if enabled
 	# exclude gcc from a regular windows build to make mingw
 	# link against the regular unix library name
-	if <ssl>openssl in $(properties)
+	if <crypto>openssl in $(properties)
 	{
 		if <openssl-version>pre1.1 in $(properties)
 			&& <target-os>windows in $(properties)
 			&& ! <toolset>gcc in $(properties)
 		{
-			result += <library>ssleay32 ;
+			result += <library>ssleay32 <library>libeay32 ;
 		}
 		else
 		{
 			# on windows the library names were changed to be in line with other
 			# system starting with OpenSSL 1.1
-			result += <library>ssl ;
+			result += <library>crypto <library>ssl ;
 		}
 	}
 
@@ -97,7 +88,8 @@ rule linking ( properties * )
 	}
 
 	# windows needs some more libraries when using openSSL
-	if <ssl>openssl in $(properties)
+	if ( <crypto>openssl in $(properties)
+		|| <crypto>libcrypto in $(propertes) )
 		&& <target-os>windows in $(properties)
 		&& ! <toolset>gcc in $(properties)
 	{
@@ -124,7 +116,7 @@ rule linking ( properties * )
 	}
 
 	# gcrypt libraries, if enabled
-	if <crypto>libgcrypt in $(properties)
+	if <crypto>gcrypt in $(properties)
 	{
 		result += <library>gcrypt ;
 	}
@@ -466,14 +458,12 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : built-in libcrypto libgcrypt : composite propagated ;
+feature crypto : built-in openssl libcrypto gcrypt : composite propagated ;
+feature.compose <crypto>openssl : <define>TORRENT_USE_LIBCRYPTO <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
 feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
-feature.compose <crypto>libgcrypt : <define>TORRENT_USE_LIBGCRYPT ;
+feature.compose <crypto>gcrypt : <define>TORRENT_USE_LIBGCRYPT ;
 
 feature openssl-version : 1.1 pre1.1 : composite propagated ;
-
-feature ssl : off openssl : composite propagated ;
-feature.compose <ssl>openssl : <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
 
 feature deprecated-functions : on off : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
