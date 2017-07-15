@@ -120,9 +120,9 @@ namespace libtorrent {
 	open_mode_t file_flags_for_job(disk_io_job* j
 		, bool const coalesce_buffers)
 	{
-		open_mode_t ret = open_mode_t::none;
-		if (!(j->flags & disk_interface::sequential_access)) ret |= open_mode_t::random_access;
-		if (coalesce_buffers) ret |= open_mode_t::coalesce_buffers;
+		open_mode_t ret = open_mode_t{};
+		if (!(j->flags & disk_interface::sequential_access)) ret |= open_mode::random_access;
+		if (coalesce_buffers) ret |= open_mode::coalesce_buffers;
 		return ret;
 	}
 
@@ -664,7 +664,7 @@ namespace libtorrent {
 #endif
 
 		open_mode_t const file_flags = m_settings.get_bool(settings_pack::coalesce_writes)
-			? open_mode_t::coalesce_buffers : open_mode_t::none;
+			? open_mode::coalesce_buffers : open_mode_t{};
 
 		// issue the actual write operation
 		auto iov_start = iov;

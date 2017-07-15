@@ -658,7 +658,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		full_path = combine_path(full_path, filename);
 
 		int to_write = file_sizes[i];
-		file f(full_path, open_mode_t::write_only, ec);
+		file f(full_path, open_mode::write_only, ec);
 		if (ec) std::printf("failed to create file \"%s\": (%d) %s\n"
 			, full_path.c_str(), ec.value(), ec.message().c_str());
 		std::int64_t offset = 0;

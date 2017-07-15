@@ -122,40 +122,41 @@ namespace libtorrent {
 
 	using file_handle = std::shared_ptr<file>;
 
+	// hidden
+	struct open_mode_tag;
+	using open_mode_t = flags::bitfield_flag<std::uint32_t, open_mode_tag>;
+
 	// the open mode for files. Used for the file constructor or
 	// file::open().
-	enum class open_mode_t : std::uint32_t
-	{
-		none = 0,
+	namespace open_mode {
 
 		// open the file for reading only
-		read_only = 0,
+		constexpr open_mode_t read_only{0};
 
 		// open the file for writing only
-		write_only = 1,
+		constexpr open_mode_t write_only{1};
 
 		// open the file for reading and writing
-		read_write = 2,
+		constexpr open_mode_t read_write{2};
 
-		// the mask for the bits determining read or write mode
-		rw_mask = read_only | write_only | read_write,
+		constexpr open_mode_t rw_mask = read_only | write_only | read_write;
 
 		// open the file in sparse mode (if supported by the
 		// filesystem).
-		sparse = 0x4,
+		constexpr open_mode_t sparse{0x4};
 
 		// don't update the access timestamps on the file (if
 		// supported by the operating system and filesystem).
 		// this generally improves disk performance.
-		no_atime = 0x8,
+		constexpr open_mode_t no_atime{0x8};
 
 		// open the file for random access. This disables read-ahead
 		// logic
-		random_access = 0x10,
+		constexpr open_mode_t random_access{0x10};
 
 		// prevent the file from being opened by another process
 		// while it's still being held open by this handle
-		lock_file = 0x20,
+		constexpr open_mode_t lock_file{0x20};
 
 		// don't put any pressure on the OS disk cache
 		// because of access to this file. We expect our
@@ -163,25 +164,20 @@ namespace libtorrent {
 		// a cache at the bittorrent block level. This
 		// may improve overall system performance by
 		// leaving running applications in the page cache
-		no_cache = 0x40,
+		constexpr open_mode_t no_cache{0x40};
 
 		// this is only used for readv/writev flags
-		coalesce_buffers = 0x100,
+		constexpr open_mode_t coalesce_buffers{0x100};
 
 		// when creating a file, set the hidden attribute (windows only)
-		attribute_hidden = 0x200,
+		constexpr open_mode_t attribute_hidden{0x200};
 
 		// when creating a file, set the executable attribute
-		attribute_executable = 0x400,
+		constexpr open_mode_t attribute_executable{0x400};
 
 		// the mask of all attribute bits
-		attribute_mask = attribute_hidden | attribute_executable
-	};
-
-namespace flags {
-	template <>
-	struct enable_flag_operators<open_mode_t> : std::true_type {};
-}
+		constexpr open_mode_t attribute_mask = attribute_hidden | attribute_executable;
+	}
 
 	using namespace flags;
 
@@ -199,9 +195,9 @@ namespace flags {
 		open_mode_t open_mode() const { return m_open_mode; }
 
 		std::int64_t writev(std::int64_t file_offset, span<iovec_t const> bufs
-			, error_code& ec, open_mode_t flags = open_mode_t::none);
+			, error_code& ec, open_mode_t flags = open_mode_t{});
 		std::int64_t readv(std::int64_t file_offset, span<iovec_t const> bufs
-			, error_code& ec, open_mode_t flags = open_mode_t::none);
+			, error_code& ec, open_mode_t flags = open_mode_t{});
 
 		std::int64_t get_size(error_code& ec) const;
 
@@ -215,7 +211,7 @@ namespace flags {
 
 		handle_type m_file_handle;
 
-		open_mode_t m_open_mode = open_mode_t::none;
+		open_mode_t m_open_mode{};
 #if defined TORRENT_WINDOWS
 		static bool has_manage_volume_privs;
 #endif

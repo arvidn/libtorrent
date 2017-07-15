@@ -104,7 +104,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, int prio = 0, aux::proxy_settings const* ps = NULL, int handle_redirects = 5
 		, std::string const& user_agent = std::string()
 		, boost::optional<address> const& bind_addr = boost::optional<address>()
-		, resolver_flags resolve_flags = resolver_flags::none, std::string const& auth_ = std::string()
+		, resolver_flags resolve_flags = resolver_flags{}, std::string const& auth_ = std::string()
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
 #endif
@@ -114,7 +114,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = NULL
 		, bool ssl = false, int handle_redirect = 5
 		, boost::optional<address> const& bind_addr = boost::optional<address>()
-		, resolver_flags resolve_flags = resolver_flags::none
+		, resolver_flags resolve_flags = resolver_flags{}
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
 #endif
