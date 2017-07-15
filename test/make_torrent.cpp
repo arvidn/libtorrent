@@ -199,7 +199,7 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 
 		iovec_t b = { &buffer[0], size_t(piece_size) };
 		storage_error ec;
-		int ret = st.writev(b, i, 0, open_mode_t::read_only, ec);
+		int ret = st.writev(b, i, 0, open_mode::read_only, ec);
 		if (ret != piece_size || ec)
 		{
 			std::printf("ERROR writing files: (%d expected %d) %s\n"

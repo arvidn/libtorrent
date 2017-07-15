@@ -121,7 +121,7 @@ void run_test(std::string const& url, int size, int status, int connected
 	std::shared_ptr<http_connection> h = std::make_shared<http_connection>(ios
 		, res, &::http_handler, true, 1024*1024, &::http_connect_handler);
 	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", address(address_v4::any())
-		, resolver_flags::none, auth);
+		, resolver_flags{}, auth);
 	ios.reset();
 	error_code e;
 	ios.run(e);
@@ -146,7 +146,7 @@ void write_test_file()
 	std::srand(unsigned(std::time(nullptr)));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
 	error_code ec;
-	file test_file("test_file", open_mode_t::write_only, ec);
+	file test_file("test_file", open_mode::write_only, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("file error: %s\n", ec.message().c_str());
 	iovec_t b = { data_buffer, 3216};

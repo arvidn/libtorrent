@@ -223,8 +223,8 @@ namespace libtorrent {
 			, ps.proxy_tracker_connections ? &ps : nullptr
 			, 5, user_agent, bind_interface()
 			, (tracker_req().event == tracker_request::stopped
-				? resolver_flags::cache_only : resolver_flags::none)
-				| resolver_flags::abort_on_shutdown
+				? resolver_interface::cache_only : resolver_flags{})
+				| resolver_interface::abort_on_shutdown
 #ifndef TORRENT_NO_DEPRECATE
 			, tracker_req().auth
 #else

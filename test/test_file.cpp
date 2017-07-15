@@ -52,7 +52,7 @@ int touch_file(std::string const& filename, int size)
 
 	file f;
 	error_code ec;
-	if (!f.open(filename, open_mode_t::write_only, ec)) return -1;
+	if (!f.open(filename, open_mode::write_only, ec)) return -1;
 	if (ec) return -1;
 	iovec_t b = {&v[0], v.size()};
 	std::int64_t written = f.writev(0, b, ec);
@@ -283,9 +283,9 @@ TORRENT_TEST(file)
 	error_code ec;
 	file f;
 #if TORRENT_USE_UNC_PATHS || !defined _WIN32
-	TEST_CHECK(f.open("con", open_mode_t::read_write, ec));
+	TEST_CHECK(f.open("con", open_mode::read_write, ec));
 #else
-	TEST_CHECK(f.open("test_file", open_mode_t::read_write, ec));
+	TEST_CHECK(f.open("test_file", open_mode::read_write, ec));
 #endif
 	if (ec)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
@@ -316,7 +316,7 @@ TORRENT_TEST(hard_link)
 	// read that file and assert we get the same stuff we wrote to the first file
 	error_code ec;
 	file f;
-	TEST_CHECK(f.open("original_file", open_mode_t::read_write, ec));
+	TEST_CHECK(f.open("original_file", open_mode::read_write, ec));
 	if (ec)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
@@ -336,7 +336,7 @@ TORRENT_TEST(hard_link)
 	TEST_EQUAL(ec, error_code());
 
 
-	TEST_CHECK(f.open("second_link", open_mode_t::read_write, ec));
+	TEST_CHECK(f.open("second_link", open_mode::read_write, ec));
 	if (ec)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
@@ -363,7 +363,7 @@ TORRENT_TEST(coalesce_buffer)
 {
 	error_code ec;
 	file f;
-	TEST_CHECK(f.open("test_file", open_mode_t::read_write, ec));
+	TEST_CHECK(f.open("test_file", open_mode::read_write, ec));
 	if (ec)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
@@ -371,7 +371,7 @@ TORRENT_TEST(coalesce_buffer)
 	char test[] = "test";
 	char foobar[] = "foobar";
 	iovec_t b[2] = {{test, 4}, {foobar, 6}};
-	TEST_EQUAL(f.writev(0, b, ec, open_mode_t::coalesce_buffers), 4 + 6);
+	TEST_EQUAL(f.writev(0, b, ec, open_mode::coalesce_buffers), 4 + 6);
 	if (ec)
 		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);

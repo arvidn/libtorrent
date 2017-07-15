@@ -111,7 +111,7 @@ namespace libtorrent {
 			file_handle file_ptr;
 			time_point const opened{aux::time_now()};
 			time_point last_use{opened};
-			open_mode_t mode = open_mode_t::none;
+			open_mode_t mode{};
 		};
 
 		// maps storage pointer, file index pairs to the

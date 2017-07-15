@@ -843,23 +843,17 @@ TORRENT_TEST(zero_file_prio)
 	test_zero_file_prio();
 }
 
-enum class test_mode_t
-{
-	none = 0,
-	file_prio = 1,
-	pieces_have = 2,
-	piece_prio = 4,
-	all_files_zero = 8,
-	deprecated = 16
-};
+struct test_mode_tag;
+using test_mode_t = flags::bitfield_flag<std::uint8_t, test_mode_tag>;
 
-namespace libtorrent {
-namespace flags {
-
-template <>
-struct enable_flag_operators<test_mode_t> : std::true_type {};
-
-}
+namespace test_mode {
+	constexpr test_mode_t file_prio{1};
+	constexpr test_mode_t pieces_have{2};
+	constexpr test_mode_t piece_prio{4};
+	constexpr test_mode_t all_files_zero{8};
+#ifndef TORRENT_NO_DEPRECATE
+	constexpr test_mode_t deprecated{16};
+#endif
 }
 
 void test_seed_mode(test_mode_t const flags)
@@ -877,12 +871,12 @@ void test_seed_mode(test_mode_t const flags)
 	rd["info-hash"] = ti->info_hash().to_string();
 	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
 
-	if (test(flags & test_mode_t::file_prio))
+	if (flags & test_mode::file_prio)
 	{
 		// this should take it out of seed_mode
 		entry::list_type& file_prio = rd["file_priority"].list();
 		file_prio.push_back(entry(0));
-		if (test(flags & test_mode_t::all_files_zero))
+		if (flags & test_mode::all_files_zero)
 		{
 			for (int i = 0; i < 100; ++i)
 			{
@@ -892,14 +886,14 @@ void test_seed_mode(test_mode_t const flags)
 	}
 
 	std::string pieces(ti->num_pieces(), '\x01');
-	if (test(flags & test_mode_t::pieces_have))
+	if (flags & test_mode::pieces_have)
 	{
 		pieces[0] = '\0';
 	}
 	rd["pieces"] = pieces;
 
 	std::string pieces_prio(ti->num_pieces(), '\x01');
-	if (test(flags & test_mode_t::piece_prio))
+	if (flags & test_mode::piece_prio)
 	{
 		pieces_prio[0] = '\0';
 	}
@@ -911,7 +905,7 @@ void test_seed_mode(test_mode_t const flags)
 	bencode(back_inserter(resume_data), rd);
 
 #ifndef TORRENT_NO_DEPRECATE
-	if (test(flags & test_mode_t::deprecated))
+	if (flags & test_mode::deprecated)
 	{
 		p.resume_data = resume_data;
 	}
@@ -928,9 +922,9 @@ void test_seed_mode(test_mode_t const flags)
 	torrent_handle h = ses.add_torrent(p);
 
 	torrent_status s = h.status();
-	if (test(flags & (test_mode_t::file_prio
-		| test_mode_t::piece_prio
-		| test_mode_t::pieces_have)))
+	if (flags & (test_mode::file_prio
+		| test_mode::piece_prio
+		| test_mode::pieces_have))
 	{
 		TEST_EQUAL(s.seed_mode, false);
 	}
@@ -942,43 +936,43 @@ void test_seed_mode(test_mode_t const flags)
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(seed_mode_file_prio_deprecated)
 {
-	test_seed_mode(test_mode_t::file_prio | test_mode_t::deprecated);
+	test_seed_mode(test_mode::file_prio | test_mode::deprecated);
 }
 
 TORRENT_TEST(seed_mode_piece_prio_deprecated)
 {
-	test_seed_mode(test_mode_t::pieces_have | test_mode_t::deprecated);
+	test_seed_mode(test_mode::pieces_have | test_mode::deprecated);
 }
 
 TORRENT_TEST(seed_mode_piece_have_deprecated)
 {
-	test_seed_mode(test_mode_t::piece_prio | test_mode_t::deprecated);
+	test_seed_mode(test_mode::piece_prio | test_mode::deprecated);
 }
 
 TORRENT_TEST(seed_mode_preserve_deprecated)
 {
-	test_seed_mode(test_mode_t::deprecated);
+	test_seed_mode(test_mode::deprecated);
 }
 #endif
 
 TORRENT_TEST(seed_mode_file_prio)
 {
-	test_seed_mode(test_mode_t::file_prio);
+	test_seed_mode(test_mode::file_prio);
 }
 
 TORRENT_TEST(seed_mode_piece_prio)
 {
-	test_seed_mode(test_mode_t::pieces_have);
+	test_seed_mode(test_mode::pieces_have);
 }
 
 TORRENT_TEST(seed_mode_piece_have)
 {
-	test_seed_mode(test_mode_t::piece_prio);
+	test_seed_mode(test_mode::piece_prio);
 }
 
 TORRENT_TEST(seed_mode_preserve)
 {
-	test_seed_mode(test_mode_t::none);
+	test_seed_mode(test_mode_t{});
 }
 
 TORRENT_TEST(resume_save_load)

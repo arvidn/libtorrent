@@ -36,6 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+
+	constexpr resolver_flags resolver_interface::cache_only;
+	constexpr resolver_flags resolver_interface::abort_on_shutdown;
+
 	resolver::resolver(io_service& ios)
 		: m_ios(ios)
 		, m_resolver(ios)
@@ -103,7 +107,7 @@ namespace libtorrent {
 		if (i != m_cache.end())
 		{
 			// keep cache entries valid for m_timeout seconds
-			if (test(flags & resolver_flags::cache_only)
+			if ((flags & resolver_interface::cache_only)
 				|| i->second.last_seen + m_timeout >= aux::time_now())
 			{
 				m_ios.post(std::bind(h, ec, i->second.addresses));
@@ -111,7 +115,7 @@ namespace libtorrent {
 			}
 		}
 
-		if (test(flags & resolver_flags::cache_only))
+		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
 			m_ios.post(std::bind(h, boost::asio::error::host_not_found
@@ -124,7 +128,7 @@ namespace libtorrent {
 
 		using namespace std::placeholders;
 		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
-		if (test(flags & resolver_flags::abort_on_shutdown))
+		if (flags & resolver_interface::abort_on_shutdown)
 		{
 			m_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));

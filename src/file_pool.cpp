@@ -119,8 +119,8 @@ namespace libtorrent {
 #endif
 
 		TORRENT_ASSERT(is_complete(p));
-		TORRENT_ASSERT((m & open_mode_t::rw_mask) == open_mode_t::read_only
-			|| (m & open_mode_t::rw_mask) == open_mode_t::read_write);
+		TORRENT_ASSERT((m & open_mode::rw_mask) == open_mode::read_only
+			|| (m & open_mode::rw_mask) == open_mode::read_write);
 		auto const i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end())
 		{
@@ -130,9 +130,9 @@ namespace libtorrent {
 			// if we asked for a file in write mode,
 			// and the cached file is is not opened in
 			// write mode, re-open it
-			if ((((e.mode & open_mode_t::rw_mask) != open_mode_t::read_write)
-				&& ((m & open_mode_t::rw_mask) == open_mode_t::read_write))
-				|| (e.mode & open_mode_t::random_access) != (m & open_mode_t::random_access))
+			if ((((e.mode & open_mode::rw_mask) != open_mode::read_write)
+				&& ((m & open_mode::rw_mask) == open_mode::read_write))
+				|| (e.mode & open_mode::random_access) != (m & open_mode::random_access))
 			{
 				file_handle new_file = std::make_shared<file>();
 
@@ -185,20 +185,20 @@ namespace libtorrent {
 	std::uint32_t to_file_open_mode(open_mode_t const mode)
 	{
 		std::uint32_t ret = 0;
-		open_mode_t const rw_mode = mode & open_mode_t::rw_mask;
+		open_mode_t const rw_mode = mode & open_mode::rw_mask;
 
-		ret = (rw_mode == open_mode_t::read_only)
+		ret = (rw_mode == open_mode::read_only)
 			? file_open_mode::read_only
-			: (rw_mode == open_mode_t::write_only)
+			: (rw_mode == open_mode::write_only)
 			? file_open_mode::write_only
-			: (rw_mode == open_mode_t::read_write)
+			: (rw_mode == open_mode::read_write)
 			? file_open_mode::read_write
 			: 0;
 
-		if (test(mode & open_mode_t::sparse)) ret |= file_open_mode::sparse;
-		if (test(mode & open_mode_t::no_atime)) ret |= file_open_mode::no_atime;
-		if (test(mode & open_mode_t::random_access)) ret |= file_open_mode::random_access;
-		if (test(mode & open_mode_t::lock_file)) ret |= file_open_mode::locked;
+		if (mode & open_mode::sparse) ret |= file_open_mode::sparse;
+		if (mode & open_mode::no_atime) ret |= file_open_mode::no_atime;
+		if (mode & open_mode::random_access) ret |= file_open_mode::random_access;
+		if (mode & open_mode::lock_file) ret |= file_open_mode::locked;
 		return ret;
 	}
 
