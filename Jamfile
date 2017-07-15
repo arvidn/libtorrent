@@ -368,6 +368,17 @@ rule building ( properties * )
 	return $(result) ;
 }
 
+rule default-build ( properties * )
+{
+       local result ;
+       if <variant>debug in $(properties)
+       {
+               result += <variant>debug:<invariant-checks>on
+               <variant>debug:<asserts>on ;
+       }
+       return $(result) ;
+}
+
 rule tag ( name : type  ? : property-set )
 {
 	name = [ virtual-target.add-prefix-and-suffix $(name) : $(type) : $(property-set) ] ;
@@ -753,8 +764,6 @@ lib torrent
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
 	<dht>on:<source>src/hasher512.cpp
 	<deprecated-functions>on:<source>src/lazy_bdecode.cpp
-	<variant>debug:<asserts>on
-	<variant>debug:<invariant-checks>on
 
 	<conditional>@building
 	<conditional>@warnings
@@ -767,6 +776,7 @@ lib torrent
 	: # default build
 	<threading>multi
 	<c++-template-depth>512
+	<conditional>@default-build
 
 	: # usage requirements
 	$(usage-requirements)
