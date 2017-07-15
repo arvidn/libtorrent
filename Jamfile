@@ -370,13 +370,13 @@ rule building ( properties * )
 
 rule default-build ( properties * )
 {
-       local result ;
-       if <variant>debug in $(properties)
-       {
-               result += <variant>debug:<invariant-checks>on
-               <variant>debug:<asserts>on ;
-       }
-       return $(result) ;
+	local result ;
+	if <variant>debug in $(properties)
+	{
+		result += <variant>debug:<invariant-checks>on
+			<variant>debug:<asserts>on ;
+	}
+	return $(result) ;
 }
 
 rule tag ( name : type  ? : property-set )
