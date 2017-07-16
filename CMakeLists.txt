@@ -124,6 +124,7 @@ set(sources
 	version
 	ffs
 	add_torrent_params
+	peer_info
 
 # -- extensions --
 	ut_pex

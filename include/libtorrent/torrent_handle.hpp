@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/torrent_flags.hpp"
+#include "libtorrent/peer_info.hpp" // for peer_source_flags_t
 
 namespace libtorrent { namespace aux {
 
@@ -1100,7 +1101,7 @@ namespace libtorrent { namespace aux {
 		//      used as a rendezvous point in case direct
 		//      connections to the peer fail
 		// ==== ==========================================
-		void connect_peer(tcp::endpoint const& adr, int source = 0
+		void connect_peer(tcp::endpoint const& adr, peer_source_flags_t source = {}
 			, int flags = 0x1 + 0x4 + 0x8) const;
 
 		// ``set_max_uploads()`` sets the maximum number of peers that's unchoked

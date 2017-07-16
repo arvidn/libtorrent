@@ -487,7 +487,7 @@ int print_peer_info(std::string& out
 
 		if (print_peer_rate)
 		{
-			bool const unchoked = (i->flags & lt::peer_info::choked) == 0;
+			bool const unchoked = !(i->flags & lt::peer_info::choked);
 
 			std::snprintf(str, sizeof(str), " %s"
 				, unchoked ? add_suffix(i->estimated_reciprocation_rate, "/s").c_str() : "      ");
@@ -984,7 +984,7 @@ void print_piece(lt::partial_piece_info const* pp
 	{
 		int const index = pp ? peer_index(pp->blocks[j].peer(), peers) % 36 : -1;
 		char const* chr = " ";
-		bool const snubbed = index >= 0 ? ((peers[index].flags & lt::peer_info::snubbed) != 0) : false;
+		bool const snubbed = index >= 0 ? bool(peers[index].flags & lt::peer_info::snubbed) : false;
 
 		char const* color = "";
 

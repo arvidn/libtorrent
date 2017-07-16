@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	int source_rank(int source_bitmask)
+	int source_rank(peer_source_flags_t const source_bitmask)
 	{
 		int ret = 0;
 		if (source_bitmask & peer_info::tracker) ret |= 1 << 5;

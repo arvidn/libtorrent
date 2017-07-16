@@ -141,7 +141,8 @@ namespace libtorrent {
 		return ret;
 	}
 
-	torrent_peer::torrent_peer(std::uint16_t port_, bool conn, int const src)
+	torrent_peer::torrent_peer(std::uint16_t port_, bool conn
+		, peer_source_flags_t const src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
 		, connection(nullptr)
@@ -156,7 +157,7 @@ namespace libtorrent {
 		, seed(false)
 		, fast_reconnects(0)
 		, trust_points(0)
-		, source(aux::numeric_cast<std::uint8_t>(src))
+		, source(static_cast<std::uint8_t>(src))
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// assume no support in order to
 		// prefer opening non-encrypted
@@ -228,7 +229,8 @@ namespace libtorrent {
 		}
 	}
 
-	ipv4_peer::ipv4_peer(tcp::endpoint const& ep, bool c, int src)
+	ipv4_peer::ipv4_peer(tcp::endpoint const& ep, bool c
+		, peer_source_flags_t const src)
 		: torrent_peer(ep.port(), c, src)
 		, addr(ep.address().to_v4())
 	{
@@ -244,7 +246,8 @@ namespace libtorrent {
 	ipv4_peer& ipv4_peer::operator=(ipv4_peer const& p) = default;
 
 #if TORRENT_USE_I2P
-	i2p_peer::i2p_peer(char const* dest, bool connectable, int src)
+	i2p_peer::i2p_peer(char const* dest, bool connectable
+		, peer_source_flags_t const src)
 		: torrent_peer(0, connectable, src), destination(allocate_string_copy(dest))
 	{
 #if TORRENT_USE_IPV6
@@ -257,7 +260,7 @@ namespace libtorrent {
 	{ free(destination); }
 
 	i2p_peer::i2p_peer(const i2p_peer& rhs)
-		: torrent_peer(rhs.port, rhs.connectable, rhs.source)
+		: torrent_peer(rhs.port, rhs.connectable, rhs.peer_source())
 		, destination(allocate_string_copy(rhs.destination))
 	{}
 
@@ -271,9 +274,8 @@ namespace libtorrent {
 #endif // TORRENT_USE_I2P
 
 #if TORRENT_USE_IPV6
-	ipv6_peer::ipv6_peer(
-		tcp::endpoint const& ep, bool c, int src
-	)
+	ipv6_peer::ipv6_peer(tcp::endpoint const& ep, bool c
+		, peer_source_flags_t const src)
 		: torrent_peer(ep.port(), c, src)
 		, addr(ep.address().to_v6().to_bytes())
 	{

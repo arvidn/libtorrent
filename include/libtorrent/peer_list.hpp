@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/aux_/deque.hpp"
+#include "libtorrent/peer_info.hpp" // for peer_source_flags_t
 
 namespace libtorrent {
 
@@ -112,7 +113,8 @@ namespace libtorrent {
 		peer_list();
 
 #if TORRENT_USE_I2P
-		torrent_peer* add_i2p_peer(char const* destination, int src, char flags
+		torrent_peer* add_i2p_peer(char const* destination
+			, peer_source_flags_t src, char flags
 			, torrent_state* state);
 #endif
 
@@ -129,10 +131,11 @@ namespace libtorrent {
 		// this is called once for every torrent_peer we get from
 		// the tracker, pex, lsd or dht.
 		torrent_peer* add_peer(const tcp::endpoint& remote
-			, int source, char flags, torrent_state* state);
+			, peer_source_flags_t source, char flags, torrent_state* state);
 
 		// false means duplicate connection
-		bool update_peer_port(int port, torrent_peer* p, int src, torrent_state* state);
+		bool update_peer_port(int port, torrent_peer* p, peer_source_flags_t src
+			, torrent_state* state);
 
 		// called when an incoming connection is accepted
 		// false means the connection was refused or failed
@@ -209,7 +212,7 @@ namespace libtorrent {
 
 		void update_connect_candidates(int delta);
 
-		void update_peer(torrent_peer* p, int src, int flags
+		void update_peer(torrent_peer* p, peer_source_flags_t src, int flags
 		, tcp::endpoint const& remote, char const* destination);
 		bool insert_peer(torrent_peer* p, iterator iter, int flags, torrent_state* state);
 

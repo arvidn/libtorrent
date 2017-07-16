@@ -875,7 +875,7 @@ TORRENT_TEST(dont_have)
 	TEST_EQUAL(pi.size(), 1);
 	if (pi.size() != 1) return;
 
-	TEST_EQUAL(pi[0].flags & peer_info::seed, 0);
+	TEST_CHECK(!(pi[0].flags & peer_info::seed));
 	TEST_EQUAL(pi[0].pieces.count(), pi[0].pieces.size() - 1);
 	TEST_EQUAL(pi[0].pieces[piece_index_t(3)], false);
 	TEST_EQUAL(pi[0].pieces[piece_index_t(2)], true);

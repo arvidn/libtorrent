@@ -179,7 +179,7 @@ torrent_state init_state(torrent_peer_allocator& allocator)
 torrent_peer* add_peer(peer_list& p, torrent_state& st, tcp::endpoint const& ep)
 {
 	int cc = p.num_connect_candidates();
-	torrent_peer* peer = p.add_peer(ep, 0, 0, &st);
+	torrent_peer* peer = p.add_peer(ep, {}, 0, &st);
 	if (peer)
 	{
 		TEST_EQUAL(p.num_connect_candidates(), cc + 1);
@@ -210,13 +210,13 @@ TORRENT_TEST(multiple_ips_disallowed)
 	peer_list p;
 	t.m_p = &p;
 	TEST_EQUAL(p.num_connect_candidates(), 0);
-	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
+	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), {}, 0, &st);
 
 	TEST_EQUAL(p.num_peers(), 1);
 	TEST_EQUAL(p.num_connect_candidates(), 1);
 	st.erased.clear();
 
-	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, &st);
+	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), {}, 0, &st);
 	TEST_EQUAL(p.num_peers(), 1);
 	TEST_EQUAL(peer1, peer2);
 	TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -232,12 +232,12 @@ TORRENT_TEST(multiple_ips_allowed)
 	st.allow_multiple_connections_per_ip = true;
 	peer_list p;
 	t.m_p = &p;
-	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
+	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), {}, 0, &st);
 	TEST_EQUAL(p.num_connect_candidates(), 1);
 	TEST_EQUAL(p.num_peers(), 1);
 	st.erased.clear();
 
-	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, &st);
+	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), {}, 0, &st);
 	TEST_EQUAL(p.num_peers(), 2);
 	TEST_CHECK(peer1 != peer2);
 	TEST_EQUAL(p.num_connect_candidates(), 2);
@@ -254,7 +254,7 @@ TORRENT_TEST(multiple_ips_allowed2)
 	st.allow_multiple_connections_per_ip = true;
 	peer_list p;
 	t.m_p = &p;
-	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
+	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), {}, 0, &st);
 	TEST_EQUAL(p.num_connect_candidates(), 1);
 	st.erased.clear();
 
@@ -270,7 +270,7 @@ TORRENT_TEST(multiple_ips_allowed2)
 	TEST_CHECK(tp == nullptr);
 	st.erased.clear();
 
-	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, &st);
+	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), {}, 0, &st);
 	TEST_EQUAL(p.num_peers(), 2);
 	TEST_CHECK(peer1 != peer2);
 	TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -293,7 +293,7 @@ TORRENT_TEST(multiple_ips_disallowed2)
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
 	t.m_p = &p;
-	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
+	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), {}, 0, &st);
 	TEST_EQUAL(p.num_connect_candidates(), 1);
 	TEST_EQUAL(peer1->port, 3000);
 	st.erased.clear();
@@ -310,7 +310,7 @@ TORRENT_TEST(multiple_ips_disallowed2)
 	TEST_CHECK(tp == nullptr);
 	st.erased.clear();
 
-	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, &st);
+	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), {}, 0, &st);
 	TEST_EQUAL(p.num_peers(), 1);
 	TEST_EQUAL(peer2->port, 9020);
 		TEST_CHECK(peer1 == peer2);
@@ -351,7 +351,7 @@ TORRENT_TEST(update_peer_port_collide)
 	peer_list p;
 	t.m_p = &p;
 
-	torrent_peer* peer2 = p.add_peer(ep("10.0.0.1", 4000), 0, 0, &st);
+	torrent_peer* peer2 = p.add_peer(ep("10.0.0.1", 4000), {}, 0, &st);
 	TEST_CHECK(peer2);
 
 	TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -521,7 +521,7 @@ TORRENT_TEST(erase_peers)
 	TEST_EQUAL(p.num_peers(), 100);
 
 	// trigger the eviction of one peer
-	torrent_peer* peer = p.add_peer(rand_tcp_ep(), 0, 0, &st);
+	torrent_peer* peer = p.add_peer(rand_tcp_ep(), {}, 0, &st);
 	// we either removed an existing peer, or rejected this one
 	// either is valid behavior when the list is full
 	TEST_CHECK(st.erased.size() == 1 || peer == nullptr);
@@ -540,7 +540,7 @@ TORRENT_TEST(set_ip_filter)
 	for (int i = 0; i < 100; ++i)
 	{
 		p.add_peer(tcp::endpoint(
-			address_v4((10 << 24) + ((i + 10) << 16)), 353), 0, 0, &st);
+			address_v4((10 << 24) + ((i + 10) << 16)), 353), {}, 0, &st);
 		TEST_EQUAL(st.erased.size(), 0);
 		st.erased.clear();
 	}
@@ -570,7 +570,7 @@ TORRENT_TEST(set_port_filter)
 	for (int i = 0; i < 100; ++i)
 	{
 		p.add_peer(tcp::endpoint(
-			address_v4((10 << 24) + ((i + 10) << 16)), i + 10), 0, 0, &st);
+			address_v4((10 << 24) + ((i + 10) << 16)), i + 10), {}, 0, &st);
 		TEST_EQUAL(st.erased.size(), 0);
 		st.erased.clear();
 	}
@@ -600,7 +600,7 @@ TORRENT_TEST(set_max_failcount)
 	for (int i = 0; i < 100; ++i)
 	{
 		torrent_peer* peer = p.add_peer(tcp::endpoint(
-			address_v4((10 << 24) + ((i + 10) << 16)), i + 10), 0, 0, &st);
+			address_v4((10 << 24) + ((i + 10) << 16)), i + 10), {}, 0, &st);
 		TEST_EQUAL(st.erased.size(), 0);
 		st.erased.clear();
 		// every other peer has a failcount of 1
@@ -630,7 +630,7 @@ TORRENT_TEST(set_seed)
 	for (int i = 0; i < 100; ++i)
 	{
 		torrent_peer* peer = p.add_peer(tcp::endpoint(
-			address_v4((10 << 24) + ((i + 10) << 16)), i + 10), 0, 0, &st);
+			address_v4((10 << 24) + ((i + 10) << 16)), i + 10), {}, 0, &st);
 		TEST_EQUAL(st.erased.size(), 0);
 		st.erased.clear();
 		// make every other peer a seed
@@ -909,7 +909,7 @@ TORRENT_TEST(new_peer_size_limit)
 	torrent_peer* peer5 = add_peer(p, st, ep("10.0.0.5", 8080));
 	TEST_CHECK(peer5);
 	TEST_EQUAL(p.num_peers(), 5);
-	torrent_peer* peer6 = p.add_peer(ep("10.0.0.6", 8080), 0, 0, &st);
+	torrent_peer* peer6 = p.add_peer(ep("10.0.0.6", 8080), {}, 0, &st);
 	TEST_CHECK(peer6 == nullptr);
 	TEST_EQUAL(p.num_peers(), 5);
 

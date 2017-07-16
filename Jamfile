@@ -675,6 +675,7 @@ SOURCES =
 	file_progress
 	ffs
 	add_torrent_params
+	peer_info
 
 # -- extensions --
 	ut_pex

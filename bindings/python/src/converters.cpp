@@ -13,6 +13,7 @@
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/disk_interface.hpp" // for open_file_state
 #include "libtorrent/aux_/noexcept_movable.hpp"
+#include "libtorrent/peer_info.hpp"
 #include <vector>
 
 using namespace boost::python;
@@ -290,6 +291,8 @@ void bind_converters()
     to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
     to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
     to_python_converter<lt::torrent_flags_t, from_bitfield_flag<lt::torrent_flags_t>>();
+    to_python_converter<lt::peer_flags_t, from_bitfield_flag<lt::peer_flags_t>>();
+    to_python_converter<lt::peer_source_flags_t, from_bitfield_flag<lt::peer_source_flags_t>>();
 
     // work-around types
     to_python_converter<lt::aux::noexcept_movable<lt::address>, address_to_tuple<
@@ -333,4 +336,6 @@ void bind_converters()
     to_strong_typedef<lt::piece_index_t>();
     to_strong_typedef<lt::file_index_t>();
     to_bitfield_flag<lt::torrent_flags_t>();
+    to_bitfield_flag<lt::peer_flags_t>();
+    to_bitfield_flag<lt::peer_source_flags_t>();
 }
