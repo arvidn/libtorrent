@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FLAGS_HPP_INCLUDED
 
 #include <type_traits> // for enable_if
+#include <iosfwd>
 
 namespace libtorrent {
 namespace flags {
@@ -47,50 +48,55 @@ struct bitfield_flag
 	constexpr bitfield_flag(bitfield_flag const& rhs) noexcept = default;
 	constexpr bitfield_flag(bitfield_flag&& rhs) noexcept = default;
 	constexpr bitfield_flag() noexcept : m_val(0) {}
-	explicit constexpr bitfield_flag(UnderlyingType val) : m_val(val) {}
-	explicit constexpr operator UnderlyingType() const { return m_val; }
-	explicit constexpr operator bool() const { return m_val != 0; }
+#ifdef TORRENT_NO_DEPRECATE
+	explicit constexpr bitfield_flag(UnderlyingType val) noexcept : m_val(val) {}
+	explicit constexpr operator UnderlyingType() const noexcept { return m_val; }
+#else
+	constexpr bitfield_flag(UnderlyingType val) noexcept : m_val(val) {}
+	constexpr operator UnderlyingType() const noexcept { return m_val; }
+#endif
+	explicit constexpr operator bool() const noexcept { return m_val != 0; }
 
-	bool constexpr operator==(bitfield_flag const f) const
+	bool constexpr operator==(bitfield_flag const f) const noexcept
 	{ return m_val == f.m_val; }
 
-	bool constexpr operator!=(bitfield_flag const f) const
+	bool constexpr operator!=(bitfield_flag const f) const noexcept
 	{ return m_val != f.m_val; }
 
-	bitfield_flag& operator|=(bitfield_flag const f)
+	bitfield_flag& operator|=(bitfield_flag const f) noexcept
 	{
 		m_val |= f.m_val;
 		return *this;
 	}
 
-	bitfield_flag& operator&=(bitfield_flag const f)
+	bitfield_flag& operator&=(bitfield_flag const f) noexcept
 	{
 		m_val &= f.m_val;
 		return *this;
 	}
 
-	bitfield_flag& operator^=(bitfield_flag const f)
+	bitfield_flag& operator^=(bitfield_flag const f) noexcept
 	{
 		m_val ^= f.m_val;
 		return *this;
 	}
 
-	constexpr friend bitfield_flag operator|(bitfield_flag const lhs, bitfield_flag const rhs)
+	constexpr friend bitfield_flag operator|(bitfield_flag const lhs, bitfield_flag const rhs) noexcept
 	{
 		return bitfield_flag(lhs.m_val | rhs.m_val);
 	}
 
-	constexpr friend bitfield_flag operator&(bitfield_flag const lhs, bitfield_flag const rhs)
+	constexpr friend bitfield_flag operator&(bitfield_flag const lhs, bitfield_flag const rhs) noexcept
 	{
 		return bitfield_flag(lhs.m_val & rhs.m_val);
 	}
 
-	constexpr friend bitfield_flag operator^(bitfield_flag const lhs, bitfield_flag const rhs)
+	constexpr friend bitfield_flag operator^(bitfield_flag const lhs, bitfield_flag const rhs) noexcept
 	{
 		return bitfield_flag(lhs.m_val ^ rhs.m_val);
 	}
 
-	constexpr bitfield_flag operator~() const
+	constexpr bitfield_flag operator~() const noexcept
 	{
 		return bitfield_flag(~m_val);
 	}
@@ -101,8 +107,16 @@ private:
 	UnderlyingType m_val;
 };
 
+#if TORRENT_USE_IOSTREAM
+	template <typename T, typename Tag>
+	std::ostream& operator<<(std::ostream& os, bitfield_flag<T, Tag> val)
+	{ return os << static_cast<T>(val); }
+#endif
+
 } // flags
 } // libtorrent
+
+#undef ENUM_OPERATOR
 
 #endif
 
