@@ -47,5 +47,6 @@ alias libtorrent-sims :
 	[ run test_ip_filter.cpp ]
 	[ run test_fast_extensions.cpp ]
 	[ run test_file_pool.cpp ]
+	[ run test_keep_redundant_connections.cpp ]
 	;
 
