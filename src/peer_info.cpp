@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,28 +30,41 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_REQUEST_BLOCKS_HPP_INCLUDED
-#define TORRENT_REQUEST_BLOCKS_HPP_INCLUDED
-
 #include "libtorrent/peer_info.hpp"
 
 namespace libtorrent {
 
-	class torrent;
-	class peer_connection;
-
-	// returns false if the piece picker was not invoked, because
-	// of an early exit condition. In this case, the stats counter
-	// shouldn't be incremented, since it won't use any significant
-	// amount of CPU
-	bool request_a_block(torrent& t, peer_connection& c);
-
-	// returns the rank of a peer's source. We have an affinity
-	// to connecting to peers with higher rank. This is to avoid
-	// problems when our peer list is diluted by stale peers from
-	// the resume data for instance
-	int source_rank(peer_source_flags_t source_bitmask);
-}
-
+	// This will no longer be necessary with C++17
+	constexpr peer_flags_t peer_info::interesting;
+	constexpr peer_flags_t peer_info::choked;
+	constexpr peer_flags_t peer_info::remote_interested;
+	constexpr peer_flags_t peer_info::remote_choked;
+	constexpr peer_flags_t peer_info::supports_extensions;
+	constexpr peer_flags_t peer_info::local_connection;
+	constexpr peer_flags_t peer_info::handshake;
+	constexpr peer_flags_t peer_info::connecting;
+#ifndef TORRENT_NO_DEPRECATE
+	constexpr peer_flags_t peer_info::queued;
 #endif
+	constexpr peer_flags_t peer_info::on_parole;
+	constexpr peer_flags_t peer_info::seed;
+	constexpr peer_flags_t peer_info::optimistic_unchoke;
+	constexpr peer_flags_t peer_info::snubbed;
+	constexpr peer_flags_t peer_info::upload_only;
+	constexpr peer_flags_t peer_info::endgame_mode;
+	constexpr peer_flags_t peer_info::holepunched;
+	constexpr peer_flags_t peer_info::i2p_socket;
+	constexpr peer_flags_t peer_info::utp_socket;
+	constexpr peer_flags_t peer_info::ssl_socket;
+	constexpr peer_flags_t peer_info::rc4_encrypted;
+	constexpr peer_flags_t peer_info::plaintext_encrypted;
+
+	constexpr peer_source_flags_t peer_info::tracker;
+	constexpr peer_source_flags_t peer_info::dht;
+	constexpr peer_source_flags_t peer_info::pex;
+	constexpr peer_source_flags_t peer_info::lsd;
+	constexpr peer_source_flags_t peer_info::resume_data;
+	constexpr peer_source_flags_t peer_info::incoming;
+
+}
 

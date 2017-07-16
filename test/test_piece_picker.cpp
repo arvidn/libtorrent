@@ -62,17 +62,17 @@ typed_bitfield<piece_index_t> string2vec(char const* have_str)
 }
 
 tcp::endpoint endp;
-ipv4_peer tmp0(endp, false, 0);
-ipv4_peer tmp1(endp, false, 0);
-ipv4_peer tmp2(endp, false, 0);
-ipv4_peer tmp3(endp, false, 0);
-ipv4_peer tmp4(endp, false, 0);
-ipv4_peer tmp5(endp, false, 0);
-ipv4_peer tmp6(endp, false, 0);
-ipv4_peer tmp7(endp, false, 0);
-ipv4_peer tmp8(endp, false, 0);
-ipv4_peer tmp9(endp, false, 0);
-ipv4_peer peer_struct(endp, true, 0);
+ipv4_peer tmp0(endp, false, {});
+ipv4_peer tmp1(endp, false, {});
+ipv4_peer tmp2(endp, false, {});
+ipv4_peer tmp3(endp, false, {});
+ipv4_peer tmp4(endp, false, {});
+ipv4_peer tmp5(endp, false, {});
+ipv4_peer tmp6(endp, false, {});
+ipv4_peer tmp7(endp, false, {});
+ipv4_peer tmp8(endp, false, {});
+ipv4_peer tmp9(endp, false, {});
+ipv4_peer peer_struct(endp, true, {});
 ipv4_peer* tmp_peer = &tmp1;
 
 static std::vector<piece_index_t> const empty_vector;

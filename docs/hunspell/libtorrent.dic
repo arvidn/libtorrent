@@ -201,3 +201,8 @@ crypto
 uri
 infohashes
 rw
+holepunch
+TLS
+RC4
+Hellman
+html

@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/peer_info.hpp" // for peer_source_flags_t
 
 namespace libtorrent {
 
@@ -50,7 +51,7 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer
 	{
-		torrent_peer(std::uint16_t port, bool connectable, int src);
+		torrent_peer(std::uint16_t port, bool connectable, peer_source_flags_t src);
 
 		std::int64_t total_download() const;
 		std::int64_t total_upload() const;
@@ -146,6 +147,9 @@ namespace libtorrent {
 		// from peer_info.
 		std::uint32_t source:6;
 
+		peer_source_flags_t peer_source() const
+		{ return peer_source_flags_t(source); }
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// Hints encryption support of torrent_peer. Only effective
 		// for and when the outgoing encryption policy
@@ -199,7 +203,7 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT ipv4_peer : torrent_peer
 	{
-		ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
+		ipv4_peer(tcp::endpoint const& ip, bool connectable, peer_source_flags_t src);
 		ipv4_peer(ipv4_peer const& p);
 		ipv4_peer& operator=(ipv4_peer const& p);
 
@@ -209,7 +213,7 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	struct TORRENT_EXTRA_EXPORT i2p_peer : torrent_peer
 	{
-		i2p_peer(char const* destination, bool connectable, int src);
+		i2p_peer(char const* destination, bool connectable, peer_source_flags_t src);
 		i2p_peer(i2p_peer const&);
 		~i2p_peer();
 		i2p_peer& operator=(i2p_peer const&);
@@ -221,7 +225,7 @@ namespace libtorrent {
 #if TORRENT_USE_IPV6
 	struct TORRENT_EXTRA_EXPORT ipv6_peer : torrent_peer
 	{
-		ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
+		ipv6_peer(tcp::endpoint const& ip, bool connectable, peer_source_flags_t src);
 		ipv6_peer(ipv6_peer const& p);
 
 		const address_v6::bytes_type addr;

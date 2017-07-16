@@ -9986,7 +9986,8 @@ namespace libtorrent {
 		return true;
 	}
 
-	torrent_peer* torrent::add_peer(tcp::endpoint const& adr, int source, int flags)
+	torrent_peer* torrent::add_peer(tcp::endpoint const& adr
+		, peer_source_flags_t const source, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -10141,7 +10142,8 @@ namespace libtorrent {
 		return m_peer_list->find_peers(a);
 	}
 
-	void torrent::update_peer_port(int port, torrent_peer* p, int src)
+	void torrent::update_peer_port(int port, torrent_peer* p
+		, peer_source_flags_t const src)
 	{
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
@@ -10496,11 +10498,11 @@ namespace {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void torrent::notify_extension_add_peer(tcp::endpoint const& ip
-		, int src, int flags)
+		, peer_source_flags_t const src, int flags)
 	{
 		for (auto& ext : m_extensions)
 		{
-			ext->on_add_peer(ip, src, flags);
+			ext->on_add_peer(ip, static_cast<std::uint8_t>(src), flags);
 		}
 	}
 #endif

@@ -4460,27 +4460,27 @@ namespace libtorrent {
 		p.last_active = now - (std::max)(m_last_sent, m_last_receive);
 
 		// this will set the flags so that we can update them later
-		p.flags = 0;
+		p.flags = {};
 		get_specific_peer_info(p);
 
-		p.flags |= is_seed() ? peer_info::seed : 0;
-		p.flags |= m_snubbed ? peer_info::snubbed : 0;
-		p.flags |= m_upload_only ? peer_info::upload_only : 0;
-		p.flags |= m_endgame_mode ? peer_info::endgame_mode : 0;
-		p.flags |= m_holepunch_mode ? peer_info::holepunched : 0;
+		if (is_seed()) p.flags |= peer_info::seed;
+		if (m_snubbed) p.flags |= peer_info::snubbed;
+		if (m_upload_only) p.flags |= peer_info::upload_only;
+		if (m_endgame_mode) p.flags |= peer_info::endgame_mode;
+		if (m_holepunch_mode) p.flags |= peer_info::holepunched;
 		if (peer_info_struct())
 		{
 			torrent_peer* pi = peer_info_struct();
 			TORRENT_ASSERT(pi->in_use);
-			p.source = pi->source;
+			p.source = peer_source_flags_t(pi->source);
 			p.failcount = pi->failcount;
 			p.num_hashfails = pi->hashfails;
-			p.flags |= pi->on_parole ? peer_info::on_parole : 0;
-			p.flags |= pi->optimistically_unchoked ? peer_info::optimistic_unchoke : 0;
+			if (pi->on_parole) p.flags |= peer_info::on_parole;
+			if (pi->optimistically_unchoked) p.flags |= peer_info::optimistic_unchoke;
 		}
 		else
 		{
-			p.source = 0;
+			p.source = {};
 			p.failcount = 0;
 			p.num_hashfails = 0;
 		}

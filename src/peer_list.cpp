@@ -302,7 +302,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(p.in_use);
 		if (&p == m_locked_peer) return false;
-		return p.source == peer_info::resume_data;
+		return p.peer_source() == peer_info::resume_data;
 	}
 
 	bool peer_list::is_erase_candidate(torrent_peer const& pe) const
@@ -314,7 +314,7 @@ namespace libtorrent {
 		if (is_connect_candidate(pe)) return false;
 
 		return (pe.failcount > 0)
-			|| (pe.source == peer_info::resume_data);
+			|| (pe.peer_source() == peer_info::resume_data);
 	}
 
 	bool peer_list::is_force_erase_candidate(torrent_peer const& pe) const
@@ -753,10 +753,10 @@ namespace libtorrent {
 
 #if TORRENT_USE_IPV6
 			if (is_v6)
-				new (p) ipv6_peer(c.remote(), false, 0);
+				new (p) ipv6_peer(c.remote(), false, {});
 			else
 #endif
-				new (p) ipv4_peer(c.remote(), false, 0);
+				new (p) ipv4_peer(c.remote(), false, {});
 
 #if TORRENT_USE_ASSERTS
 			p->in_use = true;
@@ -768,7 +768,7 @@ namespace libtorrent {
 
 			i = *iter;
 
-			i->source = peer_info::incoming;
+			i->source = static_cast<std::uint8_t>(peer_info::incoming);
 		}
 
 		TORRENT_ASSERT(i);
@@ -789,7 +789,8 @@ namespace libtorrent {
 		return true;
 	}
 
-	bool peer_list::update_peer_port(int const port, torrent_peer* p, int src, torrent_state* state)
+	bool peer_list::update_peer_port(int const port, torrent_peer* p
+		, peer_source_flags_t const src, torrent_state* state)
 	{
 		TORRENT_ASSERT(p != nullptr);
 		TORRENT_ASSERT(p->connection);
@@ -816,7 +817,7 @@ namespace libtorrent {
 					// if we already have an entry with this
 					// new endpoint, disconnect this one
 					pp.connectable = true;
-					pp.source |= src;
+					pp.source |= static_cast<std::uint8_t>(src);
 					if (!was_conn_cand && is_connect_candidate(pp))
 						update_connect_candidates(1);
 					// calling disconnect() on a peer, may actually end
@@ -850,7 +851,7 @@ namespace libtorrent {
 
 		bool const was_conn_cand = is_connect_candidate(*p);
 		p->port = std::uint16_t(port);
-		p->source |= src;
+		p->source |= static_cast<std::uint8_t>(src);
 		p->connectable = true;
 
 		if (was_conn_cand != is_connect_candidate(*p))
@@ -905,7 +906,7 @@ namespace libtorrent {
 		if (max_peerlist_size
 			&& int(m_peers.size()) >= max_peerlist_size)
 		{
-			if (p->source == peer_info::resume_data) return false;
+			if (p->peer_source() == peer_info::resume_data) return false;
 
 			erase_peers(state);
 			if (int(m_peers.size()) >= max_peerlist_size)
@@ -950,7 +951,8 @@ namespace libtorrent {
 		return true;
 	}
 
-	void peer_list::update_peer(torrent_peer* p, int src, int flags
+	void peer_list::update_peer(torrent_peer* p, peer_source_flags_t const src
+		, int flags
 		, tcp::endpoint const& remote, char const* /* destination*/)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -961,7 +963,7 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(p->address() == remote.address());
 		p->port = remote.port();
-		p->source |= src;
+		p->source |= static_cast<std::uint8_t>(src);
 
 		// if this peer has failed before, decrease the
 		// counter to allow it another try, since somebody
@@ -1007,7 +1009,8 @@ namespace libtorrent {
 
 #if TORRENT_USE_I2P
 	// TODO: 3 use string_view for destination
-	torrent_peer* peer_list::add_i2p_peer(char const* destination, int src, char flags, torrent_state* state)
+	torrent_peer* peer_list::add_i2p_peer(char const* destination
+		, peer_source_flags_t const src, char flags, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1055,7 +1058,8 @@ namespace libtorrent {
 #endif // TORRENT_USE_I2P
 
 	// if this returns non-nullptr, the torrent need to post status update
-	torrent_peer* peer_list::add_peer(tcp::endpoint const& remote, int src, char flags
+	torrent_peer* peer_list::add_peer(tcp::endpoint const& remote
+		, peer_source_flags_t const src, char flags
 		, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1351,8 +1355,8 @@ namespace libtorrent {
 		if (lhs.failcount != rhs.failcount)
 			return lhs.failcount > rhs.failcount;
 
-		bool lhs_resume_data_source = lhs.source == peer_info::resume_data;
-		bool rhs_resume_data_source = rhs.source == peer_info::resume_data;
+		bool const lhs_resume_data_source = lhs.peer_source() == peer_info::resume_data;
+		bool const rhs_resume_data_source = rhs.peer_source() == peer_info::resume_data;
 
 		// prefer to drop peers whose only source is resume data
 		if (lhs_resume_data_source != rhs_resume_data_source)
@@ -1381,8 +1385,8 @@ namespace libtorrent {
 		if (lhs->last_connected != rhs->last_connected)
 			return lhs->last_connected < rhs->last_connected;
 
-		int lhs_rank = source_rank(lhs->source);
-		int rhs_rank = source_rank(rhs->source);
+		int const lhs_rank = source_rank(lhs->peer_source());
+		int const rhs_rank = source_rank(rhs->peer_source());
 		if (lhs_rank != rhs_rank) return lhs_rank > rhs_rank;
 
 		std::uint32_t lhs_peer_rank = lhs->rank(external, external_port);

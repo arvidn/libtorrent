@@ -676,7 +676,8 @@ namespace libtorrent {
 
 #endif
 
-	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source, int flags) const
+	void torrent_handle::connect_peer(tcp::endpoint const& adr
+		, peer_source_flags_t const source, int flags) const
 	{
 		async_call(&torrent::add_peer, adr, source, flags);
 	}

@@ -48,11 +48,10 @@ struct bitfield_flag
 	constexpr bitfield_flag(bitfield_flag const& rhs) noexcept = default;
 	constexpr bitfield_flag(bitfield_flag&& rhs) noexcept = default;
 	constexpr bitfield_flag() noexcept : m_val(0) {}
-#ifdef TORRENT_NO_DEPRECATE
 	explicit constexpr bitfield_flag(UnderlyingType val) noexcept : m_val(val) {}
+#ifdef TORRENT_NO_DEPRECATE
 	explicit constexpr operator UnderlyingType() const noexcept { return m_val; }
 #else
-	constexpr bitfield_flag(UnderlyingType val) noexcept : m_val(val) {}
 	constexpr operator UnderlyingType() const noexcept { return m_val; }
 #endif
 	explicit constexpr operator bool() const noexcept { return m_val != 0; }

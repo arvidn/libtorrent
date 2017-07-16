@@ -147,7 +147,7 @@ namespace libtorrent {
 		// connection, just to count hash failures
 		// it's also used to hold the peer_connection
 		// pointer, when the web seed is connected
-		ipv4_peer peer_info{tcp::endpoint(), true, 0};
+		ipv4_peer peer_info{tcp::endpoint(), true, {}};
 
 		// this is initialized to true, but if we discover the
 		// server not to support it, it's set to false, and we
@@ -356,7 +356,8 @@ namespace libtorrent {
 		void remove_extension(std::shared_ptr<torrent_plugin>);
 		void add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 			, void* userdata);
-		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
+		void notify_extension_add_peer(tcp::endpoint const& ip
+			, peer_source_flags_t src, int flags);
 #endif
 
 		peer_connection* find_lowest_ranking_peer() const;
@@ -661,9 +662,10 @@ namespace libtorrent {
 		void update_gauge();
 
 		bool try_connect_peer();
-		torrent_peer* add_peer(tcp::endpoint const& adr, int source, int flags = 0);
+		torrent_peer* add_peer(tcp::endpoint const& adr
+			, peer_source_flags_t source, int flags = 0);
 		bool ban_peer(torrent_peer* tp);
-		void update_peer_port(int port, torrent_peer* p, int src);
+		void update_peer_port(int port, torrent_peer* p, peer_source_flags_t src);
 		void set_seed(torrent_peer* p, bool s);
 		void clear_failcount(torrent_peer* p);
 		std::pair<peer_list::iterator, peer_list::iterator> find_peers(address const& a);

@@ -51,8 +51,8 @@ using by_value = return_value_policy<return_by_value>;
 void bind_peer_info()
 {
     scope pi = class_<peer_info>("peer_info")
-        .def_readonly("flags", &peer_info::flags)
-        .def_readonly("source", &peer_info::source)
+        .add_property("flags", make_getter(&peer_info::flags, by_value()))
+        .add_property("source", make_getter(&peer_info::source, by_value()))
         .def_readonly("read_state", &peer_info::read_state)
         .def_readonly("write_state", &peer_info::write_state)
         .add_property("ip", get_ip)
@@ -103,27 +103,27 @@ void bind_peer_info()
         ;
 
     // flags
-    pi.attr("interesting") = (int)peer_info::interesting;
-    pi.attr("choked") = (int)peer_info::choked;
-    pi.attr("remote_interested") = (int)peer_info::remote_interested;
-    pi.attr("remote_choked") = (int)peer_info::remote_choked;
-    pi.attr("supports_extensions") = (int)peer_info::supports_extensions;
-    pi.attr("local_connection") = (int)peer_info::local_connection;
-    pi.attr("handshake") = (int)peer_info::handshake;
-    pi.attr("connecting") = (int)peer_info::connecting;
+    pi.attr("interesting") = peer_info::interesting;
+    pi.attr("choked") = peer_info::choked;
+    pi.attr("remote_interested") = peer_info::remote_interested;
+    pi.attr("remote_choked") = peer_info::remote_choked;
+    pi.attr("supports_extensions") = peer_info::supports_extensions;
+    pi.attr("local_connection") = peer_info::local_connection;
+    pi.attr("handshake") = peer_info::handshake;
+    pi.attr("connecting") = peer_info::connecting;
 #ifndef TORRENT_NO_DEPRECATE
-    pi.attr("queued") = (int)peer_info::queued;
+    pi.attr("queued") = peer_info::queued;
 #endif
-    pi.attr("on_parole") = (int)peer_info::on_parole;
-    pi.attr("seed") = (int)peer_info::seed;
-    pi.attr("optimistic_unchoke") = (int)peer_info::optimistic_unchoke;
-    pi.attr("snubbed") = (int)peer_info::snubbed;
-    pi.attr("upload_only") = (int)peer_info::upload_only;
-    pi.attr("endgame_mode") = (int)peer_info::endgame_mode;
-    pi.attr("holepunched") = (int)peer_info::holepunched;
+    pi.attr("on_parole") = peer_info::on_parole;
+    pi.attr("seed") = peer_info::seed;
+    pi.attr("optimistic_unchoke") = peer_info::optimistic_unchoke;
+    pi.attr("snubbed") = peer_info::snubbed;
+    pi.attr("upload_only") = peer_info::upload_only;
+    pi.attr("endgame_mode") = peer_info::endgame_mode;
+    pi.attr("holepunched") = peer_info::holepunched;
 #ifndef TORRENT_DISABLE_ENCRYPTION
-    pi.attr("rc4_encrypted") = (int)peer_info::rc4_encrypted;
-    pi.attr("plaintext_encrypted") = (int)peer_info::plaintext_encrypted;
+    pi.attr("rc4_encrypted") = peer_info::rc4_encrypted;
+    pi.attr("plaintext_encrypted") = peer_info::plaintext_encrypted;
 #endif
 
     // connection_type
@@ -131,11 +131,11 @@ void bind_peer_info()
     pi.attr("web_seed") = (int)peer_info::web_seed;
 
     // source
-    pi.attr("tracker") = (int)peer_info::tracker;
-    pi.attr("dht") = (int)peer_info::dht;
-    pi.attr("pex") = (int)peer_info::pex;
-    pi.attr("lsd") = (int)peer_info::lsd;
-    pi.attr("resume_data") = (int)peer_info::resume_data;
+    pi.attr("tracker") = peer_info::tracker;
+    pi.attr("dht") = peer_info::dht;
+    pi.attr("pex") = peer_info::pex;
+    pi.attr("lsd") = peer_info::lsd;
+    pi.attr("resume_data") = peer_info::resume_data;
 
     // read/write state
     pi.attr("bw_idle") = (int)peer_info::bw_idle;
