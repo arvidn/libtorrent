@@ -195,7 +195,8 @@ test_primitives_SOURCES = \
   test_settings_pack.cpp \
   test_fence.cpp \
   test_dos_blocker.cpp \
-  test_upnp.cpp
+  test_upnp.cpp \
+  test_flags.cpp
 
 test_recheck_SOURCES = test_recheck.cpp
 test_stat_cache_SOURCES = test_stat_cache.cpp

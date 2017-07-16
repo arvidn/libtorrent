@@ -901,6 +901,76 @@ namespace libtorrent {
 #endif
 	}
 
+	boost::uint64_t torrent::flags() const
+	{
+		boost::uint64_t ret = 0;
+		if (m_seed_mode) {
+			ret |= add_torrent_params::flag_seed_mode;
+		}
+		if (m_upload_mode) {
+			ret |= add_torrent_params::flag_upload_mode;
+		}
+		if (m_share_mode) {
+			ret |= add_torrent_params::flag_share_mode;
+		}
+		if (m_apply_ip_filter) {
+			ret |= add_torrent_params::flag_apply_ip_filter;
+		}
+		if (is_torrent_paused()) {
+			ret |= add_torrent_params::flag_paused;
+		}
+		if (m_auto_managed) {
+			ret |= add_torrent_params::flag_auto_managed;
+		}
+		if (m_super_seeding) {
+			ret |= add_torrent_params::flag_super_seeding;
+		}
+		if (m_sequential_download) {
+			ret |= add_torrent_params::flag_sequential_download;
+		}
+		if (m_stop_when_ready) {
+			ret |= add_torrent_params::flag_stop_when_ready;
+		}
+		return ret;
+	}
+
+	void torrent::set_flags(boost::uint64_t flags, boost::uint64_t mask)
+	{
+		if (mask & add_torrent_params::flag_seed_mode) {
+			if ((flags & add_torrent_params::flag_seed_mode) == 0) {
+				leave_seed_mode(false);
+			}
+		}
+		if (mask & add_torrent_params::flag_upload_mode) {
+			set_upload_mode((flags & add_torrent_params::flag_upload_mode) != 0);
+		}
+		if (mask & add_torrent_params::flag_share_mode) {
+			set_share_mode((flags & add_torrent_params::flag_share_mode) != 0);
+		}
+		if (mask & add_torrent_params::flag_apply_ip_filter) {
+			set_apply_ip_filter((flags & add_torrent_params::flag_apply_ip_filter) != 0);
+		}
+		if (mask & add_torrent_params::flag_paused) {
+			if ((flags & add_torrent_params::flag_paused) != 0) {
+				graceful_pause();
+			} else {
+				resume();
+			}
+		}
+		if (mask & add_torrent_params::flag_auto_managed) {
+			auto_managed((flags & add_torrent_params::flag_auto_managed) != 0);
+		}
+		if (mask & add_torrent_params::flag_super_seeding) {
+			set_super_seeding((flags & add_torrent_params::flag_super_seeding) != 0);
+		}
+		if (mask & add_torrent_params::flag_sequential_download) {
+			set_sequential_download((flags & add_torrent_params::flag_sequential_download) != 0);
+		}
+		if (mask & add_torrent_params::flag_stop_when_ready) {
+			stop_when_ready((flags & add_torrent_params::flag_stop_when_ready) != 0);
+		}
+	}
+
 	void torrent::set_share_mode(bool s)
 	{
 		if (s == m_share_mode) return;
@@ -10510,14 +10580,16 @@ namespace {
 #ifndef TORRENT_NO_DEPRECATE
 		if (m_error) st->error = convert_from_native(m_error.message())
 			+ ": " + resolve_filename(m_error_file);
-#endif
 		st->seed_mode = m_seed_mode;
+#endif
 		st->moving_storage = m_moving_storage;
 
 		st->announcing_to_trackers = m_announce_to_trackers;
 		st->announcing_to_lsd = m_announce_to_lsd;
 		st->announcing_to_dht = m_announce_to_dht;
+#ifndef TORRENT_NO_DEPRECATE
 		st->stop_when_ready = m_stop_when_ready;
+#endif
 
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
@@ -10527,8 +10599,10 @@ namespace {
 			: clamped_subtract_u16(m_ses.session_time(), m_last_scrape);
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 		st->share_mode = m_share_mode;
 		st->upload_mode = m_upload_mode;
+#endif
 		st->up_bandwidth_queue = 0;
 		st->down_bandwidth_queue = 0;
 #ifndef TORRENT_NO_DEPRECATE
@@ -10577,12 +10651,16 @@ namespace {
 
 		st->num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
 		st->num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
+#ifndef TORRENT_NO_DEPRECATE
 		st->paused = is_torrent_paused();
 		st->auto_managed = m_auto_managed;
 		st->sequential_download = m_sequential_download;
+#endif
 		st->is_seeding = is_seed();
 		st->is_finished = is_finished();
+#ifndef TORRENT_NO_DEPRECATE
 		st->super_seeding = m_super_seeding;
+#endif
 		st->has_metadata = valid_metadata();
 		bytes_done(*st, (flags & torrent_handle::query_accurate_download_counters) != 0);
 		TORRENT_ASSERT(st->total_wanted_done >= 0);
@@ -10652,9 +10730,12 @@ namespace {
 
 		st->queue_position = queue_position();
 		st->need_save_resume = need_save_resume_data();
+#ifndef TORRENT_NO_DEPRECATE
 		st->ip_filter_applies = m_apply_ip_filter;
+#endif
 
 		st->state = static_cast<torrent_status::state_t>(m_state);
+		st->flags = this->flags();
 
 #if TORRENT_USE_ASSERTS
 		if (st->state == torrent_status::finished

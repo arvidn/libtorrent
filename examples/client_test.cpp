@@ -1495,7 +1495,14 @@ MAGNETURL is a magnet link
 				if (c == 's' && h.is_valid())
 				{
 					torrent_status const& ts = view.get_active_torrent();
-					h.set_sequential_download(!ts.sequential_download);
+					if (ts.flags & add_torrent_params::flag_sequential_download)
+					{
+						h.set_flags(add_torrent_params::flag_sequential_download);
+					}
+					else
+					{
+						h.unset_flags(add_torrent_params::flag_sequential_download);
+					}
 				}
 
 				if (c == 'R')
@@ -1531,13 +1538,14 @@ MAGNETURL is a magnet link
 				if (c == 'p' && h.is_valid())
 				{
 					torrent_status const& ts = view.get_active_torrent();
-					if (!ts.auto_managed && ts.paused)
+					if ((ts.flags & (add_torrent_params::flag_auto_managed |
+						add_torrent_params::flag_paused)) == add_torrent_params::flag_paused)
 					{
-						h.auto_managed(true);
+						h.set_flags(add_torrent_params::flag_auto_managed);
 					}
 					else
 					{
-						h.auto_managed(false);
+						h.unset_flags(add_torrent_params::flag_auto_managed);
 						h.pause(torrent_handle::graceful_pause);
 					}
 				}
@@ -1546,8 +1554,14 @@ MAGNETURL is a magnet link
 				if (c == 'k' && h.is_valid())
 				{
 					torrent_status const& ts = view.get_active_torrent();
-					h.auto_managed(!ts.auto_managed);
-					if (ts.auto_managed && ts.paused) h.resume();
+					h.set_flags(
+						~(ts.flags & add_torrent_params::flag_auto_managed),
+						add_torrent_params::flag_auto_managed);
+					if ((ts.flags & add_torrent_params::flag_auto_managed) &&
+						(ts.flags & add_torrent_params::flag_paused))
+					{
+						h.resume();
+					}
 				}
 
 				if (c == 'c' && h.is_valid())
