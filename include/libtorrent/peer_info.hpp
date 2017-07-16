@@ -421,6 +421,7 @@ namespace libtorrent {
 
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 	// internal
 	struct TORRENT_EXTRA_EXPORT peer_list_entry
 	{
@@ -439,6 +440,7 @@ namespace libtorrent {
 		// internal
 		std::uint8_t source;
 	};
+#endif
 
 }
 

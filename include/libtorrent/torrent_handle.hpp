@@ -66,7 +66,9 @@ namespace libtorrent { namespace aux {
 	class torrent_info;
 	struct torrent_plugin;
 	struct peer_info;
+#ifndef TORRENT_NO_DEPRECATE
 	struct peer_list_entry;
+#endif
 	struct torrent_status;
 	struct torrent_handle;
 	struct storage_interface;
