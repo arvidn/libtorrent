@@ -679,7 +679,9 @@ namespace libtorrent {
 		peer_iterator begin() { return m_connections.begin(); }
 		peer_iterator end() { return m_connections.end(); }
 
+#ifndef TORRENT_NO_DEPRECATE
 		void get_full_peer_list(std::vector<peer_list_entry>* v) const;
+#endif
 		void get_peer_info(std::vector<peer_info>* v);
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
 

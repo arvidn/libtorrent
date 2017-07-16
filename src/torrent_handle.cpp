@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/write_resume_data.hpp"
 
-#if TORRENT_COMPLETE_TYPES_REQUIRED
+#ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/peer_info.hpp" // for peer_list_entry
 #endif
 

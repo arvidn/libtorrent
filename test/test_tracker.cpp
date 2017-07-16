@@ -467,21 +467,24 @@ TORRENT_TEST(http_peers)
 
 	// we expect to have certain peers in our peer list now
 	// these peers are hard coded in web_server.py
-	std::vector<peer_list_entry> peers;
-	h.native_handle()->get_full_peer_list(&peers);
+	h.save_resume_data();
+	alert const* a = wait_for_alert(*s, save_resume_data_alert::alert_type);
 
-	std::set<tcp::endpoint> expected_peers;
-	expected_peers.insert(ep("65.65.65.65", 16962));
-	expected_peers.insert(ep("67.67.67.67", 17476));
-#if TORRENT_USE_IPV6
-	expected_peers.insert(ep("4545:4545:4545:4545:4545:4545:4545:4545", 17990));
-#endif
-
-	TEST_EQUAL(peers.size(), expected_peers.size());
-	for (std::vector<peer_list_entry>::iterator i = peers.begin()
-		, end(peers.end()); i != end; ++i)
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
 	{
-		TEST_EQUAL(expected_peers.count(i->ip), 1);
+		std::set<tcp::endpoint> expected_peers;
+		expected_peers.insert(ep("65.65.65.65", 16962));
+		expected_peers.insert(ep("67.67.67.67", 17476));
+#if TORRENT_USE_IPV6
+		expected_peers.insert(ep("4545:4545:4545:4545:4545:4545:4545:4545", 17990));
+#endif
+		for (auto const& ip : ra->params.peers)
+		{
+			TEST_EQUAL(expected_peers.count(ip), 1);
+		}
 	}
 
 	std::printf("destructing session\n");

@@ -6237,6 +6237,7 @@ namespace libtorrent {
 		}
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void torrent::get_full_peer_list(std::vector<peer_list_entry>* v) const
 	{
 		v->clear();
@@ -6253,6 +6254,7 @@ namespace libtorrent {
 			v->push_back(e);
 		}
 	}
+#endif
 
 	void torrent::get_peer_info(std::vector<peer_info>* v)
 	{

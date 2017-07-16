@@ -244,9 +244,13 @@ TORRENT_TEST(added_peers)
 
 	torrent_handle h = ses.add_torrent(std::move(p));
 
-	std::vector<peer_list_entry> v;
-	h.native_handle()->get_full_peer_list(&v);
-	TEST_EQUAL(v.size(), 2);
+	h.save_resume_data();
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra) TEST_EQUAL(ra->params.peers.size(), 2);
 }
 
 TORRENT_TEST(torrent)
