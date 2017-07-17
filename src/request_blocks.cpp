@@ -252,7 +252,7 @@ namespace libtorrent {
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return
-			if (!c.add_request(*i, 0)) continue;
+			if (!c.add_request(*i, {})) continue;
 			TORRENT_ASSERT(p.num_peers(*i) == 1);
 			TORRENT_ASSERT(p.is_requested(*i));
 			num_requests--;
@@ -298,7 +298,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(!p.is_finished(busy_block));
 		TORRENT_ASSERT(p.num_peers(busy_block) > 0);
 
-		c.add_request(busy_block, peer_connection::req_busy);
+		c.add_request(busy_block, peer_connection::busy);
 		return true;
 	}
 

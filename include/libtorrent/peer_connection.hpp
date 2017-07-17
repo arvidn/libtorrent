@@ -240,6 +240,9 @@ namespace aux {
 		http_seed
 	};
 
+	struct request_flags_tag;
+	using request_flags_t = flags::bitfield_flag<std::uint8_t, request_flags_tag>;
+
 	class TORRENT_EXTRA_EXPORT peer_connection
 		: public peer_connection_hot_members
 		, public bandwidth_socket
@@ -584,10 +587,12 @@ namespace aux {
 		// if the block was already time-critical, it returns false.
 		bool make_time_critical(piece_block const& block);
 
+		static constexpr request_flags_t time_critical{1};
+		static constexpr request_flags_t busy{2};
+
 		// adds a block to the request queue
 		// returns true if successful, false otherwise
-		enum flags_t { req_time_critical = 1, req_busy = 2 };
-		bool add_request(piece_block const& b, int flags = 0);
+		bool add_request(piece_block const& b, request_flags_t flags = {});
 
 		// clears the request queue and sends cancels for all messages
 		// in the download queue

@@ -86,6 +86,9 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
+	constexpr request_flags_t peer_connection::time_critical;
+	constexpr request_flags_t peer_connection::busy;
+
 	namespace {
 
 	// the limits of the download queue size
@@ -3405,7 +3408,8 @@ namespace libtorrent {
 		return true;
 	}
 
-	bool peer_connection::add_request(piece_block const& block, int const flags)
+	bool peer_connection::add_request(piece_block const& block
+		, request_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -3446,7 +3450,7 @@ namespace libtorrent {
 			return false;
 		}
 
-		if ((flags & req_busy) && !(flags & req_time_critical))
+		if ((flags & busy) && !(flags & time_critical))
 		{
 			// this block is busy (i.e. it has been requested
 			// from another peer already). Only allow one busy
@@ -3495,8 +3499,8 @@ namespace libtorrent {
 		}
 
 		pending_block pb(block);
-		pb.busy = (flags & req_busy) ? true : false;
-		if (flags & req_time_critical)
+		pb.busy = (flags & busy) ? true : false;
+		if (flags & time_critical)
 		{
 			m_request_queue.insert(m_request_queue.begin() + m_queued_time_critical
 				, pb);
