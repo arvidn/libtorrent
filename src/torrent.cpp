@@ -9643,8 +9643,8 @@ namespace libtorrent {
 			}
 			else
 			{
-				if (!c.add_request(b, peer_connection::req_time_critical
-					| (busy_mode ? peer_connection::req_busy : 0)))
+				if (!c.add_request(b, peer_connection::time_critical
+					| (busy_mode ? peer_connection::busy : request_flags_t{})))
 				{
 #if TORRENT_DEBUG_STREAMING > 1
 					std::printf("failed to request block [%d, %d]\n"
