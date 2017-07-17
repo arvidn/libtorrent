@@ -637,6 +637,7 @@ namespace {
 	std::string entry::to_string() const
 	{
 		std::string ret;
+		if (type() == dictionary_t) ret.reserve(280);
 		to_string_impl(ret, 0);
 		return ret;
 	}
