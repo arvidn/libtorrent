@@ -176,6 +176,8 @@ namespace libtorrent {
 
 		virtual std::vector<open_file_state> get_status(storage_index_t) const = 0;
 
+		virtual void submit_jobs() = 0;
+
 #if TORRENT_USE_ASSERTS
 		virtual bool is_disk_buffer(char* buffer) const = 0;
 #endif

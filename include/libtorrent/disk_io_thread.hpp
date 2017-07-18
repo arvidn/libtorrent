@@ -348,7 +348,7 @@ namespace aux {
 		std::vector<open_file_state> get_status(storage_index_t) const override;
 
 		// this submits all queued up jobs to the thread
-		void submit_jobs();
+		void submit_jobs() override;
 
 		block_cache* cache() { return &m_disk_cache; }
 
