@@ -505,7 +505,7 @@ namespace libtorrent {
 		// .torrent file. If the specified key cannot be found, it returns nullptr.
 		bdecode_node info(char const* key) const;
 
-		// swap the content of this and ``ti```.
+		// swap the content of this and ``ti``.
 		void swap(torrent_info& ti);
 
 		// ``metadata()`` returns a the raw info section of the torrent file. The size

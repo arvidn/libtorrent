@@ -397,7 +397,11 @@ def parse_class(lno, lines, filename):
 			if not is_visible(context):
 				continue
 			l = l.split('//')[0].strip()
-			n = l.split(' ')[-1].split(':')[0].split(';')[0]
+			# the name may look like this:
+			# std::uint8_t fails : 7;
+			# int scrape_downloaded = -1;
+			# static constexpr peer_flags_t interesting{0x1};
+			n = l.split('=')[0].split('{')[0].strip().split(' : ')[0].split(' ')[-1].split(':')[0].split(';')[0]
 			if context == '' and blanks == 0 and len(fields):
 				fields[-1]['names'].append(n)
 				fields[-1]['signatures'].append(l)
