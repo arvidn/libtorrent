@@ -66,5 +66,15 @@ namespace libtorrent {
 	constexpr peer_source_flags_t peer_info::resume_data;
 	constexpr peer_source_flags_t peer_info::incoming;
 
+	constexpr bandwidth_state_flags_t peer_info::bw_idle;
+	constexpr bandwidth_state_flags_t peer_info::bw_limit;
+	constexpr bandwidth_state_flags_t peer_info::bw_network;
+	constexpr bandwidth_state_flags_t peer_info::bw_disk;
+
+#ifndef TORRENT_NO_DEPRECATE
+	constexpr bandwidth_state_flags_t peer_info::bw_torrent;
+	constexpr bandwidth_state_flags_t peer_info::bw_global;
+#endif
+
 }
 
