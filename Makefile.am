@@ -33,6 +33,7 @@ DOCS_IMAGES = \
   docs/disk_cache.png             \
   docs/utp_stack.diagram          \
   docs/utp_stack.png              \
+  docs/bitcoin.png                \
   docs/style.css                  \
   docs/rst.css                    \
   docs/img/bg.png                 \

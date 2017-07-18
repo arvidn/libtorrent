@@ -124,6 +124,12 @@ See the contribute_ page for other ways to help out.
 
 .. raw:: html
 
+	<span style="display:block;text-align:center;">
+	<img src="bitcoin.png" style="display:inline"><br/>
+	<a href="bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg">bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg</a>
+	</span>
+	
+	<span style="display:block;text-align:center;margin-top:1em">
 	<span style="display:inline-block">
 	<a class="FlattrButton" style="display:none;" href="http://libtorrent.org"></a>
 	<noscript><a href="https://flattr.com/thing/95662/libtorrent" target="_blank">
@@ -141,6 +147,7 @@ See the contribute_ page for other ways to help out.
 	<input type="image" src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/pp-acceptance-medium.png" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
 	<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
 	</form>
+	</span>
 	</span>
 
 
