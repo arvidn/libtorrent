@@ -861,6 +861,7 @@ namespace libtorrent {
 				, std::bind(&torrent::on_disk_read_complete
 				, shared_from_this(), _1, _2, _3, r, rp));
 		}
+		m_ses.disk_thread().submit_jobs();
 	}
 
 	void torrent::send_share_mode()
