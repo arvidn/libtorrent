@@ -2818,7 +2818,7 @@ namespace libtorrent {
 		// down to 0 and unblock all peers.
 		if (exceeded && m_outstanding_writing_bytes > 0)
 		{
-			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
+			if (!(m_channel_state[download_channel] & peer_info::bw_disk))
 				m_counters.inc_stats_counter(counters::num_peers_down_disk);
 			m_channel_state[download_channel] |= peer_info::bw_disk;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -4124,7 +4124,7 @@ namespace libtorrent {
 		}
 #endif
 
-		if ((m_channel_state[upload_channel] & peer_info::bw_network) == 0)
+		if (!(m_channel_state[upload_channel] & peer_info::bw_network))
 		{
 			// make sure we free up all send buffers that are owned
 			// by the disk thread
@@ -4760,7 +4760,7 @@ namespace libtorrent {
 		// if we can't read, it means we're blocked on the rate-limiter
 		// or the disk, not the peer itself. In this case, don't blame
 		// the peer and disconnect it
-		bool const may_timeout = (m_channel_state[download_channel] & peer_info::bw_network) != 0;
+		bool const may_timeout = bool(m_channel_state[download_channel] & peer_info::bw_network);
 
 		// TODO: 2 use a deadline_timer for timeouts. Don't rely on second_tick()!
 		// Hook this up to connect timeout as well. This would improve performance
@@ -5419,7 +5419,7 @@ namespace libtorrent {
 		}
 #endif
 
-		TORRENT_ASSERT((m_channel_state[channel] & peer_info::bw_limit) == 0);
+		TORRENT_ASSERT(!(m_channel_state[channel] & peer_info::bw_limit));
 
 		bandwidth_manager* manager = m_ses.get_bandwidth_manager(channel);
 
@@ -5500,7 +5500,7 @@ namespace libtorrent {
 			&& m_reading_bytes > 0
 			&& quota_left > 0)
 		{
-			if ((m_channel_state[upload_channel] & peer_info::bw_disk) == 0)
+			if (!(m_channel_state[upload_channel] & peer_info::bw_disk))
 				m_counters.inc_stats_counter(counters::num_peers_up_disk);
 			m_channel_state[upload_channel] |= peer_info::bw_disk;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -5574,7 +5574,7 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(amount_to_send > 0);
 
-		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_network) == 0);
+		TORRENT_ASSERT(!(m_channel_state[upload_channel] & peer_info::bw_network));
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "ASYNC_WRITE", "bytes: %d", amount_to_send);
 #endif
@@ -5596,7 +5596,7 @@ namespace libtorrent {
 	void peer_connection::on_disk()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0) return;
+		if (!(m_channel_state[download_channel] & peer_info::bw_disk)) return;
 		std::shared_ptr<peer_connection> me(self());
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -5661,7 +5661,7 @@ namespace libtorrent {
 		if (max_receive == 0) return;
 
 		span<char> const vec = m_recv_buffer.reserve(max_receive);
-		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
+		TORRENT_ASSERT(!(m_channel_state[download_channel] & peer_info::bw_network));
 		m_channel_state[download_channel] |= peer_info::bw_network;
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming, "ASYNC_READ"

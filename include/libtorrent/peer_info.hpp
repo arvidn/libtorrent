@@ -47,6 +47,7 @@ namespace libtorrent {
 	// hidden
 	struct peer_flags_tag;
 	struct peer_source_flags_tag;
+	struct bandwidth_state_flags_tag;
 
 	// flags for the peer_info::flags field. Indicates various states
 	// the peer may be in. These flags are not mutually exclusive, but
@@ -57,6 +58,10 @@ namespace libtorrent {
 	// have come from. A peer may have been seen from
 	// multiple sources
 	using peer_source_flags_t = flags::bitfield_flag<std::uint8_t, peer_source_flags_tag>;
+
+	// flags indicating what is blocking network transfers in up- and down
+	// direction
+	using bandwidth_state_flags_t = flags::bitfield_flag<std::uint8_t, bandwidth_state_flags_tag>;
 
 	// holds information and statistics about one peer
 	// that libtorrent is connected to
@@ -374,37 +379,33 @@ namespace libtorrent {
 		// multi-homed clients with multiple interfaces to the internet.
 		tcp::endpoint local_endpoint;
 
-		// bits for the read_state and write_state
-		enum bw_state
-		{
-			// The peer is not waiting for any external events to
-			// send or receive data.
-			bw_idle = 0,
+		// The peer is not waiting for any external events to
+		// send or receive data.
+		static constexpr bandwidth_state_flags_t bw_idle{0};
 
-			// The peer is waiting for the rate limiter.
-			bw_limit = 1,
+		// The peer is waiting for the rate limiter.
+		static constexpr bandwidth_state_flags_t bw_limit{1};
 
-			// The peer has quota and is currently waiting for a
-			// network read or write operation to complete. This is
-			// the state all peers are in if there are no bandwidth
-			// limits.
-			bw_network = 2,
+		// The peer has quota and is currently waiting for a
+		// network read or write operation to complete. This is
+		// the state all peers are in if there are no bandwidth
+		// limits.
+		static constexpr bandwidth_state_flags_t bw_network{2};
 
-			// The peer is waiting for the disk I/O thread to catch
-			// up writing buffers to disk before downloading more.
-			bw_disk = 4
-		};
-#ifndef TORRENT_NO_DEPRECATE
-		enum bw_state_deprecated { bw_torrent = bw_limit, bw_global = bw_limit };
-#endif
+		// The peer is waiting for the disk I/O thread to catch
+		// up writing buffers to disk before downloading more.
+		static constexpr bandwidth_state_flags_t bw_disk{4};
 
 		// bitmasks indicating what state this peer
 		// is in with regards to sending and receiving data. The states are declared in the
 		// bw_state enum.
-		char read_state;
-		char write_state;
+		bandwidth_state_flags_t read_state;
+		bandwidth_state_flags_t write_state;
 
 #ifndef TORRENT_NO_DEPRECATE
+		static constexpr bandwidth_state_flags_t bw_torrent = bw_limit;
+		static constexpr bandwidth_state_flags_t bw_global = bw_limit;
+
 		// the number of bytes per second we are allowed to send to or receive
 		// from this peer. It may be -1 if there's no local limit on the peer.
 		// The global limit and the torrent limit may also be enforced.

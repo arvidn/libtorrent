@@ -138,13 +138,13 @@ void bind_peer_info()
     pi.attr("resume_data") = peer_info::resume_data;
 
     // read/write state
-    pi.attr("bw_idle") = (int)peer_info::bw_idle;
+    pi.attr("bw_idle") = peer_info::bw_idle;
 #ifndef TORRENT_NO_DEPRECATE
-    pi.attr("bw_torrent") = (int)peer_info::bw_torrent;
-    pi.attr("bw_global") = (int)peer_info::bw_global;
+    pi.attr("bw_torrent") = peer_info::bw_torrent;
+    pi.attr("bw_global") = peer_info::bw_global;
 #endif
-    pi.attr("bw_limit") = (int)peer_info::bw_limit;
-    pi.attr("bw_network") = (int)peer_info::bw_network;
-    pi.attr("bw_disk") = (int)peer_info::bw_disk;
+    pi.attr("bw_limit") = peer_info::bw_limit;
+    pi.attr("bw_network") = peer_info::bw_network;
+    pi.attr("bw_disk") = peer_info::bw_disk;
 }
 

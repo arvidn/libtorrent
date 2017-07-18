@@ -799,7 +799,7 @@ namespace aux {
 	public:
 		// upload and download channel state
 		// enum from peer_info::bw_state
-		char m_channel_state[2];
+		bandwidth_state_flags_t m_channel_state[2];
 
 	protected:
 		receive_buffer m_recv_buffer;
