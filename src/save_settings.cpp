@@ -55,7 +55,7 @@ int load_file(std::string const& filename, std::vector<char>& v, error_code& ec,
 {
 	ec.clear();
 	file f;
-	if (!f.open(filename, open_mode_t::read_only, ec)) return -1;
+	if (!f.open(filename, open_mode::read_only, ec)) return -1;
 	std::int64_t s = f.get_size(ec);
 	if (ec) return -1;
 	if (s > limit)
@@ -75,7 +75,7 @@ int load_file(std::string const& filename, std::vector<char>& v, error_code& ec,
 int save_file(std::string const& filename, std::vector<char>& v, error_code& ec)
 {
 	file f;
-	if (!f.open(filename, open_mode_t::write_only, ec)) return -1;
+	if (!f.open(filename, open_mode::write_only, ec)) return -1;
 	if (ec) return -1;
 	iovec_t b = {&v[0], v.size()};
 	std::int64_t written = f.writev(0, b, ec);

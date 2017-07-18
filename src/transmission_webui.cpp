@@ -164,13 +164,13 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	bool paused = find_bool(args, buffer, "paused");
 	if (paused)
 	{
-		params.flags |= add_torrent_params::flag_paused;
-		params.flags &= ~add_torrent_params::flag_auto_managed;
+		params.flags |= torrent_flags::paused;
+		params.flags &= ~torrent_flags::auto_managed;
 	}
 	else
 	{
-		params.flags &= ~add_torrent_params::flag_paused;
-		params.flags |= add_torrent_params::flag_auto_managed;
+		params.flags &= ~torrent_flags::paused;
+		params.flags |= torrent_flags::auto_managed;
 	}
 
 	std::string url = find_string(args, buffer, "filename");
@@ -1040,8 +1040,8 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 		, sett.get_int(settings_pack::upload_rate_limit) / 1000
 		, to_bool(sett.get_int(settings_pack::download_rate_limit) > 0)
 		, to_bool(sett.get_int(settings_pack::upload_rate_limit) > 0)
-		, to_bool((m_params_model.flags & add_torrent_params::flag_auto_managed)
-			|| (m_params_model.flags & add_torrent_params::flag_paused) == 0)
+		, to_bool((m_params_model.flags & torrent_flags::auto_managed)
+			|| (m_params_model.flags & torrent_flags::paused) == 0)
 		, to_bool(sett.get_bool(settings_pack::enable_incoming_utp)
 			|| sett.get_bool(settings_pack::enable_outgoing_utp))
 		, sett.get_str(settings_pack::user_agent).c_str()
@@ -1189,8 +1189,8 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, st
 		{
 			if (!p->allow_set_settings(-1)) continue;
 			bool start = strcmp(value, "true") == 0;
-			m_params_model.flags |= start ? 0 : add_torrent_params::flag_paused;
-			m_params_model.flags &= ~(start ? 0 : add_torrent_params::flag_auto_managed);
+			m_params_model.flags |= start ? torrent_flags_t{} : torrent_flags::paused;
+			m_params_model.flags &= ~(start ? torrent_flags_t{} : torrent_flags::auto_managed);
 		}
 		else if (strcmp(key, "peer-port") == 0)
 		{
@@ -1349,8 +1349,8 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 			, "paused", buf, sizeof(buf)) > 0
 			&& strcmp(buf, "true") == 0)
 		{
-			p.flags |= add_torrent_params::flag_paused;
-			p.flags &= ~add_torrent_params::flag_auto_managed;
+			p.flags |= torrent_flags::paused;
+			p.flags &= ~torrent_flags::auto_managed;
 		}
 
 		m_ses.async_add_torrent(p);
