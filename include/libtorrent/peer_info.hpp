@@ -194,7 +194,7 @@ namespace libtorrent {
 		static constexpr peer_flags_t plaintext_encrypted{0x200000};
 
 		// tells you in which state the peer is in. It is set to
-		// any combination of the peer_flags_t enum.
+		// any combination of the peer_flags_t flags above.
 		peer_flags_t flags;
 
 		// The peer was received from the tracker.
@@ -218,7 +218,7 @@ namespace libtorrent {
 		static constexpr peer_source_flags_t incoming{0x20};
 
 		// a combination of flags describing from which sources this peer
-		// was received. See peer_source_flags.
+		// was received. A combination of the peer_source_flags_t above.
 		peer_source_flags_t source;
 
 		// the current upload and download speed we have to and from this peer
