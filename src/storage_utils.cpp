@@ -504,7 +504,8 @@ namespace libtorrent { namespace aux {
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
-		bool const seed = rd.have_pieces.all_set();
+		bool const seed = rd.have_pieces.all_set()
+			&& rd.have_pieces.size() >= fs.num_pieces();
 
 		// parse have bitmask. Verify that the files we expect to have
 		// actually do exist
