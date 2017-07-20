@@ -84,7 +84,7 @@ void test_read_piece(int flags)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	auto ti = std::make_shared<torrent_info>(&buf[0], int(buf.size()), ec);
+	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"
 		, aux::to_hex(ti->info_hash()).c_str());

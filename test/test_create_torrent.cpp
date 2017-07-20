@@ -48,7 +48,7 @@ TORRENT_TEST(create_verbatim_torrent)
 	char const test_torrent[] = "d4:infod4:name6:foobar6:lengthi12345e"
 		"12:piece lengthi65536e6:pieces20:ababababababababababee";
 
-	lt::torrent_info info(test_torrent, sizeof(test_torrent) - 1);
+	lt::torrent_info info(test_torrent, lt::from_span);
 
 	info.add_tracker("http://test.com");
 	info.add_tracker("http://test.com");

@@ -42,8 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-std::shared_ptr<lt::torrent_info> make_test_torrent(
-	torrent_args const& args)
+std::shared_ptr<lt::torrent_info> make_test_torrent(torrent_args const& args)
 {
 	entry e;
 
@@ -162,7 +161,7 @@ std::shared_ptr<lt::torrent_info> make_test_torrent(
 	fwrite(&tmp[0], 1, tmp.size(), f);
 	fclose(f);
 
-	return std::make_shared<torrent_info>(&tmp[0], int(tmp.size()));
+	return std::make_shared<torrent_info>(tmp, from_span);
 }
 
 void generate_files(lt::torrent_info const& ti, std::string const& path

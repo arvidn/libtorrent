@@ -79,7 +79,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	return std::make_shared<torrent_info>(&buf[0], int(buf.size()));
+	return std::make_shared<torrent_info>(buf, from_span);
 }
 
 std::vector<char> generate_resume_data(torrent_info* ti

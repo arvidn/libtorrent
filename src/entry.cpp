@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #endif
 #include "libtorrent/bdecode.hpp"
+#include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/hex.hpp"
 #include "libtorrent/string_util.hpp"
@@ -48,39 +49,51 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 namespace detail {
-		char const* integer_to_str(char* buf, int size
-			, entry::integer_type val)
+
+	char const* integer_to_str(char* buf, int size
+		, entry::integer_type val)
+	{
+		int sign = 0;
+		if (val < 0)
 		{
-			int sign = 0;
-			if (val < 0)
-			{
-				sign = 1;
-				val = -val;
-			}
-			buf[--size] = '\0';
-			if (val == 0) buf[--size] = '0';
-			for (; size > sign && val != 0;)
-			{
-				buf[--size] = '0' + char(val % 10);
-				val /= 10;
-			}
-			if (sign) buf[--size] = '-';
-			return buf + size;
+			sign = 1;
+			val = -val;
 		}
+		buf[--size] = '\0';
+		if (val == 0) buf[--size] = '0';
+		for (; size > sign && val != 0;)
+		{
+			buf[--size] = '0' + char(val % 10);
+			val /= 10;
+		}
+		if (sign) buf[--size] = '-';
+		return buf + size;
+	}
+} // detail
+
+	entry bdecode(span<char const> buffer)
+	{
+		entry e;
+		bool err = false;
+		auto it = buffer.begin();
+		detail::bdecode_recursive(it, buffer.end(), e, err, 0);
+		TORRENT_ASSERT(e.m_type_queried == false);
+		if (err) return entry();
+		return e;
 	}
 
 namespace {
 
-		inline void TORRENT_NO_RETURN throw_error()
-		{ aux::throw_ex<system_error>(errors::invalid_entry_type); }
+	inline void TORRENT_NO_RETURN throw_error()
+	{ aux::throw_ex<system_error>(errors::invalid_entry_type); }
 
-		template <class T>
-		void call_destructor(T* o)
-		{
-			TORRENT_ASSERT(o);
-			o->~T();
-		}
+	template <class T>
+	void call_destructor(T* o)
+	{
+		TORRENT_ASSERT(o);
+		o->~T();
 	}
+} // anonymous
 
 	entry& entry::operator[](string_view key)
 	{

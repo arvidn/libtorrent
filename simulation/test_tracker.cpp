@@ -789,8 +789,7 @@ std::shared_ptr<torrent_info> make_torrent(bool priv)
 	entry e = ct.generate();
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), e);
-	error_code ec;
-	return std::make_shared<torrent_info>(buf.data(), int(buf.size()), ec);
+	return std::make_shared<torrent_info>(buf, from_span);
 }
 
 // make sure we _do_ send our IPv6 address to trackers for private torrents

@@ -91,10 +91,8 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 	entry tor = t.generate();
 
 	bencode(out, tor);
-	error_code ec;
 	add_torrent_params ret;
-	ret.ti = std::make_shared<torrent_info>(
-		&tmp[0], int(tmp.size()), std::ref(ec), 0);
+	ret.ti = std::make_shared<torrent_info>(tmp, from_span);
 	ret.flags &= ~lt::add_torrent_params::flag_auto_managed;
 	ret.flags &= ~lt::add_torrent_params::flag_paused;
 	ret.save_path = ".";
