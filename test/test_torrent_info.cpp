@@ -69,7 +69,7 @@ TORRENT_TEST(mutable_torrents)
 	entry tor = t.generate();
 	bencode(out, tor);
 
-	torrent_info ti(&tmp[0], int(tmp.size()));
+	torrent_info ti(tmp, from_span);
 
 	std::vector<sha1_hash> similar;
 	similar.push_back(sha1_hash("abababababababababab"));
@@ -197,8 +197,7 @@ TORRENT_TEST(url_list_and_httpseeds)
 	torrent["info"] = info;
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
-	error_code ec;
-	torrent_info ti(&buf[0], int(buf.size()), ec);
+	torrent_info ti(buf, from_span);
 	TEST_EQUAL(ti.web_seeds().size(), 4);
 }
 
@@ -614,8 +613,6 @@ TORRENT_TEST(verify_encoding)
 
 TORRENT_TEST(parse_torrents)
 {
-	error_code ec;
-
 	// test torrent parsing
 
 	entry info;
@@ -629,7 +626,7 @@ TORRENT_TEST(parse_torrents)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti(&buf[0], int(buf.size()), ec);
+	torrent_info ti(buf, from_span);
 	std::cout << ti.name() << std::endl;
 	TEST_CHECK(ti.name() == "test1");
 
@@ -641,7 +638,7 @@ TORRENT_TEST(parse_torrents)
 	torrent["info"] = info;
 	buf.clear();
 	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti2(&buf[0], int(buf.size()), ec);
+	torrent_info ti2(buf, from_span);
 	std::cout << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(ti2.name(), "ctest1test2test3");
@@ -653,7 +650,7 @@ TORRENT_TEST(parse_torrents)
 	torrent["info"] = info;
 	buf.clear();
 	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti3(&buf[0], int(buf.size()), ec);
+	torrent_info ti3(buf, from_span);
 	std::cout << ti3.name() << std::endl;
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
 
@@ -663,6 +660,7 @@ TORRENT_TEST(parse_torrents)
 		std::printf("loading %s\n", test_torrents[i].file);
 		std::string filename = combine_path(combine_path(root_dir, "test_torrents")
 			, test_torrents[i].file);
+		error_code ec;
 		auto ti = std::make_shared<torrent_info>(filename, ec);
 		TEST_CHECK(!ec);
 		if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
@@ -853,7 +851,7 @@ void test_resolve_duplicates(int test_case)
 	entry tor = t.generate();
 	bencode(out, tor);
 
-	torrent_info ti(&tmp[0], int(tmp.size()));
+	torrent_info ti(tmp, from_span);
 
 	std::vector<aux::vector<char const*, file_index_t>> const filenames
 	{
@@ -905,7 +903,7 @@ TORRENT_TEST(resolve_duplicates)
 TORRENT_TEST(empty_file)
 {
 	error_code ec;
-	auto ti = std::make_shared<torrent_info>("", 0, ec);
+	auto ti = std::make_shared<torrent_info>("", ec, from_span);
 	TEST_CHECK(ec);
 }
 
@@ -913,7 +911,7 @@ TORRENT_TEST(empty_file2)
 {
 	try
 	{
-		auto ti = std::make_shared<torrent_info>("", 0);
+		auto ti = std::make_shared<torrent_info>("", from_span);
 		TEST_ERROR("expected exception thrown");
 	}
 	catch (system_error const& e)

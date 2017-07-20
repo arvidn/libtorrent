@@ -247,10 +247,11 @@ struct bdecode_token
 // There are 5 different types of nodes, see type_t.
 struct TORRENT_EXPORT bdecode_node
 {
-	// TODO: 3 deprecate this overload
-	TORRENT_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
+#ifndef TORRENT_NO_DEPRECATE
+	TORRENT_DEPRECATED_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit
 		, int token_limit);
+#endif
 
 	TORRENT_EXPORT friend bdecode_node bdecode(span<char const> buffer
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit);

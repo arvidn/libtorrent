@@ -176,39 +176,29 @@ namespace
 
 } // namespace unnamed
 
-std::shared_ptr<torrent_info> buffer_constructor0(char const* buf, int len, int flags)
+std::shared_ptr<torrent_info> buffer_constructor0(bytes b)
 {
    error_code ec;
-   std::shared_ptr<torrent_info> ret = std::make_shared<torrent_info>(buf
-        , len, ec, flags);
+   std::shared_ptr<torrent_info> ret = std::make_shared<torrent_info>(b.arr
+        , ec, from_span);
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw system_error(ec);
 #endif
    return ret;
 }
 
-std::shared_ptr<torrent_info> buffer_constructor1(char const* buf, int len)
-{
-    return buffer_constructor0(buf, len, 0);
-}
-
-std::shared_ptr<torrent_info> file_constructor0(std::string const& filename, int flags)
+std::shared_ptr<torrent_info> file_constructor0(std::string const& filename)
 {
    error_code ec;
    std::shared_ptr<torrent_info> ret = std::make_shared<torrent_info>(filename
-        , ec, flags);
+        , ec);
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw system_error(ec);
 #endif
    return ret;
 }
 
-std::shared_ptr<torrent_info> file_constructor1(std::string const& filename)
-{
-    return file_constructor0(filename, 0);
-}
-
-std::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent, int flags)
+std::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent)
 {
     std::vector<char> buf;
     bencode(std::back_inserter(buf), ent);
@@ -222,17 +212,11 @@ std::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent, int flags)
 #endif
     }
 
-    std::shared_ptr<torrent_info> ret = std::make_shared<torrent_info>(e
-            , ec, flags);
+    std::shared_ptr<torrent_info> ret = std::make_shared<torrent_info>(e, ec);
 #ifndef BOOST_NO_EXCEPTIONS
     if (ec) throw system_error(ec);
 #endif
     return ret;
-}
-
-std::shared_ptr<torrent_info> bencoded_constructor1(entry const& ent)
-{
-    return bencoded_constructor0(ent, 0);
 }
 
 using by_value = return_value_policy<return_by_value>;
@@ -252,17 +236,14 @@ void bind_torrent_info()
         ;
 
     class_<torrent_info, std::shared_ptr<torrent_info>>("torrent_info", no_init)
-        .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
+        .def(init<sha1_hash const&>(arg("info_hash")))
         .def("__init__", make_constructor(&bencoded_constructor0))
-        .def("__init__", make_constructor(&bencoded_constructor1))
         .def("__init__", make_constructor(&buffer_constructor0))
-        .def("__init__", make_constructor(&buffer_constructor1))
         .def("__init__", make_constructor(&file_constructor0))
-        .def("__init__", make_constructor(&file_constructor1))
         .def(init<torrent_info const&>((arg("ti"))))
 
 #if !defined TORRENT_NO_DEPRECATE
-        .def(init<std::wstring, int>((arg("file"), arg("flags") = 0)))
+        .def(init<std::wstring>((arg("file"))))
 #endif
 
         .def("add_tracker", &torrent_info::add_tracker, arg("url"))

@@ -69,6 +69,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	from_span_t from_span;
+
 	namespace {
 
 	bool valid_path_character(std::int32_t const c)
@@ -722,20 +724,17 @@ namespace libtorrent {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec
-		, int const flags)
+	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec)
 	{
-		TORRENT_UNUSED(flags);
 		std::pair<char const*, int> buf = torrent_file.data_section();
 		bdecode_node e;
 		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
 			return;
-		parse_torrent_file(e, ec, 0);
+		parse_torrent_file(e, ec);
 	}
 
-	torrent_info::torrent_info(lazy_entry const& torrent_file, int const flags)
+	torrent_info::torrent_info(lazy_entry const& torrent_file)
 	{
-		TORRENT_UNUSED(flags);
 		std::pair<char const*, int> buf = torrent_file.data_section();
 		bdecode_node e;
 		error_code ec;
@@ -744,10 +743,10 @@ namespace libtorrent {
 			aux::throw_ex<system_error>(ec);
 		}
 #ifndef BOOST_NO_EXCEPTIONS
-		if (!parse_torrent_file(e, ec, 0))
+		if (!parse_torrent_file(e, ec))
 			aux::throw_ex<system_error>(ec);
 #else
-		parse_torrent_file(e, ec, 0);
+		parse_torrent_file(e, ec);
 #endif
 	}
 
@@ -769,73 +768,65 @@ namespace libtorrent {
 #endif
 		}
 #ifndef BOOST_NO_EXCEPTIONS
-		if (!parse_torrent_file(e, ec, 0))
+		if (!parse_torrent_file(e, ec))
 			aux::throw_ex<system_error>(ec);
 #else
-		parse_torrent_file(e, ec, 0);
+		parse_torrent_file(e, ec);
 #endif
 		INVARIANT_CHECK;
 	}
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
-	torrent_info::torrent_info(bdecode_node const& torrent_file
-		, int const flags)
+	torrent_info::torrent_info(bdecode_node const& torrent_file)
 	{
 		error_code ec;
-		if (!parse_torrent_file(torrent_file, ec, flags))
+		if (!parse_torrent_file(torrent_file, ec))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
 	}
 
-	torrent_info::torrent_info(char const* buffer
-		, int const size
-		, int const flags)
+	torrent_info::torrent_info(span<char const> buffer, from_span_t)
 	{
 		error_code ec;
-		bdecode_node e;
-		if (bdecode(buffer, buffer + size, e, ec) != 0)
-			aux::throw_ex<system_error>(ec);
+		bdecode_node e = bdecode(buffer, ec);
+		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec, flags))
+		if (!parse_torrent_file(e, ec))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
 	}
 
-	torrent_info::torrent_info(std::string const& filename
-		, int const flags)
+	torrent_info::torrent_info(std::string const& filename)
 	{
 		std::vector<char> buf;
 		error_code ec;
 		int ret = load_file(filename, buf, ec);
 		if (ret < 0) aux::throw_ex<system_error>(ec);
 
-		bdecode_node e;
-		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
-			aux::throw_ex<system_error>(ec);
+		bdecode_node e = bdecode(buf, ec);
+		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec, flags))
+		if (!parse_torrent_file(e, ec))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	torrent_info::torrent_info(std::wstring const& filename
-		, int const flags)
+	torrent_info::torrent_info(std::wstring const& filename)
 	{
 		std::vector<char> buf;
 		error_code ec;
 		int ret = load_file(wchar_utf8(filename), buf, ec);
 		if (ret < 0) aux::throw_ex<system_error>(ec);
 
-		bdecode_node e;
-		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
-			aux::throw_ex<system_error>(ec);
+		bdecode_node e = bdecode(buf, ec);
+		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec, flags))
+		if (!parse_torrent_file(e, ec))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -851,55 +842,46 @@ namespace libtorrent {
 #endif
 
 	torrent_info::torrent_info(bdecode_node const& torrent_file
-		, error_code& ec
-		, int const flags)
+		, error_code& ec)
 	{
-		parse_torrent_file(torrent_file, ec, flags);
+		parse_torrent_file(torrent_file, ec);
+		INVARIANT_CHECK;
+	}
+
+	torrent_info::torrent_info(span<char const> buffer
+		, error_code& ec, from_span_t)
+	{
+		bdecode_node e = bdecode(buffer, ec);
+		if (ec) return;
+		parse_torrent_file(e, ec);
 
 		INVARIANT_CHECK;
 	}
 
-	torrent_info::torrent_info(char const* buffer
-		, int const size
-		, error_code& ec
-		, int const flags)
-	{
-		bdecode_node e;
-		if (bdecode(buffer, buffer + size, e, ec) != 0)
-			return;
-		parse_torrent_file(e, ec, flags);
-
-		INVARIANT_CHECK;
-	}
-
-	torrent_info::torrent_info(std::string const& filename, error_code& ec
-		, int const flags)
+	torrent_info::torrent_info(std::string const& filename, error_code& ec)
 	{
 		std::vector<char> buf;
 		int ret = load_file(filename, buf, ec);
 		if (ret < 0) return;
 
-		bdecode_node e;
-		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
-			return;
-		parse_torrent_file(e, ec, flags);
+		bdecode_node e = bdecode(buf, ec);
+		if (ec) return;
+		parse_torrent_file(e, ec);
 
 		INVARIANT_CHECK;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
 	torrent_info::torrent_info(std::wstring const& filename
-		, error_code& ec
-		, int const flags)
+		, error_code& ec)
 	{
 		std::vector<char> buf;
 		int ret = load_file(wchar_utf8(filename), buf, ec);
 		if (ret < 0) return;
 
-		bdecode_node e;
-		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
-			return;
-		parse_torrent_file(e, ec, flags);
+		bdecode_node e = bdecode(buf, ec);
+		if (ec) return;
+		parse_torrent_file(e, ec);
 
 		INVARIANT_CHECK;
 	}
@@ -909,11 +891,9 @@ namespace libtorrent {
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
 	// used for torrents with no metadata
-	torrent_info::torrent_info(sha1_hash const& info_hash, int const flags)
+	torrent_info::torrent_info(sha1_hash const& info_hash)
 		: m_info_hash(info_hash)
-	{
-		TORRENT_UNUSED(flags);
-	}
+	{}
 
 	torrent_info::~torrent_info() = default;
 
@@ -971,9 +951,8 @@ namespace libtorrent {
 	}
 
 	bool torrent_info::parse_info_section(bdecode_node const& info
-		, error_code& ec, int const flags)
+		, error_code& ec)
 	{
-		TORRENT_UNUSED(flags);
 		if (info.type() != bdecode_node::dict_t)
 		{
 			ec = errors::torrent_info_no_dict;
@@ -1242,7 +1221,7 @@ namespace libtorrent {
 	}
 
 	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file
-		, error_code& ec, int const flags)
+		, error_code& ec)
 	{
 		if (torrent_file.type() != bdecode_node::dict_t)
 		{
@@ -1273,7 +1252,7 @@ namespace libtorrent {
 			ec = errors::torrent_missing_info;
 			return false;
 		}
-		if (!parse_info_section(info, ec, flags)) return false;
+		if (!parse_info_section(info, ec)) return false;
 		resolve_duplicate_filenames();
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -1490,8 +1469,7 @@ namespace {
 			, filter_web_seed_type(web_seed_entry::http_seed)).urls;
 	}
 
-	bool torrent_info::parse_info_section(lazy_entry const& le, error_code& ec
-		, int flags)
+	bool torrent_info::parse_info_section(lazy_entry const& le, error_code& ec)
 	{
 		if (le.type() == lazy_entry::none_t) return false;
 		std::pair<char const*, int> buf = le.data_section();
@@ -1499,7 +1477,7 @@ namespace {
 		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
 			return false;
 
-		return parse_info_section(e, ec, flags);
+		return parse_info_section(e, ec);
 	}
 
 #endif // TORRENT_NO_DEPRECATE

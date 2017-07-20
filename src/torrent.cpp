@@ -6646,7 +6646,7 @@ namespace libtorrent {
 		bdecode_node metadata;
 		error_code ec;
 		int ret = bdecode(metadata_buf.begin(), metadata_buf.end(), metadata, ec);
-		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec, 0))
+		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec))
 		{
 			update_gauge();
 			// this means the metadata is correct, since we

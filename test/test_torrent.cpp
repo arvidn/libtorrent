@@ -172,7 +172,7 @@ TORRENT_TEST(long_names)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
 	error_code ec;
-	auto ti = std::make_shared<torrent_info>(&buf[0], int(buf.size()), std::ref(ec));
+	auto ti = std::make_shared<torrent_info>(buf, std::ref(ec), from_span);
 	TEST_CHECK(!ec);
 }
 
@@ -190,7 +190,7 @@ TORRENT_TEST(total_wanted)
 	bencode(std::back_inserter(tmp), t.generate());
 	error_code ec;
 	auto info = std::make_shared<torrent_info>(
-		&tmp[0], int(tmp.size()), std::ref(ec));
+		tmp, std::ref(ec), from_span);
 
 	settings_pack pack = settings();
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
@@ -228,7 +228,7 @@ TORRENT_TEST(added_peers)
 	bencode(std::back_inserter(tmp), t.generate());
 	error_code ec;
 	auto info = std::make_shared<torrent_info>(
-		&tmp[0], int(tmp.size()), std::ref(ec));
+		tmp, std::ref(ec), from_span);
 
 	settings_pack pack = settings();
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
@@ -282,7 +282,7 @@ TORRENT_TEST(torrent)
 		std::back_insert_iterator<std::vector<char>> out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
-		auto info = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
+		auto info = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
 		TEST_CHECK(info->num_pieces() > 0);
 
 		test_running_torrent(info, file_size);
@@ -308,7 +308,7 @@ TORRENT_TEST(torrent)
 		std::back_insert_iterator<std::vector<char>> out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
-		auto info = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
+		auto info = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
 		test_running_torrent(info, 1024);
 	}
 }
@@ -356,7 +356,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	plugin_creator creator(called);
 
 	add_torrent_params p;
-	p.ti = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
+	p.ti = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
 	p.flags &= ~torrent_flags::duplicate_is_error;
@@ -410,7 +410,7 @@ TORRENT_TEST(rename_file)
 	std::back_insert_iterator<std::vector<char>> out(tmp);
 	bencode(out, t.generate());
 	error_code ec;
-	auto info = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
+	auto info = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
 
 	TEST_EQUAL(info->files().file_path(file_index_t(0)), combine_path("test3","tmp1"));
 
@@ -473,7 +473,7 @@ void test_queue(add_torrent_params p)
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());
-		auto ti = std::make_shared<torrent_info>(buf.data(), int(buf.size()));
+		auto ti = std::make_shared<torrent_info>(buf, from_span);
 		add_torrent_params p;
 		p.ti = ti;
 		p.save_path = ".";

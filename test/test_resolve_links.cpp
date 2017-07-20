@@ -157,9 +157,8 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	std::vector<char> tmp2;
 	bencode(std::back_inserter(tmp1), t1.generate());
 	bencode(std::back_inserter(tmp2), t2.generate());
-	error_code ec;
-	auto ti1 = std::make_shared<torrent_info>(&tmp1[0], int(tmp1.size()), ec);
-	auto ti2 = std::make_shared<torrent_info>(&tmp2[0], int(tmp2.size()), ec);
+	auto ti1 = std::make_shared<torrent_info>(tmp1, from_span);
+	auto ti2 = std::make_shared<torrent_info>(tmp2, from_span);
 
 	std::printf("resolving\n");
 	resolve_links l(ti1);

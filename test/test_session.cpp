@@ -196,7 +196,7 @@ TORRENT_TEST(load_empty_file)
 
 	add_torrent_params atp;
 	error_code ignore_errors;
-	atp.ti = std::make_shared<torrent_info>("", 0, std::ref(ignore_errors));
+	atp.ti = std::make_shared<torrent_info>("", std::ref(ignore_errors), from_span);
 	atp.save_path = ".";
 	error_code ec;
 	torrent_handle h = ses.add_torrent(std::move(atp), ec);

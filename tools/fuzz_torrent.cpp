@@ -389,7 +389,7 @@ int main(int argc, char const* argv[])
 			render_variant(test_buffer, e);
 
 			lt::error_code ec;
-			lt::torrent_info t(test_buffer.c_str(), int(test_buffer.size()), ec);
+			lt::torrent_info t(test_buffer, ec, lt::from_span);
 
 			// TODO: add option to save to file unconditionally (to test other clients)
 			/*
@@ -406,7 +406,7 @@ int main(int argc, char const* argv[])
 				fwrite(test_buffer.c_str(), test_buffer.size(), 1, f);
 				fclose(f);
 				}
-			 */
+			*/
 			if (g_seed > 0) break;
 		}
 		std::fprintf(stderr, "tested %d variants of %s\n", i, *argv);

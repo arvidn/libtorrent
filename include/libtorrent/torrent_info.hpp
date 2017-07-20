@@ -110,6 +110,12 @@ namespace libtorrent {
 		std::uint8_t type;
 	};
 
+	// hidden
+	class from_span_t {};
+
+	// used to disambiguate a bencoded buffer and a filename
+	extern TORRENT_EXPORT from_span_t from_span;
+
 	// TODO: there may be some opportunities to optimize the size if torrent_info.
 	// specifically to turn some std::string and std::vector into pointers
 	class TORRENT_EXPORT torrent_info
@@ -146,30 +152,50 @@ namespace libtorrent {
 		// an error occurs. These overloads are not available when building
 		// without exception support.
 		//
-		// The ``flags`` argument is currently unused.
+		// The overload that takes a ``span`` also needs an extra parameter of
+		// type ``from_span_t`` to disambiguate the ``std::string`` overload for
+		// string literals. There is an object in the libtorrent namespace of this
+		// type called ``from_span``.
 #ifndef BOOST_NO_EXCEPTIONS
-		explicit torrent_info(bdecode_node const& torrent_file, int flags = 0);
-		explicit torrent_info(char const* buffer, int size, int flags = 0);
-		explicit torrent_info(std::string const& filename, int flags = 0);
+		explicit torrent_info(bdecode_node const& torrent_file);
+		torrent_info(char const* buffer, int size)
+			: torrent_info(span<char const>{buffer, std::size_t(size)}, from_span) {}
+		explicit torrent_info(span<char const> buffer, from_span_t);
+		explicit torrent_info(std::string const& filename);
 #endif // BOOST_NO_EXCEPTIONS
 		explicit torrent_info(torrent_info const& t);
-		explicit torrent_info(sha1_hash const& info_hash, int flags = 0);
-		torrent_info(bdecode_node const& torrent_file, error_code& ec, int flags = 0);
-		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
-		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
+		explicit torrent_info(sha1_hash const& info_hash);
+		torrent_info(bdecode_node const& torrent_file, error_code& ec);
+		torrent_info(char const* buffer, int size, error_code& ec)
+			: torrent_info(span<char const>{buffer, std::size_t(size)}, ec, from_span) {}
+		torrent_info(span<char const> buffer, error_code& ec, from_span_t);
+		torrent_info(std::string const& filename, error_code& ec);
+
 #ifndef TORRENT_NO_DEPRECATE
+#ifndef BOOST_NO_EXCEPTIONS
 		TORRENT_DEPRECATED
-		explicit torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		torrent_info(char const* buffer, int size, int)
+			: torrent_info(span<char const>{buffer, std::size_t(size)}, from_span) {}
+#endif
 		TORRENT_DEPRECATED
-		torrent_info(lazy_entry const& torrent_file, error_code& ec
-			, int flags = 0);
+		torrent_info(bdecode_node const& torrent_file, error_code& ec, int)
+			: torrent_info(torrent_file, ec) {}
+		TORRENT_DEPRECATED
+		torrent_info(std::string const& filename, error_code& ec, int)
+			: torrent_info(filename, ec) {}
+		TORRENT_DEPRECATED
+		torrent_info(char const* buffer, int size, error_code& ec, int)
+			: torrent_info(span<char const>{buffer, std::size_t(size)}, ec, from_span) {}
+		TORRENT_DEPRECATED
+		explicit torrent_info(lazy_entry const& torrent_file);
+		TORRENT_DEPRECATED
+		torrent_info(lazy_entry const& torrent_file, error_code& eca);
 		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
 		// -> utf8 conversion functions and pass in utf8 strings
 		TORRENT_DEPRECATED
-		torrent_info(std::wstring const& filename, error_code& ec
-			, int flags = 0);
+		torrent_info(std::wstring const& filename, error_code& ec);
 		TORRENT_DEPRECATED
-		explicit torrent_info(std::wstring const& filename, int flags = 0);
+		explicit torrent_info(std::wstring const& filename);
 #endif // TORRENT_NO_DEPRECATE
 
 		// frees all storage associated with this torrent_info object
@@ -264,8 +290,7 @@ namespace libtorrent {
 
 		// deprecated in 1.1
 		TORRENT_DEPRECATED
-		bool parse_info_section(lazy_entry const& e, error_code& ec
-			, int flags);
+		bool parse_info_section(lazy_entry const& e, error_code& ec);
 #endif // TORRENT_NO_DEPRECATE
 
 		// ``web_seeds()`` returns all url seeds and http seeds in the torrent.
@@ -496,9 +521,8 @@ namespace libtorrent {
 		// This is used when loading a torrent from a magnet link for instance,
 		// where we only have the info-dict. The bdecode_node ``e`` points to a
 		// parsed info-dictionary. ``ec`` returns an error code if something
-		// fails (typically if the info dictionary is malformed). ``flags`` are
-		// currently unused.
-		bool parse_info_section(bdecode_node const& e, error_code& ec, int flags);
+		// fails (typically if the info dictionary is malformed).
+		bool parse_info_section(bdecode_node const& e, error_code& ec);
 
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
@@ -525,7 +549,7 @@ namespace libtorrent {
 		// __ http://bittorrent.org/beps/bep_0030.html
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
-		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec, int flags);
+		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec);
 
 		// if we're logging member offsets, we need access to them
 	private:

@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 	error_code ec;
 	add_torrent_params p;
 	p.save_path = "./";
-	p.ti = std::make_shared<torrent_info>(std::string(argv[1]), std::ref(ec), 0);
+	p.ti = std::make_shared<torrent_info>(std::string(argv[1]), std::ref(ec));
 	if (ec)
 	{
 		std::fprintf(stderr, "%s\n", ec.message().c_str());

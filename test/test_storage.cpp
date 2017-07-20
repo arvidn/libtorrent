@@ -139,8 +139,7 @@ std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
 	bencode(std::back_inserter(buf), t.generate());
 	error_code ec;
 
-	auto info = std::make_shared<torrent_info>(&buf[0]
-		, int(buf.size()), std::ref(ec), 0);
+	auto info = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	if (ec)
 	{
@@ -464,7 +463,7 @@ void test_check_files(std::string const& test_path
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	info = std::make_shared<torrent_info>(&buf[0], int(buf.size()), std::ref(ec), 0);
+	info = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	aux::session_settings set;
 	file_pool fp;
@@ -549,7 +548,7 @@ void run_test(bool unbuffered)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	info = std::make_shared<torrent_info>(&buf[0], int(buf.size()), std::ref(ec), 0);
+	info = std::make_shared<torrent_info>(buf, from_span);
 	std::cout << "=== test 1 === " << (unbuffered?"unbuffered":"buffered") << std::endl;
 
 	// run_storage_tests writes piece 0, 1 and 2. not 3
@@ -593,7 +592,7 @@ void run_test(bool unbuffered)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	info = std::make_shared<torrent_info>(&buf[0], int(buf.size()), std::ref(ec), 0);
+	info = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	std::cout << "=== test 3 ===" << std::endl;
 

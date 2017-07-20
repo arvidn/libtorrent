@@ -637,8 +637,7 @@ std::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), ct.generate());
-	error_code ec;
-	return std::make_shared<torrent_info>(&buf[0], int(buf.size()), ec);
+	return std::make_shared<torrent_info>(buf, from_span);
 }
 
 void create_random_files(std::string const& path, const int file_sizes[], int num_files)
@@ -735,8 +734,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 
 	bencode(out, tor);
 	error_code ec;
-	return std::make_shared<torrent_info>(
-		&tmp[0], int(tmp.size()), std::ref(ec), 0);
+	return std::make_shared<torrent_info>(tmp, ec, from_span);
 }
 
 std::tuple<torrent_handle, torrent_handle, torrent_handle>

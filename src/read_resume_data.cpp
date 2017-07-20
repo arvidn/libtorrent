@@ -105,7 +105,7 @@ namespace {
 				ret.ti = std::make_shared<torrent_info>(resume_ih);
 
 				error_code err;
-				if (!ret.ti->parse_info_section(info, err, 0))
+				if (!ret.ti->parse_info_section(info, err))
 				{
 					ec = err;
 				}
