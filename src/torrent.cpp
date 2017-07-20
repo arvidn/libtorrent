@@ -2039,7 +2039,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			if (status != status_t::no_error)
+			if (status != status_t::no_error || error)
 			{
 				debug_log("fastresume data rejected: ret: %d (%d) %s"
 					, static_cast<int>(status), error.ec.value(), error.ec.message().c_str());
@@ -2159,6 +2159,7 @@ namespace libtorrent {
 			files_checked();
 		}
 
+		// this will remove the piece picker, if we're done with it
 		maybe_done_flushing();
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_add_torrent_params.reset();
@@ -6162,11 +6163,12 @@ namespace libtorrent {
 			: m_files_checked ? m_torrent_file->end_piece()
 			: piece_index_t(0);
 
+		TORRENT_ASSERT(ret.have_pieces.size() == 0);
 		if (max_piece > piece_index_t(0))
 		{
 			if (is_seed())
 			{
-				ret.have_pieces.resize(static_cast<int>(max_piece), m_have_all);
+				ret.have_pieces.resize(static_cast<int>(max_piece), true);
 			}
 			else if (has_picker())
 			{
@@ -7326,18 +7328,20 @@ namespace libtorrent {
 	{
 		if (!has_picker()) return;
 
-		// when we're suggesting read cache pieces, we
-		// still need the piece picker, to keep track
-		// of availability counts for pieces
-		if (m_picker->is_seeding()
-			&& settings().get_int(settings_pack::suggest_mode)
-				!= settings_pack::suggest_read_cache)
+		if (m_picker->is_seeding())
 		{
 			// no need for the piece picker anymore
-			m_picker.reset();
+			// when we're suggesting read cache pieces, we
+			// still need the piece picker, to keep track
+			// of availability counts for pieces
+			if (settings().get_int(settings_pack::suggest_mode)
+				!= settings_pack::suggest_read_cache)
+			{
+				m_picker.reset();
+				m_file_progress.clear();
+			}
 			m_have_all = true;
 			update_gauge();
-			m_file_progress.clear();
 		}
 	}
 

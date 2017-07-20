@@ -40,11 +40,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
+#include "setup_transfer.hpp"
 
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
+
+#include <fstream>
 
 using namespace lt;
 
@@ -280,6 +283,126 @@ TORRENT_TEST(piece_priorities)
 	test_piece_priorities();
 }
 
+TORRENT_TEST(piece_slots)
+{
+	// make sure the "pieces" field is correctly accepted from resume data
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+
+	error_code ec;
+	create_directories(combine_path("add_torrent_params_test", "test_resume"), ec);
+	{
+		std::vector<char> a(128 * 1024 * 8);
+		std::vector<char> b(128 * 1024);
+		std::ofstream("add_torrent_params_test/test_resume/tmp1").write(a.data(), a.size());
+		std::ofstream("add_torrent_params_test/test_resume/tmp2").write(b.data(), b.size());
+		std::ofstream("add_torrent_params_test/test_resume/tmp3").write(b.data(), b.size());
+	}
+
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = "add_torrent_params_test";
+
+	p.have_pieces.resize(2);
+	p.have_pieces.set_bit(piece_index_t{0});
+	p.have_pieces.set_bit(piece_index_t{1});
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(p);
+
+	wait_for_alert(ses, torrent_checked_alert::alert_type, "piece_slots");
+
+	torrent_status s = h.status();
+	print_alerts(ses, "ses");
+	TEST_EQUAL(s.info_hash, ti->info_hash());
+	TEST_EQUAL(s.pieces.size(), ti->num_pieces());
+	TEST_CHECK(s.pieces.size() >= 4);
+	TEST_EQUAL(s.pieces[piece_index_t{0}], true);
+	TEST_EQUAL(s.pieces[piece_index_t{1}], true);
+	TEST_EQUAL(s.pieces[piece_index_t{2}], false);
+	TEST_EQUAL(s.pieces[piece_index_t{3}], false);
+
+	// now save resume data and make sure the pieces are preserved correctly
+	h.save_resume_data();
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
+	{
+		auto const& pieces = ra->params.have_pieces;
+		TEST_EQUAL(int(pieces.size()), ti->num_pieces());
+
+		TEST_EQUAL(pieces[piece_index_t{0}], true);
+		TEST_EQUAL(pieces[piece_index_t{1}], true);
+		TEST_EQUAL(pieces[piece_index_t{2}], false);
+		TEST_EQUAL(pieces[piece_index_t{3}], false);
+	}
+}
+
+void test_piece_slots_seed(settings_pack const& sett)
+{
+	// make sure the "pieces" field is correctly accepted from resume data
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+
+	error_code ec;
+	create_directories(combine_path("add_torrent_params_test", "test_resume"), ec);
+	{
+		std::vector<char> a(128 * 1024 * 8);
+		std::vector<char> b(128 * 1024);
+		std::ofstream("add_torrent_params_test/test_resume/tmp1").write(a.data(), a.size());
+		std::ofstream("add_torrent_params_test/test_resume/tmp2").write(b.data(), b.size());
+		std::ofstream("add_torrent_params_test/test_resume/tmp3").write(b.data(), b.size());
+	}
+
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = "add_torrent_params_test";
+
+	p.have_pieces.resize(ti->num_pieces(), true);
+
+	lt::session ses(sett);
+	torrent_handle h = ses.add_torrent(p);
+
+	wait_for_alert(ses, torrent_checked_alert::alert_type, "piece_slots");
+
+	torrent_status s = h.status();
+	print_alerts(ses, "ses");
+	TEST_EQUAL(s.info_hash, ti->info_hash());
+	TEST_EQUAL(s.pieces.size(), ti->num_pieces());
+	for (piece_index_t i{0}; i != ti->end_piece(); ++i)
+		TEST_EQUAL(s.pieces[i], true);
+
+	TEST_EQUAL(s.is_seeding, true);
+
+	// now save resume data and make sure it reflects that we're a seed
+	h.save_resume_data();
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
+	{
+		auto const& pieces = ra->params.have_pieces;
+		TEST_EQUAL(int(pieces.size()), ti->num_pieces());
+
+		for (piece_index_t i{0}; i != ti->end_piece(); ++i)
+			TEST_EQUAL(pieces[i], true);
+	}
+}
+
+TORRENT_TEST(piece_slots_seed)
+{
+	test_piece_slots_seed(settings());
+}
+
+TORRENT_TEST(piece_slots_seed_suggest_cache)
+{
+	settings_pack sett = settings();
+	sett.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+	test_piece_slots_seed(sett);
+}
 
 // TODO: test what happens when loading a resume file with both piece priorities
 // and file priorities (file prio should take presedence)
