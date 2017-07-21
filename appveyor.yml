@@ -26,8 +26,6 @@ environment:
     compiler: gcc
     model: 32
     crypto: openssl
-    linkflags: 'linkflags="-LC:\\OpenSSL-Win32\\lib"'
-    include: 'include="c:\\OpenSSL-Win32\\include"'
 
 install:
 - if defined sim ( git submodule update --init --recursive )

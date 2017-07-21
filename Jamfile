@@ -68,6 +68,8 @@ rule linking ( properties * )
 			# system starting with OpenSSL 1.1
 			result += <library>crypto <library>ssl ;
 		}
+		# boost.asio use the pre-1.1 OpenSSL API
+		result += <define>OPENSSL_API_COMPAT=0x10000000L ;
 	}
 
 	if <crypto>libcrypto in $(properties)
