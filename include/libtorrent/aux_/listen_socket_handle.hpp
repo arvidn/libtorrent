@@ -64,6 +64,8 @@ namespace libtorrent { namespace aux {
 			: m_sock(s)
 		{}
 
+		listen_socket_handle(listen_socket_handle const& o) = default;
+
 		explicit operator bool() const { return !m_sock.expired(); }
 
 		address get_external_address() const;

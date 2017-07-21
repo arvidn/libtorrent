@@ -1227,7 +1227,7 @@ namespace {
 				req.listen_port = listen_port(ls.get());
 #ifdef TORRENT_USE_OPENSSL
 				// SSL torrents use the SSL listen port
-				if (use_ssl) req.listen_port = ssl_listen_port(&ls);
+				if (use_ssl) req.listen_port = ssl_listen_port(ls.get());
 #endif
 				req.outgoing_socket = listen_socket_handle(ls);
 				m_tracker_manager.queue_request(get_io_service(), req, c);
