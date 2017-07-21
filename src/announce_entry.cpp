@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for is_space
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/aux_/session_listen_socket.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 namespace libtorrent {
 
@@ -47,8 +47,8 @@ namespace libtorrent {
 		minutes32 constexpr tracker_retry_delay_max{60};
 	}
 
-	announce_endpoint::announce_endpoint(aux::session_listen_socket* s)
-		: local_endpoint(s ? s->get_local_endpoint() : tcp::endpoint())
+	announce_endpoint::announce_endpoint(aux::listen_socket_handle const& s)
+		: local_endpoint(s ? s.get_local_endpoint() : tcp::endpoint())
 		, socket(s)
 		, fails(0)
 		, updating(false)
@@ -143,7 +143,7 @@ namespace libtorrent {
 	}
 #endif
 
-	announce_endpoint* announce_entry::find_endpoint(aux::session_listen_socket* s)
+	announce_endpoint* announce_entry::find_endpoint(aux::listen_socket_handle const& s)
 	{
 		auto aep = std::find_if(endpoints.begin(), endpoints.end()
 			, [&](announce_endpoint const& a) { return a.socket == s; });

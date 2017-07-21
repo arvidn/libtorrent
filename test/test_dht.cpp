@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/time.hpp"
-#include "libtorrent/aux_/session_listen_socket.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -114,7 +114,7 @@ std::list<std::pair<udp::endpoint, entry>> g_sent_packets;
 struct mock_socket final : socket_manager
 {
 	bool has_quota() override { return true; }
-	bool send_packet(aux::session_listen_socket* s, entry& msg, udp::endpoint const& ep) override
+	bool send_packet(aux::listen_socket_handle const& s, entry& msg, udp::endpoint const& ep) override
 	{
 		// TODO: 3 ideally the mock_socket would contain this queue of packets, to
 		// make tests independent
@@ -123,31 +123,30 @@ struct mock_socket final : socket_manager
 	}
 };
 
-struct mock_dht_socket final : aux::session_listen_socket
+std::shared_ptr<aux::listen_socket_base> dummy_listen_socket(udp::endpoint src)
 {
-	mock_dht_socket() : m_external_address(addr4("236.0.0.1")), m_local_endpoint(addr4("192.168.4.1"), 6881) {}
-	explicit mock_dht_socket(address ep) : m_external_address(ep), m_local_endpoint(ep, 6881) {}
+	auto ret = std::make_shared<aux::listen_socket_base>();
+	ret->local_endpoint = tcp::endpoint(src.address(), src.port());
+	ret->external_address.cast_vote(src.address(), 1, rand_v4());
+	return ret;
+}
 
-	address get_external_address() override { return m_external_address; }
-	tcp::endpoint get_local_endpoint() override { return m_local_endpoint; }
-
-	bool is_ssl() override { return false; }
-
-	address m_external_address;
-	tcp::endpoint m_local_endpoint;
-};
+std::shared_ptr<aux::listen_socket_base> dummy_listen_socket4()
+{
+	auto ret = std::make_shared<aux::listen_socket_base>();
+	ret->local_endpoint = tcp::endpoint(addr4("192.168.4.1"), 6881);
+	ret->external_address.cast_vote(addr4("236.0.0.1"), 1, rand_v4());
+	return ret;
+}
 
 #if TORRENT_USE_IPV6
-struct mock_dht_socket6 final : aux::session_listen_socket
+std::shared_ptr<aux::listen_socket_base> dummy_listen_socket6()
 {
-	address get_external_address() override { return m_external_address; }
-	tcp::endpoint get_local_endpoint() override { return m_local_endpoint; }
-
-	bool is_ssl() override { return false; }
-
-	address m_external_address = addr6("2002::1");
-	tcp::endpoint m_local_endpoint = tcp::endpoint(addr6("2002::1"), 6881);
-};
+	auto ret = std::make_shared<aux::listen_socket_base>();
+	ret->local_endpoint = tcp::endpoint(addr6("2002::1"), 6881);
+	ret->external_address.cast_vote(addr6("2002::1"), 1, rand_v6());
+	return ret;
+}
 #endif
 
 node* get_foreign_node_stub(node_id const&, std::string const&)
@@ -516,10 +515,10 @@ void put_immutable_item_cb(int num, int expect)
 
 struct obs : dht::dht_observer
 {
-	void set_external_address(aux::session_listen_socket* s, address const& addr
+	void set_external_address(aux::listen_socket_handle const& s, address const& addr
 		, address const& source) override
 	{
-		static_cast<mock_dht_socket*>(s)->m_external_address = addr;
+		s.impl()->external_address.cast_vote(addr, 1, rand_v4());
 	}
 
 	void get_peers(sha1_hash const& ih) override {}
@@ -562,10 +561,10 @@ struct dht_test_setup
 {
 	explicit dht_test_setup(udp::endpoint src)
 		: sett(test_settings())
-		, ds(src.address())
+		, ls(dummy_listen_socket(src))
 		, dht_storage(dht_default_storage_constructor(sett))
 		, source(src)
-		, dht_node(&ds, &s, sett
+		, dht_node(ls, &s, sett
 			, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage)
 	{
 		dht_storage->update_node_ids({node_id::min()});
@@ -573,7 +572,7 @@ struct dht_test_setup
 
 	dht_settings sett;
 	mock_socket s;
-	mock_dht_socket ds;
+	std::shared_ptr<aux::listen_socket_base> ls;
 	obs observer;
 	counters cnt;
 	std::unique_ptr<dht_storage_interface> dht_storage;
@@ -2630,8 +2629,8 @@ TORRENT_TEST(dht_dual_stack)
 	// TODO: 3 use dht_test_setup class to simplify the node setup
 	dht_settings sett = test_settings();
 	mock_socket s;
-	mock_dht_socket sock4;
-	mock_dht_socket6 sock6;
+	auto sock4 = dummy_listen_socket4();
+	auto sock6 = dummy_listen_socket6();
 	obs observer;
 	counters cnt;
 	node* node4p = nullptr, *node6p = nullptr;
@@ -2644,8 +2643,8 @@ TORRENT_TEST(dht_dual_stack)
 	};
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
-	dht::node node4(&sock4, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
-	dht::node node6(&sock6, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
+	dht::node node4(sock4, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
+	dht::node node6(sock6, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
 	node4p = &node4;
 	node6p = &node6;
 
@@ -3113,7 +3112,9 @@ TORRENT_TEST(node_set_id)
 {
 	dht_test_setup t(udp::endpoint(rand_v4(), 20));
 	node_id old_nid = t.dht_node.nid();
-	t.observer.set_external_address(&t.ds, addr4("237.0.0.1"), rand_v4());
+	// put in a few votes to make sure the address really changes
+	for (int i = 0; i < 25; ++i)
+		t.observer.set_external_address(aux::listen_socket_handle(t.ls), addr4("237.0.0.1"), rand_v4());
 	t.dht_node.update_node_id();
 	TEST_CHECK(old_nid != t.dht_node.nid());
 	// now that we've changed the node's id,  make sure the id sent in outgoing messages
@@ -3142,13 +3143,13 @@ TORRENT_TEST(read_only_node)
 	dht_settings sett = test_settings();
 	sett.read_only = true;
 	mock_socket s;
-	mock_dht_socket ds;
+	auto ls = dummy_listen_socket4();
 	obs observer;
 	counters cnt;
 
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
-	dht::node node(&ds, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
+	dht::node node(ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 	udp::endpoint source(addr("10.0.0.1"), 20);
 	bdecode_node response;
 	msg_args args;
@@ -3231,13 +3232,13 @@ TORRENT_TEST(invalid_error_msg)
 	// TODO: 3 use dht_test_setup class to simplify the node setup
 	dht_settings sett = test_settings();
 	mock_socket s;
-	mock_dht_socket ds;
+	auto ls = dummy_listen_socket4();
 	obs observer;
 	counters cnt;
 
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
-	dht::node node(&ds, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
+	dht::node node(ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 	udp::endpoint source(addr("10.0.0.1"), 20);
 
 	entry e;
@@ -3319,15 +3320,15 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	// TODO: 3 use dht_test_setup class to simplify the node setup
 	dht_settings sett = test_settings();
 	mock_socket s;
-	mock_dht_socket ds;
+	auto ls = dummy_listen_socket4();
 	obs observer;
 	counters cnt;
 
 	dht::routing_table table(node_id(), udp::v4(), 8, sett, &observer);
-	dht::rpc_manager rpc(node_id(), sett, table, &ds, &s, &observer);
+	dht::rpc_manager rpc(node_id(), sett, table, ls, &s, &observer);
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
-	dht::node node(&ds, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
+	dht::node node(ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 
 	udp::endpoint source(addr("10.0.0.1"), 20);
 

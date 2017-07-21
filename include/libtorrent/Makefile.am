@@ -174,12 +174,12 @@ nobase_include_HEADERS = \
   aux_/deque.hpp                    \
   aux_/escape_string.hpp            \
   aux_/io.hpp                       \
+  aux_/listen_socket_handle.hpp     \
   aux_/max_path.hpp                 \
   aux_/path.hpp                     \
   aux_/merkle.hpp                   \
   aux_/session_call.hpp             \
   aux_/session_impl.hpp             \
-  aux_/session_listen_socket.hpp    \
   aux_/session_settings.hpp         \
   aux_/session_udp_sockets.hpp      \
   aux_/proxy_settings.hpp           \

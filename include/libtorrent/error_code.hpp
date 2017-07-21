@@ -323,6 +323,8 @@ namespace libtorrent {
 			banned_by_port_filter,
 			// The session_handle is not referring to a valid session_impl
 			invalid_session_handle,
+			// the listen socket associated with this request was closed
+			invalid_listen_socket,
 
 
 			// The NAT-PMP router responded with an unsupported protocol version

@@ -68,7 +68,7 @@ namespace libtorrent {
 			if (attr.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
 			return 0;
 #else
-			struct stat s;
+			struct ::stat s;
 			if (::lstat(convert_to_native(p).c_str(), &s) < 0) return 0;
 			std::uint32_t file_attr = 0;
 			if (s.st_mode & S_IXUSR)

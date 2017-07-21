@@ -38,14 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 #include <string>
 #include <cstdint>
 #include <vector>
 
 namespace libtorrent {
-
-	namespace aux { struct session_listen_socket; }
 
 	// announces are sent to each tracker using every listen socket
 	// this class holds information about one listen socket for one tracker
@@ -55,7 +54,7 @@ namespace libtorrent {
 		friend struct announce_entry;
 
 		// internal
-		explicit announce_endpoint(aux::session_listen_socket* s);
+		explicit announce_endpoint(aux::listen_socket_handle const& s);
 
 		// if this tracker has returned an error or warning message
 		// that message is stored here
@@ -76,7 +75,7 @@ namespace libtorrent {
 
 	private:
 		// internal
-		aux::session_listen_socket* socket;
+		aux::listen_socket_handle socket;
 
 	public:
 		// TODO: include the number of peers received from this tracker, at last
@@ -227,7 +226,7 @@ namespace libtorrent {
 #endif
 
 		// internal
-		announce_endpoint* find_endpoint(aux::session_listen_socket* s);
+		announce_endpoint* find_endpoint(aux::listen_socket_handle const& s);
 
 		// trims whitespace characters from the beginning of the URL.
 		void trim();

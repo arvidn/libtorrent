@@ -48,13 +48,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/socket.hpp> // for udp::endpoint
 #include <libtorrent/string_view.hpp>
+#include <libtorrent/aux_/listen_socket_handle.hpp>
 
 namespace libtorrent {
 
 	struct counters;
 	struct dht_routing_bucket;
 	struct dht_settings;
-	namespace aux { struct session_listen_socket; }
 }
 
 namespace libtorrent { namespace dht {
@@ -79,7 +79,7 @@ public:
 struct socket_manager
 {
 	virtual bool has_quota() = 0;
-	virtual bool send_packet(aux::session_listen_socket* s, entry& e, udp::endpoint const& addr) = 0;
+	virtual bool send_packet(aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) = 0;
 protected:
 	~socket_manager() = default;
 };
@@ -90,7 +90,7 @@ using get_foreign_node_t = std::function<node*(node_id const&, std::string const
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
-	node(aux::session_listen_socket* sock, socket_manager* sock_man
+	node(aux::listen_socket_handle const& sock, socket_manager* sock_man
 		, libtorrent::dht_settings const& settings
 		, node_id const& nid
 		, dht_observer* observer, counters& cnt
@@ -266,7 +266,7 @@ private:
 	std::uint32_t m_secret[2];
 
 	socket_manager* m_sock_man;
-	aux::session_listen_socket* m_sock;
+	aux::listen_socket_handle m_sock;
 	counters& m_counters;
 
 	dht_storage_interface& m_storage;

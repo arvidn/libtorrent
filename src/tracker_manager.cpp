@@ -173,7 +173,7 @@ namespace libtorrent {
 
 	address tracker_connection::bind_interface() const
 	{
-		return m_req.outgoing_socket->get_local_endpoint().address();
+		return m_req.outgoing_socket.get_local_endpoint().address();
 	}
 
 	void tracker_connection::sent_bytes(int bytes)
@@ -375,7 +375,7 @@ namespace libtorrent {
 		return p->on_receive_hostname(hostname, buf);
 	}
 
-	void tracker_manager::send_hostname(aux::session_listen_socket* sock
+	void tracker_manager::send_hostname(aux::listen_socket_handle const& sock
 		, char const* hostname, int const port
 		, span<char const> p, error_code& ec, int const flags)
 	{
@@ -383,7 +383,7 @@ namespace libtorrent {
 		m_send_fun_hostname(sock, hostname, port, p, ec, flags);
 	}
 
-	void tracker_manager::send(aux::session_listen_socket* sock
+	void tracker_manager::send(aux::listen_socket_handle const& sock
 		, udp::endpoint const& ep
 		, span<char const> p
 		, error_code& ec, int const flags)

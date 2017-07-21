@@ -1212,7 +1212,7 @@ namespace {
 
 		if (req.outgoing_socket)
 		{
-			listen_socket_t* ls = static_cast<listen_socket_t*>(req.outgoing_socket);
+			auto ls = static_cast<listen_socket_t*>(req.outgoing_socket.impl());
 			req.listen_port = listen_port(ls);
 #ifdef TORRENT_USE_OPENSSL
 			// SSL torrents use the SSL listen port
@@ -1229,7 +1229,7 @@ namespace {
 				// SSL torrents use the SSL listen port
 				if (use_ssl) req.listen_port = ssl_listen_port(&ls);
 #endif
-				req.outgoing_socket = ls.get();
+				req.outgoing_socket = listen_socket_handle(ls);
 				m_tracker_manager.queue_request(get_io_service(), req, c);
 			}
 		}
@@ -1954,7 +1954,7 @@ namespace {
 		{
 #ifndef TORRENT_DISABLE_DHT
 			if (m_dht)
-				m_dht->delete_socket(remove_iter->get());
+				m_dht->delete_socket(listen_socket_handle(*remove_iter));
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1984,7 +1984,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_DHT
 				if (m_dht)
-					m_dht->new_socket(m_listen_sockets.back().get());
+					m_dht->new_socket(listen_socket_handle(m_listen_sockets.back()));
 #endif
 			}
 		}
@@ -5678,7 +5678,7 @@ namespace {
 		m_dht = std::make_shared<dht::dht_tracker>(
 			static_cast<dht::dht_observer*>(this)
 			, m_io_service
-			, [=](aux::session_listen_socket* sock
+			, [=](aux::listen_socket_handle const& sock
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
@@ -5690,7 +5690,7 @@ namespace {
 			, std::move(m_dht_state));
 
 		for (auto& s : m_listen_sockets)
-			m_dht->new_socket(s.get());
+			m_dht->new_socket(listen_socket_handle(s));
 
 		for (auto const& n : m_dht_router_nodes)
 		{
@@ -6704,11 +6704,13 @@ namespace {
 	}
 
 	// this is the DHT observer version. DHT is the implied source
-	void session_impl::set_external_address(aux::session_listen_socket* iface, address const& ip
+	void session_impl::set_external_address(aux::listen_socket_handle const& iface, address const& ip
 		, address const& source)
 	{
-		TORRENT_ASSERT(iface);
-		set_external_address(*static_cast<listen_socket_t*>(iface), ip, source_dht, source);
+		auto i = iface.m_sock.lock();
+		TORRENT_ASSERT(i);
+		if (!i) return;
+		set_external_address(std::static_pointer_cast<listen_socket_t>(i), ip, source_dht, source);
 	}
 
 	void session_impl::get_peers(sha1_hash const& ih)
@@ -6815,7 +6817,7 @@ namespace {
 			if (i->local_endpoint.address().is_v4() != ip.is_v4())
 				continue;
 
-			set_external_address(*i, ip, source_type, source);
+			set_external_address(i, ip, source_type, source);
 			break;
 		}
 	}
@@ -6828,10 +6830,10 @@ namespace {
 			, [&](std::shared_ptr<listen_socket_t> const& v) { return v->local_endpoint == local_endpoint; });
 
 		if (sock != m_listen_sockets.end())
-			set_external_address(**sock, ip, source_type, source);
+			set_external_address(*sock, ip, source_type, source);
 	}
 
-	void session_impl::set_external_address(listen_socket_t& sock
+	void session_impl::set_external_address(std::shared_ptr<listen_socket_t> const& sock
 		, address const& ip, int const source_type, address const& source)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -6842,7 +6844,7 @@ namespace {
 		}
 #endif
 
-		if (!sock.external_address.cast_vote(ip, source_type, source)) return;
+		if (!sock->external_address.cast_vote(ip, source_type, source)) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("  external IP updated");
@@ -6860,7 +6862,7 @@ namespace {
 		// restart the DHT with a new node ID
 
 #ifndef TORRENT_DISABLE_DHT
-		if (m_dht) m_dht->update_node_id(&sock);
+		if (m_dht) m_dht->update_node_id(listen_socket_handle(sock));
 #endif
 	}
 

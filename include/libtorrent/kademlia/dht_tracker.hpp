@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dos_blocker.hpp>
 #include <libtorrent/kademlia/dht_state.hpp>
 
-#include <libtorrent/aux_/session_listen_socket.hpp>
+#include <libtorrent/aux_/listen_socket_handle.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/deadline_timer.hpp>
 #include <libtorrent/span.hpp>
@@ -61,7 +61,7 @@ namespace libtorrent { namespace dht {
 		, std::enable_shared_from_this<dht_tracker>
 	{
 		using send_fun_t = std::function<void(
-			aux::session_listen_socket*, udp::endpoint const&
+			aux::listen_socket_handle const&, udp::endpoint const&
 			, span<char const>, error_code&, int)>;
 
 		dht_tracker(dht_observer* observer
@@ -84,10 +84,10 @@ namespace libtorrent { namespace dht {
 
 		// tell the node to recalculate its node id based on the current
 		// understanding of its external address (which may have changed)
-		void update_node_id(aux::session_listen_socket* s);
+		void update_node_id(aux::listen_socket_handle const& s);
 
-		void new_socket(aux::session_listen_socket* s);
-		void delete_socket(aux::session_listen_socket* s);
+		void new_socket(aux::listen_socket_handle const& s);
+		void delete_socket(aux::listen_socket_handle const& s);
 
 		void add_node(udp::endpoint const& node);
 		void add_router_node(udp::endpoint const& node);
@@ -147,7 +147,7 @@ namespace libtorrent { namespace dht {
 		struct tracker_node
 		{
 			tracker_node(io_service& ios
-				, aux::session_listen_socket* s, socket_manager* sock
+				, aux::listen_socket_handle const& s, socket_manager* sock
 				, libtorrent::dht_settings const& settings
 				, node_id const& nid
 				, dht_observer* observer, counters& cnt
@@ -157,12 +157,12 @@ namespace libtorrent { namespace dht {
 			node dht;
 			deadline_timer connection_timer;
 		};
-		using tracker_nodes_t = std::map<aux::session_listen_socket*, tracker_node>;
+		using tracker_nodes_t = std::map<aux::listen_socket_handle, tracker_node>;
 
 		std::shared_ptr<dht_tracker> self()
 		{ return shared_from_this(); }
 
-		void connection_timeout(aux::session_listen_socket* s, error_code const& e);
+		void connection_timeout(aux::listen_socket_handle const& s, error_code const& e);
 		void refresh_timeout(error_code const& e);
 		void refresh_key(error_code const& e);
 		void update_storage_node_ids();
@@ -170,7 +170,7 @@ namespace libtorrent { namespace dht {
 
 		// implements socket_manager
 		virtual bool has_quota() override;
-		virtual bool send_packet(aux::session_listen_socket* s, entry& e, udp::endpoint const& addr) override;
+		virtual bool send_packet(aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) override;
 
 		// this is the bdecode_node DHT messages are parsed into. It's a member
 		// in order to avoid having to deallocate and re-allocate it for every

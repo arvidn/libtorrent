@@ -134,8 +134,9 @@ namespace libtorrent {
 
 		if (i != m_endpoints.end()) m_endpoints.erase(i);
 
-		// if that was the last one, fail the whole announce
-		if (m_endpoints.empty())
+		// if that was the last one, or the listen socket was closed
+		// fail the whole announce
+		if (m_endpoints.empty() || !tracker_req().outgoing_socket)
 		{
 			tracker_connection::fail(ec, code, msg, interval, min_interval);
 			return;
@@ -194,12 +195,20 @@ namespace libtorrent {
 
 		restart_read_timeout();
 
+		if (!tracker_req().outgoing_socket)
+		{
+			fail(error_code(errors::invalid_listen_socket));
+			return;
+		}
+
+		auto bind_address = bind_interface();
+
 		// look for an address that has the same kind as the one
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.
-		bool is_v4 = bind_interface().is_v4();
+		bool is_v4 = bind_address.is_v4();
 #if TORRENT_USE_IPV6
-		auto scope = is_v4 ? 0 : bind_interface().to_v6().scope_id();
+		auto scope = is_v4 ? 0 : bind_address.to_v6().scope_id();
 #endif
 		for (auto const& addr : addresses)
 		{
