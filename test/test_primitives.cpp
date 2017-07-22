@@ -49,7 +49,7 @@ TORRENT_TEST(primitives)
 	// make sure the retry interval keeps growing
 	// on failing announces
 	announce_entry ae("dummy");
-	ae.endpoints.emplace_back(nullptr);
+	ae.endpoints.emplace_back(aux::listen_socket_handle());
 	int last = 0;
 	auto const tracker_backoff = 250;
 	for (int i = 0; i < 10; ++i)

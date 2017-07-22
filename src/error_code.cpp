@@ -169,7 +169,7 @@ namespace libtorrent {
 			"not an SSL torrent",
 			"banned by port filter",
 			"invalid session handle used",
-			"",
+			"listen socket has been closed",
 			"",
 			"",
 			"",

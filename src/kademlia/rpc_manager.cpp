@@ -151,7 +151,7 @@ using observer_storage = aux::aligned_union<1
 rpc_manager::rpc_manager(node_id const& our_id
 	, dht_settings const& settings
 	, routing_table& table
-	, aux::session_listen_socket* sock
+	, aux::listen_socket_handle const& sock
 	, socket_manager* sock_man
 	, dht_logger* log)
 	: m_pool_allocator(sizeof(observer_storage), 10)

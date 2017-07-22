@@ -48,6 +48,7 @@ set(sources
 	ip_filter
 	ip_notifier
 	ip_voter
+	listen_socket_handle
 	performance_counters
 	peer_class
 	peer_class_set

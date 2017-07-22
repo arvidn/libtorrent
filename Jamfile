@@ -604,6 +604,7 @@ SOURCES =
 	ip_filter
 	ip_notifier
 	ip_voter
+	listen_socket_handle
 	merkle
 	peer_connection
 	platform_util

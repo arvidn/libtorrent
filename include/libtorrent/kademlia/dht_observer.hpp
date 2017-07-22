@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-namespace aux { struct session_listen_socket; }
+namespace aux { struct listen_socket_handle; }
 
 namespace dht {
 
@@ -73,7 +73,7 @@ namespace dht {
 
 	struct TORRENT_EXTRA_EXPORT dht_observer : dht_logger
 	{
-		virtual void set_external_address(aux::session_listen_socket* iface
+		virtual void set_external_address(aux::listen_socket_handle const& iface
 			, address const& addr, address const& source) = 0;
 		virtual void get_peers(sha1_hash const& ih) = 0;
 		virtual void outgoing_get_peers(sha1_hash const& target

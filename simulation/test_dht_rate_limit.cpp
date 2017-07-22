@@ -34,7 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "simulator/simulator.hpp"
 
-#include "libtorrent/aux_/session_listen_socket.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
@@ -56,7 +57,7 @@ using namespace std::placeholders;
 
 struct obs : dht::dht_observer
 {
-	void set_external_address(lt::aux::session_listen_socket*, address const& /* addr */
+	void set_external_address(lt::aux::listen_socket_handle const&, address const& /* addr */
 		, address const& /* source */) override
 	{}
 	void get_peers(sha1_hash const&) override {}
@@ -84,22 +85,7 @@ struct obs : dht::dht_observer
 #endif
 };
 
-struct mock_socket : lt::aux::session_listen_socket
-{
-	address get_external_address() override
-	{
-		return get_local_endpoint().address();
-	}
-
-	tcp::endpoint get_local_endpoint() override
-	{
-		return tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
-	}
-
-	bool is_ssl() override { return false; }
-};
-
-void send_packet(lt::udp_socket& sock, lt::aux::session_listen_socket*, udp::endpoint const& ep
+void send_packet(lt::udp_socket& sock, lt::aux::listen_socket_handle const&, udp::endpoint const& ep
 	, span<char const> p, error_code& ec, int flags)
 {
 	sock.send(ep, p, ec, flags);
@@ -118,7 +104,9 @@ TORRENT_TEST(dht_rate_limit)
 	// receiver (the DHT under test)
 	lt::udp_socket sock(dht_ios);
 	obs o;
-	mock_socket ds;
+	auto ls = std::make_shared<lt::aux::listen_socket_t>();
+	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10"), 1, lt::address());
+	ls->local_endpoint = tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
 	error_code ec;
 	sock.bind(udp::endpoint(address_v4::from_string("40.30.20.10"), 8888), ec);
 	dht_settings dhtsett;
@@ -134,7 +122,7 @@ TORRENT_TEST(dht_rate_limit)
 	auto dht = std::make_shared<lt::dht::dht_tracker>(
 		&o, dht_ios, std::bind(&send_packet, std::ref(sock), _1, _2, _3, _4, _5)
 		, dhtsett, cnt, *dht_storage, state);
-	dht->new_socket(&ds);
+	dht->new_socket(ls);
 
 	bool stop = false;
 	std::function<void(error_code const&, size_t)> on_read
@@ -244,7 +232,9 @@ TORRENT_TEST(dht_delete_socket)
 	sock.bind(udp::endpoint(address_v4::from_string("40.30.20.10"), 8888), ec);
 
 	obs o;
-	mock_socket ds;
+	auto ls = std::make_shared<lt::aux::listen_socket_t>();
+	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10"), 1, lt::address());
+	ls->local_endpoint = tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
 	dht_settings dhtsett;
 	counters cnt;
 	dht::dht_state state;
@@ -254,7 +244,7 @@ TORRENT_TEST(dht_delete_socket)
 		, dhtsett, cnt, *dht_storage, state);
 
 	dht->start([](std::vector<std::pair<dht::node_entry, std::string>> const&){});
-	dht->new_socket(&ds);
+	dht->new_socket(ls);
 
 	// schedule the removal of the socket at exactly 2 second,
 	// this simulates the fact that the internal scheduled call
@@ -264,7 +254,7 @@ TORRENT_TEST(dht_delete_socket)
 	t1.expires_from_now(chrono::seconds(2));
 	t1.async_wait([&](error_code const&)
 		{
-			dht->delete_socket(&ds);
+			dht->delete_socket(ls);
 		});
 
 	// stop the DHT

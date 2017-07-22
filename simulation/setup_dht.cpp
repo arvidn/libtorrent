@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #include "setup_transfer.hpp"
 #include <memory> // for unique_ptr
 #include <random>
@@ -44,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
-#include "libtorrent/aux_/session_listen_socket.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 #include "setup_dht.hpp"
 
@@ -76,9 +77,17 @@ namespace {
 		return dht::generate_id(addr);
 	}
 
+	std::shared_ptr<lt::aux::listen_socket_t> sim_listen_socket(tcp::endpoint ep)
+	{
+		auto ls = std::make_shared<lt::aux::listen_socket_t>();
+		ls->external_address.cast_vote(ep.address(), 1, lt::address());
+		ls->local_endpoint = ep;
+		return ls;
+	}
+
 } // anonymous namespace
 
-struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
+struct dht_node final : lt::dht::socket_manager
 {
 	dht_node(sim::simulation& sim, lt::dht_settings const& sett, lt::counters& cnt
 		, int const idx, std::uint32_t const flags)
@@ -87,7 +96,8 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 		, m_add_dead_nodes((flags & dht_network::add_dead_nodes) != 0)
 		, m_ipv6((flags & dht_network::bind_ipv6) != 0)
 		, m_socket(m_io_service)
-		, m_dht(this, this, sett, id_from_addr(m_io_service.get_ips().front())
+		, m_ls(sim_listen_socket(tcp::endpoint(m_io_service.get_ips().front(), 6881)))
+		, m_dht(m_ls, this, sett, id_from_addr(m_io_service.get_ips().front())
 			, nullptr, cnt
 			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
 			, *m_dht_storage)
@@ -143,7 +153,7 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 	}
 
 	bool has_quota() override { return true; }
-	bool send_packet(lt::aux::session_listen_socket* s, entry& e, udp::endpoint const& addr) override
+	bool send_packet(lt::aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) override
 	{
 		// since the simulaton is single threaded, we can get away with allocating
 		// just a single send buffer
@@ -156,20 +166,6 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 		sock().send_to(boost::asio::const_buffers_1(send_buf.data(), int(send_buf.size())), addr);
 		return true;
 	}
-
-	address get_external_address() override
-	{
-		return get_local_endpoint().address();
-	}
-
-	tcp::endpoint get_local_endpoint() override
-	{
-		if (sock().is_open()) return tcp::endpoint(sock().local_endpoint().address(), sock().local_endpoint().port());
-		if (m_ipv6) return tcp::endpoint(address_v6(), 0);
-		return tcp::endpoint(address_v4(), 0);
-	}
-
-	bool is_ssl() override { return false; }
 
 	// the node_id and IP address of this node
 	std::pair<dht::node_id, lt::udp::endpoint> node_info() const
@@ -246,6 +242,7 @@ private:
 	bool const m_ipv6;
 	lt::udp::socket m_socket;
 	lt::udp::socket& sock() { return m_socket; }
+	std::shared_ptr<lt::aux::listen_socket_t> m_ls;
 	lt::dht::node m_dht;
 	lt::udp::endpoint m_ep;
 	char m_buffer[1300];

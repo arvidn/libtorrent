@@ -30,33 +30,38 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_SESSION_LISTEN_SOCKET_HPP_INCLUDED
-#define TORRENT_SESSION_LISTEN_SOCKET_HPP_INCLUDED
-
-#include "libtorrent/address.hpp"
-#include "libtorrent/socket.hpp" // for tcp::endpoint
+#include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 namespace libtorrent { namespace aux {
 
-	// abstract interface for a listen socket owned by session_impl
-	// pointers to this type serve as a handle for the listen socket
-	// use a separate abstract type to prohibit outside access to private fields of listen_socket_t
-	// and because some users of these handles should not be coupled to session_impl
-	struct TORRENT_EXTRA_EXPORT session_listen_socket
+	address listen_socket_handle::get_external_address() const
 	{
-		virtual address get_external_address() = 0;
-		virtual tcp::endpoint get_local_endpoint() = 0;
+		auto s = m_sock.lock();
+		TORRENT_ASSERT(s);
+		if (!s) throw_ex<std::bad_weak_ptr>();
+		return s->external_address.external_address();
+	}
 
-		virtual bool is_ssl() = 0;
+	tcp::endpoint listen_socket_handle::get_local_endpoint() const
+	{
+		auto s = m_sock.lock();
+		TORRENT_ASSERT(s);
+		if (!s) throw_ex<std::bad_weak_ptr>();
+		return s->local_endpoint;
+	}
 
-		session_listen_socket() = default;
+	bool listen_socket_handle::is_ssl() const
+	{
+		auto s = m_sock.lock();
+		TORRENT_ASSERT(s);
+		if (!s) throw_ex<std::bad_weak_ptr>();
+		return s->ssl == transport::ssl;
+	}
 
-	protected:
-		session_listen_socket(session_listen_socket const&) = default;
-		session_listen_socket& operator=(session_listen_socket const&) = default;
-		~session_listen_socket() = default;
-	};
+	listen_socket_t* listen_socket_handle::get() const
+	{
+		return m_sock.lock().get();
+	}
 
 } }
-
-#endif

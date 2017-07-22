@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/random.hpp"
 #include <libtorrent/assert.hpp>
-#include "libtorrent/aux_/session_listen_socket.hpp"
 #include <libtorrent/aux_/time.hpp>
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_lookup
@@ -74,10 +73,10 @@ namespace {
 
 void nop() {}
 
-node_id calculate_node_id(node_id const& nid, aux::session_listen_socket* sock)
+node_id calculate_node_id(node_id const& nid, aux::listen_socket_handle const& sock)
 {
 	address external_address;
-	external_address = sock->get_external_address();
+	external_address = sock.get_external_address();
 
 	// if we don't have an observer, don't pretend that external_address is valid
 	// generating an ID based on 0.0.0.0 would be terrible. random is better
@@ -103,7 +102,7 @@ void incoming_error(entry& e, char const* msg, int error_code = 203)
 
 } // anonymous namespace
 
-node::node(aux::session_listen_socket* sock, socket_manager* sock_man
+node::node(aux::listen_socket_handle const& sock, socket_manager* sock_man
 	, dht_settings const& settings
 	, node_id const& nid
 	, dht_observer* observer
@@ -112,11 +111,11 @@ node::node(aux::session_listen_socket* sock, socket_manager* sock_man
 	, dht_storage_interface& storage)
 	: m_settings(settings)
 	, m_id(calculate_node_id(nid, sock))
-	, m_table(m_id, sock->get_local_endpoint().protocol() == tcp::v4() ? udp::v4() : udp::v6(), 8, settings, observer)
+	, m_table(m_id, sock.get_local_endpoint().protocol() == tcp::v4() ? udp::v4() : udp::v6(), 8, settings, observer)
 	, m_rpc(m_id, m_settings, m_table, sock, sock_man, observer)
 	, m_get_foreign_node(get_foreign_node)
 	, m_observer(observer)
-	, m_protocol(map_protocol_to_descriptor(sock->get_local_endpoint().protocol() == tcp::v4() ? udp::v4() : udp::v6()))
+	, m_protocol(map_protocol_to_descriptor(sock.get_local_endpoint().protocol() == tcp::v4() ? udp::v4() : udp::v6()))
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
 	, m_sock_man(sock_man)
@@ -137,9 +136,11 @@ void node::update_node_id()
 	// can just stop here in that case.
 	if (m_observer == nullptr) return;
 
+	auto ext_address = m_sock.get_external_address();
+
 	// it's possible that our external address hasn't actually changed. If our
 	// current ID is still valid, don't do anything.
-	if (verify_id(m_id, m_sock->get_external_address()))
+	if (verify_id(m_id, ext_address))
 		return;
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -147,7 +148,7 @@ void node::update_node_id()
 		, "updating node ID (because external IP address changed)");
 #endif
 
-	m_id = generate_id(m_sock->get_external_address());
+	m_id = generate_id(ext_address);
 
 	m_table.update_node_id(m_id);
 	m_rpc.update_node_id(m_id);

@@ -2632,10 +2632,10 @@ namespace libtorrent {
 	{
 		struct announce_state
 		{
-			explicit announce_state(aux::session_listen_socket* s)
+			explicit announce_state(aux::listen_socket_handle const& s)
 				: socket(s) {}
 
-			aux::session_listen_socket* socket;
+			aux::listen_socket_handle socket;
 
 			// the tier is kept as INT_MAX until we find the first
 			// tracker that works, then it's set to that tracker's
@@ -2756,8 +2756,8 @@ namespace libtorrent {
 			// update the endpoint list by adding entries for new listen sockets
 			// and removing entries for non-existent ones
 			std::vector<announce_endpoint>::size_type valid_endpoints = 0;
-			m_ses.for_each_listen_socket([&](aux::session_listen_socket* s) {
-				if (s->is_ssl() != is_ssl_torrent())
+			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s) {
+				if (s.is_ssl() != is_ssl_torrent())
 					return;
 				for (auto& aep : ae.endpoints)
 				{
@@ -3073,7 +3073,7 @@ namespace libtorrent {
 		// out external IP counter (and pass along the IP of the tracker to know
 		// who to attribute this vote to)
 		if (resp.external_ip != address() && !is_any(tracker_ip))
-			m_ses.set_external_address(r.outgoing_socket->get_local_endpoint()
+			m_ses.set_external_address(r.outgoing_socket.get_local_endpoint()
 				, resp.external_ip
 				, aux::session_interface::source_tracker, tracker_ip);
 
@@ -8713,10 +8713,10 @@ namespace libtorrent {
 	{
 		struct timer_state
 		{
-			explicit timer_state(aux::session_listen_socket* s)
+			explicit timer_state(aux::listen_socket_handle const& s)
 				: socket(s) {}
 
-			aux::session_listen_socket* socket;
+			aux::listen_socket_handle socket;
 
 			int tier = INT_MAX;
 			bool found_working = false;
@@ -10894,10 +10894,10 @@ namespace {
 					debug_log("*** increment tracker fail count [%d]", aep->fails);
 #endif
 				}
-				else
+				else if (r.outgoing_socket)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					debug_log("*** no matching endpoint for request [%s, %s]", r.url.c_str(), print_endpoint(r.outgoing_socket->get_local_endpoint()).c_str());
+					debug_log("*** no matching endpoint for request [%s, %s]", r.url.c_str(), print_endpoint(r.outgoing_socket.get_local_endpoint()).c_str());
 #endif
 				}
 

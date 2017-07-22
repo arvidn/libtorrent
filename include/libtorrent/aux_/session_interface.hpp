@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/aux_/vector.hpp"
-#include "libtorrent/aux_/session_listen_socket.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 #include <functional>
 #include <memory>
@@ -198,7 +198,7 @@ namespace libtorrent { namespace aux {
 		virtual std::uint16_t listen_port() const = 0;
 		virtual std::uint16_t ssl_listen_port() const = 0;
 
-		virtual void for_each_listen_socket(std::function<void(aux::session_listen_socket*)> f) = 0;
+		virtual void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) = 0;
 
 		// ask for which interface and port to bind outgoing peer connections on
 		virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address const&

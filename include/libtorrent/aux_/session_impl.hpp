@@ -133,15 +133,25 @@ namespace aux {
 		TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
 #endif
 
-	struct listen_socket_impl
+	struct listen_socket_t
 	{
-		listen_socket_impl()
+		listen_socket_t()
 		{
 			tcp_port_mapping[0] = -1;
 			tcp_port_mapping[1] = -1;
 			udp_port_mapping[0] = -1;
 			udp_port_mapping[1] = -1;
 		}
+
+		// listen_socket_t should not be copied or moved because
+		// references to it are held by the DHT and tracker announce
+		// code. That code expects a listen_socket_t to always refer
+		// to the same socket. It would be easy to accidently
+		// invalidate that assumption if copying or moving were allowed.
+		listen_socket_t(listen_socket_t const&) = delete;
+		listen_socket_t(listen_socket_t&&) = delete;
+		listen_socket_t& operator=(listen_socket_t const&) = delete;
+		listen_socket_t& operator=(listen_socket_t&&) = delete;
 
 		// this may be empty but can be set
 		// to the WAN IP address of a NAT router
@@ -181,30 +191,11 @@ namespace aux {
 		// pointers may be nullptr!
 		// These must be shared_ptr to avoid a dangling reference if an
 		// incoming packet is in the event queue when the socket is erased
+		// TODO: make these direct members and generate shared_ptrs to them
+		// which alias the listen_socket_t shared_ptr
 		std::shared_ptr<tcp::acceptor> sock;
 		std::shared_ptr<aux::session_udp_socket> udp_sock;
 	};
-
-		struct listen_socket_t final : listen_socket_impl, aux::session_listen_socket
-		{
-			listen_socket_t(listen_socket_t const&) = delete;
-			listen_socket_t(listen_socket_t&&) = delete;
-			listen_socket_t& operator=(listen_socket_t const&) = delete;
-			listen_socket_t& operator=(listen_socket_t&&) = delete;
-
-			address get_external_address() override
-			{ return external_address.external_address(); }
-
-			tcp::endpoint get_local_endpoint() override
-			{ return local_endpoint; }
-
-			bool is_ssl() override
-			{ return ssl == transport::ssl; }
-
-			listen_socket_t(listen_socket_impl const& i) // NOLINT
-				: listen_socket_impl(i)
-			{}
-		};
 
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
 		{
@@ -222,8 +213,14 @@ namespace aux {
 			transport ssl;
 		};
 
-		TORRENT_EXTRA_EXPORT bool operator==(listen_endpoint_t const& ep
-			, listen_socket_t const& sock);
+		// partitions sockets based on whether they match one of the given endpoints
+		// all matched sockets are ordered before unmatched sockets
+		// matched endpoints are removed from the vector
+		// returns an iterator to the first unmatched socket
+		TORRENT_EXTRA_EXPORT std::vector<std::shared_ptr<aux::listen_socket_t>>::iterator
+		partition_listen_sockets(
+			std::vector<listen_endpoint_t>& eps
+			, std::vector<std::shared_ptr<aux::listen_socket_t>>& sockets);
 
 		// expand [::] to all IPv6 interfaces for BEP 45 compliance
 		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
@@ -585,11 +582,11 @@ namespace aux {
 			std::uint16_t ssl_listen_port() const override;
 			std::uint16_t ssl_listen_port(listen_socket_t* sock) const;
 
-			void for_each_listen_socket(std::function<void(aux::session_listen_socket*)> f) override
+			void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) override
 			{
 				for (auto& s : m_listen_sockets)
 				{
-					f(&s);
+					f(listen_socket_handle(s));
 				}
 			}
 
@@ -617,7 +614,7 @@ namespace aux {
 			{
 				for (auto const& s : m_listen_sockets)
 				{
-					if (s.udp_sock) return s.udp_external_port;
+					if (s->udp_sock) return s->udp_external_port;
 				}
 				return -1;
 			}
@@ -657,7 +654,7 @@ namespace aux {
 			int send_buffer_size() const override { return send_buffer_size_impl; }
 
 			// implements dht_observer
-			virtual void set_external_address(aux::session_listen_socket* iface
+			virtual void set_external_address(aux::listen_socket_handle const& iface
 				, address const& ip, address const& source) override;
 			virtual void get_peers(sha1_hash const& ih) override;
 			virtual void announce(sha1_hash const& ih, address const& addr, int port) override;
@@ -779,15 +776,11 @@ namespace aux {
 			void on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih) override;
 			void setup_socket_buffers(socket_type& s) override;
 
-			void set_external_address(listen_socket_t& sock, address const& ip
+			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
 				, int const source_type, address const& source);
 
 			void interface_to_endpoints(std::string const& device, int const port
 				, bool const ssl, std::vector<listen_endpoint_t>& eps);
-
-			// remove any sockets which do not match one of the given endpoints
-			// matched endpoints will be removed from the vector
-			void remove_listen_sockets(std::vector<listen_endpoint_t>& eps);
 
 			// the settings for the client
 			aux::session_settings m_settings;
@@ -946,7 +939,7 @@ namespace aux {
 
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
-			std::list<listen_socket_t> m_listen_sockets;
+			std::vector<std::shared_ptr<listen_socket_t>> m_listen_sockets;
 
 			outgoing_sockets m_outgoing_sockets;
 
@@ -969,7 +962,7 @@ namespace aux {
 				open_ssl_socket = 0x10
 			};
 
-			listen_socket_impl setup_listener(std::string const& device
+			std::shared_ptr<listen_socket_t> setup_listener(std::string const& device
 				, tcp::endpoint bind_ep, int flags, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT
@@ -1103,14 +1096,19 @@ namespace aux {
 				, error_code& ec
 				, int flags);
 
-			void send_udp_packet_hostname_listen(aux::session_listen_socket* sock
+			void send_udp_packet_hostname_listen(aux::listen_socket_handle const& sock
 				, char const* hostname
 				, int port
 				, span<char const> p
 				, error_code& ec
 				, int flags)
 			{
-				listen_socket_t* s = static_cast<listen_socket_t*>(sock);
+				listen_socket_t* s = sock.get();
+				if (!s)
+				{
+					ec = boost::asio::error::bad_descriptor;
+					return;
+				}
 				send_udp_packet_hostname(s->udp_sock, hostname, port, p, ec, flags);
 			}
 
@@ -1120,13 +1118,18 @@ namespace aux {
 				, error_code& ec
 				, int flags);
 
-			void send_udp_packet_listen(aux::session_listen_socket* sock
+			void send_udp_packet_listen(aux::listen_socket_handle const& sock
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
 				, int flags)
 			{
-				listen_socket_t* s = static_cast<listen_socket_t*>(sock);
+				listen_socket_t* s = sock.get();
+				if (!s)
+				{
+					ec = boost::asio::error::bad_descriptor;
+					return;
+				}
 				send_udp_packet(s->udp_sock, ep, p, ec, flags);
 			}
 
