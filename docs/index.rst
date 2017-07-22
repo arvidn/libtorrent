@@ -68,7 +68,7 @@ libtorrent
 .. _examples: examples.html
 .. _overview: manual-ref.html
 .. _documentation: reference.html
-.. _`libtorrent 1.2`: upgrade_to_1.2.html
+.. _`libtorrent 1.2`: upgrade_to_1.2-ref.html
 .. _troubleshooting: troubleshooting.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
