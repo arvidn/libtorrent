@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #include "setup_transfer.hpp"
 #include <memory> // for unique_ptr
 #include <random>
@@ -76,9 +77,9 @@ namespace {
 		return dht::generate_id(addr);
 	}
 
-	std::shared_ptr<lt::aux::listen_socket_base> sim_listen_socket(tcp::endpoint ep)
+	std::shared_ptr<lt::aux::listen_socket_t> sim_listen_socket(tcp::endpoint ep)
 	{
-		auto ls = std::make_shared<lt::aux::listen_socket_base>();
+		auto ls = std::make_shared<lt::aux::listen_socket_t>();
 		ls->external_address.cast_vote(ep.address(), 1, lt::address());
 		ls->local_endpoint = ep;
 		return ls;
@@ -241,7 +242,7 @@ private:
 	bool const m_ipv6;
 	lt::udp::socket m_socket;
 	lt::udp::socket& sock() { return m_socket; }
-	std::shared_ptr<lt::aux::listen_socket_base> m_ls;
+	std::shared_ptr<lt::aux::listen_socket_t> m_ls;
 	lt::dht::node m_dht;
 	lt::udp::endpoint m_ep;
 	char m_buffer[1300];

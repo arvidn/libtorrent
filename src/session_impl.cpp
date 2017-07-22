@@ -1212,7 +1212,7 @@ namespace {
 
 		if (req.outgoing_socket)
 		{
-			auto ls = static_cast<listen_socket_t*>(req.outgoing_socket.impl());
+			auto ls = req.outgoing_socket.get();
 			req.listen_port = listen_port(ls);
 #ifdef TORRENT_USE_OPENSSL
 			// SSL torrents use the SSL listen port
@@ -1229,7 +1229,7 @@ namespace {
 				// SSL torrents use the SSL listen port
 				if (use_ssl) req.listen_port = ssl_listen_port(ls.get());
 #endif
-				req.outgoing_socket = listen_socket_handle(ls);
+				req.outgoing_socket = ls;
 				m_tracker_manager.queue_request(get_io_service(), req, c);
 			}
 		}
@@ -1954,7 +1954,7 @@ namespace {
 		{
 #ifndef TORRENT_DISABLE_DHT
 			if (m_dht)
-				m_dht->delete_socket(listen_socket_handle(*remove_iter));
+				m_dht->delete_socket(*remove_iter);
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1984,7 +1984,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_DHT
 				if (m_dht)
-					m_dht->new_socket(listen_socket_handle(m_listen_sockets.back()));
+					m_dht->new_socket(m_listen_sockets.back());
 #endif
 			}
 		}
@@ -5690,7 +5690,7 @@ namespace {
 			, std::move(m_dht_state));
 
 		for (auto& s : m_listen_sockets)
-			m_dht->new_socket(listen_socket_handle(s));
+			m_dht->new_socket(s);
 
 		for (auto const& n : m_dht_router_nodes)
 		{
@@ -6862,7 +6862,7 @@ namespace {
 		// restart the DHT with a new node ID
 
 #ifndef TORRENT_DISABLE_DHT
-		if (m_dht) m_dht->update_node_id(listen_socket_handle(sock));
+		if (m_dht) m_dht->update_node_id(sock);
 #endif
 	}
 

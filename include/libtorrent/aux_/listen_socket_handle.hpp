@@ -35,24 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
-#include "libtorrent/ip_voter.hpp"
-#include "libtorrent/aux_/session_udp_sockets.hpp"
 #include <memory>
 
 namespace libtorrent { namespace aux {
 
-	struct listen_socket_base
-	{
-		// this may be empty but can be set
-		// to the WAN IP address of a NAT router
-		ip_voter external_address;
-
-		// this is a cached local endpoint for the listen TCP socket
-		tcp::endpoint local_endpoint;
-
-		// indicates whether this is an SSL listen socket or not
-		transport ssl = transport::plaintext;
-	};
+	struct listen_socket_t;
 
 	struct TORRENT_EXTRA_EXPORT listen_socket_handle
 	{
@@ -60,7 +47,7 @@ namespace libtorrent { namespace aux {
 
 		listen_socket_handle() {}
 
-		listen_socket_handle(std::shared_ptr<listen_socket_base> s) // NOLINT
+		listen_socket_handle(std::shared_ptr<listen_socket_t> s) // NOLINT
 			: m_sock(s)
 		{}
 
@@ -92,10 +79,10 @@ namespace libtorrent { namespace aux {
 			return *this;
 		}
 
-		listen_socket_base* impl() const;
+		listen_socket_t* get() const;
 
 	private:
-		std::weak_ptr<listen_socket_base> m_sock;
+		std::weak_ptr<listen_socket_t> m_sock;
 	};
 
 } }

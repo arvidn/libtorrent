@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/session.hpp" // for user_load_function_t
+#include "libtorrent/ip_voter.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -132,7 +133,7 @@ namespace aux {
 		TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
 #endif
 
-	struct listen_socket_t : listen_socket_base
+	struct listen_socket_t
 	{
 		listen_socket_t()
 		{
@@ -142,10 +143,22 @@ namespace aux {
 			udp_port_mapping[1] = -1;
 		}
 
+		// listen_socket_t should not be copied or moved because
+		// references to it are held by the DHT and tracker announce
+		// code. That code expects a listen_socket_t to always refer
+		// to the same socket. It would be easy to accidently
+		// invalidate that assumption if copying or moving were allowed.
 		listen_socket_t(listen_socket_t const&) = delete;
 		listen_socket_t(listen_socket_t&&) = delete;
 		listen_socket_t& operator=(listen_socket_t const&) = delete;
 		listen_socket_t& operator=(listen_socket_t&&) = delete;
+
+		// this may be empty but can be set
+		// to the WAN IP address of a NAT router
+		ip_voter external_address;
+
+		// this is a cached local endpoint for the listen TCP socket
+		tcp::endpoint local_endpoint;
 
 		// the name of the device the socket is bound to, may be empty
 		// if the socket is not bound to a device
@@ -169,6 +182,9 @@ namespace aux {
 		// 0 is natpmp 1 is upnp
 		int tcp_port_mapping[2];
 		int udp_port_mapping[2];
+
+		// indicates whether this is an SSL listen socket or not
+		transport ssl = transport::plaintext;
 
 		// the actual sockets (TCP listen socket and UDP socket)
 		// An entry does not necessarily have a UDP or TCP socket. One of these
@@ -1087,7 +1103,7 @@ namespace aux {
 				, error_code& ec
 				, int flags)
 			{
-				auto s = static_cast<listen_socket_t*>(sock.impl());
+				listen_socket_t* s = sock.get();
 				if (!s)
 				{
 					ec = boost::asio::error::bad_descriptor;
@@ -1108,7 +1124,7 @@ namespace aux {
 				, error_code& ec
 				, int flags)
 			{
-				auto s = static_cast<listen_socket_t*>(sock.impl());
+				listen_socket_t* s = sock.get();
 				if (!s)
 				{
 					ec = boost::asio::error::bad_descriptor;

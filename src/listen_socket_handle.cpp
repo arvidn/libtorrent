@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -58,7 +59,7 @@ namespace libtorrent { namespace aux {
 		return s->ssl == transport::ssl;
 	}
 
-	listen_socket_base* listen_socket_handle::impl() const
+	listen_socket_t* listen_socket_handle::get() const
 	{
 		return m_sock.lock().get();
 	}

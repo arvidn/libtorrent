@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/simulator.hpp"
 
 #include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
@@ -103,7 +104,7 @@ TORRENT_TEST(dht_rate_limit)
 	// receiver (the DHT under test)
 	lt::udp_socket sock(dht_ios);
 	obs o;
-	auto ls = std::make_shared<lt::aux::listen_socket_base>();
+	auto ls = std::make_shared<lt::aux::listen_socket_t>();
 	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10"), 1, lt::address());
 	ls->local_endpoint = tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
 	error_code ec;
@@ -231,7 +232,7 @@ TORRENT_TEST(dht_delete_socket)
 	sock.bind(udp::endpoint(address_v4::from_string("40.30.20.10"), 8888), ec);
 
 	obs o;
-	auto ls = std::make_shared<lt::aux::listen_socket_base>();
+	auto ls = std::make_shared<lt::aux::listen_socket_t>();
 	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10"), 1, lt::address());
 	ls->local_endpoint = tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
 	dht_settings dhtsett;
