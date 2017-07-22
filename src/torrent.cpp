@@ -2138,6 +2138,7 @@ namespace libtorrent
 
 		update_want_peers();
 
+		// this will remove the piece picker, if we're done with it
 		maybe_done_flushing();
 	}
 
@@ -8668,18 +8669,20 @@ namespace libtorrent
 	void torrent::maybe_done_flushing()
 	{
 		if (!has_picker()) return;
-
-		// when we're suggesting read cache pieces, we
-		// still need the piece picker, to keep track
-		// of availability counts for pieces
-		if (m_picker->is_seeding()
-			&& settings().get_int(settings_pack::suggest_mode) != settings_pack::suggest_read_cache)
+		if (m_picker->is_seeding())
 		{
 			// no need for the piece picker anymore
-			m_picker.reset();
+
+			// when we're suggesting read cache pieces, we
+			// still need the piece picker, to keep track
+			// of availability counts for pieces
+			if (settings().get_int(settings_pack::suggest_mode) != settings_pack::suggest_read_cache)
+			{
+				m_picker.reset();
+				m_file_progress.clear();
+			}
 			m_have_all = true;
 			update_gauge();
-			m_file_progress.clear();
 		}
 	}
 
