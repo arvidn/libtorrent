@@ -5,6 +5,10 @@ Upgrading to libtorrent 1.2
 :Author: Arvid Norberg, arvid@libtorrent.org
 :Version: 1.2.0
 
+.. contents:: Table of contents
+  :depth: 1
+  :backlinks: none
+
 libtorrent version 1.2 comes with some significant updates in the API.
 This document summarizes the changes affecting library users.
 
@@ -28,10 +32,28 @@ There is a new namespace alias, ``lt`` which is shorthand for ``libtorrent``.
 In the future, ``libtorrent`` will be the alias and ``lt`` the namespace name.
 With no forward declarations inside libtorrent's namespace though, there should not be any reason for clients to re-open the namespace.
 
+resume data handling
+--------------------
+
+To significantly simplify handling of resume data, the previous way of handling it is deprecated.
+resume data is no longer passed in as a flat buffer in the add_torrent_params.
+The add_torrent_params structure itself *is* the resume data now.
+
+In order to parse the bencoded fast resume file (which is still the same format, and backwards compatible) use the read_resume_data() function.
+
+Similarly, when saving resume data, the save_resume_data_alert now has a ``params`` field of type add_torrent_params which contains the resume data.
+This object can be serialized into the bencoded form using write_resume_data().
+
+This give the client full control over which properties should be loaded from the resume data and which should be controlled by the client directly.
+The flags ``flag_override_resume_data``, ``flag_merge_resume_trackers``, ``flag_use_resume_save_path`` and ``flag_merge_resume_http_seeds`` have all been deprecated, since they are no longer needed.
+
+The old API is still supported as long as libtorrent is built with deprecated functions enabled (which is the default).
+It will be performing slightly better without deprecated functions present.
+
 announce entry multi-home support
 ---------------------------------
 
-The ``announce_entry`` type now captures status on individual endpoints, as opposed to treating every tracker behind the same name as a single tracker.
+The announce_entry type now captures status on individual endpoints, as opposed to treating every tracker behind the same name as a single tracker.
 This means some properties has moved into the ``announce_endpoint`` structure, and an announce entry has 0 or more endpoints.
 
 alerts no longer cloneable
@@ -57,6 +79,25 @@ Any integer referring to a piece index, now has the type ``piece_index_t``, and 
 Similarly, time points and duration now use ``time_point`` and ``duration`` from the ``<chrono>`` standard library.
 
 The specific types have typedefs at ``lt::time_point`` and ``lt::duration``, and the clock used by libtorrent is ``lt::clock_type``.`
+
+strongly typed flags
+--------------------
+
+Enum flags have been replaced by strongly typed flags.
+This means their implicit conversion to and from ``int`` is deprecated.
+For example, the following expressions are deprecated::
+
+	if ((atp.flags & add_torrent_params::flag_paused) == 0)
+
+	atp.flags = 0;
+
+Insted say::
+
+	if (!(atp.flags & torrent_flags::paused))
+
+	atp.flags = {};
+
+(Also note that in this specific example, the flags moved out of the ``add_torrent_params`` structure, but this is unrelated to them also having stronger types).
 
 span<> and string_view
 ----------------------

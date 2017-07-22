@@ -15,6 +15,7 @@ endif
 
 REFERENCE_TARGETS = \
 	manual-ref \
+	upgrade_to_1.2-ref \
 	reference \
 	reference-Core \
 	reference-Plugins \
@@ -50,7 +51,6 @@ TARGETS = index \
 	hacking \
 	streaming \
 	tutorial \
-	upgrade_to_1.2 \
 	single-page-ref \
 	$(REFERENCE_TARGETS)
 
