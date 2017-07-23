@@ -427,6 +427,8 @@ void add_piece(torrent_handle& th, piece_index_t piece, char const *data, int fl
    th.add_piece(piece, data, flags);
 }
 
+class dummy {};
+
 using by_value = return_value_policy<return_by_value>;
 void bind_torrent_handle()
 {
@@ -578,16 +580,17 @@ void bind_torrent_handle()
        .def_readonly("open_mode", &open_file_state::open_mode)
     ;
 
-    enum_<file_open_mode>("file_open_mode")
-        .value("read_only", file_open_mode::read_only)
-        .value("write_only", file_open_mode::write_only)
-        .value("read_write", file_open_mode::read_write)
-        .value("rw_mask", file_open_mode::rw_mask)
-        .value("sparse", file_open_mode::sparse)
-        .value("no_atime", file_open_mode::no_atime)
-        .value("random_access", file_open_mode::random_access)
-        .value("locked", file_open_mode::locked)
-    ;
+    {
+    scope s = class_<dummy>("file_open_mode");
+    s.attr("read_only") = file_open_mode::read_only;
+    s.attr("write_only") = file_open_mode::write_only;
+    s.attr("read_write") = file_open_mode::read_write;
+    s.attr("rw_mask") = file_open_mode::rw_mask;
+    s.attr("sparse") = file_open_mode::sparse;
+    s.attr("no_atime") = file_open_mode::no_atime;
+    s.attr("random_access") = file_open_mode::random_access;
+    s.attr("locked") = file_open_mode::locked;
+    }
 
     enum_<torrent_handle::file_progress_flags_t>("file_progress_flags")
         .value("piece_granularity", torrent_handle::piece_granularity)

@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/flags.hpp"
 
 namespace libtorrent {
 
@@ -61,37 +62,40 @@ namespace libtorrent {
 
 	struct storage_holder;
 
-	enum file_open_mode
+	struct file_open_mode_tag;
+	using file_open_mode_t = flags::bitfield_flag<std::uint32_t, file_open_mode_tag>;
+
+	namespace file_open_mode
 	{
 		// open the file for reading only
-		read_only = 0,
+		constexpr file_open_mode_t read_only{0};
 
 		// open the file for writing only
-		write_only = 1,
+		constexpr file_open_mode_t write_only{1};
 
 		// open the file for reading and writing
-		read_write = 2,
+		constexpr file_open_mode_t read_write{2};
 
 		// the mask for the bits determining read or write mode
-		rw_mask = read_only | write_only | read_write,
+		constexpr file_open_mode_t rw_mask = read_only | write_only | read_write;
 
 		// open the file in sparse mode (if supported by the
 		// filesystem).
-		sparse = 0x4,
+		constexpr file_open_mode_t sparse{0x4};
 
 		// don't update the access timestamps on the file (if
 		// supported by the operating system and filesystem).
 		// this generally improves disk performance.
-		no_atime = 0x8,
+		constexpr file_open_mode_t no_atime{0x8};
 
 		// open the file for random access. This disables read-ahead
 		// logic
-		random_access = 0x10,
+		constexpr file_open_mode_t random_access{0x10};
 
 		// prevent the file from being opened by another process
 		// while it's still being held open by this handle
-		locked = 0x20,
-	};
+		constexpr file_open_mode_t locked{0x20};
+	}
 
 	// this contains information about a file that's currently open by the
 	// libtorrent disk I/O subsystem. It's associated with a single torent.
@@ -107,7 +111,7 @@ namespace libtorrent {
 		//
 		// Note that the read/write mode is not a bitmask. The two least significant bits are used
 		// to represent the read/write mode. Those bits can be masked out using the ``rw_mask`` constant.
-		std::uint32_t open_mode;
+		file_open_mode_t open_mode;
 
 		// a (high precision) timestamp of when the file was last used.
 		time_point last_use;

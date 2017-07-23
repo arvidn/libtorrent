@@ -70,7 +70,6 @@ using lt::total_milliseconds;
 using lt::alert;
 using lt::piece_index_t;
 using lt::file_index_t;
-using lt::file_open_mode;
 using lt::torrent_handle;
 using lt::add_torrent_params;
 using lt::cache_status;
@@ -1894,12 +1893,12 @@ COLUMN OPTIONS
 					if (f != file_status.end() && f->file_index == i)
 					{
 						title += " [ ";
-						if ((f->open_mode & file_open_mode::rw_mask) == file_open_mode::read_write) title += "read/write ";
-						else if ((f->open_mode & file_open_mode::rw_mask) == file_open_mode::read_only) title += "read ";
-						else if ((f->open_mode & file_open_mode::rw_mask) == file_open_mode::write_only) title += "write ";
-						if (f->open_mode & file_open_mode::random_access) title += "random_access ";
-						if (f->open_mode & file_open_mode::locked) title += "locked ";
-						if (f->open_mode & file_open_mode::sparse) title += "sparse ";
+						if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::read_write) title += "read/write ";
+						else if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::read_only) title += "read ";
+						else if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::write_only) title += "write ";
+						if (f->open_mode & lt::file_open_mode::random_access) title += "random_access ";
+						if (f->open_mode & lt::file_open_mode::locked) title += "locked ";
+						if (f->open_mode & lt::file_open_mode::sparse) title += "sparse ";
 						title += "]";
 						++f;
 					}
