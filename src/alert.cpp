@@ -2133,7 +2133,7 @@ namespace {
 	}
 
 	picker_log_alert::picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, tcp::endpoint const& ep, peer_id const& peer_id, std::uint32_t flags
+		, tcp::endpoint const& ep, peer_id const& peer_id, picker_flags_t const flags
 		, piece_block const* blocks, int num_blocks)
 		: peer_alert(alloc, h, ep, peer_id)
 		, picker_flags(flags)
@@ -2154,6 +2154,23 @@ namespace {
 
 		return ret;
 	}
+
+	constexpr picker_flags_t picker_log_alert::partial_ratio;
+	constexpr picker_flags_t picker_log_alert::prioritize_partials;
+	constexpr picker_flags_t picker_log_alert::rarest_first_partials;
+	constexpr picker_flags_t picker_log_alert::rarest_first;
+	constexpr picker_flags_t picker_log_alert::reverse_rarest_first;
+	constexpr picker_flags_t picker_log_alert::suggested_pieces;
+	constexpr picker_flags_t picker_log_alert::prio_sequential_pieces;
+	constexpr picker_flags_t picker_log_alert::sequential_pieces;
+	constexpr picker_flags_t picker_log_alert::reverse_pieces;
+	constexpr picker_flags_t picker_log_alert::time_critical;
+	constexpr picker_flags_t picker_log_alert::random_pieces;
+	constexpr picker_flags_t picker_log_alert::prefer_contiguous;
+	constexpr picker_flags_t picker_log_alert::reverse_sequential;
+	constexpr picker_flags_t picker_log_alert::backup1;
+	constexpr picker_flags_t picker_log_alert::backup2;
+	constexpr picker_flags_t picker_log_alert::end_game;
 
 	std::string picker_log_alert::message() const
 	{
@@ -2179,7 +2196,7 @@ namespace {
 
 		std::string ret = peer_alert::message();
 
-		std::uint32_t flags = picker_flags;
+		auto flags = static_cast<std::uint32_t>(picker_flags);
 		int idx = 0;
 		ret += " picker_log [ ";
 		for (; flags != 0; flags >>= 1, ++idx)

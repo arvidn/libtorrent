@@ -162,7 +162,7 @@ namespace libtorrent {
 		// the last argument is if we should prefer whole pieces
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
-		std::uint32_t const flags = p.pick_pieces(*bits, interesting_pieces
+		picker_flags_t const flags = p.pick_pieces(*bits, interesting_pieces
 			, num_requests, prefer_contiguous_blocks, c.peer_info_struct()
 			, c.picker_options(), suggested, t.num_peers()
 			, ses.stats_counters());

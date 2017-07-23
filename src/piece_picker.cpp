@@ -1833,10 +1833,10 @@ namespace {
 
 	// only one of rarest_first or sequential can be set
 
-	// the return value is a combination of picker_log_alert::picker_flags_t,
+	// the return value is a combination of picker_flags_t,
 	// indicating which path thought the picker we took to arrive at the
 	// returned block picks.
-	std::uint32_t piece_picker::pick_pieces(typed_bitfield<piece_index_t> const& pieces
+	picker_flags_t piece_picker::pick_pieces(typed_bitfield<piece_index_t> const& pieces
 		, std::vector<piece_block>& interesting_blocks, int num_blocks
 		, int prefer_contiguous_blocks, torrent_peer* peer
 		, int options, std::vector<piece_index_t> const& suggested_pieces
@@ -1845,7 +1845,7 @@ namespace {
 		) const
 	{
 		TORRENT_ASSERT(peer == nullptr || peer->in_use);
-		std::uint32_t ret = 0;
+		picker_flags_t ret;
 
 		// prevent the number of partial pieces to grow indefinitely
 		// make this scale by the number of peers we have. For large
