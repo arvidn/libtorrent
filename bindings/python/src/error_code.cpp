@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "boost_python.hpp"
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/upnp.hpp>
@@ -49,7 +50,6 @@ namespace boost
 #if defined TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/error.hpp>
 #endif
-#include "boost_python.hpp"
 
 using namespace boost::python;
 using namespace lt;
