@@ -60,7 +60,7 @@ namespace libtorrent { namespace aux {
 		int m_idx;
 	};
 
-	struct stack_allocator
+	struct TORRENT_EXTRA_EXPORT stack_allocator
 	{
 		stack_allocator() {}
 
@@ -68,91 +68,17 @@ namespace libtorrent { namespace aux {
 		stack_allocator(stack_allocator const&) = delete;
 		stack_allocator& operator=(stack_allocator const&) = delete;
 
-		allocation_slot copy_string(string_view str)
-		{
-			int const ret = int(m_storage.size());
-			m_storage.resize(ret + numeric_cast<int>(str.size()) + 1);
-			std::memcpy(&m_storage[ret], str.data(), str.size());
-			m_storage[ret + int(str.length())] = '\0';
-			return allocation_slot(ret);
-		}
+		allocation_slot copy_string(string_view str);
+		allocation_slot copy_string(char const* str);
 
-		allocation_slot copy_string(char const* str)
-		{
-			int const ret = int(m_storage.size());
-			int const len = int(std::strlen(str));
-			m_storage.resize(ret + len + 1);
-			std::memcpy(&m_storage[ret], str, numeric_cast<std::size_t>(len));
-			m_storage[ret + len] = '\0';
-			return allocation_slot(ret);
-		}
+		allocation_slot format_string(char const* fmt, va_list v);
 
-		allocation_slot format_string(char const* fmt, va_list v)
-		{
-			int const ret = int(m_storage.size());
-			m_storage.resize(ret + 512);
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wformat-nonliteral"
-#endif
-			int const len = std::vsnprintf(m_storage.data() + ret, 512, fmt, v);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-			if (len < 0)
-			{
-				m_storage.resize(ret);
-				return copy_string("(format error)");
-			}
-
-			// +1 is to include the 0-terminator
-			m_storage.resize(ret + (len > 512 ? 512 : len) + 1);
-			return allocation_slot(ret);
-		}
-
-		allocation_slot copy_buffer(span<char const> buf)
-		{
-			int const ret = int(m_storage.size());
-			int const size = int(buf.size());
-			if (size < 1) return allocation_slot();
-			m_storage.resize(ret + size);
-			std::memcpy(&m_storage[ret], buf.data(), numeric_cast<std::size_t>(size));
-			return allocation_slot(ret);
-		}
-
-		allocation_slot allocate(int const bytes)
-		{
-			if (bytes < 1) return allocation_slot();
-			int const ret = m_storage.end_index();
-			m_storage.resize(ret + bytes);
-			return allocation_slot(ret);
-		}
-
-		char* ptr(allocation_slot const idx)
-		{
-			if(idx.val() < 0) return nullptr;
-			TORRENT_ASSERT(idx.val() < int(m_storage.size()));
-			return &m_storage[idx.val()];
-		}
-
-		char const* ptr(allocation_slot const idx) const
-		{
-			if(idx.val() < 0) return nullptr;
-			TORRENT_ASSERT(idx.val() < int(m_storage.size()));
-			return &m_storage[idx.val()];
-		}
-
-		void swap(stack_allocator& rhs)
-		{
-			m_storage.swap(rhs.m_storage);
-		}
-
-		void reset()
-		{
-			m_storage.clear();
-		}
+		allocation_slot copy_buffer(span<char const> buf);
+		allocation_slot allocate(int bytes);
+		char* ptr(allocation_slot idx);
+		char const* ptr(allocation_slot idx) const;
+		void swap(stack_allocator& rhs);
+		void reset();
 
 	private:
 
