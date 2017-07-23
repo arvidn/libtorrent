@@ -126,6 +126,7 @@ set(sources
 	ffs
 	add_torrent_params
 	peer_info
+	stack_allocator
 
 # -- extensions --
 	ut_pex
