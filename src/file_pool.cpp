@@ -182,9 +182,9 @@ namespace libtorrent {
 
 	namespace {
 
-	std::uint32_t to_file_open_mode(open_mode_t const mode)
+	file_open_mode_t to_file_open_mode(open_mode_t const mode)
 	{
-		std::uint32_t ret = 0;
+		file_open_mode_t ret;
 		open_mode_t const rw_mode = mode & open_mode::rw_mask;
 
 		ret = (rw_mode == open_mode::read_only)
@@ -193,7 +193,7 @@ namespace libtorrent {
 			? file_open_mode::write_only
 			: (rw_mode == open_mode::read_write)
 			? file_open_mode::read_write
-			: 0;
+			: file_open_mode_t{};
 
 		if (mode & open_mode::sparse) ret |= file_open_mode::sparse;
 		if (mode & open_mode::no_atime) ret |= file_open_mode::no_atime;
