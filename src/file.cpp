@@ -363,9 +363,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		}
 #else
 
-		std::memset(&m_dirent, 0, sizeof(dirent));
-		m_name[0] = 0;
-
 		m_handle = ::opendir(f.c_str());
 		if (m_handle == nullptr)
 		{
@@ -390,11 +387,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 
 	std::uint64_t directory::inode() const
 	{
-#ifdef TORRENT_WINDOWS
 		return m_inode;
-#else
-		return m_dirent.d_ino;
-#endif
 	}
 
 	std::string directory::file() const
@@ -402,7 +395,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 #ifdef TORRENT_WINDOWS
 		return convert_from_native_path(m_fd.cFileName);
 #else
-		return convert_from_native(m_dirent.d_name);
+		return convert_from_native(m_name);
 #endif
 	}
 
@@ -419,13 +412,18 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		}
 		++m_inode;
 #else
-		dirent* dummy;
-		if (readdir_r(m_handle, &m_dirent, &dummy) != 0)
+		struct dirent* de;
+		errno = 0;
+		if ((de = ::readdir(m_handle)))
 		{
-			ec.assign(errno, system_category());
+			m_inode = de->d_ino;
+			m_name = de->d_name;
+		}
+		else
+		{
+			if (errno) ec.assign(errno, system_category());
 			m_done = true;
 		}
-		if (dummy == nullptr) m_done = true;
 #endif
 	}
 
