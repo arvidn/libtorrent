@@ -682,13 +682,10 @@ std::vector<std::string> list_dir(std::string path
 		return ret;
 	}
 
-	struct dirent de;
-	dirent* dummy;
-	while (readdir_r(handle, &de, &dummy) == 0)
+	struct dirent* de;
+	while ((de = readdir(handle)))
 	{
-		if (dummy == nullptr) break;
-
-		lt::string_view p(de.d_name);
+		lt::string_view p(de->d_name);
 		if (filter_fun(p))
 			ret.push_back(p.to_string());
 	}
