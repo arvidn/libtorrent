@@ -1185,9 +1185,6 @@ namespace libtorrent
 		}
 #else
 
-		memset(&m_dirent, 0, sizeof(dirent));
-		m_name[0] = 0;
-
 		// the path passed to opendir() may not
 		// end with a /
 		std::string p = path;
@@ -1219,11 +1216,7 @@ namespace libtorrent
 
 	boost::uint64_t directory::inode() const
 	{
-#ifdef TORRENT_WINDOWS
 		return m_inode;
-#else
-		return m_dirent.d_ino;
-#endif
 	}
 
 	std::string directory::file() const
@@ -1235,7 +1228,7 @@ namespace libtorrent
 		return convert_from_native(m_fd.cFileName);
 #endif
 #else
-		return convert_from_native(m_dirent.d_name);
+		return convert_from_native(m_name);
 #endif
 	}
 
@@ -1257,13 +1250,18 @@ namespace libtorrent
 		}
 		++m_inode;
 #else
-		dirent* dummy;
-		if (readdir_r(m_handle, &m_dirent, &dummy) != 0)
+		struct dirent* de;
+		errno = 0;
+		if ((de = ::readdir(m_handle)))
 		{
-			ec.assign(errno, system_category());
+			m_inode = de->d_ino;
+			m_name = de->d_name;
+		}
+		else
+		{
+			if (errno) ec.assign(errno, system_category());
 			m_done = true;
 		}
-		if (dummy == 0) m_done = true;
 #endif
 	}
 
