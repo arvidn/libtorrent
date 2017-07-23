@@ -2506,6 +2506,10 @@ namespace libtorrent {
 #endif
 	};
 
+	// hidden
+	struct picker_flags_tag;
+	using picker_flags_t = flags::bitfield_flag<std::uint32_t, picker_flags_tag>;
+
 	// this is posted when one or more blocks are picked by the piece picker,
 	// assuming the verbose piece picker logging is enabled (see
 	// picker_log_notification).
@@ -2513,7 +2517,7 @@ namespace libtorrent {
 	{
 		// internal
 		picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep, peer_id const& peer_id, std::uint32_t flags
+			, tcp::endpoint const& ep, peer_id const& peer_id, picker_flags_t flags
 			, piece_block const* blocks, int num_blocks);
 
 		TORRENT_DEFINE_ALERT(picker_log_alert, 89)
@@ -2521,31 +2525,26 @@ namespace libtorrent {
 		static const int static_category = alert::picker_log_notification;
 		virtual std::string message() const override;
 
-		enum picker_flags_t
-		{
-			// the ratio of partial pieces is too high. This forces a preference
-			// for picking blocks from partial pieces.
-			partial_ratio          = 0x1,
-			prioritize_partials    = 0x2,
-			rarest_first_partials  = 0x4,
-			rarest_first           = 0x8,
-			reverse_rarest_first   = 0x10,
-			suggested_pieces       = 0x20,
-			prio_sequential_pieces = 0x40,
-			sequential_pieces      = 0x80,
-			reverse_pieces         = 0x100,
-			time_critical          = 0x200,
-			random_pieces          = 0x400,
-			prefer_contiguous      = 0x800,
-			reverse_sequential     = 0x1000,
-			backup1                = 0x2000,
-			backup2                = 0x4000,
-			end_game               = 0x8000
-		};
+		static constexpr picker_flags_t partial_ratio{0x1};
+		static constexpr picker_flags_t prioritize_partials{0x2};
+		static constexpr picker_flags_t rarest_first_partials{0x4};
+		static constexpr picker_flags_t rarest_first{0x8};
+		static constexpr picker_flags_t reverse_rarest_first{0x10};
+		static constexpr picker_flags_t suggested_pieces{0x20};
+		static constexpr picker_flags_t prio_sequential_pieces{0x40};
+		static constexpr picker_flags_t sequential_pieces{0x80};
+		static constexpr picker_flags_t reverse_pieces{0x100};
+		static constexpr picker_flags_t time_critical{0x200};
+		static constexpr picker_flags_t random_pieces{0x400};
+		static constexpr picker_flags_t prefer_contiguous{0x800};
+		static constexpr picker_flags_t reverse_sequential{0x1000};
+		static constexpr picker_flags_t backup1{0x2000};
+		static constexpr picker_flags_t backup2{0x4000};
+		static constexpr picker_flags_t end_game{0x8000};
 
 		// this is a bitmask of which features were enabled for this particular
 		// pick. The bits are defined in the picker_flags_t enum.
-		std::uint32_t const picker_flags;
+		picker_flags_t const picker_flags;
 
 		std::vector<piece_block> blocks() const;
 

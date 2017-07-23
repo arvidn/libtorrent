@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/typed_span.hpp"
+#include "libtorrent/alert_types.hpp" // for picker_flags_t
 
 namespace libtorrent {
 
@@ -256,7 +257,7 @@ namespace libtorrent {
 		// this feature is used by web_peer_connection to request larger blocks
 		// at a time to mitigate limited pipelining and lack of keep-alive
 		// (i.e. higher overhead per request).
-		std::uint32_t pick_pieces(typed_bitfield<piece_index_t> const& pieces
+		picker_flags_t pick_pieces(typed_bitfield<piece_index_t> const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
 			, int prefer_contiguous_blocks, torrent_peer* peer
 			, int options, std::vector<piece_index_t> const& suggested_pieces
