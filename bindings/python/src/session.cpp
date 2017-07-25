@@ -28,7 +28,7 @@
 namespace boost
 {
 	// this fixes mysterious link error on msvc
-	lt::alert const volatile*
+	TORRENT_EXPORT lt::alert const volatile*
 	get_pointer(lt::alert const volatile* p)
 	{
 		return p;

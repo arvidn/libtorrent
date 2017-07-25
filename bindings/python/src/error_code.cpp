@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace boost
 {
-	// this fixe mysterious link error on msvc
-	boost::system::error_category const volatile*
+	// this fixes mysterious link error on msvc
+	TORRENT_EXPORT boost::system::error_category const volatile*
 	get_pointer(boost::system::error_category const volatile* p)
 	{
 		return p;
