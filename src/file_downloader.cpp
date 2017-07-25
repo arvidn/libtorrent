@@ -153,10 +153,12 @@ namespace libtorrent
 	// TODO: replace this with file_requests class
 	struct piece_alert_dispatch : plugin
 	{
-		void on_alert(alert const* a)
+		std::uint32_t implemented_features() override { return plugin::alert_feature; }
+
+		void on_alert(alert const* a) override
 		{
 			read_piece_alert const* p = alert_cast<read_piece_alert>(a);
-			if (p == NULL) return;
+			if (p == nullptr) return;
 
 //			fprintf(stderr, "piece: %d\n", p->piece);
 
@@ -193,7 +195,7 @@ namespace libtorrent
 		// that were part of the 'pq' request, and are also still parts of
 		// other requests, that are still outstanding
 		void unsubscribe(sha1_hash const& ih, torrent_piece_queue* pq
-			, std::set<int>* pieces = NULL)
+			, std::set<int>* pieces = nullptr)
 		{
 			std::unique_lock<std::mutex> l(m_mutex);
 			typedef std::multimap<sha1_hash, torrent_piece_queue*>::iterator iter;
@@ -245,7 +247,7 @@ namespace libtorrent
 		, m_queue_size(20 * 1024 * 1024)
 		, m_attachment(true)
 	{
-		if (m_auth == NULL)
+		if (m_auth == nullptr)
 		{
 			const static no_auth n;
 			m_auth = &n;
@@ -272,9 +274,9 @@ namespace libtorrent
 
 		string_view info_hash_str;
 		string_view file_str;
+		std::string query_string = "?";
 		if (request_info->query_string)
 		{
-			std::string query_string = "?";
 			query_string += request_info->query_string;
 			info_hash_str = url_has_argument(query_string, "ih");
 			file_str = url_has_argument(query_string, "file");
@@ -330,12 +332,12 @@ namespace libtorrent
 				char const* divider = strchr(range, '-');
 				if (divider)
 				{
-					range_first_byte = strtoll(range, NULL, 10);
+					range_first_byte = strtoll(range, nullptr, 10);
 
 					// if the end of a range is not specified, the end of file
 					// is implied
 					if (divider[1] != '\0')
-						range_last_byte = strtoll(divider+1, NULL, 10);
+						range_last_byte = strtoll(divider+1, nullptr, 10);
 					else
 						range_last_byte = file_size - 1;
 
