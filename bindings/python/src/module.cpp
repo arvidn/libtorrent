@@ -6,8 +6,8 @@
 #define BOOST_PYTHON_USE_GCC_SYMBOL_VISIBILITY 1
 #endif
 
-#include "libtorrent/config.hpp"
 #include <boost/python/module.hpp>
+#include "libtorrent/config.hpp"
 
 void bind_utility();
 void bind_fingerprint();
