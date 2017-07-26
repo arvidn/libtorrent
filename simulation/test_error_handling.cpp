@@ -115,8 +115,8 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 
 	// the first peer is a downloader, the second peer is a seed
 	lt::add_torrent_params params = create_torrent(1);
-	params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-	params.flags &= ~lt::add_torrent_params::flag_paused;
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
 
 	params.save_path = save_path(0);
 	ses[0]->async_add_torrent(params);

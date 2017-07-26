@@ -182,7 +182,7 @@ script:
 # simulation
   - cd simulation
   - 'if [[ "$sim" == "1" ]]; then
-      bjam -j2 crypto=built-in warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full $toolset;
+      bjam -j2 crypto=built-in warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full $toolset deprecated-functions=off;
     fi'
   - cd ..
 

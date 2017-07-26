@@ -52,7 +52,7 @@ TORRENT_TEST(seed_and_suggest_mode)
 		}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
-			params.flags |= add_torrent_params::flag_seed_mode;
+			params.flags |= torrent_flags::seed_mode;
 		}
 		// on alert
 		, [&](lt::alert const* a, lt::session&)
@@ -75,7 +75,7 @@ TORRENT_TEST(seed_and_suggest_mode)
 		});
 
 	printf("save-resume: %s\n", write_resume_data(resume_data).to_string().c_str());
-	TEST_CHECK(resume_data.flags & add_torrent_params::flag_seed_mode);
+	TEST_CHECK(resume_data.flags & torrent_flags::seed_mode);
 
 	// there should not be any pieces in a seed-mode torrent
 	auto const pieces = resume_data.have_pieces;

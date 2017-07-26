@@ -101,8 +101,8 @@ TORRENT_TEST(dont_count_slow_torrents)
 			for (int i = 0; i < num_torrents; ++i)
 			{
 				lt::add_torrent_params params = create_torrent(i, false);
-				params.flags |= lt::add_torrent_params::flag_auto_managed;
-				params.flags |= lt::add_torrent_params::flag_paused;
+				params.flags |= lt::torrent_flags::auto_managed;
+				params.flags |= lt::torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -139,8 +139,8 @@ TORRENT_TEST(dont_count_slow_torrents)
 
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
-				TEST_EQUAL(h.status().paused, false);
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
+				TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			}
 		});
 }
@@ -160,8 +160,8 @@ TORRENT_TEST(count_slow_torrents)
 			for (int i = 0; i < num_torrents; ++i)
 			{
 				lt::add_torrent_params params = create_torrent(i, false);
-				params.flags |= add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags |= torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -189,8 +189,8 @@ TORRENT_TEST(count_slow_torrents)
 			num_started = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
-				num_started += !h.status().paused;
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
+				num_started += !(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_started, 1);
 		});
@@ -212,8 +212,8 @@ TORRENT_TEST(force_stopped_download)
 			{
 				lt::add_torrent_params params = create_torrent(i, false);
 				// torrents are paused and not auto-managed
-				params.flags &= ~add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags &= ~torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -238,8 +238,8 @@ TORRENT_TEST(force_stopped_download)
 
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(!h.status().auto_managed);
-				TEST_CHECK(h.status().paused);
+				TEST_CHECK(!(h.status().flags & torrent_flags::auto_managed));
+				TEST_CHECK(h.status().flags & torrent_flags::paused);
 			}
 		});
 }
@@ -260,8 +260,8 @@ TORRENT_TEST(force_started)
 			{
 				lt::add_torrent_params params = create_torrent(i, false);
 				// torrents are started and not auto-managed
-				params.flags &= ~add_torrent_params::flag_auto_managed;
-				params.flags &= ~add_torrent_params::flag_paused;
+				params.flags &= ~torrent_flags::auto_managed;
+				params.flags &= ~torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -286,8 +286,8 @@ TORRENT_TEST(force_started)
 
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(!h.status().auto_managed);
-				TEST_CHECK(!h.status().paused);
+				TEST_CHECK(!(h.status().flags & torrent_flags::auto_managed));
+				TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			}
 		});
 }
@@ -310,8 +310,8 @@ TORRENT_TEST(seed_limit)
 			{
 				lt::add_torrent_params params = create_torrent(i, true);
 				// torrents are paused and auto-managed
-				params.flags |= add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags |= torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -373,9 +373,9 @@ TORRENT_TEST(seed_limit)
 			num_started = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
 				TEST_CHECK(h.status().is_seeding);
-				num_started += !h.status().paused;
+				num_started += !(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_started, 3);
 		});
@@ -399,8 +399,8 @@ TORRENT_TEST(download_limit)
 			{
 				lt::add_torrent_params params = create_torrent(i, false);
 				// torrents are paused and auto-managed
-				params.flags |= add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags |= torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -462,9 +462,9 @@ TORRENT_TEST(download_limit)
 			num_started = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
 				TEST_CHECK(!h.status().is_finished);
-				num_started += !h.status().paused;
+				num_started += !(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_started, 3);
 		});
@@ -495,8 +495,8 @@ TORRENT_TEST(checking_announce)
 			{
 				lt::add_torrent_params params = create_torrent(i, true);
 				// torrents are paused and auto-managed
-				params.flags |= add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags |= torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				// we need this to get the tracker_announce_alert
 				params.trackers.push_back("http://10.10.0.2/announce");
 				ses.async_add_torrent(params);
@@ -524,8 +524,8 @@ TORRENT_TEST(checking_announce)
 			int num_started = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
-				num_started += !h.status().paused;
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
+				num_started += !(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_started, 1);
 		});
@@ -548,8 +548,8 @@ TORRENT_TEST(paused_checking)
 			{
 				lt::add_torrent_params params = create_torrent(i, true);
 				// torrents are paused and auto-managed
-				params.flags &= ~add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags &= ~torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -578,8 +578,8 @@ TORRENT_TEST(paused_checking)
 				// that, because they should never have been checked (because they
 				// were force stopped)
 				TEST_CHECK(!h.status().is_seeding);
-				TEST_CHECK(!h.status().auto_managed);
-				TEST_CHECK(h.status().paused);
+				TEST_CHECK(!(h.status().flags & torrent_flags::auto_managed));
+				TEST_CHECK(h.status().flags & torrent_flags::paused);
 			}
 		});
 }
@@ -595,8 +595,8 @@ TORRENT_TEST(stop_when_ready)
 			// add torrents
 			lt::add_torrent_params params = create_torrent(0, true);
 			// torrents are started and auto-managed
-			params.flags |= add_torrent_params::flag_auto_managed;
-			params.flags |= add_torrent_params::flag_stop_when_ready;
+			params.flags |= torrent_flags::auto_managed;
+			params.flags |= torrent_flags::stop_when_ready;
 			// we need this to get the tracker_announce_alert
 			params.trackers.push_back("http://10.10.0.2/announce");
 			ses.async_add_torrent(params);
@@ -640,8 +640,8 @@ TORRENT_TEST(stop_when_ready)
 				// donw, because we set the stop_when_ready flag). Force stopped
 				// means not auto-managed and paused.
 				torrent_status st = h.status();
-				TEST_CHECK(!st.auto_managed);
-				TEST_EQUAL(st.paused, true);
+				TEST_CHECK(!(st.flags & torrent_flags::auto_managed));
+				TEST_CHECK(st.flags & torrent_flags::paused);
 				// it should be seeding. If it's not seeding it may not have had its
 				// files checked.
 				TEST_EQUAL(st.state, torrent_status::seeding);
@@ -666,8 +666,8 @@ TORRENT_TEST(resume_reject_when_paused)
 			// the torrent is not auto managed and paused. Once the resume data
 			// check completes, it will stay paused but the state_changed_alert
 			// will be posted, when it goes to check the files
-			params.flags &= ~add_torrent_params::flag_auto_managed;
-			params.flags |= add_torrent_params::flag_paused;
+			params.flags &= ~torrent_flags::auto_managed;
+			params.flags |= torrent_flags::paused;
 
 			ses.async_add_torrent(params);
 		},
@@ -705,8 +705,8 @@ TORRENT_TEST(resume_reject_when_paused)
 				// the torrent should have been force-stopped. Force stopped means
 				// not auto-managed and paused.
 				torrent_status st = h.status();
-				TEST_CHECK(!st.auto_managed);
-				TEST_EQUAL(st.paused, true);
+				TEST_CHECK(!(st.flags & torrent_flags::auto_managed));
+				TEST_CHECK(st.flags & torrent_flags::paused);
 				// it should be checking files, because the resume data should have
 				// failed validation.
 				TEST_EQUAL(st.state, torrent_status::checking_files);
@@ -737,8 +737,8 @@ TORRENT_TEST(no_resume_when_paused)
 			lt::add_torrent_params params = create_torrent(0, true);
 
 			// the torrent is not auto managed and paused.
-			params.flags &= ~add_torrent_params::flag_auto_managed;
-			params.flags |= add_torrent_params::flag_paused;
+			params.flags &= ~torrent_flags::auto_managed;
+			params.flags |= torrent_flags::paused;
 
 			ses.async_add_torrent(params);
 		},
@@ -778,8 +778,8 @@ TORRENT_TEST(no_resume_when_paused)
 				// the torrent should have been force-stopped. Force stopped means
 				// not auto-managed and paused.
 				torrent_status st = h.status();
-				TEST_CHECK(!st.auto_managed);
-				TEST_EQUAL(st.paused, true);
+				TEST_CHECK(!(st.flags & torrent_flags::auto_managed));
+				TEST_CHECK(st.flags & torrent_flags::paused);
 				// it should be checking files, because the resume data should have
 				// failed validation.
 				TEST_EQUAL(st.state, torrent_status::checking_files);
@@ -851,8 +851,8 @@ TORRENT_TEST(pause_completed_torrents)
 		[](lt::session& ses) {
 			// add torrent
 			lt::add_torrent_params params = create_torrent(0, true);
-			params.flags |= add_torrent_params::flag_auto_managed;
-			params.flags |= add_torrent_params::flag_paused;
+			params.flags |= torrent_flags::auto_managed;
+			params.flags |= torrent_flags::paused;
 			ses.async_add_torrent(params);
 		},
 
@@ -902,8 +902,8 @@ TORRENT_TEST(pause_completed_torrents)
 			num_paused = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
-				num_paused += h.status().paused;
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
+				num_paused += bool(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_paused, 1);
 		});

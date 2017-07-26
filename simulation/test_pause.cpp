@@ -77,8 +77,8 @@ void run_test(Setup const& setup, Torrent const& torrent
 
 	// add torrent
 	lt::add_torrent_params params = create_torrent(0, false);
-	params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-	params.flags &= ~lt::add_torrent_params::flag_paused;
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
 	ses->async_add_torrent(std::move(params));
 
 	lt::torrent_handle h;
@@ -132,7 +132,7 @@ TORRENT_TEST(torrent_paused_disconnect)
 
 		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
 			check_disconnected(test_peers, {{true, true, true}});
-			TEST_EQUAL(h.status().paused, true);
+			TEST_CHECK(h.status().flags & torrent_flags::paused);
 		});
 }
 
@@ -156,7 +156,7 @@ TORRENT_TEST(session_paused_disconnect)
 			check_disconnected(test_peers, {{true, true, true}});
 
 			// the torrent isn't paused, the session is
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 		});
 }
 
@@ -176,7 +176,7 @@ TORRENT_TEST(paused_session_add_torrent)
 
 		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			// the torrent isn't paused, the session is
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 		});
 }
 
@@ -196,7 +196,7 @@ TORRENT_TEST(paused_torrent_add_peers)
 		},
 
 		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
-			TEST_EQUAL(h.status().paused, true);
+			TEST_CHECK(h.status().flags & torrent_flags::paused);
 		});
 }
 
@@ -208,12 +208,12 @@ TORRENT_TEST(torrent_paused_alert)
 		[](lt::session&, lt::torrent_handle, std::array<fake_peer*, 3>&) {},
 
 		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			h.pause();
 		},
 
 		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
-			TEST_EQUAL(h.status().paused, true);
+			TEST_CHECK(h.status().flags & torrent_flags::paused);
 
 			std::vector<lt::alert*> alerts;
 			ses.pop_alerts(&alerts);
@@ -243,12 +243,12 @@ TORRENT_TEST(session_paused_alert)
 		[](lt::session&, lt::torrent_handle, std::array<fake_peer*, 3>&) {},
 
 		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			ses.pause();
 		},
 
 		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 
 			std::vector<lt::alert*> alerts;
 			ses.pop_alerts(&alerts);
@@ -277,17 +277,17 @@ TORRENT_TEST(session_pause_resume)
 	run_test(
 		[](lt::session&) {},
 		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			ses.pause();
 		},
 
 		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			ses.resume();
 		},
 
 		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 
 			std::vector<lt::alert*> alerts;
 			ses.pop_alerts(&alerts);
@@ -316,19 +316,19 @@ TORRENT_TEST(session_pause_resume_connect)
 	run_test(
 		[](lt::session&) {},
 		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			ses.pause();
 			add_fake_peers(h, 3);
 		},
 
 		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			check_accepted(test_peers, {{false, false, false}});
 			ses.resume();
 		},
 
 		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
-			TEST_EQUAL(h.status().paused, false);
+			TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 
 			check_accepted(test_peers, {{true, true, true}});
 		});

@@ -57,7 +57,7 @@ TORRENT_TEST(seed_mode)
 		, [](lt::settings_pack&) {}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
-			params.flags |= add_torrent_params::flag_seed_mode;
+			params.flags |= torrent_flags::seed_mode;
 		}
 		// on alert
 		, [](lt::alert const*, lt::session&) {}
@@ -84,7 +84,7 @@ TORRENT_TEST(seed_mode_disable_hash_checks)
 		}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
-			params.flags |= add_torrent_params::flag_seed_mode;
+			params.flags |= torrent_flags::seed_mode;
 			// just to make sure the disable_hash_checks really work, we
 			// shouldn't be verifying anything from the storage
 			params.storage = disabled_storage_constructor;
@@ -562,8 +562,8 @@ TORRENT_TEST(block_uploaded_alert)
 			}
 			else if (auto at = lt::alert_cast<lt::block_uploaded_alert>(a))
 			{
-				TEST_EQUAL(blocks[at->piece_index][at->block_index], false);
-				blocks[at->piece_index][at->block_index] = true;
+				TEST_EQUAL(blocks[static_cast<int>(at->piece_index)][at->block_index], false);
+				blocks[static_cast<int>(at->piece_index)][at->block_index] = true;
 			}
 		}
 		// terminate

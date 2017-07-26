@@ -222,8 +222,8 @@ void setup_swarm(int num_nodes
 	lt::settings_pack pack = settings();
 
 	lt::add_torrent_params p;
-	p.flags &= ~lt::add_torrent_params::flag_paused;
-	p.flags &= ~lt::add_torrent_params::flag_auto_managed;
+	p.flags &= ~lt::torrent_flags::paused;
+	p.flags &= ~lt::torrent_flags::auto_managed;
 
 	setup_swarm(num_nodes, type, sim, pack, p, new_session
 		, add_torrent, on_alert, terminate);

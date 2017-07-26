@@ -79,8 +79,8 @@ void test_transfer(int enc_policy, int level, bool prefer_rc4)
 	sim::simulation sim{cfg};
 
 	lt::add_torrent_params default_add_torrent;
-	default_add_torrent.flags &= ~lt::add_torrent_params::flag_paused;
-	default_add_torrent.flags &= ~lt::add_torrent_params::flag_auto_managed;
+	default_add_torrent.flags &= ~lt::torrent_flags::paused;
+	default_add_torrent.flags &= ~lt::torrent_flags::auto_managed;
 	setup_swarm(2, swarm_test::download, sim, default_settings, default_add_torrent
 		// add session
 		, [](lt::settings_pack& pack) {
@@ -165,8 +165,8 @@ TORRENT_TEST(disabled_failing)
 	sim::simulation sim{cfg};
 
 	lt::add_torrent_params default_add_torrent;
-	default_add_torrent.flags &= ~lt::add_torrent_params::flag_paused;
-	default_add_torrent.flags &= ~lt::add_torrent_params::flag_auto_managed;
+	default_add_torrent.flags &= ~lt::torrent_flags::paused;
+	default_add_torrent.flags &= ~lt::torrent_flags::auto_managed;
 	setup_swarm(2, swarm_test::download, sim, default_settings, default_add_torrent
 		// add session
 		, [](lt::settings_pack& pack) {

@@ -90,7 +90,7 @@ void run_metadata_test(int flags)
 	lt::add_torrent_params default_add_torrent;
 	if (flags & upload_only)
 	{
-		default_add_torrent.flags |= add_torrent_params::flag_upload_mode;
+		default_add_torrent.flags |= torrent_flags::upload_mode;
 	}
 
 	setup_swarm(2, (flags & reverse) ? swarm_test::upload : swarm_test::download
@@ -103,7 +103,7 @@ void run_metadata_test(int flags)
 			parse_magnet_uri(lt::make_magnet_uri(*params.ti), params, ec);
 			TEST_CHECK(!ec);
 			params.ti.reset();
-			params.flags &= ~add_torrent_params::flag_upload_mode;
+			params.flags &= ~torrent_flags::upload_mode;
 		}
 		// on alert
 		, [&](lt::alert const* a, lt::session& ses) {
