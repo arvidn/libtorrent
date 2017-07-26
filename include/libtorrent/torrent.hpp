@@ -529,7 +529,7 @@ namespace libtorrent {
 		bool is_paused() const;
 		bool is_torrent_paused() const { return m_paused; }
 		void force_recheck();
-		void save_resume_data(int flags);
+		void save_resume_data(resume_data_flags_t flags);
 
 		bool need_save_resume_data() const { return m_need_save_resume_data; }
 
@@ -1532,7 +1532,7 @@ namespace libtorrent {
 
 		// these are the flags sent in on a call to save_resume_data
 		// we need to save them to check them in write_resume_data
-		std::uint32_t m_save_resume_flags:8;
+		resume_data_flags_t m_save_resume_flags;
 
 // ----
 

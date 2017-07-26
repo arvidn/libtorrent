@@ -57,10 +57,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_flags.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 
-		struct session_impl;
-	}
+	struct session_impl;
+
+}
 
 	class entry;
 	struct open_file_state;
@@ -79,6 +81,9 @@ namespace libtorrent { namespace aux {
 #ifndef BOOST_NO_EXCEPTIONS
 	void TORRENT_NO_RETURN throw_invalid_handle();
 #endif
+
+	struct resume_data_flags_tag;
+	using resume_data_flags_t = flags::bitfield_flag<std::uint8_t, resume_data_flags_tag>;
 
 	// holds the state of a block in a piece. Who we requested
 	// it from and how far along we are at downloading it.
@@ -611,34 +616,26 @@ namespace libtorrent { namespace aux {
 		// will start connecting to peers again, as normal.
 		void force_recheck() const;
 
-		// flags used in the save_resume_data call to control additional
-		// actions or fields to save.
-		enum save_resume_flags_t
-		{
-			// the disk cache will be flushed before creating the resume data.
-			// This avoids a problem with file timestamps in the resume data in
-			// case the cache hasn't been flushed yet.
-			flush_disk_cache = 1,
+		// the disk cache will be flushed before creating the resume data.
+		// This avoids a problem with file timestamps in the resume data in
+		// case the cache hasn't been flushed yet.
+		static constexpr resume_data_flags_t flush_disk_cache{1};
 
-			// the resume data will contain the metadata from the torrent file as
-			// well. This is default for any torrent that's added without a
-			// torrent file (such as a magnet link or a URL).
-			save_info_dict = 2,
+		// the resume data will contain the metadata from the torrent file as
+		// well. This is default for any torrent that's added without a
+		// torrent file (such as a magnet link or a URL).
+		static constexpr resume_data_flags_t save_info_dict{2};
 
-			// if nothing significant has changed in the torrent since the last
-			// time resume data was saved, fail this attempt. Significant changes
-			// primarily include more data having been downloaded, file or piece
-			// priorities having changed etc. If the resume data doesn't need
-			// saving, a save_resume_data_failed_alert is posted with the error
-			// resume_data_not_modified.
-			only_if_modified = 4
-		};
+		// if nothing significant has changed in the torrent since the last
+		// time resume data was saved, fail this attempt. Significant changes
+		// primarily include more data having been downloaded, file or piece
+		// priorities having changed etc. If the resume data doesn't need
+		// saving, a save_resume_data_failed_alert is posted with the error
+		// resume_data_not_modified.
+		static constexpr resume_data_flags_t only_if_modified{4};
 
 		// ``save_resume_data()`` asks libtorrent to generate fast-resume data for
 		// this torrent.
-		//
-		// The ``flags`` argument is a bitmask of flags ORed together. see
-		// save_resume_flags_t
 		//
 		// This operation is asynchronous, ``save_resume_data`` will return
 		// immediately. The resume data is delivered when it's done through an
@@ -760,7 +757,7 @@ namespace libtorrent { namespace aux {
 		//	the alert, but it has not been received yet. Those torrents would
 		//	report that they don't need to save resume data again, and skipped by
 		//	the initial loop, and thwart the counter otherwise.
-		void save_resume_data(int flags = 0) const;
+		void save_resume_data(resume_data_flags_t flags = {}) const;
 
 		// This function returns true if any whole chunk has been downloaded
 		// since the torrent was first loaded or since the last time the resume

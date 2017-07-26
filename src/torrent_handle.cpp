@@ -58,6 +58,10 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent {
 
+	constexpr resume_data_flags_t torrent_handle::flush_disk_cache;
+	constexpr resume_data_flags_t torrent_handle::save_info_dict;
+	constexpr resume_data_flags_t torrent_handle::only_if_modified;
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void TORRENT_NO_RETURN throw_invalid_handle()
 	{
@@ -344,7 +348,7 @@ namespace libtorrent {
 #endif
 	}
 
-	void torrent_handle::save_resume_data(int f) const
+	void torrent_handle::save_resume_data(resume_data_flags_t f) const
 	{
 		async_call(&torrent::save_resume_data, f);
 	}
