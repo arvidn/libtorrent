@@ -37,21 +37,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/flags.hpp"
 
 namespace libtorrent {
 
+	// hidden
+	struct encode_string_flags_tag;
+	using encode_string_flags_t = flags::bitfield_flag<std::uint8_t, encode_string_flags_tag>;
+
 	namespace string
 	{
-		enum flags_t
-		{
-			// use lower case alphabet used with i2p
-			lowercase = 0x1,
-			// don't insert padding
-			no_padding = 0x2,
-			// shortcut used for addresses as sha256 hashes
-			i2p = lowercase | no_padding
-		};
-
+		// use lower case alphabet used with i2p
+		constexpr encode_string_flags_t lowercase{0x1};
+		// don't insert padding
+		constexpr encode_string_flags_t no_padding{0x2};
+		// shortcut used for addresses as sha256 hashes
+		constexpr encode_string_flags_t i2p = lowercase | no_padding;
 	}
 
 	TORRENT_EXTRA_EXPORT std::string unescape_string(string_view s, error_code& ec);
@@ -80,7 +81,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string base64encode(std::string const& s);
 #if TORRENT_USE_I2P
 	// encodes a string using the base32 scheme
-	TORRENT_EXTRA_EXPORT std::string base32encode(string_view s, int flags = 0);
+	TORRENT_EXTRA_EXPORT std::string base32encode(string_view s, encode_string_flags_t flags = {});
 #endif
 	TORRENT_EXTRA_EXPORT std::string base32decode(string_view s);
 
