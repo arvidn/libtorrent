@@ -1517,7 +1517,7 @@ MAGNETURL is a magnet link
 					// save resume data for all torrents
 					std::vector<torrent_status> torr;
 					ses.get_torrent_status(&torr, [](torrent_status const& st)
-					{ return st.need_save_resume; }, 0);
+					{ return st.need_save_resume; }, {});
 					for (torrent_status const& st : torr)
 					{
 						st.handle.save_resume_data(torrent_handle::save_info_dict);
@@ -1968,7 +1968,7 @@ COLUMN OPTIONS
 		if (!st.has_metadata) return false;
 		if (!st.need_save_resume) return false;
 		return true;
-	}, 0);
+	}, {});
 
 	int idx = 0;
 	for (auto const& st : temp)

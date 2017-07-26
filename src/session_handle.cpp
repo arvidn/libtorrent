@@ -155,18 +155,18 @@ namespace libtorrent {
 
 	void session_handle::get_torrent_status(std::vector<torrent_status>* ret
 		, std::function<bool(torrent_status const&)> const& pred
-		, std::uint32_t const flags) const
+		, status_flags_t const flags) const
 	{
 		sync_call(&session_impl::get_torrent_status, ret, pred, flags);
 	}
 
 	void session_handle::refresh_torrent_status(std::vector<torrent_status>* ret
-		, std::uint32_t flags) const
+		, status_flags_t const flags) const
 	{
 		sync_call(&session_impl::refresh_torrent_status, ret, flags);
 	}
 
-	void session_handle::post_torrent_updates(std::uint32_t flags)
+	void session_handle::post_torrent_updates(status_flags_t const flags)
 	{
 		async_call(&session_impl::post_torrent_updates, flags);
 	}

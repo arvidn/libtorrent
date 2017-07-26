@@ -78,6 +78,9 @@ namespace aux {
 	struct storage_interface;
 	class torrent;
 
+	struct status_flags_tag;
+	using status_flags_t = flags::bitfield_flag<std::uint32_t, status_flags_tag>;
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void TORRENT_NO_RETURN throw_invalid_handle();
 #endif
@@ -315,35 +318,30 @@ namespace aux {
 		// information about that particular peer. See peer_info.
 		void get_peer_info(std::vector<peer_info>& v) const;
 
-		// flags to pass in to status() to specify which properties of the
-		// torrent to query for. By default all flags are set.
-		enum status_flags_t
-		{
-			// calculates ``distributed_copies``, ``distributed_full_copies`` and
-			// ``distributed_fraction``.
-			query_distributed_copies = 1,
-			// includes partial downloaded blocks in ``total_done`` and
-			// ``total_wanted_done``.
-			query_accurate_download_counters = 2,
-			// includes ``last_seen_complete``.
-			query_last_seen_complete = 4,
-			// populate the ``pieces`` field in torrent_status.
-			query_pieces = 8,
-			// includes ``verified_pieces`` (only applies to torrents in *seed
-			// mode*).
-			query_verified_pieces = 16,
-			// includes ``torrent_file``, which is all the static information from
-			// the .torrent file.
-			query_torrent_file = 32,
-			// includes ``name``, the name of the torrent. This is either derived
-			// from the .torrent file, or from the ``&dn=`` magnet link argument
-			// or possibly some other source. If the name of the torrent is not
-			// known, this is an empty string.
-			query_name = 64,
-			// includes ``save_path``, the path to the directory the files of the
-			// torrent are saved to.
-			query_save_path = 128
-		};
+		// calculates ``distributed_copies``, ``distributed_full_copies`` and
+		// ``distributed_fraction``.
+		static constexpr status_flags_t query_distributed_copies{1};
+		// includes partial downloaded blocks in ``total_done`` and
+		// ``total_wanted_done``.
+		static constexpr status_flags_t query_accurate_download_counters{2};
+		// includes ``last_seen_complete``.
+		static constexpr status_flags_t query_last_seen_complete{4};
+		// populate the ``pieces`` field in torrent_status.
+		static constexpr status_flags_t query_pieces{8};
+		// includes ``verified_pieces`` (only applies to torrents in *seed
+		// mode*).
+		static constexpr status_flags_t query_verified_pieces{16};
+		// includes ``torrent_file``, which is all the static information from
+		// the .torrent file.
+		static constexpr status_flags_t query_torrent_file{32};
+		// includes ``name``, the name of the torrent. This is either derived
+		// from the .torrent file, or from the ``&dn=`` magnet link argument
+		// or possibly some other source. If the name of the torrent is not
+		// known, this is an empty string.
+		static constexpr status_flags_t query_name{64};
+		// includes ``save_path``, the path to the directory the files of the
+		// torrent are saved to.
+		static constexpr status_flags_t query_save_path{128};
 
 		// ``status()`` will return a structure with information about the status
 		// of this torrent. If the torrent_handle is invalid, it will throw
@@ -355,7 +353,7 @@ namespace aux {
 		//
 		// By default everything is included. The flags you can use to decide
 		// what to *include* are defined in the status_flags_t enum.
-		torrent_status status(std::uint32_t flags = 0xffffffff) const;
+		torrent_status status(status_flags_t flags = status_flags_t{0x7fffffff}) const;
 
 		// ``get_download_queue()`` takes a non-const reference to a vector which
 		// it will fill with information about pieces that are partially

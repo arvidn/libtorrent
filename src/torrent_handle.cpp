@@ -62,6 +62,15 @@ namespace libtorrent {
 	constexpr resume_data_flags_t torrent_handle::save_info_dict;
 	constexpr resume_data_flags_t torrent_handle::only_if_modified;
 
+	constexpr status_flags_t torrent_handle::query_distributed_copies;
+	constexpr status_flags_t torrent_handle::query_accurate_download_counters;
+	constexpr status_flags_t torrent_handle::query_last_seen_complete;
+	constexpr status_flags_t torrent_handle::query_pieces;
+	constexpr status_flags_t torrent_handle::query_verified_pieces;
+	constexpr status_flags_t torrent_handle::query_torrent_file;
+	constexpr status_flags_t torrent_handle::query_name;
+	constexpr status_flags_t torrent_handle::query_save_path;
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void TORRENT_NO_RETURN throw_invalid_handle()
 	{
@@ -430,7 +439,7 @@ namespace libtorrent {
 		sync_call(&torrent::file_progress, std::ref(arg), flags);
 	}
 
-	torrent_status torrent_handle::status(std::uint32_t flags) const
+	torrent_status torrent_handle::status(status_flags_t const flags) const
 	{
 		torrent_status st;
 		sync_call(&torrent::status, &st, flags);

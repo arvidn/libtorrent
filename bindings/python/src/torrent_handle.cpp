@@ -427,6 +427,7 @@ void add_piece(torrent_handle& th, piece_index_t piece, char const *data, int fl
    th.add_piece(piece, data, flags);
 }
 
+class dummy5 {};
 class dummy {};
 class dummy4 {};
 
@@ -615,13 +616,14 @@ void bind_torrent_handle()
         .value("alert_when_available", torrent_handle::alert_when_available)
     ;
 
-    enum_<torrent_handle::status_flags_t>("status_flags_t")
-        .value("query_distributed_copies", torrent_handle::query_distributed_copies)
-        .value("query_accurate_download_counters", torrent_handle::query_accurate_download_counters)
-        .value("query_last_seen_complete", torrent_handle::query_last_seen_complete)
-        .value("query_pieces", torrent_handle::query_pieces)
-        .value("query_verified_pieces", torrent_handle::query_verified_pieces)
-    ;
+	 {
+	 scope s = class_<dummy5>("status_flags_t");
+    s.attr("query_distributed_copies") = torrent_handle::query_distributed_copies;
+    s.attr("query_accurate_download_counters") = torrent_handle::query_accurate_download_counters;
+    s.attr("query_last_seen_complete") = torrent_handle::query_last_seen_complete;
+    s.attr("query_pieces") = torrent_handle::query_pieces;
+    s.attr("query_verified_pieces") = torrent_handle::query_verified_pieces;
+	 }
 
 }
 
