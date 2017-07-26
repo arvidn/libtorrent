@@ -298,6 +298,7 @@ void bind_converters()
     to_python_converter<lt::bandwidth_state_flags_t, from_bitfield_flag<lt::bandwidth_state_flags_t>>();
     to_python_converter<lt::file_open_mode_t, from_bitfield_flag<lt::file_open_mode_t>>();
     to_python_converter<lt::picker_flags_t, from_bitfield_flag<lt::picker_flags_t>>();
+    to_python_converter<lt::status_flags_t, from_bitfield_flag<lt::status_flags_t>>();
     to_python_converter<lt::alert_category_t, from_bitfield_flag<lt::alert_category_t>>();
     to_python_converter<lt::resume_data_flags_t, from_bitfield_flag<lt::resume_data_flags_t>>();
 
@@ -348,6 +349,7 @@ void bind_converters()
     to_bitfield_flag<lt::bandwidth_state_flags_t>();
     to_bitfield_flag<lt::file_open_mode_t>();
     to_bitfield_flag<lt::picker_flags_t>();
+    to_bitfield_flag<lt::status_flags_t>();
     to_bitfield_flag<lt::alert_category_t>();
     to_bitfield_flag<lt::resume_data_flags_t>();
 }

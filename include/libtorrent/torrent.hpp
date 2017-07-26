@@ -574,7 +574,7 @@ namespace libtorrent {
 		void clear_time_critical();
 		void update_piece_priorities();
 
-		void status(torrent_status* st, std::uint32_t flags);
+		void status(torrent_status* st, status_flags_t flags);
 
 		// this torrent changed state, if the user is subscribing to
 		// it, add it to the m_state_updates list in session_impl

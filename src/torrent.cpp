@@ -10546,7 +10546,7 @@ namespace {
 		m_links[aux::session_interface::torrent_state_updates].insert(list, this);
 	}
 
-	void torrent::status(torrent_status* st, std::uint32_t flags)
+	void torrent::status(torrent_status* st, status_flags_t flags)
 	{
 		INVARIANT_CHECK;
 
@@ -10656,7 +10656,7 @@ namespace {
 		st->super_seeding = m_super_seeding;
 #endif
 		st->has_metadata = valid_metadata();
-		bytes_done(*st, (flags & torrent_handle::query_accurate_download_counters) != 0);
+		bytes_done(*st, bool(flags & torrent_handle::query_accurate_download_counters));
 		TORRENT_ASSERT(st->total_wanted_done >= 0);
 		TORRENT_ASSERT(st->total_done >= st->total_wanted_done);
 

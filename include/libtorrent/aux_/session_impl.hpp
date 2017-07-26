@@ -504,10 +504,10 @@ namespace aux {
 
 			void get_torrent_status(std::vector<torrent_status>* ret
 				, std::function<bool(torrent_status const&)> const& pred
-				, std::uint32_t flags) const;
+				, status_flags_t flags) const;
 			void refresh_torrent_status(std::vector<torrent_status>* ret
-				, std::uint32_t flags) const;
-			void post_torrent_updates(std::uint32_t flags);
+				, status_flags_t flags) const;
+			void post_torrent_updates(status_flags_t flags);
 			void post_session_stats();
 			void post_dht_stats();
 

@@ -162,9 +162,9 @@ namespace libtorrent {
 		// a valid torrent are ignored.
 		void get_torrent_status(std::vector<torrent_status>* ret
 			, std::function<bool(torrent_status const&)> const& pred
-			, std::uint32_t flags = 0) const;
+			, status_flags_t flags = {}) const;
 		void refresh_torrent_status(std::vector<torrent_status>* ret
-			, std::uint32_t flags = 0) const;
+			, status_flags_t flags = {}) const;
 
 		// This functions instructs the session to post the state_update_alert,
 		// containing the status of all torrents whose state changed since the
@@ -174,7 +174,7 @@ namespace libtorrent {
 		// included. This flag is on by default. See add_torrent_params.
 		// the ``flags`` argument is the same as for torrent_handle::status().
 		// see torrent_handle::status_flags_t.
-		void post_torrent_updates(std::uint32_t flags = 0xffffffff);
+		void post_torrent_updates(status_flags_t flags = status_flags_t{0x7fffffff});
 
 		// This function will post a session_stats_alert object, containing a
 		// snapshot of the performance counters from the internals of libtorrent.
