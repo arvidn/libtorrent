@@ -59,20 +59,18 @@ namespace libtorrent {
 
 	struct utp_socket_manager
 	{
-		typedef std::function<void(std::weak_ptr<utp_socket_interface>
+		using send_fun_t = std::function<void(std::weak_ptr<utp_socket_interface>
 			, udp::endpoint const&
 			, span<char const>
-			, error_code&, int)> send_fun_t;
+			, error_code&, udp_send_flags_t)>;
 
-		typedef std::function<void(std::shared_ptr<socket_type> const&)>
-			incoming_utp_callback_t;
+		using incoming_utp_callback_t =  std::function<void(std::shared_ptr<socket_type> const&)>;
 
 		utp_socket_manager(send_fun_t const& send_fun
 			, incoming_utp_callback_t const& cb
 			, io_service& ios
 			, aux::session_settings const& sett
-			, counters& cnt, void* ssl_context
-			);
+			, counters& cnt, void* ssl_context);
 		~utp_socket_manager();
 
 		// return false if this is not a uTP packet
@@ -90,11 +88,9 @@ namespace libtorrent {
 
 		void tick(time_point now);
 
-		// flags for send_packet
-		enum { dont_fragment = 1 };
 		void send_packet(std::weak_ptr<utp_socket_interface> sock, udp::endpoint const& ep
 			, char const* p, int len
-			, error_code& ec, int flags = 0);
+			, error_code& ec, udp_send_flags_t flags = {});
 		void subscribe_writable(utp_socket_impl* s);
 
 		void remove_udp_socket(std::weak_ptr<utp_socket_interface> sock);

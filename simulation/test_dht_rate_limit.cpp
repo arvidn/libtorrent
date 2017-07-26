@@ -86,7 +86,7 @@ struct obs : dht::dht_observer
 };
 
 void send_packet(lt::udp_socket& sock, lt::aux::listen_socket_handle const&, udp::endpoint const& ep
-	, span<char const> p, error_code& ec, int flags)
+	, span<char const> p, error_code& ec, udp_send_flags_t const flags)
 {
 	sock.send(ep, p, ec, flags);
 }

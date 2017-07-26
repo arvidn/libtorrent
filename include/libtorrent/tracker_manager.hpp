@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/udp_socket.hpp"
 
 namespace libtorrent {
 
@@ -341,11 +342,11 @@ namespace libtorrent {
 		typedef std::function<void(aux::listen_socket_handle const&
 			, udp::endpoint const&
 			, span<char const>
-			, error_code&, int)> send_fun_t;
+			, error_code&, udp_send_flags_t)> send_fun_t;
 		typedef std::function<void(aux::listen_socket_handle const&
 			, char const*, int
 			, span<char const>
-			, error_code&, int)> send_fun_hostname_t;
+			, error_code&, udp_send_flags_t)> send_fun_hostname_t;
 
 		tracker_manager(send_fun_t const& send_fun
 			, send_fun_hostname_t const& send_fun_hostname
@@ -391,11 +392,11 @@ namespace libtorrent {
 
 		void send_hostname(aux::listen_socket_handle const& sock
 			, char const* hostname, int port, span<char const> p
-			, error_code& ec, int flags = 0);
+			, error_code& ec, udp_send_flags_t flags = {});
 
 		void send(aux::listen_socket_handle const& sock
 			, udp::endpoint const& ep, span<char const> p
-			, error_code& ec, int flags = 0);
+			, error_code& ec, udp_send_flags_t flags = {});
 
 	private:
 

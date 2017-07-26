@@ -140,7 +140,7 @@ namespace libtorrent {
 
 	void utp_socket_manager::send_packet(std::weak_ptr<utp_socket_interface> sock
 		, udp::endpoint const& ep, char const* p
-		, int const len, error_code& ec, int flags)
+		, int const len, error_code& ec, udp_send_flags_t const flags)
 	{
 #if !defined TORRENT_HAS_DONT_FRAGMENT && !defined TORRENT_DEBUG_MTU
 		TORRENT_UNUSED(flags);
@@ -152,7 +152,7 @@ namespace libtorrent {
 #endif
 
 		m_send_fun(sock, ep, {p, std::size_t(len)}, ec
-			, ((flags & dont_fragment) ? udp_socket::dont_fragment : 0)
+			, (flags & udp_socket::dont_fragment)
 				| udp_socket::peer_connection);
 	}
 

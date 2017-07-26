@@ -223,7 +223,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 }
 
 void udp_socket::send_hostname(char const* hostname, int const port
-	, span<char const> p, error_code& ec, int const flags)
+	, span<char const> p, error_code& ec, udp_send_flags_t const flags)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -254,7 +254,7 @@ void udp_socket::send_hostname(char const* hostname, int const port
 }
 
 void udp_socket::send(udp::endpoint const& ep, span<char const> p
-	, error_code& ec, int const flags)
+	, error_code& ec, udp_send_flags_t const flags)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -268,7 +268,7 @@ void udp_socket::send(udp::endpoint const& ep, span<char const> p
 	const bool allow_proxy
 		= ((flags & peer_connection) && m_proxy_settings.proxy_peer_connections)
 		|| ((flags & tracker_connection) && m_proxy_settings.proxy_tracker_connections)
-		|| (flags & (tracker_connection | peer_connection)) == 0
+		|| !(flags & (tracker_connection | peer_connection))
 		;
 
 	if (allow_proxy && m_socks5_connection && m_socks5_connection->active())
@@ -281,14 +281,14 @@ void udp_socket::send(udp::endpoint const& ep, span<char const> p
 	if (m_force_proxy) return;
 
 	// set the DF flag for the socket and clear it again in the destructor
-	set_dont_frag df(m_socket, (flags & dont_fragment) != 0
+	set_dont_frag df(m_socket, (flags & dont_fragment)
 		&& ep.protocol() == udp::v4());
 
 	m_socket.send_to(boost::asio::buffer(p.data(), p.size()), ep, 0, ec);
 }
 
 void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
-	, error_code& ec, int const flags)
+	, error_code& ec, udp_send_flags_t const flags)
 {
 	TORRENT_UNUSED(flags);
 	using namespace libtorrent::detail;
@@ -306,14 +306,14 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
 
 	// set the DF flag for the socket and clear it again in the destructor
-	set_dont_frag df(m_socket, (flags & dont_fragment) != 0
+	set_dont_frag df(m_socket, (flags & dont_fragment)
 		&& ep.protocol() == udp::v4());
 
 	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
 
 void udp_socket::wrap(char const* hostname, int const port, span<char const> p
-	, error_code& ec, int const flags)
+	, error_code& ec, udp_send_flags_t const flags)
 {
 	TORRENT_UNUSED(flags);
 	using namespace libtorrent::detail;
@@ -335,7 +335,7 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
 
 	// set the DF flag for the socket and clear it again in the destructor
-	set_dont_frag df(m_socket, (flags & dont_fragment) != 0
+	set_dont_frag df(m_socket, (flags & dont_fragment)
 		&& m_socket.local_endpoint(ec).protocol() == udp::v4());
 
 	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
@@ -761,5 +761,10 @@ void socks5::close()
 	m_resolver.cancel();
 	m_timer.cancel();
 }
+
+constexpr udp_send_flags_t udp_socket::peer_connection;
+constexpr udp_send_flags_t udp_socket::tracker_connection;
+constexpr udp_send_flags_t udp_socket::dont_queue;
+constexpr udp_send_flags_t udp_socket::dont_fragment;
 
 }

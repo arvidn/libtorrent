@@ -377,7 +377,7 @@ namespace libtorrent {
 
 	void tracker_manager::send_hostname(aux::listen_socket_handle const& sock
 		, char const* hostname, int const port
-		, span<char const> p, error_code& ec, int const flags)
+		, span<char const> p, error_code& ec, udp_send_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_send_fun_hostname(sock, hostname, port, p, ec, flags);
@@ -386,7 +386,7 @@ namespace libtorrent {
 	void tracker_manager::send(aux::listen_socket_handle const& sock
 		, udp::endpoint const& ep
 		, span<char const> p
-		, error_code& ec, int const flags)
+		, error_code& ec, udp_send_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_send_fun(sock, ep, p, ec, flags);

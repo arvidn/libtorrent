@@ -679,13 +679,13 @@ namespace libtorrent { namespace dht {
 					{ return v.first.get_local_endpoint().protocol().family() == addr.protocol().family(); });
 
 			if (n != m_nodes.end())
-				m_send_fun(n->first, addr, m_send_buf, ec, 0);
+				m_send_fun(n->first, addr, m_send_buf, ec, {});
 			else
 				ec = boost::asio::error::address_family_not_supported;
 		}
 		else
 		{
-			m_send_fun(s, addr, m_send_buf, ec, 0);
+			m_send_fun(s, addr, m_send_buf, ec, {});
 		}
 
 		if (ec)
