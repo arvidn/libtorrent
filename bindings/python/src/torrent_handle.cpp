@@ -428,6 +428,7 @@ void add_piece(torrent_handle& th, piece_index_t piece, char const *data, int fl
 }
 
 class dummy {};
+class dummy4 {};
 
 using by_value = return_value_policy<return_by_value>;
 void bind_torrent_handle()
@@ -603,11 +604,12 @@ void bind_torrent_handle()
         .value("graceful_pause", torrent_handle::graceful_pause)
     ;
 
-    enum_<torrent_handle::save_resume_flags_t>("save_resume_flags_t")
-        .value("flush_disk_cache", torrent_handle::flush_disk_cache)
-        .value("save_info_dict", torrent_handle::save_info_dict)
-        .value("only_if_modified", torrent_handle::only_if_modified)
-    ;
+    {
+    scope s = class_<dummy4>("save_resume_flags_t");
+    s.attr("flush_disk_cache") = torrent_handle::flush_disk_cache;
+    s.attr("save_info_dict") = torrent_handle::save_info_dict;
+    s.attr("only_if_modified") = torrent_handle::only_if_modified;
+    }
 
     enum_<torrent_handle::deadline_flags>("deadline_flags")
         .value("alert_when_available", torrent_handle::alert_when_available)

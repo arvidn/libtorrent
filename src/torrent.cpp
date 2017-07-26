@@ -194,7 +194,7 @@ namespace libtorrent {
 		, m_stop_when_ready(p.flags & torrent_flags::stop_when_ready)
 		, m_need_save_resume_data(p.flags & torrent_flags::need_save_resume)
 		, m_max_uploads((1 << 24) - 1)
-		, m_save_resume_flags(0)
+		, m_save_resume_flags()
 		, m_num_uploads(0)
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
@@ -8326,7 +8326,7 @@ namespace libtorrent {
 	// TODO: add a flag to ignore stats, and only care about resume data for
 	// content. For unchanged files, don't trigger a load of the metadata
 	// just to save an empty resume data file
-	void torrent::save_resume_data(int const flags)
+	void torrent::save_resume_data(resume_data_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -8346,7 +8346,7 @@ namespace libtorrent {
 		}
 
 		m_need_save_resume_data = false;
-		m_save_resume_flags = aux::numeric_cast<std::uint8_t>(flags);
+		m_save_resume_flags = flags;
 		state_updated();
 
 		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
