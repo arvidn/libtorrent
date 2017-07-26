@@ -1468,27 +1468,25 @@ namespace {
 		return tcp::endpoint();
 	}
 
-	enum { listen_no_system_port = 0x02 };
-
 	std::shared_ptr<listen_socket_t> session_impl::setup_listener(std::string const& device
-		, tcp::endpoint bind_ep, int flags, error_code& ec)
+		, tcp::endpoint bind_ep, transport const ssl, error_code& ec)
 	{
 		int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			session_log("attempting to open listen socket to: %s on device: %s flags: %x"
-				, print_endpoint(bind_ep).c_str(), device.c_str(), flags);
+			session_log("attempting to open listen socket to: %s on device: %s ssl: %x"
+				, print_endpoint(bind_ep).c_str(), device.c_str(), static_cast<int>(ssl));
 		}
 #endif
 
 		auto ret = std::make_shared<listen_socket_t>();
-		ret->ssl = (flags & open_ssl_socket) != 0 ? transport::ssl : transport::plaintext;
+		ret->ssl = ssl;
 		ret->original_port = bind_ep.port();
 		operation_t last_op = operation_t::unknown;
 		socket_type_t const sock_type
-			= (flags & open_ssl_socket)
+			= (ssl == transport::ssl)
 			? socket_type_t::tcp_ssl
 			: socket_type_t::tcp;
 
@@ -1624,7 +1622,7 @@ namespace {
 			}
 
 			if (ec == error_code(error::address_in_use)
-				&& !(flags & listen_no_system_port)
+				&& m_settings.get_bool(settings_pack::listen_system_port_fallback)
 				&& bind_ep.port() != 0)
 			{
 				// instead of giving up, try let the OS pick a port
@@ -1701,7 +1699,7 @@ namespace {
 		} // force-proxy mode
 
 		socket_type_t const udp_sock_type
-			= (flags & open_ssl_socket)
+			= (ssl == transport::ssl)
 			? socket_type_t::utp_ssl
 			: socket_type_t::udp;
 		udp::endpoint const udp_bind_ep(bind_ep.address(), bind_ep.port());
@@ -1896,8 +1894,6 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 
 		TORRENT_ASSERT(!m_abort);
-		int const flags = m_settings.get_bool(settings_pack::listen_system_port_fallback)
-			? 0 : listen_no_system_port;
 
 		m_stats_counters.set_value(counters::has_incoming_connections, 0);
 		error_code ec;
@@ -1975,8 +1971,7 @@ namespace {
 		for (auto const& ep : eps)
 		{
 			std::shared_ptr<listen_socket_t> s = setup_listener(ep.device
-				, tcp::endpoint(ep.addr, std::uint16_t(ep.port))
-				, flags | (ep.ssl == transport::ssl ? open_ssl_socket : 0), ec);
+				, tcp::endpoint(ep.addr, std::uint16_t(ep.port)), ep.ssl, ec);
 
 			if (!ec && (s->sock || s->udp_sock))
 			{

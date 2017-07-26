@@ -957,13 +957,8 @@ namespace aux {
 			// round-robin index into m_outgoing_interfaces
 			mutable std::uint8_t m_interface_index = 0;
 
-			enum listen_on_flags_t
-			{
-				open_ssl_socket = 0x10
-			};
-
 			std::shared_ptr<listen_socket_t> setup_listener(std::string const& device
-				, tcp::endpoint bind_ep, int flags, error_code& ec);
+				, tcp::endpoint bind_ep, transport ssl, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT
 			dht::dht_state m_dht_state;
