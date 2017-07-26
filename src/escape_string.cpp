@@ -340,7 +340,7 @@ namespace libtorrent {
 	}
 
 #if TORRENT_USE_I2P
-	std::string base32encode(string_view s, int flags)
+	std::string base32encode(string_view s, encode_string_flags_t const flags)
 	{
 		static char const base32_table_canonical[] =
 		{
@@ -356,7 +356,7 @@ namespace libtorrent {
 			'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
 			'y', 'z', '2', '3', '4', '5', '6', '7'
 		};
-		char const *base32_table = 0 != (flags & string::lowercase) ? base32_table_lowercase : base32_table_canonical;
+		char const *base32_table = (flags & string::lowercase) ? base32_table_lowercase : base32_table_canonical;
 
 		static aux::array<int, 6> const input_output_mapping{{{0, 2, 4, 5, 7, 8}}};
 
@@ -392,7 +392,7 @@ namespace libtorrent {
 				ret += base32_table[outbuf[j]];
 			}
 
-			if (0 == (flags & string::no_padding))
+			if (!(flags & string::no_padding))
 			{
 				// write pad
 				for (int j = 0; j < int(outbuf.size()) - num_out; ++j)
