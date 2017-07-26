@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
+auto const mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 
 void wait_for_complete(lt::session& ses, torrent_handle h)
 {

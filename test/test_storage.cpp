@@ -769,7 +769,7 @@ TORRENT_TEST(rename_file)
 	file_storage fs;
 	std::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
 
-	const int mask = alert::all_categories
+	auto const mask = alert::all_categories
 		& ~(alert::performance_warning
 			| alert::stats_notification);
 

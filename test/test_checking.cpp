@@ -176,7 +176,7 @@ void test_checking(int flags = read_only_files)
 		}
 	}
 
-	int mask = alert::all_categories
+	auto const mask = alert::all_categories
 		& ~(alert::progress_notification
 			| alert::performance_warning
 			| alert::stats_notification);

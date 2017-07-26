@@ -38,7 +38,7 @@ using namespace lt;
 
 lt::settings_pack settings()
 {
-	const int mask = alert::all_categories
+	auto const mask = alert::all_categories
 		& ~(alert::progress_notification
 			| alert::performance_warning
 			| alert::stats_notification

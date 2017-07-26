@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/flags.hpp"
 
 #include <vector>
 #include <memory>
@@ -94,6 +95,9 @@ namespace libtorrent {
 		void set_int(int name, int val);
 		void set_bool(int name, bool val);
 		bool has_val(int name) const;
+		template <typename Type, typename Tag>
+		void set_int(int name, flags::bitfield_flag<Type, Tag> const val)
+		{ set_int(name, static_cast<int>(static_cast<Type>(val))); }
 
 		// clear the settings pack from all settings
 		void clear();

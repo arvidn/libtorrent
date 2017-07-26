@@ -89,7 +89,7 @@ void test_read_piece(int flags)
 	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"
 		, aux::to_hex(ti->info_hash()).c_str());
 
-	const int mask = alert::all_categories
+	auto const mask = alert::all_categories
 		& ~(alert::progress_notification
 			| alert::performance_warning
 			| alert::stats_notification);

@@ -235,6 +235,8 @@ namespace boost
 #undef POLY
 }
 
+struct dummy3 {};
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -263,31 +265,28 @@ void bind_alert()
             ;
 #endif
 
-        enum_<alert::category_t>("category_t")
-            .value("error_notification", alert::error_notification)
-            .value("peer_notification", alert::peer_notification)
-            .value("port_mapping_notification", alert::port_mapping_notification)
-            .value("storage_notification", alert::storage_notification)
-            .value("tracker_notification", alert::tracker_notification)
-            .value("debug_notification", alert::debug_notification)
-            .value("status_notification", alert::status_notification)
-            .value("progress_notification", alert::progress_notification)
-            .value("ip_block_notification", alert::ip_block_notification)
-            .value("performance_warning", alert::performance_warning)
-            .value("dht_notification", alert::dht_notification)
-            .value("stats_notification", alert::stats_notification)
-            .value("session_log_notification", alert::session_log_notification)
-            .value("torrent_log_notification", alert::torrent_log_notification)
-            .value("peer_log_notification", alert::peer_log_notification)
-            .value("incoming_request_notification", alert::incoming_request_notification)
-            .value("dht_log_notification", alert::dht_log_notification)
-            .value("dht_operation_notification", alert::dht_operation_notification)
-            .value("port_mapping_log_notification", alert::port_mapping_log_notification)
-            .value("picker_log_notification", alert::picker_log_notification)
-            // deliberately not INT_MAX. Arch linux crash while throwing an exception
-            .value("all_categories", (alert::category_t)0xfffffff)
-            ;
-
+        scope s = class_<dummy3>("category_t");
+        s.attr("error_notification") = alert::error_notification;
+        s.attr("peer_notification") = alert::peer_notification;
+        s.attr("port_mapping_notification") = alert::port_mapping_notification;
+        s.attr("storage_notification") = alert::storage_notification;
+        s.attr("tracker_notification") = alert::tracker_notification;
+        s.attr("debug_notification") = alert::debug_notification;
+        s.attr("status_notification") = alert::status_notification;
+        s.attr("progress_notification") = alert::progress_notification;
+        s.attr("ip_block_notification") = alert::ip_block_notification;
+        s.attr("performance_warning") = alert::performance_warning;
+        s.attr("dht_notification") = alert::dht_notification;
+        s.attr("stats_notification") = alert::stats_notification;
+        s.attr("session_log_notification") = alert::session_log_notification;
+        s.attr("torrent_log_notification") = alert::torrent_log_notification;
+        s.attr("peer_log_notification") = alert::peer_log_notification;
+        s.attr("incoming_request_notification") = alert::incoming_request_notification;
+        s.attr("dht_log_notification") = alert::dht_log_notification;
+        s.attr("dht_operation_notification") = alert::dht_operation_notification;
+        s.attr("port_mapping_log_notification") = alert::port_mapping_log_notification;
+        s.attr("picker_log_notification") = alert::picker_log_notification;
+        s.attr("all_categories") = alert::all_categories;
     }
 
     enum_<operation_t>("operation_t")

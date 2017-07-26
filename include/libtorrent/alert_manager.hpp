@@ -55,7 +55,7 @@ namespace libtorrent {
 	{
 	public:
 		alert_manager(int queue_limit
-			, std::uint32_t alert_mask = alert::error_notification);
+			, alert_category_t alert_mask = alert::error_notification);
 		~alert_manager();
 
 		template <class T, typename... Args>
@@ -90,8 +90,7 @@ namespace libtorrent {
 		template <class T>
 		bool should_post() const
 		{
-			if ((m_alert_mask.load(std::memory_order_relaxed)
-				& T::static_category) == 0)
+			if (!(m_alert_mask.load(std::memory_order_relaxed) & T::static_category))
 			{
 				return false;
 			}
@@ -101,12 +100,12 @@ namespace libtorrent {
 
 		alert* wait_for_alert(time_duration max_wait);
 
-		void set_alert_mask(std::uint32_t m)
+		void set_alert_mask(alert_category_t const m)
 		{
 			m_alert_mask = m;
 		}
 
-		std::uint32_t alert_mask() const
+		alert_category_t alert_mask() const
 		{
 			return m_alert_mask;
 		}
@@ -131,7 +130,7 @@ namespace libtorrent {
 
 		mutable std::mutex m_mutex;
 		std::condition_variable m_condition;
-		std::atomic<std::uint32_t> m_alert_mask;
+		std::atomic<alert_category_t> m_alert_mask;
 		int m_queue_size_limit;
 
 		// this function (if set) is called whenever the number of alerts in
