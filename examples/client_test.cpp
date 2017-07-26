@@ -1260,13 +1260,13 @@ MAGNETURL is a magnet link
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::alert_mask, alert::all_categories
 		& ~(alert::dht_notification
-		+ alert::progress_notification
-		+ alert::stats_notification
-		+ alert::session_log_notification
-		+ alert::torrent_log_notification
-		+ alert::peer_log_notification
-		+ alert::dht_log_notification
-		+ alert::picker_log_notification
+		| alert::progress_notification
+		| alert::stats_notification
+		| alert::session_log_notification
+		| alert::torrent_log_notification
+		| alert::peer_log_notification
+		| alert::dht_log_notification
+		| alert::picker_log_notification
 		));
 
 	lt::session ses(std::move(params));

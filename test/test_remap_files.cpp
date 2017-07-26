@@ -74,7 +74,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 
 	t->remap_files(fs);
 
-	int const alert_mask = alert::all_categories
+	auto const alert_mask = alert::all_categories
 		& ~alert::stats_notification;
 
 	session_proxy p1;

@@ -15,6 +15,7 @@
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/alert_types.hpp" // for picker_flags_t
+#include "libtorrent/alert.hpp"
 #include <vector>
 
 using namespace boost::python;
@@ -297,6 +298,7 @@ void bind_converters()
     to_python_converter<lt::bandwidth_state_flags_t, from_bitfield_flag<lt::bandwidth_state_flags_t>>();
     to_python_converter<lt::file_open_mode_t, from_bitfield_flag<lt::file_open_mode_t>>();
     to_python_converter<lt::picker_flags_t, from_bitfield_flag<lt::picker_flags_t>>();
+    to_python_converter<lt::alert_category_t, from_bitfield_flag<lt::alert_category_t>>();
 
     // work-around types
     to_python_converter<lt::aux::noexcept_movable<lt::address>, address_to_tuple<
@@ -345,4 +347,5 @@ void bind_converters()
     to_bitfield_flag<lt::bandwidth_state_flags_t>();
     to_bitfield_flag<lt::file_open_mode_t>();
     to_bitfield_flag<lt::picker_flags_t>();
+    to_bitfield_flag<lt::alert_category_t>();
 }

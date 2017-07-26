@@ -108,8 +108,8 @@ namespace libtorrent {
 		peer_alert(peer_alert&& rhs) noexcept = default;
 
 		static const int alert_type = 1;
-		static const int static_category = alert::peer_notification;
-		virtual int category() const override { return static_category; }
+		static constexpr alert_category_t static_category = alert::peer_notification;
+		virtual alert_category_t category() const override { return static_category; }
 		virtual std::string message() const override;
 
 		// The peer's IP address and port.
@@ -134,8 +134,8 @@ namespace libtorrent {
 			, string_view u);
 
 		static const int alert_type = 2;
-		static const int static_category = alert::tracker_notification;
-		virtual int category() const override { return static_category; }
+		static constexpr alert_category_t static_category = alert::tracker_notification;
+		virtual alert_category_t category() const override { return static_category; }
 		virtual std::string message() const override;
 
 		// returns a 0-terminated string of the tracker's URL
@@ -155,7 +155,7 @@ namespace libtorrent {
 	static const int priority = prio; \
 	static const int alert_type = seq; \
 	virtual int type() const override { return alert_type; } \
-	virtual int category() const override { return static_category; } \
+	virtual alert_category_t category() const override { return static_category; } \
 	virtual char const* what() const override { return #name; }
 
 #define TORRENT_DEFINE_ALERT(name, seq) \
@@ -177,7 +177,7 @@ namespace libtorrent {
 		torrent_added_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
 		TORRENT_DEFINE_ALERT(torrent_added_alert, 3)
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 	};
 #endif
@@ -201,7 +201,7 @@ namespace libtorrent {
 			, torrent_handle const& h, sha1_hash const& ih);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4)
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 		sha1_hash info_hash;
 	};
@@ -224,7 +224,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5)
 
-		static const int static_category = alert::storage_notification;
+		static constexpr alert_category_t static_category = alert::storage_notification;
 		virtual std::string message() const override;
 
 		error_code const error;
@@ -247,7 +247,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(file_completed_alert, 6)
 
-		static const int static_category = alert::progress_notification;
+		static constexpr alert_category_t static_category = alert::progress_notification;
 		virtual std::string message() const override;
 
 		// refers to the index of the file that completed.
@@ -264,7 +264,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7)
 
-		static const int static_category = alert::storage_notification;
+		static constexpr alert_category_t static_category = alert::storage_notification;
 		virtual std::string message() const override;
 
 		char const* new_name() const;
@@ -290,7 +290,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8)
 
-		static const int static_category = alert::storage_notification;
+		static constexpr alert_category_t static_category = alert::storage_notification;
 
 		virtual std::string message() const override;
 
@@ -391,7 +391,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(performance_alert, 9)
 
-		static const int static_category = alert::performance_warning;
+		static constexpr alert_category_t static_category = alert::performance_warning;
 
 		virtual std::string message() const override;
 
@@ -408,7 +408,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(state_changed_alert, 10)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 
 		virtual std::string message() const override;
 
@@ -436,7 +436,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(tracker_error_alert, 11)
 
-		static const int static_category = alert::tracker_notification | alert::error_notification;
+		static constexpr alert_category_t static_category = alert::tracker_notification | alert::error_notification;
 		virtual std::string message() const override;
 
 		int const times_in_row;
@@ -465,7 +465,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(tracker_warning_alert, 12)
 
-		static const int static_category = alert::tracker_notification | alert::error_notification;
+		static constexpr alert_category_t static_category = alert::tracker_notification | alert::error_notification;
 		virtual std::string message() const override;
 
 		// the message associated with this warning
@@ -510,7 +510,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(scrape_failed_alert, 14)
 
-		static const int static_category = alert::tracker_notification | alert::error_notification;
+		static constexpr alert_category_t static_category = alert::tracker_notification | alert::error_notification;
 		virtual std::string message() const override;
 
 		// the error itself. This may indicate that the tracker sent an error
@@ -561,6 +561,7 @@ namespace libtorrent {
 			, torrent_handle const& h
 			, int np);
 
+		static constexpr alert_category_t static_category = alert::dht_notification | alert::tracker_notification;
 		TORRENT_DEFINE_ALERT(dht_reply_alert, 16)
 
 		virtual std::string message() const override;
@@ -601,7 +602,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(hash_failed_alert, 18)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 
 		piece_index_t const piece_index;
@@ -657,7 +658,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(peer_error_alert, 22)
 
-		static const int static_category = alert::peer_notification;
+		static constexpr alert_category_t static_category = alert::peer_notification;
 		virtual std::string message() const override;
 
 		// a 0-terminated string of the low-level operation that failed, or nullptr if
@@ -682,7 +683,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(peer_connect_alert, 23)
 
-		static const int static_category = alert::debug_notification;
+		static constexpr alert_category_t static_category = alert::debug_notification;
 		virtual std::string message() const override;
 
 		int const socket_type;
@@ -700,7 +701,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(peer_disconnected_alert, 24)
 
-		static const int static_category = alert::debug_notification;
+		static constexpr alert_category_t static_category = alert::debug_notification;
 		virtual std::string message() const override;
 
 		// the kind of socket this peer was connected over
@@ -763,7 +764,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(torrent_finished_alert, 26)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 	};
 
@@ -778,7 +779,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(piece_finished_alert, 27)
 
-		static const int static_category = alert::progress_notification;
+		static constexpr alert_category_t static_category = alert::progress_notification;
 		virtual std::string message() const override;
 
 		// the index of the piece that finished
@@ -795,7 +796,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(request_dropped_alert, 28)
 
-		static const int static_category = alert::progress_notification
+		static constexpr alert_category_t static_category = alert::progress_notification
 			| alert::peer_notification;
 		virtual std::string message() const override;
 
@@ -813,7 +814,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(block_timeout_alert, 29)
 
-		static const int static_category = alert::progress_notification
+		static constexpr alert_category_t static_category = alert::progress_notification
 			| alert::peer_notification;
 		virtual std::string message() const override;
 
@@ -831,7 +832,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(block_finished_alert, 30)
 
-		static const int static_category = alert::progress_notification;
+		static constexpr alert_category_t static_category = alert::progress_notification;
 		virtual std::string message() const override;
 
 		int const block_index;
@@ -848,7 +849,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(block_downloading_alert, 31)
 
-		static const int static_category = alert::progress_notification;
+		static constexpr alert_category_t static_category = alert::progress_notification;
 		virtual std::string message() const override;
 
 		int const block_index;
@@ -887,7 +888,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(storage_moved_alert, 33)
 
-		static const int static_category = alert::storage_notification;
+		static constexpr alert_category_t static_category = alert::storage_notification;
 		virtual std::string message() const override;
 
 		// the path the torrent was moved to
@@ -912,7 +913,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(storage_moved_failed_alert, 34)
 
-		static const int static_category = alert::storage_notification;
+		static constexpr alert_category_t static_category = alert::storage_notification;
 		virtual std::string message() const override;
 
 		error_code const error;
@@ -949,7 +950,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35)
 
-		static const int static_category = alert::storage_notification;
+		static constexpr alert_category_t static_category = alert::storage_notification;
 		virtual std::string message() const override;
 
 		sha1_hash info_hash;
@@ -965,7 +966,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36)
 
-		static const int static_category = alert::storage_notification
+		static constexpr alert_category_t static_category = alert::storage_notification
 			| alert::error_notification;
 		virtual std::string message() const override;
 
@@ -991,7 +992,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37)
 
-		static const int static_category = alert::storage_notification;
+		static constexpr alert_category_t static_category = alert::storage_notification;
 		virtual std::string message() const override;
 
 		// the ``params`` structure is populated with the fields to be passed to
@@ -1015,7 +1016,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_failed_alert, 38)
 
-		static const int static_category = alert::storage_notification
+		static constexpr alert_category_t static_category = alert::storage_notification
 			| alert::error_notification;
 		virtual std::string message() const override;
 
@@ -1037,7 +1038,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(torrent_paused_alert, 39)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 	};
 
@@ -1050,7 +1051,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(torrent_resumed_alert, 40)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 	};
 
@@ -1063,7 +1064,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(torrent_checked_alert, 41)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 	};
 
@@ -1078,7 +1079,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(url_seed_alert, 42)
 
-		static const int static_category = alert::peer_notification | alert::error_notification;
+		static constexpr alert_category_t static_category = alert::peer_notification | alert::error_notification;
 		virtual std::string message() const override;
 
 		// the error the web seed encountered. If this is not set, the server
@@ -1116,7 +1117,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(file_error_alert, 43)
 
-		static const int static_category = alert::status_notification
+		static constexpr alert_category_t static_category = alert::status_notification
 			| alert::error_notification
 			| alert::storage_notification;
 		virtual std::string message() const override;
@@ -1153,7 +1154,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(metadata_failed_alert, 44)
 
-		static const int static_category = alert::error_notification;
+		static constexpr alert_category_t static_category = alert::error_notification;
 		virtual std::string message() const override;
 
 		// indicates what failed when parsing the metadata. This error is
@@ -1193,7 +1194,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(metadata_received_alert, 45)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 	};
 
@@ -1210,7 +1211,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(udp_error_alert, 46)
 
-		static const int static_category = alert::error_notification;
+		static constexpr alert_category_t static_category = alert::error_notification;
 		virtual std::string message() const override;
 
 		// the source address associated with the error (if any)
@@ -1231,7 +1232,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(external_ip_alert, 47)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 
 		// the IP address that is believed to be our external IP
@@ -1282,7 +1283,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48)
 
-		static const int static_category = alert::status_notification | alert::error_notification;
+		static constexpr alert_category_t static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const override;
 
 		// the network device libtorrent attempted to listen on, or the IP address
@@ -1358,7 +1359,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 
 		// the address libtorrent ended up listening on. This address
@@ -1395,7 +1396,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(portmap_error_alert, 50)
 
-		static const int static_category = alert::port_mapping_notification
+		static constexpr alert_category_t static_category = alert::port_mapping_notification
 			| alert::error_notification;
 		virtual std::string message() const override;
 
@@ -1424,7 +1425,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(portmap_alert, 51)
 
-		static const int static_category = alert::port_mapping_notification;
+		static constexpr alert_category_t static_category = alert::port_mapping_notification;
 		virtual std::string message() const override;
 
 		// refers to the mapping index of the port map that failed, i.e.
@@ -1460,7 +1461,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(portmap_log_alert, 52)
 
-		static const int static_category = alert::port_mapping_log_notification;
+		static constexpr alert_category_t static_category = alert::port_mapping_log_notification;
 		virtual std::string message() const override;
 
 		int const map_type;
@@ -1492,7 +1493,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(fastresume_rejected_alert, 53)
 
-		static const int static_category = alert::status_notification
+		static constexpr alert_category_t static_category = alert::status_notification
 			| alert::error_notification;
 		virtual std::string message() const override;
 
@@ -1534,7 +1535,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(peer_blocked_alert, 54)
 
-		static const int static_category = alert::ip_block_notification;
+		static constexpr alert_category_t static_category = alert::ip_block_notification;
 		virtual std::string message() const override;
 
 		enum reason_t
@@ -1563,7 +1564,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(dht_announce_alert, 55)
 
-		static const int static_category = alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::dht_notification;
 		virtual std::string message() const override;
 
 		aux::noexcept_movable<address> ip;
@@ -1580,7 +1581,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(dht_get_peers_alert, 56)
 
-		static const int static_category = alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::dht_notification;
 		virtual std::string message() const override;
 
 		sha1_hash info_hash;
@@ -1599,7 +1600,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(stats_alert, 57)
 
-		static const int static_category = alert::stats_notification;
+		static constexpr alert_category_t static_category = alert::stats_notification;
 		virtual std::string message() const override;
 
 		enum stats_channel
@@ -1650,7 +1651,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(cache_flushed_alert, 58)
 
-		static const int static_category = alert::storage_notification;
+		static constexpr alert_category_t static_category = alert::storage_notification;
 	};
 
 	// This alert is posted when a bittorrent feature is blocked because of the
@@ -1665,7 +1666,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(anonymous_mode_alert, 59)
 
-		static const int static_category = alert::error_notification;
+		static constexpr alert_category_t static_category = alert::error_notification;
 		virtual std::string message() const override;
 
 		enum kind_t
@@ -1691,7 +1692,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(lsd_peer_alert, 60)
 
-		static const int static_category = alert::peer_notification;
+		static constexpr alert_category_t static_category = alert::peer_notification;
 		virtual std::string message() const override;
 	};
 
@@ -1706,7 +1707,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(trackerid_alert, 61)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 
 		// The tracker ID returned by the tracker
@@ -1729,7 +1730,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(dht_bootstrap_alert, 62)
 
-		static const int static_category = alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::dht_notification;
 		virtual std::string message() const override;
 	};
 
@@ -1742,7 +1743,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(torrent_error_alert, 64)
 
-		static const int static_category = alert::error_notification | alert::status_notification;
+		static constexpr alert_category_t static_category = alert::error_notification | alert::status_notification;
 		virtual std::string message() const override;
 
 		// specifies which error the torrent encountered.
@@ -1773,7 +1774,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_need_cert_alert, 65)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 
 		error_code const error;
@@ -1793,7 +1794,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(incoming_connection_alert, 66)
 
-		static const int static_category = alert::peer_notification;
+		static constexpr alert_category_t static_category = alert::peer_notification;
 		virtual std::string message() const override;
 
 		// tells you what kind of socket the connection was accepted
@@ -1833,7 +1834,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 
 		// a copy of the parameters used when adding the torrent, it can be used
@@ -1856,7 +1857,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(state_update_alert, 68)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 
 		// contains the torrent status of all torrents that changed since last
@@ -1883,7 +1884,7 @@ namespace libtorrent {
 			, error_code const& ec);
 		TORRENT_DEFINE_ALERT(mmap_cache_alert, 69)
 
-		static const int static_category = alert::error_notification;
+		static constexpr alert_category_t static_category = alert::error_notification;
 		virtual std::string message() const override;
 
 		error_code const error;
@@ -1923,7 +1924,7 @@ namespace libtorrent {
 #endif
 #endif
 
-		static const int static_category = alert::stats_notification;
+		static constexpr alert_category_t static_category = alert::stats_notification;
 		virtual std::string message() const override;
 
 		// An array are a mix of *counters* and *gauges*, which meanings can be
@@ -1972,7 +1973,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71)
 
-		static const int static_category = alert::status_notification;
+		static constexpr alert_category_t static_category = alert::status_notification;
 		virtual std::string message() const override;
 
 		// ``old_ih`` and ``new_ih`` are the previous and new info-hash for the torrent, respectively.
@@ -1997,7 +1998,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(dht_error_alert, 73)
 
-		static const int static_category = alert::error_notification | alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::error_notification | alert::dht_notification;
 		virtual std::string message() const override;
 
 		// the error code
@@ -2027,7 +2028,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74)
 
-		static const int static_category = alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::dht_notification;
 
 		virtual std::string message() const override;
 
@@ -2049,7 +2050,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75)
 
-		static const int static_category = alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::dht_notification;
 		virtual std::string message() const override;
 
 		// the public key that was looked up
@@ -2090,7 +2091,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(dht_put_alert, 76)
 
-		static const int static_category = alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::dht_notification;
 		virtual std::string message() const override;
 
 		// the target hash the item was stored under if this was an *immutable*
@@ -2118,7 +2119,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(i2p_alert, 77)
 
-		static const int static_category = alert::error_notification;
+		static constexpr alert_category_t static_category = alert::error_notification;
 		virtual std::string message() const override;
 
 		// the error that occurred in the i2p SAM connection
@@ -2136,7 +2137,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(dht_outgoing_get_peers_alert, 78)
 
-		static const int static_category = alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::dht_notification;
 		virtual std::string message() const override;
 
 		// the info_hash of the torrent we're looking for peers for.
@@ -2167,7 +2168,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(log_alert, 79)
 
-		static const int static_category = alert::session_log_notification;
+		static constexpr alert_category_t static_category = alert::session_log_notification;
 		virtual std::string message() const override;
 
 		// returns the log message
@@ -2196,7 +2197,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(torrent_log_alert, 80)
 
-		static const int static_category = alert::torrent_log_notification;
+		static constexpr alert_category_t static_category = alert::torrent_log_notification;
 		virtual std::string message() const override;
 
 		// returns the log message
@@ -2237,7 +2238,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(peer_log_alert, 81)
 
-		static const int static_category = alert::peer_log_notification;
+		static constexpr alert_category_t static_category = alert::peer_log_notification;
 		virtual std::string message() const override;
 
 		// string literal indicating the kind of event. For messages, this is the
@@ -2268,7 +2269,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(lsd_error_alert, 82)
 
-		static const int static_category = alert::error_notification;
+		static constexpr alert_category_t static_category = alert::error_notification;
 		virtual std::string message() const override;
 
 		// The error code
@@ -2345,7 +2346,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(dht_stats_alert, 83)
 
-		static const int static_category = alert::stats_notification;
+		static constexpr alert_category_t static_category = alert::stats_notification;
 		virtual std::string message() const override;
 
 		// a vector of the currently running DHT lookups.
@@ -2367,7 +2368,7 @@ namespace libtorrent {
 			, peer_request r, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id);
 
-		static const int static_category = alert::incoming_request_notification;
+		static constexpr alert_category_t static_category = alert::incoming_request_notification;
 		TORRENT_DEFINE_ALERT(incoming_request_alert, 84)
 
 		virtual std::string message() const override;
@@ -2390,7 +2391,7 @@ namespace libtorrent {
 		dht_log_alert(aux::stack_allocator& alloc
 			, dht_module_t m, char const* fmt, va_list v);
 
-		static const int static_category = alert::dht_log_notification;
+		static constexpr alert_category_t static_category = alert::dht_log_notification;
 		TORRENT_DEFINE_ALERT(dht_log_alert, 85)
 
 		virtual std::string message() const override;
@@ -2417,7 +2418,7 @@ namespace libtorrent {
 		dht_pkt_alert(aux::stack_allocator& alloc, span<char const> buf
 			, dht_pkt_alert::direction_t d, udp::endpoint const& ep);
 
-		static const int static_category = alert::dht_log_notification;
+		static constexpr alert_category_t static_category = alert::dht_log_notification;
 		TORRENT_DEFINE_ALERT(dht_pkt_alert, 86)
 
 		virtual std::string message() const override;
@@ -2452,7 +2453,7 @@ namespace libtorrent {
 			, sha1_hash const& ih
 			, std::vector<tcp::endpoint> const& v);
 
-		static const int static_category = alert::dht_operation_notification;
+		static constexpr alert_category_t static_category = alert::dht_operation_notification;
 		TORRENT_DEFINE_ALERT(dht_get_peers_reply_alert, 87)
 
 		virtual std::string message() const override;
@@ -2488,7 +2489,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(dht_direct_response_alert, 88)
 
-		static const int static_category = alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::dht_notification;
 		virtual std::string message() const override;
 
 		void const* userdata;
@@ -2522,7 +2523,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(picker_log_alert, 89)
 
-		static const int static_category = alert::picker_log_notification;
+		static constexpr alert_category_t static_category = alert::picker_log_notification;
 		virtual std::string message() const override;
 
 		static constexpr picker_flags_t partial_ratio{0x1};
@@ -2563,7 +2564,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(session_error_alert, 90)
 
-		static const int static_category = alert::error_notification;
+		static constexpr alert_category_t static_category = alert::error_notification;
 		std::string message() const override;
 
 		// The error code, if one is associated with this error
@@ -2582,7 +2583,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(dht_live_nodes_alert, 91)
 
-		static const int static_category = alert::dht_notification;
+		static constexpr alert_category_t static_category = alert::dht_notification;
 		virtual std::string message() const override;
 
 		sha1_hash node_id;
@@ -2612,7 +2613,7 @@ namespace libtorrent {
 		explicit session_stats_header_alert(aux::stack_allocator& alloc);
 		TORRENT_DEFINE_ALERT(session_stats_header_alert, 92)
 
-		static const int static_category = alert::stats_notification;
+		static constexpr alert_category_t static_category = alert::stats_notification;
 		virtual std::string message() const override;
 	};
 
@@ -2625,7 +2626,7 @@ namespace libtorrent {
 			, std::vector<sha1_hash> const& samples
 			, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes);
 
-		static const int static_category = alert::dht_operation_notification;
+		static constexpr alert_category_t static_category = alert::dht_operation_notification;
 		TORRENT_DEFINE_ALERT(dht_sample_infohashes_alert, 93)
 
 		virtual std::string message() const override;
@@ -2675,7 +2676,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(block_uploaded_alert, 94)
 
-		static const int static_category = alert::progress_notification;
+		static constexpr alert_category_t static_category = alert::progress_notification;
 		virtual std::string message() const override;
 
 		int const block_index;

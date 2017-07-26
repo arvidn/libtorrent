@@ -53,7 +53,8 @@ using namespace lt;
 
 using std::ignore;
 
-const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
+auto const mask = alert::all_categories
+	& ~(alert::performance_warning | alert::stats_notification);
 
 int peer_disconnects = 0;
 

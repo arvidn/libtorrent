@@ -539,7 +539,7 @@ namespace aux {
 	{
 		if (pack.has_val(settings_pack::alert_mask))
 		{
-			m_alerts.set_alert_mask(std::uint32_t(pack.get_int(settings_pack::alert_mask)));
+			m_alerts.set_alert_mask(alert_category_t(std::uint32_t(pack.get_int(settings_pack::alert_mask))));
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -6492,7 +6492,7 @@ namespace {
 
 	void session_impl::update_alert_mask()
 	{
-		m_alerts.set_alert_mask(std::uint32_t(m_settings.get_int(settings_pack::alert_mask)));
+		m_alerts.set_alert_mask(alert_category_t(std::uint32_t(m_settings.get_int(settings_pack::alert_mask))));
 	}
 
 	void session_impl::pop_alerts(std::vector<alert*>* alerts)

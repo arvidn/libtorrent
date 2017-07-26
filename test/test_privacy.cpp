@@ -99,7 +99,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 	int prev_udp_announces = num_udp_announces();
 
-	int const alert_mask = alert::all_categories
+	auto const alert_mask = alert::all_categories
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 

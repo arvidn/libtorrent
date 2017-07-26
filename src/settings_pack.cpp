@@ -321,7 +321,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(connect_seed_every_n_download, 10, nullptr),
 		SET(max_http_recv_buffer_size, 4*1024*204, nullptr),
 		SET(max_retry_port_bind, 10, nullptr),
-		SET(alert_mask, alert::error_notification, &session_impl::update_alert_mask),
+		SET(alert_mask, int(static_cast<std::uint32_t>(alert::error_notification)), &session_impl::update_alert_mask),
 		SET(out_enc_policy, settings_pack::pe_enabled, nullptr),
 		SET(in_enc_policy, settings_pack::pe_enabled, nullptr),
 		SET(allowed_enc_level, settings_pack::pe_both, nullptr),

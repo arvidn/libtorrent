@@ -75,7 +75,7 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(scrape_reply_alert, 13, 0, alert::tracker_notification);
 	TEST_ALERT_TYPE(scrape_failed_alert, 14, 0, alert::tracker_notification | alert::error_notification);
 	TEST_ALERT_TYPE(tracker_reply_alert, 15, 0, alert::tracker_notification);
-	TEST_ALERT_TYPE(dht_reply_alert, 16, 0, alert::tracker_notification);
+	TEST_ALERT_TYPE(dht_reply_alert, 16, 0, alert::dht_notification | alert::tracker_notification);
 	TEST_ALERT_TYPE(tracker_announce_alert, 17, 0, alert::tracker_notification);
 	TEST_ALERT_TYPE(hash_failed_alert, 18, 0, alert::status_notification);
 	TEST_ALERT_TYPE(peer_ban_alert, 19, 0, alert::peer_notification);
