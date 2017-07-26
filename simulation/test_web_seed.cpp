@@ -93,8 +93,8 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 	bencode(out, tor);
 	add_torrent_params ret;
 	ret.ti = std::make_shared<torrent_info>(tmp, from_span);
-	ret.flags &= ~lt::add_torrent_params::flag_auto_managed;
-	ret.flags &= ~lt::add_torrent_params::flag_paused;
+	ret.flags &= ~lt::torrent_flags::auto_managed;
+	ret.flags &= ~lt::torrent_flags::paused;
 	ret.save_path = ".";
 	return ret;
 }
@@ -502,8 +502,8 @@ TORRENT_TEST(urlseed_timeout)
 			fs.add_file("timeout_test", 0x8000);
 			lt::add_torrent_params params = ::create_torrent(fs);
 			params.url_seeds.push_back("http://2.2.2.2:8080/");
-			params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-			params.flags &= ~lt::add_torrent_params::flag_paused;
+			params.flags &= ~lt::torrent_flags::auto_managed;
+			params.flags &= ~lt::torrent_flags::paused;
 			params.save_path = ".";
 			ses.async_add_torrent(params);
 		},

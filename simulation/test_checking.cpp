@@ -80,7 +80,7 @@ TORRENT_TEST(cache_after_checking)
 {
 	run_test(
 		[](lt::add_torrent_params& atp, lt::settings_pack& p) {
-			atp.flags |= lt::add_torrent_params::flag_auto_managed;
+			atp.flags |= lt::torrent_flags::auto_managed;
 			p.set_int(lt::settings_pack::cache_size, 100);
 		},
 		[](lt::session& ses) {
@@ -98,7 +98,7 @@ TORRENT_TEST(checking_no_cache)
 {
 	run_test(
 		[](lt::add_torrent_params& atp, lt::settings_pack& p) {
-			atp.flags |= lt::add_torrent_params::flag_auto_managed;
+			atp.flags |= lt::torrent_flags::auto_managed;
 			p.set_int(lt::settings_pack::cache_size, 0);
 		},
 		[](lt::session& ses) {
@@ -116,7 +116,7 @@ TORRENT_TEST(checking_limit_volatile)
 {
 	run_test(
 		[](lt::add_torrent_params& atp, lt::settings_pack& p) {
-			atp.flags |= lt::add_torrent_params::flag_auto_managed;
+			atp.flags |= lt::torrent_flags::auto_managed;
 			p.set_int(lt::settings_pack::cache_size, 300);
 			p.set_int(lt::settings_pack::cache_size_volatile, 2);
 		},
@@ -136,7 +136,7 @@ TORRENT_TEST(checking_volatile_limit_cache_size)
 {
 	run_test(
 		[](lt::add_torrent_params& atp, lt::settings_pack& p) {
-			atp.flags |= lt::add_torrent_params::flag_auto_managed;
+			atp.flags |= lt::torrent_flags::auto_managed;
 			p.set_int(lt::settings_pack::cache_size, 10);
 			p.set_int(lt::settings_pack::cache_size_volatile, 300);
 		},

@@ -82,8 +82,8 @@ void run_test(Setup const& setup
 	});
 
 	lt::add_torrent_params params = create_torrent(1);
-	params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-	params.flags &= ~lt::add_torrent_params::flag_paused;
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
 	params.save_path = save_path(0);
 	ses->async_add_torrent(params);
 

@@ -66,8 +66,8 @@ void run_fake_peer_test(
 
 	fake_peer p1(sim, "60.0.0.0");
 
-	params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-	params.flags &= ~lt::add_torrent_params::flag_paused;
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
 	ses->async_add_torrent(params);
 
 	// the alert notification function is called from within libtorrent's

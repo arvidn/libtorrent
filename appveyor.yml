@@ -89,7 +89,7 @@ build_script:
 # simulations
 - cd %ROOT_DIRECTORY%\simulation
 - if defined sim (
-  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=built-in testing.execute=off
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% deprecated-functions=off %linkflags% %include% link=shared crypto=built-in testing.execute=off
   )
 
 test_script:

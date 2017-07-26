@@ -72,8 +72,8 @@ TORRENT_TEST(optimistic_unchoke)
 	lt::time_point start_time(lt::clock_type::now());
 
 	lt::add_torrent_params atp = create_torrent(0);
-	atp.flags &= ~add_torrent_params::flag_auto_managed;
-	atp.flags &= ~add_torrent_params::flag_paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+	atp.flags &= ~torrent_flags::paused;
 
 	lt::settings_pack pack = settings();
 	// only allow an optimistic unchoke slot
