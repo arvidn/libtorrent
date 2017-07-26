@@ -2326,7 +2326,7 @@ namespace {
 		, int const port
 		, span<char const> p
 		, error_code& ec
-		, int const flags)
+		, udp_send_flags_t const flags)
 	{
 		auto si = sock.lock();
 		if (!si)
@@ -2353,7 +2353,7 @@ namespace {
 		, udp::endpoint const& ep
 		, span<char const> p
 		, error_code& ec
-		, int const flags)
+		, udp_send_flags_t const flags)
 	{
 		auto si = sock.lock();
 		if (!si)
@@ -5677,7 +5677,7 @@ namespace {
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
-				, int flags)
+				, udp_send_flags_t const flags)
 				{ send_udp_packet_listen(sock, ep, p, ec, flags); }
 			, m_dht_settings
 			, m_stats_counters

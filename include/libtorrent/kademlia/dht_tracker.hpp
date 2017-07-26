@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/deadline_timer.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/io_service.hpp>
+#include <libtorrent/udp_socket.hpp>
 
 namespace libtorrent {
 
@@ -62,7 +63,7 @@ namespace libtorrent { namespace dht {
 	{
 		using send_fun_t = std::function<void(
 			aux::listen_socket_handle const&, udp::endpoint const&
-			, span<char const>, error_code&, int)>;
+			, span<char const>, error_code&, udp_send_flags_t)>;
 
 		dht_tracker(dht_observer* observer
 			, io_service& ios

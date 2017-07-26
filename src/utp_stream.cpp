@@ -1964,7 +1964,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	error_code ec;
 	m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
 		, reinterpret_cast<char const*>(h), p->size, ec
-		, p->mtu_probe ? utp_socket_manager::dont_fragment : 0);
+		, p->mtu_probe ? udp_socket::dont_fragment : udp_send_flags_t{});
 
 	++m_out_packets;
 	m_sm.inc_stats_counter(counters::utp_packets_out);
@@ -1992,7 +1992,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		UTP_LOGV("%8p: re-sending\n", static_cast<void*>(this));
 #endif
 		m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
-			, reinterpret_cast<char const*>(h), p->size, ec, 0);
+			, reinterpret_cast<char const*>(h), p->size, ec, {});
 	}
 
 	if (ec == error::would_block || ec == error::try_again)

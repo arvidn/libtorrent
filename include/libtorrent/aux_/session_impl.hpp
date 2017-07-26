@@ -1089,14 +1089,14 @@ namespace aux {
 				, int port
 				, span<char const> p
 				, error_code& ec
-				, int flags);
+				, udp_send_flags_t flags);
 
 			void send_udp_packet_hostname_listen(aux::listen_socket_handle const& sock
 				, char const* hostname
 				, int port
 				, span<char const> p
 				, error_code& ec
-				, int flags)
+				, udp_send_flags_t const flags)
 			{
 				listen_socket_t* s = sock.get();
 				if (!s)
@@ -1111,13 +1111,13 @@ namespace aux {
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
-				, int flags);
+				, udp_send_flags_t flags);
 
 			void send_udp_packet_listen(aux::listen_socket_handle const& sock
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
-				, int flags)
+				, udp_send_flags_t const flags)
 			{
 				listen_socket_t* s = sock.get();
 				if (!s)
