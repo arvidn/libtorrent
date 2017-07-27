@@ -1276,7 +1276,8 @@ namespace libtorrent {
 
 	// TODO: 3 there's some duplication between this function and
 	// peer_connection::incoming_piece(). is there a way to merge something?
-	void torrent::add_piece(piece_index_t const piece, char const* data, int const flags)
+	void torrent::add_piece(piece_index_t const piece, char const* data
+		, add_piece_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		int piece_size = m_torrent_file->piece_size(piece);
@@ -1290,7 +1291,7 @@ namespace libtorrent {
 		need_picker();
 
 		if (picker().have_piece(piece)
-			&& (flags & torrent::overwrite_existing) == 0)
+			&& !(flags & torrent_handle::overwrite_existing))
 			return;
 
 		peer_request p;
@@ -1300,7 +1301,7 @@ namespace libtorrent {
 		for (int i = 0; i < blocks_in_piece; ++i, p.start += block_size())
 		{
 			if (picker().is_finished(piece_block(piece, i))
-				&& (flags & torrent::overwrite_existing) == 0)
+				&& !(flags & torrent_handle::overwrite_existing))
 				continue;
 
 			p.length = std::min(piece_size - p.start, int(block_size()));
@@ -4609,7 +4610,8 @@ namespace libtorrent {
 		}
 	}
 
-	void torrent::set_piece_deadline(piece_index_t const piece, int const t, int const flags)
+	void torrent::set_piece_deadline(piece_index_t const piece, int const t
+		, deadline_flags_t const flags)
 	{
 		INVARIANT_CHECK;
 

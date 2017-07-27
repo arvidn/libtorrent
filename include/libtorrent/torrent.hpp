@@ -114,7 +114,7 @@ namespace libtorrent {
 		// by what time we want this piece
 		time_point deadline;
 		// 1 = send alert with piece data when available
-		int flags;
+		deadline_flags_t flags;
 		// how many peers it's been requested from
 		int peers;
 		// the piece index
@@ -411,8 +411,7 @@ namespace libtorrent {
 
 		int seed_rank(aux::session_settings const& s) const;
 
-		enum flags_t { overwrite_existing = 1 };
-		void add_piece(piece_index_t piece, char const* data, int flags = 0);
+		void add_piece(piece_index_t piece, char const* data, add_piece_flags_t flags);
 		void on_disk_write_complete(storage_error const& error
 			, peer_request const& p);
 
@@ -569,7 +568,7 @@ namespace libtorrent {
 		void file_priorities(aux::vector<int, file_index_t>*) const;
 
 		void cancel_non_critical();
-		void set_piece_deadline(piece_index_t piece, int t, int flags);
+		void set_piece_deadline(piece_index_t piece, int t, deadline_flags_t flags);
 		void reset_piece_deadline(piece_index_t piece);
 		void clear_time_critical();
 		void update_piece_priorities();

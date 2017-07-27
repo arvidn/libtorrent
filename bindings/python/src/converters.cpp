@@ -301,6 +301,9 @@ void bind_converters()
     to_python_converter<lt::status_flags_t, from_bitfield_flag<lt::status_flags_t>>();
     to_python_converter<lt::alert_category_t, from_bitfield_flag<lt::alert_category_t>>();
     to_python_converter<lt::resume_data_flags_t, from_bitfield_flag<lt::resume_data_flags_t>>();
+    to_python_converter<lt::add_piece_flags_t, from_bitfield_flag<lt::add_piece_flags_t>>();
+    to_python_converter<lt::pause_flags_t, from_bitfield_flag<lt::pause_flags_t>>();
+    to_python_converter<lt::deadline_flags_t, from_bitfield_flag<lt::deadline_flags_t>>();
 
     // work-around types
     to_python_converter<lt::aux::noexcept_movable<lt::address>, address_to_tuple<
@@ -352,4 +355,7 @@ void bind_converters()
     to_bitfield_flag<lt::status_flags_t>();
     to_bitfield_flag<lt::alert_category_t>();
     to_bitfield_flag<lt::resume_data_flags_t>();
+    to_bitfield_flag<lt::add_piece_flags_t>();
+    to_bitfield_flag<lt::pause_flags_t>();
+    to_bitfield_flag<lt::deadline_flags_t>();
 }

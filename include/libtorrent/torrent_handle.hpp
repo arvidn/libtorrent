@@ -85,6 +85,19 @@ namespace aux {
 	void TORRENT_NO_RETURN throw_invalid_handle();
 #endif
 
+	// hidden
+	struct add_piece_flags_tag;
+	using add_piece_flags_t = flags::bitfield_flag<std::uint8_t, add_piece_flags_tag>;
+
+	// hidden
+	struct pause_flags_tag;
+	using pause_flags_t = flags::bitfield_flag<std::uint8_t, pause_flags_tag>;
+
+	// hidden
+	struct deadline_flags_tag;
+	using deadline_flags_t = flags::bitfield_flag<std::uint8_t, deadline_flags_tag>;
+
+	// hidden
 	struct resume_data_flags_tag;
 	using resume_data_flags_t = flags::bitfield_flag<std::uint8_t, resume_data_flags_tag>;
 
@@ -269,8 +282,9 @@ namespace aux {
 		torrent_handle& operator=(torrent_handle const&) = default;
 		torrent_handle& operator=(torrent_handle&&) noexcept = default;
 
-		// flags for add_piece().
-		enum flags_t { overwrite_existing = 1 };
+		// instruct libtorrent to overwrite any data that may already have been
+		// downloaded with the data of the new piece being added.
+		static constexpr add_piece_flags_t overwrite_existing{1};
 
 		// This function will write ``data`` to the storage as piece ``piece``,
 		// as if it had been downloaded from a peer. ``data`` is expected to
@@ -287,7 +301,7 @@ namespace aux {
 		// Since the data is written asynchronously, you may know that is passed
 		// or failed the hash check by waiting for piece_finished_alert or
 		// hash_failed_alert.
-		void add_piece(piece_index_t piece, char const* data, int flags = 0) const;
+		void add_piece(piece_index_t piece, char const* data, add_piece_flags_t flags = {}) const;
 
 		// This function starts an asynchronous read operation of the specified
 		// piece from this torrent. You must have completed the download of the
@@ -361,8 +375,11 @@ namespace aux {
 		// partial_piece_info for the fields in the returned vector.
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
-		// flags for set_piece_deadline().
-		enum deadline_flags { alert_when_available = 1 };
+		// used to ask libtorrent to send an alert once the piece has been
+		// downloaded, by passing alert_when_available. When set, the
+		// read_piece_alert alert will be delivered, with the piece data, when
+		// it's downloaded.
+		static constexpr deadline_flags_t alert_when_available{1};
 
 		// This function sets or resets the deadline associated with a specific
 		// piece index (``index``). libtorrent will attempt to download this
@@ -371,11 +388,6 @@ namespace aux {
 		// prioritized over pieces with a deadline further ahead in time. The
 		// deadline (and flags) of a piece can be changed by calling this
 		// function again.
-		//
-		// The ``flags`` parameter can be used to ask libtorrent to send an alert
-		// once the piece has been downloaded, by passing alert_when_available.
-		// When set, the read_piece_alert alert will be delivered, with the piece
-		// data, when it's downloaded.
 		//
 		// If the piece is already downloaded when this call is made, nothing
 		// happens, unless the alert_when_available flag is set, in which case it
@@ -390,7 +402,7 @@ namespace aux {
 		//
 		// ``clear_piece_deadlines()`` removes deadlines on all pieces in
 		// the torrent. As if reset_piece_deadline() was called on all pieces.
-		void set_piece_deadline(piece_index_t index, int deadline, int flags = 0) const;
+		void set_piece_deadline(piece_index_t index, int deadline, deadline_flags_t flags = {}) const;
 		void reset_piece_deadline(piece_index_t index) const;
 		void clear_piece_deadlines() const;
 
@@ -552,8 +564,13 @@ namespace aux {
 		// torrent will become invalid.
 		bool is_valid() const;
 
-		// flags for torrent_session::pause()
-		enum pause_flags_t { graceful_pause = 1 };
+		// will delay the disconnect of peers that we're still downloading
+		// outstanding requests from. The torrent will not accept any more
+		// requests and will disconnect all idle peers. As soon as a peer is done
+		// transferring the blocks that were requested from it, it is
+		// disconnected. This is a graceful shut down of the torrent in the sense
+		// that no downloaded bytes are wasted.
+		static constexpr pause_flags_t graceful_pause{1};
 
 		// ``pause()``, and ``resume()`` will disconnect all peers and reconnect
 		// all peers respectively. When a torrent is paused, it will however
@@ -565,21 +582,13 @@ namespace aux {
 		// To know if a torrent is paused or not, call
 		// ``torrent_handle::status()`` and inspect ``torrent_status::paused``.
 		//
-		// The ``flags`` argument to pause can be set to
-		// ``torrent_handle::graceful_pause`` which will delay the disconnect of
-		// peers that we're still downloading outstanding requests from. The
-		// torrent will not accept any more requests and will disconnect all idle
-		// peers. As soon as a peer is done transferring the blocks that were
-		// requested from it, it is disconnected. This is a graceful shut down of
-		// the torrent in the sense that no downloaded bytes are wasted.
-		//
 		// .. note::
 		// 	Torrents that are auto-managed may be automatically resumed again. It
 		// 	does not make sense to pause an auto-managed torrent without making it
 		// 	not auto-managed first. Torrents are auto-managed by default when added
 		// 	to the session. For more information, see queuing_.
 		//
-		void pause(int flags = 0) const;
+		void pause(pause_flags_t flags = {}) const;
 		void resume() const;
 
 		// sets and gets the torrent state flags. See torrent_flags_t.

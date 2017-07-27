@@ -61,6 +61,9 @@ namespace libtorrent {
 	constexpr resume_data_flags_t torrent_handle::flush_disk_cache;
 	constexpr resume_data_flags_t torrent_handle::save_info_dict;
 	constexpr resume_data_flags_t torrent_handle::only_if_modified;
+	constexpr add_piece_flags_t torrent_handle::overwrite_existing;
+	constexpr pause_flags_t torrent_handle::graceful_pause;
+	constexpr deadline_flags_t torrent_handle::alert_when_available;
 
 	constexpr status_flags_t torrent_handle::query_distributed_copies;
 	constexpr status_flags_t torrent_handle::query_accurate_download_counters;
@@ -274,7 +277,7 @@ namespace libtorrent {
 		return sync_call_ret<bool>(false, &torrent::set_metadata, metadata);
 	}
 
-	void torrent_handle::pause(int flags) const
+	void torrent_handle::pause(pause_flags_t const flags) const
 	{
 		async_call(&torrent::pause, bool(flags & graceful_pause));
 	}
@@ -620,7 +623,7 @@ namespace libtorrent {
 		async_call(&torrent::add_tracker, url);
 	}
 
-	void torrent_handle::add_piece(piece_index_t piece, char const* data, int flags) const
+	void torrent_handle::add_piece(piece_index_t piece, char const* data, add_piece_flags_t const flags) const
 	{
 		sync_call(&torrent::add_piece, piece, data, flags);
 	}
@@ -764,7 +767,8 @@ namespace libtorrent {
 		sync_call(&torrent::get_download_queue, queuep);
 	}
 
-	void torrent_handle::set_piece_deadline(piece_index_t index, int deadline, int flags) const
+	void torrent_handle::set_piece_deadline(piece_index_t index, int deadline
+		, deadline_flags_t const flags) const
 	{
 		async_call(&torrent::set_piece_deadline, index, deadline, flags);
 	}
