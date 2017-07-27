@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/session_types.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/variant.hpp>
@@ -127,7 +128,8 @@ namespace libtorrent {
 			, std::string
 			, add_torrent_params const*
 			, aux::vector<std::uint8_t, file_index_t>
-			, int> argument;
+			, remove_flags_t
+			> argument;
 
 		// the disk storage this job applies to (if applicable)
 		std::shared_ptr<storage_interface> storage;

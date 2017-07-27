@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/session_types.hpp"
 
 namespace libtorrent {
 
@@ -164,7 +165,7 @@ namespace libtorrent {
 		virtual void async_rename_file(storage_index_t storage
 			, file_index_t index, std::string name
 			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) = 0;
-		virtual void async_delete_files(storage_index_t storage, int options
+		virtual void async_delete_files(storage_index_t storage, remove_flags_t options
 			, std::function<void(storage_error const&)> handler) = 0;
 		virtual void async_set_file_priority(storage_index_t storage
 			, aux::vector<std::uint8_t, file_index_t> prio

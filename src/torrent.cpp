@@ -420,7 +420,7 @@ namespace libtorrent {
 		// torrent, create another reference
 		auto me = shared_from_this();
 
-		m_ses.remove_torrent_impl(me, 0);
+		m_ses.remove_torrent_impl(me, {});
 
 		if (alerts().should_post<torrent_update_alert>())
 			alerts().emplace_alert<torrent_update_alert>(get_handle(), info_hash(), tf->info_hash());
@@ -8096,7 +8096,7 @@ namespace libtorrent {
 		return limit_impl(peer_connection::download_channel);
 	}
 
-	bool torrent::delete_files(int const options)
+	bool torrent::delete_files(remove_flags_t const options)
 	{
 		TORRENT_ASSERT(is_single_thread());
 

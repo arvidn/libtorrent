@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/session_types.hpp"
 
 #include <functional>
 #include <memory>
@@ -155,8 +156,8 @@ namespace libtorrent { namespace aux {
 		virtual bool has_connection(peer_connection* p) const = 0;
 		virtual void insert_peer(std::shared_ptr<peer_connection> const& c) = 0;
 
-		virtual void remove_torrent(torrent_handle const& h, int options = 0) = 0;
-		virtual void remove_torrent_impl(std::shared_ptr<torrent> tptr, int options) = 0;
+		virtual void remove_torrent(torrent_handle const& h, remove_flags_t options = {}) = 0;
+		virtual void remove_torrent_impl(std::shared_ptr<torrent> tptr, remove_flags_t options) = 0;
 
 		// port filter
 		virtual port_filter const& get_port_filter() const = 0;

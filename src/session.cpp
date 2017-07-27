@@ -255,7 +255,7 @@ namespace libtorrent {
 	// configurations this will give a link error
 	void TORRENT_CFG() {}
 
-	session_params read_session_params(bdecode_node const& e, std::uint32_t const flags)
+	session_params read_session_params(bdecode_node const& e, save_state_flags_t const flags)
 	{
 		session_params params;
 
@@ -351,10 +351,10 @@ namespace {
 		}
 	}
 
-	void session::start(int flags, settings_pack sp, io_service* ios)
+	void session::start(session_flags_t const flags, settings_pack sp, io_service* ios)
 	{
 		start({std::move(sp),
-			default_plugins((flags & add_default_plugins) == 0)}, ios);
+			default_plugins(!(flags & add_default_plugins))}, ios);
 	}
 
 	session::~session()

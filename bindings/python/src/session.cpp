@@ -163,7 +163,7 @@ namespace
 		return ret;
 	}
 
-	std::shared_ptr<lt::session> make_session(boost::python::dict sett, int flags)
+	std::shared_ptr<lt::session> make_session(boost::python::dict sett, session_flags_t flags)
 	{
 		settings_pack p;
 		make_settings_pack(p, sett);
@@ -471,11 +471,11 @@ namespace
     }
 #endif
 
-    entry save_state(lt::session const& s, std::uint32_t flags)
+    entry save_state(lt::session const& s, std::uint32_t const flags)
     {
         allow_threading_guard guard;
         entry e;
-        s.save_state(e, flags);
+        s.save_state(e, save_state_flags_t(flags));
         return e;
     }
 
@@ -495,7 +495,7 @@ namespace
         return ret;
     }
 
-	void load_state(lt::session& ses, entry const& st, std::uint32_t flags)
+	void load_state(lt::session& ses, entry const& st, std::uint32_t const flags)
 	{
 		allow_threading_guard guard;
 
@@ -505,7 +505,7 @@ namespace
 		error_code ec;
 		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 		TORRENT_ASSERT(!ec);
-		ses.load_state(e, flags);
+		ses.load_state(e, save_state_flags_t(flags));
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -564,6 +564,9 @@ struct dummy1 {};
 #ifndef TORRENT_NO_DEPRECATE
 struct dummy2 {};
 #endif
+struct dummy9 {};
+struct dummy10 {};
+struct dummy11 {};
 
 void bind_session()
 {
@@ -695,21 +698,21 @@ void bind_session()
 #endif
       ;
 
-
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)
         .value("storage_mode_sparse", storage_mode_sparse)
     ;
 
-    enum_<lt::session::options_t>("options_t")
-        .value("delete_files", lt::session::delete_files)
-    ;
+    {
+        scope s = class_<dummy11>("options_t");
+        s.attr("delete_files") = lt::session::delete_files;
+    }
 
-    enum_<lt::session::session_flags_t>("session_flags_t")
-        .value("add_default_plugins", lt::session::add_default_plugins)
-        .value("start_default_features", lt::session::start_default_features)
-    ;
-
+    {
+        scope s = class_<dummy10>("session_flags_t");
+        s.attr("add_default_plugins") = lt::session::add_default_plugins;
+        s.attr("start_default_features") = lt::session::start_default_features;
+    }
 
     {
     scope s = class_<dummy1>("torrent_flags");
@@ -799,10 +802,10 @@ void bind_session()
         )
 #ifndef TORRENT_NO_DEPRECATE
         .def(
-            init<fingerprint, int, std::uint32_t>((
+            init<fingerprint, session_flags_t, alert_category_t>((
                 arg("fingerprint")=fingerprint("LT",0,1,0,0)
                 , arg("flags")=lt::session::start_default_features | lt::session::add_default_plugins
-                , arg("alert_mask")=int(alert::error_notification)))
+                , arg("alert_mask")=alert::error_notification))
         )
         .def("outgoing_ports", &outgoing_ports)
 #endif
@@ -933,21 +936,22 @@ void bind_session()
         .value("tcp", lt::session::tcp)
     ;
 
-    enum_<lt::session::save_state_flags_t>("save_state_flags_t")
-        .value("save_settings", lt::session::save_settings)
-        .value("save_dht_settings", lt::session::save_dht_settings)
-        .value("save_dht_state", lt::session::save_dht_state)
-        .value("save_encryption_settings", lt::session:: save_encryption_settings)
+    {
+        scope s = class_<dummy9>("save_state_flags_t");
+        s.attr("save_settings") = lt::session::save_settings;
+        s.attr("save_dht_settings") = lt::session::save_dht_settings;
+        s.attr("save_dht_state") = lt::session::save_dht_state;
+        s.attr("save_encryption_settings") = lt::session:: save_encryption_settings;
 #ifndef TORRENT_NO_DEPRECATE
-        .value("save_as_map", lt::session::save_as_map)
-        .value("save_i2p_proxy", lt::session::save_i2p_proxy)
-        .value("save_proxy", lt::session::save_proxy)
-        .value("save_dht_proxy", lt::session::save_dht_proxy)
-        .value("save_peer_proxy", lt::session::save_peer_proxy)
-        .value("save_web_proxy", lt::session::save_web_proxy)
-        .value("save_tracker_proxy", lt::session::save_tracker_proxy)
+        s.attr("save_as_map") = lt::session::save_as_map;
+        s.attr("save_i2p_proxy") = lt::session::save_i2p_proxy;
+        s.attr("save_proxy") = lt::session::save_proxy;
+        s.attr("save_dht_proxy") = lt::session::save_dht_proxy;
+        s.attr("save_peer_proxy") = lt::session::save_peer_proxy;
+        s.attr("save_web_proxy") = lt::session::save_web_proxy;
+        s.attr("save_tracker_proxy") = lt::session::save_tracker_proxy;
 #endif
-    ;
+    }
 
 #ifndef TORRENT_NO_DEPRECATE
     enum_<lt::session::listen_on_flags_t>("listen_on_flags_t")
