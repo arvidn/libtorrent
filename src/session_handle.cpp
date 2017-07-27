@@ -47,9 +47,29 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent {
 
-	peer_class_t constexpr session_handle::global_peer_class_id;
-	peer_class_t constexpr session_handle::tcp_peer_class_id;
-	peer_class_t constexpr session_handle::local_peer_class_id;
+	constexpr peer_class_t session_handle::global_peer_class_id;
+	constexpr peer_class_t session_handle::tcp_peer_class_id;
+	constexpr peer_class_t session_handle::local_peer_class_id;
+
+	constexpr save_state_flags_t session_handle::save_settings;
+	constexpr save_state_flags_t session_handle::save_dht_settings;
+	constexpr save_state_flags_t session_handle::save_dht_state;
+	constexpr save_state_flags_t session_handle::save_encryption_settings;
+#ifndef TORRENT_NO_DEPRECATE
+	constexpr save_state_flags_t session_handle::save_as_map TORRENT_DEPRECATED_ENUM;
+	constexpr save_state_flags_t session_handle::save_proxy TORRENT_DEPRECATED_ENUM;
+	constexpr save_state_flags_t session_handle::save_i2p_proxy TORRENT_DEPRECATED_ENUM;
+	constexpr save_state_flags_t session_handle::save_dht_proxy TORRENT_DEPRECATED_ENUM;
+	constexpr save_state_flags_t session_handle::save_peer_proxy TORRENT_DEPRECATED_ENUM;
+	constexpr save_state_flags_t session_handle::save_web_proxy TORRENT_DEPRECATED_ENUM;
+	constexpr save_state_flags_t session_handle::save_tracker_proxy TORRENT_DEPRECATED_ENUM;
+#endif
+
+	constexpr session_flags_t session_handle::add_default_plugins;
+	constexpr session_flags_t session_handle::start_default_features;
+
+	constexpr remove_flags_t session_handle::delete_files;
+	constexpr remove_flags_t session_handle::delete_partfile;
 
 	template <typename Fun, typename... Args>
 	void session_handle::async_call(Fun f, Args&&... a) const
@@ -139,14 +159,14 @@ namespace libtorrent {
 		return r;
 	}
 
-	void session_handle::save_state(entry& e, std::uint32_t const flags) const
+	void session_handle::save_state(entry& e, save_state_flags_t const flags) const
 	{
 		entry* ep = &e;
 		sync_call(&session_impl::save_state, ep, flags);
 	}
 
 	void session_handle::load_state(bdecode_node const& e
-		, std::uint32_t const flags)
+		, save_state_flags_t const flags)
 	{
 		// this needs to be synchronized since the lifespan
 		// of e is tied to the caller
@@ -701,7 +721,7 @@ namespace {
 	void session_handle::load_country_db(wchar_t const*) {}
 
 	void session_handle::load_state(entry const& ses_state
-		, std::uint32_t const flags)
+		, save_state_flags_t const flags)
 	{
 		if (ses_state.type() == entry::undefined_t) return;
 		std::vector<char> buf;
@@ -724,12 +744,12 @@ namespace {
 	{
 		entry ret;
 		auto retp = &ret;
-		sync_call(&session_impl::save_state, retp, 0xffffffff);
+		sync_call(&session_impl::save_state, retp, save_state_flags_t{0xffffffff});
 		return ret;
 	}
 
 	void session_handle::load_state(lazy_entry const& ses_state
-		, std::uint32_t const flags)
+		, save_state_flags_t const flags)
 	{
 		if (ses_state.type() == lazy_entry::none_t) return;
 		std::pair<char const*, int> buf = ses_state.data_section();
@@ -858,7 +878,7 @@ namespace {
 	}
 #endif
 
-	void session_handle::remove_torrent(const torrent_handle& h, int options)
+	void session_handle::remove_torrent(const torrent_handle& h, remove_flags_t const options)
 	{
 		if (!h.is_valid())
 #ifdef BOOST_NO_EXCEPTIONS

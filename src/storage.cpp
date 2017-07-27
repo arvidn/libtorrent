@@ -390,7 +390,7 @@ namespace libtorrent {
 		m_stat_cache.clear();
 	}
 
-	void default_storage::delete_files(int const options, storage_error& ec)
+	void default_storage::delete_files(remove_flags_t const options, storage_error& ec)
 	{
 #if TORRENT_USE_ASSERTS
 		// this is a fence job, we expect no other
@@ -707,7 +707,7 @@ namespace {
 				, storage_error&) override {}
 			void rename_file(file_index_t, std::string const&, storage_error&) override {}
 			void release_files(storage_error&) override {}
-			void delete_files(int, storage_error&) override {}
+			void delete_files(remove_flags_t, storage_error&) override {}
 			void initialize(storage_error&) override {}
 			status_t move_storage(std::string const&, move_flags_t, storage_error&) override { return status_t::no_error; }
 
@@ -776,7 +776,7 @@ namespace {
 			void release_files(storage_error&) override {}
 			void rename_file(file_index_t
 				, std::string const& /* new_filename */, storage_error&) override {}
-			void delete_files(int, storage_error&) override {}
+			void delete_files(remove_flags_t, storage_error&) override {}
 		};
 	}
 

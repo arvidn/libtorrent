@@ -98,9 +98,9 @@ TORRENT_TEST(direct_dht_request)
 	sp.set_str(settings_pack::dht_bootstrap_nodes, "");
 	sp.set_int(settings_pack::max_retry_port_bind, 800);
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:42434");
-	lt::session responder(sp, 0);
+	lt::session responder(sp, {});
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:45434");
-	lt::session requester(sp, 0);
+	lt::session requester(sp, {});
 
 	responder.add_extension(std::make_shared<test_plugin>());
 

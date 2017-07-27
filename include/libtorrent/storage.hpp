@@ -295,7 +295,7 @@ namespace libtorrent {
 		//
 		//			void release_memory();
 		//		};
-		virtual void delete_files(int options, storage_error& ec) = 0;
+		virtual void delete_files(remove_flags_t options, storage_error& ec) = 0;
 
 		// called periodically (useful for deferred flushing). When returning
 		// false, it means no more ticks are necessary. Any disk job submitted
@@ -387,7 +387,7 @@ namespace libtorrent {
 		virtual void rename_file(file_index_t index, std::string const& new_filename
 			, storage_error& ec) override;
 		virtual void release_files(storage_error& ec) override;
-		virtual void delete_files(int options, storage_error& ec) override;
+		virtual void delete_files(remove_flags_t options, storage_error& ec) override;
 		virtual void initialize(storage_error& ec) override;
 		virtual status_t move_storage(std::string const& save_path
 			, move_flags_t flags, storage_error& ec) override;

@@ -542,7 +542,7 @@ namespace libtorrent {
 
 		bool should_check_files() const;
 
-		bool delete_files(int options);
+		bool delete_files(remove_flags_t options);
 		void peers_erased(std::vector<torrent_peer*> const& peers);
 
 #ifndef TORRENT_NO_DEPRECATE

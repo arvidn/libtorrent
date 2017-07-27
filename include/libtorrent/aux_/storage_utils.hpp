@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/typed_span.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp" // for status_t
+#include "libtorrent/session_types.hpp"
 
 namespace libtorrent {
 
@@ -85,7 +86,7 @@ namespace aux {
 	// opt to only delete the partfile
 	TORRENT_EXTRA_EXPORT void
 	delete_files(file_storage const& fs, std::string const& save_path
-		, std::string const& part_file_name, int const options, storage_error& ec);
+		, std::string const& part_file_name, remove_flags_t const options, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT bool
 	verify_resume_data(add_torrent_params const& rd

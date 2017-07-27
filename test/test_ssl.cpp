@@ -159,7 +159,7 @@ void test_ssl(int test_idx, bool use_utp)
 	// if a peer fails once, don't try it again
 	sett.set_int(settings_pack::max_failcount, 1);
 
-	lt::session ses1(sett, 0);
+	lt::session ses1(sett, {});
 
 	// this +20 is here to use a different port as ses1
 	port += 20;
@@ -172,7 +172,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 
-	lt::session ses2(sett, 0);
+	lt::session ses2(sett, {});
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");
@@ -559,7 +559,7 @@ void test_malicious_peer()
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 
-	lt::session ses1(sett, 0);
+	lt::session ses1(sett, {});
 	wait_for_listen(ses1, "ses1");
 
 	// create torrent

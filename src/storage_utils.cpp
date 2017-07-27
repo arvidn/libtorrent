@@ -401,7 +401,7 @@ namespace libtorrent { namespace aux {
 	}
 
 	void delete_files(file_storage const& fs, std::string const& save_path
-		, std::string const& part_file_name, int const options, storage_error& ec)
+		, std::string const& part_file_name, remove_flags_t const options, storage_error& ec)
 	{
 		if (options == session::delete_files)
 		{

@@ -116,6 +116,7 @@ nobase_include_HEADERS = \
   session_settings.hpp         \
   session_stats.hpp            \
   session_status.hpp           \
+  session_types.hpp            \
   settings_pack.hpp            \
   sha1.hpp                     \
   sha512.hpp                   \

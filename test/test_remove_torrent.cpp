@@ -55,7 +55,7 @@ enum test_case {
 	mid_download
 };
 
-void test_remove_torrent(int const remove_options
+void test_remove_torrent(remove_flags_t const remove_options
 	, test_case const test = complete_download)
 {
 	// this allows shutting down the sessions in parallel
@@ -168,7 +168,7 @@ void test_remove_torrent(int const remove_options
 
 TORRENT_TEST(remove_torrent)
 {
-	test_remove_torrent(0);
+	test_remove_torrent({});
 }
 
 TORRENT_TEST(remove_torrent_and_files)
@@ -178,7 +178,7 @@ TORRENT_TEST(remove_torrent_and_files)
 
 TORRENT_TEST(remove_torrent_partial)
 {
-	test_remove_torrent(0, partial_download);
+	test_remove_torrent({}, partial_download);
 }
 
 TORRENT_TEST(remove_torrent_and_files_partial)
@@ -188,7 +188,7 @@ TORRENT_TEST(remove_torrent_and_files_partial)
 
 TORRENT_TEST(remove_torrent_mid_download)
 {
-	test_remove_torrent(0, mid_download);
+	test_remove_torrent({}, mid_download);
 }
 
 TORRENT_TEST(remove_torrent_and_files_mid_download)

@@ -72,7 +72,7 @@ struct test_storage_impl : storage_interface
 	void release_files(storage_error& ec) override {}
 	void rename_file(file_index_t index, std::string const& new_filename
 		, storage_error& ec) override {}
-	void delete_files(int, storage_error& ec) override {}
+	void delete_files(remove_flags_t, storage_error& ec) override {}
 };
 
 struct allocator : buffer_allocator_interface
@@ -196,7 +196,7 @@ void test_write()
 	TEST_CHECK(ret >= 0);
 
 	// return the reference to the buffer we just read
-	rj.argument = 0;
+	rj.argument = remove_flags_t{};
 
 	TEST_EQUAL(bc.pinned_blocks(), 0);
 	bc.update_stats_counters(c);
@@ -211,7 +211,7 @@ void test_write()
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::pinned_blocks], 0);
 
-	rj.argument = 0;
+	rj.argument = remove_flags_t{};
 
 	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
@@ -334,7 +334,7 @@ void test_arc_promote()
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
-	rj.argument = 0;
+	rj.argument = remove_flags_t{};
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -355,7 +355,7 @@ void test_arc_promote()
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
-	rj.argument = 0;
+	rj.argument = remove_flags_t{};
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -457,7 +457,7 @@ void test_unaligned_read()
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
-	rj.argument = 0;
+	rj.argument = remove_flags_t{};
 
 	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
@@ -497,7 +497,7 @@ TORRENT_TEST(delete_piece)
 	rj.d.io.buffer_size = 0x4000;
 	rj.piece = piece_index_t(0);
 	rj.storage = pm;
-	rj.argument = 0;
+	rj.argument = remove_flags_t{};
 	ret = bc.try_read(&rj, alloc);
 
 	cached_piece_entry* pe_ = bc.find_piece(pm.get(), piece_index_t(0));

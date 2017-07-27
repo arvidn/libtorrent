@@ -15,6 +15,7 @@
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/alert_types.hpp" // for picker_flags_t
+#include "libtorrent/session_types.hpp" // for save_state_flags_t
 #include "libtorrent/alert.hpp"
 #include <vector>
 
@@ -304,6 +305,9 @@ void bind_converters()
     to_python_converter<lt::add_piece_flags_t, from_bitfield_flag<lt::add_piece_flags_t>>();
     to_python_converter<lt::pause_flags_t, from_bitfield_flag<lt::pause_flags_t>>();
     to_python_converter<lt::deadline_flags_t, from_bitfield_flag<lt::deadline_flags_t>>();
+    to_python_converter<lt::save_state_flags_t, from_bitfield_flag<lt::save_state_flags_t>>();
+    to_python_converter<lt::session_flags_t, from_bitfield_flag<lt::session_flags_t>>();
+    to_python_converter<lt::remove_flags_t, from_bitfield_flag<lt::remove_flags_t>>();
 
     // work-around types
     to_python_converter<lt::aux::noexcept_movable<lt::address>, address_to_tuple<
@@ -358,4 +362,7 @@ void bind_converters()
     to_bitfield_flag<lt::add_piece_flags_t>();
     to_bitfield_flag<lt::pause_flags_t>();
     to_bitfield_flag<lt::deadline_flags_t>();
+    to_bitfield_flag<lt::save_state_flags_t>();
+    to_bitfield_flag<lt::session_flags_t>();
+    to_bitfield_flag<lt::remove_flags_t>();
 }

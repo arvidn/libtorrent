@@ -715,7 +715,7 @@ namespace aux {
 #endif
 	}
 
-	void session_impl::save_state(entry* eptr, std::uint32_t const flags) const
+	void session_impl::save_state(entry* eptr, save_state_flags_t const flags) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -755,7 +755,7 @@ namespace aux {
 	}
 
 	void session_impl::load_state(bdecode_node const* e
-		, std::uint32_t const flags)
+		, save_state_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -5111,7 +5111,8 @@ namespace {
 		return false;
 	}
 
-	void session_impl::remove_torrent(const torrent_handle& h, int options)
+	void session_impl::remove_torrent(const torrent_handle& h
+		, remove_flags_t const options)
 	{
 		INVARIANT_CHECK;
 
@@ -5127,7 +5128,7 @@ namespace {
 	}
 
 	void session_impl::remove_torrent_impl(std::shared_ptr<torrent> tptr
-		, int options)
+		, remove_flags_t const options)
 	{
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2

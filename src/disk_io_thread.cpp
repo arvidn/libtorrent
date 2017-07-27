@@ -1826,7 +1826,7 @@ namespace libtorrent {
 	}
 
 	void disk_io_thread::async_delete_files(storage_index_t const storage
-		, int const options
+		, remove_flags_t const options
 		, std::function<void(storage_error const&)> handler)
 	{
 		// remove cache blocks belonging to this torrent
@@ -2465,7 +2465,7 @@ namespace libtorrent {
 
 	status_t disk_io_thread::do_delete_files(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		TORRENT_ASSERT(boost::get<int>(j->argument) != 0);
+		TORRENT_ASSERT(boost::get<remove_flags_t>(j->argument));
 
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -2477,7 +2477,7 @@ namespace libtorrent {
 			, completed_jobs, l);
 		l.unlock();
 
-		j->storage->delete_files(boost::get<int>(j->argument), j->error);
+		j->storage->delete_files(boost::get<remove_flags_t>(j->argument), j->error);
 		return j->error ? status_t::fatal_disk_error : status_t::no_error;
 	}
 

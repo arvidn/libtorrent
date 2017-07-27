@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/session_types.hpp"
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 
@@ -81,41 +82,30 @@ namespace libtorrent {
 
 		bool is_valid() const { return !m_impl.expired(); }
 
-		// TODO: 2 the ip filter should probably be saved here too
+		// saves settings (i.e. the settings_pack)
+		static constexpr save_state_flags_t save_settings{0x001};
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+		// saves dht_settings
+		static constexpr save_state_flags_t save_dht_settings{0x002};
 
-		// flags that determines which aspects of the session should be
-		// saved when calling save_state().
-		enum save_state_flags_t
-		{
-			// saves settings (i.e. the settings_pack)
-			save_settings =     0x001,
+		// saves dht state such as nodes and node-id, possibly accelerating
+		// joining the DHT if provided at next session startup.
+		static constexpr save_state_flags_t save_dht_state{0x004};
 
-			// saves dht_settings
-			save_dht_settings = 0x002,
-
-			// saves dht state such as nodes and node-id, possibly accelerating
-			// joining the DHT if provided at next session startup.
-			save_dht_state =    0x004,
-
-			// save pe_settings
-			save_encryption_settings = 0x020
+		// save pe_settings
+		static constexpr save_state_flags_t save_encryption_settings{0x020};
 
 #ifndef TORRENT_NO_DEPRECATE
-			,
-			save_as_map TORRENT_DEPRECATED_ENUM =       0x040,
-			save_proxy TORRENT_DEPRECATED_ENUM =        0x008,
-			save_i2p_proxy TORRENT_DEPRECATED_ENUM =    0x010,
-			save_dht_proxy TORRENT_DEPRECATED_ENUM = 0x008, // save_proxy
-			save_peer_proxy TORRENT_DEPRECATED_ENUM = 0x008, // save_proxy
-			save_web_proxy TORRENT_DEPRECATED_ENUM = 0x008, // save_proxy
-			save_tracker_proxy TORRENT_DEPRECATED_ENUM = 0x008 // save_proxy
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_as_map{0x040};
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_proxy{0x008};
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_i2p_proxy{0x010};
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_dht_proxy{0x008};
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_peer_proxy{0x008};
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_web_proxy{0x008};
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_tracker_proxy{0x008};
 #endif
-		};
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
+		// TODO: 2 the ip filter should probably be saved here too
 		// loads and saves all session settings, including dht_settings,
 		// encryption settings and proxy settings. ``save_state`` writes all keys
 		// to the ``entry`` that's passed in, which needs to either not be
@@ -126,14 +116,14 @@ namespace libtorrent {
 		//
 		// The ``flags`` argument is used to filter which parts of the session
 		// state to save or load. By default, all state is saved/restored (except
-		// for the individual torrents). see save_state_flags_t
+		// for the individual torrents).
 		//
 		// When saving settings, there are two fields that are *not* loaded.
 		// ``peer_fingerprint`` and ``user_agent``. Those are left as configured
 		// by the ``session_settings`` passed to the session constructor or
 		// subsequently set via apply_settings().
-		void save_state(entry& e, std::uint32_t flags = 0xffffffff) const;
-		void load_state(bdecode_node const& e, std::uint32_t flags = 0xffffffff);
+		void save_state(entry& e, save_state_flags_t flags = save_state_flags_t{0xffffffff}) const;
+		void load_state(bdecode_node const& e, save_state_flags_t flags = save_state_flags_t{0xffffffff});
 
 		// .. note::
 		// 	these calls are potentially expensive and won't scale well with
@@ -551,13 +541,13 @@ namespace libtorrent {
 		// use load_state and save_state instead
 		TORRENT_DEPRECATED
 		void load_state(entry const& ses_state
-			, std::uint32_t flags = 0xffffffff);
+			, save_state_flags_t flags = save_state_flags_t(0xffffffff));
 		TORRENT_DEPRECATED
 		entry state() const;
 		// deprecated in 1.1
 		TORRENT_DEPRECATED
 		void load_state(lazy_entry const& ses_state
-			, std::uint32_t flags = 0xffffffff);
+			, save_state_flags_t flags = save_state_flags_t{0xffffffff});
 #endif // TORRENT_NO_DEPRECATE
 
 		// Sets a filter that will be used to reject and accept incoming as well
@@ -741,28 +731,20 @@ namespace libtorrent {
 			, int flags = 0);
 #endif
 
-		// flags to be passed in to remove_torrent().
-		enum options_t
-		{
-			// delete the files belonging to the torrent from disk.
-			// including the part-file, if there is one
-			delete_files = 1,
+		// delete the files belonging to the torrent from disk.
+		// including the part-file, if there is one
+		static constexpr remove_flags_t delete_files{1};
 
-			// delete just the part-file associated with this torrent
-			delete_partfile = 2
-		};
+		// delete just the part-file associated with this torrent
+		static constexpr remove_flags_t delete_partfile{2};
 
-		// flags to be passed in to the session constructor
-		enum session_flags_t
-		{
-			// this will add common extensions like ut_pex, ut_metadata, lt_tex
-			// smart_ban and possibly others.
-			add_default_plugins = 1,
+		// this will add common extensions like ut_pex, ut_metadata, lt_tex
+		// smart_ban and possibly others.
+		static constexpr session_flags_t add_default_plugins{1};
 
-			// this will start features like DHT, local service discovery, UPnP
-			// and NAT-PMP.
-			start_default_features = 2
-		};
+		// this will start features like DHT, local service discovery, UPnP
+		// and NAT-PMP.
+		static constexpr session_flags_t start_default_features{2};
 
 		// ``remove_torrent()`` will close all peer connections associated with
 		// the torrent and tell the tracker that we've stopped participating in
@@ -782,7 +764,7 @@ namespace libtorrent {
 		// large state_update to be posted. When removing all torrents, it is
 		// advised to remove them from the back of the queue, to minimize the
 		// shifting.
-		void remove_torrent(const torrent_handle& h, int options = 0);
+		void remove_torrent(const torrent_handle& h, remove_flags_t options = {});
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in libtorrent 1.1. use settings_pack instead
