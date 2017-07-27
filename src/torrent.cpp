@@ -1920,6 +1920,7 @@ namespace libtorrent {
 
 		update_want_peers();
 
+		// this will remove the piece picker, if we're done with it
 		maybe_done_flushing();
 	}
 
