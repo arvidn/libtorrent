@@ -270,7 +270,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 				{
 					std::printf("\nSTOP\n\n");
 					auto h = ses.get_torrents()[0];
-					h.pause(graceful ? torrent_handle::graceful_pause : 0);
+					h.pause(graceful ? torrent_handle::graceful_pause : pause_flags_t{});
 					paused_once = true;
 				}
 			}

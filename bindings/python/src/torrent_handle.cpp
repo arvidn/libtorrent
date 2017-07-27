@@ -422,7 +422,8 @@ std::shared_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
 
 #endif // TORRENT_NO_DEPRECAE
 
-void add_piece(torrent_handle& th, piece_index_t piece, char const *data, int flags)
+void add_piece(torrent_handle& th, piece_index_t piece, char const *data
+    , add_piece_flags_t const flags)
 {
    th.add_piece(piece, data, flags);
 }
@@ -430,6 +431,9 @@ void add_piece(torrent_handle& th, piece_index_t piece, char const *data, int fl
 class dummy5 {};
 class dummy {};
 class dummy4 {};
+class dummy6 {};
+class dummy7 {};
+class dummy8 {};
 
 using by_value = return_value_policy<return_by_value>;
 void bind_torrent_handle()
@@ -466,7 +470,7 @@ void bind_torrent_handle()
     ;
 
 #ifndef TORRENT_NO_DEPRECATE
-	enum_<deprecated_move_flags_t>("deprecated_move_flags_t")
+   enum_<deprecated_move_flags_t>("deprecated_move_flags_t")
         .value("always_replace_files", deprecated_move_flags_t::always_replace_files)
         .value("fail_if_exist", deprecated_move_flags_t::fail_if_exist)
         .value("dont_replace", deprecated_move_flags_t::dont_replace)
@@ -598,12 +602,15 @@ void bind_torrent_handle()
         .value("piece_granularity", torrent_handle::piece_granularity)
     ;
 
-    enum_<torrent_handle::flags_t>("add_piece_flags_t")
-        .value("overwrite_existing", torrent_handle::overwrite_existing)
-    ;
-    enum_<torrent_handle::pause_flags_t>("pause_flags_t")
-        .value("graceful_pause", torrent_handle::graceful_pause)
-    ;
+    {
+    scope s = class_<dummy6>("add_piece_flags_t");
+    s.attr("overwrite_existing") = torrent_handle::overwrite_existing;
+    }
+
+    {
+    scope s = class_<dummy7>("pause_flags_t");
+    s.attr("graceful_pause") = torrent_handle::graceful_pause;
+    }
 
     {
     scope s = class_<dummy4>("save_resume_flags_t");
@@ -612,9 +619,10 @@ void bind_torrent_handle()
     s.attr("only_if_modified") = torrent_handle::only_if_modified;
     }
 
-    enum_<torrent_handle::deadline_flags>("deadline_flags")
-        .value("alert_when_available", torrent_handle::alert_when_available)
-    ;
+    {
+    scope s = class_<dummy8>("deadline_flags_t");
+    s.attr("alert_when_available") = torrent_handle::alert_when_available;
+    }
 
 	 {
 	 scope s = class_<dummy5>("status_flags_t");
