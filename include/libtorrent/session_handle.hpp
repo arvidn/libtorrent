@@ -101,10 +101,10 @@ namespace libtorrent
 			save_feeds TORRENT_DEPRECATED_ENUM =        0x080,
 			save_proxy TORRENT_DEPRECATED_ENUM =        0x008,
 			save_i2p_proxy TORRENT_DEPRECATED_ENUM =    0x010,
-			save_dht_proxy TORRENT_DEPRECATED_ENUM = save_proxy,
-			save_peer_proxy TORRENT_DEPRECATED_ENUM = save_proxy,
-			save_web_proxy TORRENT_DEPRECATED_ENUM = save_proxy,
-			save_tracker_proxy TORRENT_DEPRECATED_ENUM = save_proxy
+			save_dht_proxy TORRENT_DEPRECATED_ENUM = 0x008, // save_proxy
+			save_peer_proxy TORRENT_DEPRECATED_ENUM = 0x008, // save_proxy
+			save_web_proxy TORRENT_DEPRECATED_ENUM = 0x008, // save_proxy
+			save_tracker_proxy TORRENT_DEPRECATED_ENUM = 0x008 // save_proxy
 #endif
 		};
 
