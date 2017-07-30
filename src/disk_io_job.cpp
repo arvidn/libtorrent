@@ -101,7 +101,7 @@ namespace libtorrent {
 	}
 
 	disk_io_job::disk_io_job()
-		: argument(remove_flags_t{0})
+		: argument(remove_flags_t{})
 		, piece(0)
 	{
 		d.io.offset = 0;

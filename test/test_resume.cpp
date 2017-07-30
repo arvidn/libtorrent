@@ -926,12 +926,12 @@ struct test_mode_tag;
 using test_mode_t = flags::bitfield_flag<std::uint8_t, test_mode_tag>;
 
 namespace test_mode {
-	constexpr test_mode_t file_prio{1};
-	constexpr test_mode_t pieces_have{2};
-	constexpr test_mode_t piece_prio{4};
-	constexpr test_mode_t all_files_zero{8};
+	constexpr test_mode_t file_prio = 0_bit;
+	constexpr test_mode_t pieces_have = 1_bit;
+	constexpr test_mode_t piece_prio = 2_bit;
+	constexpr test_mode_t all_files_zero = 3_bit;
 #ifndef TORRENT_NO_DEPRECATE
-	constexpr test_mode_t deprecated{16};
+	constexpr test_mode_t deprecated = 4_bit;
 #endif
 }
 

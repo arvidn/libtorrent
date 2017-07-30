@@ -83,26 +83,26 @@ namespace libtorrent {
 		bool is_valid() const { return !m_impl.expired(); }
 
 		// saves settings (i.e. the settings_pack)
-		static constexpr save_state_flags_t save_settings{0x001};
+		static constexpr save_state_flags_t save_settings = 0_bit;
 
 		// saves dht_settings
-		static constexpr save_state_flags_t save_dht_settings{0x002};
+		static constexpr save_state_flags_t save_dht_settings = 1_bit;
 
 		// saves dht state such as nodes and node-id, possibly accelerating
 		// joining the DHT if provided at next session startup.
-		static constexpr save_state_flags_t save_dht_state{0x004};
+		static constexpr save_state_flags_t save_dht_state = 2_bit;
 
 		// save pe_settings
-		static constexpr save_state_flags_t save_encryption_settings{0x020};
+		static constexpr save_state_flags_t save_encryption_settings = 3_bit;
 
 #ifndef TORRENT_NO_DEPRECATE
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_as_map{0x040};
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_proxy{0x008};
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_i2p_proxy{0x010};
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_dht_proxy{0x008};
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_peer_proxy{0x008};
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_web_proxy{0x008};
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_tracker_proxy{0x008};
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_as_map = 4_bit;
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_proxy = 5_bit;
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_i2p_proxy = 6_bit;
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_dht_proxy = 7_bit;
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_peer_proxy = 8_bit;
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_web_proxy = 9_bit;
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_tracker_proxy = 10_bit;
 #endif
 
 		// TODO: 2 the ip filter should probably be saved here too
@@ -122,8 +122,8 @@ namespace libtorrent {
 		// ``peer_fingerprint`` and ``user_agent``. Those are left as configured
 		// by the ``session_settings`` passed to the session constructor or
 		// subsequently set via apply_settings().
-		void save_state(entry& e, save_state_flags_t flags = save_state_flags_t{0xffffffff}) const;
-		void load_state(bdecode_node const& e, save_state_flags_t flags = save_state_flags_t{0xffffffff});
+		void save_state(entry& e, save_state_flags_t flags = save_state_flags_t::all()) const;
+		void load_state(bdecode_node const& e, save_state_flags_t flags = save_state_flags_t::all());
 
 		// .. note::
 		// 	these calls are potentially expensive and won't scale well with
@@ -541,13 +541,13 @@ namespace libtorrent {
 		// use load_state and save_state instead
 		TORRENT_DEPRECATED
 		void load_state(entry const& ses_state
-			, save_state_flags_t flags = save_state_flags_t(0xffffffff));
+			, save_state_flags_t flags = save_state_flags_t::all());
 		TORRENT_DEPRECATED
 		entry state() const;
 		// deprecated in 1.1
 		TORRENT_DEPRECATED
 		void load_state(lazy_entry const& ses_state
-			, save_state_flags_t flags = save_state_flags_t{0xffffffff});
+			, save_state_flags_t flags = save_state_flags_t::all());
 #endif // TORRENT_NO_DEPRECATE
 
 		// Sets a filter that will be used to reject and accept incoming as well
@@ -733,18 +733,18 @@ namespace libtorrent {
 
 		// delete the files belonging to the torrent from disk.
 		// including the part-file, if there is one
-		static constexpr remove_flags_t delete_files{1};
+		static constexpr remove_flags_t delete_files = 0_bit;
 
 		// delete just the part-file associated with this torrent
-		static constexpr remove_flags_t delete_partfile{2};
+		static constexpr remove_flags_t delete_partfile = 1_bit;
 
 		// this will add common extensions like ut_pex, ut_metadata, lt_tex
 		// smart_ban and possibly others.
-		static constexpr session_flags_t add_default_plugins{1};
+		static constexpr session_flags_t add_default_plugins = 0_bit;
 
 		// this will start features like DHT, local service discovery, UPnP
 		// and NAT-PMP.
-		static constexpr session_flags_t start_default_features{2};
+		static constexpr session_flags_t start_default_features = 1_bit;
 
 		// ``remove_torrent()`` will close all peer connections associated with
 		// the torrent and tell the tracker that we've stopped participating in

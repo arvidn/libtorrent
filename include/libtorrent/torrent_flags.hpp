@@ -61,7 +61,7 @@ namespace torrent_flags {
 	//
 	// If resume data is passed in with this torrent, the seed mode saved
 	// in there will override the seed mode you set here.
-	constexpr torrent_flags_t seed_mode{0x001};
+	constexpr torrent_flags_t seed_mode = 0_bit;
 
 	// If ``upload_mode`` is set, the torrent will be initialized in
 	// upload-mode, which means it will not make any piece requests. This
@@ -77,7 +77,7 @@ namespace torrent_flags {
 	// will eventually be taken out of upload-mode, regardless of how it
 	// got there. If it's important to manually control when the torrent
 	// leaves upload mode, don't make it auto managed.
-	constexpr torrent_flags_t upload_mode{0x004};
+	constexpr torrent_flags_t upload_mode = 1_bit;
 
 	// determines if the torrent should be added in *share mode* or not.
 	// Share mode indicates that we are not interested in downloading the
@@ -97,21 +97,21 @@ namespace torrent_flags {
 	//
 	// The share mode has one setting, the share ratio target, see
 	// ``settings_pack::share_mode_target`` for more info.
-	constexpr torrent_flags_t share_mode{0x008};
+	constexpr torrent_flags_t share_mode = 2_bit;
 
 	// determines if the IP filter should apply to this torrent or not. By
 	// default all torrents are subject to filtering by the IP filter
 	// (i.e. this flag is set by default). This is useful if certain
 	// torrents needs to be exempt for some reason, being an auto-update
 	// torrent for instance.
-	constexpr torrent_flags_t apply_ip_filter{0x010};
+	constexpr torrent_flags_t apply_ip_filter = 3_bit;
 
 	// specifies whether or not the torrent is to be started in a paused
 	// state. I.e. it won't connect to the tracker or any of the peers
 	// until it's resumed. This is typically a good way of avoiding race
 	// conditions when setting configuration options on torrents before
 	// starting them.
-	constexpr torrent_flags_t paused{0x020};
+	constexpr torrent_flags_t paused = 4_bit;
 
 	// If the torrent is auto-managed (``auto_managed``), the torrent
 	// may be resumed at any point, regardless of how it paused. If it's
@@ -128,30 +128,23 @@ namespace torrent_flags {
 	// when the resume data was saved will override the auto_managed state
 	// you pass in here. You can override this by setting
 	// ``override_resume_data``.
-	constexpr torrent_flags_t auto_managed{0x040};
-	constexpr torrent_flags_t duplicate_is_error{0x080};
+	constexpr torrent_flags_t auto_managed = 5_bit;
+	constexpr torrent_flags_t duplicate_is_error = 6_bit;
 
 	// on by default and means that this torrent will be part of state
 	// updates when calling post_torrent_updates().
-	constexpr torrent_flags_t update_subscribe{0x200};
+	constexpr torrent_flags_t update_subscribe = 7_bit;
 
 	// sets the torrent into super seeding mode. If the torrent is not a
 	// seed, this flag has no effect. It has the same effect as calling
 	// ``torrent_handle::super_seeding(true)`` on the torrent handle
 	// immediately after adding it.
-	constexpr torrent_flags_t super_seeding{0x400};
+	constexpr torrent_flags_t super_seeding = 8_bit;
 
 	// sets the sequential download state for the torrent. It has the same
 	// effect as calling ``torrent_handle::sequential_download(true)`` on
 	// the torrent handle immediately after adding it.
-	constexpr torrent_flags_t sequential_download{0x800};
-
-#ifndef TORRENT_NO_DEPRECATE
-	// indicates that this torrent should never be unloaded from RAM, even
-	// if unloading torrents are allowed in general. Setting this makes
-	// the torrent exempt from loading/unloading management.
-	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER pinned{0x1000};
-#endif
+	constexpr torrent_flags_t sequential_download = 9_bit;
 
 	// When this flag is set, the
 	// torrent will *force stop* whenever it transitions from a
@@ -182,27 +175,32 @@ namespace torrent_flags {
 	// for the state_changed_alert and then call pause(). The download/seeding
 	// will most likely start in between posting the alert and receiving the
 	// call to pause.
-	constexpr torrent_flags_t stop_when_ready{0x2000};
+	constexpr torrent_flags_t stop_when_ready = 10_bit;
 
 	// when this flag is set, the tracker list in the add_torrent_params
 	// object override any trackers from the torrent file. If the flag is
 	// not set, the trackers from the add_torrent_params object will be
 	// added to the list of trackers used by the torrent.
-	constexpr torrent_flags_t override_trackers{0x4000};
+	constexpr torrent_flags_t override_trackers = 11_bit;
 
 	// If this flag is set, the web seeds from the add_torrent_params
 	// object will override any web seeds in the torrent file. If it's not
 	// set, web seeds in the add_torrent_params object will be added to the
 	// list of web seeds used by the torrent.
-	constexpr torrent_flags_t override_web_seeds{0x8000};
+	constexpr torrent_flags_t override_web_seeds = 12_bit;
 
 	// if this flag is set (which it is by default) the torrent will be
 	// considered needing to save its resume data immediately as it's
 	// added. New torrents that don't have any resume data should do that.
 	// This flag is cleared by a successful call to save_resume_data()
-	constexpr torrent_flags_t need_save_resume{0x10000};
+	constexpr torrent_flags_t need_save_resume = 13_bit;
 
 #ifndef TORRENT_NO_DEPRECATE
+	// indicates that this torrent should never be unloaded from RAM, even
+	// if unloading torrents are allowed in general. Setting this makes
+	// the torrent exempt from loading/unloading management.
+	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER pinned = 14_bit;
+
 	// If ``override_resume_data`` is set, flags set for this torrent
 	// in this ``add_torrent_params`` object will take precedence over
 	// whatever states are saved in the resume data. For instance, the
@@ -214,7 +212,7 @@ namespace torrent_flags {
 	// configuration from the resume file, with the one exception of save
 	// resume data, which has its own flag (for historic reasons).
 	// "file_priorities" and "save_path" are not affected by this flag.
-	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER override_resume_data{0x20000};
+	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER override_resume_data = 15_bit;
 
 	// defaults to on and specifies whether tracker URLs loaded from
 	// resume data should be added to the trackers in the torrent or
@@ -223,12 +221,12 @@ namespace torrent_flags {
 	// replaced by any trackers in the resume data. The default behavior is
 	// to have the resume data override the .torrent file _and_ the
 	// trackers added in add_torrent_params.
-	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER merge_resume_trackers{0x40000};
+	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER merge_resume_trackers = 16_bit;
 
 	// if this flag is set, the save path from the resume data file, if
 	// present, is honored. This defaults to not being set, in which
 	// case the save_path specified in add_torrent_params is always used.
-	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER use_resume_save_path{0x80000};
+	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER use_resume_save_path = 17_bit;
 
 	// defaults to on and specifies whether web seed URLs loaded from
 	// resume data should be added to the ones in the torrent file or
@@ -238,10 +236,10 @@ namespace torrent_flags {
 	// add_torrent_params are also replaced. The default behavior is to
 	// have any web seeds in the resume data take precedence over whatever
 	// is passed in here as well as the .torrent file.
-	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER merge_resume_http_seeds{0x100000};
+	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER merge_resume_http_seeds = 18_bit;
 #endif
 
-	constexpr torrent_flags_t all{0xffffffffffffffff};
+	constexpr torrent_flags_t all = torrent_flags_t::all();
 
 	// internal
 	constexpr torrent_flags_t default_flags =
