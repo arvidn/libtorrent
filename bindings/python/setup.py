@@ -64,6 +64,20 @@ try:
 except:
     ldflags = None
 
+# this is to pull out compiler arguments from the CXX flags set up by the
+# configure script. Specifically, the -std=c++11 flag is added to CXX and here
+# we pull out everything starting from the first flag (i.e. something starting
+# with a '-'). The actual command to call the compiler may be more than one
+# word, for instance "ccache g++".
+try:
+    with open('compile_cmd') as _file:
+        cmd = _file.read().split(' ')
+        while len(cmd) > 0 and not cmd[0].startswith('-'):
+            cmd = cmd[1:]
+        extra_cmd += ' '.join(cmd)
+except:
+    pass
+
 ext = None
 packages = None
 
