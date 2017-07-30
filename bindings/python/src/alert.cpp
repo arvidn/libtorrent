@@ -364,7 +364,7 @@ void bind_alert()
         .def_readonly("ec", &read_piece_alert::ec)
 #endif
         .add_property("buffer", get_buffer)
-        .def_readonly("piece", &read_piece_alert::piece)
+        .add_property("piece", make_getter(&read_piece_alert::piece, by_value()))
         .def_readonly("size", &read_piece_alert::size)
         ;
 
@@ -961,4 +961,3 @@ void bind_alert()
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
