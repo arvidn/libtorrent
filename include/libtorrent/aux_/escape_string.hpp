@@ -48,9 +48,9 @@ namespace libtorrent {
 	namespace string
 	{
 		// use lower case alphabet used with i2p
-		constexpr encode_string_flags_t lowercase{0x1};
+		constexpr encode_string_flags_t lowercase = 0_bit;
 		// don't insert padding
-		constexpr encode_string_flags_t no_padding{0x2};
+		constexpr encode_string_flags_t no_padding = 1_bit;
 		// shortcut used for addresses as sha256 hashes
 		constexpr encode_string_flags_t i2p = lowercase | no_padding;
 	}

@@ -56,10 +56,10 @@ namespace libtorrent {
 	public:
 		explicit udp_socket(io_service& ios);
 
-		static constexpr udp_send_flags_t peer_connection{1};
-		static constexpr udp_send_flags_t tracker_connection{2};
-		static constexpr udp_send_flags_t dont_queue{4};
-		static constexpr udp_send_flags_t dont_fragment{8};
+		static constexpr udp_send_flags_t peer_connection = 0_bit;
+		static constexpr udp_send_flags_t tracker_connection = 1_bit;
+		static constexpr udp_send_flags_t dont_queue = 2_bit;
+		static constexpr udp_send_flags_t dont_fragment = 3_bit;
 
 		bool is_open() const { return m_abort == false; }
 		io_service& get_io_service() { return m_socket.get_io_service(); }

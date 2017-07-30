@@ -37,24 +37,44 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iosfwd>
 
 namespace libtorrent {
+
+struct bit_t
+{
+	explicit constexpr bit_t(int b) : m_bit_idx(b) {}
+	explicit constexpr operator int() const { return m_bit_idx; }
+private:
+	int m_bit_idx;
+};
+
+constexpr bit_t operator "" _bit(unsigned long long int b) { return bit_t{static_cast<int>(b)}; }
+
 namespace flags {
 
 template<typename UnderlyingType, typename Tag
 	, typename Cond = typename std::enable_if<std::is_integral<UnderlyingType>::value>::type>
 struct bitfield_flag
 {
+	static_assert(std::is_unsigned<UnderlyingType>::value
+		, "flags must use unsigned integers as underlying types");
+
 	using underlying_type = UnderlyingType;
 
 	constexpr bitfield_flag(bitfield_flag const& rhs) noexcept = default;
 	constexpr bitfield_flag(bitfield_flag&& rhs) noexcept = default;
 	constexpr bitfield_flag() noexcept : m_val(0) {}
-	explicit constexpr bitfield_flag(UnderlyingType val) noexcept : m_val(val) {}
+	explicit constexpr bitfield_flag(UnderlyingType const val) noexcept : m_val(val) {}
+	constexpr bitfield_flag(bit_t const bit) noexcept : m_val(static_cast<UnderlyingType>(UnderlyingType{1} << static_cast<int>(bit))) {}
 #ifdef TORRENT_NO_DEPRECATE
 	explicit constexpr operator UnderlyingType() const noexcept { return m_val; }
 #else
 	constexpr operator UnderlyingType() const noexcept { return m_val; }
 #endif
 	explicit constexpr operator bool() const noexcept { return m_val != 0; }
+
+	static constexpr bitfield_flag all()
+	{
+		return bitfield_flag(~UnderlyingType{0});
+	}
 
 	bool constexpr operator==(bitfield_flag const f) const noexcept
 	{ return m_val == f.m_val; }
@@ -114,8 +134,6 @@ private:
 
 } // flags
 } // libtorrent
-
-#undef ENUM_OPERATOR
 
 #endif
 

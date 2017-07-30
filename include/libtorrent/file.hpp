@@ -128,32 +128,32 @@ namespace libtorrent {
 	namespace open_mode {
 
 		// open the file for reading only
-		constexpr open_mode_t read_only{0};
+		constexpr open_mode_t read_only{};
 
 		// open the file for writing only
-		constexpr open_mode_t write_only{1};
+		constexpr open_mode_t write_only = 0_bit;
 
 		// open the file for reading and writing
-		constexpr open_mode_t read_write{2};
+		constexpr open_mode_t read_write = 1_bit;
 
 		constexpr open_mode_t rw_mask = read_only | write_only | read_write;
 
 		// open the file in sparse mode (if supported by the
 		// filesystem).
-		constexpr open_mode_t sparse{0x4};
+		constexpr open_mode_t sparse = 2_bit;
 
 		// don't update the access timestamps on the file (if
 		// supported by the operating system and filesystem).
 		// this generally improves disk performance.
-		constexpr open_mode_t no_atime{0x8};
+		constexpr open_mode_t no_atime = 3_bit;
 
 		// open the file for random access. This disables read-ahead
 		// logic
-		constexpr open_mode_t random_access{0x10};
+		constexpr open_mode_t random_access = 4_bit;
 
 		// prevent the file from being opened by another process
 		// while it's still being held open by this handle
-		constexpr open_mode_t lock_file{0x20};
+		constexpr open_mode_t lock_file = 5_bit;
 
 		// don't put any pressure on the OS disk cache
 		// because of access to this file. We expect our
@@ -161,16 +161,16 @@ namespace libtorrent {
 		// a cache at the bittorrent block level. This
 		// may improve overall system performance by
 		// leaving running applications in the page cache
-		constexpr open_mode_t no_cache{0x40};
+		constexpr open_mode_t no_cache = 6_bit;
 
 		// this is only used for readv/writev flags
-		constexpr open_mode_t coalesce_buffers{0x100};
+		constexpr open_mode_t coalesce_buffers = 7_bit;
 
 		// when creating a file, set the hidden attribute (windows only)
-		constexpr open_mode_t attribute_hidden{0x200};
+		constexpr open_mode_t attribute_hidden = 8_bit;
 
 		// when creating a file, set the executable attribute
-		constexpr open_mode_t attribute_executable{0x400};
+		constexpr open_mode_t attribute_executable = 9_bit;
 
 		// the mask of all attribute bits
 		constexpr open_mode_t attribute_mask = attribute_hidden | attribute_executable;

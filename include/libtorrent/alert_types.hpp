@@ -2526,22 +2526,22 @@ namespace libtorrent {
 		static constexpr alert_category_t static_category = alert::picker_log_notification;
 		virtual std::string message() const override;
 
-		static constexpr picker_flags_t partial_ratio{0x1};
-		static constexpr picker_flags_t prioritize_partials{0x2};
-		static constexpr picker_flags_t rarest_first_partials{0x4};
-		static constexpr picker_flags_t rarest_first{0x8};
-		static constexpr picker_flags_t reverse_rarest_first{0x10};
-		static constexpr picker_flags_t suggested_pieces{0x20};
-		static constexpr picker_flags_t prio_sequential_pieces{0x40};
-		static constexpr picker_flags_t sequential_pieces{0x80};
-		static constexpr picker_flags_t reverse_pieces{0x100};
-		static constexpr picker_flags_t time_critical{0x200};
-		static constexpr picker_flags_t random_pieces{0x400};
-		static constexpr picker_flags_t prefer_contiguous{0x800};
-		static constexpr picker_flags_t reverse_sequential{0x1000};
-		static constexpr picker_flags_t backup1{0x2000};
-		static constexpr picker_flags_t backup2{0x4000};
-		static constexpr picker_flags_t end_game{0x8000};
+		static constexpr picker_flags_t partial_ratio = 0_bit;
+		static constexpr picker_flags_t prioritize_partials = 1_bit;
+		static constexpr picker_flags_t rarest_first_partials = 2_bit;
+		static constexpr picker_flags_t rarest_first = 3_bit;
+		static constexpr picker_flags_t reverse_rarest_first = 4_bit;
+		static constexpr picker_flags_t suggested_pieces = 5_bit;
+		static constexpr picker_flags_t prio_sequential_pieces = 6_bit;
+		static constexpr picker_flags_t sequential_pieces = 7_bit;
+		static constexpr picker_flags_t reverse_pieces = 8_bit;
+		static constexpr picker_flags_t time_critical = 9_bit;
+		static constexpr picker_flags_t random_pieces = 10_bit;
+		static constexpr picker_flags_t prefer_contiguous = 11_bit;
+		static constexpr picker_flags_t reverse_sequential = 12_bit;
+		static constexpr picker_flags_t backup1 = 13_bit;
+		static constexpr picker_flags_t backup2 = 14_bit;
+		static constexpr picker_flags_t end_game = 15_bit;
 
 		// this is a bitmask of which features were enabled for this particular
 		// pick. The bits are defined in the picker_flags_t enum.

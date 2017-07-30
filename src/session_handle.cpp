@@ -744,7 +744,7 @@ namespace {
 	{
 		entry ret;
 		auto retp = &ret;
-		sync_call(&session_impl::save_state, retp, save_state_flags_t{0xffffffff});
+		sync_call(&session_impl::save_state, retp, save_state_flags_t::all());
 		return ret;
 	}
 
@@ -1122,7 +1122,7 @@ namespace {
 #ifndef TORRENT_NO_DEPRECATE
 	void session_handle::set_severity_level(alert::severity_t s)
 	{
-		int m = 0;
+		alert_category_t m = {};
 		switch (s)
 		{
 			case alert::debug: m = alert::all_categories; break;
@@ -1133,7 +1133,7 @@ namespace {
 				| alert::dht_notification); break;
 			case alert::critical: m = alert::error_notification | alert::storage_notification; break;
 			case alert::fatal: m = alert::error_notification; break;
-			case alert::none: m = 0; break;
+			case alert::none: m = {}; break;
 		}
 
 		settings_pack p;

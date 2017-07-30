@@ -241,7 +241,11 @@ struct from_bitfield_flag
 
     static PyObject* convert(T const v)
     {
-        object o(static_cast<underlying_type>(v));
+        // this is because python uses "long int" to represent integral values
+        // internally, it cannot hold large unsigned values
+        auto const val = static_cast<underlying_type>(v)
+            & static_cast<std::uint64_t>(std::numeric_limits<long int>::max());
+        object o(val);
         return incref(o.ptr());
     }
 };
