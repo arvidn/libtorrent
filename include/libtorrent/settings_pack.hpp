@@ -642,9 +642,15 @@ namespace aux {
 			// if false, prevents libtorrent to advertise share-mode support
 			support_share_mode,
 
+#ifndef TORRENT_NO_DEPRECATE
+			// support for BEP 30 merkle torrents has been removed
+
 			// if this is false, don't advertise support for the Tribler merkle
 			// tree piece message
-			support_merkle_torrents,
+			support_merkle_torrents TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated24,
+#endif
 
 			// if this is true, the number of redundant bytes is sent to the
 			// tracker

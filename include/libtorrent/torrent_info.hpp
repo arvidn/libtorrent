@@ -458,22 +458,17 @@ namespace libtorrent {
 			TORRENT_ASSERT(index < m_files.end_piece());
 			TORRENT_ASSERT(is_loaded());
 			int const idx = static_cast<int>(index);
-			if (is_merkle_torrent())
-			{
-				TORRENT_ASSERT(idx < m_merkle_tree.end_index() - m_merkle_first_leaf);
-				return m_merkle_tree[m_merkle_first_leaf + idx].data();
-			}
-			else
-			{
-				TORRENT_ASSERT(m_piece_hashes);
-				TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-				TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-				TORRENT_ASSERT(idx < int(m_info_section_size / 20));
-				return &m_piece_hashes[idx * 20];
-			}
+			TORRENT_ASSERT(m_piece_hashes);
+			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+			TORRENT_ASSERT(idx < int(m_info_section_size / 20));
+			return &m_piece_hashes[idx * 20];
 		}
 
-		bool is_loaded() const { return m_piece_hashes || !m_merkle_tree.empty(); }
+		bool is_loaded() const { return m_piece_hashes; }
+
+#ifndef TORRENT_NO_DEPRECATE
+		// support for BEP 30 merkle torrents has been removed
 
 		// ``merkle_tree()`` returns a reference to the merkle tree for this
 		// torrent, if any.
@@ -484,9 +479,12 @@ namespace libtorrent {
 		// ``create_torrent::merkle_tree()`` function, and need to be saved
 		// separately from the torrent file itself. Once it's added to
 		// libtorrent, the merkle tree will be persisted in the resume data.
+		TORRENT_DEPRECATED
 		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
+		TORRENT_DEPRECATED
 		void set_merkle_tree(std::vector<sha1_hash>& h)
 		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
+#endif
 
 		// ``name()`` returns the name of the torrent.
 		// name contains UTF-8 encoded string.
@@ -541,16 +539,26 @@ namespace libtorrent {
 		boost::shared_array<char> metadata() const
 		{ return m_info_section; }
 
+#ifndef TORRENT_NO_DEPRECATE
+		// support for BEP 30 merkle torrents has been removed
+
 		// internal
-		bool add_merkle_nodes(std::map<int, sha1_hash> const& subtree
-			, piece_index_t piece);
-		std::map<int, sha1_hash> build_merkle_list(piece_index_t piece) const;
+		TORRENT_DEPRECATED
+		bool add_merkle_nodes(std::map<int, sha1_hash> const&
+			, piece_index_t) { return false; }
+		TORRENT_DEPRECATED
+		std::map<int, sha1_hash> build_merkle_list(piece_index_t) const
+		{
+			return std::map<int, sha1_hash>();
+		}
 
 		// returns whether or not this is a merkle torrent.
 		// see `BEP 30`__.
 		//
 		// __ http://bittorrent.org/beps/bep_0030.html
+		TORRENT_DEPRECATED
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
+#endif
 
 		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec);
 
@@ -608,10 +616,14 @@ namespace libtorrent {
 		// cannot be pointers into that buffer.
 		std::vector<std::string> m_owned_collections;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// if this is a merkle torrent, this is the merkle
 		// tree. It has space for merkle_num_nodes(merkle_num_leafs(num_pieces))
 		// hashes
 		aux::vector<sha1_hash> m_merkle_tree;
+#else
+		aux::vector<sha1_hash> deprecated1;
+#endif
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
@@ -646,9 +658,13 @@ namespace libtorrent {
 		// the number of bytes in m_info_section
 		std::int32_t m_info_section_size = 0;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the index to the first leaf. This is where the hash for the
 		// first piece is stored
 		std::int32_t m_merkle_first_leaf = 0;
+#else
+		std::int32_t deprecated2 = 0;
+#endif
 
 		enum flags_t : std::uint8_t
 		{
