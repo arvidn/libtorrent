@@ -308,29 +308,6 @@ bool is_downloading_state(int const st)
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			prioritize_udp_trackers();
 
-		// --- MERKLE TREE ---
-
-		if (m_torrent_file->is_valid()
-			&& m_torrent_file->is_merkle_torrent())
-		{
-			if (p.merkle_tree.size() == m_torrent_file->merkle_tree().size())
-			{
-				// TODO: 2 set_merkle_tree should probably take the vector as &&
-				std::vector<sha1_hash> tree(p.merkle_tree);
-				m_torrent_file->set_merkle_tree(tree);
-			}
-			else
-			{
-				// TODO: 0 if this is a merkle torrent and we can't
-				// restore the tree, we need to wipe all the
-				// bits in the have array, but not necessarily
-				// we might want to do a full check to see if we have
-				// all the pieces. This is low priority since almost
-				// no one uses merkle torrents
-				TORRENT_ASSERT_FAIL();
-			}
-		}
-
 		if (m_torrent_file->is_valid())
 		{
 			// setting file- or piece priorities for seed mode makes no sense. If a
@@ -1210,12 +1187,6 @@ bool is_downloading_state(int const st)
 		}
 	}
 	catch (...) { handle_exception(); }
-
-	bool torrent::add_merkle_nodes(std::map<int, sha1_hash> const& nodes
-		, piece_index_t const piece)
-	{
-		return m_torrent_file->add_merkle_nodes(nodes, piece);
-	}
 
 	peer_request torrent::to_req(piece_block const& p) const
 	{
@@ -5905,13 +5876,6 @@ bool is_downloading_state(int const st)
 			{
 				ret.ti = m_torrent_file;
 			}
-		}
-
-		if (m_torrent_file->is_merkle_torrent())
-		{
-			// we need to save the whole merkle hash tree
-			// in order to resume
-			ret.merkle_tree = m_torrent_file->merkle_tree();
 		}
 
 		// if this torrent is a seed, we won't have a piece picker
