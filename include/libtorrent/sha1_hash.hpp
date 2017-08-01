@@ -283,14 +283,17 @@ namespace aux {
 	// In libtorrent it is primarily used to hold info-hashes, piece-hashes,
 	// peer IDs, node IDs etc.
 	using sha1_hash = digest32<160>;
+	using sha256_hash = digest32<256>;
 
 #if TORRENT_USE_IOSTREAM
 
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
 	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, sha1_hash const& peer);
+	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, sha256_hash const& peer);
 
 	// read 40 hexadecimal digits from an istream into a sha1_hash
 	TORRENT_EXPORT std::istream& operator>>(std::istream& is, sha1_hash& peer);
+	TORRENT_EXPORT std::istream& operator>>(std::istream& is, sha256_hash& peer);
 
 #endif // TORRENT_USE_IOSTREAM
 }
