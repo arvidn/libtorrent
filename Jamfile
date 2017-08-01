@@ -657,6 +657,7 @@ SOURCES =
 	settings_pack
 	sha1
 	sha1_hash
+	sha256
 	socket_io
 	socket_type
 	socks5_stream
