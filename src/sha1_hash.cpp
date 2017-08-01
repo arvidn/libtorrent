@@ -48,14 +48,30 @@ namespace libtorrent {
 		return os << aux::to_hex(peer);
 	}
 
-	// read 40 hexadecimal digits from an istream into a sha1_hash
-	std::istream& operator>>(std::istream& is, sha1_hash& peer)
+	std::ostream& operator<<(std::ostream& os, sha256_hash const& peer)
 	{
-		char hex[sha1_hash::size() * 2];
-		is.read(hex, sha1_hash::size() * 2);
+		return os << aux::to_hex(peer);
+	}
+
+	// read 40 hexadecimal digits from an istream into a sha1_hash
+	template <std::ptrdiff_t N>
+	std::istream& digest_isstream_impl(std::istream& is, digest32<N>& peer)
+	{
+		char hex[digest32<N>::size() * 2];
+		is.read(hex, digest32<N>::size() * 2);
 		if (!aux::from_hex(hex, peer.data()))
 			is.setstate(std::ios_base::failbit);
 		return is;
+	}
+
+	std::istream& operator>>(std::istream& is, sha1_hash& peer)
+	{
+		return digest_isstream_impl(is, peer);
+	}
+
+	std::istream& operator>>(std::istream& is, sha256_hash& peer)
+	{
+		return digest_isstream_impl(is, peer);
 	}
 
 #endif // TORRENT_USE_IOSTREAM

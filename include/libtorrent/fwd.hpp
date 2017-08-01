@@ -184,6 +184,7 @@ class file_storage;
 // include/libtorrent/hasher.hpp
 TORRENT_CRYPTO_NAMESPACE
 class hasher;
+class hasher256;
 TORRENT_CRYPTO_NAMESPACE_END
 
 // include/libtorrent/ip_filter.hpp
