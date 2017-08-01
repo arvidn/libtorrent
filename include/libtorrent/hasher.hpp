@@ -57,6 +57,7 @@ extern "C" {
 
 #else
 #include "libtorrent/sha1.hpp"
+#include "libtorrent/sha256.hpp"
 #endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -119,6 +120,46 @@ TORRENT_CRYPTO_NAMESPACE
 		SHA_CTX m_context;
 #else
 		sha1_ctx m_context;
+#endif
+	};
+
+	class TORRENT_EXPORT hasher256
+	{
+	public:
+		hasher256();
+
+		// this is the same as default constructing followed by a call to
+		// ``update(data, len)``.
+		hasher256(char const* data, int len);
+		explicit hasher256(span<char const> data);
+		hasher256(hasher256 const&);
+		hasher256& operator=(hasher256 const&);
+
+		// append the following bytes to what is being hashed
+		hasher256& update(span<char const> data);
+		hasher256& update(char const* data, int len);
+
+		// returns the SHA-1 digest of the buffers previously passed to
+		// update() and the hasher constructor.
+		sha256_hash final();
+
+		// restore the hasher state to be as if the hasher has just been
+		// default constructed.
+		void reset();
+
+		~hasher256();
+
+	private:
+#ifdef TORRENT_USE_LIBGCRYPT
+		gcry_md_hd_t m_context;
+#elif TORRENT_USE_COMMONCRYPTO
+		CC_SHA256_CTX m_context;
+#elif TORRENT_USE_CRYPTOAPI
+		aux::crypt_hash<CALG_SHA_256, PROV_RSA_AES> m_context;
+#elif defined TORRENT_USE_LIBCRYPTO
+		SHA256_CTX m_context;
+#else
+		sha256_ctx m_context;
 #endif
 	};
 
