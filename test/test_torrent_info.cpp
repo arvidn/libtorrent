@@ -120,7 +120,6 @@ static test_torrent_t test_torrents[] =
 	{ "url_seed_multi_single_file.torrent" },
 	{ "url_seed_multi_space.torrent" },
 	{ "url_seed_multi_space_nolist.torrent" },
-	{ "root_hash.torrent" },
 	{ "empty_path_multi.torrent" },
 	{ "duplicate_web_seeds.torrent" },
 	{ "invalid_name2.torrent" },
@@ -157,9 +156,6 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "missing_path_list.torrent", errors::torrent_missing_name },
 	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
 	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_root_hash.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_root_hash2.torrent", errors::torrent_missing_pieces },
-	{ "invalid_merkle.torrent", errors::no_files_in_torrent},
 	{ "invalid_file_size.torrent", errors::torrent_invalid_length },
 	{ "invalid_symlink.torrent", errors::torrent_invalid_name },
 	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
@@ -169,17 +165,14 @@ test_failing_torrent_t test_error_torrents[] =
 } // anonymous namespace
 
 // TODO: test remap_files
-// TODO: merkle torrents. specifically torrent_info::add_merkle_nodes and torrent with "root hash"
 // TODO: torrent with 'p' (padfile) attribute
 // TODO: torrent with 'h' (hidden) attribute
 // TODO: torrent with 'x' (executable) attribute
 // TODO: torrent with 'l' (symlink) attribute
-// TODO: creating a merkle torrent (torrent_info::build_merkle_list)
 // TODO: torrent with multiple trackers in multiple tiers, making sure we
 // shuffle them (how do you test shuffling?, load it multiple times and make
 // sure it's in different order at least once)
 // TODO: torrents with a zero-length name
-// TODO: torrents with a merkle tree and add_merkle_nodes
 // TODO: torrent with a non-dictionary info-section
 // TODO: torrents with DHT nodes
 // TODO: torrent with url-list as a single string

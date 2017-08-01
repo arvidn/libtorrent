@@ -1087,8 +1087,6 @@ namespace libtorrent {
 		{ return m_verified.get_bit(piece); }
 		void verified(piece_index_t piece);
 
-		bool add_merkle_nodes(std::map<int, sha1_hash> const& n, piece_index_t piece);
-
 		// this is called once periodically for torrents
 		// that are not private
 		void lsd_announce();

@@ -327,8 +327,6 @@ namespace {
 		atp.verified_pieces.swap(resume_data.verified_pieces);
 		atp.piece_priorities.swap(resume_data.piece_priorities);
 
-		atp.merkle_tree = std::move(resume_data.merkle_tree);
-
 		atp.renamed_files = std::move(resume_data.renamed_files);
 
 		if (!(atp.flags & add_torrent_params::flag_override_resume_data))

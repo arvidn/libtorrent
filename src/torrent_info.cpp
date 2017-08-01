@@ -562,14 +562,12 @@ namespace {
 		, m_urls(t.m_urls)
 		, m_web_seeds(t.m_web_seeds)
 		, m_nodes(t.m_nodes)
-		, m_merkle_tree(t.m_merkle_tree)
 		, m_piece_hashes(t.m_piece_hashes)
 		, m_comment(t.m_comment)
 		, m_created_by(t.m_created_by)
 		, m_creation_date(t.m_creation_date)
 		, m_info_hash(t.m_info_hash)
 		, m_info_section_size(t.m_info_section_size)
-		, m_merkle_first_leaf(t.m_merkle_first_leaf)
 		, m_flags(t.m_flags)
 	{
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -904,9 +902,7 @@ namespace {
 		swap(m_info_section, ti.m_info_section);
 		swap(m_piece_hashes, ti.m_piece_hashes);
 		m_info_dict.swap(ti.m_info_dict);
-		swap(m_merkle_tree, ti.m_merkle_tree);
 		swap(m_info_section_size, ti.m_info_section_size);
-		swap(m_merkle_first_leaf, ti.m_merkle_first_leaf);
 		swap(m_flags, ti.m_flags);
 	}
 
@@ -1043,8 +1039,7 @@ namespace {
 			/ files.piece_length()));
 
 		bdecode_node const pieces = info.dict_find_string("pieces");
-		bdecode_node const root_hash = info.dict_find_string("root hash");
-		if (!pieces && !root_hash)
+		if (!pieces)
 		{
 			ec = errors::torrent_missing_pieces;
 			// mark the torrent as invalid
@@ -1061,43 +1056,17 @@ namespace {
 			return false;
 		}
 
-		if (pieces)
+		if (pieces.string_length() != files.num_pieces() * 20)
 		{
-			if (pieces.string_length() != files.num_pieces() * 20)
-			{
-				ec = errors::torrent_invalid_hashes;
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
-				return false;
-			}
+			ec = errors::torrent_invalid_hashes;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			return false;
+		}
 
-			m_piece_hashes = pieces.string_ptr() + info_ptr_diff;
-			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-		}
-		else
-		{
-			TORRENT_ASSERT(root_hash);
-			if (root_hash.string_length() != 20)
-			{
-				ec = errors::torrent_invalid_hashes;
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
-				return false;
-			}
-			if (files.num_pieces() <= 0)
-			{
-				ec = errors::no_files_in_torrent;
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
-				return false;
-			}
-			int const num_leafs = merkle_num_leafs(files.num_pieces());
-			int const num_nodes = merkle_num_nodes(num_leafs);
-			m_merkle_first_leaf = num_nodes - num_leafs;
-			m_merkle_tree.resize(num_nodes);
-			m_merkle_tree[0].assign(root_hash.string_ptr());
-		}
+		m_piece_hashes = pieces.string_ptr() + info_ptr_diff;
+		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+		TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
 
 		m_flags |= (info.dict_find_int_value("private", 0) != 0)
 			? private_torrent : 0;
@@ -1153,80 +1122,6 @@ namespace {
 			if (ec) return bdecode_node();
 		}
 		return m_info_dict.dict_find(key);
-	}
-
-
-	bool torrent_info::add_merkle_nodes(std::map<int, sha1_hash> const& subtree
-		, piece_index_t const piece)
-	{
-		INVARIANT_CHECK;
-
-		int n = m_merkle_first_leaf + static_cast<int>(piece);
-		auto const it = subtree.find(n);
-		if (it == subtree.end()) return false;
-		sha1_hash h = it->second;
-
-		// if the verification passes, these are the
-		// nodes to add to our tree
-		std::map<int, sha1_hash> to_add;
-
-		while (n > 0)
-		{
-			int const sibling = merkle_get_sibling(n);
-			int const parent = merkle_get_parent(n);
-			auto const sibling_hash = subtree.find(sibling);
-			if (sibling_hash == subtree.end())
-				return false;
-			to_add[n] = h;
-			to_add[sibling] = sibling_hash->second;
-			hasher hs;
-			if (sibling < n)
-			{
-				hs.update(sibling_hash->second);
-				hs.update(h);
-			}
-			else
-			{
-				hs.update(h);
-				hs.update(sibling_hash->second);
-			}
-			h = hs.final();
-			n = parent;
-		}
-		if (h != m_merkle_tree[0]) return false;
-
-		// the nodes and piece hash matched the root-hash
-		// insert them into our tree
-
-		for (auto const& i : to_add)
-		{
-			m_merkle_tree[i.first] = i.second;
-		}
-		return true;
-	}
-
-	// builds a list of nodes that are required to verify
-	// the given piece
-	std::map<int, sha1_hash>
-	torrent_info::build_merkle_list(piece_index_t const piece) const
-	{
-		INVARIANT_CHECK;
-
-		std::map<int, sha1_hash> ret;
-		int n = m_merkle_first_leaf + static_cast<int>(piece);
-		ret[n] = m_merkle_tree[n];
-		ret[0] = m_merkle_tree[0];
-		while (n > 0)
-		{
-			int sibling = merkle_get_sibling(n);
-			int parent = merkle_get_parent(n);
-			ret[sibling] = m_merkle_tree[sibling];
-			// we cannot build the tree path if one
-			// of the nodes in the tree is missing
-			TORRENT_ASSERT(!m_merkle_tree[sibling].is_all_zeros());
-			n = parent;
-		}
-		return ret;
 	}
 
 	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file

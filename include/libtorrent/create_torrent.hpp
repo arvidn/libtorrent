@@ -119,7 +119,10 @@ namespace libtorrent {
 		// When creating merkle torrents, the full hash tree is also generated
 		// and should be saved off separately. It is accessed through the
 		// create_torrent::merkle_tree() function.
-		static constexpr create_flags_t merkle = 1_bit;
+#ifndef TORRENT_NO_DEPRECATE
+		// support for BEP 30 merkle torrents has been removed
+		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER merkle = 1_bit;
+#endif
 
 		// This will include the file modification time as part of the torrent.
 		// This is not enabled by default, as it might cause problems when you
@@ -272,13 +275,18 @@ namespace libtorrent {
 		int piece_length() const { return m_files.piece_length(); }
 		int piece_size(piece_index_t i) const { return m_files.piece_size(i); }
 
+#ifndef TORRENT_NO_DEPRECATE
+		// support for BEP 30 merkle torrents has been removed
+
 		// This function returns the merkle hash tree, if the torrent was created as a merkle
 		// torrent. The tree is created by ``generate()`` and won't be valid until that function
 		// has been called. When creating a merkle tree torrent, the actual tree itself has to
 		// be saved off separately and fed into libtorrent the first time you start seeding it,
 		// through the ``torrent_info::set_merkle_tree()`` function. From that point onwards, the
 		// tree will be saved in the resume data.
-		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
+		TORRENT_DEPRECATED
+		std::vector<sha1_hash> merkle_tree() const { return std::vector<sha1_hash>(); }
+#endif
 
 		// Add similar torrents (by info-hash) or collections of similar torrents.
 		// Similar torrents are expected to share some files with this torrent.
@@ -312,11 +320,6 @@ namespace libtorrent {
 		std::vector<sha1_hash> m_similar;
 		std::vector<std::string> m_collections;
 
-		// if we're generating a merkle torrent, this is the
-		// merkle tree we got. This should be saved in fast-resume
-		// in order to start seeding the torrent
-		mutable aux::vector<sha1_hash> m_merkle_tree;
-
 		// dht nodes to add to the routing table/bootstrap from
 		std::vector<std::pair<std::string, int>> m_nodes;
 
@@ -346,9 +349,6 @@ namespace libtorrent {
 		// this is true if the torrent is private. i.e., the client should not
 		// advertise itself on the DHT for this torrent
 		bool m_private:1;
-
-		// if set to one, a merkle torrent will be generated
-		bool m_merkle_torrent:1;
 
 		// if set, include the 'mtime' modification time in the
 		// torrent file

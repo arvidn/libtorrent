@@ -252,14 +252,6 @@ namespace {
 			}
 		}
 
-		bdecode_node const mt = rd.dict_find_string("merkle tree");
-		if (mt && mt.string_length() >= int(sha1_hash::size()))
-		{
-			ret.merkle_tree.resize(aux::numeric_cast<std::size_t>(mt.string_length()) / sha1_hash::size());
-			std::memcpy(ret.merkle_tree.data(), mt.string_ptr()
-				, ret.merkle_tree.size() * sha1_hash::size());
-		}
-
 		// some sanity checking. Maybe we shouldn't be in seed mode anymore
 		if (bdecode_node const pieces = rd.dict_find_string("pieces"))
 		{

@@ -94,16 +94,6 @@ namespace libtorrent {
 			ret["info"].preformatted().assign(&info[0], &info[0] + size);
 		}
 
-		if (!atp.merkle_tree.empty())
-		{
-			// we need to save the whole merkle hash tree
-			// in order to resume
-			std::string& tree_str = ret["merkle tree"].string();
-			auto const& tree = atp.merkle_tree;
-			tree_str.resize(tree.size() * 20);
-			std::memcpy(&tree_str[0], &tree[0], tree.size() * 20);
-		}
-
 		if (!atp.unfinished_pieces.empty())
 		{
 			entry::list_type& up = ret["unfinished"].list();

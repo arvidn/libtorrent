@@ -54,8 +54,8 @@ namespace libtorrent {
 	constexpr create_flags_t create_torrent::optimize_alignment;
 #if TORRENT_ABI_VERSION == 1
 	constexpr create_flags_t create_torrent::optimize;
-#endif
 	constexpr create_flags_t create_torrent::merkle;
+#endif
 	constexpr create_flags_t create_torrent::modification_time;
 	constexpr create_flags_t create_torrent::symlinks;
 	constexpr create_flags_t create_torrent::mutable_torrent_support;
@@ -343,7 +343,6 @@ namespace {
 		, m_creation_date(::time(nullptr))
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
-		, m_merkle_torrent(bool(flags & create_torrent::merkle))
 		, m_include_mtime(bool(flags & create_torrent::modification_time))
 		, m_include_symlinks(bool(flags & create_torrent::symlinks))
 	{
@@ -354,7 +353,7 @@ namespace {
 			m_multifile = true;
 
 		// a piece_size of 0 means automatic
-		if (piece_size == 0 && !m_merkle_torrent)
+		if (piece_size == 0)
 		{
 			// size_table is computed from the following:
 			//   target_list_size = sqrt(total_size) * 2;
@@ -380,10 +379,6 @@ namespace {
 				++i;
 			}
 			piece_size = default_block_size << i;
-		}
-		else if (piece_size == 0 && m_merkle_torrent)
-		{
-			piece_size = 64*1024;
 		}
 
 		// to support mutable torrents, alignment always has to be the piece size,
@@ -417,7 +412,6 @@ namespace {
 		, m_creation_date(::time(nullptr))
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
-		, m_merkle_torrent(ti.is_merkle_torrent())
 		, m_include_mtime(false)
 		, m_include_symlinks(false)
 	{
@@ -655,45 +649,11 @@ namespace {
 		}
 
 		info["piece length"] = m_files.piece_length();
-		if (m_merkle_torrent)
-		{
-			int const num_leafs = merkle_num_leafs(m_files.num_pieces());
-			int const num_nodes = merkle_num_nodes(num_leafs);
-			int const first_leaf = num_nodes - num_leafs;
-			m_merkle_tree.resize(num_nodes);
-			auto const num_pieces = int(m_piece_hash.size());
-			for (int i = 0; i < num_pieces; ++i)
-				m_merkle_tree[first_leaf + i] = m_piece_hash[piece_index_t(i)];
-			for (int i = num_pieces; i < num_leafs; ++i)
-				m_merkle_tree[first_leaf + i].clear();
 
-			// now that we have initialized all leaves, build
-			// each level bottom-up
-			int level_start = first_leaf;
-			int level_size = num_leafs;
-			while (level_start > 0)
-			{
-				int parent = merkle_get_parent(level_start);
-				for (int i = level_start; i < level_start + level_size; i += 2, ++parent)
-				{
-					hasher h;
-					h.update(m_merkle_tree[i]);
-					h.update(m_merkle_tree[i + 1]);
-					m_merkle_tree[parent] = h.final();
-				}
-				level_start = merkle_get_parent(level_start);
-				level_size /= 2;
-			}
-			TORRENT_ASSERT(level_size == 1);
-			info["root hash"] = m_merkle_tree[0];
-		}
-		else
-		{
-			std::string& p = info["pieces"].string();
+		std::string& p = info["pieces"].string();
 
-			for (sha1_hash const& h : m_piece_hash)
-				p.append(h.data(), h.size());
-		}
+		for (sha1_hash const& h : m_piece_hash)
+			p.append(h.data(), h.size());
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), info);

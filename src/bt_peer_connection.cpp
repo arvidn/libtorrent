@@ -697,12 +697,6 @@ namespace {
 		// we support extensions
 		*(ptr + 5) |= 0x10;
 
-		if (m_settings.get_bool(settings_pack::support_merkle_torrents))
-		{
-			// we support merkle torrents
-			*(ptr + 5) |= 0x08;
-		}
-
 		// we support FAST extension
 		*(ptr + 7) |= 0x04;
 
@@ -1003,50 +997,19 @@ namespace {
 
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		bool const merkle = static_cast<std::uint8_t>(recv_buffer.front()) == 250;
-		if (merkle)
+		if (recv_pos == 1)
 		{
-			if (recv_pos == 1)
-			{
-				received_bytes(0, received);
-				return;
-			}
-			if (recv_pos < 13)
-			{
-				received_bytes(0, received);
-				return;
-			}
-			char const* ptr = recv_buffer.data() + 9;
-			int const list_size = detail::read_int32(ptr);
-
-			if (list_size > m_recv_buffer.packet_size() - 13)
-			{
-				disconnect(errors::invalid_hash_list, operation_t::bittorrent, peer_error);
-				return;
-			}
-
-			if (m_recv_buffer.packet_size() - 13 - list_size > t->block_size())
+			if (m_recv_buffer.packet_size() - 9 > t->block_size())
 			{
 				disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
 				return;
-			}
-		}
-		else
-		{
-			if (recv_pos == 1)
-			{
-				if (m_recv_buffer.packet_size() - 9 > t->block_size())
-				{
-					disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
-					return;
-				}
 			}
 		}
 		// classify the received data as protocol chatter
 		// or data payload for the statistics
 		int piece_bytes = 0;
 
-		int header_size = merkle?13:9;
+		int const header_size = 9;
 
 		peer_request p;
 		int list_size = 0;
@@ -1056,17 +1019,7 @@ namespace {
 			const char* ptr = recv_buffer.data() + 1;
 			p.piece = piece_index_t(detail::read_int32(ptr));
 			p.start = detail::read_int32(ptr);
-
-			if (merkle)
-			{
-				list_size = detail::read_int32(ptr);
-				p.length = m_recv_buffer.packet_size() - list_size - header_size;
-				header_size += list_size;
-			}
-			else
-			{
-				p.length = m_recv_buffer.packet_size() - header_size;
-			}
+			p.length = m_recv_buffer.packet_size() - header_size;
 		}
 		else
 		{
@@ -1115,49 +1068,6 @@ namespace {
 
 		incoming_piece_fragment(piece_bytes);
 		if (!m_recv_buffer.packet_finished()) return;
-
-		if (merkle && list_size > 0)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "HASHPIECE"
-				, "piece: %d list: %d", static_cast<int>(p.piece), list_size);
-#endif
-			error_code ec;
-			bdecode_node const hash_list = bdecode(recv_buffer.subspan(13).first(list_size)
-				, ec);
-			if (ec)
-			{
-				disconnect(errors::invalid_hash_piece, operation_t::bittorrent, peer_error);
-				return;
-			}
-
-			// the list has this format:
-			// [ [node-index, hash], [node-index, hash], ... ]
-			if (hash_list.type() != bdecode_node::list_t)
-			{
-				disconnect(errors::invalid_hash_list, operation_t::bittorrent, peer_error);
-				return;
-			}
-
-			std::map<int, sha1_hash> nodes;
-			for (int i = 0; i < hash_list.list_size(); ++i)
-			{
-				bdecode_node const e = hash_list.list_at(i);
-				if (e.type() != bdecode_node::list_t
-					|| e.list_size() != 2
-					|| e.list_at(0).type() != bdecode_node::int_t
-					|| e.list_at(1).type() != bdecode_node::string_t
-					|| e.list_at(1).string_length() != 20) continue;
-
-				nodes.emplace(int(e.list_int_value_at(0))
-					, sha1_hash(e.list_at(1).string_ptr()));
-			}
-			if (!nodes.empty() && !t->add_merkle_nodes(nodes, p.piece))
-			{
-				disconnect(errors::invalid_hash_piece, operation_t::bittorrent, peer_error);
-				return;
-			}
-		}
 
 		incoming_piece(p, recv_buffer.data() + header_size);
 	}
@@ -1793,10 +1703,7 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		TORRENT_ASSERT(int(recv_buffer.size()) >= 1);
-		int packet_type = static_cast<std::uint8_t>(recv_buffer[0]);
-
-		if (m_settings.get_bool(settings_pack::support_merkle_torrents)
-			&& packet_type == 250) packet_type = msg_piece;
+		int const packet_type = static_cast<std::uint8_t>(recv_buffer[0]);
 
 #if TORRENT_USE_ASSERTS
 		std::int64_t const cur_payload_dl = statistics().last_payload_downloaded();
@@ -2264,7 +2171,6 @@ namespace {
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		bool merkle = t->torrent_file().is_merkle_torrent() && r.start == 0;
 	// the hash piece looks like this:
 	// uint8_t  msg
 	// uint32_t piece index
@@ -2276,43 +2182,11 @@ namespace {
 		char* ptr = msg;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		detail::write_int32(r.length + 1 + 4 + 4, ptr);
-		if (m_settings.get_bool(settings_pack::support_merkle_torrents) && merkle)
-			detail::write_uint8(250, ptr);
-		else
-			detail::write_uint8(msg_piece, ptr);
+		detail::write_uint8(msg_piece, ptr);
 		detail::write_int32(static_cast<int>(r.piece), ptr);
 		detail::write_int32(r.start, ptr);
 
-		// if this is a merkle torrent and the start offset
-		// is 0, we need to include the merkle node hashes
-		if (merkle)
-		{
-			std::vector<char> piece_list_buf;
-			entry piece_list;
-			entry::list_type& l = piece_list.list();
-			std::map<int, sha1_hash> merkle_node_list = t->torrent_file().build_merkle_list(r.piece);
-			l.reserve(merkle_node_list.size());
-			for (auto const& i : merkle_node_list)
-			{
-				l.emplace_back(entry::list_t);
-				l.back().list().emplace_back(i.first);
-				l.back().list().emplace_back(i.second.to_string());
-			}
-			bencode(std::back_inserter(piece_list_buf), piece_list);
-			detail::write_int32(int(piece_list_buf.size()), ptr);
-
-			// back-patch the length field
-			char* ptr2 = msg;
-			detail::write_int32(r.length + 1 + 4 + 4 + 4 + int(piece_list_buf.size())
-				, ptr2);
-
-			send_buffer({msg, 17});
-			send_buffer(piece_list_buf);
-		}
-		else
-		{
-			send_buffer({msg, 13});
-		}
+		send_buffer({msg, 13});
 
 		if (buffer.is_mutable())
 		{
