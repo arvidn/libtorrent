@@ -81,6 +81,7 @@ namespace
         ti.set_web_seeds(web_seeds);
     }
 
+#if TORRENT_ABI_VERSION <= 2
     list get_merkle_tree(torrent_info const& ti)
     {
         std::vector<sha1_hash> const& mt = ti.merkle_tree();
@@ -101,6 +102,7 @@ namespace
 
         ti.set_merkle_tree(h);
     }
+#endif
 
     bytes hash_for_piece(torrent_info const& ti, piece_index_t i)
     {
@@ -259,8 +261,10 @@ void bind_torrent_info()
         .def("num_pieces", &torrent_info::num_pieces)
         .def("info_hash", &torrent_info::info_hash, copy)
         .def("hash_for_piece", &hash_for_piece)
+#if TORRENT_ABI_VERSION <= 2
         .def("merkle_tree", get_merkle_tree)
         .def("set_merkle_tree", set_merkle_tree)
+#endif
         .def("piece_size", &torrent_info::piece_size)
 
         .def("similar_torrents", &torrent_info::similar_torrents)
@@ -280,7 +284,9 @@ void bind_torrent_info()
         .def("is_valid", &torrent_info::is_valid)
         .def("priv", &torrent_info::priv)
         .def("is_i2p", &torrent_info::is_i2p)
+#if TORRENT_ABI_VERSION <= 2
         .def("is_merkle_torrent", &torrent_info::is_merkle_torrent)
+#endif
         .def("trackers", range(begin_trackers, end_trackers))
 
         .def("creation_date", &torrent_info::creation_date)

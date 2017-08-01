@@ -235,7 +235,9 @@ void bind_create_torrent()
         ;
 
         s.attr("optimize_alignment") = create_torrent::optimize_alignment;
+#if TORRENT_ABI_VERSION <= 2
         s.attr("merkle") = create_torrent::merkle;
+#endif
         s.attr("modification_time") = create_torrent::modification_time;
         s.attr("symlinks") = create_torrent::symlinks;
     }
@@ -246,7 +248,9 @@ void bind_create_torrent()
         s.attr("optimize") = create_torrent::optimize;
 #endif
         s.attr("optimize_alignment") = create_torrent::optimize_alignment;
+#if TORRENT_ABI_VERSION <= 2
         s.attr("merkle") = create_torrent::merkle;
+#endif
         s.attr("modification_time") = create_torrent::modification_time;
         s.attr("symlinks") = create_torrent::symlinks;
     }

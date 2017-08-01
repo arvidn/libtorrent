@@ -911,15 +911,12 @@ TEST_TORRENTS = \
   invalid_filename.torrent \
   invalid_filename2.torrent \
   invalid_info.torrent \
-  invalid_merkle.torrent \
   invalid_name.torrent \
   invalid_name2.torrent \
   invalid_name3.torrent \
   invalid_path_list.torrent \
   invalid_piece_len.torrent \
   invalid_pieces.torrent \
-  invalid_root_hash.torrent \
-  invalid_root_hash2.torrent \
   invalid_symlink.torrent \
   large.torrent \
   long_name.torrent \
@@ -935,7 +932,6 @@ TEST_TORRENTS = \
   pad_file.torrent \
   pad_file_no_path.torrent \
   parent_path.torrent \
-  root_hash.torrent \
   sample.torrent \
   single_multi_file.torrent \
   slash_path.torrent \

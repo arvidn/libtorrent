@@ -117,10 +117,6 @@ or directory and writes it to standard out
 
 
 OPTIONS:
--m file       generate a merkle hash tree torrent.
-              merkle torrents require client support
-              the resulting full merkle tree is written to
-              the specified file
 -w url        adds a web seed to the torrent with
               the specified url
 -t url        adds the specified tracker to the
@@ -173,7 +169,6 @@ int main(int argc_, char const* argv_[]) try
 	std::string root_cert;
 
 	std::string outfile;
-	std::string merklefile;
 #ifdef TORRENT_WINDOWS
 	// don't ever write binary data to the console on windows
 	// it will just be interpreted as text and corrupted
@@ -220,10 +215,6 @@ int main(int argc_, char const* argv_[]) try
 			case 'p':
 				pad_file_limit = atoi(args[1]);
 				flags |= lt::create_torrent::optimize_alignment;
-				break;
-			case 'm':
-				merklefile = args[1];
-				flags |= lt::create_torrent::merkle;
 				break;
 			case 'S': {
 				if (strlen(args[1]) != 40) {
@@ -331,13 +322,6 @@ int main(int argc_, char const* argv_[]) try
 		std::cout.write(torrent.data(), torrent.size());
 	}
 
-	if (!merklefile.empty()) {
-		std::fstream merkle;
-		merkle.exceptions(std::ifstream::failbit);
-		merkle.open(merklefile.c_str(), std::ios_base::out | std::ios_base::binary);
-		auto const& tree = t.merkle_tree();
-		merkle.write(reinterpret_cast<char const*>(tree.data()), tree.size() * 20);
-	}
 	return 0;
 }
 catch (std::exception& e) {
