@@ -290,7 +290,8 @@ class test_torrent_handle(unittest.TestCase):
         # piece priorities weren't set explicitly, but they were updated by the
         # file priorities being set
         self.assertEqual(self.h.get_piece_priorities(), [1])
-        self.assertEqual(self.ti.merkle_tree(), [])
+        if HAVE_DEPRECATED_APIS:
+            self.assertEqual(self.ti.merkle_tree(), [])
         self.assertEqual(self.st.verified_pieces, [])
 
 
