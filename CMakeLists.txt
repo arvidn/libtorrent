@@ -128,6 +128,7 @@ set(libtorrent_include_files
 	settings_pack
 	sha1
 	sha1_hash
+	sha256
 	sliding_average
 	socket
 	socket_io
@@ -300,6 +301,7 @@ set(sources
 	gzip
 	hasher
 	sha1
+	sha256
 	hex
 	http_connection
 	http_stream

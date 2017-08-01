@@ -375,6 +375,7 @@ SOURCES = \
   settings_pack.cpp               \
   sha1.cpp                        \
   sha1_hash.cpp                   \
+  sha256.cpp                      \
   smart_ban.cpp                   \
   socket_io.cpp                   \
   socket_type.cpp                 \
@@ -525,6 +526,7 @@ HEADERS = \
   settings_pack.hpp            \
   sha1.hpp                     \
   sha1_hash.hpp                \
+  sha256.hpp                   \
   sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
