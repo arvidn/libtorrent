@@ -164,7 +164,7 @@ namespace libtorrent {
 		// included. This flag is on by default. See add_torrent_params.
 		// the ``flags`` argument is the same as for torrent_handle::status().
 		// see torrent_handle::status_flags_t.
-		void post_torrent_updates(status_flags_t flags = status_flags_t{0x7fffffff});
+		void post_torrent_updates(status_flags_t flags = status_flags_t::all());
 
 		// This function will post a session_stats_alert object, containing a
 		// snapshot of the performance counters from the internals of libtorrent.
@@ -284,7 +284,7 @@ namespace libtorrent {
 		TORRENT_DEPRECATED
 		void set_load_function(user_load_function_t fun);
 
-		//  deprecated in libtorrent 1.1, use performance_counters instead
+		// deprecated in libtorrent 1.1, use performance_counters instead
 		// returns session wide-statistics and status. For more information, see
 		// the ``session_status`` struct.
 		TORRENT_DEPRECATED
@@ -781,7 +781,7 @@ namespace libtorrent {
 		settings_pack get_settings() const;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant
+		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistent
 		// connection to it. The only used fields in the proxy settings structs
 		// are ``hostname`` and ``port``.
 		//
