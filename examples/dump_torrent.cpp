@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
 	{
 		piece_index_t const first = st.map_file(i, 0, 0).piece;
 		piece_index_t const last = st.map_file(i, (std::max)(std::int64_t(st.file_size(i))-1, std::int64_t(0)), 0).piece;
-		int const flags = st.file_flags(i);
+		auto const flags = st.file_flags(i);
 		std::stringstream file_hash;
 		if (!st.hash(i).is_all_zeros())
 			file_hash << st.hash(i);

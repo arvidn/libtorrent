@@ -102,7 +102,7 @@ namespace
     { return FileIter(self, self.end_file()); }
 
     void add_file_wstring(file_storage& fs, std::wstring const& file, std::int64_t size
-       , int flags, std::time_t md, std::string link)
+       , file_flags_t const flags, std::time_t md, std::string link)
     {
        fs.add_file(file, size, flags, md, link);
     }
@@ -115,7 +115,7 @@ namespace
     }
 
     void add_file(file_storage& fs, std::string const& file, std::int64_t size
-       , int flags, std::time_t md, std::string link)
+       , file_flags_t const flags, std::time_t md, std::string link)
     {
        fs.add_file(file, size, flags, md, link);
     }
@@ -124,6 +124,8 @@ namespace
     {
       ct.add_tracker(url, tier);
     }
+
+    struct dummy13 {};
 }
 
 void bind_create_torrent()
@@ -145,14 +147,15 @@ void bind_create_torrent()
     std::string (file_storage::*file_storage_file_path)(file_index_t, std::string const&) const = &file_storage::file_path;
     std::int64_t (file_storage::*file_storage_file_size)(file_index_t) const = &file_storage::file_size;
     std::int64_t (file_storage::*file_storage_file_offset)(file_index_t) const = &file_storage::file_offset;
-    std::uint32_t (file_storage::*file_storage_file_flags)(file_index_t) const = &file_storage::file_flags;
+    file_flags_t (file_storage::*file_storage_file_flags)(file_index_t) const = &file_storage::file_flags;
 
 #ifndef TORRENT_NO_DEPRECATE
     file_entry (file_storage::*at)(int) const = &file_storage::at;
 #endif
 
     // TODO: 3 move this to its own file
-    class_<file_storage>("file_storage")
+    {
+    scope s = class_<file_storage>("file_storage")
         .def("is_valid", &file_storage::is_valid)
         .def("add_file", add_file, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
         .def("num_files", &file_storage::num_files)
@@ -185,12 +188,19 @@ void bind_create_torrent()
         .def("name", &file_storage::name, return_value_policy<copy_const_reference>())
         ;
 
-    enum_<file_storage::file_flags_t>("file_flags_t")
-        .value("flag_pad_file", file_storage::flag_pad_file)
-        .value("flag_hidden", file_storage::flag_hidden)
-        .value("flag_executable", file_storage::flag_executable)
-        .value("flag_symlink", file_storage::flag_symlink)
-        ;
+     s.attr("flag_pad_file") = file_storage::flag_pad_file;
+     s.attr("flag_hidden") = file_storage::flag_hidden;
+     s.attr("flag_executable") = file_storage::flag_executable;
+     s.attr("flag_symlink") = file_storage::flag_symlink;
+     }
+
+    {
+       scope s = class_<dummy13>("file_flags_t");
+       s.attr("flag_pad_file") = file_storage::flag_pad_file;
+       s.attr("flag_hidden") = file_storage::flag_hidden;
+       s.attr("flag_executable") = file_storage::flag_executable;
+       s.attr("flag_symlink") = file_storage::flag_symlink;
+    }
 
     class_<create_torrent>("create_torrent", no_init)
         .def(init<file_storage&>())

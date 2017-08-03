@@ -56,6 +56,18 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
+	constexpr file_flags_t file_storage::flag_pad_file;
+	constexpr file_flags_t file_storage::flag_hidden;
+	constexpr file_flags_t file_storage::flag_executable;
+	constexpr file_flags_t file_storage::flag_symlink;
+
+#ifndef TORRENT_NO_DEPRECATE
+	constexpr file_flags_t file_storage::pad_file;
+	constexpr file_flags_t file_storage::attribute_hidden;
+	constexpr file_flags_t file_storage::attribute_executable;
+	constexpr file_flags_t file_storage::attribute_symlink;
+#endif
+
 	file_storage::file_storage()
 		: m_piece_length(0)
 		, m_num_pieces(0)
@@ -337,7 +349,7 @@ namespace {
 
 	void file_storage::add_file(file_entry const& fe, char const* filehash)
 	{
-		std::uint32_t flags = 0;
+		file_flags_t flags = {};
 		if (fe.pad_file) flags |= file_storage::flag_pad_file;
 		if (fe.hidden_attribute) flags |= file_storage::flag_hidden;
 		if (fe.executable_attribute) flags |= file_storage::flag_executable;
@@ -359,7 +371,7 @@ namespace {
 	}
 
 	void file_storage::add_file(std::wstring const& file, std::int64_t file_size
-		, std::uint32_t file_flags, std::time_t mtime, string_view symlink_path)
+		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path)
 	{
 		add_file(wchar_utf8(file), file_size, file_flags, mtime, symlink_path);
 	}
@@ -532,7 +544,7 @@ namespace {
 	}
 
 	void file_storage::add_file(std::string const& path, std::int64_t file_size
-		, std::uint32_t file_flags, std::time_t mtime, string_view symlink_path)
+		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path)
 	{
 		add_file_borrow(nullptr, 0, path, file_size, file_flags, nullptr, mtime
 			, symlink_path);
@@ -540,7 +552,7 @@ namespace {
 
 	void file_storage::add_file_borrow(char const* filename, int const filename_len
 		, std::string const& path, std::int64_t const file_size
-		, std::uint32_t const file_flags, char const* filehash
+		, file_flags_t const file_flags, char const* filehash
 		, std::int64_t const mtime, string_view symlink_path)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
@@ -576,10 +588,10 @@ namespace {
 
 		e.size = aux::numeric_cast<std::uint64_t>(file_size);
 		e.offset = aux::numeric_cast<std::uint64_t>(m_total_size);
-		e.pad_file = (file_flags & file_storage::flag_pad_file) != 0;
-		e.hidden_attribute = (file_flags & file_storage::flag_hidden) != 0;
-		e.executable_attribute = (file_flags & file_storage::flag_executable) != 0;
-		e.symlink_attribute = (file_flags & file_storage::flag_symlink) != 0;
+		e.pad_file = bool(file_flags & file_storage::flag_pad_file);
+		e.hidden_attribute = bool(file_flags & file_storage::flag_hidden);
+		e.executable_attribute = bool(file_flags & file_storage::flag_executable);
+		e.symlink_attribute = bool(file_flags & file_storage::flag_symlink);
 
 		if (filehash)
 		{
@@ -805,14 +817,14 @@ namespace {
 		return m_files[index].offset;
 	}
 
-	std::uint32_t file_storage::file_flags(file_index_t const index) const
+	file_flags_t file_storage::file_flags(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
-		return (fe.pad_file ? flag_pad_file : 0u)
-			| (fe.hidden_attribute ? flag_hidden : 0u)
-			| (fe.executable_attribute ? flag_executable : 0u)
-			| (fe.symlink_attribute ? flag_symlink : 0u);
+		return (fe.pad_file ? file_storage::flag_pad_file : file_flags_t{})
+			| (fe.hidden_attribute ? file_storage::flag_hidden : file_flags_t{})
+			| (fe.executable_attribute ? file_storage::flag_executable : file_flags_t{})
+			| (fe.symlink_attribute ? file_storage::flag_symlink : file_flags_t{});
 	}
 
 	bool file_storage::file_absolute_path(file_index_t const index) const

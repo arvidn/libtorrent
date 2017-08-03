@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
+#include "libtorrent/flags.hpp"
 
 namespace libtorrent {
 
@@ -192,6 +193,10 @@ namespace libtorrent {
 		std::int64_t size;
 	};
 
+	// hidden
+	struct file_flags_tag;
+	using file_flags_t = flags::bitfield_flag<std::uint8_t, file_flags_tag>;
+
 	// The ``file_storage`` class represents a file list and the piece
 	// size. Everything necessary to interpret a regular bittorrent storage
 	// file structure.
@@ -214,25 +219,12 @@ namespace libtorrent {
 		// not.
 		bool is_valid() const { return m_piece_length > 0; }
 
-		// file attribute flags
-		enum flags_t
-		{
-			// the file is a pad file. It's required to contain zeros
-			// at it will not be saved to disk. Its purpose is to make
-			// the following file start on a piece boundary.
-			pad_file = 1,
-
-			// this file has the hidden attribute set. This is primarily
-			// a windows attribute
-			attribute_hidden = 2,
-
-			// this file has the executable attribute set.
-			attribute_executable = 4,
-
-			// this file is a symbolic link. It should have a link
-			// target string associated with it.
-			attribute_symlink = 8
-		};
+#ifndef TORRENT_NO_DEPRECATE
+		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER pad_file = 0_bit;
+		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_hidden = 1_bit;
+		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_executable = 2_bit;
+		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_symlink = 3_bit;
+#endif
 
 		// allocates space for ``num_files`` in the internal file list. This can
 		// be used to avoid reallocating the internal file list when the number
@@ -278,9 +270,10 @@ namespace libtorrent {
 		// can be changed by calling ``set_name``.
 		void add_file_borrow(char const* filename, int filename_len
 			, std::string const& path, std::int64_t file_size
-			, std::uint32_t file_flags = 0, char const* filehash = 0
+			, file_flags_t file_flags = {}, char const* filehash = 0
 			, std::int64_t mtime = 0, string_view symlink_path = string_view());
-		void add_file(std::string const& path, std::int64_t file_size, std::uint32_t file_flags = 0
+		void add_file(std::string const& path, std::int64_t file_size
+			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view());
 
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
@@ -295,7 +288,8 @@ namespace libtorrent {
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
 		TORRENT_DEPRECATED
-		void add_file(std::wstring const& p, std::int64_t size, std::uint32_t flags = 0
+		void add_file(std::wstring const& p, std::int64_t size
+			, file_flags_t flags = {}
 			, std::time_t mtime = 0, string_view s_p = "");
 		TORRENT_DEPRECATED
 		void rename_file(file_index_t index, std::wstring const& new_filename);
@@ -477,35 +471,27 @@ namespace libtorrent {
 		// the set.
 		void all_path_hashes(std::unordered_set<std::uint32_t>& table) const;
 
-		// flags indicating various attributes for files in
-		// a file_storage.
-		enum file_flags_t : std::uint32_t
-		{
-			// this file is a pad file. The creator of the
-			// torrent promises the file is entirely filled with
-			// zeros and does not need to be downloaded. The
-			// purpose is just to align the next file to either
-			// a block or piece boundary.
-			flag_pad_file = 1,
+		// the file is a pad file. It's required to contain zeros
+		// at it will not be saved to disk. Its purpose is to make
+		// the following file start on a piece boundary.
+		static constexpr file_flags_t flag_pad_file = 0_bit;
 
-			// this file is hidden (sets the hidden attribute
-			// on windows)
-			flag_hidden = 2,
+		// this file has the hidden attribute set. This is primarily
+		// a windows attribute
+		static constexpr file_flags_t flag_hidden = 1_bit;
 
-			// this file is executable (sets the executable bit
-			// on posix like systems)
-			flag_executable = 4,
+		// this file has the executable attribute set.
+		static constexpr file_flags_t flag_executable = 2_bit;
 
-			// this file is a symlink. The symlink target is
-			// specified in a separate field
-			flag_symlink = 8
-		};
+		// this file is a symbolic link. It should have a link
+		// target string associated with it.
+		static constexpr file_flags_t flag_symlink = 3_bit;
 
 		std::vector<std::string> const& paths() const { return m_paths; }
 
 		// returns a bitmask of flags from file_flags_t that apply
 		// to file at ``index``.
-		std::uint32_t file_flags(file_index_t index) const;
+		file_flags_t file_flags(file_index_t index) const;
 
 		// returns true if the file at the specified index has been renamed to
 		// have an absolute path, i.e. is not anchored in the save path of the
