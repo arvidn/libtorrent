@@ -18,6 +18,7 @@
 #include "libtorrent/session_types.hpp" // for save_state_flags_t
 #include "libtorrent/file_storage.hpp" // for file_flags_t
 #include "libtorrent/alert.hpp"
+#include "libtorrent/create_torrent.hpp" // for create_flags_t
 #include <vector>
 
 using namespace boost::python;
@@ -314,6 +315,7 @@ void bind_converters()
     to_python_converter<lt::session_flags_t, from_bitfield_flag<lt::session_flags_t>>();
     to_python_converter<lt::remove_flags_t, from_bitfield_flag<lt::remove_flags_t>>();
     to_python_converter<lt::file_flags_t, from_bitfield_flag<lt::file_flags_t>>();
+    to_python_converter<lt::create_flags_t, from_bitfield_flag<lt::create_flags_t>>();
 
     // work-around types
     to_python_converter<lt::aux::noexcept_movable<lt::address>, address_to_tuple<
@@ -372,4 +374,5 @@ void bind_converters()
     to_bitfield_flag<lt::session_flags_t>();
     to_bitfield_flag<lt::remove_flags_t>();
     to_bitfield_flag<lt::file_flags_t>();
+    to_bitfield_flag<lt::create_flags_t>();
 }
