@@ -577,15 +577,13 @@ namespace libtorrent {
 			// index is set to this to indicate that we have the
 			// piece. There is no entry for the piece in the
 			// buckets if this is the case.
-			constexpr static prio_index_t we_have_index{-1};
+			static constexpr prio_index_t we_have_index{-1};
 
-			enum : std::uint32_t
-			{
-				// the priority value that means the piece is filtered
-				filter_priority = 0,
-				// the max number the peer count can hold
-				max_peer_count = 0xffff
-			};
+			// the priority value that means the piece is filtered
+			static constexpr std::uint32_t filter_priority = 0;
+
+			// the max number the peer count can hold
+			static constexpr std::uint32_t max_peer_count = 0xffff;
 
 			bool have() const { return index == we_have_index; }
 			void set_have() { index = we_have_index; TORRENT_ASSERT(have()); }

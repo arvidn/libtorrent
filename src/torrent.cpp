@@ -210,7 +210,7 @@ namespace libtorrent {
 		, m_ssl_torrent(false)
 		, m_deleted(false)
 		, m_auto_managed(p.flags & torrent_flags::auto_managed)
-		, m_current_gauge_state(no_gauge_state)
+		, m_current_gauge_state(static_cast<std::uint32_t>(no_gauge_state))
 		, m_moving_storage(false)
 		, m_inactive(false)
 		, m_downloaded(0xffffff)
@@ -534,7 +534,9 @@ namespace libtorrent {
 		if (new_gauge_state != no_gauge_state)
 			inc_stats_counter(new_gauge_state + counters::num_checking_torrents, 1);
 
-		m_current_gauge_state = aux::numeric_cast<std::uint8_t>(new_gauge_state);
+		TORRENT_ASSERT(new_gauge_state >= 0);
+		TORRENT_ASSERT(new_gauge_state <= no_gauge_state);
+		m_current_gauge_state = static_cast<std::uint32_t>(new_gauge_state);
 	}
 
 	void torrent::leave_seed_mode(bool skip_checking)
@@ -9345,7 +9347,7 @@ namespace libtorrent {
 	{
 		// this is a silly optimization
 		// to avoid copying of strings
-		enum { num_strings = 200 };
+		int const num_strings = 200;
 		static char buf[num_strings][20];
 		static int round_robin = 0;
 		char* ret = buf[round_robin];

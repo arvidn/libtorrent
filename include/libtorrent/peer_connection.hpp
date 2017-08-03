@@ -99,7 +99,7 @@ namespace aux {
 
 		piece_block block;
 
-		enum { not_in_buffer = 0x1fffffff };
+		static constexpr std::uint32_t not_in_buffer = 0x1fffffff;
 
 		// the number of bytes into the send buffer this request is. Every time
 		// some portion of the send buffer is transmitted, this offset is

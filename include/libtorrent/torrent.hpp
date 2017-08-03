@@ -1135,7 +1135,7 @@ namespace libtorrent {
 		}
 		void add_suggest_piece(piece_index_t index);
 
-		enum { no_gauge_state = 0xf };
+		static constexpr int no_gauge_state = 0xf;
 
 	private:
 

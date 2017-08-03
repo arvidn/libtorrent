@@ -240,7 +240,8 @@ namespace aux {
 			, std::enable_shared_from_this<session_impl>
 		{
 			// the size of each allocation that is chained in the send buffer
-			enum { send_buffer_size_impl = 128 };
+			static constexpr int send_buffer_size_impl = 128;
+
 			// plugin feature-index key map
 			enum
 			{

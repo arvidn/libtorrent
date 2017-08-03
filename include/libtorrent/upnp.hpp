@@ -202,12 +202,6 @@ private:
 	static address_v4 upnp_multicast_address;
 	static udp::endpoint upnp_multicast_endpoint;
 
-	// there are routers that's don't support timed
-	// port maps, without returning error 725. It seems
-	// safer to always assume that we have to ask for
-	// permanent leases
-	enum { default_lease_time = 0 };
-
 	void resend_request(error_code const& e);
 	void on_reply(udp::endpoint const& from, char* buffer
 		, std::size_t bytes_transferred);
@@ -294,7 +288,11 @@ private:
 		std::string path;
 		address external_ip;
 
-		int lease_duration = default_lease_time;
+		// there are routers that's don't support timed
+		// port maps, without returning error 725. It seems
+		// safer to always assume that we have to ask for
+		// permanent leases
+		int lease_duration = 0;
 
 		// true if the device supports specifying a
 		// specific external port, false if it doesn't

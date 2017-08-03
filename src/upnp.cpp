@@ -1377,7 +1377,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	if (s.error_code == 725)
 	{
-		// only permanent leases supported
+		// The gateway only supports permanent leases
 		d.lease_duration = 0;
 		m.act = portmap_action::add;
 		++m.failcount;

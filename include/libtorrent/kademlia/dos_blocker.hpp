@@ -76,7 +76,7 @@ namespace libtorrent { namespace dht {
 			int count;
 		};
 
-		enum { num_ban_nodes = 20 };
+		static constexpr int num_ban_nodes = 20;
 
 		// the max number of packets we can receive per second from a node before
 		// we block it.
