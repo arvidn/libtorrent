@@ -50,148 +50,147 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 
 namespace libtorrent {
+namespace {
 
-	namespace {
+	bool default_pred(std::string const&) { return true; }
 
-		inline bool default_pred(std::string const&) { return true; }
+	bool ignore_subdir(std::string const& leaf)
+	{ return leaf == ".." || leaf == "."; }
 
-		inline bool ignore_subdir(std::string const& leaf)
-		{ return leaf == ".." || leaf == "."; }
-
-		std::uint32_t get_file_attributes(std::string const& p)
-		{
+	file_flags_t get_file_attributes(std::string const& p)
+	{
 #ifdef TORRENT_WINDOWS
-			WIN32_FILE_ATTRIBUTE_DATA attr;
-			std::wstring path = convert_to_wstring(p);
-			GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attr);
-			if (attr.dwFileAttributes == INVALID_FILE_ATTRIBUTES) return 0;
-			if (attr.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
-			return 0;
+		WIN32_FILE_ATTRIBUTE_DATA attr;
+		std::wstring path = convert_to_wstring(p);
+		GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attr);
+		if (attr.dwFileAttributes == INVALID_FILE_ATTRIBUTES) return {};
+		if (attr.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) return file_storage::flag_hidden;
+		return {};
 #else
-			struct ::stat s;
-			if (::lstat(convert_to_native(p).c_str(), &s) < 0) return 0;
-			std::uint32_t file_attr = 0;
-			if (s.st_mode & S_IXUSR)
-				file_attr += file_storage::attribute_executable;
-			if (S_ISLNK(s.st_mode))
-				file_attr += file_storage::attribute_symlink;
-			return file_attr;
+		struct ::stat s;
+		if (::lstat(convert_to_native(p).c_str(), &s) < 0) return {};
+		file_flags_t file_attr = {};
+		if (s.st_mode & S_IXUSR)
+			file_attr |= file_storage::flag_executable;
+		if (S_ISLNK(s.st_mode))
+			file_attr |= file_storage::flag_symlink;
+		return file_attr;
 #endif
-		}
+	}
 
 #ifndef TORRENT_WINDOWS
-		std::string get_symlink_path_impl(char const* path)
-		{
-			constexpr int MAX_SYMLINK_PATH = 200;
+	std::string get_symlink_path_impl(char const* path)
+	{
+		constexpr int MAX_SYMLINK_PATH = 200;
 
-			char buf[MAX_SYMLINK_PATH];
-			std::string f = convert_to_native(path);
-			int char_read = int(readlink(f.c_str(), buf, MAX_SYMLINK_PATH));
-			if (char_read < 0) return "";
-			if (char_read < MAX_SYMLINK_PATH) buf[char_read] = 0;
-			else buf[0] = 0;
-			return convert_from_native(buf);
-		}
+		char buf[MAX_SYMLINK_PATH];
+		std::string f = convert_to_native(path);
+		int char_read = int(readlink(f.c_str(), buf, MAX_SYMLINK_PATH));
+		if (char_read < 0) return "";
+		if (char_read < MAX_SYMLINK_PATH) buf[char_read] = 0;
+		else buf[0] = 0;
+		return convert_from_native(buf);
+	}
 #endif
 
-		std::string get_symlink_path(std::string const& p)
-		{
+	std::string get_symlink_path(std::string const& p)
+	{
 #if defined TORRENT_WINDOWS
-			TORRENT_UNUSED(p);
-			return "";
+		TORRENT_UNUSED(p);
+		return "";
 #else
-			return get_symlink_path_impl(p.c_str());
+		return get_symlink_path_impl(p.c_str());
 #endif
-		}
+	}
 
-		void add_files_impl(file_storage& fs, std::string const& p
-			, std::string const& l, std::function<bool(std::string)> pred
-			, std::uint32_t const flags)
-		{
-			std::string f = combine_path(p, l);
-			if (!pred(f)) return;
-			error_code ec;
-			file_status s;
-			stat_file(f, &s, ec, (flags & create_torrent::symlinks) ? dont_follow_links : 0);
-			if (ec) return;
+	void add_files_impl(file_storage& fs, std::string const& p
+		, std::string const& l, std::function<bool(std::string)> pred
+		, std::uint32_t const flags)
+	{
+		std::string f = combine_path(p, l);
+		if (!pred(f)) return;
+		error_code ec;
+		file_status s;
+		stat_file(f, &s, ec, (flags & create_torrent::symlinks) ? dont_follow_links : 0);
+		if (ec) return;
 
-			// recurse into directories
-			bool recurse = (s.mode & file_status::directory) != 0;
+		// recurse into directories
+		bool recurse = (s.mode & file_status::directory) != 0;
 
-			// if the file is not a link or we're following links, and it's a directory
-			// only then should we recurse
+		// if the file is not a link or we're following links, and it's a directory
+		// only then should we recurse
 #ifndef TORRENT_WINDOWS
-			if ((s.mode & file_status::link) && (flags & create_torrent::symlinks))
-				recurse = false;
+		if ((s.mode & file_status::link) && (flags & create_torrent::symlinks))
+			recurse = false;
 #endif
 
-			if (recurse)
+		if (recurse)
+		{
+			for (directory i(f, ec); !i.done(); i.next(ec))
 			{
-				for (directory i(f, ec); !i.done(); i.next(ec))
-				{
-					std::string leaf = i.file();
-					if (ignore_subdir(leaf)) continue;
-					add_files_impl(fs, p, combine_path(l, leaf), pred, flags);
-				}
+				std::string leaf = i.file();
+				if (ignore_subdir(leaf)) continue;
+				add_files_impl(fs, p, combine_path(l, leaf), pred, flags);
+			}
+		}
+		else
+		{
+			// #error use the fields from s
+			file_flags_t const file_flags = get_file_attributes(f);
+
+			// mask all bits to check if the file is a symlink
+			if ((file_flags & file_storage::flag_symlink)
+				&& (flags & create_torrent::symlinks))
+			{
+				std::string sym_path = get_symlink_path(f);
+				fs.add_file(l, 0, file_flags, std::time_t(s.mtime), sym_path);
 			}
 			else
 			{
-				// #error use the fields from s
-				std::uint32_t file_flags = get_file_attributes(f);
-
-				// mask all bits to check if the file is a symlink
-				if ((file_flags & file_storage::attribute_symlink)
-					&& (flags & create_torrent::symlinks))
-				{
-					std::string sym_path = get_symlink_path(f);
-					fs.add_file(l, 0, file_flags, std::time_t(s.mtime), sym_path);
-				}
-				else
-				{
-					fs.add_file(l, s.file_size, file_flags, std::time_t(s.mtime));
-				}
+				fs.add_file(l, s.file_size, file_flags, std::time_t(s.mtime));
 			}
 		}
+	}
 
-		struct hash_state
-		{
-			create_torrent& ct;
-			storage_holder storage;
-			disk_io_thread& iothread;
-			piece_index_t piece_counter;
-			piece_index_t completed_piece;
-			std::function<void(piece_index_t)> const& f;
-			error_code& ec;
-		};
+	struct hash_state
+	{
+		create_torrent& ct;
+		storage_holder storage;
+		disk_io_thread& iothread;
+		piece_index_t piece_counter;
+		piece_index_t completed_piece;
+		std::function<void(piece_index_t)> const& f;
+		error_code& ec;
+	};
 
-		void on_hash(piece_index_t const piece, sha1_hash const& piece_hash
-			, storage_error const& error, hash_state* st)
+	void on_hash(piece_index_t const piece, sha1_hash const& piece_hash
+		, storage_error const& error, hash_state* st)
+	{
+		if (error)
 		{
-			if (error)
-			{
-				// on error
-				st->ec = error.ec;
-				st->iothread.abort(true);
-				return;
-			}
-			st->ct.set_hash(piece, piece_hash);
-			st->f(st->completed_piece);
-			++st->completed_piece;
-			if (st->piece_counter < st->ct.files().end_piece())
-			{
-				st->iothread.async_hash(st->storage, st->piece_counter
-					, disk_interface::sequential_access
-					, std::bind(&on_hash, _1, _2, _3, st));
-				++st->piece_counter;
-			}
-			else
-			{
-				st->iothread.abort(true);
-			}
-			st->iothread.submit_jobs();
+			// on error
+			st->ec = error.ec;
+			st->iothread.abort(true);
+			return;
 		}
+		st->ct.set_hash(piece, piece_hash);
+		st->f(st->completed_piece);
+		++st->completed_piece;
+		if (st->piece_counter < st->ct.files().end_piece())
+		{
+			st->iothread.async_hash(st->storage, st->piece_counter
+				, disk_interface::sequential_access
+				, std::bind(&on_hash, _1, _2, _3, st));
+			++st->piece_counter;
+		}
+		else
+		{
+			st->iothread.abort(true);
+		}
+		st->iothread.submit_jobs();
+	}
 
-	} // anonymous namespace
+} // anonymous namespace
 
 #ifndef TORRENT_NO_DEPRECATE
 
@@ -526,7 +525,7 @@ namespace libtorrent {
 			file_index_t const first(0);
 			if (m_include_mtime) info["mtime"] = m_files.mtime(first);
 			info["length"] = m_files.file_size(first);
-			std::uint32_t const flags = m_files.file_flags(first);
+			file_flags_t const flags = m_files.file_flags(first);
 			if (flags & (file_storage::flag_pad_file
 				| file_storage::flag_hidden
 				| file_storage::flag_executable
@@ -577,8 +576,8 @@ namespace libtorrent {
 							path_e.list().push_back(entry(e));
 					}
 
-					std::uint32_t const flags = m_files.file_flags(i);
-					if (flags != 0)
+					file_flags_t const flags = m_files.file_flags(i);
+					if (flags)
 					{
 						std::string& attr = file_e["attr"].string();
 						if (flags & file_storage::flag_pad_file) attr += 'p';

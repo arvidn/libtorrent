@@ -683,8 +683,8 @@ TORRENT_TEST(parse_torrents)
 		else if (std::string(test_torrents[i].file) == "pad_file.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().file_flags(file_index_t{0}) & file_storage::flag_pad_file, false);
-			TEST_EQUAL(ti->files().file_flags(file_index_t{1}) & file_storage::flag_pad_file, true);
+			TEST_EQUAL(bool(ti->files().file_flags(file_index_t{0}) & file_storage::flag_pad_file), false);
+			TEST_EQUAL(bool(ti->files().file_flags(file_index_t{1}) & file_storage::flag_pad_file), true);
 		}
 		else if (std::string(test_torrents[i].file) == "creation_date.torrent")
 		{
@@ -776,7 +776,7 @@ TORRENT_TEST(parse_torrents)
 		{
 			piece_index_t const first = ti->map_file(i, 0, 0).piece;
 			piece_index_t const last = ti->map_file(i, std::max(fs.file_size(i)-1, std::int64_t(0)), 0).piece;
-			int const flags = fs.file_flags(i);
+			file_flags_t const flags = fs.file_flags(i);
 			sha1_hash const ih = fs.hash(i);
 			std::printf("  %11" PRId64 " %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
 				, fs.file_size(i)

@@ -317,11 +317,11 @@ namespace libtorrent {
 		if (path.empty()) path = "_";
 	}
 
-	namespace {
+namespace {
 
-	std::uint32_t get_file_attributes(bdecode_node const& dict)
+	file_flags_t get_file_attributes(bdecode_node const& dict)
 	{
-		std::uint32_t file_flags = 0;
+		file_flags_t file_flags = {};
 		bdecode_node const attr = dict.dict_find_string("attr");
 		if (attr)
 		{
@@ -370,7 +370,7 @@ namespace libtorrent {
 	{
 		if (dict.type() != bdecode_node::dict_t) return false;
 
-		std::uint32_t file_flags = get_file_attributes(dict);
+		file_flags_t file_flags = get_file_attributes(dict);
 
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
@@ -445,7 +445,7 @@ namespace libtorrent {
 
 		// bitcomet pad file
 		if (path.find("_____padding_file_") != std::string::npos)
-			file_flags = file_storage::flag_pad_file;
+			file_flags |= file_storage::flag_pad_file;
 
 		bdecode_node const fh = dict.dict_find_string("sha1");
 		char const* filehash = nullptr;
@@ -566,7 +566,7 @@ namespace libtorrent {
 		return 0;
 	}
 
-	} // anonymous namespace
+} // anonymous namespace
 
 	web_seed_entry::web_seed_entry(std::string const& url_, type_t type_
 		, std::string const& auth_
