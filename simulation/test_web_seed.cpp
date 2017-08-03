@@ -58,7 +58,7 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 {
 	lt::create_torrent t(fs, piece_size
 		, pad_files ? piece_size : -1
-		, pad_files ? create_torrent::optimize_alignment : 0);
+		, pad_files ? create_torrent::optimize_alignment : create_flags_t{});
 
 	std::vector<char> piece;
 	piece.reserve(fs.piece_length());

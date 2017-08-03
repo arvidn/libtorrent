@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
 		std::vector<sha1_hash> similar;
 		int pad_file_limit = -1;
 		int piece_size = 0;
-		int flags = 0;
+		create_flags_t flags = {};
 		std::string root_cert;
 
 		std::string outfile;

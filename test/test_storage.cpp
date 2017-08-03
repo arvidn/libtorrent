@@ -130,7 +130,7 @@ std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
 	fs.add_file(combine_path("temp_storage", combine_path("folder2", "test3.tmp")), 0);
 	fs.add_file(combine_path("temp_storage", combine_path("_folder3", "test4.tmp")), 0);
 	fs.add_file(combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))), 8);
-	lt::create_torrent t(fs, 4, -1, 0);
+	lt::create_torrent t(fs, 4, -1, {});
 
 	char buf_[4] = {0, 0, 0, 0};
 	sha1_hash h = hasher(buf_).final();
@@ -442,7 +442,7 @@ void test_check_files(std::string const& test_path
 	std::vector<char> piece0 = new_piece(piece_size);
 	std::vector<char> piece2 = new_piece(piece_size);
 
-	lt::create_torrent t(fs, piece_size, -1, 0);
+	lt::create_torrent t(fs, piece_size, -1, {});
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
 	t.set_hash(piece_index_t(1), sha1_hash(nullptr));
 	t.set_hash(piece_index_t(2), sha1_hash(nullptr));
@@ -539,7 +539,7 @@ void run_test(bool unbuffered)
 	// |                           |                           |                           |                           |
 	// | piece 0                   | piece 1                   | piece 2                   | piece 3                   |
 
-	lt::create_torrent t(fs, piece_size, -1, 0);
+	lt::create_torrent t(fs, piece_size, -1, {});
 	TEST_CHECK(t.num_pieces() == 4);
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
 	t.set_hash(piece_index_t(1), hasher(piece1).final());
@@ -584,7 +584,7 @@ void run_test(bool unbuffered)
 	error_code ec;
 	file_storage fs;
 	fs.add_file(combine_path("temp_storage", "test1.tmp"), 3 * piece_size);
-	lt::create_torrent t(fs, piece_size, -1, 0);
+	lt::create_torrent t(fs, piece_size, -1, {});
 	TEST_CHECK(fs.file_path(file_index_t(0)) == combine_path("temp_storage", "test1.tmp"));
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
 	t.set_hash(piece_index_t(1), hasher(piece1).final());

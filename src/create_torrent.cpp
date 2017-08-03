@@ -50,6 +50,16 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 
 namespace libtorrent {
+
+	constexpr create_flags_t create_torrent::optimize_alignment;
+#ifndef TORRENT_NO_DEPRECATE
+	constexpr create_flags_t create_torrent::optimize;
+#endif
+	constexpr create_flags_t create_torrent::merkle;
+	constexpr create_flags_t create_torrent::modification_time;
+	constexpr create_flags_t create_torrent::symlinks;
+	constexpr create_flags_t create_torrent::mutable_torrent_support;
+
 namespace {
 
 	bool default_pred(std::string const&) { return true; }
@@ -105,7 +115,7 @@ namespace {
 
 	void add_files_impl(file_storage& fs, std::string const& p
 		, std::string const& l, std::function<bool(std::string)> pred
-		, std::uint32_t const flags)
+		, create_flags_t const flags)
 	{
 		std::string f = combine_path(p, l);
 		if (!pred(f)) return;
@@ -195,7 +205,7 @@ namespace {
 #ifndef TORRENT_NO_DEPRECATE
 
 	void add_files(file_storage& fs, std::wstring const& wfile
-		, std::function<bool(std::string)> p, std::uint32_t flags)
+		, std::function<bool(std::string)> p, create_flags_t const flags)
 	{
 		std::string utf8 = wchar_utf8(wfile);
 		add_files_impl(fs, parent_path(complete(utf8))
@@ -203,7 +213,7 @@ namespace {
 	}
 
 	void add_files(file_storage& fs
-		, std::wstring const& wfile, std::uint32_t flags)
+		, std::wstring const& wfile, create_flags_t const flags)
 	{
 		std::string utf8 = wchar_utf8(wfile);
 		add_files_impl(fs, parent_path(complete(utf8))
@@ -226,12 +236,12 @@ namespace {
 #endif // TORRENT_NO_DEPRECATE
 
 	void add_files(file_storage& fs, std::string const& file
-		, std::function<bool(std::string)> p, std::uint32_t flags)
+		, std::function<bool(std::string)> p, create_flags_t const flags)
 	{
 		add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
 	}
 
-	void add_files(file_storage& fs, std::string const& file, std::uint32_t flags)
+	void add_files(file_storage& fs, std::string const& file, create_flags_t const flags)
 	{
 		add_files_impl(fs, parent_path(complete(file)), filename(file)
 			, default_pred, flags);
@@ -300,14 +310,14 @@ namespace {
 	create_torrent::~create_torrent() = default;
 
 	create_torrent::create_torrent(file_storage& fs, int piece_size
-		, int pad_file_limit, int flags, int alignment)
+		, int pad_file_limit, create_flags_t const flags, int alignment)
 		: m_files(fs)
 		, m_creation_date(time(nullptr))
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
-		, m_merkle_torrent((flags & merkle) != 0)
-		, m_include_mtime((flags & modification_time) != 0)
-		, m_include_symlinks((flags & symlinks) != 0)
+		, m_merkle_torrent(bool(flags & create_torrent::merkle))
+		, m_include_mtime(bool(flags & create_torrent::modification_time))
+		, m_include_symlinks(bool(flags & create_torrent::symlinks))
 	{
 		// return instead of crash in release mode
 		if (fs.num_files() == 0 || fs.total_size() == 0) return;
@@ -353,7 +363,7 @@ namespace {
 #endif
 		m_files.set_piece_length(piece_size);
 		if (flags & (optimize_alignment | mutable_torrent_support))
-			m_files.optimize(pad_file_limit, alignment, (flags & mutable_torrent_support) != 0);
+			m_files.optimize(pad_file_limit, alignment, bool(flags & mutable_torrent_support));
 
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
