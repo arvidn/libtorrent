@@ -46,10 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR '\\'
-#define TORRENT_SEPARATOR_STR "\\"
 #else
 #define TORRENT_SEPARATOR '/'
-#define TORRENT_SEPARATOR_STR "/"
 #endif
 
 using namespace std::placeholders;
@@ -108,12 +106,13 @@ namespace libtorrent {
 
 namespace {
 
-		bool compare_file_offset(internal_file_entry const& lhs
-			, internal_file_entry const& rhs)
-		{
-			return lhs.offset < rhs.offset;
-		}
+	bool compare_file_offset(internal_file_entry const& lhs
+		, internal_file_entry const& rhs)
+	{
+		return lhs.offset < rhs.offset;
 	}
+
+}
 
 	// path is not supposed to include the name of the torrent itself.
 	void file_storage::update_path_index(internal_file_entry& e
@@ -167,30 +166,30 @@ namespace {
 			e.no_root_dir = true;
 		}
 
+		e.path_index = get_or_add_path({branch_path, aux::numeric_cast<std::size_t>(branch_len)});
+		if (set_name) e.set_name(leaf);
+	}
+
+	int file_storage::get_or_add_path(string_view const path)
+	{
 		// do we already have this path in the path list?
 		auto p = std::find_if(m_paths.rbegin(), m_paths.rend()
 			, [&] (std::string const& str)
-			{
-				if (int(str.size()) != branch_len) return false;
-				return std::memcmp(str.c_str(), branch_path, aux::numeric_cast<std::size_t>(branch_len)) == 0;
-			});
+			{ return str == path; });
 
 		if (p == m_paths.rend())
 		{
 			// no, we don't. add it
-			e.path_index = int(m_paths.size());
-			TORRENT_ASSERT(branch_len == 0 || branch_path[0] != '/');
-
-			// poor man's emplace back
-			m_paths.resize(m_paths.size() + 1);
-			m_paths.back().assign(branch_path, aux::numeric_cast<std::size_t>(branch_len));
+			int const ret = int(m_paths.size());
+			TORRENT_ASSERT(path.size() == 0 || path[0] != '/');
+			m_paths.emplace_back(path.data(), path.size());
+			return ret;
 		}
 		else
 		{
 			// yes we do. use it
-			e.path_index = int(p.base() - m_paths.begin() - 1);
+			return int(p.base() - m_paths.begin() - 1);
 		}
-		if (set_name) e.set_name(leaf);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -413,6 +412,8 @@ namespace {
 
 	file_index_t file_storage::file_index_at_offset(std::int64_t const offset) const
 	{
+		TORRENT_ASSERT_PRECOND(offset >= 0);
+		TORRENT_ASSERT_PRECOND(offset < m_total_size);
 		// find the file iterator and file offset
 		internal_file_entry target;
 		target.offset = aux::numeric_cast<std::uint64_t>(offset);
@@ -441,6 +442,8 @@ namespace {
 	std::vector<file_slice> file_storage::map_block(piece_index_t const piece
 		, std::int64_t const offset, int size) const
 	{
+		TORRENT_ASSERT_PRECOND(piece >= piece_index_t{0});
+		TORRENT_ASSERT_PRECOND(piece < end_piece());
 		TORRENT_ASSERT_PRECOND(num_files() > 0);
 		std::vector<file_slice> ret;
 
@@ -1049,11 +1052,10 @@ namespace {
 		i = m_files.begin() + cur_index;
 		e.size = aux::numeric_cast<std::uint64_t>(size);
 		e.offset = aux::numeric_cast<std::uint64_t>(offset);
-		char name[30];
-		std::snprintf(name, sizeof(name), ".pad" TORRENT_SEPARATOR_STR "%d"
-			, pad_file_counter);
-		std::string path = combine_path(m_name, name);
-		e.set_name(path.c_str());
+		e.path_index = get_or_add_path(".pad");
+		char name[15];
+		std::snprintf(name, sizeof(name), "%d", pad_file_counter);
+		e.set_name(name);
 		e.pad_file = true;
 		offset += size;
 		++pad_file_counter;

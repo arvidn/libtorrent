@@ -535,6 +535,8 @@ namespace libtorrent {
 
 	private:
 
+		int get_or_add_path(string_view path);
+
 		void add_pad_file(int size
 			, std::vector<internal_file_entry>::iterator& i
 			, std::int64_t& offset
