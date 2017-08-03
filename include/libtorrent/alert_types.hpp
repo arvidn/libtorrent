@@ -2687,7 +2687,7 @@ namespace libtorrent {
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 
-	enum { num_alert_types = 95 }; // this enum represents "max_alert_index" + 1
+	constexpr int num_alert_types = 95; // this constant represents "max_alert_index" + 1
 }
 
 #endif

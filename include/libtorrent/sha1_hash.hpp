@@ -67,7 +67,7 @@ namespace aux {
 	class digest32
 	{
 		static_assert(N % 32 == 0, "N must be a multiple of 32");
-		enum { number_size = N / 32 };
+		static constexpr int number_size = N / 32;
 	public:
 
 		// the size of the hash in bytes
@@ -143,14 +143,14 @@ namespace aux {
 		// shift left ``n`` bits.
 		digest32& operator<<=(int n)
 		{
-			aux::bits_shift_left({m_number, number_size}, n);
+			aux::bits_shift_left({m_number, std::size_t(number_size)}, n);
 			return *this;
 		}
 
 		// shift right ``n`` bits.
 		digest32& operator>>=(int n)
 		{
-			aux::bits_shift_right({m_number, number_size}, n);
+			aux::bits_shift_right({m_number, std::size_t(number_size)}, n);
 			return *this;
 		}
 
@@ -177,7 +177,7 @@ namespace aux {
 
 		int count_leading_zeroes() const
 		{
-			return aux::count_leading_zeros({m_number, number_size});
+			return aux::count_leading_zeros({m_number, std::size_t(number_size)});
 		}
 
 		// returns a bit-wise negated copy of the digest

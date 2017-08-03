@@ -129,7 +129,7 @@ namespace aux {
 
 		char* buf;
 
-		enum { max_refcount = (1 << 29) - 1 };
+		static constexpr int max_refcount = (1 << 29) - 1;
 
 		// the number of references to this buffer. These references
 		// might be in outstanding asynchronous requests or in peer

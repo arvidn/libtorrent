@@ -44,7 +44,7 @@ namespace libtorrent {
 // seen in the last 20 minutes
 struct TORRENT_EXTRA_EXPORT timestamp_history
 {
-	enum { history_size = 20 };
+	static constexpr int history_size = 20;
 
 	timestamp_history() : m_base(0), m_index(0), m_num_samples(not_initialized) {}
 	bool initialized() const { return m_num_samples != not_initialized; }
@@ -68,7 +68,7 @@ private:
 	// in the circular buffer
 	std::uint16_t m_index;
 
-	enum { not_initialized = 0xffff };
+	static constexpr std::uint16_t not_initialized = 0xffff;
 
 	// this is the number of samples since the
 	// last time we stepped one minute. If we

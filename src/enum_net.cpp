@@ -100,7 +100,8 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 #define IF_NAMESIZE IFNAMSIZ
 #endif
 
-namespace libtorrent {namespace {
+namespace libtorrent {
+namespace {
 
 
 #if !defined TORRENT_BUILD_SIMULATOR
@@ -201,7 +202,7 @@ namespace libtorrent {namespace {
 		return msg_len;
 	}
 
-	enum { NL_BUFSIZE = 8192 };
+	constexpr int NL_BUFSIZE = 8192;
 
 	int nl_dump_request(int sock, std::uint16_t type, std::uint32_t seq, char family, span<char> msg, std::size_t msg_len)
 	{
@@ -495,9 +496,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	}
 #endif
 
-}} // <anonymous>
-
-namespace libtorrent {
+} // <anonymous>
 
 	// return (a1 & mask) == (a2 & mask)
 	bool match_addr_mask(address const& a1, address const& a2, address const& mask)

@@ -78,7 +78,7 @@ namespace {
 	};
 
 	// TODO: 2 make this configurable in dht_settings
-	enum { announce_interval = 30 };
+	constexpr time_duration announce_interval = minutes(30);
 
 	struct dht_immutable_item
 	{
@@ -552,7 +552,7 @@ namespace {
 			auto new_end = std::remove_if(peers.begin(), peers.end()
 				, [=](peer_entry const& e)
 			{
-				return e.added + minutes(int(announce_interval * 3 / 2)) < now;
+				return e.added + announce_interval * 3 / 2 < now;
 			});
 
 			m_counters.peers -= std::int32_t(std::distance(new_end, peers.end()));
