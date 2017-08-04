@@ -493,7 +493,7 @@ namespace libtorrent {
 		// (`posix time`_). If there's no time stamp in the torrent file, the
 		// optional object will be uninitialized.
 		// .. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
-		time_t creation_date() const
+		std::time_t creation_date() const
 		{ return m_creation_date; }
 
 		// ``creator()`` returns the creator string in the torrent. If there is
