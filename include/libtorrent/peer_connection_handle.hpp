@@ -104,7 +104,7 @@ struct TORRENT_EXPORT peer_connection_handle
 
 	void send_buffer(char const* begin, int size, std::uint32_t flags = 0);
 
-	time_t last_seen_complete() const;
+	std::time_t last_seen_complete() const;
 	time_point time_of_last_unchoke() const;
 
 	bool operator==(peer_connection_handle const& o) const
