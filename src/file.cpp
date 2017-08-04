@@ -414,9 +414,9 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 #else
 		struct dirent* de;
 		errno = 0;
-		if ((de = ::readdir(m_handle)))
+		if ((de = ::readdir(m_handle)) != nullptr)
 		{
-			m_inode = de->d_ino;
+			m_inode = static_cast<ino_t>(de->d_ino);
 			m_name = de->d_name;
 		}
 		else
