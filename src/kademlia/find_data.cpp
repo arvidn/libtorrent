@@ -151,7 +151,7 @@ void find_data::done()
 		, end(m_results.end()); i != end && num_results > 0; ++i)
 	{
 		observer_ptr const& o = *i;
-		if ((o->flags & observer::flag_alive) == 0)
+		if (!(o->flags & observer::flag_alive))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
