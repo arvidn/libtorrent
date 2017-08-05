@@ -46,7 +46,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
+
+constexpr traversal_flags_t traversal_algorithm::prevent_request;
+constexpr traversal_flags_t traversal_algorithm::short_timeout;
 
 #if TORRENT_USE_ASSERTS
 template <class It, class Cmp>
@@ -76,9 +80,7 @@ observer_ptr traversal_algorithm::new_observer(udp::endpoint const& ep
 	return o;
 }
 
-traversal_algorithm::traversal_algorithm(
-	node& dht_node
-	, node_id const& target)
+traversal_algorithm::traversal_algorithm(node& dht_node, node_id const& target)
 	: m_node(dht_node)
 	, m_target(target)
 {
@@ -123,7 +125,7 @@ void traversal_algorithm::resort_result(observer* o)
 }
 
 void traversal_algorithm::add_entry(node_id const& id
-	, udp::endpoint const& addr, unsigned char const flags)
+	, udp::endpoint const& addr, observer_flags_t const flags)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	auto o = new_observer(addr, id);
@@ -297,7 +299,7 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint const& addr)
 	// let the routing table know this node may exist
 	m_node.m_table.heard_about(id, addr);
 
-	add_entry(id, addr, 0);
+	add_entry(id, addr, {});
 }
 
 void traversal_algorithm::finished(observer_ptr o)
@@ -328,11 +330,11 @@ void traversal_algorithm::finished(observer_ptr o)
 // prevent request means that the total number of requests has
 // overflown. This query failed because it was the oldest one.
 // So, if this is true, don't make another request
-void traversal_algorithm::failed(observer_ptr o, int const flags)
+void traversal_algorithm::failed(observer_ptr o, traversal_flags_t const flags)
 {
 	// don't tell the routing table about
 	// node ids that we just generated ourself
-	if ((o->flags & observer::flag_no_id) == 0)
+	if (!(o->flags & observer::flag_no_id))
 		m_node.m_table.node_failed(o->id(), o->target_ep());
 
 	if (m_results.empty()) return;
@@ -348,7 +350,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		// we do get a late response, keep the handler
 		// around for some more, but open up the slot
 		// by increasing the branch factor
-		if ((o->flags & observer::flag_short_timeout) == 0
+		if (!(o->flags & observer::flag_short_timeout)
 			&& m_branch_factor < std::numeric_limits<std::int8_t>::max())
 		{
 			++m_branch_factor;
@@ -363,7 +365,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		o->flags |= observer::flag_failed;
 		// if this flag is set, it means we increased the
 		// branch factor for it, and we should restore it
-		decrement_branch_factor = (o->flags & observer::flag_short_timeout) != 0;
+		decrement_branch_factor = bool(o->flags & observer::flag_short_timeout);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		log_timeout(o,"");
@@ -376,7 +378,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 
 	// this is another reason to decrement the branch factor, to prevent another
 	// request from filling this slot. Only ever decrement once per response though
-	decrement_branch_factor |= (flags & prevent_request);
+	decrement_branch_factor |= bool(flags & prevent_request);
 
 	if (decrement_branch_factor)
 	{
@@ -499,7 +501,7 @@ bool traversal_algorithm::add_requests()
 		{
 			// if it's queried, not alive and not failed, it
 			// must be currently in flight
-			if ((o->flags & observer::flag_failed) == 0)
+			if (!(o->flags & observer::flag_failed))
 				++outstanding;
 
 			continue;

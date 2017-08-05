@@ -38,15 +38,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/time.hpp>
 #include <libtorrent/address.hpp>
+#include <libtorrent/flags.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
+
 struct dht_observer;
 struct observer;
 struct msg;
 struct traversal_algorithm;
 
-struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
-	, std::enable_shared_from_this<observer>
+struct observer_flags_tag;
+using observer_flags_t = libtorrent::flags::bitfield_flag<std::uint8_t, observer_flags_tag>;
+
+struct TORRENT_EXTRA_EXPORT observer
+	: std::enable_shared_from_this<observer>
 {
 	observer(std::shared_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id)
@@ -55,7 +61,7 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 		, m_id(id)
 		, m_port(0)
 		, m_transaction_id()
-		, flags(0)
+		, flags{}
 	{
 		TORRENT_ASSERT(a);
 #if TORRENT_USE_ASSERTS
@@ -67,6 +73,9 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 		set_target(ep);
 	}
 
+	observer(observer const&) = delete;
+	observer& operator=(observer const&) = delete;
+
 	// defined in rpc_manager.cpp
 	virtual ~observer();
 
@@ -77,7 +86,7 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 	// a few seconds, before the request has timed out
 	void short_timeout();
 
-	bool has_short_timeout() const { return (flags & flag_short_timeout) != 0; }
+	bool has_short_timeout() const { return bool(flags & flag_short_timeout); }
 
 	// this is called when no reply has been received within
 	// some timeout, or a reply with incorrect format.
@@ -108,16 +117,14 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 	std::uint16_t transaction_id() const
 	{ return m_transaction_id; }
 
-	enum {
-		flag_queried = 1,
-		flag_initial = 2,
-		flag_no_id = 4,
-		flag_short_timeout = 8,
-		flag_failed = 16,
-		flag_ipv6_address = 32,
-		flag_alive = 64,
-		flag_done = 128
-	};
+	static constexpr observer_flags_t flag_queried = 0_bit;
+	static constexpr observer_flags_t flag_initial = 1_bit;
+	static constexpr observer_flags_t flag_no_id = 2_bit;
+	static constexpr observer_flags_t flag_short_timeout = 3_bit;
+	static constexpr observer_flags_t flag_failed = 4_bit;
+	static constexpr observer_flags_t flag_ipv6_address = 5_bit;
+	static constexpr observer_flags_t flag_alive = 6_bit;
+	static constexpr observer_flags_t flag_done = 7_bit;
 
 protected:
 
@@ -130,7 +137,7 @@ private:
 
 	time_point m_sent;
 
-	const std::shared_ptr<traversal_algorithm> m_algorithm;
+	std::shared_ptr<traversal_algorithm> const m_algorithm;
 
 	node_id m_id;
 
@@ -147,7 +154,7 @@ private:
 	// the transaction ID for this call
 	std::uint16_t m_transaction_id;
 public:
-	std::uint8_t flags;
+	observer_flags_t flags;
 
 #if TORRENT_USE_ASSERTS
 	bool m_in_constructor:1;
@@ -157,8 +164,9 @@ public:
 #endif
 };
 
-typedef std::shared_ptr<observer> observer_ptr;
+using observer_ptr = std::shared_ptr<observer>;
 
-} }
+}
+}
 
 #endif

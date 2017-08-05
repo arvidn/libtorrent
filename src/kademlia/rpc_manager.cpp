@@ -63,6 +63,16 @@ using namespace std::placeholders;
 namespace libtorrent { namespace dht {
 
 // TODO: 3 move this into it's own .cpp file
+
+constexpr observer_flags_t observer::flag_queried;
+constexpr observer_flags_t observer::flag_initial;
+constexpr observer_flags_t observer::flag_no_id;
+constexpr observer_flags_t observer::flag_short_timeout;
+constexpr observer_flags_t observer::flag_failed;
+constexpr observer_flags_t observer::flag_ipv6_address;
+constexpr observer_flags_t observer::flag_alive;
+constexpr observer_flags_t observer::flag_done;
+
 dht_observer* observer::get_observer() const
 {
 	return m_algorithm->get_node().observer();
@@ -502,7 +512,7 @@ observer::~observer()
 	// reported back to the traversal_algorithm as
 	// well. If it wasn't sent, it cannot have been
 	// reported back
-	TORRENT_ASSERT(m_was_sent == ((flags & flag_done) != 0) || m_was_abandoned);
+	TORRENT_ASSERT(m_was_sent == bool(flags & flag_done) || m_was_abandoned);
 	TORRENT_ASSERT(!m_in_constructor);
 #if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(m_in_use);

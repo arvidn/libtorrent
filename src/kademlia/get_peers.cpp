@@ -218,7 +218,7 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 			// don't re-request from nodes that didn't respond
 			if (node->flags & observer::flag_failed) continue;
 			// don't interrupt with queries that are already in-flight
-			if ((node->flags & observer::flag_alive) == 0) continue;
+			if (!(node->flags & observer::flag_alive)) continue;
 			node->flags &= ~(observer::flag_queried | observer::flag_alive);
 		}
 		return get_peers::invoke(o);
@@ -283,7 +283,7 @@ void obfuscated_get_peers::done()
 		// only add nodes whose node ID we know and that
 		// we know are alive
 		if (o->flags & observer::flag_no_id) continue;
-		if ((o->flags & observer::flag_alive) == 0) continue;
+		if (!(o->flags & observer::flag_alive)) continue;
 
 		ta->add_entry(o->id(), o->target_ep(), observer::flag_initial);
 		++num_added;

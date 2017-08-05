@@ -41,26 +41,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/address.hpp>
+#include <libtorrent/flags.hpp>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/noncopyable.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+namespace libtorrent {
 
-namespace libtorrent { struct dht_lookup; }
-namespace libtorrent { namespace dht {
+struct dht_lookup;
+
+namespace dht {
 
 class node;
 struct node_endpoint;
 
+struct traversal_flags_tag;
+using traversal_flags_t = libtorrent::flags::bitfield_flag<std::uint8_t, traversal_flags_tag>;
+
 // this class may not be instantiated as a stack object
-struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
-	, std::enable_shared_from_this<traversal_algorithm>
+struct TORRENT_EXTRA_EXPORT traversal_algorithm
+	: std::enable_shared_from_this<traversal_algorithm>
 {
 	void traverse(node_id const& id, udp::endpoint const& addr);
 	void finished(observer_ptr o);
 
-	enum flags_t { prevent_request = 1, short_timeout = 2 };
-	void failed(observer_ptr o, int flags = 0);
+	static constexpr traversal_flags_t prevent_request = 0_bit;
+	static constexpr traversal_flags_t short_timeout = 1_bit;
+
+	void failed(observer_ptr o, traversal_flags_t flags = {});
 	virtual ~traversal_algorithm();
 	void status(dht_lookup& l);
 
@@ -70,9 +75,11 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 	node_id const& target() const { return m_target; }
 
 	void resort_result(observer*);
-	void add_entry(node_id const& id, udp::endpoint const& addr, unsigned char flags);
+	void add_entry(node_id const& id, udp::endpoint const& addr, observer_flags_t flags);
 
 	traversal_algorithm(node& dht_node, node_id const& target);
+	traversal_algorithm(traversal_algorithm const&) = delete;
+	traversal_algorithm& operator=(traversal_algorithm const&) = delete;
 	int invoke_count() const { TORRENT_ASSERT(m_invoke_count >= 0); return m_invoke_count; }
 	int branch_factor() const { TORRENT_ASSERT(m_branch_factor >= 0); return m_branch_factor; }
 
@@ -157,6 +164,7 @@ struct traversal_observer : observer
 	virtual void reply(msg const&);
 };
 
-} } // namespace libtorrent::dht
+} // namespace dht
+} // namespace libtorrent
 
 #endif // TRAVERSAL_ALGORITHM_050324_HPP
