@@ -249,7 +249,7 @@ namespace libtorrent {
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 		// determines whether or not an alert is allowed to be discarded
-		// when the alert queue is full. There are a few alerts which may not be discared,
+		// when the alert queue is full. There are a few alerts which may not be discarded,
 		// since they would break the user contract, such as save_resume_data_alert.
 		TORRENT_DEPRECATED
 		bool discardable() const { return discardable_impl(); }
