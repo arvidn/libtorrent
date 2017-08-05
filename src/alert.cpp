@@ -77,7 +77,7 @@ namespace libtorrent {
 	constexpr alert_category_t alert::picker_log_notification;
 	constexpr alert_category_t alert::all_categories;
 #ifndef TORRENT_NO_DEPRECATE
-	constexpr alert_category_t alert::alert::rss_notification;
+	constexpr alert_category_t alert::rss_notification;
 #endif
 
 	alert::alert() : m_timestamp(clock_type::now()) {}
