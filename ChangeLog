@@ -1,3 +1,4 @@
+	* fix force-recheck issue (new files would not be picked up)
 	* fix inconsistency in file_priorities and override_resume_data behavior
 
 1.1.4 release
