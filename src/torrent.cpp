@@ -3118,6 +3118,7 @@ namespace {
 		, address const& bind_interface)
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(e == tracker_request::stopped || state() != torrent_status::checking_files);
 		INVARIANT_CHECK;
 
 		if (m_trackers.empty())
@@ -10239,6 +10240,7 @@ namespace {
 	void torrent::start_announcing()
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(state() != torrent_status::checking_files);
 		if (is_paused())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
