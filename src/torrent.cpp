@@ -2609,6 +2609,10 @@ namespace libtorrent
 		m_need_save_resume_data = need_save_resume_data;
 	}
 
+namespace {
+	void disk_nop(disk_io_job const*) {}
+}
+
 	void torrent::force_recheck()
 	{
 		INVARIANT_CHECK;
@@ -2663,6 +2667,10 @@ namespace libtorrent
 			set_queue_position((std::numeric_limits<int>::max)());
 
 		m_resume_data.reset();
+
+		// this will clear the stat cache, to make us actually query the
+		// filesystem for files again
+		m_ses.disk_thread().async_release_files(m_storage.get(), &disk_nop);
 
 		std::vector<std::string> links;
 		inc_refcount("force_recheck");

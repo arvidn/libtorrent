@@ -747,6 +747,8 @@ namespace libtorrent
 		// make sure we don't have the files open
 		m_pool.release(this);
 
+		m_stat_cache.clear();
+
 #if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
 #endif
