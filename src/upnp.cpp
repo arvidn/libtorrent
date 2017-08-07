@@ -630,7 +630,7 @@ void upnp::try_map_upnp(bool const timer)
 		// should try to map with the ones we did hear from anyway,
 		// regardless of if they are not running at our gateway.
 		override_ignore_non_routers = std::none_of(m_devices.begin()
-			, m_devices.end(), [](rootdevice const& d) { return d.non_router == false; });
+			, m_devices.end(), [](rootdevice const& d) { return !d.non_router; });
 #ifndef TORRENT_DISABLE_LOGGING
 		if (override_ignore_non_routers)
 		{
@@ -818,7 +818,7 @@ void upnp::update_map(rootdevice& d, int const i)
 			, std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i));
 
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), 1, NULL, false, 5, m.local_ep.address());
+			, seconds(10), 1, nullptr, false, 5, m.local_ep.address());
 	}
 	else if (m.act == portmap_action::del)
 	{
@@ -829,7 +829,7 @@ void upnp::update_map(rootdevice& d, int const i)
 			, std::ref(d), i, _5), true, default_max_bottled_buffer_size
 			, std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i));
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), 1, NULL, false, 5, m.local_ep.address());
+			, seconds(10), 1, nullptr, false, 5, m.local_ep.address());
 	}
 
 	m.act = portmap_action::none;
