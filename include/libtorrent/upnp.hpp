@@ -79,7 +79,7 @@ namespace libtorrent {
 			// lease times on port mappings
 			only_permanent_leases_supported = 725,
 			// RemoteHost must be a wildcard and cannot be a
-			// specific IP addres or DNS name
+			// specific IP address or DNS name
 			remote_host_must_be_wildcard = 726,
 			// ExternalPort must be a wildcard and cannot be a
 			// specific port
@@ -358,7 +358,7 @@ private:
 	deadline_timer m_refresh_timer;
 
 	// this timer fires one second after the last UPnP response. This is the
-	// point where we assume we have received most or all SSDP reponses. If we
+	// point where we assume we have received most or all SSDP responses. If we
 	// are ignoring non-routers and at this point we still haven't received a
 	// response from a router UPnP device, we override the ignoring behavior and
 	// map them anyway.
