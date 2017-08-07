@@ -126,7 +126,7 @@ namespace libtorrent {
 		if (!atp.trackers.empty())
 		{
 			entry::list_type& tr_list = ret["trackers"].list();
-			tr_list.push_back(entry::list_type());
+			tr_list.emplace_back(entry::list_type());
 			std::size_t tier = 0;
 			auto tier_it = atp.tracker_tiers.begin();
 			for (std::string const& tr : atp.trackers)
@@ -137,7 +137,7 @@ namespace libtorrent {
 				if (tr_list.size() <= tier)
 					tr_list.resize(tier + 1);
 
-				tr_list[tier].list().push_back(tr);
+				tr_list[tier].list().emplace_back(tr);
 			}
 		}
 
@@ -232,7 +232,7 @@ namespace libtorrent {
 			// write file priorities
 			entry::list_type& prio = ret["file_priority"].list();
 			for (auto const p : atp.file_priorities)
-				prio.push_back(p);
+				prio.emplace_back(p);
 		}
 
 		if (!atp.piece_priorities.empty())
@@ -254,4 +254,3 @@ namespace libtorrent {
 		return ret;
 	}
 }
-
