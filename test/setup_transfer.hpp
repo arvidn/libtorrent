@@ -41,6 +41,7 @@ namespace libtorrent
 {
 	class alert;
 	struct add_torrent_params;
+	class file_storage;
 }
 
 EXPORT int print_failures();
@@ -83,7 +84,8 @@ EXPORT void wait_for_listen(libtorrent::session& ses, char const* name);
 EXPORT void wait_for_downloading(libtorrent::session& ses, char const* name);
 EXPORT void test_sleep(int millisec);
 
-EXPORT void create_random_files(std::string const& path, const int file_sizes[], int num_files);
+EXPORT void create_random_files(std::string const& path, const int file_sizes[]
+	, int num_files, libtorrent::file_storage* fs = NULL);
 
 EXPORT boost::shared_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13

@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_status.hpp"
 
 static const int file_sizes[] =
-{ 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
+{ 0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
 	,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
 const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
 
@@ -83,9 +83,8 @@ void test_checking(int flags = read_only_files)
 	std::srand(10);
 	int piece_size = 0x4000;
 
-	create_random_files("test_torrent_dir", file_sizes, num_files);
+	create_random_files("test_torrent_dir", file_sizes, num_files, &fs);
 
-	add_files(fs, "test_torrent_dir");
 	lt::create_torrent t(fs, piece_size, 0x4000
 		, lt::create_torrent::optimize_alignment);
 
@@ -130,7 +129,7 @@ void test_checking(int flags = read_only_files)
 		// increase the size of some files. When they're read only that forces
 		// the checker to open them in write-mode to truncate them
 		static const int file_sizes2[] =
-		{ 5, 16 - 5, 16001, 30, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
+		{ 0, 5, 16 - 5, 16001, 30, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
 			,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
 		create_random_files("test_torrent_dir", file_sizes2, num_files);
 	}
@@ -160,6 +159,9 @@ void test_checking(int flags = read_only_files)
 
 	if (flags & force_recheck)
 	{
+		remove_all("test_torrent_dir_tmp", ec);
+		if (ec) fprintf(stdout, "ERROR: removing \"test_torrent_dir_tmp\": (%d) %s\n"
+			, ec.value(), ec.message().c_str());
 		rename("test_torrent_dir", "test_torrent_dir_tmp", ec);
 		if (ec) fprintf(stdout, "ERROR: renaming dir \"test_torrent_dir\": (%d) %s\n"
 			, ec.value(), ec.message().c_str());
@@ -196,6 +198,9 @@ void test_checking(int flags = read_only_files)
 
 		// now, move back the files and force-recheck. make sure we pick up the
 		// files this time
+		remove_all("test_torrent_dir", ec);
+		if (ec) fprintf(stdout, "ERROR: removing \"test_torrent_dir\": (%d) %s\n"
+			, ec.value(), ec.message().c_str());
 		rename("test_torrent_dir_tmp", "test_torrent_dir", ec);
 		if (ec) fprintf(stdout, "ERROR: renaming dir \"test_torrent_dir_tmp\": (%d) %s\n"
 			, ec.value(), ec.message().c_str());
