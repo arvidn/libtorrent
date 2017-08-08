@@ -88,7 +88,7 @@ namespace libtorrent {
 
 		if (atp.ti)
 		{
-			boost::shared_array<char> const info = atp.ti->metadata();
+			auto const info = atp.ti->metadata();
 			int const size = atp.ti->metadata_size();
 			ret["info"].preformatted().assign(&info[0], &info[0] + size);
 		}
@@ -106,6 +106,7 @@ namespace libtorrent {
 		if (!atp.unfinished_pieces.empty())
 		{
 			entry::list_type& up = ret["unfinished"].list();
+			up.reserve(atp.unfinished_pieces.size());
 
 			// info for each unfinished piece
 			for (auto const& p : atp.unfinished_pieces)
@@ -115,7 +116,7 @@ namespace libtorrent {
 				// the unfinished piece's index
 				piece_struct["piece"] = static_cast<int>(p.first);
 				std::string& bitmask = piece_struct["bitmask"].string();
-				for (auto bit : p.second)
+				for (auto const bit : p.second)
 					bitmask.push_back(bit ? '1' : '0');
 				// push the struct onto the unfinished-piece list
 				up.push_back(std::move(piece_struct));
@@ -126,7 +127,7 @@ namespace libtorrent {
 		if (!atp.trackers.empty())
 		{
 			entry::list_type& tr_list = ret["trackers"].list();
-			tr_list.push_back(entry::list_type());
+			tr_list.emplace_back(entry::list_type());
 			std::size_t tier = 0;
 			auto tier_it = atp.tracker_tiers.begin();
 			for (std::string const& tr : atp.trackers)
@@ -137,7 +138,7 @@ namespace libtorrent {
 				if (tr_list.size() <= tier)
 					tr_list.resize(tier + 1);
 
-				tr_list[tier].list().push_back(tr);
+				tr_list[tier].list().emplace_back(tr);
 			}
 		}
 
@@ -231,14 +232,16 @@ namespace libtorrent {
 		{
 			// write file priorities
 			entry::list_type& prio = ret["file_priority"].list();
+			prio.reserve(atp.file_priorities.size());
 			for (auto const p : atp.file_priorities)
-				prio.push_back(p);
+				prio.emplace_back(p);
 		}
 
 		if (!atp.piece_priorities.empty())
 		{
 			// write piece priorities
 			entry::string_type& prio = ret["piece_priority"].string();
+			prio.reserve(atp.piece_priorities.size());
 			for (auto const p : atp.piece_priorities)
 				prio.push_back(static_cast<char>(p));
 		}
@@ -254,4 +257,3 @@ namespace libtorrent {
 		return ret;
 	}
 }
-
