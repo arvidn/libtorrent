@@ -1,3 +1,4 @@
+	* don't attempt to create empty files on startup, if they already exist
 	* fix force-recheck issue (new files would not be picked up)
 	* fix inconsistency in file_priorities and override_resume_data behavior
 

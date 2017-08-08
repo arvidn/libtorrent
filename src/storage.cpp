@@ -543,7 +543,8 @@ namespace libtorrent
 			// ignore pad files
 			if (files().pad_file_at(file_index)) continue;
 
-			if (m_stat_cache.get_filesize(file_index) == stat_cache::not_in_cache)
+			boost::int64_t cached_size = m_stat_cache.get_filesize(file_index);
+			if (cached_size == stat_cache::not_in_cache)
 			{
 				file_status s;
 				std::string file_path = files().file_path(file_index, m_save_path);
@@ -551,6 +552,7 @@ namespace libtorrent
 				if (!ec)
 				{
 					m_stat_cache.set_cache(file_index, s.file_size, s.mtime);
+					cached_size = s.file_size;
 				}
 				else if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
@@ -559,13 +561,17 @@ namespace libtorrent
 					ec.operation = storage_error::stat;
 					break;
 				}
+				else
+				{
+					cached_size = stat_cache::no_exist;
+				}
 			}
 
 			// if the file already exists, but is larger than what
 			// it's supposed to be, truncate it
-			// if the file is empty, just create it either way.
-			if ((!ec && m_stat_cache.get_filesize(file_index) > files().file_size(file_index))
-				|| files().file_size(file_index) == 0)
+			// if the file is empty and doesn't already exist, create it
+			if ((!ec && cached_size > files().file_size(file_index))
+				|| (files().file_size(file_index) == 0 && cached_size == stat_cache::no_exist))
 			{
 				std::string file_path = files().file_path(file_index, m_save_path);
 				std::string dir = parent_path(file_path);
