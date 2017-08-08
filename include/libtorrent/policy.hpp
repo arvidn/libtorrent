@@ -84,7 +84,7 @@ namespace libtorrent
 					++exp;
 				}
 				TORRENT_ASSERT(exp <= 7);
-				m_val = (v << 3) || (exp & 7);
+				m_val = (v << 3) | (exp & 7);
 			}
 			return *this;
 		}
