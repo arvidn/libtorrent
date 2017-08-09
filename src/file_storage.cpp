@@ -47,10 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR '\\'
-#define TORRENT_SEPARATOR_STR "\\"
 #else
 #define TORRENT_SEPARATOR '/'
-#define TORRENT_SEPARATOR_STR "/"
 #endif
 
 namespace libtorrent
@@ -138,12 +136,13 @@ namespace libtorrent
 			return fe1.size < fe2.size;
 		}
 
-		bool compare_file_offset(internal_file_entry const& lhs
-			, internal_file_entry const& rhs)
-		{
-			return lhs.offset < rhs.offset;
-		}
+	bool compare_file_offset(internal_file_entry const& lhs
+		, internal_file_entry const& rhs)
+	{
+		return lhs.offset < rhs.offset;
 	}
+
+}
 
 	// path is not supposed to include the name of the torrent itself.
 	void file_storage::update_path_index(internal_file_entry& e
@@ -193,6 +192,16 @@ namespace libtorrent
 			e.no_root_dir = true;
 		}
 
+		e.path_index = get_or_add_path(branch_path, branch_len);
+		if (set_name) e.set_name(leaf);
+	}
+
+	int file_storage::get_or_add_path(char const* branch_path, int branch_len)
+	{
+		// trim trailing slashes
+		if (branch_len > 0 && branch_path[branch_len-1] == TORRENT_SEPARATOR)
+			--branch_len;
+
 		// do we already have this path in the path list?
 		std::vector<std::string>::reverse_iterator p
 			= std::find_if(m_paths.rbegin(), m_paths.rend()
@@ -201,23 +210,16 @@ namespace libtorrent
 		if (p == m_paths.rend())
 		{
 			// no, we don't. add it
-			e.path_index = m_paths.size();
-			TORRENT_ASSERT(branch_path[0] != '/');
-
-			// trim trailing slashes
-			if (branch_len > 0 && branch_path[branch_len-1] == TORRENT_SEPARATOR)
-				--branch_len;
-
-			// poor man's emplace back
-			m_paths.resize(m_paths.size() + 1);
-			m_paths.back().assign(branch_path, branch_len);
+			int const ret = int(m_paths.size());
+			TORRENT_ASSERT(branch_len == 0 || branch_path[0] != TORRENT_SEPARATOR);
+			m_paths.push_back(std::string(branch_path, branch_len));
+			return ret;
 		}
 		else
 		{
 			// yes we do. use it
-			e.path_index = p.base() - m_paths.begin() - 1;
+			return int(p.base() - m_paths.begin() - 1);
 		}
-		if (set_name) e.set_name(leaf);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -396,6 +398,8 @@ namespace libtorrent
 
 	int file_storage::file_index_at_offset(boost::int64_t offset) const
 	{
+		TORRENT_ASSERT_PRECOND(offset >= 0);
+		TORRENT_ASSERT_PRECOND(offset < m_total_size);
 		// find the file iterator and file offset
 		internal_file_entry target;
 		target.offset = offset;
@@ -425,6 +429,8 @@ namespace libtorrent
 		, boost::int64_t const offset
 		, int size) const
 	{
+		TORRENT_ASSERT_PRECOND(piece >= 0);
+		TORRENT_ASSERT_PRECOND(piece < num_pieces());
 		TORRENT_ASSERT_PRECOND(num_files() > 0);
 		std::vector<file_slice> ret;
 
@@ -1067,11 +1073,10 @@ namespace libtorrent
 		i = m_files.begin() + cur_index;
 		e.size = size;
 		e.offset = offset;
-		char name[30];
-		snprintf(name, sizeof(name), ".pad" TORRENT_SEPARATOR_STR "%d"
-			, pad_file_counter);
-		std::string path = combine_path(m_name, name);
-		e.set_name(path.c_str());
+		e.path_index = get_or_add_path(".pad", 4);
+		char name[15];
+		snprintf(name, sizeof(name), "%d", pad_file_counter);
+		e.set_name(name);
 		e.pad_file = true;
 		offset += size;
 		++pad_file_counter;

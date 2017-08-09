@@ -583,6 +583,8 @@ namespace libtorrent
 
 	private:
 
+		int get_or_add_path(char const* branch_path, int branch_len);
+
 		void add_pad_file(int size
 			, std::vector<internal_file_entry>::iterator& i
 			, boost::int64_t& offset
