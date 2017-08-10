@@ -54,11 +54,10 @@ using namespace lt;
 
 int const piece_size = 0x4000;
 
-add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false)
+add_torrent_params create_torrent(file_storage& fs, bool const v1_only = false)
 {
 	lt::create_torrent t(fs, piece_size
-		, pad_files ? piece_size : -1
-		, pad_files ? create_torrent::optimize_alignment : create_flags_t{});
+		, v1_only ? create_torrent::v1_only : create_flags_t{});
 
 	std::vector<char> piece;
 	piece.reserve(fs.piece_length());
@@ -248,7 +247,7 @@ TORRENT_TEST(unaligned_file_redirect)
 	file_storage fs;
 	fs.add_file(combine_path("foo", "1"), 0xc030);
 	fs.add_file(combine_path("foo", "2"), 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	lt::add_torrent_params params = ::create_torrent(fs, true);
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	bool seeding = false;
@@ -293,7 +292,7 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 	fs_.add_file(combine_path("foo", "1"), 0xc030);
 	fs_.add_file(combine_path("foo", "2"), 0xc030);
 	// true means use padfiles
-	lt::add_torrent_params params = ::create_torrent(fs_, true);
+	lt::add_torrent_params params = ::create_torrent(fs_);
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	// since the final torrent is different than what we built (because of pad
@@ -456,7 +455,7 @@ TORRENT_TEST(multi_file_unaligned_redirect)
 	file_storage fs;
 	fs.add_file(combine_path("foo", "1"), 0xc030);
 	fs.add_file(combine_path("foo", "2"), 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	lt::add_torrent_params params = ::create_torrent(fs, true);
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	run_test(

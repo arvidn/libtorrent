@@ -101,16 +101,20 @@ namespace libtorrent {
 	// .torrent file using bencode().
 	struct TORRENT_EXPORT create_torrent
 	{
+#if TORRENT_ABI_VERSION <= 2
 		// This will insert pad files to align the files to piece boundaries, for
 		// optimized disk-I/O. This will minimize the number of bytes of pad-
 		// files, to keep the impact down for clients that don't support
 		// them.
-		static constexpr create_flags_t optimize_alignment = 0_bit;
+		// incompatible with v2 metadata, ignored
+		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize_alignment = 0_bit;
+#endif
 #if TORRENT_ABI_VERSION == 1
 		// same as optimize_alignment, for backwards compatibility
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize = 0_bit;
 #endif
 
+#if TORRENT_ABI_VERSION <= 2
 		// This will create a merkle hash tree torrent. A merkle torrent cannot
 		// be opened in clients that don't specifically support merkle torrents.
 		// The benefit is that the resulting torrent file will be much smaller and
@@ -119,7 +123,6 @@ namespace libtorrent {
 		// When creating merkle torrents, the full hash tree is also generated
 		// and should be saved off separately. It is accessed through the
 		// create_torrent::merkle_tree() function.
-#ifndef TORRENT_NO_DEPRECATE
 		// support for BEP 30 merkle torrents has been removed
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER merkle = 1_bit;
 #endif
@@ -143,17 +146,23 @@ namespace libtorrent {
 		// another torrent.
 		//
 		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
-		static constexpr create_flags_t mutable_torrent_support = 4_bit;
+#if TORRENT_ABI_VERSION <= 2
+		// BEP 52 requires files to be piece aligned so all torrents are now compatible
+		// with BEP 38
+		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER mutable_torrent_support = 4_bit;
+#endif
+
+		// Do not generate v1 metadata. The resulting torrent will only be usable by
+		// clients which support v2.
+		static constexpr create_flags_t v2_only = 5_bit;
+
+		// do not generate v2 metadata or enforce v2 alignment and padding rules
+		// this is mainly for tests, not recommended for production use
+		static constexpr create_flags_t v1_only = 6_bit;
 
 		// The ``piece_size`` is the size of each piece in bytes. It must
-		// be a multiple of 16 kiB. If a piece size of 0 is specified, a
+		// be a power of 2 and a minimum of 16 kiB. If a piece size of 0 is specified, a
 		// piece_size will be calculated such that the torrent file is roughly 40 kB.
-		//
-		// If a ``pad_file_limit`` is specified (other than -1), any file larger than
-		// the specified number of bytes will be preceded by a pad file to align it
-		// with the start of a piece. The pad_file_limit is ignored unless the
-		// ``optimize_alignment`` flag is passed. Typically it doesn't make sense
-		// to set this any lower than 4 kiB.
 		//
 		// The overload that takes a ``torrent_info`` object will make a verbatim
 		// copy of its info dictionary (to preserve the info-hash). The copy of
@@ -164,14 +173,16 @@ namespace libtorrent {
 		//
 		// The ``flags`` arguments specifies options for the torrent creation. It can
 		// be any combination of the flags defined by create_torrent::flags_t.
-		//
-		// ``alignment`` is used when pad files are enabled. This is the size
-		// eligible files are aligned to. The default is -1, which means the
-		// piece size of the torrent.
 		explicit create_torrent(file_storage& fs, int piece_size = 0
-			, int pad_file_limit = -1, create_flags_t flags = optimize_alignment
-			, int alignment = -1);
+			, create_flags_t flags = {});
 		explicit create_torrent(torrent_info const& ti);
+
+#if TORRENT_ABI_VERSION <= 2
+		TORRENT_DEPRECATED
+		explicit create_torrent(file_storage& fs, int piece_size
+			, int, create_flags_t flags = {}, int = -1)
+			: create_torrent(fs, piece_size, flags) {}
+#endif
 
 		// internal
 		~create_torrent();
@@ -221,6 +232,15 @@ namespace libtorrent {
 		// See set_piece_hashes().
 		void set_hash(piece_index_t index, sha1_hash const& h);
 
+		// sets the bittorrent v2 hash for file `file` of the piece `piece`.
+		// `piece` is relative to the first piece of the file, starting at 0. The
+		// first piece in the file can be computed with
+		// file_storage::file_index_at_piece().
+		// The hash, `h`, is the root of the merkle tree formed by the piece's
+		// 16 kiB blocks. Note that piece sizes must be powers-of-2, so all
+		// per-piece merkle trees are complete.
+		void set_hash2(file_index_t file, piece_index_t::diff_type piece, sha256_hash const& h);
+
 		// This sets the sha1 hash for this file. This hash will end up under the key ``sha1``
 		// associated with this file (for multi-file torrents) or in the root info dictionary
 		// for single-file torrents.
@@ -266,6 +286,9 @@ namespace libtorrent {
 		void set_priv(bool p) { m_private = p; }
 		bool priv() const { return m_private; }
 
+		bool is_v2_only() const { return m_v2_only; }
+		bool is_v1_only() const { return m_v1_only; }
+
 		// returns the number of pieces in the associated file_storage object.
 		int num_pieces() const { return m_files.num_pieces(); }
 
@@ -275,7 +298,7 @@ namespace libtorrent {
 		int piece_length() const { return m_files.piece_length(); }
 		int piece_size(piece_index_t i) const { return m_files.piece_size(i); }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
 
 		// This function returns the merkle hash tree, if the torrent was created as a merkle
@@ -316,6 +339,9 @@ namespace libtorrent {
 		aux::vector<sha1_hash, piece_index_t> m_piece_hash;
 
 		aux::vector<sha1_hash, file_index_t> m_filehashes;
+
+		mutable aux::vector<sha256_hash, file_index_t> m_fileroots;
+		aux::vector<aux::vector<sha256_hash, piece_index_t::diff_type>, file_index_t> m_file_piece_hash;
 
 		std::vector<sha1_hash> m_similar;
 		std::vector<std::string> m_collections;
@@ -358,6 +384,11 @@ namespace libtorrent {
 		// the torrent file. The full data of the pointed-to
 		// file is still included
 		bool m_include_symlinks:1;
+
+		bool m_v2_only:1;
+
+		// only generate v1 metadata and do not enforce v2 padding rules
+		bool m_v1_only:1;
 	};
 
 namespace detail {

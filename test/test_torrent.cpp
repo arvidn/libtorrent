@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path, current_working_directory
 #include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/span.hpp"
 #include "settings.hpp"
 #include <tuple>
 #include <iostream>
@@ -194,12 +195,12 @@ TORRENT_TEST(total_wanted)
 {
 	file_storage fs;
 
-	fs.add_file("test_torrent_dir4/tmp1", 1024);
-	fs.add_file("test_torrent_dir4/tmp2", 1024);
-	fs.add_file("test_torrent_dir4/tmp3", 1024);
-	fs.add_file("test_torrent_dir4/tmp4", 1024);
+	fs.add_file("test_torrent_dir4/tmp1", default_block_size);
+	fs.add_file("test_torrent_dir4/tmp2", default_block_size);
+	fs.add_file("test_torrent_dir4/tmp3", default_block_size);
+	fs.add_file("test_torrent_dir4/tmp4", default_block_size);
 
-	lt::create_torrent t(fs, 1024);
+	lt::create_torrent t(fs, default_block_size);
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	error_code ec;
@@ -217,23 +218,23 @@ TORRENT_TEST(total_wanted)
 	p.save_path = ".";
 
 	// we just want 1 out of 4 files, 1024 out of 4096 bytes
-	p.file_priorities.resize(4, 0_pri);
-	p.file_priorities[1] = 1_pri;
+	p.file_priorities.resize(8, 0_pri);
+	p.file_priorities[2] = 1_pri;
 
 	p.ti = info;
 
 	torrent_handle h = ses.add_torrent(std::move(p));
 
 	torrent_status st = h.status();
-	TEST_EQUAL(st.total_wanted, 1024);
+	TEST_EQUAL(st.total_wanted, default_block_size);
 	TEST_EQUAL(st.total_wanted_done, 0);
 
 	// make sure that selecting and unseleting a file quickly still end up with
 	// the last set priority
-	h.file_priority(file_index_t{1}, default_priority);
-	h.file_priority(file_index_t{1}, dont_download);
+	h.file_priority(file_index_t{2}, default_priority);
+	h.file_priority(file_index_t{2}, dont_download);
 	TEST_EQUAL(h.status({}).total_wanted, 0);
-	TEST_CHECK(wait_priority(h, aux::vector<download_priority_t, file_index_t>(static_cast<std::size_t>(fs.num_files()))));
+	TEST_CHECK(wait_priority(h, aux::vector<download_priority_t, file_index_t>(static_cast<std::size_t>(fs.num_files()), dont_download)));
 	TEST_EQUAL(h.status({}).total_wanted, 0);
 }
 
@@ -311,10 +312,10 @@ TORRENT_TEST(torrent)
 	{
 		file_storage fs;
 
-		fs.add_file("test_torrent_dir2/tmp1", 1024);
-		lt::create_torrent t(fs, 1024, 6);
+		fs.add_file("test_torrent_dir2/tmp1", default_block_size);
+		lt::create_torrent t(fs, default_block_size);
 
-		std::vector<char> piece(1024);
+		std::vector<char> piece(default_block_size);
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[std::size_t(i)] = (i % 26) + 'A';
 
@@ -324,12 +325,14 @@ TORRENT_TEST(torrent)
 		for (auto const i : fs.piece_range())
 			t.set_hash(i, ph);
 
+		t.set_hash2(file_index_t{ 0 }, piece_index_t::diff_type{ 0 }, lt::hasher256(piece).final());
+
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char>> out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
 		auto info = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
-		test_running_torrent(info, 1024);
+		test_running_torrent(info, default_block_size);
 	}
 }
 
@@ -355,7 +358,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	file_storage fs;
 
 	fs.add_file("test_torrent_dir2/tmp1", 1024);
-	lt::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024);
 
 	std::vector<char> piece(128 * 1024);
 	for (int i = 0; i < int(piece.size()); ++i)
@@ -424,7 +427,7 @@ TORRENT_TEST(rename_file)
 
 	fs.add_file("test3/tmp1", 20);
 	fs.add_file("test3/tmp2", 20);
-	lt::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024);
 
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char>> out(tmp);
@@ -466,7 +469,7 @@ void test_queue(add_torrent_params)
 		std::stringstream file_path;
 		file_path << "test_torrent_dir4/queue" << i;
 		fs.add_file(file_path.str(), 1024);
-		lt::create_torrent t(fs, 128 * 1024, 6);
+		lt::create_torrent t(fs, 128 * 1024);
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());

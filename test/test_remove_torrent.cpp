@@ -81,7 +81,7 @@ void test_remove_torrent(remove_flags_t const remove_options
 	create_directory("tmp1_remove", ec);
 	std::ofstream file("tmp1_remove/temporary");
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
-		, 16 * 1024, num_pieces, false);
+		, 8 * 1024, num_pieces, false, create_torrent::v1_only);
 	file.close();
 
 	wait_for_listen(ses1, "ses1");
@@ -89,7 +89,8 @@ void test_remove_torrent(remove_flags_t const remove_options
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_remove", 8 * 1024, &t, false, nullptr);
+		, true, false, true, "_remove", 8 * 1024, &t, false, nullptr, true, false, nullptr
+		, create_torrent::v1_only);
 
 	if (test == partial_download)
 	{

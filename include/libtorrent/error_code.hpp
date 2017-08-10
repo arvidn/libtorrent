@@ -448,6 +448,23 @@ namespace errors {
 		// random number generation failed
 		no_entropy = 200,
 
+		// the torrent file has an unknown meta version
+		torrent_unknown_version = 210,
+		// the v2 torrent file has no file tree
+		torrent_missing_file_tree,
+		// the torrent contains v2 keys but does not specify meta version 2
+		torrent_missing_meta_version,
+		// the v1 and v2 file metadata does not match
+		torrent_inconsistent_files,
+		// one or more files are missing piece layer hashes
+		torrent_missing_piece_layer,
+		// a piece layer has the wrong size or failed hash check
+		torrent_invalid_piece_layer,
+		// a v2 file entry has no root hash
+		torrent_missing_pieces_root,
+		// the v1 and v2 hashes do not describe the same data
+		torrent_inconsistent_hashes,
+
 		// the number of error codes
 		error_code_max
 	};

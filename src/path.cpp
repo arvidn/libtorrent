@@ -530,7 +530,7 @@ namespace {
 		return false;
 	}
 
-	bool compare_path(std::string const& lhs, std::string const& rhs)
+	bool path_equal(std::string const& lhs, std::string const& rhs)
 	{
 		std::string::size_type const lhs_size = !lhs.empty()
 			&& (lhs[lhs.size()-1] == '/'
@@ -546,6 +546,29 @@ namespace {
 #endif
 			) ? rhs.size() - 1 : rhs.size();
 		return lhs.compare(0, lhs_size, rhs, 0, rhs_size) == 0;
+	}
+
+	// <0: lhs < rhs
+	//  0: lhs == rhs
+	// >0: lhs > rhs
+	int path_compare(string_view const lhs, string_view const lfile
+		, string_view const rhs, string_view const rfile)
+	{
+		for (auto lhs_elems = lsplit_path(lhs), rhs_elems = lsplit_path(rhs);
+			!lhs_elems.first.empty() || !rhs_elems.first.empty();
+			lhs_elems = lsplit_path(lhs_elems.second), rhs_elems = lsplit_path(rhs_elems.second))
+		{
+			if (lhs_elems.first.empty() || rhs_elems.first.empty())
+			{
+				if (lhs_elems.first.empty()) lhs_elems.first = lfile;
+				if (rhs_elems.first.empty()) rhs_elems.first = rfile;
+				return lhs_elems.first.compare(rhs_elems.first);
+			}
+
+			int const ret = lhs_elems.first.compare(rhs_elems.first);
+			if (ret != 0) return ret;
+		}
+		return 0;
 	}
 
 	bool has_parent_path(std::string const& f)
