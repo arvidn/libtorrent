@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdio>
+#include <cinttypes>
 #include <algorithm>
 #include <functional>
 
@@ -338,12 +339,7 @@ namespace {
 		{
 			if (f.name_len == internal_file_entry::name_is_owned) continue;
 			f.name += off;
-		}
-
-		for (auto& h : m_file_hashes)
-		{
-			if (h == nullptr) continue;
-			h += off;
+			if (f.hash != nullptr) f.hash += off;
 		}
 	}
 
@@ -631,12 +627,9 @@ namespace {
 		e.hidden_attribute = bool(file_flags & file_storage::flag_hidden);
 		e.executable_attribute = bool(file_flags & file_storage::flag_executable);
 		e.symlink_attribute = bool(file_flags & file_storage::flag_symlink);
+		e.hash = filehash;
+		e.mtime = mtime;
 
-		if (filehash)
-		{
-			if (m_file_hashes.size() < m_files.size()) m_file_hashes.resize(m_files.size());
-			m_file_hashes[last_file()] = filehash;
-		}
 		if (!symlink_path.empty()
 			&& m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
 		{
@@ -647,19 +640,14 @@ namespace {
 		{
 			e.symlink_attribute = false;
 		}
-		if (mtime)
-		{
-			if (m_mtime.size() < m_files.size()) m_mtime.resize(m_files.size());
-			m_mtime[last_file()] = std::time_t(mtime);
-		}
 
 		m_total_size += e.size;
 	}
 
 	sha1_hash file_storage::hash(file_index_t const index) const
 	{
-		if (index >= m_file_hashes.end_index()) return sha1_hash();
-		return sha1_hash(m_file_hashes[index]);
+		if (m_files[index].hash == nullptr) return sha1_hash();
+		return sha1_hash(m_files[index].hash);
 	}
 
 	std::string const& file_storage::symlink(file_index_t const index) const
@@ -672,8 +660,7 @@ namespace {
 
 	std::time_t file_storage::mtime(file_index_t const index) const
 	{
-		if (index >= m_mtime.end_index()) return 0;
-		return m_mtime[index];
+		return m_files[index].mtime;
 	}
 
 namespace {
@@ -877,8 +864,9 @@ namespace {
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = int(&fe - &m_files[0]);
-		if (index >= int(m_file_hashes.size())) return sha1_hash(nullptr);
-		return sha1_hash(m_file_hashes[index]);
+		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
+		if (m_files[index].hash == nullptr) return sha1_hash();
+		return sha1_hash(m_files[index].hash);
 	}
 
 	std::string const& file_storage::symlink(internal_file_entry const& fe) const
@@ -890,8 +878,8 @@ namespace {
 	std::time_t file_storage::mtime(internal_file_entry const& fe) const
 	{
 		int index = int(&fe - &m_files[0]);
-		if (index >= int(m_mtime.size())) return 0;
-		return m_mtime[index];
+		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
+		return m_files[index].mtime;
 	}
 
 	int file_storage::file_index(internal_file_entry const& fe) const
@@ -932,34 +920,11 @@ namespace {
 	{ return at_deprecated(int(i - m_files.begin())); }
 #endif // TORRENT_ABI_VERSION
 
-	void file_storage::reorder_file(int const index, int const dst)
-	{
-		TORRENT_ASSERT(index < int(m_files.size()));
-		TORRENT_ASSERT(dst < int(m_files.size()));
-		TORRENT_ASSERT(dst < index);
-
-		std::iter_swap(m_files.begin() + index, m_files.begin() + dst);
-		if (!m_mtime.empty())
-		{
-			TORRENT_ASSERT(m_mtime.size() == m_files.size());
-			if (int(m_mtime.size()) < index) m_mtime.resize(index + 1, 0);
-			std::iter_swap(m_mtime.begin() + dst, m_mtime.begin() + index);
-		}
-		if (!m_file_hashes.empty())
-		{
-			TORRENT_ASSERT(m_file_hashes.size() == m_files.size());
-			if (int(m_file_hashes.size()) < index) m_file_hashes.resize(index + 1, nullptr);
-			std::iter_swap(m_file_hashes.begin() + dst, m_file_hashes.begin() + index);
-		}
-	}
-
 	void file_storage::swap(file_storage& ti) noexcept
 	{
 		using std::swap;
 		swap(ti.m_files, m_files);
-		swap(ti.m_file_hashes, m_file_hashes);
 		swap(ti.m_symlinks, m_symlinks);
-		swap(ti.m_mtime, m_mtime);
 		swap(ti.m_paths, m_paths);
 		swap(ti.m_name, m_name);
 		swap(ti.m_total_size, m_total_size);
@@ -967,153 +932,94 @@ namespace {
 		swap(ti.m_piece_length, m_piece_length);
 	}
 
-	void file_storage::optimize(int const pad_file_limit, int alignment
-		, bool const tail_padding)
+	void file_storage::canonicalize()
 	{
-		if (alignment == -1)
-			alignment = m_piece_length;
+		TORRENT_ASSERT(piece_length() >= 16 * 1024);
 
-		// TODO: padfiles should be removed
-
-		std::int64_t off = 0;
-		int padding_file = 0;
-		for (auto i = m_files.begin(); i != m_files.end(); ++i)
+		// remove any existing pad files
 		{
-			if ((off % alignment) == 0)
-			{
-				// this file position is aligned, pick the largest
-				// available file to put here. If we encounter a file whose size is
-				// divisible by `alignment`, we pick that immediately, since that
-				// will not affect whether we're at an aligned position and will
-				// improve packing of files
-				auto best_match = i;
-				for (auto k = i; k != m_files.end(); ++k)
-				{
-					// a file whose size fits the alignment always takes priority,
-					// since it will let us keep placing aligned files
-					if ((k->size % aux::numeric_cast<std::uint64_t>(alignment)) == 0)
-					{
-						best_match = k;
-						break;
-					}
-					// otherwise, pick the largest file, to have as many bytes be
-					// aligned.
-					if (best_match->size < k->size) best_match = k;
-				}
+			auto pad_begin = std::partition(m_files.begin(), m_files.end()
+				, [](internal_file_entry const& e) { return !e.pad_file; });
+			m_files.erase(pad_begin, m_files.end());
+		}
 
-				if (best_match != i)
+		if (m_files.size() == 1)
+		{
+			// single file torrents require no further action
+			// in particular we do not want to add any pad files
+			return;
+		}
+
+		// sort files by path/name
+		std::sort(m_files.begin(), m_files.end()
+			, [&](internal_file_entry const& l, internal_file_entry const& r)
+		{
+			// assuming m_paths are unqiue!
+			if (l.path_index != r.path_index)
+			{
+				std::string lsplit = split_path(m_paths[l.path_index]);
+				std::string rsplit = split_path(m_paths[r.path_index]);
+				for (char const* le = lsplit.empty() ? nullptr : lsplit.c_str()
+					, *re = rsplit.empty() ? nullptr : rsplit.c_str()
+					; le != nullptr || re != nullptr
+					; le = next_path_element(le), re = next_path_element(re))
 				{
-					int const index = int(best_match - m_files.begin());
-					int const cur_index = int(i - m_files.begin());
-					reorder_file(index, cur_index);
-					i = m_files.begin() + cur_index;
+					if (le != nullptr && re != nullptr)
+					{
+						int cmp = strcmp(le, re);
+						if (cmp != 0) return cmp < 0;
+					}
+					else if (le == nullptr && re != nullptr)
+					{
+						int cmp =  memcmp(l.filename().data(), re
+							, std::min(l.filename().size(), strlen(re)));
+						// TODO: detect filename/directory name conflict here?
+						if (cmp == 0) return l.filename().size() < strlen(re);
+						else return cmp < 0;
+					}
+					else if (le != nullptr && re == nullptr)
+					{
+						int cmp = memcmp(le, r.filename().data()
+							, std::min(r.filename().size(), strlen(le)));
+						// TODO: detect filename/directory name conflict here?
+						if (cmp == 0) return strlen(le) < r.filename().size();
+						else return cmp < 0;
+					}
+					else
+					{
+						// the loop should have terminated in this case
+						TORRENT_ASSERT_FAIL();
+					}
 				}
 			}
-			else if (pad_file_limit >= 0
-				&& i->size > std::uint32_t(pad_file_limit)
-				&& i->pad_file == false)
+			return l.filename() < r.filename();
+		});
+
+		// re-compute offsets and insert pad files as necessary
+		std::uint64_t off = 0;
+		for (file_index_t i(0); i < int(m_files.size()); ++i)
+		{
+			auto& file = m_files[i];
+			TORRENT_ASSERT(!file.pad_file);
+			file.offset = off;
+			off += file.size;
+			auto const pad_size = piece_length() - file.size % piece_length();
+			if (int(pad_size) != piece_length())
 			{
-				// if we have pad files enabled, and this file is
-				// not piece-aligned and the file size exceeds the
-				// limit, and it's not a padding file itself.
-				// so add a padding file in front of it
-				int const pad_size = alignment - (off % alignment);
-
-				// find the largest file that fits in pad_size
-				auto best_match = m_files.end();
-
-				// if pad_file_limit is 0, it means all files are padded, there's
-				// no point in trying to find smaller files to use as filling
-				if (pad_file_limit > 0)
-				{
-					for (auto j = i + 1; j < m_files.end(); ++j)
-					{
-						if (j->size > std::uint32_t(pad_size)) continue;
-						if (best_match == m_files.end() || j->size > best_match->size)
-							best_match = j;
-					}
-
-					if (best_match != m_files.end())
-					{
-						// we found one
-						// We cannot have found i, because i->size > pad_file_limit
-						// which is forced to be no less than alignment. We only
-						// look for files <= pad_size, which never is greater than
-						// alignment
-						TORRENT_ASSERT(best_match != i);
-						int index = int(best_match - m_files.begin());
-						int cur_index = int(i - m_files.begin());
-						reorder_file(index, cur_index);
-						i = m_files.begin() + cur_index;
-						i->offset = aux::numeric_cast<std::uint64_t>(off);
-						off += i->size;
-						continue;
-					}
-				}
-
-				// we could not find a file that fits in pad_size
-				// add a padding file
-				// note that i will be set to point to the
-				// new pad file. Once we're done adding it, we need
-				// to increment i to point to the current file again
-				// first add the pad file to the end of the file list
-				// then swap it in place. This minimizes the amount
-				// of copying of internal_file_entry, which is somewhat
-				// expensive (until we have move semantics)
-				add_pad_file(pad_size, i, off, padding_file);
-
-				TORRENT_ASSERT((off % alignment) == 0);
-				continue;
-			}
-			i->offset = aux::numeric_cast<std::uint64_t>(off);
-			off += i->size;
-
-			if (tail_padding
-				&& i->size > std::uint32_t(pad_file_limit)
-				&& (off % alignment) != 0)
-			{
-				// skip the file we just put in place, so we put the pad
-				// file after it
+				auto pad_file = m_files.emplace(m_files.begin() + i + 1);
+				pad_file->size = pad_size;
+				pad_file->offset = off;
+				off += pad_size;
+				pad_file->path_index = get_or_add_path(".pad");
+				char name[30];
+				std::snprintf(name, sizeof(name), "%" PRIu64
+					, pad_file->size);
+				pad_file->set_name(name);
+				pad_file->pad_file = true;
 				++i;
-
-				// tail-padding is enabled, and the offset after this file is not
-				// aligned. The last file must be padded too, in order to match an
-				// equivalent tail-padded file.
-				add_pad_file(alignment - (off % alignment), i, off, padding_file);
-
-				TORRENT_ASSERT((off % alignment) == 0);
-
-				if (i == m_files.end()) break;
 			}
 		}
 		m_total_size = off;
-	}
-
-	void file_storage::add_pad_file(int const size
-		, std::vector<internal_file_entry>::iterator& i
-		, std::int64_t& offset
-		, int& pad_file_counter)
-	{
-		int const cur_index = int(i - m_files.begin());
-		int const index = int(m_files.size());
-		m_files.push_back(internal_file_entry());
-		internal_file_entry& e = m_files.back();
-		// i may have been invalidated, refresh it
-		i = m_files.begin() + cur_index;
-		e.size = aux::numeric_cast<std::uint64_t>(size);
-		e.offset = aux::numeric_cast<std::uint64_t>(offset);
-		e.path_index = get_or_add_path(".pad");
-		char name[15];
-		std::snprintf(name, sizeof(name), "%d", pad_file_counter);
-		e.set_name(name);
-		e.pad_file = true;
-		offset += size;
-		++pad_file_counter;
-
-		if (!m_mtime.empty()) m_mtime.resize(index + 1, 0);
-		if (!m_file_hashes.empty()) m_file_hashes.resize(index + 1, nullptr);
-
-		if (index != cur_index) reorder_file(index, cur_index);
 	}
 
 namespace aux {

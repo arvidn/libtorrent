@@ -51,14 +51,20 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
+#if TORRENT_ABI_VERSION <= 2
 	constexpr create_flags_t create_torrent::optimize_alignment;
+#endif
 #if TORRENT_ABI_VERSION == 1
 	constexpr create_flags_t create_torrent::optimize;
+#endif
+#if TORRENT_ABI_VERSION <= 2
 	constexpr create_flags_t create_torrent::merkle;
 #endif
 	constexpr create_flags_t create_torrent::modification_time;
 	constexpr create_flags_t create_torrent::symlinks;
+#if TORRENT_ABI_VERSION <= 2
 	constexpr create_flags_t create_torrent::mutable_torrent_support;
+#endif
 
 namespace {
 
@@ -338,7 +344,7 @@ namespace {
 	create_torrent::~create_torrent() = default;
 
 	create_torrent::create_torrent(file_storage& fs, int piece_size
-		, int pad_file_limit, create_flags_t const flags, int alignment)
+		, create_flags_t const flags)
 		: m_files(fs)
 		, m_creation_date(::time(nullptr))
 		, m_multifile(fs.num_files() > 1)
@@ -381,12 +387,6 @@ namespace {
 			piece_size = default_block_size << i;
 		}
 
-		// to support mutable torrents, alignment always has to be the piece size,
-		// because piece hashes are compared to determine whether files are
-		// identical
-		if (flags & mutable_torrent_support)
-			alignment = piece_size;
-
 		// make sure the size is an even power of 2
 #if TORRENT_USE_ASSERTS
 		for (int i = 0; i < 31; ++i)
@@ -399,9 +399,7 @@ namespace {
 		}
 #endif
 		m_files.set_piece_length(piece_size);
-		if (flags & (optimize_alignment | mutable_torrent_support))
-			m_files.optimize(pad_file_limit, alignment, bool(flags & mutable_torrent_support));
-
+		m_files.canonicalize();
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());

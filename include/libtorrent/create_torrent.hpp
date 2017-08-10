@@ -105,7 +105,10 @@ namespace libtorrent {
 		// optimized disk-I/O. This will minimize the number of bytes of pad-
 		// files, to keep the impact down for clients that don't support
 		// them.
-		static constexpr create_flags_t optimize_alignment = 0_bit;
+#if TORRENT_ABI_VERSION <= 2
+		// incompatible with v2 metadata, ignored
+		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize_alignment = 0_bit;
+#endif
 #if TORRENT_ABI_VERSION == 1
 		// same as optimize_alignment, for backwards compatibility
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize = 0_bit;
@@ -119,7 +122,7 @@ namespace libtorrent {
 		// When creating merkle torrents, the full hash tree is also generated
 		// and should be saved off separately. It is accessed through the
 		// create_torrent::merkle_tree() function.
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER merkle = 1_bit;
 #endif
@@ -143,17 +146,15 @@ namespace libtorrent {
 		// another torrent.
 		//
 		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
-		static constexpr create_flags_t mutable_torrent_support = 4_bit;
+#ifndef TORRENT_NO_DEPRECATE
+		// BEP 52 requires files to be piece aligned so all torrents are now compatible
+		// with BEP 38
+		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER mutable_torrent_support = 4_bit;
+#endif
 
 		// The ``piece_size`` is the size of each piece in bytes. It must
 		// be a multiple of 16 kiB. If a piece size of 0 is specified, a
 		// piece_size will be calculated such that the torrent file is roughly 40 kB.
-		//
-		// If a ``pad_file_limit`` is specified (other than -1), any file larger than
-		// the specified number of bytes will be preceded by a pad file to align it
-		// with the start of a piece. The pad_file_limit is ignored unless the
-		// ``optimize_alignment`` flag is passed. Typically it doesn't make sense
-		// to set this any lower than 4 kiB.
 		//
 		// The overload that takes a ``torrent_info`` object will make a verbatim
 		// copy of its info dictionary (to preserve the info-hash). The copy of
@@ -164,13 +165,8 @@ namespace libtorrent {
 		//
 		// The ``flags`` arguments specifies options for the torrent creation. It can
 		// be any combination of the flags defined by create_torrent::flags_t.
-		//
-		// ``alignment`` is used when pad files are enabled. This is the size
-		// eligible files are aligned to. The default is -1, which means the
-		// piece size of the torrent.
 		explicit create_torrent(file_storage& fs, int piece_size = 0
-			, int pad_file_limit = -1, create_flags_t flags = optimize_alignment
-			, int alignment = -1);
+			, create_flags_t flags = {});
 		explicit create_torrent(torrent_info const& ti);
 
 		// internal
