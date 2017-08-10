@@ -1024,7 +1024,7 @@ namespace libtorrent {
 
 		// renames the file with the given index to the new name
 		// the name may include a directory path
-		// returns false on failure
+		// posts alert to indicate success or failure
 		void rename_file(file_index_t index, std::string name);
 
 		// unless this returns true, new connections must wait

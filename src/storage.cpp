@@ -242,7 +242,7 @@ namespace libtorrent {
 			// it's supposed to be, truncate it
 			// if the file is empty, just create it either way.
 			if ((!err && size > files().file_size(file_index))
-				|| files().file_size(file_index) == 0)
+				|| (files().file_size(file_index) == 0 && err == boost::system::errc::no_such_file_or_directory))
 			{
 				std::string file_path = files().file_path(file_index, m_save_path);
 				std::string dir = parent_path(file_path);

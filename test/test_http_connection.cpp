@@ -201,6 +201,14 @@ void run_suite(std::string const& protocol
 	run_test(url_base + "password_protected", 3216, 200, 1, error_code(), ps
 		, "testuser:testpass");
 
+	// try a very long path
+	std::string path;
+	for (int i = 0; i < 6000; ++i)
+	{
+		path += static_cast<char>(i % 26) + 'a';
+	}
+	run_test(url_base + path, 0, 404, 1, err(), ps);
+
 	// only run the tests to handle NX_DOMAIN if we have a proper internet
 	// connection that doesn't inject false DNS responses (like Comcast does)
 	hostent* h = gethostbyname("non-existent-domain.se");

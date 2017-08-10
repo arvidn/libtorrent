@@ -2227,6 +2227,10 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_add_torrent_params.reset();
 
+		// this will clear the stat cache, to make us actually query the
+		// filesystem for files again
+		m_ses.disk_thread().async_release_files(m_storage, []{});
+
 		aux::vector<std::string, file_index_t> links;
 		m_ses.disk_thread().async_check_files(m_storage, nullptr
 			, links, std::bind(&torrent::on_force_recheck
@@ -2657,6 +2661,7 @@ namespace libtorrent {
 	void torrent::announce_with_tracker(std::uint8_t e)
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(e == tracker_request::stopped || state() != torrent_status::checking_files);
 		INVARIANT_CHECK;
 
 		if (m_trackers.empty())
@@ -8831,6 +8836,7 @@ namespace libtorrent {
 	void torrent::start_announcing()
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(state() != torrent_status::checking_files);
 		if (is_paused())
 		{
 #ifndef TORRENT_DISABLE_LOGGING

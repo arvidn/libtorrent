@@ -37,9 +37,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/units.hpp"
-#include "libtorrent/span.hpp"
-#include "libtorrent/alert.hpp"
-#include "libtorrent/add_torrent_params.hpp"
+
+namespace libtorrent
+{
+	class alert;
+	struct add_torrent_params;
+	class file_storage;
+	class session;
+}
 
 EXPORT int print_failures();
 EXPORT unsigned char random_byte();
@@ -89,7 +94,7 @@ EXPORT lt::file_storage make_file_storage(const int file_sizes[], int num_files
 EXPORT std::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 	, int num_files, int piece_size);
 EXPORT void create_random_files(std::string const& path, const int file_sizes[]
-	, int num_files);
+	, int num_files, libtorrent::file_storage* fs = nullptr);
 
 EXPORT std::shared_ptr<lt::torrent_info> create_torrent(std::ostream* file = 0
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13

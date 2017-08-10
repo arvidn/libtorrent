@@ -163,13 +163,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	bool ssl = false;
 	if (protocol == "https") ssl = true;
 
-	char request[4096];
-	char* end = request + sizeof(request);
-	char* ptr = request;
-
-#define APPEND_FMT(fmt) ptr += std::snprintf(ptr, std::size_t(end - ptr), fmt)
-#define APPEND_FMT1(fmt, arg) ptr += std::snprintf(ptr, std::size_t(end - ptr), fmt, arg)
-#define APPEND_FMT2(fmt, arg1, arg2) ptr += std::snprintf(ptr, std::size_t(end - ptr), fmt, arg1, arg2)
+	std::stringstream request;
 
 	// exclude ssl here, because SSL assumes CONNECT support in the
 	// proxy and is handled at the lower layer
@@ -179,40 +173,39 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	{
 		// if we're using an http proxy and not an ssl
 		// connection, just do a regular http proxy request
-		APPEND_FMT1("GET %s HTTP/1.1\r\n", url.c_str());
+		request << "GET " << url << " HTTP/1.1\r\n";
 		if (ps->type == settings_pack::http_pw)
-			APPEND_FMT1("Proxy-Authorization: Basic %s\r\n", base64encode(
-				ps->username + ":" + ps->password).c_str());
+			request << "Proxy-Authorization: Basic " << base64encode(
+				ps->username + ":" + ps->password) << "\r\n";
 
 		hostname = ps->hostname;
 		port = ps->port;
 
-		APPEND_FMT1("Host: %s", hostname.c_str());
-		if (port != default_port) APPEND_FMT1(":%d\r\n", port);
-		else APPEND_FMT("\r\n");
+		request << "Host: " << hostname;
+		if (port != default_port) request << ":" << port << "\r\n";
+		else request << "\r\n";
 	}
 	else
 	{
-		APPEND_FMT2("GET %s HTTP/1.1\r\n"
-			"Host: %s", path.c_str(), hostname.c_str());
-		if (port != default_port) APPEND_FMT1(":%d\r\n", port);
-		else APPEND_FMT("\r\n");
+		request << "GET " << path << " HTTP/1.1\r\nHost: " << hostname;
+		if (port != default_port) request << ":" << port << "\r\n";
+		else request << "\r\n";
 	}
 
-//	APPEND_FMT("Accept: */*\r\n");
+//	request << "Accept: */*\r\n";
 
 	if (!m_user_agent.empty())
-		APPEND_FMT1("User-Agent: %s\r\n", m_user_agent.c_str());
+		request << "User-Agent: " << m_user_agent << "\r\n";
 
 	if (m_bottled)
-		APPEND_FMT("Accept-Encoding: gzip\r\n");
+		request << "Accept-Encoding: gzip\r\n";
 
 	if (!auth.empty())
-		APPEND_FMT1("Authorization: Basic %s\r\n", base64encode(auth).c_str());
+		request << "Authorization: Basic " << base64encode(auth) << "\r\n";
 
-	APPEND_FMT("Connection: close\r\n\r\n");
+	request << "Connection: close\r\n\r\n";
 
-	m_sendbuffer.assign(request);
+	m_sendbuffer.assign(request.str());
 	m_url = url;
 	start(hostname, port, timeout, prio
 		, ps, ssl, handle_redirects, bind_addr, m_resolve_flags

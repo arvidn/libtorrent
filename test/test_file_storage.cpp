@@ -76,6 +76,36 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.num_pieces(), (100000 + 0x3fff) / 0x4000);
 }
 
+TORRENT_TEST(coalesce_path)
+{
+	file_storage st;
+	st.add_file(combine_path("test", "a"), 10000);
+	TEST_EQUAL(st.paths().size(), 1);
+	TEST_EQUAL(st.paths()[0], "");
+	st.add_file(combine_path("test", "b"), 20000);
+	TEST_EQUAL(st.paths().size(), 1);
+	TEST_EQUAL(st.paths()[0], "");
+	st.add_file(combine_path("test", combine_path("c", "a")), 30000);
+	TEST_EQUAL(st.paths().size(), 2);
+	TEST_EQUAL(st.paths()[0], "");
+	TEST_EQUAL(st.paths()[1], "c");
+
+	// make sure that two files with the same path shares the path entry
+	st.add_file(combine_path("test", combine_path("c", "b")), 40000);
+	TEST_EQUAL(st.paths().size(), 2);
+	TEST_EQUAL(st.paths()[0], "");
+	TEST_EQUAL(st.paths()[1], "c");
+
+	// cause pad files to be created, to make sure the pad files also share the
+	// same path entries
+	st.optimize(0, 1024, true);
+
+	TEST_EQUAL(st.paths().size(), 3);
+	TEST_EQUAL(st.paths()[0], "");
+	TEST_EQUAL(st.paths()[1], "c");
+	TEST_EQUAL(st.paths()[2], ".pad");
+}
+
 TORRENT_TEST(rename_file)
 {
 	// test rename_file
