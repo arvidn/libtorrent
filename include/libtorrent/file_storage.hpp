@@ -164,6 +164,16 @@ namespace libtorrent {
 		char const* name;
 	public:
 
+		// the sha1 hash of the file, nullptr if unknown
+		// this points into the .torrent file in memory which is _not_ owned
+		// by this file_storage object. It's simply a non-owning pointer.
+		// It is the user's responsibility that the hash stays valid
+		// throughout the lifetime of this file_storage object.
+		char const* hash;
+
+		// the modification time of the file, zero if unknown
+		std::time_t mtime;
+
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
 		// from that array with the 'name' field in
@@ -409,17 +419,9 @@ namespace libtorrent {
 		// swap all content of *this* with *ti*.
 		void swap(file_storage& ti) noexcept;
 
-		// if pad_file_limit >= 0, files larger than that limit will be padded,
-		// default is to not add any padding (-1). The alignment specifies the
-		// alignment files should be padded to. This defaults to the piece size
-		// (-1) but it may also make sense to set it to 16 kiB, or something
-		// divisible by 16 kiB.
-		// If pad_file_limit is 0, every file will be padded (except empty ones).
-		// ``tail_padding`` indicates whether aligned files also are padded at
-		// the end to make them end aligned. This is required for mutable
-		// torrents, since piece hashes are compared
-		void optimize(int pad_file_limit = -1, int alignment = -1
-			, bool tail_padding = false);
+		// arrange files and padding to match the cannonical form required
+		// by BEP 52
+		void canonicalize();
 
 		// These functions are used to query attributes of files at
 		// a given index.
@@ -547,11 +549,6 @@ namespace libtorrent {
 
 		int get_or_add_path(string_view path);
 
-		void add_pad_file(int size
-			, std::vector<internal_file_entry>::iterator& i
-			, std::int64_t& offset
-			, int& pad_file_counter);
-
 		// the number of bytes in a regular piece
 		// (i.e. not the potentially truncated last piece)
 		int m_piece_length;
@@ -561,32 +558,14 @@ namespace libtorrent {
 
 		void update_path_index(internal_file_entry& e, std::string const& path
 			, bool set_name = true);
-		void reorder_file(int index, int dst);
 
 		// the list of files that this torrent consists of
 		aux::vector<internal_file_entry, file_index_t> m_files;
-
-		// if there are sha1 hashes for each individual file there are as many
-		// entries in this array as the m_files array. Each entry in m_files has
-		// a corresponding hash pointer in this array. The reason to split it up
-		// in separate arrays is to save memory in case the torrent doesn't have
-		// file hashes
-		// the pointers in this vector are pointing into the .torrent file in
-		// memory which is _not_ owned by this file_storage object. It's simply
-		// a non-owning pointer. It is the user's responsibility that the hash
-		// stays valid throughout the lifetime of this file_storage object.
-		aux::vector<char const*, file_index_t> m_file_hashes;
 
 		// for files that are symlinks, the symlink
 		// path_index in the internal_file_entry indexes
 		// this vector of strings
 		std::vector<std::string> m_symlinks;
-
-		// the modification times of each file. This vector
-		// is empty if no file have a modification time.
-		// each element corresponds to the file with the same
-		// index in m_files
-		aux::vector<std::time_t, file_index_t> m_mtime;
 
 		// all unique paths files have. The internal_file_entry::path_index
 		// points into this array. The paths don't include the root directory
