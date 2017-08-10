@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 #include <type_traits>
 
@@ -51,6 +52,9 @@ namespace libtorrent { namespace aux {
 		using Base::Base;
 		container_wrapper() = default;
 		explicit container_wrapper(Base&& b) : Base(std::move(b)) {}
+
+		explicit container_wrapper(IndexType const s)
+			: Base(numeric_cast<std::size_t>(static_cast<underlying_index>(s))) {}
 
 		decltype(auto) operator[](IndexType idx) const
 		{
@@ -69,7 +73,7 @@ namespace libtorrent { namespace aux {
 		IndexType end_index() const
 		{
 			TORRENT_ASSERT(this->size() <= std::size_t((std::numeric_limits<underlying_index>::max)()));
-			return IndexType(static_cast<underlying_index>(this->size()));
+			return IndexType(numeric_cast<underlying_index>(this->size()));
 		}
 
 		// returns an object that can be used in a range-for to iterate over all

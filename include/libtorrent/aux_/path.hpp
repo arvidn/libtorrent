@@ -143,7 +143,11 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string extension(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string remove_extension(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_root_path(std::string const& f);
-	TORRENT_EXTRA_EXPORT bool compare_path(std::string const& lhs, std::string const& rhs);
+	TORRENT_EXTRA_EXPORT bool path_equal(std::string const& lhs, std::string const& rhs);
+
+	// compare each path element individually
+	TORRENT_EXTRA_EXPORT int path_compare(string_view lhs, string_view lfile
+		, string_view rhs, string_view rfile);
 
 	// internal used by create_torrent.hpp
 	TORRENT_EXTRA_EXPORT std::string parent_path(std::string const& f);

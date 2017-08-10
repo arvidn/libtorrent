@@ -143,15 +143,14 @@ void run_until(io_context& ios, bool const& done)
 std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
 	, std::vector<char>& buf)
 {
-	fs.add_file(combine_path("temp_storage", "test1.tmp"), 8);
-	fs.add_file(combine_path("temp_storage", combine_path("folder1", "test2.tmp")), 8);
+	fs.add_file(combine_path("temp_storage", "test1.tmp"), 0x8000);
+	fs.add_file(combine_path("temp_storage", combine_path("folder1", "test2.tmp")), 0x8000);
 	fs.add_file(combine_path("temp_storage", combine_path("folder2", "test3.tmp")), 0);
 	fs.add_file(combine_path("temp_storage", combine_path("_folder3", "test4.tmp")), 0);
-	fs.add_file(combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))), 8);
-	lt::create_torrent t(fs, 4, -1, {});
+	fs.add_file(combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))), 0x8000);
+	lt::create_torrent t(fs, 0x4000);
 
-	char buf_[4] = {0, 0, 0, 0};
-	sha1_hash h = hasher(buf_).final();
+	sha1_hash h = hasher(std::vector<char>(0x4000, 0)).final();
 	for (piece_index_t i(0); i < piece_index_t(6); ++i) t.set_hash(i, h);
 
 	bencode(std::back_inserter(buf), t.generate());
@@ -163,6 +162,7 @@ std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
 	{
 		std::printf("torrent_info constructor failed: %s\n"
 			, ec.message().c_str());
+		throw system_error(ec);
 	}
 
 	return info;
@@ -221,6 +221,7 @@ std::shared_ptr<StorageType> setup_torrent(file_storage& fs
 		TEST_ERROR(se.ec.message().c_str());
 		std::printf("default_storage::initialize %s: %d\n"
 			, se.ec.message().c_str(), static_cast<int>(se.file()));
+		throw system_error(se.ec);
 	}
 
 	return s;
@@ -421,7 +422,8 @@ void test_remove(std::string const& test_path)
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("folder1", "test2.tmp")))));
 
-	iovec_t b = {&buf[0], 4};
+	buf.resize(0x4000);
+	iovec_t b = {&buf[0], 0x4000};
 	storage_error se;
 	writev(s, set, b, piece_index_t(2), 0, aux::open_mode::write, se);
 
@@ -436,9 +438,9 @@ void test_remove(std::string const& test_path)
 
 	// if the storage truncates the file to the full size, it's 8, otherwise it's
 	// 4
-	TEST_CHECK(st.file_size == 8 || st.file_size == 4);
+	TEST_CHECK(st.file_size == 0x8000 || st.file_size == 0x4000);
 
-	writev(s, set, b, piece_index_t(4), 0, aux::open_mode::write, se);
+	writev(s, set, b, piece_index_t(0), 0, aux::open_mode::write, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));
@@ -447,7 +449,7 @@ void test_remove(std::string const& test_path)
 
 	// if the storage truncates the file to the full size, it's 8, otherwise it's
 	// 4
-	TEST_CHECK(st.file_size == 8 || st.file_size == 4);
+	TEST_CHECK(st.file_size == 0x8000 || st.file_size == 0x4000);
 
 	s->delete_files(session::delete_files, se);
 	if (se) print_error("delete_files", 0, se);
@@ -513,7 +515,7 @@ void test_check_files(std::string const& test_path
 	std::vector<char> piece0 = new_piece(piece_size_check);
 	std::vector<char> piece2 = new_piece(piece_size_check);
 
-	lt::create_torrent t(fs, piece_size_check, -1, {});
+	lt::create_torrent t(fs, piece_size_check);
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
 	t.set_hash(piece_index_t(1), {});
 	t.set_hash(piece_index_t(2), {});
@@ -615,7 +617,7 @@ void run_test()
 	// |                           |                           |                           |                           |
 	// | piece 0                   | piece 1                   | piece 2                   | piece 3                   |
 
-	lt::create_torrent t(fs, piece_size, -1, {});
+	lt::create_torrent t(fs, piece_size, create_torrent::v1_only);
 	TEST_CHECK(t.num_pieces() == 4);
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
 	t.set_hash(piece_index_t(1), hasher(piece1).final());

@@ -50,6 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -82,7 +84,7 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
 	fs.add_file("test_resume/tmp2", 128 * 1024);
 	fs.add_file("test_resume/tmp3", 128 * 1024);
-	lt::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024);
 
 	t.add_tracker("http://torrent_file_tracker.com/announce");
 	t.add_url_seed("http://torrent_file_url_seed.com/");
@@ -93,6 +95,14 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 		sha1_hash ph;
 		aux::random_bytes(ph);
 		t.set_hash(i, ph);
+	}
+
+	for (piece_index_t i : fs.piece_range())
+	{
+		sha256_hash ph;
+		aux::random_bytes(ph);
+		file_index_t const f(fs.file_index_at_piece(i));
+		t.set_hash2(f, i - fs.piece_index_at_file(f), ph);
 	}
 
 	std::vector<char> buf;
@@ -652,8 +662,7 @@ std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
 	using namespace lt;
 	file_storage fs = make_file_storage(file_sizes, piece_size);
 
-	lt::create_torrent ct(fs, piece_size, 0x4000
-		, lt::create_torrent::optimize_alignment);
+	lt::create_torrent ct(fs, piece_size);
 
 	for (auto const i : fs.piece_range())
 	{
@@ -708,7 +717,8 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 
 std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	, char const* name, int piece_size
-	, int num_pieces, bool add_tracker, std::string ssl_certificate)
+	, int num_pieces, bool add_tracker, lt::create_flags_t const flags
+	, std::string ssl_certificate)
 {
 	// exercise the path when encountering invalid urls
 	char const* invalid_tracker_url = "http:";
@@ -717,7 +727,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	file_storage fs;
 	int total_size = piece_size * num_pieces;
 	fs.add_file(name, total_size);
-	lt::create_torrent t(fs, piece_size);
+	lt::create_torrent t(fs, piece_size, flags);
 	if (add_tracker)
 	{
 		t.add_tracker(invalid_tracker_url);
@@ -745,10 +755,28 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	for (int i = 0; i < int(piece.size()); ++i)
 		piece[i] = (i % 26) + 'A';
 
-	// calculate the hash for all pieces
-	sha1_hash ph = hasher(piece).final();
-	for (auto const i : fs.piece_range())
-		t.set_hash(i, ph);
+	if (!(flags & create_torrent::v2_only))
+	{
+		// calculate the hash for all pieces
+		sha1_hash ph = hasher(piece).final();
+		for (auto const i : fs.piece_range())
+			t.set_hash(i, ph);
+	}
+
+	if (!(flags & create_torrent::v1_only))
+	{
+		int const blocks_in_piece = piece_size / default_block_size;
+		aux::vector<sha256_hash> v2tree(merkle_num_nodes(merkle_num_leafs(blocks_in_piece)));
+		for (int i = 0; i < blocks_in_piece; ++i)
+		{
+			sha256_hash const block_hash = hasher256(span<char>(piece).subspan(i * default_block_size, default_block_size)).final();
+			v2tree[v2tree.end_index() - merkle_num_leafs(blocks_in_piece) + i] = block_hash;
+		}
+		merkle_fill_tree(v2tree, merkle_num_leafs(blocks_in_piece));
+
+		for (piece_index_t i(0); i < t.files().end_piece(); ++i)
+			t.set_hash2(file_index_t{ 0 }, i - piece_index_t(0), v2tree[0]);
+	}
 
 	if (file)
 	{
@@ -775,7 +803,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, std::string suffix, int piece_size
 	, std::shared_ptr<torrent_info>* torrent, bool super_seeding
 	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports
-	, std::shared_ptr<torrent_info>* torrent2)
+	, std::shared_ptr<torrent_info>* torrent2, create_flags_t const flags)
 {
 	TORRENT_ASSERT(ses1);
 	TORRENT_ASSERT(ses2);
@@ -817,7 +845,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		create_directory("tmp1" + suffix, ec);
 		std::string const file_path = combine_path("tmp1" + suffix, "temporary");
 		std::ofstream file(file_path.c_str());
-		t = ::create_torrent(&file, "temporary", piece_size, 9, false);
+		t = ::create_torrent(&file, "temporary", piece_size, 9, false, flags);
 		file.close();
 		if (clear_files)
 		{
