@@ -608,21 +608,22 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ret.push_back(wan);
 		}
 #elif TORRENT_USE_NETLINK
-		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
-		if (sock < 0)
-		{
-			ec = error_code(errno, system_category());
-			return ret;
-		}
 
 		std::uint32_t seq = 0;
 		std::map<int, ip_interface> link_info;
 
 		{
+			int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+			if (sock < 0)
+			{
+				ec = error_code(errno, system_category());
+				return ret;
+			}
+
 			char msg[NL_BUFSIZE] = {};
 			nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
 			int len = nl_dump_request(sock, RTM_GETLINK, seq++, AF_UNSPEC, msg, sizeof(ifinfomsg));
-			if (len < 0)
+			if (errno)
 			{
 				ec = error_code(errno, system_category());
 				close(sock);
@@ -635,7 +636,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			// NLMSG_OK uses signed/unsigned compare in the same expression
 #pragma clang diagnostic ignored "-Wsign-compare"
 #endif
-			for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
+			for (; len > 0 && NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 			{
 				ip_interface iface;
 				int ifi_index = parse_nl_link(nl_msg, &iface);
@@ -644,13 +645,21 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+			close(sock);
 		}
 
 		{
+			int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+			if (sock < 0)
+			{
+				ec = error_code(errno, system_category());
+				return ret;
+			}
+
 			char msg[NL_BUFSIZE] = {};
 			nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
 			int len = nl_dump_request(sock, RTM_GETADDR, seq++, AF_PACKET, msg, sizeof(ifaddrmsg));
-			if (len < 0)
+			if (errno)
 			{
 				ec = error_code(errno, system_category());
 				close(sock);
@@ -663,7 +672,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			// NLMSG_OK uses signed/unsigned compare in the same expression
 #pragma clang diagnostic ignored "-Wsign-compare"
 #endif
-			for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
+			for (; len > 0 && NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 			{
 				ip_interface iface;
 				if (parse_nl_address(link_info, nl_msg, &iface)) ret.push_back(iface);
@@ -671,9 +680,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+			close(sock);
 		}
-
-		close(sock);
 #elif TORRENT_USE_IFADDRS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
