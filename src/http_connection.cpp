@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <string>
 #include <algorithm>
+#include <sstream>
 
 using namespace std::placeholders;
 
