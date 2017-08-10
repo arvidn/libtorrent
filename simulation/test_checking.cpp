@@ -113,7 +113,9 @@ std::shared_ptr<lt::torrent_info> create_multifile_torrent()
 
 	lt::file_storage fs;
 	create_random_files("test_torrent_dir", file_sizes, &fs);
-	lt::create_torrent t(fs, 0x40000, -1, {});
+	// the torrent needs to be v1 only because the zero_priority_missing_partfile
+	// test relies on non-aligned files
+	lt::create_torrent t(fs, 0x40000, lt::create_torrent::v1_only);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, ".");

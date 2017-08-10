@@ -119,3 +119,31 @@ TORRENT_TEST(create_torrent_round_trip)
 	TEST_CHECK(info1.info_hash() == info2.info_hash());
 }
 
+// check that attempting to create a torrent containing both
+// a file and directory with the same name is not allowed
+TORRENT_TEST(path_conflict)
+{
+	lt::file_storage fs;
+
+	for (int i = 0; i < 2; ++i)
+	{
+		switch (i)
+		{
+		case 0:
+			fs.add_file("test/A/tmp", 0x4000);
+			fs.add_file("test/a", 0x4000);
+			fs.add_file("test/A", 0x4000);
+			fs.add_file("test/filler", 0x4000);
+			break;
+		case 1:
+			fs.add_file("test/long/path/name/that/collides", 0x4000);
+			fs.add_file("test/long/path", 0x4000);
+			fs.add_file("test/filler-1", 0x4000);
+			fs.add_file("test/filler-2", 0x4000);
+			break;
+		}
+
+		lt::create_torrent t(fs, 0x4000);
+		TEST_EQUAL(t.generate(), lt::entry());
+	}
+}

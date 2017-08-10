@@ -978,7 +978,9 @@ void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 	file_storage fs;
 	for (auto const& f : test) fs.add_file(f.filename, f.size, f.flags);
 
-	lt::create_torrent t(fs, 0x4000);
+	// This test creates torrents with duplicate (identical) filenames, which
+	// isn't supported by v2 torrents, so we can only test this with v1 torrents
+	lt::create_torrent t(fs, 0x4000, create_torrent::v1_only);
 
 	// calculate the hash for all pieces
 	sha1_hash ph;

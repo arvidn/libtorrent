@@ -119,9 +119,11 @@ void test_swarm(test_flags_t const flags)
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
 	if (flags & test_flags::seed_mode) p.flags |= torrent_flags::seed_mode;
-	// test using piece sizes smaller than 16kB
+	// test v1 metadata using piece sizes smaller than 16kB
+	int const piece_size = (flags & test_flags::v1_meta) ? 8 * 1024 : 16 * 1024;
 	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 8 * 1024, nullptr, bool(flags & test_flags::super_seeding), &p);
+		, false, true, "_swarm", piece_size, nullptr, bool(flags & test_flags::super_seeding), &p
+		, true, false, nullptr, bool(flags & test_flags::v1_meta));
 
 	if (flags & test_flags::time_critical)
 	{

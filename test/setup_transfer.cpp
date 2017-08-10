@@ -82,7 +82,7 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
 	fs.add_file("test_resume/tmp2", 128 * 1024);
 	fs.add_file("test_resume/tmp3", 128 * 1024);
-	lt::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024);
 
 	t.add_tracker("http://torrent_file_tracker.com/announce");
 	t.add_url_seed("http://torrent_file_url_seed.com/");
@@ -93,6 +93,14 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 		sha1_hash ph;
 		aux::random_bytes(ph);
 		t.set_hash(i, ph);
+	}
+
+	for (piece_index_t i : fs.piece_range())
+	{
+		sha256_hash ph;
+		aux::random_bytes(ph);
+		file_index_t const f(fs.file_index_at_piece(i));
+		t.set_hash2(f, i - piece_index_t(fs.file_offset(f) / fs.piece_length()), ph);
 	}
 
 	std::vector<char> buf;
@@ -652,8 +660,7 @@ std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
 	using namespace lt;
 	file_storage fs = make_file_storage(file_sizes, piece_size);
 
-	lt::create_torrent ct(fs, piece_size, 0x4000
-		, lt::create_torrent::optimize_alignment);
+	lt::create_torrent ct(fs, piece_size);
 
 	for (auto const i : fs.piece_range())
 	{
@@ -708,7 +715,7 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 
 std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	, char const* name, int piece_size
-	, int num_pieces, bool add_tracker, std::string ssl_certificate)
+	, int num_pieces, bool add_tracker, bool v1, std::string ssl_certificate)
 {
 	// exercise the path when encountering invalid urls
 	char const* invalid_tracker_url = "http:";
@@ -717,7 +724,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	file_storage fs;
 	int total_size = piece_size * num_pieces;
 	fs.add_file(name, total_size);
-	lt::create_torrent t(fs, piece_size);
+	lt::create_torrent t(fs, piece_size, v1 ? lt::create_torrent::v1_only : create_flags_t{ 0 });
 	if (add_tracker)
 	{
 		t.add_tracker(invalid_tracker_url);
@@ -775,7 +782,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, std::string suffix, int piece_size
 	, std::shared_ptr<torrent_info>* torrent, bool super_seeding
 	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports
-	, std::shared_ptr<torrent_info>* torrent2)
+	, std::shared_ptr<torrent_info>* torrent2, bool v1)
 {
 	TORRENT_ASSERT(ses1);
 	TORRENT_ASSERT(ses2);
@@ -817,7 +824,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		create_directory("tmp1" + suffix, ec);
 		std::string const file_path = combine_path("tmp1" + suffix, "temporary");
 		std::ofstream file(file_path.c_str());
-		t = ::create_torrent(&file, "temporary", piece_size, 9, false);
+		t = ::create_torrent(&file, "temporary", piece_size, 9, false, v1);
 		file.close();
 		if (clear_files)
 		{

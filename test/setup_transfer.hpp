@@ -92,7 +92,7 @@ EXPORT void create_random_files(std::string const& path, lt::span<const int> fil
 
 EXPORT std::shared_ptr<lt::torrent_info> create_torrent(std::ostream* file = nullptr
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13
-	, bool add_tracker = true, std::string ssl_certificate = "");
+	, bool add_tracker = true, bool v1 = false, std::string ssl_certificate = "");
 
 EXPORT std::tuple<lt::torrent_handle
 	, lt::torrent_handle
@@ -104,7 +104,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2
 	, bool super_seeding = false
 	, lt::add_torrent_params const* p = nullptr
 	, bool stop_lsd = true, bool use_ssl_ports = false
-	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr);
+	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr
+	, bool v1 = false);
 
 EXPORT int start_web_server(bool ssl = false, bool chunked = false
 	, bool keepalive = true, int min_interval = 30);
