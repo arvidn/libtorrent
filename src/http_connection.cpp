@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <string>
 #include <algorithm>
+#include <sstream>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
