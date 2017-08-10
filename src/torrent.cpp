@@ -6605,6 +6605,7 @@ namespace {
 
 		if (is_paused()) return;
 		if (m_ses.is_aborted()) return;
+		if (is_upload_only()) return;
 
 		boost::shared_ptr<socket_type> s
 			= boost::make_shared<socket_type>(boost::ref(m_ses.get_io_service()));
