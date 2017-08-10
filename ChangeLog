@@ -1,3 +1,4 @@
+	* fix issue with very long tracker- and web seed URLs
 	* add_torrent_params file_priorities is not affected by flag_override_resume_data
 	* fix ABI compatibility issue introduced with preformatted entry type
 
