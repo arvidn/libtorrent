@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
 
@@ -129,7 +130,9 @@ namespace libtorrent {
 
 		enum {
 			name_is_owned = (1 << 12) - 1,
-			not_a_symlink = (1 << 15) - 1
+			not_a_symlink = (1 << 15) - 1,
+			no_path = (1 << 30) - 1,
+			path_is_absolute = (1 << 30) - 2,
 		};
 
 		// the offset of this file inside the torrent
@@ -161,19 +164,22 @@ namespace libtorrent {
 	private:
 		// This string is not necessarily 0-terminated!
 		// that's why it's private, to keep people away from it
-		char const* name;
+		char const* name = nullptr;
 	public:
+		// the sha256 root of the merkle tree for this file
+		// this is a pointer into the .torrent file
+		char const* root = nullptr;
 
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
 		// from that array with the 'name' field in
 		// this struct
 		// values for path_index include:
-		// -1 means no path (i.e. single file torrent)
-		// -2, it means the filename
+		// no_path means no path (i.e. single file torrent)
+		// path_is_absolute means the filename
 		// in this field contains the full, absolute path
 		// to the file
-		int path_index;
+		std::uint32_t path_index = internal_file_entry::no_path;
 	};
 
 
@@ -214,6 +220,9 @@ namespace libtorrent {
 		file_storage& operator=(file_storage const&);
 		file_storage(file_storage&&) noexcept;
 		file_storage& operator=(file_storage&&) = default;
+
+		// internal limitations restrict file sizes to not be larger than this
+		static constexpr std::int64_t max_file_size = (std::int64_t(1) << 48) - 1;
 
 		// returns true if the piece length has been initialized
 		// on the file_storage. This is typically taken as a proxy
@@ -273,10 +282,21 @@ namespace libtorrent {
 		void add_file_borrow(string_view filename
 			, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}, char const* filehash = nullptr
-			, std::int64_t mtime = 0, string_view symlink_path = string_view());
+			, std::int64_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
 		void add_file(std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
-			, std::time_t mtime = 0, string_view symlink_path = string_view());
+			, std::time_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
+		void add_file_borrow(error_code& ec, string_view filename
+			, std::string const& path, std::int64_t file_size
+			, file_flags_t file_flags = {}, char const* filehash = nullptr
+			, std::int64_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
+		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
+			, file_flags_t file_flags = {}
+			, std::time_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
 
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
 		// that filenames are expected to be UTF-8 encoded.
@@ -392,8 +412,8 @@ namespace libtorrent {
 		// pieces in the file_storage.
 		index_range<piece_index_t> piece_range() const noexcept;
 
-		// set and get the size of each piece in this torrent. This size is typically an even power
-		// of 2. It doesn't have to be though. It should be divisible by 16 kiB however.
+		// set and get the size of each piece in this torrent. It must be a power of two
+		// and at least 16KB.
 		void set_piece_length(int l)  { m_piece_length = l; }
 		int piece_length() const { TORRENT_ASSERT(m_piece_length > 0); return m_piece_length; }
 
@@ -415,17 +435,9 @@ namespace libtorrent {
 		// swap all content of *this* with *ti*.
 		void swap(file_storage& ti) noexcept;
 
-		// if pad_file_limit >= 0, files larger than that limit will be padded,
-		// default is to not add any padding (-1). The alignment specifies the
-		// alignment files should be padded to. This defaults to the piece size
-		// (-1) but it may also make sense to set it to 16 kiB, or something
-		// divisible by 16 kiB.
-		// If pad_file_limit is 0, every file will be padded (except empty ones).
-		// ``tail_padding`` indicates whether aligned files also are padded at
-		// the end to make them end aligned. This is required for mutable
-		// torrents, since piece hashes are compared
-		void optimize(int pad_file_limit = -1, int alignment = -1
-			, bool tail_padding = false);
+		// arrange files and padding to match the cannonical form required
+		// by BEP 52
+		void canonicalize();
 
 		// These functions are used to query attributes of files at
 		// a given index.
@@ -453,6 +465,7 @@ namespace libtorrent {
 		// where this file starts. It can be used to map the file to a piece
 		// index (given the piece size).
 		sha1_hash hash(file_index_t index) const;
+		sha256_hash root(file_index_t index) const;
 		std::string const& symlink(file_index_t index) const;
 		std::time_t mtime(file_index_t index) const;
 		std::string file_path(file_index_t index, std::string const& save_path = "") const;
@@ -460,6 +473,19 @@ namespace libtorrent {
 		std::int64_t file_size(file_index_t index) const;
 		bool pad_file_at(file_index_t index) const;
 		std::int64_t file_offset(file_index_t index) const;
+
+		// Returns the number of pieces or blocks the file at `index` spans,
+		// under the assumption that the file is aligned to the start of a piece.
+		// This is only meaningful for v2 torrents, where files are guaranteed
+		// such alignment.
+		// These numbers are used to size and navigate the merkle hash tree for
+		// each file.
+		int file_num_pieces(file_index_t index) const;
+		int file_num_blocks(file_index_t index) const;
+
+		// index of first piece node in the merkle tree
+		int file_first_piece_node(file_index_t index) const;
+		int file_first_block_node(file_index_t index) const;
 
 		// returns the crc32 hash of file_path(index)
 		std::uint32_t file_path_hash(file_index_t index, std::string const& save_path) const;
@@ -501,6 +527,7 @@ namespace libtorrent {
 
 		// returns the index of the file at the given offset in the torrent
 		file_index_t file_index_at_offset(std::int64_t offset) const;
+		file_index_t file_index_at_piece(piece_index_t piece) const;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		// internal
@@ -553,11 +580,6 @@ namespace libtorrent {
 
 		int get_or_add_path(string_view path);
 
-		void add_pad_file(int size
-			, std::vector<internal_file_entry>::iterator& i
-			, std::int64_t& offset
-			, int& pad_file_counter);
-
 		// the number of bytes in a regular piece
 		// (i.e. not the potentially truncated last piece)
 		int m_piece_length;
@@ -567,7 +589,6 @@ namespace libtorrent {
 
 		void update_path_index(internal_file_entry& e, std::string const& path
 			, bool set_name = true);
-		void reorder_file(int index, int dst);
 
 		// the list of files that this torrent consists of
 		aux::vector<internal_file_entry, file_index_t> m_files;
@@ -610,6 +631,12 @@ namespace libtorrent {
 	};
 
 namespace aux {
+
+	// this is used when loading v2 torrents that are backwards compatible with
+	// v1 torrents. Both v1 and v2 structures must describe the same file layout,
+	// this compares the two.
+	TORRENT_EXTRA_EXPORT
+	bool files_equal(file_storage const& lhs, file_storage const& rhs);
 
 	// returns the piece range that entirely falls within the specified file. the
 	// end piece is one-past the last piece that entirely falls within the file.

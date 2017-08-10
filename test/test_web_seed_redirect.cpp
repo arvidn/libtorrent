@@ -67,7 +67,7 @@ TORRENT_TEST(web_seed_redirect)
 
 	// generate a torrent with pad files to make sure they
 	// are not requested web seeds
-	lt::create_torrent t(fs, piece_size, 0x4000);
+	lt::create_torrent t(fs, piece_size);
 
 	char tmp[512];
 	std::snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/redirect", port);
