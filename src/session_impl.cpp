@@ -55,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/session.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -66,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/dht_tracker.hpp"
-#include "libtorrent/kademlia/types.hpp"
 #include "libtorrent/kademlia/node_entry.hpp"
 #endif
 #include "libtorrent/enum_net.hpp"
