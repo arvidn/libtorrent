@@ -83,7 +83,7 @@ namespace libtorrent {
 
 		// when the upper layer has drained the underlying UDP socket, this is
 		// called, and uTP sockets will send their ACKs. This ensures ACKs at
-		// least coalese packets returned during the same wakeup
+		// least coalesce packets returned during the same wakeup
 		void socket_drained();
 
 		void tick(time_point now);
