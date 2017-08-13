@@ -282,7 +282,7 @@ struct utp_socket_impl
 	bool resend_packet(packet* p, bool fast_resend = false);
 	void send_reset(utp_header const* ph);
 	std::pair<std::uint32_t, int> parse_sack(std::uint16_t packet_ack, std::uint8_t const* ptr
-		, int size, time_point const now);
+		, int size, time_point now);
 	void parse_close_reason(std::uint8_t const* ptr, int size);
 	void write_payload(std::uint8_t* ptr, int size);
 	void maybe_inc_acked_seq_nr();
@@ -309,8 +309,8 @@ struct utp_socket_impl
 private:
 
 	// non-copyable
-	utp_socket_impl(utp_socket_impl const&);
-	utp_socket_impl const& operator=(utp_socket_impl const&);
+	utp_socket_impl(utp_socket_impl const&) = delete;
+	utp_socket_impl const& operator=(utp_socket_impl const&) = delete;
 
 	// TODO: 2 it would be nice if not everything would have to be public here
 public:
@@ -343,7 +343,7 @@ public:
 	// the system's type.
 	struct iovec_t
 	{
-		iovec_t(void* b, size_t l): buf(b), len(l) {}
+		iovec_t(void* b, std::size_t l): buf(b), len(l) {}
 		void* buf;
 		std::size_t len;
 	};
@@ -688,7 +688,7 @@ void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu)
 
 void utp_init_socket(utp_socket_impl* s, std::weak_ptr<utp_socket_interface> sock)
 {
-	s->m_sock = sock;
+	s->m_sock = std::move(sock);
 }
 
 bool utp_incoming_packet(utp_socket_impl* s
@@ -940,22 +940,22 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 	}
 }
 
-void utp_stream::add_read_buffer(void* buf, size_t len)
+void utp_stream::add_read_buffer(void* buf, std::size_t const len)
 {
 	TORRENT_ASSERT(m_impl);
 	TORRENT_ASSERT(len < INT_MAX);
 	TORRENT_ASSERT(len > 0);
 	TORRENT_ASSERT(buf);
-	m_impl->m_read_buffer.push_back(utp_socket_impl::iovec_t(buf, len));
+	m_impl->m_read_buffer.emplace_back(buf, len);
 	m_impl->m_read_buffer_size += int(len);
 
-		UTP_LOGV("%8p: add_read_buffer %d bytes\n", static_cast<void*>(m_impl), int(len));
+	UTP_LOGV("%8p: add_read_buffer %d bytes\n", static_cast<void*>(m_impl), int(len));
 }
 
 // this is the wrapper to add a user provided write buffer to the
 // utp_socket_impl. It makes sure the m_write_buffer_size is kept
 // up to date
-void utp_stream::add_write_buffer(void const* buf, size_t len)
+void utp_stream::add_write_buffer(void const* buf, std::size_t const len)
 {
 	TORRENT_ASSERT(m_impl);
 	TORRENT_ASSERT(len < INT_MAX);
@@ -972,7 +972,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
 #endif
 
-	m_impl->m_write_buffer.push_back(utp_socket_impl::iovec_t(const_cast<void*>(buf), len));
+	m_impl->m_write_buffer.emplace_back(const_cast<void*>(buf), len);
 	m_impl->m_write_buffer_size += int(len);
 
 #if TORRENT_USE_ASSERTS
@@ -1014,7 +1014,7 @@ void utp_stream::issue_read()
 	m_impl->maybe_trigger_receive_callback();
 }
 
-size_t utp_stream::read_some(bool clear_buffers)
+std::size_t utp_stream::read_some(bool const clear_buffers)
 {
 	if (m_impl->m_receive_buffer_size == 0)
 	{

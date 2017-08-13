@@ -151,7 +151,7 @@ namespace libtorrent {
 		if ((flags & dont_fragment) && len > TORRENT_DEBUG_MTU) return;
 #endif
 
-		m_send_fun(sock, ep, {p, std::size_t(len)}, ec
+		m_send_fun(std::move(sock), ep, {p, std::size_t(len)}, ec
 			, (flags & udp_socket::dont_fragment)
 				| udp_socket::peer_connection);
 	}
@@ -317,9 +317,9 @@ namespace libtorrent {
 		}
 	}
 
-	void utp_socket_manager::remove_socket(std::uint16_t id)
+	void utp_socket_manager::remove_socket(std::uint16_t const id)
 	{
-		socket_map_t::iterator i = m_utp_sockets.find(id);
+		auto const i = m_utp_sockets.find(id);
 		if (i == m_utp_sockets.end()) return;
 		delete_utp_impl(i->second);
 		if (m_last_socket == i->second) m_last_socket = nullptr;

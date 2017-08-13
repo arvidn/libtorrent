@@ -253,11 +253,11 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	static void on_connect(void* self, error_code const& ec, bool kill);
 	static void on_close_reason(void* self, close_reason_t reason);
 
-	void add_read_buffer(void* buf, size_t len);
+	void add_read_buffer(void* buf, std::size_t len);
 	void issue_read();
-	void add_write_buffer(void const* buf, size_t len);
+	void add_write_buffer(void const* buf, std::size_t len);
 	void issue_write();
-	size_t read_some(bool clear_buffers);
+	std::size_t read_some(bool clear_buffers);
 
 	int send_delay() const;
 	int recv_delay() const;
