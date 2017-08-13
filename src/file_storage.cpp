@@ -141,7 +141,7 @@ namespace {
 		{
 			TORRENT_ASSERT(set_name);
 			e.set_name(path.c_str());
-			e.path_index = -2;
+			e.path_index = internal_file_entry::path_is_absolute;
 			return;
 		}
 
@@ -168,7 +168,7 @@ namespace {
 		if (branch_path.empty())
 		{
 			if (set_name) e.set_name(leaf);
-			e.path_index = -1;
+			e.path_index = internal_file_entry::no_path;
 			return;
 		}
 
@@ -233,7 +233,12 @@ namespace {
 		, executable_attribute(false)
 		, symlink_attribute(false)
 		, name(nullptr)
-		, path_index(-1)
+		, hash(nullptr)
+		, root(nullptr)
+		, mtime(0)
+		, path_index(internal_file_entry::no_path)
+		, hash_is_owned(0)
+		, root_is_owned(0)
 	{}
 
 	internal_file_entry::~internal_file_entry()
@@ -252,12 +257,29 @@ namespace {
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
 		, name(nullptr)
+		, hash(fe.hash)
+		, root(fe.root)
+		, mtime(fe.mtime)
 		, path_index(fe.path_index)
+		, hash_is_owned(fe.hash_is_owned)
+		, root_is_owned(fe.root_is_owned)
 	{
 		if (fe.name_len == name_is_owned)
 			name = allocate_string_copy(fe.name);
 		else
 			name = fe.name;
+		if (fe.hash_is_owned)
+		{
+			char* new_hash = new char[20];
+			std::memcpy(new_hash, fe.hash, 20);
+			hash = new_hash;
+		}
+		if (fe.root_is_owned)
+		{
+			char* new_root = new char[32];
+			std::memcpy(new_root, fe.root, 32);
+			root = new_root;
+		}
 	}
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe) &
@@ -265,6 +287,7 @@ namespace {
 		if (&fe == this) return *this;
 		offset = fe.offset;
 		size = fe.size;
+		name_len = fe.name_len;
 		path_index = fe.path_index;
 		symlink_index = fe.symlink_index;
 		pad_file = fe.pad_file;
@@ -272,7 +295,33 @@ namespace {
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
 		no_root_dir = fe.no_root_dir;
-		set_name(fe.filename().to_string().c_str());
+		mtime = fe.mtime;
+
+		if (fe.name_len == name_is_owned)
+			name = allocate_string_copy(fe.name);
+		else
+			name = fe.name;
+		if (fe.hash_is_owned)
+		{
+			char* new_hash = new char[20];
+			std::memcpy(new_hash, fe.hash, 20);
+			hash = new_hash;
+		}
+		else
+		{
+			hash = fe.hash;
+		}
+		if (fe.root_is_owned)
+		{
+			char* new_root = new char[32];
+			std::memcpy(new_root, fe.root, 32);
+			root = new_root;
+		}
+		else
+		{
+			root = fe.root;
+		}
+
 		return *this;
 	}
 
@@ -287,10 +336,19 @@ namespace {
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
 		, name(fe.name)
+		, hash(fe.hash)
+		, root(fe.root)
+		, mtime(fe.mtime)
 		, path_index(fe.path_index)
+		, hash_is_owned(fe.hash_is_owned)
+		, root_is_owned(fe.root_is_owned)
 	{
 		fe.name_len = name_is_owned;
 		fe.name = nullptr;
+		fe.hash_is_owned = 1;
+		fe.root_is_owned = 1;
+		fe.hash = nullptr;
+		fe.root = nullptr;
 	}
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry&& fe) & noexcept
@@ -306,10 +364,19 @@ namespace {
 		symlink_attribute = fe.symlink_attribute;
 		no_root_dir = fe.no_root_dir;
 		name = fe.name;
+		hash = fe.hash;
+		root = fe.root;
+		mtime = fe.mtime;
 		name_len = fe.name_len;
+		hash_is_owned = fe.hash_is_owned;
+		root_is_owned = fe.root_is_owned;
 
 		fe.name_len = name_is_owned;
 		fe.name = nullptr;
+		fe.hash_is_owned = 1;
+		fe.root_is_owned = 1;
+		fe.hash = nullptr;
+		fe.root = nullptr;
 		return *this;
 	}
 
@@ -624,6 +691,29 @@ namespace {
 				m_name = split_path(path, true);
 		}
 
+		if (root_hash && m_files.size() == 1)
+		{
+			// a root hash implies a v2 file tree
+			// insert an implicit pad file if necessary
+			auto const pad_size = piece_length() - m_files[0].size % piece_length();
+			if (int(pad_size) != piece_length())
+			{
+				auto offset = m_files[0].offset + m_files[0].size;
+				m_files.emplace_back();
+				// e is invalid from here down!
+				auto& pad_file = m_files.back();
+				pad_file.size = pad_size;
+				pad_file.offset = offset;
+				pad_file.path_index = get_or_add_path(".pad");
+				char name[30];
+				std::snprintf(name, sizeof(name), "%" PRIu64
+					, pad_file.size);
+				pad_file.set_name(name);
+				pad_file.pad_file = true;
+				m_total_size += pad_size;
+			}
+		}
+
 		// this is poor-man's emplace_back()
 		m_files.resize(m_files.size() + 1);
 		internal_file_entry& e = m_files.back();
@@ -660,12 +750,41 @@ namespace {
 		}
 
 		m_total_size += e.size;
+
+		if (root_hash && m_files.size() > 1)
+		{
+			// a root hash implies a v2 file tree
+			// insert an implicit pad file if necessary
+			auto const pad_size = piece_length() - e.size % piece_length();
+			if (int(pad_size) != piece_length())
+			{
+				auto offset = e.offset + e.size;
+				m_files.emplace_back();
+				// e is invalid from here down!
+				auto& pad_file = m_files.back();
+				pad_file.size = pad_size;
+				pad_file.offset = offset;
+				pad_file.path_index = get_or_add_path(".pad");
+				char name[30];
+				std::snprintf(name, sizeof(name), "%" PRIu64
+					, pad_file.size);
+				pad_file.set_name(name);
+				pad_file.pad_file = true;
+				m_total_size += pad_size;
+			}
+		}
 	}
 
 	sha1_hash file_storage::hash(file_index_t const index) const
 	{
 		if (m_files[index].hash == nullptr) return sha1_hash();
 		return sha1_hash(m_files[index].hash);
+	}
+
+	sha256_hash file_storage::root(file_index_t index) const
+	{
+		if (m_files[index].root == nullptr) return sha256_hash();
+		return sha256_hash(m_files[index].root);
 	}
 
 	std::string const& file_storage::symlink(file_index_t const index) const
@@ -733,14 +852,12 @@ namespace {
 
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 
-		if (fe.path_index == -2)
+		if (fe.path_index == internal_file_entry::path_is_absolute)
 		{
-			// -2 means this is an absolute path filename
 			process_string_lowercase(crc, fe.filename());
 		}
-		else if (fe.path_index == -1)
+		else if (fe.path_index == internal_file_entry::no_path)
 		{
-			// -1 means no path
 			if (!save_path.empty())
 			{
 				process_string_lowercase(crc, save_path);
@@ -800,14 +917,12 @@ namespace {
 
 		std::string ret;
 
-		// -2 means this is an absolute path filename
-		if (fe.path_index == -2)
+		if (fe.path_index == internal_file_entry::path_is_absolute)
 		{
 			ret = fe.filename().to_string();
 		}
-		else if (fe.path_index == -1)
+		else if (fe.path_index == internal_file_entry::no_path)
 		{
-			// -1 means no path
 			ret.reserve(save_path.size() + fe.filename().size() + 1);
 			ret.assign(save_path);
 			append_path(ret, fe.filename());
@@ -905,7 +1020,7 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
-		return fe.path_index == -2;
+		return fe.path_index == internal_file_entry::path_is_absolute;
 	}
 
 #if TORRENT_ABI_VERSION == 1
