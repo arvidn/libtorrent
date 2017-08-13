@@ -129,7 +129,9 @@ namespace libtorrent {
 
 		enum {
 			name_is_owned = (1 << 12) - 1,
-			not_a_symlink = (1 << 15) - 1
+			not_a_symlink = (1 << 15) - 1,
+			no_path = (1 << 30) - 1,
+			path_is_absolute = (1 << 30) - 2,
 		};
 
 		// the offset of this file inside the torrent
@@ -165,11 +167,17 @@ namespace libtorrent {
 	public:
 
 		// the sha1 hash of the file, nullptr if unknown
-		// this points into the .torrent file in memory which is _not_ owned
-		// by this file_storage object. It's simply a non-owning pointer.
+		// if hash_is_owned is false, this points into the .torrent file
+		// in memory which is _not_ owned by this file_storage object.
+		// It's simply a non-owning pointer.
 		// It is the user's responsibility that the hash stays valid
 		// throughout the lifetime of this file_storage object.
 		char const* hash;
+
+		// the sha256 root of the merkle tree for this file
+		// like hash, this may be a pointer into the .torrent file or
+		// an owned pointer depending on the value of root_is_owned
+		char const* root;
 
 		// the modification time of the file, zero if unknown
 		std::time_t mtime;
@@ -179,11 +187,13 @@ namespace libtorrent {
 		// from that array with the 'name' field in
 		// this struct
 		// values for path_index include:
-		// -1 means no path (i.e. single file torrent)
-		// -2, it means the filename
+		// no_path means no path (i.e. single file torrent)
+		// path_is_absolute means the filename
 		// in this field contains the full, absolute path
 		// to the file
-		int path_index;
+		std::uint32_t path_index:30;
+		std::uint32_t hash_is_owned:1;
+		std::uint32_t root_is_owned:1;
 	};
 
 
@@ -453,6 +463,7 @@ namespace libtorrent {
 		// where this file starts. It can be used to map the file to a piece
 		// index (given the piece size).
 		sha1_hash hash(file_index_t index) const;
+		sha256_hash root(file_index_t index) const;
 		std::string const& symlink(file_index_t index) const;
 		std::time_t mtime(file_index_t index) const;
 		std::string file_path(file_index_t index, std::string const& save_path = "") const;
