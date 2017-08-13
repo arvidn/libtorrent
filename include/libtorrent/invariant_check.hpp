@@ -7,7 +7,7 @@
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/config.hpp"
+#include <cstdio>
 
 #if TORRENT_USE_INVARIANT_CHECKS
 

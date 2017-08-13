@@ -2,6 +2,7 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "boost_python.hpp"
 #include <list>
 #include <string>
 #include <libtorrent/session.hpp>
@@ -27,8 +28,9 @@
 namespace boost
 {
 	// this fixes mysterious link error on msvc
-	lt::alert const volatile*
-	get_pointer(lt::alert const volatile* p)
+	template <>
+	inline lt::alert const volatile*
+	get_pointer(class lt::alert const volatile* p)
 	{
 		return p;
 	}
@@ -36,7 +38,6 @@ namespace boost
 
 #include "gil.hpp"
 #include "bytes.hpp"
-#include "boost_python.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push)
