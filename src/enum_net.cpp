@@ -206,6 +206,7 @@ namespace {
 			if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
 			{
 				LOGV("read_nl_sock, returning -1\n");
+				LOGV("read_nl_sock, read_len=%d, nl_hdr->nlmsg_len=%d\n", read_len, nl_hdr->nlmsg_len);
 				LOGV("read_nl_sock, NLMSG_OK(nl_hdr, read_len)=%d\n", NLMSG_OK(nl_hdr, read_len));
 				LOGV("read_nl_sock, nl_hdr->nlmsg_type == NLMSG_ERROR is %d\n", nl_hdr->nlmsg_type == NLMSG_ERROR);
 				return -1;
