@@ -161,8 +161,17 @@ my-python-extension libtorrent
 install stage_module
   : libtorrent
   : <location>.
-    <install-type>LIB
+    <install-type>PYTHON_EXTENSION
+  ;
+
+install stage_dependencies
+  : /torrent//torrent
+    boost_python
+  : <location>dependencies
+    <install-dependencies>on
+    <install-type>SHARED_LIB
   ;
 
 explicit stage_module ;
+explicit stage_dependencies ;
 

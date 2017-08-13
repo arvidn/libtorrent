@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "boost_python.hpp"
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/upnp.hpp>
@@ -38,8 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace boost
 {
 	// this fixe mysterious link error on msvc
-	boost::system::error_category const volatile*
-	get_pointer(boost::system::error_category const volatile* p)
+	template <>
+	inline boost::system::error_category const volatile*
+	get_pointer(class boost::system::error_category const volatile* p)
 	{
 		return p;
 	}
@@ -49,7 +51,6 @@ namespace boost
 #if defined TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/error.hpp>
 #endif
-#include "boost_python.hpp"
 
 using namespace boost::python;
 using namespace lt;

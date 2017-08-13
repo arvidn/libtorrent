@@ -28,7 +28,7 @@ environment:
     crypto: openssl
 
 install:
-- if defined sim ( git submodule update --init --recursive )
+- git submodule update --init --recursive
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
 - if %compiler% == msvc-14.0 if defined crypto if not exist openssl-1.0.1p-vs2015.7z (
@@ -83,7 +83,7 @@ build_script:
 - cd %ROOT_DIRECTORY%\bindings\python
 # we use 64 bit python builds
 - if defined python (
-  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% crypto=%crypto% libtorrent-link=shared stage_module install-dependencies=on
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% crypto=%crypto% libtorrent-link=shared stage_module stage_dependencies
   )
 
 # simulations
@@ -98,7 +98,10 @@ test_script:
 
 - cd %ROOT_DIRECTORY%\bindings\python
 # we use 64 bit python build
-- if defined python ( c:\Python35-x64\python.exe test.py )
+- if defined python (
+  copy dependencies\*.* .
+  & c:\Python35-x64\python.exe test.py
+  )
 
 # simulation tests
 - cd %ROOT_DIRECTORY%\simulation

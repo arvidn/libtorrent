@@ -1,4 +1,5 @@
 language: cpp
+dist: trusty
 
 matrix:
   fast_finish: true
@@ -16,8 +17,7 @@ matrix:
     - os: osx
       osx_image: xcode7.3
       env: variant=test_barebones tools=1 examples=1 toolset=darwin python=1
-    - dist: trusty
-      env: arch=arm toolset=gcc-arm
+    - env: arch=arm toolset=gcc-arm
 
 notifications:
   email: false
@@ -145,7 +145,7 @@ script:
 # libtorrent is the name of the test suite target
   - cd test
   - 'if [ "$tests" == "1" ]; then
-      travis_retry bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant libtorrent test_natpmp enum_if -l300 &&
+      travis_retry bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant libtorrent test_natpmp enum_if -l300 &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
@@ -153,36 +153,28 @@ script:
 
   - cd ../examples
   - 'if [ "$examples" == "1" ]; then
-      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared;
+      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
   - cd ..
 
   - cd tools
   - 'if [ "$tools" == "1" ]; then
-      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared;
+      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
   - cd ..
-
-# build libtorrent separately and install it in a temporary (well known) dir
-# we have to do this because on linux the name of the python module is the same
-# as the main library, so we cannot stage them to the same directory
-# here we specify the temporary lib dir as a path to look for the main library
-  - 'if [ "$python" == "1" ]; then
-      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared install location=./lib;
-    fi'
 
 # a binary built with sanitizer does not interact well with python
   - cd bindings/python
   - 'if [[ "$python" == "1" ]]; then
-      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
-      LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
+      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
+      LD_LIBRARY_PATH=./dependencies DYLD_LIBRARY_PATH=./dependencies python test.py;
     fi'
   - cd ../..;
 
 # simulation
   - cd simulation
   - 'if [[ "$sim" == "1" ]]; then
-      bjam -j2 crypto=built-in warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full $toolset deprecated-functions=off;
+      bjam -j2 crypto=built-in warnings-as-errors=on debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset deprecated-functions=off;
     fi'
   - cd ..
 

@@ -59,12 +59,13 @@ namespace libtorrent {
 	struct counters;
 	struct settings_pack;
 	struct storage_params;
+	struct storage_error;
 	class file_storage;
 
 	struct storage_holder;
 
 	struct file_open_mode_tag;
-	using file_open_mode_t = flags::bitfield_flag<std::uint32_t, file_open_mode_tag>;
+	using file_open_mode_t = flags::bitfield_flag<std::uint8_t, file_open_mode_tag>;
 
 	namespace file_open_mode
 	{
