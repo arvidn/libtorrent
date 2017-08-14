@@ -172,7 +172,7 @@ namespace libtorrent {
 #endif
 			if (!settings.get_bool(settings_pack::anonymous_mode))
 			{
-				std::string announce_ip = settings.get_str(settings_pack::announce_ip);
+				std::string const& announce_ip = settings.get_str(settings_pack::announce_ip);
 				if (!announce_ip.empty())
 				{
 					url += "&ip=" + escape_string(announce_ip);
@@ -586,10 +586,10 @@ namespace libtorrent {
 		if (ip_ent)
 		{
 			char const* p = ip_ent.string_ptr();
-			if (ip_ent.string_length() == int(address_v4::bytes_type().size()))
+			if (ip_ent.string_length() == std::tuple_size<address_v4::bytes_type>::value)
 				resp.external_ip = detail::read_v4_address(p);
 #if TORRENT_USE_IPV6
-			else if (ip_ent.string_length() == int(address_v6::bytes_type().size()))
+			else if (ip_ent.string_length() == std::tuple_size<address_v6::bytes_type>::value)
 				resp.external_ip = detail::read_v6_address(p);
 #endif
 		}

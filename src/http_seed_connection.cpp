@@ -170,7 +170,7 @@ namespace libtorrent {
 		request += "?info_hash=";
 		request += escape_string({t->torrent_file().info_hash().data(), 20});
 		request += "&piece=";
-		request += to_string(r.piece).data();
+		request += to_string(r.piece);
 
 		// if we're requesting less than an entire piece we need to
 		// add ranges
