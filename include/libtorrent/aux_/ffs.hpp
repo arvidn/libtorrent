@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FFS_HPP_INCLUDE
 
 #include <cstdint>
-#include "libtorrent/export.hpp"
 #include "libtorrent/span.hpp"
 
 namespace libtorrent { namespace aux {

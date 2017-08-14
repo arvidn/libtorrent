@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/units.hpp"
 #include "libtorrent/flags.hpp"
 
 namespace libtorrent {

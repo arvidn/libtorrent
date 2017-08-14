@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UNIQUE_PTR_HPP
 
 #include <memory>
-#include <type_traits>
 
 #include "libtorrent/units.hpp"
 #include "libtorrent/assert.hpp"
