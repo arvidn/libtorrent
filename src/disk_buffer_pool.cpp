@@ -95,7 +95,6 @@ namespace libtorrent {
 #if TORRENT_USE_ASSERTS
 		m_magic = 0;
 #endif
-
 	}
 
 	int disk_buffer_pool::num_to_evict(int const num_needed)
