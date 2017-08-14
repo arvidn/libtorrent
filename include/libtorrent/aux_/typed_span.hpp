@@ -33,11 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TYPED_SPAN_HPP
 #define TORRENT_TYPED_SPAN_HPP
 
-#include <type_traits>
-
 #include "libtorrent/units.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/assert.hpp"
 
 namespace libtorrent { namespace aux {
 

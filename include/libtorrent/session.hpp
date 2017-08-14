@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_handle.hpp"
 #include "libtorrent/session_settings.hpp" // for dht_settings
 #include "libtorrent/kademlia/dht_state.hpp"
-#include "libtorrent/kademlia/dht_storage.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/fingerprint.hpp"

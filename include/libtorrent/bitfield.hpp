@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/ffs.hpp"
 
 #include <cstring> // for memset and memcpy
-#include <cstdint> // uint32_t
 
 namespace libtorrent {
 
