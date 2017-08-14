@@ -126,10 +126,12 @@ namespace libtorrent
 	} // anonymous namespace
 
 
-	// fills in 'val' with what the string between start and the
-	// first occurance of the delimiter is interpreted as an int.
-	// return the pointer to the delimiter, or 0 if there is a
-	// parse error. val should be initialized to zero
+	// reads the string between start and end, or up to the first occurrance of
+	// 'delimiter', whichever comes first. This string is interpreted as an
+	// integer which is assigned to 'val'. If there's a non-delimiter and
+	// non-digit in the range, a parse error is reported in 'ec'. If the value
+	// cannot be represented by the variable 'val' and overflow error is reported
+	// by 'ec'.
 	char const* parse_int(char const* start, char const* end, char delimiter
 		, boost::int64_t& val, bdecode_errors::error_code_enum& ec)
 	{
@@ -155,8 +157,6 @@ namespace libtorrent
 			val += digit;
 			++start;
 		}
-		if (*start != delimiter)
-			ec = bdecode_errors::expected_colon;
 		return start;
 	}
 
@@ -618,16 +618,18 @@ namespace libtorrent
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		int size = m_root_tokens[m_token_idx + 1].offset - t.offset;
 		TORRENT_ASSERT(t.type == bdecode_token::integer);
-	
+
 		// +1 is to skip the 'i'
 		char const* ptr = m_buffer + t.offset + 1;
 		boost::int64_t val = 0;
 		bool negative = false;
 		if (*ptr == '-') negative = true;
 		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
-		parse_int(ptr + negative
+		char const* end = parse_int(ptr + negative
 			, ptr + size, 'e', val, ec);
 		if (ec) return 0;
+		TORRENT_UNUSED(end);
+		TORRENT_ASSERT(end < ptr + size);
 		if (negative) val = -val;
 		return val;
 	}
@@ -844,6 +846,8 @@ namespace libtorrent
 					start = parse_int(start, end, ':', len, e);
 					if (e)
 						TORRENT_FAIL_BDECODE(e);
+					if (start == end)
+						TORRENT_FAIL_BDECODE(bdecode_errors::expected_colon);
 
 					// remaining buffer size excluding ':'
 					const ptrdiff_t buff_size = end - start - 1;

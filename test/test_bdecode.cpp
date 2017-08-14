@@ -715,8 +715,9 @@ TORRENT_TEST(parse_int)
 {
 	char b[] = "1234567890e";
 	boost::int64_t val = 0;
-	bdecode_errors::error_code_enum ec;
+	bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
 	char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
+	TEST_EQUAL(ec, bdecode_errors::no_error);
 	TEST_EQUAL(val, 1234567890);
 	TEST_EQUAL(e, b + sizeof(b) - 2);
 }
@@ -759,7 +760,7 @@ TORRENT_TEST(parse_length_overflow)
 		bdecode_node e;
 		int ret = bdecode(b[i], b[i] + strlen(b[i]), e, ec);
 		TEST_EQUAL(ret, -1);
-		TEST_CHECK(ec == error_code(bdecode_errors::unexpected_eof));
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 }
 
@@ -768,9 +769,9 @@ TORRENT_TEST(expected_colon_string)
 {
 	char b[] = "928";
 	boost::int64_t val = 0;
-	bdecode_errors::error_code_enum ec;
+	bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
 	char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
-	TEST_EQUAL(ec, bdecode_errors::expected_colon);
+	TEST_EQUAL(ec, bdecode_errors::no_error);
 	TEST_EQUAL(e, b + 3);
 }
 
@@ -1251,6 +1252,21 @@ TORRENT_TEST(partial_parse4)
 	printf("%s\n", print_entry(e).c_str());
 
 	TEST_EQUAL(print_entry(e), "{ 'a': 1, 'b': 'foo', 'c': [ 1 ] }");
+}
+
+TORRENT_TEST(partial_parse_string)
+{
+	// it's important to not have a null terminator here
+	// to allow address sanitizer to trigger in case the decoder reads past the
+	// end
+	char b[] = { '5', '5'};
+
+	bdecode_node e;
+	error_code ec;
+	int pos;
+	int ret = bdecode(b, b + sizeof(b), e, ec, &pos);
+	TEST_EQUAL(ret, -1);
+	TEST_EQUAL(pos, 2);
 }
 
 // test switch_underlying_buffer

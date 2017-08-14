@@ -1,3 +1,4 @@
+	* fix invalid read in parse_int in bdecoder
 	* fix issue with very long tracker- and web seed URLs
 	* don't attempt to create empty files on startup, if they already exist
 	* fix force-recheck issue (new files would not be picked up)
