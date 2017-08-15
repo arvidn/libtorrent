@@ -335,7 +335,7 @@ namespace aux {
 #endif
 	};
 
-	struct TORRENT_EXTRA_EXPORT block_cache : disk_buffer_pool
+	struct TORRENT_EXTRA_EXPORT block_cache final : disk_buffer_pool
 	{
 		block_cache(int block_size, io_service& ios
 			, std::function<void()> const& trigger_trim);
@@ -468,7 +468,7 @@ namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 		void get_stats(cache_status* ret) const;
 #endif
-		void set_settings(aux::session_settings const& sett);
+		void set_settings(aux::session_settings const& sett) override;
 
 		enum reason_t { ref_hashing = 0, ref_reading = 1, ref_flushing = 2 };
 		bool inc_block_refcount(cached_piece_entry* pe, int block, int reason);

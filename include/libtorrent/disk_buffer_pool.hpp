@@ -68,7 +68,7 @@ namespace libtorrent {
 			, std::function<void()> const& trigger_trim);
 		disk_buffer_pool(disk_buffer_pool const&) = delete;
 		disk_buffer_pool& operator=(disk_buffer_pool const&) = delete;
-		~disk_buffer_pool();
+		virtual ~disk_buffer_pool();
 
 #if TORRENT_USE_ASSERTS
 		bool is_disk_buffer(char* buffer
@@ -96,7 +96,7 @@ namespace libtorrent {
 		}
 		int num_to_evict(int num_needed = 0);
 
-		void set_settings(aux::session_settings const& sett);
+		virtual void set_settings(aux::session_settings const& sett);
 
 	protected:
 
