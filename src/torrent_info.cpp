@@ -497,65 +497,6 @@ namespace libtorrent
 		return true;
 	}
 
-#if TORRENT_HAS_BOOST_UNORDERED
-	struct string_hash_no_case
-	{
-		size_t operator()(std::string const& s) const
-		{
-			char const* s1 = s.c_str();
-			size_t ret = 5381;
-			int c;
-
-			while ((c = *s1++))
-				ret = (ret * 33) ^ to_lower(c);
-
-			return ret;
-		}
-	};
-
-	struct string_eq_no_case
-	{
-		bool operator()(std::string const& lhs, std::string const& rhs) const
-		{
-			char c1, c2;
-			char const* s1 = lhs.c_str();
-			char const* s2 = rhs.c_str();
-
-			while (*s1 != 0 && *s2 != 0)
-			{
-				c1 = to_lower(*s1);
-				c2 = to_lower(*s2);
-				if (c1 != c2) return false;
-				++s1;
-				++s2;
-			}
-			return *s1 == *s2;
-		}
-	};
-
-#else
-	struct string_less_no_case
-	{
-		bool operator()(std::string const& lhs, std::string const& rhs) const
-		{
-			char c1, c2;
-			char const* s1 = lhs.c_str();
-			char const* s2 = rhs.c_str();
-
-			while (*s1 != 0 || *s2 != 0)
-			{
-				c1 = to_lower(*s1);
-				c2 = to_lower(*s2);
-				if (c1 < c2) return true;
-				if (c1 > c2) return false;
-				++s1;
-				++s2;
-			}
-			return false;
-		}
-	};
-#endif
-
 	// root_dir is the name of the torrent, unless this is a single file
 	// torrent, in which case it's empty.
 	bool extract_files(bdecode_node const& list, file_storage& target
