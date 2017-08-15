@@ -255,8 +255,7 @@ namespace libtorrent
 				continue;
 			}
 
-			if (code_point < 0
-				|| !valid_path_character(code_point))
+			if (code_point < 0 || !valid_path_character(code_point))
 			{
 				// invalid utf8 sequence, replace with "_"
 				path += '_';
@@ -265,9 +264,14 @@ namespace libtorrent
 				continue;
 			}
 
+			TORRENT_ASSERT(isLegalUTF8(reinterpret_cast<UTF8 const*>(element + i), seq_len));
+
 			// validation passed, add it to the output string
 			for (int k = i; k < i + seq_len; ++k)
+			{
+				TORRENT_ASSERT(element[k] != 0);
 				path.push_back(element[k]);
+			}
 
 			if (code_point == '.') ++num_dots;
 
@@ -618,7 +622,7 @@ namespace libtorrent
 		{
 			// as long as this file already exists
 			// increase the counter
-			boost::uint32_t h = m_files.file_path_hash(i, empty_str);
+			boost::uint32_t const h = m_files.file_path_hash(i, empty_str);
 			if (!files.insert(h).second)
 			{
 				// This filename appears to already exist!

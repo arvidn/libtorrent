@@ -326,6 +326,11 @@ TORRENT_TEST(sanitize_path_trailing_spaces)
 TORRENT_TEST(sanitize_path)
 {
 	std::string path;
+
+	sanitize_append_path_element(path, "\0\0\xed\0\x80", 5);
+	TEST_EQUAL(path, "_");
+
+	path.clear();
 	sanitize_append_path_element(path, "/a/", 3);
 	sanitize_append_path_element(path, "b", 1);
 	sanitize_append_path_element(path, "c", 1);
@@ -506,6 +511,17 @@ TORRENT_TEST(sanitize_path)
 	TEST_EQUAL(path, "foobar");
 }
 
+TORRENT_TEST(sanitize_path_zeroes)
+{
+	std::string path;
+	sanitize_append_path_element(path, "\0foo", 4);
+	TEST_EQUAL(path, "foo");
+
+	path.clear();
+	sanitize_append_path_element(path, "\0\0\0\0", 4);
+	TEST_EQUAL(path, "");
+}
+
 TORRENT_TEST(verify_encoding)
 {
 	// verify_encoding
@@ -585,6 +601,12 @@ TORRENT_TEST(verify_encoding)
 	TEST_CHECK(!verify_encoding(test));
 	fprintf(stdout, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename____");
+
+	// missing byte header
+	test = "filename\xed\0\x80";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stdout, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
 }
 
 TORRENT_TEST(parse_torrents)
