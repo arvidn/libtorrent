@@ -310,3 +310,70 @@ TORRENT_TEST(string)
 		, convert_to_native("foo") + convert_to_native("bar"));
 }
 
+TORRENT_TEST(string_hash_no_case)
+{
+	string_hash_no_case hsh;
+
+	// make sure different strings yield different hashes
+	TEST_CHECK(hsh("ab") != hsh("ba"));
+
+	// make sure case is ignored
+	TEST_EQUAL(hsh("Ab"), hsh("ab"));
+	TEST_EQUAL(hsh("Ab"), hsh("aB"));
+
+	// make sure zeroes in strings are supported
+	TEST_CHECK(hsh(std::string("\0a", 2)) != hsh(std::string("\0b", 2)));
+	TEST_EQUAL(hsh(std::string("\0a", 2)), hsh(std::string("\0a", 2)));
+}
+
+TORRENT_TEST(string_eq_no_case)
+{
+	string_eq_no_case cmp;
+	TEST_CHECK(cmp("ab", "ba") == false);
+	TEST_CHECK(cmp("", ""));
+	TEST_CHECK(cmp("abc", "abc"));
+
+	// make sure different lengths are correctly treated as different
+	TEST_CHECK(cmp("abc", "ab") == false);
+
+	// make sure case is ignored
+	TEST_CHECK(cmp("Ab", "ab"));
+	TEST_CHECK(cmp("Ab", "aB"));
+
+	// make sure zeros are supported
+	TEST_CHECK(cmp(std::string("\0a", 2), std::string("\0b", 2)) == false);
+	TEST_CHECK(cmp(std::string("\0a", 2), std::string("\0a", 2)));
+}
+
+TORRENT_TEST(string_less_no_case)
+{
+	string_less_no_case cmp;
+	// ab < ba
+	TEST_CHECK(cmp("ab", "ba"));
+	TEST_CHECK(cmp("ba", "ab") == false);
+
+	TEST_CHECK(cmp("", "") == false);
+	TEST_CHECK(cmp("", "a"));
+	TEST_CHECK(cmp("abc", "abc") == false);
+
+	// shorter strings come before longer ones
+	TEST_CHECK(cmp("abc", "ab") == false);
+	TEST_CHECK(cmp("ab", "abc"));
+
+	// make sure case is ignored
+	TEST_CHECK(cmp("Ab", "ba"));
+	TEST_CHECK(cmp("Ba", "ab") == false);
+
+	TEST_CHECK(cmp("", "") == false);
+	TEST_CHECK(cmp("", "a"));
+	TEST_CHECK(cmp("abc", "Abc") == false);
+
+	// shorter strings come before longer ones
+	TEST_CHECK(cmp("Abc", "ab") == false);
+	TEST_CHECK(cmp("Ab", "abc"));
+
+	// make sure zeros are supported
+	TEST_CHECK(cmp(std::string("\0a", 2), std::string("\0b", 2)));
+	TEST_CHECK(cmp(std::string("\0a", 2), std::string("\0a", 2)) == false);
+}
+

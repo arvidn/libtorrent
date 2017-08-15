@@ -103,6 +103,18 @@ namespace libtorrent
 	bool is_i2p_url(std::string const& url);
 
 #endif
+
+	// this can be used as the hash function in std::unordered_*
+	struct TORRENT_EXTRA_EXPORT string_hash_no_case
+	{ size_t operator()(std::string const& s) const; };
+
+	// these can be used as the comparison functions in std::map and std::set
+	struct TORRENT_EXTRA_EXPORT string_eq_no_case
+	{ bool operator()(std::string const& lhs, std::string const& rhs) const; };
+
+	struct TORRENT_EXTRA_EXPORT string_less_no_case
+	{ bool operator()(std::string const& lhs, std::string const& rhs) const; };
+
 }
 
 #endif

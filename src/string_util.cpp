@@ -277,5 +277,48 @@ namespace libtorrent
 
 #endif
 
+	std::size_t string_hash_no_case::operator()(std::string const& s) const
+	{
+		size_t ret = 5381;
+		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
+			ret = (ret * 33) ^ to_lower(*i);
+		return ret;
+	}
+
+	bool string_eq_no_case::operator()(std::string const& lhs, std::string const& rhs) const
+	{
+		if (lhs.size() != rhs.size()) return false;
+
+		std::string::const_iterator s1 = lhs.begin();
+		std::string::const_iterator s2 = rhs.begin();
+
+		while (s1 != lhs.end() && s2 != rhs.end())
+		{
+			if (to_lower(*s1) != to_lower(*s2)) return false;
+			++s1;
+			++s2;
+		}
+		return true;
+	}
+
+	bool string_less_no_case::operator()(std::string const& lhs, std::string const& rhs) const
+	{
+		std::string::const_iterator s1 = lhs.begin();
+		std::string::const_iterator s2 = rhs.begin();
+
+		while (s1 != lhs.end() && s2 != rhs.end())
+		{
+			char const c1 = to_lower(*s1);
+			char const c2 = to_lower(*s2);
+			if (c1 < c2) return true;
+			if (c1 > c2) return false;
+			++s1;
+			++s2;
+		}
+
+		// this is the tie-breaker
+		return lhs.size() < rhs.size();
+	}
+
 }
 
