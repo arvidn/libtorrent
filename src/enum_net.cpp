@@ -100,6 +100,23 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 #define IF_NAMESIZE IFNAMSIZ
 #endif
 
+#ifndef TORRENT_ENUM_NET_LOG
+#define TORRENT_ENUM_NET_LOG 0
+#endif
+
+#if TORRENT_ENUM_NET_LOG
+#include <cstdarg>
+#include <cinttypes> // for PRId64 et.al.
+#ifdef TORRENT_ANDROID
+#include <android/log.h>
+#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, "ENUM_NET", __VA_ARGS__)
+#else
+#define LOGV(...) std::printf(__VA_ARGS__)
+#endif // TORRENT_ANDROID
+#else
+#define LOGV(...) do {} while(false)
+#endif
+
 namespace libtorrent {
 namespace {
 
@@ -171,7 +188,11 @@ namespace {
 		{
 			auto next_msg = buf.subspan(std::size_t(msg_len));
 			int read_len = int(recv(sock, next_msg.data(), next_msg.size(), 0));
-			if (read_len < 0) return -1;
+			if (read_len < 0)
+			{
+				LOGV("read_nl_sock, recv returned negative:%d, errno=%d\n", read_len, errno);
+				return -1;
+			}
 
 			nl_hdr = reinterpret_cast<nlmsghdr*>(next_msg.data());
 
@@ -181,7 +202,13 @@ namespace {
 #pragma clang diagnostic ignored "-Wsign-compare"
 #endif
 			if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
+			{
+				LOGV("read_nl_sock, returning -1\n");
+				LOGV("read_nl_sock, read_len=%d, nl_hdr->nlmsg_len=%d\n", read_len, nl_hdr->nlmsg_len);
+				LOGV("read_nl_sock, NLMSG_OK(nl_hdr, read_len)=%d\n", NLMSG_OK(nl_hdr, read_len));
+				LOGV("read_nl_sock, nl_hdr->nlmsg_type == NLMSG_ERROR is %d\n", nl_hdr->nlmsg_type == NLMSG_ERROR);
 				return -1;
+			}
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -189,7 +216,12 @@ namespace {
 			// this function doesn't handle multiple requests at the same time
 			// so report an error if the message does not have the expected seq and pid
 			if (nl_hdr->nlmsg_seq != seq || nl_hdr->nlmsg_pid != pid)
+			{
+				LOGV("read_nl_sock, returning -1\n");
+				LOGV("read_nl_sock, nl_hdr->nlmsg_seq != seq is %d\n", nl_hdr->nlmsg_seq != seq);
+				LOGV("read_nl_sock, nl_hdr->nlmsg_pid != pid is %d\n", nl_hdr->nlmsg_pid != pid);
 				return -1;
+			}
 
 			if (nl_hdr->nlmsg_type == NLMSG_DONE) break;
 
@@ -197,6 +229,7 @@ namespace {
 
 			if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
 		}
+		LOGV("read_nl_sock, returning %d\n", msg_len);
 		return msg_len;
 	}
 
@@ -218,6 +251,7 @@ namespace {
 
 		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
 		{
+			LOGV("nl_dump_request, send returned negative, errno=%d\n", errno);
 			return -1;
 		}
 
@@ -226,6 +260,7 @@ namespace {
 		socklen_t sock_addr_len = sizeof(sock_addr);
 		if (getsockname(sock, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len) < 0)
 		{
+			LOGV("nl_dump_request, getsockname returned negative, errno=%d\n", errno);
 			return -1;
 		}
 
@@ -317,7 +352,7 @@ namespace {
 				link_info->mtu = int(*reinterpret_cast<unsigned int*>(RTA_DATA(rt_attr)));
 				break;
 			case IFLA_IFNAME:
-				strncpy(link_info->name, reinterpret_cast<char*>(RTA_DATA(rt_attr)), sizeof(link_info->name));
+				std::strncpy(link_info->name, reinterpret_cast<char*>(RTA_DATA(rt_attr)), sizeof(link_info->name));
 				break;
 			}
 		}
@@ -333,7 +368,10 @@ namespace {
 		ifaddrmsg* addr_msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl_hdr));
 
 		if (!valid_addr_family(addr_msg->ifa_family))
+		{
+			LOGV("parse_nl_address, in-valid_addr_family\n");
 			return false;
+		}
 
 		ip_info->preferred = (addr_msg->ifa_flags & (IFA_F_DADFAILED | IFA_F_DEPRECATED | IFA_F_TENTATIVE)) == 0;
 
@@ -398,7 +436,7 @@ namespace {
 				}
 				break;
 			case IFA_LABEL:
-				strncpy(ip_info->name, reinterpret_cast<char*>(RTA_DATA(rt_attr)), sizeof(ip_info->name));
+				std::strncpy(ip_info->name, reinterpret_cast<char*>(RTA_DATA(rt_attr)), sizeof(ip_info->name));
 				break;
 			}
 		}
@@ -413,7 +451,7 @@ namespace {
 			// for some reason IPv6 entries don't include an IFA_LABEL attribute
 			// so get it from the link in that case
 			if (ip_info->name[0] == '\0')
-				strncpy(ip_info->name, ifi_info->second.name, sizeof(ip_info->name));
+				std::strncpy(ip_info->name, ifi_info->second.name, sizeof(ip_info->name));
 		}
 
 		return true;
@@ -603,9 +641,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ret.push_back(wan);
 		}
 #elif TORRENT_USE_NETLINK
+		LOGV("enum_net_interfaces, using netlink");
 		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
+			LOGV("enum_net_interfaces, socket returned negative:%d, errno=%d\n", sock, errno);
 			ec = error_code(errno, system_category());
 			return ret;
 		}
@@ -619,10 +659,12 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			int len = nl_dump_request(sock, RTM_GETLINK, seq++, AF_UNSPEC, msg, sizeof(ifinfomsg));
 			if (len < 0)
 			{
+				LOGV("enum_net_interfaces, RTM_GETLINK returned negative:%d, errno=%d\n", len, errno);
 				ec = error_code(errno, system_category());
 				close(sock);
 				return ret;
 			}
+			LOGV("enum_net_interfaces, RTM_GETLINK returned len=%d\n", len);
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -647,10 +689,12 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			int len = nl_dump_request(sock, RTM_GETADDR, seq++, AF_PACKET, msg, sizeof(ifaddrmsg));
 			if (len < 0)
 			{
+				LOGV("enum_net_interfaces, RTM_GETADDR returned negative:%d, errno=%d\n", len, errno);
 				ec = error_code(errno, system_category());
 				close(sock);
 				return ret;
 			}
+			LOGV("enum_net_interfaces, RTM_GETADDR returned len=%d\n", len);
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -670,6 +714,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		close(sock);
 #elif TORRENT_USE_IFADDRS
+		LOGV("enum_net_interfaces, using ifaddrs");
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -710,6 +755,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		freeifaddrs(ifaddr);
 // MacOS X, BSD and solaris
 #elif TORRENT_USE_IFCONF
+		LOGV("enum_net_interfaces, using ifconf");
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -797,7 +843,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		close(s);
 
 #elif TORRENT_USE_GETADAPTERSADDRESSES
-
+		LOGV("enum_net_interfaces, using GetAdaptersAddresses");
 #if _WIN32_WINNT >= 0x0501
 		typedef ULONG (WINAPI *GetAdaptersAddresses_t)(ULONG,ULONG,PVOID,PIP_ADAPTER_ADDRESSES,PULONG);
 		// Get GetAdaptersAddresses() pointer
