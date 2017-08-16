@@ -1943,6 +1943,12 @@ namespace {
 		{
 			expand_unspecified_address(ifs, eps);
 		}
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec)
+			session_log("failed to enum net interfaces: %s", ec.message().c_str());
+		else
+			session_log("enum net found %d interfaces", int(ifs.size()));
+#endif
 #endif
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
