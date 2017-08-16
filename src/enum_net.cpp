@@ -378,6 +378,7 @@ namespace {
 		{
 			// for some reason IPv6 entries don't include an IFA_LABEL attribute
 			// so get it from the link in that case
+			static_assert(sizeof(ip_info->name) >= IF_NAMESIZE, "not enough space in ip_interface::name");
 			if_indextoname(addr_msg->ifa_index, ip_info->name);
 		}
 
