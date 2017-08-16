@@ -244,8 +244,7 @@ namespace libtorrent {
 				continue;
 			}
 
-			if (code_point < 0
-				|| !valid_path_character(code_point))
+			if (code_point < 0 || !valid_path_character(code_point))
 			{
 				// invalid utf8 sequence, replace with "_"
 				path += '_';
@@ -254,9 +253,14 @@ namespace libtorrent {
 				continue;
 			}
 
+			TORRENT_ASSERT(isLegalUTF8(reinterpret_cast<UTF8 const*>(element.data() + i), seq_len));
+
 			// validation passed, add it to the output string
 			for (std::size_t k = i; k < i + std::size_t(seq_len); ++k)
+			{
+				TORRENT_ASSERT(element[k] != 0);
 				path.push_back(element[k]);
+			}
 
 			if (code_point == '.') ++num_dots;
 
@@ -486,46 +490,6 @@ namespace {
 		return true;
 	}
 
-	struct string_hash_no_case
-	{
-		std::size_t operator()(std::string const& s) const
-		{
-			char const* s1 = s.c_str();
-			std::size_t ret = 5381;
-			int c;
-
-			for (;;)
-			{
-				c = *s1++;
-				if (c == 0)
-					break;
-				ret = (ret * 33) ^ std::size_t(to_lower(char(c)));
-			}
-
-			return ret;
-		}
-	};
-
-	struct string_eq_no_case
-	{
-		bool operator()(std::string const& lhs, std::string const& rhs) const
-		{
-			char c1, c2;
-			char const* s1 = lhs.c_str();
-			char const* s2 = rhs.c_str();
-
-			while (*s1 != 0 && *s2 != 0)
-			{
-				c1 = to_lower(*s1);
-				c2 = to_lower(*s2);
-				if (c1 != c2) return false;
-				++s1;
-				++s2;
-			}
-			return *s1 == *s2;
-		}
-	};
-
 	// root_dir is the name of the torrent, unless this is a single file
 	// torrent, in which case it's empty.
 	bool extract_files(bdecode_node const& list, file_storage& target
@@ -644,7 +608,7 @@ namespace {
 		{
 			// as long as this file already exists
 			// increase the counter
-			std::uint32_t h = m_files.file_path_hash(i, empty_str);
+			std::uint32_t const h = m_files.file_path_hash(i, empty_str);
 			if (!files.insert(h).second)
 			{
 				// This filename appears to already exist!

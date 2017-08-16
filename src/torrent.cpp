@@ -5897,6 +5897,7 @@ namespace libtorrent {
 
 		if (is_paused()) return;
 		if (m_ses.is_aborted()) return;
+		if (is_upload_only()) return;
 
 		// this web seed may have redirected all files to other URLs, leaving it
 		// having no file left, and there's no longer any point in connecting to

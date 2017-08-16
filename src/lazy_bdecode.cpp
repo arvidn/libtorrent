@@ -131,6 +131,8 @@ namespace {
 					start = parse_int(start, end, ':', len, e);
 					if (e)
 						TORRENT_FAIL_BDECODE(e);
+					if (start == end)
+						TORRENT_FAIL_BDECODE(bdecode_errors::expected_colon);
 
 					// remaining buffer size excluding ':'
 					const ptrdiff_t buff_size = end - start - 1;
@@ -203,6 +205,8 @@ namespace {
 					start = parse_int(start, end, ':', len, e);
 					if (e)
 						TORRENT_FAIL_BDECODE(e);
+					if (start == end)
+						TORRENT_FAIL_BDECODE(bdecode_errors::expected_colon);
 
 					// remaining buffer size excluding ':'
 					const ptrdiff_t buff_size = end - start - 1;

@@ -62,6 +62,8 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(is_outgoing());
 
+		TORRENT_ASSERT(!m_torrent.lock()->is_upload_only());
+
 		// we only want left-over bandwidth
 		// TODO: introduce a web-seed default class which has a low download priority
 
@@ -102,9 +104,10 @@ namespace libtorrent {
 		// which fails because the m_num_connecting count is not consistent until
 		// after we call peer_connection::start
 		m_upload_only = true;
-		disconnect_if_redundant();
-		if (is_disconnecting()) return;
 		peer_connection::start();
+		// disconnect_if_redundant must be called after start to keep
+		// m_num_connecting consistent
+		disconnect_if_redundant();
 	}
 
 	web_connection_base::~web_connection_base() = default;

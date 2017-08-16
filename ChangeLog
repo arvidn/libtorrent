@@ -76,6 +76,9 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix utf-8 encoding check in torrent parser
+	* fix infinite loop when parsing maliciously crafted torrents
+	* fix invalid read in parse_int in bdecoder
 	* fix issue with very long tracker- and web seed URLs
 	* don't attempt to create empty files on startup, if they already exist
 	* fix force-recheck issue (new files would not be picked up)
