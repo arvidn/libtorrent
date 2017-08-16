@@ -296,39 +296,7 @@ namespace {
 		return true;
 	}
 
-	int parse_nl_link(nlmsghdr* nl_hdr, ip_interface* link_info)
-	{
-		ifinfomsg* link_msg = reinterpret_cast<ifinfomsg*>(NLMSG_DATA(nl_hdr));
-
-		link_info->name[0] = 0;
-		link_info->mtu = 0;
-
-		int rt_len = int(IFLA_PAYLOAD(nl_hdr));
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-#endif
-		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(IFLA_RTA(link_msg));
-			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
-		{
-			switch(rt_attr->rta_type)
-			{
-			case IFLA_MTU:
-				link_info->mtu = int(*reinterpret_cast<unsigned int*>(RTA_DATA(rt_attr)));
-				break;
-			case IFLA_IFNAME:
-				strncpy(link_info->name, reinterpret_cast<char*>(RTA_DATA(rt_attr)), sizeof(link_info->name));
-				break;
-			}
-		}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-		return link_msg->ifi_index;
-	}
-
-	bool parse_nl_address(std::map<int, ip_interface> const& link_info, nlmsghdr* nl_hdr, ip_interface* ip_info)
+	bool parse_nl_address(nlmsghdr* nl_hdr, ip_interface* ip_info)
 	{
 		ifaddrmsg* addr_msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl_hdr));
 
@@ -406,14 +374,11 @@ namespace {
 #pragma clang diagnostic pop
 #endif
 
-		auto ifi_info = link_info.find(int(addr_msg->ifa_index));
-		if (ifi_info != link_info.end())
+		if (ip_info->name[0] == '\0')
 		{
-			ip_info->mtu = ifi_info->second.mtu;
 			// for some reason IPv6 entries don't include an IFA_LABEL attribute
 			// so get it from the link in that case
-			if (ip_info->name[0] == '\0')
-				strncpy(ip_info->name, ifi_info->second.name, sizeof(ip_info->name));
+			if_indextoname(addr_msg->ifa_index, ip_info->name);
 		}
 
 		return true;
@@ -610,19 +575,15 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return ret;
 		}
 
-		std::uint32_t seq = 0;
-		std::map<int, ip_interface> link_info;
-
+		char msg[NL_BUFSIZE] = {};
+		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
+		int len = nl_dump_request(sock, RTM_GETADDR, 0, AF_PACKET, msg, sizeof(ifaddrmsg));
+		if (len < 0)
 		{
-			char msg[NL_BUFSIZE] = {};
-			nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
-			int len = nl_dump_request(sock, RTM_GETLINK, seq++, AF_UNSPEC, msg, sizeof(ifinfomsg));
-			if (len < 0)
-			{
-				ec = error_code(errno, system_category());
-				close(sock);
-				return ret;
-			}
+			ec = error_code(errno, system_category());
+			close(sock);
+			return ret;
+		}
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -630,43 +591,14 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			// NLMSG_OK uses signed/unsigned compare in the same expression
 #pragma clang diagnostic ignored "-Wsign-compare"
 #endif
-			for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
-			{
-				ip_interface iface;
-				int ifi_index = parse_nl_link(nl_msg, &iface);
-				if (ifi_index >= 0) link_info.emplace(ifi_index, iface);
-			}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-		}
-
+		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 		{
-			char msg[NL_BUFSIZE] = {};
-			nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
-			int len = nl_dump_request(sock, RTM_GETADDR, seq++, AF_PACKET, msg, sizeof(ifaddrmsg));
-			if (len < 0)
-			{
-				ec = error_code(errno, system_category());
-				close(sock);
-				return ret;
-			}
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-			// NLMSG_OK uses signed/unsigned compare in the same expression
-#pragma clang diagnostic ignored "-Wsign-compare"
-#endif
-			for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
-			{
-				ip_interface iface;
-				if (parse_nl_address(link_info, nl_msg, &iface)) ret.push_back(iface);
-			}
+			ip_interface iface;
+			if (parse_nl_address(nl_msg, &iface)) ret.push_back(iface);
+		}
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-		}
 
 		close(sock);
 #elif TORRENT_USE_IFADDRS
