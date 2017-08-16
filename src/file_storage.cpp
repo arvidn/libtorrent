@@ -173,9 +173,7 @@ namespace {
 	int file_storage::get_or_add_path(string_view const path)
 	{
 		// do we already have this path in the path list?
-		auto p = std::find_if(m_paths.rbegin(), m_paths.rend()
-			, [&] (std::string const& str)
-			{ return str == path; });
+		auto const p = std::find(m_paths.rbegin(), m_paths.rend(), path);
 
 		if (p == m_paths.rend())
 		{

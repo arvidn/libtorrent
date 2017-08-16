@@ -390,7 +390,7 @@ void http_connection::start(std::string const& hostname, int port
 		{
 			m_hostname = hostname;
 			m_port = std::uint16_t(port);
-			m_endpoints.push_back({address(), m_port});
+			m_endpoints.emplace_back(address(), m_port);
 			connect();
 		}
 		else
@@ -515,7 +515,7 @@ void http_connection::on_resolve(error_code const& e
 	TORRENT_ASSERT(!addresses.empty());
 
 	for (auto const& addr : addresses)
-		m_endpoints.push_back({addr, m_port});
+		m_endpoints.emplace_back(addr, m_port);
 
 	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
 	if (m_endpoints.empty())

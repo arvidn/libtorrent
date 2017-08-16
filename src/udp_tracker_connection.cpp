@@ -217,7 +217,7 @@ namespace libtorrent {
 			if (addr.is_v6() && addr.to_v6().scope_id() != scope)
 				continue;
 #endif
-			m_endpoints.push_back(tcp::endpoint(addr, std::uint16_t(port)));
+			m_endpoints.emplace_back(addr, std::uint16_t(port));
 		}
 
 		if (m_endpoints.empty())
@@ -261,7 +261,7 @@ namespace libtorrent {
 
 	udp::endpoint udp_tracker_connection::pick_target_endpoint() const
 	{
-		std::vector<tcp::endpoint>::const_iterator iter = m_endpoints.begin();
+		auto iter = m_endpoints.begin();
 		udp::endpoint target = udp::endpoint(iter->address(), iter->port());
 
 		if (bind_interface() != address_v4::any())
@@ -668,7 +668,7 @@ namespace libtorrent {
 			for (int i = 0; i < num_peers; ++i)
 			{
 				ipv4_peer_entry e;
-				memcpy(e.ip.data(), buf.data(), 4);
+				std::memcpy(e.ip.data(), buf.data(), 4);
 				buf = buf.subspan(4);
 				e.port = aux::read_uint16(buf);
 				resp.peers4.push_back(e);
