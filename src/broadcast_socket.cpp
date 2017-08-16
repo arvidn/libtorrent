@@ -184,19 +184,18 @@ namespace libtorrent {
 #endif
 			open_multicast_socket(ios, address_v4::any(), loopback, ec);
 
-		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
-			, end(interfaces.end()); i != end; ++i)
+		for (auto const& i : interfaces)
 		{
 			// only multicast on compatible networks
-			if (i->interface_address.is_v4() != m_multicast_endpoint.address().is_v4()) continue;
+			if (i.interface_address.is_v4() != m_multicast_endpoint.address().is_v4()) continue;
 			// ignore any loopback interface
-			if (!loopback && is_loopback(i->interface_address)) continue;
+			if (!loopback && is_loopback(i.interface_address)) continue;
 
 			ec = error_code();
 
-			open_multicast_socket(ios, i->interface_address, loopback, ec);
-			open_unicast_socket(ios, i->interface_address
-				, i->netmask.is_v4() ? i->netmask.to_v4() : address_v4());
+			open_multicast_socket(ios, i.interface_address, loopback, ec);
+			open_unicast_socket(ios, i.interface_address
+				, i.netmask.is_v4() ? i.netmask.to_v4() : address_v4());
 		}
 	}
 
