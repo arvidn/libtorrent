@@ -63,7 +63,7 @@ namespace libtorrent {
 		char name[64];
 		int mtu;
 		// an interface is preferred if its address is
-		// not tenative/duplicate/deprecated
+		// not tentative/duplicate/deprecated
 		bool preferred = true;
 	};
 

@@ -302,10 +302,10 @@ namespace aux {
 	void expand_unspecified_address(std::vector<ip_interface> const& ifs
 		, std::vector<listen_endpoint_t>& eps)
 	{
-		auto unspeficied_begin = std::partition(eps.begin(), eps.end()
+		auto unspecified_begin = std::partition(eps.begin(), eps.end()
 			, [](listen_endpoint_t const& ep) { return !(ep.addr.is_v6() && ep.addr.is_unspecified()); });
-		std::vector<listen_endpoint_t> unspecified_eps(unspeficied_begin, eps.end());
-		eps.erase(unspeficied_begin, eps.end());
+		std::vector<listen_endpoint_t> unspecified_eps(unspecified_begin, eps.end());
+		eps.erase(unspecified_begin, eps.end());
 		for (auto const& uep : unspecified_eps)
 		{
 			for (auto const& ipface : ifs)

@@ -107,8 +107,7 @@ namespace {
 #if !defined TORRENT_BUILD_SIMULATOR
 	address_v4 inaddr_to_address(in_addr const* ina, int const len = 4)
 	{
-		boost::asio::ip::address_v4::bytes_type b;
-		b.fill(0);
+		boost::asio::ip::address_v4::bytes_type b = {};
 		if (len > 0) std::memcpy(b.data(), ina, std::min(std::size_t(len), b.size()));
 		return address_v4(b);
 	}
@@ -116,8 +115,7 @@ namespace {
 #if TORRENT_USE_IPV6
 	address_v6 inaddr6_to_address(in6_addr const* ina6, int const len = 16)
 	{
-		boost::asio::ip::address_v6::bytes_type b;
-		b.fill(0);
+		boost::asio::ip::address_v6::bytes_type b = {};
 		if (len > 0) std::memcpy(b.data(), ina6, std::min(std::size_t(len), b.size()));
 		return address_v6(b);
 	}
@@ -371,7 +369,7 @@ namespace {
 			}
 		}
 
-		// intiialize name to be empty
+		// initialize name to be empty
 		ip_info->name[0] = '\0';
 
 		int rt_len = int(IFA_PAYLOAD(nl_hdr));
@@ -482,8 +480,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return false;
 		}
 
-		strncpy(rv.name, ifa->ifa_name, sizeof(rv.name));
-		rv.name[sizeof(rv.name)-1] = 0;
+		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name));
+		rv.name[sizeof(rv.name) - 1] = 0;
 
 		// determine address
 		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
@@ -508,12 +506,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #if TORRENT_USE_IPV6
 		if (a1.is_v6())
 		{
-			address_v6::bytes_type b1;
-			address_v6::bytes_type b2;
-			address_v6::bytes_type m;
-			b1 = a1.to_v6().to_bytes();
-			b2 = a2.to_v6().to_bytes();
-			m = mask.to_v6().to_bytes();
+			address_v6::bytes_type b1 = a1.to_v6().to_bytes();
+			address_v6::bytes_type b2 = a2.to_v6().to_bytes();
+			address_v6::bytes_type m = mask.to_v6().to_bytes();
 			for (std::size_t i = 0; i < b1.size(); ++i)
 			{
 				b1[i] &= m[i];
@@ -603,7 +598,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ip_interface wan;
 			wan.interface_address = ip;
 			wan.netmask = address_v4::from_string("255.255.255.255");
-			strcpy(wan.name, "eth0");
+			std::strcpy(wan.name, "eth0");
 			wan.mtu = ios.sim().config().path_mtu(ip, ip);
 			ret.push_back(wan);
 		}
@@ -690,7 +685,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return ret;
 		}
 
-		for (ifaddrs* ifa = ifaddr; ifa; ifa = ifa->ifa_next)
+		for (ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
 		{
 			if (ifa->ifa_addr == nullptr) continue;
 			if ((ifa->ifa_flags & IFF_UP) == 0) continue;
@@ -754,7 +749,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
-				strcpy(iface.name, item.ifr_name);
+				std::strcpy(iface.name, item.ifr_name);
 
 				ifreq req = {};
 				// -1 to leave a 0-terminator
@@ -772,7 +767,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #endif
 
 				std::memset(&req, 0, sizeof(req));
-				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
+				std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
 				{
 #if TORRENT_USE_IPV6
@@ -835,7 +830,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				adapter != 0; adapter = adapter->Next)
 			{
 				ip_interface r;
-				strncpy(r.name, adapter->AdapterName, sizeof(r.name));
+				std::strncpy(r.name, adapter->AdapterName, sizeof(r.name));
 				r.name[sizeof(r.name)-1] = 0;
 				r.mtu = adapter->Mtu;
 				for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
@@ -951,7 +946,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				b[14] = 1;
 				r.gateway = address_v6(b);
 			}
-			strcpy(r.name, "eth0");
+			std::strcpy(r.name, "eth0");
 			r.mtu = ios.sim().config().path_mtu(ip, ip);
 			ret.push_back(r);
 		}
