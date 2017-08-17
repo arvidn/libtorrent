@@ -411,6 +411,10 @@ namespace libtorrent {
 		// for the last piece, which may be shorter.
 		int piece_size(piece_index_t index) const;
 
+		// return the size of the piece which contains the file the piece starts with
+		// this is only meaningful for v2 metadata
+		int piece_size2(piece_index_t index) const;
+
 		// set and get the name of this torrent. For multi-file torrents, this is also
 		// the name of the root directory all the files are stored in.
 		void set_name(std::string const& n) { m_name = n; }

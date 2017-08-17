@@ -107,6 +107,8 @@ namespace aux {
 		int hashv(aux::session_settings const&, hasher& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t flags
 			, storage_error& ec);
+		int hashv2(aux::session_settings const&, hasher256& ph, std::size_t len, piece_index_t piece, int offset, aux::open_mode_t flags
+			, storage_error& ec);
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
