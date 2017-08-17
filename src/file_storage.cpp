@@ -109,6 +109,26 @@ namespace {
 
 }
 
+	int file_storage::piece_size2(piece_index_t const index) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= piece_index_t{} && index < end_piece());
+		// find the file iterator and file offset
+		internal_file_entry target;
+		target.offset = aux::numeric_cast<std::uint64_t>(std::int64_t(piece_length()) * static_cast<int>(index));
+		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
+
+		auto const file_iter = std::upper_bound(
+			m_files.begin(), m_files.end(), target, compare_file_offset);
+
+		TORRENT_ASSERT(file_iter != m_files.begin());
+		if (file_iter == m_files.end()) return piece_size(index);
+
+		// this static cast is safe because the resulting value is capped by
+		// piece_length(), which fits in an int
+		return static_cast<int>(
+			std::min(static_cast<std::uint64_t>(piece_length()), file_iter->offset - target.offset));
+	}
+
 	// path is supposed to include the name of the torrent itself.
 	// or an absolute path, to move a file outside of the download directory
 	void file_storage::update_path_index(internal_file_entry& e

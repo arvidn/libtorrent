@@ -736,6 +736,49 @@ namespace libtorrent {
 		});
 	}
 
+	int default_storage::hashv2(aux::session_settings const& sett
+		, hasher256& ph, std::ptrdiff_t const len
+		, piece_index_t const piece, int const offset
+		, aux::open_mode_t const flags, storage_error& error)
+	{
+		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
+		file_index_t const file_index = files().file_index_at_offset(start_offset);
+		std::int64_t const file_offset = start_offset - files().file_offset(file_index);
+		TORRENT_ASSERT(file_offset >= 0);
+		TORRENT_ASSERT(!files().pad_file_at(file_index));
+
+		if (file_index < m_file_priority.end_index()
+			&& m_file_priority[file_index] == dont_download
+			&& use_partfile(file_index))
+		{
+			error_code e;
+			peer_request map = files().map_file(file_index, file_offset, 0);
+			int const ret = m_part_file->hashv2(ph, len
+				, map.piece, map.start, e);
+
+			if (e)
+			{
+				error.ec = e;
+				error.file(file_index);
+				error.operation = operation_t::partfile_read;
+				return -1;
+			}
+			return ret;
+		}
+
+		auto handle = open_file(sett, file_index, flags, error);
+		if (error) return -1;
+
+		span<byte const> file_range = handle->range();
+		if (std::int64_t(file_range.size()) <= file_offset)
+			return 0;
+		file_range = file_range.subspan(file_offset);
+		file_range = file_range.first(std::min(std::ptrdiff_t(len), file_range.size()));
+		ph.update(file_range);
+
+		return static_cast<int>(file_range.size());
+	}
+
 	// a wrapper around open_file_impl that, if it fails, makes sure the
 	// directories have been created and retries
 	boost::optional<aux::file_view> default_storage::open_file(aux::session_settings const& sett
