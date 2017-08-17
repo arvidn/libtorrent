@@ -211,6 +211,50 @@ namespace {
 			post(m_ios, [=, h = std::move(handler)]{ h(piece, hash, error); });
 		}
 
+		void async_hash2(storage_index_t storage, piece_index_t const piece, int offset, disk_job_flags_t
+			, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler) override
+		{
+			time_point const start_time = clock_type::now();
+
+			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), 0x4000);
+			storage_error error;
+			if (!buffer)
+			{
+				error.ec = errors::no_memory;
+				error.operation = operation_t::alloc_cache_piece;
+				post(m_ios, [=, h = std::move(handler)]{ h(piece, sha256_hash{}, error); });
+				return;
+			}
+
+			posix_storage* st = m_torrents[storage].get();
+
+			int const piece_size = st->files().piece_size2(piece);
+
+			std::ptrdiff_t const len = std::min(default_block_size, piece_size - offset);
+
+			hasher256 ph;
+			iovec_t b = {buffer.data(), len};
+			int const ret = st->readv(m_settings, b, piece, offset, error);
+			if (ret > 0)
+				ph.update(b.first(ret));
+
+			sha256_hash const hash = ph.final();
+
+			if (!error.ec)
+			{
+				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+
+				m_stats_counters.inc_stats_counter(counters::num_read_back);
+				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+				m_stats_counters.inc_stats_counter(counters::num_read_ops);
+				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+			}
+
+			post(m_ios, [=, h = std::move(handler)]{ h(piece, hash, error); });
+		}
+
+
 		void async_move_storage(storage_index_t const storage, std::string p
 			, move_flags_t const flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override

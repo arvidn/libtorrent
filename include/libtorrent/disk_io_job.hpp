@@ -61,6 +61,7 @@ namespace libtorrent {
 		read
 		, write
 		, hash
+		, hash2
 		, move_storage
 		, release_files
 		, delete_files
@@ -125,6 +126,7 @@ namespace libtorrent {
 		using read_handler = std::function<void(disk_buffer_holder block, storage_error const& se)>;
 		using write_handler = std::function<void(storage_error const&)>;
 		using hash_handler = std::function<void(piece_index_t, sha1_hash const&, storage_error const&)>;
+		using hash2_handler = std::function<void(piece_index_t, sha256_hash const&, storage_error const&)>;
 		using move_handler = std::function<void(status_t, std::string, storage_error const&)>;
 		using release_handler = std::function<void()>;
 		using check_handler = std::function<void(status_t, storage_error const&)>;
@@ -135,6 +137,7 @@ namespace libtorrent {
 		boost::variant<read_handler
 			, write_handler
 			, hash_handler
+			, hash2_handler
 			, move_handler
 			, release_handler
 			, check_handler
@@ -152,6 +155,7 @@ namespace libtorrent {
 			un() {}
 			// result for hash jobs
 			sha1_hash piece_hash;
+			sha256_hash piece_hash2;
 
 			// this is used for check_fastresume to pass in a vector of hard-links
 			// to create. Each element corresponds to a file in the file_storage.
