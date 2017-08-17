@@ -107,6 +107,13 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		post(m_ios, [h = std::move(handler), piece] { h(piece, sha1_hash{}, storage_error{}); });
 	}
 
+	void async_hash2(storage_index_t, piece_index_t piece, int
+		, disk_job_flags_t
+		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler)
+	{
+		post(m_ios, [h = std::move(handler), piece]() { h(piece, sha256_hash{}, storage_error{}); });
+	}
+
 	void async_move_storage(storage_index_t
 		, std::string p, move_flags_t
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler) override

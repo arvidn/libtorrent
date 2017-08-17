@@ -221,6 +221,23 @@ namespace libtorrent {
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
+		return do_hashv(ph, len, piece, offset, ec);
+	}
+
+	int part_file::hashv2(hasher256& ph
+		, std::ptrdiff_t const len
+		, piece_index_t const piece
+		, int const offset, error_code& ec)
+	{
+		return do_hashv(ph, len, piece, offset, ec);
+	}
+
+	template <typename Hasher>
+	int part_file::do_hashv(Hasher& ph
+		, std::size_t const len
+		, piece_index_t const piece
+		, int const offset, error_code& ec)
+	{
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(len >= 0);
 		TORRENT_ASSERT(int(len) + offset <= m_piece_size);

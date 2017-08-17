@@ -157,6 +157,8 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 		, disk_job_flags_t flags = {}) override;
 	void async_hash(storage_index_t storage, piece_index_t piece, disk_job_flags_t flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override;
+	void async_hash2(storage_index_t storage, piece_index_t piece, int offset, disk_job_flags_t flags
+		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler) override;
 	void async_move_storage(storage_index_t storage, std::string p, move_flags_t flags
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler) override;
 	void async_release_files(storage_index_t storage
@@ -193,6 +195,7 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 	status_t do_read(disk_io_job* j);
 	status_t do_write(disk_io_job* j);
 	status_t do_hash(disk_io_job* j);
+	status_t do_hash2(disk_io_job* j);
 
 	status_t do_move_storage(disk_io_job* j);
 	status_t do_release_files(disk_io_job* j);
@@ -471,11 +474,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	typedef status_t (disk_io_thread::*disk_io_fun_t)(disk_io_job* j);
 
 	// this is a jump-table for disk I/O jobs
-	std::array<disk_io_fun_t, 11> const job_functions =
+	std::array<disk_io_fun_t, 12> const job_functions =
 	{{
 		&disk_io_thread::do_read,
 		&disk_io_thread::do_write,
 		&disk_io_thread::do_hash,
+		&disk_io_thread::do_hash2,
 		&disk_io_thread::do_move_storage,
 		&disk_io_thread::do_release_files,
 		&disk_io_thread::do_delete_files,
@@ -731,6 +735,19 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		add_job(j);
 	}
 
+	void disk_io_thread::async_hash2(storage_index_t const storage
+		, piece_index_t piece, int offset, disk_job_flags_t flags
+		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler)
+	{
+		disk_io_job* j = allocate_job(job_action_t::hash2);
+		j->storage = m_torrents[storage]->shared_from_this();
+		j->piece = piece;
+		j->d.io.offset = offset;
+		j->callback = std::move(handler);
+		j->flags = flags;
+		add_job(j);
+	}
+
 	void disk_io_thread::async_move_storage(storage_index_t const storage
 		, std::string p, move_flags_t const flags
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler)
@@ -902,6 +919,48 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 
 		j->d.piece_hash = h.final();
+		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
+	}
+
+	status_t disk_io_thread::do_hash2(disk_io_job* j)
+	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
+		int const piece_size = j->storage->files().piece_size2(j->piece);
+		aux::open_mode_t const file_flags = file_flags_for_job(j);
+
+		hasher256 h;
+		int ret = 0;
+
+		DLOG("do_hash2: reading (piece: %d offset: %d)\n", int(j->piece), int(j->d.io.offset));
+
+		time_point const start_time = clock_type::now();
+
+		TORRENT_ASSERT(piece_size > j->d.io.offset);
+		std::ptrdiff_t const len = std::min(default_block_size, piece_size - j->d.io.offset);
+
+		if (!m_store_buffer.get({ j->storage->storage_index(), j->piece, j->d.io.offset }
+			, [&](char* buf)
+		{
+			h.update({ buf, len });
+			ret = int(len);
+		}))
+		{
+			ret = j->storage->hashv2(m_settings, h, len, j->piece, j->d.io.offset, file_flags, j->error);
+			if (ret < 0) return status_t::fatal_disk_error;
+		}
+
+		if (!j->error.ec)
+		{
+			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+			m_stats_counters.inc_stats_counter(counters::num_read_ops);
+			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+		}
+
+		j->d.piece_hash2 = h.final();
 		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
 	}
 

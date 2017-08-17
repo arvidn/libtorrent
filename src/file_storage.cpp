@@ -115,6 +115,22 @@ namespace {
 
 }
 
+	int file_storage::piece_size2(piece_index_t index) const
+	{
+		TORRENT_ASSERT(index >= piece_index_t(0) && index < end_piece());
+		// find the file iterator and file offset
+		internal_file_entry target;
+		target.offset = aux::numeric_cast<std::uint64_t>(piece_length()) * index;
+		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
+
+		auto file_iter = std::upper_bound(
+			m_files.begin(), m_files.end(), target, compare_file_offset);
+
+		TORRENT_ASSERT(file_iter != m_files.begin());
+		if (file_iter == m_files.end()) return piece_size(index);
+		return int(std::min<std::uint64_t>(unsigned(piece_length()), file_iter->offset - target.offset));
+	}
+
 	// path is not supposed to include the name of the torrent itself.
 	void file_storage::update_path_index(internal_file_entry& e
 		, std::string const& path, bool const set_name)
