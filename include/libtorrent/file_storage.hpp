@@ -401,6 +401,12 @@ namespace libtorrent {
 		// for the last piece, which may be shorter.
 		int piece_size(piece_index_t index) const;
 
+		// Returns the size of the given piece. If the piece spans multiple files,
+		// only the first file is considered part of the piece. This is used for
+		// v2 torrents, where all files are piece aligned and padded. i.e. The pad
+		// files are not considered part of the piece for this purpose.
+		int piece_size2(piece_index_t index) const;
+
 		// set and get the name of this torrent. For multi-file torrents, this is also
 		// the name of the root directory all the files are stored in.
 		void set_name(std::string const& n) { m_name = n; }

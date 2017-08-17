@@ -44,10 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // -- example begin
 struct temp_storage
 {
-	temp_storage(int const p_size, std::int64_t const total_size)
-		: m_piece_size(p_size)
-		, m_total_size(total_size)
-	{}
+	temp_storage(lt::file_storage const& fs) : m_files(fs) {}
 
 	lt::span<char const> readv(lt::piece_index_t const piece, int const offset, lt::storage_error& ec) const
 	{
@@ -88,18 +85,35 @@ struct temp_storage
 			ec.ec = boost::asio::error::eof;
 			return {};
 		};
-		return lt::hasher(i->second.data(), int(i->second.size())).final();
+		return lt::hasher(i->second).final();
 	}
+	lt::sha256_hash hash2(lt::piece_index_t const piece, int const offset, lt::storage_error& ec)
+	{
+		auto const i = m_file_data.find(piece);
+		if (i == m_file_data.end())
+		{
+			ec.operation = lt::operation_t::file_read;
+			ec.ec = boost::asio::error::eof;
+			return {};
+		};
+
+		int const piece_size = m_files.piece_size2(piece);
+
+		std::ptrdiff_t const len = std::min(lt::default_block_size, piece_size - offset);
+
+		lt::span<char const> b = {i->second.data() + offset, len};
+		return lt::hasher256(b).final();
+	}
+
 private:
 	int piece_size(lt::piece_index_t piece) const
 	{
-		int const num_pieces = static_cast<int>((m_total_size + m_piece_size - 1) / m_piece_size);
+		int const num_pieces = static_cast<int>((m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length());
 		return static_cast<int>(piece) < num_pieces - 1
-			? m_piece_size : static_cast<int>(m_total_size - (num_pieces - 1) * m_piece_size);
+			? m_files.piece_length() : static_cast<int>(m_files.total_size() - (num_pieces - 1) * m_files.piece_length());
 	}
 
-	int m_piece_size;
-	std::int64_t m_total_size;
+	lt::file_storage const& m_files;
 	std::map<lt::piece_index_t, std::vector<char>> m_file_data;
 };
 
@@ -126,8 +140,7 @@ struct temp_disk_io final : lt::disk_interface
 		lt::storage_index_t const idx = m_free_slots.empty()
 			? m_torrents.end_index()
 			: pop(m_free_slots);
-			auto storage = std::make_unique<temp_storage>(
-			params.files.piece_length(), params.files.total_size());
+			auto storage = std::make_unique<temp_storage>(params.files);
 		if (idx == m_torrents.end_index()) m_torrents.emplace_back(std::move(storage));
 		else m_torrents[idx] = std::move(storage);
 		return lt::storage_holder(idx, *this);
@@ -173,6 +186,15 @@ struct temp_disk_io final : lt::disk_interface
 	{
 		lt::storage_error error;
 		lt::sha1_hash const hash = m_torrents[storage]->hash(piece, error);
+		post(m_ioc, [=]{ handler(piece, hash, error); });
+	}
+
+	void async_hash2(lt::storage_index_t storage, lt::piece_index_t const piece
+		, int const offset, lt::disk_job_flags_t
+		, std::function<void(lt::piece_index_t, lt::sha256_hash const&, lt::storage_error const&)> handler) override
+	{
+		lt::storage_error error;
+		lt::sha256_hash const hash = m_torrents[storage]->hash2(piece, offset, error);
 		post(m_ioc, [=]{ handler(piece, hash, error); });
 	}
 
