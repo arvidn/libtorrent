@@ -212,7 +212,7 @@ namespace libtorrent
 		SET(support_merkle_torrents, true, 0),
 		SET(report_redundant_bytes, true, 0),
 		SET_NOPREV(listen_system_port_fallback, true, 0),
-		SET(use_disk_cache_pool, true, 0),
+		SET(use_disk_cache_pool, false, 0),
 		SET_NOPREV(announce_crypto_support, true, 0),
 		SET_NOPREV(enable_upnp, true, &session_impl::update_upnp),
 		SET_NOPREV(enable_natpmp, true, &session_impl::update_natpmp),
