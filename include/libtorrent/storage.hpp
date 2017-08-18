@@ -293,7 +293,6 @@ namespace libtorrent {
 		//
 		//			int block_size() const { return m_block_size; }
 		//
-		//			void release_memory();
 		//		};
 		virtual void delete_files(remove_flags_t options, storage_error& ec) = 0;
 

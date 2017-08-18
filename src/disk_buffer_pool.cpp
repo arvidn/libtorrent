@@ -77,11 +77,6 @@ namespace libtorrent {
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
 		, m_cache_buffer_chunk_size(0)
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_using_pool_allocator(false)
-		, m_want_pool_allocator(false)
-		, m_pool(block_size, 32)
-#endif
 	{
 #if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
@@ -145,13 +140,8 @@ namespace libtorrent {
 		return m_buffers_in_use.count(buffer) == 1;
 #elif defined TORRENT_DEBUG_BUFFERS
 		return page_aligned_allocator::in_use(buffer);
-#elif defined TORRENT_DISABLE_POOL_ALLOCATOR
-		return true;
 #else
-		if (m_using_pool_allocator)
-			return m_pool.is_from(buffer);
-		else
-			return true;
+		return true;
 #endif
 	}
 
@@ -237,28 +227,8 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		char* ret;
-#if defined TORRENT_DISABLE_POOL_ALLOCATOR
+		char* ret = page_aligned_allocator::malloc(m_block_size);
 
-		ret = page_aligned_allocator::malloc(m_block_size);
-
-#else
-		if (m_using_pool_allocator)
-		{
-			int const effective_block_size
-				= m_in_use >= m_max_use
-				? 20 // use small increments once we've exceeded the cache size
-				: m_cache_buffer_chunk_size
-				? m_cache_buffer_chunk_size
-				: std::max(m_max_use / 10, 1);
-			m_pool.set_next_size(effective_block_size);
-			ret = static_cast<char*>(m_pool.malloc());
-		}
-		else
-		{
-			ret = page_aligned_allocator::malloc(m_block_size);
-		}
-#endif
 		if (ret == nullptr)
 		{
 			m_exceeded_max_size = true;
@@ -324,14 +294,6 @@ namespace libtorrent {
 		// 0 cache_buffer_chunk_size means 'automatic' (i.e.
 		// proportional to the total disk cache size)
 		m_cache_buffer_chunk_size = sett.get_int(settings_pack::cache_buffer_chunk_size);
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// if the chunk size is set to 1, there's no point in creating a pool
-		m_want_pool_allocator = sett.get_bool(settings_pack::use_disk_cache_pool)
-			&& (m_cache_buffer_chunk_size != 1);
-		// if there are no allocated blocks, it's OK to switch allocator
-		if (m_in_use == 0)
-			m_using_pool_allocator = m_want_pool_allocator;
-#endif
 
 		int const cache_size = sett.get_int(settings_pack::cache_size);
 		if (cache_size < 0)
@@ -419,37 +381,9 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-#if defined TORRENT_DISABLE_POOL_ALLOCATOR
-
 		page_aligned_allocator::free(buf);
 
-#else
-		if (m_using_pool_allocator)
-			m_pool.free(buf);
-		else
-			page_aligned_allocator::free(buf);
-#endif // TORRENT_DISABLE_POOL_ALLOCATOR
-
 		--m_in_use;
-
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// should we switch which allocator to use?
-		if (m_in_use == 0 && m_want_pool_allocator != m_using_pool_allocator)
-		{
-			m_pool.release_memory();
-			m_using_pool_allocator = m_want_pool_allocator;
-		}
-#endif
-	}
-
-	void disk_buffer_pool::release_memory()
-	{
-		TORRENT_ASSERT(m_magic == 0x1337);
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		std::unique_lock<std::mutex> l(m_pool_mutex);
-		if (m_using_pool_allocator)
-			m_pool.release_memory();
-#endif
 	}
 
 }
