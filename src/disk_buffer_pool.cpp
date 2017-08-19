@@ -141,6 +141,7 @@ namespace libtorrent {
 #elif defined TORRENT_DEBUG_BUFFERS
 		return page_aligned_allocator::in_use(buffer);
 #else
+		TORRENT_UNUSED(buffer);
 		return true;
 #endif
 	}
