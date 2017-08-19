@@ -287,9 +287,8 @@ void on_alert_notify(lt::session* ses)
 	});
 }
 
-// this test makes sure that a tracker whose host name resolves to both IPv6 and
-// IPv4 addresses will be announced to twice, once for each address family
-TORRENT_TEST(ipv6_support)
+void test_ipv6_support(char const* listen_interfaces
+	, int const expect_v4, int const expect_v6)
 {
 	using sim::asio::ip::address_v4;
 	sim_config network_cfg;
@@ -335,6 +334,7 @@ TORRENT_TEST(ipv6_support)
 		asio::io_service ios(sim, { address_v4::from_string("10.0.0.3")
 			, address_v6::from_string("ffff::1337") });
 		lt::settings_pack sett = settings();
+		sett.set_str(settings_pack::listen_interfaces, listen_interfaces);
 		std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
 
 		ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
@@ -370,9 +370,46 @@ TORRENT_TEST(ipv6_support)
 		sim.run();
 	}
 
+	TEST_EQUAL(v4_announces, expect_v4);
+	TEST_EQUAL(v6_announces, expect_v6);
+}
+
+// this test makes sure that a tracker whose host name resolves to both IPv6 and
+// IPv4 addresses will be announced to twice, once for each address family
+TORRENT_TEST(ipv6_support)
+{
 	// 2 because there's one announce on startup and one when shutting down
-	TEST_EQUAL(v4_announces, 2);
-	TEST_EQUAL(v6_announces, 2);
+	test_ipv6_support("0.0.0.0:6881", 2, 2);
+}
+
+TORRENT_TEST(ipv6_support_bind_v4_v6_any)
+{
+	test_ipv6_support("0.0.0.0:6881,[::0]:6881", 2, 2);
+}
+
+TORRENT_TEST(ipv6_support_bind_v6_any)
+{
+	test_ipv6_support("[::0]:6881", 0, 2);
+}
+
+TORRENT_TEST(ipv6_support_bind_v4)
+{
+	test_ipv6_support("10.0.0.3:6881", 2, 0);
+}
+
+TORRENT_TEST(ipv6_support_bind_v6)
+{
+	test_ipv6_support("[ffff::1337]:6881", 0, 2);
+}
+
+TORRENT_TEST(ipv6_support_bind_v4_v6)
+{
+	test_ipv6_support("10.0.0.3:6881,[ffff::1337]:6881", 2, 2);
+}
+
+TORRENT_TEST(ipv6_support_bind_v6_v4)
+{
+	test_ipv6_support("[ffff::1337]:6881,10.0.0.3:6881", 2, 2);
 }
 
 // this runs a simulation of a torrent with tracker(s), making sure the request

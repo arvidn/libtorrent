@@ -3641,15 +3641,12 @@ namespace {
 		// when talking to the tracker. If there is a matching interface
 		// type in the tracker IP list, make another tracker request
 		// using that interface
-		// in order to avoid triggering this case over and over, don't
-		// do it if the bind IP for the tracker request that just completed
-		// matches one of the listen interfaces, since that means this
-		// announce was the second one
+		// in order to avoid triggering this case over and over, check whether
+		// this announce was itself triggered by this logic (second_announce)
 
 		if (((!is_any(m_ses.get_ipv6_interface().address()) && tracker_ip.is_v4())
 			|| (!is_any(m_ses.get_ipv4_interface().address()) && tracker_ip.is_v6()))
-			&& r.bind_ip != m_ses.get_ipv4_interface().address()
-			&& r.bind_ip != m_ses.get_ipv6_interface().address())
+			&& !r.second_announce)
 		{
 			std::list<address>::const_iterator i = std::find_if(tracker_ips.begin()
 				, tracker_ips.end(), boost::bind(&address::is_v4, _1) != tracker_ip.is_v4());
@@ -3667,6 +3664,7 @@ namespace {
 				tracker_request req = r;
 
 				req.private_torrent = m_torrent_file->priv();
+				req.second_announce = true;
 
 				// tell the tracker to bind to the opposite protocol type
 				req.bind_ip = tracker_ip.is_v4()

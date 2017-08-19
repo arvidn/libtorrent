@@ -1,3 +1,4 @@
+	* fix IPv6 tracker support by performing the second announce in more cases
 	* fix utf-8 encoding check in torrent parser
 	* fix infinite loop when parsing maliciously crafted torrents
 	* fix invalid read in parse_int in bdecoder
