@@ -692,9 +692,6 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, std::uint1
 
 cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 {
-#if !defined TORRENT_DISABLE_POOL_ALLOCATOR
-	TORRENT_ASSERT(is_disk_buffer(boost::get<disk_buffer_holder>(j->argument).get()));
-#endif
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
 #endif
@@ -1616,14 +1613,6 @@ void block_cache::check_invariant() const
 		{
 			if (p.blocks[k].buf)
 			{
-#if !defined TORRENT_DISABLE_POOL_ALLOCATOR && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
-				TORRENT_PIECE_ASSERT(is_disk_buffer(p.blocks[k].buf), &p);
-
-				// make sure we don't have the same buffer
-				// in the cache twice
-				TORRENT_PIECE_ASSERT(buffers.count(p.blocks[k].buf) == 0, &p);
-				buffers.insert(p.blocks[k].buf);
-#endif
 				++num_blocks;
 				if (p.blocks[k].dirty)
 				{

@@ -642,11 +642,15 @@ namespace libtorrent {
 			// failure is preferred, set this to false.
 			listen_system_port_fallback,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``use_disk_cache_pool`` enables using a pool allocator for disk
 			// cache blocks. Enabling it makes the cache perform better at high
 			// throughput. It also makes the cache less likely and slower at
 			// returning memory back to the system, once allocated.
 			use_disk_cache_pool,
+#else
+			deprecated24,
+#endif
 
 			// when this is true, and incoming encrypted connections are enabled,
 			// &supportcrypt=1 is included in http tracker announces
