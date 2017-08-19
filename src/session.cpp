@@ -240,8 +240,6 @@ namespace libtorrent {
 		// of a resumed file
 		set.set_int(settings_pack::checking_mem_usage, 320);
 
-		// the disk cache performs better with the pool allocator
-		set.set_bool(settings_pack::use_disk_cache_pool, true);
 		return set;
 	}
 
