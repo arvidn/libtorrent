@@ -86,14 +86,12 @@ int main()
 	for (std::vector<ip_interface>::const_iterator i = net.begin()
 		, end(net.end()); i != end; ++i)
 	{
-		std::printf("%-30s%-45s%-20s%-8d%s%s%s\n"
+		std::printf("%-30s%-45s%-20s%s%s%s\n"
 			, i->interface_address.to_string(ec).c_str()
 			, i->netmask.to_string(ec).c_str()
 			, i->name
-			, i->mtu
 			, (i->interface_address.is_multicast()?"multicast ":"")
 			, (is_local(i->interface_address)?"local ":"")
 			, (is_loopback(i->interface_address)?"loopback ":""));
 	}
 }
-
