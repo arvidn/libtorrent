@@ -660,7 +660,7 @@ namespace {
 		aux::write_uint32(crypto_field, write_buf);
 		aux::write_uint16(pad_size, write_buf); // len (pad)
 
-		aux::random_bytes({write_buf.data(), pad_size});
+		aux::random_bytes(write_buf.first(pad_size));
 		write_buf = write_buf.subspan(pad_size);
 
 		// append len(ia) if we are initiating
