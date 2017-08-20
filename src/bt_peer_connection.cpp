@@ -475,10 +475,6 @@ namespace {
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-	namespace {
-		char random_byte() { return char(random(0xff)); }
-	}
-
 	void bt_peer_connection::write_pe1_2_dhkey()
 	{
 		INVARIANT_CHECK;
@@ -514,7 +510,7 @@ namespace {
 		std::memcpy(ptr, local_key.data(), dh_key_len);
 		ptr += dh_key_len;
 
-		std::generate(ptr, ptr + pad_size, random_byte);
+		aux::random_bytes({ptr, pad_size});
 		send_buffer({msg, buf_size});
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -664,7 +660,7 @@ namespace {
 		aux::write_uint32(crypto_field, write_buf);
 		aux::write_uint16(pad_size, write_buf); // len (pad)
 
-		std::generate(write_buf.data(), write_buf.data() + pad_size, random_byte);
+		aux::random_bytes({write_buf.data(), pad_size});
 		write_buf = write_buf.subspan(pad_size);
 
 		// append len(ia) if we are initiating
@@ -1712,7 +1708,6 @@ namespace {
 		}
 
 		disconnect(errors::invalid_message, operation_t::bittorrent, 2);
-		return;
 	}
 
 	void bt_peer_connection::on_extended_handshake()
@@ -1800,7 +1795,7 @@ namespace {
 		auto myip = root.dict_find_string_value("yourip");
 		if (!myip.empty())
 		{
-			if (myip.size() == address_v4::bytes_type().size())
+			if (myip.size() == std::tuple_size<address_v4::bytes_type>::value)
 			{
 				address_v4::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
@@ -1809,7 +1804,7 @@ namespace {
 					, aux::session_interface::source_peer, remote().address());
 			}
 #if TORRENT_USE_IPV6
-			else if (myip.size() == address_v6::bytes_type().size())
+			else if (myip.size() == std::tuple_size<address_v6::bytes_type>::value)
 			{
 				address_v6::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
@@ -2392,7 +2387,7 @@ namespace {
 			append_const_send_buffer(std::move(buffer), r.length);
 		}
 
-		m_payloads.push_back(range(send_buffer_size() - r.length, r.length));
+		m_payloads.emplace_back(send_buffer_size() - r.length, r.length);
 		setup_send();
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_piece);
@@ -2562,7 +2557,7 @@ namespace {
 				return;
 			}
 
-			if (!m_sync_hash.get())
+			if (!m_sync_hash)
 			{
 				TORRENT_ASSERT(m_sync_bytes_read == 0);
 
@@ -2670,7 +2665,7 @@ namespace {
 #endif
 			}
 
-			if (!m_rc4.get())
+			if (!m_rc4)
 			{
 				disconnect(errors::invalid_info_hash, operation_t::bittorrent, 1);
 				return;
@@ -2711,7 +2706,7 @@ namespace {
 			}
 
 			// generate the verification constant
-			if (!m_sync_vc.get())
+			if (!m_sync_vc)
 			{
 				TORRENT_ASSERT(m_sync_bytes_read == 0);
 
@@ -3462,10 +3457,9 @@ namespace {
 			// this points to the first entry to not erase. i.e.
 			// [begin, first_to_keep) will be erased because
 			// the payload ranges they represent have been sent
-			std::vector<range>::iterator first_to_keep = m_payloads.begin();
+			auto first_to_keep = m_payloads.begin();
 
-			for (std::vector<range>::iterator i = m_payloads.begin();
-				i != m_payloads.end(); ++i)
+			for (auto i = m_payloads.begin(); i != m_payloads.end(); ++i)
 			{
 				i->start -= int(bytes_transferred);
 				if (i->start < 0)
