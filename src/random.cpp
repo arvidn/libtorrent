@@ -80,18 +80,19 @@ namespace libtorrent { namespace aux {
 
 			aux::crypt_gen_random(buffer);
 
-#elif TORRENT_USE_DEV_RANDOM
-			// /dev/random
-
-			static dev_random dev;
-			dev.read(buffer);
-
 #elif defined TORRENT_USE_LIBCRYPTO
 			// openssl
 
 			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
 				, int(buffer.size()));
 			if (r != 1) aux::throw_ex<system_error>(errors::no_entropy);
+
+#elif TORRENT_USE_DEV_RANDOM
+			// /dev/random
+
+			static dev_random dev;
+			dev.read(buffer);
+
 #else
 			// fallback
 
