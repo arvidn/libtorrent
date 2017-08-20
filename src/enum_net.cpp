@@ -284,9 +284,10 @@ namespace {
 #pragma clang diagnostic pop
 #endif
 
-		if_indextoname(std::uint32_t(if_index), rt_info->name);
 		ifreq req = {};
 		if_indextoname(std::uint32_t(if_index), req.ifr_name);
+		static_assert(sizeof(rt_info->name) >= sizeof(req.ifr_name), "ip_route::name is too small");
+		std::memcpy(rt_info->name, req.ifr_name, sizeof(req.ifr_name));
 		ioctl(s, siocgifmtu, &req);
 		rt_info->mtu = req.ifr_mtu;
 //		obviously this doesn't work correctly. How do you get the netmask for a route?
@@ -381,7 +382,7 @@ namespace {
 int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
 #endif
 
-	bool parse_route(int s, rt_msghdr* rtm, ip_route* rt_info)
+	bool parse_route(int, rt_msghdr* rtm, ip_route* rt_info)
 	{
 		sockaddr* rti_info[RTAX_MAX];
 		sockaddr* sa = reinterpret_cast<sockaddr*>(rtm + 1);
@@ -414,15 +415,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		rt_info->netmask = sockaddr_to_address(rti_info[RTAX_NETMASK]
 			, rt_info->destination.is_v4() ? AF_INET : AF_INET6);
 		if_indextoname(rtm->rtm_index, rt_info->name);
-
-		// TODO: get the MTU (and other interesting metrics) from the rt_msghdr instead
-		ifreq req = {};
-		if_indextoname(rtm->rtm_index, req.ifr_name);
-
-		// ignore errors here. This is best-effort
-		ioctl(s, siocgifmtu, &req);
-		rt_info->mtu = req.ifr_mtu;
-
 		return true;
 	}
 #endif
@@ -615,15 +607,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 				ip_interface iface;
 				if (iface_from_ifaddrs(ifa, iface))
-				{
-					ifreq req = {};
-					// -1 to leave a 0-terminator
-					std::strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
-
-					// ignore errors here. This is best-effort
-					ioctl(s, siocgifmtu, &req);
 					ret.push_back(iface);
-				}
 			}
 		}
 		close(s);
@@ -672,16 +656,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				std::strcpy(iface.name, item.ifr_name);
 
 				ifreq req = {};
-				// -1 to leave a 0-terminator
-				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
-				if (ioctl(s, siocgifmtu, &req) < 0)
-				{
-					ec = error_code(errno, system_category());
-					close(s);
-					return ret;
-				}
-
-				std::memset(&req, 0, sizeof(req));
 				std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
 				{
