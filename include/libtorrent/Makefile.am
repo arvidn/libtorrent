@@ -171,7 +171,6 @@ nobase_include_HEADERS = \
   aux_/disable_warnings_pop.hpp     \
   aux_/disk_job_fence.hpp           \
   aux_/deferred_handler.hpp         \
-  aux_/dev_random.hpp               \
   aux_/deque.hpp                    \
   aux_/escape_string.hpp            \
   aux_/io.hpp                       \

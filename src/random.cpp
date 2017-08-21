@@ -51,10 +51,40 @@ extern "C" {
 #endif
 
 #if TORRENT_USE_DEV_RANDOM
-#include "libtorrent/aux_/dev_random.hpp"
+#include <fcntl.h>
 #endif
 
 namespace libtorrent { namespace aux {
+
+#if TORRENT_USE_DEV_RANDOM
+struct dev_random
+{
+	dev_random()
+		: m_fd(open("/dev/random", O_RDONLY))
+	{
+		if (m_fd < 0)
+		{
+			throw_ex<system_error>(error_code(errno, system_category()));
+		}
+	}
+	dev_random(dev_random const&) = delete;
+	dev_random& operator=(dev_random const&) = delete;
+
+	void read(span<char> buffer)
+	{
+		std::int64_t const ret = ::read(m_fd, buffer.data(), buffer.size());
+		if (ret != int(buffer.size()))
+		{
+			throw_ex<system_error>(errors::no_entropy);
+		}
+	}
+
+	~dev_random() { close(m_fd); }
+
+private:
+	int m_fd;
+};
+#endif
 
 		std::mt19937& random_engine()
 		{
@@ -80,18 +110,19 @@ namespace libtorrent { namespace aux {
 
 			aux::crypt_gen_random(buffer);
 
-#elif TORRENT_USE_DEV_RANDOM
-			// /dev/random
-
-			static dev_random dev;
-			dev.read(buffer);
-
 #elif defined TORRENT_USE_LIBCRYPTO
 			// openssl
 
 			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
 				, int(buffer.size()));
 			if (r != 1) aux::throw_ex<system_error>(errors::no_entropy);
+
+#elif TORRENT_USE_DEV_RANDOM
+			// /dev/random
+
+			static dev_random dev;
+			dev.read(buffer);
+
 #else
 			// fallback
 
