@@ -76,7 +76,6 @@ namespace libtorrent {
 		, m_trigger_cache_trim(trigger_trim)
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
-		, m_cache_buffer_chunk_size(0)
 	{
 #if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
@@ -292,10 +291,6 @@ namespace libtorrent {
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 
-		// 0 cache_buffer_chunk_size means 'automatic' (i.e.
-		// proportional to the total disk cache size)
-		m_cache_buffer_chunk_size = sett.get_int(settings_pack::cache_buffer_chunk_size);
-
 		int const cache_size = sett.get_int(settings_pack::cache_size);
 		if (cache_size < 0)
 		{
@@ -356,8 +351,6 @@ namespace libtorrent {
 			m_exceeded_max_size = true;
 			m_trigger_cache_trim();
 		}
-		if (m_cache_buffer_chunk_size > m_max_use)
-			m_cache_buffer_chunk_size = m_max_use;
 
 #if TORRENT_USE_ASSERTS
 		m_settings_set = true;

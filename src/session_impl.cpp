@@ -6235,12 +6235,6 @@ namespace {
 #endif
 	}
 
-	void session_impl::update_cache_buffer_chunk_size()
-	{
-		if (m_settings.get_int(settings_pack::cache_buffer_chunk_size) <= 0)
-			m_settings.set_int(settings_pack::cache_buffer_chunk_size, 1);
-	}
-
 	void session_impl::update_report_web_seed_downloads()
 	{
 		// if this flag changed, update all web seed connections

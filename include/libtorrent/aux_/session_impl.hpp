@@ -729,7 +729,6 @@ namespace aux {
 			void update_queued_disk_bytes();
 			void update_alert_queue_size();
 			void update_disk_threads();
-			void update_cache_buffer_chunk_size();
 			void update_report_web_seed_downloads();
 			void update_outgoing_interfaces();
 			void update_listen_interfaces();

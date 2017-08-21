@@ -131,8 +131,6 @@ namespace libtorrent {
 
 		mutable std::mutex m_pool_mutex;
 
-		int m_cache_buffer_chunk_size;
-
 		// this is specifically exempt from release_asserts
 		// since it's a quite costly check. Only for debug
 		// builds.

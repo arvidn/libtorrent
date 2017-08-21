@@ -963,20 +963,18 @@ namespace libtorrent {
 			// physical RAM available in the machine divided by 8. If the amount
 			// of physical RAM cannot be determined, it's set to 1024 (= 16 MiB).
 			//
-			// Disk buffers are allocated using a pool allocator, the number of
-			// blocks that are allocated at a time when the pool needs to grow can
-			// be specified in ``cache_buffer_chunk_size``. Lower numbers saves
-			// memory at the expense of more heap allocations. If it is set to 0,
-			// the effective chunk size is proportional to the total cache size,
-			// attempting to strike a good balance between performance and memory
-			// usage. It defaults to 0. ``cache_expiry`` is the number of seconds
-			// from the last cached write to a piece in the write cache, to when
-			// it's forcefully flushed to disk. Default is 60 second.
+			// ``cache_expiry`` is the number of seconds from the last cached write
+			// to a piece in the write cache, to when it's forcefully flushed to
+			// disk. Default is 60 second.
 			//
 			// On 32 bit builds, the effective cache size will be limited to 3/4 of
 			// 2 GiB to avoid exceeding the virtual address space limit.
 			cache_size,
+#ifndef TORRENT_NO_DEPRECATE
 			cache_buffer_chunk_size,
+#else
+			deprecated25,
+#endif
 			cache_expiry,
 
 			// determines how files are opened when they're in read only mode
