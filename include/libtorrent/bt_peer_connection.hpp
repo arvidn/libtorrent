@@ -321,12 +321,6 @@ namespace libtorrent {
 		void write_pe_vc_cryptofield(span<char> write_buf
 			, int crypto_field, std::size_t pad_size);
 
-		// Returns offset at which bytestream (src, src + src_size)
-		// matches bytestream(target, target + target_size).
-		// If no sync found, return -1
-		int get_syncoffset(char const* src, int src_size
-			, char const* target, int target_size) const;
-
 		// helper to cut down on boilerplate
 		void rc4_decrypt(span<char> buf);
 #endif

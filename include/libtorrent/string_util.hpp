@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/span.hpp"
 
 #include <vector>
 #include <string>
@@ -70,6 +71,10 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT void url_random(char* begin, char* end);
 
 	TORRENT_EXTRA_EXPORT bool string_ends_with(string_view s1, string_view s2);
+
+	// Returns offset at which src matches target.
+	// If no sync found, return -1
+	TORRENT_EXTRA_EXPORT int search(span<char const> src, span<char const> target);
 
 	struct listen_interface_t
 	{

@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp" // for alert_manager
+#include "libtorrent/string_util.hpp" // for search
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 #include "libtorrent/pe_crypto.hpp"
@@ -666,29 +667,6 @@ namespace {
 		// append len(ia) if we are initiating
 		if (is_outgoing())
 			aux::write_uint16(handshake_len, write_buf); // len(IA)
-	}
-
-	// TODO: 3 use span instead of (pointer,len) pairs
-	int bt_peer_connection::get_syncoffset(char const* src, int const src_size
-		, char const* target, int const target_size) const
-	{
-		TORRENT_ASSERT(target_size >= src_size);
-		TORRENT_ASSERT(src_size > 0);
-		TORRENT_ASSERT(src);
-		TORRENT_ASSERT(target);
-
-		int const traverse_limit = target_size - src_size;
-
-		// TODO: this could be optimized using knuth morris pratt
-		for (int i = 0; i < traverse_limit; ++i)
-		{
-			char const* target_ptr = target + i;
-			if (std::equal(src, src+src_size, target_ptr))
-				return i;
-		}
-
-		// no complete sync
-		return -1;
 	}
 
 	void bt_peer_connection::rc4_decrypt(span<char> buf)
@@ -2579,8 +2557,7 @@ namespace {
 #endif
 			}
 
-			int const syncoffset = get_syncoffset(m_sync_hash->data(), 20
-				, recv_buffer.begin(), int(recv_buffer.size()));
+			int const syncoffset = search(*m_sync_hash, recv_buffer);
 
 			// No sync
 			if (syncoffset == -1)
@@ -2721,8 +2698,7 @@ namespace {
 			}
 
 			TORRENT_ASSERT(m_sync_vc.get());
-			int const syncoffset = get_syncoffset(m_sync_vc.get(), 8
-				, recv_buffer.begin(), int(recv_buffer.size()));
+			int const syncoffset = search({m_sync_vc.get(), 8}, recv_buffer);
 
 			// No sync
 			if (syncoffset == -1)

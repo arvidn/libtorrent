@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib> // for malloc
 #include <cstring> // for memmov/strcpy/strlen
+#include <algorithm> // for search
 
 namespace libtorrent {
 
@@ -147,6 +148,20 @@ namespace libtorrent {
 	bool string_ends_with(string_view s1, string_view s2)
 	{
 		return s1.size() >= s2.size() && std::equal(s2.rbegin(), s2.rend(), s1.rbegin());
+	}
+
+	int search(span<char const> src, span<char const> target)
+	{
+		TORRENT_ASSERT(!src.empty());
+		TORRENT_ASSERT(!target.empty());
+		TORRENT_ASSERT(target.size() >= src.size());
+		TORRENT_ASSERT(target.size() < std::size_t(std::numeric_limits<int>::max()));
+
+		auto it = std::search(target.begin(), target.end(), src.begin(), src.end());
+
+		// no complete sync
+		if (it == target.end()) return -1;
+		return static_cast<int>(it - target.begin());
 	}
 
 	char* allocate_string_copy(char const* str)
