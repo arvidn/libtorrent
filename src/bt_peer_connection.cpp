@@ -2778,10 +2778,8 @@ namespace {
 
 			if (!m_recv_buffer.packet_finished()) return;
 
-			// TODO: 3 this is weird buffer handling
-			span<char> const buf = m_recv_buffer.mutable_buffer();
-			TORRENT_ASSERT(int(buf.size()) >= m_recv_buffer.packet_size());
-			rc4_decrypt({buf.data(), size_t(m_recv_buffer.packet_size())});
+			rc4_decrypt(m_recv_buffer.mutable_buffer().first(
+				size_t(m_recv_buffer.packet_size())));
 
 			recv_buffer = m_recv_buffer.get();
 
@@ -2885,10 +2883,8 @@ namespace {
 
 			int const pad_size = is_outgoing() ? m_recv_buffer.packet_size() : m_recv_buffer.packet_size() - 2;
 
-			// TODO: 3 this is weird buffer handling
-			span<char> const buf = m_recv_buffer.mutable_buffer();
-			TORRENT_ASSERT(int(buf.size()) >= m_recv_buffer.packet_size());
-			rc4_decrypt({buf.data(), size_t(m_recv_buffer.packet_size())});
+			rc4_decrypt(m_recv_buffer.mutable_buffer().first(
+				size_t(m_recv_buffer.packet_size())));
 
 			recv_buffer = m_recv_buffer.get();
 
@@ -2946,10 +2942,7 @@ namespace {
 			if (!m_recv_buffer.packet_finished()) return;
 
 			// ia is always rc4, so decrypt it
-			// TODO: 3 this is weird buffer handling
-			span<char> const buf = m_recv_buffer.mutable_buffer();
-			TORRENT_ASSERT(int(buf.size()) >= m_recv_buffer.packet_size());
-			rc4_decrypt({buf.data(), size_t(m_recv_buffer.packet_size())});
+			rc4_decrypt(m_recv_buffer.mutable_buffer().first(size_t(m_recv_buffer.packet_size())));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ENCRYPTION"
