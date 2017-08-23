@@ -2744,9 +2744,15 @@ namespace libtorrent {
 			&& m_torrent_file
 			&& m_torrent_file->priv())
 		{
-			tcp::endpoint ep;
-			ep = m_ses.get_ipv6_interface();
-			if (ep != tcp::endpoint()) req.ipv6 = ep.address().to_v6();
+
+			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s)
+			{
+				if (s.is_ssl() != is_ssl_torrent())
+					return;
+				if (!s.get_local_endpoint().address().is_v6())
+					return;
+				req.ipv6.push_back(s.get_local_endpoint().address().to_v6());
+			});
 		}
 #endif
 
