@@ -1444,31 +1444,6 @@ namespace {
 			reopen_outgoing_sockets();
 	}
 
-	// TODO: 3 try to remove these functions. They are misleading and not very
-	// useful. Anything using these should probably be fixed to do something more
-	// multi-homed friendly
-	tcp::endpoint session_impl::get_ipv6_interface() const
-	{
-#if TORRENT_USE_IPV6
-		for (auto const& i : m_listen_sockets)
-		{
-			if (!i->local_endpoint.address().is_v6()) continue;
-			return tcp::endpoint(i->local_endpoint.address(), std::uint16_t(i->tcp_external_port));
-		}
-#endif
-		return tcp::endpoint();
-	}
-
-	tcp::endpoint session_impl::get_ipv4_interface() const
-	{
-		for (auto const& i : m_listen_sockets)
-		{
-			if (!i->local_endpoint.address().is_v4()) continue;
-			return tcp::endpoint(i->local_endpoint.address(), std::uint16_t(i->tcp_external_port));
-		}
-		return tcp::endpoint();
-	}
-
 	std::shared_ptr<listen_socket_t> session_impl::setup_listener(std::string const& device
 		, tcp::endpoint bind_ep, transport const ssl, error_code& ec)
 	{

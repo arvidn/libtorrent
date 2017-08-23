@@ -181,12 +181,13 @@ namespace libtorrent {
 		}
 
 #if TORRENT_USE_IPV6
-		if (tracker_req().ipv6 != address_v6() && !i2p)
+		if (!tracker_req().ipv6.empty() && !i2p)
 		{
-			error_code err;
-			std::string const ip = tracker_req().ipv6.to_string(err);
-			if (!err)
+			for (auto const& v6 : tracker_req().ipv6)
 			{
+				error_code err;
+				std::string const ip = v6.to_string(err);
+				if (err) continue;
 				url += "&ipv6=";
 				url += escape_string(ip);
 			}
