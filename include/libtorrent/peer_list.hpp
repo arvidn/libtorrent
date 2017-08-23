@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/aux_/deque.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent {
 
@@ -113,7 +114,7 @@ namespace libtorrent {
 		peer_list();
 
 #if TORRENT_USE_I2P
-		torrent_peer* add_i2p_peer(char const* destination
+		torrent_peer* add_i2p_peer(string_view destination
 			, peer_source_flags_t src, char flags
 			, torrent_state* state);
 #endif
@@ -213,7 +214,7 @@ namespace libtorrent {
 		void update_connect_candidates(int delta);
 
 		void update_peer(torrent_peer* p, peer_source_flags_t src, int flags
-		, tcp::endpoint const& remote, char const* destination);
+		, tcp::endpoint const& remote);
 		bool insert_peer(torrent_peer* p, iterator iter, int flags, torrent_state* state);
 
 		bool compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const;

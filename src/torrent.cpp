@@ -6503,7 +6503,7 @@ namespace libtorrent {
 				, m_ses.i2p_proxy(), *s, nullptr, nullptr, false, false);
 			(void)ret;
 			TORRENT_ASSERT(ret);
-			s->get<i2p_stream>()->set_destination(static_cast<i2p_peer*>(peerinfo)->destination);
+			s->get<i2p_stream>()->set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
 			s->get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
 			s->get<i2p_stream>()->set_session_id(m_ses.i2p_session());
 		}

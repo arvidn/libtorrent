@@ -196,7 +196,7 @@ namespace libtorrent {
 	std::string torrent_peer::to_string() const
 	{
 #if TORRENT_USE_I2P
-		if (is_i2p_addr) return dest();
+		if (is_i2p_addr) return dest().to_string();
 #endif // TORRENT_USE_I2P
 		error_code ec;
 		return address().to_string(ec);
@@ -246,30 +246,15 @@ namespace libtorrent {
 	ipv4_peer& ipv4_peer::operator=(ipv4_peer const& p) = default;
 
 #if TORRENT_USE_I2P
-	i2p_peer::i2p_peer(char const* dest, bool connectable
+	i2p_peer::i2p_peer(string_view dest, bool connectable
 		, peer_source_flags_t const src)
-		: torrent_peer(0, connectable, src), destination(allocate_string_copy(dest))
+		: torrent_peer(0, connectable, src)
+		, destination(dest)
 	{
 #if TORRENT_USE_IPV6
 		is_v6_addr = false;
 #endif
 		is_i2p_addr = true;
-	}
-
-	i2p_peer::~i2p_peer()
-	{ free(destination); }
-
-	i2p_peer::i2p_peer(const i2p_peer& rhs)
-		: torrent_peer(rhs.port, rhs.connectable, rhs.peer_source())
-		, destination(allocate_string_copy(rhs.destination))
-	{}
-
-	i2p_peer& i2p_peer::operator=(i2p_peer const& rhs)
-	{
-		char* tmp = allocate_string_copy(rhs.destination);
-		free(destination);
-		destination = tmp;
-		return *this;
 	}
 #endif // TORRENT_USE_I2P
 
@@ -290,10 +275,10 @@ namespace libtorrent {
 #endif // TORRENT_USE_IPV6
 
 #if TORRENT_USE_I2P
-	char const* torrent_peer::dest() const
+	string_view torrent_peer::dest() const
 	{
 		if (is_i2p_addr)
-			return static_cast<i2p_peer const*>(this)->destination;
+			return *static_cast<i2p_peer const*>(this)->destination;
 		return "";
 	}
 #endif
