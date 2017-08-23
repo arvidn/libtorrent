@@ -5054,10 +5054,18 @@ retry:
 
 	void session_impl::update_outgoing_interfaces()
 	{
-		std::string net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
+		std::string const net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
 
 		// declared in string_util.hpp
 		parse_comma_separated_string(net_interfaces, m_net_interfaces);
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (!net_interfaces.empty() && m_net_interfaces.empty())
+		{
+			session_log("ERROR: failed to parse outgoing interface list: %s"
+				, net_interfaces.c_str());
+		}
+#endif
 	}
 
 	tcp::endpoint session_impl::bind_outgoing_socket(socket_type& s, address
@@ -5250,13 +5258,18 @@ retry:
 	void session_impl::update_listen_interfaces()
 	{
 
-		std::string net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
+		std::string const net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
 		std::vector<std::pair<std::string, int> > new_listen_interfaces;
 
 		// declared in string_util.hpp
 		parse_comma_separated_string_port(net_interfaces, new_listen_interfaces);
 
 #ifndef TORRENT_DISABLE_LOGGING
+		if (!net_interfaces.empty() && new_listen_interfaces.empty())
+		{
+			session_log("ERROR: failed to parse listen_interfaces setting: %s"
+				, net_interfaces.c_str());
+		}
 		session_log("update listen interfaces: %s", net_interfaces.c_str());
 #endif
 
@@ -5436,6 +5449,13 @@ retry:
 		std::string const& node_list = m_settings.get_str(settings_pack::dht_bootstrap_nodes);
 		std::vector<std::pair<std::string, int> > nodes;
 		parse_comma_separated_string_port(node_list, nodes);
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (!node_list.empty() && nodes.empty())
+		{
+			session_log("ERROR: failed to parse DHT bootstrap list: %s", node_list.c_str());
+		}
+#endif
 
 		for (int i = 0; i < nodes.size(); ++i)
 		{
