@@ -11,6 +11,8 @@
 #include <memory>
 #include "bytes.hpp"
 
+#include <boost/type_traits/is_polymorphic.hpp>
+
 using namespace boost::python;
 using namespace lt;
 
