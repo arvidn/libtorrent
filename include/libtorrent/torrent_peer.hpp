@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
-#include "libtorrent/string_util.hpp" // for string_ptr
+#include "libtorrent/aux_/string_ptr.hpp"
 #include "libtorrent/string_view.hpp"
 
 namespace libtorrent {
@@ -221,7 +221,7 @@ namespace libtorrent {
 		i2p_peer(i2p_peer&&) = default;
 		i2p_peer& operator=(i2p_peer&&) = default;
 
-		string_ptr destination;
+		aux::string_ptr destination;
 	};
 #endif
 

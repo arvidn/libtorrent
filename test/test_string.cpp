@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/hex.hpp"
 #include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_ptr.hpp"
 #include <iostream>
 #include <cstring> // for strcmp
 #include "libtorrent/aux_/escape_string.hpp" // for trim
@@ -446,5 +447,44 @@ TORRENT_TEST(string_eq_no_case)
 	// make sure zeros are supported
 	TEST_CHECK(cmp(std::string("\0a", 2), std::string("\0b", 2)) == false);
 	TEST_CHECK(cmp(std::string("\0a", 2), std::string("\0a", 2)));
+}
+
+TORRENT_TEST(string_ptr_zero_termination)
+{
+	char str[] = {'f', 'o', 'o', 'b', 'a', 'r'};
+	aux::string_ptr p(string_view(str, sizeof(str)));
+
+	// make sure it's zero-terminated now
+	TEST_CHECK(strlen(*p) == 6);
+	TEST_CHECK((*p)[6] == '\0');
+	TEST_CHECK(*p == string_view("foobar"));
+}
+
+TORRENT_TEST(string_ptr_move_construct)
+{
+	aux::string_ptr p1("test");
+	TEST_CHECK(*p1 == string_view("test"));
+
+	aux::string_ptr p2(std::move(p1));
+
+	TEST_CHECK(*p2 == string_view("test"));
+
+	// moved-from state is empty
+	TEST_CHECK(*p1 == nullptr);
+}
+
+TORRENT_TEST(string_ptr_move_assign)
+{
+	aux::string_ptr p1("test");
+	TEST_CHECK(*p1 == string_view("test"));
+
+	aux::string_ptr p2("foobar");
+
+	p1 = std::move(p2);
+
+	TEST_CHECK(*p1 == string_view("foobar"));
+
+	// moved-from state is empty
+	TEST_CHECK(*p2 == nullptr);
 }
 

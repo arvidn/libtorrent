@@ -187,6 +187,7 @@ nobase_include_HEADERS = \
   aux_/session_interface.hpp        \
   aux_/suggest_piece.hpp            \
   aux_/storage_piece_set.hpp        \
+  aux_/string_ptr.hpp               \
   aux_/time.hpp                     \
   aux_/file_progress.hpp            \
   aux_/openssl.hpp                  \
