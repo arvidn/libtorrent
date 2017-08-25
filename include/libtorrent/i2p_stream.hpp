@@ -100,7 +100,7 @@ public:
 
 	void set_session_id(char const* id) { m_id = id; }
 
-	void set_destination(std::string const& d) { m_dest = d; }
+	void set_destination(string_view d) { m_dest = d.to_string(); }
 	std::string const& destination() { return m_dest; }
 
 	template <class Handler>

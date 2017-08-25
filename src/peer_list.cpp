@@ -952,8 +952,7 @@ namespace libtorrent {
 	}
 
 	void peer_list::update_peer(torrent_peer* p, peer_source_flags_t const src
-		, int flags
-		, tcp::endpoint const& remote, char const* /* destination*/)
+		, int flags, tcp::endpoint const& remote)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		bool const was_conn_cand = is_connect_candidate(*p);
@@ -1008,50 +1007,40 @@ namespace libtorrent {
 	}
 
 #if TORRENT_USE_I2P
-	// TODO: 3 use string_view for destination
-	torrent_peer* peer_list::add_i2p_peer(char const* destination
+	torrent_peer* peer_list::add_i2p_peer(string_view const destination
 		, peer_source_flags_t const src, char flags, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		bool found = false;
-		iterator iter = std::lower_bound(
-			m_peers.begin(), m_peers.end()
-			, destination, peer_address_compare()
-		);
+		iterator iter = std::lower_bound(m_peers.begin(), m_peers.end()
+			, destination, peer_address_compare());
 
-		if (iter != m_peers.end() && strcmp((*iter)->dest(), destination) == 0)
-			found = true;
-
-		torrent_peer* p = nullptr;
-
-		if (!found)
+		if (iter != m_peers.end() && (*iter)->dest() == destination)
 		{
-			// we don't have any info about this peer.
-			// add a new entry
-			p = state->peer_allocator->allocate_peer_entry(torrent_peer_allocator_interface::i2p_peer_type);
-			if (p == nullptr) return nullptr;
-			new (p) i2p_peer(destination, true, src);
-
-#if TORRENT_USE_ASSERTS
-			p->in_use = true;
-#endif
-
-			if (!insert_peer(p, iter, flags, state))
-			{
-#if TORRENT_USE_ASSERTS
-				p->in_use = false;
-#endif
-
-				state->peer_allocator->free_peer_entry(p);
-				return nullptr;
-			}
+			update_peer(*iter, src, flags, tcp::endpoint());
+			return *iter;
 		}
-		else
+
+		// we don't have any info about this peer.
+		// add a new entry
+		torrent_peer* p = state->peer_allocator->allocate_peer_entry(
+			torrent_peer_allocator_interface::i2p_peer_type);
+		if (p == nullptr) return nullptr;
+		new (p) i2p_peer(destination, true, src);
+
+#if TORRENT_USE_ASSERTS
+		p->in_use = true;
+#endif
+
+		if (!insert_peer(p, iter, flags, state))
 		{
-			p = *iter;
-			update_peer(p, src, flags, tcp::endpoint(), destination);
+#if TORRENT_USE_ASSERTS
+			p->in_use = false;
+#endif
+
+			state->peer_allocator->free_peer_entry(p);
+			return nullptr;
 		}
 		return p;
 	}
@@ -1089,10 +1078,8 @@ namespace libtorrent {
 		}
 		else
 		{
-			iter = std::lower_bound(
-				m_peers.begin(), m_peers.end()
-				, remote.address(), peer_address_compare()
-			);
+			iter = std::lower_bound(m_peers.begin(), m_peers.end()
+				, remote.address(), peer_address_compare());
 
 			if (iter != m_peers.end() && (*iter)->address() == remote.address()) found = true;
 		}
@@ -1137,7 +1124,7 @@ namespace libtorrent {
 		{
 			p = *iter;
 			TORRENT_ASSERT(p->in_use);
-			update_peer(p, src, flags, remote, nullptr);
+			update_peer(p, src, flags, remote);
 			state->first_time_seen = false;
 		}
 

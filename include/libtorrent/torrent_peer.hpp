@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
+#include "libtorrent/aux_/string_ptr.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent {
 
@@ -59,7 +61,7 @@ namespace libtorrent {
 		std::uint32_t rank(external_ip const& external, int external_port) const;
 
 		libtorrent::address address() const;
-		char const* dest() const;
+		string_view dest() const;
 
 		tcp::endpoint ip() const { return tcp::endpoint(address(), port); }
 
@@ -213,12 +215,13 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	struct TORRENT_EXTRA_EXPORT i2p_peer : torrent_peer
 	{
-		i2p_peer(char const* destination, bool connectable, peer_source_flags_t src);
-		i2p_peer(i2p_peer const&);
-		~i2p_peer();
-		i2p_peer& operator=(i2p_peer const&);
+		i2p_peer(string_view dst, bool connectable, peer_source_flags_t src);
+		i2p_peer(i2p_peer const&) = delete;
+		i2p_peer& operator=(i2p_peer const&) = delete;
+		i2p_peer(i2p_peer&&) = default;
+		i2p_peer& operator=(i2p_peer&&) = default;
 
-		char* destination;
+		aux::string_ptr destination;
 	};
 #endif
 
@@ -234,38 +237,33 @@ namespace libtorrent {
 
 	struct peer_address_compare
 	{
-		bool operator()(
-			torrent_peer const* lhs, libtorrent::address const& rhs) const
+		bool operator()(torrent_peer const* lhs, address const& rhs) const
 		{
 			return lhs->address() < rhs;
 		}
 
-		bool operator()(
-				libtorrent::address const& lhs, torrent_peer const* rhs) const
+		bool operator()(address const& lhs, torrent_peer const* rhs) const
 		{
 			return lhs < rhs->address();
 		}
 
 #if TORRENT_USE_I2P
-		bool operator()(
-				torrent_peer const* lhs, char const* rhs) const
+		bool operator()(torrent_peer const* lhs, string_view rhs) const
 		{
-			return strcmp(lhs->dest(), rhs) < 0;
+			return lhs->dest().compare(rhs) < 0;
 		}
 
-		bool operator()(
-				char const* lhs, torrent_peer const* rhs) const
+		bool operator()(string_view lhs, torrent_peer const* rhs) const
 		{
-			return strcmp(lhs, rhs->dest()) < 0;
+			return lhs.compare(rhs->dest()) < 0;
 		}
 #endif
 
-		bool operator()(
-				torrent_peer const* lhs, torrent_peer const* rhs) const
+		bool operator()(torrent_peer const* lhs, torrent_peer const* rhs) const
 		{
 #if TORRENT_USE_I2P
 			if (rhs->is_i2p_addr == lhs->is_i2p_addr)
-				return strcmp(lhs->dest(), rhs->dest()) < 0;
+				return lhs->dest().compare(rhs->dest()) < 0;
 #endif
 			return lhs->address() < rhs->address();
 		}
