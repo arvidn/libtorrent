@@ -181,6 +181,7 @@ option(exceptions "build with exception support" ON)
 option(libiconv "enable linking against system libiconv" OFF)
 option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
+option(build_examples "build examples" OFF)
 
 find_package(Threads REQUIRED)
 
@@ -408,10 +409,10 @@ install(
 		${ConfigPackageLocation}
 )
 
-# === set up examples directory as an independent project ===
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/examples)
-configure_file(examples/run_cmake.sh.in examples/run_cmake.sh)
-# to build the examples, run examples/run_cmake.sh after building libtorrent
+# === build examples ===
+if (build_examples)
+	add_subdirectory(examples)
+endif()
 
 # === build tests ===
 if(build_tests)

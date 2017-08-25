@@ -1,7 +1,0 @@
-#!/bin/sh
-
-cd ${libtorrent_BINARY_DIR}/examples
-cmake \
-    -G "${CMAKE_GENERATOR}" \
-    $@ \
-    ${libtorrent_SOURCE_DIR}/examples
