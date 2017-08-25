@@ -642,8 +642,7 @@ std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
 	using namespace lt;
 	file_storage fs = make_file_storage(file_sizes, piece_size);
 
-	lt::create_torrent ct(fs, piece_size, 0x4000
-		, lt::create_torrent::optimize_alignment);
+	lt::create_torrent ct(fs, piece_size);
 
 	for (auto const i : fs.piece_range())
 	{

@@ -152,6 +152,10 @@ namespace libtorrent {
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER mutable_torrent_support = 4_bit;
 #endif
 
+		// do not generate v2 metadata or enforce v2 alignment and padding rules
+		// this is mainly for tests, not recommended for production use
+		static constexpr create_flags_t v1_only = 5_bit;
+
 		// The ``piece_size`` is the size of each piece in bytes. It must
 		// be a multiple of 16 kiB. If a piece size of 0 is specified, a
 		// piece_size will be calculated such that the torrent file is roughly 40 kB.
@@ -216,6 +220,8 @@ namespace libtorrent {
 		// the files on disk, you can use the high level convenience function to do this.
 		// See set_piece_hashes().
 		void set_hash(piece_index_t index, sha1_hash const& h);
+
+		void set_hash2(file_index_t file, piece_index_t::diff_type piece, sha256_hash const& h);
 
 		// This sets the sha1 hash for this file. This hash will end up under the key ``sha1``
 		// associated with this file (for multi-file torrents) or in the root info dictionary
@@ -313,6 +319,9 @@ namespace libtorrent {
 
 		aux::vector<sha1_hash, file_index_t> m_filehashes;
 
+		mutable aux::vector<sha256_hash, file_index_t> m_fileroots;
+		aux::vector<std::vector<sha256_hash>, file_index_t> m_file_piece_hash;
+
 		std::vector<sha1_hash> m_similar;
 		std::vector<std::string> m_collections;
 
@@ -354,6 +363,9 @@ namespace libtorrent {
 		// the torrent file. The full data of the pointed-to
 		// file is still included
 		bool m_include_symlinks:1;
+
+		// only generate v1 metadata and do not enforce v2 padding rules
+		bool m_v1_only:1;
 	};
 
 namespace detail {

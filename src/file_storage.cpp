@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
+#include "libtorrent/aux_/merkle.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
@@ -857,6 +859,36 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		return m_files[index].offset;
+	}
+
+	int file_storage::file_num_pieces(file_index_t const index) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
+		return int((m_files[index].size + m_piece_length - 1) / m_piece_length);
+	}
+
+	int file_storage::file_num_blocks(file_index_t const index) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
+		return int((m_files[index].size + default_block_size - 1) / default_block_size);
+	}
+
+	int file_storage::file_first_piece_node(file_index_t index) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
+		int const piece_layer_size = merkle_num_leafs(file_num_pieces(index));
+		return merkle_num_nodes(piece_layer_size) - piece_layer_size;
+	}
+
+	int file_storage::file_first_block_node(file_index_t index) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
+		int const leaf_layer_size = merkle_num_leafs(file_num_blocks(index));
+		return merkle_num_nodes(leaf_layer_size) - leaf_layer_size;
 	}
 
 	file_flags_t file_storage::file_flags(file_index_t const index) const

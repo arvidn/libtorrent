@@ -65,6 +65,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION <= 2
 	constexpr create_flags_t create_torrent::mutable_torrent_support;
 #endif
+	constexpr create_flags_t create_torrent::v1_only;
 
 namespace {
 
@@ -180,8 +181,8 @@ namespace {
 		error_code& ec;
 	};
 
-	void on_hash(piece_index_t const piece, sha1_hash const& piece_hash
-		, storage_error const& error, hash_state* st)
+	void on_hash(std::vector<sha256_hash> v2_chunks, piece_index_t const piece
+		, sha1_hash const& piece_hash, storage_error const& error, hash_state* st)
 	{
 		if (error)
 		{
@@ -191,13 +192,39 @@ namespace {
 			return;
 		}
 		st->ct.set_hash(piece, piece_hash);
+
+		std::int64_t const piece_offset = std::int64_t(piece) * st->ct.piece_length();
+		file_index_t const current_file = st->ct.files().file_index_at_offset(piece_offset);
+		if (!st->ct.files().pad_file_at(current_file))
+		{
+			piece_index_t const file_first_piece(int(st->ct.files().file_offset(current_file) / st->ct.piece_length()));
+			TORRENT_ASSERT(st->ct.files().file_offset(current_file) % st->ct.piece_length() == 0);
+
+			auto const file_piece_offset = piece - file_first_piece;
+			auto const file_size = st->ct.files().file_size(current_file);
+			int const piece_blocks = (st->ct.files().piece_size2(piece) + default_block_size - 1) / default_block_size;
+			// If the file is smaller than one piece then the block hashes
+			// should be padded to the next power of two instead of the next
+			// piece boundary.
+			int const paded_leaves = file_size < st->ct.piece_length()
+				? merkle_num_leafs(int((file_size + default_block_size - 1) / default_block_size))
+				: st->ct.piece_length() / default_block_size;
+
+			TORRENT_ASSERT(paded_leaves <= int(v2_chunks.size()));
+			for (auto i = piece_blocks; i < paded_leaves; ++i)
+				v2_chunks[i].clear();
+			sha256_hash piece_root = merkle_root(span<sha256_hash>(v2_chunks).first(paded_leaves));
+			st->ct.set_hash2(current_file, file_piece_offset, piece_root);
+		}
+
 		st->f(st->completed_piece);
 		++st->completed_piece;
 		if (st->piece_counter < st->ct.files().end_piece())
 		{
-			st->iothread.async_hash(st->storage, st->piece_counter, {}
+			span<sha256_hash> v2_span(v2_chunks);
+			st->iothread.async_hash(st->storage, st->piece_counter, v2_span
 				, disk_interface::sequential_access
-				, std::bind(&on_hash, _1, _2, _3, st));
+				, std::bind(&on_hash, std::move(v2_chunks), _1, _2, _3, st));
 			++st->piece_counter;
 		}
 		else
@@ -327,8 +354,12 @@ namespace {
 		hash_state st = { t, std::move(storage), *disk_thread.get(), piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
-			disk_thread->async_hash(st.storage, i, {}, disk_interface::sequential_access
-				, std::bind(&on_hash, _1, _2, _3, &st));
+			std::vector<sha256_hash> v2_chunks(t.piece_length() / default_block_size);
+			// the span needs to be created before the call to async_hash to ensure that
+			// it is constructed before the vector is moved into the bind context
+			span<sha256_hash> v2_span(v2_chunks);
+			disk_thread->async_hash(st.storage, i, v2_span, disk_interface::sequential_access
+				, std::bind(&on_hash, std::move(v2_chunks), _1, _2, _3, &st));
 			++st.piece_counter;
 			if (st.piece_counter >= t.files().end_piece()) break;
 		}
@@ -351,6 +382,7 @@ namespace {
 		, m_private(false)
 		, m_include_mtime(bool(flags & create_torrent::modification_time))
 		, m_include_symlinks(bool(flags & create_torrent::symlinks))
+		, m_v1_only(bool(flags & create_torrent::v1_only))
 	{
 		// return instead of crash in release mode
 		if (fs.num_files() == 0 || fs.total_size() == 0) return;
@@ -387,6 +419,9 @@ namespace {
 			piece_size = default_block_size << i;
 		}
 
+		if (!m_v1_only)
+			piece_size = std::max(piece_size, 16 * 1024);
+
 		// make sure the size is an even power of 2
 #if TORRENT_USE_ASSERTS
 		for (int i = 0; i < 31; ++i)
@@ -399,10 +434,18 @@ namespace {
 		}
 #endif
 		m_files.set_piece_length(piece_size);
-		m_files.canonicalize();
+		if (!m_v1_only)
+			m_files.canonicalize();
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
+		if (!m_v1_only)
+		{
+			m_fileroots.resize(m_files.num_files());
+			m_file_piece_hash.resize(m_files.num_files());
+			for (file_index_t i(0); i != m_files.num_files(); ++i)
+				m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
+		}
 	}
 
 	create_torrent::create_torrent(torrent_info const& ti)
@@ -439,6 +482,10 @@ namespace {
 		}
 
 		m_piece_hash.resize(m_files.num_pieces());
+		m_fileroots.resize(m_files.num_files());
+		m_file_piece_hash.resize(m_files.num_files());
+		for (auto const i : m_files.file_range())
+			m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
 		for (auto const i : m_files.piece_range())
 			set_hash(i, ti.hash_for_piece(i));
 
@@ -530,6 +577,27 @@ namespace {
 			}
 		}
 
+		if (!m_file_piece_hash.empty())
+		{
+			sha256_hash pad_hash = merkle_root(std::vector<sha256_hash>(m_files.piece_length() / (16 * 1024)));
+			auto& file_pieces = dict["piece layers"].dict();
+
+			for (file_index_t fi(0); fi != m_files.end_file(); ++fi)
+			{
+				if (files().file_flags(fi) & file_storage::flag_pad_file) continue;
+				if (files().file_size(fi) == 0) continue;
+
+				m_fileroots[fi] = merkle_root(m_file_piece_hash[fi], pad_hash);
+
+				if (m_file_piece_hash[fi].size() < 2) continue;
+				auto& pieces = file_pieces[m_fileroots[fi].to_string()].string();
+				pieces.clear();
+				pieces.reserve(m_file_piece_hash[fi].size() * sha256_hash::size());
+				for (auto& p : m_file_piece_hash[fi])
+					pieces.append(reinterpret_cast<const char*>(p.data()), p.size());
+			}
+		}
+
 		entry& info = dict["info"];
 		if (m_info_dict.type() == entry::dictionary_t
 			|| m_info_dict.type() == entry::preformatted_t)
@@ -593,6 +661,13 @@ namespace {
 			{
 				info["sha1"] = m_filehashes[first].to_string();
 			}
+
+			if (!m_v1_only && !info.find_key("file tree"))
+			{
+				auto& tree_file = info["file tree"][m_files.name()].dict()[{}];
+				tree_file["length"] = m_files.file_size(first);
+				tree_file["pieces root"] = m_fileroots[first];
+			}
 		}
 		else
 		{
@@ -644,7 +719,53 @@ namespace {
 					}
 				}
 			}
+
+			if (!m_v1_only && !info.find_key("file tree"))
+			{
+				auto& tree = info["file tree"];
+
+				for (file_index_t i(0); i != m_files.end_file(); ++i)
+				{
+					if (files().file_flags(i) & file_storage::flag_pad_file) continue;
+
+					entry* file_e_ptr = &tree;
+
+					{
+						std::string split = split_path(m_files.file_path(i));
+						TORRENT_ASSERT(split.c_str() == m_files.name());
+
+						for (char const* e = next_path_element(split.c_str());
+							e != nullptr; e = next_path_element(e))
+						{
+							file_e_ptr = &(*file_e_ptr)[e];
+							if (file_e_ptr->dict().find({}) != file_e_ptr->dict().end())
+							{
+								// path conflict
+								// there is already a file with this name
+								// refuse to generate a torrent with such a conflict
+								return entry();
+							}
+						}
+					}
+
+					if (!file_e_ptr->dict().empty())
+					{
+						// path conflict
+						// there is already a directory with this name
+						// refuse to generate a torrent with such a conflict
+						return entry();
+					}
+
+					entry& file_e = (*file_e_ptr)[{}];
+					file_e["length"] = m_files.file_size(i);
+					file_e["pieces root"] = m_fileroots[i];
+					if (m_include_mtime && m_files.mtime(i)) file_e["mtime"] = m_files.mtime(i);
+				}
+			}
 		}
+
+		if (!m_v1_only)
+			info["meta version"] = 2;
 
 		info["piece length"] = m_files.piece_length();
 
@@ -692,6 +813,16 @@ namespace {
 		TORRENT_ASSERT(index >= piece_index_t(0));
 		TORRENT_ASSERT(index < m_piece_hash.end_index());
 		m_piece_hash[index] = h;
+	}
+
+	void create_torrent::set_hash2(file_index_t file, piece_index_t::diff_type piece, sha256_hash const& h)
+	{
+		TORRENT_ASSERT(file >= file_index_t(0));
+		TORRENT_ASSERT(file < m_files.end_file());
+		TORRENT_ASSERT(piece >= piece_index_t(0));
+		TORRENT_ASSERT(std::size_t(piece) < m_file_piece_hash[file].size());
+		TORRENT_ASSERT(!m_files.pad_file_at(file));
+		m_file_piece_hash[file][piece] = h;
 	}
 
 	void create_torrent::set_file_hash(file_index_t index, sha1_hash const& h)
