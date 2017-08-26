@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent {
 

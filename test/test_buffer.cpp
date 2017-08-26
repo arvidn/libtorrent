@@ -194,7 +194,7 @@ struct holder
 		rhs.m_buf = nullptr;
 		return *this;
 	}
-	char* get() const { return m_buf; }
+	char* data() const { return m_buf; }
 private:
 	char* m_buf;
 };

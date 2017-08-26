@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/non_owning_handle.hpp"
+#include "libtorrent/buffer.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <set>
@@ -5360,14 +5361,14 @@ namespace libtorrent {
 
 		if (channel == download_channel)
 		{
-			return std::max((std::max)(m_outstanding_bytes
+			return std::max(std::max(m_outstanding_bytes
 				, m_recv_buffer.packet_bytes_remaining()) + 30
 				, int(std::int64_t(m_statistics.download_rate()) * 2
 					* tick_interval / 1000));
 		}
 		else
 		{
-			return std::max((std::max)(m_reading_bytes
+			return std::max(std::max(m_reading_bytes
 				, m_send_buffer.size())
 				, int((std::int64_t(m_statistics.upload_rate()) * 2
 					* tick_interval) / 1000));
@@ -5483,7 +5484,7 @@ namespace libtorrent {
 				// this const_cast is a here because chained_buffer need to be
 				// fixed.
 				char* ptr = const_cast<char*>(i->data());
-				m_send_buffer.prepend_buffer(aux::non_owning_handle(ptr), size, size);
+				m_send_buffer.prepend_buffer(aux::non_owning_handle(ptr, i->size()), size, size);
 			}
 			set_send_barrier(next_barrier);
 		}
@@ -5703,17 +5704,13 @@ namespace libtorrent {
 		}
 		if (buf.size() <= 0) return;
 
-		while (buf.size() > 0)
-		{
-			aux::ses_buffer_holder session_buf = m_ses.allocate_buffer();
+		// allocate a buffer and initialize the beginning of it with 'buf'
+		buffer send_buffer(std::max(buf.size(), std::size_t(128)), buf);
+		int const alloc_size = int(send_buffer.size());
 
-			int const alloc_buf_size = m_ses.send_buffer_size();
-			int const buf_size = std::min(alloc_buf_size, int(buf.size()));
-			std::copy(buf.data(), buf.data() + buf_size, session_buf.get());
-			buf = buf.subspan(std::size_t(buf_size));
-			m_send_buffer.append_buffer(std::move(session_buf)
-				, alloc_buf_size, buf_size);
-		}
+		m_send_buffer.append_buffer(std::move(send_buffer)
+			, alloc_size, int(buf.size()));
+
 		setup_send();
 	}
 

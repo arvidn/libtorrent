@@ -33,9 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RECEIVE_BUFFER_HPP_INCLUDED
 #define TORRENT_RECEIVE_BUFFER_HPP_INCLUDED
 
-#include <libtorrent/buffer.hpp>
-#include <libtorrent/disk_buffer_holder.hpp>
-#include <libtorrent/sliding_average.hpp>
+#include "libtorrent/buffer.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/sliding_average.hpp"
 
 #include <climits>
 

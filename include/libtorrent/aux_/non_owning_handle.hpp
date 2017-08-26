@@ -38,10 +38,12 @@ namespace libtorrent { namespace aux {
 	// internal
 	struct non_owning_handle
 	{
-		explicit non_owning_handle(char* b) : m_buf(b) {}
-		char* get() const { return m_buf; }
+		non_owning_handle(char* b, std::size_t s) : m_buf(b), m_size(s) {}
+		char* data() const { return m_buf; }
+		std::size_t size() const { return m_size; }
 	private:
 		char* m_buf;
+		std::size_t m_size;
 	};
 
 }}

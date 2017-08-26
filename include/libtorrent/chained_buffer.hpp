@@ -175,7 +175,8 @@ namespace libtorrent {
 		{
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
 
-			b.buf = buffer.get();
+			b.buf = buffer.data();
+			// TODO: 2 use buffer.size() here instead?
 			b.size = s;
 			b.used_size = used_size;
 
