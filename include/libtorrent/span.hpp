@@ -91,6 +91,7 @@ namespace aux {
 			: m_ptr(c.data()), m_len(c.size()) {}
 
 		// allow construction from const containers if T is const
+		// this allows const spans to be constructed from a temporary container
 		template <typename Cont
 			, typename U = typename std::remove_reference<decltype(*std::declval<Cont>().data())>::type
 			, typename = typename std::enable_if<aux::compatible_type<U, T>::value

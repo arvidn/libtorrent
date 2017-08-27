@@ -52,6 +52,18 @@ TORRENT_TEST(span_vector)
 	TEST_CHECK(a.size() == 4);
 }
 
+void do_span_temp_vector(span<char const> a)
+{
+	std::vector<char> v1 = {1,2,3,4};
+	TEST_CHECK(a == f(v1));
+	TEST_CHECK(a.size() == 4);
+}
+
+TORRENT_TEST(span_temp_vector)
+{
+	do_span_temp_vector(std::vector<char>{1,2,3,4});
+}
+
 TORRENT_TEST(span_std_array)
 {
 	std::array<char, 4> v1{{1,2,3,4}};
