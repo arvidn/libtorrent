@@ -71,7 +71,9 @@ namespace libtorrent {
 			{
 				return a.to_v6().is_loopback()
 					|| a.to_v6().is_link_local()
-					|| a.to_v6().is_multicast_link_local();
+					|| a.to_v6().is_multicast_link_local()
+					//  fc00::/7, unique local address
+					|| (a.to_v6().to_bytes()[0] & 0xfe) == 0xfc;
 			}
 #endif
 			address_v4 a4 = a.to_v4();
