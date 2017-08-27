@@ -5472,18 +5472,18 @@ namespace libtorrent {
 		{
 			std::vector<span<char>> vec;
 			// limit outgoing crypto messages to 1MB
-			int const send_bytes = (std::min)(m_send_buffer.size(), 1024*1024);
+			int const send_bytes = std::min(m_send_buffer.size(), 1024*1024);
 			m_send_buffer.build_mutable_iovec(send_bytes, vec);
 			int next_barrier;
 			span<span<char const>> inject_vec;
 			std::tie(next_barrier, inject_vec) = hit_send_barrier(vec);
 			for (auto i = inject_vec.rbegin(); i != inject_vec.rend(); ++i)
 			{
-				int const size = int(i->size());
 				// this const_cast is a here because chained_buffer need to be
 				// fixed.
 				char* ptr = const_cast<char*>(i->data());
-				m_send_buffer.prepend_buffer(span<char>(ptr, i->size()), size, size);
+				m_send_buffer.prepend_buffer(span<char>(ptr, i->size())
+					, static_cast<int>(i->size()));
 			}
 			set_send_barrier(next_barrier);
 		}
@@ -5693,7 +5693,7 @@ namespace libtorrent {
 			std::size_t(m_send_buffer.space_in_last_buffer()), buf.size());
 		if (free_space > 0)
 		{
-			char* dst = m_send_buffer.append(buf.subspan(0, free_space));
+			char* dst = m_send_buffer.append(buf.first(free_space));
 
 			// this should always succeed, because we checked how much space
 			// there was up-front
@@ -5704,11 +5704,8 @@ namespace libtorrent {
 		if (buf.size() <= 0) return;
 
 		// allocate a buffer and initialize the beginning of it with 'buf'
-		buffer send_buffer(std::max(buf.size(), std::size_t(128)), buf);
-		int const alloc_size = int(send_buffer.size());
-
-		m_send_buffer.append_buffer(std::move(send_buffer)
-			, alloc_size, int(buf.size()));
+		buffer snd_buf(std::max(buf.size(), std::size_t(128)), buf);
+		m_send_buffer.append_buffer(std::move(snd_buf), int(buf.size()));
 
 		setup_send();
 	}

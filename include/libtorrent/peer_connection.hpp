@@ -633,7 +633,7 @@ namespace aux {
 		void append_send_buffer(Holder buffer, int size)
 		{
 			TORRENT_ASSERT(is_single_thread());
-			m_send_buffer.append_buffer(std::move(buffer), size, size);
+			m_send_buffer.append_buffer(std::move(buffer), size);
 		}
 
 		int outstanding_bytes() const { return m_outstanding_bytes; }

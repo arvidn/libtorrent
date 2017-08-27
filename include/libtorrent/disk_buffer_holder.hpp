@@ -110,6 +110,8 @@ namespace libtorrent {
 		// buffer
 		explicit operator bool() const noexcept { return m_buf != nullptr; }
 
+		std::size_t size() const { return 0x4000; }
+
 	private:
 
 		buffer_allocator_interface* m_allocator;
