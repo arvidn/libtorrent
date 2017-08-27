@@ -201,7 +201,6 @@ nobase_include_HEADERS = \
   aux_/vector.hpp                   \
   aux_/win_crypto_provider.hpp      \
   aux_/win_util.hpp                 \
-  aux_/non_owning_handle.hpp        \
   aux_/storage_utils.hpp            \
   aux_/numeric_cast.hpp             \
   aux_/unique_ptr.hpp               \
