@@ -196,11 +196,11 @@ namespace libtorrent {
 #pragma warning(pop)
 #endif
 
-			int const buf_size = static_cast<int>(buf.size());
 			new (&b.holder) Holder(std::move(buf));
 
 			m_bytes += used_size;
-			m_capacity += buf_size;
+			TORRENT_ASSERT(m_capacity < std::numeric_limits<int>::max() - b.size);
+			m_capacity += b.size;
 			TORRENT_ASSERT(m_bytes <= m_capacity);
 		}
 

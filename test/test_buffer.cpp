@@ -186,11 +186,12 @@ struct holder
 	~holder() { if (m_buf) free_buffer(m_buf); }
 	holder(holder const&) = delete;
 	holder& operator=(holder const&) = delete;
-	holder(holder&& rhs) noexcept : m_buf(rhs.m_buf) { rhs.m_buf = nullptr; }
+	holder(holder&& rhs) noexcept : m_buf(rhs.m_buf), m_size(rhs.m_size) { rhs.m_buf = nullptr; }
 	holder& operator=(holder&& rhs) noexcept
 	{
 		if (m_buf) free_buffer(m_buf);
 		m_buf = rhs.m_buf;
+		m_size = rhs.m_size;
 		rhs.m_buf = nullptr;
 		return *this;
 	}
