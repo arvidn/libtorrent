@@ -133,7 +133,7 @@ namespace libtorrent {
 			TORRENT_ASSERT(int(buffer.size()) >= used_size);
 			m_vec.emplace_back();
 			buffer_t& b = m_vec.back();
-			init_buffer_entry<Holder>(b, buffer, used_size);
+			init_buffer_entry<Holder>(b, std::move(buffer), used_size);
 		}
 
 		template <typename Holder>
@@ -143,7 +143,7 @@ namespace libtorrent {
 			TORRENT_ASSERT(int(buffer.size()) >= used_size);
 			m_vec.emplace_front();
 			buffer_t& b = m_vec.front();
-			init_buffer_entry<Holder>(b, buffer, used_size);
+			init_buffer_entry<Holder>(b, std::move(buffer), used_size);
 		}
 
 		// returns the number of bytes available at the
@@ -171,7 +171,7 @@ namespace libtorrent {
 	private:
 
 		template <typename Holder>
-		void init_buffer_entry(buffer_t& b, Holder& buf, int used_size)
+		void init_buffer_entry(buffer_t& b, Holder buf, int used_size)
 		{
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
 
