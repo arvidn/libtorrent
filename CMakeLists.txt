@@ -173,7 +173,6 @@ set(includes include ed25519/src)
 
 option(shared "build libtorrent as a shared library" ON)
 option(static_runtime "build libtorrent with static runtime" OFF)
-option(pool-allocators "Uses a pool allocator for disk and piece buffers" ON)
 option(encryption "link against openssl and enable encryption" ON)
 option(dht "enable support for Mainline DHT" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
@@ -307,10 +306,6 @@ endif()
 if (libiconv)
 	target_link_libraries(torrent-rasterbar ${ICONV_LIBRARIES})
 endif (libiconv)
-
-if (NOT pool-allocators)
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_POOL_ALLOCATOR)
-endif()
 
 if (NOT deprecated-functions)
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_NO_DEPRECATE)

@@ -110,8 +110,6 @@ rule linking ( properties * )
 	if <target-os>windows in $(properties)
 		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
-			|| <pool-allocators>debug in $(properties)
-			|| <allocator>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		result += <library>dbghelp ;
@@ -177,8 +175,6 @@ rule linking ( properties * )
 		&& <target-os>linux in $(properties)
 		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
-			|| <pool-allocators>debug in $(properties)
-			|| <allocator>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		# for backtraces in assertion failures
@@ -436,15 +432,6 @@ feature.compose <picker-debugging>on : <define>TORRENT_DEBUG_REFCOUNTS ;
 feature simulator : off on : composite propagated link-incompatible ;
 feature.compose <simulator>on : <define>TORRENT_BUILD_SIMULATOR ;
 
-# deprecated use allocator=pool instead
-feature pool-allocators : on off debug : composite propagated link-incompatible ;
-feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
-feature.compose <pool-allocators>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
-
-feature allocator : pool system debug : composite propagated ;
-feature.compose <allocator>system : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
-feature.compose <allocator>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
-
 feature piece-allocator : valloc memalign posix_memalign : composite propagated ;
 feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
 feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
@@ -516,7 +503,6 @@ variant test_release : release
 	;
 variant test_debug : debug
 	: <logging>on
-	<allocator>debug
 	<invariant-checks>full <boost-link>shared
 	<export-extra>on <debug-iterators>on <threading>multi <asserts>on
 	;

@@ -217,15 +217,6 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
-  [pool-allocators],
-  [AS_HELP_STRING(
-    [--enable-pool-allocators],
-    [enable pool allocators for send buffers [default=yes]])],
-  [[ARG_ENABLE_POOL_ALLOC=$enableval]],
-  [[ARG_ENABLE_POOL_ALLOC=yes]]
-)
-
-AC_ARG_ENABLE(
   [invariant-checks],
   [AS_HELP_STRING(
     [--enable-invariant-checks],
@@ -393,19 +384,6 @@ AS_CASE(["$ARG_ENABLE_DHT"],
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_DHT])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DHT". Use either "yes", "no" or "logging".])]
-)
-
-AC_MSG_CHECKING([whether pool allocators should be enabled])
-AS_CASE(["$ARG_ENABLE_POOL_ALLOC"],
-  ["yes"|"on"], [
-      AC_MSG_RESULT([yes])
-    ],
-  ["no"|"off"], [
-      AC_MSG_RESULT([no])
-      AC_DEFINE([TORRENT_DISABLE_POOL_ALLOCATOR],[1],[Define to disable use of boost::pool for pool allocators.])
-    ],
-  [AC_MSG_RESULT([$ARG_ENABLE_POOL_ALLOC])
-   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_POOL_ALLOC". Use either "yes" or "no".])]
 )
 
 AS_IF([test "x$ac_cv_hidden_visibility_attribute" = "xyes"], [
@@ -597,7 +575,6 @@ Build options:
 Features:
   encryption support:   ${ARG_ENABLE_ENCRYPTION:-yes}
   dht support:          ${ARG_ENABLE_DHT:-yes}
-  pool allocators:      ${ARG_ENABLE_POOL_ALLOC:-yes}
 
 Extra builds:
   examples:             ${ARG_ENABLE_EXAMPLES:-no}
