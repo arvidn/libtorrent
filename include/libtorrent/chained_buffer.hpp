@@ -196,7 +196,7 @@ namespace libtorrent {
 #pragma warning(pop)
 #endif
 
-			std::size_t const buf_size = buf.size();
+			int const buf_size = static_cast<int>(buf.size());
 			new (&b.holder) Holder(std::move(buf));
 
 			m_bytes += used_size;
