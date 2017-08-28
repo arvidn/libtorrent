@@ -239,9 +239,6 @@ namespace aux {
 			, aux::error_handler_interface
 			, std::enable_shared_from_this<session_impl>
 		{
-			// the size of each allocation that is chained in the send buffer
-			static constexpr int send_buffer_size_impl = 128;
-
 			// plugin feature-index key map
 			enum
 			{
@@ -644,12 +641,8 @@ namespace aux {
 
 			void deferred_submit_jobs() override;
 
-			ses_buffer_holder allocate_buffer() override;
 			torrent_peer* allocate_peer_entry(int type);
 			void free_peer_entry(torrent_peer* p);
-
-			void free_buffer(char* buf) override;
-			int send_buffer_size() const override { return send_buffer_size_impl; }
 
 			// implements dht_observer
 			virtual void set_external_address(aux::listen_socket_handle const& iface
@@ -791,12 +784,6 @@ namespace aux {
 			// objects pointed to by partial_piece_info returned
 			// by torrent::get_download_queue.
 			std::vector<block_info> m_block_info_storage;
-
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-			// this pool is used to allocate and recycle send
-			// buffers from.
-			boost::pool<> m_send_buffers{send_buffer_size_impl};
-#endif
 
 			io_service& m_io_service;
 

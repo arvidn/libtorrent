@@ -532,8 +532,6 @@ defines you can use to control the build.
 |                                        | checks in the storage, including logging of     |
 |                                        | piece sorting.                                  |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_POOL_ALLOCATOR``     | Disables use of ``boost::pool<>``.              |
-+----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_MUTABLE_TORRENTS``   | Disables mutable torrent support (`BEP 38`_)    |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |

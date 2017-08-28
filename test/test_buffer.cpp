@@ -182,21 +182,24 @@ bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
 
 struct holder
 {
-	explicit holder(char* buf) : m_buf(buf) {}
+	holder(char* buf, std::size_t size) : m_buf(buf), m_size(size) {}
 	~holder() { if (m_buf) free_buffer(m_buf); }
 	holder(holder const&) = delete;
 	holder& operator=(holder const&) = delete;
-	holder(holder&& rhs) noexcept : m_buf(rhs.m_buf) { rhs.m_buf = nullptr; }
+	holder(holder&& rhs) noexcept : m_buf(rhs.m_buf), m_size(rhs.m_size) { rhs.m_buf = nullptr; }
 	holder& operator=(holder&& rhs) noexcept
 	{
 		if (m_buf) free_buffer(m_buf);
 		m_buf = rhs.m_buf;
+		m_size = rhs.m_size;
 		rhs.m_buf = nullptr;
 		return *this;
 	}
-	char* get() const { return m_buf; }
+	char* data() const { return m_buf; }
+	std::size_t size() const { return m_size; }
 private:
 	char* m_buf;
+	std::size_t m_size;
 };
 
 TORRENT_TEST(chained_buffer)
@@ -217,7 +220,7 @@ TORRENT_TEST(chained_buffer)
 
 		char* b1 = allocate_buffer(512);
 		std::memcpy(b1, data, 6);
-		b.append_buffer(holder(b1), 512, 6);
+		b.append_buffer(holder(b1, 512), 6);
 		TEST_EQUAL(buffer_list.size(), 1);
 
 		TEST_EQUAL(b.capacity(), 512);
@@ -247,12 +250,12 @@ TORRENT_TEST(chained_buffer)
 
 		char* b2 = allocate_buffer(512);
 		std::memcpy(b2, data, 6);
-		b.append_buffer(holder(b2), 512, 6);
+		b.append_buffer(holder(b2, 512), 6);
 		TEST_EQUAL(buffer_list.size(), 2);
 
 		char* b3 = allocate_buffer(512);
 		std::memcpy(b3, data, 6);
-		b.append_buffer(holder(b3), 512, 6);
+		b.append_buffer(holder(b3, 512), 6);
 		TEST_EQUAL(buffer_list.size(), 3);
 
 		TEST_EQUAL(b.capacity(), 512 * 3 - 3);
@@ -267,7 +270,7 @@ TORRENT_TEST(chained_buffer)
 
 		b.pop_front(5 + 6);
 
-		TEST_CHECK(buffer_list.size() == 2);
+		TEST_EQUAL(buffer_list.size(), 2);
 		TEST_EQUAL(b.capacity(), 512 * 2 - 2);
 		TEST_EQUAL(b.size(), 10);
 		TEST_CHECK(!b.empty());
@@ -281,30 +284,30 @@ TORRENT_TEST(chained_buffer)
 			b.pop_front(1);
 			++str;
 			TEST_CHECK(compare_chained_buffer(b, str, 8 - i));
-			TEST_CHECK(b.size() == 9 - i);
+			TEST_EQUAL(b.size(), 9 - i);
 		}
 
 		char* b4 = allocate_buffer(20);
 		std::memcpy(b4, data, 6);
 		std::memcpy(b4 + 6, data, 6);
-		b.append_buffer(holder(b4), 20, 12);
-		TEST_CHECK(b.space_in_last_buffer() == 8);
+		b.append_buffer(holder(b4, 20), 12);
+		TEST_EQUAL(b.space_in_last_buffer(), 8);
 
 		ret = b.append({data, 6}) != nullptr;
 		TEST_CHECK(ret == true);
-		TEST_CHECK(b.space_in_last_buffer() == 2);
+		TEST_EQUAL(b.space_in_last_buffer(), 2);
 		std::cout << b.space_in_last_buffer() << std::endl;
 		ret = b.append({data, 2}) != nullptr;
 		TEST_CHECK(ret == true);
-		TEST_CHECK(b.space_in_last_buffer() == 0);
+		TEST_EQUAL(b.space_in_last_buffer(), 0);
 		std::cout << b.space_in_last_buffer() << std::endl;
 
 		char* b5 = allocate_buffer(20);
 		std::memcpy(b5, data, 6);
-		b.append_buffer(holder(b5), 20, 6);
+		b.append_buffer(holder(b5, 20), 6);
 
 		b.pop_front(22);
-		TEST_CHECK(b.size() == 5);
+		TEST_EQUAL(b.size(), 5);
 	}
 	TEST_CHECK(buffer_list.empty());
 }

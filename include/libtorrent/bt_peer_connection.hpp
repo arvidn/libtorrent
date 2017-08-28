@@ -331,21 +331,20 @@ namespace libtorrent {
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names
 		template <typename Holder>
-		void append_const_send_buffer(Holder buffer, int size)
+		void append_const_send_buffer(Holder holder, int size)
 		{
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			if (!m_enc_handler.is_send_plaintext())
 			{
 				// if we're encrypting this buffer, we need to make a copy
 				// since we'll mutate it
-				std::unique_ptr<char[]> buf(new char[size]);
-				std::copy(buffer.get(), buffer.get() + size, buf.get());
+				buffer buf(std::size_t(size), {holder.data(), std::size_t(size)});
 				append_send_buffer(std::move(buf), size);
 			}
 			else
 #endif
 			{
-				append_send_buffer(std::move(buffer), size);
+				append_send_buffer(std::move(holder), size);
 			}
 		}
 

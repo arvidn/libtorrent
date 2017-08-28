@@ -127,23 +127,23 @@ namespace libtorrent {
 		void pop_front(int bytes_to_pop);
 
 		template <typename Holder>
-		void append_buffer(Holder buffer, int s, int used_size)
+		void append_buffer(Holder buffer, int used_size)
 		{
 			TORRENT_ASSERT(is_single_thread());
-			TORRENT_ASSERT(s >= used_size);
+			TORRENT_ASSERT(int(buffer.size()) >= used_size);
 			m_vec.emplace_back();
 			buffer_t& b = m_vec.back();
-			init_buffer_entry<Holder>(b, buffer, s, used_size);
+			init_buffer_entry<Holder>(b, std::move(buffer), used_size);
 		}
 
 		template <typename Holder>
-		void prepend_buffer(Holder buffer, int s, int used_size)
+		void prepend_buffer(Holder buffer, int used_size)
 		{
 			TORRENT_ASSERT(is_single_thread());
-			TORRENT_ASSERT(s >= used_size);
+			TORRENT_ASSERT(int(buffer.size()) >= used_size);
 			m_vec.emplace_front();
 			buffer_t& b = m_vec.front();
-			init_buffer_entry<Holder>(b, buffer, s, used_size);
+			init_buffer_entry<Holder>(b, std::move(buffer), used_size);
 		}
 
 		// returns the number of bytes available at the
@@ -171,12 +171,12 @@ namespace libtorrent {
 	private:
 
 		template <typename Holder>
-		void init_buffer_entry(buffer_t& b, Holder& buffer, int s, int used_size)
+		void init_buffer_entry(buffer_t& b, Holder buf, int used_size)
 		{
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
 
-			b.buf = buffer.get();
-			b.size = s;
+			b.buf = buf.data();
+			b.size = static_cast<int>(buf.size());
 			b.used_size = used_size;
 
 #ifdef _MSC_VER
@@ -196,10 +196,11 @@ namespace libtorrent {
 #pragma warning(pop)
 #endif
 
-			new (&b.holder) Holder(std::move(buffer));
+			new (&b.holder) Holder(std::move(buf));
 
 			m_bytes += used_size;
-			m_capacity += s;
+			TORRENT_ASSERT(m_capacity < std::numeric_limits<int>::max() - b.size);
+			m_capacity += b.size;
 			TORRENT_ASSERT(m_bytes <= m_capacity);
 		}
 

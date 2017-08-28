@@ -6831,29 +6831,6 @@ namespace {
 #endif
 	}
 
-	ses_buffer_holder session_impl::allocate_buffer()
-	{
-		TORRENT_ASSERT(is_single_thread());
-
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		std::size_t num_bytes = aux::numeric_cast<std::size_t>(send_buffer_size());
-		return ses_buffer_holder(*this, static_cast<char*>(std::malloc(num_bytes)));
-#else
-		return ses_buffer_holder(*this, static_cast<char*>(m_send_buffers.malloc()));
-#endif
-	}
-
-	void session_impl::free_buffer(char* buf)
-	{
-		TORRENT_ASSERT(is_single_thread());
-
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		free(buf);
-#else
-		m_send_buffers.free(buf);
-#endif
-	}
-
 #if TORRENT_USE_INVARIANT_CHECKS
 	void session_impl::check_invariant() const
 	{

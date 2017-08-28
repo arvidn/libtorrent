@@ -52,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/time.hpp"
-#include "libtorrent/aux_/non_owning_handle.hpp"
 
 namespace libtorrent {namespace {
 
@@ -285,7 +284,7 @@ namespace libtorrent {namespace {
 			if (metadata_piece_size)
 			{
 				m_pc.append_const_send_buffer(
-					aux::non_owning_handle(const_cast<char*>(metadata)), metadata_piece_size);
+					span<char>(const_cast<char*>(metadata), std::size_t(metadata_piece_size)), metadata_piece_size);
 			}
 
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_extended);

@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/aux_/time.hpp"
-#include "libtorrent/aux_/non_owning_handle.hpp"
+#include "libtorrent/buffer.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <set>
@@ -5360,14 +5360,14 @@ namespace libtorrent {
 
 		if (channel == download_channel)
 		{
-			return std::max((std::max)(m_outstanding_bytes
+			return std::max(std::max(m_outstanding_bytes
 				, m_recv_buffer.packet_bytes_remaining()) + 30
 				, int(std::int64_t(m_statistics.download_rate()) * 2
 					* tick_interval / 1000));
 		}
 		else
 		{
-			return std::max((std::max)(m_reading_bytes
+			return std::max(std::max(m_reading_bytes
 				, m_send_buffer.size())
 				, int((std::int64_t(m_statistics.upload_rate()) * 2
 					* tick_interval) / 1000));
@@ -5472,18 +5472,18 @@ namespace libtorrent {
 		{
 			std::vector<span<char>> vec;
 			// limit outgoing crypto messages to 1MB
-			int const send_bytes = (std::min)(m_send_buffer.size(), 1024*1024);
+			int const send_bytes = std::min(m_send_buffer.size(), 1024*1024);
 			m_send_buffer.build_mutable_iovec(send_bytes, vec);
 			int next_barrier;
 			span<span<char const>> inject_vec;
 			std::tie(next_barrier, inject_vec) = hit_send_barrier(vec);
 			for (auto i = inject_vec.rbegin(); i != inject_vec.rend(); ++i)
 			{
-				int const size = int(i->size());
 				// this const_cast is a here because chained_buffer need to be
 				// fixed.
 				char* ptr = const_cast<char*>(i->data());
-				m_send_buffer.prepend_buffer(aux::non_owning_handle(ptr), size, size);
+				m_send_buffer.prepend_buffer(span<char>(ptr, i->size())
+					, static_cast<int>(i->size()));
 			}
 			set_send_barrier(next_barrier);
 		}
@@ -5693,7 +5693,7 @@ namespace libtorrent {
 			std::size_t(m_send_buffer.space_in_last_buffer()), buf.size());
 		if (free_space > 0)
 		{
-			char* dst = m_send_buffer.append(buf.subspan(0, free_space));
+			char* dst = m_send_buffer.append(buf.first(free_space));
 
 			// this should always succeed, because we checked how much space
 			// there was up-front
@@ -5703,17 +5703,10 @@ namespace libtorrent {
 		}
 		if (buf.size() <= 0) return;
 
-		while (buf.size() > 0)
-		{
-			aux::ses_buffer_holder session_buf = m_ses.allocate_buffer();
+		// allocate a buffer and initialize the beginning of it with 'buf'
+		buffer snd_buf(std::max(buf.size(), std::size_t(128)), buf);
+		m_send_buffer.append_buffer(std::move(snd_buf), int(buf.size()));
 
-			int const alloc_buf_size = m_ses.send_buffer_size();
-			int const buf_size = std::min(alloc_buf_size, int(buf.size()));
-			std::copy(buf.data(), buf.data() + buf_size, session_buf.get());
-			buf = buf.subspan(std::size_t(buf_size));
-			m_send_buffer.append_buffer(std::move(session_buf)
-				, alloc_buf_size, buf_size);
-		}
 		setup_send();
 	}
 
