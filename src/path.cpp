@@ -684,7 +684,7 @@ namespace libtorrent {
 			branch.assign(leaf.data(), leaf.size());
 			return;
 		}
-		if (leaf.size() == 0) return;
+		if (leaf.empty()) return;
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR_CHAR '\\'
@@ -910,4 +910,3 @@ namespace libtorrent {
 #endif
 	}
 }
-
