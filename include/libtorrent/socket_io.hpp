@@ -63,10 +63,10 @@ namespace detail {
 			TORRENT_UNUSED(p);
 #if TORRENT_USE_IPV6
 			if (p == Proto::v6())
-				return address_v6::bytes_type().size();
+				return std::tuple_size<address_v6::bytes_type>::value;
 			else
 #endif
-				return address_v4::bytes_type().size();
+				return std::tuple_size<address_v4::bytes_type>::value;
 		}
 
 		template<class OutIt>
