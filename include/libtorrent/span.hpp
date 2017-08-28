@@ -90,6 +90,15 @@ namespace aux {
 		span(Cont& c) // NOLINT
 			: m_ptr(c.data()), m_len(c.size()) {}
 
+		// allow construction from const containers if T is const
+		// this allows const spans to be constructed from a temporary container
+		template <typename Cont
+			, typename U = typename std::remove_reference<decltype(*std::declval<Cont>().data())>::type
+			, typename = typename std::enable_if<aux::compatible_type<U, T>::value
+				&& std::is_const<T>::value>::type>
+		span(Cont const& c) // NOLINT
+			: m_ptr(c.data()), m_len(c.size()) {}
+
 		std::size_t size() const noexcept { return m_len; }
 		bool empty() const noexcept { return m_len == 0; }
 		T* data() const noexcept { return m_ptr; }
