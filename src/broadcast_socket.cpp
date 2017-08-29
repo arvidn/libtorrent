@@ -69,11 +69,12 @@ namespace libtorrent {
 #if TORRENT_USE_IPV6
 			if (a.is_v6())
 			{
-				return a.to_v6().is_loopback()
-					|| a.to_v6().is_link_local()
-					|| a.to_v6().is_multicast_link_local()
+				address_v6 const a6 = a.to_v6();
+				return a6.is_loopback()
+					|| a6.is_link_local()
+					|| a6.is_multicast_link_local()
 					//  fc00::/7, unique local address
-					|| (a.to_v6().to_bytes()[0] & 0xfe) == 0xfc;
+					|| (a6.to_bytes()[0] & 0xfe) == 0xfc;
 			}
 #endif
 			address_v4 a4 = a.to_v4();
@@ -123,7 +124,7 @@ namespace libtorrent {
 			if (!addr.is_v6()) return false;
 			std::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
 			address_v6::bytes_type b = addr.to_v6().to_bytes();
-			return memcmp(&b[0], teredo_prefix, 4) == 0;
+			return std::memcmp(&b[0], teredo_prefix, 4) == 0;
 		} TORRENT_CATCH(std::exception const&) { return false; }
 #else
 		TORRENT_UNUSED(addr);
@@ -219,7 +220,7 @@ namespace libtorrent {
 		if (ec) return;
 		s->set_option(enable_loopback(loopback), ec);
 		if (ec) return;
-		m_sockets.push_back(socket_entry(s));
+		m_sockets.emplace_back(s);
 		socket_entry& se = m_sockets.back();
 		ADD_OUTSTANDING_ASYNC("broadcast_socket::on_receive");
 		s->async_receive_from(boost::asio::buffer(se.buffer, sizeof(se.buffer))
@@ -237,7 +238,7 @@ namespace libtorrent {
 		s->bind(udp::endpoint(addr, 0), ec);
 		if (ec) return;
 
-		m_unicast_sockets.push_back(socket_entry(s, mask));
+		m_unicast_sockets.emplace_back(s, mask);
 		socket_entry& se = m_unicast_sockets.back();
 
 		// allow sending broadcast messages
