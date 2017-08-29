@@ -173,7 +173,7 @@ bool natpmp::get_mapping(int const index, int& local_port
 #ifndef TORRENT_DISABLE_LOGGING
 bool natpmp::should_log() const
 {
-	return m_callback.should_log_portmap(aux::portmap_transport::natpmp);
+	return m_callback.should_log_portmap(portmap_transport::natpmp);
 }
 
 void natpmp::mapping_log(char const* op, mapping_t const& m) const
@@ -201,7 +201,7 @@ void natpmp::log(char const* fmt, ...) const
 	va_start(v, fmt);
 	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
-	m_callback.log_portmap(aux::portmap_transport::natpmp, msg);
+	m_callback.log_portmap(portmap_transport::natpmp, msg);
 }
 #endif
 
@@ -218,7 +218,7 @@ void natpmp::disable(error_code const& ec)
 		i->protocol = portmap_protocol::none;
 		int const index = int(i - m_mappings.begin());
 		m_callback.on_port_mapping(index, address(), 0, proto, ec
-			, aux::portmap_transport::natpmp);
+			, portmap_transport::natpmp);
 	}
 	close_impl();
 }
@@ -573,13 +573,13 @@ void natpmp::on_reply(error_code const& e
 		m->expires = aux::time_now() + hours(2);
 		portmap_protocol const proto = m->protocol;
 		m_callback.on_port_mapping(index, address(), 0, proto
-			, ev, aux::portmap_transport::natpmp);
+			, ev, portmap_transport::natpmp);
 	}
 	else if (m->act == portmap_action::add)
 	{
 		portmap_protocol const proto = m->protocol;
 		m_callback.on_port_mapping(index, m_external_ip, m->external_port, proto
-			, errors::no_error, aux::portmap_transport::natpmp);
+			, errors::no_error, portmap_transport::natpmp);
 	}
 
 	if (m_abort) return;

@@ -35,9 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent { namespace aux {
-	// TODO: move this for a better place and integrate it with
-	// portmap error alerts
+namespace libtorrent {
+
 	enum class portmap_transport : std::uint8_t
 	{
 		natpmp, upnp
@@ -47,6 +46,8 @@ namespace libtorrent { namespace aux {
 	{
 		none, tcp, udp
 	};
+
+namespace aux {
 
 	enum class portmap_action : std::uint8_t
 	{
