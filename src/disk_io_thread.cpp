@@ -899,22 +899,22 @@ namespace libtorrent
 		DLOG("try_flush_write_blocks: %d\n", num);
 
 		list_iterator<cached_piece_entry> range = m_disk_cache.write_lru_pieces();
-		std::vector<std::pair<piece_manager*, int> > pieces;
+		std::vector<std::pair<boost::shared_ptr<piece_manager>, int> > pieces;
 		pieces.reserve(m_disk_cache.num_write_lru_pieces());
 
 		for (list_iterator<cached_piece_entry> p = range; p.get() && num > 0; p.next())
 		{
 			cached_piece_entry* e = p.get();
 			if (e->num_dirty == 0) continue;
-			pieces.push_back(std::make_pair(e->storage.get(), int(e->piece)));
+			pieces.push_back(std::make_pair(e->storage, int(e->piece)));
 		}
 
-		for (std::vector<std::pair<piece_manager*, int> >::iterator i = pieces.begin()
+		for (std::vector<std::pair<boost::shared_ptr<piece_manager>, int> >::iterator i = pieces.begin()
 			, end(pieces.end()); i != end; ++i)
 		{
 			// TODO: instead of doing a lookup each time through the loop, save
 			// cached_piece_entry pointers with piece_refcount incremented to pin them
-			cached_piece_entry* pe = m_disk_cache.find_piece(i->first, i->second);
+			cached_piece_entry* pe = m_disk_cache.find_piece(i->first.get(), i->second);
 			if (pe == NULL) continue;
 
 			// another thread may flush this piece while we're looping and
@@ -941,10 +941,10 @@ namespace libtorrent
 
 		// if we still need to flush blocks, start over and flush
 		// everything in LRU order (degrade to lru cache eviction)
-		for (std::vector<std::pair<piece_manager*, int> >::iterator i = pieces.begin()
+		for (std::vector<std::pair<boost::shared_ptr<piece_manager>, int> >::iterator i = pieces.begin()
 			, end(pieces.end()); i != end; ++i)
 		{
-			cached_piece_entry* pe = m_disk_cache.find_piece(i->first, i->second);
+			cached_piece_entry* pe = m_disk_cache.find_piece(i->first.get(), i->second);
 			if (pe == NULL) continue;
 			if (pe->num_dirty == 0) continue;
 
