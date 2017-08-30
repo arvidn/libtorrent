@@ -55,9 +55,9 @@ struct TORRENT_EXTRA_EXPORT natpmp
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
-	int add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep);
-	void delete_mapping(int mapping_index);
-	bool get_mapping(int mapping_index, int& local_port, int& external_port
+	port_mapping_t add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep);
+	void delete_mapping(port_mapping_t mapping_index);
+	bool get_mapping(port_mapping_t mapping_index, int& local_port, int& external_port
 		, portmap_protocol& protocol) const;
 
 	void close();
@@ -66,15 +66,15 @@ private:
 
 	std::shared_ptr<natpmp> self() { return shared_from_this(); }
 
-	void update_mapping(int i);
-	void send_map_request(int i);
+	void update_mapping(port_mapping_t i);
+	void send_map_request(port_mapping_t i);
 	void send_get_ip_address_request();
-	void resend_request(int i, error_code const& e);
+	void resend_request(port_mapping_t i, error_code const& e);
 	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
-	void try_next_mapping(int i);
+	void try_next_mapping(port_mapping_t i);
 	void update_expiration_timer();
-	void mapping_expired(error_code const& e, int i);
+	void mapping_expired(error_code const& e, port_mapping_t i);
 	void close_impl();
 
 	void disable(error_code const& ec);
@@ -100,7 +100,7 @@ private:
 
 	aux::portmap_callback& m_callback;
 
-	aux::vector<mapping_t> m_mappings;
+	aux::vector<mapping_t, port_mapping_t> m_mappings;
 
 	// the endpoint to the nat router
 	udp::endpoint m_nat_endpoint;
@@ -108,7 +108,7 @@ private:
 	// this is the mapping that is currently
 	// being updated. It is -1 in case no
 	// mapping is being updated at the moment
-	int m_currently_mapping = -1;
+	port_mapping_t m_currently_mapping{-1};
 
 	// current retry count
 	int m_retry_count = 0;
@@ -134,7 +134,7 @@ private:
 	deadline_timer m_refresh_timer;
 
 	// the mapping index that will expire next
-	int m_next_refresh = -1;
+	port_mapping_t m_next_refresh{-1};
 
 	bool m_disabled = false;
 

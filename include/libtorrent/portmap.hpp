@@ -34,8 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PORTMAP_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent {
+namespace aux {
+	struct port_mapping_tag;
+}
 
 	enum class portmap_transport : std::uint8_t
 	{
@@ -46,6 +50,9 @@ namespace libtorrent {
 	{
 		none, tcp, udp
 	};
+
+	// this type represents an index referring to a port mapping
+	using port_mapping_t = aux::strong_typedef<int, aux::port_mapping_tag>;
 
 }
 

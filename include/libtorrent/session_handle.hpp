@@ -1004,8 +1004,8 @@ namespace libtorrent {
 		// whichever is enabled. The return value is a handle referring to the
 		// port mapping that was just created. Pass it to delete_port_mapping()
 		// to remove it.
-		int add_port_mapping(portmap_protocol t, int external_port, int local_port);
-		void delete_port_mapping(int handle);
+		port_mapping_t add_port_mapping(portmap_protocol t, int external_port, int local_port);
+		void delete_port_mapping(port_mapping_t handle);
 
 		// This function is intended only for use by plugins. This type does
 		// not have a stable API and should be relied on as little as possible.

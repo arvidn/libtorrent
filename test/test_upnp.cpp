@@ -106,7 +106,7 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 
 struct callback_info
 {
-	int mapping;
+	port_mapping_t mapping;
 	int port;
 	error_code ec;
 	bool operator==(callback_info const& e)
@@ -119,13 +119,15 @@ namespace
 {
 	struct upnp_callback : aux::portmap_callback
 	{
-		void on_port_mapping(int mapping, address const& ip, int port
+		void on_port_mapping(port_mapping_t const mapping
+			, address const& ip, int port
 			, portmap_protocol const protocol, error_code const& err
 			, portmap_transport const transport) override
 		{
 			callback_info info = {mapping, port, err};
 			callbacks.push_back(info);
-			std::cout << "mapping: " << mapping << ", port: " << port << ", IP: " << ip
+			std::cout << "mapping: " << static_cast<int>(mapping)
+				<< ", port: " << port << ", IP: " << ip
 				<< ", proto: " << static_cast<int>(protocol)
 				<< ", error: \"" << err.message() << "\"\n";
 		}
@@ -198,8 +200,8 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 	std::cout << "router: " << upnp_handler->router_model() << std::endl;
 	TEST_EQUAL(upnp_handler->router_model(), router_model);
 
-	int const mapping1 = upnp_handler->add_mapping(portmap_protocol::tcp, 500, ep("127.0.0.1", 500));
-	int const mapping2 = upnp_handler->add_mapping(portmap_protocol::udp, 501, ep("127.0.0.1", 501));
+	auto const mapping1 = upnp_handler->add_mapping(portmap_protocol::tcp, 500, ep("127.0.0.1", 500));
+	auto const mapping2 = upnp_handler->add_mapping(portmap_protocol::udp, 501, ep("127.0.0.1", 501));
 
 	for (int i = 0; i < 40; ++i)
 	{

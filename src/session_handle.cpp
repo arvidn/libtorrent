@@ -1201,13 +1201,13 @@ namespace {
 	}
 #endif // TORRENT_NO_DEPRECATE
 
-	int session_handle::add_port_mapping(portmap_protocol const t
+	port_mapping_t session_handle::add_port_mapping(portmap_protocol const t
 		, int external_port, int local_port)
 	{
-		return sync_call_ret<int>(&session_impl::add_port_mapping, t, external_port, local_port);
+		return sync_call_ret<port_mapping_t>(&session_impl::add_port_mapping, t, external_port, local_port);
 	}
 
-	void session_handle::delete_port_mapping(int handle)
+	void session_handle::delete_port_mapping(port_mapping_t handle)
 	{
 		async_call(&session_impl::delete_port_mapping, handle);
 	}

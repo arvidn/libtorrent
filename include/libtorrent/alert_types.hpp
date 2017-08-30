@@ -1401,7 +1401,7 @@ namespace libtorrent {
 	struct TORRENT_EXPORT portmap_error_alert final : alert
 	{
 		// internal
-		portmap_error_alert(aux::stack_allocator& alloc, int i
+		portmap_error_alert(aux::stack_allocator& alloc, port_mapping_t i
 			, portmap_transport t
 			, error_code const& e);
 
@@ -1413,7 +1413,7 @@ namespace libtorrent {
 
 		// refers to the mapping index of the port map that failed, i.e.
 		// the index returned from add_mapping().
-		int const mapping;
+		port_mapping_t const mapping;
 
 		// UPnP or NAT-PMP
 		portmap_transport map_transport;
@@ -1435,7 +1435,7 @@ namespace libtorrent {
 	struct TORRENT_EXPORT portmap_alert final : alert
 	{
 		// internal
-		portmap_alert(aux::stack_allocator& alloc, int i, int port
+		portmap_alert(aux::stack_allocator& alloc, port_mapping_t i, int port
 			, portmap_transport t, portmap_protocol protocol);
 
 		TORRENT_DEFINE_ALERT(portmap_alert, 51)
@@ -1445,7 +1445,7 @@ namespace libtorrent {
 
 		// refers to the mapping index of the port map that failed, i.e.
 		// the index returned from add_mapping().
-		int const mapping;
+		port_mapping_t const mapping;
 
 		// the external port allocated for the mapping.
 		int const external_port;
