@@ -5428,7 +5428,6 @@ namespace {
 		}
 	}
 
-	// transport is 0 for NAT-PMP and 1 for UPnP
 	void session_impl::on_port_mapping(int mapping, address const& ip, int port
 		, portmap_protocol const proto, error_code const& ec
 		, portmap_transport const transport)

@@ -30,23 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef LIBTORRENT_PORTMAP_HPP
-#define LIBTORRENT_PORTMAP_HPP
+#ifndef LIBTORRENT_AUX_PORTMAP_HPP_INCLUDED
+#define LIBTORRENT_AUX_PORTMAP_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/portmap.hpp"
 
 namespace libtorrent {
-
-	enum class portmap_transport : std::uint8_t
-	{
-		natpmp, upnp
-	};
-
-	enum class portmap_protocol : std::uint8_t
-	{
-		none, tcp, udp
-	};
-
 namespace aux {
 
 	enum class portmap_action : std::uint8_t
@@ -98,4 +88,4 @@ namespace aux {
 	}
 }}
 
-#endif // LIBTORRENT_PORTMAP_HPP
+#endif // LIBTORRENT_AUX_PORTMAP_HPP_INCLUDED

@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/session_types.hpp"
-#include "libtorrent/aux_/portmap.hpp" // for portmap_protocol
+#include "libtorrent/portmap.hpp" // for portmap_protocol
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 

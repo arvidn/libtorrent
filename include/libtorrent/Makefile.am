@@ -101,6 +101,7 @@ nobase_include_HEADERS = \
   piece_picker.hpp             \
   platform_util.hpp            \
   peer_list.hpp                \
+  portmap.hpp                  \
   proxy_base.hpp               \
   puff.hpp                     \
   random.hpp                   \

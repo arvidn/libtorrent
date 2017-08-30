@@ -39,15 +39,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-using lt::aux::portmap_protocol;
-
 namespace
 {
 	struct natpmp_callback : aux::portmap_callback
 	{
 		void on_port_mapping(int mapping, address const& ip, int port
 			, portmap_protocol const protocol, error_code const& err
-			, aux::portmap_transport transport) override
+			, portmap_transport const transport) override
 		{
 			std::cout
 				<< "mapping: " << mapping
@@ -57,12 +55,12 @@ namespace
 				<< ", error: \"" << err.message() << "\"\n";
 		}
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual bool should_log_portmap(aux::portmap_transport transport) const override
+		virtual bool should_log_portmap(portmap_transport transport) const override
 		{
 			return true;
 		}
 
-		virtual void log_portmap(aux::portmap_transport transport, char const* msg) const override
+		virtual void log_portmap(portmap_transport transport, char const* msg) const override
 		{
 			std::cout << msg << std::endl;
 		}
