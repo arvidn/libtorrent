@@ -43,7 +43,8 @@ namespace
 {
 	struct natpmp_callback : aux::portmap_callback
 	{
-		void on_port_mapping(int mapping, address const& ip, int port
+		void on_port_mapping(port_mapping_t const mapping
+			, address const& ip, int port
 			, portmap_protocol const protocol, error_code const& err
 			, portmap_transport const transport) override
 		{
@@ -84,7 +85,7 @@ int main(int argc, char* argv[])
 
 	deadline_timer timer(ios);
 
-	int const tcp_map = natpmp_handler->add_mapping(portmap_protocol::tcp
+	auto const tcp_map = natpmp_handler->add_mapping(portmap_protocol::tcp
 		, atoi(argv[1]), tcp::endpoint({}, atoi(argv[1])));
 	natpmp_handler->add_mapping(portmap_protocol::udp, atoi(argv[2])
 		, tcp::endpoint({}, atoi(argv[2])));

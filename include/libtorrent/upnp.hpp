@@ -172,13 +172,13 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	// portmap_alert_ respectively. If The mapping fails immediately, the return value
 	// is -1, which means failure. There will not be any error alert notification for
 	// mappings that fail with a -1 return value.
-	int add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep);
+	port_mapping_t add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep);
 
 	// This function removes a port mapping. ``mapping_index`` is the index that refers
 	// to the mapping you want to remove, which was returned from add_mapping().
-	void delete_mapping(int mapping_index);
+	void delete_mapping(port_mapping_t mapping_index);
 
-	bool get_mapping(int mapping_index, tcp::endpoint& local_ep, int& external_port
+	bool get_mapping(port_mapping_t mapping_index, tcp::endpoint& local_ep, int& external_port
 		, portmap_protocol& protocol) const;
 
 	void discover_device();
@@ -207,8 +207,8 @@ private:
 		, std::size_t bytes_transferred);
 
 	struct rootdevice;
-	void next(rootdevice& d, int i);
-	void update_map(rootdevice& d, int i);
+	void next(rootdevice& d, port_mapping_t i);
+	void update_map(rootdevice& d, port_mapping_t i);
 
 	void on_upnp_xml(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
@@ -218,22 +218,22 @@ private:
 		, http_connection& c);
 	void on_upnp_map_response(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
-		, int mapping, http_connection& c);
+		, port_mapping_t mapping, http_connection& c);
 	void on_upnp_unmap_response(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
-		, int mapping, http_connection& c);
+		, port_mapping_t mapping, http_connection& c);
 	void on_expire(error_code const& e);
 
 	void disable(error_code const& ec);
-	void return_error(int mapping, int code);
+	void return_error(port_mapping_t mapping, int code);
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log() const;
 	void log(char const* msg, ...) const TORRENT_FORMAT(2,3);
 #endif
 
 	void get_ip_address(rootdevice& d);
-	void delete_port_mapping(rootdevice& d, int i);
-	void create_port_mapping(http_connection& c, rootdevice& d, int i);
+	void delete_port_mapping(rootdevice& d, port_mapping_t i);
+	void create_port_mapping(http_connection& c, rootdevice& d, port_mapping_t i);
 	void post(upnp::rootdevice const& d, char const* soap
 		, char const* soap_action);
 
@@ -278,7 +278,7 @@ private:
 		// either the WANIP namespace or the WANPPP namespace
 		std::string service_namespace;
 
-		aux::vector<mapping_t> mapping;
+		aux::vector<mapping_t, port_mapping_t> mapping;
 
 		// this is the hostname, port and path
 		// component of the url or the control_url
@@ -326,11 +326,11 @@ private:
 
 	struct upnp_state_t
 	{
-		std::vector<global_mapping_t> mappings;
+		aux::vector<global_mapping_t, port_mapping_t> mappings;
 		std::set<rootdevice> devices;
 	};
 
-	aux::vector<global_mapping_t> m_mappings;
+	aux::vector<global_mapping_t, port_mapping_t> m_mappings;
 
 	std::string m_user_agent;
 

@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 	template <typename Tag>
-	struct difference_tag {};
+	struct difference_tag;
 
 	template<typename UnderlyingType, typename Tag
 		, typename Cond = typename std::enable_if<std::is_integral<UnderlyingType>::value>::type>

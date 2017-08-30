@@ -52,7 +52,7 @@ namespace aux {
 		// int: protocol (UDP, TCP)
 		// error_code: error, an empty error means success
 		// int: transport is 0 for NAT-PMP and 1 for UPnP
-		virtual void on_port_mapping(int mapping, address const& ip, int port
+		virtual void on_port_mapping(port_mapping_t mapping, address const& ip, int port
 			, portmap_protocol proto, error_code const& ec, portmap_transport transport) = 0;
 #ifndef TORRENT_DISABLE_LOGGING
 		virtual bool should_log_portmap(portmap_transport transport) const = 0;

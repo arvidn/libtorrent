@@ -137,10 +137,10 @@ namespace aux {
 	{
 		listen_socket_t()
 		{
-			tcp_port_mapping[0] = -1;
-			tcp_port_mapping[1] = -1;
-			udp_port_mapping[0] = -1;
-			udp_port_mapping[1] = -1;
+			tcp_port_mapping[0] = port_mapping_t{-1};
+			tcp_port_mapping[1] = port_mapping_t{-1};
+			udp_port_mapping[0] = port_mapping_t{-1};
+			udp_port_mapping[1] = port_mapping_t{-1};
 		}
 
 		// listen_socket_t should not be copied or moved because
@@ -180,8 +180,8 @@ namespace aux {
 		int udp_external_port = 0;
 
 		// 0 is natpmp 1 is upnp
-		int tcp_port_mapping[2];
-		int udp_port_mapping[2];
+		port_mapping_t tcp_port_mapping[2];
+		port_mapping_t udp_port_mapping[2];
 
 		// indicates whether this is an SSL listen socket or not
 		transport ssl = transport::plaintext;
@@ -433,7 +433,7 @@ namespace aux {
 
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
-			void on_port_mapping(int mapping, address const& ip, int port
+			void on_port_mapping(port_mapping_t mapping, address const& ip, int port
 				, portmap_protocol proto, error_code const& ec
 				, portmap_transport transport) override;
 
@@ -633,9 +633,9 @@ namespace aux {
 			void stop_natpmp();
 			void stop_upnp();
 
-			int add_port_mapping(portmap_protocol t, int external_port
+			port_mapping_t add_port_mapping(portmap_protocol t, int external_port
 				, int local_port);
-			void delete_port_mapping(int handle);
+			void delete_port_mapping(port_mapping_t handle);
 
 			int next_port() const;
 

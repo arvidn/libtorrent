@@ -2167,10 +2167,10 @@ namespace {
 	namespace {
 		template <typename MapProtocol, typename ProtoType, typename EndpointType>
 		void map_port(MapProtocol& m, ProtoType protocol, EndpointType const& ep
-			, int& map_handle)
+			, port_mapping_t& map_handle)
 		{
-			if (map_handle != -1) m.delete_mapping(map_handle);
-			map_handle = -1;
+			if (map_handle != port_mapping_t{-1}) m.delete_mapping(map_handle);
+			map_handle = port_mapping_t{-1};
 
 #if TORRENT_USE_IPV6
 			address const addr = ep.address();
@@ -5423,19 +5423,20 @@ namespace {
 
 	namespace {
 		bool find_tcp_port_mapping(portmap_transport const transport
-			, int mapping, std::shared_ptr<listen_socket_t> const& ls)
+			, port_mapping_t mapping, std::shared_ptr<listen_socket_t> const& ls)
 		{
 			return ls->tcp_port_mapping[static_cast<int>(transport)] == mapping;
 		}
 
 		bool find_udp_port_mapping(portmap_transport const transport
-			, int mapping, std::shared_ptr<listen_socket_t> const& ls)
+			, port_mapping_t mapping, std::shared_ptr<listen_socket_t> const& ls)
 		{
 			return ls->udp_port_mapping[static_cast<int>(transport)] == mapping;
 		}
 	}
 
-	void session_impl::on_port_mapping(int mapping, address const& ip, int port
+	void session_impl::on_port_mapping(port_mapping_t const mapping
+		, address const& ip, int port
 		, portmap_protocol const proto, error_code const& ec
 		, portmap_transport const transport)
 	{
@@ -6601,11 +6602,11 @@ namespace {
 		return m_upnp.get();
 	}
 
-	int session_impl::add_port_mapping(portmap_protocol const t
+	port_mapping_t session_impl::add_port_mapping(portmap_protocol const t
 		, int const external_port
 		, int const local_port)
 	{
-		int ret = 0;
+		port_mapping_t ret{-1};
 		if (m_upnp) ret = m_upnp->add_mapping(t, external_port
 			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port)));
 		if (m_natpmp) ret = m_natpmp->add_mapping(t, external_port
@@ -6613,7 +6614,7 @@ namespace {
 		return ret;
 	}
 
-	void session_impl::delete_port_mapping(int handle)
+	void session_impl::delete_port_mapping(port_mapping_t handle)
 	{
 		if (m_upnp) m_upnp->delete_mapping(handle);
 		if (m_natpmp) m_natpmp->delete_mapping(handle);
@@ -6633,8 +6634,8 @@ namespace {
 		m_natpmp->close();
 		for (auto& s : m_listen_sockets)
 		{
-			s->tcp_port_mapping[0] = -1;
-			s->udp_port_mapping[0] = -1;
+			s->tcp_port_mapping[0] = port_mapping_t{-1};
+			s->udp_port_mapping[0] = port_mapping_t{-1};
 		}
 
 		m_natpmp.reset();
@@ -6647,8 +6648,8 @@ namespace {
 		m_upnp->close();
 		for (auto& s : m_listen_sockets)
 		{
-			s->tcp_port_mapping[1] = -1;
-			s->udp_port_mapping[1] = -1;
+			s->tcp_port_mapping[1] = port_mapping_t{-1};
+			s->udp_port_mapping[1] = port_mapping_t{-1};
 		}
 		m_upnp.reset();
 	}

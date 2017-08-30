@@ -1072,7 +1072,7 @@ namespace {
 	}
 
 	portmap_error_alert::portmap_error_alert(aux::stack_allocator&
-		, int i, portmap_transport const t, error_code const& e)
+		, port_mapping_t const i, portmap_transport const t, error_code const& e)
 		: mapping(i)
 		, map_transport(t)
 		, error(e)
@@ -1089,7 +1089,8 @@ namespace {
 			+ ": " + convert_from_native(error.message());
 	}
 
-	portmap_alert::portmap_alert(aux::stack_allocator&, int i, int port
+	portmap_alert::portmap_alert(aux::stack_allocator&, port_mapping_t const i
+		, int port
 		, portmap_transport const t
 		, portmap_protocol const proto)
 		: mapping(i)
