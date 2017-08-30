@@ -5414,32 +5414,29 @@ namespace {
 	}
 
 	namespace {
-		bool find_tcp_port_mapping(int transport, int mapping, std::shared_ptr<listen_socket_t> const& ls)
+		bool find_tcp_port_mapping(portmap_transport const transport
+			, int mapping, std::shared_ptr<listen_socket_t> const& ls)
 		{
-			return ls->tcp_port_mapping[transport] == mapping;
+			return ls->tcp_port_mapping[static_cast<int>(transport)] == mapping;
 		}
 
-		bool find_udp_port_mapping(int transport, int mapping, std::shared_ptr<listen_socket_t> const& ls)
+		bool find_udp_port_mapping(portmap_transport const transport
+			, int mapping, std::shared_ptr<listen_socket_t> const& ls)
 		{
-			return ls->udp_port_mapping[transport] == mapping;
+			return ls->udp_port_mapping[static_cast<int>(transport)] == mapping;
 		}
 	}
 
-	// transport is 0 for NAT-PMP and 1 for UPnP
 	void session_impl::on_port_mapping(int mapping, address const& ip, int port
 		, portmap_protocol const proto, error_code const& ec
-		, aux::portmap_transport transport)
+		, portmap_transport const transport)
 	{
 		TORRENT_ASSERT(is_single_thread());
-
-		int map_transport =
-			static_cast<std::underlying_type<aux::portmap_transport>::type>(transport);
-		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 
 		if (ec && m_alerts.should_post<portmap_error_alert>())
 		{
 			m_alerts.emplace_alert<portmap_error_alert>(mapping
-				, map_transport, ec);
+				, transport, ec);
 		}
 
 		// look through our listen sockets to see if this mapping is for one of
@@ -5447,13 +5444,13 @@ namespace {
 
 		auto ls
 			= std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
-			, std::bind(find_tcp_port_mapping, map_transport, mapping, _1));
+			, std::bind(find_tcp_port_mapping, transport, mapping, _1));
 
 		bool tcp = true;
 		if (ls == m_listen_sockets.end())
 		{
 			ls = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
-				, std::bind(find_udp_port_mapping, map_transport, mapping, _1));
+				, std::bind(find_udp_port_mapping, transport, mapping, _1));
 			tcp = false;
 		}
 
@@ -5473,8 +5470,7 @@ namespace {
 		if (!ec && m_alerts.should_post<portmap_alert>())
 		{
 			m_alerts.emplace_alert<portmap_alert>(mapping, port
-				, map_transport, proto == portmap_protocol::udp
-				? portmap_alert::udp : portmap_alert::tcp);
+				, transport, proto);
 		}
 	}
 
@@ -6597,13 +6593,14 @@ namespace {
 		return m_upnp.get();
 	}
 
-	int session_impl::add_port_mapping(int t, int external_port
-		, int local_port)
+	int session_impl::add_port_mapping(portmap_protocol const t
+		, int const external_port
+		, int const local_port)
 	{
 		int ret = 0;
-		if (m_upnp) ret = m_upnp->add_mapping(static_cast<portmap_protocol>(t), external_port
+		if (m_upnp) ret = m_upnp->add_mapping(t, external_port
 			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port)));
-		if (m_natpmp) ret = m_natpmp->add_mapping(static_cast<portmap_protocol>(t), external_port
+		if (m_natpmp) ret = m_natpmp->add_mapping(t, external_port
 			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port)));
 		return ret;
 	}
@@ -6725,19 +6722,15 @@ namespace {
 		m_alerts.emplace_alert<dht_pkt_alert>(pkt, d, node);
 	}
 
-	bool session_impl::should_log_portmap(aux::portmap_transport) const
+	bool session_impl::should_log_portmap(portmap_transport) const
 	{
 		return m_alerts.should_post<portmap_log_alert>();
 	}
 
-	void session_impl::log_portmap(aux::portmap_transport transport, char const* msg) const
+	void session_impl::log_portmap(portmap_transport transport, char const* msg) const
 	{
-		int map_transport =
-			static_cast<std::underlying_type<aux::portmap_transport>::type>(transport);
-		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
-
 		if (m_alerts.should_post<portmap_log_alert>())
-			m_alerts.emplace_alert<portmap_log_alert>(map_transport, msg);
+			m_alerts.emplace_alert<portmap_log_alert>(transport, msg);
 	}
 
 	bool session_impl::should_log_lsd() const

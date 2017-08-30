@@ -121,7 +121,7 @@ void upnp::discover_device()
 #ifndef TORRENT_DISABLE_LOGGING
 bool upnp::should_log() const
 {
-	return m_callback.should_log_portmap(aux::portmap_transport::upnp);
+	return m_callback.should_log_portmap(portmap_transport::upnp);
 }
 
 TORRENT_FORMAT(2,3)
@@ -134,7 +134,7 @@ void upnp::log(char const* fmt, ...) const
 	char msg[500];
 	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
-	m_callback.log_portmap(aux::portmap_transport::upnp, msg);
+	m_callback.log_portmap(portmap_transport::upnp, msg);
 }
 #endif
 
@@ -1083,7 +1083,7 @@ void upnp::disable(error_code const& ec)
 		portmap_protocol const proto = i->protocol;
 		i->protocol = portmap_protocol::none;
 		m_callback.on_port_mapping(int(i - m_mappings.begin()), address(), 0, proto, ec
-			, aux::portmap_transport::upnp);
+			, portmap_transport::upnp);
 	}
 
 	// we cannot clear the devices since there
@@ -1415,7 +1415,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (s.error_code == -1)
 	{
 		m_callback.on_port_mapping(mapping, d.external_ip, m.external_port, m.protocol, error_code()
-			, aux::portmap_transport::upnp);
+			, portmap_transport::upnp);
 		if (d.lease_duration > 0)
 		{
 			m.expires = aux::time_now()
@@ -1459,7 +1459,7 @@ void upnp::return_error(int const mapping, int const code)
 	}
 	portmap_protocol const proto = m_mappings[mapping].protocol;
 	m_callback.on_port_mapping(mapping, address(), 0, proto, error_code(code, upnp_category())
-		, aux::portmap_transport::upnp);
+		, portmap_transport::upnp);
 }
 
 void upnp::on_upnp_unmap_response(error_code const& e
@@ -1526,7 +1526,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	m_callback.on_port_mapping(mapping, address(), 0, proto, p.status_code() != 200
 		? error_code(p.status_code(), http_category())
 		: error_code(s.error_code, upnp_category())
-		, aux::portmap_transport::upnp);
+		, portmap_transport::upnp);
 
 	d.mapping[mapping].protocol = portmap_protocol::none;
 

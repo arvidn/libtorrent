@@ -51,6 +51,8 @@ using namespace lt;
 namespace
 {
 #ifndef TORRENT_NO_DEPRECATE
+    struct dummy {};
+
     void listen_on(lt::session& s, int min_, int max_, char const* interface, int flags)
     {
         allow_threading_guard guard;
@@ -794,7 +796,19 @@ void bind_session()
 #endif
     ;
 
-    class_<lt::session, boost::noncopyable>("session", no_init)
+    enum_<lt::portmap_protocol>("portmap_protocol")
+        .value("none", lt::portmap_protocol::none)
+        .value("udp", lt::portmap_protocol::udp)
+        .value("tcp", lt::portmap_protocol::tcp)
+    ;
+
+    enum_<lt::portmap_transport>("portmap_transport")
+      .value("natpmp", lt::portmap_transport::natpmp)
+      .value("upnp", lt::portmap_transport::upnp)
+      ;
+
+    {
+    scope s = class_<lt::session, boost::noncopyable>("session", no_init)
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
                 , (arg("settings")
@@ -932,10 +946,17 @@ void bind_session()
 #endif // TORRENT_NO_DEPRECATE
         ;
 
-    enum_<lt::session::protocol_type>("protocol_type")
-        .value("udp", lt::session::udp)
-        .value("tcp", lt::session::tcp)
-    ;
+    s.attr("tcp") = lt::portmap_protocol::tcp;
+    s.attr("udp") = lt::portmap_protocol::udp;
+    }
+
+#ifndef TORRENT_NO_DEPRECATE
+    {
+    scope s = class_<dummy>("protocol_type");
+    s.attr("udp") = lt::portmap_protocol::udp;
+    s.attr("tcp") =  lt::portmap_protocol::tcp;
+    }
+#endif
 
     {
         scope s = class_<dummy9>("save_state_flags_t");

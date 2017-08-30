@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-using lt::aux::portmap_protocol;
+using lt::portmap_protocol;
 
 broadcast_socket* sock = nullptr;
 int g_port = 0;
@@ -121,7 +121,7 @@ namespace
 	{
 		void on_port_mapping(int mapping, address const& ip, int port
 			, portmap_protocol const protocol, error_code const& err
-			, aux::portmap_transport transport) override
+			, portmap_transport const transport) override
 		{
 			callback_info info = {mapping, port, err};
 			callbacks.push_back(info);
@@ -130,12 +130,12 @@ namespace
 				<< ", error: \"" << err.message() << "\"\n";
 		}
 	#ifndef TORRENT_DISABLE_LOGGING
-		virtual bool should_log_portmap(aux::portmap_transport transport) const override
+		virtual bool should_log_portmap(portmap_transport transport) const override
 		{
 			return true;
 		}
 
-		virtual void log_portmap(aux::portmap_transport transport, char const* msg) const override
+		virtual void log_portmap(portmap_transport transport, char const* msg) const override
 		{
 			std::cout << "UPnP: " << msg << std::endl;
 			//TODO: store the log and verify that some key messages are there

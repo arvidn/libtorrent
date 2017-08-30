@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/session_types.hpp"
+#include "libtorrent/portmap.hpp" // for portmap_protocol
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 
@@ -996,13 +997,14 @@ namespace libtorrent {
 #endif
 
 		// protocols used by add_port_mapping()
-		enum protocol_type { udp = 1, tcp = 2 };
+		constexpr static portmap_protocol udp = portmap_protocol::udp;
+		constexpr static portmap_protocol tcp = portmap_protocol::tcp;
 
 		// add_port_mapping adds a port forwarding on UPnP and/or NAT-PMP,
 		// whichever is enabled. The return value is a handle referring to the
 		// port mapping that was just created. Pass it to delete_port_mapping()
 		// to remove it.
-		int add_port_mapping(protocol_type t, int external_port, int local_port);
+		int add_port_mapping(portmap_protocol t, int external_port, int local_port);
 		void delete_port_mapping(int handle);
 
 		// This function is intended only for use by plugins. This type does

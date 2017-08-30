@@ -435,7 +435,7 @@ namespace aux {
 			// a failure to map a port
 			void on_port_mapping(int mapping, address const& ip, int port
 				, portmap_protocol proto, error_code const& ec
-				, aux::portmap_transport transport) override;
+				, portmap_transport transport) override;
 
 			bool is_aborted() const override { return m_abort; }
 			bool is_paused() const { return m_paused; }
@@ -633,7 +633,7 @@ namespace aux {
 			void stop_natpmp();
 			void stop_upnp();
 
-			int add_port_mapping(int t, int external_port
+			int add_port_mapping(portmap_protocol t, int external_port
 				, int local_port);
 			void delete_port_mapping(int handle);
 
@@ -659,8 +659,8 @@ namespace aux {
 			virtual void log_packet(message_direction_t dir, span<char const> pkt
 				, udp::endpoint const& node) override;
 
-			virtual bool should_log_portmap(aux::portmap_transport transport) const override;
-			virtual void log_portmap(aux::portmap_transport transport, char const* msg)
+			virtual bool should_log_portmap(portmap_transport transport) const override;
+			virtual void log_portmap(portmap_transport transport, char const* msg)
 				const override;
 
 			virtual bool should_log_lsd() const override;
