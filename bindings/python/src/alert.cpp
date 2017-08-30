@@ -576,9 +576,10 @@ void bind_alert()
     class_<portmap_error_alert, bases<alert>, noncopyable>(
         "portmap_error_alert", no_init)
         .def_readonly("mapping", &portmap_error_alert::mapping)
-        .def_readonly("map_type", &portmap_error_alert::map_type)
         .def_readonly("error", &portmap_error_alert::error)
+        .def_readonly("map_transport", &portmap_error_alert::map_transport)
 #ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("map_type", &portmap_error_alert::map_type)
         .def_readonly("type", &portmap_error_alert::map_type)
         .def_readonly("msg", &portmap_error_alert::msg)
 #endif
