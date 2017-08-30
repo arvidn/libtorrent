@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <unordered_set>
 #include <cstdint>
+#include <cinttypes>
 #include <iterator>
 #include <algorithm>
 #include <set>
@@ -368,7 +369,7 @@ namespace {
 	// torrent, in which case it's empty.
 	bool extract_single_file(bdecode_node const& dict, file_storage& files
 		, std::string const& root_dir, std::ptrdiff_t const info_ptr_diff, bool top_level
-		, int& pad_file_cnt, error_code& ec)
+		, error_code& ec)
 	{
 		if (dict.type() != bdecode_node::dict_t) return false;
 
@@ -453,9 +454,8 @@ namespace {
 				// pad files don't need a path element, we'll just store them
 				// under the .pad directory
 				char cnt[10];
-				std::snprintf(cnt, sizeof(cnt), "%d", pad_file_cnt);
+				std::snprintf(cnt, sizeof(cnt), "%" PRIu64, file_size);
 				path = combine_path(".pad", cnt);
-				++pad_file_cnt;
 			}
 			else
 			{
@@ -517,12 +517,10 @@ namespace {
 		}
 		target.reserve(list.list_size());
 
-		// this is the counter used to name pad files
-		int pad_file_cnt = 0;
 		for (int i = 0, end(list.list_size()); i < end; ++i)
 		{
 			if (!extract_single_file(list.list_at(i), target, root_dir
-				, info_ptr_diff, false, pad_file_cnt, ec))
+				, info_ptr_diff, false, ec))
 				return false;
 		}
 		return true;
@@ -985,9 +983,7 @@ namespace {
 		{
 			// if there's no list of files, there has to be a length
 			// field.
-			// this is the counter used to name pad files
-			int pad_file_cnt = 0;
-			if (!extract_single_file(info, files, "", info_ptr_diff, true, pad_file_cnt, ec))
+			if (!extract_single_file(info, files, "", info_ptr_diff, true, ec))
 			{
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
