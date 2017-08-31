@@ -111,7 +111,7 @@ namespace libtorrent {
 
 		// setting names (indices) are 16 bits. The two most significant
 		// bits indicate what type the setting has. (string, int, bool)
-		enum type_bases
+		enum type_bases : std::uint16_t
 		{
 			string_type_base = 0x0000,
 			int_type_base =    0x4000,
@@ -120,7 +120,7 @@ namespace libtorrent {
 			index_mask =       0x3fff
 		};
 
-		enum string_types
+		enum string_types : std::uint16_t
 		{
 			// this is the client identification to the tracker. The recommended
 			// format of this string is: "ClientName/ClientVersion
@@ -240,7 +240,7 @@ namespace libtorrent {
 			max_string_setting_internal
 		};
 
-		enum bool_types
+		enum bool_types : std::uint16_t
 		{
 			// determines if connections from the same IP address as existing
 			// connections should be rejected or not. Multiple connections from
@@ -715,7 +715,7 @@ namespace libtorrent {
 			max_bool_setting_internal
 		};
 
-		enum int_types
+		enum int_types : std::uint16_t
 		{
 			// ``tracker_completion_timeout`` is the number of seconds the tracker
 			// connection will wait from when it sent the request until it
