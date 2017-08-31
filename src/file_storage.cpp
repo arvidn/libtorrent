@@ -352,7 +352,7 @@ namespace {
 		if (fe.executable_attribute) flags |= file_storage::flag_executable;
 		if (fe.symlink_attribute) flags |= file_storage::flag_symlink;
 
-		add_file_borrow(nullptr, 0, fe.path, fe.size, flags, filehash, fe.mtime
+		add_file_borrow({}, fe.path, fe.size, flags, filehash, fe.mtime
 			, fe.symlink_path);
 	}
 
@@ -547,11 +547,11 @@ namespace {
 	void file_storage::add_file(std::string const& path, std::int64_t file_size
 		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path)
 	{
-		add_file_borrow(nullptr, 0, path, file_size, file_flags, nullptr, mtime
+		add_file_borrow({}, path, file_size, file_flags, nullptr, mtime
 			, symlink_path);
 	}
 
-	void file_storage::add_file_borrow(char const* filename, int const filename_len
+	void file_storage::add_file_borrow(string_view filename
 		, std::string const& path, std::int64_t const file_size
 		, file_flags_t const file_flags, char const* filehash
 		, std::int64_t const mtime, string_view symlink_path)
@@ -581,11 +581,11 @@ namespace {
 		// if filename is nullptr, we should copy it. If it isn't, we're borrowing
 		// it and we can save the copy by setting it after this call to
 		// update_path_index().
-		update_path_index(e, path, filename == nullptr);
+		update_path_index(e, path, filename.empty());
 
 		// filename is allowed to be nullptr, in which case we just use path
-		if (filename)
-			e.set_name(filename, true, filename_len);
+		if (!filename.empty())
+			e.set_name(filename.data(), true, filename.size());
 
 		e.size = aux::numeric_cast<std::uint64_t>(file_size);
 		e.offset = aux::numeric_cast<std::uint64_t>(m_total_size);
