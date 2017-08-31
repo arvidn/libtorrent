@@ -132,12 +132,15 @@ namespace libtorrent {
 	{
 		// internal
 		tracker_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, string_view u);
+			, tcp::endpoint const& ep, string_view u);
 
 		static const int alert_type = 2;
 		static constexpr alert_category_t static_category = alert::tracker_notification;
 		virtual alert_category_t category() const override { return static_category; }
 		virtual std::string message() const override;
+
+		// endpoint of the listen interface being announced
+		aux::noexcept_movable<tcp::endpoint> local_endpoint;
 
 		// returns a 0-terminated string of the tracker's URL
 		char const* tracker_url() const;
@@ -432,7 +435,8 @@ namespace libtorrent {
 	{
 		// internal
 		tracker_error_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, int times, int status, string_view u
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, int times, int status, string_view u
 			, error_code const& e, string_view m);
 
 		TORRENT_DEFINE_ALERT(tracker_error_alert, 11)
@@ -462,7 +466,8 @@ namespace libtorrent {
 	{
 		// internal
 		tracker_warning_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, string_view u, string_view m);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, string_view u, string_view m);
 
 		TORRENT_DEFINE_ALERT(tracker_warning_alert, 12)
 
@@ -486,7 +491,8 @@ namespace libtorrent {
 	{
 		// internal
 		scrape_reply_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, int incomp, int comp, string_view u);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, int incomp, int comp, string_view u);
 
 		TORRENT_DEFINE_ALERT(scrape_reply_alert, 13)
 
@@ -505,9 +511,11 @@ namespace libtorrent {
 	{
 		// internal
 		scrape_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, string_view u, error_code const& e);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, string_view u, error_code const& e);
 		scrape_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, string_view u, string_view m);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, string_view u, string_view m);
 
 		TORRENT_DEFINE_ALERT(scrape_failed_alert, 14)
 
@@ -539,7 +547,8 @@ namespace libtorrent {
 	{
 		// internal
 		tracker_reply_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, int np, string_view u);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, int np, string_view u);
 
 		TORRENT_DEFINE_ALERT(tracker_reply_alert, 15)
 
@@ -577,7 +586,7 @@ namespace libtorrent {
 	{
 		// internal
 		tracker_announce_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
+			, torrent_handle const& h, tcp::endpoint const& ep
 			, string_view u, int e);
 
 		TORRENT_DEFINE_ALERT(tracker_announce_alert, 17)
@@ -1716,7 +1725,7 @@ namespace libtorrent {
 	{
 		// internal
 		trackerid_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, string_view u, const std::string& id);
+			, tcp::endpoint const& ep , string_view u, const std::string& id);
 
 		TORRENT_DEFINE_ALERT(trackerid_alert, 61)
 
