@@ -310,11 +310,13 @@ namespace libtorrent {
 
 	tracker_error_alert::tracker_error_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, int times, int status, string_view u
-		, error_code const& e, string_view m)
+		, error_code const& e, tcp::endpoint const& ep
+		, string_view m)
 		: tracker_alert(alloc, h, u)
 		, times_in_row(times)
 		, status_code(status)
 		, error(e)
+		, local_endpoint(ep)
 		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
@@ -331,16 +333,19 @@ namespace libtorrent {
 	std::string tracker_error_alert::message() const
 	{
 		char ret[400];
-		std::snprintf(ret, sizeof(ret), "%s (%d) %s \"%s\" (%d)"
-			, tracker_alert::message().c_str(), status_code
+		std::snprintf(ret, sizeof(ret), "%s[%s] (%d) %s \"%s\" (%d)"
+			, tracker_alert::message().c_str()
+			, print_endpoint(local_endpoint).c_str(), status_code
 			, convert_from_native(error.message()).c_str(), error_message()
 			, times_in_row);
 		return ret;
 	}
 
 	tracker_warning_alert::tracker_warning_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view u, string_view m)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, string_view u, string_view m)
 		: tracker_alert(alloc, h, u)
+		, local_endpoint(ep)
 		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
@@ -356,12 +361,16 @@ namespace libtorrent {
 
 	std::string tracker_warning_alert::message() const
 	{
-		return tracker_alert::message() + " warning: " + warning_message();
+		return tracker_alert::message()
+			+ "[" + print_endpoint(local_endpoint) + "]"
+			+ " warning: " + warning_message();
 	}
 
 	scrape_reply_alert::scrape_reply_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int incomp, int comp, string_view u)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, int incomp, int comp, string_view u)
 		: tracker_alert(alloc, h, u)
+		, local_endpoint(ep)
 		, incomplete(incomp)
 		, complete(comp)
 	{
@@ -371,15 +380,19 @@ namespace libtorrent {
 	std::string scrape_reply_alert::message() const
 	{
 		char ret[400];
-		std::snprintf(ret, sizeof(ret), "%s scrape reply: %u %u"
-			, tracker_alert::message().c_str(), incomplete, complete);
+		std::snprintf(ret, sizeof(ret), "%s[%s] scrape reply: %u %u"
+			, tracker_alert::message().c_str()
+			, print_endpoint(local_endpoint).c_str()
+			, incomplete, complete);
 		return ret;
 	}
 
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view u, error_code const& e)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, string_view u, error_code const& e)
 		: tracker_alert(alloc, h, u)
 		, error(e)
+		, local_endpoint(ep)
 		, m_msg_idx()
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(convert_from_native(e.message()))
@@ -389,9 +402,11 @@ namespace libtorrent {
 	}
 
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view u, string_view m)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, string_view u, string_view m)
 		: tracker_alert(alloc, h, u)
 		, error(errors::tracker_failure)
+		, local_endpoint(ep)
 		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
@@ -408,12 +423,16 @@ namespace libtorrent {
 
 	std::string scrape_failed_alert::message() const
 	{
-		return tracker_alert::message() + " scrape failed: " + error_message();
+		return tracker_alert::message()
+			+ "[" + print_endpoint(local_endpoint) + "]"
+			+ " scrape failed: " + error_message();
 	}
 
 	tracker_reply_alert::tracker_reply_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int np, string_view u)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, int np, string_view u)
 		: tracker_alert(alloc, h, u)
+		, local_endpoint(ep)
 		, num_peers(np)
 	{
 		TORRENT_ASSERT(!u.empty());
@@ -422,8 +441,10 @@ namespace libtorrent {
 	std::string tracker_reply_alert::message() const
 	{
 		char ret[400];
-		std::snprintf(ret, sizeof(ret), "%s received peers: %u"
-			, tracker_alert::message().c_str(), num_peers);
+		std::snprintf(ret, sizeof(ret), "%s[%s] received peers: %u"
+			, tracker_alert::message().c_str()
+			, print_endpoint(local_endpoint).c_str()
+			, num_peers);
 		return ret;
 	}
 

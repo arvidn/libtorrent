@@ -428,12 +428,16 @@ namespace libtorrent {
 	// failed. ``status_code`` is the code returned from the HTTP server. 401
 	// means the tracker needs authentication, 404 means not found etc. If the
 	// tracker timed out, the code will be set to 0.
+	// The ``local_endpoint`` member is the endpoint of the listen interface
+	// which was being announced when the error occured. It may be unspecified
+	// if the failing endpoint is not known.
 	struct TORRENT_EXPORT tracker_error_alert final : tracker_alert
 	{
 		// internal
 		tracker_error_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, int times, int status, string_view u
-			, error_code const& e, string_view m);
+			, error_code const& e, tcp::endpoint const& ep
+			, string_view m);
 
 		TORRENT_DEFINE_ALERT(tracker_error_alert, 11)
 
@@ -443,6 +447,7 @@ namespace libtorrent {
 		int const times_in_row;
 		int const status_code;
 		error_code const error;
+		aux::noexcept_movable<tcp::endpoint> local_endpoint;
 
 		// the message associated with this error
 		char const* error_message() const;
@@ -462,12 +467,16 @@ namespace libtorrent {
 	{
 		// internal
 		tracker_warning_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, string_view u, string_view m);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, string_view u, string_view m);
 
 		TORRENT_DEFINE_ALERT(tracker_warning_alert, 12)
 
 		static constexpr alert_category_t static_category = alert::tracker_notification | alert::error_notification;
 		virtual std::string message() const override;
+
+		// endpoint of the listen interface being announced
+		aux::noexcept_movable<tcp::endpoint> local_endpoint;
 
 		// the message associated with this warning
 		char const* warning_message() const;
@@ -486,11 +495,15 @@ namespace libtorrent {
 	{
 		// internal
 		scrape_reply_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, int incomp, int comp, string_view u);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, int incomp, int comp, string_view u);
 
 		TORRENT_DEFINE_ALERT(scrape_reply_alert, 13)
 
 		virtual std::string message() const override;
+
+		// endpoint of the listen interface being announced
+		aux::noexcept_movable<tcp::endpoint> local_endpoint;
 
 		// the data returned in the scrape response. These numbers
 		// may be -1 if the response was malformed.
@@ -505,9 +518,11 @@ namespace libtorrent {
 	{
 		// internal
 		scrape_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, string_view u, error_code const& e);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, string_view u, error_code const& e);
 		scrape_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, string_view u, string_view m);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, string_view u, string_view m);
 
 		TORRENT_DEFINE_ALERT(scrape_failed_alert, 14)
 
@@ -518,6 +533,9 @@ namespace libtorrent {
 		// message (``error::tracker_failure``), in which case it can be
 		// retrieved by calling ``error_message()``.
 		error_code const error;
+
+		// endpoint of the listen interface being announced
+		aux::noexcept_movable<tcp::endpoint> local_endpoint;
 
 		// if the error indicates there is an associated message, this returns
 		// that message. Otherwise and empty string.
@@ -539,11 +557,15 @@ namespace libtorrent {
 	{
 		// internal
 		tracker_reply_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, int np, string_view u);
+			, torrent_handle const& h, tcp::endpoint const& ep
+			, int np, string_view u);
 
 		TORRENT_DEFINE_ALERT(tracker_reply_alert, 15)
 
 		virtual std::string message() const override;
+
+		// endpoint of the listen interface being announced
+		aux::noexcept_movable<tcp::endpoint> local_endpoint;
 
 		// tells how many peers the tracker returned in this response. This is
 		// not expected to be greater than the ``num_want`` settings. These are not necessarily
