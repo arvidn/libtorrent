@@ -2189,15 +2189,18 @@ namespace {
 		tcp::endpoint const tcp_ep = s.sock ? s.sock->local_endpoint() : tcp::endpoint();
 		udp::endpoint const udp_ep = s.udp_sock ? s.udp_sock->sock.local_endpoint() : udp::endpoint();
 
+		bool const map_tcp = !is_local(tcp_ep.address());
+		bool const map_udp = !is_local(udp_ep.address());
+
 		if ((mask & remap_natpmp) && m_natpmp)
 		{
-			map_port(*m_natpmp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[0]);
-			map_port(*m_natpmp, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[0]);
+			if (map_tcp) map_port(*m_natpmp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[0]);
+			if (map_udp) map_port(*m_natpmp, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[0]);
 		}
 		if ((mask & remap_upnp) && m_upnp)
 		{
-			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[1]);
-			map_port(*m_upnp, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[1]);
+			if (map_tcp) map_port(*m_upnp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[1]);
+			if (map_udp) map_port(*m_upnp, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[1]);
 		}
 	}
 
