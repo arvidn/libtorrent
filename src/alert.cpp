@@ -142,8 +142,9 @@ namespace libtorrent {
 	}
 
 	tracker_alert::tracker_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view u)
+		, torrent_handle const& h, tcp::endpoint const& ep, string_view u)
 		: torrent_alert(alloc, h)
+		, local_endpoint(ep)
 		, m_url_idx(alloc.copy_string(u))
 #ifndef TORRENT_NO_DEPRECATE
 		, url(u)
@@ -157,7 +158,8 @@ namespace libtorrent {
 
 	std::string tracker_alert::message() const
 	{
-		return torrent_alert::message() + " (" + tracker_url() + ")";
+		return torrent_alert::message() + " (" + tracker_url() + ")"
+			+ "[" + print_endpoint(local_endpoint) + "]";
 	}
 
 	read_piece_alert::read_piece_alert(aux::stack_allocator& alloc
@@ -309,9 +311,9 @@ namespace libtorrent {
 	}
 
 	tracker_error_alert::tracker_error_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int times, int status, string_view u
-		, error_code const& e, string_view m)
-		: tracker_alert(alloc, h, u)
+		, torrent_handle const& h, tcp::endpoint const& ep, int times
+		, int status, string_view u, error_code const& e, string_view m)
+		: tracker_alert(alloc, h, ep, u)
 		, times_in_row(times)
 		, status_code(status)
 		, error(e)
@@ -339,8 +341,9 @@ namespace libtorrent {
 	}
 
 	tracker_warning_alert::tracker_warning_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view u, string_view m)
-		: tracker_alert(alloc, h, u)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, string_view u, string_view m)
+		: tracker_alert(alloc, h, ep, u)
 		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
@@ -360,8 +363,9 @@ namespace libtorrent {
 	}
 
 	scrape_reply_alert::scrape_reply_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int incomp, int comp, string_view u)
-		: tracker_alert(alloc, h, u)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, int incomp, int comp, string_view u)
+		: tracker_alert(alloc, h, ep, u)
 		, incomplete(incomp)
 		, complete(comp)
 	{
@@ -377,8 +381,9 @@ namespace libtorrent {
 	}
 
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view u, error_code const& e)
-		: tracker_alert(alloc, h, u)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, string_view u, error_code const& e)
+		: tracker_alert(alloc, h, ep, u)
 		, error(e)
 		, m_msg_idx()
 #ifndef TORRENT_NO_DEPRECATE
@@ -389,8 +394,9 @@ namespace libtorrent {
 	}
 
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view u, string_view m)
-		: tracker_alert(alloc, h, u)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, string_view u, string_view m)
+		: tracker_alert(alloc, h, ep, u)
 		, error(errors::tracker_failure)
 		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
@@ -412,8 +418,9 @@ namespace libtorrent {
 	}
 
 	tracker_reply_alert::tracker_reply_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int np, string_view u)
-		: tracker_alert(alloc, h, u)
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, int np, string_view u)
+		: tracker_alert(alloc, h, ep, u)
 		, num_peers(np)
 	{
 		TORRENT_ASSERT(!u.empty());
@@ -430,7 +437,7 @@ namespace libtorrent {
 	dht_reply_alert::dht_reply_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
 		, int np)
-		: tracker_alert(alloc, h, "")
+		: tracker_alert(alloc, h, {}, "")
 		, num_peers(np)
 	{}
 
@@ -443,8 +450,8 @@ namespace libtorrent {
 	}
 
 	tracker_announce_alert::tracker_announce_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view u, int e)
-		: tracker_alert(alloc, h, u)
+		, torrent_handle const& h, tcp::endpoint const& ep, string_view u, int e)
+		: tracker_alert(alloc, h, ep, u)
 		, event(e)
 	{
 		TORRENT_ASSERT(!u.empty());
@@ -1296,9 +1303,10 @@ namespace {
 	trackerid_alert::trackerid_alert(
 		aux::stack_allocator& alloc
 		, torrent_handle const& h
+		, tcp::endpoint const& ep
 		, string_view u
 		, const std::string& id)
-		: tracker_alert(alloc, h, u)
+		: tracker_alert(alloc, h,  ep, u)
 		, m_tracker_idx(alloc.copy_string(id))
 #ifndef TORRENT_NO_DEPRECATE
 		, trackerid(id)

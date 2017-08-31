@@ -2934,7 +2934,7 @@ namespace libtorrent {
 			if (m_ses.alerts().should_post<tracker_announce_alert>())
 			{
 				m_ses.alerts().emplace_alert<tracker_announce_alert>(
-					get_handle(), req.url, req.event);
+					get_handle(), aep.local_endpoint, req.url, req.event);
 			}
 
 			state.sent_announce = true;
@@ -2989,18 +2989,21 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 
 		announce_entry* ae = find_tracker(req.url);
+		tcp::endpoint local_endpoint;
 		if (ae)
 		{
 			for (auto& aep : ae->endpoints)
 			{
 				if (aep.socket != req.outgoing_socket) continue;
+				local_endpoint = aep.local_endpoint;
 				aep.message = msg;
 				break;
 			}
 		}
 
 		if (m_ses.alerts().should_post<tracker_warning_alert>())
-			m_ses.alerts().emplace_alert<tracker_warning_alert>(get_handle(), req.url, msg);
+			m_ses.alerts().emplace_alert<tracker_warning_alert>(get_handle()
+				, local_endpoint, req.url, msg);
 	}
 
 	void torrent::tracker_scrape_response(tracker_request const& req
@@ -3012,11 +3015,13 @@ namespace libtorrent {
 		TORRENT_ASSERT(0 != (req.kind & tracker_request::scrape_request));
 
 		announce_entry* ae = find_tracker(req.url);
+		tcp::endpoint local_endpoint;
 		if (ae)
 		{
 			announce_endpoint* aep = ae->find_endpoint(req.outgoing_socket);
 			if (aep)
 			{
+				local_endpoint = aep->local_endpoint;
 				if (incomplete >= 0) aep->scrape_incomplete = incomplete;
 				if (complete >= 0) aep->scrape_complete = complete;
 				if (downloaded >= 0) aep->scrape_downloaded = downloaded;
@@ -3032,7 +3037,7 @@ namespace libtorrent {
 			|| req.triggered_manually)
 		{
 			m_ses.alerts().emplace_alert<scrape_reply_alert>(
-				get_handle(), incomplete, complete, req.url);
+				get_handle(), local_endpoint, incomplete, complete, req.url);
 		}
 	}
 
@@ -3098,11 +3103,13 @@ namespace libtorrent {
 			settings().get_int(settings_pack::min_announce_interval)));
 
 		announce_entry* ae = find_tracker(r.url);
+		tcp::endpoint local_endpoint;
 		if (ae)
 		{
 			announce_endpoint* aep = ae->find_endpoint(r.outgoing_socket);
 			if (aep)
 			{
+				local_endpoint = aep->local_endpoint;
 				if (resp.incomplete >= 0) aep->scrape_incomplete = resp.incomplete;
 				if (resp.complete >= 0) aep->scrape_complete = resp.complete;
 				if (resp.downloaded >= 0) aep->scrape_downloaded = resp.downloaded;
@@ -3123,7 +3130,7 @@ namespace libtorrent {
 					ae->trackerid = resp.trackerid;
 					if (m_ses.alerts().should_post<trackerid_alert>())
 						m_ses.alerts().emplace_alert<trackerid_alert>(get_handle()
-							, r.url, resp.trackerid);
+							, aep->local_endpoint, r.url, resp.trackerid);
 				}
 
 				update_scrape_state();
@@ -3246,7 +3253,7 @@ namespace libtorrent {
 			|| r.triggered_manually)
 		{
 			m_ses.alerts().emplace_alert<tracker_reply_alert>(
-				get_handle(), int(resp.peers.size() + resp.peers4.size())
+				get_handle(), local_endpoint, int(resp.peers.size() + resp.peers4.size())
 #if TORRENT_USE_IPV6
 				+ int(resp.peers6.size())
 #endif
@@ -10897,6 +10904,7 @@ namespace {
 			// announce request
 			announce_entry* ae = find_tracker(r.url);
 			int fails = 0;
+			tcp::endpoint local_endpoint;
 			if (ae)
 			{
 				auto aep = std::find_if(ae->endpoints.begin(), ae->endpoints.end()
@@ -10904,6 +10912,7 @@ namespace {
 
 				if (aep != ae->endpoints.end())
 				{
+					local_endpoint = aep->local_endpoint;
 					aep->failed(settings().get_int(settings_pack::tracker_backoff)
 						, retry_interval);
 					aep->last_error = ec;
@@ -10931,16 +10940,17 @@ namespace {
 				|| r.triggered_manually)
 			{
 				m_ses.alerts().emplace_alert<tracker_error_alert>(get_handle()
-					, fails, response_code, r.url, ec, msg);
+					, local_endpoint, fails, response_code, r.url, ec, msg);
 			}
 		}
 		else
 		{
+			announce_entry* ae = find_tracker(r.url);
+
 			// scrape request
 			if (response_code == 410)
 			{
 				// never talk to this tracker again
-				announce_entry* ae = find_tracker(r.url);
 				if (ae) ae->fail_limit = 1;
 			}
 
@@ -10950,7 +10960,14 @@ namespace {
 			if (m_ses.alerts().should_post<scrape_failed_alert>()
 				|| r.triggered_manually)
 			{
-				m_ses.alerts().emplace_alert<scrape_failed_alert>(get_handle(), r.url, ec);
+				tcp::endpoint local_endpoint;
+				if (ae)
+				{
+					auto aep = ae->find_endpoint(r.outgoing_socket);
+					if (aep) local_endpoint = aep->local_endpoint;
+				}
+
+				m_ses.alerts().emplace_alert<scrape_failed_alert>(get_handle(), local_endpoint, r.url, ec);
 			}
 		}
 		// announce to the next working tracker
