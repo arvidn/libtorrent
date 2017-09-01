@@ -381,25 +381,30 @@ namespace libtorrent {
 		}
 	}
 
-	char* string_tokenize(char* last, char sep, char** next)
+	std::pair<string_view, string_view> split_string(string_view last, char const sep)
 	{
-		if (last == nullptr) return nullptr;
-		if (last[0] == '"')
+		if (last.empty()) return {{}, {}};
+
+		std::size_t pos = 0;
+		if (last[0] == '"' && sep != '"')
 		{
-			*next = strchr(last + 1, '"');
-			// consume the actual separator as well.
-			if (*next != nullptr)
-				*next = strchr(*next, sep);
+			for (auto const c : last.substr(1))
+			{
+				++pos;
+				if (c == '"') break;
+			}
 		}
-		else
+		std::size_t found_sep = 0;
+		for (char const c : last.substr(pos))
 		{
-			*next = strchr(last, sep);
+			if (c == sep)
+			{
+				found_sep = 1;
+				break;
+			}
+			++pos;
 		}
-		if (*next == nullptr) return last;
-		**next = 0;
-		++(*next);
-		while (**next == sep && **next) ++(*next);
-		return last;
+		return {last.substr(0, pos), last.substr(pos + found_sep)};
 	}
 
 #if TORRENT_USE_I2P

@@ -311,13 +311,6 @@ namespace libtorrent {
 		error_code invalid_response(i2p_error::parse_failed
 			, i2p_category());
 
-		// 0-terminate the string and parse it
-		// TODO: 3 once we've transitioned to string_view, remove the
-		// 0-termination
-		m_buffer.push_back(0);
-		char* ptr = m_buffer.data();
-		char* next = ptr;
-
 		string_view expect1;
 		string_view expect2;
 
@@ -342,40 +335,45 @@ namespace libtorrent {
 				break;
 		}
 
-		// TODO: 3 make string_tokenize return string_views instead
-		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == nullptr || expect1.empty() || expect1 != ptr)
+		string_view remaining(m_buffer.data(), m_buffer.size());
+		string_view token;
+
+		std::tie(token, remaining) = split_string(remaining, ' ');
+		if (expect1.empty() || expect1 != token)
 		{ handle_error(invalid_response, h); return; }
-		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == nullptr || expect2.empty() || expect2 != ptr)
+
+		std::tie(token, remaining) = split_string(remaining, ' ');
+		if (expect2.empty() || expect2 != token)
 		{ handle_error(invalid_response, h); return; }
 
 		int result = 0;
 
 		for(;;)
 		{
-			char const* const name = string_tokenize(next, '=', &next);
-			if (name == nullptr) break;
-			char const* const ptr2 = string_tokenize(next, ' ', &next);
-			if (ptr2 == nullptr) { handle_error(invalid_response, h); return; }
+			string_view name;
+			std::tie(name, remaining) = split_string(remaining, '=');
+			if (name.empty()) break;
+			string_view value;
+			std::tie(value, remaining) = split_string(remaining, ' ');
+			if (value.empty()) { handle_error(invalid_response, h); return; }
 
 			if ("RESULT"_sv == name)
 			{
-				if ("OK"_sv == ptr2)
+				if ("OK"_sv == value)
 					result = i2p_error::no_error;
-				else if ("CANT_REACH_PEER"_sv == ptr2)
+				else if ("CANT_REACH_PEER"_sv == value)
 					result = i2p_error::cant_reach_peer;
-				else if ("I2P_ERROR"_sv == ptr2)
+				else if ("I2P_ERROR"_sv == value)
 					result = i2p_error::i2p_error;
-				else if ("INVALID_KEY"_sv == ptr2)
+				else if ("INVALID_KEY"_sv == value)
 					result = i2p_error::invalid_key;
-				else if ("INVALID_ID"_sv == ptr2)
+				else if ("INVALID_ID"_sv == value)
 					result = i2p_error::invalid_id;
-				else if ("TIMEOUT"_sv == ptr2)
+				else if ("TIMEOUT"_sv == value)
 					result = i2p_error::timeout;
-				else if ("KEY_NOT_FOUND"_sv == ptr2)
+				else if ("KEY_NOT_FOUND"_sv == value)
 					result = i2p_error::key_not_found;
-				else if ("DUPLICATED_ID"_sv == ptr2)
+				else if ("DUPLICATED_ID"_sv == value)
 					result = i2p_error::duplicated_id;
 				else
 					result = i2p_error::num_errors; // unknown error
@@ -388,11 +386,11 @@ namespace libtorrent {
 			}*/
 			else if ("VALUE"_sv == name)
 			{
-				m_name_lookup = ptr2;
+				m_name_lookup = value.to_string();
 			}
 			else if ("DESTINATION"_sv == name)
 			{
-				m_dest = ptr2;
+				m_dest = value.to_string();
 			}
 		}
 

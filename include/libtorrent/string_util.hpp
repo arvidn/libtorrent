@@ -109,15 +109,13 @@ namespace libtorrent {
 	// in strict ansi mode
 	char* allocate_string_copy(char const* str);
 
-	// searches for separator in the string 'last'. the pointer last points to
-	// is set to point to the first character following the separator.
-	// returns a pointer to a 0-terminated string starting at last, ending
-	// at the separator (the string is mutated to replace the separator with
-	// a '\0' character). If there is no separator, but the end of the string,
-	// the pointer next points to is set to the last 0-terminator, which will
-	// make the following invocation return nullptr, to indicate the end of the
-	// string.
-	TORRENT_EXTRA_EXPORT char* string_tokenize(char* last, char sep, char** next);
+	// searches for separator ('sep') in the string 'last'.
+	// if found, returns the string_view representing the range from the start of
+	// `last` up to (but not including) the separator. The second return value is
+	// the remainder of the string, starting one character after the separator.
+	// if no separator is found, the whole string is returned and the second
+	// return value is an empty string_view.
+	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> split_string(string_view last, char sep);
 
 #if TORRENT_USE_I2P
 
