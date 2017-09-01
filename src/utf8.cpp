@@ -267,17 +267,17 @@ namespace {
 
 	// returns the unicode codepoint and the number of bytes of the utf8 sequence
 	// that was parsed. The codepoint is -1 if it's invalid
-	std::pair<std::int32_t, int> parse_utf8_codepoint(char const* str, int const len)
+	std::pair<std::int32_t, int> parse_utf8_codepoint(string_view str)
 	{
-		int const sequence_len = trailingBytesForUTF8[static_cast<std::uint8_t>(*str)] + 1;
-		if (sequence_len > len) return std::make_pair(-1, len);
+		int const sequence_len = trailingBytesForUTF8[static_cast<std::uint8_t>(str[0])] + 1;
+		if (sequence_len > int(str.size())) return std::make_pair(-1, static_cast<int>(str.size()));
 
 		if (sequence_len > 4)
 		{
 			return std::make_pair(-1, sequence_len);
 		}
 
-		if (!isLegalUTF8(reinterpret_cast<UTF8 const*>(str), sequence_len))
+		if (!isLegalUTF8(reinterpret_cast<UTF8 const*>(str.data()), sequence_len))
 		{
 			return std::make_pair(-1, sequence_len);
 		}
@@ -286,7 +286,7 @@ namespace {
 		for (int i = 0; i < sequence_len; ++i)
 		{
 			ch <<= 6;
-			ch += static_cast<std::uint8_t>(str[i]);
+			ch += static_cast<std::uint8_t>(str[static_cast<std::size_t>(i)]);
 		}
 		ch -= offsetsFromUTF8[sequence_len-1];
 

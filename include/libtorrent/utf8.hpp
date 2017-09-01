@@ -78,7 +78,7 @@ namespace libtorrent {
 
 	// TODO: 3 take a string_view here
 	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
-		parse_utf8_codepoint(char const* str, int len);
+		parse_utf8_codepoint(string_view str);
 }
 
 #endif
