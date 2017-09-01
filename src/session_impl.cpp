@@ -2174,6 +2174,8 @@ namespace {
 
 #if TORRENT_USE_IPV6
 			address const addr = ep.address();
+			// with IPv4 the interface might be behind NAT so we can't skip them
+			// based on the scope of the local address
 			if (addr.is_v6() && is_local(addr))
 				return;
 #endif
