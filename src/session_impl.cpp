@@ -2169,19 +2169,21 @@ namespace {
 		void map_port(MapProtocol& m, ProtoType protocol, EndpointType const& ep
 			, int& map_handle)
 		{
+			if (map_handle != -1) m.delete_mapping(map_handle);
+			map_handle = -1;
+
+#if TORRENT_USE_IPV6
 			address const addr = ep.address();
 			if (addr.is_v6() && is_local(addr))
 				return;
-
-			if (map_handle != -1) m.delete_mapping(map_handle);
-			map_handle = -1;
+#endif
 
 			// only update this mapping if we actually have a socket listening
 			if (ep != EndpointType())
 				map_handle = m.add_mapping(protocol, ep.port(), ep);
 		}
 
-		tcp::endpoint to_tcp(udp::endpoint const ep)
+		tcp::endpoint to_tcp(udp::endpoint const& ep)
 		{
 			return tcp::endpoint(ep.address(), ep.port());
 		}
