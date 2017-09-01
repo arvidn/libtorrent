@@ -69,10 +69,17 @@ namespace libtorrent {
 #if TORRENT_USE_IPV6
 			if (a.is_v6())
 			{
+				// NOTE: site local is deprecated but by
+				// https://www.ietf.org/rfc/rfc3879.txt:
+				// routers SHOULD be configured to prevent
+				// routing of this prefix by default.
+
 				address_v6 const a6 = a.to_v6();
 				return a6.is_loopback()
 					|| a6.is_link_local()
+					|| a6.is_site_local()
 					|| a6.is_multicast_link_local()
+					|| a6.is_multicast_site_local()
 					//  fc00::/7, unique local address
 					|| (a6.to_bytes()[0] & 0xfe) == 0xfc;
 			}
