@@ -236,8 +236,7 @@ namespace libtorrent {
 		for (std::size_t i = 0; i < element.size(); i += std::size_t(seq_len))
 		{
 			std::int32_t code_point;
-			std::tie(code_point, seq_len) = parse_utf8_codepoint(element.data() + i
-				, int(element.size() - i));
+			std::tie(code_point, seq_len) = parse_utf8_codepoint(element.substr(i));
 
 			if (code_point >= 0 && filter_path_character(code_point))
 			{
