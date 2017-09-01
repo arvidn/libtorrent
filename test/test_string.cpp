@@ -357,31 +357,20 @@ TORRENT_TEST(parse_list)
 		, {{"127.0.0.1", 0, false}}, "127.0.0.1:0");
 }
 
-TORRENT_TEST(tokenize)
+TORRENT_TEST(split_string)
 {
-	char test_tokenize[] = "a b c \"foo bar\" d\ne f";
-	char* next = test_tokenize;
-	char* ptr = string_tokenize(next, ' ', &next);
-	TEST_EQUAL(ptr, std::string("a"));
+	TEST_CHECK(split_string("a b"_sv, ' ') == std::make_pair("a"_sv, "b"_sv));
+	TEST_CHECK(split_string("\"a b\" c"_sv, ' ') == std::make_pair("\"a b\""_sv, "c"_sv));
+	TEST_CHECK(split_string("\"a b\"foobar c"_sv, ' ') == std::make_pair("\"a b\"foobar"_sv, "c"_sv));
+	TEST_CHECK(split_string("a\nb foobar"_sv, ' ') == std::make_pair("a\nb"_sv, "foobar"_sv));
+	TEST_CHECK(split_string("a b\"foo\"bar"_sv, '"') == std::make_pair("a b"_sv, "foo\"bar"_sv));
+	TEST_CHECK(split_string("a"_sv, ' ') == std::make_pair("a"_sv, ""_sv));
+	TEST_CHECK(split_string("\"a b"_sv, ' ') == std::make_pair("\"a b"_sv, ""_sv));
+	TEST_CHECK(split_string(""_sv, ' ') == std::make_pair(""_sv, ""_sv));
+}
 
-	ptr = string_tokenize(next, ' ', &next);
-	TEST_EQUAL(ptr, std::string("b"));
-
-	ptr = string_tokenize(next, ' ', &next);
-	TEST_EQUAL(ptr, std::string("c"));
-
-	ptr = string_tokenize(next, ' ', &next);
-	TEST_EQUAL(ptr, std::string("\"foo bar\""));
-
-	ptr = string_tokenize(next, ' ', &next);
-	TEST_EQUAL(ptr, std::string("d\ne"));
-
-	ptr = string_tokenize(next, ' ', &next);
-	TEST_EQUAL(ptr, std::string("f"));
-
-	ptr = string_tokenize(next, ' ', &next);
-	TEST_EQUAL(ptr, static_cast<char*>(nullptr));
-
+TORRENT_TEST(convert_from_native)
+{
 	TEST_EQUAL(std::string("foobar"), convert_from_native(convert_to_native("foobar")));
 	TEST_EQUAL(std::string("foobar")
 		, convert_from_native(convert_to_native("foo"))
