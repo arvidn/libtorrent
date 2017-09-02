@@ -344,6 +344,15 @@ namespace {
 
 #ifndef TORRENT_NO_DEPRECATE
 
+	void file_storage::add_file_borrow(char const* filename, int filename_len
+		, std::string const& path, std::int64_t file_size, file_flags_t file_flags
+		, char const* filehash, std::int64_t mtime, string_view symlink_path)
+	{
+		TORRENT_ASSERT(filename_len >= 0);
+		add_file_borrow({filename, std::size_t(filename_len)}, path, file_size
+			, file_flags, filehash, mtime, symlink_path);
+	}
+
 	void file_storage::add_file(file_entry const& fe, char const* filehash)
 	{
 		file_flags_t flags = {};

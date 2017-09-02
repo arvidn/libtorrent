@@ -282,6 +282,11 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
+		void add_file_borrow(char const* filename, int filename_len
+			, std::string const& path, std::int64_t file_size
+			, file_flags_t file_flags = {}, char const* filehash = 0
+			, std::int64_t mtime = 0, string_view symlink_path = string_view());
+		TORRENT_DEPRECATED
 		void add_file(file_entry const& fe, char const* filehash = nullptr);
 
 		// all wstring APIs are deprecated since 0.16.11
