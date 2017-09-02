@@ -177,6 +177,8 @@ namespace libtorrent {
 #endif
 		, m_stats_counters(ses.stats_counters())
 		, m_storage_constructor(p.storage)
+		, m_added_time(p.added_time ? p.added_time : std::time(nullptr))
+		, m_completed_time(p.completed_time)
 		, m_info_hash(info_hash)
 		, m_error_file(torrent_status::error_file_none)
 		, m_sequence_number(-1)
@@ -187,10 +189,10 @@ namespace libtorrent {
 		, m_storage_mode(p.storage_mode)
 		, m_announcing(false)
 		, m_added(false)
-		, m_sequential_download(false)
+		, m_sequential_download(p.flags & torrent_flags::sequential_download)
 		, m_auto_sequential(false)
 		, m_seed_mode(false)
-		, m_super_seeding(false)
+		, m_super_seeding(p.flags & torrent_flags::super_seeding)
 		, m_stop_when_ready(p.flags & torrent_flags::stop_when_ready)
 		, m_need_save_resume_data(p.flags & torrent_flags::need_save_resume)
 		, m_max_uploads((1 << 24) - 1)
@@ -374,10 +376,18 @@ namespace libtorrent {
 		m_finished_time = seconds(p.finished_time);
 		m_seeding_time = seconds(p.seeding_time);
 
-		m_added_time = p.added_time ? p.added_time : std::time(nullptr);
-		m_completed_time = p.completed_time;
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
+
+#ifndef TORRENT_NO_DEPRECATE
+		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
+#endif
+
+		if (valid_metadata())
+		{
+			inc_stats_counter(counters::num_total_pieces_added
+				, m_torrent_file->num_pieces());
+		}
 	}
 
 	void torrent::inc_stats_counter(int c, int value)
@@ -583,7 +593,7 @@ namespace libtorrent {
 		m_verified.set_bit(piece);
 	}
 
-	void torrent::start(add_torrent_params const& p)
+	void torrent::start()
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(m_was_started == false);
@@ -591,18 +601,33 @@ namespace libtorrent {
 		m_was_started = true;
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
-		if (m_add_torrent_params
-			&& m_add_torrent_params->internal_resume_data_error
-			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
+		// Some of these calls may log to the torrent debug log, which requires a
+		// call to get_handle(), which requires the torrent object to be fully
+		// constructed, as it relies on get_shared_from_this()
+		if (m_add_torrent_params)
 		{
-			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
-				, m_add_torrent_params->internal_resume_data_error, ""
-				, operation_t::unknown);
-		}
+#ifndef TORRENT_NO_DEPRECATE
+			if (m_add_torrent_params->internal_resume_data_error
+				&& m_ses.alerts().should_post<fastresume_rejected_alert>())
+			{
+				m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
+					, m_add_torrent_params->internal_resume_data_error, ""
+					, operation_t::unknown);
+			}
 #endif
 
-// TODO: 3 why isn't this done in the constructor?
+			add_torrent_params const& p = *m_add_torrent_params;
+
+			set_max_uploads(p.max_uploads, false);
+			set_max_connections(p.max_connections, false);
+			set_limit_impl(p.upload_limit, peer_connection::upload_channel, false);
+			set_limit_impl(p.download_limit, peer_connection::download_channel, false);
+
+			for (auto const& peer : p.peers)
+			{
+				add_peer(peer, peer_info::resume_data);
+			}
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
@@ -611,64 +636,27 @@ namespace libtorrent {
 				"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s "
 				"save-path: %s"
 				, torrent_file().name().c_str()
-				, p.max_uploads
-				, p.max_connections
-				, p.upload_limit
-				, p.download_limit
-				, (p.flags & torrent_flags::seed_mode)
-					? "seed-mode " : ""
-				, (p.flags & torrent_flags::upload_mode)
-					? "upload-mode " : ""
-				, (p.flags & torrent_flags::share_mode)
-					? "share-mode " : ""
-				, (p.flags & torrent_flags::apply_ip_filter)
-					? "apply-ip-filter " : ""
-				, (p.flags & torrent_flags::paused)
-					? "paused " : ""
-				, (p.flags & torrent_flags::auto_managed)
-					? "auto-managed " : ""
-				, (p.flags & torrent_flags::update_subscribe)
-					? "update-subscribe " : ""
-				, (p.flags & torrent_flags::super_seeding)
-					? "super-seeding " : ""
-				, (p.flags & torrent_flags::sequential_download)
-					? "sequential-download " : ""
-				, (p.flags & torrent_flags::override_trackers)
+				, int(m_max_uploads)
+				, int(m_max_connections)
+				, upload_limit()
+				, download_limit()
+				, m_seed_mode ? "seed-mode " : ""
+				, m_upload_mode ? "upload-mode " : ""
+				, m_share_mode ? "share-mode " : ""
+				, m_apply_ip_filter ? "apply-ip-filter " : ""
+				, m_paused ? "paused " : ""
+				, m_auto_managed ? "auto-managed " : ""
+				, m_state_subscription ? "update-subscribe " : ""
+				, m_super_seeding ? "super-seeding " : ""
+				, m_sequential_download ? "sequential-download " : ""
+				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_trackers)
 					? "override-trackers"  : ""
-				, (p.flags & torrent_flags::override_web_seeds)
+				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_web_seeds)
 					? "override-web-seeds " : ""
-				, p.save_path.c_str()
+				, m_save_path.c_str()
 				);
 		}
 #endif
-		if (p.flags & torrent_flags::sequential_download)
-			m_sequential_download = true;
-
-		if (p.flags & torrent_flags::super_seeding)
-		{
-			m_super_seeding = true;
-			set_need_save_resume();
-		}
-
-		set_max_uploads(p.max_uploads, false);
-		set_max_connections(p.max_connections, false);
-		set_limit_impl(p.upload_limit, peer_connection::upload_channel, false);
-		set_limit_impl(p.download_limit, peer_connection::download_channel, false);
-
-		for (auto const& peer : p.peers)
-		{
-			add_peer(peer, peer_info::resume_data);
-		}
-
-#ifndef TORRENT_NO_DEPRECATE
-		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
-#endif
-
-		if (valid_metadata())
-		{
-			inc_stats_counter(counters::num_total_pieces_added
-				, m_torrent_file->num_pieces());
-		}
 
 		update_gauge();
 
@@ -8078,10 +8066,11 @@ namespace libtorrent {
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
 
-		if (m_peer_class == peer_class_t{0} && limit == 0) return;
-
 		if (m_peer_class == peer_class_t{0})
+		{
+			if (limit == 0) return;
 			setup_peer_class();
+		}
 
 		struct peer_class* tpc = m_ses.peer_classes().at(m_peer_class);
 		TORRENT_ASSERT(tpc);

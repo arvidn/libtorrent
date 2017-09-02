@@ -327,7 +327,7 @@ namespace libtorrent {
 		bool is_deleted() const { return m_deleted; }
 
 		// starts the announce timer
-		void start(add_torrent_params const& p);
+		void start();
 
 		void added()
 		{
@@ -1305,9 +1305,8 @@ namespace libtorrent {
 		// the piece has had its hash verified. This
 		// is only used in seed mode (when m_seed_mode
 		// is true)
-
-		// TODO: These two bitfields should probably be coalesced into one
 		typed_bitfield<piece_index_t> m_verified;
+
 		// this means there is an outstanding, async, operation
 		// to verify each piece that has a 1
 		typed_bitfield<piece_index_t> m_verifying;
@@ -1331,8 +1330,8 @@ namespace libtorrent {
 		// the posix time this torrent was added and when
 		// it was completed. If the torrent isn't yet
 		// completed, m_completed_time is 0
-		std::time_t m_added_time = time(nullptr);
-		std::time_t m_completed_time = 0;
+		std::time_t m_added_time;
+		std::time_t m_completed_time;
 
 		// this was the last time _we_ saw a seed in this swarm
 		std::time_t m_last_seen_complete = 0;

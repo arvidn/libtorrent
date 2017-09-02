@@ -4779,7 +4779,7 @@ namespace {
 		}
 
 		torrent_ptr->set_ip_filter(m_ip_filter);
-		torrent_ptr->start(params);
+		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : params.extensions)
