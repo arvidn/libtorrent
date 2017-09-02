@@ -814,7 +814,7 @@ namespace {
 
 	static char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
 
-	static char const* const protocol_str[] = {"TCP", "UDP"};
+	static char const* const protocol_str[] = {"none", "TCP", "UDP"};
 
 	static char const* const socket_type_str[] = {
 		"null",
