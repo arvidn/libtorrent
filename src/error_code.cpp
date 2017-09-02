@@ -270,6 +270,24 @@ namespace libtorrent {
 			"",
 #endif
 			"random number generator failed",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+
+			"the torrent file has an unknown meta version",
+			"the v2 torrent file has no file tree",
+			"the torrent contains v2 keys but does not specify meta version 2",
+			"the v1 and v2 file metadata does not match",
+			"one or more files are missing piece layer hashes",
+			"a piece layer has the wrong size",
+			"a v2 file entry has no root hash",
+			"v1 and v2 hashes do not describe the same data"
 		};
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";

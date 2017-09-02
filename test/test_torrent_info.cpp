@@ -95,6 +95,8 @@ using namespace lt;
 
 static test_torrent_t test_torrents[] =
 {
+	{ "v2_multipiece_file.torrent" },
+	{ "v2.torrent" },
 	{ "base.torrent" },
 	{ "empty_path.torrent" },
 	{ "parent_path.torrent" },
@@ -823,7 +825,7 @@ TORRENT_TEST(parse_torrents)
 		else if (t.file == "pad_file_no_path.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path(".pad", "0"));
+			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path(".pad", "2124"));
 		}
 		else if (t.file == "absolute_filename.torrent"_sv)
 		{

@@ -442,6 +442,8 @@ namespace libtorrent {
 		// to peers over anything other than the i2p network.
 		bool is_i2p() const { return (m_flags & i2p) != 0; }
 
+		bool v2_piece_hashes_verified() const { return (m_flags & v2_has_piece_hashes) != 0; }
+
 		// returns the piece size of file with ``index``. This will be the same as piece_length(),
 		// except for the last piece, which may be shorter.
 		int piece_size(piece_index_t index) const { return m_files.piece_size(index); }
@@ -486,6 +488,10 @@ namespace libtorrent {
 		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
 #endif
 
+		// initialize the piece layer for a file
+		// piece_layer must be an array of the complete piece layer
+		void set_piece_layer(file_index_t index, char const* piece_layer);
+
 		// ``name()`` returns the name of the torrent.
 		// name contains UTF-8 encoded string.
 		const std::string& name() const { return m_files.name(); }
@@ -525,6 +531,9 @@ namespace libtorrent {
 		// fails (typically if the info dictionary is malformed).
 		bool parse_info_section(bdecode_node const& e, error_code& ec);
 
+		// return pointers to any piece layers found in the metadata
+		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
+
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
 		// .torrent file. If the specified key cannot be found, it returns nullptr.
@@ -538,6 +547,9 @@ namespace libtorrent {
 		int metadata_size() const { return m_info_section_size; }
 		boost::shared_array<char> metadata() const
 		{ return m_info_section; }
+
+		aux::vector<std::vector<sha256_hash>, file_index_t>& merkle_trees();
+		std::vector<sha256_hash>& file_merkle_tree(file_index_t file) const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// support for BEP 30 merkle torrents has been removed
@@ -625,6 +637,9 @@ namespace libtorrent {
 		aux::vector<sha1_hash> deprecated1;
 #endif
 
+		// v2 merkle tree for each file
+		mutable aux::vector<std::vector<sha256_hash>, file_index_t> m_merkle_trees;
+
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
 		// make it available through the metadata extension
@@ -688,6 +703,9 @@ namespace libtorrent {
 			// this flag is set if we found an ssl-cert field in the info
 			// dictionary
 			ssl_torrent = 8,
+
+			// v2 piece hashes were loaded from the torrent file and verified
+			v2_has_piece_hashes = 16,
 		};
 
 		// any combination of values from flags_t enum
