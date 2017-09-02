@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
-#include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/vector.hpp>
@@ -57,6 +56,7 @@ namespace libtorrent {
 
 namespace libtorrent { namespace dht {
 
+struct dht_settings;
 struct dht_logger;
 
 typedef aux::vector<node_entry> bucket_t;

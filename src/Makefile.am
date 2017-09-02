@@ -23,6 +23,7 @@ KADEMLIA_SOURCES = \
   kademlia/item.cpp             \
   kademlia/ed25519.cpp          \
   kademlia/sample_infohashes.cpp \
+  kademlia/dht_settings.cpp     \
   ../ed25519/src/add_scalar.cpp \
   ../ed25519/src/fe.cpp         \
   ../ed25519/src/ge.cpp         \

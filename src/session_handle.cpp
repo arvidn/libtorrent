@@ -517,7 +517,7 @@ namespace {
 	}
 #endif // TORRENT_NO_DEPRECATE
 
-	void session_handle::set_dht_settings(dht_settings const& settings)
+	void session_handle::set_dht_settings(dht::dht_settings const& settings)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		async_call(&session_impl::set_dht_settings, settings);
@@ -526,12 +526,12 @@ namespace {
 #endif
 	}
 
-	dht_settings session_handle::get_dht_settings() const
+	dht::dht_settings session_handle::get_dht_settings() const
 	{
 #ifndef TORRENT_DISABLE_DHT
-		return sync_call_ret<dht_settings>(&session_impl::get_dht_settings);
+		return sync_call_ret<dht::dht_settings>(&session_impl::get_dht_settings);
 #else
-		return dht_settings();
+		return dht::dht_settings();
 #endif
 	}
 

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_I2P
 
 #include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_util.hpp"

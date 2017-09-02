@@ -44,10 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/direct_request.hpp>
 #include <libtorrent/kademlia/get_item.hpp>
 #include <libtorrent/kademlia/sample_infohashes.hpp>
+#include <libtorrent/kademlia/dht_settings.hpp>
 
 #include <libtorrent/socket_io.hpp> // for print_endpoint
 #include <libtorrent/hasher.hpp>
-#include <libtorrent/session_settings.hpp> // for dht_settings
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
 #include <libtorrent/aux_/aligned_union.hpp>
 

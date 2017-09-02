@@ -35,9 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/string_view.hpp"
 #include "libtorrent/kademlia/msg.hpp"
 
 namespace libtorrent {
+
+class entry;
 
 namespace aux { struct listen_socket_handle; }
 

@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/msg.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp>
+#include <libtorrent/kademlia/dht_settings.hpp>
 
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/version.hpp>
@@ -43,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/performance_counters.hpp> // for counters
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/session_status.hpp>
-#include <libtorrent/session_settings.hpp>
 #include <libtorrent/broadcast_socket.hpp> // for is_local
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -570,7 +570,7 @@ namespace libtorrent { namespace dht {
 
 	dht_tracker::tracker_node::tracker_node(io_service& ios
 		, aux::listen_socket_handle const& s, socket_manager* sock
-		, libtorrent::dht_settings const& settings
+		, dht_settings const& settings
 		, node_id const& nid
 		, dht_observer* observer, counters& cnt
 		, get_foreign_node_t get_foreign_node

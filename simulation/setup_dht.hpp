@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SETUP_DHT_HPP_INCLUDED
 
 #include <vector>
-#include "libtorrent/session_settings.hpp" // for dht_settings
+#include "libtorrent/kademlia/dht_settings.hpp" // for dht_settings
 #include "libtorrent/performance_counters.hpp" // for counters
 
 
@@ -71,7 +71,7 @@ private:
 
 	// used for all the nodes in the network
 	lt::counters m_cnt;
-	lt::dht_settings m_sett;
+	lt::dht::dht_settings m_sett;
 	std::list<dht_node> m_nodes;
 };
 

@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/portmap.hpp" // for portmap_protocol
 
 #include "libtorrent/kademlia/dht_storage.hpp"
+#include "libtorrent/kademlia/dht_settings.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/session_settings.hpp"
@@ -332,9 +333,9 @@ namespace libtorrent {
 		// otherwise.
 		//
 		// ``get_dht_settings()`` returns the current settings
-		void set_dht_settings(dht_settings const& settings);
+		void set_dht_settings(dht::dht_settings const& settings);
 		bool is_dht_running() const;
-		dht_settings get_dht_settings() const;
+		dht::dht_settings get_dht_settings() const;
 
 		// ``set_dht_storage`` set a dht custom storage constructor function
 		// to be used internally when the dht is created.

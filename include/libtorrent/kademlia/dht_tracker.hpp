@@ -45,17 +45,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/io_service.hpp>
 #include <libtorrent/udp_socket.hpp>
+#include <libtorrent/entry.hpp>
 
 namespace libtorrent {
 
 	struct counters;
-	struct dht_settings;
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_status;
 #endif
 }
 
 namespace libtorrent { namespace dht {
+	struct dht_settings;
 
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
 		: socket_manager
@@ -149,7 +150,7 @@ namespace libtorrent { namespace dht {
 		{
 			tracker_node(io_service& ios
 				, aux::listen_socket_handle const& s, socket_manager* sock
-				, libtorrent::dht_settings const& settings
+				, dht_settings const& settings
 				, node_id const& nid
 				, dht_observer* observer, counters& cnt
 				, get_foreign_node_t get_foreign_node

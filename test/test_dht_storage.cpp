@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
@@ -58,8 +59,8 @@ using namespace lt::dht;
 
 namespace
 {
-	dht_settings test_settings() {
-		dht_settings sett;
+	dht::dht_settings test_settings() {
+		dht::dht_settings sett;
 		sett.max_torrents = 2;
 		sett.max_dht_items = 2;
 		sett.item_lifetime = int(seconds(120 * 60).count());
@@ -69,14 +70,14 @@ namespace
 	bool g_storage_constructor_invoked = false;
 
 	std::unique_ptr<dht_storage_interface> dht_custom_storage_constructor(
-		dht_settings const& settings)
+		dht::dht_settings const& settings)
 	{
 		g_storage_constructor_invoked = true;
 		return dht_default_storage_constructor(settings);
 	}
 
 	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
-		dht_settings const& sett)
+		dht::dht_settings const& sett)
 	{
 		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 		TEST_CHECK(s != nullptr);
@@ -94,7 +95,7 @@ sha1_hash const n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 
 TORRENT_TEST(announce_peer)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	entry peers;
@@ -125,7 +126,7 @@ TORRENT_TEST(announce_peer)
 #if TORRENT_USE_IPV6
 TORRENT_TEST(dual_stack)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	tcp::endpoint const p1 = ep("124.31.75.21", 1);
@@ -152,7 +153,7 @@ TORRENT_TEST(dual_stack)
 
 TORRENT_TEST(put_items)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	entry item;
@@ -182,7 +183,7 @@ TORRENT_TEST(put_items)
 
 TORRENT_TEST(counters)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	sha1_hash const n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
@@ -272,7 +273,7 @@ TORRENT_TEST(default_set_custom)
 
 TORRENT_TEST(peer_limit)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	sett.max_peers = 42;
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
@@ -289,7 +290,7 @@ TORRENT_TEST(peer_limit)
 
 TORRENT_TEST(torrent_limit)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	sett.max_torrents = 42;
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
@@ -306,7 +307,7 @@ TORRENT_TEST(torrent_limit)
 
 TORRENT_TEST(immutable_item_limit)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	sett.max_dht_items = 42;
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
@@ -322,7 +323,7 @@ TORRENT_TEST(immutable_item_limit)
 
 TORRENT_TEST(mutable_item_limit)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	sett.max_dht_items = 42;
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
@@ -344,7 +345,7 @@ TORRENT_TEST(get_peers_dist)
 	// test that get_peers returns reasonably disjoint sets of peers with each call
 	// take two samples of 100 peers from 1000 and make sure there aren't too many
 	// peers found in both lists
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	sett.max_peers = 2000;
 	sett.max_peers_reply = 100;
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
@@ -390,7 +391,7 @@ TORRENT_TEST(get_peers_dist)
 
 TORRENT_TEST(update_node_ids)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s != nullptr);
 
@@ -440,7 +441,7 @@ TORRENT_TEST(update_node_ids)
 
 TORRENT_TEST(infohashes_sample)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	sett.max_torrents = 5;
 	sett.sample_infohashes_interval = 10;
 	sett.max_infohashes_sample_count = 2;
@@ -482,7 +483,7 @@ TORRENT_TEST(infohashes_sample)
 
 TORRENT_TEST(infohashes_sample_dist)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	sett.max_torrents = 1000;
 	sett.sample_infohashes_interval = 0; // need this to force refresh every call
 	sett.max_infohashes_sample_count = 1;

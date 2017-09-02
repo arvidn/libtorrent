@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 
@@ -109,7 +109,7 @@ TORRENT_TEST(dht_rate_limit)
 	ls->local_endpoint = tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
 	error_code ec;
 	sock.bind(udp::endpoint(address_v4::from_string("40.30.20.10"), 8888), ec);
-	dht_settings dhtsett;
+	dht::dht_settings dhtsett;
 	dhtsett.block_ratelimit = 100000; // disable the DOS blocker
 	dhtsett.ignore_dark_internet = false;
 	dhtsett.upload_rate_limit = 400;
@@ -235,7 +235,7 @@ TORRENT_TEST(dht_delete_socket)
 	auto ls = std::make_shared<lt::aux::listen_socket_t>();
 	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10"), 1, lt::address());
 	ls->local_endpoint = tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
-	dht_settings dhtsett;
+	dht::dht_settings dhtsett;
 	counters cnt;
 	dht::dht_state state;
 	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(dhtsett));

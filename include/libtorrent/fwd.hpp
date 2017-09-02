@@ -204,7 +204,6 @@ class session;
 struct session_handle;
 
 // include/libtorrent/session_settings.hpp
-struct dht_settings;
 struct pe_settings;
 
 // include/libtorrent/session_stats.hpp
@@ -238,6 +237,9 @@ class torrent_info;
 struct torrent_status;
 
 namespace dht {
+
+// include/libtorrent/kademlia/dht_settings.hpp
+struct dht_settings;
 
 // include/libtorrent/kademlia/dht_state.hpp
 struct dht_state;

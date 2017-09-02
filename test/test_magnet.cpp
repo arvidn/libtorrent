@@ -96,7 +96,7 @@ TORRENT_TEST(magnet)
 	TEST_EQUAL(pack.get_int(settings_pack::tracker_receive_timeout), 1234);
 
 #ifndef TORRENT_DISABLE_DHT
-	dht_settings dhts;
+	dht::dht_settings dhts;
 	dhts.max_peers_reply = 70;
 	s->set_dht_settings(dhts);
 #endif

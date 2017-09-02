@@ -51,7 +51,7 @@ namespace
 	bool g_storage_constructor_invoked = false;
 
 	std::unique_ptr<dht_storage_interface> dht_custom_storage_constructor(
-		dht_settings const& settings)
+		dht::dht_settings const& settings)
 	{
 		g_storage_constructor_invoked = true;
 		return dht_default_storage_constructor(settings);
@@ -105,7 +105,7 @@ TORRENT_TEST(dht_state)
 	settings_pack p = settings();
 	p.set_bool(settings_pack::enable_dht, true);
 
-	dht_settings sett;
+	dht::dht_settings sett;
 	sett.max_dht_items = 10000;
 	sett.max_peers = 20000;
 

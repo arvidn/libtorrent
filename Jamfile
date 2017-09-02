@@ -693,6 +693,7 @@ KADEMLIA_SOURCES =
 	put_data
 	ed25519
 	sample_infohashes
+	dht_settings
 	;
 
 ED25519_SOURCES =
