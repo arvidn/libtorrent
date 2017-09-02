@@ -292,7 +292,8 @@ namespace libtorrent {
 		void add_file_borrow(string_view filename
 			, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}, char const* filehash = nullptr
-			, std::int64_t mtime = 0, string_view symlink_path = string_view());
+			, std::int64_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
 		void add_file(std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view());

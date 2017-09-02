@@ -672,7 +672,8 @@ namespace {
 	void file_storage::add_file_borrow(string_view filename
 		, std::string const& path, std::int64_t const file_size
 		, file_flags_t const file_flags, char const* filehash
-		, std::int64_t const mtime, string_view symlink_path)
+		, std::int64_t const mtime, string_view symlink_path
+		, char const* root_hash)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
 		TORRENT_ASSERT_PRECOND(!is_complete(filename));
@@ -736,6 +737,7 @@ namespace {
 		e.executable_attribute = bool(file_flags & file_storage::flag_executable);
 		e.symlink_attribute = bool(file_flags & file_storage::flag_symlink);
 		e.hash = filehash;
+		e.root = root_hash;
 		e.mtime = mtime;
 
 		if (!symlink_path.empty()

@@ -95,6 +95,8 @@ using namespace lt;
 
 static test_torrent_t test_torrents[] =
 {
+	{ "v2_multipiece_file.torrent" },
+	{ "v2.torrent" },
 	{ "base.torrent" },
 	{ "empty_path.torrent" },
 	{ "parent_path.torrent" },
@@ -811,7 +813,7 @@ TORRENT_TEST(parse_torrents)
 		else if (t.file == "pad_file_no_path.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path(".pad", "0"));
+			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path(".pad", "2124"));
 		}
 		else if (t.file == "absolute_filename.torrent"_sv)
 		{
@@ -883,18 +885,6 @@ void test_resolve_duplicates(int test_case)
 			fs.add_file("test/B.exe", 0x4000);
 			fs.add_file("test/filler", 0x4000);
 			break;
-		case 2:
-			fs.add_file("test/A/tmp", 0x4000);
-			fs.add_file("test/a", 0x4000);
-			fs.add_file("test/A", 0x4000);
-			fs.add_file("test/filler", 0x4000);
-			break;
-		case 3:
-			fs.add_file("test/long/path/name/that/collides", 0x4000);
-			fs.add_file("test/long/path", 0x4000);
-			fs.add_file("test/filler-1", 0x4000);
-			fs.add_file("test/filler-2", 0x4000);
-			break;
 	}
 
 	lt::create_torrent t(fs, 0x4000);
@@ -915,32 +905,18 @@ void test_resolve_duplicates(int test_case)
 	aux::vector<aux::vector<char const*, file_index_t>> const filenames
 	{
 		{ // case 0
-			"test/temporary.txt",
-			"test/Temporary.1.txt", // duplicate of temporary.txt
-			"test/TeMPorArY.2.txT", // duplicate of temporary.txt
+			"test/TeMPorArY.txT",
+			"test/Temporary.1.txt", // duplicate of TeMPorArY.txT
+			"test/temporary.2.txt", // duplicate of TeMPorArY.txT
 			// a file with the same name in a seprate directory is fine
 			"test/test/TEMPORARY.TXT",
 		},
 		{ // case 1
-			"test/b.exe",
-			"test/B.1.ExE", // duplicate of b.exe
-			"test/B.2.exe", // duplicate of b.exe
+			"test/B.ExE",
+			"test/B.1.exe", // duplicate of B.exe
+			"test/b.2.exe", // duplicate of B.exe
 			"test/filler",
 		},
-		{ // case 2
-			"test/A/tmp",
-			"test/a.1", // a file may not have the same name as a directory
-			"test/A.2", // duplicate of directory a
-			"test/filler",
-		},
-		{ // case 3
-			// a subset of this path collides with the next filename
-			"test/long/path/name/that/collides",
-			// so this file needs to be renamed, to not collide with the path name
-			"test/long/path.1",
-			"test/filler-1",
-			"test/filler-2",
-		}
 	};
 
 	for (auto const i : fs.file_range())
@@ -957,7 +933,7 @@ void test_resolve_duplicates(int test_case)
 
 TORRENT_TEST(resolve_duplicates)
 {
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < 2; ++i)
 		test_resolve_duplicates(i);
 }
 
