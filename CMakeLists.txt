@@ -155,6 +155,7 @@ set(kademlia_sources
 	get_item
 	ed25519
 	sample_infohashes
+	dht_settings
 )
 
 # -- ed25519 --

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/address.hpp>
 #include <libtorrent/flags.hpp>
+#include <libtorrent/bdecode.hpp>
 
 namespace libtorrent {
 

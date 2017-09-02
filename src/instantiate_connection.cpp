@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/instantiate_connection.hpp"

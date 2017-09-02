@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_handle.hpp"
-#include "libtorrent/session_settings.hpp" // for dht_settings
+#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/kademlia/dht_storage.hpp"
 
@@ -153,7 +153,7 @@ namespace aux {
 
 		std::vector<std::shared_ptr<plugin>> extensions;
 
-		libtorrent::dht_settings dht_settings;
+		dht::dht_settings dht_settings;
 
 		dht::dht_state dht_state;
 

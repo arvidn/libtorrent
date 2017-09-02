@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/announce_entry.hpp"

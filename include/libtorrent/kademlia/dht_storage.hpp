@@ -45,11 +45,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct dht_settings;
 	class entry;
 }
 
 namespace libtorrent { namespace dht {
+	struct dht_settings;
+
 	// This structure hold the relevant counters for the storage
 	struct TORRENT_EXPORT dht_storage_counters
 	{

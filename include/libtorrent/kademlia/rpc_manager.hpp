@@ -46,10 +46,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/aux_/listen_socket_handle.hpp>
 
-namespace libtorrent { struct dht_settings; class entry; }
+namespace libtorrent { class entry; }
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 
+struct dht_settings;
 struct dht_logger;
 struct socket_manager;
 

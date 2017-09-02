@@ -43,9 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 
 #include "libtorrent/proxy_base.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/proxy_settings.hpp"
 
 namespace libtorrent {
 

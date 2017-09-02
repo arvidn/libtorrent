@@ -54,7 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/resolver_interface.hpp"

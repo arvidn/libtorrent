@@ -549,9 +549,9 @@ struct obs : dht::dht_observer
 #endif
 };
 
-dht_settings test_settings()
+dht::dht_settings test_settings()
 {
-	dht_settings sett;
+	dht::dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
 	sett.enforce_node_id = false;
@@ -571,7 +571,7 @@ struct dht_test_setup
 		dht_storage->update_node_ids({node_id::min()});
 	}
 
-	dht_settings sett;
+	dht::dht_settings sett;
 	mock_socket s;
 	std::shared_ptr<aux::listen_socket_t> ls;
 	obs observer;
@@ -1562,7 +1562,7 @@ void test_routing_table(address(&rand_addr)())
 	bdecode_node response;
 
 	// test kademlia routing table
-	dht_settings s;
+	dht::dht_settings s;
 	s.extended_routing_table = false;
 	//	s.restrict_routing_ips = false;
 	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
@@ -2628,7 +2628,7 @@ TORRENT_TEST(traversal_done)
 TORRENT_TEST(dht_dual_stack)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	mock_socket s;
 	auto sock4 = dummy_listen_socket4();
 	auto sock6 = dummy_listen_socket6();
@@ -2927,7 +2927,7 @@ TORRENT_TEST(verify_message)
 TORRENT_TEST(routing_table_uniform)
 {
 	// test routing table
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	obs observer;
 
 	sett.extended_routing_table = false;
@@ -2969,7 +2969,7 @@ TORRENT_TEST(routing_table_uniform)
 
 TORRENT_TEST(routing_table_balance)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	obs observer;
 
 	sett.extended_routing_table = false;
@@ -2992,7 +2992,7 @@ TORRENT_TEST(routing_table_balance)
 
 TORRENT_TEST(routing_table_extended)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	obs observer;
 	sett.extended_routing_table = true;
 	node_id id = to_hash("1234876923549721020394873245098347598635");
@@ -3024,7 +3024,7 @@ void inserter(std::set<node_id>* nodes, node_entry const& ne)
 
 TORRENT_TEST(routing_table_set_id)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	sett.enforce_node_id = false;
 	sett.extended_routing_table = false;
 	obs observer;
@@ -3070,7 +3070,7 @@ TORRENT_TEST(routing_table_set_id)
 
 TORRENT_TEST(routing_table_for_each)
 {
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	obs observer;
 
 	sett.extended_routing_table = false;
@@ -3141,7 +3141,7 @@ TORRENT_TEST(node_set_id)
 TORRENT_TEST(read_only_node)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	sett.read_only = true;
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
@@ -3231,7 +3231,7 @@ TORRENT_TEST(read_only_node)
 TORRENT_TEST(invalid_error_msg)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
@@ -3319,7 +3319,7 @@ TORRENT_TEST(unsorted_traversal_results)
 TORRENT_TEST(rpc_invalid_error_msg)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht_settings sett = test_settings();
+	dht::dht_settings sett = test_settings();
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
@@ -3443,7 +3443,7 @@ TORRENT_TEST(dht_verify_node_address)
 {
 	obs observer;
 	// initial setup taken from dht test above
-	dht_settings s;
+	dht::dht_settings s;
 	s.extended_routing_table = false;
 	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 	const int bucket_size = 10;

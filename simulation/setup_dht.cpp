@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/address.hpp"
@@ -89,7 +89,7 @@ namespace {
 
 struct dht_node final : lt::dht::socket_manager
 {
-	dht_node(sim::simulation& sim, lt::dht_settings const& sett, lt::counters& cnt
+	dht_node(sim::simulation& sim, lt::dht::dht_settings const& sett, lt::counters& cnt
 		, int const idx, std::uint32_t const flags)
 		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
 		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))

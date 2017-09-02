@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/kademlia/dht_storage.hpp"
+#include "libtorrent/kademlia/dht_settings.hpp"
 
 #include <tuple>
 #include <algorithm>
@@ -43,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/config.hpp>
 #include <libtorrent/bloom_filter.hpp>
-#include <libtorrent/session_settings.hpp>
 #include <libtorrent/random.hpp>
 #include <libtorrent/aux_/vector.hpp>
 #include <libtorrent/aux_/numeric_cast.hpp>

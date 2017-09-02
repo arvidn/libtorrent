@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_impl.hpp"

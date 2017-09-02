@@ -273,7 +273,7 @@ namespace libtorrent {
 			settings = e.dict_find_dict("dht");
 			if (settings)
 			{
-				params.dht_settings = aux::read_dht_settings(settings);
+				params.dht_settings = dht::read_dht_settings(settings);
 			}
 		}
 

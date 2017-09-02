@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
 #include "libtorrent/socket_io.hpp" // for print_endpoint
