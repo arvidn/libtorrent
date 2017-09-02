@@ -177,7 +177,7 @@ TORRENT_TEST(pointer_offset)
 	file_storage st;
 	char const filename[] = "test1fooba";
 
-	st.add_file_borrow(filename, 5, combine_path("test-torrent-1", "test1")
+	st.add_file_borrow({filename, 5}, combine_path("test-torrent-1", "test1")
 		, 10);
 
 	// test filename_ptr and filename_len

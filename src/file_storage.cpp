@@ -585,7 +585,7 @@ namespace {
 
 		// filename is allowed to be nullptr, in which case we just use path
 		if (!filename.empty())
-			e.set_name(filename.data(), true, filename.size());
+			e.set_name(filename.data(), true, int(filename.size()));
 
 		e.size = aux::numeric_cast<std::uint64_t>(file_size);
 		e.offset = aux::numeric_cast<std::uint64_t>(m_total_size);
