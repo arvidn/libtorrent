@@ -232,16 +232,16 @@ namespace libtorrent {
 		void reserve(int num_files);
 
 		// Adds a file to the file storage. The ``add_file_borrow`` version
-		// expects that ``filename`` points to a string of ``filename_len``
-		// bytes that is the file name (without a path) of the file that's
-		// being added. This memory is *borrowed*, i.e. it is the caller's
+		// expects that ``filename`` is the file name (without a path) of
+		// the file that's being added.
+		// This memory is *borrowed*, i.e. it is the caller's
 		// responsibility to make sure it stays valid throughout the lifetime
 		// of this file_storage object or any copy of it. The same thing applies
 		// to ``filehash``, which is an optional pointer to a 20 byte binary
 		// SHA-1 hash of the file.
 		//
-		// if ``filename`` is nullptr, the filename from ``path`` is used and not
-		// borrowed. In this case ``filename_len`` is ignored.
+		// if ``filename`` is empty, the filename from ``path`` is used and not
+		// borrowed.
 		//
 		// The ``path`` argument is the full path (in the torrent file) to
 		// the file to add. Note that this is not supposed to be an absolute
@@ -268,7 +268,7 @@ namespace libtorrent {
 		// That is, the first path element of all files must be the same.
 		// This shared path element is also set to the name of the torrent. It
 		// can be changed by calling ``set_name``.
-		void add_file_borrow(char const* filename, int filename_len
+		void add_file_borrow(string_view filename
 			, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}, char const* filehash = 0
 			, std::int64_t mtime = 0, string_view symlink_path = string_view());
@@ -281,6 +281,11 @@ namespace libtorrent {
 		void rename_file(file_index_t index, std::string const& new_filename);
 
 #ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED
+		void add_file_borrow(char const* filename, int filename_len
+			, std::string const& path, std::int64_t file_size
+			, file_flags_t file_flags = {}, char const* filehash = 0
+			, std::int64_t mtime = 0, string_view symlink_path = string_view());
 		TORRENT_DEPRECATED
 		void add_file(file_entry const& fe, char const* filehash = nullptr);
 

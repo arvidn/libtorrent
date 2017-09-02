@@ -484,7 +484,7 @@ namespace {
 			filename_len = 0;
 		}
 
-		files.add_file_borrow(filename, filename_len, path, file_size, file_flags, filehash
+		files.add_file_borrow({filename, std::size_t(filename_len)}, path, file_size, file_flags, filehash
 			, mtime, symlink_path);
 		return true;
 	}
