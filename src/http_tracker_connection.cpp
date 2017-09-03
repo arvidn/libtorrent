@@ -201,7 +201,7 @@ namespace libtorrent {
 		}
 
 		m_tracker_connection = std::make_shared<http_connection>(get_io_service(), m_man.host_resolver()
-			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3, _4)
+			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
 			, std::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
@@ -301,7 +301,7 @@ namespace libtorrent {
 	}
 
 	void http_tracker_connection::on_response(error_code const& ec
-		, http_parser const& parser, char const* data, int size)
+		, http_parser const& parser, span<char const> data)
 	{
 		// keep this alive
 		std::shared_ptr<http_tracker_connection> me(shared_from_this());
@@ -331,7 +331,7 @@ namespace libtorrent {
 			return;
 		}
 
-		received_bytes(size + parser.body_start());
+		received_bytes(static_cast<int>(data.size()) + parser.body_start());
 
 		// handle tracker response
 		error_code ecode;
@@ -343,7 +343,7 @@ namespace libtorrent {
 			return;
 		}
 
-		tracker_response resp = parse_tracker_response(data, size, ecode
+		tracker_response resp = parse_tracker_response(data, ecode
 			, tracker_req().kind, tracker_req().info_hash);
 
 		if (!resp.warning_message.empty())
@@ -421,13 +421,13 @@ namespace libtorrent {
 		return true;
 	}
 
-	tracker_response parse_tracker_response(char const* data, int const size, error_code& ec
+	tracker_response parse_tracker_response(span<char const> const data, error_code& ec
 		, int const flags, sha1_hash const& scrape_ih)
 	{
 		tracker_response resp;
 
 		bdecode_node e;
-		int res = bdecode(data, data + size, e, ec);
+		int const res = bdecode(data.begin(), data.end(), e, ec);
 
 		if (ec) return resp;
 

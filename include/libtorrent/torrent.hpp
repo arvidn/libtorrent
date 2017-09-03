@@ -1045,7 +1045,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 		void on_torrent_download(error_code const& ec, http_parser const& parser
-			, char const* data, int size);
+			, span<char const> data);
 #endif
 
 		int sequence_number() const { return m_sequence_number; }

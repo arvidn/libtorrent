@@ -120,8 +120,8 @@ std::shared_ptr<http_connection> test_request(io_service& ios
 	, resolver& res
 	, std::string const& url
 	, char const* expected_data
-	, int expected_size
-	, int expected_status
+	, int const expected_size
+	, int const expected_status
 	, error_condition expected_error
 	, lt::aux::proxy_settings const& ps
 	, int* connect_handler_called
@@ -133,7 +133,7 @@ std::shared_ptr<http_connection> test_request(io_service& ios
 	auto h = std::make_shared<http_connection>(ios
 		, res
 		, [=](error_code const& ec, http_parser const& parser
-			, char const* data, const int size, http_connection&)
+			, span<char const> data, http_connection&)
 		{
 			std::printf("RESPONSE: %s\n", url.c_str());
 			++*handler_called;
@@ -156,7 +156,7 @@ std::shared_ptr<http_connection> test_request(io_service& ios
 			const int http_status = parser.status_code();
 			if (expected_size != -1)
 			{
-				TEST_EQUAL(size, expected_size);
+				TEST_EQUAL(int(data.size()), expected_size);
 			}
 			TEST_CHECK(error_ok);
 			if (expected_status != -1)
@@ -166,8 +166,8 @@ std::shared_ptr<http_connection> test_request(io_service& ios
 			if (http_status == 200)
 			{
 				TEST_CHECK(expected_data
-					&& size == expected_size
-					&& memcmp(expected_data, data, size) == 0);
+					&& int(data.size()) == expected_size
+					&& memcmp(expected_data, data.data(), data.size()) == 0);
 			}
 		}
 		, true, 1024*1024
@@ -632,7 +632,7 @@ TORRENT_TEST(http_connection_ssl_proxy)
 	auto h = std::make_shared<http_connection>(client_ios
 		, res
 		, [&client_counter](error_code const& ec, http_parser const& parser
-		, char const* data, const int size, http_connection& c)
+		, span<char const>, http_connection& c)
 		{
 			client_counter++;
 			TEST_EQUAL(ec, boost::asio::error::operation_not_supported);

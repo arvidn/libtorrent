@@ -518,9 +518,9 @@ TORRENT_TEST(chunked_encoding)
 	char mutable_buffer[100];
 	span<char const> body = parser.get_body();
 	memcpy(mutable_buffer, body.begin(), body.size());
-	int const len = parser.collapse_chunk_headers(mutable_buffer, int(body.size()));
+	body = parser.collapse_chunk_headers({mutable_buffer, body.size()});
 
-	TEST_CHECK(std::equal(mutable_buffer, mutable_buffer + len, "test12340123456789abcdef"));
+	TEST_CHECK(body == span<char const>("test12340123456789abcdef", 24));
 }
 
 TORRENT_TEST(invalid_content_length)

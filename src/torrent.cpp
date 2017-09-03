@@ -396,7 +396,7 @@ namespace libtorrent {
 #ifndef TORRENT_NO_DEPRECATE
 	// deprecated in 1.2
 	void torrent::on_torrent_download(error_code const& ec
-		, http_parser const& parser, char const* data, int size) try
+		, http_parser const& parser, span<char const> data) try
 	{
 		if (m_abort) return;
 
@@ -415,7 +415,7 @@ namespace libtorrent {
 		}
 
 		error_code e;
-		auto tf = std::make_shared<torrent_info>(data, size, std::ref(e), 0);
+		auto tf = std::make_shared<torrent_info>(data, std::ref(e), from_span);
 		if (e)
 		{
 			set_error(e, torrent_status::error_file_url);
@@ -701,7 +701,7 @@ namespace libtorrent {
 			new http_connection(m_ses.get_io_service()
 				, m_ses.get_resolver()
 				, std::bind(&torrent::on_torrent_download, shared_from_this()
-					, _1, _2, _3, _4)
+					, _1, _2, _3)
 				, true // bottled
 				//bottled buffer size
 				, settings().get_int(settings_pack::max_http_recv_buffer_size)

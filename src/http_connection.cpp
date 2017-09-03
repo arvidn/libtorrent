@@ -143,7 +143,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	if (ec)
 	{
 		m_timer.get_io_service().post(std::bind(&http_connection::callback
-			, me, ec, static_cast<char*>(nullptr), 0));
+			, me, ec, span<char>{}));
 		return;
 	}
 
@@ -155,7 +155,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	{
 		error_code err(errors::unsupported_url_protocol);
 		m_timer.get_io_service().post(std::bind(&http_connection::callback
-			, me, err, static_cast<char*>(nullptr), 0));
+			, me, err, span<char>{}));
 		return;
 	}
 
@@ -254,7 +254,7 @@ void http_connection::start(std::string const& hostname, int port
 	if (ec)
 	{
 		m_timer.get_io_service().post(std::bind(&http_connection::callback
-			, me, ec, nullptr, 0));
+			, me, ec, span<char>{}));
 		return;
 	}
 
@@ -292,7 +292,7 @@ void http_connection::start(std::string const& hostname, int port
 		if (is_i2p && i2p_conn->proxy().type != settings_pack::i2p_proxy)
 		{
 			m_timer.get_io_service().post(std::bind(&http_connection::callback
-				, me, error_code(errors::no_i2p_router), static_cast<char*>(nullptr), 0));
+				, me, error_code(errors::no_i2p_router), span<char>{}));
 			return;
 		}
 #endif
@@ -333,7 +333,7 @@ void http_connection::start(std::string const& hostname, int port
 					if (ec)
 					{
 						m_timer.get_io_service().post(std::bind(&http_connection::callback
-								, me, ec, nullptr, 0));
+								, me, ec, span<char>{}));
 						return;
 					}
 				}
@@ -354,7 +354,7 @@ void http_connection::start(std::string const& hostname, int port
 			if (ec)
 			{
 				m_timer.get_io_service().post(std::bind(&http_connection::callback
-					, me, ec, nullptr, 0));
+					, me, ec, span<char>{}));
 				return;
 			}
 		}
@@ -363,7 +363,7 @@ void http_connection::start(std::string const& hostname, int port
 		if (ec)
 		{
 			m_timer.get_io_service().post(std::bind(&http_connection::callback
-				, me, ec, nullptr, 0));
+				, me, ec, span<char>{}));
 			return;
 		}
 
@@ -632,29 +632,27 @@ void http_connection::on_connect(error_code const& e)
 	}
 }
 
-// TODO: 3 use span<char> instead of data, size
-void http_connection::callback(error_code e, char* data, int size)
+void http_connection::callback(error_code e, span<char> data)
 {
 	if (m_bottled && m_called) return;
 
 	std::vector<char> buf;
-	if (data && m_bottled && m_parser.header_finished())
+	if (!data.empty() && m_bottled && m_parser.header_finished())
 	{
-		size = m_parser.collapse_chunk_headers(data, size);
+		data = m_parser.collapse_chunk_headers(data);
 
 		std::string const& encoding = m_parser.header("content-encoding");
-		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)
+		if ((encoding == "gzip" || encoding == "x-gzip"))
 		{
 			error_code ec;
-			inflate_gzip(data, size, buf, m_max_bottled_buffer_size, ec);
+			inflate_gzip(data, buf, m_max_bottled_buffer_size, ec);
 
 			if (ec)
 			{
-				if (m_handler) m_handler(ec, m_parser, data, size, *this);
+				if (m_handler) m_handler(ec, m_parser, data, *this);
 				return;
 			}
-			size = int(buf.size());
-			data = size == 0 ? nullptr : &buf[0];
+			data = buf;
 		}
 
 		// if we completed the whole response, no need
@@ -665,7 +663,7 @@ void http_connection::callback(error_code e, char* data, int size)
 	m_called = true;
 	error_code ec;
 	m_timer.cancel(ec);
-	if (m_handler) m_handler(e, m_parser, data, size, *this);
+	if (m_handler) m_handler(e, m_parser, data, *this);
 }
 
 void http_connection::on_write(error_code const& e)
@@ -737,7 +735,7 @@ void http_connection::on_read(error_code const& e
 			body = span<char>(m_recvbuffer.data() + m_parser.body_start()
 				, m_parser.get_body().size());
 		}
-		callback(ec, body.data(), int(body.size()));
+		callback(ec, body);
 		return;
 	}
 
@@ -760,7 +758,7 @@ void http_connection::on_read(error_code const& e
 		{
 			// HTTP parse error
 			error_code ec = errors::http_parse_error;
-			callback(ec, nullptr, 0);
+			callback(ec);
 			return;
 		}
 
@@ -803,8 +801,11 @@ void http_connection::on_read(error_code const& e
 		if (!m_bottled && m_parser.header_finished())
 		{
 			if (m_read_pos > m_parser.body_start())
-				callback(e, m_recvbuffer.data() + m_parser.body_start()
-					, m_read_pos - m_parser.body_start());
+			{
+				callback(e, span<char>(m_recvbuffer)
+					.first(static_cast<std::size_t>(m_read_pos))
+					.subspan(static_cast<std::size_t>(m_parser.body_start())));
+			}
 			m_read_pos = 0;
 			m_last_receive = clock_type::now();
 		}
@@ -812,15 +813,15 @@ void http_connection::on_read(error_code const& e
 		{
 			error_code ec;
 			m_timer.cancel(ec);
-			span<char> body(m_recvbuffer.data() + m_parser.body_start()
-				, m_parser.get_body().size());
-			callback(e, body.data(), int(body.size()));
+			callback(e, span<char>(m_recvbuffer)
+				.first(static_cast<std::size_t>(m_read_pos))
+				.subspan(static_cast<std::size_t>(m_parser.body_start())));
 		}
 	}
 	else
 	{
 		TORRENT_ASSERT(!m_bottled);
-		callback(e, m_recvbuffer.data(), m_read_pos);
+		callback(e, span<char>(m_recvbuffer).first(static_cast<std::size_t>(m_read_pos)));
 		m_read_pos = 0;
 		m_last_receive = clock_type::now();
 	}
