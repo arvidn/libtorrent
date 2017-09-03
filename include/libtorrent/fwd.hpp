@@ -179,10 +179,6 @@ class hasher;
 struct ip_filter;
 class port_filter;
 
-// include/libtorrent/kademlia/dht_storage.hpp
-struct dht_storage_counters;
-struct dht_storage_interface;
-
 // include/libtorrent/peer_connection_handle.hpp
 struct peer_connection_handle;
 struct bt_peer_connection_handle;
@@ -243,6 +239,14 @@ class torrent_info;
 
 // include/libtorrent/torrent_status.hpp
 struct torrent_status;
+
+namespace dht {
+
+// include/libtorrent/kademlia/dht_storage.hpp
+struct dht_storage_counters;
+struct dht_storage_interface;
+
+}
 
 #ifndef TORRENT_NO_DEPRECATE
 
