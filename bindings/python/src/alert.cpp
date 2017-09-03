@@ -575,7 +575,7 @@ void bind_alert()
 
     class_<portmap_error_alert, bases<alert>, noncopyable>(
         "portmap_error_alert", no_init)
-        .def_readonly("mapping", &portmap_error_alert::mapping)
+        .add_property("mapping", make_getter(&portmap_error_alert::mapping, by_value()))
         .def_readonly("error", &portmap_error_alert::error)
         .def_readonly("map_transport", &portmap_error_alert::map_transport)
 #ifndef TORRENT_NO_DEPRECATE
@@ -586,7 +586,7 @@ void bind_alert()
         ;
 
     class_<portmap_alert, bases<alert>, noncopyable>("portmap_alert", no_init)
-        .def_readonly("mapping", &portmap_alert::mapping)
+        .add_property("mapping", make_getter(&portmap_alert::mapping, by_value()))
         .def_readonly("external_port", &portmap_alert::external_port)
         .def_readonly("map_protocol", &portmap_alert::map_protocol)
         .def_readonly("map_transport", &portmap_alert::map_transport)
