@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/session_stats.hpp"
 #include "settings.hpp"
 
 #include <fstream>
@@ -218,6 +219,9 @@ TORRENT_TEST(session_stats)
 	{
 		TEST_EQUAL(stats[i].value_index, i);
 	}
+
+	TEST_EQUAL(lt::find_metric_idx("peer.incoming_connections")
+		, lt::counters::incoming_connections);
 }
 
 TORRENT_TEST(paused_session)

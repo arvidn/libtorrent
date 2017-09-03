@@ -571,15 +571,13 @@ namespace {
 		return stats;
 	}
 
-	// TODO: 3 use string_view for name
-	int find_metric_idx(char const* name)
+	int find_metric_idx(string_view name)
 	{
 		auto const i = std::find_if(std::begin(metrics), std::end(metrics)
 			, [name](stats_metric_impl const& metr)
-			{ return std::strcmp(metr.name, name) == 0; });
+			{ return metr.name == name; });
 
 		if (i == std::end(metrics)) return -1;
 		return i->value_index;
 	}
-
 }

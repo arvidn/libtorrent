@@ -561,6 +561,11 @@ namespace
         return p;
     }
 
+	 int find_metric_idx_wrap(char const* name)
+	 {
+		 return lt::find_metric_idx(name);
+	 }
+
 } // namespace unnamed
 
 struct dummy1 {};
@@ -994,7 +999,7 @@ void bind_session()
 	;
 
     def("session_stats_metrics", session_stats_metrics);
-    def("find_metric_idx", find_metric_idx);
+    def("find_metric_idx", find_metric_idx_wrap);
 
     scope().attr("create_ut_metadata_plugin") = "ut_metadata";
     scope().attr("create_ut_pex_plugin") = "ut_pex";
