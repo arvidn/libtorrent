@@ -19,6 +19,7 @@
 #include "libtorrent/file_storage.hpp" // for file_flags_t
 #include "libtorrent/alert.hpp"
 #include "libtorrent/create_torrent.hpp" // for create_flags_t
+#include "libtorrent/portmap.hpp" // for port_mapping_t
 #include <vector>
 
 using namespace boost::python;
@@ -299,6 +300,7 @@ void bind_converters()
 
     to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
     to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
+    to_python_converter<lt::port_mapping_t, from_strong_typedef<lt::port_mapping_t>>();
     to_python_converter<lt::torrent_flags_t, from_bitfield_flag<lt::torrent_flags_t>>();
     to_python_converter<lt::peer_flags_t, from_bitfield_flag<lt::peer_flags_t>>();
     to_python_converter<lt::peer_source_flags_t, from_bitfield_flag<lt::peer_source_flags_t>>();
@@ -358,6 +360,7 @@ void bind_converters()
 
     to_strong_typedef<lt::piece_index_t>();
     to_strong_typedef<lt::file_index_t>();
+    to_strong_typedef<lt::port_mapping_t>();
     to_bitfield_flag<lt::torrent_flags_t>();
     to_bitfield_flag<lt::peer_flags_t>();
     to_bitfield_flag<lt::peer_source_flags_t>();
