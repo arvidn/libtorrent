@@ -94,7 +94,7 @@ namespace libtorrent {
 		// instanced parsed. It will use the internal chunk list to determine
 		// where the chunks are in the buffer. It returns the new length of
 		// the buffer
-		int collapse_chunk_headers(char* buffer, int size) const;
+		span<char> collapse_chunk_headers(span<char> buffer) const;
 
 		// returns false if the buffer doesn't contain a complete
 		// chunk header. In this case, call the function again with

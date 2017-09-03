@@ -112,23 +112,23 @@ namespace libtorrent {
 namespace {
 
 	// returns -1 if gzip header is invalid or the header size in bytes
-	int gzip_header(const char* buf, int size)
+	int gzip_header(span<char const> const buf)
 	{
-		TORRENT_ASSERT(buf != nullptr);
+		TORRENT_ASSERT(!buf.empty());
 
-		const unsigned char* buffer = reinterpret_cast<const unsigned char*>(buf);
-		const int total_size = size;
+		span<unsigned char const> buffer(
+			reinterpret_cast<const unsigned char*>(buf.data()), buf.size());
 
 		// gzip is defined in https://tools.ietf.org/html/rfc1952
 
 		// The zip header cannot be shorter than 10 bytes
-		if (size < 10 || buf == nullptr) return -1;
+		if (buffer.size() < 10) return -1;
 
 		// check the magic header of gzip
 		if ((buffer[0] != GZIP_MAGIC0) || (buffer[1] != GZIP_MAGIC1)) return -1;
 
-		int method = buffer[2];
-		int flags = buffer[3];
+		int const method = buffer[2];
+		int const flags = buffer[3];
 
 		// check for reserved flag and make sure it's compressed with the correct metod
 		// we only support deflate
@@ -139,63 +139,51 @@ namespace {
 		// |ID1|ID2|CM |FLG|     MTIME     |XFL|OS | (more-->)
 		// +---+---+---+---+---+---+---+---+---+---+
 
-		size -= 10;
-		buffer += 10;
+		buffer = buffer.subspan(10);
 
 		if (flags & FEXTRA)
 		{
-			int extra_len;
+			if (buffer.size() < 2) return -1;
 
-			if (size < 2) return -1;
-
-			extra_len = (buffer[1] << 8) | buffer[0];
-
-			if (size < (extra_len+2)) return -1;
-			size -= (extra_len + 2);
-			buffer += (extra_len + 2);
+			std::size_t const extra_len = static_cast<std::size_t>((buffer[1] << 8) | buffer[0]);
+			if (buffer.size() < extra_len + 2) return -1;
+			buffer = buffer.subspan(extra_len + 2);
 		}
 
 		if (flags & FNAME)
 		{
-			while (size && *buffer)
+			if (buf.empty()) return -1;
+			while (buffer[0] != 0)
 			{
-				--size;
-				++buffer;
+				buffer = buffer.subspan(1);
+				if (buf.empty()) return -1;
 			}
-			if (!size || *buffer) return -1;
-
-			--size;
-			++buffer;
+			buffer = buffer.subspan(1);
 		}
 
 		if (flags & FCOMMENT)
 		{
-			while (size && *buffer)
+			if (buf.empty()) return -1;
+			while (buffer[0] != 0)
 			{
-				--size;
-				++buffer;
+				buffer = buffer.subspan(1);
+				if (buf.empty()) return -1;
 			}
-			if (!size || *buffer) return -1;
-
-			--size;
-			++buffer;
+			buffer = buffer.subspan(1);
 		}
 
 		if (flags & FHCRC)
 		{
-			if (size < 2) return -1;
-
-			size -= 2;
-//			buffer += 2;
+			if (buffer.size() < 2) return -1;
+			buffer = buffer.subspan(2);
 		}
 
-		return total_size - size;
+		return static_cast<int>(buf.size() - buffer.size());
 	}
 	} // anonymous namespace
 
 	TORRENT_EXTRA_EXPORT void inflate_gzip(
-		char const* in
-		, int size
+		span<char const> in
 		, std::vector<char>& buffer
 		, int maximum_size
 		, error_code& ec)
@@ -203,7 +191,7 @@ namespace {
 		ec.clear();
 		TORRENT_ASSERT(maximum_size > 0);
 
-		int header_len = gzip_header(in, size);
+		int header_len = gzip_header(in);
 		if (header_len < 0)
 		{
 			ec = gzip_errors::invalid_gzip_header;
@@ -214,8 +202,8 @@ namespace {
 		// if needed
 		unsigned long destlen = 4096;
 		int ret = 0;
-		unsigned long srclen = std::uint32_t(size - header_len);
-		in += header_len;
+		in = in.subspan(static_cast<std::size_t>(header_len));
+		unsigned long srclen = std::uint32_t(in.size());
 
 		do
 		{
@@ -226,8 +214,10 @@ namespace {
 				return;
 			}
 
-			ret = puff(reinterpret_cast<unsigned char*>(&buffer[0]), &destlen
-				, reinterpret_cast<const unsigned char*>(in), &srclen);
+			ret = puff(reinterpret_cast<unsigned char*>(buffer.data())
+				, &destlen
+				, reinterpret_cast<const unsigned char*>(in.data())
+				, &srclen);
 
 			// if the destination buffer wasn't large enough, double its
 			// size and try again. Unless it's already at its max, in which

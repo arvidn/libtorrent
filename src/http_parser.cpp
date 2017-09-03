@@ -547,28 +547,28 @@ restart_response:
 		m_partial_chunk_header = 0;
 	}
 
-	int http_parser::collapse_chunk_headers(char* buffer, int size) const
+	span<char> http_parser::collapse_chunk_headers(span<char> buffer) const
 	{
-		if (!chunked_encoding()) return size;
+		if (!chunked_encoding()) return buffer;
 
 		// go through all chunks and compact them
 		// since we're bottled, and the buffer is our after all
 		// it's OK to mutate it
-		char* write_ptr = buffer;
+		char* write_ptr = buffer.data();
 		// the offsets in the array are from the start of the
 		// buffer, not start of the body, so subtract the size
 		// of the HTTP header from them
-		int const offset = body_start();
+		std::size_t const offset = static_cast<std::size_t>(body_start());
 		for (auto const& i : chunks())
 		{
-			TORRENT_ASSERT(i.second - i.first < (std::numeric_limits<int>::max)());
-			TORRENT_ASSERT(i.second - offset <= size);
-			int len = int(i.second - i.first);
-			if (i.first - offset + len > size) len = size - int(i.first) + offset;
-			std::memmove(write_ptr, buffer + i.first - offset, std::size_t(len));
-			write_ptr += len;
+			size_t const chunk_start = static_cast<std::size_t>(i.first);
+			size_t const chunk_end = static_cast<std::size_t>(i.second);
+			TORRENT_ASSERT(i.second - i.first < std::numeric_limits<int>::max());
+			TORRENT_ASSERT(chunk_end - offset <= buffer.size());
+			span<char> chunk = buffer.subspan(chunk_start - offset, chunk_end - chunk_start);
+			std::memmove(write_ptr, chunk.data(), chunk.size());
+			write_ptr += chunk.size();
 		}
-		size = int(write_ptr - buffer);
-		return size;
+		return buffer.first(static_cast<std::size_t>(write_ptr - buffer.data()));
 	}
 }

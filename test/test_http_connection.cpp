@@ -77,19 +77,19 @@ void http_connect_handler(http_connection& c)
 }
 
 void http_handler(error_code const& ec, http_parser const& parser
-	, char const* data, int size, http_connection& c)
+	, span<char const> data, http_connection& c)
 {
 	++handler_called;
-	data_size = size;
+	data_size = data.size();
 	g_error_code = ec;
-	TORRENT_ASSERT(size == 0 || parser.finished());
+	TORRENT_ASSERT(data.empty() || parser.finished());
 
 	if (parser.header_finished())
 	{
 		http_status = parser.status_code();
 		if (http_status == 200)
 		{
-			TEST_CHECK(memcmp(data, data_buffer, size) == 0);
+			TEST_CHECK(memcmp(data.data(), data_buffer, data.size()) == 0);
 		}
 	}
 	print_http_header(parser);

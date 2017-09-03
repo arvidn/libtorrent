@@ -35,13 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/span.hpp"
 
 #include <vector>
 
 namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT void inflate_gzip(
-		char const* in, int size
+		span<char const> in
 		, std::vector<char>& buffer
 		, int maximum_size
 		, error_code& error);

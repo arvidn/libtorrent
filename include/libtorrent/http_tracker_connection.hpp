@@ -80,7 +80,7 @@ namespace libtorrent {
 		void on_filter(http_connection& c, std::vector<tcp::endpoint>& endpoints);
 		void on_connect(http_connection& c);
 		void on_response(error_code const& ec, http_parser const& parser
-			, char const* data, int size);
+			, span<char const> data);
 
 		virtual void on_timeout(error_code const&) {}
 
@@ -92,7 +92,7 @@ namespace libtorrent {
 	};
 
 	TORRENT_EXTRA_EXPORT tracker_response parse_tracker_response(
-		char const* data, int size, error_code& ec
+		span<char const> data, error_code& ec
 		, int flags, sha1_hash const& scrape_ih);
 
 	TORRENT_EXTRA_EXPORT bool extract_peer_info(bdecode_node const& info
