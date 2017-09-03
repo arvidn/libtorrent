@@ -937,21 +937,21 @@ namespace libtorrent {
 		DLOG("try_flush_write_blocks: %d\n", num);
 
 		list_iterator<cached_piece_entry> range = m_disk_cache.write_lru_pieces();
-		aux::vector<std::pair<storage_interface*, piece_index_t>> pieces;
+		aux::vector<std::pair<std::shared_ptr<storage_interface>, piece_index_t>> pieces;
 		pieces.reserve(m_disk_cache.num_write_lru_pieces());
 
 		for (list_iterator<cached_piece_entry> p = range; p.get() && num > 0; p.next())
 		{
 			cached_piece_entry* e = p.get();
 			if (e->num_dirty == 0) continue;
-			pieces.push_back(std::make_pair(e->storage.get(), e->piece));
+			pieces.push_back(std::make_pair(e->storage, e->piece));
 		}
 
 		for (auto const& p : pieces)
 		{
 			// TODO: instead of doing a lookup each time through the loop, save
 			// cached_piece_entry pointers with piece_refcount incremented to pin them
-			cached_piece_entry* pe = m_disk_cache.find_piece(p.first, p.second);
+			cached_piece_entry* pe = m_disk_cache.find_piece(p.first.get(), p.second);
 			if (pe == nullptr) continue;
 
 			// another thread may flush this piece while we're looping and
@@ -980,7 +980,7 @@ namespace libtorrent {
 		// everything in LRU order (degrade to lru cache eviction)
 		for (auto const& p : pieces)
 		{
-			cached_piece_entry* pe = m_disk_cache.find_piece(p.first, p.second);
+			cached_piece_entry* pe = m_disk_cache.find_piece(p.first.get(), p.second);
 			if (pe == nullptr) continue;
 			if (pe->num_dirty == 0) continue;
 

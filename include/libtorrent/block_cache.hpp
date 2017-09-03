@@ -312,10 +312,10 @@ namespace aux {
 		// this is set when the piece should be evicted as soon as there
 		// no longer are any references to it. Evicted here means demoted
 		// to a ghost list
-		boost::uint32_t marked_for_eviction:1;
+		std::uint32_t marked_for_eviction:1;
 
 		// the number of blocks that have >= 1 refcount
-		boost::uint32_t pinned:15;
+		std::uint32_t pinned:15;
 
 		// ---- 32 bit boundary ---
 

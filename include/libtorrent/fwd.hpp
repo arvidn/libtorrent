@@ -134,8 +134,11 @@ struct picker_log_alert;
 struct session_error_alert;
 struct dht_live_nodes_alert;
 struct session_stats_header_alert;
+struct dht_sample_infohashes_alert;
+struct block_uploaded_alert;
 
 // include/libtorrent/announce_entry.hpp
+struct announce_endpoint;
 struct announce_entry;
 
 // include/libtorrent/bdecode.hpp
@@ -181,13 +184,6 @@ class hasher512;
 // include/libtorrent/ip_filter.hpp
 struct ip_filter;
 class port_filter;
-
-// include/libtorrent/kademlia/dht_state.hpp
-struct dht_state;
-
-// include/libtorrent/kademlia/dht_storage.hpp
-struct dht_storage_counters;
-struct dht_storage_interface;
 
 // include/libtorrent/peer_connection_handle.hpp
 struct peer_connection_handle;
@@ -241,11 +237,23 @@ class torrent_info;
 // include/libtorrent/torrent_status.hpp
 struct torrent_status;
 
+namespace dht {
+
+// include/libtorrent/kademlia/dht_state.hpp
+struct dht_state;
+
+// include/libtorrent/kademlia/dht_storage.hpp
+struct dht_storage_counters;
+struct dht_storage_interface;
+
+}
+
 #ifndef TORRENT_NO_DEPRECATE
 
 // include/libtorrent/alert_types.hpp
 struct torrent_added_alert;
 struct mmap_cache_alert;
+struct torrent_update_alert;
 
 // include/libtorrent/file_storage.hpp
 struct file_entry;

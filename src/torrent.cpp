@@ -837,6 +837,12 @@ namespace libtorrent {
 
 		std::shared_ptr<read_piece_struct> rp = std::make_shared<read_piece_struct>();
 		rp->piece_data.reset(new (std::nothrow) char[piece_size]);
+		if (!rp->piece_data)
+		{
+			m_ses.alerts().emplace_alert<read_piece_alert>(
+				get_handle(), piece, error_code(boost::system::errc::not_enough_memory, generic_category()));
+			return;
+		}
 		rp->blocks_left = 0;
 		rp->fail = false;
 

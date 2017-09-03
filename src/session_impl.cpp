@@ -4985,10 +4985,18 @@ namespace {
 
 	void session_impl::update_outgoing_interfaces()
 	{
-		std::string net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
+		std::string const net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
 
 		// declared in string_util.hpp
 		parse_comma_separated_string(net_interfaces, m_outgoing_interfaces);
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (!net_interfaces.empty() && m_outgoing_interfaces.empty())
+		{
+			session_log("ERROR: failed to parse outgoing interface list: %s"
+				, net_interfaces.c_str());
+		}
+#endif
 	}
 
 	tcp::endpoint session_impl::bind_outgoing_socket(socket_type& s, address
@@ -5229,6 +5237,11 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
+			if (!net_interfaces.empty() && m_listen_interfaces.empty())
+			{
+				session_log("ERROR: failed to parse listen_interfaces setting: %s"
+					, net_interfaces.c_str());
+			}
 			session_log("update listen interfaces: %s", net_interfaces.c_str());
 			session_log("parsed listen interfaces count: %d, ifaces: %s"
 				, int(m_listen_interfaces.size())
@@ -5334,6 +5347,12 @@ namespace {
 		std::vector<std::pair<std::string, int>> nodes;
 		parse_comma_separated_string_port(node_list, nodes);
 
+#ifndef TORRENT_DISABLE_LOGGING
+		if (!node_list.empty() && nodes.empty())
+		{
+			session_log("ERROR: failed to parse DHT bootstrap list: %s", node_list.c_str());
+		}
+#endif
 		for (auto const& n : nodes)
 			add_dht_router(n);
 #endif

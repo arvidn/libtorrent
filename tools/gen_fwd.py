@@ -57,6 +57,7 @@ deprecated_classes = os.popen('git grep TORRENT_DEPRECATED_EXPORT').read().split
 def filter_classes(classes, keyword):
 	current_file = ''
 	ret = ''
+	dht_ret = ''
 	for c in classes:
 		line = c.split(':', 1)
 		if not line[0].endswith('.hpp'): continue
@@ -71,13 +72,22 @@ def filter_classes(classes, keyword):
 		# TODO: support TORRENT_DEPRECATED_EXPORT
 		if decl[1].strip() != keyword: continue
 
+		content = ''
 		if this_file != current_file:
-			ret += '\n// ' + this_file + '\n'
+			content += '\n// ' + this_file + '\n'
 		current_file = this_file;
 		decl = decl[0] + ' ' + decl[2]
 		if not decl.endswith(';'): decl += ';'
-		ret += decl + '\n'
-	return ret
+		content += decl + '\n'
+		if 'kademlia' in this_file:
+			dht_ret += content
+		else:
+			ret += content
+
+	if dht_ret == '':
+		return ret
+	else:
+		return ret + '\nnamespace dht {\n' + dht_ret + '\n}\n'
 
 os.remove('include/libtorrent/fwd.hpp')
 with open('include/libtorrent/fwd.hpp', 'w+') as f:
