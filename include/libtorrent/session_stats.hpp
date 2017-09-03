@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_STATS_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include <vector>
 
@@ -59,8 +60,7 @@ namespace libtorrent {
 	// given a name of a metric, this function returns the counter index of it,
 	// or -1 if it could not be found. The counter index is the index into the
 	// values array returned by session_stats_alert.
-	TORRENT_EXPORT int find_metric_idx(char const* name);
-
+	TORRENT_EXPORT int find_metric_idx(string_view name);
 }
 
 #endif
