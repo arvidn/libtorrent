@@ -118,12 +118,12 @@ namespace libtorrent
 			checking_resume_data
 		};
 
+#ifndef TORRENT_NO_DEPRECATE
 		// may be set to an error code describing why the torrent was paused, in
 		// case it was paused by an error. If the torrent is not paused or if it's
 		// paused but not because of an error, this error_code is not set.
 		// if the error is attributed specifically to a file, error_file is set to
 		// the index of that file in the .torrent file.
-#ifndef TORRENT_NO_DEPRECATE
 		std::string error;
 #else
 		// internal
