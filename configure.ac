@@ -99,7 +99,7 @@ AX_PTHREAD()
 LIBS="$PTHREAD_LIBS $LIBS"
 CFLAGS="$PTHREAD_CFLAGS $CFLAGS"
 CC="$PTHREAD_CC"
-CXXFLAGS="$CXXFLAGS -ftemplate-depth=120"
+CXXFLAGS="$CXXFLAGS -ftemplate-depth=120 -Wno-format-zero-length"
 
 AS_ECHO "Checking for visibility support:"
 AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
@@ -172,9 +172,9 @@ AC_ARG_ENABLE(
   [logging],
   [AS_HELP_STRING(
     [--enable-logging],
-    [enable logging to disk (use value "verbose" to enable verbose peer wire logging or "errors" limit logging to errors ) [default=no]])],
+    [enable logging alerts [default=yes]])],
   [[ARG_ENABLE_LOGGING=$enableval]],
-  [[ARG_ENABLE_LOGGING=no]]
+  [[ARG_ENABLE_LOGGING=yes]]
 )
 
 AC_ARG_ENABLE(
@@ -196,7 +196,7 @@ AC_ARG_ENABLE(
   [dht],
   [AS_HELP_STRING(
     [--enable-dht],
-    [enable dht support (use value "logging" to add extra logging) [default=yes]])],
+    [enable dht support [default=yes]])],
   [[ARG_ENABLE_DHT=$enableval]],
   [[ARG_ENABLE_DHT=yes]]
 )
@@ -363,7 +363,7 @@ AS_CASE(["$ARG_ENABLE_LOGGING"],
     ],
   ["no"|"none"], [
       AC_MSG_RESULT([no])
-      AC_DEFINE([TORRENT_DISABLE_LOGGING],[1],[Define to enable support for logging alerts])
+      AC_DEFINE([TORRENT_DISABLE_LOGGING],[1],[Define to disable support for logging alerts])
       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_LOGGING "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_LOGGING])
@@ -418,13 +418,8 @@ AS_CASE(["$ARG_ENABLE_DHT"],
       AC_DEFINE([TORRENT_DISABLE_DHT],[1],[Define to disable the DHT support.])
       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_DHT "
     ],
-  ["logging"], [
-      AC_MSG_RESULT([logging])
-      AC_DEFINE([TORRENT_DHT_VERBOSE_LOGGING],[1],[Define to enable DHT support with verbose logging.])
-      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DHT_VERBOSE_LOGGING "
-    ],
   [AC_MSG_RESULT([$ARG_ENABLE_DHT])
-   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DHT". Use either "yes", "no" or "logging".])]
+   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DHT". Use either "yes" or "no".])]
 )
 
 AC_MSG_CHECKING([whether pool allocators should be enabled])
@@ -625,7 +620,7 @@ Build options:
   deprecated functions: ${ARG_ENABLE_DEPRECATED:-yes}
   debug build:          ${ARG_ENABLE_DEBUG:-no}
   invariant checks:     ${ARG_ENABLE_INVARIANT:-no}
-  logging support:      ${ARG_ENABLE_LOGGING:-no}
+  logging support:      ${ARG_ENABLE_LOGGING:-yes}
   disk statistics:      ${ARG_ENABLE_DISK_STATS:-no}
 
 Features:
