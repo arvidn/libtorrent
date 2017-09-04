@@ -2282,7 +2282,7 @@ TORRENT_TEST(routing_table_uniform)
 	// i.e. no more than 5 levels
 	TEST_EQUAL(tbl.num_active_buckets(), 5);
 
-#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG
 	tbl.print_state(std::cout);
 #endif
 }
