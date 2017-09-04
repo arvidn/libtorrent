@@ -1,3 +1,6 @@
+
+1.1.5 release
+
 	* fix IPv6 tracker support by performing the second announce in more cases
 	* fix utf-8 encoding check in torrent parser
 	* fix infinite loop when parsing maliciously crafted torrents
