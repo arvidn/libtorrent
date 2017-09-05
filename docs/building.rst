@@ -12,10 +12,9 @@ libtorrent manual
 downloading and building
 ========================
 
-To acquire the latest version of libtorrent, you'll have to grab it from SVN.
-You'll find instructions on how to do this here__ (see subversion access).
+To download the latest version of libtorrent, clone the `github repo`__.
 
-__ http://sourceforge.net/svn/?group_id=79942
+__ https://github.com/arvidn/libtorrent
 
 The build systems supported "out of the box" in libtorrent are boost-build v2
 (BBv2) and autotools (for unix-like systems). If you still can't build after
@@ -38,15 +37,18 @@ IRC channel on ``irc.freenode.net``.
 	configuration options in the pkg-config file. Always use pkg-config
 	when linking against libtorrent.
 
-building from svn
+building from git
 -----------------
 
-To build libtorrent from svn you need to check out the libtorrent sources from
-sourceforge. If you downloaded a release tarball, you can skip this section.
+To build libtorrent from git you need to clone the libtorrent repo from
+github. If you downloaded a release `tarball`__, you can skip this section.
 
-To check out libtorrent follow these instructions__.
+__ https://github.com/arvidn/libtorrent/releases/latest
 
-__ http://sourceforge.net/svn/?group_id=79942
+::
+
+	git clone https://github.com/arvidn/libtorrent.git
+
 
 building with BBv2
 ------------------
@@ -75,7 +77,7 @@ You'll find boost here__.
 __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=619445
 
 Extract the archive to some directory where you want it. For the sake of this
-guide, let's assume you extract the package to ``c:\boost_1_55_0`` (I'm using
+guide, let's assume you extract the package to ``c:\boost_1_64_0`` (I'm using
 a windows path in this example since if you're on linux/unix you're more likely
 to use the autotools). You'll need at least version 1.49 of the boost library
 in order to build libtorrent.
@@ -86,7 +88,7 @@ Step 2: Setup BBv2
 
 First you need to build ``bjam``. You do this by opening a terminal (In
 windows, run ``cmd``). Change directory to
-``c:\boost_1_55_0\tools\jam\src``. Then run the script called
+``c:\boost_1_64_0\tools\jam\src``. Then run the script called
 ``build.bat`` or ``build.sh`` on a unix system. This will build ``bjam`` and
 place it in a directory starting with ``bin.`` and then have the name of your
 platform. Copy the ``bjam.exe`` (or ``bjam`` on a unix system) to a place
@@ -101,16 +103,16 @@ set the environment variable ``BOOST_BUILD_PATH``. This is the path that tells
 ``bjam`` where it can find boost-build, your configuration file and all the
 toolsets (descriptions used by boost-build to know how to use different
 compilers on different platforms). Assuming the boost install path above, set
-it to ``c:\boost_1_55_0\tools\build\v2``.
+it to ``c:\boost_1_64_0\tools\build\v2``.
 
 To set an environment variable in windows, type for example::
 
-  set BOOST_BUILD_PATH=c:\boost_1_55_0\tools\build\v2
+  set BOOST_BUILD_PATH=c:\boost_1_64_0\tools\build\v2
 
 In a terminal window.
 
 The last thing to do to complete the setup of BBv2 is to modify your
-``user-config.jam`` file. It is located in ``c:\boost_1_55_0\tools\build\v2``.
+``user-config.jam`` file. It is located in ``c:\boost_1_64_0\tools\build\v2``.
 Depending on your platform and which compiler you're using, you should add a
 line for each compiler and compiler version you have installed on your system
 that you want to be able to use with BBv2. For example, if you're using
@@ -148,7 +150,7 @@ Step 3: Building libtorrent
 When building libtorrent, the ``Jamfile`` expects the environment variable
 ``BOOST_ROOT`` to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to ``c:\boost_1_55_0``. You only need this if you're
+files found. So, set this to ``c:\boost_1_64_0``. You only need this if you're
 building against a source distribution of boost.
 
 Then the only thing left is simply to invoke ``bjam``. If you want to specify
@@ -224,8 +226,8 @@ from a cygwin terminal, you'll have to run it from a ``cmd`` terminal. The same 
 cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical unix-format (e.g.
-``/cygdrive/c/boost_1_55_0``). In the windows environment, they should have the typical
-windows format (``c:/boost_1_55_0``).
+``/cygdrive/c/boost_1_64_0``). In the windows environment, they should have the typical
+windows format (``c:/boost_1_64_0``).
 
 .. note::
 	In Jamfiles, spaces are separators. It's typically easiest to avoid spaces
@@ -388,12 +390,12 @@ building with autotools
 First of all, you need to install ``automake`` and ``autoconf``. Many
 unix/linux systems comes with these preinstalled.
 
-The prerequisites for building libtorrent are boost.thread, boost.date_time
-and boost.filesystem. Those are the *compiled* boost libraries needed. The
-headers-only libraries needed include (but is not necessarily limited to)
-boost.bind, boost.ref, boost.multi_index, boost.optional, boost.lexical_cast,
-boost.integer, boost.iterator, boost.tuple, boost.array, boost.function,
-boost.smart_ptr, boost.preprocessor, boost.static_assert.
+The prerequisites for building libtorrent are boost.system, boost.chrono and
+boost.random. Those are the *compiled* boost libraries needed. The headers-only
+libraries needed include (but is not necessarily limited to) boost.bind,
+boost.ref, boost.multi_index, boost.optional, boost.lexical_cast, boost.integer,
+boost.iterator, boost.tuple, boost.array, boost.function, boost.smart_ptr,
+boost.preprocessor, boost.static_assert.
 
 If you want to build the ``client_test`` example, you'll also need boost.regex
 and boost.program_options.
@@ -452,12 +454,14 @@ the suffix ``mt``.
 You know that the boost libraries were found if you see the following output
 from the configure script::
 
-  checking whether the Boost::DateTime library is available... yes
-  checking for main in -lboost_date_time... yes
-  checking whether the Boost::Filesystem library is available... yes
-  checking for main in -lboost_filesystem... yes
-  checking whether the Boost::Thread library is available... yes
-  checking for main in -lboost_thread... yes
+	Checking for boost libraries:
+	checking for boostlib >= 1.53... yes
+	checking whether the Boost::System library is available... yes
+	checking for exit in -lboost_system... yes
+	checking whether the Boost::Chrono library is available... yes
+	checking for exit in -lboost_chrono-mt... yes
+	checking whether the Boost::Random library is available... yes
+	checking for exit in -lboost_random-mt... yes
 
 Another possible source of problems may be if the path to your libtorrent
 directory contains spaces. Make sure you either rename the directories with
@@ -531,10 +535,6 @@ defines you can use to control the build.
 |                                        | alerts, like log_alert, torrent_log_alert and   |
 |                                        | peer_log_alert. With this build flag, you       |
 |                                        | cannot enable those alerts.                     |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_STORAGE_DEBUG``              | This will enable extra expensive invariant      |
-|                                        | checks in the storage, including logging of     |
-|                                        | piece sorting.                                  |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISK_STATS``                 | This will create a log of all disk activity     |
 |                                        | which later can parsed and graphed using        |
