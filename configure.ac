@@ -169,7 +169,7 @@ AC_ARG_ENABLE(
   [logging],
   [AS_HELP_STRING(
     [--enable-logging],
-    [enable logging support, enabled by alert mask [default=yes]])],
+    [enable logging alerts [default=yes]])],
   [[ARG_ENABLE_LOGGING=$enableval]],
   [[ARG_ENABLE_LOGGING=yes]]
 )
@@ -339,7 +339,7 @@ AS_CASE(["$ARG_ENABLE_LOGGING"],
     ],
   ["no"|"none"], [
       AC_MSG_RESULT([no])
-      AC_DEFINE([TORRENT_DISABLE_LOGGING],[1],[Define to enable support for logging alerts])
+      AC_DEFINE([TORRENT_DISABLE_LOGGING],[1],[Define to disable support for logging alerts])
       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_LOGGING "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_LOGGING])
@@ -383,7 +383,7 @@ AS_CASE(["$ARG_ENABLE_DHT"],
       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_DHT "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_DHT])
-   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DHT". Use either "yes", "no" or "logging".])]
+   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DHT". Use either "yes" or "no".])]
 )
 
 AS_IF([test "x$ac_cv_hidden_visibility_attribute" = "xyes"], [
@@ -570,7 +570,7 @@ Build options:
   deprecated functions: ${ARG_ENABLE_DEPRECATED:-yes}
   debug build:          ${ARG_ENABLE_DEBUG:-no}
   invariant checks:     ${ARG_ENABLE_INVARIANT:-no}
-  logging support:      ${ARG_ENABLE_LOGGING:-no}
+  logging support:      ${ARG_ENABLE_LOGGING:-yes}
 
 Features:
   encryption support:   ${ARG_ENABLE_ENCRYPTION:-yes}
