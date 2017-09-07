@@ -922,11 +922,11 @@ namespace libtorrent
 				stat_file(fs.file_path(i, m_save_path), &s, error);
 				if (s.file_size >= 0 && !error)
 				{
-					TORRENT_ASSERT(s.file_size == file_size);
+					TORRENT_ASSERT_VAL(s.file_size == file_size, file_size);
 				}
 				else
 				{
-					TORRENT_ASSERT(file_size == 0);
+					TORRENT_ASSERT_VAL(file_size == 0, file_size);
 				}
 			}
 #endif
