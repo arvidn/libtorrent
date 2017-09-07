@@ -140,13 +140,8 @@ namespace libtorrent {
 				{
 					auto file_range = f->range().subspan(std::size_t(file_offset));
 					TORRENT_ASSERT(file_range.size() >= buf.size());
-					sig::try_signal([&]{
-						std::memcpy(const_cast<char*>(file_range.data())
-							, buf.data(), buf.size());
-					});
-					// TODO: memcpy() casts away volatile, come up with some solution
-					// to using std::copy()
-					// std::copy(buf.begin(), buf.end(), f->range().begin());
+					sig::iovec iov = { buf.data(), const_cast<char*>(file_range.data()), buf.size() };
+					sig::copy(&iov, 1);
 				}, fs.file_offset(i), fs.file_size(i), ec.ec);
 
 				if (ec)
@@ -463,14 +458,9 @@ namespace libtorrent {
 					if (file_range.empty()) break;
 					if (file_range.size() < buf.size()) buf = buf.first(file_range.size());
 
-					sig::try_signal([&]{
-						std::memcpy(buf.data()
-							, const_cast<char const*>(file_range.data())
-							, buf.size());
-					});
-					// TODO: memcpy() casts away volatile, come up with some solution
-					// to using std::copy()
-					// std::copy(file_vec.begin(), file_vec.end(), buf.begin());
+					sig::iovec iov = { const_cast<char const*>(file_range.data()), buf.data(), buf.size() };
+					sig::copy(&iov, 1);
+
 					file_range = file_range.subspan(buf.size());
 					ret += buf.size();
 				}
@@ -546,13 +536,8 @@ namespace libtorrent {
 			{
 				TORRENT_ASSERT(file_range.size() >= buf.size());
 
-				sig::try_signal([&]{
-					std::memcpy(const_cast<char*>(file_range.data())
-						, buf.data(), buf.size());
-					});
-				// TODO: memcpy() casts away volatile, come up with some solution
-				// to using std::copy()
-				// std::copy(buf.begin(), buf.end(), file_range.begin());
+				sig::iovec iov = { buf.data(), const_cast<char*>(file_range.data()), buf.size() };
+				sig::copy(&iov, 1);
 				file_range = file_range.subspan(buf.size());
 				ret += buf.size();
 			}
