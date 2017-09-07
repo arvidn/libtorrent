@@ -1,6 +1,7 @@
 
 1.1.5 release
 
+	* fix uTP path MTU discovery issue on windows (DF bit was not set correctly)
 	* fix python binding for torrent_handle, to be hashable
 	* fix IPv6 tracker support by performing the second announce in more cases
 	* fix utf-8 encoding check in torrent parser

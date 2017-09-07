@@ -163,26 +163,24 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_HAS_DONT_FRAGMENT
+
+	// the order of these preprocessor tests matters. Windows defines both
+	// IP_DONTFRAGMENT and IP_MTU_DISCOVER, but the latter is not supported
+	// in general, the simple option of just setting the DF bit is preferred, if
+	// it's available
+#if defined IP_DONTFRAG || defined IP_DONTFRAGMENT
+
 	struct dont_fragment
 	{
-		dont_fragment(bool val)
-#ifdef IP_PMTUDISCOVER_DO
-			: m_value(val ? IP_PMTUDISC_DO : IP_PMTUDISC_DONT) {}
-#else
-			: m_value(val) {}
-#endif
+		dont_fragment(bool val) : m_value(val) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>
 		int name(Protocol const&) const
 #if defined IP_DONTFRAG
 		{ return IP_DONTFRAG; }
-#elif defined IP_MTU_DISCOVER
-		{ return IP_MTU_DISCOVER; }
-#elif defined IP_DONTFRAGMENT
+#else // defined IP_DONTFRAGMENT
 		{ return IP_DONTFRAGMENT; }
-#else
-		{}
 #endif
 		template<class Protocol>
 		int const* data(Protocol const&) const { return &m_value; }
@@ -190,6 +188,30 @@ namespace libtorrent
 		size_t size(Protocol const&) const { return sizeof(m_value); }
 		int m_value;
 	};
+
+#else
+
+	// this is the fallback mechanism using the IP_MTU_DISCOVER option, which
+	// does a little bit more than we want, it makes the kernel track an estimate
+	// of the MTU and rejects packets immediately if they are believed to exceed
+	// it.
+	struct dont_fragment
+	{
+		dont_fragment(bool val)
+			: m_value(val ? IP_PMTUDISC_DO : IP_PMTUDISC_DONT) {}
+		template<class Protocol>
+		int level(Protocol const&) const { return IPPROTO_IP; }
+		template<class Protocol>
+		int name(Protocol const&) const { return IP_MTU_DISCOVER; }
+		template<class Protocol>
+		int const* data(Protocol const&) const { return &m_value; }
+		template<class Protocol>
+		size_t size(Protocol const&) const { return sizeof(m_value); }
+		int m_value;
+	};
+
+#endif // IP_DONTFRAG vs. IP_MTU_DISCOVER
+
 #endif // TORRENT_HAS_DONT_FRAGMENT
 }
 
