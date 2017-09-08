@@ -300,7 +300,7 @@ namespace libtorrent { namespace aux {
 		virtual bool announce_dht() const = 0;
 		virtual void add_dht_node(udp::endpoint const& n) = 0;
 		virtual bool has_dht() const = 0;
-		virtual int external_udp_port() const = 0;
+		virtual int external_udp_port(tcp::endpoint const& local_endpoint) const = 0;
 		virtual dht::dht_tracker* dht() = 0;
 		virtual void prioritize_dht(std::weak_ptr<torrent> t) = 0;
 #endif
