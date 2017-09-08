@@ -44,12 +44,14 @@ namespace aux {
 
 	namespace open_mode {
 		constexpr open_mode_t read_only{0};
-		constexpr open_mode_t write{1};
-		constexpr open_mode_t no_cache{2};
-		constexpr open_mode_t truncate{4};
-		constexpr open_mode_t no_atime{8};
-		constexpr open_mode_t random_access{16};
-		constexpr open_mode_t hidden{32};
+		constexpr open_mode_t write = 0_bit;
+		constexpr open_mode_t no_cache = 1_bit;
+		constexpr open_mode_t truncate = 2_bit;
+		constexpr open_mode_t no_atime = 3_bit;
+		constexpr open_mode_t random_access = 4_bit;
+		constexpr open_mode_t hidden = 5_bit;
+		constexpr open_mode_t sparse = 6_bit;
+		constexpr open_mode_t executable = 7_bit;
 	}
 } // aux
 

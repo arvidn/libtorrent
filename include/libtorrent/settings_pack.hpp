@@ -307,17 +307,19 @@ namespace libtorrent {
 			// cause is to have to re-read it once we want to calculate the piece
 			// hash
 			dont_flush_write_cache TORRENT_DEPRECATED_ENUM,
-#else
-			deprecated11,
-			deprecated22,
-			deprecated26,
-#endif
 
 			// allocate separate, contiguous, buffers for read and write calls.
 			// Only used where writev/readv cannot be used will use more RAM but
 			// may improve performance
-			coalesce_reads,
-			coalesce_writes,
+			coalesce_reads TORRENT_DEPRECATED_ENUM,
+			coalesce_writes TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated11,
+			deprecated22,
+			deprecated26,
+			deprecated30,
+			deprecated31,
+#endif
 
 			// prefer seeding torrents when determining which torrents to give
 			// active slots to, the default is false which gives preference to

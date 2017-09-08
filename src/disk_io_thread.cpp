@@ -399,7 +399,7 @@ constexpr disk_job_flags_t disk_interface::volatile_read;
 		TORRENT_ASSERT(r.length <= m_buffer_pool.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 
-		DLOG("do_read piece: %d block: %d\n", static_cast<int>(r.piece)
+		DLOG("async_read piece: %d block: %d\n", static_cast<int>(r.piece)
 			, r.start / m_buffer_pool.block_size());
 
 		disk_io_job* j = allocate_job(job_action_t::read);

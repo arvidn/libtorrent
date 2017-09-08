@@ -1459,11 +1459,11 @@ TORRENT_TEST(dont_move_intermingled_files)
 	TEST_EQUAL(ec, boost::system::errc::success);
 	file f;
 	f.open(combine_path(save_path, combine_path("temp_storage", "alien1.tmp"))
-		, open_mode::read_write, ec);
+		, aux::open_mode::write, ec);
 	f.close();
 	TEST_EQUAL(ec, boost::system::errc::success);
 	f.open(combine_path(save_path, combine_path("temp_storage"
-		, combine_path("folder1", "alien2.tmp"))), open_mode::read_write, ec);
+		, combine_path("folder1", "alien2.tmp"))), aux::open_mode::write, ec);
 	f.close();
 	TEST_EQUAL(ec, boost::system::errc::success);
 

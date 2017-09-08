@@ -112,11 +112,6 @@ namespace libtorrent {
 
 		set.set_int(settings_pack::recv_socket_buffer_size, 16 * 1024);
 		set.set_int(settings_pack::send_socket_buffer_size, 16 * 1024);
-
-		// use less memory when reading and writing
-		// whole pieces
-		set.set_bool(settings_pack::coalesce_reads, false);
-		set.set_bool(settings_pack::coalesce_writes, false);
 		return set;
 	}
 
@@ -160,14 +155,6 @@ namespace libtorrent {
 
 		set.set_int(settings_pack::read_cache_line_size, 32);
 		set.set_int(settings_pack::write_cache_line_size, 256);
-
-		// in case the OS we're running on doesn't support
-		// readv/writev, allocate contiguous buffers for
-		// reads and writes
-		// disable, since it uses a lot more RAM and a significant
-		// amount of CPU to copy it around
-		set.set_bool(settings_pack::coalesce_reads, false);
-		set.set_bool(settings_pack::coalesce_writes, false);
 
 		// the max number of bytes pending write before we throttle
 		// download rate

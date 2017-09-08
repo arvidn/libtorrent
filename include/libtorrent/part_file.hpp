@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/aux_/open_mode.hpp"
 
 namespace libtorrent {
 
@@ -78,7 +79,7 @@ namespace libtorrent {
 
 	private:
 
-		void open_file(open_mode_t mode, error_code& ec);
+		void open_file(aux::open_mode_t mode, error_code& ec);
 		void flush_metadata_impl(error_code& ec);
 
 		std::string m_path;
