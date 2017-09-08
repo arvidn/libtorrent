@@ -4,6 +4,7 @@ dist: trusty
 matrix:
   fast_finish: true
   include:
+    - env: variant=test_debug sonar_scan=1 toolset=gcc
     - env: variant=test_debug lint=1 tests=1 toolset=gcc-sanitizer
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
@@ -108,6 +109,14 @@ install:
   - if [ "$docs" == "1" ]; then /Users/travis/Library/Python/2.7/bin/rst2html.py --version; fi
   - 'if [ "$lint" == "1" ]; then curl "https://raw.githubusercontent.com/google/styleguide/71ec7f1e524969c19ce33cfc72e8e023f2b98ee2/cpplint/cpplint.py" >~/cpplint.py; fi'
 
+  - 'if [ $sonar_scan == "1" ]; then
+      wget https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/sonar-scanner-2.6.1.zip;
+      wget https://sonarqube.com/static/cpp/build-wrapper-linux-x86.zip;
+      unzip sonar-scanner-2.6.1.zip;
+      unzip build-wrapper-linux-x86.zip;
+      export PATH=$PWD/sonar-scanner-2.6.1/bin:$PWD/build-wrapper-linux-x86:$PATH;
+    fi'
+
   - ccache -V
   - ccache --show-stats
   - ccache --zero-stats
@@ -139,6 +148,11 @@ script:
 
   - 'if [ "$lint" == "1" ]; then
       python ~/cpplint.py --extensions=cpp --headers=hpp --filter=-,+runtime/explicit,+whitespace/end_of_line --linelength=90 test/*.{cpp,hpp} src/*.cpp include/libtorrent/*.hpp include/libtorrent/kademlia/*.hpp src/kademlia/*.cpp include/libtorrent/aux_/*.hpp include/libtorrent/extensions/*.hpp simulation/*.{cpp,hpp} tools/*.{cpp,hpp} examples/*.{cpp,hpp};
+    fi'
+
+  - 'if [ "$sonar_scan" == "1" ]; then
+       build-wrapper-linux-x86-64 --out-dir bw-output bjam -j3 crypto=$crypto asserts=off invariant-checks=full $toolset variant=$variant -l300 &&
+       sonar-scanner -D sonar.login=$SONAR_TOKEN;
     fi'
 
 # if we are building with code coverage, report it as soon as possible
