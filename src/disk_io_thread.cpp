@@ -393,7 +393,7 @@ constexpr disk_job_flags_t disk_interface::volatile_read;
 	}
 
 	void disk_io_thread::async_read(storage_index_t storage, peer_request const& r
-		, std::function<void(disk_buffer_holder, disk_job_flags_t, storage_error const&)> handler
+		, std::function<void(disk_buffer_holder, storage_error const&)> handler
 		, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= m_buffer_pool.block_size());

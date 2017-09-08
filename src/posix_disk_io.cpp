@@ -74,26 +74,23 @@ namespace {
 	struct call_read_handler
 	{
 		call_read_handler(
-			std::function<void(disk_buffer_holder, disk_job_flags_t, storage_error const&)> handler
+			std::function<void(disk_buffer_holder, storage_error const&)> handler
 			, disk_buffer_holder buf
-			, disk_job_flags_t flags
 			, storage_error error)
 			: m_buf(std::move(buf))
 			, m_handler(std::move(handler))
-			, m_flags(flags)
 			, m_error(std::move(error))
 		{}
 
 		void operator()()
 		{
-			m_handler(std::move(m_buf), m_flags, m_error);
+			m_handler(std::move(m_buf), m_error);
 		}
 
 	private:
 
 		disk_buffer_holder m_buf;
-		std::function<void(disk_buffer_holder, disk_job_flags_t, storage_error const&)> m_handler;
-		disk_job_flags_t m_flags;
+		std::function<void(disk_buffer_holder, storage_error const&)> m_handler;
 		storage_error m_error;
 	};
 
@@ -146,8 +143,8 @@ namespace {
 		void abort(bool) override {}
 
 		void async_read(storage_index_t storage, peer_request const& r
-			, std::function<void(disk_buffer_holder block, disk_job_flags_t flags, storage_error const& se)> handler
-			, disk_job_flags_t const flags) override
+			, std::function<void(disk_buffer_holder block, storage_error const& se)> handler
+			, disk_job_flags_t) override
 		{
 			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"));
 			storage_error error;
@@ -155,7 +152,7 @@ namespace {
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
-				m_ios.post([=]{ handler(disk_buffer_holder(*this, nullptr), flags, error); });
+				m_ios.post([=]{ handler(disk_buffer_holder(*this, nullptr), error); });
 				return;
 			}
 
@@ -177,7 +174,7 @@ namespace {
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
-			m_ios.post(move_handler(call_read_handler(std::move(handler), std::move(buffer), flags, error)));
+			m_ios.post(move_handler(call_read_handler(std::move(handler), std::move(buffer), error)));
 		}
 
 		bool async_write(storage_index_t storage, peer_request const& r
@@ -185,15 +182,14 @@ namespace {
 			, std::function<void(storage_error const&)> handler
 			, disk_job_flags_t) override
 		{
-			// TODO: 3 this const caset can be removed once iovec_t is no longer a
+			// TODO: 3 this const_cast can be removed once iovec_t is no longer a
 			// thing, but we just use plain spans
 			iovec_t const b = { const_cast<char*>(buf), std::size_t(r.length) };
 
 			time_point const start_time = clock_type::now();
 
 			storage_error error;
-			m_torrents[storage]->writev(m_settings
-				, b, r.piece, r.start, error);
+			m_torrents[storage]->writev(m_settings, b, r.piece, r.start, error);
 
 			if (!error.ec)
 			{

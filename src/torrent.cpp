@@ -854,7 +854,7 @@ namespace libtorrent {
 			r.length = (std::min)(piece_size - r.start, block_size());
 			m_ses.disk_thread().async_read(m_storage, r
 				, std::bind(&torrent::on_disk_read_complete
-				, shared_from_this(), _1, _2, _3, r, rp));
+				, shared_from_this(), _1, _2, r, rp));
 		}
 		m_ses.disk_thread().submit_jobs();
 	}
@@ -1161,7 +1161,7 @@ namespace libtorrent {
 	catch (...) { handle_exception(); }
 
 	void torrent::on_disk_read_complete(disk_buffer_holder buffer
-		, disk_job_flags_t, storage_error const& se
+		, storage_error const& se
 		, peer_request const&  r, std::shared_ptr<read_piece_struct> rp) try
 	{
 		// hold a reference until this function returns

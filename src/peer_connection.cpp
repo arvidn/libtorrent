@@ -5158,7 +5158,7 @@ namespace libtorrent {
 
 				m_disk_thread.async_read(t->storage(), r
 					, std::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, _3, r, clock_type::now()));
+					, self(), _1, _2, r, clock_type::now()));
 			}
 			m_last_sent_payload = clock_type::now();
 			m_requests.erase(m_requests.begin() + i);
@@ -5231,7 +5231,7 @@ namespace libtorrent {
 	}
 
 	void peer_connection::on_disk_read_complete(disk_buffer_holder buffer
-		, disk_job_flags_t const flags, storage_error const& error
+		, storage_error const& error
 		, peer_request const& r, time_point issue_time)
 	{
 		TORRENT_ASSERT(is_single_thread());

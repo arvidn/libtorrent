@@ -75,8 +75,8 @@ namespace libtorrent {
 	}
 
 	void disabled_disk_io::async_read(storage_index_t, peer_request const& r
-		, std::function<void(disk_buffer_holder, disk_job_flags_t, storage_error const&)> handler
-		, disk_job_flags_t const flags)
+		, std::function<void(disk_buffer_holder, storage_error const&)> handler
+		, disk_job_flags_t)
 	{
 		TORRENT_ASSERT(r.length <= m_buffer_pool.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
@@ -86,7 +86,7 @@ namespace libtorrent {
 		{
 			disk_buffer_holder holder(*this, this->m_buffer_pool.allocate_buffer("send buffer"));
 			std::fill(holder.get(), holder.get() + this->m_buffer_pool.block_size(), 0);
-			handler(std::move(holder), flags, storage_error{});
+			handler(std::move(holder), storage_error{});
 		});
 	}
 

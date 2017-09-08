@@ -47,7 +47,7 @@ namespace libtorrent {
 			{
 				if (!h) return;
 				h(std::move(boost::get<disk_buffer_holder>(m_job.argument))
-					, m_job.flags, m_job.error);
+					, m_job.error);
 			}
 
 			void operator()(disk_io_job::write_handler& h) const

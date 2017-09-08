@@ -146,7 +146,7 @@ namespace libtorrent {
 		virtual void remove_torrent(storage_index_t) = 0;
 
 		virtual void async_read(storage_index_t storage, peer_request const& r
-			, std::function<void(disk_buffer_holder, disk_job_flags_t, storage_error const&)> handler
+			, std::function<void(disk_buffer_holder, storage_error const&)> handler
 			, disk_job_flags_t flags = {}) = 0;
 		virtual bool async_write(storage_index_t storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
