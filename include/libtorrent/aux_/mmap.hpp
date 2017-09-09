@@ -86,6 +86,9 @@ namespace aux {
 	private:
 		void close();
 		native_handle_t m_fd;
+#ifdef TORRENT_WINDOWS
+		aux::open_mode_t m_open_mode;
+#endif
 	};
 
 	struct file_view;

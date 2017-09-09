@@ -88,7 +88,13 @@ namespace {
 
 	DWORD file_flags(open_mode_t const mode)
 	{
-		return (mode & open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL;
+		// one might think it's a good idea to pass in FILE_FLAG_RANDOM_ACCESS. It
+		// turns out that it isn't. That flag will break your operating system:
+		// http://support.microsoft.com/kb/2549369
+		return (mode & open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL
+			| (mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0
+			| (mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN
+			;
 	}
 
 } // anonymous
@@ -102,8 +108,18 @@ file_handle::file_handle(string_view name, std::int64_t
 		, file_create(mode)
 		, file_flags(mode)
 		, nullptr))
+		, m_open_mode(mode)
 {
 	if (m_fd == invalid_handle) throw_ex<system_error>(error_code(GetLastError(), system_category()));
+
+	// try to make the file sparse if supported
+	// only set this flag if the file is opened for writing
+	if ((mode & aux::open_mode::sparse)
+		&& (mode & aux::open_mode::write))
+	{
+		DWORD temp;
+		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, 0, 0, 0, 0, &temp, nullptr);
+	}
 }
 
 #else
@@ -168,13 +184,125 @@ file_handle::file_handle(string_view name, std::int64_t const size
 			::close(m_fd);
 			throw_ex<system_error>(error_code(err, system_category()));
 		}
+
+		if (!(mode & open_mode::sparse))
+		{
+#if TORRENT_HAS_FALLOCATE
+			// if fallocate failed, we have to use posix_fallocate
+			// which can be painfully slow
+			// if you get a compile error here, you might want to
+			// define TORRENT_HAS_FALLOCATE to 0.
+			int const ret = posix_fallocate(m_fd, 0, size);
+			// posix_allocate fails with EINVAL in case the underlying
+			// filesystem does not support this operation
+			if (ret != 0 && ret != EINVAL)
+			{
+				::close(m_fd);
+				throw_ex<system_error>(error_code(ret, system_category()));
+			}
+#elif defined F_ALLOCSP64
+			flock64 fl64;
+			fl64.l_whence = SEEK_SET;
+			fl64.l_start = 0;
+			fl64.l_len = size;
+			if (fcntl(m_fd, F_ALLOCSP64, &fl64) < 0)
+			{
+				int const err = errno;
+				::close(m_fd);
+				throw_ex<system_error>(error_code(err, system_category()));
+			}
+#elif defined F_PREALLOCATE
+			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, size, 0};
+			if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
+			{
+				if (errno != ENOSPC)
+				{
+					int const err = errno;
+					::close(m_fd);
+					throw_ex<system_error>(error_code(err, system_category()));
+				}
+				// ok, let's try to allocate non contiguous space then
+				f.fst_flags = F_ALLOCATEALL;
+				if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
+				{
+					int const err = errno;
+					::close(m_fd);
+					throw_ex<system_error>(error_code(err, system_category()));
+				}
+			}
+#endif // F_PREALLOCATE
+		}
 	}
 }
+#endif
+
+#ifdef TORRENT_WINDOWS
+namespace {
+	// returns true if the given file has any regions that are
+	// sparse, i.e. not allocated.
+	bool is_sparse(HANDLE file)
+	{
+		LARGE_INTEGER file_size;
+		if (!GetFileSizeEx(file, &file_size))
+			return false;
+
+#ifndef FSCTL_QUERY_ALLOCATED_RANGES
+typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
+	LARGE_INTEGER FileOffset;
+	LARGE_INTEGER Length;
+} FILE_ALLOCATED_RANGE_BUFFER;
+#define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
+#endif
+		FILE_ALLOCATED_RANGE_BUFFER in;
+		in.FileOffset.QuadPart = 0;
+		in.Length.QuadPart = file_size.QuadPart;
+
+		FILE_ALLOCATED_RANGE_BUFFER out[2];
+
+		DWORD returned_bytes = 0;
+		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, (void*)&in, sizeof(in)
+			, out, sizeof(out), &returned_bytes, nullptr);
+
+		if (ret == FALSE) return true;
+
+		// if we have more than one range in the file, we're sparse
+		if (returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
+			return true;
+		}
+
+		return (in.Length.QuadPart != out[0].Length.QuadPart);
+	}
+} // anonymous namespace
 #endif
 
 void file_handle::close()
 {
 	if (m_fd == invalid_handle) return;
+
+#ifdef TORRENT_WINDOWS
+
+	// if this file is open for writing, has the sparse
+	// flag set, but there are no sparse regions, unset
+	// the flag
+	if ((m_open_mode & aux::open_mode::write)
+		&& (m_open_mode & aux::open_mode::sparse)
+		&& !is_sparse(m_fd))
+	{
+		// according to MSDN, clearing the sparse flag of a file only
+		// works on windows vista and later
+#ifdef TORRENT_MINGW
+		typedef struct _FILE_SET_SPARSE_BUFFER {
+			BOOLEAN SetSparse;
+		} FILE_SET_SPARSE_BUFFER;
+#endif
+		DWORD temp;
+		FILE_SET_SPARSE_BUFFER b;
+		b.SetSparse = FALSE;
+		BOOL ret = ::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, &b, sizeof(b)
+			, 0, 0, &temp, nullptr);
+	}
+#endif
+
 #if TORRENT_HAVE_MMAP
 	::close(m_fd);
 #else

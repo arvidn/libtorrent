@@ -6141,15 +6141,6 @@ namespace {
 	{
 		if (m_settings.get_int(settings_pack::aio_threads) < 0)
 			m_settings.set_int(settings_pack::aio_threads, 0);
-
-#if !TORRENT_USE_PREAD && !TORRENT_USE_PREADV
-		// if we don't have pread() nor preadv() there's no way
-		// to perform concurrent file operations on the same file
-		// handle, so we must limit the disk thread to a single one
-
-		if (m_settings.get_int(settings_pack::aio_threads) > 1)
-			m_settings.set_int(settings_pack::aio_threads, 1);
-#endif
 	}
 
 	void session_impl::update_report_web_seed_downloads()

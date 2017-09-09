@@ -202,7 +202,7 @@ namespace aux {
 		mutable std::mutex m_file_created_mutex;
 		mutable typed_bitfield<file_index_t> m_file_created;
 
-//		bool m_allocate_files;
+		bool m_allocate_files;
 	};
 
 }

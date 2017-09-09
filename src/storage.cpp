@@ -44,28 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/optional.hpp>
-
-#if defined(__APPLE__)
-// for getattrlist()
-#include <sys/attr.h>
-#include <unistd.h>
-// for statfs()
-#include <sys/param.h>
-#include <sys/mount.h>
-#endif
-
-#if defined(__linux__)
-#include <sys/statfs.h>
-#endif
-
-#if defined(__FreeBSD__)
-// for statfs()
-#include <sys/param.h>
-#include <sys/mount.h>
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/storage.hpp"
@@ -88,7 +67,7 @@ namespace libtorrent {
 		, m_save_path(complete(params.path))
 		, m_part_file_name("." + aux::to_hex(params.info_hash) + ".parts")
 		, m_pool(pool)
-//		, m_allocate_files(params.mode == storage_mode_allocate)
+		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
 		if (params.mapped_files) m_mapped_files.reset(new file_storage(*params.mapped_files));
 
@@ -200,7 +179,7 @@ namespace libtorrent {
 	void default_storage::initialize(aux::session_settings const& sett, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
-/*
+
 #ifdef TORRENT_WINDOWS
 		// don't do full file allocations on network drives
 		std::wstring file_name = convert_to_wstring(m_save_path);
@@ -209,7 +188,6 @@ namespace libtorrent {
 		if (drive_type == DRIVE_REMOTE)
 			m_allocate_files = false;
 #endif
-*/
 		{
 			std::unique_lock<std::mutex> l(m_file_created_mutex);
 			m_file_created.resize(files().num_files(), false);
@@ -702,12 +680,11 @@ namespace libtorrent {
 //		bool const lock_files = set.get_bool(settings_pack::lock_files) : false;
 		//TODO: support lock files
 
-//		if (!m_allocate_files) mode |= aux::open_mode::sparse;
-		// TODO: support sparse on windows
+		if (!m_allocate_files) mode |= aux::open_mode::sparse;
 
 		// files with priority 0 should always be sparse
-//		if (m_file_priority.end_index() > file && m_file_priority[file] == 0)
-//			mode |= aux::open_mode::sparse;
+		if (m_file_priority.end_index() > file && m_file_priority[file] == 0)
+			mode |= aux::open_mode::sparse;
 
 		if (sett.get_bool(settings_pack::no_atime_storage))
 		{
