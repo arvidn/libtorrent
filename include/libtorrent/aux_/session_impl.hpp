@@ -600,7 +600,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_DHT
 			bool is_dht_running() const { return (m_dht.get() != nullptr); }
-			int external_udp_port(tcp::endpoint const& local_endpoint) const override;
+			int external_udp_port(address const& local_address) const override;
 #endif
 
 #if TORRENT_USE_I2P
