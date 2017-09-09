@@ -373,7 +373,7 @@ int block_cache::try_read(disk_io_job* j, buffer_allocator_interface& allocator
 #if TORRENT_USE_ASSERTS
 	p->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
 #endif
-	cache_hit(p, j->d.io.offset / block_size(), (j->flags & disk_interface::volatile_read) != 0);
+	cache_hit(p, j->d.io.offset / block_size(), bool(j->flags & disk_interface::volatile_read));
 
 	ret = copy_from_piece(p, j, allocator, expect_no_fail);
 	if (ret < 0) return ret;
@@ -1253,7 +1253,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<iovec_t 
 	TORRENT_ASSERT(pe->in_use);
 	TORRENT_PIECE_ASSERT(iov.size() > 0, pe);
 
-	cache_hit(pe, j->d.io.offset / block_size(), (j->flags & disk_interface::volatile_read) != 0);
+	cache_hit(pe, j->d.io.offset / block_size(), bool(j->flags & disk_interface::volatile_read));
 
 	TORRENT_ASSERT(pe->in_use);
 
@@ -1694,7 +1694,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	// if block_offset > 0, we need to read two blocks, and then
 	// copy parts of both, because it's not aligned to the block
 	// boundaries
-	if (blocks_to_read == 1 && (j->flags & disk_io_job::force_copy) == 0)
+	if (blocks_to_read == 1 && !(j->flags & disk_interface::force_copy))
 	{
 		// special case for block aligned request
 		// don't actually copy the buffer, just reference

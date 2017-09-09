@@ -5121,7 +5121,7 @@ namespace libtorrent {
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				m_disk_thread.async_hash(t->storage(), r.piece, 0
+				m_disk_thread.async_hash(t->storage(), r.piece, {}
 					, std::bind(&peer_connection::on_seed_mode_hashed, self()
 						, _1, _2, _3));
 				t->verifying(r.piece);
@@ -5232,7 +5232,7 @@ namespace libtorrent {
 	}
 
 	void peer_connection::on_disk_read_complete(disk_buffer_holder buffer
-		, int const flags, storage_error const& error
+		, disk_job_flags_t const flags, storage_error const& error
 		, peer_request const& r, time_point issue_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5312,7 +5312,7 @@ namespace libtorrent {
 		// if it's rare enough to make it into the suggested piece
 		// push another piece out
 		if (m_settings.get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache
-			&& (flags & disk_interface::cache_hit) == 0)
+			&& !(flags & disk_interface::cache_hit))
 		{
 			t->add_suggest_piece(r.piece);
 		}

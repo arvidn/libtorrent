@@ -1162,7 +1162,7 @@ namespace libtorrent {
 	catch (...) { handle_exception(); }
 
 	void torrent::on_disk_read_complete(disk_buffer_holder buffer
-		, int, storage_error const& se
+		, disk_job_flags_t, storage_error const& se
 		, peer_request const&  r, std::shared_ptr<read_piece_struct> rp) try
 	{
 		// hold a reference until this function returns
@@ -10185,7 +10185,7 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(m_storage);
 
-		m_ses.disk_thread().async_hash(m_storage, piece, 0
+		m_ses.disk_thread().async_hash(m_storage, piece, {}
 			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, _3));
 	}
 
