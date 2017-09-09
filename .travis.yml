@@ -52,6 +52,10 @@ addons:
 
 before_install:
 
+  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+      export sonar_scan=0;
+    fi'
+
   - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" ) ]]; then
