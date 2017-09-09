@@ -151,7 +151,7 @@ namespace {
 					m_torrent.session().disk_thread().async_read(m_torrent.storage(), r
 						, std::bind(&smart_ban_plugin::on_read_failed_block
 						, shared_from_this(), pb, i->address(), _1, r.length, _2, _3)
-						, disk_io_job::force_copy);
+						, disk_interface::force_copy);
 				}
 
 				r.start += 16*1024;
@@ -173,7 +173,7 @@ namespace {
 		};
 
 		void on_read_failed_block(piece_block b, address a
-			, disk_buffer_holder buffer, int const block_size, int
+			, disk_buffer_holder buffer, int const block_size, disk_job_flags_t
 			, storage_error const& error)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
@@ -255,7 +255,7 @@ namespace {
 		}
 
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, address a
-			, disk_buffer_holder buffer, int const block_size, int
+			, disk_buffer_holder buffer, int const block_size, disk_job_flags_t
 			, storage_error const& error)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());

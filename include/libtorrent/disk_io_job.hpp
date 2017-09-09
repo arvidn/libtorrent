@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/session_types.hpp"
+#include "libtorrent/flags.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/variant.hpp>
@@ -99,23 +100,15 @@ namespace libtorrent {
 
 		void call_callback();
 
-		enum flags_t
-		{
-			// force making a copy of the cached block, rather
-			// than getting a reference to the block already in
-			// the cache.
-			force_copy = 0x4,
+		// this is set by the storage object when a fence is raised
+		// for this job. It means that this no other jobs on the same
+		// storage will execute in parallel with this one. It's used
+		// to lower the fence when the job has completed
+		static constexpr disk_job_flags_t fence = 1_bit;
 
-			// this is set by the storage object when a fence is raised
-			// for this job. It means that this no other jobs on the same
-			// storage will execute in parallel with this one. It's used
-			// to lower the fence when the job has completed
-			fence = 0x8,
-
-			// this job is currently being performed, or it's hanging
-			// on a cache piece that may be flushed soon
-			in_progress = 0x20
-		};
+		// this job is currently being performed, or it's hanging
+		// on a cache piece that may be flushed soon
+		static constexpr disk_job_flags_t in_progress = 2_bit;
 
 		// for write jobs, returns true if its block
 		// is not dirty anymore
@@ -136,7 +129,7 @@ namespace libtorrent {
 
 		// this is called when operation completes
 
-		using read_handler = std::function<void(disk_buffer_holder block, std::uint32_t flags, storage_error const& se)>;
+		using read_handler = std::function<void(disk_buffer_holder block, disk_job_flags_t flags, storage_error const& se)>;
 		using write_handler = std::function<void(storage_error const&)>;
 		using hash_handler = std::function<void(piece_index_t, sha1_hash const&, storage_error const&)>;
 		using move_handler = std::function<void(status_t, std::string const&, storage_error const&)>;
@@ -200,7 +193,7 @@ namespace libtorrent {
 		status_t ret = status_t::no_error;
 
 		// flags controlling this job
-		std::uint8_t flags = 0;
+		disk_job_flags_t flags{};
 
 		move_flags_t move_flags = move_flags_t::always_replace_files;
 

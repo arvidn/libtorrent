@@ -185,6 +185,11 @@ namespace libtorrent {
 
 	} // anonymous namespace
 
+constexpr disk_job_flags_t disk_interface::force_copy;
+constexpr disk_job_flags_t disk_interface::sequential_access;
+constexpr disk_job_flags_t disk_interface::volatile_read;
+constexpr disk_job_flags_t disk_interface::cache_hit;
+
 // ------- disk_io_thread ------
 
 	disk_io_thread::disk_io_thread(io_service& ios
@@ -1559,8 +1564,8 @@ namespace libtorrent {
 	}
 
 	void disk_io_thread::async_read(storage_index_t storage, peer_request const& r
-		, std::function<void(disk_buffer_holder block, std::uint32_t const flags
-		, storage_error const& se)> handler, std::uint8_t const flags)
+		, std::function<void(disk_buffer_holder block, disk_job_flags_t const flags
+		, storage_error const& se)> handler, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
@@ -1672,7 +1677,7 @@ namespace libtorrent {
 	bool disk_io_thread::async_write(storage_index_t const storage, peer_request const& r
 		, char const* buf, std::shared_ptr<disk_observer> o
 		, std::function<void(storage_error const&)> handler
-		, std::uint8_t const flags)
+		, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
@@ -1765,7 +1770,7 @@ namespace libtorrent {
 	}
 
 	void disk_io_thread::async_hash(storage_index_t const storage
-		, piece_index_t piece, std::uint8_t flags
+		, piece_index_t piece, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(job_action_t::hash);
@@ -2212,7 +2217,7 @@ namespace libtorrent {
 #endif
 			int const block_size = m_disk_cache.block_size();
 			m_disk_cache.cache_hit(pe, j->d.io.offset / block_size
-				, (j->flags & disk_interface::volatile_read) != 0);
+				, bool(j->flags & disk_interface::volatile_read));
 
 			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 			{
@@ -2893,7 +2898,7 @@ namespace libtorrent {
 		}
 		else
 		{
-			TORRENT_ASSERT((fj->flags & disk_io_job::in_progress) == 0);
+			TORRENT_ASSERT(!(fj->flags & disk_io_job::in_progress));
 			TORRENT_ASSERT(fj->blocked);
 		}
 
@@ -3270,7 +3275,7 @@ namespace libtorrent {
 				ret += j->storage->job_complete(j, new_jobs);
 			}
 			TORRENT_ASSERT(ret == new_jobs.size());
-			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) == 0);
+			TORRENT_ASSERT(!(j->flags & disk_io_job::in_progress));
 #if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(j->job_posted == false);
 			j->job_posted = true;

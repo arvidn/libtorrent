@@ -123,19 +123,26 @@ namespace libtorrent {
 	using pool_file_status = open_file_state;
 #endif
 
+	struct disk_job_flags_tag;
+	using disk_job_flags_t = flags::bitfield_flag<std::uint8_t, disk_job_flags_tag>;
+
 	struct TORRENT_EXTRA_EXPORT disk_interface
 	{
-		enum flags_t : std::uint8_t
-		{
-			sequential_access = 0x1,
+		// force making a copy of the cached block, rather
+		// than getting a reference to the block already in
+		// the cache.
+		static constexpr disk_job_flags_t force_copy = 0_bit;
 
-			// this flag is set on a job when a read operation did
-			// not hit the disk, but found the data in the read cache.
-			cache_hit = 0x2,
+		// hint that there may be more disk operations with sequential access to
+		// the file
+		static constexpr disk_job_flags_t sequential_access = 3_bit;
 
-			// don't keep the read block in cache
-			volatile_read = 0x10,
-		};
+		// don't keep the read block in cache
+		static constexpr disk_job_flags_t volatile_read = 4_bit;
+
+		// this flag is set on a job when a read operation did
+		// not hit the disk, but found the data in the read cache.
+		static constexpr disk_job_flags_t cache_hit = 5_bit;
 
 		virtual storage_holder new_torrent(storage_constructor_type sc
 			, storage_params p, std::shared_ptr<void> const&) = 0;
@@ -143,13 +150,13 @@ namespace libtorrent {
 		virtual storage_interface* get_torrent(storage_index_t) = 0;
 
 		virtual void async_read(storage_index_t storage, peer_request const& r
-			, std::function<void(disk_buffer_holder block, std::uint32_t flags, storage_error const& se)> handler
-			, std::uint8_t flags = 0) = 0;
+			, std::function<void(disk_buffer_holder block, disk_job_flags_t flags, storage_error const& se)> handler
+			, disk_job_flags_t flags = {}) = 0;
 		virtual bool async_write(storage_index_t storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler
-			, std::uint8_t flags = 0) = 0;
-		virtual void async_hash(storage_index_t storage, piece_index_t piece, std::uint8_t flags
+			, disk_job_flags_t flags = {}) = 0;
+		virtual void async_hash(storage_index_t storage, piece_index_t piece, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) = 0;
 		virtual void async_move_storage(storage_index_t storage, std::string p, move_flags_t flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) = 0;
