@@ -514,7 +514,7 @@ namespace {
 				ec = errors::no_content_length;
 			}
 		}
-		return {range_start, range_end};
+		return std::tuple<std::int64_t, std::int64_t>(range_start, range_end);
 	}
 }
 
