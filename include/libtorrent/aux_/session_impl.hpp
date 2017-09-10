@@ -633,29 +633,28 @@ namespace aux {
 			void free_peer_entry(torrent_peer* p);
 
 			// implements dht_observer
-			virtual void set_external_address(aux::listen_socket_handle const& iface
+			void set_external_address(aux::listen_socket_handle const& iface
 				, address const& ip, address const& source) override;
-			virtual void get_peers(sha1_hash const& ih) override;
-			virtual void announce(sha1_hash const& ih, address const& addr, int port) override;
-			virtual void outgoing_get_peers(sha1_hash const& target
+			void get_peers(sha1_hash const& ih) override;
+			void announce(sha1_hash const& ih, address const& addr, int port) override;
+			void outgoing_get_peers(sha1_hash const& target
 				, sha1_hash const& sent_target, udp::endpoint const& ep) override;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			virtual bool should_log(module_t m) const override;
-			virtual void log(module_t m, char const* fmt, ...)
+			bool should_log(module_t m) const override;
+			void log(module_t m, char const* fmt, ...)
 				override TORRENT_FORMAT(3,4);
-			virtual void log_packet(message_direction_t dir, span<char const> pkt
+			void log_packet(message_direction_t dir, span<char const> pkt
 				, udp::endpoint const& node) override;
 
-			virtual bool should_log_portmap(portmap_transport transport) const override;
-			virtual void log_portmap(portmap_transport transport, char const* msg)
-				const override;
+			bool should_log_portmap(portmap_transport transport) const override;
+			void log_portmap(portmap_transport transport, char const* msg) const override;
 
-			virtual bool should_log_lsd() const override;
-			virtual void log_lsd(char const* msg) const override;
+			bool should_log_lsd() const override;
+			void log_lsd(char const* msg) const override;
 #endif
 
-			virtual bool on_dht_request(string_view query
+			bool on_dht_request(string_view query
 				, dht::msg const& request, entry& response) override;
 
 			void set_external_address(address const& ip
@@ -663,7 +662,7 @@ namespace aux {
 			void set_external_address(tcp::endpoint const& local_endpoint
 				, address const& ip
 				, int source_type, address const& source) override;
-			virtual external_ip external_address() const override;
+			external_ip external_address() const override;
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
@@ -671,9 +670,9 @@ namespace aux {
 			mutable std::condition_variable cond;
 
 			// implements session_interface
-			virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address
+			tcp::endpoint bind_outgoing_socket(socket_type& s, address
 				const& remote_address, error_code& ec) const override;
-			virtual bool verify_bound_address(address const& addr, bool utp
+			bool verify_bound_address(address const& addr, bool utp
 				, error_code& ec) override;
 
 			bool has_lsd() const override { return m_lsd.get() != nullptr; }
@@ -971,11 +970,11 @@ namespace aux {
 			stat m_stat;
 
 			// implements session_interface
-			virtual void sent_bytes(int bytes_payload, int bytes_protocol) override;
-			virtual void received_bytes(int bytes_payload, int bytes_protocol) override;
-			virtual void trancieve_ip_packet(int bytes, bool ipv6) override;
-			virtual void sent_syn(bool ipv6) override;
-			virtual void received_synack(bool ipv6) override;
+			void sent_bytes(int bytes_payload, int bytes_protocol) override;
+			void received_bytes(int bytes_payload, int bytes_protocol) override;
+			void trancieve_ip_packet(int bytes, bool ipv6) override;
+			void sent_syn(bool ipv6) override;
+			void received_synack(bool ipv6) override;
 
 			int m_peak_up_rate = 0;
 			int m_peak_down_rate = 0;
@@ -1126,7 +1125,7 @@ namespace aux {
 			{
 				work_thread_t()
 					: work(new boost::asio::io_service::work(ios))
-					, thread([&] { ios.run(); })
+					, thread([this] { ios.run(); })
 				{}
 				~work_thread_t()
 				{
@@ -1228,13 +1227,8 @@ namespace aux {
 			void sent_buffer(int size) override;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			virtual bool should_log() const override;
-			virtual void session_log(char const* fmt, ...) const override TORRENT_FORMAT(2,3);
-
-			// this list of tracker loggers serves as tracker_callbacks when
-			// shutting down. This list is just here to keep them alive during
-			// whe shutting down process
-			std::list<std::shared_ptr<tracker_logger>> m_tracker_loggers;
+			bool should_log() const override;
+			void session_log(char const* fmt, ...) const override TORRENT_FORMAT(2,3);
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

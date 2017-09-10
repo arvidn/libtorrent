@@ -38,7 +38,8 @@ namespace libtorrent { namespace aux {
 	template <typename Iter>
 	struct iterator_range
 	{
-		Iter _begin, _end;
+		Iter _begin;
+		Iter _end;
 		Iter begin() { return _begin; }
 		Iter end() { return _end; }
 	};
