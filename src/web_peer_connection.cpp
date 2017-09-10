@@ -222,7 +222,7 @@ void web_peer_connection::disconnect(error_code const& ec
 			peer_log(peer_log_alert::info, "SAVE_RESTART_DATA"
 				, "data: %d req: %d off: %d"
 				, int(m_piece.size()), int(m_requests.front().piece)
-				, int(m_requests.front().start));
+				, m_requests.front().start);
 		}
 #endif
 		m_web->restart_request = m_requests.front();
@@ -305,7 +305,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	{
 		int request_offset = r.start + r.length - size;
 		pr.start = request_offset % piece_size;
-		pr.length = (std::min)(block_size, size);
+		pr.length = std::min(block_size, size);
 		pr.piece = piece_index_t(static_cast<int>(r.piece) + request_offset / piece_size);
 		m_requests.push_back(pr);
 
@@ -591,7 +591,6 @@ void web_peer_connection::handle_error(int const bytes_left)
 	}
 	received_bytes(0, bytes_left);
 	disconnect(error_code(m_parser.status_code(), http_category()), operation_t::bittorrent, 1);
-	return;
 }
 
 void web_peer_connection::handle_redirect(int const bytes_left)
@@ -677,7 +676,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 
 		// we don't have this file on this server. Don't ask for it again
 		m_web->have_files.resize(t->torrent_file().num_files(), true);
-		if (m_web->have_files.get_bit(file_index) == true)
+		if (m_web->have_files[file_index])
 		{
 			m_web->have_files.clear_bit(file_index);
 			disconnect(errors::redirecting, operation_t::bittorrent, 2);
@@ -698,7 +697,6 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		m_web = nullptr;
 		TORRENT_ASSERT(is_disconnecting());
 	}
-	return;
 }
 
 void web_peer_connection::on_receive(error_code const& error
@@ -825,7 +823,7 @@ void web_peer_connection::on_receive(error_code const& error
 		}
 
 		// we only received the header, no data
-		if (recv_buffer.size() == 0) break;
+		if (recv_buffer.empty()) break;
 
 		// ===================================
 		// ======= RESPONSE BYTE RANGE =======
@@ -882,7 +880,7 @@ void web_peer_connection::on_receive(error_code const& error
 				// the next chunk header.
 				if (m_chunk_pos > 0)
 				{
-					int const copy_size = (std::min)(m_chunk_pos, int(recv_buffer.size()));
+					int const copy_size = std::min(m_chunk_pos, int(recv_buffer.size()));
 					TORRENT_ASSERT(copy_size > 0);
 
 					if (m_received_body + copy_size > file_req.length)
@@ -903,7 +901,7 @@ void web_peer_connection::on_receive(error_code const& error
 					recv_buffer = recv_buffer.subspan(aux::numeric_cast<std::size_t>(copy_size));
 					m_chunk_pos -= copy_size;
 
-					if (recv_buffer.size() == 0) goto done;
+					if (recv_buffer.empty()) goto done;
 				}
 
 				TORRENT_ASSERT(m_chunk_pos == 0);
@@ -976,14 +974,14 @@ void web_peer_connection::on_receive(error_code const& error
 
 				// if all of the receive buffer was just consumed as chunk
 				// header, we're done
-				if (recv_buffer.size() == 0) goto done;
+				if (recv_buffer.empty()) goto done;
 			}
 		}
 		else
 		{
 			// this is the simple case, where we don't have chunked encoding
 			TORRENT_ASSERT(m_received_body <= file_req.length);
-			int const copy_size = (std::min)(file_req.length - m_received_body
+			int const copy_size = std::min(file_req.length - m_received_body
 				, int(recv_buffer.size()));
 			incoming_payload(recv_buffer.data(), copy_size);
 			recv_buffer = recv_buffer.subspan(aux::numeric_cast<std::size_t>(copy_size));
@@ -1005,7 +1003,7 @@ void web_peer_connection::on_receive(error_code const& error
 			}
 		}
 
-		if (recv_buffer.size() == 0) break;
+		if (recv_buffer.empty()) break;
 	}
 done:
 
@@ -1033,7 +1031,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 		TORRENT_ASSERT(!m_requests.empty());
 		peer_request const& front_request = m_requests.front();
 		int const piece_size = int(m_piece.size());
-		int const copy_size = (std::min)(front_request.length - piece_size, len);
+		int const copy_size = std::min(front_request.length - piece_size, len);
 
 		// m_piece may not hold more than the response to the next BT request
 		TORRENT_ASSERT(front_request.length > piece_size);
@@ -1087,7 +1085,7 @@ void web_peer_connection::incoming_zeroes(int len)
 		TORRENT_ASSERT(!m_requests.empty());
 		peer_request const& front_request = m_requests.front();
 		int const piece_size = int(m_piece.size());
-		int const copy_size = (std::min)(front_request.length - piece_size, len);
+		int const copy_size = std::min(front_request.length - piece_size, len);
 
 		// m_piece may not hold more than the response to the next BT request
 		TORRENT_ASSERT(front_request.length > piece_size);
