@@ -677,8 +677,8 @@ namespace libtorrent {
 		, aux::open_mode_t mode
 		, error_code& ec) const
 	{
-//		bool const lock_files = set.get_bool(settings_pack::lock_files) : false;
-		//TODO: support lock files
+		if (sett.get_bool(settings_pack::lock_files))
+			mode |= aux::open_mode::lock_files;
 
 		if (!m_allocate_files) mode |= aux::open_mode::sparse;
 
