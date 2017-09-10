@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <utility>
 #include <deque>
+#include <fstream>
+#include <regex>
 
 #include "libtorrent/config.hpp"
 
@@ -206,66 +208,18 @@ std::string to_hex(lt::sha1_hash const& s)
 	return ret.str();
 }
 
-int load_file(std::string const& filename, std::vector<char>& v
-	, lt::error_code& ec, int limit = 8000000)
+bool load_file(std::string const& filename, std::vector<char>& v
+	, int limit = 8000000)
 {
-	ec.clear();
-	FILE* f = std::fopen(filename.c_str(), "rb");
-	if (f == nullptr)
-	{
-		ec.assign(errno, boost::system::system_category());
-		return -1;
-	}
-
-	int r = fseek(f, 0, SEEK_END);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-	long s = ftell(f);
-	if (s < 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-
-	if (s > limit)
-	{
-		std::fclose(f);
-		return -2;
-	}
-
-	r = fseek(f, 0, SEEK_SET);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-
-	v.resize(s);
-	if (s == 0)
-	{
-		std::fclose(f);
-		return 0;
-	}
-
-	r = int(std::fread(&v[0], 1, v.size(), f));
-	if (r < 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-
-	std::fclose(f);
-
-	if (r != s) return -3;
-
-	return 0;
+	std::fstream f(filename, std::ios_base::in | std::ios_base::binary);
+	f.seekg(0, std::ios_base::end);
+	auto const s = f.tellg();
+	if (s > limit || s < 0) return false;
+	f.seekg(0, std::ios_base::beg);
+	v.resize(static_cast<std::size_t>(s));
+	if (s == std::fstream::pos_type(0)) return !f.fail();
+	f.read(v.data(), v.size());
+	return !f.fail();
 }
 
 bool is_absolute_path(std::string const& f)
@@ -573,8 +527,7 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 	}
 
 	std::vector<char> resume_data;
-	load_file(resume_file(p.info_hash), resume_data, ec);
-	if (!ec)
+	if (load_file(resume_file(p.info_hash), resume_data))
 	{
 		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
@@ -619,8 +572,7 @@ bool add_torrent(lt::session& ses, std::string torrent)
 	add_torrent_params p;
 
 	std::vector<char> resume_data;
-	load_file(resume_file(ti->info_hash()), resume_data, ec);
-	if (!ec)
+	if (load_file(resume_file(ti->info_hash()), resume_data))
 	{
 		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
@@ -756,16 +708,9 @@ void print_alert(lt::alert const* a, std::string& str)
 
 int save_file(std::string const& filename, std::vector<char> const& v)
 {
-	FILE* f = std::fopen(filename.c_str(), "wb");
-	if (f == nullptr)
-		return -1;
-
-	int w = int(std::fwrite(&v[0], 1, v.size(), f));
-	std::fclose(f);
-
-	if (w < 0) return -1;
-	if (w != int(v.size())) return -3;
-	return 0;
+	std::fstream f(filename, std::ios_base::trunc | std::ios_base::out | std::ios_base::binary);
+	f.write(v.data(), v.size());
+	return !f.fail();
 }
 
 // returns true if the alert was handled (and should not be printed to the log)
@@ -1105,8 +1050,7 @@ MAGNETURL is a magnet link
 	params.dht_settings.privacy_lookups = true;
 
 	std::vector<char> in;
-	load_file(".ses_state", in, ec);
-	if (!ec)
+	if (load_file(".ses_state", in))
 	{
 		lt::bdecode_node e;
 		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
@@ -1215,20 +1159,23 @@ MAGNETURL is a magnet link
 				break;
 			case 'x':
 				{
-					FILE* filter = std::fopen(arg, "r");
-					if (filter)
+					std::fstream filter(arg, std::ios_base::in);
+					if (!filter.fail())
 					{
-						unsigned int a,b,c,d,e,f,g,h, flags;
-						while (std::fscanf(filter, "%u.%u.%u.%u - %u.%u.%u.%u %u\n"
-							, &a, &b, &c, &d, &e, &f, &g, &h, &flags) == 9)
+						std::regex regex(R"(^\s*([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)\s*-\s*([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)\s+([0-9]+)$)");
+
+						std::string line;
+						while (std::getline(filter, line))
 						{
-							address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
-							address_v4 last((e << 24) + (f << 16) + (g << 8) + h);
-							if (flags <= 127) flags = lt::ip_filter::blocked;
-							else flags = 0;
-							loaded_ip_filter.add_rule(start, last, flags);
+							std::smatch m;
+							if (std::regex_match(line, m, regex))
+							{
+								address_v4 start((stoi(m[1]) << 24) | (stoi(m[2]) << 16) | (stoi(m[3]) << 8) | stoi(m[4]));
+								address_v4 last((stoi(m[5]) << 24) | (stoi(m[6]) << 16) | (stoi(m[7]) << 8) | stoi(m[8]));
+								loaded_ip_filter.add_rule(start, last
+									, stoi(m[9]) <= 127 ? lt::ip_filter::blocked : 0);
+							}
 						}
-						std::fclose(filter);
 					}
 				}
 				break;
@@ -1311,8 +1258,7 @@ MAGNETURL is a magnet link
 				std::string const file = path_append(resume_dir, e);
 
 				std::vector<char> resume_data;
-				load_file(file, resume_data, ec);
-				if (ec)
+				if (!load_file(file, resume_data))
 				{
 					std::printf("  failed to load resume file \"%s\": %s\n"
 						, file.c_str(), ec.message().c_str());
