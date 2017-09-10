@@ -2151,6 +2151,22 @@ namespace {
 #endif
 	}
 
+#ifndef TORRENT_DISABLE_DHT
+	int session_impl::external_udp_port(address const& local_address) const
+	{
+		auto ls = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
+			, [&](std::shared_ptr<listen_socket_t> const& e)
+		{
+			return e->local_endpoint.address() == local_address;
+		});
+
+		if (ls != m_listen_sockets.end())
+			return (*ls)->udp_external_port;
+		else
+			return -1;
+	}
+#endif
+
 #if TORRENT_USE_I2P
 
 	proxy_settings session_impl::i2p_proxy() const
