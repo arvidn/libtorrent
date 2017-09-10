@@ -674,12 +674,12 @@ void bind_alert()
 
     class_<file_completed_alert, bases<torrent_alert>, noncopyable>(
         "file_completed_alert", no_init)
-        .def_readonly("index", &file_completed_alert::index)
+        .add_property("index", make_getter(&file_completed_alert::index, by_value()))
         ;
 
     class_<file_renamed_alert, bases<torrent_alert>, noncopyable>(
         "file_renamed_alert", no_init)
-        .def_readonly("index", &file_renamed_alert::index)
+        .add_property("index", make_getter(&file_renamed_alert::index, by_value()))
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("name", &file_renamed_alert::name)
 #endif
@@ -688,7 +688,7 @@ void bind_alert()
 
     class_<file_rename_failed_alert, bases<torrent_alert>, noncopyable>(
         "file_rename_failed_alert", no_init)
-        .def_readonly("index", &file_rename_failed_alert::index)
+        .add_property("index", make_getter(&file_rename_failed_alert::index, by_value()))
         .def_readonly("error", &file_rename_failed_alert::error)
         ;
 
