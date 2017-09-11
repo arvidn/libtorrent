@@ -79,6 +79,7 @@
 
 1.1.5 release
 
+	* fix python binding for torrent_handle, to be hashable
 	* fix IPv6 tracker support by performing the second announce in more cases
 	* fix utf-8 encoding check in torrent parser
 	* fix infinite loop when parsing maliciously crafted torrents

@@ -76,6 +76,37 @@ class test_torrent_handle(unittest.TestCase):
         # also test the overload that takes a list of piece->priority mappings
         self.h.prioritize_pieces([(0, 1)])
         self.assertEqual(self.h.piece_priorities(), [1])
+    def test_torrent_handle_in_set(self):
+        self.setup()
+        torrents = set()
+        torrents.add(self.h)
+
+        # get another instance of a torrent_handle that represents the same
+        # torrent. Make sure that when we add it to a set, it just replaces the
+        # existing object
+        t = self.ses.get_torrents()
+        self.assertEqual(len(t), 1)
+        for h in t:
+            torrents.add(h)
+
+        self.assertEqual(len(torrents), 1)
+
+    def test_torrent_handle_in_dict(self):
+        self.setup()
+        torrents = {}
+        torrents[self.h] = 'foo'
+
+        # get another instance of a torrent_handle that represents the same
+        # torrent. Make sure that when we add it to a dict, it just replaces the
+        # existing object
+        t = self.ses.get_torrents()
+        self.assertEqual(len(t), 1)
+        for h in t:
+            torrents[h] = 'bar'
+
+        self.assertEqual(len(torrents), 1)
+        self.assertEqual(torrents[self.h], 'bar')
+
 
     def test_replace_trackers(self):
         self.setup()

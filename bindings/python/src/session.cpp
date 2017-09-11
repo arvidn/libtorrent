@@ -14,6 +14,7 @@
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/read_resume_data.hpp>
+#include <libtorrent/write_resume_data.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
 #include <libtorrent/alert.hpp>
@@ -671,7 +672,7 @@ void bind_session()
 //        .def_readwrite("storage", &add_torrent_params::storage)
         .add_property("file_priorities", PROP(&add_torrent_params::file_priorities))
         .def_readwrite("trackerid", &add_torrent_params::trackerid)
-        .def_readwrite("flags", &add_torrent_params::flags)
+        .add_property("flags", PROP(&add_torrent_params::flags))
         .def_readwrite("info_hash", &add_torrent_params::info_hash)
         .def_readwrite("max_uploads", &add_torrent_params::max_uploads)
         .def_readwrite("max_connections", &add_torrent_params::max_connections)
@@ -991,6 +992,8 @@ void bind_session()
     def("min_memory_usage", min_memory_usage_wrapper);
     def("default_settings", default_settings_wrapper);
     def("read_resume_data", read_resume_data_wrapper);
+    def("write_resume_data", write_resume_data);
+    def("write_resume_data_buf", write_resume_data_buf);
 
 	class_<stats_metric>("stats_metric")
 		.def_readonly("name", &stats_metric::name)
