@@ -214,7 +214,7 @@ namespace libtorrent
 	};
 
 	// for boost::hash (and to support using this type in unordered_map etc.)
-	std::size_t hash_value(torrent_handle const& h);
+	TORRENT_EXPORT std::size_t hash_value(torrent_handle const& h);
 
 	// You will usually have to store your torrent handles somewhere, since it's
 	// the object through which you retrieve information about the torrent and

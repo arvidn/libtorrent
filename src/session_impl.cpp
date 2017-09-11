@@ -4871,8 +4871,7 @@ retry:
 
 	std::pair<boost::shared_ptr<torrent>, bool>
 	session_impl::add_torrent_impl(
-		add_torrent_params& params
-		, error_code& ec)
+		add_torrent_params& params, error_code& ec)
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
 
