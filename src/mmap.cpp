@@ -93,9 +93,9 @@ namespace {
 		// one might think it's a good idea to pass in FILE_FLAG_RANDOM_ACCESS. It
 		// turns out that it isn't. That flag will break your operating system:
 		// http://support.microsoft.com/kb/2549369
-		return (mode & open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL
-			| (mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0
-			| (mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN
+		return ((mode & open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL)
+			| ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0)
+			| ((mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
 			;
 	}
 
