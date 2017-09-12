@@ -78,7 +78,7 @@ namespace {
 
 	DWORD file_share(open_mode_t const mode)
 	{
-		return (mode & open_mode::lock_file)
+		return (mode & open_mode::lock_files)
 			? FILE_SHARE_READ
 			: FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE;
 	}

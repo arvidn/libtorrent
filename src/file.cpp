@@ -153,6 +153,32 @@ static_assert(sizeof(lseek(0, 0, 0)) >= 8, "64 bit file operations are required"
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+namespace {
+#ifdef TORRENT_WINDOWS
+	std::int64_t read(HANDLE fd, void* data, std::size_t len)
+	{
+		DWORD bytes_read = 0;
+		if (ReadFile(fd, data, DWORD(len), &bytes_read, nullptr) == FALSE)
+		{
+			return -1;
+		}
+
+		return bytes_read;
+	}
+
+	std::int64_t write(HANDLE fd, void const* data, std::size_t len)
+	{
+		DWORD bytes_written = 0;
+		if (WriteFile(fd, data, DWORD(len), &bytes_written, nullptr) == FALSE)
+		{
+			return -1;
+		}
+
+		return bytes_written;
+	}
+#endif
+}
+
 namespace libtorrent {
 
 	directory::directory(std::string const& path, error_code& ec)
@@ -250,10 +276,6 @@ namespace libtorrent {
 #endif
 	}
 
-#ifndef INVALID_HANDLE_VALUE
-#define INVALID_HANDLE_VALUE (-1)
-#endif
-
 #ifdef TORRENT_WINDOWS
 	struct overlapped_t
 	{
@@ -348,13 +370,13 @@ namespace libtorrent {
 		// turns out that it isn't. That flag will break your operating system:
 		// http://support.microsoft.com/kb/2549369
 
-		DWORD const flags = ((mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
+		DWORD const flags = ((mode & aux::open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL)
 			| FILE_FLAG_OVERLAPPED
-			| ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
+			| ((mode & aux::open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
 		handle_type handle = CreateFileW(file_path.c_str(), m.rw_mode
-			, (mode & open_mode::lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
+			, (mode & aux::open_mode::lock_files) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
 
 		if (handle == INVALID_HANDLE_VALUE)
@@ -537,7 +559,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// if this file is open for writing, has the sparse
 		// flag set, but there are no sparse regions, unset
 		// the flag
-		if ((m_open_mode & open_mode::write)
+		if ((m_open_mode & aux::open_mode::write)
 			&& (m_open_mode & aux::open_mode::sparse)
 			&& !is_sparse(native_handle()))
 		{
@@ -578,9 +600,11 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	std::int64_t iov(Fun f, handle_type fd, std::int64_t file_offset
 		, span<iovec_t const> bufs, error_code& ec)
 	{
-		int ret = 0;
+		std::int64_t ret = 0;
 
 #ifdef TORRENT_WINDOWS
+		LARGE_INTEGER offs;
+		offs.QuadPart = file_offset;
 		if (SetFilePointerEx(fd, offs, &offs, FILE_BEGIN) == FALSE)
 		{
 			ec.assign(GetLastError(), system_category());
