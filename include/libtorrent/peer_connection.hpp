@@ -278,7 +278,7 @@ namespace aux {
 		// do in the constructor).
 		virtual void start();
 
-		virtual ~peer_connection() override;
+		~peer_connection() override;
 
 		void set_peer_info(torrent_peer* pi) override
 		{
@@ -653,7 +653,7 @@ namespace aux {
 #endif
 
 		time_t last_seen_complete() const { return m_last_seen_complete; }
-		void set_last_seen_complete(int ago) { m_last_seen_complete = time(0) - ago; }
+		void set_last_seen_complete(int ago) { m_last_seen_complete = ::time(0) - ago; }
 
 		std::int64_t uploaded_in_last_round() const
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_round; }

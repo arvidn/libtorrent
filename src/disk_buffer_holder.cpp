@@ -42,6 +42,7 @@ namespace libtorrent {
 
 	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h) noexcept
 	{
+		if (&h == this) return *this;
 		disk_buffer_holder(std::move(h)).swap(*this);
 		return *this;
 	}

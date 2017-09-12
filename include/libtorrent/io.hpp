@@ -180,9 +180,7 @@ namespace detail {
 		template <class OutIt>
 		int write_string(std::string const& val, OutIt& out)
 		{
-			for (std::string::const_iterator i = val.begin()
-				, end(val.end()); i != end; ++i)
-				*out++ = *i;
+			for (auto const c : val) *out++ = c;
 			return int(val.length());
 		}
 	}

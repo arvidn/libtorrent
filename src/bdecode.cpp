@@ -227,6 +227,7 @@ namespace {
 
 	bdecode_node& bdecode_node::operator=(bdecode_node const& n)
 	{
+		if (&n == this) return *this;
 		m_tokens = n.m_tokens;
 		m_root_tokens = n.m_root_tokens;
 		m_buffer = n.m_buffer;
@@ -660,10 +661,9 @@ namespace {
 		// +1 is to skip the 'i'
 		char const* ptr = m_buffer + t.offset + 1;
 		std::int64_t val = 0;
-		bool negative = false;
-		if (*ptr == '-') negative = true;
+		bool const negative = (*ptr == '-');
 		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
-		char const* end = parse_int(ptr + negative
+		char const* end = parse_int(ptr + int(negative)
 			, ptr + size, 'e', val, ec);
 		if (ec) return 0;
 		TORRENT_UNUSED(end);

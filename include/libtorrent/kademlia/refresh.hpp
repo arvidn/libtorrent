@@ -45,16 +45,16 @@ public:
 
 	bootstrap(node& dht_node, node_id const& target
 		, done_callback const& callback);
-	virtual char const* name() const;
+	char const* name() const override;
 
 	observer_ptr new_observer(udp::endpoint const& ep
-		, node_id const& id);
+		, node_id const& id) override;
 
 protected:
 
-	virtual bool invoke(observer_ptr o);
+	bool invoke(observer_ptr o) override;
 
-	virtual void done();
+	void done() override;
 
 };
 

@@ -73,7 +73,7 @@ public:
 		: observer(algo, ep, id)
 	{}
 
-	void reply(msg const&) { flags |= flag_done; }
+	void reply(msg const&) override { flags |= flag_done; }
 };
 
 struct socket_manager
@@ -87,7 +87,7 @@ protected:
 // get the closest node to the id with the given family_name
 using get_foreign_node_t = std::function<node*(node_id const&, std::string const&)>;
 
-class TORRENT_EXTRA_EXPORT node : boost::noncopyable
+class TORRENT_EXTRA_EXPORT node
 {
 public:
 	node(aux::listen_socket_handle const& sock, socket_manager* sock_man
@@ -98,6 +98,9 @@ public:
 		, dht_storage_interface& storage);
 
 	~node();
+
+	node(node const&) = delete;
+	node& operator=(node const&) = delete;
 
 	void update_node_id();
 

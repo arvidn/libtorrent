@@ -130,7 +130,7 @@ private:
 	}
 };
 
-struct TORRENT_EXPORT bt_peer_connection_handle : public peer_connection_handle
+struct TORRENT_EXPORT bt_peer_connection_handle : peer_connection_handle
 {
 	explicit bt_peer_connection_handle(peer_connection_handle pc)
 		: peer_connection_handle(pc)

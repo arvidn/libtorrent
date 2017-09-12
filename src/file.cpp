@@ -381,7 +381,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		if (m_handle != INVALID_HANDLE_VALUE)
 			FindClose(m_handle);
 #else
-		if (m_handle) closedir(m_handle);
+		if (m_handle) ::closedir(m_handle);
 #endif
 	}
 
@@ -638,11 +638,11 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		if ((mode & open_mode::no_cache))
 		{
 			int yes = 1;
-			fcntl(native_handle(), F_NOCACHE, &yes);
+			::fcntl(native_handle(), F_NOCACHE, &yes);
 
 #ifdef F_NODIRECT
 			// it's OK to temporarily cache written pages
-			fcntl(native_handle(), F_NODIRECT, &yes);
+			::fcntl(native_handle(), F_NODIRECT, &yes);
 #endif
 		}
 #endif
@@ -651,7 +651,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		if ((mode & open_mode::random_access))
 		{
 			// disable read-ahead
-			posix_fadvise(native_handle(), 0, 0, POSIX_FADV_RANDOM);
+			::posix_fadvise(native_handle(), 0, 0, POSIX_FADV_RANDOM);
 		}
 #endif
 
@@ -1048,7 +1048,7 @@ namespace {
 	!defined DIRECTIO_ON
 		if (m_open_mode & open_mode::no_cache)
 		{
-			if (fdatasync(native_handle()) != 0
+			if (::fdatasync(native_handle()) != 0
 				&& errno != EINVAL
 				&& errno != ENOSYS)
 			{
@@ -1197,7 +1197,7 @@ namespace {
 #endif // if Windows Vista
 #else // NON-WINDOWS
 		struct stat st;
-		if (fstat(native_handle(), &st) != 0)
+		if (::fstat(native_handle(), &st) != 0)
 		{
 			ec.assign(errno, system_category());
 			return false;
@@ -1205,7 +1205,7 @@ namespace {
 
 		// only truncate the file if it doesn't already
 		// have the right size. We don't want to update
-		if (st.st_size != s && ftruncate(native_handle(), s) < 0)
+		if (st.st_size != s && ::ftruncate(native_handle(), s) < 0)
 		{
 			ec.assign(errno, system_category());
 			return false;
@@ -1286,7 +1286,7 @@ namespace {
 		return file_size.QuadPart;
 #else
 		struct stat fs;
-		if (fstat(native_handle(), &fs) != 0)
+		if (::fstat(native_handle(), &fs) != 0)
 		{
 			ec.assign(errno, system_category());
 			return -1;
@@ -1338,7 +1338,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 #elif defined SEEK_DATA
 		// this is supported on solaris
-		std::int64_t ret = lseek(native_handle(), start, SEEK_DATA);
+		std::int64_t ret = ::lseek(native_handle(), start, SEEK_DATA);
 		if (ret < 0) return start;
 		return start;
 #else

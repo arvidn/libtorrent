@@ -253,7 +253,7 @@ namespace aux {
 			typedef std::unordered_map<sha1_hash, std::shared_ptr<torrent>> torrent_map;
 
 			explicit session_impl(io_service& ios);
-			virtual ~session_impl();
+			~session_impl() override;
 
 			void start_session(settings_pack pack);
 

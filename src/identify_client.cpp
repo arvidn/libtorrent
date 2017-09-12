@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/optional.hpp>
@@ -44,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace {
-
 
 	using namespace libtorrent;
 
@@ -138,7 +138,7 @@ namespace {
 
 	// only support BitTorrentSpecification
 	// must be ordered alphabetically
-	static const map_entry name_map[] =
+	const map_entry name_map[] =
 	{
 		  {"7T", "aTorrent for android"}
 		, {"A",  "ABC"}
@@ -244,7 +244,7 @@ namespace {
 		char const* name;
 	};
 	// non-standard names
-	static const generic_map_entry generic_mappings[] =
+	const generic_map_entry generic_mappings[] =
 	{
 		{0, "Deadman Walking-", "Deadman"}
 		, {5, "Azureus", "Azureus 2.0.3.2"}
@@ -290,9 +290,7 @@ namespace {
 			|| ((lhs.id[0] == rhs.id[0]) && (lhs.id[1] < rhs.id[1]));
 	}
 
-namespace {
-
-	static std::string lookup(fingerprint const& f)
+	std::string lookup(fingerprint const& f)
 	{
 		char identity[200];
 
@@ -320,7 +318,7 @@ namespace {
 		{
 			// if we don't have this client in the list
 			// just use the one or two letter code
-			memcpy(temp, f.name, 2);
+			std::memcpy(temp, f.name, 2);
 			temp[2] = 0;
 			name = temp;
 		}
@@ -336,12 +334,13 @@ namespace {
 
 		return identity;
 	}
-}
+
 	bool find_string(char const* id, char const* search)
 	{
 		return std::equal(search, search + std::strlen(search), id);
 	}
-}
+
+} // anonymous namespace
 
 namespace libtorrent {
 

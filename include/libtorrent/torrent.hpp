@@ -700,17 +700,17 @@ namespace libtorrent {
 		// (either http_tracker_connection or udp_tracker_connection)
 		// when this torrent got a response from its tracker request
 		// or when a failure occurred
-		virtual void tracker_response(
+		void tracker_response(
 			tracker_request const& r
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
 			, struct tracker_response const& resp) override;
-		virtual void tracker_request_error(tracker_request const& r
+		void tracker_request_error(tracker_request const& r
 			, int response_code, error_code const& ec, const std::string& msg
 			, seconds32 retry_interval) override;
-		virtual void tracker_warning(tracker_request const& req
+		void tracker_warning(tracker_request const& req
 			, std::string const& msg) override;
-		virtual void tracker_scrape_response(tracker_request const& req
+		void tracker_scrape_response(tracker_request const& req
 			, int complete, int incomplete, int downloaded, int downloaders) override;
 
 		void update_scrape_state();
@@ -995,8 +995,8 @@ namespace libtorrent {
 
 		void write_resume_data(add_torrent_params& atp) const;
 
-		void seen_complete() { m_last_seen_complete = time(0); }
-		int time_since_complete() const { return int(time(0) - m_last_seen_complete); }
+		void seen_complete() { m_last_seen_complete = ::time(0); }
+		int time_since_complete() const { return int(::time(0) - m_last_seen_complete); }
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 
 		template <typename Fun, typename... Args>
@@ -1004,8 +1004,8 @@ namespace libtorrent {
 
 		// LOGGING
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual bool should_log() const override;
-		virtual void debug_log(const char* fmt, ...) const override TORRENT_FORMAT(2,3);
+		bool should_log() const override;
+		void debug_log(const char* fmt, ...) const override TORRENT_FORMAT(2,3);
 
 		void log_to_all_peers(char const* message);
 		time_point m_dht_start_time;

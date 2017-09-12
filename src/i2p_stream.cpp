@@ -445,8 +445,6 @@ namespace libtorrent {
 				, std::bind(&i2p_stream::read_line, this, _1, h));
 			break;
 		}
-
-		return;
 	}
 
 	void i2p_stream::send_connect(handler_type h)

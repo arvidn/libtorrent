@@ -53,7 +53,7 @@ public:
 		, node_id const& target
 		, data_callback const& dcallback);
 
-	virtual char const* name() const override;
+	char const* name() const override;
 
 	void got_samples(time_duration interval
 		, int num, std::vector<sha1_hash> samples
@@ -71,7 +71,7 @@ public:
 	sample_infohashes_observer(std::shared_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id);
 
-	virtual void reply(msg const&) override;
+	void reply(msg const&) override;
 };
 
 }} // namespace libtorrent::dht

@@ -2400,11 +2400,11 @@ namespace {
 		if (!m_enc_handler.is_recv_plaintext())
 		{
 			int const consumed = m_enc_handler.decrypt(m_recv_buffer, bytes_transferred);
-	#ifndef TORRENT_DISABLE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			if (consumed + int(bytes_transferred) > 0)
 				peer_log(peer_log_alert::incoming_message, "ENCRYPTION"
 					, "decrypted block s = %d", consumed + int(bytes_transferred));
-	#endif
+#endif
 			if (bytes_transferred == SIZE_MAX)
 			{
 				disconnect(errors::parse_failed, operation_t::encryption);
@@ -2424,21 +2424,21 @@ namespace {
 			while (bytes_transferred > 0 &&
 				((sub_transferred = m_recv_buffer.advance_pos(int(bytes_transferred))) > 0))
 			{
-	#if TORRENT_USE_ASSERTS
-				std::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
-				std::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
-	#endif
+#if TORRENT_USE_ASSERTS
+				std::int64_t const cur_payload_dl = m_statistics.last_payload_downloaded();
+				std::int64_t const cur_protocol_dl = m_statistics.last_protocol_downloaded();
+#endif
 				TORRENT_ASSERT(sub_transferred > 0);
 				on_receive_impl(std::size_t(sub_transferred));
 				bytes_transferred -= std::size_t(sub_transferred);
 
-	#if TORRENT_USE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
 				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-				std::int64_t stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+				std::int64_t const stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
 					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
 				TORRENT_ASSERT(stats_diff == int(sub_transferred));
-	#endif
+#endif
 
 				if (m_disconnecting) return;
 			}
@@ -3098,7 +3098,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			std::memcpy(m_reserved_bits.data(), recv_buffer.begin(), 8);
-			if ((recv_buffer[5] & 0x10))
+			if (recv_buffer[5] & 0x10)
 				m_supports_extensions = true;
 #endif
 			if (recv_buffer[7] & 0x01)

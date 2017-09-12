@@ -642,7 +642,7 @@ void http_connection::callback(error_code e, span<char> data)
 		data = m_parser.collapse_chunk_headers(data);
 
 		std::string const& encoding = m_parser.header("content-encoding");
-		if ((encoding == "gzip" || encoding == "x-gzip"))
+		if (encoding == "gzip" || encoding == "x-gzip")
 		{
 			error_code ec;
 			inflate_gzip(data, buf, m_max_bottled_buffer_size, ec);

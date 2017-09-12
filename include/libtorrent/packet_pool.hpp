@@ -88,9 +88,9 @@ namespace libtorrent {
 		// sent with the DF bit set (Don't Fragment)
 		bool mtu_probe:1;
 
-	#if TORRENT_USE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int num_fast_resend;
-	#endif
+#endif
 
 		// the actual packet buffer
 		std::uint8_t buf[1];

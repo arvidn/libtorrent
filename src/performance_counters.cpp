@@ -61,6 +61,7 @@ namespace libtorrent {
 
 	counters& counters::operator=(counters const& c)
 	{
+		if (&c == this) return *this;
 #ifdef ATOMIC_LLONG_LOCK_FREE
 		for (int i = 0; i < m_stats_counter.end_index(); ++i)
 			m_stats_counter[i].store(

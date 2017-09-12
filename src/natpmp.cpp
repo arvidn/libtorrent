@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes> // for PRId64 et.al.
 #include <cstdarg>
 #include <functional>
+#include <cstring> // for memcpy
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"
@@ -434,7 +435,7 @@ void natpmp::on_reply(error_code const& e
 	// make a copy of the response packet buffer
 	// to avoid overwriting it in the next receive call
 	char msg_buf[sizeof(m_response_buffer)];
-	memcpy(msg_buf, m_response_buffer, bytes_transferred);
+	std::memcpy(msg_buf, m_response_buffer, bytes_transferred);
 
 	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer[0]
 		, sizeof(m_response_buffer))

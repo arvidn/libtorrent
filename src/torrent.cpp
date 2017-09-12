@@ -6708,10 +6708,9 @@ namespace libtorrent {
 
 	bool connecting_time_compare(peer_connection const* lhs, peer_connection const* rhs)
 	{
-		bool lhs_connecting = lhs->is_connecting() && !lhs->is_disconnecting();
-		bool rhs_connecting = rhs->is_connecting() && !rhs->is_disconnecting();
-		if (lhs_connecting > rhs_connecting) return false;
-		if (lhs_connecting < rhs_connecting) return true;
+		bool const lhs_connecting = lhs->is_connecting() && !lhs->is_disconnecting();
+		bool const rhs_connecting = rhs->is_connecting() && !rhs->is_disconnecting();
+		if (lhs_connecting != rhs_connecting) return (lhs_connecting < rhs_connecting);
 
 		// a lower value of connected_time means it's been waiting
 		// longer. This is a less-than comparison, so if lhs has
@@ -7770,8 +7769,7 @@ namespace libtorrent {
 			else if (m_state == torrent_status::downloading_metadata
 				|| m_state == torrent_status::downloading
 				|| m_state == torrent_status::finished
-				|| m_state == torrent_status::seeding
-				|| m_state == torrent_status::downloading)
+				|| m_state == torrent_status::seeding)
 			{
 				if (is_finished())
 					is_seeding = true;

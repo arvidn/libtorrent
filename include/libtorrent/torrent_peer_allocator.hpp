@@ -64,8 +64,8 @@ namespace libtorrent {
 	{
 		torrent_peer_allocator();
 
-		torrent_peer* allocate_peer_entry(int type);
-		void free_peer_entry(torrent_peer* p);
+		torrent_peer* allocate_peer_entry(int type) override;
+		void free_peer_entry(torrent_peer* p) override;
 
 		std::uint64_t total_bytes() const { return m_total_bytes; }
 		std::uint64_t total_allocations() const { return m_total_allocations; }

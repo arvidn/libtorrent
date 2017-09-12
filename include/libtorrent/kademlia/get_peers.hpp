@@ -48,12 +48,12 @@ struct get_peers : find_data
 		, nodes_callback const& ncallback
 		, bool noseeds);
 
-	virtual char const* name() const;
+	char const* name() const override;
 
 protected:
-	virtual bool invoke(observer_ptr o);
-	virtual observer_ptr new_observer(udp::endpoint const& ep
-		, node_id const& id);
+	bool invoke(observer_ptr o) override;
+	observer_ptr new_observer(udp::endpoint const& ep
+		, node_id const& id) override;
 
 	data_callback m_data_callback;
 	bool m_noseeds;
@@ -68,14 +68,14 @@ struct obfuscated_get_peers : get_peers
 		, nodes_callback const& ncallback
 		, bool noseeds);
 
-	virtual char const* name() const;
+	char const* name() const override;
 
 protected:
 
-	virtual observer_ptr new_observer(udp::endpoint const& ep,
-		node_id const& id);
-	virtual bool invoke(observer_ptr o);
-	virtual void done();
+	observer_ptr new_observer(udp::endpoint const& ep,
+		node_id const& id) override;
+	bool invoke(observer_ptr o) override;
+	void done() override;
 private:
 	// when set to false, we no longer obfuscate
 	// the target hash, and send regular get_peers
@@ -90,7 +90,7 @@ struct get_peers_observer : find_data_observer
 		: find_data_observer(algorithm, ep, id)
 	{}
 
-	virtual void reply(msg const&);
+	void reply(msg const&) override;
 #ifndef TORRENT_DISABLE_LOGGING
 private:
 	void log_peers(msg const& m, bdecode_node const& r, int const size) const;
@@ -104,7 +104,7 @@ struct obfuscated_get_peers_observer : traversal_observer
 		, udp::endpoint const& ep, node_id const& id)
 		: traversal_observer(algorithm, ep, id)
 	{}
-	virtual void reply(msg const&);
+	void reply(msg const&) override;
 };
 
 } } // namespace libtorrent::dht

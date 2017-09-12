@@ -4065,7 +4065,6 @@ namespace libtorrent {
 #endif
 
 		disconnect(e, operation_t::connect, 1);
-		return;
 	}
 
 	// the error argument defaults to 0, which means deliberate disconnect

@@ -253,9 +253,11 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT timeout_handler
 		: std::enable_shared_from_this<timeout_handler>
-		, boost::noncopyable
 	{
 		explicit timeout_handler(io_service& str);
+
+		timeout_handler(timeout_handler const&) = delete;
+		timeout_handler& operator=(timeout_handler const&) = delete;
 
 		void set_timeout(int completion_timeout, int read_timeout);
 		void restart_read_timeout();
@@ -300,7 +302,7 @@ namespace libtorrent {
 			, std::weak_ptr<request_callback> r);
 
 		std::shared_ptr<request_callback> requester() const;
-		virtual ~tracker_connection() {}
+		~tracker_connection() override {}
 
 		tracker_request const& tracker_req() const { return m_req; }
 
@@ -334,8 +336,7 @@ namespace libtorrent {
 	};
 
 	class TORRENT_EXTRA_EXPORT tracker_manager final
-		: boost::noncopyable
-		, single_threaded
+		: single_threaded
 	{
 	public:
 
@@ -357,7 +358,11 @@ namespace libtorrent {
 			, aux::session_logger& ses
 #endif
 			);
-		virtual ~tracker_manager();
+
+		~tracker_manager();
+
+		tracker_manager(tracker_manager const&) = delete;
+		tracker_manager& operator=(tracker_manager const&) = delete;
 
 		void queue_request(
 			io_service& ios

@@ -60,25 +60,25 @@ namespace libtorrent {
 		web_peer_connection(peer_connection_args const& pack
 			, web_seed_t& web);
 
-		virtual void on_connected() override;
+		void on_connected() override;
 
-		virtual connection_type type() const override
+		connection_type type() const override
 		{ return connection_type::url_seed; }
 
 		// called from the main loop when this connection has any
 		// work to do.
-		virtual void on_receive(error_code const& error
+		void on_receive(error_code const& error
 			, std::size_t bytes_transferred) override;
 
 		std::string const& url() const override { return m_url; }
 
-		virtual void get_specific_peer_info(peer_info& p) const override;
-		virtual void disconnect(error_code const& ec
+		void get_specific_peer_info(peer_info& p) const override;
+		void disconnect(error_code const& ec
 			, operation_t op, int error = 0) override;
 
-		virtual void write_request(peer_request const& r) override;
+		void write_request(peer_request const& r) override;
 
-		virtual bool received_invalid_data(piece_index_t index, bool single_peer) override;
+		bool received_invalid_data(piece_index_t index, bool single_peer) override;
 
 	private:
 

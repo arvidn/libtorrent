@@ -93,7 +93,7 @@ namespace libtorrent {
 		bt_peer_connection(peer_connection_args const& pack
 			, peer_id const& pid);
 
-		virtual void start() override;
+		void start() override;
 
 		enum
 		{
@@ -119,7 +119,7 @@ namespace libtorrent {
 		void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto);
 #endif
 
-		virtual connection_type type() const override
+		connection_type type() const override
 		{ return connection_type::bittorrent; }
 
 		enum message_type
@@ -174,13 +174,12 @@ namespace libtorrent {
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// next_barrier, buffers-to-prepend
-		virtual
 		std::tuple<int, span<span<char const>>>
 		hit_send_barrier(span<span<char>> iovec) override;
 #endif
 
-		virtual void get_specific_peer_info(peer_info& p) const override;
-		virtual bool in_handshake() const override;
+		void get_specific_peer_info(peer_info& p) const override;
+		bool in_handshake() const override;
 		bool packet_finished() const { return m_recv_buffer.packet_finished(); }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

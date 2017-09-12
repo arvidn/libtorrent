@@ -162,7 +162,7 @@ struct traversal_observer : observer
 	{}
 
 	// parses out "nodes" and keeps traversing
-	virtual void reply(msg const&);
+	void reply(msg const&) override;
 };
 
 } // namespace dht

@@ -61,44 +61,44 @@ namespace libtorrent {
 		web_connection_base(peer_connection_args const& pack
 			, web_seed_t& web);
 
-		virtual int timeout() const;
-		void start();
+		int timeout() const override;
+		void start() override;
 
-		~web_connection_base();
+		~web_connection_base() override;
 
 		// called from the main loop when this connection has any
 		// work to do.
 		void on_sent(error_code const& error
-			, std::size_t bytes_transferred);
+			, std::size_t bytes_transferred) override;
 
 		virtual std::string const& url() const = 0;
 
-		bool in_handshake() const;
+		bool in_handshake() const override;
 
 		// the following functions appends messages
 		// to the send buffer
-		void write_choke() {}
-		void write_unchoke() {}
-		void write_interested() {}
-		void write_not_interested() {}
-		virtual void write_request(peer_request const&) = 0;
-		void write_cancel(peer_request const&) {}
-		void write_have(piece_index_t) {}
-		void write_dont_have(piece_index_t) {}
-		void write_piece(peer_request const&, disk_buffer_holder)
+		void write_choke() override {}
+		void write_unchoke() override {}
+		void write_interested() override {}
+		void write_not_interested() override {}
+		void write_request(peer_request const&) override = 0;
+		void write_cancel(peer_request const&) override {}
+		void write_have(piece_index_t) override {}
+		void write_dont_have(piece_index_t) override {}
+		void write_piece(peer_request const&, disk_buffer_holder) override
 		{ TORRENT_ASSERT_FAIL(); }
-		void write_keepalive() {}
-		void on_connected();
-		void write_reject_request(peer_request const&) {}
-		void write_allow_fast(piece_index_t) {}
-		void write_suggest(piece_index_t) {}
-		void write_bitfield() {}
+		void write_keepalive() override {}
+		void on_connected() override;
+		void write_reject_request(peer_request const&) override {}
+		void write_allow_fast(piece_index_t) override {}
+		void write_suggest(piece_index_t) override {}
+		void write_bitfield() override {}
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 
-		virtual void get_specific_peer_info(peer_info& p) const;
+		void get_specific_peer_info(peer_info& p) const override;
 
 	protected:
 

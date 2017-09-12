@@ -51,8 +51,8 @@ struct put_data: traversal_algorithm
 
 	put_data(node& node, put_callback const& callback);
 
-	virtual char const* name() const override;
-	virtual void start() override;
+	char const* name() const override;
+	void start() override;
 
 	void set_data(item const& data) { m_data = data; }
 
@@ -60,8 +60,8 @@ struct put_data: traversal_algorithm
 
 protected:
 
-	virtual void done() override;
-	virtual bool invoke(observer_ptr o) override;
+	void done() override;
+	bool invoke(observer_ptr o) override;
 
 	put_callback m_put_callback;
 	item m_data;
@@ -78,7 +78,7 @@ struct put_data_observer : traversal_observer
 	{
 	}
 
-	virtual void reply(msg const&) { done(); }
+	void reply(msg const&) override { done(); }
 
 	std::string m_token;
 };

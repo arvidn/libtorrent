@@ -1328,7 +1328,7 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 		case ref_hashing: ++pe->blocks[block].hashing_count; break;
 		case ref_reading: ++pe->blocks[block].reading_count; break;
 		case ref_flushing: ++pe->blocks[block].flushing_count; break;
-	};
+	}
 	TORRENT_ASSERT(int(pe->blocks[block].refcount) >= pe->blocks[block].hashing_count
 		+ pe->blocks[block].reading_count + pe->blocks[block].flushing_count);
 #else
@@ -1361,7 +1361,7 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 		case ref_hashing: --pe->blocks[block].hashing_count; break;
 		case ref_reading: --pe->blocks[block].reading_count; break;
 		case ref_flushing: --pe->blocks[block].flushing_count; break;
-	};
+	}
 	TORRENT_PIECE_ASSERT(int(pe->blocks[block].refcount) >= pe->blocks[block].hashing_count
 		+ pe->blocks[block].reading_count + pe->blocks[block].flushing_count, pe);
 #else

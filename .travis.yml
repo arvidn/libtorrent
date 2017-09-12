@@ -4,7 +4,7 @@ dist: trusty
 matrix:
   fast_finish: true
   include:
-    - env: variant=test_debug sonar_scan=1 toolset=gcc
+    - env: variant=test_release sonar_scan=1 toolset=gcc
     - env: variant=test_debug lint=1 tests=1 toolset=gcc-sanitizer
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
@@ -155,7 +155,7 @@ script:
     fi'
 
   - 'if [ "$sonar_scan" == "1" ]; then
-       build-wrapper-linux-x86-64 --out-dir bw-output bjam -a -j3 crypto=$crypto asserts=off invariant-checks=off $toolset variant=$variant -l300 &&
+       build-wrapper-linux-x86-64 --out-dir bw-output bjam -a -j3 crypto=$crypto $toolset variant=$variant -l300 &&
        sonar-scanner -D sonar.login=$SONAR_TOKEN;
     fi'
 
