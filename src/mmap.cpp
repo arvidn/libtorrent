@@ -307,7 +307,7 @@ void file_handle::close()
 		DWORD temp;
 		FILE_SET_SPARSE_BUFFER b;
 		b.SetSparse = FALSE;
-		BOOL ret = ::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, &b, sizeof(b)
+		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, &b, sizeof(b)
 			, 0, 0, &temp, nullptr);
 	}
 #endif
