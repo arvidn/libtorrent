@@ -216,7 +216,7 @@ namespace {
 
 	internal_file_entry::~internal_file_entry()
 	{
-		if (name_len == name_is_owned) free(const_cast<char*>(name));
+		if (name_len == name_is_owned) ::free(const_cast<char*>(name));
 	}
 
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
@@ -240,6 +240,7 @@ namespace {
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe)
 	{
+		if (&fe == this) return *this;
 		offset = fe.offset;
 		size = fe.size;
 		path_index = fe.path_index;
@@ -272,6 +273,7 @@ namespace {
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry&& fe) noexcept
 	{
+		if (&fe == this) return *this;
 		offset = fe.offset;
 		size = fe.size;
 		path_index = fe.path_index;
@@ -303,7 +305,7 @@ namespace {
 		if (string_len >= name_is_owned) string_len = name_is_owned - 1;
 
 		// free the current string, before assigning the new one
-		if (name_len == name_is_owned) free(const_cast<char*>(name));
+		if (name_len == name_is_owned) ::free(const_cast<char*>(name));
 		if (n == nullptr)
 		{
 			TORRENT_ASSERT(borrow_string == false);

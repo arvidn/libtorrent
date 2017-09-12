@@ -8,7 +8,8 @@ namespace libtorrent {
 
 	struct sha512_ctx
 	{
-		std::uint64_t length, state[8];
+		std::uint64_t length;
+		std::uint64_t state[8];
 		std::size_t curlen;
 		std::uint8_t buf[128];
 	};

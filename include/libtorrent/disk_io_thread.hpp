@@ -392,7 +392,7 @@ namespace aux {
 		{
 			explicit job_queue(disk_io_thread& owner) : m_owner(owner) {}
 
-			virtual void notify_all() override
+			void notify_all() override
 			{
 				m_job_cond.notify_all();
 			}

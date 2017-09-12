@@ -63,7 +63,8 @@ namespace libtorrent {
 
 	// RC4 state from libtomcrypt
 	struct rc4 {
-		int x, y;
+		int x;
+		int y;
 		aux::array<std::uint8_t, 256> buf;
 	};
 
@@ -87,9 +88,6 @@ namespace libtorrent {
 		sha1_hash const& get_hash_xor_mask() const { return m_xor_mask; }
 
 	private:
-
-		int get_local_key_size() const
-		{ return sizeof(m_dh_local_key); }
 
 		key_t m_dh_local_key;
 		key_t m_dh_local_secret;

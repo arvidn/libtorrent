@@ -49,7 +49,7 @@ struct direct_traversal : traversal_algorithm
 		, m_cb(cb)
 	{}
 
-	virtual char const* name() const { return "direct_traversal"; }
+	char const* name() const override { return "direct_traversal"; }
 
 	void invoke_cb(msg const& m)
 	{
@@ -72,13 +72,13 @@ struct direct_observer : observer
 		: observer(algo, ep, id)
 	{}
 
-	virtual void reply(msg const& m)
+	void reply(msg const& m) override
 	{
 		flags |= flag_done;
 		static_cast<direct_traversal*>(algorithm())->invoke_cb(m);
 	}
 
-	virtual void timeout()
+	void timeout() override
 	{
 		if (flags & flag_done) return;
 		flags |= flag_done;

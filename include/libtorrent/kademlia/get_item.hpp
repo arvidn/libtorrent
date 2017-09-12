@@ -63,13 +63,13 @@ public:
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback);
 
-	virtual char const* name() const;
+	char const* name() const override;
 
 protected:
-	virtual observer_ptr new_observer(udp::endpoint const& ep
-		, node_id const& id);
-	virtual bool invoke(observer_ptr o);
-	virtual void done();
+	observer_ptr new_observer(udp::endpoint const& ep
+		, node_id const& id) override;
+	bool invoke(observer_ptr o) override;
+	void done() override;
 
 	data_callback m_data_callback;
 	item m_data;
@@ -85,7 +85,7 @@ public:
 		: find_data_observer(algorithm, ep, id)
 	{}
 
-	virtual void reply(msg const&);
+	void reply(msg const&) override;
 };
 
 } } // namespace libtorrent::dht

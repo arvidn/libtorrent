@@ -812,11 +812,11 @@ namespace {
 		return type_str[sock_type_idx(type)];
 	}
 
-	static char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
+	char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
 
-	static char const* const protocol_str[] = {"none", "TCP", "UDP"};
+	char const* const protocol_str[] = {"none", "TCP", "UDP"};
 
-	static char const* const socket_type_str[] = {
+	char const* const socket_type_str[] = {
 		"null",
 		"TCP",
 		"Socks5/TCP",

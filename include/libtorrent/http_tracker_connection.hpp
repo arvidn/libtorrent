@@ -66,8 +66,8 @@ namespace libtorrent {
 			, tracker_request const& req
 			, std::weak_ptr<request_callback> c);
 
-		void start();
-		void close();
+		void start() override;
+		void close() override;
 
 	private:
 
@@ -82,7 +82,7 @@ namespace libtorrent {
 		void on_response(error_code const& ec, http_parser const& parser
 			, span<char const> data);
 
-		virtual void on_timeout(error_code const&) {}
+		void on_timeout(error_code const&) override {}
 
 		std::shared_ptr<http_connection> m_tracker_connection;
 		address m_tracker_ip;

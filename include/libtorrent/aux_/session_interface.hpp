@@ -313,8 +313,7 @@ namespace libtorrent { namespace aux {
 		virtual bool verify_queue_position(torrent const*, int) = 0;
 #endif
 
-	protected:
-		~session_interface() {}
+		virtual ~session_interface() {}
 	};
 }}
 

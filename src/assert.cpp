@@ -68,7 +68,7 @@ std::string demangle(char const* name)
 {
 // in case this string comes
 	// this is needed on linux
-	char const* start = strchr(name, '(');
+	char const* start = std::strchr(name, '(');
 	if (start != nullptr)
 	{
 		++start;
@@ -79,14 +79,14 @@ std::string demangle(char const* name)
 		start = strstr(name, "0x");
 		if (start != nullptr)
 		{
-			start = strchr(start, ' ');
+			start = std::strchr(start, ' ');
 			if (start != nullptr) ++start;
 			else start = name;
 		}
 		else start = name;
 	}
 
-	char const* end = strchr(start, '+');
+	char const* end = std::strchr(start, '+');
 	if (end) while (*(end-1) == ' ') --end;
 
 	std::string in;
@@ -98,7 +98,7 @@ std::string demangle(char const* name)
 	char* unmangled = ::abi::__cxa_demangle(in.c_str(), nullptr, &len, &status);
 	if (unmangled == nullptr) return in;
 	std::string ret(unmangled);
-	free(unmangled);
+	::free(unmangled);
 	return ret;
 }
 #elif defined _WIN32
@@ -129,8 +129,8 @@ std::string demangle(char const* name) { return name; }
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 {
 	void* stack[50];
-	int size = backtrace(stack, 50);
-	char** symbols = backtrace_symbols(stack, size);
+	int size = ::backtrace(stack, 50);
+	char** symbols = ::backtrace_symbols(stack, size);
 
 	for (int i = 1; i < size && len > 0; ++i)
 	{
@@ -140,7 +140,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 		if (i - 1 == max_depth && max_depth > 0) break;
 	}
 
-	free(symbols);
+	::free(symbols);
 }
 
 #elif defined _WIN32
@@ -292,7 +292,7 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 #endif
 	va_list va;
 	va_start(va, fmt);
-	vfprintf(out, fmt, va);
+	std::vfprintf(out, fmt, va);
 	va_end(va);
 
 #ifdef TORRENT_PRODUCTION_ASSERTS
@@ -358,9 +358,9 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 #else
 	// send SIGINT to the current process
 	// to break into the debugger
-	raise(SIGINT);
+	::raise(SIGINT);
 #endif
-	abort();
+	::abort();
 #endif
 }
 

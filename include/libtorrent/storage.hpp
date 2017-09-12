@@ -73,9 +73,9 @@ POSSIBILITY OF SUCH DAMAGE.
 //	struct temp_storage : storage_interface
 //	{
 //		temp_storage(file_storage const& fs) : storage_interface(fs) {}
-//		virtual bool initialize(storage_error& se) { return false; }
-//		virtual bool has_any_file() { return false; }
-//		virtual int read(char* buf, int piece, int offset, int size)
+//		bool initialize(storage_error& se) override { return false; }
+//		bool has_any_file() override { return false; }
+//		int read(char* buf, int piece, int offset, int size) override
 //		{
 //			std::map<int, std::vector<char>>::const_iterator i = m_file_data.find(piece);
 //			if (i == m_file_data.end()) return 0;
@@ -85,22 +85,22 @@ POSSIBILITY OF SUCH DAMAGE.
 //			memcpy(buf, &i->second[offset], available);
 //			return available;
 //		}
-//		virtual int write(const char* buf, int piece, int offset, int size)
+//		int write(const char* buf, int piece, int offset, int size) override
 //		{
 //			std::vector<char>& data = m_file_data[piece];
 //			if (data.size() < offset + size) data.resize(offset + size);
 //			std::memcpy(&data[offset], buf, size);
 //			return size;
 //		}
-//		virtual bool rename_file(file_index_t file, std::string const& new_name)
+//		bool rename_file(file_index_t file, std::string const& new_name) override
 //		{ assert(false); return false; }
-//		virtual status_t move_storage(std::string const& save_path) { return false; }
-//		virtual bool verify_resume_data(add_torrent_params const& rd
+//		status_t move_storage(std::string const& save_path) override { return false; }
+//		bool verify_resume_data(add_torrent_params const& rd
 //			, std::vector<std::string> const* links
-//			, storage_error& error) { return false; }
-//		virtual std::int64_t physical_offset(int piece, int offset)
+//			, storage_error& error) override { return false; }
+//		std::int64_t physical_offset(int piece, int offset) override
 //		{ return piece * files().piece_length() + offset; };
-//		virtual sha1_hash hash_for_slot(int piece, partial_hash& ph, int piece_size)
+//		sha1_hash hash_for_slot(int piece, partial_hash& ph, int piece_size) override
 //		{
 //			int left = piece_size - ph.offset;
 //			assert(left >= 0);
@@ -116,8 +116,8 @@ POSSIBILITY OF SUCH DAMAGE.
 //			}
 //			return ph.h.final();
 //		}
-//		virtual bool release_files() { return false; }
-//		virtual bool delete_files() { return false; }
+//		bool release_files() override { return false; }
+//		bool delete_files() override { return false; }
 //
 //		std::map<int, std::vector<char>> m_file_data;
 //	};
@@ -161,12 +161,14 @@ namespace libtorrent {
 	// reads garbage. It's useful mostly for benchmarking and profiling purpose.
 	//
 	struct TORRENT_EXPORT storage_interface
-		: public std::enable_shared_from_this<storage_interface>
-		, public aux::disk_job_fence
-		, public aux::storage_piece_set
-		, boost::noncopyable
+		: std::enable_shared_from_this<storage_interface>
+		, aux::disk_job_fence
+		, aux::storage_piece_set
 	{
 		explicit storage_interface(file_storage const& fs) : m_files(fs) {}
+
+		storage_interface(storage_interface const&) = delete;
+		storage_interface& operator=(storage_interface const&) = delete;
 
 		// This function is called when the storage is to be initialized. The
 		// default storage will create directories and empty files at this point.
@@ -283,7 +285,7 @@ namespace libtorrent {
 		//
 		// .. code:: c++
 		//
-		//		struct disk_buffer_pool : boost::noncopyable
+		//		struct disk_buffer_pool
 		//		{
 		//			char* allocate_buffer(char const* category);
 		//			void free_buffer(char* buf);
@@ -380,20 +382,20 @@ namespace libtorrent {
 		// hidden
 		~default_storage() override;
 
-		virtual bool has_any_file(storage_error& ec) override;
-		virtual void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& prio
+		bool has_any_file(storage_error& ec) override;
+		void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& prio
 			, storage_error& ec) override;
-		virtual void rename_file(file_index_t index, std::string const& new_filename
+		void rename_file(file_index_t index, std::string const& new_filename
 			, storage_error& ec) override;
-		virtual void release_files(storage_error& ec) override;
-		virtual void delete_files(remove_flags_t options, storage_error& ec) override;
-		virtual void initialize(storage_error& ec) override;
-		virtual status_t move_storage(std::string const& save_path
+		void release_files(storage_error& ec) override;
+		void delete_files(remove_flags_t options, storage_error& ec) override;
+		void initialize(storage_error& ec) override;
+		status_t move_storage(std::string const& save_path
 			, move_flags_t flags, storage_error& ec) override;
-		virtual bool verify_resume_data(add_torrent_params const& rd
+		bool verify_resume_data(add_torrent_params const& rd
 			, aux::vector<std::string, file_index_t> const& links
 			, storage_error& error) override;
-		virtual bool tick() override;
+		bool tick() override;
 
 		int readv(span<iovec_t const> bufs
 			, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) override;

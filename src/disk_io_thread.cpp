@@ -170,6 +170,7 @@ namespace libtorrent {
 		{ rhs.m_lock = nullptr; }
 		scoped_unlocker_impl& operator=(scoped_unlocker_impl&& rhs)
 		{
+			if (&rhs == this) return *this;
 			if (m_lock) m_lock->lock();
 			m_lock = rhs.m_lock;
 			rhs.m_lock = nullptr;
@@ -445,6 +446,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 				continue;
 			}
 
+#if DEBUG_DISK_THREAD
 			if (pe->num_dirty < pe->blocks_in_piece)
 			{
 				DLOG("[%d dirty:%d] ", static_cast<int>(i), int(pe->num_dirty));
@@ -457,6 +459,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			{
 				DLOG("[%d xx] ", static_cast<int>(i));
 			}
+#endif
 
 			// TODO: in this case, the piece should probably not be flushed yet. are there
 			// any more cases where it should?

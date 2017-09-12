@@ -312,7 +312,7 @@ namespace {
 	create_torrent::create_torrent(file_storage& fs, int piece_size
 		, int pad_file_limit, create_flags_t const flags, int alignment)
 		: m_files(fs)
-		, m_creation_date(time(nullptr))
+		, m_creation_date(::time(nullptr))
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
 		, m_merkle_torrent(bool(flags & create_torrent::merkle))
@@ -372,7 +372,7 @@ namespace {
 
 	create_torrent::create_torrent(torrent_info const& ti)
 		: m_files(const_cast<file_storage&>(ti.files()))
-		, m_creation_date(time(0))
+		, m_creation_date(::time(0))
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
 		, m_merkle_torrent(ti.is_merkle_torrent())

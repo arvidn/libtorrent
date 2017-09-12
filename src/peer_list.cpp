@@ -1347,10 +1347,10 @@ namespace libtorrent {
 
 		// prefer to drop peers whose only source is resume data
 		if (lhs_resume_data_source != rhs_resume_data_source)
-			return lhs_resume_data_source > rhs_resume_data_source;
+			return int(lhs_resume_data_source) > int(rhs_resume_data_source);
 
 		if (lhs.connectable != rhs.connectable)
-			return lhs.connectable < rhs.connectable;
+			return int(lhs.connectable) < int(rhs.connectable);
 
 		return lhs.trust_points < rhs.trust_points;
 	}
@@ -1365,9 +1365,9 @@ namespace libtorrent {
 			return lhs->failcount < rhs->failcount;
 
 		// Local peers should always be tried first
-		bool lhs_local = is_local(lhs->address());
-		bool rhs_local = is_local(rhs->address());
-		if (lhs_local != rhs_local) return lhs_local > rhs_local;
+		bool const lhs_local = is_local(lhs->address());
+		bool const rhs_local = is_local(rhs->address());
+		if (lhs_local != rhs_local) return int(lhs_local) > int(rhs_local);
 
 		if (lhs->last_connected != rhs->last_connected)
 			return lhs->last_connected < rhs->last_connected;
@@ -1376,9 +1376,8 @@ namespace libtorrent {
 		int const rhs_rank = source_rank(rhs->peer_source());
 		if (lhs_rank != rhs_rank) return lhs_rank > rhs_rank;
 
-		std::uint32_t lhs_peer_rank = lhs->rank(external, external_port);
-		std::uint32_t rhs_peer_rank = rhs->rank(external, external_port);
-		if (lhs_peer_rank > rhs_peer_rank) return true;
-		return false;
+		std::uint32_t const lhs_peer_rank = lhs->rank(external, external_port);
+		std::uint32_t const rhs_peer_rank = rhs->rank(external, external_port);
+		return lhs_peer_rank > rhs_peer_rank;
 	}
 }

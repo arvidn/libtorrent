@@ -1183,7 +1183,6 @@ void node::incoming_request(msg const& m, entry& e)
 		sha1_hash const target(target_ent.string_ptr());
 		// always return nodes as well as peers
 		write_nodes_entries(target, arg_ent.dict_find_list("want"), reply);
-		return;
 	}
 }
 

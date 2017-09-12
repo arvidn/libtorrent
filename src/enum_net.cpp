@@ -74,7 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <netinet/ether.h>
 #include <netinet/in.h>
 #include <net/if.h>
-#include <stdio.h>
+#include <cstdio>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -216,7 +216,7 @@ namespace {
 		// first byte of routing messages is always the family
 		msg[sizeof(nlmsghdr)] = family;
 
-		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
+		if (::send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
 		{
 			return -1;
 		}
@@ -224,7 +224,7 @@ namespace {
 		// get the socket's port ID so that we can verify it in the repsonse
 		sockaddr_nl sock_addr;
 		socklen_t sock_addr_len = sizeof(sock_addr);
-		if (getsockname(sock, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len) < 0)
+		if (::getsockname(sock, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len) < 0)
 		{
 			return -1;
 		}
@@ -285,10 +285,10 @@ namespace {
 #endif
 
 		ifreq req = {};
-		if_indextoname(std::uint32_t(if_index), req.ifr_name);
+		::if_indextoname(std::uint32_t(if_index), req.ifr_name);
 		static_assert(sizeof(rt_info->name) >= sizeof(req.ifr_name), "ip_route::name is too small");
 		std::memcpy(rt_info->name, req.ifr_name, sizeof(req.ifr_name));
-		ioctl(s, siocgifmtu, &req);
+		::ioctl(s, ::siocgifmtu, &req);
 		rt_info->mtu = req.ifr_mtu;
 //		obviously this doesn't work correctly. How do you get the netmask for a route?
 //		if (ioctl(s, SIOCGIFNETMASK, &req) == 0) {
@@ -549,7 +549,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ret.push_back(wan);
 		}
 #elif TORRENT_USE_NETLINK
-		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		int sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -562,7 +562,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (len < 0)
 		{
 			ec = error_code(errno, system_category());
-			close(sock);
+			::close(sock);
 			return ret;
 		}
 
@@ -581,9 +581,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #pragma clang diagnostic pop
 #endif
 
-		close(sock);
+		::close(sock);
 #elif TORRENT_USE_IFADDRS
-		int s = socket(AF_INET, SOCK_DGRAM, 0);
+		int s = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -594,7 +594,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (getifaddrs(&ifaddr) == -1)
 		{
 			ec = error_code(errno, system_category());
-			close(s);
+			::close(s);
 			return ret;
 		}
 
@@ -610,11 +610,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					ret.push_back(iface);
 			}
 		}
-		close(s);
+		::close(s);
 		freeifaddrs(ifaddr);
 // MacOS X, BSD and solaris
 #elif TORRENT_USE_IFCONF
-		int s = socket(AF_INET, SOCK_DGRAM, 0);
+		int s = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -628,7 +628,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
 			ec = error_code(errno, system_category());
-			close(s);
+			::close(s);
 			return ret;
 		}
 
@@ -669,7 +669,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #endif
 					{
 						ec = error_code(errno, system_category());
-						close(s);
+						::close(s);
 						return ret;
 					}
 				}
@@ -683,7 +683,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ifr += current_size;
 			remaining -= current_size;
 		}
-		close(s);
+		::close(s);
 
 #elif TORRENT_USE_GETADAPTERSADDRESSES
 
@@ -736,7 +736,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 #endif
 
-		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
+		SOCKET s = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (int(s) == SOCKET_ERROR)
 		{
 			ec = error_code(WSAGetLastError(), system_category());
@@ -855,7 +855,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		m.m_rtm.rtm_seq = 0;
 		m.m_rtm.rtm_msglen = len;
 
-		int s = socket(PF_ROUTE, SOCK_RAW, AF_UNSPEC);
+		int s = ::socket(PF_ROUTE, SOCK_RAW, AF_UNSPEC);
 		if (s == -1)
 		{
 			ec = error_code(errno, system_category());
@@ -866,13 +866,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (n == -1)
 		{
 			ec = error_code(errno, system_category());
-			close(s);
+			::close(s);
 			return std::vector<ip_route>();
 		}
 		else if (n != len)
 		{
 			ec = boost::asio::error::operation_not_supported;
-			close(s);
+			::close(s);
 			return std::vector<ip_route>();
 		}
 		bzero(&m, len);
@@ -881,7 +881,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (n == -1)
 		{
 			ec = error_code(errno, system_category());
-			close(s);
+			::close(s);
 			return std::vector<ip_route>();
 		}
 
@@ -936,7 +936,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			r.netmask = sockaddr_to_address((sockaddr*)p);
 			ret.push_back(r);
 		}
-		close(s);
+		::close(s);
 */
 	int mib[6] = {CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_DUMP, 0};
 
@@ -975,7 +975,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 	char* end = buf.get() + needed;
 
-	int s = socket(AF_INET, SOCK_DGRAM, 0);
+	int s = ::socket(AF_INET, SOCK_DGRAM, 0);
 	if (s < 0)
 	{
 		ec = error_code(errno, system_category());
@@ -995,7 +995,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		ip_route r;
 		if (parse_route(s, rtm, &r)) ret.push_back(r);
 	}
-	close(s);
+	::close(s);
 
 #elif TORRENT_USE_GETIPFORWARDTABLE
 /*
@@ -1142,7 +1142,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		// Free memory
 		free(routes);
 #elif TORRENT_USE_NETLINK
-		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		int sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -1157,11 +1157,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (len < 0)
 		{
 			ec = error_code(errno, system_category());
-			close(sock);
+			::close(sock);
 			return std::vector<ip_route>();
 		}
 
-		int s = socket(AF_INET, SOCK_DGRAM, 0);
+		int s = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -1181,8 +1181,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-		close(s);
-		close(sock);
+		::close(s);
+		::close(sock);
 
 #endif
 		return ret;

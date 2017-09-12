@@ -560,7 +560,7 @@ namespace {
 		// posix has a weird iconv signature. implementations
 		// differ on what this signature should be, so we use
 		// a macro to let config.hpp determine it
-		size_t retval = iconv(h, TORRENT_ICONV_ARG(&in), &insize,
+		size_t retval = ::iconv(h, TORRENT_ICONV_ARG(&in), &insize,
 			&out, &outsize);
 		if (retval == size_t(-1)) return s;
 		// if this string has an invalid utf-8 sequence in it, don't touch it
@@ -581,7 +581,7 @@ namespace {
 		std::lock_guard<std::mutex> l(iconv_mutex);
 
 		// the empty string represents the local dependent encoding
-		static iconv_t iconv_handle = iconv_open("", "UTF-8");
+		static iconv_t iconv_handle = ::iconv_open("", "UTF-8");
 		if (iconv_handle == iconv_t(-1)) return s;
 		return iconv_convert_impl(s, iconv_handle);
 	}
@@ -593,7 +593,7 @@ namespace {
 		std::lock_guard<std::mutex> l(iconv_mutex);
 
 		// the empty string represents the local dependent encoding
-		static iconv_t iconv_handle = iconv_open("UTF-8", "");
+		static iconv_t iconv_handle = ::iconv_open("UTF-8", "");
 		if (iconv_handle == iconv_t(-1)) return s;
 		return iconv_convert_impl(s, iconv_handle);
 	}

@@ -82,11 +82,11 @@ public:
 		// the actual allocation may be larger than we requested. If so, let the
 		// user take advantage of every single byte
 #if defined __GLIBC__
-		m_size = malloc_usable_size(m_begin);
+		m_size = ::malloc_usable_size(m_begin);
 #elif defined _MSC_VER
-		m_size = _msize(m_begin);
+		m_size = ::_msize(m_begin);
 #elif defined TORRENT_BSD
-		m_size = malloc_size(m_begin);
+		m_size = ::malloc_size(m_begin);
 #else
 		m_size = size;
 #endif

@@ -61,9 +61,9 @@ void put_data::set_targets(std::vector<std::pair<node_entry, std::string>> const
 			, p.first.id, p.second);
 		if (!o) return;
 
-	#if TORRENT_USE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
-	#endif
+#endif
 		m_results.push_back(std::move(o));
 	}
 }

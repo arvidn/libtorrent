@@ -141,7 +141,7 @@ namespace libtorrent {
 		int const new_size_words = num_words();
 		if (val)
 		{
-			if (old_size_words && b) buf()[old_size_words - 1] |= aux::host_to_network((0xffffffff >> b));
+			if (old_size_words && b) buf()[old_size_words - 1] |= aux::host_to_network(0xffffffff >> b);
 			if (old_size_words < new_size_words)
 				std::memset(buf() + old_size_words, 0xff
 					, std::size_t((new_size_words - old_size_words) * 4));

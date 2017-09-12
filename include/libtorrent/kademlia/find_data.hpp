@@ -58,15 +58,15 @@ struct find_data : traversal_algorithm
 
 	void got_write_token(node_id const& n, std::string write_token);
 
-	virtual void start();
+	void start() override;
 
-	virtual char const* name() const;
+	char const* name() const override;
 
 protected:
 
-	virtual void done();
-	virtual observer_ptr new_observer(udp::endpoint const& ep
-		, node_id const& id);
+	void done() override;
+	observer_ptr new_observer(udp::endpoint const& ep
+		, node_id const& id) override;
 
 	nodes_callback m_nodes_callback;
 	std::map<node_id, std::string> m_write_tokens;
@@ -81,7 +81,7 @@ struct find_data_observer : traversal_observer
 		: traversal_observer(algorithm, ep, id)
 	{}
 
-	virtual void reply(msg const&);
+	void reply(msg const&) override;
 };
 
 } } // namespace libtorrent::dht

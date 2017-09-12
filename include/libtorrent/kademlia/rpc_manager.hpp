@@ -55,11 +55,11 @@ struct dht_settings;
 struct dht_logger;
 struct socket_manager;
 
-struct TORRENT_EXTRA_EXPORT null_observer : public observer
+struct TORRENT_EXTRA_EXPORT null_observer : observer
 {
 	null_observer(std::shared_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id): observer(a, ep, id) {}
-	virtual void reply(msg const&) { flags |= flag_done; }
+	void reply(msg const&) override { flags |= flag_done; }
 };
 
 class routing_table;

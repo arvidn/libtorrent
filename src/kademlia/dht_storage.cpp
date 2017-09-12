@@ -183,7 +183,7 @@ namespace {
 		int count() const { return int(samples.size()); }
 	};
 
-	class dht_default_storage final : public dht_storage_interface, boost::noncopyable
+	class dht_default_storage final : public dht_storage_interface
 	{
 	public:
 
@@ -194,6 +194,9 @@ namespace {
 		}
 
 		~dht_default_storage() override = default;
+
+		dht_default_storage(dht_default_storage const&) = delete;
+		dht_default_storage& operator=(dht_default_storage const&) = delete;
 
 #ifndef TORRENT_NO_DEPRECATE
 		size_t num_torrents() const override { return m_map.size(); }
@@ -558,7 +561,7 @@ namespace {
 			m_counters.peers -= std::int32_t(std::distance(new_end, peers.end()));
 			peers.erase(new_end, peers.end());
 			// if we're using less than 1/4 of the capacity free up the excess
-			if (!peers.empty() && peers.capacity() / peers.size() >= 4u)
+			if (!peers.empty() && peers.capacity() / peers.size() >= 4U)
 				peers.shrink_to_fit();
 		}
 
