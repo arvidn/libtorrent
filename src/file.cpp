@@ -281,49 +281,6 @@ namespace libtorrent {
 	}
 
 #ifdef TORRENT_WINDOWS
-	struct overlapped_t
-	{
-		overlapped_t()
-		{
-			std::memset(&ol, 0, sizeof(ol));
-			ol.hEvent = CreateEvent(0, true, false, 0);
-		}
-		~overlapped_t()
-		{
-			if (ol.hEvent != INVALID_HANDLE_VALUE)
-				CloseHandle(ol.hEvent);
-		}
-		int wait(HANDLE file, error_code& ec)
-		{
-			if (ol.hEvent != INVALID_HANDLE_VALUE
-				&& WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
-			{
-				ec.assign(GetLastError(), system_category());
-				return -1;
-			}
-
-			DWORD ret;
-			if (GetOverlappedResult(file, &ol, &ret, false) == 0)
-			{
-				DWORD last_error = GetLastError();
-				if (last_error != ERROR_HANDLE_EOF)
-				{
-#ifdef ERROR_CANT_WAIT
-					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
-#endif
-					ec.assign(last_error, system_category());
-					return -1;
-				}
-			}
-			return ret;
-		}
-
-		OVERLAPPED ol;
-	};
-#endif // TORRENT_WINDOWS
-
-
-#ifdef TORRENT_WINDOWS
 	bool get_manage_volume_privs();
 
 	// this needs to be run before CreateFile
@@ -376,7 +333,6 @@ namespace libtorrent {
 
 		DWORD const flags = ((mode & aux::open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL)
-			| FILE_FLAG_OVERLAPPED
 			| ((mode & aux::open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
 		handle_type handle = CreateFileW(file_path.c_str(), m.rw_mode
@@ -398,12 +354,8 @@ namespace libtorrent {
 			&& (mode & aux::open_mode::write))
 		{
 			DWORD temp;
-			overlapped_t ol;
-			BOOL ret = ::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, 0, 0
-				, 0, 0, &temp, &ol.ol);
-			error_code error;
-			if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
-				ol.wait(native_handle(), error);
+			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, 0, 0
+				, 0, 0, &temp, nullptr);
 		}
 #else // TORRENT_WINDOWS
 
@@ -514,9 +466,6 @@ namespace libtorrent {
 		if (!GetFileSizeEx(file, &file_size))
 			return false;
 
-		overlapped_t ol;
-		if (ol.ol.hEvent == nullptr) return false;
-
 #ifndef FSCTL_QUERY_ALLOCATED_RANGES
 typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	LARGE_INTEGER FileOffset;
@@ -532,15 +481,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		DWORD returned_bytes = 0;
 		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, (void*)&in, sizeof(in)
-			, out, sizeof(out), &returned_bytes, &ol.ol);
+			, out, sizeof(out), &returned_bytes, nullptr);
 
-		if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
-		{
-			error_code ec;
-			returned_bytes = ol.wait(file, ec);
-			if (ec) return true;
-		}
-		else if (ret == FALSE)
+		if (ret == FALSE)
 		{
 			return true;
 		}
@@ -567,7 +510,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			&& (m_open_mode & aux::open_mode::sparse)
 			&& !is_sparse(native_handle()))
 		{
-			overlapped_t ol;
 			// according to MSDN, clearing the sparse flag of a file only
 			// works on windows vista and later
 #ifdef TORRENT_MINGW
@@ -578,13 +520,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			DWORD temp;
 			FILE_SET_SPARSE_BUFFER b;
 			b.SetSparse = FALSE;
-			BOOL ret = ::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, &b, sizeof(b)
-				, 0, 0, &temp, &ol.ol);
-			error_code ec;
-			if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
-			{
-				ol.wait(native_handle(), ec);
-			}
+			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, &b, sizeof(b)
+				, 0, 0, &temp, nullptr);
 		}
 
 		CloseHandle(native_handle());
