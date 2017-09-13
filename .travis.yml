@@ -52,7 +52,7 @@ addons:
 
 before_install:
 
-  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+  - 'if [[ "$TRAVIS_PULL_REQUEST" != "false" || "$TRAVIS_BRANCH" != "master" ]]; then
       export sonar_scan=0;
     fi'
 
