@@ -412,27 +412,29 @@ endif()
 
 # === build tests ===
 if(build_tests)
+	if (NOT logging)
+		message(FATAL_ERROR "tests require logging to be enabled")
+	endif()
+
 	file(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
 	list(REMOVE_ITEM tests "test/test_natpmp.cpp") # doesn't build at time of writing
 	list(REMOVE_ITEM tests "test/test_utils.cpp") # helper file, not a test
 
-	add_library(test_common OBJECT test/main.cpp test/test.cpp
+	add_library(test_common STATIC test/main.cpp test/test.cpp
 		test/setup_transfer.cpp test/dht_server.cpp test/udp_tracker.cpp
 		test/peer_server.cpp test/web_seed_suite.cpp test/swarm_suite.cpp
 		test/test_utils.cpp test/make_torrent.hpp test/make_torrent.cpp
 		test/settings.hpp test/settings.cpp)
-		set_target_properties(test_common PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+	set_target_properties(test_common PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+	target_link_libraries(test_common torrent-rasterbar)
 	enable_testing()
 
 	foreach(s ${tests})
 		get_filename_component (sn ${s} NAME_WE)
-		add_executable(${sn} ${s} $<TARGET_OBJECTS:test_common>)
-		target_link_libraries(${sn} torrent-rasterbar)
+		add_executable(${sn} ${s})
+		target_link_libraries(${sn} test_common)
+		set_target_properties(${sn} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/test")
 		set_target_properties(${sn} PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
-		add_test(${sn} ${s})
+		add_test(NAME ${sn} COMMAND ${sn} WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/test")
 	endforeach(s)
-
-	add_executable(bdecode_benchmark test/bdecode_benchmark.cpp)
-	target_link_libraries(bdecode_benchmark torrent-rasterbar)
-	set_target_properties(bdecode_benchmark PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 endif()
