@@ -575,8 +575,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		// if the cache is under high pressure, we need to evict
 		// the blocks we just flushed to make room for more write pieces
-		int evict = m_disk_cache.num_to_evict(0);
-		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
+		try_evict_blocks(0);
 
 		return iov_len;
 	}
@@ -810,10 +809,15 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		// if the cache is under high pressure, we need to evict
 		// the blocks we just flushed to make room for more write pieces
-		int evict = m_disk_cache.num_to_evict(0);
-		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
+		try_evict_blocks(0);
 
 		return iov_len;
+	}
+
+	void disk_io_thread::try_evict_blocks(int const len)
+	{
+		int const evict = m_disk_cache.num_to_evict(len);
+		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
 	}
 
 	void disk_io_thread::fail_jobs(storage_error const& e, jobqueue_t& jobs_)
@@ -1275,8 +1279,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
-		int evict = m_disk_cache.num_to_evict(iov_len);
-		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
+		try_evict_blocks(iov_len);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == nullptr)
