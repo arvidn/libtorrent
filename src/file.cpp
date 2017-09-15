@@ -651,7 +651,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		if ((mode & open_mode::random_access))
 		{
 			// disable read-ahead
-			::posix_fadvise(native_handle(), 0, 0, POSIX_FADV_RANDOM);
+			posix_fadvise(native_handle(), 0, 0, POSIX_FADV_RANDOM);
 		}
 #endif
 
