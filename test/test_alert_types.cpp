@@ -47,9 +47,11 @@ TORRENT_TEST(alerts_types)
 	// are abstract
 	int count_alert_types = 3;
 
+#ifndef TORRENT_NO_DEPRECATE
 	TEST_EQUAL(torrent_alert::alert_type, 0);
 	TEST_EQUAL(peer_alert::alert_type, 1);
 	TEST_EQUAL(tracker_alert::alert_type, 2);
+#endif
 
 #define TEST_ALERT_TYPE(name, seq, prio, cat) \
 	TEST_EQUAL(name::priority, prio); \
