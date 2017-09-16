@@ -157,33 +157,33 @@ static_assert(sizeof(lseek(0, 0, 0)) >= 8, "64 bit file operations are required"
 #define INVALID_HANDLE_VALUE (-1)
 #endif
 
-namespace {
+namespace libtorrent {
+
 #ifdef TORRENT_WINDOWS
-	std::int64_t read(HANDLE fd, void* data, std::size_t len)
-	{
-		DWORD bytes_read = 0;
-		if (ReadFile(fd, data, DWORD(len), &bytes_read, nullptr) == FALSE)
+	namespace {
+		std::int64_t read(HANDLE fd, void* data, std::size_t len)
 		{
-			return -1;
+			DWORD bytes_read = 0;
+			if (ReadFile(fd, data, DWORD(len), &bytes_read, nullptr) == FALSE)
+			{
+				return -1;
+			}
+
+			return bytes_read;
 		}
 
-		return bytes_read;
-	}
-
-	std::int64_t write(HANDLE fd, void const* data, std::size_t len)
-	{
-		DWORD bytes_written = 0;
-		if (WriteFile(fd, data, DWORD(len), &bytes_written, nullptr) == FALSE)
+		std::int64_t write(HANDLE fd, void const* data, std::size_t len)
 		{
-			return -1;
-		}
+			DWORD bytes_written = 0;
+			if (WriteFile(fd, data, DWORD(len), &bytes_written, nullptr) == FALSE)
+			{
+				return -1;
+			}
 
-		return bytes_written;
+			return bytes_written;
+		}
 	}
 #endif
-}
-
-namespace libtorrent {
 
 	directory::directory(std::string const& path, error_code& ec)
 		: m_done(false)
@@ -598,7 +598,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		TORRENT_ASSERT(!bufs.empty());
 		TORRENT_ASSERT(is_open());
 
-		return iov(&::read, native_handle(), file_offset, bufs, ec);
+		return iov(&read, native_handle(), file_offset, bufs, ec);
 	}
 
 	// This has to be thread safe, i.e. atomic.
@@ -622,7 +622,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		ec.clear();
 
-		std::int64_t ret = iov(&::write, native_handle(), file_offset, bufs, ec);
+		std::int64_t ret = iov(&write, native_handle(), file_offset, bufs, ec);
 
 #if TORRENT_USE_FDATASYNC \
 	&& !defined F_NOCACHE && \
