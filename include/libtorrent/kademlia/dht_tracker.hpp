@@ -171,8 +171,8 @@ namespace libtorrent { namespace dht {
 		node* get_node(node_id const& id, std::string const& family_name);
 
 		// implements socket_manager
-		virtual bool has_quota() override;
-		virtual bool send_packet(aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) override;
+		bool has_quota() override;
+		bool send_packet(aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) override;
 
 		// this is the bdecode_node DHT messages are parsed into. It's a member
 		// in order to avoid having to deallocate and re-allocate it for every

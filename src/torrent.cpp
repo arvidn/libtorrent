@@ -6710,7 +6710,7 @@ namespace libtorrent {
 	{
 		bool const lhs_connecting = lhs->is_connecting() && !lhs->is_disconnecting();
 		bool const rhs_connecting = rhs->is_connecting() && !rhs->is_disconnecting();
-		if (lhs_connecting != rhs_connecting) return (lhs_connecting < rhs_connecting);
+		if (lhs_connecting != rhs_connecting) return (int(lhs_connecting) < int(rhs_connecting));
 
 		// a lower value of connected_time means it's been waiting
 		// longer. This is a less-than comparison, so if lhs has
