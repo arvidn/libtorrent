@@ -582,6 +582,7 @@ namespace libtorrent {
 			deprecated19,
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``lock_files`` determines whether or not to lock files which
 			// libtorrent is downloading to or seeding from. This is implemented
 			// using ``fcntl(F_SETLK)`` on unix systems and by not passing in
@@ -589,6 +590,9 @@ namespace libtorrent {
 			// 3rd party processes from corrupting the files under libtorrent's
 			// feet.
 			lock_files,
+#else
+			deprecated26,
+#endif
 
 #ifndef TORRENT_NO_DEPRECATE
 			// ``contiguous_recv_buffer`` determines whether or not libtorrent

@@ -159,26 +159,22 @@ namespace libtorrent {
 		// logic
 		constexpr open_mode_t random_access = 4_bit;
 
-		// prevent the file from being opened by another process
-		// while it's still being held open by this handle
-		constexpr open_mode_t lock_file = 5_bit;
-
 		// don't put any pressure on the OS disk cache
 		// because of access to this file. We expect our
 		// files to be fairly large, and there is already
 		// a cache at the bittorrent block level. This
 		// may improve overall system performance by
 		// leaving running applications in the page cache
-		constexpr open_mode_t no_cache = 6_bit;
+		constexpr open_mode_t no_cache = 5_bit;
 
 		// this is only used for readv/writev flags
-		constexpr open_mode_t coalesce_buffers = 7_bit;
+		constexpr open_mode_t coalesce_buffers = 6_bit;
 
 		// when creating a file, set the hidden attribute (windows only)
-		constexpr open_mode_t attribute_hidden = 8_bit;
+		constexpr open_mode_t attribute_hidden = 7_bit;
 
 		// when creating a file, set the executable attribute
-		constexpr open_mode_t attribute_executable = 9_bit;
+		constexpr open_mode_t attribute_executable = 8_bit;
 
 		// the mask of all attribute bits
 		constexpr open_mode_t attribute_mask = attribute_hidden | attribute_executable;

@@ -198,7 +198,6 @@ namespace libtorrent {
 		if (mode & open_mode::sparse) ret |= file_open_mode::sparse;
 		if (mode & open_mode::no_atime) ret |= file_open_mode::no_atime;
 		if (mode & open_mode::random_access) ret |= file_open_mode::random_access;
-		if (mode & open_mode::lock_file) ret |= file_open_mode::locked;
 		return ret;
 	}
 

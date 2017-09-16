@@ -1843,7 +1843,6 @@ COLUMN OPTIONS
 						else if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::read_only) title += "read ";
 						else if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::write_only) title += "write ";
 						if (f->open_mode & lt::file_open_mode::random_access) title += "random_access ";
-						if (f->open_mode & lt::file_open_mode::locked) title += "locked ";
 						if (f->open_mode & lt::file_open_mode::sparse) title += "sparse ";
 						title += "]";
 						++f;
