@@ -2500,8 +2500,6 @@ namespace {
 	}
 
 	// this will no longer be necessary in C++17
-	constexpr alert_category_t peer_alert::static_category;
-	constexpr alert_category_t tracker_alert::static_category;
 	constexpr alert_category_t torrent_removed_alert::static_category;
 	constexpr alert_category_t read_piece_alert::static_category;
 	constexpr alert_category_t file_completed_alert::static_category;
@@ -2511,18 +2509,26 @@ namespace {
 	constexpr alert_category_t state_changed_alert::static_category;
 	constexpr alert_category_t tracker_error_alert::static_category;
 	constexpr alert_category_t tracker_warning_alert::static_category;
+	constexpr alert_category_t scrape_reply_alert::static_category;
 	constexpr alert_category_t scrape_failed_alert::static_category;
+	constexpr alert_category_t tracker_reply_alert::static_category;
 	constexpr alert_category_t dht_reply_alert::static_category;
+	constexpr alert_category_t tracker_announce_alert::static_category;
 	constexpr alert_category_t hash_failed_alert::static_category;
+	constexpr alert_category_t peer_ban_alert::static_category;
+	constexpr alert_category_t peer_unsnubbed_alert::static_category;
+	constexpr alert_category_t peer_snubbed_alert::static_category;
 	constexpr alert_category_t peer_error_alert::static_category;
 	constexpr alert_category_t peer_connect_alert::static_category;
 	constexpr alert_category_t peer_disconnected_alert::static_category;
+	constexpr alert_category_t invalid_request_alert::static_category;
 	constexpr alert_category_t torrent_finished_alert::static_category;
 	constexpr alert_category_t piece_finished_alert::static_category;
 	constexpr alert_category_t request_dropped_alert::static_category;
 	constexpr alert_category_t block_timeout_alert::static_category;
 	constexpr alert_category_t block_finished_alert::static_category;
 	constexpr alert_category_t block_downloading_alert::static_category;
+	constexpr alert_category_t unwanted_block_alert::static_category;
 	constexpr alert_category_t storage_moved_alert::static_category;
 	constexpr alert_category_t storage_moved_failed_alert::static_category;
 	constexpr alert_category_t torrent_deleted_alert::static_category;

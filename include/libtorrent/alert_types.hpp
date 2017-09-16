@@ -76,8 +76,9 @@ namespace libtorrent {
 		torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 		torrent_alert(torrent_alert&&) noexcept = default;
 
-		// internal
-		static const int alert_type = 0;
+#ifndef TORRENT_NO_DEPRECATE
+		static const int TORRENT_DEPRECATED_MEMBER alert_type = 0;
+#endif
 
 		// returns the message associated with this alert
 		std::string message() const override;
@@ -108,9 +109,10 @@ namespace libtorrent {
 			tcp::endpoint const& i, peer_id const& pi);
 		peer_alert(peer_alert&& rhs) noexcept = default;
 
-		static const int alert_type = 1;
-		static constexpr alert_category_t static_category = alert::peer_notification;
-		alert_category_t category() const override { return static_category; }
+#ifndef TORRENT_NO_DEPRECATE
+		static const int TORRENT_DEPRECATED_MEMBER alert_type = 1;
+#endif
+
 		std::string message() const override;
 
 		// The peer's IP address and port.
@@ -134,9 +136,10 @@ namespace libtorrent {
 		tracker_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& ep, string_view u);
 
-		static const int alert_type = 2;
-		static constexpr alert_category_t static_category = alert::tracker_notification;
-		alert_category_t category() const override { return static_category; }
+#ifndef TORRENT_NO_DEPRECATE
+		static const int TORRENT_DEPRECATED_MEMBER alert_type = 2;
+#endif
+
 		std::string message() const override;
 
 		// endpoint of the listen interface being announced
@@ -496,6 +499,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(scrape_reply_alert, 13)
 
+		static constexpr alert_category_t static_category = alert::tracker_notification;
 		std::string message() const override;
 
 		// the data returned in the scrape response. These numbers
@@ -552,6 +556,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(tracker_reply_alert, 15)
 
+		static constexpr alert_category_t static_category = alert::tracker_notification;
 		std::string message() const override;
 
 		// tells how many peers the tracker returned in this response. This is
@@ -571,9 +576,9 @@ namespace libtorrent {
 			, torrent_handle const& h
 			, int np);
 
-		static constexpr alert_category_t static_category = alert::dht_notification | alert::tracker_notification;
 		TORRENT_DEFINE_ALERT(dht_reply_alert, 16)
 
+		static constexpr alert_category_t static_category = alert::dht_notification | alert::tracker_notification;
 		std::string message() const override;
 
 		int const num_peers;
@@ -591,6 +596,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(tracker_announce_alert, 17)
 
+		static constexpr alert_category_t static_category = alert::tracker_notification;
 		std::string message() const override;
 
 		// specifies what event was sent to the tracker. It is defined as:
@@ -628,6 +634,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(peer_ban_alert, 19)
 
+		static constexpr alert_category_t static_category = alert::peer_notification;
 		std::string message() const override;
 	};
 
@@ -641,6 +648,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(peer_unsnubbed_alert, 20)
 
+		static constexpr alert_category_t static_category = alert::peer_notification;
 		std::string message() const override;
 	};
 
@@ -654,6 +662,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(peer_snubbed_alert, 21)
 
+		static constexpr alert_category_t static_category = alert::peer_notification;
 		std::string message() const override;
 	};
 
@@ -746,6 +755,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(invalid_request_alert, 25)
 
+		static constexpr alert_category_t static_category = alert::peer_notification;
 		std::string message() const override;
 
 		// the request we received from the peer
@@ -880,6 +890,7 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(unwanted_block_alert, 32)
 
+		static constexpr alert_category_t static_category = alert::peer_notification;
 		std::string message() const override;
 
 		int const block_index;
