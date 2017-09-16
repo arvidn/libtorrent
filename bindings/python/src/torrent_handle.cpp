@@ -596,7 +596,9 @@ void bind_torrent_handle()
     s.attr("sparse") = file_open_mode::sparse;
     s.attr("no_atime") = file_open_mode::no_atime;
     s.attr("random_access") = file_open_mode::random_access;
-    s.attr("locked") = file_open_mode::locked;
+#ifndef TORRENT_NO_DEPRECATE
+    s.attr("locked") = 0;
+#endif
     }
 
     enum_<torrent_handle::file_progress_flags_t>("file_progress_flags")
