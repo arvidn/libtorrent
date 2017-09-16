@@ -913,10 +913,11 @@ namespace libtorrent
 		int piece_index;
 	};
 
-	// The ``storage_moved_alert`` is generated when all the disk IO has completed and the
-	// files have been moved, as an effect of a call to ``torrent_handle::move_storage``. This
-	// is useful to synchronize with the actual disk. The ``path`` member is the new path of
-	// the storage.
+	// The ``storage_moved_alert`` is generated when all the disk IO has
+	// completed and the files have been moved, as an effect of a call to
+	// ``torrent_handle::move_storage``. This is useful to synchronize with the
+	// actual disk. The ``storage_path()`` member return the new path of the
+	// storage.
 	struct TORRENT_EXPORT storage_moved_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
