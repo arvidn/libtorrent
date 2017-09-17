@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 
 #include <cstdlib> // for malloc
-#include <cstring> // for memmov/strcpy/strlen
+#include <cstring> // for strlen
 #include <algorithm> // for search
 
 namespace libtorrent {
@@ -52,15 +52,12 @@ namespace libtorrent {
 		std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10> ret;
 		char *p = &ret.back();
 		*p = '\0';
-		std::uint64_t un = std::uint64_t(n);
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4146 ) /* warning C4146: unary minus operator applied to unsigned type */
-#endif // _MSC_VER
-		if (n < 0)  un = -un;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
+		// we want "un" to be the absolute value
+		// since the absolute of INT64_MIN cannot be represented by a signed
+		// int64, we calculate the abs in unsigned space
+		std::uint64_t un = n < 0
+			? std::numeric_limits<std::uint64_t>::max() - std::uint64_t(n) + 1
+			: std::uint64_t(n);
 		do {
 			*--p = '0' + un % 10;
 			un /= 10;

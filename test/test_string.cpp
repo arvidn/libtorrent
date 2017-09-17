@@ -131,8 +131,79 @@ TORRENT_TEST(to_string)
 {
 	TEST_CHECK(to_string(345).data() == std::string("345"));
 	TEST_CHECK(to_string(-345).data() == std::string("-345"));
+	TEST_CHECK(to_string(std::numeric_limits<std::int64_t>::max()).data() == std::string("9223372036854775807"));
+	TEST_CHECK(to_string(std::numeric_limits<std::int64_t>::min()).data() == std::string("-9223372036854775808"));
+
 	TEST_CHECK(to_string(0).data() == std::string("0"));
+	TEST_CHECK(to_string(10).data() == std::string("10"));
+	TEST_CHECK(to_string(100).data() == std::string("100"));
+	TEST_CHECK(to_string(1000).data() == std::string("1000"));
+	TEST_CHECK(to_string(10000).data() == std::string("10000"));
+	TEST_CHECK(to_string(100000).data() == std::string("100000"));
+	TEST_CHECK(to_string(1000000).data() == std::string("1000000"));
+	TEST_CHECK(to_string(10000000).data() == std::string("10000000"));
+	TEST_CHECK(to_string(100000000).data() == std::string("100000000"));
 	TEST_CHECK(to_string(1000000000).data() == std::string("1000000000"));
+	TEST_CHECK(to_string(10000000000).data() == std::string("10000000000"));
+	TEST_CHECK(to_string(100000000000).data() == std::string("100000000000"));
+	TEST_CHECK(to_string(1000000000000).data() == std::string("1000000000000"));
+	TEST_CHECK(to_string(10000000000000).data() == std::string("10000000000000"));
+	TEST_CHECK(to_string(100000000000000).data() == std::string("100000000000000"));
+	TEST_CHECK(to_string(1000000000000000).data() == std::string("1000000000000000"));
+
+	TEST_CHECK(to_string(9).data() == std::string("9"));
+	TEST_CHECK(to_string(99).data() == std::string("99"));
+	TEST_CHECK(to_string(999).data() == std::string("999"));
+	TEST_CHECK(to_string(9999).data() == std::string("9999"));
+	TEST_CHECK(to_string(99999).data() == std::string("99999"));
+	TEST_CHECK(to_string(999999).data() == std::string("999999"));
+	TEST_CHECK(to_string(9999999).data() == std::string("9999999"));
+	TEST_CHECK(to_string(99999999).data() == std::string("99999999"));
+	TEST_CHECK(to_string(999999999).data() == std::string("999999999"));
+	TEST_CHECK(to_string(9999999999).data() == std::string("9999999999"));
+	TEST_CHECK(to_string(99999999999).data() == std::string("99999999999"));
+	TEST_CHECK(to_string(999999999999).data() == std::string("999999999999"));
+	TEST_CHECK(to_string(9999999999999).data() == std::string("9999999999999"));
+	TEST_CHECK(to_string(99999999999999).data() == std::string("99999999999999"));
+	TEST_CHECK(to_string(999999999999999).data() == std::string("999999999999999"));
+	TEST_CHECK(to_string(9999999999999999).data() == std::string("9999999999999999"));
+	TEST_CHECK(to_string(99999999999999999).data() == std::string("99999999999999999"));
+	TEST_CHECK(to_string(999999999999999999).data() == std::string("999999999999999999"));
+
+	TEST_CHECK(to_string(-10).data() == std::string("-10"));
+	TEST_CHECK(to_string(-100).data() == std::string("-100"));
+	TEST_CHECK(to_string(-1000).data() == std::string("-1000"));
+	TEST_CHECK(to_string(-10000).data() == std::string("-10000"));
+	TEST_CHECK(to_string(-100000).data() == std::string("-100000"));
+	TEST_CHECK(to_string(-1000000).data() == std::string("-1000000"));
+	TEST_CHECK(to_string(-10000000).data() == std::string("-10000000"));
+	TEST_CHECK(to_string(-100000000).data() == std::string("-100000000"));
+	TEST_CHECK(to_string(-1000000000).data() == std::string("-1000000000"));
+	TEST_CHECK(to_string(-10000000000).data() == std::string("-10000000000"));
+	TEST_CHECK(to_string(-100000000000).data() == std::string("-100000000000"));
+	TEST_CHECK(to_string(-1000000000000).data() == std::string("-1000000000000"));
+	TEST_CHECK(to_string(-10000000000000).data() == std::string("-10000000000000"));
+	TEST_CHECK(to_string(-100000000000000).data() == std::string("-100000000000000"));
+	TEST_CHECK(to_string(-1000000000000000).data() == std::string("-1000000000000000"));
+
+	TEST_CHECK(to_string(-9).data() == std::string("-9"));
+	TEST_CHECK(to_string(-99).data() == std::string("-99"));
+	TEST_CHECK(to_string(-999).data() == std::string("-999"));
+	TEST_CHECK(to_string(-9999).data() == std::string("-9999"));
+	TEST_CHECK(to_string(-99999).data() == std::string("-99999"));
+	TEST_CHECK(to_string(-999999).data() == std::string("-999999"));
+	TEST_CHECK(to_string(-9999999).data() == std::string("-9999999"));
+	TEST_CHECK(to_string(-99999999).data() == std::string("-99999999"));
+	TEST_CHECK(to_string(-999999999).data() == std::string("-999999999"));
+	TEST_CHECK(to_string(-9999999999).data() == std::string("-9999999999"));
+	TEST_CHECK(to_string(-99999999999).data() == std::string("-99999999999"));
+	TEST_CHECK(to_string(-999999999999).data() == std::string("-999999999999"));
+	TEST_CHECK(to_string(-9999999999999).data() == std::string("-9999999999999"));
+	TEST_CHECK(to_string(-99999999999999).data() == std::string("-99999999999999"));
+	TEST_CHECK(to_string(-999999999999999).data() == std::string("-999999999999999"));
+	TEST_CHECK(to_string(-9999999999999999).data() == std::string("-9999999999999999"));
+	TEST_CHECK(to_string(-99999999999999999).data() == std::string("-99999999999999999"));
+	TEST_CHECK(to_string(-999999999999999999).data() == std::string("-999999999999999999"));
 }
 
 TORRENT_TEST(base64)
