@@ -1400,56 +1400,6 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 	update_cache_state(pe);
 }
 
-// frees all buffers associated with this piece. May only
-// be called for pieces with a refcount of 0
-void block_cache::free_piece(cached_piece_entry* pe)
-{
-	INVARIANT_CHECK;
-
-	TORRENT_PIECE_ASSERT(pe->in_use, pe);
-
-	TORRENT_PIECE_ASSERT(pe->refcount == 0, pe);
-	TORRENT_PIECE_ASSERT(pe->piece_refcount == 0, pe);
-	TORRENT_PIECE_ASSERT(pe->outstanding_read == 0, pe);
-
-	// build a vector of all the buffers we need to free
-	// and free them all in one go
-	TORRENT_ALLOCA(to_delete, char*, pe->blocks_in_piece);
-	int num_to_delete = 0;
-	int removed_clean = 0;
-	for (int i = 0; i < pe->blocks_in_piece; ++i)
-	{
-		if (pe->blocks[i].buf == nullptr) continue;
-		TORRENT_PIECE_ASSERT(pe->blocks[i].pending == false, pe);
-		TORRENT_PIECE_ASSERT(pe->blocks[i].refcount == 0, pe);
-		TORRENT_PIECE_ASSERT(num_to_delete < pe->blocks_in_piece, pe);
-		to_delete[num_to_delete++] = pe->blocks[i].buf;
-		pe->blocks[i].buf = nullptr;
-		TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
-		--pe->num_blocks;
-		if (pe->blocks[i].dirty)
-		{
-			TORRENT_PIECE_ASSERT(m_write_cache_size > 0, pe);
-			--m_write_cache_size;
-			TORRENT_PIECE_ASSERT(pe->num_dirty > 0, pe);
-			--pe->num_dirty;
-		}
-		else
-		{
-			++removed_clean;
-		}
-	}
-
-	TORRENT_PIECE_ASSERT(m_read_cache_size >= removed_clean, pe);
-	m_read_cache_size -= removed_clean;
-	if (pe->cache_state == cached_piece_entry::volatile_read_lru)
-	{
-		m_volatile_size -= num_to_delete;
-	}
-	if (num_to_delete) free_multiple_buffers(to_delete.first(num_to_delete));
-	update_cache_state(pe);
-}
-
 int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf)
 {
 	int const piece_size = p.storage->files().piece_size(p.piece);

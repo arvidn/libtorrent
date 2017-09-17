@@ -49,15 +49,15 @@ namespace libtorrent {
 	{
 		m_abort = true;
 
-		std::vector<bw_request> tm;
-		tm.swap(m_queue);
+		std::vector<bw_request> queue;
+		queue.swap(m_queue);
 		m_queued_bytes = 0;
 
-		while (!tm.empty())
+		while (!queue.empty())
 		{
-			bw_request& bwr = tm.back();
+			bw_request& bwr = queue.back();
 			bwr.peer->assign_bandwidth(m_channel, bwr.assigned);
-			tm.pop_back();
+			queue.pop_back();
 		}
 	}
 
@@ -148,7 +148,7 @@ namespace libtorrent {
 
 		std::vector<bandwidth_channel*> channels;
 
-		std::vector<bw_request> tm;
+		std::vector<bw_request> queue;
 
 		for (auto i = m_queue.begin(); i != m_queue.end();)
 		{
@@ -165,7 +165,7 @@ namespace libtorrent {
 				}
 
 				i->assigned = 0;
-				tm.push_back(*i);
+				queue.push_back(*i);
 				i = m_queue.erase(i);
 				continue;
 			}
@@ -201,7 +201,7 @@ namespace libtorrent {
 			{
 				a += i->request_size - i->assigned;
 				TORRENT_ASSERT(i->assigned <= i->request_size);
-				tm.push_back(*i);
+				queue.push_back(*i);
 				i = m_queue.erase(i);
 			}
 			else
@@ -211,11 +211,11 @@ namespace libtorrent {
 			m_queued_bytes -= a;
 		}
 
-		while (!tm.empty())
+		while (!queue.empty())
 		{
-			bw_request& bwr = tm.back();
+			bw_request& bwr = queue.back();
 			bwr.peer->assign_bandwidth(m_channel, bwr.assigned);
-			tm.pop_back();
+			queue.pop_back();
 		}
 	}
 }

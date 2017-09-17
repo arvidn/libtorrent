@@ -295,7 +295,7 @@ struct utp_socket_impl
 	bool test_socket_state();
 	void maybe_trigger_receive_callback();
 	void maybe_trigger_send_callback();
-	bool cancel_handlers(error_code const& ec, bool kill);
+	bool cancel_handlers(error_code const& ec, bool shutdown);
 	bool consume_incoming_data(
 		utp_header const* ph, std::uint8_t const* ptr, int payload_size, time_point now);
 	void update_mtu_limits();
@@ -881,18 +881,18 @@ void utp_stream::on_close_reason(void* self, close_reason_t reason)
 }
 
 void utp_stream::on_read(void* self, std::size_t const bytes_transferred
-	, error_code const& ec, bool const kill)
+	, error_code const& ec, bool const shutdown)
 {
 	utp_stream* s = static_cast<utp_stream*>(self);
 
-	UTP_LOGV("%8p: calling read handler read:%d ec:%s kill:%d\n", static_cast<void*>(s->m_impl)
-		, int(bytes_transferred), ec.message().c_str(), kill);
+	UTP_LOGV("%8p: calling read handler read:%d ec:%s shutdown:%d\n", static_cast<void*>(s->m_impl)
+		, int(bytes_transferred), ec.message().c_str(), shutdown);
 
 	TORRENT_ASSERT(s->m_read_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec || s->m_impl->m_null_buffers);
 	s->m_io_service.post(std::bind<void>(std::move(s->m_read_handler), ec, bytes_transferred));
 	s->m_read_handler = nullptr;
-	if (kill && s->m_impl)
+	if (shutdown && s->m_impl)
 	{
 		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
@@ -901,19 +901,19 @@ void utp_stream::on_read(void* self, std::size_t const bytes_transferred
 }
 
 void utp_stream::on_write(void* self, std::size_t const bytes_transferred
-	, error_code const& ec, bool const kill)
+	, error_code const& ec, bool const shutdown)
 {
 	utp_stream* s = static_cast<utp_stream*>(self);
 
-	UTP_LOGV("%8p: calling write handler written:%d ec:%s kill:%d\n"
+	UTP_LOGV("%8p: calling write handler written:%d ec:%s shutdown:%d\n"
 		, static_cast<void*>(s->m_impl)
-		, int(bytes_transferred), ec.message().c_str(), kill);
+		, int(bytes_transferred), ec.message().c_str(), shutdown);
 
 	TORRENT_ASSERT(s->m_write_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec);
 	s->m_io_service.post(std::bind<void>(std::move(s->m_write_handler), ec, bytes_transferred));
 	s->m_write_handler = nullptr;
-	if (kill && s->m_impl)
+	if (shutdown && s->m_impl)
 	{
 		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
@@ -921,18 +921,18 @@ void utp_stream::on_write(void* self, std::size_t const bytes_transferred
 	}
 }
 
-void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
+void utp_stream::on_connect(void* self, error_code const& ec, bool shutdown)
 {
 	utp_stream* s = static_cast<utp_stream*>(self);
 	TORRENT_ASSERT(s);
 
-	UTP_LOGV("%8p: calling connect handler ec:%s kill:%d\n"
-		, static_cast<void*>(s->m_impl), ec.message().c_str(), kill);
+	UTP_LOGV("%8p: calling connect handler ec:%s shutdown:%d\n"
+		, static_cast<void*>(s->m_impl), ec.message().c_str(), shutdown);
 
 	TORRENT_ASSERT(s->m_connect_handler);
 	s->m_io_service.post(std::bind<void>(std::move(s->m_connect_handler), ec));
 	s->m_connect_handler = nullptr;
-	if (kill && s->m_impl)
+	if (shutdown && s->m_impl)
 	{
 		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
@@ -2396,7 +2396,7 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet_ptr p
 	check_receive_buffers();
 }
 
-bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
+bool utp_socket_impl::cancel_handlers(error_code const& ec, bool shutdown)
 {
 	INVARIANT_CHECK;
 
@@ -2413,9 +2413,9 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 	m_write_handler = false;
 	m_connect_handler = false;
 
-	if (read) utp_stream::on_read(m_userdata, 0, ec, kill);
-	if (write) utp_stream::on_write(m_userdata, 0, ec, kill);
-	if (connect) utp_stream::on_connect(m_userdata, ec, kill);
+	if (read) utp_stream::on_read(m_userdata, 0, ec, shutdown);
+	if (write) utp_stream::on_write(m_userdata, 0, ec, shutdown);
+	if (connect) utp_stream::on_connect(m_userdata, ec, shutdown);
 	return ret;
 }
 
