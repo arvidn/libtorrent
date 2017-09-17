@@ -83,7 +83,7 @@ namespace libtorrent {
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
-			return (buf()[index / 32] & aux::host_to_network((0x80000000 >> (index & 31)))) != 0;
+			return (buf()[index / 32] & aux::host_to_network(0x80000000 >> (index & 31))) != 0;
 		}
 
 		// set bit at ``index`` to 0 (clear_bit) or 1 (set_bit).
@@ -97,7 +97,7 @@ namespace libtorrent {
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
-			buf()[index / 32] |= aux::host_to_network((0x80000000 >> (index & 31)));
+			buf()[index / 32] |= aux::host_to_network(0x80000000 >> (index & 31));
 		}
 
 		// returns true if all bits in the bitfield are set

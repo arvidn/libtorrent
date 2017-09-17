@@ -479,14 +479,14 @@ namespace libtorrent {
 	// returns the error_category for HTTP errors
 	TORRENT_EXPORT boost::system::error_category& http_category();
 
-	using boost::system::error_code;
-	using boost::system::error_condition;
+	using error_code = boost::system::error_code;
+	using error_condition = boost::system::error_condition;
 
 	// internal
 	using boost::system::generic_category;
 	using boost::system::system_category;
 
-	using boost::system::system_error;
+	using system_error = boost::system::system_error;
 
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE

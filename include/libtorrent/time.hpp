@@ -58,11 +58,11 @@ namespace libtorrent {
 	using minutes32 = std::chrono::duration<std::int32_t, std::ratio<60>>;
 	using time_point32 = std::chrono::time_point<clock_type, seconds32>;
 
-	using std::chrono::seconds;
-	using std::chrono::milliseconds;
-	using std::chrono::microseconds;
-	using std::chrono::minutes;
-	using std::chrono::hours;
+	using seconds = std::chrono::seconds;
+	using milliseconds = std::chrono::milliseconds;
+	using microseconds = std::chrono::microseconds;
+	using minutes = std::chrono::minutes;
+	using hours = std::chrono::hours;
 	using std::chrono::duration_cast;
 	using std::chrono::time_point_cast;
 

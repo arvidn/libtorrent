@@ -68,17 +68,17 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 #if defined TORRENT_BUILD_SIMULATOR
-	using sim::asio::ip::udp;
-	using sim::asio::ip::tcp;
+	using udp = sim::asio::ip::udp;
+	using tcp = sim::asio::ip::tcp;
 	using sim::asio::async_write;
 	using sim::asio::async_read;
-	using sim::asio::null_buffers;
+	using null_buffers = sim::asio::null_buffers;
 #else
-	using boost::asio::ip::tcp;
-	using boost::asio::ip::udp;
+	using tcp = boost::asio::ip::tcp;
+	using udp = boost::asio::ip::udp;
 	using boost::asio::async_write;
 	using boost::asio::async_read;
-	using boost::asio::null_buffers;
+	using null_buffers = boost::asio::null_buffers;
 #endif
 
 #ifdef TORRENT_WINDOWS
