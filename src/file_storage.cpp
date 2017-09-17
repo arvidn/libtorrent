@@ -216,7 +216,7 @@ namespace {
 
 	internal_file_entry::~internal_file_entry()
 	{
-		if (name_len == name_is_owned) ::free(const_cast<char*>(name));
+		if (name_len == name_is_owned) delete[] name;
 	}
 
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
@@ -305,7 +305,7 @@ namespace {
 		if (string_len >= name_is_owned) string_len = name_is_owned - 1;
 
 		// free the current string, before assigning the new one
-		if (name_len == name_is_owned) ::free(const_cast<char*>(name));
+		if (name_len == name_is_owned) delete[] name;
 		if (n == nullptr)
 		{
 			TORRENT_ASSERT(borrow_string == false);
