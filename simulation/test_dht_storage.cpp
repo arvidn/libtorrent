@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 using namespace lt::dht;
 using namespace sim;
-using namespace sim::chrono;
+using sim::chrono::high_resolution_clock;
 using namespace sim::asio;
 using sim::simulation;
 using sim::default_config;

@@ -44,9 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 #if defined TORRENT_BUILD_SIMULATOR
-	using sim::asio::io_service;
+	using io_service = sim::asio::io_service;
 #else
-	using boost::asio::io_service;
+	using io_service = boost::asio::io_service;
 #endif
 }
 

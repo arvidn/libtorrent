@@ -180,8 +180,6 @@ namespace libtorrent {
 		constexpr open_mode_t attribute_mask = attribute_hidden | attribute_executable;
 	}
 
-	using namespace flags;
-
 	struct TORRENT_EXTRA_EXPORT file : boost::noncopyable
 	{
 		file();
