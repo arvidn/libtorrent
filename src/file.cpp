@@ -786,7 +786,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	{
 		std::size_t const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
 		char* buf = new char[buf_size];
-		if (!buf) return false;
 		tmp = { buf, buf_size };
 		bufs = span<iovec_t const>(tmp);
 		return true;
@@ -804,7 +803,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	{
 		std::size_t const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
 		char* buf = new char[buf_size];
-		if (!buf) return false;
 		gather_copy(bufs, buf);
 		tmp = { buf, buf_size };
 		bufs = span<iovec_t const>(tmp);
