@@ -155,7 +155,7 @@ script:
     fi'
 
   - 'if [ "$sonar_scan" == "1" ]; then
-       build-wrapper-linux-x86-64 --out-dir bw-output bjam -a -j3 optimization=off crypto=$crypto $toolset variant=$variant -l300 &&
+       build-wrapper-linux-x86-64 --out-dir bw-output bjam -a -j3 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
        sonar-scanner -D sonar.login=$SONAR_TOKEN;
     fi'
 

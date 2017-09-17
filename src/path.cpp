@@ -301,7 +301,7 @@ namespace libtorrent {
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
 			ec.assign(GetLastError(), system_category());
 #else
-		int ret = ::mkdir(n.c_str(), 0777);
+		int ret = ::mkdir(n.c_str(), S_IRWXU | S_IRGRP | S_IROTH);
 		if (ret < 0 && errno != EEXIST)
 			ec.assign(errno, system_category());
 #endif

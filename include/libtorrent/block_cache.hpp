@@ -485,7 +485,6 @@ namespace aux {
 		int copy_from_piece(cached_piece_entry* p, disk_io_job* j
 			, buffer_allocator_interface& allocator, bool expect_no_fail = false);
 
-		void free_piece(cached_piece_entry* p);
 		int drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf);
 
 		// block container
