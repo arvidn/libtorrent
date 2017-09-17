@@ -94,9 +94,11 @@ namespace libtorrent {
 		// logic
 		constexpr file_open_mode_t random_access = 5_bit;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// prevent the file from being opened by another process
 		// while it's still being held open by this handle
-		constexpr file_open_mode_t locked = 6_bit;
+		constexpr file_open_mode_t TORRENT_DEPRECATED locked = 6_bit;
+#endif
 	}
 
 	// this contains information about a file that's currently open by the

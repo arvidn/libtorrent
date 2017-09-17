@@ -179,7 +179,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(always_send_user_agent, false, nullptr),
 		SET(apply_ip_filter_to_trackers, true, nullptr),
 		DEPRECATED_SET(use_disk_read_ahead, true, nullptr),
-		SET(lock_files, false, nullptr),
+		DEPRECATED_SET(lock_files, false, nullptr),
 		DEPRECATED_SET(contiguous_recv_buffer, true, nullptr),
 		SET(ban_web_seeds, true, nullptr),
 		SET(allow_partial_disk_writes, true, nullptr),

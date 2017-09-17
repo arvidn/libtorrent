@@ -542,7 +542,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 			| ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
 		handle_type handle = CreateFileW(file_path.c_str(), m.rw_mode
-			, (mode & open_mode::lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
+			, FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
 
 		if (handle == INVALID_HANDLE_VALUE)
@@ -617,12 +617,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		}
 
 		m_file_handle = handle;
-
-		// The purpose of the lock_file flag is primarily to prevent other
-		// processes from corrupting files that are being used by libtorrent.
-		// the posix file locking mechanism does not prevent others from
-		// accessing files, unless they also attempt to lock the file. That's
-		// why the SETLK mechanism is not used here.
 
 #ifdef DIRECTIO_ON
 		// for solaris
