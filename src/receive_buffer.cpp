@@ -90,7 +90,7 @@ int receive_buffer::advance_pos(int const bytes)
 {
 	INVARIANT_CHECK;
 	int const limit = m_packet_size > m_recv_pos ? m_packet_size - m_recv_pos : m_packet_size;
-	int const sub_transferred = (std::min)(bytes, limit);
+	int const sub_transferred = std::min(bytes, limit);
 	m_recv_pos += sub_transferred;
 	return sub_transferred;
 }
@@ -143,7 +143,7 @@ span<char const> receive_buffer::get() const
 	if (m_recv_buffer.empty())
 	{
 		TORRENT_ASSERT(m_recv_pos == 0);
-		return span<char const>();
+		return {};
 	}
 
 	TORRENT_ASSERT(m_recv_start + m_recv_pos <= int(m_recv_buffer.size()));
@@ -311,7 +311,7 @@ int crypto_receive_buffer::advance_pos(int bytes)
 	if (m_recv_pos == INT_MAX) return bytes;
 
 	int const limit = m_packet_size > m_recv_pos ? m_packet_size - m_recv_pos : m_packet_size;
-	int const sub_transferred = (std::min)(bytes, limit);
+	int const sub_transferred = std::min(bytes, limit);
 	m_recv_pos += sub_transferred;
 	m_connection_buffer.cut(0, m_connection_buffer.packet_size() + sub_transferred);
 	return sub_transferred;
