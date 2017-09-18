@@ -1922,10 +1922,8 @@ namespace libtorrent {
 			&& m_settings.get_bool(settings_pack::strict_super_seeding)
 			&& (!super_seeded_piece(index) || t->num_peers() == 1))
 		{
-			for (torrent::peer_iterator i = t->begin()
-				, end(t->end()); i != end; ++i)
+			for (auto& p : *t)
 			{
-				peer_connection* p = *i;
 				if (!p->super_seeded_piece(index)) continue;
 				if (!p->has_piece(index)) continue;
 				p->superseed_piece(index, t->get_piece_to_super_seed(p->get_bitfield()));
@@ -2455,8 +2453,7 @@ namespace libtorrent {
 	void peer_connection::reject_piece(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		for (std::vector<peer_request>::iterator i = m_requests.begin()
-			, end(m_requests.end()); i != end; ++i)
+		for (auto i = m_requests.begin(), end(m_requests.end()); i != end; ++i)
 		{
 			peer_request const& r = *i;
 			if (r.piece != index) continue;
@@ -2632,7 +2629,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
 		{
-			if (e->on_piece(p, {data, size_t(p.length)}))
+			if (e->on_piece(p, {data, std::size_t(p.length)}))
 			{
 #if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_received_in_piece == p.length);
@@ -2699,11 +2696,8 @@ namespace libtorrent {
 		piece_block block_finished(p.piece, p.start / t->block_size());
 		TORRENT_ASSERT(verify_piece(p));
 
-		std::vector<pending_block>::iterator b
-			= std::find_if(
-				m_download_queue.begin()
-				, m_download_queue.end()
-				, aux::has_block(block_finished));
+		auto const b = std::find_if(m_download_queue.begin()
+			, m_download_queue.end(), aux::has_block(block_finished));
 
 		if (b == m_download_queue.end())
 		{
@@ -3142,8 +3136,7 @@ namespace libtorrent {
 		peer_log(peer_log_alert::incoming_message, "DHT_PORT", "p: %d", listen_port);
 #endif
 #ifndef TORRENT_DISABLE_DHT
-		m_ses.add_dht_node(udp::endpoint(
-			m_remote.address(), std::uint16_t(listen_port)));
+		m_ses.add_dht_node({m_remote.address(), std::uint16_t(listen_port)});
 #else
 		TORRENT_UNUSED(listen_port);
 #endif
@@ -3390,7 +3383,7 @@ namespace libtorrent {
 	bool peer_connection::make_time_critical(piece_block const& block)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
+		auto const rit = std::find_if(m_request_queue.begin()
 			, m_request_queue.end(), aux::has_block(block));
 		if (rit == m_request_queue.end()) return false;
 #if TORRENT_USE_ASSERTS
@@ -3540,14 +3533,13 @@ namespace libtorrent {
 		// support the FAST extensions).
 		std::vector<pending_block> temp_copy = m_download_queue;
 
-		for (std::vector<pending_block>::iterator i = temp_copy.begin()
-			, end(temp_copy.end()); i != end; ++i)
+		for (auto const& pb : temp_copy)
 		{
-			piece_block const b = i->block;
+			piece_block const b = pb.block;
 
 			int const block_offset = b.block_index * t->block_size();
 			int const block_size
-				= (std::min)(t->torrent_file().piece_size(b.piece_index)-block_offset,
+				= std::min(t->torrent_file().piece_size(b.piece_index)-block_offset,
 					t->block_size());
 			TORRENT_ASSERT(block_size > 0);
 			TORRENT_ASSERT(block_size <= t->block_size());
@@ -3589,12 +3581,11 @@ namespace libtorrent {
 		// cancelled, then just ignore the cancel.
 		if (!t->picker().is_requested(block)) return;
 
-		std::vector<pending_block>::iterator it
-			= std::find_if(m_download_queue.begin(), m_download_queue.end()
-				, aux::has_block(block));
+		auto const it = std::find_if(m_download_queue.begin(), m_download_queue.end()
+			, aux::has_block(block));
 		if (it == m_download_queue.end())
 		{
-			std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
+			auto const rit = std::find_if(m_request_queue.begin()
 				, m_request_queue.end(), aux::has_block(block));
 
 			// when a multi block is received, it is cancelled
@@ -3675,8 +3666,7 @@ namespace libtorrent {
 
 		// reject the requests we have in the queue
 		// except the allowed fast pieces
-		for (std::vector<peer_request>::iterator i = m_requests.begin();
-			i != m_requests.end();)
+		for (auto i = m_requests.begin(); i != m_requests.end();)
 		{
 			if (std::find(m_accept_fast.begin(), m_accept_fast.end(), i->piece)
 				!= m_accept_fast.end())
@@ -4381,13 +4371,13 @@ namespace libtorrent {
 
 		// ret is milliseconds, the return value is seconds. Convert to
 		// seconds and round up
-		ret = (std::min)((ret + 999) / 1000
+		ret = std::min((ret + 999) / 1000
 			, m_settings.get_int(settings_pack::request_timeout));
 
 		// timeouts should never be less than 2 seconds. The granularity is whole
 		// seconds, and only checked once per second. 2 is the minimum to avoid
 		// being considered timed out instantly
-		return (std::max)(2, ret);
+		return std::max(2, ret);
 	}
 
 	void peer_connection::get_peer_info(peer_info& p) const
@@ -4435,11 +4425,10 @@ namespace libtorrent {
 		p.upload_queue_length = int(upload_queue().size());
 		p.timed_out_requests = 0;
 		p.busy_requests = 0;
-		for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
-			, end(m_download_queue.end()); i != end; ++i)
+		for (auto const& pb : m_download_queue)
 		{
-			if (i->timed_out) ++p.timed_out_requests;
-			if (i->busy) ++p.busy_requests;
+			if (pb.timed_out) ++p.timed_out_requests;
+			if (pb.busy) ++p.busy_requests;
 		}
 
 		piece_block_progress ret = downloading_piece_progress();
@@ -4460,7 +4449,7 @@ namespace libtorrent {
 
 		p.pieces = get_bitfield();
 		p.last_request = now - m_last_request;
-		p.last_active = now - (std::max)(m_last_sent, m_last_receive);
+		p.last_active = now - std::max(m_last_sent, m_last_receive);
 
 		// this will set the flags so that we can update them later
 		p.flags = {};
@@ -4500,7 +4489,7 @@ namespace libtorrent {
 		p.read_state = m_channel_state[download_channel];
 
 		// pieces may be empty if we don't have metadata yet
-		if (p.pieces.size() == 0)
+		if (p.pieces.empty())
 		{
 			p.progress = 0.f;
 			p.progress_ppm = 0;
@@ -4541,7 +4530,7 @@ namespace libtorrent {
 			peer_log(peer_log_alert::info, "SUPER_SEEDING", "ending");
 #endif
 			std::shared_ptr<torrent> t = m_torrent.lock();
-			assert(t);
+			TORRENT_ASSERT(t);
 
 			// this will either send a full bitfield or
 			// a have-all message, effectively terminating
@@ -4551,7 +4540,7 @@ namespace libtorrent {
 			return;
 		}
 
-		assert(!has_piece(new_piece));
+		TORRENT_ASSERT(!has_piece(new_piece));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d (super seed)"
@@ -4727,8 +4716,7 @@ namespace libtorrent {
 
 		// if the peer hasn't said a thing for a certain
 		// time, it is considered to have timed out
-		time_duration d;
-		d = (std::min)(now - m_last_receive, now - m_last_sent);
+		time_duration d = std::min(now - m_last_receive, now - m_last_sent);
 
 		if (m_connecting)
 		{
@@ -4798,7 +4786,7 @@ namespace libtorrent {
 		// the last 60 seconds, and we haven't been working on servicing a request
 		// for more than 60 seconds.
 		// but only if we're a seed
-		d = now - (std::max)((std::max)(m_last_unchoke, m_last_incoming_request)
+		d = now - std::max(std::max(m_last_unchoke, m_last_incoming_request)
 			, m_last_sent_payload);
 
 		if (may_timeout
@@ -4822,11 +4810,9 @@ namespace libtorrent {
 		// if the peer hasn't become interested and we haven't
 		// become interested in the peer for 10 minutes, it
 		// has also timed out.
-		time_duration d1;
-		time_duration d2;
-		d1 = now - m_became_uninterested;
-		d2 = now - m_became_uninteresting;
-		time_duration time_limit = seconds(
+		time_duration const d1 = now - m_became_uninterested;
+		time_duration const d2 = now - m_became_uninteresting;
+		time_duration const time_limit = seconds(
 			m_settings.get_int(settings_pack::inactivity_timeout));
 
 		// don't bother disconnect peers we haven't been interested
@@ -5355,7 +5341,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		std::shared_ptr<torrent> t = m_torrent.lock();
 
-		const int tick_interval = (std::max)(1, m_settings.get_int(settings_pack::tick_interval));
+		const int tick_interval = std::max(1, m_settings.get_int(settings_pack::tick_interval));
 
 		if (channel == download_channel)
 		{
@@ -5383,7 +5369,7 @@ namespace libtorrent {
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
 
-		bytes = (std::max)(wanted_transfer(channel), bytes);
+		bytes = std::max(wanted_transfer(channel), bytes);
 
 		// we already have enough quota
 		if (m_quota[channel] >= bytes) return 0;
@@ -5471,7 +5457,7 @@ namespace libtorrent {
 		{
 			std::vector<span<char>> vec;
 			// limit outgoing crypto messages to 1MB
-			int const send_bytes = std::min(m_send_buffer.size(), 1024*1024);
+			int const send_bytes = std::min(m_send_buffer.size(), 1024 * 1024);
 			m_send_buffer.build_mutable_iovec(send_bytes, vec);
 			int next_barrier;
 			span<span<char const>> inject_vec;
@@ -5655,7 +5641,7 @@ namespace libtorrent {
 		if (m_quota[download_channel] == 0) return;
 
 		int const quota_left = m_quota[download_channel];
-		int const max_receive = (std::min)(buffer_size, quota_left);
+		int const max_receive = std::min(buffer_size, quota_left);
 
 		if (max_receive == 0) return;
 
@@ -5700,7 +5686,7 @@ namespace libtorrent {
 			TORRENT_ASSERT(dst != nullptr);
 			buf = buf.subspan(free_space);
 		}
-		if (buf.size() <= 0) return;
+		if (buf.empty()) return;
 
 		// allocate a buffer and initialize the beginning of it with 'buf'
 		buffer snd_buf(std::max(buf.size(), std::size_t(128)), buf);
@@ -6482,8 +6468,7 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 #endif
 
-		time_duration d;
-		d = aux::time_now() - m_last_sent;
+		time_duration const d = aux::time_now() - m_last_sent;
 		if (total_seconds(d) < timeout() / 2) return;
 
 		if (m_connecting) return;

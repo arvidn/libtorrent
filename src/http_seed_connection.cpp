@@ -428,7 +428,7 @@ namespace libtorrent {
 
 
 			// we only received the header, no data
-			if (int(recv_buffer.size()) == 0) break;
+			if (recv_buffer.empty()) break;
 
 			if (int(recv_buffer.size()) < front_request.length) break;
 

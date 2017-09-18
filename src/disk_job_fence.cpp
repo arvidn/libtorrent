@@ -71,7 +71,7 @@ namespace libtorrent { namespace aux {
 			int ret = 0;
 			while (m_blocked_jobs.size())
 			{
-				disk_io_job *bj = static_cast<disk_io_job*>(m_blocked_jobs.pop_front());
+				disk_io_job *bj = m_blocked_jobs.pop_front();
 				if (bj->flags & disk_io_job::fence)
 				{
 					// we encountered another fence. We cannot post anymore
@@ -122,7 +122,7 @@ namespace libtorrent { namespace aux {
 		TORRENT_ASSERT(m_blocked_jobs.size() > 0);
 
 		// this is the fence job
-		disk_io_job *bj = static_cast<disk_io_job*>(m_blocked_jobs.pop_front());
+		disk_io_job *bj = m_blocked_jobs.pop_front();
 		TORRENT_ASSERT(bj->flags & disk_io_job::fence);
 
 		TORRENT_ASSERT(!(bj->flags & disk_io_job::in_progress));
