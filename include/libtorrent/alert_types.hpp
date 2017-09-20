@@ -924,7 +924,7 @@ namespace libtorrent
 		storage_moved_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, std::string const& p);
 
-		TORRENT_DEFINE_ALERT(storage_moved_alert, 33)
+		TORRENT_DEFINE_ALERT_PRIO(storage_moved_alert, 33)
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -951,7 +951,7 @@ namespace libtorrent
 			, std::string const& file
 			, char const* op);
 
-		TORRENT_DEFINE_ALERT(storage_moved_failed_alert, 34)
+		TORRENT_DEFINE_ALERT_PRIO(storage_moved_failed_alert, 34)
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
