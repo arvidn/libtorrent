@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {namespace {
 
-	static const char extension_name[] = "ut_pex";
+	const char extension_name[] = "ut_pex";
 
 	enum
 	{
@@ -100,12 +100,11 @@ namespace libtorrent {namespace {
 		// max_peer_entries limits the packet size
 		void tick() override
 		{
-			time_point now = aux::time_now();
+			time_point const now = aux::time_now();
 			if (now - seconds(60) < m_last_msg) return;
 			m_last_msg = now;
 
-			int num_peers = m_torrent.num_peers();
-			if (num_peers == 0) return;
+			if (m_torrent.num_peers() == 0) return;
 
 			entry pex;
 			std::string& pla = pex["added"].string();
@@ -128,16 +127,14 @@ namespace libtorrent {namespace {
 
 			m_peers_in_message = 0;
 			int num_added = 0;
-			for (torrent::peer_iterator i = m_torrent.begin()
-				, end(m_torrent.end()); i != end; ++i)
+			for (auto const peer : m_torrent)
 			{
-				peer_connection* peer = *i;
 				if (!send_peer(*peer)) continue;
 
 				tcp::endpoint remote = peer->remote();
 				m_old_peers.insert(remote);
 
-				std::set<tcp::endpoint>::iterator di = dropped.find(remote);
+				auto const di = dropped.find(remote);
 				if (di == dropped.end())
 				{
 					// don't write too big of a package
@@ -224,7 +221,7 @@ namespace libtorrent {namespace {
 		int m_peers_in_message;
 
 		// explicitly disallow assignment, to silence msvc warning
-		ut_pex_plugin& operator=(ut_pex_plugin const&);
+		ut_pex_plugin& operator=(ut_pex_plugin const&) = delete;
 	};
 
 	struct ut_pex_peer_plugin final
@@ -258,13 +255,13 @@ namespace libtorrent {namespace {
 			bdecode_node const messages = h.dict_find_dict("m");
 			if (!messages) return false;
 
-			int index = int(messages.dict_find_int_value(extension_name, -1));
+			int const index = int(messages.dict_find_int_value(extension_name, -1));
 			if (index == -1) return false;
 			m_message_index = index;
 			return true;
 		}
 
-		bool on_extended(int length, int msg, span<char const> body) override
+		bool on_extended(int const length, int const msg, span<char const> body) override
 		{
 			if (msg != extension_index) return false;
 			if (m_message_index == 0) return false;
@@ -277,7 +274,7 @@ namespace libtorrent {namespace {
 
 			if (int(body.size()) < length) return true;
 
-			time_point now = aux::time_now();
+			time_point const now = aux::time_now();
 			if (now - seconds(60) <  m_last_pex[0])
 			{
 				// this client appears to be trying to flood us
@@ -314,9 +311,9 @@ namespace libtorrent {namespace {
 
 				for (int i = 0; i < num_peers; ++i)
 				{
-					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
-					peers4_t::value_type v(adr.address().to_v4().to_bytes(), adr.port());
-					peers4_t::iterator j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
+					tcp::endpoint const adr = detail::read_v4_endpoint<tcp::endpoint>(in);
+					peers4_t::value_type const v(adr.address().to_v4().to_bytes(), adr.port());
+					auto const j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
 					if (j != m_peers.end() && *j == v) m_peers.erase(j);
 				}
 			}
@@ -335,7 +332,7 @@ namespace libtorrent {namespace {
 
 				for (int i = 0; i < num_peers; ++i)
 				{
-					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
+					tcp::endpoint const adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 					char const flags = *fin++;
 
 					if (int(m_peers.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
@@ -344,8 +341,8 @@ namespace libtorrent {namespace {
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 
-					peers4_t::value_type v(adr.address().to_v4().to_bytes(), adr.port());
-					peers4_t::iterator j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
+					peers4_t::value_type const v(adr.address().to_v4().to_bytes(), adr.port());
+					auto const j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
 					// do we already know about this peer?
 					if (j != m_peers.end() && *j == v) continue;
 					m_peers.insert(j, v);
@@ -366,9 +363,9 @@ namespace libtorrent {namespace {
 
 				for (int i = 0; i < num_peers; ++i)
 				{
-					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
-					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
-					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+					tcp::endpoint const adr = detail::read_v6_endpoint<tcp::endpoint>(in);
+					peers6_t::value_type const v(adr.address().to_v6().to_bytes(), adr.port());
+					auto const j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 					if (j != m_peers6.end() && *j == v) m_peers6.erase(j);
 				}
 			}
@@ -388,15 +385,15 @@ namespace libtorrent {namespace {
 
 				for (int i = 0; i < num_peers; ++i)
 				{
-					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
+					tcp::endpoint const adr = detail::read_v6_endpoint<tcp::endpoint>(in);
 					char const flags = *fin++;
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 					if (int(m_peers6.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
 						break;
 
-					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
-					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+					peers6_t::value_type const v(adr.address().to_v6().to_bytes(), adr.port());
+					auto const j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 					// do we already know about this peer?
 					if (j != m_peers6.end() && *j == v) continue;
 					m_peers6.insert(j, v);
@@ -437,7 +434,7 @@ namespace libtorrent {namespace {
 			// don't send pex messages more often than 1 every 100 ms, and
 			// allow pex messages to be sent 5 seconds apart if there isn't
 			// contention
-			int delay = (std::min)((std::max)(60000 / num_peers, 100), 3000);
+			int const delay = std::min(std::max(60000 / num_peers, 100), 3000);
 
 			if (now - milliseconds(delay) < global_last)
 			{
@@ -492,7 +489,7 @@ namespace libtorrent {namespace {
 			{
 				bdecode_node m;
 				error_code ec;
-				int ret = bdecode(&pex_msg[0], &pex_msg[0] + pex_msg.size(), m, ec);
+				int const ret = bdecode(&pex_msg[0], &pex_msg[0] + pex_msg.size(), m, ec);
 				TORRENT_ASSERT(ret == 0);
 				TORRENT_ASSERT(!ec);
 				TORRENT_UNUSED(ret);
@@ -531,10 +528,8 @@ namespace libtorrent {namespace {
 #endif
 
 			int num_added = 0;
-			for (torrent::peer_iterator i = m_torrent.begin()
-				, end(m_torrent.end()); i != end; ++i)
+			for (auto const peer : m_torrent)
 			{
-				peer_connection* peer = *i;
 				if (!send_peer(*peer)) continue;
 
 				// don't write too big of a package
@@ -631,7 +626,7 @@ namespace libtorrent {namespace {
 		bool m_first_time;
 
 		// explicitly disallow assignment, to silence msvc warning
-		ut_pex_peer_plugin& operator=(ut_pex_peer_plugin const&);
+		ut_pex_peer_plugin& operator=(ut_pex_peer_plugin const&) = delete;
 	};
 
 	std::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle const& pc)
