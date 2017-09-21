@@ -67,7 +67,7 @@
       <td><a href="streaming.html">streaming</a></td>
     </tr>
     <tr>
-      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="https://github.com/arvidn/libtorrent/issues">report a bug</a></td>
       <td><a href="building.html">building</a></td>
       <td><a href="bittorrent.pdf">bittorrent slides</a></td>
     </tr>
