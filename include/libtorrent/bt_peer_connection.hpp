@@ -410,6 +410,8 @@ namespace libtorrent {
 #pragma clang diagnostic push
 // macOS clang doesn't have -Wshadow-field
 #pragma clang diagnostic ignored "-Wunknown-pragmas"
+// Xcode 9 needs this
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
 #pragma clang diagnostic ignored "-Wshadow-field"
 #endif
 		crypto_receive_buffer m_recv_buffer;
