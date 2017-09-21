@@ -1481,8 +1481,10 @@ namespace libtorrent
 			// when a seeding torrent reaches either the share ratio (bytes up /
 			// bytes down) or the seed time ratio (seconds as seed / seconds as
 			// downloader) or the seed time limit (seconds as seed) it is
-			// considered done, and it will leave room for other torrents these
-			// are specified as percentages
+			// considered done, and it will leave room for other torrents. These
+			// are specified as percentages. Torrents that are considered done will
+			// still be allowed to be seeded, they just won't have priority anymore.
+			// For more, see queuing_.
 			share_ratio_limit,
 			seed_time_ratio_limit,
 
