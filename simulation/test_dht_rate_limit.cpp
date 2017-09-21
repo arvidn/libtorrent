@@ -132,7 +132,7 @@ TORRENT_TEST(dht_rate_limit)
 		udp_socket::packet p;
 		error_code err;
 		int const num = int(sock.read(lt::span<udp_socket::packet>(&p, 1), err));
-		if (num) dht->incoming_packet(p.from, p.data);
+		if (num) dht->incoming_packet(ls, p.from, p.data);
 		if (stop || err) return;
 		sock.async_read(on_read);
 	};

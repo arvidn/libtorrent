@@ -1686,7 +1686,7 @@ namespace {
 		// TODO: 2 use a handler allocator here
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
 		ret->udp_sock->sock.async_read(std::bind(&session_impl::on_udp_packet
-			, this, ret->udp_sock, ret->ssl, _1));
+			, this, ret->udp_sock, ret, ret->ssl, _1));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
@@ -2078,7 +2078,7 @@ namespace {
 			// TODO: 2 use a handler allocator here
 			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
 			udp_sock->sock.async_read(std::bind(&session_impl::on_udp_packet
-				, this, udp_sock, ep.ssl, _1));
+				, this, udp_sock, std::weak_ptr<listen_socket_t>(), ep.ssl, _1));
 
 			if (!ec && udp_sock)
 			{
@@ -2328,7 +2328,7 @@ namespace {
 
 
 	void session_impl::on_udp_packet(std::weak_ptr<session_udp_socket> socket
-		, transport const ssl, error_code const& ec)
+		, std::weak_ptr<listen_socket_t> ls, transport const ssl, error_code const& ec)
 	{
 		COMPLETE_ASYNC("session_impl::on_udp_packet");
 		if (ec)
@@ -2402,7 +2402,9 @@ namespace {
 #ifndef TORRENT_DISABLE_DHT
 					if (m_dht && buf.size() > 20 && buf.front() == 'd' && buf.back() == 'e')
 					{
-						handled = m_dht->incoming_packet(packet.from, buf);
+						auto listen_socket = ls.lock();
+						if (listen_socket)
+							handled = m_dht->incoming_packet(listen_socket, packet.from, buf);
 					}
 #endif
 
@@ -2470,7 +2472,7 @@ namespace {
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
 		s->sock.async_read(std::bind(&session_impl::on_udp_packet
-			, this, socket, ssl, _1));
+			, this, std::move(socket), std::move(ls), ssl, _1));
 	}
 
 	void session_impl::async_accept(std::shared_ptr<tcp::acceptor> const& listener

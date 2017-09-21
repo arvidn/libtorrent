@@ -288,7 +288,7 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	if (ec) std::printf("bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, ep);
-	node.incoming(m);
+	node.incoming(node.m_sock, m);
 
 	// If the request is supposed to get a response, by now the node should have
 	// invoked the send function and put the response in g_sent_packets
@@ -333,7 +333,7 @@ void send_dht_response(node& node, bdecode_node const& request, udp::endpoint co
 	if (ec) std::printf("bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, ep);
-	node.incoming(m);
+	node.incoming(node.m_sock, m);
 }
 
 struct announce_item
@@ -3254,7 +3254,7 @@ TORRENT_TEST(invalid_error_msg)
 	if (ec) std::printf("bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, source);
-	node.incoming(m);
+	node.incoming(node.m_sock, m);
 
 	bool found = false;
 	for (int i = 0; i < int(observer.m_log.size()); ++i)

@@ -1102,6 +1102,7 @@ namespace aux {
 			void on_udp_writeable(std::weak_ptr<session_udp_socket> s, error_code const& ec);
 
 			void on_udp_packet(std::weak_ptr<session_udp_socket> s
+				, std::weak_ptr<listen_socket_t> ls
 				, transport ssl, error_code const& ec);
 
 			libtorrent::utp_socket_manager m_utp_socket_manager;

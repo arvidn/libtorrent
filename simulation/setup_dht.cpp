@@ -145,7 +145,7 @@ struct dht_node final : lt::dht::socket_manager
 		if (msg.type() != bdecode_node::dict_t) return;
 
 		lt::dht::msg m(msg, m_ep);
-		dht().incoming(m);
+		dht().incoming(m_ls, m);
 
 		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
 			, m_ep, [&](lt::error_code const& ec, std::size_t bytes_transferred)

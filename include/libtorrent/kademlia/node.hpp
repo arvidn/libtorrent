@@ -110,7 +110,7 @@ public:
 	void add_router_node(udp::endpoint const& router);
 
 	void unreachable(udp::endpoint const& ep);
-	void incoming(msg const& m);
+	void incoming(aux::listen_socket_handle const& s, msg const& m);
 
 #ifndef TORRENT_NO_DEPRECATE
 	int num_torrents() const { return int(m_storage.num_torrents()); }
@@ -241,6 +241,7 @@ private:
 public:
 	routing_table m_table;
 	rpc_manager m_rpc;
+	aux::listen_socket_handle const m_sock;
 
 private:
 
@@ -252,6 +253,8 @@ private:
 	};
 
 	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
+
+	socket_manager* m_sock_man;
 
 	get_foreign_node_t m_get_foreign_node;
 
@@ -268,8 +271,6 @@ private:
 	// secret random numbers used to create write tokens
 	std::uint32_t m_secret[2];
 
-	socket_manager* m_sock_man;
-	aux::listen_socket_handle m_sock;
 	counters& m_counters;
 
 	dht_storage_interface& m_storage;
