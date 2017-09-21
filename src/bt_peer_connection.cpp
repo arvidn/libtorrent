@@ -315,13 +315,17 @@ namespace {
 		// connections that are still in the handshake
 		// will send their bitfield when the handshake
 		// is done
+		std::shared_ptr<torrent> t = associated_torrent().lock();
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		write_upload_only();
+		if (!t->share_mode())
+		{
+			bool const upload_only_enabled = t->is_upload_only() && !t->super_seeding();
+			send_upload_only(upload_only_enabled);
+		}
 #endif
 
 		if (m_sent_bitfield) return;
 
-		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 		write_bitfield();
 		TORRENT_ASSERT(m_sent_bitfield);
@@ -1904,42 +1908,36 @@ namespace {
 		return finished;
 	}
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-	void bt_peer_connection::write_upload_only()
+	void bt_peer_connection::write_upload_only(bool const enabled)
 	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		INVARIANT_CHECK;
 
+#if TORRENT_USE_ASSERTS
 		std::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(!t->share_mode());
+#endif
+
 		if (m_upload_only_id == 0) return;
-		if (t->share_mode()) return;
 
 		// if we send upload-only, the other end is very likely to disconnect
 		// us, at least if it's a seed. If we don't want to close redundant
 		// connections, don't sent upload-only
 		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		if (should_log(peer_log_alert::outgoing_message))
-		{
-			peer_log(peer_log_alert::outgoing_message, "UPLOAD_ONLY", "%d"
-				, int(t->is_upload_only() && !t->super_seeding()));
-		}
-#endif
-
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;
 		detail::write_uint8(m_upload_only_id, ptr);
-		// if we're super seeding, we don't want to make peers
-		// think that we only have a single piece and is upload
-		// only, since they might disconnect immediately when
-		// they have downloaded a single piece, although we'll
-		// make another piece available
-		detail::write_uint8(t->is_upload_only() && !t->super_seeding(), ptr);
+		detail::write_uint8(enabled, ptr);
 		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
+#else
+		TORRENT_UNUSED(enabled);
+#endif
 	}
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	void bt_peer_connection::write_share_mode()
 	{
 		INVARIANT_CHECK;

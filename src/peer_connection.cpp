@@ -3764,8 +3764,27 @@ namespace libtorrent {
 		m_became_uninteresting = aux::time_now();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "NOT_INTERESTED");
+		if (should_log(peer_log_alert::outgoing_message))
+		{
+			peer_log(peer_log_alert::outgoing_message, "NOT_INTERESTED");
+		}
 #endif
+	}
+
+	void peer_connection::send_upload_only(bool const enabled)
+	{
+		TORRENT_ASSERT(is_single_thread());
+		if (m_connecting || in_handshake()) return;
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log(peer_log_alert::outgoing_message))
+		{
+			peer_log(peer_log_alert::outgoing_message, "UPLOAD_ONLY", "%d"
+				, int(enabled));
+		}
+#endif
+
+		write_upload_only(enabled);
 	}
 
 	void peer_connection::send_piece_suggestions(int const num)

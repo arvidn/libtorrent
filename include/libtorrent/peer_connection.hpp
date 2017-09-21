@@ -576,6 +576,7 @@ namespace aux {
 		void send_interested();
 		void send_not_interested();
 		void send_suggest(piece_index_t piece);
+		void send_upload_only(bool enabled);
 
 		void snub_peer();
 		// reject any request in the request
@@ -706,6 +707,7 @@ namespace aux {
 
 		virtual void write_reject_request(peer_request const& r) = 0;
 		virtual void write_allow_fast(piece_index_t piece) = 0;
+		virtual void write_upload_only(bool enabled) = 0;
 
 		virtual void on_connected() = 0;
 		virtual void on_tick() {}
