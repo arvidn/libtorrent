@@ -879,21 +879,24 @@ namespace libtorrent {
 		if (share_mode()) return;
 		if (super_seeding()) return;
 
+		// if we send upload-only, the other end is very likely to disconnect
+		// us, at least if it's a seed. If we don't want to close redundant
+		// connections, don't sent upload-only
+		if (!settings().get_bool(settings_pack::close_redundant_connections)) return;
+
+		// if we're super seeding, we don't want to make peers
+		// think that we only have a single piece and is upload
+		// only, since they might disconnect immediately when
+		// they have downloaded a single piece, although we'll
+		// make another piece available
+		bool const upload_only_enabled = is_upload_only() && !super_seeding();
+
 		for (auto p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
-			if (p->type() != connection_type::bittorrent)
-				continue;
 
-			// TODO: 3 the general peer interface should have a hook to be notified
-			// of upload only mode to avoid this downcast
-			bt_peer_connection* btp = static_cast<bt_peer_connection*>(p);
-			std::shared_ptr<peer_connection> me(btp->self());
-			if (!btp->is_disconnecting())
-			{
-				btp->send_not_interested();
-				btp->write_upload_only();
-			}
+			p->send_not_interested();
+			p->send_upload_only(upload_only_enabled);
 		}
 #endif
 	}

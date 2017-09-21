@@ -93,6 +93,7 @@ namespace libtorrent {
 		void write_allow_fast(piece_index_t) override {}
 		void write_suggest(piece_index_t) override {}
 		void write_bitfield() override {}
+		void write_upload_only(bool) override {}
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
