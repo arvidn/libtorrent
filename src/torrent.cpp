@@ -1066,9 +1066,11 @@ namespace libtorrent
 		if (share_mode()) return;
 		if (super_seeding()) return;
 
-		int idx = 0;
+		// sending "not_interested" to a peer may cause us to disconnect it. Don't
+		// do that while looping over the peer list.
+		std::vector<bt_peer_connection*> defer;
 		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++idx)
+			i != m_connections.end(); ++i)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			// since the call to disconnect_if_redundant() may
@@ -1078,24 +1080,19 @@ namespace libtorrent
 			if (p->type() == peer_connection::bittorrent_connection)
 			{
 				bt_peer_connection* btp = static_cast<bt_peer_connection*>(*i);
-				boost::shared_ptr<peer_connection> me(btp->self());
 				if (!btp->is_disconnecting())
-				{
-					btp->send_not_interested();
-					btp->write_upload_only();
-				}
+					defer.push_back(btp);
 			}
+		}
 
-
-			if (p->is_disconnecting())
-			{
-				i = m_connections.begin() + idx;
-				--idx;
-			}
-			else
-			{
-				++i;
-			}
+		for (std::vector<bt_peer_connection*>::iterator i = defer.begin()
+			, end(defer.end()); i != end; ++i)
+		{
+			bt_peer_connection* btp = *i;
+			boost::shared_ptr<peer_connection> me(btp->self());
+			btp->send_not_interested();
+			if (!btp->is_disconnecting())
+				btp->write_upload_only();
 		}
 #endif
 	}
