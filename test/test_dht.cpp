@@ -288,7 +288,7 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	if (ec) std::printf("bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, ep);
-	node.incoming(m);
+	node.incoming(node.m_sock, m);
 
 	// If the request is supposed to get a response, by now the node should have
 	// invoked the send function and put the response in g_sent_packets
@@ -333,7 +333,7 @@ void send_dht_response(node& node, bdecode_node const& request, udp::endpoint co
 	if (ec) std::printf("bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, ep);
-	node.incoming(m);
+	node.incoming(node.m_sock, m);
 }
 
 struct announce_item
@@ -2765,6 +2765,31 @@ TORRENT_TEST(dht_dual_stack)
 }
 #endif
 
+TORRENT_TEST(multi_home)
+{
+	// send a request with a different listen socket and make sure the node ignores it
+	dht_test_setup t(udp::endpoint(rand_v4(), 20));
+	bdecode_node response;
+
+	entry e;
+	e["q"] = "ping";
+	e["t"] = "10";
+	e["y"] = "q";
+	e["a"].dict().insert(std::make_pair("id", generate_next().to_string()));
+	char msg_buf[1500];
+	int size = bencode(msg_buf, e);
+
+	bdecode_node decoded;
+	error_code ec;
+	bdecode(msg_buf, msg_buf + size, decoded, ec);
+	if (ec) std::printf("bdecode failed: %s\n", ec.message().c_str());
+
+	dht::msg m(decoded, t.source);
+	t.dht_node.incoming(dummy_listen_socket(udp::endpoint(rand_v4(), 21)), m);
+	TEST_CHECK(g_sent_packets.empty());
+	g_sent_packets.clear();
+}
+
 TORRENT_TEST(signing_test1)
 {
 	// test vector 1
@@ -3254,7 +3279,7 @@ TORRENT_TEST(invalid_error_msg)
 	if (ec) std::printf("bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, source);
-	node.incoming(m);
+	node.incoming(node.m_sock, m);
 
 	bool found = false;
 	for (int i = 0; i < int(observer.m_log.size()); ++i)

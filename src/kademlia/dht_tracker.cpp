@@ -498,8 +498,8 @@ namespace libtorrent { namespace dht {
 		}
 	}
 
-	bool dht_tracker::incoming_packet(udp::endpoint const& ep
-		, span<char const> const buf)
+	bool dht_tracker::incoming_packet(aux::listen_socket_handle const& s
+		, udp::endpoint const& ep, span<char const> const buf)
 	{
 		int const buf_size = int(buf.size());
 		if (buf_size <= 20
@@ -564,7 +564,7 @@ namespace libtorrent { namespace dht {
 
 		libtorrent::dht::msg const m(m_msg, ep);
 		for (auto& n : m_nodes)
-			n.second.dht.incoming(m);
+			n.second.dht.incoming(s, m);
 		return true;
 	}
 

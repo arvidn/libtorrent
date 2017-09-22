@@ -113,13 +113,13 @@ node::node(aux::listen_socket_handle const& sock, socket_manager* sock_man
 	, m_id(calculate_node_id(nid, sock))
 	, m_table(m_id, sock.get_local_endpoint().protocol() == tcp::v4() ? udp::v4() : udp::v6(), 8, settings, observer)
 	, m_rpc(m_id, m_settings, m_table, sock, sock_man, observer)
+	, m_sock(sock)
+	, m_sock_man(sock_man)
 	, m_get_foreign_node(get_foreign_node)
 	, m_observer(observer)
 	, m_protocol(map_protocol_to_descriptor(sock.get_local_endpoint().protocol() == tcp::v4() ? udp::v4() : udp::v6()))
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
-	, m_sock_man(sock_man)
-	, m_sock(sock)
 	, m_counters(cnt)
 	, m_storage(storage)
 {
@@ -256,7 +256,7 @@ void node::unreachable(udp::endpoint const& ep)
 	m_rpc.unreachable(ep);
 }
 
-void node::incoming(msg const& m)
+void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 {
 	// is this a reply?
 	bdecode_node const y_ent = m.message.dict_find_string("y");
@@ -317,7 +317,8 @@ void node::incoming(msg const& m)
 			// responds to 'query' messages that it receives.
 			if (m_settings.read_only) break;
 
-			if (!native_address(m.addr)) break;
+			// only respond to requests if they're addressed to this node
+			if (s != m_sock) break;
 
 			if (!m_sock_man->has_quota())
 			{
