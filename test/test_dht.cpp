@@ -2765,6 +2765,31 @@ TORRENT_TEST(dht_dual_stack)
 }
 #endif
 
+TORRENT_TEST(multi_home)
+{
+	// send a request with a different listen socket and make sure the node ignores it
+	dht_test_setup t(udp::endpoint(rand_v4(), 20));
+	bdecode_node response;
+
+	entry e;
+	e["q"] = "ping";
+	e["t"] = "10";
+	e["y"] = "q";
+	e["a"].dict().insert(std::make_pair("id", generate_next().to_string()));
+	char msg_buf[1500];
+	int size = bencode(msg_buf, e);
+
+	bdecode_node decoded;
+	error_code ec;
+	bdecode(msg_buf, msg_buf + size, decoded, ec);
+	if (ec) std::printf("bdecode failed: %s\n", ec.message().c_str());
+
+	dht::msg m(decoded, t.source);
+	t.dht_node.incoming(dummy_listen_socket(udp::endpoint(rand_v4(), 21)), m);
+	TEST_CHECK(g_sent_packets.empty());
+	g_sent_packets.clear();
+}
+
 TORRENT_TEST(signing_test1)
 {
 	// test vector 1
