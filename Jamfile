@@ -30,7 +30,6 @@ else
 {
 	local boost-lib-search-path =
 		<search>/opt/local/lib
-		<search>/usr/lib
 		<search>/usr/local/lib
 		<search>/sw/lib
 		<search>/usr/g++/lib
@@ -547,12 +546,17 @@ lib gcc : : <name>gcc <link>static ;
 # when using iconv
 lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
-# openssl on linux/bsd/macos etc.
+# openssl on linux/bsd etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
-lib z : : <link>shared <name>z <search>/usr/lib ;
-lib crypto : : <name>crypto <link>shared <search>/usr/lib <use>z : : <include>/opt/local/include ;
-lib ssl : : <name>ssl <link>shared <use>crypto <search>/opt/local/lib : : <include>/opt/local/include ;
+lib z : : <link>shared <name>z ;
 lib dl : : <link>shared <name>dl ;
+
+# pick up openssl on macos from brew
+lib crypto : : <name>crypto <use>z <target-os>darwin <search>/usr/local/opt/openssl/lib : <link>shared : <include>/usr/local/opt/openssl/include ;
+lib ssl : : <name>ssl <use>crypto <target-os>darwin <search>/usr/local/opt/openssl/lib : <link>shared : <include>/usr/local/opt/openssl/include ;
+
+lib crypto : : <name>crypto <use>z : <link>shared ;
+lib ssl : : <name>ssl <use>crypto : <link>shared ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;
