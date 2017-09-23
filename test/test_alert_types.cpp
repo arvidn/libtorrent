@@ -94,8 +94,8 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(block_finished_alert, 30, 0, alert::progress_notification);
 	TEST_ALERT_TYPE(block_downloading_alert, 31, 0, alert::progress_notification);
 	TEST_ALERT_TYPE(unwanted_block_alert, 32, 0, alert::peer_notification);
-	TEST_ALERT_TYPE(storage_moved_alert, 33, 0, alert::storage_notification);
-	TEST_ALERT_TYPE(storage_moved_failed_alert, 34, 0, alert::storage_notification);
+	TEST_ALERT_TYPE(storage_moved_alert, 33, 1, alert::storage_notification);
+	TEST_ALERT_TYPE(storage_moved_failed_alert, 34, 1, alert::storage_notification);
 	TEST_ALERT_TYPE(torrent_deleted_alert, 35, 1, alert::storage_notification);
 	TEST_ALERT_TYPE(torrent_delete_failed_alert, 36, 1, alert::storage_notification | alert::error_notification);
 	TEST_ALERT_TYPE(save_resume_data_alert, 37, 1, alert::storage_notification);

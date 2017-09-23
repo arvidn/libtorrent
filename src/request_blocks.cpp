@@ -113,12 +113,16 @@ namespace libtorrent {
 
 		int prefer_contiguous_blocks = c.prefer_contiguous_blocks();
 
-		if (prefer_contiguous_blocks == 0 && !time_critical_mode)
+		if (prefer_contiguous_blocks == 0
+			&& !time_critical_mode
+			&& t.settings().get_int(settings_pack::whole_pieces_threshold) > 0)
 		{
-			int blocks_per_piece = t.torrent_file().piece_length() / t.block_size();
-			prefer_contiguous_blocks = c.statistics().download_payload_rate()
-				* t.settings().get_int(settings_pack::whole_pieces_threshold)
-				> t.torrent_file().piece_length() ? blocks_per_piece : 0;
+			int const blocks_per_piece = t.torrent_file().piece_length() / t.block_size();
+			prefer_contiguous_blocks
+				= (c.statistics().download_payload_rate()
+				> t.torrent_file().piece_length()
+				/ t.settings().get_int(settings_pack::whole_pieces_threshold))
+				? blocks_per_piece : 0;
 		}
 
 		// if we prefer whole pieces, the piece picker will pick at least
