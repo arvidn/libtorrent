@@ -209,8 +209,8 @@ namespace libtorrent {
 
 		set.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
 
-		// of 500 ms, and a send rate of 4 MB/s, the upper
-		// limit should be 2 MB
+		// calculate with 500ms read time and a send rate of 6 MiB/s,
+		// the upper limit should be 3 MiB
 		set.set_int(settings_pack::send_buffer_watermark, 3 * 1024 * 1024);
 
 		// put 1.5 seconds worth of data in the send buffer
