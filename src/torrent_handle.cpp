@@ -180,9 +180,7 @@ namespace libtorrent {
 	sha1_hash torrent_handle::info_hash() const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		static const sha1_hash empty;
-		if (!t) return empty;
-		return t->info_hash();
+		return t ? t->info_hash() : sha1_hash();
 	}
 
 	int torrent_handle::max_uploads() const
