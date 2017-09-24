@@ -840,7 +840,7 @@ namespace {
 		async_call(&session_impl::delete_peer_class, cid);
 	}
 
-	peer_class_info session_handle::get_peer_class(peer_class_t cid)
+	peer_class_info session_handle::get_peer_class(peer_class_t cid) const
 	{
 		return sync_call_ret<peer_class_info>(&session_impl::get_peer_class, cid);
 	}

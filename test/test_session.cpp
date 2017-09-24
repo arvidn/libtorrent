@@ -445,7 +445,7 @@ TORRENT_TEST(init_dht)
 	auto count_dht_inits = [](session& ses)
 	{
 		int count = 0;
-		int num = 70; // this number is adjusted per version, an estimate
+		int num = 120; // this number is adjusted per version, an estimate
 		time_point const end_time = clock_type::now() + seconds(15);
 		while (true)
 		{

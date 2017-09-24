@@ -698,7 +698,7 @@ namespace libtorrent {
 		// account.
 		//
 		// For more information, see peer-classes_.
-		peer_class_info get_peer_class(peer_class_t cid);
+		peer_class_info get_peer_class(peer_class_t cid) const;
 		void set_peer_class(peer_class_t cid, peer_class_info const& pci);
 
 #ifndef TORRENT_NO_DEPRECATE
