@@ -58,6 +58,9 @@ static const UTF32 halfMask = 0x3FFUL;
 
 /* --------------------------------------------------------------------- */
 
+// TODO: 3 replace this implementation with something maintained and/or robust.
+// Perhaps std::codecvt<>
+
 ConversionResult ConvertUTF32toUTF16 (
 	const UTF32** sourceStart, const UTF32* sourceEnd,
 	UTF16** targetStart, UTF16* targetEnd, ConversionFlags flags) {
@@ -308,7 +311,7 @@ Boolean isLegalUTF8(const UTF8 *source, int length) {
 		case 0xED: if (a > 0x9F) return false; break;
 		case 0xF0: if (a < 0x90) return false; break;
 		case 0xF4: if (a > 0x8F) return false; break;
-		default:   if (a < 0x80) return false;
+		default:   break;
 	}
 
 	case 1: if (*source >= 0x80 && *source < 0xC2) return false;
