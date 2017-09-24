@@ -522,7 +522,7 @@ namespace {
 #endif // TORRENT_NO_DEPRECATE
 
 	peer_request file_storage::map_file(file_index_t const file_index
-		, std::int64_t const file_offset, int size) const
+		, std::int64_t const file_offset, int const size) const
 	{
 		TORRENT_ASSERT_PRECOND(file_index < end_file());
 		TORRENT_ASSERT(m_num_pieces >= 0);

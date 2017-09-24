@@ -588,7 +588,7 @@ namespace libtorrent {
 
 	void torrent::verified(piece_index_t const piece)
 	{
-		TORRENT_ASSERT(m_verified.get_bit(piece) == false);
+		TORRENT_ASSERT(!m_verified.get_bit(piece));
 		++m_num_verified;
 		m_verified.set_bit(piece);
 	}
@@ -738,7 +738,7 @@ namespace libtorrent {
 
 	void torrent::set_ip_filter(std::shared_ptr<const ip_filter> ipf)
 	{
-		m_ip_filter = ipf;
+		m_ip_filter = std::move(ipf);
 		if (!m_apply_ip_filter) return;
 		ip_filter_updated();
 	}
@@ -1244,7 +1244,7 @@ namespace libtorrent {
 
 		update_gauge();
 
-		for (auto p : m_connections)
+		for (auto const p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			peer_has(p->get_bitfield(), p);
@@ -1279,8 +1279,8 @@ namespace libtorrent {
 		, add_piece_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		int piece_size = m_torrent_file->piece_size(piece);
-		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		int const piece_size = m_torrent_file->piece_size(piece);
+		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		if (m_deleted) return;
 
@@ -1362,7 +1362,7 @@ namespace libtorrent {
 		if (alerts().should_post<block_finished_alert>())
 		{
 			alerts().emplace_alert<block_finished_alert>(get_handle(),
-				tcp::endpoint(), peer_id(), int(block_finished.block_index)
+				tcp::endpoint(), peer_id(), block_finished.block_index
 				, block_finished.piece_index);
 		}
 	}
@@ -1439,7 +1439,7 @@ namespace libtorrent {
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-	bool torrent::verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx)
+	bool torrent::verify_peer_cert(bool const preverified, boost::asio::ssl::verify_context& ctx)
 	{
 		// if the cert wasn't signed by the correct CA, fail the verification
 		if (!preverified) return false;
@@ -1471,7 +1471,7 @@ namespace libtorrent {
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;
 			const char* torrent_name = reinterpret_cast<const char*>(domain->data);
-			std::size_t name_length = aux::numeric_cast<std::size_t>(domain->length);
+			std::size_t const name_length = aux::numeric_cast<std::size_t>(domain->length);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (i > 1) names += " | n: ";
@@ -1504,7 +1504,7 @@ namespace libtorrent {
 		if (common_name && common_name->data && common_name->length)
 		{
 			const char* torrent_name = reinterpret_cast<const char*>(common_name->data);
-			std::size_t name_length = aux::numeric_cast<std::size_t>(common_name->length);
+			std::size_t const name_length = aux::numeric_cast<std::size_t>(common_name->length);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
@@ -2083,7 +2083,7 @@ namespace libtorrent {
 					, torrent_file().num_pieces());
 				for (piece_index_t i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
 				{
-					if (m_add_torrent_params->have_pieces[i] == false) continue;
+					if (!m_add_torrent_params->have_pieces[i]) continue;
 					need_picker();
 					m_picker->we_have(i);
 					inc_stats_counter(counters::num_piece_passed);
@@ -2098,7 +2098,7 @@ namespace libtorrent {
 					for (piece_index_t i = piece_index_t(0);
 						i < piece_index_t(num_pieces2); ++i)
 					{
-						if (m_add_torrent_params->verified_pieces[i] == false) continue;
+						if (!m_add_torrent_params->verified_pieces[i]) continue;
 						m_verified.set_bit(i);
 					}
 				}
@@ -3528,7 +3528,7 @@ namespace libtorrent {
 	}
 
 	// fills in total_wanted, total_wanted_done and total_done
-	void torrent::bytes_done(torrent_status& st, bool accurate) const
+	void torrent::bytes_done(torrent_status& st, bool const accurate) const
 	{
 		INVARIANT_CHECK;
 
@@ -3593,7 +3593,7 @@ namespace libtorrent {
 		if (m_picker->has_piece_passed(last_piece))
 		{
 			TORRENT_ASSERT(st.total_done >= piece_size);
-			int corr = m_torrent_file->piece_size(last_piece)
+			int const corr = m_torrent_file->piece_size(last_piece)
 				- piece_size;
 			TORRENT_ASSERT(corr <= 0);
 			TORRENT_ASSERT(corr > -piece_size);
@@ -3619,7 +3619,7 @@ namespace libtorrent {
 				peer_request p = files.map_file(i, 0, int(files.file_size(i)));
 				for (piece_index_t j = p.piece; p.length > 0; ++j)
 				{
-					int deduction = (std::min)(p.length, piece_size - p.start);
+					int const deduction = std::min(p.length, piece_size - p.start);
 					bool const done = m_picker->has_piece_passed(j);
 					bool const wanted = m_picker->piece_priority(j) > 0;
 					if (done) st.total_done -= deduction;
@@ -3715,7 +3715,7 @@ namespace libtorrent {
 		}
 		for (auto const& p : downloading_piece)
 		{
-			int done = (std::min)(block_bytes_wanted(p.first), p.second);
+			int const done = std::min(block_bytes_wanted(p.first), p.second);
 			st.total_done += done;
 			if (m_picker->piece_priority(p.first.piece_index) != 0)
 				st.total_wanted_done += done;
@@ -3992,10 +3992,8 @@ namespace libtorrent {
 		std::remove_copy(downloaders.begin(), downloaders.end()
 			, std::inserter(peers, peers.begin()), static_cast<torrent_peer*>(nullptr));
 
-		for (std::set<torrent_peer*>::iterator i = peers.begin()
-			, end(peers.end()); i != end; ++i)
+		for (auto p : peers)
 		{
-			torrent_peer* p = static_cast<torrent_peer*>(*i);
 			TORRENT_ASSERT(p != nullptr);
 			if (p == nullptr) continue;
 			TORRENT_ASSERT(p->in_use);
@@ -4118,12 +4116,10 @@ namespace libtorrent {
 #endif
 
 		// did we receive this piece from a single peer?
-		bool single_peer = peers.size() == 1;
+		bool const single_peer = peers.size() == 1;
 
-		for (std::set<torrent_peer*>::iterator i = peers.begin()
-			, end(peers.end()); i != end; ++i)
+		for (auto p : peers)
 		{
-			torrent_peer* p = static_cast<torrent_peer*>(*i);
 			if (p == nullptr) continue;
 			TORRENT_ASSERT(p->in_use);
 			bool allow_disconnect = true;
@@ -4264,7 +4260,7 @@ namespace libtorrent {
 		// we have to let the piece_picker know that
 		// this piece failed the check as it can restore it
 		// and mark it as being interesting for download
-		TORRENT_ASSERT(m_picker->have_piece(piece) == false);
+		TORRENT_ASSERT(!m_picker->have_piece(piece));
 
 		// loop over all peers and re-request potential duplicate
 		// blocks to this piece
@@ -4347,7 +4343,7 @@ namespace libtorrent {
 
 	void torrent::peer_lost(piece_index_t const index, peer_connection const* peer)
 	{
-		if (m_picker.get())
+		if (m_picker)
 		{
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->dec_refcount(index, pp);
@@ -4760,7 +4756,7 @@ namespace libtorrent {
 				{
 					// update the average download time and average
 					// download time deviation
-					int dl_time = aux::numeric_cast<int>(total_milliseconds(aux::time_now() - i->first_requested));
+					int const dl_time = aux::numeric_cast<int>(total_milliseconds(aux::time_now() - i->first_requested));
 
 					if (m_average_piece_time == 0)
 					{
@@ -5151,7 +5147,7 @@ namespace libtorrent {
 
 	// this is called when piece priorities have been updated
 	// updates the interested flag in peers
-	void torrent::update_peer_interest(bool was_finished)
+	void torrent::update_peer_interest(bool const was_finished)
 	{
 		for (peer_iterator i = begin(); i != end();)
 		{
@@ -5742,7 +5738,7 @@ namespace libtorrent {
 
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(web->resolving == true);
+		TORRENT_ASSERT(web->resolving);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("completed resolve proxy hostname for: %s", web->url.c_str());
 		if (e && should_log())
@@ -5828,7 +5824,7 @@ namespace libtorrent {
 
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(web->resolving == true);
+		TORRENT_ASSERT(web->resolving);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("completed resolve: %s", web->url.c_str());
 #endif
@@ -5896,7 +5892,7 @@ namespace libtorrent {
 			return;
 		}
 
-		TORRENT_ASSERT(web->resolving == false);
+		TORRENT_ASSERT(!web->resolving);
 		TORRENT_ASSERT(web->peer_info.connection == nullptr);
 
 		if (a.address().is_v4())
@@ -6338,10 +6334,8 @@ namespace libtorrent {
 	void torrent::get_peer_info(std::vector<peer_info>* v)
 	{
 		v->clear();
-		for (peer_iterator i = begin();
-			i != end(); ++i)
+		for (auto const peer : *this)
 		{
-			peer_connection* peer = *i;
 			TORRENT_ASSERT(peer->m_in_use == 1337);
 
 			// incoming peers that haven't finished the handshake should
@@ -6402,7 +6396,7 @@ namespace libtorrent {
 				bi.block_size = idx < pi.blocks_in_piece - 1
 					? aux::numeric_cast<std::uint32_t>(block_size())
 					: aux::numeric_cast<std::uint32_t>(piece_size - (idx * block_size()));
-				bool complete = bi.state == block_info::writing
+				bool const complete = bi.state == block_info::writing
 					|| bi.state == block_info::finished;
 				if (info.peer == nullptr)
 				{
@@ -9173,10 +9167,9 @@ namespace libtorrent {
 
 		// keep trying web-seeds if there are any
 		// first find out which web seeds we are connected to
-		for (std::list<web_seed_t>::iterator i = m_web_seeds.begin();
-			i != m_web_seeds.end() && limit > 0;)
+		for (auto i = m_web_seeds.begin(); i != m_web_seeds.end() && limit > 0;)
 		{
-			std::list<web_seed_t>::iterator w = i++;
+			auto w = i++;
 			if (w->removed || w->retry > now)
 				continue;
 
