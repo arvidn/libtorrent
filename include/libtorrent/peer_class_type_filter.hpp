@@ -62,7 +62,6 @@ namespace libtorrent
 			num_socket_types
 		};
 
-
 		// ``add()`` and ``remove()`` adds and removes a peer class to be added
 		// to new peers based on socket type.
 		void add(socket_type_t st, int peer_class)
@@ -130,9 +129,9 @@ namespace libtorrent
 	private:
 		// maps socket type to a bitmask that's used to filter out
 		// (mask) bits from the m_peer_class_filter.
-		boost::uint32_t m_peer_class_type_mask[5];
+		boost::uint32_t m_peer_class_type_mask[num_socket_types];
 		// peer class bitfield added based on socket type
-		boost::uint32_t m_peer_class_type[5];
+		boost::uint32_t m_peer_class_type[num_socket_types];
 	};
 
 }
