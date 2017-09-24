@@ -468,7 +468,7 @@ namespace aux {
 			void set_peer_class_type_filter(peer_class_type_filter f);
 			peer_class_type_filter get_peer_class_type_filter();
 
-			peer_class_info get_peer_class(peer_class_t cid);
+			peer_class_info get_peer_class(peer_class_t cid) const;
 			void set_peer_class(peer_class_t cid, peer_class_info const& pci);
 
 			bool is_listening() const;

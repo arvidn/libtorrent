@@ -1091,12 +1091,12 @@ namespace {
 		m_classes.decref(cid);
 	}
 
-	peer_class_info session_impl::get_peer_class(peer_class_t cid)
+	peer_class_info session_impl::get_peer_class(peer_class_t const cid) const
 	{
 		peer_class_info ret;
-		peer_class* pc = m_classes.at(cid);
+		peer_class const* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
-		TORRENT_ASSERT(pc);
+		TORRENT_ASSERT_PRECOND(pc);
 		if (pc == nullptr)
 		{
 #if TORRENT_USE_INVARIANT_CHECKS
