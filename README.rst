@@ -10,6 +10,9 @@ libtorrent
 .. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=master
     :target: https://codecov.io/github/arvidn/libtorrent?branch=master&view=all#sort=missing&dir=desc
 
+.. image:: https://sonarcloud.io/api/badges/gate?key=libtorrent
+	:target: https://sonarcloud.io/dashboard?id=libtorrent
+
 .. image:: https://www.openhub.net/p/rasterbar-libtorrent/widgets/project_thin_badge.gif
     :target: https://www.openhub.net/p/rasterbar-libtorrent?ref=sample
 
