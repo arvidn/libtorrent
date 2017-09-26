@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/hasher.hpp"
+#include <vector>
 
 namespace libtorrent {
 
@@ -42,6 +44,9 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT int merkle_num_nodes(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_sibling(int);
+	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf = 0);
+	TORRENT_EXTRA_EXPORT void merkle_clear_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf = 0);
+	TORRENT_EXTRA_EXPORT sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad = {});
 }
 
 #endif

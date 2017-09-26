@@ -65,5 +65,55 @@ namespace libtorrent {
 		return ret;
 	}
 
+	void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf)
+	{
+		int level_start = first_leaf ? first_leaf : merkle_num_nodes(num_leafs) - num_leafs;
+		int level_size = num_leafs;
+		while (level_size > 1)
+		{
+			int parent = merkle_get_parent(level_start);
+			for (int i = level_start; i < level_start + level_size; i += 2, ++parent)
+			{
+				hasher256 h;
+				h.update(tree[i]);
+				h.update(tree[i + 1]);
+				tree[parent] = h.final();
+			}
+			level_start = merkle_get_parent(level_start);
+			level_size /= 2;
+		}
+		TORRENT_ASSERT(level_size == 1);
+	}
+
+	void merkle_clear_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf)
+	{
+		int level_start = first_leaf ? first_leaf : merkle_num_nodes(num_leafs) - num_leafs;
+		int level_size = num_leafs;
+		while (level_size > 1)
+		{
+			for (int i = level_start; i < level_start + level_size; ++i)
+				tree[i].clear();
+			level_start = merkle_get_parent(level_start);
+			level_size /= 2;
+		}
+		TORRENT_ASSERT(level_size == 1);
+	}
+
+	sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad)
+	{
+		int const num_pieces = int(leaves.size());
+		int const num_leafs = merkle_num_leafs(num_pieces);
+		int const num_nodes = merkle_num_nodes(num_leafs);
+		int const first_leaf = num_nodes - num_leafs;
+		std::vector<sha256_hash> merkle_tree(num_nodes);
+		for (int i = 0; i < num_pieces; ++i)
+			merkle_tree[first_leaf + i] = leaves[i];
+		for (int i = num_pieces; i < num_leafs; ++i)
+			merkle_tree[first_leaf + i] = pad;
+
+		merkle_fill_tree(merkle_tree, num_leafs);
+		return merkle_tree[0];
+	}
+
 }
 
