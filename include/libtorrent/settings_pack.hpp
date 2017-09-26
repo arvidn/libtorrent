@@ -855,7 +855,7 @@ namespace libtorrent
 			//   the most recent pieces that are in the read cache.
 			suggest_mode,
 
-			// ``max_queued_disk_bytes`` is the number maximum number of bytes, to
+			// ``max_queued_disk_bytes`` is the maximum number of bytes, to
 			// be written to disk, that can wait in the disk I/O thread queue.
 			// This queue is only for waiting for the disk I/O thread to receive
 			// the job and either write it to disk or insert it in the write
