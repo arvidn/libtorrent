@@ -25,39 +25,6 @@ rule linking ( properties * )
 {
 	local result ;
 
-	# openssl libraries, if enabled
-	# exclude gcc from a regular windows build to make mingw
-	# link against the regular unix library name
-	if <crypto>openssl in $(properties)
-	{
-		if <openssl-version>pre1.1 in $(properties)
-			&& <target-os>windows in $(properties)
-			&& ! <toolset>gcc in $(properties)
-		{
-			result += <library>ssleay32
-				<library>libeay32
-			;
-		}
-		else
-		{
-			# on windows the library names were changed to be in line with other
-			# system starting with OpenSSL 1.1
-			result += <library>crypto <library>ssl ;
-		}
-	}
-
-	# windows needs some more libraries when using openSSL
-	if <crypto>openssl in $(properties)
-		&& <target-os>windows in $(properties)
-		&& ! <toolset>gcc in $(properties)
-	{
-		result += <library>advapi32
-			<library>user32
-			<library>shell32
-			<library>gdi32
-		;
-	}
-
 	if <simulator>on in $(properties)
 	{
 		result += <library>/libsimulator//simulator ;
@@ -136,47 +103,6 @@ rule linking ( properties * )
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
 		result += <linkflags>-export-dynamic <linkflags>-rdynamic ;
-	}
-
-	if <boost-link>static in $(properties)
-	{
-		if <link>shared in $(properties)
-		{
-			# if libtorrent is being built as a shared library
-			# but we're linking against boost statically, we still
-			# need to make boost think it's being built as a shared
-			# library, so that it properly exports its symbols
-			result += <define>BOOST_ALL_DYN_LINK ;
-			result += <library>boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
-			result += <library>boost_chrono/<link>static/<define>BOOST_ALL_DYN_LINK ;
-			result += <library>boost_random/<link>static/<define>BOOST_ALL_DYN_LINK ;
-		}
-		else
-		{
-			result += <library>boost_system/<link>static ;
-			result += <library>boost_chrono/<link>static ;
-			result += <library>boost_random/<link>static ;
-		}
-
-		if <toolset>gcc in $(properties)
-			&& ! <target-os>windows in $(properties)
-			&& <link>shared in $(properties)
-		{
-			result += <fpic>on ;
-		}
-
-	}
-	else if <boost-link>shared in $(properties)
-	{
-		result += <library>boost_system/<link>shared ;
-		result += <library>boost_chrono/<link>shared ;
-		result += <library>boost_random/<link>shared ;
-	}
-	else
-	{
-		result += <library>boost_system ;
-		result += <library>boost_chrono ;
-		result += <library>boost_random ;
 	}
 
 	result += <define>BOOST_ALL_NO_LIB
@@ -441,8 +367,6 @@ feature crypto : built-in openssl gcrypt : composite propagated ;
 feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
 
-feature openssl-version : 1.1 pre1.1 : composite propagated ;
-
 feature resolve-countries : on off : composite propagated link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
 
@@ -451,8 +375,6 @@ feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 
 feature deprecated-functions : on off : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
-
-feature boost-link : default static shared : propagated composite ;
 
 feature debug-iterators : off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
@@ -475,17 +397,17 @@ feature export-extra : off on : composite propagated ;
 # allowed memory usage on travis-ci
 variant test_release : release
 	: <asserts>production <debug-symbols>on
-	  <invariant-checks>full <boost-link>shared <optimization>off
+	  <invariant-checks>full <optimization>off
 	  <export-extra>on <debug-iterators>on <threading>multi <inlining>on
 	;
 variant test_debug : debug
 	: <crypto>openssl <logging>on <disk-stats>on
 	  <allocator>debug <debug-iterators>on
-	  <invariant-checks>full <boost-link>shared
+	  <invariant-checks>full
 	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
 	;
 variant test_barebones : debug
-	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
+	: <ipv6>off <dht>off <extensions>off <logging>off
 	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
 	;
@@ -506,15 +428,7 @@ lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
 # openssl on linux/bsd etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
-lib z : : <link>shared <name>z ;
 lib dl : : <link>shared <name>dl ;
-
-# pick up openssl on macos from brew
-lib crypto : : <name>crypto <use>z <target-os>darwin <search>/usr/local/opt/openssl/lib : <link>shared : <include>/usr/local/opt/openssl/include ;
-lib ssl : : <name>ssl <use>crypto <target-os>darwin <search>/usr/local/opt/openssl/lib : <link>shared : <include>/usr/local/opt/openssl/include ;
-
-lib crypto : : <name>crypto <use>z : <link>shared ;
-lib ssl : : <name>ssl <use>crypto : <link>shared ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;
@@ -703,6 +617,8 @@ local usage-requirements =
 	<linkflags>$(LDFLAGS)
 # this works around a bug in asio in boost-1.39
 	<define>BOOST_ASIO_HASH_MAP_BUCKETS=1021
+
+	<library>conan-deps
 	;
 
 project torrent ;

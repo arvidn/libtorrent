@@ -1,7 +1,9 @@
 [requires]
-BoostBuildGen/0.1@arvidn/testing
-OpenSSL/1.0.2g@lasote/stable
-Boost/1.63.0@eliaskousk/stable
+BoostBuildGen/1.0@arvidn/testing
+OpenSSL/1.0.2l@conan/stable
+Boost.Random/1.65.1@bincrafters/stable
+Boost.Chrono/1.65.1@bincrafters/stable
+Boost.System/1.65.1@bincrafters/stable
 
 [generators]
 BoostBuild
