@@ -199,8 +199,6 @@ private:
 	void map_timer(error_code const& ec);
 	void try_map_upnp(bool timer = false);
 	void discover_device_impl();
-	static address_v4 upnp_multicast_address;
-	static udp::endpoint upnp_multicast_endpoint;
 
 	void resend_request(error_code const& e);
 	void on_reply(udp::endpoint const& from, char* buffer

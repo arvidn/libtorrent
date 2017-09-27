@@ -81,7 +81,7 @@ void natpmp::start()
 	TORRENT_ASSERT(is_single_thread());
 
 	error_code ec;
-	address gateway = get_default_gateway(m_socket.get_io_service(), ec);
+	address const gateway = get_default_gateway(m_socket.get_io_service(), ec);
 	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -115,7 +115,7 @@ void natpmp::start()
 		disable(ec);
 		return;
 	}
-	m_socket.bind(udp::endpoint(address_v4::any(), 0), ec);
+	m_socket.bind({address_v4::any(), 0}, ec);
 	if (ec)
 	{
 		disable(ec);
@@ -128,8 +128,7 @@ void natpmp::start()
 		, m_remote, std::bind(&natpmp::on_reply, self(), _1, _2));
 	send_get_ip_address_request();
 
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
+	for (auto i = m_mappings.begin(), end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol == portmap_protocol::none
 			|| i->act != portmap_action::none)
@@ -211,8 +210,7 @@ void natpmp::disable(error_code const& ec)
 	TORRENT_ASSERT(is_single_thread());
 	m_disabled = true;
 
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
+	for (auto i = m_mappings.begin(), end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol == portmap_protocol::none) continue;
 		portmap_protocol const proto = i->protocol;
@@ -314,7 +312,7 @@ void natpmp::update_mapping(port_mapping_t const i)
 		return;
 	}
 
-	natpmp::mapping_t const& m = m_mappings[i];
+	mapping_t const& m = m_mappings[i];
 
 #ifndef TORRENT_DISABLE_LOGGING
 	mapping_log("update", m);
@@ -412,7 +410,7 @@ void natpmp::resend_request(port_mapping_t const i, error_code const& e)
 }
 
 void natpmp::on_reply(error_code const& e
-	, std::size_t bytes_transferred)
+	, std::size_t const bytes_transferred)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -465,10 +463,10 @@ void natpmp::on_reply(error_code const& e
 	}
 
 	char* in = msg_buf;
-	int version = read_uint8(in);
-	int cmd = read_uint8(in);
-	int result = read_uint16(in);
-	int time = aux::numeric_cast<int>(read_uint32(in));
+	int const version = read_uint8(in);
+	int const cmd = read_uint8(in);
+	int const result = read_uint16(in);
+	int const time = aux::numeric_cast<int>(read_uint32(in));
 	TORRENT_UNUSED(version);
 	TORRENT_UNUSED(time);
 
@@ -505,7 +503,7 @@ void natpmp::on_reply(error_code const& e
 
 #ifndef TORRENT_DISABLE_LOGGING
 	char msg[200];
-	int num_chars = std::snprintf(msg, sizeof(msg), "<== port map ["
+	int const num_chars = std::snprintf(msg, sizeof(msg), "<== port map ["
 		" protocol: %s local: %u external: %u ttl: %u ]"
 		, (cmd - 128 == 1 ? "udp" : "tcp")
 		, private_port, public_port, lifetime);
@@ -600,8 +598,7 @@ void natpmp::update_expiration_timer()
 	time_point const now = aux::time_now() + milliseconds(100);
 	time_point min_expire = now + seconds(3600);
 	port_mapping_t min_index{-1};
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
+	for (auto i = m_mappings.begin(), end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol == portmap_protocol::none
 			|| i->act != portmap_action::none) continue;

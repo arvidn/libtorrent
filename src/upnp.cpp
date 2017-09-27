@@ -626,7 +626,7 @@ void upnp::try_map_upnp(bool const timer)
 	bool override_ignore_non_routers = false;
 	if (m_ignore_non_routers && timer)
 	{
-		// if we don't ave any devices that match our default route, we
+		// if we don't have any devices that match our default route, we
 		// should try to map with the ones we did hear from anyway,
 		// regardless of if they are not running at our gateway.
 		override_ignore_non_routers = std::none_of(m_devices.begin()
@@ -1342,7 +1342,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		return;
 	}
 
-	std::string ct = p.header("content-type");
+	std::string const& ct = p.header("content-type");
 	if (!ct.empty()
 		&& ct.find_first_of("text/xml") == std::string::npos
 		&& ct.find_first_of("text/soap+xml") == std::string::npos
