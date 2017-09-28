@@ -77,7 +77,7 @@ void test_read_piece(int flags)
 	create_random_files(combine_path("tmp1_read_piece", "test_torrent"), file_sizes);
 
 	add_files(fs, combine_path("tmp1_read_piece", "test_torrent"));
-	lt::create_torrent t(fs, piece_size, 0x4000);
+	lt::create_torrent t(fs, piece_size);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "tmp1_read_piece", ec);
