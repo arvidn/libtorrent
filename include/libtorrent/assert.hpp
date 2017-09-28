@@ -101,7 +101,7 @@ extern char const* libtorrent_assert_log;
 #endif
 
 #define TORRENT_ASSERT_FAIL() \
-	assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, 0, 0)
+	assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, nullptr, 0)
 
 #else
 #include <cassert>

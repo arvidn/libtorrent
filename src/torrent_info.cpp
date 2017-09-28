@@ -99,7 +99,7 @@ namespace libtorrent {
 		static const char invalid_chars[] = "/\\";
 #endif
 		if (c > 127) return false;
-		return std::strchr(invalid_chars, static_cast<char>(c)) != NULL;
+		return std::strchr(invalid_chars, static_cast<char>(c)) != nullptr;
 	}
 
 	} // anonymous namespace
@@ -1014,6 +1014,15 @@ namespace {
 			return false;
 		}
 
+		// we expect the piece hashes to be < 2 GB in size
+		if (files.num_pieces() >= std::numeric_limits<int>::max() / 20)
+		{
+			ec = errors::too_many_pieces_in_torrent;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			return false;
+		}
+
 		if (pieces)
 		{
 			if (pieces.string_length() != files.num_pieces() * 20)
@@ -1034,13 +1043,6 @@ namespace {
 			if (root_hash.string_length() != 20)
 			{
 				ec = errors::torrent_invalid_hashes;
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
-				return false;
-			}
-			if (files.num_pieces() >= std::numeric_limits<int>::max() / 2)
-			{
-				ec = errors::too_many_pieces_in_torrent;
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
 				return false;
