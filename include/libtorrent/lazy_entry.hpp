@@ -83,7 +83,7 @@ namespace libtorrent {
 	// which will be set to the byte offset into the buffer where an error occurred,
 	// in case the function fails.
 	TORRENT_DEPRECATED_EXPORT int lazy_bdecode(char const* start, char const* end
-		, lazy_entry& ret, error_code& ec, int* error_pos = 0
+		, lazy_entry& ret, error_code& ec, int* error_pos = nullptr
 		, int depth_limit = 1000, int item_limit = 1000000);
 
 	// for backwards compatibility, does not report error code
@@ -142,7 +142,7 @@ namespace libtorrent {
 		};
 
 		// internal
-		lazy_entry() : m_begin(0), m_len(0), m_size(0), m_type(none_t)
+		lazy_entry() : m_size(0), m_type(none_t)
 		{ m_data.start = nullptr; }
 
 		// tells you which specific type this lazy entry has.
@@ -370,11 +370,11 @@ namespace libtorrent {
 
 		// used for dictionaries and lists to record the range
 		// in the original buffer they are based on
-		char const* m_begin;
+		char const* m_begin = nullptr;
 
 		// the number of bytes this entry extends in the
 		// bencoded buffer
-		std::uint32_t m_len;
+		std::uint32_t m_len = 0;
 
 		// if list or dictionary, the number of items
 		std::uint32_t m_size:29;

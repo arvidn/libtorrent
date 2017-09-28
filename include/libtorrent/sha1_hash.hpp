@@ -296,7 +296,7 @@ namespace std
 		{
 			std::size_t ret;
 			// this is OK because sha1_hash is already a hash
-			std::memcpy(&ret, &k[0], sizeof(ret));
+			std::memcpy(&ret, k.data(), sizeof(ret));
 			return ret;
 		}
 	};

@@ -81,10 +81,10 @@ extern char const* libtorrent_assert_log;
 #ifndef TORRENT_USE_SYSTEM_ASSERTS
 
 #define TORRENT_ASSERT_PRECOND(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } TORRENT_WHILE_0
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, nullptr, 1); } TORRENT_WHILE_0
 
 #define TORRENT_ASSERT(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 0); } TORRENT_WHILE_0
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, nullptr, 0); } TORRENT_WHILE_0
 
 #if TORRENT_USE_IOSTREAM
 #define TORRENT_ASSERT_VAL(x, y) \

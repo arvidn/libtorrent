@@ -55,7 +55,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/get.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #define DEBUG_DISK_THREAD 0
 
@@ -1877,7 +1879,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		for (auto& p : pieces)
 		{
 			cached_piece_entry* pe = m_disk_cache.find_piece(p.first, p.second);
-			if (pe == NULL) continue;
+			if (pe == nullptr) continue;
 			TORRENT_ASSERT(pe->outstanding_read == 1);
 			pe->outstanding_read = 0;
 		}

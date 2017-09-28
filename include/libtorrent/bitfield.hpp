@@ -176,7 +176,7 @@ namespace libtorrent {
 			const_iterator operator--(int)
 			{ const_iterator ret(*this); dec(); return ret; }
 
-			const_iterator(): buf(0), bit(0x80000000) {}
+			const_iterator() {}
 			bool operator==(const_iterator const& rhs) const
 			{ return buf == rhs.buf && bit == rhs.bit; }
 
@@ -212,8 +212,8 @@ namespace libtorrent {
 			}
 			const_iterator(std::uint32_t const* ptr, int offset)
 				: buf(ptr), bit(0x80000000 >> offset) {}
-			std::uint32_t const* buf;
-			std::uint32_t bit;
+			std::uint32_t const* buf = nullptr;
+			std::uint32_t bit = 0x80000000;
 		};
 
 		const_iterator begin() const { return const_iterator(m_buf ? buf() : nullptr, 0); }

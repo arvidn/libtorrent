@@ -105,7 +105,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, boost::optional<address> const& bind_addr = boost::optional<address>()
 		, resolver_flags resolve_flags = resolver_flags{}, std::string const& auth_ = std::string()
 #if TORRENT_USE_I2P
-		, i2p_connection* i2p_conn = 0
+		, i2p_connection* i2p_conn = nullptr
 #endif
 		);
 
@@ -115,7 +115,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, boost::optional<address> const& bind_addr = boost::optional<address>()
 		, resolver_flags resolve_flags = resolver_flags{}
 #if TORRENT_USE_I2P
-		, i2p_connection* i2p_conn = 0
+		, i2p_connection* i2p_conn = nullptr
 #endif
 		);
 
