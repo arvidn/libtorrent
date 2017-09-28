@@ -2075,49 +2075,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				ec.assign(GetLastError(), system_category());
 				return false;
 			}
-		}
-
-#if _WIN32_WINNT >= 0x0600 // only if Windows Vista or newer
-		if ((m_open_mode & sparse) == 0)
-		{
-			typedef DWORD (WINAPI *GetFileInformationByHandleEx_t)(HANDLE hFile
-				, FILE_INFO_BY_HANDLE_CLASS FileInformationClass
-				, LPVOID lpFileInformation
-				, DWORD dwBufferSize);
-
-			static GetFileInformationByHandleEx_t GetFileInformationByHandleEx_ = NULL;
-
-			static bool failed_kernel32 = false;
-
-			if ((GetFileInformationByHandleEx_ == NULL) && !failed_kernel32)
-			{
-				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
-				if (kernel32)
-				{
-					GetFileInformationByHandleEx_ = (GetFileInformationByHandleEx_t)GetProcAddress(kernel32, "GetFileInformationByHandleEx");
-				}
-				else
-				{
-					failed_kernel32 = true;
-				}
-			}
-
-			offs.QuadPart = 0;
-			if (GetFileInformationByHandleEx_)
-			{
-				// only allocate the space if the file
-				// is not fully allocated
-				FILE_STANDARD_INFO inf;
-				if (GetFileInformationByHandleEx_(native_handle()
-					, FileStandardInfo, &inf, sizeof(inf)) == FALSE)
-				{
-					ec.assign(GetLastError(), system_category());
-					if (ec) return false;
-				}
-				offs = inf.AllocationSize;
-			}
-
-			if (offs.QuadPart < s)
+			if ((m_open_mode & sparse) == 0)
 			{
 				// if the user has permissions, avoid filling
 				// the file with zeroes, but just fill it with
@@ -2125,7 +2083,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				set_file_valid_data(m_file_handle, s);
 			}
 		}
-#endif // if Windows Vista
 #else // NON-WINDOWS
 		struct stat st;
 		if (fstat(native_handle(), &st) != 0)
