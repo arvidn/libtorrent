@@ -624,6 +624,10 @@ else()
 	set(iconv_package_type RECOMMENDED)
 endif()
 
+if (build_tests)
+	set(logging ON CACHE BOOL "build with logging" FORCE)
+endif()
+
 set_package_properties(Iconv
 	PROPERTIES
 		URL "https://www.gnu.org/software/libiconv/"
@@ -708,7 +712,11 @@ endif()
 # developer options
 option(developer-options "Activates options useful for a developer")
 if(developer-options)
-	set(asserts "auto" CACHE STRING "use assertions")
+	if (build_tests)
+		set(asserts "on" CACHE STRING "use assertions" FORCE)
+	else()
+		set(asserts "auto" CACHE STRING "use assertions")
+	endif()
 	set_property(CACHE asserts PROPERTY STRINGS auto on off production system)
 	if ("${asserts}" MATCHES "on|production|system")
 		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_ASSERTS=1)
