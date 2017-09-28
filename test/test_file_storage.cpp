@@ -83,6 +83,7 @@ void setup_test_storage(file_storage& st)
 TORRENT_TEST(coalesce_path)
 {
 	file_storage st;
+	st.set_piece_length(0x4000);
 	st.add_file(combine_path("test", "a"), 10000);
 	TEST_EQUAL(st.paths().size(), 1);
 	TEST_EQUAL(st.paths()[0], "");
@@ -102,7 +103,7 @@ TORRENT_TEST(coalesce_path)
 
 	// cause pad files to be created, to make sure the pad files also share the
 	// same path entries
-	st.optimize(0, 1024, true);
+	st.canonicalize();
 
 	TEST_EQUAL(st.paths().size(), 3);
 	TEST_EQUAL(st.paths()[0], "");
@@ -277,96 +278,39 @@ TORRENT_TEST(file_path_hash)
 	TEST_EQUAL(file_hash0, file_hash1);
 }
 
-// make sure that files whose size is a multiple by the alignment are picked
-// first, since that lets us keep placing files aligned
-TORRENT_TEST(optimize_aligned_sizes)
+// make sure we fill in padding with small files
+TORRENT_TEST(canonicalize)
 {
 	file_storage fs;
-	fs.set_piece_length(512);
+	fs.set_piece_length(0x4000);
+	fs.add_file(combine_path("s", "2"), 0x7000);
 	fs.add_file(combine_path("s", "1"), 1);
-	fs.add_file(combine_path("s", "2"), 40000);
-	fs.add_file(combine_path("s", "3"), 1024);
+	fs.add_file(combine_path("s", "3"), 0x7001);
 
-	fs.optimize(512, 512, false);
+	fs.canonicalize();
 
-	// since the size of file 3 is a multiple of the alignment (512), it should
-	// be prioritized, to minimize the amount of padding.
-	// after that, we want to pick the largest file (2), and since file 1 is
-	// smaller than the pad-file limit (512) we won't pad it. Since tail_padding
-	// is false, we won't pad the tail of the torrent either
+	TEST_EQUAL(fs.num_files(), 6);
 
-	TEST_EQUAL(fs.num_files(), 3);
-
-	TEST_EQUAL(fs.file_size(file_index_t(0)), 1024);
-	TEST_EQUAL(fs.file_name(file_index_t(0)), "3");
-	TEST_EQUAL(fs.pad_file_at(file_index_t(0)), false);
-
-	TEST_EQUAL(fs.file_size(file_index_t(1)), 40000);
-	TEST_EQUAL(fs.file_name(file_index_t(1)), "2");
-	TEST_EQUAL(fs.pad_file_at(file_index_t(1)), false);
-
-	TEST_EQUAL(fs.file_size(file_index_t(2)), 1);
-	TEST_EQUAL(fs.file_name(file_index_t(2)), "1");
-	TEST_EQUAL(fs.pad_file_at(file_index_t(2)), false);
-}
-
-// make sure we pad the end of the torrent when tail_padding is specified
-TORRENT_TEST(optimize_tail_padding)
-{
-	file_storage fs;
-	fs.set_piece_length(512);
-	fs.add_file(combine_path("s", "1"), 700);
-
-	fs.optimize(512, 512, true);
-
-	// since the size of file 3 is a multiple of the alignment (512), it should
-	// be prioritized, to minimize the amount of padding.
-	// after that, we want to pick the largest file (2), and since file 1 is
-	// smaller than the pad-file limit (512) we won't pad it. Since tail_padding
-	// is false, we won't pad the tail of the torrent either
-
-	TEST_EQUAL(fs.num_files(), 2);
-
-	TEST_EQUAL(fs.file_size(file_index_t(0)), 700);
+	TEST_EQUAL(fs.file_size(file_index_t(0)), 1);
 	TEST_EQUAL(fs.file_name(file_index_t(0)), "1");
 	TEST_EQUAL(fs.pad_file_at(file_index_t(0)), false);
 
-	TEST_EQUAL(fs.file_size(file_index_t(1)), 1024 - 700);
+	TEST_EQUAL(fs.file_size(file_index_t(1)), 0x4000 - 1);
 	TEST_EQUAL(fs.pad_file_at(file_index_t(1)), true);
-}
 
+	TEST_EQUAL(fs.file_size(file_index_t(2)), 0x7000);
+	TEST_EQUAL(fs.file_name(file_index_t(2)), "2");
+	TEST_EQUAL(fs.pad_file_at(file_index_t(2)), false);
 
-// make sure we fill in padding with small files
-TORRENT_TEST(optimize_pad_fillers)
-{
-	file_storage fs;
-	fs.set_piece_length(512);
-	fs.add_file(combine_path("s", "1"), 1);
-	fs.add_file(combine_path("s", "2"), 1000);
-	fs.add_file(combine_path("s", "3"), 1001);
+	TEST_EQUAL(fs.file_size(file_index_t(3)), 0x8000 - 0x7000);
+	TEST_EQUAL(fs.pad_file_at(file_index_t(3)), true);
 
-	fs.optimize(512, 512, false);
+	TEST_EQUAL(fs.file_size(file_index_t(4)), 0x7001);
+	TEST_EQUAL(fs.file_name(file_index_t(4)), "3");
+	TEST_EQUAL(fs.pad_file_at(file_index_t(4)), false);
 
-	// first we pick the largest file, then we need to add padding, since file 1
-	// is smaller than the pad file limit, it won't be aligned anyway, so we
-	// place that as part of the padding
-
-	TEST_EQUAL(fs.num_files(), 4);
-
-	TEST_EQUAL(fs.file_size(file_index_t(0)), 1001);
-	TEST_EQUAL(fs.file_name(file_index_t(0)), "3");
-	TEST_EQUAL(fs.pad_file_at(file_index_t(0)), false);
-
-	TEST_EQUAL(fs.file_size(file_index_t(1)), 1);
-	TEST_EQUAL(fs.file_name(file_index_t(1)), "1");
-	TEST_EQUAL(fs.pad_file_at(file_index_t(1)), false);
-
-	TEST_EQUAL(fs.file_size(file_index_t(2)), 1024 - (1001 + 1));
-	TEST_EQUAL(fs.pad_file_at(file_index_t(2)), true);
-
-	TEST_EQUAL(fs.file_size(file_index_t(3)), 1000);
-	TEST_EQUAL(fs.file_name(file_index_t(3)), "2");
-	TEST_EQUAL(fs.pad_file_at(file_index_t(3)), false);
+	TEST_EQUAL(fs.file_size(file_index_t(5)), 0x8000 - 0x7001);
+	TEST_EQUAL(fs.pad_file_at(file_index_t(5)), true);
 }
 
 TORRENT_TEST(piece_range_exclusive)
@@ -428,114 +372,6 @@ TORRENT_TEST(piece_range)
 
 	TEST_CHECK(aux::file_piece_range_exclusive(fs, file_index_t(0)) == std::make_tuple(piece_index_t(0), piece_index_t(3)));
 	TEST_CHECK(aux::file_piece_range_exclusive(fs, file_index_t(1)) == std::make_tuple(piece_index_t(3), piece_index_t(7)));
-}
-
-namespace {
-
-void test_optimize(std::vector<int> file_sizes
-	, int const alignment
-	, int const pad_file_limit
-	, bool const tail_padding
-	, std::vector<int> const expected_order)
-{
-	file_storage fs;
-	int i = 0;
-	for (int s : file_sizes)
-	{
-		fs.add_file(combine_path("test", std::to_string(i++)), s);
-	}
-	fs.optimize(pad_file_limit, alignment, tail_padding);
-
-	TEST_EQUAL(fs.num_files(), int(expected_order.size()));
-	if (fs.num_files() != int(expected_order.size())) return;
-
-	std::cout << "{ ";
-	for (auto const idx : fs.file_range())
-	{
-		if (fs.file_flags(idx) & file_storage::flag_pad_file) std::cout << "*";
-		std::cout << fs.file_size(idx) << " ";
-	}
-	std::cout << "}\n";
-
-	file_index_t idx{0};
-	int num_pad_files = 0;
-	for (int expect : expected_order)
-	{
-		if (expect == -1)
-		{
-			TEST_CHECK(fs.file_flags(idx) & file_storage::flag_pad_file);
-			TEST_EQUAL(fs.file_name(idx), std::to_string(num_pad_files++));
-		}
-		else
-		{
-			TEST_EQUAL(fs.file_name(idx), std::to_string(expect));
-			TEST_EQUAL(fs.file_size(idx), file_sizes[std::size_t(expect)]);
-		}
-		++idx;
-	}
-}
-
-} // anonymous namespace
-
-TORRENT_TEST(optimize_order_large_first)
-{
-	test_optimize({1000, 3000, 10000}, 1024, 1024, false, {2, -1, 1, 0});
-}
-
-TORRENT_TEST(optimize_tail_padding2)
-{
-	// when tail padding is enabled, a pad file is added at the end
-	test_optimize({2000}, 1024, 1024, true, {0, -1});
-}
-
-TORRENT_TEST(optimize_tail_padding3)
-{
-	// when tail padding is enabled, a pad file is added at the end, even if the
-	// file is smaller than the alignment, as long as pad_file_limit is 0 *(which
-	// means files are aligned unconditionally)
-	test_optimize({1000}, 1024, 0, true, {0, -1});
-}
-
-TORRENT_TEST(optimize_tail_padding_small_files)
-{
-	// files smaller than the pad file limit are not tail-padded
-	test_optimize({1000, 1, 2}, 1024, 50, true, {0, -1, 2, 1});
-}
-
-TORRENT_TEST(optimize_tail_padding_small_files2)
-{
-	// files larger than the pad file limit are not tail-padded
-	test_optimize({1000, 1, 2}, 1024, 0, true, {0, -1, 2, -1, 1, -1});
-}
-
-TORRENT_TEST(optimize_prioritize_aligned_size)
-{
-	// file 0 of size 1024 will be chosen over the larger file, since it won't
-	// affect the alignment of the next file
-	test_optimize({1024, 3000, 10}, 1024, 1024, false, {0, 1, 2});
-}
-
-TORRENT_TEST(optimize_fill_with_small_files)
-{
-	// fill in space that otherwise would just be a pad file with other small
-	// files.
-	test_optimize({2000, 5000, 48, 120}, 1024, 1024, false, {1, 3, 0, 2});
-}
-
-TORRENT_TEST(optimize_pad_all)
-{
-	// when pad_size_limit is 0, every file is padded to alignment, regardless of
-	// how big it is
-	// the empty file is first, since it doesn't affect alignment of the next
-	// file
-	test_optimize({48, 1, 0, 5000}, 1024, 0, false, {2, 3, -1, 0, -1, 1});
-}
-
-TORRENT_TEST(optimize_pad_all_with_tail)
-{
-	// when pad_size_limit is 0, every file is padded to alignment, regardless of
-	// how big it is, also with tail-padding enabled
-	test_optimize({48, 1, 0, 5000}, 1024, 0, true, {2, 3, -1, 0, -1, 1, -1});
 }
 
 TORRENT_TEST(piece_size_last_piece)

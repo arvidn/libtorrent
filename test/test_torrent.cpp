@@ -217,8 +217,8 @@ TORRENT_TEST(total_wanted)
 	p.save_path = ".";
 
 	// we just want 1 out of 4 files, 1024 out of 4096 bytes
-	p.file_priorities.resize(4, 0_pri);
-	p.file_priorities[1] = 1_pri;
+	p.file_priorities.resize(8, 0_pri);
+	p.file_priorities[2] = 1_pri;
 
 	p.ti = info;
 
@@ -312,7 +312,7 @@ TORRENT_TEST(torrent)
 		file_storage fs;
 
 		fs.add_file("test_torrent_dir2/tmp1", 1024);
-		lt::create_torrent t(fs, 1024, 6);
+		lt::create_torrent t(fs, 1024);
 
 		std::vector<char> piece(1024);
 		for (int i = 0; i < int(piece.size()); ++i)
@@ -355,7 +355,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	file_storage fs;
 
 	fs.add_file("test_torrent_dir2/tmp1", 1024);
-	lt::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024);
 
 	std::vector<char> piece(128 * 1024);
 	for (int i = 0; i < int(piece.size()); ++i)
@@ -424,7 +424,7 @@ TORRENT_TEST(rename_file)
 
 	fs.add_file("test3/tmp1", 20);
 	fs.add_file("test3/tmp2", 20);
-	lt::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024);
 
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char>> out(tmp);
@@ -493,7 +493,7 @@ void test_queue(add_torrent_params)
 		std::stringstream file_path;
 		file_path << "test_torrent_dir4/queue" << i;
 		fs.add_file(file_path.str(), 1024);
-		lt::create_torrent t(fs, 128 * 1024, 6);
+		lt::create_torrent t(fs, 128 * 1024);
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());

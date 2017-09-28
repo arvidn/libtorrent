@@ -101,8 +101,7 @@ void test_checking(int flags)
 
 	create_random_files("test_torrent_dir", file_sizes, &fs);
 
-	lt::create_torrent t(fs, piece_size, 0x4000
-		, lt::create_torrent::optimize_alignment);
+	lt::create_torrent t(fs, piece_size);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, ".", ec);

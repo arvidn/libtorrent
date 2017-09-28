@@ -95,8 +95,6 @@ using namespace lt;
 
 static test_torrent_t test_torrents[] =
 {
-	{ "v2_multipiece_file.torrent" },
-	{ "v2.torrent" },
 	{ "base.torrent" },
 	{ "empty_path.torrent" },
 	{ "parent_path.torrent" },
@@ -134,6 +132,8 @@ static test_torrent_t test_torrents[] =
 	{ "absolute_filename.torrent" },
 	{ "invalid_filename.torrent" },
 	{ "invalid_filename2.torrent" },
+	{ "v2.torrent" },
+	{ "v2_multipiece_file.torrent" },
 };
 
 struct test_failing_torrent_t
