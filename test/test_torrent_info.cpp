@@ -153,6 +153,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_root_hash2.torrent", errors::torrent_missing_pieces },
 	{ "invalid_file_size.torrent", errors::torrent_invalid_length },
 	{ "invalid_symlink.torrent", errors::torrent_invalid_name },
+	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
 };
 
 // TODO: test remap_files

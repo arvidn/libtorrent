@@ -75,10 +75,10 @@ namespace libtorrent {
 #if TORRENT_USE_ASSERTS
 
 #define TORRENT_PIECE_ASSERT(cond, piece) \
-	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } TORRENT_WHILE_0
+	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, nullptr); } } TORRENT_WHILE_0
 
 #define TORRENT_PIECE_ASSERT_FAIL(piece) \
-	do { assert_print_piece(piece); assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, 0); } TORRENT_WHILE_0
+	do { assert_print_piece(piece); assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, nullptr); } TORRENT_WHILE_0
 
 #else
 #define TORRENT_PIECE_ASSERT(cond, piece) do {} TORRENT_WHILE_0

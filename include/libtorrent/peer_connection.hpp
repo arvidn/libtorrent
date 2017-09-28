@@ -282,7 +282,7 @@ namespace aux {
 
 		void set_peer_info(torrent_peer* pi) override
 		{
-			TORRENT_ASSERT(m_peer_info == 0 || pi == 0 );
+			TORRENT_ASSERT(m_peer_info == nullptr || pi == nullptr );
 			TORRENT_ASSERT(pi != nullptr || m_disconnect_started);
 			m_peer_info = pi;
 		}
