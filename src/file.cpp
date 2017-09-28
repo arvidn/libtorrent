@@ -1153,35 +1153,7 @@ namespace {
 				ec.assign(GetLastError(), system_category());
 				return false;
 			}
-		}
-
-#if _WIN32_WINNT >= 0x0600 // only if Windows Vista or newer
-		if (!(m_open_mode & open_mode::sparse))
-		{
-			typedef DWORD (WINAPI *GetFileInformationByHandleEx_t)(HANDLE hFile
-				, FILE_INFO_BY_HANDLE_CLASS FileInformationClass
-				, LPVOID lpFileInformation
-				, DWORD dwBufferSize);
-
-			auto GetFileInformationByHandleEx =
-				aux::get_library_procedure<aux::kernel32, GetFileInformationByHandleEx_t>("GetFileInformationByHandleEx");
-
-			offs.QuadPart = 0;
-			if (GetFileInformationByHandleEx != nullptr)
-			{
-				// only allocate the space if the file
-				// is not fully allocated
-				FILE_STANDARD_INFO inf;
-				if (GetFileInformationByHandleEx(native_handle()
-					, FileStandardInfo, &inf, sizeof(inf)) == FALSE)
-				{
-					ec.assign(GetLastError(), system_category());
-					if (ec) return false;
-				}
-				offs = inf.AllocationSize;
-			}
-
-			if (offs.QuadPart < s)
+			if (!(m_open_mode & open_mode::sparse))
 			{
 				// if the user has permissions, avoid filling
 				// the file with zeroes, but just fill it with
@@ -1189,7 +1161,6 @@ namespace {
 				set_file_valid_data(m_file_handle, s);
 			}
 		}
-#endif // if Windows Vista
 #else // NON-WINDOWS
 		struct stat st;
 		if (::fstat(native_handle(), &st) != 0)
