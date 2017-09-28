@@ -119,15 +119,14 @@ namespace aux {
 	struct cached_block_entry
 	{
 		cached_block_entry()
-			: buf(0)
-			, refcount(0)
+			: refcount(0)
 			, dirty(0)
 			, pending(0)
 			, cache_hit(0)
 		{
 		}
 
-		char* buf;
+		char* buf = nullptr;
 
 		static constexpr int max_refcount = (1 << 29) - 1;
 

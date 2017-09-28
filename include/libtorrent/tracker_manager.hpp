@@ -101,9 +101,6 @@ namespace libtorrent {
 #ifdef TORRENT_USE_OPENSSL
 			, ssl_ctx(0)
 #endif
-#if TORRENT_USE_I2P
-			, i2pconn(0)
-#endif
 		{}
 
 		enum event_t
@@ -167,7 +164,7 @@ namespace libtorrent {
 		boost::asio::ssl::context* ssl_ctx;
 #endif
 #if TORRENT_USE_I2P
-		i2p_connection* i2pconn;
+		i2p_connection* i2pconn = nullptr;
 #endif
 	};
 

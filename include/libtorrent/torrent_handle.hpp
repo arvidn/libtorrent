@@ -537,7 +537,7 @@ namespace aux {
 		// a torrent_plugin instance.
 		void add_extension(
 			std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
-			, void* userdata = 0);
+			, void* userdata = nullptr);
 
 		// ``set_metadata`` expects the *info* section of metadata. i.e. The
 		// buffer passed in will be hashed and verified against the info-hash. If

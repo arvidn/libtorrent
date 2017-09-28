@@ -330,7 +330,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(proxy_port, 0, &session_impl::update_proxy),
 		SET(i2p_port, 0, &session_impl::update_i2p_bridge),
 		SET(cache_size_volatile, 256, nullptr),
-		SET(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
+		SET(urlseed_max_request_bytes, 16 * 1024 * 1024, nullptr),
 		SET(web_seed_name_lookup_retry, 1800, nullptr),
 		SET(close_file_interval, CLOSE_FILE_INTERVAL, nullptr),
 		SET(max_web_seed_connections, 3, nullptr),

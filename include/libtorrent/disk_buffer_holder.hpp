@@ -92,7 +92,7 @@ namespace libtorrent {
 		// set the holder object to hold the specified buffer
 		// (or nullptr by default). If it's already holding a
 		// disk buffer, it will first be freed.
-		void reset(char* buf = 0);
+		void reset(char* buf = nullptr);
 		void reset(aux::block_cache_reference const& ref, char* buf);
 
 		// swap pointers of two disk buffer holders.

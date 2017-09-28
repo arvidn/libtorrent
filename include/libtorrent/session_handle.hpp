@@ -245,7 +245,7 @@ namespace libtorrent {
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor
-			, void* userdata = 0);
+			, void* userdata = nullptr);
 #endif
 #endif
 
@@ -729,7 +729,7 @@ namespace libtorrent {
 		void listen_on(
 			std::pair<int, int> const& port_range
 			, error_code& ec
-			, const char* net_interface = 0
+			, const char* net_interface = nullptr
 			, int flags = 0);
 #endif
 

@@ -294,7 +294,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			return;
 		}
 
-		if (m_impl == 0)
+		if (m_impl == nullptr)
 		{
 			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, 0));
 			return;
@@ -307,7 +307,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 	{
-		if (m_impl == 0)
+		if (m_impl == nullptr)
 		{
 			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, 0));
 			return;
@@ -344,7 +344,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	template <class Handler>
 	void async_read_some(null_buffers const&, Handler const& handler)
 	{
-		if (m_impl == 0)
+		if (m_impl == nullptr)
 		{
 			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, 0));
 			return;
@@ -376,7 +376,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
 	{
 		TORRENT_ASSERT(!m_read_handler);
-		if (m_impl == 0)
+		if (m_impl == nullptr)
 		{
 			ec = boost::asio::error::not_connected;
 			return 0;
@@ -440,7 +440,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
 	{
-		if (m_impl == 0)
+		if (m_impl == nullptr)
 		{
 			m_io_service.post(std::bind<void>(handler
 				, boost::asio::error::not_connected, 0));

@@ -950,7 +950,7 @@ namespace libtorrent {
 		void need_picker();
 		bool has_picker() const
 		{
-			return m_picker.get() != 0;
+			return m_picker.get() != nullptr;
 		}
 
 		void update_max_failcount()
@@ -995,8 +995,8 @@ namespace libtorrent {
 
 		void write_resume_data(add_torrent_params& atp) const;
 
-		void seen_complete() { m_last_seen_complete = ::time(0); }
-		int time_since_complete() const { return int(::time(0) - m_last_seen_complete); }
+		void seen_complete() { m_last_seen_complete = ::time(nullptr); }
+		int time_since_complete() const { return int(::time(nullptr) - m_last_seen_complete); }
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 
 		template <typename Fun, typename... Args>
