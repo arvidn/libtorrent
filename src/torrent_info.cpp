@@ -944,14 +944,14 @@ namespace {
 		ptrdiff_t const info_ptr_diff = m_info_section.get() - section.data();
 
 		// extract piece length
-		int piece_length = int(info.dict_find_int_value("piece length", -1));
-		if (piece_length <= 0)
+		std::int64_t piece_length = info.dict_find_int_value("piece length", -1);
+		if (piece_length <= 0 || piece_length > std::numeric_limits<int>::max())
 		{
 			ec = errors::torrent_missing_piece_length;
 			return false;
 		}
 		file_storage files;
-		files.set_piece_length(piece_length);
+		files.set_piece_length(static_cast<int>(piece_length));
 
 		// extract file name (or the directory name if it's a multi file libtorrent)
 		bdecode_node name_ent = info.dict_find_string("name.utf-8");
@@ -1000,6 +1000,15 @@ namespace {
 		// extract SHA-1 hashes for all pieces
 		// we want this division to round upwards, that's why we have the
 		// extra addition
+
+		if (files.total_size() >= std::numeric_limits<int>::max()
+			- files.piece_length())
+		{
+			ec = errors::too_many_pieces_in_torrent;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			return false;
+		}
 
 		files.set_num_pieces(int((files.total_size() + files.piece_length() - 1)
 			/ files.piece_length()));

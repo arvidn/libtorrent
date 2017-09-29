@@ -358,7 +358,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 #else
 	// send SIGINT to the current process
 	// to break into the debugger
-	::raise(SIGINT);
+	::raise(SIGABRT);
 #endif
 	::abort();
 #endif
