@@ -114,15 +114,13 @@ namespace {
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(span<char const> const buf)
 	{
-		TORRENT_ASSERT(!buf.empty());
+		// The zip header cannot be shorter than 10 bytes
+		if (buf.size() < 10) return -1;
 
 		span<unsigned char const> buffer(
 			reinterpret_cast<const unsigned char*>(buf.data()), buf.size());
 
 		// gzip is defined in https://tools.ietf.org/html/rfc1952
-
-		// The zip header cannot be shorter than 10 bytes
-		if (buffer.size() < 10) return -1;
 
 		// check the magic header of gzip
 		if ((buffer[0] != GZIP_MAGIC0) || (buffer[1] != GZIP_MAGIC1)) return -1;
@@ -191,7 +189,7 @@ namespace {
 		ec.clear();
 		TORRENT_ASSERT(maximum_size > 0);
 
-		int header_len = gzip_header(in);
+		int const header_len = gzip_header(in);
 		if (header_len < 0)
 		{
 			ec = gzip_errors::invalid_gzip_header;
