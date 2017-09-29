@@ -135,7 +135,7 @@ namespace aux {
 		// the memory range this file has been mapped into
 		span<byte volatile> memory()
 		{
-			TORRENT_ASSERT(m_mapping);
+			TORRENT_ASSERT(m_mapping || m_size == 0);
 			return { static_cast<byte volatile*>(m_mapping), static_cast<std::size_t>(m_size) };
 		}
 
