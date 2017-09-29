@@ -74,3 +74,12 @@ TORRENT_TEST(corrupt)
 	TEST_CHECK(ec);
 }
 
+TORRENT_TEST(empty)
+{
+	std::vector<char> empty;
+	std::vector<char> inflated;
+	error_code ec;
+	inflate_gzip(empty, inflated, 1000000, ec);
+	TEST_CHECK(ec);
+}
+
