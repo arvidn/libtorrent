@@ -5810,13 +5810,12 @@ namespace {
 
 		void on_dht_put_mutable_item(alert_manager& alerts, dht::item const& i, int num)
 		{
-			dht::signature sig = i.sig();
-			dht::public_key pk = i.pk();
-			dht::sequence_number seq = i.seq();
-			std::string salt = i.salt();
-
 			if (alerts.should_post<dht_put_alert>())
 			{
+				dht::signature const sig = i.sig();
+				dht::public_key const pk = i.pk();
+				dht::sequence_number const seq = i.seq();
+				std::string const salt = i.salt();
 				alerts.emplace_alert<dht_put_alert>(pk.bytes, sig.bytes, salt
 					, seq.value, num);
 			}

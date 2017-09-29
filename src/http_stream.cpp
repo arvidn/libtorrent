@@ -112,7 +112,7 @@ namespace libtorrent {
 		if (found_end)
 		{
 			m_buffer.push_back(0);
-			char* status = std::strchr(m_buffer.data(), ' ');
+			char const* status = std::strchr(m_buffer.data(), ' ');
 			if (status == nullptr)
 			{
 				h(boost::asio::error::operation_not_supported);
@@ -122,7 +122,7 @@ namespace libtorrent {
 			}
 
 			status++;
-			int code = std::atoi(status);
+			int const code = std::atoi(status);
 			if (code != 200)
 			{
 				h(boost::asio::error::operation_not_supported);
