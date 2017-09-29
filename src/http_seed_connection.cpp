@@ -279,10 +279,10 @@ namespace libtorrent {
 					// temporarily unavailable, retry later
 					t->retry_web_seed(this, retry_time);
 
-					std::string error_msg = to_string(m_parser.status_code()).data()
-						+ (" " + m_parser.message());
 					if (t->alerts().should_post<url_seed_alert>())
 					{
+						std::string const error_msg = to_string(m_parser.status_code()).data()
+							+ (" " + m_parser.message());
 						t->alerts().emplace_alert<url_seed_alert>(t->get_handle(), url()
 							, error_msg);
 					}

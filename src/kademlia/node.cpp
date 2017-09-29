@@ -270,7 +270,7 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 		return;
 	}
 
-	char y = *(y_ent.string_ptr());
+	const char y = *(y_ent.string_ptr());
 
 	bdecode_node ext_ip = m.message.dict_find_string("ip");
 
