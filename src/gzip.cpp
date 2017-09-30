@@ -112,13 +112,13 @@ namespace libtorrent {
 namespace {
 
 	// returns -1 if gzip header is invalid or the header size in bytes
-	int gzip_header(span<char const> const buf)
+	int gzip_header(span<char const> const in)
 	{
 		// The zip header cannot be shorter than 10 bytes
-		if (buf.size() < 10) return -1;
+		if (in.size() < 10) return -1;
 
 		span<unsigned char const> buffer(
-			reinterpret_cast<const unsigned char*>(buf.data()), buf.size());
+			reinterpret_cast<const unsigned char*>(in.data()), in.size());
 
 		// gzip is defined in https://tools.ietf.org/html/rfc1952
 
@@ -150,22 +150,22 @@ namespace {
 
 		if (flags & FNAME)
 		{
-			if (buf.empty()) return -1;
+			if (buffer.empty()) return -1;
 			while (buffer[0] != 0)
 			{
 				buffer = buffer.subspan(1);
-				if (buf.empty()) return -1;
+				if (buffer.empty()) return -1;
 			}
 			buffer = buffer.subspan(1);
 		}
 
 		if (flags & FCOMMENT)
 		{
-			if (buf.empty()) return -1;
+			if (buffer.empty()) return -1;
 			while (buffer[0] != 0)
 			{
 				buffer = buffer.subspan(1);
-				if (buf.empty()) return -1;
+				if (buffer.empty()) return -1;
 			}
 			buffer = buffer.subspan(1);
 		}
@@ -176,7 +176,7 @@ namespace {
 			buffer = buffer.subspan(2);
 		}
 
-		return static_cast<int>(buf.size() - buffer.size());
+		return static_cast<int>(in.size() - buffer.size());
 	}
 	} // anonymous namespace
 

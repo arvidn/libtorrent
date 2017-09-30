@@ -74,6 +74,22 @@ TORRENT_TEST(corrupt)
 	TEST_CHECK(ec);
 }
 
+TORRENT_TEST(invalid1)
+{
+	std::vector<char> zipped;
+	error_code ec;
+	load_file(combine_path("..", "invalid1.gz"), zipped, ec, 1000000);
+	if (ec) std::printf("failed to open file: (%d) %s\n", ec.value()
+		, ec.message().c_str());
+	TEST_CHECK(!ec);
+
+	std::vector<char> inflated;
+	inflate_gzip(zipped, inflated, 1000000, ec);
+
+	// we expect this to fail
+	TEST_CHECK(ec);
+}
+
 TORRENT_TEST(empty)
 {
 	std::vector<char> empty;
