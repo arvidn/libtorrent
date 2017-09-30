@@ -140,6 +140,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_piece_len.torrent", errors::torrent_missing_piece_length },
 	{ "negative_piece_len.torrent", errors::torrent_missing_piece_length },
 	{ "no_name.torrent", errors::torrent_missing_name },
+	{ "bad_name.torrent", errors::torrent_missing_name },
 	{ "invalid_name.torrent", errors::torrent_missing_name },
 	{ "invalid_info.torrent", errors::torrent_missing_info },
 	{ "string.torrent", errors::torrent_is_no_dict },

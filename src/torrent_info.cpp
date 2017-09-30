@@ -407,6 +407,11 @@ namespace {
 			filename = p.string_ptr() + info_ptr_diff;
 			filename_len = p.string_length();
 			sanitize_append_path_element(path, p.string_value());
+			if (path.empty())
+			{
+				ec = errors::torrent_missing_name;
+				return false;
+			}
 		}
 		else
 		{
