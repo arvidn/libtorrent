@@ -126,6 +126,7 @@ static test_torrent_t test_torrents[] =
 	{ "unordered.torrent" },
 	{ "symlink_zero_size.torrent" },
 	{ "pad_file_no_path.torrent" },
+	{ "large.torrent" },
 };
 
 struct test_failing_torrent_t
