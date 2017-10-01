@@ -127,6 +127,7 @@ static test_torrent_t test_torrents[] =
 	{ "symlink_zero_size.torrent" },
 	{ "pad_file_no_path.torrent" },
 	{ "large.torrent" },
+	{ "absolute_filename.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -794,6 +795,12 @@ TORRENT_TEST(parse_torrents)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
 			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path(".pad", "0"));
+		}
+		else if (std::string(test_torrents[i].file) == "absolute_filename.torrent")
+		{
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), combine_path("temp", "abcde"));
+			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path("temp", "foobar"));
 		}
 
 		file_storage const& fs = ti->files();

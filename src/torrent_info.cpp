@@ -176,9 +176,9 @@ namespace libtorrent {
 		if (element.size() == 1 && element[0] == '.') return;
 
 #ifdef TORRENT_WINDOWS
-#define TORRENT_SEPARATOR "\\"
+#define TORRENT_SEPARATOR '\\'
 #else
-#define TORRENT_SEPARATOR "/"
+#define TORRENT_SEPARATOR '/'
 #endif
 		path.reserve(path.size() + element.size() + 2);
 		int added_separator = 0;
@@ -389,8 +389,7 @@ namespace {
 		std::time_t const mtime = std::time_t(dict.dict_find_int_value("mtime", 0));
 
 		std::string path = root_dir;
-		char const* filename = nullptr;
-		int filename_len = 0;
+		string_view filename;
 
 		if (top_level)
 		{
@@ -404,8 +403,12 @@ namespace {
 				return false;
 			}
 
-			filename = p.string_ptr() + info_ptr_diff;
-			filename_len = p.string_length();
+			filename = { p.string_ptr() + info_ptr_diff
+				, static_cast<std::size_t>(p.string_length())};
+
+			while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
+				filename.remove_prefix(1);
+
 			sanitize_append_path_element(path, p.string_value());
 			if (path.empty())
 			{
@@ -429,8 +432,10 @@ namespace {
 					bdecode_node const e = p.list_at(i);
 					if (i == end - 1)
 					{
-						filename = e.string_ptr() + info_ptr_diff;
-						filename_len = e.string_length();
+						filename = {e.string_ptr() + info_ptr_diff
+							, static_cast<std::size_t>(e.string_length()) };
+						while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
+							filename.remove_prefix(1);
 					}
 					sanitize_append_path_element(path, e.string_value());
 				}
@@ -480,16 +485,14 @@ namespace {
 			file_flags &= ~file_storage::flag_symlink;
 		}
 
-		if (filename_len > int(path.length())
-			|| path.compare(path.size() - std::size_t(filename_len), std::size_t(filename_len), filename
-				, std::size_t(filename_len)) != 0)
+		if (filename.size() > path.length()
+			|| path.substr(path.size() - filename.size()) != filename)
 		{
 			// if the filename was sanitized and differ, clear it to just use path
-			filename = nullptr;
-			filename_len = 0;
+			filename = {};
 		}
 
-		files.add_file_borrow({filename, std::size_t(filename_len)}, path, file_size, file_flags, filehash
+		files.add_file_borrow(filename, path, file_size, file_flags, filehash
 			, mtime, symlink_path);
 		return true;
 	}
@@ -644,7 +647,7 @@ namespace {
 			{
 				p = parent_path(p);
 				// we don't want trailing slashes here
-				TORRENT_ASSERT(p[p.size() - 1] == *TORRENT_SEPARATOR);
+				TORRENT_ASSERT(p[p.size() - 1] == TORRENT_SEPARATOR);
 				p.resize(p.size() - 1);
 				files.insert(p);
 			}
