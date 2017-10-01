@@ -1012,9 +1012,8 @@ namespace {
 		// extract SHA-1 hashes for all pieces
 		// we want this division to round upwards, that's why we have the
 		// extra addition
-
-		if (files.total_size() >= std::numeric_limits<int>::max()
-			- files.piece_length())
+		if (files.total_size() >=
+			std::numeric_limits<std::int64_t>::max() - piece_length)
 		{
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid
@@ -1022,8 +1021,17 @@ namespace {
 			return false;
 		}
 
-		files.set_num_pieces(int((files.total_size() + files.piece_length() - 1)
-			/ files.piece_length()));
+		const std::int64_t num_pieces =
+			(files.total_size() + piece_length - 1) / piece_length;
+		if (num_pieces > std::numeric_limits<int>::max())
+		{
+			ec = errors::too_many_pieces_in_torrent;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			return false;
+		}
+
+		files.set_num_pieces(static_cast<int>(num_pieces));
 
 		bdecode_node const pieces = info.dict_find_string("pieces");
 		bdecode_node const root_hash = info.dict_find_string("root hash");
