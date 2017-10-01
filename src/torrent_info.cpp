@@ -187,9 +187,9 @@ namespace libtorrent
 		if (element_len == 1 && element[0] == '.') return;
 
 #ifdef TORRENT_WINDOWS
-#define TORRENT_SEPARATOR "\\"
+#define TORRENT_SEPARATOR '\\'
 #else
-#define TORRENT_SEPARATOR "/"
+#define TORRENT_SEPARATOR '/'
 #endif
 		path.reserve(path.size() + element_len + 2);
 		int added_separator = 0;
@@ -417,6 +417,11 @@ namespace libtorrent
 
 			filename = p.string_ptr() + info_ptr_diff;
 			filename_len = p.string_length();
+			while (filename_len > 0 && filename[0] == TORRENT_SEPARATOR)
+			{
+				filename += 1;
+				filename_len -= 1;
+			}
 			sanitize_append_path_element(path, p.string_ptr(), p.string_length());
 		}
 		else
@@ -437,6 +442,11 @@ namespace libtorrent
 					{
 						filename = e.string_ptr() + info_ptr_diff;
 						filename_len = e.string_length();
+					}
+					while (filename_len > 0 && filename[0] == TORRENT_SEPARATOR)
+					{
+						filename += 1;
+						filename_len -= 1;
 					}
 					sanitize_append_path_element(path, e.string_ptr(), e.string_length());
 				}
@@ -659,7 +669,7 @@ namespace libtorrent
 			{
 				p = parent_path(p);
 				// we don't want trailing slashes here
-				TORRENT_ASSERT(p[p.size() - 1] == *TORRENT_SEPARATOR);
+				TORRENT_ASSERT(p[p.size() - 1] == TORRENT_SEPARATOR);
 				p.resize(p.size() - 1);
 				files.insert(p);
 			}
