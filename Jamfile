@@ -103,9 +103,7 @@ rule linking ( properties * )
 		result += <library>/libsimulator//simulator ;
 	}
 
-	# dbghelp doesn't appear to exist in mingw
 	if <target-os>windows in $(properties)
-		&& ! <toolset>gcc in $(properties)
 		&& ( <variant>debug in $(properties)
 			|| <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
