@@ -1000,6 +1000,13 @@ namespace {
 			}
 			m_flags |= multifile;
 		}
+		if (files.num_files() == 0)
+		{
+			ec = errors::no_files_in_torrent;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			return false;
+		}
 		TORRENT_ASSERT(!files.name().empty());
 
 		// extract SHA-1 hashes for all pieces
