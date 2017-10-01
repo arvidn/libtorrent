@@ -728,6 +728,9 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 
 #endif // TORRENT_HAS_SSE
 
+namespace libtorrent {}
+
+namespace lt = libtorrent;
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED
 
