@@ -1013,9 +1013,8 @@ namespace {
 		// we want this division to round upwards, that's why we have the
 		// extra addition
 
-		if (files.total_size() >=
-			(std::numeric_limits<std::int64_t>::max() / files.piece_length())
-			- files.piece_length())
+		if (files.total_size() >= static_cast<std::int64_t>(std::numeric_limits<int>::max() - files.piece_length())
+			* files.piece_length())
 		{
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid
