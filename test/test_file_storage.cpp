@@ -183,6 +183,7 @@ TORRENT_TEST(pointer_offset)
 	// test filename_ptr and filename_len
 	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
+	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename, 5));
 
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test-torrent-1", "test1"));
 	TEST_EQUAL(st.file_path(file_index_t{0}, "tmp"), combine_path("tmp"
@@ -200,6 +201,32 @@ TORRENT_TEST(pointer_offset)
 	// test filename_ptr and filename_len
 	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename + 5);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
+}
+
+TORRENT_TEST(invalid_path1)
+{
+	file_storage st;
+#ifdef TORRENT_WINDOWS
+	st.add_file_borrow({}, R"(+\\\()", 10);
+#else
+	st.add_file_borrow({}, "+///(", 10);
+#endif
+
+	TEST_EQUAL(st.file_name(file_index_t{0}), "(");
+	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("+", "("));
+}
+
+TORRENT_TEST(invalid_path2)
+{
+	file_storage st;
+#ifdef TORRENT_WINDOWS
+	st.add_file_borrow({}, R"(+\\\+\\()", 10);
+#else
+	st.add_file_borrow({}, "+///+//(", 10);
+#endif
+
+	TEST_EQUAL(st.file_name(file_index_t{0}), "(");
+	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("+", combine_path("+", "(")));
 }
 
 TORRENT_TEST(map_file)
