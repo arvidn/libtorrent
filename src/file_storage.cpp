@@ -131,34 +131,37 @@ namespace {
 		// sorry about this messy string handling, but I did
 		// profile it, and it was expensive
 		char const* leaf = filename_cstr(path.c_str());
-		char const* branch_path = "";
-		int branch_len = 0;
+		string_view branch_path;
 		if (leaf > path.c_str())
 		{
 			// split the string into the leaf filename
 			// and the branch path
-			branch_path = path.c_str();
-			branch_len = int(leaf - path.c_str());
+			branch_path = path;
+			branch_path = branch_path.substr(0
+				, static_cast<std::size_t>(leaf - path.c_str()));
 
 			// trim trailing slashes
-			if (branch_len > 0 && branch_path[branch_len - 1] == TORRENT_SEPARATOR)
-				--branch_len;
+			while (!branch_path.empty() && branch_path.back() == TORRENT_SEPARATOR)
+			{
+				branch_path.remove_suffix(1);
+			}
 		}
-		if (branch_len <= 0)
+		if (branch_path.empty())
 		{
 			if (set_name) e.set_name(leaf);
 			e.path_index = -1;
 			return;
 		}
 
-		if (branch_len >= int(m_name.size())
-			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0
+		if (branch_path.size() >= m_name.size()
+			&& branch_path.substr(0, m_name.size()) == m_name
 			&& branch_path[m_name.size()] == TORRENT_SEPARATOR)
 		{
-			int const offset = int(m_name.size())
-				+ (int(m_name.size()) == branch_len ? 0 : 1);
-			branch_path += offset;
-			branch_len -= offset;
+			branch_path.remove_prefix(m_name.size());
+			while (!branch_path.empty() && branch_path.front() == TORRENT_SEPARATOR)
+			{
+				branch_path.remove_prefix(1);
+			}
 			e.no_root_dir = false;
 		}
 		else
@@ -166,7 +169,7 @@ namespace {
 			e.no_root_dir = true;
 		}
 
-		e.path_index = get_or_add_path({branch_path, aux::numeric_cast<std::size_t>(branch_len)});
+		e.path_index = get_or_add_path(branch_path);
 		if (set_name) e.set_name(leaf);
 	}
 

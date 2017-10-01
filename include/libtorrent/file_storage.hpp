@@ -509,6 +509,7 @@ namespace libtorrent {
 		// low-level function. returns a pointer to the internal storage for
 		// the filename. This string may not be 0-terminated!
 		// the ``file_name_len()`` function returns the length of the filename.
+		// prefer to use ``file_name()`` instead, which returns a ``string_view``.
 		char const* file_name_ptr(file_index_t index) const;
 		int file_name_len(file_index_t index) const;
 
