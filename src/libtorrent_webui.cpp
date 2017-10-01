@@ -846,7 +846,7 @@ namespace libtorrent
 			io::write_uint16(0xf, ptr);
 
 			// flags
-			io::write_uint8(fs.file_flags(i), ptr);
+			io::write_uint8(static_cast<std::uint8_t>(fs.file_flags(i)), ptr);
 
 			// name
 			std::string name = fs.file_path(i);

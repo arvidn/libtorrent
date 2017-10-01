@@ -615,7 +615,7 @@ void deluge::handle_get_torrents_status(conn_state* st)
 	// TODO: pass in a query_mask depending on key_mask
 
 	std::vector<torrent_status> torrents;
-	m_ses.get_torrent_status(&torrents, yes, 0xffffffff);
+	m_ses.get_torrent_status(&torrents, yes, status_flags_t::all());
 
 	out.append_list(3);
 	out.append_int(RPC_RESPONSE);

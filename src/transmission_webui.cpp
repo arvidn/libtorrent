@@ -913,14 +913,14 @@ void transmission_webui::remove_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
-	bool delete_data = find_bool(args, buffer, "delete-local-data");
+	bool const delete_data = find_bool(args, buffer, "delete-local-data");
 
 	std::vector<torrent_handle> handles;
 	get_torrents(handles, args, buffer);
 	for (std::vector<torrent_handle>::iterator i = handles.begin()
 		, end(handles.end()); i != end; ++i)
 	{
-		m_ses.remove_torrent(*i, delete_data ? session::delete_files : 0);
+		m_ses.remove_torrent(*i, delete_data ? session::delete_files : remove_flags_t{});
 	}
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": {} }", tag);
