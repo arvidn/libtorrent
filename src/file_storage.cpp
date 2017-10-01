@@ -571,6 +571,7 @@ namespace {
 		, std::int64_t const mtime, string_view symlink_path)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
+		TORRENT_ASSERT_PRECOND(!is_complete(filename));
 		if (!has_parent_path(path))
 		{
 			// you have already added at least one file with a
