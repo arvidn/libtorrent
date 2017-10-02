@@ -1,6 +1,7 @@
 
 1.1.5 release
 
+	* fix leak of peer_class objects (when setting per-torrent rate limits)
 	* expose peer_class API to python binding
 	* fix integer overflow in whole_pieces_threshold logic
 	* fix uTP path MTU discovery issue on windows (DF bit was not set correctly)
