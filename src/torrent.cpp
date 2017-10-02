@@ -4995,6 +4995,7 @@ namespace {
 
 		if (m_peer_class > 0)
 		{
+			remove_class(m_ses.peer_classes(), m_peer_class);
 			m_ses.peer_classes().decref(m_peer_class);
 			m_peer_class = 0;
 		}

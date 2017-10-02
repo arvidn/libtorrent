@@ -1294,7 +1294,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// if you hit this assert, you're deleting a non-existent peer class
-		TORRENT_ASSERT(m_classes.at(cid));
+		TORRENT_ASSERT_PRECOND(m_classes.at(cid));
 		if (m_classes.at(cid) == 0) return;
 		m_classes.decref(cid);
 	}
@@ -1304,7 +1304,7 @@ namespace aux {
 		peer_class_info ret;
 		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
-		TORRENT_ASSERT(pc);
+		TORRENT_ASSERT_PRECOND(pc);
 		if (pc == 0)
 		{
 #ifdef TORRENT_DEBUG
@@ -1351,7 +1351,7 @@ namespace aux {
 	{
 		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
-		TORRENT_ASSERT(pc);
+		TORRENT_ASSERT_PRECOND(pc);
 		if (pc == 0) return;
 
 		pc->set_info(&pci);
