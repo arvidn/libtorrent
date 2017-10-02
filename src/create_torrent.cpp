@@ -114,10 +114,10 @@ namespace {
 	}
 
 	void add_files_impl(file_storage& fs, std::string const& p
-		, std::string const& l, std::function<bool(std::string)> pred
+		, std::string const& l, std::function<bool(std::string)> const& pred
 		, create_flags_t const flags)
 	{
-		std::string f = combine_path(p, l);
+		std::string const f = combine_path(p, l);
 		if (!pred(f)) return;
 		error_code ec;
 		file_status s;
@@ -138,7 +138,7 @@ namespace {
 		{
 			for (directory i(f, ec); !i.done(); i.next(ec))
 			{
-				std::string leaf = i.file();
+				std::string const leaf = i.file();
 				if (ignore_subdir(leaf)) continue;
 				add_files_impl(fs, p, combine_path(l, leaf), pred, flags);
 			}
@@ -254,7 +254,7 @@ namespace {
 		io_service ios;
 
 #if TORRENT_USE_UNC_PATHS
-		std::string path = canonicalize_path(p);
+		std::string const path = canonicalize_path(p);
 #else
 		std::string const& path = p;
 #endif
@@ -372,7 +372,7 @@ namespace {
 
 	create_torrent::create_torrent(torrent_info const& ti)
 		: m_files(const_cast<file_storage&>(ti.files()))
-		, m_creation_date(::time(0))
+		, m_creation_date(::time(nullptr))
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
 		, m_merkle_torrent(ti.is_merkle_torrent())
@@ -432,9 +432,9 @@ namespace {
 			for (auto const& n : m_nodes)
 			{
 				entry::list_type node;
-				node.push_back(entry(n.first));
-				node.push_back(entry(n.second));
-				nodes_list.push_back(entry(node));
+				node.emplace_back(n.first);
+				node.emplace_back(n.second);
+				nodes_list.emplace_back(node);
 			}
 		}
 
@@ -451,7 +451,7 @@ namespace {
 					trackers.list().push_back(tier);
 					tier.list().clear();
 				}
-				tier.list().push_back(entry(url.first));
+				tier.list().emplace_back(url.first);
 			}
 			trackers.list().push_back(tier);
 			dict["announce-list"] = trackers;
@@ -476,7 +476,7 @@ namespace {
 				entry& list = dict["url-list"];
 				for (auto const& url : m_url_seeds)
 				{
-					list.list().push_back(entry(url));
+					list.list().emplace_back(url);
 				}
 			}
 		}
@@ -492,7 +492,7 @@ namespace {
 				entry& list = dict["httpseeds"];
 				for (auto const& url : m_http_seeds)
 				{
-					list.list().push_back(entry(url));
+					list.list().emplace_back(url);
 				}
 			}
 		}
@@ -510,7 +510,7 @@ namespace {
 			entry& list = info["collections"];
 			for (auto const& c : m_collections)
 			{
-				list.list().push_back(entry(c));
+				list.list().emplace_back(c);
 			}
 		}
 
@@ -519,7 +519,7 @@ namespace {
 			entry& list = info["similar"];
 			for (auto const& ih : m_similar)
 			{
-				list.list().push_back(entry(ih.to_string()));
+				list.list().emplace_back(ih.to_string());
 			}
 		}
 
@@ -554,7 +554,7 @@ namespace {
 
 				std::string split = split_path(m_files.symlink(first));
 				for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
-					sympath_e.list().push_back(e);
+					sympath_e.list().emplace_back(e);
 			}
 			if (!m_filehashes.empty())
 			{
@@ -583,7 +583,7 @@ namespace {
 
 						for (char const* e = next_path_element(split.c_str());
 							e != nullptr; e = next_path_element(e))
-							path_e.list().push_back(entry(e));
+							path_e.list().emplace_back(e);
 					}
 
 					file_flags_t const flags = m_files.file_flags(i);
@@ -603,7 +603,7 @@ namespace {
 
 						std::string split = split_path(m_files.symlink(i));
 						for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
-							sympath_e.list().push_back(entry(e));
+							sympath_e.list().emplace_back(e);
 					}
 					if (!m_filehashes.empty() && m_filehashes[i] != sha1_hash())
 					{
@@ -664,7 +664,7 @@ namespace {
 	void create_torrent::add_tracker(string_view url, int const tier)
 	{
 		using announce_entry = std::pair<std::string, int>;
-		auto i = std::find_if(m_urls.begin(), m_urls.end()
+		auto const i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.first == url; });
 		if (i != m_urls.end()) return;
 		m_urls.emplace_back(url.to_string(), tier);
@@ -681,7 +681,7 @@ namespace {
 
 	void create_torrent::add_similar_torrent(sha1_hash ih)
 	{
-		m_similar.push_back(ih);
+		m_similar.emplace_back(ih);
 	}
 
 	void create_torrent::add_collection(string_view c)
