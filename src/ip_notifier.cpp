@@ -376,6 +376,23 @@ private:
 	OVERLAPPED m_ovl = {};
 	boost::asio::windows::object_handle m_hnd;
 };
+#else
+struct ip_change_notifier_impl final : ip_change_notifier
+{
+	explicit ip_change_notifier_impl(io_service& ios)
+		: m_ios(ios) {}
+
+	void async_wait(std::function<void(error_code const&)> cb) override
+	{
+		m_ios.post([cb]()
+		{ cb(make_error_code(boost::system::errc::not_supported)); });
+	}
+
+	void cancel() override {}
+
+private:
+	io_service& m_ios;
+};
 #endif
 
 } // anonymous namespace
