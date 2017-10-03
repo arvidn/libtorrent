@@ -157,7 +157,7 @@ namespace libtorrent {
 		static constexpr create_flags_t v1_only = 5_bit;
 
 		// The ``piece_size`` is the size of each piece in bytes. It must
-		// be a multiple of 16 kiB. If a piece size of 0 is specified, a
+		// be a power of 2 and a minimum of 16 kiB. If a piece size of 0 is specified, a
 		// piece_size will be calculated such that the torrent file is roughly 40 kB.
 		//
 		// The overload that takes a ``torrent_info`` object will make a verbatim

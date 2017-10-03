@@ -127,7 +127,7 @@ OPTIONS:
 -p bytes      enables padding files. Files larger
               than bytes will be piece-aligned
 -s bytes      specifies a piece size for the torrent
-              This has to be a multiple of 16 kiB
+              This has to be a power of 2, minimum 16KB
 -l            Don't follow symlinks, instead encode them as
               links in the torrent file
 -o file       specifies the output filename of the torrent file
