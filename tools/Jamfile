@@ -33,7 +33,6 @@ project tools
 	<link>static
    ;  
 
-exe fuzz_torrent : fuzz_torrent.cpp ;
 exe parse_access_log : parse_access_log.cpp ;
 exe dht : dht_put.cpp : <include>../ed25519/src ;
 
