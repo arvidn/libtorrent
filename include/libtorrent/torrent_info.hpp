@@ -489,7 +489,7 @@ namespace libtorrent {
 #endif
 
 		// initialize the piece layer for a file
-		// piece_layer must be an array of the complete piece layer
+		// piece_layer must be an array of the complete piece layer hashes
 		void set_piece_layer(file_index_t index, char const* piece_layer);
 
 		// ``name()`` returns the name of the torrent.
@@ -531,7 +531,7 @@ namespace libtorrent {
 		// fails (typically if the info dictionary is malformed).
 		bool parse_info_section(bdecode_node const& e, error_code& ec);
 
-		// return pointers to any piece layers found in the metadata
+		// populate the piece layers from the metadata
 		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
 
 		// This function looks up keys from the info-dictionary of the loaded

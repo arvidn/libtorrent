@@ -413,8 +413,8 @@ namespace libtorrent {
 		// pieces in the file_storage.
 		index_range<piece_index_t> piece_range() const noexcept;
 
-		// set and get the size of each piece in this torrent. This size is typically an even power
-		// of 2. It doesn't have to be though. It should be divisible by 16 kiB however.
+		// set and get the size of each piece in this torrent. It must be a power of two
+		// and at least 16KB.
 		void set_piece_length(int l)  { m_piece_length = l; }
 		int piece_length() const { TORRENT_ASSERT(m_piece_length > 0); return m_piece_length; }
 
