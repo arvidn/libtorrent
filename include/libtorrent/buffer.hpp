@@ -47,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <malloc.h>
 #elif defined _MSC_VER
 #include <malloc.h>
+#elif defined __FreeBSD__
+#include <malloc_np.h>
 #elif defined TORRENT_BSD
 #include <malloc/malloc.h>
 #endif
@@ -81,7 +83,7 @@ public:
 
 		// the actual allocation may be larger than we requested. If so, let the
 		// user take advantage of every single byte
-#if defined __GLIBC__
+#if defined __GLIBC__ || defined __FreeBSD__
 		m_size = ::malloc_usable_size(m_begin);
 #elif defined _MSC_VER
 		m_size = ::_msize(m_begin);
