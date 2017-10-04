@@ -4369,6 +4369,7 @@ namespace libtorrent {
 
 		if (m_peer_class > peer_class_t{0})
 		{
+			remove_class(m_ses.peer_classes(), m_peer_class);
 			m_ses.peer_classes().decref(m_peer_class);
 			m_peer_class = peer_class_t{0};
 		}

@@ -1010,14 +1010,28 @@ namespace {
 			m_files.set_piece_length(0);
 			return false;
 		}
-		TORRENT_ASSERT(!files.name().empty());
+		if (files.num_files() == 0)
+		{
+			ec = errors::no_files_in_torrent;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			return false;
+		}
+		if (files.name().empty())
+		{
+			ec = errors::torrent_missing_name;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			return false;
+		}
 
 		// extract SHA-1 hashes for all pieces
 		// we want this division to round upwards, that's why we have the
 		// extra addition
 
-		if (files.total_size() >= static_cast<std::int64_t>(std::numeric_limits<int>::max() - files.piece_length())
-			* files.piece_length())
+		if (files.total_size() >=
+			static_cast<boost::int64_t>(std::numeric_limits<int>::max()
+			- files.piece_length()) * files.piece_length())
 		{
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid
