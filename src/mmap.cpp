@@ -76,13 +76,6 @@ namespace {
 			: GENERIC_READ;
 	}
 
-	DWORD file_share(open_mode_t const mode)
-	{
-		return (mode & open_mode::lock_files)
-			? FILE_SHARE_READ
-			: FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE;
-	}
-
 	DWORD file_create(open_mode_t const mode)
 	{
 		return (mode & open_mode::write) ? OPEN_ALWAYS : OPEN_EXISTING;
@@ -105,7 +98,7 @@ file_handle::file_handle(string_view name, std::int64_t
 	, open_mode_t const mode)
 	: m_fd(CreateFileW(convert_to_native_path_string(name.to_string()).c_str()
 		, file_access(mode)
-		, file_share(mode)
+		, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
 		, nullptr
 		, file_create(mode)
 		, file_flags(mode)
@@ -178,12 +171,6 @@ file_handle::file_handle(string_view name, std::int64_t const size
 	}
 #endif
 	if (m_fd < 0) throw_ex<system_error>(error_code(errno, system_category()));
-
-	// The purpose of the lock_file flag is primarily to prevent other
-	// processes from corrupting files that are being used by libtorrent.
-	// the posix file locking mechanism does not prevent others from
-	// accessing files, unless they also attempt to lock the file. That's
-	// why the SETLK mechanism is not used here.
 
 	if (mode & open_mode::truncate)
 	{

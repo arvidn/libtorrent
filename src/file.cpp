@@ -336,7 +336,7 @@ namespace libtorrent {
 			| ((mode & aux::open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
 		handle_type handle = CreateFileW(file_path.c_str(), m.rw_mode
-			, (mode & aux::open_mode::lock_files) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
+			, FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
 
 		if (handle == INVALID_HANDLE_VALUE)
