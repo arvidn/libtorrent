@@ -459,11 +459,11 @@ class test_peer_class(unittest.TestCase):
 
 	def test_peer_class_filter(self):
 		filt = lt.peer_class_type_filter()
-		filt.add(lt.socket_type_t.tcp_socket, lt.session.global_peer_class_id);
-		filt.remove(lt.socket_type_t.utp_socket, lt.session.local_peer_class_id);
+		filt.add(lt.peer_class_type_filter.tcp_socket, lt.session.global_peer_class_id);
+		filt.remove(lt.peer_class_type_filter.utp_socket, lt.session.local_peer_class_id);
 
-		filt.disallow(lt.socket_type_t.tcp_socket, lt.session.global_peer_class_id);
-		filt.allow(lt.socket_type_t.utp_socket, lt.session.local_peer_class_id);
+		filt.disallow(lt.peer_class_type_filter.tcp_socket, lt.session.global_peer_class_id);
+		filt.allow(lt.peer_class_type_filter.utp_socket, lt.session.local_peer_class_id);
 
 	def test_peer_class_ip_filter(self):
 		s = lt.session({'enable_dht': False})

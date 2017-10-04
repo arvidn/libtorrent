@@ -880,7 +880,16 @@ void bind_session()
       .value("upnp", lt::portmap_transport::upnp)
       ;
 
-    class_<lt::peer_class_type_filter>("peer_class_type_filter")
+    enum_<lt::peer_class_type_filter::socket_type_t>("peer_class_type_filter_socket_type_t")
+        .value("tcp_socket", peer_class_type_filter::tcp_socket)
+        .value("utp_socket", peer_class_type_filter::utp_socket)
+        .value("ssl_tcp_socket", peer_class_type_filter::ssl_tcp_socket)
+        .value("ssl_utp_socket", peer_class_type_filter::ssl_utp_socket)
+        .value("i2p_socket", peer_class_type_filter::i2p_socket)
+        ;
+
+    {
+    scope s = class_<lt::peer_class_type_filter>("peer_class_type_filter")
         .def(init<>())
         .def("add", &lt::peer_class_type_filter::add)
         .def("remove", &lt::peer_class_type_filter::remove)
@@ -888,14 +897,12 @@ void bind_session()
         .def("allow", &lt::peer_class_type_filter::allow)
         .def("apply", &lt::peer_class_type_filter::apply)
         ;
-
-    enum_<lt::peer_class_type_filter::socket_type_t>("socket_type_t")
-        .value("tcp_socket", peer_class_type_filter::tcp_socket)
-        .value("utp_socket", peer_class_type_filter::utp_socket)
-        .value("ssl_tcp_socket", peer_class_type_filter::ssl_tcp_socket)
-        .value("ssl_utp_socket", peer_class_type_filter::ssl_utp_socket)
-        .value("i2p_socket", peer_class_type_filter::i2p_socket)
-        ;
+    s.attr("tcp_socket") = peer_class_type_filter::tcp_socket;
+    s.attr("utp_socket") = peer_class_type_filter::utp_socket;
+    s.attr("ssl_tcp_socket") = peer_class_type_filter::ssl_tcp_socket;
+    s.attr("ssl_utp_socket") = peer_class_type_filter::ssl_utp_socket;
+    s.attr("i2p_socket") = peer_class_type_filter::i2p_socket;
+    }
 
     {
     scope s = class_<lt::session, boost::noncopyable>("session", no_init)
