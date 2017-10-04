@@ -105,7 +105,7 @@ install:
   - 'if [[ $toolset == "gcc-arm" ]]; then
       echo "using gcc : arm : ccache armv8l-linux-gnueabihf-g++ : <cxxflags>\"-std=c++11 -fsigned-char -march=armv8-a+crc -mfpu=crypto-neon-fp-armv8 -DTORRENT_FORCE_ARM_CRC32\" <linkflags>-lm ;" >> ~/user-config.jam;
     fi;'
-  - 'echo "using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
+  - 'echo "using darwin : : ccache clang++ : <cxxflags>-std=c++11 <cxxflags>-I/usr/local/opt/openssl/include <linkflags>-L/usr/local/opt/openssl/lib ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - if [ "$docs" == "1" ]; then /Users/travis/Library/Python/2.7/bin/rst2html.py --version; fi
   - 'if [ "$lint" == "1" ]; then curl "https://raw.githubusercontent.com/google/styleguide/71ec7f1e524969c19ce33cfc72e8e023f2b98ee2/cpplint/cpplint.py" >~/cpplint.py; fi'

@@ -535,11 +535,6 @@ lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
 # openssl on linux/bsd etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
-
-# pick up openssl on macos from brew
-lib crypto : : <name>crypto <target-os>darwin <search>/usr/local/opt/openssl/lib : <link>shared : <include>/usr/local/opt/openssl/include ;
-lib ssl : : <name>ssl <use>crypto <target-os>darwin <search>/usr/local/opt/openssl/lib : <link>shared : <include>/usr/local/opt/openssl/include ;
-
 lib crypto : : <name>crypto : <link>shared ;
 lib ssl : : <name>ssl <use>crypto : <link>shared ;
 
