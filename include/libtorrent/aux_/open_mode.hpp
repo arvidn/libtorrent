@@ -52,7 +52,6 @@ namespace aux {
 		constexpr open_mode_t hidden = 5_bit;
 		constexpr open_mode_t sparse = 6_bit;
 		constexpr open_mode_t executable = 7_bit;
-		constexpr open_mode_t lock_files = 8_bit;
 	}
 } // aux
 
