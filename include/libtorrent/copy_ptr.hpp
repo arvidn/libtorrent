@@ -41,12 +41,22 @@ namespace libtorrent {
 		copy_ptr(): m_ptr(nullptr) {}
 		explicit copy_ptr(T* t): m_ptr(t) {}
 		copy_ptr(copy_ptr const& p): m_ptr(p.m_ptr ? new T(*p.m_ptr) : nullptr) {}
+		copy_ptr(copy_ptr&& p) noexcept : m_ptr(p.m_ptr) { p.m_ptr = nullptr; }
+
 		void reset(T* t = nullptr) { delete m_ptr; m_ptr = t; }
 		copy_ptr& operator=(copy_ptr const& p)
 		{
 			if (m_ptr == p.m_ptr) return *this;
+			T* c = p.m_ptr ? new T(*p.m_ptr) : nullptr;
 			delete m_ptr;
-			m_ptr = p.m_ptr ? new T(*p.m_ptr) : nullptr;
+			m_ptr = c;
+			return *this;
+		}
+		copy_ptr& operator=(copy_ptr&& p) noexcept {
+			if(m_ptr == p.m_ptr) return *this;
+			delete m_ptr;
+			m_ptr = p.m_ptr;
+			p.m_ptr = nullptr;
 			return *this;
 		}
 		T* operator->() { return m_ptr; }
