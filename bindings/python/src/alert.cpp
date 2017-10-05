@@ -852,7 +852,6 @@ void bind_alert()
         ;
     class_<torrent_need_cert_alert, bases<torrent_alert>, noncopyable>(
         "torrent_need_cert_alert", no_init)
-        .def_readonly("error", &torrent_need_cert_alert::error)
         ;
 
     class_<add_torrent_alert, bases<torrent_alert>, noncopyable>(
