@@ -1810,8 +1810,6 @@ namespace libtorrent {
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
-
-		error_code const error;
 	};
 
 	// The incoming connection alert is posted every time we successfully accept
