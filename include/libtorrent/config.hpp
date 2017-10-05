@@ -173,7 +173,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // FreeBSD has a reasonable iconv signature
 // unless we're on glibc
 #ifndef __GLIBC__
-# define TORRENT_ICONV_ARG(x) (x)
+# define TORRENT_ICONV_ARG(x) (const_cast<char**>(x))
 #endif
 #endif // __APPLE__
 
