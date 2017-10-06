@@ -107,12 +107,9 @@ namespace libtorrent { namespace aux {
 		l.unlock();
 		file_entry e({st, file_index}, fs.file_path(file_index, p), m
 			, fs.file_size(file_index));
-		auto ret = e.mapping->view();
-
 		l.lock();
 		auto& key_view2 = m_files.get<0>();
-		key_view2.insert(std::move(e));
-		return ret;
+		return key_view2.insert(std::move(e)).first->mapping->view();
 	}
 
 namespace {
