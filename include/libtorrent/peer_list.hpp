@@ -70,7 +70,6 @@ namespace libtorrent
 			, loop_counter(0)
 			, ip(NULL), port(0)
 			, max_failcount(3)
-			, peer_allocator(NULL)
 		{}
 		bool is_paused;
 		bool is_finished;
@@ -97,9 +96,6 @@ namespace libtorrent
 		// a connect candidate
 		int max_failcount;
 
-		// this must be set to a torrent_peer allocator
-		torrent_peer_allocator_interface* peer_allocator;
-
 		// if any peer were removed during this call, they are returned in
 		// this vector. The caller would want to make sure there are no
 		// references to these torrent_peers anywhere
@@ -110,7 +106,8 @@ namespace libtorrent
 	{
 	public:
 
-		peer_list();
+		peer_list(torrent_peer_allocator_interface& alloc);
+		~peer_list();
 
 #if TORRENT_USE_I2P
 		torrent_peer* add_i2p_peer(char const* destination, int src, char flags
@@ -211,6 +208,10 @@ namespace libtorrent
 
 	private:
 
+		// not copyable
+		peer_list(peer_list const&);
+		peer_list& operator=(peer_list const&);
+
 		void recalculate_connect_candidates(torrent_state* state);
 
 		void update_connect_candidates(int delta);
@@ -243,6 +244,10 @@ namespace libtorrent
 		// first check if the peer matches this one, and
 		// if so, don't delete it.
 		torrent_peer* m_locked_peer;
+
+		// the peer allocator, as stored from the constructor
+		// this must be available in the destructor to free all peers
+		torrent_peer_allocator_interface& m_peer_allocator;
 
 		// the number of seeds in the torrent_peer list
 		boost::uint32_t m_num_seeds:31;

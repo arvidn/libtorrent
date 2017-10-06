@@ -121,8 +121,9 @@ namespace
 
 namespace libtorrent
 {
-	peer_list::peer_list()
+	peer_list::peer_list(torrent_peer_allocator_interface& alloc)
 		: m_locked_peer(NULL)
+		, m_peer_allocator(alloc)
 		, m_num_seeds(0)
 		, m_finished(0)
 		, m_round_robin(0)
@@ -130,6 +131,15 @@ namespace libtorrent
 		, m_max_failcount(3)
 	{
 		thread_started();
+	}
+
+	peer_list::~peer_list()
+	{
+		for (peers_t::iterator i = m_peers.begin()
+			, end(m_peers.end()); i != end; ++i)
+		{
+			m_peer_allocator.free_peer_entry(*i);
+		}
 	}
 
 	void peer_list::set_max_failcount(torrent_state* state)
@@ -301,7 +311,7 @@ namespace libtorrent
 		(*i)->in_use = false;
 #endif
 
-		state->peer_allocator->free_peer_entry(*i);
+		m_peer_allocator.free_peer_entry(*i);
 		m_peers.erase(i);
 	}
 
@@ -745,7 +755,7 @@ namespace libtorrent
 #else
 			bool is_v6 = false;
 #endif
-			torrent_peer* p = state->peer_allocator->allocate_peer_entry(
+			torrent_peer* p = m_peer_allocator.allocate_peer_entry(
 				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
 				: torrent_peer_allocator_interface::ipv4_peer_type);
 			if (p == 0) return false;
@@ -1030,7 +1040,7 @@ namespace libtorrent
 		{
 			// we don't have any info about this peer.
 			// add a new entry
-			p = state->peer_allocator->allocate_peer_entry(torrent_peer_allocator_interface::i2p_peer_type);
+			p = m_peer_allocator.allocate_peer_entry(torrent_peer_allocator_interface::i2p_peer_type);
 			if (p == NULL) return NULL;
 			new (p) i2p_peer(destination, true, src);
 
@@ -1044,7 +1054,7 @@ namespace libtorrent
 				p->in_use = false;
 #endif
 
-				state->peer_allocator->free_peer_entry(p);
+				m_peer_allocator.free_peer_entry(p);
 				return 0;
 			}
 		}
@@ -1106,7 +1116,7 @@ namespace libtorrent
 #else
 			bool is_v6 = false;
 #endif
-			p = state->peer_allocator->allocate_peer_entry(
+			p = m_peer_allocator.allocate_peer_entry(
 				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
 				: torrent_peer_allocator_interface::ipv4_peer_type);
 			if (p == NULL) return NULL;
@@ -1127,7 +1137,8 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 				p->in_use = false;
 #endif
-				state->peer_allocator->free_peer_entry(p);
+				// TODO: 3 this is not exception safe!
+				m_peer_allocator.free_peer_entry(p);
 				return 0;
 			}
 			state->first_time_seen = true;

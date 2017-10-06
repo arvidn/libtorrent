@@ -1172,7 +1172,7 @@ namespace libtorrent
 	void torrent::need_peer_list()
 	{
 		if (m_peer_list) return;
-		m_peer_list.reset(new peer_list);
+		m_peer_list.reset(new peer_list(m_ses.get_peer_allocator()));
 	}
 
 	void torrent::handle_disk_error(disk_io_job const* j, peer_connection* c)
@@ -11499,7 +11499,6 @@ namespace {
 			: settings().get_int(settings_pack::max_peerlist_size);
 		ret.min_reconnect_time = settings().get_int(settings_pack::min_reconnect_time);
 
-		ret.peer_allocator = m_ses.get_peer_allocator();
 		ret.ip = &m_ses.external_address();
 		ret.port = m_ses.listen_port();
 		ret.max_failcount = settings().get_int(settings_pack::max_failcount);
