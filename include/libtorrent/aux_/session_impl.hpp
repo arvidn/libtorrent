@@ -207,8 +207,8 @@ namespace libtorrent
 
 			void open_listen_port();
 
-			torrent_peer_allocator_interface* get_peer_allocator() TORRENT_OVERRIDE
-			{ return &m_peer_allocator; }
+			torrent_peer_allocator_interface& get_peer_allocator() TORRENT_OVERRIDE
+			{ return m_peer_allocator; }
 
 			io_service& get_io_service() TORRENT_OVERRIDE { return m_io_service; }
 			resolver_interface& get_resolver() TORRENT_OVERRIDE { return m_host_resolver; }
