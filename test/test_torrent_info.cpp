@@ -1008,3 +1008,19 @@ TORRENT_TEST(copy)
 		TEST_EQUAL(fs2.hash(i), file_hashes[i]);
 	}
 }
+
+struct A
+{
+	int val;
+};
+
+TORRENT_TEST(copy_ptr)
+{
+	copy_ptr<A> a(new A{4});
+	copy_ptr<A> b(a);
+
+	TEST_EQUAL(a->val, b->val);
+	TEST_CHECK(&*a != &*b);
+	a->val = 5;
+	TEST_EQUAL(b->val, 4);
+}
