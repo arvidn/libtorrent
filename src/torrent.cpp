@@ -1684,7 +1684,11 @@ namespace libtorrent
 		using boost::asio::ssl::context;
 
 		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
+#if !defined(OPENSSL_API_COMPAT) || (OPENSSL_API_COMPAT < 0x10100000L)
 		OpenSSL_add_all_algorithms();
+#else
+		OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, nullptr);
+#endif
 
 		boost::uint64_t now = clock_type::now().time_since_epoch().count();
 		// assume 9 bits of entropy (i.e. about 1 millisecond)

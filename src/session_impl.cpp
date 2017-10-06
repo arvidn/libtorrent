@@ -150,8 +150,13 @@ namespace
 #include <openssl/crypto.h>
 #include <openssl/rand.h>
 
-namespace
-{
+// by openssl changelog at https://www.openssl.org/news/changelog.html
+// Changes between 1.0.2h and 1.1.0  [25 Aug 2016]
+// - Most global cleanup functions are no longer required because they are handled
+//   via auto-deinit. Affected function CRYPTO_cleanup_all_ex_data()
+#if !defined(OPENSSL_API_COMPAT) || OPENSSL_API_COMPAT < 0x10100000L
+namespace {
+
 	// openssl requires this to clean up internal
 	// structures it allocates
 	struct openssl_cleanup
@@ -159,6 +164,7 @@ namespace
 		~openssl_cleanup() { CRYPTO_cleanup_all_ex_data(); }
 	} openssl_global_destructor;
 }
+#endif
 
 #endif // TORRENT_USE_OPENSSL
 
