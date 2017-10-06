@@ -398,9 +398,31 @@ constexpr disk_job_flags_t disk_interface::volatile_read;
 	{
 		TORRENT_ASSERT(r.length <= m_buffer_pool.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
+		TORRENT_ASSERT(r.start % m_buffer_pool.block_size() == 0);
 
 		DLOG("async_read piece: %d block: %d\n", static_cast<int>(r.piece)
 			, r.start / m_buffer_pool.block_size());
+
+		disk_buffer_holder buffer(*this, nullptr);
+		storage_error ec;
+
+		if (m_store_buffer.get({ storage, r.piece, r.start }
+			, [&](char* buf)
+		{
+			buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"));
+			if (buffer.get() == nullptr)
+			{
+				ec.ec = error::no_memory;
+				ec.operation = operation_t::alloc_cache_piece;
+				return;
+			}
+
+			std::memcpy(buffer.get(), buf, std::size_t(m_buffer_pool.block_size()));
+		}))
+		{
+			handler(std::move(buffer), ec);
+			return;
+		}
 
 		disk_io_job* j = allocate_job(job_action_t::read);
 		j->storage = m_torrents[storage]->shared_from_this();
