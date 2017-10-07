@@ -61,34 +61,30 @@ VERSION = 1.1.5 ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
-rule linking ( properties * )
+rule link-openssl ( properties * )
 {
 	local result ;
 
 	# openssl libraries, if enabled
 	# exclude gcc from a regular windows build to make mingw
 	# link against the regular unix library name
-	if <crypto>openssl in $(properties)
+	if <openssl-version>pre1.1 in $(properties)
+		&& <target-os>windows in $(properties)
+		&& ! <toolset>gcc in $(properties)
 	{
-		if <openssl-version>pre1.1 in $(properties)
-			&& <target-os>windows in $(properties)
-			&& ! <toolset>gcc in $(properties)
-		{
-			result += <library>ssleay32
-				<library>libeay32
-			;
-		}
-		else
-		{
-			# on windows the library names were changed to be in line with other
-			# system starting with OpenSSL 1.1
-			result += <library>crypto <library>ssl ;
-		}
+		result += <library>ssleay32
+			<library>libeay32
+		;
+	}
+	else
+	{
+		# on windows the library names were changed to be in line with other
+		# system starting with OpenSSL 1.1
+		result += <library>crypto <library>ssl ;
 	}
 
 	# windows needs some more libraries when using openSSL
-	if <crypto>openssl in $(properties)
-		&& <target-os>windows in $(properties)
+	if <target-os>windows in $(properties)
 		&& ! <toolset>gcc in $(properties)
 	{
 		result += <library>advapi32
@@ -97,7 +93,13 @@ rule linking ( properties * )
 			<library>gdi32
 		;
 	}
+	echo "link openssl = " $(result) ;
+	return $(result) ;
+}
 
+rule linking ( properties * )
+{
+	local result ;
 	if <simulator>on in $(properties)
 	{
 		result += <library>/libsimulator//simulator ;
@@ -369,7 +371,7 @@ rule building ( properties * )
 	return $(result) ;
 }
 
-rule tag ( name : type  ? : property-set )
+rule tag ( name : type ? : property-set )
 {
 	name = [ virtual-target.add-prefix-and-suffix $(name) : $(type) : $(property-set) ] ;
 
@@ -381,6 +383,78 @@ rule tag ( name : type  ? : property-set )
 
 	return $(name) ;
 }
+
+# the search path to pick up the openssl libraries from. This is the <search>
+# property of those libraries
+rule openssl-lib-path ( properties * )
+{
+	local OPENSSL_LIB = [ feature.get-values <openssl-lib> : $(properties) ] ;
+
+	if <target-os>darwin in $(properties) && $(OPENSSL_LIB) = ""
+	{
+		# on macOS, default to pick up openssl from the homebrew installation
+		# brew install openssl
+		OPENSSL_LIB = /usr/local/opt/openssl/lib ;
+	}
+	else if <target-os>windows in $(properties)
+		&& <toolset>gcc in $(properties)
+		&& $(OPENSSL_LIB) = ""
+	{
+		# on mingw, assume openssl is installed in c:\OpenSSL-Win32 by default
+		OPENSSL_LIB = c:\\OpenSSL-Win32\\lib ;
+	}
+	else if <target-os>windows in $(properties) && $(OPENSSL_LIB) = ""
+	{
+		# on windows, just assume openssl is installed to c:\openssl
+		if <address-model>64 in $(properties)
+		{ OPENSSL_LIB = c:\\openssl\\lib64 ; }
+		else
+		{ OPENSSL_LIB = c:\\openssl\\lib ; }
+	}
+
+	local result ;
+	result += <search>$(OPENSSL_LIB) ;
+	echo "openssl-lib-path = " $(result) ;
+	return $(result) ;
+}
+
+# the include path to pick up openssl headers from. This is the
+# usage-requirement for the openssl-related libraries
+rule openssl-include-path ( properties * )
+{
+	local OPENSSL_INCLUDE = [ feature.get-values <openssl-include> : $(properties) ] ;
+
+	if <target-os>darwin in $(properties) && $(OPENSSL_INCLUDE) = ""
+	{
+		# on macOS, default to pick up openssl from the homebrew installation
+		# brew install openssl
+		OPENSSL_INCLUDE = /usr/local/opt/openssl/include ;
+	}
+	else if <target-os>windows in $(properties)
+		&& <toolset>gcc in $(properties)
+		&& $(OPENSSL_INCLUDE) = ""
+	{
+		# on mingw, assume openssl is installed in c:\OpenSSL-Win32 by default
+		OPENSSL_INCLUDE = c:\\OpenSSL-Win32\\include ;
+	}
+	else if <target-os>windows in $(properties) && $(OPENSSL_INCLUDE) = ""
+	{
+		# on windows, just assume openssl is installed to c:\openssl
+		# not sure if there's a better way to find out where it may be
+		if <address-model>64 in $(properties)
+		{ OPENSSL_INCLUDE = c:\\openssl\\include64 ; }
+		else
+		{ OPENSSL_INCLUDE = c:\\openssl\\include ; }
+	}
+
+	local result ;
+	result += <include>$(OPENSSL_INCLUDE) ;
+	echo "openssl-include-path = " $(result) ;
+	return $(result) ;
+}
+
+feature openssl-lib : : free path ;
+feature openssl-include : : free path ;
 
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
@@ -527,9 +601,12 @@ variant test_barebones : debug
 	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
 	;
 
+lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+
 # required for openssl on windows
-lib ssleay32 : : <name>ssleay32 ;
-lib libeay32 : : <name>libeay32 ;
+lib ssleay32 : : <name>ssleay32 <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+lib libeay32 : : <name>libeay32 <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
 lib advapi32 : : <name>advapi32 ;
 lib user32 : : <name>user32 ;
 lib shell32 : : <name>shell32 ;
@@ -548,12 +625,7 @@ lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
 lib z : : <link>shared <name>z ;
 lib dl : : <link>shared <name>dl ;
 
-# pick up openssl on macos from brew
-lib crypto : : <name>crypto <use>z <target-os>darwin <search>/usr/local/opt/openssl/lib : <link>shared : <include>/usr/local/opt/openssl/include ;
-lib ssl : : <name>ssl <use>crypto <target-os>darwin <search>/usr/local/opt/openssl/lib : <link>shared : <include>/usr/local/opt/openssl/include ;
-
-lib crypto : : <name>crypto <use>z : <link>shared ;
-lib ssl : : <name>ssl <use>crypto : <link>shared ;
+alias openssl-libraries : : : : <conditional>@link-openssl ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;
@@ -758,6 +830,7 @@ lib torrent
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
+	<crypto>openssl:<library>openssl-libraries
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp

@@ -237,6 +237,14 @@ windows format (``c:/boost_1_64_0``).
 The ``Jamfile`` will define ``NDEBUG`` when it's building a release build.
 For more build configuration flags see `Build configurations`_.
 
+When enabling linking against openssl (by setting the ``crypto`` feature to
+``openssl``) the Jamfile will look in some default directory for the openssl
+headers and libraries. On macOS, it will look for the homebrew openssl package.
+On windows it will look in ``c:\openssl`` and mingw in ``c:\OpenSSL-Win32``.
+
+To customize the library path and include path for openssl, set the features
+``openssl-lib`` and ``openssl-include`` respectively.
+
 Build features:
 
 +--------------------------+----------------------------------------------------+
@@ -246,6 +254,13 @@ Build features:
 |                          |   libraries.                                       |
 |                          | * ``shared`` - links dynamically against the boost |
 |                          |   libraries.                                       |
++--------------------------+----------------------------------------------------+
+| ``openssl-lib``          | can be used to specify the directory where libssl  |
+|                          | and libcrypto are installed (or the windows        |
+|                          | counterparts).                                     |
++--------------------------+----------------------------------------------------+
+| ``openssl-include``      | can be used to specify the include directory where |
+|                          | the openssl headers are installed.                 |
 +--------------------------+----------------------------------------------------+
 | ``logging``              | * ``off`` - logging alerts disabled. The           |
 |                          |   reason to disable logging is to keep the binary  |
@@ -282,6 +297,8 @@ Build features:
 |                          |   implementation.                                  |
 |                          | * ``openssl`` - links against openssl and          |
 |                          |   libcrypto to use for SHA-1 hashing.              |
+|                          |   This also enables HTTPS-tracker support and      |
+|                          |   support for bittorrent over SSL.                 |
 |                          | * ``gcrypt`` - links against libgcrypt to use for  |
 |                          |   SHA-1 hashing.                                   |
 +--------------------------+----------------------------------------------------+
