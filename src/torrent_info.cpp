@@ -431,6 +431,7 @@ namespace libtorrent
 
 			if (p && p.list_size() > 0)
 			{
+				std::size_t const orig_path_len = path.size();
 				int const preallocate = path.size() + path_length(p, ec);
 				if (ec) return false;
 				path.reserve(preallocate);
@@ -449,6 +450,14 @@ namespace libtorrent
 						filename_len -= 1;
 					}
 					sanitize_append_path_element(path, e.string_ptr(), e.string_length());
+				}
+
+				// if all path elements were sanitized away, we need to use another
+				// name instead
+				if (path.size() == orig_path_len)
+				{
+					path += TORRENT_SEPARATOR;
+					path += "_";
 				}
 			}
 			else if (file_flags & file_storage::flag_pad_file)
