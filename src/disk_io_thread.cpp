@@ -544,6 +544,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		{
 			// unlock while we're performing the actual disk I/O
 			// then lock again
+			piece_refcount_holder refcount_holder(first_piece);
 			auto unlock = scoped_unlock(l);
 			flush_iovec(first_piece, iov, flushing, iov_len, error);
 		}
