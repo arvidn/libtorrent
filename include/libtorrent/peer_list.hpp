@@ -107,7 +107,7 @@ namespace libtorrent {
 	{
 	public:
 
-		peer_list(torrent_peer_allocator_interface& alloc);
+		explicit peer_list(torrent_peer_allocator_interface& alloc);
 		~peer_list();
 
 #if TORRENT_USE_I2P
