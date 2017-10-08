@@ -151,8 +151,9 @@ my-python-extension libtorrent
     <toolset>darwin:<cxxflags>-Wno-deprecated-declarations
     <toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
     <conditional>@libtorrent_linking
+    <crypto>openssl:<library>/torrent//ssl
+    <crypto>openssl:<library>/torrent//crypto
   : # usage-requirements
-    <conditional>@libtorrent_linking
     <suppress-import-lib>false
   ;
 

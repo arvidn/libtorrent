@@ -36,7 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socks5_stream.hpp>
 #include <boost/asio/error.hpp>
 #if defined TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/error.hpp>
+#include <boost/asio/ssl.hpp>
+#endif
+#if TORRENT_USE_I2P
+#include <libtorrent/i2p_stream.hpp>
 #endif
 #include "boost_python.hpp"
 

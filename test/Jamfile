@@ -138,7 +138,10 @@ test-suite libtorrent :
 	[ run test_privacy.cpp ]
 	[ run test_recheck.cpp ]
 	[ run test_resume.cpp ]
-	[ run test_ssl.cpp ]
+	[ run test_ssl.cpp : :
+		: <crypto>openssl:<library>/torrent//ssl
+		<crypto>openssl:<library>/torrent//crypto
+	]
 	[ run test_tracker.cpp ]
 	[ run test_checking.cpp ]
 	[ run test_url_seed.cpp ]
@@ -158,7 +161,10 @@ test-suite libtorrent :
 	[ run test_remap_files.cpp ]
 	[ run test_utp.cpp ]
 	[ run test_auto_unchoke.cpp ]
-	[ run test_http_connection.cpp ]
+	[ run test_http_connection.cpp : :
+		: <crypto>openssl:<library>/torrent//ssl
+		<crypto>openssl:<library>/torrent//crypto
+	]
 	[ run test_torrent.cpp ]
 	[ run test_transfer.cpp ]
 	[ run test_time_critical.cpp ]

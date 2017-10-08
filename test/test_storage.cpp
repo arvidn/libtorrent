@@ -40,13 +40,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/torrent_info.hpp"
 
 #include <boost/make_shared.hpp>
 #include <boost/utility.hpp>
+#include <boost/bind.hpp>
 
 #include <iostream>
 #include <fstream>

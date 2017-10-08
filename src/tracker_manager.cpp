@@ -45,6 +45,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
+
 using boost::tuples::make_tuple;
 using boost::tuples::tuple;
 
@@ -55,7 +59,6 @@ namespace
 		minimum_tracker_response_length = 3,
 		http_buffer_size = 2048
 	};
-
 }
 
 namespace libtorrent
