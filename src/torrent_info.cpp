@@ -424,6 +424,7 @@ namespace {
 			if (p && p.list_size() > 0)
 			{
 				std::size_t const preallocate = path.size() + std::size_t(path_length(p, ec));
+				std::size_t const orig_path_len = path.size();
 				if (ec) return false;
 				path.reserve(preallocate);
 
@@ -438,6 +439,14 @@ namespace {
 							filename.remove_prefix(1);
 					}
 					sanitize_append_path_element(path, e.string_value());
+				}
+
+				// if all path elements were sanitized away, we need to use another
+				// name instead
+				if (path.size() == orig_path_len)
+				{
+					path += TORRENT_SEPARATOR;
+					path += "_";
 				}
 			}
 			else if (file_flags & file_storage::flag_pad_file)

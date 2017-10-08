@@ -110,6 +110,8 @@ EXTRA_DIST = Jamfile \
   test_torrents/url_seed_multi_space.torrent \
   test_torrents/url_seed_multi_space_nolist.torrent \
   test_torrents/whitespace_url.torrent \
+  test_torrents/invalid_filename.torrent \
+  test_torrents/invalid_filename2.torrent \
   mutable_test_torrents/test1.torrent \
   mutable_test_torrents/test1_pad_files.torrent \
   mutable_test_torrents/test1_single.torrent\

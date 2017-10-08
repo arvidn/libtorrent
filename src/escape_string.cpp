@@ -549,6 +549,17 @@ namespace libtorrent {
 
 #if TORRENT_USE_ICONV
 namespace {
+
+	// this is a helper function to deduce the type of the second argument to
+	// the iconv() function.
+
+	template <typename Input>
+	size_t call_iconv(size_t (&fun)(iconv_t, Input**, size_t*, char**, size_t*)
+		, iconv_t cd, char const** in, size_t* insize, char** out, size_t* outsize)
+	{
+		return fun(cd, const_cast<Input**>(in), insize, out, outsize);
+	}
+
 	std::string iconv_convert_impl(std::string const& s, iconv_t h)
 	{
 		std::string ret;
@@ -557,11 +568,10 @@ namespace {
 		ret.resize(outsize);
 		char const* in = s.c_str();
 		char* out = &ret[0];
-		// posix has a weird iconv signature. implementations
-		// differ on what this signature should be, so we use
-		// a macro to let config.hpp determine it
-		size_t retval = ::iconv(h, TORRENT_ICONV_ARG(&in), &insize,
-			&out, &outsize);
+		// posix has a weird iconv() signature. implementations
+		// differ on the type of the second parameter. We use a helper template
+		// to deduce what we need to cast to.
+		std::size_t const retval = call_iconv(::iconv, h, &in, &insize, &out, &outsize);
 		if (retval == size_t(-1)) return s;
 		// if this string has an invalid utf-8 sequence in it, don't touch it
 		if (insize != 0) return s;

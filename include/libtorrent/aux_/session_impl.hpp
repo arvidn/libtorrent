@@ -294,8 +294,8 @@ namespace aux {
 			void reopen_listen_sockets();
 			void reopen_outgoing_sockets();
 
-			torrent_peer_allocator_interface* get_peer_allocator() override
-			{ return &m_peer_allocator; }
+			torrent_peer_allocator_interface& get_peer_allocator() override
+			{ return m_peer_allocator; }
 
 			io_service& get_io_service() override { return m_io_service; }
 			resolver_interface& get_resolver() override { return m_host_resolver; }

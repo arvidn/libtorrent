@@ -147,7 +147,7 @@ namespace libtorrent { namespace aux {
 
 		virtual alert_manager& alerts() = 0;
 
-		virtual torrent_peer_allocator_interface* get_peer_allocator() = 0;
+		virtual torrent_peer_allocator_interface& get_peer_allocator() = 0;
 		virtual io_service& get_io_service() = 0;
 		virtual resolver_interface& get_resolver() = 0;
 
