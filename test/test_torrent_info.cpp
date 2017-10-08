@@ -134,6 +134,8 @@ static test_torrent_t test_torrents[] =
 	{ "unordered.torrent" },
 	{ "symlink_zero_size.torrent" },
 	{ "pad_file_no_path.torrent" },
+	{ "invalid_filename.torrent" },
+	{ "invalid_filename2.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -768,6 +770,14 @@ TORRENT_TEST(parse_torrents)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
 			TEST_EQUAL(ti->files().file_path(1), combine_path(".pad", "0"));
+		}
+		else if (std::string(test_torrents[i].file) == "invalid_filename.torrent")
+		{
+			TEST_EQUAL(ti->num_files(), 2);
+		}
+		else if (std::string(test_torrents[i].file) == "invalid_filename2.torrent")
+		{
+			TEST_EQUAL(ti->num_files(), 3);
 		}
 
 		file_storage const& fs = ti->files();
