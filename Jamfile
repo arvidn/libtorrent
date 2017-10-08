@@ -567,6 +567,7 @@ lib advapi32 : : <name>advapi32 ;
 lib user32 : : <name>user32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
+lib z : : <link>shared <name>z ;
 
 lib crypto
 	: # sources
@@ -616,7 +617,6 @@ lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
 # openssl on linux/bsd etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
-lib z : : <link>shared <name>z ;
 lib dl : : <link>shared <name>dl ;
 
 # time functions used on linux require librt

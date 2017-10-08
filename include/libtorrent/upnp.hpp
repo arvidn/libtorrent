@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/http_connection.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/enum_net.hpp"
@@ -51,6 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct http_connection;
+	class http_parser;
 
 	namespace upnp_errors
 	{
@@ -300,26 +301,13 @@ private:
 
 	struct rootdevice
 	{
-		rootdevice(): port(0)
-			, lease_duration(default_lease_time)
-			, supports_specific_external(true)
-			, disabled(false)
-			, non_router(false)
-		{
-#if TORRENT_USE_ASSERTS
-			magic = 1337;
-#endif
-		}
+		rootdevice();
 
 #if TORRENT_USE_ASSERTS
-		~rootdevice()
-		{
-			TORRENT_ASSERT(magic == 1337);
-			magic = 0;
-		}
+		~rootdevice();
 #if __cplusplus >= 201103L
-		rootdevice(rootdevice const&) = default;
-		rootdevice& operator=(rootdevice const&) = default;
+		rootdevice(rootdevice const&);
+		rootdevice& operator=(rootdevice const&);
 #endif
 #endif
 
@@ -361,13 +349,7 @@ private:
 #if TORRENT_USE_ASSERTS
 		int magic;
 #endif
-		void close() const
-		{
-			TORRENT_ASSERT(magic == 1337);
-			if (!upnp_connection) return;
-			upnp_connection->close();
-			upnp_connection.reset();
-		}
+		void close() const;
 
 		bool operator<(rootdevice const& rhs) const
 		{ return url < rhs.url; }

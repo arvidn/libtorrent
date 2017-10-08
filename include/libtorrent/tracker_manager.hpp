@@ -51,7 +51,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/unordered_map.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/context.hpp>
+// there is no forward declaration header for asio
+namespace boost {
+namespace asio {
+namespace ssl {
+	struct context;
+}
+}
+}
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

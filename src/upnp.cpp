@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
+#include "libtorrent/http_connection.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -68,6 +69,38 @@ namespace upnp_errors
 } // upnp_errors namespace
 
 static error_code ignore_error;
+
+upnp::rootdevice::rootdevice()
+	: port(0)
+	, lease_duration(default_lease_time)
+	, supports_specific_external(true)
+	, disabled(false)
+	, non_router(false)
+{
+#if TORRENT_USE_ASSERTS
+	magic = 1337;
+#endif
+}
+
+void upnp::rootdevice::close() const
+{
+	TORRENT_ASSERT(magic == 1337);
+	if (!upnp_connection) return;
+	upnp_connection->close();
+	upnp_connection.reset();
+}
+
+#if TORRENT_USE_ASSERTS
+upnp::rootdevice::~rootdevice()
+{
+	TORRENT_ASSERT(magic == 1337);
+	magic = 0;
+}
+#if __cplusplus >= 201103L
+upnp::rootdevice::rootdevice(rootdevice const&) = default;
+upnp::rootdevice& upnp::rootdevice::operator=(rootdevice const&) = default;
+#endif
+#endif
 
 upnp::upnp(io_service& ios
 	, address const& listen_interface, std::string const& user_agent
