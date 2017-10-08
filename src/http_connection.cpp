@@ -538,6 +538,11 @@ void http_connection::on_resolve(error_code const& e
 			if (ep.address().is_v4() && m_bind_addr->is_v4())
 				return true;
 			TORRENT_ASSERT(ep.address().is_v6() && m_bind_addr->is_v6());
+			// don't try to connect to a global address with a local source address
+			// this is mainly needed to prevent attempting to connect to a global
+			// address using a ULA as the source
+			if (!is_local(ep.address()) && is_local(*m_bind_addr))
+				return false;
 			return ep.address().to_v6().scope_id() == m_bind_addr->to_v6().scope_id();
 		});
 		m_endpoints.erase(new_end, m_endpoints.end());
