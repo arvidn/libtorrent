@@ -1185,7 +1185,20 @@ void block_cache::clear(tailqueue<disk_io_job>& jobs)
 	for (int i = 0; i < cached_piece_entry::num_lrus; ++i)
 		m_lru[i].get_all();
 
-	m_pieces.clear();
+	// it's not ok to erase pieces with a refcount > 0
+	// since we're cancelling all jobs though, it shouldn't be too bad
+	// to let the jobs already running complete.
+	for (cache_t::iterator i = m_pieces.begin(); i != m_pieces.end();)
+	{
+		if (i->refcount == 0 && i->piece_refcount == 0)
+		{
+			i = m_pieces.erase(i);
+		}
+		else
+		{
+			++i;
+		}
+	}
 }
 
 void block_cache::move_to_ghost(cached_piece_entry* pe)

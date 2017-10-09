@@ -45,59 +45,6 @@ else
 
 VERSION = 1.2.0 ;
 
-# rule for linking the correct libraries depending
-# on features and target-os
-rule link-openssl ( properties * )
-{
-	local result ;
-
-	# openssl libraries, if enabled
-	# exclude gcc from a regular windows build to make mingw
-	# link against the regular unix library name
-	if <openssl-version>pre1.1 in $(properties)
-		&& <target-os>windows in $(properties)
-		&& ! <toolset>gcc in $(properties)
-	{
-		result += <library>ssleay32 <library>libeay32 ;
-	}
-	else
-	{
-		# on windows the library names were changed to be in line with other
-		# system starting with OpenSSL 1.1
-		result += <library>crypto <library>ssl ;
-	}
-
-	if <crypto>libcrypto in $(properties)
-	{
-		# exclude gcc from a regular windows build to make mingw
-		# link against the regular unix library name
-		if <openssl-version>pre1.1 in $(properties)
-			&& <target-os>windows in $(properties)
-			&& ! <toolset>gcc in $(properties)
-		{
-			# it should be possible to cleanup this list, but this is safe for now
-			result += <library>libeay32 ;
-		}
-		else
-		{
-			result += <library>crypto ;
-		}
-	}
-
-	# windows needs some more libraries when using openSSL
-	if <target-os>windows in $(properties)
-		&& ! <toolset>gcc in $(properties)
-	{
-		result += <library>advapi32
-			<library>user32
-			<library>shell32
-			<library>gdi32
-		;
-	}
-	echo "link openssl = " $(result) ;
-	return $(result) ;
-}
-
 rule linking ( properties * )
 {
 	local result ;
@@ -419,7 +366,6 @@ rule openssl-lib-path ( properties * )
 
 	local result ;
 	result += <search>$(OPENSSL_LIB) ;
-	echo "openssl-lib-path = " $(result) ;
 	return $(result) ;
 }
 
@@ -454,7 +400,6 @@ rule openssl-include-path ( properties * )
 
 	local result ;
 	result += <include>$(OPENSSL_INCLUDE) ;
-	echo "openssl-include-path = " $(result) ;
 	return $(result) ;
 }
 
@@ -588,16 +533,51 @@ variant test_arm : debug
 	<export-extra>on <asserts>on
 	;
 
-lib crypto : : <name>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
-lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
-
-# required for openssl on windows
-lib ssleay32 : : <name>ssleay32 <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
-lib libeay32 : : <name>libeay32 <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
 lib advapi32 : : <name>advapi32 ;
 lib user32 : : <name>user32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
+lib z : : <link>shared <name>z ;
+
+# windows variants for libssl and libcrypto (they have different names and some
+# additional dependencies)
+lib crypto
+	: # sources
+	: # requirements
+	<target-os>windows
+	<openssl-version>pre1.1
+	<name>libeay32
+	<conditional>@openssl-lib-path
+	: # default-build
+	: # usage-requirements
+	<conditional>@openssl-include-path
+	<library>advapi32
+	<library>user32
+	<library>shell32
+	<library>gdi32
+	;
+
+lib ssl
+	: # sources
+	: # requirements
+	<target-os>windows
+	<openssl-version>pre1.1
+	<name>ssleay32
+	<use>crypto
+	<conditional>@openssl-lib-path
+	: # default-build
+	: # usage-requirments
+	<conditional>@openssl-include-path
+	<library>advapi32
+	<library>user32
+	<library>shell32
+	<library>gdi32
+	;
+
+
+lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+
 lib dbghelp : : <name>dbghelp ;
 
 # required for networking on beos
@@ -609,8 +589,7 @@ lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
 # openssl on linux/bsd etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
-
-alias openssl-libraries : : : : <conditional>@link-openssl ;
+lib dl : : <link>shared <name>dl ;
 
 lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib <link>shared ;
 lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
@@ -825,8 +804,9 @@ lib torrent
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
-	<crypto>openssl:<library>openssl-libraries
-	<crypto>libcrypto:<library>openssl-libraries
+	<crypto>openssl:<library>ssl
+	<crypto>openssl:<library>crypto
+	<crypto>libcrypto:<library>crypto
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp

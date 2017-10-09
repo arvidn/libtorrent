@@ -49,6 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <sstream>
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
+
 using namespace std::placeholders;
 
 namespace libtorrent {

@@ -49,9 +49,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 #ifdef TORRENT_USE_OPENSSL
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/ssl/context.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+// there is no forward declaration header for asio
+namespace boost {
+namespace asio {
+namespace ssl {
+	class context;
+}
+}
+}
 #endif
 
 namespace libtorrent {

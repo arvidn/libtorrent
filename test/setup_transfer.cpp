@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
-#include "libtorrent/socket_type.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/random.hpp"
@@ -56,11 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
-
-#ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/stream.hpp>
-#include <boost/asio/ssl/context.hpp>
-#endif
 
 #ifndef _WIN32
 #include <spawn.h>
