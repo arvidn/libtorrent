@@ -1156,13 +1156,13 @@ namespace {
 
 		// save a copy so that we can extract both v1 and v2 files then compare the results
 		file_storage v1_files;
-		if (version == 2)
+		if (version >= 2)
 			v1_files = files;
 
 		bdecode_node const files_node = info.dict_find_list("files");
 
 		bdecode_node file_tree_node = info.dict_find_dict("file tree");
-		if (version == 2 && file_tree_node)
+		if (version >= 2 && file_tree_node)
 		{
 			if (!extract_files2(file_tree_node, files, name, info_ptr_diff, !files_node, ec))
 			{
@@ -1176,7 +1176,7 @@ namespace {
 			else
 				m_flags &= ~multifile;
 		}
-		else if (version == 2)
+		else if (version >= 2)
 		{
 			// mark the torrent as invalid
 			m_files.set_piece_length(0);
@@ -1195,7 +1195,7 @@ namespace {
 		{
 			// if this is a v2 torrent it is ok for the length key to be missing
 			// that means it is a v2 only torrent
-			if (version != 2 || info.dict_find("length"))
+			if (version < 2 || info.dict_find("length"))
 			{
 				// if there's no list of files, there has to be a length
 				// field.
@@ -1234,7 +1234,7 @@ namespace {
 			return false;
 		}
 
-		if (version == 2 && v1_files.num_files() > 0)
+		if (version >= 2 && v1_files.num_files() > 0)
 		{
 			if (files.num_files() != v1_files.num_files())
 			{
@@ -1279,15 +1279,6 @@ namespace {
 		files.set_num_pieces(int((files.total_size() + files.piece_length() - 1)
 			/ files.piece_length()));
 
-		bdecode_node const pieces = info.dict_find_string("pieces");
-		if (!pieces)
-		{
-			ec = errors::torrent_missing_pieces;
-			// mark the torrent as invalid
-			m_files.set_piece_length(0);
-			return false;
-		}
-
 		// we expect the piece hashes to be < 2 GB in size
 		if (files.num_pieces() >= std::numeric_limits<int>::max() / 20)
 		{
@@ -1297,17 +1288,31 @@ namespace {
 			return false;
 		}
 
-		if (pieces.string_length() != files.num_pieces() * 20)
+		bdecode_node const pieces = info.dict_find_string("pieces");
+		if (!pieces)
 		{
-			ec = errors::torrent_invalid_hashes;
-			// mark the torrent as invalid
-			m_files.set_piece_length(0);
-			return false;
+			if (version < 2)
+			{
+				ec = errors::torrent_missing_pieces;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
+				return false;
+			}
 		}
+		else
+		{
+			if (pieces.string_length() != files.num_pieces() * 20)
+			{
+				ec = errors::torrent_invalid_hashes;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
+				return false;
+			}
 
-		m_piece_hashes = pieces.string_ptr() + info_ptr_diff;
-		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-		TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+			m_piece_hashes = pieces.string_ptr() + info_ptr_diff;
+			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+		}
 
 		m_flags |= (info.dict_find_int_value("private", 0) != 0)
 			? private_torrent : 0;

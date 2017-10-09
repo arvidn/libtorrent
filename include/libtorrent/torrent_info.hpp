@@ -467,7 +467,7 @@ namespace libtorrent {
 			return &m_piece_hashes[idx * 20];
 		}
 
-		bool is_loaded() const { return m_piece_hashes; }
+		bool is_loaded() const { return m_files.num_files() > 0; }
 
 #ifndef TORRENT_NO_DEPRECATE
 		// support for BEP 30 merkle torrents has been removed

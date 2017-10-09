@@ -134,6 +134,7 @@ static test_torrent_t test_torrents[] =
 	{ "invalid_filename2.torrent" },
 	{ "v2.torrent" },
 	{ "v2_multipiece_file.torrent" },
+	{ "v2_only.torrent" },
 };
 
 struct test_failing_torrent_t
