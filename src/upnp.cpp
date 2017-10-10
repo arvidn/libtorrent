@@ -40,7 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
+#include "libtorrent/http_connection.hpp"
+
+#if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
+#endif
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -69,6 +73,28 @@ namespace upnp_errors
 } // upnp_errors namespace
 
 static error_code ignore_error;
+
+upnp::rootdevice::rootdevice() {}
+upnp::rootdevice::~rootdevice()
+{
+	TORRENT_ASSERT(magic == 1337);
+#if TORRENT_USE_ASSERTS
+	magic = 0;
+#endif
+}
+
+upnp::rootdevice::rootdevice(rootdevice const&) = default;
+upnp::rootdevice& upnp::rootdevice::operator=(rootdevice const&) = default;
+upnp::rootdevice::rootdevice(rootdevice&&) = default;
+upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) = default;
+
+void upnp::rootdevice::close() const
+{
+	TORRENT_ASSERT(magic == 1337);
+	if (!upnp_connection) return;
+	upnp_connection->close();
+	upnp_connection.reset();
+}
 
 // TODO: 3 bind the broadcast socket. it would probably have to be changed to a vector of interfaces to
 // bind to, since the broadcast socket opens one socket per local

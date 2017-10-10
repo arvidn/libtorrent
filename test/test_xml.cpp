@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "test.hpp"
 #include <iostream>
+#include <functional>
 
 char upnp_xml[] =
 "<root>"

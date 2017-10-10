@@ -40,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/socket_io.hpp"
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
+
 using namespace std::placeholders;
 
 namespace libtorrent {
