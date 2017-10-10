@@ -189,6 +189,11 @@ namespace libtorrent {
 
 namespace aux {
 
+	constexpr ip_source_t session_interface::source_dht;
+	constexpr ip_source_t session_interface::source_peer;
+	constexpr ip_source_t session_interface::source_tracker;
+	constexpr ip_source_t session_interface::source_router;
+
 	std::vector<std::shared_ptr<listen_socket_t>>::iterator partition_listen_sockets(
 		std::vector<listen_endpoint_t>& eps
 		, std::vector<std::shared_ptr<listen_socket_t>>& sockets)
@@ -6638,13 +6643,14 @@ namespace {
 	}
 
 	// this is the DHT observer version. DHT is the implied source
-	void session_impl::set_external_address(aux::listen_socket_handle const& iface, address const& ip
-		, address const& source)
+	void session_impl::set_external_address(aux::listen_socket_handle const& iface
+		, address const& ip, address const& source)
 	{
 		auto i = iface.m_sock.lock();
 		TORRENT_ASSERT(i);
 		if (!i) return;
-		set_external_address(std::static_pointer_cast<listen_socket_t>(i), ip, source_dht, source);
+		set_external_address(std::static_pointer_cast<listen_socket_t>(i), ip
+			, source_dht, source);
 	}
 
 	void session_impl::get_peers(sha1_hash const& ih)
@@ -6738,7 +6744,7 @@ namespace {
 	}
 
 	void session_impl::set_external_address(address const& ip
-		, int const source_type, address const& source)
+		, ip_source_t const source_type, address const& source)
 	{
 		// for now, just pick the first socket with a matching address family
 		// TODO: remove this function once all callers are updated to specify a listen socket
@@ -6754,7 +6760,7 @@ namespace {
 
 	void session_impl::set_external_address(
 		tcp::endpoint const& local_endpoint, address const& ip
-		, int const source_type, address const& source)
+		, ip_source_t const source_type, address const& source)
 	{
 		auto sock = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
 			, [&](std::shared_ptr<listen_socket_t> const& v) { return v->local_endpoint == local_endpoint; });
@@ -6764,13 +6770,15 @@ namespace {
 	}
 
 	void session_impl::set_external_address(std::shared_ptr<listen_socket_t> const& sock
-		, address const& ip, int const source_type, address const& source)
+		, address const& ip, ip_source_t const source_type, address const& source)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			session_log(": set_external_address(%s, %d, %s)", print_address(ip).c_str()
-				, source_type, print_address(source).c_str());
+			session_log(": set_external_address(%s, %d, %s)"
+				, print_address(ip).c_str()
+				, static_cast<std::uint8_t>(source_type)
+				, print_address(source).c_str());
 		}
 #endif
 

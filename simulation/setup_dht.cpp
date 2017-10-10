@@ -80,7 +80,8 @@ namespace {
 	std::shared_ptr<lt::aux::listen_socket_t> sim_listen_socket(tcp::endpoint ep)
 	{
 		auto ls = std::make_shared<lt::aux::listen_socket_t>();
-		ls->external_address.cast_vote(ep.address(), 1, lt::address());
+		ls->external_address.cast_vote(ep.address()
+			, lt::aux::session_interface::source_dht, lt::address());
 		ls->local_endpoint = ep;
 		return ls;
 	}

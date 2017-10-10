@@ -658,10 +658,10 @@ namespace aux {
 				, dht::msg const& request, entry& response) override;
 
 			void set_external_address(address const& ip
-				, int source_type, address const& source) override;
+				, ip_source_t source_type, address const& source) override;
 			void set_external_address(tcp::endpoint const& local_endpoint
 				, address const& ip
-				, int source_type, address const& source) override;
+				, ip_source_t source_type, address const& source) override;
 			external_ip external_address() const override;
 
 			// used when posting synchronous function
@@ -754,7 +754,7 @@ namespace aux {
 			void setup_socket_buffers(socket_type& s) override;
 
 			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
-				, int const source_type, address const& source);
+				, ip_source_t const source_type, address const& source);
 
 			void interface_to_endpoints(std::string const& device, int const port
 				, bool const ssl, std::vector<listen_endpoint_t>& eps);
