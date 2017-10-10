@@ -98,7 +98,7 @@ namespace libtorrent {
 	}
 
 	bool ip_voter::cast_vote(address const& ip
-		, int const source_type, address const& source)
+		, aux::ip_source_t const source_type, address const& source)
 	{
 		if (is_any(ip)) return false;
 		if (is_local(ip)) return false;
@@ -164,7 +164,8 @@ namespace libtorrent {
 		return true;
 	}
 
-	bool ip_voter::external_ip_t::add_vote(sha1_hash const& k, int type)
+	bool ip_voter::external_ip_t::add_vote(sha1_hash const& k
+		, aux::ip_source_t const type)
 	{
 		sources |= type;
 		if (voters.find(k)) return false;

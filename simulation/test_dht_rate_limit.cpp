@@ -105,7 +105,8 @@ TORRENT_TEST(dht_rate_limit)
 	lt::udp_socket sock(dht_ios);
 	obs o;
 	auto ls = std::make_shared<lt::aux::listen_socket_t>();
-	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10"), 1, lt::address());
+	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10")
+		, lt::aux::session_interface::source_dht, lt::address());
 	ls->local_endpoint = tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
 	error_code ec;
 	sock.bind(udp::endpoint(address_v4::from_string("40.30.20.10"), 8888), ec);
@@ -233,7 +234,8 @@ TORRENT_TEST(dht_delete_socket)
 
 	obs o;
 	auto ls = std::make_shared<lt::aux::listen_socket_t>();
-	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10"), 1, lt::address());
+	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10")
+		, lt::aux::session_interface::source_dht, lt::address());
 	ls->local_endpoint = tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
 	dht::dht_settings dhtsett;
 	counters cnt;
