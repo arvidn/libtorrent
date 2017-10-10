@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/time.hpp" // for time_point
+#include "libtorrent/aux_/session_interface.hpp" // for ip_source_t
 
 namespace libtorrent {
 
@@ -48,7 +49,7 @@ namespace libtorrent {
 
 		// returns true if a different IP is the top vote now
 		// i.e. we changed our idea of what our external IP is
-		bool cast_vote(address const& ip, int source_type, address const& source);
+		bool cast_vote(address const& ip, aux::ip_source_t source_type, address const& source);
 
 		address external_address() const { return m_external_address; }
 
@@ -58,16 +59,14 @@ namespace libtorrent {
 
 		struct external_ip_t
 		{
-			external_ip_t(): sources(0), num_votes(0) {}
-
-			bool add_vote(sha1_hash const& k, int type);
+			bool add_vote(sha1_hash const& k, aux::ip_source_t type);
 
 			// we want to sort descending
 			bool operator<(external_ip_t const& rhs) const
 			{
 				if (num_votes > rhs.num_votes) return true;
 				if (num_votes < rhs.num_votes) return false;
-				return sources > rhs.sources;
+				return static_cast<std::uint8_t>(sources) > static_cast<std::uint8_t>(rhs.sources);
 			}
 
 			// this is a bloom filter of the IPs that have
@@ -76,9 +75,9 @@ namespace libtorrent {
 			// this is the actual external address
 			address addr;
 			// a bitmask of sources the reporters have come from
-			std::uint16_t sources;
+			aux::ip_source_t sources{};
 			// the total number of votes for this IP
-			std::uint16_t num_votes;
+			std::uint16_t num_votes = 0;
 		};
 
 		// this is a bloom filter of all the IPs that have

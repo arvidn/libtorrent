@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/session_types.hpp"
+#include "libtorrent/flags.hpp"
 
 #include <functional>
 #include <memory>
@@ -101,6 +102,9 @@ namespace libtorrent { namespace aux {
 	struct proxy_settings;
 	struct session_settings;
 
+	struct ip_source_tag;
+	using ip_source_t = flags::bitfield_flag<std::uint8_t, ip_source_tag>;
+
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 	// This is the basic logging and debug interface offered by the session.
 	// a release build with logging disabled (which is the default) will
@@ -131,21 +135,23 @@ namespace libtorrent { namespace aux {
 		: session_logger
 #endif
 	{
+
 		// TODO: 2 the IP voting mechanism should be factored out
 		// to its own class, not part of the session
-		enum
-		{
-			source_dht = 1,
-			source_peer = 2,
-			source_tracker = 4,
-			source_router = 8
-		};
+		// and these constants should move too
+
+		// the logic in ip_voter relies on more reliable sources are represented
+		// by more significant bits
+		static constexpr ip_source_t source_dht = 1_bit;
+		static constexpr ip_source_t source_peer = 2_bit;
+		static constexpr ip_source_t source_tracker = 3_bit;
+		static constexpr ip_source_t source_router = 4_bit;
 
 		virtual void set_external_address(address const& ip
-			, int source_type, address const& source) = 0;
+			, ip_source_t source_type, address const& source) = 0;
 		virtual void set_external_address(tcp::endpoint const& local_endpoint
 			, address const& ip
-			, int source_type, address const& source) = 0;
+			, ip_source_t source_type, address const& source) = 0;
 		virtual external_ip external_address() const = 0;
 
 		virtual disk_interface& disk_thread() = 0;

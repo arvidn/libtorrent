@@ -44,7 +44,7 @@ using namespace lt;
 
 bool cast_vote(ip_voter& ipv, address ext_ip, address voter)
 {
-	bool new_ip = ipv.cast_vote(ext_ip, 1, voter);
+	bool new_ip = ipv.cast_vote(ext_ip, aux::session_interface::source_dht, voter);
 	std::printf("%15s -> %-15s\n"
 		, print_address(voter).c_str()
 		, print_address(ext_ip).c_str());

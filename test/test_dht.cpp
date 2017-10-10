@@ -128,7 +128,8 @@ std::shared_ptr<aux::listen_socket_t> dummy_listen_socket(udp::endpoint src)
 {
 	auto ret = std::make_shared<aux::listen_socket_t>();
 	ret->local_endpoint = tcp::endpoint(src.address(), src.port());
-	ret->external_address.cast_vote(src.address(), 1, rand_v4());
+	ret->external_address.cast_vote(src.address()
+		, aux::session_interface::source_dht, rand_v4());
 	return ret;
 }
 
@@ -136,7 +137,8 @@ std::shared_ptr<aux::listen_socket_t> dummy_listen_socket4()
 {
 	auto ret = std::make_shared<aux::listen_socket_t>();
 	ret->local_endpoint = tcp::endpoint(addr4("192.168.4.1"), 6881);
-	ret->external_address.cast_vote(addr4("236.0.0.1"), 1, rand_v4());
+	ret->external_address.cast_vote(addr4("236.0.0.1")
+		, aux::session_interface::source_dht, rand_v4());
 	return ret;
 }
 
@@ -145,7 +147,8 @@ std::shared_ptr<aux::listen_socket_t> dummy_listen_socket6()
 {
 	auto ret = std::make_shared<aux::listen_socket_t>();
 	ret->local_endpoint = tcp::endpoint(addr6("2002::1"), 6881);
-	ret->external_address.cast_vote(addr6("2002::1"), 1, rand_v6());
+	ret->external_address.cast_vote(addr6("2002::1")
+		, aux::session_interface::source_dht, rand_v6());
 	return ret;
 }
 #endif
@@ -519,7 +522,8 @@ struct obs : dht::dht_observer
 	void set_external_address(aux::listen_socket_handle const& s, address const& addr
 		, address const& source) override
 	{
-		s.get()->external_address.cast_vote(addr, 1, rand_v4());
+		s.get()->external_address.cast_vote(addr
+			, aux::session_interface::source_dht, rand_v4());
 	}
 
 	void get_peers(sha1_hash const& ih) override {}
