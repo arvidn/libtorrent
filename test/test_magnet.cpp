@@ -410,3 +410,23 @@ TORRENT_TEST(trailing_whitespace)
 	TEST_CHECK(h.is_valid());
 }
 
+TORRENT_TEST(invalid_tracker_escaping)
+{
+	add_torrent_params p;
+	p.save_path = ".";
+	error_code ec;
+	parse_magnet_uri("magnet:?tr=udp%3A%2F%2Ftracker.openjnt.com%\xf7"
+		"A80&tr=udp%3A%2F%2Ftracker.pub.ciltbcom%3A80&tr=udp%3A%2F%2Ftracker.ccc.de%3A80&xt=urn:btih:a38d02c287893842a39737aa866e00828aA80&xt=urn:buntu+11.04+%28Final%29"
+		, p, ec);
+	TEST_CHECK(ec);
+}
+
+TORRENT_TEST(invalid_web_seed_escaping)
+{
+	add_torrent_params p;
+	p.save_path = ".";
+	error_code ec;
+	parse_magnet_uri("magnet:?ws=udp%3A%2F%2Ftracker.openjnt.com%\xf7" "A80", p, ec);
+	TEST_CHECK(ec);
+}
+
