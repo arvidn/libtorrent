@@ -67,6 +67,14 @@ namespace libtorrent {
 			if (i == m_header.end()) return empty;
 			return i->second;
 		}
+		unsigned header_uint(char const* key, unsigned const def_value) const
+		{
+			auto const i = m_header.find(key);
+			if (i == m_header.end()) return def_value;
+			auto const val = atoi(i->second.c_str());
+			if (val <= 0) return def_value;
+			return val;
+		}
 
 		std::string const& protocol() const { return m_protocol; }
 		int status_code() const { return m_status_code; }
