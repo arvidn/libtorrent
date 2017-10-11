@@ -79,6 +79,7 @@
 
 1.1.5 release
 
+	* fix infinite loop when parsing certain invalid magnet links
 	* fix parsing of torrents with certain invalid filenames
 	* fix leak of torrent_peer objecs (entries in peer_list)
 	* fix leak of peer_class objects (when setting per-torrent rate limits)
