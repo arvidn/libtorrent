@@ -191,9 +191,11 @@ namespace libtorrent {
 
 			error_code e;
 			std::string tracker = unescape_string(url, e);
-			if (e) continue;
-			p.trackers.push_back(std::move(tracker));
-			p.tracker_tiers.push_back(tier++);
+			if (!e)
+			{
+				p.trackers.push_back(std::move(tracker));
+				p.tracker_tiers.push_back(tier++);
+			}
 			pos = find(uri, "&tr=", pos);
 			if (pos == std::string::npos) break;
 			pos += 4;
@@ -207,8 +209,7 @@ namespace libtorrent {
 		{
 			error_code e;
 			std::string webseed = unescape_string(url, e);
-			if (e) continue;
-			p.url_seeds.push_back(std::move(webseed));
+			if (!e) p.url_seeds.push_back(std::move(webseed));
 			pos = find(uri, "&ws=", pos);
 			if (pos == std::string::npos) break;
 			pos += 4;
