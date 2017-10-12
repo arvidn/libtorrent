@@ -268,12 +268,16 @@ target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_I
 
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32 Iphlpapi)
+	target_link_libraries(torrent-rasterbar debug dbghelp)
 	add_definitions(-D_WIN32_WINNT=0x0600)
 	# prevent winsock1 to be included
 	add_definitions(-DWIN32_LEAN_AND_MEAN)
 	if (MSVC)
 		add_definitions(-DBOOST_ALL_NO_LIB)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # multicore compilation
+		# for multicore compilation
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+		# increase the number of sections for obj files
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 	endif()
 endif()
 
