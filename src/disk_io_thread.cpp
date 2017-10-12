@@ -1231,7 +1231,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 	status_t disk_io_thread::do_uncached_read(disk_io_job* j)
 	{
-		j->argument = disk_buffer_holder(*this, m_disk_cache.allocate_buffer("send buffer"));
+		j->argument = disk_buffer_holder(*this, m_disk_cache.allocate_buffer("send buffer"), 0x4000);
 		auto& buffer = boost::get<disk_buffer_holder>(j->argument);
 		if (buffer.get() == nullptr)
 		{
@@ -1583,7 +1583,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
 		j->d.io.buffer_size = std::uint16_t(r.length);
-		j->argument = disk_buffer_holder(*this, nullptr);
+		j->argument = disk_buffer_holder(*this, nullptr, 0);
 		j->flags = flags;
 		j->callback = std::move(handler);
 
@@ -1688,7 +1688,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 
 		bool exceeded = false;
-		disk_buffer_holder buffer(*this, m_disk_cache.allocate_buffer(exceeded, o, "receive buffer"));
+		disk_buffer_holder buffer(*this, m_disk_cache.allocate_buffer(exceeded, o, "receive buffer"), 0x4000);
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.get(), buf, aux::numeric_cast<std::size_t>(r.length));
 
