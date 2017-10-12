@@ -1670,10 +1670,11 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 		// make sure it didn't wrap
 		TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
 		int const blocks_per_piece = (j->storage->files().piece_length() + block_size() - 1) / block_size();
+		TORRENT_ASSERT(block_offset < 0x4000);
 		j->argument = disk_buffer_holder(allocator
 			, aux::block_cache_reference{ j->storage->storage_index()
 				, static_cast<int>(pe->piece) * blocks_per_piece + start_block}
-			, bl.buf + (j->d.io.offset & (block_size() - 1)));
+			, bl.buf + block_offset, static_cast<std::size_t>(0x4000 - block_offset));
 		j->storage->inc_refcount();
 
 		++m_send_buffer_blocks;
@@ -1690,14 +1691,13 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	}
 
 	j->argument = disk_buffer_holder(allocator
-		, allocate_buffer("send buffer"));
+		, allocate_buffer("send buffer"), 0x4000);
 	if (!boost::get<disk_buffer_holder>(j->argument)) return -2;
 
 	while (size > 0)
 	{
 		TORRENT_PIECE_ASSERT(pe->blocks[block].buf, pe);
-		int to_copy = (std::min)(block_size()
-			- block_offset, size);
+		int to_copy = std::min(block_size() - block_offset, size);
 		std::memcpy(boost::get<disk_buffer_holder>(j->argument).get()
 				+ buffer_offset
 			, pe->blocks[block].buf + block_offset
