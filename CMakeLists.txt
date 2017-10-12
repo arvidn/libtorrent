@@ -333,6 +333,8 @@ if (MSVC)
 	target_compile_options(torrent-rasterbar PUBLIC /Zc:wchar_t /Zc:forScope)
 	# for multi-core compilation
 	target_compile_options(torrent-rasterbar PUBLIC /MP)
+	# increase the number of sections for obj files
+	target_compile_options(torrent-rasterbar PUBLIC /bigobj)
 endif()
 
 target_compile_definitions(torrent-rasterbar PUBLIC _FILE_OFFSET_BITS=64)
