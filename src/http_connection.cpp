@@ -50,7 +50,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 
 #ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ssl/context.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
 using namespace std::placeholders;
