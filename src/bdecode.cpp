@@ -282,7 +282,7 @@ namespace {
 		m_last_token = -1;
 	}
 
-	void bdecode_node::switch_underlying_buffer(char const* buf)
+	void bdecode_node::switch_underlying_buffer(char const* buf) noexcept
 	{
 		TORRENT_ASSERT(!m_tokens.empty());
 		if (m_tokens.empty()) return;
@@ -379,16 +379,16 @@ namespace {
 		return false;
 	}
 
-	bdecode_node::type_t bdecode_node::type() const
+	bdecode_node::type_t bdecode_node::type() const noexcept
 	{
 		if (m_token_idx == -1) return none_t;
 		return static_cast<bdecode_node::type_t>(m_root_tokens[m_token_idx].type);
 	}
 
-	bdecode_node::operator bool() const
+	bdecode_node::operator bool() const noexcept
 	{ return m_token_idx != -1; }
 
-	span<char const> bdecode_node::data_section() const
+	span<char const> bdecode_node::data_section() const noexcept
 	{
 		if (m_token_idx == -1) return {};
 

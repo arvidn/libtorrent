@@ -548,6 +548,7 @@ lib crypto
 	<openssl-version>pre1.1
 	<name>libeay32
 	<conditional>@openssl-lib-path
+	<link>shared
 	: # default-build
 	: # usage-requirements
 	<conditional>@openssl-include-path
@@ -565,6 +566,7 @@ lib ssl
 	<name>ssleay32
 	<use>crypto
 	<conditional>@openssl-lib-path
+	<link>shared
 	: # default-build
 	: # usage-requirments
 	<conditional>@openssl-include-path
@@ -575,8 +577,8 @@ lib ssl
 	;
 
 
-lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
-lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path <link>shared : : <conditional>@openssl-include-path ;
+lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path <link>shared : : <conditional>@openssl-include-path ;
 
 lib dbghelp : : <name>dbghelp ;
 
