@@ -815,7 +815,7 @@ namespace aux {
 //		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
-		std::uint32_t const features = ext->implemented_features();
+		feature_flags_t const features = ext->implemented_features();
 
 		m_ses_extensions[plugins_all_idx].push_back(ext);
 

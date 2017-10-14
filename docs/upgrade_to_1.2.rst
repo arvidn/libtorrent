@@ -120,7 +120,7 @@ plugins
 =======
 
 libtorrent session plugins no longer have all callbacks called unconditionally.
-The callback has to register which callbacks it's interested in receiving by returning a bitmask from ``std::uint32_t implemented_features()``.
+The callback has to register which callbacks it's interested in receiving by returning a bitmask from ``feature_flags_t implemented_features()``.
 The return value is documented in the plugin class.
 
 RSS functions removed

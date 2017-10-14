@@ -35,10 +35,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 
 namespace libtorrent {
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	// declared in extensions.hpp
+	// remove this once C++17 is required
+	constexpr feature_flags_t plugin::optimistic_unchoke_feature;
+	constexpr feature_flags_t plugin::tick_feature;
+	constexpr feature_flags_t plugin::dht_request_feature;
+	constexpr feature_flags_t plugin::alert_feature;
+#endif
 
 	settings_pack min_memory_usage()
 	{

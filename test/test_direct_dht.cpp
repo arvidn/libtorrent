@@ -47,7 +47,7 @@ namespace
 
 struct test_plugin : plugin
 {
-	std::uint32_t implemented_features() override
+	feature_flags_t implemented_features() override
 	{
 		return plugin::dht_request_feature;
 	}
