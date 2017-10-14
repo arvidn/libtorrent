@@ -152,8 +152,8 @@ namespace libtorrent {
 		//
 		// Any torrent_status object whose ``handle`` member is not referring to
 		// a valid torrent are ignored.
-		void get_torrent_status(std::vector<torrent_status>* ret
-			, std::function<bool(torrent_status const&)> const& pred
+		std::vector<torrent_status> get_torrent_status(
+			std::function<bool(torrent_status const&)> const& pred
 			, status_flags_t flags = {}) const;
 		void refresh_torrent_status(std::vector<torrent_status>* ret
 			, status_flags_t flags = {}) const;
@@ -304,7 +304,13 @@ namespace libtorrent {
 		// For more information, see the cache_status type.
 		TORRENT_DEPRECATED
 		cache_status get_cache_status() const;
-#endif
+
+		// deprecated in 1.2
+		TORRENT_DEPRECATED
+		void get_torrent_status(std::vector<torrent_status>* ret
+			, std::function<bool(torrent_status const&)> const& pred
+			, status_flags_t flags = {}) const;
+#endif // TORRENT_NO_DEPRECATE
 
 		enum { disk_cache_no_pieces = 1 };
 

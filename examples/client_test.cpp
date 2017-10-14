@@ -1461,9 +1461,9 @@ MAGNETURL is a magnet link
 				if (c == 'R')
 				{
 					// save resume data for all torrents
-					std::vector<torrent_status> torr;
-					ses.get_torrent_status(&torr, [](torrent_status const& st)
-					{ return st.need_save_resume; }, {});
+					std::vector<torrent_status> const torr = ses.get_torrent_status(
+						[](torrent_status const& st)
+						{ return st.need_save_resume; }, {});
 					for (torrent_status const& st : torr)
 					{
 						st.handle.save_resume_data(torrent_handle::save_info_dict);
@@ -1906,14 +1906,14 @@ COLUMN OPTIONS
 	std::printf("saving resume data\n");
 
 	// get all the torrent handles that we need to save resume data for
-	std::vector<torrent_status> temp;
-	ses.get_torrent_status(&temp, [](torrent_status const& st)
-	{
-		if (!st.handle.is_valid()) return false;
-		if (!st.has_metadata) return false;
-		if (!st.need_save_resume) return false;
-		return true;
-	}, {});
+	std::vector<torrent_status> const temp = ses.get_torrent_status(
+		[](torrent_status const& st)
+		{
+			if (!st.handle.is_valid()) return false;
+			if (!st.has_metadata) return false;
+			if (!st.need_save_resume) return false;
+			return true;
+		}, {});
 
 	int idx = 0;
 	for (auto const& st : temp)
