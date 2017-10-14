@@ -74,11 +74,13 @@ namespace libtorrent {
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p, error_code& ec);
 
+	// deprecated in 1.2
+	TORRENT_DEPRECATED_EXPORT void parse_magnet_uri(string_view uri, add_torrent_params& p, error_code& ec);
 #endif
 
 	// This function parses out information from the magnet link and populates the
 	// add_torrent_params object.
-	TORRENT_EXPORT void parse_magnet_uri(string_view uri, add_torrent_params& p, error_code& ec);
+	TORRENT_EXPORT add_torrent_params parse_magnet_uri(string_view uri, error_code& ec);
 }
 
 #endif

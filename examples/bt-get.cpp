@@ -48,9 +48,8 @@ int main(int argc, char const* argv[])
 	}
 	lt::session ses;
 
-	lt::add_torrent_params atp;
 	lt::error_code ec;
-	lt::parse_magnet_uri(argv[1], atp, ec);
+	lt::add_torrent_params atp = lt::parse_magnet_uri(argv[1], ec);
 	if (ec) {
 		std::cerr << "invalid magnet URI: " << ec.message() << std::endl;
 		return 1;

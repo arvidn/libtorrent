@@ -515,9 +515,8 @@ std::string resume_file(lt::sha1_hash const& info_hash)
 
 void add_magnet(lt::session& ses, lt::string_view uri)
 {
-	lt::add_torrent_params p;
 	lt::error_code ec;
-	lt::parse_magnet_uri(uri.to_string(), p, ec);
+	lt::add_torrent_params p = lt::parse_magnet_uri(uri.to_string(), ec);
 
 	if (ec)
 	{
@@ -531,7 +530,6 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 	{
 		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
-		parse_magnet_uri(uri.to_string(), p, ec);
 	}
 	ec.clear();
 

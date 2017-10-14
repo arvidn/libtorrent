@@ -1249,8 +1249,7 @@ namespace {
 			{
 				auto uri = link.string_value();
 
-				add_torrent_params p;
-				parse_magnet_uri(uri.to_string(), p, ec);
+				add_torrent_params p = parse_magnet_uri(uri.to_string(), ec);
 				if (ec) return false;
 
 				m_info_hash = p.info_hash;

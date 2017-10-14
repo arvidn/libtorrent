@@ -91,7 +91,10 @@ int main(int argc, char const* argv[])
 		std::cerr << "failed to read resume data: " << ec.message() << std::endl;
 		return 1;
 	}
-	lt::parse_magnet_uri(argv[1], atp, ec);
+	lt::add_torrent_params magnet = lt::parse_magnet_uri(argv[1], ec);
+	if (atp.info_hash != magnet.info_hash) {
+		atp = std::move(magnet);
+	}
 	if (ec) {
 		std::cerr << "invalid magnet URI: " << ec.message() << std::endl;
 		return 1;
