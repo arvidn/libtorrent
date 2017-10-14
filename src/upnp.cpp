@@ -346,7 +346,7 @@ void upnp::resend_request(error_code const& ec)
 			d.upnp_connection = std::make_shared<http_connection>(m_io_service
 				, m_resolver
 				, std::bind(&upnp::on_upnp_xml, self(), _1, _2
-				, std::ref(d), _4));
+					, std::ref(d), _4));
 			d.upnp_connection->get(d.url, seconds(30), 1);
 		}
 		TORRENT_CATCH (std::exception const& exc)
@@ -690,7 +690,7 @@ void upnp::try_map_upnp(bool const timer)
 				d.upnp_connection = std::make_shared<http_connection>(m_io_service
 					, m_resolver
 					, std::bind(&upnp::on_upnp_xml, self(), _1, _2
-					, std::ref(d), _4));
+						, std::ref(d), _4));
 				d.upnp_connection->get(d.url, seconds(30), 1);
 			}
 			TORRENT_CATCH (std::exception const& exc)
@@ -840,7 +840,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 		d.upnp_connection = std::make_shared<http_connection>(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_map_response, self(), _1, _2
-			, std::ref(d), i, _4), true, default_max_bottled_buffer_size
+				, std::ref(d), i, _4), true, default_max_bottled_buffer_size
 			, std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i));
 
 		d.upnp_connection->start(d.hostname, d.port
@@ -852,7 +852,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 		d.upnp_connection = std::make_shared<http_connection>(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
-			, std::ref(d), i, _4), true, default_max_bottled_buffer_size
+				, std::ref(d), i, _4), true, default_max_bottled_buffer_size
 			, std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i));
 		d.upnp_connection->start(d.hostname, d.port
 			, seconds(10), 1, nullptr, false, 5, m.local_ep.address());
@@ -1062,7 +1062,7 @@ void upnp::on_upnp_xml(error_code const& e
 	d.upnp_connection = std::make_shared<http_connection>(m_io_service
 		, m_resolver
 		, std::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
-		, std::ref(d), _4), true, default_max_bottled_buffer_size
+			, std::ref(d), _4), true, default_max_bottled_buffer_size
 		, std::bind(&upnp::get_ip_address, self(), std::ref(d)));
 	d.upnp_connection->start(d.hostname, d.port
 		, seconds(10), 1);
