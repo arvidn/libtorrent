@@ -70,7 +70,7 @@ namespace libtorrent {
 struct http_connection;
 struct resolver_interface;
 
-const int default_max_bottled_buffer_size = 2 * 1024 * 1024;
+constexpr int default_max_bottled_buffer_size = 2 * 1024 * 1024;
 
 typedef std::function<void(error_code const&
 	, http_parser const&, span<char const> data, http_connection&)> http_handler;
@@ -93,7 +93,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, http_connect_handler const& ch = http_connect_handler()
 		, http_filter_handler const& fh = http_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
-		, ssl::context* ssl_ctx = 0
+		, ssl::context* ssl_ctx = nullptr
 #endif
 		);
 
