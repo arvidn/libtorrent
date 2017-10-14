@@ -379,7 +379,7 @@ if(build_tests)
 	add_library(test_common OBJECT test/main.cpp test/test.cpp
 		test/setup_transfer.cpp test/dht_server.cpp test/udp_tracker.cpp
 		test/peer_server.cpp test/web_seed_suite.cpp test/swarm_suite.cpp
-		test/test_utils.cpp)
+		test/test_utils.cpp test/make_torrent.cpp test/settings.cpp)
 	enable_testing()
 
 	foreach(s ${tests})
