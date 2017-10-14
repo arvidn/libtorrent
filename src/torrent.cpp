@@ -8997,11 +8997,13 @@ namespace libtorrent {
 		if (is_paused() && !m_graceful_pause_mode)
 		{
 			// let the stats fade out to 0
-			m_stat.second_tick(tick_interval_ms);
-			// if the rate is 0, there's no update because of network transfers
+			// check the rate before ticking the stats so that the last update is sent
+			// with the rate equal to zero
 			if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
 				state_updated();
-			else
+			m_stat.second_tick(tick_interval_ms);
+			// if the rate is 0, there's no update because of network transfers
+			if (!(m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0))
 				update_want_tick();
 
 			return;

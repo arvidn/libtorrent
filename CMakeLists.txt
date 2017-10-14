@@ -288,10 +288,15 @@ if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32 Iphlpapi)
 	# target Windows Vista or later
 	target_compile_definitions(torrent-rasterbar PUBLIC _WIN32_WINNT=0x0600)
+	target_link_libraries(torrent-rasterbar debug dbghelp)
 	# prevent winsock1 to be included
 	target_compile_definitions(torrent-rasterbar PUBLIC WIN32_LEAN_AND_MEAN)
 	if (MSVC)
 		target_compile_definitions(torrent-rasterbar PUBLIC BOOST_ALL_NO_LIB)
+		# for multicore compilation
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+		# increase the number of sections for obj files
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 	endif()
 endif()
 

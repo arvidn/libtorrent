@@ -922,7 +922,7 @@ namespace libtorrent {
 			//
 			// * ``fixed_slots_choker`` is the traditional choker with a fixed
 			//   number of unchoke slots (as specified by
-			//   ``session::set_max_uploads()``).
+			//   ``settings_pack::unchoke_slots_limit``).
 			//
 			// * ``rate_based_choker`` opens up unchoke slots based on the upload
 			//   rate achieved to peers. The more slots that are opened, the
