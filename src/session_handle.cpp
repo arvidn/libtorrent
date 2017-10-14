@@ -173,12 +173,23 @@ namespace libtorrent {
 		sync_call(&session_impl::load_state, &e, flags);
 	}
 
+	std::vector<torrent_status> session_handle::get_torrent_status(
+		std::function<bool(torrent_status const&)> const& pred
+		, status_flags_t const flags) const
+	{
+		std::vector<torrent_status> ret;
+		sync_call(&session_impl::get_torrent_status, &ret, pred, flags);
+		return ret;
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
 	void session_handle::get_torrent_status(std::vector<torrent_status>* ret
 		, std::function<bool(torrent_status const&)> const& pred
 		, status_flags_t const flags) const
 	{
 		sync_call(&session_impl::get_torrent_status, ret, pred, flags);
 	}
+#endif
 
 	void session_handle::refresh_torrent_status(std::vector<torrent_status>* ret
 		, status_flags_t const flags) const
