@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_EXTENSIONS_HPP_INCLUDED
 
 #include "libtorrent/units.hpp"
+#include "libtorrent/flags.hpp"
 
 // OVERVIEW
 //
@@ -182,6 +183,12 @@ namespace libtorrent {
 	struct session_handle;
 	struct peer_connection_handle;
 
+	struct feature_flags_tag;
+
+	// these are flags that can be returned by implemented_features()
+	// indicating which callbacks this plugin is interested in
+	using feature_flags_t = flags::bitfield_flag<std::uint8_t, feature_flags_tag>;
+
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
 	// and can add its own torrent_plugins.
@@ -190,26 +197,21 @@ namespace libtorrent {
 		// hidden
 		virtual ~plugin() {}
 
-		// these are flags that can be returned by implemented_features()
-		// indicating which callbacks this plugin is interested in
-		enum feature_flags_t
-		{
-			// include this bit if your plugin needs to alter the order of the
-			// optimistic unchoke of peers. i.e. have the on_optimistic_unchoke()
-			// callback be called.
-			optimistic_unchoke_feature = 1,
+		// include this bit if your plugin needs to alter the order of the
+		// optimistic unchoke of peers. i.e. have the on_optimistic_unchoke()
+		// callback be called.
+		static constexpr feature_flags_t optimistic_unchoke_feature = 1_bit;
 
-			// include this bit if your plugin needs to have on_tick() called
-			tick_feature = 2,
+		// include this bit if your plugin needs to have on_tick() called
+		static constexpr feature_flags_t tick_feature = 2_bit;
 
-			// include this bit if your plugin needs to have on_dht_request()
-			// called
-			dht_request_feature = 4,
+		// include this bit if your plugin needs to have on_dht_request()
+		// called
+		static constexpr feature_flags_t dht_request_feature = 3_bit;
 
-			// include this bit if your plugin needs to have on_alert()
-			// called
-			alert_feature = 8,
-		};
+		// include this bit if your plugin needs to have on_alert()
+		// called
+		static constexpr feature_flags_t alert_feature = 4_bit;
 
 		// This function is expected to return a bitmask indicating which features
 		// this plugin implements. Some callbacks on this object may not be called
@@ -217,7 +219,7 @@ namespace libtorrent {
 		// callbacks may still be called even if the corresponding feature is not
 		// specified in the return value here. See feature_flags_t for possible
 		// flags to return.
-		virtual std::uint32_t implemented_features() { return 0; }
+		virtual feature_flags_t implemented_features() { return {}; }
 
 		// this is called by the session every time a new torrent is added.
 		// The ``torrent*`` points to the internal torrent object created
