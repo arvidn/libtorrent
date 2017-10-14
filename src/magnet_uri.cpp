@@ -165,10 +165,17 @@ namespace libtorrent {
 		return ret;
 	}
 #endif // BOOST_NO_EXCEPTIONS
-#endif // TORRENT_NO_DEPRECATE
 
 	void parse_magnet_uri(string_view uri, add_torrent_params& p, error_code& ec)
 	{
+		p = parse_magnet_uri(uri, ec);
+	}
+
+#endif // TORRENT_NO_DEPRECATE
+
+	add_torrent_params parse_magnet_uri(string_view uri, error_code& ec)
+	{
+		add_torrent_params p;
 		ec.clear();
 		std::string name;
 
@@ -221,18 +228,18 @@ namespace libtorrent {
 		if (btih.empty())
 		{
 			ec = errors::missing_info_hash_in_uri;
-			return;
+			return p;
 		}
 		if (btih.find('%') != string_view::npos)
 		{
 			unescaped_btih = unescape_string(btih, ec);
-			if (ec) return;
+			if (ec) return p;
 			btih = unescaped_btih;
 		}
 		if (btih.substr(0, 9) != "urn:btih:")
 		{
 			ec = errors::missing_info_hash_in_uri;
-			return;
+			return p;
 		}
 
 		std::string::size_type peer_pos = std::string::npos;
@@ -278,17 +285,18 @@ namespace libtorrent {
 			if (ih.size() != 20)
 			{
 				ec = errors::invalid_info_hash;
-				return;
+				return p;
 			}
 			info_hash.assign(ih);
 		}
 		else
 		{
 			ec = errors::invalid_info_hash;
-			return;
+			return p;
 		}
 
 		p.info_hash = info_hash;
 		if (!name.empty()) p.name = name;
+		return p;
 	}
 }

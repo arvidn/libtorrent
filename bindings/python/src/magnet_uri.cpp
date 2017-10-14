@@ -39,9 +39,8 @@ namespace {
 
 	dict parse_magnet_uri_wrap(std::string const& uri)
 	{
-		add_torrent_params p;
 		error_code ec;
-		parse_magnet_uri(uri, p, ec);
+		add_torrent_params p = parse_magnet_uri(uri, ec);
 
 		if (ec) throw system_error(ec);
 

@@ -110,19 +110,19 @@ TORRENT_TEST(magnet)
 	s->save_state(session_state);
 
 	// test magnet link parsing
-	add_torrent_params model;
-	model.flags &= ~torrent_flags::paused;
-	model.flags &= ~torrent_flags::auto_managed;
-	model.save_path = ".";
 	error_code ec;
-	add_torrent_params p = model;
-	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
 		"&tr=http://1"
 		"&tr=http://2"
 		"&tr=http://3"
 		"&tr=http://3"
 		"&dn=foo"
-		"&dht=127.0.0.1:43", p, ec);
+		"&dht=127.0.0.1:43", ec);
+
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
+	p.save_path = ".";
+
 	TEST_CHECK(!ec);
 	torrent_handle t = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
@@ -139,14 +139,16 @@ TORRENT_TEST(magnet)
 	TEST_CHECK(trackers_set.count("http://2") == 1);
 	TEST_CHECK(trackers_set.count("http://3") == 1);
 
-	p = model;
-	parse_magnet_uri("magnet:"
+	p = parse_magnet_uri("magnet:"
 		"?tr=http://1"
 		"&tr=http://2"
 		"&dn=foo"
 		"&dht=127.0.0.1:43"
-		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", p, ec);
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", ec);
 	TEST_CHECK(!ec);
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
+	p.save_path = ".";
 	torrent_handle t2 = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("%s\n", ec.message().c_str());
@@ -156,14 +158,16 @@ TORRENT_TEST(magnet)
 	TEST_EQUAL(trackers[0].tier, 0);
 	TEST_EQUAL(trackers[1].tier, 1);
 
-	p = model;
-	parse_magnet_uri("magnet:"
+	p = parse_magnet_uri("magnet:"
 		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
 		"&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80"
 		"&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
 		"&xt=urn:btih:a38d02c287893842a32825aa866e00828a318f07"
-		"&dn=Ubuntu+11.04+%28Final%29", p, ec);
+		"&dn=Ubuntu+11.04+%28Final%29", ec);
 	TEST_CHECK(!ec);
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
+	p.save_path = ".";
 	torrent_handle t3 = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("%s\n", ec.message().c_str());
@@ -226,8 +230,7 @@ TORRENT_TEST(magnet)
 TORRENT_TEST(parse_escaped_hash_parameter)
 {
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn%3Abtih%3Acdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn%3Abtih%3Acdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", ec);
 	TEST_CHECK(!ec);
 	TEST_EQUAL(aux::to_hex(p.info_hash), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
@@ -235,8 +238,7 @@ TORRENT_TEST(parse_escaped_hash_parameter)
 TORRENT_TEST(parse_escaped_hash_parameter_in_hex)
 {
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdc%64", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdc%64", ec);
 	TEST_CHECK(!ec);
 	TEST_EQUAL(aux::to_hex(p.info_hash), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
@@ -244,8 +246,7 @@ TORRENT_TEST(parse_escaped_hash_parameter_in_hex)
 TORRENT_TEST(parse_invalid_escaped_hash_parameter)
 {
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn%%3A", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn%%3A", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_escaped_string));
 }
 
@@ -253,8 +254,7 @@ TORRENT_TEST(parse_missing_hash)
 {
 	// parse_magnet_uri
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?dn=foo&dht=127.0.0.1:43", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?dn=foo&dht=127.0.0.1:43", ec);
 	TEST_EQUAL(ec, error_code(errors::missing_info_hash_in_uri));
 	ec.clear();
 }
@@ -263,8 +263,7 @@ TORRENT_TEST(parse_base32_hash)
 {
 	// parse_magnet_uri
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:MFRGCYTBMJQWEYLCMFRGCYTBMJQWEYLC", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:MFRGCYTBMJQWEYLCMFRGCYTBMJQWEYLC", ec);
 	TEST_CHECK(!ec);
 	TEST_EQUAL(p.info_hash, sha1_hash("abababababababababab"));
 	ec.clear();
@@ -274,9 +273,8 @@ TORRENT_TEST(parse_web_seeds)
 {
 	// parse_magnet_uri
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&ws=http://foo.com/bar&ws=http://bar.com/foo", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&ws=http://foo.com/bar&ws=http://bar.com/foo", ec);
 	TEST_CHECK(!ec);
 	TEST_EQUAL(p.url_seeds.size(), 2);
 	TEST_EQUAL(p.url_seeds[0], "http://foo.com/bar");
@@ -287,8 +285,7 @@ TORRENT_TEST(parse_web_seeds)
 TORRENT_TEST(parse_missing_hash2)
 {
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=blah&dn=foo&dht=127.0.0.1:43", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=blah&dn=foo&dht=127.0.0.1:43", ec);
 	TEST_EQUAL(ec, error_code(errors::missing_info_hash_in_uri));
 	ec.clear();
 }
@@ -296,8 +293,7 @@ TORRENT_TEST(parse_missing_hash2)
 TORRENT_TEST(parse_short_hash)
 {
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:abababab", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababab", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
 	ec.clear();
 }
@@ -305,8 +301,7 @@ TORRENT_TEST(parse_short_hash)
 TORRENT_TEST(parse_long_hash)
 {
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:ababababababababababab", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:ababababababababababab", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
 	ec.clear();
 }
@@ -314,8 +309,7 @@ TORRENT_TEST(parse_long_hash)
 TORRENT_TEST(parse_space_hash)
 {
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih: abababababababababab", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih: abababababababababab", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
 	ec.clear();
 }
@@ -323,9 +317,8 @@ TORRENT_TEST(parse_space_hash)
 TORRENT_TEST(parse_peer)
 {
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&x.pe=127.0.0.1:43&x.pe=<invalid1>&x.pe=<invalid2>:100&x.pe=[::1]:45", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&x.pe=127.0.0.1:43&x.pe=<invalid1>&x.pe=<invalid2>:100&x.pe=[::1]:45", ec);
 	TEST_CHECK(!ec);
 #if TORRENT_USE_IPV6
 	TEST_EQUAL(p.peers.size(), 2);
@@ -342,9 +335,8 @@ TORRENT_TEST(parse_peer)
 TORRENT_TEST(parse_dht_node)
 {
 	error_code ec;
-	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&dht=127.0.0.1:43&dht=10.0.0.1:1337", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&dht=127.0.0.1:43&dht=10.0.0.1:1337", ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("%s\n", ec.message().c_str());
 	ec.clear();
@@ -447,16 +439,16 @@ TORRENT_TEST(make_magnet_uri2)
 TORRENT_TEST(trailing_whitespace)
 {
 	session ses(settings());
-	add_torrent_params p;
-	p.save_path = ".";
 	error_code ec;
-	parse_magnet_uri("magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n", ec);
+	p.save_path = ".";
 	// invalid hash
 	TEST_CHECK(ec);
 	TEST_THROW(ses.add_torrent(p));
 
 	ec.clear();
-	parse_magnet_uri("magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", p, ec);
+	p = parse_magnet_uri("magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ec);
+	p.save_path = ".";
 	TEST_CHECK(!ec);
 	// now it's valid, because there's no trailing whitespace
 	torrent_handle h = ses.add_torrent(p);
@@ -465,21 +457,17 @@ TORRENT_TEST(trailing_whitespace)
 
 TORRENT_TEST(invalid_tracker_escaping)
 {
-	add_torrent_params p;
-	p.save_path = ".";
 	error_code ec;
-	parse_magnet_uri("magnet:?tr=udp%3A%2F%2Ftracker.openjnt.com%\xf7"
+	add_torrent_params p = parse_magnet_uri("magnet:?tr=udp%3A%2F%2Ftracker.openjnt.com%\xf7"
 		"A80&tr=udp%3A%2F%2Ftracker.pub.ciltbcom%3A80&tr=udp%3A%2F%2Ftracker.ccc.de%3A80&xt=urn:btih:a38d02c287893842a39737aa866e00828aA80&xt=urn:buntu+11.04+%28Final%29"
-		, p, ec);
+		, ec);
 	TEST_CHECK(ec);
 }
 
 TORRENT_TEST(invalid_web_seed_escaping)
 {
-	add_torrent_params p;
-	p.save_path = ".";
 	error_code ec;
-	parse_magnet_uri("magnet:?ws=udp%3A%2F%2Ftracker.openjnt.com%\xf7" "A80", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?ws=udp%3A%2F%2Ftracker.openjnt.com%\xf7" "A80", ec);
 	TEST_CHECK(ec);
 }
 

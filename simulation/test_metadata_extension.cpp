@@ -100,8 +100,18 @@ void run_metadata_test(int flags)
 		, [](lt::add_torrent_params& params) {
 			// we want to add the torrent via magnet link
 			error_code ec;
-			parse_magnet_uri(lt::make_magnet_uri(*params.ti), params, ec);
+			add_torrent_params const p = parse_magnet_uri(
+				lt::make_magnet_uri(*params.ti), ec);
 			TEST_CHECK(!ec);
+			params.name = p.name;
+			params.trackers = p.trackers;
+			params.tracker_tiers = p.tracker_tiers;
+			params.url_seeds = p.url_seeds;
+			params.info_hash = p.info_hash;
+			params.peers = p.peers;
+#ifndef TORRENT_DISABLE_DHT
+			params.dht_nodes = p.dht_nodes;
+#endif
 			params.ti.reset();
 			params.flags &= ~torrent_flags::upload_mode;
 		}

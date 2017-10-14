@@ -235,11 +235,11 @@ TORRENT_TEST(added_peers)
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
 
-	add_torrent_params p;
+	add_torrent_params p = parse_magnet_uri(
+		"magnet:?xt=urn:btih:abababababababababababababababababababab&x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082"
+		, ec);
 	p.ti = info;
 	p.save_path = ".";
-	parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab&x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082"
-		, p, ec);
 	TEST_CHECK(!ec);
 
 	torrent_handle h = ses.add_torrent(std::move(p));
@@ -577,10 +577,9 @@ TORRENT_TEST(queue_paused)
 TORRENT_TEST(test_move_storage_no_metadata)
 {
 	lt::session ses(settings());
-	add_torrent_params p;
-	p.save_path = "save_path";
 	error_code ec;
-	parse_magnet_uri("magnet?xt=urn:btih:abababababababababababababababababababab", p, ec);
+	add_torrent_params p = parse_magnet_uri("magnet?xt=urn:btih:abababababababababababababababababababab", ec);
+	p.save_path = "save_path";
 	torrent_handle h = ses.add_torrent(p);
 
 	TEST_EQUAL(h.status().save_path, complete("save_path"));
