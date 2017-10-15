@@ -1,4 +1,6 @@
 
+	* fix full allocation failure on APFS
+
 1.1.5 release
 
 	* fix infinite loop when parsing certain invalid magnet links
