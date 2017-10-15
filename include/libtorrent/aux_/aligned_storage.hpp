@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-#if defined __GNUC__ && __GNUC__ < 5
+#if defined __GNUC__ && __GNUC__ < 5 && !defined(_LIBCPP_VERSION)
 
 // this is for backwards compatibility with not-quite C++11 compilers
 template <std::size_t Len, std::size_t Align = alignof(void*)>

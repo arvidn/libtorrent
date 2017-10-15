@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-#if defined __GNUC__ && __GNUC__ < 5
+#if defined __GNUC__ && __GNUC__ < 5 && !defined(_LIBCPP_VERSION)
 
 constexpr std::size_t max(std::size_t a)
 { return a; }
