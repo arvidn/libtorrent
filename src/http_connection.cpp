@@ -882,6 +882,8 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 	m_limiter_timer_active = false;
 	if (e) return;
 
+	if (m_abort) return;
+
 	if (m_download_quota > 0) return;
 
 	m_download_quota = m_rate_limit / 4;
