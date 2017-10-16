@@ -955,6 +955,8 @@ void upnp::on_upnp_xml(error_code const& e
 		d.upnp_connection.reset();
 	}
 
+	if (m_closing) return;
+
 	if (e && e != boost::asio::error::eof)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1059,6 +1061,7 @@ void upnp::on_upnp_xml(error_code const& e
 		return;
 	}
 
+	if (d.upnp_connection) d.upnp_connection->close();
 	d.upnp_connection = std::make_shared<http_connection>(m_io_service
 		, m_resolver
 		, std::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
@@ -1565,6 +1568,8 @@ void upnp::on_expire(error_code const& ec)
 	TORRENT_ASSERT(is_single_thread());
 	COMPLETE_ASYNC("upnp::on_expire");
 	if (ec) return;
+
+	if (m_closing) return;
 
 	time_point const now = aux::time_now();
 	time_point next_expire = max_time();
