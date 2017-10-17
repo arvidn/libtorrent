@@ -1193,17 +1193,23 @@ namespace {
 			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, s, 0};
 			if (fcntl(native_handle(), F_PREALLOCATE, &f) < 0)
 			{
-				if (errno != ENOSPC)
+				// It appears Apple's new filesystem (APFS) does not
+				// support this control message and fails with EINVAL
+				// if so, just skip it
+				if (errno != EINVAL)
 				{
-					ec.assign(errno, system_category());
-					return false;
-				}
-				// ok, let's try to allocate non contiguous space then
-				f.fst_flags = F_ALLOCATEALL;
-				if (fcntl(native_handle(), F_PREALLOCATE, &f) < 0)
-				{
-					ec.assign(errno, system_category());
-					return false;
+					if (errno != ENOSPC)
+					{
+						ec.assign(errno, system_category());
+						return false;
+					}
+					// ok, let's try to allocate non contiguous space then
+					f.fst_flags = F_ALLOCATEALL;
+					if (fcntl(native_handle(), F_PREALLOCATE, &f) < 0)
+					{
+						ec.assign(errno, system_category());
+						return false;
+					}
 				}
 			}
 #endif // F_PREALLOCATE

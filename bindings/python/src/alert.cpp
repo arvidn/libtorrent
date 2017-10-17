@@ -338,6 +338,7 @@ void bind_alert()
     class_<torrent_alert, bases<alert>, noncopyable>(
         "torrent_alert", no_init)
         .add_property("handle", make_getter(&torrent_alert::handle, by_value()))
+        .add_property("torrent_name", &torrent_alert::torrent_name)
         ;
 
     class_<tracker_alert, bases<torrent_alert>, noncopyable>(

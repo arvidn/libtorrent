@@ -336,6 +336,8 @@ class test_alerts(unittest.TestCase):
         ses.wait_for_alert(1000)  # milliseconds
         alerts = ses.pop_alerts()
         for a in alerts:
+            if a.what() == 'add_torrent_alert':
+                self.assertEquals(a.torrent_name, 'temp')
             print(a.message())
             for field_name in dir(a):
                 if field_name.startswith('__'):
