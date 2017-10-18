@@ -76,6 +76,7 @@ class test_torrent_handle(unittest.TestCase):
         # also test the overload that takes a list of piece->priority mappings
         self.h.prioritize_pieces([(0, 1)])
         self.assertEqual(self.h.piece_priorities(), [1])
+
     def test_torrent_handle_in_set(self):
         self.setup()
         torrents = set()
@@ -181,6 +182,8 @@ class test_torrent_handle(unittest.TestCase):
         # make sure we can compare torrent_status objects
         st2 = self.h.status()
         self.assertEqual(st2, st)
+        print(st2.error_file)
+        print(st2.flags)
 
     def test_read_resume_data(self):
 
