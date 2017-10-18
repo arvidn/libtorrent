@@ -105,7 +105,7 @@ void bind_torrent_status()
         .def_readonly("time_since_download", &torrent_status::time_since_download)
 #endif
         .def_readonly("errc", &torrent_status::errc)
-        .def_readonly("error_file", &torrent_status::error_file)
+        .add_property("error_file", make_getter(&torrent_status::error_file, by_value()))
         .def_readonly("name", &torrent_status::name)
         .def_readonly("save_path", &torrent_status::save_path)
         .def_readonly("added_time", &torrent_status::added_time)
@@ -129,7 +129,7 @@ void bind_torrent_status()
         .add_property("active_duration", make_getter(&torrent_status::active_duration, by_value()))
         .add_property("finished_duration", make_getter(&torrent_status::finished_duration, by_value()))
         .add_property("seeding_duration", make_getter(&torrent_status::seeding_duration, by_value()))
-        .def_readonly("flags", &torrent_status::flags)
+        .add_property("flags", make_getter(&torrent_status::flags, by_value()))
         ;
 
     enum_<torrent_status::state_t>("states")
