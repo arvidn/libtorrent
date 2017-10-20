@@ -141,7 +141,7 @@ namespace aux {
 		// listen_socket_t should not be copied or moved because
 		// references to it are held by the DHT and tracker announce
 		// code. That code expects a listen_socket_t to always refer
-		// to the same socket. It would be easy to accidently
+		// to the same socket. It would be easy to accidentally
 		// invalidate that assumption if copying or moving were allowed.
 		listen_socket_t(listen_socket_t const&) = delete;
 		listen_socket_t(listen_socket_t&&) = delete;

@@ -5417,6 +5417,7 @@ namespace {
 		{
 			m_alerts.emplace_alert<portmap_error_alert>(mapping
 				, transport, ec);
+			return;
 		}
 
 		// look through our listen sockets to see if this mapping is for one of
