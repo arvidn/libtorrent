@@ -639,6 +639,9 @@ void upnp::map_timer(error_code const& ec)
 	TORRENT_ASSERT(is_single_thread());
 	COMPLETE_ASYNC("upnp::map_timer");
 	if (ec) return;
+
+	std::shared_ptr<upnp> me(self());
+
 	if (m_closing) return;
 
 	try_map_upnp(true);
@@ -796,6 +799,8 @@ void upnp::next(rootdevice& d, port_mapping_t const i)
 void upnp::update_map(rootdevice& d, port_mapping_t const i)
 {
 	TORRENT_ASSERT(is_single_thread());
+	std::shared_ptr<upnp> me(self());
+
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(i < d.mapping.end_index());
 	TORRENT_ASSERT(d.mapping.size() == m_mappings.size());
@@ -804,8 +809,6 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 
 	// this should not happen, but in case it does, don't fail at runtime
 	if (i >= d.mapping.end_index()) return;
-
-	std::shared_ptr<upnp> me(self());
 
 	mapping_t& m = d.mapping[i];
 
@@ -1565,6 +1568,8 @@ void upnp::on_expire(error_code const& ec)
 	TORRENT_ASSERT(is_single_thread());
 	COMPLETE_ASYNC("upnp::on_expire");
 	if (ec) return;
+
+	std::shared_ptr<upnp> me(self());
 
 	time_point const now = aux::time_now();
 	time_point next_expire = max_time();
