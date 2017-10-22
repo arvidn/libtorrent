@@ -156,7 +156,7 @@ namespace libtorrent {
 		{
 			un() {}
 			// result for hash jobs
-			char piece_hash[20];
+			sha1_hash piece_hash;
 
 			// this is used for check_fastresume to pass in a vector of hard-links
 			// to create. Each element corresponds to a file in the file_storage.

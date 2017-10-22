@@ -1792,7 +1792,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		if (pe != nullptr && !pe->hashing && pe->hash && pe->hash->offset == piece_size)
 		{
 			sha1_hash result = pe->hash->h.final();
-			std::memcpy(j->d.piece_hash, result.data(), 20);
+			j->d.piece_hash = result;
 
 			pe->hash.reset();
 
@@ -2140,7 +2140,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			for (auto i = hash_jobs.iterate(); i.get(); i.next())
 			{
 				disk_io_job* hj = i.get();
-				std::memcpy(hj->d.piece_hash, result.data(), 20);
+				hj->d.piece_hash = result;
 				hj->ret = status_t::no_error;
 			}
 
@@ -2201,7 +2201,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		m_disk_cache.free_buffer(iov.data());
 
 		sha1_hash piece_hash = h.final();
-		std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
+		j->d.piece_hash = piece_hash;
 		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
 	}
 
@@ -2237,7 +2237,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			{
 				DLOG("do_hash: (%d) (already done)\n", int(pe->piece));
 				sha1_hash piece_hash = pe->hash->h.final();
-				std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
+				j->d.piece_hash = piece_hash;
 				pe->hash.reset();
 				if (pe->cache_state != cached_piece_entry::volatile_read_lru)
 					pe->hashing_done = 1;
@@ -2432,7 +2432,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		if (ret == status_t::no_error)
 		{
 			sha1_hash piece_hash = ph->h.final();
-			std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
+			j->d.piece_hash = piece_hash;
 
 			pe->hash.reset();
 			if (pe->cache_state != cached_piece_entry::volatile_read_lru)
