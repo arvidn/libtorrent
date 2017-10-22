@@ -184,6 +184,9 @@ namespace libtorrent {
 			}
 			ec.ec.clear();
 			m_file_priority[i] = std::uint8_t(new_prio);
+
+			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
+				need_partfile();
 		}
 		if (m_part_file) m_part_file->flush_metadata(ec.ec);
 		if (ec)
@@ -459,7 +462,7 @@ namespace libtorrent {
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == 0)
 			{
-				need_partfile();
+				TORRENT_ASSERT(m_part_file);
 
 				error_code e;
 				peer_request map = files().map_file(file_index
@@ -522,7 +525,7 @@ namespace libtorrent {
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == 0)
 			{
-				need_partfile();
+				TORRENT_ASSERT(m_part_file);
 
 				error_code e;
 				peer_request map = files().map_file(file_index
