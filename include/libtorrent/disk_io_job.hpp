@@ -110,6 +110,11 @@ namespace libtorrent {
 		// on a cache piece that may be flushed soon
 		static constexpr disk_job_flags_t in_progress = 2_bit;
 
+		// this is set for jobs that we're no longer interested in. Any aborted
+		// job that's executed should immediately fail with operation_aborted
+		// instead of executing
+		static constexpr disk_job_flags_t aborted = 6_bit;
+
 		// for write jobs, returns true if its block
 		// is not dirty anymore
 		bool completed(cached_piece_entry const* pe, int block_size);

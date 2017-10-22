@@ -276,8 +276,14 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		std::unique_lock<std::mutex> l(m_job_mutex);
 		if (m_abort.exchange(true)) return;
 		bool const no_threads = m_num_running_threads == 0;
+		// abort outstanding jobs belonging to this torrent
+
+		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
+			i.get()->flags |= disk_io_job::aborted;
 		l.unlock();
 
+		// if there are no disk threads, we can't wait for the jobs here, because
+		// we'd stall indefinitely
 		if (no_threads)
 		{
 			abort_jobs();
@@ -1588,7 +1594,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		j->callback = std::move(handler);
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
-		int ret = prep_read_job_impl(j);
+		int const ret = prep_read_job_impl(j);
 		l.unlock();
 
 		switch (ret)
@@ -1613,11 +1619,11 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	// 1 if it needs to be added to the job queue
 	// 2 if it was deferred and will be performed later (no need to
 	//   add it to the queue)
-	int disk_io_thread::prep_read_job_impl(disk_io_job* j, bool check_fence)
+	int disk_io_thread::prep_read_job_impl(disk_io_job* j, bool const check_fence)
 	{
 		TORRENT_ASSERT(j->action == job_action_t::read);
 
-		int ret = m_disk_cache.try_read(j, *this);
+		int const ret = m_disk_cache.try_read(j, *this);
 		if (ret >= 0)
 		{
 			m_stats_counters.inc_stats_counter(counters::num_blocks_cache_hits);
@@ -1839,65 +1845,26 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		, remove_flags_t const options
 		, std::function<void(storage_error const&)> handler)
 	{
-		// remove cache blocks belonging to this torrent
-		jobqueue_t completed_jobs;
-
-		// remove outstanding jobs belonging to this torrent
-		std::unique_lock<std::mutex> l2(m_job_mutex);
-
-		// TODO: maybe the tailqueue_iterator<disk_io_job> should contain a pointer-pointer
-		// instead and have an unlink function
-		disk_io_job* qj = m_generic_io_jobs.m_queued_jobs.get_all();
-		jobqueue_t to_abort;
-
-		// if we encounter any read jobs in the queue, we need to clear the
-		// "outstanding_read" flag on its piece, as we abort the job
-		std::vector<std::pair<storage_interface*, piece_index_t>> pieces;
-
-		storage_interface* to_delete = m_torrents[storage].get();
-
-		while (qj)
 		{
-			disk_io_job* next = qj->next;
-#if TORRENT_USE_ASSERTS
-			qj->next = nullptr;
-#endif
-			if (qj->action == job_action_t::read)
+			// abort outstanding hash jobs belonging to this torrent
+			std::unique_lock<std::mutex> l(m_job_mutex);
+
+			std::shared_ptr<storage_interface> st
+				= m_torrents[storage]->shared_from_this();
+			// hash jobs
+			for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
 			{
-				pieces.push_back(std::make_pair(qj->storage.get(), qj->piece));
+				disk_io_job* j = i.get();
+				if (j->storage != st) continue;
+				j->flags |= disk_io_job::aborted;
 			}
-
-			if (qj->storage.get() == to_delete)
-				to_abort.push_back(qj);
-			else
-				m_generic_io_jobs.m_queued_jobs.push_back(qj);
-			qj = next;
 		}
-		l2.unlock();
-
-		std::unique_lock<std::mutex> l(m_cache_mutex);
-		for (auto& p : pieces)
-		{
-			cached_piece_entry* pe = m_disk_cache.find_piece(p.first, p.second);
-			if (pe == nullptr) continue;
-			TORRENT_ASSERT(pe->outstanding_read == 1);
-			pe->outstanding_read = 0;
-		}
-
-		flush_cache(to_delete, flush_delete_cache, completed_jobs, l);
-		l.unlock();
 
 		disk_io_job* j = allocate_job(job_action_t::delete_files);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->callback = std::move(handler);
 		j->argument = options;
 		add_fence_job(j);
-
-		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
-			, to_abort, completed_jobs);
-
-		if (completed_jobs.size())
-			add_completed_jobs(completed_jobs);
 	}
 
 	void disk_io_thread::async_check_files(storage_index_t const storage
@@ -1933,38 +1900,24 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	void disk_io_thread::async_stop_torrent(storage_index_t const storage
 		, std::function<void()> handler)
 	{
-		// remove outstanding hash jobs belonging to this torrent
-		std::unique_lock<std::mutex> l2(m_job_mutex);
-
-		std::shared_ptr<storage_interface> st
-			= m_torrents[storage]->shared_from_this();
-		disk_io_job* qj = m_hash_io_jobs.m_queued_jobs.get_all();
-		jobqueue_t to_abort;
-
-		while (qj != nullptr)
 		{
-			disk_io_job* next = qj->next;
-#if TORRENT_USE_ASSERTS
-			qj->next = nullptr;
-#endif
-			if (qj->storage.get() == st.get())
-				to_abort.push_back(qj);
-			else
-				m_hash_io_jobs.m_queued_jobs.push_back(qj);
-			qj = next;
-		}
-		l2.unlock();
+			// abort outstanding hash jobs belonging to this torrent
+			std::unique_lock<std::mutex> l(m_job_mutex);
 
+			std::shared_ptr<storage_interface> st
+				= m_torrents[storage]->shared_from_this();
+			// hash jobs
+			for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
+			{
+				disk_io_job* j = i.get();
+				if (j->storage != st) continue;
+				j->flags |= disk_io_job::aborted;
+			}
+		}
 		disk_io_job* j = allocate_job(job_action_t::stop_torrent);
-		j->storage = st;
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->callback = std::move(handler);
 		add_fence_job(j);
-
-		jobqueue_t completed_jobs;
-		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
-			, to_abort, completed_jobs);
-		if (completed_jobs.size())
-			add_completed_jobs(completed_jobs);
 	}
 
 	void disk_io_thread::async_flush_piece(storage_index_t const storage
@@ -3024,6 +2977,15 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	void disk_io_thread::execute_job(disk_io_job* j)
 	{
 		jobqueue_t completed_jobs;
+		if (j->flags & disk_io_job::aborted)
+		{
+			j->ret = status_t::fatal_disk_error;
+			j->error = storage_error(boost::asio::error::operation_aborted);
+			completed_jobs.push_back(j);
+			add_completed_jobs(completed_jobs);
+			return;
+		}
+
 		perform_job(j, completed_jobs);
 		if (completed_jobs.size())
 			add_completed_jobs(completed_jobs);
@@ -3325,7 +3287,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 				if (j->action == job_action_t::read)
 				{
-					int state = prep_read_job_impl(j, false);
+					int const state = prep_read_job_impl(j, false);
 					switch (state)
 					{
 						case 0:
