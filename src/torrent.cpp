@@ -2322,6 +2322,7 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 
 		if (m_abort) return;
+		if (m_deleted) return;
 
 		state_updated();
 
@@ -3772,6 +3773,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_abort) return;
+		if (m_deleted) return;
 
 		bool const passed = settings().get_bool(settings_pack::disable_hash_checks)
 			|| (!error && sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece));
