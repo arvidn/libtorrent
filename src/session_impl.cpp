@@ -5413,14 +5413,10 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		if (ec)
+		if (ec && m_alerts.should_post<portmap_error_alert>())
 		{
-			if (m_alerts.should_post<portmap_error_alert>())
-			{
-				m_alerts.emplace_alert<portmap_error_alert>(mapping
-					, transport, ec);
-			}
-			return;
+			m_alerts.emplace_alert<portmap_error_alert>(mapping
+				, transport, ec);
 		}
 
 		// look through our listen sockets to see if this mapping is for one of
@@ -5440,7 +5436,7 @@ namespace {
 
 		if (ls != m_listen_sockets.end())
 		{
-			if (ip != address())
+			if (!ec && ip != address())
 			{
 				// TODO: 1 report the proper address of the router as the source IP of
 				// this vote of our external address, instead of the empty address
@@ -5451,7 +5447,7 @@ namespace {
 			else (*ls)->udp_external_port = port;
 		}
 
-		if (m_alerts.should_post<portmap_alert>())
+		if (!ec && m_alerts.should_post<portmap_alert>())
 		{
 			m_alerts.emplace_alert<portmap_alert>(mapping, port
 				, transport, proto);
