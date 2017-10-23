@@ -232,6 +232,7 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 
 	if (mapping_it == m_mappings.end())
 	{
+		TORRENT_ASSERT(m_mappings.end_index() < max_global_mappings);
 		if (m_mappings.end_index() >= max_global_mappings)
 		{
 			log("too many mappings registered");
