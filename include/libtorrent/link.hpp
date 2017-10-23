@@ -34,8 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LINK_HPP_INCLUDED
 
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent {
+
+	struct torrent_list_tag;
+	using torrent_list_index_t = aux::strong_typedef<int, torrent_list_tag>;
 
 	struct link
 	{
@@ -50,7 +54,8 @@ namespace libtorrent {
 		void clear() { index = -1; }
 
 		template <class T>
-		void unlink(aux::vector<T*>& list, int link_index)
+		void unlink(aux::vector<T*>& list
+			, torrent_list_index_t const link_index)
 		{
 			if (index == -1) return;
 			TORRENT_ASSERT(index >= 0 && index < int(list.size()));

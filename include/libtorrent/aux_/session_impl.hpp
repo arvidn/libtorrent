@@ -300,10 +300,10 @@ namespace aux {
 			io_service& get_io_service() override { return m_io_service; }
 			resolver_interface& get_resolver() override { return m_host_resolver; }
 
-			aux::vector<torrent*>& torrent_list(int i) override
+			aux::vector<torrent*>& torrent_list(torrent_list_index_t i) override
 			{
-				TORRENT_ASSERT(i >= 0);
-				TORRENT_ASSERT(i < session_interface::num_torrent_lists);
+				TORRENT_ASSERT(i >= torrent_list_index_t{});
+				TORRENT_ASSERT(i < m_torrent_lists.end_index());
 				return m_torrent_lists[i];
 			}
 
@@ -739,7 +739,8 @@ namespace aux {
 			// negative, return INT_MAX
 			int get_int_setting(int n) const;
 
-			aux::vector<torrent*> m_torrent_lists[num_torrent_lists];
+			aux::array<aux::vector<torrent*>, num_torrent_lists, torrent_list_index_t>
+				m_torrent_lists;
 
 			peer_class_pool m_classes;
 
