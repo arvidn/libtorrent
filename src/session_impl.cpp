@@ -5413,6 +5413,10 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+		// NOTE: don't assume that if ec != 0, the rest of the logic
+		// is not necessary, the ports still need to be set, in other
+		// words, don't early return without careful review of the
+		// remaining logic
 		if (ec && m_alerts.should_post<portmap_error_alert>())
 		{
 			m_alerts.emplace_alert<portmap_error_alert>(mapping
