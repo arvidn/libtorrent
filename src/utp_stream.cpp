@@ -3050,6 +3050,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 			}
 			BOOST_FALLTHROUGH;
 		}
+		// fall through
 		case UTP_STATE_CONNECTED:
 		{
 			// the lowest seen RTT can be used to clamp the delay
