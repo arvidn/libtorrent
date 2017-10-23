@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent {
 
@@ -60,14 +61,8 @@ namespace libtorrent {
 		enum flags_t { dont_parse_chunks = 1 };
 		explicit http_parser(int flags = 0);
 		~http_parser();
-		std::string const& header(char const* key) const
-		{
-			static std::string empty;
-			auto const i = m_header.find(key);
-			if (i == m_header.end()) return empty;
-			return i->second;
-		}
-
+		std::string const& header(const string_view key) const;
+		std::int64_t header_int(const string_view key, std::int64_t def_value) const;
 		std::string const& protocol() const { return m_protocol; }
 		int status_code() const { return m_status_code; }
 		std::string const& method() const { return m_method; }
