@@ -6817,7 +6817,7 @@ namespace {
 			&& m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker)
 			TORRENT_ASSERT(m_stats_counters[counters::num_unchoke_slots] == (std::numeric_limits<int>::max)());
 
-		for (int l = 0; l < num_torrent_lists; ++l)
+		for (torrent_list_index_t l{}; l != m_torrent_lists.end_index(); ++l)
 		{
 			std::vector<torrent*> const& list = m_torrent_lists[l];
 			for (auto const& i : list)

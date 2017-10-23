@@ -782,7 +782,7 @@ namespace libtorrent {
 		// torrent
 
 #if TORRENT_USE_ASSERTS
-		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
+		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
 		{
 			if (!m_links[i].in_list()) continue;
 			m_links[i].unlink(m_ses.torrent_list(i), i);
@@ -4418,7 +4418,7 @@ namespace libtorrent {
 		m_paused = false;
 		m_auto_managed = false;
 		update_state_list();
-		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
+		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
 		{
 			if (!m_links[i].in_list()) continue;
 			m_links[i].unlink(m_ses.torrent_list(i), i);
@@ -7113,10 +7113,10 @@ namespace libtorrent {
 	namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
-	char const* list_name(int idx)
+	char const* list_name(torrent_list_index_t const idx)
 	{
-#define TORRENT_LIST_NAME(n) case aux::session_interface:: n: return #n;
-		switch (idx)
+#define TORRENT_LIST_NAME(n) case static_cast<int>(aux::session_interface:: n): return #n;
+		switch (static_cast<int>(idx))
 		{
 			TORRENT_LIST_NAME(torrent_state_updates);
 			TORRENT_LIST_NAME(torrent_want_tick);
@@ -7135,7 +7135,7 @@ namespace libtorrent {
 
 	} // anonymous namespace
 
-	void torrent::update_list(int list, bool in)
+	void torrent::update_list(torrent_list_index_t const list, bool in)
 	{
 		link& l = m_links[list];
 		aux::vector<torrent*>& v = m_ses.torrent_list(list);
@@ -7742,7 +7742,7 @@ namespace libtorrent {
 		}
 
 #if TORRENT_USE_ASSERTS
-		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
+		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
 		{
 			if (!m_links[i].in_list()) continue;
 			int const index = m_links[i].index;

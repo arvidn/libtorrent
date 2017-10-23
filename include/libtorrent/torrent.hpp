@@ -1164,7 +1164,7 @@ namespace libtorrent {
 		torrent_state get_peer_list_state();
 
 		void construct_storage();
-		void update_list(int list, bool in);
+		void update_list(torrent_list_index_t list, bool in);
 
 		void on_files_deleted(storage_error const& error);
 		void on_torrent_paused();
@@ -1366,7 +1366,8 @@ namespace libtorrent {
 
 		// TODO: 3 factor out the links (as well as update_list() to a separate
 		// class that torrent can inherit)
-		link m_links[aux::session_interface::num_torrent_lists];
+		aux::array<link, aux::session_interface::num_torrent_lists, torrent_list_index_t>
+			m_links;
 
 	private:
 

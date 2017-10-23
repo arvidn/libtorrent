@@ -50,6 +50,17 @@ namespace libtorrent {
 	constexpr feature_flags_t plugin::alert_feature;
 #endif
 
+namespace aux {
+	constexpr torrent_list_index_t session_interface::torrent_state_updates;
+	constexpr torrent_list_index_t session_interface::torrent_want_tick;
+	constexpr torrent_list_index_t session_interface::torrent_want_peers_download;
+	constexpr torrent_list_index_t session_interface::torrent_want_peers_finished;
+	constexpr torrent_list_index_t session_interface::torrent_want_scrape;
+	constexpr torrent_list_index_t session_interface::torrent_downloading_auto_managed;
+	constexpr torrent_list_index_t session_interface::torrent_seeding_auto_managed;
+	constexpr torrent_list_index_t session_interface::torrent_checking_auto_managed;
+}
+
 	settings_pack min_memory_usage()
 	{
 		settings_pack set;
