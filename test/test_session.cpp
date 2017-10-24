@@ -513,12 +513,12 @@ TORRENT_TEST(init_dht)
 
 TORRENT_TEST(reopen_network_sockets)
 {
-	auto count_alerts = [](session& ses, int listen, int portmap)
+	auto count_alerts = [](session& ses, int const listen, int const portmap)
 	{
 		int count_listen = 0;
 		int count_portmap = 0;
-		int num = 120; // this number is adjusted per version, an estimate
-		time_point const end_time = clock_type::now() + seconds(15);
+		int num = 50; // this number is adjusted per version, an estimate
+		time_point const end_time = clock_type::now() + seconds(1);
 		while (true)
 		{
 			time_point const now = clock_type::now();
@@ -561,11 +561,11 @@ TORRENT_TEST(reopen_network_sockets)
 
 	TEST_CHECK(count_alerts(s, 2, 4));
 
-	s.reopen_network_sockets(true);
+	s.reopen_network_sockets(session_handle::reopen_map_ports);
 
 	TEST_CHECK(count_alerts(s, 2, 4));
 
-	s.reopen_network_sockets(false);
+	s.reopen_network_sockets(reopen_network_flags_t{0});
 
 	TEST_CHECK(count_alerts(s, 2, 0));
 
@@ -573,7 +573,7 @@ TORRENT_TEST(reopen_network_sockets)
 	p.set_bool(settings_pack::enable_natpmp, false);
 	s.apply_settings(p);
 
-	s.reopen_network_sockets(true);
+	s.reopen_network_sockets(session_handle::reopen_map_ports);
 
 	TEST_CHECK(count_alerts(s, 2, 0));
 }

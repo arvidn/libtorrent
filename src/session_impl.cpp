@@ -1740,7 +1740,7 @@ namespace {
 		if (ec || m_abort) return;
 		m_ip_notifier->async_wait([this] (error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
-		reopen_network_sockets();
+		reopen_network_sockets(session_handle::reopen_map_ports);
 	}
 
 	void session_impl::interface_to_endpoints(std::string const& device, int const port
@@ -1794,7 +1794,7 @@ namespace {
 		}
 	}
 
-	void session_impl::reopen_listen_sockets(bool map_ports)
+	void session_impl::reopen_listen_sockets(bool const map_ports)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("reopen listen sockets");
@@ -2097,9 +2097,9 @@ namespace {
 		}
 	}
 
-	void session_impl::reopen_network_sockets(bool map_ports)
+	void session_impl::reopen_network_sockets(reopen_network_flags_t options)
 	{
-		reopen_listen_sockets(map_ports);
+		reopen_listen_sockets(options & session_handle::reopen_map_ports);
 		reopen_outgoing_sockets();
 	}
 

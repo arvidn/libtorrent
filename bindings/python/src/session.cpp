@@ -791,6 +791,11 @@ void bind_session()
     }
 
     {
+        scope s = class_<dummy12>("reopen_network_flags_t");
+        s.attr("reopen_map_ports") = lt::session::reopen_map_ports;
+    }
+
+    {
     scope s = class_<dummy1>("torrent_flags");
     s.attr("seed_mode") = torrent_flags::seed_mode;
     s.attr("upload_mode") = torrent_flags::upload_mode;

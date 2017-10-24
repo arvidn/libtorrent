@@ -71,6 +71,8 @@ namespace libtorrent {
 	constexpr remove_flags_t session_handle::delete_files;
 	constexpr remove_flags_t session_handle::delete_partfile;
 
+	constexpr reopen_network_flags_t session_handle::reopen_map_ports;
+
 	template <typename Fun, typename... Args>
 	void session_handle::async_call(Fun f, Args&&... a) const
 	{
@@ -1223,9 +1225,9 @@ namespace {
 		async_call(&session_impl::delete_port_mapping, handle);
 	}
 
-	void session_handle::reopen_network_sockets(bool map_ports)
+	void session_handle::reopen_network_sockets(reopen_network_flags_t options)
 	{
-		async_call(&session_impl::reopen_network_sockets, map_ports);
+		async_call(&session_impl::reopen_network_sockets, options);
 	}
 
 } // namespace libtorrent
