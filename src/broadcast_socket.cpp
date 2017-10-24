@@ -139,6 +139,32 @@ namespace libtorrent {
 #endif
 	}
 
+	TORRENT_EXTRA_EXPORT bool is_non_useful(address const& a)
+	{
+		TORRENT_TRY {
+#if TORRENT_USE_IPV6
+			error_code ec;
+			std::string s = a.to_string(ec);
+			if (ec) return true;
+			if (s.find("%dummy") != std::string::npos) return true;
+			// Android Wi-Fi Direct
+			if (s.find("%p2p") != std::string::npos) return true;
+			// Apple Wireless Direct Link
+			if (s.find("%awdl") != std::string::npos) return true;
+			// TODO: study more about
+			// - rmnet_data
+			// - sit
+			// - upnlink
+			// - svnet
+			// - ip6tnl
+			return false;
+#else
+			TORRENT_UNUSED(a);
+			return false;
+#endif
+		} TORRENT_CATCH(std::exception const&) { return false; }
+	}
+
 	bool supports_ipv6()
 	{
 #if !TORRENT_USE_IPV6

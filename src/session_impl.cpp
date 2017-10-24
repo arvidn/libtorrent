@@ -1880,6 +1880,8 @@ namespace {
 		// an existing socket
 		for (auto const& ep : eps)
 		{
+			if (is_non_useful(ep.addr)) continue;
+
 			std::shared_ptr<listen_socket_t> s = setup_listener(ep.device
 				, tcp::endpoint(ep.addr, std::uint16_t(ep.port)), ep.ssl, ec);
 
