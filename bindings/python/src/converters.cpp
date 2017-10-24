@@ -318,6 +318,7 @@ void bind_converters()
     to_python_converter<lt::save_state_flags_t, from_bitfield_flag<lt::save_state_flags_t>>();
     to_python_converter<lt::session_flags_t, from_bitfield_flag<lt::session_flags_t>>();
     to_python_converter<lt::remove_flags_t, from_bitfield_flag<lt::remove_flags_t>>();
+    to_python_converter<lt::reopen_network_flags_t, from_bitfield_flag<lt::reopen_network_flags_t>>();
     to_python_converter<lt::file_flags_t, from_bitfield_flag<lt::file_flags_t>>();
     to_python_converter<lt::create_flags_t, from_bitfield_flag<lt::create_flags_t>>();
 
@@ -379,6 +380,7 @@ void bind_converters()
     to_bitfield_flag<lt::save_state_flags_t>();
     to_bitfield_flag<lt::session_flags_t>();
     to_bitfield_flag<lt::remove_flags_t>();
+    to_bitfield_flag<lt::reopen_network_flags_t>();
     to_bitfield_flag<lt::file_flags_t>();
     to_bitfield_flag<lt::create_flags_t>();
 }
