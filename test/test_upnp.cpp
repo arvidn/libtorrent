@@ -260,3 +260,18 @@ TORRENT_TEST(upnp)
 	run_upnp_test(combine_path("..", "root2.xml").c_str(), "D-Link Router", "WANIPConnection", 1);
 	run_upnp_test(combine_path("..", "root3.xml").c_str(), "D-Link Router", "WANIPConnection_2", 2);
 }
+
+TORRENT_TEST(upnp_max_mappings)
+{
+	lt::io_service ios;
+	upnp_callback cb;
+	auto upnp_handler = std::make_shared<upnp>(ios, "test agent", cb, false);
+
+	for (int i = 0; i < 50; ++i)
+	{
+		auto const mapping = upnp_handler->add_mapping(portmap_protocol::tcp
+			, 500 + i, ep("127.0.0.1", 500 + i));
+
+		TEST_CHECK(mapping != port_mapping_t{-1});
+	}
+}

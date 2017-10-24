@@ -63,6 +63,11 @@ namespace libtorrent {
 
 using namespace aux;
 
+// due to the recursive nature of update_map, it's necessary to
+// limit the internal list of global mappings to a small size
+// this can be changed once the entire UPnP code is refactored
+constexpr std::size_t max_global_mappings = 50;
+
 namespace upnp_errors
 {
 	boost::system::error_code make_error_code(error_code_enum e)
@@ -227,6 +232,14 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 
 	if (mapping_it == m_mappings.end())
 	{
+		TORRENT_ASSERT(m_mappings.size() <= max_global_mappings);
+		if (m_mappings.size() >= max_global_mappings)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			log("too many mappings registered");
+#endif
+			return port_mapping_t{-1};
+		}
 		m_mappings.push_back(global_mapping_t());
 		mapping_it = m_mappings.end() - 1;
 	}
@@ -1559,6 +1572,14 @@ void upnp::on_upnp_unmap_response(error_code const& e
 		, portmap_transport::upnp);
 
 	d.mapping[mapping].protocol = portmap_protocol::none;
+
+	// free the slot in global mappings
+	auto pred = [mapping](rootdevice const& rd)
+		{ return rd.mapping[mapping].protocol == portmap_protocol::none; };
+	if (std::all_of(m_devices.begin(), m_devices.end(), pred))
+	{
+		m_mappings[mapping].protocol = portmap_protocol::none;
+	}
 
 	next(d, mapping);
 }
