@@ -763,14 +763,14 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d
 		"<NewInternalPort>%u</NewInternalPort>"
 		"<NewInternalClient>%s</NewInternalClient>"
 		"<NewEnabled>1</NewEnabled>"
-		"<NewPortMappingDescription>%s at %s:%d</NewPortMappingDescription>"
+		"<NewPortMappingDescription>%s</NewPortMappingDescription>"
 		"<NewLeaseDuration>%u</NewLeaseDuration>"
 		"</u:%s></s:Body></s:Envelope>"
 		, soap_action, d.service_namespace.c_str(), d.mapping[i].external_port
 		, to_string(d.mapping[i].protocol)
 		, d.mapping[i].local_ep.port()
 		, local_endpoint.c_str()
-		, m_user_agent.c_str(), local_endpoint.c_str(), d.mapping[i].local_ep.port()
+		, m_user_agent.c_str()
 		, d.lease_duration, soap_action);
 
 	post(d, soap, soap_action);
