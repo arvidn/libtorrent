@@ -64,8 +64,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if TORRENT_USE_NETLINK
-#include <sys/socket.h>
 #include <linux/netlink.h>
+#ifndef SOL_NETLINK
+#define SOL_NETLINK 270
+#endif
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
