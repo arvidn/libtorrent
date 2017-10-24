@@ -1225,7 +1225,7 @@ namespace {
 		async_call(&session_impl::delete_port_mapping, handle);
 	}
 
-	void session_handle::reopen_network_sockets(reopen_network_flags_t options)
+	void session_handle::reopen_network_sockets(reopen_network_flags_t const options)
 	{
 		async_call(&session_impl::reopen_network_sockets, options);
 	}

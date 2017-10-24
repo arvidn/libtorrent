@@ -2097,9 +2097,9 @@ namespace {
 		}
 	}
 
-	void session_impl::reopen_network_sockets(reopen_network_flags_t options)
+	void session_impl::reopen_network_sockets(reopen_network_flags_t const options)
 	{
-		reopen_listen_sockets(options & session_handle::reopen_map_ports);
+		reopen_listen_sockets(bool(options & session_handle::reopen_map_ports));
 		reopen_outgoing_sockets();
 	}
 
