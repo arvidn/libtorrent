@@ -223,13 +223,6 @@ constexpr disk_job_flags_t disk_interface::volatile_read;
 		m_hash_threads.set_max_threads(num_hash_threads);
 	}
 
-	void disk_io_thread::fail_jobs(storage_error const& e, jobqueue_t& jobs_)
-	{
-		jobqueue_t jobs;
-		fail_jobs_impl(e, jobs_, jobs);
-		if (jobs.size()) add_completed_jobs(jobs);
-	}
-
 	void disk_io_thread::fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst)
 	{
 		while (src.size())

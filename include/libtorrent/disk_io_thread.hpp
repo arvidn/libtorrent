@@ -184,7 +184,6 @@ namespace libtorrent {
 		void add_completed_jobs(jobqueue_t& jobs);
 		void add_completed_jobs_impl(jobqueue_t& jobs);
 
-		void fail_jobs(storage_error const& e, jobqueue_t& jobs_);
 		void fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst);
 
 		void perform_job(disk_io_job* j, jobqueue_t& completed_jobs);
