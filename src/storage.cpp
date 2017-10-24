@@ -122,8 +122,8 @@ namespace libtorrent {
 		file_storage const& fs = files();
 		for (file_index_t i(0); i < prio.end_index(); ++i)
 		{
-			int const old_prio = m_file_priority[i];
-			int new_prio = prio[i];
+			std::uint8_t const old_prio = m_file_priority[i];
+			std::uint8_t new_prio = prio[i];
 			if (old_prio == 0 && new_prio != 0)
 			{
 				// move stuff out of the part file
@@ -183,7 +183,7 @@ namespace libtorrent {
 */
 			}
 			ec.ec.clear();
-			m_file_priority[i] = std::uint8_t(new_prio);
+			m_file_priority[i] = new_prio;
 
 			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
 				need_partfile();

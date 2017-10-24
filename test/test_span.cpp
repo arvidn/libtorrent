@@ -116,7 +116,7 @@ TORRENT_TEST(span_of_spans)
 {
 	std::vector<char> v1 = {1,2,3,4};
 	span<char> s1(v1);
-	span<span<char> > a(s1);
+	span<span<char>> a(s1);
 	TEST_CHECK(a == g(s1));
 	TEST_CHECK(a.size() == 1);
 	TEST_CHECK(a[0].size() == 4);

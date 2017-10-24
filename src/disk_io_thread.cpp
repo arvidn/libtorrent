@@ -1852,7 +1852,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		// if we encounter any read jobs in the queue, we need to clear the
 		// "outstanding_read" flag on its piece, as we abort the job
-		std::vector<std::pair<storage_interface*, piece_index_t> > pieces;
+		std::vector<std::pair<storage_interface*, piece_index_t>> pieces;
 
 		storage_interface* to_delete = m_torrents[storage].get();
 

@@ -93,14 +93,6 @@ upnp::rootdevice& upnp::rootdevice::operator=(rootdevice const&) = default;
 upnp::rootdevice::rootdevice(rootdevice&&) = default;
 upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) = default;
 
-void upnp::rootdevice::close() const
-{
-	TORRENT_ASSERT(magic == 1337);
-	if (!upnp_connection) return;
-	upnp_connection->close();
-	upnp_connection.reset();
-}
-
 // TODO: 3 bind the broadcast socket. it would probably have to be changed to a vector of interfaces to
 // bind to, since the broadcast socket opens one socket per local
 // interface by default
@@ -220,10 +212,13 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 	TORRENT_ASSERT(external_port != 0);
 
 #ifndef TORRENT_DISABLE_LOGGING
-	log("adding port map: [ protocol: %s ext_port: %u "
-		"local_ep: %s ] %s", (p == portmap_protocol::tcp?"tcp":"udp")
-		, external_port
-		, print_endpoint(local_ep).c_str(), m_disabled ? "DISABLED": "");
+	if (should_log())
+	{
+		log("adding port map: [ protocol: %s ext_port: %u "
+			"local_ep: %s ] %s", (p == portmap_protocol::tcp?"tcp":"udp")
+			, external_port
+			, print_endpoint(local_ep).c_str(), m_disabled ? "DISABLED": "");
+	}
 #endif
 	if (m_disabled) return port_mapping_t{-1};
 
@@ -279,9 +274,12 @@ void upnp::delete_mapping(port_mapping_t const mapping)
 	global_mapping_t const& m = m_mappings[mapping];
 
 #ifndef TORRENT_DISABLE_LOGGING
-	log("deleting port map: [ protocol: %s ext_port: %u "
-		"local_ep: %s ]", (m.protocol == portmap_protocol::tcp?"tcp":"udp"), m.external_port
-		, print_endpoint(m.local_ep).c_str());
+	if (should_log())
+	{
+		log("deleting port map: [ protocol: %s ext_port: %u "
+			"local_ep: %s ]", (m.protocol == portmap_protocol::tcp?"tcp":"udp"), m.external_port
+			, print_endpoint(m.local_ep).c_str());
+	}
 #endif
 
 	if (m.protocol == portmap_protocol::none) return;
