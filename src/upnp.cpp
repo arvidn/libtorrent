@@ -66,7 +66,7 @@ using namespace aux;
 // due to the recursive nature of update_map, it's necessary to
 // limit the internal list of global mappings to a small size
 // this can be changed once the entire UPnP code is refactored
-constexpr int max_global_mappings = 50;
+constexpr std::size_t max_global_mappings = 50;
 
 namespace upnp_errors
 {
@@ -232,8 +232,8 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 
 	if (mapping_it == m_mappings.end())
 	{
-		TORRENT_ASSERT(m_mappings.end_index() < max_global_mappings);
-		if (m_mappings.end_index() >= max_global_mappings)
+		TORRENT_ASSERT(m_mappings.size() <= max_global_mappings);
+		if (m_mappings.size() >= max_global_mappings)
 		{
 			log("too many mappings registered");
 			return port_mapping_t{-1};
