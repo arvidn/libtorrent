@@ -643,7 +643,6 @@ struct dummy2 {};
 struct dummy9 {};
 struct dummy10 {};
 struct dummy11 {};
-struct dummy12 {};
 
 void bind_session()
 {
@@ -789,11 +788,6 @@ void bind_session()
         scope s = class_<dummy10>("session_flags_t");
         s.attr("add_default_plugins") = lt::session::add_default_plugins;
         s.attr("start_default_features") = lt::session::start_default_features;
-    }
-
-    {
-        scope s = class_<dummy12>("reopen_network_flags_t");
-        s.attr("reopen_map_ports") = lt::session::reopen_map_ports;
     }
 
     {
@@ -1062,6 +1056,8 @@ void bind_session()
     s.attr("global_peer_class_id") = session::global_peer_class_id;
     s.attr("tcp_peer_class_id") = session::tcp_peer_class_id;
     s.attr("local_peer_class_id") = session::local_peer_class_id;
+
+    s.attr("reopen_map_ports") = lt::session::reopen_map_ports;
     }
 
 #ifndef TORRENT_NO_DEPRECATE
