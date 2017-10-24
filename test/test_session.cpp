@@ -510,3 +510,70 @@ TORRENT_TEST(init_dht)
 		TEST_EQUAL(count, 1);
 	}
 }
+
+TORRENT_TEST(reopen_network_sockets)
+{
+	auto count_alerts = [](session& ses, int listen, int portmap)
+	{
+		int count_listen = 0;
+		int count_portmap = 0;
+		int num = 120; // this number is adjusted per version, an estimate
+		time_point const end_time = clock_type::now() + seconds(15);
+		while (true)
+		{
+			time_point const now = clock_type::now();
+			if (now > end_time)
+				break;
+
+			ses.wait_for_alert(end_time - now);
+			std::vector<alert*> alerts;
+			ses.pop_alerts(&alerts);
+			for (auto a : alerts)
+			{
+				std::printf("%d: [%s] %s\n", num, a->what(), a->message().c_str());
+				std::string const msg = a->message();
+				if (msg.find("successfully listening on") != std::string::npos)
+					count_listen++;
+				// upnp
+				if (msg.find("adding port map:") != std::string::npos)
+					count_portmap++;
+				// natpmp
+				if (msg.find("add-mapping: proto:") != std::string::npos)
+					count_portmap++;
+				num--;
+			}
+			if (num <= 0)
+				break;
+		}
+
+		std::printf("count_listen: %d, count_portmap: %d\n", count_listen, count_portmap);
+		return count_listen == listen && count_portmap == portmap;
+	};
+
+	settings_pack p = settings();
+	p.set_int(settings_pack::alert_mask, alert::all_categories);
+	p.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
+
+	p.set_bool(settings_pack::enable_upnp, true);
+	p.set_bool(settings_pack::enable_natpmp, true);
+
+	lt::session s(p);
+
+	TEST_CHECK(count_alerts(s, 2, 4));
+
+	s.reopen_network_sockets(true);
+
+	TEST_CHECK(count_alerts(s, 2, 4));
+
+	s.reopen_network_sockets(false);
+
+	TEST_CHECK(count_alerts(s, 2, 0));
+
+	p.set_bool(settings_pack::enable_upnp, false);
+	p.set_bool(settings_pack::enable_natpmp, false);
+	s.apply_settings(p);
+
+	s.reopen_network_sockets(true);
+
+	TEST_CHECK(count_alerts(s, 2, 0));
+}

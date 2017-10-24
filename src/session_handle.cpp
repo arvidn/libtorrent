@@ -1223,4 +1223,9 @@ namespace {
 		async_call(&session_impl::delete_port_mapping, handle);
 	}
 
+	void session_handle::reopen_network_sockets(bool map_ports)
+	{
+		async_call(&session_impl::reopen_network_sockets, map_ports);
+	}
+
 } // namespace libtorrent
