@@ -274,8 +274,7 @@ namespace libtorrent {
 				// if the status code is not one of the accepted ones, abort
 				if (!is_ok_status(m_parser.status_code()))
 				{
-					int retry_time = atoi(m_parser.header("retry-after").c_str());
-					if (retry_time <= 0) retry_time = 5 * 60;
+					int const retry_time = static_cast<int>(m_parser.header_int("retry-after", 5 * 60));
 					// temporarily unavailable, retry later
 					t->retry_web_seed(this, retry_time);
 

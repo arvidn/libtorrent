@@ -130,6 +130,23 @@ namespace libtorrent {
 		return url;
 	}
 
+	std::string const& http_parser::header(const string_view key) const
+	{
+		static std::string empty;
+		auto const i = m_header.find(key.to_string());
+		if (i == m_header.end()) return empty;
+		return i->second;
+	}
+
+	std::int64_t http_parser::header_int(const string_view key, std::int64_t def_value) const
+	{
+		auto const i = m_header.find(key.to_string());
+		if (i == m_header.end()) return def_value;
+		auto const val = std::atoll(i->second.c_str());
+		if (val <= 0) return def_value;
+		return val;
+	}
+
 	http_parser::~http_parser() = default;
 
 	http_parser::http_parser(int const flags) : m_flags(flags) {}
