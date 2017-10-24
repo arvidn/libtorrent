@@ -643,6 +643,7 @@ struct dummy2 {};
 struct dummy9 {};
 struct dummy10 {};
 struct dummy11 {};
+struct dummy12 {};
 
 void bind_session()
 {

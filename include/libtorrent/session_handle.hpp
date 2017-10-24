@@ -1025,11 +1025,6 @@ namespace libtorrent {
 		// It's useful in the case your platform doesn't support the built in
 		// IP notifier mechanism, or if you have a better more reliable way to
 		// detect changes in the IP routing table.
-		//
-		// The ``map_ports`` indicates if the ports are mapped using natpmp
-		// and upnp. If mapping was already made, they are deleted and added
-		// again. This only works if natpmp and/or upnp are configured to be
-		// enable.
 		void reopen_network_sockets(reopen_network_flags_t options = reopen_map_ports);
 
 		// This function is intended only for use by plugins. This type does
