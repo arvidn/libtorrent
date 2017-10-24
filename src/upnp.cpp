@@ -235,7 +235,9 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 		TORRENT_ASSERT(m_mappings.size() <= max_global_mappings);
 		if (m_mappings.size() >= max_global_mappings)
 		{
+#ifndef TORRENT_DISABLE_LOGGING
 			log("too many mappings registered");
+#endif
 			return port_mapping_t{-1};
 		}
 		m_mappings.push_back(global_mapping_t());
