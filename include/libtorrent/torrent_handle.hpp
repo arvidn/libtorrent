@@ -78,6 +78,7 @@ namespace aux {
 	struct storage_interface;
 	class torrent;
 
+	// hidden
 	struct status_flags_tag;
 	using status_flags_t = flags::bitfield_flag<std::uint32_t, status_flags_tag>;
 
@@ -100,6 +101,10 @@ namespace aux {
 	// hidden
 	struct resume_data_flags_tag;
 	using resume_data_flags_t = flags::bitfield_flag<std::uint8_t, resume_data_flags_tag>;
+
+	// hidden
+	struct queue_position_tag;
+	using queue_position_t = aux::strong_typedef<int, queue_position_tag>;
 
 	// holds the state of a block in a piece. Who we requested
 	// it from and how far along we are at downloading it.
@@ -798,7 +803,7 @@ namespace aux {
 		// the queue. Up means closer to the front and down means closer to the
 		// back of the queue. Top and bottom refers to the front and the back of
 		// the queue respectively.
-		int queue_position() const;
+		queue_position_t queue_position() const;
 		void queue_position_up() const;
 		void queue_position_down() const;
 		void queue_position_top() const;
@@ -807,7 +812,7 @@ namespace aux {
 		// updates the position in the queue for this torrent. The relative order
 		// of all other torrents remain intact but their numerical queue position
 		// shifts to make space for this torrent's new position
-		void queue_position_set(int p) const;
+		void queue_position_set(queue_position_t p) const;
 
 		// For SSL torrents, use this to specify a path to a .pem file to use as
 		// this client's certificate. The certificate must be signed by the

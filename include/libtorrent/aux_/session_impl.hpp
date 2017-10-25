@@ -284,7 +284,7 @@ namespace aux {
 			// this is set while the session is building the
 			// torrent status update message
 			bool m_posting_torrent_updates = false;
-			bool verify_queue_position(torrent const* t, int pos) override;
+			bool verify_queue_position(torrent const* t, queue_position_t pos) override;
 #endif
 
 			void on_exception(std::exception const& e) override;
@@ -347,7 +347,7 @@ namespace aux {
 #endif
 			std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 				, peer_connection* pc) override;
-			void set_queue_position(torrent* t, int p) override;
+			void set_queue_position(torrent* t, queue_position_t p) override;
 
 			peer_id const& get_peer_id() const override { return m_peer_id; }
 
@@ -833,7 +833,7 @@ namespace aux {
 
 			// all torrents that are downloading or queued,
 			// ordered by their queue position
-			aux::vector<torrent*> m_download_queue;
+			aux::vector<torrent*, queue_position_t> m_download_queue;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			// this maps obfuscated hashes to torrents. It's only

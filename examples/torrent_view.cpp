@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_status.hpp"
 
 const int header_size = 2;
+using lt::queue_position_t;
 
 std::string torrent_state(lt::torrent_status const& s)
 {
@@ -72,12 +73,13 @@ std::string torrent_state(lt::torrent_status const& s)
 
 bool compare_torrent(lt::torrent_status const* lhs, lt::torrent_status const* rhs)
 {
-	if (lhs->queue_position != -1 && rhs->queue_position != -1)
+	if (lhs->queue_position != queue_position_t{-1} && rhs->queue_position != queue_position_t{-1})
 	{
 		// both are downloading, sort by queue pos
 		return lhs->queue_position < rhs->queue_position;
 	}
-	else if (lhs->queue_position == -1 && rhs->queue_position == -1)
+	else if (lhs->queue_position == queue_position_t{-1}
+		&& rhs->queue_position == queue_position_t{-1})
 	{
 		// both are seeding, sort by seed-rank
 		if (lhs->seed_rank != rhs->seed_rank)
@@ -86,7 +88,8 @@ bool compare_torrent(lt::torrent_status const* lhs, lt::torrent_status const* rh
 		return lhs->info_hash < rhs->info_hash;
 	}
 
-	return (lhs->queue_position == -1) < (rhs->queue_position == -1);
+	return (lhs->queue_position == queue_position_t{-1})
+		< (rhs->queue_position == queue_position_t{-1});
 }
 
 torrent_view::torrent_view()
@@ -341,10 +344,11 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 		selection = "\x1b[1m\x1b[44m";
 
 	char queue_pos[16] = {0};
-	if (s.queue_position == -1)
+	if (s.queue_position == queue_position_t{-1})
 		std::snprintf(queue_pos, sizeof(queue_pos), "-");
 	else
-		std::snprintf(queue_pos, sizeof(queue_pos), "%d", s.queue_position);
+		std::snprintf(queue_pos, sizeof(queue_pos), "%d"
+			, static_cast<int>(s.queue_position));
 
 	std::string name = s.name;
 	if (name.size() > 50) name.resize(50);

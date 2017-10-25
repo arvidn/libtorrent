@@ -77,6 +77,8 @@ class test_torrent_handle(unittest.TestCase):
         self.h.prioritize_pieces([(0, 1)])
         self.assertEqual(self.h.piece_priorities(), [1])
 
+        print(self.h.queue_position())
+
     def test_torrent_handle_in_set(self):
         self.setup()
         torrents = set()

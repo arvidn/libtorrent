@@ -385,9 +385,10 @@ namespace libtorrent {
 	}
 #endif
 
-	int torrent_handle::queue_position() const
+	queue_position_t torrent_handle::queue_position() const
 	{
-		return sync_call_ret<int>(-1, &torrent::queue_position);
+		return sync_call_ret<queue_position_t>(no_pos
+			, &torrent::queue_position);
 	}
 
 	void torrent_handle::queue_position_up() const
@@ -400,21 +401,21 @@ namespace libtorrent {
 		async_call(&torrent::queue_down);
 	}
 
-	void torrent_handle::queue_position_set(int p) const
+	void torrent_handle::queue_position_set(queue_position_t const p) const
 	{
-		TORRENT_ASSERT_PRECOND(p >= 0);
-		if (p < 0) return;
+		TORRENT_ASSERT_PRECOND(p >= queue_position_t{});
+		if (p < queue_position_t{}) return;
 		async_call(&torrent::set_queue_position, p);
 	}
 
 	void torrent_handle::queue_position_top() const
 	{
-		async_call(&torrent::set_queue_position, 0);
+		async_call(&torrent::set_queue_position, queue_position_t{});
 	}
 
 	void torrent_handle::queue_position_bottom() const
 	{
-		async_call(&torrent::set_queue_position, INT_MAX);
+		async_call(&torrent::set_queue_position, last_pos);
 	}
 
 	void torrent_handle::clear_error() const

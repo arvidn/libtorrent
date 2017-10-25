@@ -285,7 +285,7 @@ namespace libtorrent {
 
 		// the position this torrent has in the download
 		// queue. If the torrent is a seed or finished, this is -1.
-		int queue_position = 0;
+		queue_position_t queue_position{};
 
 		// the total rates for all peers for this torrent. These will usually
 		// have better precision than summing the rates from all peers. The rates

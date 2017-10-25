@@ -2223,7 +2223,7 @@ namespace libtorrent {
 		set_state(torrent_status::checking_resume_data);
 
 		if (m_auto_managed && !is_finished())
-			set_queue_position((std::numeric_limits<int>::max)());
+			set_queue_position(last_pos);
 
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_add_torrent_params.reset();
@@ -7249,7 +7249,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_finished());
 
 		set_state(torrent_status::finished);
-		set_queue_position(-1);
+		set_queue_position(no_pos);
 
 		m_became_finished = aux::time_now32();
 
@@ -7331,7 +7331,7 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
-		set_queue_position((std::numeric_limits<int>::max)());
+		set_queue_position(last_pos);
 
 		m_completed_time = 0;
 
@@ -7707,7 +7707,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(current_stats_state() == int(m_current_gauge_state + counters::num_checking_torrents)
 			|| m_current_gauge_state == no_gauge_state);
 
-		TORRENT_ASSERT(m_sequence_number == -1
+		TORRENT_ASSERT(m_sequence_number == no_pos
 			|| m_ses.verify_queue_position(this, m_sequence_number));
 
 		for (auto const& i : m_time_critical_pieces)
@@ -7980,30 +7980,30 @@ namespace libtorrent {
 		// -1
 		if (m_abort || is_finished()) return;
 
-		set_queue_position(queue_position() == 0
-			? queue_position() : queue_position() - 1);
+		set_queue_position(queue_position() == queue_position_t{0}
+			? queue_position() : prev(queue_position()));
 	}
 
 	void torrent::queue_down()
 	{
-		set_queue_position(queue_position() + 1);
+		set_queue_position(next(queue_position()));
 	}
 
-	void torrent::set_queue_position(int p)
+	void torrent::set_queue_position(queue_position_t const p)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		// finished torrents may not change their queue positions, as it's set to
 		// -1
-		if ((m_abort || is_finished()) && p != -1) return;
+		if ((m_abort || is_finished()) && p != no_pos) return;
 
-		TORRENT_ASSERT((p == -1) == is_finished()
-			|| (!m_auto_managed && p == -1)
-			|| (m_abort && p == -1)
-			|| (!m_added && p == -1));
+		TORRENT_ASSERT((p == no_pos) == is_finished()
+			|| (!m_auto_managed && p == no_pos)
+			|| (m_abort && p == no_pos)
+			|| (!m_added && p == no_pos));
 		if (p == m_sequence_number) return;
 
-		TORRENT_ASSERT(p >= -1);
+		TORRENT_ASSERT(p >= no_pos);
 
 		state_updated();
 
