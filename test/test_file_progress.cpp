@@ -56,8 +56,7 @@ TORRENT_TEST(init)
 
 	for (piece_index_t idx(0); idx < fs.end_piece(); ++idx)
 	{
-		piece_picker picker;
-		picker.init(4, fs.total_size() % 4, fs.num_pieces());
+		piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
 		picker.we_have(idx);
 
 		aux::file_progress fp;
@@ -88,8 +87,7 @@ TORRENT_TEST(init2)
 
 	for (piece_index_t idx(0); idx < fs.end_piece(); ++idx)
 	{
-		piece_picker picker;
-		picker.init(4, fs.total_size() % 4, fs.num_pieces());
+		piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
 		picker.we_have(idx);
 
 		aux::vector<std::int64_t, file_index_t> vec;

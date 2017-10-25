@@ -68,7 +68,8 @@ namespace libtorrent {
 
 	constexpr prio_index_t piece_picker::piece_pos::we_have_index;
 
-	piece_picker::piece_picker()
+	piece_picker::piece_picker(int const blocks_per_piece
+		, int const blocks_in_last_piece, int const total_num_pieces)
 		: m_priority_boundaries(1, m_pieces.end_index())
 	{
 #ifdef TORRENT_PICKER_LOG
@@ -77,15 +78,18 @@ namespace libtorrent {
 #if TORRENT_USE_INVARIANT_CHECKS
 		check_invariant();
 #endif
+
+		resize(blocks_per_piece, blocks_in_last_piece, total_num_pieces);
 	}
 
-	void piece_picker::init(int const blocks_per_piece, int const blocks_in_last_piece, int const total_num_pieces)
+	void piece_picker::resize(int const blocks_per_piece
+		, int const blocks_in_last_piece, int const total_num_pieces)
 	{
 		TORRENT_ASSERT(blocks_per_piece > 0);
 		TORRENT_ASSERT(total_num_pieces > 0);
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "piece_picker::init()" << std::endl;
+		std::cerr << "[" << this << "] " << "piece_picker::resize()" << std::endl;
 #endif
 		// allocate the piece_map to cover all pieces
 		// and make them invalid (as if we don't have a single piece)

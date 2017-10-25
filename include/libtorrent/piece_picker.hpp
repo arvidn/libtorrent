@@ -176,7 +176,7 @@ namespace libtorrent {
 			std::uint16_t outstanding_hash_check:1;
 		};
 
-		piece_picker();
+		piece_picker(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);
 
 		void get_availability(aux::vector<int, piece_index_t>& avail) const;
 		int get_availability(piece_index_t piece) const;
@@ -215,7 +215,7 @@ namespace libtorrent {
 		piece_index_t reverse_cursor() const { return m_reverse_cursor; }
 
 		// sets all pieces to dont-have
-		void init(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);
+		void resize(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);
 		int num_pieces() const { return int(m_piece_map.size()); }
 
 		bool have_piece(piece_index_t index) const;

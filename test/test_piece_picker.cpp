@@ -114,8 +114,7 @@ std::shared_ptr<piece_picker> setup_picker(
 	const int num_pieces = int(strlen(availability));
 	TORRENT_ASSERT(int(strlen(have_str)) == num_pieces);
 
-	std::shared_ptr<piece_picker> p = std::make_shared<piece_picker>();
-	p->init(blocks_per_piece, blocks_per_piece, num_pieces);
+	std::shared_ptr<piece_picker> p = std::make_shared<piece_picker>(blocks_per_piece, blocks_per_piece, num_pieces);
 
 	for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
 	{
@@ -603,7 +602,7 @@ TORRENT_TEST(dec_refcount_split_seed)
 	TEST_CHECK(avail[piece_index_t(4)] != 0);
 }
 
-TORRENT_TEST(init)
+TORRENT_TEST(resize)
 {
 	// make sure init preserves priorities
 	auto p = setup_picker("1111111", "       ", "1111111", "");
@@ -623,7 +622,7 @@ TORRENT_TEST(init)
 	TEST_CHECK(p->num_have_filtered() == 1);
 	TEST_CHECK(p->num_have() == 1);
 
-	p->init(blocks_per_piece, blocks_per_piece, blocks_per_piece * 7);
+	p->resize(blocks_per_piece, blocks_per_piece, blocks_per_piece * 7);
 	TEST_CHECK(p->piece_priority(piece_index_t(0)) == 0);
 	TEST_CHECK(p->num_filtered() == 1);
 	TEST_CHECK(p->num_have_filtered() == 0);
