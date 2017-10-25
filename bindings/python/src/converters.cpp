@@ -299,6 +299,7 @@ void bind_converters()
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<std::vector<lt::udp::endpoint>>>();
     to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::vector<std::pair<std::string, int>>>>();
 
+    to_python_converter<lt::queue_position_t, from_strong_typedef<lt::queue_position_t>>();
     to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
     to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
     to_python_converter<lt::port_mapping_t, from_strong_typedef<lt::port_mapping_t>>();
@@ -361,6 +362,7 @@ void bind_converters()
     list_to_vector<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>>();
     list_to_vector<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>>();
 
+    to_strong_typedef<lt::queue_position_t>();
     to_strong_typedef<lt::piece_index_t>();
     to_strong_typedef<lt::file_index_t>();
     to_strong_typedef<lt::port_mapping_t>();

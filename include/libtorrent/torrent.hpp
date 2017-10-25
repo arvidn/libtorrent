@@ -352,7 +352,7 @@ namespace libtorrent {
 		{
 			TORRENT_ASSERT(m_added == true);
 			m_added = false;
-			set_queue_position(-1);
+			set_queue_position(no_pos);
 			// make sure we decrement the gauge counter for this torrent
 			update_gauge();
 		}
@@ -463,10 +463,10 @@ namespace libtorrent {
 
 		void queue_up();
 		void queue_down();
-		void set_queue_position(int p);
-		int queue_position() const { return m_sequence_number; }
+		void set_queue_position(queue_position_t p);
+		queue_position_t queue_position() const { return m_sequence_number; }
 		// used internally
-		void set_queue_position_impl(int const p)
+		void set_queue_position_impl(queue_position_t const p)
 		{
 			if (m_sequence_number == p) return;
 			m_sequence_number = p;
@@ -1060,7 +1060,7 @@ namespace libtorrent {
 			, span<char const> data);
 #endif
 
-		int sequence_number() const { return m_sequence_number; }
+		queue_position_t sequence_number() const { return m_sequence_number; }
 
 		bool seed_mode() const { return m_seed_mode; }
 		void leave_seed_mode(bool skip_checking);
@@ -1417,7 +1417,7 @@ namespace libtorrent {
 
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
-		int m_sequence_number;
+		queue_position_t m_sequence_number;
 
 		// used to post a message to defer disconnecting peers
 		std::vector<peer_connection*> m_peers_to_disconnect;

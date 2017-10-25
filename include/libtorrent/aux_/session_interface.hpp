@@ -90,6 +90,13 @@ namespace libtorrent {
 	struct counters;
 	struct resolver_interface;
 
+	// hidden
+	struct queue_position_tag;
+	using queue_position_t = aux::strong_typedef<int, queue_position_tag>;
+
+	constexpr queue_position_t no_pos{-1};
+	constexpr queue_position_t last_pos{(std::numeric_limits<int>::max)()};
+
 #ifndef TORRENT_DISABLE_DHT
 namespace dht {
 
@@ -192,7 +199,7 @@ namespace libtorrent { namespace aux {
 		//deprecated in 1.2
 		virtual void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) = 0;
 #endif
-		virtual void set_queue_position(torrent* t, int p) = 0;
+		virtual void set_queue_position(torrent* t, queue_position_t p) = 0;
 		virtual int num_torrents() const = 0;
 
 		virtual peer_id const& get_peer_id() const = 0;
@@ -316,7 +323,7 @@ namespace libtorrent { namespace aux {
 		virtual void sent_buffer(int size) = 0;
 
 #if TORRENT_USE_ASSERTS
-		virtual bool verify_queue_position(torrent const*, int) = 0;
+		virtual bool verify_queue_position(torrent const*, queue_position_t) = 0;
 #endif
 
 		virtual ~session_interface() {}
