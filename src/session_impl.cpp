@@ -412,7 +412,6 @@ namespace aux {
 #endif
 			)
 		, m_work(new io_service::work(m_io_service))
-		, m_ip_notifier(create_ip_notifier(m_io_service))
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
@@ -589,9 +588,6 @@ namespace aux {
 		session_log(" done starting session");
 #endif
 
-		m_ip_notifier->async_wait([this](error_code const& e)
-			{ this->wrap(&session_impl::on_ip_change, e); });
-
 		apply_settings_pack_impl(*pack, true);
 
 		// call update_* after settings set initialized
@@ -606,6 +602,7 @@ namespace aux {
 		update_unchoke_limit();
 		update_disk_threads();
 		update_resolver_cache_timeout();
+		update_ip_notifier();
 		update_upnp();
 		update_natpmp();
 		update_lsd();
@@ -885,11 +882,10 @@ namespace aux {
 		m_abort = true;
 		error_code ec;
 
-		m_ip_notifier->cancel();
-
 #if TORRENT_USE_I2P
 		m_i2p_conn.close(ec);
 #endif
+		stop_ip_notifier();
 		stop_lsd();
 		stop_upnp();
 		stop_natpmp();
@@ -1737,7 +1733,7 @@ namespace {
 		else
 			session_log("received error on_ip_change: %d, %s", ec.value(), ec.message().c_str());
 #endif
-		if (ec || m_abort) return;
+		if (ec || m_abort || !m_ip_notifier) return;
 		m_ip_notifier->async_wait([this] (error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
 		reopen_network_sockets(session_handle::reopen_map_ports);
@@ -5249,6 +5245,14 @@ namespace {
 		m_outgoing_sockets.update_proxy(proxy());
 	}
 
+	void session_impl::update_ip_notifier()
+	{
+		if (m_settings.get_bool(settings_pack::enable_ip_notifier))
+			start_ip_notifier();
+		else
+			stop_ip_notifier();
+	}
+
 	void session_impl::update_upnp()
 	{
 		if (m_settings.get_bool(settings_pack::enable_upnp))
@@ -6527,6 +6531,17 @@ namespace {
 	}
 #endif
 
+	void session_impl::start_ip_notifier()
+	{
+		INVARIANT_CHECK;
+
+		if (m_ip_notifier) return;
+
+		m_ip_notifier = create_ip_notifier(m_io_service);
+		m_ip_notifier->async_wait([this](error_code const& e)
+			{ this->wrap(&session_impl::on_ip_change, e); });
+	}
+
 	void session_impl::start_lsd()
 	{
 		INVARIANT_CHECK;
@@ -6599,10 +6614,19 @@ namespace {
 		if (m_natpmp) m_natpmp->delete_mapping(handle);
 	}
 
+	void session_impl::stop_ip_notifier()
+	{
+		if (!m_ip_notifier) return;
+
+		m_ip_notifier->cancel();
+		m_ip_notifier.reset();
+	}
+
 	void session_impl::stop_lsd()
 	{
-		if (m_lsd)
-			m_lsd->close();
+		if (!m_lsd) return;
+
+		m_lsd->close();
 		m_lsd.reset();
 	}
 

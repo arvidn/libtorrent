@@ -716,6 +716,16 @@ namespace libtorrent {
 			// any.
 			proxy_tracker_connections,
 
+			// Starts and stops the internal IP table route changes notifier.
+			//
+			// The current implementation supports multiple platforms, and it is
+			// recommended to have it enable, but you may want to disable it if
+			// it's supported but unreliable, or if you have a better way to
+			// detect the changes. In the later case, you should manually call
+			// ``session_handle::reopen_network_sockets`` to ensure network
+			// changes are taken in consideration.
+			enable_ip_notifier,
+
 			max_bool_setting_internal
 		};
 

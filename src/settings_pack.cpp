@@ -199,6 +199,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(proxy_peer_connections, true, nullptr),
 		SET(auto_sequential, true, &session_impl::update_auto_sequential),
 		SET(proxy_tracker_connections, true, nullptr),
+		SET(enable_ip_notifier, true, &session_impl::update_ip_notifier),
 	}});
 
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
