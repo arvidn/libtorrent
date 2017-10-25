@@ -7,6 +7,9 @@ libtorrent
 .. image:: https://ci.appveyor.com/api/projects/status/w7teauvub5813mew/branch/master?svg=true
     :target: https://ci.appveyor.com/project/arvidn/libtorrent/branch/master
 
+.. image:: https://doozer.io/badge/arvidn/libtorrent/buildstatus/master
+	:target: https://doozer.io/user/arvidn/libtorrent
+
 .. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=master
     :target: https://codecov.io/github/arvidn/libtorrent?branch=master&view=all#sort=missing&dir=desc
 

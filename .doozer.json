@@ -1,0 +1,28 @@
+{
+  "submodules": ["simulation/libsimulator"],
+  "targets": {
+    "x86_64": {
+      "buildenv": "xenial-amd64",
+      "builddeps": ["build-essential", "libssl-dev", "libboost-all-dev", "ccache"],
+      "buildcmd": [
+        "echo \"using gcc : : ccache g++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
+        "cd simulation",
+        "bjam -j${PARALLEL} deprecated-functions=off",
+        "cd test",
+        "bjam -j${PARALLEL} deprecated-functions=off"
+      ]
+    },
+    "macOS": {
+      "buildenv": "osx",
+      "homebrew": { "formulae": ["boost-build", "wget", "ccache"] },
+      "buildcmd": [
+         "wget --quiet -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip",
+         "unzip -qq boost.zip",
+         "cd simulation",
+         "echo \"using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
+         "BOOST_ROOT=${PWD}/../boost_1_55_0 bjam --hash -j${PARALLEL}"
+      ]
+    }
+  }
+}
+
