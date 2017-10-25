@@ -1223,15 +1223,15 @@ namespace libtorrent {
 			|| settings().get_int(settings_pack::suggest_mode)
 			== settings_pack::suggest_read_cache);
 
-		std::unique_ptr<piece_picker> pp(new piece_picker());
 		int const blocks_per_piece
 			= (m_torrent_file->piece_length() + block_size() - 1) / block_size();
 		int const blocks_in_last_piece
 			= ((m_torrent_file->total_size() % m_torrent_file->piece_length())
 			+ block_size() - 1) / block_size();
 
-		// TODO: 3 the init function should be merged with the constructor
-		pp->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
+		std::unique_ptr<piece_picker> pp(new piece_picker(blocks_per_piece
+			, blocks_in_last_piece
+			, m_torrent_file->num_pieces()));
 
 		m_picker = std::move(pp);
 
@@ -2208,7 +2208,7 @@ namespace libtorrent {
 			int const blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
 			int const blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
 				+ block_size() - 1) / block_size();
-			m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
+			m_picker->resize(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
 
 			m_file_progress.clear();
 			m_file_progress.init(picker(), m_torrent_file->files());
