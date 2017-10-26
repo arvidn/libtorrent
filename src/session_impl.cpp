@@ -3052,10 +3052,13 @@ retry:
 
 		// we have to keep ticking the utp socket manager
 		// until they're all closed
+		// we also have to keep updating the aux time while
+		// there are outstanding announces
 		if (m_abort)
 		{
 			if (m_utp_socket_manager.num_sockets() == 0
-				&& m_undead_peers.empty())
+				&& m_undead_peers.empty()
+				&& m_tracker_manager.empty())
 				return;
 #if defined TORRENT_ASIO_DEBUGGING
 			fprintf(stderr, "uTP sockets left: %d undead-peers left: %d\n"

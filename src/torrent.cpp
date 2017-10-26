@@ -3206,7 +3206,7 @@ namespace {
 		req.num_want = (req.event == tracker_request::stopped)
 			? 0 : settings().get_int(settings_pack::num_want);
 
-		time_point now = clock_type::now();
+		time_point now = aux::time_now();
 
 		// the tier is kept as INT_MAX until we find the first
 		// tracker that works, then it's set to that tracker's
