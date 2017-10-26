@@ -63,6 +63,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/simulator.hpp"
 #endif
 
+#if TORRENT_USE_NETLINK
+#include <linux/netlink.h>
+#ifndef SOL_NETLINK
+#define SOL_NETLINK 270
+#endif
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
@@ -210,6 +217,22 @@ namespace libtorrent {
 #endif // IP_DONTFRAG vs. IP_MTU_DISCOVER
 
 #endif // TORRENT_HAS_DONT_FRAGMENT
+
+#if TORRENT_USE_NETLINK
+	struct no_enobufs
+	{
+		explicit no_enobufs(bool val) : m_value(val) {}
+		template<class Protocol>
+		int level(Protocol const&) const { return SOL_NETLINK; }
+		template<class Protocol>
+		int name(Protocol const&) const { return NETLINK_NO_ENOBUFS; }
+		template<class Protocol>
+		int const* data(Protocol const&) const { return &m_value; }
+		template<class Protocol>
+		std::size_t size(Protocol const&) const { return sizeof(m_value); }
+		int m_value;
+	};
+#endif // TORRENT_USE_NETLINK
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED

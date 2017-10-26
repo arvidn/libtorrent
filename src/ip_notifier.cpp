@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // TODO: simulator support
 #elif TORRENT_USE_NETLINK
 #include "libtorrent/netlink.hpp"
+#include "libtorrent/socket.hpp"
 #include <array>
 #elif TORRENT_USE_SYSTEMCONFIGURATION
 #include <SystemConfiguration/SystemConfiguration.h>
@@ -75,7 +76,12 @@ struct ip_change_notifier_impl final : ip_change_notifier
 	explicit ip_change_notifier_impl(io_service& ios)
 		: m_socket(ios
 			, netlink::endpoint(netlink(NETLINK_ROUTE), RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR))
-	{}
+	{
+		// Linux can generate ENOBUFS if the socket's buffers are full
+		// don't treat it as an error
+		error_code ec;
+		m_socket.set_option(libtorrent::no_enobufs(true), ec);
+	}
 
 	// non-copyable
 	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
@@ -105,12 +111,7 @@ private:
 		// interfaces after a notification so do that for Linux as well to
 		// minimize the difference between platforms
 
-		// Linux can generate ENOBUFS if the socket's buffers are full
-		// don't treat it as an error
-		if (ec.value() == boost::system::errc::no_buffer_space)
-			cb(error_code());
-		else
-			cb(ec);
+		cb(ec);
 	}
 };
 #elif TORRENT_USE_SYSTEMCONFIGURATION
