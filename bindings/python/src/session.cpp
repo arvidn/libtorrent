@@ -993,6 +993,7 @@ void bind_session()
         .def("get_cache_info", &get_cache_info1, (arg("handle") = torrent_handle(), arg("flags") = 0))
         .def("add_port_mapping", allow_threads(&lt::session::add_port_mapping))
         .def("delete_port_mapping", allow_threads(&lt::session::delete_port_mapping))
+        .def("reopen_network_sockets", allow_threads(&lt::session::reopen_network_sockets))
         .def("set_peer_class_filter", &lt::session::set_peer_class_filter)
         .def("set_peer_class_type_filter", &lt::session::set_peer_class_type_filter)
         .def("create_peer_class", &lt::session::create_peer_class)
@@ -1055,6 +1056,8 @@ void bind_session()
     s.attr("global_peer_class_id") = session::global_peer_class_id;
     s.attr("tcp_peer_class_id") = session::tcp_peer_class_id;
     s.attr("local_peer_class_id") = session::local_peer_class_id;
+
+    s.attr("reopen_map_ports") = lt::session::reopen_map_ports;
     }
 
 #ifndef TORRENT_NO_DEPRECATE

@@ -1740,8 +1740,7 @@ namespace {
 		if (ec || m_abort) return;
 		m_ip_notifier->async_wait([this] (error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
-		reopen_listen_sockets();
-		reopen_outgoing_sockets();
+		reopen_network_sockets(session_handle::reopen_map_ports);
 	}
 
 	void session_impl::interface_to_endpoints(std::string const& device, int const port
@@ -1795,7 +1794,7 @@ namespace {
 		}
 	}
 
-	void session_impl::reopen_listen_sockets()
+	void session_impl::reopen_listen_sockets(bool const map_ports)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("reopen listen sockets");
@@ -1953,7 +1952,7 @@ namespace {
 		for (auto& s : m_listen_sockets)
 		{
 			if (s->sock) async_accept(s->sock, s->ssl);
-			remap_ports(remap_natpmp_and_upnp, *s);
+			if (map_ports) remap_ports(remap_natpmp_and_upnp, *s);
 		}
 
 #if TORRENT_USE_I2P
@@ -2096,6 +2095,12 @@ namespace {
 				m_outgoing_sockets.sockets.push_back(udp_sock);
 			}
 		}
+	}
+
+	void session_impl::reopen_network_sockets(reopen_network_flags_t const options)
+	{
+		reopen_listen_sockets(bool(options & session_handle::reopen_map_ports));
+		reopen_outgoing_sockets();
 	}
 
 	namespace {

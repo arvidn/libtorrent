@@ -49,6 +49,10 @@ namespace libtorrent {
 	// hidden
 	struct remove_flags_tag;
 	using remove_flags_t = flags::bitfield_flag<std::uint8_t, remove_flags_tag>;
+
+	// hidden
+	struct reopen_network_flags_tag;
+	using reopen_network_flags_t = flags::bitfield_flag<std::uint8_t, reopen_network_flags_tag>;
 }
 
 #endif

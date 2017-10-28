@@ -1014,6 +1014,19 @@ namespace libtorrent {
 		port_mapping_t add_port_mapping(portmap_protocol t, int external_port, int local_port);
 		void delete_port_mapping(port_mapping_t handle);
 
+		// This option indicates if the ports are mapped using natpmp
+		// and upnp. If mapping was already made, they are deleted and added
+		// again. This only works if natpmp and/or upnp are configured to be
+		// enable.
+		static constexpr reopen_network_flags_t reopen_map_ports = 0_bit;
+
+		// Instructs the session to reopen all listen and outgoing sockets.
+		//
+		// It's useful in the case your platform doesn't support the built in
+		// IP notifier mechanism, or if you have a better more reliable way to
+		// detect changes in the IP routing table.
+		void reopen_network_sockets(reopen_network_flags_t options = reopen_map_ports);
+
 		// This function is intended only for use by plugins. This type does
 		// not have a stable API and should be relied on as little as possible.
 		std::shared_ptr<aux::session_impl> native_handle() const
