@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "test_utils.hpp"
 
 #include <vector>
 
@@ -106,12 +107,12 @@ TORRENT_TEST(read_resume)
 	TEST_EQUAL(atp.finished_time, 1352);
 
 	TEST_EQUAL(atp.piece_priorities.size(), 6);
-	TEST_EQUAL(atp.piece_priorities[0], 1);
-	TEST_EQUAL(atp.piece_priorities[1], 2);
-	TEST_EQUAL(atp.piece_priorities[2], 3);
-	TEST_EQUAL(atp.piece_priorities[3], 4);
-	TEST_EQUAL(atp.piece_priorities[4], 5);
-	TEST_EQUAL(atp.piece_priorities[5], 6);
+	TEST_EQUAL(atp.piece_priorities[0], 1_pri);
+	TEST_EQUAL(atp.piece_priorities[1], 2_pri);
+	TEST_EQUAL(atp.piece_priorities[2], 3_pri);
+	TEST_EQUAL(atp.piece_priorities[3], 4_pri);
+	TEST_EQUAL(atp.piece_priorities[4], 5_pri);
+	TEST_EQUAL(atp.piece_priorities[5], 6_pri);
 }
 
 TORRENT_TEST(read_resume_missing_info_hash)

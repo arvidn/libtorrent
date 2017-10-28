@@ -274,7 +274,7 @@ namespace {
 		counters cnt;
 		disk_io_thread disk_thread(ios, cnt);
 
-		aux::vector<std::uint8_t, file_index_t> priorities;
+		aux::vector<download_priority_t, file_index_t> priorities;
 		sha1_hash info_hash;
 		storage_params params{
 			t.files(),

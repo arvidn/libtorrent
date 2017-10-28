@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 
 using namespace lt;
@@ -58,8 +59,8 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
 
-	aux::vector<std::uint8_t, file_index_t> zeroes;
-	zeroes.resize(1000, 0);
+	aux::vector<download_priority_t, file_index_t> zeroes;
+	zeroes.resize(1000, 0_pri);
 	add_torrent_params p;
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
@@ -78,7 +79,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		return;
 	}
 
-	aux::vector<int, file_index_t> ones(info->num_files(), 1);
+	aux::vector<download_priority_t, file_index_t> ones(info->num_files(), 1_pri);
 	h.prioritize_files(ones);
 
 	torrent_status st = h.status();
@@ -86,8 +87,8 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	TEST_EQUAL(st.total_wanted, file_size); // we want the single file
 	TEST_EQUAL(st.total_wanted_done, 0);
 
-	aux::vector<int, file_index_t> prio(info->num_files(), 1);
-	prio[file_index_t(0)] = 0;
+	aux::vector<download_priority_t, file_index_t> prio(info->num_files(), 1_pri);
+	prio[file_index_t(0)] = 0_pri;
 	h.prioritize_files(prio);
 	st = h.status();
 
@@ -96,16 +97,16 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	TEST_EQUAL(int(h.file_priorities().size()), info->num_files());
 	if (!st.is_seeding)
 	{
-		TEST_EQUAL(h.file_priorities()[0], 0);
+		TEST_EQUAL(h.file_priorities()[0], 0_pri);
 		if (info->num_files() > 1)
-			TEST_EQUAL(h.file_priorities()[1], 1);
+			TEST_EQUAL(h.file_priorities()[1], 1_pri);
 		if (info->num_files() > 2)
-			TEST_EQUAL(h.file_priorities()[2], 1);
+			TEST_EQUAL(h.file_priorities()[2], 1_pri);
 	}
 
 	if (info->num_files() > 1)
 	{
-		prio[file_index_t(1)] = 0;
+		prio[file_index_t(1)] = 0_pri;
 		h.prioritize_files(prio);
 		st = h.status();
 
@@ -114,17 +115,17 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		if (!st.is_seeding)
 		{
 			TEST_EQUAL(int(h.file_priorities().size()), info->num_files());
-			TEST_EQUAL(h.file_priorities()[0], 0);
+			TEST_EQUAL(h.file_priorities()[0], 0_pri);
 			if (info->num_files() > 1)
-				TEST_EQUAL(h.file_priorities()[1], 0);
+				TEST_EQUAL(h.file_priorities()[1], 0_pri);
 			if (info->num_files() > 2)
-				TEST_EQUAL(h.file_priorities()[2], 1);
+				TEST_EQUAL(h.file_priorities()[2], 1_pri);
 		}
 	}
 
 	if (info->num_pieces() > 0)
 	{
-		h.piece_priority(piece_index_t(0), 1);
+		h.piece_priority(piece_index_t(0), 1_pri);
 		st = h.status();
 		TEST_CHECK(st.pieces.size() > 0 && st.pieces[piece_index_t(0)] == false);
 		std::vector<char> piece(info->piece_length());
@@ -203,8 +204,8 @@ TORRENT_TEST(total_wanted)
 	p.save_path = ".";
 
 	// we just want 1 out of 4 files, 1024 out of 4096 bytes
-	p.file_priorities.resize(4, 0);
-	p.file_priorities[1] = 1;
+	p.file_priorities.resize(4, 0_pri);
+	p.file_priorities[1] = 1_pri;
 
 	p.ti = info;
 
@@ -480,7 +481,7 @@ void test_queue(add_torrent_params p)
 		torrents.push_back(ses.add_torrent(std::move(p)));
 	}
 
-	std::vector<int> pieces(torrents[5].torrent_file()->num_pieces(), 0);
+	std::vector<download_priority_t> pieces(torrents[5].torrent_file()->num_pieces(), 0_pri);
 	torrents[5].prioritize_pieces(pieces);
 	torrent_handle finished = torrents[5];
 

@@ -335,7 +335,7 @@ namespace
             }
             else if(key == "file_priorities")
             {
-                p.file_priorities = extract<std::vector<std::uint8_t>>(value);
+                p.file_priorities = extract<std::vector<download_priority_t>>(value);
             }
             else
             {

@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/torrent_flags.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
+#include "libtorrent/download_priority.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -992,11 +993,18 @@ namespace aux {
 		//
 		// ``piece_priorities`` returns a vector with one element for each piece
 		// in the torrent. Each element is the current priority of that piece.
-		void piece_priority(piece_index_t index, int priority) const;
-		int piece_priority(piece_index_t index) const;
+		void piece_priority(piece_index_t index, download_priority_t priority) const;
+		download_priority_t piece_priority(piece_index_t index) const;
+		void prioritize_pieces(std::vector<download_priority_t> const& pieces) const;
+		void prioritize_pieces(std::vector<std::pair<piece_index_t, download_priority_t>> const& pieces) const;
+		std::vector<download_priority_t> piece_priorities() const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED
 		void prioritize_pieces(std::vector<int> const& pieces) const;
+		TORRENT_DEPRECATED
 		void prioritize_pieces(std::vector<std::pair<piece_index_t, int>> const& pieces) const;
-		std::vector<int> piece_priorities() const;
+#endif
 
 		// ``index`` must be in the range [0, number_of_files).
 		//
@@ -1020,10 +1028,15 @@ namespace aux {
 		// You cannot set the file priorities on a torrent that does not yet have
 		// metadata or a torrent that is a seed. ``file_priority(int, int)`` and
 		// prioritize_files() are both no-ops for such torrents.
-		void file_priority(file_index_t index, int priority) const;
-		int file_priority(file_index_t index) const;
+		void file_priority(file_index_t index, download_priority_t priority) const;
+		download_priority_t file_priority(file_index_t index) const;
+		void prioritize_files(std::vector<download_priority_t> const& files) const;
+		std::vector<download_priority_t> file_priorities() const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED
 		void prioritize_files(std::vector<int> const& files) const;
-		std::vector<int> file_priorities() const;
+#endif
 
 		// ``force_reannounce()`` will force this torrent to do another tracker
 		// request, to receive new peers. The ``seconds`` argument specifies how

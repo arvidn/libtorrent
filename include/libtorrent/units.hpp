@@ -136,6 +136,10 @@ namespace libtorrent { namespace aux {
 namespace std {
 
 	template<typename UnderlyingType, typename Tag>
+	struct is_integral<libtorrent::aux::strong_typedef<UnderlyingType, Tag>>
+		: std::is_integral<UnderlyingType> {};
+
+	template<typename UnderlyingType, typename Tag>
 	class numeric_limits<libtorrent::aux::strong_typedef<UnderlyingType, Tag>> : public std::numeric_limits<UnderlyingType>
 	{
 		using type = libtorrent::aux::strong_typedef<UnderlyingType, Tag>;

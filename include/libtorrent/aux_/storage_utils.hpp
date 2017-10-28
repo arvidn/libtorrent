@@ -92,7 +92,7 @@ namespace aux {
 	verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
 		, file_storage const& fs
-		, aux::vector<std::uint8_t, file_index_t> const& file_priority
+		, aux::vector<download_priority_t, file_index_t> const& file_priority
 		, stat_cache& stat
 		, std::string const& save_path
 		, storage_error& ec);

@@ -454,7 +454,7 @@ namespace libtorrent {
 			for (piece_index_t j(0); j != end_piece; ++j)
 			{
 				if (m_have_piece[j]
-					&& t->piece_priority(j) > 0
+					&& t->piece_priority(j) > dont_download
 					&& !p.has_piece_passed(j))
 				{
 					interested = true;
@@ -728,7 +728,7 @@ namespace libtorrent {
 				if (!m_have_piece[i]) continue;
 				// if the peer has a piece and we don't, the peer is interesting
 				if (!t->have_piece(i)
-					&& t->picker().piece_priority(i) != 0)
+					&& t->picker().piece_priority(i) != dont_download)
 					interesting = true;
 			}
 			if (interesting) t->peer_is_interesting(*this);
@@ -1909,7 +1909,7 @@ namespace libtorrent {
 		if (!t->has_piece_passed(index)
 			&& !t->is_upload_only()
 			&& !is_interesting()
-			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))
+			&& (!t->has_picker() || t->picker().piece_priority(index) != dont_download))
 			t->peer_is_interesting(*this);
 
 		disconnect_if_redundant();
@@ -3346,7 +3346,7 @@ namespace libtorrent {
 			&& !t->has_piece_passed(index)
 			&& t->valid_metadata()
 			&& t->has_picker()
-			&& t->picker().piece_priority(index) > 0)
+			&& t->picker().piece_priority(index) > dont_download)
 		{
 			t->peer_is_interesting(*this);
 		}

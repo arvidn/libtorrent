@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/range.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_types.hpp" // for picker_log_alert
+#include "libtorrent/download_priority.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/peer_connection.hpp"
@@ -1657,7 +1658,8 @@ namespace libtorrent {
 		TORRENT_ASSERT(p.priority(this) == -1);
 	}
 
-	bool piece_picker::set_piece_priority(piece_index_t const index, int const new_piece_priority)
+	bool piece_picker::set_piece_priority(piece_index_t const index
+		, download_priority_t const new_piece_priority)
 	{
 		INVARIANT_CHECK;
 
@@ -1666,19 +1668,19 @@ namespace libtorrent {
 			<< ", " << new_piece_priority << ")" << std::endl;
 #endif
 
-		TORRENT_ASSERT(new_piece_priority >= 0);
-		TORRENT_ASSERT(new_piece_priority < priority_levels);
+		TORRENT_ASSERT(new_piece_priority >= dont_download);
+		TORRENT_ASSERT(new_piece_priority <= top_priority);
 
 		piece_pos& p = m_piece_map[index];
 
 		// if the priority isn't changed, don't do anything
-		if (new_piece_priority == int(p.piece_priority)) return false;
+		if (new_piece_priority == download_priority_t(p.piece_priority)) return false;
 
-		int prev_priority = p.priority(this);
+		int const prev_priority = p.priority(this);
 		TORRENT_ASSERT(m_dirty || prev_priority < int(m_priority_boundaries.size()));
 
 		bool ret = false;
-		if (new_piece_priority == piece_pos::filter_priority
+		if (new_piece_priority == dont_download
 			&& p.piece_priority != piece_pos::filter_priority)
 		{
 			// the piece just got filtered
@@ -1715,7 +1717,7 @@ namespace libtorrent {
 			}
 			ret = true;
 		}
-		else if (new_piece_priority != piece_pos::filter_priority
+		else if (new_piece_priority != dont_download
 			&& p.piece_priority == piece_pos::filter_priority)
 		{
 			// the piece just got unfiltered
@@ -1740,7 +1742,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_num_filtered >= 0);
 		TORRENT_ASSERT(m_num_have_filtered >= 0);
 
-		p.piece_priority = static_cast<std::uint16_t>(new_piece_priority);
+		p.piece_priority = static_cast<std::uint8_t>(new_piece_priority);
 		int const new_priority = p.priority(this);
 
 		if (prev_priority != new_priority && !m_dirty)
@@ -1760,19 +1762,19 @@ namespace libtorrent {
 		return ret;
 	}
 
-	int piece_picker::piece_priority(piece_index_t const index) const
+	download_priority_t piece_picker::piece_priority(piece_index_t const index) const
 	{
-		return m_piece_map[index].piece_priority;
+		return download_priority_t(m_piece_map[index].piece_priority);
 	}
 
-	void piece_picker::piece_priorities(std::vector<int>& pieces) const
+	void piece_picker::piece_priorities(std::vector<download_priority_t>& pieces) const
 	{
 		pieces.resize(m_piece_map.size());
 		auto j = pieces.begin();
 		for (auto i = m_piece_map.begin(),
 			end(m_piece_map.end()); i != end; ++i, ++j)
 		{
-			*j = i->piece_priority;
+			*j = download_priority_t(i->piece_priority);
 		}
 	}
 
@@ -1922,7 +1924,7 @@ namespace {
 
 				// in time critical mode, only pick high priority pieces
 				if ((options & time_critical_mode)
-					&& piece_priority(i->index) != priority_levels - 1)
+					&& piece_priority(i->index) != top_priority)
 					continue;
 
 				if (!is_piece_free(i->index, pieces)) continue;
@@ -1976,7 +1978,7 @@ namespace {
 			{
 				// in time critical mode, only pick high priority pieces
 				if ((options & time_critical_mode)
-					&& piece_priority(i) != priority_levels - 1)
+					&& piece_priority(i) != top_priority)
 					continue;
 
 				pc.inc_stats_counter(counters::piece_picker_suggest_loops);
@@ -1999,7 +2001,7 @@ namespace {
 			TORRENT_ASSERT(!m_dirty);
 
 			for (auto i = m_pieces.begin();
-				i != m_pieces.end() && piece_priority(*i) == priority_levels - 1; ++i)
+				i != m_pieces.end() && piece_priority(*i) == top_priority; ++i)
 			{
 				if (!is_piece_free(*i, pieces)) continue;
 
@@ -2022,7 +2024,7 @@ namespace {
 					{
 						if (!is_piece_free(i, pieces)) continue;
 						// we've already added high priority pieces
-						if (piece_priority(i) == priority_levels - 1) continue;
+						if (piece_priority(i) == top_priority) continue;
 
 						ret |= picker_log_alert::reverse_sequential;
 
@@ -2040,7 +2042,7 @@ namespace {
 					{
 						if (!is_piece_free(i, pieces)) continue;
 						// we've already added high priority pieces
-						if (piece_priority(i) == priority_levels - 1) continue;
+						if (piece_priority(i) == top_priority) continue;
 
 						ret |= picker_log_alert::sequential_pieces;
 
@@ -2097,7 +2099,7 @@ namespace {
 					// pick pieces in priority order. Once we hit a lower priority
 					// piece, we won't encounter any more high priority ones
 					if ((options & time_critical_mode)
-						&& piece_priority(i) != priority_levels - 1)
+						&& piece_priority(i) != top_priority)
 						break;
 
 					if (!is_piece_free(i, pieces)) continue;
@@ -2118,7 +2120,7 @@ namespace {
 			// if we're in time-critical mode, we are only allowed to pick
 			// high priority pieces.
 			for (auto i = m_pieces.begin();
-				i != m_pieces.end() && piece_priority(*i) == priority_levels - 1; ++i)
+				i != m_pieces.end() && piece_priority(*i) == top_priority; ++i)
 			{
 				if (!is_piece_free(*i, pieces)) continue;
 
@@ -2258,7 +2260,7 @@ get_out:
 			downloading_piece const& dp = *i;
 
 			if ((options & time_critical_mode)
-				&& piece_priority(dp.index) != priority_levels - 1)
+				&& piece_priority(dp.index) != top_priority)
 				continue;
 
 			// we either don't have this piece, or we've already requested from it
@@ -2298,10 +2300,10 @@ get_out:
 			// this peer doesn't have this piece, try again
 			if (!pieces[dp.index]) continue;
 			// don't pick pieces with priority 0
-			TORRENT_ASSERT(piece_priority(dp.index) > 0);
+			TORRENT_ASSERT(piece_priority(dp.index) > dont_download);
 
 			if ((options & time_critical_mode)
-				&& piece_priority(dp.index) != priority_levels - 1)
+				&& piece_priority(dp.index) != top_priority)
 				continue;
 
 			partials[c++] = &dp;
@@ -2314,7 +2316,7 @@ get_out:
 			int piece = int(random(aux::numeric_cast<std::uint32_t>(partials_size - 1)));
 			downloading_piece const* dp = partials[piece];
 			TORRENT_ASSERT(pieces[dp->index]);
-			TORRENT_ASSERT(piece_priority(dp->index) > 0);
+			TORRENT_ASSERT(piece_priority(dp->index) > dont_download);
 			// fill in with blocks requested from other peers
 			// as backups
 			TORRENT_ASSERT(dp->requested > 0);
@@ -2350,11 +2352,11 @@ get_out:
 		for (auto const& i : m_downloads[piece_pos::piece_downloading])
 		{
 			if (!pieces[i.index]) continue;
-			if (piece_priority(i.index) == 0) continue;
+			if (piece_priority(i.index) == dont_download) continue;
 			if (i.locked) continue;
 
 			if ((options & time_critical_mode)
-				&& piece_priority(i.index) != priority_levels - 1)
+				&& piece_priority(i.index) != top_priority)
 				continue;
 
 			int idx = -1;

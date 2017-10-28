@@ -125,7 +125,7 @@ namespace libtorrent {
 		boost::variant<disk_buffer_holder
 			, std::string
 			, add_torrent_params const*
-			, aux::vector<std::uint8_t, file_index_t>
+			, aux::vector<download_priority_t, file_index_t>
 			, remove_flags_t
 			> argument;
 

@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
@@ -184,9 +185,9 @@ torrent_handle test_resume_flags(lt::session& ses
 
 	if (file_priorities[0])
 	{
-		aux::vector<std::uint8_t, file_index_t> priorities_vector;
+		aux::vector<download_priority_t, file_index_t> priorities_vector;
 		for (int i = 0; file_priorities[i]; ++i)
-			priorities_vector.push_back(file_priorities[i] - '0');
+			priorities_vector.push_back(download_priority_t(file_priorities[i] - '0'));
 
 		p.file_priorities = priorities_vector;
 	}
@@ -226,8 +227,8 @@ void test_piece_priorities(bool test_deprecated = false)
 	p.save_path = ".";
 	torrent_handle h = ses.add_torrent(p);
 
-	h.piece_priority(piece_index_t(0), 0);
-	h.piece_priority(piece_index_t(ti->num_pieces()-1), 0);
+	h.piece_priority(piece_index_t(0), 0_pri);
+	h.piece_priority(piece_index_t(ti->num_pieces()-1), 0_pri);
 
 	h.save_resume_data();
 	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
@@ -239,9 +240,9 @@ void test_piece_priorities(bool test_deprecated = false)
 	{
 		auto const prios = ra->params.piece_priorities;
 		TEST_EQUAL(int(prios.size()), ti->num_pieces());
-		TEST_EQUAL(prios[0], '\0');
-		TEST_EQUAL(prios[1], '\x04');
-		TEST_EQUAL(prios[ti->num_pieces()-1], '\0');
+		TEST_EQUAL(prios[0], 0_pri);
+		TEST_EQUAL(prios[1], 4_pri);
+		TEST_EQUAL(prios[ti->num_pieces()-1], 0_pri);
 
 		std::vector<char> resume_data = write_resume_data_buf(ra->params);
 
@@ -266,9 +267,9 @@ void test_piece_priorities(bool test_deprecated = false)
 	// now, make sure the piece priorities are loaded correctly
 	h = ses.add_torrent(p);
 
-	TEST_EQUAL(h.piece_priority(piece_index_t(0)), 0);
-	TEST_EQUAL(h.piece_priority(piece_index_t(1)), 4);
-	TEST_EQUAL(h.piece_priority(piece_index_t(ti->num_pieces()-1)), 0);
+	TEST_EQUAL(h.piece_priority(piece_index_t(0)), 0_pri);
+	TEST_EQUAL(h.piece_priority(piece_index_t(1)), 4_pri);
+	TEST_EQUAL(h.piece_priority(piece_index_t(ti->num_pieces()-1)), 0_pri);
 }
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -416,7 +417,7 @@ TORRENT_TEST(piece_slots_seed_suggest_cache)
 TORRENT_TEST(file_priorities_default_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses
 		, {}, "", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -430,7 +431,7 @@ TORRENT_TEST(file_priorities_default_deprecated)
 TORRENT_TEST(file_priorities_in_resume_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "", "123").file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "", "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 1);
@@ -443,7 +444,7 @@ TORRENT_TEST(file_priorities_in_resume_deprecated)
 TORRENT_TEST(file_priorities_in_resume_and_params_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "456", "123").file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "456", "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 4);
@@ -455,7 +456,7 @@ TORRENT_TEST(file_priorities_in_resume_and_params_deprecated)
 TORRENT_TEST(file_priorities_override_resume_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses
 		, add_torrent_params::flag_override_resume_data, "", "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -468,7 +469,7 @@ TORRENT_TEST(file_priorities_resume_seed_mode_deprecated)
 {
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses,
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses,
 		torrent_flags::share_mode, "", "123", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -481,7 +482,7 @@ TORRENT_TEST(file_priorities_seed_mode_deprecated)
 {
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses,
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses,
 		torrent_flags::share_mode, "123", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -540,7 +541,7 @@ TORRENT_TEST(file_priorities_resume_override_deprecated)
 	// override the resume data file priorities, even when override resume data
 	// flag is set.
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses,
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses,
 		torrent_flags::override_resume_data, "", "123", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -552,7 +553,7 @@ TORRENT_TEST(file_priorities_resume_override_deprecated)
 TORRENT_TEST(file_priorities_resume_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "", "123", true).file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "", "123", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 1);
@@ -563,7 +564,7 @@ TORRENT_TEST(file_priorities_resume_deprecated)
 TORRENT_TEST(file_priorities1_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "010", "", true).file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "010", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 0);
@@ -576,7 +577,7 @@ TORRENT_TEST(file_priorities1_deprecated)
 TORRENT_TEST(file_priorities2_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "123", "", true).file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "123", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 1);
@@ -587,7 +588,7 @@ TORRENT_TEST(file_priorities2_deprecated)
 TORRENT_TEST(file_priorities3_deprecated)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "4321", "", true).file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "4321", "", true).file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
 	TEST_EQUAL(file_priorities[0], 4);
@@ -777,38 +778,39 @@ TORRENT_TEST(resume_override_torrent_deprecated)
 TORRENT_TEST(file_priorities_default)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "", "").file_priorities();
+	std::vector<download_priority_t> file_priorities
+		= test_resume_flags(ses, {}, "", "").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
-	TEST_EQUAL(file_priorities[0], 4);
-	TEST_EQUAL(file_priorities[1], 4);
-	TEST_EQUAL(file_priorities[2], 4);
+	TEST_EQUAL(file_priorities[0], 4_pri);
+	TEST_EQUAL(file_priorities[1], 4_pri);
+	TEST_EQUAL(file_priorities[2], 4_pri);
 }
 
 TORRENT_TEST(file_priorities_resume_seed_mode)
 {
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses
 		, torrent_flags::share_mode, "", "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
-	TEST_EQUAL(file_priorities[0], 0);
-	TEST_EQUAL(file_priorities[1], 0);
-	TEST_EQUAL(file_priorities[2], 0);
+	TEST_EQUAL(file_priorities[0], 0_pri);
+	TEST_EQUAL(file_priorities[1], 0_pri);
+	TEST_EQUAL(file_priorities[2], 0_pri);
 }
 
 TORRENT_TEST(file_priorities_seed_mode)
 {
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses
 		, torrent_flags::share_mode, "123", "").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
-	TEST_EQUAL(file_priorities[0], 0);
-	TEST_EQUAL(file_priorities[1], 0);
-	TEST_EQUAL(file_priorities[2], 0);
+	TEST_EQUAL(file_priorities[0], 0_pri);
+	TEST_EQUAL(file_priorities[1], 0_pri);
+	TEST_EQUAL(file_priorities[2], 0_pri);
 }
 
 void test_zero_file_prio(bool test_deprecated = false)
@@ -1071,9 +1073,9 @@ TORRENT_TEST(resume_save_load)
 	auto const l = a->params.file_priorities;
 
 	TEST_EQUAL(l.size(), 3);
-	TEST_EQUAL(l[0], 1);
-	TEST_EQUAL(l[1], 2);
-	TEST_EQUAL(l[2], 3);
+	TEST_EQUAL(l[0], 1_pri);
+	TEST_EQUAL(l[1], 2_pri);
+	TEST_EQUAL(l[2], 3_pri);
 }
 
 TORRENT_TEST(resume_save_load_resume)
@@ -1093,31 +1095,31 @@ TORRENT_TEST(resume_save_load_resume)
 	auto const l = a->params.file_priorities;
 
 	TEST_EQUAL(l.size(), 3);
-	TEST_EQUAL(l[0], 1);
-	TEST_EQUAL(l[1], 2);
-	TEST_EQUAL(l[2], 3);
+	TEST_EQUAL(l[0], 1_pri);
+	TEST_EQUAL(l[1], 2_pri);
+	TEST_EQUAL(l[2], 3_pri);
 }
 
 TORRENT_TEST(file_priorities_resume)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "", "123").file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "", "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
-	TEST_EQUAL(file_priorities[0], 1);
-	TEST_EQUAL(file_priorities[1], 2);
-	TEST_EQUAL(file_priorities[2], 3);
+	TEST_EQUAL(file_priorities[0], 1_pri);
+	TEST_EQUAL(file_priorities[1], 2_pri);
+	TEST_EQUAL(file_priorities[2], 3_pri);
 }
 
 TORRENT_TEST(file_priorities1)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "010").file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "010").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
-	TEST_EQUAL(file_priorities[0], 0);
-	TEST_EQUAL(file_priorities[1], 1);
-	TEST_EQUAL(file_priorities[2], 0);
+	TEST_EQUAL(file_priorities[0], 0_pri);
+	TEST_EQUAL(file_priorities[1], 1_pri);
+	TEST_EQUAL(file_priorities[2], 0_pri);
 
 //#error save resume data and assert the file priorities are preserved
 }
@@ -1125,23 +1127,23 @@ TORRENT_TEST(file_priorities1)
 TORRENT_TEST(file_priorities2)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "123").file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
-	TEST_EQUAL(file_priorities[0], 1);
-	TEST_EQUAL(file_priorities[1], 2);
-	TEST_EQUAL(file_priorities[2], 3);
+	TEST_EQUAL(file_priorities[0], 1_pri);
+	TEST_EQUAL(file_priorities[1], 2_pri);
+	TEST_EQUAL(file_priorities[2], 3_pri);
 }
 
 TORRENT_TEST(file_priorities3)
 {
 	lt::session ses(settings());
-	std::vector<int> file_priorities = test_resume_flags(ses, {}, "4321").file_priorities();
+	std::vector<download_priority_t> file_priorities = test_resume_flags(ses, {}, "4321").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
-	TEST_EQUAL(file_priorities[0], 4);
-	TEST_EQUAL(file_priorities[1], 3);
-	TEST_EQUAL(file_priorities[2], 2);
+	TEST_EQUAL(file_priorities[0], 4_pri);
+	TEST_EQUAL(file_priorities[1], 3_pri);
+	TEST_EQUAL(file_priorities[2], 2_pri);
 }
 
 TORRENT_TEST(plain)

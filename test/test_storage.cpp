@@ -160,7 +160,7 @@ std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 {
 	std::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
 
-	aux::vector<std::uint8_t, file_index_t> priorities;
+	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
 	storage_params p{
 		fs,
@@ -235,7 +235,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	boost::asio::io_service ios;
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 
-	aux::vector<std::uint8_t, file_index_t> priorities;
+	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
 	storage_params p{
 		fs,
@@ -478,7 +478,7 @@ void test_check_files(std::string const& test_path
 
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 
-	aux::vector<std::uint8_t, file_index_t> priorities;
+	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
 	storage_params p{
 		fs,

@@ -169,7 +169,7 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 {
 	file_pool fp;
 
-	aux::vector<std::uint8_t, file_index_t> priorities;
+	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
 	storage_params params{
 		ti.files(),

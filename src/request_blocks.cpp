@@ -207,7 +207,7 @@ namespace libtorrent {
 		{
 			if (prefer_contiguous_blocks == 0 && num_requests <= 0) break;
 
-			if (time_critical_mode && p.piece_priority(i->piece_index) != 7)
+			if (time_critical_mode && p.piece_priority(i->piece_index) != top_priority)
 			{
 				// assume the subsequent pieces are not prio 7 and
 				// be done

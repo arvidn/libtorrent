@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 #include <fstream>
@@ -132,12 +133,12 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		, true, false, true, "_priority", 8 * 1024, &t, false, nullptr);
 
 	int const num_pieces = tor2.torrent_file()->num_pieces();
-	aux::vector<int, piece_index_t> priorities(num_pieces, 1);
+	aux::vector<download_priority_t, piece_index_t> priorities(num_pieces, 1_pri);
 	// set half of the pieces to priority 0
-	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0);
+	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0_pri);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "setting priorities: ";
-	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
 
 	for (int i = 0; i < 200; ++i)
@@ -184,8 +185,9 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		std::cout << "torrent is finished (50% complete)" << std::endl;
 	else return;
 
-	std::vector<int> priorities2 = tor2.piece_priorities();
-	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::vector<download_priority_t> priorities2 = tor2.piece_priorities();
+	std::copy(priorities2.begin(), priorities2.end()
+		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
@@ -193,7 +195,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	tor2.force_recheck();
 
 	priorities2 = tor2.piece_priorities();
-	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::copy(priorities2.begin(), priorities2.end()
+		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
@@ -225,7 +228,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	std::cout << "recheck complete" << std::endl;
 
 	priorities2 = tor2.piece_priorities();
-	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
@@ -325,12 +328,13 @@ done:
 	TEST_CHECK(!st2.is_seeding);
 	TEST_CHECK(st2.is_finished);
 
-	std::fill(priorities.begin(), priorities.end(), 1);
+	std::fill(priorities.begin(), priorities.end(), 1_pri);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "setting priorities to 1" << std::endl;
 	TEST_EQUAL(tor2.status().is_finished, false);
 
-	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::copy(priorities.begin(), priorities.end()
+		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
 
 	// drain alerts
@@ -410,10 +414,10 @@ TORRENT_TEST(no_metadata_file_prio)
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);
 
-	h.file_priority(file_index_t(0), 0);
-	TEST_EQUAL(h.file_priority(file_index_t(0)), 0);
-	h.file_priority(file_index_t(0), 1);
-	TEST_EQUAL(h.file_priority(file_index_t(0)), 1);
+	h.file_priority(file_index_t(0), 0_pri);
+	TEST_EQUAL(h.file_priority(file_index_t(0)), 0_pri);
+	h.file_priority(file_index_t(0), 1_pri);
+	TEST_EQUAL(h.file_priority(file_index_t(0)), 1_pri);
 
 	ses.remove_torrent(h);
 }
@@ -431,10 +435,10 @@ TORRENT_TEST(no_metadata_piece_prio)
 	torrent_handle h = ses.add_torrent(addp);
 
 	// you can't set piece priorities before the metadata has been downloaded
-	h.piece_priority(piece_index_t(2), 0);
-	TEST_EQUAL(h.piece_priority(piece_index_t(2)), 4);
-	h.piece_priority(piece_index_t(2), 1);
-	TEST_EQUAL(h.piece_priority(piece_index_t(2)), 4);
+	h.piece_priority(piece_index_t(2), 0_pri);
+	TEST_EQUAL(h.piece_priority(piece_index_t(2)), 4_pri);
+	h.piece_priority(piece_index_t(2), 1_pri);
+	TEST_EQUAL(h.piece_priority(piece_index_t(2)), 4_pri);
 
 	ses.remove_torrent(h);
 }

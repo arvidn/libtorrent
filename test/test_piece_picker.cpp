@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "test.hpp"
+#include "test_utils.hpp"
 
 using namespace lt;
 using namespace std::placeholders;
@@ -179,8 +180,8 @@ std::shared_ptr<piece_picker> setup_picker(
 	{
 		int const idx = static_cast<int>(i);
 		if (priority[idx] == 0) break;
-		const int prio = priority[idx] - '0';
-		assert(prio >= 0);
+		download_priority_t const prio(priority[idx] - '0');
+		assert(prio >= dont_download);
 		p->set_piece_priority(i, prio);
 
 		TEST_CHECK(p->piece_priority(i) == prio);
@@ -611,7 +612,7 @@ TORRENT_TEST(resize)
 	TEST_CHECK(p->num_have_filtered() == 0);
 	TEST_CHECK(p->num_have() == 0);
 
-	p->set_piece_priority(piece_index_t(0), 0);
+	p->set_piece_priority(piece_index_t(0), dont_download);
 	TEST_CHECK(p->num_filtered() == 1);
 	TEST_CHECK(p->num_have_filtered() == 0);
 	TEST_CHECK(p->num_have() == 0);
@@ -623,7 +624,7 @@ TORRENT_TEST(resize)
 	TEST_CHECK(p->num_have() == 1);
 
 	p->resize(blocks_per_piece, blocks_per_piece, blocks_per_piece * 7);
-	TEST_CHECK(p->piece_priority(piece_index_t(0)) == 0);
+	TEST_CHECK(p->piece_priority(piece_index_t(0)) == dont_download);
 	TEST_CHECK(p->num_filtered() == 1);
 	TEST_CHECK(p->num_have_filtered() == 0);
 	TEST_CHECK(p->num_have() == 0);
@@ -798,7 +799,7 @@ TORRENT_TEST(cursors_sweep_up_set_piece_priority)
 	{
 		TEST_EQUAL(p->cursor(), i);
 		TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
-		p->set_piece_priority(i, 0);
+		p->set_piece_priority(i, dont_download);
 	}
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(!p->is_seeding());
@@ -830,7 +831,7 @@ TORRENT_TEST(cursors_sweep_down_set_piece_priority)
 	{
 		TEST_EQUAL(p->cursor(), piece_index_t(0));
 		TEST_EQUAL(p->reverse_cursor(), next(i));
-		p->set_piece_priority(i, 0);
+		p->set_piece_priority(i, dont_download);
 	}
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(!p->is_seeding());
@@ -847,8 +848,8 @@ TORRENT_TEST(cursors_sweep_in_set_priority)
 	{
 		TEST_EQUAL(p->cursor(), left);
 		TEST_EQUAL(p->reverse_cursor(), next(right));
-		p->set_piece_priority(left, 0);
-		p->set_piece_priority(right, 0);
+		p->set_piece_priority(left, dont_download);
+		p->set_piece_priority(right, dont_download);
 	}
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(!p->is_seeding());
@@ -961,24 +962,24 @@ TORRENT_TEST(cursors)
 	p = setup_picker("7654321", "       ", "", "");
 	TEST_EQUAL(p->cursor(), piece_index_t(0));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
-	p->set_piece_priority(piece_index_t(1), 0);
+	p->set_piece_priority(piece_index_t(1), dont_download);
 	TEST_EQUAL(p->cursor(), piece_index_t(0));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
-	p->set_piece_priority(piece_index_t(0), 0);
+	p->set_piece_priority(piece_index_t(0), dont_download);
 	TEST_EQUAL(p->cursor(), piece_index_t(2));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
-	p->set_piece_priority(piece_index_t(5), 0);
+	p->set_piece_priority(piece_index_t(5), dont_download);
 	TEST_EQUAL(p->cursor(), piece_index_t(2));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
-	p->set_piece_priority(piece_index_t(6), 0);
+	p->set_piece_priority(piece_index_t(6), dont_download);
 	TEST_EQUAL(p->cursor(), piece_index_t(2));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(5));
-	p->set_piece_priority(piece_index_t(4), 0);
-	p->set_piece_priority(piece_index_t(3), 0);
-	p->set_piece_priority(piece_index_t(2), 0);
+	p->set_piece_priority(piece_index_t(4), dont_download);
+	p->set_piece_priority(piece_index_t(3), dont_download);
+	p->set_piece_priority(piece_index_t(2), dont_download);
 	TEST_EQUAL(p->cursor(), piece_index_t(7));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
-	p->set_piece_priority(piece_index_t(3), 1);
+	p->set_piece_priority(piece_index_t(3), low_priority);
 	TEST_EQUAL(p->cursor(), piece_index_t(3));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(4));
 }
@@ -989,7 +990,7 @@ TORRENT_TEST(piece_priorities)
 	auto p = setup_picker("5555555", "       ", "7654321", "");
 	TEST_CHECK(p->num_filtered() == 0);
 	TEST_CHECK(p->num_have_filtered() == 0);
-	p->set_piece_priority(piece_index_t(0), 0);
+	p->set_piece_priority(piece_index_t(0), dont_download);
 	TEST_CHECK(p->num_filtered() == 1);
 	TEST_CHECK(p->num_have_filtered() == 0);
 	p->mark_as_finished({piece_index_t(0), 0}, nullptr);
@@ -998,7 +999,7 @@ TORRENT_TEST(piece_priorities)
 	TEST_CHECK(p->num_have_filtered() == 1);
 
 	p->we_dont_have(piece_index_t(0));
-	p->set_piece_priority(piece_index_t(0), 7);
+	p->set_piece_priority(piece_index_t(0), top_priority);
 
 	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
 		, options, empty_vector);
@@ -1009,14 +1010,14 @@ TORRENT_TEST(piece_priorities)
 
 	// test changing priority on a piece we have
 	p->we_have(piece_index_t(0));
-	p->set_piece_priority(piece_index_t(0), 0);
-	p->set_piece_priority(piece_index_t(0), 1);
-	p->set_piece_priority(piece_index_t(0), 0);
+	p->set_piece_priority(piece_index_t(0), dont_download);
+	p->set_piece_priority(piece_index_t(0), low_priority);
+	p->set_piece_priority(piece_index_t(0), dont_download);
 
-	std::vector<int> prios;
+	std::vector<download_priority_t> prios;
 	p->piece_priorities(prios);
 	TEST_CHECK(prios.size() == 7);
-	int prio_comp[] = {0, 6, 5, 4, 3, 2, 1};
+	download_priority_t prio_comp[] = {0_pri, 6_pri, 5_pri, 4_pri, 3_pri, 2_pri, 1_pri};
 	TEST_CHECK(std::equal(prios.begin(), prios.end(), prio_comp));
 }
 
@@ -1042,7 +1043,7 @@ TORRENT_TEST(restore_piece)
 	p->mark_as_finished({piece_index_t(0), 1}, nullptr);
 	p->mark_as_finished({piece_index_t(0), 2}, nullptr);
 	p->mark_as_finished({piece_index_t(0), 3}, nullptr);
-	p->set_piece_priority(piece_index_t(0), 0);
+	p->set_piece_priority(piece_index_t(0), dont_download);
 
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
@@ -1053,7 +1054,7 @@ TORRENT_TEST(restore_piece)
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == piece_index_t(1));
 
-	p->set_piece_priority(piece_index_t(0), 7);
+	p->set_piece_priority(piece_index_t(0), top_priority);
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == piece_index_t(0));
@@ -1412,10 +1413,10 @@ TORRENT_TEST(suggested_pieces)
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(piece_index_t(1), i));
-	p->set_piece_priority(piece_index_t(0), 0);
-	p->set_piece_priority(piece_index_t(1), 0);
-	p->set_piece_priority(piece_index_t(2), 0);
-	p->set_piece_priority(piece_index_t(3), 0);
+	p->set_piece_priority(piece_index_t(0), dont_download);
+	p->set_piece_priority(piece_index_t(1), dont_download);
+	p->set_piece_priority(piece_index_t(2), dont_download);
+	p->set_piece_priority(piece_index_t(3), dont_download);
 
 	picked = pick_pieces(p, "****************", 1, blocks_per_piece
 		, nullptr, options, suggested_pieces);
@@ -1795,7 +1796,7 @@ TORRENT_TEST(get_download_queue_size)
 
 	TEST_EQUAL(p->get_download_queue_size(), 5);
 
-	p->set_piece_priority(piece_index_t(1), 0);
+	p->set_piece_priority(piece_index_t(1), dont_download);
 
 	int partial;
 	int full;
@@ -1884,7 +1885,7 @@ TORRENT_TEST(reprioritize_downloading)
 	TEST_EQUAL(test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials), piece_index_t(0));
 
 	// set the priority of the piece to 0 (while downloading it)
-	ret = p->set_piece_priority(piece_index_t(0), 0);
+	ret = p->set_piece_priority(piece_index_t(0), dont_download);
 	TEST_EQUAL(ret, true);
 
 	// make sure we _DON'T_ pick the partial piece, since it has priority zero
@@ -1895,7 +1896,7 @@ TORRENT_TEST(reprioritize_downloading)
 
 	// set the priority of the piece back to 1. It should now be the best pick
 	// again (since it's partial)
-	ret = p->set_piece_priority(piece_index_t(0), 1);
+	ret = p->set_piece_priority(piece_index_t(0), low_priority);
 	TEST_EQUAL(ret, true);
 
 	// make sure we pick the partial piece
@@ -1923,7 +1924,7 @@ TORRENT_TEST(reprioritize_fully_downloading)
 	}
 
 	// set the priority of the piece to 0 (while downloading it)
-	ret = p->set_piece_priority(piece_index_t(0), 0);
+	ret = p->set_piece_priority(piece_index_t(0), dont_download);
 	TEST_EQUAL(ret, true);
 
 	// make sure we still _DON'T_ pick the downloading piece
@@ -1936,7 +1937,7 @@ TORRENT_TEST(reprioritize_fully_downloading)
 
 	// set the priority of the piece back to 1. It should now be the best pick
 	// again (since it's partial)
-	ret = p->set_piece_priority(piece_index_t(0), 1);
+	ret = p->set_piece_priority(piece_index_t(0), low_priority);
 	TEST_EQUAL(ret, true);
 
 	// make sure we still _DON'T_ pick the downloading piece
@@ -1954,7 +1955,7 @@ TORRENT_TEST(download_filtered_piece)
 	bool ret;
 
 	// set the priority of the piece to 0
-	ret = p->set_piece_priority(piece_index_t(0), 0);
+	ret = p->set_piece_priority(piece_index_t(0), dont_download);
 	TEST_EQUAL(ret, true);
 
 	// make sure we _DON'T_ pick piece 0
@@ -1982,7 +1983,7 @@ TORRENT_TEST(download_filtered_piece)
 
 	// set the priority of the piece back to 1. It should now be the best pick
 	// again (since it's partial)
-	ret = p->set_piece_priority(piece_index_t(0), 1);
+	ret = p->set_piece_priority(piece_index_t(0), low_priority);
 	TEST_EQUAL(ret, true);
 
 	// make sure we pick piece 0
