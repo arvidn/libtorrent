@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/torrent_flags.hpp"
+#include "libtorrent/download_priority.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 
 namespace libtorrent {
@@ -189,7 +190,7 @@ namespace libtorrent {
 		// ``torrent_handle::prioritize_files()``. The file priorities specified
 		// in here take precedence over those specified in the resume data, if
 		// any.
-		aux::noexcept_movable<std::vector<std::uint8_t>> file_priorities;
+		aux::noexcept_movable<std::vector<download_priority_t>> file_priorities;
 
 		// torrent extension construction functions can be added to this vector
 		// to have them be added immediately when the torrent is constructed.
@@ -320,7 +321,7 @@ namespace libtorrent {
 		// element in the vector represent the piece with the same index. If you
 		// set both file- and piece priorities, file priorities will take
 		// precedence.
-		aux::noexcept_movable<std::vector<std::uint8_t>> piece_priorities;
+		aux::noexcept_movable<std::vector<download_priority_t>> piece_priorities;
 
 		// if this is a merkle tree torrent, and you're seeding, this field must
 		// be set. It is all the hashes in the binary tree, with the root as the

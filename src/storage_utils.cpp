@@ -462,7 +462,7 @@ namespace libtorrent { namespace aux {
 	bool verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
 		, file_storage const& fs
-		, aux::vector<std::uint8_t, file_index_t> const& file_priority
+		, aux::vector<download_priority_t, file_index_t> const& file_priority
 		, stat_cache& stat
 		, std::string const& save_path
 		, storage_error& ec)
@@ -522,7 +522,7 @@ namespace libtorrent { namespace aux {
 			// expected location, but is likely to be in a partfile. Just exempt it
 			// from checking
 			if (file_index < file_priority.end_index()
-				&& file_priority[file_index] == 0)
+				&& file_priority[file_index] == dont_download)
 				continue;
 
 			error_code error;

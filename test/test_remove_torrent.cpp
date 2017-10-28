@@ -94,9 +94,9 @@ void test_remove_torrent(remove_flags_t const remove_options
 
 	if (test == partial_download)
 	{
-		std::vector<int> priorities(num_pieces, 1);
+		std::vector<download_priority_t> priorities(num_pieces, low_priority);
 		// set half of the pieces to priority 0
-		std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0);
+		std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), dont_download);
 		tor2.prioritize_pieces(priorities);
 	}
 

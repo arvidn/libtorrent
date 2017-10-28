@@ -1797,7 +1797,7 @@ COLUMN OPTIONS
 				std::vector<std::int64_t> file_progress;
 				h.file_progress(file_progress);
 				std::vector<lt::open_file_state> file_status = h.file_status();
-				std::vector<int> file_prio = h.file_priorities();
+				std::vector<lt::download_priority_t> file_prio = h.file_priorities();
 				auto f = file_status.begin();
 				std::shared_ptr<const lt::torrent_info> ti = h.torrent_file();
 
@@ -1860,7 +1860,7 @@ COLUMN OPTIONS
 						progress_bar(progress, file_progress_width, complete ? col_green : col_yellow, '-', '#'
 							, title.c_str()).c_str()
 						, add_suffix(file_progress[idx]).c_str()
-						, file_prio[idx]);
+						, static_cast<std::uint8_t>(file_prio[idx]));
 
 					p += file_progress_width + 13;
 					out += str;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,21 +30,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TEST_UTILS_HPP
-#define TEST_UTILS_HPP
+#ifndef TORRENT_DOWNLOAD_PRIORITY_HPP_INCLUDED
+#define TORRENT_DOWNLOAD_PRIORITY_HPP_INCLUDED
 
-#include "test.hpp"
-#include "libtorrent/download_priority.hpp"
+#include "libtorrent/units.hpp"
 
-namespace libtorrent
-{
-	EXPORT char const* time_now_string();
+namespace libtorrent {
 
-}
+struct download_priority_tag;
+using download_priority_t = aux::strong_typedef<std::uint8_t, download_priority_tag>;
 
-inline lt::download_priority_t operator ""_pri(unsigned long long const p)
-{
-	return lt::download_priority_t(static_cast<std::uint8_t>(p));
+constexpr download_priority_t dont_download{0};
+constexpr download_priority_t default_priority{4};
+constexpr download_priority_t low_priority{1};
+constexpr download_priority_t top_priority{7};
+
 }
 
 #endif

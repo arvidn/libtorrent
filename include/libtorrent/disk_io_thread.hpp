@@ -324,7 +324,7 @@ namespace aux {
 		void async_flush_piece(storage_index_t storage, piece_index_t piece
 			, std::function<void()> handler = std::function<void()>()) override;
 		void async_set_file_priority(storage_index_t storage
-			, aux::vector<std::uint8_t, file_index_t> prio
+			, aux::vector<download_priority_t, file_index_t> prio
 			, std::function<void(storage_error const&)> handler) override;
 
 		void async_clear_piece(storage_index_t storage, piece_index_t index

@@ -234,7 +234,7 @@ namespace libtorrent {
 			entry::list_type& prio = ret["file_priority"].list();
 			prio.reserve(atp.file_priorities.size());
 			for (auto const p : atp.file_priorities)
-				prio.emplace_back(p);
+				prio.emplace_back(static_cast<std::uint8_t>(p));
 		}
 
 		if (!atp.piece_priorities.empty())
@@ -243,7 +243,7 @@ namespace libtorrent {
 			entry::string_type& prio = ret["piece_priority"].string();
 			prio.reserve(atp.piece_priorities.size());
 			for (auto const p : atp.piece_priorities)
-				prio.push_back(static_cast<char>(p));
+				prio.push_back(static_cast<char>(static_cast<std::uint8_t>(p)));
 		}
 
 		return ret;

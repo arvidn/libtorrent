@@ -1941,7 +1941,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	}
 
 	void disk_io_thread::async_set_file_priority(storage_index_t const storage
-		, aux::vector<std::uint8_t, file_index_t> prios
+		, aux::vector<download_priority_t, file_index_t> prios
 		, std::function<void(storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(job_action_t::file_priority);
@@ -2767,7 +2767,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	status_t disk_io_thread::do_file_priority(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		j->storage->set_file_priority(
-			boost::get<aux::vector<std::uint8_t, file_index_t>>(j->argument)
+			boost::get<aux::vector<download_priority_t, file_index_t>>(j->argument)
 			, j->error);
 		return status_t::no_error;
 	}

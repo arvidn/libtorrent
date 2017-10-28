@@ -161,6 +161,7 @@ nobase_include_HEADERS = \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
   span.hpp                     \
+  download_priority.hpp        \
   \
   aux_/allocating_handler.hpp       \
   aux_/aligned_storage.hpp          \
