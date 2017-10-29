@@ -89,6 +89,13 @@ namespace libtorrent {
 		TORRENT_ASSERT(files().num_files() > 0);
 		m_save_path = complete(params.path);
 		m_part_file_name = "." + aux::to_hex(params.info_hash) + ".parts";
+
+		file_storage const& fs = files();
+		for (file_index_t i(0); i < m_file_priority.end_index(); ++i)
+		{
+			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
+				need_partfile();
+		}
 	}
 
 	default_storage::~default_storage()
