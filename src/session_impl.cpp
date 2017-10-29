@@ -6624,9 +6624,8 @@ namespace {
 
 	void session_impl::stop_lsd()
 	{
-		if (!m_lsd) return;
-
-		m_lsd->close();
+		if (m_lsd)
+			m_lsd->close();
 		m_lsd.reset();
 	}
 
