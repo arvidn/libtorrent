@@ -123,7 +123,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	file.close();
 
 	wait_for_listen(ses1, "ses1");
-	wait_for_listen(ses2, "ses1");
+	wait_for_listen(ses2, "ses2");
 
 	peer_disconnects = 0;
 

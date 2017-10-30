@@ -94,7 +94,10 @@ namespace libtorrent {
 		for (file_index_t i(0); i < m_file_priority.end_index(); ++i)
 		{
 			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
+			{
 				need_partfile();
+				break;
+			}
 		}
 	}
 
@@ -389,7 +392,6 @@ namespace libtorrent {
 		{
 			error_code ignore;
 			m_part_file->flush_metadata(ignore);
-			m_part_file.reset();
 		}
 
 		// make sure we don't have the files open
