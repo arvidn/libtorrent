@@ -302,8 +302,6 @@ namespace {
 		atp.num_complete = resume_data.num_complete;
 		atp.num_incomplete = resume_data.num_incomplete;
 		atp.num_downloaded = resume_data.num_downloaded;
-		atp.total_uploaded = resume_data.total_uploaded;
-		atp.total_downloaded = resume_data.total_downloaded;
 		atp.active_time = resume_data.active_time;
 		atp.finished_time = resume_data.finished_time;
 		atp.seeding_time = resume_data.seeding_time;
