@@ -2,7 +2,7 @@
 
 set -e
 
-PATH=$PATH:/opt/local/etc/openssl/misc
+PATH=$PATH:/usr/local/etc/openssl/misc
 
 rm -rf demoCA
 
@@ -26,4 +26,6 @@ CA.sh -sign
 cp newcert.pem peer_certificate.pem
 
 openssl dhparam -outform PEM -out dhparams.pem 2048
+
+printf "\n\nSUCCESS!\n"
 
