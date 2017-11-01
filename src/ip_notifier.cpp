@@ -91,7 +91,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 	{
 		using namespace std::placeholders;
 		m_socket.async_receive(boost::asio::buffer(m_buf)
-			, std::bind(&ip_change_notifier_impl::on_notify, this, _1, _2, std::move(cb)));
+			, std::bind(&ip_change_notifier_impl::on_notify, _1, _2, std::move(cb)));
 	}
 
 	void cancel() override
@@ -101,7 +101,7 @@ private:
 	netlink::socket m_socket;
 	std::array<char, 4096> m_buf;
 
-	void on_notify(error_code const& ec, std::size_t bytes_transferred
+	static void on_notify(error_code const& ec, std::size_t bytes_transferred
 		, std::function<void(error_code const&)> const& cb)
 	{
 		TORRENT_UNUSED(bytes_transferred);

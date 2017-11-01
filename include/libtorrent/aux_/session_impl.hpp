@@ -614,10 +614,12 @@ namespace aux {
 				, error_code const& e);
 #endif
 
+			void start_ip_notifier();
 			void start_lsd();
 			natpmp* start_natpmp();
 			upnp* start_upnp();
 
+			void stop_ip_notifier();
 			void stop_lsd();
 			void stop_natpmp();
 			void stop_upnp();
@@ -715,6 +717,7 @@ namespace aux {
 			void update_max_failcount();
 			void update_resolver_cache_timeout();
 
+			void update_ip_notifier();
 			void update_upnp();
 			void update_natpmp();
 			void update_lsd();

@@ -64,3 +64,51 @@ TORRENT_TEST(seed_mode)
 		});
 }
 
+TORRENT_TEST(ip_notifier_setting)
+{
+	int s_tick = 0;
+	int working_count = 0;
+
+	setup_swarm(1, swarm_test::upload
+		// add session
+		, [](lt::settings_pack& pack)
+		{
+			pack.set_int(settings_pack::tick_interval, 1000);
+			pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [&s_tick, &working_count](lt::alert const* a, lt::session& ses)
+		{
+			std::string const msg = a->message();
+			if (msg.find("received error on_ip_change:") != std::string::npos)
+			{
+				TEST_CHECK(s_tick == 0 || s_tick == 2);
+				working_count++;
+			}
+		}
+		// terminate
+		, [&s_tick](int ticks, lt::session& ses) -> bool {
+
+			if (ticks == 1)
+			{
+				settings_pack sp;
+				sp.set_bool(settings_pack::enable_ip_notifier, false);
+				ses.apply_settings(sp);
+			}
+			else if (ticks == 2)
+			{
+				settings_pack sp;
+				sp.set_bool(settings_pack::enable_ip_notifier, true);
+				ses.apply_settings(sp);
+			}
+
+			s_tick = ticks;
+
+			// exit after 3 seconds
+			return ticks > 3;
+		});
+
+	TEST_EQUAL(working_count, 2);
+}
