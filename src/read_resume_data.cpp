@@ -129,6 +129,7 @@ namespace {
 		if (trees)
 		{
 			ret.merkle_trees.reserve(trees.list_size());
+			ret.verified_leaf_hashes.reserve(trees.list_size());
 			for (int i = 0; i < trees.list_size(); ++i)
 			{
 				auto de = trees.list_at(i);
@@ -143,6 +144,14 @@ namespace {
 					!hashes.empty(); hashes = hashes.substr(32))
 				{
 					ret.merkle_trees.back().emplace_back(hashes);
+				}
+
+				auto verified = de.dict_find_string_value("verified");
+				ret.verified_leaf_hashes.emplace_back();
+				ret.verified_leaf_hashes.back().reserve(verified.size());
+				for (auto const bit : verified)
+				{
+					ret.verified_leaf_hashes.back().emplace_back(bit == '1');
 				}
 			}
 		}

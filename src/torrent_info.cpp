@@ -1117,7 +1117,6 @@ namespace {
 		return m_merkle_trees[file];
 	}
 
-
 	string_view torrent_info::ssl_cert() const
 	{
 		if ((m_flags & ssl_torrent) == 0) return "";

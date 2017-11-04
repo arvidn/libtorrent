@@ -63,6 +63,7 @@ set(libtorrent_include_files
 	flags
 	fwd
 	gzip
+	hash_picker
 	hasher
 	heterogeneous_queue
 	hex
@@ -303,6 +304,7 @@ set(sources
 	hasher
 	sha1
 	sha256
+	hash_picker
 	hex
 	http_connection
 	http_stream
