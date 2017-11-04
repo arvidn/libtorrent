@@ -34,6 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	int merkle_to_flat_index(int layer, int offset)
+	{
+		return (1 << layer) - 1 + offset;
+	}
+
 	int merkle_get_parent(int tree_node)
 	{
 		// node 0 doesn't have a parent
@@ -50,6 +55,11 @@ namespace libtorrent {
 		return tree_node + ((tree_node&1)?1:-1);
 	}
 
+	int merkle_get_first_child(int tree_node)
+	{
+		return tree_node * 2 + 1;
+	}
+
 	int merkle_num_nodes(int leafs)
 	{
 		TORRENT_ASSERT(leafs > 0);
@@ -63,6 +73,17 @@ namespace libtorrent {
 		int ret = 1;
 		while (pieces > ret) ret <<= 1;
 		return ret;
+	}
+
+	int merkle_num_layers(int leaves)
+	{
+		int layers = 0;
+		while (leaves)
+		{
+			++layers;
+			leaves >>= 1;
+		}
+		return layers;
 	}
 
 	void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf)

@@ -325,6 +325,11 @@ TORRENT_VERSION_NAMESPACE_2
 		// v2 hashes, if known
 		aux::vector<std::vector<sha256_hash>, file_index_t> merkle_trees;
 
+		// bitfields indicating which v2 leaf hashes have been verified
+		// against the root hash. If this vector is empty and merkle_trees is
+		// non-empty it implies that all hashes in merkle_trees are verified.
+		aux::vector<std::vector<bool>, file_index_t> verified_leaf_hashes;
+
 		// this is a map of file indices in the torrent and new filenames to be
 		// applied before the torrent is added.
 		aux::noexcept_movable<std::map<file_index_t, std::string>> renamed_files;

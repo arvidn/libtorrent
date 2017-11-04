@@ -220,6 +220,8 @@ run test_time_critical.cpp ;
 run test_pex.cpp ;
 run test_priority.cpp ;
 
+run test_hash_picker.cpp ;
+
 # turn these tests into simulations
 run test_upnp.cpp ;
 

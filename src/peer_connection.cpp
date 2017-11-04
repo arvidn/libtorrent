@@ -4378,6 +4378,11 @@ namespace libtorrent {
 			}
 			m_queued_time_critical = 0;
 
+			if (t->has_hash_picker() && self_peer->protocol_v2)
+			{
+				t->get_hash_picker().peer_disconnected(this);
+			}
+
 #if TORRENT_USE_INVARIANT_CHECKS
 			try { check_invariant(); } catch (std::exception const&) {}
 #endif

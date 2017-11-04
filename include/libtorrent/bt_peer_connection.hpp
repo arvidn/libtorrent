@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/hash_picker.hpp"
 
 namespace libtorrent {
 
@@ -145,6 +146,10 @@ namespace libtorrent {
 			// extension protocol message
 			msg_extended = 20,
 
+			msg_hash_request = 21,
+			msg_hashes,
+			msg_hash_reject,
+
 			num_supported_messages
 		};
 
@@ -212,6 +217,9 @@ namespace libtorrent {
 		void on_request(int received);
 		void on_piece(int received);
 		void on_cancel(int received);
+		void on_hash_request(int received);
+		void on_hashes(int received);
+		void on_hash_reject(int received);
 
 		// DHT extension
 		void on_dht_port(int received);
@@ -247,6 +255,11 @@ namespace libtorrent {
 		void write_share_mode();
 		void write_holepunch_msg(hp_message type, tcp::endpoint const& ep
 			, hp_error error = hp_error::no_error);
+		void write_hash_request(hash_request req);
+		void write_hashes(hash_request req, span<sha256_hash> hashes);
+		void write_hash_reject(hash_request req);
+
+		void maybe_send_hash_request();
 
 		// DHT extension
 		void write_dht_port(int listen_port);
@@ -440,6 +453,8 @@ namespace libtorrent {
 		};
 
 		std::vector<range> m_payloads;
+
+		std::vector<hash_request> m_hash_requests;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		// initialized during write_pe1_2_dhkey, and destroyed on

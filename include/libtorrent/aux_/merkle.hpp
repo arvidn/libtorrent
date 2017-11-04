@@ -40,10 +40,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	TORRENT_EXTRA_EXPORT int merkle_to_flat_index(int layer, int offset);
 	TORRENT_EXTRA_EXPORT int merkle_num_leafs(int);
 	TORRENT_EXTRA_EXPORT int merkle_num_nodes(int);
+	TORRENT_EXTRA_EXPORT int merkle_num_layers(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_sibling(int);
+	TORRENT_EXTRA_EXPORT int merkle_get_first_child(int);
 	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf = 0);
 	TORRENT_EXTRA_EXPORT void merkle_clear_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf = 0);
 	TORRENT_EXTRA_EXPORT sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad = {});

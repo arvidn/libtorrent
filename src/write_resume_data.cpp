@@ -113,6 +113,17 @@ namespace libtorrent {
 				ret_tree.reserve(tree.size() * 32);
 				for (auto const& n : tree)
 					ret_tree.append(n.data(), n.size());
+
+				if (!atp.verified_leaf_hashes.empty())
+				{
+					auto& verified = atp.verified_leaf_hashes[f];
+					if (!verified.empty())
+					{
+						auto& ret_verified = ret_dict["verified"].string();
+						for (auto const bit : verified)
+							ret_verified.push_back(bit ? '1' : '0');
+					}
+				}
 			}
 		}
 

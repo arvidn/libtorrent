@@ -324,6 +324,9 @@ namespace errors {
 		invalid_session_handle,
 		// the listen socket associated with this request was closed
 		invalid_listen_socket,
+		invalid_hash_request,
+		invalid_hashes,
+		invalid_hash_reject,
 
 #if TORRENT_ABI_VERSION == 1
 		// these error codes are deprecated, NAT-PMP/PCP error codes have

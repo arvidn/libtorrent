@@ -95,6 +95,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/range.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/disk_io_thread.hpp" // for hasher_thread_divisor
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -368,6 +369,12 @@ bool is_downloading_state(int const st)
 		{
 			if (!p.merkle_trees.empty())
 				m_torrent_file->merkle_trees() = p.merkle_trees;
+
+			if (!p.verified_leaf_hashes.empty())
+			{
+				TORRENT_ASSERT(!has_hash_picker());
+				need_hash_picker(p.verified_leaf_hashes);
+			}
 		}
 
 		if (valid_metadata())
@@ -1244,6 +1251,28 @@ bool is_downloading_state(int const st)
 			if (p->is_disconnecting()) continue;
 			peer_has(p->get_bitfield(), p);
 		}
+	}
+
+	void torrent::need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified)
+	{
+		if (m_hash_picker)
+		{
+			if (!verified.empty())
+			{
+				m_hash_picker->set_verified(verified);
+			}
+			return;
+		}
+
+		TORRENT_ASSERT(valid_metadata());
+		TORRENT_ASSERT(m_connections_initialized);
+
+		//INVARIANT_CHECK;
+
+		m_hash_picker.reset(new hash_picker(m_torrent_file->orig_files()
+			, m_torrent_file->merkle_trees(), std::move(verified)
+			, m_torrent_file->v2_piece_hashes_verified()
+				&& m_torrent_file->piece_length() == default_block_size));
 	}
 
 	struct piece_refcount
@@ -6008,6 +6037,88 @@ bool is_downloading_state(int const st)
 #endif
 	}
 
+	std::vector<hash_request> torrent::pick_hashes(int num_blocks, peer_connection* peer)
+	{
+		need_hash_picker();
+		if (!m_hash_picker) return {};
+		return m_hash_picker->pick_hashes(peer->get_bitfield(), num_blocks, peer);
+	}
+
+	std::vector<sha256_hash> torrent::get_hashes(hash_request const& req)
+	{
+		TORRENT_ASSERT(m_torrent_file->is_valid());
+		if (!m_torrent_file->is_valid()) return {};
+
+		auto& f = m_torrent_file->file_merkle_tree(req.file);
+
+		int const base_layer_idx = merkle_num_layers((f.size() + 1) >> 1) - req.base - 1;
+		int const base_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
+
+		int layer_start_idx = base_start_idx;
+
+		std::vector<sha256_hash> ret;
+
+		for (int i = 0; i < req.count; ++i)
+		{
+			if (f[layer_start_idx + i].is_all_zeros())
+				return {};
+			ret.push_back(f[layer_start_idx + i]);
+		}
+
+		// the number of layers up the tree which can be computed from the base layer hashes
+		// subtract one because we need the sibling of the root node
+		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(req.count)) - 1;
+		// plus one because the base layer doesn't count as a proof layer
+		int proof_layers = req.proof_layers + 1;
+
+		for (int i = 0; i < base_tree_layers; ++i)
+		{
+			layer_start_idx = merkle_get_parent(layer_start_idx);
+			if (--proof_layers == 0)
+				return ret;
+			if (layer_start_idx == 0)
+				return {}; // the requester set proof_layers too high
+		}
+
+		for (int i = 0; i < proof_layers; ++i)
+		{
+			if (layer_start_idx == 0)
+				return {}; // the requester set proof_layers too high
+
+			int const sibling = merkle_get_sibling(layer_start_idx);
+
+			if (f[layer_start_idx].is_all_zeros()
+				|| f[sibling].is_all_zeros())
+				return {};
+
+			ret.push_back(f[sibling]);
+			layer_start_idx = merkle_get_parent(layer_start_idx);
+		}
+
+		return ret;
+	}
+
+	bool torrent::add_hashes(hash_request const& req, span<sha256_hash> hashes)
+	{
+		need_hash_picker();
+		if (!m_hash_picker) return true;
+		return m_hash_picker->add_hashes(req, hashes).valid;
+	}
+
+	void torrent::hashes_rejected(peer_connection_interface* source, hash_request const& req)
+	{
+		if (!m_hash_picker) return;
+		m_hash_picker->hashes_rejected(source, req);
+		// we need to poke all of the v2 peers in case there are no other
+		// outstanding hash requests
+		for (auto peer : m_connections)
+		{
+			if (peer->type() != connection_type::bittorrent) continue;
+			bt_peer_connection* btpeer = static_cast<bt_peer_connection*>(peer);
+			btpeer->maybe_send_hash_request();
+		}
+	}
+
 	std::shared_ptr<const torrent_info> torrent::get_torrent_copy()
 	{
 		if (!m_torrent_file->is_valid()) return std::shared_ptr<const torrent_info>();
@@ -6253,6 +6364,20 @@ bool is_downloading_state(int const st)
 		if (m_torrent_file->info_hash().has_v2())
 		{
 			ret.merkle_trees = m_torrent_file->merkle_trees();
+			if (has_hash_picker())
+			{
+				ret.verified_leaf_hashes = get_hash_picker().verified_leafs();
+			}
+			else if (!m_have_all)
+			{
+				ret.verified_leaf_hashes.reserve(m_torrent_file->files().num_files());
+				for (file_index_t f(0); f != m_torrent_file->files().end_file(); ++f)
+				{
+					ret.verified_leaf_hashes.emplace_back(m_torrent_file->files().file_num_blocks(f));
+					std::fill(ret.verified_leaf_hashes.back().begin()
+						, ret.verified_leaf_hashes.back().end(), false);
+				}
+			}
 		}
 	}
 
@@ -7352,6 +7477,7 @@ bool is_downloading_state(int const st)
 				!= settings_pack::suggest_read_cache)
 			{
 				m_picker.reset();
+				m_hash_picker.reset();
 				m_file_progress.clear();
 			}
 			m_have_all = true;
