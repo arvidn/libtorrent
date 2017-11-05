@@ -103,7 +103,15 @@ install:
       echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-arm" ]]; then
-      echo "using gcc : arm : ccache armv8l-linux-gnueabihf-g++ : <cxxflags>\"-std=c++11 -fsigned-char -march=armv8-a+crc -mfpu=crypto-neon-fp-armv8 -DTORRENT_FORCE_ARM_CRC32\" <linkflags>-lm ;" >> ~/user-config.jam;
+      echo "using gcc : arm : ccache armv8l-linux-gnueabihf-g++ :
+        <cxxflags>-std=c++11
+        <cxxflags>-fsigned-char
+        <cxxflags>-march=armv8-a+crc
+        <cxxflags>-mfpu=crypto-neon-fp-armv8
+        <cxxflags>-DTORRENT_FORCE_ARM_CRC32
+        <linkflags>-lm
+        <linkflags>-static-libstdc++
+        <linkflags>-static-libgcc ;" >> ~/user-config.jam;
     fi;'
   - 'echo "using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
@@ -131,10 +139,11 @@ install:
       wget -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip;
       unzip -qq boost.zip;
       export BOOST_ROOT=$PWD/boost_1_55_0;
-      travis_retry sudo apt-get install -y qemu-user-static debootstrap;
-      travis_retry sudo debootstrap --variant=minbase --arch armhf --foreign --include=build-essential testing rootfs;
+      travis_retry sudo apt-get install -y qemu-user-static;
+      wget -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
+      sudo mkdir rootfs;
+      sudo tar xf ubuntu-base.tar.gz -C rootfs;
       sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
-      sudo chroot rootfs /debootstrap/debootstrap --second-stage;
       sudo chroot rootfs mount -t proc none /proc;
       cd ..;
     fi'
