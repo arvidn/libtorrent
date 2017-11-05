@@ -135,7 +135,6 @@ test-suite libtorrent :
 		test_dos_blocker.cpp
 		test_stat_cache.cpp
 		test_enum_net.cpp
-		test_linked_list.cpp
 		test_stack_allocator.cpp
 		test_file_progress.cpp
 		test_alloca.cpp ]
