@@ -94,14 +94,14 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 
 	TEST_EQUAL(st.total_wanted, 0); // we don't want anything
 	TEST_EQUAL(st.total_wanted_done, 0);
-	TEST_EQUAL(int(h.file_priorities().size()), info->num_files());
+	TEST_EQUAL(int(h.get_file_priorities().size()), info->num_files());
 	if (!st.is_seeding)
 	{
-		TEST_EQUAL(h.file_priorities()[0], 0_pri);
+		TEST_EQUAL(h.get_file_priorities()[0], 0_pri);
 		if (info->num_files() > 1)
-			TEST_EQUAL(h.file_priorities()[1], 1_pri);
+			TEST_EQUAL(h.get_file_priorities()[1], 1_pri);
 		if (info->num_files() > 2)
-			TEST_EQUAL(h.file_priorities()[2], 1_pri);
+			TEST_EQUAL(h.get_file_priorities()[2], 1_pri);
 	}
 
 	if (info->num_files() > 1)
@@ -114,12 +114,12 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		TEST_EQUAL(st.total_wanted_done, 0);
 		if (!st.is_seeding)
 		{
-			TEST_EQUAL(int(h.file_priorities().size()), info->num_files());
-			TEST_EQUAL(h.file_priorities()[0], 0_pri);
+			TEST_EQUAL(int(h.get_file_priorities().size()), info->num_files());
+			TEST_EQUAL(h.get_file_priorities()[0], 0_pri);
 			if (info->num_files() > 1)
-				TEST_EQUAL(h.file_priorities()[1], 0_pri);
+				TEST_EQUAL(h.get_file_priorities()[1], 0_pri);
 			if (info->num_files() > 2)
-				TEST_EQUAL(h.file_priorities()[2], 1_pri);
+				TEST_EQUAL(h.get_file_priorities()[2], 1_pri);
 		}
 	}
 

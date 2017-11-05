@@ -64,18 +64,18 @@ class test_torrent_handle(unittest.TestCase):
 
     def test_torrent_handle(self):
         self.setup()
-        self.assertEqual(self.h.file_priorities(), [4, 4])
-        self.assertEqual(self.h.piece_priorities(), [4])
+        self.assertEqual(self.h.get_file_priorities(), [4, 4])
+        self.assertEqual(self.h.get_piece_priorities(), [4])
 
         self.h.prioritize_files([0, 1])
-        self.assertEqual(self.h.file_priorities(), [0, 1])
+        self.assertEqual(self.h.get_file_priorities(), [0, 1])
 
         self.h.prioritize_pieces([0])
-        self.assertEqual(self.h.piece_priorities(), [0])
+        self.assertEqual(self.h.get_piece_priorities(), [0])
 
         # also test the overload that takes a list of piece->priority mappings
         self.h.prioritize_pieces([(0, 1)])
-        self.assertEqual(self.h.piece_priorities(), [1])
+        self.assertEqual(self.h.get_piece_priorities(), [1])
 
         print(self.h.queue_position())
 
@@ -256,12 +256,12 @@ class test_torrent_handle(unittest.TestCase):
         self.assertEqual(len(trackers), 1)
         self.assertEqual(trackers[0].get('url'), 'http://test.com/announce')
         self.assertEqual(trackers[0].get('tier'), 0)
-        self.assertEqual(self.h.file_priorities(), [1,1])
+        self.assertEqual(self.h.get_file_priorities(), [1,1])
         self.assertEqual(self.h.http_seeds(),['http://test.com/file3'])
         # url_seeds was already set, test that it did not got overwritten
         self.assertEqual(self.h.url_seeds(),
             ['http://test.com/announce-url/', 'http://test.com/file/'])
-        self.assertEqual(self.h.piece_priorities(),[4])
+        self.assertEqual(self.h.get_piece_priorities(),[4])
         self.assertEqual(self.ti.merkle_tree(),[])
         self.assertEqual(self.st.verified_pieces,[])
 
