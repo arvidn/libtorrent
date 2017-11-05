@@ -1797,7 +1797,7 @@ COLUMN OPTIONS
 				std::vector<std::int64_t> file_progress;
 				h.file_progress(file_progress);
 				std::vector<lt::open_file_state> file_status = h.file_status();
-				std::vector<lt::download_priority_t> file_prio = h.file_priorities();
+				std::vector<lt::download_priority_t> file_prio = h.get_file_priorities();
 				auto f = file_status.begin();
 				std::shared_ptr<const lt::torrent_info> ti = h.torrent_file();
 

@@ -78,7 +78,7 @@ namespace
       std::vector<download_priority_t> prio;
       {
           allow_threading_guard guard;
-          prio = handle.piece_priorities();
+          prio = handle.get_piece_priorities();
       }
 
       for (auto const p : prio)
@@ -170,7 +170,7 @@ void prioritize_files(torrent_handle& info, object o)
 list file_priorities(torrent_handle& handle)
 {
     list ret;
-    std::vector<download_priority_t> priorities = handle.file_priorities();
+    std::vector<download_priority_t> priorities = handle.get_file_priorities();
 
     for (auto const p : priorities)
         ret.append(p);
@@ -516,9 +516,9 @@ void bind_torrent_handle()
         .def("piece_priority", _(piece_priority0))
         .def("piece_priority", _(piece_priority1))
         .def("prioritize_pieces", &prioritize_pieces)
-        .def("piece_priorities", &piece_priorities)
+        .def("get_piece_priorities", &piece_priorities)
         .def("prioritize_files", &prioritize_files)
-        .def("file_priorities", &file_priorities)
+        .def("get_file_priorities", &file_priorities)
         .def("file_priority", &file_prioritity0)
         .def("file_priority", &file_prioritity1)
         .def("file_status", _(file_status0))
@@ -551,6 +551,8 @@ void bind_torrent_handle()
         .def("unset_flags", _(&torrent_handle::unset_flags))
         // deprecated
 #ifndef TORRENT_NO_DEPRECATE
+        .def("piece_priorities", &piece_priorities)
+        .def("file_priorities", &file_priorities)
         .def("stop_when_ready", _(&torrent_handle::stop_when_ready))
         .def("super_seeding", super_seeding1)
         .def("auto_managed", _(&torrent_handle::auto_managed))

@@ -991,19 +991,21 @@ namespace aux {
 		// Invalid entries, where the piece index or priority is out of range, are
 		// not allowed.
 		//
-		// ``piece_priorities`` returns a vector with one element for each piece
+		// ``get_piece_priorities`` returns a vector with one element for each piece
 		// in the torrent. Each element is the current priority of that piece.
 		void piece_priority(piece_index_t index, download_priority_t priority) const;
 		download_priority_t piece_priority(piece_index_t index) const;
 		void prioritize_pieces(std::vector<download_priority_t> const& pieces) const;
 		void prioritize_pieces(std::vector<std::pair<piece_index_t, download_priority_t>> const& pieces) const;
-		std::vector<download_priority_t> piece_priorities() const;
+		std::vector<download_priority_t> get_piece_priorities() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
 		void prioritize_pieces(std::vector<int> const& pieces) const;
 		TORRENT_DEPRECATED
 		void prioritize_pieces(std::vector<std::pair<piece_index_t, int>> const& pieces) const;
+		TORRENT_DEPRECATED
+		std::vector<int> piece_priorities() const;
 #endif
 
 		// ``index`` must be in the range [0, number_of_files).
@@ -1015,7 +1017,7 @@ namespace aux {
 		// file. The function sets the priorities of all the pieces in the
 		// torrent based on the vector.
 		//
-		// ``file_priorities()`` returns a vector with the priorities of all
+		// ``get_file_priorities()`` returns a vector with the priorities of all
 		// files.
 		//
 		// The priority values are the same as for piece_priority().
@@ -1031,11 +1033,13 @@ namespace aux {
 		void file_priority(file_index_t index, download_priority_t priority) const;
 		download_priority_t file_priority(file_index_t index) const;
 		void prioritize_files(std::vector<download_priority_t> const& files) const;
-		std::vector<download_priority_t> file_priorities() const;
+		std::vector<download_priority_t> get_file_priorities() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
 		void prioritize_files(std::vector<int> const& files) const;
+		TORRENT_DEPRECATED
+		std::vector<int> file_priorities() const;
 #endif
 
 		// ``force_reannounce()`` will force this torrent to do another tracker

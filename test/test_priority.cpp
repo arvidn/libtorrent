@@ -185,7 +185,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		std::cout << "torrent is finished (50% complete)" << std::endl;
 	else return;
 
-	std::vector<download_priority_t> priorities2 = tor2.piece_priorities();
+	std::vector<download_priority_t> priorities2 = tor2.get_piece_priorities();
 	std::copy(priorities2.begin(), priorities2.end()
 		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
@@ -194,7 +194,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	std::cout << "force recheck" << std::endl;
 	tor2.force_recheck();
 
-	priorities2 = tor2.piece_priorities();
+	priorities2 = tor2.get_piece_priorities();
 	std::copy(priorities2.begin(), priorities2.end()
 		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
@@ -227,7 +227,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 
 	std::cout << "recheck complete" << std::endl;
 
-	priorities2 = tor2.piece_priorities();
+	priorities2 = tor2.get_piece_priorities();
 	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
