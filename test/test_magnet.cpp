@@ -250,6 +250,11 @@ TORRENT_TEST(parse_invalid_escaped_hash_parameter)
 	TEST_EQUAL(ec, error_code(errors::invalid_escaped_string));
 }
 
+TORRENT_TEST(throwing_overload)
+{
+	TEST_THROW(parse_magnet_uri("magnet:?xt=urn%%3A"));
+}
+
 TORRENT_TEST(parse_missing_hash)
 {
 	// parse_magnet_uri

@@ -299,4 +299,12 @@ namespace libtorrent {
 		if (!name.empty()) p.name = name;
 		return p;
 	}
+
+	add_torrent_params parse_magnet_uri(string_view uri)
+	{
+		error_code ec;
+		add_torrent_params ret = parse_magnet_uri(uri, ec);
+		if (ec) aux::throw_ex<system_error>(ec);
+		return ret;
+	}
 }
