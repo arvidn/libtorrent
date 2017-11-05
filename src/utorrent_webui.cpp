@@ -863,7 +863,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 		, end(t.end()); i != end; ++i)
 	{
 		i->handle.file_progress(progress);
-		file_prio = i->handle.file_priorities();
+		file_prio = i->handle.get_file_priorities();
 		std::shared_ptr<const torrent_info> ti = i->torrent_file.lock();
 		if (!ti || !ti->is_valid()) continue;
 		file_storage const& files = ti->files();
