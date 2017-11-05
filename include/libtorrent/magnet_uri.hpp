@@ -79,8 +79,10 @@ namespace libtorrent {
 #endif
 
 	// This function parses out information from the magnet link and populates the
-	// add_torrent_params object.
+	// add_torrent_params object. The overload that does not take an
+	// ``error_code`` reference will throw a system_error on error
 	TORRENT_EXPORT add_torrent_params parse_magnet_uri(string_view uri, error_code& ec);
+	TORRENT_EXPORT add_torrent_params parse_magnet_uri(string_view uri);
 }
 
 #endif
