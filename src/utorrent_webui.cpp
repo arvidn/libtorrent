@@ -858,7 +858,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 	appendf(response, ",\"files\":[");
 	int first = 1;
 	std::vector<std::int64_t> progress;
-	std::vector<int> file_prio;
+	std::vector<lt::download_priority_t> file_prio;
 	for (std::vector<torrent_status>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
 	{
@@ -875,12 +875,12 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 			int first_piece = files.file_offset(i) / files.piece_length();
 			int last_piece = (files.file_offset(i) + files.file_size(i)) / files.piece_length();
 			// don't round 1 down to 0. 0 is special (do-not-download)
-			if (file_prio[i] == 1) file_prio[i] = 2;
+			if (file_prio[i] == lt::low_priority) file_prio[i] = download_priority_t{2};
 			appendf(response, ",[\"%s\", %" PRId64 ", %" PRId64 ", %d" + first_file
 				, escape_json(files.file_name(i)).c_str()
 				, files.file_size(i)
 				, progress[i]
-				, file_prio[i] / 2 // uTorrent's web UI uses 4 priority levels, libtorrent uses 8
+				, static_cast<std::uint8_t>(file_prio[i]) / 2 // uTorrent's web UI uses 4 priority levels, libtorrent uses 8
 				);
 
 			if (m_version > 0)

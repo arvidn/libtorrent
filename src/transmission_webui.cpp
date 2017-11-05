@@ -787,14 +787,12 @@ void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 		}
 		if (!file_priority.empty())
 		{
-			std::vector<int> prio = h.file_priorities();
+			std::vector<lt::download_priority_t> prio = h.file_priorities();
 			if (all_file_prio != -1) std::fill(prio.begin(), prio.end(), all_file_prio);
-			for (std::vector<std::pair<int, int> >::iterator
-				i = file_priority.begin(), end(file_priority.end());
-				i != end; ++i)
+			for (auto const& e : file_priority)
 			{
-				if (i->first < 0 || i->first >= prio.size()) continue;
-				prio[i->first] = i->second;
+				if (e.first < 0 || e.first >= prio.size()) continue;
+				prio[e.first] = e.second;
 			}
 			h.prioritize_files(prio);
 		}

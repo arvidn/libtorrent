@@ -153,7 +153,7 @@ namespace libtorrent
 	// TODO: replace this with file_requests class
 	struct piece_alert_dispatch : plugin
 	{
-		std::uint32_t implemented_features() override { return plugin::alert_feature; }
+		libtorrent::feature_flags_t implemented_features() override { return plugin::alert_feature; }
 
 		void on_alert(alert const* a) override
 		{
