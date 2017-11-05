@@ -64,7 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/link.hpp"
 #include "libtorrent/vector_utils.hpp"
-#include "libtorrent/linked_list.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/disk_interface.hpp" // for status_t
