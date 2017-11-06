@@ -1349,7 +1349,7 @@ namespace aux {
 		}
 #endif
 
-		if (is_any(req.bind_ip)) req.bind_ip = m_listen_interface.address();
+		if (!req.bind_ip) req.bind_ip = m_listen_interface.address();
 		m_tracker_manager.queue_request(get_io_service(), req, c);
 	}
 
@@ -1709,12 +1709,12 @@ namespace aux {
 	}
 #endif
 
-	tcp::endpoint session_impl::get_ipv6_interface() const
+	boost::optional<tcp::endpoint> session_impl::get_ipv6_interface() const
 	{
 		return m_ipv6_interface;
 	}
 
-	tcp::endpoint session_impl::get_ipv4_interface() const
+	boost::optional<tcp::endpoint> session_impl::get_ipv4_interface() const
 	{
 		return m_ipv4_interface;
 	}
@@ -1887,8 +1887,8 @@ retry:
 
 		if (m_abort) return;
 
-		m_ipv6_interface = tcp::endpoint();
-		m_ipv4_interface = tcp::endpoint();
+		m_ipv6_interface = boost::none;
+		m_ipv4_interface = boost::none;
 
 		// TODO: instead of having a special case for this, just make the
 		// default listen interfaces be "0.0.0.0:6881,[::]:6881" and use
@@ -1960,18 +1960,6 @@ retry:
 			}
 #endif // TORRENT_USE_IPV6
 
-			// set our main IPv4 and IPv6 interfaces
-			// used to send to the tracker
-			std::vector<ip_interface> ifs = enum_net_interfaces(m_io_service, ec);
-			for (std::vector<ip_interface>::const_iterator i = ifs.begin()
-					, end(ifs.end()); i != end; ++i)
-			{
-				address const& addr = i->interface_address;
-				if (addr.is_v6() && !is_local(addr) && !is_loopback(addr))
-					m_ipv6_interface = tcp::endpoint(addr, m_listen_interface.port());
-				else if (addr.is_v4() && !is_local(addr) && !is_loopback(addr))
-					m_ipv4_interface = tcp::endpoint(addr, m_listen_interface.port());
-			}
 		}
 		else if (!m_settings.get_bool(settings_pack::force_proxy))
 		{
@@ -2072,6 +2060,38 @@ retry:
 				goto retry;
 			}
 			return;
+		}
+
+#if TORRENT_USE_IPV6
+		bool want_v6 = (m_ipv6_interface && is_any(m_ipv6_interface->address()))
+			|| m_listen_interfaces.empty();
+#else
+		bool const want_v6 = false;
+#endif
+		bool want_v4 = (m_ipv4_interface && is_any(m_ipv4_interface->address()))
+			|| m_listen_interfaces.empty();
+		if (want_v6 || want_v4)
+		{
+			// set our main IPv4 and IPv6 interfaces
+			// used to send to the tracker
+			std::vector<ip_interface> ifs = enum_net_interfaces(m_io_service, ec);
+			for (std::vector<ip_interface>::const_iterator i = ifs.begin()
+					, end(ifs.end()); i != end && (want_v4 && want_v6); ++i)
+			{
+				address const& addr = i->interface_address;
+				if (want_v4 && addr.is_v4() && !is_local(addr) && !is_loopback(addr))
+				{
+					m_ipv4_interface = tcp::endpoint(addr, m_listen_interface.port());
+					want_v4 = false;
+				}
+#if TORRENT_USE_IPV6
+				else if (want_v6 && addr.is_v6() && !is_local(addr) && !is_loopback(addr))
+				{
+					m_ipv6_interface = tcp::endpoint(addr, m_listen_interface.port());
+					want_v6 = false;
+				}
+#endif
+			}
 		}
 
 #ifdef TORRENT_USE_OPENSSL

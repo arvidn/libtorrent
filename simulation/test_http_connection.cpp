@@ -175,7 +175,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 			printf("CONNECTED: %s\n", url.c_str());
 		});
 
-	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", address_v4::any()
+	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", boost::none
 		, 0, auth);
 	return h;
 }

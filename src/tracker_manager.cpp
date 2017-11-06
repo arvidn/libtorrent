@@ -282,6 +282,12 @@ namespace libtorrent
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
 
+#ifndef TORRENT_DISABLE_LOGGING
+		boost::shared_ptr<request_callback> cb = c.lock();
+		if (cb) cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d ]"
+			, req.listen_port);
+#endif
+
 		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
 		if (m_abort && req.event != tracker_request::stopped)
 			return;

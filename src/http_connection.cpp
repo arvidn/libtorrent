@@ -118,7 +118,7 @@ http_connection::~http_connection()
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, address const& bind_addr, int resolve_flags, std::string const& auth_
+	, boost::optional<address> bind_addr, int resolve_flags, std::string const& auth_
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
@@ -227,7 +227,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 void http_connection::start(std::string const& hostname, int port
 	, time_duration timeout, int prio, aux::proxy_settings const* ps, bool ssl
 	, int handle_redirects
-	, address const& bind_addr
+	, boost::optional<address> bind_addr
 	, int resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
@@ -359,10 +359,10 @@ void http_connection::start(std::string const& hostname, int port
 		instantiate_connection(m_timer.get_io_service()
 			, proxy ? *proxy : null_proxy, m_sock, userdata, NULL, false, false);
 
-		if (m_bind_addr != address_v4::any())
+		if (m_bind_addr)
 		{
-			m_sock.open(m_bind_addr.is_v4()?tcp::v4():tcp::v6(), ec);
-			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
+			m_sock.open(m_bind_addr->is_v4()?tcp::v4():tcp::v6(), ec);
+			m_sock.bind(tcp::endpoint(*m_bind_addr, 0), ec);
 			if (ec)
 			{
 				m_timer.get_io_service().post(boost::bind(&http_connection::callback
@@ -560,10 +560,10 @@ void http_connection::on_resolve(error_code const& e
 	// sort the endpoints so that the ones with the same IP version as our
 	// bound listen socket are first. So that when contacting a tracker,
 	// we'll talk to it from the same IP that we're listening on
-	if (m_bind_addr != address_v4::any())
+	if (m_bind_addr)
 		std::partition(m_endpoints.begin(), m_endpoints.end()
 			, boost::bind(&address::is_v4, boost::bind(&tcp::endpoint::address, _1))
-				== m_bind_addr.is_v4());
+				== m_bind_addr->is_v4());
 #endif
 
 	connect();

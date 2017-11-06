@@ -311,6 +311,7 @@ void test_ipv6_support(char const* listen_interfaces
 		++v4_announces;
 		TEST_EQUAL(method, "GET");
 
+		TEST_CHECK(req.find("&port=6881") != std::string::npos);
 		char response[500];
 		int size = snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
 		return sim::send_response(200, "OK", size) + response;
@@ -323,6 +324,7 @@ void test_ipv6_support(char const* listen_interfaces
 		++v6_announces;
 		TEST_EQUAL(method, "GET");
 
+		TEST_CHECK(req.find("&port=6881") != std::string::npos);
 		char response[500];
 		int size = snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
 		return sim::send_response(200, "OK", size) + response;

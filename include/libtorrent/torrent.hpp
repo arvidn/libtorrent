@@ -744,8 +744,7 @@ namespace libtorrent
 		void force_tracker_request(time_point, int tracker_idx);
 		void scrape_tracker(int idx, bool user_triggered);
 		void announce_with_tracker(boost::uint8_t e
-			= tracker_request::none
-			, address const& bind_interface = address_v4::any());
+			= tracker_request::none);
 		int seconds_since_last_scrape() const
 		{
 			return m_last_scrape == (std::numeric_limits<boost::int16_t>::min)()
