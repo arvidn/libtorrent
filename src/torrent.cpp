@@ -3121,8 +3121,7 @@ namespace {
 
 #endif
 
-	void torrent::announce_with_tracker(boost::uint8_t e
-		, address const& bind_interface)
+	void torrent::announce_with_tracker(boost::uint8_t e)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(e == tracker_request::stopped || state() != torrent_status::checking_files);
@@ -3196,9 +3195,8 @@ namespace {
 			&& m_torrent_file
 			&& m_torrent_file->priv())
 		{
-			tcp::endpoint ep;
-			ep = m_ses.get_ipv6_interface();
-			if (ep != tcp::endpoint()) req.ipv6 = ep.address().to_v6();
+			boost::optional<tcp::endpoint> ep = m_ses.get_ipv6_interface();
+			if (ep) req.ipv6 = ep->address().to_v6();
 		}
 #endif
 
@@ -3260,8 +3258,6 @@ namespace {
 
 			req.triggered_manually = ae.triggered_manually;
 			ae.triggered_manually = false;
-
-			req.bind_ip = bind_interface;
 
 			if (settings().get_bool(settings_pack::force_proxy))
 			{
@@ -3533,31 +3529,10 @@ namespace {
 				"external ip: %s\n"
 				"resolved to: %s\n"
 				"we connected to: %s\n"
-				"peers:"
 			, interval
 			, print_address(resp.external_ip).c_str()
 			, resolved_to.c_str()
 			, print_address(tracker_ip).c_str());
-
-		for (std::vector<peer_entry>::const_iterator i = resp.peers.begin();
-			i != resp.peers.end(); ++i)
-		{
-			debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
-				, i->pid.is_all_zeros()?"":to_hex(i->pid.to_string()).c_str()
-				, identify_client(i->pid).c_str());
-		}
-		for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
-			i != resp.peers4.end(); ++i)
-		{
-			debug_log("  %s:%d", print_address(address_v4(i->ip)).c_str(), i->port);
-		}
-#if TORRENT_USE_IPV6
-		for (std::vector<ipv6_peer_entry>::const_iterator i = resp.peers6.begin();
-			i != resp.peers6.end(); ++i)
-		{
-			debug_log("  [%s]:%d", print_address(address_v6(i->ip)).c_str(), i->port);
-		}
-#endif
 #endif
 
 		// for each of the peers we got from the tracker
@@ -3651,8 +3626,8 @@ namespace {
 		// in order to avoid triggering this case over and over, check whether
 		// this announce was itself triggered by this logic (second_announce)
 
-		if (((!is_any(m_ses.get_ipv6_interface().address()) && tracker_ip.is_v4())
-			|| (!is_any(m_ses.get_ipv4_interface().address()) && tracker_ip.is_v6()))
+		if (((m_ses.get_ipv6_interface() && tracker_ip.is_v4())
+			|| (m_ses.get_ipv4_interface() && tracker_ip.is_v6()))
 			&& !r.second_announce)
 		{
 			std::list<address>::const_iterator i = std::find_if(tracker_ips.begin()
@@ -3662,7 +3637,7 @@ namespace {
 				// the tracker did resolve to a different type of address, so announce
 				// to that as well
 
-				// TODO 2: there's a bug when removing a torrent or shutting down the session,
+				// TODO 3: there's a bug when removing a torrent or shutting down the session,
 				// where the second announce is skipped (in this case, the one to the IPv6
 				// name). This should be fixed by generalizing the tracker list structure to
 				// separate the IPv6 and IPv4 addresses as conceptually separate trackers,
@@ -3675,11 +3650,11 @@ namespace {
 
 				// tell the tracker to bind to the opposite protocol type
 				req.bind_ip = tracker_ip.is_v4()
-					? m_ses.get_ipv6_interface().address()
-					: m_ses.get_ipv4_interface().address();
+					? m_ses.get_ipv6_interface()->address()
+					: m_ses.get_ipv4_interface()->address();
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("announce again using %s as the bind interface"
-					, print_address(req.bind_ip).c_str());
+				debug_log("announce again using %s as the bind interface. port: %d"
+					, print_address(*req.bind_ip).c_str(), req.listen_port);
 #endif
 				m_ses.queue_tracker_request(req, shared_from_this());
 			}

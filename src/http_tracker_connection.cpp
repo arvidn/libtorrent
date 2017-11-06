@@ -227,7 +227,7 @@ namespace libtorrent
 		m_tracker_connection->get(url, seconds(timeout)
 			, tracker_req().event == tracker_request::stopped ? 2 : 1
 			, ps.proxy_tracker_connections ? &ps : NULL
-			, 5, user_agent, bind_interface()
+			, 5, user_agent, tracker_req().bind_ip
 			, tracker_req().event == tracker_request::stopped
 				? resolver_interface::cache_only : 0
 				| resolver_interface::abort_on_shutdown

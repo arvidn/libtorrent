@@ -54,6 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/unordered_map.hpp>
 #endif
 
+#include <boost/optional.hpp>
+
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #endif
@@ -231,8 +233,8 @@ namespace libtorrent
 			// if we are listening on an IPv6 interface
 			// this will return one of the IPv6 addresses on this
 			// machine, otherwise just an empty endpoint
-			tcp::endpoint get_ipv6_interface() const TORRENT_OVERRIDE;
-			tcp::endpoint get_ipv4_interface() const TORRENT_OVERRIDE;
+			boost::optional<tcp::endpoint> get_ipv6_interface() const TORRENT_OVERRIDE;
+			boost::optional<tcp::endpoint> get_ipv4_interface() const TORRENT_OVERRIDE;
 
 			void async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
@@ -870,8 +872,8 @@ namespace libtorrent
 			// if we're listening on an IPv6 interface
 			// this is one of the non local IPv6 interfaces
 			// on this machine
-			tcp::endpoint m_ipv6_interface;
-			tcp::endpoint m_ipv4_interface;
+			boost::optional<tcp::endpoint> m_ipv6_interface;
+			boost::optional<tcp::endpoint> m_ipv4_interface;
 
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket

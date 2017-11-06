@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/weak_ptr.hpp>
 #include <boost/function.hpp>
+#include <boost/optional.hpp>
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <boost/shared_ptr.hpp>
@@ -255,8 +256,8 @@ namespace libtorrent { namespace aux
 
 		virtual void prioritize_connections(boost::weak_ptr<torrent> t) = 0;
 
-		virtual tcp::endpoint get_ipv6_interface() const = 0;
-		virtual tcp::endpoint get_ipv4_interface() const = 0;
+		virtual boost::optional<tcp::endpoint> get_ipv6_interface() const = 0;
+		virtual boost::optional<tcp::endpoint> get_ipv4_interface() const = 0;
 
 		virtual void trigger_auto_manage() = 0;
 

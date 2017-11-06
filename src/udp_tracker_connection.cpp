@@ -243,23 +243,23 @@ namespace libtorrent
 		std::vector<tcp::endpoint>::const_iterator iter = m_endpoints.begin();
 		udp::endpoint target = udp::endpoint(iter->address(), iter->port());
 
-		if (bind_interface() != address_v4::any())
+		if (tracker_req().bind_ip)
 		{
 			// find first endpoint that matches our bind interface type
 			for (; iter != m_endpoints.end() && iter->address().is_v4()
-				!= bind_interface().is_v4(); ++iter);
+				!= tracker_req().bind_ip->is_v4(); ++iter);
 
 			if (iter == m_endpoints.end())
 			{
-				TORRENT_ASSERT(target.address().is_v4() != bind_interface().is_v4());
+				TORRENT_ASSERT(target.address().is_v4() != tracker_req().bind_ip->is_v4());
 				boost::shared_ptr<request_callback> cb = requester();
 				if (cb)
 				{
 					char const* tracker_address_type = target.address().is_v4() ? "IPv4" : "IPv6";
-					char const* bind_address_type = bind_interface().is_v4() ? "IPv4" : "IPv6";
+					char const* bind_address_type = tracker_req().bind_ip->is_v4() ? "IPv4" : "IPv6";
 					char msg[200];
 					snprintf(msg, sizeof(msg)
-						, "the tracker only resolves to an %s  address, and you're "
+						, "the tracker only resolves to an %s address, and you're "
 						"listening on an %s socket. This may prevent you from receiving "
 						"incoming connections."
 						, tracker_address_type, bind_address_type);
