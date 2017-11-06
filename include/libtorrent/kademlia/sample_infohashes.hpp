@@ -68,7 +68,7 @@ class sample_infohashes_observer final : public traversal_observer
 {
 public:
 
-	sample_infohashes_observer(std::shared_ptr<traversal_algorithm> const& algorithm
+	sample_infohashes_observer(std::shared_ptr<traversal_algorithm> algorithm
 		, udp::endpoint const& ep, node_id const& id);
 
 	void reply(msg const&) override;

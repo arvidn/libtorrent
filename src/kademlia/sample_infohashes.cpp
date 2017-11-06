@@ -62,9 +62,9 @@ void sample_infohashes::got_samples(time_duration interval
 }
 
 sample_infohashes_observer::sample_infohashes_observer(
-	std::shared_ptr<traversal_algorithm> const& algorithm
+	std::shared_ptr<traversal_algorithm> algorithm
 	, udp::endpoint const& ep, node_id const& id)
-	: traversal_observer(algorithm, ep, id) {}
+	: traversal_observer(std::move(algorithm), ep, id) {}
 
 void sample_infohashes_observer::reply(msg const& m)
 {

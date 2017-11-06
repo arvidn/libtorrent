@@ -76,9 +76,9 @@ protected:
 struct find_data_observer : traversal_observer
 {
 	find_data_observer(
-		std::shared_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: traversal_observer(algorithm, ep, id)
+		: traversal_observer(std::move(algorithm), ep, id)
 	{}
 
 	void reply(msg const&) override;

@@ -463,7 +463,7 @@ void node::direct_request(udp::endpoint const& ep, entry& e
 	// not really a traversal
 	auto algo = std::make_shared<direct_traversal>(*this, node_id(), f);
 
-	auto o = m_rpc.allocate_observer<direct_observer>(algo, ep, node_id());
+	auto o = m_rpc.allocate_observer<direct_observer>(std::move(algo), ep, node_id());
 	if (!o) return;
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
@@ -603,9 +603,9 @@ void node::sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 struct ping_observer : observer
 {
 	ping_observer(
-		std::shared_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: observer(algorithm, ep, id)
+		: observer(std::move(algorithm), ep, id)
 	{}
 
 	// parses out "nodes"
@@ -675,8 +675,8 @@ void node::send_single_refresh(udp::endpoint const& ep, int const bucket
 	target |= m_id & mask;
 
 	// create a dummy traversal_algorithm
-	auto const algo = std::make_shared<traversal_algorithm>(*this, node_id());
-	auto o = m_rpc.allocate_observer<ping_observer>(algo, ep, id);
+	auto algo = std::make_shared<traversal_algorithm>(*this, node_id());
+	auto o = m_rpc.allocate_observer<ping_observer>(std::move(algo), ep, id);
 	if (!o) return;
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
