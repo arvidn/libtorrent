@@ -156,9 +156,9 @@ void look_for_nodes(char const* nodes_key, udp const& protocol
 struct traversal_observer : observer
 {
 	traversal_observer(
-		std::shared_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: observer(algorithm, ep, id)
+		: observer(std::move(algorithm), ep, id)
 	{}
 
 	// parses out "nodes" and keeps traversing

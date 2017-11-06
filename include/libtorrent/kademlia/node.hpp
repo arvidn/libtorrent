@@ -68,9 +68,9 @@ TORRENT_EXTRA_EXPORT entry write_nodes_entry(std::vector<node_entry> const& node
 class announce_observer : public observer
 {
 public:
-	announce_observer(std::shared_ptr<traversal_algorithm> const& algo
+	announce_observer(std::shared_ptr<traversal_algorithm> algo
 		, udp::endpoint const& ep, node_id const& id)
-		: observer(algo, ep, id)
+		: observer(std::move(algo), ep, id)
 	{}
 
 	void reply(msg const&) override { flags |= flag_done; }

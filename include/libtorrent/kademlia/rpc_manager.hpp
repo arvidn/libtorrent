@@ -57,8 +57,9 @@ struct socket_manager;
 
 struct TORRENT_EXTRA_EXPORT null_observer : observer
 {
-	null_observer(std::shared_ptr<traversal_algorithm> const& a
-		, udp::endpoint const& ep, node_id const& id): observer(a, ep, id) {}
+	null_observer(std::shared_ptr<traversal_algorithm> a
+		, udp::endpoint const& ep, node_id const& id)
+		: observer(std::move(a), ep, id) {}
 	void reply(msg const&) override { flags |= flag_done; }
 };
 
