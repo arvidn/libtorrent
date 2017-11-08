@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/socks_server.hpp"
@@ -146,6 +147,9 @@ void* operator new(std::size_t sz)
 {
 	if (--g_alloc_counter == 0)
 	{
+		char stack[10000];
+		print_backtrace(stack, sizeof(stack), 40, nullptr);
+		std::printf("\n\nthrowing bad_alloc (as part of test)\n%s\n\n\n", stack);
 		throw std::bad_alloc();
 	}
 	return std::malloc(sz);
@@ -156,10 +160,19 @@ void operator delete(void* ptr) noexcept
 	std::free(ptr);
 }
 
-TORRENT_TEST(no_proxy_tcp)
+TORRENT_TEST(error_handling)
 {
 	for (int i = 0; i < 3000; ++i)
 	{
+		// this will clear the history of all output we've printed so far.
+		// if we encounter an error from now on, we'll only print the relevant
+		// iteration
+		reset_output();
+
+		// re-seed the random engine each iteration, to make the runs
+		// deterministic
+		lt::aux::random_engine().seed(0x82daf973);
+
 		std::printf("\n\n === ROUND %d ===\n\n", i);
 		try
 		{
@@ -174,10 +187,25 @@ TORRENT_TEST(no_proxy_tcp)
 		{
 			// this is kind of expected
 		}
+		catch (boost::system::system_error const& err)
+		{
+			TEST_ERROR("session constructor terminated with unexpected exception. \""
+				+ err.code().message() + "\" round: "
+				+ std::to_string(i));
+			break;
+		}
+		catch (std::exception const& err)
+		{
+			TEST_ERROR("session constructor terminated with unexpected exception. \""
+				+ std::string(err.what()) + "\" round: "
+				+ std::to_string(i));
+			break;
+		}
 		catch (...)
 		{
 			TEST_ERROR("session constructor terminated with unexpected exception. round: "
 				+ std::to_string(i));
+			break;
 		}
 		// if we didn't fail any allocations this run, there's no need to
 		// continue, we won't exercise any new code paths
