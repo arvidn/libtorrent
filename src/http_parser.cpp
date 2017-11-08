@@ -133,6 +133,7 @@ namespace libtorrent {
 	std::string const& http_parser::header(const string_view key) const
 	{
 		static std::string empty;
+		// TODO: remove to_string() if we're in C++14
 		auto const i = m_header.find(key.to_string());
 		if (i == m_header.end()) return empty;
 		return i->second;
@@ -140,6 +141,7 @@ namespace libtorrent {
 
 	std::int64_t http_parser::header_int(const string_view key, std::int64_t def_value) const
 	{
+		// TODO: remove to_string() if we're in C++14
 		auto const i = m_header.find(key.to_string());
 		if (i == m_header.end()) return def_value;
 		auto const val = std::atoll(i->second.c_str());
