@@ -267,7 +267,25 @@ struct unit_directory_guard
 	}
 };
 
-EXPORT int main(int argc, char const* argv[])
+void EXPORT reset_output()
+{
+	if (current_test == nullptr || current_test->output == 0) return;
+	fflush(stdout);
+	fflush(stderr);
+	rewind(current_test->output);
+#ifdef TORRENT_WINDOWS
+	int const r = _chsize(fileno(current_test->output), 0);
+#else
+	int const r = ftruncate(fileno(current_test->output), 0);
+#endif
+	if (r != 0)
+	{
+		// this is best effort, it's not the end of the world if we fail
+		std::cerr << "ftruncate of temporary test output file failed: " << strerror(errno) << "\n";
+	}
+}
+
+int EXPORT main(int argc, char const* argv[])
 {
 	char const* executable = argv[0];
 	// skip executable name
@@ -443,6 +461,11 @@ EXPORT int main(int argc, char const* argv[])
 		try
 		{
 #endif
+
+#if defined TORRENT_BUILD_SIMULATOR
+			lt::aux::random_engine().seed(0x82daf973);
+#endif
+
 			_g_test_failures = 0;
 			(*t.fun)();
 #ifndef BOOST_NO_EXCEPTIONS

@@ -124,11 +124,13 @@ void print_alerts(lt::session& ses
 {
 	lt::time_point start_time = lt::clock_type::now();
 
+	static std::vector<lt::alert*> alerts;
+
 	ses.set_alert_notify([&ses,start_time,on_alert] {
 		ses.get_io_service().post([&ses,start_time,on_alert] {
 
 		try {
-			std::vector<lt::alert*> alerts;
+			alerts.clear();
 			ses.pop_alerts(&alerts);
 
 			for (lt::alert const* a : alerts)
