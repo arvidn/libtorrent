@@ -177,13 +177,11 @@ namespace libtorrent {
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
 		, web_seed(false)
-#if TORRENT_USE_ASSERTS
-		, in_use(false)
-#endif
 	{}
 
 	std::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
 	{
+		TORRENT_ASSERT(in_use);
 //TODO: how do we deal with our external address changing?
 		if (peer_rank == 0)
 			peer_rank = peer_priority(
@@ -195,6 +193,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 	std::string torrent_peer::to_string() const
 	{
+		TORRENT_ASSERT(in_use);
 #if TORRENT_USE_I2P
 		if (is_i2p_addr) return dest().to_string();
 #endif // TORRENT_USE_I2P
@@ -205,6 +204,7 @@ namespace libtorrent {
 
 	std::int64_t torrent_peer::total_download() const
 	{
+		TORRENT_ASSERT(in_use);
 		if (connection != nullptr)
 		{
 			TORRENT_ASSERT(prev_amount_download == 0);
@@ -218,6 +218,7 @@ namespace libtorrent {
 
 	std::int64_t torrent_peer::total_upload() const
 	{
+		TORRENT_ASSERT(in_use);
 		if (connection != nullptr)
 		{
 			TORRENT_ASSERT(prev_amount_upload == 0);

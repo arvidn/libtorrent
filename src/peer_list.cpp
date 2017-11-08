@@ -125,11 +125,8 @@ namespace libtorrent {
 
 	peer_list::~peer_list()
 	{
-		for (peers_t::iterator i = m_peers.begin()
-			, end(m_peers.end()); i != end; ++i)
-		{
-			m_peer_allocator.free_peer_entry(*i);
-		}
+		for (auto const p : m_peers)
+			m_peer_allocator.free_peer_entry(p);
 	}
 
 	void peer_list::set_max_failcount(torrent_state* state)
@@ -294,11 +291,6 @@ namespace libtorrent {
 		// cache, erase it from there as well
 		std::vector<torrent_peer*>::iterator ci = std::find(m_candidate_cache.begin(), m_candidate_cache.end(), *i);
 		if (ci != m_candidate_cache.end()) m_candidate_cache.erase(ci);
-
-#if TORRENT_USE_ASSERTS
-		TORRENT_ASSERT((*i)->in_use);
-		(*i)->in_use = false;
-#endif
 
 		m_peer_allocator.free_peer_entry(*i);
 		m_peers.erase(i);
@@ -765,10 +757,6 @@ namespace libtorrent {
 #endif
 				new (p) ipv4_peer(c.remote(), false, {});
 
-#if TORRENT_USE_ASSERTS
-			p->in_use = true;
-#endif
-
 			iter = m_peers.insert(iter, p);
 
 			if (m_round_robin >= iter - m_peers.begin()) ++m_round_robin;
@@ -1036,16 +1024,8 @@ namespace libtorrent {
 		if (p == nullptr) return nullptr;
 		new (p) i2p_peer(destination, true, src);
 
-#if TORRENT_USE_ASSERTS
-		p->in_use = true;
-#endif
-
 		if (!insert_peer(p, iter, flags, state))
 		{
-#if TORRENT_USE_ASSERTS
-			p->in_use = false;
-#endif
-
 			m_peer_allocator.free_peer_entry(p);
 			return nullptr;
 		}
@@ -1113,16 +1093,16 @@ namespace libtorrent {
 #endif
 				new (p) ipv4_peer(remote, true, src);
 
-#if TORRENT_USE_ASSERTS
-			p->in_use = true;
-#endif
-
-			if (!insert_peer(p, iter, flags, state))
+			try
 			{
-#if TORRENT_USE_ASSERTS
-				p->in_use = false;
-#endif
-// TODO: 3 this is not exception safe!
+				if (!insert_peer(p, iter, flags, state))
+				{
+					m_peer_allocator.free_peer_entry(p);
+					return nullptr;
+				}
+			}
+			catch (std::exception const&)
+			{
 				m_peer_allocator.free_peer_entry(p);
 				return nullptr;
 			}

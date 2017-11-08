@@ -54,6 +54,11 @@ namespace libtorrent {
 	struct TORRENT_EXTRA_EXPORT torrent_peer
 	{
 		torrent_peer(std::uint16_t port, bool connectable, peer_source_flags_t src);
+#if TORRENT_USE_ASSERTS
+		torrent_peer(torrent_peer const&) = default;
+		torrent_peer& operator=(torrent_peer const&) = default;
+		~torrent_peer() { in_use = false; }
+#endif
 
 		std::int64_t total_download() const;
 		std::int64_t total_upload() const;
@@ -199,7 +204,7 @@ namespace libtorrent {
 		// never considered a connect candidate
 		bool web_seed:1;
 #if TORRENT_USE_ASSERTS
-		bool in_use:1;
+		bool in_use = true;
 #endif
 	};
 

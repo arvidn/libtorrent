@@ -37,23 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	torrent_peer_allocator::torrent_peer_allocator()
-		: m_ipv4_peer_pool(sizeof(libtorrent::ipv4_peer), 500)
-#if TORRENT_USE_IPV6
-		, m_ipv6_peer_pool(sizeof(libtorrent::ipv6_peer), 500)
-#endif
-#if TORRENT_USE_I2P
-		, m_i2p_peer_pool(sizeof(libtorrent::i2p_peer), 500)
-#endif
-		, m_total_bytes(0)
-		, m_total_allocations(0)
-		, m_live_bytes(0)
-		, m_live_allocations(0)
-	{
-	}
-
 	torrent_peer* torrent_peer_allocator::allocate_peer_entry(int type)
 	{
+		TORRENT_ASSERT(m_in_use);
 		torrent_peer* p = nullptr;
 		switch(type)
 		{
@@ -94,6 +80,8 @@ namespace libtorrent {
 
 	void torrent_peer_allocator::free_peer_entry(torrent_peer* p)
 	{
+		TORRENT_ASSERT(m_in_use);
+		TORRENT_ASSERT(p->in_use);
 #if TORRENT_USE_IPV6
 		if (p->is_v6_addr)
 		{
