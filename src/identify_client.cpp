@@ -177,6 +177,7 @@ namespace {
 		, {"HL", "Halite"}
 		, {"HN", "Hydranode"}
 		, {"IL", "iLivid"}
+		, {"KC", "Koinonein"}
 		, {"KG", "KGet"}
 		, {"KT", "KTorrent"}
 		, {"LC", "LeechCraft"}
