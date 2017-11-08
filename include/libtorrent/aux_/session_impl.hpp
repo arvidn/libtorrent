@@ -249,8 +249,8 @@ namespace aux {
 #if TORRENT_USE_INVARIANT_CHECKS
 			friend class libtorrent::invariant_access;
 #endif
-			typedef std::set<std::shared_ptr<peer_connection>> connection_map;
-			typedef std::unordered_map<sha1_hash, std::shared_ptr<torrent>> torrent_map;
+			using connection_map = std::set<std::shared_ptr<peer_connection>>;
+			using torrent_map = std::unordered_map<sha1_hash, std::shared_ptr<torrent>>;
 
 			explicit session_impl(io_service& ios);
 			~session_impl() override;
@@ -834,6 +834,10 @@ namespace aux {
 			resolver m_host_resolver;
 
 			tracker_manager m_tracker_manager;
+
+			// the torrents must be destructed after the torrent_peer_allocator,
+			// since the torrents hold the peer lists that own the torrent_peers
+			// (which are allocated in the torrent_peer_allocator)
 			torrent_map m_torrents;
 
 			// all torrents that are downloading or queued,

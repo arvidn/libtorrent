@@ -61,41 +61,30 @@ namespace libtorrent {
 	// the peer_list type not depend on the torrent type directly.
 	struct torrent_state
 	{
-		torrent_state()
-			: is_paused(false)
-			, is_finished(false)
-			, allow_multiple_connections_per_ip(false)
-			, first_time_seen(false)
-			, max_peerlist_size(1000)
-			, min_reconnect_time(60)
-			, loop_counter(0)
-			, port(0)
-			, max_failcount(3)
-		{}
-		bool is_paused;
-		bool is_finished;
-		bool allow_multiple_connections_per_ip;
+		bool is_paused = false;
+		bool is_finished = false;
+		bool allow_multiple_connections_per_ip = false;
 
 		// this is set by peer_list::add_peer to either true or false
 		// true means the peer we just added was new, false means
 		// we already knew about the peer
-		bool first_time_seen;
+		bool first_time_seen = false;
 
-		int max_peerlist_size;
-		int min_reconnect_time;
+		int max_peerlist_size = 1000;
+		int min_reconnect_time = 60;
 
 		// the number of iterations over the peer list for this operation
-		int loop_counter;
+		int loop_counter = 0;
 
 		// these are used only by find_connect_candidates in order
 		// to implement peer ranking. See:
 		// http://blog.libtorrent.org/2012/12/swarm-connectivity/
 		external_ip ip;
-		int port;
+		int port = 0;
 
 		// the number of times a peer must fail before it's no longer considered
 		// a connect candidate
-		int max_failcount;
+		int max_failcount = 3;
 
 		// if any peer were removed during this call, they are returned in
 		// this vector. The caller would want to make sure there are no
@@ -109,6 +98,10 @@ namespace libtorrent {
 
 		explicit peer_list(torrent_peer_allocator_interface& alloc);
 		~peer_list();
+
+		// not copyable
+		peer_list(peer_list const&) = delete;
+		peer_list& operator=(peer_list const&) = delete;
 
 #if TORRENT_USE_I2P
 		torrent_peer* add_i2p_peer(string_view destination
@@ -205,10 +198,6 @@ namespace libtorrent {
 		void set_max_failcount(torrent_state* st);
 
 	private:
-
-		// not copyable
-		peer_list(peer_list const&);
-		peer_list& operator=(peer_list const&);
 
 		void recalculate_connect_candidates(torrent_state* state);
 
