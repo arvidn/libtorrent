@@ -3928,9 +3928,9 @@ namespace libtorrent {
 
 		remove_time_critical_piece(index, true);
 
-		if (is_finished()
-			&& m_state != torrent_status::finished
-			&& m_state != torrent_status::seeding)
+		if (m_state != torrent_status::finished
+			&& m_state != torrent_status::seeding
+			&& is_finished())
 		{
 			// torrent finished
 			// i.e. all the pieces we're interested in have
@@ -5180,11 +5180,11 @@ namespace libtorrent {
 #endif
 
 		// the torrent just became finished
-		if (is_finished() && !was_finished)
+		if (!was_finished && is_finished())
 		{
 			finished();
 		}
-		else if (!is_finished() && was_finished)
+		else if (was_finished && !is_finished())
 		{
 			// if we used to be finished, but we aren't anymore
 			// we may need to connect to peers again
@@ -7490,7 +7490,7 @@ namespace libtorrent {
 				state_updated();
 			}
 
-			if (is_finished() && m_state != torrent_status::finished)
+			if (m_state != torrent_status::finished && is_finished())
 				finished();
 		}
 		else
