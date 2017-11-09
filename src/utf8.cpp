@@ -185,7 +185,7 @@ namespace {
 				return "UTF error";
 			}
 
-			std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override
+			std::string message(int ev) const override
 			{
 				static char const* error_messages[] = {
 					"ok",
