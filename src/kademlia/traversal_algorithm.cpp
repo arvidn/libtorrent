@@ -186,7 +186,7 @@ void traversal_algorithm::add_entry(node_id const& id
 				if (o->target_addr().is_v6())
 				{
 					address_v6::bytes_type addr_bytes = o->target_addr().to_v6().to_bytes();
-					address_v6::bytes_type::const_iterator prefix_it = addr_bytes.begin();
+					auto prefix_it = addr_bytes.cbegin();
 					std::uint64_t const prefix6 = detail::read_uint64(prefix_it);
 
 					if (m_peer6_prefixes.insert(prefix6).second)
@@ -483,7 +483,7 @@ bool traversal_algorithm::add_requests()
 	// limits the number of outstanding requests, this limits the
 	// number of good outstanding requests. It will use more traffic,
 	// but is intended to speed up lookups
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+	for (auto i = m_results.begin()
 		, end(m_results.end()); i != end
 		&& results_target > 0
 		&& (agg ? outstanding < m_branch_factor

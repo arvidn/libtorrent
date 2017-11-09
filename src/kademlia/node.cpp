@@ -96,8 +96,8 @@ void incoming_error(entry& e, char const* msg, int error_code = 203)
 {
 	e["y"] = "e";
 	entry::list_type& l = e["e"].list();
-	l.push_back(entry(error_code));
-	l.push_back(entry(msg));
+	l.emplace_back(error_code);
+	l.emplace_back(msg);
 }
 
 } // anonymous namespace
@@ -452,7 +452,7 @@ void node::announce(sha1_hash const& info_hash, int const listen_port, int const
 	}
 #endif
 
-	get_peers(info_hash, f
+	get_peers(info_hash, std::move(f)
 		, std::bind(&announce_fun, _1, std::ref(*this)
 		, listen_port, info_hash, flags), flags & node::flag_seed);
 }
@@ -995,7 +995,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// pointer and length to the whole entry
 		span<char const> buf = msg_keys[1].data_section();
-		if (buf.size() > 1000 || buf.size() <= 0)
+		if (buf.size() > 1000 || buf.empty())
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "message too big", 205);
