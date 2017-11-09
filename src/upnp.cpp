@@ -1202,7 +1202,7 @@ struct upnp_error_category : boost::system::error_category
 		return "UPnP error";
 	}
 
-	std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override
+	std::string message(int ev) const override
 	{
 		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 		error_code_t* end = error_codes + num_errors;

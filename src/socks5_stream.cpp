@@ -49,7 +49,7 @@ namespace libtorrent {
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "socks error"; }
-		std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override
+		std::string message(int ev) const override
 		{
 			static char const* messages[] =
 			{

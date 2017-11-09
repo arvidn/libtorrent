@@ -44,7 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/get.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 /*
 

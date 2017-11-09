@@ -4080,7 +4080,7 @@ namespace libtorrent {
 	// 1 means unexpected disconnect/error
 	// 2 protocol error (client sent something invalid)
 	void peer_connection::disconnect(error_code const& ec
-		, operation_t op, int error)
+		, operation_t const op, int const error)
 	{
 		TORRENT_ASSERT(is_single_thread());
 #if TORRENT_USE_ASSERTS
