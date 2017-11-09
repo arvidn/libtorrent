@@ -61,8 +61,8 @@ namespace libtorrent {
 		enum flags_t { dont_parse_chunks = 1 };
 		explicit http_parser(int flags = 0);
 		~http_parser();
-		std::string const& header(string_view const key) const;
-		std::int64_t header_int(string_view const key, std::int64_t const def_value) const;
+		std::string const& header(string_view key) const;
+		std::int64_t header_int(string_view key, std::int64_t def_value) const;
 		std::string const& protocol() const { return m_protocol; }
 		int status_code() const { return m_status_code; }
 		std::string const& method() const { return m_method; }
