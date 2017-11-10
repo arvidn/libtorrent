@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/heterogeneous_queue.hpp"
 #include "libtorrent/stack_allocator.hpp"
+#include "libtorrent/alert_types.hpp" // for num_alert_types
 
 #include <functional>
 #include <list>
@@ -44,12 +45,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include <bitset>
 
 namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct plugin;
 #endif
+
+	// this bitset is used to indicate which alert types have been dropped since
+	// last queried.
+	using dropped_alerts_t = std::bitset<num_alert_types>;
 
 	class TORRENT_EXTRA_EXPORT alert_manager
 	{
@@ -58,8 +64,10 @@ namespace libtorrent {
 			, alert_category_t alert_mask = alert::error_notification);
 		~alert_manager();
 
+		dropped_alerts_t dropped_alerts();
+
 		template <class T, typename... Args>
-		void emplace_alert(Args&&... args)
+		void emplace_alert(Args&&... args) try
 		{
 			std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -69,12 +77,8 @@ namespace libtorrent {
 			if (m_alerts[m_generation].size() >= m_queue_size_limit
 				* (1 + T::priority))
 			{
-//				if (T::priority > 0)
-//				{
-					// TODO: there should be a way for the client to detect that an
-					// alert was dropped. Maybe add a flag to each m_alerts
-					// generation
-//				}
+				// record that we dropped an alert of this type
+				m_dropped.set(T::alert_type);
 				return;
 			}
 
@@ -82,6 +86,12 @@ namespace libtorrent {
 				m_allocations[m_generation], std::forward<Args>(args)...);
 
 			maybe_notify(&alert, lock);
+		}
+		catch (std::bad_alloc const&)
+		{
+			// record that we dropped an alert of this type
+			std::unique_lock<std::mutex> lock(m_mutex);
+			m_dropped.set(T::alert_type);
 		}
 
 		bool pending() const;
@@ -105,12 +115,12 @@ namespace libtorrent {
 			m_alert_mask = m;
 		}
 
-		alert_category_t alert_mask() const
+		alert_category_t alert_mask() const noexcept
 		{
 			return m_alert_mask;
 		}
 
-		int alert_queue_size_limit() const { return m_queue_size_limit; }
+		int alert_queue_size_limit() const noexcept { return m_queue_size_limit; }
 		int set_alert_queue_size_limit(int queue_size_limit_);
 
 		void set_notify_function(std::function<void()> const& fun);
@@ -132,6 +142,12 @@ namespace libtorrent {
 		std::condition_variable m_condition;
 		std::atomic<alert_category_t> m_alert_mask;
 		int m_queue_size_limit;
+
+		// a bitfield where each bit represents an alert type. Every time we drop
+		// an alert (because the queue is full or of some other error) we set the
+		// corresponding bit in this mask, to communicate to the client that it
+		// may have missed an update.
+		dropped_alerts_t m_dropped;
 
 		// this function (if set) is called whenever the number of alerts in
 		// the alert queue goes from 0 to 1. The client is expected to wake up

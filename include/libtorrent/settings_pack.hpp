@@ -1442,7 +1442,11 @@ namespace libtorrent {
 
 			// ``alert_queue_size`` is the maximum number of alerts queued up
 			// internally. If alerts are not popped, the queue will eventually
-			// fill up to this level.
+			// fill up to this level. Once the alert queue is full, additional
+			// alerts will be dropped, and not delievered to the client. Once the
+			// client drains the queue, new alerts may be delivered again. In order
+			// to know that alerts have been dropped, see
+			// session_handle::dropped_alerts().
 			alert_queue_size,
 
 			// ``max_metadata_size`` is the maximum allowed size (in bytes) to be

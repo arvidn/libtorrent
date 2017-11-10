@@ -248,3 +248,23 @@ TORRENT_TEST(alert_mask)
 	TEST_CHECK(!mgr.should_post<torrent_paused_alert>());
 }
 
+TORRENT_TEST(dropped_alerts)
+{
+	alert_manager mgr(1, alert::all_categories);
+
+	// nothing has dropped yet
+	TEST_CHECK(mgr.dropped_alerts().none());
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	// still nothing, there's space for one alert
+	TEST_CHECK(mgr.dropped_alerts().none());
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	// that last alert got dropped though, since it would have brought the queue
+	// size to 2
+	auto const d = mgr.dropped_alerts();
+	TEST_CHECK(d.count() == 1);
+	TEST_CHECK(d.test(torrent_finished_alert::alert_type));
+
+	// it should have been cleared now though
+	TEST_CHECK(mgr.dropped_alerts().none());
+}
+

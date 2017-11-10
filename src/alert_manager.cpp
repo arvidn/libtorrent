@@ -146,4 +146,12 @@ namespace libtorrent {
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;
 	}
+
+	dropped_alerts_t alert_manager::dropped_alerts()
+	{
+		std::unique_lock<std::mutex> lock(m_mutex);
+		dropped_alerts_t const ret = m_dropped;
+		m_dropped.reset();
+		return ret;
+	}
 }

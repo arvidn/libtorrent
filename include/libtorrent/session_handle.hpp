@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/portmap.hpp" // for portmap_protocol
+#include "libtorrent/alert_manager.hpp" // for dropped_alerts_t
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 #include "libtorrent/kademlia/dht_settings.hpp"
@@ -934,9 +935,22 @@ namespace libtorrent {
 		// retrieval of alerts should not be done in the callback. In fact, the
 		// callback should not block. It should not perform any expensive work.
 		// It really should just notify the main application thread.
+		//
+		// The ``dropped_alerts()`` function returns a ``std::bitfield``
+		// representing which types of alerts have been dropped. Dropped meaning
+		// that the alert failed to be delivered to the client. The most common
+		// cause of such failure is that the internal alert queue grew too big
+		// (controlled by alert_queue_size). This call also clears the internal
+		// bitfield, so the bitfield starts recording dropped alerts from this
+		// point forward only.
+		//
+		// The type of an alert is returned by the polymorphic function
+		// ``alert::type()`` but can also be queries from a concrete type via
+		// ``T::alert_type``, as a static constant.
 		void pop_alerts(std::vector<alert*>* alerts);
 		alert* wait_for_alert(time_duration max_wait);
 		void set_alert_notify(std::function<void()> const& fun);
+		dropped_alerts_t dropped_alerts();
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/aux_/disable_warnings_push.hpp"

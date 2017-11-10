@@ -1,3 +1,4 @@
+	* add API to query whether alerts have been dropped or not
 	* add flags()/set_flags()/unset_flags() to torrent_handle, deprecate individual functions
 	* added alert for block being sent to the send buffer
 	* drop support for windows compilers without std::wstring

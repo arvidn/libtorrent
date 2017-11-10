@@ -161,9 +161,9 @@ namespace libtorrent {
 	name(name&&) noexcept = default; \
 	static const int priority = prio; \
 	static const int alert_type = seq; \
-	virtual int type() const override { return alert_type; } \
-	virtual alert_category_t category() const override { return static_category; } \
-	virtual char const* what() const override { return #name; }
+	virtual int type() const noexcept override { return alert_type; } \
+	virtual alert_category_t category() const noexcept override { return static_category; } \
+	virtual char const* what() const noexcept override { return #name; }
 
 #define TORRENT_DEFINE_ALERT(name, seq) \
 	TORRENT_DEFINE_ALERT_IMPL(name, seq, 0)
