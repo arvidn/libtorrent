@@ -447,7 +447,7 @@ AS_CASE(["$ARG_WITH_LIBICONV"],
       AC_MSG_RESULT([yes])
       AM_ICONV()
       AS_IF([test "x$am_cv_func_iconv" = "xyes"], [
-           ICONV_LIBS=$LTLIBICONV
+           ICONV_LIBS=$LIBICONV
            AC_SUBST([ICONV_LIBS])
            LIBS="$ICONV_LIBS $LIBS"
       ], [
