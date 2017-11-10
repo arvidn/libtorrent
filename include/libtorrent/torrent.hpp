@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/deferred_handler.hpp"
+#include "libtorrent/aux_/allocating_handler.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 // there is no forward declaration header for asio
@@ -322,6 +323,7 @@ namespace libtorrent {
 		, private torrent_hot_members
 		, public request_callback
 		, public peer_class_set
+		, public aux::error_handler_interface
 		, public std::enable_shared_from_this<torrent>
 	{
 	public:
@@ -652,7 +654,7 @@ namespace libtorrent {
 		// this will remove the peer and make sure all
 		// the pieces it had have their reference counter
 		// decreased in the piece_picker
-		void remove_peer(peer_connection* p);
+		void remove_peer(std::shared_ptr<peer_connection> p);
 
 		// cancel requests to this block from any peer we're
 		// connected to on this torrent
@@ -1149,6 +1151,9 @@ namespace libtorrent {
 
 	private:
 
+		void on_exception(std::exception const& e) override;
+		void on_error(error_code const& ec) override;
+
 		// trigger deferred disconnection of peers
 		void on_remove_peers();
 
@@ -1418,8 +1423,9 @@ namespace libtorrent {
 		queue_position_t m_sequence_number;
 
 		// used to post a message to defer disconnecting peers
-		std::vector<peer_connection*> m_peers_to_disconnect;
+		std::vector<std::shared_ptr<peer_connection>> m_peers_to_disconnect;
 		aux::deferred_handler m_deferred_disconnect;
+		aux::handler_storage<24> m_deferred_handler_storage;
 
 		// for torrents who have a bandwidth limit, this is != 0
 		// and refers to a peer_class in the session.
