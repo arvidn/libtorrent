@@ -5422,6 +5422,16 @@ namespace libtorrent {
 
 #endif
 
+	void torrent::on_exception(std::exception const&)
+	{
+		set_error(errors::no_memory, torrent_status::error_file_none);
+	}
+
+	void torrent::on_error(error_code const& ec)
+	{
+		set_error(ec, torrent_status::error_file_none);
+	}
+
 	void torrent::remove_connection(peer_connection const* p)
 	{
 		TORRENT_ASSERT(m_iterating_connections == 0);
@@ -5430,9 +5440,9 @@ namespace libtorrent {
 			m_connections.erase(i);
 	}
 
-	void torrent::remove_peer(peer_connection* p)
+	void torrent::remove_peer(std::shared_ptr<peer_connection> p)
 	{
-		TORRENT_ASSERT(p != nullptr);
+		TORRENT_ASSERT(p);
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(std::count(m_peers_to_disconnect.begin()
 			, m_peers_to_disconnect.end(), p) == 0);
@@ -5452,18 +5462,18 @@ namespace libtorrent {
 		{
 			std::weak_ptr<torrent> weak_t = shared_from_this();
 			m_peers_to_disconnect.push_back(p);
-			m_deferred_disconnect.post(m_ses.get_io_service(), [=]()
+			m_deferred_disconnect.post(m_ses.get_io_service(), aux::make_handler([=]()
 			{
 				std::shared_ptr<torrent> t = weak_t.lock();
 				if (t) t->on_remove_peers();
-			});
+			}, m_deferred_handler_storage, *this));
 		}
 		else
 		{
 			// if the peer was inserted in m_connections but instructed to
 			// be removed from this torrent, just remove it from it, see
 			// attach_peer logic.
-			remove_connection(p);
+			remove_connection(p.get());
 		}
 
 		torrent_peer* pp = p->peer_info_struct();
@@ -5530,15 +5540,15 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		std::vector<peer_connection*> peers;
+		std::vector<std::shared_ptr<peer_connection>> peers;
 		m_peers_to_disconnect.swap(peers);
 		for (auto p : peers)
 		{
-			TORRENT_ASSERT(p != nullptr);
+			TORRENT_ASSERT(p);
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
-			remove_connection(p);
-			m_ses.close_connection(p);
+			remove_connection(p.get());
+			m_ses.close_connection(p.get());
 		}
 
 		if (m_graceful_pause_mode && m_connections.empty())
@@ -6977,7 +6987,7 @@ namespace libtorrent {
 				// we have to do this here because from the peer's point of view
 				// it wasn't really attached to the torrent, but we do need
 				// to let peer_list know we're removing it
-				remove_peer(p);
+				remove_peer(p->self());
 				return false;
 			}
 		}

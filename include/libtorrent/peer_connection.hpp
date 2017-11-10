@@ -1168,24 +1168,6 @@ namespace aux {
 		// outstanding requests need to increase at the same pace to keep up.
 		bool m_slow_start:1;
 
-		template <class Handler>
-		aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
-			make_read_handler(Handler const& handler)
-		{
-			return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
-				handler, m_read_handler_storage, *this
-			);
-		}
-
-		template <class Handler>
-		aux::allocating_handler<Handler, TORRENT_WRITE_HANDLER_MAX_SIZE>
-			make_write_handler(Handler const& handler)
-		{
-			return aux::allocating_handler<Handler, TORRENT_WRITE_HANDLER_MAX_SIZE>(
-				handler, m_write_handler_storage, *this
-			);
-		}
-
 #if TORRENT_USE_ASSERTS
 	public:
 		bool m_in_constructor = true;

@@ -83,7 +83,9 @@ namespace libtorrent { namespace aux {
 			Handler h, handler_storage<Size>& s, error_handler_interface& eh)
 			: handler(std::move(h))
 			, storage(s)
+#ifndef BOOST_NO_EXCEPTIONS
 			, error_handler(eh)
+#endif
 		{}
 
 		template <class... A>
@@ -142,9 +144,20 @@ namespace libtorrent { namespace aux {
 
 		Handler handler;
 		handler_storage<Size>& storage;
+#ifndef BOOST_NO_EXCEPTIONS
 		error_handler_interface& error_handler;
+#endif
 	};
 
+	template <class Handler, size_t Size>
+	aux::allocating_handler<Handler, Size>
+	make_handler(Handler const& handler
+		, handler_storage<Size>& storage
+		, error_handler_interface& err_handler)
+	{
+		return aux::allocating_handler<Handler, Size>(
+			handler, storage, err_handler);
+	}
 }
 }
 
