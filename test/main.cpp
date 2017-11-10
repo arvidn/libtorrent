@@ -269,7 +269,7 @@ struct unit_directory_guard
 
 void EXPORT reset_output()
 {
-	if (current_test == nullptr || current_test->output == 0) return;
+	if (current_test == nullptr || current_test->output == nullptr) return;
 	fflush(stdout);
 	fflush(stderr);
 	rewind(current_test->output);
