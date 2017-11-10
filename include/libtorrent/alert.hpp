@@ -228,11 +228,11 @@ namespace libtorrent {
 		//			}
 		//		}
 		//	}
-		virtual int type() const = 0;
+		virtual int type() const noexcept = 0;
 
 		// returns a string literal describing the type of the alert. It does
 		// not include any information that might be bundled with the alert.
-		virtual char const* what() const = 0;
+		virtual char const* what() const noexcept = 0;
 
 		// generate a string describing the alert and the information bundled
 		// with it. This is mainly intended for debug and development use. It is not suitable
@@ -242,7 +242,7 @@ namespace libtorrent {
 		virtual std::string message() const = 0;
 
 		// returns a bitmask specifying which categories this alert belong to.
-		virtual alert_category_t category() const = 0;
+		virtual alert_category_t category() const noexcept = 0;
 
 #ifndef TORRENT_NO_DEPRECATE
 
