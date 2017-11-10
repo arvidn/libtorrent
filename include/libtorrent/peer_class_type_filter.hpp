@@ -49,7 +49,7 @@ namespace libtorrent {
 			std::memset(m_peer_class_type, 0, sizeof(m_peer_class_type));
 		}
 
-		enum socket_type_t
+		enum socket_type_t : std::uint8_t
 		{
 			// these match the socket types from socket_type.hpp
 			// shifted one down
@@ -63,22 +63,22 @@ namespace libtorrent {
 
 		// ``add()`` and ``remove()`` adds and removes a peer class to be added
 		// to new peers based on socket type.
-		void add(socket_type_t st, peer_class_t const peer_class)
+		void add(socket_type_t const st, peer_class_t const peer_class)
 		{
 			TORRENT_ASSERT(peer_class < peer_class_t{32});
 			if (peer_class > peer_class_t{31}) return;
 
-			TORRENT_ASSERT(st < num_socket_types && st >= 0);
-			if (st < 0 || st >= num_socket_types) return;
+			TORRENT_ASSERT(st < num_socket_types);
+			if (st >= num_socket_types) return;
 			m_peer_class_type[st] |= 1 << static_cast<std::uint32_t>(peer_class);
 		}
-		void remove(socket_type_t st, peer_class_t const peer_class)
+		void remove(socket_type_t const st, peer_class_t const peer_class)
 		{
 			TORRENT_ASSERT(peer_class < peer_class_t{32});
 			if (peer_class > peer_class_t{31}) return;
 
-			TORRENT_ASSERT(st < num_socket_types && st >= 0);
-			if (st < 0 || st >= num_socket_types) return;
+			TORRENT_ASSERT(st < num_socket_types);
+			if (st >= num_socket_types) return;
 			m_peer_class_type[st] &= ~(1 << static_cast<std::uint32_t>(peer_class));
 		}
 
@@ -87,32 +87,32 @@ namespace libtorrent {
 		//
 		// The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
 		// peer classes in the ``peer_class_type_filter`` are 32 bits.
-		void disallow(socket_type_t st, peer_class_t const peer_class)
+		void disallow(socket_type_t const st, peer_class_t const peer_class)
 		{
 			TORRENT_ASSERT(peer_class < peer_class_t{32});
 			if (peer_class > peer_class_t{31}) return;
 
-			TORRENT_ASSERT(st < num_socket_types && st >= 0);
-			if (st < 0 || st >= num_socket_types) return;
+			TORRENT_ASSERT(st < num_socket_types);
+			if (st >= num_socket_types) return;
 			m_peer_class_type_mask[st] &= ~(1 << static_cast<std::uint32_t>(peer_class));
 		}
-		void allow(socket_type_t st, peer_class_t const peer_class)
+		void allow(socket_type_t const st, peer_class_t const peer_class)
 		{
 			TORRENT_ASSERT(peer_class < peer_class_t{32});
 			if (peer_class > peer_class_t{31}) return;
 
-			TORRENT_ASSERT(st < num_socket_types && st >= 0);
-			if (st < 0 || st >= num_socket_types) return;
+			TORRENT_ASSERT(st < num_socket_types);
+			if (st >= num_socket_types) return;
 			m_peer_class_type_mask[st] |= 1 << static_cast<std::uint32_t>(peer_class);
 		}
 
 		// takes a bitmask of peer classes and returns a new bitmask of
 		// peer classes after the rules have been applied, based on the socket type argument
 		// (``st``).
-		std::uint32_t apply(int st, std::uint32_t peer_class_mask)
+		std::uint32_t apply(socket_type_t const st, std::uint32_t peer_class_mask)
 		{
-			TORRENT_ASSERT(st < num_socket_types && st >= 0);
-			if (st < 0 || st >= num_socket_types) return peer_class_mask;
+			TORRENT_ASSERT(st < num_socket_types);
+			if (st >= num_socket_types) return peer_class_mask;
 
 			// filter peer classes based on type
 			peer_class_mask &= m_peer_class_type_mask[st];
