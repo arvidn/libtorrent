@@ -147,7 +147,8 @@ void find_data::done()
 
 	std::vector<std::pair<node_entry, std::string>> results;
 	int num_results = m_node.m_table.bucket_size();
-	for (auto i = m_results.begin(), end(m_results.end()); i != end && num_results > 0; ++i)
+	for (auto i = m_results.begin()
+		, end(m_results.end()); i != end && num_results > 0; ++i)
 	{
 		observer_ptr const& o = *i;
 		if (!(o->flags & observer::flag_alive))

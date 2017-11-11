@@ -275,7 +275,8 @@ void obfuscated_get_peers::done()
 #endif
 
 	int num_added = 0;
-	for (auto i = m_results.begin(), end(m_results.end()); i != end && num_added < 16; ++i)
+	for (auto i = m_results.begin()
+		, end(m_results.end()); i != end && num_added < 16; ++i)
 	{
 		observer_ptr o = *i;
 
