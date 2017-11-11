@@ -4373,6 +4373,9 @@ namespace libtorrent {
 		update_gauge();
 		stop_announcing();
 
+		// remove from download queue
+		m_ses.set_queue_position(this, queue_position_t{-1});
+
 		if (m_peer_class > peer_class_t{0})
 		{
 			remove_class(m_ses.peer_classes(), m_peer_class);
