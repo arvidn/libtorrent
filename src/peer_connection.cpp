@@ -4104,7 +4104,7 @@ namespace libtorrent {
 		torrent_peer* self_peer = peer_info_struct();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (should_log(peer_log_alert::info))
+		if (should_log(peer_log_alert::info)) try
 		{
 			switch (error)
 			{
@@ -4129,6 +4129,11 @@ namespace libtorrent {
 			{
 				peer_log(peer_log_alert::info, "SHORT_LIVED_DISCONNECT", "");
 			}
+		}
+		catch (std::exception const& err)
+		{
+			peer_log(peer_log_alert::info, "PEER_ERROR" ,"op: %d error: unknown error (failed with exception) %s"
+				, static_cast<int>(op), err.what());
 		}
 #endif
 

@@ -680,6 +680,8 @@ namespace aux {
 
 		std::shared_ptr<peer_connection> self()
 		{
+			TORRENT_ASSERT(!m_destructed);
+			TORRENT_ASSERT(m_in_use == 1337);
 			TORRENT_ASSERT(!m_in_constructor);
 			return shared_from_this();
 		}
@@ -1202,8 +1204,21 @@ namespace aux {
 		~cork()
 		{
 			if (!m_need_uncork) return;
-			m_pc.m_channel_state[peer_connection::upload_channel] &= ~peer_info::bw_network;
-			m_pc.setup_send();
+			try {
+				m_pc.m_channel_state[peer_connection::upload_channel] &= ~peer_info::bw_network;
+				m_pc.setup_send();
+			}
+			catch (std::bad_alloc const&) {
+				m_pc.disconnect(make_error_code(boost::system::errc::not_enough_memory)
+					, operation_t::sock_write);
+			}
+			catch (boost::system::system_error const& err) {
+				m_pc.disconnect(err.code(), operation_t::sock_write);
+			}
+			catch (...) {
+				m_pc.disconnect(make_error_code(boost::system::errc::not_enough_memory)
+					, operation_t::sock_write);
+			}
 		}
 	private:
 		peer_connection& m_pc;
