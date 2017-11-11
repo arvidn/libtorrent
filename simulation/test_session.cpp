@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "utils.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/utils.hpp" // for timer
 #include "settings.hpp"
@@ -62,5 +63,54 @@ TORRENT_TEST(seed_mode)
 			// we don't need to finish seeding, exit after 20 seconds
 			return ticks > 20;
 		});
+}
+
+TORRENT_TEST(force_proxy)
+{
+	// setup the simulation
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	std::unique_ptr<sim::asio::io_service> ios{new sim::asio::io_service(sim
+		, address_v4::from_string("50.0.0.1"))};
+	lt::session_proxy zombie;
+
+	lt::settings_pack pack = settings();
+	pack.set_bool(settings_pack::force_proxy, true);
+	// create session
+	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, *ios);
+
+	// disable force proxy in 3 seconds (this should make us open up listen
+	// sockets)
+	sim::timer t1(sim, lt::seconds(3), [&](boost::system::error_code const& ec)
+	{
+		lt::settings_pack p;
+		p.set_bool(settings_pack::force_proxy, false);
+		ses->apply_settings(p);
+	});
+
+	int num_listen_tcp = 0;
+	int num_listen_udp = 0;
+	print_alerts(*ses, [&](lt::session& ses, lt::alert const* a) {
+		if (auto la = alert_cast<listen_succeeded_alert>(a))
+		{
+			if (la->sock_type == listen_succeeded_alert::tcp)
+				++num_listen_tcp;
+			else if (la->sock_type == listen_succeeded_alert::udp)
+				++num_listen_udp;
+		}
+	});
+
+	// run for 10 seconds.
+	sim::timer t2(sim, lt::seconds(10), [&](boost::system::error_code const& ec)
+	{
+		fprintf(stderr, "shutting down\n");
+		// shut down
+		zombie = ses->abort();
+		ses.reset();
+	});
+	sim.run();
+
+	TEST_EQUAL(num_listen_tcp, 1);
+	TEST_EQUAL(num_listen_udp, 1);
 }
 
