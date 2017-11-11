@@ -5957,6 +5957,10 @@ namespace {
 
 	session_impl::~session_impl()
 	{
+		// since we're destructing the session, no more alerts will make it out to
+		// the user. So stop posting them now
+		m_alerts.set_alert_mask({});
+
 		// this is not allowed to be the network thread!
 //		TORRENT_ASSERT(is_not_thread());
 // TODO: asserts that no outstanding async operations are still in flight
