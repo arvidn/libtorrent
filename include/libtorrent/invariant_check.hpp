@@ -33,12 +33,12 @@ namespace libtorrent {
 			}
 			catch (std::exception const& err)
 			{
-				std::fprintf(stderr, "invariant_check failed with exception: %s"
+				std::fprintf(stderr, "invariant_check failed with exception: %s\n"
 					, err.what());
 			}
 			catch (...)
 			{
-				std::fprintf(stderr, "invariant_check failed with exception");
+				std::fprintf(stderr, "invariant_check failed with exception\n");
 			}
 #else
 			invariant_access::check_invariant(x);
