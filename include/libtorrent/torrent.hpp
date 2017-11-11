@@ -642,8 +642,8 @@ namespace libtorrent {
 		bool choke_peer(peer_connection& c);
 		bool unchoke_peer(peer_connection& c, bool optimistic = false);
 
-		void trigger_unchoke();
-		void trigger_optimistic_unchoke();
+		void trigger_unchoke() noexcept;
+		void trigger_optimistic_unchoke() noexcept;
 
 		// used by peer_connection to attach itself to a torrent
 		// since incoming connections don't know what torrent

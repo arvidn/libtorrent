@@ -5293,16 +5293,14 @@ namespace libtorrent {
 		return true;
 	}
 
-	void torrent::trigger_unchoke()
+	void torrent::trigger_unchoke() noexcept
 	{
-		m_ses.get_io_service().dispatch(std::bind(
-			&aux::session_interface::trigger_unchoke, std::ref(m_ses)));
+		m_ses.trigger_unchoke();
 	}
 
-	void torrent::trigger_optimistic_unchoke()
+	void torrent::trigger_optimistic_unchoke() noexcept
 	{
-		m_ses.get_io_service().dispatch(std::bind(
-			&aux::session_interface::trigger_optimistic_unchoke, std::ref(m_ses)));
+		m_ses.trigger_optimistic_unchoke();
 	}
 
 	void torrent::cancel_block(piece_block block)

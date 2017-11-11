@@ -549,12 +549,12 @@ namespace aux {
 
 			int peak_up_rate() const { return m_peak_up_rate; }
 
-			void trigger_unchoke() override
+			void trigger_unchoke() noexcept override
 			{
 				TORRENT_ASSERT(is_single_thread());
 				m_unchoke_time_scaler = 0;
 			}
-			void trigger_optimistic_unchoke() override
+			void trigger_optimistic_unchoke() noexcept override
 			{
 				TORRENT_ASSERT(is_single_thread());
 				m_optimistic_unchoke_time_scaler = 0;
