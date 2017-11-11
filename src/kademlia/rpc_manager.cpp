@@ -480,7 +480,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 	node& n = o->algorithm()->get_node();
 	if (!n.native_address(o->target_addr()))
 	{
-		a["want"].list().push_back(entry(n.protocol_family_name()));
+		a["want"].list().emplace_back(n.protocol_family_name());
 	}
 
 	o->set_target(target_addr);

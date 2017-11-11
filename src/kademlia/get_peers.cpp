@@ -275,7 +275,7 @@ void obfuscated_get_peers::done()
 #endif
 
 	int num_added = 0;
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+	for (auto i = m_results.begin()
 		, end(m_results.end()); i != end && num_added < 16; ++i)
 	{
 		observer_ptr o = *i;

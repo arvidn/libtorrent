@@ -244,11 +244,9 @@ node_entry const* routing_table::next_refresh()
 	node_entry* candidate = nullptr;
 
 	// this will have a bias towards pinging nodes close to us first.
-	for (table_t::reverse_iterator i = m_buckets.rbegin()
-		, end(m_buckets.rend()); i != end; ++i)
+	for (auto i = m_buckets.rbegin(), end(m_buckets.rend()); i != end; ++i)
 	{
-		for (bucket_t::iterator j = i->live_nodes.begin()
-			, end2(i->live_nodes.end()); j != end2; ++j)
+		for (auto j = i->live_nodes.begin(), end2(i->live_nodes.end()); j != end2; ++j)
 		{
 			// this shouldn't happen
 			TORRENT_ASSERT(m_id != j->id);
@@ -1163,7 +1161,7 @@ bool routing_table::is_full(int const bucket) const
 	if (num_buckets == 0) return false;
 	if (bucket >= num_buckets) return false;
 
-	table_t::const_iterator i = m_buckets.begin();
+	auto i = m_buckets.cbegin();
 	std::advance(i, bucket);
 	return (int(i->live_nodes.size()) >= bucket_limit(bucket)
 		&& int(i->replacements.size()) >= m_bucket_size);

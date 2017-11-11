@@ -62,7 +62,7 @@ namespace {
 		char* ptr = out.data();
 
 		std::size_t left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
-		if (salt.size() > 0)
+		if (!salt.empty())
 		{
 			ptr += std::snprintf(ptr, left, "4:salt%d:", int(salt.size()));
 			left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
@@ -90,7 +90,7 @@ sha1_hash item_target_id(span<char const> salt
 	, public_key const& pk)
 {
 	hasher h(pk.bytes);
-	if (salt.size() > 0) h.update(salt);
+	if (!salt.empty()) h.update(salt);
 	return h.final();
 }
 
@@ -188,7 +188,7 @@ bool item::assign(bdecode_node const& v, span<char const> salt
 		return false;
 	m_pk = pk;
 	m_sig = sig;
-	if (salt.size() > 0)
+	if (!salt.empty())
 		m_salt.assign(salt.data(), salt.size());
 	else
 		m_salt.clear();
