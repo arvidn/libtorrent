@@ -1673,6 +1673,9 @@ namespace aux {
 			(pack.has_val(settings_pack::ssl_listen)
 				&& pack.get_int(settings_pack::ssl_listen)
 					!= m_settings.get_int(settings_pack::ssl_listen))
+			|| (pack.has_val(settings_pack::force_proxy)
+				&& !pack.get_bool(settings_pack::force_proxy)
+				&& m_settings.get_bool(settings_pack::force_proxy))
 			|| (pack.has_val(settings_pack::listen_interfaces)
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
@@ -1881,6 +1884,12 @@ retry:
 		m_listen_sockets.clear();
 		m_stats_counters.set_value(counters::has_incoming_connections, 0);
 		ec.clear();
+
+		if (m_settings.get_bool(settings_pack::force_proxy))
+		{
+			// in force-proxy mode, we don't open any listen sockets
+			return;
+		}
 
 		if (m_abort) return;
 
@@ -6493,7 +6502,17 @@ retry:
 		m_ssl_udp_socket.set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
 #endif
 
-		if (!m_settings.get_bool(settings_pack::force_proxy)) return;
+		if (!m_settings.get_bool(settings_pack::force_proxy))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log("force-proxy disabled");
+#endif
+			return;
+		}
+
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("force-proxy enabled");
+#endif
 
 		// enable force_proxy mode. We don't want to accept any incoming
 		// connections, except through a proxy.
