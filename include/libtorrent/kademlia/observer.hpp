@@ -101,12 +101,6 @@ struct TORRENT_EXTRA_EXPORT observer
 	void set_id(node_id const& id);
 	node_id const& id() const { return m_id; }
 
-	void set_transaction_id(std::uint16_t tid)
-	{ m_transaction_id = tid; }
-
-	std::uint16_t transaction_id() const
-	{ return m_transaction_id; }
-
 	static constexpr observer_flags_t flag_queried = 0_bit;
 	static constexpr observer_flags_t flag_initial = 1_bit;
 	static constexpr observer_flags_t flag_no_id = 2_bit;
@@ -141,8 +135,6 @@ private:
 
 	std::uint16_t m_port = 0;
 
-	// the transaction ID for this call
-	std::uint16_t m_transaction_id = 0;
 public:
 	observer_flags_t flags{};
 
