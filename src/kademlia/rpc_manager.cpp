@@ -239,11 +239,11 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 		TORRENT_ASSERT(i->second);
 		if (i->second->target_ep() != ep) { ++i; continue; }
 		observer_ptr o = i->second;
-		i = m_transactions.erase(i);
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::rpc_manager, "[%u] found transaction [ tid: %d ]"
-			, o->algorithm()->id(), int(o->transaction_id()));
+			, o->algorithm()->id(), int(i->first));
 #endif
+		i = m_transactions.erase(i);
 		o->timeout();
 		break;
 	}
@@ -413,7 +413,7 @@ time_duration rpc_manager::tick()
 			if (m_log->should_log(dht_logger::rpc_manager))
 			{
 				m_log->log(dht_logger::rpc_manager, "[%u] timing out transaction id: %d from: %s"
-					, o->algorithm()->id(), o->transaction_id()
+					, o->algorithm()->id(), i->first
 					, print_endpoint(o->target_ep()).c_str());
 			}
 #endif
@@ -430,7 +430,7 @@ time_duration rpc_manager::tick()
 			if (m_log->should_log(dht_logger::rpc_manager))
 			{
 				m_log->log(dht_logger::rpc_manager, "[%u] short-timing out transaction id: %d from: %s"
-					, o->algorithm()->id(), o->transaction_id()
+					, o->algorithm()->id(), i->first
 					, print_endpoint(o->target_ep()).c_str());
 			}
 #endif
@@ -484,7 +484,6 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 	}
 
 	o->set_target(target_addr);
-	o->set_transaction_id(tid);
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_log != nullptr && m_log->should_log(dht_logger::rpc_manager))
