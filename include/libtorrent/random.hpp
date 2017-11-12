@@ -57,5 +57,5 @@ namespace libtorrent { namespace aux {
 		TORRENT_EXTRA_EXPORT void random_bytes(span<char> buffer);
 	}
 
-	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t max);
+	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t m);
 }

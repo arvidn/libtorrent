@@ -76,7 +76,7 @@ namespace libtorrent { namespace aux {
 
 		IndexType end_index() const
 		{
-			TORRENT_ASSERT(this->size() <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			TORRENT_ASSERT(this->size() <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			return IndexType(static_cast<underlying_index>(this->size()));
 		}
 
