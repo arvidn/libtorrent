@@ -138,13 +138,13 @@ namespace libtorrent {
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
 
 			// the index of the piece
-			piece_index_t index{std::numeric_limits<std::int32_t>::max()};
+			piece_index_t index{(std::numeric_limits<std::int32_t>::max)()};
 
 			// info about each block in this piece. this is an index into the
 			// m_block_info array, when multiplied by m_blocks_per_piece.
 			// The m_blocks_per_piece following entries contain information about
 			// all blocks in this piece.
-			std::uint16_t info_idx{std::numeric_limits<std::uint16_t>::max()};
+			std::uint16_t info_idx{(std::numeric_limits<std::uint16_t>::max)()};
 
 			// the number of blocks in the finished state
 			std::uint16_t finished:15;
@@ -462,7 +462,7 @@ namespace libtorrent {
 				, index(index_)
 			{
 				TORRENT_ASSERT(peer_count_ >= 0);
-				TORRENT_ASSERT(peer_count_ < std::numeric_limits<std::uint16_t>::max());
+				TORRENT_ASSERT(peer_count_ < (std::numeric_limits<std::uint16_t>::max)());
 				TORRENT_ASSERT(index_ >= 0);
 			}
 

@@ -82,7 +82,7 @@ namespace aux {
 		// returns an all-F digest. i.e. the maximum value
 		// representable by an N bit number (N/8 bytes). This is
 		// a static member function.
-		static digest32 max()
+		static digest32 (max)()
 		{
 			digest32 ret;
 			std::memset(ret.m_number, 0xff, size());
@@ -92,7 +92,7 @@ namespace aux {
 		// returns an all-zero digest. i.e. the minimum value
 		// representable by an N bit number (N/8 bytes). This is
 		// a static member function.
-		static digest32 min()
+		static digest32 (min)()
 		{
 			digest32 ret;
 			// all bits are already 0

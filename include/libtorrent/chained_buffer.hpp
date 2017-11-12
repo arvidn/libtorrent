@@ -199,7 +199,7 @@ namespace libtorrent {
 			new (&b.holder) Holder(std::move(buf));
 
 			m_bytes += used_size;
-			TORRENT_ASSERT(m_capacity < std::numeric_limits<int>::max() - b.size);
+			TORRENT_ASSERT(m_capacity < (std::numeric_limits<int>::max)() - b.size);
 			m_capacity += b.size;
 			TORRENT_ASSERT(m_bytes <= m_capacity);
 		}

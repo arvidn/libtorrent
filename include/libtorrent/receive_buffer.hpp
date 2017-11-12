@@ -177,14 +177,15 @@ struct crypto_receive_buffer
 
 	bool crypto_packet_finished() const
 	{
-		return m_recv_pos == INT_MAX || m_connection_buffer.packet_finished();
+		return m_recv_pos == (std::numeric_limits<int>::max)()
+			|| m_connection_buffer.packet_finished();
 	}
 
 	int packet_size() const;
 
 	int crypto_packet_size() const
 	{
-		TORRENT_ASSERT(m_recv_pos != INT_MAX);
+		TORRENT_ASSERT(m_recv_pos != (std::numeric_limits<int>::max)());
 		return m_connection_buffer.packet_size() - m_recv_pos;
 	}
 
@@ -194,7 +195,7 @@ struct crypto_receive_buffer
 
 	void crypto_cut(int size, int packet_size)
 	{
-		TORRENT_ASSERT(m_recv_pos != INT_MAX);
+		TORRENT_ASSERT(m_recv_pos != (std::numeric_limits<int>::max)());
 		m_connection_buffer.cut(size, m_recv_pos + packet_size, m_recv_pos);
 	}
 
@@ -211,7 +212,7 @@ private:
 	// explicitly disallow assignment, to silence msvc warning
 	crypto_receive_buffer& operator=(crypto_receive_buffer const&);
 
-	int m_recv_pos = std::numeric_limits<int>::max();
+	int m_recv_pos = (std::numeric_limits<int>::max)();
 	int m_packet_size = 0;
 	receive_buffer& m_connection_buffer;
 };

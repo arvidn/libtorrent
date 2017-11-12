@@ -164,7 +164,7 @@ namespace libtorrent {
 		{
 			TORRENT_ASSERT(is_single_thread());
 			TORRENT_ASSERT(allocate >= 0);
-			TORRENT_ASSERT(allocate <= std::numeric_limits<std::uint16_t>::max());
+			TORRENT_ASSERT(allocate <= (std::numeric_limits<std::uint16_t>::max)());
 
 			return alloc(allocate);
 		}
