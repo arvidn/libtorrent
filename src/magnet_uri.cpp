@@ -168,7 +168,23 @@ namespace libtorrent {
 
 	void parse_magnet_uri(string_view uri, add_torrent_params& p, error_code& ec)
 	{
-		p = parse_magnet_uri(uri, ec);
+		add_torrent_params tmp = parse_magnet_uri(uri, ec);
+		if (!tmp.name.empty()) p.name = std::move(tmp.name);
+		if (!tmp.trackers.empty())
+		{
+			int const tier = p.tracker_tiers.empty() ? 0 : p.tracker_tiers.back();
+			p.tracker_tiers.resize(p.trackers.size(), tier);
+			p.trackers.insert(p.trackers.end(), tmp.trackers.begin(), tmp.trackers.end());
+			p.tracker_tiers.insert(p.tracker_tiers.end(), tmp.tracker_tiers.begin(), tmp.tracker_tiers.end());
+		}
+		p.url_seeds.insert(p.url_seeds.end(), tmp.url_seeds.begin(), tmp.url_seeds.end());
+		p.info_hash = tmp.info_hash;
+
+		p.peers.insert(p.peers.end(), tmp.peers.begin(), tmp.peers.end());
+
+#ifndef TORRENT_DISABLE_DHT
+		p.dht_nodes.insert(p.dht_nodes.end(), tmp.dht_nodes.begin(), tmp.dht_nodes.end());
+#endif
 	}
 
 #endif // TORRENT_NO_DEPRECATE
