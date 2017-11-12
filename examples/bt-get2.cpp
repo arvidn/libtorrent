@@ -76,20 +76,19 @@ int main(int argc, char const* argv[])
 		| lt::alert::status_notification);
 
 	lt::session ses(pack);
-	lt::add_torrent_params atp;
 	clk::time_point last_save_resume = clk::now();
 
+	lt::error_code ec;
+	lt::add_torrent_params atp = lt::parse_magnet_uri(argv[1], ec);
+	if (ec) {
+		std::cerr << "invalid magnet URI: " << ec.message() << std::endl;
+		return 1;
+	}
 	// load resume data from disk and pass it in as we add the magnet link
 	std::ifstream ifs(".resume_file", std::ios_base::binary);
 	ifs.unsetf(std::ios_base::skipws);
 	atp.resume_data.assign(std::istream_iterator<char>(ifs)
 		, std::istream_iterator<char>());
-	lt::error_code ec;
-	lt::parse_magnet_uri(argv[1], atp, ec);
-	if (ec) {
-		std::cerr << "invalid magnet URI: " << ec.message() << std::endl;
-		return 1;
-	}
 	atp.save_path = "."; // save in current dir
 	ses.async_add_torrent(atp);
 
