@@ -68,10 +68,10 @@ namespace libtorrent {
 		tcp::endpoint local_endpoint;
 
 		// the time of next tracker announce
-		time_point32 next_announce = time_point32::min();
+		time_point32 next_announce = (time_point32::min)();
 
 		// no announces before this time
-		time_point32 min_announce = time_point32::min();
+		time_point32 min_announce = (time_point32::min)();
 
 	private:
 		// internal

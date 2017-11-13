@@ -135,7 +135,7 @@ namespace boost {
             cpp_int_backend<MinBits, MaxBits, SignType, Checked, Allocator>& result = val.backend();
             result.resize(limb_len, limb_len);  // checked types may throw here if they're not large enough to hold the data!
             result.limbs()[result.size() - 1] = 0u;
-            std::memcpy(result.limbs(), i, std::min(byte_len, result.size() * sizeof(limb_type)));
+            std::memcpy(result.limbs(), i, (std::min)(byte_len, result.size() * sizeof(limb_type)));
             result.normalize(); // In case data has leading zeros.
             return val;
          }
@@ -151,7 +151,7 @@ namespace boost {
                ++limb_len;
             result.limbs()[0] = 0u;
             result.resize(limb_len, limb_len);  // checked types may throw here if they're not large enough to hold the data!
-            std::memcpy(result.limbs(), i, std::min(byte_len, result.size() * sizeof(result.limbs()[0])));
+            std::memcpy(result.limbs(), i, (std::min)(byte_len, result.size() * sizeof(result.limbs()[0])));
             result.normalize(); // In case data has leading zeros.
             return val;
          }
