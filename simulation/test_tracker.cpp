@@ -414,6 +414,13 @@ TORRENT_TEST(ipv6_support)
 	test_ipv6_support(nullptr, 2, num_interfaces * 2);
 }
 
+TORRENT_TEST(announce_no_listen)
+{
+	// if we don't listen on any sockets at all (but only make outgoing peer
+	// connections) we still need to make sure we announce to trackers
+	test_ipv6_support("", 2, 0);
+}
+
 TORRENT_TEST(ipv6_support_bind_v4_v6_any)
 {
 	// 2 because there's one announce on startup and one when shutting down

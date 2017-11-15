@@ -179,6 +179,7 @@ namespace libtorrent {
 
 	address tracker_connection::bind_interface() const
 	{
+		if (!m_req.outgoing_socket) return address_v4::any();
 		return m_req.outgoing_socket.get_local_endpoint().address();
 	}
 

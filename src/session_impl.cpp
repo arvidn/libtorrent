@@ -1151,6 +1151,12 @@ namespace {
 #endif
 			m_tracker_manager.queue_request(get_io_service(), req, c);
 		}
+		else if (m_listen_sockets.empty())
+		{
+			// we don't have a listen socket and no port
+			req.listen_port = 0;
+			m_tracker_manager.queue_request(get_io_service(), req, c);
+		}
 		else
 		{
 			for (auto& ls : m_listen_sockets)

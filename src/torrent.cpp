@@ -2792,6 +2792,11 @@ namespace libtorrent {
 			TORRENT_ASSERT(valid_endpoints <= ae.endpoints.size());
 			ae.endpoints.erase(ae.endpoints.begin() + int(valid_endpoints), ae.endpoints.end());
 
+			// even if we're not listening on any sockets, we want to announce to
+			// trackers
+			if (ae.endpoints.empty())
+				ae.endpoints.emplace_back(aux::listen_socket_handle());
+
 			// if trackerid is not specified for tracker use default one, probably set explicitly
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 			req.url = ae.url;
@@ -3094,7 +3099,7 @@ namespace libtorrent {
 		// if the tracker told us what our external IP address is, record it with
 		// out external IP counter (and pass along the IP of the tracker to know
 		// who to attribute this vote to)
-		if (resp.external_ip != address() && !is_any(tracker_ip))
+		if (resp.external_ip != address() && !is_any(tracker_ip) && r.outgoing_socket)
 			m_ses.set_external_address(r.outgoing_socket.get_local_endpoint()
 				, resp.external_ip
 				, aux::session_interface::source_tracker, tracker_ip);

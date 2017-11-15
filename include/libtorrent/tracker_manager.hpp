@@ -155,6 +155,11 @@ namespace libtorrent {
 #endif
 		sha1_hash info_hash;
 		peer_id pid;
+
+		// the outgoing socket may be unset, in which case we'll just announce
+		// from a socket that's not bound to a specific interface, but just use
+		// the system default. This is the case when we don't have any listen
+		// sockets
 		aux::listen_socket_handle outgoing_socket;
 
 		// set to true if the .torrent file this tracker announce is for is marked
