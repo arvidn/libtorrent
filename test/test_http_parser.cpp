@@ -91,8 +91,8 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(std::equal(body.begin(), body.end(), "test"));
 	TEST_CHECK(parser.header("content-type") == "text/plain");
 	TEST_CHECK(atoi(parser.header("content-length").c_str()) == 4);
-	TEST_CHECK(atoi(parser.header("content-length").c_str()) == parser.header_int("content-length",-1));
-	TEST_CHECK(parser.header_int("content-length-x",-123) == -123);
+	TEST_CHECK(*parser.header_duration("content-length") == lt::seconds32(4));
+	TEST_CHECK(parser.header_duration("content-length-x") == boost::none);
 
 	parser.reset();
 
