@@ -578,7 +578,8 @@ void web_peer_connection::handle_error(int const bytes_left)
 	// associated with the file we just requested. Only
 	// when it doesn't have any of the file do the following
 	// pad files will make it complicated
-	int const retry_time = aux::numeric_cast<int>(m_parser.header_int("retry-after", m_settings.get_int(settings_pack::urlseed_wait_retry)));
+	auto const retry_time = value_or(m_parser.header_duration("retry-after")
+		, seconds32(m_settings.get_int(settings_pack::urlseed_wait_retry)));
 	// temporarily unavailable, retry later
 	t->retry_web_seed(this, retry_time);
 	if (t->alerts().should_post<url_seed_alert>())

@@ -80,6 +80,7 @@ nobase_include_HEADERS = \
   natpmp.hpp                   \
   netlink.hpp                  \
   operations.hpp               \
+  optional.hpp                 \
   packet_buffer.hpp            \
   packet_pool.hpp              \
   parse_url.hpp                \
