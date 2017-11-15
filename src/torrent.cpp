@@ -2724,8 +2724,7 @@ namespace libtorrent {
 		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
 		req.uploaded = m_stat.total_payload_upload();
 		req.corrupt = m_total_failed_bytes;
-		req.left = bytes_left();
-		if (req.left == -1) req.left = 16*1024;
+		req.left = value_or(bytes_left(), 16*1024);
 #ifdef TORRENT_USE_OPENSSL
 		// if this torrent contains an SSL certificate, make sure
 		// any SSL tracker presents a certificate signed by it
@@ -3467,11 +3466,11 @@ namespace libtorrent {
 	}
 	catch (...) { handle_exception(); }
 
-	std::int64_t torrent::bytes_left() const
+	boost::optional<std::int64_t> torrent::bytes_left() const
 	{
 		// if we don't have the metadata yet, we
 		// cannot tell how big the torrent is.
-		if (!valid_metadata()) return -1;
+		if (!valid_metadata()) return {};
 		return m_torrent_file->total_size()
 			- quantized_bytes_done();
 	}

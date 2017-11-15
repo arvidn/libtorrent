@@ -483,7 +483,7 @@ namespace libtorrent {
 		std::string name() const;
 
 		stat statistics() const { return m_stat; }
-		std::int64_t bytes_left() const;
+		boost::optional<std::int64_t> bytes_left() const;
 		int block_bytes_wanted(piece_block const& p) const;
 		void bytes_done(torrent_status& st, bool accurate) const;
 		std::int64_t quantized_bytes_done() const;
