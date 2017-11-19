@@ -194,11 +194,11 @@ namespace libtorrent {
 		}
 #endif
 
-//		if (!tracker_req().outgoing_socket)
-//		{
-//			fail(errors::invalid_listen_socket, -1, "outgoing socket was closed");
-//			return;
-//		}
+		if (!tracker_req().outgoing_socket)
+		{
+			fail(errors::invalid_listen_socket, -1, "outgoing socket was closed");
+			return;
+		}
 
 		m_tracker_connection = std::make_shared<http_connection>(get_io_service(), m_man.host_resolver()
 			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3)

@@ -136,7 +136,7 @@ namespace libtorrent {
 
 		// if that was the last one, or the listen socket was closed
 		// fail the whole announce
-		if (m_endpoints.empty()/* || !tracker_req().outgoing_socket*/)
+		if (m_endpoints.empty() || !tracker_req().outgoing_socket)
 		{
 			tracker_connection::fail(ec, code, msg, interval, min_interval);
 			return;
@@ -195,11 +195,11 @@ namespace libtorrent {
 
 		restart_read_timeout();
 
-//		if (!tracker_req().outgoing_socket)
-//		{
-//			fail(error_code(errors::invalid_listen_socket));
-//			return;
-//		}
+		if (!tracker_req().outgoing_socket)
+		{
+			fail(error_code(errors::invalid_listen_socket));
+			return;
+		}
 
 		auto bind_address = bind_interface();
 

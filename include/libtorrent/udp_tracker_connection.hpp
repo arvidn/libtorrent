@@ -97,7 +97,7 @@ namespace libtorrent {
 		void fail(error_code const& ec, int code = -1
 			, char const* msg = ""
 			, seconds32 interval = seconds32(0)
-			, seconds32 min_interval = seconds32(0));
+			, seconds32 min_interval = seconds32(30));
 
 		void send_udp_connect();
 		void send_udp_announce();
