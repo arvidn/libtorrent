@@ -462,7 +462,7 @@ void test_udpv6_support(char const* listen_interfaces
 						else
 							++v6_announces;
 					}
-					else if (auto er = alert_cast<tracker_error_alert>(a))
+					else if (alert_cast<tracker_error_alert>(a))
 					{
 						TEST_CHECK(false && "unexpected tracker error");
 					}

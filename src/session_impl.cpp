@@ -1348,7 +1348,10 @@ namespace {
 					!= m_settings.get_int(settings_pack::ssl_listen))
 			||
 #endif
-			(pack.has_val(settings_pack::listen_interfaces)
+			(pack.has_val(settings_pack::force_proxy)
+				&& !pack.get_bool(settings_pack::force_proxy)
+				&& m_settings.get_bool(settings_pack::force_proxy))
+			|| (pack.has_val(settings_pack::listen_interfaces)
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
@@ -1757,7 +1760,7 @@ namespace {
 	}
 
 	void session_impl::interface_to_endpoints(std::string const& device, int const port
-		, bool const ssl, std::vector<listen_endpoint_t>& eps)
+		, transport const ssl, duplex const incoming, std::vector<listen_endpoint_t>& eps)
 	{
 		// First, check to see if it's an IP address
 		error_code err;
@@ -1767,8 +1770,7 @@ namespace {
 #if !TORRENT_USE_IPV6
 			if (adr.is_v4())
 #endif
-				eps.emplace_back(adr, port, std::string()
-					, ssl ? transport::ssl : transport::plaintext);
+				eps.emplace_back(adr, port, std::string(), ssl, incoming);
 		}
 		else
 		{
@@ -1801,8 +1803,7 @@ namespace {
 				// (which must be of the same family as the address we're
 				// connecting to)
 				if (device != ipface.name) continue;
-				eps.emplace_back(ipface.interface_address, port, device
-					, ssl ? transport::ssl : transport::plaintext);
+				eps.emplace_back(ipface.interface_address, port, device, ssl, incoming);
 			}
 		}
 	}
@@ -1827,14 +1828,18 @@ namespace {
 		// of a new socket failing to bind due to a conflict with a stale socket
 		std::vector<listen_endpoint_t> eps;
 
+		duplex const incoming = m_settings.get_bool(settings_pack::force_proxy)
+			? duplex::only_outgoing
+			: duplex::accept_incoming;
+
 		for (auto const& iface : m_listen_interfaces)
 		{
 			std::string const& device = iface.device;
 			int const port = iface.port;
-			bool const ssl = iface.ssl;
+			transport const ssl = iface.ssl ? transport::ssl : transport::plaintext;
 
 #ifndef TORRENT_USE_OPENSSL
-			if (ssl)
+			if (ssl == transport::ssl)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				session_log("attempted to listen ssl with no library support on device: \"%s\""
@@ -1855,7 +1860,7 @@ namespace {
 			// IP address or a device name. In case it's a device name, we want to
 			// (potentially) end up binding a socket for each IP address associated
 			// with that device.
-			interface_to_endpoints(device, port, ssl, eps);
+			interface_to_endpoints(device, port, ssl, incoming, eps);
 		}
 
 #if TORRENT_USE_IPV6
@@ -1872,8 +1877,10 @@ namespace {
 		{
 			eps.emplace_back(address_v4(), 0, "", transport::plaintext
 				, duplex::only_outgoing);
+#if TORRENT_USE_IPV6
 			eps.emplace_back(address_v6(), 0, "", transport::plaintext
 				, duplex::only_outgoing);
+#endif
 		}
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
@@ -1992,9 +1999,9 @@ namespace {
 
 		for (auto const& iface : m_outgoing_interfaces)
 		{
-			interface_to_endpoints(iface, 0, false, eps);
+			interface_to_endpoints(iface, 0, transport::plaintext, duplex::accept_incoming, eps);
 #ifdef TORRENT_USE_OPENSSL
-			interface_to_endpoints(iface, 0, true, eps);
+			interface_to_endpoints(iface, 0, transport::ssl, duplex::accept_incoming, eps);
 #endif
 		}
 

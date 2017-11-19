@@ -772,8 +772,8 @@ namespace aux {
 			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
 				, ip_source_t const source_type, address const& source);
 
-			void interface_to_endpoints(std::string const& device, int const port
-				, bool const ssl, std::vector<listen_endpoint_t>& eps);
+			void interface_to_endpoints(std::string const& device, int port
+				, transport ssl, duplex incoming, std::vector<listen_endpoint_t>& eps);
 
 			// the settings for the client
 			aux::session_settings m_settings;
