@@ -516,14 +516,14 @@ TORRENT_TEST(announce_no_listen)
 {
 	// if we don't listen on any sockets at all (but only make outgoing peer
 	// connections) we still need to make sure we announce to trackers
-	test_ipv6_support("", 2, 0);
+	test_ipv6_support("", 2, 2);
 }
 
 TORRENT_TEST(announce_udp_no_listen)
 {
 	// since there's no actual udp tracker in this test, we will only try to
 	// announce once, and fail. We won't announce the event=stopped
-	test_udpv6_support("", 1, 0);
+	test_udpv6_support("", 1, 1);
 }
 
 TORRENT_TEST(ipv6_support_bind_v4_v6_any)

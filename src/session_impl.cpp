@@ -1151,12 +1151,6 @@ namespace {
 #endif
 			m_tracker_manager.queue_request(get_io_service(), req, c);
 		}
-		else if (m_listen_sockets.empty())
-		{
-			// we don't have a listen socket and no port
-			req.listen_port = 0;
-			m_tracker_manager.queue_request(get_io_service(), req, c);
-		}
 		else
 		{
 			for (auto& ls : m_listen_sockets)
@@ -1690,6 +1684,14 @@ namespace {
 		}
 		ret->udp_external_port = ret->udp_sock->sock.local_port();
 
+		// if we did not open a TCP listen socket, ret->local_endpoint was never
+		// initialized, so do that now, based on the UDP socket
+		if (ret->incoming != duplex::accept_incoming)
+		{
+			auto const udp_ep = ret->udp_sock->local_endpoint();
+			ret->local_endpoint = tcp::endpoint(udp_ep.address(), udp_ep.port());
+		}
+
 		error_code err;
 		set_socket_buffer_size(ret->udp_sock->sock, m_settings, err);
 		if (err)
@@ -1869,6 +1871,8 @@ namespace {
 		if (eps.empty())
 		{
 			eps.emplace_back(address_v4(), 0, "", transport::plaintext
+				, duplex::only_outgoing);
+			eps.emplace_back(address_v6(), 0, "", transport::plaintext
 				, duplex::only_outgoing);
 		}
 
