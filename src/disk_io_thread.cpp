@@ -269,7 +269,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 #endif
 	}
 
-	void disk_io_thread::abort(bool wait)
+	void disk_io_thread::abort(bool const wait)
 	{
 		// abuse the job mutex to make setting m_abort and checking the thread count atomic
 		// see also the comment in thread_fun
@@ -600,16 +600,16 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	// the flushing array. This can be used when building iovecs spanning
 	// multiple pieces, the subsequent pieces after the first one, must have
 	// their block indices start where the previous one left off
-	int disk_io_thread::build_iovec(cached_piece_entry* pe, int start, int end
+	int disk_io_thread::build_iovec(cached_piece_entry* pe, int const start, int end
 		, span<iovec_t> iov, span<int> flushing, int const block_base_index)
 	{
 		DLOG("build_iovec: piece=%d [%d, %d)\n"
 			, int(pe->piece), start, end);
 		TORRENT_PIECE_ASSERT(start >= 0, pe);
 		TORRENT_PIECE_ASSERT(start < end, pe);
-		end = (std::min)(end, int(pe->blocks_in_piece));
+		end = std::min(end, int(pe->blocks_in_piece));
 
-		int piece_size = pe->storage->files().piece_size(pe->piece);
+		int const piece_size = pe->storage->files().piece_size(pe->piece);
 		TORRENT_PIECE_ASSERT(piece_size > 0, pe);
 
 		std::size_t iov_len = 0;
@@ -707,13 +707,13 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		{
 			std::lock_guard<std::mutex> l(m_need_tick_mutex);
 			if (!pe->storage->set_need_tick())
-				m_need_tick.push_back({aux::time_now() + minutes(2), pe->storage});
+				m_need_tick.emplace_back(aux::time_now() + minutes(2), pe->storage);
 		}
 
 		if (!failed)
 		{
 			TORRENT_PIECE_ASSERT(!error, pe);
-			std::int64_t write_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written, num_blocks);
 			m_stats_counters.inc_stats_counter(counters::num_write_ops);
@@ -784,7 +784,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 	// issues write operations for blocks in the given
 	// range on the given piece.
-	int disk_io_thread::flush_range(cached_piece_entry* pe, int start, int end
+	int disk_io_thread::flush_range(cached_piece_entry* pe, int const start, int const end
 		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
 		TORRENT_ASSERT(l.owns_lock());
@@ -796,7 +796,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		TORRENT_ALLOCA(iov, iovec_t, pe->blocks_in_piece);
 		TORRENT_ALLOCA(flushing, int, pe->blocks_in_piece);
-		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
+		int const iov_len = build_iovec(pe, start, end, iov, flushing, 0);
 		if (iov_len == 0) return 0;
 
 		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
@@ -818,7 +818,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		// if the cache is under high pressure, we need to evict
 		// the blocks we just flushed to make room for more write pieces
-		int evict = m_disk_cache.num_to_evict(0);
+		int const evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
 
 		return iov_len;
@@ -881,7 +881,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	void disk_io_thread::flush_cache(storage_interface* storage, std::uint32_t const flags
 		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
-		if (storage)
+		if (storage != nullptr)
 		{
 			auto const& pieces = storage->cached_pieces();
 			std::vector<piece_index_t> piece_index;
@@ -952,15 +952,15 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	{
 		DLOG("try_flush_write_blocks: %d\n", num);
 
-		list_iterator<cached_piece_entry> range = m_disk_cache.write_lru_pieces();
+		auto const range = m_disk_cache.write_lru_pieces();
 		aux::vector<std::pair<std::shared_ptr<storage_interface>, piece_index_t>> pieces;
 		pieces.reserve(m_disk_cache.num_write_lru_pieces());
 
-		for (list_iterator<cached_piece_entry> p = range; p.get() && num > 0; p.next())
+		for (auto p = range; p.get() && num > 0; p.next())
 		{
 			cached_piece_entry* e = p.get();
 			if (e->num_dirty == 0) continue;
-			pieces.push_back(std::make_pair(e->storage, e->piece));
+			pieces.emplace_back(e->storage, e->piece);
 		}
 
 		for (auto const& p : pieces)
@@ -1024,8 +1024,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	{
 		DLOG("flush_expired_write_blocks\n");
 
-		time_point now = aux::time_now();
-		time_duration expiration_limit = seconds(m_settings.get_int(settings_pack::cache_expiry));
+		time_point const now = aux::time_now();
+		time_duration const expiration_limit = seconds(m_settings.get_int(settings_pack::cache_expiry));
 
 #if TORRENT_USE_ASSERTS
 		time_point timeout = min_time();
@@ -1252,7 +1252,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 		iovec_t b = {buffer.get(), std::size_t(j->d.io.buffer_size)};
 
-		int ret = j->storage->readv(b
+		int const ret = j->storage->readv(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
@@ -1260,7 +1260,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		if (!j->error.ec)
 		{
-			std::int64_t read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back);
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
@@ -1283,7 +1283,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
-		int evict = m_disk_cache.num_to_evict(iov_len);
+		int const evict = m_disk_cache.num_to_evict(iov_len);
 		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
@@ -1380,7 +1380,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		TORRENT_ASSERT(pe->blocks[block].buf);
 
-		int tmp = m_disk_cache.try_read(j, *this, true);
+		int const tmp = m_disk_cache.try_read(j, *this, true);
 
 		// This should always succeed because we just checked to see there is a
 		// buffer for this block
@@ -1507,7 +1507,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		{
 			std::lock_guard<std::mutex> l(m_need_tick_mutex);
 			if (!j->storage->set_need_tick())
-				m_need_tick.push_back({aux::time_now() + minutes(2), j->storage});
+				m_need_tick.emplace_back(aux::time_now() + minutes(2), j->storage);
 		}
 
 		return ret != j->d.io.buffer_size
@@ -1521,7 +1521,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe && pe->hashing_done)
+		if (pe != nullptr && pe->hashing_done)
 		{
 #if TORRENT_USE_ASSERTS
 			print_piece_log(pe->piece_log);
@@ -1754,7 +1754,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// be added along with it. we may not free j if so
 		cached_piece_entry* dpe = m_disk_cache.add_dirty_block(j);
 
-		if (dpe)
+		if (dpe != nullptr)
 		{
 			if (dpe->outstanding_flush == 0)
 			{
@@ -1790,7 +1790,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		j->callback = std::move(handler);
 		j->flags = flags;
 
-		int piece_size = j->storage->files().piece_size(piece);
+		int const piece_size = j->storage->files().piece_size(piece);
 
 		// first check to see if the hashing is already done
 		std::unique_lock<std::mutex> l(m_cache_mutex);
@@ -1872,8 +1872,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		, aux::vector<std::string, file_index_t>& links
 		, std::function<void(status_t, storage_error const&)> handler)
 	{
-		aux::vector<std::string, file_index_t>* links_vector
-			= new aux::vector<std::string, file_index_t>();
+		auto links_vector = new aux::vector<std::string, file_index_t>();
 		links_vector->swap(links);
 
 		disk_io_job* j = allocate_job(job_action_t::check_fastresume);
@@ -2044,7 +2043,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		for (int i = cursor; i < end; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
-			int const size = (std::min)(block_size, piece_size - offset);
+			int const size = std::min(block_size, piece_size - offset);
 			ph->h.update(bl.buf, size);
 			offset += size;
 		}
@@ -2384,8 +2383,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		if (ret == status_t::no_error)
 		{
-			sha1_hash piece_hash = ph->h.final();
-			j->d.piece_hash = piece_hash;
+			j->d.piece_hash = ph->h.final();
 
 			pe->hash.reset();
 			if (pe->cache_state != cached_piece_entry::volatile_read_lru)
@@ -2595,11 +2593,11 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		ret->writes = int(m_stats_counters[counters::num_write_ops]);
 		ret->reads = int(m_stats_counters[counters::num_read_ops]);
 
-		int num_read_jobs = int((std::max)(std::int64_t(1)
+		int num_read_jobs = int(std::max(std::int64_t(1)
 			, m_stats_counters[counters::num_read_ops]));
-		int num_write_jobs = int((std::max)(std::int64_t(1)
+		int num_write_jobs = int(std::max(std::int64_t(1)
 			, m_stats_counters[counters::num_write_ops]));
-		int num_hash_jobs = int((std::max)(std::int64_t(1)
+		int num_hash_jobs = int(std::max(std::int64_t(1)
 			, m_stats_counters[counters::num_blocks_hashed]));
 
 		ret->average_read_time = int(m_stats_counters[counters::disk_read_time] / num_read_jobs);
@@ -2648,7 +2646,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 					if (pe->cache_state == cached_piece_entry::read_lru2_ghost
 						|| pe->cache_state == cached_piece_entry::read_lru1_ghost)
 						continue;
-					ret->pieces.push_back(cached_piece_info());
+					ret->pieces.emplace_back();
 					get_cache_info_impl(ret->pieces.back(), pe, block_size);
 				}
 			}
@@ -2662,7 +2660,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 					if (i->cache_state == cached_piece_entry::read_lru2_ghost
 						|| i->cache_state == cached_piece_entry::read_lru1_ghost)
 						continue;
-					ret->pieces.push_back(cached_piece_info());
+					ret->pieces.emplace_back();
 					get_cache_info_impl(ret->pieces.back(), &*i, block_size);
 				}
 			}
