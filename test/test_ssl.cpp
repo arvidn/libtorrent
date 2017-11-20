@@ -60,9 +60,9 @@ using namespace std::placeholders;
 using namespace lt;
 using std::ignore;
 
-int const alert_mask = alert::all_categories
-& ~alert::progress_notification
-& ~alert::stats_notification;
+auto const alert_mask = alert::all_categories
+	& ~alert::progress_notification
+	& ~alert::stats_notification;
 
 struct test_config_t
 {

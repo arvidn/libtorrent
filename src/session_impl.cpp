@@ -6400,7 +6400,17 @@ namespace {
 			}
 		}
 
-		if (!m_settings.get_bool(settings_pack::force_proxy)) return;
+		if (!m_settings.get_bool(settings_pack::force_proxy))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log("force-proxy disabled");
+#endif
+			return;
+		}
+
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("force-proxy enabled");
+#endif
 
 		// enable force_proxy mode. We don't want to accept any incoming
 		// connections, except through a proxy.
