@@ -858,7 +858,7 @@ namespace libtorrent {
 		// we can delete the piece picker
 		void maybe_done_flushing();
 
-		// this is called wheh the torrent has completed
+		// this is called when the torrent has completed
 		// the download. It will post an event, disconnect
 		// all seeds and let the tracker know we're finished.
 		void completed();

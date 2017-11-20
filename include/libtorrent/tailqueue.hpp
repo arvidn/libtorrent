@@ -172,8 +172,8 @@ namespace libtorrent {
 			m_size = rhs.m_size;
 			rhs.m_size = tmp2;
 		}
-		int size() const { return m_size; }
-		bool empty() const { return m_size == 0; }
+		int size() const { TORRENT_ASSERT(m_size >= 0); return m_size; }
+		bool empty() const { TORRENT_ASSERT(m_size >= 0); return m_size == 0; }
 		T* first() const { TORRENT_ASSERT(m_size > 0); return m_first; }
 		T* last() const { TORRENT_ASSERT(m_size > 0); return m_last; }
 	private:
