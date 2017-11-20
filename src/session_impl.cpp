@@ -1348,7 +1348,10 @@ namespace {
 					!= m_settings.get_int(settings_pack::ssl_listen))
 			||
 #endif
-			(pack.has_val(settings_pack::listen_interfaces)
+			(pack.has_val(settings_pack::force_proxy)
+				&& !pack.get_bool(settings_pack::force_proxy)
+				&& m_settings.get_bool(settings_pack::force_proxy))
+			|| (pack.has_val(settings_pack::listen_interfaces)
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
@@ -1381,25 +1384,27 @@ namespace {
 			reopen_outgoing_sockets();
 	}
 
-	std::shared_ptr<listen_socket_t> session_impl::setup_listener(std::string const& device
-		, tcp::endpoint bind_ep, transport const ssl, error_code& ec)
+	std::shared_ptr<listen_socket_t> session_impl::setup_listener(
+		listen_endpoint_t const& lep, error_code& ec)
 	{
 		int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+		tcp::endpoint bind_ep(lep.addr, std::uint16_t(lep.port));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
 			session_log("attempting to open listen socket to: %s on device: %s ssl: %x"
-				, print_endpoint(bind_ep).c_str(), device.c_str(), static_cast<int>(ssl));
+				, print_endpoint(bind_ep).c_str(), lep.device.c_str(), static_cast<int>(lep.ssl));
 		}
 #endif
 
 		auto ret = std::make_shared<listen_socket_t>();
-		ret->ssl = ssl;
+		ret->ssl = lep.ssl;
 		ret->original_port = bind_ep.port();
+		ret->incoming = lep.incoming;
 		operation_t last_op = operation_t::unknown;
 		socket_type_t const sock_type
-			= (ssl == transport::ssl)
+			= (lep.ssl == transport::ssl)
 			? socket_type_t::tcp_ssl
 			: socket_type_t::tcp;
 
@@ -1407,7 +1412,7 @@ namespace {
 		// accept connections on our local machine in this case.
 		// TODO: 3 the logic in this if-block should be factored out into a
 		// separate function. At least most of it
-		if (!m_settings.get_bool(settings_pack::force_proxy))
+		if (ret->incoming == duplex::accept_incoming)
 		{
 			ret->sock = std::make_shared<tcp::acceptor>(m_io_service);
 			ret->sock->open(bind_ep.protocol(), ec);
@@ -1423,7 +1428,7 @@ namespace {
 #endif
 
 				if (m_alerts.should_post<listen_failed_alert>())
-					m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep, last_op
+					m_alerts.emplace_alert<listen_failed_alert>(lep.device, bind_ep, last_op
 						, ec, sock_type);
 				return ret;
 			}
@@ -1484,26 +1489,26 @@ namespace {
 			}
 #endif // TORRENT_USE_IPV6
 
-			if (!device.empty())
+			if (!lep.device.empty())
 			{
 				// we have an actual device we're interested in listening on, if we
 				// have SO_BINDTODEVICE functionality, use it now.
 #if TORRENT_HAS_BINDTODEVICE
-				ret->sock->set_option(bind_to_device(device.c_str()), ec);
+				ret->sock->set_option(bind_to_device(lep.device.c_str()), ec);
 				if (ec)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log())
 					{
 						session_log("bind to device failed (device: %s): %s"
-							, device.c_str(), ec.message().c_str());
+							, lep.device.c_str(), ec.message().c_str());
 					}
 #endif // TORRENT_DISABLE_LOGGING
 
 					last_op = operation_t::sock_bind_to_device;
 					if (m_alerts.should_post<listen_failed_alert>())
 					{
-						m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
+						m_alerts.emplace_alert<listen_failed_alert>(lep.device, bind_ep
 							, last_op, ec, sock_type);
 					}
 					return ret;
@@ -1523,7 +1528,7 @@ namespace {
 					session_log("failed to bind listen socket to: %s on device: %s :"
 						" [%s] (%d) %s (retries: %d)"
 						, print_endpoint(bind_ep).c_str()
-						, device.c_str()
+						, lep.device.c_str()
 						, ec.category().name(), ec.value(), ec.message().c_str()
 						, retries);
 				}
@@ -1555,20 +1560,20 @@ namespace {
 					session_log("failed to bind listen socket to: %s on device: %s :"
 						" [%s] (%d) %s (giving up)"
 						, print_endpoint(bind_ep).c_str()
-						, device.c_str()
+						, lep.device.c_str()
 						, ec.category().name(), ec.value(), ec.message().c_str());
 				}
 #endif
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
-					m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
+					m_alerts.emplace_alert<listen_failed_alert>(lep.device, bind_ep
 						, last_op, ec, sock_type);
 				}
 				ret->sock.reset();
 				return ret;
 			}
 			ret->local_endpoint = ret->sock->local_endpoint(ec);
-			ret->device = device;
+			ret->device = lep.device;
 			last_op = operation_t::getname;
 			if (ec)
 			{
@@ -1581,7 +1586,7 @@ namespace {
 #endif
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
-					m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
+					m_alerts.emplace_alert<listen_failed_alert>(lep.device, bind_ep
 						, last_op, ec, sock_type);
 				}
 				return ret;
@@ -1599,20 +1604,20 @@ namespace {
 				if (should_log())
 				{
 					session_log("cannot listen on interface \"%s\": %s"
-						, device.c_str(), ec.message().c_str());
+						, lep.device.c_str(), ec.message().c_str());
 				}
 #endif
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
-					m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
+					m_alerts.emplace_alert<listen_failed_alert>(lep.device, bind_ep
 						, last_op, ec, sock_type);
 				}
 				return ret;
 			}
-		} // force-proxy mode
+		} // accept incoming
 
 		socket_type_t const udp_sock_type
-			= (ssl == transport::ssl)
+			= (lep.ssl == transport::ssl)
 			? socket_type_t::utp_ssl
 			: socket_type_t::udp;
 		udp::endpoint const udp_bind_ep(bind_ep.address(), bind_ep.port());
@@ -1625,36 +1630,36 @@ namespace {
 			if (should_log())
 			{
 				session_log("failed to open UDP socket: %s: %s"
-					, device.c_str(), ec.message().c_str());
+					, lep.device.c_str(), ec.message().c_str());
 			}
 #endif
 
 			last_op = operation_t::sock_open;
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(device
+				m_alerts.emplace_alert<listen_failed_alert>(lep.device
 					, bind_ep, last_op, ec, udp_sock_type);
 
 			return ret;
 		}
 
 #if TORRENT_HAS_BINDTODEVICE
-		if (!device.empty())
+		if (!lep.device.empty())
 		{
-			ret->udp_sock->sock.set_option(bind_to_device(device.c_str()), ec);
+			ret->udp_sock->sock.set_option(bind_to_device(lep.device.c_str()), ec);
 			if (ec)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
 				{
 					session_log("bind to device failed (device: %s): %s"
-						, device.c_str(), ec.message().c_str());
+						, lep.device.c_str(), ec.message().c_str());
 				}
 #endif // TORRENT_DISABLE_LOGGING
 
 				last_op = operation_t::sock_bind_to_device;
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
-					m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
+					m_alerts.emplace_alert<listen_failed_alert>(lep.device, bind_ep
 						, last_op, ec, udp_sock_type);
 				}
 				return ret;
@@ -1670,17 +1675,25 @@ namespace {
 			if (should_log())
 			{
 				session_log("failed to bind UDP socket: %s: %s"
-					, device.c_str(), ec.message().c_str());
+					, lep.device.c_str(), ec.message().c_str());
 			}
 #endif
 
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(device
+				m_alerts.emplace_alert<listen_failed_alert>(lep.device
 					, bind_ep, last_op, ec, udp_sock_type);
 
 			return ret;
 		}
 		ret->udp_external_port = ret->udp_sock->sock.local_port();
+
+		// if we did not open a TCP listen socket, ret->local_endpoint was never
+		// initialized, so do that now, based on the UDP socket
+		if (ret->incoming != duplex::accept_incoming)
+		{
+			auto const udp_ep = ret->udp_sock->local_endpoint();
+			ret->local_endpoint = tcp::endpoint(udp_ep.address(), udp_ep.port());
+		}
 
 		error_code err;
 		set_socket_buffer_size(ret->udp_sock->sock, m_settings, err);
@@ -1747,7 +1760,7 @@ namespace {
 	}
 
 	void session_impl::interface_to_endpoints(std::string const& device, int const port
-		, bool const ssl, std::vector<listen_endpoint_t>& eps)
+		, transport const ssl, duplex const incoming, std::vector<listen_endpoint_t>& eps)
 	{
 		// First, check to see if it's an IP address
 		error_code err;
@@ -1757,8 +1770,7 @@ namespace {
 #if !TORRENT_USE_IPV6
 			if (adr.is_v4())
 #endif
-				eps.emplace_back(adr, port, std::string()
-					, ssl ? transport::ssl : transport::plaintext);
+				eps.emplace_back(adr, port, std::string(), ssl, incoming);
 		}
 		else
 		{
@@ -1791,8 +1803,7 @@ namespace {
 				// (which must be of the same family as the address we're
 				// connecting to)
 				if (device != ipface.name) continue;
-				eps.emplace_back(ipface.interface_address, port, device
-					, ssl ? transport::ssl : transport::plaintext);
+				eps.emplace_back(ipface.interface_address, port, device, ssl, incoming);
 			}
 		}
 	}
@@ -1817,14 +1828,18 @@ namespace {
 		// of a new socket failing to bind due to a conflict with a stale socket
 		std::vector<listen_endpoint_t> eps;
 
+		duplex const incoming = m_settings.get_bool(settings_pack::force_proxy)
+			? duplex::only_outgoing
+			: duplex::accept_incoming;
+
 		for (auto const& iface : m_listen_interfaces)
 		{
 			std::string const& device = iface.device;
 			int const port = iface.port;
-			bool const ssl = iface.ssl;
+			transport const ssl = iface.ssl ? transport::ssl : transport::plaintext;
 
 #ifndef TORRENT_USE_OPENSSL
-			if (ssl)
+			if (ssl == transport::ssl)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				session_log("attempted to listen ssl with no library support on device: \"%s\""
@@ -1845,7 +1860,7 @@ namespace {
 			// IP address or a device name. In case it's a device name, we want to
 			// (potentially) end up binding a socket for each IP address associated
 			// with that device.
-			interface_to_endpoints(device, port, ssl, eps);
+			interface_to_endpoints(device, port, ssl, incoming, eps);
 		}
 
 #if TORRENT_USE_IPV6
@@ -1855,6 +1870,18 @@ namespace {
 			expand_unspecified_address(ifs, eps);
 		}
 #endif
+
+		// if no listen interfaces are specified, create sockets to use
+		// any interface
+		if (eps.empty())
+		{
+			eps.emplace_back(address_v4(), 0, "", transport::plaintext
+				, duplex::only_outgoing);
+#if TORRENT_USE_IPV6
+			eps.emplace_back(address_v6(), 0, "", transport::plaintext
+				, duplex::only_outgoing);
+#endif
+		}
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
@@ -1882,8 +1909,7 @@ namespace {
 		// an existing socket
 		for (auto const& ep : eps)
 		{
-			std::shared_ptr<listen_socket_t> s = setup_listener(ep.device
-				, tcp::endpoint(ep.addr, std::uint16_t(ep.port)), ep.ssl, ec);
+			std::shared_ptr<listen_socket_t> s = setup_listener(ep, ec);
 
 			if (!ec && (s->sock || s->udp_sock))
 			{
@@ -1954,6 +1980,7 @@ namespace {
 		// initiate accepting on the listen sockets
 		for (auto& s : m_listen_sockets)
 		{
+			TORRENT_ASSERT((s->incoming == duplex::accept_incoming) == bool(s->sock));
 			if (s->sock) async_accept(s->sock, s->ssl);
 			if (map_ports) remap_ports(remap_natpmp_and_upnp, *s);
 		}
@@ -1972,9 +1999,9 @@ namespace {
 
 		for (auto const& iface : m_outgoing_interfaces)
 		{
-			interface_to_endpoints(iface, 0, false, eps);
+			interface_to_endpoints(iface, 0, transport::plaintext, duplex::accept_incoming, eps);
 #ifdef TORRENT_USE_OPENSSL
-			interface_to_endpoints(iface, 0, true, eps);
+			interface_to_endpoints(iface, 0, transport::ssl, duplex::accept_incoming, eps);
 #endif
 		}
 
@@ -2411,7 +2438,7 @@ namespace {
 
 				span<char const> const buf = packet.data;
 
-				// give the uTP socket manager first dis on the packet. Presumably
+				// give the uTP socket manager first dibs on the packet. Presumably
 				// the majority of packets are uTP packets.
 				if (!mgr.incoming_packet(socket, packet.from, buf))
 				{
@@ -2746,7 +2773,7 @@ namespace {
 		}
 
 		// if there are outgoing interfaces specified, verify this
-		// peer is correctly bound to on of them
+		// peer is correctly bound to one of them
 		if (!m_settings.get_str(settings_pack::outgoing_interfaces).empty())
 		{
 			tcp::endpoint local = s->local_endpoint(ec);
@@ -2759,6 +2786,22 @@ namespace {
 						, ec.message().c_str());
 				}
 #endif
+				return;
+			}
+
+			if (!verify_incoming_interface(local.address()))
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log())
+				{
+					error_code err;
+					session_log("    rejected connection, local interface has incoming connections disabled: %s"
+						, local.address().to_string(err).c_str());
+				}
+#endif
+				if (m_alerts.should_post<peer_blocked_alert>())
+					m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
+						, endp, peer_blocked_alert::invalid_local_interface);
 				return;
 			}
 			if (!verify_bound_address(local.address()
@@ -5022,6 +5065,19 @@ namespace {
 		return bind_ep;
 	}
 
+	// verify that the interface ``addr`` belongs to, allows incoming connections
+	bool session_impl::verify_incoming_interface(address const& addr)
+	{
+		for (auto const& s : m_listen_sockets)
+		{
+			if (s->local_endpoint.address() == addr)
+			{
+				return s->incoming == duplex::accept_incoming;
+			}
+		}
+		return false;
+	}
+
 	// verify that the given local address satisfies the requirements of
 	// the outgoing interfaces. i.e. that one of the allowed outgoing
 	// interfaces has this address. For uTP sockets, which are all backed
@@ -5042,7 +5098,7 @@ namespace {
 		for (auto const& s : m_outgoing_interfaces)
 		{
 			error_code err;
-			address ip = address::from_string(s.c_str(), err);
+			address const ip = address::from_string(s.c_str(), err);
 			if (err) continue;
 			if (ip == addr) return true;
 		}

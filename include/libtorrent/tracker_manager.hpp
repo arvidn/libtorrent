@@ -155,6 +155,7 @@ namespace libtorrent {
 #endif
 		sha1_hash info_hash;
 		peer_id pid;
+
 		aux::listen_socket_handle outgoing_socket;
 
 		// set to true if the .torrent file this tracker announce is for is marked

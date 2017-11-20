@@ -128,6 +128,12 @@ namespace aux {
 		struct tracker_logger;
 #endif
 
+	enum class duplex : std::uint8_t
+	{
+		accept_incoming,
+		only_outgoing
+	};
+
 	struct listen_socket_t
 	{
 		listen_socket_t()
@@ -181,6 +187,8 @@ namespace aux {
 		// indicates whether this is an SSL listen socket or not
 		transport ssl = transport::plaintext;
 
+		duplex incoming = duplex::accept_incoming;
+
 		// the actual sockets (TCP listen socket and UDP socket)
 		// An entry does not necessarily have a UDP or TCP socket. One of these
 		// pointers may be nullptr!
@@ -194,8 +202,9 @@ namespace aux {
 
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
 		{
-			listen_endpoint_t(address adr, int p, std::string dev, transport s)
-				: addr(adr), port(p), device(dev), ssl(s) {}
+			listen_endpoint_t(address adr, int p, std::string dev, transport s
+				, duplex d = duplex::accept_incoming)
+				: addr(adr), port(p), device(dev), ssl(s), incoming(d) {}
 
 			bool operator==(listen_endpoint_t const& o) const
 			{
@@ -206,6 +215,7 @@ namespace aux {
 			int port;
 			std::string device;
 			transport ssl;
+			duplex incoming;
 		};
 
 		// partitions sockets based on whether they match one of the given endpoints
@@ -675,6 +685,7 @@ namespace aux {
 			// implements session_interface
 			tcp::endpoint bind_outgoing_socket(socket_type& s, address
 				const& remote_address, error_code& ec) const override;
+			bool verify_incoming_interface(address const& addr);
 			bool verify_bound_address(address const& addr, bool utp
 				, error_code& ec) override;
 
@@ -761,8 +772,8 @@ namespace aux {
 			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
 				, ip_source_t const source_type, address const& source);
 
-			void interface_to_endpoints(std::string const& device, int const port
-				, bool const ssl, std::vector<listen_endpoint_t>& eps);
+			void interface_to_endpoints(std::string const& device, int port
+				, transport ssl, duplex incoming, std::vector<listen_endpoint_t>& eps);
 
 			// the settings for the client
 			aux::session_settings m_settings;
@@ -937,8 +948,8 @@ namespace aux {
 			// round-robin index into m_outgoing_interfaces
 			mutable std::uint8_t m_interface_index = 0;
 
-			std::shared_ptr<listen_socket_t> setup_listener(std::string const& device
-				, tcp::endpoint bind_ep, transport ssl, error_code& ec);
+			std::shared_ptr<listen_socket_t> setup_listener(
+				listen_endpoint_t const& lep, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT
 			dht::dht_state m_dht_state;

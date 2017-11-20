@@ -406,12 +406,124 @@ void test_ipv6_support(char const* listen_interfaces
 	TEST_EQUAL(v6_announces, expect_v6);
 }
 
+void test_udpv6_support(char const* listen_interfaces
+	, int const expect_v4, int const expect_v6)
+{
+	using sim::asio::ip::address_v4;
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_service web_server_v4(sim, address_v4::from_string("10.0.0.2"));
+	sim::asio::io_service web_server_v6(sim, address_v6::from_string("ff::dead:beef"));
+
+	int v4_announces = 0;
+	int v6_announces = 0;
+
+	{
+		lt::session_proxy zombie;
+
+		std::vector<asio::ip::address> ips;
+
+		for (int i = 0; i < num_interfaces; i++)
+		{
+			char ep[30];
+			std::snprintf(ep, sizeof(ep), "10.0.0.%d", i + 1);
+			ips.push_back(address::from_string(ep));
+			std::snprintf(ep, sizeof(ep), "ffff::1337:%d", i + 1);
+			ips.push_back(address::from_string(ep));
+		}
+
+		asio::io_service ios(sim, ips);
+		lt::settings_pack sett = settings();
+		if (listen_interfaces)
+		{
+			sett.set_str(settings_pack::listen_interfaces, listen_interfaces);
+		}
+		std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+
+		// since we don't have a udp tracker to run in the sim, looking for the
+		// alerts is the closest proxy
+		ses->set_alert_notify([&]{
+			ses->get_io_service().post([&] {
+				std::vector<lt::alert*> alerts;
+				ses->pop_alerts(&alerts);
+
+				for (lt::alert* a : alerts)
+				{
+					lt::time_duration d = a->timestamp().time_since_epoch();
+					std::uint32_t const millis = std::uint32_t(
+						lt::duration_cast<lt::milliseconds>(d).count());
+					std::printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
+						a->message().c_str());
+					if (auto tr = alert_cast<tracker_announce_alert>(a))
+					{
+						if (tr->local_endpoint.address().is_v4())
+							++v4_announces;
+						else
+							++v6_announces;
+					}
+					else if (alert_cast<tracker_error_alert>(a))
+					{
+						TEST_CHECK(false && "unexpected tracker error");
+					}
+				}
+			});
+		});
+
+		lt::add_torrent_params p;
+		p.name = "test-torrent";
+		p.save_path = ".";
+		p.info_hash.assign("abababababababababab");
+
+		p.trackers.push_back("udp://tracker.com:8080/announce");
+		ses->async_add_torrent(p);
+
+		// stop the torrent 5 seconds in
+		sim::timer t1(sim, lt::seconds(5)
+			, [&ses](boost::system::error_code const&)
+		{
+			std::vector<lt::torrent_handle> torrents = ses->get_torrents();
+			for (auto const& t : torrents)
+			{
+				t.pause();
+			}
+		});
+
+		// then shut down 10 seconds in
+		sim::timer t2(sim, lt::seconds(10)
+			, [&ses,&zombie](boost::system::error_code const&)
+		{
+			zombie = ses->abort();
+			ses.reset();
+		});
+
+		sim.run();
+	}
+
+	TEST_EQUAL(v4_announces, expect_v4);
+	TEST_EQUAL(v6_announces, expect_v6);
+}
+
 // this test makes sure that a tracker whose host name resolves to both IPv6 and
 // IPv4 addresses will be announced to twice, once for each address family
 TORRENT_TEST(ipv6_support)
 {
 	// null means default
 	test_ipv6_support(nullptr, 2, num_interfaces * 2);
+}
+
+TORRENT_TEST(announce_no_listen)
+{
+	// if we don't listen on any sockets at all (but only make outgoing peer
+	// connections) we still need to make sure we announce to trackers
+	test_ipv6_support("", 2, 2);
+}
+
+TORRENT_TEST(announce_udp_no_listen)
+{
+	// since there's no actual udp tracker in this test, we will only try to
+	// announce once, and fail. We won't announce the event=stopped
+	test_udpv6_support("", 1, 1);
 }
 
 TORRENT_TEST(ipv6_support_bind_v4_v6_any)

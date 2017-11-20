@@ -2771,7 +2771,7 @@ namespace libtorrent {
 		{
 			// update the endpoint list by adding entries for new listen sockets
 			// and removing entries for non-existent ones
-			std::vector<announce_endpoint>::size_type valid_endpoints = 0;
+			std::size_t valid_endpoints = 0;
 			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s) {
 				if (s.is_ssl() != is_ssl_torrent())
 					return;
@@ -10930,6 +10930,7 @@ namespace {
 						, retry_interval);
 					aep->last_error = ec;
 					aep->message = msg;
+					fails = aep->fails;
 #ifndef TORRENT_DISABLE_LOGGING
 					debug_log("*** increment tracker fail count [%d]", aep->fails);
 #endif
