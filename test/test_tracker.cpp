@@ -329,7 +329,6 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 	pack.set_str(settings_pack::listen_interfaces, iface + ":48875");
-	pack.set_int(settings_pack::alert_mask, alert::all_categories);
 
 	boost::scoped_ptr<lt::session> s(new lt::session(pack));
 
@@ -399,7 +398,10 @@ TORRENT_TEST(udp_tracker_v4)
 #if TORRENT_USE_IPV6
 TORRENT_TEST(udp_tracker_v6)
 {
-	test_udp_tracker("[::1]", address_v6::any(), ep("::1.3.3.7", 1337));
+	if (supports_ipv6())
+	{
+		test_udp_tracker("[::1]", address_v6::any(), ep("::1.3.3.7", 1337));
+	}
 }
 #endif
 
@@ -456,10 +458,7 @@ TORRENT_TEST(http_peers)
 	expected_peers.insert(tcp::endpoint(address_v4::from_string("65.65.65.65"), 16962));
 	expected_peers.insert(tcp::endpoint(address_v4::from_string("67.67.67.67"), 17476));
 #if TORRENT_USE_IPV6
-	if (supports_ipv6())
-	{
-		expected_peers.insert(tcp::endpoint(address_v6::from_string("4545:4545:4545:4545:4545:4545:4545:4545"), 17990));
-	}
+	expected_peers.insert(tcp::endpoint(address_v6::from_string("4545:4545:4545:4545:4545:4545:4545:4545"), 17990));
 #endif
 
 	TEST_EQUAL(peers.size(), expected_peers.size());
