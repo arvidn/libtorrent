@@ -103,11 +103,7 @@ namespace libtorrent
 		static const boost::array<boost::int32_t, 7> bad_cp = {{0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x200e, 0x200f}};
 		if (std::find(bad_cp.begin(), bad_cp.end(), c) != bad_cp.end()) return true;
 
-#ifdef TORRENT_WINDOWS
-		static const char invalid_chars[] = "/\\:";
-#else
 		static const char invalid_chars[] = "/\\";
-#endif
 		if (c > 127) return false;
 		return std::strchr(invalid_chars, static_cast<char>(c)) != NULL;
 	}

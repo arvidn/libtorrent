@@ -1,4 +1,5 @@
 
+	* restore path sanitization behavior of ":"
 	* fix listen socket issue when disabling "force_proxy" mode
 	* fix full allocation failure on APFS
 
