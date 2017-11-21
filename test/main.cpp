@@ -70,7 +70,7 @@ using namespace libtorrent;
 int old_stdout = -1;
 int old_stderr = -1;
 bool redirect_stdout = true;
-bool redirect_stderr = false; // TODO: TEMPORARY!
+bool redirect_stderr = true;
 bool keep_files = false;
 
 extern int _g_test_idx;
@@ -80,14 +80,22 @@ unit_test_t* current_test = NULL;
 
 void output_test_log_to_terminal()
 {
-	if (current_test == NULL || old_stdout == -1 || old_stderr == -1
-		|| !redirect_stdout || current_test->output == NULL)
+	if (current_test == NULL
+		|| current_test->output == NULL)
 		return;
 
 	fflush(stdout);
 	fflush(stderr);
-	dup2(old_stdout, fileno(stdout));
-	dup2(old_stderr, fileno(stderr));
+	if (old_stdout != -1)
+	{
+		dup2(old_stdout, fileno(stdout));
+		old_stdout = -1;
+	}
+	if (old_stderr != -1)
+	{
+		dup2(old_stderr, fileno(stderr));
+		old_stderr = -1;
+	}
 
 	fseek(current_test->output, 0, SEEK_SET);
 	fprintf(stdout, "\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
