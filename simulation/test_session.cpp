@@ -142,9 +142,9 @@ TORRENT_TEST(force_proxy)
 	print_alerts(*ses, [&](lt::session& ses, lt::alert const* a) {
 		if (auto la = alert_cast<listen_succeeded_alert>(a))
 		{
-			if (la->sock_type == listen_succeeded_alert::tcp)
+			if (la->socket_type == socket_type_t::tcp)
 				++num_listen_tcp;
-			else if (la->sock_type == listen_succeeded_alert::udp)
+			else if (la->socket_type == socket_type_t::udp)
 				++num_listen_udp;
 		}
 	});
