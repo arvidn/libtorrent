@@ -362,7 +362,7 @@ TORRENT_TEST(sanitize_path)
 	path.clear();
 	sanitize_append_path_element(path, "dev:", 4);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "dev");
+	TEST_EQUAL(path, "dev_");
 #else
 	TEST_EQUAL(path, "dev:");
 #endif
@@ -371,7 +371,7 @@ TORRENT_TEST(sanitize_path)
 	sanitize_append_path_element(path, "c:", 2);
 	sanitize_append_path_element(path, "b", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c" SEPARATOR "b");
+	TEST_EQUAL(path, "c_" SEPARATOR "b");
 #else
 	TEST_EQUAL(path, "c:" SEPARATOR "b");
 #endif
@@ -381,7 +381,7 @@ TORRENT_TEST(sanitize_path)
 	sanitize_append_path_element(path, ".", 1);
 	sanitize_append_path_element(path, "c", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c" SEPARATOR "c");
+	TEST_EQUAL(path, "c_" SEPARATOR "c");
 #else
 	TEST_EQUAL(path, "c:" SEPARATOR "c");
 #endif
@@ -524,6 +524,17 @@ TORRENT_TEST(sanitize_path_zeroes)
 	TEST_EQUAL(path, "");
 }
 
+TORRENT_TEST(sanitize_path_colon)
+{
+	std::string path;
+	sanitize_append_path_element(path, "foo:bar", 7);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "foo_bar");
+#else
+	TEST_EQUAL(path, "foo:bar");
+#endif
+}
+
 TORRENT_TEST(verify_encoding)
 {
 	// verify_encoding
@@ -643,7 +654,7 @@ TORRENT_TEST(parse_torrents)
 	torrent_info ti2(&buf[0], buf.size(), ec);
 	std::cerr << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(ti2.name(), "ctest1test2test3");
+	TEST_EQUAL(ti2.name(), "c_test1test2test3");
 #else
 	TEST_EQUAL(ti2.name(), "test1test2test3");
 #endif
