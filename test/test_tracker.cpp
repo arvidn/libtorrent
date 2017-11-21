@@ -329,6 +329,7 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 	pack.set_str(settings_pack::listen_interfaces, iface + ":48875");
+	pack.set_int(settings_pack::alert_mask, alert::all_categories);
 
 	boost::scoped_ptr<lt::session> s(new lt::session(pack));
 
@@ -360,8 +361,6 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 			break;
 
 		test_sleep(100);
-		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
-			, int(prev_udp_announces) + 1);
 	}
 
 	// we should have announced to the tracker by now
@@ -380,8 +379,6 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 			break;
 
 		test_sleep(100);
-		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
-			, int(prev_udp_announces) + 1);
 	}
 
 	TEST_CHECK(peer_ep == expected_peer);
