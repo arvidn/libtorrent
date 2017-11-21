@@ -111,6 +111,6 @@ TORRENT_TEST(force_proxy)
 	sim.run();
 
 	TEST_EQUAL(num_listen_tcp, 1);
-	TEST_EQUAL(num_listen_udp, 1);
+	TEST_EQUAL(num_listen_udp, 2);
 }
 

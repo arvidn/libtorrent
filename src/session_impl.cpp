@@ -1885,12 +1885,6 @@ retry:
 		m_stats_counters.set_value(counters::has_incoming_connections, 0);
 		ec.clear();
 
-		if (m_settings.get_bool(settings_pack::force_proxy))
-		{
-			// in force-proxy mode, we don't open any listen sockets
-			return;
-		}
-
 		if (m_abort) return;
 
 		m_ipv6_interface = tcp::endpoint();
@@ -1899,7 +1893,8 @@ retry:
 		// TODO: instead of having a special case for this, just make the
 		// default listen interfaces be "0.0.0.0:6881,[::]:6881" and use
 		// the generic path. That would even allow for not listening at all.
-		if (m_listen_interfaces.empty())
+		if (m_listen_interfaces.empty()
+			&& !m_settings.get_bool(settings_pack::force_proxy))
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
@@ -1978,7 +1973,7 @@ retry:
 					m_ipv4_interface = tcp::endpoint(addr, m_listen_interface.port());
 			}
 		}
-		else
+		else if (!m_settings.get_bool(settings_pack::force_proxy))
 		{
 			// TODO: 2 the udp socket(s) should be using the same generic
 			// mechanism and not be restricted to a single one
