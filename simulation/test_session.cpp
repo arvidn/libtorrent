@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/extensions.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/utils.hpp" // for timer
 #include "settings.hpp"
@@ -168,3 +169,61 @@ TORRENT_TEST(force_proxy)
 	TEST_EQUAL(num_listen_udp, 2);
 }
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+struct test_plugin : lt::torrent_plugin
+{
+	bool m_new_connection = false;
+	bool m_files_checked = false;
+
+	std::shared_ptr<peer_plugin> new_connection(peer_connection_handle const&) override
+	{
+		m_new_connection = true;
+		return std::shared_ptr<peer_plugin>();
+	}
+
+	void on_files_checked() override
+	{
+		m_files_checked = true;
+	}
+};
+
+TORRENT_TEST(add_extension_while_transfer)
+{
+	bool done = false;
+	auto p = std::make_shared<test_plugin>();
+
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack)
+		{
+			pack.set_int(settings_pack::tick_interval, 1000);
+			pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [&done, p](lt::alert const* a, lt::session& ses)
+		{
+			if (a->type() == peer_connect_alert::alert_type)
+			{
+				auto create_test_plugin = [p](torrent_handle const& th, void*)
+				{ return p; };
+
+				lt::torrent_handle th = alert_cast<peer_connect_alert>(a)->handle;
+				th.add_extension(create_test_plugin);
+
+				done = true;
+			}
+		}
+		// terminate
+		, [&done](int ticks, lt::session& ses) -> bool
+		{
+			// exit after 10 seconds
+			return ticks > 10 || done;
+		});
+
+	TEST_CHECK(done);
+	TEST_CHECK(p->m_new_connection)
+	TEST_CHECK(p->m_files_checked);
+}
+#endif // TORRENT_DISABLE_EXTENSIONS
