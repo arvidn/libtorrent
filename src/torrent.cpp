@@ -1416,7 +1416,7 @@ namespace libtorrent {
 		std::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
 		if (!tp) return;
 
-		add_extension(std::move(tp));
+		add_extension(tp);
 
 		for (auto p : m_connections)
 		{
