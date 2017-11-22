@@ -272,7 +272,7 @@ namespace libtorrent {
 		}
 
 		for (auto const& e : p.http_seeds)
-			ws.push_back(web_seed_t(e, web_seed_entry::http_seed));
+			ws.emplace_back(e, web_seed_entry::http_seed);
 
 		aux::random_shuffle(ws.begin(), ws.end());
 		for (auto& w : ws) m_web_seeds.emplace_back(std::move(w));
@@ -5884,7 +5884,7 @@ namespace libtorrent {
 		for (auto const& addr : addrs)
 		{
 			// fill in the peer struct's address field
-			web->endpoints.push_back(tcp::endpoint(addr, std::uint16_t(port)));
+			web->endpoints.emplace_back(addr, std::uint16_t(port));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
@@ -6365,7 +6365,7 @@ namespace libtorrent {
 			// not be included in this list
 			if (peer->associated_torrent().expired()) continue;
 
-			v->push_back(peer_info());
+			v->emplace_back();
 			peer_info& p = v->back();
 
 			peer->get_peer_info(p);
@@ -9531,10 +9531,9 @@ namespace libtorrent {
 		std::sort(busy_blocks.begin(), busy_blocks.end());
 
 		// then insert them into the interesting_blocks vector
-		for (auto block : busy_blocks)
+		for (auto const& block : busy_blocks)
 		{
-			interesting_blocks.push_back(
-				piece_block(piece, block.index));
+			interesting_blocks.emplace_back(piece, block.index);
 		}
 	}
 
