@@ -370,8 +370,6 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 			break;
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
-		std::printf("UDP: %d / %d\n", int(num_udp_announces())
-			, int(prev_udp_announces) + 1);
 	}
 
 	// we should have announced to the tracker by now
@@ -390,8 +388,6 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 			break;
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
-		std::printf("UDP: %d / %d\n", int(num_udp_announces())
-			, int(prev_udp_announces) + 1);
 	}
 
 	TEST_CHECK(peer_ep == expected_peer);
