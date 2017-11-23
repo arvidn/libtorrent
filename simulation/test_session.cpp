@@ -66,6 +66,7 @@ TORRENT_TEST(seed_mode)
 		});
 }
 
+#ifndef TORRENT_DISABLE_LOGGING
 TORRENT_TEST(ip_notifier_setting)
 {
 	int s_tick = 0;
@@ -114,6 +115,7 @@ TORRENT_TEST(ip_notifier_setting)
 
 	TEST_EQUAL(working_count, 2);
 }
+#endif
 
 TORRENT_TEST(force_proxy)
 {

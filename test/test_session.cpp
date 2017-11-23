@@ -440,6 +440,7 @@ TORRENT_TEST(save_state_peer_id)
 	TEST_CHECK(pid3[5] == 'r');
 }
 
+#ifndef TORRENT_DISABLE_LOGGING
 TORRENT_TEST(init_dht)
 {
 	auto count_dht_inits = [](session& ses)
@@ -577,3 +578,5 @@ TORRENT_TEST(reopen_network_sockets)
 
 	TEST_CHECK(count_alerts(s, 2, 0));
 }
+#endif
+

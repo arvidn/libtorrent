@@ -157,7 +157,8 @@ TORRENT_TEST(session_stats)
 		});
 }
 
-
+// this test relies on picking up log alerts
+#ifndef TORRENT_DISABLE_LOGGING
 TORRENT_TEST(suggest)
 {
 	int num_suggests = 0;
@@ -197,6 +198,7 @@ TORRENT_TEST(suggest)
 	// time
 	TEST_CHECK(num_suggests > 0);
 }
+#endif
 
 TORRENT_TEST(utp_only)
 {
