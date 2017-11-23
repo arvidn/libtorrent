@@ -2715,7 +2715,9 @@ namespace libtorrent {
 		tracker_request req;
 		if (settings().get_bool(settings_pack::apply_ip_filter_to_trackers)
 			&& m_apply_ip_filter)
+		{
 			req.filter = m_ip_filter;
+		}
 
 		req.private_torrent = m_torrent_file->priv();
 
@@ -2808,147 +2810,147 @@ namespace libtorrent {
 				if (state.done) continue;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
-			{
-				debug_log("*** tracker: \"%s\" "
-					"[ tiers: %d trackers: %d"
-					" i->tier: %d tier: %d"
-					" working: %d limit: %d"
-					" can: %d sent: %d ]"
-					, ae.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
-					, settings().get_bool(settings_pack::announce_to_all_trackers)
-					, ae.tier, state.tier, aep.is_working(), ae.fail_limit
-					, aep.can_announce(now, is_seed(), ae.fail_limit), state.sent_announce);
-			}
+				if (should_log())
+				{
+					debug_log("*** tracker: \"%s\" "
+						"[ tiers: %d trackers: %d"
+						" i->tier: %d tier: %d"
+						" working: %d limit: %d"
+						" can: %d sent: %d ]"
+						, ae.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
+						, settings().get_bool(settings_pack::announce_to_all_trackers)
+						, ae.tier, state.tier, aep.is_working(), ae.fail_limit
+						, aep.can_announce(now, is_seed(), ae.fail_limit), state.sent_announce);
+				}
 #endif
 
-			if (settings().get_bool(settings_pack::announce_to_all_tiers)
-				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
-				&& state.sent_announce
-				&& ae.tier <= state.tier
-				&& state.tier != INT_MAX)
-				continue;
+				if (settings().get_bool(settings_pack::announce_to_all_tiers)
+					&& !settings().get_bool(settings_pack::announce_to_all_trackers)
+					&& state.sent_announce
+					&& ae.tier <= state.tier
+					&& state.tier != INT_MAX)
+					continue;
 
-			if (ae.tier > state.tier && state.sent_announce
-				&& !settings().get_bool(settings_pack::announce_to_all_tiers)) continue;
-			if (aep.is_working()) { state.tier = ae.tier; state.sent_announce = false; }
-			if (!aep.can_announce(now, is_seed(), ae.fail_limit))
-			{
-				// this counts
-				if (aep.is_working()) state.sent_announce = true;
-				continue;
-			}
-
-			req.event = e;
-			if (req.event == tracker_request::none)
-			{
-				if (!aep.start_sent) req.event = tracker_request::started;
-				else if (!aep.complete_sent && is_seed()) req.event = tracker_request::completed;
-			}
-
-			req.triggered_manually = aep.triggered_manually;
-			aep.triggered_manually = false;
-
-			if (settings().get_bool(settings_pack::force_proxy))
-			{
-				// in force_proxy mode we don't talk directly to trackers
-				// we only allow trackers if there is a proxy and issue
-				// a warning if there isn't one
-				std::string protocol = req.url.substr(0, req.url.find(':'));
-				int proxy_type = settings().get_int(settings_pack::proxy_type);
-
-				// http can run over any proxy, so as long as one is used
-				// it's OK. If no proxy is configured, skip this tracker
-				if ((protocol == "http" || protocol == "https")
-					&& proxy_type == settings_pack::none)
+				if (ae.tier > state.tier && state.sent_announce
+					&& !settings().get_bool(settings_pack::announce_to_all_tiers)) continue;
+				if (aep.is_working()) { state.tier = ae.tier; state.sent_announce = false; }
+				if (!aep.can_announce(now, is_seed(), ae.fail_limit))
 				{
-					aep.next_announce = now + minutes32(10);
-					if (m_ses.alerts().should_post<anonymous_mode_alert>()
-						|| req.triggered_manually)
-					{
-						m_ses.alerts().emplace_alert<anonymous_mode_alert>(get_handle()
-							, anonymous_mode_alert::tracker_not_anonymous, req.url);
-					}
+					// this counts
+					if (aep.is_working()) state.sent_announce = true;
 					continue;
 				}
 
-				// for UDP, only socks5 and i2p proxies will work.
-				// if we're not using one of those proxies with a UDP
-				// tracker, skip it
-				if (protocol == "udp"
-					&& proxy_type != settings_pack::socks5
-					&& proxy_type != settings_pack::socks5_pw
-					&& proxy_type != settings_pack::i2p_proxy)
+				req.event = e;
+				if (req.event == tracker_request::none)
 				{
-					aep.next_announce = now + minutes32(10);
-					if (m_ses.alerts().should_post<anonymous_mode_alert>()
-						|| req.triggered_manually)
-					{
-						m_ses.alerts().emplace_alert<anonymous_mode_alert>(get_handle()
-							, anonymous_mode_alert::tracker_not_anonymous, req.url);
-					}
-					continue;
+					if (!aep.start_sent) req.event = tracker_request::started;
+					else if (!aep.complete_sent && is_seed()) req.event = tracker_request::completed;
 				}
-			}
+
+				req.triggered_manually = aep.triggered_manually;
+				aep.triggered_manually = false;
+
+				if (settings().get_bool(settings_pack::force_proxy))
+				{
+					// in force_proxy mode we don't talk directly to trackers
+					// we only allow trackers if there is a proxy and issue
+					// a warning if there isn't one
+					std::string protocol = req.url.substr(0, req.url.find(':'));
+					int proxy_type = settings().get_int(settings_pack::proxy_type);
+
+					// http can run over any proxy, so as long as one is used
+					// it's OK. If no proxy is configured, skip this tracker
+					if ((protocol == "http" || protocol == "https")
+						&& proxy_type == settings_pack::none)
+					{
+						aep.next_announce = now + minutes32(10);
+						if (m_ses.alerts().should_post<anonymous_mode_alert>()
+							|| req.triggered_manually)
+						{
+							m_ses.alerts().emplace_alert<anonymous_mode_alert>(get_handle()
+								, anonymous_mode_alert::tracker_not_anonymous, req.url);
+						}
+						continue;
+					}
+
+					// for UDP, only socks5 and i2p proxies will work.
+					// if we're not using one of those proxies with a UDP
+					// tracker, skip it
+					if (protocol == "udp"
+						&& proxy_type != settings_pack::socks5
+						&& proxy_type != settings_pack::socks5_pw
+						&& proxy_type != settings_pack::i2p_proxy)
+					{
+						aep.next_announce = now + minutes32(10);
+						if (m_ses.alerts().should_post<anonymous_mode_alert>()
+							|| req.triggered_manually)
+						{
+							m_ses.alerts().emplace_alert<anonymous_mode_alert>(get_handle()
+								, anonymous_mode_alert::tracker_not_anonymous, req.url);
+						}
+						continue;
+					}
+				}
 
 #ifndef TORRENT_NO_DEPRECATE
-			req.auth = tracker_login();
+				req.auth = tracker_login();
 #endif
-			req.key = tracker_key();
+				req.key = tracker_key();
 
 #if TORRENT_USE_I2P
-			if (is_i2p())
-			{
-				req.kind |= tracker_request::i2p;
-			}
+				if (is_i2p())
+				{
+					req.kind |= tracker_request::i2p;
+				}
 #endif
 
-			req.outgoing_socket = aep.socket;
+				req.outgoing_socket = aep.socket;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d fails: %d upd: %d"
-				, req.url.c_str()
-				, (req.event == tracker_request::stopped ? "stopped"
-					: req.event == tracker_request::started ? "started" : "")
-				, m_abort
-				, aep.fails
-				, aep.updating);
+				debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d fails: %d upd: %d"
+					, req.url.c_str()
+					, (req.event == tracker_request::stopped ? "stopped"
+						: req.event == tracker_request::started ? "started" : "")
+					, m_abort
+					, aep.fails
+					, aep.updating);
 
-			// if we're not logging session logs, don't bother creating an
-			// observer object just for logging
-			if (m_abort && m_ses.should_log())
-			{
-				auto tl = std::make_shared<aux::tracker_logger>(m_ses);
-				m_ses.queue_tracker_request(req, tl);
-			}
-			else
+				// if we're not logging session logs, don't bother creating an
+				// observer object just for logging
+				if (m_abort && m_ses.should_log())
+				{
+					auto tl = std::make_shared<aux::tracker_logger>(m_ses);
+					m_ses.queue_tracker_request(req, tl);
+				}
+				else
 #endif
-			{
-				m_ses.queue_tracker_request(req, shared_from_this());
+				{
+					m_ses.queue_tracker_request(req, shared_from_this());
+				}
+
+				aep.updating = true;
+				aep.next_announce = now;
+				aep.min_announce = now;
+
+				if (m_ses.alerts().should_post<tracker_announce_alert>())
+				{
+					m_ses.alerts().emplace_alert<tracker_announce_alert>(
+						get_handle(), aep.local_endpoint, req.url, req.event);
+				}
+
+				state.sent_announce = true;
+				if (aep.is_working()
+					&& !settings().get_bool(settings_pack::announce_to_all_trackers)
+					&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+				{
+					state.done = true;
+				}
 			}
 
-			aep.updating = true;
-			aep.next_announce = now;
-			aep.min_announce = now;
-
-			if (m_ses.alerts().should_post<tracker_announce_alert>())
-			{
-				m_ses.alerts().emplace_alert<tracker_announce_alert>(
-					get_handle(), aep.local_endpoint, req.url, req.event);
-			}
-
-			state.sent_announce = true;
-			if (aep.is_working()
-				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
-				&& !settings().get_bool(settings_pack::announce_to_all_tiers))
-			{
-				state.done = true;
-			}
-		}
-
-		if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
-			, [](announce_state const& s) { return s.done; }))
-			break;
+			if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
+				, [](announce_state const& s) { return s.done; }))
+				break;
 		}
 		update_tracker_timer(now);
 	}
