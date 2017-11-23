@@ -91,6 +91,7 @@ void run_fake_peer_test(
 	sim.run();
 }
 
+#ifndef TORRENT_DISABLE_LOGGING
 // make sure we consistently send the same allow-fast pieces, regardless
 // of which pieces the peer has.
 TORRENT_TEST(allow_fast)
@@ -204,3 +205,7 @@ TORRENT_TEST(allow_fast_stress)
 		, int(allowed_fast.size()), num_pieces - 1);
 	TEST_CHECK(int(allowed_fast.size()) < num_pieces / 80);
 }
+#else
+TORRENT_TEST(dummy) {}
+#endif
+

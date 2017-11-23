@@ -617,6 +617,7 @@ TORRENT_TEST(tracker_proxy)
 	test_proxy(true);
 }
 
+#ifndef TORRENT_DISABLE_LOGGING
 void test_stop_tracker_timeout(bool nostop)
 {
 	// trick the min interval so that the stopped anounce is permitted immediately
@@ -705,3 +706,5 @@ TORRENT_TEST(stop_tracker_timeout)
 	std::printf("\n\nexpect to NOT get a request with &event=stopped\n\n");
 	test_stop_tracker_timeout(true);
 }
+#endif
+
