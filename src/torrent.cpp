@@ -2745,7 +2745,6 @@ namespace libtorrent {
 			&& m_torrent_file
 			&& m_torrent_file->priv())
 		{
-
 			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s)
 			{
 				if (s.is_ssl() != is_ssl_torrent())
@@ -3158,28 +3157,10 @@ namespace libtorrent {
 					"external ip: %s\n"
 					"resolved to: %s\n"
 					"we connected to: %s\n"
-					"peers:"
 				, interval.count()
 				, print_address(resp.external_ip).c_str()
 				, resolved_to.c_str()
 				, print_address(tracker_ip).c_str());
-
-			for (auto const& i : resp.peers)
-			{
-				debug_log("  %16s %5d %s %s", i.hostname.c_str(), i.port
-					, i.pid.is_all_zeros()?"":aux::to_hex(i.pid).c_str()
-					, identify_client(i.pid).c_str());
-			}
-			for (auto const& i : resp.peers4)
-			{
-				debug_log("  %s:%d", print_address(address_v4(i.ip)).c_str(), i.port);
-			}
-#if TORRENT_USE_IPV6
-			for (auto const& i : resp.peers6)
-			{
-				debug_log("  [%s]:%d", print_address(address_v6(i.ip)).c_str(), i.port);
-			}
-#endif
 		}
 #else
 		TORRENT_UNUSED(tracker_ips);

@@ -323,25 +323,30 @@ void test_ipv6_support(char const* listen_interfaces
 	int v4_announces = 0;
 	int v6_announces = 0;
 
+	// if we're not listening we'll just report port 0
+	std::string const expect_port = (listen_interfaces && listen_interfaces == ""_sv)
+		? "&port=0" : "&port=6881";
+
 	http_v4.register_handler("/announce"
-	, [&v4_announces](std::string method, std::string req
+	, [&v4_announces,expect_port](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		++v4_announces;
 		TEST_EQUAL(method, "GET");
-
+		TEST_CHECK(req.find(expect_port) != std::string::npos);
 		char response[500];
 		int const size = std::snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
 		return sim::send_response(200, "OK", size) + response;
 	});
 
 	http_v6.register_handler("/announce"
-	, [&v6_announces](std::string method, std::string req
+	, [&v6_announces,expect_port](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		++v6_announces;
 		TEST_EQUAL(method, "GET");
 
+		TEST_CHECK(req.find(expect_port) != std::string::npos);
 		char response[500];
 		int const size = std::snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
 		return sim::send_response(200, "OK", size) + response;

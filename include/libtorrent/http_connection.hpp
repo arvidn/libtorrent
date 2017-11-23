@@ -33,11 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_CONNECTION
 #define TORRENT_HTTP_CONNECTION
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/noncopyable.hpp>
-#include <boost/optional.hpp>
-
 #ifdef TORRENT_USE_OPENSSL
 // there is no forward declaration header for asio
 namespace boost {
@@ -48,8 +43,6 @@ namespace ssl {
 }
 }
 #endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <functional>
 #include <vector>
@@ -64,6 +57,7 @@ namespace ssl {
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/optional.hpp"
 
 namespace libtorrent {
 
@@ -83,7 +77,6 @@ typedef std::function<void(http_connection&, std::vector<tcp::endpoint>&)> http_
 // will always be 0
 struct TORRENT_EXTRA_EXPORT http_connection
 	: std::enable_shared_from_this<http_connection>
-	, boost::noncopyable
 {
 	http_connection(io_service& ios
 		, resolver_interface& resolver
@@ -96,6 +89,10 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, ssl::context* ssl_ctx = nullptr
 #endif
 		);
+
+	// non-copyable
+	http_connection(http_connection const&) = delete;
+	http_connection& operator=(http_connection const&) = delete;
 
 	virtual ~http_connection();
 
@@ -195,7 +192,7 @@ private:
 	// configured to use a proxy
 	aux::proxy_settings m_proxy;
 
-	// the address to bind to
+	// the address to bind to. unset means do not bind
 	boost::optional<address> m_bind_addr;
 
 	// if username password was passed in, remember it in case we need to

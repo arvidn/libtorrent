@@ -78,6 +78,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix IPv6 tracker announce issue
 	* restore path sanitization behavior of ":"
 	* fix listen socket issue when disabling "force_proxy" mode
 	* fix full allocation failure on APFS

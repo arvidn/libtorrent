@@ -140,7 +140,7 @@ struct dht_node final : lt::dht::socket_manager
 		// since the simulation is single threaded, we can get away with just
 		// allocating a single of these
 		static bdecode_node msg;
-		int ret = bdecode(m_buffer, m_buffer + bytes_transferred, msg, err, &pos, 10, 500);
+		int const ret = bdecode(m_buffer, m_buffer + bytes_transferred, msg, err, &pos, 10, 500);
 		if (ret != 0) return;
 
 		if (msg.type() != bdecode_node::dict_t) return;
