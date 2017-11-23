@@ -193,7 +193,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_FALLOCATE 0
 
 #define TORRENT_USE_IFADDRS 1
+#include <TargetConditionals.h>
+#if TARGET_OS_IPHONE == 1
+#define TORRENT_USE_SYSCTL 0
+#else
 #define TORRENT_USE_SYSCTL 1
+#endif
 #define TORRENT_USE_IFCONF 1
 
 
