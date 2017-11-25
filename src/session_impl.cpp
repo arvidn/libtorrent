@@ -1134,8 +1134,6 @@ namespace {
 		}
 #endif
 
-		if (m_key) req.key = m_key;
-
 #ifdef TORRENT_USE_OPENSSL
 		bool use_ssl = req.ssl_ctx != nullptr;
 		req.ssl_ctx = &m_ssl_ctx;
@@ -1144,22 +1142,34 @@ namespace {
 		if (req.outgoing_socket)
 		{
 			auto ls = req.outgoing_socket.get();
-			req.listen_port = listen_port(ls);
+
+			req.key ^= ls->tracker_key;
+
+			req.listen_port =
 #ifdef TORRENT_USE_OPENSSL
 			// SSL torrents use the SSL listen port
-			if (use_ssl) req.listen_port = ssl_listen_port(ls);
+				use_ssl ? ssl_listen_port(ls) :
 #endif
+				listen_port(ls);
 			m_tracker_manager.queue_request(get_io_service(), req, c);
 		}
 		else
 		{
 			for (auto& ls : m_listen_sockets)
 			{
-				req.listen_port = listen_port(ls.get());
+#ifdef TORRENT_USE_OPENSSL
+				if ((ls->ssl == transport::ssl) != use_ssl) continue;
+#endif
+				req.listen_port =
 #ifdef TORRENT_USE_OPENSSL
 				// SSL torrents use the SSL listen port
-				if (use_ssl) req.listen_port = ssl_listen_port(ls.get());
+					use_ssl ? ssl_listen_port(ls.get()) :
 #endif
+					listen_port(ls.get());
+
+				// we combine the per-torrent key with the per-interface key to make
+				// them consistent and uniqiue per torrent and interface
+				req.key ^= ls->tracker_key;
 				req.outgoing_socket = ls;
 				m_tracker_manager.queue_request(get_io_service(), req, c);
 			}
@@ -1384,6 +1394,25 @@ namespace {
 			reopen_outgoing_sockets();
 	}
 
+	std::uint32_t session_impl::get_tracker_key(address const& iface) const
+	{
+		uintptr_t const ses = reinterpret_cast<uintptr_t>(this);
+		hasher h(reinterpret_cast<char const*>(&ses), sizeof(ses));
+		if (iface.is_v4())
+		{
+			auto const b = iface.to_v4().to_bytes();
+			h.update({reinterpret_cast<char const*>(b.data()), b.size()});
+		}
+		else
+		{
+			auto const b = iface.to_v6().to_bytes();
+			h.update({reinterpret_cast<char const*>(b.data()), b.size()});
+		}
+		sha1_hash const hash = h.final();
+		unsigned char const* ptr = &hash[0];
+		return detail::read_uint32(ptr);
+	}
+
 	std::shared_ptr<listen_socket_t> session_impl::setup_listener(
 		listen_endpoint_t const& lep, error_code& ec)
 	{
@@ -1591,6 +1620,8 @@ namespace {
 				}
 				return ret;
 			}
+			ret->tracker_key = get_tracker_key(ret->local_endpoint.address());
+
 			ret->tcp_external_port = ret->local_endpoint.port();
 			TORRENT_ASSERT(ret->tcp_external_port == bind_ep.port()
 				|| bind_ep.port() == 0);
@@ -3004,11 +3035,6 @@ namespace {
 	void session_impl::set_peer_id(peer_id const& id)
 	{
 		m_peer_id = id;
-	}
-
-	void session_impl::set_key(std::uint32_t key)
-	{
-		m_key = key;
 	}
 
 	int session_impl::next_port() const
@@ -5394,6 +5420,8 @@ namespace {
 		}
 	}
 
+	// TODO: 2 this function should be removed and users need to deal with the
+	// more generic case of having multiple listen ports
 	std::uint16_t session_impl::listen_port() const
 	{
 		return listen_port(nullptr);

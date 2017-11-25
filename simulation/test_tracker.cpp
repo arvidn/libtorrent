@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/torrent_info.hpp"
 
+#include <iostream>
+
 using namespace lt;
 using namespace sim;
 
@@ -987,6 +989,30 @@ TORRENT_TEST(tracker_ipv6_argument)
 		, [](torrent_handle) {});
 	TEST_EQUAL(got_announce, true);
 	TEST_EQUAL(got_ipv6, true);
+}
+
+TORRENT_TEST(tracker_key_argument)
+{
+	std::set<std::string> keys;
+	tracker_test(
+		[](lt::add_torrent_params& p, lt::session& ses)
+		{
+			p.ti = make_torrent(true);
+			return 60;
+		},
+		[&](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			auto const pos = req.find("&key=");
+			TEST_CHECK(pos != std::string::npos);
+			keys.insert(req.substr(pos + 5, req.find_first_of('&', pos + 5) - pos - 5));
+			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
+		}
+		, [](torrent_handle h) {}
+		, [](torrent_handle h) {});
+
+	// make sure we got two separate keys, one for each listen socket interface
+	TEST_EQUAL(keys.size(), 2);
 }
 
 // make sure we do _not_ send our IPv6 address to trackers for non-private
