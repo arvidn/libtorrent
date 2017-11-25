@@ -1,4 +1,5 @@
 
+	* fix issue with receiving interested before metadata
 	* fix IPv6 tracker announce issue
 	* restore path sanitization behavior of ":"
 	* fix listen socket issue when disabling "force_proxy" mode
