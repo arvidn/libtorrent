@@ -44,7 +44,6 @@ test_programs = \
   test_remap_files           \
   test_enum_net              \
   test_file_progress         \
-  test_linked_list           \
   test_direct_dht            \
   test_ffs                   \
   test_session_params        \
@@ -244,7 +243,6 @@ test_web_seed_socks5_pw_SOURCES = test_web_seed_socks5_pw.cpp
 test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
 test_file_progress_SOURCES = test_file_progress.cpp
-test_linked_list_SOURCES = test_linked_list.cpp
 test_direct_dht_SOURCES = test_direct_dht.cpp
 test_ffs_SOURCES = test_ffs.cpp
 test_session_params_SOURCES = test_session_params.cpp
