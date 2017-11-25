@@ -73,7 +73,6 @@ category_mapping = {
 	'add_torrent_params.hpp': 'Core',
 	'session_status.hpp': 'Core',
 	'error_code.hpp': 'Error Codes',
-	'storage.hpp': 'Custom Storage',
 	'storage_defs.hpp': 'Storage',
 	'file_storage.hpp': 'Storage',
 	'extensions.hpp': 'Plugins',

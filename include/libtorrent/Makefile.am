@@ -73,7 +73,6 @@ nobase_include_HEADERS = \
   ip_voter.hpp                 \
   lazy_entry.hpp               \
   link.hpp                     \
-  linked_list.hpp              \
   lsd.hpp                      \
   magnet_uri.hpp               \
   natpmp.hpp                   \
