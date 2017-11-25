@@ -802,16 +802,18 @@ namespace {
 		p.set_str(settings_pack::peer_fingerprint, id.to_string());
 		apply_settings(std::move(p));
 	}
+
+	void session_handle::set_key(std::uint32_t)
+	{
+		// this is just a dummy function now, as we generate the key automatically
+		// per listen interface
+	}
+
 #endif
 
 	peer_id session_handle::id() const
 	{
 		return sync_call_ret<peer_id>(&session_impl::get_peer_id);
-	}
-
-	void session_handle::set_key(std::uint32_t key)
-	{
-		async_call(&session_impl::set_key, key);
 	}
 
 	unsigned short session_handle::listen_port() const

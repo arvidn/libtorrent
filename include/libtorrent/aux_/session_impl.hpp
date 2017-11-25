@@ -198,6 +198,10 @@ namespace aux {
 		// which alias the listen_socket_t shared_ptr
 		std::shared_ptr<tcp::acceptor> sock;
 		std::shared_ptr<aux::session_udp_socket> udp_sock;
+
+		// the key is an id that is used to identify the
+		// client with the tracker only.
+		std::uint32_t tracker_key = 0;
 	};
 
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
@@ -583,6 +587,8 @@ namespace aux {
 			std::uint16_t ssl_listen_port() const override;
 			std::uint16_t ssl_listen_port(listen_socket_t* sock) const;
 
+			std::uint32_t get_tracker_key(address const& iface) const;
+
 			void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) override
 			{
 				for (auto& s : m_listen_sockets)
@@ -905,11 +911,6 @@ namespace aux {
 
 			// the peer id that is generated at the start of the session
 			peer_id m_peer_id;
-
-			// the key is an id that is used to identify the
-			// client with the tracker only. It is randomized
-			// at startup
-			std::uint32_t m_key = 0;
 
 			// posts a notification when the set of local IPs changes
 			std::unique_ptr<ip_change_notifier> m_ip_notifier;
