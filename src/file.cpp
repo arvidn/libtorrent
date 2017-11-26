@@ -727,7 +727,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				ec.assign(GetLastError(), system_category());
 				return false;
 			}
-			if (!(m_open_mode & open_mode::sparse))
+			if (!(m_open_mode & aux::open_mode::sparse))
 			{
 				// if the user has permissions, avoid filling
 				// the file with zeroes, but just fill it with
