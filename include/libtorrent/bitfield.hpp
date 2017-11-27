@@ -65,7 +65,7 @@ namespace libtorrent {
 
 		// copy bitfield from buffer ``b`` of ``bits`` number of bits, rounded up to
 		// the nearest byte boundary.
-		void assign(char const* b, int bits)
+		void assign(char const* b, int const bits)
 		{
 			resize(bits);
 			if (bits > 0)
@@ -119,7 +119,9 @@ namespace libtorrent {
 		// returns the size of the bitfield in bits.
 		int size() const
 		{
-			return m_buf == nullptr ? 0 : int(m_buf[0]);
+			int const bits = m_buf == nullptr ? 0 : int(m_buf[0]);
+			TORRENT_ASSERT(bits >= 0);
+			return bits;
 		}
 
 		int num_words() const
