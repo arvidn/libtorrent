@@ -1,4 +1,5 @@
 
+	* fix i2p support
 	* fix loading resume data when in seed mode
 	* fix part-file creation race condition
 	* fix issue with initializing settings on session construction
