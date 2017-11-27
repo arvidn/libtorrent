@@ -495,11 +495,10 @@ void http_connection::connect_i2p_tracker(char const* destination)
 {
 #ifdef TORRENT_USE_OPENSSL
 	TORRENT_ASSERT(m_ssl == false);
-	TORRENT_ASSERT(m_sock.get<socket_type>());
-	TORRENT_ASSERT(m_sock.get<socket_type>()->get<i2p_stream>());
-	m_sock.get<socket_type>()->get<i2p_stream>()->set_destination(destination);
-	m_sock.get<socket_type>()->get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
-	m_sock.get<socket_type>()->get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
+	TORRENT_ASSERT(m_sock.get<i2p_stream>());
+	m_sock.get<i2p_stream>()->set_destination(destination);
+	m_sock.get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
+	m_sock.get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
 #else
 	m_sock.get<i2p_stream>()->set_destination(destination);
 	m_sock.get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
@@ -508,6 +507,8 @@ void http_connection::connect_i2p_tracker(char const* destination)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_connect");
 #endif
+	TORRENT_ASSERT(!m_connecting);
+	m_connecting = true;
 	m_sock.async_connect(tcp::endpoint(), boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }
