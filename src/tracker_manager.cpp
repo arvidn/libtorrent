@@ -77,7 +77,7 @@ namespace libtorrent {
 		{
 			timeout = timeout == 0
 				? m_completion_timeout
-				: (std::min)(m_completion_timeout, timeout);
+				: std::min(m_completion_timeout, timeout);
 		}
 
 		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
@@ -132,7 +132,7 @@ namespace libtorrent {
 		{
 			timeout = timeout == 0
 				? int(m_completion_timeout - total_seconds(m_read_time - m_start_time))
-				: (std::min)(int(m_completion_timeout - total_seconds(m_read_time - m_start_time)), timeout);
+				: std::min(int(m_completion_timeout - total_seconds(m_read_time - m_start_time)), timeout);
 		}
 		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
 		error_code ec;
@@ -169,10 +169,10 @@ namespace libtorrent {
 	}
 
 	void tracker_connection::fail_impl(error_code const& ec, int code
-		, std::string msg, seconds32 const interval, seconds32 const min_interval)
+		, std::string const msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		std::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_error(m_req, code, ec, msg.c_str()
+		if (cb) cb->tracker_request_error(m_req, code, ec, msg
 			, interval.count() == 0 ? min_interval : interval);
 		close();
 	}

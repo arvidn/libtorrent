@@ -938,7 +938,7 @@ namespace {
 		// hash the info-field to calculate info-hash
 		auto section = info.data_section();
 		m_info_hash = hasher(section).final();
-		if (info.data_section().size() >= (std::numeric_limits<std::uint32_t>::max)())
+		if (info.data_section().size() >= std::numeric_limits<std::uint32_t>::max())
 		{
 			ec = errors::metadata_too_large;
 			return false;
@@ -1035,7 +1035,7 @@ namespace {
 		// extra addition
 
 		if (files.total_size() >=
-			static_cast<boost::int64_t>(std::numeric_limits<int>::max()
+			static_cast<std::int64_t>(std::numeric_limits<int>::max()
 			- files.piece_length()) * files.piece_length())
 		{
 			ec = errors::too_many_pieces_in_torrent;
@@ -1127,8 +1127,8 @@ namespace {
 
 				if (str.type() != bdecode_node::string_t) continue;
 
-				m_collections.push_back(std::make_pair(str.string_ptr()
-					+ info_ptr_diff, str.string_length()));
+				m_collections.emplace_back(str.string_ptr()
+					+ info_ptr_diff, str.string_length());
 			}
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -1274,8 +1274,8 @@ namespace {
 				if (similar.list_at(i).string_length() != 20)
 					continue;
 
-				m_owned_similar_torrents.push_back(
-					sha1_hash(similar.list_at(i).string_ptr()));
+				m_owned_similar_torrents.emplace_back(
+					similar.list_at(i).string_ptr());
 			}
 		}
 
@@ -1288,8 +1288,8 @@ namespace {
 
 				if (str.type() != bdecode_node::string_t) continue;
 
-				m_owned_collections.push_back(std::string(str.string_ptr()
-					, aux::numeric_cast<std::size_t>(str.string_length())));
+				m_owned_collections.emplace_back(str.string_ptr()
+					, aux::numeric_cast<std::size_t>(str.string_length()));
 			}
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -1321,7 +1321,7 @@ namespace {
 			if (!m_urls.empty())
 			{
 				// shuffle each tier
-				std::vector<announce_entry>::iterator start = m_urls.begin();
+				auto start = m_urls.begin();
 				std::vector<announce_entry>::iterator stop;
 				int current_tier = m_urls.front().tier;
 				for (stop = m_urls.begin(); stop != m_urls.end(); ++stop)
@@ -1360,9 +1360,9 @@ namespace {
 					|| n.list_at(0).type() != bdecode_node::string_t
 					|| n.list_at(1).type() != bdecode_node::int_t)
 					continue;
-				m_nodes.push_back(std::make_pair(
+				m_nodes.emplace_back(
 					n.list_at(0).string_value().to_string()
-					, int(n.list_at(1).int_value())));
+					, int(n.list_at(1).int_value()));
 			}
 		}
 
@@ -1407,8 +1407,8 @@ namespace {
 		if (http_seeds && http_seeds.type() == bdecode_node::string_t
 			&& http_seeds.string_length() > 0)
 		{
-			m_web_seeds.push_back(web_seed_entry(maybe_url_encode(http_seeds.string_value().to_string())
-				, web_seed_entry::http_seed));
+			m_web_seeds.emplace_back(maybe_url_encode(http_seeds.string_value().to_string())
+				, web_seed_entry::http_seed);
 		}
 		else if (http_seeds && http_seeds.type() == bdecode_node::list_t)
 		{
@@ -1420,7 +1420,7 @@ namespace {
 				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
 				std::string const u = maybe_url_encode(url.string_value().to_string());
 				if (!unique.insert(u).second) continue;
-				m_web_seeds.push_back(web_seed_entry(u, web_seed_entry::http_seed));
+				m_web_seeds.emplace_back(u, web_seed_entry::http_seed);
 			}
 		}
 
@@ -1435,9 +1435,9 @@ namespace {
 		return true;
 	}
 
-	void torrent_info::add_tracker(std::string const& url, int tier)
+	void torrent_info::add_tracker(std::string const& url, int const tier)
 	{
-		auto i = std::find_if(m_urls.begin(), m_urls.end()
+		auto const i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.url == url; });
 		if (i != m_urls.end()) return;
 
@@ -1493,21 +1493,21 @@ namespace {
 		, std::string const& ext_auth
 		, web_seed_entry::headers_t const& ext_headers)
 	{
-		m_web_seeds.push_back(web_seed_entry(url, web_seed_entry::url_seed
-			, ext_auth, ext_headers));
+		m_web_seeds.emplace_back(url, web_seed_entry::url_seed
+			, ext_auth, ext_headers);
 	}
 
 	void torrent_info::add_http_seed(std::string const& url
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers)
 	{
-		m_web_seeds.push_back(web_seed_entry(url, web_seed_entry::http_seed
-			, auth, extra_headers));
+		m_web_seeds.emplace_back(url, web_seed_entry::http_seed
+			, auth, extra_headers);
 	}
 
 	void torrent_info::set_web_seeds(std::vector<web_seed_entry> seeds)
 	{
-		m_web_seeds = seeds;
+		m_web_seeds = std::move(seeds);
 	}
 
 	std::vector<sha1_hash> torrent_info::similar_torrents() const
@@ -1517,7 +1517,7 @@ namespace {
 		ret.reserve(m_similar_torrents.size() + m_owned_similar_torrents.size());
 
 		for (auto const& st : m_similar_torrents)
-			ret.push_back(sha1_hash(st));
+			ret.emplace_back(st);
 
 		for (auto const& st : m_owned_similar_torrents)
 			ret.push_back(st);
@@ -1533,7 +1533,7 @@ namespace {
 		ret.reserve(m_collections.size() + m_owned_collections.size());
 
 		for (auto const& c : m_collections)
-			ret.push_back(std::string(c.first, aux::numeric_cast<std::size_t>(c.second)));
+			ret.emplace_back(c.first, aux::numeric_cast<std::size_t>(c.second));
 
 		for (auto const& c : m_owned_collections)
 			ret.push_back(c);
