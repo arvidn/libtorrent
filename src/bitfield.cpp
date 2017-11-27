@@ -129,7 +129,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	void bitfield::resize(int bits, bool val)
+	void bitfield::resize(int const bits, bool const val)
 	{
 		if (bits == size()) return;
 
