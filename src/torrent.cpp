@@ -1998,84 +1998,83 @@ namespace libtorrent
 		if (m_seed_mode)
 		{
 			m_have_all = true;
-			m_ses.get_io_service().post(boost::bind(&torrent::files_checked, shared_from_this()));
-			m_resume_data.reset();
 			update_gauge();
 			update_state_list();
-			return;
+		}
+		else
+		{
+			int num_pad_files = 0;
+			TORRENT_ASSERT(block_size() > 0);
+			file_storage const& fs = m_torrent_file->files();
+			for (int i = 0; i < fs.num_files(); ++i)
+			{
+				if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
+
+				if (fs.pad_file_at(i)) ++num_pad_files;
+
+				m_padding += boost::uint32_t(fs.file_size(i));
+
+				// TODO: instead of creating the picker up front here,
+				// maybe this whole section should move to need_picker()
+				need_picker();
+
+				peer_request pr = m_torrent_file->map_file(i, 0, fs.file_size(i));
+				int off = pr.start & (block_size()-1);
+				if (off != 0) { pr.length -= block_size() - off; pr.start += block_size() - off; }
+				TORRENT_ASSERT((pr.start & (block_size()-1)) == 0);
+
+				int block = block_size();
+				int blocks_per_piece = m_torrent_file->piece_length() / block;
+				piece_block pb(pr.piece, pr.start / block);
+				for (; pr.length >= block; pr.length -= block, ++pb.block_index)
+				{
+					if (int(pb.block_index) == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
+					m_picker->mark_as_finished(pb, 0);
+				}
+				// ugly edge case where padfiles are not used they way they're
+				// supposed to be. i.e. added back-to back or at the end
+				if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
+				if (pr.length > 0 && ((i+1 != fs.num_files() && fs.pad_file_at(i+1))
+					|| i + 1 == fs.num_files()))
+				{
+					m_picker->mark_as_finished(pb, 0);
+				}
+			}
+
+			if (m_padding > 0)
+			{
+				// if we marked an entire piece as finished, we actually
+				// need to consider it finished
+
+				std::vector<piece_picker::downloading_piece> dq
+					= m_picker->get_download_queue();
+
+				std::vector<int> have_pieces;
+
+				for (std::vector<piece_picker::downloading_piece>::const_iterator i
+					= dq.begin(); i != dq.end(); ++i)
+				{
+					int num_blocks = m_picker->blocks_in_piece(i->index);
+					if (i->finished < num_blocks) continue;
+					have_pieces.push_back(i->index);
+				}
+
+				for (std::vector<int>::iterator i = have_pieces.begin();
+					i != have_pieces.end(); ++i)
+				{
+					picker().piece_passed(*i);
+					TORRENT_ASSERT(picker().have_piece(*i));
+					we_have(*i);
+				}
+			}
+
+			if (!need_loaded()) return;
+
+			if (num_pad_files > 0)
+				m_picker->set_num_pad_files(num_pad_files);
 		}
 
 		set_state(torrent_status::checking_resume_data);
-
-		int num_pad_files = 0;
-		TORRENT_ASSERT(block_size() > 0);
-		file_storage const& fs = m_torrent_file->files();
-		for (int i = 0; i < fs.num_files(); ++i)
-		{
-			if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
-
-			if (fs.pad_file_at(i)) ++num_pad_files;
-
-			m_padding += boost::uint32_t(fs.file_size(i));
-
-			// TODO: instead of creating the picker up front here,
-			// maybe this whole section should move to need_picker()
-			need_picker();
-
-			peer_request pr = m_torrent_file->map_file(i, 0, fs.file_size(i));
-			int off = pr.start & (block_size()-1);
-			if (off != 0) { pr.length -= block_size() - off; pr.start += block_size() - off; }
-			TORRENT_ASSERT((pr.start & (block_size()-1)) == 0);
-
-			int block = block_size();
-			int blocks_per_piece = m_torrent_file->piece_length() / block;
-			piece_block pb(pr.piece, pr.start / block);
-			for (; pr.length >= block; pr.length -= block, ++pb.block_index)
-			{
-				if (int(pb.block_index) == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
-				m_picker->mark_as_finished(pb, 0);
-			}
-			// ugly edge case where padfiles are not used they way they're
-			// supposed to be. i.e. added back-to back or at the end
-			if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
-			if (pr.length > 0 && ((i+1 != fs.num_files() && fs.pad_file_at(i+1))
-				|| i + 1 == fs.num_files()))
-			{
-				m_picker->mark_as_finished(pb, 0);
-			}
-		}
-
-		if (m_padding > 0)
-		{
-			// if we marked an entire piece as finished, we actually
-			// need to consider it finished
-
-			std::vector<piece_picker::downloading_piece> dq
-				= m_picker->get_download_queue();
-
-			std::vector<int> have_pieces;
-
-			for (std::vector<piece_picker::downloading_piece>::const_iterator i
-				= dq.begin(); i != dq.end(); ++i)
-			{
-				int num_blocks = m_picker->blocks_in_piece(i->index);
-				if (i->finished < num_blocks) continue;
-				have_pieces.push_back(i->index);
-			}
-
-			for (std::vector<int>::iterator i = have_pieces.begin();
-				i != have_pieces.end(); ++i)
-			{
-				picker().piece_passed(*i);
-				TORRENT_ASSERT(picker().have_piece(*i));
-				we_have(*i);
-			}
-		}
-
-		if (!need_loaded()) return;
-
-		if (num_pad_files > 0)
-			m_picker->set_num_pad_files(num_pad_files);
 
 		std::vector<std::string> links;
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -2350,7 +2349,7 @@ namespace libtorrent
 		// want anything in this function to affect the state of
 		// m_need_save_resume_data, so we save it in a local variable and reset
 		// it at the end of the function.
-		bool need_save_resume_data = m_need_save_resume_data;
+		bool const need_save_resume_data = m_need_save_resume_data;
 
 		dec_refcount("check_fastresume");
 		TORRENT_ASSERT(is_single_thread());
@@ -2497,7 +2496,14 @@ namespace libtorrent
 		// that when the resume data check fails. For instance, if the resume data
 		// is incorrect, but we don't have any files, we skip the check and initialize
 		// the storage to not have anything.
-		if (j->ret == 0)
+		if (m_seed_mode)
+		{
+			m_have_all = true;
+			files_checked();
+			update_gauge();
+			update_state_list();
+		}
+		else if (j->ret == 0)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
