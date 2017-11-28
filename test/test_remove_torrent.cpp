@@ -118,12 +118,13 @@ void test_remove_torrent(int const remove_options
 		if (st2.is_finished) break;
 
 		TEST_CHECK(st1.state == torrent_status::seeding
+			|| st1.state == torrent_status::checking_resume_data
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);
 
-		// if nothing is being transferred after 2 seconds, we're failing the test
-		if (st1.upload_payload_rate == 0 && i > 20)
+		// if nothing is being transferred after 3 seconds, we're failing the test
+		if (st1.upload_payload_rate == 0 && i > 30)
 		{
 			TEST_ERROR("no transfer");
 			return;

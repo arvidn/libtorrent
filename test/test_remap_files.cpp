@@ -173,6 +173,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 		}
 
 		TEST_CHECK(st1.state == torrent_status::seeding
+			|| st1.state == torrent_status::checking_resume_data
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);
@@ -317,6 +318,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 		}
 
 		TEST_CHECK(st1.state == torrent_status::seeding
+			|| st1.state == torrent_status::checking_resume_data
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);

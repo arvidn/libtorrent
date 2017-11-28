@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/peer_info.hpp"
 
 #include <boost/make_shared.hpp>
 
@@ -186,10 +187,15 @@ void default_tests(torrent_status const& s)
 	TEST_CHECK(s.time_since_upload < 1351 + 10);
 	TEST_CHECK(s.active_time < 1339 + 10);
 
-	TEST_EQUAL(s.finished_time, 1352);
-	TEST_EQUAL(s.seeding_time, 1340);
-	TEST_EQUAL(s.added_time, 1347);
-	TEST_EQUAL(s.completed_time, 1348);
+	TEST_CHECK(s.finished_time >= 1352);
+	TEST_CHECK(s.seeding_time >= 1340);
+	TEST_CHECK(s.added_time >= 1347);
+	TEST_CHECK(s.completed_time >= 1348);
+
+	TEST_CHECK(s.finished_time < 1352 + 5);
+	TEST_CHECK(s.seeding_time < 1340 + 5);
+	TEST_CHECK(s.added_time < 1347 + 5);
+	TEST_CHECK(s.completed_time < 1348 + 5);
 }
 
 void test_file_sizes(bool allocate)
@@ -492,6 +498,39 @@ TORRENT_TEST(seed_mode_piece_have)
 TORRENT_TEST(seed_mode_preserve)
 {
 	test_seed_mode(false, false, false);
+}
+
+TORRENT_TEST(seed_mode_load_peers)
+{
+	lt::session ses(settings());
+	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+
+	entry rd;
+
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = ti->info_hash().to_string();
+	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
+
+	rd["pieces"] = std::string(ti->num_pieces(), '\x01');
+	rd["piece_priority"] = std::string(ti->num_pieces(), '\x01');
+	rd["seed_mode"] = 1;
+	rd["peers"] = "\x01\x02\x03\x04\x30\x39";
+
+	bencode(back_inserter(p.resume_data), rd);
+
+	torrent_handle h = ses.add_torrent(p);
+
+	wait_for_alert(ses, torrent_checked_alert::alert_type, "seed_mode_load_peers");
+
+	std::vector<peer_list_entry> peers;
+	h.get_full_peer_list(peers);
+
+	TEST_EQUAL(peers.size(), 1);
+	TEST_CHECK(peers[0].ip == tcp::endpoint(address::from_string("1.2.3.4"), 12345));
 }
 
 TORRENT_TEST(resume_save_load)

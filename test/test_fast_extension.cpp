@@ -441,10 +441,7 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	if (th) *th = ret;
 
 	// wait for the torrent to be ready
-	if ((flags & add_torrent_params::flag_seed_mode) == 0)
-	{
-		wait_for_downloading(*ses, "ses");
-	}
+	wait_for_downloading(*ses, "ses");
 
 	if (incoming)
 	{
