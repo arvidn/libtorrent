@@ -4,7 +4,8 @@ dist: trusty
 matrix:
   fast_finish: true
   include:
-    - env: variant=release sonar_scan=1 toolset=gcc
+    - if: repo = arvidn/libtorrent
+      env: variant=release sonar_scan=1 toolset=gcc
     - env: variant=test_debug lint=1 tests=1 toolset=gcc-sanitizer
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
@@ -42,7 +43,6 @@ cache:
 addons:
   apt:
     sources:
-    - boost-latest
     - ubuntu-toolchain-r-test
     packages:
     - libboost1.55-all-dev
