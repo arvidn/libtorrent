@@ -137,14 +137,14 @@ namespace {
 				ec = bdecode_errors::expected_digit;
 				return start;
 			}
-			if (val > (std::numeric_limits<std::int64_t>::max)() / 10)
+			if (val > std::numeric_limits<std::int64_t>::max() / 10)
 			{
 				ec = bdecode_errors::overflow;
 				return start;
 			}
 			val *= 10;
 			int digit = *start - '0';
-			if (val > (std::numeric_limits<std::int64_t>::max)() - digit)
+			if (val > std::numeric_limits<std::int64_t>::max() - digit)
 			{
 				ec = bdecode_errors::overflow;
 				return start;
