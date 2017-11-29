@@ -154,7 +154,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(target.size() >= src.size());
 		TORRENT_ASSERT(target.size() < std::size_t(std::numeric_limits<int>::max()));
 
-		auto it = std::search(target.begin(), target.end(), src.begin(), src.end());
+		auto const it = std::search(target.begin(), target.end(), src.begin(), src.end());
 
 		// no complete sync
 		if (it == target.end()) return -1;
@@ -329,7 +329,7 @@ namespace libtorrent {
 
 			if (colon != std::string::npos && colon > start)
 			{
-				int port = atoi(in.substr(colon + 1, end - colon - 1).c_str());
+				int port = std::atoi(in.substr(colon + 1, end - colon - 1).c_str());
 
 				// skip trailing spaces
 				std::string::size_type soft_end = colon;
@@ -342,7 +342,7 @@ namespace libtorrent {
 				if (in[start] == '[') ++start;
 				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
 
-				out.push_back(std::make_pair(in.substr(start, soft_end - start), port));
+				out.emplace_back(in.substr(start, soft_end - start), port);
 			}
 
 			start = end + 1;
@@ -369,7 +369,7 @@ namespace libtorrent {
 			// skip trailing spaces
 			std::string::size_type soft_end = end;
 			while (soft_end > start
-				&& is_space(in[soft_end-1]))
+				&& is_space(in[soft_end - 1]))
 				--soft_end;
 
 			out.push_back(in.substr(start, soft_end - start));
@@ -420,8 +420,8 @@ namespace libtorrent {
 	std::size_t string_hash_no_case::operator()(std::string const& s) const
 	{
 		std::size_t ret = 5381;
-		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
-			ret = (ret * 33) ^ static_cast<std::size_t>(to_lower(*i));
+		for (auto const c : s)
+			ret = (ret * 33) ^ static_cast<std::size_t>(to_lower(c));
 		return ret;
 	}
 
@@ -429,8 +429,8 @@ namespace libtorrent {
 	{
 		if (lhs.size() != rhs.size()) return false;
 
-		std::string::const_iterator s1 = lhs.begin();
-		std::string::const_iterator s2 = rhs.begin();
+		auto s1 = lhs.cbegin();
+		auto s2 = rhs.cbegin();
 
 		while (s1 != lhs.end() && s2 != rhs.end())
 		{
