@@ -2474,7 +2474,7 @@ namespace libtorrent {
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
 		aux::allocation_slot m_msg_idx;
-		int const m_size;
+		std::size_t const m_size;
 #ifndef TORRENT_NO_DEPRECATE
 	public:
 		direction_t TORRENT_DEPRECATED_MEMBER dir;
