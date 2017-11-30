@@ -48,4 +48,3 @@ constexpr download_priority_t top_priority{7};
 }
 
 #endif
-
