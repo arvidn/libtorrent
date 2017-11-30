@@ -471,6 +471,28 @@ namespace libtorrent
 		}
 	}
 
+	void run_all_updates(aux::session_impl& ses)
+	{
+		typedef void (aux::session_impl::*fun_t)();
+		for (int i = 0; i < settings_pack::num_string_settings; ++i)
+		{
+			fun_t const& f = str_settings[i].fun;
+			if (f) (ses.*f)();
+		}
+
+		for (int i = 0; i < settings_pack::num_int_settings; ++i)
+		{
+			fun_t const& f = int_settings[i].fun;
+			if (f) (ses.*f)();
+		}
+
+		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
+		{
+			fun_t const& f = bool_settings[i].fun;
+			if (f) (ses.*f)();
+		}
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"

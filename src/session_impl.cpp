@@ -336,21 +336,20 @@ namespace aux {
 	} // anonymous namesoace
 #endif
 
-	session_impl::session_impl(io_service& ios)
-		:
+	session_impl::session_impl(io_service& ios, settings_pack const& pack)
+		: m_settings(pack)
 #ifndef TORRENT_NO_DEPRECATE
-		m_next_rss_update(min_time())
-		,
+		, m_next_rss_update(min_time())
 #endif
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		m_send_buffers(send_buffer_size())
-		,
+		, m_send_buffers(send_buffer_size())
 #endif
-		m_io_service(ios)
+		, m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, boost::asio::ssl::context::sslv23)
 #endif
-		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert::all_categories)
+		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
+			, m_settings.get_int(settings_pack::alert_mask))
 #ifndef TORRENT_NO_DEPRECATE
 		, m_alert_pointer_pos(0)
 #endif
@@ -448,19 +447,15 @@ namespace aux {
 		TORRENT_ASSERT_VAL(!ec, ec);
 
 		update_time_now();
+		m_disk_thread.set_settings(&pack, m_alerts);
 	}
 
 	// This function is called by the creating thread, not in the message loop's
 	// / io_service thread.
 	// TODO: 2 is there a reason not to move all of this into init()? and just
 	// post it to the io_service?
-	void session_impl::start_session(settings_pack const& pack)
+	void session_impl::start_session()
 	{
-		if (pack.has_val(settings_pack::alert_mask))
-		{
-			m_alerts.set_alert_mask(pack.get_int(settings_pack::alert_mask));
-		}
-
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("start session");
 #endif
@@ -540,13 +535,11 @@ namespace aux {
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
-		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(pack);
-		m_io_service.post(boost::bind(&session_impl::init, this, copy));
+		m_io_service.post(boost::bind(&session_impl::init, this));
 	}
 
-	void session_impl::init(boost::shared_ptr<settings_pack> pack)
+	void session_impl::init()
 	{
-		INVARIANT_CHECK;
 		// this is a debug facility
 		// see single_threaded in debug.hpp
 		thread_started();
@@ -604,32 +597,20 @@ namespace aux {
 		session_log(" done starting session");
 #endif
 
-		apply_settings_pack(pack);
+		// apply all m_settings to this session
+		run_all_updates(*this);
 
-		// call update_* after settings set initialized
-
-#ifndef TORRENT_NO_DEPRECATE
-		update_local_download_rate();
-		update_local_upload_rate();
-#endif
-		update_download_rate();
-		update_upload_rate();
-		update_connections_limit();
-		update_unchoke_limit();
-		update_disk_threads();
-		update_network_threads();
-		update_upnp();
-		update_natpmp();
-		update_lsd();
-		update_dht();
-		update_peer_fingerprint();
-		update_dht_bootstrap_nodes();
+		// this applies unchoke settings from m_settings
+		recalculate_unchoke_slots();
 
 		if (m_listen_sockets.empty())
 		{
 			update_listen_interfaces();
 			open_listen_port();
 		}
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 	}
 
 	void session_impl::async_resolve(std::string const& host, int flags
@@ -4191,7 +4172,6 @@ retry:
 	void session_impl::recalculate_unchoke_slots()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		INVARIANT_CHECK;
 
 		time_point const now = aux::time_now();
 		time_duration const unchoke_interval = now - m_last_choke;
@@ -6309,7 +6289,7 @@ retry:
 
 	void session_impl::update_queued_disk_bytes()
 	{
-		boost::uint64_t cache_size = m_settings.get_int(settings_pack::cache_size);
+		boost::uint64_t const cache_size = m_settings.get_int(settings_pack::cache_size);
 		if (m_settings.get_int(settings_pack::max_queued_disk_bytes) / 16 / 1024
 			> cache_size / 2
 			&& cache_size > 5
@@ -7179,7 +7159,6 @@ retry:
 #else
 		std::set<peer_connection*> unique_peers;
 #endif
-		TORRENT_ASSERT(m_settings.get_int(settings_pack::connections_limit) > 0);
 
 		int unchokes = 0;
 		int unchokes_all = 0;
