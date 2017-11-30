@@ -55,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
-#include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 #include "libtorrent/string_util.hpp" // for to_string
 #include "libtorrent/aux_/array.hpp"
 
@@ -140,7 +139,7 @@ namespace libtorrent {
 	namespace {
 
 	// the offset is used to ignore the first characters in the unreserved_chars table.
-	std::string escape_string_impl(const char* str, int len, int offset)
+	std::string escape_string_impl(const char* str, int const len, int const offset)
 	{
 		TORRENT_ASSERT(str != nullptr);
 		TORRENT_ASSERT(len >= 0);
@@ -177,7 +176,7 @@ namespace libtorrent {
 		return escape_string_impl(str.data(), int(str.size()), 10);
 	}
 
-	bool need_encoding(char const* str, int len)
+	bool need_encoding(char const* str, int const len)
 	{
 		for (int i = 0; i < len; ++i)
 		{
@@ -190,22 +189,20 @@ namespace libtorrent {
 
 	void convert_path_to_posix(std::string& path)
 	{
-		for (std::string::iterator i = path.begin()
-			, end(path.end()); i != end; ++i)
-			if (*i == '\\') *i = '/';
+		for (char& c : path)
+			if (c == '\\') c = '/';
 	}
 
 #ifdef TORRENT_WINDOWS
 	void convert_path_to_windows(std::string& path)
 	{
-		for (std::string::iterator i = path.begin()
-			, end(path.end()); i != end; ++i)
-			if (*i == '/') *i = '\\';
+		for (char& c : path)
+			if (c == '/') c = '\\';
 	}
 #endif
 
 	// TODO: 2 this should probably be moved into string_util.cpp
-	std::string read_until(char const*& str, char delim, char const* end)
+	std::string read_until(char const*& str, char const delim, char const* end)
 	{
 		TORRENT_ASSERT(str <= end);
 
@@ -305,7 +302,7 @@ namespace libtorrent {
 		aux::array<std::uint8_t, 4> outbuf;
 
 		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end();)
+		for (auto i = s.cbegin(); i != s.cend();)
 		{
 			// available input is 1,2 or 3 bytes
 			// since we read 3 bytes at a time at most
@@ -366,7 +363,7 @@ namespace libtorrent {
 		std::string ret;
 		for (auto i = s.begin(); i != s.end();)
 		{
-			int available_input = std::min(int(inbuf.size()), int(s.end()-i));
+			int available_input = std::min(int(inbuf.size()), int(s.end() - i));
 
 			// clear input buffer
 			inbuf.fill(0);
@@ -453,7 +450,7 @@ namespace libtorrent {
 			outbuf[4] = ((inbuf[6] & 0x07) << 5) & 0xff;
 			outbuf[4] |= inbuf[7];
 
-			int input_output_mapping[] = {5, 1, 1, 2, 2, 3, 4, 4, 5};
+			static int const input_output_mapping[] = {5, 1, 1, 2, 2, 3, 4, 4, 5};
 			int num_out = input_output_mapping[pad_start];
 
 			// write output
@@ -487,14 +484,14 @@ namespace libtorrent {
 
 		if (url.substr(i, argument.size()) == argument)
 		{
-			auto pos = i + argument.size();
+			auto const pos = i + argument.size();
 			if (out_pos) *out_pos = pos;
 			return url.substr(pos, url.substr(pos).find('&'));
 		}
 		argument.insert(0, "&");
 		i = find(url, argument, i);
 		if (i == std::string::npos) return {};
-		auto pos = i + argument.size();
+		auto const pos = i + argument.size();
 		if (out_pos) *out_pos = pos;
 		return url.substr(pos, find(url, "&", pos) - pos);
 	}
