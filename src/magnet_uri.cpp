@@ -265,6 +265,11 @@ namespace libtorrent {
 			// parse the ranges or indices
 			do
 			{
+				// accept only digits, '-' and ','
+				if (std::any_of(select.begin(), select.end(), [](char c)
+					{ return !is_digit(c) && c != '-' && c != ','; }))
+					break;
+
 				string_view token;
 				std::tie(token, select) = split_string(select, ',');
 
