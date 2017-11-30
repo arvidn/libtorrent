@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct settings_pack;
 	TORRENT_EXTRA_EXPORT void initialize_default_settings(aux::session_settings& s);
 }
 
@@ -71,6 +72,7 @@ namespace libtorrent { namespace aux
 		bool get_bool(int name) const { GET(bool, false); }
 
 		session_settings();
+		session_settings(settings_pack const&);
 
 	private:
 		std::string m_strings[settings_pack::num_string_settings];

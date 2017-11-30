@@ -182,10 +182,10 @@ namespace libtorrent
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 #endif
 
-			session_impl(io_service& ios);
+			session_impl(io_service& ios, settings_pack const& pack);
 			virtual ~session_impl();
 
-			void start_session(settings_pack const& pack);
+			void start_session();
 
 			void set_load_function(user_load_function_t fun)
 			{ m_user_load_torrent = fun; }
@@ -620,6 +620,9 @@ namespace libtorrent
 			{ return &m_utp_socket_manager; }
 			void inc_boost_connections() TORRENT_OVERRIDE { ++m_boost_connections; }
 
+			// the settings for the client
+			aux::session_settings m_settings;
+
 #ifndef TORRENT_NO_DEPRECATE
 			// the time when the next rss feed needs updating
 			time_point m_next_rss_update;
@@ -684,7 +687,7 @@ namespace libtorrent
 
 			peer_class_pool m_classes;
 
-			void init(boost::shared_ptr<settings_pack> pack);
+			void init();
 
 			void submit_disk_jobs();
 
@@ -692,9 +695,6 @@ namespace libtorrent
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s) TORRENT_OVERRIDE;
-
-			// the settings for the client
-			aux::session_settings m_settings;
 
 			counters m_stats_counters;
 
