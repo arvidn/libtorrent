@@ -5395,7 +5395,7 @@ retry:
 		}
 		error_code ec;
 		m_close_file_timer.expires_from_now(seconds(interval), ec);
-		m_close_file_timer.async_wait(make_tick_handler(boost::bind(&session_impl::on_close_file, this, _1)));
+		m_close_file_timer.async_wait(boost::bind(&session_impl::on_close_file, this, _1));
 	}
 
 	void session_impl::update_proxy()
