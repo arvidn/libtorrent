@@ -476,3 +476,128 @@ TORRENT_TEST(invalid_web_seed_escaping)
 	TEST_CHECK(ec);
 }
 
+TORRENT_TEST(parse_magnet_select_only)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=0,2,4,6-8", ec);
+	TEST_CHECK(!ec);
+
+	auto const yes = default_priority;
+	auto const no = dont_download;
+	std::vector<download_priority_t> result = std::vector<download_priority_t>
+		{yes, no, yes, no, yes, no, yes, yes, yes};
+	TEST_CHECK(p.file_priorities == result);
+}
+
+TORRENT_TEST(parse_magnet_select_only_overlap_range)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=0,2-4,3-5&dht=10.0.0.1:1337", ec);
+	TEST_CHECK(!ec);
+
+	auto const yes = default_priority;
+	auto const no = dont_download;
+	std::vector<download_priority_t> result = std::vector<download_priority_t>
+		{yes, no, yes, yes, yes, yes};
+	TEST_CHECK(p.file_priorities == result);
+}
+
+TORRENT_TEST(parse_magnet_select_only_multiple)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=2-4&dht=10.0.0.1:1337&so=1", ec);
+	TEST_CHECK(!ec);
+
+	auto const yes = default_priority;
+	auto const no = dont_download;
+	std::vector<download_priority_t> result = std::vector<download_priority_t>
+		{no, yes, yes, yes, yes};
+	TEST_CHECK(p.file_priorities == result);
+}
+
+TORRENT_TEST(parse_magnet_select_only_invalid_index_and_range)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=-4,3-,7-4,a,100000000&dht=10.0.0.1:1337&so=10", ec);
+	TEST_CHECK(!ec);
+
+	auto const yes = default_priority;
+	auto const no = dont_download;
+	std::vector<download_priority_t> result = std::vector<download_priority_t>
+		{no, no, no, no, no, no, no, no, no, no, yes};
+	TEST_CHECK(p.file_priorities == result);
+}
+
+TORRENT_TEST(parse_magnet_select_only_invalid_range1)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=-4", ec);
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(p.file_priorities.empty());
+}
+
+TORRENT_TEST(parse_magnet_select_only_invalid_range2)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=3-", ec);
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(p.file_priorities.empty());
+}
+
+TORRENT_TEST(parse_magnet_select_only_invalid_range3)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=7-4", ec);
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(p.file_priorities.empty());
+}
+
+TORRENT_TEST(parse_magnet_select_only_invalid_index_character)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=a", ec);
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(p.file_priorities.empty());
+}
+
+TORRENT_TEST(parse_magnet_select_only_invalid_index_value)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=100000000", ec);
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(p.file_priorities.empty());
+}
+
+TORRENT_TEST(parse_magnet_select_only_invalid_no_values)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=&dht=10.0.0.1:1337&so=", ec);
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(p.file_priorities.empty());
+}
+
+TORRENT_TEST(parse_magnet_select_only_invalid_quotes)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=\"1,2\"", ec);
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(p.file_priorities.empty());
+}

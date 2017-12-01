@@ -51,6 +51,8 @@ extensions
   scale well with the size of the content.
 * share-mode. This is a special mode torrents can be put in to optimize share
   ratio rather than downloading the torrent.
+* supports the Magnet URI extension - Select specific file indices for
+  download. `BEP 53`_.
 
 .. _article: utp.html
 .. _extensions: manual-ref.html#extensions
