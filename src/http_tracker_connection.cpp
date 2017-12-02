@@ -70,9 +70,6 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c)
 		: tracker_connection(man, req, ios, c)
 		, m_man(man)
-#if TORRENT_USE_I2P
-		, m_i2p_conn(NULL)
-#endif
 	{}
 
 	void http_tracker_connection::start()
@@ -94,7 +91,7 @@ namespace libtorrent
 		}
 
 #if TORRENT_USE_I2P
-		bool i2p = is_i2p_url(url);
+		bool const i2p = is_i2p_url(url);
 #else
 		static const bool i2p = false;
 #endif
@@ -425,7 +422,7 @@ namespace libtorrent
 	}
 
 	tracker_response parse_tracker_response(char const* data, int size, error_code& ec
-		, int flags, sha1_hash scrape_ih)
+		, int const flags, sha1_hash scrape_ih)
 	{
 		tracker_response resp;
 
@@ -443,7 +440,7 @@ namespace libtorrent
 		int interval = int(e.dict_find_int_value("interval", 0));
 		// if no interval is specified, default to 30 minutes
 		if (interval == 0) interval = 1800;
-		int min_interval = int(e.dict_find_int_value("min interval", 30));
+		int const min_interval = int(e.dict_find_int_value("min interval", 30));
 
 		resp.interval = interval;
 		resp.min_interval = min_interval;

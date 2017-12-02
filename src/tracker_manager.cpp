@@ -171,8 +171,8 @@ namespace libtorrent
 		, char const* msg, int interval, int min_interval)
 	{
 		// we need to post the error to avoid deadlock
-			get_io_service().post(boost::bind(&tracker_connection::fail_impl
-					, shared_from_this(), ec, code, std::string(msg), interval, min_interval));
+		get_io_service().post(boost::bind(&tracker_connection::fail_impl
+				, shared_from_this(), ec, code, std::string(msg), interval, min_interval));
 	}
 
 	void tracker_connection::fail_impl(error_code const& ec, int code
