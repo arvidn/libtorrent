@@ -284,9 +284,12 @@ void http_connection::start(std::string const& hostname, int port
 		error_code err;
 		if (m_sock.is_open()) m_sock.close(err);
 
+		aux::proxy_settings const* proxy = ps;
+
 #if TORRENT_USE_I2P
 		bool is_i2p = false;
 		char const* top_domain = strrchr(hostname.c_str(), '.');
+		aux::proxy_settings i2p_proxy;
 		if (top_domain && strcmp(top_domain, ".i2p") == 0 && i2p_conn)
 		{
 			// this is an i2p name, we need to use the sam connection
@@ -297,23 +300,14 @@ void http_connection::start(std::string const& hostname, int port
 			// because i2p is sloooooow
 			m_completion_timeout *= 4;
 			m_read_timeout *= 4;
-		}
-#endif
 
-#if TORRENT_USE_I2P
-		if (is_i2p && i2p_conn->proxy().type != settings_pack::i2p_proxy)
-		{
-			m_timer.get_io_service().post(boost::bind(&http_connection::callback
-				, me, error_code(errors::no_i2p_router), static_cast<char*>(NULL), 0));
-			return;
-		}
-#endif
+			if (i2p_conn->proxy().type != settings_pack::i2p_proxy)
+			{
+				m_timer.get_io_service().post(boost::bind(&http_connection::callback
+					, me, error_code(errors::no_i2p_router), static_cast<char*>(NULL), 0));
+				return;
+			}
 
-		aux::proxy_settings const* proxy = ps;
-#if TORRENT_USE_I2P
-		aux::proxy_settings i2p_proxy;
-		if (is_i2p)
-		{
 			i2p_proxy = i2p_conn->proxy();
 			proxy = &i2p_proxy;
 		}
@@ -493,17 +487,13 @@ void http_connection::close(bool force)
 #if TORRENT_USE_I2P
 void http_connection::connect_i2p_tracker(char const* destination)
 {
+	TORRENT_ASSERT(m_sock.get<i2p_stream>());
 #ifdef TORRENT_USE_OPENSSL
 	TORRENT_ASSERT(m_ssl == false);
-	TORRENT_ASSERT(m_sock.get<i2p_stream>());
-	m_sock.get<i2p_stream>()->set_destination(destination);
-	m_sock.get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
-	m_sock.get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
-#else
-	m_sock.get<i2p_stream>()->set_destination(destination);
-	m_sock.get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
-	m_sock.get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
 #endif
+	m_sock.get<i2p_stream>()->set_destination(destination);
+	m_sock.get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
+	m_sock.get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_connect");
 #endif
@@ -513,8 +503,7 @@ void http_connection::connect_i2p_tracker(char const* destination)
 		, shared_from_this(), _1));
 }
 
-void http_connection::on_i2p_resolve(error_code const& e
-	, char const* destination)
+void http_connection::on_i2p_resolve(error_code const& e, char const* destination)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("http_connection::on_i2p_resolve");

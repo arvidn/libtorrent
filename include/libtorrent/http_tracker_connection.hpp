@@ -93,9 +93,6 @@ namespace libtorrent
 		tracker_manager& m_man;
 		boost::shared_ptr<http_connection> m_tracker_connection;
 		address m_tracker_ip;
-#if TORRENT_USE_I2P
-		i2p_connection* m_i2p_conn;
-#endif
 	};
 
 	TORRENT_EXTRA_EXPORT tracker_response parse_tracker_response(

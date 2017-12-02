@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 
 #include <fstream>
+#include <boost/bind.hpp>
 
 using namespace libtorrent;
 namespace lt = libtorrent;

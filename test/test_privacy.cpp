@@ -91,12 +91,12 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	flags &= ~expect_dht_msg;
 #endif
 	fprintf(stderr, "\n=== TEST == proxy: %s anonymous-mode: %s\n\n", proxy_name[proxy_type], (flags & force_proxy_mode) ? "yes" : "no");
-	int http_port = start_web_server();
-	int udp_port = start_udp_tracker();
-	int dht_port = start_dht();
-	int peer_port = start_peer();
+	int const http_port = start_web_server();
+	int const udp_port = start_udp_tracker();
+	int const dht_port = start_dht();
+	int const peer_port = start_peer();
 
-	int prev_udp_announces = num_udp_announces();
+	int const prev_udp_announces = num_udp_announces();
 
 	int const alert_mask = alert::all_categories
 		& ~alert::progress_notification
@@ -131,7 +131,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	// in non-anonymous mode we circumvent/ignore the proxy if it fails
 	// wheras in anonymous mode, we just fail
 	sett.set_str(settings_pack::proxy_hostname, "non-existing.com");
-	sett.set_int(settings_pack::proxy_type, (settings_pack::proxy_type_t)proxy_type);
+	sett.set_int(settings_pack::proxy_type, proxy_type);
 	sett.set_int(settings_pack::proxy_port, 4444);
 
 	lt::session* s = new lt::session(sett);
@@ -276,10 +276,12 @@ TORRENT_TEST(http_pt)
 	test_proxy(settings_pack::http_pw, expect_udp_connection | expect_dht_msg);
 }
 
+#if TORRENT_USE_I2P
 TORRENT_TEST(i2p)
 {
 	test_proxy(settings_pack::i2p_proxy, expect_udp_connection | expect_dht_msg);
 }
+#endif
 
 // using anonymous mode
 
@@ -317,8 +319,10 @@ TORRENT_TEST(anon_http_pw)
 	test_proxy(settings_pack::http_pw, force_proxy_mode | expect_udp_reject);
 }
 
+#if TORRENT_USE_I2P
 TORRENT_TEST(anon_i2p)
 {
 	test_proxy(settings_pack::i2p_proxy, force_proxy_mode);
 }
+#endif
 

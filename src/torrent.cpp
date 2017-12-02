@@ -3312,7 +3312,7 @@ namespace {
 #endif
 			req.key = tracker_key();
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_I2P
 			if (is_i2p())
 			{
 				req.kind |= tracker_request::i2p;
@@ -7441,8 +7441,10 @@ namespace {
 				error_code ec;
 				torrent_peer const* p = *i;
 				address addr = p->address();
+#if TORRENT_USE_I2P
 				if (p->is_i2p_addr)
 					continue;
+#endif
 				if (p->banned)
 				{
 #if TORRENT_USE_IPV6
