@@ -700,7 +700,7 @@ namespace libtorrent {
 		// return value of ``get_peer_class()`` is undefined.
 		//
 		// ``set_peer_class()`` sets all the information in the
-		// ``peer_class_info`` object in the specified peer class. There is no
+		// peer_class_info object in the specified peer class. There is no
 		// option to only update a single property.
 		//
 		// A peer or torrent belonging to more than one class, the highest

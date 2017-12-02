@@ -542,6 +542,14 @@ namespace libtorrent {
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+		if (!t->valid_metadata())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::info, "ALLOWED", "skipping allowed set because we don't have metadata");
+#endif
+			return;
+		}
+
 		if (t->super_seeding())
 		{
 #ifndef TORRENT_DISABLE_LOGGING

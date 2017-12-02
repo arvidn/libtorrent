@@ -71,7 +71,7 @@ TORRENT_EXPORT void assert_fail(const char* expr, int line
 #if TORRENT_USE_ASSERTS
 
 #ifdef TORRENT_PRODUCTION_ASSERTS
-extern char const* libtorrent_assert_log;
+extern TORRENT_EXPORT char const* libtorrent_assert_log;
 #endif
 
 #if TORRENT_USE_IOSTREAM

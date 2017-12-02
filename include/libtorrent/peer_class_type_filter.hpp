@@ -41,7 +41,7 @@ namespace libtorrent {
 	// ``peer_class_type_filter`` is a simple container for rules for adding and subtracting
 	// peer-classes from peers. It is applied *after* the peer class filter is applied (which
 	// is based on the peer's IP address).
-	struct peer_class_type_filter
+	struct TORRENT_EXPORT peer_class_type_filter
 	{
 		peer_class_type_filter()
 		{

@@ -775,6 +775,12 @@ The default peer class IDs are defined as enums in the ``session`` class:
 		local_peer_class_id
 	};
 
+The default peer classes are automatically created on session startup, and
+configured to apply to each respective type of connection. There's nothing
+preventing a client from reconfiguring the peer class ip- and type filters
+to disable or customize which peers they apply to. See set_peer_class_filter()
+and set_peer_class_type_filter().
+
 A peer class can be considered a more general form of *lables* that some
 clients have. Peer classes however are not just applied to torrents, but
 ultimately the peers.
@@ -784,9 +790,9 @@ object), and deleted with the delete_peer_class() call.
 
 Peer classes are configured with the set_peer_class() get_peer_class() calls.
 
-Custom peer classes can be assigned to torrents, with the ??? call, in which
-case all its peers will belong to the class. They can also be assigned based on
-the peer's IP address. See set_peer_class_filter() for more information.
+Custom peer classes can be assigned based on the peer's IP address or the type
+of transport protocol used. See set_peer_class_filter() and
+set_peer_class_type_filter() for more information.
 
 peer class examples
 -------------------
