@@ -391,12 +391,14 @@ namespace aux {
 #endif
 #endif
 
-	session_impl::session_impl(io_service& ios)
-		: m_io_service(ios)
+	session_impl::session_impl(io_service& ios, settings_pack const& pack)
+		: m_settings(pack)
+		, m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, boost::asio::ssl::context::sslv23)
 #endif
-		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert::all_categories)
+		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
+			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
 		, m_disk_thread(m_io_service, m_stats_counters)
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
@@ -441,6 +443,7 @@ namespace aux {
 		, m_close_file_timer(m_io_service)
 	{
 		update_time_now();
+		m_disk_thread.set_settings(&pack);
 	}
 
 	template <typename Fun, typename... Args>
@@ -468,14 +471,8 @@ namespace aux {
 	// io_service thread.
 	// TODO: 2 is there a reason not to move all of this into init()? and just
 	// post it to the io_service?
-	void session_impl::start_session(settings_pack pack)
+	void session_impl::start_session()
 	{
-		if (pack.has_val(settings_pack::alert_mask))
-		{
-			m_alerts.set_alert_mask(alert_category_t(
-				static_cast<std::uint32_t>(pack.get_int(settings_pack::alert_mask))));
-		}
-
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("start session");
 #endif
@@ -542,15 +539,11 @@ namespace aux {
 		}
 #endif
 
-		// TODO: 3 make this move all the way through to the init() call
-		// if we're in C++14
-		auto copy = std::make_shared<settings_pack>(std::move(pack));
-		m_io_service.post([this, copy] { this->wrap(&session_impl::init, copy); });
+		m_io_service.post([this] { this->wrap(&session_impl::init); });
 	}
 
-	void session_impl::init(std::shared_ptr<settings_pack> pack)
+	void session_impl::init()
 	{
-		INVARIANT_CHECK;
 		// this is a debug facility
 		// see single_threaded in debug.hpp
 		thread_started();
@@ -588,62 +581,16 @@ namespace aux {
 		session_log(" done starting session");
 #endif
 
-		apply_settings_pack_impl(*pack, true);
+		// this applies unchoke settings from m_settings
+		recalculate_unchoke_slots();
 
-		// call update_* after settings set initialized
+		// apply all m_settings to this session
+		run_all_updates(*this);
+		reopen_listen_sockets();
+		reopen_outgoing_sockets();
 
-#ifndef TORRENT_NO_DEPRECATE
-		update_local_download_rate();
-		update_local_upload_rate();
-#endif
-		update_download_rate();
-		update_upload_rate();
-		update_connections_limit();
-		update_unchoke_limit();
-		update_disk_threads();
-		update_resolver_cache_timeout();
-		update_ip_notifier();
-		update_upnp();
-		update_natpmp();
-		update_lsd();
-		update_peer_fingerprint();
-
-		init_dht();
-	}
-
-	void session_impl::init_dht()
-	{
-		// the need of this elaborated logic is because if the value
-		// of settings_pack::dht_bootstrap_nodes is not the default,
-		// then update_dht_bootstrap_nodes is called. For this reason,
-		// three different cases should be considered.
-		// 1-) dht_bootstrap_nodes setting not touched
-		// 2-) dht_bootstrap_nodes changed but not empty
-		// 3-) dht_bootstrap_nodes set to empty ("")
-		// TODO: find a solution and refactor to avoid potentially stalling
-		// for minutes due to the name resolution
-
-#ifndef TORRENT_DISABLE_DHT
-		if (m_outstanding_router_lookups == 0)
-		{
-			// this can happens because either the setting value was untouched
-			// or the value in the initial settings is empty
-			if (m_settings.get_str(settings_pack::dht_bootstrap_nodes).empty())
-			{
-				// case 3)
-				update_dht();
-				update_dht_announce_interval();
-			}
-			else
-			{
-				// case 1)
-				// eventually update_dht() is called when all resolves are done
-				update_dht_bootstrap_nodes();
-			}
-		}
-		// else is case 2)
-		// in this case the call to update_dht_bootstrap_nodes() by the apply settings
-		// will eventually call update_dht() when all resolves are done
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
 #endif
 	}
 
@@ -1348,8 +1295,7 @@ namespace {
 		return ret;
 	}
 
-	void session_impl::apply_settings_pack_impl(settings_pack const& pack
-		, bool const init)
+	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
 	{
 		bool const reopen_listen_port =
 #ifndef TORRENT_NO_DEPRECATE
@@ -1371,26 +1317,26 @@ namespace {
 					!= m_settings.get_str(settings_pack::outgoing_interfaces));
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("applying settings pack, init=%s, reopen_listen_port=%s"
-			, init ? "true" : "false", reopen_listen_port ? "true" : "false");
+		session_log("applying settings pack, reopen_listen_port=%s"
+			, reopen_listen_port ? "true" : "false");
 #endif
 
 		apply_pack(&pack, m_settings, this);
 		m_disk_thread.set_settings(&pack);
 
-		if (init && !reopen_listen_port)
+		if (!reopen_listen_port)
 		{
 			// no need to call this if reopen_listen_port is true
 			// since the apply_pack will do it
 			update_listen_interfaces();
 		}
 
-		if (init || reopen_listen_port)
+		if (reopen_listen_port)
 		{
 			reopen_listen_sockets();
 		}
 
-		if (init || reopen_outgoing_port)
+		if (reopen_outgoing_port)
 			reopen_outgoing_sockets();
 	}
 
@@ -4237,7 +4183,6 @@ namespace {
 	void session_impl::recalculate_unchoke_slots()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		INVARIANT_CHECK;
 
 		time_point const now = aux::time_now();
 		time_duration const unchoke_interval = now - m_last_choke;
@@ -5712,18 +5657,31 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		session_log("about to start DHT, running: %s, router lookups: %d, aborting: %s"
-			, m_dht ? "true" : "false", m_outstanding_router_lookups
-			, m_abort ? "true" : "false");
-#endif
-
 		stop_dht();
 
 		// postpone starting the DHT if we're still resolving the DHT router
-		if (m_outstanding_router_lookups > 0) return;
+		if (m_outstanding_router_lookups > 0)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log("not starting DHT, outstanding router lookups: %d"
+				, m_outstanding_router_lookups);
+#endif
+			return;
+		}
 
-		if (m_abort) return;
+		if (m_abort)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log("not starting DHT, aborting");
+#endif
+			return;
+		}
+
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("starting DHT, running: %s, router lookups: %d, aborting: %s"
+			, m_dht ? "true" : "false", m_outstanding_router_lookups
+			, m_abort ? "true" : "false");
+#endif
 
 		// TODO: refactor, move the storage to dht_tracker
 		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
@@ -7019,7 +6977,6 @@ namespace {
 		TORRENT_ASSERT(num_active_finished == int(m_torrent_lists[torrent_want_peers_finished].size()));
 
 		std::unordered_set<peer_connection*> unique_peers;
-		TORRENT_ASSERT(m_settings.get_int(settings_pack::connections_limit) > 0);
 
 		int unchokes = 0;
 		int unchokes_all = 0;

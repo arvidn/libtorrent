@@ -322,7 +322,7 @@ namespace aux {
 			ios = m_io_service.get();
 		}
 
-		m_impl = std::make_shared<aux::session_impl>(*ios);
+		m_impl = std::make_shared<aux::session_impl>(std::ref(*ios), std::ref(params.settings));
 		*static_cast<session_handle*>(this) = session_handle(m_impl);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -338,7 +338,7 @@ namespace aux {
 		m_impl->set_dht_storage(params.dht_storage_constructor);
 #endif
 
-		m_impl->start_session(std::move(params.settings));
+		m_impl->start_session();
 
 		if (internal_executor)
 		{
