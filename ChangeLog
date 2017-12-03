@@ -1,4 +1,5 @@
 
+	* fix part-file creation race condition
 	* fix issue with initializing settings on session construction
 	* fix issue with receiving interested before metadata
 	* fix IPv6 tracker announce issue

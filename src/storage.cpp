@@ -245,7 +245,7 @@ namespace libtorrent
 			if (file_index < int(m_storage.m_file_priority.size())
 				&& m_storage.m_file_priority[file_index] == 0)
 			{
-				m_storage.need_partfile();
+				TORRENT_ASSERT(m_storage.m_part_file);
 
 				error_code e;
 				peer_request map = m_storage.files().map_file(file_index
@@ -335,7 +335,7 @@ namespace libtorrent
 			if (file_index < int(m_storage.m_file_priority.size())
 				&& m_storage.m_file_priority[file_index] == 0)
 			{
-				m_storage.need_partfile();
+				TORRENT_ASSERT(m_storage.m_part_file);
 
 				error_code e;
 				peer_request map = m_storage.files().map_file(file_index
@@ -412,6 +412,16 @@ namespace libtorrent
 		m_part_file_name = "." + (params.info
 			? to_hex(params.info->info_hash().to_string())
 			: params.files->name()) + ".parts";
+
+		file_storage const& fs = files();
+		for (int i = 0; i < m_file_priority.size(); ++i)
+		{
+			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
+			{
+				need_partfile();
+				break;
+			}
+		}
 	}
 
 	default_storage::~default_storage()
@@ -498,6 +508,9 @@ namespace libtorrent
 			}
 			ec.ec.clear();
 			m_file_priority[i] = new_prio;
+
+			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
+				need_partfile();
 		}
 		if (m_part_file) m_part_file->flush_metadata(ec.ec);
 		if (ec)
@@ -747,7 +760,6 @@ namespace libtorrent
 		{
 			error_code ignore;
 			m_part_file->flush_metadata(ignore);
-			m_part_file.reset();
 		}
 
 		// make sure we don't have the files open
