@@ -266,10 +266,10 @@ namespace aux {
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 			using torrent_map = std::unordered_map<sha1_hash, std::shared_ptr<torrent>>;
 
-			explicit session_impl(io_service& ios);
+			session_impl(io_service& ios, settings_pack const& pack);
 			~session_impl() override;
 
-			void start_session(settings_pack pack);
+			void start_session();
 
 			void init_peer_class_filter(bool unlimited_local);
 
@@ -369,8 +369,7 @@ namespace aux {
 			void close_connection(peer_connection* p) override;
 
 			void apply_settings_pack(std::shared_ptr<settings_pack> pack) override;
-			void apply_settings_pack_impl(settings_pack const& pack
-				, bool const init = false);
+			void apply_settings_pack_impl(settings_pack const& pack);
 			session_settings const& settings() const override { return m_settings; }
 			settings_pack get_settings() const;
 
@@ -708,6 +707,9 @@ namespace aux {
 
 			void inc_boost_connections() override { ++m_boost_connections; }
 
+			// the settings for the client
+			aux::session_settings m_settings;
+
 #ifndef TORRENT_NO_DEPRECATE
 			void update_ssl_listen();
 			void update_dht_upload_rate_limit();
@@ -765,8 +767,8 @@ namespace aux {
 
 			peer_class_pool m_classes;
 
-			void init(std::shared_ptr<settings_pack> pack);
-			void init_dht();
+			void init();
+//			void init_dht();
 
 			void submit_disk_jobs();
 
@@ -780,9 +782,6 @@ namespace aux {
 
 			void interface_to_endpoints(std::string const& device, int port
 				, transport ssl, duplex incoming, std::vector<listen_endpoint_t>& eps);
-
-			// the settings for the client
-			aux::session_settings m_settings;
 
 			counters m_stats_counters;
 

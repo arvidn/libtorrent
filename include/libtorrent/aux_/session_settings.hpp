@@ -68,6 +68,7 @@ namespace libtorrent { namespace aux {
 		{ return get<bool>(m_bools, name, settings_pack::bool_type_base); }
 
 		session_settings();
+		session_settings(settings_pack const&);
 
 	private:
 
