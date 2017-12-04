@@ -81,7 +81,7 @@ libtorrent
 .. _`HTTP seed`: http://www.getright.com/seedtorrent.html
 .. _multitracker: http://bittorrent.org/beps/bep_0012.html
 .. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
-.. _archive: http://dir.gmane.org/gmane.network.bit-torrent.libtorrent
+.. _archive: https://sourceforge.net/p/libtorrent/mailman/libtorrent-discuss/
 .. _`who's using libtorrent?`: projects.html
 .. _`report bugs`: https://github.com/arvidn/libtorrent/issues
 .. _`github page`: https://github.com/arvidn/libtorrent
