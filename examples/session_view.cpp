@@ -55,8 +55,8 @@ session_view::session_view()
 	m_wasted_bytes_idx = find_metric_idx("net.recv_redundant_bytes");
 	m_failed_bytes_idx = find_metric_idx("net.recv_failed_bytes");
 	m_num_peers_idx = find_metric_idx("peer.num_peers_connected");
-	m_recv_payload_idx = find_metric_idx("net.recv_payload_bytes");
-	m_sent_payload_idx = find_metric_idx("net.sent_payload_bytes");
+	m_recv_idx = find_metric_idx("net.recv_bytes");
+	m_sent_idx = find_metric_idx("net.sent_bytes");
 	m_unchoked_idx = find_metric_idx("peer.num_peers_up_unchoked");
 	m_unchoke_slots_idx = find_metric_idx("ses.num_unchoke_slots");
 	m_limiter_up_queue_idx = find_metric_idx("net.limiter_up_queue");
@@ -106,9 +106,9 @@ void session_view::render()
 
 	float seconds = (m_timestamp[0] - m_timestamp[1]) / 1000000.f;
 
-	int download_rate = (m_cnt[0][m_recv_payload_idx] - m_cnt[1][m_recv_payload_idx])
+	int download_rate = (m_cnt[0][m_recv_idx] - m_cnt[1][m_recv_idx])
 		/ seconds;
-	int upload_rate = (m_cnt[0][m_sent_payload_idx] - m_cnt[1][m_sent_payload_idx])
+	int upload_rate = (m_cnt[0][m_sent_idx] - m_cnt[1][m_sent_idx])
 		/ seconds;
 
 	pos += snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "
@@ -118,7 +118,7 @@ void session_view::render()
 		, esc("1")
 		, add_suffix(m_cnt[0][m_failed_bytes_idx]).c_str()
 		, color(add_suffix(download_rate, "/s"), col_green).c_str()
-		, color(add_suffix(m_cnt[0][m_recv_payload_idx]), col_green).c_str()
+		, color(add_suffix(m_cnt[0][m_recv_idx]), col_green).c_str()
 		, color(to_string(m_cnt[0][m_limiter_up_queue_idx], 3), col_red).c_str()
 		, color(to_string(m_cnt[0][m_limiter_down_queue_idx], 3), col_green).c_str()
 		, int(m_cnt[0][m_num_peers_idx])
@@ -140,7 +140,7 @@ void session_view::render()
 		, esc("1")
 		, add_suffix(m_cnt[0][m_wasted_bytes_idx]).c_str()
 		, color(add_suffix(upload_rate, "/s"), col_red).c_str()
-		, color(add_suffix(m_cnt[0][m_sent_payload_idx]), col_red).c_str()
+		, color(add_suffix(m_cnt[0][m_sent_idx]), col_red).c_str()
 		, color(to_string(m_cnt[0][m_queued_reads_idx], 3), col_red).c_str()
 		, color(to_string(m_cnt[0][m_queued_writes_idx], 3), col_green).c_str()
 		, int((m_cnt[0][m_blocks_written_idx] - m_cnt[0][m_write_ops_idx]) * 100

@@ -73,8 +73,8 @@ private:
 	int m_wasted_bytes_idx;
 	int m_failed_bytes_idx;
 	int m_num_peers_idx;
-	int m_recv_payload_idx;
-	int m_sent_payload_idx;
+	int m_recv_idx;
+	int m_sent_idx;
 	int m_unchoked_idx;
 	int m_unchoke_slots_idx;
 	int m_limiter_up_queue_idx;
