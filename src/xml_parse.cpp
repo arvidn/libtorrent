@@ -34,11 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/string_util.hpp"
-#include "libtorrent/string_view.hpp"
 
 namespace libtorrent {
 
-	TORRENT_EXTRA_EXPORT void xml_parse(string_view input
+	void xml_parse(string_view input
 		, std::function<void(int, string_view, string_view)> callback)
 	{
 		char const* p = input.data();

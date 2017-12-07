@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/puff.hpp"
 #include "libtorrent/gzip.hpp"
 
-#include <vector>
 #include <string>
 
 namespace {
@@ -180,8 +179,7 @@ namespace {
 	}
 	} // anonymous namespace
 
-	TORRENT_EXTRA_EXPORT void inflate_gzip(
-		span<char const> in
+	void inflate_gzip(span<char const> in
 		, std::vector<char>& buffer
 		, int maximum_size
 		, error_code& ec)
@@ -264,4 +262,3 @@ namespace {
 	}
 
 }
-
