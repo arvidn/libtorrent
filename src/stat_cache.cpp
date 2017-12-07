@@ -37,10 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	stat_cache::stat_cache() {}
+	stat_cache::stat_cache() = default;
 	stat_cache::~stat_cache() = default;
 
-	void stat_cache::set_cache(file_index_t const i, std::int64_t size)
+	void stat_cache::set_cache(file_index_t const i, std::int64_t const size)
 	{
 		if (i >= m_stat_cache.end_index())
 			m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);

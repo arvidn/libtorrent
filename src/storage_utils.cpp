@@ -152,7 +152,7 @@ namespace libtorrent { namespace aux {
 		{
 			file_bytes_left = bytes_left;
 			if (file_offset + file_bytes_left > files.file_size(file_index))
-				file_bytes_left = (std::max)(static_cast<int>(files.file_size(file_index) - file_offset), 0);
+				file_bytes_left = std::max(static_cast<int>(files.file_size(file_index) - file_offset), 0);
 
 			// there are no bytes left in this file, move to the next one
 			// this loop skips over empty files
@@ -168,7 +168,7 @@ namespace libtorrent { namespace aux {
 
 				file_bytes_left = bytes_left;
 				if (file_offset + file_bytes_left > files.file_size(file_index))
-					file_bytes_left = (std::max)(static_cast<int>(files.file_size(file_index) - file_offset), 0);
+					file_bytes_left = std::max(static_cast<int>(files.file_size(file_index) - file_offset), 0);
 			}
 
 			// make a copy of the iovec array that _just_ covers the next

@@ -74,7 +74,7 @@ namespace libtorrent { namespace aux {
 		transport const ssl;
 	};
 
-	// sockets used for outoing utp connections
+	// sockets used for outgoing utp connections
 	struct TORRENT_EXTRA_EXPORT outgoing_sockets
 	{
 		// partitions sockets based on whether they match one of the given endpoints
@@ -94,7 +94,7 @@ namespace libtorrent { namespace aux {
 		std::vector<std::shared_ptr<outgoing_udp_socket>> sockets;
 	private:
 		// round-robin index into sockets
-		// one dimention for IPv4/IPv6 and a second for SSL/non-SSL
+		// one dimension for IPv4/IPv6 and a second for SSL/non-SSL
 		mutable std::array<std::array<std::uint8_t, 2>, 2> index = {{ {{0, 0}}, {{0, 0}} }};
 	};
 

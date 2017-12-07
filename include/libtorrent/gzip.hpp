@@ -134,4 +134,3 @@ struct is_error_condition_enum<libtorrent::gzip_errors::error_code_enum>
 } }
 
 #endif
-
