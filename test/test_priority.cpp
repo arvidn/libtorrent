@@ -166,6 +166,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		}
 
 		TEST_CHECK(st1.state == torrent_status::seeding
+			|| st1.state == torrent_status::checking_resume_data
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);

@@ -170,10 +170,24 @@ namespace libtorrent {
 		storage_interface(storage_interface const&) = delete;
 		storage_interface& operator=(storage_interface const&) = delete;
 
-		// This function is called when the storage is to be initialized. The
-		// default storage will create directories and empty files at this point.
-		// If ``allocate_files`` is true, it will also ``ftruncate`` all files to
-		// their target size.
+		// This function is called when the *storage* on disk is to be
+		// initialized. The default storage will create directories and empty
+		// files at this point. If ``allocate_files`` is true, it will also
+		// ``ftruncate`` all files to their target size.
+		//
+		// This function may be called multiple time on a single instance. When a
+		// torrent is force-rechecked, the storage is re-initialized to trigger
+		// the re-check from scratch.
+		//
+		// The function is not necessarily called before other member functions.
+		// For instance has_any_files() and verify_resume_data() are
+		// called early to determine whether we may have to check all files or
+		// not. If we're doing a full check of the files every piece will be
+		// hashed, causing readv() to be called as well.
+		//
+		// Any required internals that need initialization should be done in the
+		// constructor. This function is called before the torrent starts to
+		// download.
 		//
 		// If an error occurs, ``storage_error`` should be set to reflect it.
 		virtual void initialize(storage_error& ec) = 0;

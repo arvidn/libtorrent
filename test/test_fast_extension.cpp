@@ -441,10 +441,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	if (th) *th = ret;
 
 	// wait for the torrent to be ready
-	if (!(flags & torrent_flags::seed_mode))
-	{
-		wait_for_downloading(*ses, "ses");
-	}
+	wait_for_downloading(*ses, "ses");
 
 	if (incoming)
 	{

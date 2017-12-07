@@ -215,7 +215,9 @@ void default_tests(torrent_status const& s)
 	TEST_CHECK(s.active_duration < seconds(1339 + 10));
 
 	TEST_CHECK(s.added_time < 1347 + 2);
+	TEST_CHECK(s.added_time >= 1347);
 	TEST_CHECK(s.completed_time < 1348 + 2);
+	TEST_CHECK(s.completed_time >= 1348);
 }
 
 void test_piece_priorities(bool test_deprecated = false)
@@ -1054,6 +1056,34 @@ TORRENT_TEST(seed_mode_piece_have)
 TORRENT_TEST(seed_mode_preserve)
 {
 	test_seed_mode(test_mode_t{});
+}
+
+TORRENT_TEST(seed_mode_load_peers)
+{
+	lt::session ses(settings());
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	p.flags |= torrent_flags::seed_mode;
+	p.peers.push_back(tcp::endpoint(address::from_string("1.2.3.4"), 12345));
+
+	torrent_handle h = ses.add_torrent(p);
+
+	wait_for_alert(ses, torrent_checked_alert::alert_type, "seed_mode_load_peers");
+
+	h.save_resume_data();
+
+	save_resume_data_alert const* a = alert_cast<save_resume_data_alert>(
+		wait_for_alert(ses, save_resume_data_alert::alert_type
+		, "seed_mode_load_peers"));
+
+	TEST_CHECK(a);
+	if (a == nullptr) return;
+
+	auto const& peers = a->params.peers;
+	TEST_EQUAL(peers.size(), 1);
+	TEST_CHECK(peers[0] == tcp::endpoint(address::from_string("1.2.3.4"), 12345));
 }
 
 TORRENT_TEST(resume_save_load)

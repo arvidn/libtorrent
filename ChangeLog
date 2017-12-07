@@ -81,6 +81,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix loading resume data when in seed mode
 	* fix part-file creation race condition
 	* fix issue with initializing settings on session construction
 	* fix issue with receiving interested before metadata

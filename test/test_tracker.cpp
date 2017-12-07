@@ -618,7 +618,7 @@ TORRENT_TEST(tracker_proxy)
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
-void test_stop_tracker_timeout(bool nostop)
+void test_stop_tracker_timeout(int const timeout)
 {
 	// trick the min interval so that the stopped anounce is permitted immediately
 	// after the initial announce
@@ -658,8 +658,7 @@ void test_stop_tracker_timeout(bool nostop)
 	p.set_bool(settings_pack::announce_to_all_tiers, true);
 	p.set_int(settings_pack::alert_mask, alert::all_categories);
 	p.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
-	if (nostop)
-		p.set_int(settings_pack::stop_tracker_timeout, 0);
+	p.set_int(settings_pack::stop_tracker_timeout, timeout);
 
 	lt::session s(p);
 
@@ -683,28 +682,31 @@ void test_stop_tracker_timeout(bool nostop)
 	announce_entry ae{tracker_url};
 	h.add_tracker(ae);
 
-	while (true)
-	{
-		std::vector<alert*> alerts;
-		s.pop_alerts(&alerts);
-		if (std::any_of(alerts.begin(), alerts.end()
-			, [](alert* a) { return a->type() == tracker_reply_alert::alert_type; }))
-			break;
-	}
+	// make sure it announced a event=started properly
+	wait_for_alert(s, tracker_reply_alert::alert_type, "s");
 
 	s.remove_torrent(h);
 
+	wait_for_alert(s, torrent_removed_alert::alert_type, "s");
+
+	// we remove and stop the torrent immediately after posting the alert, so we
+	// need some leeway here
+	std::this_thread::sleep_for(lt::seconds(2));
+
 	int const count = count_stopped_events(s);
-	TEST_EQUAL(count, nostop ? 0 : 1);
+	TEST_EQUAL(count, (timeout == 0) ? 0 : 1);
 }
 
 TORRENT_TEST(stop_tracker_timeout)
 {
 	std::printf("\n\nexpect to get ONE request with &event=stopped\n\n");
-	test_stop_tracker_timeout(false);
+	test_stop_tracker_timeout(1);
+}
 
+TORRENT_TEST(stop_tracker_timeout_zero_timeout)
+{
 	std::printf("\n\nexpect to NOT get a request with &event=stopped\n\n");
-	test_stop_tracker_timeout(true);
+	test_stop_tracker_timeout(0);
 }
 #endif
 
