@@ -602,3 +602,88 @@ TORRENT_TEST(tracker_proxy)
 	test_proxy(true);
 }
 
+#ifndef TORRENT_DISABLE_LOGGING
+
+int count_stopped_events(session& ses, int expected = 0)
+{
+	int count = 0;
+	int num = 70; // this number is adjusted per version, an estimate
+	time_point const end_time = clock_type::now() + seconds(15);
+	while (true)
+	{
+		time_point const now = clock_type::now();
+		if (now > end_time) return count;
+
+		ses.wait_for_alert(end_time - now);
+		std::vector<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (int i = 0; i < int(alerts.size()); ++i)
+		{
+			alert* a = alerts[i];
+			std::printf("%d: [%s] %s\n", num, a->what(), a->message().c_str());
+			if (a->type() == log_alert::alert_type)
+			{
+				std::string const msg = a->message();
+				if (msg.find("&event=stopped") != std::string::npos)
+				{
+					count++;
+					--expected;
+				}
+			}
+			num--;
+		}
+		if (num <= 0 && expected <= 0) return count;
+	}
+	return count;
+};
+
+void test_stop_tracker_timeout(int const timeout)
+{
+	// trick the min interval so that the stopped anounce is permitted immediately
+	// after the initial announce
+	int port = start_web_server(false, false, true);
+
+	settings_pack p = settings();
+	p.set_bool(settings_pack::announce_to_all_trackers, true);
+	p.set_bool(settings_pack::announce_to_all_tiers, true);
+	p.set_int(settings_pack::alert_mask, alert::all_categories);
+	p.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
+	p.set_int(settings_pack::stop_tracker_timeout, timeout);
+
+	lt::session s(p);
+
+	error_code ec;
+	remove_all("tmp4_tracker", ec);
+	create_directory("tmp4_tracker", ec);
+	std::ofstream file(combine_path("tmp4_tracker", "temporary").c_str());
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	file.close();
+
+	add_torrent_params tp;
+	tp.flags &= ~add_torrent_params::flag_paused;
+	tp.flags &= ~add_torrent_params::flag_auto_managed;
+	tp.flags |= add_torrent_params::flag_seed_mode;
+	tp.ti = t;
+	tp.save_path = "tmp4_tracker";
+	torrent_handle h = s.add_torrent(tp);
+
+	char tracker_url[200];
+	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", port);
+	announce_entry ae(tracker_url);
+	h.add_tracker(ae);
+
+	// make sure it announced a event=started properly
+	wait_for_alert(s, tracker_reply_alert::alert_type, "s");
+
+	s.remove_torrent(h);
+
+	int const count = count_stopped_events(s, 1);
+	TEST_EQUAL(count, 1);
+}
+
+TORRENT_TEST(stop_tracker_timeout)
+{
+	std::printf("\n\nexpect to get ONE request with &event=stopped\n\n");
+	test_stop_tracker_timeout(1);
+}
+#endif
