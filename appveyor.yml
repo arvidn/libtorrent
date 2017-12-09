@@ -123,9 +123,9 @@ build_script:
 test_script:
 - cd %ROOT_DIRECTORY%\test
 - if defined x64 (
-  appveyor-retry b2.exe -l1800 --hash -j2 openssl-version=pre1.1 address-model=64 win-tests %compiler% variant=%variant% link=shared
+  appveyor-retry b2.exe -l400 --hash -j2 openssl-version=pre1.1 address-model=64 win-tests %compiler% variant=%variant% link=shared
   ) else (
-  appveyor-retry b2.exe -l1800 --hash -j2 openssl-version=pre1.1 address-model=32 win-tests %compiler% variant=%variant% link=shared
+  appveyor-retry b2.exe -l400 --hash -j2 openssl-version=pre1.1 address-model=32 win-tests %compiler% variant=%variant% link=shared
   )
 - if defined sim (
   cd %ROOT_DIRECTORY%\simulation
