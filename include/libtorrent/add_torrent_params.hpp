@@ -320,10 +320,6 @@ TORRENT_VERSION_NAMESPACE_2
 		// be set. It is all the hashes in the binary tree, with the root as the
 		// first entry. See torrent_info::set_merkle_tree() for more info.
 		aux::noexcept_movable<std::vector<sha1_hash>> TORRENT_DEPRECATED_MEMBER merkle_tree;
-#else
-		// hidden
-		// to maintain ABI compatibility
-		aux::noexcept_movable<std::vector<sha1_hash>> deprecated6;
 #endif
 
 		// this is a map of file indices in the torrent and new filenames to be
