@@ -86,6 +86,7 @@ namespace libtorrent {
 #endif
 
 		ret["info-hash"] = atp.info_hash.v1;
+		ret["info-hash2"] = atp.info_hash.v2;
 
 		if (atp.ti)
 		{
