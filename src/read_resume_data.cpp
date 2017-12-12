@@ -86,7 +86,9 @@ namespace {
 		}
 
 		auto info_hash = rd.dict_find_string_value("info-hash");
-		if (info_hash.size() != static_cast<std::size_t>(sha1_hash::size()))
+		auto info_hash2 = rd.dict_find_string_value("info-hash2");
+		if (info_hash.size() != std::size_t(sha1_hash::size())
+			&& info_hash2.size() != std::size_t(sha256_hash::size()))
 		{
 			ec = errors::missing_info_hash;
 			return ret;
@@ -94,19 +96,24 @@ namespace {
 
 		ret.name = rd.dict_find_string_value("name").to_string();
 
-		ret.info_hash.v1.assign(info_hash.data());
+		if (info_hash.size() == 20)
+			ret.info_hash.v1.assign(info_hash.data());
+		if (info_hash2.size() == 32)
+			ret.info_hash.v2.assign(info_hash2.data());
 
 		bdecode_node const info = rd.dict_find_dict("info");
 		if (info)
 		{
 			// verify the info-hash of the metadata stored in the resume file matches
 			// the torrent we're loading
-			info_hash_t const resume_ih(hasher(info.data_section()).final());
+			info_hash_t const resume_ih(hasher(info.data_section()).final()
+				, hasher256(info.data_section()).final());
 
 			// if url is set, the info_hash is not actually the info-hash of the
 			// torrent, but the hash of the URL, until we have the full torrent
 			// only require the info-hash to match if we actually passed in one
-			if (resume_ih.v1 == ret.info_hash.v1)
+			if ((!ret.info_hash.has_v1() || resume_ih.v1 == ret.info_hash.v1)
+				&& (!ret.info_hash.has_v2() || resume_ih.v2 == ret.info_hash.v2))
 			{
 				ret.ti = std::make_shared<torrent_info>(resume_ih);
 
