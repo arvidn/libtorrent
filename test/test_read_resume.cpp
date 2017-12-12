@@ -129,6 +129,23 @@ TORRENT_TEST(read_resume_missing_info_hash)
 	TEST_EQUAL(ec, error_code(errors::missing_info_hash));
 }
 
+TORRENT_TEST(read_resume_info_hash2)
+{
+	entry rd;
+
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	// it's OK to *only* have a v2 hash
+	rd["info-hash2"] = "01234567890123456789012345678901";
+
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), rd);
+
+	error_code ec;
+	add_torrent_params atp = read_resume_data(resume_data, ec);
+	TEST_EQUAL(ec, error_code());
+}
+
 TORRENT_TEST(read_resume_missing_file_format)
 {
 	entry rd;
@@ -287,3 +304,11 @@ TORRENT_TEST(round_trip_unfinished)
 	test_roundtrip(atp);
 }
 
+TORRENT_TEST(round_trip_info_hash)
+{
+	add_torrent_params atp;
+	atp.info_hash.v2 = sha256_hash{"21212121212121212121212121212121"};
+	test_roundtrip(atp);
+	entry e = write_resume_data(atp);
+	TEST_CHECK(e["info-hash2"] == "21212121212121212121212121212121");
+}
