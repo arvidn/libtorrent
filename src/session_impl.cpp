@@ -6523,25 +6523,17 @@ namespace {
 		if (m_settings.get_bool(settings_pack::rate_limit_utp))
 		{
 			// allow the global or local peer class to limit uTP peers
-			m_peer_class_type_filter.add(peer_class_type_filter::utp_socket
-				, m_local_peer_class);
-			m_peer_class_type_filter.add(peer_class_type_filter::utp_socket
+			m_peer_class_type_filter.allow(peer_class_type_filter::utp_socket
 				, m_global_class);
-			m_peer_class_type_filter.add(peer_class_type_filter::ssl_utp_socket
-				, m_local_peer_class);
-			m_peer_class_type_filter.add(peer_class_type_filter::ssl_utp_socket
+			m_peer_class_type_filter.allow(peer_class_type_filter::ssl_utp_socket
 				, m_global_class);
 		}
 		else
 		{
 			// don't add the global or local peer class to limit uTP peers
-			m_peer_class_type_filter.remove(peer_class_type_filter::utp_socket
-				, m_local_peer_class);
-			m_peer_class_type_filter.remove(peer_class_type_filter::utp_socket
+			m_peer_class_type_filter.disallow(peer_class_type_filter::utp_socket
 				, m_global_class);
-			m_peer_class_type_filter.remove(peer_class_type_filter::ssl_utp_socket
-				, m_local_peer_class);
-			m_peer_class_type_filter.remove(peer_class_type_filter::ssl_utp_socket
+			m_peer_class_type_filter.disallow(peer_class_type_filter::ssl_utp_socket
 				, m_global_class);
 		}
 	}

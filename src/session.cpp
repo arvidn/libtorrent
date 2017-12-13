@@ -61,6 +61,26 @@ namespace aux {
 	constexpr torrent_list_index_t session_interface::torrent_checking_auto_managed;
 }
 
+namespace {
+
+#if defined TORRENT_ASIO_DEBUGGING
+	void wait_for_asio_handlers()
+	{
+		int counter = 0;
+		while (log_async())
+		{
+			std::this_thread::sleep_for(seconds(1));
+			++counter;
+			std::printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== \x1b[0m\n\n"
+				, counter);
+		}
+		async_dec_threads();
+
+		std::fprintf(stderr, "\n\nEXPECTS NO MORE ASYNC OPS\n\n\n");
+	}
+#endif
+} // anonymous namespace
+
 	settings_pack min_memory_usage()
 	{
 		settings_pack set;
@@ -385,22 +405,13 @@ namespace {
 		// to keep the session_impl alive
 		m_impl->get_io_service().dispatch([=] { ptr->abort(); });
 
-#if defined TORRENT_ASIO_DEBUGGING
-		int counter = 0;
-		while (log_async())
-		{
-			std::this_thread::sleep_for(seconds(1));
-			++counter;
-			std::printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== \x1b[0m\n\n"
-				, counter);
-		}
-		async_dec_threads();
-
-		std::fprintf(stderr, "\n\nEXPECTS NO MORE ASYNC OPS\n\n\n");
-#endif
-
 		if (m_thread && m_thread.unique())
+		{
+#if defined TORRENT_ASIO_DEBUGGING
+			wait_for_asio_handlers();
+#endif
 			m_thread->join();
+		}
 	}
 
 	session_proxy session::abort()
@@ -426,7 +437,12 @@ namespace {
 	session_proxy::~session_proxy()
 	{
 		if (m_thread && m_thread.unique())
+		{
+#if defined TORRENT_ASIO_DEBUGGING
+			wait_for_asio_handlers();
+#endif
 			m_thread->join();
+		}
 	}
 
 	session_params::session_params(settings_pack sp)
