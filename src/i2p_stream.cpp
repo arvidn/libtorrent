@@ -220,7 +220,7 @@ namespace libtorrent {
 		: proxy_base(io_service)
 		, m_id(nullptr)
 		, m_command(cmd_create_session)
-		, m_state(0)
+		, m_state(read_hello_response)
 	{
 #if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
@@ -422,7 +422,9 @@ namespace libtorrent {
 				case cmd_connect:
 					send_connect(std::move(h));
 					break;
-				default:
+				case cmd_none:
+				case cmd_name_lookup:
+				case cmd_incoming:
 					h(e);
 					std::vector<char>().swap(m_buffer);
 			}

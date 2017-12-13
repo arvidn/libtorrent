@@ -58,6 +58,9 @@ void test_lsd()
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_str(settings_pack::listen_interfaces, "127.0.0.1:48100");
+#ifndef TORRENT_NO_DEPRECATE
+	pack.set_bool(settings_pack::rate_limit_utp, true);
+#endif
 
 	lt::session ses1(pack);
 

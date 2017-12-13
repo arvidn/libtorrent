@@ -75,6 +75,9 @@ void test_pex()
 	pack.set_bool(settings_pack::enable_dht, false);
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
+#ifndef TORRENT_NO_DEPRECATE
+	pack.set_bool(settings_pack::rate_limit_utp, true);
+#endif
 
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);

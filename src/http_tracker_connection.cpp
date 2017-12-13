@@ -66,9 +66,6 @@ namespace libtorrent {
 		, tracker_request const& req
 		, std::weak_ptr<request_callback> c)
 		: tracker_connection(man, req, ios, c)
-#if TORRENT_USE_I2P
-		, m_i2p_conn(nullptr)
-#endif
 	{}
 
 	void http_tracker_connection::start()
@@ -90,7 +87,7 @@ namespace libtorrent {
 		}
 
 #if TORRENT_USE_I2P
-		bool i2p = is_i2p_url(url);
+		bool const i2p = is_i2p_url(url);
 #else
 		static const bool i2p = false;
 #endif
