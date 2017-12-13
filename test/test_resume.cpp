@@ -906,6 +906,30 @@ TORRENT_TEST(backwards_compatible_resume_info_dict)
 }
 #endif
 
+TORRENT_TEST(merkle_trees)
+{
+	lt::add_torrent_params p;
+	p.ti = generate_torrent();
+	p.save_path = ".";
+
+	lt::session ses(settings());
+	auto h = ses.add_torrent(p);
+
+	h.save_resume_data();
+
+	save_resume_data_alert const* a = alert_cast<save_resume_data_alert>(
+		wait_for_alert(ses, save_resume_data_alert::alert_type
+		, "merkle_trees"));
+
+	TEST_CHECK(a);
+	if (a == nullptr) return;
+
+	TEST_EQUAL(a->params.merkle_trees.size(), 3);
+	TEST_EQUAL(p.ti->merkle_trees().size(), 3);
+	for (file_index_t const i : p.ti->files().file_range())
+		TEST_CHECK(a->params.merkle_trees[i] == p.ti->merkle_trees()[i]);
+}
+
 TORRENT_TEST(resume_info_dict)
 {
 	// make sure the "info" dictionary is picked up correctly from the
