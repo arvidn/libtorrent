@@ -165,33 +165,17 @@ namespace libtorrent {
 		return ret;
 	}
 #endif // BOOST_NO_EXCEPTIONS
-
-	void parse_magnet_uri(string_view uri, add_torrent_params& p, error_code& ec)
-	{
-		add_torrent_params tmp = parse_magnet_uri(uri, ec);
-		if (!tmp.name.empty()) p.name = std::move(tmp.name);
-		if (!tmp.trackers.empty())
-		{
-			int const tier = p.tracker_tiers.empty() ? 0 : p.tracker_tiers.back();
-			p.tracker_tiers.resize(p.trackers.size(), tier);
-			p.trackers.insert(p.trackers.end(), tmp.trackers.begin(), tmp.trackers.end());
-			p.tracker_tiers.insert(p.tracker_tiers.end(), tmp.tracker_tiers.begin(), tmp.tracker_tiers.end());
-		}
-		p.url_seeds.insert(p.url_seeds.end(), tmp.url_seeds.begin(), tmp.url_seeds.end());
-		p.info_hash = tmp.info_hash;
-
-		p.peers.insert(p.peers.end(), tmp.peers.begin(), tmp.peers.end());
-
-#ifndef TORRENT_DISABLE_DHT
-		p.dht_nodes.insert(p.dht_nodes.end(), tmp.dht_nodes.begin(), tmp.dht_nodes.end());
-#endif
-	}
-
 #endif // TORRENT_NO_DEPRECATE
 
 	add_torrent_params parse_magnet_uri(string_view uri, error_code& ec)
 	{
-		add_torrent_params p;
+		add_torrent_params ret;
+		parse_magnet_uri(uri, ret, ec);
+		return ret;
+	}
+
+	void parse_magnet_uri(string_view uri, add_torrent_params& p, error_code& ec)
+	{
 		ec.clear();
 		std::string name;
 
@@ -244,18 +228,18 @@ namespace libtorrent {
 		if (btih.empty())
 		{
 			ec = errors::missing_info_hash_in_uri;
-			return p;
+			return;
 		}
 		if (btih.find('%') != string_view::npos)
 		{
 			unescaped_btih = unescape_string(btih, ec);
-			if (ec) return p;
+			if (ec) return;
 			btih = unescaped_btih;
 		}
 		if (btih.substr(0, 9) != "urn:btih:")
 		{
 			ec = errors::missing_info_hash_in_uri;
-			return p;
+			return;
 		}
 
 		auto select_pos = std::string::npos;
@@ -360,25 +344,25 @@ namespace libtorrent {
 			if (ih.size() != 20)
 			{
 				ec = errors::invalid_info_hash;
-				return p;
+				return;
 			}
 			info_hash.assign(ih);
 		}
 		else
 		{
 			ec = errors::invalid_info_hash;
-			return p;
+			return;
 		}
 
 		p.info_hash = info_hash;
 		if (!name.empty()) p.name = name;
-		return p;
 	}
 
 	add_torrent_params parse_magnet_uri(string_view uri)
 	{
 		error_code ec;
-		add_torrent_params ret = parse_magnet_uri(uri, ec);
+		add_torrent_params ret;
+		parse_magnet_uri(uri, ret, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
 	}
