@@ -348,6 +348,14 @@ bool is_downloading_state(int const st)
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
+		// --- V2 HASHES ---
+
+		if (m_torrent_file->is_valid() && m_torrent_file->info_hash().has_v2())
+		{
+			if (!p.merkle_trees.empty())
+				m_torrent_file->merkle_trees() = p.merkle_trees;
+		}
+
 		if (valid_metadata())
 		{
 			inc_stats_counter(counters::num_total_pieces_added
@@ -6065,6 +6073,11 @@ bool is_downloading_state(int const st)
 				for (auto const i : m_torrent_file->piece_range())
 					ret.piece_priorities.push_back(m_picker->piece_priority(i));
 			}
+		}
+
+		if (m_torrent_file->info_hash().has_v2())
+		{
+			ret.merkle_trees = m_torrent_file->merkle_trees();
 		}
 	}
 
