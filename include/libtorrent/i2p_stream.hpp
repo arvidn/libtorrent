@@ -142,7 +142,7 @@ private:
 	// send and receive buffer
 	aux::vector<char> m_buffer;
 	char const* m_id;
-	int m_command; // 0 = connect, 1 = accept
+	command_t m_command;
 	std::string m_dest;
 	std::string m_name_lookup;
 
@@ -155,7 +155,7 @@ private:
 		read_name_lookup_response
 	};
 
-	int m_state;
+	state_t m_state;
 #if TORRENT_USE_ASSERTS
 	int m_magic;
 #endif

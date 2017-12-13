@@ -75,8 +75,8 @@ private:
 	int const m_wasted_bytes_idx = lt::find_metric_idx("net.recv_redundant_bytes");
 	int const m_failed_bytes_idx = lt::find_metric_idx("net.recv_failed_bytes");
 	int const m_num_peers_idx = lt::find_metric_idx("peer.num_peers_connected");
-	int const m_recv_payload_idx = lt::find_metric_idx("net.recv_payload_bytes");
-	int const m_sent_payload_idx = lt::find_metric_idx("net.sent_payload_bytes");
+	int const m_recv_idx = lt::find_metric_idx("net.recv_bytes");
+	int const m_sent_idx = lt::find_metric_idx("net.sent_bytes");
 	int const m_unchoked_idx = lt::find_metric_idx("peer.num_peers_up_unchoked");
 	int const m_unchoke_slots_idx = lt::find_metric_idx("ses.num_unchoke_slots");
 	int const m_limiter_up_queue_idx = lt::find_metric_idx("net.limiter_up_queue");

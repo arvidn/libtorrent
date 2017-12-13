@@ -424,6 +424,9 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	sett.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	sett.set_bool(settings_pack::enable_outgoing_utp, false);
 	sett.set_bool(settings_pack::enable_incoming_utp, false);
+#ifndef TORRENT_NO_DEPRECATE
+	sett.set_bool(settings_pack::rate_limit_utp, true);
+#endif
 	ses.reset(new lt::session(sett, lt::session::add_default_plugins));
 
 	error_code ec;
