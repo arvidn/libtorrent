@@ -95,6 +95,27 @@ namespace libtorrent {
 			ret["info"].preformatted().assign(&info[0], &info[0] + size);
 		}
 
+		if (!atp.merkle_trees.empty())
+		{
+			TORRENT_ASSERT(atp.info_hash.has_v2());
+			auto& trees = atp.merkle_trees;
+			auto& ret_trees = ret["trees"].list();
+			ret_trees.reserve(atp.merkle_trees.size());
+			for (file_index_t f(0); f < atp.merkle_trees.size(); ++f)
+			{
+				auto& tree = trees[f];
+				ret_trees.emplace_back(entry::dictionary_t);
+				auto& ret_dict = ret_trees.back().dict();
+				auto& ret_tree = ret_dict["hashes"].string();
+
+				TORRENT_ASSERT(!tree[0].is_all_zeros());
+
+				ret_tree.reserve(tree.size() * 32);
+				for (auto const& n : tree)
+					ret_tree.append(n.data(), n.size());
+			}
+		}
+
 		if (!atp.unfinished_pieces.empty())
 		{
 			entry::list_type& up = ret["unfinished"].list();

@@ -322,6 +322,9 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::noexcept_movable<std::vector<sha1_hash>> TORRENT_DEPRECATED_MEMBER merkle_tree;
 #endif
 
+		// v2 hashes, if known
+		aux::vector<std::vector<sha256_hash>, file_index_t> merkle_trees;
+
 		// this is a map of file indices in the torrent and new filenames to be
 		// applied before the torrent is added.
 		aux::noexcept_movable<std::map<file_index_t, std::string>> renamed_files;

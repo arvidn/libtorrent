@@ -125,6 +125,28 @@ namespace {
 			}
 		}
 
+		bdecode_node const trees = rd.dict_find_list("trees");
+		if (trees)
+		{
+			ret.merkle_trees.reserve(trees.list_size());
+			for (int i = 0; i < trees.list_size(); ++i)
+			{
+				auto de = trees.list_at(i);
+				if (de.type() != bdecode_node::dict_t)
+					break;
+				auto dh = de.dict_find_string("hashes");
+				if (!dh || dh.string_length() % 32 != 0) break;
+
+				ret.merkle_trees.emplace_back();
+				ret.merkle_trees.back().reserve(dh.string_length() / 32);
+				for (auto hashes = dh.string_value();
+					!hashes.empty(); hashes = hashes.substr(32))
+				{
+					ret.merkle_trees.back().emplace_back(hashes);
+				}
+			}
+		}
+
 		ret.total_uploaded = rd.dict_find_int_value("total_uploaded");
 		ret.total_downloaded = rd.dict_find_int_value("total_downloaded");
 
