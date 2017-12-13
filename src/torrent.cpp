@@ -349,6 +349,30 @@ bool is_downloading_state(int const st)
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
+		// --- V2 HASHES ---
+
+		if (m_torrent_file->is_valid() && m_torrent_file->info_hash().has_v2())
+		{
+			if (!p.merkle_trees.empty())
+			{
+				auto& trees = m_torrent_file->merkle_trees();
+				trees.clear();
+				trees.reserve(p.merkle_trees.size());
+				for (auto const& t : p.merkle_trees)
+					trees.emplace_back(t.begin(), t.end());
+			}
+
+			if (!p.verified_leaf_hashes.empty())
+			{
+				TORRENT_ASSERT(!has_hash_picker());
+				aux::vector<aux::vector<bool>, file_index_t> verified;
+				verified.reserve(p.verified_leaf_hashes.size());
+				for (auto const& v : p.verified_leaf_hashes)
+					verified.emplace_back(v.begin(), v.end());
+				need_hash_picker(std::move(verified));
+			}
+		}
+
 		if (valid_metadata())
 		{
 			inc_stats_counter(counters::num_total_pieces_added
@@ -6520,6 +6544,35 @@ bool is_downloading_state(int const st)
 
 				for (auto const i : m_torrent_file->piece_range())
 					ret.piece_priorities.push_back(m_picker->piece_priority(i));
+			}
+		}
+
+		if (m_torrent_file->info_hash().has_v2())
+		{
+			ret.merkle_trees.clear();
+			ret.merkle_trees.reserve(m_torrent_file->merkle_trees().size());
+			for (auto const& t : m_torrent_file->merkle_trees())
+				ret.merkle_trees.emplace_back(t.begin(), t.end());
+			if (has_hash_picker())
+			{
+				auto const& leafs = get_hash_picker().verified_leafs();
+				ret.verified_leaf_hashes.clear();
+				ret.verified_leaf_hashes.reserve(leafs.size());
+				for (auto const& l : leafs)
+					ret.verified_leaf_hashes.emplace_back(l);
+			}
+			else if (!m_have_all)
+			{
+				ret.verified_leaf_hashes.reserve(m_torrent_file->files().num_files());
+				for (file_index_t f(0); f != m_torrent_file->files().end_file(); ++f)
+				{
+					if (m_torrent_file->files().pad_file_at(f))
+					{
+						ret.verified_leaf_hashes.emplace_back();
+						continue;
+					}
+					ret.verified_leaf_hashes.emplace_back(m_torrent_file->files().file_num_blocks(f), false);
+				}
 			}
 		}
 	}
