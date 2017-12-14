@@ -194,7 +194,7 @@ struct udp_server
 		m_socket.bind(asio::ip::udp::endpoint(asio::ip::address_v4::any(), port), ec);
 		TEST_CHECK(!ec);
 
-		m_socket.io_control(lt::udp::socket::non_blocking_io(true));
+		m_socket.non_blocking(true);
 
 		std::printf("udp_server::async_read_some\n");
 		using namespace std::placeholders;

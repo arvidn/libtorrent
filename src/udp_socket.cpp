@@ -806,8 +806,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 
 		m_ipv4_sock.bind(ep, ec);
 		if (ec) return;
-		udp::socket::non_blocking_io ioc(true);
-		m_ipv4_sock.io_control(ioc, ec);
+		m_ipv4_sock.non_blocking(true, ec);
 		if (ec) return;
 		setup_read(&m_ipv4_sock);
 	}
@@ -837,8 +836,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 			, boost::system::generic_category()))
 		{
 			if (ec) return;
-			udp::socket::non_blocking_io ioc(true);
-			m_ipv6_sock.io_control(ioc, ec);
+			m_ipv6_sock.non_blocking(true, ec);
 			if (ec) return;
 			setup_read(&m_ipv6_sock);
 		}
