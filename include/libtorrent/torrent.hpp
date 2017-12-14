@@ -330,8 +330,7 @@ namespace libtorrent {
 	public:
 
 		torrent(aux::session_interface& ses, int block_size
-			, bool session_paused, add_torrent_params const& p
-			, sha1_hash const& info_hash);
+			, bool session_paused, add_torrent_params const& p);
 		~torrent() override;
 
 		// This may be called from multiple threads
