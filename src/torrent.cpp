@@ -163,8 +163,7 @@ namespace libtorrent {
 		aux::session_interface& ses
 		, int const block_size
 		, bool const session_paused
-		, add_torrent_params const& p
-		, sha1_hash const& info_hash)
+		, add_torrent_params const& p)
 		: torrent_hot_members(ses, p, block_size, session_paused)
 		, m_tracker_timer(ses.get_io_service())
 		, m_inactivity_timer(ses.get_io_service())
@@ -179,7 +178,7 @@ namespace libtorrent {
 		, m_storage_constructor(p.storage)
 		, m_added_time(p.added_time ? p.added_time : std::time(nullptr))
 		, m_completed_time(p.completed_time)
-		, m_info_hash(info_hash)
+		, m_info_hash(p.info_hash)
 		, m_error_file(torrent_status::error_file_none)
 		, m_sequence_number(-1)
 		, m_announce_to_trackers(!(p.flags & torrent_flags::paused))
@@ -244,7 +243,7 @@ namespace libtorrent {
 		}
 
 		if (!m_torrent_file)
-			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info>(info_hash));
+			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info>(m_info_hash));
 
 		// --- WEB SEEDS ---
 
