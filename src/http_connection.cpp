@@ -330,8 +330,7 @@ void http_connection::start(std::string const& hostname, int port
 		{
 			if (m_ssl_ctx == 0)
 			{
-				m_ssl_ctx = new (std::nothrow) ssl::context(
-					m_timer.get_io_service(), ssl::context::sslv23_client);
+				m_ssl_ctx = new (std::nothrow) ssl::context(ssl::context::sslv23_client);
 				if (m_ssl_ctx)
 				{
 					m_own_ssl_context = true;
