@@ -145,7 +145,7 @@ TORRENT_TEST(dht_rate_limit)
 	udp::socket sender_sock(sender_ios);
 	sender_sock.open(udp::v4());
 	sender_sock.bind(udp::endpoint(address_v4(), 4444));
-	sender_sock.io_control(udp::socket::non_blocking_io(true));
+	sender_sock.non_blocking(true);
 	asio::high_resolution_timer timer(sender_ios);
 	std::function<void(error_code const&)> sender_tick = [&](error_code const&)
 	{

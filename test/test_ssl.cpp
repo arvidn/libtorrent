@@ -369,7 +369,7 @@ bool try_connect(lt::session& ses1, int port
 	// create the SSL context for this torrent. We need to
 	// inject the root certificate, and no other, to
 	// verify other peers against
-	context ctx(ios, context::sslv23);
+	context ctx(context::sslv23);
 
 	ctx.set_options(context::default_workarounds
 		| boost::asio::ssl::context::no_sslv2

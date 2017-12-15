@@ -258,6 +258,14 @@ namespace libtorrent {
 		error_code set_option(SettableSocketOption const& opt, error_code& ec)
 		{ TORRENT_SOCKTYPE_FORWARD_RET(set_option(opt, ec), ec) }
 
+		void non_blocking(bool b, error_code& ec)
+		{ TORRENT_SOCKTYPE_FORWARD(non_blocking(b, ec)) }
+
+#ifndef BOOST_NO_EXCEPTIONS
+		void non_blocking(bool b)
+		{ TORRENT_SOCKTYPE_FORWARD(non_blocking(b)) }
+#endif
+
 #ifndef BOOST_NO_EXCEPTIONS
 		template <class GettableSocketOption>
 		void get_option(GettableSocketOption& opt)

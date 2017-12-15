@@ -447,8 +447,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	if (ec) return;
 	m_socket.bind(ep, ec);
 	if (ec) return;
-	udp::socket::non_blocking_io ioc(true);
-	m_socket.io_control(ioc, ec);
+	m_socket.non_blocking(true, ec);
 	if (ec) return;
 
 	error_code err;

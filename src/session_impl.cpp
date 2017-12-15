@@ -395,7 +395,7 @@ namespace aux {
 		: m_settings(pack)
 		, m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
-		, m_ssl_ctx(m_io_service, boost::asio::ssl::context::sslv23)
+		, m_ssl_ctx(boost::asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
