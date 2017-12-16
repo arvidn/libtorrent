@@ -6373,6 +6373,31 @@ namespace {
 
 	void session_impl::update_force_proxy()
 	{
+		if (!m_settings.get_bool(settings_pack::force_proxy))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log("force-proxy disabled");
+#endif
+			// we need to close and remove all listen sockets during a transition
+			// from force-proxy to not-force-proxy. reopen_listen_sockets() won't
+			// do anything with half-opened sockets.
+			error_code ec;
+			for (auto& i : m_listen_sockets)
+			{
+				if (i->udp_sock) i->udp_sock->sock.close();
+				if (i->sock) i->sock->close(ec);
+			}
+			m_listen_sockets.clear();
+			return;
+		}
+
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("force-proxy enabled");
+#endif
+
+		// when enabling force-proxy, we no longer wand to accept connections via
+		// a regular listen socket, only via a proxy. We also want to enable
+		// force-proxy on all udp sockets
 		for (auto& i : m_listen_sockets)
 		{
 			i->udp_sock->sock.set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
@@ -6385,18 +6410,6 @@ namespace {
 				i->sock.reset();
 			}
 		}
-
-		if (!m_settings.get_bool(settings_pack::force_proxy))
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			session_log("force-proxy disabled");
-#endif
-			return;
-		}
-
-#ifndef TORRENT_DISABLE_LOGGING
-		session_log("force-proxy enabled");
-#endif
 
 		// enable force_proxy mode. We don't want to accept any incoming
 		// connections, except through a proxy.
