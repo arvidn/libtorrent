@@ -568,15 +568,8 @@ namespace libtorrent
 		void connect_to_url_seed(std::list<web_seed_t>::iterator url);
 		bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false);
 
-		int priority() const { return m_priority; }
-		void set_priority(int prio)
-		{
-			TORRENT_ASSERT(prio <= 255 && prio >= 0);
-			if (prio > 255) prio = 255;
-			else if (prio < 0) prio = 0;
-			m_priority = prio;
-			state_updated();
-		}
+		int priority() const;
+		void set_priority(int const prio);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.1
@@ -1617,10 +1610,7 @@ namespace libtorrent
 		// the number of bytes of padding files
 		boost::uint32_t m_padding:24;
 
-		// this is the priority of the torrent. The higher
-		// the value is, the more bandwidth is assigned to
-		// the torrent's peers
-		boost::uint32_t m_priority:8;
+		// TODO: 8 bits available here
 
 // ----
 
