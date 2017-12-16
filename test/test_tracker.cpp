@@ -624,7 +624,7 @@ void test_stop_tracker_timeout(int const timeout)
 	// after the initial announce
 	int port = start_web_server(false, false, true, -1);
 
-	auto count_stopped_events = [](session& ses)
+	auto count_stopped_events = [](session& ses, int expected)
 	{
 		int count = 0;
 		int num = 70; // this number is adjusted per version, an estimate
@@ -644,11 +644,14 @@ void test_stop_tracker_timeout(int const timeout)
 				{
 					std::string const msg = a->message();
 					if (msg.find("&event=stopped") != std::string::npos)
+					{
 						count++;
+						--expected;
+					}
 				}
 				num--;
 			}
-			if (num <= 0) return count;
+			if (num <= 0 && expected <= 0) return count;
 		}
 		return count;
 	};
@@ -687,13 +690,7 @@ void test_stop_tracker_timeout(int const timeout)
 
 	s.remove_torrent(h);
 
-	wait_for_alert(s, torrent_removed_alert::alert_type, "s");
-
-	// we remove and stop the torrent immediately after posting the alert, so we
-	// need some leeway here
-	std::this_thread::sleep_for(lt::seconds(2));
-
-	int const count = count_stopped_events(s);
+	int const count = count_stopped_events(s, (timeout == 0) ? 0 : 1);
 	TEST_EQUAL(count, (timeout == 0) ? 0 : 1);
 }
 
