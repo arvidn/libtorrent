@@ -199,6 +199,10 @@ namespace aux {
 		std::shared_ptr<tcp::acceptor> sock;
 		std::shared_ptr<aux::session_udp_socket> udp_sock;
 
+		// since udp packets are expected to be dispatched frequently, this saves
+		// time on handler allocation every time we read again.
+		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> udp_handler_storage;
+
 		// the key is an id that is used to identify the
 		// client with the tracker only.
 		std::uint32_t tracker_key = 0;
@@ -1175,14 +1179,6 @@ namespace aux {
 			// the timer used to fire the tick
 			deadline_timer m_timer;
 			aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_tick_handler_storage;
-
-			template <class Handler>
-			aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
-			make_tick_handler(Handler const& handler)
-			{
-				return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
-					handler, m_tick_handler_storage, *this);
-			}
 
 			// torrents are announced on the local network in a
 			// round-robin fashion. All torrents are cycled through

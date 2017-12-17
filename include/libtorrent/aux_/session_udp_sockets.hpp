@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/allocating_handler.hpp"
 #include <boost/asio/io_service.hpp>
 #include <vector>
 
@@ -53,6 +54,10 @@ namespace libtorrent { namespace aux {
 		udp::endpoint local_endpoint() override { return sock.local_endpoint(); }
 
 		udp_socket sock;
+
+		// since udp packets are expected to be dispatched frequently, this saves
+		// time on handler allocation every time we read again.
+		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> udp_handler_storage;
 
 		// this is true when the udp socket send() has failed with EAGAIN or
 		// EWOULDBLOCK. i.e. we're currently waiting for the socket to become
