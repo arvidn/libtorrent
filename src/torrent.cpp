@@ -2630,8 +2630,8 @@ namespace libtorrent {
 		if (torrent_file().priv() || (torrent_file().is_i2p()
 			&& !settings().get_bool(settings_pack::allow_i2p_mixed))) return;
 
-		std::for_each(peers.begin(), peers.end(), std::bind(
-			&torrent::add_peer, this, _1, peer_info::dht, 0));
+		for (auto& p : peers)
+			add_peer(p, peer_info::dht);
 
 		do_connect_boost();
 
@@ -3194,7 +3194,7 @@ namespace libtorrent {
 				{
 					torrent_state st = get_peer_list_state();
 					need_peer_list();
-					if (m_peer_list->add_i2p_peer(i.hostname.c_str (), peer_info::tracker, 0, &st))
+					if (m_peer_list->add_i2p_peer(i.hostname.c_str (), peer_info::tracker, {}, &st))
 						state_updated();
 					peers_erased(st.erased);
 				}
@@ -3405,7 +3405,7 @@ namespace libtorrent {
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
-		if (m_peer_list->add_i2p_peer(dest, peer_info::tracker, 0, &st))
+		if (m_peer_list->add_i2p_peer(dest, peer_info::tracker, {}, &st))
 			state_updated();
 		peers_erased(st.erased);
 	}
@@ -7286,9 +7286,8 @@ namespace libtorrent {
 					seeds.push_back(p);
 				}
 			}
-			std::for_each(seeds.begin(), seeds.end()
-				, std::bind(&peer_connection::disconnect, _1, errors::torrent_finished
-				, operation_t::bittorrent, 0));
+			for (auto& p : seeds)
+				p->disconnect(errors::torrent_finished, operation_t::bittorrent, 0);
 		}
 
 		if (m_abort) return;
@@ -8891,8 +8890,7 @@ namespace libtorrent {
 		if (!m_trackers.empty())
 		{
 			// tell the tracker that we're back
-			std::for_each(m_trackers.begin(), m_trackers.end()
-				, std::bind(&announce_entry::reset, _1));
+			for (auto& t : m_trackers) t.reset();
 		}
 
 		// reset the stats, since from the tracker's
@@ -10013,7 +10011,7 @@ namespace libtorrent {
 	}
 
 	torrent_peer* torrent::add_peer(tcp::endpoint const& adr
-		, peer_source_flags_t const source, int const flags)
+		, peer_source_flags_t const source, pex_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -10090,7 +10088,7 @@ namespace libtorrent {
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
-		torrent_peer* p = m_peer_list->add_peer(adr, source, char(flags), &st);
+		torrent_peer* p = m_peer_list->add_peer(adr, source, flags, &st);
 		peers_erased(st.erased);
 
 #ifndef TORRENT_DISABLE_LOGGING

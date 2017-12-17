@@ -674,7 +674,7 @@ namespace libtorrent {
 
 		bool try_connect_peer();
 		torrent_peer* add_peer(tcp::endpoint const& adr
-			, peer_source_flags_t source, int flags = 0);
+			, peer_source_flags_t source, pex_flags_t flags = {});
 		bool ban_peer(torrent_peer* tp);
 		void update_peer_port(int port, torrent_peer* p, peer_source_flags_t src);
 		void set_seed(torrent_peer* p, bool s);

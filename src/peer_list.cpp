@@ -114,6 +114,8 @@ namespace {
 
 namespace libtorrent {
 
+	constexpr erase_peer_flags_t peer_list::force_erase;
+
 	peer_list::peer_list(torrent_peer_allocator_interface& alloc)
 		: m_locked_peer(nullptr)
 		, m_peer_allocator(alloc)
@@ -324,7 +326,7 @@ namespace libtorrent {
 		return pe.connection == nullptr;
 	}
 
-	void peer_list::erase_peers(torrent_state* state, int flags)
+	void peer_list::erase_peers(torrent_state* state, erase_peer_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -889,7 +891,8 @@ namespace libtorrent {
 	}
 
 	// this is an internal function
-	bool peer_list::insert_peer(torrent_peer* p, iterator iter, int flags
+	bool peer_list::insert_peer(torrent_peer* p, iterator iter
+		, pex_flags_t const flags
 		, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -928,17 +931,17 @@ namespace libtorrent {
 		if (m_round_robin >= iter - m_peers.begin()) ++m_round_robin;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		if (flags & flag_encryption) p->pe_support = true;
+		if (flags & pex_encryption) p->pe_support = true;
 #endif
-		if (flags & flag_seed)
+		if (flags & pex_seed)
 		{
 			p->seed = true;
 			TORRENT_ASSERT(m_num_seeds < int(m_peers.size()));
 			++m_num_seeds;
 		}
-		if (flags & flag_utp)
+		if (flags & pex_utp)
 			p->supports_utp = true;
-		if (flags & flag_holepunch)
+		if (flags & pex_holepunch)
 			p->supports_holepunch = true;
 		if (is_connect_candidate(*p))
 			update_connect_candidates(1);
@@ -947,7 +950,7 @@ namespace libtorrent {
 	}
 
 	void peer_list::update_peer(torrent_peer* p, peer_source_flags_t const src
-		, int flags, tcp::endpoint const& remote)
+		, pex_flags_t const flags, tcp::endpoint const& remote)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		bool const was_conn_cand = is_connect_candidate(*p);
@@ -969,7 +972,7 @@ namespace libtorrent {
 		// if we're connected to this peer
 		// we already know if it's a seed or not
 		// so we don't have to trust this source
-		if ((flags & flag_seed) && !p->connection)
+		if ((flags & pex_seed) && !p->connection)
 		{
 			if (!p->seed)
 			{
@@ -978,9 +981,9 @@ namespace libtorrent {
 			}
 			p->seed = true;
 		}
-		if (flags & flag_utp)
+		if (flags & pex_utp)
 			p->supports_utp = true;
-		if (flags & flag_holepunch)
+		if (flags & pex_holepunch)
 			p->supports_holepunch = true;
 
 		if (was_conn_cand != is_connect_candidate(*p))
@@ -1003,7 +1006,8 @@ namespace libtorrent {
 
 #if TORRENT_USE_I2P
 	torrent_peer* peer_list::add_i2p_peer(string_view const destination
-		, peer_source_flags_t const src, char flags, torrent_state* state)
+		, peer_source_flags_t const src, pex_flags_t const flags
+		, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1035,7 +1039,7 @@ namespace libtorrent {
 
 	// if this returns non-nullptr, the torrent need to post status update
 	torrent_peer* peer_list::add_peer(tcp::endpoint const& remote
-		, peer_source_flags_t const src, char flags
+		, peer_source_flags_t const src, pex_flags_t const flags
 		, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());

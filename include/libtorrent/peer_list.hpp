@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/deque.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/pex_flags.hpp"
 
 namespace libtorrent {
 
@@ -92,6 +93,9 @@ namespace libtorrent {
 		std::vector<torrent_peer*> erased;
 	};
 
+	struct erase_peer_flags_tag;
+	using erase_peer_flags_t = flags::bitfield_flag<std::uint8_t, erase_peer_flags_tag>;
+
 	class TORRENT_EXTRA_EXPORT peer_list : single_threaded
 	{
 	public:
@@ -105,27 +109,19 @@ namespace libtorrent {
 
 #if TORRENT_USE_I2P
 		torrent_peer* add_i2p_peer(string_view destination
-			, peer_source_flags_t src, char flags
+			, peer_source_flags_t src, pex_flags_t flags
 			, torrent_state* state);
 #endif
 
-		enum
-		{
-			// these flags match the flags passed in ut_pex
-			// messages
-			flag_encryption = 0x1,
-			flag_seed = 0x2,
-			flag_utp = 0x4,
-			flag_holepunch = 0x8
-		};
-
 		// this is called once for every torrent_peer we get from
 		// the tracker, pex, lsd or dht.
-		torrent_peer* add_peer(const tcp::endpoint& remote
-			, peer_source_flags_t source, char flags, torrent_state* state);
+		torrent_peer* add_peer(tcp::endpoint const& remote
+			, peer_source_flags_t source, pex_flags_t flags
+			, torrent_state* state);
 
 		// false means duplicate connection
-		bool update_peer_port(int port, torrent_peer* p, peer_source_flags_t src
+		bool update_peer_port(int port, torrent_peer* p
+			, peer_source_flags_t src
 			, torrent_state* state);
 
 		// called when an incoming connection is accepted
@@ -203,9 +199,10 @@ namespace libtorrent {
 
 		void update_connect_candidates(int delta);
 
-		void update_peer(torrent_peer* p, peer_source_flags_t src, int flags
-		, tcp::endpoint const& remote);
-		bool insert_peer(torrent_peer* p, iterator iter, int flags, torrent_state* state);
+		void update_peer(torrent_peer* p, peer_source_flags_t src
+			, pex_flags_t flags, tcp::endpoint const& remote);
+		bool insert_peer(torrent_peer* p, iterator iter
+			, pex_flags_t flags, torrent_state* state);
 
 		bool compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const;
 		bool compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
@@ -219,8 +216,8 @@ namespace libtorrent {
 		bool is_force_erase_candidate(torrent_peer const& pe) const;
 		bool should_erase_immediately(torrent_peer const& p) const;
 
-		enum flags_t { force_erase = 1 };
-		void erase_peers(torrent_state* state, int flags = 0);
+		static constexpr erase_peer_flags_t force_erase = 1_bit;
+		void erase_peers(torrent_state* state, erase_peer_flags_t flags = {});
 
 		peers_t m_peers;
 
