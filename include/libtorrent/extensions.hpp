@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/units.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/peer_info.hpp" // for peer_source_flags_t
+#include "libtorrent/torrent_status.hpp" // for torrent_status::state_t
 
 // OVERVIEW
 //
@@ -276,6 +278,9 @@ namespace libtorrent {
 		virtual void load_state(bdecode_node const&) {}
 	};
 
+	struct add_peer_flags_tag;
+	using add_peer_flags_t = flags::bitfield_flag<std::uint8_t, add_peer_flags_tag>;
+
 	// Torrent plugins are associated with a single torrent and have a number
 	// of functions called at certain events. Many of its functions have the
 	// ability to change or override the default libtorrent behavior.
@@ -306,8 +311,8 @@ namespace libtorrent {
 		// check, respectively. The ``index`` is the piece index that was downloaded.
 		// It is possible to access the list of peers that participated in sending the
 		// piece through the ``torrent`` and the ``piece_picker``.
-		virtual void on_piece_pass(piece_index_t /*index*/) {}
-		virtual void on_piece_failed(piece_index_t /*index*/) {}
+		virtual void on_piece_pass(piece_index_t) {}
+		virtual void on_piece_failed(piece_index_t) {}
 
 		// This hook is called approximately once per second. It is a way of making it
 		// easy for plugins to do timed events, for sending messages or whatever.
@@ -337,19 +342,18 @@ namespace libtorrent {
 		// called when the torrent changes state
 		// the state is one of torrent_status::state_t
 		// enum members
-		virtual void on_state(int /*s*/) {}
+		virtual void on_state(torrent_status::state_t) {}
 
 		// called every time policy::add_peer is called
 		// src is a bitmask of which sources this peer
 		// has been seen from. flags is a bitmask of:
 
-		enum flags_t {
-			// this is the first time we see this peer
-			first_time = 1,
-			// this peer was not added because it was
-			// filtered by the IP filter
-			filtered = 2
-		};
+		// this is the first time we see this peer
+		static constexpr add_peer_flags_t first_time = 1_bit;
+
+		// this peer was not added because it was
+		// filtered by the IP filter
+		static constexpr add_peer_flags_t filtered = 2_bit;
 
 		// called every time a new peer is added to the peer list.
 		// This is before the peer is connected to. For ``flags``, see
@@ -358,7 +362,7 @@ namespace libtorrent {
 		// bitmask, because many sources may have told us about the same
 		// peer. For peer source flags, see peer_info::peer_source_flags.
 		virtual void on_add_peer(tcp::endpoint const&,
-			int /*src*/, int /*flags*/) {}
+			peer_source_flags_t, add_peer_flags_t) {}
 	};
 
 	// peer plugins are associated with a specific peer. A peer could be
@@ -381,7 +385,7 @@ namespace libtorrent {
 		virtual void add_handshake(entry&) {}
 
 		// called when the peer is being disconnected.
-		virtual void on_disconnect(error_code const& /*ec*/) {}
+		virtual void on_disconnect(error_code const&) {}
 
 		// called when the peer is successfully connected. Note that
 		// incoming connections will have been connected by the time
@@ -396,7 +400,7 @@ namespace libtorrent {
 		// Returning false means that the other end doesn't support this extension
 		// and will remove it from the list of plugins. this is not called for web
 		// seeds
-		virtual bool on_handshake(span<char const> /*reserved_bits*/) { return true; }
+		virtual bool on_handshake(span<char const>) { return true; }
 
 		// called when the extension handshake from the other end is received
 		// if this returns false, it means that this extension isn't

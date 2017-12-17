@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
+#include "libtorrent/extensions.hpp" // for add_peer_flags_t
 
 namespace libtorrent {
 
@@ -60,6 +61,11 @@ namespace aux {
 	constexpr torrent_list_index_t session_interface::torrent_seeding_auto_managed;
 	constexpr torrent_list_index_t session_interface::torrent_checking_auto_managed;
 }
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+constexpr add_peer_flags_t torrent_plugin::first_time;
+constexpr add_peer_flags_t torrent_plugin::filtered;
+#endif
 
 namespace {
 
