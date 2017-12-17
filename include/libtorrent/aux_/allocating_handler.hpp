@@ -151,12 +151,12 @@ namespace libtorrent { namespace aux {
 
 	template <class Handler, size_t Size>
 	aux::allocating_handler<Handler, Size>
-	make_handler(Handler const& handler
+	make_handler(Handler handler
 		, handler_storage<Size>& storage
 		, error_handler_interface& err_handler)
 	{
 		return aux::allocating_handler<Handler, Size>(
-			handler, storage, err_handler);
+			std::forward<Handler>(handler), storage, err_handler);
 	}
 }
 }
