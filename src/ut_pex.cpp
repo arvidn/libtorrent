@@ -166,24 +166,24 @@ namespace libtorrent {namespace {
 					//        flag is received from a peer, it can be
 					//        used as a rendezvous point in case direct
 					//        connections to the peer fail
-					int flags = p->is_seed() ? 2 : 0;
+					pex_flags_t flags = p->is_seed() ? pex_seed : pex_flags_t{};
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-					flags |= p->supports_encryption() ? 1 : 0;
+					flags |= p->supports_encryption() ? pex_encryption : pex_flags_t{};
 #endif
-					flags |= is_utp(*p->get_socket()) ? 4 :  0;
-					flags |= p->supports_holepunch() ? 8 : 0;
+					flags |= is_utp(*p->get_socket()) ? pex_utp : pex_flags_t{};
+					flags |= p->supports_holepunch() ? pex_holepunch : pex_flags_t{};
 
 					// i->first was added since the last time
 					if (remote.address().is_v4())
 					{
 						detail::write_endpoint(remote, pla_out);
-						detail::write_uint8(flags, plf_out);
+						detail::write_uint8(static_cast<std::uint8_t>(flags), plf_out);
 					}
 #if TORRENT_USE_IPV6
 					else
 					{
 						detail::write_endpoint(remote, pla6_out);
-						detail::write_uint8(flags, plf6_out);
+						detail::write_uint8(static_cast<std::uint8_t>(flags), plf6_out);
 					}
 #endif
 					++num_added;
@@ -333,7 +333,7 @@ namespace libtorrent {namespace {
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint const adr = detail::read_v4_endpoint<tcp::endpoint>(in);
-					char const flags = *fin++;
+					pex_flags_t const flags(static_cast<std::uint8_t>(*fin++));
 
 					if (int(m_peers.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
 						break;
@@ -386,7 +386,7 @@ namespace libtorrent {namespace {
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint const adr = detail::read_v6_endpoint<tcp::endpoint>(in);
-					char const flags = *fin++;
+					pex_flags_t const flags(static_cast<std::uint8_t>(*fin++));
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 					if (int(m_peers6.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))

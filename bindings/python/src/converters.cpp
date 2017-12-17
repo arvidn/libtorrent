@@ -21,6 +21,7 @@
 #include "libtorrent/create_torrent.hpp" // for create_flags_t
 #include "libtorrent/portmap.hpp" // for port_mapping_t
 #include "libtorrent/peer_class.hpp"
+#include "libtorrent/pex_flags.hpp"
 #include <vector>
 
 using namespace boost::python;
@@ -323,6 +324,7 @@ void bind_converters()
     to_python_converter<lt::reopen_network_flags_t, from_bitfield_flag<lt::reopen_network_flags_t>>();
     to_python_converter<lt::file_flags_t, from_bitfield_flag<lt::file_flags_t>>();
     to_python_converter<lt::create_flags_t, from_bitfield_flag<lt::create_flags_t>>();
+    to_python_converter<lt::pex_flags_t, from_bitfield_flag<lt::pex_flags_t>>();
 
     // work-around types
     to_python_converter<lt::aux::noexcept_movable<lt::address>, address_to_tuple<
@@ -387,4 +389,5 @@ void bind_converters()
     to_bitfield_flag<lt::reopen_network_flags_t>();
     to_bitfield_flag<lt::file_flags_t>();
     to_bitfield_flag<lt::create_flags_t>();
+    to_bitfield_flag<lt::pex_flags_t>();
 }

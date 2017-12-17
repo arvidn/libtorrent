@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_flags.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
 #include "libtorrent/download_priority.hpp"
+#include "libtorrent/pex_flags.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -1126,7 +1127,7 @@ namespace aux {
 		//      connections to the peer fail
 		// ==== ==========================================
 		void connect_peer(tcp::endpoint const& adr, peer_source_flags_t source = {}
-			, int flags = 0x1 + 0x4 + 0x8) const;
+			, pex_flags_t flags = pex_encryption | pex_utp | pex_holepunch) const;
 
 		// ``set_max_uploads()`` sets the maximum number of peers that's unchoked
 		// at the same time on this torrent. If you set this to -1, there will be

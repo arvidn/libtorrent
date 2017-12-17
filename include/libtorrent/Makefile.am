@@ -97,6 +97,7 @@ nobase_include_HEADERS = \
   peer_id.hpp                  \
   peer_info.hpp                \
   peer_request.hpp             \
+  pex_flags.hpp                \
   piece_block.hpp              \
   piece_block_progress.hpp     \
   piece_picker.hpp             \
