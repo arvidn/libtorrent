@@ -74,6 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/deferred_handler.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
+#include "libtorrent/extensions.hpp" // for add_peer_flags_t
 
 #ifdef TORRENT_USE_OPENSSL
 // there is no forward declaration header for asio
@@ -369,7 +370,7 @@ namespace libtorrent {
 		void add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 			, void* userdata);
 		void notify_extension_add_peer(tcp::endpoint const& ip
-			, peer_source_flags_t src, int flags);
+			, peer_source_flags_t src, add_peer_flags_t flags);
 #endif
 
 		peer_connection* find_lowest_ranking_peer() const;

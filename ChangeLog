@@ -1,3 +1,4 @@
+	* update plugin interface functions for improved type-safety
 	* implemented support magnet URI extension, select specific file indices
 	  for download, BEP53
 	* make tracker keys multi-homed. remove set_key() function on session.

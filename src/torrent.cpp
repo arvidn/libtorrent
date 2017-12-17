@@ -10106,7 +10106,10 @@ namespace libtorrent {
 		{
 			state_updated();
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			notify_extension_add_peer(adr, source, st.first_time_seen ? torrent_plugin::first_time : 0);
+			notify_extension_add_peer(adr, source
+				, st.first_time_seen
+					? torrent_plugin::first_time
+					: add_peer_flags_t{});
 #endif
 		}
 		else
@@ -10516,18 +10519,18 @@ namespace {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_extensions)
 		{
-			ext->on_state(m_state);
+			ext->on_state(state());
 		}
 #endif
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void torrent::notify_extension_add_peer(tcp::endpoint const& ip
-		, peer_source_flags_t const src, int const flags)
+		, peer_source_flags_t const src, add_peer_flags_t const flags)
 	{
 		for (auto& ext : m_extensions)
 		{
-			ext->on_add_peer(ip, static_cast<std::uint8_t>(src), flags);
+			ext->on_add_peer(ip, src, flags);
 		}
 	}
 #endif
