@@ -94,7 +94,7 @@ namespace libtorrent {
 		bool on_scrape_response(span<char const> buf);
 
 		// wraps tracker_connection::fail
-		void fail(error_code const& ec, int code = -1
+		void fail(error_code const& ec
 			, char const* msg = ""
 			, seconds32 interval = seconds32(0)
 			, seconds32 min_interval = seconds32(30));
