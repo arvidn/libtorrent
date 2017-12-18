@@ -601,6 +601,11 @@ namespace libtorrent {
 		void connect_to_url_seed(std::list<web_seed_t>::iterator url);
 		bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false);
 
+		int priority() const;
+#ifndef TORRENT_NO_DEPRECATE
+		void set_priority(int const prio);
+#endif // TORRENT_NO_DEPRECATE
+
 // --------------------------------------------
 		// BANDWIDTH MANAGEMENT
 
@@ -1589,6 +1594,8 @@ namespace libtorrent {
 
 		// the number of bytes of padding files
 		std::uint32_t m_padding:24;
+
+		// TODO: 8 bits available here
 
 // ----
 

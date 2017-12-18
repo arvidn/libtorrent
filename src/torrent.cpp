@@ -10621,16 +10621,7 @@ namespace {
 		st->up_bandwidth_queue = 0;
 		st->down_bandwidth_queue = 0;
 #ifndef TORRENT_NO_DEPRECATE
-		int priority = 0;
-		for (int i = 0; i < num_classes(); ++i)
-		{
-			int const* prio = m_ses.peer_classes().at(class_at(i))->priority;
-			if (priority < prio[peer_connection::upload_channel])
-				priority = prio[peer_connection::upload_channel];
-			if (priority < prio[peer_connection::download_channel])
-				priority = prio[peer_connection::download_channel];
-		}
-		st->priority = priority;
+		st->priority = priority();
 #endif
 
 		st->num_peers = num_peers() - m_num_connecting;
@@ -10834,6 +10825,36 @@ namespace {
 
 		st->last_seen_complete = m_swarm_last_seen_complete;
 	}
+
+	int torrent::priority() const
+	{
+		int priority = 0;
+		for (int i = 0; i < num_classes(); ++i)
+		{
+			int const* prio = m_ses.peer_classes().at(class_at(i))->priority;
+			priority = std::max(priority, prio[peer_connection::upload_channel]);
+			priority = std::max(priority, prio[peer_connection::download_channel]);
+		}
+		return priority;
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	void torrent::set_priority(int const prio)
+	{
+		// priority 1 is default
+		if (prio == 1 && m_peer_class == 0) return;
+
+		if (m_peer_class == 0)
+			setup_peer_class();
+
+		struct peer_class* tpc = m_ses.peer_classes().at(m_peer_class);
+		TORRENT_ASSERT(tpc);
+		tpc->priority[peer_connection::download_channel] = prio;
+		tpc->priority[peer_connection::upload_channel] = prio;
+
+		state_updated();
+	}
+#endif
 
 	void torrent::add_redundant_bytes(int const b, waste_reason const reason)
 	{

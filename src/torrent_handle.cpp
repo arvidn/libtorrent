@@ -425,7 +425,10 @@ namespace libtorrent {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	void torrent_handle::set_priority(int) const {}
+	void torrent_handle::set_priority(int const p) const
+	{
+		async_call(&torrent::set_priority, p);
+	}
 
 	void torrent_handle::set_tracker_login(std::string const& name
 		, std::string const& password) const
