@@ -10902,7 +10902,7 @@ namespace {
 	}
 
 	void torrent::tracker_request_error(tracker_request const& r
-		, int const response_code, error_code const& ec, std::string const& msg
+		, error_code const& ec, std::string const& msg
 		, seconds32 const retry_interval)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -10949,7 +10949,7 @@ namespace {
 				int const tracker_index = int(ae - m_trackers.data());
 
 				// never talk to this tracker again
-				if (response_code == 410) ae->fail_limit = 1;
+				if (ec == error_code(410, http_category())) ae->fail_limit = 1;
 
 				deprioritize_tracker(tracker_index);
 			}
@@ -10957,7 +10957,7 @@ namespace {
 				|| r.triggered_manually)
 			{
 				m_ses.alerts().emplace_alert<tracker_error_alert>(get_handle()
-					, local_endpoint, fails, response_code, r.url, ec, msg);
+					, local_endpoint, fails, r.url, ec, msg);
 			}
 		}
 		else
@@ -10965,7 +10965,7 @@ namespace {
 			announce_entry* ae = find_tracker(r.url);
 
 			// scrape request
-			if (response_code == 410)
+			if (ec == error_code(410, http_category()))
 			{
 				// never talk to this tracker again
 				if (ae != nullptr) ae->fail_limit = 1;

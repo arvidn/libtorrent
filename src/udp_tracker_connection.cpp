@@ -125,7 +125,7 @@ namespace libtorrent {
 			, settings.get_int(settings_pack::tracker_receive_timeout));
 	}
 
-	void udp_tracker_connection::fail(error_code const& ec, int code
+	void udp_tracker_connection::fail(error_code const& ec
 		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// m_target failed. remove it from the endpoint list
@@ -138,7 +138,7 @@ namespace libtorrent {
 		// fail the whole announce
 		if (m_endpoints.empty() || !tracker_req().outgoing_socket)
 		{
-			tracker_connection::fail(ec, code, msg, interval, min_interval);
+			tracker_connection::fail(ec, msg, interval, min_interval);
 			return;
 		}
 
@@ -424,7 +424,7 @@ namespace libtorrent {
 
 		if (action == action_t::error)
 		{
-			fail(error_code(errors::tracker_failure), -1
+			fail(error_code(errors::tracker_failure)
 				, std::string(buf.data(), buf.size()).c_str());
 			return true;
 		}
@@ -702,7 +702,7 @@ namespace libtorrent {
 
 		if (action == action_t::error)
 		{
-			fail(error_code(errors::tracker_failure), -1
+			fail(error_code(errors::tracker_failure)
 				, std::string(buf.data(), buf.size()).c_str());
 			return true;
 		}

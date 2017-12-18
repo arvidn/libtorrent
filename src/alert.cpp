@@ -312,13 +312,13 @@ namespace libtorrent {
 
 	tracker_error_alert::tracker_error_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep, int times
-		, int status, string_view u, error_code const& e, string_view m)
+		, string_view u, error_code const& e, string_view m)
 		: tracker_alert(alloc, h, ep, u)
 		, times_in_row(times)
-		, status_code(status)
 		, error(e)
 		, m_msg_idx(alloc.copy_string(m))
 #ifndef TORRENT_NO_DEPRECATE
+		, status_code(e && e.category() == http_category() ? e.value() : -1)
 		, msg(m)
 #endif
 	{
@@ -333,8 +333,8 @@ namespace libtorrent {
 	std::string tracker_error_alert::message() const
 	{
 		char ret[400];
-		std::snprintf(ret, sizeof(ret), "%s (%d) %s \"%s\" (%d)"
-			, tracker_alert::message().c_str(), status_code
+		std::snprintf(ret, sizeof(ret), "%s %s \"%s\" (%d)"
+			, tracker_alert::message().c_str()
 			, convert_from_native(error.message()).c_str(), error_message()
 			, times_in_row);
 		return ret;

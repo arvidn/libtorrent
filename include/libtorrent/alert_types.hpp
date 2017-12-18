@@ -439,7 +439,7 @@ namespace libtorrent {
 		// internal
 		tracker_error_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, int times, int status, string_view u
+			, int times, string_view u
 			, error_code const& e, string_view m);
 
 		TORRENT_DEFINE_ALERT(tracker_error_alert, 11)
@@ -448,7 +448,6 @@ namespace libtorrent {
 		std::string message() const override;
 
 		int const times_in_row;
-		int const status_code;
 		error_code const error;
 
 		// the message associated with this error
@@ -458,6 +457,7 @@ namespace libtorrent {
 		aux::allocation_slot m_msg_idx;
 #ifndef TORRENT_NO_DEPRECATE
 	public:
+		int const status_code;
 		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	};

@@ -243,7 +243,6 @@ namespace libtorrent {
 			, struct tracker_response const& response) = 0;
 		virtual void tracker_request_error(
 			tracker_request const& req
-			, int response_code
 			, error_code const& ec
 			, const std::string& msg
 			, seconds32 retry_interval) = 0;
@@ -309,7 +308,7 @@ namespace libtorrent {
 
 		tracker_request const& tracker_req() const { return m_req; }
 
-		void fail(error_code const& ec, int code = -1, char const* msg = ""
+		void fail(error_code const& ec, char const* msg = ""
 			, seconds32 interval = seconds32(0), seconds32 min_interval = seconds32(0));
 		virtual void start() = 0;
 		virtual void close() = 0;
@@ -330,7 +329,7 @@ namespace libtorrent {
 
 	protected:
 
-		void fail_impl(error_code const& ec, int code = -1, std::string msg = std::string()
+		void fail_impl(error_code const& ec, std::string msg = std::string()
 			, seconds32 interval = seconds32(0), seconds32 min_interval = seconds32(0));
 
 		std::weak_ptr<request_callback> m_requester;
