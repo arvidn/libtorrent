@@ -751,6 +751,7 @@ namespace libtorrent
 #endif
 			if (t->is_upload_only()) send_not_interested();
 			else t->peer_is_interesting(*this);
+			disconnect_if_redundant();
 			return;
 		}
 
@@ -1931,6 +1932,7 @@ namespace libtorrent
 			if (t && t->has_picker())
 				t->picker().check_peer_invariant(m_have_piece, peer_info_struct());
 #endif
+			if (disconnect_if_redundant()) return;
 		}
 
 		// it's important to update whether we're intersted in this peer before
