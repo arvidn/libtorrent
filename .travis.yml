@@ -13,9 +13,6 @@ matrix:
     - env: variant=test_release lang=cpp11 sim=0 coverage=0 docs=1 target=osx-tests
       os: osx
       osx_image: xcode7.3
-    - env: variant=test_debug lang=cpp98 sim=0 coverage=0 target=osx-tests
-      os: osx
-      osx_image: xcode7.3
 
 git:
   submodules: false
