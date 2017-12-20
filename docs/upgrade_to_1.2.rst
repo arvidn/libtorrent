@@ -54,7 +54,7 @@ rate_limit_utp changed defaults
 ===============================
 
 The setting ``rate_limit_utp`` was deprecated in libtorrent 1.1.
-When building without deprecated features (``deprecated-functions=off``) the default behavior also changed to have rate limits apply to utp sockets also.
+When building without deprecated features (``deprecated-functions=off``) the default behavior also changed to have rate limits apply to utp sockets too.
 In order to be more consistent between the two build configurations, the default value has changed to true.
 The new mechanism provided to apply special rate limiting rules is *peer classes*.
 In order to implement the old behavior of not rate limiting uTP peers, one cans set up a peer class for all uTP peers, to make the normal peer classes not apply to them (which is where the rate limits are set).
