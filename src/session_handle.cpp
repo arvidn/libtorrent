@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/peer_class_type_filter.hpp"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -611,9 +612,19 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_peer_class_filter, f);
 	}
 
+	ip_filter session_handle::get_peer_class_filter() const
+	{
+		return TORRENT_SYNC_CALL_RET(ip_filter, get_peer_class_filter);
+	}
+
 	void session_handle::set_peer_class_type_filter(peer_class_type_filter const& f)
 	{
 		TORRENT_ASYNC_CALL1(set_peer_class_type_filter, f);
+	}
+
+	peer_class_type_filter session_handle::get_peer_class_type_filter() const
+	{
+		return TORRENT_SYNC_CALL_RET(peer_class_type_filter, get_peer_class_type_filter);
 	}
 
 	int session_handle::create_peer_class(char const* name)

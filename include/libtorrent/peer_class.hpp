@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	typedef boost::uint32_t peer_class_t;
+	typedef int peer_class_t;
 
 	// holds settings for a peer class. Used in set_peer_class() and
 	// get_peer_class() calls.

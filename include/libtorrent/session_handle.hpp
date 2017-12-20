@@ -634,7 +634,7 @@ namespace libtorrent
 		// .. code:: c++
 		//
 		// 	ip_filter f;
-		// 	int my_class = ses.create_peer_class("200.1.x.x IP range");
+		// 	peer_class_t my_class = ses.create_peer_class("200.1.x.x IP range");
 		// 	f.add_rule(address_v4::from_string("200.1.1.0")
 		// 		, address_v4::from_string("200.1.255.255")
 		// 		, 1 << my_class);
@@ -651,8 +651,11 @@ namespace libtorrent
 		// The ``peer_class`` argument cannot be greater than 31. The bitmasks
 		// representing peer classes in the ``peer_class_filter`` are 32 bits.
 		//
+		// The ``get_peer_class_filter()`` function returns the current filter.
+		//
 		// For more information, see peer-classes_.
 		void set_peer_class_filter(ip_filter const& f);
+		ip_filter get_peer_class_filter() const;
 
 		// Sets and gets the *peer class type filter*. This is controls automatic
 		// peer class assignments to peers based on what kind of socket it is.
@@ -667,8 +670,8 @@ namespace libtorrent
 		// 3. peer-class type filter, adding classes
 		//
 		// For more information, see peer-classes_.
-		// TODO: add get_peer_class_type_filter() as well
 		void set_peer_class_type_filter(peer_class_type_filter const& f);
+		peer_class_type_filter get_peer_class_type_filter() const;
 
 		// Creates a new peer class (see peer-classes_) with the given name. The
 		// returned integer is the new peer class identifier. Peer classes may
