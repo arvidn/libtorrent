@@ -243,7 +243,7 @@ namespace aux {
 			{"0.0.0.0", "255.255.255.255", gfilter},
 			// local networks
 			{"10.0.0.0", "10.255.255.255", lfilter},
-			{"172.16.0.0", "172.16.255.255", lfilter},
+			{"172.16.0.0", "172.31.255.255", lfilter},
 			{"192.168.0.0", "192.168.255.255", lfilter},
 			// link-local
 			{"169.254.0.0", "169.254.255.255", lfilter},
@@ -256,6 +256,8 @@ namespace aux {
 		{
 			// everything
 			{"::0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", gfilter},
+			// local networks
+			{"fc00::", "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", lfilter},
 			// link-local
 			{"fe80::", "febf::ffff:ffff:ffff:ffff:ffff:ffff:ffff", lfilter},
 			// loop-back
