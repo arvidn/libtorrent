@@ -484,6 +484,7 @@ struct obs : dht::dht_observer
 	virtual void outgoing_get_peers(sha1_hash const& target
 		, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE {}
 	virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE {}
+#ifndef TORRENT_DISABLE_LOGGING
 	virtual void log(dht_logger::module_t l, char const* fmt, ...) TORRENT_OVERRIDE
 	{
 		va_list v;
@@ -495,6 +496,7 @@ struct obs : dht::dht_observer
 	}
 	virtual void log_packet(message_direction_t dir, char const* pkt, int len
 		, udp::endpoint node) TORRENT_OVERRIDE {}
+#endif
 	virtual bool on_dht_request(char const* query, int query_len
 		, dht::msg const& request, entry& response) TORRENT_OVERRIDE { return false; }
 
@@ -2485,6 +2487,9 @@ TORRENT_TEST(read_only_node)
 	TEST_CHECK(!parsed[3]);
 }
 
+#ifndef TORRENT_DISABLE_LOGGING
+// these tests rely on logging being enabled
+
 TORRENT_TEST(invalid_error_msg)
 {
 	dht_settings sett = test_settings();
@@ -2582,6 +2587,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 
 	TEST_EQUAL(found, true);
 }
+#endif
 
 // test bucket distribution
 TORRENT_TEST(node_id_bucket_distribution)

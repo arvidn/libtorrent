@@ -579,10 +579,12 @@ namespace libtorrent
 			virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE;
 			virtual void outgoing_get_peers(sha1_hash const& target
 				, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE;
+#ifndef TORRENT_DISABLE_LOGGING
 			virtual void log(libtorrent::dht::dht_logger::module_t m, char const* fmt, ...)
 				TORRENT_OVERRIDE TORRENT_FORMAT(3,4);
 			virtual void log_packet(message_direction_t dir, char const* pkt, int len
 				, udp::endpoint node) TORRENT_OVERRIDE;
+#endif
 
 			virtual bool on_dht_request(char const* query, int query_len
 				, dht::msg const& request, entry& response) TORRENT_OVERRIDE;

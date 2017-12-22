@@ -41,6 +41,7 @@ namespace libtorrent { namespace dht
 {
 	struct TORRENT_EXTRA_EXPORT dht_logger
 	{
+#ifndef TORRENT_DISABLE_LOGGING
 		enum module_t
 		{
 			tracker,
@@ -62,6 +63,7 @@ namespace libtorrent { namespace dht
 
 	protected:
 		~dht_logger() {}
+#endif
 	};
 
 	struct TORRENT_EXTRA_EXPORT dht_observer : dht_logger
