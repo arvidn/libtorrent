@@ -181,10 +181,14 @@ namespace libtorrent
 			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0
 			&& branch_path[m_name.size()] == TORRENT_SEPARATOR)
 		{
-			int const offset = m_name.size()
-				+ (m_name.size() == branch_len?0:1);
+			int const offset = m_name.size();
 			branch_path += offset;
 			branch_len -= offset;
+			while (branch_len > 0 && branch_path[0] == TORRENT_SEPARATOR)
+			{
+				--branch_len;
+				++branch_path;
+			}
 			e.no_root_dir = false;
 		}
 		else
@@ -199,7 +203,7 @@ namespace libtorrent
 	int file_storage::get_or_add_path(char const* branch_path, int branch_len)
 	{
 		// trim trailing slashes
-		if (branch_len > 0 && branch_path[branch_len-1] == TORRENT_SEPARATOR)
+		while (branch_len > 0 && branch_path[branch_len-1] == TORRENT_SEPARATOR)
 			--branch_len;
 
 		// do we already have this path in the path list?
