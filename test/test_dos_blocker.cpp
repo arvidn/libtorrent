@@ -44,6 +44,7 @@ using namespace libtorrent;
 
 struct log_t : libtorrent::dht::dht_logger
 {
+#ifndef TORRENT_DISABLE_LOGGING
 	virtual void log(dht_logger::module_t m, char const* fmt, ...)
 		TORRENT_OVERRIDE TORRENT_FORMAT(3, 4)
 	{
@@ -68,6 +69,7 @@ struct log_t : libtorrent::dht::dht_logger
 		printf("%s [%s] %s", prefix[dir], print_endpoint(node).c_str()
 			, msg.c_str());
 	}
+#endif
 };
 
 TORRENT_TEST(dos_blocker)
