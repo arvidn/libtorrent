@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/parse_url.hpp" // for parse_url_components
 #include "libtorrent/aux_/escape_string.hpp" // for read_until
+#include "libtorrent/hex.hpp"
 
 using namespace libtorrent;
 
@@ -470,8 +471,27 @@ restart_response:
 		// empty line
 
 		// first, read the chunk length
-		*chunk_size = strtoll(pos, 0, 16);
-		if (*chunk_size < 0) return true;
+		boost::int64_t size = 0;
+		for (char const* i = pos; i != newline; ++i)
+		{
+			if (*i == '\r') continue;
+			if (*i == '\n') continue;
+			if (*i == ';') break;
+			int const digit = detail::hex_to_int(*i);
+			if (digit < 0)
+			{
+				*chunk_size = -1;
+				return true;
+			}
+			if (size >= std::numeric_limits<boost::int64_t>::max() / 16)
+			{
+				*chunk_size = -1;
+				return true;
+			}
+			size *= 16;
+			size += digit;
+		}
+		*chunk_size = size;
 
 		if (*chunk_size != 0)
 		{

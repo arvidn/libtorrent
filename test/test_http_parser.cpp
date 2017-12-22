@@ -566,6 +566,6 @@ TORRENT_TEST(invalid_chunk_afl)
 	boost::tuple<int, int, bool> const received
 		= feed_bytes(parser, reinterpret_cast<char const*>(invalid_chunked_input));
 
-	TEST_CHECK(boost::get<2>(received) == true);
+	TEST_CHECK(boost::get<2>(received) == false);
 }
 
