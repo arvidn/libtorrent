@@ -643,8 +643,11 @@ namespace libtorrent {
 		// The ``peer_class`` argument cannot be greater than 31. The bitmasks
 		// representing peer classes in the ``peer_class_filter`` are 32 bits.
 		//
+		// The ``get_peer_class_filter()`` function returns the current filter.
+		//
 		// For more information, see peer-classes_.
 		void set_peer_class_filter(ip_filter const& f);
+		ip_filter get_peer_class_filter() const;
 
 		// Sets and gets the *peer class type filter*. This is controls automatic
 		// peer class assignments to peers based on what kind of socket it is.
@@ -659,8 +662,8 @@ namespace libtorrent {
 		// 3. peer-class type filter, adding classes
 		//
 		// For more information, see peer-classes_.
-		// TODO: add get_peer_class_type_filter() as well
 		void set_peer_class_type_filter(peer_class_type_filter const& f);
+		peer_class_type_filter get_peer_class_type_filter() const;
 
 		// Creates a new peer class (see peer-classes_) with the given name. The
 		// returned integer is the new peer class identifier. Peer classes may
