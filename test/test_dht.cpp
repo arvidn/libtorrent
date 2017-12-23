@@ -3257,6 +3257,8 @@ TORRENT_TEST(read_only_node)
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
+// these tests rely on logging being enabled
+
 TORRENT_TEST(invalid_error_msg)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_class.hpp"
+#include "libtorrent/peer_class_type_filter.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/read_resume_data.hpp"
@@ -838,9 +839,19 @@ namespace {
 		async_call(&session_impl::set_peer_class_filter, f);
 	}
 
+	ip_filter session_handle::get_peer_class_filter() const
+	{
+		return sync_call_ret<ip_filter>(&session_impl::get_peer_class_filter);
+	}
+
 	void session_handle::set_peer_class_type_filter(peer_class_type_filter const& f)
 	{
 		async_call(&session_impl::set_peer_class_type_filter, f);
+	}
+
+	peer_class_type_filter session_handle::get_peer_class_type_filter() const
+	{
+		return sync_call_ret<peer_class_type_filter>(&session_impl::get_peer_class_type_filter);
 	}
 
 	peer_class_t session_handle::create_peer_class(char const* name)

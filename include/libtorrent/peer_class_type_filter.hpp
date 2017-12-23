@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_CLASS_TYPE_FILTER_HPP_INCLUDED
 #define TORRENT_PEER_CLASS_TYPE_FILTER_HPP_INCLUDED
 
-#include <cstring> // for memset
 #include <cstdint>
+#include <array>
 
 namespace libtorrent {
 
@@ -45,8 +45,8 @@ namespace libtorrent {
 	{
 		peer_class_type_filter()
 		{
-			std::memset(m_peer_class_type_mask, 0xff, sizeof(m_peer_class_type_mask));
-			std::memset(m_peer_class_type, 0, sizeof(m_peer_class_type));
+			m_peer_class_type_mask.fill(0xffffffff);
+			m_peer_class_type.fill(0);
 		}
 
 		enum socket_type_t : std::uint8_t
@@ -121,12 +121,19 @@ namespace libtorrent {
 			return peer_class_mask;
 		}
 
+		friend bool operator==(peer_class_type_filter const& lhs
+			, peer_class_type_filter const& rhs)
+		{
+			return lhs.m_peer_class_type_mask == rhs.m_peer_class_type_mask
+				&& lhs.m_peer_class_type == rhs.m_peer_class_type;
+		}
+
 	private:
 		// maps socket type to a bitmask that's used to filter out
 		// (mask) bits from the m_peer_class_filter.
-		std::uint32_t m_peer_class_type_mask[num_socket_types];
+		std::array<std::uint32_t, num_socket_types> m_peer_class_type_mask;
 		// peer class bitfield added based on socket type
-		std::uint32_t m_peer_class_type[num_socket_types];
+		std::array<std::uint32_t, num_socket_types> m_peer_class_type;
 	};
 
 }

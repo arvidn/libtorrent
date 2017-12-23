@@ -60,6 +60,12 @@ struct ip_range
 	Addr first;
 	Addr last;
 	std::uint32_t flags;
+	friend bool operator==(ip_range const& lhs, ip_range const& rhs)
+	{
+		return lhs.first == rhs.first
+			&& lhs.last == rhs.last
+			&& lhs.flags == rhs.flags;
+	}
 };
 
 namespace detail {

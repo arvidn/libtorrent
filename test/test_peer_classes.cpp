@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/ip_filter.hpp"
+#include "libtorrent/session.hpp"
 
 using namespace lt;
 
@@ -113,5 +115,39 @@ TORRENT_TEST(peer_class)
 	pool.decref(id1);
 	TEST_CHECK(pool.at(id2) == nullptr);
 	TEST_CHECK(pool.at(id1) == nullptr);
+}
+
+TORRENT_TEST(session_peer_class_filter)
+{
+	using namespace libtorrent;
+	session ses;
+	peer_class_t my_class = ses.create_peer_class("200.1.x.x IP range");
+
+	ip_filter f;
+	f.add_rule(address_v4::from_string("200.1.1.0")
+		, address_v4::from_string("200.1.255.255")
+		, 1 << static_cast<std::uint32_t>(my_class));
+	ses.set_peer_class_filter(f);
+
+#if TORRENT_USE_IPV6
+	TEST_CHECK(std::get<0>(ses.get_peer_class_filter().export_filter())
+		== std::get<0>(f.export_filter()));
+#else
+	TEST_CHECK(ses.get_peer_class_filter().export_filter() == f.export_filter());
+#endif
+}
+
+TORRENT_TEST(session_peer_class_type_filter)
+{
+	using namespace libtorrent;
+	session ses;
+	peer_class_t my_class = ses.create_peer_class("all utp sockets");
+
+	peer_class_type_filter f;
+	f.add(peer_class_type_filter::utp_socket, my_class);
+	f.disallow(peer_class_type_filter::utp_socket, session::global_peer_class_id);
+	ses.set_peer_class_type_filter(f);
+
+	TEST_CHECK(ses.get_peer_class_type_filter() == f);
 }
 
