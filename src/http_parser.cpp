@@ -386,8 +386,6 @@ restart_response:
 						if (chunk_size == 0)
 						{
 							m_finished = true;
-							TORRENT_ASSERT(m_content_length < 0 || m_recv_pos - m_body_start_pos
-								- m_chunk_header_size == m_content_length);
 						}
 						header_size -= m_partial_chunk_header;
 						m_partial_chunk_header = 0;
