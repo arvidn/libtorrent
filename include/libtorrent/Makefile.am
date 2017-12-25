@@ -214,6 +214,7 @@ nobase_include_HEADERS = \
   aux_/array.hpp                    \
   aux_/ip_notifier.hpp              \
   aux_/noexcept_movable.hpp         \
+  aux_/torrent_impl.hpp             \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
