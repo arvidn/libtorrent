@@ -120,7 +120,7 @@ namespace libtorrent { namespace aux {
 			std::size_t size, allocating_handler<Handler, Size>* ctx)
 		{
 			TORRENT_UNUSED(size);
-			TORRENT_ASSERT(size <= Size);
+			TORRENT_ASSERT_VAL(size <= Size, size);
 #if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(!ctx->storage.used);
 			ctx->storage.used = true;
@@ -135,7 +135,7 @@ namespace libtorrent { namespace aux {
 			TORRENT_UNUSED(size);
 			TORRENT_UNUSED(ctx);
 
-			TORRENT_ASSERT(size <= Size);
+			TORRENT_ASSERT_VAL(size <= Size, size);
 			TORRENT_ASSERT(ptr == &ctx->storage.bytes);
 #if TORRENT_USE_ASSERTS
 			ctx->storage.used = false;
