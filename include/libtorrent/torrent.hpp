@@ -1431,7 +1431,11 @@ namespace libtorrent {
 		// used to post a message to defer disconnecting peers
 		std::vector<std::shared_ptr<peer_connection>> m_peers_to_disconnect;
 		aux::deferred_handler m_deferred_disconnect;
-		aux::handler_storage<24> m_deferred_handler_storage;
+#ifdef _M_AMD64
+		aux::handler_storage<96> m_deferred_handler_storage;
+#else
+		aux::handler_storage<64> m_deferred_handler_storage;
+#endif
 
 		// for torrents who have a bandwidth limit, this is != 0
 		// and refers to a peer_class in the session.

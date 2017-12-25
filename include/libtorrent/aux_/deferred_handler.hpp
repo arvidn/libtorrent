@@ -51,6 +51,20 @@ struct handler_wrapper
 		m_in_flight = false;
 		m_handler(std::forward<Args>(a)...);
 	}
+
+	// forward asio handler allocator to the underlying handler's
+	friend void* asio_handler_allocate(
+		std::size_t size, handler_wrapper<Handler>* h)
+	{
+		return asio_handler_allocate(size, &h->m_handler);
+	}
+
+	friend void asio_handler_deallocate(
+		void* ptr, std::size_t size, handler_wrapper<Handler>* h)
+	{
+		asio_handler_deallocate(ptr, size, &h->m_handler);
+	}
+
 private:
 	Handler m_handler;
 	bool& m_in_flight;
