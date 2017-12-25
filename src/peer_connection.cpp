@@ -80,6 +80,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #endif
 
+#include "libtorrent/aux_/torrent_impl.hpp"
+
 //#define TORRENT_CORRUPT_DATA
 
 using namespace std::placeholders;
@@ -144,13 +146,13 @@ namespace libtorrent {
 		, m_slow_start(true)
 	{
 		m_counters.inc_stats_counter(counters::num_tcp_peers + m_socket->type() - 1);
+		std::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (m_connected)
 			m_counters.inc_stats_counter(counters::num_peers_connected);
 		else if (m_connecting)
 			m_counters.inc_stats_counter(counters::num_peers_half_open);
 
-		std::shared_ptr<torrent> t = m_torrent.lock();
 		// if t is nullptr, we better not be connecting, since
 		// we can't decrement the connecting counter
 		TORRENT_ASSERT(t || !m_connecting);
@@ -184,6 +186,41 @@ namespace libtorrent {
 		piece_failed = false;
 #endif
 	}
+
+	template <typename Fun, typename... Args>
+	void peer_connection::wrap(Fun f, Args&&... a)
+#ifndef BOOST_NO_EXCEPTIONS
+		try
+#endif
+	{
+		(this->*f)(std::forward<Args>(a)...);
+	}
+#ifndef BOOST_NO_EXCEPTIONS
+	catch (std::bad_alloc const&) {
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::info, "EXCEPTION", "bad_alloc");
+#endif
+		disconnect(make_error_code(boost::system::errc::not_enough_memory)
+			, operation_t::unknown);
+	}
+	catch (system_error const& e) {
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::info, "EXCEPTION", "(%d %s) %s"
+			, e.code().value()
+			, e.code().message().c_str()
+			, e.what());
+#endif
+		disconnect(e.code(), operation_t::unknown);
+	}
+	catch (std::exception const& e) {
+		TORRENT_UNUSED(e);
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::info, "EXCEPTION", "%s", e.what());
+#endif
+		disconnect(make_error_code(boost::system::errc::not_enough_memory)
+			, operation_t::sock_write);
+	}
+#endif // BOOST_NO_EXCEPTIONS
 
 	int peer_connection::timeout() const
 	{
@@ -384,8 +421,9 @@ namespace libtorrent {
 				, t->num_peers());
 #endif
 
+		auto conn = self();
 		m_socket->async_connect(m_remote
-			, std::bind(&peer_connection::on_connection_complete, self(), _1));
+			, [conn](error_code const& e) { conn->wrap(&peer_connection::on_connection_complete, e); });
 		m_connect = aux::time_now();
 
 		sent_syn(m_remote.address().is_v6());
@@ -415,7 +453,8 @@ namespace libtorrent {
 			// to not trigger another one. This effectively defer
 			// the update until the current message queue is
 			// flushed
-			m_ios.post(std::bind(&peer_connection::do_update_interest, self()));
+			auto conn = self();
+			m_ios.post([conn] { conn->wrap(&peer_connection::do_update_interest); });
 		}
 		m_need_interest_update = true;
 	}
@@ -2812,9 +2851,10 @@ namespace libtorrent {
 
 		if (t->is_deleted()) return;
 
+		auto conn = self();
 		bool const exceeded = m_disk_thread.async_write(t->storage(), p, data, self()
-			, std::bind(&peer_connection::on_disk_write_complete
-			, self(), _1, p, t));
+			, [conn, p, t] (storage_error const& e)
+			{ conn->wrap(&peer_connection::on_disk_write_complete, e, p, t); });
 
 		// every peer is entitled to have two disk blocks allocated at any given
 		// time, regardless of whether the cache size is exceeded or not. If this
@@ -3026,7 +3066,8 @@ namespace libtorrent {
 					// piece are done, and we can restore it, allowing
 					// new requests to it
 					m_disk_thread.async_clear_piece(t->storage(), p.piece
-						, std::bind(&torrent::on_piece_fail_sync, t, _1, block_finished));
+						, [t, block_finished] (piece_index_t pi)
+						{ t->wrap(&torrent::on_piece_fail_sync, pi, block_finished); });
 				}
 				else
 				{
@@ -5141,9 +5182,10 @@ namespace libtorrent {
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
+				auto conn = self();
 				m_disk_thread.async_hash(t->storage(), r.piece, {}
-					, std::bind(&peer_connection::on_seed_mode_hashed, self()
-						, _1, _2, _3));
+					, [conn](piece_index_t p, sha1_hash const& ph, storage_error const& e) {
+					conn->wrap(&peer_connection::on_seed_mode_hashed, p, ph, e); });
 				t->verifying(r.piece);
 				continue;
 			}
@@ -5177,9 +5219,10 @@ namespace libtorrent {
 				TORRENT_ASSERT(r.piece >= piece_index_t(0));
 				TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
 
+				auto conn = self();
 				m_disk_thread.async_read(t->storage(), r
-					, std::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, _3, r, clock_type::now()));
+					, [conn, r](disk_buffer_holder buf, disk_job_flags_t f, storage_error const& ec)
+					{ conn->wrap(&peer_connection::on_disk_read_complete, std::move(buf), f, ec, r, clock_type::now()); });
 			}
 			m_last_sent_payload = clock_type::now();
 			m_requests.erase(m_requests.begin() + i);
@@ -5606,8 +5649,10 @@ namespace libtorrent {
 		m_socket_is_writing = true;
 #endif
 
-		m_socket->async_write_some(vec, make_handler(std::bind(
-			&peer_connection::on_send_data, self(), _1, _2)
+		auto conn = self();
+		m_socket->async_write_some(vec, make_handler(
+			[conn](error_code const& ec, std::size_t bt)
+			{ conn->wrap(&peer_connection::on_send_data, ec, bt); }
 				, m_write_handler_storage, *this));
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
@@ -5691,9 +5736,11 @@ namespace libtorrent {
 
 		// utp sockets aren't thread safe...
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
+		auto conn = self();
 		m_socket->async_read_some(
 			boost::asio::mutable_buffers_1(vec.data(), vec.size()), make_handler(
-				std::bind(&peer_connection::on_receive_data, self(), _1, _2)
+				[conn](error_code const& ec, std::size_t bt)
+				{ conn->wrap(&peer_connection::on_receive_data, ec, bt); }
 				, m_read_handler_storage, *this));
 	}
 

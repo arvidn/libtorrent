@@ -301,13 +301,13 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	{
 		if (!endpoint.address().is_v4())
 		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported));
 			return;
 		}
 
 		if (m_impl == nullptr)
 		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected));
 			return;
 		}
 
@@ -320,14 +320,14 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	{
 		if (m_impl == nullptr)
 		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, std::size_t(0)));
 			return;
 		}
 
 		TORRENT_ASSERT(!m_read_handler);
 		if (m_read_handler)
 		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, std::size_t(0)));
 			return;
 		}
 		std::size_t bytes_added = 0;
@@ -349,7 +349,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		{
 			// if we're reading 0 bytes, post handler immediately
 			// asio's SSL layer depends on this behavior
-			m_io_service.post(std::bind<void>(handler, error_code(), 0));
+			m_io_service.post(std::bind<void>(handler, error_code(), std::size_t(0)));
 			return;
 		}
 
@@ -362,7 +362,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	{
 		if (m_impl == nullptr)
 		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, std::size_t(0)));
 			return;
 		}
 
@@ -370,7 +370,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		if (m_read_handler)
 		{
 			TORRENT_ASSERT_FAIL(); // we should never do this!
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, std::size_t(0)));
 			return;
 		}
 		m_read_handler = handler;
@@ -464,7 +464,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		if (m_impl == nullptr)
 		{
 			m_io_service.post(std::bind<void>(handler
-				, boost::asio::error::not_connected, 0));
+				, boost::asio::error::not_connected, std::size_t(0)));
 			return;
 		}
 
@@ -472,7 +472,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		if (m_write_handler)
 		{
 			m_io_service.post(std::bind<void>(handler
-				, boost::asio::error::operation_not_supported, 0));
+				, boost::asio::error::operation_not_supported, std::size_t(0)));
 			return;
 		}
 
@@ -495,7 +495,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		{
 			// if we're writing 0 bytes, post handler immediately
 			// asio's SSL layer depends on this behavior
-			m_io_service.post(std::bind<void>(handler, error_code(), 0));
+			m_io_service.post(std::bind<void>(handler, error_code(), std::size_t(0)));
 			return;
 		}
 		m_write_handler = handler;

@@ -989,6 +989,10 @@ namespace aux {
 		bandwidth_channel m_bandwidth_channel[num_channels];
 
 	protected:
+
+		template <typename Fun, typename... Args>
+		void wrap(Fun f, Args&&... a);
+
 		// statistics about upload and download speeds
 		// and total amount of uploads and downloads for
 		// this peer
