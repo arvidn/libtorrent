@@ -39,6 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_set>
 #include <array>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/intrusive/list.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service_fwd.hpp"
@@ -169,12 +173,15 @@ namespace aux {
 
 	// list_node is here to be able to link this cache entry
 	// into one of the LRU lists
-	struct TORRENT_EXTRA_EXPORT cached_piece_entry : list_node<cached_piece_entry>
+	struct TORRENT_EXTRA_EXPORT cached_piece_entry
+		: list_node<cached_piece_entry>
+		, boost::intrusive::list_base_hook<boost::intrusive::link_mode<
+			boost::intrusive::auto_unlink>>
 	{
 		cached_piece_entry();
 		~cached_piece_entry();
-		cached_piece_entry(cached_piece_entry&&) noexcept = default;
-		cached_piece_entry& operator=(cached_piece_entry&&) noexcept = default;
+		cached_piece_entry(cached_piece_entry&&) = default;
+		cached_piece_entry& operator=(cached_piece_entry&&) = default;
 
 		bool ok_to_evict(bool ignore_hash = false) const
 		{
@@ -217,7 +224,7 @@ namespace aux {
 		//TODO: make this 32 bits and to count seconds since the block cache was created
 		time_point expire = min_time();
 
-		piece_index_t piece;
+		piece_index_t piece{0};
 
 		// the number of dirty blocks in this piece
 		std::uint64_t num_dirty:14;

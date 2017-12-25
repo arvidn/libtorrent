@@ -304,8 +304,7 @@ static_assert(int(job_action_name.size()) == static_cast<int>(job_action_t::num_
 #endif
 
 cached_piece_entry::cached_piece_entry()
-	: piece(0)
-	, num_dirty(0)
+	: num_dirty(0)
 	, num_blocks(0)
 	, blocks_in_piece(0)
 	, hashing(0)
@@ -1547,7 +1546,6 @@ void block_cache::check_invariant() const
 			}
 			// pieces in the ghost list are still in the storage's list of pieces,
 			// because we need to be able to evict them when stopping a torrent
-			TORRENT_PIECE_ASSERT(pe->storage->has_piece(pe), pe);
 
 			storages.insert(pe->storage.get());
 		}
@@ -1555,9 +1553,9 @@ void block_cache::check_invariant() const
 
 	for (auto s : storages)
 	{
-		for (auto pe : s->cached_pieces())
+		for (auto const& pe : s->cached_pieces())
 		{
-			TORRENT_PIECE_ASSERT(pe->storage.get() == s, pe);
+			TORRENT_PIECE_ASSERT(pe.storage.get() == s, &pe);
 		}
 	}
 
@@ -1571,8 +1569,6 @@ void block_cache::check_invariant() const
 		int num_dirty = 0;
 		int num_pending = 0;
 		int num_refcount = 0;
-
-		TORRENT_ASSERT(p.storage->has_piece(&p));
 
 		for (int k = 0; k < p.blocks_in_piece; ++k)
 		{

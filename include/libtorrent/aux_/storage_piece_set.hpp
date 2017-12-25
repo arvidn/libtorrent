@@ -33,9 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STORAGE_PIECE_SET_HPP_INCLUDE
 #define TORRENT_STORAGE_PIECE_SET_HPP_INCLUDE
 
-#include <unordered_set>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/intrusive/list.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/export.hpp"
+#include "libtorrent/block_cache.hpp" // for cached_piece_entry
 
 namespace libtorrent {
 
@@ -49,15 +52,16 @@ namespace aux {
 	// specific torrent
 	struct TORRENT_EXPORT storage_piece_set
 	{
+		using list_t = boost::intrusive::list<cached_piece_entry, boost::intrusive::constant_time_size<false>>;
 		void add_piece(cached_piece_entry* p);
 		void remove_piece(cached_piece_entry* p);
-		bool has_piece(cached_piece_entry const* p) const;
-		int num_pieces() const { return int(m_cached_pieces.size()); }
-		std::unordered_set<cached_piece_entry*> const& cached_pieces() const
+		int num_pieces() const { return m_num_pieces; }
+		list_t const& cached_pieces() const
 		{ return m_cached_pieces; }
 	private:
 		// these are cached pieces belonging to this storage
-		std::unordered_set<cached_piece_entry*> m_cached_pieces;
+		list_t m_cached_pieces;
+		int m_num_pieces = 0;
 	};
 }}
 

@@ -41,23 +41,18 @@ namespace libtorrent { namespace aux {
 	{
 		TORRENT_ASSERT(p->in_storage == false);
 		TORRENT_ASSERT(p->storage.get() == this);
-		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
-		m_cached_pieces.insert(p);
+		m_cached_pieces.push_back(*p);
+		++m_num_pieces;
 #if TORRENT_USE_ASSERTS
 		p->in_storage = true;
 #endif
 	}
 
-	bool storage_piece_set::has_piece(cached_piece_entry const* p) const
-	{
-		return m_cached_pieces.count(const_cast<cached_piece_entry*>(p)) > 0;
-	}
-
 	void storage_piece_set::remove_piece(cached_piece_entry* p)
 	{
 		TORRENT_ASSERT(p->in_storage == true);
-		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
-		m_cached_pieces.erase(p);
+		p->unlink();
+		--m_num_pieces;
 #if TORRENT_USE_ASSERTS
 		p->in_storage = false;
 #endif

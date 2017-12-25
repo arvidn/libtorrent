@@ -888,9 +888,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			piece_index.reserve(pieces.size());
 			for (auto const& p : pieces)
 			{
-				TORRENT_ASSERT(p->get_storage() == storage);
-				if (p->get_storage() != storage) continue;
-				piece_index.push_back(p->piece);
+				TORRENT_ASSERT(p.get_storage() == storage);
+				if (p.get_storage() != storage) continue;
+				piece_index.push_back(p.piece);
 			}
 
 			for (auto idx : piece_index)
@@ -910,9 +910,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			if ((flags & flush_delete_cache) && (flags & flush_expect_clear))
 			{
 				auto const& storage_pieces = storage->cached_pieces();
-				for (auto p : storage_pieces)
+				for (auto const& p : storage_pieces)
 				{
-					cached_piece_entry* pe = m_disk_cache.find_piece(storage, p->piece);
+					cached_piece_entry* pe = m_disk_cache.find_piece(storage, p.piece);
 					TORRENT_PIECE_ASSERT(pe->num_dirty == 0, pe);
 				}
 			}
@@ -2639,15 +2639,15 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 				TORRENT_ASSERT(storage);
 				ret->pieces.reserve(aux::numeric_cast<std::size_t>(storage->num_pieces()));
 
-				for (auto pe : storage->cached_pieces())
+				for (auto const& pe : storage->cached_pieces())
 				{
-					TORRENT_ASSERT(pe->storage.get() == storage.get());
+					TORRENT_ASSERT(pe.storage.get() == storage.get());
 
-					if (pe->cache_state == cached_piece_entry::read_lru2_ghost
-						|| pe->cache_state == cached_piece_entry::read_lru1_ghost)
+					if (pe.cache_state == cached_piece_entry::read_lru2_ghost
+						|| pe.cache_state == cached_piece_entry::read_lru1_ghost)
 						continue;
 					ret->pieces.emplace_back();
-					get_cache_info_impl(ret->pieces.back(), pe, block_size);
+					get_cache_info_impl(ret->pieces.back(), &pe, block_size);
 				}
 			}
 			else
