@@ -4567,6 +4567,8 @@ namespace {
 		std::vector<torrent*>& state_updates
 			= m_torrent_lists[aux::session_impl::torrent_state_updates];
 
+		if (state_updates.empty()) return;
+
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = true;
 #endif
@@ -4631,6 +4633,7 @@ namespace {
 		if (m_dht)
 			m_dht->dht_status(table, requests);
 #endif
+		if (table.empty() && requests.empty()) return;
 
 		m_alerts.emplace_alert<dht_stats_alert>(std::move(table), std::move(requests));
 	}
