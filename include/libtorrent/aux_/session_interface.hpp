@@ -204,7 +204,7 @@ namespace libtorrent { namespace aux {
 
 		virtual peer_id const& get_peer_id() const = 0;
 
-		virtual void close_connection(peer_connection* p) = 0;
+		virtual void close_connection(peer_connection* p) noexcept = 0;
 		virtual int num_connections() const = 0;
 
 		virtual void deferred_submit_jobs() = 0;

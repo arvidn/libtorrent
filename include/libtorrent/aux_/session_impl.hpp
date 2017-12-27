@@ -370,7 +370,7 @@ namespace aux {
 
 			peer_id const& get_peer_id() const override { return m_peer_id; }
 
-			void close_connection(peer_connection* p) override;
+			void close_connection(peer_connection* p) noexcept override;
 
 			void apply_settings_pack(std::shared_ptr<settings_pack> pack) override;
 			void apply_settings_pack_impl(settings_pack const& pack);
