@@ -448,6 +448,7 @@ namespace libtorrent {
 		// the necessary actions then.
 		void abort();
 		bool is_aborted() const { return m_abort; }
+		void panic();
 
 		void new_external_ip();
 

@@ -103,6 +103,8 @@ namespace libtorrent {
 		explicit peer_list(torrent_peer_allocator_interface& alloc);
 		~peer_list();
 
+		void clear();
+
 		// not copyable
 		peer_list(peer_list const&) = delete;
 		peer_list& operator=(peer_list const&) = delete;
