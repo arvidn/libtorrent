@@ -2531,9 +2531,9 @@ namespace {
 		TORRENT_ASSERT((ssl == transport::ssl) == is_ssl(*c));
 #endif
 
-		listener->async_accept(*str
-			, std::bind(&session_impl::on_accept_connection, this, c
-			, std::weak_ptr<tcp::acceptor>(listener), _1, ssl));
+		std::weak_ptr<tcp::acceptor> ls(listener);
+		listener->async_accept(*str, [this, c, ls, ssl] (error_code const& ec)
+			{ return this->wrap(&session_impl::on_accept_connection, c, ls, ec, ssl); });
 	}
 
 	void session_impl::on_accept_connection(std::shared_ptr<socket_type> const& s
