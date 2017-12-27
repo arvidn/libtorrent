@@ -48,8 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	// lexical_cast's result depends on the locale. We need
-	// a well defined result
+	// We need well defined results that don't depend on locale
 	boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
 		to_string(boost::int64_t n)
 	{

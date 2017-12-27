@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/sha1_hash.hpp"
-#include <boost/lexical_cast.hpp>
 #include <iostream>
 
 #include "test.hpp"

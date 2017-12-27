@@ -13,7 +13,6 @@
 #include "libtorrent/announce_entry.hpp"
 #include <libtorrent/storage.hpp>
 #include <libtorrent/file_pool.hpp>
-#include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
