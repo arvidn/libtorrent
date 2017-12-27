@@ -4955,6 +4955,15 @@ namespace {
 			return std::make_pair(ptr_t(), false);
 		}
 
+		// make sure we have enough memory in the torrent lists up-front,
+		// since when torrents changes states, we cannot allocate memory that
+		// might fail.
+		size_t const num_torrents = m_torrents.size();
+		for (auto& l : m_torrent_lists)
+		{
+			l.reserve(num_torrents + 1);
+		}
+
 		torrent_ptr = std::make_shared<torrent>(*this
 			, 16 * 1024, m_paused
 			, params);
