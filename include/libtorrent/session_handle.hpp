@@ -95,10 +95,9 @@ namespace libtorrent {
 		// joining the DHT if provided at next session startup.
 		static constexpr save_state_flags_t save_dht_state = 2_bit;
 
-		// save pe_settings
-		static constexpr save_state_flags_t save_encryption_settings = 3_bit;
-
 #ifndef TORRENT_NO_DEPRECATE
+		// save pe_settings
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_encryption_settings = 3_bit;
 		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_as_map = 4_bit;
 		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_proxy = 5_bit;
 		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_i2p_proxy = 6_bit;

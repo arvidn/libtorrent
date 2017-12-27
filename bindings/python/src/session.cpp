@@ -1073,8 +1073,8 @@ void bind_session()
         s.attr("save_settings") = lt::session::save_settings;
         s.attr("save_dht_settings") = lt::session::save_dht_settings;
         s.attr("save_dht_state") = lt::session::save_dht_state;
-        s.attr("save_encryption_settings") = lt::session:: save_encryption_settings;
 #ifndef TORRENT_NO_DEPRECATE
+        s.attr("save_encryption_settings") = lt::session:: save_encryption_settings;
         s.attr("save_as_map") = lt::session::save_as_map;
         s.attr("save_i2p_proxy") = lt::session::save_i2p_proxy;
         s.attr("save_proxy") = lt::session::save_proxy;

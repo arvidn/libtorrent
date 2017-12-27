@@ -55,8 +55,8 @@ namespace libtorrent {
 	constexpr save_state_flags_t session_handle::save_settings;
 	constexpr save_state_flags_t session_handle::save_dht_settings;
 	constexpr save_state_flags_t session_handle::save_dht_state;
-	constexpr save_state_flags_t session_handle::save_encryption_settings;
 #ifndef TORRENT_NO_DEPRECATE
+	constexpr save_state_flags_t session_handle::save_encryption_settings;
 	constexpr save_state_flags_t session_handle::save_as_map TORRENT_DEPRECATED_ENUM;
 	constexpr save_state_flags_t session_handle::save_proxy TORRENT_DEPRECATED_ENUM;
 	constexpr save_state_flags_t session_handle::save_i2p_proxy TORRENT_DEPRECATED_ENUM;
