@@ -940,7 +940,14 @@ namespace aux {
 	void session_impl::insert_peer(std::shared_ptr<peer_connection> const& c)
 	{
 		TORRENT_ASSERT(!c->m_in_constructor);
+
+		// removing a peer may not throw an exception, so prepare for this
+		// connection to be added to the undead peers now.
+		m_undead_peers.reserve(m_undead_peers.size() + m_connections.size() + 1);
 		m_connections.insert(c);
+
+		TORRENT_ASSERT_VAL(m_undead_peers.capacity() >= m_connections.size()
+			, m_undead_peers.capacity());
 	}
 
 	void session_impl::set_port_filter(port_filter const& f)
@@ -2946,6 +2953,9 @@ namespace {
 				c->peer_exceeds_limit();
 
 			TORRENT_ASSERT(!c->m_in_constructor);
+			// removing a peer may not throw an exception, so prepare for this
+			// connection to be added to the undead peers now.
+			m_undead_peers.reserve(m_undead_peers.size() + m_connections.size() + 1);
 			m_connections.insert(c);
 			c->start();
 		}
@@ -2957,28 +2967,30 @@ namespace {
 		set_socket_buffer_size(s, m_settings, ec);
 	}
 
-	// if cancel_with_cq is set, the peer connection is
-	// currently expected to be scheduled for a connection
-	// with the connection queue, and should be cancelled
-	// TODO: should this function take a shared_ptr instead?
-	void session_impl::close_connection(peer_connection* p)
+	void session_impl::close_connection(peer_connection* p) noexcept
 	{
 		TORRENT_ASSERT(is_single_thread());
 		std::shared_ptr<peer_connection> sp(p->self());
 
-		// someone else is holding a reference, it's important that
-		// it's destructed from the network thread. Make sure the
-		// last reference is held by the network thread.
-		if (!sp.unique())
-			m_undead_peers.push_back(sp);
-
 		TORRENT_ASSERT(p->is_disconnecting());
-
-		TORRENT_ASSERT(sp.use_count() > 0);
 
 		auto const i = m_connections.find(sp);
 		// make sure the next disk peer round-robin cursor stays valid
-		if (i != m_connections.end()) m_connections.erase(i);
+		if (i != m_connections.end())
+		{
+			m_connections.erase(i);
+
+			TORRENT_ASSERT(std::find(m_undead_peers.begin()
+				, m_undead_peers.end(), sp) == m_undead_peers.end());
+
+			// someone else is holding a reference, it's important that
+			// it's destructed from the network thread. Make sure the
+			// last reference is held by the network thread.
+			TORRENT_ASSERT_VAL(m_undead_peers.capacity() > m_undead_peers.size()
+				, m_undead_peers.capacity());
+			if (sp.use_count() > 2)
+				m_undead_peers.push_back(sp);
+		}
 	}
 
 	void session_impl::set_peer_id(peer_id const& id)
