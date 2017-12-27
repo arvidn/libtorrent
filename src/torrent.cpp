@@ -5413,6 +5413,8 @@ namespace libtorrent {
 		if (p->associated_torrent().lock().get() == this)
 		{
 			std::weak_ptr<torrent> weak_t = shared_from_this();
+			TORRENT_ASSERT_VAL(m_peers_to_disconnect.capacity() > m_peers_to_disconnect.size()
+				, m_peers_to_disconnect.capacity());
 			m_peers_to_disconnect.push_back(p);
 			m_deferred_disconnect.post(m_ses.get_io_service(), aux::make_handler([=]()
 			{
@@ -5492,9 +5494,10 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		std::vector<std::shared_ptr<peer_connection>> peers;
-		m_peers_to_disconnect.swap(peers);
-		for (auto const& p : peers)
+#if TORRENT_USE_ASSERTS
+		auto const num = m_peers_to_disconnect.size();
+#endif
+		for (auto const& p : m_peers_to_disconnect)
 		{
 			TORRENT_ASSERT(p);
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
@@ -5502,6 +5505,8 @@ namespace libtorrent {
 			remove_connection(p.get());
 			m_ses.close_connection(p.get());
 		}
+		TORRENT_ASSERT_VAL(m_peers_to_disconnect.size() == num, m_peers_to_disconnect.size() - num);
+		m_peers_to_disconnect.clear();
 
 		if (m_graceful_pause_mode && m_connections.empty())
 		{
@@ -5992,6 +5997,12 @@ namespace libtorrent {
 		TORRENT_ASSERT(!c->m_in_constructor);
 		// add the newly connected peer to this torrent's peer list
 		TORRENT_ASSERT(m_iterating_connections == 0);
+
+		// we don't want to have to allocate memory to disconnect this peer, so
+		// make sure there's enough memory allocated in the deferred_disconnect
+		// list up-front
+		m_peers_to_disconnect.reserve(m_connections.size() + 1);
+
 		sorted_insert(m_connections, c.get());
 		update_want_peers();
 		update_want_tick();
@@ -6586,6 +6597,12 @@ namespace libtorrent {
 
 			// add the newly connected peer to this torrent's peer list
 			TORRENT_ASSERT(m_iterating_connections == 0);
+
+			// we don't want to have to allocate memory to disconnect this peer, so
+			// make sure there's enough memory allocated in the deferred_disconnect
+			// list up-front
+			m_peers_to_disconnect.reserve(m_connections.size() + 1);
+
 			sorted_insert(m_connections, c.get());
 			m_ses.insert_peer(c);
 			need_peer_list();
@@ -6871,6 +6888,8 @@ namespace libtorrent {
 			return false;
 		}
 		peers_erased(st.erased);
+
+		m_peers_to_disconnect.reserve(m_connections.size() + 1);
 
 		TORRENT_ASSERT(sorted_find(m_connections, p) == m_connections.end());
 		TORRENT_ASSERT(m_iterating_connections == 0);
