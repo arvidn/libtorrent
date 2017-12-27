@@ -57,7 +57,7 @@ namespace libtorrent {
 #if TORRENT_USE_ASSERTS
 		torrent_peer(torrent_peer const&) = default;
 		torrent_peer& operator=(torrent_peer const&) = default;
-		~torrent_peer() { in_use = false; }
+		~torrent_peer() { TORRENT_ASSERT(in_use); in_use = false; }
 #endif
 
 		std::int64_t total_download() const;

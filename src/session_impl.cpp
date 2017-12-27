@@ -6031,7 +6031,13 @@ namespace {
 //		TORRENT_ASSERT(is_not_thread());
 // TODO: asserts that no outstanding async operations are still in flight
 
-		TORRENT_ASSERT(m_torrents.empty());
+		// this can happen if we end the io_service run loop with an exception
+		for (auto& t : m_torrents)
+		{
+			t.second->panic();
+			t.second->abort();
+		}
+		m_torrents.clear();
 
 #if defined TORRENT_ASIO_DEBUGGING
 		FILE* f = fopen("wakeups.log", "w+");

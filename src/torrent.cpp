@@ -4419,6 +4419,18 @@ namespace libtorrent {
 		m_state_subscription = false;
 	}
 
+	// this is called when we're destructing non-gracefully. i.e. we're _just_
+	// destructing everything.
+	void torrent::panic()
+	{
+		m_storage.reset();
+		// if there are any other peers allocated still, we need to clear them
+		// now. They can't be cleared later because the allocator will already
+		// have been destructed
+		if (m_peer_list) m_peer_list->clear();
+		m_connections.clear();
+	}
+
 	void torrent::set_super_seeding(bool on)
 	{
 		if (on == m_super_seeding) return;
