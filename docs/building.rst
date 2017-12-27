@@ -404,13 +404,9 @@ unix/linux systems comes with these preinstalled.
 
 The prerequisites for building libtorrent are boost.system, boost.chrono and
 boost.random. Those are the *compiled* boost libraries needed. The headers-only
-libraries needed include (but is not necessarily limited to) boost.bind,
-boost.ref, boost.multi_index, boost.optional, boost.integer,
-boost.iterator, boost.tuple, boost.array, boost.function, boost.smart_ptr,
-boost.preprocessor, boost.static_assert.
-
-If you want to build the ``client_test`` example, you'll also need boost.regex
-and boost.program_options.
+libraries needed include (but is not necessarily limited to)
+boost.multi_index, boost.optional, boost.multiprecision,
+boost.iterator, boost.preprocessor, boost.static_assert, boost.intrusive.
 
 Step 1: Generating the build system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
