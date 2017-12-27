@@ -89,13 +89,12 @@ namespace libtorrent
 
 			// saves dht state such as nodes and node-id, possibly accelerating
 			// joining the DHT if provided at next session startup.
-			save_dht_state =    0x004,
-
-			// save pe_settings
-			save_encryption_settings = 0x020
+			save_dht_state =    0x004
 
 #ifndef TORRENT_NO_DEPRECATE
 			,
+			// save pe_settings
+			save_encryption_settings TORRENT_DEPRECATED_ENUM = 0x020,
 			save_as_map TORRENT_DEPRECATED_ENUM =       0x040,
 			// saves RSS feeds
 			save_feeds TORRENT_DEPRECATED_ENUM =        0x080,
