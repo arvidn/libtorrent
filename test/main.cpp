@@ -320,6 +320,7 @@ int EXPORT main(int argc, char const* argv[])
 		if (argv[0] == "-n"_sv || argv[0] == "--no-redirect"_sv)
 		{
 			redirect_stdout = false;
+			redirect_stderr = false;
 		}
 
 		if (argv[0] == "--stderr-redirect"_sv)
