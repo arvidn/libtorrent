@@ -123,27 +123,17 @@ AX_BOOST_SYSTEM()
 AS_IF([test -z "$BOOST_SYSTEM_LIB"],
       [AC_MSG_ERROR(Boost.System library not found. Try using --with-boost-system=lib)])
 
-AC_LANG_PUSH([C++])
-AC_CHECK_HEADERS([chrono])
-AC_CHECK_HEADERS([random])
-AC_LANG_POP
+AX_BOOST_CHRONO()
+AS_IF([test -z "$BOOST_CHRONO_LIB"],
+      [AC_MSG_ERROR(Boost.Chrono library not found. Try using --with-boost-chrono=lib)])
 
-AS_IF([test "x$ac_cv_header_chrono" = "xno"],
-      [AX_BOOST_CHRONO()
-       AS_IF([test -z "$BOOST_CHRONO_LIB"],
-             [AC_MSG_ERROR(Boost.Chrono library not found. Try using --with-boost-chrono=lib)])
-       LIBS="$BOOST_CHRONO_LIB $LIBS"
-      ])
-
-AS_IF([test "x$ac_cv_header_random" = "xno"],
-      [AX_BOOST_RANDOM()
-       AS_IF([test -z "$BOOST_RANDOM_LIB"],
-             [AC_MSG_ERROR(Boost.Random library not found. Try using --with-boost-random=lib)])
-       LIBS="$BOOST_RANDOM_LIB $LIBS"
-      ])
+AX_BOOST_RANDOM()
+AS_IF([test -z "$BOOST_RANDOM_LIB"],
+      [AC_MSG_ERROR(Boost.Random library not found. Try using --with-boost-random=lib)])
 
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
 LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
+LIBS="$BOOST_CHRONO_LIB $BOOST_RANDOM_LIB $LIBS"
 
 ###############################################################################
 # Checking for functions and other stuffs
@@ -652,19 +642,9 @@ Boost libraries:
   CPPFlags:             ${BOOST_CPPFLAGS}
   LDFlags:              ${BOOST_LDFLAGS}
   boost.system:         ${BOOST_SYSTEM_LIB}
-END
-
-AS_IF([test "x$ac_cv_header_chrono" = "xno"], [
-cat >> config.report << END
   boost.chrono:         ${BOOST_CHRONO_LIB}
-END
-])
-
-AS_IF([test "x$ac_cv_header_random" = "xno"], [
-cat >> config.report << END
   boost.random:         ${BOOST_RANDOM_LIB}
 END
-])
 
 AS_IF([test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"], [
 cat >> config.report << END
