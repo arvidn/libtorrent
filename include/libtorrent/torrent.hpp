@@ -661,7 +661,7 @@ namespace libtorrent {
 		// this will remove the peer and make sure all
 		// the pieces it had have their reference counter
 		// decreased in the piece_picker
-		void remove_peer(std::shared_ptr<peer_connection> p);
+		void remove_peer(std::shared_ptr<peer_connection> p) noexcept;
 
 		// cancel requests to this block from any peer we're
 		// connected to on this torrent
@@ -1112,12 +1112,7 @@ namespace libtorrent {
 		void inc_num_connecting(torrent_peer* pp)
 		{
 			++m_num_connecting;
-			TORRENT_ASSERT(m_num_connecting <= int(m_connections.size()));
-			if (pp->seed)
-			{
-				++m_num_connecting_seeds;
-				TORRENT_ASSERT(m_num_connecting_seeds <= int(m_connections.size()));
-			}
+			if (pp->seed) ++m_num_connecting_seeds;
 		}
 		void dec_num_connecting(torrent_peer* pp)
 		{
@@ -1162,7 +1157,7 @@ namespace libtorrent {
 		void on_error(error_code const& ec) override;
 
 		// trigger deferred disconnection of peers
-		void on_remove_peers();
+		void on_remove_peers() noexcept;
 
 		void ip_filter_updated();
 
