@@ -403,13 +403,11 @@ namespace {
 	session::~session()
 	{
 		aux::dump_call_profile();
-
 		TORRENT_ASSERT(m_impl);
-		std::shared_ptr<aux::session_impl> ptr = m_impl;
 
 		// capture the shared_ptr in the dispatched function
 		// to keep the session_impl alive
-		m_impl->get_io_service().dispatch([=] { ptr->abort(); });
+		m_impl->call_abort();
 
 		if (m_thread && m_thread.unique())
 		{
@@ -424,7 +422,7 @@ namespace {
 	{
 		// stop calling the alert notify function now, to avoid it thinking the
 		// session is still alive
-		m_impl->alerts().set_notify_function(std::function<void()>());
+		m_impl->alerts().set_notify_function({});
 		return session_proxy(m_io_service, m_thread, m_impl);
 	}
 

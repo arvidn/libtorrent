@@ -8399,7 +8399,7 @@ namespace libtorrent {
 	}
 	catch (...) { handle_exception(); }
 
-	void torrent::on_torrent_aborted() try
+	void torrent::on_torrent_aborted()
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -8407,7 +8407,6 @@ namespace libtorrent {
 		// release the disk io handle
 		m_storage.reset();
 	}
-	catch (...) { handle_exception(); }
 
 	bool torrent::is_paused() const
 	{

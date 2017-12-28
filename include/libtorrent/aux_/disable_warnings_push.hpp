@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #if __GNUC__ >= 7
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#pragma GCC diagnostic ignored "-Wnoexcept-type"
 #endif
 #endif
 
