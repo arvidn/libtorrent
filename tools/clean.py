@@ -13,6 +13,7 @@ def clean():
 		'upnp.log',
 		'natpmp.log',
 		'bin',
+		'.deps',
 		'test_tmp_*',
 		'bjam_build.*.xml'
 		'*.exe',
