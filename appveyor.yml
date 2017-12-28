@@ -88,7 +88,7 @@ build_script:
 # simulations
 - cd %ROOT_DIRECTORY%\simulation
 - if defined sim (
-  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% deprecated-functions=off %linkflags% %include% link=shared crypto=built-in testing.execute=off
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP testing.execute=off
   )
 
 test_script:
@@ -107,7 +107,9 @@ test_script:
 # specifiers when debug iterators are enabled. Specifically, constructors that
 # allocate memory are still marked as noexcept. That results in program
 # termination
+# the IOCP backend in asio appears to have an issue where it hangs under
+# certain unexpected terminations (through exceptions)
 - cd %ROOT_DIRECTORY%\simulation
 - if defined sim (
-  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP
   )

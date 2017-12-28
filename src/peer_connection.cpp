@@ -182,6 +182,11 @@ namespace libtorrent {
 				, print_endpoint(local_ep).c_str());
 		}
 #endif
+
+		// this counter should not be incremeneted until we know constructing this
+		// peer object can't fail anymore
+		if (m_connecting && t) t->inc_num_connecting(m_peer_info);
+
 #if TORRENT_USE_ASSERTS
 		piece_failed = false;
 		m_in_constructor = false;
@@ -372,8 +377,6 @@ namespace libtorrent {
 		// if this is an incoming connection, we're done here
 		if (!m_connecting) return;
 
-		if (m_connecting && t) t->inc_num_connecting(m_peer_info);
-
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))
 		{
@@ -529,14 +532,14 @@ namespace libtorrent {
 	}
 
 	void peer_connection::peer_log(peer_log_alert::direction_t direction
-		, char const* event) const
+		, char const* event) const noexcept
 	{
 		peer_log(direction, event, "");
 	}
 
 	TORRENT_FORMAT(4,5)
 	void peer_connection::peer_log(peer_log_alert::direction_t direction
-		, char const* event, char const* fmt, ...) const
+		, char const* event, char const* fmt, ...) const noexcept try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -555,6 +558,7 @@ namespace libtorrent {
 		va_end(v);
 
 	}
+	catch (std::exception const&) {}
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -797,8 +801,6 @@ namespace libtorrent {
 
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(!m_in_constructor);
-		TORRENT_ASSERT(m_disconnecting);
-		TORRENT_ASSERT(m_disconnect_started);
 		TORRENT_ASSERT(!m_destructed);
 #if TORRENT_USE_ASSERTS
 		m_destructed = true;
@@ -836,7 +838,6 @@ namespace libtorrent {
 		TORRENT_ASSERT(t || !m_connecting);
 
 		// we should really have dealt with this already
-		TORRENT_ASSERT(!m_connecting);
 		if (m_connecting)
 		{
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
@@ -853,11 +854,6 @@ namespace libtorrent {
 #endif
 		TORRENT_ASSERT(m_request_queue.empty());
 		TORRENT_ASSERT(m_download_queue.empty());
-
-#if TORRENT_USE_ASSERTS
-		if (m_peer_info)
-			TORRENT_ASSERT(m_peer_info->connection == nullptr);
-#endif
 	}
 
 	bool peer_connection::on_parole() const
@@ -4385,7 +4381,7 @@ namespace libtorrent {
 			m_queued_time_critical = 0;
 
 #if TORRENT_USE_INVARIANT_CHECKS
-			check_invariant();
+			try { check_invariant(); } catch (std::exception const&) {}
 #endif
 			t->remove_peer(self());
 
@@ -6325,10 +6321,6 @@ namespace libtorrent {
 			TORRENT_ASSERT(m_download_queue.empty());
 			TORRENT_ASSERT(m_request_queue.empty());
 			TORRENT_ASSERT(m_disconnect_started);
-		}
-		else if (!m_in_constructor)
-		{
-			TORRENT_ASSERT(m_ses.has_peer(this));
 		}
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);

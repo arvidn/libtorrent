@@ -51,6 +51,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
+#if defined _MSC_VER && _ITERATOR_DEBUG_LEVEL > 0
+// https://developercommunity.visualstudio.com/content/problem/140200/c-stl-stdvector-constructor-declared-with-noexcept.html
+#error "msvc's standard library does not support bad_alloc with debug iterators. This test only works with debug iterators disabled on msvc. _ITERATOR_DEBUG_LEVEL=0"
+#endif
 
 std::string make_ep_string(char const* address, bool const is_v6
 	, char const* port)
@@ -105,7 +109,7 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 
 	// only monitor alerts for session 0 (the downloader)
 	print_alerts(*ses[0], [=](lt::session& ses, lt::alert const* a) {
-		if (auto ta = alert_cast<lt::torrent_added_alert>(a))
+		if (auto ta = alert_cast<lt::add_torrent_alert>(a))
 		{
 			ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
 		}
@@ -149,6 +153,22 @@ void* operator new(std::size_t sz)
 	{
 		char stack[10000];
 		print_backtrace(stack, sizeof(stack), 40, nullptr);
+#ifdef _MSC_VER
+		// this is a bit unfortunate. Some MSVC standard containers really don't move
+		// with noexcept, by actually allocating memory (i.e. it's not just a matter
+		// of accidentally missing noexcept specifiers). The heterogeneous queue used
+		// by the alert manager requires alerts to be noexcept move constructable and
+		// move assignable, which they claim to be, even though on MSVC some of them
+		// aren't. Things will improve in C++17 and it doesn't seem worth the trouble
+		// to make the heterogeneous queue support throwing moves, nor to replace all
+		// standard types with variants that can move noexcept.
+		if (std::strstr(stack, " libtorrent::entry::operator= ") != nullptr
+			|| std::strstr(stack, " libtorrent::aux::noexcept_movable<std::map<") != nullptr)
+		{
+			++g_alloc_counter;
+			return std::malloc(sz);
+		}
+#endif
 		std::printf("\n\nthrowing bad_alloc (as part of test)\n%s\n\n\n", stack);
 		throw std::bad_alloc();
 	}
@@ -162,7 +182,7 @@ void operator delete(void* ptr) noexcept
 
 TORRENT_TEST(error_handling)
 {
-	for (int i = 0; i < 3000; ++i)
+	for (int i = 0; i < 8000; ++i)
 	{
 		// this will clear the history of all output we've printed so far.
 		// if we encounter an error from now on, we'll only print the relevant
@@ -176,7 +196,7 @@ TORRENT_TEST(error_handling)
 		std::printf("\n\n === ROUND %d ===\n\n", i);
 		try
 		{
-			g_alloc_counter = 100 + i;
+			g_alloc_counter = i;
 			using namespace lt;
 			run_test(
 				[](lt::session&, lt::alert const*) {},
@@ -211,5 +231,12 @@ TORRENT_TEST(error_handling)
 		// continue, we won't exercise any new code paths
 		if (g_alloc_counter > 0) break;
 	}
+
+	// if this fails, we need to raise the limit in the loop above
+	TEST_CHECK(g_alloc_counter > 0);
+
+	// we don't want any part of the actual test framework to suffer from failed
+	// allocations, so bump the counter
+	g_alloc_counter = 1000000;
 }
 

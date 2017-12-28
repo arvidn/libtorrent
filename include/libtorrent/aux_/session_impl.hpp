@@ -1261,7 +1261,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_LOGGING
 			bool should_log() const override;
-			void session_log(char const* fmt, ...) const override TORRENT_FORMAT(2,3);
+			void session_log(char const* fmt, ...) const noexcept override TORRENT_FORMAT(2,3);
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1314,7 +1314,7 @@ namespace aux {
 				, error_code const& ec, const std::string& str
 				, seconds32 retry_interval) override;
 			bool should_log() const override;
-			void debug_log(const char* fmt, ...) const override TORRENT_FORMAT(2,3);
+			void debug_log(const char* fmt, ...) const noexcept override TORRENT_FORMAT(2,3);
 			session_interface& m_ses;
 		private:
 			// explicitly disallow assignment, to silence msvc warning

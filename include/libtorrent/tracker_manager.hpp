@@ -249,7 +249,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		virtual bool should_log() const = 0;
-		virtual void debug_log(const char* fmt, ...) const TORRENT_FORMAT(2,3) = 0;
+		virtual void debug_log(const char* fmt, ...) const noexcept TORRENT_FORMAT(2,3) = 0;
 #endif
 	};
 

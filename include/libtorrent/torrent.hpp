@@ -1023,7 +1023,7 @@ namespace libtorrent {
 		// LOGGING
 #ifndef TORRENT_DISABLE_LOGGING
 		bool should_log() const override;
-		void debug_log(const char* fmt, ...) const override TORRENT_FORMAT(2,3);
+		void debug_log(const char* fmt, ...) const noexcept override TORRENT_FORMAT(2,3);
 
 		void log_to_all_peers(char const* message);
 		time_point m_dht_start_time;

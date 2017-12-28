@@ -286,7 +286,9 @@ namespace aux {
 		, buffer_allocator_interface
 	{
 		disk_io_thread(io_service& ios, counters& cnt);
+#if TORRENT_USE_ASSERTS
 		~disk_io_thread();
+#endif
 
 		void set_settings(settings_pack const* sett);
 
