@@ -1234,14 +1234,11 @@ namespace libtorrent {
 			, blocks_in_last_piece
 			, m_torrent_file->num_pieces()));
 
-		m_picker = std::move(pp);
-
 		// initialize the file progress too
 		if (m_file_progress.empty())
-		{
-			TORRENT_ASSERT(has_picker());
-			m_file_progress.init(picker(), m_torrent_file->files());
-		}
+			m_file_progress.init(*pp, m_torrent_file->files());
+
+		m_picker = std::move(pp);
 
 		update_gauge();
 
