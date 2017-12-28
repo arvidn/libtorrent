@@ -1610,7 +1610,7 @@ namespace libtorrent
 		// the number of bytes of padding files
 		boost::uint32_t m_padding:24;
 
-		// TODO: 8 bits available here
+		// TODO: gap of 8 bits available here
 
 // ----
 
