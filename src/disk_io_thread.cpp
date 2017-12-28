@@ -227,6 +227,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		TORRENT_ASSERT(storage);
 		if (m_free_slots.empty())
 		{
+			// make sure there's always space in here to add another free slot.
+			// stopping a torrent should never fail because it needs to allocate memory
+			m_free_slots.reserve(m_torrents.size() + 1);
 			storage_index_t const idx = m_torrents.end_index();
 			m_torrents.emplace_back(std::move(storage));
 			m_torrents.back()->set_storage_index(idx);
@@ -251,21 +254,15 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		}
 	}
 
+#if TORRENT_USE_ASSERTS
 	disk_io_thread::~disk_io_thread()
 	{
 		DLOG("destructing disk_io_thread\n");
 
-#if TORRENT_USE_ASSERTS
-		// by now, all pieces should have been evicted
-		auto pieces = m_disk_cache.all_pieces();
-		TORRENT_ASSERT(pieces.first == pieces.second);
-#endif
-
 		TORRENT_ASSERT(m_magic == 0x1337);
-#if TORRENT_USE_ASSERTS
 		m_magic = 0xdead;
-#endif
 	}
+#endif
 
 	void disk_io_thread::abort(bool const wait)
 	{

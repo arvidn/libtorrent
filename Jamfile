@@ -519,12 +519,12 @@ variant test_release : release
 variant test_debug : debug
 	: <logging>on
 	<invariant-checks>full <boost-link>shared
-	<export-extra>on <debug-iterators>on <threading>multi <asserts>on
+	<export-extra>on <threading>multi <asserts>on
 	;
 variant test_barebones : debug
 	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
 	<deprecated-functions>off <invariant-checks>off
-	<export-extra>on <debug-iterators>on <threading>multi <asserts>on
+	<export-extra>on <threading>multi <asserts>on
 	;
 variant test_arm : debug
 	: <ipv6>off <dht>off <extensions>off <logging>off

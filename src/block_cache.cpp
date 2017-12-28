@@ -329,7 +329,6 @@ cached_piece_entry::~cached_piece_entry()
 	{
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
-			TORRENT_ASSERT(blocks[i].buf == nullptr);
 			TORRENT_ASSERT(!blocks[i].pending);
 			TORRENT_ASSERT(blocks[i].refcount == 0);
 			TORRENT_ASSERT(blocks[i].hashing_count == 0);

@@ -4361,8 +4361,23 @@ namespace libtorrent {
 		// the torrent object from there
 		if (m_storage)
 		{
-			m_ses.disk_thread().async_stop_torrent(m_storage
-				, std::bind(&torrent::on_torrent_aborted, shared_from_this()));
+			try {
+				m_ses.disk_thread().async_stop_torrent(m_storage
+					, std::bind(&torrent::on_torrent_aborted, shared_from_this()));
+			}
+			catch (std::exception const& e)
+			{
+				TORRENT_UNUSED(e);
+				m_storage.reset();
+#ifndef TORRENT_DISABLE_LOGGING
+				debug_log("Failed to flush disk cache: %s", e.what());
+#endif
+				// clients may rely on this alert to be posted, so it's probably a
+				// good idea to post it here, even though we failed
+				// TODO: 3 should this alert have an error code in it?
+				if (alerts().should_post<cache_flushed_alert>())
+					alerts().emplace_alert<cache_flushed_alert>(get_handle());
+			}
 		}
 		else
 		{
@@ -4401,6 +4416,10 @@ namespace libtorrent {
 		// have been destructed
 		if (m_peer_list) m_peer_list->clear();
 		m_connections.clear();
+		m_peers_to_disconnect.clear();
+		m_num_uploads = 0;
+		m_num_connecting = 0;
+		m_num_connecting_seeds = 0;
 	}
 
 	void torrent::set_super_seeding(bool on)
@@ -6877,22 +6896,7 @@ namespace libtorrent {
 		peers_erased(st.erased);
 
 		m_peers_to_disconnect.reserve(m_connections.size() + 1);
-
-		TORRENT_ASSERT(sorted_find(m_connections, p) == m_connections.end());
-		TORRENT_ASSERT(m_iterating_connections == 0);
-		sorted_insert(m_connections, p);
-		update_want_peers();
-		update_want_tick();
-
-		if (p->peer_info_struct() && p->peer_info_struct()->seed)
-		{
-			TORRENT_ASSERT(m_num_seeds < 0xffff);
-			++m_num_seeds;
-		}
-
-#ifndef TORRENT_DISABLE_LOGGING
-		debug_log("incoming peer (%d)", num_peers());
-#endif
+		m_connections.reserve(m_connections.size() + 1);
 
 #if TORRENT_USE_ASSERTS
 		error_code ec;
@@ -6956,13 +6960,33 @@ namespace libtorrent {
 		if (m_share_mode)
 			recalc_share_mode();
 
+		// once we add the peer to our m_connections list, we can't throw an
+		// exception. That will end up violating an invariant between the session,
+		// torrent and peers
+		TORRENT_ASSERT(sorted_find(m_connections, p) == m_connections.end());
+		TORRENT_ASSERT(m_iterating_connections == 0);
+		sorted_insert(m_connections, p);
+		update_want_peers();
+		update_want_tick();
+
+		if (p->peer_info_struct() && p->peer_info_struct()->seed)
+		{
+			TORRENT_ASSERT(m_num_seeds < 0xffff);
+			++m_num_seeds;
+		}
+
 #ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
+		debug_log("incoming peer (%d)", num_peers());
+#endif
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log()) try
 		{
 			debug_log("ATTACHED CONNECTION \"%s\" connections: %d limit: %d"
 				, print_endpoint(p->remote()).c_str(), num_peers()
 				, m_max_connections);
 		}
+		catch (std::exception const&) {}
 #endif
 
 		return true;
@@ -7775,7 +7799,7 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(is_single_thread());
 		// this fires during disconnecting peers
-//		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
+		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
 
 		int seeds = 0;
 		int num_uploads = 0;
@@ -7784,10 +7808,6 @@ namespace libtorrent {
 		std::map<piece_block, int> num_requests;
 		for (peer_connection const* peer : *this)
 		{
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-			// make sure this peer is not a dangling pointer
-			TORRENT_ASSERT(m_ses.has_peer(peer));
-#endif
 			peer_connection const& p = *peer;
 
 			if (p.is_connecting()) ++num_connecting;
@@ -7813,16 +7833,19 @@ namespace libtorrent {
 			if (associated_torrent != this && associated_torrent != nullptr)
 				TORRENT_ASSERT_FAIL();
 		}
-		TORRENT_ASSERT(num_uploads == int(m_num_uploads));
-		TORRENT_ASSERT(seeds == int(m_num_seeds));
-		TORRENT_ASSERT(num_connecting == int(m_num_connecting));
-		TORRENT_ASSERT(num_connecting_seeds == int(m_num_connecting_seeds));
-		TORRENT_ASSERT(int(m_num_uploads) <= num_peers());
-		TORRENT_ASSERT(int(m_num_seeds) <= num_peers());
-		TORRENT_ASSERT(int(m_num_connecting) <= num_peers());
-		TORRENT_ASSERT(int(m_num_connecting_seeds) <= num_peers());
-		TORRENT_ASSERT(int(m_num_connecting) + int(m_num_seeds) >= int(m_num_connecting_seeds));
-		TORRENT_ASSERT(int(m_num_connecting) + int(m_num_seeds) - int(m_num_connecting_seeds) <= num_peers());
+		TORRENT_ASSERT_VAL(num_uploads == int(m_num_uploads), int(m_num_uploads) - num_uploads);
+		TORRENT_ASSERT_VAL(seeds == int(m_num_seeds), int(m_num_seeds) - seeds);
+		TORRENT_ASSERT_VAL(num_connecting == int(m_num_connecting), int(m_num_connecting) - num_connecting);
+		TORRENT_ASSERT_VAL(num_connecting_seeds == int(m_num_connecting_seeds)
+			, int(m_num_connecting_seeds) - num_connecting_seeds);
+		TORRENT_ASSERT_VAL(int(m_num_uploads) <= num_peers(), m_num_uploads - num_peers());
+		TORRENT_ASSERT_VAL(int(m_num_seeds) <= num_peers(), m_num_seeds - num_peers());
+		TORRENT_ASSERT_VAL(int(m_num_connecting) <= num_peers(), int(m_num_connecting) - num_peers());
+		TORRENT_ASSERT_VAL(int(m_num_connecting_seeds) <= num_peers(), int(m_num_connecting_seeds) - num_peers());
+		TORRENT_ASSERT_VAL(int(m_num_connecting) + int(m_num_seeds) >= int(m_num_connecting_seeds)
+			, int(m_num_connecting_seeds) - (int(m_num_connecting) + int(m_num_seeds)));
+		TORRENT_ASSERT_VAL(int(m_num_connecting) + int(m_num_seeds) - int(m_num_connecting_seeds) <= num_peers()
+			, num_peers() - (int(m_num_connecting) + int(m_num_seeds) - int(m_num_connecting_seeds)));
 
 		if (has_picker())
 		{
@@ -10979,7 +11002,7 @@ namespace {
 	}
 
 	TORRENT_FORMAT(2,3)
-	void torrent::debug_log(char const* fmt, ...) const
+	void torrent::debug_log(char const* fmt, ...) const noexcept try
 	{
 		if (!alerts().should_post<torrent_log_alert>()) return;
 
@@ -10989,6 +11012,7 @@ namespace {
 			const_cast<torrent*>(this)->get_handle(), fmt, v);
 		va_end(v);
 	}
+	catch (std::exception const&) {}
 #endif
 
 }

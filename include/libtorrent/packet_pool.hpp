@@ -160,6 +160,16 @@ namespace libtorrent {
 	// can handle common cases of packet size by 3 pools
 	struct TORRENT_EXTRA_EXPORT packet_pool : private single_threaded
 	{
+		// there's a bug in GCC where allocating these in
+		// member initializer expressions won't propagate exceptions.
+		// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80683
+		packet_pool()
+			: m_syn_slab(TORRENT_UTP_HEADER)
+			, m_mtu_floor_slab(mtu_floor_size)
+			, m_mtu_ceiling_slab(mtu_ceiling_size)
+		{}
+		packet_pool(packet_pool&&) = default;
+
 		packet_ptr acquire(int const allocate)
 		{
 			TORRENT_ASSERT(is_single_thread());
@@ -202,9 +212,9 @@ namespace libtorrent {
 		}
 		static int const mtu_floor_size = TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
 		static int const mtu_ceiling_size = TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
-		packet_slab m_syn_slab{ TORRENT_UTP_HEADER };
-		packet_slab m_mtu_floor_slab{ mtu_floor_size };
-		packet_slab m_mtu_ceiling_slab{ mtu_ceiling_size };
+		packet_slab m_syn_slab;
+		packet_slab m_mtu_floor_slab;
+		packet_slab m_mtu_ceiling_slab;
 	};
 }
 

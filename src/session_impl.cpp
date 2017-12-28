@@ -882,12 +882,13 @@ namespace aux {
 		session_log(" aborting all connections (%d)", int(m_connections.size()));
 #endif
 		// abort all connections
-		// keep in mind that connections that are not associated with a torrent
-		// will remove its entry from m_connections immediately, which means we
-		// can't iterate over it here
-		auto conns = m_connections;
-		for (auto const& p : conns)
+		for (connection_map::iterator i = m_connections.begin();
+			i != m_connections.end();)
+		{
+			peer_connection* p = (*i).get();
+			++i;
 			p->disconnect(errors::stopping_torrent, operation_t::bittorrent);
+		}
 
 		// close the listen sockets
 		for (auto const& l : m_listen_sockets)
@@ -4533,7 +4534,7 @@ namespace {
 	}
 
 	TORRENT_FORMAT(2,3)
-	void session_impl::session_log(char const* fmt, ...) const
+	void session_impl::session_log(char const* fmt, ...) const noexcept try
 	{
 		if (!m_alerts.should_post<log_alert>()) return;
 
@@ -4542,6 +4543,7 @@ namespace {
 		m_alerts.emplace_alert<log_alert>(fmt, v);
 		va_end(v);
 	}
+	catch (std::exception const&) {}
 #endif
 
 	void session_impl::get_torrent_status(std::vector<torrent_status>* ret
@@ -7147,7 +7149,7 @@ namespace {
 			return m_ses.alerts().should_post<log_alert>();
 		}
 
-		void tracker_logger::debug_log(const char* fmt, ...) const
+		void tracker_logger::debug_log(const char* fmt, ...) const noexcept try
 		{
 			if (!m_ses.alerts().should_post<log_alert>()) return;
 
@@ -7156,5 +7158,6 @@ namespace {
 			m_ses.alerts().emplace_alert<log_alert>(fmt, v);
 			va_end(v);
 		}
+		catch (std::exception const&) {}
 #endif // TORRENT_DISABLE_LOGGING
 }}
