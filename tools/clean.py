@@ -13,6 +13,7 @@ def clean():
 		'upnp.log',
 		'natpmp.log',
 		'bin',
+		'build-aux',
 		'.deps',
 		'test_tmp_*',
 		'bjam_build.*.xml'
@@ -33,6 +34,11 @@ def clean():
 		'lib*.a',
 		'Jamfile.rej',
 		'Jamfile.orig',
+		'autom4te.cache',
+		'configure',
+		'config.report',
+		'config.log',
+		'.lib',
 	]
 
 	directories = [
