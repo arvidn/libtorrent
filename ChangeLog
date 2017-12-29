@@ -1,4 +1,6 @@
 
+1.1.6 release
+
 	* deprecate save_encryption_settings (they are part of the normal settings)
 	* add getters for peer_class_filter and peer_class_type_filter
 	* make torrent_handler::set_priority() to use peer_classes
