@@ -67,11 +67,12 @@ POSSIBILITY OF SUCH DAMAGE.
 // All the callbacks are always called from the libtorrent network thread. In
 // case portions of your plugin are called from other threads, typically the main
 // thread, you cannot use any of the member functions on the internal structures
-// in libtorrent, since those require the mutex to be locked. Furthermore, you would
-// also need to have a mutex on your own shared data within the plugin, to make
-// sure it is not accessed at the same time from the libtorrent thread (through a
-// callback). If you need to send out a message from another thread, it is
-// advised to use an internal queue, and do the actual sending in ``tick()``.
+// in libtorrent, since those require being called from the libtorrent network
+// thread . Furthermore, you also need to synchronize your own shared data
+// within the plugin, to make sure it is not accessed at the same time from the
+// libtorrent thread (through a callback). If you need to send out a message
+// from another thread, it is advised to use an internal queue, and do the
+// actual sending in ``tick()``.
 //
 // Since the plugin interface gives you easy access to internal structures, it
 // is not supported as a stable API. Plugins should be considered specific to a
@@ -128,8 +129,8 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 // 	virtual std::string message() const;
 //
-// 	static const int static_category = *<bitmask of alert::category_t flags>*;
-// 	virtual int category() const { return static_category; }
+// 	static const alert_category_t static_category = *<bitmask of alert::category_t flags>*;
+// 	virtual alert_category_t category() const { return static_category; }
 //
 // 	virtual char const* what() const { return *<string literal of the name of this alert>*; }
 //
