@@ -670,7 +670,7 @@ namespace libtorrent {
 		// class and returns a unique identifier.
 		//
 		// Identifiers are assigned from low numbers to higher. So if you plan on
-		// using certain peer classes in a call to `set_peer_class_filter()`_,
+		// using certain peer classes in a call to set_peer_class_filter(),
 		// make sure to create those early on, to get low identifiers.
 		//
 		// For more information on peer classes, see peer-classes_.

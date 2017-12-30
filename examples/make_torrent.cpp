@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006, Arvid Norberg
+Copyright (c) 2006-2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,12 +42,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 
 #ifdef TORRENT_WINDOWS
 #include <direct.h> // for _getcwd
 #endif
 
-using namespace lt;
 using namespace std::placeholders;
 
 std::vector<char> load_file(std::string const& filename)
@@ -112,7 +112,7 @@ bool file_filter(std::string const& f)
 	return true;
 }
 
-void print_progress(piece_index_t i, int num)
+void print_progress(lt::piece_index_t i, int num)
 {
 	std::fprintf(stderr, "\r%d/%d", static_cast<int>(i)+1, num);
 }
@@ -159,227 +159,193 @@ void print_usage()
 		, stderr);
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
-	using namespace lt;
-
 	std::string creator_str = "libtorrent";
 	std::string comment_str;
 
-	if (argc < 2)
-	{
+	if (argc < 2) {
 		print_usage();
 		return 1;
 	}
 
-#ifndef BOOST_NO_EXCEPTIONS
-	try
-	{
-#endif
-		std::vector<std::string> web_seeds;
-		std::vector<std::string> trackers;
-		std::vector<std::string> collections;
-		std::vector<sha1_hash> similar;
-		int pad_file_limit = -1;
-		int piece_size = 0;
-		create_flags_t flags = {};
-		std::string root_cert;
+	std::vector<std::string> web_seeds;
+	std::vector<std::string> trackers;
+	std::vector<std::string> collections;
+	std::vector<lt::sha1_hash> similar;
+	int pad_file_limit = -1;
+	int piece_size = 0;
+	lt::create_flags_t flags = {};
+	std::string root_cert;
 
-		std::string outfile;
-		std::string merklefile;
+	std::string outfile;
+	std::string merklefile;
 #ifdef TORRENT_WINDOWS
-		// don't ever write binary data to the console on windows
-		// it will just be interpreted as text and corrupted
-		outfile = "a.torrent";
+	// don't ever write binary data to the console on windows
+	// it will just be interpreted as text and corrupted
+	outfile = "a.torrent";
 #endif
 
-		for (int i = 2; i < argc; ++i)
-		{
-			if (argv[i][0] != '-')
-			{
-				print_usage();
-				return 1;
-			}
+	std::string full_path = argv[1];
+	argv += 2;
+	argc -= 2;
 
-			switch (argv[i][1])
-			{
-				case 'w':
-					++i;
-					web_seeds.push_back(argv[i]);
-					break;
-				case 't':
-					++i;
-					trackers.push_back(argv[i]);
-					break;
-				case 'M':
-					flags |= create_torrent::mutable_torrent_support;
-					pad_file_limit = 0x4000;
-					break;
-				case 'p':
-					++i;
-					pad_file_limit = atoi(argv[i]);
-					flags |= create_torrent::optimize_alignment;
-					break;
-				case 's':
-					++i;
-					piece_size = atoi(argv[i]);
-					break;
-				case 'm':
-					++i;
-					merklefile = argv[i];
-					flags |= create_torrent::merkle;
-					break;
-				case 'o':
-					++i;
-					outfile = argv[i];
-					break;
-				case 'l':
-					flags |= create_torrent::symlinks;
-					break;
-				case 'C':
-					++i;
-					creator_str = argv[i];
-					break;
-				case 'c':
-					++i;
-					comment_str = argv[i];
-					break;
-				case 'r':
-					++i;
-					root_cert = argv[i];
-					break;
-				case 'S':
-					{
-					++i;
-					if (strlen(argv[i]) != 40)
-					{
-						std::fprintf(stderr, "invalid info-hash for -S. "
-							"Expected 40 hex characters\n");
-						print_usage();
-						return 1;
-					}
-					std::stringstream hash(argv[i]);
-					sha1_hash ih;
-					hash >> ih;
-					if (hash.fail())
-					{
-						std::fprintf(stderr, "invalid info-hash for -S\n");
-						print_usage();
-						return 1;
-					}
-					similar.push_back(ih);
-					}
-					break;
-				case 'L':
-					++i;
-					collections.push_back(argv[i]);
-					break;
-				default:
+	for (; argc > 0; --argc, ++argv) {
+		if (argv[0][0] != '-') {
+			print_usage();
+			return 1;
+		}
+
+		char const flag = argv[0][1];
+
+		switch (flag)
+		{
+			case 'M':
+				flags |= lt::create_torrent::mutable_torrent_support;
+				pad_file_limit = 0x4000;
+				continue;
+			case 'l':
+				flags |= lt::create_torrent::symlinks;
+				continue;
+		}
+
+		if (argc < 2) {
+			print_usage();
+			return 1;
+		}
+
+		switch (flag)
+		{
+			case 'w': web_seeds.push_back(argv[1]); break;
+			case 't': trackers.push_back(argv[1]); break;
+			case 's': piece_size = atoi(argv[1]); break;
+			case 'o': outfile = argv[1]; break;
+			case 'C': creator_str = argv[1]; break;
+			case 'c': comment_str = argv[1]; break;
+			case 'r': root_cert = argv[1]; break;
+			case 'L': collections.push_back(argv[1]); break;
+			case 'p':
+				pad_file_limit = atoi(argv[1]);
+				flags |= lt::create_torrent::optimize_alignment;
+				break;
+			case 'm':
+				merklefile = argv[1];
+				flags |= lt::create_torrent::merkle;
+				break;
+			case 'S': {
+				if (strlen(argv[1]) != 40) {
+					std::fprintf(stderr, "invalid info-hash for -S. "
+						"Expected 40 hex characters\n");
 					print_usage();
 					return 1;
+				}
+				std::stringstream hash(argv[1]);
+				lt::sha1_hash ih;
+				hash >> ih;
+				if (hash.fail()) {
+					std::fprintf(stderr, "invalid info-hash for -S\n");
+					print_usage();
+					return 1;
+				}
+				similar.push_back(ih);
+				break;
 			}
-		}
-
-		file_storage fs;
-		std::string full_path = argv[1];
-#ifdef TORRENT_WINDOWS
-		if (full_path[1] != ':')
-#else
-		if (full_path[0] != '/')
-#endif
-		{
-			char cwd[TORRENT_MAX_PATH];
-#ifdef TORRENT_WINDOWS
-			_getcwd(cwd, sizeof(cwd));
-			full_path = cwd + ("\\" + full_path);
-#else
-			char const* ret = getcwd(cwd, sizeof(cwd));
-			if (ret == NULL)
-			{
-				std::fprintf(stderr, "failed to get current working directory: %s\n"
-					, strerror(errno));
+			default:
+				print_usage();
 				return 1;
-			}
-			full_path = cwd + ("/" + full_path);
-#endif
 		}
-
-		add_files(fs, full_path, file_filter, flags);
-		if (fs.num_files() == 0)
-		{
-			fputs("no files specified.\n", stderr);
-			return 1;
-		}
-
-		create_torrent t(fs, piece_size, pad_file_limit, flags);
-		int tier = 0;
-		for (std::vector<std::string>::iterator i = trackers.begin()
-			, end(trackers.end()); i != end; ++i, ++tier)
-			t.add_tracker(*i, tier);
-
-		for (std::vector<std::string>::iterator i = web_seeds.begin()
-			, end(web_seeds.end()); i != end; ++i)
-			t.add_url_seed(*i);
-
-		for (std::vector<std::string>::iterator i = collections.begin()
-			, end(collections.end()); i != end; ++i)
-			t.add_collection(*i);
-
-		for (std::vector<sha1_hash>::iterator i = similar.begin()
-			, end(similar.end()); i != end; ++i)
-			t.add_similar_torrent(*i);
-
-		error_code ec;
-		set_piece_hashes(t, branch_path(full_path)
-			, std::bind(&print_progress, _1, t.num_pieces()), ec);
-		if (ec)
-		{
-			std::fprintf(stderr, "%s\n", ec.message().c_str());
-			return 1;
-		}
-
-		std::fprintf(stderr, "\n");
-		t.set_creator(creator_str.c_str());
-		if (!comment_str.empty())
-			t.set_comment(comment_str.c_str());
-
-		if (!root_cert.empty())
-		{
-			std::vector<char> pem = load_file(root_cert);
-			t.set_root_cert(std::string(&pem[0], pem.size()));
-		}
-
-		// create the torrent and print it to stdout
-		std::vector<char> torrent;
-		bencode(back_inserter(torrent), t.generate());
-		if (!outfile.empty())
-		{
-			std::fstream out;
-			out.exceptions(std::ifstream::failbit);
-			out.open(outfile.c_str(), std::ios_base::out | std::ios_base::binary);
-			out.write(&torrent[0], torrent.size());
-		}
-		else
-		{
-			fwrite(&torrent[0], 1, torrent.size(), stdout);
-		}
-
-		if (!merklefile.empty())
-		{
-			std::fstream merkle;
-			merkle.exceptions(std::ifstream::failbit);
-			merkle.open(merklefile.c_str(), std::ios_base::out | std::ios_base::binary);
-			merkle.write(reinterpret_cast<char const*>(&t.merkle_tree()[0]), t.merkle_tree().size() * 20);
-		}
-
-#ifndef BOOST_NO_EXCEPTIONS
+		++argv;
+		--argc;
 	}
-	catch (std::exception const& e)
+
+	lt::file_storage fs;
+#ifdef TORRENT_WINDOWS
+	if (full_path[1] != ':')
+#else
+	if (full_path[0] != '/')
+#endif
 	{
-		std::fprintf(stderr, "%s\n", e.what());
-	}
+		char cwd[TORRENT_MAX_PATH];
+#ifdef TORRENT_WINDOWS
+		_getcwd(cwd, sizeof(cwd));
+		full_path = cwd + ("\\" + full_path);
+#else
+		char const* ret = getcwd(cwd, sizeof(cwd));
+		if (ret == NULL)
+		{
+			std::fprintf(stderr, "failed to get current working directory: %s\n"
+				, strerror(errno));
+			return 1;
+		}
+		full_path = cwd + ("/" + full_path);
 #endif
+	}
 
+	lt::add_files(fs, full_path, file_filter, flags);
+	if (fs.num_files() == 0) {
+		std::cerr << "no files specified.\n";
+		return 1;
+	}
+
+	lt::create_torrent t(fs, piece_size, pad_file_limit, flags);
+	int tier = 0;
+	for (std::vector<std::string>::iterator i = trackers.begin()
+		, end(trackers.end()); i != end; ++i, ++tier)
+		t.add_tracker(*i, tier);
+
+	for (std::vector<std::string>::iterator i = web_seeds.begin()
+		, end(web_seeds.end()); i != end; ++i)
+		t.add_url_seed(*i);
+
+	for (std::vector<std::string>::iterator i = collections.begin()
+		, end(collections.end()); i != end; ++i)
+		t.add_collection(*i);
+
+	for (std::vector<lt::sha1_hash>::iterator i = similar.begin()
+		, end(similar.end()); i != end; ++i)
+		t.add_similar_torrent(*i);
+
+	lt::error_code ec;
+	set_piece_hashes(t, branch_path(full_path)
+		, std::bind(&print_progress, _1, t.num_pieces()), ec);
+	if (ec) {
+		std::cerr << ec.message() << "\n";
+		return 1;
+	}
+
+	std::cerr << "\n";
+	t.set_creator(creator_str.c_str());
+	if (!comment_str.empty()) {
+		t.set_comment(comment_str.c_str());
+	}
+
+	if (!root_cert.empty()) {
+		std::vector<char> const pem = load_file(root_cert);
+		t.set_root_cert(std::string(&pem[0], pem.size()));
+	}
+
+	// create the torrent and print it to stdout
+	std::vector<char> torrent;
+	lt::bencode(back_inserter(torrent), t.generate());
+	if (!outfile.empty()) {
+		std::fstream out;
+		out.exceptions(std::ifstream::failbit);
+		out.open(outfile.c_str(), std::ios_base::out | std::ios_base::binary);
+		out.write(&torrent[0], torrent.size());
+	}
+	else {
+		std::cout.write(&torrent[0], torrent.size());
+	}
+
+	if (!merklefile.empty()) {
+		std::fstream merkle;
+		merkle.exceptions(std::ifstream::failbit);
+		merkle.open(merklefile.c_str(), std::ios_base::out | std::ios_base::binary);
+		merkle.write(reinterpret_cast<char const*>(&t.merkle_tree()[0]), t.merkle_tree().size() * 20);
+	}
 	return 0;
 }
-
+catch (std::exception& e) {
+	std::cerr << "ERROR: " << e.what() << "\n";
+	return 1;
+}

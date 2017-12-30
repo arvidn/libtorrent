@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2003-2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,74 +40,26 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/magnet_uri.hpp"
 
-int load_file(std::string const& filename, std::vector<char>& v
-	, lt::error_code& ec, int limit = 8000000)
+#include <fstream>
+#include <iostream>
+
+std::vector<char> load_file(std::string const& filename)
 {
-	ec.clear();
-	FILE* f = std::fopen(filename.c_str(), "rb");
-	if (f == nullptr)
-	{
-		ec.assign(errno, boost::system::system_category());
-		return -1;
-	}
-
-	int r = fseek(f, 0, SEEK_END);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-	long s = ftell(f);
-	if (s < 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-
-	if (s > limit)
-	{
-		std::fclose(f);
-		return -2;
-	}
-
-	r = fseek(f, 0, SEEK_SET);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-
-	v.resize(s);
-	if (s == 0)
-	{
-		std::fclose(f);
-		return 0;
-	}
-
-	r = int(fread(&v[0], 1, v.size(), f));
-	if (r < 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-
-	std::fclose(f);
-
-	if (r != s) return -3;
-
-	return 0;
+	std::vector<char> ret;
+	std::fstream in;
+	in.exceptions(std::ifstream::failbit);
+	in.open(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+	in.seekg(0, std::ios_base::end);
+	auto const size = in.tellg();
+	in.seekg(0, std::ios_base::beg);
+	ret.resize(static_cast<std::size_t>(size));
+	in.read(ret.data(), ret.size());
+	return ret;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
-	using namespace lt;
-
-	if (argc < 2 || argc > 4)
-	{
+	if (argc < 2 || argc > 4) {
 		fputs("usage: dump_torrent torrent-file [total-items-limit] [recursion-limit]\n", stderr);
 		return 1;
 	}
@@ -118,41 +70,23 @@ int main(int argc, char* argv[])
 	if (argc > 2) item_limit = atoi(argv[2]);
 	if (argc > 3) depth_limit = atoi(argv[3]);
 
-	std::vector<char> buf;
-	error_code ec;
-	int ret = load_file(argv[1], buf, ec, 40 * 1000000);
-	if (ret == -1)
-	{
-		std::fprintf(stderr, "file too big, aborting\n");
-		return 1;
-	}
-
-	if (ret != 0)
-	{
-		std::fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
-		return 1;
-	}
-	bdecode_node e;
+	std::vector<char> buf = load_file(argv[1]);
+	lt::bdecode_node e;
 	int pos = -1;
-	std::printf("decoding. recursion limit: %d total item count limit: %d\n"
-		, depth_limit, item_limit);
-	ret = bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
+	lt::error_code ec;
+	std::cout << "decoding. recursion limit: " << depth_limit
+		<< " total item count limit: " << item_limit << "\n";
+	int const ret = lt::bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
 		, depth_limit, item_limit);
 
 	std::printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
-	if (ret != 0)
-	{
-		std::fprintf(stderr, "failed to decode: '%s' at character: %d\n", ec.message().c_str(), pos);
+	if (ret != 0) {
+		std::cerr << "failed to decode: '" << ec.message() << "' at character: " << pos<< "\n";
 		return 1;
 	}
 
-	torrent_info t(e, ec);
-	if (ec)
-	{
-		std::fprintf(stderr, "%s\n", ec.message().c_str());
-		return 1;
-	}
+	lt::torrent_info const t(e);
 	e.clear();
 	std::vector<char>().swap(buf);
 
@@ -185,11 +119,11 @@ int main(int argc, char* argv[])
 		, make_magnet_uri(t).c_str()
 		, t.name().c_str()
 		, t.num_files());
-	file_storage const& st = t.files();
-	for (file_index_t i(0); i < file_index_t(st.num_files()); ++i)
+	lt::file_storage const& st = t.files();
+	for (lt::file_index_t i(0); i < lt::file_index_t(st.num_files()); ++i)
 	{
-		piece_index_t const first = st.map_file(i, 0, 0).piece;
-		piece_index_t const last = st.map_file(i, (std::max)(std::int64_t(st.file_size(i))-1, std::int64_t(0)), 0).piece;
+		lt::piece_index_t const first = st.map_file(i, 0, 0).piece;
+		lt::piece_index_t const last = st.map_file(i, (std::max)(std::int64_t(st.file_size(i))-1, std::int64_t(0)), 0).piece;
 		auto const flags = st.file_flags(i);
 		std::stringstream file_hash;
 		if (!st.hash(i).is_all_zeros())
@@ -197,25 +131,29 @@ int main(int argc, char* argv[])
 		std::printf(" %8" PRIx64 " %11" PRId64 " %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
 			, st.file_offset(i)
 			, st.file_size(i)
-			, ((flags & file_storage::flag_pad_file)?'p':'-')
-			, ((flags & file_storage::flag_executable)?'x':'-')
-			, ((flags & file_storage::flag_hidden)?'h':'-')
-			, ((flags & file_storage::flag_symlink)?'l':'-')
+			, ((flags & lt::file_storage::flag_pad_file)?'p':'-')
+			, ((flags & lt::file_storage::flag_executable)?'x':'-')
+			, ((flags & lt::file_storage::flag_hidden)?'h':'-')
+			, ((flags & lt::file_storage::flag_symlink)?'l':'-')
 			, static_cast<int>(first)
 			, static_cast<int>(last)
 			, std::uint32_t(st.mtime(i))
 			, file_hash.str().c_str()
 			, st.file_path(i).c_str()
-			, (flags & file_storage::flag_symlink) ? "-> " : ""
-			, (flags & file_storage::flag_symlink) ? st.symlink(i).c_str() : "");
+			, (flags & lt::file_storage::flag_symlink) ? "-> " : ""
+			, (flags & lt::file_storage::flag_symlink) ? st.symlink(i).c_str() : "");
 	}
 	std::printf("web seeds:\n");
 	for (auto const& ws : t.web_seeds())
 	{
 		std::printf("%s %s\n"
-			, ws.type == web_seed_entry::url_seed ? "BEP19" : "BEP17"
+			, ws.type == lt::web_seed_entry::url_seed ? "BEP19" : "BEP17"
 			, ws.url.c_str());
 	}
 
 	return 0;
+}
+catch (std::exception const& e)
+{
+	std::cerr << "ERROR: " << e.what() << "\n";
 }
