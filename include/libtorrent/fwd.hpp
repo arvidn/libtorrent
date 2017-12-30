@@ -179,6 +179,12 @@ class hasher;
 struct ip_filter;
 class port_filter;
 
+// include/libtorrent/peer_class.hpp
+struct peer_class_info;
+
+// include/libtorrent/peer_class_type_filter.hpp
+struct peer_class_type_filter;
+
 // include/libtorrent/peer_connection_handle.hpp
 struct peer_connection_handle;
 struct bt_peer_connection_handle;
