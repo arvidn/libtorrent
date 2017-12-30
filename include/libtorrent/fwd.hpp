@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_FWD_HPP
 #define TORRENT_FWD_HPP
 
-#include "libtorrent/export.hpp"
-
 namespace libtorrent {
 
 // include/libtorrent/add_torrent_params.hpp
@@ -271,5 +269,7 @@ struct lazy_entry;
 #endif // TORRENT_NO_DEPRECATE
 
 }
+
+namespace lt = libtorrent;
 
 #endif // TORRENT_FWD_HPP
