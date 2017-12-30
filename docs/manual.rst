@@ -641,6 +641,10 @@ directory structure that libtorrent will download torrents into.
 dynamic loading of torrent files
 ================================
 
+.. note::
+	This feature will be removed in the next major release of libtorrent. As an
+	alternative, torrents can be loaded on demand by plugins.
+
 libtorrent has a feature that can unload idle torrents from memory. The purpose
 of this is to support being active on many more torrents than the RAM permits.
 This is useful for both embedded devices that have limited RAM and servers
