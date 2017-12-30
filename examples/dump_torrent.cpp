@@ -45,14 +45,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 std::vector<char> load_file(std::string const& filename)
 {
-	std::vector<char> ret;
 	std::fstream in;
 	in.exceptions(std::ifstream::failbit);
 	in.open(filename.c_str(), std::ios_base::in | std::ios_base::binary);
 	in.seekg(0, std::ios_base::end);
-	auto const size = in.tellg();
+	size_t const size = size_t(in.tellg());
 	in.seekg(0, std::ios_base::beg);
-	ret.resize(static_cast<std::size_t>(size));
+	std::vector<char> ret(size);
 	in.read(ret.data(), ret.size());
 	return ret;
 }
@@ -60,7 +59,7 @@ std::vector<char> load_file(std::string const& filename)
 int main(int argc, char* argv[]) try
 {
 	if (argc < 2 || argc > 4) {
-		fputs("usage: dump_torrent torrent-file [total-items-limit] [recursion-limit]\n", stderr);
+		std::cerr << "usage: dump_torrent torrent-file [total-items-limit] [recursion-limit]\n";
 		return 1;
 	}
 
@@ -120,10 +119,10 @@ int main(int argc, char* argv[]) try
 		, t.name().c_str()
 		, t.num_files());
 	lt::file_storage const& st = t.files();
-	for (lt::file_index_t i(0); i < lt::file_index_t(st.num_files()); ++i)
+	for (lt::file_index_t i(0); i < st.end_file(); ++i)
 	{
-		lt::piece_index_t const first = st.map_file(i, 0, 0).piece;
-		lt::piece_index_t const last = st.map_file(i, (std::max)(std::int64_t(st.file_size(i))-1, std::int64_t(0)), 0).piece;
+		auto const first = st.map_file(i, 0, 0).piece;
+		auto const last = st.map_file(i, (std::max)(std::int64_t(st.file_size(i))-1, std::int64_t(0)), 0).piece;
 		auto const flags = st.file_flags(i);
 		std::stringstream file_hash;
 		if (!st.hash(i).is_all_zeros())
