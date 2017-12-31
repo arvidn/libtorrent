@@ -6010,7 +6010,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		COMPLETE_ASYNC("peer_connection::on_connection_complete");
 
-#if !defined TORRENT_DISABLE_LOGGING || defined TORRENT_USE_OPENSSL
+#if !defined TORRENT_DISABLE_LOGGING
 		time_point completed = clock_type::now();
 #endif
 
