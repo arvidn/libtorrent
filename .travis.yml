@@ -11,13 +11,13 @@ matrix:
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
     - os: osx
-      osx_image: xcode7.3
+      osx_image: xcode9.2
       env: variant=test_release docs=1 tests=1 toolset=darwin
     - os: osx
-      osx_image: xcode7.3
+      osx_image: xcode9.2
       env: variant=test_debug crypto=openssl tests=1 toolset=darwin
     - os: osx
-      osx_image: xcode7.3
+      osx_image: xcode9.2
       env: variant=test_barebones tools=1 examples=1 toolset=darwin python=1
     - env: arch=arm toolset=gcc-arm
 
@@ -61,7 +61,10 @@ before_install:
   - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" ) ]]; then
     travis_retry brew update > /dev/null && brew install ccache boost-build;
     fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then travis_retry brew install boost-python; fi'
+  # we have to use python from brew rather than the system provided python
+  # because of OSX System Integrity Protection, which prevents injecting
+  # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then travis_retry brew install boost-python python2; fi'
   - 'if [ "$docs" = "1" ]; then
     easy_install --user docutils;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
@@ -148,6 +151,8 @@ install:
       cd ..;
     fi'
 
+  - which python2
+
 script:
 
   - cd docs
@@ -188,10 +193,15 @@ script:
   - cd ..
 
 # a binary built with sanitizer does not interact well with python
+# on OSX we need to use the brew version of python, for reasons explained above
   - cd bindings/python
   - 'if [[ "$python" == "1" ]]; then
       bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
-      LD_LIBRARY_PATH=./dependencies DYLD_LIBRARY_PATH=./dependencies python test.py;
+      if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+        DYLD_LIBRARY_PATH=./dependencies python2 test.py;
+      else
+        LD_LIBRARY_PATH=./dependencies python test.py;
+      fi;
     fi'
   - cd ../..;
 
