@@ -192,7 +192,7 @@ namespace libtorrent {
 		virtual ~disk_interface() {}
 	};
 
-	struct storage_holder
+	struct TORRENT_EXPORT storage_holder
 	{
 		storage_holder() = default;
 		storage_holder(storage_index_t idx, disk_interface& disk_io)
