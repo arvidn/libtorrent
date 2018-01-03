@@ -86,12 +86,6 @@ rule linking ( properties * )
 		{
 			result += <library>advapi32 ;
 		}
-
-		# default to windows vista
-		if <windows-version>default in $(properties)
-		{
-			result += <define>_WIN32_WINNT=0x0600 ;
-		}
 	}
 
 	if <target-os>beos in $(properties)
@@ -431,7 +425,7 @@ feature.compose <asserts>on : <define>TORRENT_USE_ASSERTS=1 ;
 feature.compose <asserts>production : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_PRODUCTION_ASSERTS=1 ;
 feature.compose <asserts>system : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
 
-feature windows-version : default vista win7 xp : composite propagated link-incompatible ;
+feature windows-version : vista win7 xp : composite propagated link-incompatible ;
 feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
 feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
 feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
@@ -769,15 +763,11 @@ local usage-requirements =
 	<include>/usr/local/include
 	<variant>release:<define>NDEBUG
 	<define>_FILE_OFFSET_BITS=64
-	<define>BOOST_EXCEPTION_DISABLE
 # enable cancel support in asio
 	<define>BOOST_ASIO_ENABLE_CANCELIO
 # make sure asio uses std::chrono
 	<define>BOOST_ASIO_HAS_STD_CHRONO
 	<conditional>@linking
-# these compiler settings just makes the compiler standard conforming
-	<toolset>msvc:<cflags>/Zc:wchar_t
-	<toolset>msvc:<cflags>/Zc:forScope
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
