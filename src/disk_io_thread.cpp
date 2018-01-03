@@ -124,6 +124,12 @@ constexpr disk_job_flags_t disk_interface::force_copy;
 constexpr disk_job_flags_t disk_interface::sequential_access;
 constexpr disk_job_flags_t disk_interface::volatile_read;
 
+TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
+	io_service& ios, counters& cnt)
+{
+	return std::unique_ptr<disk_interface>(new disk_io_thread(ios, cnt));
+}
+
 // ------- disk_io_thread ------
 
 	disk_io_thread::disk_io_thread(io_service& ios, counters& cnt)

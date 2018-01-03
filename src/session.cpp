@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/extensions.hpp" // for add_peer_flags_t
+#include "libtorrent/disk_interface.hpp"
 
 namespace libtorrent {
 
@@ -440,4 +441,15 @@ namespace {
 		, dht_storage_constructor(dht::dht_default_storage_constructor)
 #endif
 	{}
+
+	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
+		io_service& ios, counters& cnt)
+	{
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+		return mmap_disk_io_constructor(ios, cnt);
+#else
+		return posix_disk_io_constructor(ios, cnt);
+#endif
+	}
+
 }

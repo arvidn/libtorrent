@@ -101,6 +101,9 @@ namespace aux {
 	struct disk_interface;
 	struct counters;
 
+	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
+		io_service& ios, counters& cnt);
+
 	// this is a holder for the internal session implementation object. Once the
 	// session destruction is explicitly initiated, this holder is used to
 	// synchronize the completion of the shutdown. The lifetime of this object

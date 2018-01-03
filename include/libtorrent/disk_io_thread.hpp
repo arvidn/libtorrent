@@ -59,7 +59,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
+// TODO: 3 move this class into the .cpp file and just expose the constructor.
+// the header/cpp-file pair should be renamed mmap_disk_io.hpp/.cpp
 namespace libtorrent {
+
+	TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
+		io_service& ios, counters& cnt);
 
 	struct add_torrent_params;
 	struct counters;

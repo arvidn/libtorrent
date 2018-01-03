@@ -404,16 +404,9 @@ namespace aux {
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
-		// TODO: 3 have a function to create the default disk io instead, to
-		// contain the platform-specific logic
 		, m_disk_thread(disk_io_constructor
 			? disk_io_constructor(m_io_service, m_stats_counters)
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-			: std::unique_ptr<disk_interface>(new disk_io_thread(m_io_service, m_stats_counters))
-#else
-			: posix_disk_io_constructor(m_io_service, m_stats_counters)
-#endif
-		)
+			: default_disk_io_constructor(m_io_service, m_stats_counters))
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
 		, m_host_resolver(m_io_service)
