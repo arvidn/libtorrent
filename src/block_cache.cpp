@@ -340,9 +340,9 @@ cached_piece_entry::~cached_piece_entry()
 #endif
 }
 
-block_cache::block_cache(int block_size, io_service& ios
+block_cache::block_cache(io_service& ios
 	, std::function<void()> const& trigger_trim)
-	: disk_buffer_pool(block_size, ios, trigger_trim)
+	: disk_buffer_pool(ios, trigger_trim)
 	, m_last_cache_op(cache_miss)
 	, m_ghost_size(8)
 	, m_max_volatile_blocks(100)
@@ -374,7 +374,7 @@ int block_cache::try_read(disk_io_job* j, buffer_allocator_interface& allocator
 #if TORRENT_USE_ASSERTS
 	p->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
 #endif
-	cache_hit(p, j->d.io.offset / block_size(), bool(j->flags & disk_interface::volatile_read));
+	cache_hit(p, j->d.io.offset / default_block_size, bool(j->flags & disk_interface::volatile_read));
 
 	ret = copy_from_piece(p, j, allocator, expect_no_fail);
 	if (ret < 0) return ret;
@@ -609,7 +609,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, std::uint1
 	if (p == nullptr)
 	{
 		int const piece_size = j->storage->files().piece_size(j->piece);
-		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
 
 		cached_piece_entry pe;
 		pe.piece = j->piece;
@@ -706,8 +706,8 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
-	int block = j->d.io.offset / block_size();
-	TORRENT_ASSERT((j->d.io.offset % block_size()) == 0);
+	int block = j->d.io.offset / default_block_size;
+	TORRENT_ASSERT((j->d.io.offset % default_block_size) == 0);
 
 	// we should never add a new dirty block on a piece
 	// that has checked the hash. Before we add it, the
@@ -1108,7 +1108,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 				// the first pass, only evict blocks that have been
 				// hashed
 				if (pass == 0 && pe->hash)
-					end = pe->hash->offset / block_size();
+					end = pe->hash->offset / default_block_size;
 
 				// go through the blocks and evict the ones
 				// that are not dirty and not referenced
@@ -1244,9 +1244,9 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 int block_cache::pad_job(disk_io_job const* j, int blocks_in_piece
 	, int read_ahead) const
 {
-	int block_offset = j->d.io.offset & (block_size() - 1);
-	int start = j->d.io.offset / block_size();
-	int end = block_offset > 0 && (read_ahead > block_size() - block_offset) ? start + 2 : start + 1;
+	int block_offset = j->d.io.offset & (default_block_size - 1);
+	int start = j->d.io.offset / default_block_size;
+	int end = block_offset > 0 && (read_ahead > default_block_size - block_offset) ? start + 2 : start + 1;
 
 	// take the read-ahead into account
 	// make sure to not overflow in this case
@@ -1267,15 +1267,15 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<iovec_t 
 	TORRENT_ASSERT(pe->in_use);
 	TORRENT_PIECE_ASSERT(iov.size() > 0, pe);
 
-	cache_hit(pe, j->d.io.offset / block_size(), bool(j->flags & disk_interface::volatile_read));
+	cache_hit(pe, j->d.io.offset / default_block_size, bool(j->flags & disk_interface::volatile_read));
 
 	TORRENT_ASSERT(pe->in_use);
 
 	for (auto const& buf : iov)
 	{
 		// each iovec buffer has to be the size of a block (or the size of the last block)
-		TORRENT_PIECE_ASSERT(int(buf.size()) == std::min(block_size()
-			, pe->storage->files().piece_size(pe->piece) - block * block_size()), pe);
+		TORRENT_PIECE_ASSERT(int(buf.size()) == std::min(default_block_size
+			, pe->storage->files().piece_size(pe->piece) - block * default_block_size), pe);
 
 		// no nullptrs allowed
 		TORRENT_ASSERT(buf.data() != nullptr);
@@ -1417,7 +1417,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf)
 {
 	int const piece_size = p.storage->files().piece_size(p.piece);
-	int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+	int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
 	int ret = 0;
 
 	TORRENT_PIECE_ASSERT(p.in_use, &p);
@@ -1628,17 +1628,17 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
 	// copy from the cache and update the last use timestamp
-	int block = j->d.io.offset / block_size();
-	int block_offset = j->d.io.offset & (block_size() - 1);
+	int block = j->d.io.offset / default_block_size;
+	int block_offset = j->d.io.offset & (default_block_size - 1);
 	int buffer_offset = 0;
 	int size = j->d.io.buffer_size;
-	int const blocks_to_read = block_offset > 0 && (size > block_size() - block_offset) ? 2 : 1;
-	TORRENT_PIECE_ASSERT(size <= block_size(), pe);
+	int const blocks_to_read = block_offset > 0 && (size > default_block_size - block_offset) ? 2 : 1;
+	TORRENT_PIECE_ASSERT(size <= default_block_size, pe);
 	int const start_block = block;
 
 #if TORRENT_USE_ASSERTS
 	int const piece_size = j->storage->files().piece_size(j->piece);
-	int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+	int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
 	TORRENT_PIECE_ASSERT(start_block < blocks_in_piece, pe);
 #endif
 
@@ -1667,7 +1667,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 
 		// make sure it didn't wrap
 		TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
-		int const blocks_per_piece = (j->storage->files().piece_length() + block_size() - 1) / block_size();
+		int const blocks_per_piece = (j->storage->files().piece_length() + default_block_size - 1) / default_block_size;
 		TORRENT_ASSERT(block_offset < 0x4000);
 		j->argument = disk_buffer_holder(allocator
 			, aux::block_cache_reference{ j->storage->storage_index()
@@ -1695,7 +1695,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	while (size > 0)
 	{
 		TORRENT_PIECE_ASSERT(pe->blocks[block].buf, pe);
-		int to_copy = std::min(block_size() - block_offset, size);
+		int to_copy = std::min(default_block_size - block_offset, size);
 		std::memcpy(boost::get<disk_buffer_holder>(j->argument).get()
 				+ buffer_offset
 			, pe->blocks[block].buf + block_offset
@@ -1718,7 +1718,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 void block_cache::reclaim_block(storage_interface* st, aux::block_cache_reference const& ref)
 {
 	TORRENT_ASSERT(st != nullptr);
-	int const blocks_per_piece = (st->files().piece_length() + block_size() - 1) / block_size();
+	int const blocks_per_piece = (st->files().piece_length() + default_block_size - 1) / default_block_size;
 	piece_index_t const piece(ref.cookie / blocks_per_piece);
 	int const block(ref.cookie % blocks_per_piece);
 

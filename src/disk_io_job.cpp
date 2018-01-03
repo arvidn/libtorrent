@@ -117,14 +117,14 @@ namespace libtorrent {
 		boost::apply_visitor(caller_visitor(*this), callback);
 	}
 
-	bool disk_io_job::completed(cached_piece_entry const* pe, int block_size)
+	bool disk_io_job::completed(cached_piece_entry const* pe)
 	{
 		if (action != job_action_t::write) return false;
 
-		int block_offset = d.io.offset & (block_size - 1);
+		int block_offset = d.io.offset & (default_block_size - 1);
 		int size = d.io.buffer_size;
-		int start = d.io.offset / block_size;
-		int end = block_offset > 0 && (size > block_size - block_offset) ? start + 2 : start + 1;
+		int start = d.io.offset / default_block_size;
+		int end = block_offset > 0 && (size > default_block_size - block_offset) ? start + 2 : start + 1;
 
 		for (int i = start; i < end; ++i)
 		{

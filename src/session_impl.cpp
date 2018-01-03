@@ -4975,9 +4975,7 @@ namespace {
 			l.reserve(num_torrents + 1);
 		}
 
-		torrent_ptr = std::make_shared<torrent>(*this
-			, 16 * 1024, m_paused
-			, params);
+		torrent_ptr = std::make_shared<torrent>(*this, m_paused, params);
 		torrent_ptr->set_queue_position(m_download_queue.end_index());
 
 		return std::make_pair(torrent_ptr, true);

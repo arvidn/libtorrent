@@ -117,7 +117,7 @@ namespace libtorrent {
 
 		// for write jobs, returns true if its block
 		// is not dirty anymore
-		bool completed(cached_piece_entry const* pe, int block_size);
+		bool completed(cached_piece_entry const* pe);
 
 		// for read and write, this is the disk_buffer_holder
 		// for other jobs, it may point to other job-specific types

@@ -3935,15 +3935,15 @@ namespace libtorrent {
 			}
 
 			int block_offset = block.block.block_index * t->block_size();
-			int block_size = std::min(t->torrent_file().piece_size(
+			int bs = std::min(t->torrent_file().piece_size(
 				block.block.piece_index) - block_offset, t->block_size());
-			TORRENT_ASSERT(block_size > 0);
-			TORRENT_ASSERT(block_size <= t->block_size());
+			TORRENT_ASSERT(bs > 0);
+			TORRENT_ASSERT(bs <= t->block_size());
 
 			peer_request r;
 			r.piece = block.block.piece_index;
 			r.start = block_offset;
-			r.length = block_size;
+			r.length = bs;
 
 			if (m_download_queue.empty())
 				m_counters.inc_stats_counter(counters::num_peers_down_requests);
@@ -3951,7 +3951,7 @@ namespace libtorrent {
 			TORRENT_ASSERT(verify_piece(t->to_req(block.block)));
 			block.send_buffer_offset = aux::numeric_cast<std::uint32_t>(m_send_buffer.size());
 			m_download_queue.push_back(block);
-			m_outstanding_bytes += block_size;
+			m_outstanding_bytes += bs;
 #if TORRENT_USE_INVARIANT_CHECKS
 			check_invariant();
 #endif
@@ -3989,13 +3989,13 @@ namespace libtorrent {
 #endif
 
 					block_offset = block.block.block_index * t->block_size();
-					block_size = std::min(t->torrent_file().piece_size(
+					bs = std::min(t->torrent_file().piece_size(
 						block.block.piece_index) - block_offset, t->block_size());
-					TORRENT_ASSERT(block_size > 0);
-					TORRENT_ASSERT(block_size <= t->block_size());
+					TORRENT_ASSERT(bs > 0);
+					TORRENT_ASSERT(bs <= t->block_size());
 
-					r.length += block_size;
-					m_outstanding_bytes += block_size;
+					r.length += bs;
+					m_outstanding_bytes += bs;
 #if TORRENT_USE_INVARIANT_CHECKS
 					check_invariant();
 #endif
@@ -4679,11 +4679,11 @@ namespace libtorrent {
 			// the block size doesn't have to be 16. So we first query the
 			// torrent for it
 			std::shared_ptr<torrent> t = m_torrent.lock();
-			int const block_size = t->block_size();
+			int const bs = t->block_size();
 
-			TORRENT_ASSERT(block_size > 0);
+			TORRENT_ASSERT(bs > 0);
 
-			m_desired_queue_size = std::uint16_t(queue_time * download_rate / block_size);
+			m_desired_queue_size = std::uint16_t(queue_time * download_rate / bs);
 		}
 
 		if (m_desired_queue_size > m_max_out_request_queue)
@@ -6338,9 +6338,9 @@ namespace libtorrent {
 			// download queue already
 			int outstanding_bytes = 0;
 //			bool in_download_queue = false;
-			int const block_size = t->block_size();
+			int const bs = t->block_size();
 			piece_block last_block(ti.last_piece()
-				, (ti.piece_size(ti.last_piece()) + block_size - 1) / block_size);
+				, (ti.piece_size(ti.last_piece()) + bs - 1) / bs);
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)
 			{

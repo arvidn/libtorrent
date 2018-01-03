@@ -109,25 +109,6 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-	namespace {
-
-	std::uint32_t root2(int x)
-	{
-		std::uint32_t ret = 0;
-		x >>= 1;
-		while (x > 0)
-		{
-			// if this assert triggers, the block size
-			// is not an even 2 exponent!
-			TORRENT_ASSERT(x == 1 || (x & 1) == 0);
-			++ret;
-			x >>= 1;
-		}
-		return ret;
-	}
-
-	} // anonymous namespace
-
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
 	{
@@ -143,8 +124,7 @@ namespace libtorrent {
 	}
 
 	torrent_hot_members::torrent_hot_members(aux::session_interface& ses
-		, add_torrent_params const& p, int const block_size
-		, bool const session_paused)
+		, add_torrent_params const& p, bool const session_paused)
 		: m_ses(ses)
 		, m_complete(0xffffff)
 		, m_upload_mode(p.flags & torrent_flags::upload_mode)
@@ -157,16 +137,14 @@ namespace libtorrent {
 		, m_graceful_pause_mode(false)
 		, m_state_subscription(p.flags & torrent_flags::update_subscribe)
 		, m_max_connections(0xffffff)
-		, m_block_size_shift(root2(block_size))
 		, m_state(torrent_status::checking_resume_data)
 	{}
 
 	torrent::torrent(
 		aux::session_interface& ses
-		, int const block_size
 		, bool const session_paused
 		, add_torrent_params const& p)
-		: torrent_hot_members(ses, p, block_size, session_paused)
+		: torrent_hot_members(ses, p, session_paused)
 		, m_tracker_timer(ses.get_io_service())
 		, m_inactivity_timer(ses.get_io_service())
 		, m_trackerid(p.trackerid)
@@ -347,7 +325,6 @@ namespace libtorrent {
 				&& std::find(p.have_pieces.begin(), p.have_pieces.end(), false) == p.have_pieces.end();
 
 			m_connections_initialized = true;
-			m_block_size_shift = root2(std::min(block_size, m_torrent_file->piece_length()));
 		}
 		else
 		{
@@ -1699,8 +1676,6 @@ namespace libtorrent {
 			init_ssl(cert);
 #endif
 		}
-
-		m_block_size_shift = root2(std::min(block_size(), m_torrent_file->piece_length()));
 
 		if (m_torrent_file->num_pieces() > piece_picker::max_pieces)
 		{

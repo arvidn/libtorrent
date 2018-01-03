@@ -103,7 +103,7 @@ static void nop() {}
 
 #define TEST_SETUP \
 	io_service ios; \
-	block_cache bc(0x4000, ios, std::bind(&nop)); \
+	block_cache bc(ios, std::bind(&nop)); \
 	aux::session_settings sett; \
 	file_storage fs; \
 	fs.add_file("a/test0", 0x4000); \

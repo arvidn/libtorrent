@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/platform_util.hpp" // for total_physical_ram
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -67,10 +68,9 @@ namespace libtorrent {
 
 	} // anonymous namespace
 
-	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios
+	disk_buffer_pool::disk_buffer_pool(io_service& ios
 		, std::function<void()> const& trigger_trim)
-		: m_block_size(block_size)
-		, m_in_use(0)
+		: m_in_use(0)
 		, m_max_use(64)
 		, m_low_watermark((std::max)(m_max_use - 32, 0))
 		, m_trigger_cache_trim(trigger_trim)
@@ -185,7 +185,7 @@ namespace libtorrent {
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (auto& i : iov)
 		{
-			i = { allocate_buffer_impl(l, "pending read"), std::size_t(block_size())};
+			i = { allocate_buffer_impl(l, "pending read"), std::size_t(default_block_size)};
 			if (i.data() == nullptr)
 			{
 				// uh oh. We failed to allocate the buffer!
@@ -227,7 +227,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		char* ret = page_aligned_allocator::malloc(m_block_size);
+		char* ret = page_aligned_allocator::malloc(default_block_size);
 
 		if (ret == nullptr)
 		{
@@ -321,7 +321,7 @@ namespace libtorrent {
 					phys_ram = 1 * gb;
 				}
 				result += phys_ram / 10;
-				m_max_use = int(result / m_block_size);
+				m_max_use = int(result / default_block_size);
 			}
 
 #ifdef _MSC_VER
@@ -337,7 +337,7 @@ namespace libtorrent {
 				// when more actual ram is available, because we're still
 				// constrained by the 32 bit virtual address space.
 				m_max_use = std::min(2 * 1024 * 1024 * 3 / 4 * 1024
-					/ m_block_size, m_max_use);
+					/ default_block_size, m_max_use);
 			}
 		}
 		else
