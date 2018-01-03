@@ -409,8 +409,8 @@ namespace libtorrent {
 		// purpose of this counter. -1 means there either hasn't been any
 		// uploading/downloading, or it was too long ago for libtorrent to
 		// remember (currently forgetting happens after about 18 hours)
-		int time_since_upload = 0;
-		int time_since_download = 0;
+		int TORRENT_DEPRECATED_MEMBER time_since_upload = 0;
+		int TORRENT_DEPRECATED_MEMBER time_since_download = 0;
 
 		// These keep track of the number of seconds this torrent has been active
 		// (not paused) and the number of seconds it has been active while being
@@ -418,9 +418,9 @@ namespace libtorrent {
 		// ``finished_time`` which should be <= ``active_time``. They are all
 		// saved in and restored from resume data, to keep totals across
 		// sessions.
-		int active_time = 0;
-		int finished_time = 0;
-		int seeding_time = 0;
+		int TORRENT_DEPRECATED_MEMBER active_time = 0;
+		int TORRENT_DEPRECATED_MEMBER finished_time = 0;
+		int TORRENT_DEPRECATED_MEMBER seeding_time = 0;
 #else
 		int deprecated_time_since_upload = 0;
 		int deprecated_time_since_download = 0;
@@ -440,14 +440,14 @@ namespace libtorrent {
 
 		// the number of seconds since this torrent acquired scrape data.
 		// If it has never done that, this value is -1.
-		int last_scrape = 0;
+		int TORRENT_DEPRECATED_MEMBER last_scrape = 0;
 #else
 		int deprecated_last_scrape = 0;
 #endif
 
 #ifndef TORRENT_NO_DEPRECATE
 		// the priority of this torrent
-		int priority = 0;
+		int TORRENT_DEPRECATED_MEMBER priority = 0;
 #else
 		// hidden
 		int deprecated_priority = 0;
@@ -464,7 +464,7 @@ namespace libtorrent {
 #ifndef TORRENT_NO_DEPRECATE
 		// true if the session global IP filter applies
 		// to this torrent. This defaults to true.
-		bool ip_filter_applies = false;
+		bool TORRENT_DEPRECATED_MEMBER ip_filter_applies = false;
 
 		// true if the torrent is blocked from downloading. This typically
 		// happens when a disk write operation fails. If the torrent is
@@ -473,30 +473,30 @@ namespace libtorrent {
 		// has been resolved. If the torrent is not auto-managed, you have to
 		// explicitly take it out of the upload mode by calling set_upload_mode()
 		// on the torrent_handle.
-		bool upload_mode = false;
+		bool TORRENT_DEPRECATED_MEMBER upload_mode = false;
 
 		// true if the torrent is currently in share-mode, i.e. not downloading
 		// the torrent, but just helping the swarm out.
-		bool share_mode = false;
+		bool TORRENT_DEPRECATED_MEMBER share_mode = false;
 
 		// true if the torrent is in super seeding mode
-		bool super_seeding = false;
+		bool TORRENT_DEPRECATED_MEMBER super_seeding = false;
 
 		// set to true if the torrent is paused and false otherwise. It's only
 		// true if the torrent itself is paused. If the torrent is not running
 		// because the session is paused, this is still false. To know if a
 		// torrent is active or not, you need to inspect both
 		// ``torrent_status::paused`` and ``session::is_paused()``.
-		bool paused = false;
+		bool TORRENT_DEPRECATED_MEMBER paused = false;
 
 		// set to true if the torrent is auto managed, i.e. libtorrent is
 		// responsible for determining whether it should be started or queued.
 		// For more info see queuing_
-		bool auto_managed = false;
+		bool TORRENT_DEPRECATED_MEMBER auto_managed = false;
 
 		// true when the torrent is in sequential download mode. In this mode
 		// pieces are downloaded in order rather than rarest first.
-		bool sequential_download = false;
+		bool TORRENT_DEPRECATED_MEMBER sequential_download = false;
 #else
 		// hidden
 		bool deprecated_ip_filter_applies = false;
@@ -531,7 +531,7 @@ namespace libtorrent {
 		// true if the torrent is in seed_mode. If the torrent was started in
 		// seed mode, it will leave seed mode once all pieces have been checked
 		// or as soon as one piece fails the hash check.
-		bool seed_mode = false;
+		bool TORRENT_DEPRECATED_MEMBER seed_mode = false;
 #else
 		// hidden
 		bool deprecated_seed_mode = false;
@@ -546,7 +546,7 @@ namespace libtorrent {
 		// true if this torrent is loaded into RAM. A torrent can be started
 		// and still not loaded into RAM, in case it has not had any peers interested in it
 		// yet. Torrents are loaded on demand.
-		bool is_loaded = false;
+		bool TORRENT_DEPRECATED_MEMBER is_loaded = false;
 #else
 		// hidden
 		bool deprecated_is_loaded;
@@ -564,7 +564,7 @@ namespace libtorrent {
 		// this reflects whether the ``stop_when_ready`` flag is currently enabled
 		// on this torrent. For more information, see
 		// torrent_handle::stop_when_ready().
-		bool stop_when_ready = false;
+		bool TORRENT_DEPRECATED_MEMBER stop_when_ready = false;
 #else
 		// hidden
 		bool deprecated_stop_when_ready = false;
