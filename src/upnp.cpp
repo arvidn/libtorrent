@@ -105,7 +105,7 @@ upnp::upnp(io_service& ios
 	, m_retry_count(0)
 	, m_io_service(ios)
 	, m_resolver(ios)
-	, m_socket(udp::endpoint(address_v4::from_string("239.255.255.250"
+	, m_socket(udp::endpoint(make_address_v4("239.255.255.250"
 		, ignore_error), 1900))
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
@@ -1315,7 +1315,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 #ifndef TORRENT_DISABLE_LOGGING
 		log("got router external IP address %s", s.ip_address.c_str());
 #endif
-		d.external_ip = address::from_string(s.ip_address.c_str(), ignore_error);
+		d.external_ip = make_address(s.ip_address.c_str(), ignore_error);
 	}
 	else
 	{

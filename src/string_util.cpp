@@ -179,7 +179,7 @@ namespace libtorrent {
 
 #if TORRENT_USE_IPV6
 			error_code ec;
-			address_v6::from_string(i.device, ec);
+			make_address_v6(i.device, ec);
 			if (!ec)
 			{
 				// IPv6 addresses must be wrapped in square brackets

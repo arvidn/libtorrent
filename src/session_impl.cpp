@@ -318,8 +318,8 @@ namespace aux {
 		for (int i = 0; i < len; ++i)
 		{
 			error_code ec;
-			address_v4 begin = address_v4::from_string(p[i].first, ec);
-			address_v4 end = address_v4::from_string(p[i].last, ec);
+			address_v4 begin = make_address_v4(p[i].first, ec);
+			address_v4 end = make_address_v4(p[i].last, ec);
 			if (ec) continue;
 			m_peer_class_filter.add_rule(begin, end, p[i].filter);
 		}
@@ -330,8 +330,8 @@ namespace aux {
 		for (int i = 0; i < len; ++i)
 		{
 			error_code ec;
-			address_v6 begin = address_v6::from_string(p[i].first, ec);
-			address_v6 end = address_v6::from_string(p[i].last, ec);
+			address_v6 begin = make_address_v6(p[i].first, ec);
+			address_v6 end = make_address_v6(p[i].last, ec);
 			if (ec) continue;
 			m_peer_class_filter.add_rule(begin, end, p[i].filter);
 		}
@@ -1751,7 +1751,7 @@ namespace {
 	{
 		// First, check to see if it's an IP address
 		error_code err;
-		address const adr = address::from_string(device.c_str(), err);
+		address const adr = make_address(device.c_str(), err);
 		if (!err)
 		{
 #if !TORRENT_USE_IPV6
@@ -5090,7 +5090,7 @@ namespace {
 		for (auto const& s : m_outgoing_interfaces)
 		{
 			error_code err;
-			address const ip = address::from_string(s.c_str(), err);
+			address const ip = make_address(s.c_str(), err);
 			if (err) continue;
 			if (ip == addr) return true;
 		}

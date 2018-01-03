@@ -68,9 +68,9 @@ static error_code dummy;
 
 lsd::lsd(io_service& ios, aux::lsd_callback& cb)
 	: m_callback(cb)
-	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", dummy), 6771))
+	, m_socket(udp::endpoint(make_address_v4("239.192.152.143", dummy), 6771))
 #if TORRENT_USE_IPV6
-	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", dummy), 6771))
+	, m_socket6(udp::endpoint(make_address_v6("ff15::efc0:988f", dummy), 6771))
 #endif
 	, m_broadcast_timer(ios)
 	, m_cookie((random(0x7fffffff) ^ std::uintptr_t(this)) & 0x7fffffff)
