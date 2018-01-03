@@ -65,13 +65,10 @@ namespace libtorrent {
 // the from_string member functions are deprecated starting
 // in boost 1.66.0
 #if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
-	inline address make_address(string_view str, boost::system::error_code& ec)
-	{ return boost::asio::ip::make_address(str.data(), ec); }
-	inline address_v4 make_address_v4(string_view str, boost::system::error_code& ec)
-	{ return boost::asio::ip::make_address_v4(str.data(), ec); }
+	using boost::asio::ip::make_address;
+	using boost::asio::ip::make_address_v4;
 #if TORRENT_USE_IPV6
-	inline address_v6 make_address_v6(string_view str, boost::system::error_code& ec)
-	{ return boost::asio::ip::make_address_v6(str.data(), ec); }
+	using boost::asio::ip::make_address_v6;
 #endif
 #else
 	inline address make_address(string_view str, boost::system::error_code& ec)
