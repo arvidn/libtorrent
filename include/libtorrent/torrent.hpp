@@ -226,7 +226,7 @@ namespace libtorrent {
 	struct TORRENT_EXTRA_EXPORT torrent_hot_members
 	{
 		torrent_hot_members(aux::session_interface& ses
-			, add_torrent_params const& p, int block_size, bool session_paused);
+			, add_torrent_params const& p, bool session_paused);
 
 	protected:
 		// the piece picker. This is allocated lazily. When we don't
@@ -305,12 +305,6 @@ namespace libtorrent {
 		// the maximum number of connections for this torrent
 		std::uint32_t m_max_connections:24;
 
-		// the size of a request block
-		// each piece is divided into these
-		// blocks when requested. The block size is
-		// 1 << m_block_size_shift
-		std::uint32_t m_block_size_shift:5;
-
 		// the state of this torrent (queued, checking, downloading, etc.)
 		std::uint32_t m_state:3;
 
@@ -330,7 +324,7 @@ namespace libtorrent {
 	{
 	public:
 
-		torrent(aux::session_interface& ses, int block_size
+		torrent(aux::session_interface& ses
 			, bool session_paused, add_torrent_params const& p);
 		~torrent() override;
 
@@ -853,7 +847,12 @@ namespace libtorrent {
 		void peer_lost(typed_bitfield<piece_index_t> const& bits
 			, peer_connection const* peer);
 
-		int block_size() const { TORRENT_ASSERT(m_block_size_shift > 0); return 1 << m_block_size_shift; }
+		int block_size() const
+		{
+			return m_torrent_file
+				? (std::min)(m_torrent_file->piece_length(), default_block_size)
+				: default_block_size;
+		}
 		peer_request to_req(piece_block const& p) const;
 
 		void disconnect_all(error_code const& ec, operation_t op);

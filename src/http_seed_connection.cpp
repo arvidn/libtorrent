@@ -149,14 +149,14 @@ namespace libtorrent {
 		request.reserve(400);
 
 		int size = r.length;
-		const int block_size = t->block_size();
+		const int bs = t->block_size();
 		const int piece_size = t->torrent_file().piece_length();
 		peer_request pr;
 		while (size > 0)
 		{
 			int request_offset = r.start + r.length - size;
 			pr.start = request_offset % piece_size;
-			pr.length = std::min(block_size, size);
+			pr.length = std::min(bs, size);
 			pr.piece = piece_index_t(static_cast<int>(r.piece) + request_offset / piece_size);
 			m_requests.push_back(pr);
 			size -= pr.length;

@@ -233,7 +233,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	{ // avoid having two storages use the same files
 	file_pool fp;
 	boost::asio::io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
+	disk_buffer_pool dp(ios, std::bind(&nop));
 
 	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
@@ -323,7 +323,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
+	disk_buffer_pool dp(ios, std::bind(&nop));
 
 	aux::session_settings set;
 	set.set_int(settings_pack::disk_io_write_mode
@@ -397,7 +397,7 @@ void test_rename(std::string const& test_path)
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
+	disk_buffer_pool dp(ios, std::bind(&nop));
 	aux::session_settings set;
 
 	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path
@@ -476,7 +476,7 @@ void test_check_files(std::string const& test_path
 	sett.set_int(settings_pack::aio_threads, 1);
 	io.set_settings(&sett);
 
-	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
+	disk_buffer_pool dp(ios, std::bind(&nop));
 
 	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
@@ -1379,7 +1379,7 @@ TORRENT_TEST(move_storage_to_self)
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
+	disk_buffer_pool dp(ios, std::bind(&nop));
 	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
 	iovec_t const b = {&buf[0], 4};
@@ -1408,7 +1408,7 @@ TORRENT_TEST(move_storage_into_self)
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
+	disk_buffer_pool dp(ios, std::bind(&nop));
 	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
 	iovec_t const b = {&buf[0], 4};
@@ -1454,7 +1454,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
+	disk_buffer_pool dp(ios, std::bind(&nop));
 	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
 	iovec_t b = {&buf[0], 4};

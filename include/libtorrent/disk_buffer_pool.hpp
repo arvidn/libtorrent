@@ -55,8 +55,7 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool
 	{
-		disk_buffer_pool(int block_size, io_service& ios
-			, std::function<void()> const& trigger_trim);
+		disk_buffer_pool(io_service& ios, std::function<void()> const& trigger_trim);
 		disk_buffer_pool(disk_buffer_pool const&) = delete;
 		disk_buffer_pool& operator=(disk_buffer_pool const&) = delete;
 		~disk_buffer_pool();
@@ -76,8 +75,6 @@ namespace libtorrent {
 		int allocate_iovec(span<iovec_t> iov);
 		void free_iovec(span<iovec_t const> iov);
 
-		int block_size() const { return m_block_size; }
-
 		int in_use() const
 		{
 			std::unique_lock<std::mutex> l(m_pool_mutex);
@@ -91,10 +88,6 @@ namespace libtorrent {
 
 		void free_buffer_impl(char* buf, std::unique_lock<std::mutex>& l);
 		char* allocate_buffer_impl(std::unique_lock<std::mutex>& l, char const* category);
-
-		// number of bytes per block. The BitTorrent
-		// protocol defines the block size to 16 KiB.
-		const int m_block_size;
 
 		// number of disk buffers currently allocated
 		int m_in_use;

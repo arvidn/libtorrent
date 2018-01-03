@@ -343,8 +343,7 @@ namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT block_cache : disk_buffer_pool
 	{
-		block_cache(int block_size, io_service& ios
-			, std::function<void()> const& trigger_trim);
+		block_cache(io_service& ios, std::function<void()> const& trigger_trim);
 
 	private:
 

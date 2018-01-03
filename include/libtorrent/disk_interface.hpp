@@ -67,6 +67,9 @@ namespace libtorrent {
 	struct file_open_mode_tag;
 	using file_open_mode_t = flags::bitfield_flag<std::uint8_t, file_open_mode_tag>;
 
+	// this is a bittorrent constant
+	constexpr int default_block_size = 0x4000;
+
 	namespace file_open_mode
 	{
 		// open the file for reading only
