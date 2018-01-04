@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_NOEXCEPT_MOVABLE_HPP_INCLUDED
 #define TORRENT_NOEXCEPT_MOVABLE_HPP_INCLUDED
 
+#include <type_traits>
+
 namespace libtorrent {
 namespace aux {
 
@@ -42,7 +44,7 @@ namespace aux {
 	template <typename T>
 	struct noexcept_movable : T
 	{
-		noexcept_movable() noexcept {}
+		noexcept_movable() noexcept(std::is_nothrow_default_constructible<T>::value) {}
 		noexcept_movable(noexcept_movable<T>&& rhs) noexcept
 			: T(std::forward<T>(rhs))
 		{}

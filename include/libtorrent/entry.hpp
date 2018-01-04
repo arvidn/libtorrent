@@ -274,7 +274,7 @@ namespace aux {
 		const preformatted_type& preformatted() const;
 
 		// swaps the content of *this* with ``e``.
-		void swap(entry& e) noexcept;
+		void swap(entry& e);
 
 		// All of these functions requires the entry to be a dictionary, if it
 		// isn't they will throw ``system_error``.

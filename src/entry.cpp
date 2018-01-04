@@ -143,7 +143,32 @@ namespace {
 	entry& entry::operator=(entry&& e) noexcept
 	{
 		if (&e == this) return *this;
-		swap(e);
+		destruct();
+		const auto t = e.type();
+		switch (t)
+		{
+		case int_t:
+			new (&data) integer_type(std::move(e.integer()));
+			break;
+		case string_t:
+			new (&data) string_type(std::move(e.string()));
+			break;
+		case list_t:
+			new (&data) list_type(std::move(e.list()));
+			break;
+		case dictionary_t:
+			new (&data) dictionary_type(std::move(e.dict()));
+			break;
+		case undefined_t:
+			break;
+		case preformatted_t:
+			new (&data) preformatted_type(std::move(e.preformatted()));
+			break;
+		}
+		m_type = t;
+#if TORRENT_USE_ASSERTS
+		m_type_queried = true;
+#endif
 		return *this;
 	}
 
@@ -281,13 +306,7 @@ namespace {
 	entry::entry(entry&& e) noexcept
 		: m_type(undefined_t)
 	{
-#if TORRENT_USE_ASSERTS
-		uint8_t type_queried = e.m_type_queried;
-#endif
-		swap(e);
-#if TORRENT_USE_ASSERTS
-		m_type_queried = type_queried;
-#endif
+		this->operator=(std::move(e));
 	}
 
 	entry::entry(dictionary_type v)
@@ -581,7 +600,7 @@ namespace {
 #endif
 	}
 
-	void entry::swap(entry& e) noexcept
+	void entry::swap(entry& e)
 	{
 		bool clear_this = false;
 		bool clear_that = false;
