@@ -59,7 +59,7 @@ namespace libtorrent {
 	bool is_ip_address(std::string const& host)
 	{
 		error_code ec;
-		address::from_string(host, ec);
+		make_address(host, ec);
 		return !ec;
 	}
 
@@ -148,7 +148,7 @@ namespace libtorrent {
 #elif defined TORRENT_WINDOWS
 		TORRENT_TRY {
 			error_code ec;
-			address::from_string("::1", ec);
+			make_address("::1", ec);
 			return !ec;
 		} TORRENT_CATCH(std::exception const&) { return false; }
 #else
@@ -157,7 +157,8 @@ namespace libtorrent {
 		error_code ec;
 		test.open(tcp::v6(), ec);
 		if (ec) return false;
-		test.bind(tcp::endpoint(address_v6::from_string("::1"), 0), ec);
+		error_code ignore;
+		test.bind(tcp::endpoint(make_address_v6("::1", ignore), 0), ec);
 		return !bool(ec);
 #endif
 	}

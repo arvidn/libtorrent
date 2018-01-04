@@ -121,7 +121,7 @@ namespace libtorrent {
 			// shave off the ':'
 			port = port.substr(1);
 #if TORRENT_USE_IPV6
-			ret.address(address_v6::from_string(addr.to_string(), ec));
+			ret.address(make_address_v6(addr.to_string(), ec));
 #else
 			ec = boost::asio::error::address_family_not_supported;
 #endif
@@ -137,7 +137,7 @@ namespace libtorrent {
 			}
 			addr = str.substr(0, port_pos);
 			port = str.substr(port_pos + 1);
-			ret.address(address_v4::from_string(addr.to_string(), ec));
+			ret.address(make_address_v4(addr.to_string(), ec));
 			if (ec) return ret;
 		}
 

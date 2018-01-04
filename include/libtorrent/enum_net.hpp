@@ -110,7 +110,7 @@ namespace libtorrent {
 	{
 		tcp::endpoint bind_ep(address_v4::any(), std::uint16_t(port));
 
-		address ip = address::from_string(device_name, ec);
+		address ip = make_address(device_name, ec);
 		if (!ec)
 		{
 #if TORRENT_USE_IPV6

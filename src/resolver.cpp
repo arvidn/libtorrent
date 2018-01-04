@@ -93,7 +93,7 @@ namespace libtorrent {
 		// special handling for raw IP addresses. There's no need to get in line
 		// behind actual lookups if we can just resolve it immediately.
 		error_code ec;
-		address const ip = address::from_string(host, ec);
+		address const ip = make_address(host, ec);
 		if (!ec)
 		{
 			std::vector<address> addresses;

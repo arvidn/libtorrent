@@ -568,7 +568,7 @@ void http_connection::connect()
 		// is, ec will be represent "success". If so, don't set it as the socks5
 		// hostname, just connect to the IP
 		error_code ec;
-		address adr = address::from_string(m_hostname, ec);
+		address adr = make_address(m_hostname, ec);
 
 		if (ec)
 		{

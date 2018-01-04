@@ -770,7 +770,7 @@ namespace libtorrent {
 			&& !settings.get_str(settings_pack::announce_ip).empty())
 		{
 			error_code ec;
-			address ip = address::from_string(settings.get_str(settings_pack::announce_ip).c_str(), ec);
+			address ip = make_address(settings.get_str(settings_pack::announce_ip).c_str(), ec);
 			if (!ec && ip.is_v4()) announce_ip = ip.to_v4();
 		}
 		aux::write_uint32(announce_ip.to_ulong(), out);

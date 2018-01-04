@@ -33,7 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ADDRESS_HPP_INCLUDED
 #define TORRENT_ADDRESS_HPP_INCLUDED
 
+#include <boost/version.hpp>
+
 #include "libtorrent/config.hpp"
+#include "libtorrent/string_view.hpp"
 
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
@@ -58,6 +61,25 @@ namespace libtorrent {
 	using address_v6 = boost::asio::ip::address_v6;
 #endif
 #endif // SIMULATOR
+
+// the from_string member functions are deprecated starting
+// in boost 1.66.0
+#if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
+	using boost::asio::ip::make_address;
+	using boost::asio::ip::make_address_v4;
+#if TORRENT_USE_IPV6
+	using boost::asio::ip::make_address_v6;
+#endif
+#else
+	inline address make_address(string_view str, boost::system::error_code& ec)
+	{ return address::from_string(str.data(), ec); }
+	inline address_v4 make_address_v4(string_view str, boost::system::error_code& ec)
+	{ return address_v4::from_string(str.data(), ec); }
+#if TORRENT_USE_IPV6
+	inline address_v6 make_address_v6(string_view str, boost::system::error_code& ec)
+	{ return address_v6::from_string(str.data(), ec); }
+#endif
+#endif
 }
 
 #endif

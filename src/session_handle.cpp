@@ -892,7 +892,7 @@ namespace {
 		if (net_interface == nullptr || strlen(net_interface) == 0)
 			net_interface = "0.0.0.0";
 
-		interfaces_str = print_endpoint(tcp::endpoint(address::from_string(net_interface, ec), std::uint16_t(port_range.first)));
+		interfaces_str = print_endpoint(tcp::endpoint(make_address(net_interface, ec), std::uint16_t(port_range.first)));
 		if (ec) return;
 
 		p.set_str(settings_pack::listen_interfaces, interfaces_str);

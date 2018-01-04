@@ -249,7 +249,7 @@ void udp_socket::send_hostname(char const* hostname, int const port
 
 	// the overload that takes a hostname is really only supported when we're
 	// using a proxy
-	address target = address::from_string(hostname, ec);
+	address target = make_address(hostname, ec);
 	if (!ec) send(udp::endpoint(target, std::uint16_t(port)), p, ec, flags);
 }
 
@@ -378,7 +378,7 @@ bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 		if (len > buf.end() - p) return false;
 		std::string hostname(p, p + len);
 		error_code ec;
-		address addr = address::from_string(hostname, ec);
+		address addr = make_address(hostname, ec);
 		// we only support "hostnames" that are a dotted decimal IP
 		if (ec) return false;
 		p += len;
