@@ -64,7 +64,7 @@ before_install:
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
   # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then travis_retry brew install boost-python python2; fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then travis_retry brew install boost-python; brew upgrade python2; fi'
   - 'if [ "$docs" = "1" ]; then
     easy_install --user docutils;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
