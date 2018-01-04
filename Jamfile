@@ -480,9 +480,14 @@ feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
 
 feature boost-link : default static shared : propagated composite ;
 
-feature debug-iterators : off on : composite propagated link-incompatible ;
-feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG
+# msvc enables debug iterators by default in debug builds whereas GCC and
+# clang do not, that's why "default" is there. msvc has incorrect noexcept
+# constructors on some containers when enabling debug iterators, so it's
+# possible to turn them off
+feature debug-iterators : default off on : composite propagated link-incompatible ;
+feature.compose <debug-iterators>on : <define>_ITERATOR_DEBUG_LEVEL=2 <define>_GLIBCXX_DEBUG
 	<define>_GLIBCXX_DEBUG_PEDANTIC ;
+feature.compose <debug-iterators>off : <define>_ITERATOR_DEBUG_LEVEL=0 ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
@@ -508,7 +513,7 @@ feature.compose <export-extra>on : <define>TORRENT_EXPORT_EXTRA ;
 variant test_release : release
 	: <asserts>production <debug-symbols>on
 	<invariant-checks>full <boost-link>shared <optimization>off
-	<export-extra>on <debug-iterators>on <threading>multi
+	<export-extra>on <threading>multi
 	<inlining>on <deprecated-functions>off
 	;
 variant test_debug : debug
