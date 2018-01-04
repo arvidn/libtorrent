@@ -15,7 +15,6 @@ exe test_natpmp : test_natpmp.cpp
 	<invariant-checks>full
 	<link>shared
 	<picker-debugging>on
-	<debug-iterators>on
 	<logging>on
 	;
 
@@ -31,7 +30,6 @@ exe enum_if : enum_if.cpp
 	<invariant-checks>full
 	<link>shared
 	<picker-debugging>on
-	<debug-iterators>on
 	<logging>on
 	;
 
@@ -96,7 +94,6 @@ project
 	<invariant-checks>full
 	<link>shared
 	<picker-debugging>on
-	<debug-iterators>on
 	<logging>on
 	;
 
