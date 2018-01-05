@@ -37,13 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <functional>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/multiprecision/cpp_int.hpp>
-#include <boost/multiprecision/integer.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/hex.hpp" // to_hex
 #endif
