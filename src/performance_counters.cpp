@@ -36,17 +36,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	counters::counters()
+	counters::counters() TORRENT_COUNTER_NOEXCEPT
 	{
 #ifdef ATOMIC_LLONG_LOCK_FREE
 		for (auto& counter : m_stats_counter)
 			counter.store(0, std::memory_order_relaxed);
 #else
-		std::memset(m_stats_counter, 0, sizeof(m_stats_counter));
+		m_stats_counter.fill(0);
 #endif
 	}
 
-	counters::counters(counters const& c)
+	counters::counters(counters const& c) TORRENT_COUNTER_NOEXCEPT
 	{
 #ifdef ATOMIC_LLONG_LOCK_FREE
 		for (int i = 0; i < m_stats_counter.end_index(); ++i)
@@ -55,11 +55,11 @@ namespace libtorrent {
 					, std::memory_order_relaxed);
 #else
 		std::lock_guard<std::mutex> l(c.m_mutex);
-		std::memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
+		m_stats_counter = c.m_stats_counter;
 #endif
 	}
 
-	counters& counters::operator=(counters const& c)
+	counters& counters::operator=(counters const& c) TORRENT_COUNTER_NOEXCEPT
 	{
 		if (&c == this) return *this;
 #ifdef ATOMIC_LLONG_LOCK_FREE
@@ -70,12 +70,12 @@ namespace libtorrent {
 #else
 		std::lock_guard<std::mutex> l(m_mutex);
 		std::lock_guard<std::mutex> l2(c.m_mutex);
-		std::memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
+		m_stats_counter = c.m_stats_counter;
 #endif
 		return *this;
 	}
 
-	std::int64_t counters::operator[](int i) const
+	std::int64_t counters::operator[](int i) const TORRENT_COUNTER_NOEXCEPT
 	{
 		TORRENT_ASSERT(i >= 0);
 		TORRENT_ASSERT(i < num_counters);
@@ -90,7 +90,7 @@ namespace libtorrent {
 
 	// the argument specifies which counter to
 	// increment or decrement
-	std::int64_t counters::inc_stats_counter(int const c, std::int64_t const value)
+	std::int64_t counters::inc_stats_counter(int const c, std::int64_t const value) TORRENT_COUNTER_NOEXCEPT
 	{
 		// if c >= num_stats_counters, it means it's not
 		// a monotonically increasing counter, but a gauge
@@ -112,7 +112,7 @@ namespace libtorrent {
 
 	// ratio is a value between 0 and 100 representing the percentage the value
 	// is blended in at.
-	void counters::blend_stats_counter(int const c, std::int64_t const value, int const ratio)
+	void counters::blend_stats_counter(int const c, std::int64_t const value, int const ratio) TORRENT_COUNTER_NOEXCEPT
 	{
 		TORRENT_ASSERT(c >= num_stats_counters);
 		TORRENT_ASSERT(c < num_counters);
@@ -135,7 +135,7 @@ namespace libtorrent {
 #endif
 	}
 
-	void counters::set_value(int const c, std::int64_t const value)
+	void counters::set_value(int const c, std::int64_t const value) TORRENT_COUNTER_NOEXCEPT
 	{
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
