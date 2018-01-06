@@ -184,6 +184,7 @@ namespace libtorrent {
 #endif
 #if TORRENT_USE_ASSERTS
 		piece_failed = false;
+		m_in_constructor = false;
 #endif
 	}
 

@@ -869,6 +869,9 @@ namespace aux {
 			te.second->abort();
 		}
 		m_torrents.clear();
+		m_stats_counters.set_value(counters::num_peers_up_unchoked_all, 0);
+		m_stats_counters.set_value(counters::num_peers_up_unchoked, 0);
+		m_stats_counters.set_value(counters::num_peers_up_unchoked_optimistic, 0);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all tracker requests");
@@ -2941,9 +2944,6 @@ namespace {
 
 		std::shared_ptr<peer_connection> c
 			= std::make_shared<bt_peer_connection>(pack, get_peer_id());
-#if TORRENT_USE_ASSERTS
-		c->m_in_constructor = false;
-#endif
 
 		if (!c->is_disconnecting())
 		{
