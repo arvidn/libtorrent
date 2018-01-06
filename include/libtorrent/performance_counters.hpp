@@ -456,18 +456,23 @@ namespace libtorrent {
 			num_counters,
 			num_gauges_counters = num_counters - num_stats_counters
 		};
+#ifdef ATOMIC_LLONG_LOCK_FREE
+#define TORRENT_COUNTER_NOEXCEPT noexcept
+#else
+#define TORRENT_COUNTER_NOEXCEPT
+#endif
 
-		counters();
+		counters() TORRENT_COUNTER_NOEXCEPT;
 
-		counters(counters const&);
-		counters& operator=(counters const&);
+		counters(counters const&) TORRENT_COUNTER_NOEXCEPT;
+		counters& operator=(counters const&) TORRENT_COUNTER_NOEXCEPT;
 
 		// returns the new value
-		std::int64_t inc_stats_counter(int c, std::int64_t value = 1);
-		std::int64_t operator[](int i) const;
+		std::int64_t inc_stats_counter(int c, std::int64_t value = 1) TORRENT_COUNTER_NOEXCEPT;
+		std::int64_t operator[](int i) const TORRENT_COUNTER_NOEXCEPT;
 
-		void set_value(int c, std::int64_t value);
-		void blend_stats_counter(int c, std::int64_t value, int ratio);
+		void set_value(int c, std::int64_t value) TORRENT_COUNTER_NOEXCEPT;
+		void blend_stats_counter(int c, std::int64_t value, int ratio) TORRENT_COUNTER_NOEXCEPT;
 
 	private:
 
