@@ -1548,7 +1548,7 @@ namespace {
 		};
 
 		int const idx = static_cast<int>(op);
-		if (idx < 0 || idx >= int(sizeof(names) / sizeof(names[0])))
+		if (idx >= int(sizeof(names) / sizeof(names[0])))
 			return "unknown operation";
 
 		return names[idx];

@@ -1047,7 +1047,6 @@ namespace {
 				received_bytes(0, received);
 				return;
 			}
-			if (recv_pos >= 13)
 			{
 				char const* ptr = recv_buffer.begin() + 9;
 				int const list_size = detail::read_int32(ptr);

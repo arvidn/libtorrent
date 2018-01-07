@@ -372,7 +372,7 @@ namespace libtorrent {
 		// if this is an incoming connection, we're done here
 		if (!m_connecting) return;
 
-		if (m_connecting && t) t->inc_num_connecting(m_peer_info);
+		if (t) t->inc_num_connecting(m_peer_info);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))
@@ -4872,7 +4872,7 @@ namespace libtorrent {
 			&& m_reading_bytes == 0
 			&& !m_choked
 			&& m_peer_interested
-			&& t && t->is_upload_only()
+			&& t->is_upload_only()
 			&& d > seconds(60)
 			&& can_disconnect(errors::timed_out_no_request))
 		{
@@ -5283,11 +5283,8 @@ namespace libtorrent {
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
 				, "piece: %d passed", static_cast<int>(piece));
 #endif
-			if (t)
-			{
-				if (t->seed_mode() && t->all_verified())
-					t->leave_seed_mode(true);
-			}
+			if (t->seed_mode() && t->all_verified())
+				t->leave_seed_mode(true);
 		}
 
 		// try to service the requests again, now that the piece

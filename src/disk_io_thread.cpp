@@ -998,7 +998,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			if (pe->cache_state != cached_piece_entry::write_lru) continue;
 
 			// don't flush blocks that are being hashed by another thread
-			if (pe->num_dirty == 0 || pe->hashing) continue;
+			if (pe->hashing) continue;
 
 #if TORRENT_USE_ASSERTS
 			pe->piece_log.push_back(piece_log_t(piece_log_t::try_flush_write_blocks2, -1));

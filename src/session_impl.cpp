@@ -4234,7 +4234,7 @@ namespace {
 					p->reset_choke_counters();
 					continue;
 				}
-				if (pi && pi->optimistically_unchoked)
+				if (pi->optimistically_unchoked)
 				{
 					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 					pi->optimistically_unchoked = false;
@@ -5699,9 +5699,8 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("starting DHT, running: %s, router lookups: %d, aborting: %s"
-			, m_dht ? "true" : "false", m_outstanding_router_lookups
-			, m_abort ? "true" : "false");
+		session_log("starting DHT, running: %s, router lookups: %d, aborting: false"
+			, m_dht ? "true" : "false", m_outstanding_router_lookups);
 #endif
 
 		// TODO: refactor, move the storage to dht_tracker
