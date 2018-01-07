@@ -426,7 +426,7 @@ namespace {
 #if !TORRENT_USE_ASSERTS
 			std::shared_ptr<torrent> t = associated_torrent().lock();
 #endif
-            peer_log(peer_log_alert::outgoing_message, "SUGGEST"
+			peer_log(peer_log_alert::outgoing_message, "SUGGEST"
 				, "piece: %d num_peers: %d", static_cast<int>(piece)
 				, t->has_picker() ? t->picker().get_availability(piece) : -1);
 		}
