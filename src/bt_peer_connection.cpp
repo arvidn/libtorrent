@@ -414,13 +414,13 @@ namespace {
 
 		if (!m_supports_fast) return;
 
-		std::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(t->valid_metadata());
-
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
 		{
+			std::shared_ptr<torrent> t = associated_torrent().lock();
+			TORRENT_ASSERT(t);
+			TORRENT_ASSERT(t->valid_metadata());
+
 			peer_log(peer_log_alert::outgoing_message, "SUGGEST"
 				, "piece: %d num_peers: %d", static_cast<int>(piece)
 				, t->has_picker() ? t->picker().get_availability(piece) : -1);
