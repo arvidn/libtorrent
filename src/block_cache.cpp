@@ -229,7 +229,7 @@ static_assert(int(job_action_name.size()) == static_cast<int>(job_action_t::num_
 	char const* job_name(job_action_t const job)
 	{
 		int const j = static_cast<int>(job);
-		if (j >= piece_log_t::last_job)
+		if (j < 0 || j >= piece_log_t::last_job)
 			return "unknown";
 
 		if (j < piece_log_t::flushing)
