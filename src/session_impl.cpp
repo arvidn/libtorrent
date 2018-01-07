@@ -5699,8 +5699,9 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("starting DHT, running: %s, router lookups: %d, aborting: false"
+		session_log("starting DHT, running: %s, router lookups: %d, aborting: %s"
 			, m_dht ? "true" : "false", m_outstanding_router_lookups);
+			, m_abort ? "true" : "false");
 #endif
 
 		// TODO: refactor, move the storage to dht_tracker
