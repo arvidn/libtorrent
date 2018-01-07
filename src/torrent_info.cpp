@@ -1015,13 +1015,6 @@ namespace {
 			m_files.set_piece_length(0);
 			return false;
 		}
-		if (files.num_files() == 0)
-		{
-			ec = errors::no_files_in_torrent;
-			// mark the torrent as invalid
-			m_files.set_piece_length(0);
-			return false;
-		}
 		if (files.name().empty())
 		{
 			ec = errors::torrent_missing_name;
