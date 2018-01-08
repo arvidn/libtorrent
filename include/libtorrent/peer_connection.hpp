@@ -432,6 +432,11 @@ namespace aux {
 		std::weak_ptr<torrent> associated_torrent() const
 		{ return m_torrent; }
 
+		// get the info hash associated with this peer
+		// this will be a sha1 hash or truncated sha256 hash depending
+		// on which protcol version this connection is using
+		sha1_hash associated_info_hash() const;
+
 		stat const& statistics() const override { return m_statistics; }
 		void add_stat(std::int64_t downloaded, std::int64_t uploaded) override;
 		void sent_bytes(int bytes_payload, int bytes_protocol);

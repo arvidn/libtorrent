@@ -517,11 +517,8 @@ namespace {
 		TORRENT_ASSERT(is_outgoing());
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		std::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
-
 		hasher h;
-		sha1_hash const& info_hash = t->torrent_file().info_hash().v1;
+		sha1_hash const& info_hash = associated_info_hash();
 		key_t const secret_key = m_dh_key_exchange->get_secret();
 		std::array<char, dh_key_len> const secret = export_key(secret_key);
 
@@ -700,6 +697,13 @@ namespace {
 		// we support FAST extension
 		*(ptr + 7) |= 0x04;
 
+		// this is a v1 peer in a hybrid torrent
+		// indicate that we support upgrading to v2
+		if (!peer_info_struct()->protocol_v2 && t->torrent_file().info_hash().has_v2())
+		{
+			*(ptr + 7) |= 0x10;
+		}
+
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
 		{
@@ -719,11 +723,13 @@ namespace {
 		ptr += 8;
 
 		// info hash
-		sha1_hash const& ih = t->torrent_file().info_hash().v1;
+		sha1_hash const& ih = associated_info_hash();
 		std::memcpy(ptr, ih.data(), ih.size());
 		ptr += 20;
 
 		std::memcpy(ptr, m_our_peer_id.data(), 20);
+
+		TORRENT_ASSERT(!ih.is_all_zeros());
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))
@@ -2458,7 +2464,7 @@ namespace {
 			{
 				if (!t)
 				{
-					attach_to_torrent(ti->info_hash());
+					attach_to_torrent(ti->torrent_file().info_hash());
 					if (is_disconnecting()) return;
 					TORRENT_ASSERT(!is_disconnecting());
 
@@ -2466,8 +2472,24 @@ namespace {
 					TORRENT_ASSERT(t);
 				}
 
+				// compute the obfuscated hash of the torrent's valid infohashes
+				// to find the one which matches the received hash
+				// TODO: clean this up
+
+				sha1_hash oih(ih);
+				oih ^= m_dh_key_exchange->get_hash_xor_mask();
+
+				t->info_hash().for_each([&](sha1_hash const& tih, protocol_version v)
+				{
+					static char const req2[4] = { 'r', 'e', 'q', '2' };
+					hasher h(req2);
+					h.update(tih);
+					if (h.final() == oih)
+						peer_info_struct()->protocol_v2 = v == protocol_version::V2;
+				});
+
 				m_rc4 = init_pe_rc4_handler(m_dh_key_exchange->get_secret()
-					, ti->info_hash().v1, is_outgoing());
+					, associated_info_hash(), is_outgoing());
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "ENCRYPTION", "computed RC4 keys");
 				peer_log(peer_log_alert::info, "ENCRYPTION", "stream key found, torrent located");
@@ -2915,10 +2937,11 @@ namespace {
 
 			if (should_log(peer_log_alert::incoming_message))
 			{
-				peer_log(peer_log_alert::incoming_message, "EXTENSIONS", "%s ext: %s%s%s"
+				peer_log(peer_log_alert::incoming_message, "EXTENSIONS", "%s ext: %s%s%s%s"
 					, extensions.c_str()
 					, (recv_buffer[7] & 0x01) ? "DHT " : ""
 					, (recv_buffer[7] & 0x04) ? "FAST " : ""
+					, (recv_buffer[7] & 0x10) ? "v2 " : ""
 					, (recv_buffer[5] & 0x10) ? "extension " : "");
 			}
 #endif
@@ -2947,12 +2970,35 @@ namespace {
 
 				attach_to_torrent(info_hash_t(info_hash));
 				if (is_disconnecting()) return;
+
+				// this must go after the connection is attached to a torrent because that is what
+				// adds the peer info for incoming connections
+				if (recv_buffer[7] & 0x10)
+				{
+					if (!associated_torrent().lock()->info_hash().has_v2())
+					{
+						// the peer claims to support the v2 protocol with a non-v2 torrent
+						disconnect(errors::invalid_info_hash, operation_t::bittorrent);
+						return;
+					}
+					peer_info_struct()->protocol_v2 = true;
+				}
 			}
 			else
 			{
 				// verify info hash
-				if (!std::equal(recv_buffer.begin() + 8, recv_buffer.begin() + 28
-					, t->torrent_file().info_hash().v1.data()))
+				// also check for all zero info hash in the torrent to make sure
+				// the client isn't attempting to use a protocol version the torrent
+				// doesn't support
+				if (std::equal(recv_buffer.begin() + 8, recv_buffer.begin() + 28
+					, t->torrent_file().info_hash().get(protocol_version::V2).data())
+					&& t->torrent_file().info_hash().has_v2())
+				{
+					peer_info_struct()->protocol_v2 = true;
+				}
+				else if (!std::equal(recv_buffer.begin() + 8, recv_buffer.begin() + 28
+						, associated_info_hash().data())
+					|| associated_info_hash().is_all_zeros())
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					peer_log(peer_log_alert::info, "ERROR", "received invalid info_hash");
