@@ -1274,8 +1274,9 @@ namespace libtorrent {
 		piece_refcount refcount{picker(), piece};
 		for (int i = 0; i < blocks_in_piece; ++i, p.start += block_size())
 		{
-			if (picker().is_finished(piece_block(piece, i))
-				&& !(flags & torrent_handle::overwrite_existing))
+			piece_block const block(piece, i);
+			if (!(flags & torrent_handle::overwrite_existing)
+				&& picker().is_finished(block))
 				continue;
 
 			p.length = std::min(piece_size - p.start, int(block_size()));
@@ -1285,7 +1286,6 @@ namespace libtorrent {
 				, std::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, p));
 
-			piece_block const block(piece, i);
 			bool const was_finished = picker().is_piece_finished(p.piece);
 			bool const multi = picker().num_peers(block) > 1;
 
