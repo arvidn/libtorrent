@@ -1051,7 +1051,7 @@ namespace aux {
 		return ret;
 	}
 
-	void session_impl::queue_tracker_request(tracker_request&& req
+	void session_impl::queue_tracker_request(tracker_request req
 		, std::weak_ptr<request_callback> c)
 	{
 #if TORRENT_USE_I2P
@@ -5313,7 +5313,10 @@ namespace aux {
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
 			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))) return;
 
-		t->add_peer(peer, peer_info::lsd);
+		protocol_version const v = ih == t->torrent_file().info_hash().v1
+			? protocol_version::V1 : protocol_version::V2;
+
+		t->add_peer(peer, peer_info::lsd, v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0));
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
@@ -5321,7 +5324,6 @@ namespace aux {
 				, peer.address().to_string().c_str());
 		}
 #endif
-
 		t->do_connect_boost();
 
 		if (m_alerts.should_post<lsd_peer_alert>())

@@ -876,7 +876,8 @@ namespace libtorrent {
 		// lookup for a PEER is completed.
 		void on_peer_name_lookup(error_code const& e
 			, std::vector<address> const& addrs
-			, int port);
+			, int port
+			, protocol_version v);
 
 		// this is the asio callback that is called when a name
 		// lookup for a WEB SEED is completed.
@@ -1209,8 +1210,8 @@ namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_DHT
 		static void on_dht_announce_response_disp(std::weak_ptr<torrent> t
-			, std::vector<tcp::endpoint> const& peers);
-		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
+			, protocol_version v, std::vector<tcp::endpoint> const& peers);
+		void on_dht_announce_response(protocol_version v, std::vector<tcp::endpoint> const& peers);
 		bool should_announce_dht() const;
 #endif
 

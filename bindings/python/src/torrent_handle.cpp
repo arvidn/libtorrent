@@ -242,10 +242,15 @@ namespace
    using boost::chrono::system_clock;
 #endif
 
-   time_t to_ptime(time_point tpt)
+   object to_ptime(time_point tpt)
    {
-      return system_clock::to_time_t(system_clock::now()
-         + duration_cast<system_clock::duration>(tpt - clock_type::now()));
+      object ret;
+      if (tpt > min_time())
+      {
+         ret = long_(system_clock::to_time_t(system_clock::now()
+            + duration_cast<system_clock::duration>(tpt - clock_type::now())));
+      }
+      return ret;
    }
 }
 
@@ -267,30 +272,21 @@ list trackers(torrent_handle& h)
         if (!i->endpoints.empty())
         {
             announce_endpoint const& aep = i->endpoints.front();
-            d["message"] = aep.message;
+            announce_infohash const& aih = aep.info_hashes[protocol_version::V1];
+            d["message"] = aih.message;
             dict last_error;
-            last_error["value"] = aep.last_error.value();
-            last_error["category"] = aep.last_error.category().name();
+            last_error["value"] = aih.last_error.value();
+            last_error["category"] = aih.last_error.category().name();
             d["last_error"] = last_error;
-            if (aep.next_announce > min_time()) {
-                d["next_announce"] = to_ptime(aep.next_announce);
-            }
-            else {
-                d["next_announce"] = object();
-            }
-            if (aep.min_announce > min_time()) {
-                d["min_announce"] = to_ptime(aep.min_announce);
-            }
-            else {
-                d["min_announce"] = object();
-            }
-            d["scrape_incomplete"] = aep.scrape_incomplete;
-            d["scrape_complete"] = aep.scrape_complete;
-            d["scrape_downloaded"] = aep.scrape_downloaded;
-            d["fails"] = aep.fails;
-            d["updating"] = aep.updating;
-            d["start_sent"] = aep.start_sent;
-            d["complete_sent"] = aep.complete_sent;
+            d["next_announce"] = to_ptime(aih.next_announce);
+            d["min_announce"] = to_ptime(aih.min_announce);
+            d["scrape_incomplete"] = aih.scrape_incomplete;
+            d["scrape_complete"] = aih.scrape_complete;
+            d["scrape_downloaded"] = aih.scrape_downloaded;
+            d["fails"] = aih.fails;
+            d["updating"] = aih.updating;
+            d["start_sent"] = aih.start_sent;
+            d["complete_sent"] = aih.complete_sent;
         }
         else
         {
@@ -315,39 +311,55 @@ list trackers(torrent_handle& h)
         for (auto const& aep : i->endpoints)
         {
             dict e;
-            e["message"] = aep.message;
             e["local_address"] = boost::python::make_tuple(aep.local_endpoint.address().to_string(), aep.local_endpoint.port());
+
+            list aihs;
+            for (auto const& aih : aep.info_hashes)
+            {
+                dict i;
+                i["message"] = aih.message;
+                dict last_error;
+                last_error["value"] = aih.last_error.value();
+                last_error["category"] = aih.last_error.category().name();
+                i["last_error"] = last_error;
+                i["next_announce"] = to_ptime(aih.next_announce);
+                i["min_announce"] = to_ptime(aih.min_announce);
+                i["scrape_incomplete"] = aih.scrape_incomplete;
+                i["scrape_complete"] = aih.scrape_complete;
+                i["scrape_downloaded"] = aih.scrape_downloaded;
+                i["fails"] = aih.fails;
+                i["updating"] = aih.updating;
+                i["start_sent"] = aih.start_sent;
+                i["complete_sent"] = aih.complete_sent;
+                aihs.append(std::move(i));
+            }
+            e["info_hashes"] = std::move(aihs);
+
+#if TORRENT_ABI_VERSION <= 2
+            announce_infohash const& aih = aep.info_hashes[protocol_version::V1];
+            e["message"] = aih.message;
             dict last_error;
-            last_error["value"] = aep.last_error.value();
-            last_error["category"] = aep.last_error.category().name();
+            last_error["value"] = aih.last_error.value();
+            last_error["category"] = aih.last_error.category().name();
             e["last_error"] = last_error;
-            if (aep.next_announce > min_time()) {
-                e["next_announce"] = to_ptime(aep.next_announce);
-            }
-            else {
-                e["next_announce"] = object();
-            }
-            if (aep.min_announce > min_time()) {
-                e["min_announce"] = to_ptime(aep.min_announce);
-            }
-            else {
-                e["min_announce"] = object();
-            }
-            e["scrape_incomplete"] = aep.scrape_incomplete;
-            e["scrape_complete"] = aep.scrape_complete;
-            e["scrape_downloaded"] = aep.scrape_downloaded;
-            e["fails"] = aep.fails;
-            e["updating"] = aep.updating;
-            e["start_sent"] = aep.start_sent;
-            e["complete_sent"] = aep.complete_sent;
-            aeps.append(e);
+            e["next_announce"] = to_ptime(aih.next_announce);
+            e["min_announce"] = to_ptime(aih.min_announce);
+            e["scrape_incomplete"] = aih.scrape_incomplete;
+            e["scrape_complete"] = aih.scrape_complete;
+            e["scrape_downloaded"] = aih.scrape_downloaded;
+            e["fails"] = aih.fails;
+            e["updating"] = aih.updating;
+            e["start_sent"] = aih.start_sent;
+            e["complete_sent"] = aih.complete_sent;
+#endif
+            aeps.append(std::move(e));
         }
-        d["endpoints"] = aeps;
+        d["endpoints"] = std::move(aeps);
 
 #if TORRENT_ABI_VERSION == 1
         d["send_stats"] = i->send_stats;
 #endif
-        ret.append(d);
+        ret.append(std::move(d));
     }
     return ret;
 }
