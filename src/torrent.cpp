@@ -6310,7 +6310,7 @@ bool is_downloading_state(int const st)
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
-				std::string host_name = aux::to_hex(m_torrent_file->info_hash().v1);
+				std::string host_name = aux::to_hex(m_torrent_file->info_hash().get(peerinfo->protocol()));
 
 #define CASE(t) case aux::socket_type_int_impl<ssl_stream<t>>::value: \
 	s->get<ssl_stream<t>>()->set_host_name(host_name); break;
@@ -9762,7 +9762,7 @@ bool is_downloading_state(int const st)
 	}
 
 	torrent_peer* torrent::add_peer(tcp::endpoint const& adr
-		, peer_source_flags_t const source, pex_flags_t const flags)
+		, peer_source_flags_t const source, pex_flags_t flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -9824,6 +9824,9 @@ bool is_downloading_state(int const st)
 #endif
 			return nullptr;
 		}
+
+		if (!torrent_file().info_hash().has_v1())
+			flags |= pex_lt_v2;
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();

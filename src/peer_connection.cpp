@@ -689,8 +689,7 @@ namespace libtorrent {
 			address_v6::bytes_type bytes = addr.to_v6().to_bytes();
 			x.assign(reinterpret_cast<char*>(bytes.data()), bytes.size());
 		}
-
-		x.append(t->torrent_file().info_hash().v1.data(), 20);
+		x.append(associated_info_hash().data(), 20);
 
 		sha1_hash hash = hasher(x).final();
 		int attempts = 0;
@@ -1108,6 +1107,13 @@ namespace libtorrent {
 		m_statistics.add_stat(downloaded, uploaded);
 	}
 
+	sha1_hash peer_connection::associated_info_hash() const
+	{
+		std::shared_ptr<torrent> t = associated_torrent().lock();
+		return t->torrent_file().info_hash().get(
+			peer_info_struct()->protocol_v2 ? protocol_version::V2 : protocol_version::V1);
+	}
+
 	void peer_connection::received_bytes(int const bytes_payload, int const bytes_protocol)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1339,6 +1345,12 @@ namespace libtorrent {
 		// of the torrent and peer_connection::disconnect() will fail if it
 		// think it is
 		m_torrent = t;
+
+		if (t->info_hash().has_v2() && (t->info_hash().get(protocol_version::V2) == ih.v1
+			|| t->info_hash().v2 == ih.v2))
+		{
+			peer_info_struct()->protocol_v2 = true;
+		}
 
 		if (m_exceeded_limit)
 		{

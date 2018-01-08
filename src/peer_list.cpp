@@ -896,6 +896,8 @@ namespace libtorrent {
 			p->supports_utp = true;
 		if (flags & pex_holepunch)
 			p->supports_holepunch = true;
+		if (flags & pex_lt_v2)
+			p->protocol_v2 = true;
 		if (is_connect_candidate(*p))
 			update_connect_candidates(1);
 
@@ -938,6 +940,8 @@ namespace libtorrent {
 			p->supports_utp = true;
 		if (flags & pex_holepunch)
 			p->supports_holepunch = true;
+		if (flags & pex_lt_v2)
+			p->protocol_v2 = true;
 
 		if (was_conn_cand != is_connect_candidate(*p))
 		{
