@@ -75,6 +75,8 @@ namespace libtorrent {
 		std::string to_string() const;
 #endif
 
+		protocol_version protocol() { return protocol_v2 ? protocol_version::V2 : protocol_version::V1; }
+
 		// this is the accumulated amount of
 		// uploaded and downloaded data to this
 		// torrent_peer. It only accounts for what was
@@ -202,6 +204,8 @@ namespace libtorrent {
 		// so, any torrent_peer with the web_seed bit set, is
 		// never considered a connect candidate
 		bool web_seed:1;
+		// this peer supports protocol version 2
+		bool protocol_v2:1;
 #if TORRENT_USE_ASSERTS
 		bool in_use = true;
 #endif
