@@ -2914,8 +2914,9 @@ get_out:
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.end_index());
 
-		if (m_piece_map[block.piece_index].index == piece_pos::we_have_index) return true;
-		int state = m_piece_map[block.piece_index].download_queue();
+		piece_pos const& p = m_piece_map[block.piece_index];
+		if (p.index == piece_pos::we_have_index) return true;
+		int const state = p.download_queue();
 		if (state == piece_pos::piece_open) return false;
 		auto const i = find_dl_piece(state, block.piece_index);
 		TORRENT_ASSERT(i != m_downloads[state].end());
@@ -2934,9 +2935,10 @@ get_out:
 
 		piece_pos const& p = m_piece_map[block.piece_index];
 		if (p.index == piece_pos::we_have_index) return true;
-		if (p.download_queue() == piece_pos::piece_open) return false;
-		auto const i = find_dl_piece(p.download_queue(), block.piece_index);
-		TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
+		int const state = p.download_queue();
+		if (state == piece_pos::piece_open) return false;
+		auto const i = find_dl_piece(state, block.piece_index);
+		TORRENT_ASSERT(i != m_downloads[state].end());
 
 		auto const info = blocks_for_piece(*i);
 		TORRENT_ASSERT(info[block.block_index].piece_index == block.piece_index);
