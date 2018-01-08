@@ -6323,7 +6323,7 @@ bool is_downloading_state(int const st)
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
-				std::string host_name = aux::to_hex(m_torrent_file->info_hash().v1);
+				std::string host_name = aux::to_hex(m_torrent_file->info_hash().get(peerinfo->protocol()));
 
 #define CASE(t) case aux::socket_type_int_impl<ssl_stream<t>>::value: \
 	s->get<ssl_stream<t>>()->set_host_name(host_name); break;
