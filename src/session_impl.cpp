@@ -4234,7 +4234,7 @@ namespace {
 					p->reset_choke_counters();
 					continue;
 				}
-				if (pi && pi->optimistically_unchoked)
+				if (pi->optimistically_unchoked)
 				{
 					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 					pi->optimistically_unchoked = false;
