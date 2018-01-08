@@ -109,7 +109,7 @@ with an associated port.
 
 For documentation on these types, please refer to the `asio documentation`_.
 
-.. _`asio documentation`: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
+.. _`asio documentation`: http://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio.html
 
 exceptions
 ==========

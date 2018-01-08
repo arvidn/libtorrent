@@ -328,16 +328,20 @@ namespace {
 		// a piece_size of 0 means automatic
 		if (piece_size == 0 && !m_merkle_torrent)
 		{
-			const int target_size = 40 * 1024;
-			piece_size = int(fs.total_size() / (target_size / 20));
+			// size_table is computed from the following:
+			//   target_list_size = sqrt(total_size) * 2;
+			//   target_piece_size = total_size / (target_list_size / hash_size);
+			// Given hash_size = 20 bytes, target_piece_size = (16*1024 * pow(2, i))
+			// we can determine size_table = (total_size = pow(2 * target_piece_size / hash_size, 2))
+			std::int64_t const size_table[] = {2684355, 10737418, 42949673, 171798692, 687194767,
+				2748779069LL, 10995116278LL, 43980465111LL, 175921860444LL, 703687441777LL};
 
-			int i = 16*1024;
-			for (; i < 2*1024*1024; i *= 2)
+			int i = 0;
+			for (int max = sizeof(size_table) / sizeof(size_table[0]); i < max; ++i)
 			{
-				if (piece_size > i) continue;
-				break;
+				if (size_table[i] >= fs.total_size()) break;
 			}
-			piece_size = i;
+			piece_size = 0x4000 << i;
 		}
 		else if (piece_size == 0 && m_merkle_torrent)
 		{

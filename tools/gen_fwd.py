@@ -38,14 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_FWD_HPP
 #define TORRENT_FWD_HPP
 
-#include "libtorrent/export.hpp"
-
 namespace libtorrent {
 '''
 
 file_footer = '''
 
 }
+
+namespace lt = libtorrent;
 
 #endif // TORRENT_FWD_HPP
 '''

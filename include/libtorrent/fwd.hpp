@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_FWD_HPP
 #define TORRENT_FWD_HPP
 
-#include "libtorrent/export.hpp"
-
 namespace libtorrent {
 
 // include/libtorrent/add_torrent_params.hpp
@@ -185,6 +183,12 @@ class hasher512;
 struct ip_filter;
 class port_filter;
 
+// include/libtorrent/peer_class.hpp
+struct peer_class_info;
+
+// include/libtorrent/peer_class_type_filter.hpp
+struct peer_class_type_filter;
+
 // include/libtorrent/peer_connection_handle.hpp
 struct peer_connection_handle;
 struct bt_peer_connection_handle;
@@ -202,9 +206,6 @@ class session;
 
 // include/libtorrent/session_handle.hpp
 struct session_handle;
-
-// include/libtorrent/session_settings.hpp
-struct pe_settings;
 
 // include/libtorrent/session_stats.hpp
 struct stats_metric;
@@ -265,8 +266,13 @@ struct internal_file_entry;
 struct pascal_string;
 struct lazy_entry;
 
+// include/libtorrent/session_settings.hpp
+struct pe_settings;
+
 #endif // TORRENT_NO_DEPRECATE
 
 }
+
+namespace lt = libtorrent;
 
 #endif // TORRENT_FWD_HPP
