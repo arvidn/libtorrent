@@ -328,7 +328,10 @@ namespace libtorrent { namespace {
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint const adr = detail::read_v4_endpoint<tcp::endpoint>(in);
-					pex_flags_t const flags(static_cast<std::uint8_t>(*fin++));
+					pex_flags_t flags(static_cast<std::uint8_t>(*fin++));
+
+					if (m_pc.peer_info_struct()->protocol_v2)
+						flags |= pex_lt_v2;
 
 					if (int(m_peers.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
 						break;
@@ -380,7 +383,11 @@ namespace libtorrent { namespace {
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint const adr = detail::read_v6_endpoint<tcp::endpoint>(in);
-					pex_flags_t const flags(static_cast<std::uint8_t>(*fin++));
+					pex_flags_t flags(static_cast<std::uint8_t>(*fin++));
+
+					if (m_pc.peer_info_struct()->protocol_v2)
+						flags |= pex_lt_v2;
+
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 					if (int(m_peers6.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
