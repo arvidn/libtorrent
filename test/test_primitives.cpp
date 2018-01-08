@@ -51,8 +51,8 @@ TORRENT_TEST(retry_interval)
 	auto const tracker_backoff = 250;
 	for (int i = 0; i < 10; ++i)
 	{
-		ae.endpoints.front().failed(tracker_backoff, seconds32(5));
-		int const delay = static_cast<int>(total_seconds(ae.endpoints.front().next_announce - clock_type::now()));
+		ae.endpoints.front().info_hashes[protocol_version::V1].failed(tracker_backoff, seconds32(5));
+		int const delay = static_cast<int>(total_seconds(ae.endpoints.front().info_hashes[protocol_version::V1].next_announce - clock_type::now()));
 		TEST_CHECK(delay > last);
 		last = delay;
 		std::printf("%d, ", delay);

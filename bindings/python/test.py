@@ -172,7 +172,7 @@ class test_torrent_handle(unittest.TestCase):
         pickled_trackers = pickle.dumps(self.h.trackers())
         unpickled_trackers = pickle.loads(pickled_trackers)
         self.assertEqual(unpickled_trackers[0]['url'], 'udp://tracker1.com')
-        self.assertEqual(unpickled_trackers[0]['endpoints'][0]['last_error']['value'], 0)
+        self.assertEqual(unpickled_trackers[0]['endpoints'][0]['info_hashes'][0]['last_error']['value'], 0)
 
     def test_file_status(self):
         self.setup()

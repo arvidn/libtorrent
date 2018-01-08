@@ -251,6 +251,12 @@ bool is_absolute_path(std::string const& f)
 #endif
 }
 
+std::string trunc(std::string str, int const sz)
+{
+	if (str.size() > std::size_t(sz)) str.resize(std::size_t(sz));
+	return str;
+}
+
 std::string path_append(std::string const& lhs, std::string const& rhs)
 {
 	if (lhs.empty() || lhs == ".") return rhs;
@@ -1727,19 +1733,25 @@ COLUMN OPTIONS
 				std::vector<lt::announce_entry> tr = h.trackers();
 				for (lt::announce_entry const& ae : h.trackers())
 				{
-					auto best_ae = std::min_element(ae.endpoints.begin(), ae.endpoints.end()
-						, [](lt::announce_endpoint const& l, lt::announce_endpoint const& r) { return l.fails < r.fails; } );
-
-					if (pos + 1 >= terminal_height) break;
-					std::snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
-						, ae.tier, ae.url.c_str()
-						, best_ae != ae.endpoints.end() ? best_ae->fails : 0, ae.fail_limit, ae.verified?"OK ":"-  "
-						, to_string(best_ae != ae.endpoints.end() ? int(total_seconds(best_ae->next_announce - now)) : 0, 8).c_str()
-						, best_ae != ae.endpoints.end() && best_ae->min_announce > now ? int(total_seconds(best_ae->min_announce - now)) : 0
-						, best_ae != ae.endpoints.end() && best_ae->last_error ? best_ae->last_error.message().c_str() : ""
-						, best_ae != ae.endpoints.end() ? best_ae->message.c_str() : "");
-					out += str;
-					pos += 1;
+					for (lt::announce_endpoint const& aep : ae.endpoints)
+					{
+						for (lt::protocol_version const v : {lt::protocol_version::V1, lt::protocol_version::V2})
+						{
+							if (pos + 1 >= terminal_height) break;
+							if (!s.info_hash.has(v)) continue;
+							std::snprintf(str, sizeof(str), "%2d %d %-20s %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
+								, ae.tier, int(v), trunc(print_endpoint(aep.local_endpoint), 20).c_str()
+								, ae.url.c_str()
+								, aep.info_hashes[v].fails
+								, ae.fail_limit, ae.verified ? "OK " : "-  "
+								, to_string(int(total_seconds(aep.info_hashes[v].next_announce - now)), 8).c_str()
+								, aep.info_hashes[v].min_announce > now ? int(total_seconds(aep.info_hashes[v].min_announce - now)) : 0
+								, aep.info_hashes[v].last_error ? aep.info_hashes[v].last_error.message().c_str() : ""
+								, aep.info_hashes[v].message.c_str());
+							out += str;
+							pos += 1;
+						}
+					}
 				}
 			}
 
