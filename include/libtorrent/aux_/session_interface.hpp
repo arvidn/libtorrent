@@ -235,10 +235,8 @@ namespace aux {
 		virtual session_settings const& settings() const = 0;
 
 		// the tracker request object must be moved in
-		virtual void queue_tracker_request(tracker_request&& req
+		virtual void queue_tracker_request(tracker_request req
 			, std::weak_ptr<request_callback> c) = 0;
-		void queue_tracker_request(tracker_request const& req
-			, std::weak_ptr<request_callback> c) = delete;
 
 		// peer-classes
 		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;

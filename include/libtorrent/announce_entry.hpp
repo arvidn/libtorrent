@@ -47,19 +47,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	// announces are sent to each tracker using every listen socket
-	// this class holds information about one listen socket for one tracker
-	struct TORRENT_EXPORT announce_endpoint
+	struct TORRENT_EXPORT announce_infohash
 	{
-		friend class torrent;
-#if TORRENT_ABI_VERSION == 1
-		friend struct announce_entry;
-#else
-		friend struct v1_2::announce_entry;
-#endif
-
-		// internal
-		explicit announce_endpoint(aux::listen_socket_handle const& s);
+		announce_infohash();
 
 		// if this tracker has returned an error or warning message
 		// that message is stored here
@@ -69,20 +59,12 @@ namespace libtorrent {
 		// this error code specifies what error occurred
 		error_code last_error;
 
-		// the local endpoint of the listen interface associated with this endpoint
-		tcp::endpoint local_endpoint;
-
 		// the time of next tracker announce
 		time_point32 next_announce = (time_point32::min)();
 
 		// no announces before this time
 		time_point32 min_announce = (time_point32::min)();
 
-	private:
-		// internal
-		aux::listen_socket_handle socket;
-
-	public:
 		// TODO: include the number of peers received from this tracker, at last
 		// announce
 
@@ -141,6 +123,55 @@ namespace libtorrent {
 	};
 
 TORRENT_VERSION_NAMESPACE_2
+
+	// announces are sent to each tracker using every listen socket
+	// this class holds information about one listen socket for one tracker
+	struct TORRENT_EXPORT announce_endpoint
+	{
+		friend class torrent;
+#if TORRENT_ABI_VERSION == 1
+		friend struct announce_entry;
+#else
+		friend struct v1_2::announce_entry;
+#endif
+
+		// internal
+		explicit announce_endpoint(aux::listen_socket_handle const& s);
+
+		// the local endpoint of the listen interface associated with this endpoint
+		tcp::endpoint local_endpoint;
+
+		// torrents can be announced using multiple info hashes
+		// for different protocol versions
+
+		// info_hashs[0] is the v1 info hash (SHA1)
+		// info_hashs[1] is the v2 info hash (truncated SHA256)
+		announce_infohash info_hashes[2];
+
+		// reset announce counters and clears the started sent flag.
+		// The announce_endpoint will look like we've never talked to
+		// the tracker.
+		void reset();
+
+#if TORRENT_ABI_VERSION <= 2
+		// deprecated in 1.3, use announce_infohash::can_announce
+		// returns true if we can announce to this tracker now.
+		// The current time is passed in as ``now``. The ``is_seed``
+		// argument is necessary because once we become a seed, we
+		// need to announce right away, even if the re-announce timer
+		// hasn't expired yet.
+		TORRENT_DEPRECATED bool can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const;
+
+		// deprecated in 1.3, use announce_infohash::is_working
+		// returns true if the last time we tried to announce to this
+		// tracker succeeded, or if we haven't tried yet.
+		TORRENT_DEPRECATED bool is_working() const;
+#endif
+
+	private:
+		// internal
+		aux::listen_socket_handle socket;
+	};
 
 	// this class holds information about one bittorrent tracker, as it
 	// relates to a specific torrent.

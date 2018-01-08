@@ -41,20 +41,23 @@ namespace libtorrent {
 
 	namespace {
 		// wait at least 5 seconds before retrying a failed tracker
-		seconds32 constexpr tracker_retry_delay_min{5};
+		seconds32 constexpr tracker_retry_delay_min{ 5 };
 
 		// never wait more than 60 minutes to retry a tracker
-		minutes32 constexpr tracker_retry_delay_max{60};
+		minutes32 constexpr tracker_retry_delay_max{ 60 };
 	}
 
-	announce_endpoint::announce_endpoint(aux::listen_socket_handle const& s)
-		: local_endpoint(s ? s.get_local_endpoint() : tcp::endpoint())
-		, socket(s)
-		, fails(0)
+	announce_infohash::announce_infohash()
+		: fails(0)
 		, updating(false)
 		, start_sent(false)
 		, complete_sent(false)
 		, triggered_manually(false)
+	{}
+
+	announce_endpoint::announce_endpoint(aux::listen_socket_handle const& s)
+		: local_endpoint(s ? s.get_local_endpoint() : tcp::endpoint())
+		, socket(s)
 	{}
 
 	announce_entry::announce_entry(string_view u)
@@ -88,14 +91,14 @@ namespace libtorrent {
 	announce_entry::announce_entry(announce_entry const&) = default;
 	announce_entry& announce_entry::operator=(announce_entry const&) = default;
 
-	void announce_endpoint::reset()
+	void announce_infohash::reset()
 	{
 		start_sent = false;
 		next_announce = time_point32::min();
 		min_announce = time_point32::min();
 	}
 
-	void announce_endpoint::failed(int const backoff_ratio, seconds32 const retry_interval)
+	void announce_infohash::failed(int const backoff_ratio, seconds32 const retry_interval)
 	{
 		++fails;
 		// the exponential back-off ends up being:
@@ -111,7 +114,7 @@ namespace libtorrent {
 		updating = false;
 	}
 
-	bool announce_endpoint::can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const
+	bool announce_infohash::can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const
 	{
 		// if we're a seed and we haven't sent a completed
 		// event, we need to let this announce through
@@ -124,12 +127,30 @@ namespace libtorrent {
 			&& !updating;
 	}
 
+	void announce_endpoint::reset()
+	{
+		for (auto& ih : info_hashes)
+			ih.reset();
+	}
+
 	void announce_entry::reset()
 	{
 		for (auto& aep : endpoints)
 			aep.reset();
 	}
+#if TORRENT_ABI_VERSION <= 2
+	bool announce_endpoint::can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const
+	{
+		return std::any_of(std::begin(info_hashes), std::end(info_hashes)
+			, [&](announce_infohash const& ih) { return ih.can_announce(now, is_seed, fail_limit); });
+	}
 
+	bool announce_endpoint::is_working() const
+	{
+		return std::any_of(std::begin(info_hashes), std::end(info_hashes)
+			, [](announce_infohash const& ih) { return ih.is_working(); });
+	}
+#endif
 #if TORRENT_ABI_VERSION == 1
 	bool announce_entry::can_announce(time_point now, bool is_seed) const
 	{
