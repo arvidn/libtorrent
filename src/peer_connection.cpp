@@ -3924,8 +3924,7 @@ namespace libtorrent {
 
 			// this can happen if a block times out, is re-requested and
 			// then arrives "unexpectedly"
-			if (t->picker().is_finished(block.block)
-				|| t->picker().is_downloaded(block.block))
+			if (t->picker().is_downloaded(block.block))
 			{
 				t->picker().abort_download(block.block, peer_info_struct());
 				continue;
