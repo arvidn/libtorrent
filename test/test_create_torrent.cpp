@@ -70,3 +70,31 @@ TORRENT_TEST(create_verbatim_torrent)
 	TEST_CHECK(memcmp(dest_info, test_torrent + 1, sizeof(test_torrent)-3) == 0);
 }
 
+TORRENT_TEST(piece_size)
+{
+	std::int64_t const kiB = 1024;
+	std::int64_t const MiB = 1024 * 1024;
+	std::int64_t const GiB = 1024 * 1024 * 1024;
+	std::array<std::pair<std::int64_t, std::int64_t>, 11> samples{{
+		{100LL,     16 * kiB},
+		{3 * MiB,   32 * kiB},
+		{11 * MiB,  64 * kiB},
+		{43 * MiB,  128 * kiB},
+		{172 * MiB, 256 * kiB},
+		{688 * MiB, 512 * kiB},
+		{3 * GiB,   1 * MiB},
+		{11 * GiB,  2 * MiB},
+		{44 * GiB,  4 * MiB},
+		{176 * GiB, 8 * MiB},
+		{704 * GiB, 16 * MiB},
+	}};
+
+	for (auto const& t : samples)
+	{
+		lt::file_storage fs;
+		fs.add_file("a", t.first);
+		lt::create_torrent ct(fs, 0);
+		TEST_CHECK(ct.piece_length() == static_cast<int>(t.second));
+	}
+}
+
