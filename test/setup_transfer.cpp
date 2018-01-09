@@ -831,7 +831,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 			remove_all(combine_path("tmp2" + suffix, "temporary"), ec);
 			remove_all(combine_path("tmp3" + suffix, "temporary"), ec);
 		}
-		std::printf("generated torrent: %s %s\n", aux::to_hex(t->info_hash()).c_str(), file_path.c_str());
+		std::printf("generated torrent: %s %s\n", aux::to_hex(t->info_hash().v2).c_str(), file_path.c_str());
 	}
 	else
 	{

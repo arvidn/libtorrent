@@ -241,12 +241,12 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_removed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, sha1_hash const& ih);
+			, torrent_handle const& h, info_hash_t const& ih);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority_critical)
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
-		sha1_hash info_hash;
+		info_hash_t info_hash;
 	};
 
 	// This alert is posted when the asynchronous read operation initiated by
@@ -1074,14 +1074,14 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_deleted_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, sha1_hash const& ih);
+			, torrent_handle const& h, info_hash_t const& ih);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 		std::string message() const override;
 
-		sha1_hash info_hash;
+		info_hash_t info_hash;
 	};
 
 	// This alert is generated when a request to delete the files of a torrent fails.
@@ -1090,7 +1090,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_delete_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, error_code const& e, sha1_hash const& ih);
+			, torrent_handle const& h, error_code const& e, info_hash_t const& ih);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36, alert_priority_critical)
 
@@ -1102,7 +1102,7 @@ TORRENT_VERSION_NAMESPACE_2
 		error_code const error;
 
 		// the info hash of the torrent whose files failed to be deleted
-		sha1_hash info_hash;
+		info_hash_t info_hash;
 
 #if TORRENT_ABI_VERSION == 1
 		std::string TORRENT_DEPRECATED_MEMBER msg;
