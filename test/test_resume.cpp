@@ -71,7 +71,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hash().to_string();
+	rd["info-hash"] = ti->info_hash().v1.to_string();
 	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
 	rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 
@@ -824,7 +824,7 @@ void test_zero_file_prio(bool test_deprecated = false, bool mix_prios = false)
 
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hash().to_string();
+	rd["info-hash"] = ti->info_hash().v1.to_string();
 	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
 
 	// set file priorities to 0
@@ -888,7 +888,7 @@ TORRENT_TEST(backwards_compatible_resume_info_dict)
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["name"] = ti->name();
-	rd["info-hash"] = ti->info_hash();
+	rd["info-hash"] = ti->info_hash().v1;
 	auto metainfo = ti->metadata();
 	rd["info"] = bdecode({metainfo.get(), ti->metadata_size()});
 	std::vector<char> resume_data;
@@ -915,7 +915,7 @@ TORRENT_TEST(resume_info_dict)
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["name"] = ti->name();
-	rd["info-hash"] = ti->info_hash();
+	rd["info-hash"] = ti->info_hash().v1;
 	auto metainfo = ti->metadata();
 	rd["info"] = bdecode({metainfo.get(), ti->metadata_size()});
 	std::vector<char> resume_data;
@@ -962,7 +962,7 @@ void test_seed_mode(test_mode_t const flags)
 
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hash().to_string();
+	rd["info-hash"] = ti->info_hash().v1.to_string();
 	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
 
 	if (flags & test_mode::file_prio)

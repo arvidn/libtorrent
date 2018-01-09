@@ -111,7 +111,7 @@ TORRENT_TEST(socks5_tcp_announce)
 			set_proxy(ses, settings_pack::socks5);
 
 			lt::add_torrent_params params;
-			params.info_hash = sha1_hash("abababababababababab");
+			params.info_hash.v1 = sha1_hash("abababababababababab");
 			params.trackers.push_back("http://2.2.2.2:8080/announce");
 			params.save_path = ".";
 			ses.async_add_torrent(params);
@@ -175,7 +175,7 @@ TORRENT_TEST(udp_tracker)
 			ses.apply_settings(p);
 
 			lt::add_torrent_params params;
-			params.info_hash = sha1_hash("abababababababababab");
+			params.info_hash.v1 = sha1_hash("abababababababababab");
 			params.trackers.push_back("udp://2.2.2.2:8080/announce");
 			params.save_path = ".";
 			ses.async_add_torrent(params);

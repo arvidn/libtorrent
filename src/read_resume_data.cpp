@@ -94,19 +94,19 @@ namespace {
 
 		ret.name = rd.dict_find_string_value("name").to_string();
 
-		ret.info_hash.assign(info_hash.data());
+		ret.info_hash.v1.assign(info_hash.data());
 
 		bdecode_node const info = rd.dict_find_dict("info");
 		if (info)
 		{
 			// verify the info-hash of the metadata stored in the resume file matches
 			// the torrent we're loading
-			sha1_hash const resume_ih = hasher(info.data_section()).final();
+			info_hash_t const resume_ih(hasher(info.data_section()).final());
 
 			// if url is set, the info_hash is not actually the info-hash of the
 			// torrent, but the hash of the URL, until we have the full torrent
 			// only require the info-hash to match if we actually passed in one
-			if (resume_ih == ret.info_hash)
+			if (resume_ih.v1 == ret.info_hash.v1)
 			{
 				ret.ti = std::make_shared<torrent_info>(resume_ih);
 

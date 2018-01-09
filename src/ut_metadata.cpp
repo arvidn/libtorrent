@@ -122,8 +122,16 @@ namespace libtorrent {namespace {
 			{
 				m_metadata = m_torrent.torrent_file().metadata();
 				m_metadata_size = m_torrent.torrent_file().metadata_size();
-				TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
-					== m_torrent.torrent_file().info_hash());
+				if (m_torrent.torrent_file().info_hash().has_v1())
+				{
+					TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
+						== m_torrent.torrent_file().info_hash().v1);
+				}
+				if (m_torrent.torrent_file().info_hash().has_v2())
+				{
+					TORRENT_ASSERT(hasher256(m_metadata.get(), m_metadata_size).final()
+						== m_torrent.torrent_file().info_hash().v2);
+				}
 			}
 			return {m_metadata.get(), m_metadata_size};
 		}

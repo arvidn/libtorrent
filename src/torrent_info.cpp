@@ -941,7 +941,7 @@ namespace {
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
 	// used for torrents with no metadata
-	torrent_info::torrent_info(sha1_hash const& info_hash)
+	torrent_info::torrent_info(info_hash_t const& info_hash)
 		: m_info_hash(info_hash)
 	{}
 
@@ -1009,7 +1009,8 @@ namespace {
 
 		// hash the info-field to calculate info-hash
 		auto section = info.data_section();
-		m_info_hash = hasher(section).final();
+		m_info_hash.v1 = hasher(section).final();
+		m_info_hash.v2 = hasher256(section).final();
 		if (info.data_section().size() >= std::numeric_limits<int>::max())
 		{
 			ec = errors::metadata_too_large;
@@ -1051,7 +1052,13 @@ namespace {
 
 		std::string name;
 		sanitize_append_path_element(name, name_ent.string_value());
-		if (name.empty()) name = aux::to_hex(m_info_hash);
+		if (name.empty())
+		{
+			if (m_info_hash.has_v1())
+				name = aux::to_hex(m_info_hash.v1);
+			else
+				name = aux::to_hex(m_info_hash.v2);
+		}
 
 		// extract file list
 		bdecode_node const files_node = info.dict_find_list("files");
