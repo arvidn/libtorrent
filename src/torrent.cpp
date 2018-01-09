@@ -821,13 +821,12 @@ namespace libtorrent {
 				get_handle(), piece, error_code(boost::system::errc::not_enough_memory, generic_category()));
 			return;
 		}
-		rp->blocks_left = 0;
+		rp->blocks_left = blocks_in_piece;
 		rp->fail = false;
 
 		peer_request r;
 		r.piece = piece;
 		r.start = 0;
-		rp->blocks_left = blocks_in_piece;
 		for (int i = 0; i < blocks_in_piece; ++i, r.start += block_size())
 		{
 			r.length = std::min(piece_size - r.start, block_size());
