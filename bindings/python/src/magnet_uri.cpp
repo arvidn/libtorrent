@@ -57,7 +57,10 @@ namespace {
 		for (auto const& i : p.dht_nodes)
 			nodes_list.append(boost::python::make_tuple(i.first, i.second));
 		ret["dht_nodes"] =  nodes_list;
-		ret["info_hash"] = bytes(p.info_hash.to_string());
+		if (p.info_hash.has_v2())
+			ret["info_hash"] = bytes(p.info_hash.v2.to_string());
+		else
+			ret["info_hash"] = bytes(p.info_hash.v1.to_string());
 		ret["name"] = p.name;
 		ret["save_path"] = p.save_path;
 		ret["storage_mode"] = p.storage_mode;

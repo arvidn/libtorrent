@@ -230,7 +230,7 @@ class test_torrent_handle(unittest.TestCase):
         tp = lt.read_resume_data(resume_data)
 
         self.assertEqual(tp.name, 'test')
-        self.assertEqual(tp.info_hash, lt.sha1_hash('abababababababababab'))
+        self.assertEqual(tp.info_hash.v1, lt.sha1_hash('abababababababababab'))
         self.assertEqual(tp.file_priorities, [0, 1, 1])
         self.assertEqual(tp.peers, [('1.1.1.1', 1), ('2.2.2.2', 2)])
 
@@ -311,6 +311,12 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(f.file_size(0), 1234)
         self.assertEqual(info.total_size(), 1234)
         self.assertEqual(info.creation_date(), 0)
+
+    def test_sha1_constructor(self):
+        if not HAVE_DEPRECATED_APIS:
+            return
+        info = lt.torrent_info(lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
+        self.assertEqual(info.info_hash().v1, lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
 
     def test_metadata(self):
         ti = lt.torrent_info('base.torrent')
@@ -462,10 +468,10 @@ class test_magnet_link(unittest.TestCase):
         ses = lt.session({})
         magnet = 'magnet:?xt=urn:btih:C6EIF4CCYDBTIJVG3APAGM7M4NDONCTI'
         p = lt.parse_magnet_uri(magnet)
-        self.assertEqual(str(p.info_hash), '178882f042c0c33426a6d81e0333ece346e68a68')
+        self.assertEqual(str(p.info_hash.v1), '178882f042c0c33426a6d81e0333ece346e68a68')
         p.save_path = '.'
         h = ses.add_torrent(p)
-        self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')
+        self.assertEqual(str(h.info_hash().v1), '178882f042c0c33426a6d81e0333ece346e68a68')
 
     def test_parse_magnet_uri_dict(self):
         ses = lt.session({})
@@ -474,7 +480,7 @@ class test_magnet_link(unittest.TestCase):
         self.assertEqual(binascii.hexlify(p['info_hash']), b'178882f042c0c33426a6d81e0333ece346e68a68')
         p['save_path'] = '.'
         h = ses.add_torrent(p)
-        self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')
+        self.assertEqual(str(h.info_hash().v1), '178882f042c0c33426a6d81e0333ece346e68a68')
 
 
 class test_peer_class(unittest.TestCase):

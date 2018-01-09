@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) try
 		std::printf("%2d: %s\n", i.tier, i.url.c_str());
 
 	std::stringstream ih;
-	ih << t.info_hash();
+	ih << t.info_hash().v1;
 	std::printf("number of pieces: %d\n"
 		"piece length: %d\n"
 		"info hash: %s\n"

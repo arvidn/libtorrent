@@ -224,13 +224,13 @@ TORRENT_TEST(magnet)
 TORRENT_TEST(parse_escaped_hash_parameter)
 {
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn%3Abtih%3Acdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
-	TEST_EQUAL(aux::to_hex(p.info_hash), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hash.v1), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
 
 TORRENT_TEST(parse_escaped_hash_parameter_in_hex)
 {
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdc%64");
-	TEST_EQUAL(aux::to_hex(p.info_hash), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hash.v1), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
 
 TORRENT_TEST(parse_invalid_escaped_hash_parameter)

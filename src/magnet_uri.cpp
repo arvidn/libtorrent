@@ -47,7 +47,7 @@ namespace libtorrent {
 		if (!handle.is_valid()) return "";
 
 		std::string ret;
-		sha1_hash const& ih = handle.info_hash();
+		sha1_hash const& ih = handle.info_hash().v1;
 		ret += "magnet:?xt=urn:btih:";
 		ret += aux::to_hex(ih);
 
@@ -76,7 +76,7 @@ namespace libtorrent {
 	std::string make_magnet_uri(torrent_info const& info)
 	{
 		std::string ret;
-		sha1_hash const& ih = info.info_hash();
+		sha1_hash const& ih = info.info_hash().v1;
 		ret += "magnet:?xt=urn:btih:";
 		ret += aux::to_hex(ih);
 
@@ -248,7 +248,7 @@ namespace libtorrent {
 					ec = errors::invalid_info_hash;
 					return;
 				}
-				p.info_hash = info_hash;
+				p.info_hash.v1 = info_hash;
 				has_ih = true;
 			}
 			else if (name == "so"_sv) // select-only (files)

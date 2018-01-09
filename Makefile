@@ -470,6 +470,7 @@ HEADERS = \
   i2p_stream.hpp               \
   identify_client.hpp          \
   index_range.hpp              \
+  info_hash.hpp                \
   invariant_check.hpp          \
   io.hpp                       \
   io_context.hpp               \
@@ -805,6 +806,7 @@ TEST_SOURCES = \
   test_http_connection.cpp \
   test_http_parser.cpp \
   test_identify_client.cpp \
+  test_info_hash.cpp \
   test_io.cpp \
   test_ip_filter.cpp \
   test_ip_voter.cpp \

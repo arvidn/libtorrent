@@ -515,10 +515,10 @@ void print_settings(int const start, int const num
 	}
 }
 
-std::string resume_file(lt::sha1_hash const& info_hash)
+std::string resume_file(lt::info_hash_t const& info_hash)
 {
 	return path_append(save_path, path_append(".resume"
-		, to_hex(info_hash) + ".resume"));
+		, to_hex(info_hash.get_best()) + ".resume"));
 }
 
 void add_magnet(lt::session& ses, lt::string_view uri)
@@ -744,7 +744,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
 	{
 		torrent_handle h = p->handle;
-		std::string base_name = path_append("certificates", to_hex(h.info_hash()));
+		std::string base_name = path_append("certificates", to_hex(h.info_hash().get_best()));
 		std::string cert = base_name + ".pem";
 		std::string priv = base_name + "_key.pem";
 
