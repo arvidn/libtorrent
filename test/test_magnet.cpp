@@ -187,7 +187,7 @@ TORRENT_TEST(magnet)
 		std::printf("3: %s\n", trackers[2].url.c_str());
 	}
 
-	sha1_hash const ih = t.info_hash();
+	sha1_hash const ih = t.info_hash().v1;
 	TEST_EQUAL(aux::to_hex(ih), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 
 	p1 = s->abort();
@@ -257,7 +257,7 @@ TORRENT_TEST(parse_base32_hash)
 {
 	// parse_magnet_uri
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:MFRGCYTBMJQWEYLCMFRGCYTBMJQWEYLC");
-	TEST_EQUAL(p.info_hash, sha1_hash("abababababababababab"));
+	TEST_EQUAL(p.info_hash.v1, sha1_hash("abababababababababab"));
 }
 
 TORRENT_TEST(parse_web_seeds)
@@ -296,6 +296,36 @@ TORRENT_TEST(parse_space_hash)
 	error_code ec;
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih: abababababababababab", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
+}
+
+TORRENT_TEST(parse_v2_hash)
+{
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hash.v2), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hash.v1), "0000000000000000000000000000000000000000");
+}
+
+TORRENT_TEST(parse_v2_short_hash)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdccdcdcdcdcdcdcd", ec);
+	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
+}
+
+TORRENT_TEST(parse_v2_invalid_hash_prefix)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1221cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", ec);
+	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
+}
+
+TORRENT_TEST(parse_hybrid_uri)
+{
+	add_torrent_params p = parse_magnet_uri("magnet:?"
+		"xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hash.v1), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hash.v2), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
 
 TORRENT_TEST(parse_peer)
@@ -406,6 +436,37 @@ TORRENT_TEST(make_magnet_uri2)
 	std::string magnet = make_magnet_uri(ti);
 	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
 	TEST_CHECK(magnet.find("&ws=http%3a%2f%2ffoo.com%2fbar") != std::string::npos);
+}
+
+TORRENT_TEST(make_magnet_uri_v2)
+{
+	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13
+		, true, lt::create_torrent::v2_only);
+
+	std::string magnet = make_magnet_uri(*ti);
+	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
+	TEST_CHECK(magnet.find("xt=urn:btmh:1220") != std::string::npos);
+	TEST_CHECK(magnet.find("xt=urn:btih:") == std::string::npos);
+}
+
+TORRENT_TEST(make_magnet_uri_hybrid)
+{
+	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13);
+
+	std::string magnet = make_magnet_uri(*ti);
+	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
+	TEST_CHECK(magnet.find("xt=urn:btih:") != std::string::npos);
+	TEST_CHECK(magnet.find("xt=urn:btmh:1220") != std::string::npos);
+}
+
+TORRENT_TEST(make_magnet_uri_v1)
+{
+	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13, true, lt::create_torrent::v1_only);
+
+	std::string magnet = make_magnet_uri(*ti);
+	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
+	TEST_CHECK(magnet.find("xt=urn:btih:") != std::string::npos);
+	TEST_CHECK(magnet.find("xt=urn:btmh:1220") == std::string::npos);
 }
 
 TORRENT_TEST(trailing_whitespace)
