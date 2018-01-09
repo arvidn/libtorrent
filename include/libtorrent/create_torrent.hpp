@@ -321,11 +321,6 @@ namespace libtorrent {
 		// dht nodes to add to the routing table/bootstrap from
 		std::vector<std::pair<std::string, int>> m_nodes;
 
-		// the hash that identifies this torrent
-		// is mutable because it's calculated
-		// lazily
-		mutable sha1_hash m_info_hash;
-
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be
 		// 1970, Jan 1
