@@ -425,7 +425,6 @@ namespace {
 		boost::shared_array<char> const info = ti.metadata();
 		int const size = ti.metadata_size();
 		m_info_dict.preformatted().assign(&info[0], &info[0] + size);
-		m_info_hash = ti.info_hash();
 	}
 
 	entry create_torrent::generate() const
@@ -670,7 +669,6 @@ namespace {
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), info);
-		m_info_hash = hasher(buf).final();
 
 		return dict;
 	}
