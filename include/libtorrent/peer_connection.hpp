@@ -719,7 +719,7 @@ namespace aux {
 				, span<span<char const>>());
 		}
 
-		void attach_to_torrent(sha1_hash const& ih);
+		void attach_to_torrent(info_hash_t const& ih);
 
 		bool verify_piece(peer_request const& p) const;
 

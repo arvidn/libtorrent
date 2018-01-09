@@ -324,7 +324,7 @@ namespace libtorrent {
 		~torrent() override;
 
 		// This may be called from multiple threads
-		sha1_hash const& info_hash() const { return m_info_hash; }
+		info_hash_t const& info_hash() const { return m_info_hash; }
 
 		bool is_deleted() const { return m_deleted; }
 
@@ -1355,7 +1355,7 @@ namespace libtorrent {
 
 		// keep a copy if the info-hash here, so it can be accessed from multiple
 		// threads, and be cheap to access from the client
-		sha1_hash m_info_hash;
+		info_hash_t m_info_hash;
 
 	public:
 		// these are the lists this torrent belongs to. For more

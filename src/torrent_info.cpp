@@ -968,7 +968,7 @@ namespace {
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
 	// used for torrents with no metadata
-	torrent_info::torrent_info(sha1_hash const& info_hash)
+	torrent_info::torrent_info(info_hash_t const& info_hash)
 		: m_info_hash(info_hash)
 	{}
 
@@ -1090,7 +1090,8 @@ namespace {
 
 		// hash the info-field to calculate info-hash
 		auto section = info.data_section();
-		m_info_hash = hasher(section).final();
+		m_info_hash.v1 = hasher(section).final();
+		m_info_hash.v2 = hasher256(section).final();
 		if (info.data_section().size() >= std::numeric_limits<int>::max())
 		{
 			ec = errors::metadata_too_large;
@@ -1127,6 +1128,13 @@ namespace {
 			}
 		}
 
+		if (version < 2)
+		{
+			// this is a v1 torrent so the v2 info hash has no meaning
+			// clear it just to make sure no one tries to use it
+			m_info_hash.v2.clear();
+		}
+
 		// extract piece length
 		std::int64_t piece_length = info.dict_find_int_value("piece length", -1);
 		if (piece_length <= 0 || piece_length > std::numeric_limits<int>::max())
@@ -1150,7 +1158,13 @@ namespace {
 
 		std::string name;
 		sanitize_append_path_element(name, name_ent.string_value());
-		if (name.empty()) name = aux::to_hex(m_info_hash);
+		if (name.empty())
+		{
+			if (m_info_hash.has_v1())
+				name = aux::to_hex(m_info_hash.v1);
+			else
+				name = aux::to_hex(m_info_hash.v2);
+		}
 
 		// extract file list
 
@@ -1207,6 +1221,11 @@ namespace {
 				}
 
 				m_flags &= ~multifile;
+			}
+			else if (version >= 2)
+			{
+				// this is a v2 only torrent so clear the v1 info hash to make sure no one uses it
+				m_info_hash.v1.clear();
 			}
 		}
 		else

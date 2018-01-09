@@ -689,7 +689,8 @@ namespace libtorrent {
 			address_v6::bytes_type bytes = addr.to_v6().to_bytes();
 			x.assign(reinterpret_cast<char*>(bytes.data()), bytes.size());
 		}
-		x.append(t->torrent_file().info_hash().data(), 20);
+
+		x.append(t->torrent_file().info_hash().v1.data(), 20);
 
 		sha1_hash hash = hasher(x).final();
 		int attempts = 0;
@@ -1226,7 +1227,7 @@ namespace libtorrent {
 			&& t->to_req(piece_block(p.piece, p.start / t->block_size())) == p;
 	}
 
-	void peer_connection::attach_to_torrent(sha1_hash const& ih)
+	void peer_connection::attach_to_torrent(info_hash_t const& ih)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1255,7 +1256,8 @@ namespace libtorrent {
 			if (t && should_log(peer_log_alert::info))
 			{
 				peer_log(peer_log_alert::info, "ATTACH"
-					, "Delay loaded torrent: %s:", aux::to_hex(ih).c_str());
+					, "Delay loaded torrent: %s:"
+					, aux::to_hex(t->torrent_file().info_hash().get_best()).c_str());
 			}
 #endif
 		}
@@ -1268,19 +1270,22 @@ namespace libtorrent {
 			{
 				peer_log(peer_log_alert::info, "ATTACH"
 					, "couldn't find a torrent with the given info_hash: %s torrents:"
-					, aux::to_hex(ih).c_str());
+					, aux::to_hex(ih.get_best()).c_str());
 			}
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
-			if (dht::verify_secret_id(ih))
+			ih.for_each([&](sha1_hash const& e, protocol_version)
 			{
-				// this means the hash was generated from our generate_secret_id()
-				// as part of DHT traffic. The fact that we got an incoming
-				// connection on this info-hash, means the other end, making this
-				// connection fished it out of the DHT chatter. That's suspicious.
-				m_ses.ban_ip(m_remote.address());
-			}
+				if (dht::verify_secret_id(e))
+				{
+					// this means the hash was generated from our generate_secret_id()
+					// as part of DHT traffic. The fact that we got an incoming
+					// connection on this info-hash, means the other end, making this
+					// connection fished it out of the DHT chatter. That's suspicious.
+					m_ses.ban_ip(m_remote.address());
+				}
+			});
 #endif
 			disconnect(errors::invalid_info_hash, operation_t::bittorrent, failure);
 			return;

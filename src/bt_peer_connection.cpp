@@ -521,7 +521,7 @@ namespace {
 		TORRENT_ASSERT(t);
 
 		hasher h;
-		sha1_hash const& info_hash = t->torrent_file().info_hash();
+		sha1_hash const& info_hash = t->torrent_file().info_hash().v1;
 		key_t const secret_key = m_dh_key_exchange->get_secret();
 		std::array<char, dh_key_len> const secret = export_key(secret_key);
 
@@ -719,7 +719,7 @@ namespace {
 		ptr += 8;
 
 		// info hash
-		sha1_hash const& ih = t->torrent_file().info_hash();
+		sha1_hash const& ih = t->torrent_file().info_hash().v1;
 		std::memcpy(ptr, ih.data(), ih.size());
 		ptr += 20;
 
@@ -2467,7 +2467,7 @@ namespace {
 				}
 
 				m_rc4 = init_pe_rc4_handler(m_dh_key_exchange->get_secret()
-					, ti->info_hash(), is_outgoing());
+					, ti->info_hash().v1, is_outgoing());
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "ENCRYPTION", "computed RC4 keys");
 				peer_log(peer_log_alert::info, "ENCRYPTION", "stream key found, torrent located");
@@ -2945,14 +2945,14 @@ namespace {
 				std::copy(recv_buffer.begin() + 8, recv_buffer.begin() + 28
 					, info_hash.data());
 
-				attach_to_torrent(info_hash);
+				attach_to_torrent(info_hash_t(info_hash));
 				if (is_disconnecting()) return;
 			}
 			else
 			{
 				// verify info hash
 				if (!std::equal(recv_buffer.begin() + 8, recv_buffer.begin() + 28
-					, t->torrent_file().info_hash().data()))
+					, t->torrent_file().info_hash().v1.data()))
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					peer_log(peer_log_alert::info, "ERROR", "received invalid info_hash");

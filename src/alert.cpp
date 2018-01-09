@@ -106,7 +106,10 @@ namespace libtorrent {
 			}
 			else
 			{
-				m_name_idx = alloc.copy_string(aux::to_hex(t->info_hash()));
+				if (t->info_hash().has_v2())
+					m_name_idx = alloc.copy_string(aux::to_hex(t->info_hash().v2));
+				else
+					m_name_idx = alloc.copy_string(aux::to_hex(t->info_hash().v1));
 			}
 		}
 		else
@@ -712,7 +715,7 @@ namespace libtorrent {
 	}
 
 	torrent_deleted_alert::torrent_deleted_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, sha1_hash const& ih)
+		, torrent_handle const& h, info_hash_t const& ih)
 		: torrent_alert(alloc, h)
 		, info_hash(ih)
 	{}
@@ -723,7 +726,7 @@ namespace libtorrent {
 	}
 
 	torrent_delete_failed_alert::torrent_delete_failed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, error_code const& e, sha1_hash const& ih)
+		, torrent_handle const& h, error_code const& e, info_hash_t const& ih)
 		: torrent_alert(alloc, h)
 		, error(e)
 		, info_hash(ih)
@@ -1406,7 +1409,7 @@ namespace {
 #endif
 
 	torrent_removed_alert::torrent_removed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, sha1_hash const& ih)
+		, torrent_handle const& h, info_hash_t const& ih)
 		: torrent_alert(alloc, h)
 		, info_hash(ih)
 	{}
@@ -1474,7 +1477,7 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 		else if (!params.url.empty()) torrent_name = params.url.c_str();
 #endif
-		else aux::to_hex(params.info_hash, info_hash);
+		else aux::to_hex(params.info_hash.get_best(), info_hash);
 
 		if (error)
 		{
@@ -1598,7 +1601,7 @@ namespace {
 
 #if TORRENT_ABI_VERSION == 1
 	torrent_update_alert::torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
-		, sha1_hash const& old_hash, sha1_hash const& new_hash)
+		, info_hash_t const& old_hash, info_hash_t const& new_hash)
 		: torrent_alert(alloc, h)
 		, old_ih(old_hash)
 		, new_ih(new_hash)
@@ -1608,8 +1611,8 @@ namespace {
 	{
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), " torrent changed info-hash from: %s to %s"
-			, aux::to_hex(old_ih).c_str()
-			, aux::to_hex(new_ih).c_str());
+			, aux::to_hex(old_ih.get_best()).c_str()
+			, aux::to_hex(new_ih.get_best()).c_str());
 		return torrent_alert::message() + msg;
 	}
 #endif

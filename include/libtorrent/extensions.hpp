@@ -238,7 +238,7 @@ namespace libtorrent {
 		virtual void on_alert(alert const*) {}
 
 		// return true if the add_torrent_params should be added
-		virtual bool on_unknown_torrent(sha1_hash const& /* info_hash */
+		virtual bool on_unknown_torrent(info_hash_t const& /* info_hash */
 			, peer_connection_handle const& /* pc */, add_torrent_params& /* p */)
 		{ return false; }
 

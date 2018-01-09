@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/link.hpp" // for torrent_list_index_t
-#include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/info_hash.hpp"
 
 #include <functional>
 #include <memory>
@@ -182,12 +182,12 @@ namespace aux {
 		virtual void trigger_optimistic_unchoke() noexcept = 0;
 		virtual void trigger_unchoke() noexcept = 0;
 
-		virtual std::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const = 0;
+		virtual std::weak_ptr<torrent> find_torrent(info_hash_t const& info_hash) const = 0;
 		virtual std::weak_ptr<torrent> find_disconnect_candidate_torrent() const = 0;
-		virtual std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
+		virtual std::shared_ptr<torrent> delay_load_torrent(info_hash_t const& info_hash
 			, peer_connection* pc) = 0;
-		virtual void insert_torrent(std::shared_ptr<torrent> const& t
-			, std::string uuid) = 0;
+		virtual void update_torrent_info_hash(std::shared_ptr<torrent> const& t
+			, info_hash_t const& old_ih) = 0;
 #if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		virtual void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) = 0;

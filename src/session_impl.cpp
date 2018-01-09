@@ -366,8 +366,8 @@ namespace aux {
 		if (!servername || std::strlen(servername) < 40)
 			return SSL_TLSEXT_ERR_ALERT_FATAL;
 
-		sha1_hash info_hash;
-		bool valid = aux::from_hex({servername, 40}, info_hash.data());
+		info_hash_t info_hash;
+		bool valid = aux::from_hex({servername, 40}, info_hash.v1.data());
 
 		// the server name is not a valid hex-encoded info-hash
 		if (!valid)
@@ -4322,7 +4322,7 @@ namespace aux {
 		}
 	}
 
-	std::shared_ptr<torrent> session_impl::delay_load_torrent(sha1_hash const& info_hash
+	std::shared_ptr<torrent> session_impl::delay_load_torrent(info_hash_t const& info_hash
 		, peer_connection* pc)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -4346,11 +4346,15 @@ namespace aux {
 
 	// the return value from this function is valid only as long as the
 	// session is locked!
-	std::weak_ptr<torrent> session_impl::find_torrent(sha1_hash const& info_hash) const
+	std::weak_ptr<torrent> session_impl::find_torrent(info_hash_t const& info_hash) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		auto const i = m_torrent_index.find(info_hash);
+		auto i = m_torrent_index.end();
+		info_hash.for_each([&](sha1_hash const& ih, protocol_version)
+		{
+			if (i == m_torrent_index.end()) i = m_torrent_index.find(ih);
+		});
 #if TORRENT_USE_INVARIANT_CHECKS
 		for (auto const& te : m_torrents)
 		{
@@ -4361,16 +4365,33 @@ namespace aux {
 		return std::weak_ptr<torrent>();
 	}
 
-	void session_impl::insert_torrent(std::shared_ptr<torrent> const& t, std::string uuid)
+	void session_impl::update_torrent_info_hash(std::shared_ptr<torrent> const& t
+		, info_hash_t const& old_ih)
 	{
-		m_torrents.push_back(t);
-		m_torrent_index.insert(std::make_pair(t->torrent_file().info_hash(), t));
-#if TORRENT_ABI_VERSION == 1
-		//deprecated in 1.2
-		if (!uuid.empty()) m_uuids.insert(std::make_pair(uuid, t));
-#else
-		TORRENT_UNUSED(uuid);
+		old_ih.for_each([&](sha1_hash const& ih, protocol_version v)
+		{
+			if (ih != t->torrent_file().info_hash().get(v))
+				m_torrent_index.erase(ih);
+		});
+
+		register_info_hashes(t);
+	}
+
+	void session_impl::register_info_hashes(std::shared_ptr<torrent> const& t)
+	{
+		t->torrent_file().info_hash().for_each([&](sha1_hash const& ih, protocol_version)
+		{
+			m_torrent_index.emplace(ih, t);
+
+#if !defined TORRENT_DISABLE_ENCRYPTION
+			static char const req2[4] = { 'r', 'e', 'q', '2' };
+			hasher h(req2);
+			h.update(ih);
+			// this is SHA1("req2" + info-hash), used for
+			// encrypted hand shakes
+			m_obfuscated_torrents.insert(std::make_pair(h.final(), t));
 #endif
+		});
 	}
 
 	void session_impl::set_queue_position(torrent* me, queue_position_t p)
@@ -4648,7 +4669,7 @@ namespace aux {
 
 	torrent_handle session_impl::find_torrent_handle(sha1_hash const& info_hash)
 	{
-		return torrent_handle(find_torrent(info_hash));
+		return torrent_handle(find_torrent(info_hash_t(info_hash)));
 	}
 
 	void session_impl::async_add_torrent(add_torrent_params* params)
@@ -4734,7 +4755,7 @@ namespace aux {
 		if (!torrent_ptr) return handle;
 
 		// params.info_hash should have been initialized by add_torrent_impl()
-		TORRENT_ASSERT(params.info_hash != sha1_hash(nullptr));
+		TORRENT_ASSERT(params.info_hash.has_v1() || params.info_hash.has_v2());
 
 #ifndef TORRENT_DISABLE_DHT
 		if (params.ti)
@@ -4771,16 +4792,7 @@ namespace aux {
 #endif
 
 		m_torrents.push_back(torrent_ptr);
-		m_torrent_index.emplace(params.info_hash, torrent_ptr);
-
-#if !defined TORRENT_DISABLE_ENCRYPTION
-		static char const req2[4] = {'r', 'e', 'q', '2'};
-		hasher h(req2);
-		h.update(params.info_hash);
-		// this is SHA1("req2" + info-hash), used for
-		// encrypted hand shakes
-		m_obfuscated_torrents.emplace(h.final(), torrent_ptr);
-#endif
+		register_info_hashes(torrent_ptr);
 
 		// once we successfully add the torrent, we can disarm the abort action
 		abort_torrent.disarm();
@@ -4887,11 +4899,11 @@ namespace aux {
 			// just a URL, set the temporary info-hash to the
 			// hash of the URL. This will be changed once we
 			// have the actual .torrent file
-			params.info_hash = hasher(&params.url[0], int(params.url.size())).final();
+			params.info_hash.v1 = hasher(&params.url[0], int(params.url.size())).final();
 		}
 #endif
 
-		if (params.info_hash.is_all_zeros())
+		if (!params.info_hash.has_v1() && !params.info_hash.has_v2())
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return std::make_pair(ptr_t(), false);
@@ -5100,7 +5112,9 @@ namespace aux {
 		}
 #endif
 
-		auto i = m_torrent_index.find(tptr->torrent_file().info_hash());
+		auto i = m_torrent_index.find(tptr->torrent_file().info_hash().get(protocol_version::V1));
+		if (i == m_torrent_index.end())
+			i = m_torrent_index.find(tptr->torrent_file().info_hash().get(protocol_version::V2));
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
@@ -5127,7 +5141,7 @@ namespace aux {
 		tptr->update_gauge();
 
 #if TORRENT_USE_ASSERTS
-		sha1_hash i_hash = t.torrent_file().info_hash();
+		sha1_hash i_hash = t.torrent_file().info_hash().get_best();
 #endif
 
 		auto array_iter = std::find(m_torrents.begin(), m_torrents.end(), i->second);
@@ -5137,14 +5151,22 @@ namespace aux {
 			std::swap(*array_iter, m_torrents.back());
 			m_torrents.pop_back();
 		}
+		if (tptr->torrent_file().info_hash().has_v2()
+			&& i->first == tptr->torrent_file().info_hash().v1)
+		{
+			m_torrent_index.erase(tptr->torrent_file().info_hash().get(protocol_version::V2));
+		}
 		m_torrent_index.erase(i);
 		tptr->removed();
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
-		static char const req2[4] = {'r', 'e', 'q', '2'};
-		hasher h(req2);
-		h.update(tptr->info_hash());
-		m_obfuscated_torrents.erase(h.final());
+		tptr->torrent_file().info_hash().for_each([&](sha1_hash const& ih, protocol_version)
+		{
+			static char const req2[4] = { 'r', 'e', 'q', '2' };
+			hasher h(req2);
+			h.update(ih);
+			m_obfuscated_torrents.erase(h.final());
+		});
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
@@ -5474,7 +5496,7 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
-		std::shared_ptr<torrent> t = find_torrent(ih).lock();
+		std::shared_ptr<torrent> t = find_torrent(info_hash_t(ih)).lock();
 		if (!t) return;
 		// don't add peers from lsd to private torrents
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()

@@ -557,7 +557,7 @@ TORRENT_VERSION_NAMESPACE_2
 #endif
 
 		// the info-hash for this torrent
-		sha1_hash info_hash;
+		info_hash_t info_hash;
 
 		time_point last_upload;
 		time_point last_download;

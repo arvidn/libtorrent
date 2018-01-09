@@ -212,7 +212,7 @@ TORRENT_TEST(url_list_and_httpseeds)
 
 TORRENT_TEST(add_url_seed)
 {
-	torrent_info ti(sha1_hash("                   "));
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
 	TEST_EQUAL(ti.web_seeds().size(), 0);
 
 	ti.add_url_seed("http://test.com");
@@ -225,7 +225,7 @@ TORRENT_TEST(add_url_seed)
 
 TORRENT_TEST(add_http_seed)
 {
-	torrent_info ti(sha1_hash("                   "));
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
 	TEST_EQUAL(ti.web_seeds().size(), 0);
 
 	ti.add_http_seed("http://test.com");
@@ -238,7 +238,7 @@ TORRENT_TEST(add_http_seed)
 
 TORRENT_TEST(set_web_seeds)
 {
-	torrent_info ti(sha1_hash("                   "));
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
 	TEST_EQUAL(ti.web_seeds().size(), 0);
 
 	std::vector<web_seed_entry> seeds;

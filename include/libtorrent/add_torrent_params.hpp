@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/torrent_flags.hpp"
+#include "libtorrent/info_hash.hpp"
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 
@@ -211,7 +212,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// .torrent file nor a magnet link.
 		// To add a magnet link, use parse_magnet_uri() to populate fields in the
 		// add_torrent_params object.
-		sha1_hash info_hash;
+		info_hash_t info_hash;
 
 		// ``max_uploads``, ``max_connections``, ``upload_limit``,
 		// ``download_limit`` correspond to the ``set_max_uploads()``,

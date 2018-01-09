@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/copy_ptr.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/info_hash.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
@@ -162,7 +163,7 @@ namespace libtorrent {
 		explicit torrent_info(std::string const& filename);
 #endif // BOOST_NO_EXCEPTIONS
 		torrent_info(torrent_info const& t);
-		explicit torrent_info(sha1_hash const& info_hash);
+		explicit torrent_info(info_hash_t const& info_hash);
 		torrent_info(bdecode_node const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec)
 			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
@@ -349,7 +350,7 @@ namespace libtorrent {
 		{ return m_files.piece_range(); }
 
 		// returns the info-hash of the torrent
-		const sha1_hash& info_hash() const { return m_info_hash; }
+		const info_hash_t& info_hash() const { return m_info_hash; }
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.0. Use the variants that take an index instead
@@ -667,8 +668,8 @@ namespace libtorrent {
 		// 1970, Jan 1
 		std::time_t m_creation_date = 0;
 
-		// the hash that identifies this torrent
-		sha1_hash m_info_hash;
+		// the hash(es) that identify this torrent
+		info_hash_t m_info_hash;
 
 		// the number of bytes in m_info_section
 		std::int32_t m_info_section_size = 0;

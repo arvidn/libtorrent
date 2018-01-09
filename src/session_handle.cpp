@@ -457,7 +457,7 @@ namespace {
 
 		add_torrent_params p;
 		p.trackers.push_back(tracker_url);
-		p.info_hash = info_hash;
+		p.info_hash.v1 = info_hash;
 		p.save_path = save_path;
 		p.storage_mode = storage_mode;
 

@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/torrent_flags.hpp"
+#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/pex_flags.hpp"
@@ -1222,10 +1223,10 @@ namespace aux {
 		void super_seeding(bool on) const;
 #endif // TORRENT_ABI_VERSION
 
-		// ``info_hash()`` returns the info-hash of the torrent. If this handle
+		// ``info_hash()`` returns the info-hash(es) of the torrent. If this handle
 		// is to a torrent that hasn't loaded yet (for instance by being added)
 		// by a URL, the returned value is undefined.
-		sha1_hash info_hash() const;
+		info_hash_t info_hash() const;
 
 		// comparison operators. The order of the torrents is unspecified
 		// but stable.
