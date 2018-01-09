@@ -112,7 +112,7 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 	auto ti = std::make_shared<torrent_info>(buf, from_span);
 
 	// remember the info-hash to give the fuzzer a chance to connect to it
-	g_info_hash = ti->info_hash();
+	g_info_hash = ti->info_hash().v1;
 
 	// add the torrent to the session
 	add_torrent_params atp;

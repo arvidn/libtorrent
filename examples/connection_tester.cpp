@@ -1111,7 +1111,7 @@ int main(int argc, char* argv[])
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
 		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
-			, ep, (char const*)&ti.info_hash()[0], seed, churn, corrupt));
+			, ep, (char const*)ti.info_hash().v1.data(), seed, churn, corrupt));
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		ios[i % num_threads].poll_one();
 	}

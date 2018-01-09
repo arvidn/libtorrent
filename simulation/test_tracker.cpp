@@ -389,7 +389,7 @@ void test_ipv6_support(char const* listen_interfaces
 		lt::add_torrent_params p;
 		p.name = "test-torrent";
 		p.save_path = ".";
-		p.info_hash.assign("abababababababababab");
+		p.info_hash.v1.assign("abababababababababab");
 
 //TODO: parameterize http vs. udp here
 		p.trackers.push_back("http://tracker.com:8080/announce");
@@ -488,7 +488,7 @@ void test_udpv6_support(char const* listen_interfaces
 		lt::add_torrent_params p;
 		p.name = "test-torrent";
 		p.save_path = ".";
-		p.info_hash.assign("abababababababababab");
+		p.info_hash.v1.assign("abababababababababab");
 
 		p.trackers.push_back("udp://tracker.com:8080/announce");
 		ses->async_add_torrent(p);
@@ -616,7 +616,7 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	lt::add_torrent_params p;
 	p.name = "test-torrent";
 	p.save_path = ".";
-	p.info_hash.assign("abababababababababab");
+	p.info_hash.v1.assign("abababababababababab");
 	int const delay = setup(p, *ses);
 	ses->async_add_torrent(p);
 

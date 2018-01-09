@@ -482,8 +482,8 @@ namespace {
 		, m_private(ti.priv())
 		, m_include_mtime(false)
 		, m_include_symlinks(false)
-		, m_v2_only(false)
-		, m_v1_only(true)
+		, m_v2_only(!ti.info_hash().has_v1())
+		, m_v1_only(!ti.info_hash().has_v2())
 	{
 		TORRENT_ASSERT_PRECOND(!(m_v2_only && m_v1_only));
 		TORRENT_ASSERT(ti.is_valid());

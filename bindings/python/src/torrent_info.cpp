@@ -199,6 +199,13 @@ std::shared_ptr<torrent_info> file_constructor0(std::string const& filename)
    return ret;
 }
 
+#if TORRENT_ABI_VERSION == 1
+std::shared_ptr<torrent_info> sha1_constructor0(sha1_hash const& ih)
+{
+   return std::make_shared<torrent_info>(ih);
+}
+#endif
+
 std::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent)
 {
     std::vector<char> buf;
@@ -236,14 +243,36 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
+    enum_<protocol_version>("protocol_version")
+        .value("V1", protocol_version::V1)
+        .value("V2", protocol_version::V2)
+        ;
+
+    class_<info_hash_t>("info_hash_t")
+        .def(init<sha1_hash const&>(arg("sha1_hash")))
+        .def(init<sha256_hash const&>(arg("sha256_hash")))
+        .def(init<sha1_hash const&, sha256_hash const&>((arg("sha1_hash"), arg("sha256_hash"))))
+        .def("has_v1", &info_hash_t::has_v1)
+        .def("has_v2", &info_hash_t::has_v2)
+        .def("has", &info_hash_t::has)
+        .def("get", &info_hash_t::get)
+        .def("get_best", &info_hash_t::get_best)
+        .add_property("v1", &info_hash_t::v1)
+        .add_property("v2", &info_hash_t::v2)
+        .def(self == self)
+        .def(self != self)
+        .def(self < self)
+        ;
+
     class_<torrent_info, std::shared_ptr<torrent_info>>("torrent_info", no_init)
-        .def(init<sha1_hash const&>(arg("info_hash")))
+        .def(init<info_hash_t const&>(arg("info_hash")))
         .def("__init__", make_constructor(&bencoded_constructor0))
         .def("__init__", make_constructor(&buffer_constructor0))
         .def("__init__", make_constructor(&file_constructor0))
         .def(init<torrent_info const&>((arg("ti"))))
 
 #if TORRENT_ABI_VERSION == 1
+        .def("__init__", make_constructor(&sha1_constructor0))
         .def(init<std::wstring>((arg("file"))))
 #endif
 

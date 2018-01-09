@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
-#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
@@ -180,10 +179,10 @@ namespace libtorrent {
 		return r;
 	}
 
-	sha1_hash torrent_handle::info_hash() const
+	info_hash_t torrent_handle::info_hash() const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		return t ? t->info_hash() : sha1_hash();
+		return t ? t->info_hash() : info_hash_t();
 	}
 
 	int torrent_handle::max_uploads() const

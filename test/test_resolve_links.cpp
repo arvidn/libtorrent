@@ -126,7 +126,7 @@ TORRENT_TEST(resolve_links)
 					, int(fs.file_name(idx).size())
 					, fs.file_name(idx).data()
 					, links[idx].ti
-					? aux::to_hex(links[idx].ti->info_hash()).c_str()
+					? aux::to_hex(links[idx].ti->info_hash().v1).c_str()
 					: "", static_cast<int>(links[idx].file_idx));
 			}
 		}

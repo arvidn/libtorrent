@@ -187,6 +187,9 @@ class hasher;
 class hasher256;
 TORRENT_CRYPTO_NAMESPACE_END
 
+// include/libtorrent/info_hash.hpp
+struct info_hash_t;
+
 // include/libtorrent/ip_filter.hpp
 struct ip_filter;
 class port_filter;

@@ -248,8 +248,16 @@ namespace
             }
             else if(key == "info_hash")
             {
-                p.info_hash = sha1_hash(
-                bytes(extract<bytes>(value)).arr.data());
+                if (boost::python::len(value) == sha1_hash::size())
+                {
+                    p.info_hash = info_hash_t(sha1_hash(
+                            bytes(extract<bytes>(value)).arr.data()));
+                }
+                else if (boost::python::len(value) == sha256_hash::size())
+                {
+                    p.info_hash = info_hash_t(sha256_hash(
+                            bytes(extract<bytes>(value)).arr.data()));
+                }
                 continue;
             }
             else if(key == "name")
