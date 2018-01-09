@@ -1463,7 +1463,7 @@ bool is_downloading_state(int const st)
 			m_save_path,
 			static_cast<storage_mode_t>(m_storage_mode),
 			m_file_priority,
-			m_info_hash
+			m_info_hash.has_v1() ? m_info_hash.v1 : m_info_hash.get(protocol_version::V2)
 		};
 
 		// the shared_from_this() will create an intentional
@@ -1668,7 +1668,7 @@ bool is_downloading_state(int const st)
 
 			for (auto const& ih : m_torrent_file->similar_torrents())
 			{
-				std::shared_ptr<torrent> t = m_ses.find_torrent(ih).lock();
+				std::shared_ptr<torrent> t = m_ses.find_torrent(info_hash_t(ih)).lock();
 				if (!t) continue;
 
 				// Only attempt to reuse files from torrents that are seeding.
@@ -2332,7 +2332,7 @@ bool is_downloading_state(int const st)
 #endif
 
 		// announce with the local discovery service
-		m_ses.announce_lsd(m_torrent_file->info_hash(), port
+		m_ses.announce_lsd(m_torrent_file->info_hash().v1, port
 			, settings().get_bool(settings_pack::broadcast_lsd) && m_lsd_seq == 0);
 		++m_lsd_seq;
 	}
@@ -2410,7 +2410,7 @@ bool is_downloading_state(int const st)
 		}
 
 		std::weak_ptr<torrent> self(shared_from_this());
-		m_ses.dht()->announce(m_torrent_file->info_hash(), 0, flags
+		m_ses.dht()->announce(m_torrent_file->info_hash().v1, 0, flags
 			, std::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
@@ -2553,7 +2553,7 @@ bool is_downloading_state(int const st)
 
 		req.private_torrent = m_torrent_file->priv();
 
-		req.info_hash = m_torrent_file->info_hash();
+		req.info_hash = m_torrent_file->info_hash().v1;
 		req.pid = m_peer_id;
 		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
 		req.uploaded = m_stat.total_payload_upload();
@@ -2802,7 +2802,7 @@ bool is_downloading_state(int const st)
 			&& m_apply_ip_filter)
 			req.filter = m_ip_filter;
 
-		req.info_hash = m_torrent_file->info_hash();
+		req.info_hash = m_torrent_file->info_hash().v1;
 		req.kind |= tracker_request::scrape_request;
 		req.url = m_trackers[idx].url;
 		req.private_torrent = m_torrent_file->priv();
@@ -6310,7 +6310,7 @@ bool is_downloading_state(int const st)
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
-				std::string host_name = aux::to_hex(m_torrent_file->info_hash());
+				std::string host_name = aux::to_hex(m_torrent_file->info_hash().v1);
 
 #define CASE(t) case aux::socket_type_int_impl<ssl_stream<t>>::value: \
 	s->get<ssl_stream<t>>()->set_host_name(host_name); break;
@@ -6408,16 +6408,45 @@ bool is_downloading_state(int const st)
 
 		if (m_torrent_file->is_valid()) return false;
 
-		sha1_hash const info_hash = hasher(metadata_buf).final();
-		if (info_hash != m_torrent_file->info_hash())
+		if (m_torrent_file->info_hash().has_v1())
 		{
-			if (alerts().should_post<metadata_failed_alert>())
+			sha1_hash const info_hash = hasher(metadata_buf).final();
+			if (info_hash != m_torrent_file->info_hash().v1)
 			{
-				alerts().emplace_alert<metadata_failed_alert>(get_handle()
-					, errors::mismatching_info_hash);
+				// check if the v1 hash is a truncated v2 hash
+				sha256_hash const info_hash2 = hasher256(metadata_buf).final();
+				if (sha1_hash(info_hash2.data()) != m_torrent_file->info_hash().v1)
+				{
+					if (alerts().should_post<metadata_failed_alert>())
+					{
+						alerts().emplace_alert<metadata_failed_alert>(get_handle()
+							, errors::mismatching_info_hash);
+					}
+					return false;
+				}
 			}
-			return false;
 		}
+		if (m_torrent_file->info_hash().has_v2())
+		{
+			// we don't have to worry about computing the v2 hash twice because
+			// if the v1 hash was a truncated v2 hash then the torrent_file should
+			// not have a v2 hash and we shouldn't get here
+			sha256_hash const info_hash = hasher256(metadata_buf).final();
+			if (info_hash != m_torrent_file->info_hash().v2)
+			{
+				if (alerts().should_post<metadata_failed_alert>())
+				{
+					alerts().emplace_alert<metadata_failed_alert>(get_handle()
+						, errors::mismatching_info_hash);
+				}
+				return false;
+			}
+		}
+
+		// the torrent's info hash might change
+		// e.g. it could be a hybrid torrent which we only had one of the hashes for
+		// so remove the existing entry
+		info_hash_t old_ih = m_torrent_file->info_hash();
 
 		bdecode_node metadata;
 		error_code ec;
@@ -6436,6 +6465,24 @@ bool is_downloading_state(int const st)
 			pause();
 			return false;
 		}
+
+		// now, we might already have this torrent in the session.
+		m_torrent_file->info_hash().for_each([&](sha1_hash const& ih, protocol_version)
+		{
+			auto t = m_ses.find_torrent(info_hash_t(ih)).lock();
+			if (t && t != shared_from_this())
+			{
+				// TODO: if the existing torrent doesn't have metadata, insert
+				// the metadata we just downloaded into it.
+
+				set_error(errors::duplicate_torrent, torrent_status::error_file_metadata);
+				abort();
+			}
+		});
+
+		if (m_abort) return false;
+
+		m_ses.update_torrent_info_hash(shared_from_this(), old_ih);
 
 		update_gauge();
 
@@ -7497,7 +7544,8 @@ bool is_downloading_state(int const st)
 
 		if (m_torrent_file)
 		{
-			TORRENT_ASSERT(m_info_hash == m_torrent_file->info_hash());
+			TORRENT_ASSERT(m_info_hash.v1 == m_torrent_file->info_hash().v1);
+			TORRENT_ASSERT(m_info_hash.v2 == m_torrent_file->info_hash().v2);
 		}
 
 		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)

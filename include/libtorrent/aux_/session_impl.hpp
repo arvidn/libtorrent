@@ -367,7 +367,7 @@ namespace aux {
 
 			void incoming_connection(std::shared_ptr<socket_type> const& s);
 
-			std::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const override;
+			std::weak_ptr<torrent> find_torrent(info_hash_t const& info_hash) const override;
 #if TORRENT_ABI_VERSION == 1
 			//deprecated in 1.2
 
@@ -382,9 +382,12 @@ namespace aux {
 			std::weak_ptr<torrent> find_disconnect_candidate_torrent() const override;
 			int num_torrents() const override { return int(m_torrents.size()); }
 
-			void insert_torrent(std::shared_ptr<torrent> const& t) override;
+			void insert_torrent(info_hash_t const& ih, std::shared_ptr<torrent> const& t) override;
 
-			std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
+			void update_torrent_info_hash(std::shared_ptr<torrent> const& t
+				, info_hash_t const& old_ih) override;
+
+			std::shared_ptr<torrent> delay_load_torrent(info_hash_t const& info_hash
 				, peer_connection* pc) override;
 			void set_queue_position(torrent* t, queue_position_t p) override;
 

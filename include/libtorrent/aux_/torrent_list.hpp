@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/info_hash.hpp"
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/hasher.hpp"
@@ -81,21 +82,27 @@ struct torrent_list
 		return m_array[idx].get();
 	}
 
-	bool insert(sha1_hash const& ih, std::shared_ptr<T> t)
+	bool insert(info_hash_t const& ih, std::shared_ptr<T> t)
 	{
 		TORRENT_ASSERT(t);
-		bool const added = m_index.insert({ih, t.get()}).second;
-		// if we already have a torrent with this hash, don't do anything
-		if (!added) return false;
+
+		bool duplicate = false;
+		ih.for_each([&](sha1_hash const& ih, protocol_version)
+		{
+			duplicate |= !m_index.insert({ih, t.get()}).second;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
-		static char const req2[4] = {'r', 'e', 'q', '2'};
-		hasher h(req2);
-		h.update(ih);
-		// this is SHA1("req2" + info-hash), used for
-		// encrypted hand shakes
-		m_obfuscated_index.emplace(h.final(), t.get());
+			static char const req2[4] = { 'r', 'e', 'q', '2' };
+			hasher h(req2);
+			h.update(ih);
+			// this is SHA1("req2" + info-hash), used for
+			// encrypted hand shakes
+			m_obfuscated_index.insert({h.final(), t.get()});
 #endif
+		});
+
+		// if we already have a torrent with this hash, don't do anything
+		if (duplicate) return false;
 
 		m_array.emplace_back(std::move(t));
 
@@ -118,21 +125,29 @@ struct torrent_list
 		return i->second;
 	}
 
-	bool erase(sha1_hash const& ih)
+	bool erase(info_hash_t const& ih)
 	{
-		auto const i = m_index.find(ih);
-		if (i == m_index.end()) return false;
-		auto const array_iter = std::find_if(m_array.begin(), m_array.end()
-			, [&](std::shared_ptr<T> const& p) { return p.get() == i->second; });
-		TORRENT_ASSERT(array_iter != m_array.end());
-		m_index.erase(i);
+		T* found = nullptr;
+		ih.for_each([&](sha1_hash const& ih, protocol_version)
+		{
+			auto const i = m_index.find(ih);
+			if (i != m_index.end())
+			{
+				TORRENT_ASSERT(found == nullptr || found == i->second);
+				found = i->second;
+				m_index.erase(i);
+			}
 
-#if !defined TORRENT_DISABLE_ENCRYPTION
-		static char const req2[4] = {'r', 'e', 'q', '2'};
-		hasher h(req2);
-		h.update(ih);
-		m_obfuscated_index.erase(h.final());
-#endif
+			static char const req2[4] = { 'r', 'e', 'q', '2' };
+			hasher h(req2);
+			h.update(ih);
+			m_obfuscated_index.erase(h.final());
+		});
+		if (!found) return false;
+
+		auto const array_iter = std::find_if(m_array.begin(), m_array.end()
+			, [&](std::shared_ptr<T> const& p) { return p.get() == found; });
+		TORRENT_ASSERT(array_iter != m_array.end());
 
 		TORRENT_ASSERT(m_index.find(ih) == m_index.end());
 

@@ -36,12 +36,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+info_hash_t ih(char const* s) { return info_hash_t(sha1_hash(s)); }
+}
+
 TORRENT_TEST(torrent_list_empty)
 {
 	aux::torrent_list<int> l;
 	TEST_CHECK(l.empty());
 	TEST_CHECK(l.begin() == l.end());
-	l.insert(sha1_hash("abababababababababab"), std::make_shared<int>(1337));
+	l.insert(ih("abababababababababab"), std::make_shared<int>(1337));
 	TEST_CHECK(!l.empty());
 	TEST_CHECK(l.begin() != l.end());
 }
@@ -50,11 +54,11 @@ TORRENT_TEST(torrent_list_size)
 {
 	aux::torrent_list<int> l;
 	TEST_EQUAL(l.size(), 0);
-	l.insert(sha1_hash("abababababababababab"), std::make_shared<int>(1337));
+	l.insert(ih("abababababababababab"), std::make_shared<int>(1337));
 	TEST_EQUAL(l.size(), 1);
-	l.insert(sha1_hash("bcababababababababab"), std::make_shared<int>(1338));
+	l.insert(ih("bcababababababababab"), std::make_shared<int>(1338));
 	TEST_EQUAL(l.size(), 2);
-	l.insert(sha1_hash("cdababababababababab"), std::make_shared<int>(1339));
+	l.insert(ih("cdababababababababab"), std::make_shared<int>(1339));
 	TEST_EQUAL(l.size(), 3);
 }
 
@@ -62,30 +66,30 @@ TORRENT_TEST(torrent_list_duplicates)
 {
 	aux::torrent_list<int> l;
 	TEST_EQUAL(l.size(), 0);
-	TEST_CHECK(l.insert(sha1_hash("abababababababababab"), std::make_shared<int>(1337)));
+	TEST_CHECK(l.insert(ih("abababababababababab"), std::make_shared<int>(1337)));
 	TEST_EQUAL(l.size(), 1);
-	TEST_CHECK(!l.insert(sha1_hash("abababababababababab"), std::make_shared<int>(1338)));
+	TEST_CHECK(!l.insert(ih("abababababababababab"), std::make_shared<int>(1338)));
 	TEST_EQUAL(l.size(), 1);
 }
 
 TORRENT_TEST(torrent_list_lookup)
 {
 	aux::torrent_list<int> l;
-	l.insert(sha1_hash("abababababababababab"), std::make_shared<int>(1337));
-	l.insert(sha1_hash("cdababababababababab"), std::make_shared<int>(1338));
+	l.insert(ih("abababababababababab"), std::make_shared<int>(1337));
+	l.insert(ih("cdababababababababab"), std::make_shared<int>(1338));
 
-	TEST_EQUAL(*l.find(sha1_hash("abababababababababab")), 1337);
-	TEST_EQUAL(*l.find(sha1_hash("cdababababababababab")), 1338);
-	TEST_CHECK(l.find(sha1_hash("deababababababababab")) == nullptr);
+	TEST_EQUAL(*l.find(ih("abababababababababab")), 1337);
+	TEST_EQUAL(*l.find(ih("cdababababababababab")), 1338);
+	TEST_CHECK(l.find(ih("deababababababababab")) == nullptr);
 }
 
 TORRENT_TEST(torrent_list_order)
 {
 	aux::torrent_list<int> l;
-	l.insert(sha1_hash("abababababababababab"), std::make_shared<int>(1));
-	l.insert(sha1_hash("cdababababababababab"), std::make_shared<int>(2));
-	l.insert(sha1_hash("deababababababababab"), std::make_shared<int>(3));
-	l.insert(sha1_hash("efababababababababab"), std::make_shared<int>(0));
+	l.insert(ih("abababababababababab"), std::make_shared<int>(1));
+	l.insert(ih("cdababababababababab"), std::make_shared<int>(2));
+	l.insert(ih("deababababababababab"), std::make_shared<int>(3));
+	l.insert(ih("efababababababababab"), std::make_shared<int>(0));
 
 	// iteration order is the same as insertion order, not sort order of
 	// info-hashes
@@ -106,44 +110,44 @@ TORRENT_TEST(torrent_list_order)
 TORRENT_TEST(torrent_list_erase)
 {
 	aux::torrent_list<int> l;
-	l.insert(sha1_hash("abababababababababab"), std::make_shared<int>(1337));
+	l.insert(ih("abababababababababab"), std::make_shared<int>(1337));
 	TEST_CHECK(!l.empty());
 
 	// this doesn't exist, returns false
-	TEST_CHECK(!l.erase(sha1_hash("bcababababababababab")));
+	TEST_CHECK(!l.erase(ih("bcababababababababab")));
 	TEST_CHECK(!l.empty());
 
-	TEST_EQUAL(*l.find(sha1_hash("abababababababababab")), 1337);
-	TEST_CHECK(l.erase(sha1_hash("abababababababababab")));
-	TEST_CHECK(l.find(sha1_hash("abababababababababab")) == nullptr);
+	TEST_EQUAL(*l.find(ih("abababababababababab")), 1337);
+	TEST_CHECK(l.erase(ih("abababababababababab")));
+	TEST_CHECK(l.find(ih("abababababababababab")) == nullptr);
 	TEST_CHECK(l.empty());
 }
 
 TORRENT_TEST(torrent_list_erase2)
 {
 	aux::torrent_list<int> l;
-	l.insert(sha1_hash("abababababababababab"), std::make_shared<int>(1337));
-	l.insert(sha1_hash("bcababababababababab"), std::make_shared<int>(1338));
+	l.insert(ih("abababababababababab"), std::make_shared<int>(1337));
+	l.insert(ih("bcababababababababab"), std::make_shared<int>(1338));
 
-	TEST_EQUAL(*l.find(sha1_hash("abababababababababab")), 1337);
+	TEST_EQUAL(*l.find(ih("abababababababababab")), 1337);
 	TEST_EQUAL(l.size(), 2);
 	TEST_CHECK(!l.empty());
 
 	// delete an entry that isn't the last one
-	TEST_CHECK(l.erase(sha1_hash("abababababababababab")));
-	TEST_CHECK(l.find(sha1_hash("abababababababababab")) == nullptr);
+	TEST_CHECK(l.erase(ih("abababababababababab")));
+	TEST_CHECK(l.find(ih("abababababababababab")) == nullptr);
 	TEST_EQUAL(l.size(), 1);
 	TEST_CHECK(!l.empty());
-	TEST_EQUAL(*l.find(sha1_hash("bcababababababababab")), 1338);
+	TEST_EQUAL(*l.find(ih("bcababababababababab")), 1338);
 }
 
 TORRENT_TEST(torrent_list_clear)
 {
 	aux::torrent_list<int> l;
-	l.insert(sha1_hash("abababababababababab"), std::make_shared<int>(1));
-	l.insert(sha1_hash("cdababababababababab"), std::make_shared<int>(2));
-	l.insert(sha1_hash("deababababababababab"), std::make_shared<int>(3));
-	l.insert(sha1_hash("efababababababababab"), std::make_shared<int>(0));
+	l.insert(ih("abababababababababab"), std::make_shared<int>(1));
+	l.insert(ih("cdababababababababab"), std::make_shared<int>(2));
+	l.insert(ih("deababababababababab"), std::make_shared<int>(3));
+	l.insert(ih("efababababababababab"), std::make_shared<int>(0));
 
 	TEST_CHECK(!l.empty());
 	l.clear();
