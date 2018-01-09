@@ -46,10 +46,22 @@ namespace libtorrent {
 	{
 		if (!handle.is_valid()) return "";
 
-		std::string ret;
-		sha1_hash const& ih = handle.info_hash().v1;
-		ret += "magnet:?xt=urn:btih:";
-		ret += aux::to_hex(ih);
+		std::string ret = "magnet:?";
+
+		if (handle.info_hash().has_v1())
+		{
+			sha1_hash const& ih = handle.info_hash().v1;
+			ret += "xt=urn:btih:";
+			ret += aux::to_hex(ih);
+		}
+
+		if (handle.info_hash().has_v2())
+		{
+			if (handle.info_hash().has_v1()) ret += '&';
+			sha256_hash const& ih = handle.info_hash().v2;
+			ret += "xt=urn:btmh:1220";
+			ret += aux::to_hex(ih);
+		}
 
 		torrent_status st = handle.status(torrent_handle::query_name);
 		if (!st.name.empty())
@@ -75,10 +87,22 @@ namespace libtorrent {
 
 	std::string make_magnet_uri(torrent_info const& info)
 	{
-		std::string ret;
-		sha1_hash const& ih = info.info_hash().v1;
-		ret += "magnet:?xt=urn:btih:";
-		ret += aux::to_hex(ih);
+		std::string ret = "magnet:?";
+
+		if (info.info_hash().has_v1())
+		{
+			sha1_hash const& ih = info.info_hash().v1;
+			ret += "xt=urn:btih:";
+			ret += aux::to_hex(ih);
+		}
+
+		if (info.info_hash().has_v2())
+		{
+			if (info.info_hash().has_v1()) ret += '&';
+			sha256_hash const& ih = info.info_hash().v2;
+			ret += "xt=urn:btmh:1220";
+			ret += aux::to_hex(ih);
+		}
 
 		std::string const& name = info.name();
 
@@ -175,7 +199,7 @@ namespace libtorrent {
 		sv = sv.substr(8);
 
 		int tier = 0;
-		bool has_ih = false;
+		bool has_ih[2] = { false, false };
 		while (!sv.empty())
 		{
 			string_view name;
@@ -228,28 +252,51 @@ namespace libtorrent {
 					value = unescaped_btih;
 				}
 
-				if (value.substr(0, 9) != "urn:btih:") continue;
-				value = value.substr(9);
-
-				sha1_hash info_hash;
-				if (value.size() == 40) aux::from_hex({value.data(), 40}, info_hash.data());
-				else if (value.size() == 32)
+				if (value.substr(0, 9) == "urn:btih:")
 				{
-					std::string const ih = base32decode(value);
-					if (ih.size() != 20)
+					value = value.substr(9);
+
+					sha1_hash info_hash;
+					if (value.size() == 40) aux::from_hex(value, info_hash.data());
+					else if (value.size() == 32)
+					{
+						std::string const ih = base32decode(value);
+						if (ih.size() != 20)
+						{
+							ec = errors::invalid_info_hash;
+							return;
+						}
+						info_hash.assign(ih);
+					}
+					else
 					{
 						ec = errors::invalid_info_hash;
 						return;
 					}
-					info_hash.assign(ih);
+					p.info_hash.v1 = info_hash;
+					has_ih[0] = true;
 				}
-				else
+				else if (value.substr(0, 9) == "urn:btmh:")
 				{
-					ec = errors::invalid_info_hash;
-					return;
+					value = value.substr(9);
+
+					// hash must be sha256
+					if (value.substr(0, 4) != "1220")
+					{
+						ec = errors::invalid_info_hash;
+						return;
+					}
+
+					value = value.substr(4);
+
+					if (value.size() != 64)
+					{
+						ec = errors::invalid_info_hash;
+						return;
+					}
+					aux::from_hex(value, p.info_hash.v2.data());
+					has_ih[1] = true;
 				}
-				p.info_hash.v1 = info_hash;
-				has_ih = true;
 			}
 			else if (name == "so"_sv) // select-only (files)
 			{
@@ -323,12 +370,11 @@ namespace libtorrent {
 #endif
 		}
 
-		if (!has_ih)
+		if (!has_ih[0] && !has_ih[1])
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return;
 		}
-
 		if (!display_name.empty()) p.name = display_name;
 	}
 
