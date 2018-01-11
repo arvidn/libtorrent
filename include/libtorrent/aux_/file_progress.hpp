@@ -61,7 +61,7 @@ namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT file_progress
 	{
-		file_progress();
+		file_progress() = default;
 
 		void init(piece_picker const& picker
 			, file_storage const& fs);

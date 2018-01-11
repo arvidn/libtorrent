@@ -398,7 +398,7 @@ namespace {
 		// we cannot capture a unique_ptr into a lambda in c++11, so we use a raw
 		// pointer for now. async_call uses a lambda expression to post the call
 		// to the main thread
-		add_torrent_params* p = new add_torrent_params(std::move(params));
+		auto* p = new add_torrent_params(std::move(params));
 		p->save_path = complete(p->save_path);
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -419,7 +419,7 @@ namespace {
 		, bool paused
 		, storage_constructor_type sc)
 	{
-		add_torrent_params p(sc);
+		add_torrent_params p(std::move(sc));
 		p.ti = std::make_shared<torrent_info>(ti);
 		p.save_path = save_path;
 		if (resume_data.type() != entry::undefined_t)
@@ -445,7 +445,7 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(!save_path.empty());
 
-		add_torrent_params p(sc);
+		add_torrent_params p(std::move(sc));
 		p.trackers.push_back(tracker_url);
 		p.info_hash = info_hash;
 		p.save_path = save_path;

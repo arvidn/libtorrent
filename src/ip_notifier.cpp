@@ -123,9 +123,19 @@ template <typename T
 	, void (*Retain)(T) = CFRefRetain<T>, void (*Release)(T) = CFRefRelease<T>>
 struct CFRef
 {
-	CFRef() {}
+	CFRef() = default;
 	explicit CFRef(T h) : m_h(h) {} // take ownership
 	~CFRef() { release(); }
+
+	CFRef(CFRef&& rhs) : m_h(rhs.m_h) { rhs.m_h = nullptr; }
+	CFRef& operator=(CFRef&& rhs)
+	{
+		if (m_h == rhs.m_h) return *this;
+		release();
+		m_h = rhs.m_h;
+		rhs.m_h = nullptr;
+		return *this;
+	}
 
 	CFRef(CFRef const& rhs) : m_h(rhs.m_h) { retain(); }
 	CFRef& operator=(CFRef const& rhs)

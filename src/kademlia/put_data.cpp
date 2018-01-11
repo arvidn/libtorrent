@@ -87,7 +87,7 @@ bool put_data::invoke(observer_ptr o)
 
 	// TODO: what if o is not an instance of put_data_observer? This need to be
 	// redesigned for better type safety.
-	put_data_observer* po = static_cast<put_data_observer*>(o.get());
+	auto* po = static_cast<put_data_observer*>(o.get());
 
 	entry e;
 	e["y"] = "q";

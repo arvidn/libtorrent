@@ -114,7 +114,7 @@ namespace libtorrent {
 		sha1_hash const k = hash_address(source);
 
 		// do we already have an entry for this external IP?
-		std::vector<external_ip_t>::iterator i = std::find_if(m_external_addresses.begin()
+		auto i = std::find_if(m_external_addresses.begin()
 			, m_external_addresses.end(), [&ip] (external_ip_t const& e) { return e.addr == ip; });
 
 		if (i == m_external_addresses.end())
@@ -137,7 +137,7 @@ namespace libtorrent {
 				// ones with the fewest votes
 				m_external_addresses.erase(m_external_addresses.end() - 1);
 			}
-			m_external_addresses.push_back(external_ip_t());
+			m_external_addresses.emplace_back();
 			i = m_external_addresses.end() - 1;
 			i->addr = ip;
 		}

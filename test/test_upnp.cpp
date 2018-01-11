@@ -69,7 +69,7 @@ char const* soap_delete_response[] = {
 	"<s:Body><u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:2\">"
 	"</u:DeletePortMapping></s:Body></s:Envelope>"};
 
-void incoming_msearch(udp::endpoint const& from, char* buffer
+void incoming_msearch(udp::endpoint const& from, char const* buffer
 	, int size)
 {
 	http_parser p;

@@ -432,7 +432,7 @@ namespace {
 		, std::shared_ptr<aux::session_impl> impl)
 		: m_io_service(std::move(ios))
 		, m_thread(std::move(t))
-		, m_impl(impl)
+		, m_impl(std::move(impl))
 	{}
 	session_proxy::session_proxy(session_proxy const&) = default;
 	session_proxy& session_proxy::operator=(session_proxy const&) = default;
@@ -450,7 +450,7 @@ namespace {
 	}
 
 	session_params::session_params(settings_pack sp)
-		: session_params(sp, default_plugins())
+		: session_params(std::move(sp), default_plugins())
 	{}
 
 	session_params::session_params(settings_pack sp

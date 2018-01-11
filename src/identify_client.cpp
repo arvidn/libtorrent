@@ -383,11 +383,8 @@ namespace aux {
 		// non standard encodings
 		// ----------------------
 
-		const int num_generic_mappings = sizeof(generic_mappings) / sizeof(generic_mappings[0]);
-
-		for (int i = 0; i < num_generic_mappings; ++i)
+		for (auto const& e : generic_mappings)
 		{
-			generic_map_entry const& e = generic_mappings[i];
 			if (find_string(PID + e.offset, e.id)) return e.name;
 		}
 
@@ -396,8 +393,8 @@ namespace aux {
 
 		if (find_string(PID, "eX"))
 		{
-			std::string user(PID + 2, PID + 14);
-			return std::string("eXeem ('") + user.c_str() + "')";
+			std::string user(PID + 2, 12);
+			return std::string("eXeem ('") + user + "')";
 		}
 		bool const is_equ_zero = std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0");
 
@@ -424,10 +421,8 @@ namespace aux {
 			return "Generic";
 
 		std::string unknown("Unknown [");
-		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
-		{
-			unknown += is_print(char(*i)) ? char(*i) : '.';
-		}
+		for (unsigned char const c : p)
+			unknown += is_print(char(c)) ? char(c) : '.';
 		unknown += "]";
 		return unknown;
 	}

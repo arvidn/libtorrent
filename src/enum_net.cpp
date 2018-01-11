@@ -385,7 +385,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	bool parse_route(int, rt_msghdr* rtm, ip_route* rt_info)
 	{
 		sockaddr* rti_info[RTAX_MAX];
-		sockaddr* sa = reinterpret_cast<sockaddr*>(rtm + 1);
+		auto* sa = reinterpret_cast<sockaddr*>(rtm + 1);
 		for (int i = 0; i < RTAX_MAX; ++i)
 		{
 			if ((rtm->rtm_addrs & (1 << i)) == 0)
@@ -957,7 +957,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	}
 
 	std::unique_ptr<char[]> buf(new (std::nothrow) char[needed]);
-	if (buf.get() == nullptr)
+	if (buf == nullptr)
 	{
 		ec = boost::asio::error::no_memory;
 		return std::vector<ip_route>();

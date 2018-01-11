@@ -84,7 +84,9 @@ class i2p_stream : public proxy_base
 public:
 
 	explicit i2p_stream(io_service& io_service);
+#if TORRENT_USE_ASSERTS
 	~i2p_stream();
+#endif
 
 	enum command_t
 	{

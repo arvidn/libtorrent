@@ -57,7 +57,7 @@ namespace libtorrent {
 	address ensure_v6(address const& a);
 
 	typedef std::function<void(udp::endpoint const& from
-		, char* buffer, int size)> receive_handler_t;
+		, char const* buffer, int size)> receive_handler_t;
 
 	class TORRENT_EXTRA_EXPORT broadcast_socket
 	{
@@ -65,7 +65,7 @@ namespace libtorrent {
 		explicit broadcast_socket(udp::endpoint const& multicast_endpoint);
 		~broadcast_socket() { close(); }
 
-		void open(receive_handler_t const& handler, io_service& ios
+		void open(receive_handler_t handler, io_service& ios
 			, error_code& ec, bool loopback = true);
 
 		enum flags_t { flag_broadcast = 1 };

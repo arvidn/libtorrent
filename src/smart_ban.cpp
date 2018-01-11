@@ -83,7 +83,7 @@ namespace {
 			// has this piece failed earlier? If it has, go through the
 			// CRCs from the time it failed and ban the peers that
 			// sent bad blocks
-			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(piece_block(p, 0));
+			auto i = m_block_hashes.lower_bound(piece_block(p, 0));
 			if (i == m_block_hashes.end() || i->first.piece_index != p) return;
 
 			int size = m_torrent.torrent_file().piece_size(p);
@@ -172,7 +172,7 @@ namespace {
 			sha1_hash digest;
 		};
 
-		void on_read_failed_block(piece_block b, address a
+		void on_read_failed_block(piece_block const b, address const a
 			, disk_buffer_holder buffer, int const block_size, disk_job_flags_t
 			, storage_error const& error)
 		{
@@ -185,8 +185,7 @@ namespace {
 			h.update({buffer.get(), std::size_t(block_size)});
 			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 
-			std::pair<peer_list::iterator, peer_list::iterator> const range
-				= m_torrent.find_peers(a);
+			auto const range = m_torrent.find_peers(a);
 
 			// there is no peer with this address anymore
 			if (range.first == range.second) return;
@@ -194,7 +193,7 @@ namespace {
 			torrent_peer* p = (*range.first);
 			block_entry e = {p, h.final()};
 
-			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(b);
+			auto i = m_block_hashes.lower_bound(b);
 
 			if (i != m_block_hashes.end() && i->first == b && i->second.peer == p)
 			{
@@ -254,9 +253,9 @@ namespace {
 #endif
 		}
 
-		void on_read_ok_block(std::pair<piece_block, block_entry> b, address a
-			, disk_buffer_holder buffer, int const block_size, disk_job_flags_t
-			, storage_error const& error)
+		void on_read_ok_block(std::pair<piece_block, block_entry> const b
+			, address const a, disk_buffer_holder buffer, int const block_size
+			, disk_job_flags_t, storage_error const& error)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 
@@ -271,8 +270,7 @@ namespace {
 			if (b.second.digest == ok_digest) return;
 
 			// find the peer
-			std::pair<peer_list::iterator, peer_list::iterator> range
-				= m_torrent.find_peers(a);
+			auto range = m_torrent.find_peers(a);
 			if (range.first == range.second) return;
 			torrent_peer* p = nullptr;
 			for (; range.first != range.second; ++range.first)
@@ -319,7 +317,7 @@ namespace {
 		std::uint32_t const m_salt;
 
 		// explicitly disallow assignment, to silence msvc warning
-		smart_ban_plugin& operator=(smart_ban_plugin const&);
+		smart_ban_plugin& operator=(smart_ban_plugin const&) = delete;
 	};
 
 } }

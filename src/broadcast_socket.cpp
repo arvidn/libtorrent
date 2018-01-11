@@ -181,10 +181,10 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_multicast_endpoint.address().is_multicast());
 	}
 
-	void broadcast_socket::open(receive_handler_t const& handler
+	void broadcast_socket::open(receive_handler_t handler
 		, io_service& ios, error_code& ec, bool loopback)
 	{
-		m_on_receive = handler;
+		m_on_receive = std::move(handler);
 
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 

@@ -57,7 +57,7 @@ namespace libtorrent { namespace dht {
 	namespace {
 
 	// generate a new write token key every 5 minutes
-	time_duration const key_refresh
+	auto const key_refresh
 		= duration_cast<time_duration>(minutes(5));
 
 	void add_dht_counters(node const& dht, counters& c)
@@ -360,7 +360,8 @@ namespace libtorrent { namespace dht {
 
 	// these functions provide a slightly higher level
 	// interface to the get/put functionality in the DHT
-	void get_immutable_item_callback(item const& it, std::shared_ptr<get_immutable_item_ctx> ctx
+	void get_immutable_item_callback(item const& it
+		, std::shared_ptr<get_immutable_item_ctx> ctx
 		, std::function<void(item const&)> f)
 	{
 		// the reason to wrap here is to control the return value

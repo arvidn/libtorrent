@@ -43,10 +43,10 @@ namespace libtorrent { namespace dht {
 		: m_message_rate_limit(5)
 		, m_block_timeout(5 * 60)
 	{
-		for (int i = 0; i < num_ban_nodes; ++i)
+		for (auto& e : m_ban_nodes)
 		{
-			m_ban_nodes[i].count = 0;
-			m_ban_nodes[i].limit = min_time();
+			e.count = 0;
+			e.limit = min_time();
 		}
 	}
 

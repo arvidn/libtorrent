@@ -46,8 +46,7 @@ std::uint32_t timestamp_history::add_sample(std::uint32_t sample, bool step)
 {
 	if (!initialized())
 	{
-		for (int i = 0; i < history_size; ++i)
-			m_history[i] = sample;
+		m_history.fill(sample);
 		m_base = sample;
 		m_num_samples = 0;
 	}
@@ -82,10 +81,10 @@ std::uint32_t timestamp_history::add_sample(std::uint32_t sample, bool step)
 		m_history[m_index] = sample;
 		// update m_base
 		m_base = sample;
-		for (int i = 0; i < history_size; ++i)
+		for (auto& h : m_history)
 		{
-			if (compare_less_wrap(m_history[i], m_base, TIME_MASK))
-				m_base = m_history[i];
+			if (compare_less_wrap(h, m_base, TIME_MASK))
+				m_base = h;
 		}
 	}
 	return ret;
@@ -96,10 +95,10 @@ void timestamp_history::adjust_base(int change)
 	TORRENT_ASSERT(initialized());
 	m_base += aux::numeric_cast<std::uint32_t>(change);
 	// make sure this adjustment sticks by updating all history slots
-	for (int i = 0; i < history_size; ++i)
+	for (auto& h : m_history)
 	{
-		if (compare_less_wrap(m_history[i], m_base, TIME_MASK))
-			m_history[i] = m_base;
+		if (compare_less_wrap(h, m_base, TIME_MASK))
+			h = m_base;
 	}
 }
 

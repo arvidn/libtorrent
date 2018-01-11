@@ -39,10 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-	file_progress::file_progress()
-	{
-	}
-
 	void file_progress::init(piece_picker const& picker, file_storage const& fs)
 	{
 		INVARIANT_CHECK;

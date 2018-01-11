@@ -352,7 +352,7 @@ namespace aux {
 	{
 		TORRENT_UNUSED(ad);
 
-		session_impl* ses = reinterpret_cast<session_impl*>(arg);
+		auto* ses = reinterpret_cast<session_impl*>(arg);
 		const char* servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
 
 		if (!servername || strlen(servername) < 40)
@@ -1352,7 +1352,7 @@ namespace {
 
 	std::uint32_t session_impl::get_tracker_key(address const& iface) const
 	{
-		uintptr_t const ses = reinterpret_cast<uintptr_t>(this);
+		auto const ses = reinterpret_cast<uintptr_t>(this);
 		hasher h(reinterpret_cast<char const*>(&ses), sizeof(ses));
 		if (iface.is_v4())
 		{
@@ -3293,7 +3293,7 @@ namespace {
 
 						if (p.download_queue().size() + p.request_queue().size() > 0)
 							++num_peers[protocol][peer_connection::download_channel];
-						if (p.upload_queue().size() > 0)
+						if (!p.upload_queue().empty())
 							++num_peers[protocol][peer_connection::upload_channel];
 					}
 
@@ -3338,8 +3338,7 @@ namespace {
 		// check for incoming connections that might have timed out
 		// --------------------------------------------------------------
 
-		for (connection_map::iterator i = m_connections.begin();
-			i != m_connections.end();)
+		for (auto i = m_connections.begin(); i != m_connections.end();)
 		{
 			peer_connection* p = (*i).get();
 			++i;
@@ -4051,7 +4050,7 @@ namespace {
 		for (torrent_peer* pi : prev_opt_unchoke)
 		{
 			TORRENT_ASSERT(pi->optimistically_unchoked);
-			peer_connection* p = static_cast<peer_connection*>(pi->connection);
+			auto* p = static_cast<peer_connection*>(pi->connection);
 			std::shared_ptr<torrent> t = p->associated_torrent().lock();
 			pi->optimistically_unchoked = false;
 			m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
@@ -4151,7 +4150,7 @@ namespace {
 			{
 				if ((m_download_connect_attempts >= m_settings.get_int(
 						settings_pack::connect_seed_every_n_download)
-					&& want_peers_finished.size())
+					&& !want_peers_finished.empty())
 						|| want_peers_download.empty())
 				{
 					// pick a finished torrent to give a peer to
@@ -4207,8 +4206,7 @@ namespace {
 		// TODO: 3 there should be a pre-calculated list of all peers eligible for
 		// unchoking
 		std::vector<peer_connection*> peers;
-		for (connection_map::iterator i = m_connections.begin();
-			i != m_connections.end();)
+		for (auto i = m_connections.begin(); i != m_connections.end();)
 		{
 			std::shared_ptr<peer_connection> p = *i;
 			TORRENT_ASSERT(p);
@@ -4594,7 +4592,7 @@ namespace {
 		for (auto& t : state_updates)
 		{
 			TORRENT_ASSERT(t->m_links[aux::session_impl::torrent_state_updates].in_list());
-			status.push_back(torrent_status());
+			status.emplace_back();
 			// querying accurate download counters may require
 			// the torrent to be loaded. Loading a torrent, and evicting another
 			// one will lead to calling state_updated(), which screws with
@@ -5772,7 +5770,7 @@ namespace {
 
 	void session_impl::set_dht_storage(dht::dht_storage_constructor_type sc)
 	{
-		m_dht_storage_constructor = sc;
+		m_dht_storage_constructor = std::move(sc);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -5894,7 +5892,7 @@ namespace {
 	{
 		if (!m_dht) return;
 		m_dht->get_item(dht::public_key(key.data()), std::bind(&session_impl::get_mutable_callback
-			, this, _1, _2), salt);
+			, this, _1, _2), std::move(salt));
 	}
 
 	namespace {
@@ -5912,9 +5910,9 @@ namespace {
 				dht::signature const sig = i.sig();
 				dht::public_key const pk = i.pk();
 				dht::sequence_number const seq = i.seq();
-				std::string const salt = i.salt();
-				alerts.emplace_alert<dht_put_alert>(pk.bytes, sig.bytes, salt
-					, seq.value, num);
+				std::string salt = i.salt();
+				alerts.emplace_alert<dht_put_alert>(pk.bytes, sig.bytes
+					, std::move(salt), seq.value, num);
 			}
 		}
 
@@ -5962,7 +5960,7 @@ namespace {
 		if (!m_dht) return;
 		m_dht->put_item(dht::public_key(key.data())
 			, std::bind(&on_dht_put_mutable_item, std::ref(m_alerts), _1, _2)
-			, std::bind(&put_mutable_callback, _1, cb), salt);
+			, std::bind(&put_mutable_callback, _1, std::move(cb)), salt);
 	}
 
 	void session_impl::dht_get_peers(sha1_hash const& info_hash)
@@ -6769,7 +6767,7 @@ namespace {
 				ips[is_local(local_addr)][local_addr.is_v6()] = local_addr;
 		}
 
-		return external_ip(ips[1][0], ips[0][0], ips[1][1], ips[0][1]);
+		return {ips[1][0], ips[0][0], ips[1][1], ips[0][1]};
 	}
 
 	// this is the DHT observer version. DHT is the implied source

@@ -60,7 +60,7 @@ namespace libtorrent {
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
 		std::string message(int ev) const override;
 		boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT override
-		{ return boost::system::error_condition(ev, *this); }
+		{ return {ev, *this}; }
 	};
 
 	const char* gzip_error_category::name() const BOOST_SYSTEM_NOEXCEPT
@@ -104,7 +104,7 @@ namespace libtorrent {
 	{
 		boost::system::error_code make_error_code(error_code_enum e)
 		{
-			return boost::system::error_code(e, gzip_category());
+			return {e, gzip_category()};
 		}
 	}
 
@@ -142,7 +142,7 @@ namespace {
 		{
 			if (buffer.size() < 2) return -1;
 
-			std::size_t const extra_len = static_cast<std::size_t>((buffer[1] << 8) | buffer[0]);
+			auto const extra_len = static_cast<std::size_t>((buffer[1] << 8) | buffer[0]);
 			if (buffer.size() < extra_len + 2) return -1;
 			buffer = buffer.subspan(extra_len + 2);
 		}

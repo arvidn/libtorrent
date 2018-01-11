@@ -132,7 +132,7 @@ namespace libtorrent {
 	std::thread::id disk_io_thread_pool::first_thread_id()
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
-		if (m_threads.empty()) return std::thread::id();
+		if (m_threads.empty()) return {};
 		return m_threads.front().get_id();
 	}
 
@@ -185,7 +185,7 @@ namespace libtorrent {
 		if (ec) return;
 		std::lock_guard<std::mutex> l(m_mutex);
 		if (m_abort) return;
-		if (m_threads.size() == 0) return;
+		if (m_threads.empty()) return;
 		m_idle_timer.expires_from_now(reap_idle_threads_interval);
 		m_idle_timer.async_wait([this](error_code const& e) { reap_idle_threads(e); });
 		int const min_idle = m_min_idle_threads.exchange(m_num_idle_threads);

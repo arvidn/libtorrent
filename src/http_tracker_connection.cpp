@@ -65,7 +65,7 @@ namespace libtorrent {
 		, tracker_manager& man
 		, tracker_request const& req
 		, std::weak_ptr<request_callback> c)
-		: tracker_connection(man, req, ios, c)
+		: tracker_connection(man, req, ios, std::move(c))
 	{}
 
 	void http_tracker_connection::start()

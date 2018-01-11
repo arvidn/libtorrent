@@ -131,7 +131,7 @@ namespace libtorrent {
 		, storage_constructor_type sc
 		, void* userdata)
 	{
-		add_torrent_params params(sc);
+		add_torrent_params params(std::move(sc));
 		params.storage_mode = storage_mode;
 		params.userdata = userdata;
 		params.save_path = save_path;

@@ -62,7 +62,7 @@ namespace libtorrent {
 		, tracker_manager& man
 		, tracker_request const& req
 		, std::weak_ptr<request_callback> c)
-		: tracker_connection(man, req, ios, c)
+		: tracker_connection(man, req, ios, std::move(c))
 		, m_transaction_id(0)
 		, m_attempts(0)
 		, m_state(action_t::error)
@@ -146,7 +146,7 @@ namespace libtorrent {
 		std::shared_ptr<request_callback> cb = requester();
 		if (cb && cb->should_log())
 		{
-			cb->debug_log("*** UDP_TRACKER [ host: \"%s\" ip: \"%s\" | error: \"%s\" ]"
+			cb->debug_log(R"(*** UDP_TRACKER [ host: "%s" ip: "%s" | error: "%s" ])"
 				, m_hostname.c_str(), print_endpoint(m_target).c_str(), ec.message().c_str());
 		}
 #endif
@@ -157,7 +157,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb && cb->should_log())
 		{
-			cb->debug_log("*** UDP_TRACKER trying next IP [ host: \"%s\" ip: \"%s\" ]"
+			cb->debug_log(R"(*** UDP_TRACKER trying next IP [ host: "%s" ip: "%s" ])"
 				, m_hostname.c_str(), print_endpoint(m_target).c_str());
 		}
 #endif

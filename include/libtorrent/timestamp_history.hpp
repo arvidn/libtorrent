@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TIMESTAMP_HISTORY_HPP
 
 #include <cstdint>
+#include <array>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
@@ -46,7 +47,7 @@ struct TORRENT_EXTRA_EXPORT timestamp_history
 {
 	static constexpr int history_size = 20;
 
-	timestamp_history() : m_base(0), m_index(0), m_num_samples(not_initialized) {}
+	timestamp_history() = default;
 	bool initialized() const { return m_num_samples != not_initialized; }
 
 	// add a sample to the timestamp history. If step is true, it's been
@@ -58,15 +59,15 @@ struct TORRENT_EXTRA_EXPORT timestamp_history
 private:
 
 	// this is a circular buffer
-	std::uint32_t m_history[history_size];
+	std::array<std::uint32_t, history_size> m_history;
 
 	// this is the lowest sample seen in the
 	// last 'history_size' minutes
-	std::uint32_t m_base;
+	std::uint32_t m_base = 0;
 
 	// and this is the index we're currently at
 	// in the circular buffer
-	std::uint16_t m_index;
+	std::uint16_t m_index = 0;
 
 	static constexpr std::uint16_t not_initialized = 0xffff;
 
@@ -76,7 +77,7 @@ private:
 	// if this is set to 'not_initialized' we
 	// have bit seen any samples at all yet
 	// and m_base is not initialized yet
-	std::uint16_t m_num_samples;
+	std::uint16_t m_num_samples = not_initialized;
 };
 
 }

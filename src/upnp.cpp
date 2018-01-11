@@ -71,9 +71,7 @@ constexpr std::size_t max_global_mappings = 50;
 namespace upnp_errors
 {
 	boost::system::error_code make_error_code(error_code_enum e)
-	{
-		return error_code(e, upnp_category());
-	}
+	{ return {e, upnp_category()}; }
 
 } // upnp_errors namespace
 
@@ -372,7 +370,7 @@ void upnp::resend_request(error_code const& ec)
 	}
 }
 
-void upnp::on_reply(udp::endpoint const& from, char* buffer
+void upnp::on_reply(udp::endpoint const& from, char const* buffer
 	, std::size_t const bytes_transferred)
 {
 	TORRENT_ASSERT(is_single_thread());
@@ -1222,7 +1220,7 @@ struct upnp_error_category : boost::system::error_category
 	boost::system::error_condition default_error_condition(
 		int ev) const BOOST_SYSTEM_NOEXCEPT override
 	{
-		return boost::system::error_condition(ev, *this);
+		return {ev, *this};
 	}
 };
 
@@ -1593,9 +1591,9 @@ void upnp::on_expire(error_code const& ec)
 	time_point const now = aux::time_now();
 	time_point next_expire = max_time();
 
-	for (auto i = m_devices.begin(), end(m_devices.end()); i != end; ++i)
+	for (auto& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(*i);
+		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 		for (port_mapping_t m{0}; m < m_mappings.end_index(); ++m)
 		{
@@ -1633,21 +1631,21 @@ void upnp::close()
 	m_closing = true;
 	m_socket.close();
 
-	for (auto i = m_devices.begin(), end(m_devices.end()); i != end; ++i)
+	for (auto& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(*i);
+		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 		if (d.control_url.empty()) continue;
-		for (auto j = d.mapping.begin(), end2(d.mapping.end()); j != end2; ++j)
+		for (auto& m : d.mapping)
 		{
-			if (j->protocol == portmap_protocol::none) continue;
-			if (j->act == portmap_action::add)
+			if (m.protocol == portmap_protocol::none) continue;
+			if (m.act == portmap_action::add)
 			{
-				j->act = portmap_action::none;
+				m.act = portmap_action::none;
 				continue;
 			}
-			j->act = portmap_action::del;
-			m_mappings[port_mapping_t{static_cast<int>(j - d.mapping.begin())}].protocol = portmap_protocol::none;
+			m.act = portmap_action::del;
+			m_mappings[port_mapping_t{static_cast<int>(&m - d.mapping.data())}].protocol = portmap_protocol::none;
 		}
 		if (num_mappings() > 0) update_map(d, port_mapping_t{0});
 	}

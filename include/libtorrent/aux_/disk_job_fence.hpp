@@ -55,12 +55,15 @@ namespace aux {
 	// accrued while the fence was up
 	struct TORRENT_EXPORT disk_job_fence
 	{
-		disk_job_fence();
+		disk_job_fence() = default;
+
+#if TORRENT_USE_ASSERTS
 		~disk_job_fence()
 		{
 			TORRENT_ASSERT(int(m_outstanding_jobs) == 0);
 			TORRENT_ASSERT(m_blocked_jobs.size() == 0);
 		}
+#endif
 
 		// returns one of the fence_* enums.
 		// if there are no outstanding jobs on the

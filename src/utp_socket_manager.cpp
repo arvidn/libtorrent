@@ -163,7 +163,7 @@ namespace libtorrent {
 
 		if (p.size() < sizeof(utp_header)) return false;
 
-		utp_header const* ph = reinterpret_cast<utp_header const*>(p.data());
+		auto const* ph = reinterpret_cast<utp_header const*>(p.data());
 
 //		UTP_LOGV("incoming packet version:%d\n", int(ph->get_version()));
 
@@ -231,7 +231,7 @@ namespace libtorrent {
 			int link_mtu, utp_mtu;
 			mtu_for_dest(ep.address(), link_mtu, utp_mtu);
 			utp_init_mtu(str->get_impl(), link_mtu, utp_mtu);
-			utp_init_socket(str->get_impl(), socket);
+			utp_init_socket(str->get_impl(), std::move(socket));
 			bool ret = utp_incoming_packet(str->get_impl(), p, ep, receive_time);
 			if (!ret) return false;
 			m_cb(c);
