@@ -54,10 +54,10 @@ namespace libtorrent { namespace dht {
 	// This structure hold the relevant counters for the storage
 	struct TORRENT_EXPORT dht_storage_counters
 	{
-		std::int32_t torrents;
-		std::int32_t peers;
-		std::int32_t immutable_data;
-		std::int32_t mutable_data;
+		std::int32_t torrents = 0;
+		std::int32_t peers = 0;
+		std::int32_t immutable_data = 0;
+		std::int32_t mutable_data = 0;
 
 		// This member function set the counters to zero.
 		void reset();

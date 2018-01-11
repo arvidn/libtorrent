@@ -1165,7 +1165,7 @@ void block_cache::clear(tailqueue<disk_io_job>& jobs)
 
 	for (auto const& p : m_pieces)
 	{
-		cached_piece_entry& pe = const_cast<cached_piece_entry&>(p);
+		auto& pe = const_cast<cached_piece_entry&>(p);
 #if TORRENT_USE_ASSERTS
 		for (tailqueue_iterator<disk_io_job> i = pe.jobs.iterate(); i.get(); i.next())
 			TORRENT_PIECE_ASSERT((static_cast<disk_io_job const*>(i.get()))->piece == pe.piece, &pe);
@@ -1182,13 +1182,12 @@ void block_cache::clear(tailqueue<disk_io_job>& jobs)
 	if (!bufs.empty()) free_multiple_buffers(bufs);
 
 	// clear lru lists
-	for (int i = 0; i < cached_piece_entry::num_lrus; ++i)
-		m_lru[i].get_all();
+	for (auto& l : m_lru) l.get_all();
 
 	// it's not ok to erase pieces with a refcount > 0
 	// since we're cancelling all jobs though, it shouldn't be too bad
 	// to let the jobs already running complete.
-	for (cache_t::iterator i = m_pieces.begin(); i != m_pieces.end();)
+	for (auto i = m_pieces.begin(); i != m_pieces.end();)
 	{
 		if (i->refcount == 0 && i->piece_refcount == 0)
 		{

@@ -58,7 +58,7 @@ namespace {
 	{
 		time_point added;
 		tcp::endpoint addr;
-		bool seed;
+		bool seed = 0;
 	};
 
 	// internal
@@ -100,9 +100,9 @@ namespace {
 
 	struct dht_mutable_item : dht_immutable_item
 	{
-		signature sig;
-		sequence_number seq;
-		public_key key;
+		signature sig{};
+		sequence_number seq{};
+		public_key key{};
 		std::string salt;
 	};
 
@@ -156,7 +156,7 @@ namespace {
 	private:
 
 		// explicitly disallow assignment, to silence msvc warning
-		immutable_item_comparator& operator=(immutable_item_comparator const&);
+		immutable_item_comparator& operator=(immutable_item_comparator const&) = delete;
 
 		std::vector<node_id> const& m_node_ids;
 	};
@@ -270,7 +270,7 @@ namespace {
 					if (random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
 						continue;
 
-					pe.push_back(entry());
+					pe.emplace_back();
 					std::string& str = pe.back().string();
 
 					str.resize(18);

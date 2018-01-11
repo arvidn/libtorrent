@@ -46,7 +46,7 @@ namespace libtorrent { namespace aux {
 
 	int count_leading_zeros_sw(span<std::uint32_t const> buf)
 	{
-		int const num = int(buf.size());
+		auto const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
 
 		TORRENT_ASSERT(num >= 0);
@@ -79,7 +79,7 @@ namespace libtorrent { namespace aux {
 
 	int count_leading_zeros_hw(span<std::uint32_t const> buf)
 	{
-		int const num = int(buf.size());
+		auto const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
 
 		TORRENT_ASSERT(num >= 0);
@@ -116,7 +116,7 @@ namespace libtorrent { namespace aux {
 
 	int count_trailing_ones_sw(span<std::uint32_t const> buf)
 	{
-		int const num = int(buf.size());
+		auto const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
 
 		TORRENT_ASSERT(num >= 0);
@@ -139,7 +139,7 @@ namespace libtorrent { namespace aux {
 
 	int count_trailing_ones_hw(span<std::uint32_t const> buf)
 	{
-		int const num = int(buf.size());
+		auto const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
 
 		TORRENT_ASSERT(num >= 0);

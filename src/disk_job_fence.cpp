@@ -45,8 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-	disk_job_fence::disk_job_fence() {}
-
 	int disk_job_fence::job_complete(disk_io_job* j, tailqueue<disk_io_job>& jobs)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
@@ -69,7 +67,7 @@ namespace libtorrent { namespace aux {
 			// while this fence was up. However, if there's another fence
 			// in the queue, stop there and raise the fence again
 			int ret = 0;
-			while (m_blocked_jobs.size())
+			while (!m_blocked_jobs.empty())
 			{
 				disk_io_job *bj = m_blocked_jobs.pop_front();
 				if (bj->flags & disk_io_job::fence)

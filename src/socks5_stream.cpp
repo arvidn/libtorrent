@@ -40,9 +40,7 @@ namespace libtorrent {
 	namespace socks_error
 	{
 		boost::system::error_code make_error_code(socks_error_code e)
-		{
-			return error_code(e, socks_category());
-		}
+		{ return {e, socks_category()}; }
 	}
 
 	struct socks_error_category : boost::system::error_category
@@ -70,7 +68,7 @@ namespace libtorrent {
 		}
 		boost::system::error_condition default_error_condition(
 			int ev) const BOOST_SYSTEM_NOEXCEPT override
-		{ return boost::system::error_condition(ev, *this); }
+		{ return {ev, *this}; }
 	};
 
 	boost::system::error_category& socks_category()

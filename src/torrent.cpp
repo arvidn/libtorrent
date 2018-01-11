@@ -844,7 +844,7 @@ namespace libtorrent {
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			if (pc->type() != connection_type::bittorrent) continue;
-			bt_peer_connection* p = static_cast<bt_peer_connection*>(pc);
+			auto* p = static_cast<bt_peer_connection*>(pc);
 			p->write_share_mode();
 		}
 #endif
@@ -1431,7 +1431,7 @@ namespace libtorrent {
 		X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
 
 		// Go through the alternate names in the certificate looking for matching DNS entries
-		GENERAL_NAMES* gens = static_cast<GENERAL_NAMES*>(
+		auto* gens = static_cast<GENERAL_NAMES*>(
 			X509_get_ext_d2i(cert, NID_subject_alt_name, nullptr, nullptr));
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1444,7 +1444,7 @@ namespace libtorrent {
 			if (gen->type != GEN_DNS) continue;
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;
-			const char* torrent_name = reinterpret_cast<const char*>(domain->data);
+			auto const* torrent_name = reinterpret_cast<char const*>(domain->data);
 			std::size_t const name_length = aux::numeric_cast<std::size_t>(domain->length);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1477,7 +1477,7 @@ namespace libtorrent {
 		}
 		if (common_name && common_name->data && common_name->length)
 		{
-			const char* torrent_name = reinterpret_cast<const char*>(common_name->data);
+			auto const* torrent_name = reinterpret_cast<char const*>(common_name->data);
 			std::size_t const name_length = aux::numeric_cast<std::size_t>(common_name->length);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1905,7 +1905,7 @@ namespace libtorrent {
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			if (pe->type() != connection_type::bittorrent) continue;
-			bt_peer_connection* p = static_cast<bt_peer_connection*>(pe);
+			auto* p = static_cast<bt_peer_connection*>(pe);
 			if (!p->supports_holepunch()) continue;
 			if (p->was_introduced_by(ep)) return p;
 		}
@@ -2032,7 +2032,7 @@ namespace libtorrent {
 		// checking this torrent. pick it up where we left off
 		if (!should_start_full_check
 			&& m_add_torrent_params
-			&& m_add_torrent_params->have_pieces.size() > 0
+			&& !m_add_torrent_params->have_pieces.empty()
 			&& m_add_torrent_params->have_pieces.size() < m_torrent_file->num_pieces())
 		{
 			m_checking_piece = m_num_checked_pieces
@@ -2437,7 +2437,7 @@ namespace libtorrent {
 	void torrent::use_interface(std::string net_interfaces)
 	{
 		std::shared_ptr<settings_pack> p = std::make_shared<settings_pack>();
-		p->set_str(settings_pack::outgoing_interfaces, net_interfaces);
+		p->set_str(settings_pack::outgoing_interfaces, std::move(net_interfaces));
 		m_ses.apply_settings_pack(p);
 	}
 #endif
@@ -3968,7 +3968,7 @@ namespace libtorrent {
 			p->trust_points = trust_points;
 			if (p->connection)
 			{
-				peer_connection* peer = static_cast<peer_connection*>(p->connection);
+				auto* peer = static_cast<peer_connection*>(p->connection);
 				TORRENT_ASSERT(peer->m_in_use == 1337);
 				peer->received_valid_data(index);
 			}
@@ -4073,7 +4073,7 @@ namespace libtorrent {
 		{
 			if (p && p->connection)
 			{
-				peer_connection* peer = static_cast<peer_connection*>(p->connection);
+				auto* peer = static_cast<peer_connection*>(p->connection);
 				peer->piece_failed = true;
 			}
 		}
@@ -4089,7 +4089,7 @@ namespace libtorrent {
 			bool allow_disconnect = true;
 			if (p->connection)
 			{
-				peer_connection* peer = static_cast<peer_connection*>(p->connection);
+				auto* peer = static_cast<peer_connection*>(p->connection);
 				TORRENT_ASSERT(peer->m_in_use == 1337);
 
 				// the peer implementation can ask not to be disconnected.
@@ -4137,7 +4137,7 @@ namespace libtorrent {
 
 				if (p->connection)
 				{
-					peer_connection* peer = static_cast<peer_connection*>(p->connection);
+					auto* peer = static_cast<peer_connection*>(p->connection);
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log())
 					{
@@ -4186,7 +4186,7 @@ namespace libtorrent {
 		{
 			if (p && p->connection)
 			{
-				peer_connection* peer = static_cast<peer_connection*>(p->connection);
+				auto* peer = static_cast<peer_connection*>(p->connection);
 				peer->piece_failed = false;
 			}
 		}
@@ -4690,7 +4690,7 @@ namespace libtorrent {
 		{
 			torrent_peer* tp = *i;
 			if (tp == nullptr || tp->connection == nullptr) continue;
-			peer_connection* peer = static_cast<peer_connection*>(tp->connection);
+			auto* peer = static_cast<peer_connection*>(tp->connection);
 			peer->make_time_critical(piece_block(piece, block));
 		}
 	}
@@ -5540,7 +5540,7 @@ namespace libtorrent {
 			debug_log("removing web seed: \"%s\"", web->url.c_str());
 #endif
 
-			peer_connection* peer = static_cast<peer_connection*>(web->peer_info.connection);
+			auto* peer = static_cast<peer_connection*>(web->peer_info.connection);
 			if (peer != nullptr)
 			{
 				// if we have a connection for this web seed, we also need to
@@ -6399,7 +6399,7 @@ namespace libtorrent {
 					TORRENT_ASSERT(tp->in_use);
 					if (tp->connection)
 					{
-						peer_connection* peer = static_cast<peer_connection*>(tp->connection);
+						auto* peer = static_cast<peer_connection*>(tp->connection);
 						TORRENT_ASSERT(peer->m_in_use);
 						bi.set_peer(peer->remote());
 						if (bi.state == block_info::requested)
@@ -9940,7 +9940,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
 
-		peer_connection* peer = static_cast<peer_connection*>(i->peer_info.connection);
+		auto* peer = static_cast<peer_connection*>(i->peer_info.connection);
 		if (peer != nullptr)
 		{
 			// if we have a connection for this web seed, we also need to
@@ -10356,7 +10356,7 @@ namespace libtorrent {
 					torrent_peer* p = info.peer;
 					if (p != nullptr && p->connection)
 					{
-						peer_connection* peer = static_cast<peer_connection*>(p->connection);
+						auto* peer = static_cast<peer_connection*>(p->connection);
 						auto pbp = peer->downloading_piece_progress();
 						if (pbp.piece_index == dp.index && pbp.block_index == idx)
 							block = pbp.bytes_downloaded;

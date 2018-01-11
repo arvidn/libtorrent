@@ -75,7 +75,7 @@ namespace libtorrent {
 		}
 		boost::system::error_condition default_error_condition(
 			int ev) const BOOST_SYSTEM_NOEXCEPT override
-		{ return boost::system::error_condition(ev, *this); }
+		{ return {ev, *this}; }
 	};
 
 
@@ -89,7 +89,7 @@ namespace libtorrent {
 	{
 		boost::system::error_code make_error_code(i2p_error_code e)
 		{
-			return error_code(e, i2p_category());
+			return {e, i2p_category()};
 		}
 	}
 
@@ -180,8 +180,8 @@ namespace libtorrent {
 		if (m_state == sam_idle && m_name_lookup.empty() && is_open())
 			do_name_lookup(name, std::move(handler));
 		else
-			m_name_lookup.push_back(std::make_pair(std::string(name)
-				, std::move(handler)));
+			m_name_lookup.emplace_back(std::string(name)
+				, std::move(handler));
 	}
 
 	void i2p_connection::do_name_lookup(std::string const& name
@@ -203,7 +203,7 @@ namespace libtorrent {
 		if (!m_name_lookup.empty())
 		{
 			std::pair<std::string, name_lookup_handler>& nl = m_name_lookup.front();
-			do_name_lookup(std::move(nl.first), std::move(nl.second));
+			do_name_lookup(nl.first, std::move(nl.second));
 			m_name_lookup.pop_front();
 		}
 
@@ -227,13 +227,13 @@ namespace libtorrent {
 #endif
 	}
 
+#if TORRENT_USE_ASSERTS
 	i2p_stream::~i2p_stream()
 	{
-#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_magic = 0;
-#endif
 	}
+#endif
 
 	void i2p_stream::do_connect(error_code const& e, tcp::resolver::iterator i
 		, handler_type h)
@@ -285,7 +285,7 @@ namespace libtorrent {
 		COMPLETE_ASYNC("i2p_stream::read_line");
 		if (handle_error(e, h)) return;
 
-		int const read_pos = int(m_buffer.size());
+		auto const read_pos = int(m_buffer.size());
 
 		// look for \n which means end of the response
 		if (m_buffer[read_pos - 1] != '\n')

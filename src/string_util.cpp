@@ -164,7 +164,7 @@ namespace libtorrent {
 	{
 		if (str == nullptr) return nullptr;
 		std::size_t const len = std::strlen(str);
-		char* tmp = new char[len + 1];
+		auto* tmp = new char[len + 1];
 		std::copy(str, str + len, tmp);
 		tmp[len] = '\0';
 		return tmp;

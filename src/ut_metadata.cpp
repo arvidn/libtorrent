@@ -126,7 +126,7 @@ namespace libtorrent {namespace {
 		}
 
 		bool received_metadata(ut_metadata_peer_plugin& source
-			, char const* buf, int const size, int const piece, int const total_size);
+			, char const* buf, int size, int piece, int total_size);
 
 		// returns a piece of the metadata that
 		// we should request.
@@ -333,8 +333,9 @@ namespace libtorrent {namespace {
 				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, 2);
 				return true;
 			}
-			int type = int(type_ent->integer());
-			int piece = int(piece_ent->integer());
+			// TODO: make this an enum class
+			auto const type = int(type_ent->integer());
+			auto const piece = int(piece_ent->integer());
 
 #ifndef TORRENT_DISABLE_LOGGING
 			m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
@@ -417,7 +418,7 @@ namespace libtorrent {namespace {
 			while (!m_incoming_requests.empty()
 				&& m_pc.send_buffer_size() < send_buffer_limit)
 			{
-				int piece = m_incoming_requests.front();
+				int const piece = m_incoming_requests.front();
 				m_incoming_requests.erase(m_incoming_requests.begin());
 				write_metadata_packet(metadata_piece, piece);
 			}
@@ -436,7 +437,7 @@ namespace libtorrent {namespace {
 				&& m_sent_requests.size() < 2
 				&& has_metadata())
 			{
-				int piece = m_tp.metadata_request(m_pc.has_metadata());
+				int const piece = m_tp.metadata_request(m_pc.has_metadata());
 				if (piece == -1) return;
 
 				m_sent_requests.push_back(piece);
@@ -493,7 +494,7 @@ namespace libtorrent {namespace {
 	// from requesting this block by setting a timeout on it.
 	int ut_metadata_plugin::metadata_request(bool const has_metadata)
 	{
-		std::vector<metadata_piece>::iterator i = std::min_element(
+		auto i = std::min_element(
 			m_requested_metadata.begin(), m_requested_metadata.end());
 
 		if (m_requested_metadata.empty())

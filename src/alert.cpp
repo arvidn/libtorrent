@@ -2336,7 +2336,7 @@ namespace {
 #endif
 		}
 
-		return nodes_slot(v4_num_nodes, v4_nodes_idx, v6_num_nodes, v6_nodes_idx);
+		return nodes_slot{v4_num_nodes, v4_nodes_idx, v6_num_nodes, v6_nodes_idx};
 	}
 
 	std::vector<std::pair<sha1_hash, udp::endpoint>> read_nodes(

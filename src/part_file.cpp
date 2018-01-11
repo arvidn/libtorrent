@@ -316,7 +316,7 @@ namespace libtorrent {
 				auto bytes_read = std::size_t(m_file.readv(slot_offset + piece_offset, v, ec));
 				v = v.first(bytes_read);
 				TORRENT_ASSERT(!ec);
-				if (ec || v.size() == 0) return;
+				if (ec || v.empty()) return;
 
 				f(file_offset, {buf.get(), std::size_t(block_to_copy)});
 

@@ -347,7 +347,7 @@ namespace libtorrent {
 		// most errors are passed through, except for the ones that indicate that
 		// hard links are not supported and require a copy.
 		// TODO: 2 test this on a FAT volume to see what error we get!
-		if (errno != EMLINK || errno != EXDEV)
+		if (errno != EMLINK && errno != EXDEV)
 		{
 			// some error happened, report up to the caller
 			ec.assign(errno, system_category());

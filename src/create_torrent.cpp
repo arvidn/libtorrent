@@ -285,7 +285,8 @@ namespace {
 			info_hash
 		};
 
-		storage_holder storage = disk_thread.new_torrent(default_storage_constructor, std::move(params), std::shared_ptr<void>());
+		storage_holder storage = disk_thread.new_torrent(default_storage_constructor
+			, params, std::shared_ptr<void>());
 
 		settings_pack sett;
 		sett.set_int(settings_pack::cache_size, 0);
@@ -582,7 +583,7 @@ namespace {
 
 				for (file_index_t i(0); i != m_files.end_file(); ++i)
 				{
-					files.list().push_back(entry());
+					files.list().emplace_back();
 					entry& file_e = files.list().back();
 					if (m_include_mtime && m_files.mtime(i)) file_e["mtime"] = m_files.mtime(i);
 					file_e["length"] = m_files.file_size(i);
@@ -633,7 +634,7 @@ namespace {
 			int const num_nodes = merkle_num_nodes(num_leafs);
 			int const first_leaf = num_nodes - num_leafs;
 			m_merkle_tree.resize(num_nodes);
-			int const num_pieces = int(m_piece_hash.size());
+			auto const num_pieces = int(m_piece_hash.size());
 			for (int i = 0; i < num_pieces; ++i)
 				m_merkle_tree[first_leaf + i] = m_piece_hash[piece_index_t(i)];
 			for (int i = num_pieces; i < num_leafs; ++i)

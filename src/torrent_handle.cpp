@@ -87,7 +87,7 @@ namespace libtorrent {
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) aux::throw_ex<system_error>(errors::invalid_torrent_handle);
-		session_impl& ses = static_cast<session_impl&>(t->session());
+		auto& ses = static_cast<session_impl&>(t->session());
 		ses.get_io_service().dispatch([=,&ses] ()
 		{
 #ifndef BOOST_NO_EXCEPTIONS
@@ -114,7 +114,7 @@ namespace libtorrent {
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) aux::throw_ex<system_error>(errors::invalid_torrent_handle);
-		session_impl& ses = static_cast<session_impl&>(t->session());
+		auto& ses = static_cast<session_impl&>(t->session());
 
 		// this is the flag to indicate the call has completed
 		bool done = false;
@@ -150,7 +150,7 @@ namespace libtorrent {
 #else
 		if (!t) return r;
 #endif
-		session_impl& ses = static_cast<session_impl&>(t->session());
+		auto& ses = static_cast<session_impl&>(t->session());
 
 		// this is the flag to indicate the call has completed
 		bool done = false;
@@ -772,7 +772,7 @@ namespace libtorrent {
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return;
-		session_impl& ses = static_cast<session_impl&>(t->session());
+		auto& ses = static_cast<session_impl&>(t->session());
 		status = ses.disk_thread().get_status(t->storage());
 	}
 #endif
@@ -793,7 +793,7 @@ namespace libtorrent {
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return {};
-		session_impl& ses = static_cast<session_impl&>(t->session());
+		auto& ses = static_cast<session_impl&>(t->session());
 		return ses.disk_thread().get_status(t->storage());
 	}
 

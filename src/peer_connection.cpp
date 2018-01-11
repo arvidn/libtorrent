@@ -1277,7 +1277,7 @@ namespace libtorrent {
 		}
 
 #if TORRENT_USE_I2P
-		i2p_stream* i2ps = m_socket->get<i2p_stream>();
+		auto* i2ps = m_socket->get<i2p_stream>();
 		if (!i2ps && t->torrent_file().is_i2p()
 			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))
 		{
@@ -4275,7 +4275,7 @@ namespace libtorrent {
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			if (type() == connection_type::bittorrent && op != operation_t::connect)
 			{
-				bt_peer_connection* bt = static_cast<bt_peer_connection*>(this);
+				auto* bt = static_cast<bt_peer_connection*>(this);
 				if (bt->supports_encryption()) m_counters.inc_stats_counter(
 					counters::error_encrypted_peers);
 				if (bt->rc4_encrypted() && bt->supports_encryption())
@@ -5540,7 +5540,7 @@ namespace libtorrent {
 			{
 				// this const_cast is a here because chained_buffer need to be
 				// fixed.
-				char* ptr = const_cast<char*>(i->data());
+				auto* ptr = const_cast<char*>(i->data());
 				m_send_buffer.prepend_buffer(span<char>(ptr, i->size())
 					, static_cast<int>(i->size()));
 			}

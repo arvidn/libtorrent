@@ -784,8 +784,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	bool coalesce_read_buffers(span<iovec_t const>& bufs
 		, iovec_t& tmp)
 	{
-		std::size_t const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
-		char* buf = new char[buf_size];
+		auto const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
+		auto buf = new char[buf_size];
 		tmp = { buf, buf_size };
 		bufs = span<iovec_t const>(tmp);
 		return true;
@@ -801,8 +801,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	bool coalesce_write_buffers(span<iovec_t const>& bufs
 		, iovec_t& tmp)
 	{
-		std::size_t const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
-		char* buf = new char[buf_size];
+		auto const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
+		auto buf = new char[buf_size];
 		gather_copy(bufs, buf);
 		tmp = { buf, buf_size };
 		bufs = span<iovec_t const>(tmp);
@@ -1162,7 +1162,7 @@ namespace {
 			}
 		}
 #else // NON-WINDOWS
-		struct stat st;
+		struct stat st{};
 		if (::fstat(native_handle(), &st) != 0)
 		{
 			ec.assign(errno, system_category());
@@ -1257,7 +1257,7 @@ namespace {
 		}
 		return file_size.QuadPart;
 #else
-		struct stat fs;
+		struct stat fs = {};
 		if (::fstat(native_handle(), &fs) != 0)
 		{
 			ec.assign(errno, system_category());

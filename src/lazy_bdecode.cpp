@@ -264,7 +264,7 @@ namespace {
 		else if (int(m_size) == this->capacity())
 		{
 			int const capacity = this->capacity() * lazy_entry_grow_factor / 100;
-			lazy_dict_entry* tmp = new (std::nothrow) lazy_dict_entry[capacity + 1];
+			auto* tmp = new (std::nothrow) lazy_dict_entry[capacity + 1];
 			if (tmp == nullptr) return nullptr;
 			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * (m_size + 1));
 			for (int i = 0; i < int(m_size); ++i) m_data.dict[i + 1].val.release();
@@ -349,7 +349,7 @@ namespace {
 	pascal_string lazy_entry::dict_find_pstr(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == nullptr || e->type() != lazy_entry::string_t) return pascal_string(nullptr, 0);
+		if (e == nullptr || e->type() != lazy_entry::string_t) return {nullptr, 0};
 		return e->string_pstr();
 	}
 
@@ -459,7 +459,7 @@ namespace {
 	pascal_string lazy_entry::list_pstr_at(int i) const
 	{
 		lazy_entry const* e = list_at(i);
-		if (e == nullptr || e->type() != lazy_entry::string_t) return pascal_string(nullptr, 0);
+		if (e == nullptr || e->type() != lazy_entry::string_t) return {nullptr, 0};
 		return e->string_pstr();
 	}
 
@@ -489,8 +489,7 @@ namespace {
 
 	std::pair<char const*, int> lazy_entry::data_section() const
 	{
-		typedef std::pair<char const*, int> return_t;
-		return return_t(m_begin, m_len);
+		return {m_begin, m_len};
 	}
 
 	namespace {

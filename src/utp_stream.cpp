@@ -872,7 +872,7 @@ int utp_stream::read_buffer_size() const
 
 void utp_stream::on_close_reason(void* self, close_reason_t reason)
 {
-	utp_stream* s = static_cast<utp_stream*>(self);
+	auto* s = static_cast<utp_stream*>(self);
 
 	// it's possible the socket has been unlinked already, in which case m_impl
 	// will be nullptr
@@ -883,7 +883,7 @@ void utp_stream::on_close_reason(void* self, close_reason_t reason)
 void utp_stream::on_read(void* self, std::size_t const bytes_transferred
 	, error_code const& ec, bool const shutdown)
 {
-	utp_stream* s = static_cast<utp_stream*>(self);
+	auto* s = static_cast<utp_stream*>(self);
 
 	UTP_LOGV("%8p: calling read handler read:%d ec:%s shutdown:%d\n", static_cast<void*>(s->m_impl)
 		, int(bytes_transferred), ec.message().c_str(), shutdown);
@@ -903,7 +903,7 @@ void utp_stream::on_read(void* self, std::size_t const bytes_transferred
 void utp_stream::on_write(void* self, std::size_t const bytes_transferred
 	, error_code const& ec, bool const shutdown)
 {
-	utp_stream* s = static_cast<utp_stream*>(self);
+	auto* s = static_cast<utp_stream*>(self);
 
 	UTP_LOGV("%8p: calling write handler written:%d ec:%s shutdown:%d\n"
 		, static_cast<void*>(s->m_impl)
@@ -923,7 +923,7 @@ void utp_stream::on_write(void* self, std::size_t const bytes_transferred
 
 void utp_stream::on_connect(void* self, error_code const& ec, bool shutdown)
 {
-	utp_stream* s = static_cast<utp_stream*>(self);
+	auto* s = static_cast<utp_stream*>(self);
 	TORRENT_ASSERT(s);
 
 	UTP_LOGV("%8p: calling connect handler ec:%s shutdown:%d\n"
@@ -1310,7 +1310,7 @@ void utp_socket_impl::send_syn()
 	p->num_fast_resend = 0;
 #endif
 	p->need_resend = false;
-	utp_header* h = reinterpret_cast<utp_header*>(p->buf);
+	auto* h = reinterpret_cast<utp_header*>(p->buf);
 	h->type_ver = (ST_SYN << 4) | 1;
 	h->extension = utp_no_extension;
 	// using recv_id here is intentional! This is an odd
@@ -1645,7 +1645,7 @@ void utp_socket_impl::remove_sack_header(packet* p)
 
 	// remove the sack header
 	std::uint8_t* ptr = p->buf + sizeof(utp_header);
-	utp_header* h = reinterpret_cast<utp_header*>(p->buf);
+	auto* h = reinterpret_cast<utp_header*>(p->buf);
 
 	TORRENT_ASSERT(h->extension == utp_sack);
 
@@ -2135,7 +2135,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	if (fast_resend) ++p->num_fast_resend;
 #endif
 	p->need_resend = false;
-	utp_header* h = reinterpret_cast<utp_header*>(p->buf);
+	auto* h = reinterpret_cast<utp_header*>(p->buf);
 	// update packet header
 	h->timestamp_difference_microseconds = m_reply_micro;
 	p->send_time = clock_type::now();
@@ -2604,7 +2604,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 {
 	INVARIANT_CHECK;
 
-	utp_header const* ph = reinterpret_cast<utp_header const*>(buf.data());
+	auto const* ph = reinterpret_cast<utp_header const*>(buf.data());
 
 	m_sm.inc_stats_counter(counters::utp_packets_in);
 

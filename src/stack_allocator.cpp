@@ -83,7 +83,7 @@ namespace aux {
 	{
 		int const ret = int(m_storage.size());
 		int const size = int(buf.size());
-		if (size < 1) return allocation_slot();
+		if (size < 1) return {};
 		m_storage.resize(ret + size);
 		std::memcpy(&m_storage[ret], buf.data(), numeric_cast<std::size_t>(size));
 		return allocation_slot(ret);
@@ -91,7 +91,7 @@ namespace aux {
 
 	allocation_slot stack_allocator::allocate(int const bytes)
 	{
-		if (bytes < 1) return allocation_slot();
+		if (bytes < 1) return {};
 		int const ret = m_storage.end_index();
 		m_storage.resize(ret + bytes);
 		return allocation_slot(ret);
