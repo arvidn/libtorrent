@@ -1,4 +1,5 @@
 
+	* fix error handling of some merkle torrents
 	* fix error handling of unsupported hard-links
 
 1.1.6 release
