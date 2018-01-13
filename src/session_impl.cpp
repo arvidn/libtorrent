@@ -1332,7 +1332,11 @@ namespace aux {
 		}
 #endif
 
-		if (!req.bind_ip) req.bind_ip = m_listen_interface.address();
+		if (!req.bind_ip
+			&& m_listen_interface.address() != address_v4::any())
+		{
+			req.bind_ip = m_listen_interface.address();
+		}
 		m_tracker_manager.queue_request(get_io_service(), req, c);
 	}
 
