@@ -184,8 +184,7 @@ class test_torrent_handle(unittest.TestCase):
         # make sure we can compare torrent_status objects
         st2 = self.h.status()
         self.assertEqual(st2, st)
-        print(st2.error_file)
-        print(st2.flags)
+        print(st2)
 
     def test_read_resume_data(self):
 

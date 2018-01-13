@@ -111,7 +111,7 @@ void bind_torrent_status()
         .def_readonly("added_time", &torrent_status::added_time)
         .def_readonly("completed_time", &torrent_status::completed_time)
         .def_readonly("last_seen_complete", &torrent_status::last_seen_complete)
-        .def_readonly("queue_position", &torrent_status::queue_position)
+        .add_property("queue_position", make_getter(&torrent_status::queue_position, by_value()))
         .def_readonly("need_save_resume", &torrent_status::need_save_resume)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("ip_filter_applies", &torrent_status::ip_filter_applies)
