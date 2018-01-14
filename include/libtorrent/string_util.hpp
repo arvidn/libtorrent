@@ -68,7 +68,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT bool string_begins_no_case(char const* s1, char const* s2);
 	TORRENT_EXTRA_EXPORT bool string_equal_no_case(string_view s1, string_view s2);
 
-	TORRENT_EXTRA_EXPORT void url_random(char* begin, char* end);
+	TORRENT_EXTRA_EXPORT void url_random(span<char> dest);
 
 	TORRENT_EXTRA_EXPORT bool string_ends_with(string_view s1, string_view s2);
 
