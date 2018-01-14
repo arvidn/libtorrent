@@ -69,12 +69,11 @@ char const* soap_delete_response[] = {
 	"<s:Body><u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:2\">"
 	"</u:DeletePortMapping></s:Body></s:Envelope>"};
 
-void incoming_msearch(udp::endpoint const& from, char const* buffer
-	, int size)
+void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 {
 	http_parser p;
 	bool error = false;
-	p.incoming(span<char const>(buffer, size), error);
+	p.incoming(buffer, error);
 	if (error || !p.header_finished())
 	{
 		std::cout << "*** malformed HTTP from "
