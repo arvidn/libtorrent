@@ -78,6 +78,11 @@ namespace aux {
 		span(std::array<U, N>& arr) noexcept // NOLINT
 			: m_ptr(arr.data()), m_len(arr.size()) {}
 
+		// this is necessary until C++17, where data() returns a non-const pointer
+		template <typename U>
+		span(std::basic_string<U>& str) noexcept // NOLINT
+			: m_ptr(&str[0]), m_len(str.size()) {}
+
 		template <typename U, std::size_t N>
 		span(U (&arr)[N]) noexcept // NOLINT
 			: m_ptr(&arr[0]), m_len(N) {}

@@ -129,7 +129,7 @@ namespace libtorrent {
 	}
 
 	// generate a url-safe random string
-	void url_random(char* begin, char* end)
+	void url_random(span<char> dest)
 	{
 		// http-accepted characters:
 		// excluding ', since some buggy trackers don't support that
@@ -137,8 +137,8 @@ namespace libtorrent {
 			"abcdefghijklmnopqrstuvwxyz-_.!~*()";
 
 		// the random number
-		while (begin != end)
-			*begin++ = printable[random(sizeof(printable) - 2)];
+		for (char& c : dest)
+			c = printable[random(sizeof(printable) - 2)];
 	}
 
 	bool string_ends_with(string_view s1, string_view s2)

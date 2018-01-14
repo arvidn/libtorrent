@@ -1072,7 +1072,7 @@ namespace {
 			ret.upload_limit = 0xf0f0f0f;
 			ret.download_limit = 0xf0f0f0f;
 			ret.label.resize(20);
-			url_random(&ret.label[0], &ret.label[0] + 20);
+			url_random(span<char>(ret.label));
 			ret.ignore_unchoke_slots = false;
 			ret.connection_limit_factor = 0xf0f0f0f;
 			ret.upload_priority = 0xf0f0f0f;
@@ -5349,13 +5349,13 @@ namespace {
 	{
 		// ---- generate a peer id ----
 		std::string print = m_settings.get_str(settings_pack::peer_fingerprint);
-		if (print.size() > 20) print.resize(20);
+		if (print.size() > m_peer_id.size()) print.resize(m_peer_id.size());
 
 		// the client's fingerprint
 		std::copy(print.begin(), print.begin() + int(print.length()), m_peer_id.begin());
-		if (print.length() < 20)
+		if (print.size() < m_peer_id.size())
 		{
-			url_random(m_peer_id.data() + print.length(), m_peer_id.data() + 20);
+			url_random(span<char>(m_peer_id).subspan(print.length()));
 		}
 	}
 
@@ -6395,7 +6395,7 @@ namespace {
 		}
 
 		if (m_upnp) m_upnp->set_user_agent("");
-		url_random(m_peer_id.data(), m_peer_id.data() + 20);
+		url_random(m_peer_id);
 	}
 
 	void session_impl::update_force_proxy()
