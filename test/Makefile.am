@@ -71,6 +71,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/httpseed.torrent \
   test_torrents/invalid_file_size.torrent \
   test_torrents/invalid_info.torrent \
+  test_torrents/invalid_merkle.torrent \
   test_torrents/invalid_name.torrent \
   test_torrents/invalid_name2.torrent \
   test_torrents/invalid_name3.torrent \

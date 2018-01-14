@@ -82,6 +82,10 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix tracker connection bind issue for IPv6 trackers
+	* fix error handling of some merkle torrents
+	* fix error handling of unsupported hard-links
+
 1.1.6 release
 
 	* deprecate save_encryption_settings (they are part of the normal settings)

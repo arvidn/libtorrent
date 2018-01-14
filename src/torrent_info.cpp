@@ -1083,6 +1083,13 @@ namespace {
 				m_files.set_piece_length(0);
 				return false;
 			}
+			if (files.num_pieces() <= 0)
+			{
+				ec = errors::no_files_in_torrent;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
+				return false;
+			}
 			int const num_leafs = merkle_num_leafs(files.num_pieces());
 			int const num_nodes = merkle_num_nodes(num_leafs);
 			m_merkle_first_leaf = num_nodes - num_leafs;
