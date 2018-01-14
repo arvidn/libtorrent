@@ -243,7 +243,8 @@ namespace libtorrent
 			int num_bufs = count_bufs(bufs, size);
 
 			if (file_index < int(m_storage.m_file_priority.size())
-				&& m_storage.m_file_priority[file_index] == 0)
+				&& m_storage.m_file_priority[file_index] == 0
+				&& m_storage.m_use_part_file)
 			{
 				TORRENT_ASSERT(m_storage.m_part_file);
 
@@ -333,7 +334,8 @@ namespace libtorrent
 			}
 
 			if (file_index < int(m_storage.m_file_priority.size())
-				&& m_storage.m_file_priority[file_index] == 0)
+				&& m_storage.m_file_priority[file_index] == 0
+				&& m_storage.m_use_part_file)
 			{
 				TORRENT_ASSERT(m_storage.m_part_file);
 
@@ -401,6 +403,7 @@ namespace libtorrent
 
 	default_storage::default_storage(storage_params const& params)
 		: m_files(*params.files)
+		, m_use_part_file(true)
 		, m_pool(*params.pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
@@ -1039,6 +1042,21 @@ namespace libtorrent
 			return false;
 		}
 
+		// if some files have priority 0, we would expect therer to be a part file
+		// as well. If there isn't, it implies we're not using part files and the
+		// original file names are used to store the partial pieces. i.e. 1.0.x
+		// behavior
+		for (int i = 0; i < m_file_priority.size(); ++i)
+		{
+			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
+			{
+				file_status s;
+				stat_file(combine_path(m_save_path, m_part_file_name), &s, ec.ec);
+				m_use_part_file = !ec;
+				break;
+			}
+		}
+
 		for (int i = 0; i < file_sizes_ent.list_size(); ++i)
 		{
 			if (fs.pad_file_at(i)) continue;
@@ -1046,8 +1064,12 @@ namespace libtorrent
 			// files with priority zero may not have been saved to disk at their
 			// expected location, but is likely to be in a partfile. Just exempt it
 			// from checking
+			// if we don't have a part-file, this may have been downloaded with a
+			// previous version of libtorrent. Then assume the pieces are in the
+			// files they belong in.
 			if (i < int(m_file_priority.size())
-				&& m_file_priority[i] == 0)
+				&& m_file_priority[i] == 0
+				&& m_use_part_file)
 				continue;
 
 			bdecode_node e = file_sizes_ent.list_at(i);
