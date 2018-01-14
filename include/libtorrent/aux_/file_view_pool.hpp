@@ -136,6 +136,13 @@ namespace aux {
 		// maps storage pointer, file index pairs to the lru entry for the file
 		files_container m_files;
 		mutable std::mutex m_mutex;
+
+		// the boost.multi-index container is not no-throw move constructable. In
+		// order to destruct m_files without holding the mutex, we need this
+		// separate pre-allocated container to move it into before releasing the
+		// mutex and clearing it.
+		files_container m_deferred_destruction;
+		mutable std::mutex m_destruction_mutex;
 	};
 }
 }
