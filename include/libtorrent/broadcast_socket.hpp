@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/span.hpp"
 
 #include <memory>
 #include <list>
@@ -57,7 +58,7 @@ namespace libtorrent {
 	address ensure_v6(address const& a);
 
 	typedef std::function<void(udp::endpoint const& from
-		, char const* buffer, int size)> receive_handler_t;
+		, span<char const> buffer)> receive_handler_t;
 
 	class TORRENT_EXTRA_EXPORT broadcast_socket
 	{

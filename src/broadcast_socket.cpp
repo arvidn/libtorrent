@@ -318,7 +318,7 @@ namespace libtorrent {
 			maybe_abort();
 			return;
 		}
-		m_on_receive(s->remote, s->buffer, int(bytes_transferred));
+		m_on_receive(s->remote, {s->buffer, bytes_transferred});
 
 		if (maybe_abort()) return;
 		if (!s->socket) return;

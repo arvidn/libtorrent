@@ -203,8 +203,7 @@ private:
 	void discover_device_impl();
 
 	void resend_request(error_code const& e);
-	void on_reply(udp::endpoint const& from, char const* buffer
-		, std::size_t bytes_transferred);
+	void on_reply(udp::endpoint const& from, span<char const> buffer);
 
 	struct rootdevice;
 	void next(rootdevice& d, port_mapping_t i);

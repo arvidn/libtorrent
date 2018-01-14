@@ -60,8 +60,7 @@ private:
 		, bool broadcast, int retry_count);
 	void resend_announce(error_code const& e, sha1_hash const& ih
 		, int listen_port, int retry_count);
-	void on_announce(udp::endpoint const& from, char const* buffer
-		, std::size_t bytes_transferred);
+	void on_announce(udp::endpoint const& from, span<char const> buffer);
 
 	aux::lsd_callback& m_callback;
 

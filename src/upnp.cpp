@@ -120,7 +120,7 @@ void upnp::start()
 	TORRENT_ASSERT(is_single_thread());
 
 	error_code ec;
-	m_socket.open(std::bind(&upnp::on_reply, self(), _1, _2, _3)
+	m_socket.open(std::bind(&upnp::on_reply, self(), _1, _2)
 		, m_refresh_timer.get_io_service(), ec);
 
 	m_mappings.reserve(10);
@@ -370,8 +370,7 @@ void upnp::resend_request(error_code const& ec)
 	}
 }
 
-void upnp::on_reply(udp::endpoint const& from, char const* buffer
-	, std::size_t const bytes_transferred)
+void upnp::on_reply(udp::endpoint const& from, span<char const> buffer)
 {
 	TORRENT_ASSERT(is_single_thread());
 	std::shared_ptr<upnp> me(self());
@@ -484,7 +483,7 @@ void upnp::on_reply(udp::endpoint const& from, char const* buffer
 
 	http_parser p;
 	bool error = false;
-	p.incoming({buffer, bytes_transferred}, error);
+	p.incoming(buffer, error);
 	if (error)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
