@@ -178,12 +178,14 @@ namespace {
 	// storage, or all if none is specified.
 	void file_view_pool::release()
 	{
-		files_container defer_destruction;
 		std::unique_lock<std::mutex> l(m_mutex);
-		m_files.swap(defer_destruction);
+		std::unique_lock<std::mutex> l2(m_destruction_mutex);
+		m_deferred_destruction = std::move(m_files);
 		l.unlock();
 
-		// the files and mappings will be destructed here, not holding the mutex
+		// the files and mappings will be destructed here, not holding the main
+		// mutex
+		m_deferred_destruction.clear();
 	}
 
 	void file_view_pool::release(storage_index_t const st)
