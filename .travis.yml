@@ -6,13 +6,15 @@ matrix:
     - env: variant=test_debug lang=sanitizer sim=1 coverage=0
     - env: variant=test_debug lang=cpp98 sim=0 coverage=0
     - env: variant=test_barebones lang=cpp11 sim=0 coverage=0 autotools=1
-
     - env: variant=test_debug lang=cpp11 sim=0 coverage=0 target=osx-tests
       os: osx
       osx_image: xcode7.3
     - env: variant=test_release lang=cpp11 sim=0 coverage=0 docs=1 target=osx-tests
       os: osx
       osx_image: xcode7.3
+    - env: variant=test_debug lang=cpp11 sim=0 coverage=0 docs=1 tests=0 python=0 examples=0 ios=1
+      os: osx
+      osx_image: xcode8.3
 
 git:
   submodules: false
@@ -86,9 +88,30 @@ install:
 # we're building with -Werror, we can't have those warnings
   - 'echo "using darwin : cpp11 : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using darwin : cpp98 : ccache clang++ : <warnings>off <cflags>-std=c99 <cxxflags>-std=c++98 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
+  - 'echo "using darwin : ios_sim : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
+       <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
+       <compileflags>-mios-simulator-version-min=7
+       <compileflags>-fobjc-abi-version=2
+       <compileflags>-ansi
+       <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
+       <linkflags>-mios-simulator-version-min=7
+       <linkflags>-fobjc-abi-version=2
+       ;" >>~/user-config.jam'
+  - 'echo "using darwin : ios : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
+       <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
+       <compileflags>-mios-version-min=7
+       <compileflags>\"-arch armv7\"
+       <compileflags>-fobjc-abi-version=2
+       <compileflags>-ansi
+       <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
+       <linkflags>-mios-version-min=7
+       <linkflags>\"-arch armv7\"
+       <linkflags>-fobjc-abi-version=2
+       ;" >>~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
   - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then /Users/travis/Library/Python/2.7/bin/rst2html.py --version; fi
+  - cat ~/user-config.jam
 
 script:
 # disable invoking docutils for now, until we can have a modern version of it
@@ -97,41 +120,52 @@ script:
   - cd ..
 
   - cd test
-  - bjam --hash -j3 warnings-as-errors=on invariant-checks=full variant=$variant -l900 $coverage_toolset $target $test_args
 # if we're building with code coverage, report it as soon as possible
-  - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
-    codecov --root .. --gcov-exec gcov-4.8;
+  - if [[ $tests != "0" ]]; then
+      bjam --hash -j3 warnings-as-errors=on invariant-checks=full variant=$variant -l900 $coverage_toolset $target $test_args &&
+      if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
+        codecov --root .. --gcov-exec gcov-4.8;
+      fi;
     fi
 
   - cd ../examples
-  - bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared
-  - if [[ $lang == "cpp11" ]]; then
-    bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared bt-get bt-get2;
+  - if [[ $examples != "0" ]]; then
+      bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared &&
+      if [[ $lang == "cpp11" ]]; then
+        bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared bt-get bt-get2;
+      fi;
     fi
   - cd ..
 
 # run through autotools and ./configure to make sure it works
-  - 'if [[ "$autotools" == "1" ]]; then
+  - if [[ "$autotools" == "1" ]]; then
       ./autotool.sh &&
       export CXX=g++-5 &&
       export CC=gcc-5 &&
       export CXXFLAGS="-Werror -Wno-deprecated-declarations" &&
       ./configure --enable-debug --enable-encryption --enable-examples --enable-tests --enable-python-binding &&
       make -j2;
-    fi'
+    fi
+
+  - if [[ $ios == "1" ]]; then
+      bjam darwin-ios -j2 link=static &&
+      bjam darwin-ios_sim -j2 link=static;
+    fi
 
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we can't stage them to the same directory
-  - bjam --hash -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib
+  - if [[ $python != "0" ]]; then
+      bjam --hash -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib;
+    fi
 
 # here we specify the temporary lib dir as a path to look for the main library
 # a binary built with sanitizer does not interact well with python
   - cd bindings/python
-  - 'if [[ $lang != "sanitizer" ]]; then
-    bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib;
-    LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
-    fi'
+  - if [[ $lang != "sanitizer" && $python != "0" ]]; then
+      bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib;
+      LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
+    fi
   - cd ../..
 
   - cd simulation
