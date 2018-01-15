@@ -84,6 +84,8 @@ TORRENT_TEST(mutable_torrents)
 }
 #endif
 
+namespace {
+
 struct test_torrent_t
 {
 	char const* file;
@@ -162,6 +164,8 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
 	{ "no_files.torrent", errors::no_files_in_torrent},
 };
+
+} // anonymous namespace
 
 // TODO: test remap_files
 // TODO: merkle torrents. specifically torrent_info::add_merkle_nodes and torrent with "root hash"
@@ -666,9 +670,9 @@ TORRENT_TEST(parse_torrents)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti(buf, from_span);
-	std::cout << ti.name() << std::endl;
-	TEST_CHECK(ti.name() == "test1");
+	torrent_info ti1(buf, from_span);
+	std::cout << ti1.name() << std::endl;
+	TEST_CHECK(ti1.name() == "test1");
 
 #ifdef TORRENT_WINDOWS
 	info["name.utf-8"] = "c:/test1/test2/test3";

@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <functional>
 
+namespace {
+
 char upnp_xml[] =
 "<root>"
 "<specVersion>"
@@ -305,6 +307,8 @@ void test_parse(char const* in, char const* expected)
 		, in, out.c_str(), expected);
 	TEST_EQUAL(out, expected);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(upnp_parser1)
 {

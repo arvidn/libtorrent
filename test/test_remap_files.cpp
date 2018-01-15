@@ -47,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 using std::ignore;
 
+namespace {
+
 bool all_of(std::vector<bool> const& v)
 {
 	return std::all_of(v.begin(), v.end(), [](bool v){ return v; });
@@ -195,6 +197,8 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	st = tor1.status();
 	TEST_CHECK(st.is_seeding);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(remap_files)
 {

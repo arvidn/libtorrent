@@ -50,7 +50,7 @@ namespace
 		secret_key sk;
 		public_key pk;
 		signature sig;
-		std::vector<char> msg(int(message.size()) / 2);
+		std::vector<char> msg(message.size() / 2);
 
 		aux::from_hex(seed, s.data());
 		std::tie(pk, sk) = ed25519_create_keypair(s);
@@ -208,7 +208,7 @@ TORRENT_TEST(create_seed)
 
 	int n1 = 0;
 	int n2 = 0;
-	for (int i = 0; i < 32; i++)
+	for (std::size_t i = 0; i < 32; i++)
 	{
 		if (s1[i] != 0) n1++;
 		if (s2[i] != 0) n2++;
