@@ -1,4 +1,5 @@
 
+	* fix iOS build on recent SDK
 	* fix tracker connection bind issue for IPv6 trackers
 	* fix error handling of some merkle torrents
 	* fix error handling of unsupported hard-links
