@@ -631,8 +631,7 @@ namespace libtorrent {namespace {
 
 	std::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle const& pc)
 	{
-		if (pc.type() != connection_type::bittorrent)
-			return std::shared_ptr<peer_plugin>();
+		if (pc.type() != connection_type::bittorrent) return {};
 
 		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
 		auto p = std::make_shared<ut_pex_peer_plugin>(m_torrent, *c, *this);
@@ -649,7 +648,7 @@ namespace libtorrent {
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
 			&& !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
 		{
-			return std::shared_ptr<torrent_plugin>();
+			return {};
 		}
 		return std::make_shared<ut_pex_plugin>(*t);
 	}

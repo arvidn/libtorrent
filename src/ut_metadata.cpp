@@ -482,8 +482,7 @@ namespace libtorrent {namespace {
 	std::shared_ptr<peer_plugin> ut_metadata_plugin::new_connection(
 		peer_connection_handle const& pc)
 	{
-		if (pc.type() != connection_type::bittorrent)
-			return std::shared_ptr<peer_plugin>();
+		if (pc.type() != connection_type::bittorrent) return {};
 
 		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
 		return std::make_shared<ut_metadata_peer_plugin>(m_torrent, *c, *this);
@@ -636,7 +635,7 @@ namespace libtorrent {
 	{
 		torrent* t = th.native_handle().get();
 		// don't add this extension if the torrent is private
-		if (t->valid_metadata() && t->torrent_file().priv()) return std::shared_ptr<torrent_plugin>();
+		if (t->valid_metadata() && t->torrent_file().priv()) return {};
 		return std::make_shared<ut_metadata_plugin>(*t);
 	}
 }
