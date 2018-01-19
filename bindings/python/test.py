@@ -204,6 +204,8 @@ class test_torrent_handle(unittest.TestCase):
 
         ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
         h = ses.add_torrent(tp)
+        for attr in dir(tp):
+           print('%s: %s' % (attr, getattr(tp, attr)))
 
         h.connect_peer(('3.3.3.3', 3))
 
