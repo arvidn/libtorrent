@@ -91,8 +91,7 @@ namespace libtorrent {
 	void announce_endpoint::reset()
 	{
 		start_sent = false;
-		next_announce = time_point32::min();
-		min_announce = time_point32::min();
+		min_announce = next_announce = time_point32::min();
 	}
 
 	void announce_endpoint::failed(int const backoff_ratio, seconds32 const retry_interval)
