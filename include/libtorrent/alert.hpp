@@ -214,7 +214,7 @@ namespace libtorrent {
 		//
 		//			case read_piece_alert::alert_type:
 		//			{
-		//				read_piece_alert* p = (read_piece_alert*)a;
+		//				auto* p = static_cast<read_piece_alert*>(a);
 		//				if (p->ec) {
 		//					// read_piece failed
 		//					break;

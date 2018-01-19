@@ -15,7 +15,7 @@ matrix:
       env: variant=test_release docs=1 tests=1 toolset=darwin
     - os: osx
       osx_image: xcode9.2
-      env: variant=test_debug crypto=openssl tests=1 toolset=darwin
+      env: variant=test_debug crypto=openssl tests=1 toolset=darwin ios=1
     - os: osx
       osx_image: xcode9.2
       env: variant=test_barebones tools=1 examples=1 toolset=darwin python=1
@@ -117,6 +117,24 @@ install:
         <linkflags>-static-libgcc ;" >> ~/user-config.jam;
     fi;'
   - 'echo "using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
+  - 'echo "using darwin : ios_sim : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
+       <cxxflags>-std=c++11
+       <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
+       <compileflags>-mios-simulator-version-min=7
+       <compileflags>-fobjc-abi-version=2
+       <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
+       <linkflags>-mios-simulator-version-min=7
+       <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam'
+  - 'echo "using darwin : ios : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
+       <cxxflags>-std=c++11
+       <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
+       <compileflags>-mios-version-min=7
+       <compileflags>\"-arch armv7\"
+       <compileflags>-fobjc-abi-version=2
+       <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
+       <linkflags>-mios-version-min=7
+       <linkflags>\"-arch armv7\"
+       <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - if [ "$docs" == "1" ]; then /Users/travis/Library/Python/2.7/bin/rst2html.py --version; fi
   - 'if [ "$lint" == "1" ]; then curl "https://raw.githubusercontent.com/google/styleguide/71ec7f1e524969c19ce33cfc72e8e023f2b98ee2/cpplint/cpplint.py" >~/cpplint.py; fi'
@@ -192,6 +210,10 @@ script:
     fi'
   - cd ..
 
+  - if [[ $ios == "1" ]]; then
+      bjam darwin-ios darwin-ios_sim -j2 link=static;
+    fi
+
 # a binary built with sanitizer does not interact well with python
 # on OSX we need to use the brew version of python, for reasons explained above
   - cd bindings/python
@@ -213,14 +235,14 @@ script:
   - cd ..
 
 # run through autotools and ./configure to make sure it works
-  - 'if [[ "$autotools" == "1" ]]; then
+  - if [[ "$autotools" == "1" ]]; then
       ./autotool.sh &&
       export CXX=g++-5 &&
       export CC=gcc-5 &&
       export CXXFLAGS="-Werror -Wno-deprecated-declarations" &&
       ./configure --enable-debug --enable-encryption --enable-examples --enable-tests --enable-python-binding &&
       make -j2 check;
-    fi'
+    fi
 
   - ccache --show-stats
 

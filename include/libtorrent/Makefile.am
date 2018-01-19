@@ -196,6 +196,7 @@ nobase_include_HEADERS = \
   aux_/file_progress.hpp            \
   aux_/openssl.hpp                  \
   aux_/byteswap.hpp                 \
+  aux_/route.h                      \
   aux_/cppint_import_export.hpp     \
   aux_/ffs.hpp                      \
   aux_/portmap.hpp                  \

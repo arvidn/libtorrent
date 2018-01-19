@@ -56,8 +56,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_SYSCTL
 #include <sys/sysctl.h>
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif
+
+#if defined TARGET_IPHONE_SIMULATOR || defined TARGET_OS_IPHONE
+// net/route.h is not included in the iphone sdk.
+#include "libtorrent/aux_/route.h"
+#else
 #include <net/route.h>
 #endif
+#endif // TORRENT_USE_SYSCTL
 
 #if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_GETADAPTERSADDRESSES
 #ifndef WIN32_LEAN_AND_MEAN
