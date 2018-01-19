@@ -60,6 +60,8 @@ using namespace std::placeholders;
 using namespace lt;
 using std::ignore;
 
+namespace {
+
 auto const alert_mask = alert::all_categories
 	& ~alert::progress_notification
 	& ~alert::stats_notification;
@@ -233,7 +235,7 @@ void test_ssl(int test_idx, bool use_utp)
 	std::printf("\n\n%s: ses1: connecting peer port: %d\n\n\n"
 		, time_now_string(), port);
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
-		, port));
+		, std::uint16_t(port)));
 
 	const int timeout = 40;
 	for (int i = 0; i < timeout; ++i)
@@ -301,7 +303,7 @@ void test_ssl(int test_idx, bool use_utp)
 	p2 = ses2.abort();
 }
 
-std::string password_callback(int length, boost::asio::ssl::context::password_purpose p
+std::string password_callback(int /*length*/, boost::asio::ssl::context::password_purpose p
 	, std::string pw)
 {
 	if (p != boost::asio::ssl::context::for_reading) return "";
@@ -442,7 +444,7 @@ bool try_connect(lt::session& ses1, int port
 
 	std::printf("connecting 127.0.0.1:%d\n", port);
 	ssl_sock.lowest_layer().connect(tcp::endpoint(
-		address_v4::from_string("127.0.0.1"), port), ec);
+		address_v4::from_string("127.0.0.1"), std::uint16_t(port)), ec);
 	print_alerts(ses1, "ses1", true, true, &on_alert);
 
 	if (ec)
@@ -599,6 +601,8 @@ void test_malicious_peer()
 		TEST_EQUAL(success, attacks[i].expect);
 	}
 }
+
+} // anonymous namespace
 #endif // TORRENT_USE_OPENSSL
 
 TORRENT_TEST(malicious_peer)

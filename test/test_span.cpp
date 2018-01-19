@@ -41,8 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 span<char const> f(span<char const> x) { return x; }
 span<span<char>> g(span<span<char>> x) { return x; }
+
+} // anonymous namespace
 
 TORRENT_TEST(span_vector)
 {
@@ -52,12 +56,16 @@ TORRENT_TEST(span_vector)
 	TEST_CHECK(a.size() == 4);
 }
 
+namespace {
+
 void do_span_temp_vector(span<char const> a)
 {
 	std::vector<char> v1 = {1,2,3,4};
 	TEST_CHECK(a == f(v1));
 	TEST_CHECK(a.size() == 4);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(span_temp_vector)
 {

@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 void fun(std::condition_variable* s, std::mutex* m, int* waiting, int i)
 {
 	std::printf("thread %d waiting\n", i);
@@ -70,6 +72,8 @@ void decrement(std::condition_variable* s, std::mutex* m, int* waiting, std::ato
 	for (int i = 0; i < 1000000; ++i)
 		--*c;
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(threads)
 {

@@ -59,7 +59,7 @@ TORRENT_TEST(hex)
 	TEST_CHECK(aux::from_hex({str, 40}, bin));
 	char hex[41];
 	aux::to_hex(bin, hex);
-	TEST_CHECK(strcmp(hex, str) == 0);
+	TEST_CHECK(std::strcmp(hex, str) == 0);
 
 	TEST_CHECK(aux::to_hex({"\x55\x73",2}) == "5573");
 	TEST_CHECK(aux::to_hex({"\xaB\xd0",2}) == "abd0");
@@ -68,9 +68,9 @@ TORRENT_TEST(hex)
 
 	for (int i = 1; i < 255; ++i)
 	{
-		bool const hex = strchr(hex_chars, i) != nullptr;
-		char const c = i;
-		TEST_EQUAL(aux::is_hex(c), hex);
+		bool const hex_loop = std::strchr(hex_chars, i) != nullptr;
+		char const c = char(i);
+		TEST_EQUAL(aux::is_hex(c), hex_loop);
 	}
 
 	TEST_EQUAL(aux::hex_to_int('0'), 0);
@@ -355,6 +355,8 @@ TORRENT_TEST(path)
 #endif
 }
 
+namespace {
+
 void test_parse_interface(char const* input
 	, std::vector<listen_interface_t> expected
 	, std::string output)
@@ -370,6 +372,8 @@ void test_parse_interface(char const* input
 	}
 	TEST_EQUAL(print_listen_interfaces(list), output);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(parse_list)
 {

@@ -47,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 void test_transfer()
 {
 	// in case the previous run was terminated
@@ -131,6 +133,8 @@ void test_transfer()
 	p1 = ses1.abort();
 	p2 = ses2.abort();
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(utp)
 {
