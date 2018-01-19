@@ -23,6 +23,7 @@
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/pex_flags.hpp"
 #include <vector>
+#include <map>
 
 using namespace boost::python;
 namespace bp = boost::python;
@@ -66,9 +67,8 @@ struct tuple_to_endpoint
            ->storage.bytes;
 
         object o(borrowed(x));
-        new (storage) T(lt::address::from_string(
+        data->convertible = new (storage) T(lt::address::from_string(
            extract<std::string>(o[0])), extract<int>(o[1]));
-        data->convertible = storage;
     }
 };
 
@@ -115,12 +115,23 @@ struct tuple_to_pair
         std::pair<T1, T2> p;
         p.first = extract<T1>(o[0]);
         p.second = extract<T2>(o[1]);
-        new (storage) std::pair<T1, T2>(p);
-        data->convertible = storage;
+        data->convertible = new (storage) std::pair<T1, T2>(p);
     }
 };
 
-template<class T1, class T2>
+template<typename Map>
+struct map_to_dict
+{
+    static PyObject* convert(Map const& m)
+    {
+        dict ret;
+        for (auto const& e : m)
+            ret[e.first] = e.second;
+        return incref(ret.ptr());
+    }
+};
+
+template<class T1, class T2, class Map = std::map<T1, T2>>
 struct dict_to_map
 {
     dict_to_map()
@@ -141,7 +152,7 @@ struct dict_to_map
             std::map<T1, T2>>*)data)->storage.bytes;
 
         dict o(borrowed(x));
-        std::map<T1, T2> m;
+        Map m;
 
         stl_input_iterator<T1> i(o.keys()), end;
         for (; i != end; ++i)
@@ -149,8 +160,7 @@ struct dict_to_map
             T1 const& key = *i;
             m[key] = extract<T2>(o[key]);
         }
-        new (storage) std::map<T1, T2>(m);
-        data->convertible = storage;
+        data->convertible = new (storage) std::map<T1, T2>(m);
     }
 };
 
@@ -196,9 +206,52 @@ struct list_to_vector
            object o(borrowed(PyList_GetItem(x, i)));
            p.push_back(extract<typename T::value_type>(o));
         }
-        T* ptr = new (storage) T();
-        ptr->swap(p);
-        data->convertible = storage;
+        data->convertible = new (storage) T(std::move(p));
+    }
+};
+
+template<class T, typename IndexType = int>
+struct list_to_bitfield
+{
+    list_to_bitfield()
+    {
+        converter::registry::push_back(
+            &convertible, &construct, type_id<T>()
+        );
+    }
+
+    static void* convertible(PyObject* x)
+    {
+        return PyList_Check(x) ? x : nullptr;
+    }
+
+    static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
+    {
+        void* storage = ((converter::rvalue_from_python_storage<
+            T>*)data)->storage.bytes;
+
+        T p;
+        int const size = int(PyList_Size(x));
+		  p.resize(size);
+        for (int i = 0; i < size; ++i)
+        {
+           object o(borrowed(PyList_GetItem(x, i)));
+           if (extract<bool>(o)) p.set_bit(IndexType{i});
+			  else p.clear_bit(IndexType{i});
+        }
+        data->convertible = new (storage) T(std::move(p));
+    }
+};
+
+template<class T>
+struct bitfield_to_list
+{
+    static PyObject* convert(T const& v)
+    {
+        list ret;
+        for (auto const& i : v)
+            ret.append(i);
+        return incref(ret.ptr());
     }
 };
 
@@ -234,8 +287,7 @@ struct to_strong_typedef
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
     {
         void* storage = ((converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
-        new (storage) T(extract<underlying_type>(object(borrowed(x))));
-        data->convertible = storage;
+        data->convertible = new (storage) T(extract<underlying_type>(object(borrowed(x))));
     }
 };
 
@@ -275,8 +327,7 @@ struct to_bitfield_flag
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
     {
         void* storage = ((converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
-        new (storage) T(extract<underlying_type>(object(borrowed(x))));
-        data->convertible = storage;
+        data->convertible = new (storage) T(extract<underlying_type>(object(borrowed(x))));
     }
 };
 
@@ -299,6 +350,9 @@ void bind_converters()
     to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<std::vector<lt::tcp::endpoint>>>();
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<std::vector<lt::udp::endpoint>>>();
     to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::vector<std::pair<std::string, int>>>>();
+
+    to_python_converter<lt::typed_bitfield<lt::piece_index_t>, bitfield_to_list<lt::typed_bitfield<lt::piece_index_t>>>();
+    to_python_converter<lt::bitfield, bitfield_to_list<lt::bitfield>>();
 
     to_python_converter<lt::queue_position_t, from_strong_typedef<lt::queue_position_t>>();
     to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
@@ -342,6 +396,9 @@ void bind_converters()
     to_python_converter<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>>>();
     to_python_converter<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>>>();
     to_python_converter<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>, vector_to_list<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>>>();
+    to_python_converter<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>>();
+    to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<std::map<lt::file_index_t, std::string>>>();
 
     // python -> C++ conversions
     tuple_to_pair<int, int>();
@@ -364,6 +421,15 @@ void bind_converters()
     list_to_vector<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>>();
     list_to_vector<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>>();
     list_to_vector<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>>();
+    dict_to_map<lt::piece_index_t, lt::bitfield, lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>>();
+    dict_to_map<lt::file_index_t, std::string, lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>();
+
+    // bitfield types
+    list_to_bitfield<lt::typed_bitfield<lt::piece_index_t>, lt::piece_index_t>();
+    list_to_bitfield<lt::bitfield>();
+
+    bitfield_to_list<lt::typed_bitfield<lt::piece_index_t>>();
+    bitfield_to_list<lt::bitfield>();
 
     to_strong_typedef<lt::queue_position_t>();
     to_strong_typedef<lt::piece_index_t>();
