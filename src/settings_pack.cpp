@@ -223,6 +223,7 @@ namespace libtorrent
 		SET_NOPREV(proxy_peer_connections, true, 0),
 		SET_NOPREV(auto_sequential, true, &session_impl::update_auto_sequential),
 		SET_NOPREV(proxy_tracker_connections, true, 0),
+		SET_NOPREV(incoming_socks5_connections, false, &session_impl::update_incoming_socks5),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
