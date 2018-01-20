@@ -400,6 +400,11 @@ void bind_converters()
     to_python_converter<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>>();
     to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<std::map<lt::file_index_t, std::string>>>();
 
+#ifndef TORRENT_NO_DEPRECATE
+    to_python_converter<lt::aux::noexcept_movable<std::vector<char>>, vector_to_list<lt::aux::noexcept_movable<std::vector<char>>>>();
+    list_to_vector<lt::aux::noexcept_movable<std::vector<char>>>();
+#endif
+
     // python -> C++ conversions
     tuple_to_pair<int, int>();
     tuple_to_pair<std::string, int>();

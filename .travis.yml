@@ -10,15 +10,9 @@ matrix:
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
-    - os: osx
+    - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 python=1 toolset=darwin ios=1
+      os: osx
       osx_image: xcode9.2
-      env: variant=test_release docs=1 tests=1 toolset=darwin
-    - os: osx
-      osx_image: xcode9.2
-      env: variant=test_debug crypto=openssl tests=1 toolset=darwin ios=1
-    - os: osx
-      osx_image: xcode9.2
-      env: variant=test_barebones tools=1 examples=1 toolset=darwin python=1
     - env: arch=arm toolset=gcc-arm
 
 notifications:
@@ -118,7 +112,6 @@ install:
     fi;'
   - 'echo "using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using darwin : ios_sim : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
-       <cxxflags>-std=c++11
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
        <compileflags>-mios-simulator-version-min=7
        <compileflags>-fobjc-abi-version=2
@@ -126,7 +119,6 @@ install:
        <linkflags>-mios-simulator-version-min=7
        <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam'
   - 'echo "using darwin : ios : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
-       <cxxflags>-std=c++11
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
        <compileflags>-mios-version-min=7
        <compileflags>\"-arch armv7\"
@@ -211,7 +203,7 @@ script:
   - cd ..
 
   - if [[ $ios == "1" ]]; then
-      bjam darwin-ios darwin-ios_sim -j2 link=static;
+      bjam -q darwin-ios darwin-ios_sim -j2 link=static;
     fi
 
 # a binary built with sanitizer does not interact well with python

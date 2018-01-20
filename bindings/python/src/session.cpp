@@ -770,7 +770,7 @@ void bind_session()
 #ifndef TORRENT_NO_DEPRECATE
         .def_readwrite("url", &add_torrent_params::url)
         .def_readwrite("uuid", &add_torrent_params::uuid)
-        .def_readwrite("resume_data", &add_torrent_params::resume_data)
+        .add_property("resume_data", PROP(&add_torrent_params::resume_data))
 #endif
       ;
 
