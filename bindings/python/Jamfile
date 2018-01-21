@@ -163,5 +163,15 @@ install stage_module
     <install-type>LIB
   ;
 
+install stage_dependencies
+  : /torrent//torrent
+    boost_python
+  : <location>dependencies
+    <install-dependencies>on
+    <install-type>SHARED_LIB
+  ;
+
+
 explicit stage_module ;
+explicit stage_dependencies ;
 

@@ -6,13 +6,7 @@ matrix:
     - env: variant=test_debug lang=sanitizer sim=1 coverage=0
     - env: variant=test_debug lang=cpp98 sim=0 coverage=0
     - env: variant=test_barebones lang=cpp11 sim=0 coverage=0 autotools=1
-    - env: variant=test_debug lang=cpp11 sim=0 coverage=0 target=osx-tests
-      os: osx
-      osx_image: xcode7.3
-    - env: variant=test_release lang=cpp11 sim=0 coverage=0 docs=1 target=osx-tests
-      os: osx
-      osx_image: xcode7.3
-    - env: variant=test_debug lang=cpp11 sim=0 coverage=0 docs=1 tests=0 python=0 examples=0 ios=1
+    - env: variant=test_debug lang=cpp11 sim=0 coverage=0 docs=1 target=osx-tests ios=1
       os: osx
       osx_image: xcode8.3
 
@@ -46,7 +40,11 @@ addons:
 
 before_install:
   - git submodule update --init --recursive
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install ccache boost-build boost-python; fi
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install ccache boost-build; fi
+  # we have to use python from brew rather than the system provided python
+  # because of OSX System Integrity Protection, which prevents injecting
+  # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
+  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then travis_retry brew install boost-python; brew upgrade python2; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && $docs = "1" ]]; then
     easy_install --user docutils;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
@@ -92,7 +90,6 @@ install:
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
        <compileflags>-mios-simulator-version-min=7
        <compileflags>-fobjc-abi-version=2
-       <compileflags>-ansi
        <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
        <linkflags>-mios-simulator-version-min=7
        <linkflags>-fobjc-abi-version=2
@@ -102,7 +99,6 @@ install:
        <compileflags>-mios-version-min=7
        <compileflags>\"-arch armv7\"
        <compileflags>-fobjc-abi-version=2
-       <compileflags>-ansi
        <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
        <linkflags>-mios-version-min=7
        <linkflags>\"-arch armv7\"
@@ -112,6 +108,8 @@ install:
   - ccache -V && ccache --show-stats && ccache --zero-stats
   - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then /Users/travis/Library/Python/2.7/bin/rst2html.py --version; fi
   - cat ~/user-config.jam
+
+  - which python2
 
 script:
 # disable invoking docutils for now, until we can have a modern version of it
@@ -129,11 +127,9 @@ script:
     fi
 
   - cd ../examples
-  - if [[ $examples != "0" ]]; then
-      bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared &&
-      if [[ $lang == "cpp11" ]]; then
-        bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared bt-get bt-get2;
-      fi;
+  - bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared &&
+    if [[ $lang == "cpp11" ]]; then
+      bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared bt-get bt-get2;
     fi
   - cd ..
 
@@ -148,23 +144,24 @@ script:
     fi
 
   - if [[ $ios == "1" ]]; then
-      bjam darwin-ios -j2 link=static &&
-      bjam darwin-ios_sim -j2 link=static;
+      bjam darwin-ios darwin-ios_sim -j2 -q link=static;
     fi
 
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we can't stage them to the same directory
-  - if [[ $python != "0" ]]; then
-      bjam --hash -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib;
-    fi
+  - bjam --hash -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib;
 
 # here we specify the temporary lib dir as a path to look for the main library
 # a binary built with sanitizer does not interact well with python
   - cd bindings/python
-  - if [[ $lang != "sanitizer" && $python != "0" ]]; then
-      bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib;
-      LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
+  - if [[ $lang != "sanitizer" ]]; then
+      bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module stage_dependencies libtorrent-link=shared install-type=LIB dll-path=../../lib &&
+      if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+        DYLD_LIBRARY_PATH=./dependencies python2 test.py;
+      else
+        LD_LIBRARY_PATH=./dependencies python test.py;
+      fi;
     fi
   - cd ../..
 
