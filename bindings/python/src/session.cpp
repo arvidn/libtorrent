@@ -973,7 +973,6 @@ void bind_session()
         .def("pause", allow_threads(&lt::session::pause))
         .def("resume", allow_threads(&lt::session::resume))
         .def("is_paused", allow_threads(&lt::session::is_paused))
-        .def("id", allow_threads(&lt::session::id))
         .def("get_cache_info", &get_cache_info1, (arg("handle") = torrent_handle(), arg("flags") = 0))
         .def("add_port_mapping", allow_threads(&lt::session::add_port_mapping))
         .def("delete_port_mapping", allow_threads(&lt::session::delete_port_mapping))
@@ -985,6 +984,7 @@ void bind_session()
         .def("set_peer_class", &set_peer_class)
 
 #ifndef TORRENT_NO_DEPRECATE
+        .def("id", allow_threads(&lt::session::id))
         .def(
             "listen_on", &listen_on
           , (arg("min"), "max", arg("interface") = (char const*)0, arg("flags") = 0)

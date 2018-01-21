@@ -533,8 +533,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("   max connections: %d", m_settings.get_int(settings_pack::connections_limit));
 		session_log("   max files: %d", max_files);
-
-		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
 		m_io_service.post(boost::bind(&session_impl::init, this));
@@ -2809,8 +2807,7 @@ retry:
 		pack.peerinfo = 0;
 
 		boost::shared_ptr<peer_connection> c
-			= boost::make_shared<bt_peer_connection>(boost::cref(pack)
-				, get_peer_id());
+			= boost::make_shared<bt_peer_connection>(boost::cref(pack));
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
 #endif
@@ -2876,10 +2873,12 @@ retry:
 		if (i != m_connections.end()) m_connections.erase(i);
 	}
 
-	void session_impl::set_peer_id(peer_id const& id)
+#ifndef TORRENT_NO_DEPRECATE
+	peer_id session_impl::deprecated_get_peer_id() const
 	{
-		m_peer_id = id;
+		return generate_peer_id(m_settings);
 	}
+#endif
 
 	void session_impl::set_key(int key)
 	{
@@ -5447,20 +5446,6 @@ retry:
 #endif
 	}
 
-	void session_impl::update_peer_fingerprint()
-	{
-		// ---- generate a peer id ----
-		std::string print = m_settings.get_str(settings_pack::peer_fingerprint);
-		if (print.size() > 20) print.resize(20);
-
-		// the client's fingerprint
-		std::copy(print.begin(), print.begin() + print.length(), m_peer_id.begin());
-		if (print.length() < 20)
-		{
-			url_random(m_peer_id.data() + print.length(), m_peer_id.data() + 20);
-		}
-	}
-
 	void session_impl::update_dht_bootstrap_nodes()
 	{
 #ifndef TORRENT_DISABLE_DHT
@@ -6493,7 +6478,6 @@ retry:
 		}
 
 		if (m_upnp) m_upnp->set_user_agent("");
-		url_random(m_peer_id.data(), m_peer_id.data() + 20);
 	}
 
 	void session_impl::update_force_proxy()

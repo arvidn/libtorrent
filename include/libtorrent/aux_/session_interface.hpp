@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_INTERFACE_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/peer_id.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
@@ -203,8 +202,6 @@ namespace libtorrent { namespace aux
 		virtual void insert_uuid_torrent(std::string uuid, boost::shared_ptr<torrent> const& t) = 0;
 		virtual void set_queue_position(torrent* t, int p) = 0;
 		virtual int num_torrents() const = 0;
-
-		virtual peer_id const& get_peer_id() const = 0;
 
 		// cork a peer and schedule a delayed uncork
 		// does nothing if the peer is already corked

@@ -100,9 +100,7 @@ namespace libtorrent
 #endif
 	};
 
-
-	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack
-		, peer_id const& pid)
+	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack)
 		: peer_connection(pack)
 		, m_state(read_protocol_identifier)
 		, m_supports_extensions(false)
@@ -116,7 +114,7 @@ namespace libtorrent
 		, m_rc4_encrypted(false)
 		, m_recv_buffer(peer_connection::m_recv_buffer)
 #endif
-		, m_our_peer_id(pid)
+		, m_our_peer_id(generate_peer_id(*pack.sett))
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		, m_sync_bytes_read(0)
 #endif
@@ -836,15 +834,6 @@ namespace libtorrent
 		sha1_hash const& ih = t->torrent_file().info_hash();
 		memcpy(ptr, &ih[0], 20);
 		ptr += 20;
-
-		// peer id
-		if (m_settings.get_bool(settings_pack::anonymous_mode))
-		{
-			// in anonymous mode, every peer connection
-			// has a unique peer-id
-			for (int i = 0; i < 20; ++i)
-				m_our_peer_id[i] = random() & 0xff;
-		}
 
 		memcpy(ptr, &m_our_peer_id[0], 20);
 		ptr += 20;
@@ -3394,16 +3383,6 @@ namespace libtorrent
 			}
 
 			set_pid(pid);
-
-			// disconnect if the peer has the same peer-id as ourself
-			// since it most likely is ourself then
-			if (pid == m_our_peer_id)
-			{
-				if (peer_info_struct()) t->ban_peer(peer_info_struct());
-				disconnect(errors::self_connection, op_bittorrent, 1);
-				return;
-			}
-
 			m_client_version = identify_client(pid);
 			if (pid[0] == '-' && pid[1] == 'B' && pid[2] == 'C' && pid[7] == '-')
 			{
