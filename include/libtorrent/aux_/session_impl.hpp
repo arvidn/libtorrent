@@ -265,8 +265,6 @@ namespace libtorrent
 				, peer_connection* pc) TORRENT_OVERRIDE;
 			void set_queue_position(torrent* t, int p) TORRENT_OVERRIDE;
 
-			peer_id const& get_peer_id() const TORRENT_OVERRIDE { return m_peer_id; }
-
 			void close_connection(peer_connection* p, error_code const& ec) TORRENT_OVERRIDE;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -479,9 +477,9 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			session_status status() const;
+			peer_id deprecated_get_peer_id() const;
 #endif
 
-			void set_peer_id(peer_id const& id);
 			void set_key(int key);
 			address listen_address() const;
 			boost::uint16_t listen_port() const TORRENT_OVERRIDE;
@@ -659,7 +657,6 @@ namespace libtorrent
 			void update_lsd();
 			void update_dht();
 			void update_count_slow();
-			void update_peer_fingerprint();
 			void update_dht_bootstrap_nodes();
 
 			void update_socket_buffer_size();
@@ -837,9 +834,6 @@ namespace libtorrent
 
 			// filters outgoing connections
 			port_filter m_port_filter;
-
-			// the peer id that is generated at the start of the session
-			peer_id m_peer_id;
 
 			// this is the highest queue position of any torrent
 			// in this session. queue positions are packed (i.e. there

@@ -111,6 +111,7 @@ namespace libtorrent
 	class bt_peer_connection;
 	struct listen_socket_t;
 
+	peer_id generate_peer_id(aux::session_settings const& sett);
 
 	namespace aux
 	{
@@ -358,7 +359,7 @@ namespace libtorrent
 		// if we're connected to a peer at ep, return its peer connection
 		// only count BitTorrent peers
 		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
-		peer_connection* find_peer(sha1_hash const& pid);
+		peer_connection* find_peer(peer_id const& pid);
 
 		void on_resume_data_checked(disk_io_job const* j);
 		void on_force_recheck(disk_io_job const* j);
@@ -1451,6 +1452,12 @@ namespace libtorrent
 		// kick out these connections when we get incoming
 		// connections (if we've reached the connection limit)
 		boost::uint16_t m_num_connecting;
+
+		// this is the peer id we generate when we add the torrent. Peers won't
+		// use this (they generate their own peer ids) but this is used in case
+		// the tracker returns peer IDs, to identify ourself in the peer list to
+		// avoid connecting back to it.
+		peer_id m_peer_id;
 
 		// ==============================
 		// The following members are specifically

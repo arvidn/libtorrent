@@ -162,6 +162,22 @@ namespace libtorrent
 		restart_request.length = -1;
 	}
 
+	peer_id generate_peer_id(aux::session_settings const& sett)
+	{
+		// ---- generate a peer id ----
+		std::string print = sett.get_str(settings_pack::peer_fingerprint);
+		if (print.size() > 20) print.resize(20);
+
+		// the client's fingerprint
+		peer_id ret;
+		std::copy(print.begin(), print.begin() + print.length(), ret.begin());
+		if (print.length() < 20)
+		{
+			url_random(ret.data() + print.length(), ret.data() + 20);
+		}
+		return ret;
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	// defined in ut_pex.cpp
 	bool was_introduced_by(peer_plugin const*, tcp::endpoint const&);
@@ -223,6 +239,7 @@ namespace libtorrent
 		, m_sequence_number(seq)
 		, m_peer_class(0)
 		, m_num_connecting(0)
+		, m_peer_id(generate_peer_id(settings()))
 		, m_upload_mode_time(0)
 		, m_announce_to_trackers((p.flags & add_torrent_params::flag_paused) == 0)
 		, m_announce_to_lsd((p.flags & add_torrent_params::flag_paused) == 0)
@@ -2326,7 +2343,7 @@ namespace libtorrent
 		return NULL;
 	}
 
-	peer_connection* torrent::find_peer(sha1_hash const& pid)
+	peer_connection* torrent::find_peer(peer_id const& pid)
 	{
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 		{
@@ -3174,7 +3191,7 @@ namespace {
 		req.private_torrent = m_torrent_file->priv();
 
 		req.info_hash = m_torrent_file->info_hash();
-		req.pid = m_ses.get_peer_id();
+		req.pid = m_peer_id;
 		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
 		req.uploaded = m_stat.total_payload_upload();
 		req.corrupt = m_total_failed_bytes;
@@ -3545,7 +3562,7 @@ namespace {
 			i != resp.peers.end(); ++i)
 		{
 			// don't make connections to ourself
-			if (i->pid == m_ses.get_peer_id())
+			if (i->pid == m_peer_id)
 				continue;
 
 #if TORRENT_USE_I2P
@@ -7856,7 +7873,7 @@ namespace {
 		pack.peerinfo = peerinfo;
 
 		boost::shared_ptr<peer_connection> c = boost::make_shared<bt_peer_connection>(
-			boost::cref(pack), m_ses.get_peer_id());
+			boost::cref(pack));
 
 		TORRENT_TRY
 		{
