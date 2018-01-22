@@ -79,7 +79,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
 		sha1_hash ph;
-		for (std::size_t k = 0; k < 20; ++k) ph[k] = lt::random(0xff) & 0xff;
+		aux::random_bytes(ph);
 		t.set_hash(i, ph);
 	}
 
