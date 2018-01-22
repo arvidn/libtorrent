@@ -51,7 +51,7 @@ namespace {
 
 bool all_of(std::vector<bool> const& v)
 {
-	return std::all_of(v.begin(), v.end(), [](bool v){ return v; });
+	return std::all_of(v.begin(), v.end(), [](bool val){ return val; });
 }
 
 void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
@@ -109,9 +109,9 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 
 	// wait for all alerts to come back and verify the data against the expected
 	// piece data
-	aux::vector<bool, piece_index_t> pieces(fs.num_pieces(), false);
-	aux::vector<bool, piece_index_t> passed(fs.num_pieces(), false);
-	aux::vector<bool, file_index_t> files(fs.num_files(), false);
+	aux::vector<bool, piece_index_t> pieces(std::size_t(fs.num_pieces()), false);
+	aux::vector<bool, piece_index_t> passed(std::size_t(fs.num_pieces()), false);
+	aux::vector<bool, file_index_t> files(std::size_t(fs.num_files()), false);
 
 	while (!all_of(pieces) || !all_of(passed) || !all_of(files))
 	{
@@ -132,7 +132,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 				TEST_EQUAL(t->piece_size(idx), rp->size);
 
 				std::vector<char> const piece = generate_piece(idx, t->piece_size(idx));
-				TEST_CHECK(memcmp(rp->buffer.get(), piece.data(), rp->size) == 0);
+				TEST_CHECK(std::memcmp(rp->buffer.get(), piece.data(), std::size_t(rp->size)) == 0);
 				TEST_CHECK(pieces[idx] == false);
 				pieces[idx] = true;
 			}
@@ -187,8 +187,8 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 
 	for (int i = 0; i < 50; ++i)
 	{
-		torrent_status st = tor1.status();
-		if (st.is_seeding) break;
+		torrent_status st1 = tor1.status();
+		if (st1.is_seeding) break;
 		std::this_thread::sleep_for(lt::milliseconds(100));
 		print_alerts(ses, "ses");
 	}

@@ -217,7 +217,7 @@ TORRENT_TEST(session_stats)
 	// make sure every stat index is represented in the stats_metric vector
 	for (int i = 0; i < int(stats.size()); ++i)
 	{
-		TEST_EQUAL(stats[i].value_index, i);
+		TEST_EQUAL(stats[std::size_t(i)].value_index, i);
 	}
 
 	TEST_EQUAL(lt::find_metric_idx("peer.incoming_connections")
@@ -468,7 +468,6 @@ auto const count_dht_inits = [](session& ses)
 		}
 		if (num <= 0) return count;
 	}
-	return count;
 };
 
 TORRENT_TEST(init_dht_default_bootstrap)

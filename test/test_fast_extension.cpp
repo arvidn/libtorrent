@@ -54,6 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 using namespace std::placeholders;
 
+namespace {
+
 void log(char const* fmt, ...)
 {
 	va_list v;
@@ -468,6 +470,8 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 
 	return t;
 }
+
+} // anonymous namespace
 
 // makes sure that pieces that are allowed and then
 // rejected aren't requested again

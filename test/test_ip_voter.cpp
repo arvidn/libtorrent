@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 bool cast_vote(ip_voter& ipv, address ext_ip, address voter)
 {
 	bool new_ip = ipv.cast_vote(ext_ip, aux::session_interface::source_dht, voter);
@@ -55,6 +57,8 @@ bool cast_vote(ip_voter& ipv, address ext_ip, address voter)
 	}
 	return new_ip;
 }
+
+} // anonymous namespace
 
 // test the case where every time we get a new IP. Make sure
 // we don't flap

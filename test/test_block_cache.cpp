@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 struct test_storage_impl : storage_interface
 {
 	explicit test_storage_impl(file_storage const& fs) : storage_interface(fs) {}
@@ -462,6 +464,8 @@ void test_unaligned_read()
 	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(block_cache)
 {

@@ -49,6 +49,8 @@ using namespace libtorrent;
 namespace lt = libtorrent;
 using std::ignore;
 
+namespace {
+
 enum test_case {
 	complete_download,
 	partial_download,
@@ -166,6 +168,8 @@ void test_remove_torrent(remove_flags_t const remove_options
 	sp.push_back(ses1.abort());
 	sp.push_back(ses2.abort());
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(remove_torrent)
 {

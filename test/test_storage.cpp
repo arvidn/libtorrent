@@ -58,6 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 using namespace lt;
 
+namespace {
+
 std::size_t const piece_size = 16 * 1024 * 16;
 std::size_t const half = piece_size / 2;
 
@@ -745,6 +747,8 @@ void test_fastresume(bool const test_deprecated)
 		std::cout << "remove_all '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(fastresume)
 {
