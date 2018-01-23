@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits> // for numeric_limits
 #include <memory> // for unique_ptr
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/logic/tribool.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/optional.hpp"
 #include "libtorrent/torrent_handle.hpp"
@@ -391,7 +395,8 @@ namespace libtorrent {
 
 		void on_resume_data_checked(status_t status, storage_error const& error);
 		void on_force_recheck(status_t status, storage_error const& error);
-		void on_piece_hashed(piece_index_t piece, sha1_hash const& piece_hash
+		void on_piece_hashed(aux::vector<sha256_hash> block_hashes
+			, piece_index_t piece, sha1_hash const& piece_hash
 			, storage_error const& error);
 		void files_checked();
 		void start_checking();
@@ -813,6 +818,10 @@ namespace libtorrent {
 		// only once per piece
 		void we_have(piece_index_t index);
 
+		// process the v2 block hashes for a piece
+		boost::tribool on_blocks_hashed(piece_index_t piece
+			, span<sha256_hash const> block_hashes);
+
 	public:
 
 		int num_have() const
@@ -918,7 +927,8 @@ namespace libtorrent {
 		void resume_download();
 
 		void verify_piece(piece_index_t piece);
-		void on_piece_verified(piece_index_t piece
+		void on_piece_verified(aux::vector<sha256_hash> block_hashes
+			, piece_index_t piece
 			, sha1_hash const& piece_hash, storage_error const& error);
 
 		// this is called whenever a peer in this swarm becomes interesting
