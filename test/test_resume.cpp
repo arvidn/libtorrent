@@ -246,7 +246,7 @@ void test_piece_priorities(bool test_deprecated = false)
 		TEST_EQUAL(int(prios.size()), ti->num_pieces());
 		TEST_EQUAL(prios[0], 0_pri);
 		TEST_EQUAL(prios[1], 4_pri);
-		TEST_EQUAL(prios[ti->num_pieces()-1], 0_pri);
+		TEST_EQUAL(prios[std::size_t(ti->num_pieces() - 1)], 0_pri);
 
 		std::vector<char> resume_data = write_resume_data_buf(ra->params);
 
@@ -819,6 +819,8 @@ TORRENT_TEST(file_priorities_seed_mode)
 	TEST_EQUAL(file_priorities[2], 0_pri);
 }
 
+namespace {
+
 void test_zero_file_prio(bool test_deprecated = false)
 {
 	std::printf("test_file_prio\n");
@@ -871,6 +873,8 @@ void test_zero_file_prio(bool test_deprecated = false)
 	torrent_status s = h.status();
 	TEST_EQUAL(s.total_wanted, 0);
 }
+
+} // anonymous namespace
 
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(zero_file_prio_deprecated)
@@ -942,6 +946,8 @@ namespace test_mode {
 	constexpr test_mode_t deprecated = 4_bit;
 #endif
 }
+
+namespace {
 
 void test_seed_mode(test_mode_t const flags)
 {
@@ -1020,6 +1026,9 @@ void test_seed_mode(test_mode_t const flags)
 		TEST_CHECK(s.flags & torrent_flags::seed_mode);
 	}
 }
+
+} // anonymous namespace
+
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(seed_mode_file_prio_deprecated)
 {
@@ -1278,4 +1287,3 @@ TORRENT_TEST(paused)
 	// more than just the torrent_status from test_resume_flags. Also http seeds
 	// and trackers for instance
 }
-

@@ -67,7 +67,7 @@ TORRENT_TEST(part_file)
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir"), "partfile.parts")));
 
 		// write something to the metadata file
-		for (int i = 0; i < 1024; ++i) buf[i] = i;
+		for (int i = 0; i < 1024; ++i) buf[i] = char(i & 0xff);
 
 		iovec_t v = buf;
 		pf.writev(v, piece_index_t(10), 0, ec);
@@ -86,7 +86,7 @@ TORRENT_TEST(part_file)
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir"), "partfile.parts")));
 		TEST_CHECK(exists(combine_path(combine_path(cwd, "partfile_test_dir2"), "partfile.parts")));
 
-		memset(buf, 0, sizeof(buf));
+		std::memset(buf, 0, sizeof(buf));
 
 		pf.readv(v, piece_index_t(10), 0, ec);
 		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
@@ -99,7 +99,7 @@ TORRENT_TEST(part_file)
 		// load the part file back in
 		part_file pf(combine_path(cwd, "partfile_test_dir2"), "partfile.parts", 100, piece_size);
 
-		memset(buf, 0, sizeof(buf));
+		std::memset(buf, 0, sizeof(buf));
 
 		iovec_t v = buf;
 		pf.readv(v, piece_index_t(10), 0, ec);
@@ -113,9 +113,9 @@ TORRENT_TEST(part_file)
 		std::string output_filename = combine_path(combine_path(cwd, "partfile_test_dir")
 			, "part_file_test_export");
 
-		pf.export_file([](std::int64_t file_offset, span<char> buf)
+		pf.export_file([](std::int64_t file_offset, span<char> buf_data)
 		{
-			for (char i : buf)
+			for (char i : buf_data)
 			{
 				// make sure we got the bytes we expected
 				TEST_CHECK(i == static_cast<char>(file_offset));
@@ -136,4 +136,3 @@ TORRENT_TEST(part_file)
 		if (ec) std::printf("exists: %s\n", ec.message().c_str());
 	}
 }
-

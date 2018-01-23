@@ -48,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 char const* proxy_name[] = {
 	"none",
 	"socks4",
@@ -244,6 +246,8 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	return pr;
 }
 
+} // anonymous namespace
+
 // not using anonymous mode
 // UDP fails open if we can't connect to the proxy
 // or if the proxy doesn't support UDP
@@ -330,4 +334,3 @@ TORRENT_TEST(anon_i2p)
 	test_proxy(settings_pack::i2p_proxy, force_proxy_mode);
 }
 #endif
-

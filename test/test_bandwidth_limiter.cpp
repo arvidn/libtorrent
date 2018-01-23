@@ -52,6 +52,8 @@ struct peer_connection;
 using namespace lt;
 using namespace std::placeholders;
 
+namespace {
+
 const float sample_time = 20.f; // seconds
 
 //#define VERBOSE_LOGGING
@@ -454,6 +456,8 @@ void test_no_starvation(int limit)
 		<< " target: " << (limit / 200 / num_peers) << std::endl;
 	TEST_CHECK(close_to(p->m_quota / sample_time, float(limit) / 200 / num_peers, 5));
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(equal_connection)
 {

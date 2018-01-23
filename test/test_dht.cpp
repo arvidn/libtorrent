@@ -1560,6 +1560,8 @@ TORRENT_TEST(put_v6)
 }
 #endif
 
+namespace {
+
 void test_routing_table(address(&rand_addr)())
 {
 	dht_test_setup t(udp::endpoint(rand_addr(), 20));
@@ -1766,6 +1768,8 @@ void test_routing_table(address(&rand_addr)())
 			, rs[i], aux::to_hex(id).c_str());
 	}
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(routing_table_v4)
 {

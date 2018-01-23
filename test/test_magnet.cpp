@@ -450,6 +450,8 @@ TORRENT_TEST(invalid_web_seed_escaping)
 	TEST_CHECK(ec);
 }
 
+namespace {
+
 auto const yes = default_priority;
 auto const no = dont_download;
 
@@ -458,6 +460,8 @@ void test_select_only(string_view uri, std::vector<download_priority_t> expected
 	add_torrent_params p = parse_magnet_uri(uri);
 	TEST_CHECK(p.file_priorities == expected);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(parse_magnet_select_only)
 {

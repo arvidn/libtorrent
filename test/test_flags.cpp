@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+namespace {
+
 void test_add_and_get_flags(torrent_flags_t const flags)
 {
 	session ses(settings());
@@ -88,6 +90,8 @@ void test_unset_after_add(torrent_flags_t const flags)
 	h.unset_flags(flags);
 	TEST_EQUAL(h.flags() & flags, torrent_flags_t{});
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(flag_seed_mode)
 {

@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/sliding_average.hpp"
 
+namespace {
+
 // normal distributed samples. mean=60 stddev=10
 int samples[] =  {
 49, 51, 60, 46, 65, 53, 76, 59, 57, 54, 56, 51, 45, 80, 53, 62,
@@ -43,6 +45,8 @@ int samples[] =  {
 65, 43, 58, 59, 53, 67, 49, 51, 33, 47, 49, 50, 54, 48, 55, 80,
 67, 51, 66, 52, 48, 57, 30, 51, 72, 65, 78, 56, 74, 68, 49, 66,
 63, 57, 61, 62, 64, 62, 61, 52, 67, 64, 59, 61, 69, 60, 54, 69 };
+
+} // anonymous namespace
 
 using namespace lt;
 
@@ -111,4 +115,3 @@ TORRENT_TEST(sliding_average)
 	TEST_CHECK(abs(avg.mean() - 250) < 50);
 	TEST_CHECK(abs(avg.avg_deviation() - 250) < 80);
 }
-

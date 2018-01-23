@@ -37,10 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 void print_bitfield(bitfield const& b)
 {
 	std::string out;
-	out.reserve(b.size());
+	out.reserve(std::size_t(b.size()));
 	for (bool bit : b)
 		out += bit ? '1' : '0';
 	std::printf("%s\n", out.c_str());
@@ -62,6 +64,8 @@ void test_iterators(bitfield& test1)
 	TEST_EQUAL(num, test1.size());
 	TEST_EQUAL(num, test1.count());
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(bitfield)
 {

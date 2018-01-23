@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 struct test_node : tailqueue_node<test_node>
 {
 	explicit test_node(char n) : name(n) {}
@@ -82,6 +84,8 @@ void build_chain(tailqueue<test_node>& q, char const* str)
 	}
 	check_chain(q, expected);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(tailqueue)
 {
@@ -146,7 +150,7 @@ TORRENT_TEST(tailqueue)
 
 	// test get_all
 	build_chain(t1, "abcdef");
-	test_node* n = (test_node*)t1.get_all();
+	test_node* n = t1.get_all();
 	TEST_EQUAL(t1.empty(), true);
 	TEST_EQUAL(t1.size(), 0);
 
@@ -155,7 +159,7 @@ TORRENT_TEST(tailqueue)
 	{
 		test_node* del = n;
 		TEST_EQUAL(n->name, *expected);
-		n = (test_node*)n->next;
+		n = n->next;
 		++expected;
 		delete del;
 	}
@@ -163,4 +167,3 @@ TORRENT_TEST(tailqueue)
 	free_chain(t1);
 	free_chain(t2);
 }
-

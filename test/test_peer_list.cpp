@@ -146,8 +146,8 @@ struct mock_torrent
 	std::vector<std::shared_ptr<mock_peer_connection>> m_connections;
 };
 
-void mock_peer_connection::disconnect(error_code const& ec
-	, operation_t op, int error)
+void mock_peer_connection::disconnect(error_code const&
+	, operation_t, int /*error*/)
 {
 	m_torrent.m_p->connection_closed(*this, 0, m_torrent.m_state);
 	auto const i = std::find(m_torrent.m_connections.begin(), m_torrent.m_connections.end()
