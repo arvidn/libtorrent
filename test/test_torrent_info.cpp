@@ -864,6 +864,8 @@ TORRENT_TEST(parse_torrents)
 	}
 }
 
+namespace {
+
 void test_resolve_duplicates(int test_case)
 {
 	file_storage fs;
@@ -951,6 +953,8 @@ void test_resolve_duplicates(int test_case)
 		TEST_EQUAL(p, filenames[test_case][i]);
 	}
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(resolve_duplicates)
 {

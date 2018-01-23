@@ -100,5 +100,3 @@ TORRENT_TEST(web_seed_redirect)
 
 	stop_web_server();
 }
-
-

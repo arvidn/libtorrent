@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/string_util.hpp" // for split_string
 #include "libtorrent/string_view.hpp"
 #include "test.hpp"
@@ -41,12 +42,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 int touch_file(std::string const& filename, int size)
 {
 	using namespace lt;
 
 	std::vector<char> v;
-	v.resize(size);
+	v.resize(aux::numeric_cast<std::size_t>(size));
 	for (int i = 0; i < size; ++i)
 		v[i] = i & 255;
 
@@ -60,6 +63,8 @@ int touch_file(std::string const& filename, int size)
 	if (ec) return -3;
 	return 0;
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(create_directory)
 {

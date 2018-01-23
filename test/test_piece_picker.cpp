@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 using namespace std::placeholders;
 
+namespace {
+
 const int blocks_per_piece = 4;
 
 typed_bitfield<piece_index_t> string2vec(char const* have_str)
@@ -79,7 +81,7 @@ ipv4_peer* tmp_peer = &tmp1;
 static std::vector<piece_index_t> const empty_vector;
 
 #if TORRENT_USE_ASSERTS
-namespace {
+namespace { // TODO: remove the nested namespace
 	static struct initializer
 	{
 		initializer()
@@ -292,6 +294,8 @@ piece_index_t test_pick(std::shared_ptr<piece_picker> const& p
 
 const int options = piece_picker::rarest_first;
 counters pc;
+
+} // anonymous namespace
 
 TORRENT_TEST(piece_block)
 {

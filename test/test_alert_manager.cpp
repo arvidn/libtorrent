@@ -153,7 +153,7 @@ int plugin_alerts[3] = { 0, 0, 0 };
 struct test_plugin : lt::plugin
 {
 	explicit test_plugin(int index) : m_index(index) {}
-	void on_alert(alert const* a) override
+	void on_alert(alert const*) override
 	{
 		++plugin_alerts[m_index];
 	}
@@ -188,11 +188,15 @@ TORRENT_TEST(extensions)
 #endif
 }
 
+namespace {
+
 void post_torrent_added(alert_manager* mgr)
 {
 	std::this_thread::sleep_for(lt::milliseconds(10));
 	mgr->emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(wait_for_alert)
 {

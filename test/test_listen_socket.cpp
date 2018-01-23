@@ -83,7 +83,8 @@ namespace
 		, int const original_port, char const* device = "")
 	{
 		auto s = std::make_shared<aux::listen_socket_t>();
-		s->local_endpoint = tcp::endpoint(address::from_string(ip), port);
+		s->local_endpoint = tcp::endpoint(address::from_string(ip)
+			, aux::numeric_cast<std::uint16_t>(port));
 		s->original_port = original_port;
 		s->device = device;
 		return s;

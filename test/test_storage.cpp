@@ -414,7 +414,7 @@ void test_rename(std::string const& test_path)
 
 void test_check_files(std::string const& test_path
 	, lt::storage_mode_t storage_mode
-	, bool unbuffered)
+	, bool /*unbuffered*/)
 {
 	std::shared_ptr<torrent_info> info;
 
@@ -748,12 +748,15 @@ TORRENT_TEST(fastresume_deprecated)
 }
 #endif
 
+namespace {
 
 bool got_file_rename_alert(alert const* a)
 {
 	return alert_cast<lt::file_renamed_alert>(a)
 		|| alert_cast<lt::file_rename_failed_alert>(a);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(rename_file)
 {
@@ -777,7 +780,7 @@ TORRENT_TEST(rename_file)
 	torrent_handle h = ses.add_torrent(std::move(p), ec);
 
 	// make it a seed
-	std::vector<char> tmp(info->piece_length());
+	std::vector<char> tmp(std::size_t(info->piece_length()));
 	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 		h.add_piece(i, &tmp[0]);
 
@@ -819,6 +822,8 @@ TORRENT_TEST(rename_file)
 		TEST_EQUAL(i.second.substr(0, 14), "temp_storage__");
 	}
 }
+
+namespace {
 
 void test_rename_file_fastresume(bool test_deprecated)
 {
@@ -928,6 +933,8 @@ void test_rename_file_fastresume(bool test_deprecated)
 		<< "': " << ec.message() << std::endl;
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(rename_file_fastresume)
 {
 	test_rename_file_fastresume(false);
@@ -939,6 +946,8 @@ TORRENT_TEST(rename_file_fastresume_deprecated)
 	test_rename_file_fastresume(true);
 }
 #endif
+
+namespace {
 
 void alloc_iov(iovec_t* iov, int num_bufs)
 {
@@ -957,7 +966,7 @@ void fill_pattern(iovec_t* iov, int num_bufs)
 	{
 		for (char& v : iov[i])
 		{
-			v = counter & 0xff;
+			v = char(counter & 0xff);
 			++counter;
 		}
 	}
@@ -965,22 +974,13 @@ void fill_pattern(iovec_t* iov, int num_bufs)
 
 bool check_pattern(std::vector<char> const& buf, int counter)
 {
-	unsigned char* p = (unsigned char*)&buf[0];
+	unsigned char const* p = reinterpret_cast<unsigned char const*>(buf.data());
 	for (int k = 0; k < int(buf.size()); ++k)
 	{
 		if (p[k] != (counter & 0xff)) return false;
 		++counter;
 	}
 	return true;
-}
-
-// TODO: this should take a span
-void fill_pattern2(iovec_t* iov, int num_bufs)
-{
-	for (int i = 0; i < num_bufs; ++i)
-	{
-		memset(iov[i].data(), 0xfe, iov[i].size());
-	}
 }
 
 // TODO: this should take a span
@@ -992,6 +992,8 @@ void free_iov(iovec_t* iov, int num_bufs)
 		iov[i] = { nullptr, 0 };
 	}
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(iovec_copy_bufs)
 {
@@ -1088,6 +1090,8 @@ TORRENT_TEST(iovec_advance_bufs)
 TORRENT_TEST(unbuffered) { run_test(true); }
 TORRENT_TEST(buffered) { run_test(false); }
 
+namespace {
+
 file_storage make_fs()
 {
 	file_storage fs;
@@ -1105,15 +1109,15 @@ struct test_fileop
 	explicit test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
 
 	int operator()(file_index_t const file_index, std::int64_t const file_offset
-		, span<iovec_t const> bufs, storage_error& ec)
+		, span<iovec_t const> bufs, storage_error&)
 	{
-		size_t offset = size_t(file_offset);
+		std::size_t offset = size_t(file_offset);
 		if (file_index >= m_file_data.end_index())
 		{
 			m_file_data.resize(static_cast<int>(file_index) + 1);
 		}
 
-		const int write_size = std::min(m_stripe_size, bufs_size(bufs));
+		std::size_t const write_size = std::size_t(std::min(m_stripe_size, bufs_size(bufs)));
 
 		std::vector<char>& file = m_file_data[file_index];
 
@@ -1122,16 +1126,16 @@ struct test_fileop
 			file.resize(offset + write_size);
 		}
 
-		int left = write_size;
+		int left = int(write_size);
 		while (left > 0)
 		{
-			const int copy_size = std::min(left, int(bufs.front().size()));
-			memcpy(&file[offset], bufs.front().data(), copy_size);
+			std::size_t const copy_size = std::size_t(std::min(left, int(bufs.front().size())));
+			std::memcpy(&file[offset], bufs.front().data(), copy_size);
 			bufs = bufs.subspan(1);
 			offset += copy_size;
-			left -= copy_size;
+			left -= int(copy_size);
 		}
-		return write_size;
+		return int(write_size);
 	}
 
 	int m_stripe_size;
@@ -1143,18 +1147,18 @@ struct test_read_fileop
 	// EOF after size bytes read
 	explicit test_read_fileop(int size) : m_size(size), m_counter(0) {}
 
-	int operator()(file_index_t const file_index, std::int64_t const file_offset
-		, span<iovec_t const> bufs, storage_error& ec)
+	int operator()(file_index_t, std::int64_t /*file_offset*/
+		, span<iovec_t const> bufs, storage_error&)
 	{
 		int local_size = std::min(m_size, bufs_size(bufs));
 		const int read = local_size;
 		while (local_size > 0)
 		{
 			int const len = std::min(int(bufs.front().size()), local_size);
-			auto local_buf = bufs.front().first(len);
+			auto local_buf = bufs.front().first(std::size_t(len));
 			for (char& v : local_buf)
 			{
-				v = m_counter & 0xff;
+				v = char(m_counter & 0xff);
 				++m_counter;
 			}
 			local_size -= len;
@@ -1174,7 +1178,7 @@ struct test_error_fileop
 	explicit test_error_fileop(file_index_t error_file)
 		: m_error_file(error_file) {}
 
-	int operator()(file_index_t const file_index, std::int64_t const file_offset
+	int operator()(file_index_t const file_index, std::int64_t /*file_offset*/
 		, span<iovec_t const> bufs, storage_error& ec)
 	{
 		if (m_error_file == file_index)
@@ -1202,6 +1206,8 @@ int count_bufs(iovec_t const* bufs, int bytes)
 		if (size >= bytes) return count;
 	}
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(readwritev_stripe_1)
 {
@@ -1345,6 +1351,8 @@ TORRENT_TEST(readwritev_zero_size_files)
 	TEST_CHECK(check_pattern(buf, 0));
 }
 
+namespace {
+
 void delete_dirs(std::string path)
 {
 	error_code ec;
@@ -1356,6 +1364,8 @@ void delete_dirs(std::string path)
 	}
 	TEST_CHECK(!exists(path));
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(move_storage_to_self)
 {
