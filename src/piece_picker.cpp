@@ -1035,7 +1035,7 @@ namespace libtorrent {
 		std::swap(m_pieces[other_index], m_pieces[elem_index]);
 	}
 
-	void piece_picker::restore_piece(piece_index_t const index)
+	void piece_picker::restore_piece(piece_index_t const index, std::vector<int> const& chunks)
 	{
 		INVARIANT_CHECK;
 
@@ -1060,21 +1060,43 @@ namespace libtorrent {
 
 		piece_pos& p = m_piece_map[index];
 		int const prev_priority = p.priority(this);
-		erase_download_piece(i);
-		int const new_priority = p.priority(this);
+		if (!chunks.empty())
+		{
+			auto const binfo = mutable_blocks_for_piece(*i);
+			for (int chunk : chunks)
+			{
+				block_info& info = binfo[chunk];
+				TORRENT_ASSERT(info.state >= block_info::state_writing);
+				if (info.state == block_info::state_writing)
+					--i->writing;
+				else if (info.state == block_info::state_finished)
+					--i->finished;
+				info.peer = nullptr;
+				info.state = block_info::state_none;
+			}
+			//p.download_state = piece_pos::piece_downloading;
+			update_piece_state(i);
+		}
+
+		if (chunks.empty() || i->requested + i->finished + i->writing == 0)
+		{
+			erase_download_piece(i);
+
+			int const new_priority = p.priority(this);
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		check_piece_state();
+			check_piece_state();
 #endif
 
-		if (new_priority == prev_priority) return;
-		if (m_dirty) return;
-		if (prev_priority == -1) add(index);
-		else update(prev_priority, p.index);
+			if (new_priority == prev_priority) return;
+			if (m_dirty) return;
+			if (prev_priority == -1) add(index);
+			else update(prev_priority, p.index);
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		check_piece_state();
+			check_piece_state();
 #endif
+		}
 	}
 
 	void piece_picker::inc_refcount_all(const torrent_peer* peer)

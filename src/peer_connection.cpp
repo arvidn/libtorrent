@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <set>
@@ -2936,6 +2937,16 @@ namespace libtorrent {
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 
+		if (t->info_hash().has_v2())
+		{
+			t->picker().started_hash_job(p.piece);
+			m_disk_thread.async_hash2(t->storage(), p.piece, p.start, {}
+				, [conn = self(), p](piece_index_t, sha256_hash const& h, storage_error const& e)
+			{
+				conn->wrap(&peer_connection::on_hash2_complete, e, p, h);
+			});
+		}
+
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 		// if we requested this block from other peers, cancel it now
 		if (multi) t->cancel_block(block_finished);
@@ -5287,6 +5298,51 @@ namespace libtorrent {
 		// try to service the requests again, now that the piece
 		// has been verified
 		fill_send_buffer();
+	}
+
+	void peer_connection::on_hash2_complete(storage_error const& error
+		, peer_request const& r, sha256_hash const& hash)
+	{
+		auto t = associated_torrent().lock();
+		if (!t) return;
+
+		t->picker().completed_hash_job(r.piece);
+
+		t->need_hash_picker();
+		auto result = t->get_hash_picker().set_chunk_hash(r.piece, r.start, hash);
+
+		switch (result.status)
+		{
+		case set_chunk_hash_result::chunk_hash_failed:
+			// If the hash failed immediately at the leaf layer it means that
+			// the chuck hash is known so this peer definately sent bad data.
+			t->piece_failed(r.piece, std::vector<int>{r.start / default_block_size});
+			TORRENT_ASSERT(m_disconnecting);
+			return;
+		case set_chunk_hash_result::piece_hash_failed:
+			t->verify_chunk_hashes(r.piece);
+			break;
+		case set_chunk_hash_result::success:
+		{
+			t->need_picker();
+			int const blocks_per_piece = t->torrent_file().files().piece_length() / default_block_size;
+			for (piece_index_t verified_piece = int(r.piece) + result.first_verified_chunk / blocks_per_piece
+				, end = int(verified_piece) + (result.num_verified + blocks_per_piece - 1) / blocks_per_piece
+				; verified_piece < end; ++verified_piece)
+			{
+				if (!t->picker().is_piece_finished(verified_piece)
+					|| !t->get_hash_picker().piece_verified(verified_piece)
+					|| t->picker().is_hashing(verified_piece))
+					continue;
+				t->piece_passed(verified_piece);
+			}
+			break;
+		}
+		case set_chunk_hash_result::unknown:break;
+		default:
+			TORRENT_ASSERT_FAIL();
+			break;
+		}
 	}
 
 	void peer_connection::on_disk_read_complete(disk_buffer_holder buffer
