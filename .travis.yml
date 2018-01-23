@@ -77,6 +77,7 @@ before_install:
 # disable leak checking for now. it reports some suspicious reports against some
 # tests
   - export ASAN_OPTIONS=detect_leaks=0;
+  - ulimit -a
 
 install:
 
