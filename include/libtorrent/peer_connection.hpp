@@ -761,7 +761,14 @@ namespace aux {
 		void on_disk_write_complete(storage_error const& error
 			, peer_request const &r, std::shared_ptr<torrent> t);
 		void on_seed_mode_hashed(piece_index_t piece
-			, sha1_hash const& piece_hash, storage_error const& error);
+			, sha1_hash const& piece_hash, aux::vector<sha256_hash> const& block_hashes
+			, storage_error const& error);
+
+		// this is for a future per-block request feature
+#if 0
+		void on_hash2_complete(storage_error const& error, peer_request const& r
+			, sha256_hash const& hash);
+#endif
 		int request_timeout() const;
 		void check_graceful_pause();
 
