@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits> // for numeric_limits
 #include <memory> // for unique_ptr
 
+#include <boost/logic/tribool.hpp>
+
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/optional.hpp"
 #include "libtorrent/torrent_handle.hpp"
@@ -391,7 +393,8 @@ namespace libtorrent {
 
 		void on_resume_data_checked(status_t status, storage_error const& error);
 		void on_force_recheck(status_t status, storage_error const& error);
-		void on_piece_hashed(piece_index_t piece, sha1_hash const& piece_hash
+		void on_piece_hashed(std::vector<sha256_hash> block_hashes
+			, piece_index_t piece, sha1_hash const& piece_hash
 			, storage_error const& error);
 		void files_checked();
 		void start_checking();
@@ -813,6 +816,10 @@ namespace libtorrent {
 		// only once per piece
 		void we_have(piece_index_t index);
 
+		// process the v2 block hashes for a piece
+		boost::tribool on_blocks_hashed(piece_index_t piece
+			, span<sha256_hash> block_hashes);
+
 	public:
 
 		int num_have() const
@@ -917,8 +924,9 @@ namespace libtorrent {
 		// we wasn't finished anymore.
 		void resume_download();
 
-		void verify_piece(piece_index_t piece);
-		void on_piece_verified(piece_index_t piece
+		void verify_piece(piece_index_t piece, bool check_v2 = true);
+		void on_piece_verified(std::vector<sha256_hash> block_hashes
+			, piece_index_t piece
 			, sha1_hash const& piece_hash, storage_error const& error);
 
 		// this is called whenever a peer in this swarm becomes interesting
@@ -932,11 +940,14 @@ namespace libtorrent {
 		void piece_passed(piece_index_t index);
 
 		// piece_failed is called when a piece fails the hash check
-		void piece_failed(piece_index_t index);
+		// for failures detected with v2 hashes the failing chunk(s)
+		// are specified in chunks
+		// *chunks must be sorted in acending order*
+		void piece_failed(piece_index_t index, std::vector<int> chunks = std::vector<int>());
 
 		// this is the handler for hash failure piece synchronization
 		// i.e. resetting the piece
-		void on_piece_sync(piece_index_t piece);
+		void on_piece_sync(piece_index_t piece, std::vector<int> const& chunks);
 
 		// this is the handler for write failure piece synchronization
 		void on_piece_fail_sync(piece_index_t piece, piece_block b);
@@ -1007,6 +1018,7 @@ namespace libtorrent {
 		std::vector<sha256_hash> get_hashes(hash_request const& req);
 		bool add_hashes(hash_request const& req, span<sha256_hash> hashes);
 		void hashes_rejected(peer_connection_interface* source, hash_request const& req);
+		void verify_chunk_hashes(piece_index_t index);
 
 		std::shared_ptr<const torrent_info> get_torrent_copy();
 
