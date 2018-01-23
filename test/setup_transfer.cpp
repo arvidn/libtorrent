@@ -50,6 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -666,6 +668,17 @@ std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
 	{
 		std::vector<char> piece = generate_piece(i, fs.piece_size(i));
 		ct.set_hash(i, hasher(piece).final());
+
+		std::vector<sha256_hash> tree(merkle_num_nodes(fs.piece_length() / default_block_size));
+
+		for (int j = 0; j < int(piece.size()); j += default_block_size)
+		{
+			tree[tree.size() - fs.piece_length() / default_block_size + j / default_block_size]
+				= hasher256(piece.data() + j, std::min(default_block_size, int(piece.size()) - j)).final();
+		}
+		merkle_fill_tree(tree, fs.piece_length() / default_block_size);
+		file_index_t const f(fs.file_index_at_piece(i));
+		ct.set_hash2(f, i - piece_index_t(fs.file_offset(f) / fs.piece_length()), tree[0]);
 	}
 
 	std::vector<char> buf;
@@ -757,11 +770,26 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	for (auto const i : fs.piece_range())
 		t.set_hash(i, ph);
 
+	if (!v1)
+	{
+		int const blocks_in_piece = piece_size / default_block_size;
+		std::vector<sha256_hash> v2tree(merkle_num_nodes(merkle_num_leafs(blocks_in_piece)));
+		for (int i = 0; i < blocks_in_piece; ++i)
+		{
+			sha256_hash const block_hash = hasher256(span<char>(piece).subspan(i * default_block_size, default_block_size)).final();
+			v2tree[v2tree.size() - merkle_num_leafs(blocks_in_piece) + i] = block_hash;
+		}
+		merkle_fill_tree(v2tree, merkle_num_leafs(blocks_in_piece));
+
+		for (piece_index_t i(0); i < t.files().end_piece(); ++i)
+			t.set_hash2(file_index_t{ 0 }, i - piece_index_t(0), v2tree[0]);
+	}
+
 	if (file)
 	{
 		while (total_size > 0)
 		{
-			file->write(&piece[0], std::min(piece.end_index(), total_size));
+			file->write(piece.data(), std::min(piece.end_index(), total_size));
 			total_size -= piece.end_index();
 		}
 	}

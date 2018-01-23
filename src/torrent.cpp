@@ -2150,10 +2150,18 @@ bool is_downloading_state(int const st)
 
 		for (int i = 0; i < num_outstanding; ++i)
 		{
-			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, {}
-				, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
-				, [self = shared_from_this()](piece_index_t p, sha1_hash const& h, storage_error const& error)
-					{ self->on_piece_hashed(p, h, error); });
+			auto flags = disk_interface::sequential_access | disk_interface::volatile_read;
+			if (torrent_file().info_hash().has_v1())
+				flags |= disk_interface::v1_hash;
+			std::vector<sha256_hash> hashes;
+			if (torrent_file().info_hash().has_v2())
+				hashes.resize((torrent_file().orig_files().piece_size2(m_checking_piece) + default_block_size - 1) / default_block_size);
+
+			span<sha256_hash> v2_span(hashes);
+			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
+				, [self = shared_from_this(), hashes = std::move(hashes)]
+				(piece_index_t p, sha1_hash const& h, storage_error const& error)
+				{ self->on_piece_hashed(std::move(hashes), p, h, error); });
 			++m_checking_piece;
 			if (m_checking_piece >= m_torrent_file->end_piece()) break;
 		}
@@ -2165,8 +2173,9 @@ bool is_downloading_state(int const st)
 
 	// This is only used for checking of torrents. i.e. force-recheck or initial checking
 	// of existing files
-	void torrent::on_piece_hashed(piece_index_t const piece
-		, sha1_hash const& piece_hash, storage_error const& error) try
+	void torrent::on_piece_hashed(std::vector<sha256_hash> block_hashes
+		, piece_index_t const piece, sha1_hash const& piece_hash
+		, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -2229,8 +2238,31 @@ bool is_downloading_state(int const st)
 		m_progress_ppm = std::uint32_t(std::int64_t(static_cast<int>(m_num_checked_pieces))
 			* 1000000 / torrent_file().num_pieces());
 
-		if (settings().get_bool(settings_pack::disable_hash_checks)
-			|| piece_hash == m_torrent_file->hash_for_piece(piece))
+		boost::tribool hash_passed[2]
+			= { boost::indeterminate, boost::indeterminate };
+
+		if (!settings().get_bool(settings_pack::disable_hash_checks))
+		{
+			if (torrent_file().info_hash().has_v1())
+				hash_passed[0] = piece_hash == m_torrent_file->hash_for_piece(piece);
+
+			if (torrent_file().info_hash().has_v2())
+			{
+				hash_passed[1] = on_blocks_hashed(piece, block_hashes);
+			}
+		}
+		else
+		{
+			hash_passed[0] = hash_passed[1] = true;
+		}
+
+		if ((hash_passed[0] && !hash_passed[1]) || (!hash_passed[0] && hash_passed[1]))
+		{
+			set_error(errors::torrent_inconsistent_hashes, torrent_status::error_file_none);
+			pause();
+			return;
+		}
+		else if (hash_passed[0] || hash_passed[1])
 		{
 			if (has_picker() || !m_have_all)
 			{
@@ -2240,6 +2272,22 @@ bool is_downloading_state(int const st)
 			}
 			we_have(piece);
 		}
+		else if (!error
+			&& boost::indeterminate(hash_passed[0])
+			&& boost::indeterminate(hash_passed[1]))
+		{
+			// The data exists but we don't have the hashes needed to verify
+			// it yet. This is a special case because we want to say we have
+			// the piece once the hash is verified and not download the data
+			// unless the hash check fails. To get this effect we setup the
+			// piece's state in the piece picker so that it looks like a piece
+			// which is finished but not hash checked.
+			need_picker();
+			int const blocks_in_piece = m_picker->blocks_in_piece(piece);
+			for (int i = 0; i < blocks_in_piece; ++i)
+				m_picker->mark_as_finished(piece_block(piece, i), nullptr);
+		}
+
 		if (m_num_checked_pieces < m_torrent_file->end_piece())
 		{
 			// we're not done yet, issue another job
@@ -2267,10 +2315,18 @@ bool is_downloading_state(int const st)
 				return;
 			}
 
-			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, {}
-				, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
-				, [self = shared_from_this()](piece_index_t p, sha1_hash const& h, storage_error const& e)
-				{ self->on_piece_hashed(p, h, e); });
+			auto flags = disk_interface::sequential_access | disk_interface::volatile_read;
+
+			if (torrent_file().info_hash().has_v1())
+				flags |= disk_interface::v1_hash;
+			if (torrent_file().info_hash().has_v2())
+				block_hashes.resize((torrent_file().orig_files().piece_size2(m_checking_piece) + default_block_size - 1) / default_block_size);
+
+			span<sha256_hash> v2_span(block_hashes);
+			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
+				, [self = shared_from_this(), hashes = std::move(block_hashes)]
+				(piece_index_t p, sha1_hash const& h, storage_error const& e)
+				{ self->on_piece_hashed(std::move(hashes), p, h, e); });
 			++m_checking_piece;
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("on_piece_hashed, m_checking_piece: %d"
@@ -3512,7 +3568,8 @@ bool is_downloading_state(int const st)
 		}
 	}
 
-	void torrent::on_piece_verified(piece_index_t const piece
+	void torrent::on_piece_verified(std::vector<sha256_hash> block_hashes
+		, piece_index_t const piece
 		, sha1_hash const& piece_hash, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -3522,10 +3579,39 @@ bool is_downloading_state(int const st)
 
 		m_picker->completed_hash_job(piece);
 
-		bool const passed = settings().get_bool(settings_pack::disable_hash_checks)
-			|| (!error && sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece));
+		boost::tribool passed = boost::indeterminate;
+		boost::tribool v2_passed = boost::indeterminate;
 
-		bool const disk_error = !passed && error;
+		if (settings().get_bool(settings_pack::disable_hash_checks))
+		{
+			passed = v2_passed = true;
+		}
+		else if (error)
+		{
+			passed = v2_passed = false;
+		}
+		else
+		{
+			if (torrent_file().info_hash().has_v1())
+			{
+				passed = sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece);
+			}
+
+			if (!block_hashes.empty())
+			{
+				TORRENT_ASSERT(torrent_file().info_hash().has_v2());
+				v2_passed = on_blocks_hashed(piece, block_hashes);
+			}
+		}
+
+		if (!error && ((passed && !v2_passed) || (!passed && v2_passed)))
+		{
+			set_error(errors::torrent_inconsistent_hashes, torrent_status::error_file_none);
+			pause();
+			return;
+		}
+
+		bool const disk_error = (!passed || !v2_passed) && error;
 
 		if (disk_error) handle_disk_error("piece_verified", error);
 
@@ -3533,7 +3619,7 @@ bool is_downloading_state(int const st)
 		if (should_log())
 		{
 			debug_log("*** PIECE_FINISHED [ p: %d | chk: %s | size: %d ]"
-				, static_cast<int>(piece), passed ? "passed" : disk_error ? "disk failed" : "failed"
+				, static_cast<int>(piece), (passed || v2_passed) ? "passed" : disk_error ? "disk failed" : "failed"
 				, m_torrent_file->piece_size(piece));
 		}
 #endif
@@ -3562,7 +3648,7 @@ bool is_downloading_state(int const st)
 		{
 			update_gauge();
 		}
-		else if (passed)
+		else if (passed || v2_passed)
 		{
 			// the following call may cause picker to become invalid
 			// in case we just became a seed
@@ -3571,7 +3657,7 @@ bool is_downloading_state(int const st)
 			// mark it as verified
 			if (m_seed_mode) verified(piece);
 		}
-		else
+		else if (!passed || !v2_passed)
 		{
 			// piece_failed() will restore the piece
 			piece_failed(piece);
@@ -3703,6 +3789,74 @@ bool is_downloading_state(int const st)
 			if (m_share_mode)
 				recalc_share_mode();
 		}
+	}
+
+	boost::tribool torrent::on_blocks_hashed(piece_index_t const piece
+		, span<sha256_hash> const block_hashes)
+	{
+		boost::tribool ret = boost::indeterminate;
+		need_hash_picker();
+
+		int const piece_size = torrent_file().orig_files().piece_size2(piece);
+		int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
+		int const blocks_per_piece = torrent_file().orig_files().piece_length() / default_block_size;
+
+		TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
+
+		TORRENT_ALLOCA(block_passed, bool, blocks_in_piece);
+		std::fill(block_passed.begin(), block_passed.end(), false);
+
+		for (int i = 0; i < blocks_in_piece; ++i)
+		{
+			// if there was an enoent or eof error the block hashes array may be incomplete
+			// bail if we've hit the end of the valid hashes
+			if (block_hashes[i].is_all_zeros())
+			{
+				ret = false;
+				break;
+			}
+			auto result = get_hash_picker().set_block_hash(piece, i * default_block_size, block_hashes[i]);
+
+			block_passed[i] = result.status == set_block_hash_result::success;
+			if (result.status == set_block_hash_result::success)
+			{
+				TORRENT_ASSERT(result.first_verified_block <= blocks_in_piece);
+				auto const first_block = std::max(0, result.first_verified_block);
+				std::fill_n(block_passed.begin() + first_block
+					, std::min(blocks_in_piece - first_block, result.num_verified), true);
+
+				using piece_delta = piece_index_t::diff_type;
+
+				// if the hashes for more than one piece have been verified, check for any pieces which
+				// were already checked but couldn't be verified and mark them as verified
+				for (piece_index_t verified_piece = piece + piece_delta(result.first_verified_block / blocks_per_piece)
+					, end = verified_piece + piece_delta(result.num_verified / blocks_per_piece)
+					; verified_piece < end; ++verified_piece)
+				{
+					if (!has_picker()
+						|| verified_piece == piece
+						|| !m_picker->is_piece_finished(verified_piece)
+						|| m_picker->has_piece_passed(verified_piece))
+						continue;
+
+					TORRENT_ASSERT(get_hash_picker().piece_verified(verified_piece));
+					m_picker->we_have(verified_piece);
+					update_gauge();
+					we_have(verified_piece);
+				}
+			}
+			else if (result.status == set_block_hash_result::block_hash_failed)
+			{
+				ret = false;
+			}
+		}
+
+		if (boost::indeterminate(ret) && std::all_of(block_passed.begin(), block_passed.end()
+			, [](bool e) { return e; }))
+		{
+			ret = true;
+		}
+		return ret;
 	}
 
 	// this is called when the piece hash is checked as correct. Note
@@ -3999,7 +4153,7 @@ bool is_downloading_state(int const st)
 			// this way they have a chance to hit the cache
 			m_ses.disk_thread().async_clear_piece(m_storage, index
 				, [self = shared_from_this(), c = std::move(blocks)](piece_index_t const& p)
-			{ self->on_piece_sync(p, c); });
+				{ self->on_piece_sync(p, c); });
 		}
 		else
 		{
@@ -10188,15 +10342,26 @@ bool is_downloading_state(int const st)
 
 	// verify piece is used when checking resume data or when the user
 	// adds a piece
-	void torrent::verify_piece(piece_index_t const piece)
+	void torrent::verify_piece(piece_index_t const piece, bool check_v2)
 	{
 //		picker().mark_as_checking(piece);
 
 		TORRENT_ASSERT(m_storage);
 
-		m_ses.disk_thread().async_hash(m_storage, piece, {}, disk_interface::v1_hash
-			, [self = shared_from_this()](piece_index_t p, sha1_hash const& h, storage_error const& error)
-			{ self->on_piece_verified(p, h, error); });
+		disk_job_flags_t flags;
+		if (torrent_file().info_hash().has_v1())
+			flags |= disk_interface::v1_hash;
+		std::vector<sha256_hash> hashes;
+		if (check_v2 && torrent_file().info_hash().has_v2())
+		{
+			hashes.resize((torrent_file().orig_files().piece_size2(piece) + default_block_size - 1) / default_block_size);
+		}
+
+		span<sha256_hash> v2_span(hashes);
+		m_ses.disk_thread().async_hash(m_storage, piece, v2_span, flags
+			, [self = shared_from_this(), hashes = std::move(hashes)]
+			(piece_index_t p, sha1_hash const& h, storage_error const& error) mutable
+			{ self->on_piece_verified(std::move(hashes), p, h, error); });
 		m_picker->started_hash_job(piece);
 	}
 

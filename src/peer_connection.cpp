@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <cstdint>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/logic/tribool.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/entry.hpp"
@@ -67,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <set>
@@ -2960,6 +2965,18 @@ namespace libtorrent {
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 
+#if 0
+		if (t->info_hash().has_v2())
+		{
+			t->picker().started_hash_job(p.piece);
+			m_disk_thread.async_hash2(t->storage(), p.piece, p.start, {}
+				, [conn = self(), p](piece_index_t, sha256_hash const& h, storage_error const& e)
+			{
+				conn->wrap(&peer_connection::on_hash2_complete, e, p, h);
+			});
+		}
+#endif
+
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 		// if we requested this block from other peers, cancel it now
 		if (multi) t->cancel_block(block_finished);
@@ -5201,9 +5218,22 @@ namespace libtorrent {
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				m_disk_thread.async_hash(t->storage(), r.piece, {}, disk_interface::v1_hash
-					, [conn = self()](piece_index_t p, sha1_hash const& ph, storage_error const& e) {
-					conn->wrap(&peer_connection::on_seed_mode_hashed, p, ph, e); });
+				disk_job_flags_t flags;
+				if (t->torrent_file().info_hash().has_v1())
+					flags |= disk_interface::v1_hash;
+				std::vector<sha256_hash> hashes;
+				if (t->torrent_file().info_hash().has_v2())
+				{
+					auto const piece_size = t->torrent_file().orig_files().piece_size2(r.piece);
+					hashes.resize((piece_size + default_block_size - 1) / default_block_size);
+				}
+
+				span<sha256_hash> v2_hashes(hashes);
+				m_disk_thread.async_hash(t->storage(), r.piece, v2_hashes, flags
+					, [conn = self(), h2 = std::move(hashes)]
+					(piece_index_t p, sha1_hash const& ph, storage_error const& e)
+				{ conn->wrap(&peer_connection::on_seed_mode_hashed, p, ph, h2, e); });
+
 				t->verifying(r.piece);
 				continue;
 			}
@@ -5257,7 +5287,8 @@ namespace libtorrent {
 	// this is called when a previously unchecked piece has been
 	// checked, while in seed-mode
 	void peer_connection::on_seed_mode_hashed(piece_index_t const piece
-		, sha1_hash const& piece_hash, storage_error const& error)
+		, sha1_hash const& piece_hash, std::vector<sha256_hash> const& block_hashes
+		, storage_error const& error)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -5276,9 +5307,53 @@ namespace libtorrent {
 			return;
 		}
 
+		boost::tribool hash_failed[2] = { boost::indeterminate, boost::indeterminate };
+
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& piece_hash != t->torrent_file().hash_for_piece(piece))
+			&& t->torrent_file().info_hash().has_v1())
+		{
+			hash_failed[0] = piece_hash != t->torrent_file().hash_for_piece(piece);
+		}
+
+		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
+			&& t->torrent_file().info_hash().has_v2())
+		{
+			hash_failed[1] = false;
+
+			int const piece_size = t->torrent_file().files().piece_size2(piece);
+			int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
+
+			TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
+
+			t->need_hash_picker();
+			auto picker = t->get_hash_picker();
+			set_block_hash_result result = set_block_hash_result::unknown;
+			for (int i = 0; i < blocks_in_piece; ++i)
+			{
+				result = picker.set_block_hash(piece, i * default_block_size, block_hashes[i]);
+				if (result.status == set_block_hash_result::block_hash_failed
+					|| result.status == set_block_hash_result::piece_hash_failed)
+				{
+					hash_failed[1] = true;
+				}
+			}
+
+			// if the last block still couldn't be verified
+			// it means we don't know the piece's root hash
+			// we must leave seed mode
+			if (result.status == set_block_hash_result::unknown)
+				hash_failed[0] = hash_failed[1] = true;
+		}
+
+		if ((hash_failed[0] && !hash_failed[1]) || (!hash_failed[0] && hash_failed[1]))
+		{
+			t->set_error(errors::torrent_inconsistent_hashes, torrent_status::error_file_none);
+			t->pause();
+			return;
+		}
+
+		if (hash_failed[0] || hash_failed[1])
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
@@ -5307,6 +5382,53 @@ namespace libtorrent {
 		// has been verified
 		fill_send_buffer();
 	}
+
+#if 0
+	void peer_connection::on_hash2_complete(storage_error const& error
+		, peer_request const& r, sha256_hash const& hash)
+	{
+		auto t = associated_torrent().lock();
+		if (!t) return;
+
+		t->picker().completed_hash_job(r.piece);
+
+		t->need_hash_picker();
+		auto result = t->get_hash_picker().set_block_hash(r.piece, r.start, hash);
+
+		switch (result.status)
+		{
+		case set_block_hash_result::block_hash_failed:
+			// If the hash failed immediately at the leaf layer it means that
+			// the chuck hash is known so this peer definately sent bad data.
+			t->piece_failed(r.piece, std::vector<int>{r.start / default_block_size});
+			TORRENT_ASSERT(m_disconnecting);
+			return;
+		case set_block_hash_result::piece_hash_failed:
+			t->verify_block_hashes(r.piece);
+			break;
+		case set_block_hash_result::success:
+		{
+			t->need_picker();
+			int const blocks_per_piece = t->torrent_file().files().piece_length() / default_block_size;
+			for (piece_index_t verified_piece = int(r.piece) + result.first_verified_block / blocks_per_piece
+				, end = int(verified_piece) + (result.num_verified + blocks_per_piece - 1) / blocks_per_piece
+				; verified_piece < end; ++verified_piece)
+			{
+				if (!t->picker().is_piece_finished(verified_piece)
+					|| !t->get_hash_picker().piece_verified(verified_piece)
+					|| t->picker().is_hashing(verified_piece))
+					continue;
+				t->piece_passed(verified_piece);
+			}
+			break;
+		}
+		case set_block_hash_result::unknown:break;
+		default:
+			TORRENT_ASSERT_FAIL();
+			break;
+		}
+	}
+#endif
 
 	void peer_connection::on_disk_read_complete(disk_buffer_holder buffer
 		, storage_error const& error
