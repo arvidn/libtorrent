@@ -830,24 +830,24 @@ TORRENT_TEST(parse_torrents)
 		}
 
 		file_storage const& fs = ti->files();
-		for (file_index_t i{0}; i != file_index_t(fs.num_files()); ++i)
+		for (file_index_t idx{0}; idx != file_index_t(fs.num_files()); ++idx)
 		{
-			piece_index_t const first = ti->map_file(i, 0, 0).piece;
-			piece_index_t const last = ti->map_file(i, std::max(fs.file_size(i)-1, std::int64_t(0)), 0).piece;
-			file_flags_t const flags = fs.file_flags(i);
-			sha1_hash const ih = fs.hash(i);
+			piece_index_t const first = ti->map_file(idx, 0, 0).piece;
+			piece_index_t const last = ti->map_file(idx, std::max(fs.file_size(idx)-1, std::int64_t(0)), 0).piece;
+			file_flags_t const flags = fs.file_flags(idx);
+			sha1_hash const ih = fs.hash(idx);
 			std::printf("  %11" PRId64 " %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
-				, fs.file_size(i)
+				, fs.file_size(idx)
 				, (flags & file_storage::flag_pad_file)?'p':'-'
 				, (flags & file_storage::flag_executable)?'x':'-'
 				, (flags & file_storage::flag_hidden)?'h':'-'
 				, (flags & file_storage::flag_symlink)?'l':'-'
 				, static_cast<int>(first), static_cast<int>(last)
-				, std::uint32_t(fs.mtime(i))
+				, std::uint32_t(fs.mtime(idx))
 				, ih != sha1_hash(nullptr) ? aux::to_hex(ih).c_str() : ""
-				, fs.file_path(i).c_str()
+				, fs.file_path(idx).c_str()
 				, flags & file_storage::flag_symlink ? "-> ": ""
-				, flags & file_storage::flag_symlink ? fs.symlink(i).c_str() : "");
+				, flags & file_storage::flag_symlink ? fs.symlink(idx).c_str() : "");
 		}
 	}
 
@@ -911,7 +911,7 @@ void test_resolve_duplicates(int test_case)
 
 	torrent_info ti(tmp, from_span);
 
-	std::vector<aux::vector<char const*, file_index_t>> const filenames
+	aux::vector<aux::vector<char const*, file_index_t>> const filenames
 	{
 		{ // case 0
 			"test/temporary.txt",
@@ -1017,7 +1017,7 @@ TORRENT_TEST(copy)
 	// clear out the  buffer for a, just to make sure b doesn't have any
 	// references into it by mistake
 	int s = a->metadata_size();
-	std::memset(a->metadata().get(), 0, s);
+	std::memset(a->metadata().get(), 0, std::size_t(s));
 
 	a.reset();
 

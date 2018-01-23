@@ -58,22 +58,10 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 using namespace lt;
 
+namespace {
+
 std::size_t const piece_size = 16 * 1024 * 16;
 std::size_t const half = piece_size / 2;
-
-void signal_bool(bool* b, char const* string)
-{
-	*b = true;
-	std::cout << time_now_string() << " " << string << std::endl;
-}
-
-void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
-{
-	std::cout << time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
-	TEST_EQUAL(ret, size);
-	auto& buffer = boost::get<disk_buffer_holder>(j.argument);
-	if (ret > 0) TEST_CHECK(std::equal(buffer.get(), buffer.get() + ret, data));
-}
 
 void on_check_resume_data(status_t const status, storage_error const& error, bool* done)
 {
@@ -745,6 +733,8 @@ void test_fastresume(bool const test_deprecated)
 		std::cout << "remove_all '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(fastresume)
 {

@@ -52,6 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 torrent_flags_t const flags_mask
 	= torrent_flags::sequential_download
 	| torrent_flags::paused
@@ -77,7 +79,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
 		sha1_hash ph;
-		for (int k = 0; k < 20; ++k) ph[k] = lt::random(0xff);
+		aux::random_bytes(ph);
 		t.set_hash(i, ph);
 	}
 
@@ -94,8 +96,8 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
 	rd["info-hash"] = ti->info_hash().to_string();
-	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
-	rd["pieces"] = std::string(ti->num_pieces(), '\x01');
+	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
+	rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 
 	rd["total_uploaded"] = 1337;
 	rd["total_downloaded"] = 1338;
@@ -117,7 +119,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 			file_prio.push_back(entry(file_priorities[i] - '0'));
 	}
 
-	rd["piece_priority"] = std::string(ti->num_pieces(), '\x01');
+	rd["piece_priority"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 	rd["auto_managed"] = 0;
 	rd["sequential_download"] = 0;
 	rd["paused"] = 0;
@@ -187,7 +189,7 @@ torrent_handle test_resume_flags(lt::session& ses
 	{
 		aux::vector<download_priority_t, file_index_t> priorities_vector;
 		for (int i = 0; file_priorities[i]; ++i)
-			priorities_vector.push_back(download_priority_t(file_priorities[i] - '0'));
+			priorities_vector.push_back(download_priority_t(aux::numeric_cast<std::uint8_t>(file_priorities[i] - '0')));
 
 		p.file_priorities = priorities_vector;
 	}
@@ -274,6 +276,8 @@ void test_piece_priorities(bool test_deprecated = false)
 	TEST_EQUAL(h.piece_priority(piece_index_t(ti->num_pieces()-1)), 0_pri);
 }
 
+} // anonymous namespace
+
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(piece_priorities_deprecated)
 {
@@ -296,9 +300,9 @@ TORRENT_TEST(piece_slots)
 	{
 		std::vector<char> a(128 * 1024 * 8);
 		std::vector<char> b(128 * 1024);
-		std::ofstream("add_torrent_params_test/test_resume/tmp1").write(a.data(), a.size());
-		std::ofstream("add_torrent_params_test/test_resume/tmp2").write(b.data(), b.size());
-		std::ofstream("add_torrent_params_test/test_resume/tmp3").write(b.data(), b.size());
+		std::ofstream("add_torrent_params_test/test_resume/tmp1").write(a.data(), std::streamsize(a.size()));
+		std::ofstream("add_torrent_params_test/test_resume/tmp2").write(b.data(), std::streamsize(b.size()));
+		std::ofstream("add_torrent_params_test/test_resume/tmp3").write(b.data(), std::streamsize(b.size()));
 	}
 
 	add_torrent_params p;
@@ -353,9 +357,9 @@ void test_piece_slots_seed(settings_pack const& sett)
 	{
 		std::vector<char> a(128 * 1024 * 8);
 		std::vector<char> b(128 * 1024);
-		std::ofstream("add_torrent_params_test/test_resume/tmp1").write(a.data(), a.size());
-		std::ofstream("add_torrent_params_test/test_resume/tmp2").write(b.data(), b.size());
-		std::ofstream("add_torrent_params_test/test_resume/tmp3").write(b.data(), b.size());
+		std::ofstream("add_torrent_params_test/test_resume/tmp1").write(a.data(), std::streamsize(a.size()));
+		std::ofstream("add_torrent_params_test/test_resume/tmp2").write(b.data(), std::streamsize(b.size()));
+		std::ofstream("add_torrent_params_test/test_resume/tmp3").write(b.data(), std::streamsize(b.size()));
 	}
 
 	add_torrent_params p;
@@ -838,10 +842,10 @@ void test_zero_file_prio(bool test_deprecated = false)
 		file_prio.push_back(entry(0));
 	}
 
-	std::string pieces(ti->num_pieces(), '\x01');
+	std::string pieces(std::size_t(ti->num_pieces()), '\x01');
 	rd["pieces"] = pieces;
 
-	std::string pieces_prio(ti->num_pieces(), '\x01');
+	std::string pieces_prio(std::size_t(ti->num_pieces()), '\x01');
 	rd["piece_priority"] = pieces_prio;
 
 	std::vector<char> resume_data;
@@ -968,14 +972,14 @@ void test_seed_mode(test_mode_t const flags)
 		}
 	}
 
-	std::string pieces(ti->num_pieces(), '\x01');
+	std::string pieces(std::size_t(ti->num_pieces()), '\x01');
 	if (flags & test_mode::pieces_have)
 	{
 		pieces[0] = '\0';
 	}
 	rd["pieces"] = pieces;
 
-	std::string pieces_prio(ti->num_pieces(), '\x01');
+	std::string pieces_prio(std::size_t(ti->num_pieces()), '\x01');
 	if (flags & test_mode::piece_prio)
 	{
 		pieces_prio[0] = '\0';

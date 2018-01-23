@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include <iostream>
 
+namespace {
+
 void test_lsd()
 {
 	using namespace lt;
@@ -96,6 +98,8 @@ void test_lsd()
 	p1 = ses1.abort();
 	p2 = ses2.abort();
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(lsd)
 {

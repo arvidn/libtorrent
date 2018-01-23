@@ -53,6 +53,8 @@ using namespace lt;
 
 using std::ignore;
 
+namespace {
+
 auto const mask = alert::all_categories
 	& ~(alert::performance_warning | alert::stats_notification);
 
@@ -77,8 +79,8 @@ struct test_storage : default_storage
 		, m_limit(16 * 1024 * 2)
 	{}
 
-	void set_file_priority(aux::vector<download_priority_t, file_index_t> const& p
-		, storage_error& ec) override {}
+	void set_file_priority(aux::vector<download_priority_t, file_index_t> const&
+		, storage_error&) override {}
 
 	void set_limit(int lim)
 	{
@@ -175,21 +177,21 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	{
 		proxy_port = start_proxy(proxy_type);
 
-		settings_pack pack;
-		pack.set_str(settings_pack::proxy_username, "testuser");
-		pack.set_str(settings_pack::proxy_password, "testpass");
-		pack.set_int(settings_pack::proxy_type, proxy_type);
-		pack.set_int(settings_pack::proxy_port, proxy_port);
-		pack.set_bool(settings_pack::force_proxy, true);
+		settings_pack pack_p;
+		pack_p.set_str(settings_pack::proxy_username, "testuser");
+		pack_p.set_str(settings_pack::proxy_password, "testpass");
+		pack_p.set_int(settings_pack::proxy_type, proxy_type);
+		pack_p.set_int(settings_pack::proxy_port, proxy_port);
+		pack_p.set_bool(settings_pack::force_proxy, true);
 
 		// test resetting the proxy in quick succession.
 		// specifically the udp_socket connecting to a new
 		// socks5 proxy while having one connection attempt
 		// in progress.
-		pack.set_str(settings_pack::proxy_hostname, "5.6.7.8");
-		ses1.apply_settings(pack);
-		pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
-		ses1.apply_settings(pack);
+		pack_p.set_str(settings_pack::proxy_hostname, "5.6.7.8");
+		ses1.apply_settings(pack_p);
+		pack_p.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+		ses1.apply_settings(pack_p);
 	}
 
 	pack = sett;
@@ -264,7 +266,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		, (flags & disk_full) ? &addp : &params);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
-	std::vector<int> priorities(num_pieces, 1);
+	std::vector<int> priorities(std::size_t(num_pieces), 1);
 
 	int upload_mode_timer = 0;
 
@@ -319,7 +321,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			&& ++upload_mode_timer > 10)
 		{
 			flags &= ~disk_full;
-			((test_storage*)tor2.get_storage_impl())->set_limit(16 * 1024 * 1024);
+			static_cast<test_storage*>(tor2.get_storage_impl())->set_limit(16 * 1024 * 1024);
 
 			// if we reset the upload mode too soon, there may be more disk
 			// jobs failing right after, putting us back in upload mode. So,
@@ -340,8 +342,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			// at this point we probably disconnected the seed
 			// so we need to reconnect as well
 			std::printf("%s: reconnecting peer\n", time_now_string());
-			error_code ec;
-			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+			error_code ec2;
+			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec2)
 				, ses1.listen_port()));
 
 			TEST_CHECK(tor2.status().is_finished == false);
@@ -386,6 +388,8 @@ void cleanup()
 	remove_all("tmp1_transfer_moved", ec);
 	remove_all("tmp2_transfer_moved", ec);
 }
+
+} // anonymous namespace
 
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(no_contiguous_buffers)

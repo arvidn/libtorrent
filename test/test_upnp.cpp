@@ -119,7 +119,7 @@ std::list<callback_info> callbacks;
 
 namespace // TODO: remove this nested namespace
 {
-	struct upnp_callback : aux::portmap_callback
+	struct upnp_callback final : aux::portmap_callback
 	{
 		void on_port_mapping(port_mapping_t const mapping
 			, address const& ip, int port
@@ -134,12 +134,12 @@ namespace // TODO: remove this nested namespace
 				<< ", error: \"" << err.message() << "\"\n";
 		}
 	#ifndef TORRENT_DISABLE_LOGGING
-		virtual bool should_log_portmap(portmap_transport) const override
+		bool should_log_portmap(portmap_transport) const override
 		{
 			return true;
 		}
 
-		virtual void log_portmap(portmap_transport, char const* msg) const override
+		void log_portmap(portmap_transport, char const* msg) const override
 		{
 			std::cout << "UPnP: " << msg << std::endl;
 			//TODO: store the log and verify that some key messages are there
