@@ -141,8 +141,7 @@ namespace {
 	}
 #endif // TORRENT_DISABLE_EXTENSIONS
 
-	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack
-		, peer_id const& pid)
+	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack)
 		: peer_connection(pack)
 		, m_supports_extensions(false)
 		, m_supports_dht_port(false)
@@ -155,7 +154,7 @@ namespace {
 		, m_rc4_encrypted(false)
 		, m_recv_buffer(peer_connection::m_recv_buffer)
 #endif
-		, m_our_peer_id(pid)
+		, m_our_peer_id(generate_peer_id(*pack.sett))
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "CONSTRUCT", "bt_peer_connection");
@@ -742,15 +741,7 @@ namespace {
 		std::memcpy(ptr, ih.data(), ih.size());
 		ptr += 20;
 
-		// peer id
-		if (m_settings.get_bool(settings_pack::anonymous_mode))
-		{
-			// in anonymous mode, every peer connection
-			// has a unique peer-id
-			aux::random_bytes(m_our_peer_id);
-		}
-
-		std::memcpy(ptr, m_our_peer_id.data(), 20);
+		std::memcpy(ptr, &m_our_peer_id[0], 20);
 		ptr += 20;
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3212,16 +3203,6 @@ namespace {
 			}
 
 			set_pid(pid);
-
-			// disconnect if the peer has the same peer-id as ourself
-			// since it most likely is ourself then
-			if (pid == m_our_peer_id)
-			{
-				if (peer_info_struct()) t->ban_peer(peer_info_struct());
-				disconnect(errors::self_connection, operation_t::bittorrent, 1);
-				return;
-			}
-
 			m_client_version = identify_client(pid);
 			if (pid[0] == '-' && pid[1] == 'B' && pid[2] == 'C' && pid[7] == '-')
 			{

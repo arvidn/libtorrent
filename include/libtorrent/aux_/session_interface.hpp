@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_INTERFACE_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/peer_id.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/time.hpp"
@@ -201,8 +200,6 @@ namespace libtorrent { namespace aux {
 #endif
 		virtual void set_queue_position(torrent* t, queue_position_t p) = 0;
 		virtual int num_torrents() const = 0;
-
-		virtual peer_id const& get_peer_id() const = 0;
 
 		virtual void close_connection(peer_connection* p) noexcept = 0;
 		virtual int num_connections() const = 0;

@@ -375,8 +375,6 @@ namespace aux {
 				, peer_connection* pc) override;
 			void set_queue_position(torrent* t, queue_position_t p) override;
 
-			peer_id const& get_peer_id() const override { return m_peer_id; }
-
 			void close_connection(peer_connection* p) noexcept override;
 
 			void apply_settings_pack(std::shared_ptr<settings_pack> pack) override;
@@ -586,11 +584,11 @@ namespace aux {
 
 #ifndef TORRENT_NO_DEPRECATE
 			session_status status() const;
+			peer_id deprecated_get_peer_id() const;
 #endif
 
 			void get_cache_info(torrent_handle h, cache_status* ret, int flags) const;
 
-			void set_peer_id(peer_id const& id);
 			void set_key(std::uint32_t key);
 			std::uint16_t listen_port() const override;
 			std::uint16_t listen_port(listen_socket_t* sock) const;
@@ -753,7 +751,6 @@ namespace aux {
 			void update_lsd();
 			void update_dht();
 			void update_count_slow();
-			void update_peer_fingerprint();
 			void update_dht_bootstrap_nodes();
 
 			void update_socket_buffer_size();
@@ -920,9 +917,6 @@ namespace aux {
 
 			// filters outgoing connections
 			port_filter m_port_filter;
-
-			// the peer id that is generated at the start of the session
-			peer_id m_peer_id;
 
 			// posts a notification when the set of local IPs changes
 			std::unique_ptr<ip_change_notifier> m_ip_notifier;

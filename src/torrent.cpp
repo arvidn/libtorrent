@@ -123,6 +123,19 @@ namespace libtorrent {
 		peer_info.web_seed = true;
 	}
 
+	peer_id generate_peer_id(aux::session_settings const& sett)
+	{
+		peer_id ret;
+		std::string print = sett.get_str(settings_pack::peer_fingerprint);
+		if (print.size() > ret.size()) print.resize(ret.size());
+
+		// the client's fingerprint
+		std::copy(print.begin(), print.end(), ret.begin());
+		if (print.length() < ret.size())
+			url_random(span<char>(ret).subspan(print.length()));
+		return ret;
+	}
+
 	torrent_hot_members::torrent_hot_members(aux::session_interface& ses
 		, add_torrent_params const& p, bool const session_paused)
 		: m_ses(ses)
@@ -161,6 +174,7 @@ namespace libtorrent {
 		, m_info_hash(p.info_hash)
 		, m_error_file(torrent_status::error_file_none)
 		, m_sequence_number(-1)
+		, m_peer_id(generate_peer_id(settings()))
 		, m_announce_to_trackers(!(p.flags & torrent_flags::paused))
 		, m_announce_to_lsd(!(p.flags & torrent_flags::paused))
 		, m_has_incoming(false)
@@ -1926,7 +1940,7 @@ namespace libtorrent {
 		return nullptr;
 	}
 
-	peer_connection* torrent::find_peer(sha1_hash const& pid)
+	peer_connection* torrent::find_peer(peer_id const& pid)
 	{
 		for (auto p : m_connections)
 		{
@@ -2698,7 +2712,7 @@ namespace libtorrent {
 		req.private_torrent = m_torrent_file->priv();
 
 		req.info_hash = m_torrent_file->info_hash();
-		req.pid = m_ses.get_peer_id();
+		req.pid = m_peer_id;
 		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
 		req.uploaded = m_stat.total_payload_upload();
 		req.corrupt = m_total_failed_bytes;
@@ -3148,7 +3162,7 @@ namespace libtorrent {
 		for (auto const& i : resp.peers)
 		{
 			// don't make connections to ourself
-			if (i.pid == m_ses.get_peer_id())
+			if (i.pid == m_peer_id)
 				continue;
 
 #if TORRENT_USE_I2P
@@ -6577,8 +6591,7 @@ namespace libtorrent {
 		pack.endp = a;
 		pack.peerinfo = peerinfo;
 
-		std::shared_ptr<peer_connection> c = std::make_shared<bt_peer_connection>(
-			pack, m_ses.get_peer_id());
+		std::shared_ptr<peer_connection> c = std::make_shared<bt_peer_connection>(pack);
 
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;

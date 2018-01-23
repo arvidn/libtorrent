@@ -810,12 +810,11 @@ namespace {
 		// per listen interface
 	}
 
-#endif
-
 	peer_id session_handle::id() const
 	{
-		return sync_call_ret<peer_id>(&session_impl::get_peer_id);
+		return sync_call_ret<peer_id>(&session_impl::deprecated_get_peer_id);
 	}
+#endif
 
 	unsigned short session_handle::listen_port() const
 	{

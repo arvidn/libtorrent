@@ -537,7 +537,6 @@ namespace aux {
 		{
 			session_log("   max connections: %d", m_settings.get_int(settings_pack::connections_limit));
 			session_log("   max files: %d", max_files);
-			session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 		}
 #endif
 
@@ -2944,7 +2943,7 @@ namespace {
 		pack.peerinfo = nullptr;
 
 		std::shared_ptr<peer_connection> c
-			= std::make_shared<bt_peer_connection>(pack, get_peer_id());
+			= std::make_shared<bt_peer_connection>(pack);
 
 		if (!c->is_disconnecting())
 		{
@@ -2995,10 +2994,12 @@ namespace {
 		}
 	}
 
-	void session_impl::set_peer_id(peer_id const& id)
+#ifndef TORRENT_NO_DEPRECATE
+	peer_id session_impl::deprecated_get_peer_id() const
 	{
-		m_peer_id = id;
+		return generate_peer_id(m_settings);
 	}
+#endif
 
 	int session_impl::next_port() const
 	{
@@ -5345,20 +5346,6 @@ namespace {
 #endif
 	}
 
-	void session_impl::update_peer_fingerprint()
-	{
-		// ---- generate a peer id ----
-		std::string print = m_settings.get_str(settings_pack::peer_fingerprint);
-		if (print.size() > m_peer_id.size()) print.resize(m_peer_id.size());
-
-		// the client's fingerprint
-		std::copy(print.begin(), print.begin() + int(print.length()), m_peer_id.begin());
-		if (print.size() < m_peer_id.size())
-		{
-			url_random(span<char>(m_peer_id).subspan(print.length()));
-		}
-	}
-
 	void session_impl::update_dht_bootstrap_nodes()
 	{
 #ifndef TORRENT_DISABLE_DHT
@@ -6395,7 +6382,6 @@ namespace {
 		}
 
 		if (m_upnp) m_upnp->set_user_agent("");
-		url_random(m_peer_id);
 	}
 
 	void session_impl::update_force_proxy()

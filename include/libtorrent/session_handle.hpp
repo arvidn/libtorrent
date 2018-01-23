@@ -579,11 +579,11 @@ namespace libtorrent {
 		// deprecated in 1.1, use settings_pack::peer_fingerprint instead
 		TORRENT_DEPRECATED
 		void set_peer_id(peer_id const& pid);
-#endif
 
-		// returns the raw peer ID used by libtorrent. When anonymous mode is set
-		// the peer ID is randomized per peer.
+		// deprecated in 1.1.7. read settings_pack::peer_fingerprint instead
+		TORRENT_DEPRECATED
 		peer_id id() const;
+#endif
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2

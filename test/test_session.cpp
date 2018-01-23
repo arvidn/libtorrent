@@ -402,10 +402,7 @@ TORRENT_TEST(save_state_peer_id)
 	lt::settings_pack pack;
 	pack.set_str(settings_pack::peer_fingerprint, "AAA");
 	lt::session ses(pack);
-	lt::peer_id const pid1 = ses.id();
-	TEST_CHECK(pid1[0] == 'A');
-	TEST_CHECK(pid1[1] == 'A');
-	TEST_CHECK(pid1[2] == 'A');
+	TEST_EQUAL(ses.get_settings().get_str(settings_pack::peer_fingerprint), "AAA");
 
 	lt::entry st;
 	ses.save_state(st);
@@ -413,14 +410,7 @@ TORRENT_TEST(save_state_peer_id)
 	pack.set_str(settings_pack::peer_fingerprint, "foobar");
 	ses.apply_settings(pack);
 
-	lt::peer_id const pid2 = ses.id();
-	TEST_CHECK(pid2[0] == 'f');
-	TEST_CHECK(pid2[1] == 'o');
-	TEST_CHECK(pid2[2] == 'o');
-	TEST_CHECK(pid2[3] == 'b');
-	TEST_CHECK(pid2[4] == 'a');
-	TEST_CHECK(pid2[5] == 'r');
-
+	TEST_EQUAL(ses.get_settings().get_str(settings_pack::peer_fingerprint), "foobar");
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), st);
@@ -431,13 +421,7 @@ TORRENT_TEST(save_state_peer_id)
 	TEST_EQUAL(ret, 0);
 	ses.load_state(state);
 
-	lt::peer_id const pid3 = ses.id();
-	TEST_CHECK(pid3[0] == 'f');
-	TEST_CHECK(pid3[1] == 'o');
-	TEST_CHECK(pid3[2] == 'o');
-	TEST_CHECK(pid3[3] == 'b');
-	TEST_CHECK(pid3[4] == 'a');
-	TEST_CHECK(pid3[5] == 'r');
+	TEST_EQUAL(ses.get_settings().get_str(settings_pack::peer_fingerprint), "foobar");
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
