@@ -954,6 +954,10 @@ void bind_alert()
         .add_property("values", &session_stats_values)
         ;
 
+    class_<session_stats_header_alert, bases<alert>, noncopyable>(
+        "session_stats_header_alert", no_init)
+        ;
+
     std::vector<tcp::endpoint> (dht_get_peers_reply_alert::*peers)() const = &dht_get_peers_reply_alert::peers;
 
     class_<dht_get_peers_reply_alert, bases<alert>, noncopyable>(
