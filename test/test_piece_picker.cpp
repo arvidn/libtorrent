@@ -1865,5 +1865,95 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(picked.size(), blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
+
+	{
+		print_title("test mark_as_pad");
+
+		p = setup_picker("1111111", "       ", "4444444", "");
+		piece_block const bl(2, 0);
+		p->mark_as_pad(bl);
+
+		bool ret = p->mark_as_downloading(piece_block(2, 1), NULL);
+		TEST_EQUAL(ret, true);
+
+		std::vector<piece_picker::downloading_piece> dl
+			= p->get_download_queue();
+
+		TEST_EQUAL(dl.size(), 1);
+		TEST_EQUAL(dl[0].finished, 1);
+		TEST_EQUAL(dl[0].writing, 0);
+		TEST_EQUAL(dl[0].requested, 1);
+		TEST_EQUAL(dl[0].index, 2);
+
+		piece_picker::block_info* blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_requested);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_none);
+	}
+
+	{
+		print_title("test mark_as_pad downloading");
+
+		p = setup_picker("1111111", "       ", "4444444", "");
+		piece_block const bl(2, 0);
+		p->mark_as_pad(bl);
+
+		bool ret = p->mark_as_downloading(piece_block(2, 0), NULL);
+		TEST_EQUAL(ret, false);
+
+		std::vector<piece_picker::downloading_piece> dl
+			= p->get_download_queue();
+
+		TEST_EQUAL(dl.size(), 1);
+		TEST_EQUAL(dl[0].finished, 1);
+		TEST_EQUAL(dl[0].writing, 0);
+		TEST_EQUAL(dl[0].requested, 0);
+		TEST_EQUAL(dl[0].index, 2);
+
+		piece_picker::block_info* blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_none);
+	}
+
+	{
+		print_title("test mark_as_pad seeding");
+
+		p = setup_picker("1", " ", "4", "");
+		p->mark_as_pad(piece_block(0, 0));
+		p->mark_as_pad(piece_block(0, 1));
+		p->mark_as_pad(piece_block(0, 2));
+
+		TEST_CHECK(!p->is_seeding());
+
+		p->mark_as_finished(piece_block(0, 3), NULL);
+
+		TEST_CHECK(!p->is_seeding());
+		p->piece_passed(0);
+		TEST_CHECK(p->is_seeding());
+	}
+
+	{
+		print_title("test mark_as_pad whole pad piece, seeding");
+
+		p = setup_picker("11", "  ", "44", "");
+		p->mark_as_pad(piece_block(0, 0));
+		p->mark_as_pad(piece_block(0, 1));
+		p->mark_as_pad(piece_block(0, 2));
+		p->mark_as_pad(piece_block(0, 3));
+
+		TEST_CHECK(!p->is_seeding());
+
+		p->mark_as_finished(piece_block(1, 0), NULL);
+		p->mark_as_finished(piece_block(1, 1), NULL);
+		p->mark_as_finished(piece_block(1, 2), NULL);
+		p->mark_as_finished(piece_block(1, 3), NULL);
+
+		TEST_CHECK(!p->is_seeding());
+		p->piece_passed(1);
+		TEST_CHECK(p->is_seeding());
+	}
 }
 

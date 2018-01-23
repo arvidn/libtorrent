@@ -2044,7 +2044,7 @@ namespace libtorrent
 				for (; pr.length >= block; pr.length -= block, ++pb.block_index)
 				{
 					if (int(pb.block_index) == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
-					m_picker->mark_as_finished(pb, 0);
+					m_picker->mark_as_pad(pb);
 				}
 				// ugly edge case where padfiles are not used they way they're
 				// supposed to be. i.e. added back-to back or at the end
@@ -3939,7 +3939,7 @@ namespace {
 	}
 
 	// fills in total_wanted, total_wanted_done and total_done
-	void torrent::bytes_done(torrent_status& st, bool accurate) const
+	void torrent::bytes_done(torrent_status& st, bool const accurate) const
 	{
 		INVARIANT_CHECK;
 
@@ -4004,7 +4004,7 @@ namespace {
 		if (m_picker->has_piece_passed(last_piece))
 		{
 			TORRENT_ASSERT(st.total_done >= piece_size);
-			int corr = m_torrent_file->piece_size(last_piece)
+			int const corr = m_torrent_file->piece_size(last_piece)
 				- piece_size;
 			TORRENT_ASSERT(corr <= 0);
 			TORRENT_ASSERT(corr > -piece_size);

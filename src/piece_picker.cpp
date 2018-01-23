@@ -238,7 +238,15 @@ namespace libtorrent
 		for (int i = 0; i < m_blocks_per_piece; ++i)
 		{
 			info[i].num_peers = 0;
-			info[i].state = block_info::state_none;
+			if (m_pad_blocks.count(piece_block(piece, i)))
+			{
+				info[i].state = block_info::state_finished;
+				++ret.finished;
+			}
+			else
+			{
+				info[i].state = block_info::state_none;
+			}
 			info[i].peer = 0;
 #ifdef TORRENT_USE_VALGRIND
 			VALGRIND_CHECK_VALUE_IS_DEFINED(info[i].peer);
@@ -252,7 +260,12 @@ namespace libtorrent
 		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info_idx);
 		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.index);
 #endif
+
 		downloading_iter = m_downloads[download_state].insert(downloading_iter, ret);
+
+		// in case every block was a pad block, we need to make sure the piece
+		// structure is correctly categorised
+		downloading_iter = update_piece_state(downloading_iter);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		check_piece_state();
@@ -2948,16 +2961,16 @@ get_out:
 	}
 
 	std::vector<piece_picker::downloading_piece>::iterator
-		piece_picker::update_piece_state(
+	piece_picker::update_piece_state(
 		std::vector<piece_picker::downloading_piece>::iterator dp)
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "update_piece_state(" << dp->index << ")" << std::endl;
 #endif
 
-		int num_blocks = blocks_in_piece(dp->index);
+		int const num_blocks = blocks_in_piece(dp->index);
 		piece_pos& p = m_piece_map[dp->index];
-		int current_state = p.download_state;
+		int const current_state = p.download_state;
 		TORRENT_ASSERT(current_state != piece_pos::piece_open);
 		if (current_state == piece_pos::piece_open)
 			return dp;
@@ -3154,6 +3167,9 @@ get_out:
 			block_info* binfo = blocks_for_piece(*dp);
 			block_info& info = binfo[block.block_index];
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
+			if (info.state == block_info::state_finished)
+				return false;
+
 			info.state = block_info::state_requested;
 			info.peer = peer;
 			info.num_peers = 1;
@@ -3289,7 +3305,7 @@ get_out:
 			// if we already have this piece, just ignore this
 			if (have_piece(block.piece_index)) return false;
 
-			int prio = p.priority(this);
+			int const prio = p.priority(this);
 			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
 				|| m_dirty);
 			p.download_state = piece_pos::piece_downloading;
@@ -3303,6 +3319,11 @@ get_out:
 			TORRENT_ASSERT(&info >= &m_block_info[0]);
 			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
+
+			TORRENT_ASSERT(info.state == block_info::state_none);
+			if (info.state == block_info::state_finished)
+				return false;
+
 			info.state = block_info::state_writing;
 			info.peer = peer;
 			info.num_peers = 0;
@@ -3543,7 +3564,7 @@ get_out:
 			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
 
-			int prio = p.priority(this);
+			int const prio = p.priority(this);
 			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
 				|| m_dirty);
 			p.download_state = piece_pos::piece_downloading;
@@ -3555,6 +3576,8 @@ get_out:
 			TORRENT_ASSERT(&info >= &m_block_info[0]);
 			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
+			if (info.state == block_info::state_finished)
+				return;
 			info.peer = peer;
 			TORRENT_ASSERT(info.state == block_info::state_none);
 			TORRENT_ASSERT(info.num_peers == 0);
@@ -3613,6 +3636,22 @@ get_out:
 		check_piece_state();
 #endif
 
+	}
+
+	void piece_picker::mark_as_pad(piece_block block)
+	{
+		m_pad_blocks.insert(block);
+		// if we mark and entire piece as a pad file, we need to also
+		// consder that piece as "had" and increment some counters
+		typedef std::set<piece_block>::iterator iter;
+		iter begin = m_pad_blocks.lower_bound(piece_block(block.piece_index, 0));
+		int const blocks = blocks_in_piece(block.piece_index);
+		iter end = m_pad_blocks.upper_bound(piece_block(block.piece_index, blocks));
+		if (std::distance(begin, end) == blocks)
+		{
+			// the entire piece is a pad file
+			we_have(block.piece_index);
+		}
 	}
 
 /*
@@ -3748,7 +3787,7 @@ get_out:
 			TORRENT_ASSERT(prev_prio < int(m_priority_boundries.size())
 				|| m_dirty);
 			erase_download_piece(i);
-			int prio = p.priority(this);
+			int const prio = p.priority(this);
 			if (!m_dirty)
 			{
 				if (prev_prio == -1 && prio >= 0) add(block.piece_index);
