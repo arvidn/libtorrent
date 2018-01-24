@@ -6949,6 +6949,16 @@ bool is_downloading_state(int const st)
 				get_handle());
 		}
 
+		// for v2 torrents the root hashes need to be copied to the merkle trees
+		if (m_torrent_file->info_hash().has_v2())
+		{
+			auto& merkle_trees = m_torrent_file->merkle_trees();
+			for (file_index_t f(0); f != m_torrent_file->files().end_file(); ++f)
+			{
+				merkle_trees[f][0] = m_torrent_file->files().root(f);
+			}
+		}
+
 		// we have to initialize the torrent before we start
 		// disconnecting redundant peers, otherwise we'll think
 		// we're a seed, because we have all 0 pieces
