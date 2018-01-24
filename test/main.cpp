@@ -73,7 +73,11 @@ namespace {
 // out, such as the log
 int old_stdout = -1;
 int old_stderr = -1;
+#if WIN32
+bool redirect_stdout = !IsDebuggerPresent();
+#else
 bool redirect_stdout = true;
+#endif
 // sanitizer output will go to stderr and we won't get an opportunity to print
 // it, so don't redirect stderr by default
 bool redirect_stderr = false;
