@@ -65,11 +65,11 @@ TORRENT_TEST(init)
 		aux::vector<std::int64_t, file_index_t> vec;
 		fp.export_progress(vec);
 
-		std::uint64_t sum = 0;
+		std::int64_t sum = 0;
 		for (file_index_t i(0); i < vec.end_index(); ++i)
 			sum += vec[i];
 
-		TEST_EQUAL(int(sum), fs.piece_size(idx));
+		TEST_EQUAL(sum, fs.piece_size(idx));
 	}
 }
 
@@ -96,11 +96,11 @@ TORRENT_TEST(init2)
 		fp.init(picker, fs);
 		fp.export_progress(vec);
 
-		std::uint64_t sum = 0;
+		std::int64_t sum = 0;
 		for (file_index_t i(0); i < vec.end_index(); ++i)
 			sum += vec[i];
 
-		TEST_EQUAL(int(sum), fs.piece_size(idx));
+		TEST_EQUAL(sum, fs.piece_size(idx));
 	}
 }
 

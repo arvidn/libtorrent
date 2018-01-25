@@ -46,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include <iostream>
 
+namespace {
+
 void test_pex()
 {
 	using namespace lt;
@@ -148,6 +150,7 @@ void test_pex()
 	p2 = ses2.abort();
 	p3 = ses3.abort();
 }
+} // anonymous namespace
 #endif // TORRENT_DISABLE_EXTENSIONS
 
 TORRENT_TEST(pex)

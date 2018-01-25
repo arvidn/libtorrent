@@ -50,31 +50,31 @@ namespace {
 struct test_storage_impl : storage_interface
 {
 	explicit test_storage_impl(file_storage const& fs) : storage_interface(fs) {}
-	void initialize(storage_error& ec) override {}
+	void initialize(storage_error&) override {}
 
 	int readv(span<iovec_t const> bufs
-		, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) override
+		, piece_index_t, int /*offset*/, open_mode_t, storage_error&) override
 	{
 		return bufs_size(bufs);
 	}
 	int writev(span<iovec_t const> bufs
-		, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) override
+		, piece_index_t, int /*offset*/, open_mode_t, storage_error&) override
 	{
 		return bufs_size(bufs);
 	}
 
-	bool has_any_file(storage_error& ec) override { return false; }
-	void set_file_priority(aux::vector<download_priority_t, file_index_t> const& prio
-		, storage_error& ec) override {}
-	status_t move_storage(std::string const& save_path, move_flags_t flags
-		, storage_error& ec) override { return status_t::no_error; }
-	bool verify_resume_data(add_torrent_params const& rd
-		, aux::vector<std::string, file_index_t> const& links
-		, storage_error& ec) override { return true; }
-	void release_files(storage_error& ec) override {}
-	void rename_file(file_index_t index, std::string const& new_filename
-		, storage_error& ec) override {}
-	void delete_files(remove_flags_t, storage_error& ec) override {}
+	bool has_any_file(storage_error&) override { return false; }
+	void set_file_priority(aux::vector<download_priority_t, file_index_t> const&
+		, storage_error&) override {}
+	status_t move_storage(std::string const&, move_flags_t
+		, storage_error&) override { return status_t::no_error; }
+	bool verify_resume_data(add_torrent_params const&
+		, aux::vector<std::string, file_index_t> const&
+		, storage_error&) override { return true; }
+	void release_files(storage_error&) override {}
+	void rename_file(file_index_t, std::string const&
+		, storage_error&) override {}
+	void delete_files(remove_flags_t, storage_error&) override {}
 };
 
 struct allocator : buffer_allocator_interface
@@ -90,6 +90,8 @@ struct allocator : buffer_allocator_interface
 		for (auto ref : refs)
 			m_cache.reclaim_block(m_storage, ref);
 	}
+
+	virtual ~allocator() = default;
 private:
 	block_cache& m_cache;
 	storage_interface* m_storage;
@@ -509,4 +511,3 @@ TORRENT_TEST(delete_piece)
 
 	TEST_CHECK(bc.num_pieces() == 0);
 }
-

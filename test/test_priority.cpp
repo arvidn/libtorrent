@@ -52,6 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 using std::ignore;
 
+namespace {
+
 alert_category_t const mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 
 int peer_disconnects = 0;
@@ -385,6 +387,8 @@ done:
 	sp.push_back(ses1.abort());
 	sp.push_back(ses2.abort());
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(priority)
 {

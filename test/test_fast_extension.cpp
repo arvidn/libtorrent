@@ -94,7 +94,7 @@ int read_message(tcp::socket& s, char* buffer, int max_size)
 		return -1;
 	}
 
-	boost::asio::read(s, boost::asio::buffer(buffer, length)
+	boost::asio::read(s, boost::asio::buffer(buffer, std::size_t(length))
 		, boost::asio::transfer_all(), ec);
 	if (ec)
 	{
@@ -739,7 +739,7 @@ TORRENT_TEST(multiple_bitfields)
 	print_session_log(*ses);
 
 	std::string bitfield;
-	bitfield.resize(ti->num_pieces(), '0');
+	bitfield.resize(std::size_t(ti->num_pieces()), '0');
 	send_bitfield(s, bitfield.c_str());
 	print_session_log(*ses);
 	bitfield[0] = '1';
@@ -970,6 +970,8 @@ TORRENT_TEST(invalid_request)
 	send_request(s, req);
 }
 
+namespace {
+
 void have_all_test(bool const incoming)
 {
 	sha1_hash ih;
@@ -1007,6 +1009,8 @@ void have_all_test(bool const incoming)
 	}
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(outgoing_have_all)
 {
 	std::cout << "\n === test outgoing have-all ===\n" << std::endl;
@@ -1023,4 +1027,3 @@ TORRENT_TEST(incoming_have_all)
 
 // TODO: test sending invalid requests (out of bound piece index, offsets and
 // sizes)
-

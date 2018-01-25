@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_size)
 {
 	settings_pack pack = settings();
@@ -79,7 +81,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		return;
 	}
 
-	aux::vector<download_priority_t, file_index_t> ones(info->num_files(), 1_pri);
+	aux::vector<download_priority_t, file_index_t> ones(std::size_t(info->num_files()), 1_pri);
 	h.prioritize_files(ones);
 
 	torrent_status st = h.status();
@@ -87,7 +89,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	TEST_EQUAL(st.total_wanted, file_size); // we want the single file
 	TEST_EQUAL(st.total_wanted_done, 0);
 
-	aux::vector<download_priority_t, file_index_t> prio(info->num_files(), 1_pri);
+	aux::vector<download_priority_t, file_index_t> prio(std::size_t(info->num_files()), 1_pri);
 	prio[file_index_t(0)] = 0_pri;
 	h.prioritize_files(prio);
 	st = h.status();
@@ -128,9 +130,9 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		h.piece_priority(piece_index_t(0), 1_pri);
 		st = h.status();
 		TEST_CHECK(st.pieces.size() > 0 && st.pieces[piece_index_t(0)] == false);
-		std::vector<char> piece(info->piece_length());
+		std::vector<char> piece(std::size_t(info->piece_length()));
 		for (int i = 0; i < int(piece.size()); ++i)
-			piece[i] = (i % 26) + 'A';
+			piece[std::size_t(i)] = (i % 26) + 'A';
 		h.add_piece(piece_index_t(0), &piece[0], torrent_handle::overwrite_existing);
 
 		// wait until the piece is done writing and hashing
@@ -147,13 +149,16 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		if (rpa)
 		{
 			std::cout << "SUCCEEDED!" << std::endl;
-			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), info->piece_size(piece_index_t(0))) == 0);
+			TEST_CHECK(std::memcmp(&piece[0], rpa->buffer.get()
+				, std::size_t(info->piece_size(piece_index_t(0)))) == 0);
 			TEST_CHECK(rpa->size == info->piece_size(piece_index_t(0)));
 			TEST_CHECK(rpa->piece == piece_index_t(0));
 			TEST_CHECK(hasher(piece).final() == info->hash_for_piece(piece_index_t(0)));
 		}
 	}
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(long_names)
 {
@@ -297,7 +302,7 @@ TORRENT_TEST(torrent)
 
 		std::vector<char> piece(128 * 1024);
 		for (int i = 0; i < int(piece.size()); ++i)
-			piece[i] = (i % 26) + 'A';
+			piece[std::size_t(i)] = (i % 26) + 'A';
 
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(piece).final();
@@ -340,7 +345,7 @@ TORRENT_TEST(duplicate_is_not_error)
 
 	std::vector<char> piece(128 * 1024);
 	for (int i = 0; i < int(piece.size()); ++i)
-		piece[i] = (i % 26) + 'A';
+		piece[std::size_t(i)] = (i % 26) + 'A';
 
 	// calculate the hash for all pieces
 	sha1_hash ph = hasher(piece).final();
@@ -456,7 +461,9 @@ TORRENT_TEST(torrent_status)
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_exception), -5);
 }
 
-void test_queue(add_torrent_params p)
+namespace {
+
+void test_queue(add_torrent_params)
 {
 	lt::settings_pack pack = settings();
 	// we're not testing the hash check, just accept the data we write
@@ -481,7 +488,8 @@ void test_queue(add_torrent_params p)
 		torrents.push_back(ses.add_torrent(std::move(p)));
 	}
 
-	std::vector<download_priority_t> pieces(torrents[5].torrent_file()->num_pieces(), 0_pri);
+	std::vector<download_priority_t> pieces(
+		std::size_t(torrents[5].torrent_file()->num_pieces()), 0_pri);
 	torrents[5].prioritize_pieces(pieces);
 	torrent_handle finished = torrents[5];
 
@@ -562,6 +570,8 @@ void test_queue(add_torrent_params p)
 	TEST_EQUAL(torrents[3].queue_position(), queue_position_t{4});
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(queue)
 {
 	test_queue(add_torrent_params());
@@ -589,4 +599,3 @@ TORRENT_TEST(test_move_storage_no_metadata)
 
 	TEST_EQUAL(h.status().save_path, complete("save_path_1"));
 }
-

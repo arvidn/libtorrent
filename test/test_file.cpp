@@ -51,7 +51,7 @@ int touch_file(std::string const& filename, int size)
 	std::vector<char> v;
 	v.resize(aux::numeric_cast<std::size_t>(size));
 	for (int i = 0; i < size; ++i)
-		v[i] = i & 255;
+		v[std::size_t(i)] = char(i & 255);
 
 	file f;
 	error_code ec;

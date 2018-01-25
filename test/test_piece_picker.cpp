@@ -527,14 +527,14 @@ TORRENT_TEST(pick_whole_pieces)
 		, &peer_struct, options, empty_vector);
 	TEST_EQUAL(int(picked.size()), 3);
 	for (int i = 0; i < blocks_per_piece && i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[i].piece_index, piece_index_t(2));
+		TEST_EQUAL(picked[std::size_t(i)].piece_index, piece_index_t(2));
 
 	p = setup_picker("1111111", "       ", "1111111", "");
 	picked = pick_pieces(p, "****** ", 1, blocks_per_piece
 		, &peer_struct, options, empty_vector);
 	TEST_EQUAL(int(picked.size()), blocks_per_piece);
 	for (int i = 0; i < blocks_per_piece && i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[i].block_index, i);
+		TEST_EQUAL(picked[std::size_t(i)].block_index, i);
 
 	p = setup_picker("2221222", "       ", "", "");
 	picked = pick_pieces(p, "*******", 1, 7 * blocks_per_piece
