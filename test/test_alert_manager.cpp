@@ -100,10 +100,12 @@ TORRENT_TEST(priority_limit)
 	TEST_EQUAL(alerts.size(), 200);
 }
 
+namespace {
 void test_notify_fun(int& cnt)
 {
 	++cnt;
 }
+} // anonymous namespace
 
 TORRENT_TEST(notify_function)
 {
@@ -148,6 +150,7 @@ TORRENT_TEST(notify_function)
 }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+namespace {
 int plugin_alerts[3] = { 0, 0, 0 };
 
 struct test_plugin : lt::plugin
@@ -159,7 +162,7 @@ struct test_plugin : lt::plugin
 	}
 	int m_index;
 };
-
+} // anonymous namespace
 #endif
 
 TORRENT_TEST(extensions)
@@ -271,4 +274,3 @@ TORRENT_TEST(dropped_alerts)
 	// it should have been cleared now though
 	TEST_CHECK(mgr.dropped_alerts().none());
 }
-

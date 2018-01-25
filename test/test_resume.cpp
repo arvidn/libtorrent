@@ -347,6 +347,8 @@ TORRENT_TEST(piece_slots)
 	}
 }
 
+namespace {
+
 void test_piece_slots_seed(settings_pack const& sett)
 {
 	// make sure the "pieces" field is correctly accepted from resume data
@@ -398,6 +400,8 @@ void test_piece_slots_seed(settings_pack const& sett)
 			TEST_EQUAL(pieces[i], true);
 	}
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(piece_slots_seed)
 {

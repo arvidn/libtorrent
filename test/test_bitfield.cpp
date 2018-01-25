@@ -131,7 +131,7 @@ TORRENT_TEST(bitfield)
 	TEST_EQUAL(test1.count(), 101);
 
 	std::uint8_t b1[] = { 0x08, 0x10 };
-	test1.assign((char*)b1, 14);
+	test1.assign(reinterpret_cast<char*>(b1), 14);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 2);
 	TEST_EQUAL(test1.get_bit(3), false);

@@ -46,6 +46,8 @@ using namespace lt;
 // test vectors from bittorrent protocol description
 // http://www.bittorrent.com/protocol.html
 
+namespace {
+
 std::string encode(entry const& e)
 {
 	std::string ret;
@@ -57,6 +59,8 @@ entry decode(std::string const& str)
 {
 	return bdecode(str.begin(), str.end());
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(strings)
 {
@@ -152,7 +156,7 @@ TORRENT_TEST(lazy_entry)
 		TEST_CHECK(ret == 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp(b, section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
 		TEST_CHECK(e.type() == lazy_entry::int_t);
 		TEST_CHECK(e.int_value() == 12453);
@@ -166,7 +170,7 @@ TORRENT_TEST(lazy_entry)
 		TEST_CHECK(ret == 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp(b, section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
 		TEST_CHECK(e.type() == lazy_entry::string_t);
 		TEST_CHECK(e.string_value() == std::string("abcdefghijklmnopqrstuvwxyz"));
@@ -181,7 +185,7 @@ TORRENT_TEST(lazy_entry)
 		TEST_CHECK(ret == 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp(b, section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
 		TEST_CHECK(e.type() == lazy_entry::list_t);
 		TEST_CHECK(e.list_size() == 2);
@@ -191,7 +195,7 @@ TORRENT_TEST(lazy_entry)
 		TEST_CHECK(e.list_at(1)->string_value() == std::string("aaa"));
 		TEST_CHECK(e.list_at(1)->string_length() == 3);
 		section = e.list_at(1)->data_section();
-		TEST_CHECK(std::memcmp("3:aaa", section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp("3:aaa", section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == 5);
 	}
 
@@ -203,7 +207,7 @@ TORRENT_TEST(lazy_entry)
 		TEST_CHECK(ret == 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp(b, section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
 		TEST_CHECK(e.type() == lazy_entry::dict_t);
 		TEST_CHECK(e.dict_size() == 4);
@@ -309,7 +313,7 @@ TORRENT_TEST(lazy_entry)
 		std::printf("%s\n", buf);
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode((char*)buf, (char*)buf + sizeof(buf), e, ec);
+		int ret = lazy_bdecode(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf) + sizeof(buf), e, ec);
 		TEST_CHECK(ret == -1);
 	}
 
@@ -492,7 +496,7 @@ TORRENT_TEST(lazy_entry)
 		std::printf("%s\n", print_entry(e).c_str());
 
 		pascal_string ps = e.dict_find_pstr("foobar");
-		TEST_EQUAL(memcmp(ps.ptr, "barfoo", ps.len), 0);
+		TEST_EQUAL(std::memcmp(ps.ptr, "barfoo", std::size_t(ps.len)), 0);
 		TEST_EQUAL(ps.len, 6);
 
 		ps = e.dict_find_pstr("foobar2");
@@ -512,7 +516,7 @@ TORRENT_TEST(lazy_entry)
 
 		TEST_EQUAL(e.list_size(), 2);
 		pascal_string ps = e.list_pstr_at(0);
-		TEST_EQUAL(memcmp(ps.ptr, "foobar", ps.len), 0);
+		TEST_EQUAL(std::memcmp(ps.ptr, "foobar", std::size_t(ps.len)), 0);
 		TEST_EQUAL(ps.len, 6);
 
 		ps = e.list_pstr_at(1);
@@ -539,7 +543,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode((char*)&buf[0], (char*)&buf[0] + buf.size(), e, ec);
+		int ret = lazy_bdecode(buf.data(), buf.data() + buf.size(), e, ec);
 		TEST_EQUAL(ret, 0);
 		TEST_EQUAL(e.type(), lazy_entry::list_t);
 		TEST_EQUAL(e.list_size(), 1000);
@@ -563,7 +567,7 @@ TORRENT_TEST(lazy_entry)
 		std::printf("%s\n", buf.c_str());
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode((char*)&buf[0], (char*)&buf[0] + buf.size(), e, ec);
+		int ret = lazy_bdecode(buf.data(), buf.data() + buf.size(), e, ec);
 		TEST_EQUAL(ret, 0);
 		TEST_EQUAL(e.type(), lazy_entry::dict_t);
 		TEST_EQUAL(e.dict_size(), 1000);
@@ -635,4 +639,3 @@ TORRENT_TEST(lazy_entry)
 	}
 }
 #endif // TORRENT_NO_DEPRECATE
-

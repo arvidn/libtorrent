@@ -95,7 +95,7 @@ TORRENT_TEST(web_seed_redirect)
 
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)
-		test_transfer(ses, torrent_file, 0, nullptr, "http", true, false, false, false);
+		test_transfer(ses, torrent_file, 0, "http", true, false, false, false);
 	}
 
 	stop_web_server();

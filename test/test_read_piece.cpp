@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/path.hpp"
 
+namespace {
+
 enum flags_t
 {
 	seed_mode = 1,
@@ -149,6 +151,8 @@ void test_read_piece(int flags)
 		, ec.value(), ec.message().c_str());
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(read_piece)
 {
 	test_read_piece(0);
@@ -163,4 +167,3 @@ TORRENT_TEST(time_critical)
 {
 	test_read_piece(time_critical);
 }
-

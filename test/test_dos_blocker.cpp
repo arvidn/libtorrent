@@ -71,6 +71,8 @@ struct log_t : lt::dht::dht_logger
 		std::printf("%s [%s] %s", prefix[dir], print_endpoint(node).c_str()
 			, msg.c_str());
 	}
+
+	virtual ~log_t() = default;
 };
 #endif
 
@@ -100,4 +102,3 @@ TORRENT_TEST(dos_blocker)
 #endif
 #endif
 }
-

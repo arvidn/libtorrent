@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
+namespace {
+
 void test_swarm()
 {
 	using namespace lt;
@@ -136,6 +138,8 @@ void test_swarm()
 	p3 = ses3.abort();
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(auto_unchoke)
 {
 	using namespace lt;
@@ -156,4 +160,3 @@ TORRENT_TEST(auto_unchoke)
 	remove_all("./tmp2_unchoke", ec);
 	remove_all("./tmp3_unchoke", ec);
 }
-

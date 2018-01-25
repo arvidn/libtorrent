@@ -170,6 +170,7 @@ TORRENT_TEST(read_resume_mismatching_torrent)
 	TEST_CHECK(!atp.ti);
 }
 
+namespace {
 std::shared_ptr<torrent_info> generate_torrent()
 {
 	file_storage fs;
@@ -186,7 +187,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
 		sha1_hash ph;
-		for (int k = 0; k < 20; ++k) ph[k] = lt::random(0xff);
+		aux::random_bytes(ph);
 		t.set_hash(i, ph);
 	}
 
@@ -194,6 +195,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 	bencode(std::back_inserter(buf), t.generate());
 	return std::make_shared<torrent_info>(buf, from_span);
 }
+} // anonymous namespace
 
 TORRENT_TEST(read_resume_torrent)
 {

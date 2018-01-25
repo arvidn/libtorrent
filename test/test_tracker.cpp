@@ -267,6 +267,7 @@ TORRENT_TEST(parse_external_ip6)
 }
 #endif
 
+namespace {
 peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool expected_ret)
 {
 	error_code ec;
@@ -280,6 +281,7 @@ peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool exp
 	TEST_EQUAL(expected_ec, ec);
 	return result;
 }
+} // anonymous namespace
 
 TORRENT_TEST(extract_peer)
 {
@@ -319,6 +321,8 @@ TORRENT_TEST(extract_peer_missing_port)
 	peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
 		, errors::invalid_tracker_response, false);
 }
+
+namespace {
 
 bool connect_alert(lt::alert const* a, tcp::endpoint& ep)
 {
@@ -401,6 +405,8 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 
 	stop_udp_tracker();
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(udp_tracker_v4)
 {
@@ -547,6 +553,8 @@ TORRENT_TEST(current_tracker)
 	std::printf("done\n");
 }
 
+namespace {
+
 void test_proxy(bool proxy_trackers)
 {
 	int http_port = start_web_server();
@@ -607,6 +615,8 @@ void test_proxy(bool proxy_trackers)
 	std::printf("done\n");
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(tracker_proxy)
 {
 	std::printf("\n\nnot proxying tracker connections (expect to reach the tracker)\n\n");
@@ -618,6 +628,7 @@ TORRENT_TEST(tracker_proxy)
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
+namespace {
 void test_stop_tracker_timeout(int const timeout)
 {
 	// trick the min interval so that the stopped anounce is permitted immediately
@@ -653,7 +664,6 @@ void test_stop_tracker_timeout(int const timeout)
 			}
 			if (num <= 0 && expected <= 0) return count;
 		}
-		return count;
 	};
 
 	settings_pack p = settings();
@@ -693,6 +703,7 @@ void test_stop_tracker_timeout(int const timeout)
 	int const count = count_stopped_events(s, (timeout == 0) ? 0 : 1);
 	TEST_EQUAL(count, (timeout == 0) ? 0 : 1);
 }
+} // anonymous namespace
 
 TORRENT_TEST(stop_tracker_timeout)
 {
@@ -706,4 +717,3 @@ TORRENT_TEST(stop_tracker_timeout_zero_timeout)
 	test_stop_tracker_timeout(0);
 }
 #endif
-

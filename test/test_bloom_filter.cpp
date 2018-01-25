@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 void test_set_and_get()
 {
 	bloom_filter<32> filter;
@@ -120,6 +122,8 @@ void test_to_from_string()
 	TEST_EQUAL(memcmp(compare, bits_out.c_str(), 4), 0);
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(bloom_filter)
 {
 	test_set_and_get();
@@ -130,4 +134,3 @@ TORRENT_TEST(bloom_filter)
 	// TODO: test size()
 	// TODO: test clear()
 }
-

@@ -49,6 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 struct mock_torrent;
 
 struct mock_peer_connection
@@ -64,7 +66,7 @@ struct mock_peer_connection
 		, m_disconnect_called(false)
 		, m_torrent(*tor)
 	{
-		for (int i = 0; i < 20; ++i) m_id[i] = rand();
+		aux::random_bytes(m_id);
 	}
 
 	virtual ~mock_peer_connection() = default;
@@ -73,7 +75,7 @@ struct mock_peer_connection
 	bool should_log(peer_log_alert::direction_t) const noexcept override
 	{ return true; }
 
-	void peer_log(peer_log_alert::direction_t dir, char const* event
+	void peer_log(peer_log_alert::direction_t, char const* /*event*/
 		, char const* fmt, ...) const noexcept override
 	{
 		va_list v;
@@ -199,6 +201,8 @@ void connect_peer(peer_list& p, mock_torrent& t, torrent_state& st)
 }
 
 static torrent_peer_allocator allocator;
+
+} // anonymous namespace
 
 // test multiple peers with the same IP
 // when disallowing it
@@ -371,11 +375,13 @@ TORRENT_TEST(update_peer_port_collide)
 	st.erased.clear();
 }
 
+namespace {
 std::shared_ptr<mock_peer_connection> shared_from_this(lt::peer_connection_interface* p)
 {
 	return std::static_pointer_cast<mock_peer_connection>(
 		static_cast<mock_peer_connection*>(p)->shared_from_this());
 }
+} // anonymous namespace
 
 // test ip filter
 TORRENT_TEST(ip_filter)
