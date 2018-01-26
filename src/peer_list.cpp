@@ -65,17 +65,18 @@ namespace {
 
 	struct match_peer_endpoint
 	{
-		explicit match_peer_endpoint(tcp::endpoint const& ep)
-			: m_ep(ep)
+		match_peer_endpoint(address const& addr, std::uint16_t port)
+			: m_addr(addr), m_port(port)
 		{}
 
 		bool operator()(torrent_peer const* p) const
 		{
 			TORRENT_ASSERT(p->in_use);
-			return p->address() == m_ep.address() && p->port == m_ep.port();
+			return p->address() == m_addr && p->port == m_port;
 		}
 
-		tcp::endpoint const& m_ep;
+		address const& m_addr;
+		std::uint16_t m_port;
 	};
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -267,8 +268,9 @@ namespace libtorrent {
 		TORRENT_ASSERT(p->in_use);
 		TORRENT_ASSERT(m_locked_peer != p);
 
-		std::pair<iterator, iterator> range = find_peers(p->address());
-		iterator iter = std::find_if(range.first, range.second, match_peer_endpoint(p->ip()));
+		auto const addr = p->address();
+		auto const range = find_peers(addr);
+		auto const iter = std::find_if(range.first, range.second, match_peer_endpoint(addr, p->port));
 		if (iter == range.second) return;
 		erase_peer(iter, state);
 	}
@@ -579,9 +581,10 @@ namespace libtorrent {
 		bool found = false;
 		if (state->allow_multiple_connections_per_ip)
 		{
-			tcp::endpoint remote = c.remote();
-			std::pair<iterator, iterator> range = find_peers(remote.address());
-			iter = std::find_if(range.first, range.second, match_peer_endpoint(remote));
+			auto const& remote = c.remote();
+			auto const addr = remote.address();
+			auto const range = find_peers(addr);
+			iter = std::find_if(range.first, range.second, match_peer_endpoint(addr, remote.port()));
 
 			if (iter != range.second)
 			{
@@ -807,10 +810,10 @@ namespace libtorrent {
 
 		if (state->allow_multiple_connections_per_ip)
 		{
-			tcp::endpoint remote(p->address(), std::uint16_t(port));
-			std::pair<iterator, iterator> range = find_peers(remote.address());
-			iterator i = std::find_if(range.first, range.second
-				, match_peer_endpoint(remote));
+			auto const addr = p->address();
+			auto const range = find_peers(addr);
+			auto const i = std::find_if(range.first, range.second
+				, match_peer_endpoint(addr, std::uint16_t(port)));
 			if (i != range.second)
 			{
 				torrent_peer& pp = **i;
@@ -1052,15 +1055,17 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
+		auto const remote_address = remote.address();
+
 		// just ignore the obviously invalid entries
-		if (remote.address() == address() || remote.port() == 0)
+		if (remote_address == address() || remote.port() == 0)
 			return nullptr;
 
 #if TORRENT_USE_IPV6
 		// don't allow link-local IPv6 addresses since they
 		// can't be used like normal addresses, they require an interface
 		// and will just cause connect() to fail with EINVAL
-		if (remote.address().is_v6() && remote.address().to_v6().is_link_local())
+		if (remote_address.is_v6() && remote_address.to_v6().is_link_local())
 			return nullptr;
 #endif
 
@@ -1070,16 +1075,17 @@ namespace libtorrent {
 		bool found = false;
 		if (state->allow_multiple_connections_per_ip)
 		{
-			std::pair<iterator, iterator> range = find_peers(remote.address());
-			iter = std::find_if(range.first, range.second, match_peer_endpoint(remote));
+			auto const range = find_peers(remote_address);
+			iter = std::find_if(range.first, range.second
+				, match_peer_endpoint(remote_address, remote.port()));
 			if (iter != range.second) found = true;
 		}
 		else
 		{
 			iter = std::lower_bound(m_peers.begin(), m_peers.end()
-				, remote.address(), peer_address_compare());
+				, remote_address, peer_address_compare());
 
-			if (iter != m_peers.end() && (*iter)->address() == remote.address()) found = true;
+			if (iter != m_peers.end() && (*iter)->address() == remote_address) found = true;
 		}
 
 		if (!found)
@@ -1088,7 +1094,7 @@ namespace libtorrent {
 			// add a new entry
 
 #if TORRENT_USE_IPV6
-			bool const is_v6 = remote.address().is_v6();
+			bool const is_v6 = remote_address.is_v6();
 #else
 			bool const is_v6 = false;
 #endif
