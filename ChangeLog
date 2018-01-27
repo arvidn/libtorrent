@@ -82,6 +82,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* restore support for incoming connections over SOCKS5 (disabled by default)
 	* use unique peer_ids per connection
 	* fix iOS build on recent SDK
 	* fix tracker connection bind issue for IPv6 trackers

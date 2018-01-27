@@ -85,6 +85,7 @@ public:
 	// commands
 	enum {
 		socks5_connect = 1,
+		socks5_bind = 2,
 		socks5_udp_associate = 3
 	};
 
@@ -92,6 +93,7 @@ public:
 		: proxy_base(io_service)
 		, m_version(5)
 		, m_command(socks5_connect)
+		, m_listen(0)
 	{}
 
 	void set_version(int v) { m_version = v; }
@@ -107,6 +109,38 @@ public:
 	{
 		m_user = user;
 		m_password = password;
+	}
+
+	template <typename Handler>
+	void async_accept(Handler const& handler)
+	{
+		TORRENT_ASSERT(m_listen == 1);
+		TORRENT_ASSERT(m_command == socks5_bind);
+
+		// to avoid unnecessary copying of the handler,
+		// store it in a shaed_ptr
+		error_code e;
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("socks5_stream::connect1");
+#endif
+		connect1(e, std::move(handler));
+	}
+
+	template <typename Handler>
+	void async_listen(tcp::endpoint const& ep, Handler const& handler)
+	{
+		m_command = socks5_bind;
+
+		m_remote_endpoint = ep;
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("socks5_stream::name_lookup");
+#endif
+		tcp::resolver::query q(m_hostname, to_string(m_port).data());
+		using std::placeholders::_1;
+		using std::placeholders::_2;
+		m_resolver.async_resolve(q, std::bind(
+			&socks5_stream::name_lookup, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 	void set_dst_name(std::string const& host)
@@ -134,12 +168,25 @@ public:
 	}
 #endif
 
+#ifndef BOOST_NO_EXCEPTIONS
+	endpoint_type local_endpoint() const
+	{
+		return m_local_endpoint;
+	}
+#endif
+
+	endpoint_type local_endpoint(error_code&) const
+	{
+		return m_local_endpoint;
+	}
+
 	// TODO: 2 add async_connect() that takes a hostname and port as well
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
 		// make sure we don't try to connect to INADDR_ANY. binding is fine,
 		// and using a hostname is fine on SOCKS version 5.
+		TORRENT_ASSERT(m_command != socks5_bind);
 		TORRENT_ASSERT(endpoint.address() != address()
 			|| (!m_dst_name.empty() && m_version == 5));
 
@@ -165,16 +212,16 @@ public:
 private:
 
 	void name_lookup(error_code const& e, tcp::resolver::iterator i
-		, handler_type& h);
-	void connected(error_code const& e, handler_type& h);
-	void handshake1(error_code const& e, handler_type& h);
-	void handshake2(error_code const& e, handler_type& h);
-	void handshake3(error_code const& e, handler_type& h);
-	void handshake4(error_code const& e, handler_type& h);
+		, handler_type h);
+	void connected(error_code const& e, handler_type h);
+	void handshake1(error_code const& e, handler_type h);
+	void handshake2(error_code const& e, handler_type h);
+	void handshake3(error_code const& e, handler_type h);
+	void handshake4(error_code const& e, handler_type h);
 	void socks_connect(handler_type h);
-	void connect1(error_code const& e, handler_type& h);
-	void connect2(error_code const& e, handler_type& h);
-	void connect3(error_code const& e, handler_type& h);
+	void connect1(error_code const& e, handler_type h);
+	void connect2(error_code const& e, handler_type h);
+	void connect3(error_code const& e, handler_type h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;
@@ -183,10 +230,19 @@ private:
 	std::string m_password;
 	std::string m_dst_name;
 
+	// when listening via a socks proxy, this is the IP and port our listen
+	// socket bound to
+	endpoint_type m_local_endpoint;
+
 	int m_version;
 
-	// the socks command to send for this connection (connect or udp associate)
+	// the socks command to send for this connection (connect, bind,
+	// udp associate)
 	int m_command;
+
+	// set to one when we're waiting for the
+	// second message to accept an incoming connection
+	int m_listen;
 };
 
 }
