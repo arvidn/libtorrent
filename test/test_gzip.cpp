@@ -54,8 +54,8 @@ TORRENT_TEST(zeroes)
 	}
 	TEST_CHECK(!ec);
 	TEST_CHECK(!inflated.empty());
-	for (char const c : inflated)
-		TEST_EQUAL(c, 0);
+	for (std::size_t i = 0; i < inflated.size(); ++i)
+		TEST_EQUAL(inflated[i], 0);
 }
 
 TORRENT_TEST(corrupt)
