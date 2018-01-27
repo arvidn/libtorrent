@@ -186,11 +186,6 @@ TORRENT_TEST(counters)
 	dht::dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
-	sha1_hash const n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
-	sha1_hash const n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
-	sha1_hash const n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
-	sha1_hash const n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
-
 	TEST_EQUAL(s->counters().peers, 0);
 	TEST_EQUAL(s->counters().torrents, 0);
 
@@ -279,7 +274,7 @@ TORRENT_TEST(peer_limit)
 
 	for (int i = 0; i < 200; ++i)
 	{
-		s->announce_peer(n1, tcp::endpoint(rand_v4(), lt::random(0xffff))
+		s->announce_peer(n1, {rand_v4(), std::uint16_t(lt::random(0xffff))}
 			, "torrent_name", false);
 		dht_storage_counters cnt = s->counters();
 		TEST_CHECK(cnt.peers <= 42);
@@ -296,7 +291,7 @@ TORRENT_TEST(torrent_limit)
 
 	for (int i = 0; i < 200; ++i)
 	{
-		s->announce_peer(rand_hash(), tcp::endpoint(rand_v4(), lt::random(0xffff))
+		s->announce_peer(rand_hash(), {rand_v4(), std::uint16_t(lt::random(0xffff))}
 			, "", false);
 		dht_storage_counters cnt = s->counters();
 		TEST_CHECK(cnt.torrents <= 42);
@@ -395,14 +390,14 @@ TORRENT_TEST(update_node_ids)
 	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s != nullptr);
 
-	node_id const n1 = to_hash("0000000000000000000000000000000000000200");
-	node_id const n2 = to_hash("0000000000000000000000000000000000000400");
-	node_id const n3 = to_hash("0000000000000000000000000000000000000800");
+	node_id const nid1 = to_hash("0000000000000000000000000000000000000200");
+	node_id const nid2 = to_hash("0000000000000000000000000000000000000400");
+	node_id const nid3 = to_hash("0000000000000000000000000000000000000800");
 
 	std::vector<node_id> node_ids;
-	node_ids.push_back(n1);
-	node_ids.push_back(n2);
-	node_ids.push_back(n3);
+	node_ids.push_back(nid1);
+	node_ids.push_back(nid2);
+	node_ids.push_back(nid3);
 	s->update_node_ids(node_ids);
 
 	entry item;

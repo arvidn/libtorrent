@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/path.hpp"
 
+namespace {
+
 static const int file_sizes[] =
 { 0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
 	,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
@@ -300,6 +302,8 @@ void test_checking(int flags = read_only_files)
 		, ec.value(), ec.message().c_str());
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(checking)
 {
 	test_checking();
@@ -329,4 +333,3 @@ TORRENT_TEST(force_recheck)
 {
 	test_checking(force_recheck);
 }
-

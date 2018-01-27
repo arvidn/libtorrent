@@ -452,10 +452,10 @@ void test_optimize(std::vector<int> file_sizes
 	file_index_t idx{0};
 	int num_pad_files = 0;
 	std::cout << "{ ";
-	for (file_index_t i{0}; i != fs.end_file(); ++i)
+	for (file_index_t idx{0}; idx != fs.end_file(); ++idx)
 	{
-		if (fs.file_flags(i) & file_storage::flag_pad_file) std::cout << "*";
-		std::cout << fs.file_size(i) << " ";
+		if (fs.file_flags(idx) & file_storage::flag_pad_file) std::cout << "*";
+		std::cout << fs.file_size(idx) << " ";
 	}
 	std::cout << "}\n";
 	for (int expect : expected_order)

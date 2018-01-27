@@ -47,7 +47,7 @@ struct log_t : lt::dht::dht_logger
 {
 	bool should_log(module_t) const override { return true; }
 
-	void log(dht_logger::module_t m, char const* fmt, ...)
+	void log(dht_logger::module_t, char const* fmt, ...)
 		override TORRENT_FORMAT(3, 4)
 	{
 		va_list v;

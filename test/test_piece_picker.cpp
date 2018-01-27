@@ -258,9 +258,9 @@ bool verify_availability(std::shared_ptr<piece_picker> const& p, char const* a)
 
 void print_pick(std::vector<piece_block> const& picked)
 {
-	for (int i = 0; i < int(picked.size()); ++i)
+	for (auto const& p : picked)
 	{
-		std::cout << "(" << picked[i].piece_index << ", " << picked[i].block_index << ") ";
+		std::cout << "(" << p.piece_index << ", " << p.block_index << ") ";
 	}
 	std::cout << std::endl;
 }
@@ -1778,10 +1778,9 @@ TORRENT_TEST(mark_as_canceled)
 
 TORRENT_TEST(get_download_queue)
 {
-	auto p = setup_picker("1111111", "       ", "1101111", "0327000");
+	auto picker = setup_picker("1111111", "       ", "1101111", "0327000");
 
-	std::vector<piece_picker::downloading_piece> downloads
-		= p->get_download_queue();
+	auto const downloads = picker->get_download_queue();
 
 	// the download queue should have piece 1, 2 and 3 in it
 	TEST_EQUAL(downloads.size(), 3);

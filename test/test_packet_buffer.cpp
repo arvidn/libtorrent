@@ -39,6 +39,8 @@ using lt::packet_ptr;
 using lt::packet_pool;
 using lt::packet;
 
+namespace {
+
 packet_ptr make_pkt(packet_pool& pool, int const val)
 {
 	packet_ptr ret = pool.acquire(20);
@@ -51,6 +53,8 @@ int get_val(packet* pkt)
 	TORRENT_ASSERT(pkt != nullptr);
 	return *reinterpret_cast<std::uint8_t*>(pkt->buf);
 }
+
+} // anonymous namespace
 
 // test packet_buffer
 TORRENT_TEST(insert)
@@ -147,7 +151,7 @@ TORRENT_TEST(wrap2)
 	pb.insert(0xfff3, make_pkt(pool, 1));
 	TEST_EQUAL(get_val(pb.at(0xfff3)), 1);
 
-	int new_index = (0xfff3 + pb.capacity()) & 0xffff;
+	auto const new_index = packet_buffer::index_type((0xfff3 + pb.capacity()) & 0xffff);
 	pb.insert(new_index, make_pkt(pool, 2));
 	TEST_EQUAL(get_val(pb.at(new_index)), 2);
 
@@ -168,7 +172,7 @@ TORRENT_TEST(reverse_wrap)
 	pb.insert(0xfff3, make_pkt(pool, 1));
 	TEST_EQUAL(get_val(pb.at(0xfff3)), 1);
 
-	int new_index = (0xfff3 + pb.capacity()) & 0xffff;
+	auto const new_index = packet_buffer::index_type((0xfff3 + pb.capacity()) & 0xffff);
 	pb.insert(new_index, make_pkt(pool, 2));
 	TEST_EQUAL(get_val(pb.at(new_index)), 2);
 
@@ -179,4 +183,3 @@ TORRENT_TEST(reverse_wrap)
 
 	pb.insert(0xffff, make_pkt(pool, 3));
 }
-

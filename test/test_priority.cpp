@@ -138,7 +138,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		, true, false, true, "_priority", 8 * 1024, &t, false, nullptr);
 
 	int const num_pieces = tor2.torrent_file()->num_pieces();
-	aux::vector<download_priority_t, piece_index_t> priorities(num_pieces, 1_pri);
+	aux::vector<download_priority_t, piece_index_t> priorities(std::size_t(num_pieces), 1_pri);
 	// set half of the pieces to priority 0
 	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0_pri);
 	tor2.prioritize_pieces(priorities);

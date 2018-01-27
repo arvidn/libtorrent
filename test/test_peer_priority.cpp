@@ -40,12 +40,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
 std::uint32_t hash_buffer(char const* buf, int len)
 {
 	boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 	crc.process_block(buf, buf + len);
 	return crc.checksum();
 }
+} // anonymous namespace
 
 TORRENT_TEST(peer_priority)
 {
@@ -93,4 +95,3 @@ TORRENT_TEST(peer_priority)
 			"\xff\xff\xff\xff\x55\x55\x55\x55\x00\x00\x00\x00\x00\x00\x00\x01", 32));
 	}
 }
-

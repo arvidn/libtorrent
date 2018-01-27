@@ -53,9 +53,9 @@ TORRENT_TEST(zeroes)
 		std::printf("failed to unzip: %s\n", ec.message().c_str());
 	}
 	TEST_CHECK(!ec);
-	TEST_CHECK(inflated.size() > 0);
-	for (int i = 0; i < int(inflated.size()); ++i)
-		TEST_EQUAL(inflated[i], 0);
+	TEST_CHECK(!inflated.empty());
+	for (char const c : inflated)
+		TEST_EQUAL(c, 0);
 }
 
 TORRENT_TEST(corrupt)
@@ -98,4 +98,3 @@ TORRENT_TEST(empty)
 	inflate_gzip(empty, inflated, 1000000, ec);
 	TEST_CHECK(ec);
 }
-

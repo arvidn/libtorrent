@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 std::tuple<int, int, bool> feed_bytes(http_parser& parser, string_view str)
 {
 	std::tuple<int, int, bool> ret(0, 0, false);
@@ -52,7 +54,7 @@ std::tuple<int, int, bool> feed_bytes(http_parser& parser, string_view str)
 		{
 			int const chunk_size = std::min(chunks, int(str.size() - recv_buf.size()));
 			if (chunk_size == 0) break;
-			recv_buf = str.substr(0, recv_buf.size() + chunk_size);
+			recv_buf = str.substr(0, recv_buf.size() + std::size_t(chunk_size));
 			int payload, protocol;
 			bool error = false;
 			std::tie(payload, protocol) = parser.incoming(recv_buf, error);
@@ -71,6 +73,8 @@ std::tuple<int, int, bool> feed_bytes(http_parser& parser, string_view str)
 	}
 	return ret;
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(http_parser)
 {
@@ -681,4 +685,3 @@ TORRENT_TEST(invalid_chunk_3)
 	http_parser parser;
 	feed_bytes(parser, {reinterpret_cast<char const*>(invalid_chunked_input), sizeof(invalid_chunked_input)});
 }
-
