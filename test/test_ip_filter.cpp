@@ -63,7 +63,6 @@ bool compare(ip_range<Addr> const& lhs
 template <class T>
 void test_rules_invariant(std::vector<ip_range<T>> const& r, ip_filter const& f)
 {
-	typedef typename std::vector<ip_range<T>>::const_iterator iterator;
 	TEST_CHECK(!r.empty());
 	if (r.empty()) return;
 
@@ -79,7 +78,7 @@ void test_rules_invariant(std::vector<ip_range<T>> const& r, ip_filter const& f)
 		TEST_CHECK(r.back().last == addr("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
 	}
 
-	for (iterator i(r.begin()), j(std::next(r.begin()))
+	for (auto i(r.begin()), j(std::next(r.begin()))
 		, end(r.end()); j != end; ++j, ++i)
 	{
 		TEST_EQUAL(f.access(i->last), i->flags);
@@ -90,7 +89,6 @@ void test_rules_invariant(std::vector<ip_range<T>> const& r, ip_filter const& f)
 
 TORRENT_TEST(session_get_ip_filter)
 {
-	using namespace lt;
 	session ses(settings());
 	ip_filter const& ipf = ses.get_ip_filter();
 #if TORRENT_USE_IPV6
@@ -102,8 +100,6 @@ TORRENT_TEST(session_get_ip_filter)
 
 TORRENT_TEST(ip_filter)
 {
-	using namespace lt;
-
 	std::vector<ip_range<address_v4>> range;
 	error_code ec;
 
@@ -268,19 +264,18 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("2::1"), addr("3::"), ip_filter::blocked);
 		f.add_rule(addr("1::"), addr("2::"), ip_filter::blocked);
 
-		std::vector<ip_range<address_v6>> range;
-		range = std::get<1>(f.export_filter());
-		test_rules_invariant(range, f);
+		std::vector<ip_range<address_v6>> rangev6;
+		rangev6 = std::get<1>(f.export_filter());
+		test_rules_invariant(rangev6, f);
 
-		TEST_EQUAL(range.size(), 3);
-		TEST_CHECK(std::equal(range.begin(), range.end(), expected2, &compare<address_v6>));
-
+		TEST_EQUAL(rangev6.size(), 3);
+		TEST_CHECK(std::equal(rangev6.begin(), rangev6.end(), expected2, &compare<address_v6>));
 	}
 #endif
 
 	port_filter pf;
 
-	// default contructed port filter should allow any port
+	// default constructed port filter should allow any port
 	TEST_CHECK(pf.access(0) == 0);
 	TEST_CHECK(pf.access(65535) == 0);
 	TEST_CHECK(pf.access(6881) == 0);

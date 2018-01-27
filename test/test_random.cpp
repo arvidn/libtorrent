@@ -44,7 +44,7 @@ TORRENT_TEST(random)
 	for (int byte = 0; byte < 4; ++byte)
 	{
 		int buckets[256];
-		memset(buckets, 0, sizeof(buckets));
+		std::memset(buckets, 0, sizeof(buckets));
 
 		for (int i = 0; i < repetitions; ++i)
 		{
@@ -57,9 +57,8 @@ TORRENT_TEST(random)
 		{
 			const int expected = repetitions / 256;
 			// expect each bucket to be within 15% of the expected value
-			std::printf("%d: %f\n", i, float(buckets[i] - expected) * 100.f / expected);
+			std::printf("%d: %f\n", i, double(buckets[i] - expected) * 100.0 / expected);
 			TEST_CHECK(abs(buckets[i] - expected) < expected / 6);
 		}
 	}
 }
-

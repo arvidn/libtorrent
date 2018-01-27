@@ -82,34 +82,34 @@ TORRENT_TEST(peer_class)
 	pool.at(id2)->set_upload_limit(1000);
 	pool.at(id2)->set_download_limit(2000);
 
-	peer_class_info i;
-	pool.at(id2)->get_info(&i);
-	TEST_EQUAL(i.upload_limit, 1000);
-	TEST_EQUAL(i.download_limit, 2000);
+	peer_class_info cls;
+	pool.at(id2)->get_info(&cls);
+	TEST_EQUAL(cls.upload_limit, 1000);
+	TEST_EQUAL(cls.download_limit, 2000);
 
 	// test peer_class_type_filter
 	peer_class_type_filter filter;
 
 	for (int i = 0; i < 5; ++i)
 	{
-		TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)i
+		TEST_CHECK(filter.apply(static_cast<lt::peer_class_type_filter::socket_type_t>(i)
 			, 0xffffffff) == 0xffffffff);
 	}
 
-	filter.disallow((lt::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
-	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0
+	filter.disallow(static_cast<lt::peer_class_type_filter::socket_type_t>(0), peer_class_t{0});
+	TEST_CHECK(filter.apply(static_cast<lt::peer_class_type_filter::socket_type_t>(0)
 		, 0xffffffff) == 0xfffffffe);
-	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)1
+	TEST_CHECK(filter.apply(static_cast<lt::peer_class_type_filter::socket_type_t>(1)
 		, 0xffffffff) == 0xffffffff);
-	filter.allow((lt::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
-	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0
+	filter.allow(static_cast<lt::peer_class_type_filter::socket_type_t>(0), peer_class_t{0});
+	TEST_CHECK(filter.apply(static_cast<lt::peer_class_type_filter::socket_type_t>(0)
 		, 0xffffffff) == 0xffffffff);
 
-	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0, 0) == 0);
-	filter.add((lt::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
-	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0, 0) == 1);
-	filter.remove((lt::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
-	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0, 0) == 0);
+	TEST_CHECK(filter.apply(static_cast<lt::peer_class_type_filter::socket_type_t>(0), 0) == 0);
+	filter.add(static_cast<lt::peer_class_type_filter::socket_type_t>(0), peer_class_t{0});
+	TEST_CHECK(filter.apply(static_cast<lt::peer_class_type_filter::socket_type_t>(0), 0) == 1);
+	filter.remove(static_cast<lt::peer_class_type_filter::socket_type_t>(0), peer_class_t{0});
+	TEST_CHECK(filter.apply(static_cast<lt::peer_class_type_filter::socket_type_t>(0), 0) == 0);
 
 	pool.decref(id2);
 	pool.decref(id1);
@@ -150,4 +150,3 @@ TORRENT_TEST(session_peer_class_type_filter)
 
 	TEST_CHECK(ses.get_peer_class_type_filter() == f);
 }
-

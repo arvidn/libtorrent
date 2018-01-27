@@ -136,13 +136,14 @@ TORRENT_TEST(buffer_move_assign)
 	TEST_CHECK(b2.size() >= 50);
 }
 
+namespace {
 // -- test chained buffer --
 
 std::set<char*> buffer_list;
 
 void free_buffer(char* m)
 {
-	std::set<char*>::iterator i = buffer_list.find(m);
+	auto const i = buffer_list.find(m);
 	TEST_CHECK(i != buffer_list.end());
 
 	buffer_list.erase(i);
@@ -201,6 +202,8 @@ private:
 	char* m_buf;
 	std::size_t m_size;
 };
+
+} // anonymous namespace
 
 TORRENT_TEST(chained_buffer)
 {
@@ -311,4 +314,3 @@ TORRENT_TEST(chained_buffer)
 	}
 	TEST_CHECK(buffer_list.empty());
 }
-

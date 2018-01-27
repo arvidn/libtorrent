@@ -1249,7 +1249,6 @@ namespace {
 	}
 
 	span<char const> const empty_salt;
-}
 
 // TODO: 3 split this up into smaller tests
 void test_put(address(&rand_addr)())
@@ -1547,6 +1546,8 @@ void test_put(address(&rand_addr)())
 	}
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(put_v4)
 {
 	test_put(rand_v4);
@@ -1784,6 +1785,8 @@ TORRENT_TEST(routing_table_v6)
 }
 #endif
 
+namespace {
+
 void test_bootstrap(address(&rand_addr)())
 {
 	dht_test_setup t(udp::endpoint(rand_addr(), 20));
@@ -1872,6 +1875,8 @@ void test_bootstrap(address(&rand_addr)())
 	TEST_EQUAL(t.dht_node.num_global_nodes(), 3);
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(bootstrap_v4)
 {
 	test_bootstrap(rand_v4);
@@ -1886,6 +1891,8 @@ TORRENT_TEST(bootstrap_v6)
 #endif
 
 #if TORRENT_USE_IPV6
+namespace {
+
 void test_bootstrap_want(address(&rand_addr)())
 {
 	dht_test_setup t(udp::endpoint(rand_addr(), 20));
@@ -1942,6 +1949,8 @@ void test_bootstrap_want(address(&rand_addr)())
 		TEST_ERROR(t.error_string);
 	}
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(bootstrap_want_v4)
 {
@@ -2039,6 +2048,8 @@ TORRENT_TEST(short_nodes_v6)
 		test_short_nodes(rand_v6);
 }
 #endif
+
+namespace {
 
 void test_get_peers(address(&rand_addr)())
 {
@@ -2159,6 +2170,8 @@ void test_get_peers(address(&rand_addr)())
 	}
 	g_got_peers.clear();
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(get_peers_v4)
 {
@@ -3067,7 +3080,7 @@ TORRENT_TEST(routing_table_set_id)
 	// table would get unbalanced and intermediate nodes would be dropped
 	std::vector<std::uint8_t> node_id_prefix;
 	node_id_prefix.reserve(256);
-	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i);
+	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i & 0xff);
 	aux::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 	for (int i = 0; i < 256; ++i)
@@ -3402,7 +3415,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	rpc.incoming(m, &nid);
 
 	bool found = false;
-	for (int i = 0; i < int(observer.m_log.size()); ++i)
+	for (std::size_t i = 0; i < observer.m_log.size(); ++i)
 	{
 		if (observer.m_log[i].find("reply with") != std::string::npos
 			&& observer.m_log[i].find("(malformed)") != std::string::npos

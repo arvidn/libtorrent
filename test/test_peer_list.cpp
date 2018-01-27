@@ -98,7 +98,7 @@ struct mock_peer_connection
 	bool m_disconnect_called;
 	mock_torrent& m_torrent;
 
-	void get_peer_info(peer_info& p) const override {}
+	void get_peer_info(peer_info&) const override {}
 	tcp::endpoint const& remote() const override { return m_remote; }
 	tcp::endpoint local_endpoint() const override { return m_local; }
 	void disconnect(error_code const& ec
@@ -121,7 +121,7 @@ struct mock_torrent
 	explicit mock_torrent(torrent_state* st) : m_p(nullptr), m_state(st) {}
 	virtual ~mock_torrent() = default;
 
-	bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false)
+	bool connect_to_peer(torrent_peer* peerinfo)
 	{
 		TORRENT_ASSERT(peerinfo->connection == nullptr);
 		if (peerinfo->connection) return false;
@@ -132,16 +132,6 @@ struct mock_torrent
 		m_p->set_connection(peerinfo, c.get());
 		return true;
 	}
-
-#ifndef TORRENT_DISABLE_LOGGING
-	void debug_log(const char* fmt, ...) const
-	{
-		va_list v;
-		va_start(v, fmt);
-		vprintf(fmt, v);
-		va_end(v);
-	}
-#endif
 
 	peer_list* m_p;
 	torrent_state* m_state;
