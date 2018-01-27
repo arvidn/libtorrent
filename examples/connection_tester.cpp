@@ -739,6 +739,8 @@ void print_usage()
 		"    options for this command:\n"
 		"    -s <size>          the size of the torrent in megabytes\n"
 		"    -n <num-files>     the number of files in the test torrent\n"
+		"    -a                 introduce a lot of pad-files\n"
+		"                       (pad files are not supported for gen-data or upload)\n"
 		"    -t <file>          the file to save the .torrent file to\n"
 		"    -T <name>          the name of the torrent (and directory\n"
 		"                       its files are saved in)\n\n"
@@ -794,13 +796,12 @@ void hasher_thread(lt::create_torrent* t, piece_index_t const start_piece
 }
 
 // size is in megabytes
-void generate_torrent(std::vector<char>& buf, int size, int num_files
-	, char const* torrent_name)
+void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
+	, char const* torrent_name, bool with_padding)
 {
 	file_storage fs;
 	// 1 MiB piece size
 	const int piece_size = 1024 * 1024;
-	const int num_pieces = size;
 	const std::int64_t total_size = std::int64_t(piece_size) * num_pieces;
 
 	std::int64_t s = total_size;
@@ -816,7 +817,9 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 		file_size += 200;
 	}
 
-	lt::create_torrent t(fs, piece_size);
+	lt::create_torrent t(fs, piece_size, with_padding ? 100 : -1);
+
+	num_pieces = t.num_pieces();
 
 	int const num_threads = std::thread::hardware_concurrency()
 		? std::thread::hardware_concurrency() : 4;
@@ -906,6 +909,7 @@ int main(int argc, char* argv[])
 	char const* destination_ip = "127.0.0.1";
 	int destination_port = 6881;
 	int churn = 0;
+	bool gen_pad_files = false;
 
 	argv += 2;
 	argc -= 2;
@@ -926,6 +930,7 @@ int main(int argc, char* argv[])
 		switch (optname[1])
 		{
 			case 'C': test_corruption = true; continue;
+			case 'a': gen_pad_files = true; continue;
 		}
 
 		if (argc == 0)
@@ -960,7 +965,7 @@ int main(int argc, char* argv[])
 		name = name.substr(0, name.find_last_of('.'));
 		std::printf("generating torrent: %s\n", name.c_str());
 		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1
-			, name.c_str());
+			, name.c_str(), gen_pad_files);
 
 		FILE* output = stdout;
 		if ("-"_sv != torrent_file)

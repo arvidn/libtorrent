@@ -31,7 +31,7 @@ install:
 - cd %ROOT_DIRECTORY%
 - if %compiler% == msvc-14.0 if defined crypto if not exist openssl-1.0.1p-vs2015.7z (
     echo downloading openssl-2015
-    & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
+    & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
   )
 - if %compiler% == msvc-14.0 if defined crypto (
     echo extracting openssl-2015

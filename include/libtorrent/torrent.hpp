@@ -299,8 +299,8 @@ namespace libtorrent {
 		// m_paused is also true.
 		bool m_graceful_pause_mode:1;
 
-		// state subscription. If set, a pointer to this torrent
-		// will be added to the m_state_updates set in session_impl
+		// state subscription. If set, a pointer to this torrent will be added
+		// to the session_impl::m_torrent_lists[torrent_state_updates]
 		// whenever this torrent's state changes (any state).
 		bool m_state_subscription:1;
 
@@ -1610,15 +1610,9 @@ namespace libtorrent {
 		// is optional and may be 0xffffff
 		std::uint32_t m_incomplete:24;
 
-
 		// true when the torrent should announce to
 		// the DHT
 		bool m_announce_to_dht:1;
-
-		// in state_updates list. When adding a torrent to the
-		// session_impl's m_state_update list, this bit is set
-		// to never add the same torrent twice
-		bool m_in_state_updates:1;
 
 		// these represent whether or not this torrent is counted
 		// in the total counters of active seeds and downloads
