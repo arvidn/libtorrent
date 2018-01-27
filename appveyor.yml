@@ -39,7 +39,7 @@ install:
 - if %compiler% == msvc-12.0 (
     if not exist openssl-1.0.1p-vs2013.7z (
       echo downloading openssl-2013
-      & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2013.7z"
+      & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2013.7z"
     )
   )
 - if %compiler% == msvc-12.0 (
@@ -54,7 +54,7 @@ install:
 - if %compiler% == msvc-10.0 (
     if not exist openssl-1.0.1p-vs2010.7z (
       echo downloading openssl-2010
-      & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2010.7z"
+      & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2010.7z"
     )
   )
 - if %compiler% == msvc-10.0 (
@@ -69,7 +69,7 @@ install:
 - if %compiler% == msvc-14.0 (
     if not exist openssl-1.0.1p-vs2015.7z (
       echo downloading openssl-2015
-      & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
+      & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
     )
   )
 - if %compiler% == msvc-14.0 (
