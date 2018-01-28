@@ -48,23 +48,21 @@ std::string torrent_state(lt::torrent_status const& s)
 	if (s.errc) return s.errc.message();
 	std::string ret;
 	if ((s.flags & lt::torrent_flags::paused) &&
-		!(s.flags & lt::torrent_flags::auto_managed))
-	{
-		ret += "paused";
-	}
-	else if ((s.flags & lt::torrent_flags::paused) &&
 		(s.flags & lt::torrent_flags::auto_managed))
 	{
-		ret += "queued";
+		ret += "queued ";
 	}
-	else if ((s.flags & lt::torrent_flags::upload_mode)) ret += "upload mode";
+
+	if ((s.flags & lt::torrent_flags::upload_mode)) ret += "upload mode";
 	else ret += state_str[s.state];
-	if (!(s.flags & lt::torrent_flags::paused) &&
-		!(s.flags & lt::torrent_flags::auto_managed))
+
+	if (!(s.flags & lt::torrent_flags::auto_managed))
 	{
-		ret += " [F]";
+		if (s.flags & lt::torrent_flags::paused)
+			ret += " [P]";
+		else
+			ret += " [F]";
 	}
-	ret += state_str[s.state];
 	char buf[10];
 	std::snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.f);
 	ret += buf;
