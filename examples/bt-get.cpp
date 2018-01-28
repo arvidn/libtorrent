@@ -46,7 +46,10 @@ int main(int argc, char const* argv[]) try
 		std::cerr << "usage: " << argv[0] << " <magnet-url>" << std::endl;
 		return 1;
 	}
-	lt::session ses;
+	lt::settings_pack p;
+	p.set_int(lt::settings_pack::alert_mask, lt::alert::status_notification
+		| lt::alert::error_notification);
+	lt::session ses(p);
 
 	lt::add_torrent_params atp = lt::parse_magnet_uri(argv[1]);
 	atp.save_path = "."; // save in current dir

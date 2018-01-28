@@ -760,7 +760,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	namespace {
 
-#if !TORRENT_USE_PREADV
 	void gather_copy(span<iovec_t const> bufs, char* dst)
 	{
 		std::size_t offset = 0;
@@ -808,8 +807,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		bufs = span<iovec_t const>(tmp);
 		return true;
 	}
-#else
 
+#if TORRENT_USE_PREADV
 namespace {
 	int bufs_size(span<::iovec> bufs)
 	{
@@ -862,7 +861,7 @@ namespace {
 			// just need to issue the read/write operation again. In either case,
 			// punt that to the upper layer, as reissuing the operations is
 			// complicated here
-			const int expected_len = bufs_size(nbufs);
+			int const expected_len = bufs_size(nbufs);
 			if (tmp_ret < expected_len) break;
 
 			vec = vec.subspan(nbufs.size());
@@ -952,11 +951,6 @@ namespace {
 		TORRENT_ASSERT(!bufs.empty());
 		TORRENT_ASSERT(is_open());
 
-#if TORRENT_USE_PREADV
-		TORRENT_UNUSED(flags);
-		std::int64_t ret = iov(&::preadv, native_handle(), file_offset, bufs, ec);
-#else
-
 		// there's no point in coalescing single buffer writes
 		if (bufs.size() == 1)
 		{
@@ -972,7 +966,9 @@ namespace {
 				flags &= ~open_mode::coalesce_buffers;
 		}
 
-#if TORRENT_USE_PREAD
+#if TORRENT_USE_PREADV
+		std::int64_t ret = iov(&::preadv, native_handle(), file_offset, bufs, ec);
+#elif TORRENT_USE_PREAD
 		std::int64_t ret = iov(&::pread, native_handle(), file_offset, tmp_bufs, ec);
 #else
 		std::int64_t ret = iov(&::read, native_handle(), file_offset, tmp_bufs, ec);
@@ -982,7 +978,6 @@ namespace {
 			coalesce_read_buffers_end(bufs
 				, tmp.data(), !ec);
 
-#endif
 		return ret;
 	}
 
@@ -1008,12 +1003,6 @@ namespace {
 
 		ec.clear();
 
-#if TORRENT_USE_PREADV
-		TORRENT_UNUSED(flags);
-
-		std::int64_t ret = iov(&::pwritev, native_handle(), file_offset, bufs, ec);
-#else
-
 		// there's no point in coalescing single buffer writes
 		if (bufs.size() == 1)
 		{
@@ -1028,7 +1017,9 @@ namespace {
 				flags &= ~open_mode::coalesce_buffers;
 		}
 
-#if TORRENT_USE_PREAD
+#if TORRENT_USE_PREADV
+		std::int64_t ret = iov(&::pwritev, native_handle(), file_offset, bufs, ec);
+#elif TORRENT_USE_PREAD
 		std::int64_t ret = iov(&::pwrite, native_handle(), file_offset, bufs, ec);
 #else
 		std::int64_t ret = iov(&::write, native_handle(), file_offset, bufs, ec);
@@ -1037,7 +1028,6 @@ namespace {
 		if (flags & open_mode::coalesce_buffers)
 			delete[] tmp.data();
 
-#endif
 #if TORRENT_USE_FDATASYNC \
 	&& !defined F_NOCACHE && \
 	!defined DIRECTIO_ON
