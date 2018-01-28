@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/disk_interface.hpp"
+#include "libtorrent/piece_picker.hpp" // for picker_options_t
 
 #include <ctime>
 #include <algorithm>
@@ -88,8 +89,8 @@ namespace libtorrent {
 
 namespace aux {
 
-		struct session_interface;
-	}
+	struct session_interface;
+}
 
 	struct pending_block
 	{
@@ -322,8 +323,7 @@ namespace aux {
 
 		void on_metadata_impl();
 
-		void picker_options(int o)
-		{ m_picker_options = o; }
+		void picker_options(picker_options_t o) { m_picker_options = o; }
 
 		int prefer_contiguous_blocks() const
 		{
@@ -333,7 +333,7 @@ namespace aux {
 
 		bool on_parole() const;
 
-		int picker_options() const;
+		picker_options_t picker_options() const;
 
 		void prefer_contiguous_blocks(int num)
 		{ m_prefer_contiguous_blocks = num; }
@@ -1023,7 +1023,7 @@ namespace aux {
 		// be augmented with flags controlled by other settings
 		// like sequential download etc. These are here to
 		// let plugins control flags that should always be set
-		int m_picker_options = 0;
+		picker_options_t m_picker_options{};
 
 		// the number of invalid piece-requests
 		// we have got from this peer. If the request

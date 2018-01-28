@@ -69,6 +69,14 @@ namespace libtorrent {
 
 	constexpr prio_index_t piece_picker::piece_pos::we_have_index;
 
+	constexpr picker_options_t piece_picker::rarest_first;
+	constexpr picker_options_t piece_picker::reverse;
+	constexpr picker_options_t piece_picker::on_parole;
+	constexpr picker_options_t piece_picker::prioritize_partials;
+	constexpr picker_options_t piece_picker::sequential;
+	constexpr picker_options_t piece_picker::time_critical_mode;
+	constexpr picker_options_t piece_picker::align_expanded_pieces;
+
 	piece_picker::piece_picker(int const blocks_per_piece
 		, int const blocks_in_last_piece, int const total_num_pieces)
 		: m_priority_boundaries(1, m_pieces.end_index())
@@ -1838,7 +1846,7 @@ namespace {
 	picker_flags_t piece_picker::pick_pieces(typed_bitfield<piece_index_t> const& pieces
 		, std::vector<piece_block>& interesting_blocks, int num_blocks
 		, int prefer_contiguous_blocks, torrent_peer* peer
-		, int options, std::vector<piece_index_t> const& suggested_pieces
+		, picker_options_t options, std::vector<piece_index_t> const& suggested_pieces
 		, int num_peers
 		, counters& pc
 		) const
@@ -2007,7 +2015,7 @@ namespace {
 			}
 
 			// in time critical mode, only pick high priority pieces
-			if ((options & time_critical_mode) == 0)
+			if (!(options & time_critical_mode))
 			{
 				if (options & reverse)
 				{
@@ -2056,7 +2064,7 @@ namespace {
 			// pieces. This is why reverse mode is disabled when we're in
 			// time-critical mode, because all high priority pieces are at the
 			// front of the list
-			if ((options & reverse) && (options & time_critical_mode) == 0)
+			if ((options & reverse) && !(options & time_critical_mode))
 			{
 				for (int i = int(m_priority_boundaries.size()) - 1; i >= 0; --i)
 				{
@@ -2517,7 +2525,7 @@ get_out:
 		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
 		, torrent_peer* peer, std::vector<piece_index_t> const& ignore
-		, int options) const
+		, picker_options_t const options) const
 	{
 		TORRENT_ASSERT(is_piece_free(piece, pieces));
 
@@ -2588,7 +2596,7 @@ get_out:
 		, std::vector<piece_block>& backup_blocks
 		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
-		, torrent_peer* peer, int options) const
+		, torrent_peer* peer, picker_options_t const options) const
 	{
 		if (!pieces[dp.index]) return num_blocks;
 		TORRENT_ASSERT(!m_piece_map[dp.index].filtered());
@@ -2628,7 +2636,7 @@ get_out:
 		// to primarily request from a piece all by ourselves.
 		if (prefer_contiguous_blocks > contiguous_blocks
 			&& !exclusive_active
-			&& (options & on_parole) == 0)
+			&& !(options & on_parole))
 		{
 			if (int(backup_blocks2.size()) >= num_blocks)
 				return num_blocks;
@@ -2680,7 +2688,7 @@ get_out:
 
 	std::pair<piece_index_t, piece_index_t>
 	piece_picker::expand_piece(piece_index_t const piece, int const contiguous_blocks
-		, typed_bitfield<piece_index_t> const& have, int const options) const
+		, typed_bitfield<piece_index_t> const& have, picker_options_t const options) const
 	{
 		if (contiguous_blocks == 0) return std::make_pair(piece, next(piece));
 
@@ -2935,7 +2943,7 @@ get_out:
 	// options may be 0 or piece_picker::reverse
 	// returns false if the block could not be marked as downloading
 	bool piece_picker::mark_as_downloading(piece_block const block
-		, torrent_peer* peer, int const options)
+		, torrent_peer* peer, picker_options_t const options)
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "mark_as_downloading( {"
@@ -3022,7 +3030,7 @@ get_out:
 
 			// if we make a non-reverse request from a reversed piece,
 			// undo the reverse state
-			if ((options & reverse) == 0 && p.reverse())
+			if (!(options & reverse) && p.reverse())
 			{
 				int prio = p.priority(this);
 				// make it non-reverse
