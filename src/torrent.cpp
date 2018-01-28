@@ -3768,11 +3768,6 @@ namespace {
 		if (want_peers()) m_ses.prioritize_connections(shared_from_this());
 	}
 
-	time_point torrent::next_announce() const
-	{
-		return m_waiting_tracker?m_tracker_timer.expires_at():min_time();
-	}
-
 	// this is the entry point for the client to force a re-announce. It's
 	// considered a client-initiated announce (as opposed to the regular ones,
 	// issued by libtorrent)
@@ -12208,10 +12203,10 @@ namespace {
 		st->download_payload_rate = m_stat.download_payload_rate();
 		st->upload_payload_rate = m_stat.upload_payload_rate();
 
-		if (m_waiting_tracker && !is_paused())
-			st->next_announce = next_announce() - now;
-		else
+		if (is_paused() || m_tracker_timer.expires_at() < now)
 			st->next_announce = seconds(0);
+		else
+			st->next_announce = m_tracker_timer.expires_at() - now;
 
 		if (st->next_announce.count() < 0)
 			st->next_announce = seconds(0);

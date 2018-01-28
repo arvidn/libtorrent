@@ -730,10 +730,6 @@ namespace libtorrent
 		// immediately
 		void do_connect_boost();
 
-		// returns the absolute time when the next tracker
-		// announce will take place.
-		time_point next_announce() const;
-
 		// forcefully sets next_announce to the current time
 		void force_tracker_request(time_point, int tracker_idx);
 		void scrape_tracker(int idx, bool user_triggered);
