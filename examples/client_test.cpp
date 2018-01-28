@@ -2048,6 +2048,11 @@ int main(int argc, char* argv[])
 
 			if (print_trackers)
 			{
+				snprintf(str, sizeof(str), "next_announce: %4" PRId64 " | current tracker: %s\x1b[K\n"
+					, boost::int64_t(duration_cast<seconds>(s.next_announce).count())
+					, s.current_tracker.c_str());
+				out += str;
+				pos += 1;
 				std::vector<announce_entry> tr = h.trackers();
 				time_point now = clock_type::now();
 				for (std::vector<announce_entry>::iterator i = tr.begin()
