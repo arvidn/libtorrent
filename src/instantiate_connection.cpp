@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 
@@ -40,7 +40,7 @@ namespace libtorrent {
 	// TODO: 2 peer_connection and tracker_connection should probably be flags
 	// TODO: 2 move this function into libtorrent::aux namespace
 	bool instantiate_connection(io_service& ios
-		, aux::proxy_settings const& ps, socket_type& s
+		, aux::proxy_settings const& ps, aux::socket_type& s
 		, void* ssl_context
 		, utp_socket_manager* sm
 		, bool peer_connection

@@ -130,6 +130,7 @@ POSSIBILITY OF SUCH DAMAGE.
 	}
 
 namespace libtorrent {
+namespace aux {
 
 	template <class S>
 	struct socket_type_int_impl
@@ -340,6 +341,7 @@ namespace libtorrent {
 
 	// properly shuts down SSL sockets. holder keeps s alive
 	void async_shutdown(socket_type& s, std::shared_ptr<void> holder);
+}
 }
 
 #endif

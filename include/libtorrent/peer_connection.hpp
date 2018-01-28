@@ -41,13 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
-#include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/chained_buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
-#include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/peer_class.hpp"
@@ -89,7 +87,9 @@ namespace libtorrent {
 
 namespace aux {
 
+	struct socket_type;
 	struct session_interface;
+
 }
 
 	struct pending_block
@@ -143,7 +143,7 @@ namespace aux {
 		disk_interface* disk_thread;
 		io_service* ios;
 		std::weak_ptr<torrent> tor;
-		std::shared_ptr<socket_type> s;
+		std::shared_ptr<aux::socket_type> s;
 		tcp::endpoint endp;
 		torrent_peer* peerinfo;
 	};
@@ -444,7 +444,7 @@ namespace aux {
 
 		void timeout_requests();
 
-		std::shared_ptr<socket_type> get_socket() const { return m_socket; }
+		std::shared_ptr<aux::socket_type> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const override { return m_remote; }
 		tcp::endpoint local_endpoint() const override { return m_local; }
 
@@ -775,7 +775,7 @@ namespace aux {
 		int wanted_transfer(int channel);
 		int request_bandwidth(int channel, int bytes = 0);
 
-		std::shared_ptr<socket_type> m_socket;
+		std::shared_ptr<aux::socket_type> m_socket;
 
 		// the queue of blocks we have requested
 		// from this peer

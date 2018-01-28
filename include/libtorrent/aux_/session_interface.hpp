@@ -78,7 +78,6 @@ namespace libtorrent {
 	struct tracker_request;
 	struct request_callback;
 	struct utp_socket_manager;
-	struct socket_type;
 	struct block_info;
 	struct external_ip;
 	struct torrent_handle;
@@ -104,10 +103,12 @@ namespace dht {
 #endif
 }
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 
 	struct proxy_settings;
 	struct session_settings;
+	struct socket_type;
 
 	struct ip_source_tag;
 	using ip_source_t = flags::bitfield_flag<std::uint8_t, ip_source_tag>;

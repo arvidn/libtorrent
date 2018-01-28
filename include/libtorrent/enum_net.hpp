@@ -53,8 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct socket_type;
-
 	// the interface should not have a netmask
 	struct ip_interface
 	{
