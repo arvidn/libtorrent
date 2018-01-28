@@ -270,7 +270,7 @@ std::vector<piece_block> pick_pieces(std::shared_ptr<piece_picker> const& p
 	, int num_blocks
 	, int prefer_contiguous_blocks
 	, torrent_peer* peer_struct
-	, int options = piece_picker::rarest_first
+	, picker_options_t const options = piece_picker::rarest_first
 	, std::vector<piece_index_t> const& suggested_pieces = empty_vector)
 {
 	std::vector<piece_block> picked;
@@ -284,7 +284,7 @@ std::vector<piece_block> pick_pieces(std::shared_ptr<piece_picker> const& p
 }
 
 piece_index_t test_pick(std::shared_ptr<piece_picker> const& p
-	, int options = piece_picker::rarest_first)
+	, picker_options_t const options = piece_picker::rarest_first)
 {
 	std::vector<piece_block> picked = pick_pieces(p, "*******", 1, 0, nullptr
 		, options, empty_vector);
@@ -292,7 +292,7 @@ piece_index_t test_pick(std::shared_ptr<piece_picker> const& p
 	return picked[0].piece_index;
 }
 
-const int options = piece_picker::rarest_first;
+picker_options_t const options = piece_picker::rarest_first;
 counters pc;
 
 } // anonymous namespace
@@ -715,7 +715,7 @@ TORRENT_TEST(random_picking_downloading_piece)
 	// make sure the random piece picker can still pick partial pieces
 	auto p = setup_picker("1111111", "       ", "", "013700f");
 	auto picked = pick_pieces(p, " ***  *", 1, 0, nullptr
-		, 0, empty_vector);
+		, {}, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(piece_index_t(1), 1)
 		|| picked.front() == piece_block(piece_index_t(2), 2)
@@ -728,7 +728,7 @@ TORRENT_TEST(random_picking_downloading_piece_prefer_contiguous)
 	// even when prefer_contiguous_blocks is set
 	auto p = setup_picker("1111111", "       ", "", "013700f");
 	auto picked = pick_pieces(p, " ***  *", 1, 4, nullptr
-		, 0, empty_vector);
+		, {}, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(piece_index_t(1), 1)
 		|| picked.front() == piece_block(piece_index_t(2), 2)
@@ -1070,13 +1070,13 @@ TORRENT_TEST(random_pick)
 	auto p = setup_picker("1234567", "       ", "1111122", "");
 	std::set<piece_index_t> random_pieces;
 	for (int i = 0; i < 100; ++i)
-		random_pieces.insert(test_pick(p, 0));
+		random_pieces.insert(test_pick(p, {}));
 	TEST_CHECK(random_pieces.size() == 7);
 
 	random_pieces.clear();
 	for (int i = 0; i < 7; ++i)
 	{
-		piece_index_t const piece = test_pick(p, 0);
+		piece_index_t const piece = test_pick(p, {});
 		p->we_have(piece);
 		random_pieces.insert(piece);
 	}

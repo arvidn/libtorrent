@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/typed_span.hpp"
 #include "libtorrent/alert_types.hpp" // for picker_flags_t
 #include "libtorrent/download_priority.hpp"
+#include "libtorrent/flags.hpp"
 
 namespace libtorrent {
 
@@ -71,6 +72,9 @@ namespace libtorrent {
 
 	struct prio_index_tag_t {};
 	using prio_index_t = aux::strong_typedef<int, prio_index_tag_t>;
+
+	struct picker_options_tag;
+	using picker_options_t = flags::bitfield_flag<std::uint16_t, picker_options_tag>;
 
 	class TORRENT_EXTRA_EXPORT piece_picker
 	{
@@ -103,27 +107,30 @@ namespace libtorrent {
 #endif
 		};
 
-		enum options_t
-		{
-			// pick rarest first
-			rarest_first = 1,
-			// pick the most common first, or the last pieces if sequential
-			reverse = 2,
-			// only pick pieces exclusively requested from this peer
-			on_parole = 4,
-			// always pick partial pieces before any other piece
-			prioritize_partials = 8,
-			// pick pieces in sequential order
-			sequential = 16,
-			// treat pieces with priority 6 and below as filtered
-			// to trigger end-game mode until all prio 7 pieces are
-			// completed
-			time_critical_mode = 32,
-			// only expands pieces (when prefer contiguous blocks is set)
-			// within properly aligned ranges, not the largest possible
-			// range of pieces.
-			align_expanded_pieces = 64
-		};
+		// pick rarest first
+		static constexpr picker_options_t rarest_first = 0_bit;
+
+		// pick the most common first, or the last pieces if sequential
+		static constexpr picker_options_t reverse = 1_bit;
+
+		// only pick pieces exclusively requested from this peer
+		static constexpr picker_options_t on_parole = 2_bit;
+
+		// always pick partial pieces before any other piece
+		static constexpr picker_options_t prioritize_partials = 3_bit;
+
+		// pick pieces in sequential order
+		static constexpr picker_options_t sequential = 4_bit;
+
+		// treat pieces with priority 6 and below as filtered
+		// to trigger end-game mode until all prio 7 pieces are
+		// completed
+		static constexpr picker_options_t time_critical_mode = 5_bit;
+
+		// only expands pieces (when prefer contiguous blocks is set)
+		// within properly aligned ranges, not the largest possible
+		// range of pieces.
+		static constexpr picker_options_t align_expanded_pieces = 6_bit;
 
 		struct downloading_piece
 		{
@@ -261,7 +268,7 @@ namespace libtorrent {
 		picker_flags_t pick_pieces(typed_bitfield<piece_index_t> const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
 			, int prefer_contiguous_blocks, torrent_peer* peer
-			, int options, std::vector<piece_index_t> const& suggested_pieces
+			, picker_options_t options, std::vector<piece_index_t> const& suggested_pieces
 			, int num_peers
 			, counters& pc
 			) const;
@@ -278,7 +285,7 @@ namespace libtorrent {
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
 			, torrent_peer* peer, std::vector<piece_index_t> const& ignore
-			, int options) const;
+			, picker_options_t options) const;
 
 		// picks blocks only from downloading pieces
 		int add_blocks_downloading(downloading_piece const& dp
@@ -288,7 +295,7 @@ namespace libtorrent {
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
 			, torrent_peer* peer
-			, int options) const;
+			, picker_options_t options) const;
 
 		// clears the peer pointer in all downloading pieces with this
 		// peer pointer
@@ -311,7 +318,7 @@ namespace libtorrent {
 		// marks this piece-block as queued for downloading
 		// options are flags from options_t.
 		bool mark_as_downloading(piece_block block, torrent_peer* peer
-			, int options = 0);
+			, picker_options_t options = {});
 
 		// returns true if the block was marked as writing,
 		// and false if the block is already finished or writing
@@ -446,7 +453,7 @@ namespace libtorrent {
 		std::pair<piece_index_t, piece_index_t>
 		expand_piece(piece_index_t piece, int whole_pieces
 			, typed_bitfield<piece_index_t> const& have
-			, int options) const;
+			, picker_options_t options) const;
 
 		// only defined when TORRENT_PICKER_LOG is defined, used for debugging
 		// unit tests
