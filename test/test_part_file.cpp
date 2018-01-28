@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cstring>
+#include <array>
+
 #include "test.hpp"
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -49,7 +51,7 @@ TORRENT_TEST(part_file)
 	if (ec) std::printf("remove_all: %s\n", ec.message().c_str());
 
 	int piece_size = 16 * 0x4000;
-	char buf[1024];
+	std::array<char, 1024> buf;
 
 	{
 		create_directory(combine_path(cwd, "partfile_test_dir"), ec);
@@ -86,7 +88,7 @@ TORRENT_TEST(part_file)
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir"), "partfile.parts")));
 		TEST_CHECK(exists(combine_path(combine_path(cwd, "partfile_test_dir2"), "partfile.parts")));
 
-		std::memset(buf, 0, sizeof(buf));
+		buf.fill(0);
 
 		pf.readv(v, piece_index_t(10), 0, ec);
 		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
@@ -99,7 +101,7 @@ TORRENT_TEST(part_file)
 		// load the part file back in
 		part_file pf(combine_path(cwd, "partfile_test_dir2"), "partfile.parts", 100, piece_size);
 
-		std::memset(buf, 0, sizeof(buf));
+		buf.fill(0);
 
 		iovec_t v = buf;
 		pf.readv(v, piece_index_t(10), 0, ec);
