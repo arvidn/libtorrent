@@ -209,7 +209,7 @@ namespace libtorrent {
 
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
 
-			std::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_ios));
+			std::shared_ptr<aux::socket_type> c(new (std::nothrow) aux::socket_type(m_ios));
 			if (!c) return false;
 
 			TORRENT_ASSERT(m_new_connection == -1);

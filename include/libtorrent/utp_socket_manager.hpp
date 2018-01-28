@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <functional>
 
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -64,7 +64,7 @@ namespace libtorrent {
 			, span<char const>
 			, error_code&, udp_send_flags_t)>;
 
-		using incoming_utp_callback_t =  std::function<void(std::shared_ptr<socket_type> const&)>;
+		using incoming_utp_callback_t =  std::function<void(std::shared_ptr<aux::socket_type> const&)>;
 
 		utp_socket_manager(send_fun_t const& send_fun
 			, incoming_utp_callback_t const& cb

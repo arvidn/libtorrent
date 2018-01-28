@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/peer_list.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/session_interface.hpp"

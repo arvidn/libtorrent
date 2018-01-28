@@ -127,8 +127,6 @@ nobase_include_HEADERS = \
   sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
-  socket_type.hpp              \
-  socket_type_fwd.hpp          \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
   stack_allocator.hpp          \
@@ -191,6 +189,7 @@ nobase_include_HEADERS = \
   aux_/proxy_settings.hpp           \
   aux_/session_interface.hpp        \
   aux_/suggest_piece.hpp            \
+  aux_/socket_type.hpp              \
   aux_/storage_piece_set.hpp        \
   aux_/string_ptr.hpp               \
   aux_/time.hpp                     \

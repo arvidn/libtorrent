@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/torrent.hpp"
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_info flags
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/request_blocks.hpp"

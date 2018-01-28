@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_INSTANTIATE_CONNECTION
 #define TORRENT_INSTANTIATE_CONNECTION
 
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 
 namespace libtorrent {
 
@@ -43,11 +43,10 @@ namespace libtorrent {
 	}
 
 	struct utp_socket_manager;
-	struct socket_type;
 
 	// instantiate a socket_type (s) according to the specified criteria
 	TORRENT_EXTRA_EXPORT bool instantiate_connection(io_service& ios
-		, aux::proxy_settings const& ps, socket_type& s
+		, aux::proxy_settings const& ps, aux::socket_type& s
 		, void* ssl_context
 		, utp_socket_manager* sm
 		, bool peer_connection

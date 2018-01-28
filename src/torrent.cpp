@@ -5910,8 +5910,8 @@ namespace libtorrent {
 		if (!web->have_files.empty()
 			&& web->have_files.none_set()) return;
 
-		std::shared_ptr<socket_type> s
-			= std::make_shared<socket_type>(m_ses.get_io_service());
+		std::shared_ptr<aux::socket_type> s
+			= std::make_shared<aux::socket_type>(m_ses.get_io_service());
 		if (!s) return;
 
 		void* userdata = nullptr;
@@ -6488,7 +6488,7 @@ namespace libtorrent {
 			|| !m_ip_filter
 			|| (m_ip_filter->access(peerinfo->address()) & ip_filter::blocked) == 0);
 
-		std::shared_ptr<socket_type> s = std::make_shared<socket_type>(m_ses.get_io_service());
+		std::shared_ptr<aux::socket_type> s = std::make_shared<aux::socket_type>(m_ses.get_io_service());
 
 #if TORRENT_USE_I2P
 		bool const i2p = peerinfo->is_i2p_addr;
@@ -6562,7 +6562,7 @@ namespace libtorrent {
 				// for ssl sockets, set the hostname
 				std::string host_name = aux::to_hex(m_torrent_file->info_hash());
 
-#define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value: \
+#define CASE(t) case aux::socket_type_int_impl<ssl_stream<t>>::value: \
 	s->get<ssl_stream<t>>()->set_host_name(host_name); break;
 
 				switch (s->type())
@@ -6750,10 +6750,10 @@ namespace libtorrent {
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
-			std::shared_ptr<socket_type> s = p->get_socket();
+			std::shared_ptr<aux::socket_type> s = p->get_socket();
 
 			//
-#define SSL(t) socket_type_int_impl<ssl_stream<t>>::value: \
+#define SSL(t) aux::socket_type_int_impl<ssl_stream<t>>::value: \
 			ssl_conn = s->get<ssl_stream<t>>()->native_handle(); \
 			break;
 

@@ -53,8 +53,8 @@ namespace ssl {
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/socket_type.hpp"
 #include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/optional.hpp"
@@ -125,7 +125,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 
 	void close(bool force = false);
 
-	socket_type const& socket() const { return m_sock; }
+	aux::socket_type const& socket() const { return m_sock; }
 
 	std::vector<tcp::endpoint> const& endpoints() const { return m_endpoints; }
 
@@ -160,7 +160,7 @@ private:
 	// endpoint with this index (in m_endpoints) next
 	int m_next_ep;
 
-	socket_type m_sock;
+	aux::socket_type m_sock;
 
 #ifdef TORRENT_USE_OPENSSL
 	ssl::context* m_ssl_ctx;

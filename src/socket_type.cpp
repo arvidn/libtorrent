@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/openssl.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	bool is_ssl(socket_type const& s)
 	{
@@ -396,3 +397,5 @@ namespace libtorrent {
 #endif
 
 }
+}
+

@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/gzip.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_type.hpp" // for async_shutdown
+#include "libtorrent/aux_/socket_type.hpp" // for async_shutdown
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/time.hpp"
