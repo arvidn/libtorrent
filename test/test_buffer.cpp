@@ -90,7 +90,7 @@ TORRENT_TEST(buffer_subscript)
 	TEST_CHECK(b.size() >= 50);
 
 	for (int i = 0; i < int(sizeof(data)/sizeof(data[0])); ++i)
-		TEST_CHECK(b[i] == data[i]);
+		TEST_CHECK(b[std::size_t(i)] == data[i]);
 }
 
 TORRENT_TEST(buffer_subscript2)
@@ -99,10 +99,10 @@ TORRENT_TEST(buffer_subscript2)
 	TEST_CHECK(b.size() >= 1);
 
 	for (int i = 0; i < int(b.size()); ++i)
-		b[i] = i & 0xff;
+		b[std::size_t(i)] = char(i & 0xff);
 
 	for (int i = 0; i < int(b.size()); ++i)
-		TEST_CHECK(b[i] == (i & 0xff));
+		TEST_CHECK(b[std::size_t(i)] == (i & 0xff));
 }
 
 TORRENT_TEST(buffer_move_construct)
@@ -113,7 +113,7 @@ TORRENT_TEST(buffer_move_construct)
 
 	buffer b2(std::move(b1));
 
-	TEST_CHECK(b1.size() == 0);
+	TEST_CHECK(b1.empty());
 
 	TEST_CHECK(std::memcmp(b2.data(), data, 10) == 0);
 	TEST_CHECK(b2.size() >= 50);
@@ -152,7 +152,7 @@ void free_buffer(char* m)
 
 char* allocate_buffer(int size)
 {
-	char* mem = (char*)std::malloc(size);
+	char* mem = static_cast<char*>(std::malloc(std::size_t(size)));
 	buffer_list.insert(mem);
 	return mem;
 }
@@ -174,11 +174,11 @@ int copy_buffers(T const& b, char* target)
 bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
 {
 	if (size == 0) return true;
-	std::vector<char> flat(size);
+	std::vector<char> flat((std::size_t(size)));
 	std::vector<boost::asio::const_buffer> const& iovec2 = b.build_iovec(size);
 	int copied = copy_buffers(iovec2, &flat[0]);
 	TEST_CHECK(copied == size);
-	return std::memcmp(&flat[0], mem, size) == 0;
+	return std::memcmp(&flat[0], mem, std::size_t(size)) == 0;
 }
 
 struct holder
