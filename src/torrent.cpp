@@ -98,6 +98,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp" // for cache_status
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/set_socket_buffer.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -6577,7 +6578,19 @@ namespace libtorrent {
 #endif
 		}
 
-		m_ses.setup_socket_buffers(*s);
+		{
+			error_code err;
+			aux::set_socket_buffer_size(*s, settings(), err);
+#ifndef TORRENT_DISABLE_LOGGING
+			if (err && should_log())
+			{
+				error_code ignore;
+				debug_log("socket buffer size [ %s %d]: (%d) %s"
+					, s->local_endpoint().address().to_string(ignore).c_str()
+					, s->local_endpoint().port(), ignore.value(), ignore.message().c_str());
+			}
+#endif
+		}
 
 		peer_connection_args pack;
 		pack.ses = &m_ses;
