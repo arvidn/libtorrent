@@ -1663,7 +1663,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	namespace {
 
-#if !TORRENT_USE_PREADV
 	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
 	{
 		std::size_t offset = 0;
@@ -1717,7 +1716,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		num_bufs = 1;
 		return true;
 	}
-#endif // TORRENT_USE_PREADV
 
 	template <class Fun>
 	boost::int64_t iov(Fun f, handle_type fd, boost::int64_t file_offset, file::iovec_t const* bufs_in
@@ -1841,12 +1839,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 
-#if TORRENT_USE_PREADV
-		TORRENT_UNUSED(flags);
-
-		int ret = iov(&::preadv, native_handle(), file_offset, bufs, num_bufs, ec);
-#else
-
 		// there's no point in coalescing single buffer writes
 		if (num_bufs == 1)
 		{
@@ -1863,7 +1855,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				flags &= ~file::coalesce_buffers;
 		}
 
-#if TORRENT_USE_PREAD
+#if TORRENT_USE_PREADV
+		int ret = iov(&::preadv, native_handle(), file_offset, bufs, num_bufs, ec);
+#elif TORRENT_USE_PREAD
 		int ret = iov(&::pread, native_handle(), file_offset, bufs, num_bufs, ec);
 #else
 		int ret = iov(&::read, native_handle(), file_offset, bufs, num_bufs, ec);
@@ -1873,7 +1867,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			coalesce_read_buffers_end(orig_bufs, orig_num_bufs
 				, static_cast<char*>(tmp.iov_base), !ec);
 
-#endif
 		return ret;
 	}
 
@@ -1899,12 +1892,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		ec.clear();
 
-#if TORRENT_USE_PREADV
-		TORRENT_UNUSED(flags);
-
-		int ret = iov(&::pwritev, native_handle(), file_offset, bufs, num_bufs, ec);
-#else
-
 		// there's no point in coalescing single buffer writes
 		if (num_bufs == 1)
 		{
@@ -1919,7 +1906,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				flags &= ~file::coalesce_buffers;
 		}
 
-#if TORRENT_USE_PREAD
+#if TORRENT_USE_PREADV
+		int ret = iov(&::pwritev, native_handle(), file_offset, bufs, num_bufs, ec);
+#elif TORRENT_USE_PREAD
 		int ret = iov(&::pwrite, native_handle(), file_offset, bufs, num_bufs, ec);
 #else
 		int ret = iov(&::write, native_handle(), file_offset, bufs, num_bufs, ec);
@@ -1928,7 +1917,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (flags & file::coalesce_buffers)
 			free(tmp.iov_base);
 
-#endif
 #if TORRENT_USE_FDATASYNC \
 	&& !defined F_NOCACHE && \
 	!defined DIRECTIO_ON
