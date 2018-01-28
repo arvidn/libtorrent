@@ -291,7 +291,6 @@ namespace libtorrent { namespace aux {
 		virtual void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) = 0;
 		virtual libtorrent::utp_socket_manager* utp_socket_manager() = 0;
 		virtual void inc_boost_connections() = 0;
-		virtual void setup_socket_buffers(socket_type& s) = 0;
 		virtual std::vector<block_info>& block_info_storage() = 0;
 
 #ifdef TORRENT_USE_OPENSSL

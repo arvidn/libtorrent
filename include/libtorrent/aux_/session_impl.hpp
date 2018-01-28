@@ -781,14 +781,12 @@ namespace aux {
 			peer_class_pool m_classes;
 
 			void init();
-//			void init_dht();
 
 			void submit_disk_jobs();
 
 			void on_trigger_auto_manage();
 
 			void on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih) override;
-			void setup_socket_buffers(socket_type& s) override;
 
 			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
 				, ip_source_t const source_type, address const& source);
