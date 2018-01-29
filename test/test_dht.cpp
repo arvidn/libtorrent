@@ -2486,14 +2486,14 @@ TORRENT_TEST(mutable_put)
 		enum { num_test_nodes = 8 };
 		std::array<node_entry, num_test_nodes> const nodes = build_nodes();
 
-		for (int i = 0; i < num_test_nodes; ++i)
-			t.dht_node.m_table.add_node(nodes[i]);
+		for (auto const& n : nodes)
+			t.dht_node.m_table.add_node(n);
 
 		g_put_item.assign(items[0].ent, empty_salt, seq, pk, sk);
 		signature const sig = g_put_item.sig();
 		t.dht_node.put_item(pk, std::string()
-				, std::bind(&put_mutable_item_cb, _1, _2, loop)
-				, put_mutable_item_data_cb);
+			, std::bind(&put_mutable_item_cb, _1, _2, loop)
+			, put_mutable_item_data_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
@@ -3316,13 +3316,13 @@ TORRENT_TEST(invalid_error_msg)
 	node.incoming(node.m_sock, m);
 
 	bool found = false;
-	for (std::size_t i = 0; i < observer.m_log.size(); ++i)
+	for (auto const& log : observer.m_log)
 	{
-		if (observer.m_log[i].find("INCOMING ERROR") != std::string::npos
-			&& observer.m_log[i].find("(malformed)") != std::string::npos)
+		if (log.find("INCOMING ERROR") != std::string::npos
+			&& log.find("(malformed)") != std::string::npos)
 			found = true;
 
-		std::printf("%s\n", observer.m_log[i].c_str());
+		std::printf("%s\n", log.c_str());
 	}
 
 	TEST_EQUAL(found, true);
@@ -3426,14 +3426,14 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	rpc.incoming(m, &nid);
 
 	bool found = false;
-	for (std::size_t i = 0; i < observer.m_log.size(); ++i)
+	for (auto const& log : observer.m_log)
 	{
-		if (observer.m_log[i].find("reply with") != std::string::npos
-			&& observer.m_log[i].find("(malformed)") != std::string::npos
-			&& observer.m_log[i].find("error") != std::string::npos)
+		if (log.find("reply with") != std::string::npos
+			&& log.find("(malformed)") != std::string::npos
+			&& log.find("error") != std::string::npos)
 			found = true;
 
-		std::printf("%s\n", observer.m_log[i].c_str());
+		std::printf("%s\n", log.c_str());
 	}
 
 	TEST_EQUAL(found, true);
