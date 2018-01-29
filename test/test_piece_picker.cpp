@@ -1993,5 +1993,89 @@ TORRENT_TEST(download_filtered_piece)
 	TEST_EQUAL(test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials), piece_index_t(0));
 }
 
+TORRENT_TEST(mark_as_pad)
+{
+	auto p = setup_picker("1111111", "       ", "4444444", "");
+	piece_block const bl(piece_index_t{2}, 0);
+	p->mark_as_pad(bl);
+
+	bool ret = p->mark_as_downloading({piece_index_t{2}, 1}, tmp_peer);
+	TEST_EQUAL(ret, true);
+
+	auto dl = p->get_download_queue();
+
+	TEST_EQUAL(dl.size(), 1);
+	TEST_EQUAL(dl[0].finished, 1);
+	TEST_EQUAL(dl[0].writing, 0);
+	TEST_EQUAL(dl[0].requested, 1);
+	TEST_EQUAL(dl[0].index, piece_index_t{2});
+
+	auto blocks = p->blocks_for_piece(dl[0]);
+	TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+	TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_requested);
+	TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
+	TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_none);
+}
+
+TORRENT_TEST(mark_as_pad_downloading)
+{
+	auto p = setup_picker("1111111", "       ", "4444444", "");
+	piece_block const bl(piece_index_t{2}, 0);
+	p->mark_as_pad(bl);
+
+	bool ret = p->mark_as_downloading({piece_index_t{2}, 0}, tmp_peer);
+	TEST_EQUAL(ret, false);
+
+	auto dl = p->get_download_queue();
+
+	TEST_EQUAL(dl.size(), 1);
+	TEST_EQUAL(dl[0].finished, 1);
+	TEST_EQUAL(dl[0].writing, 0);
+	TEST_EQUAL(dl[0].requested, 0);
+	TEST_EQUAL(dl[0].index, piece_index_t{2});
+
+	auto blocks = p->blocks_for_piece(dl[0]);
+	TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+	TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_none);
+	TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
+	TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_none);
+}
+
+TORRENT_TEST(mark_as_pad_seeding)
+{
+	auto p = setup_picker("1", " ", "4", "");
+	p->mark_as_pad({piece_index_t{0}, 0});
+	p->mark_as_pad({piece_index_t{0}, 1});
+	p->mark_as_pad({piece_index_t{0}, 2});
+
+	TEST_CHECK(!p->is_seeding());
+
+	p->mark_as_finished({piece_index_t{0}, 3}, tmp_peer);
+
+	TEST_CHECK(!p->is_seeding());
+	p->piece_passed(piece_index_t{0});
+	TEST_CHECK(p->is_seeding());
+}
+
+TORRENT_TEST(mark_as_pad_whole_piece_seeding)
+{
+	auto p = setup_picker("11", "  ", "44", "");
+	p->mark_as_pad({piece_index_t{0}, 0});
+	p->mark_as_pad({piece_index_t{0}, 1});
+	p->mark_as_pad({piece_index_t{0}, 2});
+	p->mark_as_pad({piece_index_t{0}, 3});
+
+	TEST_CHECK(!p->is_seeding());
+
+	p->mark_as_finished({piece_index_t{1}, 0}, NULL);
+	p->mark_as_finished({piece_index_t{1}, 1}, NULL);
+	p->mark_as_finished({piece_index_t{1}, 2}, NULL);
+	p->mark_as_finished({piece_index_t{1}, 3}, NULL);
+
+	TEST_CHECK(!p->is_seeding());
+	p->piece_passed(piece_index_t{1});
+	TEST_CHECK(p->is_seeding());
+}
+
 //TODO: 2 test picking with partial pieces and other peers present so that both
 // backup_pieces and backup_pieces2 are used

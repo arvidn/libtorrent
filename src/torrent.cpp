@@ -1803,7 +1803,7 @@ namespace libtorrent {
 				for (; pr.length >= block; pr.length -= block, ++pb.block_index)
 				{
 					if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
-					m_picker->mark_as_finished(pb, nullptr);
+					m_picker->mark_as_pad(pb);
 				}
 				// ugly edge case where padfiles are not used they way they're
 				// supposed to be. i.e. added back-to back or at the end

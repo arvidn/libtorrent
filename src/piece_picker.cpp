@@ -217,10 +217,21 @@ namespace libtorrent {
 		TORRENT_ASSERT(int(ret.info_idx) * m_blocks_per_piece
 			+ m_blocks_per_piece <= int(m_block_info.size()));
 
+		int block_idx = 0;
 		for (auto& info : mutable_blocks_for_piece(ret))
 		{
 			info.num_peers = 0;
 			info.state = block_info::state_none;
+			if (m_pad_blocks.count(piece_block(piece, block_idx)))
+			{
+				info.state = block_info::state_finished;
+				++ret.finished;
+			}
+			else
+			{
+				info.state = block_info::state_none;
+			}
+			++block_idx;
 			info.peer = nullptr;
 #if TORRENT_USE_ASSERTS
 			info.piece_index = piece;
@@ -228,6 +239,10 @@ namespace libtorrent {
 #endif
 		}
 		downloading_iter = m_downloads[download_state].insert(downloading_iter, ret);
+
+		// in case every block was a pad block, we need to make sure the piece
+		// structure is correctly categorised
+		downloading_iter = update_piece_state(downloading_iter);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		check_piece_state();
@@ -2977,6 +2992,9 @@ get_out:
 			auto const binfo = mutable_blocks_for_piece(*dp);
 			block_info& info = binfo[block.block_index];
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
+			if (info.state == block_info::state_finished)
+				return false;
+
 			info.state = block_info::state_requested;
 			info.peer = peer;
 			info.num_peers = 1;
@@ -3122,6 +3140,11 @@ get_out:
 			TORRENT_ASSERT(&info >= &m_block_info[0]);
 			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
+
+			TORRENT_ASSERT(info.state == block_info::state_none);
+			if (info.state == block_info::state_finished)
+				return false;
+
 			info.state = block_info::state_writing;
 			info.peer = peer;
 			info.num_peers = 0;
@@ -3364,6 +3387,8 @@ get_out:
 			TORRENT_ASSERT(&info >= &m_block_info[0]);
 			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
+			if (info.state == block_info::state_finished)
+				return;
 			info.peer = peer;
 			TORRENT_ASSERT(info.state == block_info::state_none);
 			TORRENT_ASSERT(info.num_peers == 0);
@@ -3420,6 +3445,22 @@ get_out:
 #if TORRENT_USE_INVARIANT_CHECKS
 		check_piece_state();
 #endif
+	}
+
+	void piece_picker::mark_as_pad(piece_block block)
+	{
+		m_pad_blocks.insert(block);
+		// if we mark and entire piece as a pad file, we need to also
+		// consder that piece as "had" and increment some counters
+		typedef std::set<piece_block>::iterator iter;
+		iter begin = m_pad_blocks.lower_bound(piece_block(block.piece_index, 0));
+		int const blocks = blocks_in_piece(block.piece_index);
+		iter end = m_pad_blocks.upper_bound(piece_block(block.piece_index, blocks));
+		if (std::distance(begin, end) == blocks)
+		{
+			// the entire piece is a pad file
+			we_have(block.piece_index);
+		}
 	}
 
 	void piece_picker::get_downloaders(std::vector<torrent_peer*>& d

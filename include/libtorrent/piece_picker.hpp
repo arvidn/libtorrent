@@ -42,14 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <cstdint>
 #include <tuple>
-
-#ifdef TORRENT_DEBUG_REFCOUNTS
 #include <set>
-#endif
-
-#if TORRENT_USE_ASSERTS
-#include <set>
-#endif
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/assert.hpp"
@@ -326,6 +319,8 @@ namespace libtorrent {
 
 		void mark_as_canceled(piece_block block, torrent_peer* peer);
 		void mark_as_finished(piece_block block, torrent_peer* peer);
+
+		void mark_as_pad(piece_block block);
 
 		// prevent blocks from being picked from this piece.
 		// to unlock the piece, call restore_piece() on it
@@ -710,6 +705,11 @@ namespace libtorrent {
 		// the m_piece_info buckets either
 		// TODO: should this be allocated lazily?
 		mutable aux::vector<piece_pos, piece_index_t> m_piece_map;
+
+		// this maps pieces to a range of blocks that are pad files and should not
+		// be picked
+		// TOOD: this could be a much more efficient data structure
+		std::set<piece_block> m_pad_blocks;
 
 		// the number of seeds. These are not added to
 		// the availability counters of the pieces
