@@ -77,10 +77,10 @@ void http_connect_handler(http_connection& c)
 }
 
 void http_handler(error_code const& ec, http_parser const& parser
-	, span<char const> data, http_connection& c)
+	, span<char const> data, http_connection&)
 {
 	++handler_called;
-	data_size = data.size();
+	data_size = int(data.size());
 	g_error_code = ec;
 	TORRENT_ASSERT(data.empty() || parser.finished());
 
@@ -180,7 +180,7 @@ void run_suite(std::string const& protocol
 	ps.type = proxy_type;
 
 	if (ps.type != settings_pack::none)
-		ps.port = start_proxy(ps.type);
+		ps.port = aux::numeric_cast<std::uint16_t>(start_proxy(ps.type));
 
 	typedef boost::optional<error_code> err;
 

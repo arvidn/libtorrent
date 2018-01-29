@@ -55,11 +55,11 @@ TORRENT_TEST(random)
 			++buckets[val & 0xff];
 		}
 
-		for (int i = 0; i < 256; ++i)
+		for (std::size_t i = 0; i < 256; ++i)
 		{
 			const int expected = repetitions / 256;
 			// expect each bucket to be within 15% of the expected value
-			std::printf("%d: %f\n", i, double(buckets[i] - expected) * 100.0 / expected);
+			std::printf("%d: %f\n", int(i), double(buckets[i] - expected) * 100.0 / expected);
 			TEST_CHECK(std::abs(buckets[i] - expected) < expected / 6);
 		}
 	}

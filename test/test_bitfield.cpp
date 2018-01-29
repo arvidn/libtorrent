@@ -158,12 +158,12 @@ TORRENT_TEST(test_assign3)
 {
 	bitfield test1;
 	std::uint8_t b2[] = { 0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc, 0x7f };
-	test1.assign((char*)b2, 72);
+	test1.assign(reinterpret_cast<char*>(b2), 72);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 47);
 
 	std::uint8_t b3[] = { 0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc };
-	test1.assign((char*)b3, 64);
+	test1.assign(reinterpret_cast<char*>(b3), 64);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 40);
 }
@@ -183,7 +183,7 @@ TORRENT_TEST(test_assign)
 	std::array<char, 16> b;
 	bitfield test1;
 
-	for (int i = 0; i < 4; ++i)
+	for (std::size_t i = 0; i < 4; ++i)
 	{
 		b[i] = char(0xc0);
 		test1.assign(&b[i], 2);
@@ -197,7 +197,7 @@ TORRENT_TEST(test_assign2)
 {
 	std::array<char, 16> b;
 	bitfield test1;
-	for (int i = 0; i < 4; ++i)
+	for (std::size_t i = 0; i < 4; ++i)
 	{
 		std::memset(&b[i], 0xff, 5);
 		b[i + 5] = char(0xc0);
@@ -392,7 +392,7 @@ TORRENT_TEST(not_initialized_assign)
 	// check a not initialized empty bitfield
 	bitfield test1(0);
 	std::uint8_t b1[] = { 0xff };
-	test1.assign((char*)b1, 8);
+	test1.assign(reinterpret_cast<char*>(b1), 8);
 	TEST_EQUAL(test1.count(), 8);
 }
 

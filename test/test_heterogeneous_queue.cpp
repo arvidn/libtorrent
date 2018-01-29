@@ -67,7 +67,7 @@ struct D
 {
 	static int instances;
 	D() { ++instances; }
-	D(D const& d) { ++instances; }
+	D(D const&) { ++instances; }
 	D(D&&) noexcept { ++instances; }
 
 	~D() { --instances; }
@@ -316,10 +316,10 @@ TORRENT_TEST(copy_move)
 
 	TEST_EQUAL(int(ptrs.size()), 1000);
 
-	for (int i = 0; i < int(ptrs.size()); ++i)
+	for (std::size_t i = 0; i < ptrs.size(); ++i)
 	{
 		ptrs[i]->check_invariant();
-		TEST_EQUAL(ptrs[i]->f, i);
+		TEST_EQUAL(ptrs[i]->f, int(i));
 	}
 
 	// destroy all objects, asserting that their invariant still holds

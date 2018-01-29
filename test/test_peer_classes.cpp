@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
 std::string class_name(peer_class_t id, peer_class_pool const& p)
 {
 	peer_class const* c = p.at(id);
@@ -49,6 +50,7 @@ std::string class_name(peer_class_t id, peer_class_pool const& p)
 	c->get_info(&i);
 	return i.label;
 }
+} // anonymous namespace
 
 TORRENT_TEST(peer_class)
 {

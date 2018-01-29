@@ -115,7 +115,6 @@ void test_checking(int flags = read_only_files)
 			std::string path = combine_path("test_torrent_dir", dirname);
 			path = combine_path(path, name);
 
-			error_code ec;
 			file f(path, open_mode::read_write, ec);
 			if (ec) std::printf("ERROR: opening file \"%s\": (%d) %s\n"
 				, path.c_str(), ec.value(), ec.message().c_str());
@@ -217,7 +216,7 @@ void test_checking(int flags = read_only_files)
 
 		st = tor1.status();
 
-		std::printf("%d %f %s\n", st.state, st.progress_ppm / 10000.f, st.errc.message().c_str());
+		std::printf("%d %f %s\n", st.state, st.progress_ppm / 10000.0, st.errc.message().c_str());
 
 		if (
 #ifndef TORRENT_NO_DEPRECATE

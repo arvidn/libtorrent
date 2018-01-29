@@ -449,8 +449,6 @@ void test_optimize(std::vector<int> file_sizes
 	TEST_EQUAL(fs.num_files(), int(expected_order.size()));
 	if (fs.num_files() != int(expected_order.size())) return;
 
-	file_index_t idx{0};
-	int num_pad_files = 0;
 	std::cout << "{ ";
 	for (file_index_t idx{0}; idx != fs.end_file(); ++idx)
 	{
@@ -458,6 +456,9 @@ void test_optimize(std::vector<int> file_sizes
 		std::cout << fs.file_size(idx) << " ";
 	}
 	std::cout << "}\n";
+
+	file_index_t idx{0};
+	int num_pad_files = 0;
 	for (int expect : expected_order)
 	{
 		if (expect == -1)

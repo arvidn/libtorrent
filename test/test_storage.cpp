@@ -60,8 +60,8 @@ using namespace lt;
 
 namespace {
 
-std::size_t const piece_size = 16 * 1024 * 16;
-std::size_t const half = piece_size / 2;
+constexpr std::size_t piece_size = 16 * 1024 * 16;
+constexpr std::size_t half = piece_size / 2;
 
 void on_check_resume_data(status_t const status, storage_error const& error, bool* done)
 {
@@ -420,23 +420,23 @@ void test_check_files(std::string const& test_path
 	std::shared_ptr<torrent_info> info;
 
 	error_code ec;
-	const int piece_size = 16 * 1024;
+	constexpr int piece_size_check = 16 * 1024;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
 		std::cout << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	file_storage fs;
-	fs.add_file("temp_storage/test1.tmp", piece_size);
-	fs.add_file("temp_storage/test2.tmp", piece_size * 2);
-	fs.add_file("temp_storage/test3.tmp", piece_size);
+	fs.add_file("temp_storage/test1.tmp", piece_size_check);
+	fs.add_file("temp_storage/test2.tmp", piece_size_check * 2);
+	fs.add_file("temp_storage/test3.tmp", piece_size_check);
 
-	std::vector<char> piece0 = new_piece(piece_size);
-	std::vector<char> piece2 = new_piece(piece_size);
+	std::vector<char> piece0 = new_piece(piece_size_check);
+	std::vector<char> piece2 = new_piece(piece_size_check);
 
-	lt::create_torrent t(fs, piece_size, -1, {});
+	lt::create_torrent t(fs, piece_size_check, -1, {});
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
-	t.set_hash(piece_index_t(1), sha1_hash(nullptr));
-	t.set_hash(piece_index_t(2), sha1_hash(nullptr));
+	t.set_hash(piece_index_t(1), {});
+	t.set_hash(piece_index_t(2), {});
 	t.set_hash(piece_index_t(3), hasher(piece2).final());
 
 	create_directory(combine_path(test_path, "temp_storage"), ec);
@@ -445,11 +445,11 @@ void test_check_files(std::string const& test_path
 	std::ofstream f;
 	f.open(combine_path(test_path, combine_path("temp_storage", "test1.tmp")).c_str()
 		, std::ios::trunc | std::ios::binary);
-	f.write(piece0.data(), piece_size);
+	f.write(piece0.data(), piece_size_check);
 	f.close();
 	f.open(combine_path(test_path, combine_path("temp_storage", "test3.tmp")).c_str()
 		, std::ios::trunc | std::ios::binary);
-	f.write(piece2.data(), piece_size);
+	f.write(piece2.data(), piece_size_check);
 	f.close();
 
 	std::vector<char> buf;
@@ -520,7 +520,7 @@ void run_test(bool unbuffered)
 	fs.add_file("temp_storage/test4.tmp", 0);
 	fs.add_file("temp_storage/test5.tmp", 3253);
 	fs.add_file("temp_storage/test6.tmp", 841);
-	const int last_file_size = 4 * piece_size - int(fs.total_size());
+	int const last_file_size = 4 * int(piece_size) - int(fs.total_size());
 	fs.add_file("temp_storage/test7.tmp", last_file_size);
 
 	// File layout
@@ -561,7 +561,7 @@ void run_test(bool unbuffered)
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
 	std::printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n"
 		, int(file_size(combine_path(base, "test7.tmp")))
-		, int(last_file_size - piece_size), last_file_size, int(piece_size));
+		, last_file_size - int(piece_size), last_file_size, int(piece_size));
 	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - int(piece_size));
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
@@ -650,13 +650,12 @@ void test_fastresume(bool const test_deprecated)
 		settings_pack pack = settings();
 		lt::session ses(pack);
 
-		error_code ec;
-
 		add_torrent_params p;
 		p.ti = std::make_shared<torrent_info>(std::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_sparse;
-		torrent_handle h = ses.add_torrent(std::move(p), ec);
+		error_code ignore;
+		torrent_handle h = ses.add_torrent(std::move(p), ignore);
 		TEST_CHECK(exists(combine_path(p.save_path, "temporary")));
 		if (!exists(combine_path(p.save_path, "temporary")))
 			return;

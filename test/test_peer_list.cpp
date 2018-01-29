@@ -535,7 +535,7 @@ TORRENT_TEST(set_ip_filter)
 	for (int i = 0; i < 100; ++i)
 	{
 		p.add_peer(tcp::endpoint(
-			address_v4((10 << 24) + ((i + 10) << 16)), 353), {}, {}, &st);
+			address_v4(std::uint32_t((10 << 24) + ((i + 10) << 16))), 353), {}, {}, &st);
 		TEST_EQUAL(st.erased.size(), 0);
 		st.erased.clear();
 	}
@@ -565,7 +565,7 @@ TORRENT_TEST(set_port_filter)
 	for (int i = 0; i < 100; ++i)
 	{
 		p.add_peer(tcp::endpoint(
-			address_v4((10 << 24) + ((i + 10) << 16)), i + 10), {}, {}, &st);
+			address_v4(std::uint32_t((10 << 24) + ((i + 10) << 16))), std::uint16_t(i + 10)), {}, {}, &st);
 		TEST_EQUAL(st.erased.size(), 0);
 		st.erased.clear();
 	}
@@ -595,7 +595,7 @@ TORRENT_TEST(set_max_failcount)
 	for (int i = 0; i < 100; ++i)
 	{
 		torrent_peer* peer = p.add_peer(tcp::endpoint(
-			address_v4((10 << 24) + ((i + 10) << 16)), i + 10), {}, {}, &st);
+			address_v4(std::uint32_t((10 << 24) + ((i + 10) << 16))), std::uint16_t(i + 10)), {}, {}, &st);
 		TEST_EQUAL(st.erased.size(), 0);
 		st.erased.clear();
 		// every other peer has a failcount of 1
@@ -625,7 +625,7 @@ TORRENT_TEST(set_seed)
 	for (int i = 0; i < 100; ++i)
 	{
 		torrent_peer* peer = p.add_peer(tcp::endpoint(
-			address_v4((10 << 24) + ((i + 10) << 16)), i + 10), {}, {}, &st);
+			address_v4(std::uint32_t((10 << 24) + ((i + 10) << 16))), std::uint16_t(i + 10)), {}, {}, &st);
 		TEST_EQUAL(st.erased.size(), 0);
 		st.erased.clear();
 		// make every other peer a seed
