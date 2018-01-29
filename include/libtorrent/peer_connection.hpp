@@ -675,7 +675,6 @@ namespace aux {
 
 		int num_reading_bytes() const { return m_reading_bytes; }
 
-		enum sync_t { read_async, read_sync };
 		void setup_receive();
 
 		std::shared_ptr<peer_connection> self()
