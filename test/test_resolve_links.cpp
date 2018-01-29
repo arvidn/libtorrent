@@ -112,8 +112,8 @@ TORRENT_TEST(resolve_links)
 
 		aux::vector<resolve_links::link_t, file_index_t> const& links = l.get_links();
 
-		std::string::size_type num_matches = std::count_if(links.begin(), links.end()
-			, std::bind(&resolve_links::link_t::ti, _1));
+		auto const num_matches = std::size_t(std::count_if(links.begin(), links.end()
+			, std::bind(&resolve_links::link_t::ti, _1)));
 
 		// some debug output in case the test fails
 		if (num_matches > e.expected_matches)
@@ -166,7 +166,7 @@ TORRENT_TEST(range_lookup_duplicated_files)
 
 	aux::vector<resolve_links::link_t, file_index_t> const& links = l.get_links();
 
-	std::string::size_type num_matches = std::count_if(links.begin(), links.end()
+	auto const num_matches = std::count_if(links.begin(), links.end()
 		, std::bind(&resolve_links::link_t::ti, _1));
 
 	TEST_EQUAL(num_matches, 1);

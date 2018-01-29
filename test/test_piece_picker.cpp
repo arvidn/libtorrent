@@ -182,7 +182,7 @@ std::shared_ptr<piece_picker> setup_picker(
 	{
 		int const idx = static_cast<int>(i);
 		if (priority[idx] == 0) break;
-		download_priority_t const prio(priority[idx] - '0');
+		download_priority_t const prio((priority[idx] - '0') & 0xff);
 		assert(prio >= dont_download);
 		p->set_piece_priority(i, prio);
 
@@ -240,8 +240,8 @@ void print_availability(std::shared_ptr<piece_picker> const& p)
 	aux::vector<int, piece_index_t> avail;
 	p->get_availability(avail);
 	std::printf("[ ");
-	for (auto p : avail)
-		std::printf("%d ", static_cast<int>(p));
+	for (auto i : avail)
+		std::printf("%d ", i);
 	std::printf("]\n");
 }
 
@@ -269,14 +269,14 @@ std::vector<piece_block> pick_pieces(std::shared_ptr<piece_picker> const& p
 	, char const* availability
 	, int num_blocks
 	, int prefer_contiguous_blocks
-	, torrent_peer* peer_struct
+	, torrent_peer* peer_struct_arg
 	, picker_options_t const options = piece_picker::rarest_first
 	, std::vector<piece_index_t> const& suggested_pieces = empty_vector)
 {
 	std::vector<piece_block> picked;
 	counters pc;
 	p->pick_pieces(string2vec(availability), picked
-		, num_blocks, prefer_contiguous_blocks, peer_struct
+		, num_blocks, prefer_contiguous_blocks, peer_struct_arg
 		, options, suggested_pieces, 20, pc);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
@@ -504,7 +504,7 @@ TORRENT_TEST(reverse_rarest_first)
 	int expected_common_pieces[] = {3, 2, 5, 0, 6, 4, 1};
 	for (int i = 0; i < int(picked.size()); ++i)
 	{
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(
 			expected_common_pieces[i / blocks_per_piece])
 			, i % blocks_per_piece));
 	}
@@ -541,7 +541,7 @@ TORRENT_TEST(pick_whole_pieces)
 		, &peer_struct, options, empty_vector);
 	TEST_EQUAL(int(picked.size()), 7 * blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(i / blocks_per_piece)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(i / blocks_per_piece)
 			, i % blocks_per_piece));
 }
 
@@ -743,7 +743,7 @@ TORRENT_TEST(sequential_download)
 		, piece_picker::sequential, empty_vector);
 	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(i / blocks_per_piece)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(i / blocks_per_piece)
 			, i % blocks_per_piece));
 }
 
@@ -755,7 +755,7 @@ TORRENT_TEST(reverse_sequential_download)
 		, piece_picker::sequential | piece_picker::reverse, empty_vector);
 	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(6 - (i / blocks_per_piece))
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6 - (i / blocks_per_piece))
 			, i % blocks_per_piece));
 }
 
@@ -772,11 +772,11 @@ TORRENT_TEST(priority_sequential_download)
 
 	// the first two pieces picked should be 3 and 5 since those have priority 7
 	for (int i = 0; i < 2 * blocks_per_piece; ++i)
-		TEST_CHECK(picked[i].piece_index == piece_index_t(3) || picked[i].piece_index == piece_index_t(5));
+		TEST_CHECK(picked[std::size_t(i)].piece_index == piece_index_t(3) || picked[std::size_t(i)].piece_index == piece_index_t(5));
 
 	int expected[] = {-1, -1, 0, 1, 2, 6};
 	for (int i = 2 * blocks_per_piece; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[i].piece_index, piece_index_t(expected[i / blocks_per_piece]));
+		TEST_EQUAL(picked[std::size_t(i)].piece_index, piece_index_t(expected[i / blocks_per_piece]));
 }
 
 TORRENT_TEST(cursors_sweep_up_we_have)
@@ -1010,7 +1010,7 @@ TORRENT_TEST(piece_priorities)
 	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
 
 	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(i / blocks_per_piece), i % blocks_per_piece));
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(i / blocks_per_piece), i % blocks_per_piece));
 
 	// test changing priority on a piece we have
 	p->we_have(piece_index_t(0));
@@ -1336,7 +1336,7 @@ TORRENT_TEST(prefer_cnotiguous_blocks)
 		, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 3 * blocks_per_piece);
 	piece_block b = picked.front();
-	for (int i = 1; i < int(picked.size()); ++i)
+	for (std::size_t i = 1; i < picked.size(); ++i)
 	{
 		TEST_CHECK(static_cast<int>(picked[i].piece_index) * blocks_per_piece + picked[i].block_index
 			== static_cast<int>(b.piece_index) * blocks_per_piece + b.block_index + 1);
@@ -1347,7 +1347,7 @@ TORRENT_TEST(prefer_cnotiguous_blocks)
 		, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 3 * blocks_per_piece);
 	b = picked.front();
-	for (int i = 1; i < int(picked.size()); ++i)
+	for (std::size_t i = 1; i < picked.size(); ++i)
 	{
 		TEST_CHECK(static_cast<int>(picked[i].piece_index) * blocks_per_piece + picked[i].block_index
 			== static_cast<int>(b.piece_index) * blocks_per_piece + b.block_index + 1);
@@ -1376,7 +1376,7 @@ TORRENT_TEST(prefer_aligned_whole_pieces)
 	TEST_EQUAL(picked.size(), 4 * blocks_per_piece);
 
 	std::set<piece_index_t> picked_pieces;
-	for (auto p : picked) picked_pieces.insert(p.piece_index);
+	for (auto idx : picked) picked_pieces.insert(idx.piece_index);
 
 	TEST_CHECK(picked_pieces.size() == 4);
 	piece_index_t expected_pieces[] = {piece_index_t(4),piece_index_t(5),piece_index_t(6),piece_index_t(7)};
@@ -1393,7 +1393,7 @@ TORRENT_TEST(parole_mode)
 		, options | piece_picker::on_parole | piece_picker::prioritize_partials, empty_vector);
 	TEST_EQUAL(int(picked.size()), blocks_per_piece - 1);
 	for (int i = 1; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(0), i + 1));
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(0), i + 1));
 
 	// make sure that the partial piece is not picked by a
 	// peer that is has not downloaded/requested the other blocks
@@ -1402,7 +1402,7 @@ TORRENT_TEST(parole_mode)
 		, options | piece_picker::on_parole | piece_picker::prioritize_partials, empty_vector);
 	TEST_EQUAL(int(picked.size()), blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(4), i));
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(4), i));
 }
 
 TORRENT_TEST(suggested_pieces)
@@ -1416,7 +1416,7 @@ TORRENT_TEST(suggested_pieces)
 		, nullptr, options, suggested_pieces);
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(1), i));
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(1), i));
 	p->set_piece_priority(piece_index_t(0), dont_download);
 	p->set_piece_priority(piece_index_t(1), dont_download);
 	p->set_piece_priority(piece_index_t(2), dont_download);
@@ -1426,14 +1426,14 @@ TORRENT_TEST(suggested_pieces)
 		, nullptr, options, suggested_pieces);
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(5), i));
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(5), i));
 
 	p = setup_picker("1111222233334444", "****            ", "", "");
 	picked = pick_pieces(p, "****************", 1, blocks_per_piece
 		, nullptr, options, suggested_pieces);
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i] == piece_block(piece_index_t(5), i));
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(5), i));
 }
 
 TORRENT_TEST(bitfield_optimization)

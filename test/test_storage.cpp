@@ -188,6 +188,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	, bool unbuffered)
 {
 	TORRENT_ASSERT(fs.num_files() > 0);
+	{
 	error_code ec;
 	create_directory(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cout << "create_directory '" << combine_path(test_path, "temp_storage")
@@ -200,7 +201,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
 		std::cout << "remove_all '" << combine_path(test_path, "part0")
 		<< "': " << ec.message() << std::endl;
-
+	}
 	int num_pieces = fs.num_pieces();
 	TEST_CHECK(info->num_pieces() == num_pieces);
 
