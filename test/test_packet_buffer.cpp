@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/packet_pool.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 using lt::packet_buffer;
 using lt::packet_ptr;
@@ -108,14 +109,14 @@ TORRENT_TEST(insert)
 	for (int i = 0; i < 0xff; ++i)
 	{
 		int index = (i + 0xfff0) & 0xffff;
-		pb.insert(index, make_pkt(pool, index + 1));
+		pb.insert(packet_buffer::index_type(index), make_pkt(pool, index + 1));
 		std::printf("insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
 		TEST_EQUAL(pb.capacity(), 512);
 		if (i >= 14)
 		{
 			index = (index - 14) & 0xffff;
 			std::printf("remove: %u\n", index);
-			TEST_EQUAL(get_val(pb.remove(index).get()), std::uint8_t(index + 1));
+			TEST_EQUAL(get_val(pb.remove(packet_buffer::index_type(index)).get()), std::uint8_t(index + 1));
 			TEST_EQUAL(pb.size(), 14);
 		}
 	}

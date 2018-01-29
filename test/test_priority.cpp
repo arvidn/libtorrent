@@ -297,9 +297,9 @@ done:
 	else
 #endif
 	{
-		error_code ec;
-		p = read_resume_data(resume_data, ec);
-		TEST_CHECK(!ec);
+		error_code ec1;
+		p = read_resume_data(resume_data, ec1);
+		TEST_CHECK(!ec1);
 	}
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;

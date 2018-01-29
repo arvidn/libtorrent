@@ -69,7 +69,7 @@ TORRENT_TEST(part_file)
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir"), "partfile.parts")));
 
 		// write something to the metadata file
-		for (int i = 0; i < 1024; ++i) buf[i] = char(i & 0xff);
+		for (int i = 0; i < 1024; ++i) buf[std::size_t(i)] = char(i & 0xff);
 
 		iovec_t v = buf;
 		pf.writev(v, piece_index_t(10), 0, ec);
@@ -94,7 +94,7 @@ TORRENT_TEST(part_file)
 		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < 1024; ++i)
-			TEST_CHECK(buf[i] == char(i));
+			TEST_CHECK(buf[std::size_t(i)] == char(i));
 	}
 
 	{
@@ -108,7 +108,7 @@ TORRENT_TEST(part_file)
 		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < 1024; ++i)
-			TEST_CHECK(buf[i] == static_cast<char>(i));
+			TEST_CHECK(buf[std::size_t(i)] == static_cast<char>(i));
 
 		// test exporting the piece to a file
 

@@ -1359,7 +1359,7 @@ void test_put(address(&rand_addr)())
 			TEST_ERROR(t.error_string);
 		}
 
-		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
+		itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[0].ent)));
 		sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), true);
 
@@ -1428,7 +1428,7 @@ void test_put(address(&rand_addr)())
 
 		// also test that invalid signatures fail!
 
-		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
+		itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[0].ent)));
 		sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 		// break the signature
@@ -1492,7 +1492,7 @@ void test_put(address(&rand_addr)())
 		// increment sequence number
 		seq = next_seq(seq);
 		// put item 1
-		itemv = span<char const>(buffer, bencode(buffer, items[1].ent));
+		itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[1].ent)));
 		sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 
@@ -1685,12 +1685,12 @@ void test_routing_table(address(&rand_addr)())
 	init_rand_address();
 
 	add_and_replace(tmp, diff);
-	table.node_seen(id, udp::endpoint(rand_addr(), rand()), 10);
+	table.node_seen(id, rand_udp_ep(rand_addr), 10);
 
 	nodes.clear();
 	for (int i = 0; i < 7000; ++i)
 	{
-		table.node_seen(tmp, udp::endpoint(rand_addr(), rand()), 20 + (tmp[19] & 0xff));
+		table.node_seen(tmp, rand_udp_ep(rand_addr), 20 + (tmp[19] & 0xff));
 		add_and_replace(tmp, diff);
 	}
 	std::printf("active buckets: %d\n", table.num_active_buckets());
@@ -1770,14 +1770,14 @@ void test_routing_table(address(&rand_addr)())
 	for (int i = 0; i < 5; ++i)
 	{
 		address const a = addr4(ips[i]);
-		node_id const id = generate_id_impl(a, rs[i]);
-		TEST_CHECK(id[0] == prefixes[i][0]);
-		TEST_CHECK(id[1] == prefixes[i][1]);
-		TEST_CHECK((id[2] & 0xf8) == (prefixes[i][2] & 0xf8));
+		node_id const new_id = generate_id_impl(a, std::uint32_t(rs[i]));
+		TEST_CHECK(new_id[0] == prefixes[i][0]);
+		TEST_CHECK(new_id[1] == prefixes[i][1]);
+		TEST_CHECK((new_id[2] & 0xf8) == (prefixes[i][2] & 0xf8));
 
-		TEST_CHECK(id[19] == rs[i]);
+		TEST_CHECK(new_id[19] == rs[i]);
 		std::printf("IP address: %s r: %d node ID: %s\n", ips[i]
-			, rs[i], aux::to_hex(id).c_str());
+			, rs[i], aux::to_hex(new_id).c_str());
 	}
 }
 
@@ -2259,7 +2259,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 	g_sent_packets.clear();
 
 	signature sig;
-	itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
+	itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[0].ent)));
 	sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 	send_dht_response(t.dht_node, response, initial_node
 		, msg_args()
@@ -2390,14 +2390,14 @@ TORRENT_TEST(immutable_put)
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), put_data);
 		sha1_hash target = item_target_id(
-			span<char const>(flat_data.c_str(), int(flat_data.size())));
+			span<char const>(flat_data.c_str(), flat_data.size()));
 
 		t.dht_node.put_item(target, put_data, std::bind(&put_immutable_item_cb, _1, loop));
 
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		for (int i = 0; i < 8; ++i)
+		for (std::size_t i = 0; i < 8; ++i)
 		{
 			auto const packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
@@ -2413,7 +2413,7 @@ TORRENT_TEST(immutable_put)
 				continue;
 			}
 			char tok[10];
-			std::snprintf(tok, sizeof(tok), "%02d", i);
+			std::snprintf(tok, sizeof(tok), "%02d", int(i));
 
 			msg_args args;
 			args.token(tok).port(1234).nid(nodes[i].id).nodes({nodes[i]});
@@ -2424,11 +2424,11 @@ TORRENT_TEST(immutable_put)
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		itemv = span<char const>(buffer, bencode(buffer, put_data));
+		itemv = span<char const>(buffer, std::size_t(bencode(buffer, put_data)));
 
 		for (int i = 0; i < 8; ++i)
 		{
-			auto const packet = find_packet(nodes[i].ep());
+			auto const packet = find_packet(nodes[std::size_t(i)].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2447,7 +2447,7 @@ TORRENT_TEST(immutable_put)
 				if (put_immutable_item_keys[0].string_value() != "q"
 					|| put_immutable_item_keys[2].string_value() != "put") continue;
 
-				if (i < loop) send_dht_response(t.dht_node, response, nodes[i].ep());
+				if (i < loop) send_dht_response(t.dht_node, response, nodes[std::size_t(i)].ep());
 			}
 			else
 			{
@@ -2498,7 +2498,7 @@ TORRENT_TEST(mutable_put)
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		for (int i = 0; i < 8; ++i)
+		for (std::size_t i = 0; i < 8; ++i)
 		{
 			auto const packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
@@ -2514,7 +2514,7 @@ TORRENT_TEST(mutable_put)
 				continue;
 			}
 			char tok[10];
-			std::snprintf(tok, sizeof(tok), "%02d", i);
+			std::snprintf(tok, sizeof(tok), "%02d", int(i));
 
 			msg_args args;
 			args.token(tok).port(1234).nid(nodes[i].id).nodes({nodes[i]});
@@ -2525,11 +2525,11 @@ TORRENT_TEST(mutable_put)
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
+		itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[0].ent)));
 
 		for (int i = 0; i < 8; ++i)
 		{
-			auto const packet = find_packet(nodes[i].ep());
+			auto const packet = find_packet(nodes[std::size_t(i)].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2554,7 +2554,7 @@ TORRENT_TEST(mutable_put)
 				if (put_mutable_item_keys[0].string_value() != "q"
 					|| put_mutable_item_keys[2].string_value() != "put") continue;
 
-				if (i < loop) send_dht_response(t.dht_node, response, nodes[i].ep());
+				if (i < loop) send_dht_response(t.dht_node, response, nodes[std::size_t(i)].ep());
 			}
 			else
 			{
@@ -2617,7 +2617,7 @@ TORRENT_TEST(traversal_done)
 		// get_item_cb
 		if (i == num_test_nodes) i = 0;
 
-		auto const packet = find_packet(nodes[i].ep());
+		auto const packet = find_packet(nodes[std::size_t(i)].ep());
 		TEST_CHECK(packet != g_sent_packets.end());
 		if (packet == g_sent_packets.end()) continue;
 
@@ -2672,7 +2672,7 @@ TORRENT_TEST(dht_dual_stack)
 		if (family == "n4") return node4p;
 		if (family == "n6") return node6p;
 		TEST_CHECK(false);
-		return (node*)nullptr;
+		return static_cast<node*>(nullptr);
 	};
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
@@ -3063,7 +3063,7 @@ TORRENT_TEST(routing_table_extended)
 	aux::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
 
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
-	for (int i = 0; i < 256; ++i)
+	for (std::size_t i = 0; i < 256; ++i)
 	{
 		add_and_replace(id, diff);
 		id[0] = node_id_prefix[i];
@@ -3094,7 +3094,7 @@ TORRENT_TEST(routing_table_set_id)
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i & 0xff);
 	aux::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
-	for (int i = 0; i < 256; ++i)
+	for (std::size_t i = 0; i < 256; ++i)
 	{
 		id[0] = node_id_prefix[i];
 		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
