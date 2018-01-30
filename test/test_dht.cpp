@@ -538,10 +538,17 @@ struct obs : dht::dht_observer
 		va_list v;
 		va_start(v, fmt);
 		char buf[1024];
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 		std::vsnprintf(buf, sizeof(buf), fmt, v);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 		va_end(v);
 		std::printf("%s\n", buf);
-		m_log.push_back(buf);
+		m_log.emplace_back(buf);
 	}
 	void log_packet(message_direction_t, span<char const>
 		, udp::endpoint const&) override {}
@@ -692,7 +699,7 @@ void print_state(std::ostream& os, routing_table const& table)
 			, end2(i->live_nodes.end()); j != end2; ++j)
 		{
 			int bucket_size_limit = table.bucket_limit(bucket_index);
-			std::uint32_t top_mask = bucket_size_limit - 1;
+			std::uint32_t top_mask = std::uint32_t(bucket_size_limit - 1);
 			int mask_shift = 0;
 			TORRENT_ASSERT_VAL(bucket_size_limit > 0, bucket_size_limit);
 			while ((top_mask & 0x80) == 0)
@@ -757,7 +764,7 @@ void print_state(std::ostream& os, routing_table const& table)
 		// we have all the lower bits set in (bucket_size_limit-1)
 		// but we want the left-most bits to be set. Shift it
 		// until the MSB is set
-		std::uint32_t top_mask = bucket_size_limit - 1;
+		std::uint32_t top_mask = std::uint32_t(bucket_size_limit - 1);
 		int mask_shift = 0;
 		TORRENT_ASSERT_VAL(bucket_size_limit > 0, bucket_size_limit);
 		while ((top_mask & 0x80) == 0)
@@ -766,7 +773,7 @@ void print_state(std::ostream& os, routing_table const& table)
 			++mask_shift;
 		}
 		top_mask = (0xff << mask_shift) & 0xff;
-		bucket_size_limit = (top_mask >> mask_shift) + 1;
+		bucket_size_limit = int((top_mask >> mask_shift) + 1);
 		TORRENT_ASSERT_VAL(bucket_size_limit <= 256, bucket_size_limit);
 		bool sub_buckets[256];
 		std::memset(sub_buckets, 0, sizeof(sub_buckets));
@@ -1168,12 +1175,12 @@ TORRENT_TEST(bloom_filter)
 
 	// these are test vectors from BEP 33
 	// http://www.bittorrent.org/beps/bep_0033.html
-	std::printf("test.size: %f\n", test.size());
+	std::printf("test.size: %f\n", double(test.size()));
 	std::string const bf_str = test.to_string();
 	std::printf("%s\n", aux::to_hex(bf_str).c_str());
 	if (supports_ipv6())
 	{
-		TEST_CHECK(fabs(test.size() - 1224.93f) < 0.001);
+		TEST_CHECK(double(fabs(test.size() - 1224.93f)) < 0.001);
 		TEST_CHECK(aux::to_hex(bf_str) ==
 			"f6c3f5eaa07ffd91bde89f777f26fb2b"
 			"ff37bdb8fb2bbaa2fd3ddde7bacfff75"
@@ -1194,7 +1201,7 @@ TORRENT_TEST(bloom_filter)
 	}
 	else
 	{
-		TEST_CHECK(fabs(test.size() - 257.854f) < 0.001);
+		TEST_CHECK(double(fabs(test.size() - 257.854f)) < 0.001);
 		TEST_CHECK(aux::to_hex(bf_str) ==
 			"24c0004020043000102012743e004800"
 			"37110820422110008000c0e302854835"
@@ -1259,7 +1266,7 @@ namespace {
 		return nodes;
 	}
 
-	span<char const> const empty_salt;
+span<char const> const empty_salt;
 
 // TODO: 3 split this up into smaller tests
 void test_put(address(&rand_addr)())
@@ -1974,6 +1981,8 @@ TORRENT_TEST(bootstrap_want_v6)
 }
 #endif
 
+namespace {
+
 // test that the node ignores a nodes entry which is too short
 void test_short_nodes(address(&rand_addr)())
 {
@@ -2046,6 +2055,8 @@ void test_short_nodes(address(&rand_addr)())
 
 	TEST_EQUAL(g_sent_packets.size(), 0);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(short_nodes_v4)
 {
@@ -2197,6 +2208,8 @@ TORRENT_TEST(get_peers_v6)
 }
 #endif
 
+namespace {
+
 // TODO: 4 pass in th actual salt as the argument
 void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 {
@@ -2281,6 +2294,8 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 	TEST_CHECK(g_got_items.front().seq() == seq);
 	g_got_items.clear();
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(mutable_get_v4)
 {
@@ -2834,7 +2849,6 @@ TORRENT_TEST(signing_test1)
 	public_key pk;
 	secret_key sk;
 	get_test_keypair(pk, sk);
-	span<char const> empty_salt;
 
 	signature sig;
 	sig = sign_mutable_item(test_content, empty_salt, sequence_number(1), pk, sk);
@@ -3074,10 +3088,12 @@ TORRENT_TEST(routing_table_extended)
 	print_state(std::cout, tbl);
 }
 
+namespace {
 void inserter(std::set<node_id>* nodes, node_entry const& ne)
 {
 	nodes->insert(nodes->begin(), ne.id);
 }
+} // anonymous namespace
 
 TORRENT_TEST(routing_table_set_id)
 {
@@ -3236,7 +3252,7 @@ TORRENT_TEST(read_only_node)
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
-	dht::key_desc_t const get_item_desc[] = {
+	dht::key_desc_t const get_item_desc_ro[] = {
 		{"y", bdecode_node::string_t, 1, 0},
 		{"t", bdecode_node::string_t, 2, 0},
 		{"q", bdecode_node::string_t, 3, 0},
@@ -3247,7 +3263,7 @@ TORRENT_TEST(read_only_node)
 	};
 
 	lazy_from_entry(g_sent_packets.front().second, request);
-	bool ret = verify_message(request, get_item_desc, parsed, error_string);
+	bool ret = verify_message(request, get_item_desc_ro, parsed, error_string);
 
 	TEST_CHECK(ret);
 	TEST_EQUAL(parsed[3].int_value(), 1);
@@ -3272,13 +3288,13 @@ TORRENT_TEST(read_only_node)
 
 	// both of them shouldn't have a 'ro' key.
 	lazy_from_entry(g_sent_packets.front().second, request);
-	ret = verify_message(request, get_item_desc, parsed, error_string);
+	ret = verify_message(request, get_item_desc_ro, parsed, error_string);
 
 	TEST_CHECK(ret);
 	TEST_CHECK(!parsed[3]);
 
 	lazy_from_entry(g_sent_packets.back().second, request);
-	ret = verify_message(request, get_item_desc, parsed, error_string);
+	ret = verify_message(request, get_item_desc_ro, parsed, error_string);
 
 	TEST_CHECK(ret);
 	TEST_CHECK(!parsed[3]);

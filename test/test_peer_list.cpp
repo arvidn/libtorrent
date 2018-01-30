@@ -80,7 +80,14 @@ struct mock_peer_connection
 	{
 		va_list v;
 		va_start(v, fmt);
-		vprintf(fmt, v);
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
+		std::vprintf(fmt, v);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 		va_end(v);
 	}
 #endif

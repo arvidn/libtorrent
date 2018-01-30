@@ -109,7 +109,7 @@ TORRENT_TEST(direct_dht_request)
 	entry r;
 	r["q"] = "test_good";
 	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1")
-		, responder.listen_port()), r, (void*)12345);
+		, responder.listen_port()), r, reinterpret_cast<void*>(12345));
 
 	dht_direct_response_alert* ra = get_direct_response(requester);
 	TEST_CHECK(ra);
@@ -120,13 +120,13 @@ TORRENT_TEST(direct_dht_request)
 		TEST_EQUAL(ra->endpoint.port(), responder.listen_port());
 		TEST_EQUAL(response.type(), bdecode_node::dict_t);
 		TEST_EQUAL(response.dict_find_dict("r").dict_find_int_value("good"), 1);
-		TEST_EQUAL(ra->userdata, (void*)12345);
+		TEST_EQUAL(ra->userdata, reinterpret_cast<void*>(12345));
 	}
 
 	// failed request
 
 	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1"), 53545)
-		, r, (void*)123456);
+		, r, reinterpret_cast<void*>(123456));
 
 	ra = get_direct_response(requester);
 	TEST_CHECK(ra);
@@ -135,7 +135,7 @@ TORRENT_TEST(direct_dht_request)
 		TEST_EQUAL(ra->endpoint.address(), address::from_string("127.0.0.1"));
 		TEST_EQUAL(ra->endpoint.port(), 53545);
 		TEST_EQUAL(ra->response().type(), bdecode_node::none_t);
-		TEST_EQUAL(ra->userdata, (void*)123456);
+		TEST_EQUAL(ra->userdata, reinterpret_cast<void*>(123456));
 	}
 #endif // #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 }

@@ -62,7 +62,14 @@ void log(char const* fmt, ...)
 	va_start(v, fmt);
 
 	char buf[1024];
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 	std::vsnprintf(buf, sizeof(buf), fmt, v);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	va_end(v);
 
 	std::printf("\x1b[1m\x1b[36m%s: %s\x1b[0m\n"
