@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+namespace {
+
 io_service ios;
 resolver res(ios);
 
@@ -65,7 +67,7 @@ void print_http_header(http_parser const& p)
 	}
 }
 
-void http_connect_handler(http_connection& c)
+void http_connect_handler_test(http_connection& c)
 {
 	++connect_handler_called;
 	TEST_CHECK(c.socket().is_open());
@@ -76,7 +78,7 @@ void http_connect_handler(http_connection& c)
 //	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
 }
 
-void http_handler(error_code const& ec, http_parser const& parser
+void http_handler_test(error_code const& ec, http_parser const& parser
 	, span<char const> data, http_connection&)
 {
 	++handler_called;
@@ -119,7 +121,7 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
 	std::shared_ptr<http_connection> h = std::make_shared<http_connection>(ios
-		, res, &::http_handler, true, 1024*1024, &::http_connect_handler);
+		, res, &::http_handler_test, true, 1024*1024, &::http_connect_handler_test);
 	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", boost::none, resolver_flags{}, auth);
 	ios.reset();
 	error_code e;
@@ -221,6 +223,8 @@ void run_suite(std::string const& protocol
 		stop_proxy(ps.port);
 	stop_web_server();
 }
+
+} // anonymous namespace
 
 #ifdef TORRENT_USE_OPENSSL
 TORRENT_TEST(no_proxy_ssl) { run_suite("https", settings_pack::none); }

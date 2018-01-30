@@ -98,8 +98,14 @@ void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 
 	TORRENT_ASSERT(g_port != 0);
 	char buf[sizeof(msg) + 30];
-	int len = std::snprintf(buf, sizeof(buf), msg, g_port);
-
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
+	int const len = std::snprintf(buf, sizeof(buf), msg, g_port);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	error_code ec;
 	sock->send(buf, len, ec);
 
@@ -166,7 +172,14 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 		TEST_CHECK(false);
 		return;
 	}
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 	std::fprintf(xml_file, &buf[0], g_port);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	fclose(xml_file);
 
 	std::ofstream xml(control_name, std::ios::trunc);
