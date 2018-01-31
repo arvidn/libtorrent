@@ -137,10 +137,10 @@ namespace libtorrent {
 		using read_handler = std::function<void(disk_buffer_holder block, disk_job_flags_t flags, storage_error const& se)>;
 		using write_handler = std::function<void(storage_error const&)>;
 		using hash_handler = std::function<void(piece_index_t, sha1_hash const&, storage_error const&)>;
-		using move_handler = std::function<void(status_t, std::string const&, storage_error const&)>;
+		using move_handler = std::function<void(status_t, std::string, storage_error const&)>;
 		using release_handler = std::function<void()>;
 		using check_handler = std::function<void(status_t, storage_error const&)>;
-		using rename_handler = std::function<void(std::string const&, file_index_t, storage_error const&)>;
+		using rename_handler = std::function<void(std::string, file_index_t, storage_error const&)>;
 		using clear_piece_handler = std::function<void(piece_index_t)>;
 
 		boost::variant<read_handler
