@@ -34,7 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include "setup_transfer.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "test.hpp"
 
