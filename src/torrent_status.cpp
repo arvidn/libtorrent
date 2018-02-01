@@ -49,8 +49,6 @@ namespace libtorrent {
 
 	static_assert(std::is_nothrow_move_constructible<torrent_status>::value
 		, "should be nothrow move constructible");
-//	static_assert(std::is_nothrow_move_assignable<torrent_status>::value
-//		, "should be nothrow move assignable");
 	static_assert(std::is_nothrow_default_constructible<torrent_status>::value
 		, "should be nothrow default constructible");
 }
