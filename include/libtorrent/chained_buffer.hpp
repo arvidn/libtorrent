@@ -91,7 +91,7 @@ namespace libtorrent
 		// enough room, returns 0
 		char* allocate_appendix(int s);
 
-		std::list<asio::const_buffer> const& build_iovec(int to_send);
+		std::vector<asio::const_buffer> const& build_iovec(int to_send);
 
 		~chained_buffer();
 
@@ -103,7 +103,7 @@ namespace libtorrent
 
 		// this is the vector of buffers used when
 		// invoking the async write call
-		std::list<asio::const_buffer> m_tmp_vec;
+		std::vector<asio::const_buffer> m_tmp_vec;
 
 		// this is the number of bytes in the send buf.
 		// this will always be equal to the sum of the

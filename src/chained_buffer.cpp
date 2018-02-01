@@ -115,7 +115,7 @@ namespace libtorrent
 		return insert;
 	}
 
-	std::list<asio::const_buffer> const& chained_buffer::build_iovec(int to_send)
+	std::vector<asio::const_buffer> const& chained_buffer::build_iovec(int to_send)
 	{
 		m_tmp_vec.clear();
 
