@@ -89,8 +89,7 @@ namespace libtorrent {
 		// data for the torrent. For more information, see the ``storage`` field.
 		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor);
 		add_torrent_params(add_torrent_params&&) noexcept;
-		// TODO: GCC did not make std::string nothrow move-assignable
-		add_torrent_params& operator=(add_torrent_params&&);
+		add_torrent_params& operator=(add_torrent_params&&) = default;
 		add_torrent_params(add_torrent_params const&);
 		add_torrent_params& operator=(add_torrent_params const&);
 

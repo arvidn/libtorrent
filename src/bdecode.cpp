@@ -202,16 +202,6 @@ namespace {
 		}
 	}
 
-	bdecode_node::bdecode_node()
-		: m_root_tokens(nullptr)
-		, m_buffer(nullptr)
-		, m_buffer_size(0)
-		, m_token_idx(-1)
-		, m_last_index(-1)
-		, m_last_token(-1)
-		, m_size(-1)
-	{}
-
 	bdecode_node::bdecode_node(bdecode_node const& n)
 		: m_tokens(n.m_tokens)
 		, m_root_tokens(n.m_root_tokens)
@@ -246,7 +236,6 @@ namespace {
 	}
 
 	bdecode_node::bdecode_node(bdecode_node&&) noexcept = default;
-	bdecode_node& bdecode_node::operator=(bdecode_node&&) noexcept = default;
 
 	bdecode_node::bdecode_node(bdecode_token const* tokens, char const* buf
 		, int len, int idx)

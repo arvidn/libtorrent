@@ -58,8 +58,6 @@ namespace libtorrent {
 		torrent_status(torrent_status const&);
 		torrent_status& operator=(torrent_status const&);
 		torrent_status(torrent_status&&) noexcept;
-		// TODO: 2 msvc and GCC did not make std::string nothrow move-assignable
-		// until C++17
 		torrent_status& operator=(torrent_status&&);
 
 		// compares if the torrent status objects come from the same torrent. i.e.

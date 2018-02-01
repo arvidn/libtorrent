@@ -282,7 +282,7 @@ namespace aux {
 
 		// constructs a torrent handle that does not refer to a torrent.
 		// i.e. is_valid() will return false.
-		torrent_handle() noexcept {}
+		torrent_handle() noexcept = default;
 
 		torrent_handle(torrent_handle const& t) = default;
 		torrent_handle(torrent_handle&& t) noexcept = default;

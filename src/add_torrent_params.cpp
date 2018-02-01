@@ -37,7 +37,6 @@ namespace libtorrent {
 	add_torrent_params::add_torrent_params(storage_constructor_type sc)
 		: storage(std::move(sc)) {}
 	add_torrent_params::add_torrent_params(add_torrent_params&&) noexcept = default;
-	add_torrent_params& add_torrent_params::operator=(add_torrent_params&&) = default;
 	add_torrent_params::add_torrent_params(add_torrent_params const&) = default;
 	add_torrent_params& add_torrent_params::operator=(add_torrent_params const&) = default;
 
