@@ -526,7 +526,7 @@ TORRENT_TEST(lazy_entry)
 
 	{
 		unsigned char buf[] = { 0x44, 0x91, 0x3a };
-		entry ent = bdecode(buf, buf + sizeof(buf));
+		entry ent = bdecode(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf) + sizeof(buf));
 		TEST_CHECK(ent == entry());
 	}
 
