@@ -155,7 +155,7 @@ torrent_handle test_resume_flags(lt::session& ses
 
 	add_torrent_params p;
 	std::vector<char> rd = generate_resume_data(ti.get(), resume_file_prio);
-
+	TORRENT_UNUSED(test_deprecated);
 #ifndef TORRENT_NO_DEPRECATE
 	if (test_deprecated)
 	{
@@ -249,7 +249,7 @@ void test_piece_priorities(bool test_deprecated = false)
 		TEST_EQUAL(prios[std::size_t(ti->num_pieces() - 1)], 0_pri);
 
 		std::vector<char> resume_data = write_resume_data_buf(ra->params);
-
+		TORRENT_UNUSED(test_deprecated);
 #ifndef TORRENT_NO_DEPRECATE
 		if (test_deprecated)
 		{
@@ -856,7 +856,7 @@ void test_zero_file_prio(bool test_deprecated = false)
 
 	std::vector<char> resume_data;
 	bencode(back_inserter(resume_data), rd);
-
+	TORRENT_UNUSED(test_deprecated);
 #ifndef TORRENT_NO_DEPRECATE
 	if (test_deprecated)
 	{

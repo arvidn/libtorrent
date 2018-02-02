@@ -7,8 +7,7 @@ exe test_natpmp : test_natpmp.cpp
 	: # requirements
 	<library>/torrent//torrent
 	<export-extra>on
-# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
-	<toolset>msvc:<cflags>/wd4373
+	<conditional>@warnings
 	: # default-build
 	<threading>multi
 	<asserts>on
@@ -22,8 +21,7 @@ exe enum_if : enum_if.cpp
 	: # requirements
 	<library>/torrent//torrent
 	<export-extra>on
-# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
-	<toolset>msvc:<cflags>/wd4373
+	<conditional>@warnings
 	: # default-build
 	<threading>multi
 	<asserts>on
@@ -80,13 +78,13 @@ project
 	<export-extra>on
 	<library>libtorrent_test
 	<library>/torrent//torrent
-	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
-# disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
-	<toolset>msvc:<cflags>/wd4275
-# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
-	<toolset>msvc:<cflags>/wd4373
-	<toolset>msvc:<cflags>/wd4503
-	<toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
+	# C4127: conditional expression is constant
+	<toolset>msvc:<cflags>/wd4127
+	# C4309: 'conversion' : truncation of constant value
+	<toolset>msvc:<cflags>/wd4309
+	# C4310: cast truncates constant value
+	<toolset>msvc:<cflags>/wd4310
+	<conditional>@warnings
 	<export-extra>on
 	: default-build
 	<threading>multi

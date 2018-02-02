@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -43,10 +44,12 @@ namespace
 {
 	struct natpmp_callback : aux::portmap_callback
 	{
+		virtual ~natpmp_callback() = default;
+
 		void on_port_mapping(port_mapping_t const mapping
 			, address const& ip, int port
 			, portmap_protocol const protocol, error_code const& err
-			, portmap_transport const transport) override
+			, portmap_transport) override
 		{
 			std::cout
 				<< "mapping: " << mapping
@@ -56,12 +59,12 @@ namespace
 				<< ", error: \"" << err.message() << "\"\n";
 		}
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual bool should_log_portmap(portmap_transport transport) const override
+		virtual bool should_log_portmap(portmap_transport) const override
 		{
 			return true;
 		}
 
-		virtual void log_portmap(portmap_transport transport, char const* msg) const override
+		virtual void log_portmap(portmap_transport, char const* msg) const override
 		{
 			std::cout << msg << std::endl;
 		}
@@ -86,9 +89,9 @@ int main(int argc, char* argv[])
 	deadline_timer timer(ios);
 
 	auto const tcp_map = natpmp_handler->add_mapping(portmap_protocol::tcp
-		, atoi(argv[1]), tcp::endpoint({}, atoi(argv[1])));
+		, atoi(argv[1]), tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[1]))));
 	natpmp_handler->add_mapping(portmap_protocol::udp, atoi(argv[2])
-		, tcp::endpoint({}, atoi(argv[2])));
+		, tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[2]))));
 
 	error_code ec;
 	timer.expires_from_now(seconds(2), ec);

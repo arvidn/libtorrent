@@ -475,8 +475,6 @@ TORRENT_TEST(unc_tests)
 		std::string long_file_name2 { long_file_name1 };
 		long_file_name2.back() = '2';
 
-		error_code ec;
-
 		lt::create_directory(long_component_name, ec);
 		TEST_EQUAL(ec, error_code());
 		TEST_CHECK(lt::exists(long_component_name));

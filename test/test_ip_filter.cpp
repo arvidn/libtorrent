@@ -66,7 +66,6 @@ void test_rules_invariant(std::vector<ip_range<T>> const& r, ip_filter const& f)
 	TEST_CHECK(!r.empty());
 	if (r.empty()) return;
 
-	error_code ec;
 	if (sizeof(r.front().first) == sizeof(address_v4))
 	{
 		TEST_CHECK(r.front().first == addr("0.0.0.0"));

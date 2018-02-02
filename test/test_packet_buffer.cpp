@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/packet_pool.hpp"
-#include "libtorrent/aux_/numeric_cast.hpp"
 
 using lt::packet_buffer;
 using lt::packet_ptr;
@@ -45,7 +44,7 @@ namespace {
 packet_ptr make_pkt(packet_pool& pool, int const val)
 {
 	packet_ptr ret = pool.acquire(20);
-	*reinterpret_cast<std::uint8_t*>(ret->buf) = val;
+	*reinterpret_cast<std::uint8_t*>(ret->buf) = std::uint8_t(val);
 	return ret;
 }
 

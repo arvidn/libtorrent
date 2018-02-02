@@ -642,10 +642,11 @@ dht::key_desc_t const sample_infohashes_desc[] = {
 
 void print_state(std::ostream& os, routing_table const& table)
 {
+#define BUFFER_CURSOR_POS &buf[std::size_t(cursor)], buf.size() - std::size_t(cursor)
 	std::vector<char> buf(2048);
 	int cursor = 0;
 
-	cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+	cursor += std::snprintf(BUFFER_CURSOR_POS
 		, "kademlia routing table state\n"
 		"bucket_size: %d\n"
 		"global node count: %" PRId64 "\n"
@@ -661,27 +662,27 @@ void print_state(std::ostream& os, routing_table const& table)
 	for (auto i = table.buckets().begin(), end(table.buckets().end());
 		i != end; ++i, ++idx)
 	{
-		cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+		cursor += std::snprintf(BUFFER_CURSOR_POS
 			, "%2d: ", idx);
 		for (int k = 0; k < int(i->live_nodes.size()); ++k)
-			cursor += std::snprintf(&buf[cursor], buf.size() - cursor, "#");
+			cursor += std::snprintf(BUFFER_CURSOR_POS, "#");
 		for (int k = 0; k < int(i->replacements.size()); ++k)
-			cursor += std::snprintf(&buf[cursor], buf.size() - cursor, "-");
-		cursor += std::snprintf(&buf[cursor], buf.size() - cursor, "\n");
+			cursor += std::snprintf(BUFFER_CURSOR_POS, "-");
+		cursor += std::snprintf(BUFFER_CURSOR_POS, "\n");
 
 		if (cursor > int(buf.size()) - 500) buf.resize(buf.size() * 3 / 2);
 	}
 
 	time_point now = aux::time_now();
 
-	cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+	cursor += std::snprintf(BUFFER_CURSOR_POS
 		, "\nnodes:");
 
 	int bucket_index = 0;
 	for (auto i = table.buckets().begin(), end(table.buckets().end());
 		i != end; ++i, ++bucket_index)
 	{
-		cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+		cursor += std::snprintf(BUFFER_CURSOR_POS
 			, "\n=== BUCKET == %d == %d|%d ==== \n"
 			, bucket_index, int(i->live_nodes.size())
 			, int(i->replacements.size()));
@@ -712,23 +713,23 @@ void print_state(std::ostream& os, routing_table const& table)
 			node_id id = j->id;
 			id <<= id_shift;
 
-			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+			cursor += std::snprintf(BUFFER_CURSOR_POS
 				, " prefix: %2x id: %s"
 				, ((id[0] & top_mask) >> mask_shift)
 				, aux::to_hex(j->id).c_str());
 
 			if (j->rtt == 0xffff)
 			{
-				cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+				cursor += std::snprintf(BUFFER_CURSOR_POS
 					, " rtt:     ");
 			}
 			else
 			{
-				cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+				cursor += std::snprintf(BUFFER_CURSOR_POS
 					, " rtt: %4d", j->rtt);
 			}
 
-			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+			cursor += std::snprintf(BUFFER_CURSOR_POS
 				, " fail: %4d ping: %d dist: %3d"
 				, j->fail_count()
 				, j->pinged()
@@ -736,22 +737,22 @@ void print_state(std::ostream& os, routing_table const& table)
 
 			if (j->last_queried == min_time())
 			{
-				cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+				cursor += std::snprintf(BUFFER_CURSOR_POS
 					, " query:    ");
 			}
 			else
 			{
-				cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+				cursor += std::snprintf(BUFFER_CURSOR_POS
 					, " query: %3d", int(total_seconds(now - j->last_queried)));
 			}
 
-			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+			cursor += std::snprintf(BUFFER_CURSOR_POS
 				, " ip: %s\n", print_endpoint(j->ep()).c_str());
 			if (cursor > int(buf.size()) - 500) buf.resize(buf.size() * 3 / 2);
 		}
 	}
 
-	cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+	cursor += std::snprintf(BUFFER_CURSOR_POS
 		, "\nnode spread per bucket:\n");
 	bucket_index = 0;
 	for (auto i = table.buckets().begin(), end(table.buckets().end());
@@ -796,20 +797,21 @@ void print_state(std::ostream& os, routing_table const& table)
 			sub_buckets[b] = true;
 		}
 
-		cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+		cursor += std::snprintf(BUFFER_CURSOR_POS
 			, "%2d mask: %2x: [", bucket_index, (top_mask >> mask_shift));
 
 		for (int j = 0; j < bucket_size_limit; ++j)
 		{
-			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+			cursor += std::snprintf(BUFFER_CURSOR_POS
 				, (sub_buckets[j] ? "X" : " "));
 		}
-		cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+		cursor += std::snprintf(BUFFER_CURSOR_POS
 			, "]\n");
 		if (cursor > int(buf.size()) - 500) buf.resize(buf.size() * 3 / 2);
 	}
-	buf[cursor] = '\0';
+	buf[std::size_t(cursor)] = '\0';
 	os << &buf[0];
+#undef BUFFER_CURSOR_POS
 }
 
 } // anonymous namespace
