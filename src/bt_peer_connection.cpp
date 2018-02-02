@@ -851,7 +851,7 @@ namespace {
 				// m_outstanding_bytes
 				if (r.piece == t->torrent_file().last_piece())
 				{
-					r.length = (std::min)(t->torrent_file().piece_size(
+					r.length = std::min(t->torrent_file().piece_size(
 						r.piece) - r.start, r.length);
 				}
 				incoming_reject_request(r);
@@ -1179,8 +1179,8 @@ namespace {
 					|| e.list_at(1).type() != bdecode_node::string_t
 					|| e.list_at(1).string_length() != 20) continue;
 
-				nodes.insert(std::make_pair(int(e.list_int_value_at(0))
-					, sha1_hash(e.list_at(1).string_ptr())));
+				nodes.emplace(int(e.list_int_value_at(0))
+					, sha1_hash(e.list_at(1).string_ptr()));
 			}
 			if (!nodes.empty() && !t->add_merkle_nodes(nodes, p.piece))
 			{
@@ -1948,7 +1948,7 @@ namespace {
 
 		// Don't require the bitfield to have been sent at this point
 		// the case where m_sent_bitfield may not be true is if the
-		// torrent doesn't have any metadata, and a peer is timimg out.
+		// torrent doesn't have any metadata, and a peer is timing out.
 		// then the keep-alive message will be sent before the bitfield
 		// this is a violation to the original protocol, but necessary
 		// for the metadata extension.
@@ -2321,9 +2321,9 @@ namespace {
 			l.reserve(merkle_node_list.size());
 			for (auto const& i : merkle_node_list)
 			{
-				l.push_back(entry(entry::list_t));
-				l.back().list().push_back(i.first);
-				l.back().list().push_back(i.second.to_string());
+				l.emplace_back(entry::list_t);
+				l.back().list().emplace_back(i.first);
+				l.back().list().emplace_back(i.second.to_string());
 			}
 			bencode(std::back_inserter(piece_list_buf), piece_list);
 			detail::write_int32(int(piece_list_buf.size()), ptr);
@@ -2763,7 +2763,7 @@ namespace {
 				// otherwise keep the least significant one
 				if (m_settings.get_bool(settings_pack::prefer_rc4))
 				{
-					std::uint32_t mask = (std::numeric_limits<std::uint32_t>::max)();
+					std::uint32_t mask = std::numeric_limits<std::uint32_t>::max();
 					while (crypto_select & (mask << 1))
 					{
 						mask <<= 1;
@@ -2772,7 +2772,7 @@ namespace {
 				}
 				else
 				{
-					std::uint32_t mask = (std::numeric_limits<std::uint32_t>::max)();
+					std::uint32_t mask = std::numeric_limits<std::uint32_t>::max();
 					while (crypto_select & (mask >> 1))
 					{
 						mask >>= 1;
