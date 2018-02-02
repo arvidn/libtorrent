@@ -703,6 +703,7 @@ void test_fastresume(bool const test_deprecated)
 		bencode(std::back_inserter(resume_data), resume);
 
 		add_torrent_params p;
+		TORRENT_UNUSED(test_deprecated);
 #ifndef TORRENT_NO_DEPRECATE
 		if (test_deprecated)
 		{
@@ -888,7 +889,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		add_torrent_params p;
 		std::vector<char> resume_data;
 		bencode(std::back_inserter(resume_data), resume_ent);
-
+		TORRENT_UNUSED(test_deprecated);
 #ifndef TORRENT_NO_DEPRECATE
 		if (test_deprecated)
 		{

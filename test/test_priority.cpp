@@ -289,6 +289,7 @@ done:
 
 	std::cout << "re-adding" << std::endl;
 	add_torrent_params p;
+	TORRENT_UNUSED(test_deprecated);
 #ifndef TORRENT_NO_DEPRECATE
 	if (test_deprecated)
 	{
