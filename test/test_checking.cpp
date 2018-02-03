@@ -241,30 +241,9 @@ void test_checking(int flags = read_only_files)
 	{
 		TEST_CHECK(!st.is_seeding);
 
-		if (flags & read_only_files)
-		{
-			// we expect our checking of the files to trigger
-			// attempts to truncate them, since the files are
-			// read-only here, we expect the checking to fail.
-			TEST_CHECK(st.errc);
-			if (st.errc)
-				fprintf(stdout, "error: %s\n", st.errc.message().c_str());
-
-			// wait a while to make sure libtorrent survived the error
-			test_sleep(1000);
-
-			st = tor1.status();
-			TEST_CHECK(!st.is_seeding);
-			TEST_CHECK(st.errc);
-			if (st.errc)
-				fprintf(stdout, "error: %s\n", st.errc.message().c_str());
-		}
-		else
-		{
-			TEST_CHECK(!st.errc);
-			if (st.errc)
-				fprintf(stdout, "error: %s\n", st.errc.message().c_str());
-		}
+		TEST_CHECK(!st.errc);
+		if (st.errc)
+			fprintf(stdout, "error: %s\n", st.errc.message().c_str());
 	}
 
 	if ((flags & (incomplete_files | corrupt_files)) == 0)
