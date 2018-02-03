@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/torrent_status.hpp"
+#include "libtorrent/torrent_info.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/utils.hpp"
 
@@ -41,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "create_torrent.hpp"
 #include "utils.hpp"
+
+#include <fstream>
 
 template <typename Setup, typename Test>
 void run_test(Setup const& setup, Test const& test)
@@ -74,6 +77,28 @@ void run_test(Setup const& setup, Test const& test)
 	});
 
 	sim.run();
+}
+
+TORRENT_TEST(no_truncate_checking)
+{
+	std::string filename;
+	int size = 0;
+	run_test(
+		[&](lt::add_torrent_params& atp, lt::settings_pack& p) {
+			filename = lt::current_working_directory() + "/" + atp.save_path + "/" + atp.ti->files().file_path(0);
+			std::ofstream f(filename);
+			// create a file that's 100 bytes larger
+			size = atp.ti->files().file_size(0) + 100;
+			std::vector<char> dummy(size);
+			f.write(dummy.data(), dummy.size());
+		},
+		[](lt::session& ses) {}
+		);
+
+	// file should not have been truncated just by checking
+	std::ifstream f(filename);
+	f.seekg(0, std::ios_base::end);
+	TEST_EQUAL(f.tellg(), std::fstream::pos_type(size));
 }
 
 TORRENT_TEST(cache_after_checking)
