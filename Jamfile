@@ -198,9 +198,6 @@ rule warnings ( properties * )
 		result += <cflags>-Wvla ;
 		result += <cxxflags>-Wc++11-compat ;
 		result += <cflags>-Wno-format-zero-length ;
-
-# enable these warnings again, once the other ones are dealt with
-		result += <cflags>-Wno-unused-variable ;
 	}
 
 	if <toolset>msvc in $(properties)
