@@ -481,6 +481,29 @@ endif()
 
 list(APPEND sources2 ${include_files})
 
+if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
+	add_compile_options(
+		-Weverything
+		-Wno-documentation
+		-Wno-c++98-compat-pedantic
+		-Wno-padded
+		-Wno-global-constructors
+		-Wno-exit-time-destructors
+		-Wno-weak-vtables)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
+	add_compile_options(
+		-Wall
+		-Wextra
+		-Wpedantic
+		-Wparentheses
+		-Wvla
+		-Wc++11-compat
+		-Wno-format-zero-length
+		-ftemplate-depth=512)
+endif()
+
 if (shared)
 	add_library(torrent-rasterbar SHARED ${sources2})
 	target_compile_definitions(torrent-rasterbar PRIVATE TORRENT_BUILDING_SHARED)
@@ -513,29 +536,6 @@ else()
 endif()
 
 target_compile_features(torrent-rasterbar PUBLIC cxx_std_11)
-
-if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
-	target_compile_options(torrent-rasterbar PUBLIC
-		-Weverything
-		-Wno-documentation
-		-Wno-c++98-compat-pedantic
-		-Wno-padded
-		-Wno-global-constructors
-		-Wno-exit-time-destructors
-		-Wno-weak-vtables)
-endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
-	target_compile_options(torrent-rasterbar PUBLIC
-		-Wall
-		-Wextra
-		-Wpedantic
-		-Wparentheses
-		-Wvla
-		-Wc++11-compat
-		-Wno-format-zero-length
-		-ftemplate-depth=512)
-endif()
 
 target_compile_definitions(torrent-rasterbar PUBLIC $<$<CONFIG:Debug>:TORRENT_DEBUG>)
 
