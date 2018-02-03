@@ -4,10 +4,6 @@ project(libtorrent)
 set (SOVERSION "10")
 set (VERSION "1.2.0")
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 list(APPEND CMAKE_MODULE_PATH ${libtorrent_SOURCE_DIR}/cmake/Modules)
 
 set(libtorrent_include_files
@@ -36,6 +32,7 @@ set(libtorrent_include_files
 	choker
 	close_reason
 	config
+	ConvertUTF
 	copy_ptr
 	crc32c
 	create_torrent
@@ -484,29 +481,6 @@ endif()
 
 list(APPEND sources2 ${include_files})
 
-if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
-	add_compile_options(
-		-Weverything
-		-Wno-documentation
-		-Wno-c++98-compat-pedantic
-		-Wno-padded
-		-Wno-global-constructors
-		-Wno-exit-time-destructors
-		-Wno-weak-vtables)
-endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
-	add_compile_options(
-		-Wall
-		-Wextra
-		-Wpedantic
-		-Wparentheses
-		-Wvla
-		-Wc++11-compat
-		-Wno-format-zero-length
-		-ftemplate-depth=512)
-endif()
-
 if (shared)
 	add_library(torrent-rasterbar SHARED ${sources2})
 	target_compile_definitions(torrent-rasterbar PRIVATE TORRENT_BUILDING_SHARED)
@@ -536,6 +510,31 @@ else()
 	endif()
 	set(Boost_USE_STATIC_LIBS ON)
 	add_library(torrent-rasterbar STATIC ${sources2})
+endif()
+
+target_compile_features(torrent-rasterbar PUBLIC cxx_std_11)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
+	target_compile_options(torrent-rasterbar PUBLIC
+		-Weverything
+		-Wno-documentation
+		-Wno-c++98-compat-pedantic
+		-Wno-padded
+		-Wno-global-constructors
+		-Wno-exit-time-destructors
+		-Wno-weak-vtables)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
+	target_compile_options(torrent-rasterbar PUBLIC
+		-Wall
+		-Wextra
+		-Wpedantic
+		-Wparentheses
+		-Wvla
+		-Wc++11-compat
+		-Wno-format-zero-length
+		-ftemplate-depth=512)
 endif()
 
 target_compile_definitions(torrent-rasterbar PUBLIC $<$<CONFIG:Debug>:TORRENT_DEBUG>)
