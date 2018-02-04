@@ -490,9 +490,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 		-Wno-global-constructors
 		-Wno-exit-time-destructors
 		-Wno-weak-vtables)
-endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 	add_compile_options(
 		-Wall
 		-Wextra
@@ -502,6 +500,23 @@ if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-Wc++11-compat
 		-Wno-format-zero-length
 		-ftemplate-depth=512)
+elseif(MSVC)
+	add_compile_options(
+		/W4
+		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
+		#        used by clients of class 'type2'
+		/wd4251
+		# C4275: non DLL-interface classkey 'identifier' used as base for
+		#        DLL-interface classkey 'identifier'
+		/wd4275
+		# C4373: virtual function overrides, previous versions of the compiler
+		#        did not override when parameters only differed by const/volatile qualifiers
+		/wd4373
+		# C4268: 'identifier' : 'const' static/global data initialized
+		#        with compiler generated default constructor fills the object with zeros
+		/wd4268
+		# C4503: 'identifier': decorated name length exceeded, name was truncated
+		/wd4503)
 endif()
 
 if (shared)

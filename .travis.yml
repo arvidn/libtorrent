@@ -228,8 +228,7 @@ script:
   - cd ..
 
 # minimal support for cmake build
-  - mkdir build
-  - cd build
+  - mkdir build && cd build
   - if [[ "$cmake" == "1" ]]; then
       export CXX=g++-5 &&
       export CC=gcc-5 &&

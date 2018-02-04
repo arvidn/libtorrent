@@ -20,6 +20,7 @@ environment:
     model: 64
     python: 1
     crypto: openssl
+    cmake: 1
   - variant: test_debug
     compiler: gcc
     model: 32
@@ -89,6 +90,14 @@ build_script:
 - cd %ROOT_DIRECTORY%\simulation
 - if defined sim (
   b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP testing.execute=off
+  )
+
+# minimal support for cmake build
+- cd %ROOT_DIRECTORY%
+- mkdir build && cd build
+- if defined cmake (
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="/WX" -G "Visual Studio 14 2015 Win64" .. &&
+  cmake --build .
   )
 
 test_script:
