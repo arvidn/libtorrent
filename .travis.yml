@@ -9,7 +9,7 @@ matrix:
     - env: variant=test_debug lint=1 tests=1 toolset=gcc-sanitizer
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
-    - env: autotools=1 toolset=gcc
+    - env: cmake=1 autotools=1 toolset=gcc
     - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 python=1 toolset=darwin ios=1
       os: osx
       osx_image: xcode9.2
@@ -225,6 +225,17 @@ script:
   - 'if [[ "$sim" == "1" ]]; then
       bjam -j2 crypto=built-in warnings-as-errors=on debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset deprecated-functions=off;
     fi'
+  - cd ..
+
+# minimal support for cmake build
+  - mkdir build
+  - cd build
+  - if [[ "$cmake" == "1" ]]; then
+      export CXX=g++-5 &&
+      export CC=gcc-5 &&
+      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -Dbuild_tests=ON -G "CodeBlocks - Unix Makefiles" .. &&
+      cmake --build . -- -j2;
+    fi
   - cd ..
 
 # run through autotools and ./configure to make sure it works
