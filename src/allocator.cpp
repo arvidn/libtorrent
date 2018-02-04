@@ -35,10 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp" // for print_backtrace
 #include <cstdint>
 
-#if defined TORRENT_BEOS
-#include <kernel/OS.h>
-#include <stdlib.h> // malloc/free
-#elif !defined TORRENT_WINDOWS
+#if !defined TORRENT_WINDOWS
 #include <cstdlib> // posix_memalign/free
 #include <unistd.h> // _SC_PAGESIZE
 #endif
@@ -119,10 +116,6 @@ namespace libtorrent {
 		ret = ::memalign(std::size_t(page_size()), std::size_t(bytes));
 #elif defined TORRENT_WINDOWS
 		ret = ::_aligned_malloc(std::size_t(bytes), std::size_t(page_size()));
-#elif defined TORRENT_BEOS
-		area_id id = create_area("", &ret, B_ANY_ADDRESS
-			, (bytes + page_size() - 1) & (page_size() - 1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
-		if (id < B_OK) return nullptr;
 #else
 		ret = valloc(std::size_t(bytes));
 #endif
@@ -188,10 +181,6 @@ namespace libtorrent {
 
 #ifdef TORRENT_WINDOWS
 		_aligned_free(block);
-#elif defined TORRENT_BEOS
-		area_id id = area_for(block);
-		if (id < B_OK) return;
-		delete_area(id);
 #else
 		::free(block);
 #endif // TORRENT_WINDOWS

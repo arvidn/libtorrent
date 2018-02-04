@@ -93,6 +93,12 @@ rule linking ( properties * )
 		result += <library>netkit <library>gcc ;
 	}
 
+	if <target-os>haiku in $(properties)
+	{
+		result += <library>libnetwork <library>gcc ;
+	}
+
+
 	if <target-os>solaris in $(properties)
 	{
 		result += <library>libsocket <library>libnsl ;
@@ -589,6 +595,7 @@ lib dl : : <link>shared <name>dl ;
 
 lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib <link>shared ;
 lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
+lib libnetwork : : <name>network <link>shared ;
 
 # socket libraries on windows
 lib wsock32 : : <name>wsock32 <link>shared ;

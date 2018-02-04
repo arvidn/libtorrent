@@ -790,7 +790,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		udp::resolver::iterator i = r.resolve(udp::resolver::query(boost::asio::ip::host_name(ec), "0"), ec);
 		if (ec) return ret;
 		ip_interface iface;
-		for (;i != udp::resolver_iterator(); ++i)
+		for (;i != udp::resolver::iterator(); ++i)
 		{
 			iface.interface_address = i->endpoint().address();
 			iface.name[0] = '\0';
@@ -815,6 +815,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	{
 		std::vector<ip_route> ret;
 		TORRENT_UNUSED(ios);
+		TORRENT_UNUSED(ec);
 
 #ifdef TORRENT_BUILD_SIMULATOR
 

@@ -307,6 +307,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
 #endif
+#define TORRENT_USE_MEMALIGN 1
 
 // ==== GNU/Hurd ===
 #elif defined __GNU__
