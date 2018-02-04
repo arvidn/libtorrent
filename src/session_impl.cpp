@@ -6233,7 +6233,7 @@ namespace aux {
 		template <typename Socket>
 		void set_tos(Socket& s, int v, error_code& ec)
 		{
-#if TORRENT_USE_IPV6
+#if TORRENT_USE_IPV6 && defined IPV6_TCLASS
 			if (s.local_endpoint(ec).address().is_v6())
 				s.set_option(traffic_class(char(v)), ec);
 			else if (!ec)

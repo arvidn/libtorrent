@@ -1681,6 +1681,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	{
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_ASSERT(r.length <= 16 * 1024);
+		TORRENT_ASSERT(buf != nullptr);
 
 		bool exceeded = false;
 		disk_buffer_holder buffer(*this, m_disk_cache.allocate_buffer(exceeded, o, "receive buffer"), 0x4000);
