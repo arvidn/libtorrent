@@ -338,11 +338,11 @@ namespace libtorrent {
 		// ``last_piece()`` returns the index to the last piece in the torrent and
 		// ``end_piece()`` returns the index to the one-past-end piece in the
 		// torrent
-		piece_index_t last_piece() const { return {m_files.num_pieces() - 1}; }
+		piece_index_t last_piece() const { return piece_index_t(m_files.num_pieces() - 1); }
 		piece_index_t end_piece() const
 		{
 			TORRENT_ASSERT(m_files.num_pieces() > 0);
-			return {m_files.num_pieces()};
+			return piece_index_t(m_files.num_pieces());
 		}
 
 		// returns the info-hash of the torrent
