@@ -163,7 +163,7 @@ namespace libtorrent {
 		explicit torrent_info(span<char const> buffer, from_span_t);
 		explicit torrent_info(std::string const& filename);
 #endif // BOOST_NO_EXCEPTIONS
-		explicit torrent_info(torrent_info const& t);
+		torrent_info(torrent_info const& t);
 		explicit torrent_info(sha1_hash const& info_hash);
 		torrent_info(bdecode_node const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec)
@@ -338,11 +338,11 @@ namespace libtorrent {
 		// ``last_piece()`` returns the index to the last piece in the torrent and
 		// ``end_piece()`` returns the index to the one-past-end piece in the
 		// torrent
-		piece_index_t last_piece() const { return piece_index_t(m_files.num_pieces() - 1); }
+		piece_index_t last_piece() const { return {m_files.num_pieces() - 1}; }
 		piece_index_t end_piece() const
 		{
 			TORRENT_ASSERT(m_files.num_pieces() > 0);
-			return piece_index_t(m_files.num_pieces());
+			return {m_files.num_pieces()};
 		}
 
 		// returns the info-hash of the torrent
