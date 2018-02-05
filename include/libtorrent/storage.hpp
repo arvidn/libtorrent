@@ -444,6 +444,14 @@ namespace libtorrent {
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 		std::string m_save_path;
 		std::string m_part_file_name;
+
+		// if this is false, we're not using a part file to store priority-0
+		// pieces, but we instead look for them under their actual file names
+		// this defaults to true, but when checking resume data for a torrent
+		// where we would expect to have a part file, but there isn't one, we set
+		// this to false.
+		bool m_use_part_file = true;
+
 		// the file pool is a member of the disk_io_thread
 		// to make all storage instances share the pool
 		file_pool& m_pool;

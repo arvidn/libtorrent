@@ -84,6 +84,8 @@ using lt::address_v4;
 using lt::address_v6;
 #endif
 
+using std::chrono::duration_cast;
+
 #ifdef _WIN32
 
 #include <windows.h>
@@ -1676,6 +1678,13 @@ COLUMN OPTIONS
 
 			if (print_trackers)
 			{
+				snprintf(str, sizeof(str), "next_announce: %4" PRId64 " | current tracker: %s\x1b[K\n"
+					, std::int64_t(duration_cast<seconds>(s.next_announce).count())
+					, s.current_tracker.c_str());
+				out += str;
+				pos += 1;
+				std::vector<lt::announce_entry> tr = h.trackers();
+				lt::time_point now = lt::clock_type::now();
 				for (lt::announce_entry const& ae : h.trackers())
 				{
 					auto best_ae = std::min_element(ae.endpoints.begin(), ae.endpoints.end()

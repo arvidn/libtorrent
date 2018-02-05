@@ -469,7 +469,8 @@ namespace libtorrent {
 			}
 
 			if (file_index < m_file_priority.end_index()
-				&& m_file_priority[file_index] == dont_download)
+				&& m_file_priority[file_index] == dont_download
+				&& m_use_part_file)
 			{
 				TORRENT_ASSERT(m_part_file);
 
@@ -532,7 +533,8 @@ namespace libtorrent {
 			}
 
 			if (file_index < m_file_priority.end_index()
-				&& m_file_priority[file_index] == dont_download)
+				&& m_file_priority[file_index] == dont_download
+				&& m_use_part_file)
 			{
 				TORRENT_ASSERT(m_part_file);
 
