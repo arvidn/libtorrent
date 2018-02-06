@@ -163,7 +163,7 @@ namespace libtorrent {
 		explicit torrent_info(span<char const> buffer, from_span_t);
 		explicit torrent_info(std::string const& filename);
 #endif // BOOST_NO_EXCEPTIONS
-		explicit torrent_info(torrent_info const& t);
+		torrent_info(torrent_info const& t);
 		explicit torrent_info(sha1_hash const& info_hash);
 		torrent_info(bdecode_node const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec)

@@ -200,8 +200,6 @@ namespace libtorrent {
 		, m_padding(0)
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
-		, m_is_active_download(false)
-		, m_is_active_finished(false)
 		, m_ssl_torrent(false)
 		, m_deleted(false)
 		, m_auto_managed(p.flags & torrent_flags::auto_managed)
