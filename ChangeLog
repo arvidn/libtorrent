@@ -1,4 +1,5 @@
 
+	* fix issue when receiving a torrent with 0-sized padfiles as magnet link
 	* fix issue resuming 1.0.x downloads with a file priority 0
 	* fix torrent_status::next_announce
 	* fix pad-file scalability issue

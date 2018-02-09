@@ -2018,6 +2018,8 @@ namespace libtorrent
 		}
 		else
 		{
+			need_picker();
+
 			int num_pad_files = 0;
 			TORRENT_ASSERT(block_size() > 0);
 			file_storage const& fs = m_torrent_file->files();
@@ -2028,10 +2030,6 @@ namespace libtorrent
 				if (fs.pad_file_at(i)) ++num_pad_files;
 
 				m_padding += boost::uint32_t(fs.file_size(i));
-
-				// TODO: instead of creating the picker up front here,
-				// maybe this whole section should move to need_picker()
-				need_picker();
 
 				peer_request pr = m_torrent_file->map_file(i, 0, fs.file_size(i));
 				int off = pr.start & (block_size()-1);
