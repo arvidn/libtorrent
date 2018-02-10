@@ -239,9 +239,9 @@ namespace libtorrent {
 			// ignore pad files
 			if (files().pad_file_at(file_index)) continue;
 
+			// this is just to see if the file exists
 			error_code err;
-			std::int64_t size = m_stat_cache.get_filesize(file_index, files()
-				, m_save_path, err);
+			m_stat_cache.get_filesize(file_index, files(), m_save_path, err);
 
 			if (err && err != boost::system::errc::no_such_file_or_directory)
 			{
@@ -251,11 +251,12 @@ namespace libtorrent {
 				break;
 			}
 
-			// if the file already exists, but is larger than what
-			// it's supposed to be, truncate it
-			// if the file is empty, just create it either way.
-			if ((!err && size > files().file_size(file_index))
-				|| (files().file_size(file_index) == 0 && err == boost::system::errc::no_such_file_or_directory))
+			// if the file is empty and doesn't already exist, create it
+			// deliberately don't truncate files that already exist
+			// if a file is supposed to have size 0, but already exists, we will
+			// never truncate it to 0.
+			if (files().file_size(file_index) == 0
+				&& err == boost::system::errc::no_such_file_or_directory)
 			{
 				std::string file_path = files().file_path(file_index, m_save_path);
 				std::string dir = parent_path(file_path);
@@ -273,23 +274,12 @@ namespace libtorrent {
 					}
 				}
 				ec.ec.clear();
+				// just creating the file is enough to make it zero-sized. If
+				// there's a race here and some other process truncates the file,
+				// it's not a problem, we won't access empty files ever again
 				file_handle f = open_file(file_index, open_mode::read_write
 					| open_mode::random_access, ec);
-				if (ec)
-				{
-					ec.file(file_index);
-					ec.operation = operation_t::file_fallocate;
-					return;
-				}
-
-				size = files().file_size(file_index);
-				f->set_size(size, ec.ec);
-				if (ec)
-				{
-					ec.file(file_index);
-					ec.operation = operation_t::file_fallocate;
-					break;
-				}
+				if (ec) return;
 			}
 			ec.ec.clear();
 		}
@@ -617,7 +607,7 @@ namespace libtorrent {
 		}
 		TORRENT_ASSERT(h);
 
-		if (m_allocate_files && (mode & open_mode::rw_mask) != open_mode::read_only)
+		if ((mode & open_mode::rw_mask) != open_mode::read_only)
 		{
 			std::unique_lock<std::mutex> l(m_file_created_mutex);
 			if (m_file_created.size() != files().num_files())
@@ -632,9 +622,12 @@ namespace libtorrent {
 			{
 				m_file_created.set_bit(file);
 				l.unlock();
-				error_code e;
+
+				// if we're allocating files or if the file exists and is greater
+				// than what it's supposed to be, truncate it to its correct size
 				std::int64_t const size = files().file_size(file);
-				h->set_size(size, e);
+				error_code e;
+				bool const need_truncate = h->get_size(e) > size;
 				if (e)
 				{
 					ec.ec = e;
@@ -642,7 +635,19 @@ namespace libtorrent {
 					ec.operation = operation_t::file_fallocate;
 					return h;
 				}
-				m_stat_cache.set_dirty(file);
+
+				if (m_allocate_files || need_truncate)
+				{
+					h->set_size(size, e);
+					if (e)
+					{
+						ec.ec = e;
+						ec.file(file);
+						ec.operation = operation_t::file_fallocate;
+						return h;
+					}
+					m_stat_cache.set_dirty(file);
+				}
 			}
 		}
 		return h;
