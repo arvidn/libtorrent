@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ssl_stream.hpp"
 #endif
 
-#include "libtorrent/session.hpp" // for user_load_function_t
+#include "libtorrent/session.hpp"
 #include "libtorrent/ip_voter.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
@@ -351,10 +351,6 @@ namespace aux {
 			std::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const override;
 #ifndef TORRENT_NO_DEPRECATE
 			//deprecated in 1.2
-
-			TORRENT_DEPRECATED
-			void set_load_function(user_load_function_t fun)
-			{ m_user_load_torrent = fun; }
 
 			TORRENT_DEPRECATED
 			std::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
@@ -1266,10 +1262,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// this is a list to allow extensions to potentially remove themselves.
 			std::array<std::vector<std::shared_ptr<plugin>>, 4> m_ses_extensions;
-#endif
-
-#ifndef TORRENT_NO_DEPRECATE
-			user_load_function_t m_user_load_torrent;
 #endif
 
 			// this is true whenever we have posted a deferred-disk job
