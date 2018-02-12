@@ -84,7 +84,6 @@ namespace libtorrent {
 
 		void name_lookup(error_code const& error
 			, std::vector<address> const& addresses, int port);
-		void timeout(error_code const& error);
 		void start_announce();
 
 		bool on_receive(udp::endpoint const& ep, span<char const> buf);

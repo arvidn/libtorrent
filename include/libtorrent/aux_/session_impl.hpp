@@ -209,9 +209,9 @@ namespace aux {
 
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
 		{
-			listen_endpoint_t(address adr, int p, std::string dev, transport s
+			listen_endpoint_t(address const& adr, int p, std::string dev, transport s
 				, duplex d = duplex::accept_incoming)
-				: addr(adr), port(p), device(dev), ssl(s), incoming(d) {}
+				: addr(adr), port(p), device(std::move(dev)), ssl(s), incoming(d) {}
 
 			bool operator==(listen_endpoint_t const& o) const
 			{
@@ -289,7 +289,7 @@ namespace aux {
 
 			struct session_plugin_wrapper : plugin
 			{
-				explicit session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
+				explicit session_plugin_wrapper(ext_function_t f) : m_f(std::move(f)) {}
 
 				std::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user) override
 				{ return m_f(t, user); }
@@ -592,7 +592,6 @@ namespace aux {
 
 			void get_cache_info(torrent_handle h, cache_status* ret, int flags) const;
 
-			void set_key(std::uint32_t key);
 			std::uint16_t listen_port() const override;
 			std::uint16_t listen_port(listen_socket_t* sock) const;
 			std::uint16_t ssl_listen_port() const override;
@@ -658,9 +657,6 @@ namespace aux {
 			int next_port() const;
 
 			void deferred_submit_jobs() override;
-
-			torrent_peer* allocate_peer_entry(int type);
-			void free_peer_entry(torrent_peer* p);
 
 			// implements dht_observer
 			void set_external_address(aux::listen_socket_handle const& iface
@@ -788,7 +784,7 @@ namespace aux {
 			void on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih) override;
 
 			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
-				, ip_source_t const source_type, address const& source);
+				, ip_source_t source_type, address const& source);
 
 			void interface_to_endpoints(std::string const& device, int port
 				, transport ssl, duplex incoming, std::vector<listen_endpoint_t>& eps);
