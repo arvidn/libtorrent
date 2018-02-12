@@ -64,7 +64,7 @@ namespace aux {
 	//
 	// This data structure is 32 bits aligned, like it's the case for
 	// each SHA-N specification.
-	template <int N>
+	template <std::size_t N>
 	class digest32
 	{
 		static_assert(N % 32 == 0, "N must be a multiple of 32");

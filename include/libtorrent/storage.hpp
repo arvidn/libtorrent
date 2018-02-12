@@ -366,7 +366,7 @@ namespace libtorrent {
 		// the file_storage object is owned by the torrent.
 		std::shared_ptr<void> m_torrent;
 
-		storage_index_t m_storage_index;
+		storage_index_t m_storage_index{0};
 
 		// the number of block_cache_reference objects referencing this storage
 		std::atomic<int> m_references{1};
@@ -424,8 +424,6 @@ namespace libtorrent {
 		}
 
 	private:
-
-		void delete_one_file(std::string const& p, error_code& ec);
 
 		void need_partfile();
 
