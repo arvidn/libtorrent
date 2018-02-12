@@ -155,11 +155,11 @@ namespace aux {
 			std::weak_ptr<torrent> t
 			, aux::session_interface& ses
 			, aux::session_settings const& sett)
-			: m_torrent(t)
+			: m_torrent(std::move(t))
 			, m_ses(ses)
 			, m_settings(sett)
 			, m_disconnecting(false)
-			, m_connecting(!t.expired())
+			, m_connecting(!m_torrent.expired())
 			, m_endgame_mode(false)
 			, m_snubbed(false)
 			, m_interesting(false)
@@ -442,8 +442,6 @@ namespace aux {
 		// is called once every second by the main loop
 		void second_tick(int tick_interval_ms);
 
-		void timeout_requests();
-
 		std::shared_ptr<aux::socket_type> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const override { return m_remote; }
 		tcp::endpoint local_endpoint() const override { return m_local; }
@@ -472,11 +470,6 @@ namespace aux {
 		// returns true if this connection is still waiting to
 		// finish the connection attempt
 		bool is_connecting() const { return m_connecting; }
-
-		// This is called for every peer right after the upload
-		// bandwidth has been distributed among them
-		// It will reset the used bandwidth to 0.
-		void reset_upload_quota();
 
 		// trust management.
 		virtual void received_valid_data(piece_index_t index);
@@ -653,7 +646,7 @@ namespace aux {
 		bool piece_failed;
 #endif
 
-		time_t last_seen_complete() const { return m_last_seen_complete; }
+		std::time_t last_seen_complete() const { return m_last_seen_complete; }
 		void set_last_seen_complete(int ago) { m_last_seen_complete = ::time(nullptr) - ago; }
 
 		std::int64_t uploaded_in_last_round() const
@@ -844,10 +837,6 @@ namespace aux {
 #endif
 	private:
 
-		// the average rate of receiving complete piece messages
-		sliding_average<20> m_piece_rate;
-		sliding_average<20> m_send_rate;
-
 		// the average time between incoming pieces. Or, if there is no
 		// outstanding request, the time since the piece was requested. It
 		// is essentially an estimate of the time it will take to completely
@@ -982,10 +971,6 @@ namespace aux {
 
 		// remote peer's id
 		peer_id m_peer_id;
-
-		// the bandwidth channels, upload and download
-		// keeps track of the current quotas
-		bandwidth_channel m_bandwidth_channel[num_channels];
 
 	protected:
 
