@@ -130,16 +130,6 @@ struct ip_set
 // 	bucket has failed, then it is put in the replacement
 // 	cache (just like in the paper).
 
-namespace impl
-{
-	template <typename F>
-	inline void forwarder(void* userdata, node_entry const& node)
-	{
-		F* f = reinterpret_cast<F*>(userdata);
-		(*f)(node);
-	}
-}
-
 TORRENT_EXTRA_EXPORT bool compare_ip_cidr(address const& lhs, address const& rhs);
 
 class TORRENT_EXTRA_EXPORT routing_table

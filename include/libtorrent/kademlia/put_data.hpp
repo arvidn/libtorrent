@@ -72,9 +72,9 @@ struct put_data_observer : traversal_observer
 {
 	put_data_observer(
 		std::shared_ptr<traversal_algorithm> algorithm
-		, udp::endpoint const& ep, node_id const& id, std::string const& token)
+		, udp::endpoint const& ep, node_id const& id, std::string token)
 		: traversal_observer(std::move(algorithm), ep, id)
-		, m_token(token)
+		, m_token(std::move(token))
 	{
 	}
 
