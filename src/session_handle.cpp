@@ -481,10 +481,7 @@ namespace {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	void session_handle::set_load_function(user_load_function_t fun)
-	{
-		async_call(&session_impl::set_load_function, fun);
-	}
+	void session_handle::set_load_function(user_load_function_t) {}
 
 	session_status session_handle::status() const
 	{
