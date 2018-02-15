@@ -168,7 +168,7 @@ namespace libtorrent {
 			, m_mtu_floor_slab(mtu_floor_size)
 			, m_mtu_ceiling_slab(mtu_ceiling_size)
 		{}
-		packet_pool(packet_pool&&) = default;
+		packet_pool(packet_pool&&) = delete;
 
 		packet_ptr acquire(int const allocate)
 		{
@@ -183,7 +183,7 @@ namespace libtorrent {
 		{
 			TORRENT_ASSERT(is_single_thread());
 
-			if (p.get() == nullptr) return;
+			if (!p) return;
 
 			int const allocated = p->allocated;
 
