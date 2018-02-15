@@ -105,7 +105,7 @@ namespace libtorrent {
 	}
 
 	// this contains information about a file that's currently open by the
-	// libtorrent disk I/O subsystem. It's associated with a single torent.
+	// libtorrent disk I/O subsystem. It's associated with a single torrent.
 	struct TORRENT_EXPORT open_file_state
 	{
 		// the index of the file this entry refers to into the ``file_storage``

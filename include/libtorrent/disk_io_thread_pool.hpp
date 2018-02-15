@@ -69,7 +69,7 @@ namespace libtorrent {
 
 		// set the maximum number of I/O threads which may be running
 		// the actual number of threads will be <= this number
-		void set_max_threads(int const i);
+		void set_max_threads(int i);
 		void abort(bool wait);
 		int max_threads() const { return m_max_threads; }
 
