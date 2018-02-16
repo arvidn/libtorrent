@@ -130,6 +130,7 @@ namespace libtorrent {
 		}
 
 		packet_slab(const packet_slab&) = delete;
+		packet_slab(packet_slab&&) = default;
 
 		void try_push_back(packet_ptr &p)
 		{
@@ -168,7 +169,7 @@ namespace libtorrent {
 			, m_mtu_floor_slab(mtu_floor_size)
 			, m_mtu_ceiling_slab(mtu_ceiling_size)
 		{}
-		packet_pool(packet_pool&&) = delete;
+		packet_pool(packet_pool&&) = default;
 
 		packet_ptr acquire(int const allocate)
 		{
