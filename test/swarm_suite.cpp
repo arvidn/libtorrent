@@ -181,10 +181,9 @@ void test_swarm(test_flags_t const flags)
 	TEST_CHECK(tor2.status().is_seeding);
 	TEST_CHECK(tor3.status().is_seeding);
 
-	float average2 = sum_dl_rate2 / float(count_dl_rates2);
-	float average3 = sum_dl_rate3 / float(count_dl_rates3);
+	float average2 = count_dl_rates2 > 0 ? sum_dl_rate2 / float(count_dl_rates2) : -1;
+	float average3 = count_dl_rates3 > 0 ? sum_dl_rate3 / float(count_dl_rates3) : -1;
 
-	std::cout << average2 << std::endl;
 	std::cout << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
@@ -211,10 +210,9 @@ void test_swarm(test_flags_t const flags)
 			, int(total_milliseconds(clock_type::now() - start)));
 		std::vector<alert*> alerts;
 		ses1.pop_alerts(&alerts);
-		for (std::vector<alert*>::iterator i = alerts.begin()
-			, end(alerts.end()); i != end; ++i)
+		for (auto ap : alerts)
 		{
-			std::printf("%s\n", ret->message().c_str());
+			std::printf("%s\n", ap->message().c_str());
 		}
 		start = clock_type::now();
 	}
@@ -227,7 +225,7 @@ void test_swarm(test_flags_t const flags)
 	p2 = ses2.abort();
 	p3 = ses3.abort();
 
-	time_point end = clock_type::now();
+	time_point const end = clock_type::now();
 
 	std::printf("time: %d ms\n", int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start < milliseconds(3000));
@@ -245,4 +243,3 @@ void test_swarm(test_flags_t const flags)
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-

@@ -45,5 +45,4 @@ namespace test_flags
 	constexpr test_flags_t suggest{16};
 }
 
-void EXPORT test_swarm(test_flags_t flags = test_flags_t{});
-
+EXPORT void test_swarm(test_flags_t flags = test_flags_t{});
