@@ -1,4 +1,5 @@
 
+	* fix tie-break in duplicate peer connection disconnect logic
 	* fix issue with SSL tracker connections left in CLOSE_WAIT state
 	* defer truncating existing files until the first time we write to them
 	* fix issue when receiving a torrent with 0-sized padfiles as magnet link
