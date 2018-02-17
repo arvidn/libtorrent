@@ -818,6 +818,45 @@ TORRENT_TEST(double_connection_loose)
 	TEST_EQUAL(con_in->was_disconnected(), false);
 }
 
+// test double connection with identical ports (random)
+TORRENT_TEST(double_connection_random)
+{
+	int in = 0;
+	int out = 0;
+	for (int i = 0; i < 30; ++i)
+	{
+		torrent_state st = init_state(ext_ip);
+		mock_torrent t(&st);
+		st.allow_multiple_connections_per_ip = false;
+		peer_list p(allocator);
+		t.m_p = &p;
+
+		// we are 10.0.0.1 and the other peer is 10.0.0.2
+
+		// our outgoing connection
+		torrent_peer* peer = add_peer(p, st, ep("10.0.0.2", 3000));
+		connect_peer(p, t, st);
+
+		boost::shared_ptr<mock_peer_connection> con_out
+			= static_cast<mock_peer_connection*>(peer->connection)->shared_from_this();
+		con_out->set_local_ep(ep("10.0.0.1", 3000));
+
+		// and the incoming connection
+		boost::shared_ptr<mock_peer_connection> con_in
+			= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3000));
+		con_in->set_local_ep(ep("10.0.0.1", 3000));
+
+		p.new_connection(*con_in, 0, &st);
+
+		// the rules are documented in peer_list.cpp
+		out += con_out->was_disconnected();
+		in += con_in->was_disconnected();
+	}
+	// we should have gone different ways randomly
+	TEST_CHECK(out > 0);
+	TEST_CHECK(in > 0);
+}
+
 // test double connection (we win)
 TORRENT_TEST(double_connection_win)
 {

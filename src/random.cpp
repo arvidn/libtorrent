@@ -106,6 +106,7 @@ namespace libtorrent
 
 	boost::uint32_t randint(int i)
 	{
+		TORRENT_ASSERT(i > 1);
 		return random() % i;
 	}
 
