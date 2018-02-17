@@ -51,7 +51,7 @@ struct crypto_plugin;
 struct TORRENT_EXPORT peer_connection_handle
 {
 	explicit peer_connection_handle(std::weak_ptr<peer_connection> impl)
-		: m_connection(impl)
+		: m_connection(std::move(impl))
 	{}
 
 	connection_type type() const;
@@ -133,7 +133,7 @@ private:
 struct TORRENT_EXPORT bt_peer_connection_handle : peer_connection_handle
 {
 	explicit bt_peer_connection_handle(peer_connection_handle pc)
-		: peer_connection_handle(pc)
+		: peer_connection_handle(std::move(pc))
 	{}
 
 	bool packet_finished() const;

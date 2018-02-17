@@ -175,22 +175,6 @@ namespace libtorrent {
 
 		aux::session_settings const& m_sett;
 
-		// this is a copy of the routing table, used
-		// to initialize MTU sizes of uTP sockets
-		mutable std::vector<ip_route> m_routes;
-
-		// the timestamp for the last time we updated
-		// the routing table
-		mutable time_point m_last_route_update = min_time();
-
-		// cache of interfaces
-		mutable std::vector<ip_interface> m_interfaces;
-		mutable time_point m_last_if_update = min_time();
-
-		// the buffer size of the socket. This is used
-		// to now lower the buffer size
-		int m_sock_buf_size = 0;
-
 		// stats counters
 		counters& m_counters;
 

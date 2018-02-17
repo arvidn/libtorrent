@@ -1182,7 +1182,7 @@ namespace aux {
 
 			// pretend that there's an outstanding send operation already, to
 			// prevent future calls to setup_send() from actually causing an
-			// asyc_send() to be issued.
+			// async_send() to be issued.
 			m_pc.m_channel_state[peer_connection::upload_channel] |= peer_info::bw_network;
 			m_need_uncork = true;
 		}

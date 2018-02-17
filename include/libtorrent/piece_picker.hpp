@@ -450,9 +450,9 @@ namespace libtorrent {
 			, typed_bitfield<piece_index_t> const& have
 			, picker_options_t options) const;
 
-		// only defined when TORRENT_PICKER_LOG is defined, used for debugging
-		// unit tests
+#ifdef TORRENT_PICKER_LOG
 		void print_pieces() const;
+#endif
 
 		struct piece_pos
 		{
@@ -708,7 +708,7 @@ namespace libtorrent {
 
 		// this maps pieces to a range of blocks that are pad files and should not
 		// be picked
-		// TOOD: this could be a much more efficient data structure
+		// TODO: this could be a much more efficient data structure
 		std::set<piece_block> m_pad_blocks;
 
 		// the number of seeds. These are not added to
