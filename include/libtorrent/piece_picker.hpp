@@ -708,7 +708,7 @@ namespace libtorrent {
 
 		// this maps pieces to a range of blocks that are pad files and should not
 		// be picked
-		// TOOD: this could be a much more efficient data structure
+		// TODO: this could be a much more efficient data structure
 		std::set<piece_block> m_pad_blocks;
 
 		// the number of seeds. These are not added to

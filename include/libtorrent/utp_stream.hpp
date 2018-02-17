@@ -377,9 +377,6 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		issue_read();
 	}
 
-	void do_async_connect(endpoint_type const& ep
-		, std::function<void(error_code const&)> const& handler);
-
 	template <class Protocol>
 	void open(Protocol const&, error_code&)
 	{ m_open = true; }

@@ -100,7 +100,7 @@ public:
 		: buffer(size)
 	{
 		TORRENT_ASSERT(initialize.size() <= size);
-		if (initialize.size() > 0)
+		if (!initialize.empty())
 		{
 			std::memcpy(m_begin, initialize.data(), (std::min)(initialize.size(), size));
 		}

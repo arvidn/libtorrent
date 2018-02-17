@@ -247,9 +247,6 @@ namespace libtorrent {
 		void write_share_mode();
 		void write_holepunch_msg(int type, tcp::endpoint const& ep, int error);
 #endif
-		void write_metadata(std::pair<int, int> req);
-		void write_metadata_request(std::pair<int, int> req);
-
 		// DHT extension
 		void write_dht_port(int listen_port);
 

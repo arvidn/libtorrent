@@ -74,7 +74,6 @@ namespace libtorrent {
 
 		void close();
 		int num_send_sockets() const { return int(m_unicast_sockets.size()); }
-		void enable_ip_broadcast(bool e);
 
 	private:
 
