@@ -450,9 +450,9 @@ namespace libtorrent {
 			, typed_bitfield<piece_index_t> const& have
 			, picker_options_t options) const;
 
-#ifdef TORRENT_PICKER_LOG
+		// only defined when TORRENT_PICKER_LOG is defined, used for debugging
+		// unit tests
 		void print_pieces() const;
-#endif
 
 		struct piece_pos
 		{
