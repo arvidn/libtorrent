@@ -85,7 +85,7 @@ void test_remove_torrent(int const remove_options
 	file.close();
 
 	wait_for_listen(ses1, "ses1");
-	wait_for_listen(ses2, "ses1");
+	wait_for_listen(ses2, "ses2");
 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
@@ -97,6 +97,11 @@ void test_remove_torrent(int const remove_options
 		// set half of the pieces to priority 0
 		std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0);
 		tor2.prioritize_pieces(priorities);
+	}
+	else if (test == mid_download)
+	{
+		tor1.set_upload_limit(static_cast<int>(t->total_size()));
+		tor2.set_download_limit(static_cast<int>(t->total_size()));
 	}
 
 	torrent_status st1;
