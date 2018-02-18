@@ -490,8 +490,8 @@ EXPORT int main(int argc, char const* argv[])
 			fclose(t.output);
 	}
 
-	if (redirect_stdout) dup2(old_stdout, fileno(stdout));
-	if (redirect_stderr) dup2(old_stderr, fileno(stderr));
+	if (redirect_stdout && old_stdout != -1) dup2(old_stdout, fileno(stdout));
+	if (redirect_stderr && old_stderr != -1) dup2(old_stderr, fileno(stderr));
 
 	if (!tests_to_run.empty())
 	{
