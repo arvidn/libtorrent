@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 
+#include <boost/algorithm/cxx11/any_of.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
@@ -168,7 +169,7 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name, int nu
 				--num;
 			}
 		}
-		if (num == 0) return ret;
+		if (num <= 0) return ret;
 	}
 	return NULL;
 }
@@ -252,36 +253,38 @@ void save_file(char const* filename, char const* data, int size)
 		fprintf(stderr, "ERROR writing file '%s': %s\n", filename, ec.message().c_str());
 		return;
 	}
-
 }
 
 bool print_alerts(lt::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
-	, boost::function<bool(libtorrent::alert const*)> predicate, bool no_output)
+	, boost::function<bool(libtorrent::alert const*)> const& predicate, bool no_output)
 {
-	bool ret = false;
-	std::vector<torrent_handle> handles = ses.get_torrents();
-	TEST_CHECK(!handles.empty() || allow_no_torrents);
-	torrent_handle h;
-	if (!handles.empty()) h = handles[0];
+	TEST_CHECK(!ses.get_torrents().empty() || allow_no_torrents);
 	std::vector<alert*> alerts;
 	ses.pop_alerts(&alerts);
 	for (std::vector<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)
 	{
-		if (predicate && predicate(*i)) ret = true;
 		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(*i))
 		{
 			fprintf(stdout, "%s: %s: [%s] (%s): %s\n", time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
-		else if ((*i)->message() != "block downloading"
-			&& (*i)->message() != "block finished"
-			&& (*i)->message() != "piece finished"
-			&& !no_output)
+		else if ((*i)->type() == invalid_request_alert::alert_type)
+		{
+			fprintf(stdout, "peer error: %s\n", (*i)->message().c_str());
+			TEST_CHECK(false);
+		}
+		else if ((*i)->type() == fastresume_rejected_alert::alert_type)
+		{
+			fprintf(stdout, "resume data error: %s\n", (*i)->message().c_str());
+			TEST_CHECK(allow_failed_fastresume);
+		}
+		else if (!no_output
+			&& (*i)->type() != block_downloading_alert::alert_type
+			&& (*i)->type() != block_finished_alert::alert_type
+			&& (*i)->type() != piece_finished_alert::alert_type)
 		{
 			fprintf(stdout, "%s: %s: [%s] %s\n", time_now_string(), name, (*i)->what(), (*i)->message().c_str());
 		}
-
-		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
 /*
 		peer_error_alert const* pea = alert_cast<peer_error_alert>(*i);
 		if (pea)
@@ -300,33 +303,22 @@ bool print_alerts(lt::session& ses, char const* name
 				|| (allow_disconnects && pea->error.message() == "End of file."));
 		}
 */
-
-		invalid_request_alert const* ira = alert_cast<invalid_request_alert>(*i);
-		if (ira)
-		{
-			fprintf(stdout, "peer error: %s\n", ira->message().c_str());
-			TEST_CHECK(false);
-		}
 	}
-	return ret;
+	return predicate && boost::algorithm::any_of(alerts.begin(), alerts.end(), predicate);
 }
 
-bool listen_done = false;
 bool listen_alert(libtorrent::alert const* a)
 {
-	if (alert_cast<listen_failed_alert>(a)
-		|| alert_cast<listen_succeeded_alert>(a))
-		listen_done = true;
-	return true;
+	return alert_cast<listen_failed_alert>(a) || alert_cast<listen_succeeded_alert>(a);
 }
 
 void wait_for_listen(lt::session& ses, char const* name)
 {
-	listen_done = false;
 	alert const* a = 0;
+	bool listen_done = false;
 	do
 	{
-		print_alerts(ses, name, true, true, true, &listen_alert, false);
+		listen_done = print_alerts(ses, name, true, true, true, listen_alert, false);
 		if (listen_done) break;
 		a = ses.wait_for_alert(milliseconds(500));
 	} while (a);
@@ -334,23 +326,20 @@ void wait_for_listen(lt::session& ses, char const* name)
 	TEST_CHECK(listen_done);
 }
 
-bool downloading_done = false;
 bool downloading_alert(libtorrent::alert const* a)
 {
 	state_changed_alert const* sc = alert_cast<state_changed_alert>(a);
-	if (sc && sc->state == torrent_status::downloading)
-		downloading_done = true;
-	return true;
+	return sc && sc->state == torrent_status::downloading;
 }
 
 void wait_for_downloading(lt::session& ses, char const* name)
 {
-	time_point start = clock_type::now();
-	downloading_done = false;
+	time_point const start = clock_type::now();
+	bool downloading_done = false;
 	alert const* a = 0;
 	do
 	{
-		print_alerts(ses, name, true, true, true, &downloading_alert, false);
+		downloading_done = print_alerts(ses, name, true, true, true, downloading_alert, false);
 		if (downloading_done) break;
 		if (total_seconds(clock_type::now() - start) > 10) break;
 		a = ses.wait_for_alert(seconds(2));
@@ -424,15 +413,6 @@ struct proxy_t
 // maps port to proxy type
 static std::map<int, proxy_t> running_proxies;
 
-void stop_proxy(int port)
-{
-	fprintf(stdout, "stopping proxy on port %d\n", port);
-	// don't shut down proxies until the test is
-	// completely done. This saves a lot of time.
-	// they're closed at the end of main() by
-	// calling stop_all_proxies().
-}
-
 // returns 0 on failure, otherwise pid
 pid_type async_run(char const* cmdline)
 {
@@ -489,7 +469,9 @@ void stop_process(pid_type p)
 {
 #ifdef _WIN32
 	HANDLE proc = OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, p);
+	if (proc == NULL) return;
 	TerminateProcess(proc, 138);
+	WaitForSingleObject(proc, 5000);
 	CloseHandle(proc);
 #else
 	printf("killing pid: %d\n", p);
@@ -497,14 +479,26 @@ void stop_process(pid_type p)
 #endif
 }
 
+void stop_proxy(int port)
+{
+	std::map<int, proxy_t>::iterator const it = running_proxies.find(port);
+
+	if (it == running_proxies.end()) return;
+
+	fprintf(stdout, "stopping proxy on port %d\n", port);
+
+	stop_process(it->second.pid);
+	running_proxies.erase(it);
+}
+
 void stop_all_proxies()
 {
 	std::map<int, proxy_t> proxies = running_proxies;
+	running_proxies.clear();
 	for (std::map<int, proxy_t>::iterator i = proxies.begin()
-		, end(proxies.end()); i != end; ++i)
+		, end = proxies.end(); i != end; ++i)
 	{
 		stop_process(i->second.pid);
-		running_proxies.erase(i->second.pid);
 	}
 }
 
