@@ -257,7 +257,7 @@ namespace libtorrent
 		friend struct session_handle;
 		friend struct feed;
 		friend class torrent;
-		friend std::size_t hash_value(torrent_handle const& th);
+		friend TORRENT_EXPORT std::size_t hash_value(torrent_handle const& th);
 
 		// constructs a torrent handle that does not refer to a torrent.
 		// i.e. is_valid() will return false.
