@@ -130,13 +130,6 @@ private:
 	{
 		using namespace std::placeholders;
 
-		if (ec)
-		{
-			printf("fake_peer::connect: (%d) %s\n"
-				, ec.value(), ec.message().c_str());
-			return;
-		}
-
 		asio::ip::tcp::endpoint const ep = m_out_socket.remote_endpoint();
 		printf("fake_peer::connect (%s) -> (%d) %s\n"
 			, lt::print_endpoint(ep).c_str(), ec.value()

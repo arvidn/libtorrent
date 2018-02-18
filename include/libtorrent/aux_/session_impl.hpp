@@ -239,10 +239,6 @@ namespace libtorrent
 			void async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
 				, boost::weak_ptr<tcp::acceptor> listener, error_code const& e, bool ssl);
-			void on_socks_listen(boost::shared_ptr<socket_type> const& s
-				, error_code const& e);
-			void on_socks_accept(boost::shared_ptr<socket_type> const& s
-				, error_code const& e);
 
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 
@@ -653,7 +649,6 @@ namespace libtorrent
 			void update_listen_interfaces();
 			void update_privileged_ports();
 			void update_auto_sequential();
-			void update_incoming_socks5();
 			void update_max_failcount();
 			void update_close_file_interval();
 
@@ -891,15 +886,8 @@ namespace libtorrent
 			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
 #endif
 
-			// when as a socks proxy is used for peers, also
-			// listen for incoming connections on a socks connection
-			boost::shared_ptr<socket_type> m_socks_listen_socket;
-			boost::uint16_t m_socks_listen_port;
-
 			// round-robin index into m_net_interfaces
 			mutable boost::uint8_t m_interface_index;
-
-			void open_new_incoming_socks_connection();
 
 			enum listen_on_flags_t
 			{
