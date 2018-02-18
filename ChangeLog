@@ -5,7 +5,6 @@
 	* fix torrent_status::next_announce
 	* fix pad-file scalability issue
 	* made coalesce_reads/coalesce_writes settings take effect on linux and windows
-	* restore support for incoming connections over SOCKS5 (disabled by default)
 	* use unique peer_ids per connection
 	* fix iOS build on recent SDK
 	* fix tracker connection bind issue for IPv6 trackers

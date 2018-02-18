@@ -696,12 +696,6 @@ namespace libtorrent
 			// any.
 			proxy_tracker_connections,
 
-			// this enables a SOCKS5 "extension", in which libtorrent attempts to
-			// receive incoming connections over a SOCKS5 proxy. The traditional
-			// interpretation of the RFC and normal SOCKS5 implementations do not
-			// support this.
-			incoming_socks5_connections,
-
 			max_bool_setting_internal
 		};
 
