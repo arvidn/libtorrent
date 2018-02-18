@@ -438,6 +438,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name));
 		rv.name[sizeof(rv.name) - 1] = 0;
+		rv.friendly_name[0] = 0;
+		rv.description[0] = 0;
 
 		// determine address
 		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
@@ -555,6 +557,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			wan.interface_address = ip;
 			wan.netmask = address_v4::from_string("255.255.255.255");
 			std::strcpy(wan.name, "eth0");
+			std::strcpy(wan.friendly_name, "Ethernet");
+			std::strcpy(wan.description, "Simulator Ethernet Adapter");
 			ret.push_back(wan);
 		}
 #elif TORRENT_USE_NETLINK
@@ -662,7 +666,10 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
-				std::strcpy(iface.name, item.ifr_name);
+				std::strncpy(iface.name, item.ifr_name, sizeof(iface.name));
+				iface.name[sizeof(iface.name) - 1] = 0;
+				iface.friendly_name[0] = 0;
+				iface.description[0] = 0;
 
 				ifreq req = {};
 				std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
@@ -729,7 +736,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 				ip_interface r;
 				std::strncpy(r.name, adapter->AdapterName, sizeof(r.name));
-				r.name[sizeof(r.name)-1] = 0;
+				r.name[sizeof(r.name) - 1] = 0;
+				wcstombs(r.friendly_name, adapter->FriendlyName, sizeof(r.friendly_name));
+				r.friendly_name[sizeof(r.friendly_name) - 1] = 0;
+				wcstombs(r.description, adapter->Description, sizeof(r.description));
+				r.description[sizeof(r.description) - 1] = 0;
 				for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
 					unicast; unicast = unicast->Next)
 				{
@@ -774,6 +785,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			iface.netmask = sockaddr_to_address(&buffer[i].iiNetmask.Address
 				, iface.interface_address.is_v4() ? AF_INET : AF_INET6);
 			iface.name[0] = 0;
+			iface.friendly_name[0] = 0;
+			iface.description[0] = 0;
 			ret.push_back(iface);
 		}
 
@@ -793,7 +806,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		for (;i != udp::resolver::iterator(); ++i)
 		{
 			iface.interface_address = i->endpoint().address();
-			iface.name[0] = '\0';
+			iface.name[0] = 0;
+			iface.friendly_name[0] = 0;
+			iface.description[0] = 0;
 			if (iface.interface_address.is_v4())
 				iface.netmask = address_v4::netmask(iface.interface_address.to_v4());
 			ret.push_back(iface);
@@ -1094,6 +1109,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					if (GetIfEntry(&ifentry) == NO_ERROR)
 					{
 						wcstombs(r.name, ifentry.wszName, sizeof(r.name));
+						r.name[sizeof(r.name) - 1] = 0;
 						r.mtu = ifentry.dwMtu;
 						ret.push_back(r);
 					}
@@ -1142,7 +1158,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				if (GetIfEntry(&ifentry) == NO_ERROR)
 				{
 					wcstombs(r.name, ifentry.wszName, sizeof(r.name));
-					r.name[sizeof(r.name)-1] = 0;
+					r.name[sizeof(r.name) - 1] = 0;
 					r.mtu = ifentry.dwMtu;
 					ret.push_back(r);
 				}
