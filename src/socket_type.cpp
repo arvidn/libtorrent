@@ -139,7 +139,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 	namespace {
 
-	void nop(boost::system::error_code const&) {}
+	void nop(boost::shared_ptr<void>) {}
 
 	void on_close_socket(socket_type* s, boost::shared_ptr<void>)
 	{
@@ -175,7 +175,7 @@ namespace libtorrent
 
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 	MAYBE_ASIO_DEBUGGING \
-	s.get<ssl_stream<t> >()->async_shutdown(&nop); \
+	s.get<ssl_stream<t> >()->async_shutdown(boost::bind(&nop, holder)); \
 	s.get<ssl_stream<t> >()->async_write_some(boost::asio::buffer(buffer), boost::bind(&on_close_socket, &s, holder)); \
 	break;
 
