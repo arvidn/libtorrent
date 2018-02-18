@@ -139,6 +139,8 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 	namespace {
 
+	void nop(boost::system::error_code const&) {}
+
 	void on_close_socket(socket_type* s, boost::shared_ptr<void>)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
@@ -165,9 +167,16 @@ namespace libtorrent
 #define MAYBE_ASIO_DEBUGGING
 #endif
 
+	char const buffer[] = "";
+	// chasing the async_shutdown by a write is a trick to close the socket as
+	// soon as we've sent the close_notify, without having to wait to receive a
+	// response from the other end
+	// https://stackoverflow.com/questions/32046034/what-is-the-proper-way-to-securely-disconnect-an-asio-ssl-socket
+
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 	MAYBE_ASIO_DEBUGGING \
-	s.get<ssl_stream<t> >()->async_shutdown(boost::bind(&on_close_socket, &s, holder)); \
+	s.get<ssl_stream<t> >()->async_shutdown(&nop); \
+	s.get<ssl_stream<t> >()->async_write_some(boost::asio::buffer(buffer), boost::bind(&on_close_socket, &s, holder)); \
 	break;
 
 		switch (s.type())
