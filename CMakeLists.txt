@@ -182,17 +182,9 @@ if(UNIX)
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 endif()
 
-if (build_tests)
-	# this will make some internal functions available in the
-	# DLL interface, for the tests to access
-	add_definitions(-DTORRENT_EXPORT_EXTRA)
-endif (build_tests)
-
 find_package(Threads REQUIRED)
 
 include_directories(${includes})
-
-add_definitions(-DTORRENT_BUILDING_LIBRARY)
 
 if (encryption)
 	list(APPEND sources mpi pe_crypto)
@@ -226,8 +218,11 @@ else()
 endif()
 
 if (shared)
-	add_definitions(-DTORRENT_BUILDING_SHARED)
 	add_library(torrent-rasterbar SHARED ${sources2})
+	target_compile_definitions(torrent-rasterbar
+		PRIVATE TORRENT_BUILDING_SHARED
+		INTERFACE TORRENT_LINKING_SHARED
+	)
 	if(NOT MSVC)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
@@ -255,6 +250,8 @@ else()
 	set(Boost_USE_STATIC_LIBS ON)
 	add_library(torrent-rasterbar STATIC ${sources2})
 endif()
+
+target_compile_definitions(torrent-rasterbar PRIVATE TORRENT_BUILDING_LIBRARY)
 
 # Boost
 if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
@@ -287,10 +284,6 @@ endif()
 
 if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
-endif()
-
-if (NOT resolve-countries)
-	add_definitions(-DTORRENT_DISABLE_RESOLVE_COUNTRIES)
 endif()
 
 if (unicode)
@@ -372,23 +365,8 @@ configure_file(examples/run_cmake.sh.in examples/run_cmake.sh)
 
 # === build tests ===
 if(build_tests)
-	file(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
-	list(REMOVE_ITEM tests "test/test_natpmp.cpp") # doesn't build at time of writing
-	list(REMOVE_ITEM tests "test/test_utils.cpp") # helper file, not a test
-
-	add_library(test_common OBJECT test/main.cpp test/test.cpp
-		test/setup_transfer.cpp test/dht_server.cpp test/udp_tracker.cpp
-		test/peer_server.cpp test/web_seed_suite.cpp test/swarm_suite.cpp
-		test/test_utils.cpp test/make_torrent.cpp test/settings.cpp)
 	enable_testing()
-
-	foreach(s ${tests})
-		get_filename_component (sn ${s} NAME_WE)
-		add_executable(${sn} ${s} $<TARGET_OBJECTS:test_common>)
-		target_link_libraries(${sn} torrent-rasterbar)
-		add_test(${sn} ${s})
-	endforeach(s)
-
-	add_executable(bdecode_benchmark test/bdecode_benchmark.cpp)
-	target_link_libraries(bdecode_benchmark torrent-rasterbar)
+	# this will make some internal functions available in the DLL interface
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPORT_EXTRA)
+	add_subdirectory(test)
 endif()
