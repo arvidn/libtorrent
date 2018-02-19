@@ -52,7 +52,7 @@ int main()
 	std::printf("Default gateway: %s\n", def_gw.to_string(ec).c_str());
 
 	std::printf("=========== Routes ===========\n");
-	std::vector<ip_route> routes = enum_routes(ios, ec);
+	auto const routes = enum_routes(ios, ec);
 	if (ec)
 	{
 		std::printf("%s\n", ec.message().c_str());
@@ -61,37 +61,36 @@ int main()
 
 	std::printf("%-18s%-18s%-35s%-7sinterface\n", "destination", "network", "gateway", "mtu");
 
-	for (std::vector<ip_route>::const_iterator i = routes.begin()
-		, end(routes.end()); i != end; ++i)
+	for (auto const& r : routes)
 	{
 		std::printf("%-18s%-18s%-35s%-7d%s\n"
-			, i->destination.to_string(ec).c_str()
-			, i->netmask.to_string(ec).c_str()
-			, i->gateway.to_string(ec).c_str()
-			, i->mtu
-			, i->name);
+			, r.destination.to_string(ec).c_str()
+			, r.netmask.to_string(ec).c_str()
+			, r.gateway.to_string(ec).c_str()
+			, r.mtu
+			, r.name);
 	}
 
 	std::printf("========= Interfaces =========\n");
 
-	std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
+	auto const net = enum_net_interfaces(ios, ec);
 	if (ec)
 	{
 		std::printf("%s\n", ec.message().c_str());
 		return 1;
 	}
 
-	std::printf("%-34s%-45s%-20sflags\n", "address", "netmask", "name");
+	std::printf("%-34s%-45s%-20s%-20sdescription\n", "address", "netmask", "name", "flags");
 
-	for (std::vector<ip_interface>::const_iterator i = net.begin()
-		, end(net.end()); i != end; ++i)
+	for (auto const& i : net)
 	{
-		std::printf("%-34s%-45s%-20s%s%s%s\n"
-			, i->interface_address.to_string(ec).c_str()
-			, i->netmask.to_string(ec).c_str()
-			, i->name
-			, (i->interface_address.is_multicast()?"multicast ":"")
-			, (is_local(i->interface_address)?"local ":"")
-			, (is_loopback(i->interface_address)?"loopback ":""));
+		std::printf("%-34s%-45s%-20s%s%s%-20s%s %s\n"
+			, i.interface_address.to_string(ec).c_str()
+			, i.netmask.to_string(ec).c_str()
+			, i.name
+			, (i.interface_address.is_multicast()?"multicast ":"")
+			, (is_local(i.interface_address)?"local ":"")
+			, (is_loopback(i.interface_address)?"loopback ":"")
+			, i.friendly_name, i.description);
 	}
 }
