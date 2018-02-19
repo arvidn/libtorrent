@@ -286,6 +286,10 @@ if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
 endif()
 
+if (NOT resolve-countries)
+	add_definitions(-DTORRENT_DISABLE_RESOLVE_COUNTRIES)
+endif()
+
 if (unicode)
 	add_definitions(-DUNICODE -D_UNICODE)
 endif()
