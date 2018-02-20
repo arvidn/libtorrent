@@ -31,9 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/gzip.hpp"
 #include "libtorrent/socket_io.hpp"
 
+#include <string>
 #include <functional>
 #include <vector>
 #include <list>
@@ -45,18 +45,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/http_connection.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_local
 #include "libtorrent/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
-
-using namespace std::placeholders;
 
 namespace libtorrent {
 
@@ -197,6 +192,7 @@ namespace libtorrent {
 			return;
 		}
 
+		using namespace std::placeholders;
 		m_tracker_connection = std::make_shared<http_connection>(get_io_service(), m_man.host_resolver()
 			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
@@ -394,7 +390,7 @@ namespace libtorrent {
 		else
 		{
 			// if there's no peer_id, just initialize it to a bunch of zeroes
-			std::fill_n(ret.pid.begin(), 20, 0);
+			ret.pid.clear();
 		}
 
 		// extract ip
