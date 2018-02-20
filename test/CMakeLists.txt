@@ -18,7 +18,7 @@ foreach(TARGET_SRC ${tests})
 	add_executable(${TARGET} ${TARGET_SRC} $<TARGET_OBJECTS:test_common>)
 	target_link_libraries(${TARGET} torrent-rasterbar)
 	add_test(${TARGET} ${TARGET})
-endforeach(s)
+endforeach()
 
 if (deprecated-functions)
 	add_executable(bdecode_benchmark bdecode_benchmark.cpp)
