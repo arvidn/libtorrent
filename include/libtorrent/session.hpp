@@ -308,7 +308,7 @@ namespace aux {
 			char if_string[100];
 
 			if (listen_interface == nullptr) listen_interface = "0.0.0.0";
-			std::snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
+			snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
 			pack.set_str(settings_pack::listen_interfaces, if_string);
 
 			if (!(flags & start_default_features))
