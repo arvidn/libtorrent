@@ -33,26 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
 #define TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
 
-#include <string>
 #include <vector>
 #include <memory>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
 
+	class tracker_manager;
 	struct http_connection;
-	class entry;
 	class http_parser;
 	struct bdecode_node;
 	struct peer_entry;
-
-	namespace aux { struct session_settings; }
 
 	class TORRENT_EXTRA_EXPORT http_tracker_connection
 		: public tracker_connection
