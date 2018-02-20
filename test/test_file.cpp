@@ -283,11 +283,7 @@ TORRENT_TEST(file)
 {
 	error_code ec;
 	file f;
-#if TORRENT_USE_UNC_PATHS || !defined WIN32
-	TEST_CHECK(f.open("con", file::read_write, ec));
-#else
 	TEST_CHECK(f.open("test_file", file::read_write, ec));
-#endif
 	if (ec)
 		fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
@@ -392,3 +388,14 @@ TORRENT_TEST(coalesce_buffer)
 	f.close();
 }
 
+#if 0 && TORRENT_USE_UNC_PATHS
+TORRENT_TEST(unc_paths)
+{
+	std::string const reserved_name = "con";
+	error_code ec;
+	file f;
+	TEST_CHECK(f.open(reserved_name, file::read_write, ec) && !ec);
+	remove(reserved_name, ec);
+	TEST_CHECK(!ec);
+}
+#endif
