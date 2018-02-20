@@ -393,8 +393,10 @@ TORRENT_TEST(unc_paths)
 {
 	std::string const reserved_name = "con";
 	error_code ec;
-	file f;
-	TEST_CHECK(f.open(reserved_name, file::read_write, ec) && !ec);
+	{
+		file f;
+		TEST_CHECK(f.open(reserved_name, file::read_write, ec) && !ec);
+	}
 	remove(reserved_name, ec);
 	TEST_CHECK(!ec);
 }
