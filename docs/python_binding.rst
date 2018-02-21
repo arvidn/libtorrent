@@ -30,7 +30,7 @@ Download `Boost libraries`__ Extract it to c:/Libraries/boost_1_63_0 and create 
 
 Navigate to BOOST_ROOT, execute "bootstrap.bat" and add to the path "c:/Libraries/boost_1_63_0/tools/build/src/engine/bin.ntx86/"
 	
-Move the file ``$user-config.jam`` from ``BOOST_BUILD_PATH/example/`` to ``BOOST_BUILD_PAT/user-config.jam`` and add this at the end:
+Move the file ``user-config.jam`` from ``%BOOST_BUILD_PATH%/example/`` to ``%BOOST_BUILD_PATH%/user-config.jam`` and add this at the end:
 
 ::
 
@@ -50,13 +50,13 @@ This will create the file libtorrent.pyd inside build/lib/ that contains the bin
 building using boost build (others)
 -----------------------------------
 To set up your build environment, you need to add some settings to your
-``BOOST_BUILD_PATH/user-config.jam``.
+``$BOOST_BUILD_PATH/user-config.jam``.
 
-Make sure your user config contains the following line::
+A similar line to this line should be in the file (could be another python version)::
 
 	#using python : 2.3 ;
 
-Set the version to the version of python you have installed or want to use. If
+Uncomment it and change it with the version of python you have installed or want to use. If
 you've installed python in a non-standard location, you have to add the prefix
 path used when you installed python as a second option. Like this::
 
