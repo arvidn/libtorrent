@@ -34,7 +34,7 @@ Move the file ``user-config.jam`` from ``%BOOST_BUILD_PATH%/example/`` to ``%BOO
 
 ::
 
-	using msvc : 14.0 ;
+	using msvc : 14.0 : : /std:c++11 ;
 	using python : 3.5 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/libs ;
 
 (change the python path for yours)
