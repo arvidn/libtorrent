@@ -17,32 +17,40 @@ which is a python module that can be imported in a python program.
 building using boost build (windows)
 ------------------------------------
 
-Download and install `Visual C++ 2015 Build Tools <http://landinghub.visualstudio.com/visual-cpp-build-tools/>`_
+Download and install `Visual C++ 2015 Build Tools`__
 
-Download `Boost libraries <http://www.boost.org/users/history/>`_ Extract it to c:\\Libraries\\boost_1_63_0 and create these environmental vars:
+.. __: http://landinghub.visualstudio.com/visual-cpp-build-tools
 
-1. BOOST_BUILD_PATH: "c:\\Libraries\\boost_1_63_0\\tools\\build\\"
-2. BOOST_ROOT: "c:\\Libraries\\boost_1_63_0\\"
+Download `Boost libraries`__ Extract it to c:/Libraries/boost_1_63_0 and create these environmental vars:
 
-Navigate to BOOST_ROOT, execute "bootstrap.bat" and add to the path "c:\\Libraries\\boost_1_63_0\\tools\\build\\src\\engine\\bin.ntx86\\"
+.. __: http://www.boost.org/users/history/
+
+1. BOOST_BUILD_PATH: "c:/Libraries/boost_1_63_0/tools/build/"
+2. BOOST_ROOT: "c:/Libraries/boost_1_63_0/"
+
+Navigate to BOOST_ROOT, execute "bootstrap.bat" and add to the path "c:/Libraries/boost_1_63_0/tools/build/src/engine/bin.ntx86/"
 	
-Move the file ``$user-config.jam`` from ``$BOOST_BUILD_PATH\example\`` to ``$BOOST_BUILD_PAT\\user-config.jam`` and add this at the end:
-1. using msvc : 14.0 ;
-2. using python : 3.5 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/libs ;
+Move the file ``$user-config.jam`` from ``BOOST_BUILD_PATH/example/`` to ``BOOST_BUILD_PAT/user-config.jam`` and add this at the end:
+
+::
+
+	using msvc : 14.0 ;
+	using python : 3.5 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/libs ;
+
 (change the python path for yours)
 
-Navigate to binding\\torrents and execute::
+Navigate to binding/torrents and execute::
 	python setup.py build --bjam
 	
 Note: If you are using 64bits python you should edit setup.py and add this to the b2 command:
-``$address-model=64``
+``address-model=64``
 
-This will create the file libtorrent.pyd inside build\\lib\\ that contains the binding.
+This will create the file libtorrent.pyd inside build/lib/ that contains the binding.
 	
 building using boost build (others)
 -----------------------------------
 To set up your build environment, you need to add some settings to your
-``$BOOST_BUILD_PATH/user-config.jam``.
+``BOOST_BUILD_PATH/user-config.jam``.
 
 Make sure your user config contains the following line::
 
