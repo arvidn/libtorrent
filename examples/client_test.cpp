@@ -716,7 +716,7 @@ int save_file(std::string const& filename, std::vector<char> const& v)
 // returns true if the alert was handled (and should not be printed to the log)
 // returns false if the alert was not handled
 bool handle_alert(torrent_view& view, session_view& ses_view
-	, lt::session& ses, lt::alert* a)
+	, lt::session&, lt::alert* a)
 {
 	using namespace lt;
 

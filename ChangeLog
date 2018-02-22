@@ -82,13 +82,14 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix tie-break in duplicate peer connection disconnect logic
+	* fix issue with SSL tracker connections left in CLOSE_WAIT state
 	* defer truncating existing files until the first time we write to them
 	* fix issue when receiving a torrent with 0-sized padfiles as magnet link
 	* fix issue resuming 1.0.x downloads with a file priority 0
 	* fix torrent_status::next_announce
 	* fix pad-file scalability issue
 	* made coalesce_reads/coalesce_writes settings take effect on linux and windows
-	* restore support for incoming connections over SOCKS5 (disabled by default)
 	* use unique peer_ids per connection
 	* fix iOS build on recent SDK
 	* fix tracker connection bind issue for IPv6 trackers

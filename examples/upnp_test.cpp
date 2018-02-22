@@ -60,7 +60,7 @@ void print_alert(lt::alert const* a)
 	std::printf("%s", "\x1b[0m");
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char*[])
 {
 	using namespace lt;
 

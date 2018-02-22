@@ -138,7 +138,9 @@ private:
 	{
 		using namespace std::placeholders;
 
-		std::printf("fake_peer::connect() -> (%d) %s\n"
+		asio::ip::tcp::endpoint const ep = m_socket.remote_endpoint();
+		std::printf("fake_peer::connect(%s) -> (%d) %s\n"
+			, lt::print_endpoint(ep).c_str()
 			, ec.value(), ec.message().c_str());
 		if (ec) return;
 
@@ -150,7 +152,6 @@ private:
 		memcpy(m_out_buffer, handshake, len);
 		memcpy(&m_out_buffer[28], ih.data(), 20);
 
-		asio::ip::tcp::endpoint const ep = m_socket.remote_endpoint();
 		asio::async_write(m_socket, asio::const_buffers_1(&m_out_buffer[0]
 			, len), [this, ep](boost::system::error_code const& ec
 			, size_t /* bytes_transferred */)

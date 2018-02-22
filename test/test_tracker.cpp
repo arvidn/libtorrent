@@ -327,8 +327,11 @@ namespace {
 bool connect_alert(lt::alert const* a, tcp::endpoint& ep)
 {
 	if (peer_connect_alert const* pc = alert_cast<peer_connect_alert>(a))
+	{
 		ep = pc->endpoint;
-	return true;
+		return true;
+	}
+	return false;
 }
 
 void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint const& expected_peer)

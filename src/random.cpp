@@ -100,7 +100,7 @@ namespace libtorrent { namespace aux {
 		}
 	}
 
-	std::uint32_t random(std::uint32_t max)
+	std::uint32_t random(std::uint32_t const max)
 	{
 		return std::uniform_int_distribution<std::uint32_t>(0, max)(aux::random_engine());
 	}

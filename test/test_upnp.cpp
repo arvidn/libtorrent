@@ -154,7 +154,7 @@ namespace // TODO: remove this nested namespace
 	};
 }
 
-void run_upnp_test(char const* root_filename, char const* router_model, char const* control_name, int igd_version)
+void run_upnp_test(char const* root_filename, char const* control_name, int igd_version)
 {
 	lt::io_service ios;
 
@@ -208,12 +208,12 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 			ec.clear();
 			break;
 		}
-		if (upnp_handler->router_model() != "") break;
+		if (!upnp_handler->router_model().empty()) break;
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	std::cout << "router: " << upnp_handler->router_model() << std::endl;
-	TEST_EQUAL(upnp_handler->router_model(), router_model);
+	TEST_CHECK(!upnp_handler->router_model().empty());
 
 	auto const mapping1 = upnp_handler->add_mapping(portmap_protocol::tcp, 500, ep("127.0.0.1", 500));
 	auto const mapping2 = upnp_handler->add_mapping(portmap_protocol::udp, 501, ep("127.0.0.1", 501));
@@ -272,9 +272,9 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 
 TORRENT_TEST(upnp)
 {
-	run_upnp_test(combine_path("..", "root1.xml").c_str(), "Xtreme N GIGABIT Router", "wipconn", 1);
-	run_upnp_test(combine_path("..", "root2.xml").c_str(), "D-Link Router", "WANIPConnection", 1);
-	run_upnp_test(combine_path("..", "root3.xml").c_str(), "D-Link Router", "WANIPConnection_2", 2);
+	run_upnp_test(combine_path("..", "root1.xml").c_str(), "wipconn", 1);
+	run_upnp_test(combine_path("..", "root2.xml").c_str(), "WANIPConnection", 1);
+	run_upnp_test(combine_path("..", "root3.xml").c_str(), "WANIPConnection_2", 2);
 }
 
 TORRENT_TEST(upnp_max_mappings)

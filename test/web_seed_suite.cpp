@@ -216,22 +216,20 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 
 		if (st.is_seeding)
 		{
+			boost::int64_t const total_blocks = (torrent_file->total_size() + 0x3fff) / 0x4000;
 			// we need to sleep here a bit to let the session sync with the torrent stats
 			// commented out because it takes such a long time
 			for (int i = 0; i < 50; ++i)
 			{
 				cnt = get_counters(ses);
-				if (cnt["disk.read_cache_blocks"]
-						== (torrent_file->total_size() + 0x3fff) / 0x4000
-					&& cnt["disk.disk_blocks_in_use"]
-						== (torrent_file->total_size() + 0x3fff) / 0x4000)
+				if (std::abs(int(cnt["disk.read_cache_blocks"] - total_blocks)) <= 2 &&
+					std::abs(int(cnt["disk.disk_blocks_in_use"] - total_blocks)) <= 2)
 					break;
 				std::printf("cache_size: %d/%d\n", int(cnt["disk.read_cache_blocks"])
 					, int(cnt["disk.disk_blocks_in_use"]));
 				std::this_thread::sleep_for(lt::milliseconds(100));
 			}
-			TEST_CHECK(std::abs(int(cnt["disk.disk_blocks_in_use"]
-				- (torrent_file->total_size() + 0x3fff) / 0x4000)) <= 2);
+			TEST_CHECK(std::abs(int(cnt["disk.disk_blocks_in_use"] - total_blocks)) <= 2);
 		}
 	}
 

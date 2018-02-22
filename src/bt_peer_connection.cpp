@@ -3190,7 +3190,7 @@ namespace {
 					// initiate connections. So, if our peer-id is greater than
 					// the others, we should close the incoming connection,
 					// if not, we should close the outgoing one.
-					if (pid < m_our_peer_id && is_outgoing())
+					if ((pid < m_our_peer_id) == is_outgoing())
 					{
 						p->disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
 					}

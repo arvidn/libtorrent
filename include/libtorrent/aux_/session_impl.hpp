@@ -341,10 +341,6 @@ namespace aux {
 			void async_accept(std::shared_ptr<tcp::acceptor> const& listener, transport ssl);
 			void on_accept_connection(std::shared_ptr<socket_type> const& s
 				, std::weak_ptr<tcp::acceptor> listener, error_code const& e, transport ssl);
-			void on_socks_listen(std::shared_ptr<socket_type> const& s
-				, error_code const& e);
-			void on_socks_accept(std::shared_ptr<socket_type> const& s
-				, error_code const& e);
 
 			void incoming_connection(std::shared_ptr<socket_type> const& s);
 
@@ -741,7 +737,6 @@ namespace aux {
 			void update_listen_interfaces();
 			void update_privileged_ports();
 			void update_auto_sequential();
-			void update_incoming_socks5();
 			void update_max_failcount();
 			void update_resolver_cache_timeout();
 
@@ -950,15 +945,8 @@ namespace aux {
 			void ssl_handshake(error_code const& ec, std::shared_ptr<socket_type> s);
 #endif
 
-			// when as a socks proxy is used for peers, also
-			// listen for incoming connections on a socks connection
-			std::shared_ptr<socket_type> m_socks_listen_socket;
-			std::uint16_t m_socks_listen_port;
-
 			// round-robin index into m_outgoing_interfaces
 			mutable std::uint8_t m_interface_index = 0;
-
-			void open_new_incoming_socks_connection();
 
 			std::shared_ptr<listen_socket_t> setup_listener(
 				listen_endpoint_t const& lep, error_code& ec);

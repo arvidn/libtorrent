@@ -287,11 +287,7 @@ TORRENT_TEST(file)
 {
 	error_code ec;
 	file f;
-#if TORRENT_USE_UNC_PATHS || !defined _WIN32
-	TEST_CHECK(f.open("con", open_mode::read_write, ec));
-#else
 	TEST_CHECK(f.open("test_file", open_mode::read_write, ec));
-#endif
 	if (ec)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
@@ -408,6 +404,7 @@ TORRENT_TEST(stat_file)
 // specificaly UNC tests
 #if TORRENT_USE_UNC_PATHS
 
+namespace {
 std::tuple<int, bool> fill_current_directory_caps()
 {
 #ifdef TORRENT_WINDOWS
@@ -428,9 +425,11 @@ std::tuple<int, bool> fill_current_directory_caps()
 	return std::make_tuple(TORRENT_MAX_PATH, true);
 #endif
 }
+}
 
 TORRENT_TEST(unc_tests)
 {
+	using lt::canonicalize_path;
 	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
 	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
 	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
@@ -466,7 +465,7 @@ TORRENT_TEST(unc_tests)
 	if (maximum_component_length > 0)
 	{
 		std::string long_component_name;
-		long_component_name.resize(maximum_component_length);
+		long_component_name.resize(size_t(maximum_component_length));
 		for (int i = 0; i < maximum_component_length; ++i)
 			long_component_name[i] = static_cast<char>((i % 26) + 'A');
 
@@ -519,4 +518,15 @@ TORRENT_TEST(unc_tests)
 	}
 }
 
+TORRENT_TEST(unc_paths)
+{
+	std::string const reserved_name = "con";
+	error_code ec;
+	{
+		file f;
+		TEST_CHECK(f.open(reserved_name, open_mode::read_write, ec) && !ec);
+	}
+	remove(reserved_name, ec);
+	TEST_CHECK(!ec);
+}
 #endif

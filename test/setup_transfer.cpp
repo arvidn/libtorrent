@@ -178,7 +178,7 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name
 	static std::map<lt::session*, std::vector<alert*>> cache;
 	auto& alerts = cache[&ses];
 
-	time_point end_time = lt::clock_type::now() + seconds(10);
+	time_point const end_time = lt::clock_type::now() + seconds(10);
 	while (true)
 	{
 		time_point now = clock_type::now();
@@ -277,20 +277,25 @@ bool print_alerts(lt::session& ses, char const* name
 	, bool allow_no_torrents, bool allow_failed_fastresume
 	, std::function<bool(lt::alert const*)> predicate, bool no_output)
 {
-	bool ret = false;
-	std::vector<torrent_handle> handles = ses.get_torrents();
-	TEST_CHECK(!handles.empty() || allow_no_torrents);
-	torrent_handle h;
-	if (!handles.empty()) h = handles[0];
+	TEST_CHECK(!ses.get_torrents().empty() || allow_no_torrents);
 	std::vector<alert*> alerts;
 	ses.pop_alerts(&alerts);
 	for (auto a : alerts)
 	{
-		if (predicate && predicate(a)) ret = true;
 		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(a))
 		{
 			std::printf("%s: %s: [%s] (%s): %s\n", time_now_string(), name, a->what()
 				, print_endpoint(p->endpoint).c_str(), p->message().c_str());
+		}
+		else if (a->type() == invalid_request_alert::alert_type)
+		{
+			fprintf(stdout, "peer error: %s\n", a->message().c_str());
+			TEST_CHECK(false);
+		}
+		else if (a->type() == fastresume_rejected_alert::alert_type)
+		{
+			fprintf(stdout, "resume data error: %s\n", a->message().c_str());
+			TEST_CHECK(allow_failed_fastresume);
 		}
 		else if (should_print(a) && !no_output)
 		{
@@ -306,7 +311,7 @@ bool print_alerts(lt::session& ses, char const* name
 			TEST_CHECK(false);
 		}
 	}
-	return ret;
+	return predicate && std::any_of(alerts.begin(), alerts.end(), predicate);
 }
 
 void wait_for_listen(lt::session& ses, char const* name)
@@ -315,15 +320,9 @@ void wait_for_listen(lt::session& ses, char const* name)
 	alert const* a = nullptr;
 	do
 	{
-		print_alerts(ses, name, true, true, [&listen_done](lt::alert const* al)
-			{
-				if (alert_cast<listen_failed_alert>(al)
-					|| alert_cast<listen_succeeded_alert>(al))
-				{
-					listen_done = true;
-				}
-				return true;
-			}, false);
+		listen_done = print_alerts(ses, name, true, true, [&listen_done](lt::alert const* al)
+			{ return alert_cast<listen_failed_alert>(al) || alert_cast<listen_succeeded_alert>(al); }
+			, false);
 		if (listen_done) break;
 		a = ses.wait_for_alert(milliseconds(500));
 	} while (a);
@@ -338,12 +337,11 @@ void wait_for_downloading(lt::session& ses, char const* name)
 	alert const* a = nullptr;
 	do
 	{
-		print_alerts(ses, name, true, true, [&downloading_done](lt::alert const* al)
+		downloading_done = print_alerts(ses, name, true, true
+			, [&downloading_done](lt::alert const* al)
 			{
 				state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
-				if (sc && sc->state == torrent_status::downloading)
-					downloading_done = true;
-				return true;
+				return sc && sc->state == torrent_status::downloading;
 			}, false);
 		if (downloading_done) break;
 		if (total_seconds(clock_type::now() - start) > 10) break;
@@ -397,24 +395,6 @@ typedef DWORD pid_type;
 #else
 typedef pid_t pid_type;
 #endif
-
-struct proxy_t
-{
-	pid_type pid;
-	int type;
-};
-
-// maps port to proxy type
-static std::map<int, proxy_t> running_proxies;
-
-void stop_proxy(int port)
-{
-	std::printf("stopping proxy on port %d\n", port);
-	// don't shut down proxies until the test is
-	// completely done. This saves a lot of time.
-	// they're closed at the end of main() by
-	// calling stop_all_proxies().
-}
 
 namespace {
 
@@ -475,7 +455,9 @@ void stop_process(pid_type p)
 {
 #ifdef _WIN32
 	HANDLE proc = OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, p);
+	if (proc == NULL) return;
 	TerminateProcess(proc, 138);
+	WaitForSingleObject(proc, 5000);
 	CloseHandle(proc);
 #else
 	std::printf("killing pid: %d\n", p);
@@ -485,14 +467,34 @@ void stop_process(pid_type p)
 
 } // anonymous namespace
 
+struct proxy_t
+{
+	pid_type pid;
+	int type;
+};
+
+// maps port to proxy type
+static std::map<int, proxy_t> running_proxies;
+
+void stop_proxy(int port)
+{
+	auto const it = running_proxies.find(port);
+
+	if (it == running_proxies.end()) return;
+
+	std::printf("stopping proxy on port %d\n", port);
+
+	stop_process(it->second.pid);
+	running_proxies.erase(it);
+}
+
 void stop_all_proxies()
 {
 	std::map<int, proxy_t> proxies = running_proxies;
-	for (std::map<int, proxy_t>::iterator i = proxies.begin()
-		, end(proxies.end()); i != end; ++i)
+	running_proxies.clear();
+	for (auto const& i : proxies)
 	{
-		stop_process(i->second.pid);
-		running_proxies.erase(i->second.pid);
+		stop_process(i.second.pid);
 	}
 }
 

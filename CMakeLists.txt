@@ -450,6 +450,19 @@ option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
 option(build_examples "build examples" OFF)
 
+set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
+
+if (NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Release FORCE)
+endif()
+
+# add_definitions() doesn't seem to let you say wich build type to apply it to
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DTORRENT_DEBUG")
+if(UNIX)
+	set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -g")
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+endif()
+
 find_package(Threads REQUIRED)
 
 include_directories(${includes})
@@ -521,7 +534,10 @@ endif()
 
 if (shared)
 	add_library(torrent-rasterbar SHARED ${sources2})
-	target_compile_definitions(torrent-rasterbar PRIVATE TORRENT_BUILDING_SHARED)
+	target_compile_definitions(torrent-rasterbar
+		PRIVATE TORRENT_BUILDING_SHARED
+		INTERFACE TORRENT_LINKING_SHARED
+	)
 	if(NOT MSVC)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
@@ -555,12 +571,6 @@ target_compile_features(torrent-rasterbar PUBLIC cxx_std_11)
 target_compile_definitions(torrent-rasterbar PUBLIC $<$<CONFIG:Debug>:TORRENT_DEBUG>)
 
 target_compile_definitions(torrent-rasterbar PRIVATE TORRENT_BUILDING_LIBRARY)
-
-if (build_tests)
-	# this will make some internal functions available in the
-	# DLL interface, for the tests to access
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPORT_EXTRA)
-endif (build_tests)
 
 if (libiconv)
 	find_package(Iconv REQUIRED)
@@ -724,29 +734,8 @@ endif()
 
 # === build tests ===
 if(build_tests)
-	if (NOT logging)
-		message(FATAL_ERROR "tests require logging to be enabled")
-	endif()
-
-	file(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
-	list(REMOVE_ITEM tests "test/test_natpmp.cpp") # doesn't build at time of writing
-	list(REMOVE_ITEM tests "test/test_utils.cpp") # helper file, not a test
-
-	add_library(test_common STATIC test/main.cpp test/test.cpp
-		test/setup_transfer.cpp test/dht_server.cpp test/udp_tracker.cpp
-		test/peer_server.cpp test/web_seed_suite.cpp test/swarm_suite.cpp
-		test/test_utils.cpp test/make_torrent.hpp test/make_torrent.cpp
-		test/settings.hpp test/settings.cpp)
-	set_target_properties(test_common PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
-	target_link_libraries(test_common torrent-rasterbar)
 	enable_testing()
-
-	foreach(s ${tests})
-		get_filename_component (sn ${s} NAME_WE)
-		add_executable(${sn} ${s})
-		target_link_libraries(${sn} test_common)
-		set_target_properties(${sn} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/test")
-		set_target_properties(${sn} PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
-		add_test(NAME ${sn} COMMAND ${sn} WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/test")
-	endforeach(s)
+	# this will make some internal functions available in the DLL interface
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPORT_EXTRA)
+	add_subdirectory(test)
 endif()
