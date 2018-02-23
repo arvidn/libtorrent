@@ -61,7 +61,7 @@ namespace libtorrent {
 			void operator()(disk_io_job::hash_handler& h) const
 			{
 				if (!h) return;
-				h(m_job.piece, m_job.d.piece_hash, m_job.error);
+				h(m_job.piece, m_job.d.h.piece_hash, m_job.error);
 			}
 
 			void operator()(disk_io_job::hash2_handler& h) const

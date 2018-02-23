@@ -158,6 +158,9 @@ namespace file_open_mode {
 		// don't keep the read block in cache
 		static constexpr disk_job_flags_t volatile_read = 4_bit;
 
+		// compute a v1 piece hash
+		static constexpr disk_job_flags_t v1_hash = 5_bit;
+
 		virtual storage_holder new_torrent(storage_params p
 			, std::shared_ptr<void> const& torrent) = 0;
 
@@ -170,8 +173,11 @@ namespace file_open_mode {
 			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler
 			, disk_job_flags_t flags = {}) = 0;
-		virtual void async_hash(storage_index_t storage, piece_index_t piece, disk_job_flags_t flags
+		// if v2 is non-empty it must be at least large enough to hold all v2 chunks in the piece
+		virtual void async_hash(storage_index_t storage, piece_index_t piece, span<sha256_hash> v2
+			, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) = 0;
+		// async_hash2 computes the v2 hash of a single chunk
 		virtual void async_hash2(storage_index_t storage, piece_index_t piece, int offset, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler) = 0;
 		virtual void async_move_storage(storage_index_t storage, std::string p, move_flags_t flags

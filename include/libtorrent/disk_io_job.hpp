@@ -154,7 +154,11 @@ namespace libtorrent {
 		{
 			un() {}
 			// result for hash jobs
-			sha1_hash piece_hash;
+			struct hash_args
+			{
+				sha1_hash piece_hash;
+				span<sha256_hash> chunk_hashes;
+			} h;
 			sha256_hash piece_hash2;
 
 			// this is used for check_fastresume to pass in a vector of hard-links

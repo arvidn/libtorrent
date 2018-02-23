@@ -5160,7 +5160,7 @@ namespace libtorrent {
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				m_disk_thread.async_hash(t->storage(), r.piece, {}
+				m_disk_thread.async_hash(t->storage(), r.piece, {}, {}
 					, [conn = self()](piece_index_t p, sha1_hash const& ph, storage_error const& e) {
 					conn->wrap(&peer_connection::on_seed_mode_hashed, p, ph, e); });
 				t->verifying(r.piece);

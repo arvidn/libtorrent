@@ -195,7 +195,7 @@ namespace {
 		++st->completed_piece;
 		if (st->piece_counter < st->ct.files().end_piece())
 		{
-			st->iothread.async_hash(st->storage, st->piece_counter
+			st->iothread.async_hash(st->storage, st->piece_counter, {}
 				, disk_interface::sequential_access
 				, std::bind(&on_hash, _1, _2, _3, st));
 			++st->piece_counter;
@@ -327,7 +327,7 @@ namespace {
 		hash_state st = { t, std::move(storage), *disk_thread.get(), piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
-			disk_thread->async_hash(st.storage, i, disk_interface::sequential_access
+			disk_thread->async_hash(st.storage, i, {}, disk_interface::sequential_access
 				, std::bind(&on_hash, _1, _2, _3, &st));
 			++st.piece_counter;
 			if (st.piece_counter >= t.files().end_piece()) break;
