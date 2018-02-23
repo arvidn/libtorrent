@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 
 #include <vector>
 
@@ -162,10 +163,14 @@ namespace {
 			return false;
 		}
 
-		void async_hash(storage_index_t storage, piece_index_t const piece, disk_job_flags_t
+		void async_hash(storage_index_t storage, piece_index_t const piece
+			, span<sha256_hash> block_hashes, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override
 		{
 			time_point const start_time = clock_type::now();
+
+			bool const v1 = bool(flags & disk_interface::v1_hash);
+			bool const v2 = !block_hashes.empty();
 
 			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);
 			storage_error error;
@@ -192,7 +197,10 @@ namespace {
 				int const ret = st->readv(m_settings, b, piece, offset, error);
 				offset += default_block_size;
 				if (ret <= 0) break;
-				ph.update(b.first(ret));
+				if (v1)
+					ph.update(b.first(ret));
+				if (v2)
+					block_hashes[i] = hasher256(b.first(ret)).final();
 			}
 
 			sha1_hash const hash = ph.final();
