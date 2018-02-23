@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <functional>
 #include <cstdint>
+#include <boost/logic/tribool.hpp>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_connection.hpp"
@@ -5217,9 +5218,22 @@ namespace libtorrent {
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				m_disk_thread.async_hash(t->storage(), r.piece, {}, {}
-					, [conn = self()](piece_index_t p, sha1_hash const& ph, storage_error const& e) {
-					conn->wrap(&peer_connection::on_seed_mode_hashed, p, ph, e); });
+				disk_job_flags_t flags;
+				if (t->torrent_file().info_hash().has_v1())
+					flags |= disk_interface::v1_hash;
+				std::vector<sha256_hash> hashes;
+				if (t->torrent_file().info_hash().has_v2())
+				{
+					auto const piece_size = t->torrent_file().files().piece_size2(r.piece);
+					hashes.resize((piece_size + default_block_size - 1) / default_block_size);
+				}
+
+				span<sha256_hash> v2_hashes(hashes);
+				m_disk_thread.async_hash(t->storage(), r.piece, v2_hashes, {}
+					, [conn = self(), h2 = std::move(hashes)]
+					(piece_index_t p, sha1_hash const& ph, storage_error const& e)
+					{ conn->wrap(&peer_connection::on_seed_mode_hashed, p, ph, h2, e); });
+
 				t->verifying(r.piece);
 				continue;
 			}
@@ -5273,7 +5287,8 @@ namespace libtorrent {
 	// this is called when a previously unchecked piece has been
 	// checked, while in seed-mode
 	void peer_connection::on_seed_mode_hashed(piece_index_t const piece
-		, sha1_hash const& piece_hash, storage_error const& error)
+		, sha1_hash const& piece_hash, std::vector<sha256_hash> const& block_hashes
+		, storage_error const& error)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -5292,9 +5307,58 @@ namespace libtorrent {
 			return;
 		}
 
+		boost::tribool hash_failed[2] = { boost::indeterminate, boost::indeterminate };
+
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& piece_hash != t->torrent_file().hash_for_piece(piece))
+			&& t->torrent_file().info_hash().has_v1())
+		{
+			hash_failed[0] = piece_hash != t->torrent_file().hash_for_piece(piece);
+		}
+
+		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
+			&& t->torrent_file().info_hash().has_v2())
+		{
+			hash_failed[1] = false;
+
+			auto& tf = t->torrent_file();
+			file_index_t const f = tf.files().file_index_at_offset(piece * tf.piece_length());
+			int const piece_size = tf.files().piece_size2(piece);
+			int const file_num_leafs = merkle_num_leafs(tf.files().file_num_blocks(f));
+			int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
+			int const first_block_idx = tf.files().file_first_block_node(f) + piece * blocks_in_piece;
+			auto& tree = tf.file_merkle_tree(f);
+
+			TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
+
+			t->need_hash_picker();
+			auto picker = t->get_hash_picker();
+			set_chunk_hash_result result = set_chunk_hash_result::unknown;
+			for (int i = 0; i < blocks_in_piece; ++i)
+			{
+				result = picker.set_chunk_hash(piece, i * default_block_size, block_hashes[i]);
+				if (result.status == set_chunk_hash_result::chunk_hash_failed
+					|| result.status == set_chunk_hash_result::piece_hash_failed)
+				{
+					hash_failed[1] = true;
+				}
+			}
+
+			// if the last block still couldn't be verified
+			// it means we don't know the piece's root hash
+			// we must leave seed mode
+			if (result.status == set_chunk_hash_result::unknown)
+				hash_failed[0] = hash_failed[1] = true;
+		}
+
+		if ((hash_failed[0] && !hash_failed[1]) || (!hash_failed[0] && hash_failed[1]))
+		{
+			t->set_error(errors::torrent_inconsistent_hashes, torrent_status::error_file_none);
+			t->pause();
+			return;
+		}
+
+		if (hash_failed[0] || hash_failed[1])
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
