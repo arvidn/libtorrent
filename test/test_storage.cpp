@@ -571,7 +571,8 @@ void test_check_files(std::string const& test_path
 	for (auto const i : info->piece_range())
 	{
 		done = false;
-		io->async_hash(st, i, disk_interface::sequential_access | disk_interface::volatile_read
+		io->async_hash(st, i, {}
+			, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
 			, std::bind(&on_piece_checked, _1, _2, _3, &done));
 		io->submit_jobs();
 		ios.restart();

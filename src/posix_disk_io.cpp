@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 
 #include <vector>
 
@@ -162,10 +163,14 @@ namespace {
 			return false;
 		}
 
-		void async_hash(storage_index_t storage, piece_index_t const piece, disk_job_flags_t
+		void async_hash(storage_index_t storage, piece_index_t const piece
+			, span<sha256_hash> block_hashes, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override
 		{
 			time_point const start_time = clock_type::now();
+
+			bool const v1 = bool(flags & disk_interface::v1_hash);
+			bool const v2 = !block_hashes.empty();
 
 			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);
 			storage_error error;
@@ -180,22 +185,32 @@ namespace {
 
 			posix_storage* st = m_torrents[storage].get();
 
-			int const piece_size = st->files().piece_size(piece);
-			int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
+			int const piece_size = v1 ? st->files().piece_size(piece) : 0;
+			int const piece_size2 = v2 ? st->orig_files().piece_size2(piece) : 0;
+			int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
+			int const blocks_in_piece2 = v2 ? st->orig_files().blocks_in_piece2(piece) : 0;
+
+			TORRENT_ASSERT(!v2 || int(block_hashes.size()) >= blocks_in_piece2);
 
 			int offset = 0;
-			for (int i = 0; i < blocks_in_piece; ++i)
+			for (int i = 0; i < std::max(blocks_in_piece, blocks_in_piece2); ++i)
 			{
-				auto const len = std::min(default_block_size, piece_size - offset);
+				bool const v2_block = i < blocks_in_piece2;
 
-				iovec_t b = {buffer.data(), len};
+				auto const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
+				auto const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
+
+				iovec_t b = {buffer.data(), std::max(len, len2)};
 				int const ret = st->readv(m_settings, b, piece, offset, error);
 				offset += default_block_size;
 				if (ret <= 0) break;
-				ph.update(b.first(ret));
+				if (v1)
+					ph.update(b.first(std::min(ret, len)));
+				if (v2_block)
+					block_hashes[i] = hasher256(b.first(std::min(ret, len2))).final();
 			}
 
-			sha1_hash const hash = ph.final();
+			sha1_hash const hash = v1 ? ph.final() : sha1_hash();
 
 			if (!error.ec)
 			{

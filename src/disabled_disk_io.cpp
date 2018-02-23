@@ -100,7 +100,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 	}
 
 	void async_hash(storage_index_t
-		, piece_index_t piece, disk_job_flags_t
+		, piece_index_t piece, span<sha256_hash>, disk_job_flags_t
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override
 	{
 		// TODO: it would be nice to return a valid hash of zeroes here
@@ -109,7 +109,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 
 	void async_hash2(storage_index_t, piece_index_t piece, int
 		, disk_job_flags_t
-		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler)
+		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler) override
 	{
 		post(m_ios, [h = std::move(handler), piece]() { h(piece, sha256_hash{}, storage_error{}); });
 	}

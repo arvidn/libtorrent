@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
@@ -127,6 +128,12 @@ namespace {
 		// piece_length(), which fits in an int
 		return static_cast<int>(
 			std::min(static_cast<std::uint64_t>(piece_length()), file_iter->offset - target.offset));
+	}
+
+	int file_storage::blocks_in_piece2(piece_index_t const index) const
+	{
+		// the number of default_block_size in a piece size, rounding up
+		return (piece_size2(index) + default_block_size - 1) / default_block_size;
 	}
 
 	// path is supposed to include the name of the torrent itself.
