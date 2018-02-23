@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 
 #include <vector>
 
@@ -162,10 +163,14 @@ namespace {
 			return false;
 		}
 
-		void async_hash(storage_index_t storage, piece_index_t const piece, disk_job_flags_t
+		void async_hash(storage_index_t storage, piece_index_t const piece
+			, span<sha256_hash> chunk_hashes, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override
 		{
 			time_point const start_time = clock_type::now();
+
+			bool v1 = flags | disk_interface::v1_hash;
+			bool v2 = !chunk_hashes.empty();
 
 			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);
 			storage_error error;
@@ -192,7 +197,10 @@ namespace {
 				int const ret = st->readv(m_settings, b, piece, offset, error);
 				offset += default_block_size;
 				if (ret <= 0) break;
-				ph.update(b.first(ret));
+				if (v1)
+					ph.update(b.first(ret));
+				if (v2)
+					chunk_hashes[i] = hasher256(b.first(ret)).final();
 			}
 
 			sha1_hash const hash = ph.final();
@@ -222,7 +230,7 @@ namespace {
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
-				m_ios.post([=]{ handler(piece, sha256_hash{}, error); });
+				post(m_ios, [=]{ handler(piece, sha256_hash{}, error); });
 				return;
 			}
 
@@ -251,7 +259,7 @@ namespace {
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
-			m_ios.post([=]{ handler(piece, hash, error); });
+			post(m_ios, [=]{ handler(piece, hash, error); });
 		}
 
 
