@@ -76,7 +76,8 @@ struct temp_storage
 		TORRENT_ASSERT(offset + b.size() <= int(data.size()));
 		std::memcpy(data.data() + offset, b.data(), b.size());
 	}
-	lt::sha1_hash hash(lt::piece_index_t const piece, lt::storage_error& ec) const
+	lt::sha1_hash hash(lt::piece_index_t const piece
+		, lt::span<lt::sha256_hash> const block_hashes, lt::storage_error& ec) const
 	{
 		auto const i = m_file_data.find(piece);
 		if (i == m_file_data.end())
@@ -85,6 +86,22 @@ struct temp_storage
 			ec.ec = boost::asio::error::eof;
 			return {};
 		};
+		if (!block_hashes.empty())
+		{
+			int const piece_size2 = m_files.piece_size2(piece);
+			int const blocks_in_piece2 = (piece_size2 + lt::default_block_size - 1) / lt::default_block_size;
+			char const* buf = i->second.data();
+			std::int64_t offset = 0;
+			for (int i = 0; i < blocks_in_piece2; ++i)
+			{
+				lt::hasher256 h2;
+				std::ptrdiff_t const len2 = std::min(lt::default_block_size, int(piece_size2 - offset));
+				h2.update({ buf, len2 });
+				buf += len2;
+				offset += len2;
+				block_hashes[i] = h2.final();
+			}
+		}
 		return lt::hasher(i->second).final();
 	}
 	lt::sha256_hash hash2(lt::piece_index_t const piece, int const offset, lt::storage_error& ec)
@@ -181,11 +198,12 @@ struct temp_disk_io final : lt::disk_interface
 		return false;
 	}
 
-	void async_hash(lt::storage_index_t storage, lt::piece_index_t const piece, lt::disk_job_flags_t
+	void async_hash(lt::storage_index_t storage, lt::piece_index_t const piece
+		, lt::span<lt::sha256_hash> block_hashes, lt::disk_job_flags_t
 		, std::function<void(lt::piece_index_t, lt::sha1_hash const&, lt::storage_error const&)> handler) override
 	{
 		lt::storage_error error;
-		lt::sha1_hash const hash = m_torrents[storage]->hash(piece, error);
+		lt::sha1_hash const hash = m_torrents[storage]->hash(piece, block_hashes, error);
 		post(m_ioc, [=]{ handler(piece, hash, error); });
 	}
 

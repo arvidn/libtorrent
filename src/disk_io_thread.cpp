@@ -51,8 +51,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread_pool.hpp"
 #include "libtorrent/aux_/store_buffer.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
@@ -166,7 +168,8 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 		, char const* buf, std::shared_ptr<disk_observer> o
 		, std::function<void(storage_error const&)> handler
 		, disk_job_flags_t flags = {}) override;
-	void async_hash(storage_index_t storage, piece_index_t piece, disk_job_flags_t flags
+	void async_hash(storage_index_t storage, piece_index_t piece, span<sha256_hash> v2
+		, disk_job_flags_t flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override;
 	void async_hash2(storage_index_t storage, piece_index_t piece, int offset, disk_job_flags_t flags
 		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler) override;
@@ -760,12 +763,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	}
 
 	void disk_io_thread::async_hash(storage_index_t const storage
-		, piece_index_t const piece, disk_job_flags_t const flags
+		, piece_index_t const piece, span<sha256_hash> v2, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(job_action_t::hash);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = piece;
+		j->d.h.block_hashes = v2;
 		j->callback = std::move(handler);
 		j->flags = flags;
 		add_job(j);
@@ -913,30 +917,60 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// just read straight from the file
 		TORRENT_ASSERT(m_magic == 0x1337);
 
-		int const piece_size = j->storage->files().piece_size(j->piece);
-		int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
+		bool const v1 = bool(j->flags & disk_interface::v1_hash);
+		bool const v2 = !j->d.h.block_hashes.empty();
+
+		int const piece_size = v1 ? j->storage->files().piece_size(j->piece) : 0;
+		int const piece_size2 = v2 ? j->storage->orig_files().piece_size2(j->piece) : 0;
+		int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
+		int const blocks_in_piece2 = v2 ? (piece_size2 + default_block_size - 1) / default_block_size : 0;
 		aux::open_mode_t const file_flags = file_flags_for_job(j);
+
+		TORRENT_ASSERT(!v2 || int(j->d.h.block_hashes.size()) >= blocks_in_piece2);
 
 		hasher h;
 		int ret = 0;
 		int offset = 0;
-		for (int i = 0; i < blocks_in_piece; ++i)
+		for (int i = 0; i < std::max(blocks_in_piece, blocks_in_piece2); ++i)
 		{
+			bool const v2_block = i < blocks_in_piece2;
+
 			DLOG("do_hash: reading (piece: %d block: %d)\n", int(j->piece), i);
 
 			time_point const start_time = clock_type::now();
 
-			std::ptrdiff_t const len = std::min(default_block_size, piece_size - offset);
+			std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
+			std::ptrdiff_t const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
+
+			hasher256 h2;
 
 			if (!m_store_buffer.get({j->storage->storage_index(), j->piece, offset}
 				, [&](char* buf)
 				{
-					h.update({buf, len});
-					ret = static_cast<int>(len);
+					if (v1)
+					{
+						h.update({ buf, len });
+						ret = int(len);
+					}
+					if (v2_block)
+					{
+						h2.update({ buf, len2 });
+						ret = int(len2);
+					}
 				}))
 			{
-				ret = j->storage->hashv(m_settings, h, len, j->piece, offset, file_flags, j->error);
-				if (ret < 0) break;
+				if (v1)
+				{
+					j->error.ec.clear();
+					ret = j->storage->hashv(m_settings, h, len, j->piece, offset, file_flags, j->error);
+					if (ret < 0) break;
+				}
+				if (v2_block)
+				{
+					j->error.ec.clear();
+					ret = j->storage->hashv2(m_settings, h2, len2, j->piece, offset, file_flags, j->error);
+					if (ret < 0) break;
+				}
 			}
 
 			if (!j->error.ec)
@@ -949,12 +983,16 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
-			if (ret == 0) break;
+			if (v2_block)
+				j->d.h.block_hashes[i] = h2.final();
+
+			if (ret <= 0) break;
 
 			offset += default_block_size;
 		}
 
-		j->d.piece_hash = h.final();
+		if (v1)
+			j->d.h.piece_hash = h.final();
 		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
 	}
 
