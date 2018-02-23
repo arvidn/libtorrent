@@ -401,6 +401,9 @@ namespace libtorrent {
 		// for the last piece, which may be shorter.
 		int piece_size(piece_index_t index) const;
 
+		// returns the number of blocks in the specified piece, for v2 torrents.
+		int blocks_in_piece2(piece_index_t index) const;
+
 		// Returns the size of the given piece. If the piece spans multiple files,
 		// only the first file is considered part of the piece. This is used for
 		// v2 torrents, where all files are piece aligned and padded. i.e. The pad
