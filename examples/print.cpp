@@ -340,42 +340,45 @@ void clear_rows(int y1, int y2)
 #endif
 }
 
-void terminal_size(int* terminal_width, int* terminal_height)
+std::pair<int, int> terminal_size()
 {
+	int width = 80;
+	int height = 50;
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO coninfo;
 	if (GetConsoleScreenBufferInfo(out, &coninfo))
 	{
-		*terminal_width = coninfo.dwSize.X;
-		*terminal_height = coninfo.srWindow.Bottom - coninfo.srWindow.Top;
+		width = coninfo.dwSize.X;
+		height = coninfo.srWindow.Bottom - coninfo.srWindow.Top;
 #else
 	int tty = open("/dev/tty", O_RDONLY);
 	if (tty < 0)
 	{
-		*terminal_width = 190;
-		*terminal_height = 100;
-		return;
+		width = 190;
+		height = 100;
+		return {width, height};
 	}
 	winsize size;
 	int ret = ioctl(tty, TIOCGWINSZ, reinterpret_cast<char*>(&size));
 	close(tty);
 	if (ret == 0)
 	{
-		*terminal_width = size.ws_col;
-		*terminal_height = size.ws_row;
+		width = size.ws_col;
+		height = size.ws_row;
 #endif
 
-		if (*terminal_width < 64)
-			*terminal_width = 64;
-		if (*terminal_height < 25)
-			*terminal_height = 25;
+		if (width < 64)
+			width = 64;
+		if (height < 25)
+			height = 25;
 	}
 	else
 	{
-		*terminal_width = 190;
-		*terminal_height = 100;
+		width = 190;
+		height = 100;
 	}
+	return {width, height};
 }
 
 #ifdef _WIN32
