@@ -9508,10 +9508,14 @@ namespace {
 	}
 	std::string torrent::resolve_filename(int file) const
 	{
-		if (file == torrent_status::error_file_none) return "";
-		if (file == torrent_status::error_file_url) return m_url;
-		if (file == torrent_status::error_file_ssl_ctx) return "SSL Context";
-		if (file == torrent_status::error_file_metadata) return "metadata (from user load function)";
+		switch (file)
+		{
+			case torrent_status::error_file_none: return "";
+			case torrent_status::error_file_url: return m_url;
+			case torrent_status::error_file_ssl_ctx: return "SSL Context";
+			case torrent_status::error_file_metadata: return "metadata (from user load function)";
+			case torrent_status::error_file_partfile: return "partfile";
+		}
 
 		if (m_storage && file >= 0)
 		{
