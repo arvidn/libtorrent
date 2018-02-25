@@ -881,6 +881,10 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		view.update_torrents(std::move(p->status));
 		return true;
 	}
+	else if (torrent_removed_alert* p = alert_cast<torrent_removed_alert>(a))
+	{
+		view.remove_torrent(std::move(p->handle));
+	}
 	return false;
 
 #ifdef _MSC_VER
@@ -1298,9 +1302,14 @@ MAGNETURL is a magnet link
 
 		int terminal_width = 80;
 		int terminal_height = 50;
-		terminal_size(&terminal_width, &terminal_height);
-		view.set_size(terminal_width, terminal_height / 3);
-		ses_view.set_pos(terminal_height / 3);
+		std::tie(terminal_width, terminal_height) = terminal_size();
+
+		// the ratio of torrent-list and details below depend on the number of
+		// torrents we have in the session
+		int const height = std::min(terminal_height / 2
+			, std::max(5, view.num_visible_torrents() + 2));
+		view.set_size(terminal_width, height);
+		ses_view.set_pos(height);
 
 		int c = 0;
 		if (sleep_and_input(&c, refresh_delay))

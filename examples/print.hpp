@@ -44,7 +44,7 @@ void clear_screen();
 
 void clear_rows(int y1, int y2);
 
-void terminal_size(int* terminal_width, int* terminal_height);
+std::pair<int, int> terminal_size();
 std::string piece_matrix(lt::bitfield const& p, int width, int* height);
 
 void print(char const* str);

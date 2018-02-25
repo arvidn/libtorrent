@@ -144,31 +144,51 @@ lt::torrent_handle torrent_view::get_active_handle() const
 	return m_filtered_handles[m_active_torrent]->handle;
 }
 
+void torrent_view::remove_torrent(lt::torrent_handle h)
+{
+	auto i = m_all_handles.find(h);
+	if (i == m_all_handles.end()) return;
+	bool need_rerender = false;
+	if (show_torrent(i->second))
+	{
+		auto j = std::find(m_filtered_handles.begin(), m_filtered_handles.end()
+			, &i->second);
+		if (j != m_filtered_handles.end())
+		{
+			m_filtered_handles.erase(j);
+			need_rerender = true;
+		}
+	}
+	m_all_handles.erase(i);
+	if (need_rerender) render();
+}
+
 void torrent_view::update_torrents(std::vector<lt::torrent_status> st)
 {
 	std::set<lt::torrent_handle> updates;
 	bool need_filter_update = false;
 	for (lt::torrent_status& t : st)
 	{
-		auto j = m_all_handles.find(t);
+		auto j = m_all_handles.find(t.handle);
 		// add new entries here
 		if (j == m_all_handles.end())
 		{
-			j = m_all_handles.insert(std::move(t)).first;
-			if (show_torrent(*j))
+			auto handle = t.handle;
+			j = m_all_handles.emplace(handle, std::move(t)).first;
+			if (show_torrent(j->second))
 			{
-				m_filtered_handles.push_back(&*j);
+				m_filtered_handles.push_back(&j->second);
 				need_filter_update = true;
 			}
 		}
 		else
 		{
-			bool const prev_show = show_torrent(*j);
-			const_cast<lt::torrent_status&>(*j) = std::move(t);
-			if (prev_show != show_torrent(*j))
+			bool const prev_show = show_torrent(j->second);
+			j->second = std::move(t);
+			if (prev_show != show_torrent(j->second))
 				need_filter_update = true;
 			else
-				updates.insert(j->handle);
+				updates.insert(j->second.handle);
 		}
 	}
 	if (need_filter_update)
@@ -180,11 +200,12 @@ void torrent_view::update_torrents(std::vector<lt::torrent_status> st)
 	{
 		int torrent_index = 0;
 		for (auto i = m_filtered_handles.begin();
-			i != m_filtered_handles.end(); ++torrent_index, ++i)
+			i != m_filtered_handles.end(); ++i)
 		{
 			if (torrent_index < m_scroll_position
 				|| torrent_index >= m_scroll_position + m_height - header_size)
 			{
+				++torrent_index;
 				continue;
 			}
 
@@ -194,10 +215,14 @@ void torrent_view::update_torrents(std::vector<lt::torrent_status> st)
 				continue;
 
 			if (updates.count(s.handle) == 0)
+			{
+				++torrent_index;
 				continue;
+			}
 
 			set_cursor_pos(0, header_size + torrent_index - m_scroll_position);
 			print_torrent(s, torrent_index == m_active_torrent);
+			++torrent_index;
 		}
 	}
 }
@@ -265,11 +290,12 @@ void torrent_view::render()
 	int torrent_index = 0;
 
 	for (std::vector<lt::torrent_status const*>::iterator i = m_filtered_handles.begin();
-		i != m_filtered_handles.end(); ++torrent_index)
+		i != m_filtered_handles.end();)
 	{
 		if (torrent_index < m_scroll_position)
 		{
 			++i;
+			++torrent_index;
 			continue;
 		}
 		if (lines_printed >= m_height)
@@ -286,6 +312,7 @@ void torrent_view::render()
 		set_cursor_pos(0, torrent_index + header_size - m_scroll_position);
 		print_torrent(s, torrent_index == m_active_torrent);
 		++lines_printed;
+		++torrent_index;
 	}
 
 	clear_rows(torrent_index + header_size, m_height);
@@ -419,8 +446,8 @@ void torrent_view::update_filtered_torrents()
 	m_filtered_handles.clear();
 	for (auto const& h : m_all_handles)
 	{
-		if (!show_torrent(h)) continue;
-		m_filtered_handles.push_back(&h);
+		if (!show_torrent(h.second)) continue;
+		m_filtered_handles.push_back(&h.second);
 	}
 	if (m_active_torrent >= int(m_filtered_handles.size())) m_active_torrent = int(m_filtered_handles.size()) - 1;
 	if (m_active_torrent < 0) m_active_torrent = 0;
