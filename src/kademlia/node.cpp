@@ -821,7 +821,7 @@ void node::incoming_request(msg const& m, entry& e)
 	// mirror back the other node's external port
 	reply["p"] = m.addr.port();
 
-	string_view query = top_level[0].string_value();
+	string_view const query = top_level[0].string_value();
 
 	if (m_observer && m_observer->on_dht_request(query, m, e))
 		return;
@@ -1094,7 +1094,7 @@ void node::incoming_request(msg const& m, entry& e)
 	}
 	else if (query == "get")
 	{
-		key_desc_t msg_desc[] = {
+		static key_desc_t const msg_desc[] = {
 			{"seq", bdecode_node::int_t, 0, key_desc_t::optional},
 			{"target", bdecode_node::string_t, 20, 0},
 			{"want", bdecode_node::list_t, 0, key_desc_t::optional},
@@ -1220,7 +1220,7 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 
 node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 {
-	static std::array<protocol_descriptor, 2> descriptors =
+	static std::array<protocol_descriptor, 2> const descriptors =
 	{{
 		{udp::v4(), "n4", "nodes"},
 		{udp::v6(), "n6", "nodes6"}

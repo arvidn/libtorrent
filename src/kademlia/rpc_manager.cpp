@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_settings.hpp>
 
 #include <libtorrent/socket_io.hpp> // for print_endpoint
-#include <libtorrent/hasher.hpp>
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
 #include <libtorrent/aux_/aligned_union.hpp>
 
@@ -241,7 +240,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 		observer_ptr o = i->second;
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::rpc_manager, "[%u] found transaction [ tid: %d ]"
-			, o->algorithm()->id(), int(i->first));
+			, o->algorithm()->id(), i->first);
 #endif
 		i = m_transactions.erase(i);
 		o->timeout();
