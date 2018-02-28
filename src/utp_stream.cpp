@@ -1830,7 +1830,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// congestion window and the advertised receive window from
 	// the other end.
 	if (m_bytes_in_flight + payload_size > (std::min)(int(m_cwnd >> 16)
-		, int(m_adv_wnd - m_bytes_in_flight)))
+		, int(m_adv_wnd)))
 	{
 		// this means there's not enough room in the send window for
 		// another packet. We have to hold off sending this data.
