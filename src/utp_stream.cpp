@@ -137,7 +137,7 @@ enum
 	ACK_MASK = 0xffff,
 
 	// the number of packets that'll fit in the reorder buffer
-	max_packets_reorder = 512,
+	max_packets_reorder = 4096,
 
 	// if a packet receives more than this number of
 	// duplicate acks, we'll trigger a fast re-send
@@ -281,7 +281,7 @@ struct utp_socket_impl
 		, m_written(0)
 		, m_receive_buffer_size(0)
 		, m_read_buffer_size(0)
-		, m_in_buf_size(1024 * 1024)
+		, m_in_buf_size(8 * 1024 * 1024)
 		, m_in_packets(0)
 		, m_out_packets(0)
 		, m_send_delay(0)
