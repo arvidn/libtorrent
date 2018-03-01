@@ -136,8 +136,6 @@ enum
 {
 	ACK_MASK = 0xffff,
 
-	// the number of packets that'll fit in the reorder buffer
-	max_packets_reorder = 4096,
 
 	// if a packet receives more than this number of
 	// duplicate acks, we'll trigger a fast re-send
@@ -2850,6 +2848,10 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 	if (ph->get_type() == ST_DATA)
 		m_sm->inc_stats_counter(counters::utp_payload_pkts_in);
+
+	// the number of packets that'll fit in the reorder buffer
+    // incoming MTU of 1100 and minimal size of 16 packets are chosen arbitrarly
+	const boost::uint32_t max_packets_reorder = std::max(16, m_in_buf_size / 1100);
 
 	if (m_state != UTP_STATE_NONE
 		&& m_state != UTP_STATE_SYN_SENT
