@@ -44,15 +44,13 @@ struct session_view
 	session_view();
 
 	void set_pos(int pos);
+	void set_width(int width);
 
 	int pos() const;
 
 	int height() const;
 
 	void render();
-
-	void print_utp_stats(bool p) { m_print_utp_stats = p; }
-	bool print_utp_stats() const { return m_print_utp_stats; }
 
 	void update_counters(lt::span<std::int64_t const> stats_counters, std::uint64_t t);
 
@@ -68,8 +66,6 @@ private:
 	// the timestamps of the counters in m_cnt[0] and m_cnt[1]
 	// respectively. The timestamps are microseconds since session start
 	std::uint64_t m_timestamp[2];
-
-	bool m_print_utp_stats;
 
 	int const m_queued_bytes_idx = lt::find_metric_idx("disk.queued_write_bytes");
 	int const m_wasted_bytes_idx = lt::find_metric_idx("net.recv_redundant_bytes");

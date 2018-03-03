@@ -41,7 +41,6 @@ using libtorrent::span;
 
 session_view::session_view()
 	: m_position(0)
-	, m_print_utp_stats(false)
 {
 	using lt::find_metric_idx;
 
@@ -57,11 +56,16 @@ void session_view::set_pos(int pos)
 	m_position = pos;
 }
 
+void session_view::set_width(int width)
+{
+	m_width = width;
+}
+
 int session_view::pos() const { return m_position; }
 
 int session_view::height() const
 {
-	return 3 + m_print_utp_stats;
+	return 3;
 }
 
 void session_view::render()
@@ -71,16 +75,15 @@ void session_view::render()
 
 	int y = m_position;
 
-	float seconds = (m_timestamp[0] - m_timestamp[1]) / 1000000.f;
+	float const seconds = (m_timestamp[0] - m_timestamp[1]) / 1000000.f;
 
-	int download_rate = int((m_cnt[0][m_recv_idx] - m_cnt[1][m_recv_idx])
+	int const download_rate = int((m_cnt[0][m_recv_idx] - m_cnt[1][m_recv_idx])
 		/ seconds);
-	int upload_rate = int((m_cnt[0][m_sent_idx] - m_cnt[1][m_sent_idx])
+	int const upload_rate = int((m_cnt[0][m_sent_idx] - m_cnt[1][m_sent_idx])
 		/ seconds);
 
 	pos += std::snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "
-		"  bw queue: %s | %s conns: %3d  unchoked: %2d / %2d "
-		"                                      %s\x1b[K"
+		"  bw queue: %s | %s conns: %3d  unchoked: %2d / %2d%*s\x1b[K"
 		, esc("48;5;238")
 		, esc("1")
 		, add_suffix(m_cnt[0][m_failed_bytes_idx]).c_str()
@@ -91,6 +94,7 @@ void session_view::render()
 		, int(m_cnt[0][m_num_peers_idx])
 		, int(m_cnt[0][m_unchoked_idx])
 		, int(m_cnt[0][m_unchoke_slots_idx])
+		, std::max(0, m_width - 86)
 		, esc("0"));
 
 	set_cursor_pos(0, y++);
@@ -98,7 +102,7 @@ void session_view::render()
 
 	std::snprintf(str, sizeof(str), "%s%swaste: %s   up: %s (%s) "
 		"disk queue: %s | %s cache w: %3d%% r: %3d%% "
-		"size: w: %s r: %s total: %s       %s\x1b[K"
+		"size: w: %s r: %s total: %s %*s\x1b[K"
 #ifdef _WIN32
 		, esc("40")
 #else
@@ -117,79 +121,23 @@ void session_view::render()
 		, add_suffix(m_cnt[0][m_writes_cache_idx] * 16 * 1024).c_str()
 		, add_suffix(m_cnt[0][m_reads_cache_idx] * 16 * 1024).c_str()
 		, add_suffix(m_cnt[0][m_blocks_in_use_idx] * 16 * 1024).c_str()
+		, std::max(0, m_width - 119)
 		, esc("0"));
 	set_cursor_pos(0, y++);
 	print(str);
 
-/*
-	std::snprintf(str, sizeof(str), "| timing - "
-		" read: %6d ms | write: %6d ms | hash: %6d"
-		, cs.average_read_time / 1000, cs.average_write_time / 1000
-		, cs.average_hash_time / 1000);
-
+	std::snprintf(str, sizeof(str), "%s%suTP idle: %d syn: %d est: %d fin: %d wait: %d%*s\x1b[K"
+		, esc("48;5;238")
+		, esc("1")
+		, int(m_cnt[0][m_utp_idle])
+		, int(m_cnt[0][m_utp_syn_sent])
+		, int(m_cnt[0][m_utp_connected])
+		, int(m_cnt[0][m_utp_fin_sent])
+		, int(m_cnt[0][m_utp_close_wait])
+		, int(m_width - 37)
+		, esc("0"));
 	set_cursor_pos(0, y++);
 	print(str);
-
-	std::snprintf(str, sizeof(str), "| jobs   - queued: %4d (%4d) pending: %4d blocked: %4d "
-		"queued-bytes: %5" PRId64 " kB"
-		, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.blocked_jobs
-		, m_cnt[0][m_queued_bytes_idx] / 1000);
-
-	set_cursor_pos(0, y++);
-	print(str);
-
-	std::snprintf(str, sizeof(str), "|  cache  - total: %4d read: %4d write: %4d pinned: %4d write-queue: %4d"
-		, cs.read_cache_size + cs.write_cache_size, cs.read_cache_size
-		, cs.write_cache_size, cs.pinned_blocks
-		, int(m_cnt[0][m_queued_bytes_idx] / 0x4000));
-	set_cursor_pos(0, y++);
-	print(str);
-*/
-	int mru_size = int(m_cnt[0][m_mru_size_idx] + m_cnt[0][m_mru_ghost_idx]);
-	int mfu_size = int(m_cnt[0][m_mfu_size_idx] + m_cnt[0][m_mfu_ghost_idx]);
-	int arc_size = mru_size + mfu_size;
-
-	char mru_caption[100];
-	std::snprintf(mru_caption, sizeof(mru_caption), "MRU: %d (%d)"
-		, int(m_cnt[0][m_mru_size_idx]), int(m_cnt[0][m_mru_ghost_idx]));
-	char mfu_caption[100];
-	std::snprintf(mfu_caption, sizeof(mfu_caption), "MFU: %d (%d)"
-		, int(m_cnt[0][m_mfu_size_idx]), int(m_cnt[0][m_mfu_ghost_idx]));
-
-	pos = std::snprintf(str, sizeof(str), "cache: ");
-	if (arc_size > 0)
-	{
-		if (mru_size > 0)
-		{
-			pos += std::snprintf(str + pos, sizeof(str) - pos, "%s"
-				, progress_bar(int(m_cnt[0][m_mru_ghost_idx] * 1000 / mru_size)
-					, mru_size * (m_width-8) / arc_size, col_yellow, '-', '#'
-					, mru_caption, progress_invert).c_str());
-		}
-		pos += std::snprintf(str + pos, sizeof(str) - pos, "|");
-		if (mfu_size)
-		{
-			pos += std::snprintf(str + pos, sizeof(str) - pos, "%s"
-				, progress_bar(int(m_cnt[0][m_mfu_size_idx] * 1000 / mfu_size)
-					, mfu_size * (m_width-8) / arc_size, col_green, '#', '-'
-					, mfu_caption).c_str());
-		}
-	}
-	pos += std::snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
-	set_cursor_pos(0, y++);
-	print(str);
-
-	if (m_print_utp_stats)
-	{
-		std::snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\x1b[K"
-			, int(m_cnt[0][m_utp_idle])
-			, int(m_cnt[0][m_utp_syn_sent])
-			, int(m_cnt[0][m_utp_connected])
-			, int(m_cnt[0][m_utp_fin_sent])
-			, int(m_cnt[0][m_utp_close_wait]));
-		set_cursor_pos(0, y++);
-		print(str);
-	}
 }
 
 void session_view::update_counters(span<std::int64_t const> stats_counters
