@@ -137,11 +137,11 @@ namespace libtorrent {
 			if (i->used_size > bytes)
 			{
 				TORRENT_ASSERT(bytes > 0);
-				vec.push_back(Buffer(i->buf, std::size_t(bytes)));
+				vec.emplace_back(i->buf, std::size_t(bytes));
 				break;
 			}
 			TORRENT_ASSERT(i->used_size > 0);
-			vec.push_back(Buffer(i->buf, std::size_t(i->used_size)));
+			vec.emplace_back(i->buf, std::size_t(i->used_size));
 			bytes -= i->used_size;
 		}
 	}
