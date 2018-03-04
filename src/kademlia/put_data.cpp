@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht {
 
 put_data::put_data(node& dht_node, put_callback const& callback)
-	: traversal_algorithm(dht_node, (node_id::min)())
+	: traversal_algorithm(dht_node, {})
 	, m_put_callback(callback)
 {}
 
