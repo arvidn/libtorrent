@@ -884,9 +884,6 @@ namespace libtorrent {
 		TORRENT_DEPRECATED
 		int max_uploads() const;
 
-		TORRENT_DEPRECATED
-		void pop_alerts(std::deque<alert*>* alerts);
-
 #endif
 
 		// Alerts is the main mechanism for libtorrent to report errors and
@@ -1063,7 +1060,7 @@ namespace libtorrent {
 		Ret sync_call_ret(Fun f, Args&&... a) const;
 
 		explicit session_handle(std::weak_ptr<aux::session_impl> impl)
-			: m_impl(impl)
+			: m_impl(std::move(impl))
 		{}
 
 		std::weak_ptr<aux::session_impl> m_impl;
