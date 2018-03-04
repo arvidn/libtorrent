@@ -85,7 +85,7 @@ node_id calculate_node_id(node_id const& nid, aux::listen_socket_handle const& s
 		return generate_random_id();
 	}
 
-	if (nid == node_id::min() || !verify_id(nid, external_address))
+	if (nid.is_all_zeros() || !verify_id(nid, external_address))
 		return generate_id(external_address);
 
 	return nid;
