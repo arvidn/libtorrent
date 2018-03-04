@@ -846,7 +846,7 @@ namespace libtorrent {
 
 		int block_size() const
 		{
-			return m_torrent_file
+			return valid_metadata()
 				? (std::min)(m_torrent_file->piece_length(), default_block_size)
 				: default_block_size;
 		}
