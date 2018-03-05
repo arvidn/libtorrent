@@ -44,7 +44,6 @@ before_install:
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
   # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
-  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then travis_retry brew install boost-python; brew upgrade python2; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && $docs = "1" ]]; then
     easy_install --user docutils;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
@@ -54,6 +53,7 @@ before_install:
     brew install graphviz hunspell;
     easy_install --user Pillow;
     fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then travis_retry brew install boost-python python2; fi'
 
 # disable simulations on OSX for now. It hangs on travis
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; fi
