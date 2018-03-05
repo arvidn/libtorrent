@@ -211,8 +211,8 @@ namespace libtorrent {
 			? std::string(pe.data(), file_end)
 			: pe;
 		std::transform(name.begin(), name.end(), name.begin(), &to_lower);
-		char const* str = std::find(reserved_names, reserved_names + num_names, name);
-		if (str != reserved + num_names)
+		char const** str = std::find(reserved_names, reserved_names + num_names, name);
+		if (str != reserved_names + num_names)
 		{
 			pe = "_" + pe;
 			element = string_view();
