@@ -373,14 +373,15 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	{
 		print_alerts(*s, "s", false, false, std::bind(&connect_alert, _1, std::ref(peer_ep)));
 
-		if (num_udp_announces() == prev_udp_announces + 1)
+		if (num_udp_announces() == prev_udp_announces + 2)
 			break;
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	// we should have announced to the tracker by now
-	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
+	// expect two announces, one each for v1 and v2
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
 
 	// if we remove the torrent before it has received the response from the
 	// tracker, it won't announce again to stop. So, wait a bit before removing.
@@ -391,7 +392,7 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(*s, "s", true, false, std::bind(&connect_alert, _1, std::ref(peer_ep)));
-		if (num_udp_announces() == prev_udp_announces + 2)
+		if (num_udp_announces() == prev_udp_announces + 4)
 			break;
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
@@ -404,7 +405,7 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	std::printf("done\n");
 
 	// we should have announced the stopped event now
-	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 4);
 
 	stop_udp_tracker();
 }

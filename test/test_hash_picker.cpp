@@ -43,11 +43,11 @@ using namespace lt;
 
 struct mock_peer_connection : peer_connection_interface
 {
-	virtual tcp::endpoint const& remote() const { return {}; }
+	virtual tcp::endpoint const& remote() const { return m_remote; }
 	virtual tcp::endpoint local_endpoint() const { return {}; }
 	virtual void disconnect(error_code const& ec
 		, operation_t op, int error = 0) {}
-	virtual peer_id const& pid() const { return {}; }
+	virtual peer_id const& pid() const { return m_pid; }
 	virtual void set_holepunch_mode() {}
 	virtual torrent_peer* peer_info_struct() const { return m_torrent_peer; }
 	virtual void set_peer_info(torrent_peer* pi) { m_torrent_peer = pi; }
@@ -66,6 +66,8 @@ struct mock_peer_connection : peer_connection_interface
 
 	torrent_peer* m_torrent_peer;
 	lt::stat m_stat;
+	tcp::endpoint m_remote;
+	peer_id m_pid;
 };
 
 TORRENT_TEST(pick_piece_layer)

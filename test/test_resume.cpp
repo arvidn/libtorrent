@@ -71,7 +71,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hash().to_string();
+	rd["info-hash"] = ti->info_hash().v1.to_string();
 	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
 	rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 
@@ -172,7 +172,7 @@ torrent_handle test_resume_flags(lt::session& ses
 
 	torrent_handle h = ses.add_torrent(p);
 	torrent_status s = h.status();
-	TEST_EQUAL(s.info_hash, ti->info_hash());
+	TEST_EQUAL(s.info_hash.v1, ti->info_hash().v1);
 	return h;
 }
 
@@ -301,7 +301,8 @@ TORRENT_TEST(piece_slots)
 
 	torrent_status s = h.status();
 	print_alerts(ses, "ses");
-	TEST_EQUAL(s.info_hash, ti->info_hash());
+	TEST_EQUAL(s.info_hash.v1, ti->info_hash().v1);
+	TEST_EQUAL(s.info_hash.v2, ti->info_hash().v2);
 	TEST_EQUAL(s.pieces.size(), ti->num_pieces());
 	TEST_CHECK(s.pieces.size() >= 4);
 	TEST_EQUAL(s.pieces[piece_index_t{0}], true);
@@ -358,7 +359,8 @@ void test_piece_slots_seed(settings_pack const& sett)
 
 	torrent_status s = h.status();
 	print_alerts(ses, "ses");
-	TEST_EQUAL(s.info_hash, ti->info_hash());
+	TEST_EQUAL(s.info_hash.v1, ti->info_hash().v1);
+	TEST_EQUAL(s.info_hash.v2, ti->info_hash().v2);
 	TEST_EQUAL(s.pieces.size(), ti->num_pieces());
 	for (auto const i : ti->piece_range())
 	{
@@ -824,7 +826,7 @@ void test_zero_file_prio(bool test_deprecated = false, bool mix_prios = false)
 
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hash().to_string();
+	rd["info-hash"] = ti->info_hash().v1.to_string();
 	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
 
 	// set file priorities to 0
@@ -888,7 +890,7 @@ TORRENT_TEST(backwards_compatible_resume_info_dict)
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["name"] = ti->name();
-	rd["info-hash"] = ti->info_hash();
+	rd["info-hash"] = ti->info_hash().v1;
 	auto metainfo = ti->metadata();
 	rd["info"] = bdecode({metainfo.get(), ti->metadata_size()});
 	std::vector<char> resume_data;
@@ -901,7 +903,7 @@ TORRENT_TEST(backwards_compatible_resume_info_dict)
 	session ses;
 	torrent_handle h = ses.add_torrent(atp);
 	auto torrent = h.torrent_file();
-	TEST_CHECK(torrent->info_hash() == ti->info_hash());
+	TEST_CHECK(torrent->info_hash().v1 == ti->info_hash().v1);
 	torrent_status s = h.status();
 }
 #endif
@@ -915,7 +917,7 @@ TORRENT_TEST(resume_info_dict)
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["name"] = ti->name();
-	rd["info-hash"] = ti->info_hash();
+	rd["info-hash"] = ti->info_hash().v1;
 	auto metainfo = ti->metadata();
 	rd["info"] = bdecode({metainfo.get(), ti->metadata_size()});
 	std::vector<char> resume_data;
@@ -923,7 +925,7 @@ TORRENT_TEST(resume_info_dict)
 
 	error_code ec;
 	add_torrent_params atp = read_resume_data(resume_data, ec);
-	TEST_CHECK(atp.ti->info_hash() == ti->info_hash());
+	TEST_CHECK(atp.ti->info_hash().v1 == ti->info_hash().v1);
 }
 
 TORRENT_TEST(zero_file_prio)
@@ -962,7 +964,7 @@ void test_seed_mode(test_mode_t const flags)
 
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hash().to_string();
+	rd["info-hash"] = ti->info_hash().v1.to_string();
 	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
 
 	if (flags & test_mode::file_prio)

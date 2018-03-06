@@ -79,7 +79,7 @@ TORRENT_TEST(read_resume)
 
 	add_torrent_params atp = read_resume_data(resume_data);
 
-	TEST_EQUAL(atp.info_hash, sha1_hash("abcdefghijklmnopqrst"));
+	TEST_EQUAL(atp.info_hash.v1, sha1_hash("abcdefghijklmnopqrst"));
 	TEST_EQUAL(atp.have_pieces.size(), 6);
 	TEST_EQUAL(atp.have_pieces.count(), 6);
 
@@ -200,7 +200,7 @@ TORRENT_TEST(read_resume_torrent)
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hash().to_string();
+	rd["info-hash"] = ti->info_hash().v1.to_string();
 	rd["info"] = bdecode({ti->metadata().get(), ti->metadata_size()});
 
 	std::vector<char> resume_data;
@@ -211,7 +211,8 @@ TORRENT_TEST(read_resume_torrent)
 	add_torrent_params atp = read_resume_data(resume_data);
 	TEST_CHECK(atp.ti);
 
-	TEST_EQUAL(atp.ti->info_hash(), ti->info_hash());
+	TEST_EQUAL(atp.ti->info_hash().v1, ti->info_hash().v1);
+	TEST_EQUAL(atp.ti->info_hash().v2, ti->info_hash().v2);
 	TEST_EQUAL(atp.ti->name(), ti->name());
 }
 

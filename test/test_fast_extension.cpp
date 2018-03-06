@@ -422,7 +422,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	, torrent_handle* th = nullptr)
 {
 	std::shared_ptr<torrent_info> t = ::create_torrent();
-	ih = t->info_hash();
+	ih = t->info_hash().v1;
 	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48900");
 	sett.set_bool(settings_pack::enable_upnp, false);
