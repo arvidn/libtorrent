@@ -362,7 +362,7 @@ TORRENT_TEST(abort_download)
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(piece_index_t(1), 0)) != picked.end()
 		|| std::find(picked.begin(), picked.end(), piece_block(piece_index_t(2), 0)) != picked.end());
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(piece_index_t(0), 0)) == picked.end());
-	p->restore_piece(piece_index_t(0));
+	p->restore_piece(piece_index_t(0), std::vector<int>());
 	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested({piece_index_t(0), 0}) == false);
@@ -1039,7 +1039,7 @@ TORRENT_TEST(restore_piece)
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == piece_index_t(1));
 
-	p->restore_piece(piece_index_t(0));
+	p->restore_piece(piece_index_t(0), std::vector<int>());
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == piece_index_t(0));
@@ -1054,7 +1054,7 @@ TORRENT_TEST(restore_piece)
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == piece_index_t(1));
 
-	p->restore_piece(piece_index_t(0));
+	p->restore_piece(piece_index_t(0), std::vector<int>());
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == piece_index_t(1));
@@ -1145,7 +1145,7 @@ TORRENT_TEST(picking_downloading_blocks)
 	TEST_EQUAL(picked.size(), 3);
 	TEST_CHECK(picked.size() >= 1 && picked[0].piece_index == piece_index_t(2));
 
-	p->restore_piece(piece_index_t(1));
+	p->restore_piece(piece_index_t(1), std::vector<int>());
 	p->mark_as_downloading({piece_index_t(2), 0}, &tmp1);
 	p->mark_as_downloading({piece_index_t(2), 1}, &tmp1);
 	p->mark_as_downloading({piece_index_t(2), 3}, &tmp1);
@@ -1689,7 +1689,7 @@ TORRENT_TEST(write_failed)
 	auto picked = pick_pieces(p, " *     ", 1, blocks_per_piece, nullptr);
 	TEST_EQUAL(picked.size(), 0);
 
-	p->restore_piece(piece_index_t(1));
+	p->restore_piece(piece_index_t(1), std::vector<int>());
 
 	picked = pick_pieces(p, " *     ", 1, blocks_per_piece, nullptr);
 	TEST_EQUAL(picked.size(), blocks_per_piece);

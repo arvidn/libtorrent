@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #include "test.hpp"
@@ -750,15 +751,17 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	for (auto const i : fs.piece_range())
 		t.set_hash(i, ph);
 
-	sha256_hash ch21 = hasher256(span<char>(piece).subspan(0, default_block_size)).final();
-	sha256_hash ch22 = hasher256(span<char>(piece).subspan(default_block_size)).final();
-	hasher256 h2;
-	h2.update(ch21);
-	h2.update(ch22);
-	sha256_hash ph2 = h2.final();
+	int const blocks_in_piece = piece_size / default_block_size;
+	std::vector<sha256_hash> v2tree(merkle_num_nodes(merkle_num_leafs(blocks_in_piece)));
+	for (int i = 0; i < blocks_in_piece; ++i)
+	{
+		sha256_hash const block_hash = hasher256(span<char>(piece).subspan(i * default_block_size, default_block_size)).final();
+		v2tree[v2tree.size() - merkle_num_leafs(blocks_in_piece) + i] = block_hash;
+	}
+	merkle_fill_tree(v2tree, merkle_num_leafs(blocks_in_piece));
 
 	for (piece_index_t i(0); i < t.files().end_piece(); ++i)
-		t.set_hash2(0, piece_index_t(0) + i, ph2);
+		t.set_hash2(0, piece_index_t(0) + i, v2tree[0]);
 
 	if (file)
 	{

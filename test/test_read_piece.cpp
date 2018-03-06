@@ -89,7 +89,7 @@ void test_read_piece(int flags)
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"
-		, aux::to_hex(ti->info_hash()).c_str());
+		, aux::to_hex(ti->info_hash().v1).c_str());
 
 	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
