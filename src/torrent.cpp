@@ -3203,6 +3203,8 @@ namespace {
 		// exclude redundant bytes if we should
 		if (!settings().get_bool(settings_pack::report_true_downloaded))
 			req.downloaded -= m_total_redundant_bytes;
+		if (settings().get_bool(settings_pack::report_redundant_bytes))
+			req.redundant = m_total_redundant_bytes;
 		if (req.downloaded < 0) req.downloaded = 0;
 
 		req.event = e;
