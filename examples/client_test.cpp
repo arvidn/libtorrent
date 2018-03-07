@@ -979,6 +979,18 @@ void print_piece(lt::partial_piece_info const* pp
 	out += "]";
 }
 
+bool is_resume_file(std::string const& s)
+{
+	static std::string const hex_digit = "0123456789abcdef";
+	if (s.size() != 40 + 7) return false;
+	if (s.substr(40) != ".resume") return false;
+	for (char const c : s.substr(0, 40))
+	{
+		if (hex_digit.find(c) == std::string::npos) return false;
+	}
+	return true;
+}
+
 int main(int argc, char* argv[])
 {
 #ifndef _WIN32
@@ -1253,7 +1265,7 @@ example alert_masks:
 	std::thread resume_data_loader([&ses]
 	{
 		// load resume files
-	lt::error_code ec;
+		lt::error_code ec;
 		std::string const resume_dir = path_append(save_path, ".resume");
 		std::vector<std::string> ents = list_dir(resume_dir
 			, [](lt::string_view p) { return p.size() > 7 && p.substr(p.size() - 7) == ".resume"; }, ec);
@@ -1266,6 +1278,8 @@ example alert_masks:
 		{
 			for (auto const& e : ents)
 			{
+				// only load resume files of the form <info-hash>.resume
+				if (!is_resume_file(e)) continue;
 				std::string const file = path_append(resume_dir, e);
 
 				std::vector<char> resume_data;
@@ -1722,7 +1736,7 @@ COLUMN OPTIONS
 			if (print_matrix)
 			{
 				int height = 0;
-				print(piece_matrix(s.pieces, std::min(terminal_width, 160), &height).c_str());
+				print(piece_matrix(s.pieces, terminal_width, &height).c_str());
 				pos += height;
 			}
 
