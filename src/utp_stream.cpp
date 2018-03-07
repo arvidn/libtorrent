@@ -1788,16 +1788,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 			m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 	}
 
-	int sack = 0;
-	if (m_inbuf.size())
-	{
-		// the SACK bitfield should ideally fit all
-		// the pieces we have successfully received
-		sack = (m_inbuf.span() + 7) / 8;
-		if (sack > 32) sack = 32;
-	}
-
-	boost::uint32_t const close_reason = m_close_reason;
 
 	// MTU DISCOVERY
 
@@ -1811,13 +1801,30 @@ bool utp_socket_impl::send_pkt(int const flags)
 		&& m_write_buffer_size >= m_mtu_floor * 3
 		&& m_seq_nr != 0
 		&& (m_cwnd >> 16) > m_mtu_floor * 3);
+	// for non MTU-probes, use the conservative packet size
+	int const effective_mtu = mtu_probe ? m_mtu : m_mtu_floor;
+
+	boost::uint32_t const close_reason = m_close_reason;
+
+
+	int sack = 0;
+	if (m_inbuf.size())
+	{
+        const int max_sack_size = effective_mtu 
+            - sizeof(utp_header)
+            - 2 // for sack padding/header
+            - (close_reason ? 6 : 0);
+
+		// the SACK bitfield should ideally fit all
+		// the pieces we have successfully received
+		sack = (m_inbuf.span() + 7) / 8;
+		if (sack > max_sack_size) sack = max_sack_size;
+	}
 
 	int const header_size = sizeof(utp_header)
 		+ (sack ? sack + 2 : 0)
 		+ (close_reason ? 6 : 0);
 
-	// for non MTU-probes, use the conservative packet size
-	int const effective_mtu = mtu_probe ? m_mtu : m_mtu_floor;
 	int payload_size = (std::min)(m_write_buffer_size
 		, effective_mtu - header_size);
 	TORRENT_ASSERT(payload_size >= 0);
