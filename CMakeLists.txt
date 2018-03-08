@@ -619,6 +619,10 @@ if (WIN32)
 	endif()
 endif()
 
+if(ANDROID)
+    target_link_libraries(torrent-rasterbar dl)
+endif()
+
 if(APPLE)
 	# for ip_notifier
 	target_link_libraries(torrent-rasterbar "-framework CoreFoundation" "-framework SystemConfiguration")

@@ -55,8 +55,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-#if TORRENT_HAS_ARM && TORRENT_HAS_AUXV
+#if defined(TORRENT_ANDROID) && TORRENT_HAS_AUXV
+#include <dlfcn.h>
+namespace {
+unsigned long int helper_getauxval(unsigned long int type)
+{
+    using getauxval_t = unsigned long int(*)(unsigned long int);
+    getauxval_t pf_getauxval = reinterpret_cast<getauxval_t>(dlsym(RTLD_DEFAULT, "getauxval"));
+    if (pf_getauxval == nullptr)
+        return 0;
+    return pf_getauxval(type);
+}
+}
+#elif TORRENT_HAS_ARM && TORRENT_HAS_AUXV
 #include <sys/auxv.h>
+#define helper_getauxval getauxval
 #endif
 
 namespace libtorrent { namespace aux {
@@ -107,7 +120,7 @@ namespace libtorrent { namespace aux {
 #if TORRENT_HAS_ARM_NEON && TORRENT_HAS_AUXV
 #if defined __arm__
 		//return (getauxval(AT_HWCAP) & HWCAP_NEON);
-		return (getauxval(16) & (1 << 12));
+		return (helper_getauxval(16) & (1 << 12));
 #elif defined __aarch64__
 		//return (getauxval(AT_HWCAP) & HWCAP_ASIMD);
 		//return (getauxval(16) & (1 << 1));
@@ -126,10 +139,10 @@ namespace libtorrent { namespace aux {
 		return true;
 #elif defined __arm__
 		//return (getauxval(AT_HWCAP2) & HWCAP2_CRC32);
-		return (getauxval(26) & (1 << 4));
+		return (helper_getauxval(26) & (1 << 4));
 #elif defined __aarch64__
 		//return (getauxval(AT_HWCAP) & HWCAP_CRC32);
-		return (getauxval(16) & (1 << 7));
+		return (helper_getauxval(16) & (1 << 7));
 #endif
 #else
 		return false;

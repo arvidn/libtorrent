@@ -89,6 +89,21 @@ AS_ECHO "Initializing Libtool:"
 LT_PREREQ([2.2.6])
 LT_INIT
 
+AS_IF([test "$SYS" = linux],[
+    AC_PREPROC_IFELSE([AC_LANG_PROGRAM(
+        [[#ifndef __ANDROID__
+         # error Not Android
+         #endif
+        ]],[[;]])
+    ],[
+      HAVE_ANDROID="1"
+      AC_MSG_RESULT([yes])
+    ],[
+      AC_MSG_RESULT([no])
+    ])
+])
+AM_CONDITIONAL(HAVE_ANDROID, test "${HAVE_ANDROID}" = "1")
+
 
 ###############################################################################
 # Checking for needed base libraries
