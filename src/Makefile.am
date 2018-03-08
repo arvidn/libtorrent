@@ -174,6 +174,10 @@ libtorrent_rasterbar_la_SOURCES = \
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LIBADD = @OPENSSL_LIBS@
 
+if HAVE_ANDROID
+libtorrent_rasterbar_la_LIBADD += -ldl
+endif
+
 AM_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY -I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 AM_CFLAGS = -I$(top_srcdir)/ed25519/src -std=c99
 

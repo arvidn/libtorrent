@@ -88,6 +88,11 @@ rule linking ( properties * )
 		}
 	}
 
+	if <target-os>android in $(properties)
+	{
+		result += <library>dl ;
+	}
+
 	if <target-os>beos in $(properties)
 	{
 		result += <library>netkit <library>gcc ;
