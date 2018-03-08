@@ -48,7 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined __GLIBC__ && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 16))
 #define TORRENT_HAS_AUXV 1
-#elif defined TORRENT_ANDROID
+#elif defined __ANDROID_API__ && __ANDROID_API__ >= 21
+// sys/auxv.h has been added in sdk 21
 #define TORRENT_HAS_AUXV 1
 #else
 #define TORRENT_HAS_AUXV 0

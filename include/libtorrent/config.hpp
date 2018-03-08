@@ -193,11 +193,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define TORRENT_HAVE_MMAP 1
-#define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFADDRS 0
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_FDATASYNC 1
+
+// Android doesn't have NETLINK_ENOBUFS until API 21
+#if !defined __ANDROID_API__ || __ANDROID_API__ >= 21
+#define TORRENT_USE_NETLINK 1
+#else
+#define TORRENT_USE_NETLINK 0
+#endif
 
 // ===== ANDROID ===== (almost linux, sort of)
 #if defined __ANDROID__
