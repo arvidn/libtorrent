@@ -68,6 +68,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef SOL_NETLINK
 #define SOL_NETLINK 270
 #endif
+
+// NETLINK_NO_ENOBUFS exists at least since android 2.3, but is not exposed
+#if TORRENT_ANDROID && !defined NETLINK_NO_ENOBUFS
+#define NETLINK_NO_ENOBUFS 5
+#endif
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
