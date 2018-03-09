@@ -92,6 +92,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+
+#if TORRENT_ANDROID && !defined IFA_F_DADFAILED
+#define IFA_F_DADFAILED 8
+#endif
+
 #endif
 
 #if TORRENT_USE_IFADDRS
