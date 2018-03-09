@@ -58,6 +58,10 @@ class test_torrent_handle(unittest.TestCase):
 		# also test the overload that takes a list of piece->priority mappings
 		self.h.prioritize_pieces([(0, 1)])
 		self.assertEqual(self.h.piece_priorities(), [1])
+		self.h.connect_peer(('127.0.0.1', 6881))
+		self.h.connect_peer(('127.0.0.2', 6881), source=4)
+		self.h.connect_peer(('127.0.0.3', 6881), flags=2)
+		self.h.connect_peer(('127.0.0.4', 6881), flags=2, source=4)
 
 	def test_torrent_handle_in_set(self):
 		self.setup()
