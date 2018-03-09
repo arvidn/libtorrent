@@ -2938,6 +2938,7 @@ namespace libtorrent {
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 
+#if 0
 		if (t->info_hash().has_v2())
 		{
 			t->picker().started_hash_job(p.piece);
@@ -2947,6 +2948,7 @@ namespace libtorrent {
 				conn->wrap(&peer_connection::on_hash2_complete, e, p, h);
 			});
 		}
+#endif
 
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 		// if we requested this block from other peers, cancel it now
@@ -5364,6 +5366,7 @@ namespace libtorrent {
 		fill_send_buffer();
 	}
 
+#if 0
 	void peer_connection::on_hash2_complete(storage_error const& error
 		, peer_request const& r, sha256_hash const& hash)
 	{
@@ -5408,6 +5411,7 @@ namespace libtorrent {
 			break;
 		}
 	}
+#endif
 
 	void peer_connection::on_disk_read_complete(disk_buffer_holder buffer
 		, storage_error const& error
