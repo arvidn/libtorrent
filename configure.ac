@@ -104,6 +104,13 @@ AS_IF([test "$SYS" = linux],[
 ])
 AM_CONDITIONAL(HAVE_ANDROID, test "${HAVE_ANDROID}" = "1")
 
+HAVE_WINDOWS=0
+case "${host_os}" in
+    *mingw32* | *cygwin*)
+        HAVE_WINDOWS=1
+        ;;
+esac
+AM_CONDITIONAL(HAVE_WINDOWS, test "${HAVE_WINDOWS}" = "1")
 
 ###############################################################################
 # Checking for needed base libraries
