@@ -439,16 +439,23 @@ namespace libtorrent {
 		file_handle open_file(file_index_t file, open_mode_t mode, storage_error& ec) const;
 		file_handle open_file_impl(file_index_t file, open_mode_t mode, error_code& ec) const;
 
+		bool use_partfile(file_index_t index) const;
+		void use_partfile(file_index_t index, bool b);
+
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 		std::string m_save_path;
 		std::string m_part_file_name;
 
-		// if this is false, we're not using a part file to store priority-0
-		// pieces, but we instead look for them under their actual file names
-		// this defaults to true, but when checking resume data for a torrent
-		// where we would expect to have a part file, but there isn't one, we set
-		// this to false.
-		bool m_use_part_file = true;
+		// this this is an array indexed by file-index. Each slot represents
+		// whether this file has the part-file enabled for it. This is used for
+		// backwards compatibility with pre-partfile versions of libtorrent. If
+		// this vector is empty, the default is that files *do* use the partfile.
+		// on startup, any 0-priority file that's found in it's original location
+		// is expected to be an old-style (pre-partfile) torrent storage, and
+		// those files have their slot set to false in this vector.
+		// note that the vector is *sparse*, it's only allocated if a file has its
+		// entry set to false, and only indices up to that entry.
+		aux::vector<bool, file_index_t> m_use_partfile;
 
 		// the file pool is a member of the disk_io_thread
 		// to make all storage instances share the pool

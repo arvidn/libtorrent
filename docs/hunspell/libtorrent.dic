@@ -189,6 +189,8 @@ src
 'fingerprints'
 'query'
 'ro'
+pre-partfile
+pre
 GCC
 prioritization
 nullptr

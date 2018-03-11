@@ -82,6 +82,9 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix backwards compatibility to downloads without partfiles
+	* improve part-file related error messages
+	* fix reporting &redundant= in tracker announces
 	* fix tie-break in duplicate peer connection disconnect logic
 	* fix issue with SSL tracker connections left in CLOSE_WAIT state
 	* defer truncating existing files until the first time we write to them

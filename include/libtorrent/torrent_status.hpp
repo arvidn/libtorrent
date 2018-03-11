@@ -151,6 +151,9 @@ namespace libtorrent {
 		// or a torrent log alert may provide more information.
 		static constexpr file_index_t error_file_exception{-5};
 
+		// the error occurred with the partfile
+		static constexpr file_index_t error_file_partfile{-6};
+
 		// the path to the directory where this torrent's files are stored.
 		// It's typically the path as was given to async_add_torrent() or
 		// add_torrent() when this torrent was started. This field is only

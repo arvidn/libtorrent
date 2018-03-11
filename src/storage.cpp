@@ -91,12 +91,26 @@ namespace libtorrent {
 		m_part_file_name = "." + aux::to_hex(params.info_hash) + ".parts";
 
 		file_storage const& fs = files();
+		// if some files have priority 0, we need to check if they exist on the
+		// filesystem, in which case we won't use a partfile for them.
+		// this is to be backwards compatible with previous versions of
+		// libtorrent, when part files were not supported.
 		for (file_index_t i(0); i < m_file_priority.end_index(); ++i)
 		{
-			if (m_file_priority[i] == dont_download && !fs.pad_file_at(i))
+			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
+				continue;
+
+			file_status s;
+			std::string const file_path = files().file_path(i, m_save_path);
+			error_code ec;
+			stat_file(file_path, &s, ec);
+			if (!ec)
+			{
+				use_partfile(i, false);
+			}
+			else
 			{
 				need_partfile();
-				break;
 			}
 		}
 	}
@@ -132,29 +146,38 @@ namespace libtorrent {
 		file_storage const& fs = files();
 		for (file_index_t i(0); i < prio.end_index(); ++i)
 		{
+			// pad files always have priority 0.
+			if (fs.pad_file_at(i)) continue;
+
 			download_priority_t const old_prio = m_file_priority[i];
 			download_priority_t new_prio = prio[i];
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
 				// move stuff out of the part file
 				file_handle f = open_file(i, open_mode::read_write, ec);
-				if (ec) return;
-
-				need_partfile();
-
-				m_part_file->export_file([&f, &ec](std::int64_t file_offset, span<char> buf)
-				{
-					iovec_t const v = {buf.data(), buf.size()};
-					std::int64_t const ret = f->writev(file_offset, v, ec.ec);
-					TORRENT_UNUSED(ret);
-					TORRENT_ASSERT(ec || ret == std::int64_t(v.size()));
-				}, fs.file_offset(i), fs.file_size(i), ec.ec);
-
 				if (ec)
 				{
 					ec.file(i);
-					ec.operation = operation_t::partfile_write;
+					ec.operation = operation_t::file_open;
 					return;
+				}
+
+				if (m_part_file)
+				{
+					m_part_file->export_file([&f, &ec](std::int64_t file_offset, span<char> buf)
+					{
+						iovec_t const v = {buf.data(), buf.size()};
+						std::int64_t const ret = f->writev(file_offset, v, ec.ec);
+						TORRENT_UNUSED(ret);
+						TORRENT_ASSERT(ec || ret == std::int64_t(v.size()));
+					}, fs.file_offset(i), fs.file_size(i), ec.ec);
+
+					if (ec)
+					{
+						ec.file(i);
+						ec.operation = operation_t::partfile_write;
+						return;
+					}
 				}
 			}
 			else if (old_prio != dont_download && new_prio == dont_download)
@@ -195,15 +218,30 @@ namespace libtorrent {
 			ec.ec.clear();
 			m_file_priority[i] = new_prio;
 
-			if (m_file_priority[i] == dont_download && !fs.pad_file_at(i))
+			if (m_file_priority[i] == dont_download && use_partfile(i))
+			{
 				need_partfile();
+			}
 		}
 		if (m_part_file) m_part_file->flush_metadata(ec.ec);
 		if (ec)
 		{
-			ec.file(file_index_t(-1));
+			ec.file(torrent_status::error_file_partfile);
 			ec.operation = operation_t::partfile_write;
 		}
+	}
+
+	bool default_storage::use_partfile(file_index_t const index) const
+	{
+		TORRENT_ASSERT_VAL(index >= file_index_t{}, index);
+		if (index >= m_use_partfile.end_index()) return true;
+		return m_use_partfile[index];
+	}
+
+	void default_storage::use_partfile(file_index_t const index, bool const b)
+	{
+		if (index >= m_use_partfile.end_index()) m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		m_use_partfile[index] = b;
 	}
 
 	void default_storage::initialize(storage_error& ec)
@@ -307,7 +345,7 @@ namespace libtorrent {
 
 		if (ec)
 		{
-			ec.file(file_index_t(-1));
+			ec.file(torrent_status::error_file_partfile);
 			ec.operation = operation_t::file_stat;
 			return false;
 		}
@@ -460,7 +498,7 @@ namespace libtorrent {
 
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == dont_download
-				&& m_use_part_file)
+				&& use_partfile(file_index))
 			{
 				TORRENT_ASSERT(m_part_file);
 
@@ -498,6 +536,7 @@ namespace libtorrent {
 
 			if (e)
 			{
+				ec.file(torrent_status::error_file_partfile);
 				ec.ec = e;
 				ec.file(file_index);
 				return -1;
@@ -524,7 +563,7 @@ namespace libtorrent {
 
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == dont_download
-				&& m_use_part_file)
+				&& use_partfile(file_index))
 			{
 				TORRENT_ASSERT(m_part_file);
 

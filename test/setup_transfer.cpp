@@ -650,7 +650,10 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
 
 		std::string full_path = combine_path(path, dirname);
-		create_directory(full_path, ec);
+		lt::create_directories(full_path, ec);
+		if (ec) fprintf(stderr, "create_directory(%s) failed: (%d) %s\n"
+			, full_path.c_str(), ec.value(), ec.message().c_str());
+
 		full_path = combine_path(full_path, filename);
 
 		int to_write = file_sizes[i];

@@ -251,7 +251,13 @@ namespace {
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
 		// optimized path
+#ifdef TORRENT_BUILD_SIMULATOR
+		sim::default_config conf;
+		sim::simulation sim{conf};
+		io_service ios{sim};
+#else
 		io_service ios;
+#endif
 
 #if TORRENT_USE_UNC_PATHS
 		std::string const path = canonicalize_path(p);
@@ -305,7 +311,13 @@ namespace {
 			if (st.piece_counter >= t.files().end_piece()) break;
 		}
 		disk_thread.submit_jobs();
+
+#ifdef TORRENT_BUILD_SIMULATOR
+		sim.run();
+#else
 		ios.run(ec);
+#endif
+		disk_thread.abort(true);
 	}
 
 	create_torrent::~create_torrent() = default;
