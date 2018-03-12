@@ -1490,10 +1490,10 @@ namespace libtorrent
 		// is is disabled while paused and checking files
 		bool m_announcing:1;
 
-		// this is true while the tracker deadline timer
+		// this is > 0 while the tracker deadline timer
 		// is in use. i.e. one or more trackers are waiting
 		// for a reannounce
-		bool m_waiting_tracker:1;
+		boost::int8_t m_waiting_tracker;
 
 // ----
 
