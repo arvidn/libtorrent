@@ -247,7 +247,7 @@ namespace libtorrent
 		, m_files_checked(false)
 		, m_storage_mode(p.storage_mode)
 		, m_announcing(false)
-		, m_waiting_tracker(false)
+		, m_waiting_tracker(0)
 		, m_active_time(0)
 		, m_last_working_tracker(-1)
 		, m_finished_time(0)
@@ -2973,7 +2973,8 @@ namespace {
 #endif
 		boost::shared_ptr<torrent> t = p.lock();
 		if (!t) return;
-		t->m_waiting_tracker = false;
+		TORRENT_ASSERT(t->m_waiting_tracker > 0);
+		--t->m_waiting_tracker;
 
 		if (e) return;
 		t->on_tracker_announce();
@@ -3224,7 +3225,7 @@ namespace {
 		req.num_want = (req.event == tracker_request::stopped)
 			? 0 : settings().get_int(settings_pack::num_want);
 
-		time_point now = aux::time_now();
+		time_point const now = aux::time_now();
 
 		// the tier is kept as INT_MAX until we find the first
 		// tracker that works, then it's set to that tracker's
@@ -10205,7 +10206,7 @@ namespace {
 			}
 			else
 			{
-				time_point next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
+				time_point const next_tracker_announce = std::max(i->next_announce, i->min_announce);
 				if (next_tracker_announce < next_announce
 					&& (!found_working || i->is_working()))
 					next_announce = next_tracker_announce;
@@ -10229,7 +10230,7 @@ namespace {
 		// if m_waiting_tracker is false, expires_at() is undefined
 		if (m_waiting_tracker && m_tracker_timer.expires_at() == next_announce) return;
 
-		m_waiting_tracker = true;
+		++m_waiting_tracker;
 		error_code ec;
 		boost::weak_ptr<torrent> self(shared_from_this());
 
