@@ -145,9 +145,10 @@ std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)
 	return ret;
 }
 
-alert const* wait_for_alert(lt::session& ses, int type, char const* name, int num)
+alert const* wait_for_alert(lt::session& ses, int type, char const* name, int num
+	, lt::time_duration timeout)
 {
-	time_point end = libtorrent::clock_type::now() + seconds(10);
+	time_point end = libtorrent::clock_type::now() + timeout;
 	while (true)
 	{
 		time_point now = clock_type::now();

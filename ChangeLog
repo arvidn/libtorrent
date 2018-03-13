@@ -1,4 +1,5 @@
 
+	* fix issue where setting file/piece priority would stop checking
 	* expose post_dht_stats() to python binding
 	* fix backwards compatibility to downloads without partfiles
 	* improve part-file related error messages
