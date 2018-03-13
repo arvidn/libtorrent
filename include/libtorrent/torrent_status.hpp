@@ -48,10 +48,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+#ifndef TORRENT_NO_DEPRECATE
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#endif
+
 	// holds a snapshot of the status of a torrent, as queried by
 	// torrent_handle::status().
 	struct TORRENT_EXPORT torrent_status
 	{
+#ifndef TORRENT_NO_DEPRECATE
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#endif
 		// hidden
 		torrent_status() noexcept;
 		~torrent_status();
@@ -137,15 +149,17 @@ namespace libtorrent {
 		// the error did not occur on a file
 		static constexpr file_index_t error_file_none{-1};
 
-		// the error occurred on m_url
-		static constexpr file_index_t error_file_url{-2};
-
 		// the error occurred setting up the SSL context
 		static constexpr file_index_t error_file_ssl_ctx{-3};
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the error occurred while loading the .torrent file via the user
 		// supplied load function
-		static constexpr file_index_t error_file_metadata{-4};
+		static constexpr file_index_t TORRENT_DEPRECATED error_file_metadata{-4};
+
+		// the error occurred on m_url
+		static constexpr file_index_t TORRENT_DEPRECATED error_file_url{-2};
+#endif
 
 		// there was a serious error reported in this torrent. The error code
 		// or a torrent log alert may provide more information.

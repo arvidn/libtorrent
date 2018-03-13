@@ -35,11 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	file_index_t constexpr torrent_status::error_file_none;
-	file_index_t constexpr torrent_status::error_file_url;
 	file_index_t constexpr torrent_status::error_file_ssl_ctx;
 	file_index_t constexpr torrent_status::error_file_exception;
 	file_index_t constexpr torrent_status::error_file_partfile;
+
+#ifndef TORRENT_NO_DEPRECATE
+	file_index_t constexpr torrent_status::error_file_url;
 	file_index_t constexpr torrent_status::error_file_metadata;
+#endif
 
 	torrent_status::torrent_status() noexcept {}
 	torrent_status::~torrent_status() = default;
