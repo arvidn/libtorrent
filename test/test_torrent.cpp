@@ -455,9 +455,11 @@ TORRENT_TEST(async_load_deprecated)
 TORRENT_TEST(torrent_status)
 {
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_none), -1);
+#ifndef TORRENT_NO_DEPRECATE
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_url), -2);
-	TEST_EQUAL(static_cast<int>(torrent_status::error_file_ssl_ctx), -3);
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_metadata), -4);
+#endif
+	TEST_EQUAL(static_cast<int>(torrent_status::error_file_ssl_ctx), -3);
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_exception), -5);
 }
 
