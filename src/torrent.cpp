@@ -115,6 +115,26 @@ namespace libtorrent
 {
 	namespace {
 
+	bool is_downloading_state(int st)
+	{
+		switch (st)
+		{
+			case torrent_status::checking_files:
+			case torrent_status::allocating:
+			case torrent_status::checking_resume_data:
+				return false;
+			case torrent_status::downloading_metadata:
+			case torrent_status::downloading:
+			case torrent_status::finished:
+			case torrent_status::seeding:
+				return true;
+			default:
+				// unexpected state
+				TORRENT_ASSERT_VAL(false, st);
+				return false;
+		}
+	}
+
 	int root2(int x)
 	{
 		int ret = 0;
@@ -4368,23 +4388,26 @@ namespace {
 
 		remove_time_critical_piece(index, true);
 
-		if (is_finished()
-			&& m_state != torrent_status::finished
-			&& m_state != torrent_status::seeding)
+		if (is_downloading_state(m_state))
 		{
-			// torrent finished
-			// i.e. all the pieces we're interested in have
-			// been downloaded. Release the files (they will open
-			// in read only mode if needed)
-			finished();
-			// if we just became a seed, picker is now invalid, since it
-			// is deallocated by the torrent once it starts seeding
+			if (is_finished()
+				&& m_state != torrent_status::finished
+				&& m_state != torrent_status::seeding)
+			{
+				// torrent finished
+				// i.e. all the pieces we're interested in have
+				// been downloaded. Release the files (they will open
+				// in read only mode if needed)
+				finished();
+				// if we just became a seed, picker is now invalid, since it
+				// is deallocated by the torrent once it starts seeding
+			}
+
+			m_last_download = m_ses.session_time();
+
+			if (m_share_mode)
+				recalc_share_mode();
 		}
-
-		m_last_download = m_ses.session_time();
-
-		if (m_share_mode)
-			recalc_share_mode();
 	}
 
 	// this is called when the piece hash is checked as correct. Note
@@ -5793,6 +5816,15 @@ namespace {
 			// invalidate the iterator
 			++i;
 			p->update_interest();
+		}
+
+		if (!is_downloading_state(m_state))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("*** UPDATE_PEER_INTEREST [ skipping, state: %d ]"
+				, int(m_state));
+#endif
+			return;
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -8108,8 +8140,7 @@ namespace {
 			return false;
 		}
 
-		if ((m_state == torrent_status::checking_files
-			|| m_state == torrent_status::checking_resume_data)
+		if (!is_downloading_state(m_state)
 			&& valid_metadata())
 		{
 			p->disconnect(errors::torrent_not_ready, op_bittorrent);
@@ -8646,16 +8677,9 @@ namespace {
 		// to be in downloading state (which it will be set to shortly)
 //		INVARIANT_CHECK;
 
-		if (m_state == torrent_status::checking_resume_data
-			|| m_state == torrent_status::checking_files
-			|| m_state == torrent_status::allocating)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** RESUME_DOWNLOAD [ skipping, state: %d ]"
-				, int(m_state));
-#endif
-			return;
-		}
+		TORRENT_ASSERT(m_state != torrent_status::checking_resume_data
+			&& m_state != torrent_status::checking_files
+			&& m_state != torrent_status::allocating);
 
 		// we're downloading now, which means we're no longer in seed mode
 		if (m_seed_mode)
@@ -11943,29 +11967,6 @@ namespace {
 	void torrent::new_external_ip()
 	{
 		if (m_peer_list) m_peer_list->clear_peer_prio();
-	}
-
-	namespace
-	{
-		bool is_downloading_state(int st)
-		{
-			switch (st)
-			{
-				case torrent_status::checking_files:
-				case torrent_status::allocating:
-				case torrent_status::checking_resume_data:
-					return false;
-				case torrent_status::downloading_metadata:
-				case torrent_status::downloading:
-				case torrent_status::finished:
-				case torrent_status::seeding:
-					return true;
-				default:
-					// unexpected state
-					TORRENT_ASSERT_VAL(false, st);
-					return false;
-			}
-		}
 	}
 
 	void torrent::stop_when_ready(bool b)
