@@ -276,6 +276,10 @@ namespace libtorrent {
 
 			// ignore pad files
 			if (files().pad_file_at(file_index)) continue;
+			// there is some bug below in using set_size() which causes libtorrent to
+			// effectively erase an original file on a seeder node.
+			// so... skip symlinks
+			if ((files().file_flags(file_index) & file_storage::flag_symlink) != 0) continue;
 
 			// this is just to see if the file exists
 			error_code err;
