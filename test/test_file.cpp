@@ -288,9 +288,9 @@ TORRENT_TEST(file)
 	error_code ec;
 	file f;
 #if TORRENT_USE_UNC_PATHS || !defined _WIN32
-	TEST_CHECK(f.open("con", open_mode::read_write, ec));
+	TEST_CHECK(f.open("con", aux::open_mode::write, ec));
 #else
-	TEST_CHECK(f.open("test_file", open_mode::read_write, ec));
+	TEST_CHECK(f.open("test_file", aux::open_mode::write, ec));
 #endif
 	if (ec)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
