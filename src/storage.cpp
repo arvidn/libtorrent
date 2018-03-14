@@ -555,6 +555,10 @@ namespace libtorrent
 
 			// ignore pad files
 			if (files().pad_file_at(file_index)) continue;
+			// there is some bug below in using set_size() which causes libtorrent to
+			// effectively erase an original file on a seeder node.
+			// so... skip symlinks
+			if ((files().file_flags(file_index) & file_storage::flag_symlink) != 0) continue;
 
 			boost::int64_t cached_size = m_stat_cache.get_filesize(file_index);
 			if (cached_size == stat_cache::not_in_cache)
