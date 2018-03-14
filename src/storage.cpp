@@ -415,30 +415,6 @@ namespace libtorrent
 			? to_hex(params.info->info_hash().to_string())
 			: params.files->name()) + ".parts";
 
-		file_storage const& fs = files();
-
-		// if some files have priority 0, we need to check if they exist on the
-		// filesystem, in which case we won't use a partfile for them.
-		// this is to be backwards compatible with previous versions of
-		// libtorrent, when part files were not supported.
-		for (int i = 0; i < m_file_priority.size(); ++i)
-		{
-			if (m_file_priority[i] != 0 || fs.pad_file_at(i))
-				continue;
-
-			file_status s;
-			std::string const file_path = files().file_path(i, m_save_path);
-			error_code ec;
-			stat_file(file_path, &s, ec);
-			if (!ec)
-			{
-				use_partfile(i, false);
-			}
-			else
-			{
-				need_partfile();
-			}
-		}
 	}
 
 	default_storage::~default_storage()
@@ -583,9 +559,34 @@ namespace libtorrent
 			m_file_created.resize(files().num_files(), false);
 		}
 
+		file_storage const& fs = files();
+
+		// if some files have priority 0, we need to check if they exist on the
+		// filesystem, in which case we won't use a partfile for them.
+		// this is to be backwards compatible with previous versions of
+		// libtorrent, when part files were not supported.
+		for (int i = 0; i < m_file_priority.size(); ++i)
+		{
+			if (m_file_priority[i] != 0 || fs.pad_file_at(i))
+				continue;
+
+			file_status s;
+			std::string const file_path = fs.file_path(i, m_save_path);
+			error_code err;
+			stat_file(file_path, &s, err);
+			if (!err)
+			{
+				use_partfile(i, false);
+			}
+			else
+			{
+				need_partfile();
+			}
+		}
+
 		// first, create all missing directories
 		std::string last_path;
-		for (int file_index = 0; file_index < files().num_files(); ++file_index)
+		for (int file_index = 0; file_index < fs.num_files(); ++file_index)
 		{
 			// ignore files that have priority 0
 			if (int(m_file_priority.size()) > file_index
@@ -595,13 +596,13 @@ namespace libtorrent
 			}
 
 			// ignore pad files
-			if (files().pad_file_at(file_index)) continue;
+			if (fs.pad_file_at(file_index)) continue;
 
 			boost::int64_t cached_size = m_stat_cache.get_filesize(file_index);
 			if (cached_size == stat_cache::not_in_cache)
 			{
 				file_status s;
-				std::string file_path = files().file_path(file_index, m_save_path);
+				std::string file_path = fs.file_path(file_index, m_save_path);
 				stat_file(file_path, &s, ec.ec);
 				if (!ec)
 				{
@@ -625,9 +626,9 @@ namespace libtorrent
 			// deliberately don't truncate files that already exist
 			// if a file is supposed to have size 0, but already exists, we will
 			// never truncate it to 0.
-			if (files().file_size(file_index) == 0 && cached_size == stat_cache::no_exist)
+			if (fs.file_size(file_index) == 0 && cached_size == stat_cache::no_exist)
 			{
-				std::string file_path = files().file_path(file_index, m_save_path);
+				std::string file_path = fs.file_path(file_index, m_save_path);
 				std::string dir = parent_path(file_path);
 
 				if (dir != last_path)
@@ -671,16 +672,17 @@ namespace libtorrent
 
 	bool default_storage::has_any_file(storage_error& ec)
 	{
-		m_stat_cache.init(files().num_files());
+		file_storage const& fs = files();
+		m_stat_cache.init(fs.num_files());
 
 		std::string file_path;
-		for (int i = 0; i < files().num_files(); ++i)
+		for (int i = 0; i < fs.num_files(); ++i)
 		{
 			file_status s;
 			boost::int64_t cache_status = m_stat_cache.get_filesize(i);
 			if (cache_status < 0 && cache_status != stat_cache::no_exist)
 			{
-				file_path = files().file_path(i, m_save_path);
+				file_path = fs.file_path(i, m_save_path);
 				stat_file(file_path, &s, ec.ec);
 				boost::int64_t r = s.file_size;
 				if (ec.ec || !(s.mode & file_status::regular_file))
