@@ -216,7 +216,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 
 		if (st.is_seeding)
 		{
-			boost::int64_t const total_blocks = (torrent_file->total_size() + 0x3fff) / 0x4000;
+			std::int64_t const total_blocks = (torrent_file->total_size() + 0x3fff) / 0x4000;
 			// we need to sleep here a bit to let the session sync with the torrent stats
 			// commented out because it takes such a long time
 			for (int i = 0; i < 50; ++i)
