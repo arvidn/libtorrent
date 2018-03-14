@@ -34,14 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SSL_STREAM_HPP_INCLUDED
 #define TORRENT_SSL_STREAM_HPP_INCLUDED
 
-#include "libtorrent/config.hpp" // for TORRENT_USE_SSL
+#include "libtorrent/config.hpp"
 
 #if TORRENT_USE_SSL
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_context.hpp"
-#include "libtorrent/aux_/openssl.hpp"
+#include "libtorrent/ssl.hpp"
+
+#include <boost/system/system_error.hpp>
 
 #include <functional>
 
@@ -61,24 +63,43 @@ struct ssl_stream
 
 	ssl_stream(ssl_stream&&) = default;
 
-	using sock_type = typename boost::asio::ssl::stream<Stream>;
+	using sock_type = typename ssl::stream<Stream>;
 	using next_layer_type = typename sock_type::next_layer_type;
 	using lowest_layer_type = typename Stream::lowest_layer_type;
 	using endpoint_type = typename Stream::endpoint_type;
 	using protocol_type = typename Stream::protocol_type;
+#if BOOST_VERSION >= 106600
 	using executor_type = typename sock_type::executor_type;
 	executor_type get_executor() { return m_sock->get_executor(); }
+#endif
+
+	ssl::stream_handle_type handle()
+	{
+		return ssl::get_handle(*m_sock);
+	}
+
+	ssl::context_handle_type context_handle()
+	{
+		return ssl::get_context_handle(*m_sock);
+	}
 
 	void set_host_name(std::string const& name)
 	{
-		aux::openssl_set_tlsext_hostname(m_sock->native_handle(), name.c_str());
+		error_code ec;
+		set_host_name(name, ec);
+		if (ec) boost::throw_exception(boost::system::system_error(ec));
+	}
+
+	void set_host_name(std::string const& name, error_code& ec)
+	{
+		ssl::set_host_name(handle(), name, ec);
 	}
 
 	template <class T>
 	void set_verify_callback(T const& fun, error_code& ec)
-	{ m_sock->set_verify_callback(fun, ec); }
-
-	SSL* native_handle() { return m_sock->native_handle(); }
+	{
+		m_sock->set_verify_callback(fun, ec);
+	}
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& h)

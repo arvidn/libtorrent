@@ -4,3 +4,6 @@
 [submodule "deps/try_signal"]
 	path = deps/try_signal
 	url = https://github.com/arvidn/try_signal.git
+[submodule "deps/asio-gnutls"]
+	path = deps/asio-gnutls
+	url = https://github.com/paullouisageneau/boost-asio-gnutls.git
