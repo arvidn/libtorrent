@@ -27,7 +27,6 @@ set(libtorrent_include_files
 	bdecode
 	bencode
 	bitfield
-	block_cache
 	bloom_filter
 	broadcast_socket
 	bt_peer_connection

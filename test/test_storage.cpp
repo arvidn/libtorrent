@@ -178,7 +178,7 @@ std::shared_ptr<default_storage> make_storage(storage_params const& p
 
 template <>
 std::shared_ptr<posix_storage> make_storage(storage_params const& p
-	, aux::file_view_pool& fp)
+	, aux::file_view_pool&)
 {
 	return std::make_shared<posix_storage>(p);
 }
@@ -253,7 +253,7 @@ int readv(std::shared_ptr<posix_storage> s
 	, span<iovec_t const> bufs
 	, piece_index_t piece
 	, int offset
-	, aux::open_mode_t flags
+	, aux::open_mode_t
 	, storage_error& ec)
 {
 	return s->readv(sett, bufs, piece, offset, ec);
