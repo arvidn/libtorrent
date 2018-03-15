@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "test.hpp"
+#include "settings.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -55,27 +56,6 @@ namespace
 #endif
 			|| state == lt::torrent_status::checking_resume_data;
 	};
-
-	lt::settings_pack test_settings()
-	{
-		using namespace lt;
-
-		int const mask = alert::all_categories
-			& ~(alert::progress_notification
-				| alert::performance_warning
-				| alert::stats_notification);
-
-		settings_pack pack;
-		pack.set_bool(settings_pack::enable_lsd, false);
-		pack.set_bool(settings_pack::enable_natpmp, false);
-		pack.set_bool(settings_pack::enable_upnp, false);
-		pack.set_bool(settings_pack::enable_dht, false);
-		pack.set_int(settings_pack::alert_mask, mask);
-		pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
-		pack.set_int(settings_pack::max_retry_port_bind, 1000);
-
-		return pack;
-	}
 }
 
 enum
@@ -200,7 +180,7 @@ void test_checking(int flags = 0)
 			, ec.value(), ec.message().c_str());
 	}
 
-	lt::session ses1(test_settings());
+	lt::session ses1(settings());
 
 	add_torrent_params p;
 	p.save_path = ".";
@@ -345,7 +325,7 @@ TORRENT_TEST(discrete_checking)
 	printf("generated torrent: %s test_torrent_dir\n", to_hex(ti->info_hash().to_string()).c_str());
 	TEST_EQUAL(ti->num_files(), 3);
 	{
-		session ses1(test_settings());
+		session ses1(settings());
 		add_torrent_params p;
 		p.file_priorities.resize(ti->num_files());
 		p.file_priorities[0] = 1;
