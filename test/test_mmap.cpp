@@ -40,13 +40,16 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace libtorrent::aux;
 
-std::vector<char> filled_buffer(int const size)
+namespace {
+
+std::vector<char> filled_buffer(std::size_t const size)
 {
 	std::vector<char> buf;
 	buf.resize(size);
-	for (int i = 0; i < size; ++i)
+	for (std::size_t i = 0; i < size; ++i)
 		buf[i] = static_cast<char>(i);
 	return buf;
+}
 }
 
 TORRENT_TEST(mmap_read)
@@ -55,7 +58,7 @@ TORRENT_TEST(mmap_read)
 
 	{
 		std::ofstream file("test_file1", std::ios::binary);
-		file.write(buf.data(), buf.size());
+		file.write(buf.data(), std::streamsize(buf.size()));
 	}
 
 	auto m = std::make_shared<file_mapping>(aux::file_handle("test_file1", 100, open_mode::read_only)
@@ -64,7 +67,7 @@ TORRENT_TEST(mmap_read)
 	file_view v = m->view();
 	auto range = v.range();
 
-	for (int i = 0; i < 100; ++i)
+	for (std::size_t i = 0; i < 100; ++i)
 		TEST_EQUAL(static_cast<int>(range[i]), static_cast<int>(buf[i]));
 }
 
@@ -80,7 +83,7 @@ TORRENT_TEST(mmap_write)
 		file_view v = m->view();
 		auto range = v.range();
 
-		for (int i = 0; i < 100; ++i)
+		for (std::size_t i = 0; i < 100; ++i)
 		{
 			range[i] = buf[i];
 		}
@@ -89,10 +92,10 @@ TORRENT_TEST(mmap_write)
 	std::ifstream file("test_file2", std::ios_base::binary);
 	std::vector<char> buf2;
 	buf2.resize(100);
-	file.read(buf2.data(), buf2.size());
+	file.read(buf2.data(), std::streamsize(buf2.size()));
 	TEST_EQUAL(file.gcount(), 100);
 
-	for (int i = 0; i < 100; ++i)
+	for (std::size_t i = 0; i < 100; ++i)
 		TEST_EQUAL(static_cast<int>(buf2[i]), static_cast<int>(buf[i]));
 }
 
