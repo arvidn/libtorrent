@@ -174,6 +174,7 @@ class test_torrent_info(unittest.TestCase):
 
 		f = info.files()
 		self.assertEqual(f.file_path(0), 'test_torrent')
+		self.assertEqual(f.file_name(0), 'test_torrent')
 		self.assertEqual(f.file_size(0), 1234)
 		self.assertEqual(info.total_size(), 1234)
 
