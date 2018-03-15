@@ -144,6 +144,7 @@ void bind_create_torrent()
     std::string const& (file_storage::*file_storage_symlink)(int) const = &file_storage::symlink;
     sha1_hash (file_storage::*file_storage_hash)(int) const = &file_storage::hash;
     std::string (file_storage::*file_storage_file_path)(int, std::string const&) const = &file_storage::file_path;
+    std::string (file_storage::*file_storage_file_name)(int) const = &file_storage::file_name;
     boost::int64_t (file_storage::*file_storage_file_size)(int) const = &file_storage::file_size;
     boost::int64_t (file_storage::*file_storage_file_offset)(int) const = &file_storage::file_offset;
     int (file_storage::*file_storage_file_flags)(int) const = &file_storage::file_flags;
@@ -169,6 +170,7 @@ void bind_create_torrent()
         .def("hash", file_storage_hash)
         .def("symlink", file_storage_symlink, return_value_policy<copy_const_reference>())
         .def("file_path", file_storage_file_path, (arg("idx"), arg("save_path") = ""))
+        .def("file_name", file_storage_file_name)
         .def("file_size", file_storage_file_size)
         .def("file_offset", file_storage_file_offset)
         .def("file_flags", file_storage_file_flags)
