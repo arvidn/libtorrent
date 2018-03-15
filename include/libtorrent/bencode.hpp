@@ -173,22 +173,21 @@ namespace detail {
 				break;
 			case entry::list_t:
 				write_char(out, 'l');
-				for (entry::list_type::const_iterator i = e.list().begin(); i != e.list().end(); ++i)
-					ret += bencode_recursive(out, *i);
+				for (auto const& i : e.list())
+					ret += bencode_recursive(out, i);
 				write_char(out, 'e');
 				ret += 2;
 				break;
 			case entry::dictionary_t:
 				write_char(out, 'd');
-				for (entry::dictionary_type::const_iterator i = e.dict().begin();
-					i != e.dict().end(); ++i)
+				for (auto const& i : e.dict())
 				{
 					// write key
-					ret += write_integer(out, i->first.length());
+					ret += write_integer(out, i.first.length());
 					write_char(out, ':');
-					ret += write_string(i->first, out);
+					ret += write_string(i.first, out);
 					// write value
-					ret += bencode_recursive(out, i->second);
+					ret += bencode_recursive(out, i.second);
 					ret += 1;
 				}
 				write_char(out, 'e');
@@ -260,7 +259,7 @@ namespace detail {
 				++in; // 'l'
 				while (*in != 'e')
 				{
-					ret.list().push_back(entry());
+					ret.list().emplace_back();
 					entry& e = ret.list().back();
 					bdecode_recursive(in, end, e, err, depth + 1);
 					if (err)
