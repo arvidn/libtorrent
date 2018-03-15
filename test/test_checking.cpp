@@ -76,7 +76,7 @@ enum
 	force_recheck = 8,
 };
 
-void test_checking(int flags = 0)
+void test_checking(int flags)
 {
 	using namespace libtorrent;
 	namespace lt = libtorrent;
@@ -272,7 +272,7 @@ void test_checking(int flags = 0)
 
 TORRENT_TEST(checking)
 {
-	test_checking();
+	test_checking(0);
 }
 
 TORRENT_TEST(read_only_corrupt)
