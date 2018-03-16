@@ -89,30 +89,6 @@ namespace libtorrent {
 		TORRENT_ASSERT(files().num_files() > 0);
 		m_save_path = complete(params.path);
 		m_part_file_name = "." + aux::to_hex(params.info_hash) + ".parts";
-
-		file_storage const& fs = files();
-		// if some files have priority 0, we need to check if they exist on the
-		// filesystem, in which case we won't use a partfile for them.
-		// this is to be backwards compatible with previous versions of
-		// libtorrent, when part files were not supported.
-		for (file_index_t i(0); i < m_file_priority.end_index(); ++i)
-		{
-			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
-				continue;
-
-			file_status s;
-			std::string const file_path = files().file_path(i, m_save_path);
-			error_code ec;
-			stat_file(file_path, &s, ec);
-			if (!ec)
-			{
-				use_partfile(i, false);
-			}
-			else
-			{
-				need_partfile();
-			}
-		}
 	}
 
 	default_storage::~default_storage()
@@ -262,9 +238,32 @@ namespace libtorrent {
 			m_file_created.resize(files().num_files(), false);
 		}
 
+		file_storage const& fs = files();
+		// if some files have priority 0, we need to check if they exist on the
+		// filesystem, in which case we won't use a partfile for them.
+		// this is to be backwards compatible with previous versions of
+		// libtorrent, when part files were not supported.
+		for (file_index_t i(0); i < m_file_priority.end_index(); ++i)
+		{
+			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
+				continue;
+
+			file_status s;
+			std::string const file_path = files().file_path(i, m_save_path);
+			error_code err;
+			stat_file(file_path, &s, err);
+			if (!err)
+			{
+				use_partfile(i, false);
+			}
+			else
+			{
+				need_partfile();
+			}
+		}
+
 		// first, create all missing directories
 		std::string last_path;
-		file_storage const& fs = files();
 		for (file_index_t file_index(0); file_index < fs.end_file(); ++file_index)
 		{
 			// ignore files that have priority 0
@@ -275,7 +274,7 @@ namespace libtorrent {
 			}
 
 			// ignore pad files
-			if (files().pad_file_at(file_index)) continue;
+			if (fs.pad_file_at(file_index)) continue;
 
 			// this is just to see if the file exists
 			error_code err;
@@ -296,7 +295,7 @@ namespace libtorrent {
 			if (files().file_size(file_index) == 0
 				&& err == boost::system::errc::no_such_file_or_directory)
 			{
-				std::string file_path = files().file_path(file_index, m_save_path);
+				std::string file_path = fs.file_path(file_index, m_save_path);
 				std::string dir = parent_path(file_path);
 
 				if (dir != last_path)

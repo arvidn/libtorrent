@@ -22,6 +22,7 @@
 #include "libtorrent/portmap.hpp" // for port_mapping_t
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/pex_flags.hpp"
+#include "libtorrent/string_view.hpp"
 #include <vector>
 #include <map>
 
@@ -116,6 +117,37 @@ struct tuple_to_pair
         p.first = extract<T1>(o[0]);
         p.second = extract<T2>(o[1]);
         data->convertible = new (storage) std::pair<T1, T2>(p);
+    }
+};
+
+struct from_string_view
+{
+    static PyObject* convert(lt::string_view v)
+    {
+        str ret(v.data(), v.size());
+        return incref(ret.ptr());
+    }
+};
+
+struct to_string_view
+{
+    to_string_view()
+    {
+        converter::registry::push_back(
+            &convertible, &construct, type_id<lt::string_view>()
+        );
+    }
+
+    static void* convertible(PyObject* x)
+    {
+        return PyUnicode_Check(x) ? x: nullptr;
+    }
+
+    static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
+    {
+        void* storage = ((converter::rvalue_from_python_storage<
+            lt::string_view>*)data)->storage.bytes;
+        data->convertible = new (storage) lt::string_view(PyUnicode_AS_DATA(x), PyUnicode_GET_DATA_SIZE(x));
     }
 };
 
@@ -379,6 +411,7 @@ void bind_converters()
     to_python_converter<lt::file_flags_t, from_bitfield_flag<lt::file_flags_t>>();
     to_python_converter<lt::create_flags_t, from_bitfield_flag<lt::create_flags_t>>();
     to_python_converter<lt::pex_flags_t, from_bitfield_flag<lt::pex_flags_t>>();
+    to_python_converter<lt::string_view, from_string_view>();
 
     // work-around types
     to_python_converter<lt::aux::noexcept_movable<lt::address>, address_to_tuple<
