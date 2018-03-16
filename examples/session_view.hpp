@@ -57,6 +57,7 @@ struct session_view
 private:
 
 	int m_position = 0;
+	int m_width = 80;
 
 	// there are two sets of counters. the current one and the last one. This
 	// is used to calculate rates
