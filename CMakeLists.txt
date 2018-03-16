@@ -54,7 +54,6 @@ set(libtorrent_include_files
 	export
 	extensions
 	file
-	file_pool
 	file_storage
 	fingerprint
 	flags
@@ -80,7 +79,6 @@ set(libtorrent_include_files
 	ip_voter
 	lazy_entry
 	link
-	linked_list
 	lsd
 	magnet_uri
 	natpmp
@@ -220,6 +218,7 @@ set(libtorrent_aux_include_files
 	escape_string
 	ffs
 	file_progress
+	file_view_pool
 	has_block
 	io
 	ip_notifier
@@ -243,7 +242,6 @@ set(libtorrent_aux_include_files
 	session_udp_sockets
 	set_socket_buffer
 	socket_type
-	storage_piece_set
 	storage_utils
 	string_ptr
 	suggest_piece
@@ -255,6 +253,14 @@ set(libtorrent_aux_include_files
 	vector
 	win_crypto_provider
 	win_util)
+
+set(try_signal_include_files
+	try_signal
+	signal_error_code
+	try_signal_mingw
+	try_signal_msvc
+	try_signal_posix
+)
 
 foreach(s ${libtorrent_include_files})
 	list(APPEND include_files include/libtorrent/${s})
@@ -270,6 +276,10 @@ endforeach(s)
 
 foreach(s ${libtorrent_aux_include_files})
 	list(APPEND include_files include/libtorrent/aux_/${s})
+endforeach(s)
+
+foreach(s ${try_signal_include_files})
+	list(APPEND include_files deps/try_signal/${s})
 endforeach(s)
 
 set(sources
@@ -372,7 +382,6 @@ set(sources
 	upnp
 	utp_socket_manager
 	utp_stream
-	file_pool
 	lsd
 	disk_io_job
 	disk_job_fence
@@ -438,7 +447,12 @@ set(ed25519_sources
 	verify
 )
 
-set(includes include ed25519/src)
+set(try_signal_sources
+	try_signal
+	signal_error_code
+)
+
+set(includes include ed25519/src deps/try_signal)
 
 option(shared "build libtorrent as a shared library" ON)
 option(static_runtime "build libtorrent with static runtime" OFF)
@@ -478,6 +492,10 @@ endif (encryption)
 
 foreach(s ${sources})
 	list(APPEND sources2 src/${s})
+endforeach(s)
+
+foreach(s ${try_signal_sources})
+	list(APPEND sources2 deps/try_signal/${s})
 endforeach(s)
 
 if (dht)
