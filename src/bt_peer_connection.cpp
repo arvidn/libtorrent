@@ -796,20 +796,6 @@ namespace {
 	// message handlers
 
 	// -----------------------------
-	// --------- KEEPALIVE ---------
-	// -----------------------------
-
-	void bt_peer_connection::on_keepalive()
-	{
-		INVARIANT_CHECK;
-
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming_message, "KEEPALIVE");
-#endif
-		incoming_keepalive();
-	}
-
-	// -----------------------------
 	// ----------- CHOKE -----------
 	// -----------------------------
 

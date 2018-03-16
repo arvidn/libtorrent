@@ -199,7 +199,6 @@ namespace libtorrent {
 		// be called. i.e. most handlers need
 		// to check how much of the packet they
 		// have received before any processing
-		void on_keepalive();
 		void on_choke(int received);
 		void on_unchoke(int received);
 		void on_interested(int received);
