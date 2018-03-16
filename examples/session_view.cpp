@@ -95,8 +95,7 @@ void session_view::render()
 	print(str);
 
 	std::snprintf(str, sizeof(str), "%s%swaste: %s   up: %s (%s) "
-		"disk queue: %s | %s cache w: %3d%% "
-		"total: %s                                         %s\x1b[K"
+		"disk queue: %s | %s cache w: %3d%% total: %s %*s\x1b[K"
 #ifdef _WIN32
 		, esc("40")
 #else
@@ -111,12 +110,12 @@ void session_view::render()
 		, int((m_cnt[0][m_blocks_written_idx] - m_cnt[0][m_write_ops_idx]) * 100
 			/ std::max(std::int64_t(1), m_cnt[0][m_blocks_written_idx]))
 		, add_suffix(m_cnt[0][m_blocks_in_use_idx] * 16 * 1024).c_str()
-		, std::max(0, m_width - 119)
+		, std::max(0, m_width - 85)
 		, esc("0"));
 	set_cursor_pos(0, y++);
 	print(str);
 
-	std::snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\x1b[K"
+	std::snprintf(str, sizeof(str), "%s%suTP idle: %d syn: %d est: %d fin: %d wait: %d%*s\x1b[K"
 		, esc("48;5;238")
 		, esc("1")
 		, int(m_cnt[0][m_utp_idle])
@@ -124,6 +123,7 @@ void session_view::render()
 		, int(m_cnt[0][m_utp_connected])
 		, int(m_cnt[0][m_utp_fin_sent])
 		, int(m_cnt[0][m_utp_close_wait])
+		, int(m_width - 37)
 		, esc("0"));
 	set_cursor_pos(0, y++);
 	print(str);
