@@ -236,6 +236,7 @@ script:
 # minimal support for cmake build
   - mkdir build && cd build
   - if [[ "$cmake" == "1" ]]; then
+      (cd $BOOST_ROOT; bjam -j2 stage);
       export CXX=g++-5 &&
       export CC=gcc-5 &&
       cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -Dbuild_tests=ON -Dbuild_examples=ON -G "CodeBlocks - Unix Makefiles" .. &&
