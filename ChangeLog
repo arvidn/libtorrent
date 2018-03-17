@@ -1,4 +1,5 @@
 
+	* expose post_dht_stats() to python binding
 	* fix backwards compatibility to downloads without partfiles
 	* improve part-file related error messages
 	* fix reporting &redundant= in tracker announces
