@@ -383,6 +383,21 @@ class test_session(unittest.TestCase):
 		self.assertTrue(isinstance(a.values, dict))
 		self.assertTrue(len(a.values) > 0)
 
+	def test_post_dht_stats(self):
+		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
+		s.post_dht_stats()
+		alerts = []
+		# first the stats headers log line. but not if logging is disabled
+		time.sleep(1)
+		alerts = s.pop_alerts()
+		a = alerts.pop(0)
+		while not isinstance(a, lt.dht_stats_alert):
+			a = alerts.pop(0
+)
+		self.assertTrue(isinstance(a, lt.dht_stats_alert))
+		self.assertTrue(isinstance(a.active_requests, list))
+		self.assertTrue(isinstance(a.routing_table, list))
+
 	def test_unknown_settings(self):
 		try:
 			s = lt.session({'unexpected-key-name': 42})

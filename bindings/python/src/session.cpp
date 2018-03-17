@@ -900,6 +900,7 @@ void bind_session()
         .def("outgoing_ports", &outgoing_ports)
 #endif
         .def("post_torrent_updates", allow_threads(&lt::session::post_torrent_updates), arg("flags") = 0xffffffff)
+        .def("post_dht_stats", allow_threads(&lt::session::post_dht_stats))
         .def("post_session_stats", allow_threads(&lt::session::post_session_stats))
         .def("is_listening", allow_threads(&lt::session::is_listening))
         .def("listen_port", allow_threads(&lt::session::listen_port))
