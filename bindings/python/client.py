@@ -160,7 +160,7 @@ def add_torrent(ses, filename, options):
     else:
         atp.ti = lt.torrent_info(filename)
         try:
-            at.resume_data = open(os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read()
+            atp.resume_data = open(os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read()
         except:
             pass
 
