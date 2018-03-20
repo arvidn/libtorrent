@@ -413,7 +413,7 @@ TORRENT_TEST(no_metadata_prioritize_files)
 	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
-	addp.info_hash = sha1_hash("abababababababababab");
+	addp.info_hash.v1 = sha1_hash("abababababababababab");
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);
 

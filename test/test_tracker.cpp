@@ -693,12 +693,14 @@ void test_stop_tracker_timeout(int const timeout)
 	h.add_tracker(ae);
 
 	// make sure it announced a event=started properly
-	wait_for_alert(s, tracker_reply_alert::alert_type, "s");
+	// expect announces for v1 and v2 info hashes
+	for (int i = 0; i < 2; ++i)
+		wait_for_alert(s, tracker_reply_alert::alert_type, "s");
 
 	s.remove_torrent(h);
 
-	int const count = count_stopped_events(s, (timeout == 0) ? 0 : 1);
-	TEST_EQUAL(count, (timeout == 0) ? 0 : 1);
+	int const count = count_stopped_events(s, (timeout == 0) ? 0 : 2);
+	TEST_EQUAL(count, (timeout == 0) ? 0 : 2);
 }
 } // anonymous namespace
 

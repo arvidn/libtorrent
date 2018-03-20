@@ -179,7 +179,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 
 	// we should have announced to the tracker by now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces
-		+ ((flags & expect_udp_connection) ? 1 : 0));
+		+ ((flags & expect_udp_connection) ? 2 : 0));
 
 	if (flags & expect_dht_msg)
 	{

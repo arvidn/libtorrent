@@ -91,7 +91,7 @@ TORRENT_TEST(limit_int_max)
 		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
-		mgr.emplace_alert<torrent_removed_alert>(torrent_handle(), sha1_hash());
+		mgr.emplace_alert<torrent_removed_alert>(torrent_handle(), info_hash_t());
 
 	std::vector<alert*> alerts;
 	mgr.get_all(alerts);

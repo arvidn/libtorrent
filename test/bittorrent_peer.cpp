@@ -83,7 +83,7 @@ void peer_conn::on_connect(error_code const& ec)
 		"\0\0\0\x01\x02"; // interested
 	char* h = static_cast<char*>(malloc(sizeof(handshake)));
 	memcpy(h, handshake, sizeof(handshake));
-	std::memcpy(h + 28, m_ti.info_hash().data(), 20);
+	std::memcpy(h + 28, m_ti.info_hash().v1.data(), 20);
 	std::generate(h + 48, h + 68, &rand);
 	// for seeds, don't send the interested message
 	boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1)

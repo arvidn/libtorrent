@@ -46,8 +46,9 @@ struct mock_peer_connection : peer_connection_interface
 	virtual tcp::endpoint const& remote() const { return m_remote; }
 	virtual tcp::endpoint local_endpoint() const { return {}; }
 	virtual void disconnect(error_code const& ec
-		, operation_t op, int error = 0) {}
+		, operation_t op, disconnect_severity_t error = peer_connection_interface::normal) {}
 	virtual peer_id const& pid() const { return m_pid; }
+	virtual peer_id our_pid() const { return m_pid; }
 	virtual void set_holepunch_mode() {}
 	virtual torrent_peer* peer_info_struct() const { return m_torrent_peer; }
 	virtual void set_peer_info(torrent_peer* pi) { m_torrent_peer = pi; }
@@ -206,11 +207,11 @@ TORRENT_TEST(add_leaf_hashes)
 	{
 		hashes.push_back(full_tree[merkle_get_sibling(i)]);
 	}
-	add_hashes_result result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 0, 0, 512, 10)
+	add_hashes_result result = picker.add_hashes(hash_request(0, 0, 0, 512, 10)
 		, hashes);
 	TEST_CHECK(result.valid);
 
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 0, 512, 512, 0)
+	result = picker.add_hashes(hash_request(0, 0, 512, 512, 0)
 		, span<sha256_hash>(full_tree).last(merkle_num_leafs(4 * 512) - 512).first(512));
 	TEST_CHECK(result.valid);
 
@@ -221,11 +222,11 @@ TORRENT_TEST(add_leaf_hashes)
 		hashes.push_back(full_tree[merkle_get_sibling(i)]);
 	}
 
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 0, 1024, 512, 10)
+	result = picker.add_hashes(hash_request(0, 0, 1024, 512, 10)
 		, hashes);
 	TEST_CHECK(result.valid);
 
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 0, 1536, 512, 0)
+	result = picker.add_hashes(hash_request(0, 0, 1536, 512, 0)
 		, span<sha256_hash>(full_tree).last(merkle_num_leafs(4 * 512) - 1536).first(512));
 	TEST_CHECK(result.valid);
 
@@ -261,12 +262,12 @@ TORRENT_TEST(add_piece_hashes)
 	std::vector<sha256_hash> hashes;
 	std::copy(pieces_start, pieces_start + 512, std::back_inserter(hashes));
 	hashes.push_back(full_tree[2]);
-	add_hashes_result result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 2, 0, 512, 9), hashes);
+	add_hashes_result result = picker.add_hashes(hash_request(0, 2, 0, 512, 9), hashes);
 	TEST_CHECK(result.valid);
 
 	hashes.clear();
 	std::copy(pieces_start + 512, pieces_start + 1024, std::back_inserter(hashes));
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 2, 512, 512, 8), hashes);
+	result = picker.add_hashes(hash_request(0, 2, 512, 512, 8), hashes);
 	TEST_CHECK(result.valid);
 
 	TEST_CHECK(std::equal(trees[0].begin(), trees[0].begin() + merkle_num_nodes(1024), full_tree.begin()));
@@ -298,29 +299,29 @@ TORRENT_TEST(add_bad_hashes)
 
 	std::vector<sha256_hash> hashes(2);
 	// hash count mis-match
-	auto result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 0, 0, 2, 1), hashes);
+	auto result = picker.add_hashes(hash_request(0, 0, 0, 2, 1), hashes);
 	TEST_CHECK(!result.valid);
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 0, 0, 4, 0), hashes);
+	result = picker.add_hashes(hash_request(0, 0, 0, 4, 0), hashes);
 	TEST_CHECK(!result.valid);
 
 	// wrong piece hash count
 	hashes.resize(256);
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 2, 0, 256, 0), hashes);
+	result = picker.add_hashes(hash_request(0, 2, 0, 256, 0), hashes);
 	TEST_CHECK(!result.valid);
 
 	// wrong base layer
 	hashes.resize(512);
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 1, 0, 512, 0), hashes);
+	result = picker.add_hashes(hash_request(0, 1, 0, 512, 0), hashes);
 	TEST_CHECK(!result.valid);
 
 	// index out of range
 	hashes.resize(512);
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 2, 512, 512, 0), hashes);
+	result = picker.add_hashes(hash_request(0, 2, 512, 512, 0), hashes);
 	TEST_CHECK(!result.valid);
 
 	// totally bogus hashes
 	hashes.resize(512);
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 2, 0, 512, 0), hashes);
+	result = picker.add_hashes(hash_request(0, 2, 0, 512, 0), hashes);
 	TEST_CHECK(!result.valid);
 
 	// bad proof hash
@@ -328,7 +329,7 @@ TORRENT_TEST(add_bad_hashes)
 	auto pieces_start = full_tree.begin() + merkle_num_nodes(512) - 512;
 	std::copy(pieces_start, pieces_start + 512, std::back_inserter(hashes));
 	hashes.back()[1] ^= 0xaa;
-	result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 2, 0, 512, 0), hashes);
+	result = picker.add_hashes(hash_request(0, 2, 0, 512, 0), hashes);
 	TEST_CHECK(!result.valid);
 }
 
@@ -366,7 +367,7 @@ TORRENT_TEST(bad_chunk_hash)
 	{
 		hashes.push_back(full_tree[merkle_get_sibling(i)]);
 	}
-	add_hashes_result result = picker.add_hashes((torrent_peer*)0x1, hash_request(0, 0, 0, 512, 10)
+	add_hashes_result result = picker.add_hashes(hash_request(0, 0, 0, 512, 10)
 		, hashes);
 	TEST_CHECK(result.valid);
 	TEST_CHECK(result.hash_failed.count(1) == 1);
@@ -405,27 +406,27 @@ TORRENT_TEST(set_chunk_hash)
 	hash_picker picker(fs, trees);
 	auto result = picker.set_chunk_hash(1, default_block_size
 		, full_tree[first_leaf + 5]);
-	TEST_CHECK(result == set_chunk_hash_result::success);
+	TEST_CHECK(result.status == set_chunk_hash_result::success);
 
 	result = picker.set_chunk_hash(2, default_block_size * 2
 		, full_tree[first_leaf + 10]);
-	TEST_CHECK(result == set_chunk_hash_result::success);
+	TEST_CHECK(result.status == set_chunk_hash_result::success);
 
 	result = picker.set_chunk_hash(2, default_block_size * 2
 		, sha256_hash("01234567890123456789"));
-	TEST_CHECK(result == set_chunk_hash_result::chunk_hash_failed);
+	TEST_CHECK(result.status == set_chunk_hash_result::chunk_hash_failed);
 
 	// zero out the inner nodes for a piece along with a single leaf node
 	// then add a bogus hash for the leaf
-	trees[0][merkle_get_parent(first_leaf + 4)].clear();
-	trees[0][merkle_get_parent(first_leaf + 6)].clear();
-	trees[0][first_leaf + 5].clear();
+	trees[0][merkle_get_parent(first_leaf + 12)].clear();
+	trees[0][merkle_get_parent(first_leaf + 14)].clear();
+	trees[0][first_leaf + 13].clear();
 
-	result = picker.set_chunk_hash(1, default_block_size, sha256_hash("01234567890123456789"));
-	TEST_CHECK(result == set_chunk_hash_result::piece_hash_failed);
+	result = picker.set_chunk_hash(3, default_block_size, sha256_hash("01234567890123456789"));
+	TEST_CHECK(result.status == set_chunk_hash_result::piece_hash_failed);
 
-	TEST_CHECK(trees[0][merkle_get_parent(first_leaf + 4)].is_all_zeros());
-	TEST_CHECK(trees[0][merkle_get_parent(first_leaf + 6)].is_all_zeros());
+	TEST_CHECK(trees[0][merkle_get_parent(first_leaf + 12)].is_all_zeros());
+	TEST_CHECK(trees[0][merkle_get_parent(first_leaf + 14)].is_all_zeros());
 }
 
 TORRENT_TEST(pass_piece)
@@ -458,7 +459,7 @@ TORRENT_TEST(pass_piece)
 	{
 		auto result = picker.set_chunk_hash(0, default_block_size * i
 			, full_tree[first_leaf + i]);
-		TEST_CHECK(result == set_chunk_hash_result::unknown);
+		TEST_CHECK(result.status == set_chunk_hash_result::unknown);
 	}
 
 	auto pieces_start = full_tree.begin() + merkle_num_nodes(512) - 512;

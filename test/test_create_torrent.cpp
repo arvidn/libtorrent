@@ -116,7 +116,7 @@ TORRENT_TEST(create_torrent_round_trip)
 	TEST_EQUAL(info2.comment(), "this is a test comment");
 	TEST_EQUAL(info2.trackers().size(), 1);
 	TEST_EQUAL(info2.trackers().front().url, "udp://testurl.com/announce");
-	TEST_CHECK(info1.info_hash() == info2.info_hash());
+	TEST_CHECK(info1.info_hash().v1 == info2.info_hash().v1);
 }
 
 // check that attempting to create a torrent containing both

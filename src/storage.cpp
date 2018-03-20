@@ -691,6 +691,7 @@ namespace libtorrent {
 		file_index_t file_index = files().file_index_at_offset(start_offset);
 		std::int64_t file_offset = start_offset - files().file_offset(file_index);
 		TORRENT_ASSERT(file_offset >= 0);
+		TORRENT_ASSERT(!files().pad_file_at(file_index));
 
 		if (file_index < m_file_priority.end_index()
 			&& m_file_priority[file_index] == dont_download
