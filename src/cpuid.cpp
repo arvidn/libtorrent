@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_AUXV 0
 #endif
 
-
-#if defined(TORRENT_ANDROID) && TORRENT_HAS_AUXV
+#if TORRENT_HAS_ARM && TORRENT_HAS_AUXV
+#if defined TORRENT_ANDROID
 #include <dlfcn.h>
 namespace {
 unsigned long int helper_getauxval(unsigned long int type)
@@ -67,10 +67,11 @@ unsigned long int helper_getauxval(unsigned long int type)
     return pf_getauxval(type);
 }
 }
-#elif TORRENT_HAS_ARM && TORRENT_HAS_AUXV
+#else // TORRENT_ANDROID
 #include <sys/auxv.h>
 #define helper_getauxval getauxval
 #endif
+#endif // TORRENT_HAS_ARM && TORRENT_HAS_AUXV
 
 namespace libtorrent { namespace aux {
 
