@@ -164,7 +164,7 @@ struct bdecode_token
 {
 	// the node with type 'end' is a logical node, pointing to the end
 	// of the bencoded buffer.
-	enum type_t
+	enum type_t : std::uint8_t
 	{ none, dict, list, string, integer, end };
 
 	enum limits_t
@@ -182,7 +182,9 @@ struct bdecode_token
 	{
 		TORRENT_ASSERT(off >= 0);
 		TORRENT_ASSERT(off <= max_offset);
-		TORRENT_ASSERT(t >= 0 && t <= end);
+		TORRENT_ASSERT(t <= end);
+		static_assert(std::is_unsigned<std::underlying_type<bdecode_token::type_t>::type>::value
+			, "we need to assert t >= 0 here");
 	}
 
 	bdecode_token(std::ptrdiff_t off, std::uint32_t next
@@ -198,7 +200,9 @@ struct bdecode_token
 		TORRENT_ASSERT(next <= max_next_item);
 		// the string has 2 implied header bytes, to allow for longer prefixes
 		TORRENT_ASSERT(header_size < 8 || (type == string && header_size < 10));
-		TORRENT_ASSERT(t >= 0 && t <= end);
+		TORRENT_ASSERT(t <= end);
+		static_assert(std::is_unsigned<std::underlying_type<bdecode_token::type_t>::type>::value
+			, "we need to assert t >= 0 here");
 	}
 
 	int start_offset() const { TORRENT_ASSERT(type == string); return int(header) + 2; }

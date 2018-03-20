@@ -34,7 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/block_cache.hpp" // for cached_piece_entry
 #include "libtorrent/disk_buffer_holder.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/get.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
