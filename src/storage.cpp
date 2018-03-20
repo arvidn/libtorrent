@@ -677,14 +677,6 @@ namespace libtorrent {
 				ret += static_cast<int>(file_range.size());
 			}
 
-			if (ret == 0)
-			{
-				ec.operation = operation_t::file_read;
-				ec.ec = boost::asio::error::eof;
-				ec.file(file_index);
-				return -1;
-			}
-
 			return ret;
 		});
 	}
