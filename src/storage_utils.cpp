@@ -192,6 +192,8 @@ namespace libtorrent { namespace aux {
 				{
 					// fill in this information in case the caller wants to treat
 					// a short-read as an error
+					ec.operation = operation_t::file_read;
+					ec.ec = boost::asio::error::eof;
 					ec.file(file_index);
 				}
 				return size - bytes_left;
