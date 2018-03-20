@@ -308,7 +308,6 @@ namespace {
 			, std::shared_ptr<void>());
 
 		settings_pack sett;
-		sett.set_int(settings_pack::cache_size, 0);
 		int const num_threads = disk_io_thread::hasher_thread_divisor - 1;
 		int const jobs_per_thread = 4;
 		sett.set_int(settings_pack::aio_threads, num_threads);
