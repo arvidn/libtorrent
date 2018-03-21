@@ -79,10 +79,10 @@ namespace libtorrent {
 
 		struct socket_entry
 		{
-			explicit socket_entry(std::shared_ptr<udp::socket> const& s)
-				: socket(s), broadcast(false) { std::memset(buffer, 0, sizeof(buffer)); }
-			socket_entry(std::shared_ptr<udp::socket> const& s
-				, address_v4 const& mask): socket(s), netmask(mask), broadcast(false)
+			explicit socket_entry(std::shared_ptr<udp::socket> s)
+				: socket(std::move(s)), broadcast(false) { std::memset(buffer, 0, sizeof(buffer)); }
+			socket_entry(std::shared_ptr<udp::socket> s
+				, address_v4 const& mask): socket(std::move(s)), netmask(mask), broadcast(false)
 			{ std::memset(buffer, 0, sizeof(buffer)); }
 			std::shared_ptr<udp::socket> socket;
 			char buffer[1500];
