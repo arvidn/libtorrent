@@ -4,21 +4,17 @@ file(GLOB tests "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
 list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_natpmp.cpp") # doesn't build at time of writing
 list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_utils.cpp") # helper file, not a test
 
-add_library(test_common	OBJECT main.cpp test.cpp setup_transfer.cpp dht_server.cpp udp_tracker.cpp
+add_library(test_common main.cpp test.cpp setup_transfer.cpp dht_server.cpp udp_tracker.cpp
 	peer_server.cpp web_seed_suite.cpp swarm_suite.cpp test_utils.cpp make_torrent.cpp settings.cpp
 )
-target_compile_definitions(test_common PRIVATE $<TARGET_PROPERTY:torrent-rasterbar,INTERFACE_COMPILE_DEFINITIONS>)
+target_link_libraries(test_common torrent-rasterbar)
 target_compile_features(test_common PUBLIC cxx_std_11)
-
-if(MSVC)
-	set_property(TARGET test_common PROPERTY COMPILE_PDB_NAME "${CMAKE_CURRENT_BINARY_DIR}/test_common")
-endif()
 
 foreach(TARGET_SRC ${tests})
 	get_filename_component(TARGET ${TARGET_SRC} NAME_WE)
-	add_executable(${TARGET} ${TARGET_SRC} $<TARGET_OBJECTS:test_common>)
+	add_executable(${TARGET} ${TARGET_SRC})
 	target_compile_features(${TARGET} PRIVATE cxx_std_11)
-	target_link_libraries(${TARGET} torrent-rasterbar)
+	target_link_libraries(${TARGET} test_common)
 	add_test(${TARGET} ${TARGET})
 endforeach()
 
