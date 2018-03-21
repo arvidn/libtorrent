@@ -242,6 +242,8 @@ struct utp_socket_impl
 		, m_stalled(false)
 		, m_confirmed(false)
 	{
+		TORRENT_ASSERT((m_recv_id == ((m_send_id + 1) & 0xffff))
+			|| (m_send_id == ((m_recv_id + 1) & 0xffff)));
 		m_sm.inc_stats_counter(counters::num_utp_idle);
 		TORRENT_ASSERT(m_userdata);
 		m_delay_sample_hist.fill(std::numeric_limits<std::uint32_t>::max());
@@ -2605,8 +2607,15 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 	INVARIANT_CHECK;
 
 	auto const* ph = reinterpret_cast<utp_header const*>(buf.data());
-
 	m_sm.inc_stats_counter(counters::utp_packets_in);
+
+	if (buf.size() < sizeof(utp_header))
+	{
+		UTP_LOG("%8p: ERROR: incoming packet size too small:%d (ignored)\n"
+			, static_cast<void*>(this), int(buf.size()));
+		m_sm.inc_stats_counter(counters::utp_invalid_pkts_in);
+		return false;
+	}
 
 	if (ph->get_version() != 1)
 	{
@@ -3001,7 +3010,14 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 				UTP_LOGV("%8p: received ST_SYN state:%s seq_nr:%d ack_nr:%d\n"
 					, static_cast<void*>(this), socket_state_names[m_state], m_seq_nr, m_ack_nr);
 #endif
-				TORRENT_ASSERT(m_send_id == ph->connection_id);
+				if (m_send_id != ph->connection_id)
+				{
+#if TORRENT_UTP_LOG
+					UTP_LOGV("%8p: received invalid connection_id:%d expected: %d\n"
+						, static_cast<void*>(this), int(ph->connection_id), int(m_send_id));
+#endif
+					return false;
+				}
 				TORRENT_ASSERT(m_recv_id == ((m_send_id + 1) & 0xffff));
 
 				defer_ack();
