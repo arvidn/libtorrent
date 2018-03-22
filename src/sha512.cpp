@@ -160,7 +160,7 @@ static int sha512_compress(sha512_ctx *md, unsigned char *buf)
    @return 0 if successful
 */
 int SHA512_init(sha512_ctx* md) {
-    if (md == NULL) return 1;
+    if (md == nullptr) return 1;
 
     md->curlen = 0;
     md->length = 0;
@@ -188,8 +188,8 @@ int SHA512_update(sha512_ctx* md, std::uint8_t const* in, std::size_t inlen)
     std::size_t n;
     std::size_t i;
     int           err;
-    if (md == NULL) return 1;
-    if (in == NULL) return 1;
+    if (md == nullptr) return 1;
+    if (in == nullptr) return 1;
     if (md->curlen > sizeof(md->buf)) {
        return 1;
     }
@@ -234,8 +234,8 @@ int SHA512_final(std::uint8_t* out, sha512_ctx* md)
 {
     int i;
 
-    if (md == NULL) return 1;
-    if (out == NULL) return 1;
+    if (md == nullptr) return 1;
+    if (out == nullptr) return 1;
 
     if (md->curlen >= sizeof(md->buf)) {
         return 1;

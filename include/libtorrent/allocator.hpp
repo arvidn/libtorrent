@@ -40,17 +40,11 @@ namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT int page_size();
 
-	struct TORRENT_EXTRA_EXPORT page_aligned_allocator
-	{
-		typedef int size_type;
-		typedef std::ptrdiff_t difference_type;
-
-		static char* malloc(size_type bytes);
-		static void free(char* block);
+	TORRENT_EXTRA_EXPORT char* page_malloc(std::size_t bytes);
+	TORRENT_EXTRA_EXPORT void page_free(char* block);
 #ifdef TORRENT_DEBUG_BUFFERS
-		static bool in_use(char const* block);
+	TORRENT_EXTRA_EXPORT bool page_in_use(char const* block);
 #endif
-	};
 
 }
 

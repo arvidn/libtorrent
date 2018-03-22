@@ -320,7 +320,7 @@ void wait_for_listen(lt::session& ses, char const* name)
 	alert const* a = nullptr;
 	do
 	{
-		listen_done = print_alerts(ses, name, true, true, [&listen_done](lt::alert const* al)
+		listen_done = print_alerts(ses, name, true, true, [](lt::alert const* al)
 			{ return alert_cast<listen_failed_alert>(al) || alert_cast<listen_succeeded_alert>(al); }
 			, false);
 		if (listen_done) break;
@@ -338,7 +338,7 @@ void wait_for_downloading(lt::session& ses, char const* name)
 	do
 	{
 		downloading_done = print_alerts(ses, name, true, true
-			, [&downloading_done](lt::alert const* al)
+			, [](lt::alert const* al)
 			{
 				state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
 				return sc && sc->state == torrent_status::downloading;
@@ -391,9 +391,9 @@ void print_ses_rate(float const time
 }
 
 #ifdef _WIN32
-typedef DWORD pid_type;
+using pid_type = DWORD;
 #else
-typedef pid_t pid_type;
+using pid_type = pid_t;
 #endif
 
 namespace {

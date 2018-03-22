@@ -39,7 +39,7 @@ namespace libtorrent { namespace dht {
 
 struct get_peers : find_data
 {
-	typedef std::function<void(std::vector<tcp::endpoint> const&)> data_callback;
+	using data_callback = std::function<void(std::vector<tcp::endpoint> const&)>;
 
 	void got_peers(std::vector<tcp::endpoint> const& peers);
 

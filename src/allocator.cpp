@@ -93,7 +93,7 @@ namespace libtorrent {
 		return s;
 	}
 
-	char* page_aligned_allocator::malloc(page_aligned_allocator::size_type bytes)
+	char* page_malloc(std::size_t bytes)
 	{
 		TORRENT_ASSERT(bytes > 0);
 		// just sanity check (this needs to be pretty high
@@ -147,7 +147,7 @@ namespace libtorrent {
 #endif // TORRENT_DEBUG_BUFFERS
 	}
 
-	void page_aligned_allocator::free(char* block)
+	void page_free(char* block)
 	{
 		if (block == nullptr) return;
 
@@ -187,7 +187,7 @@ namespace libtorrent {
 	}
 
 #ifdef TORRENT_DEBUG_BUFFERS
-	bool page_aligned_allocator::in_use(char const* block)
+	bool page_in_use(char const* block)
 	{
 		const int page = page_size();
 		alloc_header const* h = reinterpret_cast<alloc_header const*>(block - page);

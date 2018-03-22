@@ -151,7 +151,7 @@ namespace boost { namespace system {
 
 namespace libtorrent {
 
-	typedef boost::system::error_code error_code;
+	using error_code = boost::system::error_code;
 
 TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 	, char const* end, char delimiter, std::int64_t& val

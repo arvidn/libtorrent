@@ -113,7 +113,7 @@ void peer_connection::start()
 }
 
 
-typedef std::vector<std::shared_ptr<peer_connection>> connections_t;
+using connections_t = std::vector<std::shared_ptr<peer_connection>>;
 
 void do_change_rate(bandwidth_channel& t1, bandwidth_channel& t2, int limit)
 {

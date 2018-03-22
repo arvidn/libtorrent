@@ -183,7 +183,7 @@ std::shared_ptr<piece_picker> setup_picker(
 		int const idx = static_cast<int>(i);
 		if (priority[idx] == 0) break;
 		download_priority_t const prio((priority[idx] - '0') & 0xff);
-		assert(prio >= dont_download);
+		TEST_CHECK(prio >= dont_download);
 		p->set_piece_priority(i, prio);
 
 		TEST_CHECK(p->piece_priority(i) == prio);
@@ -2067,10 +2067,10 @@ TORRENT_TEST(mark_as_pad_whole_piece_seeding)
 
 	TEST_CHECK(!p->is_seeding());
 
-	p->mark_as_finished({piece_index_t{1}, 0}, NULL);
-	p->mark_as_finished({piece_index_t{1}, 1}, NULL);
-	p->mark_as_finished({piece_index_t{1}, 2}, NULL);
-	p->mark_as_finished({piece_index_t{1}, 3}, NULL);
+	p->mark_as_finished({piece_index_t{1}, 0}, nullptr);
+	p->mark_as_finished({piece_index_t{1}, 1}, nullptr);
+	p->mark_as_finished({piece_index_t{1}, 2}, nullptr);
+	p->mark_as_finished({piece_index_t{1}, 3}, nullptr);
 
 	TEST_CHECK(!p->is_seeding());
 	p->piece_passed(piece_index_t{1});

@@ -91,9 +91,9 @@ network primitives
 There are a few typedefs in the ``libtorrent`` namespace which pulls
 in network types from the ``boost::asio`` namespace. These are::
 
-	typedef boost::asio::ip::address address;
-	typedef boost::asio::ip::address_v4 address_v4;
-	typedef boost::asio::ip::address_v6 address_v6;
+	using address = boost::asio::ip::address;
+	using address_v4 = boost::asio::ip::address_v4;
+	using address_v6 = boost::asio::ip::address_v6;
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
 

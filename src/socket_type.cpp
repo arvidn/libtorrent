@@ -196,7 +196,7 @@ namespace aux {
 
 	void socket_type::destruct()
 	{
-		typedef tcp::socket tcp_socket;
+		using tcp_socket = tcp::socket;
 		switch (m_type)
 		{
 			case 0: break;

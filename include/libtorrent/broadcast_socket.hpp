@@ -57,8 +57,8 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT bool supports_ipv6();
 	address ensure_v6(address const& a);
 
-	typedef std::function<void(udp::endpoint const& from
-		, span<char const> buffer)> receive_handler_t;
+	using receive_handler_t = std::function<void(udp::endpoint const& from
+		, span<char const> buffer)>;
 
 	class TORRENT_EXTRA_EXPORT broadcast_socket
 	{

@@ -449,7 +449,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 
 	void run_all_updates(aux::session_impl& ses)
 	{
-		typedef void (aux::session_impl::*fun_t)();
+		using fun_t = void (aux::session_impl::*)();
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
 			fun_t const& f = str_settings[i].fun;
@@ -516,7 +516,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 	void apply_pack(settings_pack const* pack, aux::session_settings& sett
 		, aux::session_impl* ses)
 	{
-		typedef void (aux::session_impl::*fun_t)();
+		using fun_t = void (aux::session_impl::*)();
 		std::vector<fun_t> callbacks;
 
 		for (auto const& p : pack->m_strings)

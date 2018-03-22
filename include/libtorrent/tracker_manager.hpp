@@ -336,14 +336,14 @@ namespace libtorrent {
 	{
 	public:
 
-		typedef std::function<void(aux::listen_socket_handle const&
+		using send_fun_t = std::function<void(aux::listen_socket_handle const&
 			, udp::endpoint const&
 			, span<char const>
-			, error_code&, udp_send_flags_t)> send_fun_t;
-		typedef std::function<void(aux::listen_socket_handle const&
+			, error_code&, udp_send_flags_t)>;
+		using send_fun_hostname_t = std::function<void(aux::listen_socket_handle const&
 			, char const*, int
 			, span<char const>
-			, error_code&, udp_send_flags_t)> send_fun_hostname_t;
+			, error_code&, udp_send_flags_t)>;
 
 		tracker_manager(send_fun_t const& send_fun
 			, send_fun_hostname_t const& send_fun_hostname

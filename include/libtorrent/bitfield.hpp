@@ -164,11 +164,11 @@ namespace libtorrent {
 		{
 		friend struct bitfield;
 
-			typedef bool value_type;
-			typedef ptrdiff_t difference_type;
-			typedef bool const* pointer;
-			typedef bool& reference;
-			typedef std::forward_iterator_tag iterator_category;
+			using value_type = bool;
+			using difference_type = ptrdiff_t;
+			using pointer = bool const*;
+			using reference = bool&;
+			using iterator_category = std::forward_iterator_tag;
 
 			bool operator*() { return (*buf & aux::host_to_network(bit)) != 0; }
 			const_iterator& operator++() { inc(); return *this; }

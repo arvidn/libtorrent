@@ -183,7 +183,7 @@ public:
 	char const* session_id() const { return m_session_id.c_str(); }
 	std::string const& local_endpoint() const { return m_i2p_local_endpoint; }
 
-	typedef std::function<void(error_code const&, char const*)> name_lookup_handler;
+	using name_lookup_handler = std::function<void(error_code const&, char const*)>;
 	void async_name_lookup(char const* name, name_lookup_handler handler);
 
 private:

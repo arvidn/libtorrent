@@ -91,8 +91,8 @@ void test_remove_torrent(remove_flags_t const remove_options
 	wait_for_listen(ses2, "ses2");
 
 	// test using piece sizes smaller than 16kB
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_remove", 8 * 1024, &t, false, 0);
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
+		, true, false, true, "_remove", 8 * 1024, &t, false, nullptr);
 
 	if (test == partial_download)
 	{

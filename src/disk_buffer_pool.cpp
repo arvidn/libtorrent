@@ -138,7 +138,7 @@ namespace libtorrent {
 #if TORRENT_USE_INVARIANT_CHECKS
 		return m_buffers_in_use.count(buffer) == 1;
 #elif defined TORRENT_DEBUG_BUFFERS
-		return page_aligned_allocator::in_use(buffer);
+		return page_in_use(buffer);
 #else
 		TORRENT_UNUSED(buffer);
 		return true;
@@ -227,7 +227,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		char* ret = page_aligned_allocator::malloc(default_block_size);
+		char* ret = page_malloc(default_block_size);
 
 		if (ret == nullptr)
 		{
@@ -375,7 +375,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		page_aligned_allocator::free(buf);
+		page_free(buf);
 
 		--m_in_use;
 	}

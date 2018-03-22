@@ -3452,10 +3452,10 @@ get_out:
 		m_pad_blocks.insert(block);
 		// if we mark and entire piece as a pad file, we need to also
 		// consder that piece as "had" and increment some counters
-		typedef std::set<piece_block>::iterator iter;
-		iter begin = m_pad_blocks.lower_bound(piece_block(block.piece_index, 0));
+		using iter = std::set<piece_block>::const_iterator;
+		iter const begin = m_pad_blocks.lower_bound(piece_block(block.piece_index, 0));
 		int const blocks = blocks_in_piece(block.piece_index);
-		iter end = m_pad_blocks.upper_bound(piece_block(block.piece_index, blocks));
+		iter const end = m_pad_blocks.upper_bound(piece_block(block.piece_index, blocks));
 		if (std::distance(begin, end) == blocks)
 		{
 			// the entire piece is a pad file

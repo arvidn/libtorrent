@@ -75,7 +75,7 @@ int EXPORT print_failures();
 int EXPORT test_counter();
 void EXPORT reset_output();
 
-typedef void (*unit_test_fun_t)();
+using unit_test_fun_t = void (*)();
 
 struct unit_test_t
 {
@@ -100,7 +100,7 @@ extern int _g_test_idx;
 			t.name = __FILE__ "." #test_name; \
 			t.num_failures = 0; \
 			t.run = false; \
-			t.output = NULL; \
+			t.output = nullptr; \
 			_g_num_unit_tests++; \
 		} \
 	} BOOST_PP_CAT(_static_registrar_, test_name); \

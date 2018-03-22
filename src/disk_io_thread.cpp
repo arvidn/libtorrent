@@ -1059,7 +1059,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 	namespace {
 
-	typedef status_t (disk_io_thread::*disk_io_fun_t)(disk_io_job* j, jobqueue_t& completed_jobs);
+	using disk_io_fun_t = status_t (disk_io_thread::*)(disk_io_job*, jobqueue_t&);
 
 	// this is a jump-table for disk I/O jobs
 	std::array<disk_io_fun_t, 15> const job_functions =

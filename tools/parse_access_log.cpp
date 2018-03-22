@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 	FILE* reads_elev_file = std::fopen("reads_elevator.log", "w+");
 
 
-	typedef std::map<std::uint32_t, file_op> op_map;
+	using op_map = std::map<std::uint32_t, file_op>;
 	op_map outstanding_ops;
 
 	std::uint64_t first_timestamp = 0;
