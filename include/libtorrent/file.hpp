@@ -128,8 +128,7 @@ namespace libtorrent {
 	using file_handle = std::shared_ptr<file>;
 
 	// hidden
-	struct open_mode_tag;
-	using open_mode_t = flags::bitfield_flag<std::uint32_t, open_mode_tag>;
+	using open_mode_t = flags::bitfield_flag<std::uint32_t, struct open_mode_tag>;
 
 	// the open mode for files. Used for the file constructor or
 	// file::open().

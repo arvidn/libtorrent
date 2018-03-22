@@ -186,11 +186,9 @@ namespace libtorrent {
 	struct session_handle;
 	struct peer_connection_handle;
 
-	struct feature_flags_tag;
-
 	// these are flags that can be returned by implemented_features()
 	// indicating which callbacks this plugin is interested in
-	using feature_flags_t = flags::bitfield_flag<std::uint8_t, feature_flags_tag>;
+	using feature_flags_t = flags::bitfield_flag<std::uint8_t, struct feature_flags_tag>;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -279,8 +277,7 @@ namespace libtorrent {
 		virtual void load_state(bdecode_node const&) {}
 	};
 
-	struct add_peer_flags_tag;
-	using add_peer_flags_t = flags::bitfield_flag<std::uint8_t, add_peer_flags_tag>;
+	using add_peer_flags_t = flags::bitfield_flag<std::uint8_t, struct add_peer_flags_tag>;
 
 	// Torrent plugins are associated with a single torrent and have a number
 	// of functions called at certain events. Many of its functions have the

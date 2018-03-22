@@ -33,16 +33,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/flags.hpp"
 
-struct test_flags_tag;
-using test_flags_t = libtorrent::flags::bitfield_flag<std::uint32_t, test_flags_tag>;
+using test_flags_t = libtorrent::flags::bitfield_flag<std::uint32_t, struct test_flags_tag>;
 
 namespace test_flags
 {
-	constexpr test_flags_t super_seeding{1};
-	constexpr test_flags_t strict_super_seeding{2};
-	constexpr test_flags_t seed_mode{4};
-	constexpr test_flags_t time_critical{8};
-	constexpr test_flags_t suggest{16};
+	using libtorrent::operator ""_bit;
+	constexpr test_flags_t super_seeding = 1_bit;
+	constexpr test_flags_t strict_super_seeding = 2_bit;
+	constexpr test_flags_t seed_mode = 3_bit;
+	constexpr test_flags_t time_critical = 4_bit;
+	constexpr test_flags_t suggest = 5_bit;
 }
 
 EXPORT void test_swarm(test_flags_t flags = test_flags_t{});

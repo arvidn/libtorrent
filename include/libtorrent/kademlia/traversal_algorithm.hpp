@@ -53,8 +53,7 @@ namespace dht {
 class node;
 struct node_endpoint;
 
-struct traversal_flags_tag;
-using traversal_flags_t = libtorrent::flags::bitfield_flag<std::uint8_t, traversal_flags_tag>;
+using traversal_flags_t = libtorrent::flags::bitfield_flag<std::uint8_t, struct traversal_flags_tag>;
 
 // this class may not be instantiated as a stack object
 struct TORRENT_EXTRA_EXPORT traversal_algorithm

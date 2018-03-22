@@ -122,8 +122,7 @@ storage_interface* test_storage_constructor(storage_params const& params, file_p
 	return new test_storage(params, pool);
 }
 
-struct transfer_tag;
-using transfer_flags_t = lt::flags::bitfield_flag<std::uint8_t, transfer_tag>;
+using transfer_flags_t = lt::flags::bitfield_flag<std::uint8_t, struct transfer_tag>;
 
 constexpr transfer_flags_t disk_full = 1_bit;
 constexpr transfer_flags_t delete_files = 2_bit;

@@ -37,8 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct pex_flags_tag;
-	using pex_flags_t = flags::bitfield_flag<std::uint8_t, pex_flags_tag>;
+	using pex_flags_t = flags::bitfield_flag<std::uint8_t, struct pex_flags_tag>;
 
 	// these flags match the flags passed in ut_pex
 	// messages

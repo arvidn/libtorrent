@@ -48,8 +48,7 @@ namespace libtorrent {
 	struct file_pool;
 	class torrent_info;
 
-	struct storage_index_tag_t {};
-	using storage_index_t = aux::strong_typedef<std::uint32_t, storage_index_tag_t>;
+	using storage_index_t = aux::strong_typedef<std::uint32_t, struct storage_index_tag_t>;
 
 	// types of storage allocation used for add_torrent_params::storage_mode.
 	enum storage_mode_t

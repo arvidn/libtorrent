@@ -44,8 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 // hidden
-struct resolver_flag_tag;
-using resolver_flags = flags::bitfield_flag<std::uint8_t, resolver_flag_tag>;
+using resolver_flags = flags::bitfield_flag<std::uint8_t, struct resolver_flag_tag>;
 
 struct TORRENT_EXTRA_EXPORT resolver_interface
 {
