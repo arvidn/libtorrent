@@ -242,8 +242,7 @@ namespace aux {
 		http_seed
 	};
 
-	struct request_flags_tag;
-	using request_flags_t = flags::bitfield_flag<std::uint8_t, request_flags_tag>;
+	using request_flags_t = flags::bitfield_flag<std::uint8_t, struct request_flags_tag>;
 
 	class TORRENT_EXTRA_EXPORT peer_connection
 		: public peer_connection_hot_members

@@ -93,8 +93,7 @@ namespace libtorrent {
 	class torrent_info;
 
 	// hidden
-	struct create_flags_tag;
-	using create_flags_t = flags::bitfield_flag<std::uint32_t, create_flags_tag>;
+	using create_flags_t = flags::bitfield_flag<std::uint32_t, struct create_flags_tag>;
 
 	// This class holds state for creating a torrent. After having added
 	// all information to it, call create_torrent::generate() to generate

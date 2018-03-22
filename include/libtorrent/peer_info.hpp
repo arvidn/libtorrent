@@ -44,24 +44,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	// hidden
-	struct peer_flags_tag;
-	struct peer_source_flags_tag;
-	struct bandwidth_state_flags_tag;
-
 	// flags for the peer_info::flags field. Indicates various states
 	// the peer may be in. These flags are not mutually exclusive, but
 	// not every combination of them makes sense either.
-	using peer_flags_t = flags::bitfield_flag<std::uint32_t, peer_flags_tag>;
+	using peer_flags_t = flags::bitfield_flag<std::uint32_t, struct peer_flags_tag>;
 
 	// the flags indicating which sources a peer can
 	// have come from. A peer may have been seen from
 	// multiple sources
-	using peer_source_flags_t = flags::bitfield_flag<std::uint8_t, peer_source_flags_tag>;
+	using peer_source_flags_t = flags::bitfield_flag<std::uint8_t, struct peer_source_flags_tag>;
 
 	// flags indicating what is blocking network transfers in up- and down
 	// direction
-	using bandwidth_state_flags_t = flags::bitfield_flag<std::uint8_t, bandwidth_state_flags_tag>;
+	using bandwidth_state_flags_t = flags::bitfield_flag<std::uint8_t, struct bandwidth_state_flags_tag>;
 
 	// holds information and statistics about one peer
 	// that libtorrent is connected to

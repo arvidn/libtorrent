@@ -80,33 +80,16 @@ namespace aux {
 	struct storage_interface;
 	class torrent;
 
-	// hidden
-	struct status_flags_tag;
-	using status_flags_t = flags::bitfield_flag<std::uint32_t, status_flags_tag>;
-
 #ifndef BOOST_NO_EXCEPTIONS
 	void TORRENT_NO_RETURN throw_invalid_handle();
 #endif
 
-	// hidden
-	struct add_piece_flags_tag;
-	using add_piece_flags_t = flags::bitfield_flag<std::uint8_t, add_piece_flags_tag>;
-
-	// hidden
-	struct pause_flags_tag;
-	using pause_flags_t = flags::bitfield_flag<std::uint8_t, pause_flags_tag>;
-
-	// hidden
-	struct deadline_flags_tag;
-	using deadline_flags_t = flags::bitfield_flag<std::uint8_t, deadline_flags_tag>;
-
-	// hidden
-	struct resume_data_flags_tag;
-	using resume_data_flags_t = flags::bitfield_flag<std::uint8_t, resume_data_flags_tag>;
-
-	// hidden
-	struct queue_position_tag;
-	using queue_position_t = aux::strong_typedef<int, queue_position_tag>;
+	using status_flags_t = flags::bitfield_flag<std::uint32_t, struct status_flags_tag>;
+	using add_piece_flags_t = flags::bitfield_flag<std::uint8_t, struct add_piece_flags_tag>;
+	using pause_flags_t = flags::bitfield_flag<std::uint8_t, struct pause_flags_tag>;
+	using deadline_flags_t = flags::bitfield_flag<std::uint8_t, struct deadline_flags_tag>;
+	using resume_data_flags_t = flags::bitfield_flag<std::uint8_t, struct resume_data_flags_tag>;
+	using queue_position_t = aux::strong_typedef<int, struct queue_position_tag>;
 
 	// holds the state of a block in a piece. Who we requested
 	// it from and how far along we are at downloading it.

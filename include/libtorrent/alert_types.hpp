@@ -2552,8 +2552,7 @@ namespace libtorrent {
 	};
 
 	// hidden
-	struct picker_flags_tag;
-	using picker_flags_t = flags::bitfield_flag<std::uint32_t, picker_flags_tag>;
+	using picker_flags_t = flags::bitfield_flag<std::uint32_t, struct picker_flags_tag>;
 
 	// this is posted when one or more blocks are picked by the piece picker,
 	// assuming the verbose piece picker logging is enabled (see

@@ -63,11 +63,8 @@ namespace libtorrent {
 	struct counters;
 	struct torrent_peer;
 
-	struct prio_index_tag_t {};
-	using prio_index_t = aux::strong_typedef<int, prio_index_tag_t>;
-
-	struct picker_options_tag;
-	using picker_options_t = flags::bitfield_flag<std::uint16_t, picker_options_tag>;
+	using prio_index_t = aux::strong_typedef<int, struct prio_index_tag_t>;
+	using picker_options_t = flags::bitfield_flag<std::uint16_t, struct picker_options_tag>;
 
 	class TORRENT_EXTRA_EXPORT piece_picker
 	{

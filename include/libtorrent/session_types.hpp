@@ -39,20 +39,16 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	// hidden
-	struct save_state_flags_tag;
-	using save_state_flags_t = flags::bitfield_flag<std::uint32_t, save_state_flags_tag>;
+	using save_state_flags_t = flags::bitfield_flag<std::uint32_t, struct save_state_flags_tag>;
 
 	// hidden
-	struct session_flags_tag;
-	using session_flags_t = flags::bitfield_flag<std::uint8_t, session_flags_tag>;
+	using session_flags_t = flags::bitfield_flag<std::uint8_t, struct session_flags_tag>;
 
 	// hidden
-	struct remove_flags_tag;
-	using remove_flags_t = flags::bitfield_flag<std::uint8_t, remove_flags_tag>;
+	using remove_flags_t = flags::bitfield_flag<std::uint8_t, struct remove_flags_tag>;
 
 	// hidden
-	struct reopen_network_flags_tag;
-	using reopen_network_flags_t = flags::bitfield_flag<std::uint8_t, reopen_network_flags_tag>;
+	using reopen_network_flags_t = flags::bitfield_flag<std::uint8_t, struct reopen_network_flags_tag>;
 }
 
 #endif

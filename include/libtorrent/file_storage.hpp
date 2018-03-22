@@ -193,8 +193,7 @@ namespace libtorrent {
 	};
 
 	// hidden
-	struct file_flags_tag;
-	using file_flags_t = flags::bitfield_flag<std::uint8_t, file_flags_tag>;
+	using file_flags_t = flags::bitfield_flag<std::uint8_t, struct file_flags_tag>;
 
 	// The ``file_storage`` class represents a file list and the piece
 	// size. Everything necessary to interpret a regular bittorrent storage

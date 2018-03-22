@@ -938,8 +938,7 @@ TORRENT_TEST(zero_file_prio)
 	test_zero_file_prio();
 }
 
-struct test_mode_tag;
-using test_mode_t = flags::bitfield_flag<std::uint8_t, test_mode_tag>;
+using test_mode_t = flags::bitfield_flag<std::uint8_t, struct test_mode_tag>;
 
 namespace test_mode {
 	constexpr test_mode_t file_prio = 0_bit;

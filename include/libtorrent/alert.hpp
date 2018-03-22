@@ -68,8 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	// hidden
-	struct alert_category_tag;
-	using alert_category_t = flags::bitfield_flag<std::uint32_t, alert_category_tag>;
+	using alert_category_t = flags::bitfield_flag<std::uint32_t, struct alert_category_tag>;
 
 	// The ``alert`` class is the base class that specific messages are derived from.
 	// alert types are not copyable, and cannot be constructed by the client. The

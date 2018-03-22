@@ -48,8 +48,7 @@ namespace libtorrent {
 
 	struct socks5;
 
-	struct udp_send_flags_tag;
-	using udp_send_flags_t = flags::bitfield_flag<std::uint8_t, udp_send_flags_tag>;
+	using udp_send_flags_t = flags::bitfield_flag<std::uint8_t, struct udp_send_flags_tag>;
 
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
 	{

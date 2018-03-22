@@ -48,8 +48,7 @@ struct observer;
 struct msg;
 struct traversal_algorithm;
 
-struct observer_flags_tag;
-using observer_flags_t = libtorrent::flags::bitfield_flag<std::uint8_t, observer_flags_tag>;
+using observer_flags_t = libtorrent::flags::bitfield_flag<std::uint8_t, struct observer_flags_tag>;
 
 struct TORRENT_EXTRA_EXPORT observer
 	: std::enable_shared_from_this<observer>

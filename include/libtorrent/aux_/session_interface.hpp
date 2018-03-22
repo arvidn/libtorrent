@@ -89,8 +89,7 @@ namespace libtorrent {
 	struct resolver_interface;
 
 	// hidden
-	struct queue_position_tag;
-	using queue_position_t = aux::strong_typedef<int, queue_position_tag>;
+	using queue_position_t = aux::strong_typedef<int, struct queue_position_tag>;
 
 	constexpr queue_position_t no_pos{-1};
 	constexpr queue_position_t last_pos{(std::numeric_limits<int>::max)()};
@@ -110,8 +109,7 @@ namespace aux {
 	struct session_settings;
 	struct socket_type;
 
-	struct ip_source_tag;
-	using ip_source_t = flags::bitfield_flag<std::uint8_t, ip_source_tag>;
+	using ip_source_t = flags::bitfield_flag<std::uint8_t, struct ip_source_tag>;
 
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 	// This is the basic logging and debug interface offered by the session.
