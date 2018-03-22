@@ -74,13 +74,13 @@ public:
 	{
 	}
 
-	typedef typename boost::asio::ssl::stream<Stream> sock_type;
-	typedef typename sock_type::next_layer_type next_layer_type;
-	typedef typename Stream::lowest_layer_type lowest_layer_type;
-	typedef typename Stream::endpoint_type endpoint_type;
-	typedef typename Stream::protocol_type protocol_type;
+	using sock_type = typename boost::asio::ssl::stream<Stream>;
+	using next_layer_type = typename sock_type::next_layer_type;
+	using lowest_layer_type = typename Stream::lowest_layer_type;
+	using endpoint_type = typename Stream::endpoint_type;
+	using protocol_type = typename Stream::protocol_type;
 #if BOOST_VERSION >= 106600
-	typedef typename sock_type::executor_type executor_type;
+	using executor_type = typename sock_type::executor_type;
 	executor_type get_executor() { return m_sock.get_executor(); }
 #endif
 

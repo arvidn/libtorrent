@@ -59,7 +59,7 @@ namespace libtorrent { namespace dht {
 struct dht_settings;
 struct dht_logger;
 
-typedef aux::vector<node_entry> bucket_t;
+using bucket_t = aux::vector<node_entry>;
 
 struct routing_table_node
 {
@@ -161,7 +161,7 @@ public:
 	void add_router_node(udp::endpoint const& router);
 
 	// iterates over the router nodes added
-	typedef std::set<udp::endpoint>::const_iterator router_iterator;
+	using router_iterator = std::set<udp::endpoint>::const_iterator;
 	router_iterator begin() const { return m_router_nodes.begin(); }
 	router_iterator end() const { return m_router_nodes.end(); }
 

@@ -506,7 +506,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	{
 		if (family == AF_INET)
 		{
-			typedef boost::asio::ip::address_v4::bytes_type bytes_t;
+			using bytes_t = boost::asio::ip::address_v4::bytes_type;
 			bytes_t b;
 			std::memset(&b[0], 0xff, b.size());
 			for (int i = int(sizeof(bytes_t)) / 8 - 1; i > 0; --i)
@@ -524,7 +524,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #if TORRENT_USE_IPV6
 		else if (family == AF_INET6)
 		{
-			typedef boost::asio::ip::address_v6::bytes_type bytes_t;
+			using bytes_t = boost::asio::ip::address_v6::bytes_type;
 			bytes_t b;
 			std::memset(&b[0], 0xff, b.size());
 			for (int i = int(sizeof(bytes_t)) / 8 - 1; i > 0; --i)
@@ -709,7 +709,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #elif TORRENT_USE_GETADAPTERSADDRESSES
 
 #if _WIN32_WINNT >= 0x0501
-		typedef ULONG (WINAPI *GetAdaptersAddresses_t)(ULONG,ULONG,PVOID,PIP_ADAPTER_ADDRESSES,PULONG);
+		using GetAdaptersAddresses_t = ULONG (WINAPI *)(ULONG,ULONG,PVOID,PIP_ADAPTER_ADDRESSES,PULONG);
 		// Get GetAdaptersAddresses() pointer
 		auto GetAdaptersAddresses =
 			aux::get_library_procedure<aux::iphlpapi, GetAdaptersAddresses_t>("GetAdaptersAddresses");
@@ -1031,7 +1031,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 /*
 	move this to enum_net_interfaces
 		// Get GetAdaptersInfo() pointer
-		typedef DWORD (WINAPI *GetAdaptersInfo_t)(PIP_ADAPTER_INFO, PULONG);
+		using GetAdaptersInfo_t = DWORD (WINAPI*)(PIP_ADAPTER_INFO, PULONG);
 		GetAdaptersInfo_t GetAdaptersInfo = get_library_procedure<iphlpapi, GetAdaptersInfo_t>("GetAdaptersInfo");
 		if (GetAdaptersInfo == nullptr)
 		{
@@ -1079,8 +1079,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		free(adapter_info);
 */
 
-		typedef DWORD (WINAPI *GetIfEntry_t)(PMIB_IFROW pIfRow);
-		auto GetIfEntry = aux::get_library_procedure<aux::iphlpapi, GetIfEntry_t>("GetIfEntry");
+		using GetIfEntry_t = DWORD (WINAPI *)(PMIB_IFROW pIfRow);
+		auto GetIfEntry = aux::get_library_procedure<aux::iphlpapi, GetIfEntry_t>(
+			"GetIfEntry");
 
 		if (GetIfEntry == nullptr)
 		{
@@ -1089,9 +1090,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 
 #if _WIN32_WINNT >= 0x0600
-		typedef DWORD (WINAPI *GetIpForwardTable2_t)(
+		using GetIpForwardTable2_t = DWORD (WINAPI *)(
 			ADDRESS_FAMILY, PMIB_IPFORWARD_TABLE2*);
-		typedef void (WINAPI *FreeMibTable_t)(PVOID Memory);
+		using FreeMibTable_t = void (WINAPI *)(PVOID Memory);
 
 		auto GetIpForwardTable2 = aux::get_library_procedure<aux::iphlpapi, GetIpForwardTable2_t>("GetIpForwardTable2");
 		auto FreeMibTable = aux::get_library_procedure<aux::iphlpapi, FreeMibTable_t>("FreeMibTable");
@@ -1126,7 +1127,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #endif
 
 		// Get GetIpForwardTable() pointer
-		typedef DWORD (WINAPI *GetIpForwardTable_t)(PMIB_IPFORWARDTABLE pIpForwardTable,PULONG pdwSize,BOOL bOrder);
+		using GetIpForwardTable_t = DWORD (WINAPI*)(PMIB_IPFORWARDTABLE pIpForwardTable,PULONG pdwSize,BOOL bOrder);
 
 		auto GetIpForwardTable = aux::get_library_procedure<aux::iphlpapi, GetIpForwardTable_t>("GetIpForwardTable");
 		if (GetIpForwardTable == nullptr)

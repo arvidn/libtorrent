@@ -239,7 +239,7 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(parser.header("content-type") == "text/plain");
 	TEST_CHECK(atoi(parser.header("content-length").c_str()) == 20);
 	TEST_CHECK(parser.chunked_encoding());
-	typedef std::pair<std::int64_t, std::int64_t> chunk_range;
+	using chunk_range = std::pair<std::int64_t, std::int64_t>;
 	std::vector<chunk_range> cmp;
 	cmp.push_back(chunk_range(96, 100));
 	cmp.push_back(chunk_range(106, 122));

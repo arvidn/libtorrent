@@ -211,6 +211,7 @@ def looks_like_variable(line):
 	if line.startswith(','): return False
 	if line.startswith(':'): return False
 	if line.startswith('typedef'): return False
+	if line.startswith('using'): return False
 	if ' = ' in line: return True
 	if line.endswith(';'): return True
 	return False

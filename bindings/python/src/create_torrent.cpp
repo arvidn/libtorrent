@@ -65,11 +65,11 @@ namespace
 
     struct FileIter
     {
-        typedef lt::file_entry value_type;
-        typedef lt::file_entry reference;
-        typedef lt::file_entry* pointer;
-        typedef int difference_type;
-        typedef std::forward_iterator_tag iterator_category;
+        using value_type = lt::file_entry;
+        using reference = lt::file_entry;
+        using pointer = lt::file_entry*;
+        using difference_type = int;
+        using iterator_category = std::forward_iterator_tag;
 
         FileIter(file_storage const& fs, file_index_t i) : m_fs(&fs), m_i(i) {}
         FileIter(FileIter const&) = default;

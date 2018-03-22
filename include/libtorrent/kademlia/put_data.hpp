@@ -47,7 +47,7 @@ class node;
 
 struct put_data: traversal_algorithm
 {
-	typedef std::function<void(item const&, int)> put_callback;
+	using put_callback = std::function<void(item const&, int)>;
 
 	put_data(node& node, put_callback const& callback);
 

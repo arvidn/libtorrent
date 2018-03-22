@@ -77,7 +77,7 @@ namespace libtorrent {
 		// http seed spec. by John Hoffman
 		enum type_t { url_seed, http_seed };
 
-		typedef std::vector<std::pair<std::string, std::string>> headers_t;
+		using headers_t = std::vector<std::pair<std::string, std::string>>;
 
 		web_seed_entry(std::string const& url_, type_t type_
 			, std::string const& auth_ = std::string()
@@ -351,8 +351,8 @@ namespace libtorrent {
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.0. Use the variants that take an index instead
 		// internal_file_entry is no longer exposed in the API
-		typedef file_storage::iterator file_iterator;
-		typedef file_storage::reverse_iterator reverse_file_iterator;
+		using file_iterator = file_storage::iterator;
+		using reverse_file_iterator = file_storage::reverse_iterator;
 
 		// This class will need some explanation. First of all, to get a list of
 		// all files in the torrent, you can use ``begin_files()``,

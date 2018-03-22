@@ -19,12 +19,12 @@ changelog at the end of the file.
 #include <boost/detail/endian.hpp> // for BIG_ENDIAN and LITTLE_ENDIAN macros
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-typedef std::uint32_t u32;
-typedef std::uint8_t u8;
-
 namespace libtorrent {
 
 namespace {
+
+using u32 = std::uint32_t;
+using u8 = std::uint8_t;
 
 	union CHAR64LONG16
 	{

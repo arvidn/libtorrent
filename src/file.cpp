@@ -1047,23 +1047,14 @@ namespace {
 #ifdef TORRENT_WINDOWS
 	bool get_manage_volume_privs()
 	{
-		typedef BOOL (WINAPI *OpenProcessToken_t)(
-			HANDLE ProcessHandle,
-			DWORD DesiredAccess,
-			PHANDLE TokenHandle);
+		using OpenProcessToken_t = BOOL (WINAPI*)(
+			HANDLE, DWORD, PHANDLE);
 
-		typedef BOOL (WINAPI *LookupPrivilegeValue_t)(
-			LPCSTR lpSystemName,
-			LPCSTR lpName,
-			PLUID lpLuid);
+		using LookupPrivilegeValue_t = BOOL (WINAPI*)(
+			LPCSTR, LPCSTR, PLUID);
 
-		typedef BOOL (WINAPI *AdjustTokenPrivileges_t)(
-			HANDLE TokenHandle,
-			BOOL DisableAllPrivileges,
-			PTOKEN_PRIVILEGES NewState,
-			DWORD BufferLength,
-			PTOKEN_PRIVILEGES PreviousState,
-			PDWORD ReturnLength);
+		using AdjustTokenPrivileges_t = BOOL (WINAPI*)(
+			HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
 
 		auto OpenProcessToken =
 			aux::get_library_procedure<aux::advapi32, OpenProcessToken_t>("OpenProcessToken");
@@ -1101,7 +1092,7 @@ namespace {
 
 	void set_file_valid_data(HANDLE f, std::int64_t size)
 	{
-		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
+		using SetFileValidData_t = BOOL (WINAPI*)(HANDLE, LONGLONG);
 		auto SetFileValidData =
 			aux::get_library_procedure<aux::kernel32, SetFileValidData_t>("SetFileValidData");
 

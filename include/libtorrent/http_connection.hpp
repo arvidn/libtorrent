@@ -66,12 +66,12 @@ struct resolver_interface;
 
 constexpr int default_max_bottled_buffer_size = 2 * 1024 * 1024;
 
-typedef std::function<void(error_code const&
-	, http_parser const&, span<char const> data, http_connection&)> http_handler;
+using http_handler = std::function<void(error_code const&
+	, http_parser const&, span<char const> data, http_connection&)>;
 
-typedef std::function<void(http_connection&)> http_connect_handler;
+using http_connect_handler = std::function<void(http_connection&)>;
 
-typedef std::function<void(http_connection&, std::vector<tcp::endpoint>&)> http_filter_handler;
+using http_filter_handler = std::function<void(http_connection&, std::vector<tcp::endpoint>&)>;
 
 // when bottled, the last two arguments to the handler
 // will always be 0

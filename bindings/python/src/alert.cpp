@@ -243,7 +243,7 @@ void bind_alert()
 {
     using boost::noncopyable;
 
-    typedef return_value_policy<return_by_value> by_value;
+    using by_value = return_value_policy<return_by_value>;
 
     {
         scope alert_scope = class_<alert, noncopyable >("alert", no_init)

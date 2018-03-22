@@ -43,7 +43,7 @@ namespace libtorrent { namespace dht {
 class get_item : public find_data
 {
 public:
-	typedef std::function<void(item const&, bool)> data_callback;
+	using data_callback = std::function<void(item const&, bool)>;
 
 	void got_data(bdecode_node const& v,
 		public_key const& pk,

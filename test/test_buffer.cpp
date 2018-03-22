@@ -212,7 +212,7 @@ TORRENT_TEST(chained_buffer)
 
 		// there are no buffers, we should not be able to allocate
 		// an appendix in an existing buffer
-		TEST_EQUAL(b.allocate_appendix(1), 0);
+		TEST_EQUAL(b.allocate_appendix(1), static_cast<char*>(nullptr));
 
 		char* b1 = allocate_buffer(512);
 		std::memcpy(b1, data_test, 6);

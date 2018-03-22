@@ -95,7 +95,7 @@ namespace aux {
 		bool need_readback;
 	};
 
-	typedef tailqueue<disk_io_job> jobqueue_t;
+	using jobqueue_t = tailqueue<disk_io_job>;
 
 	// this struct holds a number of statistics counters
 	// relevant for the disk io thread and disk cache.

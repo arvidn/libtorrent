@@ -98,12 +98,12 @@ namespace libtorrent {
 		char m_storage[sizeof(T)];
 	};
 
-	typedef big_endian_int<std::uint64_t> be_uint64;
-	typedef big_endian_int<std::uint32_t> be_uint32;
-	typedef big_endian_int<std::uint16_t> be_uint16;
-	typedef big_endian_int<std::int64_t> be_int64;
-	typedef big_endian_int<std::int32_t> be_int32;
-	typedef big_endian_int<std::int16_t> be_int16;
+	using be_uint64 = big_endian_int<std::uint64_t>;
+	using be_uint32 = big_endian_int<std::uint32_t>;
+	using be_uint16 = big_endian_int<std::uint16_t>;
+	using be_int64 = big_endian_int<std::int64_t>;
+	using be_int32 = big_endian_int<std::int32_t>;
+	using be_int16 = big_endian_int<std::int16_t>;
 
 /*
 	uTP header from BEP 29
@@ -188,7 +188,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	using protocol_type = tcp::socket::protocol_type;
 
 #if BOOST_VERSION >= 106600
-	typedef tcp::socket::executor_type executor_type;
+	using executor_type = tcp::socket::executor_type;
 	executor_type get_executor() { return m_io_service.get_executor(); }
 #endif
 

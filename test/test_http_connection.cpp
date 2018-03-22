@@ -184,7 +184,7 @@ void run_suite(std::string const& protocol
 	if (ps.type != settings_pack::none)
 		ps.port = aux::numeric_cast<std::uint16_t>(start_proxy(ps.type));
 
-	typedef boost::optional<error_code> err;
+	using err = boost::optional<error_code>;
 
 	char url[256];
 	std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/", protocol.c_str(), port);
