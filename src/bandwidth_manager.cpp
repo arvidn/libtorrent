@@ -118,7 +118,7 @@ namespace libtorrent {
 		if (k == 0) return blk;
 
 		m_queued_bytes += blk;
-		m_queue.push_back(bwr);
+		m_queue.push_back(std::move(bwr));
 		return 0;
 	}
 
@@ -165,7 +165,7 @@ namespace libtorrent {
 				}
 
 				i->assigned = 0;
-				queue.push_back(*i);
+				queue.push_back(std::move(*i));
 				i = m_queue.erase(i);
 				continue;
 			}
@@ -201,7 +201,7 @@ namespace libtorrent {
 			{
 				a += i->request_size - i->assigned;
 				TORRENT_ASSERT(i->assigned <= i->request_size);
-				queue.push_back(*i);
+				queue.push_back(std::move(*i));
 				i = m_queue.erase(i);
 			}
 			else
