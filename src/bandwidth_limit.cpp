@@ -43,7 +43,7 @@ namespace libtorrent {
 	{}
 
 	// 0 means infinite
-	void bandwidth_channel::throttle(int limit)
+	void bandwidth_channel::throttle(int const limit)
 	{
 		TORRENT_ASSERT_VAL(limit >= 0, limit);
 		// if the throttle is more than this, we might overflow
@@ -54,10 +54,10 @@ namespace libtorrent {
 	int bandwidth_channel::quota_left() const
 	{
 		if (m_limit == 0) return inf;
-		return (std::max)(int(m_quota_left), 0);
+		return std::max(int(m_quota_left), 0);
 	}
 
-	void bandwidth_channel::update_quota(int dt_milliseconds)
+	void bandwidth_channel::update_quota(int const dt_milliseconds)
 	{
 		TORRENT_ASSERT_VAL(m_limit >= 0, m_limit);
 		TORRENT_ASSERT_VAL(m_limit < inf, m_limit);
@@ -65,7 +65,7 @@ namespace libtorrent {
 		if (m_limit == 0) return;
 
 		// "to_add" should never have int64 overflow: "m_limit" contains < "<int>::max"
-		std::int64_t to_add = (std::int64_t(m_limit) * dt_milliseconds + 500) / 1000;
+		std::int64_t const to_add = (std::int64_t(m_limit) * dt_milliseconds + 500) / 1000;
 
 		if (to_add > inf - m_quota_left)
 		{
@@ -85,7 +85,7 @@ namespace libtorrent {
 	// this is used when connections disconnect with
 	// some quota left. It's returned to its bandwidth
 	// channels.
-	void bandwidth_channel::return_quota(int amount)
+	void bandwidth_channel::return_quota(int const amount)
 	{
 		TORRENT_ASSERT(amount >= 0);
 		if (m_limit == 0) return;
@@ -93,7 +93,7 @@ namespace libtorrent {
 		m_quota_left += amount;
 	}
 
-	void bandwidth_channel::use_quota(int amount)
+	void bandwidth_channel::use_quota(int const amount)
 	{
 		TORRENT_ASSERT(amount >= 0);
 		TORRENT_ASSERT(m_limit >= 0);
@@ -103,4 +103,3 @@ namespace libtorrent {
 	}
 
 }
-
