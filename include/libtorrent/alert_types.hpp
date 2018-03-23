@@ -281,15 +281,16 @@ namespace libtorrent {
 	private:
 		aux::allocation_slot m_name_idx;
 #ifndef TORRENT_NO_DEPRECATE
-#if defined __clang__ && __clang_major__ > 9
+
+#if defined __clang__
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wshadow-field"
+#pragma clang diagnostic ignored "-Weverything"
 #endif
 
 	public:
 		std::string TORRENT_DEPRECATED_MEMBER name;
 
-#if defined __clang__ && __clang_major__ > 9
+#if defined __clang__
 #pragma clang diagnostic pop
 #endif
 #endif

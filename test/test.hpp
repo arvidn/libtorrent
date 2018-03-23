@@ -49,14 +49,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // tests are expected to even test deprecated functionality. There is no point
 // in warning about deprecated use in any of the tests.
-
+// the unreachable code warnings are disabled since the test macros may
+// sometimes have conditions that are known at compile time
 #if defined __clang__
 #pragma clang diagnostic ignored "-Wdeprecated"
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wunreachable-code"
 
 #elif defined __GNUC__
 #pragma GCC diagnostic ignored "-Wdeprecated"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wunreachable-code"
 
 #elif defined _MSC_VER
 #pragma warning(disable : 4996)

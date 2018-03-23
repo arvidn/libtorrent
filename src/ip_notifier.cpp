@@ -268,8 +268,16 @@ CFRef<SCDynamicStoreRef> create_dynamic_store(SCDynamicStoreCallBack callback, v
 
 	SCDynamicStoreContext context = {0, nullptr, nullptr, nullptr, nullptr};
 	context.info = context_info;
+
+#if defined __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#endif
 	CFRef<SCDynamicStoreRef> store{SCDynamicStoreCreate(nullptr
 		, CFSTR("libtorrent.IPChangeNotifierStore"), callback, &context)};
+#if defined __clang__
+#pragma clang diagnostic pop
+#endif
 	if (!store)
 		return CFRef<SCDynamicStoreRef>();
 

@@ -4872,15 +4872,18 @@ namespace libtorrent {
 		bool const was_finished = is_finished();
 		for (auto const& p : pieces)
 		{
-			TORRENT_ASSERT(p.second >= dont_download);
+			static_assert(std::is_unsigned<decltype(p.second)>::value
+				, "we need assert p.second >= dont_download");
 			TORRENT_ASSERT(p.second <= top_priority);
 			TORRENT_ASSERT(p.first >= piece_index_t(0));
 			TORRENT_ASSERT(p.first < m_torrent_file->end_piece());
 
 			if (p.first < piece_index_t(0)
 				|| p.first >= m_torrent_file->end_piece()
-				|| p.second < dont_download || p.second > top_priority)
+				|| p.second > top_priority)
 			{
+				static_assert(std::is_unsigned<decltype(p.second)>::value
+					, "we need additional condition: p.second < dont_download");
 				continue;
 			}
 
@@ -4922,7 +4925,9 @@ namespace libtorrent {
 		bool const was_finished = is_finished();
 		for (auto prio : pieces)
 		{
-			TORRENT_ASSERT(prio >= dont_download && prio <= top_priority);
+			static_assert(std::is_unsigned<decltype(prio)>::value
+				, "we need assert prio >= dont_download");
+			TORRENT_ASSERT(prio <= top_priority);
 			filter_updated |= m_picker->set_piece_priority(index, prio);
 			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 			++index;

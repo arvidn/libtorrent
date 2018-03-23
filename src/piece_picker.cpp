@@ -1685,7 +1685,8 @@ namespace libtorrent {
 			<< ", " << new_piece_priority << ")" << std::endl;
 #endif
 
-		TORRENT_ASSERT(new_piece_priority >= dont_download);
+		static_assert(std::is_unsigned<decltype(new_piece_priority)::underlying_type>::value
+			, "we need assert new_piece_priority >= dont_download");
 		TORRENT_ASSERT(new_piece_priority <= top_priority);
 
 		piece_pos& p = m_piece_map[index];
