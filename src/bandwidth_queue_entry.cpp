@@ -70,4 +70,9 @@ namespace libtorrent {
 		TORRENT_ASSERT(assigned <= request_size);
 		return quota;
 	}
+
+	static_assert(std::is_nothrow_move_constructible<bw_request>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_move_assignable<bw_request>::value
+		, "should be nothrow move assignable");
 }
