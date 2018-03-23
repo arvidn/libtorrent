@@ -492,11 +492,6 @@ namespace libtorrent {
 
 		std::array<char, 8> m_reserved_bits;
 #endif
-
-#if TORRENT_USE_ASSERTS
-		bool m_in_constructor = true;
-#endif
-
 	};
 }
 

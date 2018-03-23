@@ -185,7 +185,7 @@ script:
 # libtorrent is the name of the test suite target
   - cd test
   - 'if [ "$tests" == "1" ]; then
-      travis_retry bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant libtorrent test_natpmp enum_if -l300 &&
+      travis_retry bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant libtorrent test_natpmp enum_if -l300 &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
@@ -193,13 +193,13 @@ script:
 
   - cd ../examples
   - 'if [ "$examples" == "1" ]; then
-      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
   - cd ..
 
   - cd tools
   - 'if [ "$tools" == "1" ]; then
-      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
   - cd ..
 
@@ -211,7 +211,7 @@ script:
 # on OSX we need to use the brew version of python, for reasons explained above
   - cd bindings/python
   - 'if [[ "$python" == "1" ]]; then
-      bjam -j3 warnings-as-errors=on crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
+      bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
         DYLD_LIBRARY_PATH=./dependencies python2 test.py;
       else
@@ -223,7 +223,7 @@ script:
 # simulation
   - cd simulation
   - 'if [[ "$sim" == "1" ]]; then
-      bjam -j2 crypto=built-in warnings-as-errors=on debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset deprecated-functions=off;
+      bjam -j2 crypto=built-in warnings-as-errors=on warnings=all debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset deprecated-functions=off;
     fi'
   - cd ..
 
@@ -252,6 +252,6 @@ script:
   - cd test
   - 'if [[ "$arch" == "arm" ]];
     then
-      bjam arm-tests warnings-as-errors=on crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
+      bjam arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'
   - cd ..

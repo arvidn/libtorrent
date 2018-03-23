@@ -160,9 +160,6 @@ namespace {
 		peer_log(peer_log_alert::info, "CONSTRUCT", "bt_peer_connection");
 #endif
 
-#if TORRENT_USE_ASSERTS
-		m_in_constructor = false;
-#endif
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		m_reserved_bits.fill(0);
 #endif
