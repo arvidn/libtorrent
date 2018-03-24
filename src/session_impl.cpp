@@ -895,7 +895,7 @@ namespace aux {
 		}
 
 #ifndef TORRENT_DISABLE_DHT
-		if (need_update_dht) update_dht();
+		if (need_update_dht) start_dht();
 #endif
 #ifndef TORRENT_NO_DEPRECATE
 		if (need_update_proxy) update_proxy();
@@ -5443,7 +5443,20 @@ retry:
 	{
 #ifndef TORRENT_DISABLE_DHT
 		if (m_settings.get_bool(settings_pack::enable_dht))
-			start_dht();
+		{
+			if (!m_settings.get_str(settings_pack::dht_bootstrap_nodes).empty()
+				&& m_dht_router_nodes.empty())
+			{
+				// if we have bootstrap nodes configured, make sure we initiate host
+				// name lookups. once these complete, the DHT will be started.
+				// they are tracked by m_outstanding_router_lookups
+				update_dht_bootstrap_nodes();
+			}
+			else
+			{
+				start_dht();
+			}
+		}
 		else
 			stop_dht();
 #endif
@@ -5452,6 +5465,8 @@ retry:
 	void session_impl::update_dht_bootstrap_nodes()
 	{
 #ifndef TORRENT_DISABLE_DHT
+		if (!m_settings.get_bool(settings_pack::enable_dht)) return;
+
 		std::string const& node_list = m_settings.get_str(settings_pack::dht_bootstrap_nodes);
 		std::vector<std::pair<std::string, int> > nodes;
 		parse_comma_separated_string_port(node_list, nodes);
@@ -5763,6 +5778,8 @@ retry:
 
 		stop_dht();
 
+		if (!m_settings.get_bool(settings_pack::enable_dht)) return;
+
 		// postpone starting the DHT if we're still resolving the DHT router
 		if (m_outstanding_router_lookups > 0) return;
 
@@ -5882,7 +5899,7 @@ retry:
 				m_alerts.emplace_alert<dht_error_alert>(
 					dht_error_alert::hostname_lookup, e);
 
-			if (m_outstanding_router_lookups == 0) update_dht();
+			if (m_outstanding_router_lookups == 0) start_dht();
 			return;
 		}
 
@@ -5899,7 +5916,7 @@ retry:
 			m_dht_router_nodes.push_back(ep);
 		}
 
-		if (m_outstanding_router_lookups == 0) update_dht();
+		if (m_outstanding_router_lookups == 0) start_dht();
 	}
 
 	// callback for dht_immutable_get
