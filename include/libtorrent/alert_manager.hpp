@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/heterogeneous_queue.hpp"
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/alert_types.hpp" // for num_alert_types
+#include "libtorrent/aux_/array.hpp"
 
 #include <functional>
 #include <list>
@@ -62,6 +63,10 @@ namespace libtorrent {
 	public:
 		alert_manager(int queue_limit
 			, alert_category_t alert_mask = alert::error_notification);
+
+		alert_manager(alert_manager const&) = delete;
+		alert_manager& operator=(alert_manager const&) = delete;
+
 		~alert_manager();
 
 		dropped_alerts_t dropped_alerts();
@@ -110,7 +115,7 @@ namespace libtorrent {
 
 		alert* wait_for_alert(time_duration max_wait);
 
-		void set_alert_mask(alert_category_t const m)
+		void set_alert_mask(alert_category_t const m) noexcept
 		{
 			m_alert_mask = m;
 		}
@@ -130,10 +135,6 @@ namespace libtorrent {
 #endif
 
 	private:
-
-		// non-copyable
-		alert_manager(alert_manager const&);
-		alert_manager& operator=(alert_manager const&);
 
 		bool should_post_impl(int priority) const;
 		void maybe_notify(alert* a, std::unique_lock<std::mutex>& lock);
@@ -168,11 +169,11 @@ namespace libtorrent {
 		// manager gives exclusive access to m_alerts[m_generation] and
 		// m_allocations[m_generation] whereas the other copy is exclusively
 		// used by the client thread.
-		heterogeneous_queue<alert> m_alerts[2];
+		aux::array<heterogeneous_queue<alert>, 2> m_alerts;
 
 		// this is a stack where alerts can allocate variable length content,
 		// such as strings, to go with the alerts.
-		aux::stack_allocator m_allocations[2];
+		aux::array<aux::stack_allocator, 2> m_allocations;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		std::list<std::shared_ptr<plugin>> m_ses_extensions;

@@ -67,6 +67,8 @@ namespace libtorrent { namespace aux {
 		// non-copyable
 		stack_allocator(stack_allocator const&) = delete;
 		stack_allocator& operator=(stack_allocator const&) = delete;
+		stack_allocator(stack_allocator&&) = default;
+		stack_allocator& operator=(stack_allocator&&) = default;
 
 		allocation_slot copy_string(string_view str);
 		allocation_slot copy_string(char const* str);
