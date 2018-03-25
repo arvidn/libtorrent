@@ -39,7 +39,7 @@ Move the file ``user-config.jam`` from ``%BOOST_BUILD_PATH%/example/`` to ``%BOO
 
 (change the python path for yours)
 
-Navigate to binding/torrents and execute::
+Navigate to bindings/python and execute::
 	python setup.py build --bjam
 	
 Note: If you are using 64bits python you should edit setup.py and add this to the b2 command:
