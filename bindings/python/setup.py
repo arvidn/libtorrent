@@ -85,17 +85,37 @@ if '--bjam' in sys.argv:
     del sys.argv[sys.argv.index('--bjam')]
 
     if '--help' not in sys.argv and '--help-commands' not in sys.argv:
+        toolset = ''
+
         if platform.system() == 'Windows':
             file_ext = '.pyd'
+            # See https://wiki.python.org/moin/WindowsCompilers for a table of msvc versions
+            # used for each python version
+            if sys.version_info[0:2] in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
+                toolset = ' toolset=msvc-9'
+            elif sys.version_info[0:2] in ((3, 3), (3, 4)):
+                toolset = ' toolset=msvc-10'
+            elif sys.version_info[0:2] in ((3, 5), (3, 6)):
+                toolset = ' toolset=msvc-14'
+            else:
+                # unknown python version, lets hope the user has the right version of msvc configured
+                toolset = ' toolset=msvc'
         else:
             file_ext = '.so'
 
         parallel_builds = ' -j%d' % multiprocessing.cpu_count()
+        if sys.maxsize > 2**32:
+            address_model = ' address-model=64'
+        else:
+            address_model = ' address-model=32'
+        # add extra quoting around the path to prevent bjam from parsing it as a list
+        # if the path has spaces
+        os.environ['LIBTORRENT_PYTHON_INTERPRETER'] = '"' + sys.executable + '"'
 
         # build libtorrent using bjam and build the installer with distutils
         cmdline = ('b2 libtorrent-link=static boost-link=static release '
                    'optimization=space stage_module --abbreviate-paths' +
-                   parallel_builds)
+                   parallel_builds + address_model + toolset)
         print(cmdline)
         if os.system(cmdline) != 0:
             print('build failed')
