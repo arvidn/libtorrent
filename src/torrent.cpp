@@ -8646,6 +8646,10 @@ namespace {
 		// to be in downloading state (which it will be set to shortly)
 //		INVARIANT_CHECK;
 
+		// workaround for torrent getting stuck in `downloading` state
+		if (!are_files_checked())
+			set_state(torrent_status::checking_files);
+
 		if (m_state == torrent_status::checking_resume_data
 			|| m_state == torrent_status::checking_files
 			|| m_state == torrent_status::allocating)
