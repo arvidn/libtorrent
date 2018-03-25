@@ -2,4 +2,4 @@
 
 import os
 os.chdir('bindings/python')
-execfile('setup.py')
+exec(open('setup.py').read())
