@@ -868,7 +868,7 @@ void write_handler(file_storage const& fs
 		, std::shared_ptr<disk_observer>()
 		, [&](lt::storage_error const& error)
 		{ write_handler(fs, disk, st, piece, offset, error); });
-};
+}
 
 void generate_data(char const* path, torrent_info const& ti)
 {
