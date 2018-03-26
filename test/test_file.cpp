@@ -496,7 +496,7 @@ TORRENT_TEST(unc_paths)
 	error_code ec;
 	{
 		file f;
-		TEST_CHECK(f.open(reserved_name, open_mode::read_write, ec) && !ec);
+		TEST_CHECK(f.open(reserved_name, aux::open_mode::write, ec) && !ec);
 	}
 	remove(reserved_name, ec);
 	TEST_CHECK(!ec);
