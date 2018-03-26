@@ -34,7 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "test.hpp"
+#include "settings.hpp"
 #include "setup_transfer.hpp"
+#include "test_utils.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -44,10 +46,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-static const int file_sizes[] =
-{ 0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
-	,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
-const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
+namespace
+{
+	bool is_checking(int const state)
+	{
+		return state == lt::torrent_status::checking_files
+#ifndef TORRENT_NO_DEPRECATE
+			|| state == lt::torrent_status::queued_for_checking
+#endif
+			|| state == lt::torrent_status::checking_resume_data;
+	}
+}
 
 enum
 {
@@ -67,7 +76,7 @@ enum
 	force_recheck = 8,
 };
 
-void test_checking(int flags = read_only_files)
+void test_checking(int flags)
 {
 	using namespace lt;
 
@@ -85,6 +94,11 @@ void test_checking(int flags = read_only_files)
 	file_storage fs;
 	std::srand(10);
 	int piece_size = 0x4000;
+
+	const int file_sizes[] =
+	{ 0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
+		,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4 };
+	const int num_files = sizeof(file_sizes) / sizeof(file_sizes[0]);
 
 	create_random_files("test_torrent_dir", file_sizes, num_files, &fs);
 
@@ -169,20 +183,7 @@ void test_checking(int flags = read_only_files)
 			, ec.value(), ec.message().c_str());
 	}
 
-	auto const mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
-			| alert::stats_notification);
-
-	settings_pack pack;
-	pack.set_bool(settings_pack::enable_lsd, false);
-	pack.set_bool(settings_pack::enable_natpmp, false);
-	pack.set_bool(settings_pack::enable_upnp, false);
-	pack.set_bool(settings_pack::enable_dht, false);
-	pack.set_int(settings_pack::alert_mask, mask);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
-	pack.set_int(settings_pack::max_retry_port_bind, 1000);
-	lt::session ses1(pack);
+	lt::session ses1(settings());
 
 	add_torrent_params p;
 	p.save_path = ".";
@@ -218,15 +219,7 @@ void test_checking(int flags = read_only_files)
 
 		std::printf("%d %f %s\n", st.state, st.progress_ppm / 10000.0, st.errc.message().c_str());
 
-		if (
-#ifndef TORRENT_NO_DEPRECATE
-			st.state != torrent_status::queued_for_checking &&
-#endif
-			st.state != torrent_status::checking_files
-			&& st.state != torrent_status::checking_resume_data)
-			break;
-
-		if (st.errc) break;
+		if (!is_checking(st.state) || st.errc) break;
 		std::this_thread::sleep_for(lt::milliseconds(500));
 	}
 
@@ -284,7 +277,7 @@ void test_checking(int flags = read_only_files)
 
 TORRENT_TEST(checking)
 {
-	test_checking();
+	test_checking(0);
 }
 
 TORRENT_TEST(read_only_corrupt)
@@ -310,4 +303,48 @@ TORRENT_TEST(corrupt)
 TORRENT_TEST(force_recheck)
 {
 	test_checking(force_recheck);
+}
+
+TORRENT_TEST(discrete_checking)
+{
+	using namespace lt;
+	printf("\n==== TEST CHECKING discrete =====\n\n");
+	error_code ec;
+	create_directory("test_torrent_dir", ec);
+	if (ec) printf("ERROR: creating directory test_torrent_dir: (%d) %s\n", ec.value(), ec.message().c_str());
+
+	int const megabyte = 0x100000;
+	int const piece_size = 2 * megabyte;
+	int const file_sizes[] = { 9 * megabyte, 3 * megabyte };
+	int const num_files = sizeof(file_sizes) / sizeof(file_sizes[0]);
+
+	file_storage fs;
+	create_random_files("test_torrent_dir", file_sizes, num_files, &fs);
+	lt::create_torrent t(fs, piece_size, 1, lt::create_torrent::optimize_alignment);
+	set_piece_hashes(t, ".", ec);
+	if (ec) printf("ERROR: set_piece_hashes: (%d) %s\n", ec.value(), ec.message().c_str());
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
+	printf("generated torrent: %s test_torrent_dir\n", aux::to_hex(ti->info_hash().to_string()).c_str());
+	TEST_EQUAL(ti->num_files(), 3);
+	{
+		session ses1(settings());
+		add_torrent_params p;
+		p.file_priorities.resize(std::size_t(ti->num_files()));
+		p.file_priorities[0] = 1_pri;
+		p.save_path = ".";
+		p.ti = ti;
+		torrent_handle tor1 = ses1.add_torrent(p, ec);
+		// change the priority of a file while checking and make sure it doesn't interrupt the checking.
+		std::vector<download_priority_t> prio(std::size_t(ti->num_files()), 0_pri);
+		prio[2] = 1_pri;
+		tor1.prioritize_files(prio);
+		TEST_CHECK(wait_for_alert(ses1, torrent_checked_alert::alert_type
+			, "torrent checked", pop_alerts::pop_all, seconds(50)));
+		TEST_CHECK(tor1.status({}).is_seeding);
+	}
+	remove_all("test_torrent_dir", ec);
+	if (ec) fprintf(stdout, "ERROR: removing test_torrent_dir: (%d) %s\n", ec.value(), ec.message().c_str());
 }

@@ -168,8 +168,9 @@ bool should_print(lt::alert* a)
 	return true;
 }
 }
+
 alert const* wait_for_alert(lt::session& ses, int type, char const* name
-	, pop_alerts const p)
+	, pop_alerts const p, lt::time_duration timeout)
 {
 	// we pop alerts in batches, but we wait for individual messages. This is a
 	// cache to keep around alerts that came *after* the one we're waiting for.
@@ -178,7 +179,8 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name
 	static std::map<lt::session*, std::vector<alert*>> cache;
 	auto& alerts = cache[&ses];
 
-	time_point const end_time = lt::clock_type::now() + seconds(10);
+	time_point const end_time = lt::clock_type::now() + timeout;
+
 	while (true)
 	{
 		time_point now = clock_type::now();

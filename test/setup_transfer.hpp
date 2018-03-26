@@ -71,7 +71,8 @@ enum class pop_alerts { pop_all, cache_alerts };
 
 EXPORT lt::alert const* wait_for_alert(
 	lt::session& ses, int type, char const* name = ""
-	, pop_alerts const p = pop_alerts::pop_all);
+	, pop_alerts const p = pop_alerts::pop_all
+	, lt::time_duration timeout = lt::seconds(10));
 
 EXPORT void print_ses_rate(float time
 	, lt::torrent_status const* st1

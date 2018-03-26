@@ -490,10 +490,14 @@ void test_queue(add_torrent_params)
 		torrents.push_back(ses.add_torrent(std::move(p)));
 	}
 
+	print_alerts(ses, "ses");
+
 	std::vector<download_priority_t> pieces(
 		std::size_t(torrents[5].torrent_file()->num_pieces()), 0_pri);
 	torrents[5].prioritize_pieces(pieces);
 	torrent_handle finished = torrents[5];
+
+	wait_for_alert(ses, torrent_finished_alert::alert_type, "ses");
 
 	// add_torrent should be ordered
 	TEST_EQUAL(finished.queue_position(), no_pos);
