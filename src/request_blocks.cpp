@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_info flags
-#include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/request_blocks.hpp"
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/aux_/has_block.hpp"
