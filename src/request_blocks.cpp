@@ -202,8 +202,6 @@ namespace libtorrent {
 		// that some other peer is currently downloading
 		piece_block busy_block = piece_block::invalid;
 
-		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
-			i != interesting_pieces.end(); ++i)
 		for (piece_block const& pb : interesting_pieces)
 		{
 			if (prefer_contiguous_blocks == 0 && num_requests <= 0) break;
@@ -308,4 +306,3 @@ namespace libtorrent {
 	}
 
 }
-
