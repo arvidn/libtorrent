@@ -1,4 +1,5 @@
 
+	* add alert when a piece is written to disk and passed the hash check
 	* fix issue where setting file/piece priority would stop checking
 	* expose post_dht_stats() to python binding
 	* fix backwards compatibility to downloads without partfiles

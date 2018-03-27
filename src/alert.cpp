@@ -593,6 +593,22 @@ namespace libtorrent {
 		return ret;
 	}
 
+	piece_ready_alert::piece_ready_alert(aux::stack_allocator& alloc, torrent_handle h
+		, int piece_num)
+		: torrent_alert(alloc, h)
+		, piece_index(piece_num)
+	{
+		TORRENT_ASSERT(piece_index >= 0);
+	}
+
+	std::string piece_ready_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "%s piece %i is ready"
+			, torrent_alert::message().c_str(), piece_index);
+		return ret;
+	}
+
 	block_downloading_alert::block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep
 		, peer_id const& peer_id, int block_num, int piece_num)

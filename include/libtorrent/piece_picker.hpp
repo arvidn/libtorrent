@@ -385,6 +385,10 @@ namespace libtorrent
 		// or if we have the piece
 		bool is_piece_finished(int index) const;
 
+		// returns true if all blocks in this piece are finished
+		// and have been written to disk
+		bool is_piece_ready(int index) const;
+
 		// returns true if we have the piece or if the piece
 		// has passed the hash check
 		bool has_piece_passed(int index) const;

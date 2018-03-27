@@ -3064,6 +3064,15 @@ namespace libtorrent
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_finished(block_finished, peer_info_struct());
 
+		if (picker.is_piece_ready(block_finished.piece_index))
+		{
+			if (t->alerts().should_post<piece_ready_alert>())
+			{
+				t->alerts().emplace_alert<piece_ready_alert>(t->get_handle(),
+					int(block_finished.piece_index));
+			}
+		}
+
 		t->maybe_done_flushing();
 
 		if (t->alerts().should_post<block_finished_alert>())
