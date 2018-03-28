@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 
 #include <set>
-#include <string>
 
 namespace libtorrent { namespace aux {
 
@@ -173,9 +172,9 @@ namespace libtorrent { namespace aux {
 
 			// make a copy of the iovec array that _just_ covers the next
 			// file_bytes_left bytes, i.e. just this one operation
-			int tmp_bufs_used = copy_bufs(current_buf, file_bytes_left, tmp_buf);
+			int const tmp_bufs_used = copy_bufs(current_buf, file_bytes_left, tmp_buf);
 
-			int bytes_transferred = op(file_index, file_offset
+			int const bytes_transferred = op(file_index, file_offset
 				, tmp_buf.first(tmp_bufs_used), ec);
 			if (ec) return -1;
 
@@ -265,7 +264,7 @@ namespace libtorrent { namespace aux {
 		// later
 		aux::vector<bool, file_index_t> copied_files(std::size_t(f.num_files()), false);
 
-		file_index_t i;
+		file_index_t i{};
 		error_code e;
 		for (i = file_index_t(0); i < f.end_file(); ++i)
 		{

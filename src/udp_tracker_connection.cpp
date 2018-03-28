@@ -649,12 +649,12 @@ namespace libtorrent {
 		}
 
 #if TORRENT_USE_IPV6
-		if (m_target.address().is_v6())
+		if (m_target.protocol() == udp::v6())
 		{
 			resp.peers6.reserve(std::size_t(num_peers));
 			for (int i = 0; i < num_peers; ++i)
 			{
-				ipv6_peer_entry e;
+				ipv6_peer_entry e{};
 				std::memcpy(e.ip.data(), buf.data(), 16);
 				buf = buf.subspan(16);
 				e.port = aux::read_uint16(buf);
@@ -667,7 +667,7 @@ namespace libtorrent {
 			resp.peers4.reserve(std::size_t(num_peers));
 			for (int i = 0; i < num_peers; ++i)
 			{
-				ipv4_peer_entry e;
+				ipv4_peer_entry e{};
 				std::memcpy(e.ip.data(), buf.data(), 4);
 				buf = buf.subspan(4);
 				e.port = aux::read_uint16(buf);

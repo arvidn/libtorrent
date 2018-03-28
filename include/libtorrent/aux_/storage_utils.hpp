@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STORAGE_UTILS_HPP_INCLUDE
 
 #include <cstdint>
+#include <string>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
@@ -86,7 +87,7 @@ namespace aux {
 	// opt to only delete the partfile
 	TORRENT_EXTRA_EXPORT void
 	delete_files(file_storage const& fs, std::string const& save_path
-		, std::string const& part_file_name, remove_flags_t const options, storage_error& ec);
+		, std::string const& part_file_name, remove_flags_t options, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT bool
 	verify_resume_data(add_torrent_params const& rd
