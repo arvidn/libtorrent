@@ -2516,9 +2516,9 @@ namespace libtorrent
 		piece_ready_alert(aux::stack_allocator& alloc, torrent_handle h
 			, int piece_num);
 
-		TORRENT_DEFINE_ALERT(piece_ready_alert, 90)
+		TORRENT_DEFINE_ALERT_PRIO(piece_ready_alert, 90)
 
-		static const int static_category = alert::progress_notification;
+		static const int static_category = alert::piece_progress_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		int piece_index;

@@ -1524,9 +1524,9 @@ namespace libtorrent
 
 		picker().mark_as_finished(block_finished, 0);
 
-		if (picker().is_piece_ready(block_finished.piece_index))
+		if (alerts().should_post<piece_ready_alert>())
 		{
-			if (alerts().should_post<piece_ready_alert>())
+			if (picker().is_piece_ready(block_finished.piece_index))
 			{
 				alerts().emplace_alert<piece_ready_alert>(get_handle(),
 					block_finished.piece_index);
@@ -4392,9 +4392,9 @@ namespace {
 		if (m_ses.alerts().should_post<piece_finished_alert>())
 			m_ses.alerts().emplace_alert<piece_finished_alert>(get_handle(), index);
 
-		if (has_picker() && picker().is_piece_ready(index))
+		if (alerts().should_post<piece_ready_alert>())
 		{
-			if (alerts().should_post<piece_ready_alert>())
+			if (has_picker() && picker().is_piece_ready(index))
 			{
 				alerts().emplace_alert<piece_ready_alert>(get_handle(), index);
 			}

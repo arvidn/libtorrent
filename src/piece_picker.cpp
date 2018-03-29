@@ -2923,18 +2923,24 @@ get_out:
 
 	bool piece_picker::is_piece_ready(int index) const
 	{
-		if (!is_piece_finished(index))
-			return false;
+		TORRENT_ASSERT(index < int(m_piece_map.size()));
+		TORRENT_ASSERT(index >= 0);
 
 		piece_pos const& p = m_piece_map[index];
 		int state = p.download_queue();
 
-		if (state < piece_pos::num_download_categories)
+		if (p.index != piece_pos::we_have_index && state == piece_pos::piece_open)
+		{
+			for (int i = 0; i < piece_pos::num_download_categories; ++i)
+				TORRENT_ASSERT(find_dl_piece(i, index) == m_downloads[i].end());
+			return false;
+		}
+		else if (state < piece_pos::num_download_categories)
 		{
 			std::vector<downloading_piece>::const_iterator i =
 				find_dl_piece(state, index);
 			TORRENT_ASSERT(i != m_downloads[state].end());
-			if (int(i->finished) < blocks_in_piece(index))
+			if (!i->passed_hash_check || int(i->finished) < blocks_in_piece(index))
 				return false;
 		}
 
