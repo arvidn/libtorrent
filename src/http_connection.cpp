@@ -530,11 +530,11 @@ void http_connection::on_resolve(error_code const& e
 		auto new_end = std::partition(m_endpoints.begin(), m_endpoints.end()
 			, [this] (tcp::endpoint const& ep)
 		{
-			if (ep.address().is_v4() != m_bind_addr->is_v4())
+			if (is_v4(ep) != m_bind_addr->is_v4())
 				return false;
-			if (ep.address().is_v4() && m_bind_addr->is_v4())
+			if (is_v4(ep) && m_bind_addr->is_v4())
 				return true;
-			TORRENT_ASSERT(ep.address().is_v6() && m_bind_addr->is_v6());
+			TORRENT_ASSERT(is_v6(ep) && m_bind_addr->is_v6());
 			// don't try to connect to a global address with a local source address
 			// this is mainly needed to prevent attempting to connect to a global
 			// address using a ULA as the source

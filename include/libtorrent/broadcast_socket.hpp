@@ -53,6 +53,18 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
 
+	// TODO: refactor these out too
+	template <typename Endpoint>
+	bool is_v4(Endpoint const& ep)
+	{
+		return ep.protocol() == Endpoint::protocol_type::v4();
+	}
+	template <typename Endpoint>
+	bool is_v6(Endpoint const& ep)
+	{
+		return ep.protocol() == Endpoint::protocol_type::v6();
+	}
+
 	// determines if the operating system supports IPv6
 	TORRENT_EXTRA_EXPORT bool supports_ipv6();
 	address ensure_v6(address const& a);
