@@ -3551,6 +3551,9 @@ retry:
 	void session_impl::add_dht_node(udp::endpoint n)
 	{
 		TORRENT_ASSERT(is_single_thread());
+#if !TORRENT_USE_IPV6
+		if (!n.address().is_v4()) return;
+#endif
 
 		if (m_dht) m_dht->add_node(n);
 		else m_dht_nodes.push_back(n);
@@ -5887,6 +5890,9 @@ retry:
 		for (std::vector<address>::const_iterator i = addresses.begin()
 			, end(addresses.end()); i != end; ++i)
 		{
+#if !TORRENT_USE_IPV6
+			if (!i->is_v4()) continue;
+#endif
 			// router nodes should be added before the DHT is started (and bootstrapped)
 			udp::endpoint ep(*i, port);
 			if (m_dht) m_dht->add_router_node(ep);
