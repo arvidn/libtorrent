@@ -1054,7 +1054,7 @@ void test_id_enforcement(address(&rand_addr)())
 	t.sett.enforce_node_id = true;
 
 	node_id nid;
-	if (t.source.protocol() == udp::v4())
+	if (is_v4(t.source))
 	{
 		// this is one of the test vectors from:
 		// http://libtorrent.org/dht_sec.html
@@ -1103,7 +1103,7 @@ void test_id_enforcement(address(&rand_addr)())
 	TEST_EQUAL(std::get<0>(t.dht_node.size()), nodes_num);
 
 	// now the node-id is valid.
-	if (t.source.protocol() == udp::v4())
+	if (is_v4(t.source))
 		nid[0] = 0x5f;
 	else
 		nid[0] = 0x0a;
@@ -1604,7 +1604,7 @@ void test_routing_table(address(&rand_addr)())
 	address node_addr;
 	address node_near_addr;
 #if TORRENT_USE_IPV6
-	if (t.source.protocol() == udp::v6())
+	if (is_v6(t.source))
 	{
 		node_addr = addr6("2001:1111:1111:1111:1111:1111:1111:1111");
 		node_near_addr = addr6("2001:1111:1111:1111:eeee:eeee:eeee:eeee");
@@ -1861,7 +1861,7 @@ void test_bootstrap(address(&rand_addr)())
 	std::vector<node_entry> nodes;
 	nodes.push_back(node_entry{found_node});
 	g_sent_packets.clear();
-	if (initial_node.address().is_v4())
+	if (is_v4(initial_node))
 		send_dht_response(t.dht_node, response, initial_node, msg_args().nodes(nodes));
 	else
 		send_dht_response(t.dht_node, response, initial_node, msg_args().nodes6(nodes));
@@ -1935,7 +1935,7 @@ void test_bootstrap_want(address(&rand_addr)())
 	g_sent_packets.clear();
 
 	std::vector<udp::endpoint> nodesv;
-	if (t.source.address().is_v4())
+	if (is_v4(t.source))
 		nodesv.push_back(rand_udp_ep(rand_v6));
 	else
 		nodesv.push_back(rand_udp_ep(rand_v4));
@@ -1954,7 +1954,7 @@ void test_bootstrap_want(address(&rand_addr)())
 			|| find_node_keys[2].string_value() == "get_peers");
 
 		TEST_EQUAL(find_node_keys[7].list_size(), 1);
-		if (t.source.address().is_v4())
+		if (is_v4(t.source))
 		{
 			TEST_EQUAL(find_node_keys[7].list_string_value_at(0), "n4");
 		}
@@ -2042,7 +2042,7 @@ void test_short_nodes(address(&rand_addr)())
 	g_sent_packets.clear();
 	msg_args args;
 	// chop one byte off of the nodes string
-	if (initial_node.address().is_v4())
+	if (is_v4(initial_node))
 	{
 		args.nodes(nodes);
 		args.a["nodes"] = args.a["nodes"].string().substr(1);
@@ -2135,7 +2135,7 @@ void test_get_peers(address(&rand_addr)())
 	nodes.push_back(node_entry{next_node});
 
 	g_sent_packets.clear();
-	if (initial_node.address().is_v4())
+	if (is_v4(initial_node))
 	{
 		send_dht_response(t.dht_node, response, initial_node
 			, msg_args().nodes(nodes).token("10").port(1234).peers(peers[0]));

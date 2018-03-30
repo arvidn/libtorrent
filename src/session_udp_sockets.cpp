@@ -87,7 +87,7 @@ namespace libtorrent { namespace aux {
 			if (++idx >= sockets.size())
 				idx = 0;
 
-			if (sockets[idx]->local_endpoint().address().is_v4() != remote_address.is_v4()
+			if (is_v4(sockets[idx]->local_endpoint()) != remote_address.is_v4()
 				|| sockets[idx]->ssl != ssl)
 			{
 				if (idx == index_begin) break;

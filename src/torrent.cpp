@@ -2760,7 +2760,7 @@ bool is_downloading_state(int const st)
 			{
 				if (s.is_ssl() != is_ssl_torrent())
 					return;
-				if (!s.get_local_endpoint().address().is_v6())
+				if (!is_v6(s.get_local_endpoint()))
 					return;
 				req.ipv6.push_back(s.get_local_endpoint().address().to_v6());
 			});
@@ -5925,7 +5925,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(!web->resolving);
 		TORRENT_ASSERT(web->peer_info.connection == nullptr);
 
-		if (a.address().is_v4())
+		if (is_v4(a))
 		{
 			web->peer_info.addr = a.address().to_v4();
 			web->peer_info.port = a.port();
@@ -10066,7 +10066,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(is_single_thread());
 
 #if !TORRENT_USE_IPV6
-		if (!adr.address().is_v4())
+		if (!is_v4(adr))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			error_code ec;

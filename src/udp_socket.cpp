@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for is_v4
 
 #include <cstdlib>
 #include <functional>
@@ -282,7 +283,7 @@ void udp_socket::send(udp::endpoint const& ep, span<char const> p
 
 	// set the DF flag for the socket and clear it again in the destructor
 	set_dont_frag df(m_socket, (flags & dont_fragment)
-		&& ep.protocol() == udp::v4());
+		&& is_v4(ep));
 
 	m_socket.send_to(boost::asio::buffer(p.data(), p.size()), ep, 0, ec);
 }
@@ -298,7 +299,7 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 
 	write_uint16(0, h); // reserved
 	write_uint8(0, h); // fragment
-	write_uint8(ep.address().is_v4()?1:4, h); // atyp
+	write_uint8(is_v4(ep) ? 1 : 4, h); // atyp
 	write_endpoint(ep, h);
 
 	std::array<boost::asio::const_buffer, 2> iovec;
@@ -307,7 +308,7 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 
 	// set the DF flag for the socket and clear it again in the destructor
 	set_dont_frag df(m_socket, (flags & dont_fragment)
-		&& ep.protocol() == udp::v4());
+		&& is_v4(ep));
 
 	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
@@ -336,7 +337,7 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 
 	// set the DF flag for the socket and clear it again in the destructor
 	set_dont_frag df(m_socket, (flags & dont_fragment)
-		&& m_socket.local_endpoint(ec).protocol() == udp::v4());
+		&& is_v4(m_socket.local_endpoint(ec)));
 
 	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
@@ -506,7 +507,7 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	m_proxy_addr.port(i->endpoint().port());
 
 	error_code ec;
-	m_socks5_sock.open(m_proxy_addr.address().is_v4()?tcp::v4():tcp::v6(), ec);
+	m_socks5_sock.open(is_v4(m_proxy_addr) ? tcp::v4() : tcp::v6(), ec);
 
 	// enable keepalives
 	m_socks5_sock.set_option(boost::asio::socket_base::keep_alive(true), ec);

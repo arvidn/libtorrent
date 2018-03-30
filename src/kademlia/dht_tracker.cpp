@@ -118,7 +118,7 @@ namespace libtorrent { namespace dht {
 	{
 		if (s.is_ssl()) return;
 
-		address local_address = s.get_local_endpoint().address();
+		address const local_address = s.get_local_endpoint().address();
 #if TORRENT_USE_IPV6
 		// don't try to start dht nodes on non-global IPv6 addresses
 		// with IPv4 the interface might be behind NAT so we can't skip them based on the scope of the local address
@@ -182,7 +182,7 @@ namespace libtorrent { namespace dht {
 			n.second.connection_timer.async_wait(
 				std::bind(&dht_tracker::connection_timeout, self(), n.first, _1));
 #if TORRENT_USE_IPV6
-			if (n.first.get_local_endpoint().protocol() == tcp::v6())
+			if (is_v6(n.first.get_local_endpoint()))
 				n.second.dht.bootstrap(concat(m_state.nodes6, m_state.nodes), f);
 			else
 #endif
@@ -510,10 +510,10 @@ namespace libtorrent { namespace dht {
 		m_counters.inc_stats_counter(counters::dht_bytes_in, buf_size);
 		// account for IP and UDP overhead
 		m_counters.inc_stats_counter(counters::recv_ip_overhead_bytes
-			, ep.address().is_v6() ? 48 : 28);
+			, is_v6(ep) ? 48 : 28);
 		m_counters.inc_stats_counter(counters::dht_messages_in);
 
-		if (m_settings.ignore_dark_internet && ep.address().is_v4())
+		if (m_settings.ignore_dark_internet && is_v4(ep))
 		{
 			address_v4::bytes_type b = ep.address().to_v4().to_bytes();
 
@@ -701,7 +701,7 @@ namespace libtorrent { namespace dht {
 		m_counters.inc_stats_counter(counters::dht_bytes_out, int(m_send_buf.size()));
 		// account for IP and UDP overhead
 		m_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
-			, addr.address().is_v6() ? 48 : 28);
+			, is_v6(addr) ? 48 : 28);
 		m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log_packet(dht_logger::outgoing_message, m_send_buf, addr);

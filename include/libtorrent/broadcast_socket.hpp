@@ -112,7 +112,7 @@ namespace libtorrent {
 				error_code ec;
 				return broadcast
 					&& netmask != address_v4()
-					&& socket->local_endpoint(ec).address().is_v4();
+					&& is_v4(socket->local_endpoint(ec));
 			}
 			address_v4 broadcast_address() const
 			{

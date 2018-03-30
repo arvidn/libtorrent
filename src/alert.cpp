@@ -2071,7 +2071,7 @@ namespace {
 	{
 		for (auto const& endp : peers)
 		{
-			if (endp.protocol() == tcp::v4())
+			if (is_v4(endp))
 				m_v4_num_peers++;
 #if TORRENT_USE_IPV6
 			else
@@ -2088,7 +2088,7 @@ namespace {
 #endif
 		for (auto const& endp : peers)
 		{
-			if (endp.protocol() == tcp::v4())
+			if (is_v4(endp))
 				detail::write_endpoint(endp, v4_ptr);
 #if TORRENT_USE_IPV6
 			else
@@ -2304,7 +2304,7 @@ namespace {
 
 		for (auto const& n : nodes)
 		{
-			if (n.second.protocol() == udp::v4())
+			if (is_v4(n.second))
 				v4_num_nodes++;
 #if TORRENT_USE_IPV6
 			else
@@ -2322,7 +2322,7 @@ namespace {
 		for (auto const& n : nodes)
 		{
 			udp::endpoint const& endp = n.second;
-			if (endp.protocol() == udp::v4())
+			if (is_v4(endp))
 			{
 				detail::write_string(n.first.to_string(), v4_ptr);
 				detail::write_endpoint(endp, v4_ptr);

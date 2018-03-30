@@ -244,8 +244,8 @@ namespace libtorrent {
 		{
 			// send SOCKS5 connect command
 			m_buffer.resize(6 + (!m_dst_name.empty()
-				?m_dst_name.size() + 1
-				:(m_remote_endpoint.address().is_v4()?4:16)));
+				? m_dst_name.size() + 1
+				:(is_v4(m_remote_endpoint) ? 4 : 16)));
 			char* p = &m_buffer[0];
 			write_uint8(5, p); // SOCKS VERSION 5
 			write_uint8(std::uint8_t(m_command), p); // CONNECT command
@@ -263,7 +263,7 @@ namespace libtorrent {
 				// we either need a hostname or a valid endpoint
 				TORRENT_ASSERT(m_remote_endpoint.address() != address());
 
-				write_uint8(m_remote_endpoint.address().is_v4()?1:4, p); // address type
+				write_uint8(is_v4(m_remote_endpoint) ? 1 : 4, p); // address type
 				write_address(m_remote_endpoint.address(), p);
 			}
 			write_uint16(m_remote_endpoint.port(), p);
@@ -271,7 +271,7 @@ namespace libtorrent {
 		else if (m_version == 4)
 		{
 			// SOCKS4 only supports IPv4
-			if (!m_remote_endpoint.address().is_v4())
+			if (!is_v4(m_remote_endpoint))
 			{
 				h(boost::asio::error::address_family_not_supported);
 				return;

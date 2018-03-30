@@ -111,13 +111,13 @@ node::node(aux::listen_socket_handle const& sock, socket_manager* sock_man
 	, dht_storage_interface& storage)
 	: m_settings(settings)
 	, m_id(calculate_node_id(nid, sock))
-	, m_table(m_id, sock.get_local_endpoint().protocol() == tcp::v4() ? udp::v4() : udp::v6(), 8, settings, observer)
+	, m_table(m_id, is_v4(sock.get_local_endpoint()) ? udp::v4() : udp::v6(), 8, settings, observer)
 	, m_rpc(m_id, m_settings, m_table, sock, sock_man, observer)
 	, m_sock(sock)
 	, m_sock_man(sock_man)
 	, m_get_foreign_node(std::move(get_foreign_node))
 	, m_observer(observer)
-	, m_protocol(map_protocol_to_descriptor(sock.get_local_endpoint().protocol() == tcp::v4() ? udp::v4() : udp::v6()))
+	, m_protocol(map_protocol_to_descriptor(is_v4(sock.get_local_endpoint()) ? udp::v4() : udp::v6()))
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
 	, m_counters(cnt)
@@ -224,7 +224,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	for (auto const& n : nodes)
 	{
 #if !TORRENT_USE_IPV6
-		if (n.protocol() == udp::v6()) continue;
+		if (is_v6(n)) continue;
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING

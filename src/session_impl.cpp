@@ -1408,7 +1408,7 @@ namespace aux {
 #endif // TORRENT_WINDOWS
 
 #if TORRENT_USE_IPV6
-			if (bind_ep.address().is_v6())
+			if (is_v6(bind_ep))
 			{
 				error_code err; // ignore errors here
 				ret->sock->set_option(boost::asio::ip::v6_only(true), err);
@@ -6099,7 +6099,7 @@ namespace aux {
 		void set_tos(Socket& s, int v, error_code& ec)
 		{
 #if TORRENT_USE_IPV6 && defined IPV6_TCLASS
-			if (s.local_endpoint(ec).address().is_v6())
+			if (is_v6(s.local_endpoint(ec)))
 				s.set_option(traffic_class(char(v)), ec);
 			else if (!ec)
 #endif
@@ -6829,7 +6829,7 @@ namespace aux {
 		// TODO: remove this function once all callers are updated to specify a listen socket
 		for (auto& i : m_listen_sockets)
 		{
-			if (i->local_endpoint.address().is_v4() != ip.is_v4())
+			if (is_v4(i->local_endpoint) != ip.is_v4())
 				continue;
 
 			set_external_address(i, ip, source_type, source);

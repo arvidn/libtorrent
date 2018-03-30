@@ -196,7 +196,7 @@ namespace libtorrent {
 			for (auto const& p : atp.peers)
 			{
 #if TORRENT_USE_IPV6
-				if (p.address().is_v6())
+				if (is_v6(p))
 					write_endpoint(p, ptr6);
 				else
 #endif
@@ -213,7 +213,7 @@ namespace libtorrent {
 			for (auto const& p : atp.banned_peers)
 			{
 #if TORRENT_USE_IPV6
-				if (p.address().is_v6())
+				if (is_v6(p))
 					write_endpoint(p, ptr6);
 				else
 #endif
