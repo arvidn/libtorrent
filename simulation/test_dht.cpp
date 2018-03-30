@@ -66,7 +66,7 @@ void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 
 		char const* nodes_key;
 
-		if (is_v6(router_nodes.front()))
+		if (lt::is_v6(router_nodes.front()))
 			nodes_key = "nodes6";
 		else
 			nodes_key = "nodes";
@@ -184,8 +184,8 @@ TORRENT_TEST(dht_dual_stack_get_peers)
 				for (lt::tcp::endpoint const& peer : peers)
 				{
 					// TODO: verify that the endpoint matches the session's
-					got_peer_v4 |= is_v4(peer);
-					got_peer_v6 |= is_v6(peer);
+					got_peer_v4 |= lt::is_v4(peer);
+					got_peer_v6 |= lt::is_v6(peer);
 				}
 			}
 		}
