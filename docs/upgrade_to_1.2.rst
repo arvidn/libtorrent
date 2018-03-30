@@ -73,6 +73,17 @@ This means they are no longer heap allocated nor held by a smart pointer.
 The ``clone()`` member on alerts was deprecated in 1.1 and removed in 1.2.
 To pass alerts across threads, instead pull out the relevant information from the alerts and pass that across.
 
+progress alert category
+=======================
+
+The ``alert::progress_notification`` category has been deprecated.
+Alerts posted in this category are now also posted in one of these new categories:
+
+* ``alert::block_progress_notification``
+* ``alert::piece_progress_notification``
+* ``alert::file_progress_notification``
+* ``alert::upload_notification``
+
 boost replaced by std
 =====================
 

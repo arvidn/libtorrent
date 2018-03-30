@@ -62,7 +62,9 @@ namespace libtorrent {
 	constexpr alert_category_t alert::tracker_notification;
 	constexpr alert_category_t alert::debug_notification;
 	constexpr alert_category_t alert::status_notification;
+#ifndef TORRENT_NO_DEPRECATE
 	constexpr alert_category_t alert::progress_notification;
+#endif
 	constexpr alert_category_t alert::ip_block_notification;
 	constexpr alert_category_t alert::performance_warning;
 	constexpr alert_category_t alert::dht_notification;
@@ -75,6 +77,11 @@ namespace libtorrent {
 	constexpr alert_category_t alert::dht_operation_notification;
 	constexpr alert_category_t alert::port_mapping_log_notification;
 	constexpr alert_category_t alert::picker_log_notification;
+	constexpr alert_category_t alert::file_progress_notification;
+	constexpr alert_category_t alert::piece_progress_notification;
+	constexpr alert_category_t alert::upload_notification;
+	constexpr alert_category_t alert::block_progress_notification;
+
 	constexpr alert_category_t alert::all_categories;
 #ifndef TORRENT_NO_DEPRECATE
 	constexpr alert_category_t alert::rss_notification;

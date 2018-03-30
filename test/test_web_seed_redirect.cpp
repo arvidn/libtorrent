@@ -88,9 +88,16 @@ TORRENT_TEST(web_seed_redirect)
 	auto torrent_file = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	{
+		auto const mask = ~(
+				alert::performance_warning
+#ifndef TORRENT_NO_DEPRECATE
+				| alert::progress_notification
+#endif
+				| alert::stats_notification);
+
 		settings_pack p = settings();
 		p.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
-		p.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
+		p.set_int(settings_pack::alert_mask, mask);
 		lt::session ses(p);
 
 		// disable keep-alive because otherwise the test will choke on seeing

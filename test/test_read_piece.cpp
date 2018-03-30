@@ -91,9 +91,11 @@ void test_read_piece(int flags)
 	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"
 		, aux::to_hex(ti->info_hash()).c_str());
 
-	auto const mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
+	auto const mask = ~(
+			alert::performance_warning
+#ifndef TORRENT_NO_DEPRECATE
+			| alert::progress_notification
+#endif
 			| alert::stats_notification);
 
 	settings_pack sett;

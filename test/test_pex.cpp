@@ -59,9 +59,11 @@ void test_pex()
 	session_proxy p2;
 	session_proxy p3;
 
-	auto const mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
+	auto const mask = ~(
+			alert::performance_warning
+#ifndef TORRENT_NO_DEPRECATE
+			| alert::progress_notification
+#endif
 			| alert::stats_notification);
 
 	// this is to avoid everything finish from a single peer

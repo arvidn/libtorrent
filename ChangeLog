@@ -1,3 +1,5 @@
+	* deprecated alert::progress_notification alert category, split into
+	  finer grained categories
 	* update plugin interface functions for improved type-safety
 	* implemented support magnet URI extension, select specific file indices
 	  for download, BEP53

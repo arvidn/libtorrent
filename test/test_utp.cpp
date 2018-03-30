@@ -62,9 +62,11 @@ void test_transfer()
 	session_proxy p1;
 	session_proxy p2;
 
-	auto const mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
+	auto const mask = ~(
+			alert::performance_warning
+#ifndef TORRENT_NO_DEPRECATE
+			| alert::progress_notification
+#endif
 			| alert::stats_notification);
 
 	settings_pack pack;

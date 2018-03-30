@@ -263,13 +263,13 @@ void test_ssl(int test_idx, bool use_utp)
 				<< std::endl;
 		}
 
+		if (st2.is_finished) break;
+
 		if (peer_disconnects >= 2)
 		{
 			std::printf("too many disconnects (%d), breaking\n", peer_disconnects);
 			break;
 		}
-
-		if (st2.is_finished) break;
 
 		if (st2.state != torrent_status::downloading)
 		{

@@ -70,12 +70,20 @@ namespace libtorrent {
 	// hidden
 	using alert_category_t = flags::bitfield_flag<std::uint32_t, struct alert_category_tag>;
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	// The ``alert`` class is the base class that specific messages are derived from.
 	// alert types are not copyable, and cannot be constructed by the client. The
 	// pointers returned by libtorrent are short lived (the details are described
 	// under session_handle::pop_alerts())
 	class TORRENT_EXPORT alert
 	{
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	public:
 
 		alert(alert const& rhs) = delete;
@@ -84,7 +92,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 		// only here for backwards compatibility
-		enum TORRENT_DEPRECATED severity_t { debug, info, warning, critical, fatal, none };
+		enum TORRENT_DEPRECATED_ENUM severity_t { debug, info, warning, critical, fatal, none };
 #endif
 
 		// Enables alerts that report an error. This includes:
@@ -120,9 +128,11 @@ namespace libtorrent {
 		// Enables alerts for when a torrent or the session changes state.
 		static constexpr alert_category_t status_notification = 6_bit;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// Alerts for when blocks are requested and completed. Also when
 		// pieces are completed.
-		static constexpr alert_category_t progress_notification = 7_bit;
+		static constexpr alert_category_t TORRENT_DEPRECATED_MEMBER progress_notification = 7_bit;
+#endif
 
 		// Alerts when a peer is blocked by the ip blocker or port blocker.
 		static constexpr alert_category_t ip_block_notification = 8_bit;
@@ -180,6 +190,20 @@ namespace libtorrent {
 
 		// enables verbose logging from the piece picker.
 		static constexpr alert_category_t picker_log_notification = 20_bit;
+
+		// alerts when files complete downloading
+		static constexpr alert_category_t file_progress_notification = 21_bit;
+
+		// alerts when pieces complete downloading or fail hash check
+		static constexpr alert_category_t piece_progress_notification = 22_bit;
+
+		// alerts when we upload blocks to other peers
+		static constexpr alert_category_t upload_notification = 23_bit;
+
+		// alerts on individual blocks being requested, downloading, finished,
+		// rejected, time-out and cancelled. This is likely to post alerts at a
+		// high rate.
+		static constexpr alert_category_t block_progress_notification = 24_bit;
 
 		// The full bitmask, representing all available categories.
 		//

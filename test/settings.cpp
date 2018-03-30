@@ -39,8 +39,11 @@ using namespace lt;
 lt::settings_pack settings()
 {
 	auto const mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
+		& ~(
+			alert::performance_warning
+#ifndef TORRENT_NO_DEPRECATE
+			| alert::progress_notification
+#endif
 			| alert::stats_notification
 			| alert::picker_log_notification);
 
