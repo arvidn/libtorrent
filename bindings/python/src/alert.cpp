@@ -275,7 +275,9 @@ void bind_alert()
         s.attr("tracker_notification") = alert::tracker_notification;
         s.attr("debug_notification") = alert::debug_notification;
         s.attr("status_notification") = alert::status_notification;
+#ifndef TORRENT_NO_DEPRECATE
         s.attr("progress_notification") = alert::progress_notification;
+#endif
         s.attr("ip_block_notification") = alert::ip_block_notification;
         s.attr("performance_warning") = alert::performance_warning;
         s.attr("dht_notification") = alert::dht_notification;
@@ -288,6 +290,10 @@ void bind_alert()
         s.attr("dht_operation_notification") = alert::dht_operation_notification;
         s.attr("port_mapping_log_notification") = alert::port_mapping_log_notification;
         s.attr("picker_log_notification") = alert::picker_log_notification;
+        s.attr("file_progress_notification") = alert::file_progress_notification;
+        s.attr("piece_progress_notification") = alert::piece_progress_notification;
+        s.attr("upload_notification") = alert::upload_notification;
+        s.attr("block_progress_notification") = alert::block_progress_notification;
         s.attr("all_categories") = alert::all_categories;
     }
 

@@ -101,9 +101,12 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 	int const prev_udp_announces = num_udp_announces();
 
-	auto const alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
+	auto const alert_mask = ~(
+			alert::performance_warning
+#ifndef TORRENT_NO_DEPRECATE
+			| alert::progress_notification
+#endif
+			| alert::stats_notification);
 
 	settings_pack sett = settings();
 	sett.set_int(settings_pack::stop_tracker_timeout, 2);

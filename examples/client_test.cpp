@@ -1086,16 +1086,21 @@ example alert_masks:
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
-	settings.set_int(settings_pack::alert_mask, alert::all_categories
-		& ~(alert::dht_notification
-		| alert::progress_notification
-		| alert::stats_notification
-		| alert::session_log_notification
-		| alert::torrent_log_notification
-		| alert::peer_log_notification
-		| alert::dht_log_notification
-		| alert::picker_log_notification
-		));
+	settings.set_int(settings_pack::alert_mask
+		, alert::error_notification
+		| alert::peer_notification
+		| alert::port_mapping_notification
+		| alert::storage_notification
+		| alert::tracker_notification
+		| alert::debug_notification
+		| alert::status_notification
+		| alert::ip_block_notification
+		| alert::performance_warning
+		| alert::dht_notification
+		| alert::incoming_request_notification
+		| alert::dht_operation_notification
+		| alert::port_mapping_log_notification
+		| alert::file_progress_notification);
 
 	lt::time_duration refresh_delay = lt::milliseconds(500);
 	bool rate_limit_locals = false;

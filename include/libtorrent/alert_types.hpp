@@ -59,6 +59,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_array.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#ifndef TORRENT_NO_DEPRECATE
+#define PROGRESS_NOTIFICATION | alert::progress_notification
+#else
+#define PROGRESS_NOTIFICATION
+#endif
+
+
 namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -254,7 +261,17 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(file_completed_alert, 6)
 
-		static constexpr alert_category_t static_category = alert::progress_notification;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+		static constexpr alert_category_t static_category =
+			alert::file_progress_notification
+			PROGRESS_NOTIFICATION
+		;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		std::string message() const override;
 
 		// refers to the index of the file that completed.
@@ -809,7 +826,17 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(piece_finished_alert, 27)
 
-		static constexpr alert_category_t static_category = alert::progress_notification;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+		static constexpr alert_category_t static_category =
+			alert::piece_progress_notification
+			PROGRESS_NOTIFICATION
+		;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		std::string message() const override;
 
 		// the index of the piece that finished
@@ -826,8 +853,18 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(request_dropped_alert, 28)
 
-		static constexpr alert_category_t static_category = alert::progress_notification
-			| alert::peer_notification;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+		static constexpr alert_category_t static_category =
+			alert::block_progress_notification
+			| alert::peer_notification
+			PROGRESS_NOTIFICATION
+		;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		std::string message() const override;
 
 		int const block_index;
@@ -844,8 +881,18 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(block_timeout_alert, 29)
 
-		static constexpr alert_category_t static_category = alert::progress_notification
-			| alert::peer_notification;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+		static constexpr alert_category_t static_category =
+			alert::block_progress_notification
+			| alert::peer_notification
+			PROGRESS_NOTIFICATION
+		;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		std::string message() const override;
 
 		int const block_index;
@@ -862,7 +909,17 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(block_finished_alert, 30)
 
-		static constexpr alert_category_t static_category = alert::progress_notification;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+		static constexpr alert_category_t static_category =
+			alert::block_progress_notification
+			PROGRESS_NOTIFICATION
+		;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		std::string message() const override;
 
 		int const block_index;
@@ -879,7 +936,17 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(block_downloading_alert, 31)
 
-		static constexpr alert_category_t static_category = alert::progress_notification;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+		static constexpr alert_category_t static_category =
+			alert::block_progress_notification
+			PROGRESS_NOTIFICATION
+		;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		std::string message() const override;
 
 		int const block_index;
@@ -2710,7 +2777,7 @@ namespace libtorrent {
 	// This alert is posted when a block intended to be sent to a peer is placed in the
 	// send buffer. Note that if the connection is closed before the send buffer is sent,
 	// the alert may be posted without the bytes having been sent to the peer.
-	// It belongs to the ``progress_notification`` category.
+	// It belongs to the ``upload_notification`` category.
 	struct TORRENT_EXPORT block_uploaded_alert final : peer_alert
 	{
 		// internal
@@ -2720,7 +2787,17 @@ namespace libtorrent {
 
 		TORRENT_DEFINE_ALERT(block_uploaded_alert, 94)
 
-		static constexpr alert_category_t static_category = alert::progress_notification;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+		static constexpr alert_category_t static_category =
+			alert::upload_notification
+			PROGRESS_NOTIFICATION
+		;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		std::string message() const override;
 
 		int const block_index;
@@ -2730,6 +2807,7 @@ namespace libtorrent {
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
+#undef PROGRESS_NOTIFICATION
 
 	constexpr int num_alert_types = 95; // this constant represents "max_alert_index" + 1
 }

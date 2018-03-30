@@ -65,9 +65,16 @@ TORRENT_TEST(alerts_types)
 #else
 	++count_alert_types;
 #endif
+
+#ifndef TORRENT_NO_DEPRECATE
+#define PROGRESS_NOTIFICATION alert::progress_notification |
+#else
+#define PROGRESS_NOTIFICATION
+#endif
+
 	TEST_ALERT_TYPE(torrent_removed_alert, 4, 1, alert::status_notification);
 	TEST_ALERT_TYPE(read_piece_alert, 5, 1, alert::storage_notification);
-	TEST_ALERT_TYPE(file_completed_alert, 6, 0, alert::progress_notification);
+	TEST_ALERT_TYPE(file_completed_alert, 6, 0, PROGRESS_NOTIFICATION alert::file_progress_notification);
 	TEST_ALERT_TYPE(file_renamed_alert, 7, 1, alert::storage_notification);
 	TEST_ALERT_TYPE(file_rename_failed_alert, 8, 1, alert::storage_notification);
 	TEST_ALERT_TYPE(performance_alert, 9, 0, alert::performance_warning);
@@ -88,11 +95,11 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(peer_disconnected_alert, 24, 0, alert::debug_notification);
 	TEST_ALERT_TYPE(invalid_request_alert, 25, 0, alert::peer_notification);
 	TEST_ALERT_TYPE(torrent_finished_alert, 26, 0, alert::status_notification);
-	TEST_ALERT_TYPE(piece_finished_alert, 27, 0, alert::progress_notification);
-	TEST_ALERT_TYPE(request_dropped_alert, 28, 0, alert::progress_notification | alert::peer_notification);
-	TEST_ALERT_TYPE(block_timeout_alert, 29, 0, alert::progress_notification | alert::peer_notification);
-	TEST_ALERT_TYPE(block_finished_alert, 30, 0, alert::progress_notification);
-	TEST_ALERT_TYPE(block_downloading_alert, 31, 0, alert::progress_notification);
+	TEST_ALERT_TYPE(piece_finished_alert, 27, 0, PROGRESS_NOTIFICATION alert::piece_progress_notification);
+	TEST_ALERT_TYPE(request_dropped_alert, 28, 0, PROGRESS_NOTIFICATION alert::block_progress_notification | alert::peer_notification);
+	TEST_ALERT_TYPE(block_timeout_alert, 29, 0, PROGRESS_NOTIFICATION alert::block_progress_notification | alert::peer_notification);
+	TEST_ALERT_TYPE(block_finished_alert, 30, 0, PROGRESS_NOTIFICATION alert::block_progress_notification);
+	TEST_ALERT_TYPE(block_downloading_alert, 31, 0, PROGRESS_NOTIFICATION alert::block_progress_notification);
 	TEST_ALERT_TYPE(unwanted_block_alert, 32, 0, alert::peer_notification);
 	TEST_ALERT_TYPE(storage_moved_alert, 33, 1, alert::storage_notification);
 	TEST_ALERT_TYPE(storage_moved_failed_alert, 34, 1, alert::storage_notification);
@@ -163,7 +170,7 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, 0, alert::dht_notification);
 	TEST_ALERT_TYPE(session_stats_header_alert, 92, 0, alert::stats_notification);
 	TEST_ALERT_TYPE(dht_sample_infohashes_alert, 93, 0, alert::dht_operation_notification);
-	TEST_ALERT_TYPE(block_uploaded_alert, 94, 0, alert::progress_notification);
+	TEST_ALERT_TYPE(block_uploaded_alert, 94, 0, PROGRESS_NOTIFICATION alert::upload_notification);
 
 #undef TEST_ALERT_TYPE
 
@@ -324,3 +331,6 @@ TORRENT_TEST(dht_sample_infohashes_alert)
 	std::sort(nodes.begin(), nodes.end());
 	TEST_CHECK(nv == nodes);
 }
+
+#undef PROGRESS_NOTIFICATION
+

@@ -370,7 +370,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	});
 
 	http.register_handler("/redirect"
-		, [&data_buffer,&counters](std::string method, std::string req
+		, [&counters](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		++counters[redirect_req];
@@ -381,7 +381,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	});
 
 	http.register_handler("/relative/redirect"
-		, [&data_buffer,&counters](std::string method, std::string req
+		, [&counters](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		++counters[rel_redirect_req];
@@ -392,7 +392,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	});
 
 	http.register_handler("/infinite/redirect"
-		, [&data_buffer,&counters](std::string method, std::string req
+		, [&counters](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		++counters[inf_redirect_req];
