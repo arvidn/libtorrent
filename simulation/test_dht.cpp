@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/kademlia/item.hpp"
-
+#include "libtorrent/broadcast_socket.hpp"
 
 #ifndef TORRENT_DISABLE_DHT
 void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
@@ -347,4 +347,3 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 
 #endif // TORRENT_DISABLE_DHT
 }
-
