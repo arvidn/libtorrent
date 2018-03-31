@@ -2507,12 +2507,30 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_LOGGING
 	};
 
+	// This alert is generated when a piece has passed the hash check and has
+	// been written to disk (so it can be safely read). This alert may be generated
+	// more than once for each piece.
+	struct TORRENT_EXPORT piece_ready_alert TORRENT_FINAL : torrent_alert
+	{
+		// internal
+		piece_ready_alert(aux::stack_allocator& alloc, torrent_handle h
+			, int piece_num);
+
+		TORRENT_DEFINE_ALERT_PRIO(piece_ready_alert, 90)
+
+		static const int static_category = alert::piece_progress_notification;
+		virtual std::string message() const TORRENT_OVERRIDE;
+
+		int piece_index;
+	};
+
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef TORRENT_CLONE
 
-	enum { num_alert_types = 90 }; // this enum represents "max_alert_index" + 1
+	enum { num_alert_types = 91 }; // this enum represents "max_alert_index" + 1
 }
 
 

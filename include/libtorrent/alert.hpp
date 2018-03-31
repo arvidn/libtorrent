@@ -190,6 +190,9 @@ namespace libtorrent {
 			// enables verbose logging from the piece picker.
 			picker_log_notification       = 0x100000,
 
+			// alerts when pieces are verified and written to disk
+			piece_progress_notification   = 0x200000,
+
 			// The full bitmask, representing all available categories.
 			//
 			// since the enum is signed, make sure this isn't
