@@ -51,7 +51,7 @@ before_install:
     easy_install --user Pygments;
     easy_install --user aafigure;
     brew install graphviz hunspell;
-    easy_install --user Pillow;
+    travis_retry easy_install -v --user Pillow;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then travis_retry brew install boost-python python2; fi'
 
