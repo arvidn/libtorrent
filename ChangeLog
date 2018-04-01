@@ -82,6 +82,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* don't perform DNS lookups for the DHT bootstrap unless DHT is enabled
 	* fix issue where setting file/piece priority would stop checking
 	* expose post_dht_stats() to python binding
 	* fix backwards compatibility to downloads without partfiles

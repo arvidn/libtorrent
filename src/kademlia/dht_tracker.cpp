@@ -626,12 +626,18 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::add_node(udp::endpoint const& node)
 	{
+#if !TORRENT_USE_IPV6
+		TORRENT_ASSERT(is_v4(node));
+#endif
 		for (auto& n : m_nodes)
 			n.second.dht.add_node(node);
 	}
 
 	void dht_tracker::add_router_node(udp::endpoint const& node)
 	{
+#if !TORRENT_USE_IPV6
+		TORRENT_ASSERT(is_v4(node));
+#endif
 		for (auto& n : m_nodes)
 			n.second.dht.add_router_node(node);
 	}

@@ -3,5 +3,4 @@
 import os
 
 os.chdir('bindings/python')
-with open('setup.py') as filename:
-    exec(filename.read())
+exec(open('setup.py').read())

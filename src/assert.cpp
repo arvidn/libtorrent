@@ -286,7 +286,7 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 	if (assert_counter > 500) return;
 
 	FILE* out = fopen(libtorrent_assert_log, "a+");
-	if (out == 0) out = stderr;
+	if (out == nullptr) out = stderr;
 #else
 	FILE* out = stderr;
 #endif

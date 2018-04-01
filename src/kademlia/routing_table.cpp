@@ -1021,6 +1021,9 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 
 void routing_table::add_router_node(udp::endpoint const& router)
 {
+#if !TORRENT_USE_IPV6
+	TORRENT_ASSERT(is_v4(router));
+#endif
 	m_router_nodes.insert(router);
 }
 
