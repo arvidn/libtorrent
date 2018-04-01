@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/ip_voter.hpp" // for external_ip
+#include "libtorrent/broadcast_socket.hpp" // for is_v6
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/socket_io.hpp" // for print_endpoint
@@ -734,7 +735,7 @@ namespace libtorrent {
 			}
 
 #if TORRENT_USE_IPV6
-			bool const is_v6 = c.remote().address().is_v6();
+			bool const is_v6 = lt::is_v6(c.remote());
 #else
 			bool const is_v6 = false;
 #endif

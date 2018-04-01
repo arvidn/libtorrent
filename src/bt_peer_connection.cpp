@@ -123,7 +123,7 @@ namespace {
 	bool ut_pex_peer_store::was_introduced_by(tcp::endpoint const &ep)
 	{
 #if TORRENT_USE_IPV6
-		if (ep.protocol() == tcp::v4())
+		if (is_v4(ep))
 		{
 #endif
 			peers4_t::value_type const v(ep.address().to_v4().to_bytes(), ep.port());
@@ -1507,7 +1507,7 @@ namespace {
 		char buf[35];
 		char* ptr = buf + 6;
 		detail::write_uint8(type, ptr);
-		if (ep.address().is_v4()) detail::write_uint8(0, ptr);
+		if (is_v4(ep)) detail::write_uint8(0, ptr);
 		else detail::write_uint8(1, ptr);
 		detail::write_endpoint(ep, ptr);
 

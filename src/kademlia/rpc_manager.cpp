@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket_io.hpp> // for print_endpoint
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
 #include <libtorrent/aux_/aligned_union.hpp>
+#include <libtorrent/broadcast_socket.hpp> // for is_v6
 
 #include <type_traits>
 #include <functional>
@@ -83,7 +84,7 @@ void observer::set_target(udp::endpoint const& ep)
 
 	m_port = ep.port();
 #if TORRENT_USE_IPV6
-	if (ep.address().is_v6())
+	if (is_v6(ep))
 	{
 		flags |= flag_ipv6_address;
 		m_addr.v6 = ep.address().to_v6().to_bytes();

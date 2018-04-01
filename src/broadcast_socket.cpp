@@ -179,7 +179,7 @@ namespace libtorrent {
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
 #if TORRENT_USE_IPV6
-		if (m_multicast_endpoint.protocol() == udp::v6())
+		if (is_v6(m_multicast_endpoint))
 			open_multicast_socket(ios, address_v6::any(), loopback, ec);
 		else
 #endif
@@ -188,7 +188,7 @@ namespace libtorrent {
 		for (auto const& i : interfaces)
 		{
 			// only multicast on compatible networks
-			if (i.interface_address.is_v4() != m_multicast_endpoint.address().is_v4()) continue;
+			if (i.interface_address.is_v4() != is_v4(m_multicast_endpoint)) continue;
 			// ignore any loopback interface
 			if (!loopback && is_loopback(i.interface_address)) continue;
 

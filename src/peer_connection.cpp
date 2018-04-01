@@ -329,7 +329,7 @@ namespace libtorrent {
 				disconnect(ec, operation_t::getname);
 				return;
 			}
-			if (m_remote.address().is_v4() && m_settings.get_int(settings_pack::peer_tos) != 0)
+			if (is_v4(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 			{
 				m_socket->set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), ec);
 #ifndef TORRENT_DISABLE_LOGGING
@@ -341,7 +341,7 @@ namespace libtorrent {
 #endif
 			}
 #if TORRENT_USE_IPV6 && defined IPV6_TCLASS
-			else if (m_remote.address().is_v6() && m_settings.get_int(settings_pack::peer_tos) != 0)
+			else if (is_v6(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 			{
 				m_socket->set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), ec);
 			}
@@ -381,7 +381,7 @@ namespace libtorrent {
 		if (should_log(peer_log_alert::outgoing))
 		{
 			peer_log(peer_log_alert::outgoing, "OPEN", "protocol: %s"
-				, (m_remote.address().is_v4() ? "IPv4" : "IPv6"));
+				, (is_v4(m_remote) ? "IPv4" : "IPv6"));
 		}
 #endif
 		error_code ec;
@@ -430,7 +430,7 @@ namespace libtorrent {
 			, [conn](error_code const& e) { conn->wrap(&peer_connection::on_connection_complete, e); });
 		m_connect = aux::time_now();
 
-		sent_syn(m_remote.address().is_v6());
+		sent_syn(is_v6(m_remote));
 
 		if (t && t->alerts().should_post<peer_connect_alert>())
 		{
@@ -2656,7 +2656,7 @@ namespace libtorrent {
 
 #ifdef TORRENT_CORRUPT_DATA
 		// corrupt all pieces from certain peers
-		if (m_remote.address().is_v4()
+		if (is_v4(m_remote)
 			&& (m_remote.address().to_v4().to_ulong() & 0xf) == 0)
 		{
 			data[0] = ~data[0];
@@ -5791,7 +5791,7 @@ namespace libtorrent {
 		m_ses.received_buffer(bytes_transferred);
 
 		// estimate transport protocol overhead
-		trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
+		trancieve_ip_packet(bytes_transferred, is_v6(m_remote));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming, "READ"
@@ -6088,7 +6088,7 @@ namespace libtorrent {
 
 		// this means the connection just succeeded
 
-		received_synack(m_remote.address().is_v6());
+		received_synack(is_v6(m_remote));
 
 		TORRENT_ASSERT(m_socket);
 #ifndef TORRENT_DISABLE_LOGGING
@@ -6120,7 +6120,7 @@ namespace libtorrent {
 			return;
 		}
 
-		if (m_remote.address().is_v4() && m_settings.get_int(settings_pack::peer_tos) != 0)
+		if (is_v4(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
 			error_code err;
 			m_socket->set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), err);
@@ -6133,7 +6133,7 @@ namespace libtorrent {
 #endif
 		}
 #if TORRENT_USE_IPV6 && defined IPV6_TCLASS
-		else if (m_remote.address().is_v6() && m_settings.get_int(settings_pack::peer_tos) != 0)
+		else if (is_v6(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
 			error_code err;
 			m_socket->set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), err);
@@ -6215,7 +6215,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(int(bytes_transferred) <= m_quota[upload_channel]);
 		m_quota[upload_channel] -= int(bytes_transferred);
 
-		trancieve_ip_packet(int(bytes_transferred), m_remote.address().is_v6());
+		trancieve_ip_packet(int(bytes_transferred), is_v6(m_remote));
 
 		if (m_send_barrier != INT_MAX)
 			m_send_barrier -= int(bytes_transferred);

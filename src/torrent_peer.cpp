@@ -73,7 +73,7 @@ namespace libtorrent {
 	// * all IP addresses are in network byte order when hashed
 	std::uint32_t peer_priority(tcp::endpoint e1, tcp::endpoint e2)
 	{
-		TORRENT_ASSERT(e1.address().is_v4() == e2.address().is_v4());
+		TORRENT_ASSERT(is_v4(e1) == is_v4(e2));
 
 		using std::swap;
 
@@ -89,7 +89,7 @@ namespace libtorrent {
 			ret = crc32c_32(p);
 		}
 #if TORRENT_USE_IPV6
-		else if (e1.address().is_v6())
+		else if (is_v6(e1))
 		{
 			static const std::uint8_t v6mask[][8] = {
 				{ 0xff, 0xff, 0xff, 0xff, 0x55, 0x55, 0x55, 0x55 },

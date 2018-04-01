@@ -174,7 +174,7 @@ namespace libtorrent {namespace {
 					flags |= p->supports_holepunch() ? pex_holepunch : pex_flags_t{};
 
 					// i->first was added since the last time
-					if (remote.address().is_v4())
+					if (is_v4(remote))
 					{
 						detail::write_endpoint(remote, pla_out);
 						detail::write_uint8(static_cast<std::uint8_t>(flags), plf_out);
@@ -199,7 +199,7 @@ namespace libtorrent {namespace {
 
 			for (auto const& i : dropped)
 			{
-				if (i.address().is_v4())
+				if (is_v4(i))
 					detail::write_endpoint(i, pld_out);
 #if TORRENT_USE_IPV6
 				else
@@ -568,7 +568,7 @@ namespace libtorrent {namespace {
 				}
 
 				// i->first was added since the last time
-				if (remote.address().is_v4())
+				if (is_v4(remote))
 				{
 					detail::write_endpoint(remote, pla_out);
 					detail::write_uint8(flags, plf_out);

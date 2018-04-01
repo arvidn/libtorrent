@@ -267,7 +267,7 @@ namespace libtorrent {
 		if (bind_interface() != address_v4::any())
 		{
 			// find first endpoint that matches our bind interface type
-			for (; iter != m_endpoints.end() && iter->address().is_v4()
+			for (; iter != m_endpoints.end() && is_v4(*iter)
 				!= bind_interface().is_v4(); ++iter);
 
 			if (iter == m_endpoints.end())
@@ -276,7 +276,7 @@ namespace libtorrent {
 				std::shared_ptr<request_callback> cb = requester();
 				if (cb)
 				{
-					char const* tracker_address_type = target.address().is_v4() ? "IPv4" : "IPv6";
+					char const* tracker_address_type = is_v4(target) ? "IPv4" : "IPv6";
 					char const* bind_address_type = bind_interface().is_v4() ? "IPv4" : "IPv6";
 					char msg[200];
 					std::snprintf(msg, sizeof(msg)
@@ -623,7 +623,7 @@ namespace libtorrent {
 
 		std::size_t const ip_stride =
 #if TORRENT_USE_IPV6
-			m_target.address().is_v6() ? 18 :
+			is_v6(m_target) ? 18 :
 #endif
 			6;
 
@@ -649,7 +649,7 @@ namespace libtorrent {
 		}
 
 #if TORRENT_USE_IPV6
-		if (m_target.protocol() == udp::v6())
+		if (is_v6(m_target))
 		{
 			resp.peers6.reserve(std::size_t(num_peers));
 			for (int i = 0; i < num_peers; ++i)

@@ -473,7 +473,7 @@ void test_udpv6_support(char const* listen_interfaces
 						a->message().c_str());
 					if (auto tr = alert_cast<tracker_announce_alert>(a))
 					{
-						if (tr->local_endpoint.address().is_v4())
+						if (is_v4(tr->local_endpoint))
 							++v4_announces;
 						else
 							++v6_announces;

@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/kademlia/item.hpp"
-
+#include "libtorrent/broadcast_socket.hpp"
 
 #ifndef TORRENT_DISABLE_DHT
 void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
@@ -66,7 +66,7 @@ void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 
 		char const* nodes_key;
 
-		if (router_nodes.front().address().is_v6())
+		if (lt::is_v6(router_nodes.front()))
 			nodes_key = "nodes6";
 		else
 			nodes_key = "nodes";
@@ -184,8 +184,8 @@ TORRENT_TEST(dht_dual_stack_get_peers)
 				for (lt::tcp::endpoint const& peer : peers)
 				{
 					// TODO: verify that the endpoint matches the session's
-					got_peer_v4 |= peer.address().is_v4();
-					got_peer_v6 |= peer.address().is_v6();
+					got_peer_v4 |= lt::is_v4(peer);
+					got_peer_v6 |= lt::is_v6(peer);
 				}
 			}
 		}
@@ -347,4 +347,3 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 
 #endif // TORRENT_DISABLE_DHT
 }
-
