@@ -97,8 +97,9 @@ struct peer_server
 
 	~peer_server()
 	{
-		m_acceptor.cancel();
-		m_acceptor.close();
+		error_code ignore;
+		m_acceptor.cancel(ignore);
+		m_acceptor.close(ignore);
 		if (m_thread) m_thread->join();
 	}
 
