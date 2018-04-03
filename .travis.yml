@@ -41,19 +41,15 @@ addons:
 before_install:
   - git submodule update --init --recursive
   - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install ccache boost-build; fi
+  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then travis_retry brew install boost-python python2; fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
   # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
   - 'if [[ $TRAVIS_OS_NAME == "osx" && $docs = "1" ]]; then
-    easy_install --user docutils;
-    mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
-    echo ''import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")'' >> /Users/travis/Library/Python/2.7/lib/python/site-packages/homebrew.pth;
-    easy_install --user Pygments;
-    easy_install --user aafigure;
+    pip install docutils;
+    pip install Pygments;
     brew install graphviz hunspell;
-    easy_install --user Pillow;
     fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then travis_retry brew install boost-python python2; fi'
 
 # disable simulations on OSX for now. It hangs on travis
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; fi
@@ -106,7 +102,7 @@ install:
        ;" >>~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
-  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then /Users/travis/Library/Python/2.7/bin/rst2html.py --version; fi
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then rst2html.py --version; fi
   - cat ~/user-config.jam
 
   - which python2
@@ -114,7 +110,7 @@ install:
 script:
 # disable invoking docutils for now, until we can have a modern version of it
   - cd docs
-  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then make spell-check RST2HTML=/Users/travis/Library/Python/2.7/bin/rst2html.py AAFIGURE=echo; fi
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then make spell-check RST2HTML=rst2html.py AAFIGURE=echo; fi
   - cd ..
 
   - cd test
