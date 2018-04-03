@@ -390,8 +390,8 @@ rationale
 ---------
 
 The reason to use curve25519_ instead of, for instance, RSA is compactness. According to
-http://cr.yp.to/, curve25519 is free from patent claims and there are open implementations
+https://cr.yp.to/, curve25519 is free from patent claims and there are open implementations
 in both C and Java.
 
-.. _curve25519: http://cr.yp.to/ecdh.html
+.. _curve25519: https://cr.yp.to/ecdh.html
 
