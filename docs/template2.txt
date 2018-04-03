@@ -7,7 +7,7 @@
         var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
         s.type = 'text/javascript';
         s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        s.src = 'https://api.flattr.com/js/0.6/load.js?mode=auto';
         t.parentNode.insertBefore(s, t);
     })();
 /* ]]> */
@@ -48,7 +48,7 @@
     <table>
     <tr>
       <td><a href="index.html">home</a></td>
-      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="https://blog.libtorrent.org">blog</a></td>
       <td><a href="utp.html">uTP</a></td>
     </tr>
     <tr>
@@ -75,7 +75,7 @@
     </div>
     <div id="filler"></div>
 
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    <script src="https://www.google-analytics.com/urchin.js" type="text/javascript">
     </script>
     <script type="text/javascript">
     _uacct = "UA-1599045-1";
