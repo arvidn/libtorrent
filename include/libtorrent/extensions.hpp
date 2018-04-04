@@ -218,7 +218,11 @@ namespace libtorrent
 			optimistic_unchoke_feature = 1,
 
 			// include this bit if your plugin needs to have on_tick() called
-			tick_feature = 2
+			tick_feature = 2,
+
+			// include this bit if your plugin needs to have on_alert() called
+			// for all unmasked alerts, even after the queue is full.
+			reliable_alerts_feature = 4
 		};
 
 		// This function is expected to return a bitmask indicating which features

@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace aux
 {
 
+	typedef boost::uint32_t stack_allocator_state_t;
+
 	struct stack_allocator
 	{
 		stack_allocator() {}
@@ -98,6 +100,17 @@ namespace libtorrent { namespace aux
 		void reset()
 		{
 			m_storage.clear();
+		}
+
+		void restore_state(stack_allocator_state_t state)
+		{
+			TORRENT_ASSERT(state <= m_storage.size());
+			m_storage.resize(state);
+		}
+
+		stack_allocator_state_t save_state()
+		{
+			return m_storage.size();
 		}
 
 	private:

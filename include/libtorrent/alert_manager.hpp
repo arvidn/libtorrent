@@ -52,6 +52,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+#include "libtorrent/extensions.hpp"
+#endif
+
+
 #ifdef __GNUC__
 // this is to suppress the warnings for using std::auto_ptr
 #pragma GCC diagnostic push
@@ -94,7 +99,36 @@ namespace libtorrent {
 			// for high priority alerts, double the upper limit
 			if (m_alerts[m_generation].size() >= m_queue_size_limit
 				* (1 + T::priority))
+			{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+				if (m_reliable_ext_alerts) {
+					// after we have a reference to the current allocator it
+					// is safe to unlock the mutex because m_allocations is protected
+					// by the fact that the client needs to pop alerts *twice* before
+					// it can free it and that's impossible until we emplace
+					// more alerts.
+					aux::stack_allocator& alloc = m_allocations[m_generation];
+					lock.unlock();
+
+					// save the state of the active allocator so that
+					// we can restore it when we're done
+					aux::stack_allocator_state_t state = alloc.save_state();
+					T alert(alloc, std::forward<Args>(args)...);
+
+					for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+						, end(m_ses_extensions.end()); i != end; ++i)
+					{
+						if (((*i)->implemented_features() & plugin::reliable_alerts_feature) != 0)
+						{
+							(*i)->on_alert(&alert);
+						}
+					}
+
+					alloc.restore_state(state);
+				}
+#endif
 				return;
+			}
 
 			T alert(m_allocations[m_generation], std::forward<Args>(args)...);
 			m_alerts[m_generation].push_back(alert);
@@ -116,12 +150,6 @@ namespace libtorrent {
 		template <class T>
 		bool should_post() const
 		{
-			mutex::scoped_lock lock(m_mutex);
-			if (m_alerts[m_generation].size() >= m_queue_size_limit
-				* (1 + T::priority))
-			{
-				return false;
-			}
 			return (m_alert_mask & T::static_category) != 0;
 		}
 
@@ -129,13 +157,11 @@ namespace libtorrent {
 
 		void set_alert_mask(boost::uint32_t m)
 		{
-			mutex::scoped_lock lock(m_mutex);
 			m_alert_mask = m;
 		}
 
 		boost::uint32_t alert_mask() const
 		{
-			mutex::scoped_lock lock(m_mutex);
 			return m_alert_mask;
 		}
 
@@ -203,6 +229,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
 		ses_extension_list_t m_ses_extensions;
+		bool m_reliable_ext_alerts;
 #endif
 	};
 }

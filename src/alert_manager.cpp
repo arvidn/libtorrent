@@ -46,6 +46,9 @@ namespace libtorrent
 		, m_queue_size_limit(queue_limit)
 		, m_num_queued_resume(0)
 		, m_generation(0)
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		, m_reliable_ext_alerts(false)
+#endif
 	{}
 
 	alert_manager::~alert_manager() {}
@@ -164,6 +167,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
 	{
+		if ((ext->implemented_features() & plugin::reliable_alerts_feature) != 0)
+			m_reliable_ext_alerts = true;
 		m_ses_extensions.push_back(ext);
 	}
 #endif

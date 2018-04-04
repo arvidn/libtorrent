@@ -190,13 +190,54 @@ int plugin_alerts[3] = { 0, 0, 0 };
 
 struct test_plugin : libtorrent::plugin
 {
-	test_plugin(int index) : m_index(index) {}
+	test_plugin(int index, bool reliable_alerts) : m_index(index)
+	{
+		if (reliable_alerts)
+		{
+			m_features = libtorrent::plugin::reliable_alerts_feature;
+		}
+		else
+		{
+			m_features = 0;
+		}
+	}
+
+	boost::uint32_t implemented_features()
+	{
+		return m_features;
+	}
+
 	virtual void on_alert(alert const* a)
 	{
 		++plugin_alerts[m_index];
 	}
+
 	int m_index;
+	boost::uint32_t m_features;
 };
+
+void
+alert_popper(alert_manager& mgr, bool& running)
+{
+	std::vector<alert*> alerts;
+	int num_resume = 0, n_iters = 0;
+
+	running = true;
+
+	while (running)
+	{
+		/* wait for the next alert */
+		time_duration td = seconds(1);
+		if (mgr.wait_for_alert(td) == NULL)
+			continue;
+
+		mgr.get_all(alerts, num_resume);
+
+		/* sleep every few iterations to simulate overrun */
+		if (++n_iters % 5 == 0)
+			test_sleep(500);
+	}
+}
 
 #endif
 
@@ -206,9 +247,9 @@ TORRENT_TEST(extensions)
 	memset(plugin_alerts, 0, sizeof(plugin_alerts));
 	alert_manager mgr(100, 0xffffffff);
 
-	mgr.add_extension(boost::make_shared<test_plugin>(0));
-	mgr.add_extension(boost::make_shared<test_plugin>(1));
-	mgr.add_extension(boost::make_shared<test_plugin>(2));
+	mgr.add_extension(boost::make_shared<test_plugin>(0, false));
+	mgr.add_extension(boost::make_shared<test_plugin>(1, false));
+	mgr.add_extension(boost::make_shared<test_plugin>(2, true));
 
 	for (int i = 0; i < 53; ++i)
 		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
@@ -223,6 +264,40 @@ TORRENT_TEST(extensions)
 	TEST_EQUAL(plugin_alerts[0], 70);
 	TEST_EQUAL(plugin_alerts[1], 70);
 	TEST_EQUAL(plugin_alerts[2], 70);
+
+	for (int i = 0; i < 35; ++i)
+		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+
+	TEST_EQUAL(plugin_alerts[0], 100);
+	TEST_EQUAL(plugin_alerts[1], 100);
+	TEST_EQUAL(plugin_alerts[2], 105);
+
+	mgr.set_alert_queue_size_limit(0);
+
+	for (int i = 0; i < 35; ++i)
+		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+
+	TEST_EQUAL(plugin_alerts[0], 100);
+	TEST_EQUAL(plugin_alerts[1], 100);
+	TEST_EQUAL(plugin_alerts[2], 140);
+
+	bool running = false;
+	int num_resume = 0;
+	std::vector<alert*> alerts;
+	mgr.get_all(alerts, num_resume);
+	libtorrent::thread t(boost::bind(&alert_popper, boost::ref(mgr), boost::ref(running)));
+
+	/* make sure the thread is started */
+	while (!running) test_sleep(10);
+
+	for (int i = 0; i < 100000000; ++i)
+		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+
+	running = false;
+	t.join();
+
+	TEST_EQUAL(plugin_alerts[2], 100000140);
+
 #endif
 }
 
