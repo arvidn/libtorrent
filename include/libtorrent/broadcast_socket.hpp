@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <list>
+#include <array>
 
 namespace libtorrent {
 
@@ -92,12 +93,12 @@ namespace libtorrent {
 		struct socket_entry
 		{
 			explicit socket_entry(std::shared_ptr<udp::socket> s)
-				: socket(std::move(s)), broadcast(false) { std::memset(buffer, 0, sizeof(buffer)); }
+				: socket(std::move(s)), broadcast(false) {}
 			socket_entry(std::shared_ptr<udp::socket> s
 				, address_v4 const& mask): socket(std::move(s)), netmask(mask), broadcast(false)
-			{ std::memset(buffer, 0, sizeof(buffer)); }
+			{}
 			std::shared_ptr<udp::socket> socket;
-			char buffer[1500];
+			std::array<char, 1500> buffer{};
 			udp::endpoint remote;
 			address_v4 netmask;
 			bool broadcast;

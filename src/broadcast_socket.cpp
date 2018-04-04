@@ -221,7 +221,7 @@ namespace libtorrent {
 		m_sockets.emplace_back(s);
 		socket_entry& se = m_sockets.back();
 		ADD_OUTSTANDING_ASYNC("broadcast_socket::on_receive");
-		s->async_receive_from(boost::asio::buffer(se.buffer, sizeof(se.buffer))
+		s->async_receive_from(boost::asio::buffer(se.buffer)
 			, se.remote, std::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 		++m_outstanding_operations;
 	}
@@ -245,7 +245,7 @@ namespace libtorrent {
 		if (!ec) se.broadcast = true;
 
 		ADD_OUTSTANDING_ASYNC("broadcast_socket::on_receive");
-		s->async_receive_from(boost::asio::buffer(se.buffer, sizeof(se.buffer))
+		s->async_receive_from(boost::asio::buffer(se.buffer)
 			, se.remote, std::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 		++m_outstanding_operations;
 	}
@@ -308,12 +308,12 @@ namespace libtorrent {
 			maybe_abort();
 			return;
 		}
-		m_on_receive(s->remote, {s->buffer, bytes_transferred});
+		m_on_receive(s->remote, {s->buffer.data(), bytes_transferred});
 
 		if (maybe_abort()) return;
 		if (!s->socket) return;
 		ADD_OUTSTANDING_ASYNC("broadcast_socket::on_receive");
-		s->socket->async_receive_from(boost::asio::buffer(s->buffer, sizeof(s->buffer))
+		s->socket->async_receive_from(boost::asio::buffer(s->buffer)
 			, s->remote, std::bind(&broadcast_socket::on_receive, this, s, _1, _2));
 		++m_outstanding_operations;
 	}
