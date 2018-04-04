@@ -5823,7 +5823,7 @@ namespace aux {
 		for (auto const& addr : addresses)
 		{
 #if !TORRENT_USE_IPV6
-			if (!i->is_v4()) continue;
+			if (!addr.is_v4()) continue;
 #endif
 			// router nodes should be added before the DHT is started (and bootstrapped)
 			udp::endpoint ep(addr, std::uint16_t(port));
