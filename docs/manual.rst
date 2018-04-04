@@ -109,7 +109,7 @@ with an associated port.
 
 For documentation on these types, please refer to the `asio documentation`_.
 
-.. _`asio documentation`: http://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio.html
+.. _`asio documentation`: https://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio.html
 
 exceptions
 ==========
@@ -602,8 +602,8 @@ There is limited support for HTTP redirects. In case some files are redirected
 to *different hosts*, the files must be piece aligned or padded to be piece
 aligned.
 
-.. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
-.. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
+.. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html
+.. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html
 
 piece picker
 ============
@@ -907,7 +907,7 @@ torrents it distributes, and issue separate peer certificates for each torrent.
 A peer receiving a certificate will not necessarily be able to access all
 torrents published by this root certificate (only if it has a "star cert").
 
-.. _`RFC 2818`: http://www.ietf.org/rfc/rfc2818.txt
+.. _`RFC 2818`: https://www.ietf.org/rfc/rfc2818.txt
 
 testing
 -------

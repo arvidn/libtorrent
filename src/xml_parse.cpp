@@ -42,11 +42,11 @@ namespace libtorrent {
 	{
 		char const* p = input.data();
 		char const* end = input.data() + input.size();
-		for(;p != end; ++p)
+		for (;p != end; ++p)
 		{
 			char const* start = p;
 			// look for tag start
-			for(; p != end && *p != '<'; ++p);
+			for (; p != end && *p != '<'; ++p);
 
 			if (p != start)
 			{
@@ -127,11 +127,11 @@ namespace libtorrent {
 				char const* val_start = nullptr;
 
 				// find start of attribute name
-				for (; i != tag_end && is_space(*i); ++i);
+				while (i != tag_end && is_space(*i)) ++i;
 				if (i == tag_end) break;
 				start = i;
 				// find end of attribute name
-				for (; i != tag_end && *i != '=' && !is_space(*i); ++i);
+				while (i != tag_end && *i != '=' && !is_space(*i)) ++i;
 				std::size_t const name_len = std::size_t(i - start);
 
 				// look for equality sign
@@ -146,7 +146,7 @@ namespace libtorrent {
 				}
 
 				++i;
-				for (; i != tag_end && is_space(*i); ++i);
+				while (i != tag_end && is_space(*i)) ++i;
 				// check for parse error (values must be quoted)
 				if (i == tag_end || (*i != '\'' && *i != '\"'))
 				{

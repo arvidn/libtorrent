@@ -50,7 +50,7 @@ IPv6 support
 
 **This extension is superseeded by** `BEP 32`_.
 
-.. _`BEP 32`: http://bittorrent.org/beps/bep_0032.html
+.. _`BEP 32`: https://bittorrent.org/beps/bep_0032.html
 
 The DHT messages that don't support IPv6 are the ``nodes`` replies.
 They encode all the contacts as 6 bytes packed together in sequence in a

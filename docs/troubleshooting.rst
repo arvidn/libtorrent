@@ -14,7 +14,7 @@ to download. It is not complete, please submit suggestions via pull requests at
 https://github.com/arvidn/libtorrent or to the `mailing list`_. Ideally in the
 form of patches against ``docs/troubleshooting.dot``.
 
-.. _`mailing list`: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
+.. _`mailing list`: https://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
 |thumb|__
 
