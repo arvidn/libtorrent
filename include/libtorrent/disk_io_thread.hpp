@@ -488,6 +488,7 @@ namespace aux {
 		void execute_job(disk_io_job* j);
 		void immediate_execute();
 		void abort_jobs();
+		void abort_hash_jobs(storage_index_t const storage);
 
 		// returns the maximum number of threads
 		// the actual number of threads may be less

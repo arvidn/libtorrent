@@ -1830,25 +1830,25 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		add_fence_job(j);
 	}
 
+	void disk_io_thread::abort_hash_jobs(storage_index_t const storage) {
+		// abort outstanding hash jobs belonging to this torrent
+		std::unique_lock<std::mutex> l(m_job_mutex);
+
+		std::shared_ptr<storage_interface> st
+		= m_torrents[storage]->shared_from_this();
+		// hash jobs
+		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next()) {
+			disk_io_job *j = i.get();
+			if (j->storage != st) continue;
+			j->flags |= disk_io_job::aborted;
+		}
+	}
+
 	void disk_io_thread::async_delete_files(storage_index_t const storage
 		, remove_flags_t const options
 		, std::function<void(storage_error const&)> handler)
 	{
-		{
-			// abort outstanding hash jobs belonging to this torrent
-			std::unique_lock<std::mutex> l(m_job_mutex);
-
-			std::shared_ptr<storage_interface> st
-				= m_torrents[storage]->shared_from_this();
-			// hash jobs
-			for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
-			{
-				disk_io_job* j = i.get();
-				if (j->storage != st) continue;
-				j->flags |= disk_io_job::aborted;
-			}
-		}
-
+		abort_hash_jobs(storage);
 		disk_io_job* j = allocate_job(job_action_t::delete_files);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->callback = std::move(handler);
@@ -1888,20 +1888,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	void disk_io_thread::async_stop_torrent(storage_index_t const storage
 		, std::function<void()> handler)
 	{
-		{
-			// abort outstanding hash jobs belonging to this torrent
-			std::unique_lock<std::mutex> l(m_job_mutex);
-
-			std::shared_ptr<storage_interface> st
-				= m_torrents[storage]->shared_from_this();
-			// hash jobs
-			for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
-			{
-				disk_io_job* j = i.get();
-				if (j->storage != st) continue;
-				j->flags |= disk_io_job::aborted;
-			}
-		}
+		abort_hash_jobs(storage);
 		disk_io_job* j = allocate_job(job_action_t::stop_torrent);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->callback = std::move(handler);
