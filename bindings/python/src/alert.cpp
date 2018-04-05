@@ -346,6 +346,7 @@ void bind_alert()
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("url", &tracker_alert::url)
 #endif
+        .add_property("local_endpoint", make_getter(&tracker_alert::local_endpoint, by_value()))
         .def("tracker_url", &tracker_alert::tracker_url)
         ;
 
