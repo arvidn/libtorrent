@@ -1830,14 +1830,16 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		add_fence_job(j);
 	}
 
-	void disk_io_thread::abort_hash_jobs(storage_index_t const storage) {
+	void disk_io_thread::abort_hash_jobs(storage_index_t const storage)
+	{
 		// abort outstanding hash jobs belonging to this torrent
 		std::unique_lock<std::mutex> l(m_job_mutex);
 
 		std::shared_ptr<storage_interface> st
-		= m_torrents[storage]->shared_from_this();
+			= m_torrents[storage]->shared_from_this();
 		// hash jobs
-		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next()) {
+		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
+		{
 			disk_io_job *j = i.get();
 			if (j->storage != st) continue;
 			j->flags |= disk_io_job::aborted;

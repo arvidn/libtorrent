@@ -108,7 +108,6 @@ namespace libtorrent {
 	class lsd;
 	class torrent;
 	class alert;
-	struct cache_info;
 	struct torrent_handle;
 
 namespace dht {
