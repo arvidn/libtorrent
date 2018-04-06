@@ -4525,9 +4525,6 @@ namespace {
 
 		inc_stats_counter(counters::num_piece_failed);
 
-		if (m_ses.alerts().should_post<hash_failed_alert>())
-			m_ses.alerts().emplace_alert<hash_failed_alert>(get_handle(), index);
-
 		std::vector<int>::iterator it = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
 		if (it != m_predictive_pieces.end() && *it == index)
@@ -4727,6 +4724,9 @@ namespace {
 		// unlock the piece and restore it, as if no block was
 		// ever downloaded for it.
 		m_picker->restore_piece(j->piece);
+
+		if (m_ses.alerts().should_post<hash_failed_alert>())
+			m_ses.alerts().emplace_alert<hash_failed_alert>(get_handle(), j->piece);
 
 		// we have to let the piece_picker know that
 		// this piece failed the check as it can restore it
