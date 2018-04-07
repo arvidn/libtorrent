@@ -31,18 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/aux_/time.hpp"
-#include <atomic>
 
 namespace libtorrent { namespace aux {
 
-	// used to cache the current time regularly (update_time_now() is called by
-	// the session_impl main thread). This is cheaper than a system call and can
-	// be used where more accurate time is not necessary
-	namespace {
-		std::atomic<time_point> g_current_time(clock_type::now());
-	}
-	time_point time_now() { return aux::g_current_time.load(); }
+	time_point time_now() { return clock_type::now(); }
 	time_point32 time_now32() { return time_point_cast<seconds32>(clock_type::now()); }
-	void update_time_now() { g_current_time.store(clock_type::now()); }
 
 } }
