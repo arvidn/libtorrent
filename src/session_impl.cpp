@@ -445,7 +445,6 @@ namespace aux {
 		, m_lsd_announce_timer(m_io_service)
 		, m_close_file_timer(m_io_service)
 	{
-		update_time_now();
 		m_disk_thread.set_settings(&pack);
 	}
 
@@ -3116,8 +3115,7 @@ namespace aux {
 		// submit all disk jobs when we leave this function
 		deferred_submit_jobs();
 
-		aux::update_time_now();
-		time_point now = aux::time_now();
+		time_point const now = aux::time_now();
 
 		// remove undead peers that only have this list as their reference keeping them alive
 		if (!m_undead_peers.empty())

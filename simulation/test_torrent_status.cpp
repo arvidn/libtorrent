@@ -90,7 +90,7 @@ TORRENT_TEST(status_timers)
 			{
 				lt::time_point32 const now = time_now();
 				// finish is 1 tick after start
-				auto const since_finish = duration_cast<seconds>(now - start_time) - lt::seconds(1);
+				auto const since_finish = duration_cast<seconds>(now - start_time);
 				torrent_status st = handle.status();
 				TEST_EQUAL(st.active_duration.count(), since_finish.count());
 				TEST_EQUAL(st.seeding_duration.count(), since_finish.count());
