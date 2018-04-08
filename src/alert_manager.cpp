@@ -46,9 +46,6 @@ namespace libtorrent
 		, m_queue_size_limit(queue_limit)
 		, m_num_queued_resume(0)
 		, m_generation(0)
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		, m_reliable_ext_alerts(false)
-#endif
 	{}
 
 	alert_manager::~alert_manager() {}
@@ -100,11 +97,8 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
-		{
-			(*i)->on_alert(a);
-		}
+		notify_extensions(a, m_ses_extensions);
+		notify_extensions(a, m_ses_extensions_reliable);
 #endif
 	}
 
@@ -165,11 +159,25 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+	void alert_manager::notify_extensions(alert * const alert, ses_extension_list_t& list)
+	{
+		for (ses_extension_list_t::iterator i = list.begin(),
+			end(list.end()); i != end; ++i)
+		{
+			(*i)->on_alert(alert);
+		}
+	}
+
 	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
 	{
 		if ((ext->implemented_features() & plugin::reliable_alerts_feature) != 0)
-			m_reliable_ext_alerts = true;
-		m_ses_extensions.push_back(ext);
+		{
+			m_ses_extensions_reliable.push_back(ext);
+		}
+		else
+		{
+			m_ses_extensions.push_back(ext);
+		}
 	}
 #endif
 

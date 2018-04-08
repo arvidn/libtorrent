@@ -52,10 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-#include "libtorrent/extensions.hpp"
-#endif
-
 
 #ifdef __GNUC__
 // this is to suppress the warnings for using std::auto_ptr
@@ -101,31 +97,23 @@ namespace libtorrent {
 				* (1 + T::priority))
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-				if (m_reliable_ext_alerts) {
-					// after we have a reference to the current allocator it
-					// is safe to unlock the mutex because m_allocations is protected
-					// by the fact that the client needs to pop alerts *twice* before
-					// it can free it and that's impossible until we emplace
-					// more alerts.
-					aux::stack_allocator& alloc = m_allocations[m_generation];
-					lock.unlock();
+				if (m_ses_extensions_reliable.empty())
+					return;
 
-					// save the state of the active allocator so that
-					// we can restore it when we're done
-					aux::stack_allocator_state_t state = alloc.save_state();
-					T alert(alloc, std::forward<Args>(args)...);
+				// after we have a reference to the current allocator it
+				// is safe to unlock the mutex because m_allocations is protected
+				// by the fact that the client needs to pop alerts *twice* before
+				// it can free it and that's impossible until we emplace
+				// more alerts.
+				aux::stack_allocator& alloc = m_allocations[m_generation];
+				lock.unlock();
 
-					for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-						, end(m_ses_extensions.end()); i != end; ++i)
-					{
-						if (((*i)->implemented_features() & plugin::reliable_alerts_feature) != 0)
-						{
-							(*i)->on_alert(&alert);
-						}
-					}
-
-					alloc.restore_state(state);
-				}
+				// save the state of the active allocator so that
+				// we can restore it when we're done
+				aux::stack_allocator_state_t state = alloc.save_state();
+				T alert(alloc, std::forward<Args>(args)...);
+				notify_extensions(&alert, m_ses_extensions_reliable);
+				alloc.restore_state(state);
 #endif
 				return;
 			}
@@ -228,8 +216,9 @@ namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
+		void notify_extensions(alert * const a, ses_extension_list_t& extensions);
 		ses_extension_list_t m_ses_extensions;
-		bool m_reliable_ext_alerts;
+		ses_extension_list_t m_ses_extensions_reliable;
 #endif
 	};
 }

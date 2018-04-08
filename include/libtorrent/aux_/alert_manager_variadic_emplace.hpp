@@ -41,36 +41,26 @@
 				* (1 + T::priority))
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-				if (m_reliable_ext_alerts) {
-					// after we have a reference to the current allocator it
-					// is safe to unlock the mutex because m_allocations is protected
-					// by the fact that the client needs to pop alerts *twice* before
-					// it can free it and that's impossible until we emplace
-					// more alerts.
-					aux::stack_allocator& alloc = m_allocations[m_generation];
-					lock.unlock();
+				if (m_ses_extensions_reliable.empty())
+					return;
 
-					// save the state of the active allocator so that
-					// we can restore it when we're done
-					aux::stack_allocator_state_t state = alloc.save_state();
-					T alert(alloc
-						BOOST_PP_COMMA_IF(I)
-						BOOST_PP_ENUM_PARAMS(I, a));
+				// after we have a reference to the current allocator it
+				// is safe to unlock the mutex because m_allocations is protected
+				// by the fact that the client needs to pop alerts *twice* before
+				// it can free it and that's impossible until we emplace
+				// more alerts.
+				aux::stack_allocator& alloc = m_allocations[m_generation];
+				lock.unlock();
 
-
-					for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-						, end(m_ses_extensions.end()); i != end; ++i)
-					{
-						if (((*i)->implemented_features() & plugin::reliable_alerts_feature) != 0)
-						{
-							(*i)->on_alert(&alert);
-						}
-					}
-
-					alloc.restore_state(state);
-				}
+				// save the state of the active allocator so that
+				// we can restore it when we're done
+				aux::stack_allocator_state_t state = alloc.save_state();
+				T alert(alloc
+					BOOST_PP_COMMA_IF(I)
+					BOOST_PP_ENUM_PARAMS(I, a));
+				notify_extensions(&alert, m_ses_extensions_reliable);
+				alloc.restore_state(state);
 #endif
-
 				return;
 			}
 
