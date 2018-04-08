@@ -3,7 +3,7 @@ libtorrent hacking
 ==================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.6
+:Version: 1.1.7
 
 .. contents:: Table of contents
   :depth: 2
