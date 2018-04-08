@@ -537,6 +537,48 @@ TORRENT_TEST(invalid_content_range_end)
 	TEST_CHECK(boost::get<2>(received) == true);
 }
 
+TORRENT_TEST(overflow_content_length)
+{
+	char const* chunked_input =
+		"HTTP/1.1 200 OK\r\n"
+		"Content-Length: 9999999999999999999999999999\r\n"
+		"\r\n";
+
+	http_parser parser;
+	boost::tuple<int, int, bool> const received
+		= feed_bytes(parser, chunked_input);
+
+	TEST_CHECK(boost::get<2>(received) == true);
+}
+
+TORRENT_TEST(overflow_content_range_end)
+{
+	char const* chunked_input =
+		"HTTP/1.1 206 OK\n"
+		"Content-Range: bytes 0-999999999999999999999999\n"
+		"\n";
+
+	http_parser parser;
+	boost::tuple<int, int, bool> const received
+		= feed_bytes(parser, chunked_input);
+
+	TEST_CHECK(boost::get<2>(received) == true);
+}
+
+TORRENT_TEST(overflow_content_range_begin)
+{
+	char const* chunked_input =
+		"HTTP/1.1 206 OK\n"
+		"Content-Range: bytes 999999999999999999999999-0\n"
+		"\n";
+
+	http_parser parser;
+	boost::tuple<int, int, bool> const received
+		= feed_bytes(parser, chunked_input);
+
+	TEST_CHECK(boost::get<2>(received) == true);
+}
+
 TORRENT_TEST(invalid_chunk_afl)
 {
 	boost::uint8_t const invalid_chunked_input[] = {
