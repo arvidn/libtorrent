@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <boost/function/function0.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/atomic.hpp>
 #include <boost/config.hpp>
 #include <list>
 #include <utility> // for std::forward
@@ -97,23 +98,15 @@ namespace libtorrent {
 				* (1 + T::priority))
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
+				lock.unlock();
+
 				if (m_ses_extensions_reliable.empty())
 					return;
 
-				// after we have a reference to the current allocator it
-				// is safe to unlock the mutex because m_allocations is protected
-				// by the fact that the client needs to pop alerts *twice* before
-				// it can free it and that's impossible until we emplace
-				// more alerts.
-				aux::stack_allocator& alloc = m_allocations[m_generation];
-				lock.unlock();
-
-				// save the state of the active allocator so that
-				// we can restore it when we're done
-				aux::stack_allocator_state_t state = alloc.save_state();
-				T alert(alloc, std::forward<Args>(args)...);
+				mutex::scoped_lock lock(m_mutex_reliable);
+				T alert(m_allocator_reliable, std::forward<Args>(args)...);
 				notify_extensions(&alert, m_ses_extensions_reliable);
-				alloc.restore_state(state);
+				m_allocator_reliable.reset();
 #endif
 				return;
 			}
@@ -219,6 +212,8 @@ namespace libtorrent {
 		void notify_extensions(alert * const a, ses_extension_list_t& extensions);
 		ses_extension_list_t m_ses_extensions;
 		ses_extension_list_t m_ses_extensions_reliable;
+		aux::stack_allocator m_allocator_reliable;
+		mutex m_mutex_reliable;
 #endif
 	};
 }

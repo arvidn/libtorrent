@@ -219,23 +219,14 @@ struct test_plugin : libtorrent::plugin
 void
 alert_popper(alert_manager& mgr, bool& running)
 {
+	int num_resume;
 	std::vector<alert*> alerts;
-	int num_resume = 0, n_iters = 0;
-
-	running = true;
-
-	while (running)
+	for (running = true; running;)
 	{
-		/* wait for the next alert */
-		time_duration td = seconds(1);
+		time_duration td = milliseconds(10);
 		if (mgr.wait_for_alert(td) == NULL)
 			continue;
-
 		mgr.get_all(alerts, num_resume);
-
-		/* sleep every few iterations to simulate overrun */
-		if (++n_iters % 5 == 0)
-			test_sleep(500);
 	}
 }
 
@@ -296,6 +287,8 @@ TORRENT_TEST(extensions)
 	running = false;
 	t.join();
 
+	TEST_EQUAL(plugin_alerts[0] < 100000140, true);
+	TEST_EQUAL(plugin_alerts[1] < 100000140, true);
 	TEST_EQUAL(plugin_alerts[2], 100000140);
 
 #endif
