@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2016, MassaRoddel, Arvid Norberg
+Copyright (c) 2006-2018, MassaRoddel, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

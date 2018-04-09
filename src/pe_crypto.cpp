@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2016, Un Shyam, Arvid Norberg, Steven Siloti
+Copyright (c) 2007-2018, Un Shyam, Arvid Norberg, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
