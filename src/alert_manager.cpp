@@ -52,7 +52,6 @@ namespace libtorrent
 
 	int alert_manager::num_queued_resume() const
 	{
-		mutex::scoped_lock lock(m_mutex);
 		return m_num_queued_resume;
 	}
 
