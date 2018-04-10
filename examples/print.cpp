@@ -168,10 +168,10 @@ std::string const& piece_bar(lt::bitfield const& p, int width)
 	{
 		int num_pieces = 0;
 		int num_have = 0;
-		int end = std::max(int(piece + piece_per_char), int(piece) + 1);
+		int end = (std::max)(int(piece + piece_per_char), int(piece) + 1);
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
-		int const c = int(std::ceil(num_have / float(std::max(num_pieces, 1)) * (table_size - 1)));
+		int const c = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
 
 #ifndef _WIN32
 		color[i & 1] = c;
@@ -331,7 +331,7 @@ void clear_rows(int y1, int y2)
 	CONSOLE_SCREEN_BUFFER_INFO si;
 	GetConsoleScreenBufferInfo(out, &si);
 	DWORD n;
-	int num_chars = si.dwSize.X * std::min(si.dwSize.Y - y1, y2 - y1);
+	int num_chars = si.dwSize.X * (std::min)(si.dwSize.Y - y1, y2 - y1);
 	FillConsoleOutputCharacter(out, ' ', num_chars, c, &n);
 	FillConsoleOutputAttribute(out, 0x7, num_chars, c, &n);
 #else
@@ -544,4 +544,3 @@ one_more:
 	fputs(buf, stdout);
 #endif
 }
-
