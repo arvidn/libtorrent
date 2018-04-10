@@ -136,7 +136,7 @@ namespace libtorrent {
 		return m_threads.front().get_id();
 	}
 
-	void disk_io_thread_pool::job_queued(int queue_size)
+	void disk_io_thread_pool::job_queued(int const queue_size)
 	{
 		// this check is not strictly necessary
 		// but do it to avoid acquiring the mutex in the trivial case
@@ -147,9 +147,9 @@ namespace libtorrent {
 		// reduce the number of threads requested to stop if we're going to need
 		// them for these new jobs
 		int to_exit = m_threads_to_exit;
-		while (to_exit > (std::max)(0, m_num_idle_threads - queue_size) &&
+		while (to_exit > std::max(0, m_num_idle_threads - queue_size) &&
 			!m_threads_to_exit.compare_exchange_weak(to_exit
-				, (std::max)(0, m_num_idle_threads - queue_size)));
+				, std::max(0, m_num_idle_threads - queue_size)));
 
 		// now start threads until we either have enough to service
 		// all queued jobs without blocking or hit the max
@@ -192,7 +192,7 @@ namespace libtorrent {
 		if (min_idle <= 0) return;
 		// stop either the minimum number of idle threads or the number of threads
 		// which must be stopped to get below the max, whichever is larger
-		int const to_stop = (std::max)(min_idle, int(m_threads.size()) - m_max_threads);
+		int const to_stop = std::max(min_idle, int(m_threads.size()) - m_max_threads);
 		stop_threads(to_stop);
 	}
 

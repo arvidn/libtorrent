@@ -87,7 +87,7 @@ namespace {
 			if (i == m_block_hashes.end() || i->first.piece_index != p) return;
 
 			int size = m_torrent.torrent_file().piece_size(p);
-			peer_request r = {p, 0, (std::min)(16 * 1024, size)};
+			peer_request r = {p, 0, std::min(16 * 1024, size)};
 			piece_block pb(p, 0);
 			while (size > 0)
 			{
@@ -108,7 +108,7 @@ namespace {
 
 				r.start += 16 * 1024;
 				size -= 16 * 1024;
-				r.length = (std::min)(16 * 1024, size);
+				r.length = std::min(16 * 1024, size);
 				++pb.block_index;
 			}
 
@@ -125,7 +125,7 @@ namespace {
 			}
 		}
 
-		void on_piece_failed(piece_index_t p) override
+		void on_piece_failed(piece_index_t const p) override
 		{
 			// The piece failed the hash check. Record
 			// the CRC and origin peer of every block
@@ -138,7 +138,7 @@ namespace {
 			m_torrent.picker().get_downloaders(downloaders, p);
 
 			int size = m_torrent.torrent_file().piece_size(p);
-			peer_request r = {p, 0, (std::min)(16*1024, size)};
+			peer_request r = {p, 0, std::min(16*1024, size)};
 			piece_block pb(p, 0);
 			for (auto const& i : downloaders)
 			{
@@ -156,7 +156,7 @@ namespace {
 
 				r.start += 16*1024;
 				size -= 16*1024;
-				r.length = (std::min)(16*1024, size);
+				r.length = std::min(16*1024, size);
 				++pb.block_index;
 			}
 			TORRENT_ASSERT(size <= 0);

@@ -266,7 +266,7 @@ restart_response:
 					// we're done once we reach the end of the headers
 //					if (!m_method.empty()) m_finished = true;
 					// the HTTP header should always be < 2 GB
-					TORRENT_ASSERT(m_recv_pos < (std::numeric_limits<int>::max)());
+					TORRENT_ASSERT(m_recv_pos < std::numeric_limits<int>::max());
 					m_body_start_pos = int(m_recv_pos);
 					break;
 				}
@@ -363,7 +363,7 @@ restart_response:
 					std::int64_t payload = m_cur_chunk_end - m_recv_pos;
 					if (payload > 0)
 					{
-						TORRENT_ASSERT(payload < (std::numeric_limits<int>::max)());
+						TORRENT_ASSERT(payload < std::numeric_limits<int>::max());
 						m_recv_pos += payload;
 						std::get<0>(ret) += int(payload);
 						incoming -= int(payload);
@@ -429,7 +429,7 @@ restart_response:
 					&& m_content_length >= 0)
 				{
 					TORRENT_ASSERT(m_content_length - m_recv_pos + m_body_start_pos
-						< (std::numeric_limits<int>::max)());
+						< std::numeric_limits<int>::max());
 					incoming = int(m_content_length - m_recv_pos + m_body_start_pos);
 				}
 

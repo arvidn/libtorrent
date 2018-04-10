@@ -221,7 +221,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(downloading_iter == m_downloads[download_state].end()
 			|| downloading_iter->index != piece);
 		TORRENT_ASSERT(block_index >= 0);
-		TORRENT_ASSERT(block_index < (std::numeric_limits<std::uint16_t>::max)());
+		TORRENT_ASSERT(block_index < std::numeric_limits<std::uint16_t>::max());
 		ret.info_idx = std::uint16_t(block_index);
 		TORRENT_ASSERT(int(ret.info_idx) * m_blocks_per_piece
 			+ m_blocks_per_piece <= int(m_block_info.size()));
@@ -1809,7 +1809,7 @@ namespace {
 			, int const num_blocks)
 		{
 			if (src.empty()) return num_blocks;
-			int const to_copy = (std::min)(int(src.size()), num_blocks);
+			int const to_copy = std::min(int(src.size()), num_blocks);
 
 			dst.insert(dst.end(), src.begin(), src.begin() + to_copy);
 			src.erase(src.begin(), src.begin() + to_copy);
@@ -2611,7 +2611,7 @@ get_out:
 #if TORRENT_USE_INVARIANT_CHECKS
 		verify_pick(interesting_blocks, pieces);
 #endif
-		return (std::max)(num_blocks, 0);
+		return std::max(num_blocks, 0);
 	}
 
 	int piece_picker::add_blocks_downloading(downloading_piece const& dp

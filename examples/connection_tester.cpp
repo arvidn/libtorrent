@@ -629,7 +629,7 @@ struct peer_conn
 				}
 				else
 				{
-					block = (std::min)(start / 0x4000, block);
+					block = std::min(start / 0x4000, block);
 					if (block == 0)
 					{
 						pieces.push_back(current_piece);
@@ -802,7 +802,7 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 		char b[100];
 		std::snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
 		++i;
-		fs.add_file(b, (std::min)(s, std::int64_t(file_size)));
+		fs.add_file(b, std::min(s, file_size));
 		s -= file_size;
 		file_size += 200;
 	}

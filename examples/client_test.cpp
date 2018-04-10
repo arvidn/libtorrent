@@ -1665,7 +1665,7 @@ COLUMN OPTIONS
 					, "%3d [%3d, %d] %s%s\x1b[K\n"
 					, bucket, n.num_nodes, n.num_replacements
 					, progress_bar + (128 - n.num_nodes)
-					, short_progress_bar + (8 - (std::min)(8, n.num_replacements)));
+					, short_progress_bar + (8 - std::min(8, n.num_replacements)));
 				out += str;
 				pos += 1;
 			}

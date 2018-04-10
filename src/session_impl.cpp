@@ -3221,7 +3221,7 @@ namespace aux {
 
 			m_created += hours(4);
 
-			const int four_hours = 60 * 60 * 4;
+			constexpr int four_hours = 60 * 60 * 4;
 			for (auto& i : m_torrents)
 			{
 				i.second->step_session_time(four_hours);
@@ -3345,8 +3345,8 @@ namespace aux {
 		// TODO: this should apply to all bandwidth channels
 		if (m_settings.get_bool(settings_pack::rate_limit_ip_overhead))
 		{
-			int up_limit = upload_rate_limit(m_global_class);
-			int down_limit = download_rate_limit(m_global_class);
+			int const up_limit = upload_rate_limit(m_global_class);
+			int const down_limit = download_rate_limit(m_global_class);
 
 			if (down_limit > 0
 				&& m_stat.download_ip_overhead() >= down_limit
@@ -3365,8 +3365,8 @@ namespace aux {
 			}
 		}
 
-		m_peak_up_rate = (std::max)(m_stat.upload_rate(), m_peak_up_rate);
-		m_peak_down_rate = (std::max)(m_stat.download_rate(), m_peak_down_rate);
+		m_peak_up_rate = std::max(m_stat.upload_rate(), m_peak_up_rate);
+		m_peak_down_rate = std::max(m_stat.download_rate(), m_peak_down_rate);
 
 		m_stat.second_tick(tick_interval_ms);
 
@@ -3382,7 +3382,7 @@ namespace aux {
 			{
 				aux::vector<torrent*>& want_scrape = m_torrent_lists[torrent_want_scrape];
 				m_auto_scrape_time_scaler = m_settings.get_int(settings_pack::auto_scrape_interval)
-					/ (std::max)(1, int(want_scrape.size()));
+					/ std::max(1, int(want_scrape.size()));
 				if (m_auto_scrape_time_scaler < m_settings.get_int(settings_pack::auto_scrape_min_interval))
 					m_auto_scrape_time_scaler = m_settings.get_int(settings_pack::auto_scrape_min_interval);
 
@@ -3477,7 +3477,7 @@ namespace aux {
 							|| t->max_connections() < 6)
 							continue;
 
-						int const peers_to_disconnect = (std::min)((std::max)(t->num_peers()
+						int const peers_to_disconnect = std::min(std::max(t->num_peers()
 							* m_settings.get_int(settings_pack::peer_turnover) / 100, 1)
 							, t->num_connect_candidates());
 						t->disconnect_peers(peers_to_disconnect, errors::optimistic_disconnect);
@@ -3754,7 +3754,7 @@ namespace aux {
 	int session_impl::get_int_setting(int n) const
 	{
 		int const v = settings().get_int(n);
-		if (v < 0) return (std::numeric_limits<int>::max)();
+		if (v < 0) return std::numeric_limits<int>::max();
 		return v;
 	}
 
@@ -3795,17 +3795,17 @@ namespace aux {
 			// make sure the remaining torrents are paused, but their order is not
 			// relevant
 			std::partial_sort(checking.begin(), checking.begin() +
-				(std::min)(checking_limit, int(checking.size())), checking.end()
+				std::min(checking_limit, int(checking.size())), checking.end()
 				, [](torrent const* lhs, torrent const* rhs)
 				{ return lhs->sequence_number() < rhs->sequence_number(); });
 
 			std::partial_sort(downloaders.begin(), downloaders.begin() +
-				(std::min)(hard_limit, int(downloaders.size())), downloaders.end()
+				std::min(hard_limit, int(downloaders.size())), downloaders.end()
 				, [](torrent const* lhs, torrent const* rhs)
 				{ return lhs->sequence_number() < rhs->sequence_number(); });
 
 			std::partial_sort(seeds.begin(), seeds.begin() +
-				(std::min)(hard_limit, int(seeds.size())), seeds.end()
+				std::min(hard_limit, int(seeds.size())), seeds.end()
 				, [this](torrent const* lhs, torrent const* rhs)
 				{ return lhs->seed_rank(m_settings) > rhs->seed_rank(m_settings); });
 		}
@@ -3867,7 +3867,7 @@ namespace aux {
 					for (auto& e : plugins)
 					{
 						uint64_t const priority = e->get_unchoke_priority(peer_connection_handle(*peer.peer));
-						peer.ext_priority = (std::min)(priority, peer.ext_priority);
+						peer.ext_priority = std::min(priority, peer.ext_priority);
 					}
 				}
 				return peer.ext_priority;
@@ -6911,7 +6911,7 @@ namespace aux {
 
 		if (m_settings.get_int(settings_pack::unchoke_slots_limit) < 0
 			&& m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker)
-			TORRENT_ASSERT(m_stats_counters[counters::num_unchoke_slots] == (std::numeric_limits<int>::max)());
+			TORRENT_ASSERT(m_stats_counters[counters::num_unchoke_slots] == std::numeric_limits<int>::max());
 
 		for (torrent_list_index_t l{}; l != m_torrent_lists.end_index(); ++l)
 		{

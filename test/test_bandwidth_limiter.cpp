@@ -196,7 +196,7 @@ void test_equal_connections(int num, int limit)
 	run_test(v, manager);
 
 	float sum = 0.f;
-	float err = (std::max)(limit / num * 0.3f, 1000.f);
+	float const err = std::max(limit / num * 0.3f, 1000.f);
 	for (connections_t::iterator i = v.begin()
 		, end(v.end()); i != end; ++i)
 	{
@@ -307,7 +307,7 @@ void test_torrents(int num, int limit1, int limit2, int global_limit)
 
 	if (global_limit > 0 && global_limit < limit1 + limit2)
 	{
-		limit1 = (std::min)(limit1, global_limit / 2);
+		limit1 = std::min(limit1, global_limit / 2);
 		limit2 = global_limit - limit1;
 	}
 	float sum = 0.f;

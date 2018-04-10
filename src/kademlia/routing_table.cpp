@@ -285,7 +285,7 @@ routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 		++num_buckets;
 	}
 
-	int bucket_index = (std::min)(159 - distance_exp(m_id, id), num_buckets - 1);
+	int bucket_index = std::min(159 - distance_exp(m_id, id), num_buckets - 1);
 	TORRENT_ASSERT(bucket_index < int(m_buckets.size()));
 	TORRENT_ASSERT(bucket_index >= 0);
 

@@ -524,7 +524,7 @@ bool traversal_algorithm::add_requests()
 		o->flags |= observer::flag_queried;
 		if (invoke(*i))
 		{
-			TORRENT_ASSERT(m_invoke_count < (std::numeric_limits<std::int8_t>::max)());
+			TORRENT_ASSERT(m_invoke_count < std::numeric_limits<std::int8_t>::max());
 			++m_invoke_count;
 			++outstanding;
 		}
@@ -580,13 +580,13 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.target = m_target;
 
 	int last_sent = INT_MAX;
-	time_point now = aux::time_now();
+	time_point const now = aux::time_now();
 	for (auto const& r : m_results)
 	{
 		observer const& o = *r;
 		if (o.flags & observer::flag_queried)
 		{
-			last_sent = (std::min)(last_sent, int(total_seconds(now - o.sent())));
+			last_sent = std::min(last_sent, int(total_seconds(now - o.sent())));
 			if (o.has_short_timeout()) ++l.first_timeout;
 			continue;
 		}

@@ -527,7 +527,7 @@ namespace libtorrent {
 	{
 		char const* slash = std::strrchr(f.c_str(), '/');
 #ifdef TORRENT_WINDOWS
-		slash = (std::max)((char const*)std::strrchr(f.c_str(), '\\'), slash);
+		slash = std::max((char const*)std::strrchr(f.c_str(), '\\'), slash);
 #endif
 		char const* ext = std::strrchr(f.c_str(), '.');
 		// if we don't have an extension, just return f

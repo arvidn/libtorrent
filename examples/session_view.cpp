@@ -115,9 +115,9 @@ void session_view::render()
 		, color(to_string(int(m_cnt[0][m_queued_reads_idx]), 3), col_red).c_str()
 		, color(to_string(int(m_cnt[0][m_queued_writes_idx]), 3), col_green).c_str()
 		, int((m_cnt[0][m_blocks_written_idx] - m_cnt[0][m_write_ops_idx]) * 100
-			/ (std::max)(std::int64_t(1), m_cnt[0][m_blocks_written_idx]))
+			/ std::max(std::int64_t(1), m_cnt[0][m_blocks_written_idx]))
 		, int(m_cnt[0][m_cache_hit_idx] * 100
-			/ (std::max)(std::int64_t(1), m_cnt[0][m_num_blocks_read_idx]))
+			/ std::max(std::int64_t(1), m_cnt[0][m_num_blocks_read_idx]))
 		, add_suffix(m_cnt[0][m_writes_cache_idx] * 16 * 1024).c_str()
 		, add_suffix(m_cnt[0][m_reads_cache_idx] * 16 * 1024).c_str()
 		, add_suffix(m_cnt[0][m_blocks_in_use_idx] * 16 * 1024).c_str()
