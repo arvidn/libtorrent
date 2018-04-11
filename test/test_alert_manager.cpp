@@ -190,23 +190,9 @@ int plugin_alerts[3] = { 0, 0, 0 };
 
 struct test_plugin : libtorrent::plugin
 {
-	test_plugin(int index, bool reliable_alerts) : m_index(index)
-	{
-		if (reliable_alerts)
-		{
-			m_features = libtorrent::plugin::reliable_alerts_feature;
-		}
-		else
-		{
-			m_features = 0;
-		}
-	}
-
-	boost::uint32_t implemented_features()
-	{
-		return m_features;
-	}
-
+	test_plugin(int index, bool reliable_alerts) : m_index(index),
+		m_features(reliable_alerts ? libtorrent::plugin::reliable_alerts_feature  : 0) {}
+	boost::uint32_t implemented_features() { return m_features; }
 	virtual void on_alert(alert const* a)
 	{
 		++plugin_alerts[m_index];
@@ -226,7 +212,7 @@ TORRENT_TEST(extensions)
 
 	mgr.add_extension(boost::make_shared<test_plugin>(0, false));
 	mgr.add_extension(boost::make_shared<test_plugin>(1, false));
-	mgr.add_extension(boost::make_shared<test_plugin>(2, true));
+	mgr.add_extension(boost::make_shared<test_plugin>(2, false));
 
 	for (int i = 0; i < 53; ++i)
 		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
@@ -241,23 +227,25 @@ TORRENT_TEST(extensions)
 	TEST_EQUAL(plugin_alerts[0], 70);
 	TEST_EQUAL(plugin_alerts[1], 70);
 	TEST_EQUAL(plugin_alerts[2], 70);
+#endif
+}
 
-	for (int i = 0; i < 35; ++i)
+TORRENT_TEST(reliable_alerts)
+{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	memset(plugin_alerts, 0, sizeof(plugin_alerts));
+	alert_manager mgr(100, 0xffffffff);
+
+	mgr.add_extension(boost::make_shared<test_plugin>(0, false));
+	mgr.add_extension(boost::make_shared<test_plugin>(1, false));
+	mgr.add_extension(boost::make_shared<test_plugin>(2, true));
+
+	for (int i = 0; i < 105; ++i)
 		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 
 	TEST_EQUAL(plugin_alerts[0], 100);
 	TEST_EQUAL(plugin_alerts[1], 100);
 	TEST_EQUAL(plugin_alerts[2], 105);
-
-	mgr.set_alert_queue_size_limit(0);
-
-	for (int i = 0; i < 35; ++i)
-		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
-
-	TEST_EQUAL(plugin_alerts[0], 100);
-	TEST_EQUAL(plugin_alerts[1], 100);
-	TEST_EQUAL(plugin_alerts[2], 140);
-
 #endif
 }
 
