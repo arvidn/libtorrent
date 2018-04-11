@@ -1239,8 +1239,8 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 	ghost_list->push_back(pe);
 }
 
-int block_cache::pad_job(disk_io_job const* j, int blocks_in_piece
-	, int read_ahead) const
+int block_cache::pad_job(disk_io_job const* j, int const blocks_in_piece
+	, int const read_ahead) const
 {
 	int block_offset = j->d.io.offset & (default_block_size - 1);
 	int start = j->d.io.offset / default_block_size;
@@ -1249,7 +1249,7 @@ int block_cache::pad_job(disk_io_job const* j, int blocks_in_piece
 	// take the read-ahead into account
 	// make sure to not overflow in this case
 	if (read_ahead == INT_MAX) end = blocks_in_piece;
-	else end = (std::min)(blocks_in_piece, (std::max)(start + read_ahead, end));
+	else end = std::min(blocks_in_piece, std::max(start + read_ahead, end));
 
 	return end - start;
 }
@@ -1493,8 +1493,8 @@ void block_cache::set_settings(aux::session_settings const& sett)
 	// assumption is that there are about 128 blocks per piece,
 	// and there are two ghost lists, so divide by 2.
 
-	m_ghost_size = (std::max)(8, sett.get_int(settings_pack::cache_size)
-		/ (std::max)(sett.get_int(settings_pack::read_cache_line_size), 4) / 2);
+	m_ghost_size = std::max(8, sett.get_int(settings_pack::cache_size)
+		/ std::max(sett.get_int(settings_pack::read_cache_line_size), 4) / 2);
 
 	m_max_volatile_blocks = sett.get_int(settings_pack::cache_size_volatile);
 	disk_buffer_pool::set_settings(sett);

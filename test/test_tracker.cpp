@@ -297,7 +297,7 @@ TORRENT_TEST(extract_peer_hostname)
 	peer_entry result = extract_peer("d2:ip11:example.com4:porti1ee"
 		, error_code(), true);
 	TEST_EQUAL(result.hostname, "example.com");
-	TEST_EQUAL(result.pid, (peer_id::min)());
+	TEST_EQUAL(result.pid, peer_id::min());
 	TEST_EQUAL(result.port, 1);
 }
 

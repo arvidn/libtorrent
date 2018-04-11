@@ -72,7 +72,7 @@ namespace libtorrent {
 		, std::function<void()> const& trigger_trim)
 		: m_in_use(0)
 		, m_max_use(64)
-		, m_low_watermark((std::max)(m_max_use - 32, 0))
+		, m_low_watermark(std::max(m_max_use - 32, 0))
 		, m_trigger_cache_trim(trigger_trim)
 		, m_exceeded_max_size(false)
 		, m_ios(ios)

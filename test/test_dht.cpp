@@ -1732,7 +1732,7 @@ void test_routing_table(address(&rand_addr)())
 		std::generate(tmp.begin(), tmp.end(), random_byte);
 		table.find_node(tmp, temp, 0, bucket_size * 2);
 		std::printf("returned: %d\n", int(temp.size()));
-		TEST_EQUAL(int(temp.size()), (std::min)(bucket_size * 2, int(nodes.size())));
+		TEST_EQUAL(int(temp.size()), std::min(bucket_size * 2, int(nodes.size())));
 
 		std::sort(nodes.begin(), nodes.end(), std::bind(&compare_ref
 				, std::bind(&node_entry::id, _1)

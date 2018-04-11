@@ -471,7 +471,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 			}
 			else
 			{
-				block = (std::min)(start / 0x4000, block);
+				block = std::min(start / 0x4000, block);
 				if (block == 0)
 				{
 					pieces.push_back(current_piece);

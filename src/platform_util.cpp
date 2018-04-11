@@ -72,7 +72,7 @@ namespace libtorrent {
 		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
 		{
 			if (rl.rlim_cur == rlim_infinity)
-				return (std::numeric_limits<int>::max)();
+				return std::numeric_limits<int>::max();
 
 			return rl.rlim_cur <= std::numeric_limits<int>::max()
 				? int(rl.rlim_cur) : std::numeric_limits<int>::max();

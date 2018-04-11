@@ -840,7 +840,7 @@ void test_zero_file_prio(bool test_deprecated = false)
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
 	rd["info-hash"] = ti->info_hash().to_string();
-	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
+	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
 
 	entry::list_type& file_prio = rd["file_priority"].list();
 	for (int i = 0; i < 100; ++i)
@@ -965,7 +965,7 @@ void test_seed_mode(test_mode_t const flags)
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
 	rd["info-hash"] = ti->info_hash().to_string();
-	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
+	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
 
 	if (flags & test_mode::file_prio)
 	{

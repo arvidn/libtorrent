@@ -64,7 +64,7 @@ int distance_exp(node_id const& n1, node_id const& n2)
 	// TODO: it's a little bit weird to return 159 - leading zeroes. It should
 	// probably be 160 - leading zeroes, but all other code in here is tuned to
 	// this expectation now, and it doesn't really matter (other than complexity)
-	return (std::max)(159 - distance(n1, n2).count_leading_zeroes(), 0);
+	return std::max(159 - distance(n1, n2).count_leading_zeroes(), 0);
 }
 
 int min_distance_exp(node_id const& n1, std::vector<node_id> const& ids)

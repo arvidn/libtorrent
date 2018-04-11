@@ -3654,7 +3654,7 @@ namespace libtorrent {
 
 		int const block_offset = block.block_index * t->block_size();
 		int const block_size
-			= (std::min)(t->torrent_file().piece_size(block.piece_index)-block_offset,
+			= std::min(t->torrent_file().piece_size(block.piece_index) - block_offset,
 			t->block_size());
 		TORRENT_ASSERT(block_size > 0);
 		TORRENT_ASSERT(block_size <= t->block_size());

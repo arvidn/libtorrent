@@ -259,7 +259,7 @@ namespace libtorrent {namespace {
 
 				int offset = piece * 16 * 1024;
 				metadata = m_tp.metadata().data() + offset;
-				metadata_piece_size = (std::min)(
+				metadata_piece_size = std::min(
 					m_tp.get_metadata_size() - offset, 16 * 1024);
 				TORRENT_ASSERT(metadata_piece_size > 0);
 				TORRENT_ASSERT(offset >= 0);
@@ -394,7 +394,7 @@ namespace libtorrent {namespace {
 				break;
 				case metadata_dont_have:
 				{
-					m_request_limit = (std::max)(aux::time_now() + minutes(1), m_request_limit);
+					m_request_limit = std::max(aux::time_now() + minutes(1), m_request_limit);
 					auto const i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
 					// unwanted piece?

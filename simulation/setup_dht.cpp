@@ -296,7 +296,7 @@ void print_routing_table(std::vector<lt::dht_routing_bucket> const& rt)
 		std::printf("%3d [%3d, %d] %s%s\n"
 			, bucket, i->num_nodes, i->num_replacements
 			, progress_bar + (128 - i->num_nodes)
-			, short_progress_bar + (8 - (std::min)(8, i->num_replacements)));
+			, short_progress_bar + (8 - std::min(8, i->num_replacements)));
 	}
 }
 
