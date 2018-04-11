@@ -114,7 +114,7 @@ namespace libtorrent {
 			T alert(m_allocations[m_generation], std::forward<Args>(args)...);
 			m_alerts[m_generation].push_back(alert);
 
-			maybe_notify(&alert, lock);
+			maybe_notify(&alert);
 		}
 
 #else
@@ -167,7 +167,7 @@ namespace libtorrent {
 		alert_manager(alert_manager const&);
 		alert_manager& operator=(alert_manager const&);
 
-		void maybe_notify(alert* a, mutex::scoped_lock& lock);
+		void maybe_notify(alert* const a);
 
 		mutable mutex m_mutex;
 		condition_variable m_condition;

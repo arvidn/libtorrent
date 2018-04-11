@@ -70,7 +70,7 @@ namespace libtorrent
 		return NULL;
 	}
 
-	void alert_manager::maybe_notify(alert* a, mutex::scoped_lock& lock)
+	void alert_manager::maybe_notify(alert* const a)
 	{
 		if (a->type() == save_resume_data_failed_alert::alert_type
 			|| a->type() == save_resume_data_alert::alert_type)

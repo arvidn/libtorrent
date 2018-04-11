@@ -46,7 +46,7 @@
 				if (m_ses_extensions_reliable.empty())
 					return;
 
-				mutex::scoped_lock lock(m_mutex_reliable);
+				mutex::scoped_lock reliable_lock(m_mutex_reliable);
 				T alert(m_allocator_reliable
 					BOOST_PP_COMMA_IF(I)
 					BOOST_PP_ENUM_PARAMS(I, a));
@@ -61,7 +61,7 @@
 				BOOST_PP_ENUM_PARAMS(I, a));
 			m_alerts[m_generation].push_back(alert);
 
-			maybe_notify(&alert, lock);
+			maybe_notify(&alert);
 		}
 
 #undef I
