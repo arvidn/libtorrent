@@ -103,7 +103,7 @@ namespace libtorrent {
 				if (m_ses_extensions_reliable.empty())
 					return;
 
-				mutex::scoped_lock lock(m_mutex_reliable);
+				mutex::scoped_lock reliable_lock(m_mutex_reliable);
 				T alert(m_allocator_reliable, std::forward<Args>(args)...);
 				notify_extensions(&alert, m_ses_extensions_reliable);
 				m_allocator_reliable.reset();
@@ -209,7 +209,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
-		void notify_extensions(alert * const a, ses_extension_list_t& extensions);
+		void notify_extensions(alert * const a, ses_extension_list_t const& extensions);
 		ses_extension_list_t m_ses_extensions;
 		ses_extension_list_t m_ses_extensions_reliable;
 		aux::stack_allocator m_allocator_reliable;

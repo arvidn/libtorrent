@@ -78,8 +78,6 @@ namespace libtorrent
 
 		if (m_alerts[m_generation].size() == 1)
 		{
-			lock.unlock();
-
 			// we just posted to an empty queue. If anyone is waiting for
 			// alerts, we need to notify them. Also (potentially) call the
 			// user supplied m_notify callback to let the client wake up its
@@ -90,14 +88,9 @@ namespace libtorrent
 			// > 0 notify them
 			m_condition.notify_all();
 		}
-		else
-		{
-			lock.unlock();
-		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		notify_extensions(a, m_ses_extensions);
-		notify_extensions(a, m_ses_extensions_reliable);
 #endif
 	}
 
@@ -158,9 +151,9 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void alert_manager::notify_extensions(alert * const alert, ses_extension_list_t& list)
+	void alert_manager::notify_extensions(alert * const alert, ses_extension_list_t const& list)
 	{
-		for (ses_extension_list_t::iterator i = list.begin(),
+		for (ses_extension_list_t::const_iterator i = list.begin(),
 			end(list.end()); i != end; ++i)
 		{
 			(*i)->on_alert(alert);
@@ -170,13 +163,8 @@ namespace libtorrent
 	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
 	{
 		if ((ext->implemented_features() & plugin::reliable_alerts_feature) != 0)
-		{
 			m_ses_extensions_reliable.push_back(ext);
-		}
-		else
-		{
-			m_ses_extensions.push_back(ext);
-		}
+		m_ses_extensions.push_back(ext);
 	}
 #endif
 

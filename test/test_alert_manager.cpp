@@ -216,20 +216,6 @@ struct test_plugin : libtorrent::plugin
 	boost::uint32_t m_features;
 };
 
-void
-alert_popper(alert_manager& mgr, bool& running)
-{
-	int num_resume;
-	std::vector<alert*> alerts;
-	for (running = true; running;)
-	{
-		time_duration td = milliseconds(10);
-		if (mgr.wait_for_alert(td) == NULL)
-			continue;
-		mgr.get_all(alerts, num_resume);
-	}
-}
-
 #endif
 
 TORRENT_TEST(extensions)
@@ -271,25 +257,6 @@ TORRENT_TEST(extensions)
 	TEST_EQUAL(plugin_alerts[0], 100);
 	TEST_EQUAL(plugin_alerts[1], 100);
 	TEST_EQUAL(plugin_alerts[2], 140);
-
-	bool running = false;
-	int num_resume = 0;
-	std::vector<alert*> alerts;
-	mgr.get_all(alerts, num_resume);
-	libtorrent::thread t(boost::bind(&alert_popper, boost::ref(mgr), boost::ref(running)));
-
-	/* make sure the thread is started */
-	while (!running) test_sleep(10);
-
-	for (int i = 0; i < 100000000; ++i)
-		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
-
-	running = false;
-	t.join();
-
-	TEST_EQUAL(plugin_alerts[0] < 100000140, true);
-	TEST_EQUAL(plugin_alerts[1] < 100000140, true);
-	TEST_EQUAL(plugin_alerts[2], 100000140);
 
 #endif
 }
