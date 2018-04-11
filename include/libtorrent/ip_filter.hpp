@@ -41,9 +41,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include <boost/limits.hpp>
-#include <boost/utility.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
+
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 106700
+#include <boost/next_prior.hpp>
+#else
+#include <boost/utility.hpp>
+#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
