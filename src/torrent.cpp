@@ -1312,7 +1312,7 @@ bool is_downloading_state(int const st)
 				&& picker().is_finished(block))
 				continue;
 
-			p.length = std::min(piece_size - p.start, int(block_size()));
+			p.length = std::min(piece_size - p.start, block_size());
 
 			m_stats_counters.inc_stats_counter(counters::queued_write_bytes, p.length);
 			m_ses.disk_thread().async_write(m_storage, p, data + p.start, nullptr
@@ -2865,8 +2865,8 @@ bool is_downloading_state(int const st)
 					// in force_proxy mode we don't talk directly to trackers
 					// we only allow trackers if there is a proxy and issue
 					// a warning if there isn't one
-					std::string protocol = req.url.substr(0, req.url.find(':'));
-					int proxy_type = settings().get_int(settings_pack::proxy_type);
+					std::string const protocol = req.url.substr(0, req.url.find(':'));
+					int const proxy_type = settings().get_int(settings_pack::proxy_type);
 
 					// http can run over any proxy, so as long as one is used
 					// it's OK. If no proxy is configured, skip this tracker
@@ -2964,7 +2964,7 @@ bool is_downloading_state(int const st)
 		update_tracker_timer(now);
 	}
 
-	void torrent::scrape_tracker(int idx, bool user_triggered)
+	void torrent::scrape_tracker(int idx, bool const user_triggered)
 	{
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_NO_DEPRECATE
@@ -3108,9 +3108,9 @@ bool is_downloading_state(int const st)
 				, resp.external_ip
 				, aux::session_interface::source_tracker, tracker_ip);
 
-		time_point32 now = aux::time_now32();
+		time_point32 const now = aux::time_now32();
 
-		auto interval = std::max(resp.interval, seconds32(
+		auto const interval = std::max(resp.interval, seconds32(
 			settings().get_int(settings_pack::min_announce_interval)));
 
 		announce_entry* ae = find_tracker(r.url);
@@ -3133,7 +3133,7 @@ bool is_downloading_state(int const st)
 				aep->min_announce = now + resp.min_interval;
 				aep->updating = false;
 				aep->fails = 0;
-				int tracker_index = int(ae - &m_trackers[0]);
+				int tracker_index = int(ae - m_trackers.data());
 				m_last_working_tracker = std::int8_t(prioritize_tracker(tracker_index));
 
 				if ((!resp.trackerid.empty()) && (ae->trackerid != resp.trackerid))
@@ -4152,8 +4152,8 @@ bool is_downloading_state(int const st)
 				// ban it.
 				if (m_ses.alerts().should_post<peer_ban_alert>())
 				{
-					peer_id pid(nullptr);
-					if (p->connection) pid = p->connection->pid();
+					peer_id const pid = p->connection
+						? p->connection->pid() : peer_id();
 					m_ses.alerts().emplace_alert<peer_ban_alert>(
 						get_handle(), p->ip(), pid);
 				}
