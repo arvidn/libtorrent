@@ -52,7 +52,7 @@ namespace libtorrent
 
 	int alert_manager::num_queued_resume() const
 	{
-		return m_num_queued_resume;
+		return m_num_queued_resume.load(boost::memory_order_consume);
 	}
 
 	alert* alert_manager::wait_for_alert(time_duration max_wait)
@@ -70,14 +70,16 @@ namespace libtorrent
 		return NULL;
 	}
 
-	void alert_manager::maybe_notify(alert* const a)
+	void alert_manager::maybe_notify(alert* a, mutex::scoped_lock& lock)
 	{
 		if (a->type() == save_resume_data_failed_alert::alert_type
 			|| a->type() == save_resume_data_alert::alert_type)
-			++m_num_queued_resume;
+			m_num_queued_resume.fetch_add(1, boost::memory_order_relaxed);
 
 		if (m_alerts[m_generation].size() == 1)
 		{
+			lock.unlock();
+
 			// we just posted to an empty queue. If anyone is waiting for
 			// alerts, we need to notify them. Also (potentially) call the
 			// user supplied m_notify callback to let the client wake up its
@@ -87,6 +89,10 @@ namespace libtorrent
 			// TODO: 2 keep a count of the number of threads waiting. Only if it's
 			// > 0 notify them
 			m_condition.notify_all();
+		}
+		else
+		{
+			lock.unlock();
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -171,13 +177,13 @@ namespace libtorrent
 	void alert_manager::get_all(std::vector<alert*>& alerts, int& num_resume)
 	{
 		mutex::scoped_lock lock(m_mutex);
-		TORRENT_ASSERT(m_num_queued_resume <= m_alerts[m_generation].size());
+		TORRENT_ASSERT(m_num_queued_resume.load(boost::memory_order_relaxed) <= m_alerts[m_generation].size());
 
 		alerts.clear();
 		if (m_alerts[m_generation].empty()) return;
 
 		m_alerts[m_generation].get_pointers(alerts);
-		num_resume = m_num_queued_resume;
+		num_resume = m_num_queued_resume.load(boost::memory_order_relaxed);
 		m_num_queued_resume = 0;
 
 		// swap buffers

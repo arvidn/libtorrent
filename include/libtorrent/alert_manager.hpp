@@ -114,7 +114,7 @@ namespace libtorrent {
 			T alert(m_allocations[m_generation], std::forward<Args>(args)...);
 			m_alerts[m_generation].push_back(alert);
 
-			maybe_notify(&alert);
+			maybe_notify(&alert, lock);
 		}
 
 #else
@@ -131,19 +131,19 @@ namespace libtorrent {
 		template <class T>
 		bool should_post() const
 		{
-			return (m_alert_mask & T::static_category) != 0;
+			return (m_alert_mask.load(boost::memory_order_relaxed) & T::static_category) != 0;
 		}
 
 		alert* wait_for_alert(time_duration max_wait);
 
 		void set_alert_mask(boost::uint32_t m)
 		{
-			m_alert_mask = m;
+			m_alert_mask.store(m, boost::memory_order_relaxed);
 		}
 
 		boost::uint32_t alert_mask() const
 		{
-			return m_alert_mask;
+			return m_alert_mask.load(boost::memory_order_relaxed);
 		}
 
 		int alert_queue_size_limit() const { return m_queue_size_limit; }
@@ -167,11 +167,11 @@ namespace libtorrent {
 		alert_manager(alert_manager const&);
 		alert_manager& operator=(alert_manager const&);
 
-		void maybe_notify(alert* const a);
+		void maybe_notify(alert* a, mutex::scoped_lock& lock);
 
 		mutable mutex m_mutex;
 		condition_variable m_condition;
-		boost::uint32_t m_alert_mask;
+		boost::atomic<boost::uint32_t> m_alert_mask;
 		int m_queue_size_limit;
 
 #ifndef TORRENT_NO_DEPRECATE
