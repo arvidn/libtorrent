@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2016, Arvid Norberg
+Copyright (c) 2008-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -284,7 +284,8 @@ restart_response:
 				if (name == "content-length")
 				{
 					m_content_length = std::strtoll(value.c_str(), nullptr, 10);
-					if (m_content_length < 0)
+					if (m_content_length < 0
+						|| m_content_length == std::numeric_limits<std::int64_t>::max())
 					{
 						m_state = error_state;
 						error = true;
@@ -307,7 +308,8 @@ restart_response:
 					if (string_begins_no_case("bytes ", ptr)) ptr += 6;
 					char* end;
 					m_range_start = std::strtoll(ptr, &end, 10);
-					if (m_range_start < 0)
+					if (m_range_start < 0
+						|| m_range_start == std::numeric_limits<std::int64_t>::max())
 					{
 						m_state = error_state;
 						error = true;
@@ -319,7 +321,8 @@ restart_response:
 					{
 						ptr = end + 1;
 						m_range_end = std::strtoll(ptr, &end, 10);
-						if (m_range_end < 0)
+						if (m_range_end < 0
+							|| m_range_end == std::numeric_limits<std::int64_t>::max())
 						{
 							m_state = error_state;
 							error = true;

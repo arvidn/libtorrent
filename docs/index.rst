@@ -183,7 +183,7 @@ list or posted to the `bug tracker`_.
 Acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright |copy| 2003-2016
+Written by Arvid Norberg. Copyright |copy| 2003-2018
 
 Contributions by Steven Siloti, Alden Torres, Magnus Jonsson, Daniel Wallin and Cory Nelson
 

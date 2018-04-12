@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2003-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -392,7 +392,7 @@ namespace libtorrent {
 			return;
 		}
 
-		tcp::endpoint bound_ip = m_ses.bind_outgoing_socket(*m_socket
+		tcp::endpoint const bound_ip = m_ses.bind_outgoing_socket(*m_socket
 			, m_remote.address(), ec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))
@@ -2245,6 +2245,7 @@ namespace libtorrent {
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
+		torrent_info const& ti = t->torrent_file();
 
 		m_counters.inc_stats_counter(counters::piece_requests);
 
@@ -2378,9 +2379,9 @@ namespace libtorrent {
 				&& !t->is_predictive_piece(r.piece)
 				&& !t->seed_mode())
 			|| r.start < 0
-			|| r.start >= t->torrent_file().piece_size(r.piece)
+			|| r.start >= ti.piece_size(r.piece)
 			|| r.length <= 0
-			|| r.length + r.start > t->torrent_file().piece_size(r.piece)
+			|| r.length + r.start > ti.piece_size(r.piece)
 			|| r.length > t->block_size())
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
@@ -2393,7 +2394,7 @@ namespace libtorrent {
 					, m_peer_interested
 					, valid_piece_index
 						? t->torrent_file().piece_size(r.piece) : -1
-					, t->torrent_file().num_pieces()
+					, ti.num_pieces()
 					, t->has_piece_passed(r.piece)
 					, t->block_size());
 			}
@@ -2440,8 +2441,8 @@ namespace libtorrent {
 
 		// if we have choked the client
 		// ignore the request
-		const int blocks_per_piece =
-			(t->torrent_file().piece_length() + t->block_size() - 1) / t->block_size();
+		int const blocks_per_piece =
+			(ti.piece_length() + t->block_size() - 1) / t->block_size();
 
 		// disconnect peers that downloads more than foo times an allowed
 		// fast piece
@@ -5278,11 +5279,8 @@ namespace libtorrent {
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
 				, "piece: %d passed", static_cast<int>(piece));
 #endif
-			if (t)
-			{
-				if (t->seed_mode() && t->all_verified())
-					t->leave_seed_mode(true);
-			}
+			if (t->seed_mode() && t->all_verified())
+				t->leave_seed_mode(true);
 		}
 
 		// try to service the requests again, now that the piece

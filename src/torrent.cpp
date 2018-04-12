@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2003-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -4060,9 +4060,6 @@ bool is_downloading_state(int const st)
 
 		inc_stats_counter(counters::num_piece_failed);
 
-		if (m_ses.alerts().should_post<hash_failed_alert>())
-			m_ses.alerts().emplace_alert<hash_failed_alert>(get_handle(), index);
-
 		auto const it = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
 		if (it != m_predictive_pieces.end() && *it == index)
@@ -4251,6 +4248,9 @@ bool is_downloading_state(int const st)
 		// unlock the piece and restore it, as if no block was
 		// ever downloaded for it.
 		m_picker->restore_piece(piece);
+
+		if (m_ses.alerts().should_post<hash_failed_alert>())
+			m_ses.alerts().emplace_alert<hash_failed_alert>(get_handle(), piece);
 
 		// we have to let the piece_picker know that
 		// this piece failed the check as it can restore it
