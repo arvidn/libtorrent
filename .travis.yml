@@ -39,11 +39,13 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
+    - sourceline: 'ppa:dluxen/cmake-backports'
     packages:
     - libboost1.55-all-dev
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-5
+    - cmake3
 
 before_install:
 

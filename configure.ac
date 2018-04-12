@@ -552,7 +552,6 @@ AC_CONFIG_FILES(
   [bindings/python/compile_flags]
   [bindings/python/compile_cmd]
   [libtorrent-rasterbar.pc]
-  [libtorrent-rasterbar-cmake.pc]
 )
 
 AC_OUTPUT

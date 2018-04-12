@@ -83,7 +83,10 @@ set_target_properties(python-libtorrent
 		OUTPUT_NAME libtorrent
 )
 
-target_include_directories(python-libtorrent PRIVATE ${PYTHON_INCLUDE_DIRS})
+target_include_directories(python-libtorrent
+	PRIVATE
+		${PYTHON_INCLUDE_DIRS}
+)
 
 target_link_libraries(python-libtorrent
 	PRIVATE
