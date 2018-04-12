@@ -160,6 +160,7 @@ install:
     fi'
 
   - which python2
+  - cmake --version
 
 script:
 
@@ -229,7 +230,7 @@ script:
   - if [[ "$cmake" == "1" ]]; then
       export CXX=g++-5 &&
       export CC=gcc-5 &&
-      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -Dbuild_tests=ON -Dbuild_examples=ON -G "CodeBlocks - Unix Makefiles" .. &&
+      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -Dbuild_tests=ON -Dbuild_examples=ON -Dpython-bindings=ON -G "CodeBlocks - Unix Makefiles" .. &&
       cmake --build . -- -j2;
     fi
   - cd ..

@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 2.6)
 
+# Our tests contain printf formating checks therefore we disable GCC format string errors:
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+	check_cxx_compiler_flag("-Wno-error=format-truncation" _WNO_ERROR_FORMAT_TRUNCATION)
+	if (_WNO_ERROR_FORMAT_TRUNCATION)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=format-truncation")
+	endif()
+endif()
+
 file(GLOB tests "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
 list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_natpmp.cpp") # doesn't build at time of writing
 list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_utils.cpp") # helper file, not a test

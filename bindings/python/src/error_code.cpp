@@ -64,7 +64,7 @@ namespace {
 	struct ec_pickle_suite : boost::python::pickle_suite
 	{
 		static boost::python::tuple
-		getinitargs(error_code const& ec)
+		getinitargs(error_code const&)
 		{
 			return boost::python::tuple();
 		}
