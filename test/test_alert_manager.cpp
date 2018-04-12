@@ -190,7 +190,7 @@ int plugin_alerts[3] = { 0, 0, 0 };
 
 struct test_plugin : libtorrent::plugin
 {
-	test_plugin(int index, bool reliable_alerts) : m_index(index),
+	test_plugin(int index, bool reliable_alerts = false) : m_index(index),
 		m_features(reliable_alerts ? libtorrent::plugin::reliable_alerts_feature  : 0) {}
 	boost::uint32_t implemented_features() { return m_features; }
 	virtual void on_alert(alert const* a)
@@ -210,9 +210,9 @@ TORRENT_TEST(extensions)
 	memset(plugin_alerts, 0, sizeof(plugin_alerts));
 	alert_manager mgr(100, 0xffffffff);
 
-	mgr.add_extension(boost::make_shared<test_plugin>(0, false));
-	mgr.add_extension(boost::make_shared<test_plugin>(1, false));
-	mgr.add_extension(boost::make_shared<test_plugin>(2, false));
+	mgr.add_extension(boost::make_shared<test_plugin>(0));
+	mgr.add_extension(boost::make_shared<test_plugin>(1));
+	mgr.add_extension(boost::make_shared<test_plugin>(2));
 
 	for (int i = 0; i < 53; ++i)
 		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
@@ -236,8 +236,8 @@ TORRENT_TEST(reliable_alerts)
 	memset(plugin_alerts, 0, sizeof(plugin_alerts));
 	alert_manager mgr(100, 0xffffffff);
 
-	mgr.add_extension(boost::make_shared<test_plugin>(0, false));
-	mgr.add_extension(boost::make_shared<test_plugin>(1, false));
+	mgr.add_extension(boost::make_shared<test_plugin>(0));
+	mgr.add_extension(boost::make_shared<test_plugin>(1));
 	mgr.add_extension(boost::make_shared<test_plugin>(2, true));
 
 	for (int i = 0; i < 105; ++i)
