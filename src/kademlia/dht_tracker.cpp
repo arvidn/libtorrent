@@ -224,7 +224,10 @@ namespace libtorrent { namespace dht
 	void dht_tracker::get_peers(sha1_hash const& ih
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 	{
-		m_dht.get_peers(ih, f, NULL, false);
+		// TODO: Use `{}` instead of spelling out the whole function type when this is merged to master
+		m_dht.get_peers(ih, f
+			, boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)>()
+			, false);
 	}
 
 	void dht_tracker::announce(sha1_hash const& ih, int listen_port, int flags
