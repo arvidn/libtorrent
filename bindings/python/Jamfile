@@ -31,7 +31,6 @@ if $(BOOST_ROOT)
 {
 	use-project /boost : $(BOOST_ROOT) ;
 	alias boost_python : /boost/python//boost_python : : : <include>$(BOOST_ROOT) ;
-	alias boost_python3 : /boost/python//boost_python3 : : : <include>$(BOOST_ROOT) ;
 }
 else
 {
@@ -52,12 +51,8 @@ else
 	# the names are decorated in MacPorts
 	lib boost_python : : <target-os>darwin <name>boost_python-mt
 		: : $(boost-include-path) ;
-	lib boost_python3 : : <target-os>darwin <name>boost_python3-mt
-		: : $(boost-include-path) ;
 
 	lib boost_python : : <name>boost_python
-		: : $(boost-include-path) ;
-	lib boost_python3 : : <name>boost_python3
 		: : $(boost-include-path) ;
 }
 
@@ -95,33 +90,16 @@ rule libtorrent_linking ( properties * )
         ECHO "WARNING: you cannot link statically against boost-python on linux, because it links against pthread statically in that case, which is not allowed" ;
     }
 
-	local boost_python_lib ;
-
-	for local prop in $(properties)
-	{
-		switch $(prop)
-		{
-			case <python>2.* : boost_python_lib = boost_python ;
-			case <python>3.* : boost_python_lib = boost_python3 ;
-		}
-	}
-
-	if ! $(boost_python_lib)
-	{
-		ECHO "WARNING: unknown python version" ;
-		boost_python_lib = boost_python ;
-	}
-
     # linux must link dynamically against boost python because it pulls
     # in libpthread, which must be linked dynamically since we're building a .so
     # (the static build of libpthread is not position independent)
     if <boost-link>shared in $(properties) || <target-os>linux in $(properties)
     {
-        result += <library>$(boost_python_lib)/<link>shared ;
+        result += <library>boost_python/<link>shared ;
     }
     else
     {
-        result += <library>$(boost_python_lib)/<link>static ;
+        result += <library>boost_python/<link>static ;
     }
 
     if <libtorrent-link>shared in $(properties)
