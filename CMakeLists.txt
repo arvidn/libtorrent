@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.3.0 FATAL_ERROR)
 
 project(libtorrent)
 set (SOVERSION "10")
@@ -449,6 +449,7 @@ option(libiconv "enable linking against system libiconv" OFF)
 option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
 option(build_examples "build examples" OFF)
+option(python-bindings "build python bindings" OFF)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
 
@@ -682,6 +683,10 @@ foreach (s ${COMPILETIME_OPTIONS_LIST})
 endforeach (s)
 
 configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
+
+include(CheckCXXCompilerFlag)
+
+add_subdirectory(bindings)
 
 string (COMPARE EQUAL "${CMAKE_SIZEOF_VOID_P}" "8" IS64BITS)
 

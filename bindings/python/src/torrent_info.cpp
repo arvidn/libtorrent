@@ -162,8 +162,8 @@ namespace
     { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_complete; }
     int get_scrape_downloaded(announce_entry const& ae)
     { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_downloaded; }
-    int next_announce_in(announce_entry const& ae) { return 0; }
-    int min_announce_in(announce_entry const& ae) { return 0; }
+    int next_announce_in(announce_entry const&) { return 0; }
+    int min_announce_in(announce_entry const&) { return 0; }
     bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
     std::int64_t get_size(file_entry const& fe) { return fe.size; }
     std::int64_t get_offset(file_entry const& fe) { return fe.offset; }
