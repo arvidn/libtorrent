@@ -54,6 +54,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <boost/bind.hpp>
 
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 106700
+#include <boost/next_prior.hpp>
+#else
+#include <boost/utility.hpp>
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using boost::uint8_t;
