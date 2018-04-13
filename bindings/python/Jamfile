@@ -1,4 +1,5 @@
 import python ;
+import feature ;
 import feature : feature ;
 import project ;
 import targets ;
@@ -27,11 +28,33 @@ if $(LIBTORRENT_PYTHON_INTERPRETER)
 	using python : : "$(LIBTORRENT_PYTHON_INTERPRETER)" : : : <libtorrent-python>on ;
 }
 
+# copied from boost 1.63's boost python jamfile
+rule find-py3-version
+{
+    local versions = [ feature.values python ] ;
+    local py3ver ;
+    for local v in $(versions)
+    {
+        if $(v) >= 3.0
+        {
+            py3ver = $(v) ;
+        }
+    }
+    return $(py3ver) ;
+}
+
 if $(BOOST_ROOT)
 {
 	use-project /boost : $(BOOST_ROOT) ;
 	alias boost_python : /boost/python//boost_python : : : <include>$(BOOST_ROOT) ;
-	alias boost_python3 : /boost/python//boost_python3 : : : <include>$(BOOST_ROOT) ;
+	if [ find-py3-version ]
+	{
+		alias boost_python3 : /boost/python//boost_python3 : : : <include>$(BOOST_ROOT) ;
+	}
+	else
+	{
+		alias boost_python3 ;
+	}
 }
 else
 {
