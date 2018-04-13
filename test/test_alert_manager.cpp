@@ -249,6 +249,83 @@ TORRENT_TEST(reliable_alerts)
 #endif
 }
 
+void alert_emplacer(alert_manager& mgr, boost::atomic<bool> &running)
+{
+	// There is a memory barrier on this check. As well as any mutex
+	// access, IO calls, indirect function calls, etc.
+	while (running)
+	{
+		// The load for this call must happen before this test because
+		// because the compiler cannot move it in a way to would break
+		// a single threaded program.
+		if (mgr.should_post<torrent_finished_alert>())
+		{
+			test_sleep(1);	// simulate work done in between
+			mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+		}
+
+		// The load for this check may get optimized out when the bit is
+		// set to 0 on the above test. When the bit is 1 the load would be
+		// done after the emplace_alert call above.
+		if (mgr.should_post<torrent_finished_alert>())
+		{
+			test_sleep(1);
+			mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+		}
+
+		// Likewise, if the bit was 0 on the above test this entire loop can
+		// get optimized out. If it was 1 the load will be done for every
+		// iteration of the loop.
+		for (int i = 0; i < 10; i++)
+		{
+			if (mgr.should_post<torrent_finished_alert>())
+			{
+				test_sleep(1);
+				mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+			}
+		}
+	}
+}
+
+TORRENT_TEST(alert_mask_response)
+{
+	int num_queued_resume;
+	std::vector<alert*> alerts;
+	boost::atomic<bool> emplacer_running(true);
+	alert_manager mgr(100, lt::alert::status_notification);
+	libtorrent::thread t1(boost::bind(&alert_emplacer, boost::ref(mgr), boost::ref(emplacer_running)));
+
+	// we need as many iterations as possible because the test
+	// is racy since we must pop alerts after clearing the mask.
+	for (int i = 0; i < 1000; ++i)
+	{
+		// Clear the alerts mask, pop alerts and wait at least 10ms.
+		// We may still get one alert after the update if it takes
+		// place after should_post() but before emplace_alert()
+		mgr.set_alert_mask(0);
+		mgr.get_all(alerts, num_queued_resume);
+		mgr.wait_for_alert(milliseconds(10));
+		mgr.wait_for_alert(milliseconds(10));
+		mgr.get_all(alerts, num_queued_resume);
+		TEST_EQUAL(alerts.size() <= 1, true);
+
+		// Reset the bit to 1, pop alerts, and wait for the
+		// next alert. It looks like this only shows that libtorrent
+		// can take any amount of time to respond (which is true)
+		// but the fact that responds at all shows that it will respond
+		// to 0 to 1 changes at least once inside the loop. How long
+		// that will take is impossible to determine because we cannot
+		// make any assumptions about the scheduler, so to make the
+		// test deterministic we need to wait forever.
+		mgr.set_alert_mask(lt::alert::status_notification);
+		mgr.get_all(alerts, num_queued_resume);
+		while (mgr.wait_for_alert(milliseconds(200)) == NULL);
+	}
+
+	emplacer_running = false;
+	t1.join();
+}
+
 void post_torrent_added(alert_manager* mgr)
 {
 	test_sleep(10);
