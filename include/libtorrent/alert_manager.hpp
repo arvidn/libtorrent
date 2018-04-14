@@ -191,7 +191,7 @@ namespace libtorrent {
 		boost::function<void()> m_notify;
 
 		// the number of resume data alerts  in the alert queue
-		boost::atomic<int> m_num_queued_resume;
+		int m_num_queued_resume;
 
 		// this is either 0 or 1, it indicates which m_alerts and m_allocations
 		// the alert_manager is allowed to use right now. This is swapped when
