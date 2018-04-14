@@ -135,6 +135,13 @@ dict session_stats_values(session_stats_alert const& alert)
     return d;
 }
 
+#ifndef TORRENT_NO_DEPRECATE
+entry const& get_resume_data_entry(save_resume_data_alert const& self)
+{
+	return *self.resume_data;
+}
+#endif
+
 namespace boost
 {
 	// some older compilers (like msvc-12.0) end up using
@@ -676,7 +683,7 @@ void bind_alert()
         "save_resume_data_alert", no_init)
         .def_readonly("params", &save_resume_data_alert::params)
 #ifndef TORRENT_NO_DEPRECATE
-        .def_readonly("resume_data", &save_resume_data_alert::resume_data)
+        .add_property("resume_data", make_function(get_resume_data_entry, by_value()))
 #endif
         ;
 
