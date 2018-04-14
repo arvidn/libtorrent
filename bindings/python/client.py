@@ -344,7 +344,7 @@ def main():
         for a in alerts:
             if type(a) == lt.save_resume_data_alert:
                 print(a)
-                data = lt.bencode(a.resume_data)
+                data = lt.write_resume_data_buf(a.params)
                 h = a.handle
                 if h in torrents:
                     open(os.path.join(options.save_path, torrents[h].name + '.fastresume'), 'wb').write(data)
