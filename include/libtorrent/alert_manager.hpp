@@ -138,10 +138,10 @@ namespace libtorrent {
 
 		void set_alert_mask(boost::uint32_t m)
 		{
-			// since this call may get inlined by external threads
-			// it can't be relaxed to ensure the update is done before
-			// returning
-			m_alert_mask = m;
+			// we don't care if this store happens immediately
+			// because it is guaranteed to happen before the caller
+			// makes any attempt to synchronize
+			m_alert_mask.store(m, boost::memory_order_relaxed);
 		}
 
 		boost::uint32_t alert_mask() const
