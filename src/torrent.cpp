@@ -225,8 +225,10 @@ namespace libtorrent
 		, int block_size
 		, int seq
 		, add_torrent_params const& p
-		, sha1_hash const& info_hash)
+		, sha1_hash const& info_hash
+		, int& num_queued_resume)
 		: torrent_hot_members(ses, p, block_size)
+		, m_num_queued_resume(num_queued_resume)
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_tracker_timer(ses.get_io_service())
@@ -5153,22 +5155,25 @@ namespace {
 
 		if (!j->buffer.resume_data)
 		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle(), j->error.ec);
+			if (alerts().emplace_alert<save_resume_data_failed_alert>(get_handle(), j->error.ec))
+				m_num_queued_resume++;
 			return;
 		}
 
 		if (!need_loaded())
 		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-				, m_error);
+			if (alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, m_error))
+				m_num_queued_resume++;
 			return;
 		}
 
 		m_need_save_resume_data = false;
 		m_last_saved_resume = m_ses.session_time();
 		write_resume_data(*j->buffer.resume_data);
-		alerts().emplace_alert<save_resume_data_alert>(
-			boost::shared_ptr<entry>(j->buffer.resume_data), get_handle());
+		if (alerts().emplace_alert<save_resume_data_alert>(
+			boost::shared_ptr<entry>(j->buffer.resume_data), get_handle()))
+			m_num_queued_resume++;
 		const_cast<disk_io_job*>(j)->buffer.resume_data = 0;
 		state_updated();
 	}
@@ -9755,15 +9760,17 @@ namespace {
 
 		if (!valid_metadata())
 		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-				, errors::no_metadata);
+			if (alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, errors::no_metadata))
+				m_num_queued_resume++;
 			return;
 		}
 
 		if ((flags & torrent_handle::only_if_modified) && !m_need_save_resume_data)
 		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-				, errors::resume_data_not_modified);
+			if (alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, errors::resume_data_not_modified))
+				m_num_queued_resume++;
 			return;
 		}
 
@@ -9777,8 +9784,9 @@ namespace {
 		{
 			if (!need_loaded())
 			{
-				alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-					, m_error);
+				if (alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+					, m_error))
+					m_num_queued_resume++;
 				return;
 			}
 
@@ -9786,14 +9794,16 @@ namespace {
 			if (!m_storage)
 			{
 				TORRENT_ASSERT(m_abort);
-				alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-					, boost::asio::error::operation_aborted);
+				if (alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+					, boost::asio::error::operation_aborted))
+					m_num_queued_resume++;
 				return;
 			}
 
 			boost::shared_ptr<entry> rd(new entry);
 			write_resume_data(*rd);
-			alerts().emplace_alert<save_resume_data_alert>(rd, get_handle());
+			if (alerts().emplace_alert<save_resume_data_alert>(rd, get_handle()))
+				m_num_queued_resume++;
 			return;
 		}
 
@@ -9809,15 +9819,17 @@ namespace {
 	{
 		if (!need_loaded())
 		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle(), m_error);
+			if (alerts().emplace_alert<save_resume_data_failed_alert>(get_handle(), m_error))
+				m_num_queued_resume++;
 			return false;
 		}
 		// storage may be NULL during shutdown
 		if (!m_storage)
 		{
 			TORRENT_ASSERT(m_abort);
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-				, boost::asio::error::operation_aborted);
+			if (alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, boost::asio::error::operation_aborted))
+				m_num_queued_resume++;
 			return false;
 		}
 		inc_refcount("save_resume");

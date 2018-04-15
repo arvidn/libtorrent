@@ -49,23 +49,22 @@ TORRENT_TEST(limit)
 	alert_manager mgr(500, 0xffffffff);
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 500);
-	TEST_EQUAL(mgr.pending(), false);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, false);
 
 	// try add 600 torrent_add_alert to make sure we honor the limit of 500
 	// alerts.
 	for (int i = 0; i < 600; ++i)
 		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 
-	TEST_EQUAL(mgr.pending(), true);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, true);
 
 	std::vector<alert*> alerts;
-	int num_resume;
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
 	// even though we posted 600, the limit was 500
 	TEST_EQUAL(alerts.size(), 500);
 
-	TEST_EQUAL(mgr.pending(), false);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, false);
 
 	// now, try lowering the limit and do the same thing again
 	mgr.set_alert_queue_size_limit(200);
@@ -73,9 +72,9 @@ TORRENT_TEST(limit)
 	for (int i = 0; i < 600; ++i)
 		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 
-	TEST_EQUAL(mgr.pending(), true);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, true);
 
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
 	// even though we posted 600, the limit was 200
 	TEST_EQUAL(alerts.size(), 200);
@@ -96,8 +95,7 @@ TORRENT_TEST(priority_limit)
 		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code());
 
 	std::vector<alert*> alerts;
-	int num_resume;
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
 	// even though we posted 400, the limit was 100 for half of them and
 	// 200 for the other half, meaning we should have 200 alerts now
@@ -116,23 +114,23 @@ TORRENT_TEST(dispatch_function)
 	alert_manager mgr(100, 0xffffffff);
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 100);
-	TEST_EQUAL(mgr.pending(), false);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, false);
 
 	for (int i = 0; i < 20; ++i)
 		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
-	TEST_EQUAL(mgr.pending(), true);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, true);
 
 	mgr.set_dispatch_function(boost::bind(&test_dispatch_fun, boost::ref(cnt), _1));
 
-	TEST_EQUAL(mgr.pending(), false);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, false);
 
 	TEST_EQUAL(cnt, 20);
 
 	for (int i = 0; i < 200; ++i)
 		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
-	TEST_EQUAL(mgr.pending(), false);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, false);
 	TEST_EQUAL(cnt, 220);
 #endif
 }
@@ -148,18 +146,18 @@ TORRENT_TEST(notify_function)
 	alert_manager mgr(100, 0xffffffff);
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 100);
-	TEST_EQUAL(mgr.pending(), false);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, false);
 
 	for (int i = 0; i < 20; ++i)
 		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
-	TEST_EQUAL(mgr.pending(), true);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, true);
 
 	// if there are queued alerts when we set the notify function,
 	// that counts as an edge and it's called
 	mgr.set_notify_function(boost::bind(&test_notify_fun, boost::ref(cnt)));
 
-	TEST_EQUAL(mgr.pending(), true);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, true);
 	TEST_EQUAL(cnt, 1);
 
 	// subsequent posted alerts will not cause an edge (because there are
@@ -167,21 +165,20 @@ TORRENT_TEST(notify_function)
 	for (int i = 0; i < 20; ++i)
 		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
-	TEST_EQUAL(mgr.pending(), true);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, true);
 	TEST_EQUAL(cnt, 1);
 
 	// however, if we pop all the alerts and post new ones, there will be
 	// and edge triggering the notify call
 	std::vector<alert*> alerts;
-	int num_resume;
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
-	TEST_EQUAL(mgr.pending(), false);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, false);
 
 	for (int i = 0; i < 20; ++i)
 		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
-	TEST_EQUAL(mgr.pending(), true);
+	TEST_EQUAL(mgr.wait_for_alert(milliseconds(0)) != NULL, true);
 	TEST_EQUAL(cnt, 2);
 }
 
@@ -289,28 +286,32 @@ void alert_emplacer(alert_manager& mgr, boost::atomic<bool> &running)
 
 TORRENT_TEST(alert_mask_response)
 {
-	int num_queued_resume;
+	const int n_threads = TORRENT_ALERT_MANAGER_N_THREADS;
 	std::vector<alert*> alerts;
 	boost::atomic<bool> emplacer_running(true);
 	alert_manager mgr(100, lt::alert::status_notification);
-	libtorrent::thread t1(boost::bind(&alert_emplacer, boost::ref(mgr), boost::ref(emplacer_running)));
+	std::vector<boost::shared_ptr<libtorrent::thread>> threads;
+
+	// start some threads to emplace alerts
+	for (int i = 0; i < n_threads; i++)
+		threads.push_back(boost::shared_ptr<libtorrent::thread>(new libtorrent::thread(boost::bind(
+			&alert_emplacer, boost::ref(mgr), boost::ref(emplacer_running)))));
 
 	// we need as many iterations as possible because the test
 	// is racy since we must pop alerts after clearing the mask.
 	for (int i = 0; i < 1000; ++i)
 	{
-		// Clear the alerts mask, pop alerts and wait at least 10ms.
-		// We may still get one alert after the update if it takes
+		// Clear the alerts mask, pop alerts and wait. We may still
+		// get one alert per thread after the update if it takes
 		// place after should_post() but before emplace_alert()
 		mgr.set_alert_mask(0);
-		mgr.get_all(alerts, num_queued_resume);
-		mgr.wait_for_alert(milliseconds(10));
-		mgr.wait_for_alert(milliseconds(10));
-		mgr.get_all(alerts, num_queued_resume);
-		TEST_EQUAL(alerts.size() <= 1, true);
+		mgr.get_all(alerts);
+		test_sleep(n_threads * 5);
+		mgr.get_all(alerts);
+		TEST_EQUAL(alerts.size() <= n_threads, true);
 
-		// Reset the bit to 1, pop alerts, and wait for the
-		// next alert. It looks like this only shows that libtorrent
+		// Reset the bit to 1 and wait for the next alert.
+		// It looks like this only shows that libtorrent
 		// can take any amount of time to respond (which is true)
 		// but the fact that responds at all shows that it will respond
 		// to 0 to 1 changes at least once inside the loop. How long
@@ -318,12 +319,13 @@ TORRENT_TEST(alert_mask_response)
 		// make any assumptions about the scheduler, so to make the
 		// test deterministic we need to wait forever.
 		mgr.set_alert_mask(lt::alert::status_notification);
-		mgr.get_all(alerts, num_queued_resume);
 		while (mgr.wait_for_alert(milliseconds(200)) == NULL);
 	}
 
+	// kill all threads
 	emplacer_running = false;
-	t1.join();
+	for (int i = 0; i < n_threads; i++)
+		threads[i]->join();
 }
 
 void post_torrent_added(alert_manager* mgr)
@@ -358,8 +360,7 @@ TORRENT_TEST(wait_for_alert)
 	TEST_CHECK(a->type() == add_torrent_alert::alert_type);
 
 	std::vector<alert*> alerts;
-	int num_resume = 0;
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
 	start = clock_type::now();
 	libtorrent::thread posting_thread(boost::bind(&post_torrent_added, &mgr));
@@ -372,40 +373,6 @@ TORRENT_TEST(wait_for_alert)
 	TEST_CHECK(a->type() == add_torrent_alert::alert_type);
 
 	posting_thread.join();
-}
-
-TORRENT_TEST(queued_resume)
-{
-	alert_manager mgr(100, 0xffffffff);
-
-	TEST_EQUAL(mgr.num_queued_resume(), 0);
-
-	for (int i = 0; i < 17; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
-
-	TEST_EQUAL(mgr.num_queued_resume(), 0);
-
-	std::vector<alert*> alerts;
-	int num_resume = 0;
-	mgr.get_all(alerts, num_resume);
-	TEST_EQUAL(num_resume, 0);
-	TEST_EQUAL(alerts.size(), 17);
-
-	TEST_EQUAL(mgr.num_queued_resume(), 0);
-
-	error_code ec(boost::system::errc::no_such_file_or_directory
-		, generic_category());
-
-	for (int i = 0; i < 2; ++i)
-		mgr.emplace_alert<save_resume_data_failed_alert>(torrent_handle(), ec);
-
-	TEST_EQUAL(mgr.num_queued_resume(), 2);
-
-	mgr.get_all(alerts, num_resume);
-	TEST_EQUAL(num_resume, 2);
-	TEST_EQUAL(alerts.size(), 2);
-
-	TEST_EQUAL(mgr.num_queued_resume(), 0);
 }
 
 TORRENT_TEST(alert_mask)

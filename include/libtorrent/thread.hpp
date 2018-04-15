@@ -66,6 +66,11 @@ namespace libtorrent
 	// internal
 	void sleep(int milliseconds);
 
+	namespace this_thread
+	{
+		void yield();
+	};
+
 	struct TORRENT_EXTRA_EXPORT condition_variable
 	{
 		condition_variable();

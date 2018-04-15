@@ -798,6 +798,9 @@ namespace libtorrent
 			// outstanding
 			int m_num_save_resume;
 
+			// the number of queued resume???
+			int m_num_queued_resume;
+
 			// peer connections are put here when disconnected to avoid
 			// race conditions with the disk thread. It's important that
 			// peer connections are destructed from the network thread,

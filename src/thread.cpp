@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/thread.hpp"
 #include "libtorrent/assert.hpp"
+#include <thread>
 
 #ifdef TORRENT_BEOS
 #include <kernel/OS.h>
@@ -46,6 +47,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+	void this_thread::yield()
+	{
+		std::this_thread::yield();
+	}
 
 	void sleep(int milliseconds)
 	{

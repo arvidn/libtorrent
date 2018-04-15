@@ -295,7 +295,8 @@ namespace libtorrent
 
 		torrent(aux::session_interface& ses, int block_size
 			, int seq, add_torrent_params const& p
-			, sha1_hash const& info_hash);
+			, sha1_hash const& info_hash
+			, int& num_queued_resume);
 		~torrent();
 
 		// This may be called from multiple threads
@@ -803,6 +804,10 @@ namespace libtorrent
 		}
 
 	private:
+		// this field lives on session_impl and it's incremented
+		// when save_resume_data_alert or save_resume_data_failed_alert
+		// is successfully enqueued
+		int& m_num_queued_resume;
 
 		// called when we learn that we have a piece
 		// only once per piece

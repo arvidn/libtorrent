@@ -53,6 +53,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+#include "libtorrent/extensions.hpp"
+#endif
+
 
 #ifdef __GNUC__
 // this is to suppress the warnings for using std::auto_ptr
@@ -62,6 +66,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // used for emplace_alert() variadic template emulation for c++98
 #define TORRENT_ALERT_MANAGER_MAX_ARITY 7
+
+// the number of threads that can emplace alerts concurrently
+// if this limit is exceeded everything will still be thread
+// safe but there will be contention over the allocators
+#define TORRENT_ALERT_MANAGER_N_THREADS 	(10)
+#define TORRENT_ALERT_MANAGER_N_GENERATIONS	(TORRENT_ALERT_MANAGER_N_THREADS + 1)
+
+// the maximum number of cycles to a spinlock may spin
+// before yielding the cpu
+#define TORRENT_ALERT_MANAGER_SPIN_MAX		(20)
 
 namespace libtorrent {
 
@@ -76,47 +90,65 @@ namespace libtorrent {
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
 
-#if !defined BOOST_NO_CXX11_VARIADIC_TEMPLATES \
+#if !defined TORRENT_FORCE_CXX98_EMPLACE_ALERT \
+	&& !defined BOOST_NO_CXX11_VARIADIC_TEMPLATES \
 	&& !defined BOOST_NO_CXX11_RVALUE_REFERENCES
 
 		template <class T, typename... Args>
-		void emplace_alert(Args&&... args)
+		bool emplace_alert(Args&&... args)
 		{
-			mutex::scoped_lock lock(m_mutex);
 #ifndef TORRENT_NO_DEPRECATE
-			if (m_dispatch)
+			if (m_dispatch.load(boost::memory_order_relaxed))
 			{
-				m_dispatch(std::auto_ptr<alert>(new T(m_allocations[m_generation]
+				aux::stack_allocator::scoped_lock lock(m_allocations[borrow_generation()]);
+				(*m_dispatch.load(boost::memory_order_relaxed))(std::auto_ptr<alert>(new T(lock.allocator()
 					, std::forward<Args>(args)...)));
-				return;
+				return false;
 			}
 #endif
+
 			// don't add more than this number of alerts, unless it's a
 			// high priority alert, in which case we try harder to deliver it
 			// for high priority alerts, double the upper limit
-			if (m_alerts[m_generation].size() >= m_queue_size_limit
-				* (1 + T::priority))
+			if (m_queue_size.load(boost::memory_order_relaxed) >=
+				(m_queue_size_limit.load(boost::memory_order_relaxed) * (1 + T::priority)))
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-				lock.unlock();
-
-				if (m_ses_extensions_reliable.empty())
-					return;
-
-				mutex::scoped_lock reliable_lock(m_mutex_reliable);
-				T alert(m_allocator_reliable, std::forward<Args>(args)...);
-				notify_extensions(&alert, m_ses_extensions_reliable);
-				m_allocator_reliable.reset();
+				if (!m_ses_extensions_reliable.empty())
+				{
+					aux::stack_allocator::scoped_lock lock(m_allocations[borrow_generation()]);
+					T alert(lock.allocator(), std::forward<Args>(args)...);
+					notify_extensions(&alert, m_ses_extensions_reliable);
+				}
 #endif
-				return;
+				return false;
 			}
 
-			T alert(m_allocations[m_generation], std::forward<Args>(args)...);
-			m_alerts[m_generation].push_back(alert);
+			// this should be done with pooled memory. One way to do it without
+			// wasting a lot of memory would be to use per-thread heterogeneous_queues.
+			// I think that can be done in a clean and portable way by using
+			// boost::thread_specific_ptr but it would require linking the boost
+			// threads library. If we may also be able to use a per-thread allocator
+			// and save having tune TORRENT_ALERT_MANAGER_N_THREADS manually.
+			T* alert = new T(m_allocations[m_generation_youngest],
+				std::forward<Args>(args)...);
 
-			maybe_notify(&alert, lock);
+			if (!do_emplace_alert(alert, T::priority))
+			{
+				delete alert;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+				if (!m_ses_extensions_reliable.empty())
+				{
+					aux::stack_allocator::scoped_lock lock(m_allocations[borrow_generation()]);
+					T alert(lock.allocator(), std::forward<Args>(args)...);
+					notify_extensions(&alert, m_ses_extensions_reliable);
+				}
+#endif
+				return false;
+			}
+
+			return true;
 		}
-
 #else
 
 // emulate variadic templates for c++98
@@ -125,8 +157,7 @@ namespace libtorrent {
 
 #endif
 
-		bool pending() const;
-		void get_all(std::vector<alert*>& alerts, int& num_resume);
+		void get_all(std::vector<alert*>& alerts);
 
 		template <class T>
 		bool should_post() const
@@ -158,8 +189,6 @@ namespace libtorrent {
 		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
 #endif
 
-		int num_queued_resume() const;
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<plugin> ext);
 #endif
@@ -170,16 +199,118 @@ namespace libtorrent {
 		alert_manager(alert_manager const&);
 		alert_manager& operator=(alert_manager const&);
 
-		void maybe_notify(alert* a, mutex::scoped_lock& lock);
+		// tries to emplace a pre-constructed alert. Returns false if the
+		// queue fills up before the alert can be posted true otherwise.
+		bool do_emplace_alert(alert * const a, const int priority)
+		{
+			int current, next;
+			alert* expected;
+
+			TORRENT_ASSERT(a != NULL);
+
+			// reference the ring buffer to ensure it's not resized
+			m_buffer_refs++;
+
+			// if a resize has been requested we must lock
+			// the mutex before taking a reference
+			if (m_queue_limit_requested.load(boost::memory_order_relaxed) != -1) {
+				m_buffer_refs--;
+				mutex::scoped_lock resize_lock(m_mutex);
+				m_buffer_refs++;
+			}
+
+			// save local copy of limit
+			const int size_limit = m_queue_size_limit;
+
+			TORRENT_ASSERT((size_limit * (1 + priority)) <= (size_limit * 2));
+
+			// here we're reserving the next available queue slot atomically.
+			// the actual write is done next on the spinlock but the alert does
+			// not become visible to get_all() until we increment m_queue_size
+			do
+			{
+				// get the next slot on the ring buffer
+				next = (current = m_queue_write_slot) + 1;
+				if (next == (size_limit * 2))
+					next = 0;
+
+				// calculate the real queue size, counting alerts that are not
+				// yet included in m_queue_size because other threads are already
+				// passed this check but not yet incremented m_queue_size
+				const int read_slot = m_queue_read_slot;
+				const int real_size = (next > read_slot) ? (next - read_slot)
+					: ((next < read_slot) ? ((size_limit * 2) - (read_slot - next)) : m_queue_size);
+
+				// make sure that posting this alert will not exceed
+				// the limit
+				if (real_size >= size_limit * (1 + priority))
+				{
+					m_buffer_refs--;
+					return false;
+				}
+
+				TORRENT_ASSERT(next >= 0 && next < (size_limit * 2));
+			}
+			while (!m_queue_write_slot.compare_exchange_strong(current, next));
+
+			// if an alert was just popped from this slot it is possible that get_all()
+			// has not yet freed the queue slot. This is extremely unlikely with a properly
+			// tuned m_queue_size. If it does happens it should never put the thread off
+			// cpu unless the user thread is preempted before it frees the slot. Even then
+			// we're guaranteed to make progress again after only 1 scheduler cycle.
+			for (int spins = 0; !m_alerts[next].compare_exchange_strong((expected = NULL), a); spins++)
+				if (spins >= TORRENT_ALERT_MANAGER_SPIN_MAX) this_thread::yield();
+
+			// this makes the alert visible to get_all()
+			current = m_queue_size.fetch_add(1);
+
+			if (current == 0)
+			{
+				// we just posted to an empty queue. If anyone is waiting for
+				// alerts, we need to notify them. Also (potentially) call the
+				// user supplied m_notify callback to let the client wake up its
+				// message loop to poll for alerts.
+				if (m_notify.load(boost::memory_order_relaxed))
+					(*m_notify.load(boost::memory_order_relaxed))();
+
+				// wake any threads waiting for alerts
+				m_condition.notify_all();
+			}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			notify_extensions(a, m_ses_extensions);
+#endif
+
+			// release the ring buffer
+			TORRENT_ASSERT(next <= (size_limit * 2));
+			TORRENT_ASSERT(m_queue_size_limit == size_limit);
+			m_buffer_refs--;
+
+			return true;
+		}
+
+		int borrow_generation()
+		{
+			// this version is not as accurate but it's fast and good
+			// enough for our purposes
+			int next = m_generation_borrowed.load(boost::memory_order_relaxed) + 1;
+			if (next >= TORRENT_ALERT_MANAGER_N_GENERATIONS)
+				next = 0;
+			m_generation_borrowed.store(next, boost::memory_order_relaxed);
+			return next;
+		}
+
+		void maybe_resize_buffer();
+		alert* pop_alert();
 
 		mutable mutex m_mutex;
 		condition_variable m_condition;
 		boost::atomic<boost::uint32_t> m_alert_mask;
-		int m_queue_size_limit;
+		boost::atomic<int> m_queue_size_limit;
 
 #ifndef TORRENT_NO_DEPRECATE
-		bool maybe_dispatch(alert const& a);
-		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
+		boost::function<void(std::auto_ptr<alert>)> m_dispatch_storage[2];
+		boost::atomic<boost::function<void(std::auto_ptr<alert>)>*> m_dispatch;
 #endif
 
 		// this function (if set) is called whenever the number of alerts in
@@ -188,35 +319,59 @@ namespace libtorrent {
 		// That call will drain every alert in one atomic operation and this
 		// notification function will be called again the next time an alert is
 		// posted to the queue
-		boost::function<void()> m_notify;
+		boost::function<void()> m_notify_storage[2];
+		boost::atomic<boost::function<void()>*> m_notify;
 
-		// the number of resume data alerts  in the alert queue
-		int m_num_queued_resume;
+		// this is where all alerts are queued up. We use a single vector of
+		// alert pointers as a ring buffer. Each slot is accessed atomically
+		// so no locking is necessary. m_queue_write_slot and m_queue_read_slot
+		// are used to track the back and front slots respectively. m_queue_size
+		// tracks the number of pointers in the queue.
+		std::vector<boost::atomic<alert*>> m_alerts;
 
-		// this is either 0 or 1, it indicates which m_alerts and m_allocations
-		// the alert_manager is allowed to use right now. This is swapped when
-		// the client calls get_all(), at which point all of the alert objects
-		// passed to the client will be owned by libtorrent again, and reset.
-		int m_generation;
+		// this is used to track the number of alerts in the ring buffer
+		boost::atomic<int> m_queue_size;
 
-		// this is where all alerts are queued up. There are two heterogenous
-		// queues to double buffer the thread access. The mutex in the alert
-		// manager gives exclusive access to m_alerts[m_generation] and
-		// m_allocations[m_generation] whereas the other copy is exclusively
-		// used by the client thread.
-		heterogeneous_queue<alert> m_alerts[2];
+		// this are used to track the ring buffer back and front slots
+		boost::atomic<int> m_queue_write_slot;
+		boost::atomic<int> m_queue_read_slot;
+
+		// this is where we store alert pointers after the user pops them from
+		// the ring buffer so that we can release them on the next call to get_all()
+		// and during destruction.
+		std::vector<alert*> m_alerts_pending_delete;
+
+		// when the user calls set_queue_size_limit it will set this value to the
+		// new limit but the actual resize may not be done until the next time there
+		// is an opportunity to do it on get_all()
+		boost::atomic<int> m_queue_limit_requested;
 
 		// this is a stack where alerts can allocate variable length content,
 		// such as strings, to go with the alerts.
-		aux::stack_allocator m_allocations[2];
+		aux::stack_allocator m_allocations[TORRENT_ALERT_MANAGER_N_GENERATIONS];
+
+		// this is used to avoid resizing the ring buffer while emplace_alert is
+		// posting an alert
+		boost::atomic<int> m_buffer_refs;
+
+		// track the allocator generations
+		boost::atomic<int> m_generation_borrowed;
+		boost::atomic<int> m_generation_youngest;
+		int m_generation_oldest;
+		int m_generations;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
-		void notify_extensions(alert * const a, ses_extension_list_t const& extensions);
+
+		void notify_extensions(alert * const alert, ses_extension_list_t const& list)
+		{
+			for (ses_extension_list_t::const_iterator i = list.begin(),
+				end(list.end()); i != end; ++i)
+				(*i)->on_alert(alert);
+		}
+
 		ses_extension_list_t m_ses_extensions;
 		ses_extension_list_t m_ses_extensions_reliable;
-		aux::stack_allocator m_allocator_reliable;
-		mutex m_mutex_reliable;
 #endif
 	};
 }

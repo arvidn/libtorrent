@@ -34,84 +34,95 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/alert_types.hpp"
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-#include "libtorrent/extensions.hpp"
-#endif
-
 namespace libtorrent
 {
 
 	alert_manager::alert_manager(int queue_limit, boost::uint32_t alert_mask)
 		: m_alert_mask(alert_mask)
 		, m_queue_size_limit(queue_limit)
-		, m_num_queued_resume(0)
-		, m_generation(0)
-	{}
+		, m_dispatch(NULL)
+		, m_notify(NULL)
+		, m_alerts(queue_limit * 2)
+		, m_queue_size(0)
+		, m_queue_write_slot(-1)
+		, m_queue_read_slot(0)
+		, m_queue_limit_requested(-1)
+		, m_buffer_refs(0)
+		, m_generation_borrowed(0)
+		, m_generation_youngest(0)
+		, m_generation_oldest(0)
+		, m_generations(0)
+	{
+		for (int i = 0; i < queue_limit * 2; i++)
+			m_alerts[i] = NULL;
+	}
 
-	alert_manager::~alert_manager() {}
-
-	int alert_manager::num_queued_resume() const
+	alert_manager::~alert_manager()
 	{
 		mutex::scoped_lock lock(m_mutex);
-		return m_num_queued_resume;
+
+		TORRENT_ASSERT(m_buffer_refs == 0);
+
+		const int n_alerts = m_queue_size;
+
+		// release alerts in the pending deletes list
+		for (int i = 0; i < m_alerts_pending_delete.size(); i++)
+			delete m_alerts_pending_delete[i];
+
+		// free alerts already in the queue
+		for (int i = 0; i < m_queue_size; i++)
+		{
+			alert * const alert = pop_alert();
+			TORRENT_ASSERT(alert != NULL);
+			delete alert;
+		}
 	}
 
 	alert* alert_manager::wait_for_alert(time_duration max_wait)
 	{
 		mutex::scoped_lock lock(m_mutex);
 
-		if (!m_alerts[m_generation].empty())
-			return m_alerts[m_generation].front();
+		if (m_queue_size > 0)
+			return m_alerts[m_queue_read_slot];
 
 		// this call can be interrupted prematurely by other signals
 		m_condition.wait_for(lock, max_wait);
-		if (!m_alerts[m_generation].empty())
-			return m_alerts[m_generation].front();
+
+		if (m_queue_size > 0)
+			return m_alerts[m_queue_read_slot];
 
 		return NULL;
 	}
 
-	void alert_manager::maybe_notify(alert* a, mutex::scoped_lock& lock)
+	// pops the next alert from the ring buffer. The caller of
+	// this function must ensure that there is at least one alert
+	// in the ring buffer before making this call
+	alert * alert_manager::pop_alert()
 	{
-		if (a->type() == save_resume_data_failed_alert::alert_type
-			|| a->type() == save_resume_data_alert::alert_type)
-			++m_num_queued_resume;
+		const int size_limit = m_queue_size_limit.load(boost::memory_order_relaxed);
+		int slot = m_queue_read_slot;
 
-		if (m_alerts[m_generation].size() == 1)
-		{
-			lock.unlock();
+		// with multiple threads postings alerts slots may be written
+		// out of sequence so we must check that the alert is there
+		// before popping it.
+		for (int spins = 0; m_alerts[slot] == NULL; spins++)
+			if (spins > TORRENT_ALERT_MANAGER_SPIN_MAX) this_thread::yield();
 
-			// we just posted to an empty queue. If anyone is waiting for
-			// alerts, we need to notify them. Also (potentially) call the
-			// user supplied m_notify callback to let the client wake up its
-			// message loop to poll for alerts.
-			if (m_notify) m_notify();
+		alert * const alert = m_alerts[slot].load(boost::memory_order_relaxed);
+		TORRENT_ASSERT(alert != NULL);
+		m_alerts[slot++] = NULL;
 
-			// TODO: 2 keep a count of the number of threads waiting. Only if it's
-			// > 0 notify them
-			m_condition.notify_all();
-		}
-		else
-		{
-			lock.unlock();
-		}
+		if (slot == (size_limit * 2))
+			slot = 0;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		notify_extensions(a, m_ses_extensions);
-#endif
+		TORRENT_ASSERT(slot >= 0 && slot < (size_limit * 2));
+
+		m_queue_read_slot = slot;
+
+		return alert;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-
-	bool alert_manager::maybe_dispatch(alert const& a)
-	{
-		if (m_dispatch)
-		{
-			m_dispatch(a.clone());
-			return true;
-		}
-		return false;
-	}
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -123,19 +134,38 @@ namespace libtorrent
 	{
 		mutex::scoped_lock lock(m_mutex);
 
-		m_dispatch = fun;
+		std::vector<alert*> alerts;
 
-		heterogeneous_queue<alert> storage;
-		m_alerts[m_generation].swap(storage);
+		// in order to make boost:function<> atomic we use two separate
+		// fields in a ping-pong fashion and update the pointer to it
+		// atomically
+		const int index = (&m_dispatch_storage[0] == m_dispatch) ? 1 : 0;
+		m_dispatch_storage[index] = fun;
+		m_dispatch.store(&m_dispatch_storage[index]);
+
+		// wait until all ring buffer refs are released
+		while (m_buffer_refs > 0)
+			this_thread::yield();
+
+		for (int i = 0; i < m_queue_size; i++)
+		{
+			alert * const alert = pop_alert();
+			TORRENT_ASSERT(alert != NULL);
+			alerts.push_back(alert);
+		}
+
+		// clear the queue size and free ring buffer
+		m_queue_size = 0;
+		m_alerts = std::vector<boost::atomic<alert*>>(0);
+
+		// unlock mutex and call dispatch function
 		lock.unlock();
 
-		std::vector<alert*> alerts;
-		storage.get_pointers(alerts);
-
-		for (std::vector<alert*>::iterator i = alerts.begin()
-			, end(alerts.end()); i != end; ++i)
+		for (int i = 0; i < alerts.size(); i++)
 		{
-			m_dispatch((*i)->clone());
+			TORRENT_ASSERT(alerts[i] != NULL);
+			(*m_dispatch.load(boost::memory_order_relaxed))(alerts[i]->clone());
+			delete alerts[i];
 		}
 	}
 
@@ -148,25 +178,30 @@ namespace libtorrent
 	void alert_manager::set_notify_function(boost::function<void()> const& fun)
 	{
 		mutex::scoped_lock lock(m_mutex);
-		m_notify = fun;
-		if (!m_alerts[m_generation].empty())
+
+		// in order to make boost:function<> atomic we use two separate
+		// fields in a ping-pong fashion and update the pointer to it
+		// atomically
+		if (fun)
+		{
+			const int index = (m_notify == &m_notify_storage[0]) ? 1 : 0;
+			m_notify_storage[index] = fun;
+			m_notify.store(&m_notify_storage[index]);
+		}
+		else
+		{
+			m_notify.store(NULL);
+		}
+
+		if (m_queue_size != 0)
 		{
 			// never call a callback with the lock held!
-			lock.unlock();
-			if (m_notify) m_notify();
+			if (m_notify)
+				(*m_notify.load(boost::memory_order_relaxed))();
 		}
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void alert_manager::notify_extensions(alert * const alert, ses_extension_list_t const& list)
-	{
-		for (ses_extension_list_t::const_iterator i = list.begin(),
-			end(list.end()); i != end; ++i)
-		{
-			(*i)->on_alert(alert);
-		}
-	}
-
 	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
 	{
 		if ((ext->implemented_features() & plugin::reliable_alerts_feature) != 0)
@@ -175,38 +210,96 @@ namespace libtorrent
 	}
 #endif
 
-	void alert_manager::get_all(std::vector<alert*>& alerts, int& num_resume)
+	void alert_manager::maybe_resize_buffer()
 	{
-		mutex::scoped_lock lock(m_mutex);
-		TORRENT_ASSERT(m_num_queued_resume <= m_alerts[m_generation].size());
+		const int new_limit = m_queue_limit_requested;
 
-		alerts.clear();
-		if (m_alerts[m_generation].empty()) return;
+		// we can only resize if there is no other thread posting alerts
+		// and if no thread posted an alert since we popped them
+		if (new_limit < 0 || m_buffer_refs > 0 || m_queue_size > 0)
+			return;
 
-		m_alerts[m_generation].get_pointers(alerts);
-		num_resume = m_num_queued_resume;
-		m_num_queued_resume = 0;
+		// resize the queue
+		m_alerts = std::vector<boost::atomic<alert*>>(new_limit * 2);
+		for (int i = 0; i < new_limit * 2; i++)
+			m_alerts[i].store(NULL, boost::memory_order_relaxed);
 
-		// swap buffers
-		m_generation = (m_generation + 1) & 1;
-		// clear the one we will start writing to now
-		m_alerts[m_generation].clear();
-		m_allocations[m_generation].reset();
+		m_queue_size_limit = new_limit;
+		m_queue_write_slot = -1;
+		m_queue_read_slot = 0;
+		m_queue_limit_requested = -1;
 	}
 
-	bool alert_manager::pending() const
+	void alert_manager::get_all(std::vector<alert*>& alerts)
 	{
 		mutex::scoped_lock lock(m_mutex);
-		return !m_alerts[m_generation].empty();
+
+		// if a buffer resize has been requested wait until all
+		// buffer references have been released to ensure that
+		// maybe_resize_buffer() succeeds
+		if (m_queue_limit_requested != -1)
+			while (m_buffer_refs > 0) this_thread::yield();
+
+		const int n_pending = m_alerts_pending_delete.size();
+		const int size_limit = m_queue_size_limit;
+
+		// free alerts in the pending delete list
+		for (int i = 0; i < n_pending; i++)
+			delete m_alerts_pending_delete[i];
+		alerts.clear();
+		m_alerts_pending_delete.clear();
+
+		// after this libtorrent threads can begin work on posting
+		// new alerts if the queue was full.
+		const int n_alerts = m_queue_size.exchange(0);
+
+		if (n_alerts == 0) return;
+
+		// pop n_alerts
+		for (int i = 0; i < n_alerts; i++)
+		{
+			// remove the alert and mark the ring buffer slot as free
+			alert * const alert = pop_alert();
+			TORRENT_ASSERT(alert != NULL);
+
+			// copy the alerts to the user's vector and to the
+			// pending delete list
+			m_alerts_pending_delete.push_back(alert);
+			alerts.push_back(alert);
+		}
+
+		// swap buffers
+		m_generation_youngest = (m_generation_youngest ==
+			TORRENT_ALERT_MANAGER_N_GENERATIONS - 1) ? 0 : m_generation_youngest + 1;
+		m_generations++;
+		TORRENT_ASSERT(m_generation_youngest < TORRENT_ALERT_MANAGER_N_GENERATIONS);
+		TORRENT_ASSERT(m_generations <= TORRENT_ALERT_MANAGER_N_GENERATIONS);
+
+		// if a buffer resize is pending do it now
+		maybe_resize_buffer();
+
+		// delete the oldest generation
+		if (m_generations == TORRENT_ALERT_MANAGER_N_GENERATIONS)
+		{
+			m_allocations[m_generation_oldest].reset();
+			m_generation_oldest = (m_generation_oldest == TORRENT_ALERT_MANAGER_N_GENERATIONS - 1) ? 0
+				: m_generation_oldest + 1;
+			m_generations--;
+		}
+
+		TORRENT_ASSERT(m_generations <= TORRENT_ALERT_MANAGER_N_GENERATIONS);
 	}
 
 	int alert_manager::set_alert_queue_size_limit(int queue_size_limit_)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		mutex::scoped_lock resize_lock(m_mutex);
+		m_queue_limit_requested = queue_size_limit_;
 
-		std::swap(m_queue_size_limit, queue_size_limit_);
-		return queue_size_limit_;
+		// try to resize the queue. If it can't be done now it
+		// will be done the next time get_all() is called
+		maybe_resize_buffer();
+
+		return m_queue_limit_requested;
 	}
-
 }
 

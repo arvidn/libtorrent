@@ -625,7 +625,7 @@ namespace aux {
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 
-		if (m_num_save_resume + m_alerts.num_queued_resume() >= loaded_limit
+		if (m_num_save_resume + m_num_queued_resume >= loaded_limit
 			&& m_user_load_torrent
 			&& loaded_limit > 0)
 		{
@@ -657,11 +657,9 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
-		int num_queued_resume = m_alerts.num_queued_resume();
-
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 		while (!m_save_resume_queue.empty()
-			&& (m_num_save_resume + num_queued_resume < loaded_limit
+			&& (m_num_save_resume + m_num_queued_resume < loaded_limit
 			|| loaded_limit == 0))
 		{
 			boost::shared_ptr<torrent> t = m_save_resume_queue.front();
@@ -5067,7 +5065,7 @@ retry:
 		int queue_pos = ++m_max_queue_pos;
 
 		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
-			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(params.info_hash));
+			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(params.info_hash), boost::ref(m_num_queued_resume));
 
 		return std::make_pair(torrent_ptr, true);
 	}
@@ -6645,8 +6643,9 @@ retry:
 
 	void session_impl::pop_alerts(std::vector<alert*>* alerts)
 	{
-		int num_resume = 0;
-		m_alerts.get_all(*alerts, num_resume);
+		int num_resume = m_num_queued_resume;
+		m_num_queued_resume = 0;
+		m_alerts.get_all(*alerts);
 		if (num_resume > 0)
 		{
 			// we can only issue more resume data jobs from

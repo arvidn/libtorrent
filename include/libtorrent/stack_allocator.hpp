@@ -34,42 +34,143 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/thread.hpp"
 
 namespace libtorrent { namespace aux
 {
-
 	struct stack_allocator
 	{
+		// This only prevents the allocator from being reset()
+		// while it is locked. Other threads can still lock the
+		// it, but only the state of the first lock is saved.
+		// Once the lock count reaches 0 it will be restored back
+		// to the sate before the first lock, or if a reset() was
+		// issued while the allocator was locked then it will be
+		// reset.
+		struct stack_allocator_lock
+		{
+			friend class stack_allocator;
+
+			stack_allocator_lock(stack_allocator& alloc) : m_alloc(alloc)
+			{
+				lock();
+			}
+
+			stack_allocator& allocator() const
+			{
+				return m_alloc;
+			}
+
+			void lock()
+			{
+				mutex::scoped_lock lock(m_alloc.m_mutex);
+
+				TORRENT_ASSERT(!m_locked);
+
+				m_alloc.m_consec_locks++;
+
+				while (m_alloc.m_consec_locks > 100)
+				{
+					// if the allocator is kept locked for too long
+					// we need to block until all references are released
+					// or the allocator may grow indefinitely. The user
+					// should take care to avoid this.
+					lock.unlock();
+					this_thread::yield();
+					lock.lock();
+				}
+
+				if (m_alloc.m_locks++ == 0)
+				{
+					// we only save the state for the first lock
+					TORRENT_ASSERT(m_alloc.m_saved_size == -1);
+					m_alloc.m_saved_size = m_alloc.m_storage.size();
+				}
+				m_locked = true;
+			}
+
+			void unlock()
+			{
+				mutex::scoped_lock lock(m_alloc.m_mutex);
+				if (m_locked)
+				{
+					TORRENT_ASSERT(m_alloc.m_locks > 0);
+					if (--m_alloc.m_locks == 0)
+					{
+						TORRENT_ASSERT(m_alloc.m_saved_size != -1);
+						if (m_alloc.m_reset_pending)
+						{
+							m_alloc.m_storage.clear();
+							m_alloc.m_reset_pending = false;
+						}
+						else
+						{
+							m_alloc.m_storage.resize(m_alloc.m_saved_size);
+						}
+						m_alloc.m_saved_size = -1;
+						m_alloc.m_consec_locks = 0;
+					}
+					m_locked = false;
+				}
+			}
+
+		private:
+			// non-copyable
+			stack_allocator_lock(stack_allocator_lock const&);
+			stack_allocator_lock& operator=(stack_allocator_lock const&);
+
+			stack_allocator& m_alloc;
+			bool m_locked = false;
+		};
+
+		struct scoped_lock : stack_allocator_lock
+		{
+			scoped_lock(stack_allocator& alloc) : stack_allocator_lock(alloc) {}
+			~scoped_lock() { unlock(); }
+
+		private:
+			// non-copyable
+			scoped_lock(scoped_lock const&);
+			scoped_lock& operator=(scoped_lock const&);
+		};
+
 		stack_allocator() {}
 
 		int copy_string(std::string const& str)
 		{
+			mutex::scoped_lock lock(m_mutex);
 			int ret = int(m_storage.size());
 			m_storage.resize(ret + str.length() + 1);
+			lock.unlock();
 			strcpy(&m_storage[ret], str.c_str());
 			return ret;
 		}
 
 		int copy_string(char const* str)
 		{
+			mutex::scoped_lock lock(m_mutex);
 			int ret = int(m_storage.size());
 			int len = strlen(str);
 			m_storage.resize(ret + len + 1);
+			lock.unlock();
 			strcpy(&m_storage[ret], str);
 			return ret;
 		}
 
 		int copy_buffer(char const* buf, int size)
 		{
+			mutex::scoped_lock lock(m_mutex);
 			int ret = int(m_storage.size());
 			if (size < 1) return -1;
 			m_storage.resize(ret + size);
+			lock.unlock();
 			memcpy(&m_storage[ret], buf, size);
 			return ret;
 		}
 
 		int allocate(int bytes)
 		{
+			mutex::scoped_lock lock(m_mutex);
 			if (bytes < 1) return -1;
 			int ret = int(m_storage.size());
 			m_storage.resize(ret + bytes);
@@ -92,20 +193,34 @@ namespace libtorrent { namespace aux
 
 		void swap(stack_allocator& rhs)
 		{
+			mutex::scoped_lock lock(m_mutex);
 			m_storage.swap(rhs.m_storage);
 		}
 
 		void reset()
 		{
-			m_storage.clear();
+			mutex::scoped_lock lock(m_mutex);
+			if (m_locks > 0)
+			{
+				m_reset_pending = true;
+			}
+			else
+			{
+				m_storage.clear();
+				m_reset_pending = false;
+			}
 		}
 
 	private:
-
 		// non-copyable
 		stack_allocator(stack_allocator const&);
 		stack_allocator& operator=(stack_allocator const&);
 
+		int m_locks = 0;
+		int m_consec_locks = 0;
+		int m_saved_size = -1;
+		bool m_reset_pending = false;
+		mutable mutex m_mutex;
 		buffer m_storage;
 	};
 
