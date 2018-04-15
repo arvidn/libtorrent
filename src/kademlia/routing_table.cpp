@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <vector>
-#include <iterator> // std::distance()
+#include <iterator> // std::distance(), std::next
 #include <algorithm> // std::copy, std::remove_copy_if
 #include <functional>
 #include <numeric>
