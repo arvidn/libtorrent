@@ -352,10 +352,14 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 
 	// if production asserts are defined, don't abort, just print the error
 #ifndef TORRENT_PRODUCTION_ASSERTS
+    #ifdef _MSC_VER
+    __debugbreak();
+    #else
 	// send SIGINT to the current process
 	// to break into the debugger
 	raise(SIGABRT);
 	abort();
+    #endif
 #endif
 }
 
