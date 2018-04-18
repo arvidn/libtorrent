@@ -275,7 +275,7 @@ namespace libtorrent {
 				if (!is_ok_status(m_parser.status_code()))
 				{
 					auto const retry_time = value_or(m_parser.header_duration("retry-after")
-						, minutes32(5));
+						, seconds32(m_settings.get_int(settings_pack::urlseed_wait_retry)));
 
 					// temporarily unavailable, retry later
 					t->retry_web_seed(this, retry_time);
