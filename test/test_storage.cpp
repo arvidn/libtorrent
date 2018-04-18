@@ -475,7 +475,6 @@ void test_check_files(std::string const& test_path
 	counters cnt;
 	disk_io_thread io(ios, cnt, NULL);
 	io.set_num_threads(1);
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 	std::vector<uint8_t> prio(info->num_files(), 0);
 	storage_params p;
 	p.files = &fs;
