@@ -494,11 +494,14 @@ void test_check_files(std::string const& test_path
 	io.submit_jobs();
 	run_until(ios, done);
 
-	done = false;
-	io.async_hash(pm.get(), 0, disk_io_job::sequential_access | disk_io_job::volatile_read
-		, boost::bind(&on_check_resume_data, _1, &done), reinterpret_cast<void*>(1));
-	io.submit_jobs();
-	run_until(ios, done);
+	for (int i = 0; i < info->num_pieces(); ++i)
+	{
+		done = false;
+		io.async_hash(pm.get(), i, disk_io_job::sequential_access | disk_io_job::volatile_read
+			, boost::bind(&on_check_resume_data, _1, &done), reinterpret_cast<void*>(1));
+		io.submit_jobs();
+		run_until(ios, done);
+	}
 
 	io.abort(true);
 }
