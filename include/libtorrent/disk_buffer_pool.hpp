@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	namespace aux { struct session_settings; }
-	class alert;
 	struct disk_observer;
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool

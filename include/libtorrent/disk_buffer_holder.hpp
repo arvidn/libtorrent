@@ -42,16 +42,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct disk_io_thread;
-	struct disk_observer;
-	struct disk_buffer_holder;
-
 	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface
 	{
 		virtual void free_disk_buffer(char* b) = 0;
 		virtual void reclaim_blocks(span<aux::block_cache_reference> refs) = 0;
 	protected:
-		~buffer_allocator_interface() {}
+		~buffer_allocator_interface() = default;
 	};
 
 	// The disk buffer holder acts like a ``unique_ptr`` that frees a disk buffer
