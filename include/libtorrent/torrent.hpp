@@ -735,11 +735,7 @@ namespace libtorrent
 		void scrape_tracker(int idx, bool user_triggered);
 		void announce_with_tracker(boost::uint8_t e
 			= tracker_request::none);
-		int seconds_since_last_scrape() const
-		{
-			return m_last_scrape == (std::numeric_limits<boost::int16_t>::min)()
-				? -1 : int(m_ses.session_time() - m_last_scrape);
-		}
+		int seconds_since_last_scrape() const;
 
 #ifndef TORRENT_DISABLE_DHT
 		void dht_announce();
@@ -1089,7 +1085,8 @@ namespace libtorrent
 		// that are not private
 		void lsd_announce();
 
-		void update_last_upload() { m_last_upload = m_ses.session_time(); }
+		void update_last_upload()
+		{ m_last_upload = total_seconds(clock_type::now().time_since_epoch()); }
 
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
@@ -1654,9 +1651,8 @@ namespace libtorrent
 // ----
 
 		// the timestamp of the last piece passed for this torrent specified in
-		// session_time. This is signed because it must be able to represent time
-		// before the session started
-		boost::int16_t m_last_download;
+		// seconds since epoch.
+		boost::uint32_t m_last_download;
 
 		// the number of peer connections to seeds. This should be the same as
 		// counting the peer connections that say true for is_seed()
@@ -1667,9 +1663,8 @@ namespace libtorrent
 		boost::uint16_t m_num_connecting_seeds;
 
 		// the timestamp of the last byte uploaded from this torrent specified in
-		// session_time. This is signed because it must be able to represent time
-		// before the session started.
-		boost::int16_t m_last_upload;
+		// seconds since epoch.
+		boost::uint32_t m_last_upload;
 
 		// this is a second count-down to when we should tick the
 		// storage for this torrent. Ticking the storage is used
@@ -1709,7 +1704,7 @@ namespace libtorrent
 		// the timestamp of the last scrape request to one of the trackers in
 		// this torrent specified in session_time. This is signed because it must
 		// be able to represent time before the session started
-		boost::int16_t m_last_scrape;
+		boost::uint32_t m_last_scrape;
 
 // ----
 
