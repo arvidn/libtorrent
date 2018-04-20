@@ -812,7 +812,7 @@ namespace libtorrent {
 			// low number, like 5
 			urlseed_pipeline_size,
 
-			// time to wait until a new retry of a url-seed takes place.
+			// number of seconds until a new retry of a url-seed takes place.
 			// Default retry value for http-seeds that don't provide a valid 'retry-after' header.
 			urlseed_wait_retry,
 
