@@ -115,6 +115,8 @@ namespace libtorrent
 {
 	namespace {
 
+	boost::uint32_t const unset = std::numeric_limits<boost::uint32_t>::max();
+
 	bool is_downloading_state(int st)
 	{
 		switch (st)
@@ -302,17 +304,17 @@ namespace libtorrent
 		, m_deleted(false)
 		, m_pinned((p.flags & add_torrent_params::flag_pinned) != 0)
 		, m_should_be_loaded(true)
-		, m_last_download((std::numeric_limits<boost::int16_t>::min)())
+		, m_last_download(unset)
 		, m_num_seeds(0)
 		, m_num_connecting_seeds(0)
-		, m_last_upload((std::numeric_limits<boost::int16_t>::min)())
+		, m_last_upload(unset)
 		, m_storage_tick(0)
 		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
 		, m_inactive(false)
 		, m_downloaded(0xffffff)
-		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
+		, m_last_scrape(unset)
 		, m_progress_ppm(0)
 		, m_pending_active_change(false)
 		, m_use_resume_save_path((p.flags & add_torrent_params::flag_use_resume_save_path) != 0)
@@ -3393,10 +3395,16 @@ namespace {
 		update_tracker_timer(now);
 	}
 
+	int torrent::seconds_since_last_scrape() const
+	{
+		return m_last_scrape == unset ? -1
+		: total_seconds(clock_type::now() - time_point(seconds(m_last_scrape)));
+	}
+
 	void torrent::scrape_tracker(int idx, bool user_triggered)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		m_last_scrape = m_ses.session_time();
+		m_last_scrape = total_seconds(clock_type::now().time_since_epoch());
 
 		if (m_trackers.empty()) return;
 
@@ -3555,7 +3563,7 @@ namespace {
 		update_tracker_timer(now);
 
 		if (resp.complete >= 0 && resp.incomplete >= 0)
-			m_last_scrape = m_ses.session_time();
+			m_last_scrape = total_seconds(clock_type::now().time_since_epoch());
 
 #ifndef TORRENT_DISABLE_LOGGING
 		std::string resolved_to;
@@ -4403,7 +4411,7 @@ namespace {
 				// is deallocated by the torrent once it starts seeding
 			}
 
-			m_last_download = m_ses.session_time();
+			m_last_download = total_seconds(clock_type::now().time_since_epoch());
 
 			if (m_share_mode)
 				recalc_share_mode();
@@ -7027,13 +7035,12 @@ namespace {
 #endif
 		}
 
-		int now = m_ses.session_time();
-		int tmp = rd.dict_find_int_value("last_scrape", -1);
-		m_last_scrape = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
+		boost::int64_t tmp = rd.dict_find_int_value("last_scrape", -1);
+		m_last_scrape = tmp == -1 ? unset : tmp;
 		tmp = rd.dict_find_int_value("last_download", -1);
-		m_last_download = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
+		m_last_download = tmp == -1 ? unset : tmp;
 		tmp = rd.dict_find_int_value("last_upload", -1);
-		m_last_upload = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
+		m_last_upload = tmp == -1 ? unset : tmp;
 
 		if (m_use_resume_save_path)
 		{
@@ -7275,6 +7282,9 @@ namespace {
 		ret["num_complete"] = m_complete;
 		ret["num_incomplete"] = m_incomplete;
 		ret["num_downloaded"] = m_downloaded;
+		ret["last_upload"] = m_last_upload == unset ? -1 : boost::int64_t(m_last_upload);
+		ret["last_download"] = m_last_download == unset ? -1 : boost::int64_t(m_last_download);
+		ret["last_scrape"] = m_last_scrape == unset ? -1 : boost::int64_t(m_last_scrape);
 
 		ret["sequential_download"] = m_sequential_download;
 
@@ -9613,13 +9623,6 @@ namespace {
 		return a - b;
 	}
 
-	int clamped_subtract_s16(int a, int b)
-	{
-		if (a + (std::numeric_limits<boost::int16_t>::min)() < b)
-			return (std::numeric_limits<boost::int16_t>::min)();
-		return a - b;
-	}
-
 	} // anonymous namespace
 
 	// this is called every time the session timer takes a step back. Since the
@@ -9673,10 +9676,6 @@ namespace {
 			m_finished_time += lost_seconds;
 		}
 		m_became_finished = clamped_subtract(m_became_finished, seconds);
-
-		m_last_upload = clamped_subtract_s16(m_last_upload, seconds);
-		m_last_download = clamped_subtract_s16(m_last_download, seconds);
-		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
 
 		m_last_saved_resume = clamped_subtract(m_last_saved_resume, seconds);
 		m_upload_mode_time = clamped_subtract(m_upload_mode_time, seconds);
@@ -12145,8 +12144,8 @@ namespace {
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
 
-		st->last_scrape = m_last_scrape == (std::numeric_limits<boost::int16_t>::min)() ? -1
-			: clamped_subtract(m_ses.session_time(), m_last_scrape);
+		st->last_scrape = m_last_scrape == unset ? -1
+			: total_seconds(clock_type::now() - time_point(seconds(m_last_scrape)));
 
 		st->share_mode = m_share_mode;
 		st->upload_mode = m_upload_mode;
@@ -12168,10 +12167,10 @@ namespace {
 		st->finished_time = finished_time();
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
-		st->time_since_upload = m_last_upload == (std::numeric_limits<boost::int16_t>::min)() ? -1
-			: clamped_subtract(m_ses.session_time(), m_last_upload);
-		st->time_since_download = m_last_download == (std::numeric_limits<boost::int16_t>::min)() ? -1
-			: clamped_subtract(m_ses.session_time(), m_last_download);
+		st->time_since_upload = m_last_upload == unset ? -1
+			: total_seconds(clock_type::now() - time_point(seconds(m_last_upload)));
+		st->time_since_download = m_last_download == unset ? -1
+			: total_seconds(clock_type::now() - time_point(seconds(m_last_download)));
 
 		st->storage_mode = static_cast<storage_mode_t>(m_storage_mode);
 
