@@ -77,6 +77,14 @@ namespace libtorrent
 			|| a->type() == save_resume_data_alert::alert_type)
 			++m_num_queued_resume;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			(*i)->on_alert(a);
+		}
+#endif
+
 		if (m_alerts[m_generation].size() == 1)
 		{
 			lock.unlock();
@@ -95,14 +103,6 @@ namespace libtorrent
 		{
 			lock.unlock();
 		}
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
-		{
-			(*i)->on_alert(a);
-		}
-#endif
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
