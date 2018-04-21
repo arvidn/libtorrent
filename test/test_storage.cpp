@@ -415,6 +415,18 @@ void test_rename(std::string const& test_path)
 	TEST_EQUAL(s->files().file_path(0), "new_filename");
 }
 
+struct test_error_storage : default_storage
+{
+	test_error_storage(storage_params const& params) : default_storage(params) {};
+
+	bool has_any_file(storage_error& ec) TORRENT_FINAL
+	{
+		ec.ec = make_error_code(boost::system::errc::permission_denied);
+		ec.operation = storage_error::stat;
+		return false;
+	}
+};
+
 void test_check_files(std::string const& test_path
 	, libtorrent::storage_mode_t storage_mode
 	, bool unbuffered)
@@ -458,22 +470,21 @@ void test_check_files(std::string const& test_path
 	bencode(std::back_inserter(buf), t.generate());
 	info = boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec), 0);
 
-	aux::session_settings set;
 	file_pool fp;
 	boost::asio::io_service ios;
 	counters cnt;
 	disk_io_thread io(ios, cnt, NULL);
 	io.set_num_threads(1);
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
+	std::vector<uint8_t> prio(info->num_files(), 0);
 	storage_params p;
 	p.files = &fs;
 	p.path = test_path;
 	p.pool = &fp;
 	p.mode = storage_mode;
+	p.priorities = &prio;
 
 	boost::shared_ptr<void> dummy;
-	boost::shared_ptr<piece_manager> pm = boost::make_shared<piece_manager>(new default_storage(p), dummy, &fs);
-	libtorrent::mutex lock;
+	boost::shared_ptr<piece_manager> pm = boost::make_shared<piece_manager>(new test_error_storage(p), dummy, &fs);
 
 	bool done = false;
 	bdecode_node frd;
@@ -481,10 +492,18 @@ void test_check_files(std::string const& test_path
 	io.async_check_fastresume(pm.get(), &frd, links
 		, boost::bind(&on_check_resume_data, _1, &done));
 	io.submit_jobs();
-	ios.reset();
 	run_until(ios, done);
 
-	io.set_num_threads(0);
+	for (int i = 0; i < info->num_pieces(); ++i)
+	{
+		done = false;
+		io.async_hash(pm.get(), i, disk_io_job::sequential_access | disk_io_job::volatile_read
+			, boost::bind(&on_check_resume_data, _1, &done), reinterpret_cast<void*>(1));
+		io.submit_jobs();
+		run_until(ios, done);
+	}
+
+	io.abort(true);
 }
 
 // TODO: 2 split this test up into smaller parts

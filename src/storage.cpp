@@ -1792,19 +1792,10 @@ namespace libtorrent
 
 	int piece_manager::check_no_fastresume(storage_error& ec)
 	{
-		bool has_files = false;
 		if (!m_storage->settings().get_bool(settings_pack::no_recheck_incomplete_resume))
 		{
 			storage_error se;
-			has_files = m_storage->has_any_file(se);
-
-			if (se)
-			{
-				ec = se;
-				return fatal_disk_error;
-			}
-
-			if (has_files)
+			if (m_storage->has_any_file(se))
 			{
 				// always initialize the storage
 				int ret = check_init_storage(ec);
