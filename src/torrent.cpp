@@ -1987,6 +1987,8 @@ bool is_downloading_state(int const st)
 
 		TORRENT_ASSERT(is_single_thread());
 
+		if (m_abort) return;
+
 		if (status == status_t::fatal_disk_error)
 		{
 			TORRENT_ASSERT(m_outstanding_check_files == false);
@@ -1998,8 +2000,6 @@ bool is_downloading_state(int const st)
 			if (should_check_files()) start_checking();
 			return;
 		}
-
-		if (m_abort) return;
 
 		state_updated();
 
