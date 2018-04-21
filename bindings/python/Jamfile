@@ -73,7 +73,7 @@ else
 	;
 
 	# the names are decorated in MacPorts
-	lib boost_python : : <target-os>darwin <name>boost_python-mt
+	lib boost_python : : <target-os>darwin <name>boost_python27-mt
 		: : $(boost-include-path) ;
 	lib boost_python3 : : <target-os>darwin <name>boost_python3-mt
 		: : $(boost-include-path) ;

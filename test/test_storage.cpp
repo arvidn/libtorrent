@@ -87,6 +87,14 @@ void on_check_resume_data(status_t const status, storage_error const& error, boo
 	*done = true;
 }
 
+void on_piece_checked(piece_index_t, sha1_hash const&
+	, storage_error const& error, bool* done)
+{
+	std::cout << time_now_string() << " on_piece_checked err: "
+		<< error.ec.message() << '\n';
+	*done = true;
+}
+
 void print_error(char const* call, int ret, storage_error const& ec)
 {
 	std::printf("%s: %s() returned: %d error: \"%s\" in file: %d operation: %s\n"
@@ -413,9 +421,27 @@ void test_rename(std::string const& test_path)
 	TEST_EQUAL(s->files().file_path(file_index_t(0)), "new_filename");
 }
 
+struct test_error_storage : default_storage
+{
+	explicit test_error_storage(storage_params const& params, file_pool& fp)
+		: default_storage(params, fp) {}
+
+	bool has_any_file(storage_error& ec) override
+	{
+		ec.ec = make_error_code(boost::system::errc::permission_denied);
+		ec.operation = operation_t::file_stat;
+		return false;
+	}
+};
+
+storage_interface* error_storage_constructor(
+	storage_params const& params, file_pool& fp)
+{
+	return new test_error_storage(params, fp);
+}
+
 void test_check_files(std::string const& test_path
-	, lt::storage_mode_t storage_mode
-	, bool /*unbuffered*/)
+	, lt::storage_mode_t storage_mode)
 {
 	std::shared_ptr<torrent_info> info;
 
@@ -456,10 +482,10 @@ void test_check_files(std::string const& test_path
 	bencode(std::back_inserter(buf), t.generate());
 	info = std::make_shared<torrent_info>(buf, ec, from_span);
 
-	aux::session_settings set;
 	file_pool fp;
 	boost::asio::io_service ios;
 	counters cnt;
+
 	disk_io_thread io(ios, cnt);
 	settings_pack sett;
 	sett.set_int(settings_pack::aio_threads, 1);
@@ -467,7 +493,8 @@ void test_check_files(std::string const& test_path
 
 	disk_buffer_pool dp(ios, std::bind(&nop));
 
-	aux::vector<download_priority_t, file_index_t> priorities;
+	aux::vector<download_priority_t, file_index_t> priorities(
+		std::size_t(info->num_files()), download_priority_t{});
 	sha1_hash info_hash;
 	storage_params p{
 		fs,
@@ -478,9 +505,8 @@ void test_check_files(std::string const& test_path
 		info_hash
 	};
 
-	auto st = io.new_torrent(default_storage_constructor, std::move(p)
+	auto st = io.new_torrent(error_storage_constructor, std::move(p)
 		, std::shared_ptr<void>());
-	std::mutex lock;
 
 	bool done = false;
 	add_torrent_params frd;
@@ -490,6 +516,16 @@ void test_check_files(std::string const& test_path
 	io.submit_jobs();
 	ios.reset();
 	run_until(ios, done);
+
+	for (piece_index_t i{0}; i < info->files().end_piece(); ++i)
+	{
+		done = false;
+		io.async_hash(st, i, disk_interface::sequential_access | disk_interface::volatile_read
+			, std::bind(&on_piece_checked, _1, _2, _3, &done));
+		io.submit_jobs();
+		ios.reset();
+		run_until(ios, done);
+	}
 
 	io.abort(true);
 }
@@ -619,8 +655,7 @@ void run_test(bool unbuffered)
 // ==============================================
 
 	std::cout << "=== test 6 ===" << std::endl;
-	test_check_files(test_path, storage_mode_sparse, unbuffered);
-	test_check_files(test_path, storage_mode_sparse, unbuffered);
+	test_check_files(test_path, storage_mode_sparse);
 
 	std::cout << "=== test 7 ===" << std::endl;
 	test_rename(test_path);

@@ -2451,18 +2451,11 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			// j->error may have been set at this point, by verify_resume_data()
 			// it's important to not have it cleared out subsequent calls, as long
 			// as they succeed.
-			bool const has_files = j->storage->has_any_file(se);
-
-			if (se)
-			{
-				j->error = se;
-				return status_t::fatal_disk_error;
-			}
-
-			if (has_files)
+			if (j->storage->has_any_file(se))
 			{
 				// always initialize the storage
-				j->storage->initialize(se);
+				storage_error ignore;
+				j->storage->initialize(ignore);
 				if (se)
 				{
 					j->error = se;
