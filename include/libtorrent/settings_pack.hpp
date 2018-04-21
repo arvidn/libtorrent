@@ -806,13 +806,14 @@ namespace libtorrent {
 			// reliable.
 			urlseed_timeout,
 
-			// controls the pipelining size of url-seeds. i.e. the number of HTTP
+			// controls the pipelining size of url and http seeds. i.e. the number of HTTP
 			// request to keep outstanding before waiting for the first one to
 			// complete. It's common for web servers to limit this to a relatively
 			// low number, like 5
 			urlseed_pipeline_size,
 
-			// time to wait until a new retry of a web seed takes place
+			// number of seconds until a new retry of a url-seed takes place.
+			// Default retry value for http-seeds that don't provide a valid 'retry-after' header.
 			urlseed_wait_retry,
 
 			// sets the upper limit on the total number of files this session will
