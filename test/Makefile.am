@@ -247,5 +247,5 @@ LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 
 AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@ \
-	@BOOST_CHRONO_LIB@
+	@BOOST_CHRONO_LIB@ @BOOST_THREAD_LIB@
 

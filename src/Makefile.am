@@ -158,7 +158,7 @@ libtorrent_rasterbar_la_SOURCES = \
   $(BUILTIN_CRYPTO_SOURCES)
 
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
-libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @OPENSSL_LIBS@
+libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LIBS@
 
 AM_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY -I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 AM_CFLAGS = -I$(top_srcdir)/ed25519/src -std=c99

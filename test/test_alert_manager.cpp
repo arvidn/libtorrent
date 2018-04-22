@@ -286,7 +286,7 @@ void alert_emplacer(alert_manager& mgr, boost::atomic<bool> &running)
 
 TORRENT_TEST(alert_mask_response)
 {
-	const int n_threads = TORRENT_ALERT_MANAGER_N_THREADS;
+	const int n_threads = 10;
 	std::vector<alert*> alerts;
 	boost::atomic<bool> emplacer_running(true);
 	alert_manager mgr(100, lt::alert::status_notification);
@@ -327,6 +327,35 @@ TORRENT_TEST(alert_mask_response)
 	for (int i = 0; i < n_threads; i++)
 		threads[i]->join();
 }
+
+TORRENT_TEST(thread_safety)
+{
+	const int n_threads = 50;
+	std::vector<alert*> alerts;
+	boost::atomic<bool> emplacer_running(true);
+	alert_manager mgr(100, lt::alert::status_notification);
+	std::vector<boost::shared_ptr<libtorrent::thread>> threads;
+
+	// start some threads to emplace alerts
+	for (int i = 0; i < n_threads; i++)
+		threads.push_back(boost::shared_ptr<libtorrent::thread>(new libtorrent::thread(boost::bind(
+			&alert_emplacer, boost::ref(mgr), boost::ref(emplacer_running)))));
+
+	// this test needs a lot of work. for now all it will
+	// do is trigger an assert on a debug build in do_emplace_alert()
+	// if alerts are popped twice in the timespan between alert
+	// construction and it being available to get_all().
+	// A proper test needs to at least emplace alerts with allocated
+	// strings and verify them.
+	for (int i = 0; i < 1000; ++i)
+		mgr.get_all(alerts);
+
+	// kill all threads
+	emplacer_running = false;
+	for (int i = 0; i < n_threads; i++)
+		threads[i]->join();
+}
+
 
 void post_torrent_added(alert_manager* mgr)
 {

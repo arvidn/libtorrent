@@ -48,10 +48,6 @@ namespace libtorrent
 		, m_queue_read_slot(0)
 		, m_queue_limit_requested(-1)
 		, m_buffer_refs(0)
-		, m_generation_borrowed(0)
-		, m_generation_youngest(0)
-		, m_generation_oldest(0)
-		, m_generations(0)
 	{
 		for (int i = 0; i < queue_limit * 2; i++)
 			m_alerts[i] = NULL;
@@ -165,7 +161,6 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(alerts[i] != NULL);
 			(*m_dispatch.load(boost::memory_order_relaxed))(alerts[i]->clone());
-			delete alerts[i];
 		}
 	}
 
@@ -234,18 +229,25 @@ namespace libtorrent
 	{
 		mutex::scoped_lock lock(m_mutex);
 
-		// if a buffer resize has been requested wait until all
-		// buffer references have been released to ensure that
-		// maybe_resize_buffer() succeeds
 		if (m_queue_limit_requested != -1)
+		{
+			// if a buffer resize has been requested wait until all
+			// buffer references have been released to ensure that
+			// maybe_resize_buffer() succeeds
 			while (m_buffer_refs > 0) this_thread::yield();
+		}
+		else
+		{
+			// yield the cpu at least once before to ensure that
+			// this function cannot be called twice in the timespan
+			// between the alert contruction and it being placed in the
+			// queue (and available to us).
+			this_thread::yield();
+		}
 
 		const int n_pending = m_alerts_pending_delete.size();
 		const int size_limit = m_queue_size_limit;
 
-		// free alerts in the pending delete list
-		for (int i = 0; i < n_pending; i++)
-			delete m_alerts_pending_delete[i];
 		alerts.clear();
 		m_alerts_pending_delete.clear();
 
@@ -268,26 +270,36 @@ namespace libtorrent
 			alerts.push_back(alert);
 		}
 
-		// swap buffers
-		m_generation_youngest = (m_generation_youngest ==
-			TORRENT_ALERT_MANAGER_N_GENERATIONS - 1) ? 0 : m_generation_youngest + 1;
-		m_generations++;
-		TORRENT_ASSERT(m_generation_youngest < TORRENT_ALERT_MANAGER_N_GENERATIONS);
-		TORRENT_ASSERT(m_generations <= TORRENT_ALERT_MANAGER_N_GENERATIONS);
-
 		// if a buffer resize is pending do it now
 		maybe_resize_buffer();
 
-		// delete the oldest generation
-		if (m_generations == TORRENT_ALERT_MANAGER_N_GENERATIONS)
+		// free the storage for each thread
+		for (int i = 0; i < m_threads.size(); i++)
 		{
-			m_allocations[m_generation_oldest].reset();
-			m_generation_oldest = (m_generation_oldest == TORRENT_ALERT_MANAGER_N_GENERATIONS - 1) ? 0
-				: m_generation_oldest + 1;
-			m_generations--;
-		}
+			thread_state& ts = m_threads[i];
 
-		TORRENT_ASSERT(m_generations <= TORRENT_ALERT_MANAGER_N_GENERATIONS);
+			int gen = ts.youngest_generation
+				->load(boost::memory_order_relaxed);
+
+			// swap buffers
+			gen = (gen == TORRENT_ALERT_MANAGER_N_GENERATIONS - 1) ? 0 : (gen + 1);
+			ts.youngest_generation->store(gen);
+			ts.n_generations++;
+
+			TORRENT_ASSERT(gen < TORRENT_ALERT_MANAGER_N_GENERATIONS);
+			TORRENT_ASSERT(ts.oldest_generation <= TORRENT_ALERT_MANAGER_N_GENERATIONS);
+
+			// delete the oldest generation
+			if (ts.n_generations == TORRENT_ALERT_MANAGER_N_GENERATIONS)
+			{
+				ts.allocators[ts.oldest_generation]->reset();
+				ts.oldest_generation = (ts.oldest_generation == TORRENT_ALERT_MANAGER_N_GENERATIONS - 1) ? 0
+					: ts.oldest_generation + 1;
+				ts.n_generations--;
+			}
+
+			TORRENT_ASSERT(ts.n_generations <= TORRENT_ALERT_MANAGER_N_GENERATIONS);
+		}
 	}
 
 	int alert_manager::set_alert_queue_size_limit(int queue_size_limit_)

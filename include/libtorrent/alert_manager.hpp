@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function1.hpp>
 #endif
 #include <boost/function/function0.hpp>
+#include <boost/thread/tss.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/atomic.hpp>
 #include <boost/config.hpp>
@@ -70,8 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // the number of threads that can emplace alerts concurrently
 // if this limit is exceeded everything will still be thread
 // safe but there will be contention over the allocators
-#define TORRENT_ALERT_MANAGER_N_THREADS 	(10)
-#define TORRENT_ALERT_MANAGER_N_GENERATIONS	(TORRENT_ALERT_MANAGER_N_THREADS + 1)
+#define TORRENT_ALERT_MANAGER_N_GENERATIONS	(3)
 
 // the maximum number of cycles to a spinlock may spin
 // before yielding the cpu
@@ -85,7 +85,18 @@ namespace libtorrent {
 
 	class TORRENT_EXTRA_EXPORT alert_manager
 	{
-	public:
+		// this is used to track the state of each thread that calls
+		// emplace_alert()
+		struct thread_state
+		{
+			thread_state() {}
+			boost::atomic<int>* youngest_generation;
+			int oldest_generation;
+			int n_generations;
+			aux::stack_allocator* allocators[TORRENT_ALERT_MANAGER_N_GENERATIONS];
+		};
+
+		public:
 		alert_manager(int queue_limit
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
@@ -97,10 +108,17 @@ namespace libtorrent {
 		template <class T, typename... Args>
 		bool emplace_alert(Args&&... args)
 		{
+			// allocate thread specific storage the first time the thread runs
+			// this will be freed automagically by boost::thread_specific_ptr
+			if (m_allocations[0].get() == NULL)
+				init_thread_specific_storage();
+
+			const int gen = (*m_generation).load();
+
 #ifndef TORRENT_NO_DEPRECATE
 			if (m_dispatch.load(boost::memory_order_relaxed))
 			{
-				aux::stack_allocator::scoped_lock lock(m_allocations[borrow_generation()]);
+				aux::stack_allocator::scoped_lock lock(*m_allocations[gen]);
 				(*m_dispatch.load(boost::memory_order_relaxed))(std::auto_ptr<alert>(new T(lock.allocator()
 					, std::forward<Args>(args)...)));
 				return false;
@@ -116,7 +134,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 				if (!m_ses_extensions_reliable.empty())
 				{
-					aux::stack_allocator::scoped_lock lock(m_allocations[borrow_generation()]);
+					aux::stack_allocator::scoped_lock lock(*m_allocations[gen]);
 					T alert(lock.allocator(), std::forward<Args>(args)...);
 					notify_extensions(&alert, m_ses_extensions_reliable);
 				}
@@ -124,30 +142,34 @@ namespace libtorrent {
 				return false;
 			}
 
-			// this should be done with pooled memory. One way to do it without
-			// wasting a lot of memory would be to use per-thread heterogeneous_queues.
-			// I think that can be done in a clean and portable way by using
-			// boost::thread_specific_ptr but it would require linking the boost
-			// threads library. If we may also be able to use a per-thread allocator
-			// and save having tune TORRENT_ALERT_MANAGER_N_THREADS manually.
-			T* alert = new T(m_allocations[m_generation_youngest],
-				std::forward<Args>(args)...);
-
-			if (!do_emplace_alert(alert, T::priority))
+			do
 			{
-				delete alert;
-#ifndef TORRENT_DISABLE_EXTENSIONS
-				if (!m_ses_extensions_reliable.empty())
-				{
-					aux::stack_allocator::scoped_lock lock(m_allocations[borrow_generation()]);
-					T alert(lock.allocator(), std::forward<Args>(args)...);
-					notify_extensions(&alert, m_ses_extensions_reliable);
-				}
-#endif
-				return false;
-			}
+				bool aborted;
+				T* alert = new T(*m_allocations[gen],
+					std::forward<Args>(args)...);
 
-			return true;
+				if (!do_emplace_alert(alert, T::priority, gen, aborted))
+				{
+					// free the alert
+					delete alert;
+
+					// this is just a safety net in case alerts where
+					// popped twice while do_emplace_alert() was running.
+					if (aborted) continue;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+					if (!m_ses_extensions_reliable.empty())
+					{
+						aux::stack_allocator::scoped_lock lock(*m_allocations[gen]);
+						T alert(lock.allocator(), std::forward<Args>(args)...);
+						notify_extensions(&alert, m_ses_extensions_reliable);
+					}
+#endif
+					return false;
+				}
+				return true;
+			}
+			while (1);
 		}
 #else
 
@@ -199,9 +221,29 @@ namespace libtorrent {
 		alert_manager(alert_manager const&);
 		alert_manager& operator=(alert_manager const&);
 
+		void init_thread_specific_storage()
+		{
+			thread_state ts;
+			ts.youngest_generation = new boost::atomic<int>(0);
+			ts.oldest_generation = 0;
+			ts.n_generations = 0;
+
+			m_generation.reset(ts.youngest_generation);
+
+			for (int i = 0; i < TORRENT_ALERT_MANAGER_N_GENERATIONS; i++)
+			{
+				ts.allocators[i] = new aux::stack_allocator();
+				m_allocations[i].reset(ts.allocators[i]);
+			}
+
+			// register storage globally
+			mutex::scoped_lock lock(m_mutex);
+			m_threads.push_back(ts);
+		}
+
 		// tries to emplace a pre-constructed alert. Returns false if the
 		// queue fills up before the alert can be posted true otherwise.
-		bool do_emplace_alert(alert * const a, const int priority)
+		bool do_emplace_alert(alert * const a, const int priority, const int& gen, bool& aborted)
 		{
 			int current, next;
 			alert* expected;
@@ -246,10 +288,24 @@ namespace libtorrent {
 				if (real_size >= size_limit * (1 + priority))
 				{
 					m_buffer_refs--;
+					aborted = false;
 					return false;
 				}
 
 				TORRENT_ASSERT(next >= 0 && next < (size_limit * 2));
+
+				// if the generation changed twice since the alert was constructed
+				// then abort as it's not safe.
+				const int next_gen = gen + 2;
+				const int next_gen_of = (gen + 1 >= TORRENT_ALERT_MANAGER_N_GENERATIONS) ? 1 : 0;
+				const int c_gen = m_generation->load();
+				if (c_gen >= next_gen || (c_gen < gen && c_gen >= next_gen_of))
+				{
+					TORRENT_ASSERT(false);
+					m_buffer_refs--;
+					aborted = true;
+					return false;
+				}
 			}
 			while (!m_queue_write_slot.compare_exchange_strong(current, next));
 
@@ -287,17 +343,6 @@ namespace libtorrent {
 			m_buffer_refs--;
 
 			return true;
-		}
-
-		int borrow_generation()
-		{
-			// this version is not as accurate but it's fast and good
-			// enough for our purposes
-			int next = m_generation_borrowed.load(boost::memory_order_relaxed) + 1;
-			if (next >= TORRENT_ALERT_MANAGER_N_GENERATIONS)
-				next = 0;
-			m_generation_borrowed.store(next, boost::memory_order_relaxed);
-			return next;
 		}
 
 		void maybe_resize_buffer();
@@ -348,17 +393,17 @@ namespace libtorrent {
 
 		// this is a stack where alerts can allocate variable length content,
 		// such as strings, to go with the alerts.
-		aux::stack_allocator m_allocations[TORRENT_ALERT_MANAGER_N_GENERATIONS];
+		boost::thread_specific_ptr<aux::stack_allocator> m_allocations[TORRENT_ALERT_MANAGER_N_GENERATIONS];
 
 		// this is used to avoid resizing the ring buffer while emplace_alert is
 		// posting an alert
 		boost::atomic<int> m_buffer_refs;
 
 		// track the allocator generations
-		boost::atomic<int> m_generation_borrowed;
-		boost::atomic<int> m_generation_youngest;
-		int m_generation_oldest;
-		int m_generations;
+		boost::thread_specific_ptr<boost::atomic<int>> m_generation;
+
+		// tracks the threads popping alerts
+		std::vector<thread_state> m_threads;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;

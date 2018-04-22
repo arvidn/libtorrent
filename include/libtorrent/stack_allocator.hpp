@@ -138,39 +138,32 @@ namespace libtorrent { namespace aux
 
 		int copy_string(std::string const& str)
 		{
-			mutex::scoped_lock lock(m_mutex);
 			int ret = int(m_storage.size());
 			m_storage.resize(ret + str.length() + 1);
-			lock.unlock();
 			strcpy(&m_storage[ret], str.c_str());
 			return ret;
 		}
 
 		int copy_string(char const* str)
 		{
-			mutex::scoped_lock lock(m_mutex);
 			int ret = int(m_storage.size());
 			int len = strlen(str);
 			m_storage.resize(ret + len + 1);
-			lock.unlock();
 			strcpy(&m_storage[ret], str);
 			return ret;
 		}
 
 		int copy_buffer(char const* buf, int size)
 		{
-			mutex::scoped_lock lock(m_mutex);
 			int ret = int(m_storage.size());
 			if (size < 1) return -1;
 			m_storage.resize(ret + size);
-			lock.unlock();
 			memcpy(&m_storage[ret], buf, size);
 			return ret;
 		}
 
 		int allocate(int bytes)
 		{
-			mutex::scoped_lock lock(m_mutex);
 			if (bytes < 1) return -1;
 			int ret = int(m_storage.size());
 			m_storage.resize(ret + bytes);
