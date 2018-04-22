@@ -541,7 +541,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		auto st = m_torrents[storage]->shared_from_this();
 		// hash jobs
-		for (auto i = m_generic_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
+		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
 		{
 			disk_io_job* j = i.get();
 			if (j->storage != st) continue;
