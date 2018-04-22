@@ -271,7 +271,7 @@ namespace libtorrent
 		file_completed_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, int idx);
 
-		TORRENT_DEFINE_ALERT(file_completed_alert, 6)
+		TORRENT_DEFINE_ALERT_PRIO(file_completed_alert, 6)
 
 		static const int static_category = alert::progress_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -799,7 +799,7 @@ namespace libtorrent
 		torrent_finished_alert(aux::stack_allocator& alloc,
 			torrent_handle h);
 
-		TORRENT_DEFINE_ALERT(torrent_finished_alert, 26)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_finished_alert, 26)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1070,7 +1070,7 @@ namespace libtorrent
 		// internal
 		torrent_paused_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(torrent_paused_alert, 39)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_paused_alert, 39)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1083,7 +1083,7 @@ namespace libtorrent
 		// internal
 		torrent_resumed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(torrent_resumed_alert, 40)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_resumed_alert, 40)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1096,7 +1096,7 @@ namespace libtorrent
 		// internal
 		torrent_checked_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(torrent_checked_alert, 41)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_checked_alert, 41)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1764,7 +1764,7 @@ namespace libtorrent
 		torrent_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, error_code const& e, std::string const& f);
 
-		TORRENT_DEFINE_ALERT(torrent_error_alert, 64)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_error_alert, 64)
 
 		static const int static_category = alert::error_notification | alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;

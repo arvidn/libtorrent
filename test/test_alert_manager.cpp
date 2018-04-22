@@ -54,7 +54,7 @@ TORRENT_TEST(limit)
 	// try add 600 torrent_add_alert to make sure we honor the limit of 500
 	// alerts.
 	for (int i = 0; i < 600; ++i)
-		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -71,7 +71,7 @@ TORRENT_TEST(limit)
 	mgr.set_alert_queue_size_limit(200);
 
 	for (int i = 0; i < 600; ++i)
-		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	TEST_EQUAL(mgr.pending(), true);
 
