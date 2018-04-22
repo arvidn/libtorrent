@@ -135,7 +135,8 @@ namespace libtorrent {
 				if (!m_ses_extensions_reliable.empty())
 				{
 					aux::stack_allocator::scoped_lock lock(*m_allocations[gen]);
-					T alert(lock.allocator(), std::forward<Args>(args)...);
+					T alert(lock.allocator()
+						, std::forward<Args>(args)...);
 					notify_extensions(&alert, m_ses_extensions_reliable);
 				}
 #endif
@@ -145,8 +146,8 @@ namespace libtorrent {
 			do
 			{
 				bool aborted;
-				T* alert = new T(*m_allocations[gen],
-					std::forward<Args>(args)...);
+				T* alert = new T(*m_allocations[gen]
+					, std::forward<Args>(args)...);
 
 				if (!do_emplace_alert(alert, T::priority, gen, aborted))
 				{
@@ -161,7 +162,8 @@ namespace libtorrent {
 					if (!m_ses_extensions_reliable.empty())
 					{
 						aux::stack_allocator::scoped_lock lock(*m_allocations[gen]);
-						T alert(lock.allocator(), std::forward<Args>(args)...);
+						T alert(lock.allocator()
+							, std::forward<Args>(args)...);
 						notify_extensions(&alert, m_ses_extensions_reliable);
 					}
 #endif

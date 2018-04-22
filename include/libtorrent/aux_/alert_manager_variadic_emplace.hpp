@@ -22,46 +22,78 @@
 		template <class T
 			BOOST_PP_COMMA_IF(I)
 			BOOST_PP_ENUM_PARAMS(I, typename A)>
-		void emplace_alert(BOOST_PP_ENUM_BINARY_PARAMS(I, A, const& a) )
+		bool emplace_alert(BOOST_PP_ENUM_BINARY_PARAMS(I, A, const& a) )
 		{
-			mutex::scoped_lock lock(m_mutex);
+			// allocate thread specific storage the first time the thread runs
+			// this will be freed automagically by boost::thread_specific_ptr
+			if (m_allocations[0].get() == NULL)
+				init_thread_specific_storage();
+
+			const int gen = (*m_generation).load();
+
 #ifndef TORRENT_NO_DEPRECATE
-			if (m_dispatch)
+			if (m_dispatch.load(boost::memory_order_relaxed))
 			{
-				m_dispatch(std::auto_ptr<alert>(new T(m_allocations[m_generation]
+				aux::stack_allocator::scoped_lock lock(*m_allocations[gen]);
+				(*m_dispatch.load(boost::memory_order_relaxed))(std::auto_ptr<alert>(new T(lock.allocator()
 					BOOST_PP_COMMA_IF(I)
 					BOOST_PP_ENUM_PARAMS(I, a))));
-				return;
+				return false;
 			}
 #endif
+
 			// don't add more than this number of alerts, unless it's a
 			// high priority alert, in which case we try harder to deliver it
 			// for high priority alerts, double the upper limit
-			if (m_alerts[m_generation].size() >= m_queue_size_limit
-				* (1 + T::priority))
+			if (m_queue_size.load(boost::memory_order_relaxed) >=
+				(m_queue_size_limit.load(boost::memory_order_relaxed) * (1 + T::priority)))
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-				lock.unlock();
+				if (!m_ses_extensions_reliable.empty())
+				{
+					aux::stack_allocator::scoped_lock lock(*m_allocations[gen]);
+					T alert(lock.allocator()
+						BOOST_PP_COMMA_IF(I)
+						BOOST_PP_ENUM_PARAMS(I, a));
 
-				if (m_ses_extensions_reliable.empty())
-					return;
-
-				mutex::scoped_lock reliable_lock(m_mutex_reliable);
-				T alert(m_allocator_reliable
-					BOOST_PP_COMMA_IF(I)
-					BOOST_PP_ENUM_PARAMS(I, a));
-				notify_extensions(&alert, m_ses_extensions_reliable);
-				m_allocator_reliable.reset();
+					notify_extensions(&alert, m_ses_extensions_reliable);
+				}
 #endif
-				return;
+				return false;
 			}
 
-			T alert(m_allocations[m_generation]
-				BOOST_PP_COMMA_IF(I)
-				BOOST_PP_ENUM_PARAMS(I, a));
-			m_alerts[m_generation].push_back(alert);
+			do
+			{
+				bool aborted;
+				T* alert = new T(*m_allocations[gen]
+					BOOST_PP_COMMA_IF(I)
+					BOOST_PP_ENUM_PARAMS(I, a));
 
-			maybe_notify(&alert, lock);
+				if (!do_emplace_alert(alert, T::priority, gen, aborted))
+				{
+					// free the alert
+					delete alert;
+
+					// this is just a safety net in case alerts where
+					// popped twice while do_emplace_alert() was running.
+					if (aborted) continue;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+					if (!m_ses_extensions_reliable.empty())
+					{
+						aux::stack_allocator::scoped_lock lock(*m_allocations[gen]);
+						T alert(lock.allocator()
+							BOOST_PP_COMMA_IF(I)
+							BOOST_PP_ENUM_PARAMS(I, a));
+
+						notify_extensions(&alert, m_ses_extensions_reliable);
+					}
+#endif
+					return false;
+				}
+				return true;
+			}
+			while (1);
 		}
 
 #undef I

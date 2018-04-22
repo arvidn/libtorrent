@@ -62,11 +62,11 @@ namespace libtorrent
 		const int n_alerts = m_queue_size;
 
 		// release alerts in the pending deletes list
-		for (int i = 0; i < m_alerts_pending_delete.size(); i++)
+		for (unsigned int i = 0; i < m_alerts_pending_delete.size(); i++)
 			delete m_alerts_pending_delete[i];
 
 		// free alerts already in the queue
-		for (int i = 0; i < m_queue_size; i++)
+		for (int i = 0; i < n_alerts; i++)
 		{
 			alert * const alert = pop_alert();
 			TORRENT_ASSERT(alert != NULL);
@@ -157,7 +157,7 @@ namespace libtorrent
 		// unlock mutex and call dispatch function
 		lock.unlock();
 
-		for (int i = 0; i < alerts.size(); i++)
+		for (unsigned int i = 0; i < alerts.size(); i++)
 		{
 			TORRENT_ASSERT(alerts[i] != NULL);
 			(*m_dispatch.load(boost::memory_order_relaxed))(alerts[i]->clone());
@@ -245,11 +245,13 @@ namespace libtorrent
 			this_thread::yield();
 		}
 
-		const int n_pending = m_alerts_pending_delete.size();
-		const int size_limit = m_queue_size_limit;
+		//const int size_limit = m_queue_size_limit;
 
-		alerts.clear();
+		// release alerts in the pending deletes list
+		for (unsigned int i = 0; i < m_alerts_pending_delete.size(); i++)
+			delete m_alerts_pending_delete[i];
 		m_alerts_pending_delete.clear();
+		alerts.clear();
 
 		// after this libtorrent threads can begin work on posting
 		// new alerts if the queue was full.
@@ -274,7 +276,7 @@ namespace libtorrent
 		maybe_resize_buffer();
 
 		// free the storage for each thread
-		for (int i = 0; i < m_threads.size(); i++)
+		for (unsigned int i = 0; i < m_threads.size(); i++)
 		{
 			thread_state& ts = m_threads[i];
 
