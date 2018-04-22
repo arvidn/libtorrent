@@ -134,7 +134,10 @@ namespace libtorrent { namespace aux
 			scoped_lock& operator=(scoped_lock const&);
 		};
 
-		stack_allocator() {}
+		stack_allocator() : m_locks(0)
+			, m_consec_locks(0)
+			, m_saved_size(-1)
+			, m_reset_pending(false) {}
 
 		int copy_string(std::string const& str)
 		{
@@ -209,10 +212,10 @@ namespace libtorrent { namespace aux
 		stack_allocator(stack_allocator const&);
 		stack_allocator& operator=(stack_allocator const&);
 
-		int m_locks = 0;
-		int m_consec_locks = 0;
-		int m_saved_size = -1;
-		bool m_reset_pending = false;
+		int m_locks;
+		int m_consec_locks;
+		int m_saved_size;
+		bool m_reset_pending;
 		mutable mutex m_mutex;
 		buffer m_storage;
 	};

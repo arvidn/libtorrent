@@ -69,7 +69,7 @@ namespace libtorrent
 	namespace this_thread
 	{
 		void yield();
-	};
+	}
 
 	struct TORRENT_EXTRA_EXPORT condition_variable
 	{

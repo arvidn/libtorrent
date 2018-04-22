@@ -40,7 +40,9 @@ namespace libtorrent
 	alert_manager::alert_manager(int queue_limit, boost::uint32_t alert_mask)
 		: m_alert_mask(alert_mask)
 		, m_queue_size_limit(queue_limit)
+#ifndef TORRENT_NO_DEPRECATE
 		, m_dispatch(NULL)
+#endif
 		, m_notify(NULL)
 		, m_alerts(queue_limit * 2)
 		, m_queue_size(0)
