@@ -268,6 +268,8 @@ namespace libtorrent {
 		void set_priv(bool p) { m_private = p; }
 		bool priv() const { return m_private; }
 
+		bool is_v1_only() const { return m_v1_only; }
+
 		// returns the number of pieces in the associated file_storage object.
 		int num_pieces() const { return m_files.num_pieces(); }
 

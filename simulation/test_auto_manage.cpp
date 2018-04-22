@@ -519,7 +519,7 @@ TORRENT_TEST(checking_announce)
 					++num_announce;
 			}
 
-			TEST_EQUAL(num_announce, 1);
+			TEST_EQUAL(num_announce, 2);
 
 			int num_started = 0;
 			for (torrent_handle const& h : ses.get_torrents())

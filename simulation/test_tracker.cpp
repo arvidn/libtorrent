@@ -135,10 +135,11 @@ void test_interval(int interval)
 
 	TEST_CHECK(ran_to_completion);
 	TEST_EQUAL(announce_alerts.size(), announces.size());
+	TEST_CHECK(announces.size() % 2 == 0);
 
 	lt::time_point last_announce = announces[0];
 	lt::time_point last_alert = announce_alerts[0];
-	for (int i = 1; i < int(announces.size()); ++i)
+	for (int i = 2; i < int(announces.size()); i += 2)
 	{
 		// make sure the interval is within 1 second of what it's supposed to be
 		// (this accounts for network latencies, and the second-granularity
@@ -234,9 +235,11 @@ TORRENT_TEST(event_completed)
 		switch (i)
 		{
 			case 0:
+			case 1:
 				TEST_CHECK(has_start);
 				break;
-			case 1:
+			case 2:
+			case 3:
 			{
 				// the announce should have come approximately the same time we
 				// completed
@@ -245,7 +248,7 @@ TORRENT_TEST(event_completed)
 				break;
 			}
 			default:
-				if (i == int(announces.size()) - 1)
+				if (i >= int(announces.size()) - 2)
 				{
 					TEST_CHECK(has_stopped);
 				}
@@ -389,7 +392,7 @@ void test_ipv6_support(char const* listen_interfaces
 		lt::add_torrent_params p;
 		p.name = "test-torrent";
 		p.save_path = ".";
-		p.info_hash.assign("abababababababababab");
+		p.info_hash.v1.assign("abababababababababab");
 
 //TODO: parameterize http vs. udp here
 		p.trackers.push_back("http://tracker.com:8080/announce");
@@ -488,7 +491,7 @@ void test_udpv6_support(char const* listen_interfaces
 		lt::add_torrent_params p;
 		p.name = "test-torrent";
 		p.save_path = ".";
-		p.info_hash.assign("abababababababababab");
+		p.info_hash.v1.assign("abababababababababab");
 
 		p.trackers.push_back("udp://tracker.com:8080/announce");
 		ses->async_add_torrent(p);
@@ -616,7 +619,7 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	lt::add_torrent_params p;
 	p.name = "test-torrent";
 	p.save_path = ".";
-	p.info_hash.assign("abababababababababab");
+	p.info_hash.v1.assign("abababababababababab");
 	int const delay = setup(p, *ses);
 	ses->async_add_torrent(p);
 
@@ -693,10 +696,10 @@ TORRENT_TEST(test_error)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.is_working(), false);
-				TEST_EQUAL(aep.message, "test");
-				TEST_EQUAL(aep.last_error, error_code(errors::tracker_failure));
-				TEST_EQUAL(aep.fails, 1);
+				TEST_EQUAL(aep.info_hashes[0].is_working(), false);
+				TEST_EQUAL(aep.info_hashes[0].message, "test");
+				TEST_EQUAL(aep.info_hashes[0].last_error, error_code(errors::tracker_failure));
+				TEST_EQUAL(aep.info_hashes[0].fails, 1);
 			}
 		});
 }
@@ -719,10 +722,10 @@ TORRENT_TEST(test_warning)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.is_working(), true);
-				TEST_EQUAL(aep.message, "test2");
-				TEST_EQUAL(aep.last_error, error_code());
-				TEST_EQUAL(aep.fails, 0);
+				TEST_EQUAL(aep.info_hashes[0].is_working(), true);
+				TEST_EQUAL(aep.info_hashes[0].message, "test2");
+				TEST_EQUAL(aep.info_hashes[0].last_error, error_code());
+				TEST_EQUAL(aep.info_hashes[0].fails, 0);
 			}
 		});
 }
@@ -746,13 +749,13 @@ TORRENT_TEST(test_scrape_data_in_announce)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.is_working(), true);
-				TEST_EQUAL(aep.message, "");
-				TEST_EQUAL(aep.last_error, error_code());
-				TEST_EQUAL(aep.fails, 0);
-				TEST_EQUAL(aep.scrape_complete, 1);
-				TEST_EQUAL(aep.scrape_incomplete, 2);
-				TEST_EQUAL(aep.scrape_downloaded, 3);
+				TEST_EQUAL(aep.info_hashes[0].is_working(), true);
+				TEST_EQUAL(aep.info_hashes[0].message, "");
+				TEST_EQUAL(aep.info_hashes[0].last_error, error_code());
+				TEST_EQUAL(aep.info_hashes[0].fails, 0);
+				TEST_EQUAL(aep.info_hashes[0].scrape_complete, 1);
+				TEST_EQUAL(aep.info_hashes[0].scrape_incomplete, 2);
+				TEST_EQUAL(aep.info_hashes[0].scrape_downloaded, 3);
 			}
 		});
 }
@@ -783,9 +786,9 @@ TORRENT_TEST(test_scrape)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.scrape_incomplete, 2);
-				TEST_EQUAL(aep.scrape_complete, 1);
-				TEST_EQUAL(aep.scrape_downloaded, 3);
+				TEST_EQUAL(aep.info_hashes[0].scrape_incomplete, 2);
+				TEST_EQUAL(aep.info_hashes[0].scrape_complete, 1);
+				TEST_EQUAL(aep.info_hashes[0].scrape_downloaded, 3);
 			}
 		}
 		, "/scrape");
@@ -806,10 +809,10 @@ TORRENT_TEST(test_http_status)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.is_working(), false);
-				TEST_EQUAL(aep.message, "Not A Tracker");
-				TEST_EQUAL(aep.last_error, error_code(410, http_category()));
-				TEST_EQUAL(aep.fails, 1);
+				TEST_EQUAL(aep.info_hashes[0].is_working(), false);
+				TEST_EQUAL(aep.info_hashes[0].message, "Not A Tracker");
+				TEST_EQUAL(aep.info_hashes[0].last_error, error_code(410, http_category()));
+				TEST_EQUAL(aep.info_hashes[0].fails, 1);
 			}
 		});
 }
@@ -832,10 +835,10 @@ TORRENT_TEST(test_interval)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.is_working(), true);
-				TEST_EQUAL(aep.message, "");
-				TEST_EQUAL(aep.last_error, error_code());
-				TEST_EQUAL(aep.fails, 0);
+				TEST_EQUAL(aep.info_hashes[0].is_working(), true);
+				TEST_EQUAL(aep.info_hashes[0].message, "");
+				TEST_EQUAL(aep.info_hashes[0].last_error, error_code());
+				TEST_EQUAL(aep.info_hashes[0].fails, 0);
 			}
 
 			TEST_EQUAL(ae.trackerid, "testtest");
@@ -860,11 +863,11 @@ TORRENT_TEST(test_invalid_bencoding)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.is_working(), false);
-				TEST_EQUAL(aep.message, "");
-				TEST_EQUAL(aep.last_error, error_code(bdecode_errors::expected_value
+				TEST_EQUAL(aep.info_hashes[0].is_working(), false);
+				TEST_EQUAL(aep.info_hashes[0].message, "");
+				TEST_EQUAL(aep.info_hashes[0].last_error, error_code(bdecode_errors::expected_value
 					, bdecode_category()));
-				TEST_EQUAL(aep.fails, 1);
+				TEST_EQUAL(aep.info_hashes[0].fails, 1);
 			}
 		});
 }
@@ -913,7 +916,7 @@ TORRENT_TEST(try_next)
 				{
 					for (auto const& aep : tr[i].endpoints)
 					{
-						TEST_EQUAL(aep.fails, 0);
+						TEST_EQUAL(aep.info_hashes[0].fails, 0);
 					}
 					TEST_EQUAL(tr[i].verified, true);
 				}
@@ -921,8 +924,8 @@ TORRENT_TEST(try_next)
 				{
 					for (auto const& aep : tr[i].endpoints)
 					{
-						TEST_CHECK(aep.fails >= 1);
-						TEST_EQUAL(aep.last_error
+						TEST_CHECK(aep.info_hashes[0].fails >= 1);
+						TEST_EQUAL(aep.info_hashes[0].last_error
 							, error_code(boost::asio::error::host_not_found));
 					}
 					TEST_EQUAL(tr[i].verified, false);
@@ -932,8 +935,8 @@ TORRENT_TEST(try_next)
 					TEST_EQUAL(tr[i].verified, false);
 					for (auto const& aep : tr[i].endpoints)
 					{
-						TEST_CHECK(aep.fails >= 1);
-						TEST_EQUAL(aep.last_error
+						TEST_CHECK(aep.info_hashes[0].fails >= 1);
+						TEST_EQUAL(aep.info_hashes[0].last_error
 							, error_code(boost::asio::error::host_not_found));
 					}
 				}

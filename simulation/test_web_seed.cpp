@@ -84,7 +84,8 @@ add_torrent_params create_torrent(file_storage& fs, bool v1_only = false)
 		if (!v1_only)
 		{
 			piece_index_t const file_first_piece(int(fs.file_offset(files[0].file_index) / fs.piece_length()));
-			t.set_hash2(files[0].file_index, i - file_first_piece, hasher256(piece).final());
+			t.set_hash2(files[0].file_index, i - file_first_piece
+				, hasher256(span<char>(piece).first(files[0].size)).final());
 		}
 		piece.clear();
 	}

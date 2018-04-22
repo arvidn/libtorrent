@@ -193,28 +193,31 @@ namespace {
 		}
 		st->ct.set_hash(piece, piece_hash);
 
-		std::int64_t const piece_offset = std::int64_t(piece) * st->ct.piece_length();
-		file_index_t const current_file = st->ct.files().file_index_at_offset(piece_offset);
-		if (!st->ct.files().pad_file_at(current_file))
+		if (!st->ct.is_v1_only())
 		{
-			piece_index_t const file_first_piece(int(st->ct.files().file_offset(current_file) / st->ct.piece_length()));
-			TORRENT_ASSERT(st->ct.files().file_offset(current_file) % st->ct.piece_length() == 0);
+			std::int64_t const piece_offset = std::int64_t(piece) * st->ct.piece_length();
+			file_index_t const current_file = st->ct.files().file_index_at_offset(piece_offset);
+			if (!st->ct.files().pad_file_at(current_file))
+			{
+				piece_index_t const file_first_piece(int(st->ct.files().file_offset(current_file) / st->ct.piece_length()));
+				TORRENT_ASSERT(st->ct.files().file_offset(current_file) % st->ct.piece_length() == 0);
 
-			auto const file_piece_offset = piece - file_first_piece;
-			auto const file_size = st->ct.files().file_size(current_file);
-			int const piece_blocks = (st->ct.files().piece_size2(piece) + default_block_size - 1) / default_block_size;
-			// If the file is smaller than one piece then the block hashes
-			// should be padded to the next power of two instead of the next
-			// piece boundary.
-			int const paded_leaves = file_size < st->ct.piece_length()
-				? merkle_num_leafs(int((file_size + default_block_size - 1) / default_block_size))
-				: st->ct.piece_length() / default_block_size;
+				auto const file_piece_offset = piece - file_first_piece;
+				auto const file_size = st->ct.files().file_size(current_file);
+				int const piece_blocks = (st->ct.files().piece_size2(piece) + default_block_size - 1) / default_block_size;
+				// If the file is smaller than one piece then the block hashes
+				// should be padded to the next power of two instead of the next
+				// piece boundary.
+				int const paded_leaves = file_size < st->ct.piece_length()
+					? merkle_num_leafs(int((file_size + default_block_size - 1) / default_block_size))
+					: st->ct.piece_length() / default_block_size;
 
-			TORRENT_ASSERT(paded_leaves <= int(v2_chunks.size()));
-			for (auto i = piece_blocks; i < paded_leaves; ++i)
-				v2_chunks[i].clear();
-			sha256_hash piece_root = merkle_root(span<sha256_hash>(v2_chunks).first(paded_leaves));
-			st->ct.set_hash2(current_file, file_piece_offset, piece_root);
+				TORRENT_ASSERT(paded_leaves <= int(v2_chunks.size()));
+				for (auto i = piece_blocks; i < paded_leaves; ++i)
+					v2_chunks[i].clear();
+				sha256_hash piece_root = merkle_root(span<sha256_hash>(v2_chunks).first(paded_leaves));
+				st->ct.set_hash2(current_file, file_piece_offset, piece_root);
+			}
 		}
 
 		st->f(st->completed_piece);
@@ -354,7 +357,10 @@ namespace {
 		hash_state st = { t, std::move(storage), *disk_thread.get(), piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
-			std::vector<sha256_hash> v2_chunks(t.piece_length() / default_block_size);
+			std::vector<sha256_hash> v2_chunks;
+			
+			if (!t.is_v1_only())
+				v2_chunks.resize(t.piece_length() / default_block_size);
 			// the span needs to be created before the call to async_hash to ensure that
 			// it is constructed before the vector is moved into the bind context
 			span<sha256_hash> v2_span(v2_chunks);
