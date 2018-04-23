@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if __cplusplus >= 201103L || defined __clang__
 
 #if DEBUG_DISK_THREAD
+#include <cstdarg> // for va_list
 #define DLOG(...) debug_log(__VA_ARGS__)
 #else
 #define DLOG(...) do {} while(false)
