@@ -5,6 +5,7 @@
 #ifndef BOOST_PYTHON_HPP
 #define BOOST_PYTHON_HPP
 
+#include <cstdio>
 #include <libtorrent/aux_/disable_warnings_push.hpp>
 #include <boost/python.hpp>
 
