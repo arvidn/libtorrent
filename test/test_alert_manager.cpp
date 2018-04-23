@@ -87,21 +87,24 @@ TORRENT_TEST(priority_limit)
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 100);
 
+	std::vector<alert*> alerts;
+	int num_resume = 0;
+
 	// this should only add 100 because of the limit
 	for (int i = 0; i < 200; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
-	// the limit is twice as high for priority alerts
-	for (int i = 0; i < 200; ++i)
+	mgr.get_all(alerts, num_resume);
+	TEST_EQUAL(alerts.size(), 100);
+
+	// the limit is higher for priority alerts
+	for (int i = 0; i < 300; ++i)
 		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code());
 
-	std::vector<alert*> alerts;
-	int num_resume;
 	mgr.get_all(alerts, num_resume);
-
-	// even though we posted 400, the limit was 100 for half of them and
-	// 200 for the other half, meaning we should have 200 alerts now
-	TEST_EQUAL(alerts.size(), 200);
+	// even though we posted 500, the limit was 100 for half of them and
+	// 100 + 200 for the other half, meaning we should have 300 alerts now
+	TEST_EQUAL(alerts.size(), 300);
 }
 
 void test_dispatch_fun(int& cnt, std::auto_ptr<alert> const& a)
