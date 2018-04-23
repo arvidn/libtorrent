@@ -249,7 +249,7 @@ namespace libtorrent {
 				continue;
 
 			file_status s;
-			std::string const file_path = files().file_path(i, m_save_path);
+			std::string const file_path = fs.file_path(i, m_save_path);
 			error_code err;
 			stat_file(file_path, &s, err);
 			if (!err)
@@ -278,7 +278,7 @@ namespace libtorrent {
 
 			// this is just to see if the file exists
 			error_code err;
-			m_stat_cache.get_filesize(file_index, files(), m_save_path, err);
+			m_stat_cache.get_filesize(file_index, fs, m_save_path, err);
 
 			if (err && err != boost::system::errc::no_such_file_or_directory)
 			{
@@ -292,7 +292,7 @@ namespace libtorrent {
 			// deliberately don't truncate files that already exist
 			// if a file is supposed to have size 0, but already exists, we will
 			// never truncate it to 0.
-			if (files().file_size(file_index) == 0
+			if (fs.file_size(file_index) == 0
 				&& err == boost::system::errc::no_such_file_or_directory)
 			{
 				std::string file_path = fs.file_path(file_index, m_save_path);
@@ -535,7 +535,6 @@ namespace libtorrent {
 
 			if (e)
 			{
-				ec.file(torrent_status::error_file_partfile);
 				ec.ec = e;
 				ec.file(file_index);
 				return -1;

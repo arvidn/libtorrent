@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include <vector>
 #include <mutex>
 #include <atomic>
 #include <memory>
@@ -128,12 +127,9 @@ POSSIBILITY OF SUCH DAMAGE.
 //	}
 namespace libtorrent {
 
-	class session;
 	struct file_pool;
 	namespace aux { struct session_settings; }
 	struct add_torrent_params;
-
-	struct disk_io_thread;
 
 	// The storage interface is a pure virtual class that can be implemented to
 	// customize how and where data for a torrent is stored. The default storage
@@ -377,8 +373,6 @@ namespace libtorrent {
 	// override some of its behavior, when implementing a custom storage.
 	class TORRENT_EXPORT default_storage : public storage_interface
 	{
-		friend struct write_fileop;
-		friend struct read_fileop;
 	public:
 		// constructs the default_storage based on the give file_storage (fs).
 		// ``mapped`` is an optional argument (it may be nullptr). If non-nullptr it
