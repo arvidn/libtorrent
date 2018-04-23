@@ -1086,7 +1086,7 @@ namespace libtorrent
 		void lsd_announce();
 
 		void update_last_upload()
-		{ m_last_upload = total_seconds(clock_type::now().time_since_epoch()); }
+		{ m_last_upload = static_cast<boost::uint32_t>(total_seconds(clock_type::now().time_since_epoch())); }
 
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
