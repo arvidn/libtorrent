@@ -2442,7 +2442,6 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// the error message indicates that the fast resume data was rejected
 		// if 'fatal_disk_error' is returned, the error message indicates what
 		// when wrong in the disk access
-		storage_error se;
 		if ((rd->have_pieces.empty()
 			|| !j->storage->verify_resume_data(*rd
 				, links ? *links : aux::vector<std::string, file_index_t>(), j->error))
@@ -2451,11 +2450,12 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			// j->error may have been set at this point, by verify_resume_data()
 			// it's important to not have it cleared out subsequent calls, as long
 			// as they succeed.
-			if (j->storage->has_any_file(se))
+			storage_error ignore;
+			if (j->storage->has_any_file(ignore))
 			{
 				// always initialize the storage
-				storage_error ignore;
-				j->storage->initialize(ignore);
+				storage_error se;
+				j->storage->initialize(se);
 				if (se)
 				{
 					j->error = se;
@@ -2465,6 +2465,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			}
 		}
 
+		storage_error se;
 		j->storage->initialize(se);
 		if (se)
 		{
