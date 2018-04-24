@@ -439,7 +439,7 @@ namespace libtorrent
 			, torrent_status::state_t st
 			, torrent_status::state_t prev_st);
 
-		TORRENT_DEFINE_ALERT(state_changed_alert, 10)
+		TORRENT_DEFINE_ALERT_PRIO(state_changed_alert, 10, alert_priority_high)
 
 		static const int static_category = alert::status_notification;
 
