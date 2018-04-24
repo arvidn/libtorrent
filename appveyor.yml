@@ -97,8 +97,8 @@ build_script:
 - mkdir build && cd build
 - if defined cmake (
   set "PATH=c:\Python27-x64;%PATH%" &&
-  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="/WX /wd4244 /wd4459" -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 14 2015 Win64" .. &&
-  cmake --build .
+  cmake -DCMAKE_CXX_FLAGS="/WX /wd4244 /wd4459" -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 14 2015 Win64" .. &&
+  cmake --build . --config Release
   )
 
 test_script:
