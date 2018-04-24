@@ -85,7 +85,7 @@ namespace libtorrent
 	{
 		alert_priority_normal = 0,
 		alert_priority_high,
-		alert_priority_realtime,
+		alert_priority_realtime
 	};
 
 	// This is a base class for alerts that are associated with a
