@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/session_udp_sockets.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -63,9 +64,14 @@ namespace libtorrent { namespace aux {
 		});
 	}
 
-	tcp::endpoint outgoing_sockets::bind(socket_type& s, address const& remote_address) const
+	tcp::endpoint outgoing_sockets::bind(socket_type& s
+		, address const& remote_address, error_code& ec) const
 	{
-		TORRENT_ASSERT(!sockets.empty());
+		if (sockets.empty())
+		{
+			ec.assign(boost::system::errc::not_supported, generic_category());
+			return tcp::endpoint();
+		}
 
 		utp_socket_impl* impl = nullptr;
 		transport ssl = transport::plaintext;

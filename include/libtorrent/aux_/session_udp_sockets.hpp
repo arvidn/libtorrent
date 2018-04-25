@@ -89,7 +89,8 @@ namespace libtorrent { namespace aux {
 		std::vector<std::shared_ptr<outgoing_udp_socket>>::iterator
 		partition_outgoing_sockets(std::vector<listen_endpoint_t>& eps);
 
-		tcp::endpoint bind(socket_type& s, address const& remote_address) const;
+		tcp::endpoint bind(socket_type& s, address const& remote_address
+			, error_code& ec) const;
 
 		void update_proxy(proxy_settings const& settings);
 
