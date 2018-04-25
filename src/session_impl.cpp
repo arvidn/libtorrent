@@ -4988,8 +4988,8 @@ namespace aux {
 
 		if (is_utp(s))
 		{
-			auto ep = m_outgoing_sockets.bind(s, remote_address);
-			if (ep.port() != 0)
+			auto ep = m_outgoing_sockets.bind(s, remote_address, ec);
+			if (ep.port() != 0 || ec)
 				return ep;
 		}
 
