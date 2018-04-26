@@ -381,12 +381,14 @@ namespace libtorrent
 			return;
 		}
 
-#ifndef TORRENT_DISABLE_LOGGING
 		tcp::endpoint const bound_ip = m_ses.bind_outgoing_socket(*m_socket
 			, m_remote.address(), ec);
+#ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "BIND", "dst: %s ec: %s"
 			, print_endpoint(bound_ip).c_str()
 			, ec.message().c_str());
+#else
+		TORRENT_UNUSED(bound_ip);
 #endif
 		if (ec)
 		{
