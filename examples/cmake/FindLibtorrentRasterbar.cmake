@@ -24,7 +24,7 @@ if(LibtorrentRasterbar_USE_STATIC_LIBS)
 endif()
 
 if(PC_LIBTORRENT_RASTERBAR_FOUND)
-    set(LibtorrentRasterbar_DEFINITIONS ${PC_LIBTORRENT_RASTERBAR_CFLAGS})
+    set(LibtorrentRasterbar_DEFINITIONS ${PC_LIBTORRENT_RASTERBAR_CFLAGS_OTHER})
 else()
     if(LibtorrentRasterbar_CUSTOM_DEFINITIONS)
         set(LibtorrentRasterbar_DEFINITIONS ${LibtorrentRasterbar_CUSTOM_DEFINITIONS})
