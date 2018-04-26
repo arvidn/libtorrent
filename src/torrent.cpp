@@ -187,7 +187,7 @@ bool is_downloading_state(int const st)
 		, m_inactivity_timer(ses.get_io_service())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		, m_url(p.url)
 		, m_uuid(p.uuid)
@@ -369,7 +369,7 @@ bool is_downloading_state(int const st)
 			if (!p.name.empty()) m_name.reset(new std::string(p.name));
 		}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		if (!m_url.empty() && m_uuid.empty()) m_uuid = m_url;
 #endif
@@ -395,7 +395,7 @@ bool is_downloading_state(int const st)
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
 #endif
 
@@ -409,7 +409,7 @@ bool is_downloading_state(int const st)
 	void torrent::inc_stats_counter(int c, int value)
 	{ m_ses.stats_counters().inc_stats_counter(c, value); }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// deprecated in 1.2
 	void torrent::on_torrent_download(error_code const& ec
 		, http_parser const& parser, span<char const> data) try
@@ -522,7 +522,7 @@ bool is_downloading_state(int const st)
 	}
 	catch (...) { handle_exception(); }
 
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	int torrent::current_stats_state() const
 	{
@@ -537,7 +537,7 @@ bool is_downloading_state(int const st)
 			return counters::num_queued_download_torrents;
 		}
 		if (state() == torrent_status::checking_files
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			|| state() == torrent_status::queued_for_checking
 #endif
 			)
@@ -622,7 +622,7 @@ bool is_downloading_state(int const st)
 		// constructed, as it relies on get_shared_from_this()
 		if (m_add_torrent_params)
 		{
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			if (m_add_torrent_params->internal_resume_data_error
 				&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 			{
@@ -681,7 +681,7 @@ bool is_downloading_state(int const st)
 		update_want_tick();
 		update_state_list();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		if (!m_torrent_file->is_valid() && !m_url.empty())
 		{
@@ -707,7 +707,7 @@ bool is_downloading_state(int const st)
 #endif
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// deprecated in 1.2
 	void torrent::start_download_url()
 	{
@@ -770,7 +770,7 @@ bool is_downloading_state(int const st)
 		if (!m_announce_to_dht) return false;
 		if (m_paused) return false;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		// if we don't have the metadata, and we're waiting
 		// for a web server to serve it to us, no need to announce
@@ -2469,7 +2469,7 @@ bool is_downloading_state(int const st)
 	}
 	catch (...) { handle_exception(); }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void torrent::use_interface(std::string net_interfaces)
 	{
 		std::shared_ptr<settings_pack> p = std::make_shared<settings_pack>();
@@ -2558,7 +2558,7 @@ bool is_downloading_state(int const st)
 				if (m_paused)
 					debug_log("DHT: torrent paused, no DHT announce");
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 				// deprecated in 1.2
 				if (!m_torrent_file->is_valid() && !m_url.empty())
 					debug_log("DHT: no info-hash, waiting for \"%s\"", m_url.c_str());
@@ -2906,7 +2906,7 @@ bool is_downloading_state(int const st)
 					}
 				}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 				req.auth = tracker_login();
 #endif
 				req.key = tracker_key();
@@ -2971,7 +2971,7 @@ bool is_downloading_state(int const st)
 	void torrent::scrape_tracker(int idx, bool const user_triggered)
 	{
 		TORRENT_ASSERT(is_single_thread());
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		m_last_scrape = aux::time_now32();
 #endif
 
@@ -2989,7 +2989,7 @@ bool is_downloading_state(int const st)
 		req.kind |= tracker_request::scrape_request;
 		req.url = m_trackers[idx].url;
 		req.private_torrent = m_torrent_file->priv();
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		req.auth = tracker_login();
 #endif
 		req.key = tracker_key();
@@ -3153,7 +3153,7 @@ bool is_downloading_state(int const st)
 		}
 		update_tracker_timer(now);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (resp.complete >= 0 && resp.incomplete >= 0)
 			m_last_scrape = aux::time_now32();
 #endif
@@ -3384,9 +3384,8 @@ bool is_downloading_state(int const st)
 		update_tracker_timer(aux::time_now32());
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	void torrent::set_tracker_login(
-		std::string const& name
+#if TORRENT_ABI_VERSION == 1
+	void torrent::set_tracker_login(std::string const& name
 		, std::string const& pw)
 	{
 		m_username = name;
@@ -4566,7 +4565,7 @@ bool is_downloading_state(int const st)
 	}
 	catch (...) { handle_exception(); }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	std::string torrent::tracker_login() const
 	{
 		if (m_username.empty() && m_password.empty()) return "";
@@ -6133,7 +6132,7 @@ bool is_downloading_state(int const st)
 
 		ret.save_path = m_save_path;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		ret.url = m_url;
 		ret.uuid = m_uuid;
@@ -6354,7 +6353,7 @@ bool is_downloading_state(int const st)
 		}
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void torrent::get_full_peer_list(std::vector<peer_list_entry>* v) const
 	{
 		v->clear();
@@ -6420,10 +6419,8 @@ bool is_downloading_state(int const st)
 			pi.finished = int(i->finished);
 			pi.writing = int(i->writing);
 			pi.requested = int(i->requested);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			pi.piece_state = partial_piece_info::none;
-#else
-			pi.deprecated_piece_state = partial_piece_info::none;
 #endif
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
 			pi.blocks = &blk[std::size_t(counter * blocks_per_piece)];
@@ -7781,11 +7778,11 @@ bool is_downloading_state(int const st)
 		{
 			case counters::num_error_torrents: TORRENT_ASSERT(has_error()); break;
 			case counters::num_checking_torrents:
-#ifdef TORRENT_NO_DEPRECATE
-				TORRENT_ASSERT(state() == torrent_status::checking_files);
-#else
+#if TORRENT_ABI_VERSION == 1
 				TORRENT_ASSERT(state() == torrent_status::checking_files
 					|| state() == torrent_status::queued_for_checking);
+#else
+				TORRENT_ASSERT(state() == torrent_status::checking_files);
 #endif
 				break;
 			case counters::num_seeding_torrents: TORRENT_ASSERT(is_seed()); break;
@@ -8209,7 +8206,7 @@ bool is_downloading_state(int const st)
 		update_want_peers();
 		update_state_list();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		// if we haven't downloaded the metadata from m_url, try again
 		if (!m_url.empty() && !m_torrent_file->is_valid())
@@ -8229,7 +8226,7 @@ bool is_downloading_state(int const st)
 		if (file == torrent_status::error_file_ssl_ctx) return "SSL Context";
 		if (file == torrent_status::error_file_exception) return "exception";
 		if (file == torrent_status::error_file_partfile) return "partfile";
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (file == torrent_status::error_file_url) return m_url;
 		if (file == torrent_status::error_file_metadata) return "metadata (from user load function)";
 #endif
@@ -8912,7 +8909,7 @@ bool is_downloading_state(int const st)
 #endif
 			return;
 		}
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		if (!m_torrent_file->is_valid() && !m_url.empty())
 		{
@@ -10303,7 +10300,7 @@ bool is_downloading_state(int const st)
 #endif
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #if !TORRENT_NO_FPU
 	void torrent::file_progress_float(aux::vector<float, file_index_t>& fp)
 	{
@@ -10328,7 +10325,7 @@ bool is_downloading_state(int const st)
 		}
 	}
 #endif
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	void torrent::file_progress(aux::vector<std::int64_t, file_index_t>& fp, int const flags)
 	{
@@ -10600,7 +10597,7 @@ bool is_downloading_state(int const st)
 
 		st->handle = get_handle();
 		st->info_hash = info_hash();
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->is_loaded = true;
 #endif
 
@@ -10617,7 +10614,7 @@ bool is_downloading_state(int const st)
 		st->errc = m_error;
 		st->error_file = m_error_file;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (m_error) st->error = convert_from_native(m_error.message())
 			+ ": " + resolve_filename(m_error_file);
 		st->seed_mode = m_seed_mode;
@@ -10627,24 +10624,24 @@ bool is_downloading_state(int const st)
 		st->announcing_to_trackers = m_announce_to_trackers;
 		st->announcing_to_lsd = m_announce_to_lsd;
 		st->announcing_to_dht = m_announce_to_dht;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->stop_when_ready = m_stop_when_ready;
 #endif
 
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->last_scrape = static_cast<int>(total_seconds(aux::time_now32() - m_last_scrape));
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->share_mode = m_share_mode;
 		st->upload_mode = m_upload_mode;
 #endif
 		st->up_bandwidth_queue = 0;
 		st->down_bandwidth_queue = 0;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->priority = priority();
 #endif
 
@@ -10659,7 +10656,7 @@ bool is_downloading_state(int const st)
 		st->all_time_download = m_total_downloaded;
 
 		// activity time
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->finished_time = int(total_seconds(finished_time()));
 		st->active_time = int(total_seconds(active_time()));
 		st->seeding_time = int(total_seconds(seeding_time()));
@@ -10683,14 +10680,14 @@ bool is_downloading_state(int const st)
 
 		st->num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
 		st->num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->paused = is_torrent_paused();
 		st->auto_managed = m_auto_managed;
 		st->sequential_download = m_sequential_download;
 #endif
 		st->is_seeding = is_seed();
 		st->is_finished = is_finished();
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->super_seeding = m_super_seeding;
 #endif
 		st->has_metadata = valid_metadata();
@@ -10726,7 +10723,7 @@ bool is_downloading_state(int const st)
 		if (st->next_announce.count() < 0)
 			st->next_announce = seconds(0);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->announce_interval = seconds(0);
 #endif
 
@@ -10762,7 +10759,7 @@ bool is_downloading_state(int const st)
 
 		st->queue_position = queue_position();
 		st->need_save_resume = need_save_resume_data();
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		st->ip_filter_applies = m_apply_ip_filter;
 #endif
 
@@ -10864,13 +10861,13 @@ bool is_downloading_state(int const st)
 		return priority;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void torrent::set_priority(int const prio)
 	{
 		// priority 1 is default
-		if (prio == 1 && m_peer_class == 0) return;
+		if (prio == 1 && m_peer_class == peer_class_t{}) return;
 
-		if (m_peer_class == 0)
+		if (m_peer_class == peer_class_t{})
 			setup_peer_class();
 
 		struct peer_class* tpc = m_ses.peer_classes().at(m_peer_class);

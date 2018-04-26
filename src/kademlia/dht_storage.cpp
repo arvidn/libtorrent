@@ -199,7 +199,7 @@ namespace {
 		dht_default_storage(dht_default_storage const&) = delete;
 		dht_default_storage& operator=(dht_default_storage const&) = delete;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		size_t num_torrents() const override { return m_map.size(); }
 		size_t num_peers() const override
 		{

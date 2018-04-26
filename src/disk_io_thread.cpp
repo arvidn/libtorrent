@@ -2554,7 +2554,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	{
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		ret->total_used_buffers = m_disk_cache.in_use();
 
 		ret->blocks_read_hit = int(m_stats_counters[counters::num_blocks_cache_hits]);
@@ -2636,7 +2636,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		l.unlock();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		std::unique_lock<std::mutex> jl(m_job_mutex);
 		ret->queued_jobs = m_generic_io_jobs.m_queued_jobs.size() + m_hash_io_jobs.m_queued_jobs.size();
 		jl.unlock();

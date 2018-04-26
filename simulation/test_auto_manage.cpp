@@ -100,7 +100,7 @@ TORRENT_TEST(dont_count_slow_torrents)
 			// add torrents
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
+				lt::add_torrent_params params = ::create_torrent(i, false);
 				params.flags |= lt::torrent_flags::auto_managed;
 				params.flags |= lt::torrent_flags::paused;
 				ses.async_add_torrent(params);
@@ -159,7 +159,7 @@ TORRENT_TEST(count_slow_torrents)
 			// add torrents
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
+				lt::add_torrent_params params = ::create_torrent(i, false);
 				params.flags |= torrent_flags::auto_managed;
 				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
@@ -210,7 +210,7 @@ TORRENT_TEST(force_stopped_download)
 			// add torrents
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
+				lt::add_torrent_params params = ::create_torrent(i, false);
 				// torrents are paused and not auto-managed
 				params.flags &= ~torrent_flags::auto_managed;
 				params.flags |= torrent_flags::paused;
@@ -258,7 +258,7 @@ TORRENT_TEST(force_started)
 			// add torrents
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
+				lt::add_torrent_params params = ::create_torrent(i, false);
 				// torrents are started and not auto-managed
 				params.flags &= ~torrent_flags::auto_managed;
 				params.flags &= ~torrent_flags::paused;
@@ -308,7 +308,7 @@ TORRENT_TEST(seed_limit)
 			// add 5 seeds
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, true);
+				lt::add_torrent_params params = ::create_torrent(i, true);
 				// torrents are paused and auto-managed
 				params.flags |= torrent_flags::auto_managed;
 				params.flags |= torrent_flags::paused;
@@ -397,7 +397,7 @@ TORRENT_TEST(download_limit)
 			// add 5 seeds
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
+				lt::add_torrent_params params = ::create_torrent(i, false);
 				// torrents are paused and auto-managed
 				params.flags |= torrent_flags::auto_managed;
 				params.flags |= torrent_flags::paused;
@@ -493,7 +493,7 @@ TORRENT_TEST(checking_announce)
 			// add 5 seeds
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, true);
+				lt::add_torrent_params params = ::create_torrent(i, true);
 				// torrents are paused and auto-managed
 				params.flags |= torrent_flags::auto_managed;
 				params.flags |= torrent_flags::paused;
@@ -546,7 +546,7 @@ TORRENT_TEST(paused_checking)
 			// add 5 seeds
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, true);
+				lt::add_torrent_params params = ::create_torrent(i, true);
 				// torrents are paused and auto-managed
 				params.flags &= ~torrent_flags::auto_managed;
 				params.flags |= torrent_flags::paused;
@@ -593,7 +593,7 @@ TORRENT_TEST(stop_when_ready)
 
 		[](lt::session& ses) {
 			// add torrents
-			lt::add_torrent_params params = create_torrent(0, true);
+			lt::add_torrent_params params = ::create_torrent(0, true);
 			// torrents are started and auto-managed
 			params.flags |= torrent_flags::auto_managed;
 			params.flags |= torrent_flags::stop_when_ready;
@@ -661,7 +661,7 @@ TORRENT_TEST(resume_reject_when_paused)
 
 		[](lt::session& ses) {
 			// add torrents
-			lt::add_torrent_params params = create_torrent(0, true);
+			lt::add_torrent_params params = ::create_torrent(0, true);
 
 			// the torrent is not auto managed and paused. Once the resume data
 			// check completes, it will stay paused but the state_changed_alert
@@ -734,7 +734,7 @@ TORRENT_TEST(no_resume_when_paused)
 
 		[](lt::session& ses) {
 			// add torrents
-			lt::add_torrent_params params = create_torrent(0, true);
+			lt::add_torrent_params params = ::create_torrent(0, true);
 
 			// the torrent is not auto managed and paused.
 			params.flags &= ~torrent_flags::auto_managed;
@@ -802,7 +802,7 @@ TORRENT_TEST(no_resume_when_started)
 
 		[](lt::session& ses) {
 			// add torrents
-			lt::add_torrent_params params = create_torrent(0, true);
+			lt::add_torrent_params params = ::create_torrent(0, true);
 			ses.async_add_torrent(params);
 		},
 
@@ -850,7 +850,7 @@ TORRENT_TEST(pause_completed_torrents)
 
 		[](lt::session& ses) {
 			// add torrent
-			lt::add_torrent_params params = create_torrent(0, true);
+			lt::add_torrent_params params = ::create_torrent(0, true);
 			params.flags |= torrent_flags::auto_managed;
 			params.flags |= torrent_flags::paused;
 			ses.async_add_torrent(params);

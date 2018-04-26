@@ -471,7 +471,7 @@ namespace aux {
 		void clear(tailqueue<disk_io_job>& jobs);
 
 		void update_stats_counters(counters& c) const;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		void get_stats(cache_status* ret) const;
 #endif
 		void set_settings(aux::session_settings const& sett);

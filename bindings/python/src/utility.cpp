@@ -64,7 +64,7 @@ struct bytes_from_python
     }
 };
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 object client_fingerprint_(peer_id const& id)
 {
     boost::optional<fingerprint> result = client_fingerprint(id);
@@ -90,7 +90,7 @@ void bind_utility()
     to_python_converter<bytes, bytes_to_python>();
     bytes_from_python();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     def("identify_client", &lt::identify_client);
     def("client_fingerprint", &client_fingerprint_);
 #endif

@@ -56,7 +56,7 @@ for l in f:
 	if 'enum string_types' in l: mode = 'string'
 	if 'enum bool_types' in l: mode = 'bool'
 	if 'enum int_types' in l: mode = 'int'
-	if '#ifndef TORRENT_NO_DEPRECATE' in l: mode += 'skip'
+	if '#if TORRENT_ABI_VERSION == 1' in l: mode += 'skip'
 	if '#endif' in l: mode = mode[0:-4]
 
 	if mode == '': continue

@@ -57,6 +57,7 @@ namespace ssl {
 #endif
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp" // peer_entry
@@ -72,14 +73,12 @@ namespace ssl {
 
 namespace libtorrent {
 
-	struct request_callback;
 	class tracker_manager;
 	struct timeout_handler;
 	class udp_tracker_connection;
 	class http_tracker_connection;
 	struct resolver_interface;
 	struct counters;
-	struct ip_filter;
 #if TORRENT_USE_I2P
 	class i2p_connection;
 #endif
@@ -123,7 +122,7 @@ namespace libtorrent {
 
 		std::string url;
 		std::string trackerid;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		std::string auth;
 #endif
 

@@ -4483,7 +4483,7 @@ namespace libtorrent {
 
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		p.upload_limit = -1;
 		p.download_limit = -1;
 		p.load_balancing = 0;
@@ -4550,7 +4550,7 @@ namespace libtorrent {
 			p.num_hashfails = 0;
 		}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		p.remote_dl_rate = 0;
 #endif
 		p.send_buffer_size = m_send_buffer.capacity();

@@ -773,7 +773,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	auto const mask = alert::all_categories
 		& ~(
 			alert::performance_warning
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			| alert::progress_notification
 #endif
 			| alert::stats_notification);

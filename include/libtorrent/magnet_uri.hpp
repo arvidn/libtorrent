@@ -52,7 +52,7 @@ namespace libtorrent {
 	TORRENT_EXPORT std::string make_magnet_uri(torrent_handle const& handle);
 	TORRENT_EXPORT std::string make_magnet_uri(torrent_info const& info);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #ifndef BOOST_NO_EXCEPTIONS
 	// deprecated in 0.14
 	TORRENT_DEPRECATED_EXPORT
@@ -73,7 +73,7 @@ namespace libtorrent {
 	TORRENT_DEPRECATED_EXPORT
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p, error_code& ec);
-#endif
+#endif // TORRENT_ABI_VERSION
 
 
 	// This function parses out information from the magnet link and populates the

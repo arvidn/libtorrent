@@ -21,7 +21,6 @@ nobase_include_HEADERS = \
   broadcast_socket.hpp         \
   bt_peer_connection.hpp       \
   buffer.hpp                   \
-  build_config.hpp             \
   chained_buffer.hpp           \
   choker.hpp                   \
   close_reason.hpp             \

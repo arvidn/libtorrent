@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STORAGE_DEFS_HPP_INCLUDE
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/sha1_hash.hpp"
@@ -44,9 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	struct TORRENT_EXPORT storage_interface;
-	class file_storage;
-	struct file_pool;
-	class torrent_info;
 
 	using storage_index_t = aux::strong_typedef<std::uint32_t, struct storage_index_tag_t>;
 
@@ -93,7 +91,7 @@ namespace libtorrent {
 		dont_replace
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// deprecated in 1.2
 	enum deprecated_move_flags_t
 	{

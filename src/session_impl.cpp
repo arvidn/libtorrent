@@ -76,7 +76,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/build_config.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -518,10 +517,8 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_LOGGING
 
-		session_log("config: %s version: %s revision: %s"
-			, TORRENT_CFG_STRING
-			, LIBTORRENT_VERSION
-			, LIBTORRENT_REVISION);
+		session_log("version: %s revision: %s"
+			, LIBTORRENT_VERSION, LIBTORRENT_REVISION);
 
 #endif // TORRENT_DISABLE_LOGGING
 
@@ -666,7 +663,7 @@ namespace aux {
 		}
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		bool need_update_proxy = false;
 		if (flags & session_handle::save_proxy)
 		{
@@ -724,7 +721,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 				need_update_dht = false;
 #endif
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 				need_update_proxy = false;
 #endif
 			}
@@ -733,7 +730,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		if (need_update_dht) start_dht();
 #endif
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (need_update_proxy) update_proxy();
 #endif
 
@@ -1269,7 +1266,7 @@ namespace aux {
 	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
 	{
 		bool const reopen_listen_port =
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			(pack.has_val(settings_pack::ssl_listen)
 				&& pack.get_int(settings_pack::ssl_listen)
 					!= m_settings.get_int(settings_pack::ssl_listen))
@@ -2958,7 +2955,7 @@ namespace aux {
 		}
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	peer_id session_impl::deprecated_get_peer_id() const
 	{
 		return generate_peer_id(m_settings);
@@ -4348,7 +4345,7 @@ namespace aux {
 		, std::string uuid)
 	{
 		m_torrents.insert(std::make_pair(ih, t));
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		if (!uuid.empty()) m_uuids.insert(std::make_pair(uuid, t));
 #else
@@ -4431,7 +4428,7 @@ namespace aux {
 	}
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	//deprecated in 1.2
 	std::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid) const
 	{
@@ -4634,7 +4631,7 @@ namespace aux {
 	{
 		std::unique_ptr<add_torrent_params> holder(params);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (!params->ti && string_begins_no_case("file://", params->url.c_str()))
 		{
 			if (!m_torrent_load_thread)
@@ -4661,7 +4658,7 @@ namespace aux {
 		add_torrent(std::move(*params), ec);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void session_impl::on_async_load_torrent(add_torrent_params* params, error_code ec)
 	{
 		std::unique_ptr<add_torrent_params> holder(params);
@@ -4723,7 +4720,7 @@ namespace aux {
 		}
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (m_alerts.should_post<torrent_added_alert>())
 			m_alerts.emplace_alert<torrent_added_alert>(handle);
 #endif
@@ -4787,7 +4784,7 @@ namespace aux {
 #endif
 		}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		if (!params.uuid.empty() || !params.url.empty())
 			m_uuids.insert(std::make_pair(params.uuid.empty()
@@ -4832,7 +4829,7 @@ namespace aux {
 
 		using ptr_t = std::shared_ptr<torrent>;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
 			parse_magnet_uri(params.url, params, ec);
@@ -4880,7 +4877,7 @@ namespace aux {
 		// figure out the info hash of the torrent and make sure params.info_hash
 		// is set correctly
 		if (params.ti) params.info_hash = params.ti->info_hash();
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		else if (!params.url.empty())
 		{
@@ -4901,7 +4898,7 @@ namespace aux {
 
 		// is the torrent already active?
 		std::shared_ptr<torrent> torrent_ptr = find_torrent(params.info_hash).lock();
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
 		// if we still can't find the torrent, look for it by url
@@ -4919,7 +4916,7 @@ namespace aux {
 		{
 			if (!(params.flags & torrent_flags::duplicate_is_error))
 			{
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 				//deprecated in 1.2
 				if (!params.uuid.empty() && torrent_ptr->uuid().empty())
 					torrent_ptr->set_uuid(params.uuid);
@@ -5102,7 +5099,7 @@ namespace aux {
 	void session_impl::remove_torrent_impl(std::shared_ptr<torrent> tptr
 		, remove_flags_t const options)
 	{
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		// remove from uuid list
 		if (!tptr->uuid().empty())
@@ -5114,7 +5111,7 @@ namespace aux {
 
 		auto i = m_torrents.find(tptr->torrent_file().info_hash());
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		// this torrent might be filed under the URL-hash
 		if (i == m_torrents.end() && !tptr->url().empty())
@@ -5171,7 +5168,7 @@ namespace aux {
 		TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 	void session_impl::update_ssl_listen()
 	{
@@ -5208,7 +5205,7 @@ namespace aux {
 		m_settings.set_str(settings_pack::listen_interfaces
 			, print_listen_interfaces(current_ifaces));
 	}
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	void session_impl::update_listen_interfaces()
 	{
@@ -5500,7 +5497,7 @@ namespace aux {
 		}
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	session_status session_impl::status() const
 	{
 //		INVARIANT_CHECK;
@@ -5624,7 +5621,7 @@ namespace aux {
 
 		return s;
 	}
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	void session_impl::get_cache_info(torrent_handle h, cache_status* ret, int flags) const
 	{
@@ -5750,7 +5747,7 @@ namespace aux {
 		m_dht_storage_constructor = std::move(sc);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	entry session_impl::dht_state() const
 	{
 		return m_dht ? dht::save_dht_state(m_dht->state()) : entry();
@@ -6041,7 +6038,7 @@ namespace aux {
 #endif
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	int session_impl::max_connections() const
 	{
 		return m_settings.get_int(settings_pack::connections_limit);
@@ -6233,7 +6230,7 @@ namespace aux {
 			|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void session_impl::update_dht_upload_rate_limit()
 	{
 #ifndef TORRENT_DISABLE_DHT
@@ -6425,7 +6422,7 @@ namespace aux {
 #endif
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void session_impl::update_local_download_rate()
 	{
 		if (m_settings.get_int(settings_pack::local_download_rate_limit) < 0)
@@ -6534,7 +6531,7 @@ namespace aux {
 		m_alerts.get_all(*alerts);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void session_impl::update_rate_limit_utp()
 	{
 		if (m_settings.get_bool(settings_pack::rate_limit_utp))
@@ -6598,7 +6595,7 @@ namespace aux {
 		return m_alerts.wait_for_alert(max_wait);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	std::size_t session_impl::set_alert_queue_size_limit(std::size_t queue_size_limit_)
 	{
 		m_settings.set_int(settings_pack::alert_queue_size, int(queue_size_limit_));

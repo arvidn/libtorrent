@@ -33,14 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_WRITE_RESUME_DATA_HPP_INCLUDE
 #define TORRENT_WRITE_RESUME_DATA_HPP_INCLUDE
 
-#include "libtorrent/error_code.hpp"
+#include <vector>
+
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/export.hpp"
 #include "libtorrent/bencode.hpp"
 
 namespace libtorrent {
-
-	struct add_torrent_params;
-	class entry;
 
 	// this function turns the resume data in an ``add_torrent_params`` object
 	// into a bencoded structure

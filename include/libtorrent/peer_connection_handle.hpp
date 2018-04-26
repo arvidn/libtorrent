@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_CONNECTION_HANDLE_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/operations.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -43,10 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 class bt_peer_connection;
-struct torrent_handle;
-struct peer_plugin;
-struct peer_info;
-struct crypto_plugin;
 
 struct TORRENT_EXPORT peer_connection_handle
 {

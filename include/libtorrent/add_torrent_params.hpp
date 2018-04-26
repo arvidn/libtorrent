@@ -56,6 +56,8 @@ namespace libtorrent {
 	struct torrent_plugin;
 	struct torrent_handle;
 
+TORRENT_VERSION_NAMESPACE_2
+
 	// The add_torrent_params is a parameter pack for adding torrents to a
 	// session. The key fields when adding a torrent are:
 	//
@@ -95,7 +97,7 @@ namespace libtorrent {
 
 		// These are all deprecated. use torrent_flags_t instead (in
 		// libtorrent/torrent_flags.hpp)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 		using flags_t = torrent_flags_t;
 
@@ -123,7 +125,7 @@ namespace libtorrent {
 			DECL_FLAG(merge_resume_http_seeds);
 			DECL_FLAG(default_flags);
 #undef DECL_FLAG
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -334,7 +336,7 @@ namespace libtorrent {
 		std::time_t last_download = 0;
 		std::time_t last_upload = 0;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 
 		// ``url`` can be set to a magnet link, in order to download the .torrent
@@ -369,17 +371,11 @@ namespace libtorrent {
 		// communicated forward into libtorrent via this field. If this is set, a
 		// fastresume_rejected_alert will be posted.
 		error_code internal_resume_data_error;
-#else
-		// hidden
-		// to maintain ABI compatibility
-		std::string deprecated5;
-		std::string deprecated1;
-		std::string deprecated2;
-		aux::noexcept_movable<std::vector<char>> deprecated3;
-		error_code deprecated4;
-#endif
+#endif // TORRENT_ABI_VERSION
 
 	};
+
+TORRENT_VERSION_NAMESPACE_2_END
 }
 
 #endif

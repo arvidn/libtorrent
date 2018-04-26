@@ -256,7 +256,7 @@ namespace libtorrent {
 		return msg;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	std::string resolve_file_url(std::string const& url)
 	{
 		TORRENT_ASSERT(url.substr(0, 7) == "file://");

@@ -12,7 +12,7 @@ void bind_fingerprint()
 
     def("generate_fingerprint", &generate_fingerprint);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -47,5 +47,5 @@ void bind_fingerprint()
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 }

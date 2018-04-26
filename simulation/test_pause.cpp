@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace sim;
 using namespace lt;
 
-
 using sim::asio::ip::address_v4;
 
 // this is the general template for these tests. create the session with custom
@@ -76,7 +75,7 @@ void run_test(Setup const& setup, Torrent const& torrent
 	std::array<fake_peer*, 3> test_peers = {{ &p1, &p2, &p3 }};
 
 	// add torrent
-	lt::add_torrent_params params = create_torrent(0, false);
+	lt::add_torrent_params params = ::create_torrent(0, false);
 	params.flags &= ~lt::torrent_flags::auto_managed;
 	params.flags &= ~lt::torrent_flags::paused;
 	ses->async_add_torrent(std::move(params));

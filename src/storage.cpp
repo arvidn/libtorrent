@@ -431,17 +431,6 @@ namespace libtorrent {
 
 	void default_storage::delete_files(remove_flags_t const options, storage_error& ec)
 	{
-#if TORRENT_USE_ASSERTS
-		// this is a fence job, we expect no other
-		// threads to hold any references to any files
-		// in this file storage. Assert that that's the
-		// case
-		if (!m_pool.assert_idle_files(storage_index()))
-		{
-			TORRENT_ASSERT_FAIL();
-		}
-#endif
-
 		// make sure we don't have the files open
 		m_pool.release(storage_index());
 

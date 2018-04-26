@@ -65,7 +65,7 @@ namespace libtorrent {
 
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// deprecated in 1.2
 	TORRENT_DEPRECATED
 	inline void to_hex(char const* in, int len, char* out)

@@ -36,14 +36,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include <vector>
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 // for dht_lookup and dht_routing_bucket
 #include "libtorrent/alert_types.hpp"
 #endif
 
 namespace libtorrent {
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// holds counters and gauges for the uTP sockets
 	// deprecated in 1.1 in favor of session_stats counters, which is a more
 	// flexible, extensible and performant mechanism for stats.
@@ -224,7 +224,7 @@ namespace libtorrent {
 		int num_torrents;
 		int num_paused_torrents;
 	};
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 }
 

@@ -103,7 +103,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 	auto const alert_mask = ~(
 			alert::performance_warning
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			| alert::progress_notification
 #endif
 			| alert::stats_notification);

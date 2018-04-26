@@ -66,7 +66,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT string_view trim(string_view);
 	TORRENT_EXTRA_EXPORT string_view::size_type find(string_view haystack, string_view needle, string_view::size_type pos);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// deprecated in 1.2
 	// convert a file://-URL to a proper path
 	TORRENT_EXTRA_EXPORT std::string resolve_file_url(std::string const& url);

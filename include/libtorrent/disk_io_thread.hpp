@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DISK_IO_THREAD
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/allocator.hpp"
@@ -56,8 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class alert;
-	struct add_torrent_params;
 	struct counters;
 	class alert_manager;
 
@@ -104,7 +103,7 @@ namespace aux {
 		// initializes all counters to 0
 		cache_status()
 			: pieces()
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			, blocks_written(0)
 			, writes(0)
 			, blocks_read(0)
@@ -142,14 +141,14 @@ namespace aux {
 			, num_writing_threads(0)
 #endif
 		{
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			std::memset(num_fence_jobs, 0, sizeof(num_fence_jobs));
 #endif
 		}
 
 		std::vector<cached_piece_info> pieces;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// the total number of 16 KiB blocks written to disk
 		// since this session was started.
 		int blocks_written;

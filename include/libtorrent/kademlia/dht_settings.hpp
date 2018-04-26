@@ -158,7 +158,7 @@ namespace dht {
 		// to clamp it in order to allow UDP packets go through
 		int max_infohashes_sample_count = 20;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// the listen port for the dht. This is a UDP port. zero means use the
 		// same as the tcp interface
 		int service_port = 0;

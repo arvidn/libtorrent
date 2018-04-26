@@ -158,7 +158,7 @@ torrent_handle test_resume_flags(lt::session& ses
 	add_torrent_params p;
 	std::vector<char> rd = generate_resume_data(ti.get(), resume_file_prio);
 	TORRENT_UNUSED(test_deprecated);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	if (test_deprecated)
 	{
 		p.resume_data.swap(rd);
@@ -207,7 +207,7 @@ void default_tests(torrent_status const& s)
 	// allow some slack in the time stamps since they are reported as
 	// relative times. If the computer is busy while running the unit test
 	// or running under valgrind it may take several seconds
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_CHECK(s.active_time >= 1339);
 	TEST_CHECK(s.active_time < 1339 + 10);
 
@@ -259,7 +259,7 @@ void test_piece_priorities(bool test_deprecated = false)
 
 		std::vector<char> resume_data = write_resume_data_buf(ra->params);
 		TORRENT_UNUSED(test_deprecated);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (test_deprecated)
 		{
 			p.resume_data = resume_data;
@@ -287,7 +287,7 @@ void test_piece_priorities(bool test_deprecated = false)
 
 } // anonymous namespace
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(piece_priorities_deprecated)
 {
 	test_piece_priorities(true);
@@ -432,7 +432,7 @@ TORRENT_TEST(piece_slots_seed_suggest_cache)
 
 // TODO: generally save
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(file_priorities_default_deprecated)
 {
 	lt::session ses(settings());
@@ -866,7 +866,7 @@ void test_zero_file_prio(bool test_deprecated = false)
 	std::vector<char> resume_data;
 	bencode(back_inserter(resume_data), rd);
 	TORRENT_UNUSED(test_deprecated);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	if (test_deprecated)
 	{
 		p.resume_data = resume_data;
@@ -889,7 +889,7 @@ void test_zero_file_prio(bool test_deprecated = false)
 
 } // anonymous namespace
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(zero_file_prio_deprecated)
 {
 	test_zero_file_prio(true);
@@ -954,7 +954,7 @@ namespace test_mode {
 	constexpr test_mode_t pieces_have = 1_bit;
 	constexpr test_mode_t piece_prio = 2_bit;
 	constexpr test_mode_t all_files_zero = 3_bit;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	constexpr test_mode_t deprecated = 4_bit;
 #endif
 }
@@ -1009,7 +1009,7 @@ void test_seed_mode(test_mode_t const flags)
 	std::vector<char> resume_data;
 	bencode(back_inserter(resume_data), rd);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	if (flags & test_mode::deprecated)
 	{
 		p.resume_data = resume_data;
@@ -1041,7 +1041,7 @@ void test_seed_mode(test_mode_t const flags)
 
 } // anonymous namespace
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(seed_mode_file_prio_deprecated)
 {
 	test_seed_mode(test_mode::file_prio | test_mode::deprecated);

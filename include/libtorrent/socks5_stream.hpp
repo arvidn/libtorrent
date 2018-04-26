@@ -72,7 +72,7 @@ namespace socks_error {
 // returns the error_category for SOCKS5 errors
 TORRENT_EXPORT boost::system::error_category& socks_category();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_DEPRECATED
 inline boost::system::error_category& get_socks_category()
 { return socks_category(); }

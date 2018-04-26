@@ -59,7 +59,7 @@ namespace libtorrent {
 	constexpr file_flags_t file_storage::flag_executable;
 	constexpr file_flags_t file_storage::flag_symlink;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	constexpr file_flags_t file_storage::pad_file;
 	constexpr file_flags_t file_storage::attribute_hidden;
 	constexpr file_flags_t file_storage::attribute_executable;
@@ -192,7 +192,7 @@ namespace {
 		}
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	file_entry::file_entry(): offset(0), size(0)
 		, mtime(0), pad_file(false), hidden_attribute(false)
 		, executable_attribute(false)
@@ -200,7 +200,7 @@ namespace {
 	{}
 
 	file_entry::~file_entry() = default;
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	internal_file_entry::internal_file_entry()
 		: offset(0)
@@ -346,7 +346,7 @@ namespace {
 		}
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 	void file_storage::add_file_borrow(char const* filename, int filename_len
 		, std::string const& path, std::int64_t file_size, file_flags_t file_flags
@@ -390,7 +390,7 @@ namespace {
 	{
 		rename_file_deprecated(index, new_filename);
 	}
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	void file_storage::rename_file(file_index_t const index
 		, std::string const& new_filename)
@@ -399,7 +399,7 @@ namespace {
 		update_path_index(m_files[index], new_filename);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	file_storage::iterator file_storage::file_at_offset_deprecated(std::int64_t offset) const
 	{
 		// find the file iterator and file offset
@@ -497,7 +497,7 @@ namespace {
 		return ret;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	file_entry file_storage::at(int index) const
 	{
 		return at_deprecated(index);
@@ -521,7 +521,7 @@ namespace {
 		ret.filehash = hash(index);
 		return ret;
 	}
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	peer_request file_storage::map_file(file_index_t const file_index
 		, std::int64_t const file_offset, int const size) const
@@ -849,7 +849,7 @@ namespace {
 		return fe.path_index == -2;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = int(&fe - &m_files[0]);
@@ -906,7 +906,7 @@ namespace {
 
 	file_entry file_storage::at(file_storage::iterator i) const
 	{ return at_deprecated(int(i - m_files.begin())); }
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	void file_storage::reorder_file(int const index, int const dst)
 	{

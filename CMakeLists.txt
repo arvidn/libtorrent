@@ -31,7 +31,6 @@ set(libtorrent_include_files
 	broadcast_socket
 	bt_peer_connection
 	buffer
-	build_config
 	chained_buffer
 	choker
 	close_reason

@@ -82,7 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/lsd.hpp"
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/session_settings.hpp"
 #endif
 
@@ -344,7 +344,7 @@ namespace aux {
 			void incoming_connection(std::shared_ptr<socket_type> const& s);
 
 			std::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const override;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			//deprecated in 1.2
 
 			TORRENT_DEPRECATED
@@ -353,6 +353,10 @@ namespace aux {
 
 			TORRENT_DEPRECATED
 			std::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
+
+			TORRENT_DEPRECATED
+			void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) override
+			{ m_uuids.insert(std::make_pair(uuid, t)); }
 #endif
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 			std::vector<std::shared_ptr<torrent>> find_collection(
@@ -363,12 +367,7 @@ namespace aux {
 
 			void insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
 				, std::string uuid) override;
-#ifndef TORRENT_NO_DEPRECATE
-			//deprecated in 1.2
-			TORRENT_DEPRECATED
-			void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) override
-			{ m_uuids.insert(std::make_pair(uuid, t)); }
-#endif
+
 			std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 				, peer_connection* pc) override;
 			void set_queue_position(torrent* t, queue_position_t p) override;
@@ -425,7 +424,7 @@ namespace aux {
 			void dht_direct_request(udp::endpoint const& ep, entry& e
 				, void* userdata = nullptr);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			TORRENT_DEPRECATED
 			entry dht_state() const;
 			TORRENT_DEPRECATED
@@ -506,7 +505,7 @@ namespace aux {
 			add_torrent_impl(add_torrent_params& p, error_code& ec);
 			void async_add_torrent(add_torrent_params* params);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			void on_async_load_torrent(add_torrent_params* params, error_code ec);
 #endif
 
@@ -527,7 +526,7 @@ namespace aux {
 			void pop_alerts(std::vector<alert*>* alerts);
 			alert* wait_for_alert(time_duration max_wait);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			TORRENT_DEPRECATED void pop_alerts();
 			TORRENT_DEPRECATED alert const* pop_alert();
 			TORRENT_DEPRECATED std::size_t set_alert_queue_size_limit(std::size_t queue_size_limit_);
@@ -580,7 +579,7 @@ namespace aux {
 				m_optimistic_unchoke_time_scaler = 0;
 			}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			session_status status() const;
 			peer_id deprecated_get_peer_id() const;
 #endif
@@ -714,7 +713,7 @@ namespace aux {
 			// the settings for the client
 			aux::session_settings m_settings;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			void update_ssl_listen();
 			void update_dht_upload_rate_limit();
 			void update_local_download_rate();
@@ -807,7 +806,7 @@ namespace aux {
 			// handles delayed alerts
 			mutable alert_manager m_alerts;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			// the alert pointers stored in m_alerts
 			mutable aux::vector<alert*> m_alert_pointers;
 
@@ -869,7 +868,7 @@ namespace aux {
 			torrent_map m_obfuscated_torrents;
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			//deprecated in 1.2
 			std::map<std::string, std::shared_ptr<torrent>> m_uuids;
 #endif
@@ -1141,7 +1140,7 @@ namespace aux {
 			std::shared_ptr<upnp> m_upnp;
 			std::shared_ptr<lsd> m_lsd;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			struct work_thread_t
 			{
 				work_thread_t()
@@ -1256,7 +1255,7 @@ namespace aux {
 			std::array<std::vector<std::shared_ptr<plugin>>, 4> m_ses_extensions;
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			user_load_function_t m_user_load_torrent;
 #endif
 

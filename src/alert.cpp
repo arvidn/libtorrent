@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/session_stats.hpp"
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/write_resume_data.hpp"
 #endif
 
@@ -62,7 +62,7 @@ namespace libtorrent {
 	constexpr alert_category_t alert::tracker_notification;
 	constexpr alert_category_t alert::debug_notification;
 	constexpr alert_category_t alert::status_notification;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	constexpr alert_category_t alert::progress_notification;
 #endif
 	constexpr alert_category_t alert::ip_block_notification;
@@ -83,7 +83,7 @@ namespace libtorrent {
 	constexpr alert_category_t alert::block_progress_notification;
 
 	constexpr alert_category_t alert::all_categories;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	constexpr alert_category_t alert::rss_notification;
 #endif
 
@@ -114,7 +114,7 @@ namespace libtorrent {
 			m_name_idx = alloc.copy_string("");
 		}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		name = m_alloc.get().ptr(m_name_idx);
 #endif
 	}
@@ -137,7 +137,7 @@ namespace libtorrent {
 		: torrent_alert(alloc, h)
 		, endpoint(i)
 		, pid(pi)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, ip(i)
 #endif
 	{}
@@ -153,7 +153,7 @@ namespace libtorrent {
 		: torrent_alert(alloc, h)
 		, local_endpoint(ep)
 		, m_url_idx(alloc.copy_string(u))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, url(u)
 #endif
 	{}
@@ -184,7 +184,7 @@ namespace libtorrent {
 		, error(e)
 		, piece(p)
 		, size(0)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, ec(e)
 #endif
 	{}
@@ -228,7 +228,7 @@ namespace libtorrent {
 		: torrent_alert(alloc, h)
 		, index(idx)
 		, m_name_idx(alloc.copy_string(n))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, name(n)
 #endif
 	{}
@@ -324,7 +324,7 @@ namespace libtorrent {
 		, times_in_row(times)
 		, error(e)
 		, m_msg_idx(alloc.copy_string(m))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, status_code(e && e.category() == http_category() ? e.value() : -1)
 		, msg(m)
 #endif
@@ -352,7 +352,7 @@ namespace libtorrent {
 		, string_view u, string_view m)
 		: tracker_alert(alloc, h, ep, u)
 		, m_msg_idx(alloc.copy_string(m))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, msg(m)
 #endif
 	{
@@ -393,7 +393,7 @@ namespace libtorrent {
 		: tracker_alert(alloc, h, ep, u)
 		, error(e)
 		, m_msg_idx()
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, msg(convert_from_native(e.message()))
 #endif
 	{
@@ -406,7 +406,7 @@ namespace libtorrent {
 		: tracker_alert(alloc, h, ep, u)
 		, error(errors::tracker_failure)
 		, m_msg_idx(alloc.copy_string(m))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, msg(m)
 #endif
 	{
@@ -633,7 +633,7 @@ namespace libtorrent {
 		: peer_alert(alloc, h, ep, peer_id)
 		, block_index(block_num)
 		, piece_index(piece_num)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, peer_speedmsg("")
 #endif
 	{
@@ -670,7 +670,7 @@ namespace libtorrent {
 		, torrent_handle const& h, string_view p)
 		: torrent_alert(alloc, h)
 		, m_path_idx(alloc.copy_string(p))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, path(p)
 #endif
 	{}
@@ -693,7 +693,7 @@ namespace libtorrent {
 		, error(e)
 		, op(op_)
 		, m_file_idx(alloc.copy_string(f))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, operation(operation_name(op_))
 		, file(f)
 #endif
@@ -727,7 +727,7 @@ namespace libtorrent {
 		: torrent_alert(alloc, h)
 		, error(e)
 		, info_hash(ih)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, msg(convert_from_native(error.message()))
 #endif
 	{
@@ -744,7 +744,7 @@ namespace libtorrent {
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
 		, params(std::move(p))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, resume_data(std::make_shared<entry>(write_resume_data(params)))
 #endif
 	{
@@ -759,7 +759,7 @@ namespace libtorrent {
 		, torrent_handle const& h, error_code const& e)
 		: torrent_alert(alloc, h)
 		, error(e)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, msg(convert_from_native(error.message()))
 #endif
 	{
@@ -836,7 +836,7 @@ namespace {
 		"SSL/uTP"
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 	int to_op_t(operation_t op)
 	{
@@ -904,7 +904,8 @@ namespace {
 #pragma warning(pop)
 #endif
 
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
+
 } // anonymous namespace
 
 	listen_failed_alert::listen_failed_alert(
@@ -922,7 +923,7 @@ namespace {
 		, port(listen_port)
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, operation(to_op_t(op_))
 		, endpoint(listen_addr, std::uint16_t(listen_port))
 		, sock_type(static_cast<socket_type_t>(sock_type_idx(t)))
@@ -1046,7 +1047,7 @@ namespace {
 		: address(listen_addr)
 		, port(listen_port)
 		, socket_type(t)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, endpoint(listen_addr, std::uint16_t(listen_port))
 		, sock_type(static_cast<socket_type_t>(sock_type_idx(t)))
 #endif
@@ -1083,7 +1084,7 @@ namespace {
 		: mapping(i)
 		, map_transport(t)
 		, error(e)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, map_type(static_cast<int>(t))
 		, msg(convert_from_native(error.message()))
 #endif
@@ -1104,7 +1105,7 @@ namespace {
 		, external_port(port)
 		, map_protocol(proto)
 		, map_transport(t)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, protocol(static_cast<int>(proto))
 		, map_type(static_cast<int>(t))
 #endif
@@ -1124,7 +1125,7 @@ namespace {
 		: map_transport(t)
 		, m_alloc(alloc)
 		, m_log_idx(alloc.copy_string(m))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, map_type(static_cast<int>(t))
 		, msg(m)
 #endif
@@ -1154,7 +1155,7 @@ namespace {
 		, error(ec)
 		, op(op_)
 		, m_path_idx(alloc.copy_string(f))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, operation(operation_name(op_))
 		, file(f)
 		, msg(convert_from_native(error.message()))
@@ -1241,7 +1242,7 @@ namespace {
 			arr[stats_alert::upload_ip_protocol] = s[stat::upload_ip_protocol].counter();
 			arr[stats_alert::download_ip_protocol] = s[stat::download_ip_protocol].counter();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			arr[stats_alert::upload_dht_protocol] = 0;
 			arr[stats_alert::upload_tracker_protocol] = 0;
 			arr[stats_alert::download_dht_protocol] = 0;
@@ -1267,7 +1268,7 @@ namespace {
 	{
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), "%s: [%d] %d %d %d %d %d %d"
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			" %d %d %d %d"
 #endif
 			, torrent_alert::message().c_str()
@@ -1278,7 +1279,7 @@ namespace {
 			, transferred[3]
 			, transferred[4]
 			, transferred[5]
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			, transferred[6]
 			, transferred[7]
 			, transferred[8]
@@ -1332,7 +1333,7 @@ namespace {
 		, const std::string& id)
 		: tracker_alert(alloc, h,  ep, u)
 		, m_tracker_idx(alloc.copy_string(id))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, trackerid(id)
 #endif
 	{}
@@ -1362,7 +1363,7 @@ namespace {
 		: torrent_alert(alloc, h)
 		, error(e)
 		, m_file_idx(alloc.copy_string(f))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, error_file(f)
 #endif
 	{}
@@ -1388,7 +1389,7 @@ namespace {
 		return m_alloc.get().ptr(m_file_idx);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	torrent_added_alert::torrent_added_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
@@ -1425,7 +1426,7 @@ namespace {
 		, tcp::endpoint const& i)
 		: socket_type(t)
 		, endpoint(i)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, ip(i)
 #endif
 	{}
@@ -1466,7 +1467,7 @@ namespace {
 		char const* torrent_name = info_hash;
 		if (params.ti) torrent_name = params.ti->name().c_str();
 		else if (!params.name.empty()) torrent_name = params.name.c_str();
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		else if (!params.url.empty()) torrent_name = params.url.c_str();
 #endif
 		else aux::to_hex(params.info_hash, info_hash);
@@ -1496,7 +1497,7 @@ namespace {
 		return msg;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	mmap_cache_alert::mmap_cache_alert(aux::stack_allocator&
 		, error_code const& ec): error(ec)
 	{}
@@ -1561,7 +1562,7 @@ namespace {
 		return names[idx];
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	char const* operation_name(int const op)
 	{
 		return operation_name(static_cast<operation_t>(op));
@@ -1574,7 +1575,7 @@ namespace {
 		: peer_alert(alloc, h, ep, peer_id)
 		, op(op_)
 		, error(e)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, operation(static_cast<int>(op_))
 		, msg(convert_from_native(error.message()))
 #endif
@@ -1590,7 +1591,7 @@ namespace {
 		return buf;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	torrent_update_alert::torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
 		, sha1_hash const& old_hash, sha1_hash const& new_hash)
 		: torrent_alert(alloc, h)
@@ -1617,7 +1618,7 @@ namespace {
 		, op(op_)
 		, error(e)
 		, reason(r)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, operation(static_cast<int>(op))
 		, msg(convert_from_native(error.message()))
 #endif
@@ -1640,7 +1641,7 @@ namespace {
 		, error_code const& ec)
 		: error(ec)
 		, op(op_)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, operation(op_ == operation_t::hostname_lookup
 			? op_t::hostname_lookup : op_t::unknown)
 #endif
@@ -1755,7 +1756,7 @@ namespace {
 		: info_hash(ih)
 		, obfuscated_info_hash(obfih)
 		, endpoint(std::move(ep))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, ip(endpoint)
 #endif
 	{}
@@ -1791,7 +1792,7 @@ namespace {
 		return m_alloc.get().ptr(m_str_idx);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	char const* log_alert::msg() const
 	{
 		return log_message();
@@ -1814,7 +1815,7 @@ namespace {
 		return m_alloc.get().ptr(m_str_idx);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	char const* torrent_log_alert::msg() const
 	{
 		return log_message();
@@ -1842,7 +1843,7 @@ namespace {
 		return m_alloc.get().ptr(m_str_idx);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	char const* peer_log_alert::msg() const
 	{
 		return log_message();
@@ -1867,30 +1868,54 @@ namespace {
 		return "Local Service Discovery error: " + convert_from_native(error.message());
 	}
 
+#if TORRENT_ABI_VERSION == 1
 namespace {
 
-		aux::array<std::int64_t, counters::num_counters> counters_to_array(counters const& cnt)
-		{
-			aux::array<std::int64_t, counters::num_counters> arr;
+	aux::array<std::int64_t, counters::num_counters> counters_to_array(counters const& cnt)
+	{
+		aux::array<std::int64_t, counters::num_counters> arr;
 
-			for (int i = 0; i < counters::num_counters; ++i)
-				arr[i] = cnt[i];
+		for (int i = 0; i < counters::num_counters; ++i)
+			arr[i] = cnt[i];
 
-			return arr;
-		}
+		return arr;
 	}
+}
+#else
+namespace {
+	template <typename T, typename U>
+	T* align_pointer(U* ptr)
+	{
+		return reinterpret_cast<T*>((reinterpret_cast<std::uintptr_t>(ptr) + alignof(T) - 1)
+			& ~(alignof(T) - 1));
+	}
+}
+#endif
 
+#if TORRENT_ABI_VERSION == 1
 	session_stats_alert::session_stats_alert(aux::stack_allocator&, struct counters const& cnt)
 		: values(counters_to_array(cnt))
 	{}
+#else
+	session_stats_alert::session_stats_alert(aux::stack_allocator& alloc, struct counters const& cnt)
+		: m_alloc(alloc)
+		, m_counters_idx(alloc.allocate(sizeof(std::int64_t)
+			* counters::num_counters + sizeof(std::int64_t) - 1))
+	{
+		std::int64_t* ptr = align_pointer<std::int64_t>(alloc.ptr(m_counters_idx));
+		for (int i = 0; i < counters::num_counters; ++i, ++ptr)
+			*ptr = cnt[i];
+	}
+#endif
 
 	std::string session_stats_alert::message() const
 	{
 		char msg[50];
-		std::snprintf(msg, sizeof(msg), "session stats (%d values): " , int(values.size()));
+		auto cnt = counters();
+		std::snprintf(msg, sizeof(msg), "session stats (%d values): " , int(cnt.size()));
 		std::string ret = msg;
 		bool first = true;
-		for (auto v : values)
+		for (auto v : cnt)
 		{
 			std::snprintf(msg, sizeof(msg), first ? "%" PRId64 : ", %" PRId64, v);
 			first = false;
@@ -1901,7 +1926,12 @@ namespace {
 
 	span<std::int64_t const> session_stats_alert::counters() const
 	{
+#if TORRENT_ABI_VERSION == 1
 		return values;
+#else
+		return { align_pointer<std::int64_t const>(m_alloc.get().ptr(m_counters_idx))
+			, counters::num_counters };
+#endif
 	}
 
 	dht_stats_alert::dht_stats_alert(aux::stack_allocator&
@@ -1927,7 +1957,7 @@ namespace {
 		, error(e)
 		, m_url_idx(alloc.copy_string(u))
 		, m_msg_idx()
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, url(u)
 		, msg(convert_from_native(e.message()))
 #endif
@@ -1938,7 +1968,7 @@ namespace {
 		: torrent_alert(alloc, h)
 		, m_url_idx(alloc.copy_string(u))
 		, m_msg_idx(alloc.copy_string(m))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, url(u)
 		, msg(m)
 #endif
@@ -1968,7 +1998,7 @@ namespace {
 		, error(ec)
 		, op(op_)
 		, m_file_idx(alloc.copy_string(f))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, operation(operation_name(op_))
 		, file(f)
 		, msg(convert_from_native(error.message()))
@@ -2040,7 +2070,7 @@ namespace {
 		, m_alloc(alloc)
 		, m_msg_idx(alloc.copy_buffer(buf))
 		, m_size(buf.size())
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, dir(d)
 #endif
 	{}
@@ -2117,7 +2147,7 @@ namespace {
 		return m_v4_num_peers + m_v6_num_peers;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void dht_get_peers_reply_alert::peers(std::vector<tcp::endpoint> &v) const
 	{
 		std::vector<tcp::endpoint> p(peers());
@@ -2149,7 +2179,7 @@ namespace {
 		, m_alloc(alloc)
 		, m_response_idx(alloc.copy_buffer(response.data_section()))
 		, m_response_size(int(response.data_section().size()))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, addr(addr_)
 #endif
 	{}
@@ -2162,7 +2192,7 @@ namespace {
 		, m_alloc(alloc)
 		, m_response_idx()
 		, m_response_size(0)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, addr(addr_)
 #endif
 	{}
@@ -2594,7 +2624,7 @@ namespace {
 	constexpr alert_category_t session_stats_header_alert::static_category;
 	constexpr alert_category_t dht_sample_infohashes_alert::static_category;
 	constexpr alert_category_t block_uploaded_alert::static_category;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	constexpr alert_category_t mmap_cache_alert::static_category;
 	constexpr alert_category_t torrent_added_alert::static_category;
 	constexpr alert_category_t torrent_update_alert::static_category;

@@ -243,7 +243,7 @@ namespace libtorrent {
 			"udp tracker response packet has invalid size",
 			"invalid transaction id in udp tracker response",
 			"invalid action field in udp tracker response",
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			"",
 			"",
 			"",

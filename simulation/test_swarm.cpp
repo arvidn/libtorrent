@@ -657,7 +657,7 @@ TORRENT_TEST(redundant_have)
 	);
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(lazy_bitfields)
 {
 	test_settings([](lt::settings_pack& pack) {

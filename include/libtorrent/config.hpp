@@ -38,19 +38,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define _FILE_OFFSET_BITS 64
 
 #include <boost/config.hpp>
-#include <boost/asio/detail/config.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+// TODO: don't include that here. Make each header that use the export macros
+// include it instead. and move it to aux_
 #include "libtorrent/export.hpp"
 
 #ifdef __linux__
 #include <linux/version.h> // for LINUX_VERSION_CODE and KERNEL_VERSION
 #endif // __linux
-
-#if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
-#define BOOST_ASIO_SEPARATE_COMPILATION
-#endif
 
 #if defined __MINGW64__ || defined __MINGW32__
 // GCC warns on format codes that are incompatible with glibc, which the windows
@@ -247,6 +244,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_GETIPFORWARDTABLE
 # define TORRENT_USE_GETIPFORWARDTABLE 1
+#endif
+
+#ifndef NOMINMAX
+#define NOMINMAX
 #endif
 
 # if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
@@ -613,6 +614,14 @@ constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
 #	define TORRENT_HAS_ARM_CRC32 0
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
+
+#if TORRENT_USE_IPV6
+#define TORRENT_IPV6_NAMESPACE     inline namespace v6 {
+#define TORRENT_IPV6_NAMESPACE_END }
+#else
+#define TORRENT_IPV6_NAMESPACE
+#define TORRENT_IPV6_NAMESPACE_END
+#endif
 
 namespace libtorrent {}
 

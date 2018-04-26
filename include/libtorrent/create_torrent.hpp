@@ -106,7 +106,7 @@ namespace libtorrent {
 		// files, to keep the impact down for clients that don't support
 		// them.
 		static constexpr create_flags_t optimize_alignment = 0_bit;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// same as optimize_alignment, for backwards compatibility
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize = 0_bit;
 #endif
@@ -420,7 +420,7 @@ namespace detail {
 	// all wstring APIs are deprecated since 0.16.11
 	// instead, use the wchar -> utf8 conversion functions
 	// and pass in utf8 strings
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 	TORRENT_DEPRECATED_EXPORT
 	void add_files(file_storage& fs, std::wstring const& wfile
@@ -463,7 +463,7 @@ namespace detail {
 	{
 		set_piece_hashes_deprecated(t, p, detail::nop, ec);
 	}
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 }
 

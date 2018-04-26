@@ -140,7 +140,7 @@ namespace libtorrent {
 	// to its name. See peer_connection for the constants
 	TORRENT_EXPORT char const* operation_name(operation_t op);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	enum deprecated_operation_t : std::uint8_t
 	{
 		// the error was unexpected and it is unknown which operation caused it

@@ -225,7 +225,7 @@ namespace libtorrent {
 			, (tracker_req().event == tracker_request::stopped
 				? resolver_interface::cache_only : resolver_flags{})
 				| resolver_interface::abort_on_shutdown
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			, tracker_req().auth
 #else
 			, ""

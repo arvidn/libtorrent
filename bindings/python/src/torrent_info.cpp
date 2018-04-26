@@ -123,7 +123,7 @@ namespace
        return result;
     }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     // Create getters for announce_entry data members with non-trivial types which need converting.
     lt::time_point get_next_announce(announce_entry const& ae)
     { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().next_announce); }
@@ -151,7 +151,7 @@ namespace
     int get_source(announce_entry const& ae) { return ae.source; }
     bool get_verified(announce_entry const& ae) { return ae.verified; }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     std::string get_message(announce_entry const& ae)
     { return ae.endpoints.empty() ? "" : ae.endpoints.front().message; }
     error_code get_last_error(announce_entry const& ae)
@@ -224,7 +224,7 @@ void bind_torrent_info()
     return_value_policy<copy_const_reference> copy;
 
     void (torrent_info::*rename_file0)(file_index_t, std::string const&) = &torrent_info::rename_file;
-#if !defined TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     void (torrent_info::*rename_file1)(file_index_t, std::wstring const&) = &torrent_info::rename_file;
 #endif
 
@@ -241,7 +241,7 @@ void bind_torrent_info()
         .def("__init__", make_constructor(&file_constructor0))
         .def(init<torrent_info const&>((arg("ti"))))
 
-#if !defined TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def(init<std::wstring>((arg("file"))))
 #endif
 
@@ -271,11 +271,11 @@ void bind_torrent_info()
         .def("remap_files", &torrent_info::remap_files)
         .def("files", &torrent_info::files, return_internal_reference<>())
         .def("orig_files", &torrent_info::orig_files, return_internal_reference<>())
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def("file_at", &torrent_info::file_at)
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("rename_file", rename_file1)
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
         .def("is_valid", &torrent_info::is_valid)
         .def("priv", &torrent_info::priv)
@@ -293,7 +293,7 @@ void bind_torrent_info()
         .def("map_file", &torrent_info::map_file)
         ;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     class_<file_entry>("file_entry")
         .def_readwrite("path", &file_entry::path)
         .def_readwrite("symlink_path", &file_entry::symlink_path)
@@ -311,7 +311,7 @@ void bind_torrent_info()
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
         .def_readonly("trackerid", &announce_entry::trackerid)
-#if !defined TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("message", &get_message)
         .add_property("last_error", &get_last_error)
         .add_property("next_announce", &get_next_announce)
@@ -324,7 +324,7 @@ void bind_torrent_info()
         .def_readwrite("fail_limit", &announce_entry::fail_limit)
         .add_property("source", &get_source)
         .add_property("verified", &get_verified)
-#if !defined TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("fails", &get_fails)
         .add_property("updating", &get_updating)
         .add_property("start_sent", &get_start_sent)

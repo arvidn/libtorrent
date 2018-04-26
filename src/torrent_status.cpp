@@ -39,7 +39,7 @@ namespace libtorrent {
 	file_index_t constexpr torrent_status::error_file_exception;
 	file_index_t constexpr torrent_status::error_file_partfile;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	file_index_t constexpr torrent_status::error_file_url;
 	file_index_t constexpr torrent_status::error_file_metadata;
 #endif

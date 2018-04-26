@@ -122,6 +122,7 @@ network
 .. _`BEP 24`: https://bittorrent.org/beps/bep_0024.html
 .. _`BEP 27`: https://bittorrent.org/beps/bep_0027.html
 .. _`BEP 29`: https://bittorrent.org/beps/bep_0029.html
+.. _`BEP 53`: https://bittorrent.org/beps/bep_0053.html
 .. _`extension protocol`: extension_protocol.html
 
 highlighted features

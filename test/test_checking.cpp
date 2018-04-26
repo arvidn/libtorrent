@@ -51,7 +51,7 @@ namespace
 	bool is_checking(int const state)
 	{
 		return state == lt::torrent_status::checking_files
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			|| state == lt::torrent_status::queued_for_checking
 #endif
 			|| state == lt::torrent_status::checking_resume_data;

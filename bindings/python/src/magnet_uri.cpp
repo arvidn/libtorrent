@@ -17,7 +17,7 @@ extern void dict_to_add_torrent_params(dict params, add_torrent_params& p);
 
 namespace {
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	torrent_handle _add_magnet_uri(lt::session& s, std::string uri, dict params)
 	{
 		add_torrent_params p;
@@ -61,7 +61,7 @@ namespace {
 		ret["name"] = p.name;
 		ret["save_path"] = p.save_path;
 		ret["storage_mode"] = p.storage_mode;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		ret["url"] = p.url;
 		ret["uuid"] = p.uuid;
 #endif
@@ -83,7 +83,7 @@ namespace {
 
 void bind_magnet_uri()
 {
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	def("add_magnet_uri", &_add_magnet_uri);
 #endif
 	def("make_magnet_uri", make_magnet_uri0);

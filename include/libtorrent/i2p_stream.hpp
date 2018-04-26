@@ -73,7 +73,7 @@ namespace libtorrent {
 	// returns the error category for I2P errors
 	TORRENT_EXPORT boost::system::error_category& i2p_category();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TORRENT_DEPRECATED
 	inline boost::system::error_category& get_i2p_category()
 	{ return i2p_category(); }

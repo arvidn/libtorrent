@@ -77,7 +77,7 @@ void test_swarm(test_flags_t const flags)
 
 	auto const mask = ~(
 			alert::performance_warning
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			| alert::progress_notification
 #endif
 			| alert::stats_notification);

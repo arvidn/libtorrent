@@ -338,7 +338,7 @@ TORRENT_TEST(path)
 	convert_path_to_posix(path);
 	TEST_EQUAL(path, "a/b/c");
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// resolve_file_url
 
 #ifdef TORRENT_WINDOWS

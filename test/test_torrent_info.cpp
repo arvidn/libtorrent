@@ -746,7 +746,7 @@ TORRENT_TEST(parse_torrents)
 		{
 			TEST_EQUAL(ti->web_seeds().size(), 1);
 			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file");
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			TEST_EQUAL(ti->http_seeds().size(), 0);
 			TEST_EQUAL(ti->url_seeds().size(), 1);
 			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file");
@@ -756,7 +756,7 @@ TORRENT_TEST(parse_torrents)
 		{
 			TEST_EQUAL(ti->web_seeds().size(), 1);
 			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/");
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			TEST_EQUAL(ti->http_seeds().size(), 0);
 			TEST_EQUAL(ti->url_seeds().size(), 1);
 			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file/");
@@ -767,7 +767,7 @@ TORRENT_TEST(parse_torrents)
 		{
 			TEST_EQUAL(ti->web_seeds().size(), 1);
 			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/test%20file/foo%20bar/");
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			TEST_EQUAL(ti->http_seeds().size(), 0);
 			TEST_EQUAL(ti->url_seeds().size(), 1);
 			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");

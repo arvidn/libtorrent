@@ -47,14 +47,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/item.hpp>
 
+#include <libtorrent/fwd.hpp>
 #include <libtorrent/socket.hpp> // for udp::endpoint
 #include <libtorrent/string_view.hpp>
 #include <libtorrent/aux_/listen_socket_handle.hpp>
 
 namespace libtorrent {
-
 	struct counters;
-	struct dht_routing_bucket;
 }
 
 namespace libtorrent { namespace dht {
@@ -112,7 +111,7 @@ public:
 	void unreachable(udp::endpoint const& ep);
 	void incoming(aux::listen_socket_handle const& s, msg const& m);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	int num_torrents() const { return int(m_storage.num_torrents()); }
 	int num_peers() const { return int(m_storage.num_peers()); }
 #endif
@@ -129,7 +128,7 @@ public:
 	std::int64_t num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	int data_size() const { return int(m_storage.num_torrents()); }
 #endif
 
@@ -193,7 +192,7 @@ public:
 
 	std::tuple<int, int, int> get_stats_counters() const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void status(libtorrent::session_status& s);
 #endif
 

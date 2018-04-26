@@ -12,7 +12,7 @@ void bind_session_settings()
 {
     enum_<settings_pack::choking_algorithm_t>("choking_algorithm_t")
         .value("fixed_slots_choker", settings_pack::fixed_slots_choker)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .value("auto_expand_choker", settings_pack::rate_based_choker)
 #endif
         .value("rate_based_choker", settings_pack::rate_based_choker)
@@ -32,7 +32,7 @@ void bind_session_settings()
 
     enum_<settings_pack::io_buffer_mode_t>("io_buffer_mode_t")
         .value("enable_os_cache", settings_pack::enable_os_cache)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .value("disable_os_cache_for_aligned_files", settings_pack::disable_os_cache_for_aligned_files)
 #endif
         .value("disable_os_cache", settings_pack::disable_os_cache)
@@ -47,7 +47,7 @@ void bind_session_settings()
         .value("pe_forced", settings_pack::pe_forced)
         .value("pe_enabled", settings_pack::pe_enabled)
         .value("pe_disabled", settings_pack::pe_disabled)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .value("forced", settings_pack::pe_forced)
         .value("enabled", settings_pack::pe_enabled)
         .value("disabled", settings_pack::pe_disabled)
@@ -58,7 +58,7 @@ void bind_session_settings()
         .value("pe_rc4", settings_pack::pe_rc4)
         .value("pe_plaintext", settings_pack::pe_plaintext)
         .value("pe_both", settings_pack::pe_both)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .value("rc4", settings_pack::pe_rc4)
         .value("plaintext", settings_pack::pe_plaintext)
         .value("both", settings_pack::pe_both)
@@ -75,7 +75,7 @@ void bind_session_settings()
         .value("i2p_proxy", settings_pack::i2p_proxy)
    ;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     enum_<proxy_settings::proxy_type>("proxy_type")
         .value("none", proxy_settings::none)
         .value("socks4", proxy_settings::socks4)
@@ -101,7 +101,7 @@ void bind_session_settings()
     class_<dht::dht_settings>("dht_settings")
         .def_readwrite("max_peers_reply", &dht::dht_settings::max_peers_reply)
         .def_readwrite("search_branching", &dht::dht_settings::search_branching)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readwrite("service_port", &dht::dht_settings::service_port)
 #endif
         .def_readwrite("max_fail_count", &dht::dht_settings::max_fail_count)
@@ -122,7 +122,7 @@ void bind_session_settings()
     ;
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     class_<pe_settings>("pe_settings")
         .def_readwrite("out_enc_policy", &pe_settings::out_enc_policy)
         .def_readwrite("in_enc_policy", &pe_settings::in_enc_policy)

@@ -82,7 +82,7 @@ namespace libtorrent {
 	{
 		fingerprint(const char* id_string, int major, int minor, int revision, int tag);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// generates the actual string put in the peer-id, and return it.
 		std::string to_string() const;
 #endif

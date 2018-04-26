@@ -394,7 +394,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 			auto const mask = alert::all_categories
 				& ~(
 					alert::performance_warning
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 					| alert::progress_notification
 #endif
 					| alert::stats_notification);

@@ -251,7 +251,7 @@ TORRENT_TEST(get_cache_info)
 	s.get_cache_info(&ret);
 
 	TEST_CHECK(ret.pieces.empty());
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_EQUAL(ret.blocks_written, 0);
 	TEST_EQUAL(ret.writes, 0);
 	TEST_EQUAL(ret.blocks_read, 0);

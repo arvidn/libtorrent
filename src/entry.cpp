@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/lazy_entry.hpp"
 #endif
 #include "libtorrent/bdecode.hpp"
@@ -397,7 +397,7 @@ namespace {
 		return *this;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// convert a lazy_entry into an old skool entry
 	entry& entry::operator=(lazy_entry const& e)
 	{

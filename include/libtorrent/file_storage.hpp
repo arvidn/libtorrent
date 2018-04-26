@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// information about a file in a file_storage
 	struct TORRENT_DEPRECATED_EXPORT file_entry
 	{
@@ -103,7 +103,7 @@ namespace libtorrent {
 		// where the data for this file was found.
 		bool symlink_attribute:1;
 	};
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	// internal
 	struct TORRENT_DEPRECATED_EXPORT internal_file_entry
@@ -217,7 +217,7 @@ namespace libtorrent {
 		// not.
 		bool is_valid() const { return m_piece_length > 0; }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER pad_file = 0_bit;
 		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_hidden = 1_bit;
 		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_executable = 2_bit;
@@ -278,7 +278,7 @@ namespace libtorrent {
 		// that filenames are expected to be UTF-8 encoded.
 		void rename_file(file_index_t index, std::string const& new_filename);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED
 		void add_file_borrow(char const* filename, int filename_len
 			, std::string const& path, std::int64_t file_size
@@ -300,7 +300,7 @@ namespace libtorrent {
 		void set_name(std::wstring const& n);
 
 		void rename_file_deprecated(file_index_t index, std::wstring const& new_filename);
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 		// returns a list of file_slice objects representing the portions of
 		// files the specified piece index, byte offset and size range overlaps.
@@ -323,7 +323,7 @@ namespace libtorrent {
 		// integer.
 		peer_request map_file(file_index_t file, std::int64_t offset, int size) const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// all functions depending on internal_file_entry
 		// were deprecated in 1.0. Use the variants that take an
 		// index instead
@@ -361,7 +361,7 @@ namespace libtorrent {
 		reverse_iterator rend_deprecated() const { return m_files.rend(); }
 		iterator file_at_offset_deprecated(std::int64_t offset) const;
 		file_entry at_deprecated(int index) const;
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 		// returns the number of files in the file_storage
 		int num_files() const
@@ -511,7 +511,7 @@ namespace libtorrent {
 		char const* file_name_ptr(file_index_t index) const;
 		int file_name_len(file_index_t index) const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// these were deprecated in 1.0. Use the versions that take an index instead
 		TORRENT_DEPRECATED
 		sha1_hash hash(internal_file_entry const& fe) const;

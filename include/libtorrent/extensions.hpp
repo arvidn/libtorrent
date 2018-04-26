@@ -166,6 +166,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/string_view.hpp"
@@ -173,18 +174,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
-
-	struct peer_plugin;
-	struct peer_request;
-	class entry;
-	struct bdecode_node;
-	struct bitfield;
-	class alert;
-	struct torrent_plugin;
-	struct add_torrent_params;
-	struct torrent_handle;
-	struct session_handle;
-	struct peer_connection_handle;
 
 	// these are flags that can be returned by implemented_features()
 	// indicating which callbacks this plugin is interested in

@@ -256,6 +256,8 @@ namespace detail {
 
 }
 
+TORRENT_IPV6_NAMESPACE
+
 // The ``ip_filter`` class is a set of rules that uniquely categorizes all
 // ip addresses as allowed or disallowed. The default constructor creates
 // a single rule that allows all addresses (0.0.0.0 - 255.255.255.255 for
@@ -319,6 +321,8 @@ private:
 	detail::filter_impl<address_v6::bytes_type> m_filter6;
 #endif
 };
+
+TORRENT_IPV6_NAMESPACE_END
 
 // the port filter maps non-overlapping port ranges to flags. This
 // is primarily used to indicate whether a range of ports should

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TORRENT_FLAGS_HPP
 #define TORRENT_TORRENT_FLAGS_HPP
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/flags.hpp"
 
 namespace libtorrent {
@@ -41,7 +42,7 @@ using torrent_flags_t = flags::bitfield_flag<std::uint64_t, struct torrent_flags
 
 namespace torrent_flags {
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #endif
 
@@ -194,7 +195,7 @@ namespace torrent_flags {
 	// This flag is cleared by a successful call to save_resume_data()
 	constexpr torrent_flags_t need_save_resume = 13_bit;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	// indicates that this torrent should never be unloaded from RAM, even
 	// if unloading torrents are allowed in general. Setting this makes
 	// the torrent exempt from loading/unloading management.
@@ -247,14 +248,14 @@ namespace torrent_flags {
 		| torrent_flags::paused
 		| torrent_flags::apply_ip_filter
 		| torrent_flags::need_save_resume
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		| torrent_flags::pinned
 		| torrent_flags::merge_resume_http_seeds
 		| torrent_flags::merge_resume_trackers
 #endif
 		;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 

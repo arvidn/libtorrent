@@ -235,10 +235,10 @@ namespace {
 		METRIC(ses, num_have_pieces)
 		METRIC(ses, num_total_pieces_added)
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// this counts the number of times a torrent has been
-		// evicted (only applies when `dynamic loading of torrent files`_
-		// is enabled).
+		// evicted (only applies when dynamic-loading-of-torrent-files
+		// is enabled, which is deprecated).
 		METRIC(ses, torrent_evicted_counter)
 #endif
 

@@ -90,7 +90,7 @@ namespace libtorrent {
 		alert& operator=(alert const&) = delete;
 		alert(alert&& rhs) noexcept = default;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// only here for backwards compatibility
 		enum TORRENT_DEPRECATED_ENUM severity_t { debug, info, warning, critical, fatal, none };
 #endif
@@ -128,7 +128,7 @@ namespace libtorrent {
 		// Enables alerts for when a torrent or the session changes state.
 		static constexpr alert_category_t status_notification = 6_bit;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// Alerts for when blocks are requested and completed. Also when
 		// pieces are completed.
 		static constexpr alert_category_t TORRENT_DEPRECATED_MEMBER progress_notification = 7_bit;
@@ -151,7 +151,7 @@ namespace libtorrent {
 		// the lasts stats alert.
 		static constexpr alert_category_t stats_notification = 11_bit;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// Alerts on RSS related events, like feeds being updated, feed error
 		// conditions and successful RSS feed updates. Enabling this category
 		// will make you receive rss_alert alerts.
@@ -267,7 +267,7 @@ namespace libtorrent {
 		// returns a bitmask specifying which categories this alert belong to.
 		virtual alert_category_t category() const noexcept = 0;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -286,7 +286,7 @@ namespace libtorrent {
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	private:
 		time_point const m_timestamp;

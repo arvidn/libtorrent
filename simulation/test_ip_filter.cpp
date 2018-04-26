@@ -119,7 +119,7 @@ TORRENT_TEST(apply_ip_filter)
 		{
 			add_ip_filter(ses);
 
-			lt::add_torrent_params params = create_torrent(0, false);
+			lt::add_torrent_params params = ::create_torrent(0, false);
 			params.flags &= ~lt::torrent_flags::auto_managed;
 			params.flags &= ~lt::torrent_flags::paused;
 			ses.async_add_torrent(params);
@@ -148,7 +148,7 @@ TORRENT_TEST(update_ip_filter)
 	run_test(
 		[](lt::session& ses)
 		{
-			lt::add_torrent_params params = create_torrent(0, false);
+			lt::add_torrent_params params = ::create_torrent(0, false);
 			params.flags &= ~lt::torrent_flags::auto_managed;
 			params.flags &= ~lt::torrent_flags::paused;
 			ses.async_add_torrent(params);
@@ -181,7 +181,7 @@ TORRENT_TEST(apply_ip_filter_to_torrent)
 		{
 			add_ip_filter(ses);
 
-			lt::add_torrent_params params = create_torrent(0, false);
+			lt::add_torrent_params params = ::create_torrent(0, false);
 			params.flags &= ~lt::torrent_flags::auto_managed;
 			params.flags &= ~lt::torrent_flags::paused;
 
@@ -216,7 +216,7 @@ TORRENT_TEST(ip_filter_trackers)
 		{
 			add_ip_filter(ses);
 
-			lt::add_torrent_params params = create_torrent(0, false);
+			lt::add_torrent_params params = ::create_torrent(0, false);
 			params.flags &= ~lt::torrent_flags::auto_managed;
 			params.flags &= ~lt::torrent_flags::paused;
 			params.trackers = {

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_CONNECTION_INTERFACE_HPP
 #define TORRENT_PEER_CONNECTION_INTERFACE_HPP
 
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -42,7 +43,6 @@ namespace libtorrent {
 
 	struct torrent_peer;
 	class stat;
-	struct peer_info;
 
 	// TODO: make this interface smaller!
 	struct TORRENT_EXTRA_EXPORT peer_connection_interface

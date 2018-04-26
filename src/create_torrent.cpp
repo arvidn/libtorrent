@@ -52,7 +52,7 @@ using namespace std::placeholders;
 namespace libtorrent {
 
 	constexpr create_flags_t create_torrent::optimize_alignment;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	constexpr create_flags_t create_torrent::optimize;
 #endif
 	constexpr create_flags_t create_torrent::merkle;
@@ -202,7 +202,7 @@ namespace {
 
 } // anonymous namespace
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 	void add_files(file_storage& fs, std::wstring const& wfile
 		, std::function<bool(std::string)> p, create_flags_t const flags)
@@ -233,7 +233,7 @@ namespace {
 		std::string utf8 = wchar_utf8(p);
 		set_piece_hashes(t, utf8, f, ec);
 	}
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	void add_files(file_storage& fs, std::string const& file
 		, std::function<bool(std::string)> p, create_flags_t const flags)
