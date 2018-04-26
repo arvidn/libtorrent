@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits> // for numeric_limits
 #include <memory> // for unique_ptr
 
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/optional.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
@@ -100,14 +101,7 @@ namespace ssl {
 namespace libtorrent {
 
 	class http_parser;
-
-	struct storage_interface;
-	struct torrent_plugin;
-	template <typename Index> struct typed_bitfield;
-	struct announce_entry;
 	struct tracker_request;
-	struct add_torrent_params;
-	struct storage_interface;
 	class bt_peer_connection;
 
 	peer_id generate_peer_id(aux::session_settings const& sett);
@@ -353,7 +347,10 @@ namespace libtorrent {
 			update_gauge();
 		}
 
+#if TORRENT_ABI_VERSION == 1
+		// deprecated in 1.2
 		void start_download_url();
+#endif
 
 		// returns which stats gauge this torrent currently
 		// has incremented.
@@ -554,11 +551,11 @@ namespace libtorrent {
 		bool delete_files(remove_flags_t options);
 		void peers_erased(std::vector<torrent_peer*> const& peers);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #if !TORRENT_NO_FPU
 		void file_progress_float(aux::vector<float, file_index_t>& fp);
 #endif
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 		void piece_availability(aux::vector<int, piece_index_t>& avail) const;
 
@@ -590,7 +587,7 @@ namespace libtorrent {
 
 		void file_progress(aux::vector<std::int64_t, file_index_t>& fp, int flags = 0);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		void use_interface(std::string net_interface);
 #endif
 
@@ -598,9 +595,9 @@ namespace libtorrent {
 		bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false);
 
 		int priority() const;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		void set_priority(int prio);
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 // --------------------------------------------
 		// BANDWIDTH MANAGEMENT
@@ -697,7 +694,7 @@ namespace libtorrent {
 		peer_iterator begin() { return m_connections.begin(); }
 		peer_iterator end() { return m_connections.end(); }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		void get_full_peer_list(std::vector<peer_list_entry>* v) const;
 #endif
 		void get_peer_info(std::vector<peer_info>* v);
@@ -729,7 +726,7 @@ namespace libtorrent {
 
 		void update_scrape_state();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// if no password and username is set
 		// this will return an empty string, otherwise
 		// it will concatenate the login and password
@@ -756,7 +753,7 @@ namespace libtorrent {
 		void dht_announce();
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// sets the username and password that will be sent to
 		// the tracker
 		void set_tracker_login(std::string const& name, std::string const& pw);
@@ -986,7 +983,7 @@ namespace libtorrent {
 
 		std::shared_ptr<const torrent_info> get_torrent_copy();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		std::string const& uuid() const { return m_uuid; }
 		void set_uuid(std::string const& s) { m_uuid = s; }
@@ -1058,7 +1055,7 @@ namespace libtorrent {
 		// a return value of false indicates an error
 		bool set_metadata(span<char const> metadata);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		void on_torrent_download(error_code const& ec, http_parser const& parser
 			, span<char const> data);
 #endif
@@ -1273,7 +1270,7 @@ namespace libtorrent {
 		std::vector<time_critical_piece> m_time_critical_pieces;
 
 		std::string m_trackerid;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.1
 		std::string m_username;
 		std::string m_password;
@@ -1281,7 +1278,7 @@ namespace libtorrent {
 
 		std::string m_save_path;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 
 		// if we don't have the metadata, this is a url to
@@ -1661,7 +1658,7 @@ namespace libtorrent {
 		// is optional and may be 0xffffff
 		std::uint32_t m_downloaded:24;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// the timestamp of the last scrape request to one of the trackers in
 		// this torrent specified in session_time. This is signed because it must
 		// be able to represent time before the session started

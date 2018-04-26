@@ -78,7 +78,7 @@ namespace libtorrent { namespace dht {
 	//
 	struct TORRENT_EXPORT dht_storage_interface
 	{
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// This function returns the number of torrents tracked by
 		// the DHT at the moment. It's used to fill session_status.
 		// It's deprecated.

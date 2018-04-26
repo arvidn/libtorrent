@@ -263,7 +263,7 @@ list trackers(torrent_handle& h)
         d["source"] = i->source;
         d["verified"] = i->verified;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         if (!i->endpoints.empty())
         {
             announce_endpoint const& aep = i->endpoints.front();
@@ -344,7 +344,7 @@ list trackers(torrent_handle& h)
         }
         d["endpoints"] = aeps;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         d["send_stats"] = i->send_stats;
 #endif
         ret.append(d);
@@ -395,7 +395,7 @@ void set_metadata(torrent_handle& handle, std::string const& buf)
    handle.set_metadata(buf);
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #if BOOST_VERSION > 104200
 
 std::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
@@ -438,7 +438,7 @@ void bind_torrent_handle()
     // arguments are: number of seconds and tracker index
     void (torrent_handle::*force_reannounce0)(int, int) const = &torrent_handle::force_reannounce;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     bool (torrent_handle::*super_seeding0)() const = &torrent_handle::super_seeding;
     void (torrent_handle::*super_seeding1)(bool) const = &torrent_handle::super_seeding;
 #endif
@@ -451,7 +451,7 @@ void bind_torrent_handle()
     void (torrent_handle::*move_storage0)(std::string const&, lt::move_flags_t) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file0)(file_index_t, std::string const&) const = &torrent_handle::rename_file;
 
-#if !defined TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     void (torrent_handle::*move_storage1)(std::wstring const&, int) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file1)(file_index_t, std::wstring const&) const = &torrent_handle::rename_file;
 #endif
@@ -466,7 +466,7 @@ void bind_torrent_handle()
         .value("dont_replace", move_flags_t::dont_replace)
     ;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
    enum_<deprecated_move_flags_t>("deprecated_move_flags_t")
         .value("always_replace_files", deprecated_move_flags_t::always_replace_files)
         .value("fail_if_exist", deprecated_move_flags_t::fail_if_exist)
@@ -549,7 +549,7 @@ void bind_torrent_handle()
         .def("set_flags", _(set_flags1))
         .def("unset_flags", _(&torrent_handle::unset_flags))
         // deprecated
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def("piece_priorities", &piece_priorities)
         .def("file_priorities", &file_priorities)
         .def("stop_when_ready", _(&torrent_handle::stop_when_ready))
@@ -595,7 +595,7 @@ void bind_torrent_handle()
     s.attr("sparse") = file_open_mode::sparse;
     s.attr("no_atime") = file_open_mode::no_atime;
     s.attr("random_access") = file_open_mode::random_access;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     s.attr("locked") = 0;
 #endif
     }

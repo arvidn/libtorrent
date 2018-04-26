@@ -81,7 +81,7 @@ void run_test(Setup const& setup
 		on_alert(ses, a);
 	});
 
-	lt::add_torrent_params params = create_torrent(1);
+	lt::add_torrent_params params = ::create_torrent(1);
 	params.flags &= ~lt::torrent_flags::auto_managed;
 	params.flags &= ~lt::torrent_flags::paused;
 	params.save_path = save_path(0);

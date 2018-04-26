@@ -120,12 +120,12 @@ TORRENT_TEST(test_name)
 	TEST_EQUAL(setting_by_name(#n), settings_pack:: n) \
 	TEST_EQUAL(name_for_setting(settings_pack:: n), std::string(#n))
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_NAME(contiguous_recv_buffer);
 #endif
 	TEST_NAME(choking_algorithm);
 	TEST_NAME(seeding_piece_quota);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_NAME(half_open_limit);
 	TEST_NAME(mmap_cache);
 #endif

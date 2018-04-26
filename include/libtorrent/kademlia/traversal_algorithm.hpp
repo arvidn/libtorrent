@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <memory>
 
+#include <libtorrent/fwd.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/observer.hpp>
@@ -45,8 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bdecode.hpp>
 
 namespace libtorrent {
-
-struct dht_lookup;
 
 namespace dht {
 

@@ -158,7 +158,7 @@ using return_existing = return_value_policy<reference_existing_object>;
     def("i2p_category", &i2p_category, return_existing());
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     def("get_libtorrent_category", &libtorrent_category, return_existing());
     def("get_upnp_category", &upnp_category, return_existing());
     def("get_http_category", &http_category, return_existing());
@@ -167,7 +167,7 @@ using return_existing = return_value_policy<reference_existing_object>;
 #if TORRENT_USE_I2P
     def("get_i2p_category", &i2p_category, return_existing());
 #endif
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
     def("generic_category", &boost::system::generic_category, return_existing());
 

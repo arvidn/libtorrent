@@ -737,7 +737,7 @@ std::tuple<int, int, int> node::get_stats_counters() const
 	return std::make_tuple(nodes, replacements, m_rpc.num_allocated_observers());
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 // TODO: 2 use the non deprecated function instead of this one
 void node::status(session_status& s)
 {

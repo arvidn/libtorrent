@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include <memory>
 
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"
 #include "libtorrent/aux_/storage_piece_set.hpp"
 #include "libtorrent/storage_defs.hpp"
@@ -127,9 +128,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //	}
 namespace libtorrent {
 
-	struct file_pool;
 	namespace aux { struct session_settings; }
-	struct add_torrent_params;
 
 	// The storage interface is a pure virtual class that can be implemented to
 	// customize how and where data for a torrent is stored. The default storage

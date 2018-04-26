@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/lazy_entry.hpp"
 #endif
 
@@ -699,7 +699,7 @@ namespace {
 		m_files.set_piece_length(m_orig_files->piece_length());
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec)
 	{
 		std::pair<char const*, int> buf = torrent_file.data_section();
@@ -791,7 +791,7 @@ namespace {
 		INVARIANT_CHECK;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	torrent_info::torrent_info(std::wstring const& filename)
 	{
 		std::vector<char> buf;
@@ -814,7 +814,7 @@ namespace {
 		copy_on_write();
 		m_files.rename_file_deprecated(index, new_filename);
 	}
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 #endif
 
 	torrent_info::torrent_info(bdecode_node const& torrent_file
@@ -847,7 +847,7 @@ namespace {
 		INVARIANT_CHECK;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	torrent_info::torrent_info(std::wstring const& filename
 		, error_code& ec)
 	{
@@ -861,7 +861,7 @@ namespace {
 
 		INVARIANT_CHECK;
 	}
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date
@@ -1450,7 +1450,7 @@ namespace {
 			{ return lhs.tier < rhs.tier; });
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 namespace {
 
 		struct filter_web_seed_type
@@ -1486,7 +1486,7 @@ namespace {
 		return parse_info_section(e, ec);
 	}
 
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	void torrent_info::add_url_seed(std::string const& url
 		, std::string const& ext_auth

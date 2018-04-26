@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_LAZY_ENTRY_HPP_INCLUDED
 #define TORRENT_LAZY_ENTRY_HPP_INCLUDED
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 #include <utility>
 #include <vector>
@@ -408,6 +408,6 @@ namespace libtorrent {
 
 }
 
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 #endif

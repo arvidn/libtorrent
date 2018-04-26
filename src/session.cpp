@@ -90,7 +90,7 @@ namespace {
 	settings_pack min_memory_usage()
 	{
 		settings_pack set;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// receive data directly into disk buffers
 		// this yields more system calls to read() and
 		// kqueue(), but saves RAM.
@@ -287,16 +287,6 @@ namespace {
 
 		return set;
 	}
-
-#ifndef TORRENT_CFG
-#error TORRENT_CFG is not defined!
-#endif
-
-	// this is a dummy function that's exported and named based
-	// on the configuration. The session.hpp file will reference
-	// it and if the library and the client are built with different
-	// configurations this will give a link error
-	void TORRENT_CFG() {}
 
 	session_params read_session_params(bdecode_node const& e, save_state_flags_t const flags)
 	{

@@ -41,12 +41,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 // for deprecated force_reannounce
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp" // tcp::endpoint
 #include "libtorrent/span.hpp"
@@ -62,23 +63,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 namespace aux {
-
 	struct session_impl;
-
 }
 
-	class entry;
-	struct open_file_state;
-	struct announce_entry;
-	class torrent_info;
-	struct torrent_plugin;
-	struct peer_info;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	struct peer_list_entry;
 #endif
-	struct torrent_status;
-	struct torrent_handle;
-	struct storage_interface;
 	class torrent;
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -91,6 +81,8 @@ namespace aux {
 	using deadline_flags_t = flags::bitfield_flag<std::uint8_t, struct deadline_flags_tag>;
 	using resume_data_flags_t = flags::bitfield_flag<std::uint8_t, struct resume_data_flags_tag>;
 	using queue_position_t = aux::strong_typedef<int, struct queue_position_tag>;
+
+TORRENT_IPV6_NAMESPACE
 
 	// holds the state of a block in a piece. Who we requested
 	// it from and how far along we are at downloading it.
@@ -168,7 +160,7 @@ namespace aux {
 	// or outstanding writes
 	struct TORRENT_EXPORT partial_piece_info
 	{
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 		partial_piece_info() = default;
 		partial_piece_info(partial_piece_info&&) noexcept = default;
@@ -203,7 +195,7 @@ namespace aux {
 		//	get_download_queue() is called, it will be invalidated.
 		block_info* blocks;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// the speed classes. These may be used by the piece picker to
 		// coalesce requests of similar download rates
 		enum state_t { none, slow, medium, fast };
@@ -221,12 +213,10 @@ namespace aux {
 		// any of ``fast``, ``medium`` or ``slow`` as soon as a peer want to
 		// download from it.
 		state_t TORRENT_DEPRECATED_MEMBER piece_state;
-#else
-		// hidden
-		enum deprecated_state_t { none, slow, medium, fast };
-		deprecated_state_t deprecated_piece_state;
 #endif
 	};
+
+TORRENT_IPV6_NAMESPACE_END
 
 	// for std::hash (and to support using this type in unordered_map etc.)
 	TORRENT_EXPORT std::size_t hash_value(torrent_handle const& h);
@@ -310,7 +300,7 @@ namespace aux {
 		// otherwise.
 		bool have_piece(piece_index_t piece) const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// internal
 		TORRENT_DEPRECATED
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
@@ -397,7 +387,7 @@ namespace aux {
 		void reset_piece_deadline(piece_index_t index) const;
 		void clear_piece_deadlines() const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// This sets the bandwidth priority of this torrent. The priority of a
 		// torrent determines how much bandwidth its peers are assigned when
 		// distributing upload and download rate quotas. A high number gives more
@@ -539,7 +529,7 @@ namespace aux {
 		// affect the torrent, and false will be returned.
 		bool set_metadata(span<char const> metadata) const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED
 		bool set_metadata(char const* metadata, int size) const
 		{ return set_metadata({metadata, size_t(size)}); }
@@ -850,7 +840,7 @@ namespace aux {
 		// info-hash.
 		std::shared_ptr<const torrent_info> torrent_file() const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 		// ================ start deprecation ============
 
@@ -984,7 +974,7 @@ namespace aux {
 		void prioritize_pieces(std::vector<std::pair<piece_index_t, download_priority_t>> const& pieces) const;
 		std::vector<download_priority_t> get_piece_priorities() const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED
 		void prioritize_pieces(std::vector<int> const& pieces) const;
 		TORRENT_DEPRECATED
@@ -1020,7 +1010,7 @@ namespace aux {
 		void prioritize_files(std::vector<download_priority_t> const& files) const;
 		std::vector<download_priority_t> get_file_priorities() const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED
 		void prioritize_files(std::vector<int> const& files) const;
 		TORRENT_DEPRECATED
@@ -1044,7 +1034,7 @@ namespace aux {
 		void force_reannounce(int seconds = 0, int tracker_index = -1) const;
 		void force_dht_announce() const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// forces a reannounce in the specified amount of time.
 		// This overrides the default announce interval, and no
 		// announce will take place until the given time has
@@ -1135,7 +1125,7 @@ namespace aux {
 		void set_max_connections(int max_connections) const;
 		int max_connections() const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// sets a username and password that will be sent along in the HTTP-request
 		// of the tracker announce. Set this if the tracker requires authorization.
 		TORRENT_DEPRECATED
@@ -1190,7 +1180,7 @@ namespace aux {
 			, move_flags_t flags = move_flags_t::always_replace_files
 			) const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		TORRENT_DEPRECATED
 		void move_storage(std::string const& save_path, int flags) const;
@@ -1201,7 +1191,7 @@ namespace aux {
 		// file_rename_failed_alert is posted.
 		void rename_file(file_index_t index, std::string const& new_name) const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
@@ -1214,7 +1204,7 @@ namespace aux {
 		// The torrent needs to be a seed for this to take effect.
 		TORRENT_DEPRECATED
 		void super_seeding(bool on) const;
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 		// ``info_hash()`` returns the info-hash of the torrent. If this handle
 		// is to a torrent that hasn't loaded yet (for instance by being added)

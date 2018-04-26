@@ -119,7 +119,7 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 	print_alerts(*ses[1]);
 
 	// the first peer is a downloader, the second peer is a seed
-	lt::add_torrent_params params = create_torrent(1);
+	lt::add_torrent_params params = ::create_torrent(1);
 	params.flags &= ~lt::torrent_flags::auto_managed;
 	params.flags &= ~lt::torrent_flags::paused;
 

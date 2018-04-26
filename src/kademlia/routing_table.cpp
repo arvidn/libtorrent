@@ -145,7 +145,7 @@ void routing_table::status(std::vector<dht_routing_bucket>& s) const
 	}
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 // TODO: 2 use the non deprecated function instead of this one
 void routing_table::status(session_status& s) const
 {
@@ -167,7 +167,7 @@ void routing_table::status(session_status& s) const
 		dht_routing_bucket b;
 		b.num_nodes = int(i.live_nodes.size());
 		b.num_replacements = int(i.replacements.size());
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		b.last_active = 0;
 #endif
 		s.dht_routing_table.push_back(b);

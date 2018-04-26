@@ -60,7 +60,7 @@ void test_lsd()
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48100");
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
 

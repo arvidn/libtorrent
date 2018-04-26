@@ -345,7 +345,7 @@ namespace {
 
 namespace libtorrent {
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 	boost::optional<fingerprint> client_fingerprint(peer_id const& p)
 	{

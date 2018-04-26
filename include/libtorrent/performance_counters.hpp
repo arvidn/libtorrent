@@ -131,7 +131,7 @@ namespace libtorrent {
 			on_disk_queue_counter,
 			on_disk_counter,
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			torrent_evicted_counter,
 #endif
 

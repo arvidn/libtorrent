@@ -78,7 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	struct lazy_entry;
 	// backwards compatibility
 	using type_error = system_error;
@@ -190,7 +190,7 @@ namespace aux {
 
 		// copies the structure of the right hand side into this
 		// entry.
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		entry& operator=(lazy_entry const&);
 #endif
 		entry& operator=(bdecode_node const&);

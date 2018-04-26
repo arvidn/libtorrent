@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/typed_span.hpp"
 #include "libtorrent/units.hpp"
@@ -45,11 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class file_storage;
 	struct part_file;
-	struct storage_error;
 	struct stat_cache;
-	struct add_torrent_params;
 
 	// TODO: 3 remove this typedef, and use span<char const> for disk write
 	// operations

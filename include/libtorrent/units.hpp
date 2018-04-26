@@ -55,7 +55,7 @@ namespace libtorrent { namespace aux {
 		constexpr strong_typedef(strong_typedef const& rhs) noexcept = default;
 		constexpr strong_typedef(strong_typedef&& rhs) noexcept = default;
 		strong_typedef() noexcept = default;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		constexpr strong_typedef(UnderlyingType val) : m_val(val) {}
 		constexpr operator UnderlyingType() const { return m_val; }
 #else

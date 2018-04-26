@@ -108,7 +108,7 @@ namespace aux {
 			if (s == nullptr) clear();
 			else std::memcpy(m_number.data(), s, size());
 		}
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED
 		explicit digest32(std::string const& s)
 		{

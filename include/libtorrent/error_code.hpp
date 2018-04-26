@@ -420,7 +420,7 @@ namespace libtorrent {
 			// invalid action field in udp tracker response
 			invalid_tracker_action,
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			// expected string in bencoded string
 			expected_string = 190,
 			// expected colon in bencoded string
@@ -489,7 +489,7 @@ namespace libtorrent {
 	using system_error = boost::system::system_error;
 
 #ifndef BOOST_NO_EXCEPTIONS
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TORRENT_DEPRECATED
 	inline boost::system::error_category& get_libtorrent_category()
 	{ return libtorrent_category(); }
@@ -523,7 +523,7 @@ namespace libtorrent {
 		// kind of operation failed.
 		operation_t operation;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// Returns a string literal representing the file operation
 		// that failed. If there were no failure, it returns
 		// an empty string.

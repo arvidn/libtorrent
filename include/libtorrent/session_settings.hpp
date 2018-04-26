@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_SETTINGS_HPP_INCLUDED
 #define TORRENT_SESSION_SETTINGS_HPP_INCLUDED
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/settings_pack.hpp"
@@ -109,5 +109,5 @@ namespace libtorrent {
 	};
 }
 
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 #endif

@@ -89,7 +89,7 @@ for l in f:
 		if '#endif' in l: mode = ''
 		continue
 
-	if 'TORRENT_NO_DEPRECATE' in l:
+	if 'TORRENT_ABI_VERSION == 1' in l:
 		mode = 'ignore'
 		continue
 

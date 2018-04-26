@@ -24,7 +24,7 @@ void bind_torrent_status()
         .def_readonly("info_hash", &torrent_status::info_hash)
         .add_property("torrent_file", &get_torrent_file)
         .def_readonly("state", &torrent_status::state)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("paused", &torrent_status::paused)
         .def_readonly("stop_when_ready", &torrent_status::stop_when_ready)
         .def_readonly("auto_managed", &torrent_status::auto_managed)
@@ -36,7 +36,7 @@ void bind_torrent_status()
         .def_readonly("progress", &torrent_status::progress)
         .def_readonly("progress_ppm", &torrent_status::progress_ppm)
         .add_property("next_announce", make_getter(&torrent_status::next_announce, by_value()))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("announce_interval", make_getter(&torrent_status::announce_interval, by_value()))
 #endif
         .def_readonly("current_tracker", &torrent_status::current_tracker)
@@ -78,7 +78,7 @@ void bind_torrent_status()
         .def_readonly("all_time_download", &torrent_status::all_time_download)
         .def_readonly("seed_rank", &torrent_status::seed_rank)
         .def_readonly("has_incoming", &torrent_status::has_incoming)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("seed_mode", &torrent_status::seed_mode)
         .def_readonly("upload_mode", &torrent_status::upload_mode)
         .def_readonly("share_mode", &torrent_status::share_mode)
@@ -101,11 +101,11 @@ void bind_torrent_status()
         .def_readonly("last_seen_complete", &torrent_status::last_seen_complete)
         .add_property("queue_position", make_getter(&torrent_status::queue_position, by_value()))
         .def_readonly("need_save_resume", &torrent_status::need_save_resume)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("ip_filter_applies", &torrent_status::ip_filter_applies)
 #endif
         .def_readonly("moving_storage", &torrent_status::moving_storage)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("is_loaded", &torrent_status::is_loaded)
 #endif
         .def_readonly("announcing_to_trackers", &torrent_status::announcing_to_trackers)
@@ -121,7 +121,7 @@ void bind_torrent_status()
         ;
 
     enum_<torrent_status::state_t>("states")
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .value("queued_for_checking", torrent_status::queued_for_checking)
 #endif
         .value("checking_files", torrent_status::checking_files)

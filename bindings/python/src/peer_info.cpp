@@ -64,7 +64,7 @@ void bind_peer_info()
         .def_readonly("total_upload", &peer_info::total_upload)
         .def_readonly("pid", &peer_info::pid)
         .add_property("pieces", get_pieces)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("upload_limit", &peer_info::upload_limit)
         .def_readonly("download_limit", &peer_info::download_limit)
         .def_readonly("load_balancing", &peer_info::load_balancing)
@@ -111,7 +111,7 @@ void bind_peer_info()
     pi.attr("local_connection") = peer_info::local_connection;
     pi.attr("handshake") = peer_info::handshake;
     pi.attr("connecting") = peer_info::connecting;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     pi.attr("queued") = peer_info::queued;
 #endif
     pi.attr("on_parole") = peer_info::on_parole;
@@ -139,7 +139,7 @@ void bind_peer_info()
 
     // read/write state
     pi.attr("bw_idle") = peer_info::bw_idle;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     pi.attr("bw_torrent") = peer_info::bw_torrent;
     pi.attr("bw_global") = peer_info::bw_global;
 #endif

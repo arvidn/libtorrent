@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	struct counters;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	struct session_status;
 #endif
 }
@@ -133,7 +133,7 @@ namespace libtorrent { namespace dht {
 		void direct_request(udp::endpoint const& ep, entry& e
 			, std::function<void(msg const&)> f);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		void dht_status(session_status& s);
 #endif
 		void dht_status(std::vector<dht_routing_bucket>& table

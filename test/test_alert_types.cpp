@@ -47,7 +47,7 @@ TORRENT_TEST(alerts_types)
 	// are abstract
 	int count_alert_types = 3;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_EQUAL(torrent_alert::alert_type, 0);
 	TEST_EQUAL(peer_alert::alert_type, 1);
 	TEST_EQUAL(tracker_alert::alert_type, 2);
@@ -60,13 +60,13 @@ TORRENT_TEST(alerts_types)
 	TEST_EQUAL(count_alert_types, seq); \
 	count_alert_types++;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_ALERT_TYPE(torrent_added_alert, 3, 0, alert::status_notification);
 #else
 	++count_alert_types;
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #define PROGRESS_NOTIFICATION alert::progress_notification |
 #else
 #define PROGRESS_NOTIFICATION
@@ -137,13 +137,13 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(incoming_connection_alert, 66, 0, alert::peer_notification);
 	TEST_ALERT_TYPE(add_torrent_alert, 67, 2, alert::status_notification);
 	TEST_ALERT_TYPE(state_update_alert, 68, 1, alert::status_notification);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_ALERT_TYPE(mmap_cache_alert, 69, 0, alert::error_notification);
 #else
 	count_alert_types++;
 #endif
 	TEST_ALERT_TYPE(session_stats_alert, 70, 2, alert::stats_notification);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_ALERT_TYPE(torrent_update_alert, 71, 2, alert::status_notification);
 #else
 	count_alert_types++;

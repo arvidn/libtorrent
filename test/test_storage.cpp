@@ -739,7 +739,7 @@ void test_fastresume(bool const test_deprecated)
 
 		add_torrent_params p;
 		TORRENT_UNUSED(test_deprecated);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (test_deprecated)
 		{
 			p.resume_data = resume_data;
@@ -777,7 +777,7 @@ TORRENT_TEST(fastresume)
 	test_fastresume(false);
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(fastresume_deprecated)
 {
 	test_fastresume(true);
@@ -925,7 +925,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		std::vector<char> resume_data;
 		bencode(std::back_inserter(resume_data), resume_ent);
 		TORRENT_UNUSED(test_deprecated);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		if (test_deprecated)
 		{
 			p.resume_data = resume_data;
@@ -976,7 +976,7 @@ TORRENT_TEST(rename_file_fastresume)
 	test_rename_file_fastresume(false);
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(rename_file_fastresume_deprecated)
 {
 	test_rename_file_fastresume(true);

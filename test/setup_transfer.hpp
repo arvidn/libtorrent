@@ -37,14 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/units.hpp"
-
-namespace libtorrent
-{
-	class alert;
-	struct add_torrent_params;
-	class file_storage;
-	class session;
-}
+#include "libtorrent/fwd.hpp"
 
 EXPORT int print_failures();
 EXPORT unsigned char random_byte();

@@ -112,14 +112,6 @@ namespace libtorrent {
 
 		std::unique_lock<std::mutex> l(m_mutex);
 
-#if TORRENT_USE_ASSERTS
-		// we're not allowed to open a file
-		// from a deleted storage!
-		TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
-			, std::make_pair(fs.name(), static_cast<void const*>(&fs)))
-			== m_deleted_storages.end());
-#endif
-
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & open_mode::rw_mask) == open_mode::read_only
 			|| (m & open_mode::rw_mask) == open_mode::read_write);
@@ -280,29 +272,6 @@ namespace libtorrent {
 		l.unlock();
 		// the files are closed here while the lock is not held
 	}
-
-#if TORRENT_USE_ASSERTS
-	void file_pool::mark_deleted(file_storage const& fs)
-	{
-		std::unique_lock<std::mutex> l(m_mutex);
-		m_deleted_storages.push_back(std::make_pair(fs.name()
-			, static_cast<void const*>(&fs)));
-		if(m_deleted_storages.size() > 100)
-			m_deleted_storages.erase(m_deleted_storages.begin());
-	}
-
-	bool file_pool::assert_idle_files(storage_index_t const st) const
-	{
-		std::unique_lock<std::mutex> l(m_mutex);
-
-		for (auto const& i : m_files)
-		{
-			if (i.first.first == st && !i.second.file_ptr.unique())
-				return false;
-		}
-		return true;
-	}
-#endif
 
 	void file_pool::resize(int size)
 	{

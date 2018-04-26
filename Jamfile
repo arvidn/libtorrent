@@ -662,6 +662,7 @@ SOURCES =
 	peer_connection_handle
 	i2p_stream
 	instantiate_connection
+	lazy_bdecode
 	natpmp
 	packet_buffer
 	piece_picker
@@ -815,7 +816,6 @@ lib torrent
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
 	<dht>on:<source>src/hasher512.cpp
-	<deprecated-functions>on:<source>src/lazy_bdecode.cpp
 
 	<conditional>@building
 	<conditional>@warnings

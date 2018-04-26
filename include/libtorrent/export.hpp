@@ -35,6 +35,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/config.hpp>
 
+#if !defined TORRENT_ABI_VERSION
+	#ifdef TORRENT_NO_DEPRECATE
+		#define TORRENT_ABI_VERSION 2
+	#else
+		#define TORRENT_ABI_VERSION 1
+	#endif
+#endif
+
+#if TORRENT_ABI_VERSION >= 2
+#define TORRENT_VERSION_NAMESPACE_2 inline namespace v1_2 {
+#define TORRENT_VERSION_NAMESPACE_2_END  }
+#else
+#define TORRENT_VERSION_NAMESPACE_2
+#define TORRENT_VERSION_NAMESPACE_2_END
+#endif
+
 // backwards compatibility with older versions of boost
 #if !defined BOOST_SYMBOL_EXPORT && !defined BOOST_SYMBOL_IMPORT
 # if defined _MSC_VER || defined __MINGW32__
@@ -74,7 +90,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // only export this type if deprecated functions are enabled
-#ifdef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION >= 2
 #define TORRENT_DEPRECATED_EXPORT TORRENT_EXTRA_EXPORT
 #else
 #define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT

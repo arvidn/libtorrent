@@ -79,7 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	using invalid_encoding = system_error;
 #endif
 

@@ -1469,7 +1469,7 @@ void block_cache::update_stats_counters(counters& c) const
 	c.set_value(counters::arc_volatile_size, m_lru[cached_piece_entry::volatile_read_lru].size());
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 void block_cache::get_stats(cache_status* ret) const
 {
 	ret->write_cache_size = m_write_cache_size;

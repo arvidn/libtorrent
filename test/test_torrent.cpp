@@ -426,7 +426,7 @@ TORRENT_TEST(rename_file)
 	TEST_EQUAL(info->files().file_path(file_index_t(0)), "tmp1");
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(async_load_deprecated)
 {
 	settings_pack pack = settings();
@@ -455,7 +455,7 @@ TORRENT_TEST(async_load_deprecated)
 TORRENT_TEST(torrent_status)
 {
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_none), -1);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_url), -2);
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_metadata), -4);
 #endif

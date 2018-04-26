@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_POLICY_HPP_INCLUDED
 
 #include <algorithm>
+
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/request_blocks.hpp" // for source_rank
 
@@ -53,8 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct ip_filter;
-	class port_filter;
 	struct torrent_peer_allocator_interface;
 
 	// this object is used to communicate torrent state and

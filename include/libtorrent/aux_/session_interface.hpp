@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_INTERFACE_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/time.hpp"
@@ -64,9 +65,6 @@ namespace libtorrent {
 
 	class peer_connection;
 	class torrent;
-#ifndef TORRENT_NO_DEPRECATE
-	struct pe_settings;
-#endif
 	struct peer_class_set;
 	struct bandwidth_channel;
 	struct bandwidth_manager;
@@ -78,12 +76,7 @@ namespace libtorrent {
 	struct tracker_request;
 	struct request_callback;
 	struct utp_socket_manager;
-	struct block_info;
 	struct external_ip;
-	struct torrent_handle;
-	struct ip_filter;
-	class port_filter;
-	struct settings_pack;
 	struct torrent_peer_allocator_interface;
 	struct counters;
 	struct resolver_interface;
@@ -193,7 +186,7 @@ namespace aux {
 			, peer_connection* pc) = 0;
 		virtual void insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
 			, std::string uuid) = 0;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		virtual void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) = 0;
 #endif

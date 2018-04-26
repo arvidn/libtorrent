@@ -41,7 +41,7 @@ lt::settings_pack settings()
 	auto const mask = alert::all_categories
 		& ~(
 			alert::performance_warning
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			| alert::progress_notification
 #endif
 			| alert::stats_notification
@@ -58,7 +58,7 @@ lt::settings_pack settings()
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
 
@@ -72,7 +72,7 @@ lt::settings_pack settings()
 	pack.set_int(settings_pack::aio_threads, 0);
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	pack.set_int(settings_pack::half_open_limit, 1);
 #endif
 

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_IO_JOB_HPP
 #define TORRENT_DISK_IO_JOB_HPP
 
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/peer_request.hpp"
@@ -55,10 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct storage_interface;
 	struct cached_piece_entry;
-	class torrent_info;
-	struct add_torrent_params;
 
 	enum class job_action_t : std::uint8_t
 	{

@@ -40,19 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <array>
 
+#include <libtorrent/fwd.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/vector.hpp>
-
-namespace libtorrent {
-
-#ifndef TORRENT_NO_DEPRECATE
-	struct session_status;
-#endif
-	struct dht_routing_bucket;
-}
 
 namespace libtorrent { namespace dht {
 
@@ -148,7 +141,7 @@ public:
 	routing_table(routing_table const&) = delete;
 	routing_table& operator=(routing_table const&) = delete;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	void status(session_status& s) const;
 #endif
 

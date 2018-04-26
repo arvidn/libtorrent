@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 namespace {
 void test_remove_url(std::string url)
 {

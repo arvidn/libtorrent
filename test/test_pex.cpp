@@ -61,7 +61,7 @@ void test_pex()
 
 	auto const mask = ~(
 			alert::performance_warning
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			| alert::progress_notification
 #endif
 			| alert::stats_notification);
@@ -79,7 +79,7 @@ void test_pex()
 	pack.set_bool(settings_pack::enable_dht, false);
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
 

@@ -90,15 +90,6 @@ namespace libtorrent {
 		// any file to stay open for too long, allowing the disk cache to accrue.
 		void close_oldest();
 
-#if TORRENT_USE_ASSERTS
-		bool assert_idle_files(storage_index_t st) const;
-
-		// remember that this storage has had
-		// its files deleted. We may not open any
-		// files from it again
-		void mark_deleted(file_storage const& fs);
-#endif
-
 	private:
 
 		file_handle remove_oldest(std::unique_lock<std::mutex>&);
@@ -117,11 +108,9 @@ namespace libtorrent {
 		// maps storage pointer, file index pairs to the
 		// LRU entry for the file
 		std::map<std::pair<storage_index_t, file_index_t>, lru_file_entry> m_files;
-#if TORRENT_USE_ASSERTS
-		std::vector<std::pair<std::string, void const*>> m_deleted_storages;
-#endif
 		mutable std::mutex m_mutex;
 	};
+
 }
 
 #endif

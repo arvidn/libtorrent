@@ -93,7 +93,7 @@ namespace libtorrent {
 
 #define SET(name, default_value, fun) { #name, fun, default_value }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value }
 #else
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }

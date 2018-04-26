@@ -30,9 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_NO_DEPRECATE
-
 #include "libtorrent/config.hpp"
+
+#if TORRENT_ABI_VERSION == 1
+
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/bdecode.hpp" // for error codes
 #include "libtorrent/string_util.hpp" // for is_digit
@@ -81,7 +82,7 @@ namespace {
 
 	} // anonymous namespace
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, int depth_limit, int item_limit)
 	{
@@ -674,4 +675,4 @@ namespace {
 	}
 }
 
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION

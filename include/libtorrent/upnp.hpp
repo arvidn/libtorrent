@@ -95,7 +95,7 @@ namespace libtorrent {
 	// the boost.system error category for UPnP errors
 	TORRENT_EXPORT boost::system::error_category& upnp_category();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TORRENT_DEPRECATED
 	inline boost::system::error_category& get_upnp_category()
 	{ return upnp_category(); }

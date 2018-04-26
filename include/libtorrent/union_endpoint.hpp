@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+TORRENT_IPV6_NAMESPACE
+
 	struct union_address
 	{
 		union_address() { *this = address(); }
@@ -124,6 +126,7 @@ namespace libtorrent {
 		union_address addr;
 		std::uint16_t port;
 	};
+TORRENT_IPV6_NAMESPACE_END
 }
 
 #endif

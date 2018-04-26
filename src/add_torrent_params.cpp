@@ -40,7 +40,7 @@ namespace libtorrent {
 	add_torrent_params::add_torrent_params(add_torrent_params const&) = default;
 	add_torrent_params& add_torrent_params::operator=(add_torrent_params const&) = default;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #define DECL_FLAG(name) \
 	constexpr torrent_flags_t add_torrent_params::flag_##name
 
@@ -65,7 +65,7 @@ namespace libtorrent {
 			DECL_FLAG(merge_resume_http_seeds);
 			DECL_FLAG(default_flags);
 #undef DECL_FLAG
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	static_assert(std::is_nothrow_move_constructible<add_torrent_params>::value
 		, "should be nothrow move constructible");

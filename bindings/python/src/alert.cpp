@@ -228,7 +228,7 @@ namespace boost
 	POLY(session_stats_alert)
 	POLY(dht_get_peers_reply_alert)
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	POLY(torrent_added_alert)
 	POLY(torrent_update_alert)
 #endif
@@ -257,13 +257,13 @@ void bind_alert()
             .def("message", &alert::message)
             .def("what", &alert::what)
             .def("category", &alert::category)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
             .def("severity", &alert::severity)
 #endif
             .def("__str__", &alert::message)
             ;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         enum_<alert::severity_t>("severity_levels")
             .value("debug", alert::debug)
             .value("info", alert::info)
@@ -282,7 +282,7 @@ void bind_alert()
         s.attr("tracker_notification") = alert::tracker_notification;
         s.attr("debug_notification") = alert::debug_notification;
         s.attr("status_notification") = alert::status_notification;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         s.attr("progress_notification") = alert::progress_notification;
 #endif
         s.attr("ip_block_notification") = alert::ip_block_notification;
@@ -356,14 +356,14 @@ void bind_alert()
 
     class_<tracker_alert, bases<torrent_alert>, noncopyable>(
         "tracker_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("url", &tracker_alert::url)
 #endif
         .add_property("local_endpoint", make_getter(&tracker_alert::local_endpoint, by_value()))
         .def("tracker_url", &tracker_alert::tracker_url)
         ;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     class_<torrent_added_alert, bases<torrent_alert>, noncopyable>(
         "torrent_added_alert", no_init)
         ;
@@ -377,7 +377,7 @@ void bind_alert()
     class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
         "read_piece_alert", nullptr, no_init)
         .def_readonly("error", &read_piece_alert::error)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("ec", &read_piece_alert::ec)
 #endif
         .add_property("buffer", get_buffer)
@@ -387,7 +387,7 @@ void bind_alert()
 
     class_<peer_alert, bases<torrent_alert>, noncopyable>(
         "peer_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("ip", make_getter(&peer_alert::ip, by_value()))
 #endif
         .add_property("endpoint", make_getter(&peer_alert::endpoint, by_value()))
@@ -395,7 +395,7 @@ void bind_alert()
     ;
     class_<tracker_error_alert, bases<tracker_alert>, noncopyable>(
         "tracker_error_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("msg", &tracker_error_alert::msg)
         .def_readonly("status_code", &tracker_error_alert::status_code)
 #endif
@@ -464,7 +464,7 @@ void bind_alert()
 
     class_<block_downloading_alert, bases<peer_alert>, noncopyable>(
         "block_downloading_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("peer_speedmsg", &block_downloading_alert::peer_speedmsg)
 #endif
         .add_property("block_index", make_getter(&block_downloading_alert::block_index, by_value()))
@@ -473,7 +473,7 @@ void bind_alert()
 
     class_<storage_moved_alert, bases<torrent_alert>, noncopyable>(
         "storage_moved_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("path", &storage_moved_alert::path)
 #endif
         .def("storage_path", &storage_moved_alert::storage_path)
@@ -484,7 +484,7 @@ void bind_alert()
         .def_readonly("error", &storage_moved_failed_alert::error)
         .def("file_path", &storage_moved_failed_alert::file_path)
         .def_readonly("op", &storage_moved_failed_alert::op)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("operation", &storage_moved_failed_alert::operation)
 #endif
         ;
@@ -502,7 +502,7 @@ void bind_alert()
 
     class_<url_seed_alert, bases<torrent_alert>, noncopyable>(
         "url_seed_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("url", &url_seed_alert::url)
         .def_readonly("msg", &url_seed_alert::msg)
 #endif
@@ -515,7 +515,7 @@ void bind_alert()
         "file_error_alert", no_init)
         .def_readonly("error", &file_error_alert::error)
         .def("filename", &file_error_alert::filename)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("file", &file_error_alert::file)
         .def_readonly("msg", &file_error_alert::msg)
 #endif
@@ -531,7 +531,7 @@ void bind_alert()
 
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("endpoint", make_getter(&listen_failed_alert::endpoint, by_value()))
 #endif
         .add_property("address", make_getter(&listen_failed_alert::address, by_value()))
@@ -539,7 +539,7 @@ void bind_alert()
         .def("listen_interface", &listen_failed_alert::listen_interface)
         .def_readonly("error", &listen_failed_alert::error)
         .def_readonly("op", &listen_failed_alert::op)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("operation", &listen_failed_alert::operation)
         .def_readonly("sock_type", &listen_failed_alert::sock_type)
 #endif
@@ -548,18 +548,18 @@ void bind_alert()
 
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
         "listen_succeeded_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("endpoint", make_getter(&listen_succeeded_alert::endpoint, by_value()))
 #endif
         .add_property("address", make_getter(&listen_succeeded_alert::address, by_value()))
         .def_readonly("port", &listen_succeeded_alert::port)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("sock_type", &listen_succeeded_alert::sock_type)
 #endif
         .def_readonly("socket_type", &listen_succeeded_alert::socket_type)
         ;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     enum_<listen_succeeded_alert::socket_type_t>("listen_succeded_alert_socket_type_t")
        .value("tcp", listen_succeeded_alert::socket_type_t::tcp)
        .value("tcp_ssl", listen_succeeded_alert::socket_type_t::tcp_ssl)
@@ -593,7 +593,7 @@ void bind_alert()
         .add_property("mapping", make_getter(&portmap_error_alert::mapping, by_value()))
         .def_readonly("error", &portmap_error_alert::error)
         .def_readonly("map_transport", &portmap_error_alert::map_transport)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("map_type", &portmap_error_alert::map_type)
         .def_readonly("type", &portmap_error_alert::map_type)
         .def_readonly("msg", &portmap_error_alert::msg)
@@ -605,7 +605,7 @@ void bind_alert()
         .def_readonly("external_port", &portmap_alert::external_port)
         .def_readonly("map_protocol", &portmap_alert::map_protocol)
         .def_readonly("map_transport", &portmap_alert::map_transport)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("type", &portmap_alert::map_type)
         .def_readonly("map_type", &portmap_alert::map_type)
 #endif
@@ -615,7 +615,7 @@ void bind_alert()
 
     class_<portmap_log_alert, bases<alert>, noncopyable>("portmap_log_alert", no_init)
         .def_readonly("map_transport", &portmap_log_alert::map_transport)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("type", &portmap_log_alert::map_type)
         .def_readonly("msg", &portmap_log_alert::msg)
         .def_readonly("map_type", &portmap_log_alert::map_type)
@@ -629,7 +629,7 @@ void bind_alert()
         .def_readonly("error", &fastresume_rejected_alert::error)
         .def("file_path", &fastresume_rejected_alert::file_path)
         .def_readonly("op", &fastresume_rejected_alert::op)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("operation", &fastresume_rejected_alert::operation)
         .def_readonly("msg", &fastresume_rejected_alert::msg)
 #endif
@@ -637,7 +637,7 @@ void bind_alert()
 
     class_<peer_blocked_alert, bases<peer_alert>, noncopyable>(
         "peer_blocked_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("ip", make_getter(&peer_blocked_alert::ip, by_value()))
 #endif
         .add_property("reason", &peer_blocked_alert::reason)
@@ -661,7 +661,7 @@ void bind_alert()
 
     class_<scrape_failed_alert, bases<tracker_alert>, noncopyable>(
         "scrape_failed_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("msg", &scrape_failed_alert::msg)
 #endif
         .def("error_message", &scrape_failed_alert::error_message)
@@ -682,7 +682,7 @@ void bind_alert()
     class_<save_resume_data_alert, bases<torrent_alert>, noncopyable>(
         "save_resume_data_alert", no_init)
         .def_readonly("params", &save_resume_data_alert::params)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("resume_data", make_function(get_resume_data_entry, by_value()))
 #endif
         ;
@@ -695,7 +695,7 @@ void bind_alert()
     class_<file_renamed_alert, bases<torrent_alert>, noncopyable>(
         "file_renamed_alert", no_init)
         .add_property("index", make_getter(&file_renamed_alert::index, by_value()))
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("name", &file_renamed_alert::name)
 #endif
         .def("new_name", &file_renamed_alert::new_name)
@@ -763,7 +763,7 @@ void bind_alert()
         .def_readonly("op", &peer_disconnected_alert::op)
         .def_readonly("error", &peer_disconnected_alert::error)
         .def_readonly("reason", &peer_disconnected_alert::reason)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("msg", &peer_disconnected_alert::msg)
 #endif
         ;
@@ -788,7 +788,7 @@ void bind_alert()
 
     class_<torrent_delete_failed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_delete_failed_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("msg", &torrent_delete_failed_alert::msg)
 #endif
         .def_readonly("error", &torrent_delete_failed_alert::error)
@@ -797,7 +797,7 @@ void bind_alert()
 
     class_<save_resume_data_failed_alert, bases<torrent_alert>, noncopyable>(
         "save_resume_data_failed_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("msg", &save_resume_data_failed_alert::msg)
 #endif
         .def_readonly("error", &save_resume_data_failed_alert::error)
@@ -830,14 +830,14 @@ void bind_alert()
         .value("upload_payload", stats_alert::upload_payload)
         .value("upload_protocol", stats_alert::upload_protocol)
         .value("upload_ip_protocol", stats_alert::upload_ip_protocol)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .value("upload_dht_protocol", stats_alert::upload_dht_protocol)
         .value("upload_tracker_protocol", stats_alert::upload_tracker_protocol)
 #endif
         .value("download_payload", stats_alert::download_payload)
         .value("download_protocol", stats_alert::download_protocol)
         .value("download_ip_protocol", stats_alert::download_ip_protocol)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .value("download_dht_protocol", stats_alert::download_dht_protocol)
         .value("download_tracker_protocol", stats_alert::download_tracker_protocol)
 #endif
@@ -860,14 +860,14 @@ void bind_alert()
     class_<incoming_connection_alert, bases<alert>, noncopyable>(
         "incoming_connection_alert", no_init)
         .def_readonly("socket_type", &incoming_connection_alert::socket_type)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("ip", make_getter(&incoming_connection_alert::ip, by_value()))
 #endif
         .add_property("endpoint", make_getter(&incoming_connection_alert::endpoint, by_value()))
         ;
     class_<torrent_need_cert_alert, bases<torrent_alert>, noncopyable>(
         "torrent_need_cert_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("error", &torrent_need_cert_alert::error)
 #endif
         ;
@@ -878,7 +878,7 @@ void bind_alert()
        .add_property("params", &add_torrent_alert::params)
        ;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     class_<torrent_update_alert, bases<torrent_alert>, noncopyable>(
        "torrent_update_alert", no_init)
         .def_readonly("old_ih", &torrent_update_alert::old_ih)
@@ -890,7 +890,7 @@ void bind_alert()
        "dht_outgoing_get_peers_alert", no_init)
         .def_readonly("info_hash", &dht_outgoing_get_peers_alert::info_hash)
         .def_readonly("obfuscated_info_hash", &dht_outgoing_get_peers_alert::obfuscated_info_hash)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .add_property("ip", make_getter(&dht_outgoing_get_peers_alert::ip, by_value()))
 #endif
         .add_property("endpoint", make_getter(&dht_outgoing_get_peers_alert::endpoint, by_value()))
@@ -898,7 +898,7 @@ void bind_alert()
 
     class_<log_alert, bases<alert>, noncopyable>(
        "log_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def("msg", &log_alert::msg)
 #endif
         .def("log_message", &log_alert::log_message)
@@ -906,7 +906,7 @@ void bind_alert()
 
     class_<torrent_log_alert, bases<torrent_alert>, noncopyable>(
        "torrent_log_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def("msg", &torrent_log_alert::msg)
 #endif
         .def("log_message", &torrent_log_alert::log_message)
@@ -914,7 +914,7 @@ void bind_alert()
 
     class_<peer_log_alert, bases<peer_alert>, noncopyable>(
        "peer_log_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def("msg", &peer_log_alert::msg)
 #endif
         .def("log_message", &peer_log_alert::log_message)

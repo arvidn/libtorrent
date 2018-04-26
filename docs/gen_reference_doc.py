@@ -545,7 +545,7 @@ def consume_comment(lno, lines):
 def trim_define(l):
 	return l.replace('#ifndef', '').replace('#ifdef', '') \
 		.replace('#if', '').replace('defined', '') \
-		.replace('TORRENT_USE_IPV6', '').replace('TORRENT_NO_DEPRECATE', '') \
+		.replace('TORRENT_USE_IPV6', '').replace('TORRENT_ABI_VERSION == 1', '') \
 		.replace('||', '').replace('&&', '').replace('(', '').replace(')','') \
 		.replace('!', '').replace('\\', '').strip()
 
@@ -564,7 +564,7 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 			l += lines[lno].strip()
 			if verbose: print 'prep  %s' % lines[lno].trim()
 		define = trim_define(l)
-		if 'TORRENT_' in define:
+		if 'TORRENT_' in define and not 'TORRENT_ABI_VERSION' in define:
 			print '\x1b[31mWARNING: possible ABI breakage in public struct! "%s" \x1b[34m %s:%d\x1b[0m' % \
 				(define, filename, lno)
 			# we've already warned once, no need to do it twice
@@ -576,7 +576,7 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 		' TORRENT_USE_ASSERTS' in l or
 		' TORRENT_USE_INVARIANT_CHECKS' in l or
 		' TORRENT_ASIO_DEBUGGING' in l) or
-		l == '#ifndef TORRENT_NO_DEPRECATE'
+		l == '#if TORRENT_ABI_VERSION == 1'
 		):
 		while lno < len(lines):
 			l = lines[lno].strip()
@@ -649,10 +649,6 @@ for filename in files:
 			lno = consume_block(lno, lines)
 			continue
 
-		if 'TORRENT_CFG' in l:
-			blanks += 1
-			if verbose: print 'xx    %s' % l
-			continue
 		if 'TORRENT_DEPRECATED' in l:
 			if ('class ' in l or 'struct ' in l) and not ';' in l:
 				lno = consume_block(lno - 1, lines)

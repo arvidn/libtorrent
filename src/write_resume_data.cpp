@@ -80,7 +80,7 @@ namespace libtorrent {
 
 		ret["save_path"] = atp.save_path;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		if (!atp.url.empty()) ret["url"] = atp.url;
 		if (!atp.uuid.empty()) ret["uuid"] = atp.uuid;

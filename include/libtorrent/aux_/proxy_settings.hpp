@@ -67,7 +67,7 @@ namespace aux {
 		std::string username;
 		std::string password;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// the type of proxy to use. Assign one of these to the
 		// proxy_settings::type field.
 		enum proxy_type

@@ -136,7 +136,7 @@ namespace libtorrent {
 		char const* data() const { return m_buf ? reinterpret_cast<char const*>(&m_buf[1]) : nullptr; }
 		char* data() { return m_buf ? reinterpret_cast<char*>(&m_buf[1]) : nullptr; }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED
 		char const* bytes() const { return data(); }
 #endif

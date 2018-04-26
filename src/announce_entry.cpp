@@ -61,7 +61,7 @@ namespace libtorrent {
 		: url(u.to_string())
 		, source(0)
 		, verified(false)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, fails(0)
 		, send_stats(false)
 		, start_sent(false)
@@ -74,7 +74,7 @@ namespace libtorrent {
 	announce_entry::announce_entry()
 		: source(0)
 		, verified(false)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		, fails(0)
 		, send_stats(false)
 		, start_sent(false)
@@ -130,7 +130,7 @@ namespace libtorrent {
 			aep.reset();
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	bool announce_entry::can_announce(time_point now, bool is_seed) const
 	{
 		return std::any_of(endpoints.begin(), endpoints.end()

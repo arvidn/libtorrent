@@ -105,7 +105,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 	namespace {
 		torrent_handle add_magnet_uri_deprecated(session& ses, std::string const& uri
@@ -165,7 +165,7 @@ namespace libtorrent {
 		return ret;
 	}
 #endif // BOOST_NO_EXCEPTIONS
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 	add_torrent_params parse_magnet_uri(string_view uri, error_code& ec)
 	{

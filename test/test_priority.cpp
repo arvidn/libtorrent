@@ -109,7 +109,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
 	pack.set_int(settings_pack::alert_mask, mask);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
 
@@ -290,7 +290,7 @@ done:
 	std::cout << "re-adding" << std::endl;
 	add_torrent_params p;
 	TORRENT_UNUSED(test_deprecated);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	if (test_deprecated)
 	{
 		p.resume_data = resume_data;
@@ -399,7 +399,7 @@ TORRENT_TEST(priority)
 	cleanup();
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(priority_deprecated)
 {
 	using namespace lt;

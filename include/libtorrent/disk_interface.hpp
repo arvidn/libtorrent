@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <memory>
 
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/vector.hpp"
@@ -50,17 +51,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct storage_interface;
-	struct peer_request;
 	struct disk_observer;
-	struct add_torrent_params;
-	struct cache_status;
 	struct disk_buffer_holder;
 	struct counters;
-	struct settings_pack;
-	struct storage_params;
-	struct storage_error;
-	class file_storage;
 
 	struct storage_holder;
 
@@ -96,7 +89,7 @@ namespace libtorrent {
 		// logic
 		constexpr file_open_mode_t random_access = 5_bit;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// prevent the file from being opened by another process
 		// while it's still being held open by this handle
 		constexpr file_open_mode_t TORRENT_DEPRECATED locked = 6_bit;
@@ -123,7 +116,7 @@ namespace libtorrent {
 		time_point last_use;
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	using pool_file_status = open_file_state;
 #endif
 

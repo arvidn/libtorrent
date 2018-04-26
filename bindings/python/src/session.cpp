@@ -52,7 +52,7 @@ using namespace lt;
 
 namespace
 {
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     struct dummy {};
 
     void listen_on(lt::session& s, int min_, int max_, char const* interface, int flags)
@@ -74,7 +74,7 @@ namespace
         s.apply_settings(p);
         return;
     }
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 #ifndef TORRENT_DISABLE_DHT
     void add_dht_node(lt::session& s, tuple n)
@@ -85,7 +85,7 @@ namespace
         s.add_dht_node(std::make_pair(ip, port));
     }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     void add_dht_router(lt::session& s, std::string router_, int port_)
     {
         allow_threading_guard guard;
@@ -211,7 +211,7 @@ namespace
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     torrent_handle add_torrent_depr(lt::session& s, torrent_info const& ti
         , std::string const& save, entry const& resume
         , storage_mode_t storage_mode, bool paused)
@@ -261,7 +261,7 @@ namespace
                 p.save_path = extract<std::string>(value);
                 continue;
             }
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
             else if(key == "resume_data")
             {
                 std::string resume = extract<std::string>(value);
@@ -321,7 +321,7 @@ namespace
                 p.trackerid = extract<std::string>(value);
                 continue;
             }
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
             else if(key == "url")
             {
                 p.url = extract<std::string>(value);
@@ -374,7 +374,7 @@ namespace
         s.async_add_torrent(p);
     }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     void start_natpmp(lt::session& s)
     {
         allow_threading_guard guard;
@@ -386,7 +386,7 @@ namespace
         allow_threading_guard guard;
         s.start_upnp();
     }
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
     alert const*
     wait_for_alert(lt::session& s, int ms)
@@ -444,7 +444,7 @@ namespace
         return cached_piece_info_list(cs.pieces);
     }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     cache_status get_cache_status(lt::session& s)
     {
        cache_status ret;
@@ -646,7 +646,7 @@ namespace
 } // anonymous namespace
 
 struct dummy1 {};
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 struct dummy2 {};
 #endif
 struct dummy9 {};
@@ -660,7 +660,7 @@ void bind_session()
     sha1_hash (lt::session::*dht_put_immutable_item)(entry data) = &lt::session::dht_put_item;
 #endif // TORRENT_DISABLE_DHT
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #ifndef TORRENT_DISABLE_DHT
     void (lt::session::*start_dht0)() = &lt::session::start_dht;
     void (lt::session::*start_dht1)(entry const&) = &lt::session::start_dht;
@@ -730,7 +730,7 @@ void bind_session()
         .def_readonly("branch_factor", &dht_lookup::branch_factor)
     ;
 #endif // TORRENT_DISABLE_DHT
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 #define PROP(val) \
     make_getter(val, return_value_policy<return_by_value>()), \
@@ -778,7 +778,7 @@ void bind_session()
         .add_property("merkle_tree", PROP(&add_torrent_params::merkle_tree))
         .add_property("renamed_files", PROP(&add_torrent_params::renamed_files))
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readwrite("url", &add_torrent_params::url)
         .def_readwrite("uuid", &add_torrent_params::uuid)
         .add_property("resume_data", PROP(&add_torrent_params::resume_data))
@@ -818,7 +818,7 @@ void bind_session()
     s.attr("override_web_seeds") = torrent_flags::override_web_seeds;
     }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     {
     scope s = class_<dummy2>("add_torrent_params_flags_t");
     s.attr("flag_seed_mode") = add_torrent_params::flag_seed_mode;
@@ -844,7 +844,7 @@ void bind_session()
 
     class_<cache_status>("cache_status")
         .add_property("pieces", cache_status_pieces)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("blocks_written", &cache_status::blocks_written)
         .def_readonly("writes", &cache_status::writes)
         .def_readonly("blocks_read", &cache_status::blocks_read)
@@ -923,7 +923,7 @@ void bind_session()
                 , arg("flags")=lt::session::start_default_features
                     | lt::session::add_default_plugins))
         )
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def(
             init<fingerprint, session_flags_t, alert_category_t>((
                 arg("fingerprint")=fingerprint("LT",0,1,0,0)
@@ -939,12 +939,12 @@ void bind_session()
         .def("listen_port", allow_threads(&lt::session::listen_port))
 #ifndef TORRENT_DISABLE_DHT
         .def("add_dht_node", &add_dht_node)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def(
             "add_dht_router", &add_dht_router
           , (arg("router"), "port")
         )
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
         .def("is_dht_running", allow_threads(&lt::session::is_dht_running))
         .def("set_dht_settings", allow_threads(&lt::session::set_dht_settings))
         .def("get_dht_settings", allow_threads(&lt::session::get_dht_settings))
@@ -960,7 +960,7 @@ void bind_session()
         .def("async_add_torrent", &lt::session::async_add_torrent)
         .def("add_torrent", allow_threads((lt::torrent_handle (session_handle::*)(add_torrent_params const&))&lt::session::add_torrent))
 #ifndef BOOST_NO_EXCEPTIONS
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def(
             "add_torrent", &add_torrent_depr
           , (
@@ -969,15 +969,15 @@ void bind_session()
                 arg("paused") = false
             )
         )
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 #endif // BOOST_NO_EXCEPTIONS
         .def("remove_torrent", allow_threads(&lt::session::remove_torrent), arg("option") = 0)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def("status", allow_threads(&lt::session::status))
 #endif
         .def("get_settings", &session_get_settings)
         .def("apply_settings", &session_apply_settings)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&lt::session::set_pe_settings))
         .def("get_pe_settings", allow_threads(&lt::session::get_pe_settings))
@@ -988,7 +988,7 @@ void bind_session()
         .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #if TORRENT_USE_I2P
         .def("set_i2p_proxy", allow_threads(&lt::session::set_i2p_proxy))
         .def("i2p_proxy", allow_threads(&lt::session::i2p_proxy))
@@ -1012,7 +1012,7 @@ void bind_session()
         .def("get_peer_class", &get_peer_class)
         .def("set_peer_class", &set_peer_class)
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def("id", allow_threads(&lt::session::id))
         .def(
             "listen_on", &listen_on
@@ -1059,7 +1059,7 @@ void bind_session()
         .def("get_cache_status", &get_cache_status)
         .def("get_cache_info", &get_cache_info2)
         .def("set_peer_id", allow_threads(&lt::session::set_peer_id))
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
         ;
 
     s.attr("tcp") = lt::portmap_protocol::tcp;
@@ -1072,7 +1072,7 @@ void bind_session()
     s.attr("reopen_map_ports") = lt::session::reopen_map_ports;
     }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     {
     scope s = class_<dummy>("protocol_type");
     s.attr("udp") = lt::portmap_protocol::udp;
@@ -1085,7 +1085,7 @@ void bind_session()
         s.attr("save_settings") = lt::session::save_settings;
         s.attr("save_dht_settings") = lt::session::save_dht_settings;
         s.attr("save_dht_state") = lt::session::save_dht_state;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         s.attr("save_encryption_settings") = lt::session:: save_encryption_settings;
         s.attr("save_as_map") = lt::session::save_as_map;
         s.attr("save_i2p_proxy") = lt::session::save_i2p_proxy;
@@ -1097,7 +1097,7 @@ void bind_session()
 #endif
     }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
     enum_<lt::session::listen_on_flags_t>("listen_on_flags_t")
         .value("listen_reuse_address", lt::session::listen_reuse_address)
         .value("listen_no_system_port", lt::session::listen_no_system_port)

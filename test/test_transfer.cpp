@@ -162,7 +162,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_bool(settings_pack::enable_lsd, false);
 	pack.set_bool(settings_pack::enable_dht, false);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
 
@@ -390,7 +390,7 @@ void cleanup()
 
 } // anonymous namespace
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(no_contiguous_buffers)
 {
 	using namespace lt;

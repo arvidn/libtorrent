@@ -58,6 +58,8 @@ namespace libtorrent {
 	// direction
 	using bandwidth_state_flags_t = flags::bitfield_flag<std::uint8_t, struct bandwidth_state_flags_tag>;
 
+TORRENT_VERSION_NAMESPACE_2
+
 	// holds information and statistics about one peer
 	// that libtorrent is connected to
 	struct TORRENT_EXPORT peer_info
@@ -122,7 +124,7 @@ namespace libtorrent {
 		// being connected).
 		static constexpr peer_flags_t connecting = 7_bit;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// The connection is currently queued for a connection
 		// attempt. This may happen if there is a limit set on
 		// the number of half-open TCP connections.
@@ -313,12 +315,10 @@ namespace libtorrent {
 		// the kind of connection this peer uses. See connection_type_t.
 		int connection_type;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// an estimate of the rate this peer is downloading at, in
 		// bytes per second.
 		int remote_dl_rate;
-#else
-		int deprecated_remote_dl_rate;
 #endif
 
 		// the number of bytes this peer has pending in the disk-io thread.
@@ -397,7 +397,7 @@ namespace libtorrent {
 		bandwidth_state_flags_t read_state;
 		bandwidth_state_flags_t write_state;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		static constexpr bandwidth_state_flags_t bw_torrent = bw_limit;
 		static constexpr bandwidth_state_flags_t bw_global = bw_limit;
 
@@ -414,10 +414,11 @@ namespace libtorrent {
 		// have got this amount of free download.
 		std::int64_t load_balancing;
 #endif
-
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
+TORRENT_VERSION_NAMESPACE_2_END
+
+#if TORRENT_ABI_VERSION == 1
 	// internal
 	struct TORRENT_EXTRA_EXPORT peer_list_entry
 	{

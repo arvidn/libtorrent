@@ -103,7 +103,7 @@ namespace libtorrent {
 
 TORRENT_EXPORT boost::system::error_category& bdecode_category();
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 TORRENT_DEPRECATED
 inline boost::system::error_category& get_bdecode_category()
 { return bdecode_category(); }
@@ -252,7 +252,7 @@ struct bdecode_token
 // There are 5 different types of nodes, see type_t.
 struct TORRENT_EXPORT bdecode_node
 {
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TORRENT_DEPRECATED_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit
 		, int token_limit);

@@ -43,7 +43,7 @@ namespace libtorrent {
 	constexpr peer_flags_t peer_info::local_connection;
 	constexpr peer_flags_t peer_info::handshake;
 	constexpr peer_flags_t peer_info::connecting;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	constexpr peer_flags_t peer_info::queued;
 #endif
 	constexpr peer_flags_t peer_info::on_parole;
@@ -71,7 +71,7 @@ namespace libtorrent {
 	constexpr bandwidth_state_flags_t peer_info::bw_network;
 	constexpr bandwidth_state_flags_t peer_info::bw_disk;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	constexpr bandwidth_state_flags_t peer_info::bw_torrent;
 	constexpr bandwidth_state_flags_t peer_info::bw_global;
 #endif
