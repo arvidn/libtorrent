@@ -76,7 +76,7 @@ namespace libtorrent { namespace aux
 					// or the allocator may grow indefinitely. The user
 					// should take care to avoid this.
 					lock.unlock();
-					this_thread::yield();
+					std::this_thread::yield();
 					lock.lock();
 				}
 
@@ -89,7 +89,7 @@ namespace libtorrent { namespace aux
 				m_locked = true;
 			}
 
-			void unlock()
+			void unlock(const bool reset = false)
 			{
 				mutex::scoped_lock lock(m_alloc.m_mutex);
 				if (m_locked)
@@ -105,7 +105,8 @@ namespace libtorrent { namespace aux
 						}
 						else
 						{
-							m_alloc.m_storage.resize(m_alloc.m_saved_size);
+							if (reset)
+								m_alloc.m_storage.resize(m_alloc.m_saved_size);
 						}
 						m_alloc.m_saved_size = -1;
 						m_alloc.m_consec_locks = 0;
@@ -125,13 +126,15 @@ namespace libtorrent { namespace aux
 
 		struct scoped_lock : stack_allocator_lock
 		{
-			scoped_lock(stack_allocator& alloc) : stack_allocator_lock(alloc) {}
-			~scoped_lock() { unlock(); }
+			scoped_lock(stack_allocator& alloc, const bool auto_reset = true)
+				: stack_allocator_lock(alloc), m_auto_reset(auto_reset) {}
+			~scoped_lock() { unlock(m_auto_reset); }
 
 		private:
 			// non-copyable
 			scoped_lock(scoped_lock const&);
 			scoped_lock& operator=(scoped_lock const&);
+			bool m_auto_reset;
 		};
 
 		stack_allocator() : m_locks(0)

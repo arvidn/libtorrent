@@ -54,6 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/atomic.hpp>
+#include <thread>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -66,10 +68,99 @@ namespace libtorrent
 	// internal
 	void sleep(int milliseconds);
 
-	namespace this_thread
+	struct shared_lock
 	{
-		void yield();
-	}
+		enum lock_type_t
+		{
+			shared = 1,
+			exclusive = 2
+		};
+
+		struct scoped_lock
+		{
+			scoped_lock(shared_lock& lock, const int type, const bool locked = true)
+				: m_lock(lock), m_type(type), m_locked(locked)
+			{
+				if (m_locked) m_lock.lock(m_type);
+			}
+
+			~scoped_lock()
+			{
+				unlock();
+			}
+
+			void lock()
+			{
+				TORRENT_ASSERT(m_type == shared_lock::shared ||
+					m_type == shared_lock::exclusive);
+				m_lock.lock(m_type);
+				m_locked = true;
+			}
+
+			void unlock()
+			{
+				TORRENT_ASSERT(m_type == shared_lock::shared ||
+					m_type == shared_lock::exclusive);
+				if (m_locked)
+				{
+					m_locked = false;
+					m_lock.unlock(m_type);
+				}
+			}
+
+			shared_lock& m_lock;
+			int m_type;
+			bool m_locked;
+		};
+
+		shared_lock() : m_shared_locks(0), m_exclusive_lock(false) {}
+
+		void lock(int type)
+		{
+			if (type == shared_lock::exclusive)
+			{
+				m_mutex.lock();
+				m_exclusive_lock.store(true);
+
+				// wait for all shared locks to be released
+				while (m_shared_locks.load() > 0)
+					std::this_thread::yield();
+			}
+			else
+			{
+				TORRENT_ASSERT(type == shared_lock::shared);
+				m_shared_locks.fetch_add(1);
+
+				if (m_exclusive_lock.load())
+				{
+					// if an exclusive lock has been requested by
+					// another thread lock the mutex before acquiring
+					// a shared lock
+					m_shared_locks.fetch_add(-1);
+					mutex::scoped_lock lock(m_mutex);
+					m_shared_locks.fetch_add(1);
+				}
+			}
+		}
+
+		void unlock(int type)
+		{
+			if (type == shared_lock::exclusive)
+			{
+				m_exclusive_lock.store(false);
+				m_mutex.unlock();
+			}
+			else
+			{
+				TORRENT_ASSERT(type == shared_lock::shared);
+				m_shared_locks.fetch_add(-1);
+			}
+		}
+
+		boost::atomic<int> m_shared_locks;
+		boost::atomic<bool> m_exclusive_lock;
+		mutex m_mutex;
+	};
 
 	struct TORRENT_EXTRA_EXPORT condition_variable
 	{

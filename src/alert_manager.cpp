@@ -49,7 +49,6 @@ namespace libtorrent
 		, m_queue_write_slot(-1)
 		, m_queue_read_slot(0)
 		, m_queue_limit_requested(-1)
-		, m_buffer_refs(0)
 	{
 		for (int i = 0; i < queue_limit * 2; i++)
 			m_alerts[i] = NULL;
@@ -58,8 +57,7 @@ namespace libtorrent
 	alert_manager::~alert_manager()
 	{
 		mutex::scoped_lock lock(m_mutex);
-
-		TORRENT_ASSERT(m_buffer_refs == 0);
+		shared_lock::scoped_lock wlock(m_shared_lock, shared_lock::exclusive);
 
 		const int n_alerts = m_queue_size;
 
@@ -79,12 +77,15 @@ namespace libtorrent
 	alert* alert_manager::wait_for_alert(time_duration max_wait)
 	{
 		mutex::scoped_lock lock(m_mutex);
+		shared_lock::scoped_lock rlock(m_shared_lock, shared_lock::shared);
 
 		if (m_queue_size > 0)
 			return m_alerts[m_queue_read_slot];
 
 		// this call can be interrupted prematurely by other signals
+		rlock.unlock();
 		m_condition.wait_for(lock, max_wait);
+		rlock.lock();
 
 		if (m_queue_size > 0)
 			return m_alerts[m_queue_read_slot];
@@ -97,14 +98,14 @@ namespace libtorrent
 	// in the ring buffer before making this call
 	alert * alert_manager::pop_alert()
 	{
-		const int size_limit = m_queue_size_limit.load(boost::memory_order_relaxed);
+		const int size_limit = m_queue_size_limit;
 		int slot = m_queue_read_slot;
 
 		// with multiple threads postings alerts slots may be written
 		// out of sequence so we must check that the alert is there
 		// before popping it.
 		for (int spins = 0; m_alerts[slot] == NULL; spins++)
-			if (spins > TORRENT_ALERT_MANAGER_SPIN_MAX) this_thread::yield();
+			if (spins > TORRENT_ALERT_MANAGER_SPIN_MAX) std::this_thread::yield();
 
 		alert * const alert = m_alerts[slot].load(boost::memory_order_relaxed);
 		TORRENT_ASSERT(alert != NULL);
@@ -131,23 +132,13 @@ namespace libtorrent
 		boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
 		mutex::scoped_lock lock(m_mutex);
+		shared_lock::scoped_lock wlock(m_shared_lock, shared_lock::exclusive);
 
 		std::vector<alert*> alerts;
 
-		// in order to make boost:function<> atomic we use two separate
-		// fields in a ping-pong fashion and update the pointer to it
-		// atomically
-		const int index = (&m_dispatch_storage[0] == m_dispatch) ? 1 : 0;
-		m_dispatch_storage[index] = fun;
-		m_dispatch.store(&m_dispatch_storage[index]);
-
-		// wait until all ring buffer refs are released
-		while (m_buffer_refs > 0)
-			this_thread::yield();
-
 		for (int i = 0; i < m_queue_size; i++)
 		{
-			alert * const alert = pop_alert();
+			alert*const alert = pop_alert();
 			TORRENT_ASSERT(alert != NULL);
 			alerts.push_back(alert);
 		}
@@ -155,15 +146,14 @@ namespace libtorrent
 		// clear the queue size and free ring buffer
 		m_queue_size = 0;
 		m_alerts = std::vector<boost::atomic<alert*>>(0);
+		m_dispatch = fun;
 
 		// unlock mutex and call dispatch function
+		wlock.unlock();
 		lock.unlock();
 
 		for (unsigned int i = 0; i < alerts.size(); i++)
-		{
-			TORRENT_ASSERT(alerts[i] != NULL);
-			(*m_dispatch.load(boost::memory_order_relaxed))(alerts[i]->clone());
-		}
+			m_dispatch(alerts[i]->clone());
 	}
 
 #ifdef __GNUC__
@@ -175,32 +165,20 @@ namespace libtorrent
 	void alert_manager::set_notify_function(boost::function<void()> const& fun)
 	{
 		mutex::scoped_lock lock(m_mutex);
+		shared_lock::scoped_lock wlock(m_shared_lock, shared_lock::exclusive);
 
-		// in order to make boost:function<> atomic we use two separate
-		// fields in a ping-pong fashion and update the pointer to it
-		// atomically
-		if (fun)
-		{
-			const int index = (m_notify == &m_notify_storage[0]) ? 1 : 0;
-			m_notify_storage[index] = fun;
-			m_notify.store(&m_notify_storage[index]);
-		}
-		else
-		{
-			m_notify.store(NULL);
-		}
+		m_notify = fun;
 
-		if (m_queue_size != 0)
-		{
-			// never call a callback with the lock held!
-			if (m_notify)
-				(*m_notify.load(boost::memory_order_relaxed))();
-		}
+		// this load can be relaxed because it is guaranteed to happen
+		// after the synchronized store above.
+		if (m_queue_size.load(boost::memory_order_relaxed) != 0)
+			if (m_notify) m_notify();
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
 	{
+		shared_lock::scoped_lock wlock(m_shared_lock, shared_lock::exclusive);
 		if ((ext->implemented_features() & plugin::reliable_alerts_feature) != 0)
 			m_ses_extensions_reliable.push_back(ext);
 		m_ses_extensions.push_back(ext);
@@ -213,7 +191,7 @@ namespace libtorrent
 
 		// we can only resize if there is no other thread posting alerts
 		// and if no thread posted an alert since we popped them
-		if (new_limit < 0 || m_buffer_refs > 0 || m_queue_size > 0)
+		if (new_limit < 0 || m_queue_size > 0)
 			return;
 
 		// resize the queue
@@ -230,24 +208,17 @@ namespace libtorrent
 	void alert_manager::get_all(std::vector<alert*>& alerts)
 	{
 		mutex::scoped_lock lock(m_mutex);
+		shared_lock::scoped_lock wlock(m_shared_lock, shared_lock::exclusive, false);
 
+		// if a queue resize has been requested acquire an exclusive lock
 		if (m_queue_limit_requested != -1)
-		{
-			// if a buffer resize has been requested wait until all
-			// buffer references have been released to ensure that
-			// maybe_resize_buffer() succeeds
-			while (m_buffer_refs > 0) this_thread::yield();
-		}
-		else
-		{
-			// yield the cpu at least once before to ensure that
-			// this function cannot be called twice in the timespan
-			// between the alert contruction and it being placed in the
-			// queue (and available to us).
-			this_thread::yield();
-		}
+			wlock.lock();
 
-		//const int size_limit = m_queue_size_limit;
+		// yield the cpu at least once before to ensure that
+		// this function cannot be called twice in the timespan
+		// between the alert contruction and it being placed in the
+		// queue (and available to us).
+		std::this_thread::yield();
 
 		// release alerts in the pending deletes list
 		for (unsigned int i = 0; i < m_alerts_pending_delete.size(); i++)
@@ -258,7 +229,6 @@ namespace libtorrent
 		// after this libtorrent threads can begin work on posting
 		// new alerts if the queue was full.
 		const int n_alerts = m_queue_size.exchange(0);
-
 		if (n_alerts == 0) return;
 
 		// pop n_alerts
@@ -275,40 +245,18 @@ namespace libtorrent
 		}
 
 		// if a buffer resize is pending do it now
-		maybe_resize_buffer();
+		if (m_queue_limit_requested != -1)
+			maybe_resize_buffer();
 
-		// free the storage for each thread
-		for (unsigned int i = 0; i < m_threads.size(); i++)
-		{
-			thread_state& ts = m_threads[i];
-
-			int gen = ts.youngest_generation
-				->load(boost::memory_order_relaxed);
-
-			// swap buffers
-			gen = (gen == TORRENT_ALERT_MANAGER_N_GENERATIONS - 1) ? 0 : (gen + 1);
-			ts.youngest_generation->store(gen);
-			ts.n_generations++;
-
-			TORRENT_ASSERT(gen < TORRENT_ALERT_MANAGER_N_GENERATIONS);
-			TORRENT_ASSERT(ts.oldest_generation <= TORRENT_ALERT_MANAGER_N_GENERATIONS);
-
-			// delete the oldest generation
-			if (ts.n_generations == TORRENT_ALERT_MANAGER_N_GENERATIONS)
-			{
-				ts.allocators[ts.oldest_generation]->reset();
-				ts.oldest_generation = (ts.oldest_generation == TORRENT_ALERT_MANAGER_N_GENERATIONS - 1) ? 0
-					: ts.oldest_generation + 1;
-				ts.n_generations--;
-			}
-
-			TORRENT_ASSERT(ts.n_generations <= TORRENT_ALERT_MANAGER_N_GENERATIONS);
-		}
+		// reset thread specific storage
+		for (unsigned int i = 0; i < m_threads_storage.size(); i++)
+			m_threads_storage[i]->swap_allocators();
 	}
 
 	int alert_manager::set_alert_queue_size_limit(int queue_size_limit_)
 	{
-		mutex::scoped_lock resize_lock(m_mutex);
+		mutex::scoped_lock lock(m_mutex);
+		shared_lock::scoped_lock wlock(m_shared_lock, shared_lock::exclusive);
 		m_queue_limit_requested = queue_size_limit_;
 
 		// try to resize the queue. If it can't be done now it
