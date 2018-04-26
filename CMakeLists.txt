@@ -469,6 +469,7 @@ if(UNIX)
 endif()
 
 find_package(Threads REQUIRED)
+set(_package_dependencies "Threads") # Dependencies to be used below for generating Config.cmake file
 
 include_directories(${includes})
 
@@ -589,6 +590,7 @@ target_link_libraries(torrent-rasterbar
 
 if (libiconv)
 	find_package(Iconv REQUIRED)
+	list(APPEND _package_dependencies "Iconv")
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_ICONV)
 	target_include_directories(torrent-rasterbar PUBLIC ${ICONV_INCLUDE_DIR})
 	target_link_libraries(torrent-rasterbar PRIVATE ${ICONV_LIBRARIES})
@@ -616,6 +618,7 @@ endif()
 # Boost
 find_package(Boost REQUIRED COMPONENTS system)
 target_link_libraries(torrent-rasterbar PUBLIC Boost::system)
+list(APPEND _package_dependencies "Boost COMPONENTS system")
 
 if (WIN32)
 	target_link_libraries(torrent-rasterbar
@@ -697,6 +700,10 @@ install(DIRECTORY include/libtorrent DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FIL
 
 # === generate a CMake Config File ===
 include(CMakePackageConfigHelpers)
+set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/libtorrent-rasterbar)
+string(REGEX REPLACE "([^;]+)" "find_dependency(\\1)" _find_dependency_calls "${_package_dependencies}")
+string(REPLACE ";" "\n" _find_dependency_calls "${_find_dependency_calls}")
+
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfigVersion.cmake"
 	VERSION ${libtorrent_VERSION}
@@ -708,12 +715,13 @@ export(EXPORT torrent-rasterbarTargets
 	NAMESPACE Libtorrent::
 )
 
-configure_file(libtorrent-rasterbarConfig.cmake
+configure_package_config_file(libtorrent-rasterbarConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfig.cmake"
-	COPYONLY
+	INSTALL_DESTINATION "${ConfigPackageLocation}"
+	NO_SET_AND_CHECK_MACRO
+	NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
 
-set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/libtorrent-rasterbar)
 install(EXPORT torrent-rasterbarTargets
 	FILE
 		libtorrent-rasterbarTargets.cmake
@@ -724,7 +732,7 @@ install(EXPORT torrent-rasterbarTargets
 )
 install(
 	FILES
-		libtorrent-rasterbarConfig.cmake
+		"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfig.cmake"
 		"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfigVersion.cmake"
 	DESTINATION
 		${ConfigPackageLocation}
