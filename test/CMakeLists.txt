@@ -15,7 +15,7 @@ list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_utils.cpp") # helper fi
 add_library(test_common main.cpp test.cpp setup_transfer.cpp dht_server.cpp udp_tracker.cpp
 	peer_server.cpp web_seed_suite.cpp swarm_suite.cpp test_utils.cpp make_torrent.cpp settings.cpp
 )
-target_link_libraries(test_common torrent-rasterbar)
+target_link_libraries(test_common PUBLIC torrent-rasterbar)
 target_compile_features(test_common PUBLIC cxx_std_11)
 
 foreach(TARGET_SRC ${tests})
