@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/heterogeneous_queue.hpp"
 #include "libtorrent/stack_allocator.hpp"
@@ -51,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <list>
 #include <utility> // for std::forward
+#include <queue>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -83,6 +85,56 @@ namespace libtorrent {
 
 	class TORRENT_EXTRA_EXPORT alert_manager
 	{
+		struct alert_pool
+		{
+			alert_pool() {}
+
+			~alert_pool()
+			{
+				for (int i = 0; i < num_alert_types; i++)
+				{
+					mutex::scoped_lock lock(m_mutexes[i]);
+					while (!m_pool[i].empty())
+					{
+						::free(m_pool[i].front());
+						m_pool[i].pop();
+					}
+				}
+			}
+
+			template<typename T>
+			T* acquire(T*& ptr)
+			{
+				TORRENT_ASSERT(T::alert_type != 0);
+				mutex::scoped_lock lock(m_mutexes[T::alert_type]);
+				if (m_pool[T::alert_type].empty())
+				{
+					ptr = (T*) ::malloc(sizeof(T));
+					TORRENT_ASSERT(ptr->type() == T::alert_type);
+					return ptr;
+				}
+				else
+				{
+					ptr = (T*) m_pool[T::alert_type].front();
+					m_pool[T::alert_type].pop();
+					return ptr;
+				}
+				// TODO: Construct alert here
+			}
+
+			void release(alert*const alert)
+			{
+				TORRENT_ASSERT(alert->type() != 0);
+				mutex::scoped_lock lock(m_mutexes[alert->type()]);
+				//alert->~alert();	// this assumes an alert was constructed in-place
+				m_pool[alert->type()].push(alert);
+			}
+
+		private:
+			mutex m_mutexes[num_alert_types];
+			std::queue<alert*> m_pool[num_alert_types];
+		};
+
 		// manages the stack_allocators for each thread
 		struct thread_storage
 		{
@@ -151,8 +203,11 @@ namespace libtorrent {
 				return false;
 			}
 #endif
-			T* alert = new T(ts->current_allocator()
+			T* alert;
+			alert = m_alerts_pool.acquire(alert);
+			new (alert) T(ts->current_allocator()
 				, std::forward<Args>(args)...);
+			TORRENT_ASSERT(alert != NULL);
 
 			if (!do_enqueue_alert(alert, T::priority))
 			{
@@ -161,7 +216,7 @@ namespace libtorrent {
 					notify_extensions(alert, m_ses_extensions_reliable);
 #endif
 				// free the alert
-				delete alert;
+				m_alerts_pool.release(alert);
 				return false;
 			}
 
@@ -338,6 +393,9 @@ namespace libtorrent {
 		// notification function will be called again the next time an alert is
 		// posted to the queue
 		boost::function<void()> m_notify;
+
+		// pool of malloc'd alerts
+		alert_pool m_alerts_pool;
 
 		// this is where all alerts are queued up. We use a single vector of
 		// alert pointers as a ring buffer. Each slot is accessed atomically

@@ -63,14 +63,14 @@ namespace libtorrent
 
 		// release alerts in the pending deletes list
 		for (unsigned int i = 0; i < m_alerts_pending_delete.size(); i++)
-			delete m_alerts_pending_delete[i];
+			m_alerts_pool.release(m_alerts_pending_delete[i]);
 
 		// free alerts already in the queue
 		for (int i = 0; i < n_alerts; i++)
 		{
 			alert * const alert = pop_alert();
 			TORRENT_ASSERT(alert != NULL);
-			delete alert;
+			m_alerts_pool.release(alert);
 		}
 	}
 
@@ -222,7 +222,7 @@ namespace libtorrent
 
 		// release alerts in the pending deletes list
 		for (unsigned int i = 0; i < m_alerts_pending_delete.size(); i++)
-			delete m_alerts_pending_delete[i];
+			m_alerts_pool.release(m_alerts_pending_delete[i]);
 		m_alerts_pending_delete.clear();
 		alerts.clear();
 
