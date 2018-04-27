@@ -452,6 +452,7 @@ option(libiconv "enable linking against system libiconv" OFF)
 option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
 option(build_examples "build examples" OFF)
+option(build_tools "build tools" OFF)
 option(python-bindings "build python bindings" OFF)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
@@ -737,6 +738,11 @@ install(
 	DESTINATION
 		${ConfigPackageLocation}
 )
+
+# === build tools ===
+if (build_tools)
+	add_subdirectory(tools)
+endif()
 
 # === build examples ===
 if (build_examples)
