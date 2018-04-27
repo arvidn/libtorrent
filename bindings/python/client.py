@@ -179,6 +179,14 @@ def main():
     parser.add_option('-p', '--port', type='int', help='set listening port')
 
     parser.add_option(
+        '-i', '--listen-interface', type='string',
+        help='set interface for incoming connections', )
+
+    parser.add_option(
+        '-o', '--outgoing-interface', type='string',
+        help='set interface for outgoing connections')
+
+    parser.add_option(
         '-d', '--max-download-rate', type='float',
         help='the maximum download rate given in kB/s. 0 means infinite.')
 
@@ -196,6 +204,8 @@ def main():
 
     parser.set_defaults(
         port=6881,
+        listen_interface='0.0.0.0',
+        outgoing_interface='',
         max_download_rate=0,
         max_upload_rate=0,
         save_path='.',
@@ -216,10 +226,11 @@ def main():
         options.max_download_rate = -1
 
     settings = { 'user_agent': 'python_client/' + lt.__version__,
-        'listen_interfaces': '0.0.0.0:%d' % options.port,
+        'listen_interfaces': '%s:%d' % (options.listen_interface, options.port),
         'download_rate_limit': int(options.max_download_rate),
         'upload_rate_limit': int(options.max_upload_rate),
-        'alert_mask': lt.alert.category_t.all_categories
+        'alert_mask': lt.alert.category_t.all_categories,
+        'outgoing_interfaces' : options.outgoing_interface
     }
 
     if options.proxy_host != '':
