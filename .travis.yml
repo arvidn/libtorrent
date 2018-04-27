@@ -45,7 +45,7 @@ addons:
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-5
-    - cmake3
+    - [cmake3, ninja-build]
 
 before_install:
 
@@ -162,6 +162,7 @@ install:
     fi'
 
   - which python2
+  - which cmake
   - cmake --version
 
 script:
@@ -232,7 +233,7 @@ script:
   - if [[ "$cmake" == "1" ]]; then
       export CXX=g++-5 &&
       export CC=gcc-5 &&
-      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -Dbuild_tests=ON -Dbuild_examples=ON -Dpython-bindings=ON -G "CodeBlocks - Unix Makefiles" .. &&
+      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -Dbuild_tests=ON -Dbuild_examples=ON -Dpython-bindings=ON -G Ninja .. &&
       cmake --build . -- -j2;
     fi
   - cd ..
