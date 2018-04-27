@@ -51,7 +51,8 @@ namespace libtorrent { namespace aux
 		{
 			friend class stack_allocator;
 
-			stack_allocator_lock(stack_allocator& alloc) : m_alloc(alloc)
+			stack_allocator_lock(stack_allocator& alloc)
+				: m_alloc(alloc), m_locked(false)
 			{
 				lock();
 			}
@@ -121,7 +122,7 @@ namespace libtorrent { namespace aux
 			stack_allocator_lock& operator=(stack_allocator_lock const&);
 
 			stack_allocator& m_alloc;
-			bool m_locked = false;
+			bool m_locked;
 		};
 
 		struct scoped_lock : stack_allocator_lock
@@ -140,11 +141,18 @@ namespace libtorrent { namespace aux
 		stack_allocator() : m_locks(0)
 			, m_consec_locks(0)
 			, m_saved_size(-1)
-			, m_reset_pending(false) {}
+			, m_reset_pending(false)
+			, m_dirty(false) {}
+
+		bool is_dirty()
+		{
+			return m_dirty;
+		}
 
 		int copy_string(std::string const& str)
 		{
 			int ret = int(m_storage.size());
+			m_dirty = true;
 			m_storage.resize(ret + str.length() + 1);
 			strcpy(&m_storage[ret], str.c_str());
 			return ret;
@@ -154,6 +162,7 @@ namespace libtorrent { namespace aux
 		{
 			int ret = int(m_storage.size());
 			int len = strlen(str);
+			m_dirty = true;
 			m_storage.resize(ret + len + 1);
 			strcpy(&m_storage[ret], str);
 			return ret;
@@ -163,6 +172,7 @@ namespace libtorrent { namespace aux
 		{
 			int ret = int(m_storage.size());
 			if (size < 1) return -1;
+			m_dirty = true;
 			m_storage.resize(ret + size);
 			memcpy(&m_storage[ret], buf, size);
 			return ret;
@@ -172,6 +182,7 @@ namespace libtorrent { namespace aux
 		{
 			if (bytes < 1) return -1;
 			int ret = int(m_storage.size());
+			m_dirty = true;
 			m_storage.resize(ret + bytes);
 			return ret;
 		}
@@ -207,6 +218,7 @@ namespace libtorrent { namespace aux
 			{
 				m_storage.clear();
 				m_reset_pending = false;
+				m_dirty = false;
 			}
 		}
 
@@ -219,6 +231,7 @@ namespace libtorrent { namespace aux
 		int m_consec_locks;
 		int m_saved_size;
 		bool m_reset_pending;
+		boost::atomic<bool> m_dirty;
 		mutable mutex m_mutex;
 		buffer m_storage;
 	};

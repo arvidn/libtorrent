@@ -25,6 +25,7 @@ if $(BOOST_ROOT)
 	alias boost_chrono : /boost/chrono//boost_chrono : : : <include>$(BOOST_ROOT) ;
 	alias boost_system : /boost/system//boost_system : : : <include>$(BOOST_ROOT) ;
 	alias boost_random : /boost/random//boost_random : : : <include>$(BOOST_ROOT) ;
+	alias boost_thread : /boost/thread//boost_thread : : : <include>$(BOOST_ROOT) ;
 }
 else
 {
@@ -48,12 +49,16 @@ else
 		: : $(boost-include-path) ;
 	lib boost_random : : <target-os>darwin <name>boost_random-mt $(boost-lib-search-path)
 		: : $(boost-include-path) ;
+	lib boost_thread : : <target-os>darwin <name>boost_thread-mt $(boost-lib-search-path)
+		: : $(boost-include-path) ;
 
 	lib boost_chrono : : <name>boost_chrono $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 	lib boost_system : : <name>boost_system $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 	lib boost_random : : <name>boost_random $(boost-lib-search-path)
+		: : $(boost-include-path) ;
+	lib boost_thread : : <name>boost_thread $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 }
 
@@ -152,12 +157,14 @@ rule linking ( properties * )
 			result += <library>boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
 			result += <library>boost_chrono/<link>static/<define>BOOST_ALL_DYN_LINK ;
 			result += <library>boost_random/<link>static/<define>BOOST_ALL_DYN_LINK ;
+			result += <library>boost_thread/<link>static/<define>BOOST_ALL_DYN_LINK ;
 		}
 		else
 		{
 			result += <library>boost_system/<link>static ;
 			result += <library>boost_chrono/<link>static ;
 			result += <library>boost_random/<link>static ;
+			result += <library>boost_thread/<link>static ;
 		}
 
 		if <toolset>gcc in $(properties)
@@ -173,12 +180,14 @@ rule linking ( properties * )
 		result += <library>boost_system/<link>shared ;
 		result += <library>boost_chrono/<link>shared ;
 		result += <library>boost_random/<link>shared ;
+		result += <library>boost_thread/<link>shared ;
 	}
 	else
 	{
 		result += <library>boost_system ;
 		result += <library>boost_chrono ;
 		result += <library>boost_random ;
+		result += <library>boost_thread ;
 	}
 
 	result += <define>BOOST_ALL_NO_LIB
