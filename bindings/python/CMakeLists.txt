@@ -99,11 +99,11 @@ target_link_libraries(python-libtorrent
 		${PYTHON_LIBRARIES}
 )
 
-# Bindings module uses deprecated libtorrent features, thus we disable these errors
+# Bindings module uses deprecated libtorrent features, thus we disable these warnings
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-	check_cxx_compiler_flag("-Wno-error=deprecated-declarations" _WNO_ERROR_DEPRECATED_DECLARATIONS)
-	if (_WNO_ERROR_DEPRECATED_DECLARATIONS)
-		target_compile_options(python-libtorrent PRIVATE -Wno-error=deprecated-declarations)
+	check_cxx_compiler_flag("-Wno-deprecated-declarations" _WNO_DEPRECATED_DECLARATIONS)
+	if (_WNO_DEPRECATED_DECLARATIONS)
+		target_compile_options(python-libtorrent PRIVATE -Wno-deprecated-declarations)
 	endif()
 endif()
 

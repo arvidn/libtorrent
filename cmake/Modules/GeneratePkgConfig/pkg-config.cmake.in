@@ -1,10 +1,8 @@
 prefix=@CMAKE_INSTALL_PREFIX@
 libdir=${prefix}/@_INSTALL_LIBDIR@
-includedir=${prefix}/@_INSTALL_INCLUDEDIR@
 
 Name: @_PROJECT_NAME@
 Description: @_PROJECT_DESCRIPTION@
 Version: @_PROJECT_VERSION@
 Libs: -L${libdir} -l@_TARGET_OUTPUT_NAME@ @_interface_link_libraries@
-Cflags: -I${includedir} @_interface_compile_options@ @_interface_include_dirs@ @_interface_definitions@
-
+Cflags: @_interface_compile_options@ @_interface_include_dirs@ @_interface_definitions@
