@@ -93,12 +93,12 @@ namespace libtorrent {
 
 	void disk_io_thread_pool::thread_active()
 	{
-		--m_num_idle_threads;
-		TORRENT_ASSERT(m_num_idle_threads >= 0);
+		int const num_idle_threads = --m_num_idle_threads;
+		TORRENT_ASSERT(num_idle_threads >= 0);
 
 		int current_min = m_min_idle_threads;
-		while (m_num_idle_threads < current_min
-			&& !m_min_idle_threads.compare_exchange_weak(current_min, m_num_idle_threads));
+		while (num_idle_threads < current_min
+			&& !m_min_idle_threads.compare_exchange_weak(current_min, num_idle_threads));
 	}
 
 	bool disk_io_thread_pool::try_thread_exit(std::thread::id id)
