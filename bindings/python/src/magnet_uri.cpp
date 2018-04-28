@@ -37,7 +37,7 @@ namespace {
 	}
 #endif
 
-	dict parse_magnet_uri_wrap(std::string const& uri)
+	dict parse_magnet_uri_dict(std::string const& uri)
 	{
 		add_torrent_params p;
 		error_code ec;
@@ -81,6 +81,7 @@ void bind_magnet_uri()
 #endif
 	def("make_magnet_uri", make_magnet_uri0);
 	def("make_magnet_uri", make_magnet_uri1);
-	def("parse_magnet_uri", parse_magnet_uri_wrap);
+	def("parse_magnet_uri", parse_magnet_uri_dict);
+	def("parse_magnet_uri_dict", parse_magnet_uri_dict);
 }
 
