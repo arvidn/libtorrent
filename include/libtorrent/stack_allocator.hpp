@@ -34,117 +34,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/atomic.hpp>
 
 namespace libtorrent { namespace aux
 {
 	struct stack_allocator
 	{
-		// This only prevents the allocator from being reset()
-		// while it is locked. Other threads can still lock the
-		// it, but only the state of the first lock is saved.
-		// Once the lock count reaches 0 it will be restored back
-		// to the sate before the first lock, or if a reset() was
-		// issued while the allocator was locked then it will be
-		// reset.
-		struct stack_allocator_lock
-		{
-			friend class stack_allocator;
+		stack_allocator() : m_dirty(false) {}
 
-			stack_allocator_lock(stack_allocator& alloc)
-				: m_alloc(alloc), m_locked(false)
-			{
-				lock();
-			}
-
-			stack_allocator& allocator() const
-			{
-				return m_alloc;
-			}
-
-			void lock()
-			{
-				mutex::scoped_lock lock(m_alloc.m_mutex);
-
-				TORRENT_ASSERT(!m_locked);
-
-				m_alloc.m_consec_locks++;
-
-				while (m_alloc.m_consec_locks > 100)
-				{
-					// if the allocator is kept locked for too long
-					// we need to block until all references are released
-					// or the allocator may grow indefinitely. The user
-					// should take care to avoid this.
-					lock.unlock();
-					std::this_thread::yield();
-					lock.lock();
-				}
-
-				if (m_alloc.m_locks++ == 0)
-				{
-					// we only save the state for the first lock
-					TORRENT_ASSERT(m_alloc.m_saved_size == -1);
-					m_alloc.m_saved_size = m_alloc.m_storage.size();
-				}
-				m_locked = true;
-			}
-
-			void unlock(const bool reset = false)
-			{
-				mutex::scoped_lock lock(m_alloc.m_mutex);
-				if (m_locked)
-				{
-					TORRENT_ASSERT(m_alloc.m_locks > 0);
-					if (--m_alloc.m_locks == 0)
-					{
-						TORRENT_ASSERT(m_alloc.m_saved_size != -1);
-						if (m_alloc.m_reset_pending)
-						{
-							m_alloc.m_storage.clear();
-							m_alloc.m_reset_pending = false;
-						}
-						else
-						{
-							if (reset)
-								m_alloc.m_storage.resize(m_alloc.m_saved_size);
-						}
-						m_alloc.m_saved_size = -1;
-						m_alloc.m_consec_locks = 0;
-					}
-					m_locked = false;
-				}
-			}
-
-		private:
-			// non-copyable
-			stack_allocator_lock(stack_allocator_lock const&);
-			stack_allocator_lock& operator=(stack_allocator_lock const&);
-
-			stack_allocator& m_alloc;
-			bool m_locked;
-		};
-
-		struct scoped_lock : stack_allocator_lock
-		{
-			scoped_lock(stack_allocator& alloc, const bool auto_reset = true)
-				: stack_allocator_lock(alloc), m_auto_reset(auto_reset) {}
-			~scoped_lock() { unlock(m_auto_reset); }
-
-		private:
-			// non-copyable
-			scoped_lock(scoped_lock const&);
-			scoped_lock& operator=(scoped_lock const&);
-			bool m_auto_reset;
-		};
-
-		stack_allocator() : m_locks(0)
-			, m_consec_locks(0)
-			, m_saved_size(-1)
-			, m_reset_pending(false)
-			, m_dirty(false) {}
-
-		bool is_dirty()
+		bool dirty()
 		{
 			return m_dirty;
 		}
@@ -203,23 +101,13 @@ namespace libtorrent { namespace aux
 
 		void swap(stack_allocator& rhs)
 		{
-			mutex::scoped_lock lock(m_mutex);
 			m_storage.swap(rhs.m_storage);
 		}
 
 		void reset()
 		{
-			mutex::scoped_lock lock(m_mutex);
-			if (m_locks > 0)
-			{
-				m_reset_pending = true;
-			}
-			else
-			{
-				m_storage.clear();
-				m_reset_pending = false;
-				m_dirty = false;
-			}
+			m_storage.clear();
+			m_dirty = false;
 		}
 
 	private:
@@ -227,12 +115,7 @@ namespace libtorrent { namespace aux
 		stack_allocator(stack_allocator const&);
 		stack_allocator& operator=(stack_allocator const&);
 
-		int m_locks;
-		int m_consec_locks;
-		int m_saved_size;
-		bool m_reset_pending;
 		boost::atomic<bool> m_dirty;
-		mutable mutex m_mutex;
 		buffer m_storage;
 	};
 

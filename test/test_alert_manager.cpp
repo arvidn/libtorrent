@@ -290,7 +290,7 @@ TORRENT_TEST(alert_mask_response)
 	std::vector<alert*> alerts;
 	boost::atomic<bool> emplacer_running(true);
 	alert_manager mgr(100, lt::alert::status_notification);
-	std::vector<boost::shared_ptr<libtorrent::thread>> threads;
+	std::vector<boost::shared_ptr<libtorrent::thread> > threads;
 
 	// start some threads to emplace alerts
 	for (int i = 0; i < n_threads; i++)
@@ -334,7 +334,7 @@ TORRENT_TEST(thread_safety)
 	std::vector<alert*> alerts;
 	boost::atomic<bool> emplacer_running(true);
 	alert_manager mgr(100, lt::alert::status_notification);
-	std::vector<boost::shared_ptr<libtorrent::thread>> threads;
+	std::vector<boost::shared_ptr<libtorrent::thread> > threads;
 
 	// start some threads to emplace alerts
 	for (int i = 0; i < n_threads; i++)

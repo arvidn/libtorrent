@@ -50,18 +50,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory> // for auto_ptr required by asio
 
-#include <boost/asio/detail/thread.hpp>
+#include <boost/thread/thread.hpp>
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/atomic.hpp>
-#include <thread>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
-	typedef boost::asio::detail::thread thread;
+	typedef boost::thread thread;
 	typedef boost::asio::detail::mutex mutex;
 	typedef boost::asio::detail::event event;
 
@@ -124,7 +123,7 @@ namespace libtorrent
 
 				// wait for all shared locks to be released
 				while (m_shared_locks.load() > 0)
-					std::this_thread::yield();
+					boost::this_thread::yield();
 			}
 			else
 			{

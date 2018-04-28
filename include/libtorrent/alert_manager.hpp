@@ -85,8 +85,10 @@ namespace libtorrent {
 
 	class TORRENT_EXTRA_EXPORT alert_manager
 	{
-		struct alert_pool
+		// alert pool implementation
+		class alert_pool
 		{
+		public:
 			alert_pool() {}
 
 			~alert_pool()
@@ -135,8 +137,185 @@ namespace libtorrent {
 			std::queue<alert*> m_pool[num_alert_types];
 		};
 
+		// implementation of a lock-free queue. Only push() is completely
+		// thread safe. pop_all() is not mutually exclusive of push() but
+		// it is not reentrant so it can only be called by one thread
+		class lockfree_queue
+		{
+		public:
+			lockfree_queue(int size_limit)
+				: m_size(0)
+				, m_write_slot(-1)
+				, m_read_slot(0)
+				, m_size_limit(size_limit)
+			{
+				m_storage = new boost::atomic<alert*>[size_limit * 2];
+				for (int i = 0; i < m_size_limit * 2; i++)
+					m_storage[i].store(NULL);
+			}
+
+			~lockfree_queue()
+			{
+				delete[] m_storage;
+			}
+
+			lockfree_queue& operator=(const lockfree_queue& queue)
+			{
+				m_size = int(queue.m_size);
+				m_write_slot = int(queue.m_write_slot);
+				m_read_slot = int(queue.m_read_slot);
+				m_size_limit = int(queue.m_size_limit);
+				m_storage = new boost::atomic<alert*>[m_size_limit * 2];
+
+				for (int i = 0; i < m_size_limit * 2; i++)
+					m_storage[i].store(NULL);
+
+				return *this;
+			}
+
+			// get the queue size
+			int size() const
+			{
+				return m_size;
+			}
+
+			// gets the queue size limit
+			int size_limit() const
+			{
+				return m_size_limit;
+			}
+
+			// gets the alert at the front of the queue
+			alert* front()
+			{
+				return m_storage[m_read_slot.load()];
+			}
+
+			// attempts to add an alert to the queue and return the
+			// (virtual) index at which the alert pointer was stored.
+			// If the push fails because the queue is full returns -1.
+			int push(alert*const a, const int priority)
+			{
+				int current, next;
+				alert* expected;
+
+				TORRENT_ASSERT(a != NULL);
+
+				const int size_limit = m_size_limit;
+
+				// here we're reserving the next available queue slot atomically.
+				// the actual write is done next on the spinlock but the alert does
+				// not become visible to get_all() until we increment m_queue_size
+				// TODO: Ensure fairness
+				do
+				{
+					// get the next slot on the ring buffer
+					next = (current = m_write_slot.load()) + 1;
+					if (next == (size_limit * 2))
+						next = 0;
+
+					// calculate the real queue size, counting alerts that are not
+					// yet included in m_queue_size because other threads are already
+					// passed this check but not yet incremented m_queue_size. It is
+					// important that m_queue_read_slot is loaded after m_queue_write_slot
+					// or we may get the wrong result.
+					const int read_slot = m_read_slot.load();
+					const int real_size = (next > read_slot) ? (next - read_slot)
+						: ((next < read_slot) ? ((size_limit * 2) - (read_slot - next))
+						: m_size.load());
+
+					// make sure that posting this alert will not exceed
+					// the limit
+					if (real_size >= size_limit * (1 + priority))
+						return -1;
+
+					TORRENT_ASSERT(next >= 0 && next < (size_limit * 2));
+				}
+				while (!m_write_slot.compare_exchange_strong(current, next));
+
+				// if an alert was just popped from this slot it is possible that get_all()
+				// has not yet freed the queue slot. This is extremely unlikely with a properly
+				// tuned m_queue_size. If it does happens it should never put the thread off
+				// cpu unless the user thread is preempted before it frees the slot. Even then
+				// we're guaranteed to make progress again after only 1 scheduler cycle.
+				for (int spins = 0; !m_storage[next].compare_exchange_strong((expected = NULL), a); spins++)
+					if (spins >= TORRENT_ALERT_MANAGER_SPIN_MAX) boost::this_thread::yield();
+
+				// this makes the alert visible to get_all()
+				current = m_size.fetch_add(1);
+
+				TORRENT_ASSERT(next <= (size_limit * 2));
+				return current;
+			}
+
+			int pop_all(std::vector<alert*>& alerts)
+			{
+				alerts.clear();
+
+				// after this libtorrent threads can begin work on posting
+				// new alerts if the queue was full.
+				const int n_alerts = m_size.exchange(0);
+
+				// pop n_alerts
+				for (int i = 0; i < n_alerts; i++)
+				{
+					// remove the alert and mark the ring buffer slot as free
+					alert * const alert = pop();
+					TORRENT_ASSERT(alert != NULL);
+					alerts.push_back(alert);
+				}
+
+				return n_alerts;
+			}
+
+		private:
+			// pops the next alert from the ring buffer. The caller of
+			// this function must ensure that there is at least one alert
+			// in the ring buffer before making this call
+			alert* pop()
+			{
+				const int size_limit = m_size_limit;
+				int slot = m_read_slot;
+				alert* alert;
+
+				// with multiple threads postings alerts slots may be written
+				// out of sequence so we must check that the alert is there
+				// before popping it.
+				for (int spins = 0; (alert = m_storage[slot]) == NULL; spins++)
+					if (spins > TORRENT_ALERT_MANAGER_SPIN_MAX) boost::this_thread::yield();
+				TORRENT_ASSERT(alert != NULL);
+				m_storage[slot++] = NULL;
+
+				if (slot == (size_limit * 2))
+					slot = 0;
+
+				TORRENT_ASSERT(slot >= 0 && slot < (size_limit * 2));
+
+				m_read_slot = slot;
+
+				return alert;
+			}
+
+			// this is where all alerts are queued up. We use a single vector of
+			// alert pointers as a ring buffer. Each slot is accessed atomically
+			// so no locking is necessary. m_write_slot and m_read_slot
+			// are used to track the back and front slots respectively. m_size
+			// tracks the number of pointers in the queue.
+			boost::atomic<alert*>* m_storage;
+
+			// this is used to track the number of alerts in the ring buffer
+			boost::atomic<int> m_size;
+
+			// this are used to track the ring buffer back and front slots
+			boost::atomic<int> m_write_slot;
+			boost::atomic<int> m_read_slot;
+
+			// the current size of the ringbuffer
+			int m_size_limit;
+		};
+
 		// manages the stack_allocators for each thread
-		struct thread_storage
+		class thread_storage
 		{
 		public:
 			thread_storage() : m_generation(0) {}
@@ -156,7 +335,7 @@ namespace libtorrent {
 				int index = m_generation.load();
 
 				// if the allocator is not dirty don't swap
-				if (!m_allocations[index].is_dirty())
+				if (!m_allocations[index].dirty())
 					return;
 
 				// swap allocators
@@ -197,19 +376,19 @@ namespace libtorrent {
 #ifndef TORRENT_NO_DEPRECATE
 			if (m_dispatch)
 			{
-				aux::stack_allocator::scoped_lock lock(ts->current_allocator());
-				m_dispatch(std::auto_ptr<alert>(new T(lock.allocator()
+				m_dispatch(std::auto_ptr<alert>(new T(ts->current_allocator()
 					, std::forward<Args>(args)...)));
 				return false;
 			}
 #endif
+			int index;
 			T* alert;
 			alert = m_alerts_pool.acquire(alert);
 			new (alert) T(ts->current_allocator()
 				, std::forward<Args>(args)...);
 			TORRENT_ASSERT(alert != NULL);
 
-			if (!do_enqueue_alert(alert, T::priority))
+			if ((index = m_alerts.push(alert, T::priority)) == -1)
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 				if (!m_ses_extensions_reliable.empty())
@@ -218,6 +397,19 @@ namespace libtorrent {
 				// free the alert
 				m_alerts_pool.release(alert);
 				return false;
+			}
+
+			if (index == 0)
+			{
+				// we just posted to an empty queue. If anyone is waiting for
+				// alerts, we need to notify them. Also (potentially) call the
+				// user supplied m_notify callback to let the client wake up its
+				// message loop to poll for alerts.
+				if (m_notify) m_notify();
+
+				// wake any threads waiting for alerts
+				mutex::scoped_lock lock(m_mutex);
+				m_condition.notify_all();
 			}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -271,7 +463,7 @@ namespace libtorrent {
 			return m_alert_mask.load(boost::memory_order_relaxed);
 		}
 
-		int alert_queue_size_limit() const { return m_queue_size_limit; }
+		int alert_queue_size_limit() const { return m_alerts.size_limit(); }
 		int set_alert_queue_size_limit(int queue_size_limit_);
 
 		void set_notify_function(boost::function<void()> const& fun);
@@ -300,87 +492,11 @@ namespace libtorrent {
 			m_threads_storage.push_back(m_thread_storage.get());
 		}
 
-		// tries to emplace a pre-constructed alert. Returns false if the
-		// queue fills up before the alert can be posted true otherwise.
-		bool do_enqueue_alert(alert * const a, const int priority)
-		{
-			int current, next;
-			alert* expected;
-
-			TORRENT_ASSERT(a != NULL);
-
-			// save local copy of limit
-			const int size_limit = m_queue_size_limit;
-
-			TORRENT_ASSERT((size_limit * (1 + priority)) <= (size_limit * 2));
-
-			// here we're reserving the next available queue slot atomically.
-			// the actual write is done next on the spinlock but the alert does
-			// not become visible to get_all() until we increment m_queue_size
-			// TODO: Ensure fairness
-			do
-			{
-				// get the next slot on the ring buffer
-				next = (current = m_queue_write_slot.load()) + 1;
-				if (next == (size_limit * 2))
-					next = 0;
-
-				// calculate the real queue size, counting alerts that are not
-				// yet included in m_queue_size because other threads are already
-				// passed this check but not yet incremented m_queue_size. It is
-				// important that m_queue_read_slot is loaded after m_queue_write_slot
-				// or we may get the wrong result.
-				const int read_slot = m_queue_read_slot.load();
-				const int real_size = (next > read_slot) ? (next - read_slot)
-					: ((next < read_slot) ? ((size_limit * 2) - (read_slot - next))
-					: m_queue_size.load());
-
-				// make sure that posting this alert will not exceed
-				// the limit
-				if (real_size >= size_limit * (1 + priority))
-					return false;
-
-				TORRENT_ASSERT(next >= 0 && next < (size_limit * 2));
-			}
-			while (!m_queue_write_slot.compare_exchange_strong(current, next));
-
-			// if an alert was just popped from this slot it is possible that get_all()
-			// has not yet freed the queue slot. This is extremely unlikely with a properly
-			// tuned m_queue_size. If it does happens it should never put the thread off
-			// cpu unless the user thread is preempted before it frees the slot. Even then
-			// we're guaranteed to make progress again after only 1 scheduler cycle.
-			for (int spins = 0; !m_alerts[next].compare_exchange_strong((expected = NULL), a); spins++)
-				if (spins >= TORRENT_ALERT_MANAGER_SPIN_MAX) std::this_thread::yield();
-
-			// this makes the alert visible to get_all()
-			current = m_queue_size.fetch_add(1);
-
-			if (current == 0)
-			{
-				// we just posted to an empty queue. If anyone is waiting for
-				// alerts, we need to notify them. Also (potentially) call the
-				// user supplied m_notify callback to let the client wake up its
-				// message loop to poll for alerts.
-				if (m_notify) m_notify();
-
-				// wake any threads waiting for alerts
-				m_condition.notify_all();
-			}
-
-			// release the ring buffer
-			TORRENT_ASSERT(next <= (size_limit * 2));
-			TORRENT_ASSERT(m_queue_size_limit == size_limit);
-
-			return true;
-		}
-
 		void maybe_resize_buffer();
-		alert* pop_alert();
 
 		mutable mutex m_mutex;
 		condition_variable m_condition;
 		boost::atomic<boost::uint32_t> m_alert_mask;
-		int m_queue_size_limit;
 
 #ifndef TORRENT_NO_DEPRECATE
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
@@ -397,19 +513,8 @@ namespace libtorrent {
 		// pool of malloc'd alerts
 		alert_pool m_alerts_pool;
 
-		// this is where all alerts are queued up. We use a single vector of
-		// alert pointers as a ring buffer. Each slot is accessed atomically
-		// so no locking is necessary. m_queue_write_slot and m_queue_read_slot
-		// are used to track the back and front slots respectively. m_queue_size
-		// tracks the number of pointers in the queue.
-		std::vector<boost::atomic<alert*>> m_alerts;
-
-		// this is used to track the number of alerts in the ring buffer
-		boost::atomic<int> m_queue_size;
-
-		// this are used to track the ring buffer back and front slots
-		boost::atomic<int> m_queue_write_slot;
-		boost::atomic<int> m_queue_read_slot;
+		// this is where alert pointers are enqueued for get_all()
+		lockfree_queue m_alerts;
 
 		// this is where we store alert pointers after the user pops them from
 		// the ring buffer so that we can release them on the next call to get_all()
