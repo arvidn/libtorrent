@@ -10,14 +10,14 @@ if $(BOOST_ROOT)
 }
 
 project client_test
-   : requirements
+	: requirements
 	<threading>multi <library>/torrent//torrent
 	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 	<toolset>msvc:<cflags>/wd4275
 	: default-build
 	<link>static
-   ;  
+	;
 
 exe client_test : client_test.cpp print.cpp torrent_view.cpp session_view.cpp ;
 

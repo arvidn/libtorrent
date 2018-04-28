@@ -37,7 +37,7 @@ namespace {
 	}
 #endif
 
-	dict parse_magnet_uri_wrap(std::string const& uri)
+	dict parse_magnet_uri_dict(std::string const& uri)
 	{
 		error_code ec;
 		add_torrent_params p = parse_magnet_uri(uri, ec);
@@ -69,6 +69,14 @@ namespace {
 		return ret;
 	}
 
+	add_torrent_params parse_magnet_uri_wrap(std::string const& uri)
+	{
+		error_code ec;
+		add_torrent_params p = parse_magnet_uri(uri, ec);
+		if (ec) throw system_error(ec);
+		return p;
+	}
+
 	std::string (*make_magnet_uri0)(torrent_handle const&) = make_magnet_uri;
 	std::string (*make_magnet_uri1)(torrent_info const&) = make_magnet_uri;
 }
@@ -81,4 +89,5 @@ void bind_magnet_uri()
 	def("make_magnet_uri", make_magnet_uri0);
 	def("make_magnet_uri", make_magnet_uri1);
 	def("parse_magnet_uri", parse_magnet_uri_wrap);
+	def("parse_magnet_uri_dict", parse_magnet_uri_dict);
 }

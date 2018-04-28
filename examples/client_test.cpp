@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <fstream>
 #include <regex>
+#include <algorithm> // for min()/max()
 
 #include "libtorrent/config.hpp"
 
