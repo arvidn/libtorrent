@@ -146,7 +146,7 @@ def print_download_queue(console, download_queue):
 def add_torrent(ses, filename, options):
     atp = {}
     if filename.startswith('magnet:'):
-        atp = lt.parse_magnet_uti(filename)
+        atp = lt.parse_magnet_uri_dict(filename)
     else:
         atp['ti'] = lt.torrent_info(filename)
         try:
