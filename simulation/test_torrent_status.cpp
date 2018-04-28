@@ -97,9 +97,9 @@ TORRENT_TEST(status_timers)
 				TEST_EQUAL(st.finished_duration.count(), since_finish.count());
 
 				// does not upload without peers
-				TEST_CHECK(st.last_upload == start_time);
+				TEST_CHECK(st.last_upload == time_point(seconds(0)));
 				// does not download in seeding mode
-				TEST_CHECK(st.last_download == start_time);
+				TEST_CHECK(st.last_download == time_point(seconds(0)));
 			}
 			return false;
 		});
@@ -110,7 +110,6 @@ TORRENT_TEST(status_timers_last_upload)
 {
 	bool ran_to_completion = false;
 
-	lt::time_point32 start_time;
 	lt::torrent_handle handle;
 
 	setup_swarm(2, swarm_test::upload
@@ -123,13 +122,12 @@ TORRENT_TEST(status_timers_last_upload)
 			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				start_time = time_now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
 				// torrent states
-				TEST_CHECK(st.last_download == start_time);
-				TEST_CHECK(st.last_upload == start_time);
+				TEST_CHECK(st.last_upload == time_point(seconds(0)));
+				TEST_CHECK(st.last_download == time_point(seconds(0)));
 			}
 		}
 		// terminate
@@ -145,7 +143,7 @@ TORRENT_TEST(status_timers_last_upload)
 			// uploadtime is 0 seconds behind now
 			TEST_CHECK(eq(st.last_upload, time_now()));
 			// does not download in seeding mode
-			TEST_CHECK(eq(st.last_download, start_time));
+			TEST_CHECK(st.last_download == time_point(seconds(0)));
 			return false;
 		});
 	TEST_CHECK(ran_to_completion);
@@ -155,7 +153,6 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 {
 	bool ran_to_completion = false;
 
-	lt::time_point32 start_time;
 	lt::torrent_handle handle;
 	seconds expected_active_duration = seconds(1);
 	bool tick_is_in_active_range = false;
@@ -171,13 +168,12 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				start_time = time_now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
 				// torrent states
-				TEST_CHECK(st.last_download == start_time);
-				TEST_CHECK(st.last_upload == start_time);
+				TEST_CHECK(st.last_download == time_point(seconds(0)));
+				TEST_CHECK(st.last_upload == time_point(seconds(0)));
 			}
 		}
 		// terminate
@@ -224,9 +220,9 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 				TEST_EQUAL(st.seeding_duration.count(), expected_active_duration.count());
 				TEST_EQUAL(st.finished_duration.count(), expected_active_duration.count());
 				// does not upload without peers
-				TEST_CHECK(st.last_upload == start_time);
+				TEST_CHECK(st.last_upload == time_point(seconds(0)));
 				// does not download in seeding mode
-				TEST_CHECK(st.last_download == start_time);
+				TEST_CHECK(st.last_download == time_point(seconds(0)));
 			}
 			return false;
 		});
@@ -237,7 +233,6 @@ TORRENT_TEST(finish_time_shift_active)
 {
 	bool ran_to_completion = false;
 
-	lt::time_point32 start_time;
 	lt::torrent_handle handle;
 	seconds expected_active_duration = seconds(1);
 	bool tick_is_in_active_range = false;
@@ -252,13 +247,12 @@ TORRENT_TEST(finish_time_shift_active)
 			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				start_time = time_now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
 				// torrent states
-				TEST_CHECK(st.last_download == start_time);
-				TEST_CHECK(st.last_upload == start_time);
+				TEST_CHECK(st.last_download == time_point(seconds(0)));
+				TEST_CHECK(st.last_upload == time_point(seconds(0)));
 			}
 		}
 		// terminate
@@ -298,9 +292,9 @@ TORRENT_TEST(finish_time_shift_active)
 				TEST_EQUAL(st.seeding_duration.count(), expected_active_duration.count());
 				TEST_EQUAL(st.finished_duration.count(), expected_active_duration.count());
 				// does not upload without peers
-				TEST_CHECK(st.last_upload == start_time);
+				TEST_CHECK(st.last_upload == time_point(seconds(0)));
 				// does not download in seeding mode
-				TEST_CHECK(st.last_download == start_time);
+				TEST_CHECK(st.last_download == time_point(seconds(0)));
 			}
 			return false;
 		});
@@ -311,7 +305,6 @@ TORRENT_TEST(finish_time_shift_paused)
 {
 	bool ran_to_completion = false;
 
-	lt::time_point32 start_time;
 	lt::torrent_handle handle;
 	seconds expected_active_duration = seconds(1);
 	bool tick_is_in_active_range = false;
@@ -326,13 +319,12 @@ TORRENT_TEST(finish_time_shift_paused)
 			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				start_time = time_now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
 				// torrent states
-				TEST_CHECK(eq(st.last_download, start_time));
-				TEST_CHECK(eq(st.last_upload, start_time));
+				TEST_CHECK(st.last_upload == time_point(seconds(0)));
+				TEST_CHECK(st.last_download == time_point(seconds(0)));
 			}
 		}
 		// terminate
@@ -374,9 +366,9 @@ TORRENT_TEST(finish_time_shift_paused)
 				TEST_EQUAL(st.seeding_duration.count(), expected_active_duration.count());
 				TEST_EQUAL(st.finished_duration.count(), expected_active_duration.count());
 				// does not upload without peers
-				TEST_CHECK(st.last_upload == start_time);
+				TEST_CHECK(st.last_upload == time_point(seconds(0)));
 				// does not download in seeding mode
-				TEST_CHECK(st.last_download == start_time);
+				TEST_CHECK(st.last_download == time_point(seconds(0)));
 			}
 			return false;
 		});

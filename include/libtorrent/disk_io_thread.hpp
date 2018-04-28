@@ -450,7 +450,8 @@ namespace aux {
 			, span<iovec_t> iov, span<int> flushing, int block_base_index = 0);
 		void flush_iovec(cached_piece_entry* pe, span<iovec_t const> iov, span<int const> flushing
 			, int num_blocks, storage_error& error);
-		void iovec_flushed(cached_piece_entry* pe
+		// returns true if the piece entry was freed
+		bool iovec_flushed(cached_piece_entry* pe
 			, int* flushing, int num_blocks, int block_offset
 			, storage_error const& error
 			, jobqueue_t& completed_jobs);

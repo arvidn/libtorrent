@@ -442,7 +442,8 @@ namespace aux {
 		// used to convert dirty blocks into non-dirty ones
 		// i.e. from being part of the write cache to being part
 		// of the read cache. it's used when flushing blocks to disk
-		void blocks_flushed(cached_piece_entry* pe, int const* flushed, int num_flushed);
+		// returns true if the piece entry was freed
+		bool blocks_flushed(cached_piece_entry* pe, int const* flushed, int num_flushed);
 
 		// adds a block to the cache, marks it as dirty and
 		// associates the job with it. When the block is

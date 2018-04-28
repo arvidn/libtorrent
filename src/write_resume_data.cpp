@@ -63,6 +63,8 @@ namespace libtorrent {
 		ret["finished_time"] = atp.finished_time;
 		ret["seeding_time"] = atp.seeding_time;
 		ret["last_seen_complete"] = atp.last_seen_complete;
+		ret["last_download"] = atp.last_download;
+		ret["last_upload"] = atp.last_upload;
 
 		ret["num_complete"] = atp.num_complete;
 		ret["num_incomplete"] = atp.num_incomplete;

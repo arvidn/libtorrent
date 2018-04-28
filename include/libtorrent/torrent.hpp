@@ -1620,9 +1620,8 @@ namespace libtorrent {
 // ----
 
 		// the timestamp of the last piece passed for this torrent specified in
-		// session_time. This is signed because it must be able to represent time
-		// before the session started
-		time_point32 m_last_download = aux::time_now32();
+		// seconds since epoch.
+		time_point32 m_last_download{seconds32(0)};
 
 		// the number of peer connections to seeds. This should be the same as
 		// counting the peer connections that say true for is_seed()
@@ -1633,9 +1632,8 @@ namespace libtorrent {
 		std::uint16_t m_num_connecting_seeds = 0;
 
 		// the timestamp of the last byte uploaded from this torrent specified in
-		// session_time. This is signed because it must be able to represent time
-		// before the session started.
-		time_point32 m_last_upload = aux::time_now32();
+		// seconds since epoch.
+		time_point32 m_last_upload{seconds32(0)};
 
 // ----
 
@@ -1667,7 +1665,7 @@ namespace libtorrent {
 		// the timestamp of the last scrape request to one of the trackers in
 		// this torrent specified in session_time. This is signed because it must
 		// be able to represent time before the session started
-		std::int16_t m_last_scrape = (std::numeric_limits<std::int16_t>::min)();
+		time_point32 m_last_scrape{seconds32(0)};
 #endif
 
 // ----

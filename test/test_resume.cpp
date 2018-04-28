@@ -111,6 +111,8 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["super_seeding"] = 0;
 	rd["added_time"] = 1347;
 	rd["completed_time"] = 1348;
+	rd["last_download"] = 2;
+	rd["last_upload"] = 3;
 	rd["finished_time"] = 1352;
 	if (file_priorities && file_priorities[0])
 	{
@@ -208,6 +210,13 @@ void default_tests(torrent_status const& s)
 #ifndef TORRENT_NO_DEPRECATE
 	TEST_CHECK(s.active_time >= 1339);
 	TEST_CHECK(s.active_time < 1339 + 10);
+
+	auto const now = duration_cast<seconds>(clock_type::now().time_since_epoch()).count();
+	TEST_CHECK(s.time_since_download >= now - 2);
+	TEST_CHECK(s.time_since_upload >= now - 3);
+
+	TEST_CHECK(s.time_since_download < now - 2 + 10);
+	TEST_CHECK(s.time_since_upload < now - 3 + 10);
 #endif
 
 	using lt::seconds;

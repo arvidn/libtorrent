@@ -766,7 +766,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 // (since these blocks now are part of the read cache) the refcounts of the
 // blocks are also decremented by this function. They are expected to have been
 // incremented by the caller.
-void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int num_flushed)
+bool block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int num_flushed)
 {
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
@@ -790,7 +790,7 @@ void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 	pe->num_dirty -= num_flushed;
 
 	update_cache_state(pe);
-	maybe_free_piece(pe);
+	return maybe_free_piece(pe);
 }
 
 std::pair<block_cache::const_iterator, block_cache::const_iterator> block_cache::all_pieces() const

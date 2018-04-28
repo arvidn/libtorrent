@@ -331,6 +331,9 @@ namespace libtorrent {
 		// applied before the torrent is added.
 		aux::noexcept_movable<std::map<file_index_t, std::string>> renamed_files;
 
+		std::time_t last_download = 0;
+		std::time_t last_upload = 0;
+
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
 

@@ -167,9 +167,11 @@ class test_torrent_handle(unittest.TestCase):
         sessionStart = datetime.datetime.now().replace(microsecond=0)
         self.setup()
         st = self.h.status()
+        for attr in dir(st):
+           print('%s: %s' % (attr, getattr(st, attr)))
         # last upload and download times are at session start time
-        self.assertLessEqual(abs(st.last_upload - sessionStart), datetime.timedelta(seconds=1))
-        self.assertLessEqual(abs(st.last_download - sessionStart), datetime.timedelta(seconds=1))
+        self.assertEqual(st.last_upload, None)
+        self.assertEqual(st.last_download, None)
 
     def test_serialize_trackers(self):
         """Test to ensure the dict contains only python built-in types"""

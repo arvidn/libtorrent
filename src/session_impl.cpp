@@ -97,6 +97,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // for logging stat layout
 #include "libtorrent/stat.hpp"
 
+#include <cstdarg> // for va_list
+
 // for logging the size of DHT structures
 #ifndef TORRENT_DISABLE_DHT
 #include <libtorrent/kademlia/find_data.hpp>
