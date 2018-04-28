@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_IO_SERVICE_FWD_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include <boost/version.hpp>
 
 #if defined TORRENT_BUILD_SIMULATOR
 namespace sim { namespace asio {

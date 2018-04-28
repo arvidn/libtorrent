@@ -87,7 +87,7 @@ namespace libtorrent {
 			// The torrent is in the queue for being checked. But there
 			// currently is another torrent that are being checked.
 			// This torrent will wait for its turn.
-			queued_for_checking,
+			queued_for_checking TORRENT_DEPRECATED_ENUM,
 #else
 			// internal
 			unused_enum_for_backwards_compatibility,
