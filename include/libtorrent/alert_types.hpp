@@ -104,7 +104,6 @@ namespace libtorrent {
 	public:
 		std::string TORRENT_DEPRECATED_MEMBER name;
 #endif
-
 	};
 
 	// The peer alert is a base class for alerts that refer to a specific peer. It includes all
@@ -130,7 +129,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 		// The peer's IP address and port.
-		aux::noexcept_movable<tcp::endpoint> ip;
+		aux::noexcept_movable<tcp::endpoint> TORRENT_DEPRECATED_MEMBER ip;
 #endif
 	};
 
@@ -247,7 +246,7 @@ namespace libtorrent {
 		int const size;
 
 #ifndef TORRENT_NO_DEPRECATE
-		error_code ec;
+		error_code TORRENT_DEPRECATED_MEMBER ec;
 #endif
 	};
 
@@ -484,7 +483,7 @@ namespace libtorrent {
 		aux::allocation_slot m_msg_idx;
 #ifndef TORRENT_NO_DEPRECATE
 	public:
-		int const status_code;
+		int const TORRENT_DEPRECATED_MEMBER status_code;
 		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	};
@@ -1101,7 +1100,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 		// points to the resume data.
-		std::shared_ptr<entry> resume_data;
+		std::shared_ptr<entry> TORRENT_DEPRECATED_MEMBER resume_data;
 #endif
 	};
 
@@ -1361,7 +1360,15 @@ namespace libtorrent {
 	struct TORRENT_EXPORT listen_failed_alert final : alert
 	{
 #ifndef TORRENT_NO_DEPRECATE
-		enum socket_type_t : std::uint8_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
+		enum socket_type_t : std::uint8_t
+		{
+			tcp TORRENT_DEPRECATED_ENUM,
+			tcp_ssl TORRENT_DEPRECATED_ENUM,
+			udp TORRENT_DEPRECATED_ENUM,
+			i2p TORRENT_DEPRECATED_ENUM,
+			socks5 TORRENT_DEPRECATED_ENUM,
+			utp_ssl TORRENT_DEPRECATED_ENUM
+		};
 #endif
 
 		// internal
@@ -1439,7 +1446,15 @@ namespace libtorrent {
 	struct TORRENT_EXPORT listen_succeeded_alert final : alert
 	{
 #ifndef TORRENT_NO_DEPRECATE
-		enum socket_type_t : std::uint8_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
+		enum socket_type_t : std::uint8_t
+		{
+			tcp TORRENT_DEPRECATED_ENUM,
+			tcp_ssl TORRENT_DEPRECATED_ENUM,
+			udp TORRENT_DEPRECATED_ENUM,
+			i2p TORRENT_DEPRECATED_ENUM,
+			socks5 TORRENT_DEPRECATED_ENUM,
+			utp_ssl TORRENT_DEPRECATED_ENUM
+		};
 #endif
 
 		// internal
@@ -1474,10 +1489,10 @@ namespace libtorrent {
 #ifndef TORRENT_NO_DEPRECATE
 		// the endpoint libtorrent ended up listening on. The address
 		// refers to the local interface and the port is the listen port.
-		aux::noexcept_movable<tcp::endpoint> endpoint;
+		aux::noexcept_movable<tcp::endpoint> TORRENT_DEPRECATED_MEMBER endpoint;
 
 		// the type of listen socket this alert refers to.
-		socket_type_t sock_type;
+		socket_type_t TORRENT_DEPRECATED_MEMBER sock_type;
 #endif
 	};
 
@@ -1544,7 +1559,7 @@ namespace libtorrent {
 		portmap_transport const map_transport;
 
 #ifndef TORRENT_NO_DEPRECATE
-		enum protocol_t
+		enum TORRENT_DEPRECATED_ENUM protocol_t
 		{
 			tcp,
 			udp
@@ -2028,11 +2043,18 @@ namespace libtorrent {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #endif
 		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70)
 #ifndef TORRENT_NO_DEPRECATE
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 #endif
 
@@ -2052,11 +2074,9 @@ namespace libtorrent {
 
 #ifdef TORRENT_NO_DEPRECATE
 	private:
-		// TODO: allocate this on the alert_stack in the future
-		std::array<std::int64_t, counters::num_counters> const values;
-#else
-		std::array<std::int64_t, counters::num_counters> const TORRENT_DEPRECATED_MEMBER values;
 #endif
+		// TODO: allocate this on the alert_stack in the future
+		std::array<std::int64_t, counters::num_counters> const TORRENT_DEPRECATED_MEMBER values;
 	};
 
 #ifndef TORRENT_NO_DEPRECATE

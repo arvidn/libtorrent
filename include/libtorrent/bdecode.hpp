@@ -103,7 +103,7 @@ namespace libtorrent {
 
 TORRENT_EXPORT boost::system::error_category& bdecode_category();
 
-#ifndef TORRENT_NO_DEPRECATED
+#ifndef TORRENT_NO_DEPRECATE
 TORRENT_DEPRECATED
 inline boost::system::error_category& get_bdecode_category()
 { return bdecode_category(); }
