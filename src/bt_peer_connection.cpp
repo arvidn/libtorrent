@@ -348,6 +348,17 @@ namespace {
 		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
 	}
 
+	template<class F, typename... Args>
+	void bt_peer_connection::extension_notify(F message, Args... args)
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (auto const& e : m_extensions)
+		{
+			(*e.*message)(args...);
+		}
+#endif
+	}
+
 	void bt_peer_connection::write_have_all()
 	{
 		INVARIANT_CHECK;
@@ -357,6 +368,8 @@ namespace {
 		peer_log(peer_log_alert::outgoing_message, "HAVE_ALL");
 #endif
 		send_message(msg_have_all, counters::num_outgoing_have_all, 0);
+
+		extension_notify(&peer_plugin::sent_have_all);
 	}
 
 	void bt_peer_connection::write_have_none()
@@ -367,6 +380,8 @@ namespace {
 		peer_log(peer_log_alert::outgoing_message, "HAVE_NONE");
 #endif
 		send_message(msg_have_none, counters::num_outgoing_have_none, 0);
+
+		extension_notify(&peer_plugin::sent_have_none);
 	}
 
 	void bt_peer_connection::write_reject_request(peer_request const& r)
@@ -385,6 +400,8 @@ namespace {
 
 		send_message(msg_reject_request, counters::num_outgoing_reject, 0
 			, static_cast<int>(r.piece), r.start, r.length);
+
+		extension_notify(&peer_plugin::sent_reject_request, r.piece, r.start, r.length);
 	}
 
 	void bt_peer_connection::write_allow_fast(piece_index_t const piece)
@@ -402,6 +419,8 @@ namespace {
 
 		send_message(msg_allowed_fast, counters::num_outgoing_allowed_fast, 0
 			, static_cast<int>(piece));
+
+		extension_notify(&peer_plugin::sent_allow_fast, piece);
 	}
 
 	void bt_peer_connection::write_suggest(piece_index_t const piece)
@@ -430,6 +449,8 @@ namespace {
 
 		send_message(msg_suggest_piece, counters::num_outgoing_suggest, 0
 			, static_cast<int>(piece));
+
+		extension_notify(&peer_plugin::sent_suggest, piece);
 	}
 
 	void bt_peer_connection::get_specific_peer_info(peer_info& p) const
@@ -1949,6 +1970,8 @@ namespace {
 			, static_cast<int>(r.piece), r.start, r.length);
 
 		if (!m_supports_fast) incoming_reject_request(r);
+
+		extension_notify(&peer_plugin::sent_cancel, r.piece, r.start, r.length);
 	}
 
 	void bt_peer_connection::write_request(peer_request const& r)
@@ -1957,6 +1980,8 @@ namespace {
 
 		send_message(msg_request, counters::num_outgoing_request, message_type_request
 			, static_cast<int>(r.piece), r.start, r.length);
+
+		extension_notify(&peer_plugin::sent_request, r.piece, r.start, r.length);
 	}
 
 	void bt_peer_connection::write_bitfield()
@@ -2193,6 +2218,8 @@ namespace {
 
 		if (is_choked()) return;
 		send_message(msg_choke, counters::num_outgoing_choke, 0);
+
+		extension_notify(&peer_plugin::sent_choke);
 	}
 
 	void bt_peer_connection::write_unchoke()
@@ -2201,12 +2228,7 @@ namespace {
 
 		send_message(msg_unchoke, counters::num_outgoing_unchoke, 0);
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto const& e : m_extensions)
-		{
-			e->sent_unchoke();
-		}
-#endif
+		extension_notify(&peer_plugin::sent_unchoke);
 	}
 
 	void bt_peer_connection::write_interested()
@@ -2214,6 +2236,8 @@ namespace {
 		INVARIANT_CHECK;
 
 		send_message(msg_interested, counters::num_outgoing_interested, 0);
+
+		extension_notify(&peer_plugin::sent_interested);
 	}
 
 	void bt_peer_connection::write_not_interested()
@@ -2221,6 +2245,8 @@ namespace {
 		INVARIANT_CHECK;
 
 		send_message(msg_not_interested, counters::num_outgoing_not_interested, 0);
+
+		extension_notify(&peer_plugin::sent_not_interested);
 	}
 
 	void bt_peer_connection::write_have(piece_index_t const index)
@@ -2236,6 +2262,8 @@ namespace {
 
 		send_message(msg_have, counters::num_outgoing_have, 0
 			, static_cast<int>(index));
+
+		extension_notify(&peer_plugin::sent_have, index);
 	}
 
 	void bt_peer_connection::write_dont_have(piece_index_t const index)
@@ -2343,6 +2371,8 @@ namespace {
 			t->alerts().emplace_alert<block_uploaded_alert>(t->get_handle(),
 				remote(), pid(), r.start / t->block_size() , r.piece);
 		}
+
+		extension_notify(&peer_plugin::sent_piece, r.piece, r.start, r.length);
 	}
 
 	// --------------------------

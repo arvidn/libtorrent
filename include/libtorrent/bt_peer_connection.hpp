@@ -226,6 +226,9 @@ namespace libtorrent {
 		void on_extended_handshake();
 #endif
 
+		template<class F, typename... Args>
+		void extension_notify(F message, Args... args);
+
 		// the following functions appends messages
 		// to the send buffer
 		void write_choke() override;
