@@ -394,7 +394,7 @@ namespace {
 		send_message(msg_reject_request, counters::num_outgoing_reject, 0
 			, static_cast<int>(r.piece), r.start, r.length);
 
-		extension_notify(&peer_plugin::sent_reject_request, r.piece, r.start, r.length);
+		extension_notify(&peer_plugin::sent_reject_request, r);
 	}
 
 	void bt_peer_connection::write_allow_fast(piece_index_t const piece)
@@ -1956,7 +1956,7 @@ namespace {
 
 		if (!m_supports_fast) incoming_reject_request(r);
 
-		extension_notify(&peer_plugin::sent_cancel, r.piece, r.start, r.length);
+		extension_notify(&peer_plugin::sent_cancel, r);
 	}
 
 	void bt_peer_connection::write_request(peer_request const& r)
@@ -1966,7 +1966,7 @@ namespace {
 		send_message(msg_request, counters::num_outgoing_request, message_type_request
 			, static_cast<int>(r.piece), r.start, r.length);
 
-		extension_notify(&peer_plugin::sent_request, r.piece, r.start, r.length);
+		extension_notify(&peer_plugin::sent_request, r);
 	}
 
 	void bt_peer_connection::write_bitfield()
@@ -2362,7 +2362,7 @@ namespace {
 				remote(), pid(), r.start / t->block_size() , r.piece);
 		}
 
-		extension_notify(&peer_plugin::sent_piece, r.piece, r.start, r.length);
+		extension_notify(&peer_plugin::sent_piece, r);
 	}
 
 	// --------------------------
