@@ -47,10 +47,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function0.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/config.hpp>
-#include <list>
-#include <utility> // for std::forward
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <list>
+#include <utility> // for std::forward
 
 #ifdef __GNUC__
 // this is to suppress the warnings for using std::auto_ptr
@@ -80,7 +81,7 @@ namespace libtorrent {
 		template <class T, typename... Args>
 		void emplace_alert(Args&&... args)
 		{
-			mutex::scoped_lock lock(m_mutex);
+			recursive_mutex::scoped_lock lock(m_mutex);
 #ifndef TORRENT_NO_DEPRECATE
 			if (m_dispatch)
 			{
@@ -99,7 +100,7 @@ namespace libtorrent {
 			T alert(m_allocations[m_generation], std::forward<Args>(args)...);
 			m_alerts[m_generation].push_back(alert);
 
-			maybe_notify(&alert, lock);
+			maybe_notify(&alert);
 		}
 
 #else
@@ -116,7 +117,7 @@ namespace libtorrent {
 		template <class T>
 		bool should_post() const
 		{
-			mutex::scoped_lock lock(m_mutex);
+			recursive_mutex::scoped_lock lock(m_mutex);
 			if (m_alerts[m_generation].size() >= m_queue_size_limit
 				* (1 + T::priority))
 			{
@@ -129,13 +130,13 @@ namespace libtorrent {
 
 		void set_alert_mask(boost::uint32_t m)
 		{
-			mutex::scoped_lock lock(m_mutex);
+			recursive_mutex::scoped_lock lock(m_mutex);
 			m_alert_mask = m;
 		}
 
 		boost::uint32_t alert_mask() const
 		{
-			mutex::scoped_lock lock(m_mutex);
+			recursive_mutex::scoped_lock lock(m_mutex);
 			return m_alert_mask;
 		}
 
@@ -160,9 +161,14 @@ namespace libtorrent {
 		alert_manager(alert_manager const&);
 		alert_manager& operator=(alert_manager const&);
 
-		void maybe_notify(alert* a, mutex::scoped_lock& lock);
+		void maybe_notify(alert* a);
 
-		mutable mutex m_mutex;
+		// this mutex protects everything. Since it's held while executing user
+		// callbacks (the notify function and extension on_alert()) it must be
+		// recursive to post new alerts. This is implemented by storing the
+		// current thread-id in m_mutex_holder, if it matches ours, we don't need
+		// to lock
+		mutable recursive_mutex m_mutex;
 		condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
 		int m_queue_size_limit;

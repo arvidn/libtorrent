@@ -324,3 +324,32 @@ TORRENT_TEST(alert_mask)
 	TEST_CHECK(!mgr.should_post<torrent_paused_alert>());
 }
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+struct post_plugin : lt::plugin
+{
+	post_plugin(alert_manager& m) : mgr(m), depth(0) {}
+	void on_alert(alert const* a)
+	{
+		if (++depth > 10) return;
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), 0);
+	}
+
+	alert_manager& mgr;
+	int depth;
+};
+
+// make sure the alert manager supports alerts being posted while executing a
+// plugin handler
+TORRENT_TEST(recursive_alerts)
+{
+	alert_manager mgr(100, 0xffffffff);
+	boost::shared_ptr<post_plugin> pl = boost::make_shared<post_plugin>(boost::ref(mgr));
+	mgr.add_extension(pl);
+
+	mgr.emplace_alert<piece_finished_alert>(torrent_handle(), 0);
+
+	TEST_EQUAL(pl->depth, 11);
+}
+
+#endif // TORRENT_DISABLE_EXTENSIONS
+

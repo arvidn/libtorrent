@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/detail/thread.hpp>
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>
+#include <boost/asio/detail/scoped_lock.hpp>
 #include <boost/cstdint.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -66,15 +67,25 @@ namespace libtorrent
 	// internal
 	void sleep(int milliseconds);
 
+	struct recursive_mutex;
+
 	struct TORRENT_EXTRA_EXPORT condition_variable
 	{
 		condition_variable();
 		~condition_variable();
 		void wait(mutex::scoped_lock& l);
-		void wait_for(mutex::scoped_lock& l, time_duration rel_time);
+		void wait_for(mutex::scoped_lock& l, time_duration);
+		void wait(boost::asio::detail::scoped_lock<recursive_mutex>& l);
+		void wait_for(boost::asio::detail::scoped_lock<recursive_mutex>&, time_duration);
 		void notify_all();
 		void notify();
 	private:
+
+		template <typename LockGuard>
+		void wait_impl(LockGuard& l);
+		template <typename LockGuard>
+		void wait_for_impl(LockGuard& l, time_duration rel_time);
+
 #ifdef BOOST_HAS_PTHREADS
 		pthread_cond_t m_cond;
 #elif defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
@@ -87,6 +98,37 @@ namespace libtorrent
 		int m_num_waiters;
 #else
 #error not implemented
+#endif
+	};
+
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+	typedef DWORD thread_id_t;
+#elif defined TORRENT_BEOS
+	typedef thread_id thread_id_t;
+#endif
+
+	// internal
+	struct recursive_mutex
+	{
+		typedef boost::asio::detail::scoped_lock<recursive_mutex> scoped_lock;
+
+		recursive_mutex();
+		~recursive_mutex();
+
+		void lock();
+		void unlock();
+
+	private:
+		recursive_mutex(recursive_mutex const&);
+		recursive_mutex& operator=(recursive_mutex const&);
+
+#ifdef BOOST_HAS_PTHREADS
+		::pthread_mutex_t m_mutex;
+#else
+		mutex m_mutex;
+		condition_variable m_cond;
+		thread_id_t m_owner;
+		int m_count;
 #endif
 	};
 }
