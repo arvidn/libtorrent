@@ -439,18 +439,18 @@ namespace libtorrent {
 
 		virtual void sent_have_all() {}
 		virtual void sent_have_none() {}
-		virtual void sent_reject_request(piece_index_t, int, int) {}
+		virtual void sent_reject_request(peer_request const&) {}
 		virtual void sent_allow_fast(piece_index_t) {}
 		virtual void sent_suggest(piece_index_t) {}
-		virtual void sent_cancel(piece_index_t, int, int) {}
-		virtual void sent_request(piece_index_t, int, int) {}
+		virtual void sent_cancel(peer_request const&) {}
+		virtual void sent_request(peer_request const&) {}
 		virtual void sent_choke() {}
 		// called after a choke message has been sent to the peer
 		virtual void sent_unchoke() {}
 		virtual void sent_interested() {}
 		virtual void sent_not_interested() {}
 		virtual void sent_have(int) {}
-		virtual void sent_piece(piece_index_t, int, int) {}
+		virtual void sent_piece(peer_request const&) {}
 
 		// called after piece data has been sent to the peer
 		// this can be used for stats book keeping
