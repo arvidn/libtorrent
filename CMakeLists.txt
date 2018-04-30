@@ -617,7 +617,8 @@ endif()
 
 # Boost
 find_package(Boost REQUIRED COMPONENTS system)
-target_link_libraries(torrent-rasterbar PUBLIC Boost::system)
+target_include_directories(torrent-rasterbar PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(torrent-rasterbar PUBLIC ${Boost_SYSTEM_LIBRARY})
 list(APPEND _package_dependencies "Boost COMPONENTS system")
 
 if (WIN32)

@@ -88,10 +88,11 @@ target_include_directories(python-libtorrent
 		${PYTHON_INCLUDE_DIRS}
 )
 
+string(TOUPPER "${boost-python-module-name}" boost_python_module_name_uppercase)
 target_link_libraries(python-libtorrent
 	PRIVATE
 		torrent-rasterbar
-		Boost::${boost-python-module-name}
+		${Boost_${boost_python_module_name_uppercase}_LIBRARY}
 		# Boost::python adds that but without a path to the library. Therefore we have to either
 		# provide the path (but, unfortunately, FindPythonLibs.cmake does not return the library dir),
 		# or give the full file name here (this FindPythonLibs.cmake provides to us).
