@@ -243,7 +243,7 @@ rule building ( properties * )
 	if ( <asserts>off in $(properties) &&
 		! <invariant-checks>off in $(properties) )
 	{
-		ECHO 'invariant-check' requires enabled 'asserts' mode. (e.g. specify build params: invariant-check=on asserts=on) ;
+		ECHO "'invariant-check' requires enabled 'asserts' mode. (e.g. specify build params: invariant-check=on asserts=on)" ;
 		result += <build>no ;
 	}
 
@@ -783,8 +783,8 @@ local usage-requirements =
 	<define>BOOST_ASIO_HAS_STD_CHRONO
 	<conditional>@linking
 # msvc optimizations
-	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
-	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
+	<toolset>msvc,<variant>release:<linkflags>"/OPT:ICF=5"
+	<toolset>msvc,<variant>release:<linkflags>"/OPT:REF"
 
 	# disable bogus deprecation warnings on msvc8
 	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
