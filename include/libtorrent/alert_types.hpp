@@ -278,7 +278,7 @@ namespace libtorrent
 		file_completed_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, int idx);
 
-		TORRENT_DEFINE_ALERT_PRIO(file_completed_alert, 6, alert_priority_high)
+		TORRENT_DEFINE_ALERT_PRIO(file_completed_alert, 6, alert_priority_normal)
 
 		static const int static_category = alert::progress_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
