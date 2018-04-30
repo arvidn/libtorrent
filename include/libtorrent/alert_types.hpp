@@ -85,7 +85,7 @@ namespace libtorrent
 	{
 		alert_priority_normal = 0,
 		alert_priority_high,
-		alert_priority_realtime
+		alert_priority_critical
 	};
 
 	// This is a base class for alerts that are associated with a
@@ -238,7 +238,7 @@ namespace libtorrent
 		torrent_removed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, sha1_hash const& ih);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority_critical)
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
 		sha1_hash info_hash;
@@ -259,7 +259,7 @@ namespace libtorrent
 			, int p, boost::shared_array<char> d, int s);
 		read_piece_alert(aux::stack_allocator& alloc, torrent_handle h, int p, error_code e);
 
-		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5, alert_priority_critical)
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -296,7 +296,7 @@ namespace libtorrent
 			, std::string const& n
 			, int idx);
 
-		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7, alert_priority_critical)
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -321,7 +321,7 @@ namespace libtorrent
 			, torrent_handle const& h, int idx
 			, error_code ec);
 
-		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8, alert_priority_critical)
 
 		static const int static_category = alert::storage_notification;
 
@@ -931,7 +931,7 @@ namespace libtorrent
 		storage_moved_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, std::string const& p);
 
-		TORRENT_DEFINE_ALERT_PRIO(storage_moved_alert, 33, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(storage_moved_alert, 33, alert_priority_critical)
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -958,7 +958,7 @@ namespace libtorrent
 			, std::string const& file
 			, char const* op);
 
-		TORRENT_DEFINE_ALERT_PRIO(storage_moved_failed_alert, 34, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(storage_moved_failed_alert, 34, alert_priority_critical)
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -995,7 +995,7 @@ namespace libtorrent
 		torrent_deleted_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, sha1_hash const& ih);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35, alert_priority_critical)
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1012,7 +1012,7 @@ namespace libtorrent
 		torrent_delete_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& e, sha1_hash const& ih);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36, alert_priority_critical)
 
 		static const int static_category = alert::storage_notification
 			| alert::error_notification;
@@ -1038,7 +1038,7 @@ namespace libtorrent
 			, boost::shared_ptr<entry> const& rd
 			, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37, alert_priority_critical)
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1055,7 +1055,7 @@ namespace libtorrent
 		save_resume_data_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& e);
 
-		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_failed_alert, 38, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_failed_alert, 38, alert_priority_critical)
 
 		static const int static_category = alert::storage_notification
 			| alert::error_notification;
@@ -1303,7 +1303,7 @@ namespace libtorrent
 			, error_code const& ec
 			, socket_type_t t);
 
-		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48, alert_priority_critical)
 
 		static const int static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1344,7 +1344,7 @@ namespace libtorrent
 		listen_succeeded_alert(aux::stack_allocator& alloc, tcp::endpoint const& ep
 			, socket_type_t t);
 
-		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49, alert_priority_critical)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1801,7 +1801,7 @@ namespace libtorrent
 		torrent_need_cert_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_need_cert_alert, 65, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_need_cert_alert, 65, alert_priority_critical)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1856,7 +1856,7 @@ namespace libtorrent
 		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle h
 			, add_torrent_params const& p, error_code ec);
 
-		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67, alert_priority_critical)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1913,7 +1913,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT session_stats_alert TORRENT_FINAL : alert
 	{
 		session_stats_alert(aux::stack_allocator& alloc, counters const& cnt);
-		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70, alert_priority_critical)
 
 		static const int static_category = alert::stats_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -1944,7 +1944,7 @@ namespace libtorrent
 		torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
 			, sha1_hash const& old_hash, sha1_hash const& new_hash);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71, alert_priority_critical)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -2008,7 +2008,7 @@ namespace libtorrent
 		dht_immutable_item_alert(aux::stack_allocator& alloc, sha1_hash const& t
 			, entry const& i);
 
-		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74, alert_priority_critical)
 
 		static const int static_category = alert::dht_notification;
 
@@ -2034,7 +2034,7 @@ namespace libtorrent
 			, entry const& i
 			, bool a);
 
-		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75, alert_priority_realtime)
+		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75, alert_priority_critical)
 
 		static const int static_category = alert::dht_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
@@ -2443,7 +2443,7 @@ namespace libtorrent
 		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
 			, udp::endpoint const& addr);
 
-		TORRENT_DEFINE_ALERT(dht_direct_response_alert, 88)
+		TORRENT_DEFINE_ALERT_PRIO(dht_direct_response_alert, 88, alert_priority_critical)
 
 		static const int static_category = alert::dht_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
