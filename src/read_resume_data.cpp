@@ -121,8 +121,8 @@ namespace {
 
 		ret.last_seen_complete = std::time_t(rd.dict_find_int_value("last_seen_complete"));
 
-		ret.last_download = rd.dict_find_int_value("last_download", 0);
-		ret.last_upload = rd.dict_find_int_value("last_upload", 0);
+		ret.last_download = std::time_t(rd.dict_find_int_value("last_download", 0));
+		ret.last_upload = std::time_t(rd.dict_find_int_value("last_upload", 0));
 
 		// scrape data cache
 		ret.num_complete = int(rd.dict_find_int_value("num_complete", -1));
