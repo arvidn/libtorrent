@@ -277,3 +277,33 @@ TORRENT_TEST(dropped_alerts)
 	// it should have been cleared now though
 	TEST_CHECK(mgr.dropped_alerts().none());
 }
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+struct post_plugin : lt::plugin
+{
+	explicit post_plugin(alert_manager& m) : mgr(m) {}
+	void on_alert(alert const*)
+	{
+		if (++depth > 10) return;
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), piece_index_t{0});
+	}
+
+	alert_manager& mgr;
+	int depth = 0;
+};
+
+// make sure the alert manager supports alerts being posted while executing a
+// plugin handler
+TORRENT_TEST(recursive_alerts)
+{
+	alert_manager mgr(100, alert::all_categories);
+	auto pl = std::make_shared<post_plugin>(mgr);
+	mgr.add_extension(pl);
+
+	mgr.emplace_alert<piece_finished_alert>(torrent_handle(), piece_index_t{0});
+
+	TEST_EQUAL(pl->depth, 11);
+}
+
+#endif // TORRENT_DISABLE_EXTENSIONS
+

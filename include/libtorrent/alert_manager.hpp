@@ -74,7 +74,7 @@ namespace libtorrent {
 		template <class T, typename... Args>
 		void emplace_alert(Args&&... args) try
 		{
-			std::unique_lock<std::mutex> lock(m_mutex);
+			std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
 			// don't add more than this number of alerts, unless it's a
 			// high priority alert, in which case we try harder to deliver it
@@ -90,12 +90,12 @@ namespace libtorrent {
 			T& alert = m_alerts[m_generation].emplace_back<T>(
 				m_allocations[m_generation], std::forward<Args>(args)...);
 
-			maybe_notify(&alert, lock);
+			maybe_notify(&alert);
 		}
 		catch (std::bad_alloc const&)
 		{
 			// record that we dropped an alert of this type
-			std::unique_lock<std::mutex> lock(m_mutex);
+			std::unique_lock<std::recursive_mutex> lock(m_mutex);
 			m_dropped.set(T::alert_type);
 		}
 
@@ -105,12 +105,7 @@ namespace libtorrent {
 		template <class T>
 		bool should_post() const
 		{
-			if (!(m_alert_mask.load(std::memory_order_relaxed) & T::static_category))
-			{
-				return false;
-			}
-
-			return should_post_impl(T::priority);
+			return bool(m_alert_mask.load(std::memory_order_relaxed) & T::static_category);
 		}
 
 		alert* wait_for_alert(time_duration max_wait);
@@ -136,11 +131,15 @@ namespace libtorrent {
 
 	private:
 
-		bool should_post_impl(int priority) const;
-		void maybe_notify(alert* a, std::unique_lock<std::mutex>& lock);
+		void maybe_notify(alert* a);
 
-		mutable std::mutex m_mutex;
-		std::condition_variable m_condition;
+		// this mutex protects everything. Since it's held while executing user
+		// callbacks (the notify function and extension on_alert()) it must be
+		// recursive to post new alerts. This is implemented by storing the
+		// current thread-id in m_mutex_holder, if it matches ours, we don't need
+		// to lock
+		mutable std::recursive_mutex m_mutex;
+		std::condition_variable_any m_condition;
 		std::atomic<alert_category_t> m_alert_mask;
 		int m_queue_size_limit;
 
