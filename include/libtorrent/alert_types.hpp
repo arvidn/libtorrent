@@ -75,6 +75,13 @@ namespace libtorrent {
 	// user defined alerts should use IDs greater than this
 	static const int user_alert_id = 10000;
 
+	enum alert_priority
+	{
+		alert_priority_normal = 0,
+		alert_priority_high,
+		alert_priority_critical
+	};
+
 	// This is a base class for alerts that are associated with a
 	// specific torrent. It contains a handle to the torrent.
 	struct TORRENT_EXPORT torrent_alert : alert
@@ -172,10 +179,10 @@ namespace libtorrent {
 	virtual char const* what() const noexcept override { return #name; }
 
 #define TORRENT_DEFINE_ALERT(name, seq) \
-	TORRENT_DEFINE_ALERT_IMPL(name, seq, 0)
+	TORRENT_DEFINE_ALERT_IMPL(name, seq, alert_priority_normal)
 
-#define TORRENT_DEFINE_ALERT_PRIO(name, seq) \
-	TORRENT_DEFINE_ALERT_IMPL(name, seq, 1)
+#define TORRENT_DEFINE_ALERT_PRIO(name, seq, prio) \
+	TORRENT_DEFINE_ALERT_IMPL(name, seq, prio)
 
 #ifndef TORRENT_NO_DEPRECATE
 	// The ``torrent_added_alert`` is posted once every time a torrent is successfully
@@ -213,7 +220,7 @@ namespace libtorrent {
 		torrent_removed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, sha1_hash const& ih);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority_critical)
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
 		sha1_hash info_hash;
@@ -235,7 +242,7 @@ namespace libtorrent {
 		read_piece_alert(aux::stack_allocator& alloc, torrent_handle h
 			, piece_index_t p, error_code e);
 
-		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5)
+		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 		std::string message() const override;
@@ -258,7 +265,7 @@ namespace libtorrent {
 		file_completed_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, file_index_t idx);
 
-		TORRENT_DEFINE_ALERT(file_completed_alert, 6)
+		TORRENT_DEFINE_ALERT_PRIO(file_completed_alert, 6, alert_priority_normal)
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -285,7 +292,7 @@ namespace libtorrent {
 		file_renamed_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, string_view n, file_index_t idx);
 
-		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7)
+		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 		std::string message() const override;
@@ -321,7 +328,7 @@ namespace libtorrent {
 			, torrent_handle const& h, file_index_t idx
 			, error_code ec);
 
-		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8)
+		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 
@@ -439,7 +446,7 @@ namespace libtorrent {
 			, torrent_status::state_t st
 			, torrent_status::state_t prev_st);
 
-		TORRENT_DEFINE_ALERT(state_changed_alert, 10)
+		TORRENT_DEFINE_ALERT_PRIO(state_changed_alert, 10, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 
@@ -468,7 +475,7 @@ namespace libtorrent {
 			, int times, string_view u
 			, error_code const& e, string_view m);
 
-		TORRENT_DEFINE_ALERT(tracker_error_alert, 11)
+		TORRENT_DEFINE_ALERT_PRIO(tracker_error_alert, 11, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::tracker_notification | alert::error_notification;
 		std::string message() const override;
@@ -808,7 +815,7 @@ namespace libtorrent {
 		torrent_finished_alert(aux::stack_allocator& alloc,
 			torrent_handle h);
 
-		TORRENT_DEFINE_ALERT(torrent_finished_alert, 26)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_finished_alert, 26, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
@@ -984,7 +991,7 @@ namespace libtorrent {
 		storage_moved_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, string_view p);
 
-		TORRENT_DEFINE_ALERT_PRIO(storage_moved_alert, 33)
+		TORRENT_DEFINE_ALERT_PRIO(storage_moved_alert, 33, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 		std::string message() const override;
@@ -1009,7 +1016,7 @@ namespace libtorrent {
 			, torrent_handle const& h, error_code const& e, string_view file
 			, operation_t op);
 
-		TORRENT_DEFINE_ALERT_PRIO(storage_moved_failed_alert, 34)
+		TORRENT_DEFINE_ALERT_PRIO(storage_moved_failed_alert, 34, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 		std::string message() const override;
@@ -1046,7 +1053,7 @@ namespace libtorrent {
 		torrent_deleted_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, sha1_hash const& ih);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 		std::string message() const override;
@@ -1062,7 +1069,7 @@ namespace libtorrent {
 		torrent_delete_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& e, sha1_hash const& ih);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification
 			| alert::error_notification;
@@ -1088,7 +1095,7 @@ namespace libtorrent {
 			, add_torrent_params params
 			, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37)
+		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 		std::string message() const override;
@@ -1112,7 +1119,7 @@ namespace libtorrent {
 		save_resume_data_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& e);
 
-		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_failed_alert, 38)
+		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_failed_alert, 38, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification
 			| alert::error_notification;
@@ -1134,7 +1141,7 @@ namespace libtorrent {
 		// internal
 		torrent_paused_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(torrent_paused_alert, 39)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_paused_alert, 39, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
@@ -1147,7 +1154,7 @@ namespace libtorrent {
 		// internal
 		torrent_resumed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(torrent_resumed_alert, 40)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_resumed_alert, 40, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
@@ -1160,7 +1167,7 @@ namespace libtorrent {
 		// internal
 		torrent_checked_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(torrent_checked_alert, 41)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_checked_alert, 41, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
@@ -1387,7 +1394,7 @@ namespace libtorrent {
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
 			, operation_t op, error_code const& ec, libtorrent::socket_type_t t);
 
-		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48)
+		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::status_notification | alert::error_notification;
 		std::string message() const override;
@@ -1471,7 +1478,7 @@ namespace libtorrent {
 			, udp::endpoint const& ep
 			, libtorrent::socket_type_t t);
 
-		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49)
+		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
@@ -1867,7 +1874,7 @@ namespace libtorrent {
 		torrent_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, error_code const& e, string_view f);
 
-		TORRENT_DEFINE_ALERT(torrent_error_alert, 64)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_error_alert, 64, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::error_notification | alert::status_notification;
 		std::string message() const override;
@@ -1898,7 +1905,7 @@ namespace libtorrent {
 		torrent_need_cert_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_need_cert_alert, 65)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_need_cert_alert, 65, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
@@ -1959,7 +1966,7 @@ namespace libtorrent {
 		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, add_torrent_params const& p, error_code const& ec);
 
-		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67)
+		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
@@ -1982,7 +1989,7 @@ namespace libtorrent {
 		state_update_alert(aux::stack_allocator& alloc
 			, std::vector<torrent_status> st);
 
-		TORRENT_DEFINE_ALERT_PRIO(state_update_alert, 68)
+		TORRENT_DEFINE_ALERT_PRIO(state_update_alert, 68, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
@@ -2048,7 +2055,7 @@ namespace libtorrent {
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #endif
-		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70)
+		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70, alert_priority_critical)
 #ifndef TORRENT_NO_DEPRECATE
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -2103,7 +2110,7 @@ namespace libtorrent {
 		torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
 			, sha1_hash const& old_hash, sha1_hash const& new_hash);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71)
+		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
@@ -2158,7 +2165,7 @@ namespace libtorrent {
 		dht_immutable_item_alert(aux::stack_allocator& alloc, sha1_hash const& t
 			, entry const& i);
 
-		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74)
+		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::dht_notification;
 
@@ -2180,7 +2187,7 @@ namespace libtorrent {
 			, std::array<char, 32> k, std::array<char, 64> sig
 			, std::int64_t sequence, string_view s, entry const& i, bool a);
 
-		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75)
+		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::dht_notification;
 		std::string message() const override;
@@ -2619,7 +2626,7 @@ namespace libtorrent {
 		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
 			, udp::endpoint const& addr);
 
-		TORRENT_DEFINE_ALERT(dht_direct_response_alert, 88)
+		TORRENT_DEFINE_ALERT_PRIO(dht_direct_response_alert, 88, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::dht_notification;
 		std::string message() const override;

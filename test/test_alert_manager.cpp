@@ -51,8 +51,8 @@ TORRENT_TEST(limit)
 
 	// try add 600 torrent_add_alert to make sure we honor the limit of 500
 	// alerts.
-	for (int i = 0; i < 600; ++i)
-		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -67,8 +67,8 @@ TORRENT_TEST(limit)
 	// now, try lowering the limit and do the same thing again
 	mgr.set_alert_queue_size_limit(200);
 
-	for (int i = 0; i < 600; ++i)
-		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -85,19 +85,19 @@ TORRENT_TEST(priority_limit)
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 100);
 
 	// this should only add 100 because of the limit
-	for (int i = 0; i < 200; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
+	for (piece_index_t i{0}; i < piece_index_t{200}; ++i)
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	// the limit is twice as high for priority alerts
-	for (file_index_t i(0); i < file_index_t(200); ++i)
+	for (file_index_t i(0); i < file_index_t(300); ++i)
 		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code());
 
 	std::vector<alert*> alerts;
 	mgr.get_all(alerts);
 
-	// even though we posted 400, the limit was 100 for half of them and
-	// 200 for the other half, meaning we should have 200 alerts now
-	TEST_EQUAL(alerts.size(), 200);
+	// even though we posted 500, the limit was 100 for half of them and
+	// 100 + 200 for the other half, meaning we should have 300 alerts now
+	TEST_EQUAL(alerts.size(), 300);
 }
 
 namespace {
@@ -265,10 +265,13 @@ TORRENT_TEST(dropped_alerts)
 	// still nothing, there's space for one alert
 	TEST_CHECK(mgr.dropped_alerts().none());
 	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	// still nothing, there's space for one alert
+	TEST_CHECK(mgr.dropped_alerts().none());
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 	// that last alert got dropped though, since it would have brought the queue
-	// size to 2
+	// size to 3
 	auto const d = mgr.dropped_alerts();
-	TEST_CHECK(d.count() == 1);
+	TEST_EQUAL(d.count(), 1);
 	TEST_CHECK(d.test(torrent_finished_alert::alert_type));
 
 	// it should have been cleared now though
