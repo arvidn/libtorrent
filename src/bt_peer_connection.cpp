@@ -2405,7 +2405,7 @@ namespace {
 				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
 				std::int64_t const stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
 					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-				TORRENT_ASSERT(stats_diff == int(sub_transferred));
+				TORRENT_ASSERT(stats_diff == sub_transferred);
 #endif
 
 				if (m_disconnecting) return;
@@ -2665,7 +2665,7 @@ namespace {
 				rc4_decrypt({m_sync_vc.get(), 8});
 			}
 
-			TORRENT_ASSERT(m_sync_vc.get());
+			TORRENT_ASSERT(m_sync_vc);
 			int const syncoffset = search({m_sync_vc.get(), 8}, recv_buffer);
 
 			// No sync
@@ -2791,7 +2791,7 @@ namespace {
 					m_rc4_encrypted = true;
 			}
 
-			int len_pad = aux::read_int16(recv_buffer);
+			int const len_pad = aux::read_int16(recv_buffer);
 			if (len_pad < 0 || len_pad > 512)
 			{
 				disconnect(errors::invalid_pad_size, operation_t::encryption, 2);
@@ -2835,7 +2835,7 @@ namespace {
 			if (!is_outgoing())
 			{
 				recv_buffer = recv_buffer.subspan(aux::numeric_cast<std::size_t>(pad_size));
-				int len_ia = aux::read_int16(recv_buffer);
+				int const len_ia = aux::read_int16(recv_buffer);
 
 				if (len_ia < 0)
 				{
@@ -2958,7 +2958,7 @@ namespace {
 			static const char protocol_string[] = "\x13" "BitTorrent protocol";
 
 			if (packet_size != 19 ||
-				memcmp(recv_buffer.begin(), protocol_string, 20) != 0)
+				std::memcmp(recv_buffer.begin(), protocol_string, 20) != 0)
 			{
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3280,7 +3280,7 @@ namespace {
 			TORRENT_ASSERT(bytes_transferred <= 1);
 
 			const char* ptr = recv_buffer.begin();
-			int packet_size = detail::read_int32(ptr);
+			int const packet_size = detail::read_int32(ptr);
 
 			// don't accept packets larger than 1 MB
 			if (packet_size > 1024 * 1024 || packet_size < 0)

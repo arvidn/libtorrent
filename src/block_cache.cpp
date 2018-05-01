@@ -283,7 +283,7 @@ static_assert(int(job_action_name.size()) == static_cast<int>(job_action_t::num_
 				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
 				, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
 				, int(pe->marked_for_eviction), int(pe->need_readback), pe->hash_passes
-				, int(pe->read_jobs.size()), int(pe->jobs.size()));
+				, pe->read_jobs.size(), pe->jobs.size());
 			bool first = true;
 			for (auto const& log : pe->piece_log)
 			{
