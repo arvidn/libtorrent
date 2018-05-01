@@ -35,8 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/routing_table.hpp>
-#include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/msg.hpp>
 
