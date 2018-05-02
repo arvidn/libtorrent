@@ -780,7 +780,7 @@ include(CheckCXXCompilerFlag)
 
 add_subdirectory(bindings)
 
-install(TARGETS torrent-rasterbar EXPORT torrent-rasterbarTargets
+install(TARGETS torrent-rasterbar EXPORT libtorrent-rasterbar-targets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -800,26 +800,24 @@ else()
 endif()
 
 write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfigVersion.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-config-version.cmake"
 	VERSION ${libtorrent_VERSION}
 	COMPATIBILITY ${_compatibility}
 )
 
-export(EXPORT torrent-rasterbarTargets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarTargets.cmake"
+export(EXPORT libtorrent-rasterbar-targets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-targets.cmake"
 	NAMESPACE Libtorrent::
 )
 
-configure_package_config_file(libtorrent-rasterbarConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfig.cmake"
+configure_package_config_file(libtorrent-rasterbar-config.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-config.cmake"
 	INSTALL_DESTINATION "${ConfigPackageLocation}"
 	NO_SET_AND_CHECK_MACRO
 	NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
 
-install(EXPORT torrent-rasterbarTargets
-	FILE
-		libtorrent-rasterbarTargets.cmake
+install(EXPORT libtorrent-rasterbar-targets
 	NAMESPACE
 		Libtorrent::
 	DESTINATION
@@ -827,8 +825,8 @@ install(EXPORT torrent-rasterbarTargets
 )
 install(
 	FILES
-		"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfig.cmake"
-		"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbarConfigVersion.cmake"
+		"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-config.cmake"
+		"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-config-version.cmake"
 	DESTINATION
 		${ConfigPackageLocation}
 )
