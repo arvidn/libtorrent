@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <thread>
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
@@ -60,6 +62,12 @@ namespace aux {
 	constexpr torrent_list_index_t session_interface::torrent_downloading_auto_managed;
 	constexpr torrent_list_index_t session_interface::torrent_seeding_auto_managed;
 	constexpr torrent_list_index_t session_interface::torrent_checking_auto_managed;
+
+	struct std_thread_impl : public std::thread
+	{
+	public:
+		using std::thread::thread;
+	};
 }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -369,7 +377,7 @@ namespace {
 		if (internal_executor)
 		{
 			// start a thread for the message pump
-			m_thread = std::make_shared<std::thread>(
+			m_thread = std::make_shared<aux::std_thread_impl>(
 				[&] { m_io_service->run(); });
 		}
 	}
@@ -428,7 +436,7 @@ namespace {
 
 	session_proxy::session_proxy() = default;
 	session_proxy::session_proxy(std::shared_ptr<io_service> ios
-		, std::shared_ptr<std::thread> t
+		, std::shared_ptr<aux::std_thread_impl> t
 		, std::shared_ptr<aux::session_impl> impl)
 		: m_io_service(std::move(ios))
 		, m_thread(std::move(t))

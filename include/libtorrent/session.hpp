@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_HPP_INCLUDED
 #define TORRENT_SESSION_HPP_INCLUDED
 
-#include <thread>
-
 #include "libtorrent/config.hpp"
 #include "libtorrent/build_config.hpp"
 #include "libtorrent/io_service.hpp"
@@ -96,6 +94,7 @@ namespace libtorrent {
 namespace aux {
 
 		struct session_impl;
+		struct std_thread_impl;
 	}
 
 	struct disk_interface;
@@ -122,11 +121,11 @@ namespace aux {
 	private:
 		session_proxy(
 			std::shared_ptr<io_service> ios
-			, std::shared_ptr<std::thread> t
+			, std::shared_ptr<aux::std_thread_impl> t
 			, std::shared_ptr<aux::session_impl> impl);
 
 		std::shared_ptr<io_service> m_io_service;
-		std::shared_ptr<std::thread> m_thread;
+		std::shared_ptr<aux::std_thread_impl> m_thread;
 		std::shared_ptr<aux::session_impl> m_impl;
 	};
 
@@ -367,7 +366,7 @@ namespace aux {
 		// data shared between the main thread
 		// and the working thread
 		std::shared_ptr<io_service> m_io_service;
-		std::shared_ptr<std::thread> m_thread;
+		std::shared_ptr<aux::std_thread_impl> m_thread;
 		std::shared_ptr<aux::session_impl> m_impl;
 	};
 
