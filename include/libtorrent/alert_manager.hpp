@@ -165,9 +165,7 @@ namespace libtorrent {
 
 		// this mutex protects everything. Since it's held while executing user
 		// callbacks (the notify function and extension on_alert()) it must be
-		// recursive to post new alerts. This is implemented by storing the
-		// current thread-id in m_mutex_holder, if it matches ours, we don't need
-		// to lock
+		// recursive to support recursively post new alerts.
 		mutable recursive_mutex m_mutex;
 		condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
