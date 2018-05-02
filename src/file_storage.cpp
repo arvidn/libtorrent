@@ -252,7 +252,7 @@ namespace {
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
 		no_root_dir = fe.no_root_dir;
-		set_name(fe.filename().to_string().c_str());
+		set_name(fe.filename().data());
 		return *this;
 	}
 
