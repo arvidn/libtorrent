@@ -417,6 +417,8 @@ void test_queue(add_torrent_params p)
 		torrents.push_back(ses.add_torrent(p));
 	}
 
+	print_alerts(ses, "ses");
+
 	std::vector<int> pieces = torrents[5].piece_priorities();
 	std::vector<std::pair<int, int> > piece_prios;
 	for (int i = 0; i < int(pieces.size()); ++i) {
@@ -424,6 +426,8 @@ void test_queue(add_torrent_params p)
 	}
 	torrents[5].prioritize_pieces(piece_prios);
 	torrent_handle finished = torrents[5];
+
+	wait_for_alert(ses, torrent_finished_alert::alert_type, "ses");
 
 	// add_torrent should be ordered
 	TEST_EQUAL(finished.queue_position(), -1);

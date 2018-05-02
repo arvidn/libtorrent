@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2003-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -381,7 +381,7 @@ namespace libtorrent
 			return;
 		}
 
-		tcp::endpoint bound_ip = m_ses.bind_outgoing_socket(*m_socket
+		tcp::endpoint const bound_ip = m_ses.bind_outgoing_socket(*m_socket
 			, m_remote.address(), ec);
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "BIND", "dst: %s ec: %s"
@@ -2226,12 +2226,13 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
+		torrent_info const& ti = t->torrent_file();
 
 		m_counters.inc_stats_counter(counters::piece_requests);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		const bool valid_piece_index
-			= r.piece >= 0 && r.piece < int(t->torrent_file().num_pieces());
+			= r.piece >= 0 && r.piece < int(ti.num_pieces());
 
 		peer_log(peer_log_alert::incoming_message, "REQUEST"
 			, "piece: %d s: %x l: %x", r.piece, r.start, r.length);
@@ -2247,9 +2248,9 @@ namespace libtorrent
 				"i: %d t: %d n: %d h: %d ss1: %d ss2: %d"
 				, m_peer_interested
 				, valid_piece_index
-					? int(t->torrent_file().piece_size(r.piece))
+					? int(ti.piece_size(r.piece))
 					: -1
-				, t->torrent_file().num_pieces()
+				, ti.num_pieces()
 				, valid_piece_index ? t->has_piece_passed(r.piece) : 0
 				, m_superseed_piece[0]
 				, m_superseed_piece[1]);
@@ -2325,8 +2326,8 @@ namespace libtorrent
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "peer is not interested "
 				" t: %d n: %d block_limit: %d"
 				, valid_piece_index
-					? int(t->torrent_file().piece_size(r.piece)) : -1
-				, t->torrent_file().num_pieces()
+					? int(ti.piece_size(r.piece)) : -1
+				, ti.num_pieces()
 				, t->block_size());
 			peer_log(peer_log_alert::info, "INTERESTED", "artificial incoming INTERESTED message");
 #endif
@@ -2349,14 +2350,14 @@ namespace libtorrent
 		// is legal and that the peer
 		// is not choked
 		if (r.piece < 0
-			|| r.piece >= t->torrent_file().num_pieces()
+			|| r.piece >= ti.num_pieces()
 			|| (!t->has_piece_passed(r.piece)
 				&& !t->is_predictive_piece(r.piece)
 				&& !t->seed_mode())
 			|| r.start < 0
-			|| r.start >= t->torrent_file().piece_size(r.piece)
+			|| r.start >= ti.piece_size(r.piece)
 			|| r.length <= 0
-			|| r.length + r.start > t->torrent_file().piece_size(r.piece)
+			|| r.length + r.start > ti.piece_size(r.piece)
 			|| r.length > t->block_size())
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
@@ -2366,8 +2367,8 @@ namespace libtorrent
 				, "i: %d t: %d n: %d h: %d block_limit: %d"
 				, m_peer_interested
 				, valid_piece_index
-					? int(t->torrent_file().piece_size(r.piece)) : -1
-				, t->torrent_file().num_pieces()
+					? int(ti.piece_size(r.piece)) : -1
+				, ti.num_pieces()
 				, t->has_piece_passed(r.piece)
 				, t->block_size());
 
@@ -2414,7 +2415,7 @@ namespace libtorrent
 		// if we have choked the client
 		// ignore the request
 		const int blocks_per_piece = static_cast<int>(
-			(t->torrent_file().piece_length() + t->block_size() - 1) / t->block_size());
+			(ti.piece_length() + t->block_size() - 1) / t->block_size());
 
 		// disconnect peers that downloads more than foo times an allowed
 		// fast piece
@@ -2455,7 +2456,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT(t->valid_metadata());
 			TORRENT_ASSERT(r.piece >= 0);
-			TORRENT_ASSERT(r.piece < t->torrent_file().num_pieces());
+			TORRENT_ASSERT(r.piece < ti.num_pieces());
 
 			m_requests.push_back(r);
 
@@ -5318,11 +5319,8 @@ namespace libtorrent
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
 				, "piece: %d passed", j->piece);
 #endif
-			if (t)
-			{
-				if (t->seed_mode() && t->all_verified())
-					t->leave_seed_mode(true);
-			}
+			if (t->seed_mode() && t->all_verified())
+				t->leave_seed_mode(true);
 		}
 
 		// try to service the requests again, now that the piece

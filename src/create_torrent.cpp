@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2016, Arvid Norberg
+Copyright (c) 2008-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -249,7 +249,13 @@ namespace libtorrent
 		, boost::function<void(int)> const& f, error_code& ec)
 	{
 		// optimized path
+#ifdef TORRENT_BUILD_SIMULATOR
+		sim::default_config conf;
+		sim::simulation sim{conf};
+		io_service ios{sim};
+#else
 		io_service ios;
+#endif
 
 #if TORRENT_USE_UNC_PATHS
 		std::string path = canonicalize_path(p);
@@ -273,7 +279,11 @@ namespace libtorrent
 		boost::shared_ptr<char> dummy;
 		counters cnt;
 		disk_io_thread disk_thread(ios, cnt, 0);
+#ifdef TORRENT_BUILD_SIMULATOR
+		disk_thread.set_num_threads(0);
+#else
 		disk_thread.set_num_threads(1);
+#endif
 
 		storage_params params;
 		params.files = &t.files();
@@ -309,7 +319,13 @@ namespace libtorrent
 			if (piece_counter >= t.num_pieces()) break;
 		}
 		disk_thread.submit_jobs();
+
+#ifdef TORRENT_BUILD_SIMULATOR
+		sim.run();
+#else
 		ios.run(ec);
+#endif
+		disk_thread.abort(true);
 	}
 
 	create_torrent::~create_torrent() {}

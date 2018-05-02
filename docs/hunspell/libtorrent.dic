@@ -189,3 +189,5 @@ src
 'fingerprints'
 'query'
 'ro'
+pre-partfile
+pre

@@ -24,7 +24,7 @@
 			BOOST_PP_ENUM_PARAMS(I, typename A)>
 		void emplace_alert(BOOST_PP_ENUM_BINARY_PARAMS(I, A, const& a) )
 		{
-			mutex::scoped_lock lock(m_mutex);
+			recursive_mutex::scoped_lock lock(m_mutex);
 #ifndef TORRENT_NO_DEPRECATE
 			if (m_dispatch)
 			{
@@ -46,7 +46,7 @@
 				BOOST_PP_ENUM_PARAMS(I, a));
 			m_alerts[m_generation].push_back(alert);
 
-			maybe_notify(&alert, lock);
+			maybe_notify(&alert);
 		}
 
 #undef I

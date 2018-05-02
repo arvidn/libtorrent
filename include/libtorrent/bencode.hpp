@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2003-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -212,7 +212,7 @@ namespace libtorrent
 				break;
 			case entry::preformatted_t:
 				std::copy(e.preformatted().begin(), e.preformatted().end(), out);
-				ret += e.preformatted().size();
+				ret += static_cast<int>(e.preformatted().size());
 				break;
 			case entry::undefined_t:
 

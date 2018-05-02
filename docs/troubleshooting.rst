@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.6
+:Version: 1.1.7
 
 .. contents:: Table of contents
   :depth: 2
@@ -14,7 +14,7 @@ to download. It is not complete, please submit suggestions via pull requests at
 https://github.com/arvidn/libtorrent or to the `mailing list`_. Ideally in the
 form of patches against ``docs/troubleshooting.dot``.
 
-.. _`mailing list`: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
+.. _`mailing list`: https://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
 |thumb|__
 

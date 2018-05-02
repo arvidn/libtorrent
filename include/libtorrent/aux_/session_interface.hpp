@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <boost/shared_ptr.hpp>
+#include <cstdarg> // for va_list
 #endif
 
 #ifdef TORRENT_USE_OPENSSL

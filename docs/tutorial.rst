@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.6
+:Version: 1.1.7
 
 .. contents:: Table of contents
   :depth: 2
@@ -274,7 +274,7 @@ bdecode_node_ is in use.
 
 For performance details on `bdecode()`_, see the `blog post about it`__.
 
-__ http://blog.libtorrent.org/2015/03/bdecode-parsers/
+__ https://blog.libtorrent.org/2015/03/bdecode-parsers/
 
 .. _session: reference-Core.html#session
 .. _session_handle: reference-Core.html#session_handle
@@ -297,7 +297,7 @@ __ http://blog.libtorrent.org/2015/03/bdecode-parsers/
 .. _`post_torrent_updates()`: reference-Core.html#post_torrent_updates()
 .. _torrent_status: reference-Core.html#torrent_status
 .. _state_update_alert: reference-Alerts.html#state_update_alert
-.. _scalability: http://blog.libtorrent.org/2011/11/scalable-interfaces/
+.. _scalability: https://blog.libtorrent.org/2011/11/scalable-interfaces/
 .. _`save_resume_data()`: reference-Core.html#save_resume_data()
 .. _save_resume_data_alert: reference-Alerts.html#save_resume_data_alert
 .. _save_resume_data_failed_alert: reference-Alerts.html#save_resume_data_failed_alert

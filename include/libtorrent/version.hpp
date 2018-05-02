@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2003-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,14 +37,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define LIBTORRENT_VERSION_MAJOR 1
 #define LIBTORRENT_VERSION_MINOR 1
-#define LIBTORRENT_VERSION_TINY 6
+#define LIBTORRENT_VERSION_TINY 7
 
 // the format of this version is: MMmmtt
 // M = Major version, m = minor version, t = tiny version
 #define LIBTORRENT_VERSION_NUM ((LIBTORRENT_VERSION_MAJOR * 10000) + (LIBTORRENT_VERSION_MINOR * 100) + LIBTORRENT_VERSION_TINY)
 
-#define LIBTORRENT_VERSION "1.1.6.0"
-#define LIBTORRENT_REVISION "473b86a"
+#define LIBTORRENT_VERSION "1.1.7.0"
+#define LIBTORRENT_REVISION "c5a5e084d"
 
 namespace libtorrent {
 

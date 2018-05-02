@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2003-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -114,6 +114,28 @@ using boost::tuples::make_tuple;
 namespace libtorrent
 {
 	namespace {
+
+	boost::uint32_t const unset = std::numeric_limits<boost::uint32_t>::max();
+
+	bool is_downloading_state(int st)
+	{
+		switch (st)
+		{
+			case torrent_status::checking_files:
+			case torrent_status::allocating:
+			case torrent_status::checking_resume_data:
+				return false;
+			case torrent_status::downloading_metadata:
+			case torrent_status::downloading:
+			case torrent_status::finished:
+			case torrent_status::seeding:
+				return true;
+			default:
+				// unexpected state
+				TORRENT_ASSERT_VAL(false, st);
+				return false;
+		}
+	}
 
 	int root2(int x)
 	{
@@ -247,7 +269,7 @@ namespace libtorrent
 		, m_files_checked(false)
 		, m_storage_mode(p.storage_mode)
 		, m_announcing(false)
-		, m_waiting_tracker(false)
+		, m_waiting_tracker(0)
 		, m_active_time(0)
 		, m_last_working_tracker(-1)
 		, m_finished_time(0)
@@ -282,17 +304,17 @@ namespace libtorrent
 		, m_deleted(false)
 		, m_pinned((p.flags & add_torrent_params::flag_pinned) != 0)
 		, m_should_be_loaded(true)
-		, m_last_download((std::numeric_limits<boost::int16_t>::min)())
+		, m_last_download(unset)
 		, m_num_seeds(0)
 		, m_num_connecting_seeds(0)
-		, m_last_upload((std::numeric_limits<boost::int16_t>::min)())
+		, m_last_upload(unset)
 		, m_storage_tick(0)
 		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
 		, m_inactive(false)
 		, m_downloaded(0xffffff)
-		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
+		, m_last_scrape(unset)
 		, m_progress_ppm(0)
 		, m_pending_active_change(false)
 		, m_use_resume_save_path((p.flags & add_torrent_params::flag_use_resume_save_path) != 0)
@@ -2973,7 +2995,8 @@ namespace {
 #endif
 		boost::shared_ptr<torrent> t = p.lock();
 		if (!t) return;
-		t->m_waiting_tracker = false;
+		TORRENT_ASSERT(t->m_waiting_tracker > 0);
+		--t->m_waiting_tracker;
 
 		if (e) return;
 		t->on_tracker_announce();
@@ -3203,6 +3226,7 @@ namespace {
 		// exclude redundant bytes if we should
 		if (!settings().get_bool(settings_pack::report_true_downloaded))
 			req.downloaded -= m_total_redundant_bytes;
+		req.redundant = m_total_redundant_bytes;
 		if (req.downloaded < 0) req.downloaded = 0;
 
 		req.event = e;
@@ -3223,7 +3247,7 @@ namespace {
 		req.num_want = (req.event == tracker_request::stopped)
 			? 0 : settings().get_int(settings_pack::num_want);
 
-		time_point now = aux::time_now();
+		time_point const now = aux::time_now();
 
 		// the tier is kept as INT_MAX until we find the first
 		// tracker that works, then it's set to that tracker's
@@ -3371,10 +3395,16 @@ namespace {
 		update_tracker_timer(now);
 	}
 
+	int torrent::seconds_since_last_scrape() const
+	{
+		return m_last_scrape == unset ? -1
+		: total_seconds(clock_type::now() - time_point(seconds(m_last_scrape)));
+	}
+
 	void torrent::scrape_tracker(int idx, bool user_triggered)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		m_last_scrape = m_ses.session_time();
+		m_last_scrape = total_seconds(clock_type::now().time_since_epoch());
 
 		if (m_trackers.empty()) return;
 
@@ -3533,7 +3563,7 @@ namespace {
 		update_tracker_timer(now);
 
 		if (resp.complete >= 0 && resp.incomplete >= 0)
-			m_last_scrape = m_ses.session_time();
+			m_last_scrape = total_seconds(clock_type::now().time_since_epoch());
 
 #ifndef TORRENT_DISABLE_LOGGING
 		std::string resolved_to;
@@ -4366,23 +4396,26 @@ namespace {
 
 		remove_time_critical_piece(index, true);
 
-		if (is_finished()
-			&& m_state != torrent_status::finished
-			&& m_state != torrent_status::seeding)
+		if (is_downloading_state(m_state))
 		{
-			// torrent finished
-			// i.e. all the pieces we're interested in have
-			// been downloaded. Release the files (they will open
-			// in read only mode if needed)
-			finished();
-			// if we just became a seed, picker is now invalid, since it
-			// is deallocated by the torrent once it starts seeding
+			if (is_finished()
+				&& m_state != torrent_status::finished
+				&& m_state != torrent_status::seeding)
+			{
+				// torrent finished
+				// i.e. all the pieces we're interested in have
+				// been downloaded. Release the files (they will open
+				// in read only mode if needed)
+				finished();
+				// if we just became a seed, picker is now invalid, since it
+				// is deallocated by the torrent once it starts seeding
+			}
+
+			m_last_download = total_seconds(clock_type::now().time_since_epoch());
+
+			if (m_share_mode)
+				recalc_share_mode();
 		}
-
-		m_last_download = m_ses.session_time();
-
-		if (m_share_mode)
-			recalc_share_mode();
 	}
 
 	// this is called when the piece hash is checked as correct. Note
@@ -4499,9 +4532,6 @@ namespace {
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
 		inc_stats_counter(counters::num_piece_failed);
-
-		if (m_ses.alerts().should_post<hash_failed_alert>())
-			m_ses.alerts().emplace_alert<hash_failed_alert>(get_handle(), index);
 
 		std::vector<int>::iterator it = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
@@ -4702,6 +4732,9 @@ namespace {
 		// unlock the piece and restore it, as if no block was
 		// ever downloaded for it.
 		m_picker->restore_piece(j->piece);
+
+		if (m_ses.alerts().should_post<hash_failed_alert>())
+			m_ses.alerts().emplace_alert<hash_failed_alert>(get_handle(), j->piece);
 
 		// we have to let the piece_picker know that
 		// this piece failed the check as it can restore it
@@ -5791,6 +5824,15 @@ namespace {
 			// invalidate the iterator
 			++i;
 			p->update_interest();
+		}
+
+		if (!is_downloading_state(m_state))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("*** UPDATE_PEER_INTEREST [ skipping, state: %d ]"
+				, int(m_state));
+#endif
+			return;
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -6993,13 +7035,12 @@ namespace {
 #endif
 		}
 
-		int now = m_ses.session_time();
-		int tmp = rd.dict_find_int_value("last_scrape", -1);
-		m_last_scrape = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
+		boost::int64_t tmp = rd.dict_find_int_value("last_scrape", -1);
+		m_last_scrape = tmp == -1 ? unset : tmp;
 		tmp = rd.dict_find_int_value("last_download", -1);
-		m_last_download = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
+		m_last_download = tmp == -1 ? unset : tmp;
 		tmp = rd.dict_find_int_value("last_upload", -1);
-		m_last_upload = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
+		m_last_upload = tmp == -1 ? unset : tmp;
 
 		if (m_use_resume_save_path)
 		{
@@ -7241,6 +7282,9 @@ namespace {
 		ret["num_complete"] = m_complete;
 		ret["num_incomplete"] = m_incomplete;
 		ret["num_downloaded"] = m_downloaded;
+		ret["last_upload"] = m_last_upload == unset ? -1 : boost::int64_t(m_last_upload);
+		ret["last_download"] = m_last_download == unset ? -1 : boost::int64_t(m_last_download);
+		ret["last_scrape"] = m_last_scrape == unset ? -1 : boost::int64_t(m_last_scrape);
 
 		ret["sequential_download"] = m_sequential_download;
 
@@ -8106,8 +8150,7 @@ namespace {
 			return false;
 		}
 
-		if ((m_state == torrent_status::checking_files
-			|| m_state == torrent_status::checking_resume_data)
+		if (!is_downloading_state(m_state)
 			&& valid_metadata())
 		{
 			p->disconnect(errors::torrent_not_ready, op_bittorrent);
@@ -8644,16 +8687,9 @@ namespace {
 		// to be in downloading state (which it will be set to shortly)
 //		INVARIANT_CHECK;
 
-		if (m_state == torrent_status::checking_resume_data
-			|| m_state == torrent_status::checking_files
-			|| m_state == torrent_status::allocating)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** RESUME_DOWNLOAD [ skipping, state: %d ]"
-				, int(m_state));
-#endif
-			return;
-		}
+		TORRENT_ASSERT(m_state != torrent_status::checking_resume_data
+			&& m_state != torrent_status::checking_files
+			&& m_state != torrent_status::allocating);
 
 		// we're downloading now, which means we're no longer in seed mode
 		if (m_seed_mode)
@@ -9506,10 +9542,14 @@ namespace {
 	}
 	std::string torrent::resolve_filename(int file) const
 	{
-		if (file == torrent_status::error_file_none) return "";
-		if (file == torrent_status::error_file_url) return m_url;
-		if (file == torrent_status::error_file_ssl_ctx) return "SSL Context";
-		if (file == torrent_status::error_file_metadata) return "metadata (from user load function)";
+		switch (file)
+		{
+			case torrent_status::error_file_none: return "";
+			case torrent_status::error_file_url: return m_url;
+			case torrent_status::error_file_ssl_ctx: return "SSL Context";
+			case torrent_status::error_file_metadata: return "metadata (from user load function)";
+			case torrent_status::error_file_partfile: return "partfile";
+		}
 
 		if (m_storage && file >= 0)
 		{
@@ -9583,13 +9623,6 @@ namespace {
 		return a - b;
 	}
 
-	int clamped_subtract_s16(int a, int b)
-	{
-		if (a + (std::numeric_limits<boost::int16_t>::min)() < b)
-			return (std::numeric_limits<boost::int16_t>::min)();
-		return a - b;
-	}
-
 	} // anonymous namespace
 
 	// this is called every time the session timer takes a step back. Since the
@@ -9643,10 +9676,6 @@ namespace {
 			m_finished_time += lost_seconds;
 		}
 		m_became_finished = clamped_subtract(m_became_finished, seconds);
-
-		m_last_upload = clamped_subtract_s16(m_last_upload, seconds);
-		m_last_download = clamped_subtract_s16(m_last_download, seconds);
-		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
 
 		m_last_saved_resume = clamped_subtract(m_last_saved_resume, seconds);
 		m_upload_mode_time = clamped_subtract(m_upload_mode_time, seconds);
@@ -10200,7 +10229,7 @@ namespace {
 			}
 			else
 			{
-				time_point next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
+				time_point const next_tracker_announce = std::max(i->next_announce, i->min_announce);
 				if (next_tracker_announce < next_announce
 					&& (!found_working || i->is_working()))
 					next_announce = next_tracker_announce;
@@ -10224,7 +10253,7 @@ namespace {
 		// if m_waiting_tracker is false, expires_at() is undefined
 		if (m_waiting_tracker && m_tracker_timer.expires_at() == next_announce) return;
 
-		m_waiting_tracker = true;
+		++m_waiting_tracker;
 		error_code ec;
 		boost::weak_ptr<torrent> self(shared_from_this());
 
@@ -11939,29 +11968,6 @@ namespace {
 		if (m_peer_list) m_peer_list->clear_peer_prio();
 	}
 
-	namespace
-	{
-		bool is_downloading_state(int st)
-		{
-			switch (st)
-			{
-				case torrent_status::checking_files:
-				case torrent_status::allocating:
-				case torrent_status::checking_resume_data:
-					return false;
-				case torrent_status::downloading_metadata:
-				case torrent_status::downloading:
-				case torrent_status::finished:
-				case torrent_status::seeding:
-					return true;
-				default:
-					// unexpected state
-					TORRENT_ASSERT_VAL(false, st);
-					return false;
-			}
-		}
-	}
-
 	void torrent::stop_when_ready(bool b)
 	{
 		m_stop_when_ready = b;
@@ -12138,8 +12144,8 @@ namespace {
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
 
-		st->last_scrape = m_last_scrape == (std::numeric_limits<boost::int16_t>::min)() ? -1
-			: clamped_subtract(m_ses.session_time(), m_last_scrape);
+		st->last_scrape = m_last_scrape == unset ? -1
+			: total_seconds(clock_type::now() - time_point(seconds(m_last_scrape)));
 
 		st->share_mode = m_share_mode;
 		st->upload_mode = m_upload_mode;
@@ -12161,10 +12167,10 @@ namespace {
 		st->finished_time = finished_time();
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
-		st->time_since_upload = m_last_upload == (std::numeric_limits<boost::int16_t>::min)() ? -1
-			: clamped_subtract(m_ses.session_time(), m_last_upload);
-		st->time_since_download = m_last_download == (std::numeric_limits<boost::int16_t>::min)() ? -1
-			: clamped_subtract(m_ses.session_time(), m_last_download);
+		st->time_since_upload = m_last_upload == unset ? -1
+			: total_seconds(clock_type::now() - time_point(seconds(m_last_upload)));
+		st->time_since_download = m_last_download == unset ? -1
+			: total_seconds(clock_type::now() - time_point(seconds(m_last_download)));
 
 		st->storage_mode = static_cast<storage_mode_t>(m_storage_mode);
 

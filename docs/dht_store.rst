@@ -3,7 +3,7 @@ BitTorrent extension for arbitrary DHT store
 ============================================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.6
+:Version: 1.1.7
 
 .. contents:: Table of contents
   :depth: 2
@@ -280,7 +280,7 @@ number is outdated.
 
 The error message (as specified by BEP5_) looks like this:
 
-.. _BEP5: http://www.bittorrent.org/beps/bep_0005.html
+.. _BEP5: https://www.bittorrent.org/beps/bep_0005.html
 
 .. parsed-literal::
 
@@ -475,7 +475,7 @@ Libraries that implement ed25519 DSA:
 * libsodium_
 * `nightcracker's ed25519`_
 
-.. _NaCl: http://nacl.cr.yp.to/
+.. _NaCl: https://nacl.cr.yp.to/
 .. _libsodium: https://github.com/jedisct1/libsodium
 .. _`nightcracker's ed25519`: https://github.com/nightcracker/ed25519
 

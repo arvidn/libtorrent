@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2016, Arvid Norberg
+Copyright (c) 2006-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -224,7 +224,10 @@ namespace libtorrent { namespace dht
 	void dht_tracker::get_peers(sha1_hash const& ih
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 	{
-		m_dht.get_peers(ih, f, NULL, false);
+		// TODO: Use `{}` instead of spelling out the whole function type when this is merged to master
+		m_dht.get_peers(ih, f
+			, boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)>()
+			, false);
 	}
 
 	void dht_tracker::announce(sha1_hash const& ih, int listen_port, int flags
@@ -386,11 +389,17 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::add_node(udp::endpoint node)
 	{
+#if !TORRENT_USE_IPV6
+		TORRENT_ASSERT(node.address().is_v4());
+#endif
 		m_dht.add_node(node);
 	}
 
 	void dht_tracker::add_router_node(udp::endpoint const& node)
 	{
+#if !TORRENT_USE_IPV6
+		TORRENT_ASSERT(node.address().is_v4());
+#endif
 		m_dht.add_router_node(node);
 	}
 

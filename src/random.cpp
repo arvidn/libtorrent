@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2011-2016, Arvid Norberg
+Copyright (c) 2011-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -106,6 +106,7 @@ namespace libtorrent
 
 	boost::uint32_t randint(int i)
 	{
+		TORRENT_ASSERT(i > 1);
 		return random() % i;
 	}
 

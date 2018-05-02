@@ -58,6 +58,10 @@ class test_torrent_handle(unittest.TestCase):
 		# also test the overload that takes a list of piece->priority mappings
 		self.h.prioritize_pieces([(0, 1)])
 		self.assertEqual(self.h.piece_priorities(), [1])
+		self.h.connect_peer(('127.0.0.1', 6881))
+		self.h.connect_peer(('127.0.0.2', 6881), source=4)
+		self.h.connect_peer(('127.0.0.3', 6881), flags=2)
+		self.h.connect_peer(('127.0.0.4', 6881), flags=2, source=4)
 
 	def test_torrent_handle_in_set(self):
 		self.setup()
@@ -170,6 +174,7 @@ class test_torrent_info(unittest.TestCase):
 
 		f = info.files()
 		self.assertEqual(f.file_path(0), 'test_torrent')
+		self.assertEqual(f.file_name(0), 'test_torrent')
 		self.assertEqual(f.file_size(0), 1234)
 		self.assertEqual(info.total_size(), 1234)
 
@@ -300,6 +305,16 @@ class test_magnet_link(unittest.TestCase):
 		ses = lt.session({})
 		magnet = 'magnet:?xt=urn:btih:C6EIF4CCYDBTIJVG3APAGM7M4NDONCTI'
 		p = lt.parse_magnet_uri(magnet)
+		self.assertEqual(binascii.hexlify(p['info_hash']), '178882f042c0c33426a6d81e0333ece346e68a68')
+		p['save_path'] = '.'
+		h = ses.add_torrent(p)
+		self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')
+
+	def test_parse_magnet_uri_dict(self):
+		ses = lt.session({})
+		magnet = 'magnet:?xt=urn:btih:C6EIF4CCYDBTIJVG3APAGM7M4NDONCTI'
+		p = lt.parse_magnet_uri_dict(magnet)
+		self.assertEqual(binascii.hexlify(p['info_hash']), '178882f042c0c33426a6d81e0333ece346e68a68')
 		p['save_path'] = '.'
 		h = ses.add_torrent(p)
 		self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')
@@ -377,6 +392,21 @@ class test_session(unittest.TestCase):
 		self.assertTrue(isinstance(a, lt.session_stats_alert))
 		self.assertTrue(isinstance(a.values, dict))
 		self.assertTrue(len(a.values) > 0)
+
+	def test_post_dht_stats(self):
+		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
+		s.post_dht_stats()
+		alerts = []
+		# first the stats headers log line. but not if logging is disabled
+		time.sleep(1)
+		alerts = s.pop_alerts()
+		a = alerts.pop(0)
+		while not isinstance(a, lt.dht_stats_alert):
+			a = alerts.pop(0
+)
+		self.assertTrue(isinstance(a, lt.dht_stats_alert))
+		self.assertTrue(isinstance(a.active_requests, list))
+		self.assertTrue(isinstance(a.routing_table, list))
 
 	def test_unknown_settings(self):
 		try:

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2016, Arvid Norberg
+Copyright (c) 2010-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,88 @@ namespace libtorrent
 	}
 
 #ifdef BOOST_HAS_PTHREADS
+	recursive_mutex::recursive_mutex()
+	{
+		::pthread_mutexattr_t attr;
+		::pthread_mutexattr_init(&attr);
+		::pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+		::pthread_mutex_init(&m_mutex, &attr);
+		::pthread_mutexattr_destroy(&attr);
+	}
 
+	recursive_mutex::~recursive_mutex()
+	{ ::pthread_mutex_destroy(&m_mutex); }
+
+	void recursive_mutex::lock()
+	{ ::pthread_mutex_lock(&m_mutex); }
+
+	void recursive_mutex::unlock()
+	{ ::pthread_mutex_unlock(&m_mutex); }
+#else
+
+namespace {
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+	thread_id_t thread_self()
+	{
+		return GetCurrentThreadId();
+	}
+#elif defined TORRENT_BEOS
+	thread_id_t thread_self()
+	{
+		return find_thread(NULL);
+	}
+#endif
+}
+
+	recursive_mutex::recursive_mutex()
+		: m_owner()
+		, m_count(0)
+	{}
+
+	recursive_mutex::~recursive_mutex() {}
+
+	void recursive_mutex::lock()
+	{
+		thread_id_t const self = thread_self();
+
+		mutex::scoped_lock lock(m_mutex);
+		if (m_owner == self)
+		{
+			++m_count;
+		}
+		else if (m_count == 0)
+		{
+			TORRENT_ASSERT(m_owner == thread_id_t());
+			m_owner = self;
+			m_count = 1;
+		}
+		else
+		{
+			while (m_count != 0)
+				m_cond.wait(lock);
+			TORRENT_ASSERT(m_count == 0);
+			TORRENT_ASSERT(m_owner == thread_id_t());
+			m_owner = self;
+			m_count = 1;
+		}
+	}
+
+	void recursive_mutex::unlock()
+	{
+		thread_id_t const self = thread_self();
+		mutex::scoped_lock lock(m_mutex);
+		TORRENT_ASSERT(m_owner == self);
+		TORRENT_ASSERT(m_count > 0);
+
+		if (--m_count == 0)
+		{
+			m_owner = thread_id_t();
+			m_cond.notify();
+		}
+	}
+#endif
+
+#ifdef BOOST_HAS_PTHREADS
 	condition_variable::condition_variable()
 	{
 		pthread_cond_init(&m_cond, 0);
@@ -70,14 +151,16 @@ namespace libtorrent
 		pthread_cond_destroy(&m_cond);
 	}
 
-	void condition_variable::wait(mutex::scoped_lock& l)
+	template <typename LockGuard>
+	void condition_variable::wait_impl(LockGuard& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		// wow, this is quite a hack
 		pthread_cond_wait(&m_cond, reinterpret_cast<pthread_mutex_t*>(&l.mutex()));
 	}
 
-	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+	template <typename LockGuard>
+	void condition_variable::wait_for_impl(LockGuard& l, time_duration rel_time)
 	{
 		TORRENT_ASSERT(l.locked());
 
@@ -117,7 +200,8 @@ namespace libtorrent
 		CloseHandle(m_sem);
 	}
 
-	void condition_variable::wait(mutex::scoped_lock& l)
+	template <typename LockGuard>
+	void condition_variable::wait_impl(LockGuard& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		++m_num_waiters;
@@ -127,7 +211,8 @@ namespace libtorrent
 		--m_num_waiters;
 	}
 
-	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+	template <typename LockGuard>
+	void condition_variable::wait_for_impl(LockGuard& l, time_duration rel_time)
 	{
 		TORRENT_ASSERT(l.locked());
 		++m_num_waiters;
@@ -158,7 +243,8 @@ namespace libtorrent
 		delete_sem(m_sem);
 	}
 
-	void condition_variable::wait(mutex::scoped_lock& l)
+	template <typename LockGuard>
+	void condition_variable::wait_impl(mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		++m_num_waiters;
@@ -168,7 +254,8 @@ namespace libtorrent
 		--m_num_waiters;
 	}
 
-	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+	template <typename LockGuard>
+	void condition_variable::wait_for_impl(LockGuard& l, time_duration rel_time)
 	{
 		TORRENT_ASSERT(l.locked());
 		++m_num_waiters;
@@ -191,5 +278,19 @@ namespace libtorrent
 #error not implemented
 #endif
 
+	void condition_variable::wait(mutex::scoped_lock& l)
+	{ wait_impl(l); }
+	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+	{ wait_for_impl(l, rel_time); }
+	void condition_variable::wait(recursive_mutex::scoped_lock& l)
+	{ wait_impl(l); }
+	void condition_variable::wait_for(recursive_mutex::scoped_lock& l, time_duration rel_time)
+	{ wait_for_impl(l, rel_time); }
+
+	// explicitly instantiate for these locks
+	template void condition_variable::wait_impl<mutex::scoped_lock>(mutex::scoped_lock&);
+	template void condition_variable::wait_impl<recursive_mutex::scoped_lock>(recursive_mutex::scoped_lock&);
+	template void condition_variable::wait_for_impl<mutex::scoped_lock>(mutex::scoped_lock&, time_duration);
+	template void condition_variable::wait_for_impl<recursive_mutex::scoped_lock>(recursive_mutex::scoped_lock&, time_duration);
 }
 

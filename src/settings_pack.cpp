@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2016, Arvid Norberg
+Copyright (c) 2012-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -148,7 +148,7 @@ namespace libtorrent
 		SET_NOPREV(proxy_username, "", &session_impl::update_proxy),
 		SET_NOPREV(proxy_password, "", &session_impl::update_proxy),
 		SET_NOPREV(i2p_hostname, "", &session_impl::update_i2p_bridge),
-		SET_NOPREV(peer_fingerprint, "-LT1160-", 0),
+		SET_NOPREV(peer_fingerprint, "-LT1170-", 0),
 		SET_NOPREV(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
 	};
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2016, Arvid Norberg
+Copyright (c) 2006-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/cstdint.hpp>
 #include <boost/bind.hpp>
+
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 106700
+#include <boost/next_prior.hpp>
+#else
+#include <boost/utility.hpp>
+#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -1153,6 +1160,9 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 
 void routing_table::add_router_node(udp::endpoint router)
 {
+#if !TORRENT_USE_IPV6
+	TORRENT_ASSERT(router.address().is_v4());
+#endif
 	m_router_nodes.insert(router);
 }
 

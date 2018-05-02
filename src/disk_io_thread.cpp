@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2016, Arvid Norberg, Steven Siloti
+Copyright (c) 2007-2018, Arvid Norberg, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if __cplusplus >= 201103L || defined __clang__
 
 #if DEBUG_DISK_THREAD
+#include <cstdarg> // for va_list
 #define DLOG(...) debug_log(__VA_ARGS__)
 #else
 #define DLOG(...) do {} while(false)
@@ -675,7 +676,7 @@ namespace libtorrent
 	// It is necessary to call this function with the blocks produced by
 	// build_iovec, to reset their state to not being flushed anymore
 	// the cache needs to be locked when calling this function
-	void disk_io_thread::iovec_flushed(cached_piece_entry* pe
+	bool disk_io_thread::iovec_flushed(cached_piece_entry* pe
 		, int* flushing, int num_blocks, int block_offset
 		, storage_error const& error
 		, jobqueue_t& completed_jobs)
@@ -690,7 +691,8 @@ namespace libtorrent
 			DLOG("%d ", flushing[i]);
 		DLOG("]\n");
 #endif
-		m_disk_cache.blocks_flushed(pe, flushing, num_blocks);
+		if (m_disk_cache.blocks_flushed(pe, flushing, num_blocks))
+			return true;
 
 		int block_size = m_disk_cache.block_size();
 
@@ -720,6 +722,8 @@ namespace libtorrent
 				j = next;
 			}
 		}
+
+		return false;
 	}
 
 	// issues write operations for blocks in the given
@@ -755,9 +759,8 @@ namespace libtorrent
 
 		TORRENT_PIECE_ASSERT(pe->piece_refcount > 0, pe);
 		--pe->piece_refcount;
-		iovec_flushed(pe, flushing, iov_len, 0, error, completed_jobs);
-
-		m_disk_cache.maybe_free_piece(pe);
+		if (!iovec_flushed(pe, flushing, iov_len, 0, error, completed_jobs))
+			m_disk_cache.maybe_free_piece(pe);
 
 		// if the cache is under high pressure, we need to evict
 		// the blocks we just flushed to make room for more write pieces

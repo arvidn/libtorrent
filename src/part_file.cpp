@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2016, Arvid Norberg
+Copyright (c) 2012-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -98,7 +98,7 @@ namespace libtorrent
 		if (!ec)
 		{
 			// parse header
-			boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size]);
+			boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size / 4]);
 			file::iovec_t b = {header.get(), size_t(m_header_size) };
 			int n = m_file.readv(0, &b, 1, ec);
 			if (ec) return;
@@ -396,7 +396,7 @@ namespace libtorrent
 		open_file(file::read_write, ec);
 		if (ec) return;
 
-		boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size]);
+		boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size / 4]);
 
 		using namespace libtorrent::detail;
 

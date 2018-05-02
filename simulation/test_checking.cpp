@@ -35,11 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/file.hpp"
+#include "libtorrent/create_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/utils.hpp"
 
 #include "test.hpp"
 #include "settings.hpp"
+#include "setup_transfer.hpp" // for create_random_files
 #include "create_torrent.hpp"
 #include "utils.hpp"
 
@@ -99,6 +102,97 @@ TORRENT_TEST(no_truncate_checking)
 	std::ifstream f(filename);
 	f.seekg(0, std::ios_base::end);
 	TEST_EQUAL(f.tellg(), std::fstream::pos_type(size));
+}
+
+boost::shared_ptr<lt::torrent_info> create_multifile_torrent()
+{
+	// the two first files are exactly the size of a piece
+	static const int file_sizes[] = { 0x40000, 0x40000, 4300, 0, 400, 4300, 6, 4};
+	const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
+
+	lt::file_storage fs;
+	create_random_files("test_torrent_dir", file_sizes, num_files, &fs);
+	lt::create_torrent t(fs, 0x40000, 0x4000);
+
+	// calculate the hash for all pieces
+	lt::error_code ec;
+	set_piece_hashes(t, ".");
+
+	std::vector<char> buf;
+	lt::bencode(std::back_inserter(buf), t.generate());
+	return boost::make_shared<lt::torrent_info>(&buf[0], buf.size());
+}
+
+TORRENT_TEST(aligned_zero_priority)
+{
+	run_test(
+		[&](lt::add_torrent_params& atp, lt::settings_pack& p) {
+			atp.file_priorities.push_back(1);
+			atp.file_priorities.push_back(0);
+			atp.ti = create_multifile_torrent();
+			atp.save_path = ".";
+		},
+		[](lt::session& ses) {
+			std::vector<lt::torrent_handle> tor = ses.get_torrents();
+			TEST_EQUAL(tor.size(), 1);
+			TEST_EQUAL(tor[0].status().is_finished, true);
+		}
+	);
+}
+
+// we have a zero-priority file that also does not exist on disk. It does not
+// overlap any piece in another file, so we don't need a partfile
+TORRENT_TEST(aligned_zero_priority_no_file)
+{
+	std::string partfile;
+	run_test(
+		[&](lt::add_torrent_params& atp, lt::settings_pack& p) {
+			atp.ti = create_multifile_torrent();
+			atp.save_path = ".";
+			atp.file_priorities.push_back(1);
+			atp.file_priorities.push_back(0);
+			std::string filename = lt::current_working_directory() + "/" + atp.save_path + "/" + atp.ti->files().file_path(1);
+			partfile = lt::current_working_directory() + "/" + atp.save_path + "/." + lt::to_hex(atp.ti->info_hash().to_string()) + ".parts";
+			lt::error_code ec;
+			lt::remove(filename, ec);
+		},
+		[](lt::session& ses) {
+			std::vector<lt::torrent_handle> tor = ses.get_torrents();
+			TEST_EQUAL(tor.size(), 1);
+			TEST_EQUAL(tor[0].status().is_finished, true);
+		}
+	);
+
+	// the part file should not have been created. There is no need for a
+	// partfile
+	lt::error_code ec;
+	lt::file_status fs;
+	stat_file(partfile, &fs, ec);
+	TEST_EQUAL(ec, boost::system::errc::no_such_file_or_directory);
+}
+
+// we have a file whose priority is 0, we don't have the file on disk nor a
+// part-file for it. The checking should complete and enter download state.
+TORRENT_TEST(zero_priority_missing_partfile)
+{
+	boost::shared_ptr<lt::torrent_info> ti = create_multifile_torrent();
+	run_test(
+		[&](lt::add_torrent_params& atp, lt::settings_pack& p) {
+			atp.ti = ti;
+			atp.save_path = ".";
+			atp.file_priorities.push_back(1);
+			atp.file_priorities.push_back(1);
+			atp.file_priorities.push_back(0);
+			std::string filename = lt::current_working_directory() + "/" + atp.save_path + "/" + atp.ti->files().file_path(2);
+			lt::error_code ec;
+			lt::remove(filename, ec);
+		},
+		[&](lt::session& ses) {
+			std::vector<lt::torrent_handle> tor = ses.get_torrents();
+			TEST_EQUAL(tor.size(), 1);
+			TEST_EQUAL(tor[0].status().num_pieces, ti->num_pieces() - 1);
+		}
+	);
 }
 
 TORRENT_TEST(cache_after_checking)

@@ -87,16 +87,8 @@ TORRENT_TEST(status_timers)
 				TEST_EQUAL(st.last_scrape, -1);
 				TEST_EQUAL(st.time_since_upload, -1);
 
-				// checking the torrent counts as downloading
-				// eventually though, we've forgotten about it and go back to -1
-				if (since_start > 65000)
-				{
-					TEST_EQUAL(st.time_since_download, -1);
-				}
-				else
-				{
-					TEST_EQUAL(st.time_since_download, since_start);
-				}
+				// checking the torrent does not count as downloading
+				TEST_EQUAL(st.time_since_download, -1);
 			}
 			return false;
 		});

@@ -74,15 +74,36 @@ if '--bjam' in sys.argv:
 		file_ext = '.so'
 
 		if platform.system() == 'Windows':
-			# msvc 9.0 (2008) is the official windows compiler for python 2.6
-			# http://docs.python.org/whatsnew/2.6.html#build-and-c-api-changes
-			toolset = ' msvc-9.0'
 			file_ext = '.pyd'
+			# See https://wiki.python.org/moin/WindowsCompilers for a table of msvc versions
+			# used for each python version
+			# Specify the full version number for 9.0 and 10.0 because apparently
+			# older versions of boost don't support only specifying the major number and
+			# there was only one version of msvc with those majors.
+			# Only specify the major for msvc-14 so that 14.1, 14.11, etc can be used.
+			# Hopefully people building with msvc-14 are using a new enough version of boost
+			# for this to work.
+			if sys.version_info[0:2] in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
+				toolset = ' toolset=msvc-9.0'
+			elif sys.version_info[0:2] in ((3, 3), (3, 4)):
+				toolset = ' toolset=msvc-10.0'
+			elif sys.version_info[0:2] in ((3, 5), (3, 6)):
+				toolset = ' toolset=msvc-14'
+			else:
+				# unknown python version, lets hope the user has the right version of msvc configured
+				toolset = ' toolset=msvc'
 
 		parallel_builds = ' -j%d' % multiprocessing.cpu_count()
+		if sys.maxsize > 2**32:
+			address_model = ' address-model=64'
+		else:
+			address_model = ' address-model=32'
+		# add extra quoting around the path to prevent bjam from parsing it as a list
+		# if the path has spaces
+		os.environ['LIBTORRENT_PYTHON_INTERPRETER'] = '"' + sys.executable + '"'
 
 		# build libtorrent using bjam and build the installer with distutils
-		cmdline = 'b2 libtorrent-link=static boost-link=static release optimization=space stage_module --abbreviate-paths' + toolset + parallel_builds
+		cmdline = 'b2 libtorrent-link=static boost-link=static release optimization=space stage_module --abbreviate-paths' + address_model + toolset + parallel_builds
 		print(cmdline)
 		if os.system(cmdline) != 0:
 			print('build failed')
@@ -133,7 +154,7 @@ else:
 			libraries = ['torrent-rasterbar'] + flags.libraries)]
 
 setup(name = 'python-libtorrent',
-	version = '1.1.6',
+	version = '1.1.7',
 	author = 'Arvid Norberg',
 	author_email = 'arvid@libtorrent.org',
 	description = 'Python bindings for libtorrent-rasterbar',

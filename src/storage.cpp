@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003-2018, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -244,7 +244,7 @@ namespace libtorrent
 
 			if (file_index < int(m_storage.m_file_priority.size())
 				&& m_storage.m_file_priority[file_index] == 0
-				&& m_storage.m_use_part_file)
+				&& m_storage.use_partfile(file_index))
 			{
 				TORRENT_ASSERT(m_storage.m_part_file);
 
@@ -335,7 +335,7 @@ namespace libtorrent
 
 			if (file_index < int(m_storage.m_file_priority.size())
 				&& m_storage.m_file_priority[file_index] == 0
-				&& m_storage.m_use_part_file)
+				&& m_storage.use_partfile(file_index))
 			{
 				TORRENT_ASSERT(m_storage.m_part_file);
 
@@ -403,7 +403,6 @@ namespace libtorrent
 
 	default_storage::default_storage(storage_params const& params)
 		: m_files(*params.files)
-		, m_use_part_file(true)
 		, m_pool(*params.pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
@@ -416,15 +415,6 @@ namespace libtorrent
 			? to_hex(params.info->info_hash().to_string())
 			: params.files->name()) + ".parts";
 
-		file_storage const& fs = files();
-		for (int i = 0; i < m_file_priority.size(); ++i)
-		{
-			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
-			{
-				need_partfile();
-				break;
-			}
-		}
 	}
 
 	default_storage::~default_storage()
@@ -456,22 +446,31 @@ namespace libtorrent
 		file_storage const& fs = files();
 		for (int i = 0; i < int(prio.size()); ++i)
 		{
+			// pad files always have priority 0.
+			if (fs.pad_file_at(i)) continue;
+
 			int old_prio = m_file_priority[i];
 			int new_prio = prio[i];
 			if (old_prio == 0 && new_prio != 0)
 			{
 				// move stuff out of the part file
 				file_handle f = open_file(i, file::read_write, ec);
-				if (ec) return;
-
-				need_partfile();
-
-				m_part_file->export_file(*f, fs.file_offset(i), fs.file_size(i), ec.ec);
 				if (ec)
 				{
 					ec.file = i;
-					ec.operation = storage_error::partfile_write;
+					ec.operation = storage_error::open;
 					return;
+				}
+
+				if (m_part_file)
+				{
+					m_part_file->export_file(*f, fs.file_offset(i), fs.file_size(i), ec.ec);
+					if (ec)
+					{
+						ec.file = i;
+						ec.operation = storage_error::partfile_write;
+						return;
+					}
 				}
 			}
 			else if (old_prio != 0 && new_prio == 0)
@@ -512,15 +511,30 @@ namespace libtorrent
 			ec.ec.clear();
 			m_file_priority[i] = new_prio;
 
-			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
+			if (m_file_priority[i] == 0 && use_partfile(i))
+			{
 				need_partfile();
+			}
 		}
 		if (m_part_file) m_part_file->flush_metadata(ec.ec);
 		if (ec)
 		{
-			ec.file = -1;
+			ec.file = torrent_status::error_file_partfile;
 			ec.operation = storage_error::partfile_write;
 		}
+	}
+
+	bool default_storage::use_partfile(int const index)
+	{
+		TORRENT_ASSERT_VAL(index >= 0, index);
+		if (index >= int(m_use_partfile.size())) return true;
+		return m_use_partfile[index];
+	}
+
+	void default_storage::use_partfile(int const index, bool const b)
+	{
+		if (index >= int(m_use_partfile.size())) m_use_partfile.resize(index + 1, true);
+		m_use_partfile[index] = b;
 	}
 
 	void default_storage::initialize(storage_error& ec)
@@ -545,9 +559,34 @@ namespace libtorrent
 			m_file_created.resize(files().num_files(), false);
 		}
 
+		file_storage const& fs = files();
+
+		// if some files have priority 0, we need to check if they exist on the
+		// filesystem, in which case we won't use a partfile for them.
+		// this is to be backwards compatible with previous versions of
+		// libtorrent, when part files were not supported.
+		for (int i = 0; i < m_file_priority.size(); ++i)
+		{
+			if (m_file_priority[i] != 0 || fs.pad_file_at(i))
+				continue;
+
+			file_status s;
+			std::string const file_path = fs.file_path(i, m_save_path);
+			error_code err;
+			stat_file(file_path, &s, err);
+			if (!err)
+			{
+				use_partfile(i, false);
+			}
+			else
+			{
+				need_partfile();
+			}
+		}
+
 		// first, create all missing directories
 		std::string last_path;
-		for (int file_index = 0; file_index < files().num_files(); ++file_index)
+		for (int file_index = 0; file_index < fs.num_files(); ++file_index)
 		{
 			// ignore files that have priority 0
 			if (int(m_file_priority.size()) > file_index
@@ -557,13 +596,13 @@ namespace libtorrent
 			}
 
 			// ignore pad files
-			if (files().pad_file_at(file_index)) continue;
+			if (fs.pad_file_at(file_index)) continue;
 
 			boost::int64_t cached_size = m_stat_cache.get_filesize(file_index);
 			if (cached_size == stat_cache::not_in_cache)
 			{
 				file_status s;
-				std::string file_path = files().file_path(file_index, m_save_path);
+				std::string file_path = fs.file_path(file_index, m_save_path);
 				stat_file(file_path, &s, ec.ec);
 				if (!ec)
 				{
@@ -587,9 +626,9 @@ namespace libtorrent
 			// deliberately don't truncate files that already exist
 			// if a file is supposed to have size 0, but already exists, we will
 			// never truncate it to 0.
-			if (files().file_size(file_index) == 0 && cached_size == stat_cache::no_exist)
+			if (fs.file_size(file_index) == 0 && cached_size == stat_cache::no_exist)
 			{
-				std::string file_path = files().file_path(file_index, m_save_path);
+				std::string file_path = fs.file_path(file_index, m_save_path);
 				std::string dir = parent_path(file_path);
 
 				if (dir != last_path)
@@ -633,16 +672,17 @@ namespace libtorrent
 
 	bool default_storage::has_any_file(storage_error& ec)
 	{
-		m_stat_cache.init(files().num_files());
+		file_storage const& fs = files();
+		m_stat_cache.init(fs.num_files());
 
 		std::string file_path;
-		for (int i = 0; i < files().num_files(); ++i)
+		for (int i = 0; i < fs.num_files(); ++i)
 		{
 			file_status s;
 			boost::int64_t cache_status = m_stat_cache.get_filesize(i);
 			if (cache_status < 0 && cache_status != stat_cache::no_exist)
 			{
-				file_path = files().file_path(i, m_save_path);
+				file_path = fs.file_path(i, m_save_path);
 				stat_file(file_path, &s, ec.ec);
 				boost::int64_t r = s.file_size;
 				if (ec.ec || !(s.mode & file_status::regular_file))
@@ -680,7 +720,7 @@ namespace libtorrent
 			ec.ec.clear();
 		if (ec)
 		{
-			ec.file = -1;
+			ec.file = torrent_status::error_file_partfile;
 			ec.operation = storage_error::stat;
 			return false;
 		}
@@ -862,7 +902,7 @@ namespace libtorrent
 				, m_save_path.c_str(), m_part_file_name.c_str(), error.message().c_str());
 			if (error && error != boost::system::errc::no_such_file_or_directory)
 			{
-				ec.file = -1;
+				ec.file = torrent_status::error_file_partfile;
 				ec.ec = error;
 				ec.operation = storage_error::remove;
 			}
@@ -1038,21 +1078,6 @@ namespace libtorrent
 			return false;
 		}
 
-		// if some files have priority 0, we would expect therer to be a part file
-		// as well. If there isn't, it implies we're not using part files and the
-		// original file names are used to store the partial pieces. i.e. 1.0.x
-		// behavior
-		for (int i = 0; i < m_file_priority.size(); ++i)
-		{
-			if (m_file_priority[i] == 0 && !fs.pad_file_at(i))
-			{
-				file_status s;
-				stat_file(combine_path(m_save_path, m_part_file_name), &s, ec.ec);
-				m_use_part_file = !ec;
-				break;
-			}
-		}
-
 		for (int i = 0; i < file_sizes_ent.list_size(); ++i)
 		{
 			if (fs.pad_file_at(i)) continue;
@@ -1065,7 +1090,7 @@ namespace libtorrent
 			// files they belong in.
 			if (i < int(m_file_priority.size())
 				&& m_file_priority[i] == 0
-				&& m_use_part_file)
+				&& use_partfile(i))
 				continue;
 
 			bdecode_node e = file_sizes_ent.list_at(i);
@@ -1323,7 +1348,7 @@ namespace libtorrent
 			if (e)
 			{
 				ec.ec = e;
-				ec.file = -1;
+				ec.file = torrent_status::error_file_partfile;
 				ec.operation = storage_error::partfile_move;
 			}
 		}
@@ -1767,19 +1792,10 @@ namespace libtorrent
 
 	int piece_manager::check_no_fastresume(storage_error& ec)
 	{
-		bool has_files = false;
 		if (!m_storage->settings().get_bool(settings_pack::no_recheck_incomplete_resume))
 		{
 			storage_error se;
-			has_files = m_storage->has_any_file(se);
-
-			if (se)
-			{
-				ec = se;
-				return fatal_disk_error;
-			}
-
-			if (has_files)
+			if (m_storage->has_any_file(se))
 			{
 				// always initialize the storage
 				int ret = check_init_storage(ec);

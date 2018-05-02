@@ -295,7 +295,7 @@ Don't have metadata:
 |           |               | doesn't have any metadata.             |
 +-----------+---------------+----------------------------------------+
 
-.. _`BEP 9`: http://bittorrent.org/beps/bep_0009.html
+.. _`BEP 9`: https://bittorrent.org/beps/bep_0009.html
 
 dont_have
 ---------

@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.6
+:Version: 1.1.7
 
 .. contents:: Table of contents
   :depth: 2
@@ -58,7 +58,7 @@ dependent boost libraries with the correct compiler settings, in order to
 ensure that the build targets are link compatible (see `boost guidelines`__
 for some details on this issue).
 
-__ http://boost.org/more/separate_compilation.html
+__ https://boost.org/more/separate_compilation.html
 
 Since BBv2 will build the boost libraries for you, you need the full boost
 source package. Having boost installed via some package system is usually not
@@ -74,7 +74,7 @@ Step 1: Download boost
 
 You'll find boost here__.
 
-__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=619445
+__ https://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=619445
 
 Extract the archive to some directory where you want it. For the sake of this
 guide, let's assume you extract the package to ``c:\boost_1_64_0`` (I'm using
@@ -141,7 +141,7 @@ Note that the spaces around the semi-colons and colons are important!
 
 Also see the `official installation instructions`_.
 
-.. _`official installation instructions`: http://www.boost.org/doc/html/bbv2/installation.html
+.. _`official installation instructions`: https://www.boost.org/doc/html/bbv2/installation.html
 
 
 Step 3: Building libtorrent
@@ -397,8 +397,8 @@ boost.program-options symbols.
 For more information, see the `Boost build v2 documentation`__, or more
 specifically `the section on builtin features`__.
 
-__ http://www.boost.org/tools/build/v2/index.html
-__ http://www.boost.org/doc/html/bbv2/reference.html#bbv2.advanced.builtins.features
+__ https://www.boost.org/tools/build/v2/index.html
+__ https://www.boost.org/doc/html/bbv2/reference.html#bbv2.advanced.builtins.features
 
 
 building with autotools
@@ -629,7 +629,7 @@ defines you can use to control the build.
 |                                        | custom one.                                     |
 +----------------------------------------+-------------------------------------------------+
 
-.. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
+.. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will
 definitely help to define ``NDEBUG``, since it will remove the invariant checks

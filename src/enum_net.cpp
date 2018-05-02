@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2016, Arvid Norberg
+Copyright (c) 2007-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1128,8 +1128,9 @@ namespace libtorrent
 			return std::vector<ip_route>();
 		}
 
-		int s = socket(AF_INET, SOCK_DGRAM, 0);
-		if (s < 0)
+		close(sock);
+		sock = socket(AF_INET, SOCK_DGRAM, 0);
+		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
@@ -1141,12 +1142,11 @@ namespace libtorrent
 		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 		{
 			ip_route r;
-			if (parse_route(s, nl_msg, &r)) ret.push_back(r);
+			if (parse_route(sock, nl_msg, &r)) ret.push_back(r);
 		}
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-		close(s);
 		close(sock);
 
 #endif

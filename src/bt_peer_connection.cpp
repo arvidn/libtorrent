@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
-Copyright (c) 2007-2016, Arvid Norberg, Un Shyam
+Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2007-2018, Arvid Norberg, Un Shyam
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -3370,7 +3370,7 @@ namespace libtorrent
 					// initiate connections. So, if our peer-id is greater than
 					// the others, we should close the incoming connection,
 					// if not, we should close the outgoing one.
-					if (pid < m_our_peer_id && is_outgoing())
+					if ((pid < m_our_peer_id) == is_outgoing())
 					{
 						p->disconnect(errors::duplicate_peer_id, op_bittorrent);
 					}

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2016, Arvid Norberg, Steven Siloti
+Copyright (c) 2007-2018, Arvid Norberg, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -477,7 +477,8 @@ namespace libtorrent
 			, file::iovec_t* iov, int* flushing, int block_base_index = 0);
 		void flush_iovec(cached_piece_entry* pe, file::iovec_t const* iov, int const* flushing
 			, int num_blocks, storage_error& error);
-		void iovec_flushed(cached_piece_entry* pe
+		// returns true if the piece entry was freed
+		bool iovec_flushed(cached_piece_entry* pe
 			, int* flushing, int num_blocks, int block_offset
 			, storage_error const& error
 			, jobqueue_t& completed_jobs);

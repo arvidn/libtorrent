@@ -1,5 +1,5 @@
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.6
+:Version: 1.1.7
 
 .. raw:: html
 
@@ -79,13 +79,13 @@ libtorrent
 .. _`DHT store extension`: dht_store.html
 .. _`UDP tracker protocol`: udp_tracker_protocol.html
 .. _`HTTP seed`: http://www.getright.com/seedtorrent.html
-.. _multitracker: http://bittorrent.org/beps/bep_0012.html
-.. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
+.. _multitracker: https://bittorrent.org/beps/bep_0012.html
+.. _mailing list: https://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 .. _archive: https://sourceforge.net/p/libtorrent/mailman/libtorrent-discuss/
 .. _`who's using libtorrent?`: projects.html
 .. _`report bugs`: https://github.com/arvidn/libtorrent/issues
 .. _`github page`: https://github.com/arvidn/libtorrent
-.. _blog: http://blog.libtorrent.org
+.. _blog: https://blog.libtorrent.org
 
 .. _java: https://github.com/frostwire/frostwire-jlibtorrent/
 .. _python: python_binding.html
@@ -131,9 +131,9 @@ See the contribute_ page for other ways to help out.
 	
 	<span style="display:block;text-align:center;margin-top:1em">
 	<span style="display:inline-block">
-	<a class="FlattrButton" style="display:none;" href="http://libtorrent.org"></a>
+	<a class="FlattrButton" style="display:none;" href="https://libtorrent.org"></a>
 	<noscript><a href="https://flattr.com/thing/95662/libtorrent" target="_blank">
-	<img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
+	<img src="https://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
 	</span>
 	
 	<span style="display:inline-block">
@@ -156,7 +156,7 @@ Support
 
 Please direct questions to the `mailing list`__, general libtorrent discussion.
 
-__ http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
+__ https://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
 You can usually find me as hydri in ``#libtorrent`` on ``irc.freenode.net``.
 
@@ -165,7 +165,7 @@ license
 
 libtorrent is released under the BSD-license_.
 
-.. _BSD-license: http://opensource.org/licenses/bsd-license.php
+.. _BSD-license: https://opensource.org/licenses/bsd-license.php
 
 This means that you can use the library in your project without having to
 release its source code. The only requirement is that you give credit
@@ -181,7 +181,7 @@ list or posted to the `bug tracker`_.
 Acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright |copy| 2003-2016
+Written by Arvid Norberg. Copyright |copy| 2003-2018
 
 Contributions by Steven Siloti, Magnus Jonsson, Daniel Wallin and Cory Nelson
 

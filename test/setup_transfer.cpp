@@ -145,9 +145,10 @@ std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)
 	return ret;
 }
 
-alert const* wait_for_alert(lt::session& ses, int type, char const* name, int num)
+alert const* wait_for_alert(lt::session& ses, int type, char const* name, int num
+	, lt::time_duration timeout)
 {
-	time_point end = libtorrent::clock_type::now() + seconds(10);
+	time_point end = libtorrent::clock_type::now() + timeout;
 	while (true)
 	{
 		time_point now = clock_type::now();
@@ -597,7 +598,10 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 
 		std::string full_path = combine_path(path, dirname);
 		error_code ec;
-		create_directory(full_path, ec);
+		lt::create_directories(full_path, ec);
+		if (ec) fprintf(stderr, "create_directory(%s) failed: (%d) %s\n"
+			, full_path.c_str(), ec.value(), ec.message().c_str());
+
 		full_path = combine_path(full_path, filename);
 
 		int to_write = file_sizes[i];

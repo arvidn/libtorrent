@@ -54,7 +54,7 @@ TORRENT_TEST(limit)
 	// try add 600 torrent_add_alert to make sure we honor the limit of 500
 	// alerts.
 	for (int i = 0; i < 600; ++i)
-		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -71,7 +71,7 @@ TORRENT_TEST(limit)
 	mgr.set_alert_queue_size_limit(200);
 
 	for (int i = 0; i < 600; ++i)
-		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -87,21 +87,24 @@ TORRENT_TEST(priority_limit)
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 100);
 
+	std::vector<alert*> alerts;
+	int num_resume = 0;
+
 	// this should only add 100 because of the limit
 	for (int i = 0; i < 200; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
-	// the limit is twice as high for priority alerts
-	for (int i = 0; i < 200; ++i)
+	mgr.get_all(alerts, num_resume);
+	TEST_EQUAL(alerts.size(), 100);
+
+	// the limit is higher for priority alerts
+	for (int i = 0; i < 300; ++i)
 		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code());
 
-	std::vector<alert*> alerts;
-	int num_resume;
 	mgr.get_all(alerts, num_resume);
-
-	// even though we posted 400, the limit was 100 for half of them and
-	// 200 for the other half, meaning we should have 200 alerts now
-	TEST_EQUAL(alerts.size(), 200);
+	// even though we posted 500, the limit was 100 for half of them and
+	// 100 + 200 for the other half, meaning we should have 300 alerts now
+	TEST_EQUAL(alerts.size(), 300);
 }
 
 void test_dispatch_fun(int& cnt, std::auto_ptr<alert> const& a)
@@ -320,4 +323,33 @@ TORRENT_TEST(alert_mask)
 	TEST_CHECK(!mgr.should_post<add_torrent_alert>());
 	TEST_CHECK(!mgr.should_post<torrent_paused_alert>());
 }
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+struct post_plugin : lt::plugin
+{
+	post_plugin(alert_manager& m) : mgr(m), depth(0) {}
+	void on_alert(alert const* a)
+	{
+		if (++depth > 10) return;
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), 0);
+	}
+
+	alert_manager& mgr;
+	int depth;
+};
+
+// make sure the alert manager supports alerts being posted while executing a
+// plugin handler
+TORRENT_TEST(recursive_alerts)
+{
+	alert_manager mgr(100, 0xffffffff);
+	boost::shared_ptr<post_plugin> pl = boost::make_shared<post_plugin>(boost::ref(mgr));
+	mgr.add_extension(pl);
+
+	mgr.emplace_alert<piece_finished_alert>(torrent_handle(), 0);
+
+	TEST_EQUAL(pl->depth, 11);
+}
+
+#endif // TORRENT_DISABLE_EXTENSIONS
 

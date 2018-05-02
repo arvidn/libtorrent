@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003-2018, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,13 +52,13 @@ namespace libtorrent
 
 	int alert_manager::num_queued_resume() const
 	{
-		mutex::scoped_lock lock(m_mutex);
+		recursive_mutex::scoped_lock lock(m_mutex);
 		return m_num_queued_resume;
 	}
 
 	alert* alert_manager::wait_for_alert(time_duration max_wait)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		recursive_mutex::scoped_lock lock(m_mutex);
 
 		if (!m_alerts[m_generation].empty())
 			return m_alerts[m_generation].front();
@@ -71,7 +71,7 @@ namespace libtorrent
 		return NULL;
 	}
 
-	void alert_manager::maybe_notify(alert* a, mutex::scoped_lock& lock)
+	void alert_manager::maybe_notify(alert* a)
 	{
 		if (a->type() == save_resume_data_failed_alert::alert_type
 			|| a->type() == save_resume_data_alert::alert_type)
@@ -79,8 +79,6 @@ namespace libtorrent
 
 		if (m_alerts[m_generation].size() == 1)
 		{
-			lock.unlock();
-
 			// we just posted to an empty queue. If anyone is waiting for
 			// alerts, we need to notify them. Also (potentially) call the
 			// user supplied m_notify callback to let the client wake up its
@@ -90,10 +88,6 @@ namespace libtorrent
 			// TODO: 2 keep a count of the number of threads waiting. Only if it's
 			// > 0 notify them
 			m_condition.notify_all();
-		}
-		else
-		{
-			lock.unlock();
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -125,7 +119,7 @@ namespace libtorrent
 	void alert_manager::set_dispatch_function(
 		boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		recursive_mutex::scoped_lock lock(m_mutex);
 
 		m_dispatch = fun;
 
@@ -151,12 +145,10 @@ namespace libtorrent
 
 	void alert_manager::set_notify_function(boost::function<void()> const& fun)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		recursive_mutex::scoped_lock lock(m_mutex);
 		m_notify = fun;
 		if (!m_alerts[m_generation].empty())
 		{
-			// never call a callback with the lock held!
-			lock.unlock();
 			if (m_notify) m_notify();
 		}
 	}
@@ -170,10 +162,11 @@ namespace libtorrent
 
 	void alert_manager::get_all(std::vector<alert*>& alerts, int& num_resume)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		alerts.clear();
+
+		recursive_mutex::scoped_lock lock(m_mutex);
 		TORRENT_ASSERT(m_num_queued_resume <= m_alerts[m_generation].size());
 
-		alerts.clear();
 		if (m_alerts[m_generation].empty()) return;
 
 		m_alerts[m_generation].get_pointers(alerts);
@@ -189,13 +182,13 @@ namespace libtorrent
 
 	bool alert_manager::pending() const
 	{
-		mutex::scoped_lock lock(m_mutex);
+		recursive_mutex::scoped_lock lock(m_mutex);
 		return !m_alerts[m_generation].empty();
 	}
 
 	int alert_manager::set_alert_queue_size_limit(int queue_size_limit_)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		recursive_mutex::scoped_lock lock(m_mutex);
 
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;

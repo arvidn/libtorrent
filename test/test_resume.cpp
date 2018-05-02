@@ -99,9 +99,9 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["super_seeding"] = 0;
 	rd["added_time"] = 1347;
 	rd["completed_time"] = 1348;
-	rd["last_scrape"] = 1349;
-	rd["last_download"] = 1350;
-	rd["last_upload"] = 1351;
+	rd["last_scrape"] = 1;
+	rd["last_download"] = 2;
+	rd["last_upload"] = 3;
 	rd["finished_time"] = 1352;
 	if (file_priorities && file_priorities[0])
 	{
@@ -177,14 +177,15 @@ void default_tests(torrent_status const& s)
 	// allow some slack in the time stamps since they are reported as
 	// relative times. If the computer is busy while running the unit test
 	// or running under valgrind it may take several seconds
-	TEST_CHECK(s.last_scrape >= 1349);
-	TEST_CHECK(s.time_since_download >= 1350);
-	TEST_CHECK(s.time_since_upload >= 1351);
+	int const now = duration_cast<seconds>(clock_type::now().time_since_epoch()).count();
+	TEST_CHECK(s.last_scrape >= now - 1);
+	TEST_CHECK(s.time_since_download >= now - 2);
+	TEST_CHECK(s.time_since_upload >= now - 3);
 	TEST_CHECK(s.active_time >= 1339);
 
-	TEST_CHECK(s.last_scrape < 1349 + 10);
-	TEST_CHECK(s.time_since_download < 1350 + 10);
-	TEST_CHECK(s.time_since_upload < 1351 + 10);
+	TEST_CHECK(s.last_scrape < now - 1 + 10);
+	TEST_CHECK(s.time_since_download < now - 2 + 10);
+	TEST_CHECK(s.time_since_upload < now - 3 + 10);
 	TEST_CHECK(s.active_time < 1339 + 10);
 
 	TEST_CHECK(s.finished_time >= 1352);

@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.6
+:Version: 1.1.7
 
 .. contents:: Table of contents
   :depth: 2
@@ -107,19 +107,19 @@ network
 
 
 .. _`DHT extensions`: dht_extensions.html
-.. _`BEP 5`: http://bittorrent.org/beps/bep_0005.html
-.. _`BEP 7`: http://bittorrent.org/beps/bep_0007.html
-.. _`BEP 9`: http://bittorrent.org/beps/bep_0009.html
-.. _`BEP 10`: http://bittorrent.org/beps/bep_0010.html
-.. _`BEP 12`: http://bittorrent.org/beps/bep_0012.html
-.. _`BEP 15`: http://bittorrent.org/beps/bep_0015.html
-.. _`BEP 16`: http://bittorrent.org/beps/bep_0016.html
-.. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
-.. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
-.. _`BEP 21`: http://bittorrent.org/beps/bep_0021.html
-.. _`BEP 24`: http://bittorrent.org/beps/bep_0024.html
-.. _`BEP 27`: http://bittorrent.org/beps/bep_0027.html
-.. _`BEP 29`: http://bittorrent.org/beps/bep_0029.html
+.. _`BEP 5`: https://bittorrent.org/beps/bep_0005.html
+.. _`BEP 7`: https://bittorrent.org/beps/bep_0007.html
+.. _`BEP 9`: https://bittorrent.org/beps/bep_0009.html
+.. _`BEP 10`: https://bittorrent.org/beps/bep_0010.html
+.. _`BEP 12`: https://bittorrent.org/beps/bep_0012.html
+.. _`BEP 15`: https://bittorrent.org/beps/bep_0015.html
+.. _`BEP 16`: https://bittorrent.org/beps/bep_0016.html
+.. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html
+.. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html
+.. _`BEP 21`: https://bittorrent.org/beps/bep_0021.html
+.. _`BEP 24`: https://bittorrent.org/beps/bep_0024.html
+.. _`BEP 27`: https://bittorrent.org/beps/bep_0027.html
+.. _`BEP 29`: https://bittorrent.org/beps/bep_0029.html
 .. _`extension protocol`: extension_protocol.html
 
 highlighted features

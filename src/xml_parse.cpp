@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2016, Arvid Norberg
+Copyright (c) 2007-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,12 +40,12 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void xml_parse(char const* p, char const* end
 		, boost::function<void(int,char const*,int,char const*,int)> callback)
 	{
-		for(;p != end; ++p)
+		for (;p != end; ++p)
 		{
 			char const* start = p;
 			int token;
 			// look for tag start
-			for(; p != end && *p != '<'; ++p);
+			for (; p != end && *p != '<'; ++p);
 
 			if (p != start)
 			{
@@ -144,11 +144,11 @@ namespace libtorrent
 				char const* val_start = NULL;
 
 				// find start of attribute name
-				for (; i != tag_end && is_space(*i); ++i);
+				while (i != tag_end && is_space(*i)) ++i;
 				if (i == tag_end) break;
 				start = i;
 				// find end of attribute name
-				for (; i != tag_end && *i != '=' && !is_space(*i); ++i);
+				while (i != tag_end && *i != '=' && !is_space(*i)) ++i;
 				const int name_len = i - start;
 
 				// look for equality sign
@@ -164,7 +164,7 @@ namespace libtorrent
 				}
 
 				++i;
-				for (; i != tag_end && is_space(*i); ++i);
+				while (i != tag_end && is_space(*i)) ++i;
 				// check for parse error (values must be quoted)
 				if (i == tag_end || (*i != '\'' && *i != '\"'))
 				{

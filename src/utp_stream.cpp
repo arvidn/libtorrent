@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2016, Arvid Norberg
+Copyright (c) 2009-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -135,9 +135,6 @@ void set_utp_stream_logging(bool enable) {
 enum
 {
 	ACK_MASK = 0xffff,
-
-	// the number of packets that'll fit in the reorder buffer
-	max_packets_reorder = 512,
 
 	// if a packet receives more than this number of
 	// duplicate acks, we'll trigger a fast re-send
@@ -281,7 +278,7 @@ struct utp_socket_impl
 		, m_written(0)
 		, m_receive_buffer_size(0)
 		, m_read_buffer_size(0)
-		, m_in_buf_size(1024 * 1024)
+		, m_receive_buffer_capacity(1024 * 1024)
 		, m_in_packets(0)
 		, m_out_packets(0)
 		, m_send_delay(0)
@@ -315,6 +312,8 @@ struct utp_socket_impl
 		, m_stalled(false)
 		, m_confirmed(false)
 	{
+		TORRENT_ASSERT((m_recv_id == ((m_send_id + 1) & 0xffff))
+			|| (m_send_id == ((m_recv_id + 1) & 0xffff)));
 		m_sm->inc_stats_counter(counters::num_utp_idle);
 		TORRENT_ASSERT(m_userdata);
 		for (int i = 0; i != num_delay_hist; ++i)
@@ -530,7 +529,7 @@ public:
 	boost::int32_t m_read_buffer_size;
 
 	// max number of bytes to allocate for receive buffer
-	boost::int32_t m_in_buf_size;
+	boost::int32_t m_receive_buffer_capacity;
 
 	// this holds the 3 last delay measurements,
 	// these are the actual corrected delay measurements.
@@ -1790,16 +1789,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 			m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 	}
 
-	int sack = 0;
-	if (m_inbuf.size())
-	{
-		// the SACK bitfield should ideally fit all
-		// the pieces we have successfully received
-		sack = (m_inbuf.span() + 7) / 8;
-		if (sack > 32) sack = 32;
-	}
-
-	boost::uint32_t const close_reason = m_close_reason;
 
 	// MTU DISCOVERY
 
@@ -1813,13 +1802,29 @@ bool utp_socket_impl::send_pkt(int const flags)
 		&& m_write_buffer_size >= m_mtu_floor * 3
 		&& m_seq_nr != 0
 		&& (m_cwnd >> 16) > m_mtu_floor * 3);
+	// for non MTU-probes, use the conservative packet size
+	int const effective_mtu = mtu_probe ? m_mtu : m_mtu_floor;
+
+	boost::uint32_t const close_reason = m_close_reason;
+
+	int sack = 0;
+	if (m_inbuf.size())
+	{
+		const int max_sack_size = effective_mtu
+			- sizeof(utp_header)
+			- 2 // for sack padding/header
+			- (close_reason ? 6 : 0);
+
+		// the SACK bitfield should ideally fit all
+		// the pieces we have successfully received
+		sack = (m_inbuf.span() + 7) / 8;
+		if (sack > max_sack_size) sack = max_sack_size;
+	}
 
 	int const header_size = sizeof(utp_header)
 		+ (sack ? sack + 2 : 0)
 		+ (close_reason ? 6 : 0);
 
-	// for non MTU-probes, use the conservative packet size
-	int const effective_mtu = mtu_probe ? m_mtu : m_mtu_floor;
 	int payload_size = (std::min)(m_write_buffer_size
 		, effective_mtu - header_size);
 	TORRENT_ASSERT(payload_size >= 0);
@@ -1828,7 +1833,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// congestion window and the advertised receive window from
 	// the other end.
 	if (m_bytes_in_flight + payload_size > (std::min)(int(m_cwnd >> 16)
-		, int(m_adv_wnd - m_bytes_in_flight)))
+		, int(m_adv_wnd)))
 	{
 		// this means there's not enough room in the send window for
 		// another packet. We have to hold off sending this data.
@@ -2046,7 +2051,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	}
 
 	h->timestamp_difference_microseconds = m_reply_micro;
-	h->wnd_size = (std::max)(m_in_buf_size - m_buffered_incoming_bytes
+	h->wnd_size = (std::max)(m_receive_buffer_capacity - m_buffered_incoming_bytes
 		- m_receive_buffer_size, boost::int32_t(0));
 	h->ack_nr = m_ack_nr;
 
@@ -2547,7 +2552,7 @@ bool utp_socket_impl::consume_incoming_data(
 	}
 
 	if (m_read_buffer_size == 0
-		&& m_receive_buffer_size >= m_in_buf_size - m_buffered_incoming_bytes)
+		&& m_receive_buffer_size >= m_receive_buffer_capacity - m_buffered_incoming_bytes)
 	{
 		// if we don't have a buffer from the upper layer, and the
 		// number of queued up bytes, waiting for the upper layer,
@@ -2555,7 +2560,7 @@ bool utp_socket_impl::consume_incoming_data(
 		// more data packets
 		UTP_LOG("%8p: ERROR: our advertized window is not honored. "
 			"recv_buf: %d buffered_in: %d max_size: %d\n"
-			, static_cast<void*>(this), m_receive_buffer_size, m_buffered_incoming_bytes, m_in_buf_size);
+			, static_cast<void*>(this), m_receive_buffer_size, m_buffered_incoming_bytes, m_receive_buffer_capacity);
 		return false;
 	}
 
@@ -2563,7 +2568,7 @@ bool utp_socket_impl::consume_incoming_data(
 	{
 		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
 
-		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_in_buf_size)
+		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_receive_buffer_capacity)
 		{
 			UTP_LOGV("%8p: other end is not honoring our advertised window, dropping packet\n"
 				, static_cast<void*>(this));
@@ -2620,7 +2625,7 @@ bool utp_socket_impl::consume_incoming_data(
 			return true;
 		}
 
-		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_in_buf_size)
+		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_receive_buffer_capacity)
 		{
 			UTP_LOGV("%8p: other end is not honoring our advertised window, dropping packet %d\n"
 				, static_cast<void*>(this), int(ph->seq_nr));
@@ -2712,9 +2717,17 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 {
 	INVARIANT_CHECK;
 
-	utp_header const* ph = reinterpret_cast<utp_header const*>(buf);
-
 	m_sm->inc_stats_counter(counters::utp_packets_in);
+
+	if (size < sizeof(utp_header))
+	{
+		UTP_LOG("%8p: ERROR: incoming packet size too small:%d (ignored)\n"
+			, static_cast<void*>(this), size);
+		m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
+		return false;
+	}
+
+	utp_header const* ph = reinterpret_cast<utp_header const*>(buf);
 
 	if (ph->get_version() != 1)
 	{
@@ -2851,6 +2864,9 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 	if (ph->get_type() == ST_DATA)
 		m_sm->inc_stats_counter(counters::utp_payload_pkts_in);
+
+	// the number of packets that'll fit in the reorder buffer
+	const boost::uint32_t max_packets_reorder = std::max(16, m_receive_buffer_capacity / 1100);
 
 	if (m_state != UTP_STATE_NONE
 		&& m_state != UTP_STATE_SYN_SENT
@@ -3105,7 +3121,14 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 				UTP_LOGV("%8p: received ST_SYN state:%s seq_nr:%d ack_nr:%d\n"
 					, static_cast<void*>(this), socket_state_names[m_state], m_seq_nr, m_ack_nr);
 #endif
-				TORRENT_ASSERT(m_send_id == ph->connection_id);
+				if (m_send_id != ph->connection_id)
+				{
+#if TORRENT_UTP_LOG
+					UTP_LOGV("%8p: received invalid connection_id:%d expected: %d\n"
+						, static_cast<void*>(this), int(ph->connection_id), int(m_send_id));
+#endif
+					return false;
+				}
 				TORRENT_ASSERT(m_recv_id == ((m_send_id + 1) & 0xffff));
 
 				defer_ack();

@@ -59,9 +59,9 @@ symbols = \
 
 static_links = \
 {
-	".. _`BEP 3`: http://bittorrent.org/beps/bep_0003.html",
-	".. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html",
-	".. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html"
+	".. _`BEP 3`: https://bittorrent.org/beps/bep_0003.html",
+	".. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html",
+	".. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html"
 }
 
 anon_index = 0
@@ -1027,7 +1027,7 @@ for cat in categories:
 
 	out.write('''
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.6
+:Version: 1.1.7
 
 `home`__
 

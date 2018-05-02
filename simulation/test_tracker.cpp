@@ -33,6 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_swarm.hpp"
+#include "setup_transfer.hpp" // for addr()
+#include "utils.hpp" // for print_alerts
+#include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/http_server.hpp"
 #include "simulator/utils.hpp"
@@ -51,6 +54,12 @@ using chrono::duration_cast;
 
 // seconds
 const int duration = 10000;
+
+template <class T>
+boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
+{
+	return boost::make_shared<T>(*ptr);
+}
 
 void test_interval(int interval)
 {
@@ -746,7 +755,7 @@ boost::shared_ptr<torrent_info> make_torrent(bool priv)
 {
 	file_storage fs;
 	fs.add_file("foobar", 13241);
-	create_torrent ct(fs);
+	lt::create_torrent ct(fs);
 
 	ct.add_tracker("http://tracker.com:8080/announce");
 
@@ -905,6 +914,112 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_private_torrent)
 		, [](torrent_handle h) {}
 		, [](torrent_handle h) {});
 	TEST_EQUAL(got_announce, true);
+}
+
+// This test sets up two peers, one seed an one downloader. The downloader has
+// two trackers, both in tier 0. The behavior we expect is that it picks one of
+// the trackers at random and announces to it. Since both trackers are working,
+// it should not announce to the tracker it did not initially pick.
+
+// #error parameterize this test over adding the trackers into different tiers
+// and setting "announce_to_all_tiers"
+
+TORRENT_TEST(tracker_tiers)
+{
+	using namespace libtorrent;
+
+	char const* peer0_ip = "50.0.0.1";
+	char const* peer1_ip = "50.0.0.2";
+
+	using asio::ip::address;
+	address peer0 = addr(peer0_ip);
+	address peer1 = addr(peer1_ip);
+
+	// setup the simulation
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_service ios0 { sim, peer0 };
+	sim::asio::io_service ios1 { sim, peer1 };
+
+	sim::asio::io_service tracker1(sim, address_v4::from_string("3.0.0.1"));
+	sim::asio::io_service tracker2(sim, address_v4::from_string("3.0.0.2"));
+	sim::http_server http1(tracker1, 8080);
+	sim::http_server http2(tracker2, 8080);
+
+	bool received_announce[2] = {false, false};
+	http1.register_handler("/announce"
+		, [&](std::string method, std::string req
+		, std::map<std::string, std::string>&)
+	{
+		received_announce[0] = true;
+		std::string ret = "d8:intervali60e5:peers0:e";
+		return sim::send_response(200, "OK", ret.size()) + ret;
+	});
+
+	http2.register_handler("/announce"
+		, [&](std::string method, std::string req
+		, std::map<std::string, std::string>&)
+	{
+		received_announce[1] = true;
+		std::string ret = "d8:intervali60e5:peers0:e";
+		return sim::send_response(200, "OK", ret.size()) + ret;
+	});
+
+	lt::session_proxy zombie[2];
+
+	// setup settings pack to use for the session (customization point)
+	lt::settings_pack pack = settings();
+	// create session
+	std::shared_ptr<lt::session> ses[2];
+	pack.set_str(settings_pack::listen_interfaces, peer0_ip + std::string(":6881"));
+	ses[0] = std::make_shared<lt::session>(pack, ios0);
+
+	pack.set_str(settings_pack::listen_interfaces, peer1_ip + std::string(":6881"));
+	ses[1] = std::make_shared<lt::session>(pack, ios1);
+
+	// only monitor alerts for session 0 (the downloader)
+	print_alerts(*ses[0], [=](lt::session& ses, lt::alert const* a) {
+		if (auto ta = alert_cast<lt::add_torrent_alert>(a))
+		{
+			ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
+		}
+	});
+
+	print_alerts(*ses[1]);
+
+	// the first peer is a downloader, the second peer is a seed
+	lt::add_torrent_params params = ::create_torrent(1);
+	auto ti2 = clone_ptr(params.ti);
+	params.flags &= ~lt::add_torrent_params::flag_auto_managed;
+	params.flags &= ~lt::add_torrent_params::flag_paused;
+
+	// These trackers are in the same tier. libtorrent is expected to pick one at
+	// random and stick to it, never announce to the other one.
+	params.ti->add_tracker("http://3.0.0.1:8080/announce", 0);
+	params.ti->add_tracker("http://3.0.0.2:8080/announce", 0);
+	params.save_path = save_path(0);
+	ses[0]->async_add_torrent(params);
+
+	params.ti = ti2;
+	params.save_path = save_path(1);
+	ses[1]->async_add_torrent(params);
+
+	sim::timer t(sim, lt::minutes(30), [&](boost::system::error_code const& ec)
+	{
+		TEST_CHECK(received_announce[0] != received_announce[1]);
+		TEST_CHECK(ses[0]->get_torrents()[0].status().is_seeding);
+		TEST_CHECK(ses[1]->get_torrents()[0].status().is_seeding);
+
+		// shut down
+		int idx = 0;
+		for (auto& s : ses)
+		{
+			zombie[idx++] = s->abort();
+			s.reset();
+		}
+	});
+
+	sim.run();
 }
 
 // TODO: test external IP

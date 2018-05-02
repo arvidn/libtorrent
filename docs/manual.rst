@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.6
+:Version: 1.1.7
 
 .. contents:: Table of contents
   :depth: 1
@@ -109,7 +109,7 @@ with an associated port.
 
 For documentation on these types, please refer to the `asio documentation`_.
 
-.. _`asio documentation`: http://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio.html
+.. _`asio documentation`: https://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio.html
 
 exceptions
 ==========
@@ -459,6 +459,15 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | torrent when the resume data was last saved. This is used as |
 |                          | an initial estimate until we acquire up-to-date scrape info. |
 +--------------------------+--------------------------------------------------------------+
+| ``last_upload``          | integer. The number of seconds since epoch when we last      |
+|                          | uploaded payload to a peer on this torrent.                  |
++--------------------------+--------------------------------------------------------------+
+| ``last_download``        | integer. The number of seconds since epoch when we last      |
+|                          | downloaded payload from a peer on this torrent.              |
++--------------------------+--------------------------------------------------------------+
+| ``last_scrape``          | integer. The number of seconds since epoch when we last sent |
+|                          | a scrape request to a tracker on this torrent.               |
++--------------------------+--------------------------------------------------------------+
 | ``upload_rate_limit``    | integer. In case this torrent has a per-torrent upload rate  |
 |                          | limit, this is that limit. In bytes per second.              |
 +--------------------------+--------------------------------------------------------------+
@@ -635,8 +644,8 @@ torrent, only that filename is appended. If the torrent is a multi-file
 torrent, the torrent's name '/' the file name is appended. This is the same
 directory structure that libtorrent will download torrents into.
 
-.. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
-.. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
+.. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html
+.. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html
 
 dynamic loading of torrent files
 ================================
@@ -981,7 +990,7 @@ torrents it distributes, and issue separate peer certificates for each torrent.
 A peer receiving a certificate will not necessarily be able to access all
 torrents published by this root certificate (only if it has a "star cert").
 
-.. _`RFC 2818`: http://www.ietf.org/rfc/rfc2818.txt
+.. _`RFC 2818`: https://www.ietf.org/rfc/rfc2818.txt
 
 testing
 -------
