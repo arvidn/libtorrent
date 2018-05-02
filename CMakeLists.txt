@@ -822,6 +822,13 @@ install(
 		${ConfigPackageLocation}
 )
 
+install(
+	FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/examples/cmake/FindLibtorrentRasterbar.cmake
+	DESTINATION
+		${CMAKE_INSTALL_DATADIR}/cmake/Modules
+)
+
 # === build tools ===
 if (build_tools)
 	add_subdirectory(tools)
