@@ -1094,7 +1094,6 @@ namespace {
 			int const num_nodes = merkle_num_nodes(num_leafs);
 			m_merkle_first_leaf = num_nodes - num_leafs;
 			m_merkle_tree.resize(num_nodes);
-			std::memset(m_merkle_tree.data(), 0, aux::numeric_cast<std::size_t>(num_nodes * 20));
 			m_merkle_tree[0].assign(root_hash.string_ptr());
 		}
 

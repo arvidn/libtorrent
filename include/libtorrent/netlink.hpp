@@ -88,7 +88,7 @@ namespace libtorrent {
 
 		data_type* data()
 		{
-			return &m_sockaddr;
+			return reinterpret_cast<data_type*>(&m_sockaddr);
 		}
 
 		const data_type* data() const

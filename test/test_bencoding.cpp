@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <cstring>
+#include <utility>
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
@@ -629,12 +630,17 @@ TORRENT_TEST(lazy_entry)
 
 		for (int i = 0; i < int(sizeof(b)/sizeof(b[0])); ++i)
 		{
-			lazy_entry e;
+			lazy_entry tmp;
 			error_code ec;
-			int ret = lazy_bdecode(b[i], b[i] + strlen(b[i]), e, ec, nullptr);
+			int ret = lazy_bdecode(b[i], b[i] + strlen(b[i]), tmp, ec, nullptr);
+			lazy_entry e;
+			e = std::move(tmp);
 			TEST_EQUAL(ret, -1);
 			TEST_CHECK(ec == error_code(bdecode_errors::unexpected_eof));
 			std::printf("%s\n", print_entry(e).c_str());
+
+			lazy_entry* moved = new lazy_entry(std::move(e));
+			delete moved;
 		}
 	}
 }

@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/bdecode.hpp" // for error codes
 #include "libtorrent/string_util.hpp" // for is_digit
+#include <algorithm>
 #include <cstring> // for memset
 #include <limits> // for numeric_limits
 #include <cstdio> // for snprintf
@@ -266,8 +267,7 @@ namespace {
 			int const capacity = this->capacity() * lazy_entry_grow_factor / 100;
 			auto* tmp = new (std::nothrow) lazy_dict_entry[capacity + 1];
 			if (tmp == nullptr) return nullptr;
-			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * (m_size + 1));
-			for (int i = 0; i < int(m_size); ++i) m_data.dict[i + 1].val.release();
+			std::move(m_data.dict, m_data.dict + m_size + 1, tmp);
 
 			delete[] m_data.dict;
 			m_data.dict = tmp;
@@ -437,8 +437,7 @@ namespace {
 			int const capacity = this->capacity() * lazy_entry_grow_factor / 100;
 			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity + 1];
 			if (tmp == nullptr) return nullptr;
-			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * (m_size + 1));
-			for (int i = 0; i < int(m_size); ++i) m_data.list[i + 1].release();
+			std::move(m_data.list, m_data.list + m_size + 1, tmp);
 
 			delete[] m_data.list;
 			m_data.list = tmp;
@@ -490,6 +489,18 @@ namespace {
 	std::pair<char const*, int> lazy_entry::data_section() const
 	{
 		return {m_begin, m_len};
+	}
+
+	lazy_entry::lazy_entry(lazy_entry&& other)
+		: lazy_entry()
+	{
+		this->swap(other);
+	}
+
+	lazy_entry& lazy_entry::operator=(lazy_entry&& other)
+	{
+		this->swap(other);
+		return *this;
 	}
 
 	namespace {

@@ -354,6 +354,9 @@ namespace libtorrent {
 			swap(m_len, e.m_len);
 		}
 
+		lazy_entry(lazy_entry&&);
+		lazy_entry& operator=(lazy_entry&&);
+
 	private:
 
 		int capacity() const;
@@ -382,13 +385,13 @@ namespace libtorrent {
 		std::uint32_t m_type:3;
 
 		// non-copyable
-		lazy_entry(lazy_entry const&);
-		lazy_entry const& operator=(lazy_entry const&);
+		lazy_entry(lazy_entry const&) = delete;
+		lazy_entry const& operator=(lazy_entry const&) = delete;
 	};
 
 	struct TORRENT_DEPRECATED lazy_dict_entry
 	{
-		char const* name;
+		char const* name = nullptr;
 		lazy_entry val;
 	};
 
