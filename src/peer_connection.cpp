@@ -5459,21 +5459,19 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-#if TORRENT_NO_FPU
-		int const tick_interval = (std::max)(1, m_settings.get_int(settings_pack::tick_interval) / 1000);
-#else
-		float const tick_interval = m_settings.get_int(settings_pack::tick_interval) / 1000.f;
-#endif
+		const int tick_interval = (std::max)(1, m_settings.get_int(settings_pack::tick_interval));
 
 		if (channel == download_channel)
 		{
-			return std::max((std::max)(m_outstanding_bytes, m_recv_buffer.packet_bytes_remaining())
-				+ 30, static_cast<int>(m_statistics.download_rate() * tick_interval));
+			boost::int64_t const download_rate = boost::int64_t(m_statistics.download_rate()) * 3 / 4;
+			return std::max(int(download_rate * tick_interval) / 1000,
+				(std::max)(m_outstanding_bytes, m_recv_buffer.packet_bytes_remaining()) + 30);
 		}
 		else
 		{
-			return std::max((std::max)(m_reading_bytes, m_send_buffer.size()),
-				static_cast<int>(m_statistics.upload_rate() * tick_interval));
+			boost::int64_t const upload_rate = boost::int64_t(m_statistics.upload_rate()) * 2;
+			return std::max(int(upload_rate * tick_interval) / 1000,
+				(std::max)(m_reading_bytes, m_send_buffer.size()));
 		}
 	}
 
@@ -5559,10 +5557,8 @@ namespace libtorrent
 	void peer_connection::setup_send()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (m_disconnecting) return;
 
-		// guard BEP17 and BEP19 seeds with depleted send buffer
-		if (type() != bittorrent_connection && m_send_buffer.empty()) return;
+		if (m_disconnecting || m_send_buffer.empty()) return;
 
 		// we may want to request more quota at this point
 		request_bandwidth(upload_channel);
