@@ -5463,7 +5463,7 @@ namespace libtorrent
 
 		if (channel == download_channel)
 		{
-			boost::int64_t const download_rate = boost::int64_t(m_statistics.download_rate()) * 3 / 4;
+			boost::int64_t const download_rate = boost::int64_t(m_statistics.download_rate()) * 3 / 2;
 			return std::max(int(download_rate * tick_interval) / 1000,
 				(std::max)(m_outstanding_bytes, m_recv_buffer.packet_bytes_remaining()) + 30);
 		}
