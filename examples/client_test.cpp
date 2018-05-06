@@ -1668,6 +1668,7 @@ COLUMN OPTIONS
 					, short_progress_bar + (8 - std::min(8, n.num_replacements)));
 				out += str;
 				pos += 1;
+				++bucket;
 			}
 
 			for (lt::dht_lookup const& l : dht_active_requests)
