@@ -67,7 +67,7 @@ namespace libtorrent
 	// internal
 	void sleep(int milliseconds);
 
-	struct recursive_mutex;
+	struct TORRENT_EXTRA_EXPORT recursive_mutex;
 
 	struct TORRENT_EXTRA_EXPORT condition_variable
 	{
@@ -108,7 +108,7 @@ namespace libtorrent
 #endif
 
 	// internal
-	struct recursive_mutex
+	struct TORRENT_EXTRA_EXPORT recursive_mutex
 	{
 		typedef boost::asio::detail::scoped_lock<recursive_mutex> scoped_lock;
 
