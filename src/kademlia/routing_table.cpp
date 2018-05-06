@@ -265,7 +265,7 @@ node_entry const* routing_table::next_refresh()
 		}
 
 		if (i == m_buckets.rbegin()
-			|| int(i->live_nodes.size()) < bucket_limit(std::distance(i, end) - 1))
+			|| int(i->live_nodes.size()) < bucket_limit(int(std::distance(i, end)) - 1))
 		{
 			// this bucket isn't full or it can be split
 			// check for an unpinged replacement
