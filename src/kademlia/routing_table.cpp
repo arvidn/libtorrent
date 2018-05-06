@@ -263,6 +263,21 @@ node_entry const* routing_table::next_refresh()
 				candidate = &n;
 			}
 		}
+
+		if (i == m_buckets.rbegin()
+			|| int(i->live_nodes.size()) < bucket_limit(std::distance(i, end) - 1))
+		{
+			// this bucket isn't full or it can be split
+			// check for an unpinged replacement
+			// node which may be eligible for the live bucket if confirmed
+			auto r = std::find_if(i->replacements.begin(), i->replacements.end()
+				, [](node_entry const& e) { return !e.pinged() && e.last_queried == min_time(); });
+			if (r != i->replacements.end())
+			{
+				candidate = &*r;
+				goto out;
+			}
+		}
 	}
 out:
 
@@ -367,7 +382,7 @@ void routing_table::fill_from_replacements(table_t::iterator bucket)
 	while (int(b.size()) < bucket_size && !rb.empty())
 	{
 		auto j = std::find_if(rb.begin(), rb.end(), std::bind(&node_entry::pinged, _1));
-		if (j == rb.end()) j = rb.begin();
+		if (j == rb.end()) break;
 		b.push_back(*j);
 		rb.erase(j);
 	}
@@ -487,6 +502,9 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 				existing->update_rtt(e.rtt);
 				existing->last_queried = e.last_queried;
 			}
+			// if this was a replacement node it may be elligible for
+			// promotion to the live bucket
+			fill_from_replacements(existing_bucket);
 			return node_added;
 		}
 		else if (existing->id.is_all_zeros())
@@ -614,11 +632,11 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 ip_ok:
 
 	// can we split the bucket?
-	// only nodes that haven't failed can split the bucket, and we can only
+	// only nodes that have been confirmed can split the bucket, and we can only
 	// split the last bucket
 	bool const can_split = (std::next(i) == m_buckets.end()
 		&& m_buckets.size() < 159)
-		&& e.fail_count() == 0
+		&& e.confirmed()
 		&& (i == m_buckets.begin() || std::prev(i)->live_nodes.size() > 1);
 
 	// if there's room in the main bucket, just insert it
@@ -626,7 +644,7 @@ ip_ok:
 	// bucket's size limit. This makes use split the low-numbered buckets split
 	// earlier when we have larger low buckets, to make it less likely that we
 	// lose nodes
-	if (int(b.size()) < (can_split ? next_bucket_size_limit : bucket_size_limit))
+	if (e.pinged() && int(b.size()) < (can_split ? next_bucket_size_limit : bucket_size_limit))
 	{
 		if (b.empty()) b.reserve(bucket_size_limit);
 		b.push_back(e);
@@ -634,9 +652,7 @@ ip_ok:
 		return node_added;
 	}
 
-	// if there is no room, we look for nodes that are not 'pinged',
-	// i.e. we haven't confirmed that they respond to messages.
-	// Then we look for nodes marked as stale
+	// if there is no room, we look for nodes marked as stale
 	// in the k-bucket. If we find one, we can replace it.
 	// then we look for nodes with the same 3 bit prefix (or however
 	// many bits prefix the bucket size warrants). If there is no other
@@ -644,24 +660,8 @@ ip_ok:
 	// as the last replacement strategy, if the node we found matching our
 	// bit prefix has higher RTT than the new node, replace it.
 
-	if (e.pinged() && e.fail_count() == 0)
+	if (e.confirmed())
 	{
-		// if the node we're trying to insert is considered pinged,
-		// we may replace other nodes that aren't pinged
-
-		j = std::find_if(b.begin(), b.end()
-			, [](node_entry const& ne) { return !ne.pinged(); });
-
-		if (j != b.end() && !j->pinged())
-		{
-			// j points to a node that has not been pinged.
-			// Replace it with this new one
-			m_ips.erase(j->addr());
-			*j = e;
-			m_ips.insert(e.addr());
-			return node_added;
-		}
-
 		// A node is considered stale if it has failed at least one
 		// time. Here we choose the node that has failed most times.
 		// If we don't find one, place this node in the replacement-
@@ -899,7 +899,7 @@ void routing_table::split_bucket()
 	{
 		if (distance_exp(m_id, j->id) >= 159 - bucket_index)
 		{
-			if (int(b.size()) >= bucket_size_limit)
+			if (!j->pinged() || int(b.size()) >= bucket_size_limit)
 			{
 				++j;
 				continue;
@@ -909,7 +909,7 @@ void routing_table::split_bucket()
 		else
 		{
 			// this entry belongs in the new bucket
-			if (int(new_bucket.size()) < new_bucket_size)
+			if (j->pinged() && int(new_bucket.size()) < new_bucket_size)
 				new_bucket.push_back(*j);
 			else
 				new_replacement_bucket.push_back(*j);
@@ -1147,6 +1147,7 @@ void routing_table::check_invariant() const
 		for (auto const& j : i.live_nodes)
 		{
 			TORRENT_ASSERT(j.addr().is_v4() == i.live_nodes.begin()->addr().is_v4());
+			TORRENT_ASSERT(j.pinged());
 			all_ips.insert(j.addr());
 		}
 	}
