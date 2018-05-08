@@ -2332,7 +2332,7 @@ bool is_downloading_state(int const st)
 			flags |= disk_interface::v1_hash;
 			std::vector<sha256_hash> hashes;
 			if (torrent_file().info_hash().has_v2())
-			hashes.resize((torrent_file().files().piece_size2(m_checking_piece) + default_block_size - 1) / default_block_size);
+			hashes.resize((torrent_file().orig_files().piece_size2(m_checking_piece) + default_block_size - 1) / default_block_size);
 
 			span<sha256_hash> v2_span(hashes);
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
@@ -2497,7 +2497,7 @@ bool is_downloading_state(int const st)
 			if (torrent_file().info_hash().has_v1())
 			flags |= disk_interface::v1_hash;
 			if (torrent_file().info_hash().has_v2())
-			block_hashes.resize((torrent_file().files().piece_size2(m_checking_piece) + default_block_size - 1) / default_block_size);
+			block_hashes.resize((torrent_file().orig_files().piece_size2(m_checking_piece) + default_block_size - 1) / default_block_size);
 
 			span<sha256_hash> v2_span(block_hashes);
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
@@ -10572,7 +10572,7 @@ bool is_downloading_state(int const st)
 		std::vector<sha256_hash> hashes;
 		if (check_v2 && torrent_file().info_hash().has_v2())
 		{
-			hashes.resize((torrent_file().files().piece_size2(m_checking_piece) + default_block_size - 1) / default_block_size);
+			hashes.resize((torrent_file().orig_files().piece_size2(piece) + default_block_size - 1) / default_block_size);
 		}
 
 		span<sha256_hash> v2_span(hashes);

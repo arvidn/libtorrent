@@ -5202,7 +5202,7 @@ namespace libtorrent {
 				std::vector<sha256_hash> hashes;
 				if (t->torrent_file().info_hash().has_v2())
 				{
-					auto const piece_size = t->torrent_file().files().piece_size2(r.piece);
+					auto const piece_size = t->torrent_file().orig_files().piece_size2(r.piece);
 					hashes.resize((piece_size + default_block_size - 1) / default_block_size);
 				}
 

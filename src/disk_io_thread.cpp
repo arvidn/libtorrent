@@ -885,7 +885,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		bool v2 = !j->d.h.chunk_hashes.empty();
 
 		int const piece_size = v1 ? j->storage->files().piece_size(j->piece) : 0;
-		int const piece_size2 = v2 ? j->storage->files().piece_size2(j->piece) : 0;
+		int const piece_size2 = v2 ? j->storage->orig_files().piece_size2(j->piece) : 0;
 		int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
 		int const blocks_in_piece2 = v2 ? (piece_size2 + default_block_size - 1) / default_block_size : 0;
 		aux::open_mode_t const file_flags = file_flags_for_job(j);
