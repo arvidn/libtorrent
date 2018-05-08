@@ -107,8 +107,6 @@ namespace libtorrent {
 				auto& ret_dict = ret_trees.back().dict();
 				auto& ret_tree = ret_dict["hashes"].string();
 
-				TORRENT_ASSERT(!tree[0].is_all_zeros());
-
 				ret_tree.reserve(tree.size() * 32);
 				for (auto const& n : tree)
 					ret_tree.append(n.data(), n.size());
