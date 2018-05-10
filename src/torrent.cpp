@@ -6563,8 +6563,11 @@ bool is_downloading_state(int const st)
 			if (settings().get_bool(settings_pack::enable_outgoing_utp)
 				&& (!settings().get_bool(settings_pack::enable_outgoing_tcp)
 					|| peerinfo->supports_utp
-					|| peerinfo->confirmed_supports_utp))
+					|| peerinfo->confirmed_supports_utp)
+				&& m_ses.has_udp_outgoing_sockets())
+			{
 				sm = m_ses.utp_socket_manager();
+			}
 
 			// don't make a TCP connection if it's disabled
 			if (sm == nullptr && !settings().get_bool(settings_pack::enable_outgoing_tcp))

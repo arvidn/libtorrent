@@ -691,6 +691,7 @@ namespace aux {
 			mutable std::condition_variable cond;
 
 			// implements session_interface
+			bool has_udp_outgoing_sockets() const override;
 			tcp::endpoint bind_outgoing_socket(socket_type& s, address
 				const& remote_address, error_code& ec) const override;
 			bool verify_incoming_interface(address const& addr);
