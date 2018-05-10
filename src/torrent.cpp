@@ -4900,7 +4900,7 @@ bool is_downloading_state(int const st)
 		bool const was_finished = is_finished();
 		for (auto const& p : pieces)
 		{
-			static_assert(std::is_unsigned<decltype(p.second)>::value
+			static_assert(std::is_unsigned<decltype(p.second)::underlying_type>::value
 				, "we need assert p.second >= dont_download");
 			TORRENT_ASSERT(p.second <= top_priority);
 			TORRENT_ASSERT(p.first >= piece_index_t(0));
@@ -4910,7 +4910,7 @@ bool is_downloading_state(int const st)
 				|| p.first >= m_torrent_file->end_piece()
 				|| p.second > top_priority)
 			{
-				static_assert(std::is_unsigned<decltype(p.second)>::value
+				static_assert(std::is_unsigned<decltype(p.second)::underlying_type>::value
 					, "we need additional condition: p.second < dont_download");
 				continue;
 			}
@@ -4953,7 +4953,7 @@ bool is_downloading_state(int const st)
 		bool const was_finished = is_finished();
 		for (auto prio : pieces)
 		{
-			static_assert(std::is_unsigned<decltype(prio)>::value
+			static_assert(std::is_unsigned<decltype(prio)::underlying_type>::value
 				, "we need assert prio >= dont_download");
 			TORRENT_ASSERT(prio <= top_priority);
 			filter_updated |= m_picker->set_piece_priority(index, prio);
