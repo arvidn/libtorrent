@@ -3832,7 +3832,6 @@ namespace libtorrent
 		}
 #endif
 
-
 		if (m_sent_suggested_pieces.empty())
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
