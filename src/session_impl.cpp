@@ -4964,6 +4964,11 @@ namespace aux {
 #endif
 	}
 
+	bool session_impl::has_udp_outgoing_sockets() const
+	{
+		return !m_outgoing_sockets.sockets.empty();
+	}
+
 	tcp::endpoint session_impl::bind_outgoing_socket(socket_type& s, address
 		const& remote_address, error_code& ec) const
 	{
