@@ -2685,8 +2685,6 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
 #endif
-		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
-			|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 		++pe->piece_refcount;
 
 		int block_size = m_disk_cache.block_size();
