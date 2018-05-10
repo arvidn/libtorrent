@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/announce_entry.hpp"
 
@@ -96,5 +97,25 @@ TORRENT_TEST(piece_size)
 		lt::create_torrent ct(fs, 0);
 		TEST_CHECK(ct.piece_length() == static_cast<int>(t.second));
 	}
+}
+
+TORRENT_TEST(create_torrent_round_trip)
+{
+	char const test_torrent[] = "d8:announce26:udp://testurl.com/announce7:comment22:this is a test comment13:creation datei1337e4:infod6:lengthi12345e4:name6:foobar12:piece lengthi65536e6:pieces20:ababababababababababee";
+	lt::torrent_info info1(test_torrent, lt::from_span);
+	TEST_EQUAL(info1.comment(), "this is a test comment");
+	TEST_EQUAL(info1.trackers().size(), 1);
+	TEST_EQUAL(info1.trackers().front().url, "udp://testurl.com/announce");
+
+	lt::create_torrent t(info1);
+
+	std::vector<char> buffer;
+	lt::bencode(std::back_inserter(buffer), t.generate());
+	lt::torrent_info info2(buffer, lt::from_span);
+
+	TEST_EQUAL(info2.comment(), "this is a test comment");
+	TEST_EQUAL(info2.trackers().size(), 1);
+	TEST_EQUAL(info2.trackers().front().url, "udp://testurl.com/announce");
+	TEST_CHECK(info1.info_hash() == info2.info_hash());
 }
 

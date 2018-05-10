@@ -96,6 +96,25 @@ TORRENT_TEST(seed_mode_disable_hash_checks)
 		{ return false; });
 }
 
+TORRENT_TEST(seed_mode_suggest)
+{
+	setup_swarm(2, swarm_test::upload
+		// add session
+		, [](lt::settings_pack& pack) {
+			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+			pack.set_int(settings_pack::cache_size, 2);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.flags |= torrent_flags::seed_mode;
+		}
+		// on alert
+		, [](lt::alert const* a, lt::session& ses) {}
+		// terminate
+		, [](int ticks, lt::session& ses) -> bool
+		{ return true; });
+}
+
 TORRENT_TEST(plain)
 {
 	setup_swarm(2, swarm_test::download
@@ -167,6 +186,7 @@ TORRENT_TEST(suggest)
 		, [](lt::settings_pack& pack) {
 			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
 			pack.set_int(settings_pack::max_suggest_pieces, 10);
+			pack.set_int(settings_pack::cache_size, 2);
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}
@@ -362,7 +382,7 @@ TORRENT_TEST(stop_start_seed_graceful)
 
 TORRENT_TEST(shutdown)
 {
-	setup_swarm(2, swarm_test::download
+	setup_swarm(4, swarm_test::download
 		// add session
 		, [](lt::settings_pack&) {}
 		// add torrent
