@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
 #include <boost/make_shared.hpp>
 #include <cstring>
@@ -63,5 +64,25 @@ TORRENT_TEST(create_verbatim_torrent)
 	// +1 and -2 here is to strip the outermost dictionary from the source
 	// torrent, since create_torrent may have added items next to the info dict
 	TEST_CHECK(memcmp(dest_info, test_torrent + 1, sizeof(test_torrent)-3) == 0);
+}
+
+TORRENT_TEST(create_torrent_round_trip)
+{
+	char const test_torrent[] = "d8:announce26:udp://testurl.com/announce7:comment22:this is a test comment13:creation datei1337e4:infod6:lengthi12345e4:name6:foobar12:piece lengthi65536e6:pieces20:ababababababababababee";
+	lt::torrent_info info1(test_torrent, sizeof(test_torrent) - 1);
+	TEST_EQUAL(info1.comment(), "this is a test comment");
+	TEST_EQUAL(info1.trackers().size(), 1);
+	TEST_EQUAL(info1.trackers().front().url, "udp://testurl.com/announce");
+
+	lt::create_torrent t(info1, true);
+
+	std::vector<char> buffer;
+	lt::bencode(std::back_inserter(buffer), t.generate());
+	lt::torrent_info info2(&buffer[0], buffer.size());
+
+	TEST_EQUAL(info2.comment(), "this is a test comment");
+	TEST_EQUAL(info2.trackers().size(), 1);
+	TEST_EQUAL(info2.trackers().front().url, "udp://testurl.com/announce");
+	TEST_CHECK(info1.info_hash() == info2.info_hash());
 }
 
