@@ -12,7 +12,7 @@
 #  LibtorrentRasterbar_LIBRARIES - The libraries needed to use libtorrent-rasterbar
 #  LibtorrentRasterbar_DEFINITIONS - Compiler switches required for using libtorrent-rasterbar
 #  LibtorrentRasterbar_OPENSSL_ENABLED - libtorrent-rasterbar uses and links against OpenSSL
-#  Libtorrent::torrent-rasterbar imported target will be created
+#  LibtorrentRasterbar::torrent-rasterbar imported target will be created
 
 # Let's begin with the config mode
 
@@ -21,9 +21,7 @@ if (${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION_EXACT})
 	set(_exactKeyword "EXACT")
 endif()
 
-find_package(LibtorrentRasterbar ${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION} ${_exactKeyword} CONFIG
-	NAMES libtorrent-rasterbar LibtorrentRasterbar
-)
+find_package(LibtorrentRasterbar ${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION} ${_exactKeyword} CONFIG)
 
 if (LibtorrentRasterbar_FOUND)
 	if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
@@ -31,12 +29,12 @@ if (LibtorrentRasterbar_FOUND)
 		message(STATUS "LibtorrentRasterbar version: ${LibtorrentRasterbar_VERSION}")
 	endif()
 	# Extract target properties into this module variables
-	get_target_property(LibtorrentRasterbar_INCLUDE_DIRS Libtorrent::torrent-rasterbar INTERFACE_INCLUDE_DIRECTORIES)
-	get_target_property(LibtorrentRasterbar_LIBRARIES Libtorrent::torrent-rasterbar IMPORTED_LOCATION)
-	get_target_property(_iface_link_libs Libtorrent::torrent-rasterbar INTERFACE_LINK_LIBRARIES)
+	get_target_property(LibtorrentRasterbar_INCLUDE_DIRS LibtorrentRasterbar::torrent-rasterbar INTERFACE_INCLUDE_DIRECTORIES)
+	get_target_property(LibtorrentRasterbar_LIBRARIES LibtorrentRasterbar::torrent-rasterbar IMPORTED_LOCATION)
+	get_target_property(_iface_link_libs LibtorrentRasterbar::torrent-rasterbar INTERFACE_LINK_LIBRARIES)
 	list(APPEND LibtorrentRasterbar_LIBRARIES ${_iface_link_libs})
-	get_target_property(LibtorrentRasterbar_DEFINITIONS Libtorrent::torrent-rasterbar INTERFACE_COMPILE_DEFINITIONS)
-	get_target_property(_iface_compile_options Libtorrent::torrent-rasterbar INTERFACE_COMPILE_OPTIONS)
+	get_target_property(LibtorrentRasterbar_DEFINITIONS LibtorrentRasterbar::torrent-rasterbar INTERFACE_COMPILE_DEFINITIONS)
+	get_target_property(_iface_compile_options LibtorrentRasterbar::torrent-rasterbar INTERFACE_COMPILE_OPTIONS)
 	list(APPEND LibtorrentRasterbar_DEFINITIONS ${_iface_compile_options})
 	list(FIND _iface_link_libs "OpenSSL::SSL" _openssl_lib_index)
 	if (_openssl_lib_index GREATER -1)
@@ -127,10 +125,10 @@ else()
 		LibtorrentRasterbar_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES
 		LibtorrentRasterbar_ENCRYPTION_INDEX)
 
-	if (LibtorrentRasterbar_FOUND AND NOT TARGET Libtorrent::torrent-rasterbar)
-		add_library(Libtorrent::torrent-rasterbar SHARED IMPORTED)
+	if (LibtorrentRasterbar_FOUND AND NOT TARGET LibtorrentRasterbar::torrent-rasterbar)
+		add_library(LibtorrentRasterbar::torrent-rasterbar SHARED IMPORTED)
 
-		set_target_properties(Libtorrent::torrent-rasterbar PROPERTIES
+		set_target_properties(LibtorrentRasterbar::torrent-rasterbar PROPERTIES
 			IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
 			IMPORTED_LOCATION "${LibtorrentRasterbar_LIBRARY}"
 			INTERFACE_INCLUDE_DIRECTORIES "${LibtorrentRasterbar_INCLUDE_DIRS}"

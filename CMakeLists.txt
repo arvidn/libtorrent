@@ -780,7 +780,7 @@ include(CheckCXXCompilerFlag)
 
 add_subdirectory(bindings)
 
-install(TARGETS torrent-rasterbar EXPORT libtorrent-rasterbar-targets
+install(TARGETS torrent-rasterbar EXPORT LibtorrentRasterbarTargets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -789,7 +789,7 @@ install(DIRECTORY include/libtorrent DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FIL
 
 # === generate a CMake Config File ===
 include(CMakePackageConfigHelpers)
-set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/libtorrent-rasterbar)
+set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/LibtorrentRasterbar)
 string(REGEX REPLACE "([^;]+)" "find_dependency(\\1)" _find_dependency_calls "${_package_dependencies}")
 string(REPLACE ";" "\n" _find_dependency_calls "${_find_dependency_calls}")
 
@@ -800,33 +800,33 @@ else()
 endif()
 
 write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-config-version.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfigVersion.cmake"
 	VERSION ${libtorrent_VERSION}
 	COMPATIBILITY ${_compatibility}
 )
 
-export(EXPORT libtorrent-rasterbar-targets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-targets.cmake"
-	NAMESPACE Libtorrent::
+export(EXPORT LibtorrentRasterbarTargets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarTargets.cmake"
+	NAMESPACE LibtorrentRasterbar::
 )
 
-configure_package_config_file(libtorrent-rasterbar-config.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-config.cmake"
+configure_package_config_file(LibtorrentRasterbarConfig.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfig.cmake"
 	INSTALL_DESTINATION "${ConfigPackageLocation}"
 	NO_SET_AND_CHECK_MACRO
 	NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
 
-install(EXPORT libtorrent-rasterbar-targets
+install(EXPORT LibtorrentRasterbarTargets
 	NAMESPACE
-		Libtorrent::
+		LibtorrentRasterbar::
 	DESTINATION
 		${ConfigPackageLocation}
 )
 install(
 	FILES
-		"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-config.cmake"
-		"${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar/libtorrent-rasterbar-config-version.cmake"
+		"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfig.cmake"
+		"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfigVersion.cmake"
 	DESTINATION
 		${ConfigPackageLocation}
 )
