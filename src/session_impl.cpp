@@ -1660,9 +1660,6 @@ namespace aux {
 			(pack.has_val(settings_pack::ssl_listen)
 				&& pack.get_int(settings_pack::ssl_listen)
 					!= m_settings.get_int(settings_pack::ssl_listen))
-			|| (pack.has_val(settings_pack::force_proxy)
-				&& !pack.get_bool(settings_pack::force_proxy)
-				&& m_settings.get_bool(settings_pack::force_proxy))
 			|| (pack.has_val(settings_pack::listen_interfaces)
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
@@ -1880,8 +1877,7 @@ retry:
 		// TODO: instead of having a special case for this, just make the
 		// default listen interfaces be "0.0.0.0:6881,[::]:6881" and use
 		// the generic path. That would even allow for not listening at all.
-		if (m_listen_interfaces.empty()
-			&& !m_settings.get_bool(settings_pack::force_proxy))
+		if (m_listen_interfaces.empty())
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
@@ -1948,7 +1944,7 @@ retry:
 #endif // TORRENT_USE_IPV6
 
 		}
-		else if (!m_settings.get_bool(settings_pack::force_proxy))
+		else
 		{
 			// TODO: 2 the udp socket(s) should be using the same generic
 			// mechanism and not be restricted to a single one
@@ -1957,7 +1953,7 @@ retry:
 			for (int i = 0; i < m_listen_interfaces.size(); ++i)
 			{
 				std::string const& device = m_listen_interfaces[i].first;
-				int port = m_listen_interfaces[i].second;
+				int const port = m_listen_interfaces[i].second;
 
 				int num_device_fails = 0;
 
@@ -2005,7 +2001,6 @@ retry:
 #endif
 							m_ipv4_interface = bind_ep;
 					}
-
 #ifdef TORRENT_USE_OPENSSL
 					if (m_settings.get_int(settings_pack::ssl_listen))
 					{
@@ -2516,6 +2511,10 @@ retry:
 			return;
 		}
 		async_accept(listener, ssl);
+
+		// don't accept any connections from our local sockets
+		if (m_settings.get_bool(settings_pack::force_proxy))
+			return;
 
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl)
@@ -6532,12 +6531,6 @@ retry:
 #ifndef TORRENT_DISABLE_DHT
 		stop_dht();
 #endif
-		// close the listen sockets
-		error_code ec;
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
-			i->sock->close(ec);
-		m_listen_sockets.clear();
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

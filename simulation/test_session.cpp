@@ -79,8 +79,9 @@ TORRENT_TEST(force_proxy)
 	// create session
 	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, *ios);
 
-	// disable force proxy in 3 seconds (this should make us open up listen
-	// sockets)
+	// disable force proxy in 3 seconds. this won't make us open up listen
+	// sockets, since force proxy rejects incoming connections, it doesn't
+	// prevent the listen sockets from opening
 	sim::timer t1(sim, lt::seconds(3), [&](boost::system::error_code const& ec)
 	{
 		lt::settings_pack p;
@@ -111,6 +112,6 @@ TORRENT_TEST(force_proxy)
 	sim.run();
 
 	TEST_EQUAL(num_listen_tcp, 1);
-	TEST_EQUAL(num_listen_udp, 2);
+	TEST_EQUAL(num_listen_udp, 1);
 }
 
