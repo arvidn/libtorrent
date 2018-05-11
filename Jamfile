@@ -796,11 +796,11 @@ local usage-requirements =
 	<define>BOOST_ASIO_ENABLE_CANCELIO
 	<conditional>@linking
 # these compiler settings just makes the compiler standard conforming
-	<toolset>msvc:<cflags>/Zc:wchar_t
-	<toolset>msvc:<cflags>/Zc:forScope
+	<toolset>msvc:<cflags>"/Zc:wchar_t"
+	<toolset>msvc:<cflags>"/Zc:forScope"
 # msvc optimizations
-	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
-	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
+	<toolset>msvc,<variant>release:<linkflags>"/OPT:ICF=5"
+	<toolset>msvc,<variant>release:<linkflags>"/OPT:REF"
 
 	<cxxflags>$(CXXFLAGS)
 	<linkflags>$(LDFLAGS)
