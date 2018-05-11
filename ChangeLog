@@ -1,4 +1,5 @@
 
+	* fix recent regression with force_proxy setting
 	* don't perform DNS lookups for the DHT bootstrap unless DHT is enabled
 	* fix issue where setting file/piece priority would stop checking
 	* expose post_dht_stats() to python binding
