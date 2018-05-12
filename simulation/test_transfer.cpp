@@ -125,9 +125,9 @@ void run_test(
 			ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
 		}
 		on_alert(ses, a);
-	});
+	}, 0);
 
-	print_alerts(*ses[1]);
+	print_alerts(*ses[1], [](lt::session&, lt::alert const*){}, 1);
 
 	// the first peer is a downloader, the second peer is a seed
 	lt::add_torrent_params params = create_torrent(1);
@@ -218,7 +218,8 @@ TORRENT_TEST(no_proxy_utp_ipv6)
 {
 	using namespace lt;
 	run_test(
-		[](lt::session&, lt::session&) {},
+		[](lt::session& ses0, lt::session& ses1)
+		{ utp_only(ses0); utp_only(ses1); },
 		[](lt::session&, lt::alert const*) {},
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), true);
@@ -263,31 +264,33 @@ TORRENT_TEST(no_proxy_utp)
 {
 	using namespace lt;
 	run_test(
-		[](lt::session&, lt::session&) {},
+		[](lt::session& ses0, lt::session& ses1)
+		{ utp_only(ses0); utp_only(ses1); },
 		[](lt::session&, lt::alert const*) {},
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), true);
 		}
 	);
 }
-/*
-// TOD: 3 figure out why this test is failing
+
 TORRENT_TEST(encryption_utp)
 {
 	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
-		{ enable_enc(ses0); enable_enc(ses1); utp_only(ses0); },
+		{
+			enable_enc(ses0);
+			enable_enc(ses1);
+			utp_only(ses0);
+			utp_only(ses1);
+		},
 		[](lt::session&, lt::alert const*) {},
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), true);
 		}
 	);
 }
-*/
-// TODO: the socks server does not support UDP yet
 
-/*
 TORRENT_TEST(socks5_utp)
 {
 	using namespace lt;
@@ -297,6 +300,7 @@ TORRENT_TEST(socks5_utp)
 			set_proxy(ses0, settings_pack::socks5);
 			utp_only(ses0);
 			filter_ips(ses1);
+			utp_only(ses1);
 		},
 		[](lt::session&, lt::alert const*) {},
 		[](std::shared_ptr<lt::session> ses[2]) {
@@ -304,7 +308,6 @@ TORRENT_TEST(socks5_utp)
 		}
 	);
 }
-*/
 
 // the purpose of these tests is to make sure that the sessions can't actually
 // talk directly to each other. i.e. they are negative tests. If they can talk
@@ -325,7 +328,8 @@ TORRENT_TEST(no_proxy_utp_banned)
 {
 	using namespace lt;
 	run_test(
-		[](lt::session&, lt::session& ses1) { filter_ips(ses1); },
+		[](lt::session& ses0, lt::session& ses1)
+		{ utp_only(ses0); utp_only(ses1); filter_ips(ses1); },
 		[](lt::session&, lt::alert const*) {},
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), false);
