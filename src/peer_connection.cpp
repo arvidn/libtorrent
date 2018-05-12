@@ -5411,23 +5411,22 @@ namespace libtorrent {
 	int peer_connection::wanted_transfer(int const channel)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		std::shared_ptr<torrent> t = m_torrent.lock();
 
 		const int tick_interval = std::max(1, m_settings.get_int(settings_pack::tick_interval));
 
 		if (channel == download_channel)
 		{
-			return std::max(std::max(m_outstanding_bytes
-				, m_recv_buffer.packet_bytes_remaining()) + 30
-				, int(std::int64_t(m_statistics.download_rate()) * 2
-					* tick_interval / 1000));
+			std::int64_t const download_rate = std::int64_t(m_statistics.download_rate()) * 3 / 2;
+			return std::max({m_outstanding_bytes + 30
+				, m_recv_buffer.packet_bytes_remaining() + 30
+				, int(download_rate * tick_interval / 1000)});
 		}
 		else
 		{
-			return std::max(std::max(m_reading_bytes
-				, m_send_buffer.size())
-				, int((std::int64_t(m_statistics.upload_rate()) * 2
-					* tick_interval) / 1000));
+			std::int64_t const upload_rate = std::int64_t(m_statistics.upload_rate()) * 2;
+			return std::max({m_reading_bytes
+				, m_send_buffer.size()
+				, int(upload_rate * tick_interval / 1000)});
 		}
 	}
 
@@ -5509,7 +5508,8 @@ namespace libtorrent {
 	void peer_connection::setup_send()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (m_disconnecting) return;
+
+		if (m_disconnecting || m_send_buffer.empty()) return;
 
 		// we may want to request more quota at this point
 		request_bandwidth(upload_channel);
