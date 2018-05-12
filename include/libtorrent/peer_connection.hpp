@@ -501,11 +501,6 @@ namespace libtorrent
 		// finish the connection attempt
 		bool is_connecting() const { return m_connecting; }
 
-		// This is called for every peer right after the upload
-		// bandwidth has been distributed among them
-		// It will reset the used bandwidth to 0.
-		void reset_upload_quota();
-
 		// trust management.
 		virtual void received_valid_data(int index);
 		// returns false if the peer should not be
