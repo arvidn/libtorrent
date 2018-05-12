@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/close_reason.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_v4
 
 #include <functional>
 
@@ -300,12 +299,6 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
-		if (!is_v4(endpoint))
-		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported));
-			return;
-		}
-
 		if (m_impl == nullptr)
 		{
 			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected));
