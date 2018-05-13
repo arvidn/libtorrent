@@ -3223,10 +3223,34 @@ namespace {
 		req.ssl_ctx = m_ssl_ctx.get();
 #endif
 
+		req.redundant = m_total_redundant_bytes;
 		// exclude redundant bytes if we should
 		if (!settings().get_bool(settings_pack::report_true_downloaded))
+		{
 			req.downloaded -= m_total_redundant_bytes;
-		req.redundant = m_total_redundant_bytes;
+
+			// if the torrent is complete we know that all incoming pieces will be
+			// marked redundant so add them to the redundant count
+			// this is mainly needed to cover the case where a torrent has just completed
+			// but still has partially downloaded pieces
+			// if the incoming pieces are not accounted for it could cause the downloaded
+			// amount to exceed the total size of the torrent which upsets some trackers
+			if (is_seed())
+			{
+				for (peer_iterator i = m_connections.begin();
+					i != m_connections.end(); ++i)
+				{
+					TORRENT_INCREMENT(m_iterating_connections);
+					peer_connection* p = *i;
+					boost::optional<piece_block_progress> pbp = p->downloading_piece_progress();
+					if (pbp && pbp->bytes_downloaded > 0)
+					{
+						req.downloaded -= pbp->bytes_downloaded;
+						req.redundant += pbp->bytes_downloaded;
+					}
+				}
+			}
+		}
 		if (req.downloaded < 0) req.downloaded = 0;
 
 		req.event = e;
