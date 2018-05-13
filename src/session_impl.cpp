@@ -1516,7 +1516,6 @@ namespace aux {
 				return ret;
 			}
 			ret->local_endpoint = ret->sock->local_endpoint(ec);
-			ret->device = lep.device;
 			last_op = operation_t::getname;
 			if (ec)
 			{
@@ -1534,7 +1533,6 @@ namespace aux {
 				}
 				return ret;
 			}
-			ret->tracker_key = get_tracker_key(ret->local_endpoint.address());
 
 			ret->tcp_external_port = ret->local_endpoint.port();
 			TORRENT_ASSERT(ret->tcp_external_port == bind_ep.port()
@@ -1565,7 +1563,7 @@ namespace aux {
 			= (lep.ssl == transport::ssl)
 			? socket_type_t::utp_ssl
 			: socket_type_t::udp;
-		udp::endpoint const udp_bind_ep(bind_ep.address(), bind_ep.port());
+		udp::endpoint udp_bind_ep(bind_ep.address(), bind_ep.port());
 
 		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_service);
 		ret->udp_sock->sock.open(udp_bind_ep.protocol(), ec);
@@ -1613,6 +1611,36 @@ namespace aux {
 #endif
 		ret->udp_sock->sock.bind(udp_bind_ep, ec);
 
+		while (ec == error_code(error::address_in_use) && retries > 0)
+		{
+			TORRENT_ASSERT_VAL(ec, ec);
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				session_log("failed to bind udp socket to: %s on device: %s :"
+					" [%s] (%d) %s (retries: %d)"
+					, print_endpoint(bind_ep).c_str()
+					, lep.device.c_str()
+					, ec.category().name(), ec.value(), ec.message().c_str()
+					, retries);
+			}
+#endif
+			ec.clear();
+			--retries;
+			udp_bind_ep.port(udp_bind_ep.port() + 1);
+			ret->udp_sock->sock.bind(udp_bind_ep, ec);
+		}
+
+		if (ec == error_code(error::address_in_use)
+			&& m_settings.get_bool(settings_pack::listen_system_port_fallback)
+			&& udp_bind_ep.port() != 0)
+		{
+			// instead of giving up, try let the OS pick a port
+			udp_bind_ep.port(0);
+			ec.clear();
+			ret->udp_sock->sock.bind(udp_bind_ep, ec);
+		}
+
 		last_op = operation_t::sock_bind;
 		if (ec)
 		{
@@ -1639,6 +1667,9 @@ namespace aux {
 			auto const udp_ep = ret->udp_sock->local_endpoint();
 			ret->local_endpoint = tcp::endpoint(udp_ep.address(), udp_ep.port());
 		}
+
+		ret->tracker_key = get_tracker_key(ret->local_endpoint.address());
+		ret->device = lep.device;
 
 		error_code err;
 		set_socket_buffer_size(ret->udp_sock->sock, m_settings, err);
@@ -2583,6 +2614,10 @@ namespace aux {
 			return;
 		}
 		async_accept(listener, ssl);
+
+		// don't accept any connections from our local sockets
+		if (m_settings.get_bool(settings_pack::force_proxy))
+			return;
 
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl == transport::ssl)
