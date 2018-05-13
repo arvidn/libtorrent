@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ASSERT
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/export.hpp"
 
 #if TORRENT_USE_ASSERTS \
 	|| defined TORRENT_ASIO_DEBUGGING \
@@ -40,8 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 	|| defined TORRENT_DEBUG_BUFFERS
 
 #include <string>
+namespace libtorrent {
 std::string demangle(char const* name);
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0, void* ctx = nullptr);
+}
 #endif
 
 // this is to disable the warning of conditional expressions
@@ -57,6 +60,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0, void*
 #endif
 
 
+namespace libtorrent {
 // declarations of the two functions
 
 // internal
@@ -66,7 +70,7 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...) TORRENT_FORMAT(1,2);
 TORRENT_EXPORT void assert_fail(const char* expr, int line
 	, char const* file, char const* function, char const* val, int kind = 0);
 
-
+}
 
 #if TORRENT_USE_ASSERTS
 
@@ -81,19 +85,19 @@ extern TORRENT_EXPORT char const* libtorrent_assert_log;
 #ifndef TORRENT_USE_SYSTEM_ASSERTS
 
 #define TORRENT_ASSERT_PRECOND(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, nullptr, 1); } TORRENT_WHILE_0
+	do { if (x) {} else libtorrent::assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, nullptr, 1); } TORRENT_WHILE_0
 
 #define TORRENT_ASSERT(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, nullptr, 0); } TORRENT_WHILE_0
+	do { if (x) {} else libtorrent::assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, nullptr, 0); } TORRENT_WHILE_0
 
 #if TORRENT_USE_IOSTREAM
 #define TORRENT_ASSERT_VAL(x, y) \
 	do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; \
-	assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } TORRENT_WHILE_0
+	libtorrent::assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } TORRENT_WHILE_0
 
 #define TORRENT_ASSERT_FAIL_VAL(y) \
 	do { std::stringstream __s__; __s__ << #y ": " << y; \
-	assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } TORRENT_WHILE_0
+	libtorrent::assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } TORRENT_WHILE_0
 
 #else
 #define TORRENT_ASSERT_VAL(x, y) TORRENT_ASSERT(x)
@@ -101,7 +105,7 @@ extern TORRENT_EXPORT char const* libtorrent_assert_log;
 #endif
 
 #define TORRENT_ASSERT_FAIL() \
-	assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, nullptr, 0)
+	libtorrent::assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, nullptr, 0)
 
 #else
 #include <cassert>

@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <string>
 
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 

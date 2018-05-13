@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DISK_IO_THREAD_POOL
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/error_code.hpp"

@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTF8_HPP_INCLUDED
 #define TORRENT_UTF8_HPP_INCLUDED
 
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 
 #include <cstdint>
 #include <string>

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CRC32C_HPP_INCLUDE
 
 #include <cstdint>
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {
 

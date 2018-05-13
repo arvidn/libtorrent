@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_VERSION_HPP_INCLUDED
 #define TORRENT_VERSION_HPP_INCLUDED
 
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 
 #define LIBTORRENT_VERSION_MAJOR 1
 #define LIBTORRENT_VERSION_MINOR 2

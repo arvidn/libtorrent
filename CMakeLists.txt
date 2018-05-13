@@ -55,7 +55,6 @@ set(libtorrent_include_files
 	enum_net
 	error
 	error_code
-	export
 	extensions
 	file
 	file_pool
@@ -222,6 +221,7 @@ set(libtorrent_aux_include_files
 	disable_warnings_push
 	disk_job_fence
 	escape_string
+	export
 	ffs
 	file_progress
 	has_block

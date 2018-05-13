@@ -290,7 +290,7 @@ TORRENT_EXPORT void session_remove_torrent(void* ses, int tor, int flags)
 	if (!h.is_valid()) return;
 
 	session* s = (session*)ses;
-	s->remove_torrent(h, flags);	
+	s->remove_torrent(h, flags);
 }
 
 TORRENT_EXPORT int session_pop_alert(void* ses, char* dest, int len, int* category)
