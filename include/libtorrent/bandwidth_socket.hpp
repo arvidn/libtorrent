@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
 
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {
 

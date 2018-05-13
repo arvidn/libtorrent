@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {
 

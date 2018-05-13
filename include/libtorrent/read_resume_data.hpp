@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 #include "libtorrent/span.hpp"
 
 namespace libtorrent {

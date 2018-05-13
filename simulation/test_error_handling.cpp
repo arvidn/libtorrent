@@ -152,7 +152,7 @@ void* operator new(std::size_t sz)
 	if (--g_alloc_counter == 0)
 	{
 		char stack[10000];
-		print_backtrace(stack, sizeof(stack), 40, nullptr);
+		libtorrent::print_backtrace(stack, sizeof(stack), 40, nullptr);
 #ifdef _MSC_VER
 		// this is a bit unfortunate. Some MSVC standard containers really don't move
 		// with noexcept, by actually allocating memory (i.e. it's not just a matter

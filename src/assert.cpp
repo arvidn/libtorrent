@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cxxabi.h>
 
+namespace libtorrent {
 std::string demangle(char const* name)
 {
 // in case this string comes
@@ -101,11 +102,13 @@ std::string demangle(char const* name)
 	::free(unmangled);
 	return ret;
 }
+}
 #elif defined _WIN32
 
 #include "windows.h"
 #include "dbghelp.h"
 
+namespace libtorrent {
 std::string demangle(char const* name)
 {
 	char demangled_name[256];
@@ -113,9 +116,12 @@ std::string demangle(char const* name)
 		demangled_name[0] = 0;
 	return demangled_name;
 }
+}
 
 #else
+namespace libtorrent {
 std::string demangle(char const* name) { return name; }
+}
 #endif
 
 #include <cstdlib>
@@ -125,6 +131,8 @@ std::string demangle(char const* name) { return name; }
 
 #if TORRENT_USE_EXECINFO
 #include <execinfo.h>
+
+namespace libtorrent {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 {
@@ -142,6 +150,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 
 	::free(symbols);
 }
+}
 
 #elif defined _WIN32
 
@@ -151,6 +160,8 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 
 #include "winbase.h"
 #include "dbghelp.h"
+
+namespace libtorrent {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	, void* ctx)
@@ -256,8 +267,11 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 		if (i == max_depth && max_depth > 0) break;
 	}
 }
+}
 
 #else
+
+namespace libtorrent {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int /*max_depth*/, void* /* ctx */)
 {
@@ -265,9 +279,13 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int /*max_depth*/, void*
 	std::strncat(out, "<not supported>", std::size_t(len));
 }
 
+}
+
 #endif
 
 #endif
+
+namespace libtorrent {
 
 #if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
 
@@ -379,3 +397,6 @@ TORRENT_EXPORT void assert_fail(char const*, int, char const*
 	, char const*, char const*, int) {}
 
 #endif
+
+} // libtorrent namespace
+

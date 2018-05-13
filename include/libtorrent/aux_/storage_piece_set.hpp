@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/intrusive/list.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 #include "libtorrent/block_cache.hpp" // for cached_piece_entry
 
 namespace libtorrent {

@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/vector.hpp"
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/sha1_hash.hpp"
