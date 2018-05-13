@@ -434,11 +434,9 @@ void udp_socket::open(udp const& protocol, error_code& ec)
 #endif
 
 	// this is best-effort. ignore errors
-	error_code err;
 #ifdef TORRENT_WINDOWS
+	error_code err;
 	m_socket.set_option(exclusive_address_use(true), err);
-#else
-	m_socket.set_option(boost::asio::socket_base::reuse_address(true), err);
 #endif
 }
 
