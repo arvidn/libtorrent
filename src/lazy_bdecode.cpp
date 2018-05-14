@@ -265,8 +265,8 @@ namespace {
 		}
 		else if (int(m_size) == this->capacity())
 		{
-			int const capacity = this->capacity() * lazy_entry_grow_factor / 100;
-			auto* tmp = new (std::nothrow) lazy_dict_entry[std::size_t(capacity + 1)];
+			std::size_t const capacity = std::size_t(this->capacity()) * lazy_entry_grow_factor / 100;
+			auto* tmp = new (std::nothrow) lazy_dict_entry[capacity + 1];
 			if (tmp == nullptr) return nullptr;
 			std::move(m_data.dict, m_data.dict + m_size + 1, tmp);
 
@@ -435,8 +435,8 @@ namespace {
 		}
 		else if (int(m_size) == this->capacity())
 		{
-			int const capacity = this->capacity() * lazy_entry_grow_factor / 100;
-			lazy_entry* tmp = new (std::nothrow) lazy_entry[std::size_t(capacity + 1)];
+			std::size_t const capacity = std::size_t(this->capacity()) * lazy_entry_grow_factor / 100;
+			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity + 1];
 			if (tmp == nullptr) return nullptr;
 			std::move(m_data.list, m_data.list + m_size + 1, tmp);
 
