@@ -145,7 +145,7 @@ namespace libtorrent {namespace {
 		{
 			if (m_metadata_size > 0 || size <= 0 || size > 4 * 1024 * 1024) return;
 			m_metadata_size = size;
-			m_metadata.reset(new char[size]);
+			m_metadata.reset(new char[std::size_t(size)]);
 			m_requested_metadata.resize(div_round_up(size, 16 * 1024));
 		}
 
@@ -550,7 +550,7 @@ namespace libtorrent {namespace {
 				return false;
 			}
 
-			m_metadata.reset(new char[total_size]);
+			m_metadata.reset(new char[std::size_t(total_size)]);
 			m_requested_metadata.resize(div_round_up(total_size, 16 * 1024));
 			m_metadata_size = total_size;
 		}

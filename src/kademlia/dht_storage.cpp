@@ -112,7 +112,7 @@ namespace {
 		int const size = int(buf.size());
 		if (item.size != size)
 		{
-			item.value.reset(new char[size]);
+			item.value.reset(new char[std::size_t(size)]);
 			item.size = size;
 		}
 		std::memcpy(item.value.get(), buf.data(), buf.size());

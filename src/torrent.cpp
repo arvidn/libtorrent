@@ -852,7 +852,7 @@ bool is_downloading_state(int const st)
 		}
 
 		std::shared_ptr<read_piece_struct> rp = std::make_shared<read_piece_struct>();
-		rp->piece_data.reset(new (std::nothrow) char[piece_size]);
+		rp->piece_data.reset(new (std::nothrow) char[std::size_t(piece_size)]);
 		if (!rp->piece_data)
 		{
 			m_ses.alerts().emplace_alert<read_piece_alert>(
