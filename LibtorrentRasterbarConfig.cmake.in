@@ -8,9 +8,9 @@
 include(CMakeFindDependencyMacro)
 @_find_dependency_calls@
 
-include("${CMAKE_CURRENT_LIST_DIR}/libtorrent-rasterbar-targets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/LibtorrentRasterbarTargets.cmake")
 
-get_target_property(@PROJECT_NAME@_INCLUDE_DIRS Libtorrent::torrent-rasterbar INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(_lt_iface_link_libraries Libtorrent::torrent-rasterbar INTERFACE_LINK_LIBRARIES)
-get_target_property(_lt_imported_location Libtorrent::torrent-rasterbar IMPORTED_LOCATION)
+get_target_property(@PROJECT_NAME@_INCLUDE_DIRS LibtorrentRasterbar::torrent-rasterbar INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(_lt_iface_link_libraries LibtorrentRasterbar::torrent-rasterbar INTERFACE_LINK_LIBRARIES)
+get_target_property(_lt_imported_location LibtorrentRasterbar::torrent-rasterbar IMPORTED_LOCATION)
 set(@PROJECT_NAME@_LIBRARIES "${_lt_imported_location};${_lt_iface_link_libraries}")
