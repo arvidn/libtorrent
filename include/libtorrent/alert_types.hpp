@@ -1158,7 +1158,7 @@ namespace libtorrent
 			, char const* op
 			, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(file_error_alert, 43)
+		TORRENT_DEFINE_ALERT_PRIO(file_error_alert, 43, alert_priority_high)
 
 		static const int static_category = alert::status_notification
 			| alert::error_notification
