@@ -2759,16 +2759,14 @@ bool is_downloading_state(int const st)
 			// amount to exceed the total size of the torrent which upsets some trackers
 			if (is_seed())
 			{
-				for (peer_iterator i = m_connections.begin();
-					i != m_connections.end(); ++i)
+				for (auto c : m_connections)
 				{
 					TORRENT_INCREMENT(m_iterating_connections);
-					peer_connection* p = *i;
-					boost::optional<piece_block_progress> pbp = p->downloading_piece_progress();
-					if (pbp && pbp->bytes_downloaded > 0)
+					auto const pbp = c->downloading_piece_progress();
+					if (pbp.bytes_downloaded > 0)
 					{
-						req.downloaded -= pbp->bytes_downloaded;
-						req.redundant += pbp->bytes_downloaded;
+						req.downloaded -= pbp.bytes_downloaded;
+						req.redundant += pbp.bytes_downloaded;
 					}
 				}
 			}
@@ -5519,7 +5517,7 @@ bool is_downloading_state(int const st)
 				else
 				{
 					auto const& pieces = p->get_bitfield();
-					TORRENT_ASSERT(pieces.count() <= int(pieces.size()));
+					TORRENT_ASSERT(pieces.count() <= pieces.size());
 					m_picker->dec_refcount(pieces, pp);
 				}
 			}
