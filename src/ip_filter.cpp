@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	void ip_filter::add_rule(address first, address last, std::uint32_t flags)
+	void ip_filter::add_rule(address const& first, address const& last, std::uint32_t flags)
 	{
 		if (first.is_v4())
 		{
@@ -83,13 +83,4 @@ namespace libtorrent {
 	{
 		return m_filter.access(port);
 	}
-/*
-	void ip_filter::print() const
-	{
-		for (range_t::iterator i =  m_access_list.begin(); i != m_access_list.end(); ++i)
-		{
-			std::cout << i->start.as_string() << " " << i->access << "\n";
-		}
-	}
-*/
 }

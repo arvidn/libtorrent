@@ -125,7 +125,7 @@ namespace detail {
 		Addr tmp;
 		std::fill(tmp.begin(), tmp.end()
 			, (std::numeric_limits<typename Addr::value_type>::max)());
-		return Addr(tmp);
+		return tmp;
 	}
 
 	template<>
@@ -288,7 +288,7 @@ struct TORRENT_EXPORT ip_filter
 	//
 	// This means that in a case of overlapping ranges, the last one applied takes
 	// precedence.
-	void add_rule(address first, address last, std::uint32_t flags);
+	void add_rule(address const& first, address const& last, std::uint32_t flags);
 
 	// Returns the access permissions for the given address (``addr``). The permission
 	// can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
