@@ -449,7 +449,7 @@ namespace libtorrent {
 		virtual void sent_unchoke() {}
 		virtual void sent_interested() {}
 		virtual void sent_not_interested() {}
-		virtual void sent_have(int) {}
+		virtual void sent_have(piece_index_t) {}
 		virtual void sent_piece(peer_request const&) {}
 
 		// called after piece data has been sent to the peer
