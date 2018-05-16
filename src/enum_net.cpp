@@ -352,6 +352,7 @@ namespace {
 			}
 		}
 
+		ip_info->interface_address = address();
 		int rt_len = int(IFA_PAYLOAD(nl_hdr));
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -363,6 +364,13 @@ namespace {
 			switch(rt_attr->rta_type)
 			{
 			case IFA_ADDRESS:
+				// if this is a point-to-point link then IFA_LOCAL holds
+				// the local address while IFA_ADDRESS is the destination
+				// don't overwrite the former with the latter
+				if (!ip_info->interface_address.is_unspecified())
+					break;
+				BOOST_FALLTHROUGH;
+			case IFA_LOCAL:
 #if TORRENT_USE_IPV6
 				if (addr_msg->ifa_family == AF_INET6)
 				{
