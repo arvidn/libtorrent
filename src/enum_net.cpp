@@ -363,6 +363,7 @@ namespace {
 			switch(rt_attr->rta_type)
 			{
 			case IFA_ADDRESS:
+			case IFA_LOCAL:
 #if TORRENT_USE_IPV6
 				if (addr_msg->ifa_family == AF_INET6)
 				{
