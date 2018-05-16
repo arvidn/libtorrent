@@ -121,7 +121,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios
 		, res, &::http_handler, true, 1024*1024, &::http_connect_handler));
-	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", boost::none, 0, auth);
+	h->get(url, seconds(5), 0, &ps, 5, "test/user-agent", boost::none, 0, auth);
 	ios.reset();
 	error_code e;
 	ios.run(e);
