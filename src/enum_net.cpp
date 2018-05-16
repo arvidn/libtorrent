@@ -352,6 +352,7 @@ namespace {
 			}
 		}
 
+		ip_info->interface_address = address();
 		int rt_len = int(IFA_PAYLOAD(nl_hdr));
 #ifdef __clang__
 #pragma clang diagnostic push
