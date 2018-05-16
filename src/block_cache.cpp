@@ -616,7 +616,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, std::uint1
 		pe.expire = aux::time_now();
 		pe.blocks_in_piece = aux::numeric_cast<std::uint64_t>(blocks_in_piece);
 
-		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
+		pe.blocks.reset(new (std::nothrow) cached_block_entry[std::size_t(blocks_in_piece)]);
 		if (!pe.blocks) return nullptr;
 		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(std::move(pe)).first);
 

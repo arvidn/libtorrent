@@ -576,7 +576,7 @@ namespace {
 		if (m_info_section_size == 0) return;
 		TORRENT_ASSERT(m_piece_hashes);
 
-		m_info_section.reset(new char[m_info_section_size]);
+		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
 		std::memcpy(m_info_section.get(), t.m_info_section.get(), aux::numeric_cast<std::size_t>(m_info_section_size));
 
 		ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
@@ -946,7 +946,7 @@ namespace {
 
 		// copy the info section
 		m_info_section_size = int(section.size());
-		m_info_section.reset(new char[m_info_section_size]);
+		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
 		std::memcpy(m_info_section.get(), section.data(), aux::numeric_cast<std::size_t>(m_info_section_size));
 		TORRENT_ASSERT(section[0] == 'd');
 		TORRENT_ASSERT(section[aux::numeric_cast<std::size_t>(m_info_section_size - 1)] == 'e');

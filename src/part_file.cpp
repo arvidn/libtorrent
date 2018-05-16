@@ -304,7 +304,7 @@ namespace libtorrent {
 				open_file(open_mode::read_only, ec);
 				if (ec) return;
 
-				if (!buf) buf.reset(new char[m_piece_size]);
+				if (!buf) buf.reset(new char[std::size_t(m_piece_size)]);
 
 				std::int64_t const slot_offset = std::int64_t(m_header_size)
 					+ std::int64_t(static_cast<int>(slot)) * m_piece_size;

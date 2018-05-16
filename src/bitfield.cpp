@@ -170,7 +170,7 @@ namespace libtorrent {
 		int const cur_size_words = num_words();
 		if (cur_size_words != new_size_words)
 		{
-			aux::unique_ptr<std::uint32_t[]> b(new std::uint32_t[new_size_words + 1]);
+			aux::unique_ptr<std::uint32_t[]> b(new std::uint32_t[std::size_t(new_size_words + 1)]);
 #ifdef BOOST_NO_EXCEPTIONS
 			if (b == nullptr) std::terminate();
 #endif
