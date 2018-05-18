@@ -1326,6 +1326,7 @@ TORRENT_VERSION_NAMESPACE_2
 		udp_error_alert(
 			aux::stack_allocator& alloc
 			, udp::endpoint const& ep
+			, operation_t op
 			, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT(udp_error_alert, 46)
@@ -1335,6 +1336,9 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// the source address associated with the error (if any)
 		aux::noexcept_movable<udp::endpoint> endpoint;
+
+		// the operation that failed
+		operation_t operation;
 
 		// the error code describing the error
 		error_code const error;

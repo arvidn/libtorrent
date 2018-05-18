@@ -1018,15 +1018,19 @@ namespace {
 	udp_error_alert::udp_error_alert(
 		aux::stack_allocator&
 		, udp::endpoint const& ep
+		, operation_t op
 		, error_code const& ec)
 		: endpoint(ep)
+		, operation(op)
 		, error(ec)
 	{}
 
 	std::string udp_error_alert::message() const
 	{
 		error_code ec;
-		return "UDP error: " + convert_from_native(error.message()) + " from: " + endpoint.address().to_string(ec);
+		return "UDP error: " + convert_from_native(error.message())
+			+ " from: " + endpoint.address().to_string(ec)
+			+ " op: " + operation_name(operation);
 	}
 
 	external_ip_alert::external_ip_alert(aux::stack_allocator&
