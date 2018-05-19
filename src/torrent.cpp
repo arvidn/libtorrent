@@ -6644,9 +6644,10 @@ bool is_downloading_state(int const st)
 			if (err && should_log())
 			{
 				error_code ignore;
+				auto const lep = s->local_endpoint(ignore);
 				debug_log("socket buffer size [ %s %d]: (%d) %s"
-					, s->local_endpoint().address().to_string(ignore).c_str()
-					, s->local_endpoint().port(), ignore.value(), ignore.message().c_str());
+					, lep.address().to_string(ignore).c_str()
+					, lep.port(), err.value(), err.message().c_str());
 			}
 #endif
 		}
