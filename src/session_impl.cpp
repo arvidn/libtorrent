@@ -1895,6 +1895,12 @@ namespace aux {
 				if (m_dht)
 					m_dht->new_socket(m_listen_sockets.back());
 #endif
+
+				TORRENT_ASSERT((s->incoming == duplex::accept_incoming) == bool(s->sock));
+				if (s->sock) async_accept(s->sock, s->ssl);
+				// since this is a new socket it needs to map ports
+				// even if the caller did not request re-mapping
+				if (!map_ports) remap_ports(remap_natpmp_and_upnp, *s);
 			}
 		}
 
@@ -1953,12 +1959,12 @@ namespace aux {
 
 		ec.clear();
 
-		// initiate accepting on the listen sockets
-		for (auto& s : m_listen_sockets)
+		if (map_ports)
 		{
-			TORRENT_ASSERT((s->incoming == duplex::accept_incoming) == bool(s->sock));
-			if (s->sock) async_accept(s->sock, s->ssl);
-			if (map_ports) remap_ports(remap_natpmp_and_upnp, *s);
+			for (auto const& s : m_listen_sockets)
+			{
+				remap_ports(remap_natpmp_and_upnp, *s);
+			}
 		}
 
 #if TORRENT_USE_I2P
