@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/optional.hpp>
 
 #if TORRENT_USE_IFCONF
 #include <sys/ioctl.h>
@@ -844,10 +845,10 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return ret;
 	}
 
-	address get_default_gateway(io_service& ios
-		, string_view device, bool v6, error_code& ec)
+	boost::optional<ip_route> get_default_route(io_service& ios
+		, string_view const device, bool const v6, error_code& ec)
 	{
-		std::vector<ip_route> ret = enum_routes(ios, ec);
+		std::vector<ip_route> const ret = enum_routes(ios, ec);
 		auto const i = std::find_if(ret.begin(), ret.end()
 			, [device,v6](ip_route const& r)
 		{
@@ -855,8 +856,15 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				&& r.destination.is_v6() == v6
 				&& (device.empty() || r.name == device);
 		});
-		if (i == ret.end()) return address();
-		return i->gateway;
+		if (i == ret.end()) return boost::none;
+		return *i;
+	}
+
+	address get_default_gateway(io_service& ios
+		, string_view const device, bool const v6, error_code& ec)
+	{
+		auto const default_route = get_default_route(ios, device, v6, ec);
+		return default_route ? default_route->gateway : address();
 	}
 
 	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)

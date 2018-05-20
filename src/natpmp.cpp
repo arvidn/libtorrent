@@ -156,76 +156,102 @@ void natpmp::start(address local_address, std::string device)
 	// if necessary
 	m_version = version_pcp;
 
-	// PCP requires reporting the source address at the application
-	// layer so the socket MUST be bound to a specific address
-	// if the caller didn't specify one then get the first suitable
-	// address from the OS
-	if (local_address.is_unspecified())
+	std::vector<ip_interface> const net = enum_net_interfaces(
+		m_socket.get_io_service(), ec);
+
+	address gateway;
+	if (!device.empty())
 	{
-		for (auto const& a : enum_net_interfaces(m_socket.get_io_service(), ec))
+		// if we specified a device, look up the gateway for that device
+		auto const it = std::find_if(net.begin(), net.end(), [&](ip_interface const& i)
+			{ return i.name == device; });
+		if (it == net.end())
 		{
-			if (a.interface_address.is_loopback()) continue;
-			if (a.interface_address.is_v4() != local_address.is_v4()) continue;
-			if (a.interface_address.is_v6() && is_local(a.interface_address)) continue;
-			if (!device.empty() && a.name != device) continue;
-			local_address = a.interface_address;
-			device = a.name;
-			break;
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log()) log("device not found \"%s\"", device.c_str());
+#endif
+			disable(ec);
+			return;
 		}
 
+		if (local_address.is_unspecified()) local_address = it->interface_address;
+		gateway = get_default_gateway(m_socket.get_io_service(), it->name
+			, it->interface_address.is_v6(), ec);
+
+		if (ec || gateway.is_unspecified())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				log("failed to find default route for device \"%s\": %s"
+					, device.c_str()
+					, convert_from_native(ec.message()).c_str());
+			}
+#endif
+			disable(ec);
+			return;
+		}
+	}
+
+	if (gateway.is_unspecified())
+	{
+		auto const route = get_default_route(m_socket.get_io_service()
+			, device, local_address.is_v6(), ec);
+		if (!route)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				log("failed to find default route for \"%s\" %s: %s"
+					, device.c_str(), local_address.to_string().c_str()
+					, convert_from_native(ec.message()).c_str());
+			}
+#endif
+			disable(ec);
+			return;
+		}
+		gateway = route->gateway;
+
+		// PCP requires reporting the source address at the application
+		// layer so the socket MUST be bound to a specific address
+		// if the caller didn't specify one then get the first suitable
+		// address from the OS
 		if (local_address.is_unspecified())
 		{
-			// if we can't get a specific address to bind to we'll have
-			// to fall back to NAT-PMP
-			// but NAT-PMP doesn't support IPv6 so if that's what is being
-			// requested we can't do anything
-			if (local_address.is_v6())
-			{
-				if (!ec) ec = boost::asio::error::address_family_not_supported;
-#ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					log("cannot map IPv6 without a local address, %s"
-						, convert_from_native(ec.message()).c_str());
-				}
-#endif
-				disable(ec);
-				return;
-			}
-
-			m_version = version_natpmp;
-			ec.clear();
+			auto const it = std::find_if(net.begin(), net.end(), [&](ip_interface const& i)
+			{ return std::strcmp(i.name, route->name) == 0; });
+			local_address = it != net.end() ? it->interface_address : address();
 		}
+		if (device.empty()) device = route->name;
 	}
 
-	// we really want a device name to get the right default gateway
-	// try to find one even if the listen socket isn't bound to a device
-	if (device.empty())
+	if (local_address.is_unspecified())
 	{
-		device = device_for_address(local_address, m_socket.get_io_service(), ec);
-		// if this fails fall back to using the first default gateway in the
-		// routing table
-		ec.clear();
-	}
-
-	address const gateway = get_default_gateway(m_socket.get_io_service()
-		, device, local_address.is_v6(), ec);
-	if (ec || gateway.is_unspecified())
-	{
-#ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
+		// if we can't get a specific address to bind to we'll have
+		// to fall back to NAT-PMP
+		// but NAT-PMP doesn't support IPv6 so if that's what is being
+		// requested we can't do anything
+		if (local_address.is_v6())
 		{
-			log("failed to find default route for %s: %s"
-				, local_address.to_string().c_str(), convert_from_native(ec.message()).c_str());
-		}
+			if (!ec) ec = boost::asio::error::address_family_not_supported;
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				log("cannot map IPv6 without a local address, %s"
+					, convert_from_native(ec.message()).c_str());
+			}
 #endif
-		disable(ec);
-		return;
+			disable(ec);
+			return;
+		}
+
+		m_version = version_natpmp;
+		ec.clear();
 	}
 
 	m_disabled = false;
 
-	udp::endpoint nat_endpoint(gateway, 5351);
+	udp::endpoint const nat_endpoint(gateway, 5351);
 	if (nat_endpoint == m_nat_endpoint) return;
 	m_nat_endpoint = nat_endpoint;
 

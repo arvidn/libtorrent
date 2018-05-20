@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/socket.h> // for SO_BINDTODEVICE
 #endif
 
+#include <boost/optional.hpp>
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/io_service_fwd.hpp"
@@ -93,6 +95,9 @@ namespace libtorrent {
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool in_local_network(std::vector<ip_interface> const& net
 		, address const& addr);
+
+	TORRENT_EXTRA_EXPORT boost::optional<ip_route> get_default_route(io_service& ios
+		, string_view device, bool v6, error_code& ec);
 
 	// returns the first default gateway found if device is empty
 	TORRENT_EXTRA_EXPORT address get_default_gateway(io_service& ios
