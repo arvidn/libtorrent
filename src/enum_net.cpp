@@ -517,7 +517,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			using bytes_t = boost::asio::ip::address_v4::bytes_type;
 			bytes_t b;
 			std::memset(&b[0], 0xff, b.size());
-			for (int i = int(sizeof(bytes_t)) / 8 - 1; i > 0; --i)
+			for (int i = int(b.size()) - 1; i > 0; --i)
 			{
 				if (bits < 8)
 				{
@@ -535,7 +535,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			using bytes_t = boost::asio::ip::address_v6::bytes_type;
 			bytes_t b;
 			std::memset(&b[0], 0xff, b.size());
-			for (int i = int(sizeof(bytes_t)) / 8 - 1; i > 0; --i)
+			for (int i = int(b.size()) - 1; i > 0; --i)
 			{
 				if (bits < 8)
 				{
@@ -1116,7 +1116,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					r.gateway = sockaddr_to_address((const sockaddr*)&routes->Table[i].NextHop);
 					r.destination = sockaddr_to_address(
 						(const sockaddr*)&routes->Table[i].DestinationPrefix.Prefix);
-					r.netmask = build_netmask(routes->Table[i].SitePrefixLength
+					r.netmask = build_netmask(routes->Table[i].DestinationPrefix.PrefixLength
 						, routes->Table[i].DestinationPrefix.Prefix.si_family);
 					MIB_IFROW ifentry;
 					ifentry.dwIndex = routes->Table[i].InterfaceIndex;
