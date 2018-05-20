@@ -201,6 +201,8 @@ namespace aux {
 		// time on handler allocation every time we read again.
 		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> udp_handler_storage;
 
+		std::shared_ptr<natpmp> natpmp_mapper;
+
 		// the key is an id that is used to identify the
 		// client with the tracker only.
 		std::uint32_t tracker_key = 0;
@@ -636,7 +638,7 @@ namespace aux {
 
 			void start_ip_notifier();
 			void start_lsd();
-			natpmp* start_natpmp();
+			void start_natpmp();
 			upnp* start_upnp();
 
 			void stop_ip_notifier();
@@ -776,6 +778,8 @@ namespace aux {
 			void on_trigger_auto_manage();
 
 			void on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih) override;
+
+			void start_natpmp(aux::listen_socket_t& s);
 
 			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
 				, ip_source_t source_type, address const& source);
@@ -1136,7 +1140,6 @@ namespace aux {
 			// this is deducted from the connect speed
 			int m_boost_connections = 0;
 
-			std::shared_ptr<natpmp> m_natpmp;
 			std::shared_ptr<upnp> m_upnp;
 			std::shared_ptr<lsd> m_lsd;
 

@@ -846,11 +846,17 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return ret;
 	}
 
-	address get_default_gateway(io_service& ios, error_code& ec)
+	address get_default_gateway(io_service& ios
+		, string_view device, bool v6, error_code& ec)
 	{
 		std::vector<ip_route> ret = enum_routes(ios, ec);
 		auto const i = std::find_if(ret.begin(), ret.end()
-			, [](ip_route const& r) { return r.destination == address(); });
+			, [device,v6](ip_route const& r)
+		{
+			return r.destination.is_unspecified()
+				&& r.destination.is_v6() == v6
+				&& (device.empty() || r.name == device);
+		});
 		if (i == ret.end()) return address();
 		return i->gateway;
 	}

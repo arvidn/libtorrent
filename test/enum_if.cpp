@@ -42,7 +42,7 @@ int main()
 	io_service ios;
 	error_code ec;
 
-	address def_gw = get_default_gateway(ios, ec);
+	address def_gw = get_default_gateway(ios, "", false, ec);
 	if (ec)
 	{
 		std::printf("%s\n", ec.message().c_str());

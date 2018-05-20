@@ -51,7 +51,7 @@ struct TORRENT_EXTRA_EXPORT natpmp
 {
 	natpmp(io_service& ios, aux::portmap_callback& cb);
 
-	void start();
+	void start(address const& local_address, std::string device);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped

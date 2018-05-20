@@ -76,19 +76,31 @@ natpmp::natpmp(io_service& ios
 	m_mappings.reserve(10);
 }
 
-void natpmp::start()
+void natpmp::start(address const& local_address, std::string device)
 {
 	TORRENT_ASSERT(is_single_thread());
 
 	error_code ec;
-	address const gateway = get_default_gateway(m_socket.get_io_service(), ec);
-	if (ec)
+
+	// we really want a device name to get the right default gateway
+	// try to find one even if the listen socket isn't bound to a device
+	if (device.empty())
+	{
+		device = device_for_address(local_address, m_socket.get_io_service(), ec);
+		// if this failes fall back to using the first default gateway in the
+		// routing table
+		ec.clear();
+	}
+
+	address const gateway = get_default_gateway(m_socket.get_io_service()
+		, device, local_address.is_v6(), ec);
+	if (ec || gateway.is_unspecified())
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			log("failed to find default route: %s"
-				, convert_from_native(ec.message()).c_str());
+			log("failed to find default route for %s: %s"
+				, local_address.to_string().c_str(), convert_from_native(ec.message()).c_str());
 		}
 #endif
 		disable(ec);
@@ -109,13 +121,13 @@ void natpmp::start()
 	}
 #endif
 
-	m_socket.open(udp::v4(), ec);
+	m_socket.open(local_address.is_v4() ? udp::v4() : udp::v6(), ec);
 	if (ec)
 	{
 		disable(ec);
 		return;
 	}
-	m_socket.bind({address_v4::any(), 0}, ec);
+	m_socket.bind({local_address, 0}, ec);
 	if (ec)
 	{
 		disable(ec);
