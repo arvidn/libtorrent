@@ -1234,7 +1234,7 @@ TORRENT_VERSION_NAMESPACE_2
 		file_error_alert(aux::stack_allocator& alloc, error_code const& ec
 			, string_view file, operation_t op, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(file_error_alert, 43)
+		TORRENT_DEFINE_ALERT_PRIO(file_error_alert, 43, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::status_notification
 			| alert::error_notification

@@ -7524,24 +7524,6 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		// we might be finished already, in which case we should
-		// not switch to downloading mode. If all files are
-		// filtered, we're finished when we start.
-		if (m_state != torrent_status::finished
-			&& m_state != torrent_status::seeding
-			&& !m_seed_mode)
-		{
-			set_state(torrent_status::downloading);
-		}
-
-		INVARIANT_CHECK;
-
-		if (m_ses.alerts().should_post<torrent_checked_alert>())
-		{
-			m_ses.alerts().emplace_alert<torrent_checked_alert>(
-				get_handle());
-		}
-
 		// calling pause will also trigger the auto managed
 		// recalculation
 		// if we just got here by downloading the metadata,
@@ -7576,6 +7558,24 @@ bool is_downloading_state(int const st)
 			if (m_state != torrent_status::finished
 				&& m_state != torrent_status::seeding)
 				finished();
+		}
+
+		// we might be finished already, in which case we should
+		// not switch to downloading mode. If all files are
+		// filtered, we're finished when we start.
+		if (m_state != torrent_status::finished
+			&& m_state != torrent_status::seeding
+			&& !m_seed_mode)
+		{
+			set_state(torrent_status::downloading);
+		}
+
+		INVARIANT_CHECK;
+
+		if (m_ses.alerts().should_post<torrent_checked_alert>())
+		{
+			m_ses.alerts().emplace_alert<torrent_checked_alert>(
+				get_handle());
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

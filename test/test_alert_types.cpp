@@ -111,7 +111,7 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(torrent_resumed_alert, 40, 1, alert::status_notification);
 	TEST_ALERT_TYPE(torrent_checked_alert, 41, 1, alert::status_notification);
 	TEST_ALERT_TYPE(url_seed_alert, 42, 0, alert::peer_notification | alert::error_notification);
-	TEST_ALERT_TYPE(file_error_alert, 43, 0, alert::status_notification | alert::error_notification | alert::storage_notification);
+	TEST_ALERT_TYPE(file_error_alert, 43, 1, alert::status_notification | alert::error_notification | alert::storage_notification);
 	TEST_ALERT_TYPE(metadata_failed_alert, 44, 0, alert::error_notification);
 	TEST_ALERT_TYPE(metadata_received_alert, 45, 0, alert::status_notification);
 	TEST_ALERT_TYPE(udp_error_alert, 46, 0, alert::error_notification);
