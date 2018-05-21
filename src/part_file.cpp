@@ -180,7 +180,7 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 		mutex::scoped_lock l(m_mutex);
 
-		open_file(file::read_write, ec);
+		open_file(file::read_write | file::attribute_hidden, ec);
 		if (ec) return -1;
 
 		int slot = -1;
@@ -212,7 +212,7 @@ namespace libtorrent
 
 		int slot = i->second;
 
-		open_file(file::read_write, ec);
+		open_file(file::read_write | file::attribute_hidden, ec);
 		if (ec) return -1;
 
 		l.unlock();
@@ -393,7 +393,7 @@ namespace libtorrent
 			return;
 		}
 
-		open_file(file::read_write, ec);
+		open_file(file::read_write | file::attribute_hidden, ec);
 		if (ec) return;
 
 		boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size / 4]);
