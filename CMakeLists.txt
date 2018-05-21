@@ -537,6 +537,7 @@ add_library(torrent-rasterbar
 	include/libtorrent/$<JOIN:${libtorrent_include_files}, include/libtorrent/>
 	include/libtorrent/extensions/$<JOIN:${libtorrent_extensions_include_files}, include/libtorrent/extensions/>
 	include/libtorrent/aux_/$<JOIN:${libtorrent_aux_include_files}, include/libtorrent/aux_/>
+	deps/try_signal/$<JOIN:${try_signal_include_files}, deps/try_signal/>
 )
 
 if (BUILD_SHARED_LIBS)

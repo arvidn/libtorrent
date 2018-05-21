@@ -66,40 +66,6 @@ void filter_ips(lt::session& ses)
 	ses.set_ip_filter(filter);
 }
 
-#ifndef TORRENT_NO_DEPRECATE
-void set_cache_size(lt::session& ses, int val)
-{
-	settings_pack pack;
-	pack.set_int(settings_pack::cache_size, val);
-	ses.apply_settings(pack);
-}
-
-int get_cache_size(lt::session& ses)
-{
-	std::vector<stats_metric> stats = session_stats_metrics();
-	int const read_cache_idx = find_metric_idx("disk.read_cache_blocks");
-	int const write_cache_idx = find_metric_idx("disk.write_cache_blocks");
-	TEST_CHECK(read_cache_idx >= 0);
-	TEST_CHECK(write_cache_idx >= 0);
-	ses.set_alert_notify([](){});
-	ses.post_session_stats();
-	std::vector<alert*> alerts;
-	ses.pop_alerts(&alerts);
-	std::int64_t cache_size = -1;
-	for (auto const a : alerts)
-	{
-		if (auto const* st = alert_cast<session_stats_alert>(a))
-		{
-			cache_size = st->counters()[read_cache_idx];
-			cache_size += st->counters()[write_cache_idx];
-			break;
-		}
-	}
-	TEST_CHECK(cache_size < std::numeric_limits<int>::max());
-	return int(cache_size);
-}
-#endif
-
 void set_proxy(lt::session& ses, int proxy_type, int flags, bool proxy_peer_connections)
 {
 	// apply the proxy settings to session 0

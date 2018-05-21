@@ -209,7 +209,7 @@ TORRENT_TEST(checking)
 	run_test(
 		[](lt::add_torrent_params& atp, lt::settings_pack& p) {
 			atp.flags |= lt::torrent_flags::auto_managed;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			p.set_int(lt::settings_pack::cache_size, 100);
 #endif
 		},

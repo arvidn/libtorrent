@@ -102,7 +102,9 @@ TORRENT_TEST(seed_mode_suggest)
 		// add session
 		, [](lt::settings_pack& pack) {
 			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+#if TORRENT_ABI_VERSION == 1
 			pack.set_int(settings_pack::cache_size, 2);
+#endif
 		}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
@@ -186,7 +188,9 @@ TORRENT_TEST(suggest)
 		, [](lt::settings_pack& pack) {
 			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
 			pack.set_int(settings_pack::max_suggest_pieces, 10);
+#if TORRENT_ABI_VERSION == 1
 			pack.set_int(settings_pack::cache_size, 2);
+#endif
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}

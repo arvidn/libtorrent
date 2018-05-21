@@ -135,7 +135,7 @@ dict session_stats_values(session_stats_alert const& alert)
     return d;
 }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 entry const& get_resume_data_entry(save_resume_data_alert const& self)
 {
 	return *self.resume_data;
