@@ -1241,7 +1241,7 @@ namespace {
 			bdecode_node const uri = torrent_file.dict_find_string("magnet-uri");
 			if (uri)
 			{
-				add_torrent_params p = parse_magnet_uri(uri.string_value(), ec);
+				auto const p = parse_magnet_uri(uri.string_value(), ec);
 				if (ec) return false;
 
 				m_info_hash = p.info_hash;
