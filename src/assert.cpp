@@ -285,17 +285,18 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int /*max_depth*/, void*
 
 #endif
 
-namespace libtorrent {
-
-#if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
-
-#ifdef TORRENT_PRODUCTION_ASSERTS
+#if (TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING) && \
+	defined TORRENT_PRODUCTION_ASSERTS
 char const* libtorrent_assert_log = "asserts.log";
 namespace {
 // the number of asserts we've printed to the log
 std::atomic<int> assert_counter(0);
 }
 #endif
+
+namespace libtorrent {
+
+#if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
 
 TORRENT_FORMAT(1,2)
 TORRENT_EXPORT void assert_print(char const* fmt, ...)
