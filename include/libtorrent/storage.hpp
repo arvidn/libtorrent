@@ -276,7 +276,7 @@ namespace libtorrent
 		// change the priorities of files. This is a fenced job and is
 		// guaranteed to be the only running function on this storage
 		// when called
-		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio
+		virtual void set_file_priority(std::vector<boost::uint8_t>& prio
 			, storage_error& ec) = 0;
 
 		// This function should move all the files belonging to the storage to
@@ -427,7 +427,7 @@ namespace libtorrent
 		void finalize_file(int file, storage_error& ec) TORRENT_OVERRIDE;
 #endif
 		virtual bool has_any_file(storage_error& ec) TORRENT_OVERRIDE;
-		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio
+		virtual void set_file_priority(std::vector<boost::uint8_t>& prio
 			, storage_error& ec) TORRENT_OVERRIDE;
 		virtual void rename_file(int index, std::string const& new_filename
 			, storage_error& ec) TORRENT_OVERRIDE;
@@ -524,7 +524,7 @@ namespace libtorrent
 	{
 	public:
 		virtual bool has_any_file(storage_error&) TORRENT_OVERRIDE { return false; }
-		virtual void set_file_priority(std::vector<boost::uint8_t> const&
+		virtual void set_file_priority(std::vector<boost::uint8_t>&
 			, storage_error&) TORRENT_OVERRIDE {}
 		virtual void rename_file(int, std::string const&, storage_error&) TORRENT_OVERRIDE {}
 		virtual void release_files(storage_error&) TORRENT_OVERRIDE {}
@@ -555,7 +555,7 @@ namespace libtorrent
 			, int piece, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
 
 		virtual bool has_any_file(storage_error&) TORRENT_OVERRIDE { return false; }
-		virtual void set_file_priority(std::vector<boost::uint8_t> const& /* prio */
+		virtual void set_file_priority(std::vector<boost::uint8_t>& /* prio */
 			, storage_error&) TORRENT_OVERRIDE {}
 		virtual int move_storage(std::string const& /* save_path */
 			, int /* flags */, storage_error&) TORRENT_OVERRIDE { return 0; }

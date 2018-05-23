@@ -5658,9 +5658,22 @@ namespace {
 		}
 	}
 
-	void torrent::on_file_priority()
+	void torrent::on_file_priority(disk_io_job const* j)
 	{
 		dec_refcount("file_priority");
+		boost::scoped_ptr<std::vector<boost::uint8_t> > p(j->buffer.priorities);
+		if (m_file_priority == *p) return;
+
+		// in this case, some file priorities failed to get set
+		m_file_priority = *p;
+		update_piece_priorities();
+
+		if (alerts().should_post<file_error_alert>())
+			alerts().emplace_alert<file_error_alert>(j->error.ec
+				, resolve_filename(j->error.file), j->error.operation_str(), get_handle());
+
+		set_error(j->error.ec, j->error.file);
+		pause();
 	}
 
 	void torrent::prioritize_files(std::vector<int> const& files)
@@ -5699,7 +5712,7 @@ namespace {
 		{
 			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
-				, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this()));
+				, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
 		}
 
 		update_piece_priorities();
@@ -5738,7 +5751,7 @@ namespace {
 		{
 			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
-				, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this()));
+				, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
 		}
 		update_piece_priorities();
 	}
@@ -7145,7 +7158,7 @@ namespace {
 				{
 					inc_refcount("file_priority");
 					m_ses.disk_thread().async_set_file_priority(m_storage.get()
-						, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this()));
+						, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
 				}
 
 				update_piece_priorities();

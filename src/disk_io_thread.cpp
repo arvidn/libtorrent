@@ -2991,8 +2991,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_file_priority(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
-		boost::scoped_ptr<std::vector<boost::uint8_t> > p(j->buffer.priorities);
-		j->storage->get_storage_impl()->set_file_priority(*p, j->error);
+		j->storage->get_storage_impl()->set_file_priority(*j->buffer.priorities, j->error);
 		return 0;
 	}
 

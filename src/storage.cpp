@@ -436,7 +436,7 @@ namespace libtorrent
 			, m_files.num_pieces(), m_files.piece_length()));
 	}
 
-	void default_storage::set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec)
+	void default_storage::set_file_priority(std::vector<boost::uint8_t>& prio, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
 		// the default assumed priority is 4 (the default)
@@ -459,6 +459,7 @@ namespace libtorrent
 				{
 					ec.file = i;
 					ec.operation = storage_error::open;
+					prio = m_file_priority;
 					return;
 				}
 
@@ -469,6 +470,7 @@ namespace libtorrent
 					{
 						ec.file = i;
 						ec.operation = storage_error::partfile_write;
+						prio = m_file_priority;
 						return;
 					}
 				}
@@ -485,7 +487,13 @@ namespace libtorrent
 				file_handle f = open_file(i, file::read_only, ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
-					if (ec) return;
+					if (ec)
+					{
+						ec.file = i;
+						ec.operation = storage_error::open;
+						prio = m_file_priority;
+						return;
+					}
 
 					need_partfile();
 
@@ -494,6 +502,7 @@ namespace libtorrent
 					{
 						ec.file = i;
 						ec.operation = storage_error::partfile_read;
+						prio = m_file_priority;
 						return;
 					}
 					// remove the file
@@ -503,6 +512,8 @@ namespace libtorrent
 					{
 						ec.file = i;
 						ec.operation = storage_error::remove;
+						prio = m_file_priority;
+						return;
 					}
 				}
 */

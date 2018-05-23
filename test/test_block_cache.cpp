@@ -61,7 +61,7 @@ struct test_storage_impl : storage_interface
 	}
 
 	virtual bool has_any_file(storage_error& ec) { return false; }
-	virtual void set_file_priority(std::vector<boost::uint8_t> const& prio
+	virtual void set_file_priority(std::vector<boost::uint8_t>& prio
 		, storage_error& ec) {}
 	virtual int move_storage(std::string const& save_path, int flags
 		, storage_error& ec) { return 0; }
