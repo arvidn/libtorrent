@@ -87,7 +87,7 @@ namespace libtorrent {
 
 	bool filter_path_character(std::int32_t const c)
 	{
-		// these unicode characters change the writing writing direction of the
+		// these unicode characters change the writing direction of the
 		// string and can be used for attacks:
 		// https://security.stackexchange.com/questions/158802/how-can-this-executable-have-an-avi-extension
 		static const std::array<std::int32_t, 7> bad_cp = {{0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x200e, 0x200f}};
@@ -324,9 +324,9 @@ namespace {
 		bdecode_node const attr = dict.dict_find_string("attr");
 		if (attr)
 		{
-			for (int i = 0; i < attr.string_length(); ++i)
+			for (char const c : attr.string_value())
 			{
-				switch (attr.string_ptr()[i])
+				switch (c)
 				{
 					case 'l': file_flags |= file_storage::flag_symlink; break;
 					case 'x': file_flags |= file_storage::flag_executable; break;
@@ -505,7 +505,7 @@ namespace {
 	// root_dir is the name of the torrent, unless this is a single file
 	// torrent, in which case it's empty.
 	bool extract_files(bdecode_node const& list, file_storage& target
-		, std::string const& root_dir, ptrdiff_t info_ptr_diff, error_code& ec)
+		, std::string const& root_dir, std::ptrdiff_t info_ptr_diff, error_code& ec)
 	{
 		if (list.type() != bdecode_node::list_t)
 		{
@@ -535,8 +535,7 @@ namespace {
 		if (ec) return -1;
 		v.resize(std::size_t(s));
 		if (s == 0) return 0;
-		iovec_t b = {&v[0], size_t(s) };
-		std::int64_t read = f.readv(0, b, ec);
+		std::int64_t read = f.readv(0, {v}, ec);
 		if (read != s) return -3;
 		if (ec) return -3;
 		return 0;
@@ -579,7 +578,7 @@ namespace {
 		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
 		std::memcpy(m_info_section.get(), t.m_info_section.get(), aux::numeric_cast<std::size_t>(m_info_section_size));
 
-		ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
+		std::ptrdiff_t const offset = m_info_section.get() - t.m_info_section.get();
 
 		m_files.apply_pointer_offset(offset);
 		if (m_orig_files)
@@ -611,7 +610,7 @@ namespace {
 
 		std::unordered_set<std::uint32_t> files;
 
-		std::string empty_str;
+		std::string const empty_str;
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
@@ -751,7 +750,7 @@ namespace {
 #endif
 		INVARIANT_CHECK;
 	}
-#endif
+#endif // TORRENT_ABI_VERSION
 
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_info::torrent_info(bdecode_node const& torrent_file)
@@ -954,7 +953,7 @@ namespace {
 		// when translating a pointer that points into the 'info' tree's
 		// backing buffer, into a pointer to our copy of the info section,
 		// this is the pointer offset to use.
-		ptrdiff_t const info_ptr_diff = m_info_section.get() - section.data();
+		std::ptrdiff_t const info_ptr_diff = m_info_section.get() - section.data();
 
 		// extract piece length
 		std::int64_t piece_length = info.dict_find_int_value("piece length", -1);
@@ -1239,18 +1238,16 @@ namespace {
 		bdecode_node const info = torrent_file.dict_find_dict("info");
 		if (!info)
 		{
-			bdecode_node link = torrent_file.dict_find_string("magnet-uri");
-			if (link)
+			bdecode_node const uri = torrent_file.dict_find_string("magnet-uri");
+			if (uri)
 			{
-				auto uri = link.string_value();
-
-				add_torrent_params p = parse_magnet_uri(uri.to_string(), ec);
+				auto const p = parse_magnet_uri(uri.string_value(), ec);
 				if (ec) return false;
 
 				m_info_hash = p.info_hash;
 				m_urls.reserve(m_urls.size() + p.trackers.size());
 				for (auto const& url : p.trackers)
-					m_urls.push_back(announce_entry(url));
+					m_urls.emplace_back(url);
 
 				return true;
 			}

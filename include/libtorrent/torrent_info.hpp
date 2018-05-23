@@ -58,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class peer_connection;
 	struct lazy_entry;
 
 	// internal, exposed for the unit test
