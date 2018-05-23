@@ -1,4 +1,6 @@
 
+	* improve error handling of failing to change file priority
+	  The API for custom storage implementations was altered
 	* set the hidden attribute when creating the part file
 	* fix tracker announces reporting more data downloaded than the size of the torrent
 	* fix recent regression with force_proxy setting

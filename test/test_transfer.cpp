@@ -78,8 +78,8 @@ struct test_storage : default_storage
 		, m_limit(16 * 1024 * 2)
 	{}
 
-	virtual void set_file_priority(std::vector<boost::uint8_t> const& p
-		, storage_error& ec) {}
+	virtual void set_file_priority(std::vector<boost::uint8_t>& p
+		, storage_error& ec) TORRENT_OVERRIDE {}
 
 	void set_limit(int lim)
 	{
@@ -93,7 +93,7 @@ struct test_storage : default_storage
 		, int piece_index
 		, int offset
 		, int flags
-		, storage_error& se)
+		, storage_error& se) TORRENT_OVERRIDE
 	{
 		mutex::scoped_lock l(m_mutex);
 		if (m_written >= m_limit)
