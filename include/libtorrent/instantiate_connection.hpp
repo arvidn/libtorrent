@@ -33,13 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_INSTANTIATE_CONNECTION
 #define TORRENT_INSTANTIATE_CONNECTION
 
-#include "libtorrent/aux_/socket_type.hpp"
+#include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {
 
 	namespace aux {
 
 		struct proxy_settings;
+		struct socket_type;
 	}
 
 	struct utp_socket_manager;

@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/storage.hpp" // for storage_interface
 
 namespace libtorrent {
 
