@@ -52,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	struct disk_observer;
-	struct disk_buffer_holder;
 	struct counters;
 
 	struct storage_holder;

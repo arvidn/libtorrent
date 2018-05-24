@@ -254,7 +254,7 @@ namespace {
 		}
 
 		void on_read_ok_block(std::pair<piece_block, block_entry> const b
-			, address const a, disk_buffer_holder buffer, int const block_size
+			, address const& a, disk_buffer_holder buffer, int const block_size
 			, disk_job_flags_t, storage_error const& error)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());

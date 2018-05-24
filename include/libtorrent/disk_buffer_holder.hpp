@@ -38,8 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/span.hpp"
 
-#include <memory>
-
 namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface

@@ -1693,9 +1693,9 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	while (size > 0)
 	{
 		TORRENT_PIECE_ASSERT(pe->blocks[block].buf, pe);
-		int to_copy = std::min(default_block_size - block_offset, size);
+		int const to_copy = std::min(default_block_size - block_offset, size);
 		std::memcpy(boost::get<disk_buffer_holder>(j->argument).get()
-				+ buffer_offset
+			+ buffer_offset
 			, pe->blocks[block].buf + block_offset
 			, aux::numeric_cast<std::size_t>(to_copy));
 		pe->blocks[block].cache_hit = 1;
