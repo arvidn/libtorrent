@@ -9,6 +9,24 @@ set(_GeneratePkGConfigDir "${CMAKE_CURRENT_LIST_DIR}/GeneratePkgConfig")
 
 include(GNUInstallDirs)
 
+function(_compile_features_to_gcc_flags _res _features)
+	set(features ${_features})
+	# leave only cxx_std_nn items
+	list(FILTER features INCLUDE REGEX cxx_std_)
+	if (${features} STREQUAL "")
+		set(${_res} "" PARENT_SCOPE)
+	else()
+		# if there are more than a single cxx_std_nn feature...
+		list(SORT features)
+		# take the most recent standard, i.e. the last element
+		list(GET features -1 standard)
+		# cmake calls it cxx_std_98, but we (obviously) want -std=c++03
+		string(REPLACE 98 03 standard "${standard}")
+		string(REPLACE cxx_std_ -std=c++ standard "${standard}")
+		set(${_res} "${standard}" PARENT_SCOPE)
+	endif()
+endfunction()
+
 function(_get_target_property_merging_configs _var_name _target_name _propert_name)
 	get_target_property(vals ${_target_name} ${_propert_name})
 	if (NOT vals)
@@ -31,8 +49,9 @@ function(_get_target_property_merging_configs _var_name _target_name _propert_na
 			endif()
 		endforeach()
 	endif()
-	# HACK file(GENERATE), which we use foe expanding generator expressions, is BUILD_INTERFACE,
+	# HACK file(GENERATE), which we use for expanding generator expressions, is BUILD_INTERFACE,
 	# but we need INSTALL_INTERFACE here. As such, let us inter-change them.
+	# See https://gitlab.kitware.com/cmake/cmake/issues/17984
 	string(REPLACE "$<BUILD_INTERFACE:" "$<TMP_INTERFACE:" vals "${vals}")
 	string(REPLACE "$<INSTALL_INTERFACE:" "@CMAKE_INSTALL_PREFIX@/$<BUILD_INTERFACE:" vals "${vals}")
 	string(REPLACE "$<TMP_INTERFACE:" "$<INSTALL_INTERFACE:" vals "${vals}")
@@ -70,6 +89,7 @@ function(_expand_targets _targets _libraries_var _include_dirs_var _compile_opti
 				_get_target_property_merging_configs(_iface_include_dirs ${_dep} INTERFACE_INCLUDE_DIRECTORIES)
 				_get_target_property_merging_configs(_iface_compile_options ${_dep} INTERFACE_COMPILE_OPTIONS)
 				_get_target_property_merging_configs(_iface_definitions ${_dep} INTERFACE_COMPILE_DEFINITIONS)
+				get_target_property(_iface_compile_features ${_dep} INTERFACE_COMPILE_FEATURES)
 
 				if (_imported_location)
 					list(APPEND _new_libs "${_imported_location}")
@@ -85,6 +105,11 @@ function(_expand_targets _targets _libraries_var _include_dirs_var _compile_opti
 
 				if(_iface_compile_options)
 					list(APPEND _options "${_iface_compile_options}")
+				endif()
+
+				if (_iface_compile_features)
+					_compile_features_to_gcc_flags(features_flags ${_iface_compile_features})
+					list(APPEND _options ${features_flags})
 				endif()
 
 				if(_iface_definitions)
