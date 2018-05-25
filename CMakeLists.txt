@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.8)
 project(libtorrent)
 set (SOVERSION "8")
 set (VERSION "1.1.7")
@@ -253,10 +253,38 @@ endif()
 
 target_compile_definitions(torrent-rasterbar PRIVATE TORRENT_BUILDING_LIBRARY)
 
+# C++ standard and Boost requirements are connected:
+# 1. With C++11 onward, we require Boost system component, with C++03 we need chrono and random components too
+# 2. When building against boost 1.66 and newer, C++11 is required.
+
+# For the first requirement we do:
+set(required_boost_components system)
+if (NOT cxx_std_11 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+	list(APPEND required_boost_components chrono random)
+endif()
 # Boost
 if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
-	FIND_PACKAGE(Boost REQUIRED COMPONENTS system chrono random)
+	find_package(Boost REQUIRED COMPONENTS ${required_boost_components})
 endif()
+# now test the second requirement:
+if (Boost_VERSION VERSION_GREATER_EQUAL 106600)
+	if (NOT cxx_std_11 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+		message(FATAL_ERROR "When building against boost 1.66 and newer, C++11 is required,\n"
+		                    "and your compiler does not support that")
+	endif()
+endif()
+
+# selecting C++14/11 mode if available
+if (cxx_std_14 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+	target_compile_features(torrent-rasterbar PUBLIC cxx_std_14)
+	message(STATUS "Building in C++14 mode")
+	set(CXX_MODE_COMPILE_OPTION -std=c++14)
+elseif(cxx_std_11 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+	target_compile_features(torrent-rasterbar PUBLIC cxx_std_11)
+	message(STATUS "Building in C++11 mode")
+	set(CXX_MODE_COMPILE_OPTION -std=c++11)
+endif()
+
 include_directories(${Boost_INCLUDE_DIRS})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
@@ -342,6 +370,8 @@ get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
 	PROPERTY COMPILE_DEFINITIONS
 	)
+
+set(COMPILETIME_OPTIONS ${CXX_MODE_COMPILE_OPTION})
 foreach (s ${COMPILETIME_OPTIONS_LIST})
 	set (COMPILETIME_OPTIONS "${COMPILETIME_OPTIONS} -D${s}")
 endforeach (s)
