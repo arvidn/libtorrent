@@ -2540,6 +2540,83 @@ namespace {
 		return ret;
 	}
 
+	alerts_dropped_alert::alerts_dropped_alert(aux::stack_allocator&
+		, std::bitset<num_alert_types> const& dropped)
+		: dropped_alerts(dropped)
+	{}
+
+	char const* alert_name(int const alert_type)
+	{
+		static std::array<char const*, num_alert_types> const names = {{
+#if TORRENT_ABI_VERSION == 1
+		"torrent", "peer", "tracker", "torrent_added",
+#else
+		"", "", "", "",
+#endif
+		"torrent_removed", "read_piece", "file_completed",
+		"file_renamed", "file_rename_failed", "performance",
+		"state_changed", "tracker_error", "tracker_warning",
+		"scrape_reply", "scrape_failed", "tracker_reply",
+		"dht_reply", "tracker_announce", "hash_failed",
+		"peer_ban", "peer_unsnubbed", "peer_snubbed",
+		"peer_error", "peer_connect", "peer_disconnected",
+		"invalid_request", "torrent_finished", "piece_finished",
+		"request_dropped", "block_timeout", "block_finished",
+		"block_downloading", "unwanted_block", "storage_moved",
+		"storage_moved_failed", "torrent_deleted",
+		"torrent_delete_failed", "save_resume_data",
+		"save_resume_data_failed", "torrent_paused",
+		"torrent_resumed", "torrent_checked", "url_seed",
+		"file_error", "metadata_failed", "metadata_received",
+		"udp_error", "external_ip", "listen_failed",
+		"listen_succeeded", "portmap_error", "portmap",
+		"portmap_log", "fastresume_rejected", "peer_blocked",
+		"dht_announce", "dht_get_peers", "stats",
+		"cache_flushed", "anonymous_mode", "lsd_peer",
+		"trackerid", "dht_bootstrap", "", "torrent_error",
+		"torrent_need_cert", "incoming_connection",
+		"add_torrent", "state_update",
+#if TORRENT_ABI_VERSION == 1
+		"mmap_cache",
+#else
+		"",
+#endif
+		"session_stats",
+#if TORRENT_ABI_VERSION == 1
+		"torrent_update",
+#else
+		"",
+#endif
+		"", "dht_error", "dht_immutable_item", "dht_mutable_item",
+		"dht_put", "i2p", "dht_outgoing_get_peers", "log",
+		"torrent_log", "peer_log", "lsd_error",
+		"dht_stats", "incoming_request", "dht_log",
+		"dht_pkt", "dht_get_peers_reply", "dht_direct_response",
+		"picker_log", "session_error", "dht_live_nodes",
+		"session_stats_header", "dht_sample_infohashes",
+		"block_uploaded", "alerts_dropped"
+		}};
+
+		TORRENT_ASSERT(alert_type >= 0);
+		TORRENT_ASSERT(alert_type < num_alert_types);
+		return names[std::size_t(alert_type)];
+	}
+
+	std::string alerts_dropped_alert::message() const
+	{
+		std::string ret = "dropped alerts: ";
+
+		TORRENT_ASSERT(int(dropped_alerts.size()) == num_alert_types);
+		for (int idx = 0; idx < num_alert_types; ++idx)
+		{
+			if (!dropped_alerts.test(std::size_t(idx))) continue;
+			ret += alert_name(idx);
+			ret += ' ';
+		}
+
+		return ret;
+	}
+
 	// this will no longer be necessary in C++17
 	constexpr alert_category_t torrent_removed_alert::static_category;
 	constexpr alert_category_t read_piece_alert::static_category;
@@ -2628,6 +2705,7 @@ namespace {
 	constexpr alert_category_t session_stats_header_alert::static_category;
 	constexpr alert_category_t dht_sample_infohashes_alert::static_category;
 	constexpr alert_category_t block_uploaded_alert::static_category;
+	constexpr alert_category_t alerts_dropped_alert::static_category;
 #if TORRENT_ABI_VERSION == 1
 	constexpr alert_category_t mmap_cache_alert::static_category;
 	constexpr alert_category_t torrent_added_alert::static_category;

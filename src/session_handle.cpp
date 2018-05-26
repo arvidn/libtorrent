@@ -1144,13 +1144,6 @@ namespace {
 		s->alerts().set_notify_function(fun);
 	}
 
-	dropped_alerts_t session_handle::dropped_alerts()
-	{
-		std::shared_ptr<session_impl> s = m_impl.lock();
-		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
-		return s->alerts().dropped_alerts();
-	}
-
 #if TORRENT_ABI_VERSION == 1
 	void session_handle::set_severity_level(alert::severity_t s)
 	{
