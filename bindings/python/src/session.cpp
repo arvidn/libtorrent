@@ -388,6 +388,22 @@ namespace
     }
 #endif // TORRENT_ABI_VERSION
 
+    object alert_notify_cb;
+    void alert_notify()
+    {
+        if (alert_notify_cb)
+        {
+            lock_gil lock;
+            alert_notify_cb();
+        }
+    }
+
+    void set_alert_notify(lt::session& s, object cb)
+    {
+        alert_notify_cb = cb;
+        s.set_alert_notify(alert_notify);
+    }
+
     alert const*
     wait_for_alert(lt::session& s, int ms)
     {
@@ -987,6 +1003,7 @@ void bind_session()
         .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
         .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
+        .def("set_alert_notify", &set_alert_notify)
         .def("add_extension", &add_extension)
 #if TORRENT_ABI_VERSION == 1
 #if TORRENT_USE_I2P
