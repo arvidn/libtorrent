@@ -1472,7 +1472,7 @@ namespace libtorrent
 			, std::string const& file
 			, char const* op);
 
-		TORRENT_DEFINE_ALERT(fastresume_rejected_alert, 53)
+		TORRENT_DEFINE_ALERT_PRIO(fastresume_rejected_alert, 53, alert_priority_critical)
 
 		static const int static_category = alert::status_notification
 			| alert::error_notification;
