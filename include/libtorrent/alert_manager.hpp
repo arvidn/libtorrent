@@ -54,10 +54,6 @@ namespace libtorrent {
 	struct plugin;
 #endif
 
-	// this bitset is used to indicate which alert types have been dropped since
-	// last queried.
-	using dropped_alerts_t = std::bitset<num_alert_types>;
-
 	class TORRENT_EXTRA_EXPORT alert_manager
 	{
 	public:
@@ -68,8 +64,6 @@ namespace libtorrent {
 		alert_manager& operator=(alert_manager const&) = delete;
 
 		~alert_manager();
-
-		dropped_alerts_t dropped_alerts();
 
 		template <class T, typename... Args>
 		void emplace_alert(Args&&... args) try
@@ -145,7 +139,7 @@ namespace libtorrent {
 		// an alert (because the queue is full or of some other error) we set the
 		// corresponding bit in this mask, to communicate to the client that it
 		// may have missed an update.
-		dropped_alerts_t m_dropped;
+		std::bitset<num_alert_types> m_dropped;
 
 		// this function (if set) is called whenever the number of alerts in
 		// the alert queue goes from 0 to 1. The client is expected to wake up

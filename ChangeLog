@@ -1,10 +1,10 @@
+	* deliver notification of alerts being dropped via alerts_dropped_alert
 	* deprecated alert::progress_notification alert category, split into
 	  finer grained categories
 	* update plugin interface functions for improved type-safety
 	* implemented support magnet URI extension, select specific file indices
 	  for download, BEP53
 	* make tracker keys multi-homed. remove set_key() function on session.
-	* add API to query whether alerts have been dropped or not
 	* add flags()/set_flags()/unset_flags() to torrent_handle, deprecate individual functions
 	* added alert for block being sent to the send buffer
 	* drop support for windows compilers without std::wstring

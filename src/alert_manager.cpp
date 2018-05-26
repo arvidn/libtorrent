@@ -108,6 +108,11 @@ namespace libtorrent {
 
 		if (m_alerts[m_generation].empty()) return;
 
+		if (m_dropped.any()) {
+			emplace_alert<alerts_dropped_alert>(m_dropped);
+			m_dropped.reset();
+		}
+
 		m_alerts[m_generation].get_pointers(alerts);
 
 		// swap buffers
@@ -129,13 +134,5 @@ namespace libtorrent {
 
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;
-	}
-
-	dropped_alerts_t alert_manager::dropped_alerts()
-	{
-		std::unique_lock<std::recursive_mutex> lock(m_mutex);
-		dropped_alerts_t const ret = m_dropped;
-		m_dropped.reset();
-		return ret;
 	}
 }

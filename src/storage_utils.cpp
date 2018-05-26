@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp" // for session::delete_files
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/torrent_status.hpp"
 
 #include <set>
 

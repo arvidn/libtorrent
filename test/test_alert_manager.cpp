@@ -60,7 +60,8 @@ TORRENT_TEST(limit)
 	mgr.get_all(alerts);
 
 	// even though we posted 600, the limit was 500
-	TEST_EQUAL(alerts.size(), 500);
+	// +1 for the alerts_dropped_alert
+	TEST_EQUAL(alerts.size(), 501);
 
 	TEST_EQUAL(mgr.pending(), false);
 
@@ -75,7 +76,8 @@ TORRENT_TEST(limit)
 	mgr.get_all(alerts);
 
 	// even though we posted 600, the limit was 200
-	TEST_EQUAL(alerts.size(), 200);
+	// +1 for the alerts_dropped_alert
+	TEST_EQUAL(alerts.size(), 201);
 }
 
 TORRENT_TEST(priority_limit)
@@ -97,7 +99,8 @@ TORRENT_TEST(priority_limit)
 
 	// even though we posted 500, the limit was 100 for half of them and
 	// 100 + 200 for the other half, meaning we should have 300 alerts now
-	TEST_EQUAL(alerts.size(), 300);
+	// +1 for the alerts_dropped_alert
+	TEST_EQUAL(alerts.size(), 301);
 }
 
 namespace {
@@ -260,22 +263,33 @@ TORRENT_TEST(dropped_alerts)
 	alert_manager mgr(1, alert::all_categories);
 
 	// nothing has dropped yet
-	TEST_CHECK(mgr.dropped_alerts().none());
 	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 	// still nothing, there's space for one alert
-	TEST_CHECK(mgr.dropped_alerts().none());
 	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 	// still nothing, there's space for one alert
-	TEST_CHECK(mgr.dropped_alerts().none());
 	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 	// that last alert got dropped though, since it would have brought the queue
 	// size to 3
-	auto const d = mgr.dropped_alerts();
+	std::vector<alert*> alerts;
+	mgr.get_all(alerts);
+	auto const d = alert_cast<alerts_dropped_alert>(alerts.back())->dropped_alerts;
 	TEST_EQUAL(d.count(), 1);
 	TEST_CHECK(d.test(torrent_finished_alert::alert_type));
+}
 
-	// it should have been cleared now though
-	TEST_CHECK(mgr.dropped_alerts().none());
+TORRENT_TEST(alerts_dropped_alert)
+{
+	alert_manager mgr(1, alert::all_categories);
+
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	// that last alert got dropped though, since it would have brought the queue
+	// size to 3
+	std::vector<alert*> alerts;
+	mgr.get_all(alerts);
+
+	TEST_EQUAL(alerts.back()->message(), "dropped alerts: torrent_finished ");
 }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
