@@ -1122,7 +1122,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					ifentry.dwIndex = routes->Table[i].InterfaceIndex;
 					if (GetIfEntry(&ifentry) == NO_ERROR)
 					{
-						wcstombs(r.name, ifentry.wszName, sizeof(r.name));
+						WCHAR* name = ifentry.wszName;
+						// strip UNC prefix to match the names returned by enum_net_interfaces
+						if (wcsncmp(name, L"\\DEVICE\\TCPIP_", wcslen(L"\\DEVICE\\TCPIP_")) == 0)
+						{
+							name += wcslen(L"\\DEVICE\\TCPIP_");
+						}
+						wcstombs(r.name, name, sizeof(r.name));
 						r.name[sizeof(r.name) - 1] = 0;
 						r.mtu = ifentry.dwMtu;
 						ret.push_back(r);
