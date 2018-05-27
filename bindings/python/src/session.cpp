@@ -388,20 +388,18 @@ namespace
     }
 #endif // TORRENT_ABI_VERSION
 
-    object alert_notify_cb;
-    void alert_notify()
+    void alert_notify(object cb)
     {
-        if (alert_notify_cb)
+        if (cb)
         {
             lock_gil lock;
-            alert_notify_cb();
+            cb();
         }
     }
 
     void set_alert_notify(lt::session& s, object cb)
     {
-        alert_notify_cb = cb;
-        s.set_alert_notify(alert_notify);
+        s.set_alert_notify(std::bind(&alert_notify, cb));
     }
 
     alert const*
