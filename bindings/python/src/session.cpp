@@ -390,9 +390,9 @@ namespace
 
     void alert_notify(object cb)
     {
+        lock_gil lock;
         if (cb)
         {
-            lock_gil lock;
             cb();
         }
     }
