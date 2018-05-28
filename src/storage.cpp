@@ -160,11 +160,10 @@ namespace libtorrent {
 			{
 				// move stuff into the part file
 				// this is not implemented yet.
-				// pretend that we didn't set the priority to 0.
+				// so we just don't use a partfile for this file
 
-				std::string fp = fs.file_path(i, m_save_path);
-				if (exists(fp))
-					new_prio = low_priority;
+				std::string const fp = fs.file_path(i, m_save_path);
+				if (exists(fp)) use_partfile(i, false);
 /*
 				file_handle f = open_file(i, open_mode::read_only, ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)

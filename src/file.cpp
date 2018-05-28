@@ -530,14 +530,14 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 
 		TORRENT_ASSERT(static_cast<std::uint32_t>(mode & open_mode::rw_mask) < mode_array.size());
 		win_open_mode_t const& m = mode_array[static_cast<std::uint32_t>(mode & open_mode::rw_mask)];
-		DWORD a = attrib_array[static_cast<std::uint32_t>(mode & open_mode::attribute_mask) >> 12];
+		DWORD a = attrib_array[static_cast<std::uint32_t>(mode & open_mode::attribute_mask) >> 7];
 
 		// one might think it's a good idea to pass in FILE_FLAG_RANDOM_ACCESS. It
 		// turns out that it isn't. That flag will break your operating system:
 		// http://support.microsoft.com/kb/2549369
 
 		DWORD const flags = ((mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
-			| (a ? a : FILE_ATTRIBUTE_NORMAL)
+			| a
 			| FILE_FLAG_OVERLAPPED
 			| ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 

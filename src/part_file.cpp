@@ -178,7 +178,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(offset >= 0);
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		open_file(open_mode::read_write, ec);
+		open_file(open_mode::read_write | open_mode::attribute_hidden, ec);
 		if (ec) return -1;
 
 		auto const i = m_piece_map.find(piece);
@@ -206,7 +206,7 @@ namespace libtorrent {
 		}
 
 		slot_index_t const slot = i->second;
-		open_file(open_mode::read_write, ec);
+		open_file(open_mode::read_write | open_mode::attribute_hidden, ec);
 		if (ec) return -1;
 
 		l.unlock();
@@ -375,7 +375,7 @@ namespace libtorrent {
 			return;
 		}
 
-		open_file(open_mode::read_write, ec);
+		open_file(open_mode::read_write | open_mode::attribute_hidden, ec);
 		if (ec) return;
 
 		std::vector<char> header(static_cast<std::size_t>(m_header_size));

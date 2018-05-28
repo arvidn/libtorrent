@@ -1642,7 +1642,7 @@ TORRENT_VERSION_NAMESPACE_2
 			, torrent_handle const& h, error_code const& ec, string_view file
 			, operation_t op);
 
-		TORRENT_DEFINE_ALERT(fastresume_rejected_alert, 53)
+		TORRENT_DEFINE_ALERT_PRIO(fastresume_rejected_alert, 53, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::status_notification
 			| alert::error_notification;

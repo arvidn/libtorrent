@@ -84,6 +84,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* set the hidden attribute when creating the part file
 	* fix recent regression with force_proxy setting
 	* don't perform DNS lookups for the DHT bootstrap unless DHT is enabled
 	* fix issue where setting file/piece priority would stop checking

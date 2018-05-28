@@ -121,7 +121,7 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(portmap_error_alert, 50, 0, alert::port_mapping_notification | alert::error_notification);
 	TEST_ALERT_TYPE(portmap_alert, 51, 0, alert::port_mapping_notification);
 	TEST_ALERT_TYPE(portmap_log_alert, 52, 0, alert::port_mapping_log_notification);
-	TEST_ALERT_TYPE(fastresume_rejected_alert, 53, 0, alert::status_notification | alert::error_notification);
+	TEST_ALERT_TYPE(fastresume_rejected_alert, 53, 2, alert::status_notification | alert::error_notification);
 	TEST_ALERT_TYPE(peer_blocked_alert, 54, 0, alert::ip_block_notification);
 	TEST_ALERT_TYPE(dht_announce_alert, 55, 0, alert::dht_notification);
 	TEST_ALERT_TYPE(dht_get_peers_alert, 56, 0, alert::dht_notification);
