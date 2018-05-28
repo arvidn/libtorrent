@@ -37,13 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace aux {
-
-		struct proxy_settings;
-		struct socket_type;
-	}
-
 	struct utp_socket_manager;
+
+namespace aux {
 
 	// instantiate a socket_type (s) according to the specified criteria
 	TORRENT_EXTRA_EXPORT bool instantiate_connection(io_service& ios
@@ -52,6 +48,6 @@ namespace libtorrent {
 		, utp_socket_manager* sm
 		, bool peer_connection
 		, bool tracker_connection);
-}
+}}
 
 #endif
