@@ -75,7 +75,6 @@ set(libtorrent_include_files
 	http_tracker_connection
 	i2p_stream
 	identify_client
-	instantiate_connection
 	invariant_check
 	io
 	io_service
@@ -226,6 +225,7 @@ set(libtorrent_aux_include_files
 	ffs
 	file_progress
 	has_block
+	instantiate_connection
 	io
 	ip_notifier
 	listen_socket_handle
