@@ -1114,6 +1114,16 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				{
 					ip_route r;
 					r.gateway = sockaddr_to_address((const sockaddr*)&routes->Table[i].NextHop);
+#if TORRENT_USE_IPV6
+					// The scope_id in NextHop is always zero because that would make
+					// things too easy apparently
+					if (r.gateway.is_v6() && r.gateway.to_v6().is_link_local())
+					{
+						address_v6 gateway6 = r.gateway.to_v6();
+						gateway6.scope_id(routes->Table[i].InterfaceIndex);
+						r.gateway = gateway6;
+					}
+#endif
 					r.destination = sockaddr_to_address(
 						(const sockaddr*)&routes->Table[i].DestinationPrefix.Prefix);
 					r.netmask = build_netmask(routes->Table[i].DestinationPrefix.PrefixLength
