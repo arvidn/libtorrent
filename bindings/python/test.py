@@ -15,6 +15,7 @@ import subprocess as sub
 import sys
 import inspect
 import pickle
+import threading
 
 # include terminal interface for travis parallel executions of scripts which use
 # terminal features: fix multiple stdin assignment at termios.tcgetattr
@@ -397,6 +398,18 @@ class test_alerts(unittest.TestCase):
             for a in alerts:
                 print(a.message())
             time.sleep(0.1)
+
+    def test_alert_notify(self):
+        ses = lt.session(settings)
+        event = threading.Event()
+
+        def callback():
+            event.set()
+
+        ses.set_alert_notify(callback)
+        ses.async_add_torrent(
+            {"ti": lt.torrent_info("base.torrent"), "save_path": "."})
+        event.wait()
 
 
 class test_bencoder(unittest.TestCase):
