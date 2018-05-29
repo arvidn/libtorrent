@@ -520,7 +520,7 @@ namespace libtorrent {
 		aux::write_uint32(0x27101980, view); // connection_id
 		aux::write_int32(action_t::connect, view); // action (connect)
 		aux::write_int32(m_transaction_id, view); // transaction_id
-		TORRENT_ASSERT(view.size() == 0);
+		TORRENT_ASSERT(view.empty());
 
 		error_code ec;
 		if (!m_hostname.empty())
@@ -627,7 +627,7 @@ namespace libtorrent {
 #endif
 			6;
 
-		int const num_peers = static_cast<int>(buf.size() / ip_stride);
+		std::size_t const num_peers = buf.size() / ip_stride;
 		if (buf.size() % ip_stride != 0)
 		{
 			fail(error_code(errors::invalid_tracker_response_length));
@@ -651,8 +651,8 @@ namespace libtorrent {
 #if TORRENT_USE_IPV6
 		if (is_v6(m_target))
 		{
-			resp.peers6.reserve(std::size_t(num_peers));
-			for (int i = 0; i < num_peers; ++i)
+			resp.peers6.reserve(num_peers);
+			for (std::size_t i = 0; i < num_peers; ++i)
 			{
 				ipv6_peer_entry e{};
 				std::memcpy(e.ip.data(), buf.data(), 16);
@@ -664,8 +664,8 @@ namespace libtorrent {
 		else
 #endif
 		{
-			resp.peers4.reserve(std::size_t(num_peers));
-			for (int i = 0; i < num_peers; ++i)
+			resp.peers4.reserve(num_peers);
+			for (std::size_t i = 0; i < num_peers; ++i)
 			{
 				ipv4_peer_entry e{};
 				std::memcpy(e.ip.data(), buf.data(), 4);
