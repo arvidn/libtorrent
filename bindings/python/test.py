@@ -13,7 +13,6 @@ import shutil
 import binascii
 import subprocess as sub
 import sys
-import inspect
 import pickle
 import threading
 
@@ -165,7 +164,6 @@ class test_torrent_handle(unittest.TestCase):
         # time, wait for next full second to prevent second increment
         time.sleep(1 - datetime.datetime.now().microsecond / 1000000.0)
 
-        sessionStart = datetime.datetime.now().replace(microsecond=0)
         self.setup()
         st = self.h.status()
         for attr in dir(st):
@@ -514,7 +512,7 @@ class test_session(unittest.TestCase):
 
     def test_add_torrent(self):
         s = lt.session(settings)
-        h = s.add_torrent({'ti': lt.torrent_info('base.torrent'),
+        s.add_torrent({'ti': lt.torrent_info('base.torrent'),
                            'save_path': '.',
                            'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
                            'http_seeds': ['http://test.com/seed'],
@@ -571,7 +569,7 @@ class test_session(unittest.TestCase):
 
     def test_unknown_settings(self):
         try:
-            s = lt.session({'unexpected-key-name': 42})
+            lt.session({'unexpected-key-name': 42})
             self.assertFalse('should have thrown an exception')
         except KeyError as e:
             print(e)
