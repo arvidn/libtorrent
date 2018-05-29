@@ -48,10 +48,10 @@ class test_create_torrent(unittest.TestCase):
 class test_session_stats(unittest.TestCase):
 
     def test_unique(self):
-        l = lt.session_stats_metrics()
-        self.assertTrue(len(l) > 40)
+        metrics = lt.session_stats_metrics()
+        self.assertTrue(len(metrics) > 40)
         idx = set()
-        for m in l:
+        for m in metrics:
             self.assertTrue(m.value_index not in idx)
             idx.add(m.value_index)
 
@@ -153,8 +153,8 @@ class test_torrent_handle(unittest.TestCase):
 
     def test_file_status(self):
         self.setup()
-        l = self.h.file_status()
-        print(l)
+        status = self.h.file_status()
+        print(status)
 
     def test_piece_deadlines(self):
         self.setup()
