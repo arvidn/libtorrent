@@ -513,12 +513,12 @@ class test_session(unittest.TestCase):
     def test_add_torrent(self):
         s = lt.session(settings)
         s.add_torrent({'ti': lt.torrent_info('base.torrent'),
-                           'save_path': '.',
-                           'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
-                           'http_seeds': ['http://test.com/seed'],
-                           'peers': [('5.6.7.8', 6881)],
-                           'banned_peers': [('8.7.6.5', 6881)],
-                           'file_priorities': [1, 1, 1, 2, 0]})
+                       'save_path': '.',
+                       'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
+                       'http_seeds': ['http://test.com/seed'],
+                       'peers': [('5.6.7.8', 6881)],
+                       'banned_peers': [('8.7.6.5', 6881)],
+                       'file_priorities': [1, 1, 1, 2, 0]})
 
     def test_apply_settings(self):
 
