@@ -45,13 +45,47 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	namespace errors
+	{
+		// See RFC 6887 Section 7.4
+		enum pcp_errors
+		{
+			pcp_success = 0,
+			pcp_unsupp_version,
+			pcp_not_authorized,
+			pcp_malformed_request,
+			pcp_unsupp_opcode,
+			pcp_unsupp_option,
+			pcp_malformed_option,
+			pcp_network_failure,
+			pcp_no_resources,
+			pcp_unsupp_protocol,
+			pcp_user_ex_quota,
+			pcp_cannot_provide_external,
+			pcp_address_mismatch,
+			pcp_excessive_remote_peers,
+		};
+
+		boost::system::error_code make_error_code(pcp_errors e);
+	}
+
+	boost::system::error_category& pcp_category();
+}
+
+namespace boost { namespace system {
+	template<> struct is_error_code_enum<libtorrent::errors::pcp_errors>
+	{ static const bool value = true; };
+} }
+
+namespace libtorrent {
+
 struct TORRENT_EXTRA_EXPORT natpmp
 	: std::enable_shared_from_this<natpmp>
 	, single_threaded
 {
 	natpmp(io_service& ios, aux::portmap_callback& cb);
 
-	void start(address const& local_address, std::string device);
+	void start(address local_address, std::string device);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
@@ -63,6 +97,7 @@ struct TORRENT_EXTRA_EXPORT natpmp
 	void close();
 
 private:
+	static error_code from_result_code(int version, int result);
 
 	std::shared_ptr<natpmp> self() { return shared_from_this(); }
 
@@ -79,8 +114,28 @@ private:
 
 	void disable(error_code const& ec);
 
+	enum protocol_version
+	{
+		version_natpmp = 0,
+		version_pcp = 2,
+	};
+
+	// See RFC 6887 Section 19.2
+	enum pcp_opcode
+	{
+		opcode_announce = 0,
+		opcode_map,
+		opcode_peer,
+	};
+
 	struct mapping_t : aux::base_mapping
 	{
+		// random identifier, used by PCP
+		std::array<char, 12> nonce;
+
+		// only valid if the router supports PCP
+		address external_address;
+
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use
 		int local_port = 0;
@@ -100,6 +155,8 @@ private:
 
 	aux::portmap_callback& m_callback;
 
+	protocol_version m_version = version_pcp;
+
 	aux::vector<mapping_t, port_mapping_t> m_mappings;
 
 	// the endpoint to the nat router
@@ -114,9 +171,12 @@ private:
 	int m_retry_count = 0;
 
 	// used to receive responses in
-	char m_response_buffer[16];
+	// 1100 octets is the maximum size of a PCP packet
+	char m_response_buffer[1100];
 
 	// router external IP address
+	// this is only used if the router does not support PCP
+	// with PCP the external IP is stored with the mapping
 	address m_external_ip;
 
 	// the endpoint we received the message from

@@ -55,10 +55,75 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/random.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for is_local
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent {
+
+struct TORRENT_EXPORT pcp_error_category : boost::system::error_category
+{
+	const char* name() const BOOST_SYSTEM_NOEXCEPT override
+	{ return "pcp error"; }
+	std::string message(int ev) const override
+	{
+		static char const* msgs[] =
+		{
+			"success",
+			"unsupported version",
+			"not authorized",
+			"malformed request",
+			"unsupported opcode",
+			"unsupported option",
+			"malformed option",
+			"network failure",
+			"no resources",
+			"unsupported protocol",
+			"user exceeded quota",
+			"cannot provide external",
+			"address mismatch",
+			"excessive remote peers",
+		};
+		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
+			return "Unknown error";
+		return msgs[ev];
+	}
+	boost::system::error_condition default_error_condition(
+		int ev) const BOOST_SYSTEM_NOEXCEPT override
+	{ return boost::system::error_condition(ev, *this); }
+};
+
+boost::system::error_category& pcp_category()
+{
+	static pcp_error_category pcp_category;
+	return pcp_category;
+}
+
+namespace errors
+{
+	// hidden
+	boost::system::error_code make_error_code(pcp_errors e)
+	{
+		return boost::system::error_code(e, pcp_category());
+	}
+}
+
+error_code natpmp::from_result_code(int const version, int result)
+{
+	if (version == version_natpmp)
+	{
+		// a few nat-pmp result codes map to different codes
+		// in pcp
+		switch (result)
+		{
+		case 3:result = 7; break;
+		case 4:result = 8; break;
+		case 5:result = 4; break;
+		}
+	}
+	return errors::pcp_errors(result);
+}
 
 using namespace aux;
 using namespace std::placeholders;
@@ -76,18 +141,64 @@ natpmp::natpmp(io_service& ios
 	m_mappings.reserve(10);
 }
 
-void natpmp::start(address const& local_address, std::string device)
+void natpmp::start(address local_address, std::string device)
 {
 	TORRENT_ASSERT(is_single_thread());
 
 	error_code ec;
+
+	// assume servers support PCP and fall back to NAT-PMP
+	// if necessary
+	m_version = version_pcp;
+
+	// PCP requires reporting the source address at the application
+	// layer so the socket MUST be bound to a specific address
+	// if the caller didn't specify one then get the first suitable
+	// address from the OS
+	if (local_address.is_unspecified())
+	{
+		for (auto const& a : enum_net_interfaces(m_socket.get_io_service(), ec))
+		{
+			if (a.interface_address.is_loopback()) continue;
+			if (a.interface_address.is_v4() != local_address.is_v4()) continue;
+			if (a.interface_address.is_v6() && is_local(a.interface_address)) continue;
+			if (!device.empty() && a.name != device) continue;
+			local_address = a.interface_address;
+			device = a.name;
+			break;
+		}
+
+		if (local_address.is_unspecified())
+		{
+			// if we can't get a specific address to bind to we'll have
+			// to fall back to NAT-PMP
+			// but NAT-PMP doesn't support IPv6 so if that's what is being
+			// requested we can't do anything
+			if (local_address.is_v6())
+			{
+				if (!ec) ec = boost::asio::error::address_family_not_supported;
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log())
+				{
+					log("cannot map IPv6 without a local address, %s"
+						, convert_from_native(ec.message()).c_str());
+				}
+#endif
+				disable(ec);
+				return;
+			}
+
+			m_version = version_natpmp;
+			ec.clear();
+		}
+	}
 
 	// we really want a device name to get the right default gateway
 	// try to find one even if the listen socket isn't bound to a device
 	if (device.empty())
 	{
 		device = device_for_address(local_address, m_socket.get_io_service(), ec);
-		// if this failes fall back to using the first default gateway in the
+		// if this fails fall back to using the first default gateway in the
 		// routing table
 		ec.clear();
 	}
@@ -138,7 +249,8 @@ void natpmp::start(address const& local_address, std::string device)
 	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer[0]
 		, sizeof(m_response_buffer))
 		, m_remote, std::bind(&natpmp::on_reply, self(), _1, _2));
-	send_get_ip_address_request();
+	if (m_version == version_natpmp)
+		send_get_ip_address_request();
 
 	for (auto i = m_mappings.begin(), end(m_mappings.end()); i != end; ++i)
 	{
@@ -155,9 +267,15 @@ void natpmp::send_get_ip_address_request()
 	TORRENT_ASSERT(is_single_thread());
 	using namespace libtorrent::detail;
 
+	// this opcode only exists in NAT-PMP
+	// PCP routers report the external IP in the response to a MAP operation
+	TORRENT_ASSERT(m_version == version_natpmp);
+	if (m_version != version_natpmp)
+		return;
+
 	char buf[2];
 	char* out = buf;
-	write_uint8(0, out); // NAT-PMP version
+	write_uint8(version_natpmp, out);
 	write_uint8(0, out); // public IP address request opcode
 #ifndef TORRENT_DISABLE_LOGGING
 	log("==> get public IP address");
@@ -268,6 +386,7 @@ port_mapping_t natpmp::add_mapping(portmap_protocol const p, int const external_
 		m_mappings.push_back(mapping_t());
 		i = m_mappings.end() - 1;
 	}
+	aux::random_bytes(i->nonce);
 	i->protocol = p;
 	i->external_port = external_port;
 	i->local_port = local_ep.port();
@@ -356,15 +475,70 @@ void natpmp::send_map_request(port_mapping_t const i)
 	m_currently_mapping = i;
 	mapping_t& m = m_mappings[i];
 	TORRENT_ASSERT(m.act != portmap_action::none);
-	char buf[12];
+	char buf[60];
 	char* out = buf;
-	write_uint8(0, out); // NAT-PMP version
-	write_uint8(m.protocol == portmap_protocol::udp ? 1 : 2, out); // map "protocol"
-	write_uint16(0, out); // reserved
-	write_uint16(m.local_port, out); // private port
-	write_uint16(m.external_port, out); // requested public port
 	int ttl = m.act == portmap_action::add ? 3600 : 0;
-	write_uint32(ttl, out); // port mapping lifetime
+	if (m_version == version_natpmp)
+	{
+		write_uint8(m_version, out);
+		write_uint8(m.protocol == portmap_protocol::udp ? 1 : 2, out); // map "protocol"
+		write_uint16(0, out); // reserved
+		write_uint16(m.local_port, out); // private port
+		write_uint16(m.external_port, out); // requested public port
+		write_uint32(ttl, out); // port mapping lifetime
+	}
+	else if (m_version == version_pcp)
+	{
+		// PCP requires the use of IPv6 addresses even for IPv4 messages
+		// reference asio's address_v6 class directly so that we can use it
+		// even if TORRENT_USE_IPV6 is false
+		using boost::asio::ip::address_v6;
+		write_uint8(m_version, out);
+		write_uint8(opcode_map, out);
+		write_uint16(0, out); // reserved
+		write_uint32(ttl, out);
+		address const local_addr = m_socket.local_endpoint().address();
+		auto const local_bytes = local_addr.is_v4()
+			? address_v6::v4_mapped(local_addr.to_v4()).to_bytes()
+			: local_addr.to_v6().to_bytes();
+		out = std::copy(local_bytes.begin(), local_bytes.end(), out);
+		out = std::copy(m.nonce.begin(), m.nonce.end(), out);
+		// translate portmap_protocol to an IANA protocol number
+		int const protocol =
+			(m.protocol == portmap_protocol::tcp) ? 6
+			: (m.protocol == portmap_protocol::udp) ? 17
+			: 0;
+		write_int8(protocol, out);
+		write_uint8(0, out); // reserved
+		write_uint16(0, out); // reserved
+		write_uint16(m.local_port, out);
+		write_uint16(m.external_port, out);
+		address_v6::bytes_type external_addr;
+		if (!m.external_address.is_unspecified())
+		{
+			external_addr = m.external_address.is_v4()
+				? address_v6::v4_mapped(m.external_address.to_v4()).to_bytes()
+				: m.external_address.to_v6().to_bytes();
+		}
+		else if (is_local(local_addr))
+		{
+			external_addr = local_addr.is_v4() ? address_v6::v4_mapped(address_v4()).to_bytes()
+				: address_v6().to_bytes();
+		}
+		else if (local_addr.is_v4())
+		{
+			external_addr = address_v6::v4_mapped(local_addr.to_v4()).to_bytes();
+		}
+		else
+		{
+			external_addr = local_addr.to_v6().to_bytes();
+		}
+		out = std::copy(external_addr.begin(), external_addr.end(), out);
+	}
+	else
+	{
+		TORRENT_ASSERT_FAIL();
+	}
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (should_log())
@@ -378,7 +552,7 @@ void natpmp::send_map_request(port_mapping_t const i)
 #endif
 
 	error_code ec;
-	m_socket.send_to(boost::asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
+	m_socket.send_to(boost::asio::buffer(buf, std::size_t(out - buf)), m_nat_endpoint, 0, ec);
 	m.map_sent = true;
 	m.outstanding_request = true;
 	if (m_abort)
@@ -476,13 +650,52 @@ void natpmp::on_reply(error_code const& e
 
 	char* in = msg_buf;
 	int const version = read_uint8(in);
-	int const cmd = read_uint8(in);
-	int const result = read_uint16(in);
+
+	if (version != version_natpmp && version != version_pcp)
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		log("unexpected version: %u", version);
+#endif
+		return;
+	}
+
+	int cmd = read_uint8(in);
+	if (version == version_pcp)
+	{
+		cmd &= 0x7f;
+	}
+	int result;
+	if (version == version_pcp)
+	{
+		++in; // reserved
+		result = read_uint8(in);
+	}
+	else
+	{
+		result = read_uint16(in);
+	}
+
+	if (result == errors::pcp_unsupp_version)
+	{
+		if (m_version == version_pcp && !is_v6(m_socket.local_endpoint()))
+		{
+			m_version = version_natpmp;
+			resend_request(m_currently_mapping, error_code());
+			send_get_ip_address_request();
+		}
+		return;
+	}
+
+	int lifetime = 0;
+	if (version == version_pcp)
+	{
+		lifetime = aux::numeric_cast<int>(read_uint32(in));
+	}
 	int const time = aux::numeric_cast<int>(read_uint32(in));
-	TORRENT_UNUSED(version);
+	if (version == version_pcp) in += 12; // reserved
 	TORRENT_UNUSED(time);
 
-	if (cmd == 128)
+	if (version == version_natpmp && cmd == 128)
 	{
 		// public IP request response
 		m_external_ip = read_v4_address(in);
@@ -497,7 +710,8 @@ void natpmp::on_reply(error_code const& e
 
 	}
 
-	if (bytes_transferred != 16)
+	if ((version == version_natpmp && bytes_transferred != 16)
+		|| (version == version_pcp && bytes_transferred != 60))
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		log("received packet of invalid size: %d", int(bytes_transferred));
@@ -505,27 +719,46 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
+	std::array<char, 12> nonce;
+	portmap_protocol protocol = portmap_protocol::none;
+	if (version == version_pcp)
+	{
+		std::memcpy(nonce.data(), in, nonce.size());
+		in += nonce.size();
+		int p = read_uint8(in);
+		protocol = p == 6 ? portmap_protocol::tcp
+			: portmap_protocol::udp;
+		in += 3; // reserved
+	}
 	int const private_port = read_uint16(in);
 	int const public_port = read_uint16(in);
-	int const lifetime = aux::numeric_cast<int>(read_uint32(in));
+	if (version == version_natpmp)
+		lifetime = aux::numeric_cast<int>(read_uint32(in));
+	address external_addr;
+	if (version == version_pcp)
+	{
+		using boost::asio::ip::address_v6;
+		address_v6::bytes_type addr;
+		std::memcpy(addr.data(), in, addr.size());
+		in += addr.size();
+		external_addr = address_v6(addr);
+		if (external_addr.to_v6().is_v4_mapped())
+			external_addr = external_addr.to_v6().to_v4();
+	}
 
-	portmap_protocol const protocol = (cmd - 128 == 1)
-		? portmap_protocol::udp
-		: portmap_protocol::tcp;
+	if (version == version_natpmp)
+	{
+		protocol = (cmd - 128 == 1)
+			? portmap_protocol::udp
+			: portmap_protocol::tcp;
+	}
 
 #ifndef TORRENT_DISABLE_LOGGING
 	char msg[200];
 	int const num_chars = std::snprintf(msg, sizeof(msg), "<== port map ["
 		" protocol: %s local: %u external: %u ttl: %u ]"
-		, (cmd - 128 == 1 ? "udp" : "tcp")
+		, (protocol == portmap_protocol::udp ? "udp" : "tcp")
 		, private_port, public_port, lifetime);
-
-	if (version != 0)
-	{
-		std::snprintf(msg + num_chars, sizeof(msg) - aux::numeric_cast<std::size_t>(num_chars), "unexpected version: %u"
-			, version);
-		log("%s", msg);
-	}
 #endif
 
 	mapping_t* m = nullptr;
@@ -536,6 +769,7 @@ void natpmp::on_reply(error_code const& e
 		if (protocol != i->protocol) continue;
 		if (!i->map_sent) continue;
 		if (!i->outstanding_request) continue;
+		if (version == version_pcp && nonce != i->nonce) continue;
 		m = &*i;
 		index = port_mapping_t(static_cast<int>(i - m_mappings.begin()));
 		break;
@@ -565,32 +799,23 @@ void natpmp::on_reply(error_code const& e
 	{
 		m->expires = aux::time_now() + seconds(int(lifetime * 0.7f));
 		m->external_port = public_port;
+		if (!external_addr.is_unspecified())
+			m->external_address = external_addr;
 	}
 
 	if (result != 0)
 	{
-		// TODO: 3 it would be nice to have a separate NAT-PMP error category
-		static errors::error_code_enum const errors[] =
-		{
-			errors::unsupported_protocol_version,
-			errors::natpmp_not_authorized,
-			errors::network_failure,
-			errors::no_resources,
-			errors::unsupported_opcode
-		};
-		errors::error_code_enum ev = errors::no_error;
-		if (result >= 1 && result <= 5) ev = errors[result - 1];
-
 		m->expires = aux::time_now() + hours(2);
 		portmap_protocol const proto = m->protocol;
 		m_callback.on_port_mapping(port_mapping_t{index}, address(), 0, proto
-			, ev, portmap_transport::natpmp);
+			, from_result_code(version, result), portmap_transport::natpmp);
 	}
 	else if (m->act == portmap_action::add)
 	{
 		portmap_protocol const proto = m->protocol;
-		m_callback.on_port_mapping(port_mapping_t{index}, m_external_ip, m->external_port, proto
-			, errors::no_error, portmap_transport::natpmp);
+		address const ext_ip = version == version_pcp ? m->external_address : m_external_ip;
+		m_callback.on_port_mapping(port_mapping_t{index}, ext_ip, m->external_port, proto
+			, errors::pcp_success, portmap_transport::natpmp);
 	}
 
 	if (m_abort) return;

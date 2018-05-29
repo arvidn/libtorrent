@@ -40,6 +40,7 @@ namespace libtorrent {
 
 	enum class portmap_transport : std::uint8_t
 	{
+		// natpmp can be NAT-PMP or PCP
 		natpmp, upnp
 	};
 
