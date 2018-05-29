@@ -173,6 +173,52 @@ namespace {
 		);
 	}
 
+#if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_NETLINK
+	address build_netmask(int bits, int family)
+	{
+		if (family == AF_INET)
+		{
+			using bytes_t = boost::asio::ip::address_v4::bytes_type;
+			bytes_t b;
+			std::memset(&b[0], 0xff, b.size());
+			for (int i = int(b.size()) - 1; i > 0; --i)
+			{
+				if (bits < 8)
+				{
+					b[i] <<= bits;
+					break;
+				}
+				b[i] = 0;
+				bits -= 8;
+			}
+			return address_v4(b);
+		}
+#if TORRENT_USE_IPV6
+		else if (family == AF_INET6)
+		{
+			using bytes_t = boost::asio::ip::address_v6::bytes_type;
+			bytes_t b;
+			std::memset(&b[0], 0xff, b.size());
+			for (int i = int(b.size()) - 1; i > 0; --i)
+			{
+				if (bits < 8)
+				{
+					b[i] <<= bits;
+					break;
+				}
+				b[i] = 0;
+				bits -= 8;
+			}
+			return address_v6(b);
+		}
+#endif
+		else
+		{
+			return address();
+		}
+	}
+#endif
+
 #if TORRENT_USE_NETLINK
 
 	int read_nl_sock(int sock, span<char> buf, std::uint32_t const seq, std::uint32_t const pid)
@@ -254,6 +300,16 @@ namespace {
 			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
 			return false;
 
+#if TORRENT_USE_IPV6
+		// make sure the defaults have the right address family
+		// in case the attributes are not present
+		if (rt_msg->rtm_family == AF_INET6)
+		{
+			rt_info->gateway = address_v6();
+			rt_info->destination = address_v6();
+		}
+#endif
+
 		int if_index = 0;
 		int rt_len = int(RTM_PAYLOAD(nl_hdr));
 #ifdef __clang__
@@ -298,16 +354,22 @@ namespace {
 #pragma clang diagnostic pop
 #endif
 
+#if TORRENT_USE_IPV6
+		if (rt_info->gateway.is_v6() && rt_info->gateway.to_v6().is_link_local())
+		{
+			address_v6 gateway6 = rt_info->gateway.to_v6();
+			gateway6.scope_id(if_index);
+			rt_info->gateway = gateway6;
+		}
+#endif
+
 		ifreq req = {};
 		::if_indextoname(std::uint32_t(if_index), req.ifr_name);
 		static_assert(sizeof(rt_info->name) >= sizeof(req.ifr_name), "ip_route::name is too small");
 		std::memcpy(rt_info->name, req.ifr_name, sizeof(req.ifr_name));
 		::ioctl(s, ::siocgifmtu, &req);
 		rt_info->mtu = req.ifr_mtu;
-//		obviously this doesn't work correctly. How do you get the netmask for a route?
-//		if (ioctl(s, SIOCGIFNETMASK, &req) == 0) {
-//			rt_info->netmask = sockaddr_to_address(&req.ifr_addr, req.ifr_addr.sa_family);
-//		}
+		rt_info->netmask = build_netmask(rt_msg->rtm_dst_len, rt_msg->rtm_family);
 		return true;
 	}
 
@@ -508,52 +570,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 		return false;
 	}
-
-#if TORRENT_USE_GETIPFORWARDTABLE
-	address build_netmask(int bits, int family)
-	{
-		if (family == AF_INET)
-		{
-			using bytes_t = boost::asio::ip::address_v4::bytes_type;
-			bytes_t b;
-			std::memset(&b[0], 0xff, b.size());
-			for (int i = int(b.size()) - 1; i > 0; --i)
-			{
-				if (bits < 8)
-				{
-					b[i] <<= bits;
-					break;
-				}
-				b[i] = 0;
-				bits -= 8;
-			}
-			return address_v4(b);
-		}
-#if TORRENT_USE_IPV6
-		else if (family == AF_INET6)
-		{
-			using bytes_t = boost::asio::ip::address_v6::bytes_type;
-			bytes_t b;
-			std::memset(&b[0], 0xff, b.size());
-			for (int i = int(b.size()) - 1; i > 0; --i)
-			{
-				if (bits < 8)
-				{
-					b[i] <<= bits;
-					break;
-				}
-				b[i] = 0;
-				bits -= 8;
-			}
-			return address_v6(b);
-		}
-#endif
-		else
-		{
-			return address();
-		}
-	}
-#endif
 
 	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)
 	{
