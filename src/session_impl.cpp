@@ -586,7 +586,7 @@ namespace aux {
 
 		// apply all m_settings to this session
 		run_all_updates(*this);
-		reopen_listen_sockets();
+		reopen_listen_sockets(false);
 		reopen_outgoing_sockets();
 
 #if TORRENT_USE_INVARIANT_CHECKS
