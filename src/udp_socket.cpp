@@ -167,8 +167,8 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 
 	while (ret < num)
 	{
-		int const len = int(m_socket.receive_from(boost::asio::buffer(*m_buf)
-			, p.from, 0, ec));
+		std::size_t const len = m_socket.receive_from(boost::asio::buffer(*m_buf)
+			, p.from, 0, ec);
 
 		if (ec == error::would_block
 			|| ec == error::try_again
@@ -197,7 +197,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 		}
 		else
 		{
-			p.data = {m_buf->data(), aux::numeric_cast<std::size_t>(len)};
+			p.data = {m_buf->data(), len};
 
 			// support packets coming from the SOCKS5 proxy
 			if (m_socks5_connection && m_socks5_connection->active())
