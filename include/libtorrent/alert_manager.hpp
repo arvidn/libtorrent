@@ -57,7 +57,7 @@ namespace libtorrent {
 	class TORRENT_EXTRA_EXPORT alert_manager
 	{
 	public:
-		alert_manager(int queue_limit
+		explicit alert_manager(int queue_limit
 			, alert_category_t alert_mask = alert::error_notification);
 
 		alert_manager(alert_manager const&) = delete;
