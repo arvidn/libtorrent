@@ -22,8 +22,8 @@ parent_input = os.path.split(input)[0]
 
 # if we have a single file, use it because os.walk does not work on a single files
 if os.path.isfile(input):
-	size = os.path.getsize(input)
-	fs.add_file(input, size)
+    size = os.path.getsize(input)
+    fs.add_file(input, size)
 
 for root, dirs, files in os.walk(input):
     # skip directories starting with .
@@ -39,7 +39,7 @@ for root, dirs, files in os.walk(input):
         if f == 'Thumbs.db':
             continue
 
-        fname = os.path.join(root[len(parent_input)+1:], f)
+        fname = os.path.join(root[len(parent_input) + 1:], f)
         size = os.path.getsize(os.path.join(parent_input, fname))
         print('%10d kiB  %s' % (size / 1024, fname))
         fs.add_file(fname, size)
