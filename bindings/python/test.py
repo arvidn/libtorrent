@@ -140,12 +140,10 @@ class test_torrent_handle(unittest.TestCase):
         tracker.fail_limit = 1
         trackers = [tracker]
         self.h.replace_trackers(trackers)
-        tracker_list = [tracker for tracker in self.h.trackers()]
         # wait a bit until the endpoints list gets populated
-        while len(tracker_list[0]['endpoints']) == 0:
+        while len(self.h.trackers()[0]['endpoints']) == 0:
             time.sleep(0.1)
-            tracker_list = [tracker for tracker in self.h.trackers()]
-        pickled_trackers = pickle.dumps(tracker_list)
+        pickled_trackers = pickle.dumps(self.h.trackers())
         unpickled_trackers = pickle.loads(pickled_trackers)
         self.assertEqual(unpickled_trackers[0]['url'], 'udp://tracker1.com')
         self.assertEqual(unpickled_trackers[0]['endpoints'][0]['last_error']['value'], 0)
