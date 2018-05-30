@@ -93,8 +93,8 @@ namespace libtorrent {
 			// don't add more than this number of alerts, unless it's a
 			// high priority alert, in which case we try harder to deliver it
 			// for high priority alerts, double the upper limit
-			if (m_alerts[m_generation].size() >= m_queue_size_limit
-				* (1 + T::priority))
+			if (m_alerts[m_generation].size() / (1 + T::priority)
+				>= m_queue_size_limit)
 				return;
 
 			T alert(m_allocations[m_generation], std::forward<Args>(args)...);
@@ -118,8 +118,8 @@ namespace libtorrent {
 		bool should_post() const
 		{
 			recursive_mutex::scoped_lock lock(m_mutex);
-			if (m_alerts[m_generation].size() >= m_queue_size_limit
-				* (1 + T::priority))
+			if (m_alerts[m_generation].size() / (1 + T::priority)
+				>= m_queue_size_limit)
 			{
 				return false;
 			}
