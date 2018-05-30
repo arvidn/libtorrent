@@ -81,7 +81,7 @@ Qual a diferença entre um proxy Elite, Anónimo e Transparente?
 
 """
 
-import socket, thread, select, sys, base64, time, errno
+import socket, _thread, select, sys, base64, time, errno
 
 __version__ = '0.1.0 Draft 1'
 BUFLEN = 8192
@@ -102,7 +102,7 @@ class ConnectionHandler:
         if username != None:
             auth = base64.b64encode(username + ':' + password)
             if not 'Proxy-Authorization: Basic ' + auth in self.client_buffer:
-                print 'PROXY - failed authentication: %s' % self.client_buffer
+                print('PROXY - failed authentication: %s' % self.client_buffer)
                 self.client.send(HTTPVER+' 401 Authentication Failed\n'+
                                 'Proxy-agent: %s\n\n'%VERSION)
                 self.client.close()
@@ -117,8 +117,8 @@ class ConnectionHandler:
             try:
                 self.client.send(HTTPVER+' 502 Connection failed\n'+
                                 'Proxy-agent: %s\n\n'%VERSION)
-            except Exception, e:
-                print 'PROXY - ', e
+            except Exception as e:
+                print('PROXY - ', e)
             self.client.close()
             return
 
@@ -130,7 +130,7 @@ class ConnectionHandler:
         while 1:
             try:
                 self.client_buffer += self.client.recv(BUFLEN)
-            except socket.error, e:
+            except socket.error as e:
                 err = e.args[0]
                 if (err == errno.EAGAIN or err == errno.EWOULDBLOCK) and retries < 20:
                     time.sleep(0.5)
@@ -141,7 +141,7 @@ class ConnectionHandler:
             if end!=-1:
                 break
         line_end = self.client_buffer.find('\n')
-        print 'PROXY - %s' % self.client_buffer[:line_end]#debug
+        print('PROXY - %s' % self.client_buffer[:line_end])#debug
         data = (self.client_buffer[:line_end+1]).split()
         self.client_buffer = self.client_buffer[line_end+1:]
         return data
@@ -205,11 +205,11 @@ def start_server(host='localhost', port=8080, IPv6=False, timeout=100,
         soc_type=socket.AF_INET
     soc = socket.socket(soc_type)
     soc.settimeout(120)
-    print "PROXY - Serving on %s:%d."%(host, port)#debug
+    print("PROXY - Serving on %s:%d."%(host, port))#debug
     soc.bind((host, port))
     soc.listen(0)
     while 1:
-        thread.start_new_thread(handler, soc.accept()+(timeout,))
+        _thread.start_new_thread(handler, soc.accept()+(timeout,))
 
 if __name__ == '__main__':
     listen_port = 8080
@@ -225,7 +225,7 @@ if __name__ == '__main__':
             password = sys.argv[i+1]
             i += 1
         else:
-            if sys.argv[i] != '--help': print('PROXY - unknown option "%s"' % sys.argv[i])
+            if sys.argv[i] != '--help': print(('PROXY - unknown option "%s"' % sys.argv[i]))
             print('usage: http.py [--port <listen-port>]')
             sys.exit(1)
         i += 1

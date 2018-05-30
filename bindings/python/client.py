@@ -3,7 +3,7 @@
 # Copyright Daniel Wallin 2006. Use, modification and distribution is
 # subject to the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-from __future__ import print_function
+
 
 import sys
 import atexit
@@ -339,15 +339,15 @@ def main():
             continue
 
         if c == 'r':
-            for h in torrents.keys():
+            for h in torrents:
                 h.force_reannounce()
         elif c == 'q':
             alive = False
         elif c == 'p':
-            for h in torrents.keys():
+            for h in torrents:
                 h.pause()
         elif c == 'u':
-            for h in torrents.keys():
+            for h in torrents:
                 h.resume()
 
     ses.pause()

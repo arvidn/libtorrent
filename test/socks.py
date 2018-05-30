@@ -4,16 +4,16 @@
 
 import random
 import socket
-from SocketServer import StreamRequestHandler, ThreadingTCPServer
+from socketserver import StreamRequestHandler, ThreadingTCPServer
 from struct import pack, unpack
 import threading
 import sys
 
 def debug(s):
-   print >>sys.stderr, 'socks.py: ', s
+   print('socks.py: ', s, file=sys.stderr)
 
 def error(s):
-   print >>sys.stderr, 'socks.py, ERROR: ', s
+   print('socks.py, ERROR: ', s, file=sys.stderr)
 
 class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
@@ -173,7 +173,7 @@ class SocksHandler(StreamRequestHandler):
             dest_address = '.'.join(map(str, unpack('>4B', raw_dest_address)))
         elif address_type == IPV6:
             raw_dest_address = self.read(16)
-            dest_address = ":".join(map(lambda x: hex(x)[2:],unpack('>8H',raw_dest_address)))
+            dest_address = ":".join([hex(x)[2:] for x in unpack('>8H',raw_dest_address)])
         elif address_type == DOMAIN_NAME:
             dns_length = ord(self.read(1))
             dns_name = self.read(dns_length)
@@ -191,8 +191,8 @@ class SocksHandler(StreamRequestHandler):
             outbound_sock = socket.socket(socket.AF_INET)
         try:
             out_address = socket.getaddrinfo(dest_address,dest_port)[0][4]
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             return
 
         if cmd == UDP_ASSOCIATE:
@@ -203,8 +203,8 @@ class SocksHandler(StreamRequestHandler):
 
         try:
             outbound_sock.connect(out_address)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             return
 
         if address_type == IPV6:
@@ -215,22 +215,25 @@ class SocksHandler(StreamRequestHandler):
         spawn_forwarder(outbound_sock, self.request, 'destination')
         try:
             forward(self.request, outbound_sock, 'client')
-        except Exception,e:
-            print e
+        except Exception as e:
+            print(e)
 
-    def send_reply_v4(self, (bind_addr, bind_port)):
+    def send_reply_v4(self, xxx_todo_changeme):
+        (bind_addr, bind_port) = xxx_todo_changeme
         self.wfile.write('\0\x5a\0\0\0\0\0\0')
         self.wfile.flush()
 
-    def send_reply(self, (bind_addr, bind_port)):
+    def send_reply(self, xxx_todo_changeme1):
+        (bind_addr, bind_port) = xxx_todo_changeme1
         bind_tuple = tuple(map(int, bind_addr.split('.')))
         full_address = bind_tuple + (bind_port,)
         debug('Setting up forwarding port %r' % (full_address,))
         msg = pack('>cccc4BH', VERSION, SUCCESS, '\x00', IPV4, *full_address)
         self.wfile.write(msg)
 
-    def send_reply6(self, (bind_addr, bind_port, unused1, unused2)):
-        bind_tuple = tuple(map(lambda x: int(x,16), bind_addr.split(':')))
+    def send_reply6(self, xxx_todo_changeme2):
+        (bind_addr, bind_port, unused1, unused2) = xxx_todo_changeme2
+        bind_tuple = tuple([int(x,16) for x in bind_addr.split(':')])
         full_address = bind_tuple + (bind_port,)
         debug('Setting up forwarding port %r' % (full_address,))
         msg = pack('>cccc8HH', VERSION, SUCCESS, '\x00', IPV6, *full_address)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys, time
+from functools import reduce
 
 # usage: parse_log.py log-file [socket-index to focus on]
 
@@ -10,7 +11,7 @@ if len(sys.argv) >= 3:
 	socket_filter = sys.argv[2].strip()
 
 if socket_filter == None:
-	print "scanning for socket with the most packets"
+	print("scanning for socket with the most packets")
 	file = open(sys.argv[1], 'rb')
 
 	sockets = {}
@@ -34,18 +35,18 @@ if socket_filter == None:
 		else:
 			sockets[socket_index] = 1
 
-	items = sockets.items()
+	items = list(sockets.items())
 	items.sort(lambda x, y: y[1] - x[1])
 
 	count = 0
 	for i in items:
-		print '%s: %d' % (i[0], i[1])
+		print('%s: %d' % (i[0], i[1]))
 		count += 1
 		if count > 5: break
 
 	file.close()
 	socket_filter = items[0][0]
-	print '\nfocusing on socket %s' % socket_filter
+	print('\nfocusing on socket %s' % socket_filter)
 
 file = open(sys.argv[1], 'rb')
 out_file = 'utp.out%s' % socket_filter;
@@ -103,7 +104,7 @@ window_size = {'0': 0, '1': 0}
 
 counter = 0
 
-print "reading log file"
+print("reading log file")
 
 for l in file:
     if "UTP_Connect" in l:
@@ -128,7 +129,7 @@ for l in file:
 
     counter += 1
     if (counter % 300 == 0):
-        print "\r%d  " % counter,
+        print("\r%d  " % counter, end=' ')
 
     if "lost." in l:
         packet_loss = packet_loss + 1
@@ -161,7 +162,7 @@ for l in file:
         begin = t
     t = t - begin
     # print time. Convert from milliseconds to seconds
-    print >>out, '%f\t' % (float(t)/1000.),
+    print('%f\t' % (float(t)/1000.), end=' ', file=out)
 
     #if t > 200000:
     #    break
@@ -181,23 +182,23 @@ for l in file:
             columns.append(n)
         if n == "max_window":
             window_size[socket_index] = v
-            print >>out, '%f\t' % int(reduce(lambda a,b: a+b, window_size.values())),
+            print('%f\t' % int(reduce(lambda a,b: a+b, list(window_size.values()))), end=' ', file=out)
         else:
-            print >>out, '%f\t' % v,
-    print >>out, float(packet_loss * 8000), float(packet_timeout * 8000)
+            print('%f\t' % v, end=' ', file=out)
+    print(float(packet_loss * 8000), float(packet_timeout * 8000), file=out)
     packet_loss = 0
     packet_timeout = 0
 
 out.close()
 
 out = open('%s.histogram' % out_file, 'wb')
-for d,f in delay_histogram.iteritems():
-    print >>out, float(d*histogram_quantization) + histogram_quantization / 2, f
+for d,f in delay_histogram.items():
+    print(float(d*histogram_quantization) + histogram_quantization / 2, f, file=out)
 out.close()
 
 out = open('%s_packet_size.histogram' % out_file, 'wb')
-for d,f in packet_size_histogram.iteritems():
-    print >>out, d, f
+for d,f in packet_size_histogram.items():
+    print(d, f, file=out)
 out.close()
 
 plot = [
@@ -262,54 +263,54 @@ out = open('utp.gnuplot', 'w+')
 files = ''
 
 #print >>out, 'set xtics 0, 20'
-print >>out, "set term png size 1280,800"
-print >>out, 'set output "%s.delays.png"' % out_file
-print >>out, 'set xrange [0:200]'
-print >>out, 'set xlabel "delay (ms)"'
-print >>out, 'set boxwidth 1'
-print >>out, 'set ylabel "number of packets"'
-print >>out, 'plot "%s.histogram" using 1:2 with boxes fs solid 0.3' % out_file
+print("set term png size 1280,800", file=out)
+print('set output "%s.delays.png"' % out_file, file=out)
+print('set xrange [0:200]', file=out)
+print('set xlabel "delay (ms)"', file=out)
+print('set boxwidth 1', file=out)
+print('set ylabel "number of packets"', file=out)
+print('plot "%s.histogram" using 1:2 with boxes fs solid 0.3' % out_file, file=out)
 files += out_file + '.delays.png '
 
-print >>out, 'set output "%s.packet_sizes.png"' % out_file
-print >>out, 'set xrange [0:*]'
-print >>out, 'set xlabel "packet size (B)"'
-print >>out, 'set boxwidth 1'
-print >>out, 'set ylabel "number of packets sent"'
-print >>out, 'set logscale y'
-print >>out, 'plot "%s_packet_size.histogram" using 1:2 with boxes fs solid 0.3' % out_file
-print >>out, 'set nologscale y'
+print('set output "%s.packet_sizes.png"' % out_file, file=out)
+print('set xrange [0:*]', file=out)
+print('set xlabel "packet size (B)"', file=out)
+print('set boxwidth 1', file=out)
+print('set ylabel "number of packets sent"', file=out)
+print('set logscale y', file=out)
+print('plot "%s_packet_size.histogram" using 1:2 with boxes fs solid 0.3' % out_file, file=out)
+print('set nologscale y', file=out)
 files += out_file + '.packet_sizes.png '
 
-print >>out, "set style data steps"
+print("set style data steps", file=out)
 #print >>out, "set yrange [0:*]"
-print >>out, "set y2range [*:*]"
+print("set y2range [*:*]", file=out)
 #set hidden3d
 #set title "Peer bandwidth distribution"
 #set xlabel "Ratio"
 
 for p in plot:
-	print >>out, 'set title "%s %s"' % (p['title'], title)
-	print >>out, 'set xlabel "time (s)"'
-	print >>out, 'set ylabel "%s"' % p['y1']
-	print >>out, "set tics nomirror"
-	print >>out, 'set y2tics'
-	print >>out, 'set y2label "%s"' % p['y2']
-	print >>out, 'set xrange [0:*]'
-	print >>out, "set key box"
-	print >>out, "set term png size 1280,800"
-	print >>out, 'set output "%s-%s.png"' % (out_file, p['title'])
+	print('set title "%s %s"' % (p['title'], title), file=out)
+	print('set xlabel "time (s)"', file=out)
+	print('set ylabel "%s"' % p['y1'], file=out)
+	print("set tics nomirror", file=out)
+	print('set y2tics', file=out)
+	print('set y2label "%s"' % p['y2'], file=out)
+	print('set xrange [0:*]', file=out)
+	print("set key box", file=out)
+	print("set term png size 1280,800", file=out)
+	print('set output "%s-%s.png"' % (out_file, p['title']), file=out)
 	files += '%s-%s.png ' % (out_file, p['title'])
 
 	comma = ''
-	print >>out, "plot",
+	print("plot", end=' ', file=out)
 
 	for c in p['data']:
 		if not c in metrics: continue
 		i = columns.index(c)
-		print >>out, '%s"%s" using ($1/1000):%d title "%s-%s" axes %s with %s' % (comma, out_file, i + 2, metrics[c][0], metrics[c][1], metrics[c][1], metrics[c][2]),
+		print('%s"%s" using ($1/1000):%d title "%s-%s" axes %s with %s' % (comma, out_file, i + 2, metrics[c][0], metrics[c][1], metrics[c][1], metrics[c][2]), end=' ', file=out)
 		comma = ', '
-	print >>out, ''
+	print('', file=out)
 
 out.close()
 

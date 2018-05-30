@@ -11,7 +11,7 @@ log_files = []
 for p in glob.iglob(os.path.join(sys.argv[1], '*.log')):
 	name = os.path.split(p)[1]
 	if name == 'main_session.log': continue
-	print name
+	print(name)
 	f = open(p, 'r')
 	out_file = p + '.dat'
 	log_files.append(out_file)
@@ -32,40 +32,40 @@ for p in glob.iglob(os.path.join(sys.argv[1], '*.log')):
 			log_line = True
 
 		if log_line:
-			print >>out, '%s\t%d\t%d' % (t, uploaded_blocks, downloaded_blocks)
+			print('%s\t%d\t%d' % (t, uploaded_blocks, downloaded_blocks), file=out)
 
 	out.close()
 	f.close()
 
 out = open('peers.gnuplot', 'wb')
-print >>out, "set term png size 1200,700"
-print >>out, 'set xrange [0:*]'
-print >>out, 'set xlabel "time"'
-print >>out, 'set ylabel "blocks"'
-print >>out, 'set key box'
-print >>out, 'set xdata time'
-print >>out, 'set timefmt "%H:%M:%S"'
-print >>out, 'set title "uploaded blocks"'
-print >>out, 'set output "peers_upload.png"'
-print >>out, 'plot',
+print("set term png size 1200,700", file=out)
+print('set xrange [0:*]', file=out)
+print('set xlabel "time"', file=out)
+print('set ylabel "blocks"', file=out)
+print('set key box', file=out)
+print('set xdata time', file=out)
+print('set timefmt "%H:%M:%S"', file=out)
+print('set title "uploaded blocks"', file=out)
+print('set output "peers_upload.png"', file=out)
+print('plot', end=' ', file=out)
 first = True
 for n in log_files:
 	if not first:
-		print >>out, ',',
+		print(',', end=' ', file=out)
 	first = False
-	print >>out, ' "%s" using 1:2 title "%s" with steps' % (n, os.path.split(n)[1].split('.log')[0]),
-print >>out, ''
+	print(' "%s" using 1:2 title "%s" with steps' % (n, os.path.split(n)[1].split('.log')[0]), end=' ', file=out)
+print('', file=out)
 
-print >>out, 'set title "downloaded blocks"'
-print >>out, 'set output "peers_download.png"'
-print >>out, 'plot',
+print('set title "downloaded blocks"', file=out)
+print('set output "peers_download.png"', file=out)
+print('plot', end=' ', file=out)
 first = True
 for n in log_files:
 	if not first:
-		print >>out, ',',
+		print(',', end=' ', file=out)
 	first = False
-	print >>out, ' "%s" using 1:3 title "%s" with steps' % (n, os.path.split(n)[1].split('.log')[0]),
-print >>out, ''
+	print(' "%s" using 1:3 title "%s" with steps' % (n, os.path.split(n)[1].split('.log')[0]), end=' ', file=out)
+print('', file=out)
 out.close()
 
 os.system('gnuplot peers.gnuplot');

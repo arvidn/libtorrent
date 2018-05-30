@@ -117,7 +117,7 @@ for i in range(0, 6):
 def plot_fun(script):
 	ret = os.system('gnuplot "%s" 2>/dev/null' % script)
 	if ret != 0 and ret != 256:
-		print 'system: %d\n' % ret
+		print('system: %d\n' % ret)
 		raise Exception("abort")
 
 	sys.stdout.write('.')
@@ -144,13 +144,13 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 		
 	script = os.path.join(output_dir, '%s_%04d.gnuplot' % (name, generation))
 	out = open(script, 'wb')
-	print >>out, "set term png size 1200,700"
-	print >>out, 'set output "%s"' % filename
+	print("set term png size 1200,700", file=out)
+	print('set output "%s"' % filename, file=out)
 	if not 'allow-negative' in options:
-		print >>out, 'set yrange [0:*]'
-	print >>out, "set tics nomirror"
-	print >>out, "set key box"
-	print >>out, "set key left top"
+		print('set yrange [0:*]', file=out)
+	print("set tics nomirror", file=out)
+	print("set key box", file=out)
+	print("set key left top", file=out)
 
 	colors = graph_colors
 	if options['type'] == line_graph:
@@ -169,31 +169,31 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 		binwidth = options['binwidth']
 		numbins = int(options['numbins'])
 
-		print >>out, 'binwidth=%f' % binwidth
-		print >>out, 'set boxwidth binwidth'
-		print >>out, 'bin(x,width)=width*floor(x/width) + binwidth/2'
-		print >>out, 'set xrange [0:%f]' % (binwidth * numbins)
-		print >>out, 'set xlabel "%s"' % unit
-		print >>out, 'set ylabel "number"'
+		print('binwidth=%f' % binwidth, file=out)
+		print('set boxwidth binwidth', file=out)
+		print('bin(x,width)=width*floor(x/width) + binwidth/2', file=out)
+		print('set xrange [0:%f]' % (binwidth * numbins), file=out)
+		print('set xlabel "%s"' % unit, file=out)
+		print('set ylabel "number"', file=out)
 
 		k = lines[0]
 		try:
 			column = keys.index(k) + 2
 		except:
-			print '"%s" not found' % k
+			print('"%s" not found' % k)
 			return
-		print >>out, 'plot "%s" using (bin($%d,binwidth)):(1.0) smooth freq with boxes' % (log_file, column)
-		print >>out, ''
-		print >>out, ''
-		print >>out, ''
+		print('plot "%s" using (bin($%d,binwidth)):(1.0) smooth freq with boxes' % (log_file, column), file=out)
+		print('', file=out)
+		print('', file=out)
+		print('', file=out)
 
 	elif options['type'] == stacked:
-		print >>out, 'set xrange [0:*]'
-		print >>out, 'set ylabel "%s"' % unit
-		print >>out, 'set xlabel "time (s)"'
-		print >>out, 'set format y "%%.1s%%c%s";' % short_unit
-		print >>out, 'set style fill solid 1.0 noborder'
-		print >>out, 'plot',
+		print('set xrange [0:*]', file=out)
+		print('set ylabel "%s"' % unit, file=out)
+		print('set xlabel "time (s)"', file=out)
+		print('set format y "%%.1s%%c%s";' % short_unit, file=out)
+		print('set style fill solid 1.0 noborder', file=out)
+		print('plot', end=' ', file=out)
 		column = 2
 		first = True
 		graph = ''
@@ -203,7 +203,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 			try:
 				column = keys.index(k) + 2
 			except:
-				print '"%s" not found' % k
+				print('"%s" not found' % k)
 				continue;
 			if not first:
 				plot_expression = ', ' + plot_expression
@@ -213,12 +213,12 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 			plot_expression = ' "%s" using 1:(%s) title "%s" axes %s with filledcurves x1 lc rgb "%s"' % (log_file, graph, to_title(k), axis, colors[color % len(colors)]) + plot_expression
 			first = False
 			color += 1
-		print >>out, plot_expression
+		print(plot_expression, file=out)
 	elif options['type'] == diff:
-		print >>out, 'set xrange [0:*]'
-		print >>out, 'set ylabel "%s"' % unit
-		print >>out, 'set xlabel "time (s)"'
-		print >>out, 'set format y "%%.1s%%c%s";' % short_unit
+		print('set xrange [0:*]', file=out)
+		print('set ylabel "%s"' % unit, file=out)
+		print('set xlabel "time (s)"', file=out)
+		print('set format y "%%.1s%%c%s";' % short_unit, file=out)
 		column = 2
 		first = True
 		graph = ''
@@ -227,7 +227,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 			try:
 				column = keys.index(k) + 2
 			except:
-				print '"%s" not found' % k
+				print('"%s" not found' % k)
 				continue;
 			if not first:
 				graph += '-'
@@ -235,13 +235,13 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 			graph += '$%d' % column
 			title += to_title(k)
 			first = False
-		print >>out, 'plot "%s" using 1:(%s) title "%s" with step' % (log_file, graph, title)
+		print('plot "%s" using 1:(%s) title "%s" with step' % (log_file, graph, title), file=out)
 	else:
-		print >>out, 'set xrange [0:*]'
-		print >>out, 'set ylabel "%s"' % unit
-		print >>out, 'set xlabel "time (s)"'
-		print >>out, 'set format y "%%.1s%%c%s";' % short_unit
-		print >>out, 'plot',
+		print('set xrange [0:*]', file=out)
+		print('set ylabel "%s"' % unit, file=out)
+		print('set xlabel "time (s)"', file=out)
+		print('set format y "%%.1s%%c%s";' % short_unit, file=out)
+		print('plot', end=' ', file=out)
 		column = 2
 		first = True
 		color = 0
@@ -249,29 +249,29 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 			try:
 				column = keys.index(k) + 2
 			except:
-				print '"%s" not found' % k
+				print('"%s" not found' % k)
 				continue;
-			if not first: print >>out, ', ',
+			if not first: print(', ', end=' ', file=out)
 			axis = 'x1y1'
-			print >>out, ' "%s" using 1:%d title "%s" axes %s with steps lc rgb "%s"' % (log_file, column, to_title(k), axis, colors[color % len(colors)]),
+			print(' "%s" using 1:%d title "%s" axes %s with steps lc rgb "%s"' % (log_file, column, to_title(k), axis, colors[color % len(colors)]), end=' ', file=out)
 			first = False
 			color += 1
-		print >>out, ''
+		print('', file=out)
 
-	print >>out, 'set term png size 150,100'
-	print >>out, 'set output "%s"' % thumb
-	print >>out, 'set key off'
-	print >>out, 'unset tics'
-	print >>out, 'set format x ""'
-	print >>out, 'set format y ""'
-	print >>out, 'set xlabel ""'
-	print >>out, 'set ylabel ""'
-	print >>out, 'set y2label ""'
-	print >>out, 'set rmargin 0'
-	print >>out, 'set lmargin 0'
-	print >>out, 'set tmargin 0'
-	print >>out, 'set bmargin 0'
-	print >>out, "replot"
+	print('set term png size 150,100', file=out)
+	print('set output "%s"' % thumb, file=out)
+	print('set key off', file=out)
+	print('unset tics', file=out)
+	print('set format x ""', file=out)
+	print('set format y ""', file=out)
+	print('set xlabel ""', file=out)
+	print('set ylabel ""', file=out)
+	print('set y2label ""', file=out)
+	print('set rmargin 0', file=out)
+	print('set lmargin 0', file=out)
+	print('set tmargin 0', file=out)
+	print('set bmargin 0', file=out)
+	print("replot", file=out)
 	out.close()
 	return script
 
@@ -284,15 +284,15 @@ def gen_html(reports, generations):
 		h1 { line-height: 1; display: inline }
 		h2 { line-height: 1; display: inline; font-size: 1em; font-weight: normal};'''
 
-	print >>file, '<html><head><style type="text/css">%s</style></head><body>' % css
+	print('<html><head><style type="text/css">%s</style></head><body>' % css, file=file)
 
 	for i in reports:
-		print >>file, '<div id="head"><h1>%s </h1><h2>%s</h2><div><div id="graphs">' % (i[0], i[3])
+		print('<div id="head"><h1>%s </h1><h2>%s</h2><div><div id="graphs">' % (i[0], i[3]), file=file)
 		for g in generations:
-			print >>file, '<a href="%s_%04d.png"><img src="%s_%04d_thumb.png"></a>' % (i[0], g, i[0], g)
-		print >>file, '</div>'
+			print('<a href="%s_%04d.png"><img src="%s_%04d_thumb.png"></a>' % (i[0], g, i[0], g), file=file)
+		print('</div>', file=file)
 
-	print >>file, '</body></html>'
+	print('</body></html>', file=file)
 	file.close()
 
 reports = [
@@ -578,12 +578,12 @@ reports = [
 #	('picker_partials_distribution', 'partial pieces', '', '', ['num downloading partial pieces'], {'type': histogram, 'binwidth': 5, 'numbins': 120})
 ]
 
-print 'generating graphs'
+print('generating graphs')
 g = 0
 generations = []
 scripts = []
 
-print '[%s] %04d\r[' % (' ' * len(reports), g),
+print('[%s] %04d\r[' % (' ' * len(reports), g), end=' ')
 for i in reports:
 	try: options = i[5]
 	except: options = {}
@@ -600,6 +600,6 @@ g += 1
 thread_pool.map(plot_fun, scripts)
 scripts = []
 
-print '\ngenerating html'
+print('\ngenerating html')
 gen_html(reports, generations)
 

@@ -114,7 +114,7 @@ for line in f:
 		elif event == 'INVOKE' or event == 'ADD' or event == '1ST_TIMEOUT' or \
 			event == 'TIMEOUT' or event == 'PEERS':
 			if not search_id in outstanding_searches:
-				print 'orphaned event: %s' % line
+				print('orphaned event: %s' % line)
 			else:
 				outstanding = int(l[l.index('invoke-count:')+1])
 				distance = int(l[l.index('distance:')+1])
@@ -148,9 +148,9 @@ for line in f:
 				searches.append(s)
 				del outstanding_searches[search_id]
 
-	except Exception, e:
-		print e
-		print line.split(' ')
+	except Exception as e:
+		print(e)
+		print(line.split(' '))
 
 lookup_times_min = []
 lookup_times_max = []
@@ -187,7 +187,7 @@ out = open('dht_lookup_times_cdf.txt', 'w+')
 counter = 0
 for i in range(len(lookup_times_min)):
 	counter += 1
-	print >>out, '%d\t%d\t%f' % (lookup_times_min[i], lookup_times_max[i], counter / float(len(lookup_times_min)))
+	print('%d\t%d\t%f' % (lookup_times_min[i], lookup_times_max[i], counter / float(len(lookup_times_min))), file=out)
 out.close()
 
 for i in lookup_distance:
@@ -200,60 +200,60 @@ for i in lookup_distance:
 	counter = 0
 	for j in i:
 		counter += 1
-		print >>out, '%d\t%f' % (j, counter / float(len(i)))
+		print('%d\t%f' % (j, counter / float(len(i))), file=out)
 	out.close()
 
 out = open('dht_lookups.txt', 'w+')
 for s in searches:
 	for i in s:
 		if i['e'] == 'INVOKE':
-			print >>out, ' ->', i['t'], 160 - i['d'], i['i'], i['a']
+			print(' ->', i['t'], 160 - i['d'], i['i'], i['a'], file=out)
 		elif i['e'] == '1ST_TIMEOUT':
-			print >>out, ' x ', i['t'], 160 - i['d'], i['i'], i['a']
+			print(' x ', i['t'], 160 - i['d'], i['i'], i['a'], file=out)
 		elif i['e'] == 'TIMEOUT':
-			print >>out, ' X ', i['t'], 160 - i['d'], i['i'], i['a']
+			print(' X ', i['t'], 160 - i['d'], i['i'], i['a'], file=out)
 		elif i['e'] == 'ADD':
-			print >>out, ' + ', i['t'], 160 - i['d'], i['i'], i['a'], i['s']
+			print(' + ', i['t'], 160 - i['d'], i['i'], i['a'], i['s'], file=out)
 		elif i['e'] == 'RESPONSE':
-			print >>out, ' <-', i['t'], 160 - i['d'], i['i'], i['a']
+			print(' <-', i['t'], 160 - i['d'], i['i'], i['a'], file=out)
 		elif i['e'] == 'PEERS':
-			print >>out, ' <-', i['t'], 160 - i['d'], i['i'], i['a']
+			print(' <-', i['t'], 160 - i['d'], i['i'], i['a'], file=out)
 		elif i['e'] == 'ABORTED':
-			print >>out, 'abort'
+			print('abort', file=out)
 		elif i['e'] == 'COMPLETED':
-			print >>out, '***', i['t'], 160 - i['d'], '\n'
+			print('***', i['t'], 160 - i['d'], '\n', file=out)
 		elif i['e'] == 'NEW':
-			print >>out, '===', i['abstime'], i['type'], '==='
-			print >>out, '<> ', 0, our_node_id, i['i']
+			print('===', i['abstime'], i['type'], '===', file=out)
+			print('<> ', 0, our_node_id, i['i'], file=out)
 out.close()
 
 out = open('dht_announce_distribution.dat', 'w+')
-print 'announce distribution items: %d' % len(announce_histogram)
-for k,v in announce_histogram.items():
-	print >>out, '%d %d' % (k, v)
-	print '%d %d' % (k, v)
+print('announce distribution items: %d' % len(announce_histogram))
+for k,v in list(announce_histogram.items()):
+	print('%d %d' % (k, v), file=out)
+	print('%d %d' % (k, v))
 out.close()
 
 out = open('dht_node_uptime_cdf.txt', 'w+')
 s = 0
 
 total_uptime_nodes = 0
-for k,v in node_uptime_histogram.items():
+for k,v in list(node_uptime_histogram.items()):
 	total_uptime_nodes += v
 
 for k,v in sorted(node_uptime_histogram.items()):
 	s += v
-	print >>out, '%f %f' % (k / float(60), s / float(total_uptime_nodes))
-	print '%f %f' % (k / float(60), s / float(total_uptime_nodes))
+	print('%f %f' % (k / float(60), s / float(total_uptime_nodes)), file=out)
+	print('%f %f' % (k / float(60), s / float(total_uptime_nodes)))
 out.close()
 
 
-print 'clients by version'
-client_version_histogram = sorted(client_version_histogram.items(), key=lambda x: x[1], reverse=True)
+print('clients by version')
+client_version_histogram = sorted(list(client_version_histogram.items()), key=lambda x: x[1], reverse=True)
 pp.pprint(client_version_histogram)
 
-print 'clients'
-client_histogram = sorted(client_histogram.items(), key=lambda x: x[1], reverse=True)
+print('clients')
+client_histogram = sorted(list(client_histogram.items()), key=lambda x: x[1], reverse=True)
 pp.pprint(client_histogram)
 
 out = open('dht.gnuplot', 'w+')

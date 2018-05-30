@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
-from __future__ import print_function
+
 
 import libtorrent as lt
 
@@ -327,10 +327,10 @@ class test_torrent_info(unittest.TestCase):
 
     def test_announce_entry(self):
         ae = lt.announce_entry('test')
-        self.assertEquals(ae.url, 'test')
-        self.assertEquals(ae.tier, 0)
-        self.assertEquals(ae.verified, False)
-        self.assertEquals(ae.source, 0)
+        self.assertEqual(ae.url, 'test')
+        self.assertEqual(ae.tier, 0)
+        self.assertEqual(ae.verified, False)
+        self.assertEqual(ae.source, 0)
 
 
 class test_alerts(unittest.TestCase):
@@ -347,7 +347,7 @@ class test_alerts(unittest.TestCase):
         alerts = ses.pop_alerts()
         for a in alerts:
             if a.what() == 'add_torrent_alert':
-                self.assertEquals(a.torrent_name, 'temp')
+                self.assertEqual(a.torrent_name, 'temp')
             print(a.message())
             for field_name in dir(a):
                 if field_name.startswith('__'):

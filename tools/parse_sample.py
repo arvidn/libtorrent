@@ -53,7 +53,7 @@ for l in f:
 
 	output = '%s%-4d %s' % (' ' * (indentation/2), samples, fun)
 	if len(output) > 200: output = output[0:200]
-	print output
+	print(output)
 
 	if 'invariant_checker_impl' in fun: fold = indentation
 	if 'free_multiple_buffers' in fun: fold = indentation
@@ -105,5 +105,5 @@ for k in fun_samples:
 list = sorted(list, reverse=True)
 
 for i in list:
-	print '%-4d %s' % (i[0], i[1])
+	print('%-4d %s' % (i[0], i[1]))
 

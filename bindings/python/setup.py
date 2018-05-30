@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import print_function
+
 
 from distutils.core import setup, Extension
 from distutils.sysconfig import get_config_vars
@@ -153,7 +153,7 @@ if '--bjam' in sys.argv:
 else:
     # Remove '-Wstrict-prototypes' compiler option, which isn't valid for C++.
     cfg_vars = get_config_vars()
-    for key, value in cfg_vars.items():
+    for key, value in list(cfg_vars.items()):
         if isinstance(value, str):
             cfg_vars[key] = value.replace('-Wstrict-prototypes', '')
 

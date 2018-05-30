@@ -49,30 +49,30 @@ def render_section(names, description, types):
 
 	if description == '':
 		for n in names:
-			print 'WARNING: no description for "%s"' % n
+			print('WARNING: no description for "%s"' % n)
 
 	# add link targets for the rest of the manual to reference
 	for n in names:
-		print >>out, '.. _%s:\n' % n
+		print('.. _%s:\n' % n, file=out)
 
 	if len(names) > 0:
-		print >>out, '.. raw:: html\n'
+		print('.. raw:: html\n', file=out)
 		for n in names:
-			print >>out, '\t<a name="%s"></a>' % n
-		print >>out, ''
+			print('\t<a name="%s"></a>' % n, file=out)
+		print('', file=out)
 
 	separator = '+-' + ('-' * max_name_len) + '-+-' + ('-' * max_type_len) + '-+'
 
 	# build a table for the settings, their type and default value
-	print >>out, separator
-	print >>out, '| %s | %s |' % (print_field('name', max_name_len), print_field('type', max_type_len))
-	print >>out, separator.replace('-', '=')
+	print(separator, file=out)
+	print('| %s | %s |' % (print_field('name', max_name_len), print_field('type', max_type_len)), file=out)
+	print(separator.replace('-', '='), file=out)
 	for i in range(len(names)):
-		print >>out, '| %s | %s |' % (print_field(names[i], max_name_len), print_field(types[i], max_type_len))
-		print >>out, separator
-	print >>out
-	print >>out, description
-	print >>out, ''
+		print('| %s | %s |' % (print_field(names[i], max_name_len), print_field(types[i], max_type_len)), file=out)
+		print(separator, file=out)
+	print(file=out)
+	print(description, file=out)
+	print('', file=out)
 
 mode = ''
 

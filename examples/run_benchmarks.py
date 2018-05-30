@@ -72,7 +72,7 @@ try:
 		resource.setrlimit(resource.RLIMIT_NOFILE, (4000, 5000))
 except:
 	if resource.getrlimit(resource.RLIMIT_NOFILE)[0] < 4000:
-		print 'please set ulimit -n to at least 4000'
+		print('please set ulimit -n to at least 4000')
 		sys.exit(1)
 
 def build_stage_dirs():
@@ -87,24 +87,24 @@ for b in build_stage_dirs():
 	for i in binaries:
 		p = os.path.join(b, i)
 		if not os.path.exists(p):
-			print 'make sure "%s" is available in ./%s' % (i, b)
+			print('make sure "%s" is available in ./%s' % (i, b))
 			sys.exit(1)
 
 for i in filesystem:
 	if not os.path.exists(i):
-		print ('the path "%s" does not exist. This is directory/mountpoint is ' +
+		print(('the path "%s" does not exist. This is directory/mountpoint is ' +
 			'used as the download directory and is the filesystem that will be benchmarked ' +
-			'and need to exist.') % i
+			'and need to exist.') % i)
 		sys.exit(1)
 
 # make sure we have a test torrent
 if not os.path.exists('test.torrent'):
-	print 'generating test torrent'
+	print('generating test torrent')
 	# generate a 100 GB torrent, to make sure it won't all fit in physical RAM
 	os.system('./stage_aio/connection_tester gen-torrent 10000 test.torrent')
 
 if not os.path.exists('test2.torrent'):
-	print 'generating test torrent 2'
+	print('generating test torrent 2')
 	# generate a 6 GB torrent, to make sure it will fit in physical RAM
 	os.system('./stage_aio/connection_tester gen-torrent 6000 test2.torrent')
 
@@ -183,7 +183,7 @@ def delete_files(files):
 			try: shutil.rmtree(i)
 			except:
 				try:
-					if os.path.exists(i): print 'failed to delete %s' % i
+					if os.path.exists(i): print('failed to delete %s' % i)
 				except: pass
 
 # typically the schedulers available are 'noop', 'deadline' and 'cfq'
@@ -196,7 +196,7 @@ def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default
 	return config
 
 def prefix_len(text, prefix):
-	for i in xrange(1, len(prefix)):
+	for i in range(1, len(prefix)):
 		if (not text.startswith(prefix[0:i])): return i-1
 	return len(prefix)
 
@@ -218,7 +218,7 @@ def device_name(path):
 
 	device = match_device
 	device = device.split('/')[-1][0:3]
-	print 'device for path: %s -> %s' % (path, device)
+	print('device for path: %s -> %s' % (path, device))
 	return device
 
 def build_target_folder(config):
@@ -260,20 +260,20 @@ def run_test(config):
 
 	target_folder = build_target_folder(config)
 	if os.path.exists(target_folder):
-		print 'results already exists, skipping test (%s)' % target_folder
+		print('results already exists, skipping test (%s)' % target_folder)
 		return
 
-	print '\n\n*********************************'
-	print '*          RUNNING TEST         *'
-	print '*********************************\n\n'
-	print '%s %s' % (config['build'], config['test'])
+	print('\n\n*********************************')
+	print('*          RUNNING TEST         *')
+	print('*********************************\n\n')
+	print('%s %s' % (config['build'], config['test']))
 
 	# make sure any previous test file is removed
 	# don't clean up unless we're running a download-test, so that we leave the test file
 	# complete for a seed test.
 	delete_files(['utorrent_session/settings.dat', 'utorrent_session/settings.dat.old', 'asserts.log'])
 	if config['test'] == 'upload' or config['test'] == 'dual':
-		print 'deleting files'
+		print('deleting files')
 		delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), 'utorrent_session', '.dht_state', 'session_stats', 'rtorrent_session'])
 
 	try: os.mkdir('session_stats')
@@ -292,50 +292,50 @@ def run_test(config):
 	f.close()
 
 	f = open('session_stats/config.txt', 'w+')
-	print >>f, config
+	print(config, file=f)
 	f.close()
 
-	print 'clearing disk cache'
+	print('clearing disk cache')
 	clear_caches()
-	print 'OK'
+	print('OK')
 	client_output = open('session_stats/client.output', 'w+')
 	client_error = open('session_stats/client.error', 'w+')
-	print 'launching: %s' % cmdline
+	print('launching: %s' % cmdline)
 	client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE, stderr=client_error, env=environment)
-	print 'OK'
+	print('OK')
 	# enable disk stats printing
 	if config['build'] != 'rtorrent' and config['build'] != 'utorrent':
-		print >>client.stdin, 'x',
+		print('x', end=' ', file=client.stdin)
 	time.sleep(4)
 	cmdline = './stage_aio/connection_tester %s %d 127.0.0.1 %d %s' % (config['test'], config['num-peers'], port, config['torrent'])
-	print 'launching: %s' % cmdline
+	print('launching: %s' % cmdline)
 	tester_output = open('session_stats/tester.output', 'w+')
 	tester = subprocess.Popen(shlex.split(cmdline), stdout=tester_output)
-	print 'OK'
+	print('OK')
 
 	time.sleep(2)
 
-	print '\n'
+	print('\n')
 	i = 0
 	while True:
 		time.sleep(1)
 		tester.poll()
 		if tester.returncode != None:
-			print 'tester terminated'
+			print('tester terminated')
 			break
 		client.poll()
 		if client.returncode != None:
-			print 'client terminated'
+			print('client terminated')
 			break
-		print '\r%d / %d' % (i, test_duration),
+		print('\r%d / %d' % (i, test_duration), end=' ')
 		sys.stdout.flush()
 		i += 1
 		if config['test'] != 'upload' and config['test'] != 'dual' and i >= test_duration: break
-	print '\n'
+	print('\n')
 
 	if client.returncode == None:
 		try:
-			print 'killing client'
+			print('killing client')
 			client.send_signal(signal.SIGINT)
 		except:
 			pass
@@ -347,10 +347,10 @@ def run_test(config):
 	client_output.close()
 	terminate = False
 	if tester.returncode != 0:
-		print 'tester returned %d' % tester.returncode
+		print('tester returned %d' % tester.returncode)
 		terminate = True
 	if client.returncode != 0:
-		print 'client returned %d' % client.returncode
+		print('client returned %d' % client.returncode)
 		terminate = True
 
 	try: shutil.copy('asserts.log', 'session_stats/')
@@ -362,7 +362,7 @@ def run_test(config):
 	except: pass
 
 	# run fragmentation test
-	print 'analyzing fragmentation'
+	print('analyzing fragmentation')
 	os.system('./stage_aio/fragmentation_test test.torrent %s' % (config['save-path']))
 	try: shutil.copy('fragmentation.log', 'session_stats/')
 	except: pass
@@ -377,29 +377,29 @@ def run_test(config):
 	os.chdir('session_stats')
 
 	# parse session stats
-	print 'parsing session log'
+	print('parsing session log')
 	os.system('python ../../parse_session_stats.py *.0000.log')
 	os.system('../stage_aio/parse_access_log file_access.log %s' % (os.path.join('..', config['save-path'], 'stress_test_file')))
 
 	os.chdir('..')
 
 	if config['profile'] == 'tcmalloc':
-		print 'analyzing CPU profile [%s]' % binary
+		print('analyzing CPU profile [%s]' % binary)
 		os.system('%s --pdf %s session_stats/cpu_profile.prof >session_stats/cpu_profile.pdf' % (find_binary(['google-pprof', 'pprof']), binary))
 	if config['profile'] == 'memory':
-		for i in xrange(1, 300):
+		for i in range(1, 300):
 			profile = 'session_stats/heap_profile.prof.%04d.heap' % i
 			try: os.stat(profile)
 			except: break
-			print 'analyzing heap profile [%s] %d' % (binary, i)
+			print('analyzing heap profile [%s] %d' % (binary, i))
 			os.system('%s --pdf %s %s >session_stats/heap_profile_%d.pdf' % (find_binary(['google-pprof', 'pprof']), binary, profile, i))
 	if config['profile'] == 'perf':
-		print 'analyzing CPU profile [%s]' % binary
+		print('analyzing CPU profile [%s]' % binary)
 		os.system('perf timechart --input=session_stats/perf_profile.prof --output=session_stats/profile_timechart.svg')
 		os.system('perf report --input=session_stats/perf_profile.prof --threads --show-nr-samples --vmlinux vmlinuz-2.6.38-8-generic.bzip >session_stats/profile.txt')
 
 	# move the results into its final place
-	print 'saving results'
+	print('saving results')
 	os.rename('session_stats', build_target_folder(config))
 
 	port += 1

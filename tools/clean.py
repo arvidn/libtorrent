@@ -68,13 +68,13 @@ def clean():
 			for p in entries:
 				try:
 					shutil.rmtree(p)
-					print p
-				except Exception, e:
+					print(p)
+				except Exception as e:
 					try:
 						os.remove(p)
-						print p
-					except Exception, e:
-						print p, e
+						print(p)
+					except Exception as e:
+						print(p, e)
 
 if	__name__ == "__main__":
 	clean()

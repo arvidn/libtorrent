@@ -16,7 +16,7 @@ def gen_stats_gnuplot(name, y, lines):
 	names = line.strip().split(':')
 	counter = 1
 	for i in names:
-		print '%d: %s' % (counter, i)
+		print('%d: %s' % (counter, i))
 		counter += 1
 
 	out = open('%s.gnuplot' % name, 'w+')

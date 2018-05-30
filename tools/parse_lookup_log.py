@@ -31,16 +31,16 @@ def plot_nodes(nodes, frame):
 
 	out = open('dht_frames/plot-%02d.dot' % frame, 'w+')
 	edges = set()
-	print >>out, 'graph swarm {'
+	print('graph swarm {', file=out)
 #	print >>out, '"tl" [shape=point pos="0,0!"];'
 #	print >>out, '"tr" [shape=point pos="1638,0!"];'
 #	print >>out, '"ll" [shape=point pos="1638,1638!"];'
 #	print >>out, '"tr" [shape=point pos="0,1638!"];'
-	for dst, n in nodes.items():
+	for dst, n in list(nodes.items()):
 		shape = 'point'
 		if 's' in n: shape = n['s']
 
-		print >>out, '"%s" [shape=%s fillcolor="%s" label="" pos="%d,%d!"];' % (dst, shape, n['c'], n['p'][0], n['p'][1])
+		print('"%s" [shape=%s fillcolor="%s" label="" pos="%d,%d!"];' % (dst, shape, n['c'], n['p'][0], n['p'][1]), file=out)
 		for e in n['conns']:
 			if (e, dst) in edges: continue
 
@@ -53,9 +53,9 @@ def plot_nodes(nodes, frame):
 			if nodes[dst]['c'] != 'white' and nodes[e]['c'] != 'white':
 				style = 'solid'
 				col = 'black'
-				print >>out, '"%s" -- "%s" [style="%s" color="%s"];' % (e, dst, style, col)
+				print('"%s" -- "%s" [style="%s" color="%s"];' % (e, dst, style, col), file=out)
 
-	print >>out, '}'
+	print('}', file=out)
 	out.close()
 	os.system('neato -n dht_frames/plot-%02d.dot -Tpng -o dht_frames/frame-%02d.png' % (frame, frame))
 

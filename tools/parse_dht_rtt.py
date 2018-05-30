@@ -23,8 +23,8 @@ for line in f:
 
 f = open('round_trip_distribution.log', 'w+')
 
-for k, v in distribution.items():
-	print >>f, '%f %d' % ((k + (quantize / 2)) / 1000.0, v)
+for k, v in list(distribution.items()):
+	print('%f %d' % ((k + (quantize / 2)) / 1000.0, v), file=f)
 f.close();
 
 f = open('round_trip_distribution.gnuplot', 'w+')

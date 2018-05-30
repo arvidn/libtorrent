@@ -76,7 +76,7 @@ def print_classes(out, classes, keyword):
 	# collapse empty namespaces
 	classes2 = []
 	skip = 0
-	for i in xrange(len(classes)):
+	for i in range(len(classes)):
 		if skip > 0:
 			skip -= 1
 			continue

@@ -6,7 +6,7 @@ import glob
 import datetime
 
 this_year = datetime.date.today().year
-print 'current year: %d' % this_year
+print('current year: %d' % this_year)
 
 def update_file(name):
 	subst = ''

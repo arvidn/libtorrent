@@ -40,14 +40,14 @@ for l in lines:
 		c = l[l.find(' ')+1:l.find(':')]
 		n = int(l[l.find(':')+1:-1])
 	except:
-		print l
+		print(l)
 		continue
 
 	if last_t != t:
-		print >>out, '%d\t' % last_t,
+		print('%d\t' % last_t, end=' ', file=out)
 		for i in keys:
-			print >>out, '%d\t' % maximum[i],
-		print >>out, '\n',
+			print('%d\t' % maximum[i], end=' ', file=out)
+		print('\n', end=' ', file=out)
 
 	if not c in keys: continue
 
@@ -63,28 +63,28 @@ for l in lines:
 		maximum = fields
 
 for i in keys:
-	print '%s: avg: %f' % (i, field_sum[i] / last_t)
-print
+	print('%s: avg: %f' % (i, field_sum[i] / last_t))
+print()
 
 out.close()
 
 out = open('disk_buffer.gnuplot', 'wb')
-print >>out, "set term png size 1200,700"
-print >>out, 'set output "disk_buffer.png"'
-print >>out, 'set xrange [0:*]'
-print >>out, 'set xlabel "time (ms)"'
-print >>out, 'set ylabel "buffers"'
-print >>out, "set style data lines"
-print >>out, "set key box"
-print >>out, 'plot',
+print("set term png size 1200,700", file=out)
+print('set output "disk_buffer.png"', file=out)
+print('set xrange [0:*]', file=out)
+print('set xlabel "time (ms)"', file=out)
+print('set ylabel "buffers"', file=out)
+print("set style data lines", file=out)
+print("set key box", file=out)
+print('plot', end=' ', file=out)
 count = 1 + len(keys)
 keys.reverse()
 comma = ''
 for k in keys:
 	expr = "$%d" % count
-	for i in xrange(2, count): expr += "+$%d" % i
+	for i in range(2, count): expr += "+$%d" % i
 	count -= 1
-	print >>out, ' %s"disk_buffer_log.dat" using 1:(%s) title "%s" with filledcurves x1 lt rgb "#%s"' % (comma, expr, k, colors[count-1]),
+	print(' %s"disk_buffer_log.dat" using 1:(%s) title "%s" with filledcurves x1 lt rgb "#%s"' % (comma, expr, k, colors[count-1]), end=' ', file=out)
 	comma = ','
 out.close()
 
