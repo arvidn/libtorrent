@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-import os, sys, time
+import os
+import sys
+import time
 
 keys = [['upload rate', 'x1y1', 6], ['history entries', 'x1y2', 10], ['queue', 'x1y2', 4]]
 
@@ -16,9 +18,8 @@ print('set y2range [0:*]', file=out)
 print("set key box", file=out)
 print('plot', end=' ', file=out)
 for k, a, c in keys:
-   print(' "%s" using 1:%d title "%s" axes %s with steps,' % (sys.argv[1], c, k, a), end=' ', file=out)
+    print(' "%s" using 1:%d title "%s" axes %s with steps,' % (sys.argv[1], c, k, a), end=' ', file=out)
 print('x=0', file=out)
 out.close()
 
-os.system('gnuplot bandwidth.gnuplot');
-
+os.system('gnuplot bandwidth.gnuplot')
