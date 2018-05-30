@@ -81,6 +81,26 @@ TORRENT_TEST(limit)
 	TEST_EQUAL(alerts.size(), 200);
 }
 
+TORRENT_TEST(limit_int_max)
+{
+	int const inf = std::numeric_limits<int>::max();
+	alert_manager mgr(inf, 0xffffffff);
+
+	TEST_EQUAL(mgr.alert_queue_size_limit(), inf);
+
+	for (int i = 0; i < 600; ++i)
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
+
+	for (int i = 0; i < 600; ++i)
+		mgr.emplace_alert<torrent_removed_alert>(torrent_handle(), sha1_hash());
+
+	std::vector<alert*> alerts;
+	int num_resume;
+	mgr.get_all(alerts, num_resume);
+
+	TEST_EQUAL(alerts.size(), 1200);
+}
+
 TORRENT_TEST(priority_limit)
 {
 	alert_manager mgr(100, 0xffffffff);
