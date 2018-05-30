@@ -46,6 +46,7 @@ addons:
     - python2.7-dev
     - g++-5
     - [cmake3, ninja-build]
+    - flake8
 
 before_install:
 
@@ -182,6 +183,7 @@ script:
 
   - 'if [ "$lint" == "1" ]; then
       python ~/cpplint.py --extensions=cpp --headers=hpp --filter=-,+runtime/explicit,+whitespace/end_of_line --linelength=90 test/*.{cpp,hpp} src/*.cpp include/libtorrent/*.hpp include/libtorrent/kademlia/*.hpp src/kademlia/*.cpp include/libtorrent/aux_/*.hpp include/libtorrent/extensions/*.hpp simulation/*.{cpp,hpp} tools/*.{cpp,hpp} examples/*.{cpp,hpp};
+      flake8 --max-line-length=120 .
     fi'
 
   - 'if [ "$sonar_scan" == "1" ]; then
