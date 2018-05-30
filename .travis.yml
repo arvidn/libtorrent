@@ -46,7 +46,7 @@ addons:
     - python2.7-dev
     - g++-5
     - [cmake3, ninja-build]
-    - flake8
+    - python-flake8
 
 before_install:
 
