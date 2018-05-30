@@ -308,7 +308,7 @@ namespace libtorrent {
 	{
 		span<span<char const>> empty;
 		if (!m_encrypt) return std::make_tuple(0, empty);
-		if (bufs.size() == 0) return std::make_tuple(0, empty);
+		if (bufs.empty()) return std::make_tuple(0, empty);
 
 		int bytes_processed = 0;
 		for (auto& buf : bufs)

@@ -322,8 +322,8 @@ cached_piece_entry::cached_piece_entry()
 cached_piece_entry::~cached_piece_entry()
 {
 	TORRENT_ASSERT(piece_refcount == 0);
-	TORRENT_ASSERT(jobs.size() == 0);
-	TORRENT_ASSERT(read_jobs.size() == 0);
+	TORRENT_ASSERT(jobs.empty());
+	TORRENT_ASSERT(read_jobs.empty());
 #if TORRENT_USE_ASSERTS
 	if (blocks)
 	{
@@ -766,7 +766,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 // (since these blocks now are part of the read cache) the refcounts of the
 // blocks are also decremented by this function. They are expected to have been
 // incremented by the caller.
-bool block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int num_flushed)
+bool block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int const num_flushed)
 {
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
@@ -883,7 +883,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 
 		// append will move the items from pe->jobs onto the end of jobs
 		jobs.append(pe->jobs);
-		TORRENT_ASSERT(pe->jobs.size() == 0);
+		TORRENT_ASSERT(pe->jobs.empty());
 
 		if (mode == allow_ghost
 			&& (pe->cache_state == cached_piece_entry::read_lru1_ghost
@@ -1005,7 +1005,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 		// to iterate over this linked list. Presumably because of the random
 		// access of memory. It would be nice if pieces with no evictable blocks
 		// weren't in this list
-		for (list_iterator<cached_piece_entry> i = lru_list[end]->iterate(); i.get() && num > 0;)
+		for (auto i = lru_list[end]->iterate(); i.get() && num > 0;)
 		{
 			cached_piece_entry* pe = i.get();
 			TORRENT_PIECE_ASSERT(pe->in_use, pe);
@@ -1077,7 +1077,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 	{
 		for (int pass = 0; pass < 2 && num > 0; ++pass)
 		{
-			for (list_iterator<cached_piece_entry> i = m_lru[cached_piece_entry::write_lru].iterate(); i.get() && num > 0;)
+			for (auto i = m_lru[cached_piece_entry::write_lru].iterate(); i.get() && num > 0;)
 			{
 				cached_piece_entry* pe = i.get();
 				TORRENT_PIECE_ASSERT(pe->in_use, pe);
@@ -1263,7 +1263,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<iovec_t 
 
 	TORRENT_ASSERT(pe);
 	TORRENT_ASSERT(pe->in_use);
-	TORRENT_PIECE_ASSERT(iov.size() > 0, pe);
+	TORRENT_PIECE_ASSERT(!iov.empty(), pe);
 
 	cache_hit(pe, j->d.io.offset / default_block_size, bool(j->flags & disk_interface::volatile_read));
 
@@ -1349,7 +1349,7 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 	return true;
 }
 
-void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reason)
+void block_cache::dec_block_refcount(cached_piece_entry* pe, int const block, int const reason)
 {
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 	TORRENT_PIECE_ASSERT(block < pe->blocks_in_piece, pe);
@@ -1762,12 +1762,12 @@ cached_piece_entry* block_cache::find_piece(disk_io_job const* j)
 	return find_piece(j->storage.get(), j->piece);
 }
 
-cached_piece_entry* block_cache::find_piece(storage_interface* st, piece_index_t piece)
+cached_piece_entry* block_cache::find_piece(storage_interface* st, piece_index_t const piece)
 {
 	cached_piece_entry model;
 	model.storage = st->shared_from_this();
 	model.piece = piece;
-	auto i = m_pieces.find(model);
+	auto const i = m_pieces.find(model);
 	TORRENT_ASSERT(i == m_pieces.end() || (i->storage.get() == st && i->piece == piece));
 	if (i == m_pieces.end()) return nullptr;
 	TORRENT_PIECE_ASSERT(i->in_use, &*i);

@@ -738,7 +738,7 @@ namespace {
 		std::memcpy(ptr, ih.data(), ih.size());
 		ptr += 20;
 
-		std::memcpy(ptr, &m_our_peer_id[0], 20);
+		std::memcpy(ptr, m_our_peer_id.data(), 20);
 		ptr += 20;
 
 #ifndef TORRENT_DISABLE_LOGGING
