@@ -646,7 +646,7 @@ namespace aux {
 			void stop_natpmp();
 			void stop_upnp();
 
-			port_mapping_t add_port_mapping(portmap_protocol t, int external_port
+			std::vector<port_mapping_t> add_port_mapping(portmap_protocol t, int external_port
 				, int local_port);
 			void delete_port_mapping(port_mapping_t handle);
 

@@ -6696,17 +6696,17 @@ namespace aux {
 		return m_upnp.get();
 	}
 
-	port_mapping_t session_impl::add_port_mapping(portmap_protocol const t
+	std::vector<port_mapping_t> session_impl::add_port_mapping(portmap_protocol const t
 		, int const external_port
 		, int const local_port)
 	{
-		port_mapping_t ret{-1};
-		if (m_upnp) ret = m_upnp->add_mapping(t, external_port
-			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port)));
+		std::vector<port_mapping_t> ret;
+		if (m_upnp) ret.push_back(m_upnp->add_mapping(t, external_port
+			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
 		for (auto& s : m_listen_sockets)
 		{
-			if (s->natpmp_mapper) ret = s->natpmp_mapper->add_mapping(t, external_port
-				, tcp::endpoint({}, static_cast<std::uint16_t>(local_port)));
+			if (s->natpmp_mapper) ret.push_back(s->natpmp_mapper->add_mapping(t, external_port
+				, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
 		}
 		return ret;
 	}
