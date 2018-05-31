@@ -80,17 +80,19 @@ int main()
 		return 1;
 	}
 
-	std::printf("%-34s%-45s%-20s%-20sdescription\n", "address", "netmask", "name", "flags");
+	std::printf("%-34s%-45s%-20s%-20s%-34sdescription\n", "address", "netmask", "name", "flags", "default gateway");
 
 	for (auto const& i : net)
 	{
-		std::printf("%-34s%-45s%-20s%s%s%-20s%s %s\n"
+		address iface_def_gw = get_default_gateway(ios, i.name, i.interface_address.is_v6(), ec);
+		std::printf("%-34s%-45s%-20s%s%s%-20s%-34s%s %s\n"
 			, i.interface_address.to_string(ec).c_str()
 			, i.netmask.to_string(ec).c_str()
 			, i.name
 			, (i.interface_address.is_multicast()?"multicast ":"")
 			, (is_local(i.interface_address)?"local ":"")
 			, (is_loopback(i.interface_address)?"loopback ":"")
+			, iface_def_gw.to_string(ec).c_str()
 			, i.friendly_name, i.description);
 	}
 }
