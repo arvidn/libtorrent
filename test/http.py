@@ -82,12 +82,17 @@ Qual a diferença entre um proxy Elite, Anónimo e Transparente?
 """
 
 import socket
-import _thread
 import select
 import sys
 import base64
 import time
 import errno
+
+# Python 3 renamed thread module to _thread
+try:
+    import _thread as thread
+except BaseException:
+    import thread
 
 __version__ = '0.1.0 Draft 1'
 BUFLEN = 8192
@@ -217,7 +222,7 @@ def start_server(host='localhost', port=8080, IPv6=False, timeout=100,
     soc.bind((host, port))
     soc.listen(0)
     while True:
-        _thread.start_new_thread(handler, soc.accept() + (timeout,))
+        thread.start_new_thread(handler, soc.accept() + (timeout,))
 
 
 if __name__ == '__main__':

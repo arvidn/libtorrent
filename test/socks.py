@@ -1,13 +1,18 @@
 #!/usr/bin/env python
 
 """Minimal non-feature complete socks proxy"""
+from __future__ import print_function
 
-import random
 import socket
-from socketserver import StreamRequestHandler, ThreadingTCPServer
 from struct import pack, unpack
 import threading
 import sys
+
+# Python 3 renamed SocketServer to socketserver
+try:
+    from socketserver import StreamRequestHandler, ThreadingTCPServer
+except BaseException:
+    from SocketServer import StreamRequestHandler, ThreadingTCPServer
 
 
 def debug(s):
