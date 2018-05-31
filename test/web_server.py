@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 
-import http.server
-import http.server
 import sys
 import os
 import ssl
 import gzip
 import base64
+
+# Python 3 has moved {Simple,Base}HTTPServer to http module
+try:
+    # Remove '.' from sys.path or we try to import the http.py module
+    # which is not what we want.
+    sys.path = sys.path[1:]
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+except ImportError:
+    from SimpleHTTPServer import SimpleHTTPRequestHandler as BaseHTTPRequestHandler
+    from BaseHTTPServer import HTTPServer
 
 chunked_encoding = False
 keepalive = True
@@ -21,7 +29,7 @@ except BaseException:
     pass
 
 
-class http_server_with_timeout(http.server.HTTPServer):
+class http_server_with_timeout(HTTPServer):
     allow_reuse_address = True
     timeout = 190
 
@@ -29,7 +37,7 @@ class http_server_with_timeout(http.server.HTTPServer):
         raise Exception('timeout')
 
 
-class http_handler(http.server.SimpleHTTPRequestHandler):
+class http_handler(BaseHTTPRequestHandler):
 
     def do_GET(s):
 
