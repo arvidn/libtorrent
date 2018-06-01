@@ -2,7 +2,6 @@
 
 import os
 import sys
-import time
 from functools import reduce
 
 # usage: parse_log.py log-file [socket-index to focus on]
@@ -30,8 +29,8 @@ if socket_filter is None:
 
         # msvc's runtime library doesn't prefix pointers
         # with '0x'
-#		if socket_index[:2] != '0x':
-#			continue
+        # if socket_index[:2] != '0x':
+        #     continue
 
         if socket_index in sockets:
             sockets[socket_index] += 1
@@ -104,15 +103,17 @@ delay_histogram = {}
 packet_size_histogram = {}
 window_size = {'0': 0, '1': 0}
 
-# [35301484] 0x00ec1190: actual_delay:1021583 our_delay:102 their_delay:-1021345 off_target:297 max_window:2687 upload_rate:18942 delay_base:1021481154 delay_sum:-1021242 target_delay:400 acked_bytes:1441 cur_window:2882 scaled_gain:2.432
+# [35301484] 0x00ec1190: actual_delay:1021583 our_delay:102 their_delay:-1021345 off_target:297 max_window:2687
+# upload_rate:18942 delay_base:1021481154 delay_sum:-1021242 target_delay:400 acked_bytes:1441 cur_window:2882
+# scaled_gain:2.432
 
 counter = 0
 
 print("reading log file")
 
-for l in file:
-    if "UTP_Connect" in l:
-        title = l[:-2]
+for line in file:
+    if "UTP_Connect" in line:
+        title = line[:-2]
         if socket_filter is not None:
             title += ' socket: %s' % socket_filter
         else:
@@ -120,7 +121,7 @@ for l in file:
         continue
 
     try:
-        a = l.strip().split(" ")
+        a = line.strip().split(" ")
         t = a[0][1:-1]
         socket_index = a[1][:-1]
     except BaseException:
@@ -135,18 +136,18 @@ for l in file:
     if (counter % 300 == 0):
         print("\r%d  " % counter, end=' ')
 
-    if "lost." in l:
+    if "lost." in line:
         packet_loss = packet_loss + 1
         continue
-    if "Packet timeout" in l:
+    if "Packet timeout" in line:
         packet_timeout = packet_timeout + 1
         continue
 
-    if "sending packet" in l:
-        v = l.split('size:')[1].split(' ')[0]
+    if "sending packet" in line:
+        v = line.split('size:')[1].split(' ')[0]
         packet_size_histogram[v] = 1 + packet_size_histogram.get(v, 0)
 
-    if "our_delay:" not in l:
+    if "our_delay:" not in line:
         continue
 
 # used for Logf timestamps
@@ -267,7 +268,7 @@ out = open('utp.gnuplot', 'w+')
 
 files = ''
 
-#print >>out, 'set xtics 0, 20'
+# print('set xtics 0, 20', file=out)
 print("set term png size 1280,800", file=out)
 print('set output "%s.delays.png"' % out_file, file=out)
 print('set xrange [0:200]', file=out)
@@ -288,7 +289,7 @@ print('set nologscale y', file=out)
 files += out_file + '.packet_sizes.png '
 
 print("set style data steps", file=out)
-#print >>out, "set yrange [0:*]"
+# print("set yrange [0:*]", file=out)
 print("set y2range [*:*]", file=out)
 # set hidden3d
 # set title "Peer bandwidth distribution"

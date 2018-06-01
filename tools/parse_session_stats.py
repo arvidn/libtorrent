@@ -33,8 +33,6 @@
 
 import os
 import sys
-import time
-import os
 import math
 from multiprocessing.pool import ThreadPool
 
@@ -56,10 +54,10 @@ except BaseException:
 data_out = open(os.path.join(output_dir, 'counters.dat'), 'w+')
 
 idx = 0
-for l in stat:
-    if not 'session stats (' in l:
+for line in stat:
+    if 'session stats (' not in line:
         continue
-    data_out.write(("%d\t" % idx) + l.split(' values): ')[1].strip().replace(', ', '\t') + '\n')
+    data_out.write(("%d\t" % idx) + line.split(' values): ')[1].strip().replace(', ', '\t') + '\n')
     idx += 1
 
 data_out.close()
@@ -298,10 +296,10 @@ def gen_html(reports, generations):
     file = open(os.path.join(output_dir, 'index.html'), 'w+')
 
     css = '''img { margin: 0}
-		#head { display: block }
-		#graphs { white-space:nowrap; }
-		h1 { line-height: 1; display: inline }
-		h2 { line-height: 1; display: inline; font-size: 1em; font-weight: normal};'''
+#head { display: block }
+#graphs { white-space:nowrap; }
+h1 { line-height: 1; display: inline }
+h2 { line-height: 1; display: inline; font-size: 1em; font-weight: normal};'''
 
     print('<html><head><style type="text/css">%s</style></head><body>' % css, file=file)
 
@@ -432,10 +430,13 @@ reports = [
       'disk.queued_disk_jobs',
       'disk.blocked_disk_jobs']),
     ('disk fences', 'num', '', 'number of jobs currently blocked by a fence job', ['disk.blocked_disk_jobs']),
-    #	('fence jobs', 'num', '', 'active fence jobs per type', ['move_storage', 'release_files', 'delete_files', 'check_fastresume', 'save_resume_data', 'rename_file', 'stop_torrent', 'file_priority', 'clear_piece'], {'type':stacked}),
+    # ('fence jobs', 'num', '', 'active fence jobs per type', ['move_storage', 'release_files', 'delete_files',
+    #  'check_fastresume', 'save_resume_data', 'rename_file', 'stop_torrent', 'file_priority', 'clear_piece'],
+    #  {'type':stacked}),
     ('disk threads', 'num', '', 'number of disk threads currently writing',
      ['disk.num_writing_threads', 'disk.num_running_threads']),
-    #	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
+    # ('mixed mode', 'rate', 'B/s', 'rates by transport protocol',
+    #  ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
 
     ('connection_type', 'num', '', 'peers by transport protocol', [ \
         'peer.num_tcp_peers', \
@@ -449,9 +450,12 @@ reports = [
         'peer.num_ssl_utp_peers' \
     ]),
 
-    #	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP peak recv delay', 'uTP avg send delay', 'uTP avg recv delay']),
-    #	('uTP send delay histogram', 'buffering delay', 's', 'send delays measured by uTP', ['uTP avg send delay'], {'type': histogram, 'binwidth': 0.05, 'numbins': 100}),
-    #	('uTP recv delay histogram', 'buffering delay', 's', 'receive delays measured by uTP', ['uTP avg recv delay'], {'type': histogram, 'binwidth': 0.05, 'numbins': 100}),
+    # ('uTP delay', 'buffering delay', 's', 'network delays measured by uTP',
+    #  ['uTP peak send delay','uTP peak recv delay', 'uTP avg send delay', 'uTP avg recv delay']),
+    # ('uTP send delay histogram', 'buffering delay', 's', 'send delays measured by uTP',
+    #  ['uTP avg send delay'], {'type': histogram, 'binwidth': 0.05, 'numbins': 100}),
+    # ('uTP recv delay histogram', 'buffering delay', 's', 'receive delays measured by uTP',
+    #  ['uTP avg recv delay'], {'type': histogram, 'binwidth': 0.05, 'numbins': 100}),
 
     ('uTP stats', 'num', '', 'number of uTP events', [ \
         'utp.utp_packet_loss', \
@@ -587,10 +591,18 @@ reports = [
     ], {'type': diff}),
 
     # somewhat uninteresting stats
-    #	('peer_dl_rates', 'num', '', 'peers split into download rate buckets', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'], {'type':stacked, 'colors':'gradient6'}),
-    #	('peer_dl_rates2', 'num', '', 'peers split into download rate buckets (only downloading peers)', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'], {'type':stacked, 'colors':'gradient6'}),
-    #	('peer_ul_rates', 'num', '', 'peers split into upload rate buckets', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'], {'type':stacked, 'colors':'gradient6'}),
-    #	('peer_ul_rates2', 'num', '', 'peers split into upload rate buckets (only uploading peers)', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'], {'type':stacked, 'colors':'gradient6'}),
+    # ('peer_dl_rates', 'num', '', 'peers split into download rate buckets',
+    #  ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'],
+    #  {'type':stacked, 'colors':'gradient6'}),
+    # ('peer_dl_rates2', 'num', '', 'peers split into download rate buckets (only downloading peers)',
+    #  ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'],
+    #  {'type':stacked, 'colors':'gradient6'}),
+    # ('peer_ul_rates', 'num', '', 'peers split into upload rate buckets',
+    #  ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'],
+    #  {'type':stacked, 'colors':'gradient6'}),
+    # ('peer_ul_rates2', 'num', '', 'peers split into upload rate buckets (only uploading peers)',
+    #  ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'],
+    #  {'type':stacked, 'colors':'gradient6'}),
 
     ('piece_picker_invocations', 'invocations of piece picker', '', '', [ \
         'picker.reject_piece_picks', \
@@ -613,8 +625,10 @@ reports = [
         'picker.piece_picker_busy_loops' \
     ], {'type': stacked}),
 
-    #	('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'], {'type': histogram, 'binwidth': 5, 'numbins': 120}),
-    #	('picker_partials_distribution', 'partial pieces', '', '', ['num downloading partial pieces'], {'type': histogram, 'binwidth': 5, 'numbins': 120})
+    # ('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'],
+    #  {'type': histogram, 'binwidth': 5, 'numbins': 120}),
+    # ('picker_partials_distribution', 'partial pieces', '', '', ['num downloading partial pieces'],
+    #  {'type': histogram, 'binwidth': 5, 'numbins': 120})
 ]
 
 print('generating graphs')

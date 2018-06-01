@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import sys
 
 file_header = '''/*
 
@@ -53,13 +52,11 @@ namespace lt = libtorrent;
 '''
 
 classes = os.popen(
-    'git grep "\(TORRENT_EXPORT\|TORRENT_DEPRECATED_EXPORT\|^TORRENT_[A-Z0-9]\+_NAMESPACE\)"').read().split('\n')
+    r'git grep "\(TORRENT_EXPORT\|TORRENT_DEPRECATED_EXPORT\|^TORRENT_[A-Z0-9]\+_NAMESPACE\)"').read().split('\n')
 
 
 def print_classes(out, classes, keyword):
     current_file = ''
-    ret = ''
-    dht_ret = ''
 
     # [(file, decl), ...]
     classes = [(l.split(':')[0].strip(), ':'.join(l.split(':')[1:]).strip()) for l in classes]

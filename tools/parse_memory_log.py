@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import sys
-import time
 
 # usage: memory.log memory_index.log
 
@@ -28,24 +27,24 @@ def print_allocation_point(ap):
 
 
 allocation_points = []
-for l in index:
-    l = l.split('#')
-    l.pop(0)
-    ap = {'allocations': 0, 'peak': 0, 'spacetime': 0, 'allocation_point': len(allocation_points), 'stack': l}
+for line in index:
+    line = line.split('#')
+    line.pop(0)
+    ap = {'allocations': 0, 'peak': 0, 'spacetime': 0, 'allocation_point': len(allocation_points), 'stack': line}
     allocation_points.append(ap)
 
-for l in lines:
-    l = l.lstrip('#').rstrip('\n').split(' ')
-    if len(l) != 8:
-        print(l)
+for line in lines:
+    line = line.lstrip('#').rstrip('\n').split(' ')
+    if len(line) != 8:
+        print(line)
         continue
     try:
-        ap = int(l[0])
+        ap = int(line[0])
         allocation_points[ap]['allocations'] += 1
-        allocation_points[ap]['peak'] = int(l[7])
-        allocation_points[ap]['spacetime'] = int(l[6])
+        allocation_points[ap]['peak'] = int(line[7])
+        allocation_points[ap]['spacetime'] = int(line[6])
     except Exception as e:
-        print(type(e), e, l)
+        print(type(e), e, line)
 
 print('=== space time ===')
 
@@ -78,13 +77,13 @@ cur_line = [0] * allocation_points_to_print
 prev_line = [0] * allocation_points_to_print
 last_time = 0
 
-for l in lines:
-    l = l.lstrip('#').rstrip('\n').split(' ')
-    if len(l) != 8:
-        print(l)
+for line in lines:
+    line = line.lstrip('#').rstrip('\n').split(' ')
+    if len(line) != 8:
+        print(line)
         continue
     try:
-        time = int(l[1])
+        time = int(line[1])
         if time != last_time:
             print(last_time, '\t', end=' ', file=out)
             for i in range(allocation_points_to_print):
@@ -97,14 +96,14 @@ for l in lines:
             cur_line = [-1] * allocation_points_to_print
             last_time = time
 
-        size = int(l[5])
-        ap = int(l[0])
+        size = int(line[5])
+        ap = int(line[0])
         if ap in hot_ap:
             index = hot_ap.index(ap)
             cur_line[index] = max(cur_line[index], size)
 
     except Exception as e:
-        print(type(e), e, l)
+        print(type(e), e, line)
 
 out.close()
 

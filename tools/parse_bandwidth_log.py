@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import sys
-import time
 
 keys = [['upload rate', 'x1y1', 6], ['history entries', 'x1y2', 10], ['queue', 'x1y2', 4]]
 
@@ -14,7 +13,7 @@ print('set ylabel "Rate (B/s)"', file=out)
 print('set ytics 10000', file=out)
 print('set y2label "number"', file=out)
 print('set y2range [0:*]', file=out)
-#print >>out, "set style data lines"
+# print("set style data lines", file=out)
 print("set key box", file=out)
 print('plot', end=' ', file=out)
 for k, a, c in keys:

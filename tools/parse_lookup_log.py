@@ -22,7 +22,7 @@ def calculate_pos(nid, dist):
         x |= (nid & (1 << i)) >> (i / 2)
         y |= (nid & (2 << i)) >> (i / 2 + 1)
 
-#	print '%d -> %d %d' % (dist, x, y)
+# print '%d -> %d %d' % (dist, x, y)
 
     return (x / 3, y / 3)
 
@@ -37,10 +37,10 @@ def plot_nodes(nodes, frame):
     out = open('dht_frames/plot-%02d.dot' % frame, 'w+')
     edges = set()
     print('graph swarm {', file=out)
-#	print >>out, '"tl" [shape=point pos="0,0!"];'
-#	print >>out, '"tr" [shape=point pos="1638,0!"];'
-#	print >>out, '"ll" [shape=point pos="1638,1638!"];'
-#	print >>out, '"tr" [shape=point pos="0,1638!"];'
+# print >>out, '"tl" [shape=point pos="0,0!"];'
+# print >>out, '"tr" [shape=point pos="1638,0!"];'
+# print >>out, '"ll" [shape=point pos="1638,1638!"];'
+# print >>out, '"tr" [shape=point pos="0,1638!"];'
     for dst, n in list(nodes.items()):
         shape = 'point'
         if 's' in n:
@@ -71,58 +71,58 @@ def plot_nodes(nodes, frame):
 frame = 0
 next_render_time = 100
 f = open('dht_lookups.txt')
-for l in f:
-    if l.startswith('***'):
+for line in f:
+    if line.startswith('***'):
         break
 
-    kind = l[0:3].strip()
-    l = l[3:].strip().split(' ')
+    kind = line[0:3].strip()
+    line = line[3:].strip().split(' ')
 
     if kind == '===':
         continue
 
-    t = int(l[0])
+    t = int(line[0])
     if t > next_render_time:
         plot_nodes(nodes, frame)
         frame += 1
         next_render_time += 100
-#		sys.exit(0)
+        # sys.exit(0)
 
     if kind == '<>':
-        p = calculate_pos(l[1], 0)
+        p = calculate_pos(line[1], 0)
         dst = '0.0.0.0'
         if dst not in nodes:
             nodes[dst] = {'conns': set(), 'p': p, 'c': 'blue', 's': 'circle'}
 
-        p = calculate_pos(l[2], 25)
+        p = calculate_pos(line[2], 25)
         dst = '255.255.255.255'
         if dst not in nodes:
             nodes[dst] = {'conns': set(), 'p': p, 'c': 'yellow', 's': 'circle'}
     elif kind == '->':
-        dst = l[3]
+        dst = line[3]
 
         if dst not in nodes:
             src = get_origin(dst)
-            p = calculate_pos(l[2], int(l[1]))
+            p = calculate_pos(line[2], int(line[1]))
             nodes[dst] = {'conns': set(src), 'p': p, 'c': 'grey'}
         nodes[dst]['c'] = 'grey'
 
     elif kind == '+':
-        dst = l[3]
-        src = l[4]
-        p = calculate_pos(l[2], int(l[1]))
+        dst = line[3]
+        src = line[4]
+        p = calculate_pos(line[2], int(line[1]))
         if dst not in nodes:
             nodes[dst] = {'conns': set(), 'p': p, 'c': 'white'}
         nodes[dst]['conns'].add(src)
 
     elif kind == '<-':
-        dst = l[3]
+        dst = line[3]
         nodes[dst]['c'] = 'green'
     elif kind == 'x':
-        dst = l[3]
+        dst = line[3]
         nodes[dst]['c'] = 'orange'
     elif kind == 'X':
-        dst = l[3]
+        dst = line[3]
         nodes[dst]['c'] = 'red'
 
 f.close()

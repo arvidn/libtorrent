@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import os
-import sys
 import glob
 import datetime
 
@@ -12,17 +10,17 @@ print('current year: %d' % this_year)
 def update_file(name):
     subst = ''
     f = open(name)
-    for l in f:
-        if 'Copyright (c) ' in l and 'Arvid Norberg' in l:
-            year_idx = l.index('Copyright (c) ')
-            first_year = int(l[year_idx + 14: year_idx + 18])
+    for line in f:
+        if 'Copyright (c) ' in line and 'Arvid Norberg' in line:
+            year_idx = line.index('Copyright (c) ')
+            first_year = int(line[year_idx + 14: year_idx + 18])
             if first_year != this_year:
-                if l[year_idx + 18] == '-':
-                    l = l[:year_idx + 19] + str(this_year) + l[year_idx + 23:]
+                if line[year_idx + 18] == '-':
+                    line = line[:year_idx + 19] + str(this_year) + line[year_idx + 23:]
                 else:
-                    l = l[:year_idx + 18] + '-' + str(this_year) + l[year_idx + 18:]
+                    line = line[:year_idx + 18] + '-' + str(this_year) + line[year_idx + 18:]
 
-        subst += l
+        subst += line
 
     f.close()
     open(name, 'w+').write(subst)

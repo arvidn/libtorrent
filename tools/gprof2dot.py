@@ -54,13 +54,6 @@ else:
     def compat_keys(x): return x.keys()
 
 
-try:
-    # Debugging helper module
-    import debug
-except ImportError:
-    pass
-
-
 MULTIPLICATION_SIGN = unichr(0xd7)
 
 
@@ -1251,7 +1244,7 @@ class AXEParser(Parser):
         '^-----+ '
     )
 
-    _cg_footer_re = re.compile('^Index\s+Function\s*$')
+    _cg_footer_re = re.compile(r'^Index\s+Function\s*$')
 
     _cg_primary_re = re.compile(
         r'^\[(?P<index>\d+)\]?' +
@@ -1477,7 +1470,7 @@ class CallgrindParser(LineParser):
     - http://valgrind.org/docs/manual/cl-format.html
     """
 
-    _call_re = re.compile('^calls=\s*(\d+)\s+((\d+|\+\d+|-\d+|\*)\s+)+$')
+    _call_re = re.compile(r'^calls=\s*(\d+)\s+((\d+|\+\d+|-\d+|\*)\s+)+$')
 
     def __init__(self, infile):
         LineParser.__init__(self, infile)
@@ -1656,14 +1649,13 @@ class CallgrindParser(LineParser):
         _, values = line.split('=', 1)
         values = values.strip().split()
         calls = int(values[0])
-        call_position = values[1:]
         self.consume()
 
         self.parse_cost_line(calls)
 
         return True
 
-    _position_re = re.compile('^(?P<position>[cj]?(?:ob|fl|fi|fe|fn))=\s*(?:\((?P<id>\d+)\))?(?:\s*(?P<name>.+))?')
+    _position_re = re.compile(r'^(?P<position>[cj]?(?:ob|fl|fi|fe|fn))=\s*(?:\((?P<id>\d+)\))?(?:\s*(?P<name>.+))?')
 
     _position_table_map = {
         'ob': 'ob',
@@ -1755,7 +1747,7 @@ class CallgrindParser(LineParser):
 
     def make_function(self, module, filename, name):
         # FIXME: module and filename are not being tracked reliably
-        #id = '|'.join((module, filename, name))
+        # id = '|'.join((module, filename, name))
         id = name
         try:
             function = self.profile.functions[id]
@@ -1956,8 +1948,6 @@ class OprofileParser(LineParser):
 
         profile = Profile()
 
-        reverse_call_samples = {}
-
         # populate the profile
         profile[SAMPLES] = 0
         for _callers, _function, _callees in compat_itervalues(self.entries):
@@ -2148,17 +2138,16 @@ class HProfParser(LineParser):
             self.parse_trace()
 
     def parse_trace(self):
-        l = self.consume()
-        mo = self.trace_id_re.match(l)
+        consume = self.consume()
+        mo = self.trace_id_re.match(consume)
         tid = mo.group(1)
-        last = None
         trace = []
 
         while self.lookahead().startswith('\t'):
-            l = self.consume()
-            match = self.trace_re.search(l)
+            consume = self.consume()
+            match = self.trace_re.search(consume)
             if not match:
-                #sys.stderr.write('Invalid line: %s\n' % l)
+                # sys.stderr.write('Invalid line: %s\n' % consume)
                 break
             else:
                 function_name, file, line = match.groups()
@@ -2576,7 +2565,6 @@ class AQtimeParser(XmlParser):
         return table
 
     def parse_data(self):
-        rows = []
         attrs = self.element_start('DATA')
         table_id = int(attrs['TABLE_ID'])
         table_name, field_types, field_names = self.tables[table_id]
@@ -2650,16 +2638,16 @@ class AQtimeParser(XmlParser):
         function = Function(self.build_id(fields), self.build_name(fields))
         function[TIME] = fields['Time']
         function[TOTAL_TIME] = fields['Time with Children']
-        #function[TIME_RATIO] = fields['% Time']/100.0
-        #function[TOTAL_TIME_RATIO] = fields['% with Children']/100.0
+        # function[TIME_RATIO] = fields['% Time']/100.0
+        # function[TOTAL_TIME_RATIO] = fields['% with Children']/100.0
         return function
 
     def build_call(self, fields):
         call = Call(self.build_id(fields))
         call[TIME] = fields['Time']
         call[TOTAL_TIME] = fields['Time with Children']
-        #call[TIME_RATIO] = fields['% Time']/100.0
-        #call[TOTAL_TIME_RATIO] = fields['% with Children']/100.0
+        # call[TIME_RATIO] = fields['% Time']/100.0
+        # call[TOTAL_TIME_RATIO] = fields['% with Children']/100.0
         return call
 
     def build_id(self, fields):
@@ -2830,12 +2818,12 @@ class Theme:
         elif self.skew == 1.0:
             h = hmin + weight * (hmax - hmin)
             s = smin + weight * (smax - smin)
-            l = lmin + weight * (lmax - lmin)
+            l = lmin + weight * (lmax - lmin) # noqa
         else:
             base = self.skew
             h = hmin + ((hmax - hmin) * (-1.0 + (base ** weight)) / (base - 1.0))
             s = smin + ((smax - smin) * (-1.0 + (base ** weight)) / (base - 1.0))
-            l = lmin + ((lmax - lmin) * (-1.0 + (base ** weight)) / (base - 1.0))
+            l = lmin + ((lmax - lmin) * (-1.0 + (base ** weight)) / (base - 1.0)) # noqa
 
         return self.hsl_to_rgb(h, s, l)
 
@@ -2848,9 +2836,9 @@ class Theme:
 
         h = h % 1.0
         s = min(max(s, 0.0), 1.0)
-        l = min(max(l, 0.0), 1.0)
+        l = min(max(l, 0.0), 1.0) # noqa
 
-        if l <= 0.5:
+        if l <= 0.5: # noqa
             m2 = l * (s + 1.0)
         else:
             m2 = l + s - l * s
@@ -3172,7 +3160,8 @@ class Main:
                 'callstacks'),
             dest="totalMethod",
             default=totalMethod,
-            help="preferred method of calculating total time: callratios or callstacks (currently affects only perf format) [default: %default]")
+            help=("preferred method of calculating total time: callratios or callstacks"
+                  " (currently affects only perf format) [default: %default]"))
         optparser.add_option(
             '-c', '--colormap',
             type="choice", choices=('color', 'pink', 'gray', 'bw', 'print'),
@@ -3184,7 +3173,8 @@ class Main:
             action="store_true",
             dest="strip",
             default=False,
-            help="strip function parameters, template parameters, and const modifiers from demangled C++ function names")
+            help=("strip function parameters, template parameters, and const modifiers from"
+                  " demangled C++ function names"))
         optparser.add_option(
             '-w', '--wrap',
             action="store_true",
@@ -3212,7 +3202,8 @@ class Main:
             type="float",
             dest="theme_skew",
             default=1.0,
-            help="skew the colorization curve.  Values < 1.0 give more variety to lower percentages.  Values > 1.0 give less variety to lower percentages")
+            help=("skew the colorization curve.  Values < 1.0 give more variety to lower"
+                  " percentages.  Values > 1.0 give less variety to lower percentages"))
         (self.options, self.args) = optparser.parse_args(sys.argv[1:])
 
         if len(self.args) > 1 and self.options.format != 'pstats':

@@ -8,16 +8,16 @@ import sys
 f = open(sys.argv[1])
 
 
-def parse_line(l):
+def parse_line(line):
     indentation = 0
-    while indentation < len(l) and l[indentation] == ' ':
+    while indentation < len(line) and line[indentation] == ' ':
         indentation += 1
     if indentation == 0:
         return (0, 0, '')
 
-    l = l.strip().split(' ')
-    samples = int(l[0])
-    fun = ' '.join(l[1:])
+    line = line.strip().split(' ')
+    samples = int(line[0])
+    fun = ' '.join(line[1:])
 
     return (indentation, samples, fun)
 

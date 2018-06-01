@@ -2,7 +2,6 @@
 
 import os
 import sys
-import time
 
 lines = open(sys.argv[1], 'rb').readlines()
 

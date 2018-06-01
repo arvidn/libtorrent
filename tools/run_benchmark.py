@@ -71,8 +71,9 @@ def run_test(name, test_cmd, client_arg, num_peers):
         pass
 
     start = time.time()
-    client_cmd = '../examples/client_test -p %d cpu_benchmark.torrent -k -z -H -X -q 120 %s -h -c %d -T %d -C %d -f %s/events.log' \
-        % (port, client_arg, num_peers * 2, num_peers * 2, cache_size * 16, output_dir)
+    client_cmd = ('../examples/client_test -p %d cpu_benchmark.torrent -k -z -H -X -q 120 %s'
+                  '-h -c %d -T %d -C %d -f %s/events.log').format(
+                      port, client_arg, num_peers * 2, num_peers * 2, cache_size * 16, output_dir)
     test_cmd = '../examples/connection_tester %s -c %d -d 127.0.0.1 -p %d -t cpu_benchmark.torrent' % (
         test_cmd, num_peers, port)
 

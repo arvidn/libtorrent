@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import sys
 import os
-import time
-import calendar
 import pprint
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -49,19 +47,19 @@ client_histogram = {}
 
 for line in f:
     counter += 1
-#	if counter % 1000 == 0:
-#		print '\r%d' % counter,
+    # if counter % 1000 == 0:
+    #     print '\r%d' % counter,
     try:
-        l = line.split(' ')
+        ls = line.split(' ')
         if 'starting DHT tracker with node id:' in line:
-            our_node_id = l[l.index('id:') + 1].strip()
+            our_node_id = ls[ls.index('id:') + 1].strip()
 
         try:
-            if len(l) > 4 and l[2] == '<==' and l[1] == '[dht_tracker]':
-                ip = l[3].split(':')[0]
+            if len(ls) > 4 and ls[2] == '<==' and ls[1] == '[dht_tracker]':
+                ip = ls[3].split(':')[0]
                 if ip not in unique_ips:
                     unique_ips.add(ip)
-                    json_blob = line.split(l[3])[1]
+                    json_blob = line.split(ls[3])[1]
                     version = json_blob.split("'v': '")[1].split("'")[0]
                     if len(version) == 4:
                         v = '%s-%d' % (version[0:2], (ord(version[2]) << 8) + ord(version[3]))
@@ -83,37 +81,37 @@ for line in f:
             pass
 
         if 'announce-distance:' in line:
-            idx = l.index('announce-distance:')
+            idx = ls.index('announce-distance:')
 
-            d = int(l[idx + 1].strip())
+            d = int(ls[idx + 1].strip())
             if d not in announce_histogram:
                 announce_histogram[d] = 0
             announce_histogram[d] += 1
         if 'NODE FAILED' in line:
-            idx = l.index('fails:')
-            if int(l[idx + 1].strip()) != 1:
+            idx = ls.index('fails:')
+            if int(ls[idx + 1].strip()) != 1:
                 continue
-            idx = l.index('up-time:')
-            d = int(l[idx + 1].strip())
+            idx = ls.index('up-time:')
+            d = int(ls[idx + 1].strip())
             # quantize
             d = d - (d % up_time_quanta)
             if d not in node_uptime_histogram:
                 node_uptime_histogram[d] = 0
             node_uptime_histogram[d] += 1
 
-        search_id = l[2]
-        ts = l[0]
-        event = l[3]
+        search_id = ls[2]
+        ts = ls[0]
+        event = ls[3]
 
         if event == 'RESPONSE':
-            outstanding = int(l[l.index('invoke-count:') + 1])
-            nid = l[l.index('id:') + 1]
-            addr = l[l.index('addr:') + 1]
+            outstanding = int(ls[ls.index('invoke-count:') + 1])
+            nid = ls[ls.index('id:') + 1]
+            addr = ls[ls.index('addr:') + 1]
             last_response = addr
             outstanding_searches[search_id].append({'t': ts, 'd': distance,
                                                     'o': outstanding + 1, 'a': addr, 'e': event, 'i': nid, 's': source})
         elif event == 'NEW':
-            nid = l[l.index('target:') + 1]
+            nid = ls[ls.index('target:') + 1]
             outstanding_searches[search_id] = [{'t': ts, 'd': 0, 'o': 0,
                                                 'e': event, 'abstime': ts, 'i': nid}]
             last_response = ''
@@ -122,10 +120,10 @@ for line in f:
             if search_id not in outstanding_searches:
                 print('orphaned event: %s' % line)
             else:
-                outstanding = int(l[l.index('invoke-count:') + 1])
-                distance = int(l[l.index('distance:') + 1])
-                nid = l[l.index('id:') + 1]
-                addr = l[l.index('addr:') + 1]
+                outstanding = int(ls[ls.index('invoke-count:') + 1])
+                distance = int(ls[ls.index('distance:') + 1])
+                nid = ls[ls.index('id:') + 1]
+                addr = ls[ls.index('addr:') + 1]
                 source = ''
                 if event == 'ADD':
                     if last_response == '':
@@ -137,8 +135,8 @@ for line in f:
         elif event == 'ABORTED':
             outstanding_searches[search_id].append({'t': ts, 'e': event})
         elif event == 'COMPLETED':
-            distance = int(l[l.index('distance:') + 1])
-            lookup_type = l[l.index('type:') + 1].strip()
+            distance = int(ls[ls.index('distance:') + 1])
+            lookup_type = ls[ls.index('type:') + 1].strip()
             outstanding_searches[search_id].append({'t': ts, 'd': distance,
                                                     'o': 0, 'e': event, 'i': ''})
 
@@ -275,7 +273,7 @@ set ylabel "portion of lookups"
 set xlabel "time from start of lookup (ms)"
 set grid
 plot "dht_lookup_times_cdf.txt" using 1:3 with lines title "time to first result", \
-	"dht_lookup_times_cdf.txt" using 2:3 with lines title "time to last result"
+    "dht_lookup_times_cdf.txt" using 2:3 with lines title "time to last result"
 
 set terminal postscript
 set output "dht_lookup_times_cdf.ps"

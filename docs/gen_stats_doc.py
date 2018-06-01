@@ -6,40 +6,40 @@ f = open('../include/libtorrent/performance_counters.hpp')
 
 counter_type = ''
 
-for l in f:
+for line in f:
 
     # ignore anything after //
-    if '//' in l:
-        l = l.split('//')[0]
+    if '//' in line:
+        line = line.split('//')[0]
 
-    l = l.strip()
+    line = line.strip()
 
-    if l.startswith('#'):
+    if line.startswith('#'):
         continue
-    if l == '':
+    if line == '':
         continue
 
-    if 'enum stats_counter_t' in l:
+    if 'enum stats_counter_t' in line:
         counter_type = 'counter'
         continue
 
-    if 'enum stats_gauge_t' in l:
+    if 'enum stats_gauge_t' in line:
         counter_type = 'gauge'
         continue
 
-    if '{' in l or '}' in l or 'struct' in l or 'namespace' in l:
+    if '{' in line or '}' in line or 'struct' in line or 'namespace' in line:
         continue
     if counter_type == '':
         continue
-    if not l.endswith(','):
+    if not line.endswith(','):
         continue
 
     # strip off trailing comma
-    l = l[:-1]
-    if '=' in l:
-        l = l[:l.index('=')].strip()
+    line = line[:-1]
+    if '=' in line:
+        line = line[:line.index('=')].strip()
 
-    counter_types[l] = counter_type
+    counter_types[line] = counter_type
 
 f.close()
 
@@ -90,17 +90,17 @@ description = ''
 names = []
 types = []
 
-for l in f:
-    description_line = l.lstrip().startswith('//')
+for line in f:
+    description_line = line.lstrip().startswith('//')
 
-    l = l.strip()
+    line = line.strip()
 
     if mode == 'ignore':
-        if '#endif' in l:
+        if '#endif' in line:
             mode = ''
         continue
 
-    if 'TORRENT_ABI_VERSION == 1' in l:
+    if 'TORRENT_ABI_VERSION == 1' in line:
         mode = 'ignore'
         continue
 
@@ -111,13 +111,13 @@ for l in f:
             names = []
             types = []
 
-        description += '\n' + l[3:]
+        description += '\n' + line[3:]
 
-    if '#define' in l:
+    if '#define' in line:
         continue
 
-    if 'METRIC(' in l:
-        args = l.split('(')[1].split(')')[0].split(',')
+    if 'METRIC(' in line:
+        args = line.split('(')[1].split(')')[0].split(',')
 
         # args: category, name, type
 

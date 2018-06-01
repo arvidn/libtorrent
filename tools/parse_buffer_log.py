@@ -5,14 +5,14 @@
 
 import os
 import sys
-import time
 
 lines = open(sys.argv[1], 'rb').readlines()
 
-#keys = ['send_buffer_utilization']
+# keys = ['send_buffer_utilization']
 keys = ['send_buffer_size', 'used_send_buffer', 'protocol_buffer']
-#keys = ['send_buffer_alloc', 'send_buffer', 'allocate_buffer_alloc', 'allocate_buffer', 'protocol_buffer']
-#keys = ['send_buffer_alloc', 'send_buffer', 'allocate_buffer_alloc', 'allocate_buffer', 'protocol_buffer', 'append_send_buffer']
+# keys = ['send_buffer_alloc', 'send_buffer', 'allocate_buffer_alloc', 'allocate_buffer', 'protocol_buffer']
+# keys = ['send_buffer_alloc', 'send_buffer', 'allocate_buffer_alloc', 'allocate_buffer', 'protocol_buffer',
+#         'append_send_buffer']
 
 average = ['send_buffer_utilization', 'send_buffer_size', 'used_send_buffer']
 average_interval = 120000
@@ -40,17 +40,17 @@ for k in keys:
         eval_average = True
         peak_out = open(k + '_peak.dat', 'wb')
 
-    for l in lines:
-        l = l.split(' ')
-        if len(l) != 3:
-            print(l)
+    for line in lines:
+        line = line.split(' ')
+        if len(line) != 3:
+            print(line)
             continue
         try:
-            if l[1] == k + ':':
-                if time_limit != -1 and int(l[0]) > time_limit:
+            if line[1] == k + ':':
+                if time_limit != -1 and int(line[0]) > time_limit:
                     break
-                time = l[0]
-                value = l[2]
+                time = line[0]
+                value = line[2]
                 if eval_average:
                     while int(time) > last_sample + average_interval:
                         last_sample = last_sample + average_interval
@@ -68,7 +68,7 @@ for k in keys:
                 else:
                     print(time + ' ' + value, end=' ', file=out)
         except BaseException:
-            print(l)
+            print(line)
 
     out.close()
     peak_out.close()

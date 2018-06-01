@@ -2,6 +2,7 @@
 
 import glob
 import os
+import sys
 
 paths = [
     'test/*.cpp',
@@ -107,11 +108,11 @@ for f in files:
 items.sort(key=lambda x: x['priority'], reverse=True)
 
 # for i in items:
-#	print '\n\n', i['todo'], '\n'
-#	print i['location'], '\n'
-#	print 'prio: ', i['priority'], '\n'
-#	if 'context' in i:
-#		print i['context'], '\n'
+#   print('\n\n', i['todo'], '\n')
+#   print(i['location'], '\n')
+#   print('prio: ', i['priority'], '\n')
+#   if 'context' in i:
+#       print(i['context'], '\n')
 
 out = open('todo.html', 'w+')
 out.write('''<html><head>
@@ -142,8 +143,8 @@ out.write('''<html><head>
 <span style="color: #3c3">%d relevant</span>
 <span style="color: #77f">%d feasible</span>
 <span style="color: #999">%d notes</span>
-<table width="100%%" border="1" style="border-collapse: collapse;">''' %
-          (priority_count[4], priority_count[3], priority_count[2], priority_count[1], priority_count[0]))
+          <table width="100%%" border="1" style="border-collapse: collapse;">''' # noqa
+          % (priority_count[4], priority_count[3], priority_count[2], priority_count[1], priority_count[0]))
 
 prio_colors = ['#ccc', '#ccf', '#cfc', '#fcc', '#f44']
 
@@ -151,11 +152,13 @@ index = 0
 for i in items:
     if 'context' not in i:
         i['context'] = ''
-    out.write('<tr style="background: %s"><td>relevance&nbsp;%d</td><td><a href="javascript:expand(%d)">%s</a></td><td>%s</td></tr>'
+    out.write(('<tr style="background: %s"><td>relevance&nbsp;%d</td>'
+               '<td><a href="javascript:expand(%d)">%s</a></td><td>%s</td></tr>')
               % (prio_colors[i['priority']], i['priority'], index, i['location'], i['todo'].replace('\n', ' ')))
 
     out.write(
-        '<tr id="%d" style="display: none;" colspan="3"><td colspan="3"><h2>%s</h2><h4>%s</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">%s</pre></td></tr>' %
+        ('<tr id="%d" style="display: none;" colspan="3"><td colspan="3"><h2>%s</h2><h4>%s</h4>'
+         '<pre style="background: #f6f6f6; border: solid 1px #ddd;">%s</pre></td></tr>') %
         (index, i['todo'], i['location'], i['context']))
     index += 1
 

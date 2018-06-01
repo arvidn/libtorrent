@@ -180,15 +180,17 @@ def build_commandline(config, port):
                 pass
             add_command = '-O load_start_verbose=rtorrent_session/%s ' % torrent_path
 
-        return 'rtorrent -d %s -n -p %d-%d -O max_peers=%d -O max_uploads=%d %s -s rtorrent_session -O max_memory_usage=128000000000' \
-            % (config['save-path'], port, port, num_peers, num_peers, add_command)
+        return ('rtorrent -d %s -n -p %d-%d -O max_peers=%d -O max_uploads=%d %s -s '
+                'rtorrent_session -O max_memory_usage=128000000000') % (
+                    config['save-path'], port, port, num_peers, num_peers, add_command)
 
     disable_disk = ''
     if config['disable-disk']:
         disable_disk = '-0'
-    return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -E %d %s -f session_stats/alerts_log.txt %s' \
-        % (config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'], port,
-           config['hash-threads'], disable_disk, torrent_path)
+    return ('./stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -E %d %s '
+            '-f session_stats/alerts_log.txt %s') % (
+                config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'],
+                config['save-path'], port, config['hash-threads'], disable_disk, torrent_path)
 
 
 def delete_files(files):
@@ -473,7 +475,8 @@ def run_test(config):
     if config['profile'] == 'perf':
         print('analyzing CPU profile [%s]' % binary)
         os.system('perf timechart --input=session_stats/perf_profile.prof --output=session_stats/profile_timechart.svg')
-        os.system('perf report --input=session_stats/perf_profile.prof --threads --show-nr-samples --vmlinux vmlinuz-2.6.38-8-generic.bzip >session_stats/profile.txt')
+        os.system(('perf report --input=session_stats/perf_profile.prof --threads --show-nr-samples '
+                   '--vmlinux vmlinuz-2.6.38-8-generic.bzip >session_stats/profile.txt'))
 
     # move the results into its final place
     print('saving results')

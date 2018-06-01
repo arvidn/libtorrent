@@ -137,10 +137,10 @@ def suppress_warning(filename, name):
     if f != 'alert_types.hpp':
         return False
 
-#	if name.endswith('_alert') or name == 'message()':
+    # if name.endswith('_alert') or name == 'message()':
     return True
 
-#	return False
+    # return False
 
 
 def first_item(itr):
@@ -276,27 +276,26 @@ def looks_like_function(line):
 
 
 def parse_function(lno, lines, filename):
-    current_fun = {}
 
     start_paren = 0
     end_paren = 0
     signature = ''
 
     while lno < len(lines):
-        l = lines[lno].strip()
+        line = lines[lno].strip()
         lno += 1
-        if l.startswith('//'):
+        if line.startswith('//'):
             continue
 
-        start_paren += l.count('(')
-        end_paren += l.count(')')
+        start_paren += line.count('(')
+        end_paren += line.count(')')
 
-        sig_line = l.replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').strip()
+        sig_line = line.replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').strip()
         if signature != '':
             sig_line = '\n   ' + sig_line
         signature += sig_line
         if verbose:
-            print('fun     %s' % l)
+            print('fun     %s' % line)
 
         if start_paren > 0 and start_paren == end_paren:
             if signature[-1] != ';':
@@ -343,12 +342,12 @@ def parse_class(lno, lines, filename):
     decl = ''
 
     while lno < len(lines):
-        l = lines[lno].strip()
+        line = lines[lno].strip()
         decl += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
-        if '{' in l:
+        if '{' in line:
             break
         if verbose:
-            print('class  %s' % l)
+            print('class  %s' % line)
         lno += 1
 
     if decl.startswith('class'):
@@ -358,69 +357,69 @@ def parse_class(lno, lines, filename):
     name = decl.split(':')[0].replace('class ', '').replace('struct ', '').replace('final', '').strip()
 
     while lno < len(lines):
-        l = lines[lno].strip()
+        line = lines[lno].strip()
         lno += 1
 
-        if l == '':
+        if line == '':
             blanks += 1
             context = ''
             continue
 
-        if l.startswith('/*'):
+        if line.startswith('/*'):
             lno = consume_comment(lno - 1, lines)
             continue
 
-        if l.startswith('#'):
+        if line.startswith('#'):
             lno = consume_ifdef(lno - 1, lines, True)
             continue
 
-        if 'TORRENT_DEFINE_ALERT' in l:
+        if 'TORRENT_DEFINE_ALERT' in line:
             if verbose:
-                print('xx    %s' % l)
+                print('xx    %s' % line)
             blanks += 1
             continue
-        if 'TORRENT_DEPRECATED' in l:
+        if 'TORRENT_DEPRECATED' in line:
             if verbose:
-                print('xx    %s' % l)
+                print('xx    %s' % line)
             blanks += 1
             continue
 
-        if l.startswith('//'):
+        if line.startswith('//'):
             if verbose:
-                print('desc  %s' % l)
+                print('desc  %s' % line)
 
             # plain output prints just descriptions and filters out c++ code.
             # it's used to run spell checker over
             if plain_output:
-                line = l.split('//')[1]
+                s = line.split('//')[1]
                 # if the first character is a space, strip it
-                if len(line) > 0 and line[0] == ' ':
-                    line = line[1:]
+                if len(s) > 0 and s[0] == ' ':
+                    s = s[1:]
                 global in_code
-                if in_code is not None and not line.startswith(in_code) and len(line) > 1:
+                if in_code is not None and not s.startswith(in_code) and len(s) > 1:
                     in_code = None
 
-                if line.strip().startswith('.. code::'):
-                    in_code = line.split('.. code::')[0] + '\t'
+                if s.strip().startswith('.. code::'):
+                    in_code = s.split('.. code::')[0] + '\t'
 
                 # strip out C++ code from the plain text output since it's meant for
                 # running spell checking over
-                if not line.strip().startswith('.. ') and in_code is None:
-                    plain_file.write(line + '\n')
-            l = l[2:]
-            if len(l) and l[0] == ' ':
-                l = l[1:]
-            context += l + '\n'
+                if not s.strip().startswith('.. ') and in_code is None:
+                    plain_file.write(s + '\n')
+            line = line[2:]
+            if len(line) and line[0] == ' ':
+                line = line[1:]
+            context += line + '\n'
             continue
 
-        start_brace += l.count('{')
-        end_brace += l.count('}')
+        start_brace += line.count('{')
+        end_brace += line.count('}')
 
-        if l == 'private:':
+        if line == 'private:':
             state = 'private'
-        elif l == 'protected:':
+        elif line == 'protected:':
             state = 'protected'
-        elif l == 'public:':
+        elif line == 'public:':
             state = 'public'
 
         if start_brace > 0 and start_brace == end_brace:
@@ -429,17 +428,17 @@ def parse_class(lno, lines, filename):
 
         if state != 'public' and not internal:
             if verbose:
-                print('private %s' % l)
+                print('private %s' % line)
             blanks += 1
             continue
 
         if start_brace - end_brace > 1:
             if verbose:
-                print('scope   %s' % l)
+                print('scope   %s' % line)
             blanks += 1
             continue
 
-        if looks_like_function(l):
+        if looks_like_function(line):
             current_fun, lno = parse_function(lno - 1, lines, filename)
             if current_fun is not None and is_visible(context):
                 if context == '' and blanks == 0 and len(funs):
@@ -455,32 +454,32 @@ def parse_class(lno, lines, filename):
                 blanks = 0
             continue
 
-        if looks_like_variable(l):
+        if looks_like_variable(line):
             if verbose:
-                print('var     %s' % l)
+                print('var     %s' % line)
             if not is_visible(context):
                 continue
-            l = l.split('//')[0].strip()
+            line = line.split('//')[0].strip()
             # the name may look like this:
             # std::uint8_t fails : 7;
             # int scrape_downloaded = -1;
             # static constexpr peer_flags_t interesting{0x1};
-            n = l.split('=')[0].split('{')[0].strip().split(' : ')[0].split(' ')[-1].split(':')[0].split(';')[0]
+            n = line.split('=')[0].split('{')[0].strip().split(' : ')[0].split(' ')[-1].split(':')[0].split(';')[0]
             if context == '' and blanks == 0 and len(fields):
                 fields[-1]['names'].append(n)
-                fields[-1]['signatures'].append(l)
+                fields[-1]['signatures'].append(line)
             else:
                 if context == '' and not suppress_warning(filename, n):
                     print('WARNING: field "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
                           % (name + '::' + n, filename, lno))
-                fields.append({'signatures': [l], 'names': [n], 'desc': context})
+                fields.append({'signatures': [line], 'names': [n], 'desc': context})
             context = ''
             blanks = 0
             continue
 
-        if l.startswith('enum '):
+        if line.startswith('enum '):
             if verbose:
-                print('enum    %s' % l)
+                print('enum    %s' % line)
             if not is_visible(context):
                 consume_block(lno - 1, lines)
             else:
@@ -497,12 +496,12 @@ def parse_class(lno, lines, filename):
         context = ''
 
         if verbose:
-            if looks_like_forward_decl(l) \
-                    or looks_like_blank(l) \
-                    or looks_like_namespace(l):
-                print('--      %s' % l)
+            if looks_like_forward_decl(line) \
+                    or looks_like_blank(line) \
+                    or looks_like_namespace(line):
+                print('--      %s' % line)
             else:
-                print('??      %s' % l)
+                print('??      %s' % line)
 
     if len(name) > 0:
         print('\x1b[31mFAILED TO PARSE CLASS\x1b[0m %s\nfile: %s:%d' % (name, filename, lno))
@@ -514,8 +513,8 @@ def parse_enum(lno, lines, filename):
     end_brace = 0
     global anon_index
 
-    l = lines[lno].strip()
-    name = l.replace('enum ', '').split('{')[0].strip()
+    line = lines[lno].strip()
+    name = line.replace('enum ', '').split('{')[0].strip()
     if len(name) == 0:
         if not internal:
             print('WARNING: anonymous enum at: \x1b[34m%s:%d\x1b[0m' % (filename, lno))
@@ -526,40 +525,40 @@ def parse_enum(lno, lines, filename):
 
     values = []
     context = ''
-    if not '{' in l:
+    if '{' not in line:
         if verbose:
             print('enum  %s' % lines[lno])
         lno += 1
 
     val = 0
     while lno < len(lines):
-        l = lines[lno].strip()
+        line = lines[lno].strip()
         lno += 1
 
-        if l.startswith('//'):
+        if line.startswith('//'):
             if verbose:
-                print('desc  %s' % l)
-            l = l[2:]
-            if len(l) and l[0] == ' ':
-                l = l[1:]
-            context += l + '\n'
+                print('desc  %s' % line)
+            line = line[2:]
+            if len(line) and line[0] == ' ':
+                line = line[1:]
+            context += line + '\n'
             continue
 
-        if l.startswith('#'):
+        if line.startswith('#'):
             lno = consume_ifdef(lno - 1, lines)
             continue
 
-        start_brace += l.count('{')
-        end_brace += l.count('}')
+        start_brace += line.count('{')
+        end_brace += line.count('}')
 
-        if '{' in l:
-            l = l.split('{')[1]
-        l = l.split('}')[0]
+        if '{' in line:
+            line = line.split('{')[1]
+        line = line.split('}')[0]
 
-        if len(l):
+        if len(line):
             if verbose:
                 print('enumv %s' % lines[lno - 1])
-            for v in l.split(','):
+            for v in line.split(','):
                 v = v.strip()
                 if v.startswith('//'):
                     break
@@ -598,13 +597,13 @@ def consume_block(lno, lines):
     end_brace = 0
 
     while lno < len(lines):
-        l = lines[lno].strip()
+        line = lines[lno].strip()
         if verbose:
-            print('xx    %s' % l)
+            print('xx    %s' % line)
         lno += 1
 
-        start_brace += l.count('{')
-        end_brace += l.count('}')
+        start_brace += line.count('{')
+        end_brace += line.count('}')
 
         if start_brace > 0 and start_brace == end_brace:
             break
@@ -613,18 +612,18 @@ def consume_block(lno, lines):
 
 def consume_comment(lno, lines):
     while lno < len(lines):
-        l = lines[lno].strip()
+        line = lines[lno].strip()
         if verbose:
-            print('xx    %s' % l)
+            print('xx    %s' % line)
         lno += 1
-        if '*/' in l:
+        if '*/' in line:
             break
 
     return lno
 
 
-def trim_define(l):
-    return l.replace('#ifndef', '').replace('#ifdef', '') \
+def trim_define(line):
+    return line.replace('#ifndef', '').replace('#ifdef', '') \
             .replace('#if', '').replace('defined', '') \
             .replace('TORRENT_USE_IPV6', '').replace('TORRENT_ABI_VERSION == 1', '') \
             .replace('||', '').replace('&&', '').replace('(', '').replace(')', '') \
@@ -632,22 +631,22 @@ def trim_define(l):
 
 
 def consume_ifdef(lno, lines, warn_on_ifdefs=False):
-    l = lines[lno].strip()
+    line = lines[lno].strip()
     lno += 1
 
     start_if = 1
     end_if = 0
 
     if verbose:
-        print('prep  %s' % l)
+        print('prep  %s' % line)
 
-    if warn_on_ifdefs and l.strip().startswith('#if'):
-        while l.endswith('\\'):
+    if warn_on_ifdefs and line.strip().startswith('#if'):
+        while line.endswith('\\'):
             lno += 1
-            l += lines[lno].strip()
+            line += lines[lno].strip()
             if verbose:
                 print('prep  %s' % lines[lno].trim())
-        define = trim_define(l)
+        define = trim_define(line)
         if 'TORRENT_' in define and 'TORRENT_ABI_VERSION' not in define:
             print('\x1b[31mWARNING: possible ABI breakage in public struct! "%s" \x1b[34m %s:%d\x1b[0m' %
                   (define, filename, lno))
@@ -656,32 +655,31 @@ def consume_ifdef(lno, lines, warn_on_ifdefs=False):
         elif define != '':
             print('\x1b[33msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno))
 
-    if (l.startswith('#if') and (
-                ' TORRENT_USE_ASSERTS' in l or
-                ' TORRENT_USE_INVARIANT_CHECKS' in l or
-            ' TORRENT_ASIO_DEBUGGING' in l) or
-                l == '#if TORRENT_ABI_VERSION == 1'
-            ):
+    if (line.startswith('#if') and (
+            ' TORRENT_USE_ASSERTS' in line or
+            ' TORRENT_USE_INVARIANT_CHECKS' in line or
+            ' TORRENT_ASIO_DEBUGGING' in line) or
+            line == '#if TORRENT_ABI_VERSION == 1'):
         while lno < len(lines):
-            l = lines[lno].strip()
+            line = lines[lno].strip()
             lno += 1
             if verbose:
-                print('prep  %s' % l)
-            if l.startswith('#endif'):
+                print('prep  %s' % line)
+            if line.startswith('#endif'):
                 end_if += 1
-            if l.startswith('#if'):
+            if line.startswith('#if'):
                 start_if += 1
-            if l == '#else' and start_if - end_if == 1:
+            if line == '#else' and start_if - end_if == 1:
                 break
             if start_if - end_if == 0:
                 break
         return lno
     else:
-        while l.endswith('\\') and lno < len(lines):
-            l = lines[lno].strip()
+        while line.endswith('\\') and lno < len(lines):
+            line = lines[lno].strip()
             lno += 1
             if verbose:
-                print('prep  %s' % l)
+                print('prep  %s' % line)
 
     return lno
 
@@ -696,66 +694,66 @@ for filename in files:
     blanks = 0
     lno = 0
     while lno < len(lines):
-        l = lines[lno].strip()
+        line = lines[lno].strip()
         lno += 1
 
-        if l == '':
+        if line == '':
             blanks += 1
             context = ''
             continue
 
-        if l.startswith('//') and l[2:].strip() == 'OVERVIEW':
+        if line.startswith('//') and line[2:].strip() == 'OVERVIEW':
             # this is a section overview
             current_overview = ''
             while lno < len(lines):
-                l = lines[lno].strip()
+                line = lines[lno].strip()
                 lno += 1
-                if not l.startswith('//'):
+                if not line.startswith('//'):
                     # end of overview
                     overviews[filename[11:]] = current_overview
                     current_overview = ''
                     break
-                l = l[2:]
-                if l.startswith(' '):
-                    l = l[1:]
-                current_overview += l + '\n'
+                line = line[2:]
+                if line.startswith(' '):
+                    line = line[1:]
+                current_overview += line + '\n'
 
-        if l.startswith('//'):
+        if line.startswith('//'):
             if verbose:
-                print('desc  %s' % l)
-            l = l[2:]
-            if len(l) and l[0] == ' ':
-                l = l[1:]
-            context += l + '\n'
+                print('desc  %s' % line)
+            line = line[2:]
+            if len(line) and line[0] == ' ':
+                line = line[1:]
+            context += line + '\n'
             continue
 
-        if l.startswith('/*'):
+        if line.startswith('/*'):
             lno = consume_comment(lno - 1, lines)
             continue
 
-        if l.startswith('#'):
+        if line.startswith('#'):
             lno = consume_ifdef(lno - 1, lines)
             continue
 
-        if (l == 'namespace detail' or
-                l == 'namespace impl' or
-                l == 'namespace aux') \
+        if (line == 'namespace detail' or
+                line == 'namespace impl' or
+                line == 'namespace aux') \
                 and not internal:
             lno = consume_block(lno, lines)
             continue
 
-        if 'TORRENT_DEPRECATED' in l:
-            if ('class ' in l or 'struct ' in l) and ';' not in l:
+        if 'TORRENT_DEPRECATED' in line:
+            if ('class ' in line or 'struct ' in line) and ';' not in line:
                 lno = consume_block(lno - 1, lines)
                 context = ''
             blanks += 1
             if verbose:
-                print('xx    %s' % l)
+                print('xx    %s' % line)
             continue
 
-        if 'TORRENT_EXPORT ' in l or l.startswith('inline ') or l.startswith('template') or internal:
-            if l.startswith('class ') or l.startswith('struct '):
-                if not l.endswith(';'):
+        if 'TORRENT_EXPORT ' in line or line.startswith('inline ') or line.startswith('template') or internal:
+            if line.startswith('class ') or line.startswith('struct '):
+                if not line.endswith(';'):
                     current_class, lno = parse_class(lno - 1, lines, filename)
                     if current_class is not None and is_visible(context):
                         current_class['desc'] = context
@@ -767,7 +765,7 @@ for filename in files:
                 blanks += 1
                 continue
 
-            if looks_like_function(l):
+            if looks_like_function(line):
                 current_fun, lno = parse_function(lno - 1, lines, filename)
                 if current_fun is not None and is_visible(context):
                     if context == '' and blanks == 0 and len(functions):
@@ -783,13 +781,13 @@ for filename in files:
                     blanks = 0
                 continue
 
-        if ('class ' in l or 'struct ' in l) and ';' not in l:
+        if ('class ' in line or 'struct ' in line) and ';' not in line:
             lno = consume_block(lno - 1, lines)
             context = ''
             blanks += 1
             continue
 
-        if l.startswith('enum '):
+        if line.startswith('enum '):
             if not is_visible(context):
                 consume_block(lno - 1, lines)
             else:
@@ -806,12 +804,12 @@ for filename in files:
 
         blanks += 1
         if verbose:
-            if looks_like_forward_decl(l) \
-                    or looks_like_blank(l) \
-                    or looks_like_namespace(l):
-                print('--    %s' % l)
+            if looks_like_forward_decl(line) \
+                    or looks_like_blank(line) \
+                    or looks_like_namespace(line):
+                print('--    %s' % line)
             else:
-                print('??    %s' % l)
+                print('??    %s' % line)
 
         context = ''
     h.close()
@@ -887,7 +885,7 @@ for c in classes:
         symbols[e['name']] = filename + e['name']
         symbols[c['name'] + '::' + e['name']] = filename + e['name']
         for v in e['values']:
-            #			symbols[v['name']] = filename + v['name']
+            # symbols[v['name']] = filename + v['name']
             symbols[e['name'] + '::' + v['name']] = filename + v['name']
             symbols[c['name'] + '::' + v['name']] = filename + v['name']
 
@@ -928,7 +926,7 @@ def linkify_symbols(string):
     ret = []
     in_literal = False
     lno = 0
-    for l in lines:
+    for line in lines:
         lno += 1
         # don't touch headlines, i.e. lines whose
         # next line entirely contains one of =, - or .
@@ -939,25 +937,25 @@ def linkify_symbols(string):
 
         if len(next_line) > 0 and lines[lno].replace('=', ''). \
                 replace('-', '').replace('.', '') == '':
-            ret.append(l)
+            ret.append(line)
             continue
 
-        if l.startswith('|'):
-            ret.append(l)
+        if line.startswith('|'):
+            ret.append(line)
             continue
-        if in_literal and not l.startswith('\t') and not l == '':
-            #			print '  end literal: "%s"' % l
+        if in_literal and not line.startswith('\t') and not line == '':
+            # print('  end literal: "%s"' % line)
             in_literal = False
         if in_literal:
-            #			print '  literal: "%s"' % l
-            ret.append(l)
+            # print('  literal: "%s"' % line)
+            ret.append(line)
             continue
-        if l.strip() == '.. parsed-literal::' or \
-                l.strip().startswith('.. code::') or \
-                (not l.strip().startswith('..') and l.endswith('::')):
-            #			print '  start literal: "%s"' % l
+        if line.strip() == '.. parsed-literal::' or \
+                line.strip().startswith('.. code::') or \
+                (not line.strip().startswith('..') and line.endswith('::')):
+            # print('  start literal: "%s"' % line)
             in_literal = True
-        words = l.split(' ')
+        words = line.split(' ')
 
         for i in range(len(words)):
             # it's important to preserve leading
@@ -988,7 +986,7 @@ def linkify_symbols(string):
 
             link_name = w
 
-#			print w
+            # print(w)
 
             if len(w) == 0:
                 continue
@@ -998,7 +996,7 @@ def linkify_symbols(string):
 
             if w in symbols:
                 link_name = link_name.replace('-', ' ')
-#				print '  found %s -> %s' % (w, link_name)
+                # print('  found %s -> %s' % (w, link_name))
                 words[i] = leading + print_link(link_name, symbols[w]) + trailing
         ret.append(' '.join(words))
     return '\n'.join(ret)
@@ -1118,7 +1116,6 @@ def print_toc(out, categories, s):
         if 'overview' in categories[cat]:
             print('\t| overview__', file=out)
 
-        category_filename = categories[cat]['filename'].replace('.rst', '.html')
         for c in categories[cat]['classes']:
             print('\t| ' + print_link(c['name'], symbols[c['name']]), file=out)
         for f in categories[cat]['functions']:
@@ -1289,14 +1286,14 @@ __ reference.html
     out.close()
 
 # for s in symbols:
-#	print s
+#   print(s)
 
 for i, o in list(preprocess_rst.items()):
     f = open(i, 'r')
     out = open(o, 'w+')
     print('processing %s -> %s' % (i, o))
-    l = linkify_symbols(f.read())
-    print(l, end=' ', file=out)
+    link = linkify_symbols(f.read())
+    print(link, end=' ', file=out)
 
     print(dump_link_targets(), file=out)
 

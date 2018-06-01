@@ -52,30 +52,30 @@ mode = ''
 # parse out default values for settings
 f2 = open('../src/settings_pack.cpp')
 def_map = {}
-for l in f2:
-    l = l.strip()
-    if not l.startswith('SET(') \
-        and not l.startswith('SET_NOPREV(') \
-            and not l.startswith('DEPRECATED_SET('):
+for line in f2:
+    line = line.strip()
+    if not line.startswith('SET(') \
+        and not line.startswith('SET_NOPREV(') \
+            and not line.startswith('DEPRECATED_SET('):
         continue
 
-    l = l.split('(')[1].split(',')
-    def_map[l[0]] = l[1].strip()
-    print('%s = %s' % (l[0], l[1].strip()))
+    line = line.split('(')[1].split(',')
+    def_map[line[0]] = line[1].strip()
+    print('%s = %s' % (line[0], line[1].strip()))
 
 description = ''
 names = []
 
-for l in f:
-    if 'enum string_types' in l:
+for line in f:
+    if 'enum string_types' in line:
         mode = 'string'
-    if 'enum bool_types' in l:
+    if 'enum bool_types' in line:
         mode = 'bool'
-    if 'enum int_types' in l:
+    if 'enum int_types' in line:
         mode = 'int'
-    if '#if TORRENT_ABI_VERSION == 1' in l:
+    if '#if TORRENT_ABI_VERSION == 1' in line:
         mode += 'skip'
-    if '#endif' in l:
+    if '#endif' in line:
         mode = mode[0:-4]
 
     if mode == '':
@@ -83,9 +83,9 @@ for l in f:
     if mode[-4:] == 'skip':
         continue
 
-    l = l.lstrip()
+    line = line.lstrip()
 
-    if l == '' and len(names) > 0:
+    if line == '' and len(names) > 0:
         if description == '':
             for n in names:
                 print('WARNING: no description for "%s"' % n)
@@ -97,26 +97,26 @@ for l in f:
         description = ''
         names = []
 
-    if l.startswith('};'):
+    if line.startswith('};'):
         mode = ''
         continue
 
-    if l.startswith('//'):
-        if l[2] == ' ':
-            description += l[3:]
+    if line.startswith('//'):
+        if line[2] == ' ':
+            description += line[3:]
         else:
-            description += l[2:]
+            description += line[2:]
         continue
 
-    l = l.strip()
-    if l.endswith(','):
-        l = l[:-1]  # strip trailing comma
-        if '=' in l:
-            l = l.split('=')[0].strip()
-        if l.endswith('_internal'):
+    line = line.strip()
+    if line.endswith(','):
+        line = line[:-1]  # strip trailing comma
+        if '=' in line:
+            line = line.split('=')[0].strip()
+        if line.endswith('_internal'):
             continue
 
-        names.append(l)
+        names.append(line)
 
 out.close()
 f.close()
