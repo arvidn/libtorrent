@@ -54,7 +54,7 @@ TORRENT_TEST(init)
 	fs.set_piece_length(piece_size);
 	fs.set_num_pieces((int(fs.total_size()) + piece_size - 1) / piece_size);
 
-	for (piece_index_t idx(0); idx < fs.end_piece(); ++idx)
+	for (auto const idx : fs.piece_range())
 	{
 		piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
 		picker.we_have(idx);
@@ -85,7 +85,7 @@ TORRENT_TEST(init2)
 	fs.set_piece_length(piece_size);
 	fs.set_num_pieces((int(fs.total_size()) + piece_size - 1) / piece_size);
 
-	for (piece_index_t idx(0); idx < fs.end_piece(); ++idx)
+	for (auto const idx : fs.piece_range())
 	{
 		piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
 		picker.we_have(idx);

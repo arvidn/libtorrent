@@ -1005,7 +1005,7 @@ int main(int argc, char* argv[])
 			const int piece_size = 1024 * 1024;
 			lt::create_torrent t(fs, piece_size);
 			sha1_hash zero(nullptr);
-			for (piece_index_t k(0); k < fs.end_piece(); ++k)
+			for (auto const k : fs.piece_range())
 				t.set_hash(k, zero);
 
 			buf.clear();

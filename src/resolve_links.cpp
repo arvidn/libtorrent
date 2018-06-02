@@ -46,7 +46,7 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
 
 	file_storage const& fs = ti->files();
 	m_file_sizes.reserve(aux::numeric_cast<std::size_t>(fs.num_files()));
-	for (file_index_t i(0); i < fs.end_file(); ++i)
+	for (auto const i : fs.file_range())
 	{
 		// don't match pad-files, and don't match files that aren't aligned to
 		// pieces. Files are matched by comparing piece hashes, so pieces must
@@ -72,7 +72,7 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 
 	file_storage const& fs = ti->files();
 	m_file_sizes.reserve(aux::numeric_cast<std::size_t>(fs.num_files()));
-	for (file_index_t i(0); i < fs.end_file(); ++i)
+	for (auto const i : fs.file_range())
 	{
 		// for every file in the other torrent, see if we have one that match
 		// it in m_torrent_file

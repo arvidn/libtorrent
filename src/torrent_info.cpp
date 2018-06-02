@@ -615,7 +615,7 @@ namespace {
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
 		m_files.all_path_hashes(files);
-		for (file_index_t i(0); i < m_files.end_file(); ++i)
+		for (auto const i : m_files.file_range())
 		{
 			// as long as this file already exists
 			// increase the counter
@@ -657,7 +657,7 @@ namespace {
 			}
 		}
 
-		for (file_index_t i(0); i < m_files.end_file(); ++i)
+		for (auto const i : m_files.file_range())
 		{
 			// as long as this file already exists
 			// increase the counter
@@ -1541,7 +1541,7 @@ namespace {
 #if TORRENT_USE_INVARIANT_CHECKS
 	void torrent_info::check_invariant() const
 	{
-		for (file_index_t i(0); i < m_files.end_file(); ++i)
+		for (auto const i : m_files.file_range())
 		{
 			TORRENT_ASSERT(m_files.file_name_ptr(i) != nullptr);
 			if (m_files.file_name_len(i) != -1)

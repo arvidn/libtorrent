@@ -75,6 +75,7 @@ set(libtorrent_include_files
 	http_tracker_connection
 	i2p_stream
 	identify_client
+	index_range
 	invariant_check
 	io
 	io_service

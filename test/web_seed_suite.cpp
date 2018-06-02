@@ -149,7 +149,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 
 	file_storage const& fs = torrent_file->files();
 	int pad_file_size = 0;
-	for (file_index_t i(0); i < fs.end_file(); ++i)
+	for (auto const i : fs.file_range())
 	{
 		if (fs.file_flags(i) & file_storage::flag_pad_file)
 			pad_file_size += int(fs.file_size(i));
@@ -256,7 +256,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 
 	if (!test_ban)
 	{
-		for (file_index_t i(0); i < fs.end_file(); ++i)
+		for (auto const i : fs.file_range())
 		{
 			bool const expect = !fs.pad_file_at(i);
 			std::string file_path = combine_path(save_path, fs.file_path(i));

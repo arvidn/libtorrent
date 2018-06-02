@@ -432,7 +432,7 @@ namespace {
 		}
 
 		m_piece_hash.resize(m_files.num_pieces());
-		for (piece_index_t i(0); i != m_files.end_piece(); ++i)
+		for (auto const i : m_files.piece_range())
 			set_hash(i, ti.hash_for_piece(i));
 
 		boost::shared_array<char> const info = ti.metadata();
@@ -593,7 +593,7 @@ namespace {
 			{
 				entry& files = info["files"];
 
-				for (file_index_t i(0); i != m_files.end_file(); ++i)
+				for (auto const i : m_files.file_range())
 				{
 					files.list().emplace_back();
 					entry& file_e = files.list().back();

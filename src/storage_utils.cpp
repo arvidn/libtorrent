@@ -219,7 +219,7 @@ namespace libtorrent { namespace aux {
 			if (err != boost::system::errc::no_such_file_or_directory)
 			{
 				// the directory exists, check all the files
-				for (file_index_t i(0); i < f.end_file(); ++i)
+				for (auto const i : f.file_range())
 				{
 					// files moved out to absolute paths are ignored
 					if (f.file_absolute_path(i)) continue;
@@ -265,9 +265,10 @@ namespace libtorrent { namespace aux {
 		// later
 		aux::vector<bool, file_index_t> copied_files(std::size_t(f.num_files()), false);
 
-		file_index_t i{};
+		// track how far we got in case of an error
+		file_index_t file_index{};
 		error_code e;
-		for (i = file_index_t(0); i < f.end_file(); ++i)
+		for (auto const i : f.file_range())
 		{
 			// files moved out to absolute paths are not moved
 			if (f.file_absolute_path(i)) continue;
@@ -307,6 +308,7 @@ namespace libtorrent { namespace aux {
 				ec.ec = e;
 				ec.file(i);
 				ec.operation = operation_t::file_rename;
+				file_index = i;
 				break;
 			}
 		}
@@ -325,17 +327,17 @@ namespace libtorrent { namespace aux {
 		if (e)
 		{
 			// rollback
-			while (--i >= file_index_t(0))
+			while (--file_index >= file_index_t(0))
 			{
 				// files moved out to absolute paths are not moved
-				if (f.file_absolute_path(i)) continue;
+				if (f.file_absolute_path(file_index)) continue;
 
 				// if we ended up copying the file, don't do anything during
 				// roll-back
-				if (copied_files[i]) continue;
+				if (copied_files[file_index]) continue;
 
-				std::string const old_path = combine_path(save_path, f.file_path(i));
-				std::string const new_path = combine_path(new_save_path, f.file_path(i));
+				std::string const old_path = combine_path(save_path, f.file_path(file_index));
+				std::string const new_path = combine_path(new_save_path, f.file_path(file_index));
 
 				// ignore errors when rolling back
 				error_code ignore;
@@ -352,7 +354,7 @@ namespace libtorrent { namespace aux {
 		// an in-out parameter
 
 		std::set<std::string> subdirs;
-		for (i = file_index_t(0); i < f.end_file(); ++i)
+		for (auto const i : f.file_range())
 		{
 			// files moved out to absolute paths are not moved
 			if (f.file_absolute_path(i)) continue;
@@ -408,7 +410,7 @@ namespace libtorrent { namespace aux {
 			// delete the files from disk
 			std::set<std::string> directories;
 			using iter_t = std::set<std::string>::iterator;
-			for (file_index_t i(0); i < fs.end_file(); ++i)
+			for (auto const i : fs.file_range())
 			{
 				std::string const fp = fs.file_path(i);
 				bool const complete = fs.file_absolute_path(i);
@@ -480,7 +482,7 @@ namespace libtorrent { namespace aux {
 			// moved. If so, we just fail. The user is responsible to not touch
 			// other torrents until a new mutable torrent has been completely
 			// added.
-			for (file_index_t idx(0); idx < fs.end_file(); ++idx)
+			for (auto const idx : fs.file_range())
 			{
 				std::string const& s = links[idx];
 				if (s.empty()) continue;
@@ -573,7 +575,7 @@ namespace libtorrent { namespace aux {
 		, stat_cache& cache
 		, storage_error& ec)
 	{
-		for (file_index_t i(0); i < fs.end_file(); ++i)
+		for (auto const i : fs.file_range())
 		{
 			std::int64_t const sz = cache.get_filesize(
 				i, fs, save_path, ec.ec);

@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/index_range.hpp"
 #include "libtorrent/flags.hpp"
 
 namespace libtorrent {
@@ -106,7 +107,7 @@ namespace libtorrent {
 #endif // TORRENT_ABI_VERSION
 
 	// internal
-	struct TORRENT_DEPRECATED_EXPORT internal_file_entry
+	struct internal_file_entry
 	{
 		friend class file_storage;
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -172,6 +173,7 @@ namespace libtorrent {
 		// to the file
 		int path_index;
 	};
+
 
 	// represents a window of a file in a torrent.
 	//
@@ -341,12 +343,7 @@ namespace libtorrent {
 		TORRENT_DEPRECATED
 		reverse_iterator rend() const { return m_files.rend(); }
 		TORRENT_DEPRECATED
-		internal_file_entry const& internal_at(int index) const
-		{
-			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < int(m_files.size()));
-			return m_files[file_index_t(index)];
-		}
+		internal_file_entry const& internal_at(int const index) const;
 		TORRENT_DEPRECATED
 		file_entry at(iterator i) const;
 
@@ -364,15 +361,15 @@ namespace libtorrent {
 #endif // TORRENT_ABI_VERSION
 
 		// returns the number of files in the file_storage
-		int num_files() const
-		{ return int(m_files.size()); }
+		int num_files() const noexcept;
 
 		// returns the index of the one-past-end file in the file storage
-		file_index_t end_file() const
-		{ return m_files.end_index(); }
+		file_index_t end_file() const noexcept;
 
-		file_index_t last_file() const
-		{ return --m_files.end_index(); }
+		// returns an implementation-defined type that can be used as the
+		// container in a range-for loop. Where the values are the indices of all
+		// files in the file_storage.
+		index_range<file_index_t> file_range() const noexcept;
 
 		// returns the total number of bytes all the files in this torrent spans
 		std::int64_t total_size() const { return m_total_size; }
@@ -387,6 +384,11 @@ namespace libtorrent {
 
 		piece_index_t last_piece() const
 		{ return piece_index_t(m_num_pieces - 1); }
+
+		// returns an implementation-defined type that can be used as the
+		// container in a range-for loop. Where the values are the indices of all
+		// pieces in the file_storage.
+		index_range<piece_index_t> piece_range() const noexcept;
 
 		// set and get the size of each piece in this torrent. This size is typically an even power
 		// of 2. It doesn't have to be though. It should be divisible by 16 kiB however.
@@ -403,19 +405,7 @@ namespace libtorrent {
 		std::string const& name() const { return m_name; }
 
 		// swap all content of *this* with *ti*.
-		void swap(file_storage& ti) noexcept
-		{
-			using std::swap;
-			swap(ti.m_files, m_files);
-			swap(ti.m_file_hashes, m_file_hashes);
-			swap(ti.m_symlinks, m_symlinks);
-			swap(ti.m_mtime, m_mtime);
-			swap(ti.m_paths, m_paths);
-			swap(ti.m_name, m_name);
-			swap(ti.m_total_size, m_total_size);
-			swap(ti.m_num_pieces, m_num_pieces);
-			swap(ti.m_piece_length, m_piece_length);
-		}
+		void swap(file_storage& ti) noexcept;
 
 		// if pad_file_limit >= 0, files larger than that limit will be padded,
 		// default is to not add any padding (-1). The alignment specifies the
@@ -538,6 +528,8 @@ namespace libtorrent {
 		void apply_pointer_offset(std::ptrdiff_t off);
 
 	private:
+
+		file_index_t last_file() const noexcept;
 
 		int get_or_add_path(string_view path);
 

@@ -450,7 +450,7 @@ void test_optimize(std::vector<int> file_sizes
 	if (fs.num_files() != int(expected_order.size())) return;
 
 	std::cout << "{ ";
-	for (file_index_t idx{0}; idx != fs.end_file(); ++idx)
+	for (auto const idx : fs.file_range())
 	{
 		if (fs.file_flags(idx) & file_storage::flag_pad_file) std::cout << "*";
 		std::cout << fs.file_size(idx) << " ";

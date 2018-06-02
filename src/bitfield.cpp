@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	bool bitfield::all_set() const
+	bool bitfield::all_set() const noexcept
 	{
 		if(size() == 0) return false;
 
@@ -58,7 +58,7 @@ namespace libtorrent {
 		return true;
 	}
 
-	int bitfield::count() const
+	int bitfield::count() const noexcept
 	{
 		int ret = 0;
 		int const words = num_words();
@@ -193,7 +193,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(size() == bits);
 	}
 
-	int bitfield::find_first_set() const
+	int bitfield::find_first_set() const noexcept
 	{
 		int const num = num_words();
 		if (num == 0) return -1;
@@ -201,7 +201,7 @@ namespace libtorrent {
 		return count != num * 32 ? count : -1;
 	}
 
-	int bitfield::find_last_clear() const
+	int bitfield::find_last_clear() const noexcept
 	{
 		int const num = num_words();
 		if (num == 0) return - 1;

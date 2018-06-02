@@ -307,7 +307,7 @@ TORRENT_TEST(torrent)
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(piece).final();
 		TEST_CHECK(t.num_pieces() > 0);
-		for (piece_index_t i(0); i < fs.end_piece(); ++i)
+		for (auto const i : fs.piece_range())
 			t.set_hash(i, ph);
 
 		std::vector<char> tmp;
@@ -350,7 +350,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	// calculate the hash for all pieces
 	sha1_hash ph = hasher(piece).final();
 	TEST_CHECK(t.num_pieces() > 0);
-	for (piece_index_t i(0); i < fs.end_piece(); ++i)
+	for (auto const i : fs.piece_range())
 		t.set_hash(i, ph);
 
 	std::vector<char> tmp;
