@@ -46,6 +46,7 @@ addons:
     - python2.7-dev
     - g++-5
     - [cmake3, ninja-build]
+    - python3-pip
 
 before_install:
 
