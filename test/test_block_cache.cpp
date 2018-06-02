@@ -64,7 +64,7 @@ struct test_storage_impl : storage_interface
 	}
 
 	bool has_any_file(storage_error&) override { return false; }
-	void set_file_priority(aux::vector<download_priority_t, file_index_t> const&
+	void set_file_priority(aux::vector<download_priority_t, file_index_t>&
 		, storage_error&) override {}
 	status_t move_storage(std::string const&, move_flags_t
 		, storage_error&) override { return status_t::no_error; }

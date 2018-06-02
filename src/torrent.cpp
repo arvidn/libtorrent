@@ -5014,7 +5014,23 @@ bool is_downloading_state(int const st)
 		m_picker->piece_priorities(*pieces);
 	}
 
-	void torrent::on_file_priority(storage_error const&) {}
+	void torrent::on_file_priority(storage_error const& err
+		, aux::vector<download_priority_t, file_index_t> const& prios)
+	{
+		COMPLETE_ASYNC("file_priority");
+		if (m_file_priority == prios) return;
+
+		// in this case, some file priorities failed to get set
+		m_file_priority = prios;
+		update_piece_priorities();
+
+		if (alerts().should_post<file_error_alert>())
+			alerts().emplace_alert<file_error_alert>(err.ec
+				, resolve_filename(err.file()), err.operation, get_handle());
+
+		set_error(err.ec, err.file());
+		pause();
+	}
 
 	void torrent::prioritize_files(aux::vector<download_priority_t, file_index_t> const& files)
 	{
@@ -5041,8 +5057,9 @@ bool is_downloading_state(int const st)
 		// storage may be nullptr during construction and shutdown
 		if (m_torrent_file->num_pieces() > 0 && m_storage)
 		{
+			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
-				, m_file_priority, std::bind(&torrent::on_file_priority, shared_from_this(), _1));
+				, m_file_priority, std::bind(&torrent::on_file_priority, shared_from_this(), _1, _2));
 		}
 
 		update_piece_priorities();
@@ -5080,8 +5097,9 @@ bool is_downloading_state(int const st)
 		// storage may be nullptr during shutdown
 		if (m_storage)
 		{
+			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
-				, m_file_priority, std::bind(&torrent::on_file_priority, shared_from_this(), _1));
+				, m_file_priority, std::bind(&torrent::on_file_priority, shared_from_this(), _1, _2));
 		}
 		update_piece_priorities();
 	}

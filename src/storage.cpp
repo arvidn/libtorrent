@@ -111,7 +111,7 @@ namespace libtorrent {
 	}
 
 	void default_storage::set_file_priority(
-		aux::vector<download_priority_t, file_index_t> const& prio
+		aux::vector<download_priority_t, file_index_t>& prio
 		, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
@@ -135,6 +135,7 @@ namespace libtorrent {
 				{
 					ec.file(i);
 					ec.operation = operation_t::file_open;
+					prio = m_file_priority;
 					return;
 				}
 
@@ -152,6 +153,7 @@ namespace libtorrent {
 					{
 						ec.file(i);
 						ec.operation = operation_t::partfile_write;
+						prio = m_file_priority;
 						return;
 					}
 				}
@@ -168,7 +170,13 @@ namespace libtorrent {
 				file_handle f = open_file(i, open_mode::read_only, ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
-					if (ec) return;
+					if (ec)
+					{
+						ec.file = i;
+						ec.operation = storage_error::open;
+						prio = m_file_priority;
+						return;
+					}
 
 					need_partfile();
 
@@ -177,6 +185,7 @@ namespace libtorrent {
 					{
 						ec.file(i);
 						ec.operation = operation_t::partfile_read;
+						prio = m_file_priority;
 						return;
 					}
 					// remove the file
@@ -186,6 +195,8 @@ namespace libtorrent {
 					{
 						ec.file(i);
 						ec.operation = operation_t::file_remove;
+						prio = m_file_priority;
+						return;
 					}
 				}
 */
@@ -737,7 +748,7 @@ namespace {
 			explicit disabled_storage(file_storage const& fs) : storage_interface(fs) {}
 
 			bool has_any_file(storage_error&) override { return false; }
-			void set_file_priority(aux::vector<download_priority_t, file_index_t> const&
+			void set_file_priority(aux::vector<download_priority_t, file_index_t>&
 				, storage_error&) override {}
 			void rename_file(file_index_t, std::string const&, storage_error&) override {}
 			void release_files(storage_error&) override {}
@@ -799,7 +810,7 @@ namespace {
 			}
 
 			bool has_any_file(storage_error&) override { return false; }
-			void set_file_priority(aux::vector<download_priority_t, file_index_t> const& /* prio */
+			void set_file_priority(aux::vector<download_priority_t, file_index_t>& /* prio */
 				, storage_error&) override {}
 			status_t move_storage(std::string const& /* save_path */
 				, move_flags_t, storage_error&) override { return status_t::no_error; }

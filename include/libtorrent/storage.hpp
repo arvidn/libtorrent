@@ -232,7 +232,7 @@ namespace libtorrent {
 		// change the priorities of files. This is a fenced job and is
 		// guaranteed to be the only running function on this storage
 		// when called
-		virtual void set_file_priority(aux::vector<download_priority_t, file_index_t> const& prio
+		virtual void set_file_priority(aux::vector<download_priority_t, file_index_t>& prio
 			, storage_error& ec) = 0;
 
 		// This function should move all the files belonging to the storage to
@@ -390,7 +390,7 @@ namespace libtorrent {
 		~default_storage() override;
 
 		bool has_any_file(storage_error& ec) override;
-		void set_file_priority(aux::vector<download_priority_t, file_index_t> const& prio
+		void set_file_priority(aux::vector<download_priority_t, file_index_t>& prio
 			, storage_error& ec) override;
 		void rename_file(file_index_t index, std::string const& new_filename
 			, storage_error& ec) override;

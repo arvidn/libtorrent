@@ -97,6 +97,12 @@ namespace libtorrent {
 				h(m_job.piece);
 			}
 
+			void operator()(disk_io_job::set_file_prio_handler& h) const
+			{
+				if (!h) return;
+				h(m_job.error, boost::get<aux::vector<download_priority_t, file_index_t>>(m_job.argument));
+			}
+
 		private:
 			disk_io_job& m_job;
 		};

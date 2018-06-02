@@ -569,7 +569,7 @@ namespace libtorrent {
 		void set_file_priority(file_index_t index, download_priority_t priority);
 		download_priority_t file_priority(file_index_t index) const;
 
-		void on_file_priority(storage_error const&);
+		void on_file_priority(storage_error const& err, aux::vector<download_priority_t, file_index_t> const& prios);
 		void prioritize_files(aux::vector<download_priority_t, file_index_t> const& files);
 		void file_priorities(aux::vector<download_priority_t, file_index_t>*) const;
 

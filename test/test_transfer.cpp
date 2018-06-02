@@ -79,7 +79,7 @@ struct test_storage : default_storage
 		, m_limit(16 * 1024 * 2)
 	{}
 
-	void set_file_priority(aux::vector<download_priority_t, file_index_t> const&
+	void set_file_priority(aux::vector<download_priority_t, file_index_t>&
 		, storage_error&) override {}
 
 	void set_limit(int lim)
