@@ -107,11 +107,12 @@ for line in f:
 
         if event == 'RESPONSE':
             outstanding = int(ls[ls.index('invoke-count:') + 1])
+            distance = int(ls[ls.index('distance:') + 1])
             nid = ls[ls.index('id:') + 1]
             addr = ls[ls.index('addr:') + 1]
             last_response = addr
             outstanding_searches[search_id].append({'t': ts, 'd': distance,
-                                                    'o': outstanding + 1, 'a': addr, 'e': event, 'i': nid, 's': source})
+                                                    'o': outstanding + 1, 'a': addr, 'e': event, 'i': nid})
         elif event == 'NEW':
             nid = ls[ls.index('target:') + 1]
             outstanding_searches[search_id] = [{'t': ts, 'd': 0, 'o': 0,
