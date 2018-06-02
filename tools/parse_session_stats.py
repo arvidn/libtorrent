@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 # Copyright (c) 2016, Arvid Norberg
 # All rights reserved.
