@@ -274,7 +274,7 @@ namespace libtorrent {
 
 		// first, create all missing directories
 		std::string last_path;
-		for (file_index_t file_index(0); file_index < fs.end_file(); ++file_index)
+		for (auto const file_index : fs.file_range())
 		{
 			// ignore files that have priority 0
 			if (m_file_priority.end_index() > file_index

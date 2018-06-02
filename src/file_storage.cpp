@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/utf8.hpp"
+#include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
@@ -503,6 +504,13 @@ namespace {
 		return at_deprecated(index);
 	}
 
+	internal_file_entry const& file_storage::internal_at(int const index) const
+	{
+		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index < int(m_files.size()));
+		return m_files[file_index_t(index)];
+	}
+
 	file_entry file_storage::at_deprecated(int index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
@@ -522,6 +530,22 @@ namespace {
 		return ret;
 	}
 #endif // TORRENT_ABI_VERSION
+
+	int file_storage::num_files() const noexcept
+	{ return int(m_files.size()); }
+
+	// returns the index of the one-past-end file in the file storage
+	file_index_t file_storage::end_file() const noexcept
+	{ return m_files.end_index(); }
+
+	file_index_t file_storage::last_file() const noexcept
+	{ return --m_files.end_index(); }
+
+	index_range<file_index_t> file_storage::file_range() const noexcept
+	{ return {file_index_t{0}, m_files.end_index()}; }
+
+	index_range<piece_index_t> file_storage::piece_range() const noexcept
+	{ return {piece_index_t{0}, piece_index_t{m_num_pieces}}; }
 
 	peer_request file_storage::map_file(file_index_t const file_index
 		, std::int64_t const file_offset, int const size) const
@@ -927,6 +951,20 @@ namespace {
 			if (int(m_file_hashes.size()) < index) m_file_hashes.resize(index + 1, nullptr);
 			std::iter_swap(m_file_hashes.begin() + dst, m_file_hashes.begin() + index);
 		}
+	}
+
+	void file_storage::swap(file_storage& ti) noexcept
+	{
+		using std::swap;
+		swap(ti.m_files, m_files);
+		swap(ti.m_file_hashes, m_file_hashes);
+		swap(ti.m_symlinks, m_symlinks);
+		swap(ti.m_mtime, m_mtime);
+		swap(ti.m_paths, m_paths);
+		swap(ti.m_name, m_name);
+		swap(ti.m_total_size, m_total_size);
+		swap(ti.m_num_pieces, m_num_pieces);
+		swap(ti.m_piece_length, m_piece_length);
 	}
 
 	void file_storage::optimize(int const pad_file_limit, int alignment

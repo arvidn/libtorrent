@@ -403,7 +403,7 @@ void test_rename(std::string const& test_path)
 	// directories are not created up-front, unless they contain
 	// an empty file
 	std::string first_file = fs.file_path(file_index_t(0));
-	for (file_index_t i(0); i < fs.end_file(); ++i)
+	for (auto const i : fs.file_range())
 	{
 		TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
 			, fs.file_path(i)))));
@@ -517,7 +517,7 @@ void test_check_files(std::string const& test_path
 	ios.reset();
 	run_until(ios, done);
 
-	for (piece_index_t i{0}; i < info->files().end_piece(); ++i)
+	for (auto const i : info->piece_range())
 	{
 		done = false;
 		io.async_hash(st, i, disk_interface::sequential_access | disk_interface::volatile_read
@@ -817,7 +817,7 @@ TORRENT_TEST(rename_file)
 
 	// make it a seed
 	std::vector<char> tmp(std::size_t(info->piece_length()));
-	for (piece_index_t i(0); i < fs.end_piece(); ++i)
+	for (auto const i : fs.piece_range())
 		h.add_piece(i, &tmp[0]);
 
 	// wait for the files to have been written
@@ -830,7 +830,7 @@ TORRENT_TEST(rename_file)
 	}
 
 	// now rename them. This is the test
-	for (file_index_t i(0); i < fs.end_file(); ++i)
+	for (auto const i : fs.file_range())
 	{
 		std::string name = fs.file_path(i);
 		h.rename_file(i, "temp_storage__" + name.substr(12));

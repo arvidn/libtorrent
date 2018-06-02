@@ -627,7 +627,7 @@ std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
 	lt::create_torrent ct(fs, piece_size, 0x4000
 		, lt::create_torrent::optimize_alignment);
 
-	for (piece_index_t i(0); i < fs.end_piece(); ++i)
+	for (auto const i : fs.piece_range())
 	{
 		std::vector<char> piece = generate_piece(i, fs.piece_size(i));
 		ct.set_hash(i, hasher(piece).final());
@@ -719,7 +719,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 
 	// calculate the hash for all pieces
 	sha1_hash ph = hasher(piece).final();
-	for (piece_index_t i(0); i < t.files().end_piece(); ++i)
+	for (auto const i : fs.piece_range())
 		t.set_hash(i, ph);
 
 	if (file)

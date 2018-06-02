@@ -76,7 +76,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 	t.add_url_seed("http://torrent_file_url_seed.com/");
 
 	TEST_CHECK(t.num_pieces() > 0);
-	for (piece_index_t i(0); i < fs.end_piece(); ++i)
+	for (auto const i : fs.piece_range())
 	{
 		sha1_hash ph;
 		aux::random_bytes(ph);
@@ -388,8 +388,10 @@ void test_piece_slots_seed(settings_pack const& sett)
 	print_alerts(ses, "ses");
 	TEST_EQUAL(s.info_hash, ti->info_hash());
 	TEST_EQUAL(s.pieces.size(), ti->num_pieces());
-	for (piece_index_t i{0}; i != ti->end_piece(); ++i)
+	for (auto const i : ti->piece_range())
+	{
 		TEST_EQUAL(s.pieces[i], true);
+	}
 
 	TEST_EQUAL(s.is_seeding, true);
 
@@ -405,8 +407,10 @@ void test_piece_slots_seed(settings_pack const& sett)
 		auto const& pieces = ra->params.have_pieces;
 		TEST_EQUAL(int(pieces.size()), ti->num_pieces());
 
-		for (piece_index_t i{0}; i != ti->end_piece(); ++i)
+		for (auto const i : ti->piece_range())
+		{
 			TEST_EQUAL(pieces[i], true);
+		}
 	}
 }
 

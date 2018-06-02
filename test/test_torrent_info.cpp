@@ -54,7 +54,7 @@ TORRENT_TEST(mutable_torrents)
 
 	// calculate the hash for all pieces
 	sha1_hash ph;
-	for (piece_index_t i(0); i < fs.end_piece(); ++i)
+	for (auto const i : fs.piece_range())
 		t.set_hash(i, ph);
 
 	t.add_collection("collection1");
@@ -902,7 +902,7 @@ void test_resolve_duplicates(int test_case)
 
 	// calculate the hash for all pieces
 	sha1_hash ph;
-	for (piece_index_t i(0); i < fs.end_piece(); ++i)
+	for (auto const i : fs.piece_range())
 		t.set_hash(i, ph);
 
 	std::vector<char> tmp;
@@ -944,7 +944,7 @@ void test_resolve_duplicates(int test_case)
 		}
 	};
 
-	for (file_index_t i(0); i < fs.end_file(); ++i)
+	for (auto const i : fs.file_range())
 	{
 		std::string p = ti.files().file_path(i);
 		convert_path_to_posix(p);
@@ -1005,7 +1005,7 @@ TORRENT_TEST(copy)
 	};
 
 	file_storage const& fs = a->files();
-	for (file_index_t i(0); i < fs.end_file(); ++i)
+	for (auto const i : fs.file_range())
 	{
 		std::string p = fs.file_path(i);
 		convert_path_to_posix(p);
@@ -1028,7 +1028,7 @@ TORRENT_TEST(copy)
 	TEST_EQUAL(b->num_files(), 3);
 
 	file_storage const& fs2 = b->files();
-	for (file_index_t i(0); i < fs2.end_file(); ++i)
+	for (auto const i : fs2.file_range())
 	{
 		std::string p = fs2.file_path(i);
 		convert_path_to_posix(p);

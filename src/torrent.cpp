@@ -1807,7 +1807,7 @@ bool is_downloading_state(int const st)
 			int num_pad_files = 0;
 			TORRENT_ASSERT(block_size() > 0);
 
-			for (file_index_t i(0); i < fs.end_file(); ++i)
+			for (auto const i : fs.file_range())
 			{
 				if (fs.pad_file_at(i)) ++num_pad_files;
 
@@ -3629,7 +3629,7 @@ bool is_downloading_state(int const st)
 		if (m_padding > 0)
 		{
 			file_storage const& files = m_torrent_file->files();
-			for (file_index_t i(0); i < files.end_file(); ++i)
+			for (auto const i : files.file_range())
 			{
 				if (!files.pad_file_at(i)) continue;
 				peer_request p = files.map_file(i, 0, int(files.file_size(i)));
@@ -4506,7 +4506,7 @@ bool is_downloading_state(int const st)
 		// do a linear search from the first piece
 		int min_availability = 9999;
 		std::vector<piece_index_t> avail_vec;
-		for (piece_index_t i(0); i < m_torrent_file->end_piece(); ++i)
+		for (auto const i : m_torrent_file->piece_range())
 		{
 			if (bits[i]) continue;
 
@@ -5156,7 +5156,7 @@ bool is_downloading_state(int const st)
 		aux::vector<download_priority_t, piece_index_t> pieces(aux::numeric_cast<std::size_t>(
 			m_torrent_file->num_pieces()), dont_download);
 		file_storage const& fs = m_torrent_file->files();
-		for (file_index_t i(0); i < fs.end_file(); ++i)
+		for (auto const i : fs.file_range())
 		{
 			std::int64_t const size = m_torrent_file->files().file_size(i);
 			if (size == 0) continue;
@@ -6287,7 +6287,7 @@ bool is_downloading_state(int const st)
 		{
 			file_storage const& fs = m_torrent_file->files();
 			file_storage const& orig_fs = m_torrent_file->orig_files();
-			for (file_index_t i(0); i < fs.end_file(); ++i)
+			for (auto const i : fs.file_range())
 			{
 				if (fs.file_path(i) != orig_fs.file_path(i))
 					ret.renamed_files[i] = fs.file_path(i);
@@ -10358,7 +10358,7 @@ bool is_downloading_state(int const st)
 		aux::vector<std::int64_t, file_index_t> progress;
 		file_progress(progress);
 		file_storage const& fs = m_torrent_file->files();
-		for (file_index_t i(0); i < fs.end_file(); ++i)
+		for (auto const i : fs.file_range())
 		{
 			std::int64_t file_size = m_torrent_file->files().file_size(i);
 			if (file_size == 0) fp[i] = 1.f;
@@ -10384,7 +10384,7 @@ bool is_downloading_state(int const st)
 		{
 			fp.resize(m_torrent_file->num_files());
 			file_storage const& fs = m_torrent_file->files();
-			for (file_index_t i(0); i < fs.end_file(); ++i)
+			for (auto const i : fs.file_range())
 				fp[i] = fs.file_size(i);
 			return;
 		}

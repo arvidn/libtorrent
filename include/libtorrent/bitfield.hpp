@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/unique_ptr.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
@@ -101,9 +102,9 @@ namespace libtorrent {
 		}
 
 		// returns true if all bits in the bitfield are set
-		bool all_set() const;
+		bool all_set() const noexcept;
 
-		bool none_set() const
+		bool none_set() const noexcept
 		{
 			if(size() == 0) return true;
 
@@ -117,7 +118,7 @@ namespace libtorrent {
 		}
 
 		// returns the size of the bitfield in bits.
-		int size() const
+		int size() const noexcept
 		{
 			int const bits = m_buf == nullptr ? 0 : int(m_buf[0]);
 			TORRENT_ASSERT(bits >= 0);
@@ -156,9 +157,9 @@ namespace libtorrent {
 		}
 
 		// count the number of bits in the bitfield that are set to 1.
-		int count() const;
-		int find_first_set() const;
-		int find_last_clear() const;
+		int count() const noexcept;
+		int find_first_set() const noexcept;
+		int find_last_clear() const noexcept;
 
 		struct const_iterator
 		{
@@ -282,6 +283,13 @@ namespace libtorrent {
 		}
 		using bitfield::bitfield;
 
+		// returns an object that can be used in a range-for to iterate over all
+		// indices in the bitfield
+		index_range<IndexType> range() const noexcept
+		{
+			return index_range<IndexType>{IndexType{0}, end_index()};
+		}
+
 		bool operator[](IndexType const index) const
 		{ return this->bitfield::get_bit(static_cast<int>(index)); }
 
@@ -294,7 +302,7 @@ namespace libtorrent {
 		void set_bit(IndexType const index)
 		{ this->bitfield::set_bit(static_cast<int>(index)); }
 
-		IndexType end_index() const { return IndexType(this->size()); }
+		IndexType end_index() const noexcept { return IndexType(this->size()); }
 	};
 }
 

@@ -93,14 +93,14 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	torrent_handle tor1 = ses.add_torrent(params);
 
 	// write pieces
-	for (piece_index_t i(0); i < fs.end_piece(); ++i)
+	for (auto const i : fs.piece_range())
 	{
 		std::vector<char> const piece = generate_piece(i, fs.piece_size(i));
 		tor1.add_piece(i, piece.data());
 	}
 
 	// read pieces
-	for (piece_index_t i(0); i < fs.end_piece(); ++i)
+	for (auto const i : fs.piece_range())
 	{
 		tor1.read_piece(i);
 	}

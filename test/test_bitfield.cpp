@@ -407,3 +407,15 @@ TORRENT_TEST(not_initialized_resize)
 	test2.resize(8);
 	TEST_EQUAL(test2.size(), 8);
 }
+
+TORRENT_TEST(bitfield_index_range)
+{
+	typed_bitfield<int> b1(16);
+	int sum = 0;
+	for (auto i : b1.range())
+	{
+		sum += i;
+	}
+	TEST_EQUAL(sum, 15 * 16 / 2);
+}
+
