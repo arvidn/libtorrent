@@ -1973,8 +1973,6 @@ namespace libtorrent
 			, static_cast<void*>(this), m_has_fence, int(m_outstanding_jobs));
 
 		// if this is the job that raised the fence, don't block it
-		// ignore fence can only ignore one fence. If there are several,
-		// this job still needs to get queued up
 		if (m_has_fence == 0)
 		{
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) == 0);
