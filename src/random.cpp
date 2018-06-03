@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/thread.hpp"
 
 #ifdef BOOST_NO_CXX11_HDR_RANDOM
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -44,10 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #else
 #include <random>
-#endif
-
-#if !TORRENT_THREADSAFE_STATIC
-#include "libtorrent/thread.hpp"
 #endif
 
 namespace libtorrent
@@ -73,25 +70,28 @@ namespace libtorrent
 
 #else
 
-#if !TORRENT_THREADSAFE_STATIC
-	// because local statics are not atomic pre c++11
-	// do it manually, probably at a higher cost
 	namespace
 	{
-		static mutex random_device_mutex;
-		static random_device* dev = NULL;
-		static mt19937* rnd = NULL;
-	}
+#if !TORRENT_THREADSAFE_STATIC
+		// because local statics are not atomic pre c++11
+		// do it manually, probably at a higher cost
+		random_device* dev = NULL;
+		mt19937* rnd = NULL;
 #endif
+
+		mutex random_device_mutex;
+	}
 
 	boost::uint32_t random()
 	{
+		// TODO: use a thread local mt19937 instance instead!
+		mutex::scoped_lock l(random_device_mutex);
+
 #if TORRENT_THREADSAFE_STATIC
 		static random_device dev;
 		static mt19937 random_engine(dev());
 		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);
 #else
-		mutex::scoped_lock l(random_device_mutex);
 
 		if (dev == NULL)
 		{

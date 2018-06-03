@@ -1,4 +1,5 @@
 
+	* fixed race condition in random number generator
 	* fix race condition in stat_cache (disk storage)
 	* improve error handling of failing to change file priority
 	  The API for custom storage implementations was altered
