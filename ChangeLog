@@ -1,4 +1,5 @@
 
+	* fix race condition in stat_cache (disk storage)
 	* improve error handling of failing to change file priority
 	  The API for custom storage implementations was altered
 	* set the hidden attribute when creating the part file
