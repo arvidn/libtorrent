@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/thread.hpp"
 
 namespace libtorrent
 {
@@ -51,7 +52,7 @@ namespace libtorrent
 		~stat_cache();
 
 		void init(int num_files);
-		
+
 		enum
 		{
 			cache_error = -1,
@@ -79,6 +80,7 @@ namespace libtorrent
 			boost::int64_t file_size;
 			time_t file_time;
 		};
+		mutable mutex m_mutex;
 		std::vector<stat_cache_t> m_stat_cache;
 	};
 }

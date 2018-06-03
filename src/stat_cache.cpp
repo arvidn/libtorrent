@@ -41,6 +41,7 @@ namespace libtorrent
 	void stat_cache::set_cache(int i, boost::int64_t size, time_t time)
 	{
 		TORRENT_ASSERT(i >= 0);
+		mutex::scoped_lock l(m_mutex);
 		if (i >= int(m_stat_cache.size()))
 			m_stat_cache.resize(i + 1, not_in_cache);
 		m_stat_cache[i].file_size = size;
@@ -50,6 +51,7 @@ namespace libtorrent
 	void stat_cache::set_dirty(int i)
 	{
 		TORRENT_ASSERT(i >= 0);
+		mutex::scoped_lock l(m_mutex);
 		if (i >= int(m_stat_cache.size())) return;
 		m_stat_cache[i].file_size = not_in_cache;
 	}
@@ -57,6 +59,7 @@ namespace libtorrent
 	void stat_cache::set_noexist(int i)
 	{
 		TORRENT_ASSERT(i >= 0);
+		mutex::scoped_lock l(m_mutex);
 		if (i >= int(m_stat_cache.size()))
 			m_stat_cache.resize(i + 1, not_in_cache);
 		m_stat_cache[i].file_size = no_exist;
@@ -65,6 +68,7 @@ namespace libtorrent
 	void stat_cache::set_error(int i)
 	{
 		TORRENT_ASSERT(i >= 0);
+		mutex::scoped_lock l(m_mutex);
 		if (i >= int(m_stat_cache.size()))
 			m_stat_cache.resize(i + 1, not_in_cache);
 		m_stat_cache[i].file_size = cache_error;
@@ -72,12 +76,14 @@ namespace libtorrent
 
 	boost::int64_t stat_cache::get_filesize(int i) const
 	{
+		mutex::scoped_lock l(m_mutex);
 		if (i >= int(m_stat_cache.size())) return not_in_cache;
 		return m_stat_cache[i].file_size;
 	}
 
 	time_t stat_cache::get_filetime(int i) const
 	{
+		mutex::scoped_lock l(m_mutex);
 		if (i >= int(m_stat_cache.size())) return not_in_cache;
 		if (m_stat_cache[i].file_size < 0) return m_stat_cache[i].file_size;
 		return m_stat_cache[i].file_time;
@@ -85,11 +91,13 @@ namespace libtorrent
 
 	void stat_cache::init(int num_files)
 	{
+		mutex::scoped_lock l(m_mutex);
 		m_stat_cache.resize(num_files, not_in_cache);
 	}
 
 	void stat_cache::clear()
 	{
+		mutex::scoped_lock l(m_mutex);
 		std::vector<stat_cache_t>().swap(m_stat_cache);
 	}
 
