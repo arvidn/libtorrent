@@ -84,6 +84,8 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fixed race condition in random number generator
+	* fix race condition in stat_cache (disk storage)
 	* improve error handling of failing to change file priority
 	  The API for custom storage implementations was altered
 	* set the hidden attribute when creating the part file

@@ -42,12 +42,24 @@ namespace libtorrent {
 
 	void stat_cache::set_cache(file_index_t const i, std::int64_t const size)
 	{
+		std::lock_guard<std::mutex> l(m_mutex);
+		set_cache_impl(i, size);
+	}
+
+	void stat_cache::set_cache_impl(file_index_t const i, std::int64_t const size)
+	{
 		if (i >= m_stat_cache.end_index())
 			m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
 		m_stat_cache[i].file_size = size;
 	}
 
 	void stat_cache::set_error(file_index_t const i, error_code const& ec)
+	{
+		std::lock_guard<std::mutex> l(m_mutex);
+		set_error_impl(i, ec);
+	}
+
+	void stat_cache::set_error_impl(file_index_t const i, error_code const& ec)
 	{
 		if (i >= m_stat_cache.end_index())
 			m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
@@ -58,6 +70,7 @@ namespace libtorrent {
 
 	void stat_cache::set_dirty(file_index_t const i)
 	{
+		std::lock_guard<std::mutex> l(m_mutex);
 		if (i >= m_stat_cache.end_index()) return;
 		m_stat_cache[i].file_size = not_in_cache;
 	}
@@ -65,6 +78,7 @@ namespace libtorrent {
 	std::int64_t stat_cache::get_filesize(file_index_t const i, file_storage const& fs
 		, std::string const& save_path, error_code& ec)
 	{
+		std::lock_guard<std::mutex> l(m_mutex);
 		TORRENT_ASSERT(i < fs.end_file());
 		if (i >= m_stat_cache.end_index()) m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
 		std::int64_t sz = m_stat_cache[i].file_size;
@@ -81,12 +95,12 @@ namespace libtorrent {
 			stat_file(file_path, &s, ec);
 			if (ec)
 			{
-				set_error(i, ec);
+				set_error_impl(i, ec);
 				sz = file_error;
 			}
 			else
 			{
-				set_cache(i, s.file_size);
+				set_cache_impl(i, s.file_size);
 				sz = s.file_size;
 			}
 		}
@@ -95,11 +109,13 @@ namespace libtorrent {
 
 	void stat_cache::reserve(int num_files)
 	{
+		std::lock_guard<std::mutex> l(m_mutex);
 		m_stat_cache.resize(num_files, not_in_cache);
 	}
 
 	void stat_cache::clear()
 	{
+		std::lock_guard<std::mutex> l(m_mutex);
 		m_stat_cache.clear();
 		m_stat_cache.shrink_to_fit();
 		m_errors.clear();

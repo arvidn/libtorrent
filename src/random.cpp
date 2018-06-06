@@ -36,6 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/openssl.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
+#if defined BOOST_NO_CXX11_THREAD_LOCAL
+#include <mutex>
+#endif
+
 #if TORRENT_USE_CRYPTOAPI
 #include "libtorrent/aux_/win_crypto_provider.hpp"
 
@@ -54,6 +58,15 @@ extern "C" {
 #include "libtorrent/aux_/dev_random.hpp"
 #endif
 
+#ifdef BOOST_NO_CXX11_THREAD_LOCAL
+namespace {
+	// if the random number generator can't be thread local, just protect it with
+	// a mutex. Not ideal, but hopefully not too many people are affected by old
+	// systems
+	std::mutex rng_mutex;
+}
+#endif
+
 namespace libtorrent { namespace aux {
 
 		std::mt19937& random_engine()
@@ -62,8 +75,13 @@ namespace libtorrent { namespace aux {
 			// make sure random numbers are deterministic. Seed with a fixed number
 			static std::mt19937 rng(0x82daf973);
 #else
+
 			static std::random_device dev;
+#ifdef BOOST_NO_CXX11_THREAD_LOCAL
 			static std::mt19937 rng(dev());
+#else
+			thread_local static std::mt19937 rng(dev());
+#endif
 #endif
 			return rng;
 		}
@@ -102,6 +120,9 @@ namespace libtorrent { namespace aux {
 
 	std::uint32_t random(std::uint32_t const max)
 	{
+#ifdef BOOST_NO_CXX11_THREAD_LOCAL
+		std::lock_guard<std::mutex> l(rng_mutex);
+#endif
 		return std::uniform_int_distribution<std::uint32_t>(0, max)(aux::random_engine());
 	}
 }

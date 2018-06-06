@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <mutex>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
@@ -74,6 +75,9 @@ namespace libtorrent {
 
 	private:
 
+		void set_cache_impl(file_index_t i, std::int64_t size);
+		void set_error_impl(file_index_t i, error_code const& ec);
+
 		// returns the index to the specified error. Either an existing one or a
 		// newly added entry
 		int add_error(error_code const& ec);
@@ -89,6 +93,8 @@ namespace libtorrent {
 			// into m_errors, that recorded the actual error.
 			std::int64_t file_size;
 		};
+
+		mutable std::mutex m_mutex;
 
 		// one entry per file
 		aux::vector<stat_cache_t, file_index_t> m_stat_cache;
