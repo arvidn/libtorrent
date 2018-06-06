@@ -690,11 +690,9 @@ TORRENT_IPV6_NAMESPACE_END
 		//	ses.pause();
 		//	for (torrent_handle i : handles)
 		//	{
-		//		torrent_handle& h = *i;
-		//		if (!h.is_valid()) continue;
-		//		torrent_status s = h.status();
-		//		if (!s.has_metadata) continue;
-		//		if (!h.need_save_resume_data()) continue;
+		//		const torrent_handle& h = *i;
+		//		const torrent_status s = h.status();
+		//		if (!h.is_need_save_resume()) continue;
 		//
 		//		h.save_resume_data();
 		//		++outstanding_resume_data;

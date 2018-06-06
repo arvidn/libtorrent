@@ -336,6 +336,8 @@ namespace {
 			}
 		}
 
+		// we're loading this torrent from resume data. There's no need to
+		// re-save the resume data immediately.
 		ret.flags &= ~torrent_flags::need_save_resume;
 
 		return ret;

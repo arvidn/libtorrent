@@ -1302,11 +1302,7 @@ example alert_masks:
 						, file.c_str(), ec.message().c_str());
 					continue;
 				}
-
-				// we're loading this torrent from resume data. There's no need to
-				// re-save the resume data immediately.
-				p.flags &= ~lt::torrent_flags::need_save_resume;
-
+				
 				ses.async_add_torrent(std::move(p));
 			}
 		}
@@ -1953,10 +1949,7 @@ COLUMN OPTIONS
 	std::vector<torrent_status> const temp = ses.get_torrent_status(
 		[](torrent_status const& st)
 		{
-			if (!st.handle.is_valid()) return false;
-			if (!st.has_metadata) return false;
-			if (!st.need_save_resume) return false;
-			return true;
+			return st.is_need_save_resume();
 		}, {});
 
 	int idx = 0;

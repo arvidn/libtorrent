@@ -78,7 +78,12 @@ TORRENT_VERSION_NAMESPACE_2
 		// only the torrent_handle field is compared.
 		bool operator==(torrent_status const& st) const
 		{ return handle == st.handle; }
-
+	
+		bool is_save_resume() const
+		{
+		  return handle.is_valid() && has_metadata && need_save_resume;
+		}
+ 
 		// a handle to the torrent whose status the object represents.
 		torrent_handle handle;
 
