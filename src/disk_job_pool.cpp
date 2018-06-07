@@ -85,7 +85,7 @@ namespace libtorrent {
 		m_job_pool.free(j);
 	}
 
-	void disk_job_pool::free_jobs(disk_io_job** j, int num)
+	void disk_job_pool::free_jobs(disk_io_job** j, int const num)
 	{
 		if (num == 0) return;
 
