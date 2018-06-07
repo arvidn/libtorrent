@@ -50,8 +50,8 @@ void load_config(std::string const& config_file, session* ses, error_code& ec)
 {
 	static time_t last_load = 0;
 
-	struct stat st;
-	if (stat(config_file.c_str(), &st) < 0)
+	struct ::stat st;
+	if (::stat(config_file.c_str(), &st) < 0)
 	{
 		ec = error_code(errno, system_category());
 		return;

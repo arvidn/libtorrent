@@ -347,7 +347,7 @@ namespace libtorrent
 						io::write_uint32(s.num_connections, ptr);
 						break;
 					case 19: // queue-position
-						io::write_uint32(s.queue_position, ptr);
+						io::write_uint32(static_cast<int>(s.queue_position), ptr);
 						break;
 					case 20: // state
 					{
