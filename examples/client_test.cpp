@@ -1302,7 +1302,7 @@ example alert_masks:
 						, file.c_str(), ec.message().c_str());
 					continue;
 				}
-				
+
 				ses.async_add_torrent(std::move(p));
 			}
 		}
