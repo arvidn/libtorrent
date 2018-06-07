@@ -691,8 +691,7 @@ TORRENT_IPV6_NAMESPACE_END
 		//	for (torrent_handle i : handles)
 		//	{
 		//		const torrent_handle& h = *i;
-		//		const torrent_status s = h.status();
-		//		if (!h.is_need_save_resume()) continue;
+		//		if (!is_save_resume(h.status())) continue;
 		//
 		//		h.save_resume_data();
 		//		++outstanding_resume_data;
