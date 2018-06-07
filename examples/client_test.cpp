@@ -1949,7 +1949,7 @@ COLUMN OPTIONS
 	std::vector<torrent_status> const temp = ses.get_torrent_status(
 		[](torrent_status const& st)
 		{
-			return st.is_need_save_resume();
+			return is_save_resume(st);
 		}, {});
 
 	int idx = 0;

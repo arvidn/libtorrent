@@ -79,11 +79,6 @@ TORRENT_VERSION_NAMESPACE_2
 		bool operator==(torrent_status const& st) const
 		{ return handle == st.handle; }
 	
-		bool is_save_resume() const
-		{
-		  return handle.is_valid() && has_metadata && need_save_resume;
-		}
- 
 		// a handle to the torrent whose status the object represents.
 		torrent_handle handle;
 
@@ -577,6 +572,11 @@ TORRENT_VERSION_NAMESPACE_2_END
 
 namespace std
 {
+	inline bool is_save_resume(libtorrent::torrent_status const& st)
+	{
+		return st.handle.is_valid() && st.has_metadata && st.need_save_resume;
+	}
+
 	template <>
 	struct hash<libtorrent::torrent_status>
 	{
