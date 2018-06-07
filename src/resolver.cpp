@@ -54,14 +54,12 @@ namespace libtorrent {
 		COMPLETE_ASYNC("resolver::on_lookup");
 		if (ec)
 		{
-			std::vector<address> empty;
-			h(ec, empty);
+			h(ec, {});
 			return;
 		}
 
 		dns_cache_entry& ce = m_cache[hostname];
-		time_point now = aux::time_now();
-		ce.last_seen = now;
+		ce.last_seen = aux::time_now();
 		ce.addresses.clear();
 		while (i != tcp::resolver::iterator())
 		{
@@ -96,9 +94,7 @@ namespace libtorrent {
 		address const ip = make_address(host, ec);
 		if (!ec)
 		{
-			std::vector<address> addresses;
-			addresses.push_back(ip);
-			m_ios.post(std::bind(h, ec, addresses));
+			m_ios.post(std::bind(h, ec, std::vector<address>{ip}));
 			return;
 		}
 		ec.clear();
@@ -119,7 +115,7 @@ namespace libtorrent {
 		{
 			// we did not find a cache entry, fail the lookup
 			m_ios.post(std::bind(h, boost::asio::error::host_not_found
-					, std::vector<address>()));
+					, std::vector<address>{}));
 			return;
 		}
 
@@ -145,7 +141,7 @@ namespace libtorrent {
 		m_resolver.cancel();
 	}
 
-	void resolver::set_cache_timeout(seconds timeout)
+	void resolver::set_cache_timeout(seconds const timeout)
 	{
 		if (timeout >= seconds(0))
 			m_timeout = timeout;

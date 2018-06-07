@@ -232,4 +232,3 @@ namespace libtorrent { namespace aux {
 	}
 
 }}
-

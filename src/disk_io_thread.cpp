@@ -169,9 +169,9 @@ namespace libtorrent {
 	{
 		explicit scoped_unlocker_impl(Lock& l) : m_lock(&l) { m_lock->unlock(); }
 		~scoped_unlocker_impl() { if (m_lock) m_lock->lock(); }
-		scoped_unlocker_impl(scoped_unlocker_impl&& rhs) : m_lock(rhs.m_lock)
+		scoped_unlocker_impl(scoped_unlocker_impl&& rhs) noexcept : m_lock(rhs.m_lock)
 		{ rhs.m_lock = nullptr; }
-		scoped_unlocker_impl& operator=(scoped_unlocker_impl&& rhs)
+		scoped_unlocker_impl& operator=(scoped_unlocker_impl&& rhs) noexcept
 		{
 			if (&rhs == this) return *this;
 			if (m_lock) m_lock->lock();
