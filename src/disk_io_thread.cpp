@@ -2733,7 +2733,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	status_t disk_io_thread::do_file_priority(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		j->storage->set_file_priority(
-			boost::get<aux::vector<download_priority_t, file_index_t>&>(j->argument)
+			boost::get<aux::vector<download_priority_t, file_index_t>>(j->argument)
 			, j->error);
 		return status_t::no_error;
 	}
