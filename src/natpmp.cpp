@@ -640,7 +640,7 @@ void natpmp::on_reply(error_code const& e
 	error_code ec;
 	m_send_timer.cancel(ec);
 
-	if (bytes_transferred < 12)
+	if (bytes_transferred < 4)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		log("received packet of invalid size: %d", int(bytes_transferred));
@@ -683,6 +683,15 @@ void natpmp::on_reply(error_code const& e
 			resend_request(m_currently_mapping, error_code());
 			send_get_ip_address_request();
 		}
+		return;
+	}
+
+	if ((version == version_natpmp && bytes_transferred < 12)
+		|| (version == version_pcp && bytes_transferred < 24))
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		log("received packet of invalid size: %d", int(bytes_transferred));
+#endif
 		return;
 	}
 
