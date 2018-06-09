@@ -120,6 +120,8 @@ private:
 		version_pcp = 2,
 	};
 
+	static char const* version_to_string(protocol_version version);
+
 	// See RFC 6887 Section 19.2
 	enum pcp_opcode
 	{

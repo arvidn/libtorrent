@@ -125,6 +125,11 @@ error_code natpmp::from_result_code(int const version, int result)
 	return errors::pcp_errors(result);
 }
 
+char const* natpmp::version_to_string(protocol_version version)
+{
+	return version == version_natpmp ? "NAT-PMP" : "PCP";
+}
+
 using namespace aux;
 using namespace std::placeholders;
 
@@ -544,8 +549,9 @@ void natpmp::send_map_request(port_mapping_t const i)
 	if (should_log())
 	{
 		log("==> port map [ mapping: %d action: %s"
-			" proto: %s local: %u external: %u ttl: %u ]"
+			" transport: %s proto: %s local: %u external: %u ttl: %u ]"
 			, static_cast<int>(i), to_string(m.act)
+			, version_to_string(m_version)
 			, to_string(m.protocol)
 			, m.local_port, m.external_port, ttl);
 	}
@@ -677,6 +683,9 @@ void natpmp::on_reply(error_code const& e
 
 	if (result == errors::pcp_unsupp_version)
 	{
+#ifndef TORRENT_DISABLE_LOGGING
+		log("unsupported version");
+#endif
 		if (m_version == version_pcp && !is_v6(m_socket.local_endpoint()))
 		{
 			m_version = version_natpmp;
@@ -765,7 +774,8 @@ void natpmp::on_reply(error_code const& e
 #ifndef TORRENT_DISABLE_LOGGING
 	char msg[200];
 	int const num_chars = std::snprintf(msg, sizeof(msg), "<== port map ["
-		" protocol: %s local: %u external: %u ttl: %u ]"
+		" transport: %s protocol: %s local: %u external: %u ttl: %u ]"
+		, version_to_string(protocol_version(version))
 		, (protocol == portmap_protocol::udp ? "udp" : "tcp")
 		, private_port, public_port, lifetime);
 #endif
