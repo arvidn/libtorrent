@@ -6,7 +6,7 @@ matrix:
   include:
     - if: repo = arvidn/libtorrent
       env: variant=release sonar_scan=1 toolset=gcc
-    - env: variant=test_debug lint=1 tests=1 toolset=gcc-sanitizer
+    - env: variant=test_debug lint=1 pylint=1 tests=1 toolset=gcc-sanitizer
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
@@ -80,13 +80,6 @@ before_install:
   - ulimit -a
 
 install:
-  - sudo pip install flake8
-  - flake8 --version
-  - flake8 --max-line-length=120
-  - sudo pip3 install flake8
-  - python3 -m flake8 --version
-  - python3 -m flake8 --max-line-length=120
-
   - touch ~/user-config.jam
   - 'if [[ $toolset == "gcc" ]]; then
       g++-5 --version;
@@ -137,7 +130,12 @@ install:
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
   - 'if [ "$lint" == "1" ]; then curl "https://raw.githubusercontent.com/google/styleguide/71ec7f1e524969c19ce33cfc72e8e023f2b98ee2/cpplint/cpplint.py" >~/cpplint.py; fi'
-
+  - 'if [ "$pylint" == "1" ]; then
+      sudo pip install flake8;
+      flake8 --version;
+      sudo pip3 install flake8;
+      python3 -m flake8 --version;
+    fi'
   - 'if [ $sonar_scan == "1" ]; then
       wget https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/sonar-scanner-2.6.1.zip;
       wget https://sonarqube.com/static/cpp/build-wrapper-linux-x86.zip;
@@ -190,7 +188,10 @@ script:
   - 'if [ "$lint" == "1" ]; then
       python ~/cpplint.py --extensions=cpp --headers=hpp --filter=-,+runtime/explicit,+whitespace/end_of_line --linelength=90 test/*.{cpp,hpp} src/*.cpp include/libtorrent/*.hpp include/libtorrent/kademlia/*.hpp src/kademlia/*.cpp include/libtorrent/aux_/*.hpp include/libtorrent/extensions/*.hpp simulation/*.{cpp,hpp} tools/*.{cpp,hpp} examples/*.{cpp,hpp};
     fi'
-
+  - 'if [ "$pylint" == "1" ]; then
+      flake8 --max-line-length=120;
+      python3 -m flake8 --max-line-length=120;
+    fi'
   - 'if [ "$sonar_scan" == "1" ]; then
        build-wrapper-linux-x86-64 --out-dir bw-output bjam -a -j3 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
        sonar-scanner -D sonar.login=$SONAR_TOKEN;
