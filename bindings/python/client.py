@@ -227,13 +227,14 @@ def main():
     if options.max_download_rate <= 0:
         options.max_download_rate = -1
 
-    settings = {'user_agent': 'python_client/' + lt.__version__,
-                'listen_interfaces': '%s:%d' % (options.listen_interface, options.port),
-                'download_rate_limit': int(options.max_download_rate),
-                'upload_rate_limit': int(options.max_upload_rate),
-                'alert_mask': lt.alert.category_t.all_categories,
-                'outgoing_interfaces': options.outgoing_interface
-                }
+    settings = {
+        'user_agent': 'python_client/' + lt.__version__,
+        'listen_interfaces': '%s:%d' % (options.listen_interface, options.port),
+        'download_rate_limit': int(options.max_download_rate),
+        'upload_rate_limit': int(options.max_upload_rate),
+        'alert_mask': lt.alert.category_t.all_categories,
+        'outgoing_interfaces': options.outgoing_interface,
+    }
 
     if options.proxy_host != '':
         settings['proxy_hostname'] = options.proxy_host.split(':')[0]
