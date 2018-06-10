@@ -653,10 +653,11 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 
 		std::string full_path = combine_path(path, dirname);
 		lt::create_directories(full_path, ec);
-		if (ec) fprintf(stderr, "create_directory(%s) failed: (%d) %s\n"
+		if (ec) std::printf("create_directory(%s) failed: (%d) %s\n"
 			, full_path.c_str(), ec.value(), ec.message().c_str());
 
 		full_path = combine_path(full_path, filename);
+		std::printf("creating file: %s\n", full_path.c_str());
 
 		int to_write = file_sizes[i];
 		if (fs) fs->add_file(full_path, to_write);
