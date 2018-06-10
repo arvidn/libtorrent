@@ -1254,9 +1254,13 @@ namespace libtorrent
 		// fails, ask the user which mode to use. The client may then re-issue
 		// the ``move_storage`` call with one of the other modes.
 		// 
-		// ``dont_replace`` always takes the existing file in the target
+		// ``dont_replace`` always keeps the existing file in the target
 		// directory, if there is one. The source files will still be removed in
-		// that case.
+		// that case. Note that it won't automatically re-check files. If an
+		// incomplete torrent is moved into a directory with the complete files,
+		// pause, move, force-recheck and resume. Without the re-checking, the
+		// torrent will keep downloading and files in the new download directory
+		// will be overwritten.
 		// 
 		// Files that have been renamed to have absolute paths are not moved by
 		// this function. Keep in mind that files that don't belong to the
