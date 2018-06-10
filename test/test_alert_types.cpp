@@ -82,8 +82,8 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(state_changed_alert, 10, 1, alert::status_notification);
 	TEST_ALERT_TYPE(tracker_error_alert, 11, 1, alert::tracker_notification | alert::error_notification);
 	TEST_ALERT_TYPE(tracker_warning_alert, 12, 0, alert::tracker_notification | alert::error_notification);
-	TEST_ALERT_TYPE(scrape_reply_alert, 13, 0, alert::tracker_notification);
-	TEST_ALERT_TYPE(scrape_failed_alert, 14, 0, alert::tracker_notification | alert::error_notification);
+	TEST_ALERT_TYPE(scrape_reply_alert, 13, 2, alert::tracker_notification);
+	TEST_ALERT_TYPE(scrape_failed_alert, 14, 2, alert::tracker_notification | alert::error_notification);
 	TEST_ALERT_TYPE(tracker_reply_alert, 15, 0, alert::tracker_notification);
 	TEST_ALERT_TYPE(dht_reply_alert, 16, 0, alert::dht_notification | alert::tracker_notification);
 	TEST_ALERT_TYPE(tracker_announce_alert, 17, 0, alert::tracker_notification);
