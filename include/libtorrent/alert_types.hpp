@@ -552,7 +552,7 @@ TORRENT_VERSION_NAMESPACE_2
 			, torrent_handle const& h, tcp::endpoint const& ep
 			, int incomp, int comp, string_view u);
 
-		TORRENT_DEFINE_ALERT(scrape_reply_alert, 13)
+		TORRENT_DEFINE_ALERT_PRIO(scrape_reply_alert, 13, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::tracker_notification;
 		std::string message() const override;
@@ -576,7 +576,7 @@ TORRENT_VERSION_NAMESPACE_2
 			, torrent_handle const& h, tcp::endpoint const& ep
 			, string_view u, string_view m);
 
-		TORRENT_DEFINE_ALERT(scrape_failed_alert, 14)
+		TORRENT_DEFINE_ALERT_PRIO(scrape_failed_alert, 14, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert::tracker_notification | alert::error_notification;
 		std::string message() const override;
