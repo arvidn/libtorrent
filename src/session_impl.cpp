@@ -586,7 +586,7 @@ namespace aux {
 
 		// apply all m_settings to this session
 		run_all_updates(*this);
-		reopen_listen_sockets();
+		reopen_listen_sockets(false);
 		reopen_outgoing_sockets();
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -1859,6 +1859,7 @@ namespace aux {
 #endif
 			if ((*remove_iter)->sock) (*remove_iter)->sock->close(ec);
 			if ((*remove_iter)->udp_sock) (*remove_iter)->udp_sock->sock.close();
+			if ((*remove_iter)->natpmp_mapper) (*remove_iter)->natpmp_mapper->close();
 			remove_iter = m_listen_sockets.erase(remove_iter);
 		}
 
@@ -1879,9 +1880,11 @@ namespace aux {
 
 				TORRENT_ASSERT((s->incoming == duplex::accept_incoming) == bool(s->sock));
 				if (s->sock) async_accept(s->sock, s->ssl);
+				if (m_settings.get_bool(settings_pack::enable_natpmp))
+					start_natpmp(*s);
 				// since this is a new socket it needs to map ports
 				// even if the caller did not request re-mapping
-				if (!map_ports) remap_ports(remap_natpmp_and_upnp, *s);
+				if (!map_ports) remap_ports(remap_upnp, *s);
 			}
 		}
 
@@ -2126,10 +2129,10 @@ namespace aux {
 		tcp::endpoint const tcp_ep = s.sock ? s.sock->local_endpoint() : tcp::endpoint();
 		udp::endpoint const udp_ep = s.udp_sock ? s.udp_sock->sock.local_endpoint() : udp::endpoint();
 
-		if ((mask & remap_natpmp) && m_natpmp)
+		if ((mask & remap_natpmp) && s.natpmp_mapper)
 		{
-			map_port(*m_natpmp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[0]);
-			map_port(*m_natpmp, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[0]);
+			map_port(*s.natpmp_mapper, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[0]);
+			map_port(*s.natpmp_mapper, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[0]);
 		}
 		if ((mask & remap_upnp) && m_upnp)
 		{
@@ -5450,6 +5453,23 @@ namespace aux {
 			m_alerts.emplace_alert<lsd_peer_alert>(t->get_handle(), peer);
 	}
 
+	void session_impl::start_natpmp(aux::listen_socket_t& s)
+	{
+		// don't create mappings for local IPv6 addresses
+		// they can't be reached from outside of the local network anyways
+		if (is_v6(s.local_endpoint) && is_local(s.local_endpoint.address()))
+			return;
+
+		if (!s.natpmp_mapper)
+		{
+			// the natpmp constructor may fail and call the callbacks
+			// into the session_impl.
+			s.natpmp_mapper = std::make_shared<natpmp>(m_io_service, *this);
+			s.natpmp_mapper->start(s.local_endpoint.address(), s.device);
+		}
+		remap_ports(remap_natpmp, s);
+	}
+
 	namespace {
 		bool find_tcp_port_mapping(portmap_transport const transport
 			, port_mapping_t mapping, std::shared_ptr<listen_socket_t> const& ls)
@@ -6646,22 +6666,11 @@ namespace aux {
 			m_alerts.emplace_alert<lsd_error_alert>(ec);
 	}
 
-	natpmp* session_impl::start_natpmp()
+	void session_impl::start_natpmp()
 	{
 		INVARIANT_CHECK;
-
-		if (m_natpmp) return m_natpmp.get();
-
-		// the natpmp constructor may fail and call the callbacks
-		// into the session_impl.
-		m_natpmp = std::make_shared<natpmp>(m_io_service, *this);
-		m_natpmp->start();
-
 		for (auto& s : m_listen_sockets)
-		{
-			remap_ports(remap_natpmp, *s);
-		}
-		return m_natpmp.get();
+			start_natpmp(*s);
 	}
 
 	upnp* session_impl::start_upnp()
@@ -6687,22 +6696,28 @@ namespace aux {
 		return m_upnp.get();
 	}
 
-	port_mapping_t session_impl::add_port_mapping(portmap_protocol const t
+	std::vector<port_mapping_t> session_impl::add_port_mapping(portmap_protocol const t
 		, int const external_port
 		, int const local_port)
 	{
-		port_mapping_t ret{-1};
-		if (m_upnp) ret = m_upnp->add_mapping(t, external_port
-			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port)));
-		if (m_natpmp) ret = m_natpmp->add_mapping(t, external_port
-			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port)));
+		std::vector<port_mapping_t> ret;
+		if (m_upnp) ret.push_back(m_upnp->add_mapping(t, external_port
+			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
+		for (auto& s : m_listen_sockets)
+		{
+			if (s->natpmp_mapper) ret.push_back(s->natpmp_mapper->add_mapping(t, external_port
+				, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
+		}
 		return ret;
 	}
 
 	void session_impl::delete_port_mapping(port_mapping_t handle)
 	{
 		if (m_upnp) m_upnp->delete_mapping(handle);
-		if (m_natpmp) m_natpmp->delete_mapping(handle);
+		for (auto& s : m_listen_sockets)
+		{
+			if (s->natpmp_mapper) s->natpmp_mapper->delete_mapping(handle);
+		}
 	}
 
 	void session_impl::stop_ip_notifier()
@@ -6722,16 +6737,14 @@ namespace aux {
 
 	void session_impl::stop_natpmp()
 	{
-		if (!m_natpmp) return;
-
-		m_natpmp->close();
 		for (auto& s : m_listen_sockets)
 		{
 			s->tcp_port_mapping[0] = port_mapping_t{-1};
 			s->udp_port_mapping[0] = port_mapping_t{-1};
+			if (!s->natpmp_mapper) continue;
+			s->natpmp_mapper->close();
+			s->natpmp_mapper.reset();
 		}
-
-		m_natpmp.reset();
 	}
 
 	void session_impl::stop_upnp()

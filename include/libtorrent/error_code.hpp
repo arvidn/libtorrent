@@ -326,17 +326,19 @@ namespace libtorrent {
 			// the listen socket associated with this request was closed
 			invalid_listen_socket,
 
+			// these error codes are deprecated, NAT-PMP/PCP error codes have
+			// been moved to their own category
 
 			// The NAT-PMP router responded with an unsupported protocol version
-			unsupported_protocol_version = 120,
+			unsupported_protocol_version TORRENT_DEPRECATED_ENUM = 120,
 			// You are not authorized to map ports on this NAT-PMP router
-			natpmp_not_authorized,
+			natpmp_not_authorized TORRENT_DEPRECATED_ENUM,
 			// The NAT-PMP router failed because of a network failure
-			network_failure,
+			network_failure TORRENT_DEPRECATED_ENUM,
 			// The NAT-PMP router failed because of lack of resources
-			no_resources,
+			no_resources TORRENT_DEPRECATED_ENUM,
 			// The NAT-PMP router failed because an unsupported opcode was sent
-			unsupported_opcode,
+			unsupported_opcode TORRENT_DEPRECATED_ENUM,
 
 
 

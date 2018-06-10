@@ -1,3 +1,4 @@
+	* add support for Port Control Protocol (PCP)
 	* deliver notification of alerts being dropped via alerts_dropped_alert
 	* deprecated alert::progress_notification alert category, split into
 	  finer grained categories
