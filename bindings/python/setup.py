@@ -157,9 +157,8 @@ else:
         if isinstance(value, str):
             cfg_vars[key] = value.replace('-Wstrict-prototypes', '')
 
-    source_list = os.listdir(os.path.join(os.path.dirname(__file__), "src"))
-    source_list = [os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                "src", s)) for s in source_list if s.endswith(".cpp")]
+    src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
+    source_list = [os.path.join(src_dir, s) for s in os.listdir(src_dir) if s.endswith(".cpp")]
 
     if extra_cmd:
         flags = flags_parser()
