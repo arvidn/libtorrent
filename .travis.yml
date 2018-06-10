@@ -231,9 +231,10 @@ script:
 
 # a binary built with sanitizer does not interact well with python
 # on OSX we need to use the brew version of python, for reasons explained above
+# boost.python cannot be built with warnings-as-errors=on
   - cd bindings/python
   - 'if [[ "$python" == "1" ]]; then
-      bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
+      bjam -j3 warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
         DYLD_LIBRARY_PATH=./dependencies python2 test.py;
       else
