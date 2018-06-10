@@ -5727,7 +5727,6 @@ namespace libtorrent {
 			, "max: %d bytes", max_receive);
 #endif
 
-		// utp sockets aren't thread safe...
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
 		auto conn = self();
 		m_socket->async_read_some(

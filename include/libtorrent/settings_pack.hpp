@@ -1488,6 +1488,7 @@ namespace libtorrent {
 			aio_threads,
 			aio_max,
 
+#if TORRENT_ABI_VERSION == 1
 			// .. note:: This is not implemented
 			//
 			// ``network_threads`` is the number of threads to use to call
@@ -1497,9 +1498,8 @@ namespace libtorrent {
 			// torrents, all encryption for outgoing traffic is done within the
 			// socket send functions, and this will help parallelizing the cost of
 			// SSL encryption as well.
-			network_threads,
+			network_threads TORRENT_DEPRECATED_ENUM,
 
-#if TORRENT_ABI_VERSION == 1
 			// ``ssl_listen`` sets the listen port for SSL connections. If this is
 			// set to 0, no SSL listen port is opened. Otherwise a socket is
 			// opened on this port. This setting is only taken into account when
@@ -1509,6 +1509,7 @@ namespace libtorrent {
 #else
 			// hidden
 			deprecated9,
+			deprecated27,
 #endif
 
 			// ``tracker_backoff`` determines how aggressively to back off from
