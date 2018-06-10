@@ -320,6 +320,8 @@ TORRENT_TEST(discrete_checking)
 
 	file_storage fs;
 	create_random_files("test_torrent_dir", file_sizes, num_files, &fs);
+	TEST_EQUAL(fs.num_files(), 2);
+
 	lt::create_torrent t(fs, piece_size, 1, lt::create_torrent::optimize_alignment);
 	set_piece_hashes(t, ".", ec);
 	if (ec) printf("ERROR: set_piece_hashes: (%d) %s\n", ec.value(), ec.message().c_str());
@@ -328,7 +330,10 @@ TORRENT_TEST(discrete_checking)
 	bencode(std::back_inserter(buf), t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
 	printf("generated torrent: %s test_torrent_dir\n", aux::to_hex(ti->info_hash().to_string()).c_str());
+
+	// we have two files, but there's a padfile now too
 	TEST_EQUAL(ti->num_files(), 3);
+
 	{
 		session ses1(settings());
 		add_torrent_params p;
