@@ -635,10 +635,9 @@ namespace libtorrent {
 			}
 
 			if (file_index < m_file_priority.end_index()
-				&& m_file_priority[file_index] == dont_download)
+				&& m_file_priority[file_index] == dont_download
+				&& use_partfile(file_index))
 			{
-				need_partfile();
-
 				error_code e;
 				peer_request map = files().map_file(file_index, file_offset, 0);
 				int const ret = m_part_file->hashv(ph, read_size
