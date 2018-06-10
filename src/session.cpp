@@ -106,7 +106,6 @@ namespace {
 		set.set_int(settings_pack::checking_mem_usage, 2);
 
 		// don't use any extra threads to do SHA-1 hashing
-		set.set_int(settings_pack::network_threads, 0);
 		set.set_int(settings_pack::aio_threads, 1);
 
 		set.set_int(settings_pack::alert_queue_size, 100);
@@ -272,11 +271,6 @@ namespace {
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
 		set.set_int(settings_pack::max_failcount, 1);
-
-		// the number of threads to use to call async_write_some
-		// and read_some on peer sockets
-		// this doesn't work. See comment in settings_pack.cpp
-		set.set_int(settings_pack::network_threads, 0);
 
 		// number of disk threads for low level file operations
 		set.set_int(settings_pack::aio_threads, 8);

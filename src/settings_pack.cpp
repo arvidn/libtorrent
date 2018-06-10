@@ -310,7 +310,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(predictive_piece_announce, 0, nullptr),
 		SET(aio_threads, 4, &session_impl::update_disk_threads),
 		SET(aio_max, 300, nullptr),
-		SET(network_threads, 0, nullptr),
+		DEPRECATED_SET(network_threads, 0, nullptr),
 		DEPRECATED_SET(ssl_listen, 0, &session_impl::update_ssl_listen),
 		SET(tracker_backoff, 250, nullptr),
 		SET(share_ratio_limit, 200, nullptr),
