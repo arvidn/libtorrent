@@ -95,12 +95,11 @@ void test_checking(int flags)
 	std::srand(10);
 	int piece_size = 0x4000;
 
-	const int file_sizes[] =
-	{ 0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
-		,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4 };
-	const int num_files = sizeof(file_sizes) / sizeof(file_sizes[0]);
+	static std::array<const int, 46> const file_sizes
+	{{ 0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
+		,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4 }};
 
-	create_random_files("test_torrent_dir", file_sizes, num_files, &fs);
+	create_random_files("test_torrent_dir", file_sizes, &fs);
 
 	lt::create_torrent t(fs, piece_size, 0x4000
 		, lt::create_torrent::optimize_alignment);
@@ -120,12 +119,12 @@ void test_checking(int flags)
 	// truncate every file in half
 	if (flags & incomplete_files)
 	{
-		for (int i = 0; i < num_files; ++i)
+		for (std::size_t i = 0; i < file_sizes.size(); ++i)
 		{
 			char name[1024];
-			std::snprintf(name, sizeof(name), "test%d", i);
+			std::snprintf(name, sizeof(name), "test%d", int(i));
 			char dirname[200];
-			std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+			std::snprintf(dirname, sizeof(dirname), "test_dir%d", int(i) / 5);
 			std::string path = combine_path("test_torrent_dir", dirname);
 			path = combine_path(path, name);
 
@@ -144,22 +143,22 @@ void test_checking(int flags)
 		std::printf("corrupt file test. overwriting files\n");
 		// increase the size of some files. When they're read only that forces
 		// the checker to open them in write-mode to truncate them
-		static const int file_sizes2[] =
-		{ 0, 5, 16 - 5, 16001, 30, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
-			,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
-		create_random_files("test_torrent_dir", file_sizes2, num_files);
+			static std::array<const int, 46> const file_sizes2
+		{{ 0, 5, 16 - 5, 16001, 30, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
+			,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4}};
+		create_random_files("test_torrent_dir", file_sizes2);
 	}
 
 	// make the files read only
 	if (flags & read_only_files)
 	{
 		std::printf("making files read-only\n");
-		for (int i = 0; i < num_files; ++i)
+		for (std::size_t i = 0; i < file_sizes.size(); ++i)
 		{
 			char name[1024];
-			std::snprintf(name, sizeof(name), "test%d", i);
+			std::snprintf(name, sizeof(name), "test%d", int(i));
 			char dirname[200];
-			std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+			std::snprintf(dirname, sizeof(dirname), "test_dir%d", int(i) / 5);
 
 			std::string path = combine_path("test_torrent_dir", dirname);
 			path = combine_path(path, name);
@@ -251,12 +250,12 @@ void test_checking(int flags)
 	// make the files writable again
 	if (flags & read_only_files)
 	{
-		for (int i = 0; i < num_files; ++i)
+		for (std::size_t i = 0; i < file_sizes.size(); ++i)
 		{
 			char name[1024];
-			std::snprintf(name, sizeof(name), "test%d", i);
+			std::snprintf(name, sizeof(name), "test%d", int(i));
 			char dirname[200];
-			std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+			std::snprintf(dirname, sizeof(dirname), "test_dir%d", int(i) / 5);
 
 			std::string path = combine_path("test_torrent_dir", dirname);
 			path = combine_path(path, name);
@@ -315,11 +314,10 @@ TORRENT_TEST(discrete_checking)
 
 	int const megabyte = 0x100000;
 	int const piece_size = 2 * megabyte;
-	int const file_sizes[] = { 9 * megabyte, 3 * megabyte };
-	int const num_files = sizeof(file_sizes) / sizeof(file_sizes[0]);
+	static std::array<int const, 2> const file_sizes{{ 9 * megabyte, 3 * megabyte }};
 
 	file_storage fs;
-	create_random_files("test_torrent_dir", file_sizes, num_files, &fs);
+	create_random_files("test_torrent_dir", file_sizes, &fs);
 	TEST_EQUAL(fs.num_files(), 2);
 
 	lt::create_torrent t(fs, piece_size, 1, lt::create_torrent::optimize_alignment);

@@ -109,11 +109,10 @@ TORRENT_TEST(no_truncate_checking)
 std::shared_ptr<lt::torrent_info> create_multifile_torrent()
 {
 	// the two first files are exactly the size of a piece
-	static const int file_sizes[] = { 0x40000, 0x40000, 4300, 0, 400, 4300, 6, 4};
-	const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
+	static std::array<const int, 8> const file_sizes{{ 0x40000, 0x40000, 4300, 0, 400, 4300, 6, 4}};
 
 	lt::file_storage fs;
-	create_random_files("test_torrent_dir", file_sizes, num_files, &fs);
+	create_random_files("test_torrent_dir", file_sizes, &fs);
 	lt::create_torrent t(fs, 0x40000, -1, {});
 
 	// calculate the hash for all pieces
