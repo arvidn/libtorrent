@@ -83,12 +83,12 @@ EXPORT void wait_for_listen(lt::session& ses, char const* name);
 EXPORT void wait_for_downloading(lt::session& ses, char const* name);
 
 EXPORT std::vector<char> generate_piece(lt::piece_index_t idx, int piece_size = 0x4000);
-EXPORT lt::file_storage make_file_storage(const int file_sizes[], int num_files
+EXPORT lt::file_storage make_file_storage(lt::span<const int> file_sizes
 	, int const piece_size, std::string base_name = "test_dir-");
-EXPORT std::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
-	, int num_files, int piece_size);
-EXPORT void create_random_files(std::string const& path, const int file_sizes[]
-	, int num_files, libtorrent::file_storage* fs = nullptr);
+EXPORT std::shared_ptr<lt::torrent_info> make_torrent(lt::span<const int> file_sizes
+	, int piece_size);
+EXPORT void create_random_files(std::string const& path, lt::span<const int> file_sizes
+	, libtorrent::file_storage* fs = nullptr);
 
 EXPORT std::shared_ptr<lt::torrent_info> create_torrent(std::ostream* file = nullptr
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13

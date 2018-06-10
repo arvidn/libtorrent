@@ -595,18 +595,18 @@ std::vector<char> generate_piece(piece_index_t const idx, int const piece_size)
 	return ret;
 }
 
-lt::file_storage make_file_storage(const int file_sizes[], int num_files
+lt::file_storage make_file_storage(span<const int> const file_sizes
 	, int const piece_size, std::string base_name)
 {
 	using namespace lt;
 	file_storage fs;
-	for (int i = 0; i != num_files; ++i)
+	for (std::size_t i = 0; i != file_sizes.size(); ++i)
 	{
 		char filename[200];
-		std::snprintf(filename, sizeof(filename), "test%d", i);
+		std::snprintf(filename, sizeof(filename), "test%d", int(i));
 		char dirname[200];
 		std::snprintf(dirname, sizeof(dirname), "%s%d", base_name.c_str()
-			, i / 5);
+			, int(i) / 5);
 		std::string full_path = combine_path(dirname, filename);
 
 		fs.add_file(full_path, file_sizes[i]);
@@ -618,11 +618,11 @@ lt::file_storage make_file_storage(const int file_sizes[], int num_files
 	return fs;
 }
 
-std::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
-	, int const num_files, int const piece_size)
+std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
+	, int const piece_size)
 {
 	using namespace lt;
-	file_storage fs = make_file_storage(file_sizes, num_files, piece_size);
+	file_storage fs = make_file_storage(file_sizes, piece_size);
 
 	lt::create_torrent ct(fs, piece_size, 0x4000
 		, lt::create_torrent::optimize_alignment);
@@ -638,18 +638,18 @@ std::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 	return std::make_shared<torrent_info>(buf, from_span);
 }
 
-void create_random_files(std::string const& path, const int file_sizes[], int num_files
+void create_random_files(std::string const& path, span<const int> file_sizes
 	, file_storage* fs)
 {
 	error_code ec;
 	aux::vector<char> random_data(300000);
-	for (int i = 0; i != num_files; ++i)
+	for (std::size_t i = 0; i != file_sizes.size(); ++i)
 	{
 		std::generate(random_data.begin(), random_data.end(), random_byte);
 		char filename[200];
-		std::snprintf(filename, sizeof(filename), "test%d", i);
+		std::snprintf(filename, sizeof(filename), "test%d", int(i));
 		char dirname[200];
-		std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+		std::snprintf(dirname, sizeof(dirname), "test_dir%d", int(i) / 5);
 
 		std::string full_path = combine_path(path, dirname);
 		lt::create_directories(full_path, ec);
@@ -668,7 +668,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		while (to_write > 0)
 		{
 			int const s = std::min(to_write, static_cast<int>(random_data.size()));
-			iovec_t b = { random_data.data(), size_t(s)};
+			iovec_t const b = { random_data.data(), size_t(s)};
 			f.writev(offset, b, ec);
 			if (ec) std::printf("failed to write file \"%s\": (%d) %s\n"
 				, full_path.c_str(), ec.value(), ec.message().c_str());

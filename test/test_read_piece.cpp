@@ -71,10 +71,9 @@ void test_read_piece(int flags)
 	std::srand(10);
 	int piece_size = 0x4000;
 
-	static const int file_sizes[] = { 100000, 10000 };
+	static std::array<const int, 2> const file_sizes{{ 100000, 10000 }};
 
-	create_random_files(combine_path("tmp1_read_piece", "test_torrent")
-		, file_sizes, 2);
+	create_random_files(combine_path("tmp1_read_piece", "test_torrent"), file_sizes);
 
 	add_files(fs, combine_path("tmp1_read_piece", "test_torrent"));
 	lt::create_torrent t(fs, piece_size, 0x4000);
