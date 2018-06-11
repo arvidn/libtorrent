@@ -326,6 +326,7 @@ namespace libtorrent {
 			// the listen socket associated with this request was closed
 			invalid_listen_socket,
 
+#if TORRENT_ABI_VERSION == 1
 			// these error codes are deprecated, NAT-PMP/PCP error codes have
 			// been moved to their own category
 
@@ -339,7 +340,13 @@ namespace libtorrent {
 			no_resources TORRENT_DEPRECATED_ENUM,
 			// The NAT-PMP router failed because an unsupported opcode was sent
 			unsupported_opcode TORRENT_DEPRECATED_ENUM,
-
+#else
+			deprecated_120 = 120,
+			deprecated_121,
+			deprecated_122,
+			deprecated_123,
+			deprecated_124,
+#endif
 
 
 			// The resume data file is missing the 'file sizes' entry
