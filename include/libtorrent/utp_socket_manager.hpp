@@ -133,9 +133,10 @@ namespace libtorrent {
 		void release_packet(packet_ptr p) { m_packet_pool.release(std::move(p)); }
 		void decay() { m_packet_pool.decay(); }
 
-	private:
 		// explicitly disallow assignment, to silence msvc warning
-		utp_socket_manager& operator=(utp_socket_manager const&);
+		utp_socket_manager& operator=(utp_socket_manager const&) = delete;
+
+	private:
 
 		send_fun_t m_send_fun;
 		incoming_utp_callback_t m_cb;

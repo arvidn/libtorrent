@@ -305,14 +305,11 @@ struct utp_socket_impl
 	packet_ptr acquire_packet(int const allocate) { return m_sm.acquire_packet(allocate); }
 	void release_packet(packet_ptr p) { m_sm.release_packet(std::move(p)); }
 
-private:
-
 	// non-copyable
 	utp_socket_impl(utp_socket_impl const&) = delete;
 	utp_socket_impl const& operator=(utp_socket_impl const&) = delete;
 
 	// TODO: 2 it would be nice if not everything would have to be public here
-public:
 
 	void check_receive_buffers() const;
 
@@ -920,7 +917,7 @@ void utp_stream::on_write(void* self, std::size_t const bytes_transferred
 	}
 }
 
-void utp_stream::on_connect(void* self, error_code const& ec, bool shutdown)
+void utp_stream::on_connect(void* self, error_code const& ec, bool const shutdown)
 {
 	auto* s = static_cast<utp_stream*>(self);
 	TORRENT_ASSERT(s);
@@ -3475,7 +3472,7 @@ int utp_socket_impl::packet_timeout() const
 	return timeout;
 }
 
-void utp_socket_impl::tick(time_point now)
+void utp_socket_impl::tick(time_point const now)
 {
 	INVARIANT_CHECK;
 

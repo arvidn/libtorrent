@@ -181,8 +181,7 @@ namespace libtorrent {
 			return utp_incoming_packet(m_last_socket, p, ep, receive_time);
 		}
 
-		std::pair<socket_map_t::iterator, socket_map_t::iterator> r =
-			m_utp_sockets.equal_range(id);
+		auto r = m_utp_sockets.equal_range(id);
 
 		for (; r.first != r.second; ++r.first)
 		{
