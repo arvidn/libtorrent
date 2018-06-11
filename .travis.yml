@@ -55,12 +55,14 @@ before_install:
 
   # on linux, pull down a recent version of boost and build boost-build
   - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
+    cd ..;
     wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.zip;
     unzip -qq boost_1_64_0.zip;
     export BOOST_ROOT=$PWD/boost_1_64_0;
     (cd boost_1_64_0/tools/build/src/engine; ./build.sh);
     export BOOST_BUILD_PATH=$BOOST_ROOT/tools/build;
     export PATH=$BOOST_BUILD_PATH/src/engine/bin.linuxx86_64:$PATH;
+    cd libtorrent;
     fi'
 
   - git submodule update --init --recursive
