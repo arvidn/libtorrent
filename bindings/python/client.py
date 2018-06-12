@@ -3,7 +3,7 @@
 # Copyright Daniel Wallin 2006. Use, modification and distribution is
 # subject to the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-from __future__ import print_function
+
 
 import sys
 import atexit
@@ -153,6 +153,7 @@ def print_download_queue(console, download_queue):
 
     write_line(console, out)
 
+
 def add_torrent(ses, filename, options):
     atp = lt.add_torrent_params()
     if filename.startswith('magnet:'):
@@ -160,8 +161,8 @@ def add_torrent(ses, filename, options):
     else:
         atp.ti = lt.torrent_info(filename)
         try:
-            at.resume_data = open(os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read()
-        except:
+            atp.resume_data = open(os.path.join(options.save_path, atp.info.name() + '.fastresume'), 'rb').read()
+        except BaseException:
             pass
 
     atp.save_path = options.save_path
@@ -170,6 +171,7 @@ def add_torrent(ses, filename, options):
         | lt.torrent_flags.auto_managed \
         | lt.torrent_flags.duplicate_is_error
     ses.async_add_torrent(atp)
+
 
 def main():
     from optparse import OptionParser
@@ -225,12 +227,13 @@ def main():
     if options.max_download_rate <= 0:
         options.max_download_rate = -1
 
-    settings = { 'user_agent': 'python_client/' + lt.__version__,
+    settings = {
+        'user_agent': 'python_client/' + lt.__version__,
         'listen_interfaces': '%s:%d' % (options.listen_interface, options.port),
         'download_rate_limit': int(options.max_download_rate),
         'upload_rate_limit': int(options.max_upload_rate),
         'alert_mask': lt.alert.category_t.all_categories,
-        'outgoing_interfaces' : options.outgoing_interface
+        'outgoing_interfaces': options.outgoing_interface,
     }
 
     if options.proxy_host != '':
@@ -258,16 +261,16 @@ def main():
 
         out = ''
 
-        for h,t in torrents.items():
+        for h, t in torrents.items():
             out += 'name: %-40s\n' % t.name[:40]
 
             if t.state != lt.torrent_status.seeding:
-                state_str = ['queued', 'checking', 'downloading metadata', \
-                             'downloading', 'finished', 'seeding', \
+                state_str = ['queued', 'checking', 'downloading metadata',
+                             'downloading', 'finished', 'seeding',
                              'allocating', 'checking fastresume']
                 out += state_str[t.state] + ' '
 
-                out += '%5.4f%% ' % (t.progress*100)
+                out += '%5.4f%% ' % (t.progress * 100)
                 out += progress_bar(t.progress, 49)
                 out += '\n'
 
@@ -300,7 +303,7 @@ def main():
                         out += progress_bar(p / float(f.size), 20)
                         out += ' ' + f.path + '\n'
                     write_line(console, out)
-                except:
+                except BaseException:
                     pass
 
         write_line(console, 76 * '-' + '\n')
@@ -312,7 +315,7 @@ def main():
             alerts_log.append(a.message())
 
             # add new torrents to our list of torrent_status
-            if type(a) == lt.add_torrent_alert:
+            if isinstance(a, lt.add_torrent_alert):
                 h = a.handle
                 h.set_max_connections(60)
                 h.set_max_uploads(-1)
@@ -320,7 +323,7 @@ def main():
 
             # update our torrent_status array for torrents that have
             # changed some of their state
-            if type(a) == lt.state_update_alert:
+            if isinstance(a, lt.state_update_alert):
                 for s in a.status:
                     torrents[s.handle] = s
 
@@ -333,19 +336,23 @@ def main():
         c = console.sleep_and_input(0.5)
 
         ses.post_torrent_updates()
-        if not c: continue
+        if not c:
+            continue
 
         if c == 'r':
-            for h in torrents.keys(): h.force_reannounce()
+            for h in torrents:
+                h.force_reannounce()
         elif c == 'q':
             alive = False
         elif c == 'p':
-            for h in torrents.keys(): h.pause()
+            for h in torrents:
+                h.pause()
         elif c == 'u':
-            for h in torrents.keys(): h.resume()
+            for h in torrents:
+                h.resume()
 
     ses.pause()
-    for h,t in torrents.items():
+    for h, t in torrents.items():
         if not h.is_valid() or not t.has_metadata:
             continue
         h.save_resume_data()
@@ -353,7 +360,7 @@ def main():
     while len(torrents) > 0:
         alerts = ses.pop_alerts()
         for a in alerts:
-            if type(a) == lt.save_resume_data_alert:
+            if isinstance(a, lt.save_resume_data_alert):
                 print(a)
                 data = lt.write_resume_data_buf(a.params)
                 h = a.handle
@@ -361,11 +368,12 @@ def main():
                     open(os.path.join(options.save_path, torrents[h].name + '.fastresume'), 'wb').write(data)
                     del torrents[h]
 
-            if type(a) == lt.save_resume_data_failed_alert:
+            if isinstance(a, lt.save_resume_data_failed_alert):
                 h = a.handle
                 if h in torrents:
                     print('failed to save resume data for ', torrents[h].name)
                     del torrents[h]
         time.sleep(0.5)
+
 
 main()

@@ -8,7 +8,7 @@ import libtorrent as lt
 import time
 import sys
 
-ses = lt.session({'listen_interfaces':'0.0.0.0:6881'})
+ses = lt.session({'listen_interfaces': '0.0.0.0:6881'})
 
 info = lt.torrent_info(sys.argv[1])
 h = ses.add_torrent({'ti': info, 'save_path': '.'})

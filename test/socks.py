@@ -1,25 +1,34 @@
 #!/usr/bin/env python
 
 """Minimal non-feature complete socks proxy"""
+from __future__ import print_function
 
-import random
 import socket
-from SocketServer import StreamRequestHandler, ThreadingTCPServer
 from struct import pack, unpack
 import threading
 import sys
 
+# Python 3 renamed SocketServer to socketserver
+try:
+    from socketserver import StreamRequestHandler, ThreadingTCPServer
+except BaseException:
+    from SocketServer import StreamRequestHandler, ThreadingTCPServer
+
+
 def debug(s):
-   print >>sys.stderr, 'socks.py: ', s
+    print('socks.py: ', s, file=sys.stderr)
+
 
 def error(s):
-   print >>sys.stderr, 'socks.py, ERROR: ', s
+    print('socks.py, ERROR: ', s, file=sys.stderr)
+
 
 class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
 
     def handle_timeout(self):
         raise Exception('timeout')
+
 
 CLOSE = object()
 
@@ -37,14 +46,18 @@ password = None
 username = None
 allow_v4 = False
 
+
 def send(dest, msg):
     if msg == CLOSE:
-        try: dest.shutdown(socket.SHUT_WR)
-        except: pass
+        try:
+            dest.shutdown(socket.SHUT_WR)
+        except BaseException:
+            pass
         dest.close()
         return 0
     else:
         return dest.sendall(msg)
+
 
 def recv(source, buffer):
     data = source.recv(buffer)
@@ -52,6 +65,7 @@ def recv(source, buffer):
         return CLOSE
     else:
         return data
+
 
 def forward(source, dest, name):
     while True:
@@ -63,10 +77,12 @@ def forward(source, dest, name):
 #        debug('Forwarding (%d) %r' % (len(data), data))
         send(dest, data)
 
+
 def spawn_forwarder(source, dest, name):
     t = threading.Thread(target=forward, args=(source, dest, name))
     t.daemon = True
     t.start()
+
 
 class SocksHandler(StreamRequestHandler):
     """Highly feature incomplete SOCKS 5 implementation"""
@@ -109,7 +125,7 @@ class SocksHandler(StreamRequestHandler):
                 c = self.read(1)
 
             outbound_sock = socket.socket(socket.AF_INET)
-            out_address = socket.getaddrinfo(dest_address,dest_port)[0][4]
+            out_address = socket.getaddrinfo(dest_address, dest_port)[0][4]
             debug("Creating forwarder connection to %s:%d" % (out_address[0], out_address[1]))
             outbound_sock.connect(out_address)
 
@@ -130,7 +146,7 @@ class SocksHandler(StreamRequestHandler):
         global password
         global username
 
-        if password == None and NOAUTH in method_list:
+        if password is None and NOAUTH in method_list:
             self.send_no_auth_method()
             debug('Authenticated (no-auth)')
         elif USERPASS in method_list:
@@ -173,7 +189,7 @@ class SocksHandler(StreamRequestHandler):
             dest_address = '.'.join(map(str, unpack('>4B', raw_dest_address)))
         elif address_type == IPV6:
             raw_dest_address = self.read(16)
-            dest_address = ":".join(map(lambda x: hex(x)[2:],unpack('>8H',raw_dest_address)))
+            dest_address = ":".join([hex(x)[2:] for x in unpack('>8H', raw_dest_address)])
         elif address_type == DOMAIN_NAME:
             dns_length = ord(self.read(1))
             dns_name = self.read(dns_length)
@@ -190,21 +206,21 @@ class SocksHandler(StreamRequestHandler):
         else:
             outbound_sock = socket.socket(socket.AF_INET)
         try:
-            out_address = socket.getaddrinfo(dest_address,dest_port)[0][4]
-        except Exception, e:
-            print e
+            out_address = socket.getaddrinfo(dest_address, dest_port)[0][4]
+        except Exception as e:
+            print(e)
             return
 
         if cmd == UDP_ASSOCIATE:
-           debug("no UDP support yet, closing")
-           return;
+            debug("no UDP support yet, closing")
+            return
 
         debug("Creating forwarder connection to %s:%d" % (out_address[0], out_address[1]))
 
         try:
             outbound_sock.connect(out_address)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             return
 
         if address_type == IPV6:
@@ -215,22 +231,25 @@ class SocksHandler(StreamRequestHandler):
         spawn_forwarder(outbound_sock, self.request, 'destination')
         try:
             forward(self.request, outbound_sock, 'client')
-        except Exception,e:
-            print e
+        except Exception as e:
+            print(e)
 
-    def send_reply_v4(self, (bind_addr, bind_port)):
+    def send_reply_v4(self, xxx_todo_changeme):
+        (bind_addr, bind_port) = xxx_todo_changeme
         self.wfile.write('\0\x5a\0\0\0\0\0\0')
         self.wfile.flush()
 
-    def send_reply(self, (bind_addr, bind_port)):
+    def send_reply(self, xxx_todo_changeme1):
+        (bind_addr, bind_port) = xxx_todo_changeme1
         bind_tuple = tuple(map(int, bind_addr.split('.')))
         full_address = bind_tuple + (bind_port,)
         debug('Setting up forwarding port %r' % (full_address,))
         msg = pack('>cccc4BH', VERSION, SUCCESS, '\x00', IPV4, *full_address)
         self.wfile.write(msg)
 
-    def send_reply6(self, (bind_addr, bind_port, unused1, unused2)):
-        bind_tuple = tuple(map(lambda x: int(x,16), bind_addr.split(':')))
+    def send_reply6(self, xxx_todo_changeme2):
+        (bind_addr, bind_port, unused1, unused2) = xxx_todo_changeme2
+        bind_tuple = tuple([int(x, 16) for x in bind_addr.split(':')])
         full_address = bind_tuple + (bind_port,)
         debug('Setting up forwarding port %r' % (full_address,))
         msg = pack('>cccc8HH', VERSION, SUCCESS, '\x00', IPV6, *full_address)
@@ -252,24 +271,26 @@ class SocksHandler(StreamRequestHandler):
         self.wfile.write('\x01\x00')
         self.wfile.flush()
 
+
 if __name__ == '__main__':
 
     listen_port = 8002
     i = 1
     while i < len(sys.argv):
         if sys.argv[i] == '--username':
-            username = sys.argv[i+1]
+            username = sys.argv[i + 1]
             i += 1
         elif sys.argv[i] == '--password':
-            password = sys.argv[i+1]
+            password = sys.argv[i + 1]
             i += 1
         elif sys.argv[i] == '--port':
-            listen_port = int(sys.argv[i+1])
+            listen_port = int(sys.argv[i + 1])
             i += 1
         elif sys.argv[i] == '--allow-v4':
             allow_v4 = True
         else:
-            if sys.argv[i] != '--help': debug('unknown option "%s"' % sys.argv[i])
+            if sys.argv[i] != '--help':
+                debug('unknown option "%s"' % sys.argv[i])
             print('usage: socks.py [--username <user> --password <password>] [--port <listen-port>]')
             sys.exit(1)
         i += 1
@@ -279,4 +300,3 @@ if __name__ == '__main__':
     server.timeout = 190
     while True:
         server.handle_request()
-

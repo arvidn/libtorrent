@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import print_function
+
 
 from distutils.core import setup, Extension
 from distutils.sysconfig import get_config_vars
@@ -55,13 +55,13 @@ def target_specific():
 try:
     with open('compile_flags') as _file:
         extra_cmd = _file.read()
-except:
+except BaseException:
     extra_cmd = None
 
 try:
     with open('link_flags') as _file:
         ldflags = _file.read()
-except:
+except BaseException:
     ldflags = None
 
 # this is to pull out compiler arguments from the CXX flags set up by the
@@ -75,7 +75,7 @@ try:
         while len(cmd) > 0 and not cmd[0].startswith('-'):
             cmd = cmd[1:]
         extra_cmd += ' '.join(cmd)
-except:
+except BaseException:
     pass
 
 ext = None
@@ -85,7 +85,7 @@ if '--bjam' in sys.argv:
     del sys.argv[sys.argv.index('--bjam')]
 
     if '--help' not in sys.argv \
-        and '--help-commands' not in sys.argv:
+            and '--help-commands' not in sys.argv:
 
         toolset = ''
         file_ext = '.so'
@@ -129,14 +129,22 @@ if '--bjam' in sys.argv:
             print('build failed')
             sys.exit(1)
 
-        try: os.mkdir('build')
-        except: pass
-        try: shutil.rmtree('build/lib')
-        except: pass
-        try: os.mkdir('build/lib')
-        except: pass
-        try: os.mkdir('libtorrent')
-        except: pass
+        try:
+            os.mkdir('build')
+        except BaseException:
+            pass
+        try:
+            shutil.rmtree('build/lib')
+        except BaseException:
+            pass
+        try:
+            os.mkdir('build/lib')
+        except BaseException:
+            pass
+        try:
+            os.mkdir('libtorrent')
+        except BaseException:
+            pass
         shutil.copyfile('libtorrent' + file_ext,
                         'build/lib/libtorrent' + file_ext)
 
@@ -145,13 +153,12 @@ if '--bjam' in sys.argv:
 else:
     # Remove '-Wstrict-prototypes' compiler option, which isn't valid for C++.
     cfg_vars = get_config_vars()
-    for key, value in cfg_vars.items():
+    for key, value in list(cfg_vars.items()):
         if isinstance(value, str):
             cfg_vars[key] = value.replace('-Wstrict-prototypes', '')
 
-    source_list = os.listdir(os.path.join(os.path.dirname(__file__), "src"))
-    source_list = [os.path.abspath(os.path.join(os.path.dirname(__file__),
-                   "src", s)) for s in source_list if s.endswith(".cpp")]
+    src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
+    source_list = [os.path.join(src_dir, s) for s in os.listdir(src_dir) if s.endswith(".cpp")]
 
     if extra_cmd:
         flags = flags_parser()
