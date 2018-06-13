@@ -178,10 +178,9 @@ namespace {
 	{
 		if (family == AF_INET)
 		{
-			using bytes_t = boost::asio::ip::address_v4::bytes_type;
-			bytes_t b;
-			std::memset(&b[0], 0xff, b.size());
-			for (int i = int(b.size()) - 1; i > 0; --i)
+			address_v4::bytes_type b;
+			b.fill(0xff);
+			for (std::size_t i = b.size() - 1; i > 0; --i)
 			{
 				if (bits < 8)
 				{
@@ -196,10 +195,9 @@ namespace {
 #if TORRENT_USE_IPV6
 		else if (family == AF_INET6)
 		{
-			using bytes_t = boost::asio::ip::address_v6::bytes_type;
-			bytes_t b;
-			std::memset(&b[0], 0xff, b.size());
-			for (int i = int(b.size()) - 1; i > 0; --i)
+			address_v6::bytes_type b;
+			b.fill(0xff);
+			for (std::size_t i = b.size() - 1; i > 0; --i)
 			{
 				if (bits < 8)
 				{
@@ -358,7 +356,7 @@ namespace {
 		if (rt_info->gateway.is_v6() && rt_info->gateway.to_v6().is_link_local())
 		{
 			address_v6 gateway6 = rt_info->gateway.to_v6();
-			gateway6.scope_id(if_index);
+			gateway6.scope_id(std::uint32_t(if_index));
 			rt_info->gateway = gateway6;
 		}
 #endif
