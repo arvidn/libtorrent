@@ -174,20 +174,20 @@ namespace {
 	}
 
 #if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_NETLINK
-	address build_netmask(int bits, int family)
+	address build_netmask(int bits, int const family)
 	{
 		if (family == AF_INET)
 		{
 			address_v4::bytes_type b;
 			b.fill(0xff);
-			for (std::size_t i = b.size() - 1; i > 0; --i)
+			for (int i = int(b.size()) - 1; i >= 0; --i)
 			{
 				if (bits < 8)
 				{
-					b[i] <<= bits;
+					b[std::size_t(i)] <<= bits;
 					break;
 				}
-				b[i] = 0;
+				b[std::size_t(i)] = 0;
 				bits -= 8;
 			}
 			return address_v4(b);
@@ -197,14 +197,14 @@ namespace {
 		{
 			address_v6::bytes_type b;
 			b.fill(0xff);
-			for (std::size_t i = b.size() - 1; i > 0; --i)
+			for (int i = int(b.size()) - 1; i >= 0; --i)
 			{
 				if (bits < 8)
 				{
-					b[i] <<= bits;
+					b[std::size_t(i)] <<= bits;
 					break;
 				}
-				b[i] = 0;
+				b[std::size_t(i)] = 0;
 				bits -= 8;
 			}
 			return address_v6(b);
