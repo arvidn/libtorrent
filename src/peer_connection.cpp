@@ -1323,6 +1323,11 @@ namespace libtorrent {
 					p->disconnect(errors::too_many_connections, operation_t::bittorrent);
 					peer_disconnected_other();
 				}
+				else
+				{
+					disconnect(errors::too_many_connections, operation_t::bittorrent);
+					return;
+				}
 			}
 			else
 			{
@@ -1453,17 +1458,6 @@ namespace libtorrent {
 		}
 	}
 
-	namespace {
-
-	bool match_request(peer_request const& r, piece_block const& b, int const block_size)
-	{
-		if (b.piece_index != r.piece) return false;
-		if (b.block_index != r.start / block_size) return false;
-		if (r.start % block_size != 0) return false;
-		return true;
-	}
-	}
-
 	// -----------------------------
 	// -------- REJECT PIECE -------
 	// -----------------------------
@@ -1494,7 +1488,13 @@ namespace libtorrent {
 		auto const dlq_iter = std::find_if(
 			m_download_queue.begin(), m_download_queue.end()
 			, [&r, block_size](pending_block const& pb)
-			{ return match_request(r, pb.block, block_size); });
+			{
+				auto const& b = pb.block;
+				if (b.piece_index != r.piece) return false;
+				if (b.block_index != r.start / block_size) return false;
+				if (r.start % block_size != 0) return false;
+				return true;
+			});
 
 		if (dlq_iter != m_download_queue.end())
 		{
