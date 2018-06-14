@@ -93,15 +93,15 @@ namespace libtorrent
 
 		// the max number of pieces in the torrent this part file is
 		// backing
-		int m_max_pieces;
+		int const m_max_pieces;
 
 		// number of bytes each piece contains
-		int m_piece_size;
+		int const m_piece_size;
 
 		// this is the size of the part_file header, it is added
 		// to offsets when calculating the offset to read and write
 		// payload data from
-		int m_header_size;
+		int const m_header_size;
 
 		// if this is true, the metadata in memory has changed since
 		// we last saved or read it from disk. It means that we
