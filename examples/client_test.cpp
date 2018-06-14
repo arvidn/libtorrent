@@ -625,6 +625,7 @@ std::string bind_to_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
+bool stats_enabled = false;
 int cache_size = 1024;
 
 bool share_mode = false;
@@ -914,7 +915,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	{
 		ses_view.update_counters(s->values, sizeof(s->values)/sizeof(s->values[0])
 			, duration_cast<microseconds>(s->timestamp().time_since_epoch()).count());
-		return true;
+		return !stats_enabled;
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -1224,6 +1225,7 @@ int main(int argc, char* argv[])
 			"  -G                    Add torrents in seed-mode (i.e. assume all pieces\n"
 			"                        are present and check hashes on-demand)\n"
 			"  -E <num-threads>      specify how many disk I/O threads to use\n"
+			"  -O                    print session stats counters to the log\n"
 			"\n BITTORRENT OPTIONS\n"
 			"  -c <limit>            sets the max number of connections\n"
 			"  -T <limit>            sets the max number of connections per torrent\n"
@@ -1284,7 +1286,7 @@ int main(int argc, char* argv[])
 			"URL is a url to a torrent file\n"
 			"\n"
 			"Example for running benchmark:\n\n"
-			"  client_test -k -z -N -h -H -M -l 2000 -S 1000 -T 1000 -c 1000 test.torrent\n");
+			"  client_test -k -z -N -h -H -M -l 2000 -S 1000 -T 1000 -c 1000 -O test.torrent\n");
 			;
 		return 0;
 	}
@@ -1371,6 +1373,7 @@ int main(int argc, char* argv[])
 			case 'B': settings.set_int(settings_pack::peer_timeout, atoi(arg)); break;
 			case 'n': settings.set_bool(settings_pack::announce_to_all_tiers, true); --i; break;
 			case 'G': seed_mode = true; --i; break;
+			case 'O': stats_enabled = true; --i; break;
 			case 'E': settings.set_int(settings_pack::aio_threads, atoi(arg)); break;
 			case 'd': settings.set_int(settings_pack::download_rate_limit, atoi(arg) * 1000); break;
 			case 'u': settings.set_int(settings_pack::upload_rate_limit, atoi(arg) * 1000); break;
@@ -1753,7 +1756,11 @@ int main(int argc, char* argv[])
 					ses.async_add_torrent(p);
 				}
 
-				if (c == 'q') break;
+				if (c == 'q')
+				{
+					quit = true;
+					break;
+				}
 
 				if (c == 'W' && h.is_valid())
 				{
@@ -1937,7 +1944,11 @@ int main(int argc, char* argv[])
 				}
 
 			} while (sleep_and_input(&c, 0));
-			if (c == 'q') break;
+			if (c == 'q')
+			{
+				quit = true;
+				break;
+			}
 		}
 
 		// loop through the alert queue to see if anything has happened.
