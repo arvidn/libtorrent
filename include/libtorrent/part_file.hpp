@@ -73,6 +73,9 @@ namespace libtorrent
 		void open_file(int mode, error_code& ec);
 		void flush_metadata_impl(error_code& ec);
 
+		boost::int64_t slot_offset(boost::int64_t const slot) const
+		{ return m_header_size + slot * m_piece_size; }
+
 		std::string m_path;
 		std::string m_name;
 

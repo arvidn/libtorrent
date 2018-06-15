@@ -72,9 +72,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
-	inline boost::int64_t calc_offset(boost::int64_t slot, int header_size, int piece_size)
-	{ return header_size + slot * piece_size; }
-
 	// round up to even kilobyte
 	int round_up(int n)
 	{ return (n + 1023) & ~0x3ff; }
@@ -186,17 +183,11 @@ namespace libtorrent
 		open_file(file::read_write | file::attribute_hidden, ec);
 		if (ec) return -1;
 
-		int slot = -1;
-		boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
-		if (i == m_piece_map.end())
-			slot = allocate_slot(piece);
-		else
-			slot = i->second;
+		boost::unordered_map<int, int>::iterator const i = m_piece_map.find(piece);
+		int const slot = i == m_piece_map.end() ? allocate_slot(piece) : i->second;
 
 		l.unlock();
-
-		boost::int64_t const slot_offset = calc_offset(slot, m_header_size, m_piece_size);
-		return m_file.writev(slot_offset + offset, bufs, num_bufs, ec);
+		return m_file.writev(slot_offset(slot) + offset, bufs, num_bufs, ec);
 	}
 
 	int part_file::readv(file::iovec_t const* bufs, int num_bufs
@@ -205,11 +196,10 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 		mutex::scoped_lock l(m_mutex);
 
-		boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
+		boost::unordered_map<int, int>::iterator const i = m_piece_map.find(piece);
 		if (i == m_piece_map.end())
 		{
-			ec = error_code(boost::system::errc::no_such_file_or_directory
-				, boost::system::generic_category());
+			ec = make_error_code(boost::system::errc::no_such_file_or_directory);
 			return -1;
 		}
 
@@ -219,9 +209,7 @@ namespace libtorrent
 		if (ec) return -1;
 
 		l.unlock();
-
-		boost::int64_t const slot_offset = calc_offset(slot, m_header_size, m_piece_size);
-		return m_file.readv(slot_offset + offset, bufs, num_bufs, ec);
+		return m_file.readv(slot_offset(slot) + offset, bufs, num_bufs, ec);
 	}
 
 	void part_file::open_file(int mode, error_code& ec)
@@ -329,9 +317,8 @@ namespace libtorrent
 				// don't hold the lock during disk I/O
 				l.unlock();
 
-				boost::int64_t const slot_offset = calc_offset(slot, m_header_size, m_piece_size);
 				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
-				v.iov_len = m_file.readv(slot_offset + piece_offset, &v, 1, ec);
+				v.iov_len = m_file.readv(slot_offset(slot) + piece_offset, &v, 1, ec);
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
 
