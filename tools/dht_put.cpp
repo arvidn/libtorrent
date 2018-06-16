@@ -206,7 +206,14 @@ void load_dht_state(lt::session& s)
 	{
 		std::vector<char> state;
 		state.resize(size);
-		fread(&state[0], 1, state.size(), f);
+		std::size_t ret = fread(&state[0], 1, state.size(), f);
+		if (ret != state.size())
+		{
+			std::fprintf(stderr, "failed to read .dht: (%d) %s"
+				, errno, strerror(errno));
+			std::fclose(f);
+			return;
+		}
 
 		bdecode_node e;
 		error_code ec;
