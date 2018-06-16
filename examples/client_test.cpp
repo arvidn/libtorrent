@@ -483,6 +483,7 @@ std::string monitor_dir;
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
+bool stats_enabled = false;
 int cache_size = 1024;
 
 bool share_mode = false;
@@ -725,7 +726,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	{
 		ses_view.update_counters(s->counters()
 			, duration_cast<microseconds>(s->timestamp().time_since_epoch()).count());
-		return true;
+		return !stats_enabled;
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -1021,6 +1022,7 @@ CLIENT OPTIONS
                         previous command line options, so be sure to specify this first
   -G                    Add torrents in seed-mode (i.e. assume all pieces
                         are present and check hashes on-demand)
+  -O                    print session stats counters to the log
 
 LIBTORRENT SETTINGS
   --<name-of-setting>=<value>
@@ -1188,6 +1190,7 @@ example alert_masks:
 			case 'k': settings = lt::high_performance_seed(); --i; break;
 			case 'G': seed_mode = true; --i; break;
 			case 's': save_path = make_absolute_path(arg); break;
+			case 'O': stats_enabled = true; --i; break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
 			case 'm': monitor_dir = make_absolute_path(arg); break;
@@ -1623,7 +1626,11 @@ COLUMN OPTIONS
 				}
 
 			} while (sleep_and_input(&c, lt::milliseconds(0)));
-			if (c == 'q') break;
+			if (c == 'q')
+			{
+				quit = true;
+				break;
+			}
 		}
 
 		pop_alerts(view, ses_view, ses, events);
