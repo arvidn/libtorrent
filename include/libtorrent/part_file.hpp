@@ -77,7 +77,7 @@ namespace libtorrent
 		{ return m_header_size + slot * m_piece_size; }
 
 		std::string m_path;
-		std::string m_name;
+		std::string const m_name;
 
 		// allocate a slot and return the slot index
 		int allocate_slot(int piece);
