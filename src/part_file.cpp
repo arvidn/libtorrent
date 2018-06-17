@@ -214,8 +214,8 @@ namespace libtorrent
 
 	void part_file::open_file(int mode, error_code& ec)
 	{
-		if (m_file.is_open() && (mode == file::read_only
-			|| (m_file.open_mode() & file::rw_mask) == (mode & file::rw_mask)))
+		if (m_file.is_open() && ((mode & file::rw_mask) == file::read_only
+			|| (m_file.open_mode() & file::rw_mask) == file::read_write))
 			return;
 
 		std::string const fn = combine_path(m_path, m_name);
