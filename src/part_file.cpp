@@ -314,9 +314,6 @@ namespace libtorrent
 
 				if (!buf) buf.reset(new char[m_piece_size]);
 
-				// don't hold the lock during disk I/O
-				l.unlock();
-
 				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
 				v.iov_len = m_file.readv(slot_offset(slot) + piece_offset, &v, 1, ec);
 				TORRENT_ASSERT(!ec);
@@ -325,10 +322,6 @@ namespace libtorrent
 				boost::int64_t ret = f.writev(file_offset, &v, 1, ec);
 				TORRENT_ASSERT(ec || ret == v.iov_len);
 				if (ec || ret != v.iov_len) return;
-
-				// we're done with the disk I/O, grab the lock again to update
-				// the slot map
-				l.lock();
 
 				if (block_to_copy == m_piece_size)
 				{
