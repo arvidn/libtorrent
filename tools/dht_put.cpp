@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 #include <cstdlib>
+#include <fstream>
 
 using namespace lt;
 using namespace lt::dht;
@@ -140,24 +141,17 @@ void bootstrap(lt::session& s)
 	std::printf("bootstrap done.\n");
 }
 
-int dump_key(char *filename)
+int dump_key(char const* filename)
 {
-	FILE* f = std::fopen(filename, "rb+");
-	if (f == nullptr)
-	{
-		std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
-			, filename, errno, strerror(errno));
-		return 1;
-	}
-
 	std::array<char, 32> seed;
-	int size = int(fread(seed.data(), 1, 32, f));
-	if (size != 32)
+
+	std::fstream f(filename, std::ios_base::in | std::ios_base::binary);
+	f.read(seed.data(), seed.size());
+	if (f.fail())
 	{
 		std::fprintf(stderr, "invalid key file.\n");
 		return 1;
 	}
-	std::fclose(f);
 
 	public_key pk;
 	secret_key sk;
@@ -170,64 +164,50 @@ int dump_key(char *filename)
 	return 0;
 }
 
-int generate_key(char* filename)
+int generate_key(char const* filename)
 {
 	std::array<char, 32> seed = ed25519_create_seed();
 
-	FILE* f = std::fopen(filename, "wb+");
-	if (f == nullptr)
-	{
-		std::fprintf(stderr, "failed to open file for writing \"%s\": (%d) %s\n"
-			, filename, errno, strerror(errno));
-		return 1;
-	}
-
-	int size = int(std::fwrite(seed.data(), 1, 32, f));
-	if (size != 32)
+	std::fstream f(filename, std::ios_base::out | std::ios_base::binary);
+	f.write(seed.data(), seed.size());
+	if (f.fail())
 	{
 		std::fprintf(stderr, "failed to write key file.\n");
 		return 1;
 	}
-	std::fclose(f);
 
 	return 0;
 }
 
 void load_dht_state(lt::session& s)
 {
-	FILE* f = std::fopen(".dht", "rb");
-	if (f == nullptr) return;
+	std::fstream f(".dht", std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
 
-	fseek(f, 0, SEEK_END);
-	int size = ftell(f);
-	fseek(f, 0, SEEK_SET);
+	auto const size = f.tellg();
+	if (static_cast<int>(size) <= 0) return;
+	f.seekg(0, std::ios_base::beg);
 
-	if (size > 0)
+	std::vector<char> state;
+	state.resize(static_cast<std::size_t>(size));
+
+	f.read(state.data(), state.size());
+	if (f.fail())
 	{
-		std::vector<char> state;
-		state.resize(size);
-		std::size_t ret = fread(&state[0], 1, state.size(), f);
-		if (ret != state.size())
-		{
-			std::fprintf(stderr, "failed to read .dht: (%d) %s"
-				, errno, strerror(errno));
-			std::fclose(f);
-			return;
-		}
-
-		bdecode_node e;
-		error_code ec;
-		bdecode(&state[0], &state[0] + state.size(), e, ec);
-		if (ec)
-			std::fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
-				, ec.value(), ec.message().c_str());
-		else
-		{
-			std::printf("load dht state from .dht\n");
-			s.load_state(e);
-		}
+		std::fprintf(stderr, "failed to read .dht");
+		return;
 	}
-	std::fclose(f);
+
+	bdecode_node e;
+	error_code ec;
+	bdecode(state.data(), state.data() + state.size(), e, ec);
+	if (ec)
+		std::fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
+			, ec.value(), ec.message().c_str());
+	else
+	{
+		std::printf("load dht state from .dht\n");
+		s.load_state(e);
+	}
 }
 
 
@@ -237,15 +217,9 @@ int save_dht_state(lt::session& s)
 	s.save_state(e, session::save_dht_state);
 	std::vector<char> state;
 	bencode(std::back_inserter(state), e);
-	FILE* f = std::fopen(".dht", "wb+");
-	if (f == nullptr)
-	{
-		std::fprintf(stderr, "failed to open file .dht for writing");
-		return 1;
-	}
-	std::fwrite(&state[0], 1, state.size(), f);
-	std::fclose(f);
 
+	std::fstream f(".dht", std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+	f.write(state.data(), state.size());
 	return 0;
 }
 
@@ -341,17 +315,10 @@ int main(int argc, char* argv[])
 		--argc;
 		if (argc < 1) usage();
 
-		FILE* f = std::fopen(argv[0], "rb+");
-		if (f == nullptr)
-		{
-			std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
-				, argv[0], errno, strerror(errno));
-			return 1;
-		}
-
 		std::array<char, 32> seed;
-		fread(seed.data(), 1, 32, f);
-		std::fclose(f);
+
+		std::fstream f(argv[0], std::ios_base::in | std::ios_base::binary);
+		f.read(seed.data(), seed.size());
 
 		++argv;
 		--argc;
