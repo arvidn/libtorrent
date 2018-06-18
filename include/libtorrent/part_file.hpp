@@ -115,7 +115,9 @@ namespace libtorrent
 		boost::unordered_map<int, int> m_piece_map;
 
 		// this is the file handle to the part file
-		file m_file;
+		// it's allocated on the heap and reference counted, to allow it to be
+		// closed and re-opened while other threads are still using it
+		boost::shared_ptr<file> m_file;
 	};
 }
 

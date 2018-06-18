@@ -94,13 +94,13 @@ namespace libtorrent
 
 		error_code ec;
 		std::string fn = combine_path(m_path, m_name);
-		m_file.open(fn, file::read_only, ec);
+		boost::shared_ptr<file> const f = boost::make_shared<file>(fn, file::read_only, boost::ref(ec));
 		if (!ec)
 		{
 			// parse header
 			boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size / 4]);
 			file::iovec_t b = {header.get(), size_t(m_header_size) };
-			int n = m_file.readv(0, &b, 1, ec);
+			int const n = f->readv(0, &b, 1, ec);
 			if (ec) return;
 
 			// we don't have a full header. consider the file empty
@@ -142,8 +142,7 @@ namespace libtorrent
 			{
 				if (free_slots[i]) m_free_slots.push_back(i);
 			}
-
-			m_file.close();
+			m_file = f;
 		}
 	}
 
@@ -186,8 +185,9 @@ namespace libtorrent
 		boost::unordered_map<int, int>::iterator const i = m_piece_map.find(piece);
 		int const slot = i == m_piece_map.end() ? allocate_slot(piece) : i->second;
 
+		boost::shared_ptr<file> const f = m_file;
 		l.unlock();
-		return m_file.writev(slot_offset(slot) + offset, bufs, num_bufs, ec);
+		return f->writev(slot_offset(slot) + offset, bufs, num_bufs, ec);
 	}
 
 	int part_file::readv(file::iovec_t const* bufs, int num_bufs
@@ -205,21 +205,25 @@ namespace libtorrent
 
 		int const slot = i->second;
 
-		open_file(file::read_write | file::attribute_hidden, ec);
+		open_file(file::read_only | file::attribute_hidden, ec);
 		if (ec) return -1;
 
+		boost::shared_ptr<file> const f = m_file;
 		l.unlock();
-		return m_file.readv(slot_offset(slot) + offset, bufs, num_bufs, ec);
+		return f->readv(slot_offset(slot) + offset, bufs, num_bufs, ec);
 	}
 
 	void part_file::open_file(int mode, error_code& ec)
 	{
-		if (m_file.is_open() && ((mode & file::rw_mask) == file::read_only
-			|| (m_file.open_mode() & file::rw_mask) == file::read_write))
+		TORRENT_ASSERT((mode & file::lock_file) == 0);
+
+		if (m_file && m_file->is_open()
+			&& ((mode & file::rw_mask) == file::read_only
+			|| (m_file->open_mode() & file::rw_mask) == file::read_write))
 			return;
 
 		std::string const fn = combine_path(m_path, m_name);
-		m_file.open(fn, mode, ec);
+		boost::shared_ptr<file> f = boost::make_shared<file>(fn, mode, boost::ref(ec));
 		if (((mode & file::rw_mask) != file::read_only)
 			&& ec == boost::system::errc::no_such_file_or_directory)
 		{
@@ -229,8 +233,9 @@ namespace libtorrent
 			create_directories(m_path, ec);
 
 			if (ec) return;
-			m_file.open(fn, mode, ec);
+			f = boost::make_shared<file>(fn, mode, boost::ref(ec));
 		}
+		if (!ec) m_file = f;
 	}
 
 	void part_file::free_piece(int piece)
@@ -257,7 +262,10 @@ namespace libtorrent
 		flush_metadata_impl(ec);
 		if (ec) return;
 
-		m_file.close();
+		// we're only supposed to move part files from a fence job. i.e. no other
+		// disk jobs are supposed to be in-flight at this point
+		TORRENT_ASSERT(!m_file || m_file.unique());
+		m_file.reset();
 
 		if (!m_piece_map.empty())
 		{
@@ -310,18 +318,26 @@ namespace libtorrent
 			{
 				int const slot = i->second;
 				open_file(file::read_only, ec);
+				boost::shared_ptr<file> const local_file = m_file;
 				if (ec) return;
 
 				if (!buf) buf.reset(new char[m_piece_size]);
 
+				// don't hold the lock during disk I/O
+				l.unlock();
+
 				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
-				v.iov_len = m_file.readv(slot_offset(slot) + piece_offset, &v, 1, ec);
+				v.iov_len = local_file->readv(slot_offset(slot) + piece_offset, &v, 1, ec);
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
 
 				boost::int64_t ret = f.writev(file_offset, &v, 1, ec);
 				TORRENT_ASSERT(ec || ret == v.iov_len);
 				if (ec || ret != v.iov_len) return;
+
+				// we're done with the disk I/O, grab the lock again to update
+				// the slot map
+				l.lock();
 
 				if (block_to_copy == m_piece_size)
 				{
@@ -362,11 +378,11 @@ namespace libtorrent
 
 		if (m_piece_map.empty())
 		{
-			m_file.close();
+			m_file.reset();
 
 			// if we don't have any pieces left in the
 			// part file, remove it
-			std::string p = combine_path(m_path, m_name);
+			std::string const p = combine_path(m_path, m_name);
 			remove(p, ec);
 
 			if (ec == boost::system::errc::no_such_file_or_directory)
@@ -400,7 +416,7 @@ namespace libtorrent
 		VALGRIND_CHECK_MEM_IS_DEFINED(header.get(), m_header_size);
 #endif
 		file::iovec_t b = {header.get(), size_t(m_header_size) };
-		m_file.writev(0, &b, 1, ec);
+		m_file->writev(0, &b, 1, ec);
 		if (ec) return;
 	}
 }

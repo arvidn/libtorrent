@@ -1,5 +1,5 @@
 
-	* fix race condition during part_file export
+	* fix race condition in part_file
 	* fix part_file open mode compatibility test
 	* fixed race condition in random number generator
 	* fix race condition in stat_cache (disk storage)
