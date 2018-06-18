@@ -1,4 +1,6 @@
 
+	* fix race condition during part_file export
+	* fix part_file open mode compatibility test
 	* fixed race condition in random number generator
 	* fix race condition in stat_cache (disk storage)
 	* improve error handling of failing to change file priority

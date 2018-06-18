@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
   // the size of the torrent (and can be used to calculate the size
   // of the file header)
   uint32_t num_pieces;
-  
+
   // the number of bytes in each piece. This determines the size of
   // each slot in the part file. This is typically an even power of 2,
   // but it is not guaranteed to be.
@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
   // unused, n is defined as the number to align the size of this
   // header to an even multiple of 1024 bytes.
   uint8_t padding[n];
- 
+
 */
 
 #include "libtorrent/part_file.hpp"
@@ -183,17 +183,11 @@ namespace libtorrent
 		open_file(file::read_write | file::attribute_hidden, ec);
 		if (ec) return -1;
 
-		int slot = -1;
-		boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
-		if (i == m_piece_map.end())
-			slot = allocate_slot(piece);
-		else
-			slot = i->second;
+		boost::unordered_map<int, int>::iterator const i = m_piece_map.find(piece);
+		int const slot = i == m_piece_map.end() ? allocate_slot(piece) : i->second;
 
 		l.unlock();
-
-		boost::int64_t slot_offset = boost::int64_t(m_header_size) + boost::int64_t(slot) * m_piece_size;
-		return m_file.writev(slot_offset + offset, bufs, num_bufs, ec);
+		return m_file.writev(slot_offset(slot) + offset, bufs, num_bufs, ec);
 	}
 
 	int part_file::readv(file::iovec_t const* bufs, int num_bufs
@@ -202,32 +196,29 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 		mutex::scoped_lock l(m_mutex);
 
-		boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
+		boost::unordered_map<int, int>::iterator const i = m_piece_map.find(piece);
 		if (i == m_piece_map.end())
 		{
-			ec = error_code(boost::system::errc::no_such_file_or_directory
-				, boost::system::generic_category());
+			ec = make_error_code(boost::system::errc::no_such_file_or_directory);
 			return -1;
 		}
 
-		int slot = i->second;
+		int const slot = i->second;
 
 		open_file(file::read_write | file::attribute_hidden, ec);
 		if (ec) return -1;
 
 		l.unlock();
-
-		boost::int64_t slot_offset = boost::int64_t(m_header_size) + boost::int64_t(slot) * m_piece_size;
-		return m_file.readv(slot_offset + offset, bufs, num_bufs, ec);
+		return m_file.readv(slot_offset(slot) + offset, bufs, num_bufs, ec);
 	}
 
 	void part_file::open_file(int mode, error_code& ec)
 	{
-		if (m_file.is_open()
-			&& ((m_file.open_mode() & file::rw_mask) == mode
-				|| mode == file::read_only)) return;
+		if (m_file.is_open() && ((mode & file::rw_mask) == file::read_only
+			|| (m_file.open_mode() & file::rw_mask) == file::read_write))
+			return;
 
-		std::string fn = combine_path(m_path, m_name);
+		std::string const fn = combine_path(m_path, m_name);
 		m_file.open(fn, mode, ec);
 		if (((mode & file::rw_mask) != file::read_only)
 			&& ec == boost::system::errc::no_such_file_or_directory)
@@ -323,24 +314,14 @@ namespace libtorrent
 
 				if (!buf) buf.reset(new char[m_piece_size]);
 
-				boost::int64_t const slot_offset = boost::int64_t(m_header_size)
-					+ boost::int64_t(slot) * m_piece_size;
-
-				// don't hold the lock during disk I/O
-				l.unlock();
-
 				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
-				v.iov_len = m_file.readv(slot_offset + piece_offset, &v, 1, ec);
+				v.iov_len = m_file.readv(slot_offset(slot) + piece_offset, &v, 1, ec);
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
 
 				boost::int64_t ret = f.writev(file_offset, &v, 1, ec);
 				TORRENT_ASSERT(ec || ret == v.iov_len);
 				if (ec || ret != v.iov_len) return;
-
-				// we're done with the disk I/O, grab the lock again to update
-				// the slot map
-				l.lock();
 
 				if (block_to_copy == m_piece_size)
 				{
@@ -423,4 +404,3 @@ namespace libtorrent
 		if (ec) return;
 	}
 }
-
