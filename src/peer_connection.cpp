@@ -6012,17 +6012,13 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		COMPLETE_ASYNC("peer_connection::on_connection_complete");
 
-#if !defined TORRENT_DISABLE_LOGGING || defined TORRENT_USE_OPENSSL
-		time_point completed = clock_type::now();
-#endif
-
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		{
 			std::shared_ptr<torrent> t = m_torrent.lock();
 			if (t) t->debug_log("END connect [%p]", static_cast<void*>(this));
-			m_connect_time = completed;
+			m_connect_time = aux::time_now();
 		}
 #endif
 

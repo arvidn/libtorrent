@@ -167,6 +167,9 @@ namespace aux {
 			, m_ignore_stats(false)
 		{}
 
+		// explicitly disallow assignment, to silence msvc warning
+		peer_connection_hot_members& operator=(peer_connection_hot_members const&) = delete;
+
 	protected:
 
 		// the pieces the other end have
@@ -230,9 +233,6 @@ namespace aux {
 		// when this is set, the transfer stats for this connection
 		// is not included in the torrent or session stats
 		bool m_ignore_stats:1;
-	private:
-		// explicitly disallow assignment, to silence msvc warning
-		peer_connection_hot_members& operator=(peer_connection_hot_members const&);
 	};
 
 	enum class connection_type : std::uint8_t
