@@ -956,7 +956,7 @@ namespace libtorrent {
 
 		// if this peer has failed before, decrease the
 		// counter to allow it another try, since somebody
-		// else is appearantly able to connect to it
+		// else is apparently able to connect to it
 		// only trust this if it comes from the tracker
 		if (p->failcount > 0 && src == peer_info::tracker)
 			--p->failcount;
@@ -1128,8 +1128,7 @@ namespace libtorrent {
 
 		// clear out any peers from the cache that no longer
 		// are connection candidates
-		for (std::vector<torrent_peer*>::iterator i = m_candidate_cache.begin();
-			i != m_candidate_cache.end();)
+		for (auto i = m_candidate_cache.begin(); i != m_candidate_cache.end();)
 		{
 			if (!is_connect_candidate(**i))
 				i = m_candidate_cache.erase(i);
