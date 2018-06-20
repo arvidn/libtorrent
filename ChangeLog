@@ -85,6 +85,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fixed disk I/O performance of checking hashes and creating torrents
 	* fix race condition in part_file
 	* fix part_file open mode compatibility test
 	* fixed race condition in random number generator
