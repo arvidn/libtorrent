@@ -2770,8 +2770,11 @@ namespace {
 			/ m_torrent_file->piece_length();
 		// if we only keep a single read operation in-flight at a time, we suffer
 		// significant performance degradation. Always keep at least two jobs
-		// outstanding
-		if (num_outstanding < 2) num_outstanding = 2;
+		// outstanding per hasher thread
+		int const min_outstanding = 2
+			* std::max(1, settings().get_int(settings_pack::aio_threads)
+				/ disk_io_thread::hasher_thread_divisor);
+		if (num_outstanding < min_outstanding) num_outstanding = min_outstanding;
 
 		// we might already have some outstanding jobs, if we were paused and
 		// resumed quickly, before the outstanding jobs completed

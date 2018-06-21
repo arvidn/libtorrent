@@ -388,6 +388,12 @@ namespace libtorrent
 			hasher_thread
 		};
 
+		enum
+		{
+			hasher_thread_mask = 3,
+			hasher_thread_divisor
+		};
+
 		void thread_fun(int thread_id, thread_type_t type
 			, boost::shared_ptr<io_service::work> w);
 
