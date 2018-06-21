@@ -220,9 +220,8 @@ namespace libtorrent
 				boost::shared_ptr<io_service::work> work =
 					boost::make_shared<io_service::work>(boost::ref(m_ios));
 
-				// the magic number 3 is also used in add_job()
 				// every 4:th thread is a hasher thread
-				if ((thread_id & 0x3) == 3) type = hasher_thread;
+				if ((thread_id & hasher_thread_mask) == hasher_thread_mask) type = hasher_thread;
 				m_threads.push_back(boost::shared_ptr<thread>(
 					new thread(boost::bind(&disk_io_thread::thread_fun, this
 						, thread_id, type, work))));
@@ -3246,7 +3245,7 @@ namespace libtorrent
 		// if there are at least 3 threads, there's a hasher thread
 		// and the hash jobs go into a separate queue
 		// see set_num_threads()
-		if (m_num_threads > 3 && j->action == disk_io_job::hash)
+		if (m_num_threads > hasher_thread_mask && j->action == disk_io_job::hash)
 		{
 			m_queued_hash_jobs.push_back(j);
 		}
