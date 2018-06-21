@@ -2441,20 +2441,18 @@ namespace libtorrent
 			ret = m_disk_cache.allocate_iovec(iov, blocks_left);
 			if (ret >= 0)
 			{
-				// this is the offset that's aligned to block boundaries
-				boost::int64_t adjusted_offset = j->d.io.offset & ~(block_size-1);
-
 				// if this is the last piece, adjust the size of the
 				// last buffer to match up
-				iov[blocks_left-1].iov_len = std::min(int(piece_size - adjusted_offset)
-					- (blocks_left - 1) * block_size, block_size);
+				iov[blocks_left-1].iov_len = int(piece_size)
+					- (blocks_in_piece - 1) * block_size;
 				TORRENT_ASSERT(iov[blocks_left-1].iov_len > 0);
+				TORRENT_ASSERT(iov[blocks_left-1].iov_len <= block_size);
 
 				time_point const start_time = clock_type::now();
 				ret = j->storage->get_storage_impl()->readv(iov, blocks_left
 					, j->piece, offset, file_flags, j->error);
 
-				if (ret >= 0)
+				if (ret == piece_size - offset)
 				{
 					boost::uint32_t const read_time = total_microseconds(clock_type::now() - start_time);
 
@@ -2469,6 +2467,8 @@ namespace libtorrent
 						offset += iov[i].iov_len;
 						ph->h.update(static_cast<char const*>(iov[i].iov_base), iov[i].iov_len);
 					}
+					TORRENT_ASSERT(offset == piece_size);
+
 					slow_path = false;
 
 					l.lock();
@@ -2477,7 +2477,6 @@ namespace libtorrent
 				}
 				else
 				{
-					TORRENT_ASSERT(j->error.ec && j->error.operation != 0);
 					m_disk_cache.free_iovec(iov, blocks_left);
 				}
 			}
