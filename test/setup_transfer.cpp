@@ -154,7 +154,8 @@ bool should_print(lt::alert* a)
 	if (auto pla = alert_cast<peer_log_alert>(a))
 	{
 		if (pla->direction != peer_log_alert::incoming_message
-			&& pla->direction != peer_log_alert::outgoing_message)
+			&& pla->direction != peer_log_alert::outgoing_message
+			&& pla->direction != peer_log_alert::info)
 			return false;
 	}
 #endif
