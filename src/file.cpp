@@ -967,7 +967,7 @@ namespace {
 		}
 
 #if TORRENT_USE_PREADV
-		std::int64_t ret = iov(&::preadv, native_handle(), file_offset, bufs, ec);
+		std::int64_t ret = iov(&::preadv, native_handle(), file_offset, tmp_bufs, ec);
 #elif TORRENT_USE_PREAD
 		std::int64_t ret = iov(&::pread, native_handle(), file_offset, tmp_bufs, ec);
 #else
