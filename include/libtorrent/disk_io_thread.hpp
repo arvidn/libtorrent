@@ -289,6 +289,12 @@ namespace aux {
 		~disk_io_thread();
 #endif
 
+		enum
+		{
+			// every 4:th thread is a hash thread
+			hasher_thread_divisor = 4
+		};
+
 		void set_settings(settings_pack const* sett);
 
 		void abort(bool wait);

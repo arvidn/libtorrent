@@ -321,7 +321,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
 		// add one hasher thread for every three generic threads
-		int const num_hash_threads = num_threads / 4;
+		int const num_hash_threads = num_threads / hasher_thread_divisor;
 		m_generic_threads.set_max_threads(num_threads - num_hash_threads);
 		m_hash_threads.set_max_threads(num_hash_threads);
 	}
