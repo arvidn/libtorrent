@@ -821,12 +821,12 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	{
 		jobqueue_t jobs;
 		fail_jobs_impl(e, jobs_, jobs);
-		if (jobs.size()) add_completed_jobs(jobs);
+		if (!jobs.empty()) add_completed_jobs(jobs);
 	}
 
 	void disk_io_thread::fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst)
 	{
-		while (src.size())
+		while (!src.empty())
 		{
 			disk_io_job* j = src.pop_front();
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
@@ -1349,12 +1349,12 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			}
 			TORRENT_PIECE_ASSERT(pe->outstanding_read == 1, pe);
 
-			if (pe->read_jobs.size() > 0)
+			if (!pe->read_jobs.empty())
 				fail_jobs_impl(j->error, pe->read_jobs, completed_jobs);
-			TORRENT_PIECE_ASSERT(pe->read_jobs.size() == 0, pe);
+			TORRENT_PIECE_ASSERT(pe->read_jobs.empty(), pe);
 			pe->outstanding_read = 0;
 #if TORRENT_USE_ASSERTS
-			pe->piece_log.push_back(piece_log_t(piece_log_t::clear_outstanding_jobs));
+			pe->piece_log.emplace_back(piece_log_t::clear_outstanding_jobs);
 #endif
 			m_disk_cache.maybe_free_piece(pe);
 			return status_t::fatal_disk_error;
@@ -1396,10 +1396,10 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		{
 			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
 				, pe->read_jobs, completed_jobs);
-			TORRENT_PIECE_ASSERT(pe->read_jobs.size() == 0, pe);
+			TORRENT_PIECE_ASSERT(pe->read_jobs.empty(), pe);
 			pe->outstanding_read = 0;
 #if TORRENT_USE_ASSERTS
-			pe->piece_log.push_back(piece_log_t(piece_log_t::clear_outstanding_jobs));
+			pe->piece_log.emplace_back(piece_log_t::clear_outstanding_jobs);
 #endif
 			m_disk_cache.maybe_free_piece(pe);
 			return;
@@ -1416,7 +1416,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// the next job to issue (i.e. this is a cache-miss)
 		disk_io_job* next_job = nullptr;
 
-		while (stalled_jobs.size() > 0)
+		while (!stalled_jobs.empty())
 		{
 			disk_io_job* j = stalled_jobs.pop_front();
 			TORRENT_ASSERT(j->flags & disk_io_job::in_progress);
@@ -1459,10 +1459,10 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		}
 		else
 		{
-			TORRENT_PIECE_ASSERT(pe->read_jobs.size() == 0, pe);
+			TORRENT_PIECE_ASSERT(pe->read_jobs.empty(), pe);
 			pe->outstanding_read = 0;
 #if TORRENT_USE_ASSERTS
-			pe->piece_log.push_back(piece_log_t(piece_log_t::clear_outstanding_jobs));
+			pe->piece_log.emplace_back(piece_log_t::clear_outstanding_jobs);
 #endif
 			m_disk_cache.maybe_free_piece(pe);
 		}
@@ -1788,8 +1788,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe != nullptr && !pe->hashing && pe->hash && pe->hash->offset == piece_size)
 		{
-			sha1_hash result = pe->hash->h.final();
-			j->d.piece_hash = result;
+			j->d.piece_hash = pe->hash->h.final();
 
 			pe->hash.reset();
 
@@ -2064,9 +2063,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			else pe->jobs.push_back(j);
 			j = next;
 		}
-		if (hash_jobs.size())
+		if (!hash_jobs.empty())
 		{
-			sha1_hash result = pe->hash->h.final();
+			sha1_hash const result = pe->hash->h.final();
 
 			for (auto i = hash_jobs.iterate(); i.get(); i.next())
 			{
@@ -2130,8 +2129,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		m_disk_cache.free_buffer(iov.data());
 
-		sha1_hash piece_hash = h.final();
-		j->d.piece_hash = piece_hash;
+		j->d.piece_hash = h.final();
 		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
 	}
 
@@ -2165,8 +2163,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			if (pe->hash && !pe->hashing && pe->hash->offset == piece_size)
 			{
 				DLOG("do_hash: (%d) (already done)\n", int(pe->piece));
-				sha1_hash piece_hash = pe->hash->h.final();
-				j->d.piece_hash = piece_hash;
+				j->d.piece_hash = pe->hash->h.final();
 				pe->hash.reset();
 				if (pe->cache_state != cached_piece_entry::volatile_read_lru)
 					pe->hashing_done = 1;
@@ -2619,7 +2616,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		m_disk_cache.update_stats_counters(c);
 	}
 
-	void disk_io_thread::get_cache_info(cache_status* ret, storage_index_t st
+	void disk_io_thread::get_cache_info(cache_status* ret, storage_index_t const st
 		, bool const no_pieces, bool const session) const
 	{
 		std::unique_lock<std::mutex> l(m_cache_mutex);
@@ -2721,7 +2718,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		if (pe == nullptr) return status_t::no_error;
 
 #if TORRENT_USE_ASSERTS
-		pe->piece_log.push_back(piece_log_t(j->action));
+		pe->piece_log.emplace_back(j->action);
 #endif
 		try_flush_hashed(pe, m_settings.get_int(
 			settings_pack::write_cache_line_size), completed_jobs, l);
@@ -2750,7 +2747,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 //		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
 
 #if TORRENT_USE_ASSERTS
-		pe->piece_log.push_back(piece_log_t(j->action));
+		pe->piece_log.emplace_back(j->action);
 #endif
 		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
 			|| pe->cache_state == cached_piece_entry::read_lru2, pe);
@@ -2823,7 +2820,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		pe->hashing_done = false;
 
 #if TORRENT_USE_ASSERTS
-		pe->piece_log.push_back(piece_log_t(j->action));
+		pe->piece_log.emplace_back(j->action);
 #endif
 
 		// evict_piece returns true if the piece was in fact
@@ -3006,7 +3003,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		jobqueue_t completed_jobs;
 		flush_expired_write_blocks(completed_jobs, l);
 		l.unlock();
-		if (completed_jobs.size())
+		if (!completed_jobs.empty())
 			add_completed_jobs(completed_jobs);
 	}
 
@@ -3023,7 +3020,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		}
 
 		perform_job(j, completed_jobs);
-		if (completed_jobs.size())
+		if (!completed_jobs.empty())
 			add_completed_jobs(completed_jobs);
 	}
 
@@ -3249,9 +3246,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			// jobs are added to the new_completed_jobs queue and
 			// we need to re-issue those
 			add_completed_jobs_impl(jobs, new_completed_jobs);
-			TORRENT_ASSERT(jobs.size() == 0);
+			TORRENT_ASSERT(jobs.empty());
 			jobs.swap(new_completed_jobs);
-		} while (jobs.size() > 0);
+		} while (!jobs.empty());
 	}
 
 	void disk_io_thread::add_completed_jobs_impl(jobqueue_t& jobs
@@ -3259,7 +3256,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	{
 		jobqueue_t new_jobs;
 		int ret = 0;
-		for (tailqueue_iterator<disk_io_job> i = jobs.iterate(); i.get(); i.next())
+		for (auto i = jobs.iterate(); i.get(); i.next())
 		{
 			disk_io_job* j = i.get();
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
@@ -3294,10 +3291,10 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs, -ret);
 		TORRENT_ASSERT(int(m_stats_counters[counters::blocked_disk_jobs]) >= 0);
 
-		if (new_jobs.size() > 0)
+		if (!new_jobs.empty())
 		{
 #if TORRENT_USE_ASSERTS
-			for (tailqueue_iterator<disk_io_job> i = new_jobs.iterate(); i.get(); i.next())
+			for (auto i = new_jobs.iterate(); i.get(); i.next())
 			{
 				disk_io_job const* j = static_cast<disk_io_job const*>(i.get());
 				TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
@@ -3317,7 +3314,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			jobqueue_t other_jobs;
 			jobqueue_t flush_jobs;
 			std::unique_lock<std::mutex> l_(m_cache_mutex);
-			while (new_jobs.size() > 0)
+			while (!new_jobs.empty())
 			{
 				disk_io_job* j = new_jobs.pop_front();
 
@@ -3386,7 +3383,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 				m_generic_io_jobs.m_queued_jobs.append(other_jobs);
 			}
 
-			while (flush_jobs.size() > 0)
+			while (!flush_jobs.empty())
 			{
 				disk_io_job* j = flush_jobs.pop_front();
 				add_job(j, false);
