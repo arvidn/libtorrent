@@ -1,4 +1,5 @@
 
+	* coalesce reads and writes by default on windows
 	* fixed disk I/O performance of checking hashes and creating torrents
 	* fix race condition in part_file
 	* fix part_file open mode compatibility test
