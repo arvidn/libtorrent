@@ -299,7 +299,7 @@ namespace libtorrent
 
 		settings_pack sett;
 		sett.set_int(settings_pack::cache_size, 0);
-		sett.set_int(settings_pack::aio_threads, 2);
+		sett.set_int(settings_pack::aio_threads, 3);
 
 		// TODO: this should probably be optional
 		alert_manager dummy2(0, 0);
@@ -307,8 +307,8 @@ namespace libtorrent
 
 		int piece_counter = 0;
 		int completed_piece = 0;
-		int piece_read_ahead = 15 * 1024 * 1024 / t.piece_length();
-		if (piece_read_ahead < 1) piece_read_ahead = 1;
+		int piece_read_ahead = 16 * 1024 * 1024 / t.piece_length();
+		if (piece_read_ahead < 6) piece_read_ahead = 6;
 
 		for (int i = 0; i < piece_read_ahead; ++i)
 		{
