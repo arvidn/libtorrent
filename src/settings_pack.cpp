@@ -165,8 +165,17 @@ namespace libtorrent
 		DEPRECATED_SET(use_write_cache, true, 0),
 		DEPRECATED_SET(dont_flush_write_cache, false, 0),
 		DEPRECATED_SET(explicit_read_cache, false, 0),
+#ifdef TORRENT_WINDOWS
+		// the emulation of preadv/pwritev uses overlapped reads/writes to be able
+		// to issue them all back to back. However, it appears windows fail to
+		// merge them. At least for people reporting performance issues in
+		// qBittorrent
+		SET(coalesce_reads, true, 0),
+		SET(coalesce_writes, true, 0),
+#else
 		SET(coalesce_reads, false, 0),
 		SET(coalesce_writes, false, 0),
+#endif
 		SET(auto_manage_prefer_seeds, false, 0),
 		SET(dont_count_slow_torrents, true, &session_impl::update_count_slow),
 		SET(close_redundant_connections, true, 0),
