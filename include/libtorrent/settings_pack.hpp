@@ -154,7 +154,7 @@ namespace libtorrent {
 			// don't have ``mmap`` this setting is ignored.
 			mmap_cache TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated21,
+			deprecated_mmap_cache,
 #endif
 
 			// this is the client name and version identifier sent to peers in the
@@ -257,7 +257,7 @@ namespace libtorrent {
 			// set_peer_class_filter() instead.
 			ignore_limits_on_local_network TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated1,
+			deprecated_ignore_limits_on_local_network,
 #endif
 
 			// ``send_redundant_have`` controls if have messages will be sent to
@@ -272,7 +272,7 @@ namespace libtorrent {
 			// people from seeding.
 			lazy_bitfields TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated12,
+			deprecated_lazy_bitfield,
 #endif
 
 			// ``use_dht_as_fallback`` determines how the DHT is used. If this is
@@ -309,8 +309,8 @@ namespace libtorrent {
 			// hash
 			dont_flush_write_cache TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated11,
-			deprecated22,
+			deprecated_use_write_cache,
+			deprecated_dont_flush_write_cache,
 #endif
 
 			// allocate separate, contiguous, buffers for read and write calls.
@@ -381,7 +381,7 @@ namespace libtorrent {
 			// overhead of a system call.
 			lock_disk_cache TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated10,
+			deprecated_lock_disk_cache,
 #endif
 
 			// when set to true, all data downloaded from peers will be assumed to
@@ -407,7 +407,7 @@ namespace libtorrent {
 			// desirable.
 			low_prio_disk TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated17,
+			deprecated_low_prio_disk,
 #endif
 
 			// ``volatile_read_cache``, if this is set to true, read cache blocks
@@ -426,7 +426,7 @@ namespace libtorrent {
 			// sending faster to.
 			guided_read_cache TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated13,
+			deprecated_guided_read_cache,
 #endif
 
 			// ``no_atime_storage`` this is a linux-only option and passes in the
@@ -491,7 +491,7 @@ namespace libtorrent {
 			ignore_resume_timestamps TORRENT_DEPRECATED_ENUM,
 #else
 			// hidden
-			deprecated8,
+			deprecated_ignore_resume_timestamps,
 #endif
 
 			// ``no_recheck_incomplete_resume`` determines if the storage should
@@ -528,7 +528,7 @@ namespace libtorrent {
 			// is *DEPRECATED*, please use set_peer_class_filter() instead.
 			rate_limit_utp TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated2,
+			deprecated_rate_limit_utp,
 #endif
 
 #if TORRENT_ABI_VERSION == 1
@@ -538,7 +538,7 @@ namespace libtorrent {
 			// option does not have an affect
 			announce_double_nat TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated18,
+			deprecated_announce_double_nat,
 #endif
 
 			// ``seeding_outgoing_connections`` determines if seeding (and
@@ -580,7 +580,7 @@ namespace libtorrent {
 			// read requests as they are queued in the disk job queue.
 			use_disk_read_ahead TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated19,
+			deprecated_use_disk_read_ahead,
 #endif
 
 #if TORRENT_ABI_VERSION == 1
@@ -592,7 +592,7 @@ namespace libtorrent {
 			// feet.
 			lock_files,
 #else
-			deprecated26,
+			deprecated_lock_files,
 #endif
 
 #if TORRENT_ABI_VERSION == 1
@@ -609,7 +609,7 @@ namespace libtorrent {
 			// improvements.
 			contiguous_recv_buffer TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated15,
+			deprecated_contiguous_recv_buffer,
 #endif
 
 			// when true, web seeds sending bad data will be banned
@@ -654,7 +654,7 @@ namespace libtorrent {
 			// returning memory back to the system, once allocated.
 			use_disk_cache_pool,
 #else
-			deprecated24,
+			deprecated_use_disk_cache_pool,
 #endif
 
 			// when this is true, and incoming encrypted connections are enabled,
@@ -989,7 +989,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 			cache_buffer_chunk_size,
 #else
-			deprecated25,
+			deprecated_cache_buffer_chunk_size,
 #endif
 			cache_expiry,
 
@@ -1100,7 +1100,7 @@ namespace libtorrent {
 			// see dynamic-loading-of-torrent-files_.
 			active_loaded_limit TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated20,
+			deprecated_active_loaded_limit,
 #endif
 
 			// ``auto_manage_interval`` is the number of seconds between the
@@ -1187,7 +1187,7 @@ namespace libtorrent {
 			// processes.
 			file_checks_delay_per_block TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated23,
+			deprecated_file_checks_delay_per_block,
 #endif
 
 			// ``read_cache_line_size`` is the number of blocks to read into the
@@ -1246,7 +1246,7 @@ namespace libtorrent {
 			// there is a shortage of spare cache space.
 			default_cache_min_age TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated16,
+			deprecated_default_cache_min_age,
 #endif
 
 			// ``num_optimistic_unchoke_slots`` is the number of optimistic
@@ -1317,8 +1317,8 @@ namespace libtorrent {
 			local_upload_rate_limit TORRENT_DEPRECATED_ENUM,
 			local_download_rate_limit TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated3,
-			deprecated4,
+			deprecated_local_upload_rate_limit,
+			deprecated_local_download_rate_limit,
 #endif
 
 #if TORRENT_ABI_VERSION == 1
@@ -1328,7 +1328,7 @@ namespace libtorrent {
 			// be raised.
 			dht_upload_rate_limit TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated7,
+			deprecated_dht_upload_rate_limit,
 #endif
 
 			// ``unchoke_slots_limit`` is the max number of unchoked peers in the
@@ -1350,7 +1350,7 @@ namespace libtorrent {
 			// get connected.
 			half_open_limit TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated5,
+			deprecated_half_open_limit,
 #endif
 
 			// ``connections_limit`` sets a global limit on the number of
@@ -1407,7 +1407,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 			utp_delayed_ack TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated6,
+			deprecated_utp_delayed_ack,
 #endif
 			utp_loss_multiplier,
 
@@ -1466,7 +1466,7 @@ namespace libtorrent {
 			// hashing is done in the disk thread.
 			hashing_threads TORRENT_DEPRECATED_ENUM,
 #else
-			deprecated14,
+			deprecated_hashing_threads,
 #endif
 
 			// the number of blocks to keep outstanding at any given time when
@@ -1508,8 +1508,8 @@ namespace libtorrent {
 			ssl_listen TORRENT_DEPRECATED_ENUM,
 #else
 			// hidden
-			deprecated9,
-			deprecated27,
+			deprecated_network_threads,
+			deprecated_ssl_listen,
 #endif
 
 			// ``tracker_backoff`` determines how aggressively to back off from
