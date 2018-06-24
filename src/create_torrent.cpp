@@ -296,11 +296,11 @@ namespace {
 
 		settings_pack sett;
 		sett.set_int(settings_pack::cache_size, 0);
-		sett.set_int(settings_pack::aio_threads, 1);
+		sett.set_int(settings_pack::aio_threads, 3);
 
 		disk_thread.set_settings(&sett);
 
-		int const piece_read_ahead = std::max(1, 15 * 1024 * 1024 / t.piece_length());
+		int const piece_read_ahead = std::max(6, 16 * 1024 * 1024 / t.piece_length());
 
 		hash_state st = { t, std::move(storage), disk_thread, piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)

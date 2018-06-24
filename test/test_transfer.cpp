@@ -494,6 +494,26 @@ TORRENT_TEST(coalesce_writes)
 	cleanup();
 }
 
+TORRENT_TEST(no_coalesce_reads)
+{
+	using namespace libtorrent;
+	settings_pack p;
+	p.set_int(settings_pack::read_cache_line_size, 16);
+	p.set_bool(settings_pack::coalesce_reads, false);
+	test_transfer(0, p);
+
+	cleanup();
+}
+
+TORRENT_TEST(no_coalesce_writes)
+{
+	using namespace libtorrent;
+	settings_pack p;
+	p.set_bool(settings_pack::coalesce_writes, false);
+	test_transfer(0, p);
+
+	cleanup();
+}
 
 TORRENT_TEST(allocate)
 {

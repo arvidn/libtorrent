@@ -141,8 +141,17 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(use_read_cache, true, nullptr),
 		DEPRECATED_SET(use_write_cache, true, nullptr),
 		DEPRECATED_SET(dont_flush_write_cache, false, nullptr),
+#ifdef TORRENT_WINDOWS
+		// the emulation of preadv/pwritev uses overlapped reads/writes to be able
+		// to issue them all back to back. However, it appears windows fail to
+		// merge them. At least for people reporting performance issues in
+		// qBittorrent
+		SET(coalesce_reads, true, nullptr),
+		SET(coalesce_writes, true, nullptr),
+#else
 		SET(coalesce_reads, false, nullptr),
 		SET(coalesce_writes, false, nullptr),
+#endif
 		SET(auto_manage_prefer_seeds, false, nullptr),
 		SET(dont_count_slow_torrents, true, &session_impl::update_count_slow),
 		SET(close_redundant_connections, true, nullptr),
@@ -306,7 +315,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(alert_queue_size, 1000, &session_impl::update_alert_queue_size),
 		SET(max_metadata_size, 3 * 1024 * 10240, nullptr),
 		DEPRECATED_SET(hashing_threads, 1, nullptr),
-		SET(checking_mem_usage, 256, nullptr),
+		SET(checking_mem_usage, 1024, nullptr),
 		SET(predictive_piece_announce, 0, nullptr),
 		SET(aio_threads, 4, &session_impl::update_disk_threads),
 		SET(aio_max, 300, nullptr),
