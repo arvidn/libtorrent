@@ -233,7 +233,7 @@ namespace libtorrent {
 			if (ec) return;
 			f = std::make_shared<file>(fn, mode, ec);
 		}
-		if (!ec) m_file = f;
+		if (!ec) m_file = std::move(f);
 	}
 
 	void part_file::free_piece(piece_index_t const piece)
