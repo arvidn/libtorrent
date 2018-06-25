@@ -57,7 +57,7 @@ else
 		: : $(boost-include-path) ;
 }
 
-VERSION = 1.1.7 ;
+VERSION = 1.1.8 ;
 
 rule linking ( properties * )
 {
