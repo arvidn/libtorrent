@@ -5650,9 +5650,9 @@ namespace {
 
 	namespace
 	{
-		std::vector<uint8_t> fix_priorities(std::vector<int> const& input, file_storage const& fs)
+		std::vector<boost::uint8_t> fix_priorities(std::vector<int> const& input, file_storage const& fs)
 		{
-			std::vector<uint8_t> files(input.begin(), input.end());
+			std::vector<boost::uint8_t> files(input.begin(), input.end());
 
 			for (int i = 0; i < std::min<int>(fs.num_files(), files.size()); ++i)
 			{
@@ -5663,7 +5663,6 @@ namespace {
 			}
 
 			files.resize(fs.num_files(), 4);
-
 			return files;
 		}
 
@@ -5711,7 +5710,7 @@ namespace {
 			return;
 		}
 
-		std::vector<uint8_t> const new_priority = fix_priorities(files, m_torrent_file->files());
+		std::vector<boost::uint8_t> const new_priority = fix_priorities(files, m_torrent_file->files());
 
 		if (!m_torrent_file->num_pieces() || is_seed() || new_priority == m_file_priority) { return; }
 
