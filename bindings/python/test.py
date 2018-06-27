@@ -50,6 +50,8 @@ class test_torrent_handle(unittest.TestCase):
 		self.assertEqual(self.h.piece_priorities(), [4])
 
 		self.h.prioritize_files([0,1])
+		# workaround for asynchronous priority update
+		time.sleep(1)
 		self.assertEqual(self.h.file_priorities(), [0,1])
 
 		self.h.prioritize_pieces([0])
