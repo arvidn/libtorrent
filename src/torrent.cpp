@@ -5656,7 +5656,7 @@ namespace {
 
 			for (int i = 0; i < std::min<int>(fs.num_files(), files.size()); ++i)
 			{
-				if (files[i] < 0 || fs.pad_file_at(i))
+				if (files[i] > 0 && fs.pad_file_at(i))
 					files[i] = 0;
 				else if (files[i] > 7)
 					files[i] = 7;
