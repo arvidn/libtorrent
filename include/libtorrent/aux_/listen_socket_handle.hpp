@@ -45,13 +45,14 @@ namespace libtorrent { namespace aux {
 	{
 		friend struct session_impl;
 
-		listen_socket_handle() {}
+		listen_socket_handle() = default;
 
 		listen_socket_handle(std::shared_ptr<listen_socket_t> s) // NOLINT
 			: m_sock(s)
 		{}
 
 		listen_socket_handle(listen_socket_handle const& o) = default;
+		listen_socket_handle& operator=(listen_socket_handle const& o) = default;
 
 		explicit operator bool() const { return !m_sock.expired(); }
 
@@ -72,12 +73,6 @@ namespace libtorrent { namespace aux {
 
 		bool operator<(listen_socket_handle const& o) const
 		{ return m_sock.owner_before(o.m_sock); }
-
-		listen_socket_handle& operator=(listen_socket_handle const& o)
-		{
-			m_sock = o.m_sock;
-			return *this;
-		}
 
 		listen_socket_t* get() const;
 

@@ -1015,7 +1015,7 @@ namespace aux {
 
 	peer_class_info session_impl::get_peer_class(peer_class_t const cid) const
 	{
-		peer_class_info ret;
+		peer_class_info ret{};
 		peer_class const* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
 		TORRENT_ASSERT_PRECOND(pc);
@@ -6785,8 +6785,7 @@ namespace aux {
 		auto i = iface.m_sock.lock();
 		TORRENT_ASSERT(i);
 		if (!i) return;
-		set_external_address(std::static_pointer_cast<listen_socket_t>(i), ip
-			, source_dht, source);
+		set_external_address(i, ip, source_dht, source);
 	}
 
 	void session_impl::get_peers(sha1_hash const& ih)

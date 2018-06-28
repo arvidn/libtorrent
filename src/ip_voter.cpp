@@ -65,7 +65,6 @@ namespace libtorrent {
 		if (m_external_addresses.empty()) return false;
 
 		// if there's just one vote, go with that
-		std::vector<external_ip_t>::iterator i;
 		if (m_external_addresses.size() == 1)
 		{
 			// avoid flapping. We need more votes to change our mind on the
@@ -84,7 +83,7 @@ namespace libtorrent {
 				return false;
 		}
 
-		i = m_external_addresses.begin();
+		auto const i = m_external_addresses.begin();
 
 		bool ret = m_external_address != i->addr;
 		m_external_address = i->addr;
