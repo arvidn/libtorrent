@@ -297,9 +297,10 @@ namespace aux {
 			return reinterpret_cast<S const*>(&m_data);
 		}
 
-	private:
 		// explicitly disallow assignment, to silence msvc warning
-		socket_type& operator=(socket_type const&);
+		socket_type& operator=(socket_type const&) = delete;
+
+	private:
 
 		void destruct();
 		void construct(int type, void* userdata);
