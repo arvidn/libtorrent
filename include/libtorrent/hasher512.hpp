@@ -91,7 +91,7 @@ namespace libtorrent {
 		// ``update(data)``.
 		explicit hasher512(span<char const> data);
 		hasher512(hasher512 const&);
-		hasher512& operator=(hasher512 const&);
+		hasher512& operator=(hasher512 const&) &;
 
 		// append the following bytes to what is being hashed
 		hasher512& update(span<char const> data);

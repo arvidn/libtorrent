@@ -75,7 +75,7 @@ namespace libtorrent {
 		gcry_md_copy(&m_context, h.m_context);
 	}
 
-	hasher& hasher::operator=(hasher const& h)
+	hasher& hasher::operator=(hasher const& h) &
 	{
 		if (this == &h) return;
 		gcry_md_close(m_context);
@@ -84,7 +84,7 @@ namespace libtorrent {
 	}
 #else
 	hasher::hasher(hasher const&) = default;
-	hasher& hasher::operator=(hasher const&) = default;
+	hasher& hasher::operator=(hasher const&) & = default;
 #endif
 
 	hasher& hasher::update(char const* data, int len)

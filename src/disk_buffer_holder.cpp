@@ -39,7 +39,7 @@ namespace libtorrent {
 		: m_allocator(&alloc), m_buf(buf), m_size(sz), m_ref()
 	{}
 
-	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h) noexcept
+	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h) & noexcept
 	{
 		if (&h == this) return *this;
 		disk_buffer_holder(std::move(h)).swap(*this);

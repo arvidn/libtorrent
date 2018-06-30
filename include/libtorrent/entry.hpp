@@ -191,17 +191,17 @@ namespace aux {
 		// copies the structure of the right hand side into this
 		// entry.
 #if TORRENT_ABI_VERSION == 1
-		entry& operator=(lazy_entry const&);
+		entry& operator=(lazy_entry const&) &;
 #endif
-		entry& operator=(bdecode_node const&);
-		entry& operator=(entry const&);
-		entry& operator=(entry&&) noexcept;
-		entry& operator=(dictionary_type);
-		entry& operator=(span<char const>);
+		entry& operator=(bdecode_node const&) &;
+		entry& operator=(entry const&) &;
+		entry& operator=(entry&&) & noexcept;
+		entry& operator=(dictionary_type) &;
+		entry& operator=(span<char const>) &;
 		template <typename U, typename Cond = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
 			|| std::is_same<U, char const*>::value>::type>
-		entry& operator=(U v)
+		entry& operator=(U v) &
 		{
 			destruct();
 			new(&data) string_type(std::move(v));
@@ -211,9 +211,9 @@ namespace aux {
 #endif
 			return *this;
 		}
-		entry& operator=(list_type);
-		entry& operator=(integer_type);
-		entry& operator=(preformatted_type);
+		entry& operator=(list_type) &;
+		entry& operator=(integer_type) &;
+		entry& operator=(preformatted_type) &;
 
 		// The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
 		// are accessors that return the respective type. If the ``entry`` object

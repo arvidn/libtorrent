@@ -86,7 +86,7 @@ namespace libtorrent {
 				used_size = rhs.used_size;
 				move_holder(&holder, &rhs.holder);
 			}
-			buffer_t& operator=(buffer_t&& rhs) noexcept
+			buffer_t& operator=(buffer_t&& rhs) & noexcept
 			{
 				destruct_holder(&holder);
 				destruct_holder = rhs.destruct_holder;
@@ -99,7 +99,7 @@ namespace libtorrent {
 			}
 			buffer_t(buffer_t const& rhs) noexcept
 				: buffer_t(std::move(const_cast<buffer_t&>(rhs))) {}
-			buffer_t& operator=(buffer_t const& rhs) noexcept
+			buffer_t& operator=(buffer_t const& rhs) & noexcept
 			{ return this->operator=(std::move(const_cast<buffer_t&>(rhs))); }
 #else
 			buffer_t(buffer_t&&) = delete;
