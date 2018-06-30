@@ -2173,7 +2173,7 @@ namespace {
 			peers.push_back(detail::read_v6_endpoint<tcp::endpoint>(v6_ptr));
 #endif
 
-		return peers;
+		return std::move(peers);
 	}
 
 	dht_direct_response_alert::dht_direct_response_alert(
@@ -2409,7 +2409,7 @@ namespace {
 		TORRENT_UNUSED(v6_nodes_idx);
 #endif
 
-		return nodes;
+		return std::move(nodes);
 	}
 	}
 
@@ -2507,7 +2507,7 @@ namespace {
 		const char *ptr = m_alloc.get().ptr(m_samples_idx);
 		std::memcpy(samples.data(), ptr, samples.size() * 20);
 
-		return samples;
+		return std::move(samples);
 	}
 
 	int dht_sample_infohashes_alert::num_nodes() const
