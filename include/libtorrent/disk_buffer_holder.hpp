@@ -60,7 +60,7 @@ namespace libtorrent {
 		disk_buffer_holder(buffer_allocator_interface& alloc
 			, char* buf, std::size_t sz) noexcept;
 
-		disk_buffer_holder& operator=(disk_buffer_holder&&) noexcept;
+		disk_buffer_holder& operator=(disk_buffer_holder&&) & noexcept;
 		disk_buffer_holder(disk_buffer_holder&&) noexcept;
 
 		disk_buffer_holder& operator=(disk_buffer_holder const&) = delete;

@@ -241,7 +241,7 @@ namespace {
 			name = fe.name;
 	}
 
-	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe)
+	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe) &
 	{
 		if (&fe == this) return *this;
 		offset = fe.offset;
@@ -274,7 +274,7 @@ namespace {
 		fe.name = nullptr;
 	}
 
-	internal_file_entry& internal_file_entry::operator=(internal_file_entry&& fe) noexcept
+	internal_file_entry& internal_file_entry::operator=(internal_file_entry&& fe) & noexcept
 	{
 		if (&fe == this) return *this;
 		offset = fe.offset;

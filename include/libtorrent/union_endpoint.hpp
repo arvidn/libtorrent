@@ -44,7 +44,7 @@ TORRENT_IPV6_NAMESPACE
 	{
 		union_address() { *this = address(); }
 		explicit union_address(address const& a) { *this = a; }
-		union_address& operator=(address const& a)
+		union_address& operator=(address const& a) &
 		{
 #if TORRENT_USE_IPV6
 			v4 = a.is_v4();
@@ -104,7 +104,7 @@ TORRENT_IPV6_NAMESPACE
 		explicit union_endpoint(udp::endpoint const& ep) { *this = ep; }
 		union_endpoint() { *this = tcp::endpoint(); }
 
-		union_endpoint& operator=(udp::endpoint const& ep)
+		union_endpoint& operator=(udp::endpoint const& ep) &
 		{
 			addr = ep.address();
 			port = ep.port();
@@ -113,7 +113,7 @@ TORRENT_IPV6_NAMESPACE
 
 		operator udp::endpoint() const { return udp::endpoint(addr, port); }
 
-		union_endpoint& operator=(tcp::endpoint const& ep)
+		union_endpoint& operator=(tcp::endpoint const& ep) &
 		{
 			addr = ep.address();
 			port = ep.port();

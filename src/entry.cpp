@@ -132,7 +132,7 @@ namespace {
 
 	entry::~entry() { destruct(); }
 
-	entry& entry::operator=(const entry& e)
+	entry& entry::operator=(const entry& e) &
 	{
 		if (&e == this) return *this;
 		destruct();
@@ -140,7 +140,7 @@ namespace {
 		return *this;
 	}
 
-	entry& entry::operator=(entry&& e) noexcept
+	entry& entry::operator=(entry&& e) & noexcept
 	{
 		if (&e == this) return *this;
 		destruct();
@@ -360,7 +360,7 @@ namespace {
 	}
 
 	// convert a bdecode_node into an old skool entry
-	entry& entry::operator=(bdecode_node const& e)
+	entry& entry::operator=(bdecode_node const& e) &
 	{
 		switch (e.type())
 		{
@@ -399,7 +399,7 @@ namespace {
 
 #if TORRENT_ABI_VERSION == 1
 	// convert a lazy_entry into an old skool entry
-	entry& entry::operator=(lazy_entry const& e)
+	entry& entry::operator=(lazy_entry const& e) &
 	{
 		switch (e.type())
 		{
@@ -437,7 +437,7 @@ namespace {
 	}
 #endif
 
-	entry& entry::operator=(preformatted_type v)
+	entry& entry::operator=(preformatted_type v) &
 	{
 		destruct();
 		new(&data) preformatted_type(std::move(v));
@@ -448,7 +448,7 @@ namespace {
 		return *this;
 	}
 
-	entry& entry::operator=(dictionary_type v)
+	entry& entry::operator=(dictionary_type v) &
 	{
 		destruct();
 		new(&data) dictionary_type(std::move(v));
@@ -459,7 +459,7 @@ namespace {
 		return *this;
 	}
 
-	entry& entry::operator=(span<char const> v)
+	entry& entry::operator=(span<char const> v) &
 	{
 		destruct();
 		new(&data) string_type(v.data(), v.size());
@@ -470,7 +470,7 @@ namespace {
 		return *this;
 	}
 
-	entry& entry::operator=(list_type v)
+	entry& entry::operator=(list_type v) &
 	{
 		destruct();
 		new(&data) list_type(std::move(v));
@@ -481,7 +481,7 @@ namespace {
 		return *this;
 	}
 
-	entry& entry::operator=(integer_type v)
+	entry& entry::operator=(integer_type v) &
 	{
 		destruct();
 		new(&data) integer_type(std::move(v));

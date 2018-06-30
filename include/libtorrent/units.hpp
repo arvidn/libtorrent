@@ -88,8 +88,8 @@ namespace libtorrent { namespace aux {
 		strong_typedef& operator-=(diff_type rhs)
 		{ m_val -= static_cast<UnderlyingType>(rhs); return *this; }
 
-		strong_typedef& operator=(strong_typedef const& rhs) noexcept = default;
-		strong_typedef& operator=(strong_typedef&& rhs) noexcept = default;
+		strong_typedef& operator=(strong_typedef const& rhs) & noexcept = default;
+		strong_typedef& operator=(strong_typedef&& rhs) & noexcept = default;
 	private:
 		UnderlyingType m_val;
 	};
