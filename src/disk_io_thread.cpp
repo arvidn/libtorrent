@@ -2019,6 +2019,8 @@ namespace libtorrent
 		add_job(j);
 	}
 
+	// TODO 3: take `prios` by value and move it into the disk job instead of
+	// copying it into a heap allocation
 	void disk_io_thread::async_set_file_priority(piece_manager* storage
 		, std::vector<boost::uint8_t> const& prios
 		, boost::function<void(disk_io_job const*)> const& handler)
