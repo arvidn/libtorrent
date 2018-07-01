@@ -5689,7 +5689,6 @@ namespace {
 		if (!j->error) return;
 
 		// in this case, some file priorities failed to get set
-		TORRENT_ASSERT(j->error);
 		TORRENT_ASSERT(!m_share_mode);
 
 		if (alerts().should_post<file_error_alert>())
@@ -5706,30 +5705,18 @@ namespace {
 
 		if (is_seed()) return;
 
-		// store file priorities until we get the metadata
-		if (!valid_metadata())
-		{
-			m_file_priority.assign(files.begin(), files.end());
-			return;
-		}
-
-		// the vector need to have exactly one element for every file
-		// in the torrent
-		TORRENT_ASSERT(int(files.size()) == m_torrent_file->num_files());
-
 		std::vector<boost::uint8_t> const new_priority = fix_priorities(files, m_torrent_file->files());
 
-		if (new_priority == m_file_priority)
-		{
-			return;
-		}
-
 		// storage may be NULL during shutdown
-		if (m_torrent_file->num_pieces() > 0 && m_storage)
+		if (m_storage)
 		{
 			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
 				, new_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
+		}
+		else
+		{
+			m_file_priority = new_priority;
 		}
 	}
 
@@ -5750,13 +5737,21 @@ namespace {
 		if (prio < 0) prio = 0;
 		else if (prio > 7) prio = 7;
 
-		// TODO 3: don't make an unnecessary copy of a vector<int> here. stick to
-		// std::vector<uint8_t>
-		std::vector<int> file_priority(m_file_priority.begin(), m_file_priority.end());
-		file_priority.resize(std::max(int(file_priority.size()), index + 1), 4);
-		file_priority[index] = prio;
+		std::vector<boost::uint8_t> new_priority = m_file_priority;
+		new_priority.resize(std::max(int(new_priority.size()), index + 1), 4);
+		new_priority[index] = prio;
 
-		prioritize_files(file_priority);
+		// storage may be NULL during shutdown
+		if (m_storage)
+		{
+			inc_refcount("file_priority");
+			m_ses.disk_thread().async_set_file_priority(m_storage.get()
+				, new_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
+		}
+		else
+		{
+			m_file_priority = new_priority;
+		}
 	}
 
 	int torrent::file_priority(int index) const
