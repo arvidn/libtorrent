@@ -511,7 +511,7 @@ namespace libtorrent {
 			return;
 		}
 
-		char buf[16];
+		std::array<char, 16> buf;
 		span<char> view = buf;
 
 		TORRENT_ASSERT(m_transaction_id != 0);
