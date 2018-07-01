@@ -46,6 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
+#ifdef TORRENT_USE_ASSERTS
+#	include <boost/algorithm/cxx11/all_of.hpp>
+#endif
 #if TORRENT_USE_I2P
 #  include <boost/algorithm/string/predicate.hpp>
 #endif
@@ -1147,7 +1150,6 @@ namespace libtorrent
 			int const num_files = valid_metadata() ? m_torrent_file->num_files() : m_file_priority.size();
 			// in share mode, all pieces have their priorities initialized to 0
 			prioritize_files(std::vector<int>(num_files));
-			recalc_share_mode();
 		}
 	}
 
@@ -5684,12 +5686,17 @@ namespace {
 		{
 			m_file_priority = *p;
 			update_piece_priorities();
+
+			if (m_share_mode)
+			{
+				TORRENT_ASSERT(boost::algorithm::all_of_equal(m_file_priority, 0));
+				recalc_share_mode();
+			}
 		}
 
 		if (!j->error) return;
 
 		// in this case, some file priorities failed to get set
-		TORRENT_ASSERT(!m_share_mode);
 
 		if (alerts().should_post<file_error_alert>())
 			alerts().emplace_alert<file_error_alert>(j->error.ec
@@ -5706,6 +5713,8 @@ namespace {
 		if (is_seed()) return;
 
 		std::vector<boost::uint8_t> const new_priority = fix_priorities(files, m_torrent_file->files());
+
+		if (m_file_priority == new_priority) return;
 
 		// storage may be NULL during shutdown
 		if (m_storage)
@@ -5726,9 +5735,6 @@ namespace {
 
 		if (is_seed()) return;
 
-		// setting file priority on a torrent that doesn't have metadata yet is
-		// similar to having passed in file priorities through add_torrent_params.
-		// we store the priorities in m_file_priority until we get the metadata
 		if (index < 0 || (valid_metadata() && index >= m_torrent_file->num_files()))
 		{
 			return;
@@ -5736,6 +5742,8 @@ namespace {
 
 		if (prio < 0) prio = 0;
 		else if (prio > 7) prio = 7;
+
+		if (m_file_priority.size() > index && m_file_priority[index] == prio) return;
 
 		std::vector<boost::uint8_t> new_priority = m_file_priority;
 		new_priority.resize(std::max(int(new_priority.size()), index + 1), 4);
