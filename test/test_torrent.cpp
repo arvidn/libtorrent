@@ -306,8 +306,11 @@ TORRENT_TEST(torrent)
 			piece[i] = (i % 26) + 'A';
 
 		// calculate the hash for all pieces
-		TEST_CHECK(t.num_pieces() == 1);
-		t.set_hash(0, hasher(&piece[0], piece.size()).final());
+		sha1_hash const ph = hasher(&piece[0], piece.size()).final();
+		int const num = t.num_pieces();
+		TEST_CHECK(num > 0);
+		for (int i = 0; i < num; ++i)
+			t.set_hash(i, ph);
 
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char> > out(tmp);
