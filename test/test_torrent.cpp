@@ -60,7 +60,11 @@ bool wait_priority(torrent_handle const& h, std::vector<int> const& prio)
 	{
 		if (h.file_priorities() == prio) { return true; }
 
+#ifdef NDEBUG
 		test_sleep(100);
+#else
+		test_sleep(300);
+#endif
 	}
 
 	return h.file_priorities() == prio;
