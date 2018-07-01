@@ -1147,7 +1147,6 @@ namespace libtorrent
 			int const num_files = valid_metadata() ? m_torrent_file->num_files() : m_file_priority.size();
 			// in share mode, all pieces have their priorities initialized to 0
 			prioritize_files(std::vector<int>(num_files));
-			recalc_share_mode();
 		}
 	}
 
