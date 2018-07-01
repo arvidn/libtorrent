@@ -2764,9 +2764,9 @@ namespace {
 		int num_outstanding = settings().get_int(settings_pack::checking_mem_usage) * block_size()
 			/ m_torrent_file->piece_length();
 		// if we only keep a single read operation in-flight at a time, we suffer
-		// significant performance degradation. Always keep at least two jobs
+		// significant performance degradation. Always keep at least 4 jobs
 		// outstanding per hasher thread
-		int const min_outstanding = 2
+		int const min_outstanding = 4
 			* std::max(1, settings().get_int(settings_pack::aio_threads)
 				/ disk_io_thread::hasher_thread_divisor);
 		if (num_outstanding < min_outstanding) num_outstanding = min_outstanding;

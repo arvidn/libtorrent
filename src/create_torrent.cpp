@@ -308,7 +308,8 @@ namespace libtorrent
 		int piece_counter = 0;
 		int completed_piece = 0;
 		int piece_read_ahead = 16 * 1024 * 1024 / t.piece_length();
-		if (piece_read_ahead < 6) piece_read_ahead = 6;
+		// at least 4 jobs at a time per thread
+		if (piece_read_ahead < 12) piece_read_ahead = 12;
 
 		for (int i = 0; i < piece_read_ahead; ++i)
 		{
