@@ -5714,8 +5714,6 @@ namespace {
 
 		std::vector<boost::uint8_t> const new_priority = fix_priorities(files, m_torrent_file->files());
 
-		if (m_file_priority == new_priority) return;
-
 		// storage may be NULL during shutdown
 		if (m_storage)
 		{
@@ -5742,8 +5740,6 @@ namespace {
 
 		if (prio < 0) prio = 0;
 		else if (prio > 7) prio = 7;
-
-		if (m_file_priority.size() > index && m_file_priority[index] == prio) return;
 
 		std::vector<boost::uint8_t> new_priority = m_file_priority;
 		new_priority.resize(std::max(int(new_priority.size()), index + 1), 4);
