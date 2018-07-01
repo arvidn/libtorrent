@@ -5684,12 +5684,13 @@ namespace {
 		{
 			m_file_priority = *p;
 			update_piece_priorities();
+			if (m_share_mode)
+				recalc_share_mode();
 		}
 
 		if (!j->error) return;
 
 		// in this case, some file priorities failed to get set
-		TORRENT_ASSERT(!m_share_mode);
 
 		if (alerts().should_post<file_error_alert>())
 			alerts().emplace_alert<file_error_alert>(j->error.ec
