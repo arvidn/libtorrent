@@ -394,8 +394,11 @@ TORRENT_TEST(no_metadata_file_prio)
 	torrent_handle h = ses.add_torrent(addp);
 
 	h.file_priority(0, 0);
+	// TODO 2: this should wait for an alert instead of just sleeping
+	test_sleep(100);
 	TEST_EQUAL(h.file_priority(0), 0);
 	h.file_priority(0, 1);
+	test_sleep(100);
 	TEST_EQUAL(h.file_priority(0), 1);
 
 	ses.remove_torrent(h);

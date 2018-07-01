@@ -552,6 +552,7 @@ namespace libtorrent
 		void set_piece_deadline(int piece, int t, int flags);
 		void reset_piece_deadline(int piece);
 		void clear_time_critical();
+		void update_piece_priorities();
 
 		void status(torrent_status* st, boost::uint32_t flags);
 
@@ -1148,7 +1149,7 @@ namespace libtorrent
 
 		void ip_filter_updated();
 
-		void inc_stats_counter(int c, int value = 1) const;
+		void inc_stats_counter(int c, int value = 1);
 
 		// initialize the torrent_state structure passed to peer_list
 		// member functions. Don't forget to also call peers_erased()
@@ -1181,7 +1182,6 @@ namespace libtorrent
 		bool request_bandwidth_from_session(int channel) const;
 
 		void update_peer_interest(bool was_finished);
-		void update_piece_priorities();
 		void prioritize_udp_trackers();
 
 		void update_tracker_timer(time_point now);
