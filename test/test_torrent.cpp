@@ -137,8 +137,8 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 		h.piece_priority(0, 1);
 		st = h.status();
 		TEST_CHECK(st.pieces.size() > 0 && st.pieces[0] == false);
-		std::vector<char> piece(info->piece_length());
-		for (int i = 0; i < int(piece.size()); ++i)
+		std::vector<char> piece(info->piece_size(0));
+		for (int i = 0; i < int(file_size); ++i)
 			piece[i] = (i % 26) + 'A';
 		h.add_piece(0, &piece[0], torrent_handle::overwrite_existing);
 
@@ -156,10 +156,10 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 		if (rpa)
 		{
 			std::cout << "SUCCEEDED!" << std::endl;
-			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), info->piece_size(0)) == 0);
+			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), std::min(rpa->size, info->piece_size(0))) == 0);
 			TEST_CHECK(rpa->size == info->piece_size(0));
 			TEST_CHECK(rpa->piece == 0);
-			TEST_CHECK(hasher(&piece[0], piece.size()).final() == info->hash_for_piece(0));
+			TEST_CHECK(hasher(rpa->buffer.get(), rpa->size).final() == info->hash_for_piece(0));
 		}
 	}
 
@@ -300,14 +300,14 @@ TORRENT_TEST(torrent)
 		file_storage fs;
 
 		fs.add_file("test_torrent_dir2/tmp1", 1024);
-		libtorrent::create_torrent t(fs, 1024, 6);
+		libtorrent::create_torrent t(fs, 128 * 1024, 6);
 
-		std::vector<char> piece(1024);
-		for (int i = 0; i < int(piece.size()); ++i)
+		std::vector<char> piece(t.piece_size(0));
+		for (int i = 0; i < 1024; ++i)
 			piece[i] = (i % 26) + 'A';
 
 		// calculate the hash for all pieces
-		sha1_hash const ph = hasher(&piece[0], piece.size()).final();
+		sha1_hash const ph = hasher(&piece[0], t.piece_size(0)).final();
 		int const num = t.num_pieces();
 		TEST_CHECK(num > 0);
 		for (int i = 0; i < num; ++i)
