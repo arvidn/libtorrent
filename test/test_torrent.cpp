@@ -156,7 +156,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 		if (rpa)
 		{
 			std::cout << "SUCCEEDED!" << std::endl;
-			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), std::min(rpa->size, info->piece_size(0))) == 0);
+			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), std::min<size_t>(rpa->size, piece.size())) == 0);
 			TEST_CHECK(rpa->size == info->piece_size(0));
 			TEST_CHECK(rpa->piece == 0);
 			TEST_CHECK(hasher(rpa->buffer.get(), rpa->size).final() == info->hash_for_piece(0));
