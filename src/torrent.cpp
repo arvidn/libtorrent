@@ -1142,17 +1142,12 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-share-mode: %d", s);
 #endif
-
-		// in share mode, all pieces have their priorities initialized to 0
-		if (m_share_mode && valid_metadata())
+		if (m_share_mode)
 		{
-			m_file_priority.clear();
-			m_file_priority.resize(m_torrent_file->num_files(), 0);
+			int const num_files = valid_metadata() ? m_torrent_file->num_files() : m_file_priority.size();
+			// in share mode, all pieces have their priorities initialized to 0
+			prioritize_files(std::vector<int>(num_files));
 		}
-
-		update_piece_priorities();
-
-		if (m_share_mode) recalc_share_mode();
 	}
 
 	void torrent::set_upload_mode(bool b)
@@ -5655,6 +5650,23 @@ namespace {
 
 	namespace
 	{
+		std::vector<boost::uint8_t> fix_priorities(std::vector<int> const& input, file_storage const& fs)
+		{
+			std::vector<boost::uint8_t> files(input.begin(), input.end());
+
+			for (int i = 0; i < std::min<int>(fs.num_files(), files.size()); ++i)
+			{
+				// initialize pad files to priority 0
+				if (files[i] > 0 && fs.pad_file_at(i))
+					files[i] = 0;
+				else if (files[i] > 7)
+					files[i] = 7;
+			}
+
+			files.resize(fs.num_files(), 4);
+			return files;
+		}
+
 		void set_if_greater(int& piece_prio, int file_prio)
 		{
 			if (file_prio > piece_prio) piece_prio = file_prio;
@@ -5664,12 +5676,20 @@ namespace {
 	void torrent::on_file_priority(disk_io_job const* j)
 	{
 		dec_refcount("file_priority");
+
 		boost::scoped_ptr<std::vector<boost::uint8_t> > p(j->buffer.priorities);
-		if (m_file_priority == *p) return;
+
+		if (m_file_priority != *p)
+		{
+			m_file_priority = *p;
+			update_piece_priorities();
+			if (m_share_mode)
+				recalc_share_mode();
+		}
+
+		if (!j->error) return;
 
 		// in this case, some file priorities failed to get set
-		m_file_priority = *p;
-		update_piece_priorities();
 
 		if (alerts().should_post<file_error_alert>())
 			alerts().emplace_alert<file_error_alert>(j->error.ec
@@ -5683,42 +5703,21 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		// this call is only valid on torrents with metadata
-		if (!valid_metadata() || is_seed()) return;
+		if (is_seed()) return;
 
-		// the vector need to have exactly one element for every file
-		// in the torrent
-		TORRENT_ASSERT(int(files.size()) == m_torrent_file->num_files());
-
-		int limit = int(files.size());
-		if (valid_metadata() && limit > m_torrent_file->num_files())
-			limit = m_torrent_file->num_files();
-
-		if (int(m_file_priority.size()) < limit)
-			m_file_priority.resize(limit, 4);
-
-		std::copy(files.begin(), files.begin() + limit, m_file_priority.begin());
-
-		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
-			m_file_priority.resize(m_torrent_file->num_files(), 4);
-
-		// initialize pad files to priority 0
-		file_storage const& fs = m_torrent_file->files();
-		for (int i = 0; i < (std::min)(fs.num_files(), limit); ++i)
-		{
-			if (!fs.pad_file_at(i)) continue;
-			m_file_priority[i] = 0;
-		}
+		std::vector<boost::uint8_t> const new_priority = fix_priorities(files, m_torrent_file->files());
 
 		// storage may be NULL during shutdown
-		if (m_torrent_file->num_pieces() > 0 && m_storage)
+		if (m_storage)
 		{
 			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
-				, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
+				, new_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
 		}
-
-		update_piece_priorities();
+		else
+		{
+			m_file_priority = new_priority;
+		}
 	}
 
 	void torrent::set_file_priority(int index, int prio)
@@ -5737,26 +5736,22 @@ namespace {
 
 		if (prio < 0) prio = 0;
 		else if (prio > 7) prio = 7;
-		if (int(m_file_priority.size()) <= index)
-		{
-			// any unallocated slot is assumed to be 4
-			if (prio == 4) return;
-			m_file_priority.resize(index+1, 4);
-		}
 
-		if (m_file_priority[index] == prio) return;
-		m_file_priority[index] = prio;
+		std::vector<boost::uint8_t> new_priority = m_file_priority;
+		new_priority.resize(std::max(int(new_priority.size()), index + 1), 4);
+		new_priority[index] = prio;
 
-		if (!valid_metadata()) return;
-
-		// stoage may be NULL during shutdown
+		// storage may be NULL during shutdown
 		if (m_storage)
 		{
 			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
-				, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
+				, new_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
 		}
-		update_piece_priorities();
+		else
+		{
+			m_file_priority = new_priority;
+		}
 	}
 
 	int torrent::file_priority(int index) const
@@ -5784,17 +5779,14 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
+		files->assign(m_file_priority.begin(), m_file_priority.end());
+
 		if (!valid_metadata())
 		{
-			files->resize(m_file_priority.size());
-			std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
 			return;
 		}
 
-		files->clear();
 		files->resize(m_torrent_file->num_files(), 4);
-		TORRENT_ASSERT(int(m_file_priority.size()) <= m_torrent_file->num_files());
-		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
 	}
 
 	void torrent::update_piece_priorities()
@@ -7163,8 +7155,6 @@ namespace {
 					m_ses.disk_thread().async_set_file_priority(m_storage.get()
 						, m_file_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
 				}
-
-				update_piece_priorities();
 			}
 		}
 
