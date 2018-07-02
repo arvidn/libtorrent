@@ -278,6 +278,7 @@ TORRENT_TEST(torrent)
 		std::vector<char> piece(128 * 1024);
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[i] = (i % 26) + 'A';
+
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(&piece[0], piece.size()).final();
 		int num = t.num_pieces();
