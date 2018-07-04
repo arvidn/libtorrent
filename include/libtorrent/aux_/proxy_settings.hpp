@@ -117,23 +117,23 @@ namespace aux {
 
 		// tells libtorrent what kind of proxy server it is. See proxy_type
 		// enum for options
-		std::uint8_t type;
+		std::uint8_t type = 0;
 
 		// the port the proxy server is running on
-		std::uint16_t port;
+		std::uint16_t port = 0;
 
 		// defaults to true. It means that hostnames should be attempted to be
 		// resolved through the proxy instead of using the local DNS service.
 		// This is only supported by SOCKS5 and HTTP.
-		bool proxy_hostnames;
+		bool proxy_hostnames = true;
 
 		// determines whether or not to exempt peer and web seed connections
 		// from using the proxy. This defaults to true, i.e. peer connections are
 		// proxied by default.
-		bool proxy_peer_connections;
+		bool proxy_peer_connections = true;
 
 		// if true, tracker connections are subject to the proxy settings
-		bool proxy_tracker_connections;
+		bool proxy_tracker_connections = true;
 	};
 
 
