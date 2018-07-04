@@ -568,7 +568,6 @@ void test_proxy(bool proxy_trackers)
 	pack.set_int(settings_pack::tracker_completion_timeout, 2);
 	pack.set_int(settings_pack::tracker_receive_timeout, 1);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:39775");
-	pack.set_bool(settings_pack::force_proxy, true);
 
 	pack.set_str(settings_pack::proxy_hostname, "non-existing.com");
 	pack.set_int(settings_pack::proxy_type, settings_pack::socks5);

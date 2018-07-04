@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/flags.hpp"
 
 #include <fstream>
 
@@ -60,40 +61,25 @@ char const* proxy_name[] = {
 	"i2p_proxy"
 };
 
-std::vector<std::string> rejected_trackers;
+using flags_t = flags::bitfield_flag<std::uint32_t, struct test_proxy_tag>;
 
-bool alert_predicate(lt::alert const* a)
-{
-	anonymous_mode_alert const* am = alert_cast<anonymous_mode_alert>(a);
-	if (am == nullptr) return false;
+constexpr flags_t expect_http_connection = 1_bit;
+constexpr flags_t expect_udp_connection = 2_bit;
+//constexpr flags_t expect_http_reject = 3_bit;
+//constexpr flags_t expect_udp_reject = 4_bit;
+constexpr flags_t expect_dht_msg = 5_bit;
+constexpr flags_t expect_peer_connection = 6_bit;
 
-	if (am->kind == anonymous_mode_alert::tracker_not_anonymous)
-		rejected_trackers.push_back(am->str);
+constexpr flags_t dont_proxy_peers = 10_bit;
+constexpr flags_t dont_proxy_trackers = 11_bit;
 
-	return false;
-}
-
-enum flags_t
-{
-	force_proxy_mode = 1,
-	expect_http_connection = 2,
-	expect_udp_connection = 4,
-	expect_http_reject = 8,
-	expect_udp_reject = 16,
-	expect_dht_msg = 32,
-	expect_peer_connection = 64,
-	expect_possible_udp_connection = 128,
-	expect_possible_dht_msg = 256,
-};
-
-session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
+session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t const flags)
 {
 #ifdef TORRENT_DISABLE_DHT
 	// if DHT is disabled, we won't get any requests to it
 	flags &= ~expect_dht_msg;
 #endif
-	std::printf("\n=== TEST == proxy: %s anonymous-mode: %s\n\n"
-		, proxy_name[proxy_type], (flags & force_proxy_mode) ? "yes" : "no");
+	std::printf("\n=== TEST == proxy: %s \n\n", proxy_name[proxy_type]);
 	int const http_port = start_web_server();
 	int const udp_port = start_udp_tracker();
 	int const dht_port = start_dht();
@@ -114,7 +100,6 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	sett.set_int(settings_pack::tracker_receive_timeout, 2);
 	sett.set_bool(settings_pack::announce_to_all_trackers, true);
 	sett.set_bool(settings_pack::announce_to_all_tiers, true);
-	sett.set_bool(settings_pack::force_proxy, flags & force_proxy_mode);
 	sett.set_int(settings_pack::alert_mask, alert_mask);
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
@@ -138,9 +123,11 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	// wheras in anonymous mode, we just fail
 	sett.set_str(settings_pack::proxy_hostname, "non-existing.com");
 	sett.set_int(settings_pack::proxy_type, proxy_type);
+	sett.set_bool(settings_pack::proxy_peer_connections, !(flags & dont_proxy_peers));
+	sett.set_bool(settings_pack::proxy_tracker_connections, !(flags & dont_proxy_trackers));
 	sett.set_int(settings_pack::proxy_port, 4444);
 
-	lt::session* s = new lt::session(sett);
+	std::unique_ptr<lt::session> s(new lt::session(sett));
 
 	error_code ec;
 	remove_all("tmp1_privacy", ec);
@@ -153,11 +140,13 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	std::snprintf(http_tracker_url, sizeof(http_tracker_url)
 		, "http://127.0.0.1:%d/announce", http_port);
 	t->add_tracker(http_tracker_url, 0);
+	std::printf("http tracker: %s\n", http_tracker_url);
 
 	char udp_tracker_url[200];
 	std::snprintf(udp_tracker_url, sizeof(udp_tracker_url)
 		, "udp://127.0.0.1:%d/announce", udp_port);
 	t->add_tracker(udp_tracker_url, 1);
+	std::printf("udp tracker: %s\n", udp_tracker_url);
 
 	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
@@ -175,50 +164,38 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	std::printf("connect_peer: 127.0.0.1:%d\n", peer_port);
 	h.connect_peer({address_v4::from_string("127.0.0.1"), std::uint16_t(peer_port)});
 
-	rejected_trackers.clear();
+	std::vector<std::string> accepted_trackers;
 
-	const int timeout = 20;
+	const int timeout = 30;
 
 	for (int i = 0; i < timeout; ++i)
 	{
-		print_alerts(*s, "s", false, false, &alert_predicate);
+		print_alerts(*s, "s", false, false
+			, [&](lt::alert const* a)
+			{
+				if (auto const* ta = alert_cast<tracker_reply_alert>(a))
+					accepted_trackers.push_back(ta->tracker_url());
+				return false;
+			});
 		std::this_thread::sleep_for(lt::milliseconds(100));
 
 		if (num_udp_announces() >= prev_udp_announces + 1
-			&& num_peer_hits() > 0)
+			&& num_peer_hits() > 0
+			&& !accepted_trackers.empty())
 			break;
 	}
 
 	// we should have announced to the tracker by now
-	if (flags & expect_possible_udp_connection)
-	{
-		// this flag is true if we may fail open, but also might not have had
-		// enough time to fail yet
-		TEST_CHECK(num_udp_announces() == prev_udp_announces
-			|| num_udp_announces() == prev_udp_announces + 1);
-	}
-	else
-	{
-		TEST_EQUAL(num_udp_announces(), prev_udp_announces
-			+ ((flags & expect_udp_connection) != 0 ? 1 : 0));
-	}
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces
+		+ ((flags & expect_udp_connection) ? 1 : 0));
 
-	if (flags & expect_possible_udp_connection)
+	if (flags & expect_dht_msg)
 	{
-		// this flag is true if we may fail open, but also might not have had
-		// enough time to fail yet
-		TEST_CHECK(num_dht_hits() == 0 || num_dht_hits() == 1);
+		TEST_CHECK(num_dht_hits() > 0);
 	}
 	else
 	{
-		if (flags & expect_dht_msg)
-		{
-			TEST_CHECK(num_dht_hits() > 0);
-		}
-		else
-		{
-			TEST_EQUAL(num_dht_hits(), 0);
-		}
+		TEST_EQUAL(num_dht_hits(), 0);
 	}
 
 	if (flags & expect_peer_connection)
@@ -230,17 +207,31 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 		TEST_EQUAL(num_peer_hits(), 0);
 	}
 
-	if (flags & expect_udp_reject)
-		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end()
-			, udp_tracker_url) != rejected_trackers.end());
+	if (flags & expect_http_connection)
+	{
+		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
+			, http_tracker_url) != accepted_trackers.end());
+	}
+	else
+	{
+		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
+			, http_tracker_url) == accepted_trackers.end());
+	}
 
-	if (flags & expect_http_reject)
-		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end()
-			, http_tracker_url) != rejected_trackers.end());
+	if (flags & expect_udp_connection)
+	{
+		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
+			, udp_tracker_url) != accepted_trackers.end());
+	}
+	else
+	{
+		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
+			, udp_tracker_url) == accepted_trackers.end());
+	}
 
 	std::printf("%s: ~session\n", time_now_string());
 	session_proxy pr = s->abort();
-	delete s;
+	s.reset();
 
 	stop_peer();
 	stop_dht();
@@ -261,79 +252,88 @@ TORRENT_TEST(no_proxy)
 		| expect_http_connection | expect_dht_msg | expect_peer_connection);
 }
 
+// since we don't actually have a proxy in this test, make sure libtorrent
+// doesn't send any outgoing packets to either tracker or the peer
 TORRENT_TEST(socks4)
 {
-	test_proxy(settings_pack::socks4, expect_udp_connection | expect_dht_msg);
+	test_proxy(settings_pack::socks4, {});
 }
 
 TORRENT_TEST(socks5)
 {
-	test_proxy(settings_pack::socks5, expect_possible_udp_connection
-		| expect_possible_dht_msg);
+	test_proxy(settings_pack::socks5, {});
 }
 
 TORRENT_TEST(socks5_pw)
 {
-	test_proxy(settings_pack::socks5_pw,expect_possible_udp_connection
-		| expect_possible_dht_msg);
+	test_proxy(settings_pack::socks5_pw, {});
 }
 
 TORRENT_TEST(http)
 {
-	test_proxy(settings_pack::http, expect_udp_connection | expect_dht_msg);
+	test_proxy(settings_pack::http, {});
 }
 
-TORRENT_TEST(http_pt)
+TORRENT_TEST(http_pw)
 {
-	test_proxy(settings_pack::http_pw, expect_udp_connection | expect_dht_msg);
+	test_proxy(settings_pack::http_pw, {});
+}
+
+// if we configure trackers to not be proxied, they should be let through
+TORRENT_TEST(socks4_tracker)
+{
+	test_proxy(settings_pack::socks4, dont_proxy_trackers | expect_http_connection | expect_udp_connection);
+}
+
+TORRENT_TEST(socks5_tracker)
+{
+	test_proxy(settings_pack::socks5, dont_proxy_trackers | expect_http_connection | expect_udp_connection);
+}
+
+TORRENT_TEST(socks5_pw_tracker)
+{
+	test_proxy(settings_pack::socks5_pw, dont_proxy_trackers | expect_http_connection | expect_udp_connection);
+}
+
+TORRENT_TEST(http_tracker)
+{
+	test_proxy(settings_pack::http, dont_proxy_trackers | expect_http_connection | expect_udp_connection);
+}
+
+TORRENT_TEST(http_pw_tracker)
+{
+	test_proxy(settings_pack::http_pw, dont_proxy_trackers | expect_http_connection | expect_udp_connection);
+}
+
+// if we configure peers to not be proxied, they should be let through
+TORRENT_TEST(socks4_peer)
+{
+	test_proxy(settings_pack::socks4, dont_proxy_peers | expect_peer_connection);
+}
+
+TORRENT_TEST(socks5_peer)
+{
+	test_proxy(settings_pack::socks5, dont_proxy_peers | expect_peer_connection);
+}
+
+TORRENT_TEST(socks5_pw_peer)
+{
+	test_proxy(settings_pack::socks5_pw, dont_proxy_peers | expect_peer_connection);
+}
+
+TORRENT_TEST(http_peer)
+{
+	test_proxy(settings_pack::http, dont_proxy_peers | expect_peer_connection);
+}
+
+TORRENT_TEST(http_pw_peer)
+{
+	test_proxy(settings_pack::http_pw, dont_proxy_peers | expect_peer_connection);
 }
 
 #if TORRENT_USE_I2P
 TORRENT_TEST(i2p)
 {
-	test_proxy(settings_pack::i2p_proxy, expect_udp_connection | expect_dht_msg);
-}
-#endif
-
-// using anonymous mode
-
-// anonymous mode doesn't require a proxy when one isn't configured. It could be
-// used with a VPN for instance. This will all changed in 1.0, where anonymous
-// mode is separated from force_proxy
-
-TORRENT_TEST(anon_no_proxy)
-{
-	test_proxy(settings_pack::none, force_proxy_mode | expect_peer_connection);
-}
-
-TORRENT_TEST(anon_socks4)
-{
-	test_proxy(settings_pack::socks4, force_proxy_mode | expect_udp_reject);
-}
-
-TORRENT_TEST(anon_socks5)
-{
-	test_proxy(settings_pack::socks5, force_proxy_mode);
-}
-
-TORRENT_TEST(anon_socks5_pw)
-{
-	test_proxy(settings_pack::socks5_pw, force_proxy_mode);
-}
-
-TORRENT_TEST(anon_http)
-{
-	test_proxy(settings_pack::http, force_proxy_mode | expect_udp_reject);
-}
-
-TORRENT_TEST(anon_http_pw)
-{
-	test_proxy(settings_pack::http_pw, force_proxy_mode | expect_udp_reject);
-}
-
-#if TORRENT_USE_I2P
-TORRENT_TEST(anon_i2p)
-{
-	test_proxy(settings_pack::i2p_proxy, force_proxy_mode);
+	test_proxy(settings_pack::i2p_proxy, {});
 }
 #endif

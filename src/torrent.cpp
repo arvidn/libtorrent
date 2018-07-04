@@ -2889,48 +2889,6 @@ bool is_downloading_state(int const st)
 				req.triggered_manually = aep.triggered_manually;
 				aep.triggered_manually = false;
 
-				if (settings().get_bool(settings_pack::force_proxy))
-				{
-					// in force_proxy mode we don't talk directly to trackers
-					// we only allow trackers if there is a proxy and issue
-					// a warning if there isn't one
-					std::string const protocol = req.url.substr(0, req.url.find(':'));
-					int const proxy_type = settings().get_int(settings_pack::proxy_type);
-
-					// http can run over any proxy, so as long as one is used
-					// it's OK. If no proxy is configured, skip this tracker
-					if ((protocol == "http" || protocol == "https")
-						&& proxy_type == settings_pack::none)
-					{
-						aep.next_announce = now + minutes32(10);
-						if (m_ses.alerts().should_post<anonymous_mode_alert>()
-							|| req.triggered_manually)
-						{
-							m_ses.alerts().emplace_alert<anonymous_mode_alert>(get_handle()
-								, anonymous_mode_alert::tracker_not_anonymous, req.url);
-						}
-						continue;
-					}
-
-					// for UDP, only socks5 and i2p proxies will work.
-					// if we're not using one of those proxies with a UDP
-					// tracker, skip it
-					if (protocol == "udp"
-						&& proxy_type != settings_pack::socks5
-						&& proxy_type != settings_pack::socks5_pw
-						&& proxy_type != settings_pack::i2p_proxy)
-					{
-						aep.next_announce = now + minutes32(10);
-						if (m_ses.alerts().should_post<anonymous_mode_alert>()
-							|| req.triggered_manually)
-						{
-							m_ses.alerts().emplace_alert<anonymous_mode_alert>(get_handle()
-								, anonymous_mode_alert::tracker_not_anonymous, req.url);
-						}
-						continue;
-					}
-				}
-
 #if TORRENT_ABI_VERSION == 1
 				req.auth = tracker_login();
 #endif

@@ -621,6 +621,7 @@ namespace libtorrent {
 			// same write cache line as is configured in the disk cache.
 			allow_partial_disk_writes,
 
+#if TORRENT_ABI_VERSION == 1
 			// If true, disables any communication that's not going over a proxy.
 			// Enabling this requires a proxy to be configured as well, see
 			// proxy_type and proxy_hostname settings. The listen sockets are
@@ -630,6 +631,9 @@ namespace libtorrent {
 			// country lookups, since those are done via DNS lookups that aren't
 			// supported by proxies.
 			force_proxy,
+#else
+			deprecated_force_proxy,
+#endif
 
 			// if false, prevents libtorrent to advertise share-mode support
 			support_share_mode,

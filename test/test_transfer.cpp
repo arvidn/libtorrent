@@ -181,7 +181,6 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		pack_p.set_str(settings_pack::proxy_password, "testpass");
 		pack_p.set_int(settings_pack::proxy_type, proxy_type);
 		pack_p.set_int(settings_pack::proxy_port, proxy_port);
-		pack_p.set_bool(settings_pack::force_proxy, true);
 
 		// test resetting the proxy in quick succession.
 		// specifically the udp_socket connecting to a new

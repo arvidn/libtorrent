@@ -97,7 +97,6 @@ namespace libtorrent {
 
 		void set_proxy_settings(aux::proxy_settings const& ps);
 		aux::proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
-		void set_force_proxy(bool f) { m_force_proxy = f; }
 
 		bool is_closed() const { return m_abort; }
 		udp::endpoint local_endpoint(error_code& ec) const
@@ -152,8 +151,6 @@ namespace libtorrent {
 
 		std::shared_ptr<socks5> m_socks5_connection;
 
-		// TODO: 3 add a unit test for force-proxy
-		bool m_force_proxy:1;
 		bool m_abort:1;
 
 #if TORRENT_USE_ASSERTS
