@@ -53,10 +53,32 @@ using namespace lt;
 
 namespace {
 
+bool wait_priority(torrent_handle const& h, aux::vector<download_priority_t, file_index_t> const& prio)
+{
+	for (int i = 0; i < 10; ++i)
+	{
+		if (h.get_file_priorities() == prio) return true;
+
+#ifdef NDEBUG
+		std::this_thread::sleep_for(lt::milliseconds(100));
+#else
+		std::this_thread::sleep_for(lt::milliseconds(300));
+#endif
+	}
+
+	return h.get_file_priorities() == prio;
+}
+
+bool prioritize_files(torrent_handle const& h, aux::vector<download_priority_t, file_index_t> const& prio)
+{
+	h.prioritize_files(prio);
+	return wait_priority(h, prio);
+}
+
 void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_size)
 {
 	settings_pack pack = settings();
-	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
+	pack.set_int(settings_pack::alert_mask, alert::file_progress_notification | alert::storage_notification);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
@@ -82,7 +104,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	}
 
 	aux::vector<download_priority_t, file_index_t> ones(std::size_t(info->num_files()), 1_pri);
-	h.prioritize_files(ones);
+	TEST_CHECK(prioritize_files(h, ones))
 
 	torrent_status st = h.status();
 
@@ -91,38 +113,22 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 
 	aux::vector<download_priority_t, file_index_t> prio(std::size_t(info->num_files()), 1_pri);
 	prio[file_index_t(0)] = 0_pri;
-	h.prioritize_files(prio);
+	TEST_CHECK(prioritize_files(h, prio))
 	st = h.status();
 
+	st = h.status();
 	TEST_EQUAL(st.total_wanted, 0); // we don't want anything
 	TEST_EQUAL(st.total_wanted_done, 0);
 	TEST_EQUAL(int(h.get_file_priorities().size()), info->num_files());
-	if (!st.is_seeding)
-	{
-		TEST_EQUAL(h.get_file_priorities()[0], 0_pri);
-		if (info->num_files() > 1)
-			TEST_EQUAL(h.get_file_priorities()[1], 1_pri);
-		if (info->num_files() > 2)
-			TEST_EQUAL(h.get_file_priorities()[2], 1_pri);
-	}
 
 	if (info->num_files() > 1)
 	{
-		prio[file_index_t(1)] = 0_pri;
-		h.prioritize_files(prio);
-		st = h.status();
+		prio[file_index_t{1}] = 0_pri;
+		TEST_CHECK(prioritize_files(h, prio))
 
+		st = h.status();
 		TEST_EQUAL(st.total_wanted, file_size);
 		TEST_EQUAL(st.total_wanted_done, 0);
-		if (!st.is_seeding)
-		{
-			TEST_EQUAL(int(h.get_file_priorities().size()), info->num_files());
-			TEST_EQUAL(h.get_file_priorities()[0], 0_pri);
-			if (info->num_files() > 1)
-				TEST_EQUAL(h.get_file_priorities()[1], 0_pri);
-			if (info->num_files() > 2)
-				TEST_EQUAL(h.get_file_priorities()[2], 1_pri);
-		}
 	}
 
 	if (info->num_pieces() > 0)
@@ -156,6 +162,8 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 			TEST_CHECK(hasher(piece).final() == info->hash_for_piece(piece_index_t(0)));
 		}
 	}
+
+	TEST_CHECK(h.get_file_priorities() == prio);
 }
 
 } // anonymous namespace
@@ -221,6 +229,11 @@ TORRENT_TEST(total_wanted)
 	TEST_EQUAL(st.total_wanted, 1024);
 	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
 	TEST_EQUAL(st.total_wanted_done, 0);
+
+	h.file_priority(file_index_t{1}, default_priority);
+	h.file_priority(file_index_t{1}, dont_download);
+	TEST_CHECK(wait_priority(h, aux::vector<download_priority_t, file_index_t>(static_cast<std::size_t>(fs.num_files()))));
+	TEST_EQUAL(h.status({}).total_wanted, 0);
 }
 
 TORRENT_TEST(added_peers)
@@ -298,14 +311,14 @@ TORRENT_TEST(torrent)
 		file_storage fs;
 
 		fs.add_file("test_torrent_dir2/tmp1", 1024);
-		lt::create_torrent t(fs, 128 * 1024, 6);
+		lt::create_torrent t(fs, 1024, 6);
 
-		std::vector<char> piece(128 * 1024);
+		std::vector<char> piece(1024);
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[std::size_t(i)] = (i % 26) + 'A';
 
 		// calculate the hash for all pieces
-		sha1_hash ph = hasher(piece).final();
+		sha1_hash const ph = hasher(piece).final();
 		TEST_CHECK(t.num_pieces() > 0);
 		for (auto const i : fs.piece_range())
 			t.set_hash(i, ph);
