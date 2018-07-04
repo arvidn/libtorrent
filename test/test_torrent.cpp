@@ -52,10 +52,34 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+namespace {
+
+bool wait_priority(torrent_handle const& h, std::vector<int> const& prio)
+{
+	for (int i = 0; i < 10; ++i)
+	{
+		if (h.file_priorities() == prio) { return true; }
+
+#ifdef NDEBUG
+		test_sleep(100);
+#else
+		test_sleep(300);
+#endif
+	}
+
+	return h.file_priorities() == prio;
+}
+
+bool prioritize_files(torrent_handle const& h, std::vector<int> const& prio)
+{
+	h.prioritize_files(prio);
+	return wait_priority(h, prio);
+}
+
 void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t file_size)
 {
 	settings_pack pack = settings();
-	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
+	pack.set_int(settings_pack::alert_mask, alert::progress_notification | alert::storage_notification);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
@@ -81,9 +105,9 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 	}
 
 	std::vector<int> ones(info->num_files(), 1);
-	h.prioritize_files(ones);
+	TEST_CHECK(prioritize_files(h, ones))
 
-//	test_sleep(500);
+	// test_sleep(500);
 	torrent_status st = h.status();
 
 	TEST_EQUAL(st.total_wanted, file_size); // we want the single file
@@ -91,38 +115,21 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 
 	std::vector<int> prio(info->num_files(), 1);
 	prio[0] = 0;
-	h.prioritize_files(prio);
-	st = h.status();
+	TEST_CHECK(prioritize_files(h, prio))
 
+	st = h.status();
 	TEST_EQUAL(st.total_wanted, 0); // we don't want anything
 	TEST_EQUAL(st.total_wanted_done, 0);
 	TEST_EQUAL(int(h.file_priorities().size()), info->num_files());
-	if (!st.is_seeding)
-	{
-		TEST_EQUAL(h.file_priorities()[0], 0);
-		if (info->num_files() > 1)
-			TEST_EQUAL(h.file_priorities()[1], 1);
-		if (info->num_files() > 2)
-			TEST_EQUAL(h.file_priorities()[2], 1);
-	}
 
 	if (info->num_files() > 1)
 	{
 		prio[1] = 0;
-		h.prioritize_files(prio);
-		st = h.status();
+		TEST_CHECK(prioritize_files(h, prio))
 
+		st = h.status();
 		TEST_EQUAL(st.total_wanted, file_size);
 		TEST_EQUAL(st.total_wanted_done, 0);
-		if (!st.is_seeding)
-		{
-			TEST_EQUAL(int(h.file_priorities().size()), info->num_files());
-			TEST_EQUAL(h.file_priorities()[0], 0);
-			if (info->num_files() > 1)
-				TEST_EQUAL(h.file_priorities()[1], 0);
-			if (info->num_files() > 2)
-				TEST_EQUAL(h.file_priorities()[2], 1);
-		}
 	}
 
 	if (info->num_pieces() > 0)
@@ -155,7 +162,10 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 			TEST_CHECK(hasher(&piece[0], piece.size()).final() == info->hash_for_piece(0));
 		}
 	}
+
+	TEST_CHECK(h.file_priorities() == prio);
 }
+} // namespace
 
 TORRENT_TEST(long_names)
 {
@@ -214,6 +224,11 @@ TORRENT_TEST(total_wanted)
 	TEST_EQUAL(st.total_wanted, 1024);
 	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
 	TEST_EQUAL(st.total_wanted_done, 0);
+
+	h.file_priority(1, 4);
+	h.file_priority(1, 0);
+	TEST_CHECK(wait_priority(h, std::vector<int>(fs.num_files())));
+	TEST_EQUAL(h.status(0).total_wanted, 0);
 }
 
 TORRENT_TEST(added_peers)
@@ -285,16 +300,16 @@ TORRENT_TEST(torrent)
 		file_storage fs;
 
 		fs.add_file("test_torrent_dir2/tmp1", 1024);
-		libtorrent::create_torrent t(fs, 128 * 1024, 6);
+		libtorrent::create_torrent t(fs, 1024, 6);
 
-		std::vector<char> piece(128 * 1024);
+		std::vector<char> piece(1024);
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[i] = (i % 26) + 'A';
 
 		// calculate the hash for all pieces
-		sha1_hash ph = hasher(&piece[0], piece.size()).final();
-		int num = t.num_pieces();
-		TEST_CHECK(t.num_pieces() > 0);
+		sha1_hash const ph = hasher(&piece[0], piece.size()).final();
+		int const num = t.num_pieces();
+		TEST_CHECK(num > 0);
 		for (int i = 0; i < num; ++i)
 			t.set_hash(i, ph);
 
@@ -534,4 +549,3 @@ TORRENT_TEST(test_move_storage_no_metadata)
 
 	TEST_EQUAL(h.status().save_path, complete("save_path_1"));
 }
-
