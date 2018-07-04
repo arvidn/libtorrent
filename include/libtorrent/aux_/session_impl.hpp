@@ -752,7 +752,6 @@ namespace aux {
 			void update_socket_buffer_size();
 			void update_dht_announce_interval();
 			void update_anonymous_mode();
-			void update_force_proxy();
 			void update_download_rate();
 			void update_upload_rate();
 			void update_connections_limit();

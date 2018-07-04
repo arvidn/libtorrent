@@ -155,7 +155,6 @@ udp_socket::udp_socket(io_service& ios)
 	: m_socket(ios)
 	, m_buf(new receive_buffer())
 	, m_bind_port(0)
-	, m_force_proxy(false)
 	, m_abort(true)
 {}
 
@@ -188,9 +187,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 			// SOCKS5 cannot wrap ICMP errors. And even if it could, they certainly
 			// would not arrive as unwrapped (regular) ICMP errors. If we're using
 			// a proxy we must ignore these
-			if (m_force_proxy
-				|| (m_socks5_connection
-				&&  m_socks5_connection->active())) continue;
+			if (m_proxy_settings.type != settings_pack::none) continue;
 
 			p.error = ec;
 			p.data = span<char>();
@@ -204,11 +201,22 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 			{
 				// if the source IP doesn't match the proxy's, ignore the packet
 				if (p.from != m_socks5_connection->target()) continue;
+				// if we failed to unwrap, silently ignore the packet
 				if (!unwrap(p.from, p.data)) continue;
 			}
-			// block incoming packets that aren't coming via the proxy
-			// if force proxy mode is enabled
-			else if (m_force_proxy) continue;
+			else
+			{
+				// if we don't proxy trackers or peers, we may be receiving unwrapped
+				// packets and we must let them through.
+				bool const proxy_only
+					= m_proxy_settings.proxy_peer_connections
+					&& m_proxy_settings.proxy_tracker_connections
+					;
+
+				// if we proxy everything, block all packets that aren't coming from
+				// the proxy
+				if (m_proxy_settings.type != settings_pack::none && proxy_only) continue;
+			}
 		}
 
 		pkts[aux::numeric_cast<std::size_t>(ret)] = p;
@@ -235,22 +243,29 @@ void udp_socket::send_hostname(char const* hostname, int const port
 		return;
 	}
 
-	if (m_socks5_connection && m_socks5_connection->active())
-	{
-		// send udp packets through SOCKS5 server
-		wrap(hostname, port, p, ec, flags);
-		return;
-	}
+	bool const use_proxy
+		= ((flags & peer_connection) && m_proxy_settings.proxy_peer_connections)
+		|| ((flags & tracker_connection) && m_proxy_settings.proxy_tracker_connections)
+		|| !(flags & (tracker_connection | peer_connection))
+		;
 
-	if (m_force_proxy)
+	if (use_proxy && m_proxy_settings.type != settings_pack::none)
 	{
-		ec = error_code(boost::system::errc::permission_denied, generic_category());
+		if (m_socks5_connection && m_socks5_connection->active())
+		{
+			// send udp packets through SOCKS5 server
+			wrap(hostname, port, p, ec, flags);
+		}
+		else
+		{
+			ec = error_code(boost::system::errc::permission_denied, generic_category());
+		}
 		return;
 	}
 
 	// the overload that takes a hostname is really only supported when we're
 	// using a proxy
-	address target = make_address(hostname, ec);
+	address const target = make_address(hostname, ec);
 	if (!ec) send(udp::endpoint(target, std::uint16_t(port)), p, ec, flags);
 }
 
@@ -266,20 +281,25 @@ void udp_socket::send(udp::endpoint const& ep, span<char const> p
 		return;
 	}
 
-	const bool allow_proxy
+	bool const use_proxy
 		= ((flags & peer_connection) && m_proxy_settings.proxy_peer_connections)
 		|| ((flags & tracker_connection) && m_proxy_settings.proxy_tracker_connections)
 		|| !(flags & (tracker_connection | peer_connection))
 		;
 
-	if (allow_proxy && m_socks5_connection && m_socks5_connection->active())
+	if (use_proxy && m_proxy_settings.type != settings_pack::none)
 	{
-		// send udp packets through SOCKS5 server
-		wrap(ep, p, ec, flags);
+		if (m_socks5_connection && m_socks5_connection->active())
+		{
+			// send udp packets through SOCKS5 server
+			wrap(ep, p, ec, flags);
+		}
+		else
+		{
+			ec = error_code(boost::system::errc::permission_denied, generic_category());
+		}
 		return;
 	}
-
-	if (m_force_proxy) return;
 
 	// set the DF flag for the socket and clear it again in the destructor
 	set_dont_frag df(m_socket, (flags & dont_fragment)
@@ -316,7 +336,6 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	, error_code& ec, udp_send_flags_t const flags)
 {
-	TORRENT_UNUSED(flags);
 	using namespace libtorrent::detail;
 
 	char header[270];

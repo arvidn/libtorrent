@@ -167,8 +167,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	TORRENT_ASSERT(prio >= 0 && prio < 3);
 
-	bool ssl = false;
-	if (protocol == "https") ssl = true;
+	bool const ssl = (protocol == "https");
 
 	std::stringstream request;
 

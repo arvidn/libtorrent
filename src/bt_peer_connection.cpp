@@ -2086,8 +2086,9 @@ namespace {
 
 		// if we're using a proxy, our listen port won't be useful
 		// anyway.
-		if (!m_settings.get_bool(settings_pack::force_proxy) && is_outgoing())
-			handshake["p"] = m_ses.listen_port();
+		auto const port = m_ses.listen_port();
+		if (port != 0 && is_outgoing())
+			handshake["p"] = port;
 
 		// only send the port in case we bade the connection
 		// on incoming connections the other end already knows

@@ -192,7 +192,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		DEPRECATED_SET(contiguous_recv_buffer, true, nullptr),
 		SET(ban_web_seeds, true, nullptr),
 		SET(allow_partial_disk_writes, true, nullptr),
-		SET(force_proxy, false, &session_impl::update_force_proxy),
+		DEPRECATED_SET(force_proxy, false, nullptr),
 		SET(support_share_mode, true, nullptr),
 		SET(support_merkle_torrents, true, nullptr),
 		SET(report_redundant_bytes, true, nullptr),

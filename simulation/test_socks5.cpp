@@ -153,10 +153,8 @@ TORRENT_TEST(socks5_tcp_announce)
 		}
 	);
 
-	// since force_proxy is enabled, don't send the port
-	TEST_EQUAL(tracker_port, 0);
+	TEST_EQUAL(tracker_port, 6881);
 	TEST_CHECK(alert_port != -1);
-	TEST_CHECK(tracker_port != -1);
 }
 
 TORRENT_TEST(udp_tracker)

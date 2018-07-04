@@ -91,9 +91,11 @@ namespace libtorrent {
 
 		aux::session_settings const& settings = m_man.settings();
 
+		int const proxy_type = settings.get_int(settings_pack::proxy_type);
+
 		if (settings.get_bool(settings_pack::proxy_hostnames)
-			&& (settings.get_int(settings_pack::proxy_type) == settings_pack::socks5
-				|| settings.get_int(settings_pack::proxy_type) == settings_pack::socks5_pw))
+			&& (proxy_type == settings_pack::socks5
+				|| proxy_type == settings_pack::socks5_pw))
 		{
 			m_hostname = hostname;
 			m_target.port(std::uint16_t(port));
