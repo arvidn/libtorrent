@@ -5650,20 +5650,21 @@ namespace {
 
 	namespace
 	{
-		std::vector<boost::uint8_t> fix_priorities(std::vector<int> const& input, file_storage const& fs)
+		std::vector<boost::uint8_t> fix_priorities(std::vector<int> const& input
+			, file_storage const* fs)
 		{
 			std::vector<boost::uint8_t> files(input.begin(), input.end());
+			if (fs) files.resize(fs->num_files(), 4);
 
-			for (int i = 0; i < std::min<int>(fs.num_files(), files.size()); ++i)
+			for (int i = 0; i < int(files.size()); ++i)
 			{
 				// initialize pad files to priority 0
-				if (files[i] > 0 && fs.pad_file_at(i))
+				if (files[i] > 0 && fs && fs->pad_file_at(i))
 					files[i] = 0;
 				else if (files[i] > 7)
 					files[i] = 7;
 			}
 
-			files.resize(fs.num_files(), 4);
 			return files;
 		}
 
@@ -5705,7 +5706,8 @@ namespace {
 
 		if (is_seed()) return;
 
-		std::vector<boost::uint8_t> const new_priority = fix_priorities(files, m_torrent_file->files());
+		std::vector<boost::uint8_t> const new_priority = fix_priorities(files
+			, valid_metadata() ? &m_torrent_file->files() : NULL);
 
 		// storage may be NULL during shutdown
 		if (m_storage)
