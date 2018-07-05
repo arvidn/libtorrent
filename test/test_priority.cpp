@@ -381,6 +381,34 @@ TORRENT_TEST(priority)
 
 // test to set piece and file priority on a torrent that doesn't have metadata
 // yet
+TORRENT_TEST(no_metadata_prioritize_files)
+{
+	settings_pack pack = settings();
+	lt::session ses(pack);
+
+	add_torrent_params addp;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.info_hash = sha1_hash("abababababababababab");
+	addp.save_path = ".";
+	torrent_handle h = ses.add_torrent(addp);
+
+	std::vector<int> prios(3);
+	prios[0] = 0;
+
+	h.prioritize_files(prios);
+	// TODO 2: this should wait for an alert instead of just sleeping
+	test_sleep(100);
+	TEST_CHECK(h.file_priorities() == prios);
+
+	prios[0] = 1;
+	h.prioritize_files(prios);
+	test_sleep(100);
+	TEST_CHECK(h.file_priorities() == prios);
+
+	ses.remove_torrent(h);
+}
+
 TORRENT_TEST(no_metadata_file_prio)
 {
 	settings_pack pack = settings();
