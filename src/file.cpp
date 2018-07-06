@@ -79,6 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include "libtorrent/assert.hpp"
 
+#include <boost/scope_exit.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/static_assert.hpp>
 
@@ -1314,9 +1315,6 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 	bool get_manage_volume_privs();
-
-	// this needs to be run before CreateFile
-	bool file::has_manage_volume_privs = get_manage_volume_privs();
 #endif
 
 	file::file()
@@ -1956,10 +1954,15 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		static LookupPrivilegeValue_t pLookupPrivilegeValue = NULL;
 		static AdjustTokenPrivileges_t pAdjustTokenPrivileges = NULL;
 		static bool failed_advapi = false;
+		HMODULE advapi = NULL;
+
+		BOOST_SCOPE_EXIT(&advapi) {
+			if (advapi) FreeLibrary(advapi);
+		} BOOST_SCOPE_EXIT_END
 
 		if (pOpenProcessToken == NULL && !failed_advapi)
 		{
-			HMODULE advapi = LoadLibraryA("advapi32");
+			advapi = LoadLibraryA("advapi32");
 			if (advapi == NULL)
 			{
 				failed_advapi = true;
@@ -1977,16 +1980,19 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 		}
 
-		HANDLE token;
+		HANDLE token = NULL;
 		if (!pOpenProcessToken(GetCurrentProcess()
 			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
 			return false;
+
+		BOOST_SCOPE_EXIT(&token) {
+			CloseHandle(token);
+		} BOOST_SCOPE_EXIT_END
 
 		TOKEN_PRIVILEGES privs;
 		if (!pLookupPrivilegeValue(NULL, "SeManageVolumePrivilege"
 			, &privs.Privileges[0].Luid))
 		{
-			CloseHandle(token);
 			return false;
 		}
 
@@ -1996,38 +2002,23 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		bool ret = pAdjustTokenPrivileges(token, FALSE, &privs, 0, NULL, NULL)
 			&& GetLastError() == ERROR_SUCCESS;
 
-		CloseHandle(token);
-
 		return ret;
 	}
 
 	void set_file_valid_data(HANDLE f, boost::int64_t size)
 	{
 		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
-		static SetFileValidData_t pSetFileValidData = NULL;
-		static bool failed_kernel32 = false;
+		static SetFileValidData_t const pSetFileValidData = (SetFileValidData_t)
+				GetProcAddress(GetModuleHandleA("kernel32"), "SetFileValidData");
 
-		if (pSetFileValidData == NULL && !failed_kernel32)
+		if (pSetFileValidData == NULL) return;
+
+		static bool const has_manage_volume_privs = get_manage_volume_privs();
+
+		if (has_manage_volume_privs)
 		{
-			HMODULE k32 = LoadLibraryA("kernel32");
-			if (k32 == NULL)
-			{
-				failed_kernel32 = true;
-				return;
-			}
-			pSetFileValidData = (SetFileValidData_t)GetProcAddress(k32, "SetFileValidData");
-			if (pSetFileValidData == NULL)
-			{
-				failed_kernel32 = true;
-				return;
-			}
+			pSetFileValidData(f, size);
 		}
-
-		TORRENT_ASSERT(pSetFileValidData);
-
-		// we don't necessarily expect to have enough
-		// privilege to do this, so ignore errors.
-		pSetFileValidData(f, size);
 	}
 #endif
 
