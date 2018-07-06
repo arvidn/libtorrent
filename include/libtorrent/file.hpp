@@ -341,10 +341,6 @@ namespace libtorrent
 #endif
 
 		int m_open_mode;
-#if defined TORRENT_WINDOWS
-		static bool has_manage_volume_privs;
-#endif
-
 #ifdef TORRENT_DEBUG_FILE_LEAKS
 		std::string m_file_path;
 #endif
