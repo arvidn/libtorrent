@@ -1297,6 +1297,7 @@ namespace {
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h) {}
 
+#if TORRENT_ABI_VERSION == 1
 	anonymous_mode_alert::anonymous_mode_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, int k, string_view s)
 		: torrent_alert(alloc, h)
@@ -1315,6 +1316,7 @@ namespace {
 			, msgs[kind], str.c_str());
 		return msg;
 	}
+#endif // TORRENT_ABI_VERSION
 
 	lsd_peer_alert::lsd_peer_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, tcp::endpoint const& i)
@@ -2673,7 +2675,6 @@ namespace {
 	constexpr alert_category_t dht_get_peers_alert::static_category;
 	constexpr alert_category_t stats_alert::static_category;
 	constexpr alert_category_t cache_flushed_alert::static_category;
-	constexpr alert_category_t anonymous_mode_alert::static_category;
 	constexpr alert_category_t lsd_peer_alert::static_category;
 	constexpr alert_category_t trackerid_alert::static_category;
 	constexpr alert_category_t dht_bootstrap_alert::static_category;
@@ -2707,6 +2708,7 @@ namespace {
 	constexpr alert_category_t block_uploaded_alert::static_category;
 	constexpr alert_category_t alerts_dropped_alert::static_category;
 #if TORRENT_ABI_VERSION == 1
+	constexpr alert_category_t anonymous_mode_alert::static_category;
 	constexpr alert_category_t mmap_cache_alert::static_category;
 	constexpr alert_category_t torrent_added_alert::static_category;
 	constexpr alert_category_t torrent_update_alert::static_category;

@@ -1813,11 +1813,12 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr alert_category_t static_category = alert::storage_notification;
 	};
 
+#if TORRENT_ABI_VERSION == 1
 	// This alert is posted when a bittorrent feature is blocked because of the
 	// anonymous mode. For instance, if the tracker proxy is not set up, no
 	// trackers will be used, because trackers can only be used through proxies
 	// when in anonymous mode.
-	struct TORRENT_EXPORT anonymous_mode_alert final : torrent_alert
+	struct TORRENT_DEPRECATED_EXPORT anonymous_mode_alert final : torrent_alert
 	{
 		// internal
 		anonymous_mode_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -1840,6 +1841,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int kind;
 		std::string str;
 	};
+#endif // TORRENT_ABI_VERSION
 
 	// This alert is generated when we receive a local service discovery message
 	// from a peer for a torrent we're currently participating in.

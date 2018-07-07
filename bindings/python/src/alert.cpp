@@ -215,7 +215,6 @@ namespace boost
 	POLY(performance_alert)
 	POLY(stats_alert)
 	POLY(cache_flushed_alert)
-	POLY(anonymous_mode_alert)
 	POLY(incoming_connection_alert)
 	POLY(torrent_need_cert_alert)
 	POLY(add_torrent_alert)
@@ -229,6 +228,7 @@ namespace boost
 	POLY(dht_get_peers_reply_alert)
 
 #if TORRENT_ABI_VERSION == 1
+	POLY(anonymous_mode_alert)
 	POLY(torrent_added_alert)
 	POLY(torrent_update_alert)
 #endif
@@ -847,6 +847,7 @@ void bind_alert()
         "cache_flushed_alert", no_init)
     ;
 
+#if TORRENT_ABI_VERSION == 1
     class_<anonymous_mode_alert, bases<torrent_alert>, noncopyable>(
         "anonymous_mode_alert", no_init)
         .def_readonly("kind", &anonymous_mode_alert::kind)
@@ -856,6 +857,7 @@ void bind_alert()
     enum_<anonymous_mode_alert::kind_t>("kind")
         .value("tracker_no_anonymous", anonymous_mode_alert::tracker_not_anonymous)
     ;
+#endif // TORRENT_ABI_VERSION
 
     class_<incoming_connection_alert, bases<alert>, noncopyable>(
         "incoming_connection_alert", no_init)
