@@ -1063,7 +1063,10 @@ namespace libtorrent {
 		queue_position_t sequence_number() const { return m_sequence_number; }
 
 		bool seed_mode() const { return m_seed_mode; }
-		void leave_seed_mode(bool skip_checking);
+
+		enum class seed_mode_t { check_files, skip_checking };
+
+		void leave_seed_mode(seed_mode_t checking);
 
 		bool all_verified() const
 		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }

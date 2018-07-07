@@ -566,11 +566,11 @@ bool is_downloading_state(int const st)
 		m_current_gauge_state = static_cast<std::uint32_t>(new_gauge_state);
 	}
 
-	void torrent::leave_seed_mode(bool skip_checking)
+	void torrent::leave_seed_mode(seed_mode_t const checking)
 	{
 		if (!m_seed_mode) return;
 
-		if (!skip_checking)
+		if (checking == seed_mode_t::check_files)
 		{
 			// this means the user promised we had all the
 			// files, but it turned out we didn't. This is
@@ -585,12 +585,13 @@ bool is_downloading_state(int const st)
 
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** LEAVING SEED MODE (%s)"
-			, skip_checking ? "as seed" : "as non-seed");
+			, checking == seed_mode_t::skip_checking ? "as seed" : "as non-seed");
 #endif
 		m_seed_mode = false;
 		// seed is false if we turned out not
 		// to be a seed after all
-		if (!skip_checking && state() != torrent_status::checking_resume_data)
+		if (checking == seed_mode_t::check_files
+			&& state() != torrent_status::checking_resume_data)
 		{
 			m_have_all = false;
 			set_state(torrent_status::downloading);
@@ -947,7 +948,7 @@ bool is_downloading_state(int const st)
 		if ((mask & torrent_flags::seed_mode)
 			&& !(flags & torrent_flags::seed_mode))
 		{
-			leave_seed_mode(false);
+			leave_seed_mode(seed_mode_t::check_files);
 		}
 		if (mask & torrent_flags::upload_mode)
 			set_upload_mode(bool(flags & torrent_flags::upload_mode));
@@ -2134,7 +2135,7 @@ bool is_downloading_state(int const st)
 
 					// being in seed mode and missing a piece is not compatible.
 					// Leave seed mode if that happens
-					if (m_seed_mode) leave_seed_mode(true);
+					if (m_seed_mode) leave_seed_mode(seed_mode_t::skip_checking);
 
 					if (has_picker() && m_picker->have_piece(piece))
 					{
@@ -2205,7 +2206,7 @@ bool is_downloading_state(int const st)
 
 		// we're checking everything anyway, no point in assuming we are a seed
 		// now.
-		leave_seed_mode(true);
+		leave_seed_mode(seed_mode_t::skip_checking);
 
 		m_ses.disk_thread().async_release_files(m_storage);
 
@@ -7444,7 +7445,7 @@ bool is_downloading_state(int const st)
 
 		// we're downloading now, which means we're no longer in seed mode
 		if (m_seed_mode)
-			leave_seed_mode(false);
+			leave_seed_mode(seed_mode_t::check_files);
 
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
