@@ -1,3 +1,4 @@
+	* deprecate anonymous_mode_alert
 	* deprecated force_proxy setting (when set, the proxy is always used)
 	* add support for Port Control Protocol (PCP)
 	* deliver notification of alerts being dropped via alerts_dropped_alert

@@ -128,7 +128,11 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(dht_get_peers_alert, 56, 0, alert::dht_notification);
 	TEST_ALERT_TYPE(stats_alert, 57, 0, alert::stats_notification);
 	TEST_ALERT_TYPE(cache_flushed_alert, 58, 0, alert::storage_notification);
+#if TORRENT_ABI_VERSION == 1
 	TEST_ALERT_TYPE(anonymous_mode_alert, 59, 0, alert::error_notification);
+#else
+	count_alert_types++;
+#endif
 	TEST_ALERT_TYPE(lsd_peer_alert, 60, 0, alert::peer_notification);
 	TEST_ALERT_TYPE(trackerid_alert, 61, 0, alert::status_notification);
 	TEST_ALERT_TYPE(dht_bootstrap_alert, 62, 0, alert::dht_notification);
