@@ -5026,7 +5026,7 @@ bool is_downloading_state(int const st)
 
 			if (fs) files.resize(fs->num_files(), default_priority);
 
-			for (file_index_t i : index_range<file_index_t>{file_index_t{}, files.end_index()})
+			for (file_index_t i : files.range())
 			{
 				// initialize pad files to priority 0
 				if (files[i] > dont_download && fs && fs->pad_file_at(i))

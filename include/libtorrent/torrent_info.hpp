@@ -339,11 +339,11 @@ namespace libtorrent {
 		// ``piece_range()`` returns an implementation-defined type that can be
 		// used as the container in a range-for loop. Where the values are the
 		// indices of all pieces in the file_storage.
-		piece_index_t last_piece() const { return piece_index_t(m_files.num_pieces() - 1); }
+		piece_index_t last_piece() const { return m_files.last_piece(); }
 		piece_index_t end_piece() const
 		{
 			TORRENT_ASSERT(m_files.num_pieces() > 0);
-			return piece_index_t(m_files.num_pieces());
+			return m_files.end_piece();
 		}
 		index_range<piece_index_t> piece_range() const
 		{ return m_files.piece_range(); }

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/units.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/index_range.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -87,6 +88,13 @@ namespace libtorrent { namespace aux {
 		{
 			TORRENT_ASSERT(this->size() <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			return IndexType(static_cast<underlying_index>(this->size()));
+		}
+
+		// returns an object that can be used in a range-for to iterate over all
+		// indices
+		index_range<IndexType> range() const noexcept
+		{
+			return {IndexType{0}, end_index()};
 		}
 
 		template <typename U = underlying_index, typename Cond

@@ -542,10 +542,10 @@ namespace {
 	{ return --m_files.end_index(); }
 
 	index_range<file_index_t> file_storage::file_range() const noexcept
-	{ return {file_index_t{0}, m_files.end_index()}; }
+	{ return m_files.range(); }
 
 	index_range<piece_index_t> file_storage::piece_range() const noexcept
-	{ return {piece_index_t{0}, piece_index_t{m_num_pieces}}; }
+	{ return {piece_index_t{0}, end_piece()}; }
 
 	peer_request file_storage::map_file(file_index_t const file_index
 		, std::int64_t const file_offset, int const size) const
@@ -556,7 +556,7 @@ namespace {
 		peer_request ret{};
 		if (file_index >= end_file())
 		{
-			ret.piece = piece_index_t{m_num_pieces};
+			ret.piece = end_piece();
 			ret.start = 0;
 			ret.length = 0;
 			return ret;
@@ -566,7 +566,7 @@ namespace {
 
 		if (offset >= total_size())
 		{
-			ret.piece = piece_index_t{m_num_pieces};
+			ret.piece = end_piece();
 			ret.start = 0;
 			ret.length = 0;
 		}
