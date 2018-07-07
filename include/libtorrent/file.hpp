@@ -210,9 +210,6 @@ namespace libtorrent {
 		handle_type m_file_handle;
 
 		open_mode_t m_open_mode{};
-#if defined TORRENT_WINDOWS
-		static bool has_manage_volume_privs;
-#endif
 	};
 }
 

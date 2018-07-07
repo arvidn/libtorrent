@@ -300,7 +300,7 @@ namespace {
 
 		disk_thread.set_settings(&sett);
 
-		int const piece_read_ahead = std::max(6, 16 * 1024 * 1024 / t.piece_length());
+		int const piece_read_ahead = std::max(12, 16 * 1024 * 1024 / t.piece_length());
 
 		hash_state st = { t, std::move(storage), disk_thread, piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)

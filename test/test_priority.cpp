@@ -84,7 +84,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 
 	cleanup();
 
-	settings_pack pack = sett;
+	lt::settings_pack pack = sett;
 
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it
@@ -411,10 +411,36 @@ TORRENT_TEST(priority_deprecated)
 
 // test to set piece and file priority on a torrent that doesn't have metadata
 // yet
+TORRENT_TEST(no_metadata_prioritize_files)
+{
+	lt::session ses(settings());
+
+	add_torrent_params addp;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.info_hash = sha1_hash("abababababababababab");
+	addp.save_path = ".";
+	torrent_handle h = ses.add_torrent(addp);
+
+	std::vector<lt::download_priority_t> prios(3);
+	prios[0] = lt::dont_download;
+
+	h.prioritize_files(prios);
+	// TODO 2: this should wait for an alert instead of just sleeping
+	std::this_thread::sleep_for(lt::milliseconds(100));
+	TEST_CHECK(h.get_file_priorities() == prios);
+
+	prios[0] = lt::low_priority;
+	h.prioritize_files(prios);
+	std::this_thread::sleep_for(lt::milliseconds(100));
+	TEST_CHECK(h.get_file_priorities() == prios);
+
+	ses.remove_torrent(h);
+}
+
 TORRENT_TEST(no_metadata_file_prio)
 {
-	settings_pack pack = settings();
-	lt::session ses(pack);
+	lt::session ses(settings());
 
 	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
@@ -436,8 +462,7 @@ TORRENT_TEST(no_metadata_file_prio)
 
 TORRENT_TEST(no_metadata_piece_prio)
 {
-	settings_pack pack = settings();
-	lt::session ses(pack);
+	lt::session ses(settings());
 
 	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;

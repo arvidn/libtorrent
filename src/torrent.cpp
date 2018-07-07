@@ -2289,9 +2289,9 @@ bool is_downloading_state(int const st)
 		int num_outstanding = settings().get_int(settings_pack::checking_mem_usage) * block_size()
 			/ m_torrent_file->piece_length();
 		// if we only keep a single read operation in-flight at a time, we suffer
-		// significant performance degradation. Always keep at least two jobs
+		// significant performance degradation. Always keep at least 4 jobs
 		// outstanding per hasher thread
-		int const min_outstanding = 2
+		int const min_outstanding = 4
 			* std::max(1, settings().get_int(settings_pack::aio_threads)
 				/ disk_io_thread::hasher_thread_divisor);
 		if (num_outstanding < min_outstanding) num_outstanding = min_outstanding;
@@ -5024,10 +5024,7 @@ bool is_downloading_state(int const st)
 		{
 			aux::vector<download_priority_t, file_index_t> files(input.begin(), input.end());
 
-			if (fs)
-			{
-				files.resize(fs->num_files(), default_priority);
-			}
+			if (fs) files.resize(fs->num_files(), default_priority);
 
 			for (file_index_t i : index_range<file_index_t>{file_index_t{}, files.end_index()})
 			{
@@ -5072,7 +5069,8 @@ bool is_downloading_state(int const st)
 
 		if (is_seed()) return;
 
-		auto new_priority = fix_priorities(files, valid_metadata() ? &m_torrent_file->files() : nullptr);
+		auto new_priority = fix_priorities(files
+			, valid_metadata() ? &m_torrent_file->files() : nullptr);
 
 		// storage may be NULL during shutdown
 		if (m_storage)

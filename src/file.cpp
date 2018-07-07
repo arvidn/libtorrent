@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_WINDOWS
 #include <sys/uio.h> // for iovec
 #else
+#include <boost/scope_exit.hpp>
 namespace {
 struct iovec
 {
@@ -476,9 +477,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 
 #ifdef TORRENT_WINDOWS
 	bool get_manage_volume_privs();
-
-	// this needs to be run before CreateFile
-	bool file::has_manage_volume_privs = get_manage_volume_privs();
 #endif
 
 	file::file() : m_file_handle(INVALID_HANDLE_VALUE)
@@ -1047,11 +1045,9 @@ namespace {
 #ifdef TORRENT_WINDOWS
 	bool get_manage_volume_privs()
 	{
-		using OpenProcessToken_t = BOOL (WINAPI*)(
-			HANDLE, DWORD, PHANDLE);
+		using OpenProcessToken_t = BOOL (WINAPI*)(HANDLE, DWORD, PHANDLE);
 
-		using LookupPrivilegeValue_t = BOOL (WINAPI*)(
-			LPCSTR, LPCSTR, PLUID);
+		using LookupPrivilegeValue_t = BOOL (WINAPI*)(LPCSTR, LPCSTR, PLUID);
 
 		using AdjustTokenPrivileges_t = BOOL (WINAPI*)(
 			HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
@@ -1071,23 +1067,22 @@ namespace {
 			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
 			return false;
 
+		BOOST_SCOPE_EXIT_ALL(&token) {
+			CloseHandle(token);
+		};
+
 		TOKEN_PRIVILEGES privs;
 		if (!LookupPrivilegeValue(nullptr, "SeManageVolumePrivilege"
 			, &privs.Privileges[0].Luid))
 		{
-			CloseHandle(token);
 			return false;
 		}
 
 		privs.PrivilegeCount = 1;
 		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-		bool ret = AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr)
+		return AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr)
 			&& GetLastError() == ERROR_SUCCESS;
-
-		CloseHandle(token);
-
-		return ret;
 	}
 
 	void set_file_valid_data(HANDLE f, std::int64_t size)
@@ -1098,9 +1093,14 @@ namespace {
 
 		if (SetFileValidData == nullptr) return;
 
-		// we don't necessarily expect to have enough
-		// privilege to do this, so ignore errors.
-		SetFileValidData(f, size);
+		static bool const has_manage_volume_privs = get_manage_volume_privs();
+
+		if (has_manage_volume_privs)
+		{
+			// we don't necessarily expect to have enough
+			// privilege to do this, so ignore errors.
+			SetFileValidData(f, size);
+		}
 	}
 #endif
 
