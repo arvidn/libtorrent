@@ -287,7 +287,7 @@ namespace libtorrent {
 		// indices in the bitfield
 		index_range<IndexType> range() const noexcept
 		{
-			return index_range<IndexType>{IndexType{0}, end_index()};
+			return {IndexType{0}, end_index()};
 		}
 
 		bool operator[](IndexType const index) const

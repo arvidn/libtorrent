@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/units.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/index_range.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -79,6 +80,13 @@ namespace libtorrent { namespace aux {
 		constexpr IndexType end_index() const
 		{
 			return IndexType(static_cast<underlying_index>(Size));
+		}
+
+		// returns an object that can be used in a range-for to iterate over all
+		// indices
+		constexpr index_range<IndexType> range() const noexcept
+		{
+			return {IndexType{0}, end_index()};
 		}
 	};
 
