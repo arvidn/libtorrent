@@ -65,6 +65,12 @@ namespace {
 	add_torrent_params read_resume_data(bdecode_node const& rd, error_code& ec)
 	{
 		add_torrent_params ret;
+		if (rd.type() != bdecode_node::dict_t)
+		{
+			ec = errors::not_a_dictionary;
+			return ret;
+		}
+
 		if (bdecode_node const alloc = rd.dict_find_string("allocation"))
 		{
 			ret.storage_mode = (alloc.string_value() == "allocate"
@@ -247,7 +253,7 @@ namespace {
 		}
 
 		bdecode_node const mt = rd.dict_find_string("merkle tree");
-		if (mt)
+		if (mt && mt.string_length() >= 20)
 		{
 			ret.merkle_tree.resize(aux::numeric_cast<std::size_t>(mt.string_length() / 20));
 			std::memcpy(ret.merkle_tree.data(), mt.string_ptr()
@@ -290,7 +296,7 @@ namespace {
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();
-			for (int i = 0; i < peers_entry.string_length(); i += 6)
+			for (int i = 5; i < peers_entry.string_length(); i += 6)
 				ret.peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
 		}
 
@@ -298,7 +304,7 @@ namespace {
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
-			for (int i = 0; i < peers_entry.string_length(); i += 18)
+			for (int i = 17; i < peers_entry.string_length(); i += 18)
 				ret.peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
 		}
 #endif
@@ -306,7 +312,7 @@ namespace {
 		if (bdecode_node const peers_entry = rd.dict_find_string("banned_peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();
-			for (int i = 0; i < peers_entry.string_length(); i += 6)
+			for (int i = 5; i < peers_entry.string_length(); i += 6)
 				ret.banned_peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
 		}
 
@@ -314,7 +320,7 @@ namespace {
 		if (bdecode_node const peers_entry = rd.dict_find_string("banned_peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
-			for (int i = 0; i < peers_entry.string_length(); i += 18)
+			for (int i = 17; i < peers_entry.string_length(); i += 18)
 				ret.banned_peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
 		}
 #endif
@@ -330,7 +336,7 @@ namespace {
 				if (piece < piece_index_t(0)) continue;
 
 				bdecode_node const bitmask = e.dict_find_string("bitmask");
-				if (bitmask || bitmask.string_length() == 0) continue;
+				if (!bitmask || bitmask.string_length() == 0) continue;
 				bitfield& bf = ret.unfinished_pieces[piece];
 				bf.assign(bitmask.string_ptr(), bitmask.string_length());
 			}
