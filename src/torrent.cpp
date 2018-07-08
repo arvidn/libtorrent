@@ -2597,7 +2597,10 @@ bool is_downloading_state(int const st)
 		// argument in the announce, this will make the DHT node use
 		// our source port in the packet as our listen port, which is
 		// likely more accurate when behind a NAT
-		if (settings().get_bool(settings_pack::enable_incoming_utp))
+		// don't set this for SSL torrents because peers need
+		// to connect to the SSL listen port
+		if (settings().get_bool(settings_pack::enable_incoming_utp)
+			&& !is_ssl_torrent())
 			flags |= dht::dht_tracker::flag_implied_port;
 
 		if (is_ssl_torrent())
