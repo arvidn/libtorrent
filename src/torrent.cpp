@@ -7224,7 +7224,7 @@ namespace {
 		if (m_torrent_file->is_merkle_torrent())
 		{
 			bdecode_node mt = rd.dict_find_string("merkle tree");
-			if (mt)
+			if (mt && mt.string_length() >= 20)
 			{
 				std::vector<sha1_hash> tree;
 				tree.resize(m_torrent_file->merkle_tree().size());
