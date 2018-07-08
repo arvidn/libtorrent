@@ -1920,7 +1920,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 	void disk_io_thread::async_set_file_priority(storage_index_t const storage
 		, aux::vector<download_priority_t, file_index_t> prios
-		, std::function<void(storage_error const&, aux::vector<download_priority_t, file_index_t> const&)> handler)
+		, std::function<void(storage_error const&, aux::vector<download_priority_t, file_index_t>)> handler)
 	{
 		disk_io_job* j = allocate_job(job_action_t::file_priority);
 		j->storage = m_torrents[storage]->shared_from_this();
