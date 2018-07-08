@@ -1174,7 +1174,7 @@ namespace libtorrent {
 		void on_file_renamed(std::string const& filename
 			, file_index_t file_idx
 			, storage_error const& error);
-		void on_cache_flushed();
+		void on_cache_flushed(bool manually_triggered);
 
 		// this is used when a torrent is being removed.It synchronizes with the
 		// disk thread

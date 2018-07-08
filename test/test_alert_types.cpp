@@ -127,7 +127,7 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(dht_announce_alert, 55, 0, alert::dht_notification);
 	TEST_ALERT_TYPE(dht_get_peers_alert, 56, 0, alert::dht_notification);
 	TEST_ALERT_TYPE(stats_alert, 57, 0, alert::stats_notification);
-	TEST_ALERT_TYPE(cache_flushed_alert, 58, 0, alert::storage_notification);
+	TEST_ALERT_TYPE(cache_flushed_alert, 58, 1, alert::storage_notification);
 #if TORRENT_ABI_VERSION == 1
 	TEST_ALERT_TYPE(anonymous_mode_alert, 59, 0, alert::error_notification);
 #else

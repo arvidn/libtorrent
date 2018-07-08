@@ -2242,7 +2242,7 @@ bool is_downloading_state(int const st)
 
 		// this will clear the stat cache, to make us actually query the
 		// filesystem for files again
-		m_ses.disk_thread().async_release_files(m_storage, []{});
+		m_ses.disk_thread().async_release_files(m_storage);
 
 		aux::vector<std::string, file_index_t> links;
 		m_ses.disk_thread().async_check_files(m_storage, nullptr
@@ -7379,7 +7379,7 @@ bool is_downloading_state(int const st)
 		{
 			// we need to keep the object alive during this operation
 			m_ses.disk_thread().async_release_files(m_storage
-				, std::bind(&torrent::on_cache_flushed, shared_from_this()));
+				, std::bind(&torrent::on_cache_flushed, shared_from_this(), false));
 		}
 
 		// this torrent just completed downloads, which means it will fall
@@ -8463,16 +8463,16 @@ bool is_downloading_state(int const st)
 			return;
 		}
 		m_ses.disk_thread().async_release_files(m_storage
-			, std::bind(&torrent::on_cache_flushed, shared_from_this()));
+			, std::bind(&torrent::on_cache_flushed, shared_from_this(), true));
 	}
 
-	void torrent::on_cache_flushed() try
+	void torrent::on_cache_flushed(bool const manually_triggered) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_ses.is_aborted()) return;
 
-		if (alerts().should_post<cache_flushed_alert>())
+		if (manually_triggered || alerts().should_post<cache_flushed_alert>())
 			alerts().emplace_alert<cache_flushed_alert>(get_handle());
 	}
 	catch (...) { handle_exception(); }

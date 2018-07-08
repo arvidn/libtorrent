@@ -1808,7 +1808,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(cache_flushed_alert, 58)
+		TORRENT_DEFINE_ALERT_PRIO(cache_flushed_alert, 58, alert_priority_high)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 	};
