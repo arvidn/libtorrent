@@ -105,7 +105,7 @@ namespace libtorrent { namespace dht {
 		void sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 			, std::function<void(time_duration
 				, int, std::vector<sha1_hash>
-				, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f);
+				, std::vector<std::pair<node_id, udp::endpoint>>)> f);
 
 		void get_item(sha1_hash const& target
 			, std::function<void(item const&)> cb);
@@ -169,7 +169,7 @@ namespace libtorrent { namespace dht {
 		void refresh_timeout(error_code const& e);
 		void refresh_key(error_code const& e);
 		void update_storage_node_ids();
-		node* get_node(node_id const& id, std::string const& family_name);
+		node* get_node(sha1_hash const& id, std::string const& family_name);
 
 		// implements socket_manager
 		bool has_quota() override;

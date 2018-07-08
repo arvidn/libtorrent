@@ -83,8 +83,8 @@ protected:
 	~socket_manager() = default;
 };
 
-// get the closest node to the id with the given family_name
-using get_foreign_node_t = std::function<node*(node_id const&, std::string const&)>;
+// get the closest node to the target id with the given family_name
+using get_foreign_node_t = std::function<node*(sha1_hash const&, std::string const&)>;
 
 class TORRENT_EXTRA_EXPORT node
 {
@@ -154,7 +154,7 @@ public:
 	void sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 		, std::function<void(time_duration
 			, int, std::vector<sha1_hash>
-			, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f);
+			, std::vector<std::pair<node_id, udp::endpoint>>)> f);
 
 	bool verify_token(string_view token, sha1_hash const& info_hash
 		, udp::endpoint const& addr) const;

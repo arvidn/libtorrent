@@ -2338,7 +2338,7 @@ namespace {
 	using nodes_slot = std::tuple<int, aux::allocation_slot, int, aux::allocation_slot>;
 
 	nodes_slot write_nodes(aux::stack_allocator& alloc
-		, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes)
+		, std::vector<std::pair<dht::node_id, udp::endpoint>> const& nodes)
 	{
 		int v4_num_nodes = 0;
 		int v6_num_nodes = 0;
@@ -2380,30 +2380,30 @@ namespace {
 		return nodes_slot{v4_num_nodes, v4_nodes_idx, v6_num_nodes, v6_nodes_idx};
 	}
 
-	std::vector<std::pair<sha1_hash, udp::endpoint>> read_nodes(
+	std::vector<std::pair<dht::node_id, udp::endpoint>> read_nodes(
 		aux::stack_allocator const& alloc
 		, int const v4_num_nodes, aux::allocation_slot const v4_nodes_idx
 		, int const v6_num_nodes, aux::allocation_slot const v6_nodes_idx)
 	{
-		aux::vector<std::pair<sha1_hash, udp::endpoint>> nodes;
+		aux::vector<std::pair<dht::node_id, udp::endpoint>> nodes;
 		nodes.reserve(v4_num_nodes + v6_num_nodes);
 
 		char const* v4_ptr = alloc.ptr(v4_nodes_idx);
 		for (int i = 0; i < v4_num_nodes; i++)
 		{
-			sha1_hash ih;
-			std::memcpy(ih.data(), v4_ptr, 20);
+			dht::node_id nid;
+			std::memcpy(nid.data(), v4_ptr, 20);
 			v4_ptr += 20;
-			nodes.emplace_back(ih, detail::read_v4_endpoint<udp::endpoint>(v4_ptr));
+			nodes.emplace_back(nid, detail::read_v4_endpoint<udp::endpoint>(v4_ptr));
 		}
 #if TORRENT_USE_IPV6
 		char const* v6_ptr = alloc.ptr(v6_nodes_idx);
 		for (int i = 0; i < v6_num_nodes; i++)
 		{
-			sha1_hash ih;
-			std::memcpy(ih.data(), v6_ptr, 20);
+			dht::node_id nid;
+			std::memcpy(nid.data(), v6_ptr, 20);
 			v6_ptr += 20;
-			nodes.emplace_back(ih, detail::read_v6_endpoint<udp::endpoint>(v6_ptr));
+			nodes.emplace_back(nid, detail::read_v6_endpoint<udp::endpoint>(v6_ptr));
 		}
 #else
 		TORRENT_UNUSED(v6_nodes_idx);
@@ -2414,8 +2414,8 @@ namespace {
 	}
 
 	dht_live_nodes_alert::dht_live_nodes_alert(aux::stack_allocator& alloc
-		, sha1_hash const& nid
-		, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes)
+		, dht::node_id const& nid
+		, std::vector<std::pair<dht::node_id, udp::endpoint>> const& nodes)
 		: node_id(nid)
 		, m_alloc(alloc)
 	{
@@ -2436,7 +2436,7 @@ namespace {
 		return m_v4_num_nodes + m_v6_num_nodes;
 	}
 
-	std::vector<std::pair<sha1_hash, udp::endpoint>> dht_live_nodes_alert::nodes() const
+	std::vector<std::pair<dht::node_id, udp::endpoint>> dht_live_nodes_alert::nodes() const
 	{
 		return read_nodes(m_alloc.get()
 			, m_v4_num_nodes, m_v4_nodes_idx
@@ -2469,7 +2469,7 @@ namespace {
 		, time_duration _interval
 		, int _num
 		, std::vector<sha1_hash> const& samples
-		, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes)
+		, std::vector<std::pair<dht::node_id, udp::endpoint>> const& nodes)
 		: endpoint(endp)
 		, interval(_interval)
 		, num_infohashes(_num)
@@ -2515,7 +2515,7 @@ namespace {
 		return m_v4_num_nodes + m_v6_num_nodes;
 	}
 
-	std::vector<std::pair<sha1_hash, udp::endpoint>> dht_sample_infohashes_alert::nodes() const
+	std::vector<std::pair<dht::node_id, udp::endpoint>> dht_sample_infohashes_alert::nodes() const
 	{
 		return read_nodes(m_alloc.get()
 			, m_v4_num_nodes, m_v4_nodes_idx

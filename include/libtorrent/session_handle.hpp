@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/portmap.hpp" // for portmap_protocol
 
+#include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/dht_storage.hpp"
 #include "libtorrent/kademlia/dht_settings.hpp"
 
@@ -442,7 +443,7 @@ namespace libtorrent {
 		// alert ``dht_live_nodes_alert``.
 		// Since this alert is a response to an explicit call, it will always be
 		// posted, regardless of the alert mask.
-		void dht_live_nodes(sha1_hash const& nid);
+		void dht_live_nodes(dht::node_id const& nid);
 
 		// Query the DHT node specified by ``ep`` to retrieve a sample of the
 		// info-hashes that the node currently have in their storage.

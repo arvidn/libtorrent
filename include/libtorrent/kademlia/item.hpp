@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/entry.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/kademlia/types.hpp>
+#include <libtorrent/kademlia/node_id.hpp>
 
 namespace libtorrent { namespace dht {
 

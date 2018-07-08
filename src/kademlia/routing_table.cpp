@@ -1047,13 +1047,13 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint const& ep, int rt
 
 // fills the vector with the k nodes from our buckets that
 // are nearest to the given id.
-void routing_table::find_node(node_id const& target
+void routing_table::find_node(sha1_hash const& target
 	, std::vector<node_entry>& l, int const options, int count)
 {
 	l.clear();
 	if (count == 0) count = m_bucket_size;
 
-	auto const i = find_bucket(target);
+	auto const i = find_bucket(node_id(target));
 	int const bucket_index = int(std::distance(m_buckets.begin(), i));
 	int const bucket_size_limit = bucket_limit(bucket_index);
 

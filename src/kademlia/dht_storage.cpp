@@ -139,11 +139,11 @@ namespace {
 		immutable_item_comparator(immutable_item_comparator const&) = default;
 
 		template <typename Item>
-		bool operator()(std::pair<node_id const, Item> const& lhs
-			, std::pair<node_id const, Item> const& rhs) const
+		bool operator()(std::pair<sha1_hash const, Item> const& lhs
+			, std::pair<sha1_hash const, Item> const& rhs) const
 		{
-			int const l_distance = min_distance_exp(lhs.first, m_node_ids);
-			int const r_distance = min_distance_exp(rhs.first, m_node_ids);
+			int const l_distance = min_distance_exp(node_id(lhs.first), m_node_ids);
+			int const r_distance = min_distance_exp(node_id(rhs.first), m_node_ids);
 
 			// this is a score taking the popularity (number of announcers) and the
 			// fit, in terms of distance from ideal storing node, into account.
@@ -166,8 +166,8 @@ namespace {
 	// the fewest peers are announcing, and farthest
 	// from our node IDs)
 	template<class Item>
-	typename std::map<node_id, Item>::const_iterator pick_least_important_item(
-		std::vector<node_id> const& node_ids, std::map<node_id, Item> const& table)
+	typename std::map<sha1_hash, Item>::const_iterator pick_least_important_item(
+		std::vector<node_id> const& node_ids, std::map<sha1_hash, Item> const& table)
 	{
 		return std::min_element(table.begin(), table.end()
 			, immutable_item_comparator(node_ids));
@@ -544,9 +544,9 @@ namespace {
 		dht_storage_counters m_counters;
 
 		std::vector<node_id> m_node_ids;
-		std::map<node_id, torrent_entry> m_map;
-		std::map<node_id, dht_immutable_item> m_immutable_table;
-		std::map<node_id, dht_mutable_item> m_mutable_table;
+		std::map<sha1_hash, torrent_entry> m_map;
+		std::map<sha1_hash, dht_immutable_item> m_immutable_table;
+		std::map<sha1_hash, dht_mutable_item> m_mutable_table;
 
 		infohashes_sample m_infohashes_sample;
 

@@ -50,7 +50,7 @@ public:
 		, std::vector<std::pair<sha1_hash, udp::endpoint>>)>;
 
 	sample_infohashes(node& dht_node
-		, node_id const& target
+		, sha1_hash const& target
 		, data_callback const& dcallback);
 
 	char const* name() const override;

@@ -82,7 +82,7 @@ namespace
 		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 		TEST_CHECK(s != nullptr);
 
-		s->update_node_ids({to_hash("0000000000000000000000000000000000000200")});
+		s->update_node_ids({node_id(to_hash("0000000000000000000000000000000000000200"))});
 
 		return s;
 	}

@@ -214,7 +214,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	node_id target = m_id;
 	make_id_secret(target);
 
-	auto r = std::make_shared<dht::bootstrap>(*this, target, f);
+	auto r = std::make_shared<dht::bootstrap>(*this, sha1_hash(target), f);
 	m_last_self_refresh = aux::time_now();
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -373,7 +373,7 @@ namespace {
 #endif
 
 		// create a dummy traversal_algorithm
-		auto algo = std::make_shared<traversal_algorithm>(node, node_id());
+		auto algo = std::make_shared<traversal_algorithm>(node, sha1_hash());
 		// store on the first k nodes
 		for (auto const& p : v)
 		{
@@ -381,7 +381,7 @@ namespace {
 			if (logger != nullptr && logger->should_log(dht_logger::node))
 			{
 				logger->log(dht_logger::node, "announce-distance: %d"
-					, (160 - distance_exp(ih, p.first.id)));
+					, (160 - distance_exp(node_id(ih), p.first.id)));
 			}
 #endif
 
@@ -461,9 +461,9 @@ void node::direct_request(udp::endpoint const& ep, entry& e
 	, std::function<void(msg const&)> f)
 {
 	// not really a traversal
-	auto algo = std::make_shared<direct_traversal>(*this, node_id(), f);
+	auto algo = std::make_shared<direct_traversal>(*this, sha1_hash(), f);
 
-	auto o = m_rpc.allocate_observer<direct_observer>(std::move(algo), ep, node_id());
+	auto o = m_rpc.allocate_observer<direct_observer>(std::move(algo), ep, sha1_hash());
 	if (!o) return;
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
@@ -571,7 +571,7 @@ void node::put_item(public_key const& pk, std::string const& salt
 void node::sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 	, std::function<void(time_duration
 		, int, std::vector<sha1_hash>
-		, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f)
+		, std::vector<std::pair<node_id, udp::endpoint>>)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
@@ -582,9 +582,9 @@ void node::sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 #endif
 
 	// not an actual traversal
-	auto ta = std::make_shared<dht::sample_infohashes>(*this, node_id(), std::move(f));
+	auto ta = std::make_shared<dht::sample_infohashes>(*this, sha1_hash(), std::move(f));
 
-	auto o = m_rpc.allocate_observer<sample_infohashes_observer>(ta, ep, node_id());
+	auto o = m_rpc.allocate_observer<sample_infohashes_observer>(ta, ep, sha1_hash());
 	if (!o) return;
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
@@ -675,7 +675,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int const bucket
 	target |= m_id & mask;
 
 	// create a dummy traversal_algorithm
-	auto algo = std::make_shared<traversal_algorithm>(*this, node_id());
+	auto algo = std::make_shared<traversal_algorithm>(*this, sha1_hash());
 	auto o = m_rpc.allocate_observer<ping_observer>(std::move(algo), ep, id);
 	if (!o) return;
 #if TORRENT_USE_ASSERTS

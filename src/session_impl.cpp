@@ -5991,7 +5991,7 @@ namespace aux {
 		m_dht->announce(info_hash, port, flags, std::bind(&on_dht_get_peers, std::ref(m_alerts), info_hash, _1));
 	}
 
-	void session_impl::dht_live_nodes(sha1_hash const& nid)
+	void session_impl::dht_live_nodes(libtorrent::dht::node_id const& nid)
 	{
 		if (!m_dht) return;
 		auto nodes = m_dht->live_nodes(nid);
@@ -6003,7 +6003,7 @@ namespace aux {
 		if (!m_dht) return;
 		m_dht->sample_infohashes(ep, target, [this, &ep](time_duration interval
 			, int num, std::vector<sha1_hash> samples
-			, std::vector<std::pair<sha1_hash, udp::endpoint>> nodes)
+			, std::vector<std::pair<dht::node_id, udp::endpoint>> nodes)
 		{
 			if (m_alerts.should_post<dht_sample_infohashes_alert>())
 				m_alerts.emplace_alert<dht_sample_infohashes_alert>(ep
@@ -6805,7 +6805,8 @@ namespace aux {
 		, sha1_hash const& sent_target, udp::endpoint const& ep)
 	{
 		if (!m_alerts.should_post<dht_outgoing_get_peers_alert>()) return;
-		m_alerts.emplace_alert<dht_outgoing_get_peers_alert>(target, sent_target, ep);
+		m_alerts.emplace_alert<dht_outgoing_get_peers_alert>(target
+			, sent_target, ep);
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING

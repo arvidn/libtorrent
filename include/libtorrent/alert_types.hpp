@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/portmap.hpp" // for portmap_transport
+#include "libtorrent/kademlia/node_id.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_array.hpp>
@@ -2488,7 +2489,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int first_timeout;
 
 		// the node-id or info-hash target for this lookup
-		sha1_hash target;
+		dht::node_id target;
 	};
 
 	// contains current DHT state. Posted in response to session::post_dht_stats().
@@ -2732,18 +2733,18 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT dht_live_nodes_alert final : alert
 	{
 		dht_live_nodes_alert(aux::stack_allocator& alloc
-			, sha1_hash const& nid
-			, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes);
+			, dht::node_id const& nid
+			, std::vector<std::pair<dht::node_id, udp::endpoint>> const& nodes);
 
 		TORRENT_DEFINE_ALERT(dht_live_nodes_alert, 91)
 
 		static constexpr alert_category_t static_category = alert::dht_notification;
 		std::string message() const override;
 
-		sha1_hash node_id;
+		dht::node_id node_id;
 
 		int num_nodes() const;
-		std::vector<std::pair<sha1_hash, udp::endpoint>> nodes() const;
+		std::vector<std::pair<dht::node_id, udp::endpoint>> nodes() const;
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
@@ -2778,7 +2779,7 @@ TORRENT_VERSION_NAMESPACE_2
 			, time_duration interval
 			, int num
 			, std::vector<sha1_hash> const& samples
-			, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes);
+			, std::vector<std::pair<dht::node_id, udp::endpoint>> const& nodes);
 
 		static constexpr alert_category_t static_category = alert::dht_operation_notification;
 		TORRENT_DEFINE_ALERT(dht_sample_infohashes_alert, 93)
@@ -2805,7 +2806,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// The information is included so that indexing nodes can perform a key
 		// space traversal with a single RPC per node by adjusting the target
 		// value for each RPC.
-		std::vector<std::pair<sha1_hash, udp::endpoint>> nodes() const;
+		std::vector<std::pair<dht::node_id, udp::endpoint>> nodes() const;
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;

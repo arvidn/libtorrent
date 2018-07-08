@@ -655,7 +655,7 @@ namespace {
 #endif
 	}
 
-	void session_handle::dht_live_nodes(sha1_hash const& nid)
+	void session_handle::dht_live_nodes(libtorrent::dht::node_id const& nid)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		async_call(&session_impl::dht_live_nodes, nid);

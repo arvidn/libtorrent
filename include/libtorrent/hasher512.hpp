@@ -63,7 +63,7 @@ extern "C" {
 
 namespace libtorrent {
 
-	using sha512_hash = digest32<512>;
+	using sha512_hash = digest32<512, struct sha256_hash_tag>;
 
 	// this is a SHA-512 hash class.
 	//

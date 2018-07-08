@@ -43,7 +43,7 @@ class bootstrap : public get_peers
 public:
 	using done_callback = get_peers::nodes_callback;
 
-	bootstrap(node& dht_node, node_id const& target
+	bootstrap(node& dht_node, sha1_hash const& target
 		, done_callback const& callback);
 	char const* name() const override;
 

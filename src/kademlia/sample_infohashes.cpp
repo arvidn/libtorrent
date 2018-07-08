@@ -42,7 +42,7 @@ namespace libtorrent { namespace dht
 {
 
 sample_infohashes::sample_infohashes(node& dht_node
-	, node_id const& target
+	, sha1_hash const& target
 	, data_callback const& dcallback)
 	: traversal_algorithm(dht_node, target)
 	, m_data_callback(dcallback) {}

@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht {
 
-using node_id = libtorrent::sha1_hash;
+using node_id = libtorrent::digest32<160, struct node_id_tag>;
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric
@@ -62,7 +62,7 @@ TORRENT_EXTRA_EXPORT node_id generate_id(address const& external_ip);
 TORRENT_EXTRA_EXPORT node_id generate_random_id();
 TORRENT_EXTRA_EXPORT void make_id_secret(node_id& in);
 TORRENT_EXTRA_EXPORT node_id generate_secret_id();
-TORRENT_EXTRA_EXPORT bool verify_secret_id(node_id const& nid);
+TORRENT_EXTRA_EXPORT bool verify_secret_id(sha1_hash const& info_hash);
 TORRENT_EXTRA_EXPORT node_id generate_id_impl(address const& ip_, std::uint32_t r);
 
 TORRENT_EXTRA_EXPORT bool verify_id(node_id const& nid, address const& source_ip);

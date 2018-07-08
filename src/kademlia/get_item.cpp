@@ -55,7 +55,7 @@ void get_item::got_data(bdecode_node const& v,
 		// If m_data isn't empty, we should have post alert.
 		if (!m_data.empty()) return;
 
-		sha1_hash incoming_target = item_target_id(v.data_section());
+		sha1_hash const incoming_target = item_target_id(v.data_section());
 		if (incoming_target != target()) return;
 
 		m_data.assign(v);
@@ -96,7 +96,7 @@ void get_item::got_data(bdecode_node const& v,
 
 get_item::get_item(
 	node& dht_node
-	, node_id const& target
+	, sha1_hash const& target
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback)
 	: find_data(dht_node, target, ncallback)

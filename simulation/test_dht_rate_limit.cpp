@@ -61,8 +61,8 @@ struct obs : dht::dht_observer
 		, address const& /* source */) override
 	{}
 	void get_peers(sha1_hash const&) override {}
-	void outgoing_get_peers(sha1_hash const& /* target */
-		, sha1_hash const& /* sent_target */, udp::endpoint const& /* ep */) override {}
+	void outgoing_get_peers(dht::node_id const& /* target */
+		, dht::node_id const& /* sent_target */, udp::endpoint const& /* ep */) override {}
 	void announce(sha1_hash const& /* ih */
 		, address const& /* addr */, int /* port */) override {}
 	bool on_dht_request(string_view /* query */

@@ -103,7 +103,7 @@ void get_peers_observer::log_peers(msg const& m, bdecode_node const& r, int cons
 						, algorithm()->branch_factor()
 						, print_endpoint(m.addr).c_str()
 						, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
-						, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
+						, distance_exp(node_id(algorithm()->target()), node_id(id.string_ptr()))
 						, size);
 				}
 			}
@@ -116,7 +116,7 @@ void get_peers::got_peers(std::vector<tcp::endpoint> const& peers)
 
 get_peers::get_peers(
 	node& dht_node
-	, node_id const& target
+	, sha1_hash const& target
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)
@@ -162,7 +162,7 @@ observer_ptr get_peers::new_observer(udp::endpoint const& ep
 
 obfuscated_get_peers::obfuscated_get_peers(
 	node& dht_node
-	, node_id const& info_hash
+	, sha1_hash const& info_hash
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)
@@ -202,7 +202,7 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	if (!m_obfuscated) return get_peers::invoke(o);
 
 	node_id const& id = o->id();
-	int const shared_prefix = 160 - distance_exp(id, target());
+	int const shared_prefix = 160 - distance_exp(id, node_id(target()));
 
 	// when we get close to the target zone in the DHT
 	// start using the correct info-hash, in order to
@@ -237,9 +237,10 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	// give a good answer, but not more.
 
 	// now, obfuscate the bits past shared_prefix + 3
-	node_id mask = generate_prefix_mask(shared_prefix + 3);
-	node_id obfuscated_target = generate_random_id() & ~mask;
-	obfuscated_target |= target() & mask;
+	sha1_hash const mask = sha1_hash(generate_prefix_mask(shared_prefix + 3));
+	sha1_hash const obfuscated_target
+		= (sha1_hash(generate_random_id()) & ~mask)
+		| (target() & mask);
 	a["info_hash"] = obfuscated_target.to_string();
 
 	if (m_node.observer() != nullptr)

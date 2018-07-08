@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/kademlia/msg.hpp"
+#include "libtorrent/kademlia/node_id.hpp"
 
 namespace libtorrent {
 

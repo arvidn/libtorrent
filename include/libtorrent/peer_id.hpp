@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	using peer_id = sha1_hash;
+	using peer_id = digest32<160, struct peer_id_tag>;
 }
 
 #endif // TORRENT_PEER_ID_HPP_INCLUDED

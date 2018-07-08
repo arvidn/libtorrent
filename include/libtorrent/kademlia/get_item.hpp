@@ -52,7 +52,7 @@ public:
 
 	// for immutable items
 	get_item(node& dht_node
-		, node_id const& target
+		, sha1_hash const& target
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback);
 

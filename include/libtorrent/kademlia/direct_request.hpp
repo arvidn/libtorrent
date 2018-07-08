@@ -43,7 +43,7 @@ struct direct_traversal : traversal_algorithm
 	using message_callback = std::function<void(dht::msg const&)>;
 
 	direct_traversal(node& node
-		, node_id const& target
+		, sha1_hash const& target
 		, message_callback cb)
 		: traversal_algorithm(node, target)
 		, m_cb(std::move(cb))

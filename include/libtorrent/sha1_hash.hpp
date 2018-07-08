@@ -64,9 +64,12 @@ namespace aux {
 	//
 	// This data structure is 32 bits aligned, like it's the case for
 	// each SHA-N specification.
-	template <std::size_t N>
+	template <std::size_t N, typename tag>
 	class digest32
 	{
+		template <std::size_t, typename>
+		friend class digest32;
+
 		static_assert(N % 32 == 0, "N must be a multiple of 32");
 		static constexpr std::size_t number_size = N / 32;
 	public:
@@ -79,6 +82,10 @@ namespace aux {
 
 		digest32(digest32 const&) noexcept = default;
 		digest32& operator=(digest32 const&) noexcept = default;
+
+		// explicit convertion from a different digest type, of the same size
+		template <typename T>
+		explicit digest32(digest32<N, T> const& v) : m_number(v.m_number) {}
 
 		// returns an all-F digest. i.e. the maximum value
 		// representable by an N bit number (N/8 bytes). This is
@@ -214,6 +221,14 @@ namespace aux {
 			return ret;
 		}
 
+		// returns the bit-wise OR of the two digests
+		digest32 operator|(digest32 const& n) const noexcept
+		{
+			digest32 ret = *this;
+			ret |= n;
+			return ret;
+		}
+
 		// in-place bit-wise AND of the passed in digest
 		digest32& operator&=(digest32 const& n) noexcept
 		{
@@ -275,7 +290,7 @@ namespace aux {
 	//
 	// In libtorrent it is primarily used to hold info-hashes, piece-hashes,
 	// peer IDs, node IDs etc.
-	using sha1_hash = digest32<160>;
+	using sha1_hash = digest32<160, struct sha1_hash_tag>;
 
 #if TORRENT_USE_IOSTREAM
 

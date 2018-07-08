@@ -77,7 +77,7 @@ bool bootstrap::invoke(observer_ptr o)
 
 bootstrap::bootstrap(
 	node& dht_node
-	, node_id const& target
+	, sha1_hash const& target
 	, done_callback const& callback)
 	: get_peers(dht_node, target, get_peers::data_callback(), callback, false)
 {

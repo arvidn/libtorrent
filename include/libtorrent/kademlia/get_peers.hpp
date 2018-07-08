@@ -43,7 +43,7 @@ struct get_peers : find_data
 
 	void got_peers(std::vector<tcp::endpoint> const& peers);
 
-	get_peers(node& dht_node, node_id const& target
+	get_peers(node& dht_node, sha1_hash const& target
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback
 		, bool noseeds);
@@ -61,7 +61,7 @@ protected:
 
 struct obfuscated_get_peers : get_peers
 {
-	obfuscated_get_peers(node& dht_node, node_id const& target
+	obfuscated_get_peers(node& dht_node, sha1_hash const& target
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback
 		, bool noseeds);

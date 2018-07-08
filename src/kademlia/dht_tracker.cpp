@@ -298,13 +298,13 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::update_storage_node_ids()
 	{
-		std::vector<sha1_hash> ids;
+		std::vector<node_id> ids;
 		for (auto& n : m_nodes)
 			ids.push_back(n.second.dht.nid());
 		m_storage.update_node_ids(ids);
 	}
 
-	node* dht_tracker::get_node(node_id const& id, std::string const& family_name)
+	node* dht_tracker::get_node(sha1_hash const& id, std::string const& family_name)
 	{
 		TORRENT_UNUSED(id);
 		for (auto& n : m_nodes)
@@ -334,7 +334,7 @@ namespace libtorrent { namespace dht {
 	void dht_tracker::sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 		, std::function<void(time_duration
 			, int, std::vector<sha1_hash>
-			, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f)
+			, std::vector<std::pair<node_id, udp::endpoint>>)> f)
 	{
 		for (auto& n : m_nodes)
 		{

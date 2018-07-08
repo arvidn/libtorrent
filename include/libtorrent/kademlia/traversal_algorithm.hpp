@@ -71,12 +71,12 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm
 	virtual char const* name() const;
 	virtual void start();
 
-	node_id const& target() const { return m_target; }
+	sha1_hash const& target() const { return m_target; }
 
 	void resort_result(observer*);
 	void add_entry(node_id const& id, udp::endpoint const& addr, observer_flags_t flags);
 
-	traversal_algorithm(node& dht_node, node_id const& target);
+	traversal_algorithm(node& dht_node, sha1_hash const& target);
 	traversal_algorithm(traversal_algorithm const&) = delete;
 	traversal_algorithm& operator=(traversal_algorithm const&) = delete;
 	int invoke_count() const { TORRENT_ASSERT(m_invoke_count >= 0); return m_invoke_count; }
@@ -123,7 +123,7 @@ protected:
 
 private:
 
-	node_id const m_target;
+	sha1_hash const m_target;
 	std::int8_t m_invoke_count = 0;
 	std::int8_t m_branch_factor = 3;
 	// the number of elements at the beginning of m_results that are sorted by
