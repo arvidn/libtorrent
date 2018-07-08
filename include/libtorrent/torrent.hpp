@@ -1164,7 +1164,7 @@ namespace libtorrent
 		void on_storage_moved(disk_io_job const* j);
 		void on_save_resume_data(disk_io_job const* j);
 		void on_file_renamed(disk_io_job const* j);
-		void on_cache_flushed(disk_io_job const* j);
+		void on_cache_flushed(disk_io_job const* j, bool manually_triggered);
 
 		// this is used when a torrent is being removed.It synchronizes with the
 		// disk thread
