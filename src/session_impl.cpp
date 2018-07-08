@@ -5438,6 +5438,24 @@ namespace aux {
 		return 0;
 	}
 
+	int session_impl::get_listen_port(transport const ssl, aux::listen_socket_handle const& s)
+	{
+		auto socket = s.get();
+		if (socket->ssl != ssl)
+		{
+			auto alt_socket = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
+				, [&](std::shared_ptr<listen_socket_t> const& e)
+			{
+				return e->ssl == ssl
+					&& e->external_address.external_address()
+						== socket->external_address.external_address();
+			});
+			if (alt_socket != m_listen_sockets.end())
+				socket = alt_socket->get();
+		}
+		return socket->udp_external_port;
+	}
+
 	void session_impl::announce_lsd(sha1_hash const& ih, int port, bool broadcast)
 	{
 		// use internal listen port for local peers

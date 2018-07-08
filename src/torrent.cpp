@@ -2586,12 +2586,6 @@ bool is_downloading_state(int const st)
 
 		TORRENT_ASSERT(!m_paused);
 
-#ifdef TORRENT_USE_OPENSSL
-		int port = is_ssl_torrent() ? m_ses.ssl_listen_port() : m_ses.listen_port();
-#else
-		int port = m_ses.listen_port();
-#endif
-
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("START DHT announce");
 		m_dht_start_time = aux::time_now();
@@ -2606,9 +2600,11 @@ bool is_downloading_state(int const st)
 		if (settings().get_bool(settings_pack::enable_incoming_utp))
 			flags |= dht::dht_tracker::flag_implied_port;
 
+		if (is_ssl_torrent())
+			flags |= dht::dht_tracker::flag_ssl_torrent;
+
 		std::weak_ptr<torrent> self(shared_from_this());
-		m_ses.dht()->announce(m_torrent_file->info_hash()
-			, port, flags
+		m_ses.dht()->announce(m_torrent_file->info_hash(), 0, flags
 			, std::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
