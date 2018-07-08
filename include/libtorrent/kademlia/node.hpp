@@ -132,7 +132,7 @@ public:
 	int data_size() const { return int(m_storage.num_torrents()); }
 #endif
 
-	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
+	enum flags_t { flag_seed = 1, flag_implied_port = 2, flag_ssl_torrent = 4 };
 	void get_peers(sha1_hash const& info_hash
 		, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
 		, std::function<void(std::vector<std::pair<node_entry, std::string>> const&)> ncallback

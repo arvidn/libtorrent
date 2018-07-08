@@ -441,7 +441,7 @@ void node::get_peers(sha1_hash const& info_hash
 	ta->start();
 }
 
-void node::announce(sha1_hash const& info_hash, int const listen_port, int const flags
+void node::announce(sha1_hash const& info_hash, int listen_port, int const flags
 	, std::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
@@ -451,6 +451,13 @@ void node::announce(sha1_hash const& info_hash, int const listen_port, int const
 			, aux::to_hex(info_hash).c_str(), listen_port);
 	}
 #endif
+
+	if (listen_port == 0)
+	{
+		listen_port = m_observer->get_listen_port(
+			flags & node::flag_ssl_torrent ? aux::transport::ssl : aux::transport::plaintext
+			, m_sock);
+	}
 
 	get_peers(info_hash, std::move(f)
 		, std::bind(&announce_fun, _1, std::ref(*this)

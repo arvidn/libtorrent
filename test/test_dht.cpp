@@ -527,6 +527,9 @@ struct obs : dht::dht_observer
 			, aux::session_interface::source_dht, rand_v4());
 	}
 
+	int get_listen_port(aux::transport, aux::listen_socket_handle const& s) override
+	{ return s.get()->udp_external_port; }
+
 	void get_peers(sha1_hash const&) override {}
 	void outgoing_get_peers(sha1_hash const& /*target*/
 		, sha1_hash const& /*sent_target*/, udp::endpoint const&) override {}
