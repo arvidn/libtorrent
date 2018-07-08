@@ -8701,7 +8701,7 @@ namespace {
 			// we need to keep the object alive during this operation
 			inc_refcount("release_files");
 			m_ses.disk_thread().async_release_files(m_storage.get()
-				, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+				, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, false));
 		}
 
 		// this torrent just completed downloads, which means it will fall
@@ -9881,17 +9881,17 @@ namespace {
 		}
 		inc_refcount("release_files");
 		m_ses.disk_thread().async_release_files(m_storage.get()
-			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, true));
 	}
 
-	void torrent::on_cache_flushed(disk_io_job const*)
+	void torrent::on_cache_flushed(disk_io_job const*, bool const manually_triggered)
 	{
 		dec_refcount("release_files");
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_ses.is_aborted()) return;
 
-		if (alerts().should_post<cache_flushed_alert>())
+		if (manually_triggered || alerts().should_post<cache_flushed_alert>())
 			alerts().emplace_alert<cache_flushed_alert>(get_handle());
 	}
 

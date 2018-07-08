@@ -1630,7 +1630,7 @@ namespace libtorrent
 		// internal
 		cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(cache_flushed_alert, 58)
+		TORRENT_DEFINE_ALERT_PRIO(cache_flushed_alert, 58, alert_priority_high)
 
 		static const int static_category = alert::storage_notification;
 	};
