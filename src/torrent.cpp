@@ -5043,12 +5043,12 @@ bool is_downloading_state(int const st)
 	}
 
 	void torrent::on_file_priority(storage_error const& err
-		, aux::vector<download_priority_t, file_index_t> const& prios)
+		, aux::vector<download_priority_t, file_index_t> prios)
 	{
 		COMPLETE_ASYNC("file_priority");
 		if (m_file_priority != prios)
 		{
-			m_file_priority = prios;
+			m_file_priority = std::move(prios);
 			update_piece_priorities();
 			if (m_share_mode)
 				recalc_share_mode();

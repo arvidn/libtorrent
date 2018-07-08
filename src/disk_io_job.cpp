@@ -100,7 +100,7 @@ namespace libtorrent {
 			void operator()(disk_io_job::set_file_prio_handler& h) const
 			{
 				if (!h) return;
-				h(m_job.error, boost::get<aux::vector<download_priority_t, file_index_t>>(m_job.argument));
+				h(m_job.error, std::move(boost::get<aux::vector<download_priority_t, file_index_t>>(m_job.argument)));
 			}
 
 		private:

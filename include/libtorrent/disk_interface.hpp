@@ -172,7 +172,7 @@ namespace libtorrent {
 			, std::function<void(storage_error const&)> handler) = 0;
 		virtual void async_set_file_priority(storage_index_t storage
 			, aux::vector<download_priority_t, file_index_t> prio
-			, std::function<void(storage_error const&, aux::vector<download_priority_t, file_index_t> const&)> handler) = 0;
+			, std::function<void(storage_error const&, aux::vector<download_priority_t, file_index_t>)> handler) = 0;
 
 		virtual void async_clear_piece(storage_index_t storage, piece_index_t index
 			, std::function<void(piece_index_t)> handler) = 0;
