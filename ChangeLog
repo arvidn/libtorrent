@@ -1,3 +1,5 @@
+	* fix potential deadlock on Windows, caused by performing restricted
+	  tasks from within DllMain
 	* fix issue when subsequent file priority updates cause torrent to stop
 
 1.1.8 release
