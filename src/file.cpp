@@ -1959,7 +1959,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		static BOOL result = -1;
 
-		if (result != -1) return !!result;
+		if (result != -1) return result == TRUE;
 
 		result = FALSE;
 		HMODULE advapi = LoadLibraryA("advapi32");
@@ -2006,7 +2006,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		result = pAdjustTokenPrivileges(token, FALSE, &privs, 0, NULL, NULL)
 			&& GetLastError() == ERROR_SUCCESS;
 
-		return !!result;
+		return result == TRUE;
 	}
 
 	void set_file_valid_data(HANDLE f, boost::int64_t size)
@@ -2015,8 +2015,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		static SetFileValidData_t const pSetFileValidData = (SetFileValidData_t)
 				GetProcAddress(GetModuleHandleA("kernel32"), "SetFileValidData");
 
-		if (pSetFileValidData && get_manage_volume_privs())
+		if (pSetFileValidData)
 		{
+			// we don't necessarily expect to have enough
+			// privilege to do this, so ignore errors.
 			pSetFileValidData(f, size);
 		}
 	}
