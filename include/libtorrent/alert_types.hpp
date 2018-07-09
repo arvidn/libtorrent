@@ -2214,7 +2214,7 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT dht_mutable_item_alert final : alert
 	{
 		dht_mutable_item_alert(aux::stack_allocator& alloc
-			, std::array<char, 32> k, std::array<char, 64> sig
+			, std::array<char, 32> const& k, std::array<char, 64> const& sig
 			, std::int64_t sequence, string_view s, entry const& i, bool a);
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75, alert_priority_critical)
@@ -2252,8 +2252,8 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		dht_put_alert(aux::stack_allocator& alloc, sha1_hash const& t, int n);
-		dht_put_alert(aux::stack_allocator& alloc, std::array<char, 32> key
-			, std::array<char, 64> sig
+		dht_put_alert(aux::stack_allocator& alloc, std::array<char, 32> const& key
+			, std::array<char, 64> const& sig
 			, std::string s
 			, std::int64_t sequence_number
 			, int n);
