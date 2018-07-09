@@ -567,6 +567,11 @@ TORRENT_VERSION_NAMESPACE_2
 		torrent_flags_t flags{};
 	};
 
+	inline bool is_save_resume(libtorrent::torrent_status const& st)
+	{
+		return st.handle.is_valid() && st.has_metadata && st.need_save_resume;
+	}
+
 TORRENT_VERSION_NAMESPACE_2_END
 }
 
