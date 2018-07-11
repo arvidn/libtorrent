@@ -212,7 +212,7 @@ namespace {
 				{
 					num_waits = i;
 					break;
-				} 
+				}
 				else if (last_error != ERROR_IO_PENDING
 #ifdef ERROR_CANT_WAIT
 					&& last_error != ERROR_CANT_WAIT
