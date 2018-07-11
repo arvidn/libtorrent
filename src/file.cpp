@@ -1314,7 +1314,7 @@ namespace libtorrent
 
 
 #ifdef TORRENT_WINDOWS
-	bool get_manage_volume_privs();
+	void get_manage_volume_privs();
 #endif
 
 	file::file()
@@ -1937,8 +1937,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 
 #ifdef TORRENT_WINDOWS
-	bool get_manage_volume_privs()
+	void get_manage_volume_privs()
 	{
+		static bool called_once = false;
+
+		if (called_once) return;
+
+		called_once = true;
+
 		typedef BOOL (WINAPI *OpenProcessToken_t)(
 			HANDLE ProcessHandle,
 			DWORD DesiredAccess,
@@ -1957,14 +1963,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			PTOKEN_PRIVILEGES PreviousState,
 			PDWORD ReturnLength);
 
-		static BOOL result = -1;
-
-		if (result != -1) return result == TRUE;
-
-		result = FALSE;
 		HMODULE advapi = LoadLibraryA("advapi32");
 
-		if (advapi == NULL) return false;
+		if (advapi == NULL) return;
 
 		BOOST_SCOPE_EXIT(&advapi) {
 			FreeLibrary(advapi);
@@ -1981,13 +1982,13 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			|| pLookupPrivilegeValue == NULL
 			|| pAdjustTokenPrivileges == NULL)
 		{
-			return false;
+			return;
 		}
 
 		HANDLE token = NULL;
 		if (!pOpenProcessToken(GetCurrentProcess()
 			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
-			return false;
+			return;
 
 		BOOST_SCOPE_EXIT(&token) {
 			CloseHandle(token);
@@ -1997,16 +1998,13 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (!pLookupPrivilegeValue(NULL, "SeManageVolumePrivilege"
 			, &privs.Privileges[0].Luid))
 		{
-			return false;
+			return;
 		}
 
 		privs.PrivilegeCount = 1;
 		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-		result = pAdjustTokenPrivileges(token, FALSE, &privs, 0, NULL, NULL)
-			&& GetLastError() == ERROR_SUCCESS;
-
-		return result == TRUE;
+		pAdjustTokenPrivileges(token, FALSE, &privs, 0, NULL, NULL);
 	}
 
 	void set_file_valid_data(HANDLE f, boost::int64_t size)
