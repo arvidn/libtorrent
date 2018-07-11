@@ -693,8 +693,7 @@ TORRENT_IPV6_NAMESPACE_END
 		//		torrent_handle& h = *i;
 		//		if (!h.is_valid()) continue;
 		//		torrent_status s = h.status();
-		//		if (!s.has_metadata) continue;
-		//		if (!s.need_save_resume_data()) continue;
+		//		if (!s.has_metadata || !s.need_save_resume_data()) continue;
 		//
 		//		h.save_resume_data();
 		//		++outstanding_resume_data;
