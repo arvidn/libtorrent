@@ -328,7 +328,6 @@ TORRENT_TEST(file)
 	TEST_EQUAL(ec, error_code());
 	TEST_CHECK(test_buf == "test"_sv);
 	f.close();
-
 }
 
 TORRENT_TEST(hard_link)
