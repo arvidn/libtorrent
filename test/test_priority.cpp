@@ -452,3 +452,53 @@ TORRENT_TEST(no_metadata_piece_prio)
 
 	ses.remove_torrent(h);
 }
+
+TORRENT_TEST(export_file_while_seed)
+{
+	settings_pack pack = settings();
+	lt::session ses(pack);
+
+	error_code ec;
+	create_directory("tmp2_priority", ec);
+	std::ofstream file("tmp2_priority/temporary");
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	file.close();
+
+	add_torrent_params addp;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.save_path = ".";
+	addp.ti = t;
+	torrent_handle h = ses.add_torrent(addp);
+
+	// write to the partfile
+	h.file_priority(0, 0);
+
+	std::vector<char> piece(16 * 1024);
+	for (int i = 0; i < int(piece.size()); ++i)
+		piece[i] = (i % 26) + 'A';
+
+	for (int i = 0; i < t->num_pieces(); ++i)
+		h.add_piece(i, &piece[0], piece.size());
+
+	TEST_CHECK(!exists("temporary"));
+
+	for (int i = 0; i < 10; ++i)
+	{
+		if (h.status().is_seeding) break;
+		test_sleep(100);
+	}
+	TEST_EQUAL(h.status().is_seeding, true);
+
+	// this should cause the file to be exported
+	h.file_priority(0, 1);
+
+	for (int i = 0; i < 10; ++i)
+	{
+		if (h.file_priority(0) == 1) break;
+		test_sleep(100);
+	}
+
+	TEST_CHECK(exists("temporary"));
+}
+
