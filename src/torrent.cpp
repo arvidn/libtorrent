@@ -5704,8 +5704,6 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		if (is_seed()) return;
-
 		std::vector<boost::uint8_t> const new_priority = fix_priorities(files
 			, valid_metadata() ? &m_torrent_file->files() : NULL);
 
@@ -5725,8 +5723,6 @@ namespace {
 	void torrent::set_file_priority(int index, int prio)
 	{
 		INVARIANT_CHECK;
-
-		if (is_seed()) return;
 
 		// setting file priority on a torrent that doesn't have metadata yet is
 		// similar to having passed in file priorities through add_torrent_params.
