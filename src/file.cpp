@@ -1314,7 +1314,7 @@ namespace libtorrent
 
 
 #ifdef TORRENT_WINDOWS
-	void get_manage_volume_privs();
+	void acquire_manage_volume_privs();
 #endif
 
 	file::file()
@@ -1430,7 +1430,7 @@ namespace libtorrent
 		{
 			// Enable privilege required by SetFileValidData()
 			// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
-			get_manage_volume_privs();
+			acquire_manage_volume_privs();
 		}
 
 		handle_type handle = CreateFile_(file_path.c_str(), m.rw_mode
@@ -1937,7 +1937,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 
 #ifdef TORRENT_WINDOWS
-	void get_manage_volume_privs()
+	void acquire_manage_volume_privs()
 	{
 		static bool called_once = false;
 
