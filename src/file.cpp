@@ -202,28 +202,42 @@ namespace {
 		}
 
 		int ret = 0;
+		int num_waits = num_bufs;
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			DWORD num_read;
-			if (ReadFile(fd, bufs[i].iov_base, DWORD(bufs[i].iov_len), &num_read, &ol[i]) == FALSE
-				&& GetLastError() != ERROR_IO_PENDING
-#ifdef ERROR_CANT_WAIT
-				&& GetLastError() != ERROR_CANT_WAIT
-#endif
-				)
+			if (ReadFile(fd, bufs[i].iov_base, DWORD(bufs[i].iov_len), &num_read, &ol[i]) == FALSE)
 			{
-				ret = -1;
-				goto done;
+				DWORD const last_error = GetLastError();
+				if (last_error == ERROR_HANDLE_EOF)
+				{
+					num_waits = i;
+					break;
+				}
+				else if (last_error != ERROR_IO_PENDING
+#ifdef ERROR_CANT_WAIT
+					&& last_error != ERROR_CANT_WAIT
+#endif
+					)
+				{
+					ret = -1;
+					goto done;
+				}
 			}
 		}
 
-		if (wait_for_multiple_objects(int(h.size()), h.data()) == WAIT_FAILED)
+		if (num_waits == 0)
+		{
+			goto done;
+		}
+
+		if (wait_for_multiple_objects(num_waits, h.data()) == WAIT_FAILED)
 		{
 			ret = -1;
 			goto done;
 		}
 
-		for (auto& o : ol)
+		for (auto& o : libtorrent::span<OVERLAPPED>(ol).first(num_waits))
 		{
 			if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_FAILED)
 			{
@@ -233,11 +247,15 @@ namespace {
 			DWORD num_read;
 			if (GetOverlappedResult(fd, &o, &num_read, FALSE) == FALSE)
 			{
+				DWORD const last_error = GetLastError();
+				if (last_error != ERROR_HANDLE_EOF)
+				{
 #ifdef ERROR_CANT_WAIT
-				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
+					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
 #endif
-				ret = -1;
-				break;
+					ret = -1;
+					break;
+				}
 			}
 			ret += num_read;
 		}
