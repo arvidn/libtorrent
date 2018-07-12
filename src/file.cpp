@@ -314,7 +314,7 @@ done:
 
 		return ret;
 	}
-}
+} // namespace
 # else
 #  undef _BSD_SOURCE
 #  define _BSD_SOURCE // deprecated since glibc 2.20
@@ -1314,7 +1314,7 @@ namespace libtorrent
 
 
 #ifdef TORRENT_WINDOWS
-	bool get_manage_volume_privs();
+	void acquire_manage_volume_privs();
 #endif
 
 	file::file()
@@ -1425,6 +1425,13 @@ namespace libtorrent
 			| a
 			| FILE_FLAG_OVERLAPPED
 			| ((mode & no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
+
+		if ((mode & sparse) == 0)
+		{
+			// Enable privilege required by SetFileValidData()
+			// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
+			acquire_manage_volume_privs();
+		}
 
 		handle_type handle = CreateFile_(file_path.c_str(), m.rw_mode
 			, (mode & lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
@@ -1930,8 +1937,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 
 #ifdef TORRENT_WINDOWS
-	bool get_manage_volume_privs()
+	void acquire_manage_volume_privs()
 	{
+		static bool called_once = false;
+
+		if (called_once) return;
+
+		called_once = true;
+
 		typedef BOOL (WINAPI *OpenProcessToken_t)(
 			HANDLE ProcessHandle,
 			DWORD DesiredAccess,
@@ -1950,59 +1963,48 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			PTOKEN_PRIVILEGES PreviousState,
 			PDWORD ReturnLength);
 
-		static OpenProcessToken_t pOpenProcessToken = NULL;
-		static LookupPrivilegeValue_t pLookupPrivilegeValue = NULL;
-		static AdjustTokenPrivileges_t pAdjustTokenPrivileges = NULL;
-		static bool failed_advapi = false;
-		HMODULE advapi = NULL;
+		HMODULE advapi = LoadLibraryA("advapi32");
+
+		if (advapi == NULL) return;
 
 		BOOST_SCOPE_EXIT(&advapi) {
-			if (advapi) FreeLibrary(advapi);
+			FreeLibrary(advapi);
 		} BOOST_SCOPE_EXIT_END
 
-		if (pOpenProcessToken == NULL && !failed_advapi)
+		OpenProcessToken_t const pOpenProcessToken =
+				(OpenProcessToken_t)GetProcAddress(advapi, "OpenProcessToken");
+		LookupPrivilegeValue_t const pLookupPrivilegeValue =
+				(LookupPrivilegeValue_t)GetProcAddress(advapi, "LookupPrivilegeValueA");
+		AdjustTokenPrivileges_t const pAdjustTokenPrivileges =
+				(AdjustTokenPrivileges_t)GetProcAddress(advapi, "AdjustTokenPrivileges");
+
+		if (pOpenProcessToken == NULL
+			|| pLookupPrivilegeValue == NULL
+			|| pAdjustTokenPrivileges == NULL)
 		{
-			advapi = LoadLibraryA("advapi32");
-			if (advapi == NULL)
-			{
-				failed_advapi = true;
-				return false;
-			}
-			pOpenProcessToken = (OpenProcessToken_t)GetProcAddress(advapi, "OpenProcessToken");
-			pLookupPrivilegeValue = (LookupPrivilegeValue_t)GetProcAddress(advapi, "LookupPrivilegeValueA");
-			pAdjustTokenPrivileges = (AdjustTokenPrivileges_t)GetProcAddress(advapi, "AdjustTokenPrivileges");
-			if (pOpenProcessToken == NULL
-				|| pLookupPrivilegeValue == NULL
-				|| pAdjustTokenPrivileges == NULL)
-			{
-				failed_advapi = true;
-				return false;
-			}
+			return;
 		}
 
 		HANDLE token = NULL;
 		if (!pOpenProcessToken(GetCurrentProcess()
 			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
-			return false;
+			return;
 
 		BOOST_SCOPE_EXIT(&token) {
 			CloseHandle(token);
 		} BOOST_SCOPE_EXIT_END
 
-		TOKEN_PRIVILEGES privs;
+		TOKEN_PRIVILEGES privs = { 0 };
 		if (!pLookupPrivilegeValue(NULL, "SeManageVolumePrivilege"
 			, &privs.Privileges[0].Luid))
 		{
-			return false;
+			return;
 		}
 
 		privs.PrivilegeCount = 1;
 		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-		bool ret = pAdjustTokenPrivileges(token, FALSE, &privs, 0, NULL, NULL)
-			&& GetLastError() == ERROR_SUCCESS;
-
-		return ret;
+		pAdjustTokenPrivileges(token, FALSE, &privs, 0, NULL, NULL);
 	}
 
 	void set_file_valid_data(HANDLE f, boost::int64_t size)
@@ -2011,12 +2013,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		static SetFileValidData_t const pSetFileValidData = (SetFileValidData_t)
 				GetProcAddress(GetModuleHandleA("kernel32"), "SetFileValidData");
 
-		if (pSetFileValidData == NULL) return;
-
-		static bool const has_manage_volume_privs = get_manage_volume_privs();
-
-		if (has_manage_volume_privs)
+		if (pSetFileValidData)
 		{
+			// we don't necessarily expect to have enough
+			// privilege to do this, so ignore errors.
 			pSetFileValidData(f, size);
 		}
 	}
