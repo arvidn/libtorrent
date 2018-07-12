@@ -2593,18 +2593,22 @@ bool is_downloading_state(int const st)
 
 		// if we're a seed, we tell the DHT for better scrape stats
 		int flags = is_seed() ? dht::dht_tracker::flag_seed : 0;
+
+		// If this is an SSL torrent the announce needs to specify an SSL
+		// listen port. DHT nodes only operate on non-SSL ports so SSL
+		// torrents cannot use implied_port.
 		// if we allow incoming uTP connections, set the implied_port
 		// argument in the announce, this will make the DHT node use
 		// our source port in the packet as our listen port, which is
 		// likely more accurate when behind a NAT
-		// don't set this for SSL torrents because peers need
-		// to connect to the SSL listen port
-		if (settings().get_bool(settings_pack::enable_incoming_utp)
-			&& !is_ssl_torrent())
-			flags |= dht::dht_tracker::flag_implied_port;
-
 		if (is_ssl_torrent())
+		{
 			flags |= dht::dht_tracker::flag_ssl_torrent;
+		}
+		else if (settings().get_bool(settings_pack::enable_incoming_utp))
+		{
+			flags |= dht::dht_tracker::flag_implied_port;
+		}
 
 		std::weak_ptr<torrent> self(shared_from_this());
 		m_ses.dht()->announce(m_torrent_file->info_hash(), 0, flags
