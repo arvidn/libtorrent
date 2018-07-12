@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <mutex> // for call_once
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -317,7 +318,7 @@ done:
 
 		return ret;
 	}
-}
+} // namespace
 # else
 #  undef _BSD_SOURCE
 #  define _BSD_SOURCE // deprecated since glibc 2.20
@@ -476,7 +477,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 
 
 #ifdef TORRENT_WINDOWS
-	bool get_manage_volume_privs();
+	void acquire_manage_volume_privs();
 #endif
 
 	file::file() : m_file_handle(INVALID_HANDLE_VALUE)
@@ -538,6 +539,14 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 			| a
 			| FILE_FLAG_OVERLAPPED
 			| ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
+
+		if (!(mode & open_mode::sparse))
+		{
+			// Enable privilege required by SetFileValidData()
+			// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
+			static std::once_flag flag;
+			std::call_once(flag, acquire_manage_volume_privs);
+		}
 
 		handle_type handle = CreateFileW(file_path.c_str(), m.rw_mode
 			, FILE_SHARE_READ | FILE_SHARE_WRITE
@@ -1043,7 +1052,7 @@ namespace {
 	}
 
 #ifdef TORRENT_WINDOWS
-	bool get_manage_volume_privs()
+	void acquire_manage_volume_privs()
 	{
 		using OpenProcessToken_t = BOOL (WINAPI*)(HANDLE, DWORD, PHANDLE);
 
@@ -1059,30 +1068,34 @@ namespace {
 		auto AdjustTokenPrivileges =
 			aux::get_library_procedure<aux::advapi32, AdjustTokenPrivileges_t>("AdjustTokenPrivileges");
 
-		if (OpenProcessToken == nullptr || LookupPrivilegeValue == nullptr || AdjustTokenPrivileges == nullptr) return false;
+		if (OpenProcessToken == nullptr
+			|| LookupPrivilegeValue == nullptr
+			|| AdjustTokenPrivileges == nullptr)
+		{
+			return;
+		}
 
 
 		HANDLE token;
 		if (!OpenProcessToken(GetCurrentProcess()
 			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
-			return false;
+			return;
 
 		BOOST_SCOPE_EXIT_ALL(&token) {
 			CloseHandle(token);
 		};
 
-		TOKEN_PRIVILEGES privs;
+		TOKEN_PRIVILEGES privs{};
 		if (!LookupPrivilegeValue(nullptr, "SeManageVolumePrivilege"
 			, &privs.Privileges[0].Luid))
 		{
-			return false;
+			return;
 		}
 
 		privs.PrivilegeCount = 1;
 		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-		return AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr)
-			&& GetLastError() == ERROR_SUCCESS;
+		AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr);
 	}
 
 	void set_file_valid_data(HANDLE f, std::int64_t size)
@@ -1091,11 +1104,7 @@ namespace {
 		auto SetFileValidData =
 			aux::get_library_procedure<aux::kernel32, SetFileValidData_t>("SetFileValidData");
 
-		if (SetFileValidData == nullptr) return;
-
-		static bool const has_manage_volume_privs = get_manage_volume_privs();
-
-		if (has_manage_volume_privs)
+		if (SetFileValidData)
 		{
 			// we don't necessarily expect to have enough
 			// privilege to do this, so ignore errors.
