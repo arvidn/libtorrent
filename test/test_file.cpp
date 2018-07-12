@@ -302,6 +302,25 @@ TORRENT_TEST(file)
 	TEST_EQUAL(ec, error_code());
 	TEST_CHECK(strcmp(test_buf, "test") == 0);
 	f.close();
+
+	TEST_CHECK(f.open("test_file", file::read_only, ec));
+	if (ec)
+		fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+	file::iovec_t two_buffers[2];
+
+	std::memset(test_buf, 0, sizeof(test_buf));
+	char test_buf2[5] = {0};
+	two_buffers[0].iov_base = test_buf;
+	two_buffers[0].iov_len = 4;
+	two_buffers[1].iov_base = test_buf2;
+	two_buffers[1].iov_len = 4;
+	TEST_EQUAL(f.readv(0, two_buffers, 2, ec), 4);
+	if (ec)
+		fprintf(stdout, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+	TEST_CHECK(strcmp(test_buf, "test") == 0);
+	f.close();
 }
 
 TORRENT_TEST(hard_link)
