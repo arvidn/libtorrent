@@ -1,4 +1,4 @@
-/*
+ /*
 
 Copyright (c) 2012, Arvid Norberg
 All rights reserved.
@@ -287,25 +287,48 @@ TORRENT_TEST(file)
 {
 	error_code ec;
 	file f;
-	TEST_CHECK(f.open("test_file", open_mode::read_write, ec));
+	std::string test_file_name = "test_file";
+	TEST_CHECK(f.open(test_file_name, open_mode::read_write, ec));
 	if (ec)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 	if (ec) std::printf("%s\n", ec.message().c_str());
 	char test[] = "test";
-	iovec_t b = {test, 4};
-	TEST_EQUAL(f.writev(0, b, ec), 4);
+	size_t const test_word_size = sizeof(test) - 1;
+	iovec_t b = {test, test_word_size};
+	TEST_EQUAL(f.writev(0, b, ec), test_word_size);
 	if (ec)
 		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);
-	char test_buf[5] = {0};
-	b = { test_buf, 4 };
-	TEST_EQUAL(f.readv(0, b, ec), 4);
+	char test_buf[test_word_size + 1] = {0};
+	b = { test_buf, test_word_size };
+	TEST_EQUAL(f.readv(0, b, ec), test_word_size);
 	if (ec)
 		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 	TEST_CHECK(test_buf == "test"_sv);
 	f.close();
+
+	TEST_CHECK(f.open(test_file_name, open_mode::read_only, ec));
+	if (ec)
+		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+	if (ec) std::printf("%s\n", ec.message().c_str());
+
+	char test_buf2[test_word_size + 1] = {0};
+	std::memset(test_buf, 0, sizeof(test_buf));
+	iovec_t two_buffers[2] {
+			{test_buf, test_word_size},
+			{test_buf2, test_word_size}
+	};
+
+	TEST_EQUAL(f.readv(0, two_buffers, ec), test_word_size);
+	if (ec)
+		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+	TEST_CHECK(test_buf == "test"_sv);
+	f.close();
+
 }
 
 TORRENT_TEST(hard_link)

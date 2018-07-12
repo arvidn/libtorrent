@@ -207,7 +207,7 @@ namespace {
 			DWORD num_read;
 			if (ReadFile(fd, bufs[i].iov_base, DWORD(bufs[i].iov_len), &num_read, &ol[i]) == FALSE)
 			{
-				DWORD last_error = GetLastError();
+				DWORD const last_error = GetLastError();
 				if (last_error == ERROR_HANDLE_EOF)
 				{
 					num_waits = i;
@@ -236,17 +236,17 @@ namespace {
 			goto done;
 		}
 
-		for (int i = 0; i < num_waits; ++i)
+		for (auto& o : libtorrent::span<OVERLAPPED>(ol).first(num_waits))
 		{
-			if (WaitForSingleObject(ol[i].hEvent, INFINITE) == WAIT_FAILED)
+			if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_FAILED)
 			{
 				ret = -1;
 				break;
 			}
 			DWORD num_read;
-			if (GetOverlappedResult(fd, &ol[i], &num_read, FALSE) == FALSE)
+			if (GetOverlappedResult(fd, &o, &num_read, FALSE) == FALSE)
 			{
-				DWORD last_error = GetLastError();
+				DWORD const last_error = GetLastError();
 				if (last_error != ERROR_HANDLE_EOF)
 				{
 #ifdef ERROR_CANT_WAIT
