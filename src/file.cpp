@@ -201,7 +201,11 @@ namespace {
 			file_offset += bufs[i].iov_len;
 		}
 
-		int ret = 0;
+		BOOST_SCOPE_EXIT_ALL(&h) {
+			for (auto hnd : h)
+				CloseHandle(hnd);
+		};
+
 		int num_waits = num_bufs;
 		for (int i = 0; i < num_bufs; ++i)
 		{
@@ -220,30 +224,22 @@ namespace {
 #endif
 					)
 				{
-					ret = -1;
-					goto done;
+					return -1;
 				}
 			}
 		}
 
-		if (num_waits == 0)
-		{
-			goto done;
-		}
+		if (num_waits == 0) return 0;
 
 		if (wait_for_multiple_objects(num_waits, h.data()) == WAIT_FAILED)
-		{
-			ret = -1;
-			goto done;
-		}
+			return -1;
 
+		int ret = 0;
 		for (auto& o : libtorrent::span<OVERLAPPED>(ol).first(num_waits))
 		{
 			if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_FAILED)
-			{
-				ret = -1;
-				break;
-			}
+				return -1;
+
 			DWORD num_read;
 			if (GetOverlappedResult(fd, &o, &num_read, FALSE) == FALSE)
 			{
@@ -253,16 +249,11 @@ namespace {
 #ifdef ERROR_CANT_WAIT
 					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
 #endif
-					ret = -1;
-					break;
+					return -1;
 				}
 			}
 			ret += num_read;
 		}
-done:
-
-		for (auto hnd : h)
-			CloseHandle(hnd);
 
 		return ret;
 	}
@@ -289,7 +280,11 @@ done:
 			file_offset += bufs[i].iov_len;
 		}
 
-		int ret = 0;
+		BOOST_SCOPE_EXIT_ALL(&h) {
+			for (auto hnd : h)
+				CloseHandle(hnd);
+		};
+
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			DWORD num_written;
@@ -300,39 +295,29 @@ done:
 #endif
 				)
 			{
-				ret = -1;
-				goto done;
+				return -1;
 			}
 		}
 
 		if (wait_for_multiple_objects(int(h.size()), h.data()) == WAIT_FAILED)
-		{
-			ret = -1;
-			goto done;
-		}
+			return -1;
 
+		int ret = 0;
 		for (auto& o : ol)
 		{
 			if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_FAILED)
-			{
-				ret = -1;
-				break;
-			}
+				return -1;
+
 			DWORD num_written;
 			if (GetOverlappedResult(fd, &o, &num_written, FALSE) == FALSE)
 			{
 #ifdef ERROR_CANT_WAIT
 				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
 #endif
-				ret = -1;
-				break;
+				return -1;
 			}
 			ret += num_written;
 		}
-done:
-
-		for (auto hnd : h)
-			CloseHandle(hnd);
 
 		return ret;
 	}
