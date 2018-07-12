@@ -117,9 +117,7 @@ namespace libtorrent {
 
 				// the unfinished piece's index
 				piece_struct["piece"] = static_cast<int>(p.first);
-				std::string& bitmask = piece_struct["bitmask"].string();
-				for (auto const bit : p.second)
-					bitmask.push_back(bit ? '1' : '0');
+				piece_struct["bitmask"] = std::string(p.second.data(), std::size_t(p.second.size() + 7) / 8);
 				// push the struct onto the unfinished-piece list
 				up.push_back(std::move(piece_struct));
 			}

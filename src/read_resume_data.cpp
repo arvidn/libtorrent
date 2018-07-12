@@ -337,8 +337,8 @@ namespace {
 
 				bdecode_node const bitmask = e.dict_find_string("bitmask");
 				if (!bitmask || bitmask.string_length() == 0) continue;
-				bitfield& bf = ret.unfinished_pieces[piece];
-				bf.assign(bitmask.string_ptr(), bitmask.string_length());
+				ret.unfinished_pieces[piece].assign(
+					bitmask.string_ptr(), bitmask.string_length() * 8);
 			}
 		}
 
