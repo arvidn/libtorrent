@@ -144,7 +144,7 @@ TORRENT_TEST(auto_unchoke)
 {
 	using namespace lt;
 
-	// in case the previous run was t r catch (std::exception&) {}erminated
+	// in case the previous run was terminated
 	error_code ec;
 	remove_all("./tmp1_unchoke", ec);
 	remove_all("./tmp2_unchoke", ec);
