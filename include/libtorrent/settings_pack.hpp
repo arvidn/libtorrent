@@ -522,9 +522,9 @@ namespace libtorrent
 			// libtorrent API.
 			report_web_seed_downloads,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// set to true if uTP connections should be rate limited This option
 			// is *DEPRECATED*, please use set_peer_class_filter() instead.
-#ifndef TORRENT_NO_DEPRECATE
 			rate_limit_utp TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated2,

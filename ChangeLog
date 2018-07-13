@@ -1,3 +1,4 @@
+	* uTP connections are no longer exempt from rate limits by default
 	* fix exporting files from partfile while seeding
 	* fix potential deadlock on Windows, caused by performing restricted
 	  tasks from within DllMain

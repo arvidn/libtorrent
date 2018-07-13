@@ -511,9 +511,6 @@ namespace aux {
 		m_peer_class_type_filter.add(peer_class_type_filter::ssl_tcp_socket, m_tcp_peer_class);
 		m_peer_class_type_filter.add(peer_class_type_filter::i2p_socket, m_tcp_peer_class);
 
-		// TODO: there's no rule here to make uTP connections not have the global or
-		// local rate limits apply to it. This used to be the default.
-
 #ifndef TORRENT_DISABLE_LOGGING
 
 		session_log("config: %s version: %s revision: %s"
@@ -1279,7 +1276,7 @@ namespace aux {
 		return m_classes.new_peer_class(name);
 	}
 
-	void session_impl::delete_peer_class(int cid)
+	void session_impl::delete_peer_class(peer_class_t const cid)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// if you hit this assert, you're deleting a non-existent peer class
@@ -1288,7 +1285,7 @@ namespace aux {
 		m_classes.decref(cid);
 	}
 
-	peer_class_info session_impl::get_peer_class(int cid)
+	peer_class_info session_impl::get_peer_class(peer_class_t const cid)
 	{
 		peer_class_info ret;
 		peer_class* pc = m_classes.at(cid);
@@ -1340,7 +1337,7 @@ namespace aux {
 		m_tracker_manager.queue_request(get_io_service(), req, c);
 	}
 
-	void session_impl::set_peer_class(int cid, peer_class_info const& pci)
+	void session_impl::set_peer_class(peer_class_t const cid, peer_class_info const& pci)
 	{
 		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
@@ -6238,7 +6235,7 @@ retry:
 	{
 		return download_rate_limit(m_global_class);
 	}
-#endif
+#endif // DEPRECATE
 
 	// TODO: 2 this should be factored into the udp socket, so we only have the
 	// code once

@@ -408,8 +408,8 @@ namespace libtorrent
 		// -1 means unlimited on these settings just like their counterpart
 		// functions on torrent_handle
 		// 
-		// For fine grained control over rate limits, including making them apply
-		// to local peers, see peer-classes_.
+		// For fine grained control over rate limits depending on various
+		// properties of the peer connection, see peer-classes_.
 		int max_uploads;
 		int max_connections;
 		int upload_limit;
