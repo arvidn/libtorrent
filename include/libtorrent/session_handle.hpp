@@ -632,10 +632,9 @@ namespace libtorrent
 		// 
 		// .. code:: c++
 		//
-		// 	ip_filter f;
-		// 	peer_class_t my_class = ses.create_peer_class("200.1.x.x IP range");
-		// 	f.add_rule(address_v4::from_string("200.1.1.0")
-		// 		, address_v4::from_string("200.1.255.255")
+		// 	ip_filter f = ses.get_peer_class_filter();
+		// 	peer_class_t const my_class = ses.create_peer_class("200.1.x.x IP range");
+		// 	f.add_rule(make_address("200.1.1.0"), make_address("200.1.255.255")
 		// 		, 1 << my_class);
 		// 	ses.set_peer_class_filter(f);
 		//
@@ -682,7 +681,7 @@ namespace libtorrent
 		// make sure to create those early on, to get low identifiers.
 		//
 		// For more information on peer classes, see peer-classes_.
-		int create_peer_class(char const* name);
+		peer_class_t create_peer_class(char const* name);
 
 		// This call dereferences the reference count of the specified peer
 		// class. When creating a peer class it's automatically referenced by 1.
@@ -701,7 +700,7 @@ namespace libtorrent
 		// destructs.
 		//
 		// For more information on peer classes, see peer-classes_.
-		void delete_peer_class(int cid);
+		void delete_peer_class(peer_class_t cid);
 
 		// These functions queries information from a peer class and updates the
 		// configuration of a peer class, respectively.
@@ -718,8 +717,8 @@ namespace libtorrent
 		// account.
 		//
 		// For more information, see peer-classes_.
-		peer_class_info get_peer_class(int cid);
-		void set_peer_class(int cid, peer_class_info const& pci);
+		peer_class_info get_peer_class(peer_class_t cid);
+		void set_peer_class(peer_class_t cid, peer_class_info const& pci);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// if the listen port failed in some way you can retry to listen on
