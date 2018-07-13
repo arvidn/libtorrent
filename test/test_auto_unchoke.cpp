@@ -99,7 +99,7 @@ void test_swarm()
 	torrent_handle tor2;
 	torrent_handle tor3;
 
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");	
+	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");
 
 	std::map<std::string, boost::int64_t> cnt = get_counters(ses1);
 
@@ -141,7 +141,7 @@ TORRENT_TEST(auto_unchoke)
 {
 	using namespace libtorrent;
 
-	// in case the previous run was t r catch (std::exception&) {}erminated
+	// in case the previous run was terminated
 	error_code ec;
 	remove_all("./tmp1_unchoke", ec);
 	remove_all("./tmp2_unchoke", ec);
