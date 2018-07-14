@@ -2084,9 +2084,14 @@ namespace {
 		entry handshake;
 		entry::dictionary_type& m = handshake["m"].dict();
 
+		std::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+
 		// if we're using a proxy, our listen port won't be useful
 		// anyway.
-		auto const port = m_ses.listen_port();
+		auto const port = m_ses.listen_port(
+			t->is_ssl_torrent() ? aux::transport::ssl : aux::transport::plaintext
+			, local_endpoint().address());
 		if (port != 0 && is_outgoing())
 			handshake["p"] = port;
 
@@ -2108,8 +2113,6 @@ namespace {
 #endif
 			handshake["yourip"] = remote_address;
 		handshake["reqq"] = m_settings.get_int(settings_pack::max_allowed_in_request_queue);
-		std::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
 
 		m["upload_only"] = upload_only_msg;
 		m["ut_holepunch"] = holepunch_msg;

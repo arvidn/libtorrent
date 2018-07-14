@@ -593,7 +593,11 @@ namespace aux {
 			std::uint16_t ssl_listen_port() const override;
 			std::uint16_t ssl_listen_port(listen_socket_t* sock) const;
 
+			// used by the DHT tracker, returns a UDP listen port
 			int get_listen_port(transport ssl, aux::listen_socket_handle const& s) override;
+			// used by peer connections, returns a TCP listen port
+			// or zero if no matching listen socket is found
+			int listen_port(transport ssl, address const& local_addr) override;
 
 			std::uint32_t get_tracker_key(address const& iface) const;
 
