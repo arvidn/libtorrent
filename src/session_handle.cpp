@@ -644,7 +644,8 @@ namespace {
 #endif
 	}
 
-	void session_handle::dht_announce(sha1_hash const& info_hash, int port, int flags)
+	void session_handle::dht_announce(sha1_hash const& info_hash, int port
+		, dht::announce_flags_t const flags)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		async_call(&session_impl::dht_announce, info_hash, port, flags);

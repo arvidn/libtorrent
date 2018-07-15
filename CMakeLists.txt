@@ -173,6 +173,7 @@ set(libtorrent_include_files
 	xml_parse)
 
 set(libtorrent_kademlia_include_files
+	announce_flags
 	dht_observer
 	dht_settings
 	dht_state

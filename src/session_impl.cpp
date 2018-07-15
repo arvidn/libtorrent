@@ -6034,7 +6034,7 @@ namespace aux {
 		m_dht->get_peers(info_hash, std::bind(&on_dht_get_peers, std::ref(m_alerts), info_hash, _1));
 	}
 
-	void session_impl::dht_announce(sha1_hash const& info_hash, int port, int flags)
+	void session_impl::dht_announce(sha1_hash const& info_hash, int port, dht::announce_flags_t const flags)
 	{
 		if (!m_dht) return;
 		m_dht->announce(info_hash, port, flags, std::bind(&on_dht_get_peers, std::ref(m_alerts), info_hash, _1));

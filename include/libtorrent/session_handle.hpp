@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 #include "libtorrent/kademlia/dht_settings.hpp"
+#include "libtorrent/kademlia/announce_flags.hpp"
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/session_settings.hpp"
@@ -435,7 +436,7 @@ namespace libtorrent {
 			, std::string salt = std::string());
 
 		void dht_get_peers(sha1_hash const& info_hash);
-		void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
+		void dht_announce(sha1_hash const& info_hash, int port = 0, dht::announce_flags_t flags = {});
 
 		// Retrieve all the live DHT (identified by ``nid``) nodes. All the
 		// nodes id and endpoint will be returned in the list of nodes in the
