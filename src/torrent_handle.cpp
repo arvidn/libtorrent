@@ -64,6 +64,7 @@ namespace libtorrent {
 	constexpr resume_data_flags_t torrent_handle::only_if_modified;
 	constexpr add_piece_flags_t torrent_handle::overwrite_existing;
 	constexpr pause_flags_t torrent_handle::graceful_pause;
+	constexpr pause_flags_t torrent_handle::clear_disk_cache;
 	constexpr deadline_flags_t torrent_handle::alert_when_available;
 
 	constexpr status_flags_t torrent_handle::query_distributed_copies;
@@ -276,7 +277,7 @@ namespace libtorrent {
 
 	void torrent_handle::pause(pause_flags_t const flags) const
 	{
-		async_call(&torrent::pause, bool(flags & graceful_pause));
+		async_call(&torrent::pause, flags & graceful_pause);
 	}
 
 	torrent_flags_t torrent_handle::flags() const

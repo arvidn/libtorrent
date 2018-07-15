@@ -505,16 +505,11 @@ namespace libtorrent {
 		error_code error() const { return m_error; }
 
 		void flush_cache();
-		void pause(bool graceful = false);
+		void pause(pause_flags_t flags = {});
 		void resume();
 
-		enum pause_flags_t
-		{
-			flag_graceful_pause = 1,
-			flag_clear_disk_cache = 2
-		};
 		void set_session_paused(bool b);
-		void set_paused(bool b, int flags = flag_clear_disk_cache);
+		void set_paused(bool b, pause_flags_t flags = torrent_handle::clear_disk_cache);
 		void set_announce_to_dht(bool b) { m_announce_to_dht = b; }
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
 		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
@@ -523,7 +518,7 @@ namespace libtorrent {
 
 		time_point32 started() const { return m_started; }
 		void step_session_time(int seconds);
-		void do_pause(bool clear_disk_cache = true);
+		void do_pause(pause_flags_t flags = torrent_handle::clear_disk_cache);
 		void do_resume();
 
 		seconds32 finished_time() const;
