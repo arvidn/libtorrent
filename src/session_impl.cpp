@@ -276,8 +276,8 @@ namespace aux {
 	{
 		// set the default peer_class_filter to use the local peer class
 		// for peers on local networks
-		std::uint32_t lfilter = 1u << static_cast<std::uint32_t>(m_local_peer_class);
-		std::uint32_t gfilter = 1u << static_cast<std::uint32_t>(m_global_class);
+		std::uint32_t lfilter = 1 << static_cast<std::uint32_t>(m_local_peer_class);
+		std::uint32_t gfilter = 1 << static_cast<std::uint32_t>(m_global_class);
 
 		struct class_mapping
 		{
@@ -1134,7 +1134,7 @@ namespace aux {
 
 		for (peer_class_t i{0}; peer_class_mask; peer_class_mask >>= 1, ++i)
 		{
-			if ((peer_class_mask & 1u) == 0) continue;
+			if ((peer_class_mask & 1) == 0) continue;
 
 			// if you hit this assert, your peer class filter contains
 			// a bitmask referencing a non-existent peer class
@@ -1219,10 +1219,10 @@ namespace aux {
 
 			bandwidth_channel* ch = &p->channel[peer_connection::download_channel];
 			if (use_quota_overhead(ch, amount_down))
-				ret |= 1u << peer_connection::download_channel;
+				ret |= 1 << peer_connection::download_channel;
 			ch = &p->channel[peer_connection::upload_channel];
 			if (use_quota_overhead(ch, amount_up))
-				ret |= 1u << peer_connection::upload_channel;
+				ret |= 1 << peer_connection::upload_channel;
 		}
 		return ret;
 	}
