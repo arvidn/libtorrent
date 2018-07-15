@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/item.hpp>
+#include <libtorrent/kademlia/announce_flags.hpp>
 
 #include <libtorrent/fwd.hpp>
 #include <libtorrent/socket.hpp> // for udp::endpoint
@@ -132,12 +133,11 @@ public:
 	int data_size() const { return int(m_storage.num_torrents()); }
 #endif
 
-	enum flags_t { flag_seed = 1, flag_implied_port = 2, flag_ssl_torrent = 4 };
 	void get_peers(sha1_hash const& info_hash
 		, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
 		, std::function<void(std::vector<std::pair<node_entry, std::string>> const&)> ncallback
-		, bool noseeds);
-	void announce(sha1_hash const& info_hash, int listen_port, int flags
+		, announce_flags_t flags);
+	void announce(sha1_hash const& info_hash, int listen_port, announce_flags_t flags
 		, std::function<void(std::vector<tcp::endpoint> const&)> f);
 
 	void direct_request(udp::endpoint const& ep, entry& e

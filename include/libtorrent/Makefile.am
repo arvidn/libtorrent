@@ -222,6 +222,7 @@ nobase_include_HEADERS = \
   extensions/ut_metadata.hpp        \
   extensions/ut_pex.hpp             \
   \
+  kademlia/announce_flags.hpp       \
   kademlia/dht_settings.hpp         \
   kademlia/dht_state.hpp            \
   kademlia/dht_storage.hpp          \

@@ -2107,7 +2107,7 @@ void test_get_peers(address(&rand_addr)())
 	dht::node_id const initial_node_id = to_hash("1111111111222222222233333333334444444444");
 	t.dht_node.m_table.add_node(node_entry{initial_node_id, initial_node, 10, true});
 
-	t.dht_node.announce(target, 1234, false, get_peers_cb);
+	t.dht_node.announce(target, 1234, {}, get_peers_cb);
 
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;

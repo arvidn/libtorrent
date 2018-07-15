@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
+#include "libtorrent/kademlia/announce_flags.hpp"
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/extensions.hpp"
@@ -418,7 +419,7 @@ namespace aux {
 				, std::string salt = std::string());
 
 			void dht_get_peers(sha1_hash const& info_hash);
-			void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
+			void dht_announce(sha1_hash const& info_hash, int port = 0, dht::announce_flags_t flags = {});
 
 			void dht_live_nodes(sha1_hash const& nid);
 			void dht_sample_infohashes(udp::endpoint const& ep, sha1_hash const& target);

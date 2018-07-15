@@ -321,10 +321,11 @@ namespace libtorrent { namespace dht {
 		, std::function<void(std::vector<tcp::endpoint> const&)> f)
 	{
 		for (auto& n : m_nodes)
-			n.second.dht.get_peers(ih, f, {}, false);
+			n.second.dht.get_peers(ih, f, {}, {});
 	}
 
-	void dht_tracker::announce(sha1_hash const& ih, int listen_port, int flags
+	void dht_tracker::announce(sha1_hash const& ih, int listen_port
+		, announce_flags_t const flags
 		, std::function<void(std::vector<tcp::endpoint> const&)> f)
 	{
 		for (auto& n : m_nodes)

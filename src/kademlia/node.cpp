@@ -361,7 +361,7 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 namespace {
 
 	void announce_fun(std::vector<std::pair<node_entry, std::string>> const& v
-		, node& node, int const listen_port, sha1_hash const& ih, int const flags)
+		, node& node, int const listen_port, sha1_hash const& ih, announce_flags_t const flags)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		auto logger = node.observer();
@@ -398,8 +398,8 @@ namespace {
 			a["info_hash"] = ih;
 			a["port"] = listen_port;
 			a["token"] = p.second;
-			a["seed"] = (flags & node::flag_seed) ? 1 : 0;
-			if (flags & node::flag_implied_port) a["implied_port"] = 1;
+			a["seed"] = (flags & announce::seed) ? 1 : 0;
+			if (flags & announce::implied_port) a["implied_port"] = 1;
 			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_out);
 			node.m_rpc.invoke(e, p.first.ep(), o);
 		}
@@ -429,10 +429,11 @@ void node::add_node(udp::endpoint const& node)
 void node::get_peers(sha1_hash const& info_hash
 	, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
 	, std::function<void(std::vector<std::pair<node_entry, std::string>> const&)> ncallback
-	, bool noseeds)
+	, announce_flags_t const flags)
 {
 	// search for nodes with ids close to id or with peers
 	// for info-hash id. then send announce_peer to them.
+	bool const noseeds = bool(flags & announce::seed);
 
 	auto ta = m_settings.privacy_lookups
 		? std::make_shared<dht::obfuscated_get_peers>(*this, info_hash, dcallback, ncallback, noseeds)
@@ -441,7 +442,7 @@ void node::get_peers(sha1_hash const& info_hash
 	ta->start();
 }
 
-void node::announce(sha1_hash const& info_hash, int listen_port, int const flags
+void node::announce(sha1_hash const& info_hash, int listen_port, announce_flags_t const flags
 	, std::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
@@ -455,13 +456,13 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int const flags
 	if (listen_port == 0)
 	{
 		listen_port = m_observer->get_listen_port(
-			flags & node::flag_ssl_torrent ? aux::transport::ssl : aux::transport::plaintext
+			flags & announce::ssl_torrent ? aux::transport::ssl : aux::transport::plaintext
 			, m_sock);
 	}
 
 	get_peers(info_hash, std::move(f)
 		, std::bind(&announce_fun, _1, std::ref(*this)
-		, listen_port, info_hash, flags), flags & node::flag_seed);
+		, listen_port, info_hash, flags), flags);
 }
 
 void node::direct_request(udp::endpoint const& ep, entry& e

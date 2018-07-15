@@ -96,10 +96,9 @@ namespace libtorrent { namespace dht {
 
 		dht_state state() const;
 
-		enum flags_t { flag_seed = 1, flag_implied_port = 2, flag_ssl_torrent = 4 };
 		void get_peers(sha1_hash const& ih
 			, std::function<void(std::vector<tcp::endpoint> const&)> f);
-		void announce(sha1_hash const& ih, int listen_port, int flags
+		void announce(sha1_hash const& ih, int listen_port, announce_flags_t flags
 			, std::function<void(std::vector<tcp::endpoint> const&)> f);
 
 		void sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
@@ -156,6 +155,8 @@ namespace libtorrent { namespace dht {
 				, dht_observer* observer, counters& cnt
 				, get_foreign_node_t get_foreign_node
 				, dht_storage_interface& storage);
+			tracker_node(tracker_node const&) = delete;
+			tracker_node(tracker_node&&) = default;
 
 			node dht;
 			deadline_timer connection_timer;
