@@ -5456,6 +5456,21 @@ namespace aux {
 		return socket->udp_external_port;
 	}
 
+	int session_impl::listen_port(transport const ssl, address const& local_addr)
+	{
+		auto socket = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
+			, [&](std::shared_ptr<listen_socket_t> const& e)
+		{
+			auto const& listen_addr = e->external_address.external_address();
+			return e->ssl == ssl
+				&& (listen_addr == local_addr
+					|| (listen_addr.is_v4() == local_addr.is_v4() && listen_addr.is_unspecified()));
+		});
+		if (socket != m_listen_sockets.end())
+			return (*socket)->tcp_external_port;
+		return 0;
+	}
+
 	void session_impl::announce_lsd(sha1_hash const& ih, int port, bool broadcast)
 	{
 		// use internal listen port for local peers

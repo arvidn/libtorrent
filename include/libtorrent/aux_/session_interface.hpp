@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/aux_/session_udp_sockets.hpp" // for transport
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/link.hpp" // for torrent_list_index_t
@@ -200,6 +201,8 @@ namespace aux {
 
 		virtual std::uint16_t listen_port() const = 0;
 		virtual std::uint16_t ssl_listen_port() const = 0;
+
+		virtual int listen_port(aux::transport ssl, address const& local_addr) = 0;
 
 		virtual void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) = 0;
 
