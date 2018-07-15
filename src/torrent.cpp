@@ -2276,7 +2276,7 @@ bool is_downloading_state(int const st)
 			m_num_checked_pieces = piece_index_t(0);
 
 			set_state(torrent_status::checking_files);
-			if (m_auto_managed) pause(true);
+			if (m_auto_managed) pause(torrent_handle::graceful_pause);
 			if (should_check_files()) start_checking();
 			else m_ses.trigger_auto_manage();
 		}
@@ -2460,7 +2460,7 @@ bool is_downloading_state(int const st)
 			// managed logic runs again (which is triggered further down)
 			// setting flags to 0 prevents the disk cache from being evicted as a
 			// result of this
-			set_paused(true, 0);
+			set_paused(true, {});
 		}
 
 		// we're done checking! (this should cause a call to trigger_auto_manage)
@@ -8494,7 +8494,7 @@ bool is_downloading_state(int const st)
 		return m_paused || m_session_paused;
 	}
 
-	void torrent::pause(bool const graceful)
+	void torrent::pause(pause_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -8505,11 +8505,10 @@ bool is_downloading_state(int const st)
 			set_need_save_resume();
 		}
 
-		int const flags = graceful ? flag_graceful_pause : 0;
-		set_paused(true, flags | flag_clear_disk_cache);
+		set_paused(true, flags | torrent_handle::clear_disk_cache);
 	}
 
-	void torrent::do_pause(bool const clear_disk_cache)
+	void torrent::do_pause(pause_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!is_paused()) return;
@@ -8579,7 +8578,7 @@ bool is_downloading_state(int const st)
 		{
 			// this will make the storage close all
 			// files and flush all cached data
-			if (m_storage && clear_disk_cache)
+			if (m_storage && (flags & torrent_handle::clear_disk_cache))
 			{
 				// the torrent_paused alert will be posted from on_torrent_paused
 				m_ses.disk_thread().async_stop_torrent(m_storage
@@ -8682,7 +8681,7 @@ bool is_downloading_state(int const st)
 		else do_resume();
 	}
 
-	void torrent::set_paused(bool const b, int flags)
+	void torrent::set_paused(bool const b, pause_flags_t flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -8692,7 +8691,7 @@ bool is_downloading_state(int const st)
 		// if there are no peers, we must not enter graceful pause mode, and post
 		// the torrent_paused_alert immediately instead.
 		if (num_peers() == 0)
-			flags &= ~flag_graceful_pause;
+			flags &= ~torrent_handle::graceful_pause;
 
 		if (m_paused == b)
 		{
@@ -8701,7 +8700,7 @@ bool is_downloading_state(int const st)
 			// paused mode, we need to actually pause the torrent properly
 			if (m_paused == true
 				&& m_graceful_pause_mode == true
-				&& (flags & flag_graceful_pause) == 0)
+				&& !(flags & torrent_handle::graceful_pause))
 			{
 				m_graceful_pause_mode = false;
 				update_gauge();
@@ -8718,9 +8717,9 @@ bool is_downloading_state(int const st)
 		// the effective state of the torrent did not change
 		if (paused_before == is_paused()) return;
 
-		m_graceful_pause_mode = (flags & flag_graceful_pause) ? true : false;
+		m_graceful_pause_mode = bool(flags & torrent_handle::graceful_pause);
 
-		if (b) do_pause((flags & flag_clear_disk_cache) != 0);
+		if (b) do_pause(flags & torrent_handle::clear_disk_cache);
 		else do_resume();
 	}
 
