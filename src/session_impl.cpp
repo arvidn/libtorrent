@@ -878,8 +878,12 @@ namespace aux {
 		session_log(" aborting all connections (%d)", int(m_connections.size()));
 #endif
 		// abort all connections
-		for (auto& p : m_connections)
+		for (auto i = m_connections.begin(); i != m_connections.end();)
+		{
+			peer_connection* p = (*i).get();
+			++i;
 			p->disconnect(errors::stopping_torrent, operation_t::bittorrent);
+		}
 
 		// close the listen sockets
 		for (auto const& l : m_listen_sockets)
