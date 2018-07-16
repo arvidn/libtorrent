@@ -350,10 +350,8 @@ namespace aux {
 	// extension is used to know which torrent the incoming connection is
 	// trying to connect to. The 40 first bytes in the name is expected to
 	// be the hex encoded info-hash
-	int servername_callback(SSL* s, int* ad, void* arg)
+	int servername_callback(SSL* s, int*, void* arg)
 	{
-		TORRENT_UNUSED(ad);
-
 		auto* ses = reinterpret_cast<session_impl*>(arg);
 		const char* servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
 
@@ -880,8 +878,7 @@ namespace aux {
 		session_log(" aborting all connections (%d)", int(m_connections.size()));
 #endif
 		// abort all connections
-		for (connection_map::iterator i = m_connections.begin();
-			i != m_connections.end();)
+		for (auto i = m_connections.begin(); i != m_connections.end();)
 		{
 			peer_connection* p = (*i).get();
 			++i;
@@ -1083,7 +1080,7 @@ namespace aux {
 					listen_port(ls.get());
 
 				// we combine the per-torrent key with the per-interface key to make
-				// them consistent and uniqiue per torrent and interface
+				// them consistent and unique per torrent and interface
 				req.key ^= ls->tracker_key;
 				req.outgoing_socket = ls;
 				m_tracker_manager.queue_request(get_io_service(), req, c);
@@ -1190,7 +1187,7 @@ namespace aux {
 	// returns the number of pointers copied
 	// channel is upload_channel or download_channel
 	int session_impl::copy_pertinent_channels(peer_class_set const& set
-		, int channel, bandwidth_channel** dst, int max)
+		, int channel, bandwidth_channel** dst, int const max)
 	{
 		int num_channels = set.num_classes();
 		int num_copied = 0;
@@ -1215,10 +1212,10 @@ namespace aux {
 		return (ch->throttle() > 0 && ch->throttle() < amount);
 	}
 
-	int session_impl::use_quota_overhead(peer_class_set& set, int amount_down, int amount_up)
+	int session_impl::use_quota_overhead(peer_class_set& set, int const amount_down, int const amount_up)
 	{
 		int ret = 0;
-		int num = set.num_classes();
+		int const num = set.num_classes();
 		for (int i = 0; i < num; ++i)
 		{
 			peer_class* p = m_classes.at(set.class_at(i));
