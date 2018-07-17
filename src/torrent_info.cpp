@@ -163,6 +163,7 @@ namespace libtorrent
 			UTF8 sequence[5];
 			UTF8* start = sequence;
 			res = ConvertUTF32toUTF8(const_cast<const UTF32**>(&cp), cp + 1, &start, start + 5, lenientConversion);
+			TORRENT_UNUSED(res);
 			TORRENT_ASSERT(res == conversionOK);
 
 			for (int i = 0; i < std::min(5, int(start - sequence)); ++i)
@@ -722,8 +723,7 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec
-		, int flags)
+	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec, int)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
 		, m_info_section_size(0)
@@ -732,7 +732,6 @@ namespace libtorrent
 		, m_private(false)
 		, m_i2p(false)
 	{
-		TORRENT_UNUSED(flags);
 		std::pair<char const*, int> buf = torrent_file.data_section();
 		bdecode_node e;
 		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
@@ -740,7 +739,7 @@ namespace libtorrent
 		parse_torrent_file(e, ec, 0);
 	}
 
-	torrent_info::torrent_info(lazy_entry const& torrent_file, int flags)
+	torrent_info::torrent_info(lazy_entry const& torrent_file, int)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
 		, m_info_section_size(0)
@@ -749,7 +748,6 @@ namespace libtorrent
 		, m_private(false)
 		, m_i2p(false)
 	{
-		TORRENT_UNUSED(flags);
 		std::pair<char const*, int> buf = torrent_file.data_section();
 		bdecode_node e;
 		error_code ec;

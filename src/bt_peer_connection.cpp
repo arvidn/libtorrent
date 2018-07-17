@@ -836,7 +836,6 @@ namespace libtorrent
 		ptr += 20;
 
 		memcpy(ptr, &m_our_peer_id[0], 20);
-		ptr += 20;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		{
