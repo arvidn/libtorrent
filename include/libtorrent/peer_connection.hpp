@@ -802,7 +802,6 @@ namespace libtorrent
 		peer_connection& operator=(peer_connection const&);
 
 		void do_update_interest();
-		int preferred_caching() const;
 		void fill_send_buffer();
 		void on_disk_read_complete(disk_io_job const* j, peer_request r
 			, time_point issue_time);

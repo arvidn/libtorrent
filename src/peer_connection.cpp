@@ -5105,31 +5105,6 @@ namespace libtorrent
 		send_block_requests();
 	}
 
-	int peer_connection::preferred_caching() const
-	{
-		TORRENT_ASSERT(is_single_thread());
-		int line_size = 0;
-		if (m_settings.get_bool(settings_pack::guided_read_cache))
-		{
-			boost::shared_ptr<torrent> t = m_torrent.lock();
-			int upload_rate = m_statistics.upload_payload_rate();
-			if (upload_rate == 0) upload_rate = 1;
-
-			int num_uploads = m_ses.num_uploads();
-			if (num_uploads == 0) num_uploads = 1;
-
-			// assume half of the cache is write cache if we're downloading
-			// this torrent as well
-			int cache_size = m_settings.get_int(settings_pack::cache_size) / num_uploads;
-			if (!t->is_upload_only()) cache_size /= 2;
-			// cache_size is the amount of cache we have per peer. The
-			// cache line should not be greater than this
-
-			line_size = cache_size;
-		}
-		return line_size;
-	}
-
 	void peer_connection::fill_send_buffer()
 	{
 		TORRENT_ASSERT(is_single_thread());
