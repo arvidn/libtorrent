@@ -128,7 +128,6 @@ namespace libtorrent
 				token = xml_comment;
 				const int name_len = tag_name_end - start - 2;
 				callback(token, start, name_len, NULL, 0);
-				tag_end = p - 2;
 				continue;
 			}
 			else
