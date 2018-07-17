@@ -1,0 +1,92 @@
+#  Copyright (c) 2018 Arvid Norberg (arvid@libtorrent.org)
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+import common ;
+import toolset ;
+import feature ;
+
+feature.extend toolset : clang_tidy ;
+
+generators.register-c-compiler clang_tidy.compile.c++ : CPP : OBJ : <toolset>clang_tidy ;
+generators.register-c-compiler clang_tidy.compile.c : C : OBJ : <toolset>clang_tidy ;
+generators.register-archiver clang_tidy.archive : OBJ : STATIC_LIB : <toolset>clang_tidy ;
+generators.register-linker clang_tidy.link : OBJ SEARCHED_LIB STATIC_LIB : EXE : <toolset>clang_tidy ;
+generators.register-linker clang_tidy.link.dll : OBJ SEARCHED_LIB STATIC_LIB : SHARED_LIB : <toolset>clang_tidy ;
+
+rule init ( version ? :  command * : options * ) {
+  command = [ common.get-invocation-command clang_tidy : clang-tidy
+    : $(command) ] ;
+
+  # Determine the version
+  if $(command) {
+    local command-string = \"$(command)\" ;
+    command-string = $(command-string:J=" ") ;
+    version ?= [ MATCH "version ([0-9.]+)"
+      : [ SHELL "$(command-string) --version" ] ] ;
+  }
+
+  local condition = [ common.check-init-parameters clang_tidy
+    : version $(version) ] ;
+
+  common.handle-options clang_tidy : $(condition) : $(command) : $(options) ;
+}
+
+###############################################################################
+# Flags
+
+toolset.flags clang_tidy.compile OPTIONS <cflags> ;
+toolset.flags clang_tidy.compile.c++ OPTIONS <cxxflags> ;
+
+toolset.flags clang_tidy.compile DEFINES <define> ;
+toolset.flags clang_tidy.compile INCLUDES <include> ;
+
+toolset.flags clang_tidy.compile OPTIONS <optimization>off   : ;
+toolset.flags clang_tidy.compile OPTIONS <optimization>speed : -O3 ;
+toolset.flags clang_tidy.compile OPTIONS <optimization>space : -Os ;
+
+toolset.flags clang_tidy.compile OPTIONS <inlining>off  : -fno-inline ;
+# For clang, 'on' and 'full' are identical.
+toolset.flags clang_tidy.compile OPTIONS <inlining>on   : -Wno-inline ;
+toolset.flags clang_tidy.compile OPTIONS <inlining>full : -Wno-inline ;
+
+toolset.flags clang_tidy.compile OPTIONS <warnings>off : -w ;
+toolset.flags clang_tidy.compile OPTIONS <warnings>on  : -Wall ;
+toolset.flags clang_tidy.compile OPTIONS <warnings>all : -Wall -pedantic ;
+toolset.flags clang_tidy.compile OPTIONS <warnings-as-errors>on : -Werror ;
+
+toolset.flags clang_tidy.compile OPTIONS <debug-symbols>on : -g ;
+toolset.flags clang_tidy.compile OPTIONS <profiling>on : -pg ;
+toolset.flags clang_tidy.compile OPTIONS <rtti>off : -fno-rtti ;
+
+###############################################################################
+# C and C++ compilation
+
+TOUCH = [ common.file-creation-command ] ;
+
+actions compile.c++ {
+  "$(CONFIG_COMMAND)" -header-filter=*. -warnings-as-errors=* "$(>)" -- -x c++ $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" \
+    && $(TOUCH) "$(<)"
+}
+
+actions compile.c {
+  "$(CONFIG_COMMAND)" -header-filter=*. -warnings-as-errors=* "$(>)" -- -x c $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" \
+    && $(TOUCH) "$(<)"
+}
+
+###############################################################################
+# Linking
+
+actions archive {
+  $(TOUCH) "$(<)"
+}
+
+actions link {
+  $(TOUCH) "$(<)"
+}
+
+actions link.dll {
+  $(TOUCH) "$(<)"
+}

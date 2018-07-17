@@ -5,8 +5,18 @@ matrix:
   fast_finish: true
   include:
     - if: repo = arvidn/libtorrent
-      env: variant=release sonar_scan=1 toolset=gcc pylint=1
-    - env: variant=test_debug lint=1 tests=1 toolset=gcc-sanitizer
+      env: variant=release sonar_scan=1 toolset=gcc
+    - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - libc++-dev
+          - python3-pip
+          - libboost1.55-all-dev
+          - libboost1.55-tools-dev
+    - env: variant=test_debug tests=1 toolset=gcc-sanitizer
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
@@ -46,7 +56,6 @@ addons:
     - python2.7-dev
     - g++-5
     - [cmake3, ninja-build]
-    - python3-pip
 
 before_install:
 
@@ -110,6 +119,9 @@ install:
         <linkflags>-static-libstdc++
         <linkflags>-static-libgcc ;" >> ~/user-config.jam;
     fi;'
+  - 'if [ $clang_tidy == "1" ]; then
+      echo "using clang_tidy : : clang-tidy "-checks=-clang-analyzer-core.*" : <cxxflags>-std=c++11 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+    fi'
   - 'echo "using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using darwin : ios_sim : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
@@ -174,8 +186,10 @@ install:
         # remove all paths containing 'cmake' to use the executable from /usr/bin
         export PATH=`echo ${PATH} | awk -v RS=: -v ORS=: '/cmake/ {next} {print}'`
     fi
-  - which cmake
-  - cmake --version
+  - if [[ "$cmake" == "1" ]]; then
+      which cmake;
+      cmake --version;
+    fi
 
 script:
 
@@ -195,6 +209,11 @@ script:
   - 'if [ "$sonar_scan" == "1" ]; then
        build-wrapper-linux-x86-64 --out-dir bw-output bjam -a -j3 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
        sonar-scanner -D sonar.login=$SONAR_TOKEN;
+    fi'
+  - 'if [[ $clang_tidy == "1" ]]; then
+       which clang-tidy;
+       clang-tidy --version;
+       bjam -a -j3 clang_tidy;
     fi'
 
 # if we are building with code coverage, report it as soon as possible
