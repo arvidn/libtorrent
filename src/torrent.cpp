@@ -3546,7 +3546,7 @@ bool is_downloading_state(int const st)
 		}
 
 		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
-		st.total_wanted_done = std::int64_t(num_passed() - m_picker->num_have_filtered())
+		st.total_wanted_done = std::int64_t(num_have() - m_picker->num_have_filtered())
 			* piece_size;
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 
@@ -3580,7 +3580,7 @@ bool is_downloading_state(int const st)
 			st.total_done += corr;
 			if (m_picker->piece_priority(last_piece) != dont_download)
 			{
-				TORRENT_ASSERT(st.total_wanted_done >= piece_size);
+				TORRENT_ASSERT(st.total_wanted_done >= -corr);
 				st.total_wanted_done += corr;
 			}
 		}
@@ -3600,7 +3600,7 @@ bool is_downloading_state(int const st)
 				for (piece_index_t j = p.piece; p.length > 0; ++j)
 				{
 					int const deduction = std::min(p.length, piece_size - p.start);
-					bool const done = m_picker->has_piece_passed(j);
+					bool const done = m_picker->have_piece(j);
 					bool const wanted = m_picker->piece_priority(j) > dont_download;
 					if (done) st.total_done -= deduction;
 					if (wanted) st.total_wanted -= deduction;
@@ -5029,8 +5029,6 @@ bool is_downloading_state(int const st)
 	{
 		INVARIANT_CHECK;
 
-		if (is_seed()) return;
-
 		auto new_priority = fix_priorities(files
 			, valid_metadata() ? &m_torrent_file->files() : nullptr);
 
@@ -5051,8 +5049,6 @@ bool is_downloading_state(int const st)
 		, download_priority_t prio)
 	{
 		INVARIANT_CHECK;
-
-		if (is_seed()) return;
 
 		// setting file priority on a torrent that doesn't have metadata yet is
 		// similar to having passed in file priorities through add_torrent_params.
@@ -7439,8 +7435,8 @@ bool is_downloading_state(int const st)
 				m_file_progress.clear();
 			}
 			m_have_all = true;
-			update_gauge();
 		}
+		update_gauge();
 	}
 
 	// called when torrent is complete. i.e. all pieces downloaded
@@ -10789,7 +10785,12 @@ bool is_downloading_state(int const st)
 		if (st->state == torrent_status::finished
 			|| st->state == torrent_status::seeding)
 		{
-			TORRENT_ASSERT(st->is_finished);
+			// this assumption does not always hold. We transition to "finished"
+			// when we receive the last block of the last piece, which is before
+			// the hash check comes back. "is_finished" is set to true once all the
+			// pieces have been hash checked. So, there's a short window where it
+			// doesn't hold.
+//			TORRENT_ASSERT(st->is_finished);
 		}
 #endif
 
