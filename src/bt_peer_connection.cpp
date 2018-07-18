@@ -739,7 +739,6 @@ namespace {
 		ptr += 20;
 
 		std::memcpy(ptr, m_our_peer_id.data(), 20);
-		ptr += 20;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))

@@ -153,6 +153,7 @@ namespace libtorrent {
 			UTF8 sequence[5];
 			UTF8* start = sequence;
 			res = ConvertUTF32toUTF8(const_cast<const UTF32**>(&cp), cp + 1, &start, start + 5, lenientConversion);
+			TORRENT_UNUSED(res);
 			TORRENT_ASSERT(res == conversionOK);
 
 			for (int i = 0; i < std::min(5, int(start - sequence)); ++i)

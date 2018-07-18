@@ -113,7 +113,6 @@ namespace libtorrent {
 			{
 				start += 3;
 				callback(xml_comment, {start, std::size_t(tag_name_end - start - 2)}, {});
-				tag_end = p - 2;
 				continue;
 			}
 			else
