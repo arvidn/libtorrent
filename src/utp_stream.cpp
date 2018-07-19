@@ -1793,8 +1793,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 		return false;
 	}
 
-	int packet_size = header_size + payload_size;
-
 	packet_ptr p;
 	std::uint8_t* ptr = nullptr;
 	utp_header* h = nullptr;
@@ -1810,6 +1808,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			m_sm.inc_stats_counter(counters::utp_payload_pkts_out);
 		}
 
+		int const packet_size = header_size + payload_size;
 		p->size = std::uint16_t(packet_size);
 		p->header_size = std::uint16_t(packet_size - payload_size);
 		p->num_transmissions = 0;
@@ -1883,7 +1882,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 			return false;
 		}
 
-		packet_size = p->size;
 		payload_size = p->size - p->header_size;
 	}
 
@@ -2572,7 +2570,7 @@ bool utp_socket_impl::test_socket_state()
 	return false;
 }
 
-void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
+void utp_socket_impl::init_mtu(int const link_mtu, int utp_mtu)
 {
 	INVARIANT_CHECK;
 
@@ -2580,9 +2578,8 @@ void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 	{
 		// we can't use larger packets than this since we're
 		// not allocating any more memory for socket buffers
-		int decrease = link_mtu - TORRENT_ETHERNET_MTU;
+		int const decrease = link_mtu - TORRENT_ETHERNET_MTU;
 		utp_mtu -= decrease;
-		link_mtu -= decrease;
 	}
 
 	// set the ceiling to what we found out from the interface

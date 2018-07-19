@@ -5893,7 +5893,7 @@ namespace libtorrent {
 			if (buffer_size > 0)
 			{
 				span<char> const vec = m_recv_buffer.reserve(buffer_size);
-				std::size_t bytes = m_socket->read_some(
+				std::size_t const bytes = m_socket->read_some(
 					boost::asio::mutable_buffers_1(vec.data(), vec.size()), ec);
 
 				// this is weird. You would imagine read_some() would do this
@@ -5908,14 +5908,14 @@ namespace libtorrent {
 #endif
 
 				TORRENT_ASSERT(bytes > 0 || ec);
-				if (ec == boost::asio::error::would_block || ec == boost::asio::error::try_again)
+				if (ec)
 				{
-					bytes = 0;
-				}
-				else if (ec)
-				{
-					disconnect(ec, operation_t::sock_read);
-					return;
+					if (ec != boost::asio::error::would_block
+						&& ec != boost::asio::error::try_again)
+					{
+						disconnect(ec, operation_t::sock_read);
+						return;
+					}
 				}
 				else
 				{

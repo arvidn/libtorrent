@@ -516,9 +516,9 @@ namespace aux {
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #ifndef TORRENT_DISABLE_LOGGING
-		bool should_log(peer_log_alert::direction_t direction) const override;
+		bool should_log(peer_log_alert::direction_t direction) const override final;
 		void peer_log(peer_log_alert::direction_t direction
-			, char const* event, char const* fmt, ...) const noexcept override TORRENT_FORMAT(4,5);
+			, char const* event, char const* fmt, ...) const noexcept override final TORRENT_FORMAT(4,5);
 		void peer_log(peer_log_alert::direction_t direction
 			, char const* event) const noexcept;
 
