@@ -518,27 +518,28 @@ void natpmp::send_map_request(port_mapping_t const i)
 		write_uint16(0, out); // reserved
 		write_uint16(m.local_port, out);
 		write_uint16(m.external_port, out);
-		address_v6::bytes_type external_addr;
+		address_v6 external_addr;
 		if (!m.external_address.is_unspecified())
 		{
 			external_addr = m.external_address.is_v4()
-				? address_v6::v4_mapped(m.external_address.to_v4()).to_bytes()
-				: m.external_address.to_v6().to_bytes();
+				? address_v6::v4_mapped(m.external_address.to_v4())
+				: m.external_address.to_v6();
 		}
 		else if (is_local(local_addr))
 		{
-			external_addr = local_addr.is_v4() ? address_v6::v4_mapped(address_v4()).to_bytes()
-				: address_v6().to_bytes();
+			external_addr = local_addr.is_v4()
+				? address_v6::v4_mapped(address_v4())
+				: address_v6();
 		}
 		else if (local_addr.is_v4())
 		{
-			external_addr = address_v6::v4_mapped(local_addr.to_v4()).to_bytes();
+			external_addr = address_v6::v4_mapped(local_addr.to_v4());
 		}
 		else
 		{
-			external_addr = local_addr.to_v6().to_bytes();
+			external_addr = local_addr.to_v6();
 		}
-		out = std::copy(external_addr.begin(), external_addr.end(), out);
+		write_address(external_addr, out);
 	}
 	else
 	{
@@ -624,8 +625,8 @@ void natpmp::on_reply(error_code const& e
 	ADD_OUTSTANDING_ASYNC("natpmp::on_reply");
 	// make a copy of the response packet buffer
 	// to avoid overwriting it in the next receive call
-	char msg_buf[sizeof(m_response_buffer)];
-	std::memcpy(msg_buf, m_response_buffer, bytes_transferred);
+	std::array<char, sizeof(m_response_buffer)> msg_buf;
+	std::memcpy(msg_buf.data(), m_response_buffer, bytes_transferred);
 
 	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer[0]
 		, sizeof(m_response_buffer))
@@ -654,7 +655,7 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
-	char* in = msg_buf;
+	char* in = msg_buf.data();
 	int const version = read_uint8(in);
 
 	if (version != version_natpmp && version != version_pcp)
@@ -753,16 +754,14 @@ void natpmp::on_reply(error_code const& e
 	if (version == version_natpmp)
 		lifetime = aux::numeric_cast<int>(read_uint32(in));
 	address external_addr;
+#if TORRENT_USE_IPV6
 	if (version == version_pcp)
 	{
-		using boost::asio::ip::address_v6;
-		address_v6::bytes_type addr;
-		std::memcpy(addr.data(), in, addr.size());
-		in += addr.size();
-		external_addr = address_v6(addr);
+		external_addr = read_v6_address(in);
 		if (external_addr.to_v6().is_v4_mapped())
 			external_addr = external_addr.to_v6().to_v4();
 	}
+#endif
 
 	if (version == version_natpmp)
 	{
