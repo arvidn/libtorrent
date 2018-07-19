@@ -86,7 +86,7 @@ namespace {
 		}
 
 		auto info_hash = rd.dict_find_string_value("info-hash");
-		if (info_hash.size() != 20)
+		if (info_hash.size() != sha1_hash::size())
 		{
 			ec = errors::missing_info_hash;
 			return ret;
@@ -253,11 +253,11 @@ namespace {
 		}
 
 		bdecode_node const mt = rd.dict_find_string("merkle tree");
-		if (mt && mt.string_length() >= 20)
+		if (mt && mt.string_length() >= int(sha1_hash::size()))
 		{
-			ret.merkle_tree.resize(aux::numeric_cast<std::size_t>(mt.string_length() / 20));
+			ret.merkle_tree.resize(aux::numeric_cast<std::size_t>(mt.string_length()) / sha1_hash::size());
 			std::memcpy(ret.merkle_tree.data(), mt.string_ptr()
-				, ret.merkle_tree.size() * 20);
+				, ret.merkle_tree.size() * sha1_hash::size());
 		}
 
 		// some sanity checking. Maybe we shouldn't be in seed mode anymore
@@ -292,11 +292,15 @@ namespace {
 			}
 		}
 
+#if TORRENT_USE_IPV6
+		int const v6_size = 18;
+#endif
+		int const v4_size = 6;
 		using namespace libtorrent::detail; // for read_*_endpoint()
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();
-			for (int i = 5; i < peers_entry.string_length(); i += 6)
+			for (int i = v4_size - 1; i < peers_entry.string_length(); i += v4_size)
 				ret.peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
 		}
 
@@ -304,7 +308,7 @@ namespace {
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
-			for (int i = 17; i < peers_entry.string_length(); i += 18)
+			for (int i = v6_size - 1; i < peers_entry.string_length(); i += v6_size)
 				ret.peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
 		}
 #endif
@@ -312,7 +316,7 @@ namespace {
 		if (bdecode_node const peers_entry = rd.dict_find_string("banned_peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();
-			for (int i = 5; i < peers_entry.string_length(); i += 6)
+			for (int i = v4_size; i < peers_entry.string_length(); i += v4_size)
 				ret.banned_peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
 		}
 
@@ -320,7 +324,7 @@ namespace {
 		if (bdecode_node const peers_entry = rd.dict_find_string("banned_peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
-			for (int i = 17; i < peers_entry.string_length(); i += 18)
+			for (int i = v6_size - 1; i < peers_entry.string_length(); i += v6_size)
 				ret.banned_peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
 		}
 #endif
@@ -338,7 +342,7 @@ namespace {
 				bdecode_node const bitmask = e.dict_find_string("bitmask");
 				if (!bitmask || bitmask.string_length() == 0) continue;
 				ret.unfinished_pieces[piece].assign(
-					bitmask.string_ptr(), bitmask.string_length() * 8);
+					bitmask.string_ptr(), bitmask.string_length() * CHAR_BIT);
 			}
 		}
 
