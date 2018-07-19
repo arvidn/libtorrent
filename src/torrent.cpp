@@ -3702,6 +3702,8 @@ bool is_downloading_state(int const st)
 		if (m_abort) return;
 		if (m_deleted) return;
 
+		m_picker->completed_hash_job(piece);
+
 		bool const passed = settings().get_bool(settings_pack::disable_hash_checks)
 			|| (!error && sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece));
 
@@ -10340,6 +10342,7 @@ bool is_downloading_state(int const st)
 		m_ses.disk_thread().async_hash(m_storage, piece, {}, {}
 			, [self = shared_from_this()](piece_index_t p, sha1_hash const& h, storage_error const& error)
 			{ self->on_piece_verified(p, h, error); });
+		m_picker->started_hash_job(piece);
 	}
 
 	announce_entry* torrent::find_tracker(std::string const& url)

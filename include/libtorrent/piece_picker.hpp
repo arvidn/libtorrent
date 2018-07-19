@@ -149,7 +149,7 @@ namespace libtorrent {
 				, writing(0)
 				, locked(0)
 				, requested(0)
-				, outstanding_hash_check(0) {}
+				, hashing(0) {}
 
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
 
@@ -188,9 +188,14 @@ namespace libtorrent {
 			// the number of blocks in the requested state
 			std::uint16_t requested:15;
 
-			// set to true while there is an outstanding
-			// hash check for this piece
-			std::uint16_t outstanding_hash_check:1;
+			// available for future use
+			std::uint16_t unused:1;
+
+			// number of outstanding hash jobs for this piece
+			std::uint16_t hashing:15;
+
+			// available for future use
+			std::uint16_t unused2:1;
 		};
 
 		piece_picker(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);
@@ -333,6 +338,9 @@ namespace libtorrent {
 		// and false if the block is already finished or writing
 		bool mark_as_writing(piece_block block, torrent_peer* peer);
 
+		void started_hash_job(piece_index_t piece);
+		void completed_hash_job(piece_index_t piece);
+
 		void mark_as_canceled(piece_block block, torrent_peer* peer);
 		void mark_as_finished(piece_block block, torrent_peer* peer);
 
@@ -371,6 +379,10 @@ namespace libtorrent {
 		// returns true if all blocks in this piece are finished
 		// or if we have the piece
 		bool is_piece_finished(piece_index_t index) const;
+
+		// returns true if at least one block in this piece is being hashed
+		// only valid for v2 torrents
+		bool is_hashing(piece_index_t piece) const;
 
 		// returns true if we have the piece or if the piece
 		// has passed the hash check
