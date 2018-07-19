@@ -648,9 +648,10 @@ namespace libtorrent {
 
 					// decide which peer connection to disconnect
 					// if the ports are equal, pick on at random
-					bool const disconnect1 = ((our_port < other_port) && !outgoing1)
+					bool disconnect1 = ((our_port < other_port) && !outgoing1)
 						|| ((our_port > other_port) && outgoing1)
 						|| ((our_port == other_port) && random(1));
+					disconnect1 &= !i->connection->failed();
 
 #ifndef TORRENT_DISABLE_LOGGING
 					if (c.should_log(peer_log_alert::info))
