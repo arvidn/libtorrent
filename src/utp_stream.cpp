@@ -1123,7 +1123,7 @@ void utp_stream::issue_write()
 void utp_stream::do_connect(tcp::endpoint const& ep)
 {
 	int link_mtu, utp_mtu;
-	m_impl->m_sm.mtu_for_dest(ep.address(), link_mtu, utp_mtu);
+	std::tie(link_mtu, utp_mtu) = m_impl->m_sm.mtu_for_dest(ep.address());
 	m_impl->init_mtu(link_mtu, utp_mtu);
 	TORRENT_ASSERT(m_impl->m_connect_handler == false);
 	m_impl->m_remote_address = ep.address();

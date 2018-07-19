@@ -88,7 +88,7 @@ namespace libtorrent {
 		}
 	}
 
-	void utp_socket_manager::mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu)
+	std::pair<int, int> utp_socket_manager::mtu_for_dest(address const& addr)
 	{
 		int mtu = 0;
 		if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
@@ -109,7 +109,7 @@ namespace libtorrent {
 		if (mtu < TORRENT_INET_MIN_MTU) mtu = TORRENT_INET_MIN_MTU;
 		else if (mtu > TORRENT_INET_MAX_MTU) mtu = TORRENT_INET_MAX_MTU;
 
-		link_mtu = mtu;
+		int const link_mtu = mtu;
 
 		mtu -= TORRENT_UDP_HEADER;
 
@@ -133,7 +133,7 @@ namespace libtorrent {
 			else mtu -= TORRENT_IPV6_HEADER;
 		}
 
-		utp_mtu = std::min(mtu, restrict_mtu());
+		return std::make_pair(link_mtu, std::min(mtu, restrict_mtu()));
 	}
 
 	void utp_socket_manager::send_packet(std::weak_ptr<utp_socket_interface> sock
@@ -226,7 +226,7 @@ namespace libtorrent {
 
 			TORRENT_ASSERT(str);
 			int link_mtu, utp_mtu;
-			mtu_for_dest(ep.address(), link_mtu, utp_mtu);
+			std::tie(link_mtu, utp_mtu) = mtu_for_dest(ep.address());
 			utp_init_mtu(str->get_impl(), link_mtu, utp_mtu);
 			utp_init_socket(str->get_impl(), std::move(socket));
 			bool ret = utp_incoming_packet(str->get_impl(), p, ep, receive_time);
