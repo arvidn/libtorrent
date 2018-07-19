@@ -117,22 +117,22 @@ void print_message(char const* buffer, int len)
 		, "have", "bitfield", "request", "piece", "cancel", "dht_port", "", "", ""
 		, "suggest_piece", "have_all", "have_none", "reject_request", "allowed_fast"};
 
-	char message[50];
+	std::stringstream message;
 	char extra[300];
 	extra[0] = 0;
 	if (len == 0)
 	{
-		strcpy(message, "keepalive");
+		message << "keepalive";
 	}
 	else
 	{
 		int msg = buffer[0];
 		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
-			strcpy(message, message_name[msg]);
+			message << message_name[msg];
 		else if (msg == 20)
-			std::snprintf(message, sizeof(message), "extension msg [%d]", buffer[1]);
+			message << "extension msg [" << int(buffer[1]) << "]";
 		else
-			std::snprintf(message, sizeof(message), "unknown[%d]", msg);
+			message << "unknown[" << msg << "]";
 
 		if (msg == 0x6 && len == 13)
 		{
@@ -157,7 +157,7 @@ void print_message(char const* buffer, int len)
 		}
 	}
 
-	log("<== %s %s", message, extra);
+	log("<== %s %s", message.str().c_str(), extra);
 }
 
 void send_allow_fast(tcp::socket& s, int piece)
