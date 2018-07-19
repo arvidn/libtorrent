@@ -10217,7 +10217,7 @@ bool is_downloading_state(int const st)
 	}
 
 	torrent_peer* torrent::add_peer(tcp::endpoint const& adr
-		, peer_source_flags_t const source, pex_flags_t const flags)
+		, peer_source_flags_t const source, pex_flags_t flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -10279,6 +10279,9 @@ bool is_downloading_state(int const st)
 #endif
 			return nullptr;
 		}
+
+		if (!torrent_file().info_hash().has_v1())
+			flags |= pex_lt_v2;
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
