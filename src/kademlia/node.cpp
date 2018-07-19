@@ -453,7 +453,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, announce_flags_
 	}
 #endif
 
-	if (listen_port == 0)
+	if (listen_port == 0 && m_observer != nullptr)
 	{
 		listen_port = m_observer->get_listen_port(
 			flags & announce::ssl_torrent ? aux::transport::ssl : aux::transport::plaintext

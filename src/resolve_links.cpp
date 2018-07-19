@@ -84,7 +84,7 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 
 		std::int64_t const file_size = fs.file_size(i);
 
-		auto range = m_file_sizes.equal_range(file_size);
+		auto const range = m_file_sizes.equal_range(file_size);
 		for (auto iter = range.first; iter != range.second; ++iter)
 		{
 			TORRENT_ASSERT(iter->second >= file_index_t(0));

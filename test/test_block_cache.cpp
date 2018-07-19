@@ -433,6 +433,7 @@ void test_iovec()
 	TEST_SETUP;
 
 	ret = bc.allocate_iovec(iov);
+	TEST_EQUAL(ret, 0);
 	bc.free_iovec(iov);
 }
 
@@ -505,6 +506,7 @@ TORRENT_TEST(delete_piece)
 	rj.storage = pm;
 	rj.argument = remove_flags_t{};
 	ret = bc.try_read(&rj, alloc);
+	TEST_EQUAL(ret, -1);
 
 	cached_piece_entry* pe_ = bc.find_piece(pm.get(), piece_index_t(0));
 	bc.mark_for_eviction(pe_, block_cache::disallow_ghost);
