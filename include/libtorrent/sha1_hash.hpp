@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cstring>
 #include <array>
+#include <climits> // for CHAR_BIT
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
@@ -72,7 +73,7 @@ namespace aux {
 	public:
 
 		// the size of the hash in bytes
-		static constexpr std::size_t size() noexcept { return N / 8; }
+		static constexpr std::size_t size() noexcept { return N / CHAR_BIT; }
 
 		// constructs an all-zero digest
 		digest32() noexcept { clear(); }
@@ -81,7 +82,7 @@ namespace aux {
 		digest32& operator=(digest32 const&) noexcept = default;
 
 		// returns an all-F digest. i.e. the maximum value
-		// representable by an N bit number (N/8 bytes). This is
+		// representable by an N bit number (N/CHAR_BIT bytes). This is
 		// a static member function.
 		static digest32 (max)() noexcept
 		{
@@ -91,7 +92,7 @@ namespace aux {
 		}
 
 		// returns an all-zero digest. i.e. the minimum value
-		// representable by an N bit number (N/8 bytes). This is
+		// representable by an N bit number (N/CHAR_BIT bytes). This is
 		// a static member function.
 		static digest32 (min)() noexcept
 		{
@@ -100,8 +101,8 @@ namespace aux {
 			return ret;
 		}
 
-		// copies N/8 bytes from the pointer provided, into the digest.
-		// The passed in string MUST be at least N/8 bytes. 0-terminators
+		// copies N/CHAR_BIT bytes from the pointer provided, into the digest.
+		// The passed in string MUST be at least N/CHAR_BIT bytes. 0-terminators
 		// are ignored, ``s`` is treated like a raw memory buffer.
 		explicit digest32(char const* s) noexcept
 		{
@@ -121,7 +122,7 @@ namespace aux {
 		}
 		void assign(span<char const> s) noexcept
 		{
-			TORRENT_ASSERT(s.size() >= N / 8);
+			TORRENT_ASSERT(s.size() >= N / CHAR_BIT);
 			std::size_t const sl = s.size() < size() ? s.size() : size();
 			std::memcpy(m_number.data(), s.data(), sl);
 		}
@@ -256,8 +257,8 @@ namespace aux {
 		iterator end()
 		{ return reinterpret_cast<std::uint8_t*>(m_number.data()) + size(); }
 
-		// return a copy of the N/8 bytes representing the digest as a std::string.
-		// It's still a binary string with N/8 binary characters.
+		// return a copy of the N/CHAR_BIT bytes representing the digest as a std::string.
+		// It's still a binary string with N/CHAR_BIT binary characters.
 		std::string to_string() const
 		{
 			return std::string(reinterpret_cast<char const*>(m_number.data()), size());
