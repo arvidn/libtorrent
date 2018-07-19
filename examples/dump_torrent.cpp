@@ -101,6 +101,8 @@ int main(int argc, char* argv[]) try
 
 	std::stringstream ih;
 	ih << t.info_hash().v1;
+	if (t.info_hash().has_v2())
+		ih << ", " << t.info_hash().v2;
 	std::printf("number of pieces: %d\n"
 		"piece length: %d\n"
 		"info hash: %s\n"
