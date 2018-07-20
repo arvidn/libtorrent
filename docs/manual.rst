@@ -814,13 +814,11 @@ based peer class assignment:
 		ip_filter f;
 
 		// for every IPv4 address, assign the global peer class
-		f.add_rule(address_v4::from_string("0.0.0.0")
-			, address_v4::from_string("255.255.255.255")
-			, mask);
+		f.add_rule(make_address("0.0.0.0"), make_address("255.255.255.255"), mask);
 
 		// for every IPv6 address, assign the global peer class
-		f.add_rule(address_v6::from_string("::")
-			, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+		f.add_rule(make_address("::")
+			, make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
 			, mask);
 		ses.set_peer_class_filter(f);
 
@@ -828,7 +826,7 @@ To make uTP sockets exempt from rate limiting:
 
 .. code:: c++
 
-	peer_class_type_filter flt;
+	peer_class_type_filter flt = ses.get_peer_class_type_filter();
 	// filter out the global and local peer class for uTP sockets, if these
 	// classes are set by the IP filter
 	flt.disallow(peer_class_type_filter::utp_socket, session::global_peer_class_id);
@@ -848,14 +846,10 @@ To make all peers on the internal network unthrottled:
 		ip_filter f;
 
 		// for every IPv4 address, assign the global peer class
-		f.add_rule(address_v4::from_string("0.0.0.0")
-			, address_v4::from_string("255.255.255.255")
-			, mask);
+		f.add_rule(make_address("0.0.0.0"), make_address("255.255.255.255"), mask);
 
-		// for every address on the local metwork, set the mastk to 0
-		f.add_rule(address_v4::from_string("10.0.0.0")
-			, address_v4::from_string("10.255.255.255")
-			, 0);
+		// for every address on the local metwork, set the mask to 0
+		f.add_rule(make_address("10.0.0.0"), make_address("10.255.255.255"), 0);
 		ses.set_peer_class_filter(f);
 
 SSL torrents
