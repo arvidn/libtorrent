@@ -18,6 +18,7 @@ def v(version):
             ret = ret + (chr(ord('A') + i - 10),)
     return ret
 
+
 revision = os.popen('git log -1 --format=format:%h').read().strip()
 
 
