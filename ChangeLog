@@ -87,6 +87,8 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+1.1.9 release
+
 	* uTP connections are no longer exempt from rate limits by default
 	* fix exporting files from partfile while seeding
 	* fix potential deadlock on Windows, caused by performing restricted
