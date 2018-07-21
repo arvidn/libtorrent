@@ -548,11 +548,11 @@ TORRENT_TEST(reopen_network_sockets)
 
 	s.reopen_network_sockets(session_handle::reopen_map_ports);
 
-	TEST_CHECK(count_alerts(s, 2, 4));
+	TEST_CHECK(count_alerts(s, 0, 4));
 
-	s.reopen_network_sockets(reopen_network_flags_t{0});
+	s.reopen_network_sockets({});
 
-	TEST_CHECK(count_alerts(s, 2, 0));
+	TEST_CHECK(count_alerts(s, 0, 0));
 
 	p.set_bool(settings_pack::enable_upnp, false);
 	p.set_bool(settings_pack::enable_natpmp, false);
@@ -560,7 +560,7 @@ TORRENT_TEST(reopen_network_sockets)
 
 	s.reopen_network_sockets(session_handle::reopen_map_ports);
 
-	TEST_CHECK(count_alerts(s, 2, 0));
+	TEST_CHECK(count_alerts(s, 0, 0));
 }
 #endif
 

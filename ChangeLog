@@ -1,3 +1,4 @@
+	* when updating listen sockets, only post alerts for new ones
 	* deprecate anonymous_mode_alert
 	* deprecated force_proxy setting (when set, the proxy is always used)
 	* add support for Port Control Protocol (PCP)
