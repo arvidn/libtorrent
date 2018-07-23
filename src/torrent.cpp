@@ -830,11 +830,23 @@ bool is_downloading_state(int const st)
 
 	void torrent::read_piece(piece_index_t const piece)
 	{
+		error_code ec;
 		if (m_abort || m_deleted)
 		{
-			// failed
-			m_ses.alerts().emplace_alert<read_piece_alert>(
-				get_handle(), piece, error_code(boost::system::errc::operation_canceled, generic_category()));
+			ec.assign(boost::system::errc::operation_canceled, generic_category());
+		}
+		else if (!valid_metadata())
+		{
+			ec.assign(errors::no_metadata, libtorrent_category());
+		}
+		else if (piece < piece_index_t{0} || piece >= m_torrent_file->end_piece())
+		{
+			ec.assign(errors::invalid_piece_index, libtorrent_category());
+		}
+
+		if (ec)
+		{
+			m_ses.alerts().emplace_alert<read_piece_alert>(get_handle(), piece, ec);
 			return;
 		}
 

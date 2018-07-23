@@ -664,7 +664,7 @@ namespace libtorrent {
 
 	bool torrent_handle::have_piece(piece_index_t piece) const
 	{
-		return sync_call_ret<bool>(false, &torrent::have_piece, piece);
+		return sync_call_ret<bool>(false, &torrent::user_have_piece, piece);
 	}
 
 	storage_interface* torrent_handle::get_storage_impl() const
