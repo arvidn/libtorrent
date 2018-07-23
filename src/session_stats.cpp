@@ -39,8 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-namespace {
+#if TORRENT_ABI_VERSION == 1
+	constexpr metric_type_t stats_metric::type_counter;
+	constexpr metric_type_t stats_metric::type_gauge;
+#endif
 
+namespace {
 
 	struct stats_metric_impl
 	{
@@ -566,7 +570,7 @@ namespace {
 			stats[i].name = metrics[i].name;
 			stats[i].value_index = metrics[i].value_index;
 			stats[i].type = metrics[i].value_index >= counters::num_stats_counters
-				? stats_metric::type_gauge : stats_metric::type_counter;
+				? metric_type_t::gauge : metric_type_t::counter;
 		}
 		return std::move(stats);
 	}

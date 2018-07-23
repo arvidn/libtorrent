@@ -42,7 +42,7 @@ int main()
 	for (int i = 0; i < int(m.size()); ++i)
 	{
 		std::printf("%s: %s (%d)\n"
-			, m[i].type == stats_metric::type_counter ? "CNTR" : "GAUG"
+			, m[i].type == metric_type_t::counter ? "CNTR" : "GAUG"
 			, m[i].name, m[i].value_index);
 	}
 	return 0;

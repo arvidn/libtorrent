@@ -40,13 +40,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	enum class metric_type_t
+	{
+		counter, gauge
+	};
+
 	// describes one statistics metric from the session. For more information,
 	// see the session-statistics_ section.
 	struct TORRENT_EXPORT stats_metric
 	{
 		char const* name;
 		int value_index;
-		enum metric_type_t { type_counter, type_gauge };
+#if TORRENT_ABI_VERSION == 1
+		static constexpr metric_type_t TORRENT_DEPRECATED_MEMBER type_counter = metric_type_t::counter;
+		static constexpr metric_type_t TORRENT_DEPRECATED_MEMBER type_gauge = metric_type_t::gauge;
+#endif
 		metric_type_t type;
 	};
 
