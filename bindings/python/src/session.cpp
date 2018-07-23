@@ -388,13 +388,19 @@ namespace
     }
 #endif // TORRENT_ABI_VERSION
 
-    void alert_notify(object cb)
+    void alert_notify(object cb) try
     {
         lock_gil lock;
         if (cb)
         {
             cb();
         }
+    }
+    catch (boost::python::error_already_set const&)
+    {
+        // this callback isn't supposed to throw an error.
+        // just swallow and ignore the exception
+        TORRENT_ASSERT_FAIL_VAL("python notify callback threw exception");
     }
 
     void set_alert_notify(lt::session& s, object cb)
