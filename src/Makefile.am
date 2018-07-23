@@ -80,6 +80,7 @@ libtorrent_rasterbar_la_SOURCES = \
   file_pool.cpp                   \
   file_storage.cpp                \
   fingerprint.cpp                 \
+  generate_peer_id.cpp            \
   gzip.cpp                        \
   hasher.cpp                      \
   hex.cpp                         \

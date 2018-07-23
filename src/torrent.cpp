@@ -100,6 +100,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
+#include "libtorrent/aux_/generate_peer_id.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -147,19 +148,6 @@ bool is_downloading_state(int const st)
 		peer_info.web_seed = true;
 	}
 
-	peer_id generate_peer_id(aux::session_settings const& sett)
-	{
-		peer_id ret;
-		std::string print = sett.get_str(settings_pack::peer_fingerprint);
-		if (print.size() > ret.size()) print.resize(ret.size());
-
-		// the client's fingerprint
-		std::copy(print.begin(), print.end(), ret.begin());
-		if (print.length() < ret.size())
-			url_random(span<char>(ret).subspan(print.length()));
-		return ret;
-	}
-
 	torrent_hot_members::torrent_hot_members(aux::session_interface& ses
 		, add_torrent_params const& p, bool const session_paused)
 		: m_ses(ses)
@@ -200,7 +188,7 @@ bool is_downloading_state(int const st)
 		, m_info_hash(p.info_hash)
 		, m_error_file(torrent_status::error_file_none)
 		, m_sequence_number(-1)
-		, m_peer_id(generate_peer_id(settings()))
+		, m_peer_id(aux::generate_peer_id(settings()))
 		, m_announce_to_trackers(!(p.flags & torrent_flags::paused))
 		, m_announce_to_lsd(!(p.flags & torrent_flags::paused))
 		, m_has_incoming(false)

@@ -104,8 +104,6 @@ namespace libtorrent {
 	struct tracker_request;
 	class bt_peer_connection;
 
-	peer_id generate_peer_id(aux::session_settings const& sett);
-
 	enum class waste_reason
 	{
 		piece_timed_out, piece_cancelled, piece_unknown, piece_seed

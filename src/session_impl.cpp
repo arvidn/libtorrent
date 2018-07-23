@@ -88,6 +88,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
+#include "libtorrent/aux_/generate_peer_id.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -3000,7 +3001,7 @@ namespace aux {
 #if TORRENT_ABI_VERSION == 1
 	peer_id session_impl::deprecated_get_peer_id() const
 	{
-		return generate_peer_id(m_settings);
+		return aux::generate_peer_id(m_settings);
 	}
 #endif
 
