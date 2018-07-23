@@ -778,6 +778,15 @@ namespace libtorrent {
 		}
 
 		// returns true if we have downloaded the given piece
+		bool user_have_piece(piece_index_t index) const
+		{
+			if (!valid_metadata()) return false;
+			if (index < piece_index_t{0} || index >= m_torrent_file->end_piece()) return false;
+			if (!has_picker()) return m_have_all;
+			return m_picker->have_piece(index);
+		}
+
+		// returns true if we have downloaded the given piece
 		bool has_piece_passed(piece_index_t index) const
 		{
 			if (!valid_metadata()) return false;
