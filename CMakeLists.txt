@@ -288,6 +288,7 @@ set(sources
 	error_code
 	file_storage
 	file_progress
+	generate_peer_id
 	lazy_bdecode
 	escape_string
 	string_util
