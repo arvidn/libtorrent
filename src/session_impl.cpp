@@ -2422,10 +2422,12 @@ namespace aux {
 					// socket
 					bool handled = false;
 #ifndef TORRENT_DISABLE_DHT
-					if (m_dht && buf.size() > 20 && buf.front() == 'd' && buf.back() == 'e')
+					if (m_dht && buf.size() > 20
+						&& buf.front() == 'd'
+						&& buf.back() == 'e'
+						&& listen_socket)
 					{
-						if (listen_socket)
-							handled = m_dht->incoming_packet(listen_socket, packet.from, buf);
+						handled = m_dht->incoming_packet(listen_socket, packet.from, buf);
 					}
 #endif
 

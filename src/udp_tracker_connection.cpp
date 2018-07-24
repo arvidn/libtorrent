@@ -513,7 +513,8 @@ namespace libtorrent {
 			return;
 		}
 
-		std::array<char, 16> buf;
+		std::size_t const connect_packet_size = 16;
+		std::array<char, connect_packet_size> buf;
 		span<char> view = buf;
 
 		TORRENT_ASSERT(m_transaction_id != 0);
