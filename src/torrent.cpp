@@ -10785,12 +10785,12 @@ bool is_downloading_state(int const st)
 		if (st->state == torrent_status::finished
 			|| st->state == torrent_status::seeding)
 		{
+			// it may be tempting to assume that st->is_finished == true here, but
 			// this assumption does not always hold. We transition to "finished"
 			// when we receive the last block of the last piece, which is before
 			// the hash check comes back. "is_finished" is set to true once all the
 			// pieces have been hash checked. So, there's a short window where it
 			// doesn't hold.
-//			TORRENT_ASSERT(st->is_finished);
 		}
 #endif
 

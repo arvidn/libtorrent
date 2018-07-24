@@ -52,6 +52,12 @@ namespace libtorrent {
 
 using namespace std::placeholders;
 
+// used to build SOCKS messages in
+std::size_t const tmp_buffer_size = 270;
+
+// used for SOCKS5 UDP wrapper header
+std::size_t const max_header_size = 25;
+
 // this class hold the state of the SOCKS5 connection to maintain the UDP
 // ASSOCIATE tunnel. It's instantiated on the heap for two reasons:
 //
@@ -97,7 +103,7 @@ private:
 	tcp::resolver m_resolver;
 	deadline_timer m_timer;
 	deadline_timer m_retry_timer;
-	std::array<char, 270> m_tmp_buf;
+	std::array<char, tmp_buffer_size> m_tmp_buf;
 
 	aux::proxy_settings m_proxy_settings;
 
@@ -312,7 +318,7 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 	TORRENT_UNUSED(flags);
 	using namespace libtorrent::detail;
 
-	std::array<char, 25> header;
+	std::array<char, max_header_size> header;
 	char* h = header.data();
 
 	write_uint16(0, h); // reserved
@@ -336,7 +342,7 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 {
 	using namespace libtorrent::detail;
 
-	std::array<char, 270> header;
+	std::array<char, max_header_size> header;
 	char* h = header.data();
 
 	write_uint16(0, h); // reserved
