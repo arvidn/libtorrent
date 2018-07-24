@@ -283,11 +283,7 @@ void do_handshake(tcp::socket& s, sha1_hash const& ih, char* buffer)
 
 	// check for extension protocol support
 	bool const lt_extension_protocol = (extensions[5] & 0x10) != 0;
-#ifndef TORRENT_DISABLE_EXTENSIONS
 	TEST_CHECK(lt_extension_protocol == true);
-#else
-	TEST_CHECK(lt_extension_protocol == false);
-#endif
 
 	// check for DHT support
 	bool const dht_support = (extensions[7] & 0x1) != 0;
@@ -363,6 +359,7 @@ entry read_extension_handshake(tcp::socket& s, char* recv_buffer, int size)
 	}
 }
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 void send_ut_metadata_msg(tcp::socket& s, int ut_metadata_msg, int type, int piece)
 {
 	std::vector<char> buf;
@@ -414,6 +411,7 @@ entry read_ut_metadata_msg(tcp::socket& s, char* recv_buffer, int size)
 		return bdecode(recv_buffer + 2, recv_buffer + len);
 	}
 }
+#endif // TORRENT_DISABLE_EXTENSIONS
 
 std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	, std::shared_ptr<lt::session>& ses, bool incoming = true
@@ -794,7 +792,6 @@ TORRENT_TEST(multiple_have_all)
 	print_session_log(*ses);
 }
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 // makes sure that pieces that are lost are not requested
 TORRENT_TEST(dont_have)
 {
@@ -896,6 +893,43 @@ TORRENT_TEST(dont_have)
 	print_session_log(*ses);
 }
 
+TORRENT_TEST(extension_handshake)
+{
+	using namespace lt::detail;
+
+	sha1_hash ih;
+	std::shared_ptr<lt::session> ses;
+	io_service ios;
+	tcp::socket s(ios);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
+	send_have_all(s);
+	print_session_log(*ses);
+
+	entry extensions;
+	send_extension_handshake(s, extensions);
+
+	extensions = read_extension_handshake(s, recv_buffer, sizeof(recv_buffer));
+
+	std::cout << extensions << '\n';
+
+	// these extensions are built-in
+	TEST_CHECK(extensions["m"]["lt_donthave"].integer() != 0);
+	TEST_CHECK(extensions["m"]["share_mode"].integer() != 0);
+	TEST_CHECK(extensions["m"]["upload_only"].integer() != 0);
+	TEST_CHECK(extensions["m"]["ut_holepunch"].integer() != 0);
+
+	// these require extensions to be enabled
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	TEST_CHECK(extensions["m"]["ut_metadata"].integer() != 0);
+	TEST_CHECK(extensions["m"]["ut_pex"].integer() != 0);
+#endif
+}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
 // TEST metadata extension messages and edge cases
 
 // this tests sending a request for a metadata piece that's too high. This is
@@ -903,8 +937,6 @@ TORRENT_TEST(dont_have)
 TORRENT_TEST(invalid_metadata_request)
 {
 	using namespace lt::detail;
-
-	std::cout << "\n === test invalid metadata ===\n" << std::endl;
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
@@ -954,6 +986,8 @@ TORRENT_TEST(invalid_metadata_request)
 
 	print_session_log(*ses);
 }
+#endif // TORRENT_DISABLE_EXTENSIONS
+
 
 TORRENT_TEST(invalid_request)
 {
@@ -1029,8 +1063,6 @@ TORRENT_TEST(incoming_have_all)
 	std::cout << "\n === test outgoing have-all ===\n" << std::endl;
 	have_all_test(false);
 }
-
-#endif // TORRENT_DISABLE_EXTENSIONS
 
 // TODO: test sending invalid requests (out of bound piece index, offsets and
 // sizes)

@@ -30,9 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISABLE_DHT
 
 #include "test.hpp"
+
+#ifndef TORRENT_DISABLE_DHT
+
 #include "settings.hpp"
 #include "setup_transfer.hpp" // for ep()
 #include "libtorrent/config.hpp"
@@ -210,5 +212,6 @@ TORRENT_TEST(dht_storage_infohashes_sample)
 	boost::system::error_code ec;
 	sim.run(ec);
 }
-
+#else
+TORRENT_TEST(disabled) {}
 #endif // TORRENT_DISABLE_DHT

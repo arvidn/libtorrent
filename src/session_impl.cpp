@@ -4460,7 +4460,7 @@ namespace aux {
 		trigger_auto_manage();
 	}
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 	torrent const* session_impl::find_encrypted_torrent(sha1_hash const& info_hash
 		, sha1_hash const& xor_mask)
 	{
@@ -4803,7 +4803,7 @@ namespace aux {
 
 		m_torrents.insert(std::make_pair(params.info_hash, torrent_ptr));
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 		static char const req2[4] = {'r', 'e', 'q', '2'};
 		hasher h(req2);
 		h.update(params.info_hash);
@@ -5191,7 +5191,7 @@ namespace aux {
 		m_torrents.erase(i);
 		tptr->removed();
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 		static char const req2[4] = {'r', 'e', 'q', '2'};
 		hasher h(req2);
 		h.update(tptr->info_hash());
@@ -6092,13 +6092,13 @@ namespace aux {
 
 #endif
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 	void session_impl::add_obfuscated_hash(sha1_hash const& obfuscated
 		, std::weak_ptr<torrent> const& t)
 	{
 		m_obfuscated_torrents.insert(std::make_pair(obfuscated, t.lock()));
 	}
-#endif // !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#endif // TORRENT_DISABLE_ENCRYPION
 
 	bool session_impl::is_listening() const
 	{

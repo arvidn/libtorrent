@@ -218,7 +218,7 @@ TORRENT_TEST(dht_rate_limit)
 	TEST_EQUAL(cnt[counters::dht_messages_in_dropped]
 		+ cnt[counters::dht_ping_in], num_packets);
 
-#endif // #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
+#endif // #if !defined TORRENT_DISABLE_DHT
 }
 
 // TODO: put test here to take advantage of existing code, refactor

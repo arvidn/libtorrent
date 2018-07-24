@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 
 #include <cstdint>
 #include <algorithm>
@@ -411,4 +411,4 @@ std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
 
 } // namespace libtorrent
 
-#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#endif // TORRENT_DISABLE_ENCRYPION

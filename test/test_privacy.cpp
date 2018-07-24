@@ -73,7 +73,7 @@ constexpr flags_t expect_peer_connection = 6_bit;
 constexpr flags_t dont_proxy_peers = 10_bit;
 constexpr flags_t dont_proxy_trackers = 11_bit;
 
-session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t const flags)
+session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 {
 #ifdef TORRENT_DISABLE_DHT
 	// if DHT is disabled, we won't get any requests to it

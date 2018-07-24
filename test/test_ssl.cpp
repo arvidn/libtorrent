@@ -604,16 +604,12 @@ void test_malicious_peer()
 }
 
 } // anonymous namespace
-#endif // TORRENT_USE_OPENSSL
 
 TORRENT_TEST(malicious_peer)
 {
-#ifdef TORRENT_USE_OPENSSL
 	test_malicious_peer();
-#endif
 }
 
-#ifdef TORRENT_USE_OPENSSL
 TORRENT_TEST(utp_config0) { test_ssl(0, true); }
 TORRENT_TEST(utp_config1) { test_ssl(1, true); }
 TORRENT_TEST(utp_config2) { test_ssl(2, true); }
@@ -633,5 +629,7 @@ TORRENT_TEST(tcp_config5) { test_ssl(5, false); }
 TORRENT_TEST(tcp_config6) { test_ssl(6, false); }
 TORRENT_TEST(tcp_config7) { test_ssl(7, false); }
 TORRENT_TEST(tcp_config8) { test_ssl(8, false); }
-#endif
+#else
+TORRENT_TEST(disabled) {}
+#endif // TORRENT_USE_OPENSSL
 
