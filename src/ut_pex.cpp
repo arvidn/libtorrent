@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-namespace libtorrent {namespace {
+namespace libtorrent { namespace {
 
 	const char extension_name[] = "ut_pex";
 
@@ -167,7 +167,7 @@ namespace libtorrent {namespace {
 					//        used as a rendezvous point in case direct
 					//        connections to the peer fail
 					pex_flags_t flags = p->is_seed() ? pex_seed : pex_flags_t{};
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 					flags |= p->supports_encryption() ? pex_encryption : pex_flags_t{};
 #endif
 					flags |= is_utp(*p->get_socket()) ? pex_utp : pex_flags_t{};
@@ -552,7 +552,7 @@ namespace libtorrent {namespace {
 				//        used as a rendezvous point in case direct
 				//        connections to the peer fail
 				int flags = p->is_seed() ? 2 : 0;
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 				flags |= p->supports_encryption() ? 1 : 0;
 #endif
 				flags |= is_utp(*p->get_socket()) ? 4 :  0;

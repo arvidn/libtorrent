@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISABLE_DHT
-
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/kademlia/dht_settings.hpp"
@@ -53,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+
+#ifndef TORRENT_DISABLE_DHT
 
 using namespace lt;
 using namespace lt::dht;
@@ -505,5 +505,6 @@ TORRENT_TEST(infohashes_sample_dist)
 	std::printf("infohashes set size: %d\n", int(infohash_set.size()));
 	TEST_CHECK(infohash_set.size() > 500);
 }
-
+#else
+TORRENT_TEST(dummy) {}
 #endif

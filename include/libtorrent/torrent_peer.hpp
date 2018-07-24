@@ -157,7 +157,7 @@ namespace libtorrent {
 		peer_source_flags_t peer_source() const
 		{ return peer_source_flags_t(source); }
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 		// Hints encryption support of torrent_peer. Only effective
 		// for and when the outgoing encryption policy
 		// allows both encrypted and non encrypted

@@ -150,7 +150,7 @@ span<char const> receive_buffer::get() const
 	return aux::typed_span<char const>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
 }
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 span<char> receive_buffer::mutable_buffer()
 {
 	INVARIANT_CHECK;
@@ -230,7 +230,7 @@ void receive_buffer::reset(int const packet_size)
 	m_packet_size = packet_size;
 }
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 bool crypto_receive_buffer::packet_finished() const
 {
 	if (m_recv_pos == INT_MAX)

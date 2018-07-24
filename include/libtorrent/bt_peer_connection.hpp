@@ -108,7 +108,7 @@ namespace libtorrent {
 
 		~bt_peer_connection() override;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 		bool supports_encryption() const
 		{ return m_encrypted; }
 		bool rc4_encrypted() const
@@ -171,7 +171,7 @@ namespace libtorrent {
 			, std::size_t bytes_transferred) override;
 		void on_receive_impl(std::size_t bytes_transferred);
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 		// next_barrier, buffers-to-prepend
 		std::tuple<int, span<span<char const>>>
 		hit_send_barrier(span<span<char>> iovec) override;
@@ -181,8 +181,8 @@ namespace libtorrent {
 		bool in_handshake() const override;
 		bool packet_finished() const { return m_recv_buffer.packet_finished(); }
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		bool supports_holepunch() const { return m_holepunch_id != 0; }
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		void set_ut_pex(std::weak_ptr<ut_pex_peer_store> ut_pex)
 		{ m_ut_pex = std::move(ut_pex); }
 		bool was_introduced_by(tcp::endpoint const& ep) const
@@ -218,13 +218,11 @@ namespace libtorrent {
 		void on_have_none(int received);
 		void on_reject_request(int received);
 		void on_allowed_fast(int received);
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		void on_holepunch();
 
 		void on_extended(int received);
 
 		void on_extended_handshake();
-#endif
 
 		// the following functions appends messages
 		// to the send buffer
@@ -241,11 +239,10 @@ namespace libtorrent {
 		void write_keepalive() override;
 		void write_handshake();
 		void write_upload_only(bool enabled) override;
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
 		void write_share_mode();
 		void write_holepunch_msg(int type, tcp::endpoint const& ep, int error);
-#endif
+
 		// DHT extension
 		void write_dht_port(int listen_port);
 
@@ -298,7 +295,7 @@ namespace libtorrent {
 		// will be invalid.
 		piece_block_progress downloading_piece_progress() const override;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 
 		// if (is_local()), we are 'a' otherwise 'b'
 		//
@@ -327,7 +324,7 @@ namespace libtorrent {
 		template <typename Holder>
 		void append_const_send_buffer(Holder holder, int size)
 		{
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 			if (!m_enc_handler.is_send_plaintext())
 			{
 				// if we're encrypting this buffer, we need to make a copy
@@ -346,8 +343,8 @@ namespace libtorrent {
 
 		enum class state_t : std::uint8_t
 		{
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-			read_pe_dhkey = 0,
+#if !defined TORRENT_DISABLE_ENCRYPION
+			read_pe_dhkey,
 			read_pe_syncvc,
 			read_pe_synchash,
 			read_pe_skey_vc,
@@ -355,10 +352,8 @@ namespace libtorrent {
 			read_pe_pad,
 			read_pe_ia,
 			init_bt_handshake,
-			read_protocol_identifier,
-#else
-			read_protocol_identifier = 0,
 #endif
+			read_protocol_identifier,
 			read_info_hash,
 			read_peer_id,
 
@@ -391,7 +386,7 @@ namespace libtorrent {
 		// only done once per connection
 		bool m_sent_allowed_fast:1;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 		// this is set to true after the encryption method has been
 		// successfully negotiated (either plaintext or rc4), to signal
 		// automatic encryption/decryption.
@@ -441,7 +436,7 @@ namespace libtorrent {
 
 		std::vector<range> m_payloads;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 		// initialized during write_pe1_2_dhkey, and destroyed on
 		// creation of m_enc_handler. Cannot reinitialize once
 		// initialized.
@@ -465,15 +460,12 @@ namespace libtorrent {
 		// the sync hash (hash("req1",secret)). Destroyed after the
 		// sync step.
 		std::unique_ptr<sha1_hash> m_sync_hash;
-#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// used to disconnect peer if sync points are not found within
 		// the maximum number of bytes
 		int m_sync_bytes_read = 0;
 #endif
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
 		// 0 if not supported
 		std::uint8_t m_upload_only_id = 0;
@@ -488,10 +480,11 @@ namespace libtorrent {
 		// 0 if not supported
 		std::uint8_t m_share_mode_id = 0;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		std::weak_ptr<ut_pex_peer_store> m_ut_pex;
+#endif
 
 		std::array<char, 8> m_reserved_bits;
-#endif
 	};
 }
 

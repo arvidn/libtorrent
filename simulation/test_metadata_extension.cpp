@@ -44,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
 enum flags_t
 {
 	// disconnect immediately after receiving the metadata (to test that
@@ -210,4 +212,6 @@ TORRENT_TEST(ut_metadata_upload_only_disconnect_readd)
 {
 	run_metadata_test(upload_only | disconnect | readd);
 }
-
+#else
+TORRENT_TEST(disabled) {}
+#endif // TORRENT_DISABLE_EXTENSIONS

@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
+#ifndef TORRENT_DISABLE_DHT
+
 struct sim_config : sim::default_config
 {
 	chrono::high_resolution_clock::duration hostname_lookup(
@@ -104,3 +106,6 @@ TORRENT_TEST(dht_bootstrap)
 	TEST_CHECK(a.dict_find_int_value("bs", -1) == 1);
 }
 
+#else
+TORRENT_TEST(disabled) {}
+#endif // TORRENT_DISABLE_DHT

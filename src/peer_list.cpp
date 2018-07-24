@@ -922,7 +922,7 @@ namespace libtorrent {
 
 		if (m_round_robin >= iter - m_peers.begin()) ++m_round_robin;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 		if (flags & pex_encryption) p->pe_support = true;
 #endif
 		if (flags & pex_seed)

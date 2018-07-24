@@ -88,7 +88,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	// This is the "current" packet.
 	span<char const> get() const;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 	// returns the buffer from the current packet start position to the last
 	// received byte (possibly part of another packet)
 	span<char> mutable_buffer();
@@ -159,7 +159,7 @@ private:
 	buffer m_recv_buffer;
 };
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 // Wraps a receive_buffer to provide the ability to inject
 // possibly authenticated crypto beneath the bittorrent protocol.
 // When authenticated crypto is in use the wrapped receive_buffer

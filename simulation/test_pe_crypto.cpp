@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "setup_swarm.hpp"
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPTION
 
 using namespace lt;
 

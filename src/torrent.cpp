@@ -490,7 +490,7 @@ bool is_downloading_state(int const st)
 		aux::random_shuffle(ws.begin(), ws.end());
 		for (auto& w : ws) m_web_seeds.push_back(std::move(w));
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPION
 		static char const req2[4] = {'r', 'e', 'q', '2'};
 		hasher h(req2);
 		h.update(m_torrent_file->info_hash());

@@ -160,9 +160,6 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 // .. _`alert section`: reference-Alerts.html
 
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
 #include <vector>
 
 #include "libtorrent/config.hpp"
@@ -174,6 +171,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
 
 	// these are flags that can be returned by implemented_features()
 	// indicating which callbacks this plugin is interested in
@@ -469,6 +468,9 @@ namespace libtorrent {
 		// no other plugin will have this function called.
 		virtual bool write_request(peer_request const&) { return false; }
 	};
+#endif // TORRENT_DISABLE_EXTENSIONS
+
+#if !defined TORRENT_DISABLE_ENCRYPTION
 
 	struct TORRENT_EXPORT crypto_plugin
 	{
@@ -504,8 +506,8 @@ namespace libtorrent {
 		// advance the next step of decryption. default is 0
 		virtual std::tuple<int, int, int> decrypt(span<span<char>> /*receive_vec*/) = 0;
 	};
-}
 
-#endif
+#endif // TORRENT_DISABLE_ENCRYPTION
+}
 
 #endif // TORRENT_EXTENSIONS_HPP_INCLUDED
