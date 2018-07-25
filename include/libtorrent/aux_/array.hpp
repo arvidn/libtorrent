@@ -35,60 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <array>
 
-#include "libtorrent/units.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/index_range.hpp"
+#include "libtorrent/aux_/container_wrapper.hpp"
 
 namespace libtorrent { namespace aux {
 
 	template <typename T, std::size_t Size, typename IndexType = int>
-	struct array : std::array<T, Size>
-	{
-		using base = std::array<T, Size>;
-		using underlying_index = typename underlying_index_t<IndexType>::type;
-
-		static_assert(Size <= std::size_t((std::numeric_limits<underlying_index>::max)())
-			, "size is to big for index type");
-
-		array() = default;
-		explicit array(std::array<T, Size>&& arr) : base(arr) {}
-
-		auto operator[](IndexType idx) const ->
-#if TORRENT_AUTO_RETURN_TYPES
-			decltype(auto)
-#else
-			decltype(this->base::operator[](underlying_index()))
-#endif
-		{
-			TORRENT_ASSERT(idx >= IndexType(0));
-			TORRENT_ASSERT(idx < end_index());
-			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
-		}
-
-		auto operator[](IndexType idx) ->
-#if TORRENT_AUTO_RETURN_TYPES
-			decltype(auto)
-#else
-			decltype(this->base::operator[](underlying_index()))
-#endif
-		{
-			TORRENT_ASSERT(idx >= IndexType(0));
-			TORRENT_ASSERT(idx < end_index());
-			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
-		}
-
-		constexpr IndexType end_index() const
-		{
-			return IndexType(static_cast<underlying_index>(Size));
-		}
-
-		// returns an object that can be used in a range-for to iterate over all
-		// indices
-		constexpr index_range<IndexType> range() const noexcept
-		{
-			return {IndexType{0}, end_index()};
-		}
-	};
+	using array = container_wrapper<T, IndexType, std::array<T, Size>>;
 
 }}
 

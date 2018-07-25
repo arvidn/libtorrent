@@ -36,33 +36,32 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
+namespace {
+
+template <typename Settings>
+void init(proxy_settings& p, Settings const& sett)
+{
+	p.hostname = sett.get_str(settings_pack::proxy_hostname);
+	p.username = sett.get_str(settings_pack::proxy_username);
+	p.password = sett.get_str(settings_pack::proxy_password);
+	p.type = std::uint8_t(sett.get_int(settings_pack::proxy_type));
+	p.port = std::uint16_t(sett.get_int(settings_pack::proxy_port));
+	p.proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
+	p.proxy_peer_connections = sett.get_bool(
+		settings_pack::proxy_peer_connections);
+	p.proxy_tracker_connections = sett.get_bool(
+		settings_pack::proxy_tracker_connections);
+}
+
+}
+
 proxy_settings::proxy_settings() = default;
 
 proxy_settings::proxy_settings(settings_pack const& sett)
-	: hostname(sett.get_str(settings_pack::proxy_hostname))
-	, username(sett.get_str(settings_pack::proxy_username))
-	, password(sett.get_str(settings_pack::proxy_password))
-	, type(std::uint8_t(sett.get_int(settings_pack::proxy_type)))
-	, port(std::uint16_t(sett.get_int(settings_pack::proxy_port)))
-	, proxy_hostnames(sett.get_bool(settings_pack::proxy_hostnames))
-	, proxy_peer_connections(sett.get_bool(
-		settings_pack::proxy_peer_connections))
-	, proxy_tracker_connections(sett.get_bool(
-		settings_pack::proxy_tracker_connections))
-{}
+{ init(*this, sett); }
 
 proxy_settings::proxy_settings(aux::session_settings const& sett)
-	: hostname(sett.get_str(settings_pack::proxy_hostname))
-	, username(sett.get_str(settings_pack::proxy_username))
-	, password(sett.get_str(settings_pack::proxy_password))
-	, type(std::uint8_t(sett.get_int(settings_pack::proxy_type)))
-	, port(std::uint16_t(sett.get_int(settings_pack::proxy_port)))
-	, proxy_hostnames(sett.get_bool(settings_pack::proxy_hostnames))
-	, proxy_peer_connections(sett.get_bool(
-		settings_pack::proxy_peer_connections))
-	, proxy_tracker_connections(sett.get_bool(
-		settings_pack::proxy_tracker_connections))
-{}
+{ init(*this, sett); }
 
 } // namespace aux
 } // namespace libtorrent
