@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
+#include "libtorrent/span.hpp"
 #include <mutex> // for call_once
 
 #ifdef __GNUC__
@@ -179,14 +180,11 @@ namespace {
 		return WAIT_FAILED;
 	}
 
-	int preadv(HANDLE fd, ::iovec const* bufs, int num_bufs, std::int64_t file_offset)
+	int allocate_overlapped(::iovec const* bufs, lt::span<OVERLAPPED> ol
+		, lt::span<HANDLE> h, std::int64_t file_offset)
 	{
-		TORRENT_ALLOCA(ol, OVERLAPPED, num_bufs);
-		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
-
-		TORRENT_ALLOCA(h, HANDLE, num_bufs);
-
-		for (int i = 0; i < num_bufs; ++i)
+		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * ol.size());
+		for (std::size_t i = 0; i < ol.size(); ++i)
 		{
 			ol[i].OffsetHigh = file_offset >> 32;
 			ol[i].Offset = file_offset & 0xffffffff;
@@ -195,11 +193,20 @@ namespace {
 			if (h[i] == nullptr)
 			{
 				// we failed to create the event, roll-back and return an error
-				for (int j = 0; j < i; ++j) CloseHandle(h[i]);
+				for (std::size_t j = 0; j < i; ++j) CloseHandle(h[i]);
 				return -1;
 			}
 			file_offset += bufs[i].iov_len;
 		}
+		return 0;
+	}
+
+	int preadv(HANDLE fd, ::iovec const* bufs, int num_bufs, std::int64_t const file_offset)
+	{
+		TORRENT_ALLOCA(ol, OVERLAPPED, num_bufs);
+		TORRENT_ALLOCA(h, HANDLE, num_bufs);
+
+		if (allocate_overlapped(bufs, ol, h, file_offset) < 0) return -1;
 
 		BOOST_SCOPE_EXIT_ALL(&h) {
 			for (auto hnd : h)
@@ -235,7 +242,7 @@ namespace {
 			return -1;
 
 		int ret = 0;
-		for (auto& o : libtorrent::span<OVERLAPPED>(ol).first(num_waits))
+		for (auto& o : ol.first(num_waits))
 		{
 			if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_FAILED)
 				return -1;
@@ -258,27 +265,12 @@ namespace {
 		return ret;
 	}
 
-	int pwritev(HANDLE fd, ::iovec const* bufs, int num_bufs, std::int64_t file_offset)
+	int pwritev(HANDLE fd, ::iovec const* bufs, int num_bufs, std::int64_t const file_offset)
 	{
 		TORRENT_ALLOCA(ol, OVERLAPPED, num_bufs);
-		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
-
 		TORRENT_ALLOCA(h, HANDLE, num_bufs);
 
-		for (int i = 0; i < num_bufs; ++i)
-		{
-			ol[i].OffsetHigh = file_offset >> 32;
-			ol[i].Offset = file_offset & 0xffffffff;
-			ol[i].hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-			h[i] = ol[i].hEvent;
-			if (h[i] == nullptr)
-			{
-				// we failed to create the event, roll-back and return an error
-				for (int j = 0; j < i; ++j) CloseHandle(h[i]);
-				return -1;
-			}
-			file_offset += bufs[i].iov_len;
-		}
+		if (allocate_overlapped(bufs, ol, h, file_offset) < 0) return -1;
 
 		BOOST_SCOPE_EXIT_ALL(&h) {
 			for (auto hnd : h)
