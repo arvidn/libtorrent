@@ -13,7 +13,16 @@ libtorrent
 .. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=master
     :target: https://codecov.io/github/arvidn/libtorrent?branch=master&view=all#sort=missing&dir=desc
 
-.. image:: https://sonarcloud.io/api/badges/gate?key=libtorrent
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=alert_status
+	:target: https://sonarcloud.io/dashboard?id=libtorrent
+
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=security_rating
+	:target: https://sonarcloud.io/dashboard?id=libtorrent
+
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=sqale_rating
+	:target: https://sonarcloud.io/dashboard?id=libtorrent
+
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=security_rating
 	:target: https://sonarcloud.io/dashboard?id=libtorrent
 
 .. image:: https://www.openhub.net/p/rasterbar-libtorrent/widgets/project_thin_badge.gif
