@@ -1091,6 +1091,11 @@ void bind_session()
 		.def_readonly("type", &stats_metric::type)
 	;
 
+	enum_<stats_metric::metric_type_t>("metric_type_t")
+		.value("counter", stats_metric::type_counter)
+		.value("gauge", stats_metric::type_gauge)
+		;
+
     def("session_stats_metrics", session_stats_metrics);
     def("find_metric_idx", find_metric_idx);
 

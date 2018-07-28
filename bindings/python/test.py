@@ -9,6 +9,7 @@ import shutil
 import binascii
 import inspect
 import pickle
+import sys
 
 class test_create_torrent(unittest.TestCase):
 
@@ -394,6 +395,11 @@ class test_session(unittest.TestCase):
 		self.assertTrue(isinstance(a, lt.session_stats_alert))
 		self.assertTrue(isinstance(a.values, dict))
 		self.assertTrue(len(a.values) > 0)
+
+	def test_metrics(self):
+		metrics = lt.session_stats_metrics()
+		for m in metrics:
+			sys.stdout.write('%s %s ' % (m.name, m.type))
 
 	def test_post_dht_stats(self):
 		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})

@@ -1,5 +1,6 @@
 1.1.9 release
 
+	* added missing stats_metric python binding
 	* uTP connections are no longer exempt from rate limits by default
 	* fix exporting files from partfile while seeding
 	* fix potential deadlock on Windows, caused by performing restricted
