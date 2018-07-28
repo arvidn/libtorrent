@@ -4275,7 +4275,7 @@ namespace libtorrent {
 			if (m_outgoing) m_counters.inc_stats_counter(counters::error_outgoing_peers);
 			else m_counters.inc_stats_counter(counters::error_incoming_peers);
 
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 			if (type() == connection_type::bittorrent && op != operation_t::connect)
 			{
 				auto* bt = static_cast<bt_peer_connection*>(this);
