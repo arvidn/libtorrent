@@ -444,7 +444,7 @@ namespace aux {
 				, std::vector<address> const& addresses, int port);
 #endif
 
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 			torrent const* find_encrypted_torrent(
 				sha1_hash const& info_hash, sha1_hash const& xor_mask) override;
 
@@ -876,7 +876,7 @@ namespace aux {
 			// ordered by their queue position
 			aux::vector<torrent*, queue_position_t> m_download_queue;
 
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 			// this maps obfuscated hashes to torrents. It's only
 			// used when encryption is enabled
 			torrent_map m_obfuscated_torrents;

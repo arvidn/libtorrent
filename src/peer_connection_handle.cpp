@@ -315,7 +315,7 @@ bool bt_peer_connection_handle::support_extensions() const
 
 bool bt_peer_connection_handle::supports_encryption() const
 {
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 	std::shared_ptr<bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	return pc->supports_encryption();
@@ -326,7 +326,7 @@ bool bt_peer_connection_handle::supports_encryption() const
 
 void bt_peer_connection_handle::switch_send_crypto(std::shared_ptr<crypto_plugin> crypto)
 {
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 	std::shared_ptr<bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	pc->switch_send_crypto(std::move(crypto));
@@ -337,7 +337,7 @@ void bt_peer_connection_handle::switch_send_crypto(std::shared_ptr<crypto_plugin
 
 void bt_peer_connection_handle::switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto)
 {
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 	std::shared_ptr<bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	pc->switch_recv_crypto(std::move(crypto));

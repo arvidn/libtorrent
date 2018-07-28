@@ -108,7 +108,7 @@ namespace libtorrent {
 
 		~bt_peer_connection() override;
 
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 		bool supports_encryption() const
 		{ return m_encrypted; }
 		bool rc4_encrypted() const
@@ -171,7 +171,7 @@ namespace libtorrent {
 			, std::size_t bytes_transferred) override;
 		void on_receive_impl(std::size_t bytes_transferred);
 
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 		// next_barrier, buffers-to-prepend
 		std::tuple<int, span<span<char const>>>
 		hit_send_barrier(span<span<char>> iovec) override;
@@ -295,7 +295,7 @@ namespace libtorrent {
 		// will be invalid.
 		piece_block_progress downloading_piece_progress() const override;
 
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 
 		// if (is_local()), we are 'a' otherwise 'b'
 		//
@@ -324,7 +324,7 @@ namespace libtorrent {
 		template <typename Holder>
 		void append_const_send_buffer(Holder holder, int size)
 		{
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 			if (!m_enc_handler.is_send_plaintext())
 			{
 				// if we're encrypting this buffer, we need to make a copy
@@ -343,7 +343,7 @@ namespace libtorrent {
 
 		enum class state_t : std::uint8_t
 		{
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 			read_pe_dhkey,
 			read_pe_syncvc,
 			read_pe_synchash,
@@ -386,7 +386,7 @@ namespace libtorrent {
 		// only done once per connection
 		bool m_sent_allowed_fast:1;
 
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 		// this is set to true after the encryption method has been
 		// successfully negotiated (either plaintext or rc4), to signal
 		// automatic encryption/decryption.
@@ -436,7 +436,7 @@ namespace libtorrent {
 
 		std::vector<range> m_payloads;
 
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 		// initialized during write_pe1_2_dhkey, and destroyed on
 		// creation of m_enc_handler. Cannot reinitialize once
 		// initialized.

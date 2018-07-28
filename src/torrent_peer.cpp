@@ -151,7 +151,7 @@ namespace libtorrent {
 		, fast_reconnects(0)
 		, trust_points(0)
 		, source(static_cast<std::uint8_t>(src))
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 		// assume no support in order to
 		// prefer opening non-encrypted
 		// connections. If it fails, we'll

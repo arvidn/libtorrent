@@ -131,7 +131,7 @@ namespace libtorrent {
 				, (tracker_req().event != tracker_request::none) ? event_string[tracker_req().event - 1] : ""
 				, tracker_req().num_want);
 			url += str;
-#if !defined TORRENT_DISABLE_ENCRYPION
+#if !defined TORRENT_DISABLE_ENCRYPTION
 			if (settings.get_int(settings_pack::in_enc_policy) != settings_pack::pe_disabled
 				&& settings.get_bool(settings_pack::announce_crypto_support))
 				url += "&supportcrypto=1";
