@@ -1227,9 +1227,9 @@ TORRENT_IPV6_NAMESPACE_END
 		std::uint32_t id() const
 		{
 			uintptr_t ret = reinterpret_cast<uintptr_t>(m_torrent.lock().get());
-			// a torrent object is about 1024 bytes, so
-			// it's safe to shift 11 bits
-			return std::uint32_t(ret >> 11);
+			// a torrent object is about 1024 (2^10) bytes, so
+			// it's safe to shift 10 bits
+			return std::uint32_t(ret >> 10);
 		}
 
 		// This function is intended only for use by plugins and the alert
