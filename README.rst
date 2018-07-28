@@ -22,9 +22,6 @@ libtorrent
 .. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=sqale_rating
 	:target: https://sonarcloud.io/dashboard?id=libtorrent
 
-.. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=security_rating
-	:target: https://sonarcloud.io/dashboard?id=libtorrent
-
 .. image:: https://www.openhub.net/p/rasterbar-libtorrent/widgets/project_thin_badge.gif
     :target: https://www.openhub.net/p/rasterbar-libtorrent?ref=sample
 
