@@ -84,7 +84,7 @@ int main()
 
 	for (auto const& i : net)
 	{
-		address iface_def_gw = get_default_gateway(ios, i.name, i.interface_address.is_v6(), ec);
+		address const iface_def_gw = get_default_gateway(ios, i.name, i.interface_address.is_v6(), ec);
 		std::printf("%-34s%-45s%-20s%s%s%-20s%-34s%s %s\n"
 			, i.interface_address.to_string(ec).c_str()
 			, i.netmask.to_string(ec).c_str()
