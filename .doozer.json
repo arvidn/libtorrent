@@ -16,11 +16,13 @@
       "buildenv": "osx",
       "homebrew": { "formulae": ["boost-build", "wget", "ccache"] },
       "buildcmd": [
-         "wget --quiet -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip",
+         "wget --quiet -O boost.zip https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.zip",
          "unzip -qq boost.zip",
-         "cd simulation",
+         "cd boost_1_67_0/tools/build/engine",
+         "./build.sh",
+         "cd ../../../../simulation",
          "echo \"using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
-         "BOOST_ROOT=${PWD}/../boost_1_55_0 bjam --hash -j${PARALLEL}"
+         "BOOST_ROOT=${PWD}/../boost_1_67_0 ../boost_1_67_0/tools/build/engine/bin.macosx64/bjam --hash -j${PARALLEL}"
       ]
     }
   }
