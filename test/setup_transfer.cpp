@@ -74,6 +74,31 @@ namespace lt = libtorrent;
 #include <conio.h>
 #endif
 
+boost::shared_ptr<lt::torrent_info> generate_torrent()
+{
+	file_storage fs;
+	fs.add_file("test/tmp1", 128 * 1024 * 8);
+	fs.add_file("test/tmp2", 128 * 1024);
+	fs.add_file("test/tmp3", 128 * 1024);
+	lt::create_torrent t(fs, 128 * 1024, 6);
+
+	t.add_tracker("http://torrent_file_tracker.com/announce");
+	t.add_url_seed("http://torrent_file_url_seed.com/");
+
+	int num = t.num_pieces();
+	TEST_CHECK(num > 0);
+	for (int i = 0; i < num; ++i)
+	{
+		sha1_hash ph;
+		for (int k = 0; k < 20; ++k) ph[k] = lt::random();
+		t.set_hash(i, ph);
+	}
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	return boost::make_shared<torrent_info>(&buf[0], buf.size());
+}
+
 boost::uint32_t g_addr = 0x92343023;
 
 void init_rand_address()

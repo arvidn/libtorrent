@@ -44,6 +44,8 @@ namespace libtorrent
 	class file_storage;
 }
 
+EXPORT boost::shared_ptr<lt::torrent_info> generate_torrent();
+
 EXPORT int print_failures();
 EXPORT unsigned char random_byte();
 
