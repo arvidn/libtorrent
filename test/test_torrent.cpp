@@ -220,13 +220,15 @@ TORRENT_TEST(total_wanted)
 	torrent_handle h = ses.add_torrent(p);
 
 	torrent_status st = h.status();
-	std::cout << "total_wanted: " << st.total_wanted << " : " << 1024 << std::endl;
 	TEST_EQUAL(st.total_wanted, 1024);
-	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
 	TEST_EQUAL(st.total_wanted_done, 0);
 
+	// make sure that selecting and unseleting a file quickly still end up with
+	// the last set priority
 	h.file_priority(1, 4);
 	h.file_priority(1, 0);
+
+	TEST_EQUAL(h.status(0).total_wanted, 0);
 	TEST_CHECK(wait_priority(h, std::vector<int>(fs.num_files())));
 	TEST_EQUAL(h.status(0).total_wanted, 0);
 }

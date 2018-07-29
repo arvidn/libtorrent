@@ -49,31 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-boost::shared_ptr<torrent_info> generate_torrent()
-{
-	file_storage fs;
-	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
-	fs.add_file("test_resume/tmp2", 128 * 1024);
-	fs.add_file("test_resume/tmp3", 128 * 1024);
-	lt::create_torrent t(fs, 128 * 1024, 6);
-
-	t.add_tracker("http://torrent_file_tracker.com/announce");
-	t.add_url_seed("http://torrent_file_url_seed.com/");
-
-	int num = t.num_pieces();
-	TEST_CHECK(num > 0);
-	for (int i = 0; i < num; ++i)
-	{
-		sha1_hash ph;
-		for (int k = 0; k < 20; ++k) ph[k] = lt::random();
-		t.set_hash(i, ph);
-	}
-
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
-	return boost::make_shared<torrent_info>(&buf[0], buf.size());
-}
-
 std::vector<char> generate_resume_data(torrent_info* ti
 	, char const* file_priorities = "")
 {
@@ -382,8 +357,6 @@ TORRENT_TEST(file_priorities_seed_mode)
 
 TORRENT_TEST(zero_file_prio)
 {
-	fprintf(stderr, "test_file_prio\n");
-
 	lt::session ses(settings());
 	boost::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
@@ -397,17 +370,10 @@ TORRENT_TEST(zero_file_prio)
 	rd["info-hash"] = ti->info_hash().to_string();
 	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
 
-	entry::list_type& file_prio = rd["file_priority"].list();
-	for (int i = 0; i < 100; ++i)
-	{
-		file_prio.push_back(entry(0));
-	}
+	// set file priorities to 0
+	rd["file_priority"] = entry::list_type(100, entry(0));
 
-	std::string pieces(ti->num_pieces(), '\x01');
-	rd["pieces"] = pieces;
-
-	std::string pieces_prio(ti->num_pieces(), '\x01');
-	rd["piece_priority"] = pieces_prio;
+	rd["pieces"] = std::string(ti->num_pieces(), '\x01');
 
 	bencode(back_inserter(p.resume_data), rd);
 
@@ -415,6 +381,37 @@ TORRENT_TEST(zero_file_prio)
 
 	torrent_status s = h.status();
 	TEST_EQUAL(s.total_wanted, 0);
+}
+
+TORRENT_TEST(mixing_file_and_piece_prio)
+{
+	lt::session ses(settings());
+	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+
+	entry rd;
+
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = ti->info_hash().to_string();
+	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
+
+	// set file priorities to 0
+	rd["file_priority"] = entry::list_type(100, entry(0));
+
+	rd["pieces"] = std::string(ti->num_pieces(), '\x01');
+
+	// but set the piece priorities to 1. these take precedence
+	rd["piece_priority"] = std::string(ti->num_pieces(), '\x01');
+
+	bencode(back_inserter(p.resume_data), rd);
+
+	torrent_handle h = ses.add_torrent(p);
+
+	torrent_status s = h.status();
+	TEST_EQUAL(s.total_wanted, ti->total_size());
 }
 
 void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio

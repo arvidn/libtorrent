@@ -67,7 +67,6 @@ void test_interval(int interval)
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
 
-	lt::time_point start = lt::clock_type::now();
 	bool ran_to_completion = false;
 
 	sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
@@ -78,7 +77,7 @@ void test_interval(int interval)
 	std::vector<lt::time_point> announces;
 
 	http.register_handler("/announce"
-		, [&announces,interval,start,&ran_to_completion](std::string method, std::string req
+		, [&announces,interval,&ran_to_completion](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		// don't collect events once we're done. We're not interested in the

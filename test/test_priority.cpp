@@ -502,3 +502,48 @@ TORRENT_TEST(export_file_while_seed)
 	TEST_CHECK(exists("temporary"));
 }
 
+TORRENT_TEST(test_piece_priority_after_resume)
+{
+	int const new_prio = 1;
+
+	std::vector<char> fast_resume_buf;
+
+	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	{
+		int const prio = 6;
+
+		add_torrent_params p;
+		p.save_path = ".";
+		p.ti = ti;
+		p.file_priorities.resize(1, prio);
+
+		lt::session ses(settings());
+		torrent_handle h = ses.add_torrent(p);
+
+		TEST_EQUAL(h.piece_priority(0), prio);
+
+		std::vector<std::pair<int, int> > piece_prios;
+		piece_prios.push_back(std::make_pair(0, new_prio));
+		h.prioritize_pieces(piece_prios);
+		TEST_EQUAL(h.piece_priority(0), new_prio);
+
+		ses.pause();
+		h.save_resume_data();
+
+		alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+		save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
+
+		bencode(std::back_inserter(fast_resume_buf), *(rd->resume_data));
+	}
+	{
+		add_torrent_params p;
+		p.save_path = ".";
+		p.ti = ti;
+		p.resume_data = fast_resume_buf;
+
+		lt::session ses(settings());
+		torrent_handle h = ses.add_torrent(p);
+
+		TEST_EQUAL(h.piece_priority(0), new_prio);
+	}
+}

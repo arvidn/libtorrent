@@ -1993,9 +1993,12 @@ namespace libtorrent
 			}
 		}
 
-		// if we've already loaded file priorities, don't load piece priorities,
-		// they will interfere.
-		if (!m_seed_mode && m_resume_data && m_file_priority.empty())
+		// in case file priorities were passed in via the add_torrent_params
+		// and also in the case of share mode, we need to update the priorities
+		// this has to be applied before piece priority
+		if (!m_file_priority.empty()) update_piece_priorities(m_file_priority);
+
+		if (!m_seed_mode && m_resume_data)
 		{
 			bdecode_node piece_priority = m_resume_data->node
 				.dict_find_string("piece_priority");
@@ -2013,14 +2016,6 @@ namespace libtorrent
 				}
 				update_gauge();
 			}
-		}
-
-		// in case file priorities were passed in via the add_torrent_params
-		// and also in the case of share mode, we need to update the priorities
-		if (!m_file_priority.empty() && std::find(m_file_priority.begin()
-				, m_file_priority.end(), 0) != m_file_priority.end())
-		{
-			update_piece_priorities();
 		}
 
 #if TORRENT_USE_ASSERTS
@@ -5683,7 +5678,6 @@ namespace {
 		if (m_file_priority != *p)
 		{
 			m_file_priority = *p;
-			update_piece_priorities();
 			if (m_share_mode)
 				recalc_share_mode();
 		}
@@ -5710,6 +5704,13 @@ namespace {
 		// storage may be NULL during shutdown
 		if (m_storage)
 		{
+			// the update of m_file_priority is deferred until the disk job comes
+			// back, but to preserve sanity and consistency, the piece priorities are
+			// updated immediately. If, on the off-chance, there's a disk failure, the
+			// piece priorities still stay the same, but the file priorities are
+			// possibly not fully updated.
+			update_piece_priorities(new_priority);
+
 			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
 				, new_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
@@ -5742,6 +5743,13 @@ namespace {
 		// storage may be NULL during shutdown
 		if (m_storage)
 		{
+			// the update of m_file_priority is deferred until the disk job comes
+			// back, but to preserve sanity and consistency, the piece priorities are
+			// updated immediately. If, on the off-chance, there's a disk failure, the
+			// piece priorities still stay the same, but the file priorities are
+			// possibly not fully updated.
+			update_piece_priorities(new_priority);
+
 			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
 				, new_priority, boost::bind(&torrent::on_file_priority, shared_from_this(), _1));
@@ -5787,7 +5795,7 @@ namespace {
 		files->resize(m_torrent_file->num_files(), 4);
 	}
 
-	void torrent::update_piece_priorities()
+	void torrent::update_piece_priorities(std::vector<boost::uint8_t> const& file_prios)
 	{
 		INVARIANT_CHECK;
 
@@ -5795,7 +5803,7 @@ namespace {
 
 		bool need_update = false;
 		boost::int64_t position = 0;
-		int piece_length = m_torrent_file->piece_length();
+		int const piece_length = m_torrent_file->piece_length();
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
 		std::vector<int> pieces(m_torrent_file->num_pieces(), 0);
@@ -5804,8 +5812,8 @@ namespace {
 		{
 			if (i >= fs.num_files()) break;
 
-			boost::int64_t start = position;
-			boost::int64_t size = m_torrent_file->files().file_size(i);
+			boost::int64_t const start = position;
+			boost::int64_t const size = m_torrent_file->files().file_size(i);
 			if (size == 0) continue;
 			position += size;
 			int file_prio;
@@ -5813,10 +5821,10 @@ namespace {
 			// pad files always have priority 0
 			if (fs.pad_file_at(i))
 				file_prio = 0;
-			else if (m_file_priority.size() <= i)
+			else if (file_prios.size() <= i)
 				file_prio = 4;
 			else
-				file_prio = m_file_priority[i];
+				file_prio = file_prios[i];
 
 			if (file_prio == 0)
 			{
@@ -5829,8 +5837,8 @@ namespace {
 			// mark all pieces of the file with this file's priority
 			// but only if the priority is higher than the pieces
 			// already set (to avoid problems with overlapping pieces)
-			int start_piece = int(start / piece_length);
-			int last_piece = int((position - 1) / piece_length);
+			int const start_piece = int(start / piece_length);
+			int const last_piece = int((position - 1) / piece_length);
 			TORRENT_ASSERT(last_piece < int(pieces.size()));
 			// if one piece spans several files, we might
 			// come here several times with the same start_piece, end_piece
@@ -7620,21 +7628,18 @@ namespace {
 
 		// piece priorities and file priorities are mutually exclusive. If there
 		// are file priorities set, don't save piece priorities.
-		if (!m_file_priority.empty())
+		// when in seed mode (i.e. the client promises that we have all files)
+		// it does not make sense to save file priorities.
+		if (!m_file_priority.empty() && !m_seed_mode)
 		{
-
-			// when in seed mode (i.e. the client promises that we have all files)
-			// it does not make sense to save file priorities.
-			if (!m_seed_mode)
-			{
-				// write file priorities
-				entry::list_type& file_priority = ret["file_priority"].list();
-				file_priority.clear();
-				for (int i = 0, end(m_file_priority.size()); i < end; ++i)
-					file_priority.push_back(m_file_priority[i]);
-			}
+			// write file priorities
+			entry::list_type& file_priority = ret["file_priority"].list();
+			file_priority.clear();
+			for (int i = 0, end(m_file_priority.size()); i < end; ++i)
+				file_priority.push_back(m_file_priority[i]);
 		}
-		else if (has_picker())
+
+		if (has_picker())
 		{
 			// write piece priorities
 			// but only if they are not set to the default
