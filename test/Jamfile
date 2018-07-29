@@ -3,37 +3,6 @@ import feature : feature ;
 
 use-project /torrent : .. ;
 
-exe test_natpmp : test_natpmp.cpp
-	: # requirements
-	<library>/torrent//torrent
-	<export-extra>on
-	<conditional>@warnings
-	: # default-build
-	<threading>multi
-	<asserts>on
-	<invariant-checks>full
-	<link>shared
-	<picker-debugging>on
-	<logging>on
-	;
-
-exe enum_if : enum_if.cpp
-	: # requirements
-	<library>/torrent//torrent
-	<export-extra>on
-	<conditional>@warnings
-	: # default-build
-	<threading>multi
-	<asserts>on
-	<invariant-checks>full
-	<link>shared
-	<picker-debugging>on
-	<logging>on
-	;
-
-explicit test_natpmp ;
-explicit enum_if ;
-
 lib libtorrent_test
 	: # sources
 	main.cpp
@@ -97,6 +66,40 @@ project
 
 feature launcher : none valgrind : composite ;
 feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck -v --num-callers=20 --read-var-info=yes --track-origins=yes --error-exitcode=222 --suppressions=valgrind_suppressions.txt" <use-valgrind>on ;
+
+exe test_natpmp : test_natpmp.cpp
+	: # requirements
+	<library>/torrent//torrent
+	<export-extra>on
+	<conditional>@warnings
+	: # default-build
+	<threading>multi
+	<asserts>on
+	<invariant-checks>full
+	<link>shared
+	<picker-debugging>on
+	<logging>on
+	;
+
+exe enum_if : enum_if.cpp
+	: # requirements
+	<library>/torrent//torrent
+	<export-extra>on
+	<conditional>@warnings
+	: # default-build
+	<threading>multi
+	<asserts>on
+	<invariant-checks>full
+	<link>shared
+	<picker-debugging>on
+	<logging>on
+	;
+
+install stage_enum_if : enum_if : <location>. ;
+
+explicit test_natpmp ;
+explicit enum_if ;
+explicit stage_enum_if ;
 
 test-suite libtorrent :
 	[ run
