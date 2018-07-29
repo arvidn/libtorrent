@@ -33,11 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef SETUP_TRANSFER_HPP
 #define SETUP_TRANSFER_HPP
 
+#include <memory>
 #include <tuple>
 #include "test.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/fwd.hpp"
+
+EXPORT std::shared_ptr<lt::torrent_info> generate_torrent();
 
 EXPORT int print_failures();
 EXPORT unsigned char random_byte();

@@ -949,9 +949,8 @@ TORRENT_IPV6_NAMESPACE_END
 		// The default priority of pieces is 4.
 		//
 		// Piece priorities can not be changed for torrents that have not
-		// downloaded the metadata yet. For instance, magnet links and torrents
-		// added by URL won't have metadata immediately. see the
-		// metadata_received_alert.
+		// downloaded the metadata yet. Magnet links won't have metadata
+		// immediately. see the metadata_received_alert.
 		//
 		// ``piece_priority`` sets or gets the priority for an individual piece,
 		// specified by ``index``.
@@ -968,6 +967,10 @@ TORRENT_IPV6_NAMESPACE_END
 		//
 		// ``get_piece_priorities`` returns a vector with one element for each piece
 		// in the torrent. Each element is the current priority of that piece.
+		//
+		// It's possible to cancel the effect of *file* priorities by setting the
+		// priorities for the affected pieces. Care has to be taken when mixing
+		// usage of file- and piece priorities.
 		void piece_priority(piece_index_t index, download_priority_t priority) const;
 		download_priority_t piece_priority(piece_index_t index) const;
 		void prioritize_pieces(std::vector<download_priority_t> const& pieces) const;
@@ -1005,6 +1008,16 @@ TORRENT_IPV6_NAMESPACE_END
 		// You cannot set the file priorities on a torrent that does not yet have
 		// metadata or a torrent that is a seed. ``file_priority(int, int)`` and
 		// prioritize_files() are both no-ops for such torrents.
+		//
+		// Since changing file priorities may involve disk operations (of moving
+		// files in- and out of the part file), the internal accounting of file
+		// priorities happen asynchronously. i.e. setting file priorities and then
+		// immediately querying them may not yield the same priorities just set.
+		// However, the *piece* priorities are updated immediately.
+		//
+		// when combining file- and piece priorities, the resume file will record
+		// both. When loading the resume data, the file priorities will be applied
+		// first, then the piece priorities.
 		void file_priority(file_index_t index, download_priority_t priority) const;
 		download_priority_t file_priority(file_index_t index) const;
 		void prioritize_files(std::vector<download_priority_t> const& files) const;

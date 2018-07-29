@@ -570,7 +570,8 @@ namespace libtorrent {
 		void set_piece_deadline(piece_index_t piece, int t, deadline_flags_t flags);
 		void reset_piece_deadline(piece_index_t piece);
 		void clear_time_critical();
-		void update_piece_priorities();
+		void update_piece_priorities(
+			aux::vector<download_priority_t, file_index_t> const& file_prios);
 
 		void status(torrent_status* st, status_flags_t flags);
 

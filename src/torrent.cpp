@@ -1769,9 +1769,12 @@ bool is_downloading_state(int const st)
 			}
 		}
 
-		// if we've already loaded file priorities, don't load piece priorities,
-		// they will interfere.
-		if (m_add_torrent_params && m_file_priority.empty())
+		// in case file priorities were passed in via the add_torrent_params
+		// and also in the case of share mode, we need to update the priorities
+		// this has to be applied before piece priority
+		if (!m_file_priority.empty()) update_piece_priorities(m_file_priority);
+
+		if (m_add_torrent_params)
 		{
 			piece_index_t idx(0);
 			for (auto prio : m_add_torrent_params->piece_priorities)
@@ -1786,13 +1789,6 @@ bool is_downloading_state(int const st)
 			update_gauge();
 		}
 
-		// in case file priorities were passed in via the add_torrent_params
-		// and also in the case of share mode, we need to update the priorities
-		if (!m_file_priority.empty() && std::find(m_file_priority.begin()
-			, m_file_priority.end(), dont_download) != m_file_priority.end())
-		{
-			update_piece_priorities();
-		}
 
 		if (m_seed_mode)
 		{
@@ -5008,7 +5004,6 @@ bool is_downloading_state(int const st)
 		if (m_file_priority != prios)
 		{
 			m_file_priority = std::move(prios);
-			update_piece_priorities();
 			if (m_share_mode)
 				recalc_share_mode();
 		}
@@ -5035,6 +5030,13 @@ bool is_downloading_state(int const st)
 		// storage may be NULL during shutdown
 		if (m_storage)
 		{
+			// the update of m_file_priority is deferred until the disk job comes
+			// back, but to preserve sanity and consistency, the piece priorities are
+			// updated immediately. If, on the off-chance, there's a disk failure, the
+			// piece priorities still stay the same, but the file priorities are
+			// possibly not fully updated.
+			update_piece_priorities(new_priority);
+
 			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
 				, std::move(new_priority), std::bind(&torrent::on_file_priority, shared_from_this(), _1, _2));
@@ -5072,6 +5074,12 @@ bool is_downloading_state(int const st)
 		// storage may be nullptr during shutdown
 		if (m_storage)
 		{
+			// the update of m_file_priority is deferred until the disk job comes
+			// back, but to preserve sanity and consistency, the piece priorities are
+			// updated immediately. If, on the off-chance, there's a disk failure, the
+			// piece priorities still stay the same, but the file priorities are
+			// possibly not fully updated.
+			update_piece_priorities(new_priority);
 			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
 				, std::move(new_priority), std::bind(&torrent::on_file_priority, shared_from_this(), _1, _2));
@@ -5118,7 +5126,8 @@ bool is_downloading_state(int const st)
 		files->resize(m_torrent_file->num_files(), default_priority);
 	}
 
-	void torrent::update_piece_priorities()
+	void torrent::update_piece_priorities(
+		aux::vector<download_priority_t, file_index_t> const& file_prios)
 	{
 		INVARIANT_CHECK;
 
@@ -5140,8 +5149,8 @@ bool is_downloading_state(int const st)
 			// pad files always have priority 0
 			download_priority_t const file_prio
 				= fs.pad_file_at(i) ? dont_download
-				: i >= m_file_priority.end_index() ? default_priority
-				: m_file_priority[i];
+				: i >= file_prios.end_index() ? default_priority
+				: file_prios[i];
 
 			if (file_prio == dont_download)
 			{
@@ -6331,20 +6340,15 @@ bool is_downloading_state(int const st)
 
 		// piece priorities and file priorities are mutually exclusive. If there
 		// are file priorities set, don't save piece priorities.
-		if (!m_file_priority.empty())
+		// when in seed mode (i.e. the client promises that we have all files)
+		// it does not make sense to save file priorities.
+		if (!m_file_priority.empty() && !m_seed_mode)
 		{
-			// when in seed mode (i.e. the client promises that we have all files)
-			// it does not make sense to save file priorities.
-			if (!m_seed_mode)
-			{
-				// write file priorities
-				ret.file_priorities.clear();
-				ret.file_priorities.reserve(m_file_priority.size());
-				for (auto const prio : m_file_priority)
-					ret.file_priorities.push_back(prio);
-			}
+			// write file priorities
+			ret.file_priorities = m_file_priority;
 		}
-		else if (has_picker())
+
+		if (has_picker())
 		{
 			// write piece priorities
 			// but only if they are not set to the default

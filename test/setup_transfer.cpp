@@ -67,6 +67,30 @@ using namespace lt;
 #include <conio.h>
 #endif
 
+std::shared_ptr<torrent_info> generate_torrent()
+{
+	file_storage fs;
+	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
+	fs.add_file("test_resume/tmp2", 128 * 1024);
+	fs.add_file("test_resume/tmp3", 128 * 1024);
+	lt::create_torrent t(fs, 128 * 1024, 6);
+
+	t.add_tracker("http://torrent_file_tracker.com/announce");
+	t.add_url_seed("http://torrent_file_url_seed.com/");
+
+	TEST_CHECK(t.num_pieces() > 0);
+	for (auto const i : fs.piece_range())
+	{
+		sha1_hash ph;
+		aux::random_bytes(ph);
+		t.set_hash(i, ph);
+	}
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	return std::make_shared<torrent_info>(buf, from_span);
+}
+
 namespace {
 	std::uint32_t g_addr = 0x92343023;
 }

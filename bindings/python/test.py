@@ -264,10 +264,12 @@ class test_torrent_handle(unittest.TestCase):
         self.assertEqual(trackers[0].get('tier'), 0)
         self.assertEqual(self.h.get_file_priorities(), [1, 1])
         self.assertEqual(self.h.http_seeds(), ['http://test.com/file3'])
-        # url_seeds was already set, test that it did not got overwritten
+        # url_seeds was already set, test that it did not get overwritten
         self.assertEqual(self.h.url_seeds(),
                          ['http://test.com/announce-url/', 'http://test.com/file/'])
-        self.assertEqual(self.h.get_piece_priorities(), [4])
+        # piece priorities weren't set explicitly, but they were updated by the
+        # file priorities being set
+        self.assertEqual(self.h.get_piece_priorities(), [1])
         self.assertEqual(self.ti.merkle_tree(), [])
         self.assertEqual(self.st.verified_pieces, [])
 
@@ -591,6 +593,11 @@ class test_session(unittest.TestCase):
         self.assertTrue('alert_queue_size' in seed_mode)
         self.assertTrue('connection_speed' in seed_mode)
         self.assertTrue('file_pool_size' in seed_mode)
+
+    def test_default_settings(self):
+
+        default = lt.default_settings()
+        print(default)
 
 
 class test_example_client(unittest.TestCase):

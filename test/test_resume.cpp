@@ -64,30 +64,6 @@ torrent_flags_t const flags_mask
 	| torrent_flags::upload_mode
 	| torrent_flags::apply_ip_filter;
 
-std::shared_ptr<torrent_info> generate_torrent()
-{
-	file_storage fs;
-	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
-	fs.add_file("test_resume/tmp2", 128 * 1024);
-	fs.add_file("test_resume/tmp3", 128 * 1024);
-	lt::create_torrent t(fs, 128 * 1024, 6);
-
-	t.add_tracker("http://torrent_file_tracker.com/announce");
-	t.add_url_seed("http://torrent_file_url_seed.com/");
-
-	TEST_CHECK(t.num_pieces() > 0);
-	for (auto const i : fs.piece_range())
-	{
-		sha1_hash ph;
-		aux::random_bytes(ph);
-		t.set_hash(i, ph);
-	}
-
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
-	return std::make_shared<torrent_info>(buf, from_span);
-}
-
 std::vector<char> generate_resume_data(torrent_info* ti
 	, char const* file_priorities = "")
 {
@@ -838,7 +814,7 @@ TORRENT_TEST(file_priorities_seed_mode)
 
 namespace {
 
-void test_zero_file_prio(bool test_deprecated = false)
+void test_zero_file_prio(bool test_deprecated = false, bool mix_prios = false)
 {
 	std::printf("test_file_prio\n");
 
@@ -855,17 +831,14 @@ void test_zero_file_prio(bool test_deprecated = false)
 	rd["info-hash"] = ti->info_hash().to_string();
 	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
 
-	entry::list_type& file_prio = rd["file_priority"].list();
-	for (int i = 0; i < 100; ++i)
-	{
-		file_prio.push_back(entry(0));
-	}
+	// set file priorities to 0
+	rd["file_priority"] = entry::list_type(100, entry(0));
 
-	std::string pieces(std::size_t(ti->num_pieces()), '\x01');
-	rd["pieces"] = pieces;
+	rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 
-	std::string pieces_prio(std::size_t(ti->num_pieces()), '\x01');
-	rd["piece_priority"] = pieces_prio;
+	// but set the piece priorities to 1. these take precedence
+	if (mix_prios)
+		rd["piece_priority"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 
 	std::vector<char> resume_data;
 	bencode(back_inserter(resume_data), rd);
@@ -888,7 +861,14 @@ void test_zero_file_prio(bool test_deprecated = false)
 	torrent_handle h = ses.add_torrent(p);
 
 	torrent_status s = h.status();
-	TEST_EQUAL(s.total_wanted, 0);
+	if (mix_prios)
+	{
+		TEST_EQUAL(s.total_wanted, ti->total_size());
+	}
+	else
+	{
+		TEST_EQUAL(s.total_wanted, 0);
+	}
 }
 
 } // anonymous namespace
@@ -898,6 +878,12 @@ TORRENT_TEST(zero_file_prio_deprecated)
 {
 	test_zero_file_prio(true);
 }
+
+TORRENT_TEST(mixing_file_and_piece_prio_deprecated)
+{
+	test_zero_file_prio(true, true);
+}
+
 
 TORRENT_TEST(backwards_compatible_resume_info_dict)
 {
@@ -949,6 +935,11 @@ TORRENT_TEST(resume_info_dict)
 TORRENT_TEST(zero_file_prio)
 {
 	test_zero_file_prio();
+}
+
+TORRENT_TEST(mixing_file_and_piece_prio)
+{
+	test_zero_file_prio(false, true);
 }
 
 using test_mode_t = flags::bitfield_flag<std::uint8_t, struct test_mode_tag>;

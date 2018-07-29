@@ -529,3 +529,43 @@ TORRENT_TEST(export_file_while_seed)
 	TEST_CHECK(exists("temporary"));
 }
 
+TORRENT_TEST(test_piece_priority_after_resume)
+{
+	auto const new_prio = lt::low_priority;
+
+	add_torrent_params p;
+	auto ti = generate_torrent();
+	{
+		auto const prio = top_priority;
+
+		p.save_path = ".";
+		p.ti = ti;
+		p.file_priorities.resize(1, prio);
+
+		lt::session ses(settings());
+		torrent_handle h = ses.add_torrent(p);
+
+		TEST_EQUAL(h.piece_priority(piece_index_t{0}), prio);
+
+		using prio_vec = std::vector<std::pair<lt::piece_index_t, lt::download_priority_t>>;
+		h.prioritize_pieces(prio_vec{{piece_index_t{0}, new_prio}});
+		TEST_EQUAL(h.piece_priority(piece_index_t{0}), new_prio);
+
+		ses.pause();
+		h.save_resume_data();
+
+		alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+		save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
+
+		p = rd->params;
+	}
+	{
+		p.save_path = ".";
+		p.ti = ti;
+
+		lt::session ses(settings());
+		torrent_handle h = ses.add_torrent(p);
+
+		TEST_EQUAL(h.piece_priority(piece_index_t{0}), new_prio);
+	}
+}
