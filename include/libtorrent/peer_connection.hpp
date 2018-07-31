@@ -478,7 +478,7 @@ namespace aux {
 
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
-		bool is_outgoing() const override { return m_outgoing; }
+		bool is_outgoing() const final { return m_outgoing; }
 
 		bool received_listen_port() const { return m_received_listen_port; }
 		void received_listen_port()
