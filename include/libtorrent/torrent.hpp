@@ -104,6 +104,8 @@ namespace libtorrent {
 	struct tracker_request;
 	class bt_peer_connection;
 
+	using web_seed_flag_t = flags::bitfield_flag<std::uint8_t, struct web_seed_flag_tag>;
+
 	enum class waste_reason
 	{
 		piece_timed_out, piece_cancelled, piece_unknown, piece_seed
@@ -611,13 +613,15 @@ namespace libtorrent {
 // --------------------------------------------
 		// PEER MANAGEMENT
 
+		constexpr static web_seed_flag_t ephemeral = 0_bit;
+
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry
 		web_seed_t* add_web_seed(std::string const& url
 			, web_seed_t::type_t type
 			, std::string const& auth = std::string()
 			, web_seed_t::headers_t const& extra_headers = web_seed_entry::headers_t()
-			, bool ephemeral = false);
+			, web_seed_flag_t flags = {});
 
 		void remove_web_seed(std::string const& url, web_seed_t::type_t type);
 		void disconnect_web_seed(peer_connection* p);
