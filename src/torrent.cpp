@@ -134,6 +134,8 @@ bool is_downloading_state(int const st)
 }
 } // anonymous namespace
 
+	constexpr web_seed_flag_t torrent::ephemeral;
+
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
 	{
@@ -8656,10 +8658,10 @@ bool is_downloading_state(int const st)
 		, web_seed_entry::type_t const type
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers
-		, bool const ephemeral)
+		, web_seed_flag_t const flags)
 	{
 		web_seed_t ent(url, type, auth, extra_headers);
-		ent.ephemeral = ephemeral;
+		ent.ephemeral = bool(flags & ephemeral);
 
 		// don't add duplicates
 		auto const it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
