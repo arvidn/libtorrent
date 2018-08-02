@@ -106,7 +106,6 @@ struct dht_announce_alert;
 struct dht_get_peers_alert;
 struct stats_alert;
 struct cache_flushed_alert;
-struct anonymous_mode_alert;
 struct lsd_peer_alert;
 struct trackerid_alert;
 struct dht_bootstrap_alert;
@@ -139,6 +138,7 @@ struct dht_live_nodes_alert;
 struct session_stats_header_alert;
 struct dht_sample_infohashes_alert;
 struct block_uploaded_alert;
+struct alerts_dropped_alert;
 TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/announce_entry.hpp
@@ -276,13 +276,13 @@ TORRENT_VERSION_NAMESPACE_2_END
 // include/libtorrent/alert_types.hpp
 TORRENT_VERSION_NAMESPACE_2
 struct torrent_added_alert;
+struct anonymous_mode_alert;
 struct mmap_cache_alert;
 struct torrent_update_alert;
 TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/file_storage.hpp
 struct file_entry;
-struct internal_file_entry;
 
 // include/libtorrent/lazy_entry.hpp
 struct pascal_string;
