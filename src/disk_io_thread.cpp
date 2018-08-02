@@ -2297,6 +2297,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 				{
 					std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 
+					m_stats_counters.inc_stats_counter(counters::num_blocks_hashed, blocks_left);
 					m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_left);
 					m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_left);
 					m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -3412,6 +3413,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	// This is run in the network thread
 	void disk_io_thread::call_job_handlers()
 	{
+		m_stats_counters.inc_stats_counter(counters::on_disk_counter);
 		std::unique_lock<std::mutex> l(m_completed_jobs_mutex);
 
 		DLOG("call_job_handlers (%d)\n", m_completed_jobs.size());
