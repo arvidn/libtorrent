@@ -836,7 +836,7 @@ namespace {
 			++it;
 		}
 
-		int ret = 0;
+		std::int64_t ret = 0;
 		while (!vec.empty())
 		{
 #ifdef IOV_MAX
@@ -845,7 +845,7 @@ namespace {
 			auto const nbufs = vec;
 #endif
 
-			int tmp_ret = 0;
+			std::int64_t tmp_ret = 0;
 			tmp_ret = f(fd, nbufs.data(), int(nbufs.size()), file_offset);
 			if (tmp_ret < 0)
 			{
