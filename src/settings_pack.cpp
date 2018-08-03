@@ -95,8 +95,10 @@ namespace libtorrent {
 
 #if TORRENT_ABI_VERSION == 1
 #define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value }
+#define DEPRECATED_SET_STR(name, default_value, fun) { #name, fun, default_value }
 #else
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
+#define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, nullptr }
 #endif
 
 #ifdef TORRENT_WINDOWS
@@ -113,7 +115,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 	({{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
 		SET(announce_ip, nullptr, nullptr),
-		SET(mmap_cache, nullptr, nullptr),
+		DEPRECATED_SET_STR(mmap_cache, nullptr, nullptr),
 		SET(handshake_client_version, nullptr, nullptr),
 		SET(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
 #if !TORRENT_USE_IPV6
