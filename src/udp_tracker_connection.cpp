@@ -513,7 +513,7 @@ namespace libtorrent {
 			return;
 		}
 
-		std::size_t const connect_packet_size = 16;
+		constexpr std::size_t connect_packet_size = 16;
 		std::array<char, connect_packet_size> buf;
 		span<char> view = buf;
 

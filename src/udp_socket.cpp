@@ -53,10 +53,10 @@ namespace libtorrent {
 using namespace std::placeholders;
 
 // used to build SOCKS messages in
-std::size_t const tmp_buffer_size = 270;
+constexpr std::size_t tmp_buffer_size = 270;
 
 // used for SOCKS5 UDP wrapper header
-std::size_t const max_header_size = 25;
+constexpr std::size_t max_header_size = 25;
 
 // this class hold the state of the SOCKS5 connection to maintain the UDP
 // ASSOCIATE tunnel. It's instantiated on the heap for two reasons:
