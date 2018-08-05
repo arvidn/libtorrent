@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_status.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 const int header_size = 2;
 using lt::queue_position_t;
@@ -347,8 +348,8 @@ void torrent_view::print_headers()
 
 	// print title bar for torrent list
 	std::snprintf(str, sizeof(str)
-		, " %-3s %-50s %-35s %-17s %-17s %-11s %-6s %-6s %-4s\x1b[K"
-		, "#", "Name", "Progress", "Download", "Upload", "Peers (D:S)"
+		, " %-3s %-50s %-35s %-14s %-17s %-17s %-11s %-6s %-6s %-4s\x1b[K"
+		, "#", "Name", "Progress", "Pieces", "Download", "Upload", "Peers (D:S)"
 		, "Down", "Up", "Flags");
 
 	if (m_width + 1 < int(sizeof(str)))
@@ -386,13 +387,19 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 	else if (s.current_tracker.empty())
 		progress_bar_color = col_green;
 
-	pos += std::snprintf(str + pos, sizeof(str) - pos, "%s%-3s %-50s %s%s %s (%s) "
+	auto ti = s.torrent_file.lock();
+	int const total_pieces = ti ? ti->num_pieces() : 0;
+	color_code piece_color = total_pieces == s.num_pieces ? col_green : col_yellow;
+
+	pos += std::snprintf(str + pos, sizeof(str) - pos, "%s%-3s %-50s %s%s %s/%s %s (%s) "
 		"%s (%s) %5d:%-5d %s %s %c"
 		, selection
 		, queue_pos
 		, name.c_str()
 		, progress_bar(s.progress_ppm / 1000, 35, progress_bar_color, '-', '#', torrent_state(s)).c_str()
 		, selection
+		, color(to_string(s.num_pieces, 6), piece_color).c_str()
+		, color(to_string(total_pieces, 6), piece_color).c_str()
 		, color(add_suffix(s.download_rate, "/s"), col_green).c_str()
 		, color(add_suffix(s.total_download), col_green).c_str()
 		, color(add_suffix(s.upload_rate, "/s"), col_red).c_str()
