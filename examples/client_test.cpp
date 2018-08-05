@@ -1856,19 +1856,8 @@ COLUMN OPTIONS
 					int const idx = static_cast<int>(i);
 					if (pos + 1 >= terminal_height) break;
 
-					bool pad_file = ti->files().pad_file_at(i);
-					if (pad_file)
-					{
-						if (show_pad_files)
-						{
-							std::snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\x1b[K\n"
-								, ti->files().file_name(i).to_string().c_str()
-								, add_suffix(ti->files().file_size(i)).c_str());
-							out += str;
-							pos += 1;
-						}
-						continue;
-					}
+					bool const pad_file = ti->files().pad_file_at(i);
+					if (pad_file && !show_pad_files) continue;
 
 					int const progress = ti->files().file_size(i) > 0
 						? int(file_progress[idx] * 1000 / ti->files().file_size(i)) : 1000;
@@ -1895,7 +1884,7 @@ COLUMN OPTIONS
 						++f;
 					}
 
-					const int file_progress_width = 65;
+					const int file_progress_width = pad_file ? 10 : 65;
 
 					// do we need to line-break?
 					if (p + file_progress_width + 13 > terminal_width)
@@ -1906,8 +1895,10 @@ COLUMN OPTIONS
 					}
 
 					std::snprintf(str, sizeof(str), "%s %7s p: %d ",
-						progress_bar(progress, file_progress_width, complete ? col_green : col_yellow, '-', '#'
-							, title.c_str()).c_str()
+						progress_bar(progress, file_progress_width
+							, pad_file ? col_blue
+							: complete ? col_green : col_yellow
+							, '-', '#', title.c_str()).c_str()
 						, add_suffix(file_progress[idx]).c_str()
 						, static_cast<std::uint8_t>(file_prio[idx]));
 
