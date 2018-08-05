@@ -979,9 +979,9 @@ namespace libtorrent {
 			// or receive buffer also count against this limit. Send and receive
 			// buffers will never be denied to be allocated, but they will cause
 			// the actual cached blocks to be flushed or evicted. If this is set
-			// to -1, the cache size is automatically set to the amount of
-			// physical RAM available in the machine divided by 8. If the amount
-			// of physical RAM cannot be determined, it's set to 1024 (= 16 MiB).
+			// to -1, the cache size is automatically set based on the amount of
+			// physical RAM on the machine. If the amount of physical RAM cannot
+			// be determined, it's set to 1024 (= 16 MiB).
 			//
 			// ``cache_expiry`` is the number of seconds from the last cached write
 			// to a piece in the write cache, to when it's forcefully flushed to
@@ -1593,7 +1593,7 @@ namespace libtorrent {
 			out_enc_policy,
 			in_enc_policy,
 
-			// determines the encryption level of the connections.  This setting
+			// determines the encryption level of the connections. This setting
 			// will adjust which encryption scheme is offered to the other peer,
 			// as well as which encryption scheme is selected by the client. See
 			// enc_level enum for options.

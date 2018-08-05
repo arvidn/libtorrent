@@ -484,7 +484,7 @@ int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
 bool stats_enabled = false;
-int cache_size = 1024;
+int cache_size = -1;
 
 bool share_mode = false;
 bool disable_storage = false;
