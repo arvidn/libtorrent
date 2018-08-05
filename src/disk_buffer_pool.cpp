@@ -303,8 +303,8 @@ namespace libtorrent {
 				// The more physical RAM, the smaller portion of it is allocated
 				// for the cache.
 
-				// we take a 30th of everything exceeding 4 GiB
-				// a 20th of everything exceeding 1 GiB
+				// we take a 40th of everything exceeding 4 GiB
+				// a 30th of everything exceeding 1 GiB
 				// and a 10th of everything below a GiB
 
 				constexpr std::int64_t gb = 1024 * 1024 * 1024;
@@ -312,15 +312,15 @@ namespace libtorrent {
 				std::int64_t result = 0;
 				if (phys_ram > 4 * gb)
 				{
-					result += (phys_ram - 4 * gb) / 30;
+					result += (phys_ram - 4 * gb) / 40;
 					phys_ram = 4 * gb;
 				}
 				if (phys_ram > 1 * gb)
 				{
-					result += (phys_ram - 1 * gb) / 20;
+					result += (phys_ram - 1 * gb) / 30;
 					phys_ram = 1 * gb;
 				}
-				result += phys_ram / 10;
+				result += phys_ram / 20;
 				m_max_use = int(result / default_block_size);
 			}
 

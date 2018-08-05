@@ -248,7 +248,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(send_buffer_watermark_factor, 50, nullptr),
 		SET(choking_algorithm, settings_pack::fixed_slots_choker, nullptr),
 		SET(seed_choking_algorithm, settings_pack::round_robin, nullptr),
-		SET(cache_size, 1024, nullptr),
+		SET(cache_size, 2048, nullptr),
 		DEPRECATED_SET(cache_buffer_chunk_size, 0, nullptr),
 		SET(cache_expiry, 300, nullptr),
 		SET(disk_io_write_mode, settings_pack::enable_os_cache, nullptr),
