@@ -293,9 +293,9 @@ namespace {
 		}
 
 #if TORRENT_USE_IPV6
-		int const v6_size = 18;
+		constexpr int v6_size = 18;
 #endif
-		int const v4_size = 6;
+		constexpr int v4_size = 6;
 		using namespace libtorrent::detail; // for read_*_endpoint()
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers"))
 		{
