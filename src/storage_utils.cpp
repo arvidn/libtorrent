@@ -120,6 +120,8 @@ namespace libtorrent { namespace aux {
 
 		const int size = bufs_size(bufs);
 		TORRENT_ASSERT(size > 0);
+		TORRENT_ASSERT(static_cast<int>(piece) * static_cast<std::int64_t>(files.piece_length())
+			+ offset + size <= files.total_size());
 
 		// find the file iterator and file offset
 		std::int64_t const torrent_offset = static_cast<int>(piece) * std::int64_t(files.piece_length()) + offset;
