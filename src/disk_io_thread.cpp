@@ -1307,7 +1307,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// if this is the last piece, adjust the size of the
 		// last buffer to match up
 		iov[iov_len - 1] = iov[iov_len - 1].first(aux::numeric_cast<std::size_t>(
-				std::min(piece_size - (iov_len - 1) * default_block_size, default_block_size)));
+				std::min(piece_size - int(adjusted_offset) - (iov_len - 1)
+				* default_block_size, default_block_size)));
 		TORRENT_ASSERT(iov[iov_len - 1].size() > 0);
 
 		// at this point, all the buffers are allocated and iov is initialized
@@ -1570,9 +1571,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		, storage_error const& se)> handler, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= default_block_size);
-		TORRENT_ASSERT(r.length <= 16 * 1024);
 
-		DLOG("do_read piece: %d block: %d\n", static_cast<int>(r.piece)
+		DLOG("async_read piece: %d block: %d\n", static_cast<int>(r.piece)
 			, r.start / default_block_size);
 
 		disk_io_job* j = allocate_job(job_action_t::read);
@@ -1583,6 +1583,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		j->argument = disk_buffer_holder(*this, nullptr, 0);
 		j->flags = flags;
 		j->callback = std::move(handler);
+
+		TORRENT_ASSERT(static_cast<int>(r.piece) * static_cast<std::int64_t>(j->storage->files().piece_length())
+			+ r.start + r.length <= j->storage->files().total_size());
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 		int const ret = prep_read_job_impl(j);
