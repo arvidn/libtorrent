@@ -603,6 +603,11 @@ namespace libtorrent
 		// for the state_changed_alert and then call pause(). The download/seeding
 		// will most likely start in between posting the alert and receiving the
 		// call to pause.
+		// 
+		// A downloading state is one where peers are being connected. Which means
+		// just downloading the metadata via the ``ut_metadata`` extension counts
+		// as a downloading state. In order to stop a torrent once the metadata
+		// has been downloaded, instead set all file priorities to dont_download
 		void stop_when_ready(bool b) const;
 
 		// Explicitly sets the upload mode of the torrent. In upload mode, the
@@ -741,9 +746,8 @@ namespace libtorrent
 		//	extern int outstanding_resume_data; // global counter of outstanding resume data
 		//	std::vector<torrent_handle> handles = ses.get_torrents();
 		//	ses.pause();
-		//	for (torrent_handle i : handles)
+		//	for (torrent_handle const& h : handles)
 		//	{
-		//		torrent_handle& h = *i;
 		//		if (!h.is_valid()) continue;
 		//		torrent_status s = h.status();
 		//		if (!s.has_metadata) continue;
@@ -758,7 +762,7 @@ namespace libtorrent
 		//		alert const* a = ses.wait_for_alert(seconds(10));
 		//
 		//		// if we don't get an alert within 10 seconds, abort
-		//		if (a == 0) break;
+		//		if (a == nullptr) break;
 		//		
 		//		std::vector<alert*> alerts;
 		//		ses.pop_alerts(&alerts);
@@ -773,7 +777,7 @@ namespace libtorrent
 		//			}
 		//
 		//			save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
-		//			if (rd == 0)
+		//			if (rd == nullptr)
 		//			{
 		//				process_alert(a);
 		//				continue;
@@ -807,9 +811,10 @@ namespace libtorrent
 		// time.
 		//
 		//.. note::
-		//	A torrent's resume data is considered saved as soon as the alert is
-		//	posted. It is important to make sure this alert is received and
-		//	handled in order for this function to be meaningful.
+		//	A torrent's resume data is considered saved as soon as the
+		//	save_resume_data_alert is posted. It is important to make sure this
+		//	alert is received and handled in order for this function to be
+		//	meaningful.
 		bool need_save_resume_data() const;
 
 		// changes whether the torrent is auto managed or not. For more info,

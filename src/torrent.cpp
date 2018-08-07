@@ -117,7 +117,7 @@ namespace libtorrent
 
 	boost::uint32_t const unset = std::numeric_limits<boost::uint32_t>::max();
 
-	bool is_downloading_state(int st)
+	bool is_downloading_state(int const st)
 	{
 		switch (st)
 		{
@@ -8498,7 +8498,7 @@ namespace {
 	namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
-	char const* list_name(int idx)
+	char const* list_name(int const idx)
 	{
 #define TORRENT_LIST_NAME(n) case aux::session_interface:: n: return #n;
 		switch (idx)
