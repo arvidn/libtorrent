@@ -113,6 +113,8 @@ namespace libtorrent {
 		, max
 	};
 
+	TORRENT_EXTRA_EXPORT std::int64_t calc_bytes(file_storage const& fs, piece_count const& pc);
+
 	struct time_critical_piece
 	{
 		// when this piece was first requested
@@ -481,8 +483,8 @@ namespace libtorrent {
 
 		stat statistics() const { return m_stat; }
 		boost::optional<std::int64_t> bytes_left() const;
-		int block_bytes_wanted(piece_block const& p) const;
-		void bytes_done(torrent_status& st, bool accurate) const;
+
+		void bytes_done(torrent_status& st, status_flags_t) const;
 
 		void sent_bytes(int bytes_payload, int bytes_protocol);
 		void received_bytes(int bytes_payload, int bytes_protocol);
@@ -825,7 +827,7 @@ namespace libtorrent {
 			}
 
 			return has_picker()
-				? m_picker->num_have()
+				? m_picker->have().num_pieces
 				: m_have_all ? m_torrent_file->num_pieces() : 0;
 		}
 
@@ -1600,8 +1602,9 @@ namespace libtorrent {
 
 // ----
 
-		// the number of bytes of padding files
-		std::uint32_t m_padding:24;
+		// the number of (16kiB) blocks that fall entirely in pad files
+		// i.e. blocks that we consider we have on start-up
+		std::uint16_t m_padding_blocks = 0;
 
 		// this is set to the connect boost quota for this torrent.
 		// After having received this many priority peer connection attempts, it

@@ -211,7 +211,6 @@ bool is_downloading_state(int const st)
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
 		, m_pending_active_change(false)
-		, m_padding(0)
 		, m_connect_boost_counter(static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
@@ -1807,7 +1806,6 @@ bool is_downloading_state(int const st)
 			for (auto const i : fs.file_range())
 			{
 				if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
-				m_padding += std::uint32_t(fs.file_size(i));
 
 				peer_request pr = m_torrent_file->map_file(i, 0, int(fs.file_size(i)));
 				int off = pr.start & (block_size() - 1);
@@ -1821,6 +1819,7 @@ bool is_downloading_state(int const st)
 				{
 					if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
 					m_picker->mark_as_pad(pb);
+					++m_padding_blocks;
 				}
 				// ugly edge case where padfiles are not used they way they're
 				// supposed to be. i.e. added back-to back or at the end
@@ -1832,7 +1831,7 @@ bool is_downloading_state(int const st)
 				}
 			}
 
-			if (m_padding > 0)
+			if (m_padding_blocks > 0)
 			{
 				// if we marked an entire piece as finished, we actually
 				// need to consider it finished
@@ -3457,32 +3456,31 @@ bool is_downloading_state(int const st)
 		return left;
 	}
 
-	// returns the number of bytes we are interested
-	// in for the given block. This returns block_size()
-	// for all blocks except the last one (if it's smaller
-	// than block_size()) and blocks that overlap a padding
-	// file
-	int torrent::block_bytes_wanted(piece_block const& p) const
+	// we assume the last block is never a pad block. Should be a fairly
+	// safe assumption, and you just get a few kiB off if it is
+	std::int64_t calc_bytes(file_storage const& fs, piece_count const& pc)
 	{
-		file_storage const& fs = m_torrent_file->files();
-		int const piece_size = m_torrent_file->piece_size(p.piece_index);
-		int const offset = p.block_index * block_size();
-		if (m_padding == 0) return std::min(piece_size - offset, block_size());
+		// it's an impossible combination to have 0 pieces, but still have one of them be the last piece
+		TORRENT_ASSERT(!(pc.num_pieces == 0 && pc.last_piece == true));
 
-		std::vector<file_slice> const files = fs.map_block(
-			p.piece_index, offset, std::min(piece_size - offset, block_size()));
-		std::int64_t ret = 0;
-		for (auto const& i : files)
-		{
-			if (fs.pad_file_at(i.file_index)) continue;
-			ret += i.size;
-		}
-		TORRENT_ASSERT(ret <= std::min(piece_size - offset, block_size()));
-		return aux::numeric_cast<int>(ret);
+		// if we have 0 pieces, we can't have any pad blocks either
+		TORRENT_ASSERT(!(pc.num_pieces == 0 && pc.pad_blocks > 0));
+
+		// if we have all pieces, we must also have the last one
+		TORRENT_ASSERT(!(pc.num_pieces == fs.num_pieces() && pc.last_piece == false));
+		int const block_size = std::min(default_block_size, fs.piece_length());
+
+		// every block should not be a pad block
+		TORRENT_ASSERT(pc.pad_blocks <= pc.num_pieces * fs.piece_length() / block_size);
+
+		return std::int64_t(pc.num_pieces) * fs.piece_length()
+			- (pc.last_piece ? 1 : 0) * (fs.piece_length() - fs.piece_size(fs.last_piece()))
+			- std::int64_t(pc.pad_blocks) * block_size;
 	}
 
 	// fills in total_wanted, total_wanted_done and total_done
-	void torrent::bytes_done(torrent_status& st, bool const accurate) const
+// TODO: 3 this could probably be pulled out into a free function
+	void torrent::bytes_done(torrent_status& st, status_flags_t const flags) const
 	{
 		INVARIANT_CHECK;
 
@@ -3490,23 +3488,21 @@ bool is_downloading_state(int const st)
 		st.total_wanted_done = 0;
 		st.total_wanted = m_torrent_file->total_size();
 
-		TORRENT_ASSERT(st.total_wanted >= m_padding);
+		TORRENT_ASSERT(st.total_wanted >= m_padding_blocks * default_block_size);
 		TORRENT_ASSERT(st.total_wanted >= 0);
 
-		if (!valid_metadata() || m_torrent_file->num_pieces() == 0)
-			return;
+		TORRENT_ASSERT(!valid_metadata() || m_torrent_file->num_pieces() > 0);
+		if (!valid_metadata()) return;
 
 		TORRENT_ASSERT(st.total_wanted >= std::int64_t(m_torrent_file->piece_length())
 			* (m_torrent_file->num_pieces() - 1));
-
-		piece_index_t const last_piece = prev(m_torrent_file->end_piece());
-		int const piece_size = m_torrent_file->piece_length();
 
 		// if any piece hash fails, we'll be taken out of seed mode
 		// and m_seed_mode will be false
 		if (m_seed_mode || is_seed())
 		{
-			st.total_done = m_torrent_file->total_size() - m_padding;
+			st.total_done = m_torrent_file->total_size()
+				- m_padding_blocks * default_block_size;
 			st.total_wanted_done = st.total_done;
 			st.total_wanted = st.total_done;
 			return;
@@ -3515,84 +3511,34 @@ bool is_downloading_state(int const st)
 		{
 			st.total_done = 0;
 			st.total_wanted_done = 0;
-			st.total_wanted = m_torrent_file->total_size() - m_padding;
+			st.total_wanted = m_torrent_file->total_size()
+				- m_padding_blocks * default_block_size;
 			return;
 		}
 
-		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
-		st.total_wanted_done = std::int64_t(num_have() - m_picker->num_have_filtered())
-			* piece_size;
+		TORRENT_ASSERT(has_picker());
+
+		file_storage const& files = m_torrent_file->files();
+
+		st.total_wanted = calc_bytes(files, m_picker->want());
+		st.total_wanted_done = calc_bytes(files, m_picker->have_want());
+		st.total_done = calc_bytes(files, m_picker->have());
+		st.total = calc_bytes(files, m_picker->all_pieces());
+
+		TORRENT_ASSERT(st.total_done <= calc_bytes(files, m_picker->all_pieces()));
+		TORRENT_ASSERT(st.total_wanted <= calc_bytes(files, m_picker->all_pieces()));
+
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
-
-		st.total_done = std::int64_t(num_passed()) * piece_size;
-		// if num_passed() == num_pieces(), we should be a seed, and taken the
-		// branch above
-		TORRENT_ASSERT(num_passed() <= m_torrent_file->num_pieces());
-
-		int num_filtered_pieces = m_picker->num_filtered()
-			+ m_picker->num_have_filtered();
-		piece_index_t const last_piece_index = m_torrent_file->last_piece();
-		if (m_picker->piece_priority(last_piece_index) == dont_download)
-		{
-			st.total_wanted -= m_torrent_file->piece_size(last_piece_index);
-			TORRENT_ASSERT(st.total_wanted >= 0);
-			--num_filtered_pieces;
-		}
-		st.total_wanted -= std::int64_t(num_filtered_pieces) * piece_size;
 		TORRENT_ASSERT(st.total_wanted >= 0);
-
-		// if we have the last piece, we have to correct
-		// the amount we have, since the first calculation
-		// assumed all pieces were of equal size
-		if (m_picker->has_piece_passed(last_piece))
-		{
-			TORRENT_ASSERT(st.total_done >= piece_size);
-			int const corr = m_torrent_file->piece_size(last_piece)
-				- piece_size;
-			TORRENT_ASSERT(corr <= 0);
-			TORRENT_ASSERT(corr > -piece_size);
-			st.total_done += corr;
-			if (m_picker->piece_priority(last_piece) != dont_download)
-			{
-				TORRENT_ASSERT(st.total_wanted_done >= -corr);
-				st.total_wanted_done += corr;
-			}
-		}
 		TORRENT_ASSERT(st.total_wanted >= st.total_wanted_done);
-
-		// this is expensive, we might not want to do it all the time
-		if (!accurate) return;
-
-		// subtract padding files
-		if (m_padding > 0)
-		{
-			file_storage const& files = m_torrent_file->files();
-			for (auto const i : files.file_range())
-			{
-				if (!files.pad_file_at(i)) continue;
-				peer_request p = files.map_file(i, 0, int(files.file_size(i)));
-				for (piece_index_t j = p.piece; p.length > 0; ++j)
-				{
-					int const deduction = std::min(p.length, piece_size - p.start);
-					bool const done = m_picker->have_piece(j);
-					bool const wanted = m_picker->piece_priority(j) > dont_download;
-					if (done) st.total_done -= deduction;
-					if (wanted) st.total_wanted -= deduction;
-					if (wanted && done) st.total_wanted_done -= deduction;
-					TORRENT_ASSERT(st.total_done >= 0);
-					TORRENT_ASSERT(st.total_wanted >= 0);
-					TORRENT_ASSERT(st.total_wanted_done >= 0);
-					p.length -= piece_size - p.start;
-					p.start = 0;
-					++p.piece;
-				}
-			}
-		}
-
-		TORRENT_ASSERT(!accurate || st.total_done <= m_torrent_file->total_size() - m_padding);
-		TORRENT_ASSERT(st.total_wanted_done >= 0);
+		TORRENT_ASSERT(st.total_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 
+		// this is expensive, we might not want to do it all the time
+		if (!(flags & torrent_handle::query_accurate_download_counters)) return;
+
+		// to get higher accuracy of the download progress, include
+		// blocks from currently downloading pieces as well
 		std::vector<piece_picker::downloading_piece> const dl_queue
 			= m_picker->get_download_queue();
 
@@ -3600,120 +3546,22 @@ bool is_downloading_state(int const st)
 		// blocks to our 'done' counter
 		for (auto i = dl_queue.begin(); i != dl_queue.end(); ++i)
 		{
-			int corr = 0;
 			piece_index_t const index = i->index;
+
 			// completed pieces are already accounted for
-			if (m_picker->has_piece_passed(index)) continue;
-			TORRENT_ASSERT(i->finished <= m_picker->blocks_in_piece(index));
+			if (m_picker->have_piece(index)) continue;
 
-#if TORRENT_USE_ASSERTS
-			TORRENT_ASSERT(std::count_if(std::next(i), dl_queue.end()
-				, [index](piece_picker::downloading_piece const& p) { return p.index == index; }) == 0);
-#endif
+			TORRENT_ASSERT(i->finished + i->writing <= m_picker->blocks_in_piece(index));
+			TORRENT_ASSERT(i->finished + i->writing >= m_picker->pad_blocks_in_piece(index));
 
-			int idx = -1;
-			for (auto const& info : m_picker->blocks_for_piece(*i))
-			{
-				++idx;
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-				TORRENT_ASSERT(m_picker->is_finished(piece_block(index, idx))
-					== (info.state == piece_picker::block_info::state_finished));
-#endif
-				if (info.state == piece_picker::block_info::state_finished)
-				{
-					corr += block_bytes_wanted(piece_block(index, idx));
-				}
-				TORRENT_ASSERT(corr >= 0);
-				TORRENT_ASSERT(index != last_piece || idx < m_picker->blocks_in_last_piece()
-					|| info.state != piece_picker::block_info::state_finished);
-			}
+			int const blocks = i->finished + i->writing - m_picker->pad_blocks_in_piece(index);
+			TORRENT_ASSERT(blocks >= 0);
 
-			st.total_done += corr;
+			auto const additional_bytes = std::int64_t(blocks) * block_size();
+			st.total_done += additional_bytes;
 			if (m_picker->piece_priority(index) > dont_download)
-				st.total_wanted_done += corr;
+				st.total_wanted_done += additional_bytes;
 		}
-
-		TORRENT_ASSERT(st.total_wanted <= m_torrent_file->total_size() - m_padding);
-		TORRENT_ASSERT(st.total_done <= m_torrent_file->total_size() - m_padding);
-		TORRENT_ASSERT(st.total_wanted_done <= m_torrent_file->total_size() - m_padding);
-		TORRENT_ASSERT(st.total_wanted_done >= 0);
-		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
-
-		std::map<piece_block, int> downloading_piece;
-		for (auto pc : *this)
-		{
-			piece_block_progress p = pc->downloading_piece_progress();
-			if (p.piece_index == piece_block_progress::invalid_index)
-				continue;
-
-			if (m_picker->has_piece_passed(p.piece_index))
-				continue;
-
-			piece_block block(p.piece_index, p.block_index);
-			if (m_picker->is_finished(block))
-				continue;
-
-			auto dp = downloading_piece.find(block);
-			if (dp != downloading_piece.end())
-			{
-				if (dp->second < p.bytes_downloaded)
-					dp->second = p.bytes_downloaded;
-			}
-			else
-			{
-				downloading_piece[block] = p.bytes_downloaded;
-			}
-			TORRENT_ASSERT(p.bytes_downloaded <= p.full_block_bytes);
-			TORRENT_ASSERT(p.full_block_bytes == to_req(piece_block(
-				p.piece_index, p.block_index)).length);
-		}
-		for (auto const& p : downloading_piece)
-		{
-			int const done = std::min(block_bytes_wanted(p.first), p.second);
-			st.total_done += done;
-			if (m_picker->piece_priority(p.first.piece_index) != dont_download)
-				st.total_wanted_done += done;
-		}
-
-		TORRENT_ASSERT(st.total_done <= m_torrent_file->total_size() - m_padding);
-		TORRENT_ASSERT(st.total_wanted_done <= m_torrent_file->total_size() - m_padding);
-
-#if TORRENT_USE_INVARIANT_CHECKS
-
-		if (st.total_done >= m_torrent_file->total_size())
-		{
-			// This happens when a piece has been downloaded completely
-			// but not yet verified against the hash
-			std::fprintf(stderr, "num_have: %d\nunfinished:\n", num_have());
-			for (auto const& dp : dl_queue)
-			{
-				std::fprintf(stderr, "  %d ", static_cast<int>(dp.index));
-				for (auto const& info : m_picker->blocks_for_piece(dp))
-				{
-					char const* state = info.state
-						== piece_picker::block_info::state_finished ? "1" : "0";
-					fputs(state, stderr);
-				}
-				fputs("\n", stderr);
-			}
-
-			fputs("downloading pieces:\n", stderr);
-
-			for (auto const& p : downloading_piece)
-			{
-				std::fprintf(stderr, "   %d:%d  %d\n"
-					, static_cast<int>(p.first.piece_index)
-					, p.first.block_index, p.second);
-			}
-
-		}
-
-		TORRENT_ASSERT(st.total_done <= m_torrent_file->total_size());
-		TORRENT_ASSERT(st.total_wanted_done <= m_torrent_file->total_size());
-
-#endif
-
-		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 	}
 
 	void torrent::on_piece_verified(piece_index_t const piece
@@ -4815,8 +4663,7 @@ bool is_downloading_state(int const st)
 		need_picker();
 
 		bool const was_finished = is_finished();
-		bool filter_updated = m_picker->set_piece_priority(index, priority);
-		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
+		bool const filter_updated = m_picker->set_piece_priority(index, priority);
 
 		update_gauge();
 
@@ -4876,7 +4723,6 @@ bool is_downloading_state(int const st)
 			}
 
 			filter_updated |= m_picker->set_piece_priority(p.first, p.second);
-			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
 		update_gauge();
 		if (filter_updated)
@@ -4917,7 +4763,6 @@ bool is_downloading_state(int const st)
 				, "we need assert prio >= dont_download");
 			TORRENT_ASSERT(prio <= top_priority);
 			filter_updated |= m_picker->set_piece_priority(index, prio);
-			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 			++index;
 		}
 		update_gauge();
@@ -7633,10 +7478,8 @@ bool is_downloading_state(int const st)
 		// this is slightly different from m_picker->is_finished()
 		// because any piece that has *passed* is considered here,
 		// which may be more than the piece we *have* (i.e. written to disk)
-		// keep in mind that num_filtered() does not include pieces we
-		// have that are filtered
 		return valid_metadata() && has_picker()
-			&& m_torrent_file->num_pieces() - m_picker->num_filtered() - m_picker->num_passed() == 0;
+			&& m_picker->want().num_pieces - m_picker->num_passed() == 0;
 	}
 
 	bool torrent::is_inactive() const
@@ -7957,7 +7800,6 @@ bool is_downloading_state(int const st)
 					}
 				}
 			}
-			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
 
 		if (valid_metadata())
@@ -9238,7 +9080,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(share_mode());
 		if (is_seed()) return;
 
-		int pieces_in_torrent = m_torrent_file->num_pieces();
+		int const pieces_in_torrent = m_torrent_file->num_pieces();
 		int num_seeds = 0;
 		int num_peers = 0;
 		int num_downloaders = 0;
@@ -9305,8 +9147,8 @@ bool is_downloading_state(int const st)
 		// now, download at least one piece, otherwise download one more
 		// piece if our downloaded (and downloading) pieces is less than 50%
 		// of the uploaded bytes
-		int const num_downloaded_pieces = std::max(m_picker->num_have()
-			, pieces_in_torrent - m_picker->num_filtered());
+		int const num_downloaded_pieces = std::max(m_picker->have().num_pieces
+			, m_picker->want().num_pieces);
 
 		if (std::int64_t(num_downloaded_pieces) * m_torrent_file->piece_length()
 			* settings().get_int(settings_pack::share_mode_target) > m_total_uploaded
@@ -10453,8 +10295,7 @@ bool is_downloading_state(int const st)
 
 		// to avoid race condition, if we're already in a downloading state,
 		// trigger the stop-when-ready logic immediately.
-		if (m_stop_when_ready
-			&& is_downloading_state(m_state))
+		if (m_stop_when_ready && is_downloading_state(m_state))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("stop_when_ready triggered");
@@ -10681,7 +10522,7 @@ bool is_downloading_state(int const st)
 		st->super_seeding = m_super_seeding;
 #endif
 		st->has_metadata = valid_metadata();
-		bytes_done(*st, bool(flags & torrent_handle::query_accurate_download_counters));
+		bytes_done(*st, flags);
 		TORRENT_ASSERT(st->total_wanted_done >= 0);
 		TORRENT_ASSERT(st->total_done >= st->total_wanted_done);
 

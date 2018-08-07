@@ -692,3 +692,52 @@ TORRENT_TEST(test_read_piece_out_of_range)
 			, lt::libtorrent_category()));
 	}
 }
+
+namespace {
+int const piece_size = 0x4000 * 2;
+
+file_storage test_fs()
+{
+	file_storage fs;
+	fs.set_piece_length(piece_size);
+	fs.add_file("temp", 999999);
+	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
+	return fs;
+}
+}
+
+TORRENT_TEST(test_calc_bytes_pieces)
+{
+	auto const fs = test_fs();
+	TEST_EQUAL(calc_bytes(fs, piece_count{2, 0, false}), 2 * piece_size);
+}
+
+TORRENT_TEST(test_calc_bytes_pieces_last)
+{
+	auto const fs = test_fs();
+	TEST_EQUAL(calc_bytes(fs, piece_count{2, 0, true}), piece_size + fs.total_size() % piece_size);
+}
+
+TORRENT_TEST(test_calc_bytes_no_pieces)
+{
+	auto const fs = test_fs();
+	TEST_EQUAL(calc_bytes(fs, piece_count{0, 0, false}), 0);
+}
+
+TORRENT_TEST(test_calc_bytes_all_pieces)
+{
+	auto const fs = test_fs();
+	TEST_EQUAL(calc_bytes(fs, piece_count{fs.num_pieces(), 0, true}), fs.total_size());
+}
+
+TORRENT_TEST(test_calc_bytes_all_pieces_one_pad)
+{
+	auto const fs = test_fs();
+	TEST_EQUAL(calc_bytes(fs, piece_count{fs.num_pieces(), 1, true}), fs.total_size() - 0x4000);
+}
+
+TORRENT_TEST(test_calc_bytes_all_pieces_two_pad)
+{
+	auto const fs = test_fs();
+	TEST_EQUAL(calc_bytes(fs, piece_count{fs.num_pieces(), 2, true}), fs.total_size() - 2 * 0x4000);
+}
