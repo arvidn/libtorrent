@@ -122,6 +122,9 @@ namespace libtorrent {
 		m_num_filtered += m_num_have_filtered;
 		m_num_have_filtered = 0;
 		m_num_have = 0;
+		m_have_pad_blocks = 0;
+		m_filtered_pad_blocks = 0;
+		m_have_filtered_pad_blocks = 0;
 		m_num_passed = 0;
 		m_dirty = true;
 		for (auto& m : m_piece_map)
@@ -445,8 +448,18 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(m_num_have >= 0);
 		TORRENT_ASSERT(m_num_have_filtered >= 0);
+		TORRENT_ASSERT(m_num_have_filtered <= m_num_have);
+		TORRENT_ASSERT(m_num_have_filtered + m_num_filtered <= num_pieces());
 		TORRENT_ASSERT(m_num_filtered >= 0);
 		TORRENT_ASSERT(m_seeds >= 0);
+		TORRENT_ASSERT(m_have_pad_blocks <= num_pad_blocks());
+		TORRENT_ASSERT(m_have_pad_blocks >= 0);
+		TORRENT_ASSERT(m_filtered_pad_blocks <= num_pad_blocks());
+		TORRENT_ASSERT(m_filtered_pad_blocks >= 0);
+		TORRENT_ASSERT(m_have_filtered_pad_blocks <= num_pad_blocks());
+		TORRENT_ASSERT(m_have_filtered_pad_blocks >= 0);
+		TORRENT_ASSERT(m_have_filtered_pad_blocks + m_filtered_pad_blocks <= num_pad_blocks());
+		TORRENT_ASSERT(m_have_filtered_pad_blocks <= m_have_pad_blocks);
 
 		// make sure the priority boundaries are monotonically increasing. The
 		// difference between two cursors cannot be negative, but ranges are
@@ -607,6 +620,9 @@ namespace libtorrent {
 		int num_filtered = 0;
 		int num_have_filtered = 0;
 		int num_have = 0;
+		int num_have_pad_blocks = 0;
+		int num_filtered_pad_blocks = 0;
+		int num_have_filtered_pad_blocks = 0;
 		piece_index_t piece(0);
 		for (auto i = m_piece_map.begin(); i != m_piece_map.end(); ++i, ++piece)
 		{
@@ -615,16 +631,25 @@ namespace libtorrent {
 			if (p.filtered())
 			{
 				if (p.index != piece_pos::we_have_index)
+				{
 					++num_filtered;
+					num_filtered_pad_blocks += pad_blocks_in_piece(piece);
+				}
 				else
+				{
 					++num_have_filtered;
+					num_have_filtered_pad_blocks += pad_blocks_in_piece(piece);
+				}
 			}
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			TORRENT_ASSERT(int(p.have_peers.size()) == p.peer_count + m_seeds);
 #endif
 			if (p.index == piece_pos::we_have_index)
+			{
 				++num_have;
+				num_have_pad_blocks += pad_blocks_in_piece(piece);
+			}
 
 			if (p.index == piece_pos::we_have_index)
 			{
@@ -637,7 +662,6 @@ namespace libtorrent {
 
 			int const prio = p.priority(this);
 
-#if TORRENT_USE_ASSERTS
 			if (p.downloading())
 			{
 				if (p.reverse())
@@ -649,7 +673,6 @@ namespace libtorrent {
 			{
 				TORRENT_ASSERT(prio == -1 || (prio % piece_picker::prio_factor == 1));
 			}
-#endif
 
 			if (!m_dirty)
 			{
@@ -714,6 +737,9 @@ namespace libtorrent {
 		TORRENT_ASSERT(num_have == m_num_have);
 		TORRENT_ASSERT(num_filtered == m_num_filtered);
 		TORRENT_ASSERT(num_have_filtered == m_num_have_filtered);
+		TORRENT_ASSERT(num_have_pad_blocks == m_have_pad_blocks);
+		TORRENT_ASSERT(num_filtered_pad_blocks == m_filtered_pad_blocks);
+		TORRENT_ASSERT(num_have_filtered_pad_blocks == m_have_filtered_pad_blocks);
 
 		if (!m_dirty)
 		{
@@ -1588,7 +1614,12 @@ namespace libtorrent {
 		--m_num_passed;
 		if (p.filtered())
 		{
+			m_filtered_pad_blocks += pad_blocks_in_piece(index);
 			++m_num_filtered;
+
+			TORRENT_ASSERT(m_have_filtered_pad_blocks >= pad_blocks_in_piece(index));
+			m_have_filtered_pad_blocks -= pad_blocks_in_piece(index);
+			TORRENT_ASSERT(m_num_have_filtered > 0);
 			--m_num_have_filtered;
 		}
 		else
@@ -1604,6 +1635,8 @@ namespace libtorrent {
 		}
 
 		--m_num_have;
+		m_have_pad_blocks -= pad_blocks_in_piece(index);
+		TORRENT_ASSERT(m_have_pad_blocks >= 0);
 		p.set_not_have();
 
 		if (m_dirty) return;
@@ -1643,11 +1676,18 @@ namespace libtorrent {
 
 		if (p.filtered())
 		{
+			TORRENT_ASSERT(m_filtered_pad_blocks >= pad_blocks_in_piece(index));
+			m_filtered_pad_blocks -= pad_blocks_in_piece(index);
+			TORRENT_ASSERT(m_num_filtered > 0);
 			--m_num_filtered;
+
+			m_have_filtered_pad_blocks += pad_blocks_in_piece(index);
 			++m_num_have_filtered;
 		}
 		++m_num_have;
 		++m_num_passed;
+		m_have_pad_blocks += pad_blocks_in_piece(index);
+		TORRENT_ASSERT(m_have_pad_blocks <= num_pad_blocks());
 		p.set_have();
 		if (m_cursor == prev(m_reverse_cursor)
 			&& m_cursor == index)
@@ -1711,10 +1751,12 @@ namespace libtorrent {
 			// the piece just got filtered
 			if (p.have())
 			{
+				m_have_filtered_pad_blocks += pad_blocks_in_piece(index);
 				++m_num_have_filtered;
 			}
 			else
 			{
+				m_filtered_pad_blocks += pad_blocks_in_piece(index);
 				++m_num_filtered;
 
 				// update m_cursor
@@ -1748,10 +1790,16 @@ namespace libtorrent {
 			// the piece just got unfiltered
 			if (p.have())
 			{
+				TORRENT_ASSERT(m_have_filtered_pad_blocks >= pad_blocks_in_piece(index));
+				m_have_filtered_pad_blocks -= pad_blocks_in_piece(index);
+				TORRENT_ASSERT(m_num_have_filtered > 0);
 				--m_num_have_filtered;
 			}
 			else
 			{
+				TORRENT_ASSERT(m_filtered_pad_blocks >= pad_blocks_in_piece(index));
+				m_filtered_pad_blocks -= pad_blocks_in_piece(index);
+				TORRENT_ASSERT(m_num_filtered > 0);
 				--m_num_filtered;
 				// update cursors
 				if (index < m_cursor) m_cursor = index;
@@ -3461,15 +3509,20 @@ get_out:
 		m_pad_blocks.insert(block);
 		// if we mark and entire piece as a pad file, we need to also
 		// consder that piece as "had" and increment some counters
-		using iter = std::set<piece_block>::const_iterator;
-		iter const begin = m_pad_blocks.lower_bound(piece_block(block.piece_index, 0));
 		int const blocks = blocks_in_piece(block.piece_index);
-		iter const end = m_pad_blocks.upper_bound(piece_block(block.piece_index, blocks));
-		if (std::distance(begin, end) == blocks)
+		if (pad_blocks_in_piece(block.piece_index) == blocks)
 		{
 			// the entire piece is a pad file
 			we_have(block.piece_index);
 		}
+	}
+
+	int piece_picker::pad_blocks_in_piece(piece_index_t const index) const
+	{
+		int const blocks = blocks_in_piece(index);
+		auto const begin = m_pad_blocks.lower_bound(piece_block(index, 0));
+		auto const end = m_pad_blocks.upper_bound(piece_block(index, blocks));
+		return int(std::distance(begin, end));
 	}
 
 	void piece_picker::get_downloaders(std::vector<torrent_peer*>& d
@@ -3588,6 +3641,38 @@ get_out:
 		}
 
 		i = update_piece_state(i);
+	}
+
+	piece_count piece_picker::want() const
+	{
+		bool const want_last = piece_priority(piece_index_t(num_pieces() - 1)) != dont_download;
+		return { num_pieces() - m_num_filtered - m_num_have_filtered
+			, num_pad_blocks() - m_filtered_pad_blocks - m_have_filtered_pad_blocks
+			, want_last };
+	}
+
+	piece_count piece_picker::have_want() const
+	{
+		bool const have_last = have_piece(piece_index_t(num_pieces() - 1));
+		bool const want_last = piece_priority(piece_index_t(num_pieces() - 1)) != dont_download;
+		return { m_num_have - m_num_have_filtered
+			, m_have_pad_blocks - m_have_filtered_pad_blocks
+			, have_last && want_last };
+	}
+
+	piece_count piece_picker::have() const
+	{
+		bool const have_last = have_piece(piece_index_t(num_pieces() - 1));
+		return { m_num_have
+			, m_have_pad_blocks
+			, have_last };
+	}
+
+	piece_count piece_picker::all_pieces() const
+	{
+		return { num_pieces()
+			, num_pad_blocks()
+			, true};
 	}
 
 }

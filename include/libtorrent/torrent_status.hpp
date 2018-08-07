@@ -250,6 +250,12 @@ TORRENT_VERSION_NAMESPACE_2
 		// ``total_payload_download``).
 		std::int64_t total_done = 0;
 
+		// the total number of bytes to download for this torrent. This
+		// may be less than the size of the torrent in case there are
+		// pad files. This number only counts bytes that will actually
+		// be requested from peers.
+		std::int64_t total = 0;
+
 		// the number of bytes we have downloaded, only counting the pieces that
 		// we actually want to download. i.e. excluding any pieces that we have
 		// but have priority 0 (i.e. not wanted).

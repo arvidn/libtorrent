@@ -316,9 +316,11 @@ TORRENT_IPV6_NAMESPACE_END
 		// calculates ``distributed_copies``, ``distributed_full_copies`` and
 		// ``distributed_fraction``.
 		static constexpr status_flags_t query_distributed_copies = 0_bit;
+
 		// includes partial downloaded blocks in ``total_done`` and
 		// ``total_wanted_done``.
 		static constexpr status_flags_t query_accurate_download_counters = 1_bit;
+
 		// includes ``last_seen_complete``.
 		static constexpr status_flags_t query_last_seen_complete = 2_bit;
 		// populate the ``pieces`` field in torrent_status.
