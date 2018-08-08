@@ -3439,40 +3439,24 @@ bool is_downloading_state(int const st)
 		// if we don't have the metadata yet, we
 		// cannot tell how big the torrent is.
 		if (!valid_metadata()) return {};
-		return m_torrent_file->total_size()
-			- quantized_bytes_done();
-	}
+		TORRENT_ASSERT(m_torrent_file->num_pieces() > 0);
+		if (m_seed_mode) return std::int64_t(0);
+		if (!has_picker()) return m_seed_mode ? std::int64_t(0) : m_torrent_file->total_size();
 
-	std::int64_t torrent::quantized_bytes_done() const
-	{
-//		INVARIANT_CHECK;
+		std::int64_t left
+			= m_torrent_file->total_size()
+			- std::int64_t(m_picker->num_passed()) * m_torrent_file->piece_length();
 
-		if (!valid_metadata()) return 0;
-
-		if (m_torrent_file->num_pieces() == 0)
-			return 0;
-
-		// if any piece hash fails, we'll be taken out of seed mode
-		// and m_seed_mode will be false
-		if (m_seed_mode) return m_torrent_file->total_size();
-
-		if (!has_picker()) return m_have_all ? m_torrent_file->total_size() : 0;
-
+		// if we have the last piece, we may have subtracted too much, as it can
+		// be smaller than the normal piece size.
+		// we have to correct it
 		piece_index_t const last_piece = prev(m_torrent_file->end_piece());
-
-		std::int64_t total_done
-			= std::int64_t(m_picker->num_passed()) * m_torrent_file->piece_length();
-
-		// if we have the last piece, we have to correct
-		// the amount we have, since the first calculation
-		// assumed all pieces were of equal size
 		if (m_picker->has_piece_passed(last_piece))
 		{
-			int const corr = m_torrent_file->piece_size(last_piece)
-				- m_torrent_file->piece_length();
-			total_done += corr;
+			left += m_torrent_file->piece_length() - m_torrent_file->piece_size(last_piece);
 		}
-		return total_done;
+
+		return left;
 	}
 
 	// returns the number of bytes we are interested
@@ -7987,20 +7971,6 @@ bool is_downloading_state(int const st)
 		}
 #endif
 
-		std::int64_t total_done = quantized_bytes_done();
-		if (m_torrent_file->is_valid())
-		{
-			if (is_seed())
-				TORRENT_ASSERT(total_done == m_torrent_file->total_size());
-			else
-				TORRENT_ASSERT(total_done != m_torrent_file->total_size() || !m_files_checked);
-
-			TORRENT_ASSERT(block_size() <= m_torrent_file->piece_length());
-		}
-		else
-		{
-			TORRENT_ASSERT(total_done == 0);
-		}
 /*
 		if (m_picker && !m_abort)
 		{
