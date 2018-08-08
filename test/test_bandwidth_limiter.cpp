@@ -167,9 +167,9 @@ void run_test(connections_t& v
 	}
 }
 
-bool close_to(float val, float comp, float err)
+bool close_to(float const val, float const comp, float const err)
 {
-	return fabs(val - comp) <= err;
+	return std::abs(val - comp) <= err;
 }
 
 void spawn_connections(connections_t& v, bandwidth_manager& bwm
