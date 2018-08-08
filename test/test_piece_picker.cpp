@@ -1287,47 +1287,6 @@ TORRENT_TEST(inc_ref_dec_ref)
 	TEST_EQUAL(test_pick(p), piece_index_t(0));
 }
 
-TORRENT_TEST(unverified_blocks)
-{
-	// test unverified_blocks, marking blocks and get_downloader
-	auto p = setup_picker("1111111", "       ", "", "0300700");
-	TEST_CHECK(p->unverified_blocks() == 2 + 3);
-	TEST_CHECK(p->get_downloader({piece_index_t(4), 0}) == tmp_peer);
-	TEST_CHECK(p->get_downloader({piece_index_t(4), 1}) == tmp_peer);
-	TEST_CHECK(p->get_downloader({piece_index_t(4), 2}) == tmp_peer);
-	TEST_CHECK(p->get_downloader({piece_index_t(4), 3}) == nullptr);
-	p->mark_as_downloading({piece_index_t(4), 3}, &peer_struct);
-	TEST_CHECK(p->get_downloader({piece_index_t(4), 3}) == &peer_struct);
-
-	piece_picker::downloading_piece st;
-	p->piece_info(piece_index_t(4), st);
-	TEST_CHECK(st.requested == 1);
-	TEST_CHECK(st.writing == 0);
-	TEST_CHECK(st.finished == 3);
-	TEST_CHECK(p->unverified_blocks() == 2 + 3);
-	p->mark_as_writing({piece_index_t(4), 3}, &peer_struct);
-	TEST_CHECK(p->get_downloader({piece_index_t(4), 3}) == &peer_struct);
-	p->piece_info(piece_index_t(4), st);
-	TEST_CHECK(st.requested == 0);
-	TEST_CHECK(st.writing == 1);
-	TEST_CHECK(st.finished == 3);
-	TEST_CHECK(p->unverified_blocks() == 2 + 3);
-	p->mark_as_finished({piece_index_t(4), 3}, &peer_struct);
-	TEST_CHECK(p->get_downloader({piece_index_t(4), 3}) == &peer_struct);
-	p->piece_info(piece_index_t(4), st);
-	TEST_CHECK(st.requested == 0);
-	TEST_CHECK(st.writing == 0);
-	TEST_CHECK(st.finished == 4);
-	TEST_CHECK(p->unverified_blocks() == 2 + 4);
-	p->we_have(piece_index_t(4));
-	p->piece_info(piece_index_t(4), st);
-	TEST_CHECK(st.requested == 0);
-	TEST_CHECK(st.writing == 0);
-	TEST_CHECK(st.finished == 4);
-	TEST_CHECK(p->get_downloader({piece_index_t(4), 3}) == nullptr);
-	TEST_CHECK(p->unverified_blocks() == 2);
-}
-
 TORRENT_TEST(prefer_cnotiguous_blocks)
 {
 	// test prefer_contiguous_blocks

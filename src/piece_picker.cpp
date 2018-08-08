@@ -1882,13 +1882,11 @@ namespace {
 		// make this scale by the number of peers we have. For large
 		// scale clients, we would have more peers, and allow a higher
 		// threshold for the number of partials
-		// deduct pad files because they case partial pieces which are OK
 		// the second condition is to make sure we cap the number of partial
 		// _bytes_. The larger the pieces are, the fewer partial pieces we want.
 		// 2048 corresponds to 32 MiB
 		// TODO: 2 make the 2048 limit configurable
-		const int num_partials = int(m_downloads[piece_pos::piece_downloading].size())
-			- m_num_pad_files;
+		const int num_partials = int(m_downloads[piece_pos::piece_downloading].size());
 		if (num_partials > num_peers * 3 / 2
 			|| num_partials * m_blocks_per_piece > 2048)
 		{
@@ -3591,19 +3589,6 @@ get_out:
 		}
 
 		i = update_piece_state(i);
-	}
-
-	int piece_picker::unverified_blocks() const
-	{
-		int counter = 0;
-		for (auto const& c : m_downloads)
-		{
-			for (auto const& dp : c)
-			{
-				counter += int(dp.finished);
-			}
-		}
-		return counter;
 	}
 
 }
