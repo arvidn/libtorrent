@@ -552,8 +552,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" *** session thread init");
 #endif
-		if (m_alerts.should_post<session_stats_header_alert>())
-			m_alerts.emplace_alert<session_stats_header_alert>();
 
 		// this is where we should set up all async operations. This
 		// is called from within the network thread as opposed to the
@@ -4622,6 +4620,11 @@ namespace aux {
 
 	void session_impl::post_session_stats()
 	{
+		if (!m_posted_stats_header)
+		{
+			m_posted_stats_header = true;
+			m_alerts.emplace_alert<session_stats_header_alert>();
+		}
 		m_disk_thread.update_stats_counters(m_stats_counters);
 
 #ifndef TORRENT_DISABLE_DHT

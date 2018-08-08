@@ -2755,8 +2755,8 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::allocation_slot m_v6_nodes_idx;
 	};
 
-	// The session_stats_header alert is posted during the init of the
-	// session thread.
+	// The session_stats_header alert is posted the first time
+	// post_session_stats() is called
 	//
 	// the ``message()`` member function returns a string representation of the
 	// header that properly match the stats values string returned in

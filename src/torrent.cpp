@@ -10061,12 +10061,14 @@ bool is_downloading_state(int const st)
 
 		if (p == nullptr)
 		{
+			m_stats_counters.inc_stats_counter(counters::no_peer_connection_attempts);
 			update_want_peers();
 			return false;
 		}
 
 		if (!connect_to_peer(p))
 		{
+			m_stats_counters.inc_stats_counter(counters::missed_connection_attempts);
 			m_peer_list->inc_failcount(p);
 			update_want_peers();
 			return false;

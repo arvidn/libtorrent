@@ -721,7 +721,11 @@ namespace aux {
 			{ return &m_ssl_utp_socket_manager; }
 #endif
 
-			void inc_boost_connections() override { ++m_boost_connections; }
+			void inc_boost_connections() override
+			{
+				++m_boost_connections;
+				m_stats_counters.inc_stats_counter(counters::boost_connection_attempts);
+			}
 
 			// the settings for the client
 			aux::session_settings m_settings;
@@ -1297,6 +1301,10 @@ namespace aux {
 
 			// is true if the session is paused
 			bool m_paused = false;
+
+			// set to true the first time post_session_stats() is
+			// called and we post the headers alert
+			bool m_posted_stats_header = false;
 		};
 
 #ifndef TORRENT_DISABLE_LOGGING
