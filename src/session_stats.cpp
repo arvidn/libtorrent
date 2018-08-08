@@ -123,6 +123,9 @@ namespace {
 
 		METRIC(peer, connection_attempts)
 		METRIC(peer, connection_attempt_loops)
+		METRIC(peer, boost_connection_attempts)
+		METRIC(peer, missed_connection_attempts)
+		METRIC(peer, no_peer_connection_attempts)
 		METRIC(peer, incoming_connections)
 
 		// the number of peer connections for each kind of socket.

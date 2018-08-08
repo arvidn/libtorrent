@@ -116,6 +116,18 @@ namespace libtorrent {
 			// the number of iterations over the peer list when finding
 			// a connect candidate
 			connection_attempt_loops,
+
+			// the number of peer connection attempts made as high
+			// priority connections for new torrents
+			boost_connection_attempts,
+
+			// calls to torrent::connect_to_peer() that failed
+			missed_connection_attempts,
+
+			// calls to peer_list::connect_one_peer() resulting in
+			// no peer candidate being found
+			no_peer_connection_attempts,
+
 			// successful incoming connections (not rejected for any reason)
 			incoming_connections,
 

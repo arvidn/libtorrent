@@ -536,8 +536,12 @@ class test_session(unittest.TestCase):
         while len(alerts) == 0:
             s.wait_for_alert(1000)
             alerts = s.pop_alerts()
-        a = alerts.pop(0)
-        print(a)
+
+        while len(alerts) > 0:
+            a = alerts.pop(0)
+            print(a)
+            if isinstance(a, lt.session_stats_header_alert):
+                break
         self.assertTrue(isinstance(a, lt.session_stats_header_alert))
         # then the actual stats values
         while len(alerts) == 0:
@@ -554,12 +558,6 @@ class test_session(unittest.TestCase):
         s.post_dht_stats()
         alerts = []
         # first the stats headers log line. but not if logging is disabled
-        while len(alerts) == 0:
-            s.wait_for_alert(1000)
-            alerts = s.pop_alerts()
-        a = alerts.pop(0)
-        self.assertTrue(isinstance(a, lt.session_stats_header_alert))
-        print(a.message())
         while len(alerts) == 0:
             s.wait_for_alert(1000)
             alerts = s.pop_alerts()

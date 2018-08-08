@@ -45,9 +45,11 @@ output_dir = 'session_stats_report'
 
 stat = open(sys.argv[1])
 line = stat.readline()
+print('looking for stats header')
 while 'session stats header:' not in line:
     line = stat.readline()
 
+print('found')
 keys = line.split('session stats header:')[1].strip().split(', ')
 
 try:
@@ -129,7 +131,7 @@ for i in range(0, 6):
 def plot_fun(script):
     ret = os.system('gnuplot "%s" 2>/dev/null' % script)
     if ret != 0 and ret != 256:
-        print('system: %d\n' % ret)
+        print('gnuplot failed: %d\n' % ret)
         raise Exception("abort")
 
     sys.stdout.write('.')
@@ -333,7 +335,8 @@ reports = [
      'peer.num_peers_connected', 'peer.num_peers_half_open'], {'type': stacked}),
     ('peers_max', 'num', '', 'num connected peers', ['peer.num_peers_connected', 'peer.num_peers_half_open']),
     ('peer_churn', 'num', '', 'connecting and disconnecting peers',
-     ['peer.num_peers_half_open', 'peer.connection_attempts']),
+     ['peer.num_peers_half_open', 'peer.connection_attempts', 'peer.boost_connection_attempts',
+      'peer.missed_connection_attempts', 'peer.no_peer_connection_attempts']),
     ('new_peers', 'num', '', '', ['peer.incoming_connections', 'peer.connection_attempts']),
     ('connection_attempts', 'num', '', '', ['peer.connection_attempt_loops', 'peer.connection_attempts']),
     ('pieces', 'num', '', 'number completed pieces', [
@@ -536,9 +539,6 @@ reports = [
         'disk.arc_mfu_ghost_size' \
     ], {'allow-negative': True}),
 
-    ('torrent churn', 'num torrents', '', '', ['ses.num_loaded_torrents', 'ses.num_pinned_torrents']),
-    ('pinned torrents', 'num torrents', '', '', ['ses.num_pinned_torrents']),
-    ('loaded torrents', 'num torrents', '', '', ['ses.num_loaded_torrents', 'ses.num_pinned_torrents']),
     ('request latency', 'us', '', 'latency from receiving requests to sending response', ['disk.request_latency']),
     ('incoming messages', 'num', '', 'number of received bittorrent messages, by type', [ \
         'ses.num_incoming_choke', \
@@ -639,7 +639,7 @@ g = 0
 generations = []
 scripts = []
 
-print('[%s] %04d\r[' % (' ' * len(reports), g), end=' ')
+print('[%s] %04d\r[' % (' ' * len(reports), g), end='')
 for i in reports:
     try:
         options = i[5]
