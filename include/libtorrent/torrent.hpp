@@ -1580,13 +1580,6 @@ namespace libtorrent
 		// work of refreshing the suggest pieces
 		bool m_need_suggest_pieces_refresh:1;
 
-		// this is set to true when the torrent starts up
-		// The first tracker response, when this is true,
-		// will attempt to connect to a bunch of peers immediately
-		// and set this to false. We only do this once to get
-		// the torrent kick-started
-		bool m_need_connect_boost:1;
-
 		// rotating sequence number for LSD announces sent out.
 		// used to only use IP broadcast for every 8th lsd announce
 		boost::uint8_t m_lsd_seq:3;
@@ -1610,7 +1603,14 @@ namespace libtorrent
 		// the number of bytes of padding files
 		boost::uint32_t m_padding:24;
 
-		// TODO: gap of 8 bits available here
+		// this is set to the connect boost quota for this torrent.
+		// After having received this many priority peer connection attempts, it
+		// falls back onto the steady state peer connection logic, driven by the
+		// session tick. Each tracker response, as long as this is non-zero, will
+		// attempt to connect to peers immediately and decrement the counter.
+		// We give torrents a connect boost when they are first added and then
+		// every time they resume from being paused.
+		boost::uint8_t m_connect_boost_counter;
 
 // ----
 

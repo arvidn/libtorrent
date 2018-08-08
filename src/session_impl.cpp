@@ -4046,16 +4046,14 @@ retry:
 		// attempt this tick
 		int max_connections = m_settings.get_int(settings_pack::connection_speed);
 
-		// zero connections speeds are allowed, we just won't make any connections
-		if (max_connections <= 0) return;
-
 		// this loop will "hand out" connection_speed to the torrents, in a round
 		// robin fashion, so that every torrent is equally likely to connect to a
 		// peer
 
 		// boost connections are connections made by torrent connection
 		// boost, which are done immediately on a tracker response. These
-		// connections needs to be deducted from this second
+		// connections needs to be deducted from the regular connection attempt
+		// quota for this tick
 		if (m_boost_connections > 0)
 		{
 			if (m_boost_connections > max_connections)
@@ -4069,6 +4067,9 @@ retry:
 				m_boost_connections = 0;
 			}
 		}
+
+		// zero connections speeds are allowed, we just won't make any connections
+		if (max_connections <= 0) return;
 
 		// TODO: use a lower limit than m_settings.connections_limit
 		// to allocate the to 10% or so of connection slots for incoming
