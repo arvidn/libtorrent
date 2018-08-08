@@ -479,7 +479,6 @@ namespace libtorrent {
 		boost::optional<std::int64_t> bytes_left() const;
 		int block_bytes_wanted(piece_block const& p) const;
 		void bytes_done(torrent_status& st, bool accurate) const;
-		std::int64_t quantized_bytes_done() const;
 
 		void sent_bytes(int bytes_payload, int bytes_protocol);
 		void received_bytes(int bytes_payload, int bytes_protocol);
