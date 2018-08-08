@@ -1021,8 +1021,8 @@ void test_scrape(address(&rand_addr)())
 		std::printf("seeds: %f\n", double(seeds.size()));
 		std::printf("downloaders: %f\n", double(downloaders.size()));
 
-		TEST_CHECK(fabs(seeds.size() - 50.f) <= 3.f);
-		TEST_CHECK(fabs(downloaders.size() - 50.f) <= 3.f);
+		TEST_CHECK(std::abs(seeds.size() - 50.f) <= 3.f);
+		TEST_CHECK(std::abs(downloaders.size() - 50.f) <= 3.f);
 	}
 	else
 	{
@@ -1187,7 +1187,7 @@ TORRENT_TEST(bloom_filter)
 	std::printf("%s\n", aux::to_hex(bf_str).c_str());
 	if (supports_ipv6())
 	{
-		TEST_CHECK(double(fabs(test.size() - 1224.93f)) < 0.001);
+		TEST_CHECK(std::abs(double(test.size()) - 1224.93) < 0.001);
 		TEST_CHECK(aux::to_hex(bf_str) ==
 			"f6c3f5eaa07ffd91bde89f777f26fb2b"
 			"ff37bdb8fb2bbaa2fd3ddde7bacfff75"
@@ -1208,7 +1208,7 @@ TORRENT_TEST(bloom_filter)
 	}
 	else
 	{
-		TEST_CHECK(double(fabs(test.size() - 257.854f)) < 0.001);
+		TEST_CHECK(std::abs(double(test.size()) - 257.854) < 0.001);
 		TEST_CHECK(aux::to_hex(bf_str) ==
 			"24c0004020043000102012743e004800"
 			"37110820422110008000c0e302854835"
