@@ -179,6 +179,7 @@ retry:
 
 bool print_trackers = false;
 bool print_peers = false;
+bool print_connecting_peers = false;
 bool print_log = false;
 bool print_downloads = false;
 bool print_matrix = false;
@@ -326,8 +327,11 @@ int print_peer_info(std::string& out
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
 	{
-		if (i->flags & (peer_info::handshake | peer_info::connecting))
+		if ((i->flags & (peer_info::handshake | peer_info::connecting)
+			&& !print_connecting_peers))
+		{
 			continue;
+		}
 
 		if (print_ip)
 		{
@@ -1570,6 +1574,7 @@ example alert_masks:
 				if (c == 'x') print_disk_stats = !print_disk_stats;
 				// toggle columns
 				if (c == '1') print_ip = !print_ip;
+				if (c == '2') print_connecting_peers = !print_connecting_peers;
 				if (c == '3') print_timers = !print_timers;
 				if (c == '4') print_block = !print_block;
 				if (c == '5') print_peer_rate = !print_peer_rate;
@@ -1612,7 +1617,7 @@ up/down arrow keys: select torrent
 [y] toggle show piece matrix
 
 COLUMN OPTIONS
-[1] toggle IP column                            [2]
+[1] toggle IP column                            [2] toggle show peer connection attempts
 [3] toggle timers column                        [4] toggle block progress column
 [5] toggle peer rate column                     [6] toggle failures column
 [7] toggle send buffers column
