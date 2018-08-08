@@ -1802,13 +1802,10 @@ bool is_downloading_state(int const st)
 		{
 			need_picker();
 
-			int num_pad_files = 0;
 			TORRENT_ASSERT(block_size() > 0);
 
 			for (auto const i : fs.file_range())
 			{
-				if (fs.pad_file_at(i)) ++num_pad_files;
-
 				if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
 				m_padding += std::uint32_t(fs.file_size(i));
 
@@ -1859,9 +1856,6 @@ bool is_downloading_state(int const st)
 					we_have(i);
 				}
 			}
-
-			if (num_pad_files > 0)
-				m_picker->set_num_pad_files(num_pad_files);
 		}
 
 		set_state(torrent_status::checking_resume_data);
