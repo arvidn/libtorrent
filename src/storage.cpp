@@ -463,7 +463,7 @@ namespace libtorrent
 					return;
 				}
 
-				if (m_part_file)
+				if (m_part_file && use_partfile(i))
 				{
 					m_part_file->export_file(*f, fs.file_offset(i), fs.file_size(i), ec.ec);
 					if (ec)
