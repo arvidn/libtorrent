@@ -530,7 +530,6 @@ feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEB
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
-feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
 
 feature profile-calls : off on : composite propagated link-incompatible ;
 feature.compose <profile-calls>on : <define>TORRENT_PROFILE_CALLS=1 ;
