@@ -321,6 +321,7 @@ namespace libtorrent { namespace {
 			p = pex_msg.dict_find_string("added");
 			bdecode_node const pf = pex_msg.dict_find_string("added.f");
 
+			bool peers_added = false;
 #ifndef TORRENT_DISABLE_LOGGING
 			if (p) num_added += p.string_length() / 6;
 #endif
@@ -347,6 +348,7 @@ namespace libtorrent { namespace {
 					if (j != m_peers.end() && *j == v) continue;
 					m_peers.insert(j, v);
 					m_torrent.add_peer(adr, peer_info::pex, flags);
+					peers_added = true;
 				}
 			}
 
@@ -398,6 +400,7 @@ namespace libtorrent { namespace {
 					if (j != m_peers6.end() && *j == v) continue;
 					m_peers6.insert(j, v);
 					m_torrent.add_peer(adr, peer_info::pex, flags);
+					peers_added = true;
 				}
 			}
 #endif
@@ -407,6 +410,8 @@ namespace libtorrent { namespace {
 #endif
 
 			m_pc.stats_counters().inc_stats_counter(counters::num_incoming_pex);
+
+			if (peers_added) m_torrent.do_connect_boost();
 			return true;
 		}
 

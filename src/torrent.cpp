@@ -207,12 +207,12 @@ bool is_downloading_state(int const st)
 		, m_max_uploads((1 << 24) - 1)
 		, m_save_resume_flags()
 		, m_num_uploads(0)
-		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
 		, m_pending_active_change(false)
 		, m_padding(0)
+		, m_connect_boost_counter(static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
 		, m_ssl_torrent(false)
@@ -3267,23 +3267,24 @@ bool is_downloading_state(int const st)
 
 	void torrent::do_connect_boost()
 	{
-		if (!m_need_connect_boost) return;
+		if (m_connect_boost_counter == 0) return;
 
 		// this is the first tracker response for this torrent
 		// instead of waiting one second for session_impl::on_tick()
 		// to be called, connect to a few peers immediately
-		int conns = std::min(
-			settings().get_int(settings_pack::torrent_connect_boost)
+		int conns = std::min(int(m_connect_boost_counter)
 			, settings().get_int(settings_pack::connections_limit) - m_ses.num_connections());
 
-		if (conns > 0) m_need_connect_boost = false;
+		if (conns == 0) return;
 
 		// if we don't know of any peers
 		if (!m_peer_list) return;
 
 		while (want_peers() && conns > 0)
 		{
+			TORRENT_ASSERT(m_connect_boost_counter > 0);
 			--conns;
+			--m_connect_boost_counter;
 			torrent_state st = get_peer_list_state();
 			torrent_peer* p = m_peer_list->connect_one_peer(m_ses.session_time(), &st);
 			peers_erased(st.erased);
@@ -8496,7 +8497,8 @@ bool is_downloading_state(int const st)
 		}
 #endif
 
-		m_need_connect_boost = true;
+		m_connect_boost_counter
+			= static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost));
 		m_inactive = false;
 
 		update_state_list();

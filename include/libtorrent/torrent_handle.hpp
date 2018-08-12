@@ -689,9 +689,8 @@ TORRENT_IPV6_NAMESPACE_END
 		//	extern int outstanding_resume_data; // global counter of outstanding resume data
 		//	std::vector<torrent_handle> handles = ses.get_torrents();
 		//	ses.pause();
-		//	for (torrent_handle i : handles)
+		//	for (torrent_handle const& h : handles)
 		//	{
-		//		torrent_handle& h = *i;
 		//		if (!h.is_valid()) continue;
 		//		torrent_status s = h.status();
 		//		if (!s.has_metadata || !s.need_save_resume_data()) continue;
@@ -705,7 +704,7 @@ TORRENT_IPV6_NAMESPACE_END
 		//		alert const* a = ses.wait_for_alert(seconds(10));
 		//
 		//		// if we don't get an alert within 10 seconds, abort
-		//		if (a == 0) break;
+		//		if (a == nullptr) break;
 		//
 		//		std::vector<alert*> alerts;
 		//		ses.pop_alerts(&alerts);
@@ -720,7 +719,7 @@ TORRENT_IPV6_NAMESPACE_END
 		//			}
 		//
 		//			save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
-		//			if (rd == 0)
+		//			if (rd == nullptr)
 		//			{
 		//				process_alert(a);
 		//				continue;
@@ -754,9 +753,10 @@ TORRENT_IPV6_NAMESPACE_END
 		// time.
 		//
 		//.. note::
-		//	A torrent's resume data is considered saved as soon as the alert is
-		//	posted. It is important to make sure this alert is received and
-		//	handled in order for this function to be meaningful.
+		//	A torrent's resume data is considered saved as soon as the
+		//	save_resume_data_alert is posted. It is important to make sure this
+		//	alert is received and handled in order for this function to be
+		//	meaningful.
 		bool need_save_resume_data() const;
 
 		// Every torrent that is added is assigned a queue position exactly one

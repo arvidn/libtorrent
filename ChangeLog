@@ -88,6 +88,8 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* improve connect-boost feature, to make new torrents quickly connect peers
+
 1.1.9 release
 
 	* save both file and piece priorities in resume file

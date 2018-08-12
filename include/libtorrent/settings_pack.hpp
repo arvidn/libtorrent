@@ -1444,6 +1444,7 @@ namespace libtorrent {
 			// them starting up. The normal connect scheduler is run once every
 			// second, this allows peers to be connected immediately instead of
 			// waiting for the session tick to trigger connections.
+			// This may not be set higher than 255.
 			torrent_connect_boost,
 
 			// ``alert_queue_size`` is the maximum number of alerts queued up

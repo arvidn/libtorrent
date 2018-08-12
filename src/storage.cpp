@@ -139,7 +139,7 @@ namespace libtorrent {
 					return;
 				}
 
-				if (m_part_file)
+				if (m_part_file && use_partfile(i))
 				{
 					m_part_file->export_file([&f, &ec](std::int64_t file_offset, span<char> buf)
 					{

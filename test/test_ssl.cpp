@@ -79,7 +79,7 @@ struct test_config_t
 	int ssl_disconnects;
 };
 
-test_config_t test_config[] =
+test_config_t const test_config[] =
 {
 	// name                                                              sslport sd-cert dl-cert dl-port expect peer-error ssl-disconn
 	{"nobody has a cert (connect to regular port)",                      false,  false,  false,  true,   false, 0, 1},
@@ -125,7 +125,7 @@ bool on_alert(alert const* a)
 	return false;
 }
 
-void test_ssl(int test_idx, bool use_utp)
+void test_ssl(int const test_idx, bool const use_utp)
 {
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -289,10 +289,13 @@ void test_ssl(int test_idx, bool use_utp)
 
 	std::printf("peer_errors: %d expected_errors: %d\n"
 		, peer_errors, test.peer_errors);
-	TEST_EQUAL(peer_errors > 0, test.peer_errors > 0);
 
 	std::printf("ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
-	TEST_EQUAL(ssl_peer_disconnects > 0, test.ssl_disconnects > 0);
+	if (!use_utp)
+	{
+		TEST_EQUAL(ssl_peer_disconnects > 0, test.ssl_disconnects > 0);
+		TEST_EQUAL(peer_errors > 0, test.peer_errors > 0);
+	}
 
 	char const* now = time_now_string();
 	std::printf("%s: EXPECT: %s\n", now, test.expected_to_complete ? "SUCCEESS" : "FAILURE");
@@ -328,7 +331,7 @@ enum attack_flags_t
 	valid_bittorrent_hash = 16,
 };
 
-attack_t attacks[] =
+attack_t const attacks[] =
 {
 	// positive test
 	{ valid_certificate | valid_sni_hash | valid_bittorrent_hash, true},
