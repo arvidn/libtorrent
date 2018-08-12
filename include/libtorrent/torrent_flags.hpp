@@ -175,6 +175,11 @@ namespace torrent_flags {
 	// for the state_changed_alert and then call pause(). The download/seeding
 	// will most likely start in between posting the alert and receiving the
 	// call to pause.
+	//
+	// A downloading state is one where peers are being connected. Which means
+	// just downloading the metadata via the ``ut_metadata`` extension counts
+	// as a downloading state. In order to stop a torrent once the metadata
+	// has been downloaded, instead set all file priorities to dont_download
 	constexpr torrent_flags_t stop_when_ready = 10_bit;
 
 	// when this flag is set, the tracker list in the add_torrent_params

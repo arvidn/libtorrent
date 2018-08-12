@@ -275,9 +275,7 @@ namespace {
 		// number of disk threads for low level file operations
 		set.set_int(settings_pack::aio_threads, 8);
 
-		// keep 5 MiB outstanding when checking hashes
-		// of a resumed file
-		set.set_int(settings_pack::checking_mem_usage, 320);
+		set.set_int(settings_pack::checking_mem_usage, 2048);
 
 		return set;
 	}
