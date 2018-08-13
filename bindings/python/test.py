@@ -45,6 +45,13 @@ class test_create_torrent(unittest.TestCase):
 
 class test_session_stats(unittest.TestCase):
 
+    def test_add_torrent_params(self):
+        atp = lt.add_torrent_params()
+
+        for field_name in dir(atp):
+            field = getattr(atp, field_name)
+            print(field_name, field)
+
     def test_unique(self):
         metrics = lt.session_stats_metrics()
         self.assertTrue(len(metrics) > 40)
