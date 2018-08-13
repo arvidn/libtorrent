@@ -109,7 +109,7 @@ test_script:
 # we use 64 bit python build
 - if defined python (
   copy dependencies\*.* .
-  & c:\Python35-x64\python.exe test.py
+  & c:\Python35-x64\python.exe test.py -b
   )
 
 # simulation tests
