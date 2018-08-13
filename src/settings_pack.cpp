@@ -334,7 +334,7 @@ namespace libtorrent
 		SET(utp_loss_multiplier, 50, 0),
 		SET(mixed_mode_algorithm, settings_pack::peer_proportional, 0),
 		SET(listen_queue_size, 5, 0),
-		SET(torrent_connect_boost, 80, 0),
+		SET(torrent_connect_boost, 30, 0),
 		SET(alert_queue_size, 1000, &session_impl::update_alert_queue_size),
 		SET(max_metadata_size, 3 * 1024 * 10240, 0),
 		DEPRECATED_SET(hashing_threads, 1, 0),
