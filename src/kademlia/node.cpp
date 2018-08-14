@@ -223,10 +223,6 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 
 	for (auto const& n : nodes)
 	{
-#if !TORRENT_USE_IPV6
-		if (is_v6(n)) continue;
-#endif
-
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
@@ -282,7 +278,6 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 			ext_ip = r.dict_find_string("ip");
 	}
 
-#if TORRENT_USE_IPV6
 	if (ext_ip && ext_ip.string_length() >= 16)
 	{
 		// this node claims we use the wrong node-ID!
@@ -291,9 +286,8 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 		if (m_observer != nullptr)
 			m_observer->set_external_address(m_sock, address_v6(b)
 				, m.addr.address());
-	} else
-#endif
-	if (ext_ip && ext_ip.string_length() >= 4)
+	}
+	else if (ext_ip && ext_ip.string_length() >= 4)
 	{
 		address_v4::bytes_type b{};
 		std::memcpy(&b[0], ext_ip.string_ptr(), 4);

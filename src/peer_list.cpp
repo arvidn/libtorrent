@@ -734,21 +734,15 @@ namespace libtorrent {
 				);
 			}
 
-#if TORRENT_USE_IPV6
 			bool const is_v6 = lt::is_v6(c.remote());
-#else
-			bool const is_v6 = false;
-#endif
 			torrent_peer* p = m_peer_allocator.allocate_peer_entry(
 				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
 				: torrent_peer_allocator_interface::ipv4_peer_type);
 			if (p == nullptr) return false;
 
-#if TORRENT_USE_IPV6
 			if (is_v6)
 				new (p) ipv6_peer(c.remote(), false, {});
 			else
-#endif
 				new (p) ipv4_peer(c.remote(), false, {});
 
 			iter = m_peers.insert(iter, p);
@@ -1043,13 +1037,11 @@ namespace libtorrent {
 		if (remote_address == address() || remote.port() == 0)
 			return nullptr;
 
-#if TORRENT_USE_IPV6
 		// don't allow link-local IPv6 addresses since they
 		// can't be used like normal addresses, they require an interface
 		// and will just cause connect() to fail with EINVAL
 		if (remote_address.is_v6() && remote_address.to_v6().is_link_local())
 			return nullptr;
-#endif
 
 		iterator iter;
 		torrent_peer* p = nullptr;
@@ -1075,21 +1067,15 @@ namespace libtorrent {
 			// we don't have any info about this peer.
 			// add a new entry
 
-#if TORRENT_USE_IPV6
 			bool const is_v6 = remote_address.is_v6();
-#else
-			bool const is_v6 = false;
-#endif
 			p = m_peer_allocator.allocate_peer_entry(
 				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
 				: torrent_peer_allocator_interface::ipv4_peer_type);
 			if (p == nullptr) return nullptr;
 
-#if TORRENT_USE_IPV6
 			if (is_v6)
 				new (p) ipv6_peer(remote, true, src);
 			else
-#endif
 				new (p) ipv4_peer(remote, true, src);
 
 			try

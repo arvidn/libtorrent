@@ -88,7 +88,6 @@ namespace libtorrent {
 			detail::write_uint16(e2.port(), ptr);
 			ret = crc32c_32(p);
 		}
-#if TORRENT_USE_IPV6
 		else if (is_v6(e1))
 		{
 			static const std::uint8_t v6mask[][8] = {
@@ -109,7 +108,6 @@ namespace libtorrent {
 			memcpy(&addrbuf[2], b2.data(), 16);
 			ret = crc32c(addrbuf, 4);
 		}
-#endif
 		else
 		{
 			static const std::uint8_t v4mask[][4] = {
@@ -158,9 +156,7 @@ namespace libtorrent {
 		// retry with encryption
 		, pe_support(false)
 #endif
-#if TORRENT_USE_IPV6
 		, is_v6_addr(false)
-#endif
 #if TORRENT_USE_I2P
 		, is_i2p_addr(false)
 #endif
@@ -228,9 +224,7 @@ namespace libtorrent {
 		: torrent_peer(ep.port(), c, src)
 		, addr(ep.address().to_v4())
 	{
-#if TORRENT_USE_IPV6
 		is_v6_addr = false;
-#endif
 #if TORRENT_USE_I2P
 		is_i2p_addr = false;
 #endif
@@ -245,14 +239,11 @@ namespace libtorrent {
 		: torrent_peer(0, connectable, src)
 		, destination(dest)
 	{
-#if TORRENT_USE_IPV6
 		is_v6_addr = false;
-#endif
 		is_i2p_addr = true;
 	}
 #endif // TORRENT_USE_I2P
 
-#if TORRENT_USE_IPV6
 	ipv6_peer::ipv6_peer(tcp::endpoint const& ep, bool c
 		, peer_source_flags_t const src)
 		: torrent_peer(ep.port(), c, src)
@@ -266,8 +257,6 @@ namespace libtorrent {
 
 	ipv6_peer::ipv6_peer(ipv6_peer const&) = default;
 
-#endif // TORRENT_USE_IPV6
-
 #if TORRENT_USE_I2P
 	string_view torrent_peer::dest() const
 	{
@@ -279,12 +268,10 @@ namespace libtorrent {
 
 	libtorrent::address torrent_peer::address() const
 	{
-#if TORRENT_USE_IPV6
 		if (is_v6_addr)
 			return libtorrent::address_v6(
 				static_cast<ipv6_peer const*>(this)->addr);
 		else
-#endif
 #if TORRENT_USE_I2P
 		if (is_i2p_addr) return libtorrent::address();
 		else

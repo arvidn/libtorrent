@@ -172,7 +172,6 @@ namespace libtorrent {
 			}
 		}
 
-#if TORRENT_USE_IPV6
 		if (!tracker_req().ipv6.empty() && !i2p)
 		{
 			for (auto const& v6 : tracker_req().ipv6)
@@ -184,7 +183,6 @@ namespace libtorrent {
 				url += escape_string(ip);
 			}
 		}
-#endif
 
 		if (!tracker_req().outgoing_socket)
 		{
@@ -540,7 +538,6 @@ namespace libtorrent {
 			peers_ent.clear();
 		}
 
-#if TORRENT_USE_IPV6
 		bdecode_node ipv6_peers = e.dict_find_string("peers6");
 		if (ipv6_peers)
 		{
@@ -561,9 +558,6 @@ namespace libtorrent {
 		{
 			ipv6_peers.clear();
 		}
-#else
-		bdecode_node ipv6_peers;
-#endif
 /*
 		// if we didn't receive any peers. We don't care if we're stopping anyway
 		if (peers_ent == 0 && ipv6_peers == 0
@@ -579,10 +573,8 @@ namespace libtorrent {
 			char const* p = ip_ent.string_ptr();
 			if (ip_ent.string_length() == std::tuple_size<address_v4::bytes_type>::value)
 				resp.external_ip = detail::read_v4_address(p);
-#if TORRENT_USE_IPV6
 			else if (ip_ent.string_length() == std::tuple_size<address_v6::bytes_type>::value)
 				resp.external_ip = detail::read_v6_address(p);
-#endif
 		}
 
 		return resp;

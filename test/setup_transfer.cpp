@@ -126,7 +126,6 @@ sha1_hash to_hash(char const* s)
 	return ret;
 }
 
-#if TORRENT_USE_IPV6
 address rand_v6()
 {
 	address_v6::bytes_type bytes;
@@ -134,7 +133,6 @@ address rand_v6()
 		bytes[static_cast<std::size_t>(i)] = std::uint8_t(lt::random(0xff));
 	return address_v6(bytes);
 }
-#endif
 
 static std::uint16_t g_port = 0;
 
@@ -1025,7 +1023,6 @@ lt::address_v4 addr4(char const* ip)
 	return ret;
 }
 
-#if TORRENT_USE_IPV6
 lt::address_v6 addr6(char const* ip)
 {
 	lt::error_code ec;
@@ -1033,4 +1030,3 @@ lt::address_v6 addr6(char const* ip)
 	TEST_CHECK(!ec);
 	return ret;
 }
-#endif

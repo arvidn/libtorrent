@@ -119,13 +119,11 @@ namespace libtorrent { namespace dht {
 		if (s.is_ssl()) return;
 
 		address const local_address = s.get_local_endpoint().address();
-#if TORRENT_USE_IPV6
 		// don't try to start dht nodes on non-global IPv6 addresses
 		// with IPv4 the interface might be behind NAT so we can't skip them based on the scope of the local address
 		// and we might not have the external address yet
 		if (local_address.is_v6() && is_local(local_address))
 			return;
-#endif
 		auto stored_nid = std::find_if(m_state.nids.begin(), m_state.nids.end()
 			, [&](node_ids_t::value_type const& nid) { return nid.first == local_address; });
 		node_id const nid = stored_nid != m_state.nids.end() ? stored_nid->second : node_id();
@@ -160,12 +158,10 @@ namespace libtorrent { namespace dht {
 	{
 		if (s.is_ssl()) return;
 
-#if TORRENT_USE_IPV6
 		address local_address = s.get_local_endpoint().address();
 		// since we don't start nodes on local IPv6 interfaces we don't need to remove them either
 		if (local_address.is_v6() && is_local(local_address))
 			return;
-#endif
 		TORRENT_ASSERT(m_nodes.count(s) == 1);
 		m_nodes.erase(s);
 	}
@@ -181,11 +177,9 @@ namespace libtorrent { namespace dht {
 			n.second.connection_timer.expires_from_now(seconds(1), ec);
 			n.second.connection_timer.async_wait(
 				std::bind(&dht_tracker::connection_timeout, self(), n.first, _1));
-#if TORRENT_USE_IPV6
 			if (is_v6(n.first.get_local_endpoint()))
 				n.second.dht.bootstrap(concat(m_state.nodes6, m_state.nodes), f);
 			else
-#endif
 				n.second.dht.bootstrap(concat(m_state.nodes, m_state.nodes6), f);
 		}
 
@@ -626,18 +620,12 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::add_node(udp::endpoint const& node)
 	{
-#if !TORRENT_USE_IPV6
-		TORRENT_ASSERT(is_v4(node));
-#endif
 		for (auto& n : m_nodes)
 			n.second.dht.add_node(node);
 	}
 
 	void dht_tracker::add_router_node(udp::endpoint const& node)
 	{
-#if !TORRENT_USE_IPV6
-		TORRENT_ASSERT(is_v4(node));
-#endif
 		for (auto& n : m_nodes)
 			n.second.dht.add_router_node(node);
 	}

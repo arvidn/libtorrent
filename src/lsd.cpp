@@ -69,15 +69,11 @@ static error_code dummy;
 lsd::lsd(io_service& ios, aux::lsd_callback& cb)
 	: m_callback(cb)
 	, m_socket(udp::endpoint(make_address_v4("239.192.152.143", dummy), 6771))
-#if TORRENT_USE_IPV6
 	, m_socket6(udp::endpoint(make_address_v6("ff15::efc0:988f", dummy), 6771))
-#endif
 	, m_broadcast_timer(ios)
 	, m_cookie((random(0x7fffffff) ^ std::uintptr_t(this)) & 0x7fffffff)
 	, m_disabled(false)
-#if TORRENT_USE_IPV6
 	, m_disabled6(false)
-#endif
 {
 }
 
@@ -107,10 +103,8 @@ void lsd::start(error_code& ec)
 		, m_broadcast_timer.get_io_service(), ec);
 	if (ec) return;
 
-#if TORRENT_USE_IPV6
 	m_socket6.open(std::bind(&lsd::on_announce, self(), _1, _2)
 		, m_broadcast_timer.get_io_service(), ec);
-#endif
 }
 
 lsd::~lsd() = default;
@@ -123,11 +117,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
 void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 	, bool const broadcast, int retry_count)
 {
-#if TORRENT_USE_IPV6
 	if (m_disabled && m_disabled6) return;
-#else
-	if (m_disabled) return;
-#endif
 
 	char msg[200];
 
@@ -154,7 +144,6 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 		}
 	}
 
-#if TORRENT_USE_IPV6
 	if (!m_disabled6)
 	{
 		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, aux::to_hex(ih).c_str()
@@ -172,16 +161,11 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 #endif
 		}
 	}
-#endif
 
 	++retry_count;
 	if (retry_count >= 3) return;
 
-#if TORRENT_USE_IPV6
 	if (m_disabled && m_disabled6) return;
-#else
-	if (m_disabled) return;
-#endif
 
 	ADD_OUTSTANDING_ASYNC("lsd::resend_announce");
 	m_broadcast_timer.expires_from_now(seconds(2 * retry_count), ec);
@@ -292,15 +276,11 @@ void lsd::on_announce(udp::endpoint const& from, span<char const> buf)
 void lsd::close()
 {
 	m_socket.close();
-#if TORRENT_USE_IPV6
 	m_socket6.close();
-#endif
 	error_code ec;
 	m_broadcast_timer.cancel(ec);
 	m_disabled = true;
-#if TORRENT_USE_IPV6
 	m_disabled6 = true;
-#endif
 }
 
 } // libtorrent namespace

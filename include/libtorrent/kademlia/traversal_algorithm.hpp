@@ -140,9 +140,7 @@ private:
 
 	// the IP addresses of the nodes in m_results
 	std::set<std::uint32_t> m_peer4_prefixes;
-#if TORRENT_USE_IPV6
 	std::set<std::uint64_t> m_peer6_prefixes;
-#endif
 #ifndef TORRENT_DISABLE_LOGGING
 	void log_timeout(observer_ptr const& o, char const* prefix) const;
 #endif

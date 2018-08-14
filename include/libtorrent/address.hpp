@@ -51,15 +51,11 @@ namespace libtorrent {
 #if defined TORRENT_BUILD_SIMULATOR
 	using sim::asio::ip::address;
 	using sim::asio::ip::address_v4;
-#if TORRENT_USE_IPV6
 	using sim::asio::ip::address_v6;
-#endif
 #else
 	using boost::asio::ip::address;
 	using boost::asio::ip::address_v4;
-#if TORRENT_USE_IPV6
 	using boost::asio::ip::address_v6;
-#endif
 #endif // SIMULATOR
 
 // the from_string member functions are deprecated starting
@@ -67,18 +63,14 @@ namespace libtorrent {
 #if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
 	using boost::asio::ip::make_address;
 	using boost::asio::ip::make_address_v4;
-#if TORRENT_USE_IPV6
 	using boost::asio::ip::make_address_v6;
-#endif
 #else
 	inline address make_address(string_view str, boost::system::error_code& ec)
 	{ return address::from_string(str.data(), ec); }
 	inline address_v4 make_address_v4(string_view str, boost::system::error_code& ec)
 	{ return address_v4::from_string(str.data(), ec); }
-#if TORRENT_USE_IPV6
 	inline address_v6 make_address_v6(string_view str, boost::system::error_code& ec)
 	{ return address_v6::from_string(str.data(), ec); }
-#endif
 #endif
 }
 

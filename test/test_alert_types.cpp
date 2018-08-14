@@ -194,13 +194,8 @@ TORRENT_TEST(dht_get_peers_reply_alert)
 	tcp::endpoint const ep1 = rand_tcp_ep(rand_v4);
 	tcp::endpoint const ep2 = rand_tcp_ep(rand_v4);
 	tcp::endpoint const ep3 = rand_tcp_ep(rand_v4);
-#if TORRENT_USE_IPV6
 	tcp::endpoint const ep4 = rand_tcp_ep(rand_v6);
 	tcp::endpoint const ep5 = rand_tcp_ep(rand_v6);
-#else
-	tcp::endpoint const ep4 = rand_tcp_ep(rand_v4);
-	tcp::endpoint const ep5 = rand_tcp_ep(rand_v4);
-#endif
 	std::vector<tcp::endpoint> v = {ep1, ep2, ep3, ep4, ep5};
 
 	mgr.emplace_alert<dht_get_peers_reply_alert>(ih, v);
@@ -232,13 +227,8 @@ TORRENT_TEST(dht_live_nodes_alert)
 	udp::endpoint const ep1 = rand_udp_ep(rand_v4);
 	udp::endpoint const ep2 = rand_udp_ep(rand_v4);
 	udp::endpoint const ep3 = rand_udp_ep(rand_v4);
-#if TORRENT_USE_IPV6
 	udp::endpoint const ep4 = rand_udp_ep(rand_v6);
 	udp::endpoint const ep5 = rand_udp_ep(rand_v6);
-#else
-	udp::endpoint const ep4 = rand_udp_ep(rand_v4);
-	udp::endpoint const ep5 = rand_udp_ep(rand_v4);
-#endif
 	std::vector<std::pair<sha1_hash, udp::endpoint>> v;
 	v.emplace_back(h1, ep1);
 	v.emplace_back(h2, ep2);
@@ -306,13 +296,8 @@ TORRENT_TEST(dht_sample_infohashes_alert)
 	udp::endpoint const nep1 = rand_udp_ep(rand_v4);
 	udp::endpoint const nep2 = rand_udp_ep(rand_v4);
 	udp::endpoint const nep3 = rand_udp_ep(rand_v4);
-#if TORRENT_USE_IPV6
 	udp::endpoint const nep4 = rand_udp_ep(rand_v6);
 	udp::endpoint const nep5 = rand_udp_ep(rand_v6);
-#else
-	udp::endpoint const nep4 = rand_udp_ep(rand_v4);
-	udp::endpoint const nep5 = rand_udp_ep(rand_v4);
-#endif
 	std::vector<std::pair<sha1_hash, udp::endpoint>> nv;
 	nv.emplace_back(nh1, nep1);
 	nv.emplace_back(nh2, nep2);

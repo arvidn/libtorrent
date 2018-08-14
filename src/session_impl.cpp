@@ -301,7 +301,6 @@ namespace aux {
 			{"127.0.0.0", "127.255.255.255", lfilter},
 		};
 
-#if TORRENT_USE_IPV6
 		static const class_mapping v6_classes[] =
 		{
 			// everything
@@ -313,7 +312,6 @@ namespace aux {
 			// loop-back
 			{"::1", "::1", lfilter},
 		};
-#endif
 
 		class_mapping const* p = v4_classes;
 		int len = sizeof(v4_classes) / sizeof(v4_classes[0]);
@@ -326,7 +324,6 @@ namespace aux {
 			if (ec) continue;
 			m_peer_class_filter.add_rule(begin, end, p[i].filter);
 		}
-#if TORRENT_USE_IPV6
 		p = v6_classes;
 		len = sizeof(v6_classes) / sizeof(v6_classes[0]);
 		if (!unlimited_local) len = 1;
@@ -338,7 +335,6 @@ namespace aux {
 			if (ec) continue;
 			m_peer_class_filter.add_rule(begin, end, p[i].filter);
 		}
-#endif
 	}
 
 #if defined TORRENT_USE_OPENSSL && OPENSSL_VERSION_NUMBER >= 0x90812f
@@ -1398,7 +1394,6 @@ namespace aux {
 			}
 #endif // TORRENT_WINDOWS
 
-#if TORRENT_USE_IPV6
 			if (is_v6(bind_ep))
 			{
 				error_code err; // ignore errors here
@@ -1423,7 +1418,6 @@ namespace aux {
 #endif // TORRENT_DISABLE_LOGGING
 #endif // TORRENT_WINDOWS
 			}
-#endif // TORRENT_USE_IPV6
 
 			if (!lep.device.empty())
 			{
@@ -1716,10 +1710,7 @@ namespace aux {
 		address const adr = make_address(device.c_str(), err);
 		if (!err)
 		{
-#if !TORRENT_USE_IPV6
-			if (adr.is_v4())
-#endif
-				eps.emplace_back(adr, port, std::string(), ssl, incoming);
+			eps.emplace_back(adr, port, std::string(), ssl, incoming);
 		}
 		else
 		{
@@ -1811,13 +1802,11 @@ namespace aux {
 			interface_to_endpoints(device, port, ssl, incoming, eps);
 		}
 
-#if TORRENT_USE_IPV6
 		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
 		if (!ec)
 		{
 			expand_unspecified_address(ifs, eps);
 		}
-#endif
 
 		// if no listen interfaces are specified, create sockets to use
 		// any interface
@@ -1825,10 +1814,8 @@ namespace aux {
 		{
 			eps.emplace_back(address_v4(), 0, "", transport::plaintext
 				, duplex::only_outgoing);
-#if TORRENT_USE_IPV6
 			eps.emplace_back(address_v6(), 0, "", transport::plaintext
 				, duplex::only_outgoing);
-#endif
 		}
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
@@ -1984,14 +1971,10 @@ namespace aux {
 		if (eps.empty())
 		{
 			eps.emplace_back(address_v4(), 0, "", transport::plaintext);
-#if TORRENT_USE_IPV6
 			eps.emplace_back(address_v6(), 0, "", transport::plaintext);
-#endif
 #ifdef TORRENT_USE_OPENSSL
 			eps.emplace_back(address_v4(), 0, "", transport::ssl);
-#if TORRENT_USE_IPV6
 			eps.emplace_back(address_v6(), 0, "", transport::ssl);
-#endif
 #endif
 		}
 
@@ -2111,13 +2094,11 @@ namespace aux {
 			if (map_handle != port_mapping_t{-1}) m.delete_mapping(map_handle);
 			map_handle = port_mapping_t{-1};
 
-#if TORRENT_USE_IPV6
 			address const addr = ep.address();
 			// with IPv4 the interface might be behind NAT so we can't skip them
 			// based on the scope of the local address
 			if (addr.is_v6() && is_local(addr))
 				return;
-#endif
 
 			// only update this mapping if we actually have a socket listening
 			if (ep != EndpointType())
@@ -3575,10 +3556,6 @@ namespace aux {
 	void session_impl::add_dht_node(udp::endpoint const& n)
 	{
 		TORRENT_ASSERT(is_single_thread());
-#if !TORRENT_USE_IPV6
-		if (!is_v4(n)) return;
-#endif
-
 		if (m_dht) m_dht->add_node(n);
 		else m_dht_nodes.push_back(n);
 	}
@@ -5063,11 +5040,9 @@ namespace aux {
 		// to the same protocol family as the target endpoint
 		if (is_any(bind_ep.address()))
 		{
-#if TORRENT_USE_IPV6
 			if (remote_address.is_v6())
 				bind_ep.address(address_v6::any());
 			else
-#endif
 				bind_ep.address(address_v4::any());
 		}
 
@@ -5942,9 +5917,6 @@ namespace aux {
 
 		for (auto const& addr : addresses)
 		{
-#if !TORRENT_USE_IPV6
-			if (!addr.is_v4()) continue;
-#endif
 			// router nodes should be added before the DHT is started (and bootstrapped)
 			udp::endpoint ep(addr, std::uint16_t(port));
 			if (m_dht) m_dht->add_router_node(ep);
@@ -6241,7 +6213,7 @@ namespace aux {
 		template <typename Socket>
 		void set_tos(Socket& s, int v, error_code& ec)
 		{
-#if TORRENT_USE_IPV6 && defined IPV6_TCLASS
+#if defined IPV6_TCLASS
 			if (is_v6(s.local_endpoint(ec)))
 				s.set_option(traffic_class(char(v)), ec);
 			else if (!ec)
@@ -7162,12 +7134,10 @@ namespace aux {
 			{
 				debug_log("  %s:%d", print_address(address_v4(p.ip)).c_str(), p.port);
 			}
-#if TORRENT_USE_IPV6
 			for (auto const& p : resp.peers6)
 			{
 				debug_log("  [%s]:%d", print_address(address_v6(p.ip)).c_str(), p.port);
 			}
-#endif
 		}
 
 		void tracker_logger::tracker_request_error(tracker_request const&

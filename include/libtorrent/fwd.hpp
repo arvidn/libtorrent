@@ -188,9 +188,7 @@ class hasher;
 class hasher512;
 
 // include/libtorrent/ip_filter.hpp
-TORRENT_IPV6_NAMESPACE
 struct ip_filter;
-TORRENT_IPV6_NAMESPACE_END
 class port_filter;
 
 // include/libtorrent/kademlia/dht_settings.hpp
@@ -256,10 +254,8 @@ struct storage_interface;
 struct storage_params;
 
 // include/libtorrent/torrent_handle.hpp
-TORRENT_IPV6_NAMESPACE
 struct block_info;
 struct partial_piece_info;
-TORRENT_IPV6_NAMESPACE_END
 struct torrent_handle;
 
 // include/libtorrent/torrent_info.hpp

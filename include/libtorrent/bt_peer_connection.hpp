@@ -70,10 +70,8 @@ namespace libtorrent {
 		// cheap since the lists' size is limited
 		using peers4_t = std::vector<std::pair<address_v4::bytes_type, std::uint16_t>>;
 		peers4_t m_peers;
-#if TORRENT_USE_IPV6
 		using peers6_t = std::vector<std::pair<address_v6::bytes_type, std::uint16_t>>;
 		peers6_t m_peers6;
-#endif
 
 		bool was_introduced_by(tcp::endpoint const& ep);
 

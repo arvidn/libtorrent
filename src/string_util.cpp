@@ -177,7 +177,6 @@ namespace libtorrent {
 		{
 			if (!ret.empty()) ret += ',';
 
-#if TORRENT_USE_IPV6
 			error_code ec;
 			make_address_v6(i.device, ec);
 			if (!ec)
@@ -188,7 +187,6 @@ namespace libtorrent {
 				ret += ']';
 			}
 			else
-#endif
 			{
 				ret += i.device;
 			}
@@ -220,14 +218,8 @@ namespace libtorrent {
 			listen_interface_t iface;
 			iface.ssl = false;
 
-#if !TORRENT_USE_IPV6
-			bool ipv6 = false;
-#endif
 			if (in[start] == '[')
 			{
-#if !TORRENT_USE_IPV6
-				ipv6 = true;
-#endif
 				++start;
 				// IPv6 address
 				while (start < in.size() && in[start] != ']')
@@ -285,14 +277,7 @@ namespace libtorrent {
 			while (start < in.size() && in[start] != ',')
 				++start;
 
-			if (iface.port >= 0
-#if !TORRENT_USE_IPV6
-				&& ipv6 == false
-#endif
-				)
-			{
-				out.push_back(iface);
-			}
+			if (iface.port >= 0) out.push_back(iface);
 
 			// skip the comma
 			if (start < in.size() && in[start] == ',')

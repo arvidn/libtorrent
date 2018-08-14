@@ -122,10 +122,8 @@ TORRENT_TEST(address_endpoint_io)
 	TEST_EQUAL(print_endpoint(ep("127.0.0.1", 23)), "127.0.0.1:23");
 	TEST_EQUAL(print_address(addr4("241.124.23.5")), "241.124.23.5");
 
-#if TORRENT_USE_IPV6
 	TEST_EQUAL(print_endpoint(ep("ff::1", 1214)), "[ff::1]:1214");
 	TEST_EQUAL(print_address(addr6("2001:ff::1")), "2001:ff::1");
-#endif
 
 	// test address_to_bytes
 	TEST_EQUAL(address_to_bytes(addr4("10.11.12.13")), "\x0a\x0b\x0c\x0d");

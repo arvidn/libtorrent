@@ -70,7 +70,6 @@ struct ipv4_hash
 	}
 };
 
-#if TORRENT_USE_IPV6
 struct ipv6_hash
 {
 	using argument_type = address_v6::bytes_type;
@@ -80,7 +79,6 @@ struct ipv6_hash
 		return std::hash<std::uint64_t>()(*reinterpret_cast<std::uint64_t const*>(&ip[0]));
 	}
 };
-#endif
 
 struct ip_set
 {
@@ -91,26 +89,18 @@ struct ip_set
 	void clear()
 	{
 		m_ip4s.clear();
-#if TORRENT_USE_IPV6
 		m_ip6s.clear();
-#endif
 	}
 
 	bool operator==(ip_set const& rh)
 	{
-#if TORRENT_USE_IPV6
 		return m_ip4s == rh.m_ip4s && m_ip6s == rh.m_ip6s;
-#else
-		return m_ip4s == rh.m_ip4s;
-#endif
 	}
 
 	// these must be multisets because there can be multiple routing table
 	// entries for a single IP when restrict_routing_ips is set to false
 	std::unordered_multiset<address_v4::bytes_type, ipv4_hash> m_ip4s;
-#if TORRENT_USE_IPV6
 	std::unordered_multiset<address_v6::bytes_type, ipv6_hash> m_ip6s;
-#endif
 };
 
 // differences in the implementation from the description in

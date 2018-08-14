@@ -2116,27 +2116,21 @@ namespace {
 		{
 			if (is_v4(endp))
 				m_v4_num_peers++;
-#if TORRENT_USE_IPV6
 			else
 				m_v6_num_peers++;
-#endif
 		}
 
 		m_v4_peers_idx = alloc.allocate(m_v4_num_peers * 6);
 		m_v6_peers_idx = alloc.allocate(m_v6_num_peers * 18);
 
 		char* v4_ptr = alloc.ptr(m_v4_peers_idx);
-#if TORRENT_USE_IPV6
 		char* v6_ptr = alloc.ptr(m_v6_peers_idx);
-#endif
 		for (auto const& endp : peers)
 		{
 			if (is_v4(endp))
 				detail::write_endpoint(endp, v4_ptr);
-#if TORRENT_USE_IPV6
 			else
 				detail::write_endpoint(endp, v6_ptr);
-#endif
 		}
 	}
 
@@ -2169,11 +2163,9 @@ namespace {
 		char const* v4_ptr = m_alloc.get().ptr(m_v4_peers_idx);
 		for (int i = 0; i < m_v4_num_peers; i++)
 			peers.push_back(detail::read_v4_endpoint<tcp::endpoint>(v4_ptr));
-#if TORRENT_USE_IPV6
 		char const* v6_ptr = m_alloc.get().ptr(m_v6_peers_idx);
 		for (int i = 0; i < m_v6_num_peers; i++)
 			peers.push_back(detail::read_v6_endpoint<tcp::endpoint>(v6_ptr));
-#endif
 
 		return std::move(peers);
 	}
@@ -2349,19 +2341,15 @@ namespace {
 		{
 			if (is_v4(n.second))
 				v4_num_nodes++;
-#if TORRENT_USE_IPV6
 			else
 				v6_num_nodes++;
-#endif
 		}
 
 		aux::allocation_slot const v4_nodes_idx = alloc.allocate(v4_num_nodes * (20 + 6));
 		aux::allocation_slot const v6_nodes_idx = alloc.allocate(v6_num_nodes * (20 + 18));
 
 		char* v4_ptr = alloc.ptr(v4_nodes_idx);
-#if TORRENT_USE_IPV6
 		char* v6_ptr = alloc.ptr(v6_nodes_idx);
-#endif
 		for (auto const& n : nodes)
 		{
 			udp::endpoint const& endp = n.second;
@@ -2370,13 +2358,11 @@ namespace {
 				detail::write_string(n.first.to_string(), v4_ptr);
 				detail::write_endpoint(endp, v4_ptr);
 			}
-#if TORRENT_USE_IPV6
 			else
 			{
 				detail::write_string(n.first.to_string(), v6_ptr);
 				detail::write_endpoint(endp, v6_ptr);
 			}
-#endif
 		}
 
 		return nodes_slot{v4_num_nodes, v4_nodes_idx, v6_num_nodes, v6_nodes_idx};
@@ -2398,7 +2384,6 @@ namespace {
 			v4_ptr += 20;
 			nodes.emplace_back(ih, detail::read_v4_endpoint<udp::endpoint>(v4_ptr));
 		}
-#if TORRENT_USE_IPV6
 		char const* v6_ptr = alloc.ptr(v6_nodes_idx);
 		for (int i = 0; i < v6_num_nodes; i++)
 		{
@@ -2407,9 +2392,6 @@ namespace {
 			v6_ptr += 20;
 			nodes.emplace_back(ih, detail::read_v6_endpoint<udp::endpoint>(v6_ptr));
 		}
-#else
-		TORRENT_UNUSED(v6_nodes_idx);
-#endif
 
 		return std::move(nodes);
 	}

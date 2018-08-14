@@ -78,31 +78,25 @@ namespace {
 
 void ip_set::insert(address const& addr)
 {
-#if TORRENT_USE_IPV6
 	if (addr.is_v6())
 		m_ip6s.insert(addr.to_v6().to_bytes());
 	else
-#endif
 		m_ip4s.insert(addr.to_v4().to_bytes());
 }
 
 bool ip_set::exists(address const& addr) const
 {
-#if TORRENT_USE_IPV6
 	if (addr.is_v6())
 		return m_ip6s.find(addr.to_v6().to_bytes()) != m_ip6s.end();
 	else
-#endif
 		return m_ip4s.find(addr.to_v4().to_bytes()) != m_ip4s.end();
 }
 
 void ip_set::erase(address const& addr)
 {
-#if TORRENT_USE_IPV6
 	if (addr.is_v6())
 		erase_one(m_ip6s, addr.to_v6().to_bytes());
 	else
-#endif
 		erase_one(m_ip4s, addr.to_v4().to_bytes());
 }
 
@@ -315,7 +309,6 @@ bool compare_ip_cidr(address const& lhs, address const& rhs)
 {
 	TORRENT_ASSERT(lhs.is_v4() == rhs.is_v4());
 
-#if TORRENT_USE_IPV6
 	if (lhs.is_v6())
 	{
 		// if IPv6 addresses is in the same /64, they're too close and we won't
@@ -331,7 +324,6 @@ bool compare_ip_cidr(address const& lhs, address const& rhs)
 		return mask == 0;
 	}
 	else
-#endif
 	{
 		// if IPv4 addresses is in the same /24, they're too close and we won't
 		// trust the second one
@@ -1021,9 +1013,6 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 
 void routing_table::add_router_node(udp::endpoint const& router)
 {
-#if !TORRENT_USE_IPV6
-	TORRENT_ASSERT(is_v4(router));
-#endif
 	m_router_nodes.insert(router);
 }
 

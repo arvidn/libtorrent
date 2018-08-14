@@ -388,26 +388,15 @@ TORRENT_TEST(parse_list)
 	TEST_EQUAL(list[5], "foobar");
 	TEST_EQUAL(list[6], "[::1]");
 
-#if TORRENT_USE_IPV6
 	test_parse_interface("  a:4,b:35, c : 1000s, d: 351 ,e \t:42,foobar:1337s\n\r,[2001::1]:6881"
 		, {{"a", 4, false}, {"b", 35, false}, {"c", 1000, true}, {"d", 351, false}
 			, {"e", 42, false}, {"foobar", 1337, true}, {"2001::1", 6881, false}}
 		, "a:4,b:35,c:1000s,d:351,e:42,foobar:1337s,[2001::1]:6881");
-#else
-	test_parse_interface("  a:4,b:35, c : 1000s, d: 351 ,e \t:42,foobar:1337s\n\r,[2001::1]:6881"
-		, {{"a", 4, false}, {"b", 35, false}, {"c", 1000, true}, {"d", 351, false}
-			, {"e", 42, false}, {"foobar", 1337, true}}
-		, "a:4,b:35,c:1000s,d:351,e:42,foobar:1337s");
-#endif
 
 	// IPv6 address
-#if TORRENT_USE_IPV6
 	test_parse_interface("[2001:ffff::1]:6882s"
 		, {{"2001:ffff::1", 6882, true}}
 		, "[2001:ffff::1]:6882s");
-#else
-	test_parse_interface("[2001:ffff::1]:6882s", {}, "");
-#endif
 
 	// IPv4 address
 	test_parse_interface("127.0.0.1:6882"

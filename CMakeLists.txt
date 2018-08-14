@@ -628,8 +628,6 @@ target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME extens
 	DESCRIPTION "Enables protocol extensions" DISABLED TORRENT_DISABLE_EXTENSIONS)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME i2p DEFAULT ON
 	DESCRIPTION "build with I2P support" DISABLED TORRENT_USE_I2P=0)
-target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME ipv6 DEFAULT ON
-	DESCRIPTION "build with IPv6 support" DISABLED TORRENT_USE_IPV6=0)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME logging DEFAULT ON
 	DESCRIPTION "build with logging" DISABLED TORRENT_DISABLE_LOGGING)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME mutable-torrents DEFAULT ON

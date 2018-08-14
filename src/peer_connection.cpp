@@ -340,7 +340,7 @@ namespace libtorrent {
 				}
 #endif
 			}
-#if TORRENT_USE_IPV6 && defined IPV6_TCLASS
+#if defined IPV6_TCLASS
 			else if (is_v6(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 			{
 				m_socket->set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), ec);
@@ -649,13 +649,11 @@ namespace libtorrent {
 			address_v4::bytes_type bytes = addr.to_v4().to_bytes();
 			x.assign(reinterpret_cast<char*>(bytes.data()), bytes.size());
 		}
-#if TORRENT_USE_IPV6
 		else
 		{
 			address_v6::bytes_type bytes = addr.to_v6().to_bytes();
 			x.assign(reinterpret_cast<char*>(bytes.data()), bytes.size());
 		}
-#endif
 		x.append(t->torrent_file().info_hash().data(), 20);
 
 		sha1_hash hash = hasher(x).final();
@@ -6131,7 +6129,7 @@ namespace libtorrent {
 			}
 #endif
 		}
-#if TORRENT_USE_IPV6 && defined IPV6_TCLASS
+#if defined IPV6_TCLASS
 		else if (is_v6(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
 			error_code err;

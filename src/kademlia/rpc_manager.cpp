@@ -83,14 +83,12 @@ void observer::set_target(udp::endpoint const& ep)
 	m_sent = clock_type::now();
 
 	m_port = ep.port();
-#if TORRENT_USE_IPV6
 	if (is_v6(ep))
 	{
 		flags |= flag_ipv6_address;
 		m_addr.v6 = ep.address().to_v6().to_bytes();
 	}
 	else
-#endif
 	{
 		flags &= ~flag_ipv6_address;
 		m_addr.v4 = ep.address().to_v4().to_bytes();
@@ -99,11 +97,9 @@ void observer::set_target(udp::endpoint const& ep)
 
 address observer::target_addr() const
 {
-#if TORRENT_USE_IPV6
 	if (flags & flag_ipv6_address)
 		return address_v6(m_addr.v6);
 	else
-#endif
 		return address_v4(m_addr.v4);
 }
 

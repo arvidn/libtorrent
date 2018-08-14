@@ -118,11 +118,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		DEPRECATED_SET_STR(mmap_cache, nullptr, nullptr),
 		SET(handshake_client_version, nullptr, nullptr),
 		SET(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
-#if !TORRENT_USE_IPV6
-		SET(listen_interfaces, "0.0.0.0:6881", &session_impl::update_listen_interfaces),
-#else
 		SET(listen_interfaces, "0.0.0.0:6881,[::]:6881", &session_impl::update_listen_interfaces),
-#endif
 		SET(proxy_hostname, "", &session_impl::update_proxy),
 		SET(proxy_username, "", &session_impl::update_proxy),
 		SET(proxy_password, "", &session_impl::update_proxy),

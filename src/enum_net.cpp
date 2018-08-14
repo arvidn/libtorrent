@@ -127,14 +127,12 @@ namespace {
 		return address_v4(b);
 	}
 
-#if TORRENT_USE_IPV6
 	address_v6 inaddr6_to_address(in6_addr const* ina6, int const len = 16)
 	{
 		boost::asio::ip::address_v6::bytes_type b = {};
 		if (len > 0) std::memcpy(b.data(), ina6, std::min(std::size_t(len), b.size()));
 		return address_v6(b);
 	}
-#endif
 
 #if !TORRENT_USE_NETLINK
 	int sockaddr_len(sockaddr const* sin)
@@ -151,7 +149,6 @@ namespace {
 		if (sin->sa_family == AF_INET || assume_family == AF_INET)
 			return inaddr_to_address(&reinterpret_cast<sockaddr_in const*>(sin)->sin_addr
 				, sockaddr_len(sin) - int(offsetof(sockaddr, sa_data)));
-#if TORRENT_USE_IPV6
 		else if (sin->sa_family == AF_INET6 || assume_family == AF_INET6)
 		{
 			auto saddr = reinterpret_cast<sockaddr_in6 const*>(sin);
@@ -160,7 +157,6 @@ namespace {
 			ret.scope_id(saddr->sin6_scope_id);
 			return ret;
 		}
-#endif
 		return address();
 	}
 #endif
@@ -168,9 +164,7 @@ namespace {
 	bool valid_addr_family(int family)
 	{
 		return (family == AF_INET
-#if TORRENT_USE_IPV6
 			|| family == AF_INET6
-#endif
 		);
 	}
 
@@ -193,7 +187,6 @@ namespace {
 			}
 			return address_v4(b);
 		}
-#if TORRENT_USE_IPV6
 		else if (family == AF_INET6)
 		{
 			address_v6::bytes_type b;
@@ -210,7 +203,6 @@ namespace {
 			}
 			return address_v6(b);
 		}
-#endif
 		else
 		{
 			return address();
@@ -299,7 +291,6 @@ namespace {
 			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
 			return false;
 
-#if TORRENT_USE_IPV6
 		// make sure the defaults have the right address family
 		// in case the attributes are not present
 		if (rt_msg->rtm_family == AF_INET6)
@@ -307,7 +298,6 @@ namespace {
 			rt_info->gateway = address_v6();
 			rt_info->destination = address_v6();
 		}
-#endif
 
 		int if_index = 0;
 		int rt_len = int(RTM_PAYLOAD(nl_hdr));
@@ -324,25 +314,21 @@ namespace {
 					if_index = *reinterpret_cast<int*>(RTA_DATA(rt_attr));
 					break;
 				case RTA_GATEWAY:
-#if TORRENT_USE_IPV6
 					if (rt_msg->rtm_family == AF_INET6)
 					{
 						rt_info->gateway = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
 					}
 					else
-#endif
 					{
 						rt_info->gateway = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
 					}
 					break;
 				case RTA_DST:
-#if TORRENT_USE_IPV6
 					if (rt_msg->rtm_family == AF_INET6)
 					{
 						rt_info->destination = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
 					}
 					else
-#endif
 					{
 						rt_info->destination = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
 					}
@@ -353,14 +339,12 @@ namespace {
 #pragma clang diagnostic pop
 #endif
 
-#if TORRENT_USE_IPV6
 		if (rt_info->gateway.is_v6() && rt_info->gateway.to_v6().is_link_local())
 		{
 			address_v6 gateway6 = rt_info->gateway.to_v6();
 			gateway6.scope_id(std::uint32_t(if_index));
 			rt_info->gateway = gateway6;
 		}
-#endif
 
 		ifreq req = {};
 		::if_indextoname(std::uint32_t(if_index), req.ifr_name);
@@ -381,7 +365,6 @@ namespace {
 
 		ip_info->preferred = (addr_msg->ifa_flags & (IFA_F_DADFAILED | IFA_F_DEPRECATED | IFA_F_TENTATIVE)) == 0;
 
-#if TORRENT_USE_IPV6
 		if (addr_msg->ifa_family == AF_INET6)
 		{
 			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 128);
@@ -403,7 +386,6 @@ namespace {
 			}
 		}
 		else
-#endif
 		{
 			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 32);
 			if (addr_msg->ifa_prefixlen != 0)
@@ -432,7 +414,6 @@ namespace {
 					break;
 				BOOST_FALLTHROUGH;
 			case IFA_LOCAL:
-#if TORRENT_USE_IPV6
 				if (addr_msg->ifa_family == AF_INET6)
 				{
 					address_v6 addr = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
@@ -441,7 +422,6 @@ namespace {
 					ip_info->interface_address = addr;
 				}
 				else
-#endif
 				{
 					ip_info->interface_address = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
 				}
@@ -535,7 +515,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (a1.is_v4() != a2.is_v4()) return false;
 		if (a1.is_v4() != mask.is_v4()) return false;
 
-#if TORRENT_USE_IPV6
 		if (a1.is_v6())
 		{
 			address_v6::bytes_type b1 = a1.to_v6().to_bytes();
@@ -546,9 +525,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				b1[i] &= m[i];
 				b2[i] &= m[i];
 			}
-			return std::memcmp(b1.data(), b2.data(), b1.size()) == 0;
+			return b1 == b2;
 		}
-#endif
 		return (a1.to_v4().to_ulong() & mask.to_v4().to_ulong())
 			== (a2.to_v4().to_ulong() & mask.to_v4().to_ulong());
 	}
@@ -703,14 +681,12 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
 				{
-#if TORRENT_USE_IPV6
 					if (iface.interface_address.is_v6())
 					{
 						// this is expected to fail (at least on MacOS X)
 						iface.netmask = address_v6::any();
 					}
 					else
-#endif
 					{
 						ec = error_code(errno, system_category());
 						::close(s);
@@ -1142,7 +1118,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				{
 					ip_route r;
 					r.gateway = sockaddr_to_address((const sockaddr*)&routes->Table[i].NextHop);
-#if TORRENT_USE_IPV6
 					// The scope_id in NextHop is always zero because that would make
 					// things too easy apparently
 					if (r.gateway.is_v6() && r.gateway.to_v6().is_link_local())
@@ -1151,7 +1126,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 						gateway6.scope_id(routes->Table[i].InterfaceIndex);
 						r.gateway = gateway6;
 					}
-#endif
 					r.destination = sockaddr_to_address(
 						(const sockaddr*)&routes->Table[i].DestinationPrefix.Prefix);
 					r.netmask = build_netmask(routes->Table[i].DestinationPrefix.PrefixLength

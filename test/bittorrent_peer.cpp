@@ -272,12 +272,10 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 
 	char ep_str[200];
 	address const& addr = s.local_endpoint(e).address();
-#if TORRENT_USE_IPV6
 	if (addr.is_v6())
 		std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
 			, s.local_endpoint(e).port());
 	else
-#endif
 		std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
 			, s.local_endpoint(e).port());
 	std::printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"

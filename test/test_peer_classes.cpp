@@ -131,12 +131,8 @@ TORRENT_TEST(session_peer_class_filter)
 		, 1 << static_cast<std::uint32_t>(my_class));
 	ses.set_peer_class_filter(f);
 
-#if TORRENT_USE_IPV6
 	TEST_CHECK(std::get<0>(ses.get_peer_class_filter().export_filter())
 		== std::get<0>(f.export_filter()));
-#else
-	TEST_CHECK(ses.get_peer_class_filter().export_filter() == f.export_filter());
-#endif
 }
 
 TORRENT_TEST(session_peer_class_type_filter)

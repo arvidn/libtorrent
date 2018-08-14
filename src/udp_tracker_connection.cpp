@@ -209,16 +209,12 @@ namespace libtorrent {
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.
 		bool is_v4 = bind_address.is_v4();
-#if TORRENT_USE_IPV6
 		auto scope = is_v4 ? 0 : bind_address.to_v6().scope_id();
-#endif
 		for (auto const& addr : addresses)
 		{
 			if (addr.is_v4() != is_v4) continue;
-#if TORRENT_USE_IPV6
 			if (addr.is_v6() && addr.to_v6().scope_id() != scope)
 				continue;
-#endif
 			m_endpoints.emplace_back(addr, std::uint16_t(port));
 		}
 
@@ -624,11 +620,7 @@ namespace libtorrent {
 		resp.incomplete = aux::read_int32(buf);
 		resp.complete = aux::read_int32(buf);
 
-		std::size_t const ip_stride =
-#if TORRENT_USE_IPV6
-			is_v6(m_target) ? 18 :
-#endif
-			6;
+		std::size_t const ip_stride = is_v6(m_target) ? 18 : 6;
 
 		std::size_t const num_peers = buf.size() / ip_stride;
 		if (buf.size() % ip_stride != 0)
@@ -651,7 +643,6 @@ namespace libtorrent {
 			return true;
 		}
 
-#if TORRENT_USE_IPV6
 		if (is_v6(m_target))
 		{
 			resp.peers6.reserve(num_peers);
@@ -665,7 +656,6 @@ namespace libtorrent {
 			}
 		}
 		else
-#endif
 		{
 			resp.peers4.reserve(num_peers);
 			for (std::size_t i = 0; i < num_peers; ++i)

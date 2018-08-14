@@ -143,9 +143,7 @@ namespace libtorrent {
 
 		std::uint32_t key;
 		int num_want;
-#if TORRENT_USE_IPV6
 		std::vector<address_v6> ipv6;
-#endif
 		sha1_hash info_hash;
 		peer_id pid;
 
@@ -181,9 +179,7 @@ namespace libtorrent {
 		// peers from the tracker, in various forms
 		std::vector<peer_entry> peers;
 		std::vector<ipv4_peer_entry> peers4;
-#if TORRENT_USE_IPV6
 		std::vector<ipv6_peer_entry> peers6;
-#endif
 		// our external IP address (if the tracker responded with ti, otherwise
 		// INADDR_ANY)
 		address external_ip;

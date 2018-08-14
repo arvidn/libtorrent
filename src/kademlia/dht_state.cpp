@@ -61,10 +61,8 @@ namespace libtorrent { namespace dht {
 			address addr;
 			if (nid.string_length() == 24)
 				addr = detail::read_v4_address(in);
-#if TORRENT_USE_IPV6
 			else if (nid.string_length() == 36)
 				addr = detail::read_v6_address(in);
-#endif
 			else
 				continue;
 			ret.emplace_back(addr, id);
@@ -110,10 +108,8 @@ namespace {
 
 		if (bdecode_node const nodes = e.dict_find_list("nodes"))
 			ret.nodes = detail::read_endpoint_list<udp::endpoint>(nodes);
-#if TORRENT_USE_IPV6
 		if (bdecode_node const nodes = e.dict_find_list("nodes6"))
 			ret.nodes6 = detail::read_endpoint_list<udp::endpoint>(nodes);
-#endif
 		return ret;
 	}
 
@@ -130,10 +126,8 @@ namespace {
 		}
 		entry const nodes = save_nodes(state.nodes);
 		if (!nodes.list().empty()) ret["nodes"] = nodes;
-#if TORRENT_USE_IPV6
 		entry const nodes6 = save_nodes(state.nodes6);
 		if (!nodes6.list().empty()) ret["nodes6"] = nodes6;
-#endif
 		return ret;
 	}
 }}
