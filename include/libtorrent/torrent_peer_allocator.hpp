@@ -84,9 +84,7 @@ namespace libtorrent {
 		// saves significant overhead
 
 		boost::pool<> m_ipv4_peer_pool{sizeof(libtorrent::ipv4_peer), 500};
-#if TORRENT_USE_IPV6
 		boost::pool<> m_ipv6_peer_pool{sizeof(libtorrent::ipv6_peer), 500};
-#endif
 #if TORRENT_USE_I2P
 		boost::pool<> m_i2p_peer_pool{sizeof(libtorrent::i2p_peer), 500};
 #endif

@@ -123,7 +123,6 @@ TORRENT_TEST(announce_peer)
 	TEST_CHECK(!peers.find_key("values"));
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(dual_stack)
 {
 	dht::dht_settings sett = test_settings();
@@ -149,7 +148,6 @@ TORRENT_TEST(dual_stack)
 	s->get_peers(n1, false, false, address_v6(), peers6);
 	TEST_EQUAL(peers6["values"].list().size(), 2);
 }
-#endif
 
 TORRENT_TEST(put_items)
 {

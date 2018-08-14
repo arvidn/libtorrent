@@ -122,7 +122,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== AMIGA ===
 #if defined __AMIGA__ || defined __amigaos__ || defined __AROS__
 #define TORRENT_AMIGA
-#define TORRENT_USE_IPV6 0
 #define TORRENT_USE_IOSTREAM 0
 // set this to 1 to disable all floating point operations
 // (disables some float-dependent APIs)
@@ -322,7 +321,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_USE_SYSCTL 1
-#define TORRENT_USE_IPV6 0
 #define TORRENT_USE_WRITEV 0
 #define TORRENT_USE_READV 0
 
@@ -468,10 +466,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IFADDRS 0
 #endif
 
-#ifndef TORRENT_USE_IPV6
-#define TORRENT_USE_IPV6 1
-#endif
-
 // if preadv() exists, we assume pwritev() does as well
 #ifndef TORRENT_USE_PREADV
 #define TORRENT_USE_PREADV 0
@@ -614,14 +608,6 @@ constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
 #	define TORRENT_HAS_ARM_CRC32 0
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
-
-#if TORRENT_USE_IPV6
-#define TORRENT_IPV6_NAMESPACE     inline namespace v6 {
-#define TORRENT_IPV6_NAMESPACE_END }
-#else
-#define TORRENT_IPV6_NAMESPACE
-#define TORRENT_IPV6_NAMESPACE_END
-#endif
 
 namespace libtorrent {}
 

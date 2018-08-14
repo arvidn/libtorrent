@@ -626,7 +626,7 @@ def consume_comment(lno, lines):
 def trim_define(line):
     return line.replace('#ifndef', '').replace('#ifdef', '') \
             .replace('#if', '').replace('defined', '') \
-            .replace('TORRENT_USE_IPV6', '').replace('TORRENT_ABI_VERSION == 1', '') \
+            .replace('TORRENT_ABI_VERSION == 1', '') \
             .replace('||', '').replace('&&', '').replace('(', '').replace(')', '') \
             .replace('!', '').replace('\\', '').strip()
 

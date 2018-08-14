@@ -256,8 +256,6 @@ namespace detail {
 
 }
 
-TORRENT_IPV6_NAMESPACE
-
 // The ``ip_filter`` class is a set of rules that uniquely categorizes all
 // ip addresses as allowed or disallowed. The default constructor creates
 // a single rule that allows all addresses (0.0.0.0 - 255.255.255.255 for
@@ -296,12 +294,8 @@ struct TORRENT_EXPORT ip_filter
 	// the current filter.
 	std::uint32_t access(address const& addr) const;
 
-#if TORRENT_USE_IPV6
 	using filter_tuple_t = std::tuple<std::vector<ip_range<address_v4>>
 		, std::vector<ip_range<address_v6>>>;
-#else
-	using filter_tuple_t = std::vector<ip_range<address_v4>>;
-#endif
 
 	// This function will return the current state of the filter in the minimum number of
 	// ranges possible. They are sorted from ranges in low addresses to high addresses. Each
@@ -317,12 +311,8 @@ struct TORRENT_EXPORT ip_filter
 private:
 
 	detail::filter_impl<address_v4::bytes_type> m_filter4;
-#if TORRENT_USE_IPV6
 	detail::filter_impl<address_v6::bytes_type> m_filter6;
-#endif
 };
-
-TORRENT_IPV6_NAMESPACE_END
 
 // the port filter maps non-overlapping port ranges to flags. This
 // is primarily used to indicate whether a range of ports should

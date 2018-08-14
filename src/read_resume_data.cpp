@@ -292,9 +292,7 @@ namespace {
 			}
 		}
 
-#if TORRENT_USE_IPV6
 		int const v6_size = 18;
-#endif
 		int const v4_size = 6;
 		using namespace libtorrent::detail; // for read_*_endpoint()
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers"))
@@ -304,14 +302,12 @@ namespace {
 				ret.peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
 		}
 
-#if TORRENT_USE_IPV6
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
 			for (int i = v6_size - 1; i < peers_entry.string_length(); i += v6_size)
 				ret.peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
 		}
-#endif
 
 		if (bdecode_node const peers_entry = rd.dict_find_string("banned_peers"))
 		{
@@ -320,14 +316,12 @@ namespace {
 				ret.banned_peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
 		}
 
-#if TORRENT_USE_IPV6
 		if (bdecode_node const peers_entry = rd.dict_find_string("banned_peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
 			for (int i = v6_size - 1; i < peers_entry.string_length(); i += v6_size)
 				ret.banned_peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
 		}
-#endif
 
 		// parse unfinished pieces
 		if (bdecode_node const unfinished_entry = rd.dict_find_list("unfinished"))

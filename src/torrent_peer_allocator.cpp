@@ -52,7 +52,6 @@ namespace libtorrent {
 				++m_live_allocations;
 				++m_total_allocations;
 				break;
-#if TORRENT_USE_IPV6
 			case torrent_peer_allocator_interface::ipv6_peer_type:
 				p = static_cast<torrent_peer*>(m_ipv6_peer_pool.malloc());
 				if (p == nullptr) return nullptr;
@@ -62,7 +61,6 @@ namespace libtorrent {
 				++m_live_allocations;
 				++m_total_allocations;
 				break;
-#endif
 #if TORRENT_USE_I2P
 			case torrent_peer_allocator_interface::i2p_peer_type:
 				p = static_cast<torrent_peer*>(m_i2p_peer_pool.malloc());
@@ -82,7 +80,6 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(m_in_use);
 		TORRENT_ASSERT(p->in_use);
-#if TORRENT_USE_IPV6
 		if (p->is_v6_addr)
 		{
 			TORRENT_ASSERT(m_ipv6_peer_pool.is_from(static_cast<libtorrent::ipv6_peer*>(p)));
@@ -94,7 +91,6 @@ namespace libtorrent {
 			--m_live_allocations;
 			return;
 		}
-#endif
 #if TORRENT_USE_I2P
 		if (p->is_i2p_addr)
 		{

@@ -59,13 +59,11 @@ namespace libtorrent {
 		std::uint16_t port;
 	};
 
-#if TORRENT_USE_IPV6
 	struct ipv6_peer_entry
 	{
 		address_v6::bytes_type ip;
 		std::uint16_t port;
 	};
-#endif
 
 }
 

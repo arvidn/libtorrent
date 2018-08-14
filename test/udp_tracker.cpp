@@ -133,7 +133,6 @@ struct udp_tracker
 				detail::write_uint32(1, ptr); // incomplete
 				detail::write_uint32(1, ptr); // complete
 				// 1 peers
-#if TORRENT_USE_IPV6
 				if (is_v6(*from))
 				{
 					detail::write_uint32(0, ptr);
@@ -146,7 +145,6 @@ struct udp_tracker
 					detail::write_uint16(1337, ptr);
 				}
 				else
-#endif
 				{
 					detail::write_uint8(1, ptr);
 					detail::write_uint8(3, ptr);

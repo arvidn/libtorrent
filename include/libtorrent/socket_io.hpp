@@ -60,31 +60,24 @@ namespace detail {
 		template <class Proto>
 		std::size_t address_size(Proto p)
 		{
-			TORRENT_UNUSED(p);
-#if TORRENT_USE_IPV6
 			if (p == Proto::v6())
 				return std::tuple_size<address_v6::bytes_type>::value;
 			else
-#endif
 				return std::tuple_size<address_v4::bytes_type>::value;
 		}
 
 		template<class OutIt>
 		void write_address(address const& a, OutIt&& out)
 		{
-#if TORRENT_USE_IPV6
 			if (a.is_v4())
 			{
-#endif
 				write_uint32(a.to_v4().to_ulong(), out);
-#if TORRENT_USE_IPV6
 			}
 			else if (a.is_v6())
 			{
 				for (auto b : a.to_v6().to_bytes())
 					write_uint8(b, out);
 			}
-#endif
 		}
 
 		template<class InIt>
@@ -94,7 +87,6 @@ namespace detail {
 			return address_v4(ip);
 		}
 
-#if TORRENT_USE_IPV6
 		template<class InIt>
 		address read_v6_address(InIt&& in)
 		{
@@ -103,7 +95,6 @@ namespace detail {
 				b = read_uint8(in);
 			return address_v6(bytes);
 		}
-#endif
 
 		template<class Endpoint, class OutIt>
 		void write_endpoint(Endpoint const& e, OutIt&& out)
@@ -120,7 +111,6 @@ namespace detail {
 			return Endpoint(addr, port);
 		}
 
-#if TORRENT_USE_IPV6
 		template<class Endpoint, class InIt>
 		Endpoint read_v6_endpoint(InIt&& in)
 		{
@@ -128,7 +118,7 @@ namespace detail {
 			std::uint16_t port = read_uint16(in);
 			return Endpoint(addr, port);
 		}
-#endif
+
 		template <class EndpointType>
 		std::vector<EndpointType> read_endpoint_list(libtorrent::bdecode_node const& n)
 		{
@@ -142,10 +132,8 @@ namespace detail {
 				char const* in = e.string_ptr();
 				if (e.string_length() == 6)
 					ret.push_back(read_v4_endpoint<EndpointType>(in));
-#if TORRENT_USE_IPV6
 				else if (e.string_length() == 18)
 					ret.push_back(read_v6_endpoint<EndpointType>(in));
-#endif
 			}
 			return ret;
 		}

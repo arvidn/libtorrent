@@ -85,14 +85,11 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 	std::uint8_t* ip = nullptr;
 
 	static const std::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
-#if TORRENT_USE_IPV6
 	static const std::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
-#endif
 	std::uint8_t const* mask = nullptr;
 	int num_octets = 0;
 
 	address_v4::bytes_type b4{};
-#if TORRENT_USE_IPV6
 	address_v6::bytes_type b6{};
 	if (ip_.is_v6())
 	{
@@ -102,7 +99,6 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 		mask = v6mask;
 	}
 	else
-#endif
 	{
 		b4 = ip_.to_v4().to_bytes();
 		ip = b4.data();

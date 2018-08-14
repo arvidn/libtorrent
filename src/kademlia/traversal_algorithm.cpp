@@ -182,7 +182,6 @@ void traversal_algorithm::add_entry(node_id const& id
 			if (m_node.settings().restrict_search_ips
 				&& !(flags & observer::flag_initial))
 			{
-#if TORRENT_USE_IPV6
 				if (o->target_addr().is_v6())
 				{
 					address_v6::bytes_type addr_bytes = o->target_addr().to_v6().to_bytes();
@@ -193,7 +192,6 @@ void traversal_algorithm::add_entry(node_id const& id
 						goto add_result;
 				}
 				else
-#endif
 				{
 					// mask the lower octet
 					std::uint32_t const prefix4

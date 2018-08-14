@@ -81,9 +81,7 @@ using lt::torrent_flags_t;
 using lt::seconds;
 using lt::operator""_sv;
 using lt::address_v4;
-#if TORRENT_USE_IPV6
 using lt::address_v6;
-#endif
 
 using std::chrono::duration_cast;
 
@@ -283,11 +281,9 @@ std::string print_endpoint(lt::tcp::endpoint const& ep)
 	lt::error_code ec;
 	char buf[200];
 	address const& addr = ep.address();
-#if TORRENT_USE_IPV6
 	if (addr.is_v6())
 		std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
 	else
-#endif
 		std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
 	return buf;
 }
@@ -1260,10 +1256,8 @@ example alert_masks:
 		pcf.add_rule(address_v4::from_string("0.0.0.0")
 			, address_v4::from_string("255.255.255.255")
 			, 1 << static_cast<std::uint32_t>(lt::session::global_peer_class_id));
-#if TORRENT_USE_IPV6
 		pcf.add_rule(address_v6::from_string("::")
 			, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
-#endif
 		ses.set_peer_class_filter(pcf);
 	}
 

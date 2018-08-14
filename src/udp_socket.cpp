@@ -389,13 +389,11 @@ bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 		// IPv4
 		from = read_v4_endpoint<udp::endpoint>(p);
 	}
-#if TORRENT_USE_IPV6
 	else if (atyp == 4)
 	{
 		// IPv6
 		from = read_v6_endpoint<udp::endpoint>(p);
 	}
-#endif
 	else
 	{
 		int const len = read_uint8(p);
@@ -443,7 +441,6 @@ void udp_socket::open(udp const& protocol, error_code& ec)
 
 	m_socket.open(protocol, ec);
 	if (ec) return;
-#if TORRENT_USE_IPV6
 	if (protocol == udp::v6())
 	{
 		error_code err;
@@ -454,7 +451,6 @@ void udp_socket::open(udp const& protocol, error_code& ec)
 		m_socket.set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
 #endif // TORRENT_WINDOWS
 	}
-#endif
 
 	// this is best-effort. ignore errors
 #ifdef TORRENT_WINDOWS

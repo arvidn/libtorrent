@@ -143,7 +143,6 @@ std::shared_ptr<aux::listen_socket_t> dummy_listen_socket4()
 	return ret;
 }
 
-#if TORRENT_USE_IPV6
 std::shared_ptr<aux::listen_socket_t> dummy_listen_socket6()
 {
 	auto ret = std::make_shared<aux::listen_socket_t>();
@@ -152,7 +151,6 @@ std::shared_ptr<aux::listen_socket_t> dummy_listen_socket6()
 		, aux::session_interface::source_dht, rand_v6());
 	return ret;
 }
-#endif
 
 node* get_foreign_node_stub(node_id const&, std::string const&)
 {
@@ -1038,13 +1036,11 @@ TORRENT_TEST(scrape_v4)
 	test_scrape(rand_v4);
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(scrape_v6)
 {
 	if (supports_ipv6())
 		test_scrape(rand_v6);
 }
-#endif
 
 namespace {
 
@@ -1148,13 +1144,11 @@ TORRENT_TEST(id_enforcement_v4)
 	test_id_enforcement(rand_v4);
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(id_enforcement_v6)
 {
 	if (supports_ipv6())
 		test_id_enforcement(rand_v6);
 }
-#endif
 
 TORRENT_TEST(bloom_filter)
 {
@@ -1578,13 +1572,11 @@ TORRENT_TEST(put_v4)
 	test_put(rand_v4);
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(put_v6)
 {
 	if (supports_ipv6())
 		test_put(rand_v6);
 }
-#endif
 
 namespace {
 
@@ -1608,14 +1600,12 @@ void test_routing_table(address(&rand_addr)())
 
 	address node_addr;
 	address node_near_addr;
-#if TORRENT_USE_IPV6
 	if (is_v6(t.source))
 	{
 		node_addr = addr6("2001:1111:1111:1111:1111:1111:1111:1111");
 		node_near_addr = addr6("2001:1111:1111:1111:eeee:eeee:eeee:eeee");
 	}
 	else
-#endif
 	{
 		node_addr = addr4("4.4.4.4");
 		node_near_addr = addr4("4.4.4.5");
@@ -1802,13 +1792,11 @@ TORRENT_TEST(routing_table_v4)
 	test_routing_table(rand_v4);
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(routing_table_v6)
 {
 	if (supports_ipv6())
 		test_routing_table(rand_v6);
 }
-#endif
 
 namespace {
 
@@ -1907,15 +1895,12 @@ TORRENT_TEST(bootstrap_v4)
 	test_bootstrap(rand_v4);
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(bootstrap_v6)
 {
 	if (supports_ipv6())
 		test_bootstrap(rand_v6);
 }
-#endif
 
-#if TORRENT_USE_IPV6
 namespace {
 
 void test_bootstrap_want(address(&rand_addr)())
@@ -1986,7 +1971,6 @@ TORRENT_TEST(bootstrap_want_v6)
 {
 	test_bootstrap_want(rand_v6);
 }
-#endif
 
 namespace {
 
@@ -2070,13 +2054,11 @@ TORRENT_TEST(short_nodes_v4)
 	test_short_nodes(rand_v4);
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(short_nodes_v6)
 {
 	if (supports_ipv6())
 		test_short_nodes(rand_v6);
 }
-#endif
 
 namespace {
 
@@ -2208,13 +2190,11 @@ TORRENT_TEST(get_peers_v4)
 	test_get_peers(rand_v4);
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(get_peers_v6)
 {
 	if (supports_ipv6())
 		test_get_peers(rand_v6);
 }
-#endif
 
 namespace {
 
@@ -2316,7 +2296,6 @@ TORRENT_TEST(mutable_get_salt_v4)
 	test_mutable_get(rand_v4, true);
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(mutable_get_v6)
 {
 	if (supports_ipv6())
@@ -2328,7 +2307,6 @@ TORRENT_TEST(mutable_get_salt_v6)
 	if (supports_ipv6())
 		test_mutable_get(rand_v6, true);
 }
-#endif
 
 TORRENT_TEST(immutable_get)
 {
@@ -2681,7 +2659,6 @@ TORRENT_TEST(traversal_done)
 	g_put_count = 0;
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(dht_dual_stack)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
@@ -2820,7 +2797,6 @@ TORRENT_TEST(dht_dual_stack)
 		TEST_ERROR(error_string);
 	}
 }
-#endif
 
 TORRENT_TEST(multi_home)
 {
@@ -3657,7 +3633,6 @@ TORRENT_TEST(compare_ip_cidr)
 			addr4(std::get<0>(t)), addr4(std::get<1>(t))), std::get<2>(t));
 	}
 
-#if TORRENT_USE_IPV6
 	std::vector<tst> const v6tests = {
 		tst{"::1", "::ffff:ffff:ffff:ffff", true},
 		tst{"::2:0000:0000:0000:0000", "::1:ffff:ffff:ffff:ffff", false},
@@ -3676,7 +3651,6 @@ TORRENT_TEST(compare_ip_cidr)
 		TEST_EQUAL(compare_ip_cidr(
 			addr6(std::get<0>(t)), addr6(std::get<1>(t))), std::get<2>(t));
 	}
-#endif
 }
 
 TORRENT_TEST(dht_state)

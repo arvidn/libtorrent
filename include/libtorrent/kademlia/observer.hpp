@@ -126,9 +126,7 @@ private:
 
 	union addr_t
 	{
-#if TORRENT_USE_IPV6
 		address_v6::bytes_type v6;
-#endif
 		address_v4::bytes_type v4;
 	} m_addr;
 

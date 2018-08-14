@@ -170,11 +170,9 @@ namespace libtorrent {
 		bool pe_support:1;
 #endif
 
-#if TORRENT_USE_IPV6
 		// this is true if the v6 union member in addr is
 		// the one to use, false if it's the v4 one
 		bool is_v6_addr:1;
-#endif
 #if TORRENT_USE_I2P
 		// set if the i2p_destination is in use in the addr union
 		bool is_i2p_addr:1;
@@ -230,7 +228,6 @@ namespace libtorrent {
 	};
 #endif
 
-#if TORRENT_USE_IPV6
 	struct TORRENT_EXTRA_EXPORT ipv6_peer : torrent_peer
 	{
 		ipv6_peer(tcp::endpoint const& ip, bool connectable, peer_source_flags_t src);
@@ -238,7 +235,6 @@ namespace libtorrent {
 
 		const address_v6::bytes_type addr;
 	};
-#endif
 
 	struct peer_address_compare
 	{

@@ -504,9 +504,6 @@ void natpmp::send_map_request(port_mapping_t const i)
 	else if (m_version == version_pcp)
 	{
 		// PCP requires the use of IPv6 addresses even for IPv4 messages
-		// reference asio's address_v6 class directly so that we can use it
-		// even if TORRENT_USE_IPV6 is false
-		using boost::asio::ip::address_v6;
 		write_uint8(m_version, out);
 		write_uint8(opcode_map, out);
 		write_uint16(0, out); // reserved
@@ -763,14 +760,12 @@ void natpmp::on_reply(error_code const& e
 	if (version == version_natpmp)
 		lifetime = aux::numeric_cast<int>(read_uint32(in));
 	address external_addr;
-#if TORRENT_USE_IPV6
 	if (version == version_pcp)
 	{
 		external_addr = read_v6_address(in);
 		if (external_addr.to_v6().is_v4_mapped())
 			external_addr = external_addr.to_v6().to_v4();
 	}
-#endif
 
 	if (version == version_natpmp)
 	{

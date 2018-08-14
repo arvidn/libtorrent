@@ -190,16 +190,12 @@ namespace libtorrent {
 		if (!atp.peers.empty())
 		{
 			std::back_insert_iterator<entry::string_type> ptr(ret["peers"].string());
-#if TORRENT_USE_IPV6
 			std::back_insert_iterator<entry::string_type> ptr6(ret["peers6"].string());
-#endif
 			for (auto const& p : atp.peers)
 			{
-#if TORRENT_USE_IPV6
 				if (is_v6(p))
 					write_endpoint(p, ptr6);
 				else
-#endif
 					write_endpoint(p, ptr);
 			}
 		}
@@ -207,16 +203,12 @@ namespace libtorrent {
 		if (!atp.banned_peers.empty())
 		{
 			std::back_insert_iterator<entry::string_type> ptr(ret["banned_peers"].string());
-#if TORRENT_USE_IPV6
 			std::back_insert_iterator<entry::string_type> ptr6(ret["banned_peers6"].string());
-#endif
 			for (auto const& p : atp.banned_peers)
 			{
-#if TORRENT_USE_IPV6
 				if (is_v6(p))
 					write_endpoint(p, ptr6);
 				else
-#endif
 					write_endpoint(p, ptr);
 			}
 		}

@@ -123,14 +123,11 @@ namespace {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	bool ut_pex_peer_store::was_introduced_by(tcp::endpoint const &ep)
 	{
-#if TORRENT_USE_IPV6
 		if (is_v4(ep))
 		{
-#endif
 			peers4_t::value_type const v(ep.address().to_v4().to_bytes(), ep.port());
 			auto const i = std::lower_bound(m_peers.begin(), m_peers.end(), v);
 			return i != m_peers.end() && *i == v;
-#if TORRENT_USE_IPV6
 		}
 		else
 		{
@@ -138,7 +135,6 @@ namespace {
 			auto const i = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 			return i != m_peers6.end() && *i == v;
 		}
-#endif
 	}
 #endif // TORRENT_DISABLE_EXTENSIONS
 
@@ -1354,14 +1350,12 @@ namespace {
 			// IPv4 address
 			ep = detail::read_v4_endpoint<tcp::endpoint>(ptr);
 		}
-#if TORRENT_USE_IPV6
 		else if (addr_type == 1)
 		{
 			// IPv6 address
 			if (int(recv_buffer.size()) < 2 + 18 + 2) return;
 			ep = detail::read_v6_endpoint<tcp::endpoint>(ptr);
 		}
-#endif
 		else
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1750,7 +1744,6 @@ namespace {
 					, address_v4(bytes)
 					, aux::session_interface::source_peer, remote().address());
 			}
-#if TORRENT_USE_IPV6
 			else if (myip.size() == std::tuple_size<address_v6::bytes_type>::value)
 			{
 				address_v6::bytes_type bytes;
@@ -1765,7 +1758,6 @@ namespace {
 						, ipv6_address
 						, aux::session_interface::source_peer, remote().address());
 			}
-#endif
 		}
 
 		// if we're finished and this peer is uploading only

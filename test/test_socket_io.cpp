@@ -67,7 +67,6 @@ TORRENT_TEST(read_v4_address)
 	TEST_EQUAL(ep4, uep("16.5.128.1", 1337));
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(read_v6_endpoint)
 {
 	std::string buf;
@@ -85,7 +84,6 @@ TORRENT_TEST(read_v6_endpoint)
 	udp::endpoint ep6 = read_v6_endpoint<udp::endpoint>(buf.begin());
 	TEST_EQUAL(ep6, uep("1000::ffff", 1337));
 }
-#endif
 
 TORRENT_TEST(read_endpoint_list)
 {
@@ -97,12 +95,8 @@ TORRENT_TEST(read_endpoint_list)
 	TEST_CHECK(!ec);
 	std::vector<udp::endpoint> list = read_endpoint_list<udp::endpoint>(e);
 
-#if TORRENT_USE_IPV6
 	TEST_EQUAL(list.size(), 2);
 	TEST_EQUAL(list[1], uep("1000::ffff", 1337));
-#else
-	TEST_EQUAL(list.size(), 1);
-#endif
 	TEST_EQUAL(list[0], uep("16.5.128.1", 1337));
 }
 
@@ -171,7 +165,6 @@ TORRENT_TEST(parse_valid_ip4_endpoint)
 	ec.clear();
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(parse_invalid_ipv6_endpoint)
 {
 	error_code ec;
@@ -221,5 +214,4 @@ TORRENT_TEST(parse_valid_ipv6_endpoint)
 	TEST_CHECK(!ec);
 	ec.clear();
 }
-#endif
 

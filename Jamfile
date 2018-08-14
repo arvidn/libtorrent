@@ -417,9 +417,6 @@ rule openssl-include-path ( properties * )
 feature openssl-lib : : free path ;
 feature openssl-include : : free path ;
 
-feature ipv6 : on off : composite propagated link-incompatible ;
-feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
-
 feature sanitize : off address memory undefined thread rtc : composite propagated link-incompatible ;
 # sanitize is a clang and GCC feature
 feature.compose <sanitize>undefined : <cflags>-fsanitize=undefined <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=undefined <linkflags>-fsanitize-undefined-trap-on-error ;
@@ -538,12 +535,12 @@ variant test_debug : debug
 	<export-extra>on <threading>multi <asserts>on
 	;
 variant test_barebones : debug
-	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
+	: <dht>off <extensions>off <logging>off <boost-link>shared
 	<deprecated-functions>off <invariant-checks>off
 	<export-extra>on <threading>multi <asserts>on
 	;
 variant test_arm : debug
-	: <ipv6>off <dht>off <extensions>off <logging>off
+	: <dht>off <extensions>off <logging>off
 	<deprecated-functions>off <invariant-checks>off
 	<export-extra>on <asserts>on
 	;

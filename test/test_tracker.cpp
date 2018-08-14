@@ -252,7 +252,6 @@ TORRENT_TEST(parse_external_ip)
 	TEST_EQUAL(resp.external_ip, addr4("1.2.3.4"));
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(parse_external_ip6)
 {
 	char const response[] = "d5:peers0:11:external ip"
@@ -265,7 +264,6 @@ TORRENT_TEST(parse_external_ip6)
 	TEST_EQUAL(resp.peers.size(), 0);
 	TEST_EQUAL(resp.external_ip, addr6("f102:0304::ffff"));
 }
-#endif
 
 namespace {
 peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool expected_ret)
@@ -416,7 +414,6 @@ TORRENT_TEST(udp_tracker_v4)
 	test_udp_tracker("127.0.0.1", address_v4::any(), ep("1.3.3.7", 1337));
 }
 
-#if TORRENT_USE_IPV6
 TORRENT_TEST(udp_tracker_v6)
 {
 	if (supports_ipv6())
@@ -424,7 +421,6 @@ TORRENT_TEST(udp_tracker_v6)
 		test_udp_tracker("[::1]", address_v6::any(), ep("::1.3.3.7", 1337));
 	}
 }
-#endif
 
 TORRENT_TEST(http_peers)
 {
@@ -483,9 +479,7 @@ TORRENT_TEST(http_peers)
 		std::set<tcp::endpoint> expected_peers;
 		expected_peers.insert(ep("65.65.65.65", 16962));
 		expected_peers.insert(ep("67.67.67.67", 17476));
-#if TORRENT_USE_IPV6
 		expected_peers.insert(ep("4545:4545:4545:4545:4545:4545:4545:4545", 17990));
-#endif
 		for (auto const& ip : ra->params.peers)
 		{
 			TEST_EQUAL(expected_peers.count(ip), 1);

@@ -52,9 +52,7 @@ EXPORT void report_failure(char const* err, char const* file, int line);
 
 EXPORT void init_rand_address();
 EXPORT lt::address rand_v4();
-#if TORRENT_USE_IPV6
 EXPORT lt::address rand_v6();
-#endif
 EXPORT lt::tcp::endpoint rand_tcp_ep(lt::address(&rand_addr)() = rand_v4);
 EXPORT lt::udp::endpoint rand_udp_ep(lt::address(&rand_addr)() = rand_v4);
 
@@ -121,8 +119,6 @@ EXPORT lt::tcp::endpoint ep(char const* ip, int port);
 EXPORT lt::udp::endpoint uep(char const* ip, int port);
 EXPORT lt::address addr(char const* ip);
 EXPORT lt::address_v4 addr4(char const* ip);
-#if TORRENT_USE_IPV6
 EXPORT lt::address_v6 addr6(char const* ip);
-#endif
 
 #endif

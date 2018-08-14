@@ -54,13 +54,11 @@ TORRENT_TEST(is_loopback)
 	error_code ec;
 	TEST_CHECK(is_loopback(address::from_string("127.0.0.1", ec)));
 	TEST_CHECK(!ec);
-#if TORRENT_USE_IPV6
 	if (supports_ipv6())
 	{
 		TEST_CHECK(is_loopback(address::from_string("::1", ec)));
 		TEST_CHECK(!ec);
 	}
-#endif
 }
 
 TORRENT_TEST(is_any)
@@ -69,13 +67,11 @@ TORRENT_TEST(is_any)
 	error_code ec;
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
 	TEST_CHECK(!ec);
-#if TORRENT_USE_IPV6
 	if (supports_ipv6())
 	{
 		TEST_CHECK(is_any(address_v6::any()));
 		TEST_CHECK(!ec);
 	}
-#endif
 }
 
 TORRENT_TEST(match_addr_mask)
@@ -105,8 +101,6 @@ TORRENT_TEST(is_ip_address)
 	TEST_EQUAL(is_ip_address("1.2.3.4"), true);
 	TEST_EQUAL(is_ip_address("a.b.c.d"), false);
 	TEST_EQUAL(is_ip_address("a:b:b:c"), false);
-#if TORRENT_USE_IPV6
 	TEST_EQUAL(is_ip_address("::1"), true);
 	TEST_EQUAL(is_ip_address("2001:db8:85a3:0:0:8a2e:370:7334"), true);
-#endif
 }

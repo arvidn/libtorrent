@@ -2773,7 +2773,6 @@ bool is_downloading_state(int const st)
 
 		req.event = e;
 
-#if TORRENT_USE_IPV6
 		// since sending our IPv6 address to the tracker may be sensitive. Only
 		// do that if we're not in anonymous mode and if it's a private torrent
 		if (!settings().get_bool(settings_pack::anonymous_mode)
@@ -2789,7 +2788,6 @@ bool is_downloading_state(int const st)
 				req.ipv6.push_back(s.get_local_endpoint().address().to_v6());
 			});
 		}
-#endif
 
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
@@ -3212,13 +3210,11 @@ bool is_downloading_state(int const st)
 			need_update |= bool(add_peer(a, peer_info::tracker) != nullptr);
 		}
 
-#if TORRENT_USE_IPV6
 		for (auto const& i : resp.peers6)
 		{
 			tcp::endpoint a(address_v6(i.ip), i.port);
 			need_update |= bool(add_peer(a, peer_info::tracker) != nullptr);
 		}
-#endif
 		if (need_update) state_updated();
 
 		update_want_peers();
@@ -3229,9 +3225,7 @@ bool is_downloading_state(int const st)
 		{
 			m_ses.alerts().emplace_alert<tracker_reply_alert>(
 				get_handle(), local_endpoint, int(resp.peers.size() + resp.peers4.size())
-#if TORRENT_USE_IPV6
 				+ int(resp.peers6.size())
-#endif
 				, r.url);
 		}
 
@@ -10048,18 +10042,6 @@ bool is_downloading_state(int const st)
 		, peer_source_flags_t const source, pex_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
-
-#if !TORRENT_USE_IPV6
-		if (!is_v4(adr))
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			error_code ec;
-			debug_log("add_peer() %s unsupported address family"
-				, adr.address().to_string(ec).c_str());
-#endif
-			return nullptr;
-		}
-#endif
 
 #ifndef TORRENT_DISABLE_DHT
 		if (source != peer_info::resume_data)

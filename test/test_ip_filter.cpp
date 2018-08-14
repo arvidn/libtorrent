@@ -90,11 +90,7 @@ TORRENT_TEST(session_get_ip_filter)
 {
 	session ses(settings());
 	ip_filter const& ipf = ses.get_ip_filter();
-#if TORRENT_USE_IPV6
 	TEST_EQUAL(std::get<0>(ipf.export_filter()).size(), 1);
-#else
-	TEST_EQUAL(ipf.export_filter().size(), 1);
-#endif
 }
 
 TORRENT_TEST(ip_filter)
@@ -115,11 +111,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
 		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
 
-#if TORRENT_USE_IPV6
 		range = std::get<0>(f.export_filter());
-#else
-		range = f.export_filter();
-#endif
 		test_rules_invariant(range, f);
 
 		TEST_CHECK(range.size() == 3);
@@ -134,11 +126,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
 		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
 
-#if TORRENT_USE_IPV6
 		range = std::get<0>(f.export_filter());
-#else
-		range = f.export_filter();
-#endif
 		test_rules_invariant(range, f);
 
 		TEST_CHECK(range.size() == 3);
@@ -154,11 +142,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
 		f.add_rule(addr("1.0.0.0"), addr("2.4.0.0"), ip_filter::blocked);
 
-#if TORRENT_USE_IPV6
 		range = std::get<0>(f.export_filter());
-#else
-		range = f.export_filter();
-#endif
 		test_rules_invariant(range, f);
 
 		TEST_CHECK(range.size() == 3);
@@ -174,11 +158,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("1.0.0.0"), addr("2.4.0.0"), ip_filter::blocked);
 		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
 
-#if TORRENT_USE_IPV6
 		range = std::get<0>(f.export_filter());
-#else
-		range = f.export_filter();
-#endif
 		test_rules_invariant(range, f);
 
 		TEST_CHECK(range.size() == 3);
@@ -198,11 +178,7 @@ TORRENT_TEST(ip_filter)
 
 		f.add_rule(addr("1.0.1.0"), addr("9.0.0.0"), ip_filter::blocked);
 
-#if TORRENT_USE_IPV6
 		range = std::get<0>(f.export_filter());
-#else
-		range = f.export_filter();
-#endif
 		test_rules_invariant(range, f);
 
 		TEST_CHECK(range.size() == 3);
@@ -228,11 +204,7 @@ TORRENT_TEST(ip_filter)
 
 		f.add_rule(addr("0.0.1.0"), addr("7.0.4.0"), ip_filter::blocked);
 
-#if TORRENT_USE_IPV6
 		range = std::get<0>(f.export_filter());
-#else
-		range = f.export_filter();
-#endif
 		test_rules_invariant(range, f);
 
 		TEST_CHECK(range.size() == 3);
@@ -248,8 +220,6 @@ TORRENT_TEST(ip_filter)
 	}
 
 	// **** test IPv6 ****
-
-#if TORRENT_USE_IPV6
 
 	ip_range<address_v6> expected2[] =
 	{
@@ -270,7 +240,6 @@ TORRENT_TEST(ip_filter)
 		TEST_EQUAL(rangev6.size(), 3);
 		TEST_CHECK(std::equal(rangev6.begin(), rangev6.end(), expected2, &compare<address_v6>));
 	}
-#endif
 
 	port_filter pf;
 
