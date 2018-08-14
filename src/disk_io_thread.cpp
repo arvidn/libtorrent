@@ -578,7 +578,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		// if the cache is under high pressure, we need to evict
 		// the blocks we just flushed to make room for more write pieces
-		int evict = m_disk_cache.num_to_evict(0);
+		int const evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
 
 		return iov_len;
@@ -631,7 +631,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			}
 
 			// if we fail to lock the block, it' no longer in the cache
-			bool locked = m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_flushing);
+			bool const locked = m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_flushing);
 
 			// it should always succeed, since it's a dirty block, and
 			// should never have been marked as volatile
@@ -1775,7 +1775,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	}
 
 	void disk_io_thread::async_hash(storage_index_t const storage
-		, piece_index_t piece, disk_job_flags_t const flags
+		, piece_index_t const piece, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(job_action_t::hash);
@@ -1880,7 +1880,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	}
 
 	void disk_io_thread::async_rename_file(storage_index_t const storage
-		, file_index_t index, std::string name
+		, file_index_t const index, std::string name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(job_action_t::rename_file);
@@ -1970,7 +1970,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// in fact, no jobs should really be hung on this piece
 		// at this point
 		jobqueue_t jobs;
-		bool ok = m_disk_cache.evict_piece(pe, jobs, block_cache::allow_ghost);
+		bool const ok = m_disk_cache.evict_piece(pe, jobs, block_cache::allow_ghost);
 		TORRENT_PIECE_ASSERT(ok, pe);
 		TORRENT_UNUSED(ok);
 		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
@@ -2590,7 +2590,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			: i->cache_state == cached_piece_entry::volatile_read_lru
 			? cached_piece_info::volatile_read_cache
 			: cached_piece_info::read_cache;
-		int blocks_in_piece = i->blocks_in_piece;
+		int const blocks_in_piece = i->blocks_in_piece;
 		info.blocks.resize(aux::numeric_cast<std::size_t>(blocks_in_piece));
 		for (int b = 0; b < blocks_in_piece; ++b)
 			info.blocks[std::size_t(b)] = i->blocks[b].buf != nullptr;

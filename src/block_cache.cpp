@@ -1320,7 +1320,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<iovec_t 
 }
 
 // return false if the memory was purged
-bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reason)
+bool block_cache::inc_block_refcount(cached_piece_entry* pe, int const block, int const reason)
 {
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 	TORRENT_PIECE_ASSERT(block < pe->blocks_in_piece, pe);
