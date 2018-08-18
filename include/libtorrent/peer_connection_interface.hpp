@@ -52,6 +52,7 @@ namespace libtorrent {
 		virtual void disconnect(error_code const& ec
 			, operation_t op, int error = 0) = 0;
 		virtual peer_id const& pid() const = 0;
+		virtual peer_id our_pid() const = 0;
 		virtual void set_holepunch_mode() = 0;
 		virtual torrent_peer* peer_info_struct() const = 0;
 		virtual void set_peer_info(torrent_peer* pi) = 0;

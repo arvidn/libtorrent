@@ -48,8 +48,8 @@ namespace libtorrent {
 		return i;
 	}
 
-	template<class T>
-	void sorted_insert(std::vector<T>& container, T v)
+	template <typename T, typename U>
+	void sorted_insert(std::vector<T>& container, U v)
 	{
 		auto i = std::lower_bound(container.begin(), container.end(), v);
 		container.insert(i, v);

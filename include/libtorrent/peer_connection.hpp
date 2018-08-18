@@ -146,6 +146,7 @@ namespace aux {
 		std::shared_ptr<aux::socket_type> s;
 		tcp::endpoint endp;
 		torrent_peer* peerinfo;
+		peer_id our_peer_id;
 	};
 
 	struct TORRENT_EXTRA_EXPORT peer_connection_hot_members

@@ -4303,6 +4303,13 @@ namespace libtorrent {
 		}
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
+
+		if (ec == errors::self_connection)
+		{
+			// don't try to connect to ourself again
+			if (m_peer_info && t) t->ban_peer(m_peer_info);
+		}
+
 		if (m_connecting)
 		{
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
@@ -6108,9 +6115,6 @@ namespace libtorrent {
 
 		if (m_remote == m_socket->local_endpoint(ec))
 		{
-			// if the remote endpoint is the same as the local endpoint, we're connected
-			// to ourselves
-			if (m_peer_info && t) t->ban_peer(m_peer_info);
 			disconnect(errors::self_connection, operation_t::bittorrent, 1);
 			return;
 		}

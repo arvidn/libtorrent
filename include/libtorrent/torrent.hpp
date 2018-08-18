@@ -387,6 +387,10 @@ namespace libtorrent {
 		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
 		peer_connection* find_peer(peer_id const& pid);
 
+		// checks to see if this peer id is used in one of our own outgoing
+		// connections.
+		bool is_self_connection(peer_id const& pid) const;
+
 		void on_resume_data_checked(status_t status, storage_error const& error);
 		void on_force_recheck(status_t status, storage_error const& error);
 		void on_piece_hashed(piece_index_t piece, sha1_hash const& piece_hash
@@ -1432,6 +1436,11 @@ namespace libtorrent {
 #else
 		aux::handler_storage<64> m_deferred_handler_storage;
 #endif
+
+		// these are the peer IDs we've used for our outgoing peer connections for
+		// this torrent. If we get an incoming peer claiming to have one of these,
+		// it's a connection to ourself, and we should reject it.
+		std::set<peer_id> m_outgoing_pids;
 
 		// for torrents who have a bandwidth limit, this is != 0
 		// and refers to a peer_class in the session.
