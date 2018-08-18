@@ -1092,6 +1092,15 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files) const;
 		std::vector<int> file_priorities() const;
 
+		// flags to be used with force_reannounce
+		enum reannounce_flags_t
+		{
+			// by default, force-reannounce will still honor the min-interval
+			// published by the tracker. If this flag is set, it will be ignored
+			// and the tracker is announced immediately.
+			ignore_min_interval = 1
+		};
+
 		// ``force_reannounce()`` will force this torrent to do another tracker
 		// request, to receive new peers. The ``seconds`` argument specifies how
 		// many seconds from now to issue the tracker announces.
@@ -1104,9 +1113,13 @@ namespace libtorrent
 		// The ``tracker_index`` argument specifies which tracker to re-announce.
 		// If set to -1 (which is the default), all trackers are re-announce.
 		// 
+		// The ``flags`` argument can be used to affect the re-announce. See
+		// reannounce_flags_t.
+		// 
 		// ``force_dht_announce`` will announce the torrent to the DHT
 		// immediately.
 		void force_reannounce(int seconds = 0, int tracker_index = -1) const;
+		void force_reannounce(int seconds, int tracker_index, int flags) const;
 		void force_dht_announce() const;
 
 #ifndef TORRENT_NO_DEPRECATE
