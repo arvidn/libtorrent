@@ -1,3 +1,4 @@
+	* add option to ignore min-interval from trackers on force-reannounce
 	* raise default setting for active_limit
 	* fall back to copy+remove if rename_file fails
 	* improve handling of filesystems not supporting fallocate()

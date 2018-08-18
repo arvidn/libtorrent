@@ -393,7 +393,7 @@ void add_piece(torrent_handle& th, int piece, char const *data, int flags)
 void bind_torrent_handle()
 {
     // arguments are: number of seconds and tracker index
-    void (torrent_handle::*force_reannounce0)(int, int) const = &torrent_handle::force_reannounce;
+    void (torrent_handle::*force_reannounce0)(int, int, int) const = &torrent_handle::force_reannounce;
 
 #ifndef TORRENT_NO_DEPRECATE
     bool (torrent_handle::*super_seeding0)() const = &torrent_handle::super_seeding;
@@ -496,7 +496,7 @@ void bind_torrent_handle()
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0)
-            , (arg("seconds") = 0, arg("tracker_idx") = -1))
+            , (arg("seconds") = 0, arg("tracker_idx") = -1, arg("flags") = 0))
 #ifndef TORRENT_DISABLE_DHT
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
 #endif
@@ -556,6 +556,10 @@ void bind_torrent_handle()
         .value("flush_disk_cache", torrent_handle::flush_disk_cache)
         .value("save_info_dict", torrent_handle::save_info_dict)
         .value("only_if_modified", torrent_handle::only_if_modified)
+    ;
+
+    enum_<torrent_handle::reannounce_flags_t>("reannounce_flags_t")
+        .value("ignore_min_interval", torrent_handle::ignore_min_interval)
     ;
 
     enum_<torrent_handle::deadline_flags>("deadline_flags")

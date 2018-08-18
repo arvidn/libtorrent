@@ -3590,10 +3590,12 @@ namespace {
 		}
 		debug_log("TRACKER RESPONSE\n"
 				"interval: %d\n"
+				"min-interval: %d\n"
 				"external ip: %s\n"
 				"resolved to: %s\n"
 				"we connected to: %s\n"
 			, interval
+			, resp.min_interval
 			, print_address(resp.external_ip).c_str()
 			, resolved_to.c_str()
 			, print_address(tracker_ip).c_str());
@@ -3815,7 +3817,8 @@ namespace {
 	// this is the entry point for the client to force a re-announce. It's
 	// considered a client-initiated announce (as opposed to the regular ones,
 	// issued by libtorrent)
-	void torrent::force_tracker_request(time_point t, int tracker_idx)
+	void torrent::force_tracker_request(time_point const t, int const tracker_idx
+		, int const flags)
 	{
 		if (is_paused()) return;
 		if (tracker_idx == -1)
@@ -3823,7 +3826,10 @@ namespace {
 			for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 				, end(m_trackers.end()); i != end; ++i)
 			{
-				i->next_announce = (std::max)(t, i->min_announce) + seconds(1);
+				i->next_announce = (flags & torrent_handle::ignore_min_interval)
+					? t + seconds(1)
+					: (std::max)(t, i->min_announce) + seconds(1);
+				i->min_announce = i->next_announce;
 				i->triggered_manually = true;
 			}
 		}
@@ -3833,7 +3839,10 @@ namespace {
 			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
 				return;
 			announce_entry& e = m_trackers[tracker_idx];
-			e.next_announce = (std::max)(t, e.min_announce) + seconds(1);
+			e.next_announce = (flags & torrent_handle::ignore_min_interval)
+				? t + seconds(1)
+				: (std::max)(t, e.min_announce) + seconds(1);
+			e.min_announce = e.next_announce;
 			e.triggered_manually = true;
 		}
 		update_tracker_timer(clock_type::now());
