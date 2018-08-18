@@ -1963,11 +1963,14 @@ bool is_downloading_state(int const st)
 		return nullptr;
 	}
 
+	bool torrent::is_self_connection(peer_id const& pid) const
+	{
+		return m_outgoing_pids.count(pid) > 0;
+	}
+
 	void torrent::on_resume_data_checked(status_t const status
 		, storage_error const& error) try
 	{
-		// hold a reference until this function returns
-
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_outstanding_check_files);
 		m_outstanding_check_files = false;
@@ -4412,6 +4415,7 @@ bool is_downloading_state(int const st)
 		// have been destructed
 		if (m_peer_list) m_peer_list->clear();
 		m_connections.clear();
+		m_outgoing_pids.clear();
 		m_peers_to_disconnect.clear();
 		m_num_uploads = 0;
 		m_num_connecting = 0;
@@ -5454,6 +5458,12 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(std::count(m_peers_to_disconnect.begin()
 			, m_peers_to_disconnect.end(), p) == 0);
 
+		auto it = m_outgoing_pids.find(p->our_pid());
+		if (it != m_outgoing_pids.end())
+		{
+			m_outgoing_pids.erase(it);
+		}
+
 		// only schedule the peer for actual removal if in fact
 		// we can be sure peer_connection will be kept alive until
 		// the deferred function is called. If a peer_connection
@@ -6018,24 +6028,27 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
+		peer_connection_args pack{
+			&m_ses
+			, &settings()
+			, &m_ses.stats_counters()
+			, &m_ses.disk_thread()
+			, &m_ses.get_io_service()
+			, shared_from_this()
+			, s
+			, a
+			, &web->peer_info
+			, aux::generate_peer_id(settings())
+		};
+
 		std::shared_ptr<peer_connection> c;
-		peer_connection_args pack;
-		pack.ses = &m_ses;
-		pack.sett = &settings();
-		pack.stats_counters = &m_ses.stats_counters();
-		pack.disk_thread = &m_ses.disk_thread();
-		pack.ios = &m_ses.get_io_service();
-		pack.tor = shared_from_this();
-		pack.s = s;
-		pack.endp = a;
-		pack.peerinfo = &web->peer_info;
 		if (web->type == web_seed_entry::url_seed)
 		{
-			c = std::make_shared<web_peer_connection>(pack, *web);
+			c = std::make_shared<web_peer_connection>(std::move(pack), *web);
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
-			c = std::make_shared<http_seed_connection>(pack, *web);
+			c = std::make_shared<http_seed_connection>(std::move(pack), *web);
 		}
 		if (!c) return;
 
@@ -6630,18 +6643,21 @@ bool is_downloading_state(int const st)
 #endif
 		}
 
-		peer_connection_args pack;
-		pack.ses = &m_ses;
-		pack.sett = &settings();
-		pack.stats_counters = &m_ses.stats_counters();
-		pack.disk_thread = &m_ses.disk_thread();
-		pack.ios = &m_ses.get_io_service();
-		pack.tor = shared_from_this();
-		pack.s = s;
-		pack.endp = a;
-		pack.peerinfo = peerinfo;
+		peer_id const our_pid = aux::generate_peer_id(settings());
+		peer_connection_args pack{
+			&m_ses
+			, &settings()
+			, &m_ses.stats_counters()
+			, &m_ses.disk_thread()
+			, &m_ses.get_io_service()
+			, shared_from_this()
+			, s
+			, a
+			, peerinfo
+			, our_pid
+		};
 
-		std::shared_ptr<peer_connection> c = std::make_shared<bt_peer_connection>(pack);
+		auto c = std::make_shared<bt_peer_connection>(std::move(pack));
 
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
@@ -6672,6 +6688,7 @@ bool is_downloading_state(int const st)
 		sorted_insert(m_connections, c.get());
 		TORRENT_TRY
 		{
+			m_outgoing_pids.insert(our_pid);
 			m_ses.insert_peer(c);
 			need_peer_list();
 			m_peer_list->set_connection(peerinfo, c.get());
@@ -7760,6 +7777,8 @@ bool is_downloading_state(int const st)
 #if TORRENT_USE_INVARIANT_CHECKS
 	void torrent::check_invariant() const
 	{
+		TORRENT_ASSERT(m_connections.size() >= m_outgoing_pids.size());
+
 		// the piece picker and the file progress states are supposed to be
 		// created in sync
 		TORRENT_ASSERT(has_picker() == !m_file_progress.empty());

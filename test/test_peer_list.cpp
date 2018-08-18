@@ -63,6 +63,7 @@ struct mock_peer_connection
 		, m_tp(nullptr)
 		, m_remote(remote)
 		, m_local(ep("127.0.0.1", 8080))
+		, m_our_id(nullptr)
 		, m_disconnect_called(false)
 		, m_torrent(*tor)
 	{
@@ -102,6 +103,7 @@ struct mock_peer_connection
 	tcp::endpoint m_remote;
 	tcp::endpoint m_local;
 	peer_id m_id;
+	peer_id m_our_id;
 	bool m_disconnect_called;
 	mock_torrent& m_torrent;
 
@@ -111,6 +113,7 @@ struct mock_peer_connection
 	void disconnect(error_code const& ec
 		, operation_t op, int error = 0) override;
 	peer_id const& pid() const override { return m_id; }
+	peer_id our_pid() const override { return m_our_id; }
 	void set_holepunch_mode() override {}
 	torrent_peer* peer_info_struct() const override { return m_tp; }
 	void set_peer_info(torrent_peer* pi) override { m_tp = pi; }

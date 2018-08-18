@@ -108,6 +108,8 @@ namespace libtorrent {
 
 		~bt_peer_connection() override;
 
+		peer_id our_pid() const override { return m_our_peer_id; }
+
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		bool supports_encryption() const
 		{ return m_encrypted; }
@@ -414,7 +416,7 @@ namespace libtorrent {
 		std::string m_client_version;
 
 		// the peer ID we advertise for ourself
-		peer_id m_our_peer_id;
+		peer_id const m_our_peer_id;
 
 		// this is a queue of ranges that describes
 		// where in the send buffer actual payload

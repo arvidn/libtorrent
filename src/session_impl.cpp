@@ -2941,19 +2941,21 @@ namespace aux {
 #endif
 		}
 
-		peer_connection_args pack;
-		pack.ses = this;
-		pack.sett = &m_settings;
-		pack.stats_counters = &m_stats_counters;
-		pack.disk_thread = &m_disk_thread;
-		pack.ios = &m_io_service;
-		pack.tor = std::weak_ptr<torrent>();
-		pack.s = s;
-		pack.endp = endp;
-		pack.peerinfo = nullptr;
+		peer_connection_args pack{
+			this
+			, &m_settings
+			, &m_stats_counters
+			, &m_disk_thread
+			, &m_io_service
+			, std::weak_ptr<torrent>()
+			, s
+			, endp
+			, nullptr
+			, aux::generate_peer_id(m_settings)
+		};
 
 		std::shared_ptr<peer_connection> c
-			= std::make_shared<bt_peer_connection>(pack);
+			= std::make_shared<bt_peer_connection>(std::move(pack));
 
 		if (!c->is_disconnecting())
 		{

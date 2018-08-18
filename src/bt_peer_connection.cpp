@@ -155,7 +155,7 @@ namespace {
 		, m_rc4_encrypted(false)
 		, m_recv_buffer(peer_connection::m_recv_buffer)
 #endif
-		, m_our_peer_id(aux::generate_peer_id(*pack.sett))
+		, m_our_peer_id(pack.our_peer_id)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "CONSTRUCT", "bt_peer_connection");
@@ -3178,6 +3178,12 @@ namespace {
 			{
 				// if this is a bitcomet client, lower the request queue size limit
 				if (max_out_request_queue() > 50) max_out_request_queue(50);
+			}
+
+			if (t->is_self_connection(pid))
+			{
+				disconnect(errors::self_connection, operation_t::bittorrent);
+				return;
 			}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

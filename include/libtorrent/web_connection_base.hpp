@@ -75,6 +75,8 @@ namespace libtorrent {
 
 		bool in_handshake() const override;
 
+		peer_id our_pid() const override { return peer_id(); }
+
 		// the following functions appends messages
 		// to the send buffer
 		void write_choke() override {}
