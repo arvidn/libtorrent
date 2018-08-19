@@ -2154,9 +2154,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			// if you get a compile error here, you might want to
 			// define TORRENT_HAS_FALLOCATE to 0.
 			ret = posix_fallocate(native_handle(), 0, s);
-			// posix_allocate fails with EINVAL in case the underlying
+			// posix_allocate fails with EINVAL or ENOTSUP in case the underlying
 			// filesystem does not support this operation
-			if (ret != 0 && ret != EINVAL)
+			if (ret != 0 && ret != EINVAL && ret != ENOTSUP)
 			{
 				ec.assign(ret, system_category());
 				return false;

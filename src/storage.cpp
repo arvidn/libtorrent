@@ -457,8 +457,6 @@ namespace libtorrent
 				file_handle f = open_file(i, file::read_write, ec);
 				if (ec)
 				{
-					ec.file = i;
-					ec.operation = storage_error::open;
 					prio = m_file_priority;
 					return;
 				}
@@ -489,8 +487,6 @@ namespace libtorrent
 				{
 					if (ec)
 					{
-						ec.file = i;
-						ec.operation = storage_error::open;
 						prio = m_file_priority;
 						return;
 					}
@@ -1600,7 +1596,7 @@ namespace libtorrent
 				{
 					ec.ec = e;
 					ec.file = file;
-					ec.operation = storage_error::fallocate;
+					ec.operation = storage_error::stat;
 					return h;
 				}
 
