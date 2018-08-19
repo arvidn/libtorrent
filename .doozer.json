@@ -14,13 +14,14 @@
     },
     "macOS": {
       "buildenv": "osx",
-      "homebrew": { "formulae": ["boost-build", "wget", "ccache"] },
+      "homebrew": { "formulae": ["wget", "ccache"] },
       "buildcmd": [
          "wget --quiet -O boost.zip https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.zip",
          "unzip -qq boost.zip",
+         "rm boost.zip",
          "(cd boost_1_68_0/tools/build/src/engine && ./build.sh)",
-         "cd simulation",
          "echo \"using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
+         "cd simulation",
          "BOOST_ROOT=${PWD}/../boost_1_68_0 ../boost_1_68_0/tools/build/src/engine/bin.macosxx86_64/bjam --hash -j${PARALLEL}"
       ]
     }

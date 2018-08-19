@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 from __future__ import print_function
 
 import glob
@@ -1047,15 +1048,15 @@ def render_enums(out, enums, print_declared_reference, header_level):
                 width[2] = max(width[2], len(d))
 
         print('+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+', file=out)
-        print(('| ' + 'name'.ljust(width[0]) + ' | ' + 'value'.ljust(width[1]) + ' | '
-               'description'.ljust(width[2]) + ' |'), file=out)
+        print('| ' + 'name'.ljust(width[0]) + ' | ' + 'value'.ljust(width[1]) + ' | '
+              + 'description'.ljust(width[2]) + ' |', file=out)
         print('+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+=' + ('=' * width[2]) + '=+', file=out)
         for v in e['values']:
             d = v['desc'].split('\n')
             if len(d) == 0:
                 d = ['']
-                print(('| ' + v['name'].ljust(width[0]) + ' | ' + v['val'].ljust(width[1]) + ' | '
-                       + d[0].ljust(width[2]) + ' |'), file=out)
+            print('| ' + v['name'].ljust(width[0]) + ' | ' + v['val'].ljust(width[1]) + ' | '
+                  + d[0].ljust(width[2]) + ' |', file=out)
             for s in d[1:]:
                 print('| ' + (' ' * width[0]) + ' | ' + (' ' * width[1]) + ' | ' + s.ljust(width[2]) + ' |', file=out)
             print('+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+', file=out)
