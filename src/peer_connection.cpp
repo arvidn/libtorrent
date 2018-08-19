@@ -3957,7 +3957,7 @@ namespace libtorrent {
 			// blocks that are in the same piece into larger requests
 			if (m_request_large_blocks)
 			{
-				int blocks_per_piece = t->torrent_file().piece_length() / t->block_size();
+				int const blocks_per_piece = t->torrent_file().piece_length() / t->block_size();
 
 				while (!m_request_queue.empty())
 				{
