@@ -3901,8 +3901,8 @@ namespace aux {
 			bool operator()(opt_unchoke_candidate const& l
 				, opt_unchoke_candidate const& r) const
 			{
-				torrent_peer* pil = (*l.peer)->peer_info_struct();
-				torrent_peer* pir = (*r.peer)->peer_info_struct();
+				torrent_peer const* pil = (*l.peer)->peer_info_struct();
+				torrent_peer const* pir = (*r.peer)->peer_info_struct();
 				if (pil->last_optimistically_unchoked
 					!= pir->last_optimistically_unchoked)
 				{
@@ -3950,7 +3950,7 @@ namespace aux {
 				prev_opt_unchoke.push_back(pi);
 			}
 
-			torrent* t = p->associated_torrent().lock().get();
+			torrent const* t = p->associated_torrent().lock().get();
 			if (!t) continue;
 
 			// TODO: 3 peers should know whether their torrent is paused or not,
@@ -4774,17 +4774,15 @@ namespace aux {
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
 #endif
 
-		sha1_hash next_lsd(nullptr);
-		sha1_hash next_dht(nullptr);
-		if (m_next_lsd_torrent != m_torrents.end())
-			next_lsd = m_next_lsd_torrent->first;
+		sha1_hash const next_lsd = m_next_lsd_torrent != m_torrents.end()
+			? m_next_lsd_torrent->first : sha1_hash();
 #ifndef TORRENT_DISABLE_DHT
-		if (m_next_dht_torrent != m_torrents.end())
-			next_dht = m_next_dht_torrent->first;
+		sha1_hash const next_dht = m_next_dht_torrent != m_torrents.end()
+			? m_next_dht_torrent->first : sha1_hash();
 #endif
 		float const load_factor = m_torrents.load_factor();
 
-		m_torrents.insert(std::make_pair(params.info_hash, torrent_ptr));
+		m_torrents.emplace(params.info_hash, torrent_ptr);
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		static char const req2[4] = {'r', 'e', 'q', '2'};
@@ -4792,7 +4790,7 @@ namespace aux {
 		h.update(params.info_hash);
 		// this is SHA1("req2" + info-hash), used for
 		// encrypted hand shakes
-		m_obfuscated_torrents.insert(std::make_pair(h.final(), torrent_ptr));
+		m_obfuscated_torrents.emplace(h.final(), torrent_ptr);
 #endif
 
 		// once we successfully add the torrent, we can disarm the abort action
@@ -4815,8 +4813,8 @@ namespace aux {
 #if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		if (!params.uuid.empty() || !params.url.empty())
-			m_uuids.insert(std::make_pair(params.uuid.empty()
-				? params.url : params.uuid, torrent_ptr));
+			m_uuids.emplace(params.uuid.empty()
+				? params.url : params.uuid, torrent_ptr);
 #endif
 
 		// recalculate auto-managed torrents sooner (or put it off)
@@ -5018,7 +5016,7 @@ namespace aux {
 
 		if (is_utp(s))
 		{
-			auto ep = m_outgoing_sockets.bind(s, remote_address, ec);
+			auto const ep = m_outgoing_sockets.bind(s, remote_address, ec);
 			if (ep.port() != 0 || ec)
 				return ep;
 		}
@@ -5090,7 +5088,7 @@ namespace aux {
 
 		// we didn't find the address as an IP in the interface list. Now,
 		// resolve which device (if any) has this IP address.
-		std::string device = device_for_address(addr, m_io_service, ec);
+		std::string const device = device_for_address(addr, m_io_service, ec);
 		if (ec) return false;
 
 		// if no device was found to have this address, we fail
