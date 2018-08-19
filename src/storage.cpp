@@ -778,9 +778,18 @@ namespace libtorrent
 
 			if (ec)
 			{
-				ec.file = index;
-				ec.operation = storage_error::rename;
-				return;
+				ec.ec.clear();
+				copy_file(old_name, new_path, ec.ec);
+
+				if (ec)
+				{
+					ec.file = index;
+					ec.operation = storage_error::rename;
+					return;
+				}
+
+				error_code ignore;
+				remove(old_name, ignore);
 			}
 		}
 		else if (ec.ec)
