@@ -195,7 +195,7 @@ script:
 
   - cd docs
   - 'if [ "$docs" == "1" ]; then
-      make spell-check RST2HTML=rst2html.py AAFIGURE=echo;
+      make spell-check html RST2HTML=rst2html.py AAFIGURE=echo;
     fi'
   - cd ..
 
