@@ -234,7 +234,7 @@ namespace libtorrent {
 		{
 			info.num_peers = 0;
 			info.state = block_info::state_none;
-			if (m_pad_blocks.count(piece_block(piece, block_idx)))
+			if (!m_pad_blocks.empty() && m_pad_blocks.get_bit(static_cast<int>(piece) * m_blocks_per_piece + block_idx))
 			{
 				info.state = block_info::state_finished;
 				++ret.finished;
@@ -3506,7 +3506,23 @@ get_out:
 
 	void piece_picker::mark_as_pad(piece_block block)
 	{
-		m_pad_blocks.insert(block);
+		// if this is the first block we mark as a pad, allocate the bitfield
+		if (m_pad_blocks.empty())
+		{
+			m_pad_blocks.resize(int(m_piece_map.size() * m_blocks_per_piece));
+		}
+
+		int const block_index = static_cast<int>(block.piece_index) * m_blocks_per_piece + block.block_index;
+		TORRENT_ASSERT(block_index < m_pad_blocks.size());
+		TORRENT_ASSERT(block_index >= 0);
+		TORRENT_ASSERT(m_pad_blocks.get_bit(block_index) == false);
+
+		m_pad_blocks.set_bit(block_index);
+		++m_num_pad_blocks;
+		TORRENT_ASSERT(m_pad_blocks.count() == m_num_pad_blocks);
+
+		++m_pads_in_piece[block.piece_index];
+
 		// if we mark and entire piece as a pad file, we need to also
 		// consder that piece as "had" and increment some counters
 		int const blocks = blocks_in_piece(block.piece_index);
@@ -3519,10 +3535,9 @@ get_out:
 
 	int piece_picker::pad_blocks_in_piece(piece_index_t const index) const
 	{
-		int const blocks = blocks_in_piece(index);
-		auto const begin = m_pad_blocks.lower_bound(piece_block(index, 0));
-		auto const end = m_pad_blocks.upper_bound(piece_block(index, blocks));
-		return int(std::distance(begin, end));
+		auto const it = m_pads_in_piece.find(index);
+		if (it == m_pads_in_piece.end()) return 0;
+		return it->second;
 	}
 
 	void piece_picker::get_downloaders(std::vector<torrent_peer*>& d

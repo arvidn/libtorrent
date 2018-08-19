@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <tuple>
 #include <set>
+#include <unordered_map>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/assert.hpp"
@@ -464,7 +465,7 @@ namespace libtorrent {
 
 	private:
 
-		int num_pad_blocks() const { return int(m_pad_blocks.size()); }
+		int num_pad_blocks() const { return m_num_pad_blocks; }
 
 		aux::typed_span<block_info> mutable_blocks_for_piece(downloading_piece const& dp);
 
@@ -725,10 +726,19 @@ namespace libtorrent {
 		// TODO: should this be allocated lazily?
 		mutable aux::vector<piece_pos, piece_index_t> m_piece_map;
 
-		// this maps pieces to a range of blocks that are pad files and should not
-		// be picked
+		// this indicates whether a block has been marked as a pad
+		// block or not. It's indexed by block index, i.e. piece_index
+		// * blocks_per_piece + block. These blocks should not be
+		// picked and are considered to be had
 		// TODO: this could be a much more efficient data structure
-		std::set<piece_block> m_pad_blocks;
+		bitfield m_pad_blocks;
+
+		// tracks the number of blocks in a specific piece that are pad blocks
+		std::unordered_map<piece_index_t, int> m_pads_in_piece;
+
+		// the number of bits set in the m_pad_blocks bitfield, i.e.
+		// the number of blocks marked as pads
+		int m_num_pad_blocks = 0;
 
 		// the number of pad blocks that we already have
 		int m_have_pad_blocks = 0;
