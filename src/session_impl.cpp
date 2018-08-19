@@ -6526,9 +6526,6 @@ retry:
 		stop_lsd();
 		stop_upnp();
 		stop_natpmp();
-#ifndef TORRENT_DISABLE_DHT
-		stop_dht();
-#endif
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

@@ -609,9 +609,7 @@ namespace libtorrent
 			// proxy_type and proxy_hostname settings. The listen sockets are
 			// closed, and incoming connections will only be accepted through a
 			// SOCKS5 or I2P proxy (if a peer proxy is set up and is run on the
-			// same machine as the tracker proxy). This setting also disabled peer
-			// country lookups, since those are done via DNS lookups that aren't
-			// supported by proxies.
+			// same machine as the tracker proxy).
 			force_proxy,
 
 			// if false, prevents libtorrent to advertise share-mode support
