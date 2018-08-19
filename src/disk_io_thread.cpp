@@ -1184,7 +1184,7 @@ namespace libtorrent
 		int ret = j->storage->get_storage_impl()->readv(&b, 1
 			, j->piece, j->d.io.offset, file_flags, j->error);
 
-		TORRENT_ASSERT(ret >= 0 || j->error.ec);
+		TORRENT_ASSERT(ret >= 0 || (j->error.ec && j->error.operation != 0));
 
 		if (!j->error.ec)
 		{
@@ -1257,6 +1257,8 @@ namespace libtorrent
 
 		ret = j->storage->get_storage_impl()->readv(iov, iov_len
 			, j->piece, adjusted_offset, file_flags, j->error);
+
+		TORRENT_ASSERT(ret >= 0 || (j->error.ec && j->error.operation != 0));
 
 		if (!j->error.ec)
 		{
@@ -1417,6 +1419,8 @@ namespace libtorrent
 		// the actual write operation
 		int ret = j->storage->get_storage_impl()->writev(&b, 1
 			, j->piece, j->d.io.offset, file_flags, j->error);
+
+		TORRENT_ASSERT(ret >= 0 || (j->error.ec && j->error.operation != 0));
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
 
