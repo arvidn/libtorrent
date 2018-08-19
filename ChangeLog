@@ -1,3 +1,4 @@
+	* improve performance of freeing disk cache for a specific torrent
 	* fix redundant flushes of partfile metadata
 	* add option to ignore min-interval from trackers on force-reannounce
 	* raise default setting for active_limit

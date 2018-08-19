@@ -512,7 +512,9 @@ namespace libtorrent
 		};
 		void flush_cache(piece_manager* storage, boost::uint32_t flags, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
 		void flush_expired_write_blocks(jobqueue_t& completed_jobs, mutex::scoped_lock& l);
-		void flush_piece(cached_piece_entry* pe, int flags, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
+
+		// returns true if the mutex was released and then re-acquired
+		bool flush_piece(cached_piece_entry* pe, int flags, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
 
 		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
 
