@@ -175,11 +175,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// or encrypt the content on disk for instance. For more information
 		// about the storage_interface that needs to be implemented for a custom
 		// storage, see storage_interface.
-#ifdef __clang__
-		storage_constructor_type storage;
-#else
 		aux::noexcept_movable<storage_constructor_type> storage;
-#endif
 
 		// The ``userdata`` parameter is optional and will be passed on to the
 		// extension constructor functions, if any
