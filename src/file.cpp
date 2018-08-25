@@ -1220,7 +1220,7 @@ namespace {
 			int const ret = posix_fallocate(native_handle(), 0, s);
 			// posix_allocate fails with EINVAL in case the underlying
 			// filesystem does not support this operation
-			if (ret != 0 && ret != EINVAL)
+			if (ret != 0 && ret != EINVAL && ret != ENOTSUP)
 			{
 				ec.assign(ret, system_category());
 				return false;

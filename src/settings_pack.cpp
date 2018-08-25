@@ -309,7 +309,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(utp_loss_multiplier, 50, nullptr),
 		SET(mixed_mode_algorithm, settings_pack::peer_proportional, nullptr),
 		SET(listen_queue_size, 5, nullptr),
-		SET(torrent_connect_boost, 80, nullptr),
+		SET(torrent_connect_boost, 30, nullptr),
 		SET(alert_queue_size, 1000, &session_impl::update_alert_queue_size),
 		SET(max_metadata_size, 3 * 1024 * 10240, nullptr),
 		DEPRECATED_SET(hashing_threads, 1, nullptr),

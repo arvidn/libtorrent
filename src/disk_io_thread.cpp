@@ -1248,7 +1248,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		int const ret = j->storage->readv(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
 
-		TORRENT_ASSERT(ret >= 0 || j->error.ec);
+		TORRENT_ASSERT(ret >= 0 || (j->error.ec && j->error.operation != operation_t::unknown));
 		TORRENT_UNUSED(ret);
 
 		if (!j->error.ec)
@@ -1322,6 +1322,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		ret = j->storage->readv(iov
 			, j->piece, int(adjusted_offset), file_flags, j->error);
+
+		TORRENT_ASSERT(ret >= 0 || (j->error.ec && j->error.operation != operation_t::unknown));
 
 		if (!j->error.ec)
 		{
@@ -1483,6 +1485,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// the actual write operation
 		int const ret = j->storage->writev(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
+
+		TORRENT_ASSERT(ret >= 0 || (j->error.ec && j->error.operation != operation_t::unknown));
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
 

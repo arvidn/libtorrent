@@ -88,6 +88,8 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* improve handling of filesystems not supporting fallocate()
+	* force-proxy no longer disables DHT
 	* improve connect-boost feature, to make new torrents quickly connect peers
 
 1.1.9 release
