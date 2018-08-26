@@ -1814,7 +1814,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, "EXTENDED_HANDSHAKE"
-			, "%s", print_entry(root).c_str());
+			, "%s", print_entry(root, true).c_str());
 #endif
 
 		for (extension_list_t::iterator i = m_extensions.begin();
@@ -2355,7 +2355,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "EXTENDED_HANDSHAKE"
-			, "%s", handshake.to_string().c_str());
+			, "%s", handshake.to_string(true).c_str());
 #endif
 	}
 #endif
