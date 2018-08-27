@@ -1738,8 +1738,10 @@ namespace libtorrent
 		else
 		{
 			peer_log(peer_log_alert::info, "UNCHOKE", "did not unchoke, the number of uploads (%d) "
-				"is more than or equal to the limit (%d)"
-				, m_ses.num_uploads(), m_settings.get_int(settings_pack::unchoke_slots_limit));
+				"is more than or equal to the available slots (%d), limit (%d)"
+				, int(m_counters[counters::num_peers_up_unchoked])
+				, int(m_counters[counters::num_unchoke_slots])
+				, m_settings.get_int(settings_pack::unchoke_slots_limit));
 		}
 #endif
 	}
