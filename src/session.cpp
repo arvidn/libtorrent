@@ -270,7 +270,7 @@ namespace {
 		set.set_int(settings_pack::peer_timeout, 20);
 		set.set_int(settings_pack::inactivity_timeout, 20);
 
-		set.set_int(settings_pack::active_limit, 2000);
+		set.set_int(settings_pack::active_limit, 20000);
 		set.set_int(settings_pack::active_tracker_limit, 2000);
 		set.set_int(settings_pack::active_dht_limit, 600);
 		set.set_int(settings_pack::active_seeds, 2000);

@@ -1,3 +1,4 @@
+	* raise default setting for active_limit
 	* fall back to copy+remove if rename_file fails
 	* improve handling of filesystems not supporting fallocate()
 	* force-proxy no longer disables DHT
