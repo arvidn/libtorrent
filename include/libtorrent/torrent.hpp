@@ -1622,12 +1622,6 @@ namespace libtorrent
 		// the DHT
 		bool m_announce_to_dht:1;
 
-		// these represent whether or not this torrent is counted
-		// in the total counters of active seeds and downloads
-		// in the session.
-		bool m_is_active_download:1;
-		bool m_is_active_finished:1;
-
 		// even if we're not built to support SSL torrents,
 		// remember that this is an SSL torrent, so that we don't
 		// accidentally start seeding it without any authentication.
