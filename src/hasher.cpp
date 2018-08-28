@@ -114,7 +114,7 @@ namespace libtorrent {
 		sha1_hash digest;
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_final(m_context);
-		digest.assign((char const*)gcry_md_read(m_context, 0));
+		digest.assign(reinterpret_cast<char const*>(gcry_md_read(m_context, 0)));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #elif TORRENT_USE_CRYPTOAPI
