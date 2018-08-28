@@ -298,8 +298,6 @@ namespace libtorrent
 		, m_connect_boost_counter(static_cast<boost::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht((p.flags & add_torrent_params::flag_paused) == 0)
-		, m_is_active_download(false)
-		, m_is_active_finished(false)
 		, m_ssl_torrent(false)
 		, m_deleted(false)
 		, m_pinned((p.flags & add_torrent_params::flag_pinned) != 0)
