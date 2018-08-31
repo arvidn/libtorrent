@@ -8393,7 +8393,8 @@ namespace {
 		// if we don't get ticks we won't become inactive
 		if (m_allow_peers && !m_inactive) return true;
 
-		return false;
+//		return false;
+		return true;
 	}
 
 	void torrent::update_want_tick()
@@ -10581,18 +10582,21 @@ namespace {
 		// changes state, it may also trigger the auto-manage logic to reconsider
 		// which torrents should be queued and started. There is a low pass
 		// filter in order to avoid flapping (auto_manage_startup).
-		bool is_inactive = is_inactive_internal();
+		bool const is_inactive = is_inactive_internal();
 
 		if (settings().get_bool(settings_pack::dont_count_slow_torrents))
 		{
 			if (is_inactive != m_inactive
 				&& !m_pending_active_change)
 			{
-				int delay = settings().get_int(settings_pack::auto_manage_startup);
+				int const delay = settings().get_int(settings_pack::auto_manage_startup);
 				m_inactivity_timer.expires_from_now(seconds(delay));
 				m_inactivity_timer.async_wait(boost::bind(&torrent::on_inactivity_tick
 					, shared_from_this(), _1));
 				m_pending_active_change = true;
+#ifndef TORRENT_DISABLE_LOGGING
+				debug_log("INACTIVE [ fire timer in %d s ]", delay);
+#endif
 			}
 			else if (is_inactive == m_inactive
 				&& m_pending_active_change)
@@ -10618,12 +10622,21 @@ namespace {
 	{
 		m_pending_active_change = false;
 
-		if (ec) return;
+		if (ec)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("INACTIVE [ timer failed: %s ]", ec.message().c_str());
+#endif
+			return;
+		}
 
-		bool is_inactive = is_inactive_internal();
+		bool const is_inactive = is_inactive_internal();
 		if (is_inactive == m_inactive) return;
 
 		m_inactive = is_inactive;
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("INACTIVE [ %s ]", m_inactive ? "yes" : "no");
+#endif
 
 		update_state_list();
 		update_want_tick();
