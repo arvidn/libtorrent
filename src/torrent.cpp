@@ -5314,7 +5314,8 @@ bool is_downloading_state(int const st)
 		// one example of this situation is if for example, this
 		// function is called from the attach_peer path and fail to
 		// do so because of too many connections.
-		if (p->associated_torrent().lock().get() == this)
+		bool const is_attached = p->associated_torrent().lock().get() == this;
+		if (is_attached)
 		{
 			std::weak_ptr<torrent> weak_t = shared_from_this();
 			TORRENT_ASSERT_VAL(m_peers_to_disconnect.capacity() > m_peers_to_disconnect.size()
@@ -5376,7 +5377,9 @@ bool is_downloading_state(int const st)
 			pp->prev_amount_download += aux::numeric_cast<std::uint32_t>(p->statistics().total_payload_download() >> 10);
 			pp->prev_amount_upload += aux::numeric_cast<std::uint32_t>(p->statistics().total_payload_upload() >> 10);
 
-			if (pp->seed)
+			// only decrement the seed count if the peer completed attaching to the torrent
+			// otherwise the seed count did not get incremented for this peer
+			if (is_attached && pp->seed)
 			{
 				TORRENT_ASSERT(m_num_seeds > 0);
 				--m_num_seeds;
