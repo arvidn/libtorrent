@@ -1102,6 +1102,18 @@ namespace libtorrent
 
 		boost::shared_ptr<piece_manager> storage = j->storage;
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+		if (storage)
+		{
+			mutex::scoped_lock l(m_cache_mutex);
+			boost::unordered_set<cached_piece_entry*> const& pieces = storage->cached_pieces();
+			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
+				, end(pieces.end()); i != end; ++i)
+			{
+				TORRENT_ASSERT((*i)->storage == storage);
+			}
+		}
+#endif
 		// TODO: instead of doing this. pass in the settings to each storage_interface
 		// call. Each disk thread could hold its most recent understanding of the settings
 		// in a shared_ptr, and update it every time it wakes up from a job. That way
@@ -1796,6 +1808,17 @@ namespace libtorrent
 		j->storage = storage->shared_from_this();
 		j->callback = handler;
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+		{
+			mutex::scoped_lock l(m_cache_mutex);
+			boost::unordered_set<cached_piece_entry*> const& pieces = storage->cached_pieces();
+			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
+				, end(pieces.end()); i != end; ++i)
+			{
+				TORRENT_ASSERT((*i)->storage.get() == storage);
+			}
+		}
+#endif
 		add_fence_job(storage, j);
 	}
 

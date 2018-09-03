@@ -1765,6 +1765,7 @@ namespace libtorrent
 
 	void storage_piece_set::remove_piece(cached_piece_entry* p)
 	{
+		TORRENT_ASSERT(p->storage.get() == this);
 		TORRENT_ASSERT(p->in_storage == true);
 		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
 		m_cached_pieces.erase(p);
