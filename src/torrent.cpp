@@ -4794,7 +4794,7 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		TORRENT_ASSERT(m_picker.get());
+		TORRENT_ASSERT(m_picker);
 		m_picker->piece_priorities(*pieces);
 	}
 
@@ -6081,7 +6081,7 @@ bool is_downloading_state(int const st)
 			: m_files_checked ? m_torrent_file->end_piece()
 			: piece_index_t(0);
 
-		TORRENT_ASSERT(ret.have_pieces.size() == 0);
+		TORRENT_ASSERT(ret.have_pieces.empty());
 		if (max_piece > piece_index_t(0))
 		{
 			if (is_seed())
@@ -6091,10 +6091,8 @@ bool is_downloading_state(int const st)
 			else if (has_picker())
 			{
 				ret.have_pieces.resize(static_cast<int>(max_piece), false);
-				for (piece_index_t i(0); i < max_piece; ++i)
-				{
+				for (auto const i : ret.have_pieces.range())
 					if (m_picker->have_piece(i)) ret.have_pieces.set_bit(i);
-				}
 			}
 
 			if (m_seed_mode)
@@ -6189,8 +6187,7 @@ bool is_downloading_state(int const st)
 			// write piece priorities
 			// but only if they are not set to the default
 			bool default_prio = true;
-			file_storage const& fs = m_torrent_file->files();
-			for (piece_index_t i(0); i < fs.end_piece(); ++i)
+			for (auto const i : m_torrent_file->piece_range())
 			{
 				if (m_picker->piece_priority(i) == default_priority) continue;
 				default_prio = false;
@@ -6202,7 +6199,7 @@ bool is_downloading_state(int const st)
 				ret.piece_priorities.clear();
 				ret.piece_priorities.reserve(static_cast<std::size_t>(m_torrent_file->num_pieces()));
 
-				for (piece_index_t i(0); i < fs.end_piece(); ++i)
+				for (auto const i : m_torrent_file->piece_range())
 					ret.piece_priorities.push_back(m_picker->piece_priority(i));
 			}
 		}
@@ -9347,7 +9344,7 @@ bool is_downloading_state(int const st)
 	{
 		int peers;
 		int index;
-		bool operator<(busy_block_t rhs) const { return peers < rhs.peers; }
+		bool operator<(busy_block_t const& rhs) const { return peers < rhs.peers; }
 	};
 
 	void pick_busy_blocks(piece_picker const* picker
@@ -9503,7 +9500,7 @@ bool is_downloading_state(int const st)
 			// move on to the next one
 			if (interesting_blocks.empty()) break;
 
-			piece_block b = interesting_blocks.front();
+			piece_block const b = interesting_blocks.front();
 
 			// in busy mode we need to make sure we don't do silly
 			// things like requesting the same block twice from the
@@ -10653,7 +10650,7 @@ bool is_downloading_state(int const st)
 			if (has_picker())
 			{
 				st->pieces.resize(num_pieces, false);
-				for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
+				for (auto const i : st->pieces.range())
 					if (m_picker->has_piece_passed(i)) st->pieces.set_bit(i);
 			}
 			else if (m_have_all)
