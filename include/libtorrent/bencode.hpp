@@ -234,7 +234,7 @@ namespace detail {
 			case 'i':
 				{
 				++in; // 'i'
-				std::string val = read_until(in, end, 'e', err);
+				std::string const val = read_until(in, end, 'e', err);
 				if (err) return;
 				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e'
@@ -249,12 +249,12 @@ namespace detail {
 					err = true;
 					return;
 				}
-				} break;
+				}
+				break;
 
 			// ----------------------------------------------
 			// list
 			case 'l':
-				{
 				ret = entry(entry::list_t);
 				++in; // 'l'
 				while (*in != 'e')
@@ -283,12 +283,11 @@ namespace detail {
 #endif
 				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e'
-				} break;
+				break;
 
 			// ----------------------------------------------
 			// dictionary
 			case 'd':
-				{
 				ret = entry(entry::dictionary_t);
 				++in; // 'd'
 				while (*in != 'e')
@@ -325,7 +324,7 @@ namespace detail {
 #endif
 				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e'
-				} break;
+				break;
 
 			// ----------------------------------------------
 			// string

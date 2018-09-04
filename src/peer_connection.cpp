@@ -4302,11 +4302,9 @@ namespace libtorrent {
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
 
-		if (ec == errors::self_connection)
-		{
-			// don't try to connect to ourself again
-			if (m_peer_info && t) t->ban_peer(m_peer_info);
-		}
+		// don't try to connect to ourself again
+		if (ec == errors::self_connection && m_peer_info && t)
+			t->ban_peer(m_peer_info);
 
 		if (m_connecting)
 		{

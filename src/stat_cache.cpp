@@ -49,7 +49,7 @@ namespace libtorrent {
 	void stat_cache::set_cache_impl(file_index_t const i, std::int64_t const size)
 	{
 		if (i >= m_stat_cache.end_index())
-			m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
+			m_stat_cache.resize(static_cast<int>(i) + 1, stat_cache_t{not_in_cache});
 		m_stat_cache[i].file_size = size;
 	}
 
@@ -62,7 +62,7 @@ namespace libtorrent {
 	void stat_cache::set_error_impl(file_index_t const i, error_code const& ec)
 	{
 		if (i >= m_stat_cache.end_index())
-			m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
+			m_stat_cache.resize(static_cast<int>(i) + 1, stat_cache_t{not_in_cache});
 
 		int const error_index = add_error(ec);
 		m_stat_cache[i].file_size = file_error - error_index;
@@ -80,7 +80,8 @@ namespace libtorrent {
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 		TORRENT_ASSERT(i < fs.end_file());
-		if (i >= m_stat_cache.end_index()) m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
+		if (i >= m_stat_cache.end_index()) m_stat_cache.resize(static_cast<int>(i) + 1
+			, stat_cache_t{not_in_cache});
 		std::int64_t sz = m_stat_cache[i].file_size;
 		if (sz < not_in_cache)
 		{
@@ -110,7 +111,7 @@ namespace libtorrent {
 	void stat_cache::reserve(int num_files)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
-		m_stat_cache.resize(num_files, not_in_cache);
+		m_stat_cache.resize(num_files, stat_cache_t{not_in_cache});
 	}
 
 	void stat_cache::clear()

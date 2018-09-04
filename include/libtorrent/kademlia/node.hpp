@@ -211,8 +211,8 @@ public:
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }
 	bool native_address(address const& addr) const
 	{
-		return (addr.is_v4() && m_protocol.protocol == m_protocol.protocol.v4())
-			|| (addr.is_v6() && m_protocol.protocol == m_protocol.protocol.v6());
+		return (addr.is_v4() && m_protocol.protocol == udp::v4())
+			|| (addr.is_v6() && m_protocol.protocol == udp::v6());
 	}
 
 private:

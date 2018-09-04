@@ -105,7 +105,8 @@ namespace aux {
 		{
 			address_v4::bytes_type v4;
 			address_v6::bytes_type v6;
-		} addr;
+		};
+		addr_t addr;
 
 		std::uint16_t port;
 	public:

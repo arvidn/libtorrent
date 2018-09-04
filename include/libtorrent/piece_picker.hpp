@@ -83,6 +83,10 @@ namespace libtorrent {
 
 	class TORRENT_EXTRA_EXPORT piece_picker
 	{
+		// only defined when TORRENT_PICKER_LOG is defined, used for debugging
+		// unit tests
+		friend void print_pieces(piece_picker const& p);
+
 	public:
 
 		enum
@@ -479,10 +483,6 @@ namespace libtorrent {
 		expand_piece(piece_index_t piece, int whole_pieces
 			, typed_bitfield<piece_index_t> const& have
 			, picker_options_t options) const;
-
-		// only defined when TORRENT_PICKER_LOG is defined, used for debugging
-		// unit tests
-		void print_pieces() const;
 
 		struct piece_pos
 		{

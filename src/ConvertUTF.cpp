@@ -150,7 +150,8 @@ ConversionResult ConvertUTF16toUTF32 (
 	}
 	if (target >= targetEnd) {
 		source = oldSource; /* Back up source pointer! */
-		result = targetExhausted; break;
+		result = targetExhausted;
+		break;
 	}
 	*target++ = ch;
 	}
@@ -267,7 +268,8 @@ ConversionResult ConvertUTF16toUTF8 (
 	target += bytesToWrite;
 	if (target > targetEnd) {
 		source = oldSource; /* Back up source pointer! */
-		target -= bytesToWrite; result = targetExhausted; break;
+		target -= bytesToWrite; result = targetExhausted;
+		break;
 	}
 	switch (bytesToWrite) { /* note: everything falls through. */
 		case 4: *--target = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
@@ -307,11 +309,16 @@ Boolean isLegalUTF8(const UTF8 *source, int length) {
 
 	switch (*source) {
 		/* no fall-through in this inner switch */
-		case 0xE0: if (a < 0xA0) return false; break;
-		case 0xED: if (a > 0x9F) return false; break;
-		case 0xF0: if (a < 0x90) return false; break;
-		case 0xF4: if (a > 0x8F) return false; break;
-		default:   break;
+		case 0xE0: if (a < 0xA0) return false;
+			break;
+		case 0xED: if (a > 0x9F) return false;
+			break;
+		case 0xF0: if (a < 0x90) return false;
+			break;
+		case 0xF4: if (a > 0x8F) return false;
+			break;
+		default:
+			break;
 	}
 
 	case 1: if (*source >= 0x80 && *source < 0xC2) return false;
