@@ -822,13 +822,10 @@ namespace libtorrent {
 		int num_have() const
 		{
 			// pretend we have every piece when in seed mode
-			if (m_seed_mode) {
-				return m_torrent_file->num_pieces();
-			}
-
-			return has_picker()
-				? m_picker->have().num_pieces
-				: m_have_all ? m_torrent_file->num_pieces() : 0;
+			if (m_seed_mode) return m_torrent_file->num_pieces();
+			if (has_picker()) return m_picker->have().num_pieces;
+			if (m_have_all) return m_torrent_file->num_pieces();
+			return 0;
 		}
 
 		// the number of pieces that have passed
@@ -836,9 +833,9 @@ namespace libtorrent {
 		// flushed to disk yet
 		int num_passed() const
 		{
-			return has_picker()
-				? m_picker->num_passed()
-				: m_have_all ? m_torrent_file->num_pieces() : 0;
+			if (has_picker()) return m_picker->num_passed();
+			if (m_have_all) return m_torrent_file->num_pieces();
+			return 0;
 		}
 
 		// when we get a have message, this is called for that piece

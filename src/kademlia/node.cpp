@@ -71,6 +71,9 @@ namespace libtorrent { namespace dht {
 
 namespace {
 
+// the write tokens we generate are 4 bytes
+constexpr int write_token_size = 4;
+
 void nop() {}
 
 node_id calculate_node_id(node_id const& nid, aux::listen_socket_handle const& sock)
@@ -157,7 +160,7 @@ void node::update_node_id()
 bool node::verify_token(string_view token, sha1_hash const& info_hash
 	, udp::endpoint const& addr) const
 {
-	if (token.length() != 4)
+	if (token.length() != write_token_size)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (m_observer != nullptr)
@@ -193,7 +196,7 @@ std::string node::generate_token(udp::endpoint const& addr
 	, sha1_hash const& info_hash)
 {
 	std::string token;
-	token.resize(4);
+	token.resize(write_token_size);
 	hasher h;
 	error_code ec;
 	std::string const address = addr.address().to_string(ec);
@@ -203,7 +206,7 @@ std::string node::generate_token(udp::endpoint const& addr
 	h.update(info_hash);
 
 	sha1_hash const hash = h.final();
-	std::copy(hash.begin(), hash.begin() + 4, token.begin());
+	std::copy(hash.begin(), hash.begin() + write_token_size, token.begin());
 	TORRENT_ASSERT(std::equal(token.begin(), token.end(), hash.data()));
 	return token;
 }
@@ -278,21 +281,19 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 			ext_ip = r.dict_find_string("ip");
 	}
 
-	if (ext_ip && ext_ip.string_length() >= 16)
+	if (ext_ip && ext_ip.string_length() >= int(detail::address_size(udp::v6())))
 	{
 		// this node claims we use the wrong node-ID!
-		address_v6::bytes_type b{};
-		std::memcpy(&b[0], ext_ip.string_ptr(), 16);
+		char const* ptr = ext_ip.string_ptr();
 		if (m_observer != nullptr)
-			m_observer->set_external_address(m_sock, address_v6(b)
+			m_observer->set_external_address(m_sock, detail::read_v6_address(ptr)
 				, m.addr.address());
 	}
-	else if (ext_ip && ext_ip.string_length() >= 4)
+	else if (ext_ip && ext_ip.string_length() >= int(detail::address_size(udp::v4())))
 	{
-		address_v4::bytes_type b{};
-		std::memcpy(&b[0], ext_ip.string_ptr(), 4);
+		char const* ptr = ext_ip.string_ptr();
 		if (m_observer != nullptr)
-			m_observer->set_external_address(m_sock, address_v4(b)
+			m_observer->set_external_address(m_sock, detail::read_v4_address(ptr)
 				, m.addr.address());
 	}
 

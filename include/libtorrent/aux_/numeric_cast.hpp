@@ -58,7 +58,9 @@ namespace libtorrent { namespace aux {
 	T clamp(T v, T lo, T hi)
 	{
 		TORRENT_ASSERT(lo <= hi);
-		return (v < lo) ? lo : (hi < v) ? hi : v;
+		if (v < lo) return lo;
+		if (hi < v) return hi;
+		return v;
 	}
 
 }}

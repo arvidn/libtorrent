@@ -220,8 +220,13 @@ namespace libtorrent {
 		};
 
 		const_iterator begin() const noexcept { return const_iterator(m_buf ? buf() : nullptr, 0); }
-		const_iterator end() const noexcept { return const_iterator(
-			m_buf ? buf() + num_words() - (((size() & 31) == 0) ? 0 : 1) : nullptr, size() & 31); }
+		const_iterator end() const noexcept
+		{
+			if (m_buf)
+				return const_iterator(buf() + num_words() - (((size() & 31) == 0) ? 0 : 1), size() & 31);
+			else
+				return const_iterator(nullptr, size() & 31);
+		}
 
 		// set the size of the bitfield to ``bits`` length. If the bitfield is extended,
 		// the new bits are initialized to ``val``.

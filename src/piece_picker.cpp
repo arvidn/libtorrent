@@ -60,6 +60,47 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
+#if defined TORRENT_PICKER_LOG
+#include <iostream>
+
+namespace libtorrent {
+	void print_pieces(piece_picker const& p)
+	{
+		int limit = 20;
+		std::cerr << "[" << &p << "] ";
+		if (p.m_dirty)
+		{
+			std::cerr << " === dirty ===" << std::endl;
+			return;
+		}
+
+		for (prio_index_t b : p.m_priority_boundaries)
+			std::cerr << b << " ";
+
+		std::cerr << std::endl;
+		prio_index_t index(0);
+		std::cerr << "[" << &p << "] ";
+		auto j = p.m_priority_boundaries.begin();
+		for (auto i = p.m_pieces.begin(), end(p.m_pieces.end()); i != end; ++i, ++index)
+		{
+			if (limit == 0)
+			{
+				std::cerr << " ...";
+				break;
+			}
+			if (*i == -1) break;
+			while (j != p.m_priority_boundaries.end() && *j <= index)
+			{
+				std::cerr << "| ";
+				++j;
+			}
+			std::cerr << *i << "(" << p.m_piece_map[*i].index << ") ";
+			--limit;
+		}
+		std::cerr << std::endl;
+	}
+}
+#endif // TORRENT_PICKER_LOG
 namespace libtorrent {
 
 	// TODO: find a better place for this
@@ -388,44 +429,6 @@ namespace libtorrent {
 			TORRENT_ASSERT(p == prio);
 		}
 	}
-
-#if defined TORRENT_PICKER_LOG
-	void piece_picker::print_pieces() const
-	{
-		int limit = 20;
-		std::cerr << "[" << this << "] ";
-		if (m_dirty)
-		{
-			std::cerr << " === dirty ===" << std::endl;
-			return;
-		}
-
-		for (prio_index_t b : m_priority_boundaries)
-			std::cerr << b << " ";
-
-		std::cerr << std::endl;
-		prio_index_t index(0);
-		std::cerr << "[" << this << "] ";
-		auto j = m_priority_boundaries.begin();
-		for (auto i = m_pieces.begin(), end(m_pieces.end()); i != end; ++i, ++index)
-		{
-			if (limit == 0)
-			{
-				std::cerr << " ...";
-				break;
-			}
-			if (*i == -1) break;
-			while (j != m_priority_boundaries.end() && *j <= index)
-			{
-				std::cerr << "| ";
-				++j;
-			}
-			std::cerr << *i << "(" << m_piece_map[*i].index << ") ";
-			--limit;
-		}
-		std::cerr << std::endl;
-	}
-#endif // TORRENT_PICKER_LOG
 #endif // TORRENT_USE_INVARIANT_CHECKS
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -840,7 +843,7 @@ namespace libtorrent {
 			<< " peer_count: " << p.peer_count
 			<< " prio: " << p.piece_priority
 			<< " index: " << p.index << std::endl;
-		print_pieces();
+		print_pieces(*this);
 #endif
 		m_pieces.push_back(piece_index_t(-1));
 
@@ -861,7 +864,7 @@ namespace libtorrent {
 			} while (temp == new_index && priority < int(m_priority_boundaries.size()));
 			new_index = temp;
 #ifdef TORRENT_PICKER_LOG
-			print_pieces();
+			print_pieces(*this);
 			std::cerr << "[" << this << "] " << " index: " << index
 				<< " prio: " << priority
 				<< " new_index: " << new_index
@@ -877,7 +880,7 @@ namespace libtorrent {
 			m_piece_map[index].index = new_index;
 
 #ifdef TORRENT_PICKER_LOG
-			print_pieces();
+			print_pieces(*this);
 #endif
 		}
 	}
@@ -895,7 +898,7 @@ namespace libtorrent {
 		for (;;)
 		{
 #ifdef TORRENT_PICKER_LOG
-			print_pieces();
+			print_pieces(*this);
 #endif
 			TORRENT_ASSERT(elem_index < m_pieces.end_index());
 			prio_index_t temp{};
@@ -920,7 +923,7 @@ namespace libtorrent {
 		m_pieces.pop_back();
 		TORRENT_ASSERT(next_index == m_pieces.end_index());
 #ifdef TORRENT_PICKER_LOG
-		print_pieces();
+		print_pieces(*this);
 #endif
 	}
 
@@ -967,7 +970,7 @@ namespace libtorrent {
 			for (;;)
 			{
 #ifdef TORRENT_PICKER_LOG
-				print_pieces();
+				print_pieces(*this);
 #endif
 				TORRENT_ASSERT(priority > 0);
 				--priority;
@@ -983,17 +986,17 @@ namespace libtorrent {
 				if (priority == new_priority) break;
 			}
 #ifdef TORRENT_PICKER_LOG
-			print_pieces();
+			print_pieces(*this);
 #endif
 			m_pieces[elem_index] = index;
 			m_piece_map[index].index = elem_index;
 			TORRENT_ASSERT(elem_index < m_pieces.end_index());
 #ifdef TORRENT_PICKER_LOG
-			print_pieces();
+			print_pieces(*this);
 #endif
 			shuffle(priority, elem_index);
 #ifdef TORRENT_PICKER_LOG
-			print_pieces();
+			print_pieces(*this);
 #endif
 			TORRENT_ASSERT(m_piece_map[index].priority(this) == priority);
 		}
@@ -1004,7 +1007,7 @@ namespace libtorrent {
 			for (;;)
 			{
 #ifdef TORRENT_PICKER_LOG
-				print_pieces();
+				print_pieces(*this);
 #endif
 				TORRENT_ASSERT(priority >= 0);
 				TORRENT_ASSERT(priority < int(m_priority_boundaries.size()));
@@ -1021,17 +1024,17 @@ namespace libtorrent {
 				if (priority == new_priority) break;
 			}
 #ifdef TORRENT_PICKER_LOG
-			print_pieces();
+			print_pieces(*this);
 #endif
 			m_pieces[elem_index] = index;
 			m_piece_map[index].index = elem_index;
 			TORRENT_ASSERT(elem_index < m_pieces.end_index());
 #ifdef TORRENT_PICKER_LOG
-			print_pieces();
+			print_pieces(*this);
 #endif
 			shuffle(priority, elem_index);
 #ifdef TORRENT_PICKER_LOG
-			print_pieces();
+			print_pieces(*this);
 #endif
 			TORRENT_ASSERT(m_piece_map[index].priority(this) == priority);
 		}
@@ -1501,7 +1504,7 @@ namespace libtorrent {
 		}
 
 #ifdef TORRENT_PICKER_LOG
-		print_pieces();
+		print_pieces(*this);
 #endif
 
 		// m_priority_boundaries just contain counters of
@@ -1517,7 +1520,7 @@ namespace libtorrent {
 		m_pieces.resize(new_size, piece_index_t(0));
 
 #ifdef TORRENT_PICKER_LOG
-		print_pieces();
+		print_pieces(*this);
 #endif
 
 		// set up m_pieces to contain valid piece indices, based on piece
@@ -1554,7 +1557,7 @@ namespace libtorrent {
 
 		m_dirty = false;
 #ifdef TORRENT_PICKER_LOG
-		print_pieces();
+		print_pieces(*this);
 #endif
 	}
 

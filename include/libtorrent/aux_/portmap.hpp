@@ -84,7 +84,13 @@ namespace aux {
 	}
 	inline char const* to_string(portmap_action const act)
 	{
-		return act == portmap_action::none ? "none" : act == portmap_action::add ? "add" : "delete";
+		switch (act)
+		{
+			case portmap_action::none: return "none";
+			case portmap_action::add: return "add";
+			case portmap_action::del: return "delete";
+		};
+		return "";
 	}
 }}
 

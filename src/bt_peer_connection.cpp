@@ -943,7 +943,7 @@ namespace {
 		// if we don't have the metadata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
-			&& m_recv_buffer.packet_size() - 1 != (t->torrent_file().num_pieces() + 7) / 8)
+			&& m_recv_buffer.packet_size() - 1 != (t->torrent_file().num_pieces() + CHAR_BIT - 1) / CHAR_BIT)
 		{
 			disconnect(errors::invalid_bitfield_size, operation_t::bittorrent, 2);
 			return;
@@ -955,7 +955,7 @@ namespace {
 
 		typed_bitfield<piece_index_t> bits;
 		bits.assign(recv_buffer.begin() + 1
-			, t->valid_metadata()?get_bitfield().size():(m_recv_buffer.packet_size()-1)*8);
+			, t->valid_metadata()?get_bitfield().size():(m_recv_buffer.packet_size()-1)*CHAR_BIT);
 
 		incoming_bitfield(bits);
 	}
@@ -1991,7 +1991,9 @@ namespace {
 		const int num_pieces = t->torrent_file().num_pieces();
 		TORRENT_ASSERT(num_pieces > 0);
 
-		const int packet_size = (num_pieces + 7) / 8 + 5;
+		constexpr std::uint8_t char_bit_mask = CHAR_BIT - 1;
+
+		const int packet_size = (num_pieces + char_bit_mask) / CHAR_BIT + 5;
 
 		TORRENT_ALLOCA(msg, char, packet_size);
 		if (msg.data() == nullptr) return; // out of memory
@@ -2005,7 +2007,7 @@ namespace {
 			std::fill_n(ptr, packet_size - 5, std::uint8_t{0xff});
 
 			// Clear trailing bits
-			msg.back() = static_cast<char>((0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff);
+			msg.back() = static_cast<char>((0xff << ((CHAR_BIT - (num_pieces & char_bit_mask)) & char_bit_mask)) & 0xff);
 		}
 		else
 		{
@@ -2027,7 +2029,7 @@ namespace {
 		// add predictive pieces to the bitfield as well, since we won't
 		// announce them again
 		for (piece_index_t const p : t->predictive_pieces())
-			msg[5 + static_cast<int>(p) / 8] |= (0x80 >> (static_cast<int>(p) & 7));
+			msg[5 + static_cast<int>(p) / CHAR_BIT] |= (0x80 >> (static_cast<int>(p) & char_bit_mask));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
@@ -2037,7 +2039,7 @@ namespace {
 			bitfield_string.resize(n_pieces);
 			for (std::size_t k = 0; k < n_pieces; ++k)
 			{
-				if (msg[5 + int(k) / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
+				if (msg[5 + int(k) / CHAR_BIT] & (0x80 >> (k % CHAR_BIT))) bitfield_string[k] = '1';
 				else bitfield_string[k] = '0';
 			}
 			peer_log(peer_log_alert::outgoing_message, "BITFIELD"
