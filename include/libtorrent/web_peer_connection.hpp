@@ -74,7 +74,7 @@ namespace libtorrent {
 
 		void get_specific_peer_info(peer_info& p) const override;
 		void disconnect(error_code const& ec
-			, operation_t op, int error = 0) override;
+			, operation_t op, disconnect_severity_t error = peer_connection_interface::normal) override;
 
 		void write_request(peer_request const& r) override;
 

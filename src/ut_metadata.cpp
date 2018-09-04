@@ -303,7 +303,7 @@ namespace libtorrent {namespace {
 				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
 					, "packet too big %d", length);
 #endif
-				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, 2);
+				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, peer_connection_interface::peer_error);
 				return true;
 			}
 
@@ -317,7 +317,7 @@ namespace libtorrent {namespace {
 				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
 					, "not a dictionary");
 #endif
-				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, 2);
+				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, peer_connection_interface::peer_error);
 				return true;
 			}
 
@@ -330,7 +330,7 @@ namespace libtorrent {namespace {
 				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
 					, "missing or invalid keys");
 #endif
-				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, 2);
+				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, peer_connection_interface::peer_error);
 				return true;
 			}
 			// TODO: make this an enum class

@@ -111,7 +111,7 @@ struct mock_peer_connection
 	tcp::endpoint const& remote() const override { return m_remote; }
 	tcp::endpoint local_endpoint() const override { return m_local; }
 	void disconnect(error_code const& ec
-		, operation_t op, int error = 0) override;
+		, operation_t op, disconnect_severity_t error = peer_connection_interface::normal) override;
 	peer_id const& pid() const override { return m_id; }
 	peer_id our_pid() const override { return m_our_id; }
 	void set_holepunch_mode() override {}
@@ -149,7 +149,7 @@ struct mock_torrent
 };
 
 void mock_peer_connection::disconnect(error_code const&
-	, operation_t, int /*error*/)
+	, operation_t, disconnect_severity_t)
 {
 	m_torrent.m_p->connection_closed(*this, 0, m_torrent.m_state);
 	auto const i = std::find(m_torrent.m_connections.begin(), m_torrent.m_connections.end()

@@ -262,7 +262,7 @@ namespace libtorrent { namespace {
 
 			if (length > 500 * 1024)
 			{
-				m_pc.disconnect(errors::pex_message_too_large, operation_t::bittorrent, 2);
+				m_pc.disconnect(errors::pex_message_too_large, operation_t::bittorrent, peer_connection_interface::peer_error);
 				return true;
 			}
 
@@ -287,7 +287,7 @@ namespace libtorrent { namespace {
 			int const ret = bdecode(body.begin(), body.end(), pex_msg, ec);
 			if (ret != 0 || pex_msg.type() != bdecode_node::dict_t)
 			{
-				m_pc.disconnect(errors::invalid_pex_message, operation_t::bittorrent, 2);
+				m_pc.disconnect(errors::invalid_pex_message, operation_t::bittorrent, peer_connection_interface::peer_error);
 				return true;
 			}
 

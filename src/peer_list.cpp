@@ -643,9 +643,9 @@ namespace libtorrent {
 
 				if (self_connection)
 				{
-					c.disconnect(errors::self_connection, operation_t::bittorrent, 1);
+					c.disconnect(errors::self_connection, operation_t::bittorrent, peer_connection_interface::failure);
 					TORRENT_ASSERT(i->connection->peer_info_struct() == i);
-					i->connection->disconnect(errors::self_connection, operation_t::bittorrent, 1);
+					i->connection->disconnect(errors::self_connection, operation_t::bittorrent, peer_connection_interface::failure);
 					TORRENT_ASSERT(i->connection == nullptr);
 					return false;
 				}
