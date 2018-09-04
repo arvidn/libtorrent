@@ -169,7 +169,8 @@ tcp::endpoint peer_connection_handle::local_endpoint() const
 	return pc->local_endpoint();
 }
 
-void peer_connection_handle::disconnect(error_code const& ec, operation_t op, int error)
+void peer_connection_handle::disconnect(error_code const& ec, operation_t const op
+	, disconnect_severity_t const error)
 {
 	std::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);

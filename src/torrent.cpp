@@ -6552,7 +6552,7 @@ bool is_downloading_state(int const st)
 		TORRENT_CATCH (std::exception const&)
 		{
 			TORRENT_ASSERT(m_iterating_connections == 0);
-			c->disconnect(errors::no_error, operation_t::bittorrent, 1);
+			c->disconnect(errors::no_error, operation_t::bittorrent, peer_connection_interface::failure);
 			return false;
 		}
 
@@ -7215,7 +7215,8 @@ bool is_downloading_state(int const st)
 				}
 			}
 			for (auto& p : seeds)
-				p->disconnect(errors::torrent_finished, operation_t::bittorrent, 0);
+				p->disconnect(errors::torrent_finished, operation_t::bittorrent
+					, peer_connection_interface::normal);
 		}
 
 		if (m_abort) return;
@@ -9825,7 +9826,7 @@ bool is_downloading_state(int const st)
 	}
 
 	void torrent::remove_web_seed_conn(peer_connection* p, error_code const& ec
-		, operation_t const op, int const error)
+		, operation_t const op, disconnect_severity_t const error)
 	{
 		auto const i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 			, [p] (web_seed_t const& ws) { return ws.peer_info.connection == p; });

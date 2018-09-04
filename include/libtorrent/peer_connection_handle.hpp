@@ -79,7 +79,8 @@ struct TORRENT_EXPORT peer_connection_handle
 	tcp::endpoint const& remote() const;
 	tcp::endpoint local_endpoint() const;
 
-	void disconnect(error_code const& ec, operation_t op, int error = 0);
+	void disconnect(error_code const& ec, operation_t op
+		, disconnect_severity_t = peer_connection_interface::normal);
 	bool is_disconnecting() const;
 	bool is_connecting() const;
 	bool is_outgoing() const;

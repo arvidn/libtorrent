@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/piece_picker.hpp" // for picker_options_t
+#include "libtorrent/units.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -455,7 +456,7 @@ namespace aux {
 
 		// this will cause this peer_connection to be disconnected.
 		void disconnect(error_code const& ec
-			, operation_t op, int error = 0) override;
+			, operation_t op, disconnect_severity_t = peer_connection_interface::normal) override;
 
 		// called when a connect attempt fails (not when an
 		// established connection fails)

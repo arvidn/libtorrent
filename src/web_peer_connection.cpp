@@ -177,7 +177,7 @@ void web_peer_connection::on_connected()
 }
 
 void web_peer_connection::disconnect(error_code const& ec
-	, operation_t op, int error)
+	, operation_t op, disconnect_severity_t const error)
 {
 	if (is_disconnecting()) return;
 
@@ -241,7 +241,7 @@ void web_peer_connection::disconnect(error_code const& ec
 		m_requests.clear();
 	}
 
-	if (m_web && !m_web->supports_keepalive && error == 0)
+	if (m_web && !m_web->supports_keepalive && error == peer_connection_interface::normal)
 	{
 		// if the web server doesn't support keepalive and we were
 		// disconnected as a graceful EOF, reconnect right away
@@ -589,7 +589,7 @@ void web_peer_connection::handle_error(int const bytes_left)
 			, error_msg);
 	}
 	received_bytes(0, bytes_left);
-	disconnect(error_code(m_parser.status_code(), http_category()), operation_t::bittorrent, 1);
+	disconnect(error_code(m_parser.status_code(), http_category()), operation_t::bittorrent, failure);
 }
 
 void web_peer_connection::handle_redirect(int const bytes_left)
@@ -605,7 +605,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	if (location.empty())
 	{
 		// we should not try this server again.
-		t->remove_web_seed_conn(this, errors::missing_location, operation_t::bittorrent, 2);
+		t->remove_web_seed_conn(this, errors::missing_location, operation_t::bittorrent, peer_error);
 		m_web = nullptr;
 		TORRENT_ASSERT(is_disconnecting());
 		return;
@@ -635,7 +635,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		if (ec)
 		{
 			// we should not try this server again.
-			disconnect(errors::missing_location, operation_t::bittorrent, 1);
+			disconnect(errors::missing_location, operation_t::bittorrent, failure);
 			return;
 		}
 
@@ -679,7 +679,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		if (m_web->have_files[file_index])
 		{
 			m_web->have_files.clear_bit(file_index);
-			disconnect(errors::redirecting, operation_t::bittorrent, 2);
+			disconnect(errors::redirecting, operation_t::bittorrent, peer_error);
 		}
 	}
 	else
@@ -694,7 +694,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// this web seed doesn't have any files. Don't try to request from it
 		// again this session
 		m_web->have_files.resize(t->torrent_file().num_files(), false);
-		disconnect(errors::redirecting, operation_t::bittorrent, 2);
+		disconnect(errors::redirecting, operation_t::bittorrent, peer_error);
 		m_web = nullptr;
 		TORRENT_ASSERT(is_disconnecting());
 	}
@@ -749,7 +749,7 @@ void web_peer_connection::on_receive(error_code const& error
 						, "%*s", int(recv_buffer.size()), recv_buffer.data());
 				}
 #endif
-				disconnect(errors::http_parse_error, operation_t::bittorrent, 2);
+				disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
 				return;
 			}
 
@@ -841,7 +841,7 @@ void web_peer_connection::on_receive(error_code const& error
 		{
 			received_bytes(0, int(recv_buffer.size()));
 			// we should not try this server again.
-			t->remove_web_seed_conn(this, ec, operation_t::bittorrent, 2);
+			t->remove_web_seed_conn(this, ec, operation_t::bittorrent, peer_error);
 			m_web = nullptr;
 			TORRENT_ASSERT(is_disconnecting());
 			return;
@@ -864,7 +864,7 @@ void web_peer_connection::on_receive(error_code const& error
 					, static_cast<int>(file_req.file_index), file_req.start, file_req.start + file_req.length - 1);
 			}
 #endif
-			disconnect(errors::invalid_range, operation_t::bittorrent, 2);
+			disconnect(errors::invalid_range, operation_t::bittorrent, peer_error);
 			return;
 		}
 
@@ -894,7 +894,7 @@ void web_peer_connection::on_receive(error_code const& error
 							, "received body: %d request size: %d"
 							, m_received_body, file_req.length);
 #endif
-						disconnect(errors::invalid_range, operation_t::bittorrent, 2);
+						disconnect(errors::invalid_range, operation_t::bittorrent, peer_error);
 						return;
 					}
 					incoming_payload(recv_buffer.data(), copy_size);
@@ -956,7 +956,7 @@ void web_peer_connection::on_receive(error_code const& error
 							, "received body: %d request size: %d"
 							, m_received_body, file_req.length);
 #endif
-						disconnect(errors::invalid_range, operation_t::bittorrent, 2);
+						disconnect(errors::invalid_range, operation_t::bittorrent, peer_error);
 						return;
 					}
 					// we just completed an HTTP file request. pop it from m_file_requests
