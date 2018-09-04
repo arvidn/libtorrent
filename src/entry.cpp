@@ -662,86 +662,81 @@ namespace {
 		}
 	}
 
-	std::string entry::to_string() const
+	std::string entry::to_string(bool const single_line) const
 	{
 		std::string ret;
-		if (type() == dictionary_t) ret.reserve(280);
-		to_string_impl(ret, 0);
+		to_string_impl(ret, 0, single_line);
 		return ret;
 	}
 
-	void entry::to_string_impl(std::string& out, int const indent) const
+namespace {
+	bool is_binary(std::string const& str)
+	{
+		for (char const c : str)
+		{
+			if (!is_print(c)) return true;
+		}
+		return false;
+	}
+
+	void add_indent(std::string& out, int const indent)
+	{
+		out.resize(out.size() + size_t(indent), ' ');
+	}
+}
+
+	void entry::to_string_impl(std::string& out, int const indent
+		, bool const single_line) const
 	{
 		TORRENT_ASSERT(indent >= 0);
-		for (int i = 0; i < indent; ++i) out += ' ';
-		switch (type())
+		switch (m_type)
 		{
 		case int_t:
 			out += libtorrent::to_string(integer()).data();
-			out += '\n';
 			break;
 		case string_t:
 			{
-				bool binary_string = false;
-				for (auto const i : string())
-				{
-					if (!is_print(i))
-					{
-						binary_string = true;
-						break;
-					}
-				}
-				if (binary_string)
-				{
-					out += aux::to_hex(string());
-					out += '\n';
-				}
-				else
-				{
-					out += string();
-					out += '\n';
-				}
+				out += "'";
+				if (is_binary(string())) out += aux::to_hex(string());
+				else out += string();
+				out += "'";
 			} break;
 		case list_t:
 			{
-				out += "list\n";
-				for (auto const& i : list())
+				out += single_line ? "[ " : "[\n";
+				bool first = true;
+				for (list_type::const_iterator i = list().begin(); i != list().end(); ++i)
 				{
-					i.to_string_impl(out, indent + 1);
+					if (!first) out += single_line ? ", " : ",\n";
+					first = false;
+					if (!single_line) add_indent(out, indent+1);
+					i->to_string_impl(out, indent+1, single_line);
 				}
+				out += " ]";
 			} break;
 		case dictionary_t:
 			{
-				out += "dictionary\n";
-				for (auto const& i : dict())
+				out += single_line ? "{ " : "{\n";
+				bool first = true;
+				for (dictionary_type::const_iterator i = dict().begin(); i != dict().end(); ++i)
 				{
-					bool binary_string = false;
-					for (auto const k : i.first)
-					{
-						if (!is_print(k))
-						{
-							binary_string = true;
-							break;
-						}
-					}
-					for (int j = 0; j < indent + 1; ++j) out += ' ';
-					out += '[';
-					if (binary_string) out += aux::to_hex(i.first);
-					else out += i.first;
-					out += ']';
+					if (!first) out += single_line ? ", " : ",\n";
+					first = false;
+					if (!single_line) add_indent(out, indent+1);
+					out += "'";
+					if (is_binary(i->first)) out += aux::to_hex(i->first);
+					else out += i->first;
+					out += "': ";
 
-					if (i.second.type() != entry::string_t
-						&& i.second.type() != entry::int_t)
-						out += '\n';
-					else out += ' ';
-					i.second.to_string_impl(out, indent + 2);
+					i->second.to_string_impl(out, indent+2, single_line);
 				}
+				out += " }";
 			} break;
 		case preformatted_t:
-			out += "<preformatted>\n";
+			out += "<preformatted>";
 			break;
 		case undefined_t:
-			out += "<uninitialized>\n";
+			out += "<uninitialized>";
 		}
 	}
 }

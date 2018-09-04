@@ -747,7 +747,7 @@ namespace libtorrent {
 		void do_connect_boost();
 
 		// forcefully sets next_announce to the current time
-		void force_tracker_request(time_point, int tracker_idx);
+		void force_tracker_request(time_point, int tracker_idx, reannounce_flags_t flags);
 		void scrape_tracker(int idx, bool user_triggered);
 		void announce_with_tracker(std::uint8_t e
 			= tracker_request::none);

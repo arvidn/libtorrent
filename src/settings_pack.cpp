@@ -258,7 +258,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(active_dht_limit, 88, nullptr),
 		SET(active_tracker_limit, 1600, nullptr),
 		SET(active_lsd_limit, 60, nullptr),
-		SET(active_limit, 15, &session_impl::trigger_auto_manage),
+		SET(active_limit, 500, &session_impl::trigger_auto_manage),
 		DEPRECATED_SET(active_loaded_limit, 0, &session_impl::trigger_auto_manage),
 		SET(auto_manage_interval, 30, nullptr),
 		SET(seed_time_limit, 24 * 60 * 60, nullptr),

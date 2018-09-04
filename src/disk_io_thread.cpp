@@ -1138,6 +1138,15 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		std::shared_ptr<storage_interface> storage = j->storage;
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+		if (j->storage)
+		{
+			std::unique_lock<std::mutex> l(m_cache_mutex);
+			auto const& pieces = j->storage->cached_pieces();
+			for (auto const& p : pieces)
+				TORRENT_ASSERT(p.storage == j->storage);
+		}
+#endif
 		// TODO: 4 instead of doing this. pass in the settings to each storage_interface
 		// call. Each disk thread could hold its most recent understanding of the settings
 		// in a shared_ptr, and update it every time it wakes up from a job. That way
@@ -1835,6 +1844,14 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->callback = std::move(handler);
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+		{
+			std::unique_lock<std::mutex> l(m_cache_mutex);
+			auto const& pieces = j->storage->cached_pieces();
+			for (auto const& p : pieces)
+				TORRENT_ASSERT(p.storage == j->storage);
+		}
+#endif
 		add_fence_job(j);
 	}
 

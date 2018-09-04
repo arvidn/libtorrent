@@ -80,6 +80,7 @@ namespace aux {
 	using pause_flags_t = flags::bitfield_flag<std::uint8_t, struct pause_flags_tag>;
 	using deadline_flags_t = flags::bitfield_flag<std::uint8_t, struct deadline_flags_tag>;
 	using resume_data_flags_t = flags::bitfield_flag<std::uint8_t, struct resume_data_flags_tag>;
+	using reannounce_flags_t = flags::bitfield_flag<std::uint8_t, struct reannounce_flags_tag>;
 	using queue_position_t = aux::strong_typedef<int, struct queue_position_tag>;
 
 	// holds the state of a block in a piece. Who we requested
@@ -1020,6 +1021,11 @@ namespace aux {
 		std::vector<int> file_priorities() const;
 #endif
 
+		// by default, force-reannounce will still honor the min-interval
+		// published by the tracker. If this flag is set, it will be ignored
+		// and the tracker is announced immediately.
+		static constexpr reannounce_flags_t ignore_min_interval = 0_bit;
+
 		// ``force_reannounce()`` will force this torrent to do another tracker
 		// request, to receive new peers. The ``seconds`` argument specifies how
 		// many seconds from now to issue the tracker announces.
@@ -1032,9 +1038,12 @@ namespace aux {
 		// The ``tracker_index`` argument specifies which tracker to re-announce.
 		// If set to -1 (which is the default), all trackers are re-announce.
 		//
+		// The ``flags`` argument can be used to affect the re-announce. See
+		// ignore_min_interval.
+		//
 		// ``force_dht_announce`` will announce the torrent to the DHT
 		// immediately.
-		void force_reannounce(int seconds = 0, int tracker_index = -1) const;
+		void force_reannounce(int seconds = 0, int tracker_index = -1, reannounce_flags_t = {}) const;
 		void force_dht_announce() const;
 
 #if TORRENT_ABI_VERSION == 1

@@ -1679,7 +1679,7 @@ namespace {
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, "EXTENDED_HANDSHAKE"
-				, "%s", print_entry(root).c_str());
+				, "%s", print_entry(root, true).c_str());
 		}
 #endif
 
@@ -2166,7 +2166,7 @@ namespace {
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "EXTENDED_HANDSHAKE"
-				, "%s", handshake.to_string().c_str());
+				, "%s", handshake.to_string(true).c_str());
 		}
 #endif
 	}

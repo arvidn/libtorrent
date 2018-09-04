@@ -301,7 +301,7 @@ namespace aux {
 
 		// returns a pretty-printed string representation
 		// of the bencoded structure, with JSON-style syntax
-		std::string to_string() const;
+		std::string to_string(bool single_line = false) const;
 
 	protected:
 
@@ -311,7 +311,7 @@ namespace aux {
 
 	private:
 
-		void to_string_impl(std::string& out, int indent) const;
+		void to_string_impl(std::string& out, int indent, bool single_line) const;
 
 		aux::aligned_union<1
 #if TORRENT_COMPLETE_TYPES_REQUIRED

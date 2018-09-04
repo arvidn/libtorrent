@@ -66,6 +66,7 @@ namespace libtorrent {
 	constexpr pause_flags_t torrent_handle::graceful_pause;
 	constexpr pause_flags_t torrent_handle::clear_disk_cache;
 	constexpr deadline_flags_t torrent_handle::alert_when_available;
+	constexpr reannounce_flags_t torrent_handle::ignore_min_interval;
 
 	constexpr status_flags_t torrent_handle::query_distributed_copies;
 	constexpr status_flags_t torrent_handle::query_accurate_download_counters;
@@ -732,7 +733,7 @@ namespace libtorrent {
 		boost::posix_time::time_duration duration) const
 	{
 		async_call(&torrent::force_tracker_request, aux::time_now()
-			+ seconds(duration.total_seconds()), -1);
+			+ seconds(duration.total_seconds()), -1, reannounce_flags_t{});
 	}
 
 	void torrent_handle::file_status(std::vector<open_file_state>& status) const
@@ -753,9 +754,9 @@ namespace libtorrent {
 #endif
 	}
 
-	void torrent_handle::force_reannounce(int s, int idx) const
+	void torrent_handle::force_reannounce(int s, int idx, reannounce_flags_t const flags) const
 	{
-		async_call(&torrent::force_tracker_request, aux::time_now() + seconds(s), idx);
+		async_call(&torrent::force_tracker_request, aux::time_now() + seconds(s), idx, flags);
 	}
 
 	std::vector<open_file_state> torrent_handle::file_status() const

@@ -431,12 +431,13 @@ class dummy4 {};
 class dummy6 {};
 class dummy7 {};
 class dummy8 {};
+class dummy15 {};
 
 using by_value = return_value_policy<return_by_value>;
 void bind_torrent_handle()
 {
     // arguments are: number of seconds and tracker index
-    void (torrent_handle::*force_reannounce0)(int, int) const = &torrent_handle::force_reannounce;
+    void (torrent_handle::*force_reannounce0)(int, int, reannounce_flags_t) const = &torrent_handle::force_reannounce;
 
 #if TORRENT_ABI_VERSION == 1
     bool (torrent_handle::*super_seeding0)() const = &torrent_handle::super_seeding;
@@ -474,7 +475,8 @@ void bind_torrent_handle()
     ;
 #endif
 
-    class_<torrent_handle>("torrent_handle")
+    {
+    scope s = class_<torrent_handle>("torrent_handle")
         .def(self == self)
         .def(self != self)
         .def(self < self)
@@ -524,7 +526,7 @@ void bind_torrent_handle()
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0)
-            , (arg("seconds") = 0, arg("tracker_idx") = -1))
+            , (arg("seconds") = 0, arg("tracker_idx") = -1, arg("flags") = reannounce_flags_t{}))
 #ifndef TORRENT_DISABLE_DHT
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
 #endif
@@ -580,6 +582,21 @@ void bind_torrent_handle()
 #endif
         ;
 
+    s.attr("ignore_min_interval") = torrent_handle::ignore_min_interval;
+    s.attr("overwrite_existing") = torrent_handle::overwrite_existing;
+    s.attr("piece_granularity") = int(torrent_handle::piece_granularity);
+    s.attr("graceful_pause") = torrent_handle::graceful_pause;
+    s.attr("flush_disk_cache") = torrent_handle::flush_disk_cache;
+    s.attr("save_info_dict") = torrent_handle::save_info_dict;
+    s.attr("only_if_modified") = torrent_handle::only_if_modified;
+    s.attr("alert_when_available") = torrent_handle::alert_when_available;
+    s.attr("query_distributed_copies") = torrent_handle::query_distributed_copies;
+    s.attr("query_accurate_download_counters") = torrent_handle::query_accurate_download_counters;
+    s.attr("query_last_seen_complete") = torrent_handle::query_last_seen_complete;
+    s.attr("query_pieces") = torrent_handle::query_pieces;
+    s.attr("query_verified_pieces") = torrent_handle::query_verified_pieces;
+    }
+
     class_<open_file_state>("open_file_state")
        .add_property("file_index", make_getter((&open_file_state::file_index), by_value()))
        .def_readonly("last_use", &open_file_state::last_use)
@@ -619,6 +636,11 @@ void bind_torrent_handle()
     s.attr("flush_disk_cache") = torrent_handle::flush_disk_cache;
     s.attr("save_info_dict") = torrent_handle::save_info_dict;
     s.attr("only_if_modified") = torrent_handle::only_if_modified;
+    }
+
+    {
+    scope s = class_<dummy15>("reannounce_flags_t");
+    s.attr("ignore_min_interval") = torrent_handle::ignore_min_interval;
     }
 
     {

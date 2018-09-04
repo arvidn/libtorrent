@@ -3147,10 +3147,12 @@ bool is_downloading_state(int const st)
 			}
 			debug_log("TRACKER RESPONSE\n"
 					"interval: %d\n"
+					"min-interval: %d\n"
 					"external ip: %s\n"
 					"resolved to: %s\n"
 					"we connected to: %s\n"
 				, interval.count()
+				, resp.min_interval.count()
 				, print_address(resp.external_ip).c_str()
 				, resolved_to.c_str()
 				, print_address(tracker_ip).c_str());
@@ -3325,7 +3327,8 @@ bool is_downloading_state(int const st)
 	// this is the entry point for the client to force a re-announce. It's
 	// considered a client-initiated announce (as opposed to the regular ones,
 	// issued by libtorrent)
-	void torrent::force_tracker_request(time_point const t, int const tracker_idx)
+	void torrent::force_tracker_request(time_point const t, int const tracker_idx
+		, reannounce_flags_t const flags)
 	{
 		TORRENT_ASSERT_PRECOND((tracker_idx >= 0
 			&& tracker_idx < int(m_trackers.size()))
@@ -3338,8 +3341,10 @@ bool is_downloading_state(int const st)
 			{
 				for (auto& aep : e.endpoints)
 				{
-					aep.next_announce = std::max(time_point_cast<seconds32>(t)
-						, aep.min_announce) + seconds(1);
+					aep.next_announce = (flags & torrent_handle::ignore_min_interval)
+						? time_point_cast<seconds32>(t) + seconds32(1)
+						: std::max(time_point_cast<seconds32>(t), aep.min_announce) + seconds32(1);
+					aep.min_announce = aep.next_announce;
 					aep.triggered_manually = true;
 				}
 			}
@@ -3351,8 +3356,10 @@ bool is_downloading_state(int const st)
 			announce_entry& e = m_trackers[tracker_idx];
 			for (auto& aep : e.endpoints)
 			{
-				aep.next_announce = std::max(time_point_cast<seconds32>(t)
-					, aep.min_announce) + seconds32(1);
+				aep.next_announce = (flags & torrent_handle::ignore_min_interval)
+					? time_point_cast<seconds32>(t) + seconds32(1)
+					: std::max(time_point_cast<seconds32>(t), aep.min_announce) + seconds32(1);
+				aep.min_announce = aep.next_announce;
 				aep.triggered_manually = true;
 			}
 		}

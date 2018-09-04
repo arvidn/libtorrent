@@ -147,6 +147,87 @@ TORRENT_TEST(implicit_construct)
 }
 
 #if TORRENT_ABI_VERSION == 1
+TORRENT_TEST(print_dict_single_line)
+{
+	entry e;
+	e["foo"] = "bar";
+	e["bar"] = "foo";
+	TEST_EQUAL(e.to_string(true), "{ 'bar': 'foo', 'foo': 'bar' }");
+}
+
+TORRENT_TEST(print_dict)
+{
+	entry e;
+	e["foo"] = "bar";
+	e["bar"] = "foo";
+	TEST_EQUAL(e.to_string(), "{\n 'bar': 'foo',\n 'foo': 'bar' }");
+}
+
+TORRENT_TEST(print_list_single_line)
+{
+	entry e;
+	e.list().push_back(entry("foo"));
+	e.list().push_back(entry("bar"));
+	TEST_EQUAL(e.to_string(true), "[ 'foo', 'bar' ]");
+}
+
+
+TORRENT_TEST(print_list)
+{
+	entry e;
+	e.list().push_back(entry("foo"));
+	e.list().push_back(entry("bar"));
+	TEST_EQUAL(e.to_string(), "[\n 'foo',\n 'bar' ]");
+}
+
+TORRENT_TEST(print_int_single_line)
+{
+	entry e(1337);
+	TEST_EQUAL(e.to_string(true), "1337");
+}
+
+TORRENT_TEST(print_int)
+{
+	entry e(1337);
+	TEST_EQUAL(e.to_string(), "1337");
+}
+
+TORRENT_TEST(print_string_single_line)
+{
+	entry e("foobar");
+	TEST_EQUAL(e.to_string(true), "'foobar'");
+}
+
+TORRENT_TEST(print_string)
+{
+	entry e("foobar");
+	TEST_EQUAL(e.to_string(), "'foobar'");
+}
+
+TORRENT_TEST(print_deep_dict_single_line)
+{
+	entry e;
+	e["strings"].list().push_back(entry("foo"));
+	e["strings"].list().push_back(entry("bar"));
+	e["ints"].list().push_back(entry(1));
+	e["ints"].list().push_back(entry(2));
+	e["ints"].list().push_back(entry(3));
+	e["a"] = "foobar";
+	TEST_EQUAL(e.to_string(true), "{ 'a': 'foobar', 'ints': [ 1, 2, 3 ], 'strings': [ 'foo', 'bar' ] }");
+}
+
+TORRENT_TEST(print_deep_dict)
+{
+	entry e;
+	e["strings"].list().push_back(entry("foo"));
+	e["strings"].list().push_back(entry("bar"));
+	e["ints"].list().push_back(entry(1));
+	e["ints"].list().push_back(entry(2));
+	e["ints"].list().push_back(entry(3));
+	e["a"] = "foobar";
+	TEST_EQUAL(e.to_string(), "{\n 'a': 'foobar',\n 'ints': [\n   1,\n   2,\n   3 ],\n 'strings': [\n   'foo',\n   'bar' ] }");
+}
+
 TORRENT_TEST(lazy_entry)
 {
 	{

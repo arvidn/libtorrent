@@ -169,7 +169,7 @@ namespace libtorrent {
 	{
 		tracker_response()
 			: interval(1800)
-			, min_interval(120)
+			, min_interval(1)
 			, complete(-1)
 			, incomplete(-1)
 			, downloaders(-1)
