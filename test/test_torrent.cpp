@@ -694,13 +694,13 @@ TORRENT_TEST(test_read_piece_out_of_range)
 }
 
 namespace {
-int const piece_size = 0x4000 * 2;
+int const piece_size = 0x4000 * 128;
 
 file_storage test_fs()
 {
 	file_storage fs;
 	fs.set_piece_length(piece_size);
-	fs.add_file("temp", 999999);
+	fs.add_file("temp", 99999999999);
 	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
 	return fs;
 }

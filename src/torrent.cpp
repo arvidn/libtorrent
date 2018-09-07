@@ -3478,10 +3478,10 @@ bool is_downloading_state(int const st)
 		int const block_size = std::min(default_block_size, fs.piece_length());
 
 		// every block should not be a pad block
-		TORRENT_ASSERT(pc.pad_blocks <= pc.num_pieces * fs.piece_length() / block_size);
+		TORRENT_ASSERT(pc.pad_blocks <= std::int64_t(pc.num_pieces) * fs.piece_length() / block_size);
 
 		return std::int64_t(pc.num_pieces) * fs.piece_length()
-			- (pc.last_piece ? 1 : 0) * (fs.piece_length() - fs.piece_size(fs.last_piece()))
+			- (pc.last_piece ? fs.piece_length() - fs.piece_size(fs.last_piece()) : 0)
 			- std::int64_t(pc.pad_blocks) * block_size;
 	}
 
