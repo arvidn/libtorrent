@@ -41,12 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "setup_swarm.hpp"
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPTION
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
-char const* pe_policy(boost::uint8_t policy)
+char const* pe_policy(std::uint8_t policy)
 {
 	if (policy == settings_pack::pe_disabled) return "disabled";
 	else if (policy == settings_pack::pe_enabled) return "enabled";
@@ -54,13 +53,13 @@ char const* pe_policy(boost::uint8_t policy)
 	return "unknown";
 }
 
-void display_pe_settings(libtorrent::settings_pack const& s)
+void display_pe_settings(lt::settings_pack const& s)
 {
-	fprintf(stderr, "out_enc_policy - %s\tin_enc_policy - %s\n"
+	std::printf("out_enc_policy - %s\tin_enc_policy - %s\n"
 		, pe_policy(s.get_int(settings_pack::out_enc_policy))
 		, pe_policy(s.get_int(settings_pack::in_enc_policy)));
 
-	fprintf(stderr, "enc_level - %s\t\tprefer_rc4 - %s\n"
+	std::printf("enc_level - %s\t\tprefer_rc4 - %s\n"
 		, s.get_int(settings_pack::allowed_enc_level) == settings_pack::pe_plaintext ? "plaintext"
 		: s.get_int(settings_pack::allowed_enc_level) == settings_pack::pe_rc4 ? "rc4"
 		: s.get_int(settings_pack::allowed_enc_level) == settings_pack::pe_both ? "both" : "unknown"
@@ -80,8 +79,8 @@ void test_transfer(int enc_policy, int level, bool prefer_rc4)
 	sim::simulation sim{cfg};
 
 	lt::add_torrent_params default_add_torrent;
-	default_add_torrent.flags &= ~lt::add_torrent_params::flag_paused;
-	default_add_torrent.flags &= ~lt::add_torrent_params::flag_auto_managed;
+	default_add_torrent.flags &= ~lt::torrent_flags::paused;
+	default_add_torrent.flags &= ~lt::torrent_flags::auto_managed;
 	setup_swarm(2, swarm_test::download, sim, default_settings, default_add_torrent
 		// add session
 		, [](lt::settings_pack& pack) {
@@ -166,8 +165,8 @@ TORRENT_TEST(disabled_failing)
 	sim::simulation sim{cfg};
 
 	lt::add_torrent_params default_add_torrent;
-	default_add_torrent.flags &= ~lt::add_torrent_params::flag_paused;
-	default_add_torrent.flags &= ~lt::add_torrent_params::flag_auto_managed;
+	default_add_torrent.flags &= ~lt::torrent_flags::paused;
+	default_add_torrent.flags &= ~lt::torrent_flags::auto_managed;
 	setup_swarm(2, swarm_test::download, sim, default_settings, default_add_torrent
 		// add session
 		, [](lt::settings_pack& pack) {
@@ -191,7 +190,7 @@ TORRENT_TEST(disabled_failing)
 #else
 TORRENT_TEST(disabled)
 {
-	fprintf(stderr, "PE test not run because it's disabled\n");
+	std::printf("PE test not run because it's disabled\n");
 }
 #endif
 

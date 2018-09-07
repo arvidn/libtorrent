@@ -34,17 +34,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <cstring>
+#include <utility>
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/lazy_entry.hpp"
 #endif
 
 #include "test.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 // test vectors from bittorrent protocol description
 // http://www.bittorrent.com/protocol.html
+
+namespace {
 
 std::string encode(entry const& e)
 {
@@ -57,6 +60,8 @@ entry decode(std::string const& str)
 {
 	return bdecode(str.begin(), str.end());
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(strings)
 {
@@ -134,6 +139,14 @@ TORRENT_TEST(undefined_node2)
 	TEST_EQUAL(encode(e), "d4:info0:e");
 }
 
+TORRENT_TEST(implicit_construct)
+{
+	entry e(entry::list_t);
+	e.list().push_back(entry::list_t);
+	TEST_EQUAL(e.list().back().type(), entry::list_t);
+}
+
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(print_dict_single_line)
 {
 	entry e;
@@ -215,7 +228,6 @@ TORRENT_TEST(print_deep_dict)
 	TEST_EQUAL(e.to_string(), "{\n 'a': 'foobar',\n 'ints': [\n   1,\n   2,\n   3 ],\n 'strings': [\n   'foo',\n   'bar' ] }");
 }
 
-#ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(lazy_entry)
 {
 	{
@@ -224,9 +236,9 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_entry(e).c_str());
+		std::printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp(b, section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
 		TEST_CHECK(e.type() == lazy_entry::int_t);
 		TEST_CHECK(e.int_value() == 12453);
@@ -238,9 +250,9 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_entry(e).c_str());
+		std::printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp(b, section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
 		TEST_CHECK(e.type() == lazy_entry::string_t);
 		TEST_CHECK(e.string_value() == std::string("abcdefghijklmnopqrstuvwxyz"));
@@ -253,9 +265,9 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_entry(e).c_str());
+		std::printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp(b, section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
 		TEST_CHECK(e.type() == lazy_entry::list_t);
 		TEST_CHECK(e.list_size() == 2);
@@ -265,7 +277,7 @@ TORRENT_TEST(lazy_entry)
 		TEST_CHECK(e.list_at(1)->string_value() == std::string("aaa"));
 		TEST_CHECK(e.list_at(1)->string_length() == 3);
 		section = e.list_at(1)->data_section();
-		TEST_CHECK(std::memcmp("3:aaa", section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp("3:aaa", section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == 5);
 	}
 
@@ -275,9 +287,9 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_entry(e).c_str());
+		std::printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(std::memcmp(b, section.first, std::size_t(section.second)) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
 		TEST_CHECK(e.type() == lazy_entry::dict_t);
 		TEST_CHECK(e.dict_size() == 4);
@@ -300,7 +312,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
 		TEST_CHECK(e.dict_size() == 1);
-		lazy_entry* d = e.dict_find(std::string("a\0b", 3));
+		lazy_entry* d = e.dict_find({"a\0b", 3});
 		TEST_CHECK(d);
 		TEST_EQUAL(d->type(), lazy_entry::int_t);
 		TEST_EQUAL(d->int_value(), 1);
@@ -313,9 +325,8 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_CHECK(ec == error_code(bdecode_errors::expected_value
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_value));
 	}
 
 	// test strings with overflow length-prefix
@@ -325,9 +336,8 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_CHECK(ec == error_code(bdecode_errors::overflow
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::overflow));
 	}
 
 	// test integers that don't fit in 64 bits
@@ -337,7 +347,7 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_entry(e).c_str());
+		std::printf("%s\n", print_entry(e).c_str());
 		// the lazy aspect makes this overflow when asking for
 		// the value. turning it to zero.
 		TEST_CHECK(e.int_value() == 0);
@@ -350,7 +360,7 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_entry(e).c_str());
+		std::printf("%s\n", print_entry(e).c_str());
 		TEST_CHECK(e.int_value() == 9223372036854775807LL);
 	}
 
@@ -361,7 +371,7 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_entry(e).c_str());
+		std::printf("%s\n", print_entry(e).c_str());
 		TEST_CHECK(e.int_value() == -9223372036854775807LL);
 	}
 
@@ -382,10 +392,10 @@ TORRENT_TEST(lazy_entry)
 			, 0xa1, 0x88, 0x7a, 0x8d, 0xc3, 0xd6, 0x31, 0x3a
 			, 0x79, 0x31, 0xae, 0x71, 0x65, 0};
 
-		printf("%s\n", buf);
+		std::printf("%s\n", buf);
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode((char*)buf, (char*)buf + sizeof(buf), e, ec);
+		int ret = lazy_bdecode(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf) + sizeof(buf), e, ec);
 		TEST_CHECK(ret == -1);
 	}
 
@@ -404,8 +414,7 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b), e, ec);
 		TEST_CHECK(ret != 0);
-		TEST_EQUAL(ec, error_code(bdecode_errors::depth_exceeded
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::depth_exceeded));
 	}
 
 	// test the item limit
@@ -419,10 +428,9 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + i + 1, e, ec, NULL, 1000, 1000);
+		int ret = lazy_bdecode(b, b + i + 1, e, ec, nullptr, 1000, 1000);
 		TEST_CHECK(ret != 0);
-		TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded));
 	}
 
 	// test unexpected EOF
@@ -431,11 +439,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test unexpected EOF (really expected terminator)
@@ -444,11 +451,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test expected string
@@ -458,11 +464,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
 	}
 
 	// test unexpected EOF while parsing dict key
@@ -471,11 +476,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test unexpected EOF while parsing dict key
@@ -484,11 +488,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test expected string while parsing dict key
@@ -497,11 +500,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
 	}
 
 	// test unexpected EOF while parsing int
@@ -510,11 +512,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test unexpected EOF while parsing int
@@ -523,11 +524,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 
@@ -537,11 +537,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_colon
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_colon));
 	}
 
 	// test empty string
@@ -550,11 +549,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_EQUAL(ret, -1);
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
-		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
+		std::printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test partial string
@@ -563,11 +561,10 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
-		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		std::printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test pascal string dict
@@ -576,16 +573,16 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_EQUAL(ret, 0);
-		printf("%s\n", print_entry(e).c_str());
+		std::printf("%s\n", print_entry(e).c_str());
 
 		pascal_string ps = e.dict_find_pstr("foobar");
-		TEST_EQUAL(memcmp(ps.ptr, "barfoo", ps.len), 0);
+		TEST_EQUAL(std::memcmp(ps.ptr, "barfoo", std::size_t(ps.len)), 0);
 		TEST_EQUAL(ps.len, 6);
 
 		ps = e.dict_find_pstr("foobar2");
-		TEST_EQUAL(ps.ptr, static_cast<char const*>(0));
+		TEST_EQUAL(ps.ptr, static_cast<char const*>(nullptr));
 		TEST_EQUAL(ps.len, 0);
 	}
 
@@ -595,23 +592,23 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_EQUAL(ret, 0);
-		printf("%s\n", print_entry(e).c_str());
+		std::printf("%s\n", print_entry(e).c_str());
 
 		TEST_EQUAL(e.list_size(), 2);
 		pascal_string ps = e.list_pstr_at(0);
-		TEST_EQUAL(memcmp(ps.ptr, "foobar", ps.len), 0);
+		TEST_EQUAL(std::memcmp(ps.ptr, "foobar", std::size_t(ps.len)), 0);
 		TEST_EQUAL(ps.len, 6);
 
 		ps = e.list_pstr_at(1);
-		TEST_EQUAL(ps.ptr, static_cast<char const*>(0));
+		TEST_EQUAL(ps.ptr, static_cast<char const*>(nullptr));
 		TEST_EQUAL(ps.len, 0);
 	}
 
 	{
 		unsigned char buf[] = { 0x44, 0x91, 0x3a };
-		entry ent = bdecode(buf, buf + sizeof(buf));
+		entry ent = bdecode(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf) + sizeof(buf));
 		TEST_CHECK(ent == entry());
 	}
 
@@ -621,14 +618,14 @@ TORRENT_TEST(lazy_entry)
 		for (int i = 0; i < 1000; ++i)
 		{
 			char tmp[20];
-			snprintf(tmp, sizeof(tmp), "i%de", i);
+			std::snprintf(tmp, sizeof(tmp), "i%de", i);
 			buf += tmp;
 		}
 		buf += "e";
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode((char*)&buf[0], (char*)&buf[0] + buf.size(), e, ec);
+		int ret = lazy_bdecode(buf.data(), buf.data() + buf.size(), e, ec);
 		TEST_EQUAL(ret, 0);
 		TEST_EQUAL(e.type(), lazy_entry::list_t);
 		TEST_EQUAL(e.list_size(), 1000);
@@ -644,22 +641,22 @@ TORRENT_TEST(lazy_entry)
 		for (int i = 0; i < 1000; ++i)
 		{
 			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "4:%04di%de", i, i);
+			std::snprintf(tmp, sizeof(tmp), "4:%04di%de", i, i);
 			buf += tmp;
 		}
 		buf += "e";
 
-		printf("%s\n", buf.c_str());
+		std::printf("%s\n", buf.c_str());
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode((char*)&buf[0], (char*)&buf[0] + buf.size(), e, ec);
+		int ret = lazy_bdecode(buf.data(), buf.data() + buf.size(), e, ec);
 		TEST_EQUAL(ret, 0);
 		TEST_EQUAL(e.type(), lazy_entry::dict_t);
 		TEST_EQUAL(e.dict_size(), 1000);
 		for (int i = 0; i < 1000; ++i)
 		{
 			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "%04d", i);
+			std::snprintf(tmp, sizeof(tmp), "%04d", i);
 			TEST_EQUAL(e.dict_find_int_value(tmp), i);
 		}
 	}
@@ -667,7 +664,7 @@ TORRENT_TEST(lazy_entry)
 	// test parse_int
 	{
 		char b[] = "1234567890e";
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
 		char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
 		TEST_CHECK(ec == bdecode_errors::no_error);
@@ -678,7 +675,7 @@ TORRENT_TEST(lazy_entry)
 	// test invalid digit
 	{
 		char b[] = "0o";
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
 		TEST_EQUAL(ec, bdecode_errors::expected_digit);
@@ -687,7 +684,7 @@ TORRENT_TEST(lazy_entry)
 
 	{
 		char b[] = "9223372036854775808:";
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::overflow);
@@ -696,7 +693,7 @@ TORRENT_TEST(lazy_entry)
 
 	{
 		char b[] = "928";
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::no_error);
@@ -714,14 +711,18 @@ TORRENT_TEST(lazy_entry)
 
 		for (int i = 0; i < int(sizeof(b)/sizeof(b[0])); ++i)
 		{
-			lazy_entry e;
+			lazy_entry tmp;
 			error_code ec;
-			int ret = lazy_bdecode(b[i], b[i] + strlen(b[i]), e, ec, NULL);
+			int ret = lazy_bdecode(b[i], b[i] + strlen(b[i]), tmp, ec, nullptr);
+			lazy_entry e;
+			e = std::move(tmp);
 			TEST_EQUAL(ret, -1);
 			TEST_CHECK(ec == error_code(bdecode_errors::unexpected_eof));
-			printf("%s\n", print_entry(e).c_str());
+			std::printf("%s\n", print_entry(e).c_str());
+
+			lazy_entry* moved = new lazy_entry(std::move(e));
+			delete moved;
 		}
 	}
 }
-#endif // TORRENT_NO_DEPRECATE
-
+#endif // TORRENT_ABI_VERSION

@@ -38,44 +38,49 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
-#include <stdarg.h>
+#include <cstdarg>
 
-using namespace libtorrent;
+using namespace lt;
 
-struct log_t : libtorrent::dht::dht_logger
-{
 #ifndef TORRENT_DISABLE_LOGGING
-	virtual void log(dht_logger::module_t m, char const* fmt, ...)
-		TORRENT_OVERRIDE TORRENT_FORMAT(3, 4)
+struct log_t : lt::dht::dht_logger
+{
+	bool should_log(module_t) const override { return true; }
+
+	void log(dht_logger::module_t, char const* fmt, ...)
+		override TORRENT_FORMAT(3, 4)
 	{
 		va_list v;
 		va_start(v, fmt);
-		vfprintf(stderr, fmt, v);
+		std::vprintf(fmt, v);
 		va_end(v);
 	}
 
-	virtual void log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node) TORRENT_OVERRIDE
+	void log_packet(message_direction_t dir, span<char const> pkt
+		, udp::endpoint const& node) override
 	{
-		libtorrent::bdecode_node print;
-		libtorrent::error_code ec;
-		int ret = bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
+		lt::bdecode_node print;
+		lt::error_code ec;
+		int ret = bdecode(pkt.data(), pkt.data() + int(pkt.size()), print, ec, nullptr, 100, 100);
 		TEST_EQUAL(ret, 0);
 
 		std::string msg = print_entry(print, true);
-		printf("%s", msg.c_str());
+		std::printf("%s", msg.c_str());
 
 		char const* prefix[2] = { "<==", "==>"};
-		printf("%s [%s] %s", prefix[dir], print_endpoint(node).c_str()
+		std::printf("%s [%s] %s", prefix[dir], print_endpoint(node).c_str()
 			, msg.c_str());
 	}
-#endif
+
+	virtual ~log_t() = default;
 };
+#endif
 
 TORRENT_TEST(dos_blocker)
 {
+#ifndef TORRENT_DISABLE_LOGGING
 #ifndef TORRENT_DISABLE_DHT
-	using namespace libtorrent::dht;
+	using namespace lt::dht;
 
 	log_t l;
 	dos_blocker b;
@@ -95,5 +100,5 @@ TORRENT_TEST(dos_blocker)
 
 	TEST_EQUAL(b.incoming(spammer, now, &l), false);
 #endif
+#endif
 }
-

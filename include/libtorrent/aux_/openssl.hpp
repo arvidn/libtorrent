@@ -33,6 +33,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_OPENSSL_HPP_INCLUDED
 #define TORRENT_OPENSSL_HPP_INCLUDED
 
+#ifdef TORRENT_USE_LIBCRYPTO
+
+#include "libtorrent/config.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#if defined __APPLE__ \
+	&& MAC_OS_X_VERSION_MIN_REQUIRED >= 1070 \
+	&& OPENSSL_VERSION_NUMBER <= 0x009081dfL
+#define TORRENT_MACOS_DEPRECATED_LIBCRYPTO 1
+#endif
+
+#endif // TORRENT_USE_LIBCRYPTO
+
 #ifdef TORRENT_USE_OPENSSL
 
 // all of OpenSSL causes warnings, so we just have to disable them
@@ -47,9 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/safestack.h> // for sk_GENERAL_NAME_value
 #include <openssl/x509v3.h> // for GENERAL_NAME
 
-namespace libtorrent {
-namespace aux {
-
+namespace libtorrent { namespace aux {
 inline void openssl_set_tlsext_hostname(SSL* s, char const* name)
 {
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
@@ -57,7 +71,6 @@ inline void openssl_set_tlsext_hostname(SSL* s, char const* name)
 #endif
 }
 
-#if BOOST_VERSION >= 104700
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 
 inline void openssl_set_tlsext_servername_callback(SSL_CTX* ctx
@@ -82,7 +95,6 @@ inline GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i)
 }
 
 #endif // OPENSSL_VERSION_NUMBER
-#endif // BOOST_VERSION
 
 }
 }
@@ -92,4 +104,3 @@ inline GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i)
 #endif // TORRENT_USE_OPENSSL
 
 #endif // TORRENT_OPENSSL_HPP_INCLUDED
-

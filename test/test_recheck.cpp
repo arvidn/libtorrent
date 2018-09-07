@@ -35,12 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
-#include <boost/tuple/tuple.hpp>
-#include <boost/bind.hpp>
+#include <tuple>
+#include <functional>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -48,31 +47,36 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iostream>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
-const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
+namespace {
+
+auto const mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 
 void wait_for_complete(lt::session& ses, torrent_handle h)
 {
 	int last_progress = 0;
 	clock_type::time_point last_change = clock_type::now();
-	for (int i = 0; i < 400; ++i)
+	for (int i = 0; i < 200; ++i)
 	{
 		print_alerts(ses, "ses1");
 		torrent_status st = h.status();
-		fprintf(stderr, "%f %%\n", st.progress_ppm / 10000.f);
+		std::printf("%f s -  %f %%\n"
+			, total_milliseconds(clock_type::now() - last_change) / 1000.0
+			, st.progress_ppm / 10000.0);
 		if (st.progress_ppm == 1000000) return;
 		if (st.progress_ppm != last_progress)
 		{
 			last_progress = st.progress_ppm;
 			last_change = clock_type::now();
 		}
-		if (clock_type::now() - last_change > seconds(10)) break;
-		test_sleep(500);
+		if (clock_type::now() - last_change > seconds(20)) break;
+		std::this_thread::sleep_for(lt::seconds(1));
 	}
 	TEST_ERROR("torrent did not finish");
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(recheck)
 {
@@ -86,20 +90,20 @@ TORRENT_TEST(recheck)
 	sett.set_bool(settings_pack::enable_dht, false);
 	lt::session ses1(sett);
 	create_directory("tmp1_recheck", ec);
-	if (ec) fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
+	if (ec) std::printf("create_directory: %s\n", ec.message().c_str());
 	std::ofstream file("tmp1_recheck/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 4 * 1024 * 1024
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 4 * 1024 * 1024
 		, 7, false);
 	file.close();
 
 	add_torrent_params param;
-	param.flags &= ~add_torrent_params::flag_paused;
-	param.flags &= ~add_torrent_params::flag_auto_managed;
+	param.flags &= ~torrent_flags::paused;
+	param.flags &= ~torrent_flags::auto_managed;
 	param.ti = t;
 	param.save_path = "tmp1_recheck";
-	param.flags |= add_torrent_params::flag_seed_mode;
+	param.flags |= torrent_flags::seed_mode;
 	torrent_handle tor1 = ses1.add_torrent(param, ec);
-	if (ec) fprintf(stderr, "add_torrent: %s\n", ec.message().c_str());
+	if (ec) std::printf("add_torrent: %s\n", ec.message().c_str());
 
 	wait_for_listen(ses1, "ses1");
 
@@ -115,4 +119,3 @@ TORRENT_TEST(recheck)
 	TEST_CHECK(st1.progress_ppm <= 1000000);
 	wait_for_complete(ses1, tor1);
 }
-

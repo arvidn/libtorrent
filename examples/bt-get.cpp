@@ -39,9 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/magnet_uri.hpp>
-#include <libtorrent/error_code.hpp>
 
-int main(int argc, char const* argv[])
+int main(int argc, char const* argv[]) try
 {
 	if (argc != 2) {
 		std::cerr << "usage: " << argv[0] << " <magnet-url>" << std::endl;
@@ -52,15 +51,9 @@ int main(int argc, char const* argv[])
 		| lt::alert::error_notification);
 	lt::session ses(p);
 
-	lt::add_torrent_params atp;
-	lt::error_code ec;
-	lt::parse_magnet_uri(argv[1], atp, ec);
-	if (ec) {
-		std::cerr << "invalid magnet URI: " << ec.message() << std::endl;
-		return 1;
-	}
+	lt::add_torrent_params atp = lt::parse_magnet_uri(argv[1]);
 	atp.save_path = "."; // save in current dir
-	lt::torrent_handle h = ses.add_torrent(atp);
+	lt::torrent_handle h = ses.add_torrent(std::move(atp));
 
 	for (;;) {
 		std::vector<lt::alert*> alerts;
@@ -80,5 +73,9 @@ int main(int argc, char const* argv[])
 	}
 	done:
 	std::cout << "done, shutting down" << std::endl;
+}
+catch (std::exception& e)
+{
+	std::cerr << "Error: " << e.what() << std::endl;
 }
 

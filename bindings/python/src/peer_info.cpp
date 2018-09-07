@@ -2,37 +2,28 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "boost_python.hpp"
 #include <libtorrent/peer_info.hpp>
 #include <libtorrent/bitfield.hpp>
-#include "boost_python.hpp"
 #include <boost/python/iterator.hpp>
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 
-boost::int64_t get_last_active(peer_info const& pi)
+std::int64_t get_last_active(peer_info const& pi)
 {
     return total_seconds(pi.last_active);
 }
 
-boost::int64_t get_last_request(peer_info const& pi)
+std::int64_t get_last_request(peer_info const& pi)
 {
     return total_seconds(pi.last_request);
 }
 
-boost::int64_t get_download_queue_time(peer_info const& pi)
+std::int64_t get_download_queue_time(peer_info const& pi)
 {
     return total_seconds(pi.download_queue_time);
 }
-
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-str get_country(peer_info const& pi)
-{
-    return str(pi.country, 2);
-}
-#endif
-#endif // TORRENT_NO_DEPRECATE
 
 tuple get_local_endpoint(peer_info const& pi)
 {
@@ -56,11 +47,12 @@ list get_pieces(peer_info const& pi)
     return ret;
 }
 
+using by_value = return_value_policy<return_by_value>;
 void bind_peer_info()
 {
     scope pi = class_<peer_info>("peer_info")
-        .def_readonly("flags", &peer_info::flags)
-        .def_readonly("source", &peer_info::source)
+        .add_property("flags", make_getter(&peer_info::flags, by_value()))
+        .add_property("source", make_getter(&peer_info::source, by_value()))
         .def_readonly("read_state", &peer_info::read_state)
         .def_readonly("write_state", &peer_info::write_state)
         .add_property("ip", get_ip)
@@ -72,10 +64,11 @@ void bind_peer_info()
         .def_readonly("total_upload", &peer_info::total_upload)
         .def_readonly("pid", &peer_info::pid)
         .add_property("pieces", get_pieces)
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("upload_limit", &peer_info::upload_limit)
         .def_readonly("download_limit", &peer_info::download_limit)
         .def_readonly("load_balancing", &peer_info::load_balancing)
+        .def_readonly("remote_dl_rate", &peer_info::remote_dl_rate)
 #endif
         .add_property("last_request", get_last_request)
         .add_property("last_active", get_last_active)
@@ -87,21 +80,15 @@ void bind_peer_info()
         .def_readonly("receive_buffer_size", &peer_info::receive_buffer_size)
         .def_readonly("used_receive_buffer", &peer_info::used_receive_buffer)
         .def_readonly("num_hashfails", &peer_info::num_hashfails)
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-        .add_property("country", get_country)
-#endif
-#endif // TORRENT_NO_DEPRECATE
         .def_readonly("download_queue_length", &peer_info::download_queue_length)
         .def_readonly("upload_queue_length", &peer_info::upload_queue_length)
         .def_readonly("failcount", &peer_info::failcount)
-        .def_readonly("downloading_piece_index", &peer_info::downloading_piece_index)
-        .def_readonly("downloading_block_index", &peer_info::downloading_block_index)
+        .add_property("downloading_piece_index", make_getter(&peer_info::downloading_piece_index, by_value()))
+        .add_property("downloading_block_index", make_getter(&peer_info::downloading_block_index, by_value()))
         .def_readonly("downloading_progress", &peer_info::downloading_progress)
         .def_readonly("downloading_total", &peer_info::downloading_total)
         .def_readonly("client", &peer_info::client)
         .def_readonly("connection_type", &peer_info::connection_type)
-        .def_readonly("remote_dl_rate", &peer_info::remote_dl_rate)
         .def_readonly("pending_disk_bytes", &peer_info::pending_disk_bytes)
         .def_readonly("send_quota", &peer_info::send_quota)
         .def_readonly("receive_quota", &peer_info::receive_quota)
@@ -116,27 +103,27 @@ void bind_peer_info()
         ;
 
     // flags
-    pi.attr("interesting") = (int)peer_info::interesting;
-    pi.attr("choked") = (int)peer_info::choked;
-    pi.attr("remote_interested") = (int)peer_info::remote_interested;
-    pi.attr("remote_choked") = (int)peer_info::remote_choked;
-    pi.attr("supports_extensions") = (int)peer_info::supports_extensions;
-    pi.attr("local_connection") = (int)peer_info::local_connection;
-    pi.attr("handshake") = (int)peer_info::handshake;
-    pi.attr("connecting") = (int)peer_info::connecting;
-#ifndef TORRENT_NO_DEPRECATE
-    pi.attr("queued") = (int)peer_info::queued;
+    pi.attr("interesting") = peer_info::interesting;
+    pi.attr("choked") = peer_info::choked;
+    pi.attr("remote_interested") = peer_info::remote_interested;
+    pi.attr("remote_choked") = peer_info::remote_choked;
+    pi.attr("supports_extensions") = peer_info::supports_extensions;
+    pi.attr("local_connection") = peer_info::local_connection;
+    pi.attr("handshake") = peer_info::handshake;
+    pi.attr("connecting") = peer_info::connecting;
+#if TORRENT_ABI_VERSION == 1
+    pi.attr("queued") = peer_info::queued;
 #endif
-    pi.attr("on_parole") = (int)peer_info::on_parole;
-    pi.attr("seed") = (int)peer_info::seed;
-    pi.attr("optimistic_unchoke") = (int)peer_info::optimistic_unchoke;
-    pi.attr("snubbed") = (int)peer_info::snubbed;
-    pi.attr("upload_only") = (int)peer_info::upload_only;
-    pi.attr("endgame_mode") = (int)peer_info::endgame_mode;
-    pi.attr("holepunched") = (int)peer_info::holepunched;
+    pi.attr("on_parole") = peer_info::on_parole;
+    pi.attr("seed") = peer_info::seed;
+    pi.attr("optimistic_unchoke") = peer_info::optimistic_unchoke;
+    pi.attr("snubbed") = peer_info::snubbed;
+    pi.attr("upload_only") = peer_info::upload_only;
+    pi.attr("endgame_mode") = peer_info::endgame_mode;
+    pi.attr("holepunched") = peer_info::holepunched;
 #ifndef TORRENT_DISABLE_ENCRYPTION
-    pi.attr("rc4_encrypted") = (int)peer_info::rc4_encrypted;
-    pi.attr("plaintext_encrypted") = (int)peer_info::plaintext_encrypted;
+    pi.attr("rc4_encrypted") = peer_info::rc4_encrypted;
+    pi.attr("plaintext_encrypted") = peer_info::plaintext_encrypted;
 #endif
 
     // connection_type
@@ -144,20 +131,20 @@ void bind_peer_info()
     pi.attr("web_seed") = (int)peer_info::web_seed;
 
     // source
-    pi.attr("tracker") = (int)peer_info::tracker;
-    pi.attr("dht") = (int)peer_info::dht;
-    pi.attr("pex") = (int)peer_info::pex;
-    pi.attr("lsd") = (int)peer_info::lsd;
-    pi.attr("resume_data") = (int)peer_info::resume_data;
+    pi.attr("tracker") = peer_info::tracker;
+    pi.attr("dht") = peer_info::dht;
+    pi.attr("pex") = peer_info::pex;
+    pi.attr("lsd") = peer_info::lsd;
+    pi.attr("resume_data") = peer_info::resume_data;
 
     // read/write state
-    pi.attr("bw_idle") = (int)peer_info::bw_idle;
-#ifndef TORRENT_NO_DEPRECATE
-    pi.attr("bw_torrent") = (int)peer_info::bw_torrent;
-    pi.attr("bw_global") = (int)peer_info::bw_global;
+    pi.attr("bw_idle") = peer_info::bw_idle;
+#if TORRENT_ABI_VERSION == 1
+    pi.attr("bw_torrent") = peer_info::bw_torrent;
+    pi.attr("bw_global") = peer_info::bw_global;
 #endif
-    pi.attr("bw_limit") = (int)peer_info::bw_limit;
-    pi.attr("bw_network") = (int)peer_info::bw_network;
-    pi.attr("bw_disk") = (int)peer_info::bw_disk;
+    pi.attr("bw_limit") = peer_info::bw_limit;
+    pi.attr("bw_network") = peer_info::bw_network;
+    pi.attr("bw_disk") = peer_info::bw_disk;
 }
 

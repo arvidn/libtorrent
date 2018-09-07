@@ -35,29 +35,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <set>
 #include <vector>
-
-#include <boost/limits.hpp>
-#include <boost/cstdint.hpp>
-#include <boost/tuple/tuple.hpp>
-
-#include <boost/version.hpp>
-#if BOOST_VERSION >= 106700
-#include <boost/next_prior.hpp>
-#else
-#include <boost/utility.hpp>
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <cstdint>
+#include <tuple>
+#include <iterator> // for next
+#include <limits>
 
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 // hidden
 inline bool operator<=(address const& lhs
@@ -71,7 +59,7 @@ struct ip_range
 {
 	Addr first;
 	Addr last;
-	boost::uint32_t flags;
+	std::uint32_t flags;
 	friend bool operator==(ip_range const& lhs, ip_range const& rhs)
 	{
 		return lhs.first == rhs.first
@@ -80,19 +68,18 @@ struct ip_range
 	}
 };
 
-namespace detail
-{
+namespace detail {
 
 	template<class Addr>
 	Addr zero()
 	{
 		Addr zero;
-		std::fill(zero.begin(), zero.end(), 0);
+		std::fill(zero.begin(), zero.end(), static_cast<typename Addr::value_type>(0));
 		return zero;
 	}
 
 	template<>
-	inline boost::uint16_t zero<boost::uint16_t>() { return 0; }
+	inline std::uint16_t zero<std::uint16_t>() { return 0; }
 
 	template<class Addr>
 	Addr plus_one(Addr const& a)
@@ -100,35 +87,37 @@ namespace detail
 		Addr tmp(a);
 		for (int i = int(tmp.size()) - 1; i >= 0; --i)
 		{
-			if (tmp[i] < (std::numeric_limits<typename Addr::value_type>::max)())
+			auto& t = tmp[std::size_t(i)];
+			if (t < (std::numeric_limits<typename Addr::value_type>::max)())
 			{
-				tmp[i] += 1;
+				t += 1;
 				break;
 			}
-			tmp[i] = 0;
+			t = 0;
 		}
 		return tmp;
 	}
 
-	inline boost::uint16_t plus_one(boost::uint16_t val) { return val + 1; }
-	
+	inline std::uint16_t plus_one(std::uint16_t val) { return val + 1; }
+
 	template<class Addr>
 	Addr minus_one(Addr const& a)
 	{
 		Addr tmp(a);
 		for (int i = int(tmp.size()) - 1; i >= 0; --i)
 		{
-			if (tmp[i] > 0)
+			auto& t = tmp[std::size_t(i)];
+			if (t > 0)
 			{
-				tmp[i] -= 1;
+				t -= 1;
 				break;
 			}
-			tmp[i] = (std::numeric_limits<typename Addr::value_type>::max)();
+			t = (std::numeric_limits<typename Addr::value_type>::max)();
 		}
 		return tmp;
 	}
 
-	inline boost::uint16_t minus_one(boost::uint16_t val) { return val - 1; }
+	inline std::uint16_t minus_one(std::uint16_t val) { return val - 1; }
 
 	template<class Addr>
 	Addr max_addr()
@@ -136,12 +125,12 @@ namespace detail
 		Addr tmp;
 		std::fill(tmp.begin(), tmp.end()
 			, (std::numeric_limits<typename Addr::value_type>::max)());
-		return Addr(tmp);
+		return tmp;
 	}
 
 	template<>
-	inline boost::uint16_t max_addr<boost::uint16_t>()
-	{ return (std::numeric_limits<boost::uint16_t>::max)(); }
+	inline std::uint16_t max_addr<std::uint16_t>()
+	{ return (std::numeric_limits<std::uint16_t>::max)(); }
 
 	// this is the generic implementation of
 	// a filter for a specific address type.
@@ -157,27 +146,27 @@ namespace detail
 			m_access_list.insert(range(zero<Addr>(), 0));
 		}
 
-		void add_rule(Addr first, Addr last, int flags)
+		void add_rule(Addr first, Addr last, std::uint32_t const flags)
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(first < last || first == last);
 
-			typename range_t::iterator i = m_access_list.upper_bound(first);
-			typename range_t::iterator j = m_access_list.upper_bound(last);
+			auto i = m_access_list.upper_bound(first);
+			auto j = m_access_list.upper_bound(last);
 
 			if (i != m_access_list.begin()) --i;
 
 			TORRENT_ASSERT(j != m_access_list.begin());
 			TORRENT_ASSERT(j != i);
 
-			boost::uint32_t first_access = i->access;
-			boost::uint32_t last_access = boost::prior(j)->access;
+			std::uint32_t first_access = i->access;
+			std::uint32_t last_access = std::prev(j)->access;
 
 			if (i->start != first && first_access != flags)
 			{
 				i = m_access_list.insert(i, range(first, flags));
 			}
-			else if (i != m_access_list.begin() && boost::prior(i)->access == flags)
+			else if (i != m_access_list.begin() && std::prev(i)->access == flags)
 			{
 				--i;
 				first_access = i->access;
@@ -185,13 +174,15 @@ namespace detail
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(i != m_access_list.end());
 
-			if (i != j) m_access_list.erase(boost::next(i), j);
+			if (i != j) m_access_list.erase(std::next(i), j);
 			if (i->start == first)
 			{
-				// we can do this const-cast because we know that the new
+				// This is an optimization over erasing and inserting a new element
+				// here.
+				// this const-cast is OK because we know that the new
 				// start address will keep the set correctly ordered
 				const_cast<Addr&>(i->start) = first;
-				const_cast<boost::uint32_t&>(i->access) = flags;
+				const_cast<std::uint32_t&>(i->access) = flags;
 			}
 			else if (first_access != flags)
 			{
@@ -212,24 +203,24 @@ namespace detail
 			TORRENT_ASSERT(!m_access_list.empty());
 		}
 
-		boost::uint32_t access(Addr const& addr) const
+		std::uint32_t access(Addr const& addr) const
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
-			typename range_t::const_iterator i = m_access_list.upper_bound(addr);
+			auto i = m_access_list.upper_bound(addr);
 			if (i != m_access_list.begin()) --i;
 			TORRENT_ASSERT(i != m_access_list.end());
-			TORRENT_ASSERT(i->start <= addr && (boost::next(i) == m_access_list.end()
-				|| addr < boost::next(i)->start));
+			TORRENT_ASSERT(i->start <= addr && (std::next(i) == m_access_list.end()
+				|| addr < std::next(i)->start));
 			return i->access;
 		}
 
 		template <class ExternalAddressType>
-		std::vector<ip_range<ExternalAddressType> > export_filter() const
+		std::vector<ip_range<ExternalAddressType>> export_filter() const
 		{
-			std::vector<ip_range<ExternalAddressType> > ret;
+			std::vector<ip_range<ExternalAddressType>> ret;
 			ret.reserve(m_access_list.size());
 
-			for (typename range_t::const_iterator i = m_access_list.begin()
+			for (auto i = m_access_list.begin()
 				, end(m_access_list.end()); i != end;)
 			{
 				ip_range<ExternalAddressType> r;
@@ -251,20 +242,16 @@ namespace detail
 
 		struct range
 		{
-			range(Addr addr, int a = 0): start(addr), access(a) {}
-			bool operator<(range const& r) const
-			{ return start < r.start; }
-			bool operator<(Addr const& a) const
-			{ return start < a; }
+			range(Addr addr, std::uint32_t a = 0) : start(addr), access(a) {} // NOLINT
+			bool operator<(range const& r) const { return start < r.start; }
+			bool operator<(Addr const& a) const { return start < a; }
 			Addr start;
 			// the end of the range is implicit
 			// and given by the next entry in the set
-			boost::uint32_t access;
+			std::uint32_t access;
 		};
 
-		typedef std::set<range> range_t;
-		range_t m_access_list;
-	
+		std::set<range> m_access_list;
 	};
 
 }
@@ -290,29 +277,25 @@ struct TORRENT_EXPORT ip_filter
 	// ip addresses that will be marked with the given flags. The ``flags``
 	// can currently be 0, which means allowed, or ``ip_filter::blocked``, which
 	// means disallowed.
-	// 
+	//
 	// precondition:
 	// ``first.is_v4() == last.is_v4() && first.is_v6() == last.is_v6()``
-	// 
+	//
 	// postcondition:
 	// ``access(x) == flags`` for every ``x`` in the range [``first``, ``last``]
-	// 
+	//
 	// This means that in a case of overlapping ranges, the last one applied takes
 	// precedence.
-	void add_rule(address first, address last, boost::uint32_t flags);
+	void add_rule(address const& first, address const& last, std::uint32_t flags);
 
 	// Returns the access permissions for the given address (``addr``). The permission
 	// can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
 	// is O(``log`` n), where n is the minimum number of non-overlapping ranges to describe
 	// the current filter.
-	int access(address const& addr) const;
+	std::uint32_t access(address const& addr) const;
 
-#if TORRENT_USE_IPV6
-	typedef boost::tuple<std::vector<ip_range<address_v4> >
-		, std::vector<ip_range<address_v6> > > filter_tuple_t;
-#else
-	typedef std::vector<ip_range<address_v4> > filter_tuple_t;
-#endif
+	using filter_tuple_t = std::tuple<std::vector<ip_range<address_v4>>
+		, std::vector<ip_range<address_v6>>>;
 
 	// This function will return the current state of the filter in the minimum number of
 	// ranges possible. They are sorted from ranges in low addresses to high addresses. Each
@@ -328,9 +311,7 @@ struct TORRENT_EXPORT ip_filter
 private:
 
 	detail::filter_impl<address_v4::bytes_type> m_filter4;
-#if TORRENT_USE_IPV6
 	detail::filter_impl<address_v6::bytes_type> m_filter6;
-#endif
 };
 
 // the port filter maps non-overlapping port ranges to flags. This
@@ -352,20 +333,19 @@ public:
 	// set the flags for the specified port range (``first``, ``last``) to
 	// ``flags`` overwriting any existing rule for those ports. The range
 	// is inclusive, i.e. the port ``last`` also has the flag set on it.
-	void add_rule(boost::uint16_t first, boost::uint16_t last, boost::uint32_t flags);
+	void add_rule(std::uint16_t first, std::uint16_t last, std::uint32_t flags);
 
 	// test the specified port (``port``) for whether it is blocked
 	// or not. The returned value is the flags set for this port.
 	// see access_flags.
-	int access(boost::uint16_t port) const;
+	std::uint32_t access(std::uint16_t port) const;
 
 private:
 
-	detail::filter_impl<boost::uint16_t> m_filter;
+	detail::filter_impl<std::uint16_t> m_filter;
 
 };
 
 }
 
 #endif
-

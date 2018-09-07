@@ -34,39 +34,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LSD_HPP
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/lsd.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+namespace libtorrent {
 
-#include <boost/function/function2.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-
-#ifndef TORRENT_DISABLE_LOGGING
-#include <boost/function/function1.hpp>
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
-
-typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
-#ifndef TORRENT_DISABLE_LOGGING
-typedef boost::function<void(char const*)> log_callback_t;
-#endif
-
-class lsd : public boost::enable_shared_from_this<lsd>
+class lsd : public std::enable_shared_from_this<lsd>
 {
 public:
-	lsd(io_service& ios, peer_callback_t const& cb
-#ifndef TORRENT_DISABLE_LOGGING
-		, log_callback_t const& log
-#endif
-		);
+	lsd(io_service& ios, aux::lsd_callback& cb);
 	~lsd();
 
 	void start(error_code& ec);
@@ -76,26 +54,23 @@ public:
 
 private:
 
-	boost::shared_ptr<lsd> self() { return shared_from_this(); }
+	std::shared_ptr<lsd> self() { return shared_from_this(); }
 
 	void announce_impl(sha1_hash const& ih, int listen_port
 		, bool broadcast, int retry_count);
 	void resend_announce(error_code const& e, sha1_hash const& ih
 		, int listen_port, int retry_count);
-	void on_announce(udp::endpoint const& from, char* buffer
-		, std::size_t bytes_transferred);
+	void on_announce(udp::endpoint const& from, span<char const> buffer);
 
-	peer_callback_t m_callback;
+	aux::lsd_callback& m_callback;
 
 	// the udp socket used to send and receive
 	// multicast messages on
 	broadcast_socket m_socket;
-#if TORRENT_USE_IPV6
 	broadcast_socket m_socket6;
-#endif
 #ifndef TORRENT_DISABLE_LOGGING
-	log_callback_t m_log_cb;
-	void debug_log(char const* fmt, ...) const TORRENT_FORMAT(2,3);
+	bool should_log() const;
+	void debug_log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
 #endif
 
 	// used to resend udp packets in case
@@ -110,13 +85,9 @@ private:
 	int m_cookie;
 
 	bool m_disabled;
-#if TORRENT_USE_IPV6
 	bool m_disabled6;
-#endif
 };
 
 }
 
-
 #endif
-

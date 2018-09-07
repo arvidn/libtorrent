@@ -33,22 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UT_PEX_EXTENSION_HPP_INCLUDED
 #define TORRENT_UT_PEX_EXTENSION_HPP_INCLUDED
 
-#include "libtorrent/config.hpp"
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#include "libtorrent/socket.hpp" // for endpoint
+#include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <memory>
 
-#include <boost/shared_ptr.hpp>
+namespace libtorrent {
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
 	struct torrent_plugin;
-	struct peer_plugin;
 	struct torrent_handle;
 
 	// constructor function for the ut_pex extension. The ut_pex
@@ -56,12 +49,10 @@ namespace libtorrent
 	// the swarm stay well connected and peers aware of more peers in the
 	// swarm. This extension is enabled by default unless explicitly disabled in
 	// the session constructor.
-	// 
+	//
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const&, void*);
-
-	bool was_introduced_by(peer_plugin const* pp, tcp::endpoint const& ep);
+	TORRENT_EXPORT std::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const&, void*);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS

@@ -33,20 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ERROR_HPP_INCLUDED
 #define TORRENT_ERROR_HPP_INCLUDED
 
-#include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 // asio assumes that the windows error codes are defined already
 #include <winsock2.h>
 #endif
 
 #include <boost/asio/error.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace error = boost::asio::error;
 }
 
 #endif
-

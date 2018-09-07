@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 	struct dht_logger;
 
@@ -52,7 +51,7 @@ namespace libtorrent { namespace dht
 		// called every time we receive an incoming packet. Returns
 		// true if we should let the packet through, and false if
 		// it's blocked
-		bool incoming(address addr, time_point now, dht_logger* logger);
+		bool incoming(address const& addr, time_point now, dht_logger* logger);
 
 		void set_rate_limit(int l)
 		{
@@ -67,7 +66,7 @@ namespace libtorrent { namespace dht
 		}
 
 	private:
-	
+
 		// used to ignore abusive dht nodes
 		struct node_ban_entry
 		{
@@ -77,7 +76,7 @@ namespace libtorrent { namespace dht
 			int count;
 		};
 
-		enum { num_ban_nodes = 20 };
+		static constexpr int num_ban_nodes = 20;
 
 		// the max number of packets we can receive per second from a node before
 		// we block it.
@@ -92,4 +91,3 @@ namespace libtorrent { namespace dht
 }}
 
 #endif
-

@@ -35,36 +35,34 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/parse_url.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/tuple/tuple.hpp>
+#include "libtorrent/address.hpp"
+#include "libtorrent/assert.hpp"
 
 #include <cstdlib> // for malloc
-#include <cstring> // for memmov/strcpy/strlen
+#include <cstring> // for strlen
+#include <algorithm> // for search
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
+namespace libtorrent {
 
 	// We need well defined results that don't depend on locale
-	boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
-		to_string(boost::int64_t n)
+	std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>
+		to_string(std::int64_t const n)
 	{
-		boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
+		std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10> ret;
 		char *p = &ret.back();
 		*p = '\0';
-		boost::uint64_t un = n;
-		// TODO: warning C4146: unary minus operator applied to unsigned type,
-		// result still unsigned
-		if (n < 0)  un = -un;
+		// we want "un" to be the absolute value
+		// since the absolute of INT64_MIN cannot be represented by a signed
+		// int64, we calculate the abs in unsigned space
+		std::uint64_t un = n < 0
+			? std::numeric_limits<std::uint64_t>::max() - std::uint64_t(n) + 1
+			: std::uint64_t(n);
 		do {
 			*--p = '0' + un % 10;
 			un /= 10;
 		} while (un);
 		if (n < 0) *--p = '-';
-		std::memmove(&ret[0], p, &ret.back() - p + 1);
+		std::memmove(ret.data(), p, std::size_t(&ret.back() - p + 1));
 		return ret;
 	}
 
@@ -80,8 +78,7 @@ namespace libtorrent
 
 	bool is_space(char c)
 	{
-		static const char* ws = " \t\n\r\f\v";
-		return strchr(ws, c) != 0;
+		return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
 	}
 
 	char to_lower(char c)
@@ -111,6 +108,9 @@ namespace libtorrent
 
 	bool string_begins_no_case(char const* s1, char const* s2)
 	{
+		TORRENT_ASSERT(s1 != nullptr);
+		TORRENT_ASSERT(s2 != nullptr);
+
 		while (*s1 != 0)
 		{
 			if (to_lower(*s1) != to_lower(*s2)) return false;
@@ -120,19 +120,16 @@ namespace libtorrent
 		return true;
 	}
 
-	bool string_equal_no_case(char const* s1, char const* s2)
+	bool string_equal_no_case(string_view s1, string_view s2)
 	{
-		while (to_lower(*s1) == to_lower(*s2))
-		{
-			if (*s1 == 0) return true;
-			++s1;
-			++s2;
-		}
-		return false;
+		if (s1.size() != s2.size()) return false;
+		return std::equal(s1.begin(), s1.end(), s2.begin()
+			, [] (char const c1, char const c2)
+			{ return to_lower(c1) == to_lower(c2); });
 	}
 
 	// generate a url-safe random string
-	void url_random(char* begin, char* end)
+	void url_random(span<char> dest)
 	{
 		// http-accepted characters:
 		// excluding ', since some buggy trackers don't support that
@@ -140,39 +137,162 @@ namespace libtorrent
 			"abcdefghijklmnopqrstuvwxyz-_.!~*()";
 
 		// the random number
-		while (begin != end)
-			*begin++ = printable[random() % (sizeof(printable)-1)];
+		for (char& c : dest)
+			c = printable[random(sizeof(printable) - 2)];
+	}
+
+	bool string_ends_with(string_view s1, string_view s2)
+	{
+		return s1.size() >= s2.size() && std::equal(s2.rbegin(), s2.rend(), s1.rbegin());
+	}
+
+	int search(span<char const> src, span<char const> target)
+	{
+		TORRENT_ASSERT(!src.empty());
+		TORRENT_ASSERT(!target.empty());
+		TORRENT_ASSERT(target.size() >= src.size());
+		TORRENT_ASSERT(target.size() < std::size_t(std::numeric_limits<int>::max()));
+
+		auto const it = std::search(target.begin(), target.end(), src.begin(), src.end());
+
+		// no complete sync
+		if (it == target.end()) return -1;
+		return static_cast<int>(it - target.begin());
 	}
 
 	char* allocate_string_copy(char const* str)
 	{
-		if (str == 0) return 0;
-		int const len = std::strlen(str) + 1;
-		char* tmp = static_cast<char*>(std::malloc(len));
-		if (tmp == NULL) return 0;
-		std::memcpy(tmp, str, len);
+		if (str == nullptr) return nullptr;
+		std::size_t const len = std::strlen(str);
+		auto* tmp = new char[len + 1];
+		std::copy(str, str + len, tmp);
+		tmp[len] = '\0';
 		return tmp;
 	}
 
-	// 8-byte align pointer
-	void* align_pointer(void* p)
+	std::string print_listen_interfaces(std::vector<listen_interface_t> const& in)
 	{
-		int offset = uintptr_t(p) & 0x7;
-		// if we're already aligned, don't do anything
-		if (offset == 0) return p;
+		std::string ret;
+		for (auto const& i : in)
+		{
+			if (!ret.empty()) ret += ',';
 
-		// offset is how far passed the last aligned address
-		// we are. We need to go forward to the next aligned
-		// one. Since aligned addresses are 8 bytes apart, add
-		// 8 - offset.
-		return static_cast<char*>(p) + (8 - offset);
+			error_code ec;
+			make_address_v6(i.device, ec);
+			if (!ec)
+			{
+				// IPv6 addresses must be wrapped in square brackets
+				ret += '[';
+				ret += i.device;
+				ret += ']';
+			}
+			else
+			{
+				ret += i.device;
+			}
+			ret += ':';
+			ret += to_string(i.port).data();
+			if (i.ssl) ret += 's';
+		}
+
+		return ret;
+	}
+
+	// this parses the string that's used as the listen_interfaces setting.
+	// it is a comma-separated list of IP or device names with ports. For
+	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
+	std::vector<listen_interface_t> parse_listen_interfaces(std::string const& in)
+	{
+		std::vector<listen_interface_t> out;
+
+		std::string::size_type start = 0;
+
+		while (start < in.size())
+		{
+			// skip leading spaces
+			while (start < in.size() && is_space(in[start]))
+				++start;
+
+			if (start == in.size()) return out;
+
+			listen_interface_t iface;
+			iface.ssl = false;
+
+			if (in[start] == '[')
+			{
+				++start;
+				// IPv6 address
+				while (start < in.size() && in[start] != ']')
+					iface.device += in[start++];
+
+				// skip to the colon
+				while (start < in.size() && in[start] != ':')
+					++start;
+			}
+			else
+			{
+				// consume device name
+				while (start < in.size() && !is_space(in[start]) && in[start] != ':')
+					iface.device += in[start++];
+			}
+
+			// skip spaces
+			while (start < in.size() && is_space(in[start]))
+				++start;
+
+			if (start == in.size() || in[start] != ':') return out;
+			++start; // skip colon
+
+			// skip spaces
+			while (start < in.size() && is_space(in[start]))
+				++start;
+
+			// consume port
+			std::string port;
+			while (start < in.size() && is_digit(in[start]) && in[start] != ',')
+				port += in[start++];
+
+			if (port.empty() || port.size() > 5)
+			{
+				iface.port = -1;
+			}
+			else
+			{
+				iface.port = std::atoi(port.c_str());
+				if (iface.port < 0 || iface.port > 65535) iface.port = -1;
+			}
+
+			// skip spaces
+			while (start < in.size() && is_space(in[start]))
+				++start;
+
+			// consume potential SSL 's'
+			if (start < in.size() && in[start] == 's')
+			{
+				iface.ssl = true;
+				++start;
+			}
+
+			// skip until end or comma
+			while (start < in.size() && in[start] != ',')
+				++start;
+
+			if (iface.port >= 0) out.push_back(iface);
+
+			// skip the comma
+			if (start < in.size() && in[start] == ',')
+				++start;
+
+		}
+
+		return out;
 	}
 
 	// this parses the string that's used as the listen_interfaces setting.
 	// it is a comma-separated list of IP or device names with ports. For
 	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
 	void parse_comma_separated_string_port(std::string const& in
-		, std::vector<std::pair<std::string, int> >& out)
+		, std::vector<std::pair<std::string, int>>& out)
 	{
 		out.clear();
 
@@ -193,7 +313,7 @@ namespace libtorrent
 
 			if (colon != std::string::npos && colon > start)
 			{
-				int port = atoi(in.substr(colon + 1, end - colon - 1).c_str());
+				int port = std::atoi(in.substr(colon + 1, end - colon - 1).c_str());
 
 				// skip trailing spaces
 				std::string::size_type soft_end = colon;
@@ -206,7 +326,7 @@ namespace libtorrent
 				if (in[start] == '[') ++start;
 				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
 
-				out.push_back(std::make_pair(in.substr(start, soft_end - start), port));
+				out.emplace_back(in.substr(start, soft_end - start), port);
 			}
 
 			start = end + 1;
@@ -233,7 +353,7 @@ namespace libtorrent
 			// skip trailing spaces
 			std::string::size_type soft_end = end;
 			while (soft_end > start
-				&& is_space(in[soft_end-1]))
+				&& is_space(in[soft_end - 1]))
 				--soft_end;
 
 			out.push_back(in.substr(start, soft_end - start));
@@ -241,47 +361,51 @@ namespace libtorrent
 		}
 	}
 
-	char* string_tokenize(char* last, char sep, char** next)
+	std::pair<string_view, string_view> split_string(string_view last, char const sep)
 	{
-		if (last == 0) return 0;
-		if (last[0] == '"')
+		if (last.empty()) return {{}, {}};
+
+		std::size_t pos = 0;
+		if (last[0] == '"' && sep != '"')
 		{
-			*next = strchr(last + 1, '"');
-			// consume the actual separator as well.
-			if (*next != NULL)
-				*next = strchr(*next, sep);
+			for (auto const c : last.substr(1))
+			{
+				++pos;
+				if (c == '"') break;
+			}
 		}
-		else
+		std::size_t found_sep = 0;
+		for (char const c : last.substr(pos))
 		{
-			*next = strchr(last, sep);
+			if (c == sep)
+			{
+				found_sep = 1;
+				break;
+			}
+			++pos;
 		}
-		if (*next == 0) return last;
-		**next = 0;
-		++(*next);
-		while (**next == sep && **next) ++(*next);
-		return last;
+		return {last.substr(0, pos), last.substr(pos + found_sep)};
 	}
 
 #if TORRENT_USE_I2P
 
 	bool is_i2p_url(std::string const& url)
 	{
-		using boost::tuples::ignore;
+		using std::ignore;
 		std::string hostname;
 		error_code ec;
-		boost::tie(ignore, ignore, hostname, ignore, ignore)
+		std::tie(ignore, ignore, hostname, ignore, ignore)
 			= parse_url_components(url, ec);
-		char const* top_domain = strrchr(hostname.c_str(), '.');
-		return top_domain && strcmp(top_domain, ".i2p") == 0;
+		return string_ends_with(hostname, ".i2p");
 	}
 
 #endif
 
 	std::size_t string_hash_no_case::operator()(std::string const& s) const
 	{
-		size_t ret = 5381;
-		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
-			ret = (ret * 33) ^ to_lower(*i);
+		std::size_t ret = 5381;
+		for (auto const c : s)
+			ret = (ret * 33) ^ static_cast<std::size_t>(to_lower(c));
 		return ret;
 	}
 
@@ -289,8 +413,8 @@ namespace libtorrent
 	{
 		if (lhs.size() != rhs.size()) return false;
 
-		std::string::const_iterator s1 = lhs.begin();
-		std::string::const_iterator s2 = rhs.begin();
+		auto s1 = lhs.cbegin();
+		auto s2 = rhs.cbegin();
 
 		while (s1 != lhs.end() && s2 != rhs.end())
 		{
@@ -300,25 +424,4 @@ namespace libtorrent
 		}
 		return true;
 	}
-
-	bool string_less_no_case::operator()(std::string const& lhs, std::string const& rhs) const
-	{
-		std::string::const_iterator s1 = lhs.begin();
-		std::string::const_iterator s2 = rhs.begin();
-
-		while (s1 != lhs.end() && s2 != rhs.end())
-		{
-			char const c1 = to_lower(*s1);
-			char const c2 = to_lower(*s2);
-			if (c1 < c2) return true;
-			if (c1 > c2) return false;
-			++s1;
-			++s2;
-		}
-
-		// this is the tie-breaker
-		return lhs.size() < rhs.size();
-	}
-
 }
-

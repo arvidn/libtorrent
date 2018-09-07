@@ -37,25 +37,64 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
+#include "libtorrent/torrent_info.hpp"
+#include "libtorrent/time.hpp"
+#include "settings.hpp"
+#include "setup_transfer.hpp" // for ep()
+#include "fake_peer.hpp"
 
-using namespace libtorrent;
+#include "simulator/nat.hpp"
+#include "simulator/queue.hpp"
+#include "utils.hpp"
+
+using namespace lt;
 
 TORRENT_TEST(seed_mode)
 {
 	// with seed mode
-	setup_swarm(2, swarm_test::upload
+	setup_swarm(3, swarm_test::upload
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
-			params.flags |= add_torrent_params::flag_seed_mode;
+			params.flags |= torrent_flags::seed_mode;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
-		{ return true; });
+		, [](int, lt::session&) -> bool
+		{ return false; });
+}
+
+TORRENT_TEST(seed_mode_disable_hash_checks)
+{
+	// all nodes need to disable hash checking, otherwise the downloader would
+	// just fail
+	settings_pack swarm_settings = settings();
+	swarm_settings.set_bool(settings_pack::disable_hash_checks, true);
+
+	dsl_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	// with seed mode
+	setup_swarm(2, swarm_test::upload, sim, swarm_settings, add_torrent_params()
+		// add session
+		, [](lt::settings_pack& pack) {
+			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.flags |= torrent_flags::seed_mode;
+			// just to make sure the disable_hash_checks really work, we
+			// shouldn't be verifying anything from the storage
+			params.storage = disabled_storage_constructor;
+		}
+		// on alert
+		, [](lt::alert const*, lt::session&) {}
+		// terminate
+		, [](int, lt::session&) -> bool
+		{ return false; });
 }
 
 TORRENT_TEST(seed_mode_suggest)
@@ -68,7 +107,7 @@ TORRENT_TEST(seed_mode_suggest)
 		}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
-			params.flags |= add_torrent_params::flag_seed_mode;
+			params.flags |= torrent_flags::seed_mode;
 		}
 		// on alert
 		, [](lt::alert const* a, lt::session& ses) {}
@@ -81,13 +120,13 @@ TORRENT_TEST(plain)
 {
 	setup_swarm(2, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int const ticks, lt::session& ses) -> bool
 		{
 			if (ticks > 80)
 			{
@@ -95,7 +134,7 @@ TORRENT_TEST(plain)
 				return true;
 			}
 			if (!is_seed(ses)) return false;
-			printf("completed in %d ticks\n", ticks);
+			std::printf("completed in %d ticks\n", ticks);
 			return true;
 		});
 }
@@ -105,29 +144,26 @@ TORRENT_TEST(session_stats)
 	std::vector<stats_metric> stats = session_stats_metrics();
 	int const downloading_idx = find_metric_idx("ses.num_downloading_torrents");
 	TEST_CHECK(downloading_idx >= 0);
-	int const evicted_idx = find_metric_idx("ses.torrent_evicted_counter");
-	TEST_CHECK(evicted_idx >= 0);
 	int const incoming_extended_idx = find_metric_idx("ses.num_incoming_extended");
 	TEST_CHECK(incoming_extended_idx >= 0);
 
 	setup_swarm(2, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [=](lt::alert const* a, lt::session& ses)
+		, [=](lt::alert const* a, lt::session&)
 		{
 			auto const* ss = lt::alert_cast<session_stats_alert>(a);
 			if (!ss) return;
 
 			// there's one downloading torrent
-			TEST_EQUAL(ss->values[downloading_idx], 1);
-			TEST_EQUAL(ss->values[evicted_idx], 0);
-			TEST_EQUAL(ss->values[incoming_extended_idx], 1);
+			TEST_EQUAL(ss->counters()[downloading_idx], 1);
+			TEST_EQUAL(ss->counters()[incoming_extended_idx], 1);
 		}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int const ticks, lt::session& ses) -> bool
 		{
 			ses.post_session_stats();
 			if (ticks > 80)
@@ -136,37 +172,54 @@ TORRENT_TEST(session_stats)
 				return true;
 			}
 			if (!is_seed(ses)) return false;
-			printf("completed in %d ticks\n", ticks);
+			std::printf("completed in %d ticks\n", ticks);
 			return true;
 		});
 }
 
-
+// this test relies on picking up log alerts
+#ifndef TORRENT_DISABLE_LOGGING
 TORRENT_TEST(suggest)
 {
-	setup_swarm(2, swarm_test::download
+	int num_suggests = 0;
+	setup_swarm(10, swarm_test::upload
 		// add session
 		, [](lt::settings_pack& pack) {
 			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+			pack.set_int(settings_pack::max_suggest_pieces, 10);
 			pack.set_int(settings_pack::cache_size, 2);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
-		// terminate
-		, [](int ticks, lt::session& ses) -> bool
-		{
-			if (ticks > 80)
+		, [&num_suggests](lt::alert const* a, lt::session&) {
+			if (auto pl = alert_cast<peer_log_alert>(a))
 			{
-				TEST_ERROR("timeout");
+				if (pl->direction == peer_log_alert::outgoing_message
+					&& pl->event_type == std::string("SUGGEST"))
+				{
+					++num_suggests;
+				}
+			}
+		}
+		// terminate
+		, [](int const ticks, lt::session&) -> bool
+		{
+			if (ticks > 500)
+			{
 				return true;
 			}
-			if (!is_seed(ses)) return false;
-			printf("completed in %d ticks\n", ticks);
-			return true;
+			return false;
 		});
+
+	// for now, just make sure we send any suggests at all. This feature is
+	// experimental and it's not entirely clear it's correct or how to verify
+	// that it does what it's supposed to do.
+	// perhaps a better way would be to look at piece upload distribution over
+	// time
+	TEST_CHECK(num_suggests > 0);
 }
+#endif
 
 TORRENT_TEST(utp_only)
 {
@@ -179,11 +232,11 @@ TORRENT_TEST(utp_only)
 			pack.set_bool(settings_pack::enable_outgoing_tcp, false);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int const ticks, lt::session& ses) -> bool
 		{
 			if (ticks > 80)
 			{
@@ -209,7 +262,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			pack.set_int(settings_pack::min_reconnect_time, 0);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {
+		, [](lt::add_torrent_params&) {
 
 		}
 		// on alert
@@ -221,13 +274,13 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			if (auto tp = lt::alert_cast<lt::torrent_paused_alert>(a))
 			{
 				TEST_EQUAL(resumed, false);
-				printf("\nSTART\n\n");
+				std::printf("\nSTART\n\n");
 				tp->handle.resume();
 				resumed = true;
 			}
 		}
 		// terminate
-		, [&](int ticks, lt::session& ses) -> bool
+		, [&](int const ticks, lt::session& ses) -> bool
 		{
 			if (paused_once == false)
 			{
@@ -238,16 +291,16 @@ void test_stop_start_download(swarm_test type, bool graceful)
 
 				if (limit_reached)
 				{
-					printf("\nSTOP\n\n");
+					std::printf("\nSTOP\n\n");
 					auto h = ses.get_torrents()[0];
-					h.pause(graceful ? torrent_handle::graceful_pause : 0);
+					h.pause(graceful ? torrent_handle::graceful_pause : pause_flags_t{});
 					paused_once = true;
 				}
 			}
 
-			printf("tick: %d\n", ticks);
+			std::printf("tick: %d\n", ticks);
 
-			const int timeout = type == swarm_test::download ? 20 : 91;
+			const int timeout = type == swarm_test::download ? 21 : 100;
 			if (ticks > timeout)
 			{
 				TEST_ERROR("timeout");
@@ -255,7 +308,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			}
 			if (type == swarm_test::upload) return false;
 			if (!is_seed(ses)) return false;
-			printf("completed in %d ticks\n", ticks);
+			std::printf("completed in %d ticks\n", ticks);
 			return true;
 		});
 
@@ -280,32 +333,32 @@ TORRENT_TEST(stop_start_download_graceful_no_peers)
 
 	setup_swarm(1, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses) {
+		, [&](lt::alert const* a, lt::session&) {
 			if (auto tp = lt::alert_cast<lt::torrent_paused_alert>(a))
 			{
 				TEST_EQUAL(resumed, false);
-				printf("\nSTART\n\n");
+				std::printf("\nSTART\n\n");
 				tp->handle.resume();
 				resumed = true;
 			}
 		}
 		// terminate
-		, [&](int ticks, lt::session& ses) -> bool
+		, [&](int const ticks, lt::session& ses) -> bool
 		{
 			if (paused_once == false
 				&& ticks == 6)
 			{
-				printf("\nSTOP\n\n");
+				std::printf("\nSTOP\n\n");
 				auto h = ses.get_torrents()[0];
 				h.pause(torrent_handle::graceful_pause);
 				paused_once = true;
 			}
 
-			printf("tick: %d\n", ticks);
+			std::printf("tick: %d\n", ticks);
 
 			// when there's only one node (i.e. no peers) we won't ever download
 			// the torrent. It's just a test to make sure we still get the
@@ -328,51 +381,140 @@ TORRENT_TEST(stop_start_seed_graceful)
 	test_stop_start_download(swarm_test::upload, true);
 }
 
-#ifndef TORRENT_NO_DEPRECATE
-TORRENT_TEST(explicit_cache)
+TORRENT_TEST(shutdown)
 {
 	setup_swarm(4, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {
-			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
-			pack.set_int(settings_pack::cache_size, 2);
-			pack.set_bool(settings_pack::explicit_read_cache, true);
-			pack.set_int(settings_pack::explicit_cache_interval, 5);
-		}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
-		{
-			if (ticks > 80)
-			{
-				TEST_ERROR("timeout");
-				return true;
-			}
-			if (!is_seed(ses)) return false;
-			return true;
-		});
-}
-#endif
-
-TORRENT_TEST(shutdown)
-{
-	setup_swarm(2, swarm_test::download
-		// add session
-		, [](lt::settings_pack& pack) {}
-		// add torrent
-		, [](lt::add_torrent_params& params) {}
-		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
-		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int, lt::session& ses) -> bool
 		{
 			if (completed_pieces(ses) == 0) return false;
 			TEST_EQUAL(is_seed(ses), false);
 			return true;
 		});
+}
+
+// make the delays on the connections unreasonable long, so libtorrent times-out
+// the connection attempts
+struct timeout_config : sim::default_config
+{
+	virtual sim::route incoming_route(lt::address ip) override
+	{
+		auto it = m_incoming.find(ip);
+		if (it != m_incoming.end()) return sim::route().append(it->second);
+		it = m_incoming.insert(it, std::make_pair(ip, std::make_shared<queue>(
+			std::ref(m_sim->get_io_service())
+			, 1000
+			, lt::duration_cast<lt::time_duration>(seconds(10))
+			, 1000, "packet-loss modem in")));
+		return sim::route().append(it->second);
+	}
+
+	virtual sim::route outgoing_route(lt::address ip) override
+	{
+		auto it = m_outgoing.find(ip);
+		if (it != m_outgoing.end()) return sim::route().append(it->second);
+		it = m_outgoing.insert(it, std::make_pair(ip, std::make_shared<queue>(
+			std::ref(m_sim->get_io_service()), 1000
+			, lt::duration_cast<lt::time_duration>(seconds(5)), 200 * 1000, "packet-loss out")));
+		return sim::route().append(it->second);
+	}
+};
+
+// make sure peers that are no longer alive are handled correctly.
+TORRENT_TEST(dead_peers)
+{
+	int num_connect_timeout = 0;
+
+	timeout_config network_cfg;
+	sim::simulation sim{network_cfg};
+	setup_swarm(1, swarm_test::download, sim
+		// add session
+		, [](lt::settings_pack& p) {
+			p.set_int(settings_pack::peer_connect_timeout, 1);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.peers.assign({
+				ep("66.66.66.60", 9999)
+				, ep("66.66.66.61", 9999)
+				, ep("66.66.66.62", 9999)
+			});
+		}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			auto* e = alert_cast<peer_disconnected_alert>(a);
+			if (e
+				&& e->op == operation_t::connect
+				&& e->error == error_code(errors::timed_out))
+			{
+				++num_connect_timeout;
+			}
+		}
+		// terminate
+		, [](int t, lt::session&) -> bool
+		{ return t > 100; });
+
+	TEST_EQUAL(num_connect_timeout, 3);
+}
+
+// the address 50.0.0.1 sits behind a NAT. All of its outgoing connections have
+// their source address rewritten to 51.51.51.51
+struct nat_config : sim::default_config
+{
+	nat_config() : m_nat_hop(std::make_shared<nat>(addr("51.51.51.51"))) {}
+
+	sim::route outgoing_route(lt::address ip) override
+	{
+		// This is extremely simplistic. It will simply alter the percieved source
+		// IP of the connecting client.
+		sim::route r;
+		if (ip == addr("50.0.0.1")) r.append(m_nat_hop);
+		return r;
+	}
+	std::shared_ptr<nat> m_nat_hop;
+};
+
+TORRENT_TEST(self_connect)
+{
+	int num_self_connection_disconnects = 0;
+
+	nat_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	setup_swarm(1, swarm_test::download, sim
+		// add session
+		, [](lt::settings_pack& p) {
+			p.set_bool(settings_pack::enable_incoming_utp, false);
+			p.set_bool(settings_pack::enable_outgoing_utp, false);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			// this is our own address and listen port, just to make sure we get
+			// ourself as a peer (which normally happens one way or another in the
+			// wild)
+			params.peers.assign({ep("50.0.0.1", 6881)});
+		}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			auto* e = alert_cast<peer_disconnected_alert>(a);
+			if (e
+				&& e->op == operation_t::bittorrent
+				&& e->error == error_code(errors::self_connection))
+			{
+				++num_self_connection_disconnects;
+			}
+		}
+		// terminate
+		, [](int t, lt::session&) -> bool
+		{ return t > 100; });
+
+	TEST_EQUAL(num_self_connection_disconnects, 1);
 }
 
 TORRENT_TEST(delete_files)
@@ -381,13 +523,13 @@ TORRENT_TEST(delete_files)
 
 	setup_swarm(2, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [&save_path](int ticks, lt::session& ses) -> bool
+		, [&save_path](int, lt::session& ses) -> bool
 		{
 			if (completed_pieces(ses) == 0) return false;
 
@@ -401,7 +543,7 @@ TORRENT_TEST(delete_files)
 	file_status st;
 	error_code ec;
 	stat_file(combine_path(save_path, "temporary"), &st, ec);
-	printf("expecting \"%s/temporary\" to NOT exist [%s | %s]\n"
+	std::printf("expecting \"%s/temporary\" to NOT exist [%s | %s]\n"
 		, save_path.c_str()
 		, ec.category().name()
 		, ec.message().c_str());
@@ -413,13 +555,13 @@ TORRENT_TEST(delete_partfile)
 	std::string save_path;
 	setup_swarm(2, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const* a, lt::session&) {}
 		// terminate
-		, [&save_path](int ticks, lt::session& ses) -> bool
+		, [&save_path](int, lt::session& ses) -> bool
 		{
 			if (completed_pieces(ses) == 0) return false;
 
@@ -432,7 +574,7 @@ TORRENT_TEST(delete_partfile)
 	file_status st;
 	error_code ec;
 	stat_file(combine_path(save_path, "temporary"), &st, ec);
-	printf("expecting \"%s/temporary\" to exist [%s]\n", save_path.c_str()
+	std::printf("expecting \"%s/temporary\" to exist [%s]\n", save_path.c_str()
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
 }
@@ -445,7 +587,7 @@ TORRENT_TEST(torrent_completed_alert)
 		// add session
 		, [](lt::settings_pack& pack)
 		{
-			pack.set_int(lt::settings_pack::alert_mask, alert::progress_notification);
+			pack.set_int(lt::settings_pack::alert_mask, alert::file_progress_notification);
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}
@@ -470,6 +612,51 @@ TORRENT_TEST(torrent_completed_alert)
 		});
 
 	TEST_EQUAL(num_file_completed, 1);
+}
+
+TORRENT_TEST(block_uploaded_alert)
+{
+	// blocks[piece count][number of blocks per piece] (each block's element will
+	// be set to true when a block_uploaded_alert alert is received for that block)
+	std::vector<std::vector<bool>> blocks;
+
+	setup_swarm(2, swarm_test::upload
+		// add session
+		, [](lt::settings_pack& pack)
+		{
+			pack.set_int(lt::settings_pack::alert_mask,
+				alert::upload_notification | alert::status_notification);
+		}
+		// add torrent
+		, [](lt::add_torrent_params&) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
+			{
+				// init blocks vector, MUST happen before any block_uploaded_alert alerts
+				int blocks_per_piece = at->handle.torrent_file()->piece_length() / 0x4000;
+				blocks.resize(at->handle.torrent_file()->num_pieces(), std::vector<bool>(blocks_per_piece, false));
+			}
+			else if (auto at = lt::alert_cast<lt::block_uploaded_alert>(a))
+			{
+				TEST_EQUAL(blocks[static_cast<int>(at->piece_index)][at->block_index], false);
+				blocks[static_cast<int>(at->piece_index)][at->block_index] = true;
+			}
+		}
+		// terminate
+		, [](int, lt::session&) -> bool
+		{ return false; });
+
+		// ensure a block_uploaded_alert was received for each block in the torrent
+		TEST_CHECK(std::all_of(blocks.begin(), blocks.end(),
+			[](std::vector<bool> const& piece_row) {
+				return std::all_of(piece_row.begin(), piece_row.end(),
+					[](bool upload_alert_received) {
+						return upload_alert_received;
+					}
+				);
+			}
+		));
 }
 
 // template for testing running swarms with edge case settings
@@ -525,12 +712,14 @@ TORRENT_TEST(redundant_have)
 	);
 }
 
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(lazy_bitfields)
 {
 	test_settings([](lt::settings_pack& pack) {
 		pack.set_bool(settings_pack::lazy_bitfields, true); }
 	);
 }
+#endif
 
 TORRENT_TEST(prioritize_partial_pieces)
 {

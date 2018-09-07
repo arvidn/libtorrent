@@ -34,526 +34,171 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "setup_transfer.hpp"
 #include "test.hpp"
+#include "settings.hpp"
 
+#include <iostream>
 #include <fstream>
-#include <boost/tuple/tuple.hpp>
+#include <iostream>
+#include <tuple>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
-using boost::tuples::ignore;
+using namespace lt;
+using std::ignore;
 
 namespace {
 
-template <class T>
-boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
+bool all_of(std::vector<bool> const& v)
 {
-	return boost::shared_ptr<T>(new T(*ptr));
+	return std::all_of(v.begin(), v.end(), [](bool val){ return val; });
 }
 
-int peer_disconnects = 0;
-
-bool on_alert(alert const* a)
+void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 {
-	if (alert_cast<peer_disconnected_alert>(a))
-		++peer_disconnects;
+	using namespace lt;
 
-	return false;
+	// in case the previous run was terminated
+	error_code ec;
+
+	// create a torrent with 2 files, remap them into 3 files and make sure
+	// the file priorities don't break things
+	static std::array<const int, 2> const file_sizes{{100000, 100000}};
+	int const piece_size = 0x8000;
+	auto t = make_torrent(file_sizes, piece_size);
+
+	static std::array<const int, 3> const remap_file_sizes
+		{{10000, 10000, int(t->total_size() - 20000)}};
+
+	file_storage fs = make_file_storage(remap_file_sizes, piece_size, "multifile-");
+
+	t->remap_files(fs);
+
+	auto const alert_mask = alert::all_categories
+		& ~alert::stats_notification;
+
+	session_proxy p1;
+
+	settings_pack sett = settings();
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+	lt::session ses(sett);
+
+	add_torrent_params params;
+	params.save_path = ".";
+	params.storage_mode = storage_mode;
+	params.flags &= ~torrent_flags::paused;
+	params.flags &= ~torrent_flags::auto_managed;
+	params.ti = t;
+
+	torrent_handle tor1 = ses.add_torrent(params);
+
+	// write pieces
+	for (auto const i : fs.piece_range())
+	{
+		std::vector<char> const piece = generate_piece(i, fs.piece_size(i));
+		tor1.add_piece(i, piece.data());
+	}
+
+	// read pieces
+	for (auto const i : fs.piece_range())
+	{
+		tor1.read_piece(i);
+	}
+
+	// wait for all alerts to come back and verify the data against the expected
+	// piece data
+	aux::vector<bool, piece_index_t> pieces(std::size_t(fs.num_pieces()), false);
+	aux::vector<bool, piece_index_t> passed(std::size_t(fs.num_pieces()), false);
+	aux::vector<bool, file_index_t> files(std::size_t(fs.num_files()), false);
+
+	while (!all_of(pieces) || !all_of(passed) || !all_of(files))
+	{
+		alert* a = ses.wait_for_alert(lt::seconds(5));
+		if (a == nullptr) break;
+
+		std::vector<alert*> alerts;
+		ses.pop_alerts(&alerts);
+
+		for (alert* i : alerts)
+		{
+			printf("%s\n", i->message().c_str());
+
+			read_piece_alert* rp = alert_cast<read_piece_alert>(i);
+			if (rp)
+			{
+				auto const idx = rp->piece;
+				TEST_EQUAL(t->piece_size(idx), rp->size);
+
+				std::vector<char> const piece = generate_piece(idx, t->piece_size(idx));
+				TEST_CHECK(std::memcmp(rp->buffer.get(), piece.data(), std::size_t(rp->size)) == 0);
+				TEST_CHECK(pieces[idx] == false);
+				pieces[idx] = true;
+			}
+
+			file_completed_alert* fc = alert_cast<file_completed_alert>(i);
+			if (fc)
+			{
+				auto const idx = fc->index;
+				TEST_CHECK(files[idx] == false);
+				files[idx] = true;
+			}
+
+			piece_finished_alert* pf = alert_cast<piece_finished_alert>(i);
+			if (pf)
+			{
+				auto const idx = pf->piece_index;
+				TEST_CHECK(passed[idx] == false);
+				passed[idx] = true;
+			}
+		}
+	}
+
+	TEST_CHECK(all_of(pieces));
+	TEST_CHECK(all_of(files));
+	TEST_CHECK(all_of(passed));
+
+	// just because we can read them back throught libtorrent, doesn't mean the
+	// files have hit disk yet (because of the cache). Retry a few times to try
+	// to pick up the files
+	for (file_index_t i(0); i < file_index_t(int(remap_file_sizes.size())); ++i)
+	{
+		std::string name = fs.file_path(i);
+		for (int j = 0; j < 10 && !exists(name); ++j)
+		{
+			std::this_thread::sleep_for(lt::milliseconds(500));
+			print_alerts(ses, "ses");
+		}
+
+		std::printf("%s\n", name.c_str());
+		TEST_CHECK(exists(name));
+	}
+
+	print_alerts(ses, "ses");
+
+	torrent_status st = tor1.status();
+	TEST_EQUAL(st.is_seeding, true);
+
+	std::printf("\ntesting force recheck\n\n");
+
+	// test force rechecking a seeding torrent with remapped files
+	tor1.force_recheck();
+
+	for (int i = 0; i < 50; ++i)
+	{
+		torrent_status st1 = tor1.status();
+		if (st1.is_seeding) break;
+		std::this_thread::sleep_for(lt::milliseconds(100));
+		print_alerts(ses, "ses");
+	}
+
+	print_alerts(ses, "ses");
+	st = tor1.status();
+	TEST_CHECK(st.is_seeding);
 }
 
 } // anonymous namespace
 
-void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
-{
-	// in case the previous run was terminated
-	error_code ec;
-
-	int const alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
-
-	session_proxy p1;
-	session_proxy p2;
-
-	settings_pack sett;
-	sett.set_bool(settings_pack::enable_upnp, false);
-	sett.set_bool(settings_pack::enable_natpmp, false);
-	sett.set_bool(settings_pack::enable_lsd, false);
-	sett.set_bool(settings_pack::enable_dht, false);
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	sett.set_int(settings_pack::alert_mask, alert_mask);
-
-	lt::session ses1(sett);
-
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
-	lt::session ses2(sett);
-
-	torrent_handle tor1;
-	torrent_handle tor2;
-
-	create_directory("tmp1_remap", ec);
-	create_directory(combine_path("tmp1_remap", "test_torrent_dir"), ec);
-	if (ec)
-	{
-		fprintf(stderr, "error creating directory: %s\n"
-			, ec.message().c_str());
-		TEST_CHECK(false);
-		return;
-	}
-
-	static const int file_sizes[] =
-	{ 50, 16000-50, 16000, 1700, 100, 8000, 8000, 1,1,10,10,10,1000,10,10,10,10,1000,10,10,10,1,1,1
-		,10,1000,1000,1000,10,1000,130,65000,340,750,20,300,400,5000,23000,900,43000,4000,43000,60, 40};
-
-	create_random_files(combine_path("tmp1_remap", "test_torrent_dir")
-		, file_sizes, sizeof(file_sizes)/sizeof(file_sizes[0]));
-	file_storage fs;
-
-	// generate a torrent with pad files to make sure they
-	// are not requested web seeds
-	add_files(fs, combine_path("tmp1_remap", "test_torrent_dir"));
-	libtorrent::create_torrent ct(fs, 0x8000, 0x4000);
-	set_piece_hashes(ct, "tmp1_remap", ec);
-	if (ec)
-	{
-		fprintf(stderr, "error creating hashes for test torrent: %s\n"
-			, ec.message().c_str());
-		TEST_CHECK(false);
-		return;
-	}
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), ct.generate());
-	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
-	boost::shared_ptr<torrent_info> t2(new torrent_info(&buf[0], buf.size(), ec));
-
-	// remap the files to a single one
-	file_storage st;
-	st.add_file("single_file", t->total_size());
-	t2->remap_files(st);
-
-	add_torrent_params params;
-	params.storage_mode = storage_mode;
-	params.flags &= ~add_torrent_params::flag_paused;
-	params.flags &= ~add_torrent_params::flag_auto_managed;
-
-	wait_for_listen(ses1, "ses1");
-	wait_for_listen(ses2, "ses2");
-
-	peer_disconnects = 0;
-
-	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_remap", 8 * 1024, &t, false, &params
-		, true, false, &t2);
-
-	fprintf(stderr, "\ntesting remap gather\n\n");
-
-	for (int i = 0; i < 50; ++i)
-	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
-
-		torrent_status st1 = tor1.status();
-		torrent_status st2 = tor2.status();
-
-		if (i % 10 == 0)
-		{
-			print_ses_rate(i / 10.f, &st1, &st2);
-		}
-
-		if (st2.is_finished) break;
-
-		if (st2.state != torrent_status::downloading)
-		{
-			static char const* state_str[] =	
-				{"checking (q)", "checking", "dl metadata"
-				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
-			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
-		}
-
-		TEST_CHECK(st1.state == torrent_status::seeding
-			|| st1.state == torrent_status::checking_resume_data
-			|| st1.state == torrent_status::checking_files);
-		TEST_CHECK(st2.state == torrent_status::downloading
-			|| st2.state == torrent_status::checking_resume_data);
-
-		if (peer_disconnects >= 2) break;
-
-		test_sleep(100);
-	}
-
-	torrent_status st2 = tor2.status();
-	TEST_CHECK(st2.is_seeding);
-
-	if (!st2.is_seeding) return;
-
-	fprintf(stderr, "\ntesting force recheck\n\n");
-
-	// test force rechecking a seeding torrent with remapped files
-	tor2.force_recheck();
-
-	for (int i = 0; i < 50; ++i)
-	{
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
-
-		torrent_status st2 = tor2.status();
-
-		if (i % 10 == 0)
-		{
-			print_ses_rate(i / 10.f, NULL, &st2);
-		}
-
-		if (st2.state != torrent_status::checking_files)
-		{
-			static char const* state_str[] =	
-				{"checking (q)", "checking", "dl metadata"
-				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
-			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
-		}
-
-		if (st2.progress == 1.0) break;
-
-		test_sleep(100);
-	}
-
-	st2 = tor2.status();
-	TEST_CHECK(st2.is_seeding);
-
-	p1 = ses1.abort();
-	p2 = ses2.abort();
-}
-
-void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
-{
-	int num_files = 10;
-
-	// in case the previous run was terminated
-	error_code ec;
-
-	int const alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
-
-	session_proxy p1;
-	session_proxy p2;
-
-	settings_pack sett;
-	sett.set_bool(settings_pack::enable_upnp, false);
-	sett.set_bool(settings_pack::enable_natpmp, false);
-	sett.set_bool(settings_pack::enable_lsd, false);
-	sett.set_bool(settings_pack::enable_dht, false);
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	sett.set_int(settings_pack::alert_mask, alert_mask);
-
-	lt::session ses1(sett);
-
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
-	sett.set_int(settings_pack::alert_mask, alert_mask);
-	lt::session ses2(sett);
-
-	torrent_handle tor1;
-	torrent_handle tor2;
-
-	create_directory("tmp1_remap2", ec);
-	std::ofstream file("tmp1_remap2/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 32 * 1024, 7);
-	file.close();
-
-	file_storage fs;
-	for (int i = 0; i < num_files-1; ++i)
-	{
-		char name[100];
-		snprintf(name, sizeof(name), "multifile/file%d.txt", i);
-		fs.add_file(name, t->total_size() / 10);
-	}
-	char name[100];
-	snprintf(name, sizeof(name), "multifile/file%d.txt", num_files);
-	// the last file has to be a special case to make the size
-	// add up exactly (in case the total size is not divisible by 10).
-	fs.add_file(name, t->total_size() - fs.total_size());
-
-	boost::shared_ptr<torrent_info> t2 = clone_ptr(t);
-
-	t2->remap_files(fs);
-
-	add_torrent_params params;
-	params.storage_mode = storage_mode;
-	params.flags &= ~add_torrent_params::flag_paused;
-	params.flags &= ~add_torrent_params::flag_auto_managed;
-
-	wait_for_listen(ses1, "ses1");
-	wait_for_listen(ses2, "ses2");
-
-	peer_disconnects = 0;
-
-	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_remap2", 8 * 1024, &t, false, &params
-		, true, false, &t2);
-
-	fprintf(stderr, "\ntesting remap scatter\n\n");
-
-	for (int i = 0; i < 50; ++i)
-	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
-
-		torrent_status st1 = tor1.status();
-		torrent_status st2 = tor2.status();
-
-		if (i % 10 == 0)
-		{
-			print_ses_rate(i / 10.f, &st1, &st2);
-		}
-
-		if (st2.is_finished) break;
-
-		if (st2.state != torrent_status::downloading)
-		{
-			static char const* state_str[] =	
-				{"checking (q)", "checking", "dl metadata"
-				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
-			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
-		}
-
-		TEST_CHECK(st1.state == torrent_status::seeding
-			|| st1.state == torrent_status::checking_resume_data
-			|| st1.state == torrent_status::checking_files);
-		TEST_CHECK(st2.state == torrent_status::downloading
-			|| st2.state == torrent_status::checking_resume_data);
-
-		if (peer_disconnects >= 2) break;
-
-		test_sleep(100);
-	}
-
-	torrent_status st2 = tor2.status();
-	TEST_CHECK(st2.is_seeding);
-
-	if (!st2.is_seeding) return;
-
-	fprintf(stderr, "\ntesting force recheck\n\n");
-
-	// test force rechecking a seeding torrent with remapped files
-	tor2.force_recheck();
-
-	for (int i = 0; i < 50; ++i)
-	{
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
-
-		torrent_status st2 = tor2.status();
-
-		if (i % 10 == 0)
-		{
-			print_ses_rate(i / 10.f, NULL, &st2);
-		}
-
-		if (st2.state != torrent_status::checking_files)
-		{
-			static char const* state_str[] =	
-				{"checking (q)", "checking", "dl metadata"
-				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
-			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
-		}
-
-		if (st2.progress == 1.0) break;
-
-		test_sleep(100);
-	}
-
-	st2 = tor2.status();
-	TEST_CHECK(st2.is_seeding);
-
-	p1 = ses1.abort();
-	p2 = ses2.abort();
-}
-
-void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
-{
-	// in case the previous run was terminated
-	error_code ec;
-
-	int const alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
-
-	session_proxy p1;
-	session_proxy p2;
-
-	settings_pack sett;
-	sett.set_bool(settings_pack::enable_upnp, false);
-	sett.set_bool(settings_pack::enable_natpmp, false);
-	sett.set_bool(settings_pack::enable_lsd, false);
-	sett.set_bool(settings_pack::enable_dht, false);
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	sett.set_int(settings_pack::alert_mask, alert_mask);
-	lt::session ses1(sett);
-
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
-	lt::session ses2(sett);
-
-	torrent_handle tor1;
-	torrent_handle tor2;
-
-	create_directory("tmp1_remap3", ec);
-	create_directory(combine_path("tmp1_remap3", "test_torrent_dir"), ec);
-
-	// create a torrent with 2 files, remap them into 3 files and make sure
-	// the file priorities don't break things
-	static const int file_sizes[] = {100000, 100000};
-	const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
-
-	create_random_files(combine_path("tmp1_remap3", "test_torrent_dir")
-		, file_sizes, num_files);
-
-	file_storage fs1;
-	const int piece_size = 0x4000;
-
-	add_files(fs1, combine_path("tmp1_remap3", "test_torrent_dir"));
-	libtorrent::create_torrent ct(fs1, piece_size, 0x4000
-		, libtorrent::create_torrent::optimize_alignment);
-
-	// calculate the hash for all pieces
-	set_piece_hashes(ct, "tmp1_remap3", ec);
-	if (ec) fprintf(stderr, "ERROR: set_piece_hashes: (%d) %s\n"
-		, ec.value(), ec.message().c_str());
-
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), ct.generate());
-	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
-
-	int num_new_files = 3;
-
-	file_storage fs;
-	for (int i = 0; i < num_new_files-1; ++i)
-	{
-		char name[100];
-		snprintf(name, sizeof(name), "multifile/file%d.txt", i);
-		fs.add_file(name, t->total_size() / 10);
-	}
-	char name[100];
-	snprintf(name, sizeof(name), "multifile/file%d.txt", num_new_files);
-	// the last file has to be a special case to make the size
-	// add up exactly (in case the total size is not divisible by 10).
-	fs.add_file(name, t->total_size() - fs.total_size());
-
-	boost::shared_ptr<torrent_info> t2 = clone_ptr(t);
-
-	t2->remap_files(fs);
-
-	add_torrent_params params;
-	params.storage_mode = storage_mode;
-	params.flags |= add_torrent_params::flag_paused;
-	params.flags &= ~add_torrent_params::flag_auto_managed;
-
-	wait_for_listen(ses1, "ses1");
-	wait_for_listen(ses2, "ses2");
-
-	peer_disconnects = 0;
-
-	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_remap3", 8 * 1024, &t, false, &params
-		, true, false, &t2);
-
-	std::vector<int> file_prio(3, 1);
-	file_prio[0] = 0;
-	tor2.prioritize_files(file_prio);
-
-	// torrent1 will attempt to connect to torrent2
-	// make sure torrent2 is up and running by then
-	tor2.resume();
-	test_sleep(500);
-	tor1.resume();
-
-	fprintf(stderr, "\ntesting remap scatter prio\n\n");
-
-	for (int i = 0; i < 50; ++i)
-	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
-
-		torrent_status st1 = tor1.status();
-		torrent_status st2 = tor2.status();
-
-		if (i % 10 == 0)
-		{
-			std::cerr
-				<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
-				<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
-				<< "\033[0m" << int(st1.progress * 100) << "% "
-				<< st1.num_peers
-				<< ": "
-				<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
-				<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
-				<< "\033[0m" << int(st2.progress * 100) << "% "
-				<< st2.num_peers
-				<< std::endl;
-		}
-
-		if (st2.is_finished) break;
-
-		if (st2.state != torrent_status::downloading)
-		{
-			static char const* state_str[] =	
-				{"checking (q)", "checking", "dl metadata"
-				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
-			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
-		}
-
-		TEST_CHECK(st1.state == torrent_status::seeding);
-		TEST_CHECK(st2.state == torrent_status::downloading
-			|| st2.state == torrent_status::checking_resume_data);
-
-		if (peer_disconnects >= 2) break;
-
-		test_sleep(100);
-	}
-
-	torrent_status st2 = tor2.status();
-	TEST_CHECK(st2.is_finished);
-
-	p1 = ses1.abort();
-	p2 = ses2.abort();
-}
-
-using namespace libtorrent;
-
 TORRENT_TEST(remap_files)
 {
-	test_remap_files_gather();
-
-	error_code ec;
-	remove_all("tmp1_remap", ec);
-	remove_all("tmp2_remap", ec);
-	remove_all("tmp1_remap2", ec);
-	remove_all("tmp2_remap2", ec);
+	test_remap_files();
 }
-
-TORRENT_TEST(scatter)
-{
-	test_remap_files_scatter();
-
-	error_code ec;
-	remove_all("tmp1_remap", ec);
-	remove_all("tmp2_remap", ec);
-	remove_all("tmp1_remap2", ec);
-	remove_all("tmp2_remap2", ec);
-	remove_all("tmp1_remap3", ec);
-	remove_all("tmp2_remap3", ec);
-}
-
-TORRENT_TEST(prio)
-{
-	test_remap_files_prio();
-
-	error_code ec;
-	remove_all("tmp1_remap", ec);
-	remove_all("tmp2_remap", ec);
-	remove_all("tmp1_remap2", ec);
-	remove_all("tmp2_remap2", ec);
-	remove_all("tmp1_remap3", ec);
-	remove_all("tmp2_remap3", ec);
-}
-

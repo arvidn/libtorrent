@@ -33,17 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALLOCATING_HANDLER_HPP_INCLUDED
 #define TORRENT_ALLOCATING_HANDLER_HPP_INCLUDED
 
-#include <boost/config.hpp>
 #include "libtorrent/config.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/aligned_storage.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <type_traits>
 
-#include <boost/aligned_storage.hpp>
+namespace libtorrent { namespace aux {
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent { namespace aux
-{
 	// this is meant to provide the actual storage for the handler allocator.
 	// There's only a single slot, so the allocator is only supposed to be used
 	// for handlers where there's only a single outstanding operation at a time,
@@ -52,18 +49,27 @@ namespace libtorrent { namespace aux
 	template <std::size_t Size>
 	struct handler_storage
 	{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		handler_storage()
 			: used(false)
 		{}
 
 		bool used;
 #else
-		handler_storage() {}
+		handler_storage() = default;
 #endif
-		boost::aligned_storage<Size> bytes;
+		typename aux::aligned_storage<Size>::type bytes;
 	private:
 		handler_storage(handler_storage const&);
+	};
+
+	struct TORRENT_EXTRA_EXPORT error_handler_interface
+	{
+		virtual void on_exception(std::exception const&) = 0;
+		virtual void on_error(error_code const&) = 0;
+
+	protected:
+		~error_handler_interface() {}
 	};
 
 	// this class is a wrapper for an asio handler object. Its main purpose
@@ -73,55 +79,49 @@ namespace libtorrent { namespace aux
 	template <class Handler, std::size_t Size>
 	struct allocating_handler
 	{
-
-		// TODO: 3 make sure the handlers we pass in are potentially movable!
-#if !defined BOOST_NO_CXX11_RVALUE_REFERENCES
 		allocating_handler(
-			Handler&& h, handler_storage<Size>& s)
+			Handler h, handler_storage<Size>& s, error_handler_interface& eh)
 			: handler(std::move(h))
 			, storage(s)
-		{}
+#ifndef BOOST_NO_EXCEPTIONS
+			, error_handler(eh)
 #endif
-
-		allocating_handler(
-			Handler const& h, handler_storage<Size>& s)
-			: handler(h)
-			, storage(s)
 		{}
 
-#if !defined BOOST_NO_CXX11_VARIADIC_TEMPLATES \
-		&& !defined BOOST_NO_CXX11_RVALUE_REFERENCES
 		template <class... A>
 		void operator()(A&&... a) const
 		{
+#ifdef BOOST_NO_EXCEPTIONS
 			handler(std::forward<A>(a)...);
-		}
 #else
-		template <class A0>
-		void operator()(A0 const& a0) const
-		{
-			handler(a0);
-		}
-
-		template <class A0, class A1>
-		void operator()(A0 const& a0, A1 const& a1) const
-		{
-			handler(a0, a1);
-		}
-
-		template <class A0, class A1, class A2>
-		void operator()(A0 const& a0, A1 const& a1, A2 const& a2) const
-		{
-			handler(a0, a1, a2);
-		}
+			try
+			{
+				handler(std::forward<A>(a)...);
+			}
+			catch (system_error const& e)
+			{
+				error_handler.on_error(e.code());
+			}
+			catch (std::exception const& e)
+			{
+				error_handler.on_exception(e);
+			}
+			catch (...)
+			{
+				// this is pretty bad
+				TORRENT_ASSERT(false);
+				std::runtime_error e("unknown exception");
+				error_handler.on_exception(e);
+			}
 #endif
+		}
 
 		friend void* asio_handler_allocate(
 			std::size_t size, allocating_handler<Handler, Size>* ctx)
 		{
 			TORRENT_UNUSED(size);
-			TORRENT_ASSERT(size <= Size);
-#ifdef TORRENT_DEBUG
+			TORRENT_ASSERT_VAL(size <= Size, size);
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(!ctx->storage.used);
 			ctx->storage.used = true;
 #endif
@@ -135,19 +135,30 @@ namespace libtorrent { namespace aux
 			TORRENT_UNUSED(size);
 			TORRENT_UNUSED(ctx);
 
-			TORRENT_ASSERT(size <= Size);
+			TORRENT_ASSERT_VAL(size <= Size, size);
 			TORRENT_ASSERT(ptr == &ctx->storage.bytes);
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 			ctx->storage.used = false;
 #endif
 		}
 
 		Handler handler;
 		handler_storage<Size>& storage;
+#ifndef BOOST_NO_EXCEPTIONS
+		error_handler_interface& error_handler;
+#endif
 	};
 
+	template <class Handler, size_t Size>
+	aux::allocating_handler<Handler, Size>
+	make_handler(Handler handler
+		, handler_storage<Size>& storage
+		, error_handler_interface& err_handler)
+	{
+		return aux::allocating_handler<Handler, Size>(
+			std::forward<Handler>(handler), storage, err_handler);
+	}
 }
 }
 
 #endif
-

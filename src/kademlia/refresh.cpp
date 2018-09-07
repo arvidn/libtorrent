@@ -31,24 +31,20 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <libtorrent/kademlia/refresh.hpp>
-#include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/performance_counters.hpp>
 
-#include <libtorrent/io.hpp>
+namespace libtorrent { namespace dht {
 
-namespace libtorrent { namespace dht
+observer_ptr bootstrap::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
-
-observer_ptr bootstrap::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
-{
-	observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
-	o->m_in_constructor = false;
+	auto o = m_node.m_rpc.allocate_observer<get_peers_observer>(self(), ep, id);
+#if TORRENT_USE_ASSERTS
+	if (o) o->m_in_constructor = false;
 #endif
-	return o;
+	return std::move(o);
 }
 
 bool bootstrap::invoke(observer_ptr o)
@@ -68,7 +64,7 @@ bool bootstrap::invoke(observer_ptr o)
 	if (o->flags & observer::flag_initial)
 	{
 		// if this packet is being sent to a bootstrap/router node, let it know
-		// that we're actualy bootstrapping (as opposed to being collateral
+		// that we're actually bootstrapping (as opposed to being collateral
 		// traffic).
 		a["bs"] = 1;
 	}
@@ -81,7 +77,7 @@ bool bootstrap::invoke(observer_ptr o)
 
 bootstrap::bootstrap(
 	node& dht_node
-	, node_id target
+	, node_id const& target
 	, done_callback const& callback)
 	: get_peers(dht_node, target, get_peers::data_callback(), callback, false)
 {
@@ -92,19 +88,17 @@ char const* bootstrap::name() const { return "bootstrap"; }
 void bootstrap::done()
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] bootstrap done, pinging remaining nodes"
-		, static_cast<void*>(this));
+	get_node().observer()->log(dht_logger::traversal, "[%u] bootstrap done, pinging remaining nodes"
+		, id());
 #endif
 
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end; ++i)
+	for (auto const& o : m_results)
 	{
-		if ((*i)->flags & observer::flag_queried) continue;
+		if (o->flags & observer::flag_queried) continue;
 		// this will send a ping
-		m_node.add_node((*i)->target_ep());
+		m_node.add_node(o->target_ep());
 	}
 	get_peers::done();
 }
 
 } } // namespace libtorrent::dht
-

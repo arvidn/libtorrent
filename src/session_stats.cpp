@@ -31,12 +31,20 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session_stats.hpp" // for stats_metric
-#include "libtorrent/aux_/session_interface.hpp" // for stats counter names
+#include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
-#include <boost/bind.hpp>
 
-namespace libtorrent
-{
+#include <cstring>
+#include <algorithm>
+
+namespace libtorrent {
+
+#if TORRENT_ABI_VERSION == 1
+	constexpr metric_type_t stats_metric::type_counter;
+	constexpr metric_type_t stats_metric::type_gauge;
+#endif
+
+namespace {
 
 	struct stats_metric_impl
 	{
@@ -45,8 +53,8 @@ namespace libtorrent
 	};
 
 #define METRIC(category, name) { #category "." #name, counters:: name },
-	static const stats_metric_impl metrics[] =
-	{
+	aux::array<stats_metric_impl, counters::num_counters> const metrics
+	({{
 		// ``error_peers`` is the total number of peer disconnects
 		// caused by an error (not initiated by this client) and
 		// disconnected initiated by this client (``disconnected_peers``).
@@ -115,6 +123,9 @@ namespace libtorrent
 
 		METRIC(peer, connection_attempts)
 		METRIC(peer, connection_attempt_loops)
+		METRIC(peer, boost_connection_attempts)
+		METRIC(peer, missed_connection_attempts)
+		METRIC(peer, no_peer_connection_attempts)
 		METRIC(peer, incoming_connections)
 
 		// the number of peer connections for each kind of socket.
@@ -177,7 +188,7 @@ namespace libtorrent
 		METRIC(net, recv_tracker_bytes)
 
 		// the number of sockets currently waiting for upload and download
-		// bandwidht from the rate limiter.
+		// bandwidth from the rate limiter.
 		METRIC(net, limiter_up_queue)
 		METRIC(net, limiter_down_queue)
 
@@ -220,10 +231,6 @@ namespace libtorrent
 		// IP filter applied to them.
 		METRIC(ses, non_filter_torrents)
 
-		// the number of torrents that are currently loaded
-		METRIC(ses, num_loaded_torrents)
-		METRIC(ses, num_pinned_torrents)
-
 		// these count the number of times a piece has passed the
 		// hash check, the number of times a piece was successfully
 		// written to disk and the number of total possible pieces
@@ -235,10 +242,12 @@ namespace libtorrent
 		METRIC(ses, num_have_pieces)
 		METRIC(ses, num_total_pieces_added)
 
+#if TORRENT_ABI_VERSION == 1
 		// this counts the number of times a torrent has been
-		// evicted (only applies when `dynamic loading of torrent files`_
-		// is enabled).
+		// evicted (only applies when dynamic-loading-of-torrent-files
+		// is enabled, which is deprecated).
 		METRIC(ses, torrent_evicted_counter)
+#endif
 
 		// the number of allowed unchoked peers
 		METRIC(ses, num_unchoke_slots)
@@ -404,7 +413,6 @@ namespace libtorrent
 		METRIC(disk, num_fenced_save_resume_data)
 		METRIC(disk, num_fenced_rename_file)
 		METRIC(disk, num_fenced_stop_torrent)
-		METRIC(disk, num_fenced_cache_piece)
 		METRIC(disk, num_fenced_flush_piece)
 		METRIC(disk, num_fenced_flush_hashed)
 		METRIC(disk, num_fenced_flush_storage)
@@ -439,6 +447,16 @@ namespace libtorrent
 		METRIC(dht, dht_messages_in)
 		METRIC(dht, dht_messages_out)
 
+		// the number of incoming DHT requests that were dropped. There are a few
+		// different reasons why incoming DHT packets may be dropped:
+		//
+		// 1. there wasn't enough send quota to respond to them.
+		// 2. the Denial of service logic kicked in, blocking the peer
+		// 3. ignore_dark_internet is enabled, and the packet came from a
+		//    non-public IP address
+		// 4. the bencoding of the message was invalid
+		METRIC(dht, dht_messages_in_dropped)
+
 		// the number of outgoing messages that failed to be
 		// sent
 		METRIC(dht, dht_messages_out_dropped)
@@ -461,12 +479,16 @@ namespace libtorrent
 		METRIC(dht, dht_get_out)
 		METRIC(dht, dht_put_in)
 		METRIC(dht, dht_put_out)
+		METRIC(dht, dht_sample_infohashes_in)
+		METRIC(dht, dht_sample_infohashes_out)
 
 		// the number of failed incoming DHT requests by kind of request
 		METRIC(dht, dht_invalid_announce)
 		METRIC(dht, dht_invalid_get_peers)
+		METRIC(dht, dht_invalid_find_node)
 		METRIC(dht, dht_invalid_put)
 		METRIC(dht, dht_invalid_get)
+		METRIC(dht, dht_invalid_sample_infohashes)
 
 		// uTP counters. Each counter represents the number of time each event
 		// has occurred.
@@ -538,32 +560,31 @@ namespace libtorrent
 		METRIC(sock_bufs, socket_recv_size20)
 
 		// ... more
-	};
+	}});
 #undef METRIC
+	} // anonymous namespace
 
 	std::vector<stats_metric> session_stats_metrics()
 	{
-		std::vector<stats_metric> stats;
-		const int num = sizeof(metrics)/sizeof(metrics[0]);
-		stats.resize(num);
-		for (int i = 0; i < num; ++i)
+		aux::vector<stats_metric> stats;
+		stats.resize(metrics.size());
+		for (int i = 0; i < metrics.end_index(); ++i)
 		{
 			stats[i].name = metrics[i].name;
 			stats[i].value_index = metrics[i].value_index;
 			stats[i].type = metrics[i].value_index >= counters::num_stats_counters
-				? stats_metric::type_gauge : stats_metric::type_counter;
+				? metric_type_t::gauge : metric_type_t::counter;
 		}
-		return stats;
+		return std::move(stats);
 	}
 
-	int find_metric_idx(char const* name)
+	int find_metric_idx(string_view name)
 	{
-		stats_metric_impl const* end = metrics + sizeof(metrics)/sizeof(metrics[0]);
-		stats_metric_impl const* i = std::find_if(metrics, end , boost::bind(&strcmp
-				, boost::bind(&stats_metric_impl::name, _1), name) == 0);
-		if (i == end) return -1;
+		auto const i = std::find_if(std::begin(metrics), std::end(metrics)
+			, [name](stats_metric_impl const& metr)
+			{ return metr.name == name; });
+
+		if (i == std::end(metrics)) return -1;
 		return i->value_index;
 	}
-
 }
-

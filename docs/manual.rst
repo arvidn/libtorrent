@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.9
+:Version: 1.2.0
 
 .. contents:: Table of contents
   :depth: 1
@@ -91,9 +91,9 @@ network primitives
 There are a few typedefs in the ``libtorrent`` namespace which pulls
 in network types from the ``boost::asio`` namespace. These are::
 
-	typedef boost::asio::ip::address address;
-	typedef boost::asio::ip::address_v4 address_v4;
-	typedef boost::asio::ip::address_v6 address_v6;
+	using address = boost::asio::ip::address;
+	using address_v4 = boost::asio::ip::address_v4;
+	using address_v6 = boost::asio::ip::address_v6;
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
 
@@ -118,10 +118,8 @@ Many functions in libtorrent have two versions, one that throws exceptions on
 errors and one that takes an ``error_code`` reference which is filled with the
 error code on errors.
 
-There is one exception class that is used for errors in libtorrent, it is based
-on boost.system's ``error_code`` class to carry the error code.
-
-For more information, see libtorrent_exception and error_code_enum.
+On exceptions, libtorrent will throw ``boost::system::system_error`` exceptions
+carrying an ``error_code`` describing the underlying error.
 
 translating error codes
 -----------------------
@@ -131,7 +129,7 @@ for system errors. That is, errors that belong to the generic or system category
 
 Errors that belong to the libtorrent error category are not localized however, they
 are only available in english. In order to translate libtorrent errors, compare the
-error category of the ``error_code`` object against ``libtorrent::libtorrent_category()``,
+error category of the ``error_code`` object against ``lt::libtorrent_category()``,
 and if matches, you know the error code refers to the list above. You can provide
 your own mapping from error code to string, which is localized. In this case, you
 cannot rely on ``error_code::message()`` to generate your strings.
@@ -145,7 +143,7 @@ Here's a simple example of how to translate error codes:
 
 	std::string error_code_to_string(boost::system::error_code const& ec)
 	{
-		if (ec.category() != libtorrent::libtorrent_category())
+		if (ec.category() != lt::libtorrent_category())
 		{
 			return ec.message();
 		}
@@ -400,11 +398,12 @@ fast-resume data. The fast-resume data also contains information about which
 blocks, in the unfinished pieces, were downloaded, so it will not have to
 start from scratch on the partially downloaded pieces.
 
-To use the fast-resume data you simply give it to async_add_torrent() and
-add_torrent(), and it will skip the time consuming checks. It may have to do
+To use the fast-resume data you pass it to read_resume_data(), which will return
+an add_torrent_params object. Fields of this object can then be altered before
+passing it to async_add_torrent() or add_torrent().
+The session will then skip the time consuming checks. It may have to do
 the checking anyway, if the fast-resume data is corrupt or doesn't fit the
-storage for that torrent, then it will not trust the fast-resume data and just
-do the checking.
+storage for that torrent.
 
 file format
 -----------
@@ -415,29 +414,13 @@ The file format is a bencoded dictionary containing the following fields:
 | ``file-format``          | string: "libtorrent resume file"                             |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
-| ``file-version``         | integer: 1                                                   |
-|                          |                                                              |
-+--------------------------+--------------------------------------------------------------+
 | ``info-hash``            | string, the info hash of the torrent this data is saved for. |
-|                          |                                                              |
-+--------------------------+--------------------------------------------------------------+
-| ``blocks per piece``     | integer, the number of blocks per piece. Must be: piece_size |
-|                          | / (16 * 1024). Clamped to be within the range [1, 256]. It   |
-|                          | is the number of blocks per (normal sized) piece. Usually    |
-|                          | each block is 16 * 1024 bytes in size. But if piece size is  |
-|                          | greater than 4 megabytes, the block size will increase.      |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
 | ``pieces``               | A string with piece flags, one character per piece.          |
 |                          | Bit 1 means we have that piece.                              |
 |                          | Bit 2 means we have verified that this piece is correct.     |
 |                          | This only applies when the torrent is in seed_mode.          |
-+--------------------------+--------------------------------------------------------------+
-| ``slots``                | list of integers. The list maps slots to piece indices. It   |
-|                          | tells which piece is on which slot. If piece index is -2 it  |
-|                          | means it is free, that there's no piece there. If it is -1,  |
-|                          | means the slot isn't allocated on disk yet. The pieces have  |
-|                          | to meet the following requirement:                           |
 +--------------------------+--------------------------------------------------------------+
 | ``total_uploaded``       | integer. The number of bytes that have been uploaded in      |
 |                          | total for this torrent.                                      |
@@ -451,22 +434,11 @@ The file format is a bencoded dictionary containing the following fields:
 | ``seeding_time``         | integer. The number of seconds this torrent has been active  |
 |                          | and seeding.                                                 |
 +--------------------------+--------------------------------------------------------------+
-| ``num_seeds``            | integer. An estimate of the number of seeds on this torrent  |
-|                          | when the resume data was saved. This is scrape data or based |
-|                          | on the peer list if scrape data is unavailable.              |
-+--------------------------+--------------------------------------------------------------+
-| ``num_downloaders``      | integer. An estimate of the number of downloaders on this    |
-|                          | torrent when the resume data was last saved. This is used as |
-|                          | an initial estimate until we acquire up-to-date scrape info. |
-+--------------------------+--------------------------------------------------------------+
 | ``last_upload``          | integer. The number of seconds since epoch when we last      |
 |                          | uploaded payload to a peer on this torrent.                  |
 +--------------------------+--------------------------------------------------------------+
 | ``last_download``        | integer. The number of seconds since epoch when we last      |
 |                          | downloaded payload from a peer on this torrent.              |
-+--------------------------+--------------------------------------------------------------+
-| ``last_scrape``          | integer. The number of seconds since epoch when we last sent |
-|                          | a scrape request to a tracker on this torrent.               |
 +--------------------------+--------------------------------------------------------------+
 | ``upload_rate_limit``    | integer. In case this torrent has a per-torrent upload rate  |
 |                          | limit, this is that limit. In bytes per second.              |
@@ -562,20 +534,8 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | +-------------+--------------------------------------------+ |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
-| ``file sizes``           | list where each entry corresponds to a file in the file list |
-|                          | in the metadata. Each entry has a list of two values, the    |
-|                          | first value is the size of the file in bytes, the second     |
-|                          | is the time stamp when the last time someone wrote to it.    |
-|                          | This information is used to compare with the files on disk.  |
-|                          | All the files must match exactly this information in order   |
-|                          | to consider the resume data as current. Otherwise a full     |
-|                          | re-check is issued.                                          |
-+--------------------------+--------------------------------------------------------------+
-| ``allocation``           | The allocation mode for the storage. Can be either ``full``  |
-|                          | or ``sparse``. If this is full, the file sizes and           |
-|                          | timestamps are disregarded. Pieces are assumed not to have   |
-|                          | moved around even if the files have been modified after the  |
-|                          | last resume data checkpoint.                                 |
+| ``allocation``           | The allocation mode for the storage. Can be either           |
+|                          | ``allocate`` or ``sparse``.                                  |
 +--------------------------+--------------------------------------------------------------+
 
 storage allocation
@@ -644,49 +604,12 @@ torrent, only that filename is appended. If the torrent is a multi-file
 torrent, the torrent's name '/' the file name is appended. This is the same
 directory structure that libtorrent will download torrents into.
 
+There is limited support for HTTP redirects. In case some files are redirected
+to *different hosts*, the files must be piece aligned or padded to be piece
+aligned.
+
 .. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html
 .. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html
-
-dynamic loading of torrent files
-================================
-
-.. note::
-	This feature will be removed in the next major release of libtorrent. As an
-	alternative, torrents can be loaded on demand by plugins.
-
-libtorrent has a feature that can unload idle torrents from memory. The purpose
-of this is to support being active on many more torrents than the RAM permits.
-This is useful for both embedded devices that have limited RAM and servers
-seeding tens of thousands of torrents.
-
-The most significant parts of loaded torrents that use RAM are the piece
-hashes (20 bytes per piece) and the file list. The entire info-dictionary
-of the .torrent file is kept in RAM.
-
-In order to activate the dynamic loading of torrent files, set the load
-function on the session. See set_load_function().
-
-When a load function is set on the session, the dynamic load/unload
-feature is enabled. Torrents are kept in an LRU. Every time an operation
-is performed, on a torrent or from a peer, that requires the metadata of
-the torrent to be loaded, the torrent is bumped up in the LRU. When a torrent
-is paused or queued, it is demoted to the least recently used torrent in
-the LRU, since it's a good candidate for eviction.
-
-To configure how many torrents are allowed to be loaded at the same time,
-set settings_pack::active_loaded_limit on the session.
-
-Torrents can be exempt from being unloaded by being *pinned*. Pinned torrents
-still count against the limit, but are never considered for eviction.
-You can either pin a torrent when adding it, in ``add_torrent_params``
-(see async_add_torrent() and add_torrent()), or after ading it with the
-set_pinned() function on torrent_handle.
-
-Torrents that start out without metadata (e.g. magnet links or http downloads)
-are automatically pinned. This is important in order to give the client a
-chance to save the metadata to disk once it's received (see metadata_received_alert).
-
-Once the metadata is saved to disk, it might make sense to unpin the torrent.
 
 piece picker
 ============

@@ -31,19 +31,15 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
-#include "libtorrent/instantiate_connection.hpp"
-#include <boost/shared_ptr.hpp>
-#include <stdexcept>
+#include "libtorrent/aux_/instantiate_connection.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent { namespace aux {
+
 	// TODO: 2 peer_connection and tracker_connection should probably be flags
-	// TODO: 2 move this function into libtorrent::aux namespace
 	bool instantiate_connection(io_service& ios
-		, aux::proxy_settings const& ps, socket_type& s
+		, aux::proxy_settings const& ps, aux::socket_type& s
 		, void* ssl_context
 		, utp_socket_manager* sm
 		, bool peer_connection
@@ -59,8 +55,8 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
 			{
-				s.instantiate<ssl_stream<utp_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<utp_stream> >()->next_layer();
+				s.instantiate<ssl_stream<utp_stream>>(ios, ssl_context);
+				str = &s.get<ssl_stream<utp_stream>>()->next_layer();
 			}
 			else
 #endif
@@ -74,7 +70,7 @@ namespace libtorrent
 		else if (ps.type == settings_pack::i2p_proxy)
 		{
 			// it doesn't make any sense to try ssl over i2p
-			TORRENT_ASSERT(ssl_context == 0);
+			TORRENT_ASSERT(ssl_context == nullptr);
 			s.instantiate<i2p_stream>(ios);
 			s.get<i2p_stream>()->set_proxy(ps.hostname, ps.port);
 		}
@@ -86,7 +82,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
 			{
-				s.instantiate<ssl_stream<tcp::socket> >(ios, ssl_context);
+				s.instantiate<ssl_stream<tcp::socket>>(ios, ssl_context);
 			}
 			else
 #endif
@@ -101,8 +97,8 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
 			{
-				s.instantiate<ssl_stream<http_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<http_stream> >()->next_layer();
+				s.instantiate<ssl_stream<http_stream>>(ios, ssl_context);
+				str = &s.get<ssl_stream<http_stream>>()->next_layer();
 			}
 			else
 #endif
@@ -123,8 +119,8 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
 			{
-				s.instantiate<ssl_stream<socks5_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<socks5_stream> >()->next_layer();
+				s.instantiate<ssl_stream<socks5_stream>>(ios, ssl_context);
+				str = &s.get<ssl_stream<socks5_stream>>()->next_layer();
 			}
 			else
 #endif
@@ -140,11 +136,10 @@ namespace libtorrent
 		}
 		else
 		{
-			TORRENT_ASSERT_VAL(false, ps.type);
+			TORRENT_ASSERT_FAIL_VAL(ps.type);
 			return false;
 		}
 		return true;
 	}
 
-}
-
+}}

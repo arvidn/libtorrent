@@ -33,46 +33,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_HPP_INCLUDED
 #define TORRENT_SESSION_HPP_INCLUDED
 
-#include <algorithm>
-#include <vector>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/limits.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <thread>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/version.hpp"
-#include "libtorrent/build_config.hpp"
-#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/io_service.hpp"
-
-#include "libtorrent/storage.hpp"
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_handle.hpp"
-#include "libtorrent/thread.hpp"
+#include "libtorrent/kademlia/dht_settings.hpp"
+#include "libtorrent/kademlia/dht_state.hpp"
+#include "libtorrent/kademlia/dht_storage.hpp"
 
-#ifndef TORRENT_NO_DEPRECATE
-#include "libtorrent/rss.hpp"
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/fingerprint.hpp"
+#include <cstdio> // for snprintf
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
-// this is a nasty openssl macro
-#ifdef set_key
-#undef set_key
-#endif
-#endif
+namespace libtorrent {
 
-namespace libtorrent
-{
+	struct plugin;
+
 	// The default values of the session settings are set for a regular
 	// bittorrent client running on a desktop system. There are functions that
 	// can set the session settings to pre set settings for other environments.
 	// These can be used for the basis, and should be tweaked to fit your needs
 	// better.
-	// 
+	//
 	// ``min_memory_usage`` returns settings that will use the minimal amount of
 	// RAM, at the potential expense of upload and download performance. It
 	// adjusts the socket buffer sizes, disables the disk cache, lowers the send
@@ -82,34 +67,32 @@ namespace libtorrent
 	// to disk at any given time. It lowers the max number of peers in the peer
 	// list for torrents. It performs multiple smaller reads when it hashes
 	// pieces, instead of reading it all into memory before hashing.
-	// 
-	// This configuration is inteded to be the starting point for embedded
+	//
+	// This configuration is intended to be the starting point for embedded
 	// devices. It will significantly reduce memory usage.
-	// 
+	//
 	// ``high_performance_seed`` returns settings optimized for a seed box,
 	// serving many peers and that doesn't do any downloading. It has a 128 MB
 	// disk cache and has a limit of 400 files in its file pool. It support fast
 	// upload rates by allowing large send buffers.
-	TORRENT_EXPORT void min_memory_usage(settings_pack& set);
-	TORRENT_EXPORT void high_performance_seed(settings_pack& set);
-
-#ifndef TORRENT_NO_DEPRECATE
+	TORRENT_EXPORT settings_pack min_memory_usage();
+	TORRENT_EXPORT settings_pack high_performance_seed();
+#if TORRENT_ABI_VERSION == 1
 	TORRENT_DEPRECATED
-	TORRENT_EXPORT session_settings min_memory_usage();
+	inline void min_memory_usage(settings_pack& set)
+	{ set = min_memory_usage(); }
 	TORRENT_DEPRECATED
-	TORRENT_EXPORT session_settings high_performance_seed();
+	inline void high_performance_seed(settings_pack& set)
+	{ set = high_performance_seed(); }
 #endif
 
-#ifndef TORRENT_CFG
-#error TORRENT_CFG is not defined!
-#endif
+namespace aux {
 
-	void TORRENT_EXPORT TORRENT_CFG();
+	struct session_impl;
+}
 
-	namespace aux
-	{
-		struct session_impl;
-	}
+	struct disk_interface;
+	struct counters;
 
 	// this is a holder for the internal session implementation object. Once the
 	// session destruction is explicitly initiated, this holder is used to
@@ -123,25 +106,57 @@ namespace libtorrent
 	public:
 		// default constructor, does not refer to any session
 		// implementation object.
-		session_proxy() {}
+		session_proxy();
 		~session_proxy();
-#if __cplusplus >= 201103L
-		session_proxy(session_proxy const&) = default;
-		session_proxy& operator=(session_proxy const&) = default;
-#endif
+		session_proxy(session_proxy const&);
+		session_proxy& operator=(session_proxy const&);
+		session_proxy(session_proxy&&) noexcept;
+		session_proxy& operator=(session_proxy&&) noexcept;
 	private:
 		session_proxy(
-			boost::shared_ptr<io_service> ios
-			, boost::shared_ptr<thread> t
-			, boost::shared_ptr<aux::session_impl> impl)
-			: m_io_service(ios)
-			, m_thread(t)
-			, m_impl(impl)
-		{}
-		boost::shared_ptr<io_service> m_io_service;
-		boost::shared_ptr<thread> m_thread;
-		boost::shared_ptr<aux::session_impl> m_impl;
+			std::shared_ptr<io_service> ios
+			, std::shared_ptr<std::thread> t
+			, std::shared_ptr<aux::session_impl> impl);
+
+		std::shared_ptr<io_service> m_io_service;
+		std::shared_ptr<std::thread> m_thread;
+		std::shared_ptr<aux::session_impl> m_impl;
 	};
+
+	// The session_params is a parameters pack for configuring the session
+	// before it's started.
+	struct TORRENT_EXPORT session_params
+	{
+		// This constructor can be used to start with the default plugins
+		// (ut_metadata, ut_pex and smart_ban). The default values in the
+		// settings is to start the default features like upnp, NAT-PMP,
+		// and dht for example.
+		explicit session_params(settings_pack sp = settings_pack());
+		// This constructor helps to configure the set of initial plugins
+		// to be added to the session before it's started.
+		session_params(settings_pack sp
+			, std::vector<std::shared_ptr<plugin>> exts);
+
+		session_params(session_params const&) = default;
+		session_params(session_params&&) = default;
+		session_params& operator=(session_params const&) = default;
+		session_params& operator=(session_params&&) = default;
+
+		settings_pack settings;
+
+		std::vector<std::shared_ptr<plugin>> extensions;
+
+		dht::dht_settings dht_settings;
+
+		dht::dht_state dht_state;
+
+		dht::dht_storage_constructor_type dht_storage_constructor;
+	};
+
+	// This function helps to construct a ``session_params`` from a
+	// bencoded data generated by ``session_handle::save_state``
+	TORRENT_EXPORT session_params read_session_params(bdecode_node const& e
+		, save_state_flags_t flags = save_state_flags_t::all());
 
 	// The session holds all state that spans multiple torrents. Among other
 	// things it runs the network loop and manages all torrents. Once it's
@@ -150,40 +165,30 @@ namespace libtorrent
 	// torrents to participate in.
 	//
 	// You have some control over session configuration through the
-	// ``session::apply_settings()`` member function. To change one or more
+	// ``session_handle::apply_settings()`` member function. To change one or more
 	// configuration options, create a settings_pack. object and fill it with
 	// the settings to be set and pass it in to ``session::apply_settings()``.
-	// 
+	//
 	// see apply_settings().
-	class TORRENT_EXPORT session : public boost::noncopyable, public session_handle
+	class TORRENT_EXPORT session : public session_handle
 	{
 	public:
 
 		// Constructs the session objects which acts as the container of torrents.
-		// It provides configuration options across torrents (such as rate limits,
-		// disk cache, ip filter etc.). In order to avoid a race condition between
-		// starting the session and configuring it, you can pass in a
-		// settings_pack object. Its settings will take effect before the session
-		// starts up.
-		// 
-		// The ``flags`` parameter can be used to start default features (UPnP &
-		// NAT-PMP) and default plugins (ut_metadata, ut_pex and smart_ban). The
-		// default is to start those features. If you do not want them to start,
-		// pass 0 as the flags parameter.
-		session(settings_pack const& pack = settings_pack()
-			, int flags = start_default_features | add_default_plugins)
-			: session_handle(NULL)
+		// In order to avoid a race condition between starting the session and
+		// configuring it, you can pass in a session_params object. Its settings
+		// will take effect before the session starts up.
+		explicit session(session_params params = session_params())
 		{
-			TORRENT_CFG();
-			start(flags, pack, NULL);
+			start(std::move(params), nullptr);
 		}
 
-		// overload of the constructor that takes an external io_service to run
+		// Overload of the constructor that takes an external io_service to run
 		// the session object on. This is primarily useful for tests that may want
 		// to run multiple sessions on a single io_service, or low resource
 		// systems where additional threads are expensive and sharing an
 		// io_service with other events is fine.
-		// 
+		//
 		// .. warning::
 		// 	The session object does not cleanly terminate with an external
 		// 	``io_service``. The ``io_service::run()`` call _must_ have returned
@@ -191,16 +196,57 @@ namespace libtorrent
 		// 	call session::abort() and save the session_proxy first, then
 		// 	destruct the session object, then sync with the io_service, then
 		// 	destruct the session_proxy object.
-		session(settings_pack const& pack
-			, io_service& ios
-			, int flags = start_default_features | add_default_plugins)
-			: session_handle(NULL)
+		session(session_params params, io_service& ios)
 		{
-			TORRENT_CFG();
-			start(flags, pack, &ios);
+			start(std::move(params), &ios);
 		}
 
-#ifndef TORRENT_NO_DEPRECATE
+		// Constructs the session objects which acts as the container of torrents.
+		// It provides configuration options across torrents (such as rate limits,
+		// disk cache, ip filter etc.). In order to avoid a race condition between
+		// starting the session and configuring it, you can pass in a
+		// settings_pack object. Its settings will take effect before the session
+		// starts up.
+		//
+		// The ``flags`` parameter can be used to start default features (UPnP &
+		// NAT-PMP) and default plugins (ut_metadata, ut_pex and smart_ban). The
+		// default is to start those features. If you do not want them to start,
+		// pass 0 as the flags parameter.
+		session(settings_pack pack
+			, session_flags_t const flags = start_default_features | add_default_plugins)
+		{
+			start(flags, std::move(pack), nullptr);
+		}
+
+		// movable
+		session(session&&) = default;
+		session& operator=(session&&) = default;
+
+		// non-copyable
+		session(session const&) = delete;
+		session& operator=(session const&) = delete;
+
+		// overload of the constructor that takes an external io_service to run
+		// the session object on. This is primarily useful for tests that may want
+		// to run multiple sessions on a single io_service, or low resource
+		// systems where additional threads are expensive and sharing an
+		// io_service with other events is fine.
+		//
+		// .. warning::
+		// 	The session object does not cleanly terminate with an external
+		// 	``io_service``. The ``io_service::run()`` call _must_ have returned
+		// 	before it's safe to destruct the session. Which means you *MUST*
+		// 	call session::abort() and save the session_proxy first, then
+		// 	destruct the session object, then sync with the io_service, then
+		// 	destruct the session_proxy object.
+		session(settings_pack pack
+			, io_service& ios
+			, session_flags_t const flags = start_default_features | add_default_plugins)
+		{
+			start(flags, std::move(pack), &ios);
+		}
+
+#if TORRENT_ABI_VERSION == 1
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -209,17 +255,19 @@ namespace libtorrent
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable: 4996)
+#endif
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
-			, int flags = start_default_features | add_default_plugins
-			, boost::uint32_t alert_mask = alert::error_notification)
-			: session_handle(NULL)
+			, session_flags_t const flags = start_default_features | add_default_plugins
+			, alert_category_t const alert_mask = alert::error_notification)
 		{
-			TORRENT_CFG();
 			settings_pack pack;
-			pack.set_int(settings_pack::alert_mask, alert_mask);
+			pack.set_int(settings_pack::alert_mask, int(alert_mask));
 			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
-			if ((flags & start_default_features) == 0)
+			if (!(flags & start_default_features))
 			{
 				pack.set_bool(settings_pack::enable_upnp, false);
 				pack.set_bool(settings_pack::enable_natpmp, false);
@@ -227,39 +275,37 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
 
-			start(flags, pack, NULL);
+			start(flags, std::move(pack), nullptr);
 		}
 
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
-			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification)
-			: session_handle(NULL)
+			, session_flags_t const flags = start_default_features | add_default_plugins
+			, alert_category_t const alert_mask = alert::error_notification)
 		{
-			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first > 0);
 			TORRENT_ASSERT(listen_port_range.first <= listen_port_range.second);
 
 			settings_pack pack;
-			pack.set_int(settings_pack::alert_mask, alert_mask);
+			pack.set_int(settings_pack::alert_mask, int(alert_mask));
 			pack.set_int(settings_pack::max_retry_port_bind, listen_port_range.second - listen_port_range.first);
 			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
 			char if_string[100];
 
-			if (listen_interface == NULL) listen_interface = "0.0.0.0";
-			snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
+			if (listen_interface == nullptr) listen_interface = "0.0.0.0";
+			std::snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
 			pack.set_str(settings_pack::listen_interfaces, if_string);
 
-			if ((flags & start_default_features) == 0)
+			if (!(flags & start_default_features))
 			{
 				pack.set_bool(settings_pack::enable_upnp, false);
 				pack.set_bool(settings_pack::enable_natpmp, false);
 				pack.set_bool(settings_pack::enable_lsd, false);
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
-			start(flags, pack, NULL);
+			start(flags, std::move(pack), nullptr);
 		}
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -267,7 +313,10 @@ namespace libtorrent
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-#endif // TORRENT_NO_DEPRECATE
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#endif // TORRENT_ABI_VERSION
 
 		// The destructor of session will notify all trackers that our torrents
 		// have been shut down. If some trackers are down, they will time out.
@@ -288,7 +337,7 @@ namespace libtorrent
 		// call. The ``session_proxy`` does not have any operations on it (since
 		// the session is being closed down, no operations are allowed on it).
 		// The only valid operation is calling the destructor::
-		// 
+		//
 		// 	class session_proxy
 		// 	{
 		// 	public:
@@ -299,16 +348,16 @@ namespace libtorrent
 
 	private:
 
-		void start(int flags, settings_pack const& pack, io_service* ios);
+		void start(session_params params, io_service* ios);
+		void start(session_flags_t flags, settings_pack sp, io_service* ios);
 
 		// data shared between the main thread
 		// and the working thread
-		boost::shared_ptr<io_service> m_io_service;
-		boost::shared_ptr<thread> m_thread;
-		boost::shared_ptr<aux::session_impl> m_impl;
+		std::shared_ptr<io_service> m_io_service;
+		std::shared_ptr<std::thread> m_thread;
+		std::shared_ptr<aux::session_impl> m_impl;
 	};
 
 }
 
 #endif // TORRENT_SESSION_HPP_INCLUDED
-

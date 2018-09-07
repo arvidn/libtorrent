@@ -31,19 +31,25 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/resolve_links.hpp"
-#include "libtorrent/file.hpp" // for combine_path
-#include <boost/make_shared.hpp>
-#include <boost/bind.hpp>
+#include "libtorrent/aux_/path.hpp" // for combine_path
+#include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/create_torrent.hpp"
 
-using namespace libtorrent;
+#include <functional>
+
+using namespace lt;
+using namespace std::placeholders;
 
 struct test_torrent_t
 {
 	char const* filename1;
 	char const* filename2;
-	int expected_matches;
+	std::string::size_type expected_matches;
 };
 
 static test_torrent_t test_torrents[] = {
@@ -85,8 +91,6 @@ static test_torrent_t test_torrents[] = {
 
 TORRENT_TEST(resolve_links)
 {
-
-#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	std::string path = combine_path(parent_path(current_working_directory())
 		, "mutable_test_torrents");
 
@@ -95,38 +99,82 @@ TORRENT_TEST(resolve_links)
 		test_torrent_t const& e = test_torrents[i];
 
 		std::string p = combine_path(path, e.filename1) + ".torrent";
-		fprintf(stdout, "loading %s\n", p.c_str());
-		boost::shared_ptr<torrent_info> ti1 = boost::make_shared<torrent_info>(p);
+		std::printf("loading %s\n", p.c_str());
+		std::shared_ptr<torrent_info> ti1 = std::make_shared<torrent_info>(p);
 
 		p = combine_path(path, e.filename2) + ".torrent";
-		fprintf(stdout, "loading %s\n", p.c_str());
-		boost::shared_ptr<torrent_info> ti2 = boost::make_shared<torrent_info>(p);
+		std::printf("loading %s\n", p.c_str());
+		std::shared_ptr<torrent_info> ti2 = std::make_shared<torrent_info>(p);
 
-		fprintf(stdout, "resolving\n");
+		std::printf("resolving\n");
 		resolve_links l(ti1);
 		l.match(ti2, ".");
 
-		std::vector<resolve_links::link_t> const& links = l.get_links();
+		aux::vector<resolve_links::link_t, file_index_t> const& links = l.get_links();
 
-		int num_matches = std::count_if(links.begin(), links.end()
-			, boost::bind(&resolve_links::link_t::ti, _1));
+		auto const num_matches = std::size_t(std::count_if(links.begin(), links.end()
+			, std::bind(&resolve_links::link_t::ti, _1)));
 
 		// some debug output in case the test fails
 		if (num_matches > e.expected_matches)
 		{
 			file_storage const& fs = ti1->files();
-			for (int i = 0; i < int(links.size()); ++i)
+			for (file_index_t idx{0}; idx != links.end_index(); ++idx)
 			{
-				TORRENT_ASSERT(i < fs.num_files());
-				fprintf(stdout, "%s --> %s : %d\n", fs.file_name(i).c_str()
-					, links[i].ti ? to_hex(links[i].ti->info_hash()
-						.to_string()).c_str() : "", links[i].file_idx);
+				TORRENT_ASSERT(idx < file_index_t{fs.num_files()});
+				std::printf("%*s --> %s : %d\n"
+					, int(fs.file_name(idx).size())
+					, fs.file_name(idx).data()
+					, links[idx].ti
+					? aux::to_hex(links[idx].ti->info_hash()).c_str()
+					: "", static_cast<int>(links[idx].file_idx));
 			}
 		}
 
 		TEST_EQUAL(num_matches, e.expected_matches);
 
 	}
-#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 }
 
+// this ensure that internally there is a range lookup
+// since the zero-hash piece is in the second place
+TORRENT_TEST(range_lookup_duplicated_files)
+{
+	file_storage fs1;
+	file_storage fs2;
+
+	fs1.add_file("test_resolve_links_dir/tmp1", 1024);
+	fs1.add_file("test_resolve_links_dir/tmp2", 1024);
+	fs2.add_file("test_resolve_links_dir/tmp1", 1024);
+	fs2.add_file("test_resolve_links_dir/tmp2", 1024);
+
+	lt::create_torrent t1(fs1, 1024);
+	lt::create_torrent t2(fs2, 1024);
+
+	t1.set_hash(piece_index_t{0}, sha1_hash::max());
+
+	std::vector<char> tmp1;
+	std::vector<char> tmp2;
+	bencode(std::back_inserter(tmp1), t1.generate());
+	bencode(std::back_inserter(tmp2), t2.generate());
+	auto ti1 = std::make_shared<torrent_info>(tmp1, from_span);
+	auto ti2 = std::make_shared<torrent_info>(tmp2, from_span);
+
+	std::printf("resolving\n");
+	resolve_links l(ti1);
+	l.match(ti2, ".");
+
+	aux::vector<resolve_links::link_t, file_index_t> const& links = l.get_links();
+
+	auto const num_matches = std::count_if(links.begin(), links.end()
+		, std::bind(&resolve_links::link_t::ti, _1));
+
+	TEST_EQUAL(num_matches, 1);
+}
+
+#else
+TORRENT_TEST(empty)
+{
+	TEST_CHECK(true);
+}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS

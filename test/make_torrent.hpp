@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define MAKE_TORRENT_HPP
 
 #include "libtorrent/torrent_info.hpp"
-#include <boost/shared_ptr.hpp>
 #include <vector>
 #include <string>
 #include "test.hpp"
@@ -60,10 +59,9 @@ struct torrent_args
 	std::string m_http_seed;
 };
 
-EXPORT boost::shared_ptr<libtorrent::torrent_info>
+EXPORT std::shared_ptr<lt::torrent_info>
 	make_test_torrent(torrent_args const& args);
 
-EXPORT void generate_files(libtorrent::torrent_info const& ti, std::string const& path, bool random = false);
+EXPORT void generate_files(lt::torrent_info const& ti, std::string const& path, bool random = false);
 
 #endif
-

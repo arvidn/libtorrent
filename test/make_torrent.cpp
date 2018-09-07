@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <boost/make_shared.hpp>
 #include <deque>
 
 #include "make_torrent.hpp"
@@ -41,10 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/storage_defs.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
-boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
-	torrent_args const& args)
+std::shared_ptr<lt::torrent_info> make_test_torrent(torrent_args const& args)
 {
 	entry e;
 
@@ -58,7 +56,7 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 
 	// torrent offset ranges where the pad files are
 	// used when generating hashes
-	std::deque<std::pair<int,int> > pad_files;
+	std::deque<std::pair<int,int>> pad_files;
 
 	int const piece_length = 32768;
 	info["piece length"] = piece_length;
@@ -69,7 +67,7 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 		std::string name = "test_file-1";
 		if (ent.find("name=") != std::string::npos)
 		{
-			int pos = ent.find("name=") + 5;
+			std::string::size_type pos = ent.find("name=") + 5;
 			name = ent.substr(pos, ent.find(',', pos));
 		}
 		info["name"] = name;
@@ -84,11 +82,12 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 		entry::list_type& files = info["files"].list();
 		for (int i = 0; i < int(args.m_files.size()); ++i)
 		{
-			int file_size = atoi(args.m_files[i].c_str());
+			auto const idx = static_cast<std::size_t>(i);
+			int file_size = atoi(args.m_files[idx].c_str());
 
 			files.push_back(entry());
 			entry::dictionary_type& file_entry = files.back().dict();
-			std::string const& ent = args.m_files[i];
+			std::string const& ent = args.m_files[idx];
 			if (ent.find("padfile") != std::string::npos)
 			{
 				file_entry["attr"].string() += "p";
@@ -98,12 +97,12 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 				file_entry["attr"].string() += "x";
 
 			char filename[100];
-			snprintf(filename, sizeof(filename), "test_file-%d", i);
+			std::snprintf(filename, sizeof(filename), "test_file-%d", i);
 
 			std::string name = filename;
 			if (ent.find("name=") != std::string::npos)
 			{
-				int pos = ent.find("name=") + 5;
+				std::string::size_type pos = ent.find("name=") + 5;
 				name = ent.substr(pos, ent.find(',', pos));
 			}
 			file_entry["path"].list().push_back(name);
@@ -129,9 +128,11 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 	for (int i = 0; i < num_pieces; ++i)
 	{
 		hasher h;
-		int const piece_size = (i < num_pieces - 1) ? piece_length : total_size - (num_pieces - 1) * piece_length;
+		int const piece_size = (i < num_pieces - 1)
+			? piece_length
+			: total_size - (num_pieces - 1) * piece_length;
 
-		char const data = i;
+		char const data = char(i & 0xff);
 		char const zero = 0;
 		for (int o = 0; o < piece_size; ++o, ++torrent_offset)
 		{
@@ -140,11 +141,11 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 
 			if (!pad_files.empty() && torrent_offset >= pad_files.front().first)
 			{
-				h.update(&zero, 1);
+				h.update(zero);
 			}
 			else
 			{
-				h.update(&data, 1);
+				h.update(data);
 			}
 		}
 		piece_hashes += h.final().to_string();
@@ -153,51 +154,55 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 	info["pieces"] = piece_hashes;
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char> > out(tmp);
+	std::back_insert_iterator<std::vector<char>> out(tmp);
 	bencode(out, e);
 
 	FILE* f = fopen("test.torrent", "w+");
 	fwrite(&tmp[0], 1, tmp.size(), f);
 	fclose(f);
 
-	return boost::make_shared<torrent_info>(&tmp[0], tmp.size());
+	return std::make_shared<torrent_info>(tmp, from_span);
 }
 
-void generate_files(libtorrent::torrent_info const& ti, std::string const& path
+void generate_files(lt::torrent_info const& ti, std::string const& path
 	, bool alternate_data)
 {
 	file_pool fp;
 
-	storage_params params;
-	params.files = &ti.files();
-	params.path = path;
-	params.pool = &fp;
+	aux::vector<download_priority_t, file_index_t> priorities;
+	sha1_hash info_hash;
+	storage_params params{
+		ti.files(),
+		nullptr,
+		path,
+		storage_mode_t::storage_mode_sparse,
+		priorities,
+		info_hash
+	};
 
-	default_storage st(params);
+	default_storage st(params, fp);
 
-	int const num_pieces = ti.num_pieces();
-
+	file_storage const& fs = ti.files();
 	std::vector<char> buffer;
-	for (int i = 0; i < num_pieces; ++i)
+	for (auto const i : fs.piece_range())
 	{
 		int const piece_size = ti.piece_size(i);
-		buffer.resize(ti.piece_length());
+		buffer.resize(static_cast<std::size_t>(ti.piece_length()));
 
-		boost::uint8_t const data = alternate_data ? 255 - i : i;
+		char const data = static_cast<char>((alternate_data
+			? 255 - static_cast<int>(i) : static_cast<int>(i)) & 0xff);
 		for (int o = 0; o < piece_size; ++o)
 		{
-			memcpy(&buffer[o], &data, 1);
+			buffer[static_cast<std::size_t>(o)] = data;
 		}
 
-		file::iovec_t b = { &buffer[0], size_t(piece_size) };
+		iovec_t b = { &buffer[0], size_t(piece_size) };
 		storage_error ec;
-		int ret = st.writev(&b, 1, i, 0, 0, ec);
+		int ret = st.writev(b, i, 0, open_mode::read_only, ec);
 		if (ret != piece_size || ec)
 		{
-			fprintf(stderr, "ERROR writing files: (%d expected %d) %s\n"
+			std::printf("ERROR writing files: (%d expected %d) %s\n"
 				, ret, piece_size, ec.ec.message().c_str());
 		}
 	}
 }
-
-

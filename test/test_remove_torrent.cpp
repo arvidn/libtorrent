@@ -36,17 +36,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/aux_/path.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 #include <fstream>
 #include <iostream>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 using namespace libtorrent;
 namespace lt = libtorrent;
-using boost::tuples::ignore;
+using std::ignore;
+
+namespace {
 
 enum test_case {
 	complete_download,
@@ -54,7 +57,7 @@ enum test_case {
 	mid_download
 };
 
-void test_remove_torrent(int const remove_options
+void test_remove_torrent(remove_flags_t const remove_options
 	, test_case const test = complete_download)
 {
 	// this allows shutting down the sessions in parallel
@@ -80,7 +83,7 @@ void test_remove_torrent(int const remove_options
 	remove_all("tmp2_remove", ec);
 	create_directory("tmp1_remove", ec);
 	std::ofstream file("tmp1_remove/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
 		, 16 * 1024, num_pieces, false);
 	file.close();
 
@@ -88,14 +91,14 @@ void test_remove_torrent(int const remove_options
 	wait_for_listen(ses2, "ses2");
 
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_remove", 8 * 1024, &t, false, 0);
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
+		, true, false, true, "_remove", 8 * 1024, &t, false, nullptr);
 
 	if (test == partial_download)
 	{
-		std::vector<int> priorities(num_pieces, 1);
+		std::vector<download_priority_t> priorities(std::size_t(num_pieces), low_priority);
 		// set half of the pieces to priority 0
-		std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0);
+		std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), dont_download);
 		tor2.prioritize_pieces(priorities);
 	}
 	else if (test == mid_download)
@@ -109,8 +112,8 @@ void test_remove_torrent(int const remove_options
 
 	for (int i = 0; i < 200; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true);
-		print_alerts(ses2, "ses2", true, true, true);
+		print_alerts(ses1, "ses1", true, true);
+		print_alerts(ses2, "ses2", true, true);
 
 		st1 = tor1.status();
 		st2 = tor2.status();
@@ -135,7 +138,7 @@ void test_remove_torrent(int const remove_options
 			return;
 		}
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	TEST_CHECK(st1.num_pieces > 0);
@@ -148,7 +151,7 @@ void test_remove_torrent(int const remove_options
 
 	for (int i = 0; tor2.is_valid() || tor1.is_valid(); ++i)
 	{
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 		if (++i > 40)
 		{
 			std::cerr << "torrent handle(s) still valid: "
@@ -171,9 +174,11 @@ void test_remove_torrent(int const remove_options
 	sp.push_back(ses2.abort());
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(remove_torrent)
 {
-	test_remove_torrent(0);
+	test_remove_torrent({});
 }
 
 TORRENT_TEST(remove_torrent_and_files)
@@ -183,7 +188,7 @@ TORRENT_TEST(remove_torrent_and_files)
 
 TORRENT_TEST(remove_torrent_partial)
 {
-	test_remove_torrent(0, partial_download);
+	test_remove_torrent({}, partial_download);
 }
 
 TORRENT_TEST(remove_torrent_and_files_partial)
@@ -193,7 +198,7 @@ TORRENT_TEST(remove_torrent_and_files_partial)
 
 TORRENT_TEST(remove_torrent_mid_download)
 {
-	test_remove_torrent(0, mid_download);
+	test_remove_torrent({}, mid_download);
 }
 
 TORRENT_TEST(remove_torrent_and_files_mid_download)

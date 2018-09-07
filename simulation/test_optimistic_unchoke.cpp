@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "utils.hpp"
 #include "simulator/utils.hpp"
+#include "setup_transfer.hpp" // for addr()
 
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -46,10 +47,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
-#include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/ref.hpp>
+#include <memory>
+
+using namespace lt;
 
 struct choke_state
 {
@@ -63,7 +63,7 @@ TORRENT_TEST(optimistic_unchoke)
 {
 	int const num_nodes = 20;
 	lt::time_duration const test_duration
-		= libtorrent::seconds(num_nodes * 90);
+		= lt::seconds(num_nodes * 90);
 
 	dsl_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -71,9 +71,9 @@ TORRENT_TEST(optimistic_unchoke)
 	io_service ios(sim, addr("50.1.0.0"));
 	lt::time_point start_time(lt::clock_type::now());
 
-	libtorrent::add_torrent_params atp = create_torrent(0);
-	atp.flags &= ~add_torrent_params::flag_auto_managed;
-	atp.flags &= ~add_torrent_params::flag_paused;
+	lt::add_torrent_params atp = ::create_torrent(0);
+	atp.flags &= ~torrent_flags::auto_managed;
+	atp.flags &= ~torrent_flags::paused;
 
 	lt::settings_pack pack = settings();
 	// only allow an optimistic unchoke slot
@@ -87,22 +87,22 @@ TORRENT_TEST(optimistic_unchoke)
 	auto ses = std::make_shared<lt::session>(std::ref(pack), std::ref(ios));
 	ses->async_add_torrent(atp);
 
-	std::vector<std::shared_ptr<sim::asio::io_service> > io_service;
-	std::vector<std::shared_ptr<peer_conn> > peers;
+	std::vector<std::shared_ptr<sim::asio::io_service>> io_service;
+	std::vector<std::shared_ptr<peer_conn>> peers;
 
 	print_alerts(*ses);
 
-	sim::timer t(sim, lt::seconds(0), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds(0), [&](boost::system::error_code const&)
 	{
 		for (int i = 0; i < num_nodes; ++i)
 		{
 			// create a new io_service
 			char ep[30];
-			snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+			std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 			io_service.push_back(std::make_shared<sim::asio::io_service>(
 				std::ref(sim), addr(ep)));
 			peers.push_back(std::make_shared<peer_conn>(std::ref(*io_service.back())
-				, [&,i](int msg, char const* bug, int len)
+				, [&,i](int msg, char const* /* buf */, int /* len */)
 				{
 					choke_state& cs = peer_choke_state[i];
 					if (msg == 0)
@@ -131,18 +131,19 @@ TORRENT_TEST(optimistic_unchoke)
 					char const* msg_str[] = {"choke", "unchoke"};
 
 					lt::time_duration d = lt::clock_type::now() - start_time;
-					std::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
+					std::uint32_t const millis = std::uint32_t(
+						lt::duration_cast<lt::milliseconds>(d).count());
 					printf("\x1b[35m%4d.%03d: [%d] %s (%d ms)\x1b[0m\n"
 						, millis / 1000, millis % 1000, i, msg_str[msg]
 						, int(lt::duration_cast<lt::milliseconds>(cs.unchoke_duration).count()));
 				}
 				, *atp.ti
 				, tcp::endpoint(addr("50.1.0.0"), 6881)
-				, peer_conn::idle));
+				, peer_conn::peer_mode_t::idle));
 		}
 	});
 
-	sim::timer t2(sim, test_duration, [&](boost::system::error_code const& ec)
+	sim::timer t2(sim, test_duration, [&](boost::system::error_code const&)
 	{
 		for (auto& p : peers)
 		{
@@ -169,4 +170,3 @@ TORRENT_TEST(optimistic_unchoke)
 		TEST_CHECK(std::abs(unchoke_duration - average_unchoke_time) < 1500);
 	}
 }
-

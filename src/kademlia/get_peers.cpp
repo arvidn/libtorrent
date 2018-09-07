@@ -35,76 +35,51 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/performance_counters.hpp>
+#include <libtorrent/broadcast_socket.hpp> // for is_v4
 
-namespace libtorrent { namespace dht
-{
-
-using detail::read_endpoint_list;
-using detail::read_v4_endpoint;
-#if TORRENT_USE_IPV6
-using detail::read_v6_endpoint;
+#ifndef TORRENT_DISABLE_LOGGING
+#include <libtorrent/hex.hpp> // to_hex
 #endif
+
+namespace libtorrent { namespace dht {
 
 void get_peers_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] missing response dict"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;
 	}
 
 	// look for peers
-	bdecode_node n = r.dict_find_list("values");
+	bdecode_node const n = r.dict_find_list("values");
 	if (n)
 	{
 		std::vector<tcp::endpoint> peer_list;
-		if (n.list_size() == 1 && n.list_at(0).type() == bdecode_node::string_t)
+		if (n.list_size() == 1 && n.list_at(0).type() == bdecode_node::string_t
+			&& is_v4(m.addr))
 		{
 			// assume it's mainline format
 			char const* peers = n.list_at(0).string_ptr();
 			char const* end = peers + n.list_at(0).string_length();
 
 #ifndef TORRENT_DISABLE_LOGGING
-			bdecode_node id = r.dict_find_string("id");
-			if (id && id.string_length() == 20)
-			{
-				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
-					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, static_cast<void*>(algorithm())
-					, algorithm()->invoke_count()
-					, algorithm()->branch_factor()
-					, print_endpoint(m.addr).c_str()
-					, to_hex(id.string_value()).c_str()
-					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
-					, int((end - peers) / 6));
-			}
+			log_peers(m, r, int((end - peers) / 6));
 #endif
 			while (end - peers >= 6)
-				peer_list.push_back(read_v4_endpoint<tcp::endpoint>(peers));
+				peer_list.push_back(detail::read_v4_endpoint<tcp::endpoint>(peers));
 		}
 		else
 		{
 			// assume it's uTorrent/libtorrent format
-			read_endpoint_list<tcp::endpoint>(n, peer_list);
+			peer_list = detail::read_endpoint_list<tcp::endpoint>(n);
 #ifndef TORRENT_DISABLE_LOGGING
-			bdecode_node id = r.dict_find_string("id");
-			if (id && id.string_length() == 20)
-			{
-				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
-					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, static_cast<void*>(algorithm())
-					, algorithm()->invoke_count()
-					, algorithm()->branch_factor()
-					, print_endpoint(m.addr).c_str()
-					, to_hex(id.string_value()).c_str()
-					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
-					, int(n.list_size()));
-			}
+			log_peers(m, r, n.list_size());
 #endif
 		}
 		static_cast<get_peers*>(algorithm())->got_peers(peer_list);
@@ -112,7 +87,28 @@ void get_peers_observer::reply(msg const& m)
 
 	find_data_observer::reply(m);
 }
-
+#ifndef TORRENT_DISABLE_LOGGING
+void get_peers_observer::log_peers(msg const& m, bdecode_node const& r, int const size) const
+{
+			auto logger = get_observer();
+			if (logger != nullptr && logger->should_log(dht_logger::traversal))
+			{
+				bdecode_node const id = r.dict_find_string("id");
+				if (id && id.string_length() == 20)
+				{
+					logger->log(dht_logger::traversal, "[%u] PEERS "
+						"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
+						, algorithm()->id()
+						, algorithm()->invoke_count()
+						, algorithm()->branch_factor()
+						, print_endpoint(m.addr).c_str()
+						, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
+						, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
+						, size);
+				}
+			}
+}
+#endif
 void get_peers::got_peers(std::vector<tcp::endpoint> const& peers)
 {
 	if (m_data_callback) m_data_callback(peers);
@@ -120,7 +116,7 @@ void get_peers::got_peers(std::vector<tcp::endpoint> const& peers)
 
 get_peers::get_peers(
 	node& dht_node
-	, node_id target
+	, node_id const& target
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)
@@ -141,12 +137,12 @@ bool get_peers::invoke(observer_ptr o)
 	entry& a = e["a"];
 
 	e["q"] = "get_peers";
-	a["info_hash"] = m_target.to_string();
+	a["info_hash"] = target().to_string();
 	if (m_noseeds) a["noseed"] = 1;
 
-	if (m_node.observer())
+	if (m_node.observer() != nullptr)
 	{
-		m_node.observer()->outgoing_get_peers(m_target, m_target, o->target_ep());
+		m_node.observer()->outgoing_get_peers(target(), target(), o->target_ep());
 	}
 
 	m_node.stats_counters().inc_stats_counter(counters::dht_get_peers_out);
@@ -154,19 +150,19 @@ bool get_peers::invoke(observer_ptr o)
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
-observer_ptr get_peers::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
+observer_ptr get_peers::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
-	observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
+	auto o = m_node.m_rpc.allocate_observer<get_peers_observer>(self(), ep, id);
 #if TORRENT_USE_ASSERTS
-	o->m_in_constructor = false;
+	if (o) o->m_in_constructor = false;
 #endif
-	return o;
+	return std::move(o);
 }
 
 obfuscated_get_peers::obfuscated_get_peers(
 	node& dht_node
-	, node_id info_hash
+	, node_id const& info_hash
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)
@@ -178,24 +174,26 @@ obfuscated_get_peers::obfuscated_get_peers(
 char const* obfuscated_get_peers::name() const
 { return !m_obfuscated ? get_peers::name() : "get_peers [obfuscated]"; }
 
-observer_ptr obfuscated_get_peers::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
+observer_ptr obfuscated_get_peers::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
 	if (m_obfuscated)
 	{
-		observer_ptr o(new (ptr) obfuscated_get_peers_observer(this, ep, id));
+		auto o = m_node.m_rpc.allocate_observer<obfuscated_get_peers_observer>(self()
+			, ep, id);
 #if TORRENT_USE_ASSERTS
-		o->m_in_constructor = false;
+		if (o) o->m_in_constructor = false;
 #endif
-		return o;
+		return std::move(o);
 	}
 	else
 	{
-		observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
+		auto o = m_node.m_rpc.allocate_observer<get_peers_observer>(self()
+			, ep, id);
 #if TORRENT_USE_ASSERTS
-		o->m_in_constructor = false;
+		if (o) o->m_in_constructor = false;
 #endif
-		return o;
+		return std::move(o);
 	}
 }
 
@@ -203,8 +201,8 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 {
 	if (!m_obfuscated) return get_peers::invoke(o);
 
-	const node_id id = o->id();
-	const int shared_prefix = 160 - distance_exp(id, m_target);
+	node_id const& id = o->id();
+	int const shared_prefix = 160 - distance_exp(id, target());
 
 	// when we get close to the target zone in the DHT
 	// start using the correct info-hash, in order to
@@ -216,14 +214,12 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 		// our node-list for this traversal algorithm, to
 		// allow the get_peers traversal to regress in case
 		// nodes further down end up being dead
-		for (std::vector<observer_ptr>::iterator i = m_results.begin()
-			, end(m_results.end()); i != end; ++i)
+		for (auto const& node : m_results)
 		{
-			observer* const node = i->get();
 			// don't re-request from nodes that didn't respond
 			if (node->flags & observer::flag_failed) continue;
 			// don't interrupt with queries that are already in-flight
-			if ((node->flags & observer::flag_alive) == 0) continue;
+			if (!(node->flags & observer::flag_alive)) continue;
 			node->flags &= ~(observer::flag_queried | observer::flag_alive);
 		}
 		return get_peers::invoke(o);
@@ -243,12 +239,12 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	// now, obfuscate the bits past shared_prefix + 3
 	node_id mask = generate_prefix_mask(shared_prefix + 3);
 	node_id obfuscated_target = generate_random_id() & ~mask;
-	obfuscated_target |= m_target & mask;
+	obfuscated_target |= target() & mask;
 	a["info_hash"] = obfuscated_target.to_string();
 
-	if (m_node.observer())
+	if (m_node.observer() != nullptr)
 	{
-		m_node.observer()->outgoing_get_peers(m_target, obfuscated_target
+		m_node.observer()->outgoing_get_peers(target(), obfuscated_target
 			, o->target_ep());
 	}
 
@@ -264,26 +260,23 @@ void obfuscated_get_peers::done()
 	// oops, we failed to switch over to the non-obfuscated
 	// mode early enough. do it now
 
-	boost::intrusive_ptr<get_peers> ta(new get_peers(m_node, m_target
-		, m_data_callback
-		, m_nodes_callback
-		, m_noseeds));
+	auto ta = std::make_shared<get_peers>(m_node, target()
+		, m_data_callback, m_nodes_callback, m_noseeds);
 
 	// don't call these when the obfuscated_get_peers
 	// is done, we're passing them on to be called when
 	// ta completes.
-	m_data_callback.clear();
-	m_nodes_callback.clear();
+	m_data_callback = nullptr;
+	m_nodes_callback = nullptr;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		get_node().observer()->log(dht_logger::traversal, "[%p] obfuscated get_peers "
-			"phase 1 done, spawning get_peers [ %p ]"
-			, static_cast<void*>(this)
-			, static_cast<void*>(ta.get()));
+		get_node().observer()->log(dht_logger::traversal, "[%u] obfuscated get_peers "
+			"phase 1 done, spawning get_peers [ %u ]"
+			, id(), ta->id());
 #endif
 
 	int num_added = 0;
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+	for (auto i = m_results.begin()
 		, end(m_results.end()); i != end && num_added < 16; ++i)
 	{
 		observer_ptr o = *i;
@@ -291,7 +284,7 @@ void obfuscated_get_peers::done()
 		// only add nodes whose node ID we know and that
 		// we know are alive
 		if (o->flags & observer::flag_no_id) continue;
-		if ((o->flags & observer::flag_alive) == 0) continue;
+		if (!(o->flags & observer::flag_alive)) continue;
 
 		ta->add_entry(o->id(), o->target_ep(), observer::flag_initial);
 		++num_added;
@@ -304,23 +297,23 @@ void obfuscated_get_peers::done()
 
 void obfuscated_get_peers_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] missing response dict"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;
 	}
 
-	bdecode_node id = r.dict_find_string("id");
+	bdecode_node const id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] invalid id in response"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;

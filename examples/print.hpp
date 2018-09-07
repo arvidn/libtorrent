@@ -2,6 +2,8 @@
 #define PRINT_HPP_
 
 #include <string>
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 #include "libtorrent/bitfield.hpp"
 
 enum color_code
@@ -21,7 +23,11 @@ char const* esc(char const* code);
 
 std::string to_string(int v, int width);
 
-std::string add_suffix(float val, char const* suffix = 0);
+std::string add_suffix_float(float val, char const* suffix);
+
+template<class T> std::string add_suffix(T val, char const* suffix = 0) {
+	return add_suffix_float(float(val), suffix);
+}
 
 std::string color(std::string const& s, color_code c);
 
@@ -30,14 +36,16 @@ enum { progress_invert = 1};
 std::string const& progress_bar(int progress, int width, color_code c = col_green
 	, char fill = '#', char bg = '-', std::string caption = "", int flags = 0);
 
+std::string const& piece_bar(lt::bitfield const& p, int width);
+
 void set_cursor_pos(int x, int y);
 
 void clear_screen();
 
 void clear_rows(int y1, int y2);
 
-void terminal_size(int* terminal_width, int* terminal_height);
-std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height);
+std::pair<int, int> terminal_size();
+std::string piece_matrix(lt::bitfield const& p, int width, int* height);
 
 void print(char const* str);
 

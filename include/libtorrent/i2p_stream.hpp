@@ -37,21 +37,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_I2P
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <list>
 #include <string>
 #include <vector>
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <functional>
 
 #include "libtorrent/proxy_base.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/proxy_settings.hpp"
 
 namespace libtorrent {
 
@@ -79,9 +73,10 @@ namespace libtorrent {
 	// returns the error category for I2P errors
 	TORRENT_EXPORT boost::system::error_category& i2p_category();
 
-#ifndef TORRENT_NO_DEPRECATE
-	TORRENT_DEPRECATED TORRENT_EXPORT
-	boost::system::error_category& get_i2p_category();
+#if TORRENT_ABI_VERSION == 1
+	TORRENT_DEPRECATED
+	inline boost::system::error_category& get_i2p_category()
+	{ return i2p_category(); }
 #endif
 
 class i2p_stream : public proxy_base
@@ -89,7 +84,9 @@ class i2p_stream : public proxy_base
 public:
 
 	explicit i2p_stream(io_service& io_service);
+#if TORRENT_USE_ASSERTS
 	~i2p_stream();
+#endif
 
 	enum command_t
 	{
@@ -105,7 +102,7 @@ public:
 
 	void set_session_id(char const* id) { m_id = id; }
 
-	void set_destination(std::string const& d) { m_dest = d; }
+	void set_destination(string_view d) { m_dest = d.to_string(); }
 	std::string const& destination() { return m_dest; }
 
 	template <class Handler>
@@ -119,35 +116,33 @@ public:
 		// 2. connect to SAM bridge
 		// 4 send command message (CONNECT/ACCEPT)
 
-		// to avoid unnecessary copying of the handler,
-		// store it in a shaed_ptr
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
-
-		tcp::resolver::query q(m_hostname, to_string(m_port).elems);
-		m_resolver.async_resolve(q, boost::bind(
-			&i2p_stream::do_connect, this, _1, _2, h));
+		using std::placeholders::_1;
+		using std::placeholders::_2;
+		tcp::resolver::query q(m_hostname, to_string(m_port).data());
+		m_resolver.async_resolve(q, std::bind(
+			&i2p_stream::do_connect, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 	std::string name_lookup() const { return m_name_lookup; }
 	void set_name_lookup(char const* name) { m_name_lookup = name; }
 
-	void send_name_lookup(boost::shared_ptr<handler_type> h);
+	void send_name_lookup(handler_type h);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_stream& operator=(i2p_stream const&);
 
 	void do_connect(error_code const& e, tcp::resolver::iterator i
-		, boost::shared_ptr<handler_type> h);
-	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
-	void start_read_line(error_code const& e, boost::shared_ptr<handler_type> h);
-	void read_line(error_code const& e, boost::shared_ptr<handler_type> h);
-	void send_connect(boost::shared_ptr<handler_type> h);
-	void send_accept(boost::shared_ptr<handler_type> h);
-	void send_session_create(boost::shared_ptr<handler_type> h);
+		, handler_type h);
+	void connected(error_code const& e, handler_type& h);
+	void start_read_line(error_code const& e, handler_type& h);
+	void read_line(error_code const& e, handler_type& h);
+	void send_connect(handler_type h);
+	void send_accept(handler_type h);
+	void send_session_create(handler_type h);
 
 	// send and receive buffer
-	std::vector<char> m_buffer;
+	aux::vector<char> m_buffer;
 	char const* m_id;
 	command_t m_command;
 	std::string m_dest;
@@ -171,7 +166,7 @@ private:
 class i2p_connection
 {
 public:
-	i2p_connection(io_service& ios);
+	explicit i2p_connection(io_service& ios);
 	~i2p_connection();
 
 	aux::proxy_settings proxy() const;
@@ -182,32 +177,32 @@ public:
 			&& m_sam_socket->is_open()
 			&& m_state != sam_connecting;
 	}
-	void open(std::string const& hostname, int port, i2p_stream::handler_type const& h);
+	void open(std::string const& hostname, int port, i2p_stream::handler_type h);
 	void close(error_code&);
 
 	char const* session_id() const { return m_session_id.c_str(); }
 	std::string const& local_endpoint() const { return m_i2p_local_endpoint; }
 
-	typedef boost::function<void(error_code const&, char const*)> name_lookup_handler;
+	using name_lookup_handler = std::function<void(error_code const&, char const*)>;
 	void async_name_lookup(char const* name, name_lookup_handler handler);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_connection& operator=(i2p_connection const&);
 
-	void on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h
-		, boost::shared_ptr<i2p_stream>);
+	void on_sam_connect(error_code const& ec, i2p_stream::handler_type& h
+		, std::shared_ptr<i2p_stream>);
 	void do_name_lookup(std::string const& name
-		, name_lookup_handler const& h);
+		, name_lookup_handler h);
 	void on_name_lookup(error_code const& ec
-		, name_lookup_handler handler
-		, boost::shared_ptr<i2p_stream>);
+		, name_lookup_handler& handler
+		, std::shared_ptr<i2p_stream>);
 
 	void set_local_endpoint(error_code const& ec, char const* dest
-		, i2p_stream::handler_type const& h);
+		, i2p_stream::handler_type& h);
 
 	// to talk to i2p SAM bridge
-	boost::shared_ptr<i2p_stream> m_sam_socket;
+	std::shared_ptr<i2p_stream> m_sam_socket;
 	std::string m_hostname;
 	int m_port;
 
@@ -215,7 +210,7 @@ private:
 	std::string m_i2p_local_endpoint;
 	std::string m_session_id;
 
-	std::list<std::pair<std::string, name_lookup_handler> > m_name_lookup;
+	std::list<std::pair<std::string, name_lookup_handler>> m_name_lookup;
 
 	enum state_t
 	{
@@ -242,4 +237,3 @@ struct is_error_code_enum<libtorrent::i2p_error::i2p_error_code>
 #endif // TORRENT_USE_I2P
 
 #endif
-

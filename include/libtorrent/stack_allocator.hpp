@@ -31,85 +31,62 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef TORRENT_STACK_ALLOCATOR
+#define TORRENT_STACK_ALLOCATOR
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
+#include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent { namespace aux
-{
+#include <cstdio> // for vsnprintf
+#include <cstring>
 
-	struct stack_allocator
+namespace libtorrent { namespace aux {
+
+	struct allocation_slot
+	{
+		allocation_slot() noexcept : m_idx(-1) {}
+		allocation_slot(allocation_slot const&) noexcept = default;
+		allocation_slot(allocation_slot&&) noexcept = default;
+		allocation_slot& operator=(allocation_slot const&) = default;
+		allocation_slot& operator=(allocation_slot&&) noexcept = default;
+		bool operator==(allocation_slot const& s) const { return m_idx == s.m_idx; }
+		bool operator!=(allocation_slot const& s) const { return m_idx != s.m_idx; }
+		friend struct stack_allocator;
+	private:
+		explicit allocation_slot(int idx) noexcept : m_idx(idx) {}
+		int val() const { return m_idx; }
+		int m_idx;
+	};
+
+	struct TORRENT_EXTRA_EXPORT stack_allocator
 	{
 		stack_allocator() {}
 
-		int copy_string(std::string const& str)
-		{
-			int ret = int(m_storage.size());
-			m_storage.resize(ret + str.length() + 1);
-			strcpy(&m_storage[ret], str.c_str());
-			return ret;
-		}
+		// non-copyable
+		stack_allocator(stack_allocator const&) = delete;
+		stack_allocator& operator=(stack_allocator const&) = delete;
+		stack_allocator(stack_allocator&&) = default;
+		stack_allocator& operator=(stack_allocator&&) = default;
 
-		int copy_string(char const* str)
-		{
-			int ret = int(m_storage.size());
-			int len = strlen(str);
-			m_storage.resize(ret + len + 1);
-			strcpy(&m_storage[ret], str);
-			return ret;
-		}
+		allocation_slot copy_string(string_view str);
+		allocation_slot copy_string(char const* str);
 
-		int copy_buffer(char const* buf, int size)
-		{
-			int ret = int(m_storage.size());
-			if (size < 1) return -1;
-			m_storage.resize(ret + size);
-			memcpy(&m_storage[ret], buf, size);
-			return ret;
-		}
+		allocation_slot format_string(char const* fmt, va_list v);
 
-		int allocate(int bytes)
-		{
-			if (bytes < 1) return -1;
-			int ret = int(m_storage.size());
-			m_storage.resize(ret + bytes);
-			return ret;
-		}
-
-		char* ptr(int idx)
-		{
-			if(idx < 0) return NULL;
-			TORRENT_ASSERT(idx < int(m_storage.size()));
-			return &m_storage[idx];
-		}
-
-		char const* ptr(int idx) const
-		{
-			if(idx < 0) return NULL;
-			TORRENT_ASSERT(idx < int(m_storage.size()));
-			return &m_storage[idx];
-		}
-
-		void swap(stack_allocator& rhs)
-		{
-			m_storage.swap(rhs.m_storage);
-		}
-
-		void reset()
-		{
-			m_storage.clear();
-		}
+		allocation_slot copy_buffer(span<char const> buf);
+		allocation_slot allocate(int bytes);
+		char* ptr(allocation_slot idx);
+		char const* ptr(allocation_slot idx) const;
+		void swap(stack_allocator& rhs);
+		void reset();
 
 	private:
 
-		// non-copyable
-		stack_allocator(stack_allocator const&);
-		stack_allocator& operator=(stack_allocator const&);
-
-		buffer m_storage;
+		vector<char> m_storage;
 	};
 
 } }
 
 #endif
-

@@ -34,32 +34,30 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_RESOLVER_HPP_INCLUDE
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/function.hpp>
-#include <boost/unordered_map.hpp>
-#include <vector>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <unordered_map>
+#include <vector>
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/time.hpp"
 
-namespace libtorrent
+namespace libtorrent {
+
+struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 {
+	explicit resolver(io_service& ios);
 
-struct TORRENT_EXTRA_EXPORT resolver TORRENT_FINAL : resolver_interface
-{
-	resolver(io_service& ios);
+	void async_resolve(std::string const& host, resolver_flags flags
+		, callback_t const& h) override;
 
-	virtual void async_resolve(std::string const& host, int flags
-		, callback_t const& h) TORRENT_OVERRIDE;
+	void abort() override;
 
-	virtual void abort() TORRENT_OVERRIDE;
+	void set_cache_timeout(seconds timeout) override;
 
 private:
 
@@ -72,8 +70,7 @@ private:
 		std::vector<address> addresses;
 	};
 
-	typedef boost::unordered_map<std::string, dns_cache_entry> cache_t;
-	cache_t m_cache;
+	std::unordered_map<std::string, dns_cache_entry> m_cache;
 	io_service& m_ios;
 
 	// all lookups in this resolver are aborted on shutdown.
@@ -92,4 +89,3 @@ private:
 }
 
 #endif
-

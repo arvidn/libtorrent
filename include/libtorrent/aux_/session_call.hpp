@@ -34,73 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_CALL_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
-#include <boost/function.hpp>
+#include <functional>
 
 namespace libtorrent { namespace aux {
 
 void blocking_call();
 void dump_call_profile();
 
-void fun_wrap(bool& done, condition_variable& e, mutex& m, boost::function<void(void)> f);
-
-template <class R>
-void fun_ret(R& ret, bool& done, condition_variable& e, mutex& m, boost::function<R(void)> f)
-{
-	ret = f();
-	mutex::scoped_lock l(m);
-	done = true;
-	e.notify_all();
-}
-
 void torrent_wait(bool& done, aux::session_impl& ses);
-
-void sync_call(aux::session_impl& ses, boost::function<void(void)> f);
-
-template <typename Handle>
-void sync_call_handle(Handle& h, boost::function<void(void)> f)
-{
-	bool done = false;
-	session_impl& ses = static_cast<session_impl&>(h->session());
-	ses.get_io_service().dispatch(boost::bind(&aux::fun_wrap
-		, boost::ref(done)
-		, boost::ref(ses.cond)
-		, boost::ref(ses.mut), f));
-	h.reset();
-	aux::torrent_wait(done, ses);
-}
-
-template <typename Ret>
-Ret sync_call_ret(aux::session_impl& ses, boost::function<Ret(void)> f)
-{
-	bool done = false;
-	Ret r;
-	ses.get_io_service().dispatch(boost::bind(&fun_ret<Ret>
-		, boost::ref(r)
-		, boost::ref(done)
-		, boost::ref(ses.cond)
-		, boost::ref(ses.mut)
-		, f));
-	torrent_wait(done, ses);
-	return r;
-}
-
-template <typename Handle, typename Ret>
-void sync_call_ret_handle(Handle& h, Ret& r, boost::function<Ret(void)> f)
-{
-	bool done = false;
-	session_impl& ses = static_cast<session_impl&>(h->session());
-	ses.get_io_service().dispatch(boost::bind(&aux::fun_ret<Ret>
-		, boost::ref(r)
-		, boost::ref(done)
-		, boost::ref(ses.cond)
-		, boost::ref(ses.mut)
-		, f));
-	h.reset();
-	aux::torrent_wait(done, ses);
-}
 
 } } // namespace aux namespace libtorrent
 

@@ -34,21 +34,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/ConvertUTF.h"
 #include "setup_transfer.hpp" // for load_file
-#include "libtorrent/file.hpp" // for combine_path
+#include "libtorrent/aux_/path.hpp" // for combine_path
 
 #include <vector>
 
-using namespace libtorrent;
+using namespace lt;
+
+namespace {
 
 void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 {
 	if (utf8_source_len == -1)
-		utf8_source_len = strlen(utf8_source);
+		utf8_source_len = int(strlen(utf8_source));
 
 	// utf8 -> utf16 -> utf32 -> utf8
 	{
-		std::vector<UTF16> utf16(utf8_source_len);
-		UTF8 const* in8 = (UTF8 const*)utf8_source;
+		std::vector<UTF16> utf16((std::size_t(utf8_source_len)));
+		UTF8 const* in8 = reinterpret_cast<UTF8 const*>(utf8_source);
 		UTF16* out16 = &utf16[0];
 		ConversionResult ret = ConvertUTF8toUTF16(&in8, in8 + utf8_source_len
 			, &out16, out16 + utf16.size(), strictConversion);
@@ -57,10 +59,10 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
-		std::vector<UTF32> utf32(utf8_source_len);
+		std::vector<UTF32> utf32((std::size_t(utf8_source_len)));
 		UTF16 const* in16 = &utf16[0];
 		UTF32* out32 = &utf32[0];
 		ret = ConvertUTF16toUTF32(&in16, out16
@@ -70,10 +72,10 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
-		std::vector<UTF8> utf8(utf8_source_len);
+		std::vector<UTF8> utf8((std::size_t(utf8_source_len)));
 		UTF32 const* in32 = &utf32[0];
 		UTF8* out8 = &utf8[0];
 		ret = ConvertUTF32toUTF8(&in32, out32
@@ -83,17 +85,17 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
 		TEST_EQUAL(out8 - &utf8[0], utf8_source_len);
-		TEST_CHECK(std::equal(&utf8[0], out8, (UTF8 const*)utf8_source));
+		TEST_CHECK(std::equal(&utf8[0], out8, reinterpret_cast<UTF8 const*>(utf8_source)));
 	}
 
 	// utf8 -> utf32 -> utf16 -> utf8
 	{
-		std::vector<UTF32> utf32(utf8_source_len);
-		UTF8 const* in8 = (UTF8 const*)utf8_source;
+		std::vector<UTF32> utf32((std::size_t(utf8_source_len)));
+		UTF8 const* in8 = reinterpret_cast<UTF8 const*>(utf8_source);
 		UTF32* out32 = &utf32[0];
 		ConversionResult ret = ConvertUTF8toUTF32(&in8, in8 + utf8_source_len
 			, &out32, out32 + utf32.size(), strictConversion);
@@ -102,10 +104,10 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
-		std::vector<UTF16> utf16(utf8_source_len);
+		std::vector<UTF16> utf16((std::size_t(utf8_source_len)));
 		UTF32 const* in32 = &utf32[0];
 		UTF16* out16 = &utf16[0];
 		ret = ConvertUTF32toUTF16(&in32, out32
@@ -115,10 +117,10 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
-		std::vector<UTF8> utf8(utf8_source_len);
+		std::vector<UTF8> utf8((std::size_t(utf8_source_len)));
 		UTF16 const* in16 = &utf16[0];
 		UTF8* out8 = &utf8[0];
 		ret = ConvertUTF16toUTF8(&in16, out16
@@ -128,57 +130,59 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
 		TEST_EQUAL(out8 - &utf8[0], utf8_source_len);
-		TEST_CHECK(std::equal(&utf8[0], out8, (UTF8 const*)utf8_source));
+		TEST_CHECK(std::equal(&utf8[0], out8, reinterpret_cast<UTF8 const*>(utf8_source)));
 	}
 }
 
 void expect_error(char const* utf8, ConversionResult expect)
 {
-	UTF8 const* in8 = (UTF8 const*)utf8;
+	UTF8 const* in8 = reinterpret_cast<UTF8 const*>(utf8);
 	std::vector<UTF32> utf32(strlen(utf8));
 	UTF32* out32 = &utf32[0];
-	ConversionResult ret = ConvertUTF8toUTF32(&in8, in8 + strlen(utf8)
+	ConversionResult ret = ConvertUTF8toUTF32(&in8, in8 + std::strlen(utf8)
 		, &out32, out32 + utf32.size(), strictConversion);
 
 	TEST_EQUAL(ret, expect);
 	if (ret != expect)
 	{
-		fprintf(stderr, "%d expected %d\n", ret, expect);
+		std::printf("%d expected %d\n", ret, expect);
 		for (char const* i = utf8; *i != 0; ++i)
-			fprintf(stderr, "%x ", UTF8(*i));
+			std::printf("%x ", UTF8(*i));
 	}
 
-	in8 = (UTF8 const*)utf8;
-	std::vector<UTF16> utf16(strlen(utf8));
+	in8 = reinterpret_cast<UTF8 const*>(utf8);
+	std::vector<UTF16> utf16(std::strlen(utf8));
 	UTF16* out16 = &utf16[0];
-	ret = ConvertUTF8toUTF16(&in8, in8 + strlen(utf8)
+	ret = ConvertUTF8toUTF16(&in8, in8 + std::strlen(utf8)
 		, &out16, out16 + utf16.size(), strictConversion);
 
 	TEST_EQUAL(ret, expect);
 	if (ret != expect)
 	{
-		fprintf(stderr, "%d expected %d\n", ret, expect);
+		std::printf("%d expected %d\n", ret, expect);
 		for (char const* i = utf8; *i != 0; ++i)
-			fprintf(stderr, "%x ", UTF8(*i));
+			std::printf("%x ", UTF8(*i));
 	}
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(utf8)
 {
 	std::vector<char> utf8_source;
 	error_code ec;
 	load_file(combine_path("..", "utf8_test.txt"), utf8_source, ec, 1000000);
-	if (ec) fprintf(stderr, "failed to open file: (%d) %s\n", ec.value()
+	if (ec) std::printf("failed to open file: (%d) %s\n", ec.value()
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
 
 	// test lower level conversions
 
-	verify_transforms(&utf8_source[0], utf8_source.size());
+	verify_transforms(&utf8_source[0], int(utf8_source.size()));
 
 	verify_transforms("\xc3\xb0");
 	verify_transforms("\xed\x9f\xbf");
@@ -242,13 +246,8 @@ TORRENT_TEST(utf8)
 	std::string utf8;
 	std::copy(utf8_source.begin(), utf8_source.end(), std::back_inserter(utf8));
 
-	std::wstring wide;
-	utf8_conv_result_t ret = utf8_wchar(utf8, wide);
-	TEST_EQUAL(ret, conversion_ok);
-
-	std::string identity;
-	ret = wchar_utf8(wide, identity);
-	TEST_EQUAL(ret, conversion_ok);
+	std::wstring const wide = utf8_wchar(utf8);
+	std::string const identity = wchar_utf8(wide);
 
 	TEST_EQUAL(utf8, identity);
 }
@@ -256,17 +255,17 @@ TORRENT_TEST(utf8)
 TORRENT_TEST(invalid_encoding)
 {
 	// thest invalid utf8 encodings. just treat it as "Latin-1"
-	boost::uint8_t const test_string[] = {
+	std::uint8_t const test_string[] = {
 		0xd2, 0xe5, 0xf0, 0xea, 0xf1, 0x20, 0xe8, 0x20, 0xca, 0xe0, 0xe9, 0xea,
 		0xee, 0xf1, 0x2e, 0x32, 0x30, 0x31, 0x34, 0x2e, 0x42, 0x44, 0x52, 0x69,
 		0x70, 0x2e, 0x31, 0x30, 0x38, 0x30, 0x70, 0x2e, 0x6d, 0x6b, 0x76, 0x00
 	};
-	std::wstring wide;
-	utf8_wchar((const char*)test_string, wide);
+	error_code ec;
+	std::wstring wide = utf8_wchar(reinterpret_cast<char const*>(test_string), ec);
+	TEST_CHECK(ec);
 
 	std::wstring cmp_wide;
 	std::copy(test_string, test_string + sizeof(test_string) - 1,
 		std::back_inserter(cmp_wide));
 	TEST_CHECK(wide == cmp_wide);
 }
-

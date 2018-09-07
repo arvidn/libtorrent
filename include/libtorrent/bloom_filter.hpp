@@ -33,21 +33,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BLOOM_FILTER_HPP_INCLUDED
 #define TORRENT_BLOOM_FILTER_HPP_INCLUDED
 
-#include "libtorrent/peer_id.hpp" // for sha1_hash
-#include "libtorrent/config.hpp" // for sha1_hash
+#include "libtorrent/sha1_hash.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <cmath> // for log()
+#include <cstdint>
 
-#include <boost/cstdint.hpp>
-#include <math.h> // for log()
+namespace libtorrent {
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
-	TORRENT_EXTRA_EXPORT void set_bits(boost::uint8_t const* b, boost::uint8_t* bits, int len);
-	TORRENT_EXTRA_EXPORT bool has_bits(boost::uint8_t const* b, boost::uint8_t const* bits, int len);
-	TORRENT_EXTRA_EXPORT int count_zero_bits(boost::uint8_t const* bits, int len);
+	TORRENT_EXTRA_EXPORT void set_bits(std::uint8_t const* b, std::uint8_t* bits, int len);
+	TORRENT_EXTRA_EXPORT bool has_bits(std::uint8_t const* b, std::uint8_t const* bits, int len);
+	TORRENT_EXTRA_EXPORT int count_zero_bits(std::uint8_t const* bits, int len);
 
 	template <int N>
 	struct bloom_filter
@@ -62,24 +57,23 @@ namespace libtorrent
 		{ return std::string(reinterpret_cast<char const*>(&bits[0]), N); }
 
 		void from_string(char const* str)
-		{ memcpy(bits, str, N); }
+		{ std::memcpy(bits, str, N); }
 
-		void clear() { memset(bits, 0, N); }
+		void clear() { std::memset(bits, 0, N); }
 
 		float size() const
 		{
 			const int c = (std::min)(count_zero_bits(bits, N), (N * 8) - 1);
 			const int m = N * 8;
-			return ::log(c / float(m)) / (2.f * ::log(1.f - 1.f/m));
+			return std::log(c / float(m)) / (2.f * std::log(1.f - 1.f/m));
 		}
 
 		bloom_filter() { clear(); }
 
 	private:
-		boost::uint8_t bits[N];
+		std::uint8_t bits[N];
 	};
 
 }
 
-#endif
-
+#endif // TORRENT_BLOOM_FILTER_HPP_INCLUDED

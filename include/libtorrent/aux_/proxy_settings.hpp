@@ -33,13 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PROXY_SETTINGS_HPP_INCLUDED
 #define TORRENT_PROXY_SETTINGS_HPP_INCLUDED
 
-#include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
 
 #include <string>
-#include <boost/cstdint.hpp>
 
 namespace libtorrent {
+
 struct settings_pack;
 namespace aux {
 
@@ -55,8 +54,8 @@ namespace aux {
 
 		// construct the proxy_settings object from the settings
 		// this constructor is implemented in session_impl.cpp
-		proxy_settings(settings_pack const& sett);
-		proxy_settings(aux::session_settings const& sett);
+		explicit proxy_settings(settings_pack const& sett);
+		explicit proxy_settings(aux::session_settings const& sett);
 
 		// the name or IP of the proxy server. ``port`` is the port number the
 		// proxy listens to. If required, ``username`` and ``password`` can be
@@ -68,7 +67,7 @@ namespace aux {
 		std::string username;
 		std::string password;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// the type of proxy to use. Assign one of these to the
 		// proxy_settings::type field.
 		enum proxy_type
@@ -118,28 +117,26 @@ namespace aux {
 
 		// tells libtorrent what kind of proxy server it is. See proxy_type
 		// enum for options
-		boost::uint8_t type;
+		std::uint8_t type = 0;
 
 		// the port the proxy server is running on
-		boost::uint16_t port;
+		std::uint16_t port = 0;
 
 		// defaults to true. It means that hostnames should be attempted to be
 		// resolved through the proxy instead of using the local DNS service.
 		// This is only supported by SOCKS5 and HTTP.
-		bool proxy_hostnames;
+		bool proxy_hostnames = true;
 
 		// determines whether or not to exempt peer and web seed connections
 		// from using the proxy. This defaults to true, i.e. peer connections are
 		// proxied by default.
-		bool proxy_peer_connections;
+		bool proxy_peer_connections = true;
 
 		// if true, tracker connections are subject to the proxy settings
-		bool proxy_tracker_connections;
+		bool proxy_tracker_connections = true;
 	};
 
 
-}
-}
+}}
 
 #endif
-

@@ -1,25 +1,61 @@
+/*
+
+Copyright (c) 2003-2016, Arvid Norberg
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the distribution.
+    * Neither the name of the author nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
 #include "libtorrent/storage.hpp"
 #include "libtorrent/disk_io_job.hpp"
+#include "libtorrent/performance_counters.hpp"
 #include "test.hpp"
 
-#include <boost/atomic.hpp>
+#include <atomic>
 
-using namespace libtorrent;
+using namespace lt;
+
+using lt::aux::disk_job_fence;
 
 TORRENT_TEST(empty_fence)
 {
-	libtorrent::disk_job_fence fence;
+	disk_job_fence fence;
 	counters cnt;
 
 	disk_io_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
-	int ret = 0;
+	int ret_int = 0;
+	bool ret = false;
 	// add a fence job
-	ret = fence.raise_fence(&test_job[5], &test_job[6], cnt);
+	ret_int = fence.raise_fence(&test_job[5], &test_job[6], cnt);
 	// since we don't have any outstanding jobs
 	// we need to post this job
-	TEST_CHECK(ret == disk_job_fence::fence_post_fence);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_fence);
 
 	ret = fence.is_blocked(&test_job[7]);
 	TEST_CHECK(ret == true);
@@ -45,11 +81,12 @@ TORRENT_TEST(empty_fence)
 TORRENT_TEST(job_fence)
 {
 	counters cnt;
-	libtorrent::disk_job_fence fence;
+	disk_job_fence fence;
 
 	disk_io_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
+	int ret_int = 0;
 	bool ret = false;
 	TEST_CHECK(fence.num_outstanding_jobs() == 0);
 	ret = fence.is_blocked(&test_job[0]);
@@ -68,10 +105,10 @@ TORRENT_TEST(job_fence)
 	TEST_CHECK(fence.num_blocked() == 0);
 
 	// add a fence job
-	ret = fence.raise_fence(&test_job[5], &test_job[6], cnt);
+	ret_int = fence.raise_fence(&test_job[5], &test_job[6], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
-	TEST_CHECK(ret == disk_job_fence::fence_post_flush);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_flush);
 
 	ret = fence.is_blocked(&test_job[7]);
 	TEST_CHECK(ret == true);
@@ -118,12 +155,13 @@ TORRENT_TEST(job_fence)
 TORRENT_TEST(double_fence)
 {
 	counters cnt;
-	libtorrent::disk_job_fence fence;
+	disk_job_fence fence;
 
 	disk_io_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
-	int ret = 0;
+	int ret_int = 0;
+	bool ret = false;
 	TEST_CHECK(fence.num_outstanding_jobs() == 0);
 	ret = fence.is_blocked(&test_job[0]);
 	TEST_CHECK(ret == false);
@@ -141,16 +179,16 @@ TORRENT_TEST(double_fence)
 	TEST_CHECK(fence.num_blocked() == 0);
 
 	// add two fence jobs
-	ret = fence.raise_fence(&test_job[5], &test_job[6], cnt);
+	ret_int = fence.raise_fence(&test_job[5], &test_job[6], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
-	TEST_CHECK(ret == disk_job_fence::fence_post_flush);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_flush);
 
-	ret = fence.raise_fence(&test_job[7], &test_job[8], cnt);
+	ret_int = fence.raise_fence(&test_job[7], &test_job[8], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
-	TEST_CHECK(ret == disk_job_fence::fence_post_none);
-	fprintf(stderr, "ret: %d\n", ret);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_none);
+	std::printf("ret: %d\n", ret_int);
 
 	ret = fence.is_blocked(&test_job[9]);
 	TEST_CHECK(ret == true);

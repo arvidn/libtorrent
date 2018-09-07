@@ -34,16 +34,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PIECE_BLOCK_PROGRESS_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/units.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct piece_block_progress
 	{
+		constexpr static piece_index_t invalid_index{-1};
+
 		// the piece and block index
 		// determines exactly which
 		// part of the torrent that
 		// is currently being downloaded
-		int piece_index;
+		piece_index_t piece_index{invalid_index};
 		int block_index;
 		// the number of bytes we have received
 		// of this block
@@ -54,4 +57,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PIECE_BLOCK_PROGRESS_HPP_INCLUDED
-

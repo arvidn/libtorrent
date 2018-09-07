@@ -33,79 +33,158 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_INTERFACE_HPP
 #define TORRENT_DISK_INTERFACE_HPP
 
-#include <boost/function/function1.hpp>
-#include <boost/shared_ptr.hpp>
-
 #include "libtorrent/bdecode.hpp"
 
 #include <string>
+#include <memory>
 
-namespace libtorrent
-{
-	struct disk_io_job;
-	class piece_manager;
-	struct peer_request;
+#include "libtorrent/fwd.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/export.hpp"
+#include "libtorrent/storage_defs.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/flags.hpp"
+#include "libtorrent/session_types.hpp"
+
+namespace libtorrent {
+
 	struct disk_observer;
-	struct file_pool;
-	struct add_torrent_params;
-	struct cache_status;
+	struct counters;
+
+	struct storage_holder;
+
+	using file_open_mode_t = flags::bitfield_flag<std::uint8_t, struct file_open_mode_tag>;
+
+	// this is a bittorrent constant
+	constexpr int default_block_size = 0x4000;
+
+	namespace file_open_mode
+	{
+		// open the file for reading only
+		constexpr file_open_mode_t read_only{};
+
+		// open the file for writing only
+		constexpr file_open_mode_t write_only = 0_bit;
+
+		// open the file for reading and writing
+		constexpr file_open_mode_t read_write = 1_bit;
+
+		// the mask for the bits determining read or write mode
+		constexpr file_open_mode_t rw_mask = read_only | write_only | read_write;
+
+		// open the file in sparse mode (if supported by the
+		// filesystem).
+		constexpr file_open_mode_t sparse = 2_bit;
+
+		// don't update the access timestamps on the file (if
+		// supported by the operating system and filesystem).
+		// this generally improves disk performance.
+		constexpr file_open_mode_t no_atime = 3_bit;
+
+		// open the file for random access. This disables read-ahead
+		// logic
+		constexpr file_open_mode_t random_access = 5_bit;
+
+#if TORRENT_ABI_VERSION == 1
+		// prevent the file from being opened by another process
+		// while it's still being held open by this handle
+		constexpr file_open_mode_t TORRENT_DEPRECATED locked = 6_bit;
+#endif
+	}
+
+	// this contains information about a file that's currently open by the
+	// libtorrent disk I/O subsystem. It's associated with a single torrent.
+	struct TORRENT_EXPORT open_file_state
+	{
+		// the index of the file this entry refers to into the ``file_storage``
+		// file list of this torrent. This starts indexing at 0.
+		file_index_t file_index;
+
+		// ``open_mode`` is a bitmask of the file flags this file is currently
+		// opened with. These are the flags used in the ``file::open()`` function.
+		// The flags used in this bitfield are defined by the file_open_mode enum.
+		//
+		// Note that the read/write mode is not a bitmask. The two least significant bits are used
+		// to represent the read/write mode. Those bits can be masked out using the ``rw_mask`` constant.
+		file_open_mode_t open_mode;
+
+		// a (high precision) timestamp of when the file was last used.
+		time_point last_use;
+	};
+
+#if TORRENT_ABI_VERSION == 1
+	using pool_file_status = open_file_state;
+#endif
+
+	using disk_job_flags_t = flags::bitfield_flag<std::uint8_t, struct disk_job_flags_tag>;
 
 	struct TORRENT_EXTRA_EXPORT disk_interface
 	{
-		virtual void async_read(piece_manager* storage, peer_request const& r
-			, boost::function<void(disk_io_job const*)> const& handler, void* requester
-			, int flags = 0) = 0;
-		virtual void async_write(piece_manager* storage, peer_request const& r
-			, disk_buffer_holder& buffer
-			, boost::function<void(disk_io_job const*)> const& handler
-			, int flags = 0) = 0;
-		virtual void async_hash(piece_manager* storage, int piece, int flags
-			, boost::function<void(disk_io_job const*)> const& handler, void* requester) = 0;
-		virtual void async_move_storage(piece_manager* storage, std::string const& p, int flags
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-		virtual void async_release_files(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler
-			= boost::function<void(disk_io_job const*)>()) = 0;
-		virtual void async_check_fastresume(piece_manager* storage
-			, bdecode_node const* resume_data
-			, std::vector<std::string>& links
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual void async_cache_piece(piece_manager* storage, int piece
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-		virtual void async_finalize_file(piece_manager*, int file
-			, boost::function<void(disk_io_job const*)> const& handler
-			= boost::function<void(disk_io_job const*)>()) = 0;
-#endif
-		virtual void async_flush_piece(piece_manager* storage, int piece
-			, boost::function<void(disk_io_job const*)> const& handler
-			= boost::function<void(disk_io_job const*)>()) = 0;
-		virtual void async_stop_torrent(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler)= 0;
-		virtual void async_rename_file(piece_manager* storage, int index, std::string const& name
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-		virtual void async_delete_files(piece_manager* storage, int options
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-		virtual void async_save_resume_data(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-		virtual void async_set_file_priority(piece_manager* storage
-			, std::vector<boost::uint8_t> const& prio
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-		virtual void async_load_torrent(add_torrent_params* params
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-		virtual void async_tick_torrent(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
+		// force making a copy of the cached block, rather
+		// than getting a reference to the block already in
+		// the cache.
+		static constexpr disk_job_flags_t force_copy = 0_bit;
 
-		virtual void clear_read_cache(piece_manager* storage) = 0;
-		virtual void async_clear_piece(piece_manager* storage, int index
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-		virtual void clear_piece(piece_manager* storage, int index) = 0;
+		// hint that there may be more disk operations with sequential access to
+		// the file
+		static constexpr disk_job_flags_t sequential_access = 3_bit;
+
+		// don't keep the read block in cache
+		static constexpr disk_job_flags_t volatile_read = 4_bit;
+
+		// this flag is set on a job when a read operation did
+		// not hit the disk, but found the data in the read cache.
+		static constexpr disk_job_flags_t cache_hit = 5_bit;
+
+		virtual storage_holder new_torrent(storage_constructor_type sc
+			, storage_params p, std::shared_ptr<void> const&) = 0;
+		virtual void remove_torrent(storage_index_t) = 0;
+		virtual storage_interface* get_torrent(storage_index_t) = 0;
+
+		virtual void async_read(storage_index_t storage, peer_request const& r
+			, std::function<void(disk_buffer_holder block, disk_job_flags_t flags, storage_error const& se)> handler
+			, disk_job_flags_t flags = {}) = 0;
+		virtual bool async_write(storage_index_t storage, peer_request const& r
+			, char const* buf, std::shared_ptr<disk_observer> o
+			, std::function<void(storage_error const&)> handler
+			, disk_job_flags_t flags = {}) = 0;
+		virtual void async_hash(storage_index_t storage, piece_index_t piece, disk_job_flags_t flags
+			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) = 0;
+		virtual void async_move_storage(storage_index_t storage, std::string p, move_flags_t flags
+			, std::function<void(status_t, std::string const&, storage_error const&)> handler) = 0;
+		virtual void async_release_files(storage_index_t storage
+			, std::function<void()> handler = std::function<void()>()) = 0;
+		virtual void async_check_files(storage_index_t storage
+			, add_torrent_params const* resume_data
+			, aux::vector<std::string, file_index_t>& links
+			, std::function<void(status_t, storage_error const&)> handler) = 0;
+		virtual void async_flush_piece(storage_index_t storage, piece_index_t piece
+			, std::function<void()> handler = std::function<void()>()) = 0;
+		virtual void async_stop_torrent(storage_index_t storage
+			, std::function<void()> handler = std::function<void()>()) = 0;
+		virtual void async_rename_file(storage_index_t storage
+			, file_index_t index, std::string name
+			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) = 0;
+		virtual void async_delete_files(storage_index_t storage, remove_flags_t options
+			, std::function<void(storage_error const&)> handler) = 0;
+		virtual void async_set_file_priority(storage_index_t storage
+			, aux::vector<download_priority_t, file_index_t> prio
+			, std::function<void(storage_error const&, aux::vector<download_priority_t, file_index_t>)> handler) = 0;
+
+		virtual void async_clear_piece(storage_index_t storage, piece_index_t index
+			, std::function<void(piece_index_t)> handler) = 0;
+		virtual void clear_piece(storage_index_t storage, piece_index_t index) = 0;
 
 		virtual void update_stats_counters(counters& c) const = 0;
-		virtual void get_cache_info(cache_status* ret, bool no_pieces = true
-			, piece_manager const* storage = 0) const = 0;
+		virtual void get_cache_info(cache_status* ret, storage_index_t storage
+			, bool no_pieces = true, bool session = true) const = 0;
 
-		virtual file_pool& files() = 0;
+		virtual std::vector<open_file_state> get_status(storage_index_t) const = 0;
+
+		virtual void submit_jobs() = 0;
 
 #if TORRENT_USE_ASSERTS
 		virtual bool is_disk_buffer(char* buffer) const = 0;
@@ -113,7 +192,56 @@ namespace libtorrent
 	protected:
 		~disk_interface() {}
 	};
+
+	struct storage_holder
+	{
+		storage_holder() = default;
+		storage_holder(storage_index_t idx, disk_interface& disk_io)
+			: m_disk_io(&disk_io)
+			, m_idx(idx)
+		{}
+		~storage_holder()
+		{
+			if (m_disk_io) m_disk_io->remove_torrent(m_idx);
+		}
+
+		explicit operator bool() const { return m_disk_io != nullptr; }
+
+		operator storage_index_t() const
+		{
+			TORRENT_ASSERT(m_disk_io);
+			return m_idx;
+		}
+
+		void reset()
+		{
+			if (m_disk_io) m_disk_io->remove_torrent(m_idx);
+			m_disk_io = nullptr;
+		}
+
+		storage_holder(storage_holder const&) = delete;
+		storage_holder& operator=(storage_holder const&) = delete;
+
+		storage_holder(storage_holder&& rhs) noexcept
+			: m_disk_io(rhs.m_disk_io)
+			, m_idx(rhs.m_idx)
+		{
+				rhs.m_disk_io = nullptr;
+		}
+
+		storage_holder& operator=(storage_holder&& rhs) noexcept
+		{
+			if (m_disk_io) m_disk_io->remove_torrent(m_idx);
+			m_disk_io = rhs.m_disk_io;
+			m_idx = rhs.m_idx;
+			rhs.m_disk_io = nullptr;
+			return *this;
+		}
+	private:
+		disk_interface* m_disk_io = nullptr;
+		storage_index_t m_idx{0};
+	};
+
 }
 
 #endif
-

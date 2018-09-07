@@ -32,83 +32,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_status.hpp"
 
-namespace libtorrent
-{
-	torrent_status::torrent_status()
-		: error_file(torrent_status::error_file_none)
-		, next_announce(seconds(0))
-		, total_download(0)
-		, total_upload(0)
-		, total_payload_download(0)
-		, total_payload_upload(0)
-		, total_failed_bytes(0)
-		, total_redundant_bytes(0)
-		, total_done(0)
-		, total_wanted_done(0)
-		, total_wanted(0)
-		, all_time_upload(0)
-		, all_time_download(0)
-		, added_time(0)
-		, completed_time(0)
-		, last_seen_complete(0)
-		, storage_mode(storage_mode_sparse)
-		, progress(0.f)
-		, progress_ppm(0)
-		, queue_position(0)
-		, download_rate(0)
-		, upload_rate(0)
-		, download_payload_rate(0)
-		, upload_payload_rate(0)
-		, num_seeds(0)
-		, num_peers(0)
-		, num_complete(-1)
-		, num_incomplete(-1)
-		, list_seeds(0)
-		, list_peers(0)
-		, connect_candidates(0)
-		, num_pieces(0)
-		, distributed_full_copies(0)
-		, distributed_fraction(0)
-		, distributed_copies(0.f)
-		, block_size(0)
-		, num_uploads(0)
-		, num_connections(0)
-		, uploads_limit(0)
-		, connections_limit(0)
-		, up_bandwidth_queue(0)
-		, down_bandwidth_queue(0)
-		, time_since_upload(0)
-		, time_since_download(0)
-		, active_time(0)
-		, finished_time(0)
-		, seeding_time(0)
-		, seed_rank(0)
-		, last_scrape(0)
-		, priority(0)
-		, state(checking_resume_data)
-		, need_save_resume(false)
-		, ip_filter_applies(true)
-		, upload_mode(false)
-		, share_mode(false)
-		, super_seeding(false)
-		, paused(false)
-		, auto_managed(false)
-		, sequential_download(false)
-		, is_seeding(false)
-		, is_finished(false)
-		, has_metadata(false)
-		, has_incoming(false)
-		, seed_mode(false)
-		, moving_storage(false)
-		, is_loaded(true)
-		, announcing_to_trackers(false)
-		, announcing_to_lsd(false)
-		, announcing_to_dht(false)
-		, stop_when_ready(false)
-		, info_hash(0)
-	{}
+namespace libtorrent {
 
-	torrent_status::~torrent_status() {}
+	file_index_t constexpr torrent_status::error_file_none;
+	file_index_t constexpr torrent_status::error_file_ssl_ctx;
+	file_index_t constexpr torrent_status::error_file_exception;
+	file_index_t constexpr torrent_status::error_file_partfile;
 
+#if TORRENT_ABI_VERSION == 1
+	file_index_t constexpr torrent_status::error_file_url;
+	file_index_t constexpr torrent_status::error_file_metadata;
+#endif
+
+	torrent_status::torrent_status() noexcept {}
+	torrent_status::~torrent_status() = default;
+	torrent_status::torrent_status(torrent_status const&) = default;
+	torrent_status& torrent_status::operator=(torrent_status const&) = default;
+	torrent_status::torrent_status(torrent_status&&) noexcept = default;
+	torrent_status& torrent_status::operator=(torrent_status&&) = default;
+
+	static_assert(std::is_nothrow_move_constructible<torrent_status>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_default_constructible<torrent_status>::value
+		, "should be nothrow default constructible");
 }
-

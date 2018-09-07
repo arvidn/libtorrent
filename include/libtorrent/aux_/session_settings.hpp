@@ -33,58 +33,72 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_AUX_SESSION_SETTINGS_HPP_INCLUDED
 #define TORRENT_AUX_SESSION_SETTINGS_HPP_INCLUDED
 
-#include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/assert.hpp"
 
 #include <string>
+#include <array>
+#include <bitset>
 
-namespace libtorrent
-{
-	struct settings_pack;
+namespace libtorrent {
+
 	TORRENT_EXTRA_EXPORT void initialize_default_settings(aux::session_settings& s);
 }
 
-namespace libtorrent { namespace aux
-{
-
-#define SET(type) \
-	TORRENT_ASSERT((name & settings_pack::type_mask) == settings_pack:: type ## _type_base); \
-	if ((name & settings_pack::type_mask) != settings_pack:: type ## _type_base) return; \
-	m_ ## type ## s[name - settings_pack:: type ## _type_base] = value
-
-#define GET(type, default_val) \
-	TORRENT_ASSERT((name & settings_pack::type_mask) == settings_pack:: type ## _type_base); \
-	if ((name & settings_pack::type_mask) != settings_pack:: type ## _type_base) return default_val; \
-	return m_ ## type ## s[name - settings_pack:: type ## _type_base]
+namespace libtorrent { namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT session_settings
 	{
-		friend void libtorrent::save_settings_to_dict(
+		friend TORRENT_EXTRA_EXPORT void libtorrent::save_settings_to_dict(
 			aux::session_settings const& s, entry::dictionary_type& sett);
 
-		void set_str(int name, std::string const& value) { SET(string); }
-		std::string const& get_str(int name) const { GET(string, m_strings[0]); }
-		void set_int(int name, int value) { SET(int); }
-		int get_int(int name) const { GET(int, 0); }
-		void set_bool(int name, bool value) { SET(bool); }
-		bool get_bool(int name) const { GET(bool, false); }
+		void set_str(int name, std::string value)
+		{ set<std::string>(m_strings, name, std::move(value), settings_pack::string_type_base); }
+		void set_int(int name, int value)
+		{ set<int>(m_ints, name, value, settings_pack::int_type_base); }
+		void set_bool(int name, bool value)
+		{ set<bool>(m_bools, name, value, settings_pack::bool_type_base); }
+
+		std::string const& get_str(int name) const
+		{ return get<std::string const&>(m_strings, name, settings_pack::string_type_base); }
+		int get_int(int name) const
+		{ return get<int>(m_ints, name, settings_pack::int_type_base); }
+		bool get_bool(int name) const
+		{ return get<bool>(m_bools, name, settings_pack::bool_type_base); }
 
 		session_settings();
-		session_settings(settings_pack const&);
+		explicit session_settings(settings_pack const&);
 
 	private:
-		std::string m_strings[settings_pack::num_string_settings];
-		int m_ints[settings_pack::num_int_settings];
-		// TODO: make this a bitfield
-		bool m_bools[settings_pack::num_bool_settings];
-	};
 
-#undef GET
-#undef SET
+		template <typename T, typename Container>
+		void set(Container& c, int const name, T val
+			, int const type) const
+		{
+			TORRENT_ASSERT((name & settings_pack::type_mask) == type);
+			if ((name & settings_pack::type_mask) != type) return;
+			size_t const index = name & settings_pack::index_mask;
+			TORRENT_ASSERT(index < c.size());
+			c[index] = std::move(val);
+		}
+
+		template <typename T, typename Container>
+		T get(Container const& c, int const name, int const type) const
+		{
+			static typename std::remove_reference<T>::type empty;
+			TORRENT_ASSERT((name & settings_pack::type_mask) == type);
+			if ((name & settings_pack::type_mask) != type) return empty;
+			size_t const index = name & settings_pack::index_mask;
+			TORRENT_ASSERT(index < c.size());
+			return c[index];
+		}
+
+		std::array<std::string, settings_pack::num_string_settings> m_strings;
+		std::array<int, settings_pack::num_int_settings> m_ints;
+		std::bitset<settings_pack::num_bool_settings> m_bools;
+	};
 
 } }
 
 #endif
-

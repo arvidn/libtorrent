@@ -34,13 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent {
+
 	namespace {
 
 	char version_to_char(int const v)
 	{
 		if (v >= 0 && v < 10) return char('0' + v);
 		else if (v >= 10) return char('A' + (v - 10));
-		TORRENT_ASSERT(false);
+		TORRENT_ASSERT_FAIL();
 		return '0';
 	}
 
@@ -88,13 +89,13 @@ namespace libtorrent {
 		name[1] = id_string[1];
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	std::string fingerprint::to_string() const
 	{
 		return generate_fingerprint(std::string(name, 2), major_version, minor_version
 			, revision_version, tag_version);
 	}
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 }
 

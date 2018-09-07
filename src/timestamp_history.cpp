@@ -32,23 +32,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/timestamp_history.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent {
 
-enum
-{
-	TIME_MASK = 0xffffffff
-};
-// defined in utp_stream.cpp
-bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs
-	, boost::uint32_t mask);
+constexpr std::uint32_t TIME_MASK = 0xffffffff;
 
-boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
+// defined in utp_stream.cpp
+bool compare_less_wrap(std::uint32_t lhs, std::uint32_t rhs
+	, std::uint32_t mask);
+
+std::uint32_t timestamp_history::add_sample(std::uint32_t sample, bool step)
 {
 	if (!initialized())
 	{
-		for (int i = 0; i < history_size; ++i)
-			m_history[i] = sample;
+		m_history.fill(sample);
 		m_base = sample;
 		m_num_samples = 0;
 	}
@@ -70,7 +68,7 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 		m_history[m_index] = sample;
 	}
 
-	boost::uint32_t ret = sample - m_base;
+	std::uint32_t ret = sample - m_base;
 
 	// don't step base delay history unless we have at least 120
 	// samples. Anything less would suggest that the connection is
@@ -83,10 +81,10 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 		m_history[m_index] = sample;
 		// update m_base
 		m_base = sample;
-		for (int i = 0; i < history_size; ++i)
+		for (auto& h : m_history)
 		{
-			if (compare_less_wrap(m_history[i], m_base, TIME_MASK))
-				m_base = m_history[i];
+			if (compare_less_wrap(h, m_base, TIME_MASK))
+				m_base = h;
 		}
 	}
 	return ret;
@@ -95,12 +93,12 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 void timestamp_history::adjust_base(int change)
 {
 	TORRENT_ASSERT(initialized());
-	m_base += change;
+	m_base += aux::numeric_cast<std::uint32_t>(change);
 	// make sure this adjustment sticks by updating all history slots
-	for (int i = 0; i < history_size; ++i)
+	for (auto& h : m_history)
 	{
-		if (compare_less_wrap(m_history[i], m_base, TIME_MASK))
-			m_history[i] = m_base;
+		if (compare_less_wrap(h, m_base, TIME_MASK))
+			h = m_base;
 	}
 }
 

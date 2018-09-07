@@ -40,25 +40,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/aux_/openssl.hpp"
 
+#include <functional>
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
-#include <boost/bind.hpp>
 #include <boost/asio/ssl.hpp>
-
-// openssl seems to believe it owns
-// this name in every single scope
-#undef set_key
-
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
 #endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
 	namespace ssl {
+
 #if defined TORRENT_BUILD_SIMULATOR
 	using sim::asio::ssl::context;
 	using sim::asio::ssl::stream_base;
@@ -80,13 +74,13 @@ public:
 	{
 	}
 
-	typedef typename boost::asio::ssl::stream<Stream> sock_type;
-	typedef typename sock_type::next_layer_type next_layer_type;
-	typedef typename Stream::lowest_layer_type lowest_layer_type;
-	typedef typename Stream::endpoint_type endpoint_type;
-	typedef typename Stream::protocol_type protocol_type;
+	using sock_type = typename boost::asio::ssl::stream<Stream>;
+	using next_layer_type = typename sock_type::next_layer_type;
+	using lowest_layer_type = typename Stream::lowest_layer_type;
+	using endpoint_type = typename Stream::endpoint_type;
+	using protocol_type = typename Stream::protocol_type;
 #if BOOST_VERSION >= 106600
-	typedef typename sock_type::executor_type executor_type;
+	using executor_type = typename sock_type::executor_type;
 	executor_type get_executor() { return m_sock.get_executor(); }
 #endif
 
@@ -99,11 +93,9 @@ public:
 	void set_verify_callback(T const& fun, error_code& ec)
 	{ m_sock.set_verify_callback(fun, ec); }
 
-#if BOOST_VERSION >= 104700
 	SSL* native_handle() { return m_sock.native_handle(); }
-#endif
 
-	typedef boost::function<void(error_code const&)> handler_type;
+	using handler_type = std::function<void(error_code const&)>;
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
@@ -114,19 +106,21 @@ public:
 
 		// to avoid unnecessary copying of the handler,
 		// store it in a shared_ptr
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		auto h = std::make_shared<handler_type>(handler);
 
+		using std::placeholders::_1;
 		m_sock.next_layer().async_connect(endpoint
-			, boost::bind(&ssl_stream::connected, this, _1, h));
+			, std::bind(&ssl_stream::connected, this, _1, h));
 	}
 
 	template <class Handler>
 	void async_accept_handshake(Handler const& handler)
 	{
 		// this is used for accepting SSL connections
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		auto h = std::make_shared<handler_type>(handler);
+		using std::placeholders::_1;
 		m_sock.async_handshake(ssl::stream_base::server
-			, boost::bind(&ssl_stream::handshake, this, _1, h));
+			, std::bind(&ssl_stream::handshake, this, _1, h));
 	}
 
 	void accept_handshake(error_code& ec)
@@ -320,7 +314,7 @@ public:
 
 private:
 
-	void connected(error_code const& e, boost::shared_ptr<handler_type> h)
+	void connected(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
@@ -328,11 +322,12 @@ private:
 			return;
 		}
 
+		using std::placeholders::_1;
 		m_sock.async_handshake(ssl::stream_base::client
-			, boost::bind(&ssl_stream::handshake, this, _1, h));
+			, std::bind(&ssl_stream::handshake, this, _1, h));
 	}
 
-	void handshake(error_code const& e, boost::shared_ptr<handler_type> h)
+	void handshake(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		(*h)(e);
 	}
@@ -345,4 +340,3 @@ private:
 #endif // TORRENT_USE_OPENSSL
 
 #endif
-

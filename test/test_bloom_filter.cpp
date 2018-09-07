@@ -34,9 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/sha1_hash.hpp"
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
-using namespace libtorrent;
+using namespace lt;
+
+namespace {
 
 void test_set_and_get()
 {
@@ -65,43 +67,43 @@ void test_set_and_get()
 
 void test_set_bits()
 {
-	boost::uint8_t bits[4] = {0x00, 0x00, 0x00, 0x00};
+	std::uint8_t bits[4] = {0x00, 0x00, 0x00, 0x00};
 
 	for (int i = 0; i < 4 * 8; ++i)
 	{
-		boost::uint8_t t[4] = { boost::uint8_t(i & 0xff), 0, boost::uint8_t(i & 0xff), 0 };
+		std::uint8_t t[4] = { std::uint8_t(i & 0xff), 0, std::uint8_t(i & 0xff), 0 };
 		TEST_CHECK(!has_bits(t, bits, 6));
 	}
 
 	for (int i = 0; i < 4 * 8; i += 2)
 	{
-		boost::uint8_t t[4] = { boost::uint8_t(i & 0xff), 0, boost::uint8_t(i & 0xff), 0 };
+		std::uint8_t t[4] = { std::uint8_t(i & 0xff), 0, std::uint8_t(i & 0xff), 0 };
 		TEST_CHECK(!has_bits(t, bits, 4));
 		set_bits(t, bits, 4);
 		TEST_CHECK(has_bits(t, bits, 4));
 	}
 
-	boost::uint8_t compare[4] = { 0x55, 0x55, 0x55, 0x55};
+	std::uint8_t compare[4] = { 0x55, 0x55, 0x55, 0x55};
 	TEST_EQUAL(memcmp(compare, bits, 4), 0);
 }
 
 void test_count_zeroes()
 {
-	boost::uint8_t bits[4] = {0x00, 0xff, 0x55, 0xaa};
+	std::uint8_t bits[4] = {0x00, 0xff, 0x55, 0xaa};
 
 	TEST_EQUAL(count_zero_bits(bits, 4), 16);
 
-	boost::uint8_t t[4] = { 4, 0, 4, 0 };
+	std::uint8_t t[4] = { 4, 0, 4, 0 };
 	set_bits(t, bits, 4);
 	TEST_EQUAL(count_zero_bits(bits, 4), 15);
 
-	boost::uint8_t compare[4] = { 0x10, 0xff, 0x55, 0xaa};
+	std::uint8_t compare[4] = { 0x10, 0xff, 0x55, 0xaa};
 	TEST_EQUAL(memcmp(compare, bits, 4), 0);
 }
 
 void test_to_from_string()
 {
-	boost::uint8_t bits[4] = { 0x10, 0xff, 0x55, 0xaa};
+	std::uint8_t bits[4] = { 0x10, 0xff, 0x55, 0xaa};
 
 	bloom_filter<4> filter;
 	filter.from_string(reinterpret_cast<char*>(bits));
@@ -109,16 +111,18 @@ void test_to_from_string()
 	std::string bits_out = filter.to_string();
 	TEST_EQUAL(memcmp(bits_out.c_str(), bits, 4), 0);
 
-	sha1_hash k( "\x01\x00\x02\x00                ");
+	sha1_hash k("\x01\x00\x02\x00                ");
 	TEST_CHECK(!filter.find(k));
 	filter.set(k);
 	TEST_CHECK(filter.find(k));
 
-	boost::uint8_t compare[4] = { 0x16, 0xff, 0x55, 0xaa};
+	std::uint8_t compare[4] = { 0x16, 0xff, 0x55, 0xaa};
 
 	bits_out = filter.to_string();
 	TEST_EQUAL(memcmp(compare, bits_out.c_str(), 4), 0);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(bloom_filter)
 {
@@ -130,4 +134,3 @@ TORRENT_TEST(bloom_filter)
 	// TODO: test size()
 	// TODO: test clear()
 }
-

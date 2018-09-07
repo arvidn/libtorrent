@@ -30,123 +30,151 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISABLE_DHT
-
 #ifndef TORRENT_DHT_TRACKER
 #define TORRENT_DHT_TRACKER
 
-#include <fstream>
-#include <set>
-#include <numeric>
-#include <boost/bind.hpp>
-#include <boost/ref.hpp>
-#include <boost/smart_ptr/enable_shared_from_this.hpp>
+#include <functional>
 
-#include "libtorrent/kademlia/node.hpp"
-#include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/kademlia/traversal_algorithm.hpp"
-#include "libtorrent/kademlia/dos_blocker.hpp"
+#include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/dos_blocker.hpp>
+#include <libtorrent/kademlia/dht_state.hpp>
 
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/udp_socket.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include <libtorrent/aux_/listen_socket_handle.hpp>
+#include <libtorrent/socket.hpp>
+#include <libtorrent/deadline_timer.hpp>
+#include <libtorrent/span.hpp>
+#include <libtorrent/io_service.hpp>
+#include <libtorrent/udp_socket.hpp>
+#include <libtorrent/entry.hpp>
 
-namespace libtorrent
-{
-	namespace aux { struct session_impl; }
+namespace libtorrent {
+
 	struct counters;
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	struct session_status;
 #endif
 }
 
-namespace libtorrent { namespace dht
-{
-	struct dht_tracker;
+namespace libtorrent { namespace dht {
+	struct dht_settings;
 
-	struct dht_tracker TORRENT_FINAL
-		: udp_socket_interface
-		, udp_socket_observer
-		, boost::enable_shared_from_this<dht_tracker>
+	struct TORRENT_EXTRA_EXPORT dht_tracker final
+		: socket_manager
+		, std::enable_shared_from_this<dht_tracker>
 	{
-		dht_tracker(dht_observer* observer, rate_limited_udp_socket& sock
-			, dht_settings const& settings, counters& cnt
-			, dht_storage_constructor_type storage_constructor
-			, entry const& state);
-		virtual ~dht_tracker();
+		using send_fun_t = std::function<void(
+			aux::listen_socket_handle const&, udp::endpoint const&
+			, span<char const>, error_code&, udp_send_flags_t)>;
 
-		void start(entry const& bootstrap
-			, find_data::nodes_callback const& f);
+		dht_tracker(dht_observer* observer
+			, io_service& ios
+			, send_fun_t const& send_fun
+			, dht_settings const& settings
+			, counters& cnt
+			, dht_storage_interface& storage
+			, dht_state state);
+
+#if defined(_MSC_VER) && _MSC_VER < 1910
+		// workaround for a bug in msvc 14.0
+		// it attempts to generate a copy constructor for some strange reason
+		// and fails because tracker_node is not copyable
+		dht_tracker(dht_tracker const&) = delete;
+#endif
+
+		void start(find_data::nodes_callback const& f);
 		void stop();
 
 		// tell the node to recalculate its node id based on the current
 		// understanding of its external address (which may have changed)
-		void update_node_id();
+		void update_node_id(aux::listen_socket_handle const& s);
 
-		void add_node(udp::endpoint node);
+		void new_socket(aux::listen_socket_handle const& s);
+		void delete_socket(aux::listen_socket_handle const& s);
+
+		void add_node(udp::endpoint const& node);
 		void add_router_node(udp::endpoint const& node);
 
-		entry state() const;
+		dht_state state() const;
 
-		enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 		void get_peers(sha1_hash const& ih
-			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
-		void announce(sha1_hash const& ih, int listen_port, int flags
-			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
+			, std::function<void(std::vector<tcp::endpoint> const&)> f);
+		void announce(sha1_hash const& ih, int listen_port, announce_flags_t flags
+			, std::function<void(std::vector<tcp::endpoint> const&)> f);
+
+		void sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
+			, std::function<void(time_duration
+				, int, std::vector<sha1_hash>
+				, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f);
 
 		void get_item(sha1_hash const& target
-			, boost::function<void(item const&)> cb);
+			, std::function<void(item const&)> cb);
 
 		// key is a 32-byte binary string, the public key to look up.
 		// the salt is optional
-		void get_item(char const* key
-			, boost::function<void(item const&, bool)> cb
+		void get_item(public_key const& key
+			, std::function<void(item const&, bool)> cb
 			, std::string salt = std::string());
 
 		// for immutable_item.
 		// the callback function will be called when put operation is done.
 		// the int parameter indicates the success numbers of put operation.
 		void put_item(entry const& data
-			, boost::function<void(int)> cb);
+			, std::function<void(int)> cb);
 
 		// for mutable_item.
 		// the data_cb will be called when we get authoritative mutable_item,
 		// the cb is same as put immutable_item.
-		void put_item(char const* key
-			, boost::function<void(item const&, int)> cb
-			, boost::function<void(item&)> data_cb, std::string salt = std::string());
+		void put_item(public_key const& key
+			, std::function<void(item const&, int)> cb
+			, std::function<void(item&)> data_cb, std::string salt = std::string());
 
 		// send an arbitrary DHT request directly to a node
-		void direct_request(udp::endpoint ep, entry& e
-			, boost::function<void(msg const&)> f);
+		void direct_request(udp::endpoint const& ep, entry& e
+			, std::function<void(msg const&)> f);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		void dht_status(session_status& s);
 #endif
 		void dht_status(std::vector<dht_routing_bucket>& table
 			, std::vector<dht_lookup>& requests);
 		void update_stats_counters(counters& c) const;
 
-		// translate bittorrent kademlia message into the generic kademlia message
-		// used by the library
-		virtual bool incoming_packet(error_code const& ec
-			, udp::endpoint const&, char const* buf, int size);
+		void incoming_error(error_code const& ec, udp::endpoint const& ep);
+		bool incoming_packet(aux::listen_socket_handle const& s
+			, udp::endpoint const& ep, span<char const> buf);
+
+		std::vector<std::pair<node_id, udp::endpoint>> live_nodes(node_id const& nid);
 
 	private:
+		struct tracker_node
+		{
+			tracker_node(io_service& ios
+				, aux::listen_socket_handle const& s, socket_manager* sock
+				, dht_settings const& settings
+				, node_id const& nid
+				, dht_observer* observer, counters& cnt
+				, get_foreign_node_t get_foreign_node
+				, dht_storage_interface& storage);
+			tracker_node(tracker_node const&) = delete;
+			tracker_node(tracker_node&&) = default;
 
-		boost::shared_ptr<dht_tracker> self()
+			node dht;
+			deadline_timer connection_timer;
+		};
+		using tracker_nodes_t = std::map<aux::listen_socket_handle, tracker_node>;
+
+		std::shared_ptr<dht_tracker> self()
 		{ return shared_from_this(); }
 
-		void connection_timeout(error_code const& e);
+		void connection_timeout(aux::listen_socket_handle const& s, error_code const& e);
 		void refresh_timeout(error_code const& e);
 		void refresh_key(error_code const& e);
+		void update_storage_node_ids();
+		node* get_node(node_id const& id, std::string const& family_name);
 
-		// implements udp_socket_interface
-		virtual bool has_quota();
-		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr
-			, int send_flags);
+		// implements socket_manager
+		bool has_quota() override;
+		bool send_packet(aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) override;
 
 		// this is the bdecode_node DHT messages are parsed into. It's a member
 		// in order to avoid having to deallocate and re-allocate it for every
@@ -154,24 +182,28 @@ namespace libtorrent { namespace dht
 		bdecode_node m_msg;
 
 		counters& m_counters;
-		node m_dht;
-		rate_limited_udp_socket& m_sock;
-		dht_logger* m_log;
+		dht_storage_interface& m_storage;
+		dht_state m_state; // to be used only once
+		tracker_nodes_t m_nodes;
+		send_fun_t m_send_fun;
+		dht_observer* m_log;
 
 		std::vector<char> m_send_buf;
 		dos_blocker m_blocker;
 
 		deadline_timer m_key_refresh_timer;
-		deadline_timer m_connection_timer;
 		deadline_timer m_refresh_timer;
 		dht_settings const& m_settings;
 
-		bool m_abort;
+		bool m_running;
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
+
+		// state for the send rate limit
+		int m_send_quota;
+		time_point m_last_tick;
 	};
 }}
 
-#endif
 #endif

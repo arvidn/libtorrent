@@ -34,9 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
-const int proxy = libtorrent::settings_pack::http;
+const int proxy = lt::settings_pack::http;
 
 TORRENT_TEST(web_seed_http)
 {

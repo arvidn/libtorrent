@@ -31,68 +31,46 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/ip_filter.hpp"
-#include <boost/utility.hpp>
 
+namespace libtorrent {
 
-namespace libtorrent
-{
-	void ip_filter::add_rule(address first, address last, boost::uint32_t flags)
+	void ip_filter::add_rule(address const& first, address const& last, std::uint32_t flags)
 	{
 		if (first.is_v4())
 		{
 			TORRENT_ASSERT(last.is_v4());
 			m_filter4.add_rule(first.to_v4().to_bytes(), last.to_v4().to_bytes(), flags);
 		}
-#if TORRENT_USE_IPV6
 		else if (first.is_v6())
 		{
 			TORRENT_ASSERT(last.is_v6());
 			m_filter6.add_rule(first.to_v6().to_bytes(), last.to_v6().to_bytes(), flags);
 		}
-#endif
 		else
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FAIL();
 	}
 
-	int ip_filter::access(address const& addr) const
+	std::uint32_t ip_filter::access(address const& addr) const
 	{
 		if (addr.is_v4())
 			return m_filter4.access(addr.to_v4().to_bytes());
-#if TORRENT_USE_IPV6
 		TORRENT_ASSERT(addr.is_v6());
 		return m_filter6.access(addr.to_v6().to_bytes());
-#else
-		return 0;
-#endif
 	}
 
 	ip_filter::filter_tuple_t ip_filter::export_filter() const
 	{
-#if TORRENT_USE_IPV6
-		return boost::make_tuple(m_filter4.export_filter<address_v4>()
+		return std::make_tuple(m_filter4.export_filter<address_v4>()
 			, m_filter6.export_filter<address_v6>());
-#else
-		return m_filter4.export_filter<address_v4>();
-#endif
 	}
-	
-	void port_filter::add_rule(boost::uint16_t first, boost::uint16_t last, boost::uint32_t flags)
+
+	void port_filter::add_rule(std::uint16_t first, std::uint16_t last, std::uint32_t flags)
 	{
 		m_filter.add_rule(first, last, flags);
 	}
 
-	int port_filter::access(boost::uint16_t port) const
+	std::uint32_t port_filter::access(std::uint16_t port) const
 	{
 		return m_filter.access(port);
 	}
-/*
-	void ip_filter::print() const
-	{
-		for (range_t::iterator i =  m_access_list.begin(); i != m_access_list.end(); ++i)
-		{
-			std::cout << i->start.as_string() << " " << i->access << "\n";
-		}
-	}
-*/
 }
-

@@ -34,11 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/puff.hpp"
 #include "libtorrent/gzip.hpp"
 
-#include <vector>
 #include <string>
 
-namespace
-{
+namespace {
+
 	enum
 	{
 		FTEXT = 0x01,
@@ -54,14 +53,14 @@ namespace
 
 }
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct gzip_error_category : boost::system::error_category
 	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
+		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
+		std::string message(int ev) const override;
+		boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT override
+		{ return {ev, *this}; }
 	};
 
 	const char* gzip_error_category::name() const BOOST_SYSTEM_NOEXCEPT
@@ -69,7 +68,7 @@ namespace libtorrent
 		return "gzip error";
 	}
 
-	std::string gzip_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
+	std::string gzip_error_category::message(int ev) const
 	{
 		static char const* msgs[] =
 		{
@@ -101,39 +100,32 @@ namespace libtorrent
 		return category;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	boost::system::error_category& get_gzip_category()
-	{ return gzip_category(); }
-#endif
-
 	namespace gzip_errors
 	{
 		boost::system::error_code make_error_code(error_code_enum e)
 		{
-			return boost::system::error_code(e, gzip_category());
+			return {e, gzip_category()};
 		}
 	}
 
-	namespace
-	{
-	// returns -1 if gzip header is invalid or the header size in bytes
-	int gzip_header(const char* buf, int size)
-	{
-		TORRENT_ASSERT(buf != 0);
+namespace {
 
-		const unsigned char* buffer = reinterpret_cast<const unsigned char*>(buf);
-		const int total_size = size;
+	// returns -1 if gzip header is invalid or the header size in bytes
+	int gzip_header(span<char const> const in)
+	{
+		// The zip header cannot be shorter than 10 bytes
+		if (in.size() < 10) return -1;
+
+		span<unsigned char const> buffer(
+			reinterpret_cast<const unsigned char*>(in.data()), in.size());
 
 		// gzip is defined in https://tools.ietf.org/html/rfc1952
-
-		// The zip header cannot be shorter than 10 bytes
-		if (size < 10 || buf == 0) return -1;
 
 		// check the magic header of gzip
 		if ((buffer[0] != GZIP_MAGIC0) || (buffer[1] != GZIP_MAGIC1)) return -1;
 
-		int method = buffer[2];
-		int flags = buffer[3];
+		int const method = buffer[2];
+		int const flags = buffer[3];
 
 		// check for reserved flag and make sure it's compressed with the correct metod
 		// we only support deflate
@@ -144,63 +136,50 @@ namespace libtorrent
 		// |ID1|ID2|CM |FLG|     MTIME     |XFL|OS | (more-->)
 		// +---+---+---+---+---+---+---+---+---+---+
 
-		size -= 10;
-		buffer += 10;
+		buffer = buffer.subspan(10);
 
 		if (flags & FEXTRA)
 		{
-			int extra_len;
+			if (buffer.size() < 2) return -1;
 
-			if (size < 2) return -1;
-
-			extra_len = (buffer[1] << 8) | buffer[0];
-
-			if (size < (extra_len+2)) return -1;
-			size -= (extra_len + 2);
-			buffer += (extra_len + 2);
+			auto const extra_len = static_cast<std::size_t>((buffer[1] << 8) | buffer[0]);
+			if (buffer.size() < extra_len + 2) return -1;
+			buffer = buffer.subspan(extra_len + 2);
 		}
 
 		if (flags & FNAME)
 		{
-			while (size && *buffer)
+			if (buffer.empty()) return -1;
+			while (buffer[0] != 0)
 			{
-				--size;
-				++buffer;
+				buffer = buffer.subspan(1);
+				if (buffer.empty()) return -1;
 			}
-			if (!size || *buffer) return -1;
-
-			--size;
-			++buffer;
+			buffer = buffer.subspan(1);
 		}
 
 		if (flags & FCOMMENT)
 		{
-			while (size && *buffer)
+			if (buffer.empty()) return -1;
+			while (buffer[0] != 0)
 			{
-				--size;
-				++buffer;
+				buffer = buffer.subspan(1);
+				if (buffer.empty()) return -1;
 			}
-			if (!size || *buffer) return -1;
-
-			--size;
-			++buffer;
+			buffer = buffer.subspan(1);
 		}
 
 		if (flags & FHCRC)
 		{
-			if (size < 2) return -1;
-
-			size -= 2;
-//			buffer += 2;
+			if (buffer.size() < 2) return -1;
+			buffer = buffer.subspan(2);
 		}
 
-		return total_size - size;
+		return static_cast<int>(in.size() - buffer.size());
 	}
 	} // anonymous namespace
 
-	TORRENT_EXTRA_EXPORT void inflate_gzip(
-		char const* in
-		, int size
+	void inflate_gzip(span<char const> in
 		, std::vector<char>& buffer
 		, int maximum_size
 		, error_code& ec)
@@ -208,7 +187,7 @@ namespace libtorrent
 		ec.clear();
 		TORRENT_ASSERT(maximum_size > 0);
 
-		int header_len = gzip_header(in, size);
+		int const header_len = gzip_header(in);
 		if (header_len < 0)
 		{
 			ec = gzip_errors::invalid_gzip_header;
@@ -219,35 +198,37 @@ namespace libtorrent
 		// if needed
 		unsigned long destlen = 4096;
 		int ret = 0;
-		unsigned long srclen = size - header_len;
-		in += header_len;
+		in = in.subspan(static_cast<std::size_t>(header_len));
+		unsigned long srclen = std::uint32_t(in.size());
 
 		do
 		{
 			TORRENT_TRY {
 				buffer.resize(destlen);
-			} TORRENT_CATCH(std::exception&) {
+			} TORRENT_CATCH (std::exception const&) {
 				ec = errors::no_memory;
 				return;
 			}
 
-			ret = puff(reinterpret_cast<unsigned char*>(&buffer[0]), &destlen
-				, reinterpret_cast<const unsigned char*>(in), &srclen);
+			ret = puff(reinterpret_cast<unsigned char*>(buffer.data())
+				, &destlen
+				, reinterpret_cast<const unsigned char*>(in.data())
+				, &srclen);
 
 			// if the destination buffer wasn't large enough, double its
 			// size and try again. Unless it's already at its max, in which
 			// case we fail
 			if (ret == 1) // 1:  output space exhausted before completing inflate
 			{
-				if (destlen == boost::uint32_t(maximum_size))
+				if (destlen == std::uint32_t(maximum_size))
 				{
 					ec = gzip_errors::inflated_data_too_large;
 					return;
 				}
 
 				destlen *= 2;
-				if (destlen > boost::uint32_t(maximum_size))
-					destlen = maximum_size;
+				if (destlen > std::uint32_t(maximum_size))
+					destlen = std::uint32_t(maximum_size);
 			}
 		} while (ret == 1);
 
@@ -281,4 +262,3 @@ namespace libtorrent
 	}
 
 }
-

@@ -37,9 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "settings.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "setup_transfer.hpp" // for addr()
 
-namespace lt = libtorrent;
 using namespace sim;
+
+#ifndef TORRENT_DISABLE_DHT
 
 struct sim_config : sim::default_config
 {
@@ -77,7 +79,7 @@ TORRENT_TEST(dht_bootstrap)
 	pack.set_bool(lt::settings_pack::enable_natpmp, false);
 	pack.set_bool(lt::settings_pack::enable_dht, true);
 	sim::asio::io_service ios(sim, addr("10.0.0.1"));
-	boost::shared_ptr<lt::session> ses = boost::make_shared<lt::session>(pack, ios);
+	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, ios);
 
 	lt::deadline_timer timer(ios);
 	timer.expires_from_now(lt::seconds(10));
@@ -104,3 +106,6 @@ TORRENT_TEST(dht_bootstrap)
 	TEST_CHECK(a.dict_find_int_value("bs", -1) == 1);
 }
 
+#else
+TORRENT_TEST(disabled) {}
+#endif // TORRENT_DISABLE_DHT

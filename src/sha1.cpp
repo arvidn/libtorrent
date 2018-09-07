@@ -15,16 +15,17 @@ changelog at the end of the file.
 
 #include "libtorrent/sha1.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/detail/endian.hpp> // for BIG_ENDIAN and LITTLE_ENDIAN macros
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-typedef boost::uint32_t u32;
-typedef boost::uint8_t u8;
+namespace libtorrent {
 
-namespace libtorrent
-{
+namespace {
 
-namespace
-{
+using u32 = std::uint32_t;
+using u8 = std::uint8_t;
+
 	union CHAR64LONG16
 	{
 		u8 c[64];
@@ -61,15 +62,15 @@ namespace
 #pragma clang diagnostic pop
 #endif
 
-#define blk(i) (block->l[i&15] = rol(block->l[(i+13)&15]^block->l[(i+8)&15] \
-	^block->l[(i+2)&15]^block->l[i&15],1))
+#define blk(i) (block->l[(i)&15] = rol(block->l[((i)+13)&15]^block->l[((i)+8)&15] \
+	^block->l[((i)+2)&15]^block->l[(i)&15],1))
 
 // (R0+R1), R2, R3, R4 are the different operations used in SHA1
-#define R0(v,w,x,y,z,i) z+=((w&(x^y))^y)+BlkFun::apply(block, i)+0x5A827999+rol(v,5);w=rol(w,30);
-#define R1(v,w,x,y,z,i) z+=((w&(x^y))^y)+blk(i)+0x5A827999+rol(v,5);w=rol(w,30);
-#define R2(v,w,x,y,z,i) z+=(w^x^y)+blk(i)+0x6ED9EBA1+rol(v,5);w=rol(w,30);
-#define R3(v,w,x,y,z,i) z+=(((w|x)&y)|(w&x))+blk(i)+0x8F1BBCDC+rol(v,5);w=rol(w,30);
-#define R4(v,w,x,y,z,i) z+=(w^x^y)+blk(i)+0xCA62C1D6+rol(v,5);w=rol(w,30);
+#define R0(v,w,x,y,z,i) z+=(((w)&((x)^(y)))^(y))+BlkFun::apply(block, i)+0x5A827999+rol(v,5);(w)=rol(w,30);
+#define R1(v,w,x,y,z,i) z+=(((w)&((x)^(y)))^(y))+blk(i)+0x5A827999+rol(v,5);(w)=rol(w,30);
+#define R2(v,w,x,y,z,i) z+=((w)^(x)^(y))+blk(i)+0x6ED9EBA1+rol(v,5);(w)=rol(w,30);
+#define R3(v,w,x,y,z,i) z+=((((w)|(x))&(y))|((w)&(x)))+blk(i)+0x8F1BBCDC+rol(v,5);(w)=rol(w,30);
+#define R4(v,w,x,y,z,i) z+=((w)^(x)^(y))+blk(i)+0xCA62C1D6+rol(v,5);(w)=rol(w,30);
 
 	// Hash a single 512-bit block. This is the core of the algorithm.
 	template <class BlkFun>
@@ -118,10 +119,10 @@ namespace
 	}
 
 #ifdef VERBOSE
-	void SHAPrintContext(sha_ctx *context, char *msg)
+	void SHAPrintContext(sha1_ctx *context, char *msg)
 	{
 		using namespace std;
-		printf("%s (%d,%d) %x %x %x %x %x\n"
+		std::printf("%s (%d,%d) %x %x %x %x %x\n"
 			, msg, (unsigned int)context->count[0]
 			, (unsigned int)context->count[1]
 			, (unsigned int)context->state[0]
@@ -133,10 +134,10 @@ namespace
 #endif
 
 	template <class BlkFun>
-	void internal_update(sha_ctx* context, u8 const* data, u32 len)
+	void internal_update(sha1_ctx* context, u8 const* data, size_t len)
 	{
 		using namespace std;
-		u32 i, j;	// JHB
+		size_t i, j;	// JHB
 
 #ifdef VERBOSE
 		SHAPrintContext(context, "before");
@@ -175,7 +176,7 @@ namespace
 
 // SHA1Init - Initialize new context
 
-void SHA1_init(sha_ctx* context)
+void SHA1_init(sha1_ctx* context)
 {
     // SHA1 initialization constants
     context->state[0] = 0x67452301;
@@ -189,7 +190,7 @@ void SHA1_init(sha_ctx* context)
 
 // Run your data through this.
 
-void SHA1_update(sha_ctx* context, u8 const* data, u32 len)
+void SHA1_update(sha1_ctx* context, u8 const* data, size_t len)
 {
 	// GCC standard defines for endianness
 	// test with: cpp -dM /dev/null
@@ -210,7 +211,7 @@ void SHA1_update(sha_ctx* context, u8 const* data, u32 len)
 
 // Add padding and return the message digest.
 
-void SHA1_final(u8* digest, sha_ctx* context)
+void SHA1_final(u8* digest, sha1_ctx* context)
 {
 	u8 finalcount[8];
 
@@ -239,7 +240,7 @@ void SHA1_final(u8* digest, sha_ctx* context)
 /************************************************************
 
 -----------------
-Modified 7/98 
+Modified 7/98
 By James H. Brown <jbrown@burgoyne.com>
 Still 100% Public Domain
 
@@ -261,7 +262,7 @@ Since the file IO in main() reads 16K at a time, any file 8K or larger would
 be guaranteed to generate the wrong hash (e.g. Test Vector #3, a million
 "a"s).
 
-I also changed the declaration of variables i & j in SHA1Update to 
+I also changed the declaration of variables i & j in SHA1Update to
 unsigned long from unsigned int for the same reason.
 
 These changes should make no difference to any 32 bit implementations since
@@ -288,7 +289,7 @@ Still 100% public domain
 Modified 4/01
 By Saul Kravitz <Saul.Kravitz@celera.com>
 Still 100% PD
-Modified to run on Compaq Alpha hardware.  
+Modified to run on Compaq Alpha hardware.
 
 -----------------
 Converted to C++ 6/04

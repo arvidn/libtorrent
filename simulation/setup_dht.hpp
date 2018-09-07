@@ -35,19 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SETUP_DHT_HPP_INCLUDED
 
 #include <vector>
-#include "libtorrent/session_settings.hpp" // for dht_settings
+#include "libtorrent/kademlia/dht_settings.hpp" // for dht_settings
 #include "libtorrent/performance_counters.hpp" // for counters
-
-namespace lt = libtorrent;
+#include "libtorrent/alert_types.hpp" // for dht_routing_bucket
 
 namespace sim
 {
 	struct simulation;
-}
-
-namespace libtorrent
-{
-	struct dht_routing_bucket;
 }
 
 struct dht_node;
@@ -56,7 +50,13 @@ void print_routing_table(std::vector<lt::dht_routing_bucket> const& rt);
 
 struct dht_network
 {
-	dht_network(sim::simulation& sim, int num_nodes);
+	enum flags_t
+	{
+		add_dead_nodes = 1,
+		bind_ipv6 = 2
+	};
+
+	dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flags = 0);
 	~dht_network();
 
 	void stop();
@@ -66,8 +66,8 @@ private:
 
 	// used for all the nodes in the network
 	lt::counters m_cnt;
-	lt::dht_settings m_sett;
-	std::vector<dht_node> m_nodes;
+	lt::dht::dht_settings m_sett;
+	std::list<dht_node> m_nodes;
 };
 
 #endif

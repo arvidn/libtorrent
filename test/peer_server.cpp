@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/thread.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/address.hpp"
@@ -42,57 +41,56 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "peer_server.hpp"
 #include "test_utils.hpp"
 
-#include <boost/detail/atomic_count.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
+#include <functional>
+#include <thread>
+#include <atomic>
+#include <condition_variable>
+#include <memory>
 
-using namespace libtorrent;
+using namespace lt;
+using namespace std::placeholders;
 
 struct peer_server
 {
+	lt::io_service m_ios;
+	std::atomic<int> m_peer_requests{0};
+	tcp::acceptor m_acceptor{m_ios};
+	int m_port = 0;
 
-	libtorrent::io_service m_ios;
-	boost::detail::atomic_count m_peer_requests;
-	tcp::acceptor m_acceptor;
-	int m_port;
-
-	boost::shared_ptr<libtorrent::thread> m_thread;
+	std::shared_ptr<std::thread> m_thread;
 
 	peer_server()
-		: m_peer_requests(0)
-		, m_acceptor(m_ios)
-		, m_port(0)
 	{
 		error_code ec;
 		m_acceptor.open(tcp::v4(), ec);
 		if (ec)
 		{
-			fprintf(stderr, "PEER Error opening peer listen socket: %s\n", ec.message().c_str());
+			std::printf("PEER Error opening peer listen socket: %s\n", ec.message().c_str());
 			return;
 		}
 
 		m_acceptor.bind(tcp::endpoint(address_v4::any(), 0), ec);
 		if (ec)
 		{
-			fprintf(stderr, "PEER Error binding peer socket to port 0: %s\n", ec.message().c_str());
+			std::printf("PEER Error binding peer socket to port 0: %s\n", ec.message().c_str());
 			return;
 		}
 		m_port = m_acceptor.local_endpoint(ec).port();
 		if (ec)
 		{
-			fprintf(stderr, "PEER Error getting local endpoint of peer socket: %s\n", ec.message().c_str());
+			std::printf("PEER Error getting local endpoint of peer socket: %s\n", ec.message().c_str());
 			return;
 		}
 		m_acceptor.listen(10, ec);
 		if (ec)
 		{
-			fprintf(stderr, "PEER Error listening on peer socket: %s\n", ec.message().c_str());
+			std::printf("PEER Error listening on peer socket: %s\n", ec.message().c_str());
 			return;
 		}
 
-		fprintf(stderr, "%s: PEER peer initialized on port %d\n", time_now_string(), m_port);
+		std::printf("%s: PEER peer initialized on port %d\n", time_now_string(), m_port);
 
-		m_thread.reset(new libtorrent::thread(boost::bind(&peer_server::thread_fun, this)));
+		m_thread = std::make_shared<std::thread>(&peer_server::thread_fun, this);
 	}
 
 	~peer_server()
@@ -120,9 +118,9 @@ struct peer_server
 			error_code ec;
 			tcp::endpoint from;
 			tcp::socket socket(m_ios);
-			condition_variable cond;
+			std::condition_variable cond;
 			bool done = false;
-			m_acceptor.async_accept(socket, from, boost::bind(&new_connection, _1, &ec, &done));
+			m_acceptor.async_accept(socket, from, std::bind(&new_connection, _1, &ec, &done));
 			while (!done)
 			{
 				m_ios.poll_one();
@@ -134,18 +132,22 @@ struct peer_server
 
 			if (ec)
 			{
-				fprintf(stderr, "PEER Error accepting connection on peer socket: %s\n", ec.message().c_str());
+				std::printf("PEER Error accepting connection on peer socket: %s\n", ec.message().c_str());
 				return;
 			}
 
-			fprintf(stderr, "%s: PEER incoming peer connection\n", time_now_string());
+			std::printf("%s: PEER incoming peer connection\n", time_now_string());
 			++m_peer_requests;
 			socket.close(ec);
 		}
 	}
 };
 
-boost::shared_ptr<peer_server> g_peer;
+namespace {
+
+std::shared_ptr<peer_server> g_peer;
+
+}
 
 int start_peer()
 {

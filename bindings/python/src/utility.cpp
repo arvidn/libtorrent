@@ -2,13 +2,19 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "boost_python.hpp"
 #include <libtorrent/identify_client.hpp>
 #include <libtorrent/bencode.hpp>
-#include "boost_python.hpp"
 #include "bytes.hpp"
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
+
+#ifdef _MSC_VER
+#pragma warning(push)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
 
 struct bytes_to_python
 {
@@ -36,7 +42,7 @@ struct bytes_from_python
 #if PY_MAJOR_VERSION >= 3
         return PyBytes_Check(x) ? x : NULL;
 #else
-        return PyString_Check(x) ? x : NULL;
+        return PyString_Check(x) ? x : nullptr;
 #endif
     }
 
@@ -58,7 +64,7 @@ struct bytes_from_python
     }
 };
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 object client_fingerprint_(peer_id const& id)
 {
     boost::optional<fingerprint> result = client_fingerprint(id);
@@ -84,11 +90,15 @@ void bind_utility()
     to_python_converter<bytes, bytes_to_python>();
     bytes_from_python();
 
-#ifndef TORRENT_NO_DEPRECATE
-    def("identify_client", &libtorrent::identify_client);
+#if TORRENT_ABI_VERSION == 1
+    def("identify_client", &lt::identify_client);
     def("client_fingerprint", &client_fingerprint_);
 #endif
     def("bdecode", &bdecode_);
     def("bencode", &bencode_);
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 

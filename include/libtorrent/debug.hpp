@@ -36,14 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
-#include <pthread.h>
+#if TORRENT_USE_ASSERTS
+#include <thread>
 #endif
 
 #if defined TORRENT_ASIO_DEBUGGING
 
-#include "libtorrent/assert.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -51,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <cstring>
 #include <deque>
+#include <mutex>
 
 #ifdef __MACH__
 #include <mach/task_info.h>
@@ -64,8 +63,8 @@ const mach_msg_type_number_t task_events_info_count = TASK_EVENTS_INFO_COUNT;
 
 std::string demangle(char const* name);
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct async_t
 	{
 		async_t() : refs(0) {}
@@ -76,27 +75,27 @@ namespace libtorrent
 	// defined in session_impl.cpp
 	extern std::map<std::string, async_t> _async_ops;
 	extern int _async_ops_nthreads;
-	extern mutex _async_ops_mutex;
+	extern std::mutex _async_ops_mutex;
 
 	// timestamp -> operation
 	struct wakeup_t
 	{
 		time_point timestamp;
-		boost::uint64_t context_switches;
+		std::uint64_t context_switches;
 		char const* operation;
 	};
 	extern std::deque<wakeup_t> _wakeups;
 
 	inline bool has_outstanding_async(char const* name)
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		std::map<std::string, async_t>::iterator i = _async_ops.find(name);
 		return i != _async_ops.end();
 	}
 
 	inline void add_outstanding_async(char const* name)
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		async_t& a = _async_ops[name];
 		if (a.stack.empty())
 		{
@@ -105,7 +104,7 @@ namespace libtorrent
 
 			// skip the stack frame of 'add_outstanding_async'
 			char* ptr = strchr(stack_text, '\n');
-			if (ptr != NULL) ++ptr;
+			if (ptr != nullptr) ++ptr;
 			else ptr = stack_text;
 			a.stack = ptr;
 		}
@@ -114,7 +113,7 @@ namespace libtorrent
 
 	inline void complete_async(char const* name)
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		async_t& a = _async_ops[name];
 		TORRENT_ASSERT(a.refs > 0);
 		--a.refs;
@@ -130,7 +129,7 @@ namespace libtorrent
 			mach_msg_type_number_t t_info_count = task_events_info_count;
 			task_info(mach_task_self(), TASK_EVENTS_INFO,
 				reinterpret_cast<task_info_t>(&teinfo), &t_info_count);
-			w.context_switches = teinfo.csw;
+			w.context_switches = static_cast<std::uint64_t>(teinfo.csw);
 #else
 			w.context_switches = 0;
 #endif
@@ -140,63 +139,68 @@ namespace libtorrent
 
 	inline void async_inc_threads()
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		++_async_ops_nthreads;
 	}
 
 	inline void async_dec_threads()
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		--_async_ops_nthreads;
 	}
 
 	inline int log_async()
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		int ret = 0;
 		for (std::map<std::string, async_t>::iterator i = _async_ops.begin()
 			, end(_async_ops.end()); i != end; ++i)
 		{
 			if (i->second.refs <= _async_ops_nthreads - 1) continue;
 			ret += i->second.refs;
-			printf("%s: (%d)\n%s\n", i->first.c_str(), i->second.refs, i->second.stack.c_str());
+			std::printf("%s: (%d)\n%s\n", i->first.c_str(), i->second.refs, i->second.stack.c_str());
 		}
 		return ret;
 	}
 }
 
+#define ADD_OUTSTANDING_ASYNC(x) add_outstanding_async(x)
+#define COMPLETE_ASYNC(x) complete_async(x)
+
+#else
+
+#define ADD_OUTSTANDING_ASYNC(x) do {} TORRENT_WHILE_0
+#define COMPLETE_ASYNC(x) do {} TORRENT_WHILE_0
+
 #endif // TORRENT_ASIO_DEBUGGING
 
-namespace libtorrent
-{
-#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
-	struct single_threaded
+namespace libtorrent {
+
+#if TORRENT_USE_ASSERTS
+	struct TORRENT_EXTRA_EXPORT single_threaded
 	{
-		single_threaded(): m_single_thread(0) {}
-		~single_threaded() { m_single_thread = 0; }
+		single_threaded(): m_id() {}
+		~single_threaded() { m_id = std::thread::id(); }
 		bool is_single_thread() const
 		{
-			if (m_single_thread == 0)
+			if (m_id == std::thread::id())
 			{
-				m_single_thread = pthread_self();
+				m_id = std::this_thread::get_id();
 				return true;
 			}
-			return m_single_thread == pthread_self();
+			return m_id == std::this_thread::get_id();
 		}
 		bool is_not_thread() const
 		{
-			if (m_single_thread == 0) return true;
-			return m_single_thread != pthread_self();
+			if (m_id == std::thread::id()) return true;
+			return m_id != std::this_thread::get_id();
 		}
 
 		void thread_started()
-		{ m_single_thread = pthread_self(); }
-
-		void transfer_ownership()
-		{ m_single_thread = 0; }
+		{ m_id = std::this_thread::get_id(); }
 
 	private:
-		mutable pthread_t m_single_thread;
+		mutable std::thread::id m_id;
 	};
 #else
 	struct single_threaded {
@@ -210,7 +214,7 @@ namespace libtorrent
 	struct increment_guard
 	{
 		int& m_cnt;
-		increment_guard(int& c) : m_cnt(c) { TORRENT_ASSERT(m_cnt >= 0); ++m_cnt; }
+		explicit increment_guard(int& c) : m_cnt(c) { TORRENT_ASSERT(m_cnt >= 0); ++m_cnt; }
 		~increment_guard() { --m_cnt; TORRENT_ASSERT(m_cnt >= 0); }
 	private:
 		increment_guard(increment_guard const&);
@@ -223,4 +227,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_DEBUG_HPP_INCLUDED
-

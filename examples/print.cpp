@@ -15,8 +15,8 @@
 
 #include "print.hpp"
 
-#include <stdlib.h> // for atoi
-#include <string.h> // for strlen
+#include <cstdlib> // for atoi
+#include <cstring> // for strlen
 #include <cmath>
 #include <algorithm> // for std::min
 #include <iterator> // for back_inserter
@@ -44,11 +44,11 @@ char const* esc(char const* code)
 std::string to_string(int v, int width)
 {
 	char buf[100];
-	snprintf(buf, sizeof(buf), "%*d", width, v);
+	std::snprintf(buf, sizeof(buf), "%*d", width, v);
 	return buf;
 }
 
-std::string add_suffix(float val, char const* suffix)
+std::string add_suffix_float(float val, char const* suffix)
 {
 	if (val < 0.001f)
 	{
@@ -67,7 +67,7 @@ std::string add_suffix(float val, char const* suffix)
 		if (std::fabs(val) < 1000.f) break;
 	}
 	char ret[100];
-	snprintf(ret, sizeof(ret), "%4.*f%s%s", val < 99 ? 1 : 0, val, prefix[i], suffix ? suffix : "");
+	std::snprintf(ret, sizeof(ret), "%4.*f%s%s", val < 99 ? 1 : 0, val, prefix[i], suffix ? suffix : "");
 	return ret;
 }
 
@@ -77,7 +77,7 @@ std::string color(std::string const& s, color_code c)
 	if (std::count(s.begin(), s.end(), ' ') == int(s.size())) return s;
 
 	char buf[1024];
-	snprintf(buf, sizeof(buf), "\x1b[3%dm%s\x1b[39m", c, s.c_str());
+	std::snprintf(buf, sizeof(buf), "\x1b[3%dm%s\x1b[39m", c, s.c_str());
 	return buf;
 }
 
@@ -93,7 +93,7 @@ std::string const& progress_bar(int progress, int width, color_code c
 	if (caption.empty())
 	{
 		char code[10];
-		snprintf(code, sizeof(code), "\x1b[3%dm", c);
+		std::snprintf(code, sizeof(code), "\x1b[3%dm", c);
 		bar = code;
 		std::fill_n(std::back_inserter(bar), progress_chars, fill);
 		std::fill_n(std::back_inserter(bar), width - progress_chars, bg);
@@ -116,11 +116,11 @@ std::string const& progress_bar(int progress, int width, color_code c
 
 		char str[256];
 		if (flags & progress_invert)
-			snprintf(str, sizeof(str), "\x1b[%sm\x1b[37m%s\x1b[4%d;3%dm%s\x1b[49;39m"
+			std::snprintf(str, sizeof(str), "\x1b[%sm\x1b[37m%s\x1b[4%d;3%dm%s\x1b[49;39m"
 				, background, caption.substr(0, progress_chars).c_str(), c, tc
 				, caption.substr(progress_chars).c_str());
 		else
-			snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[%sm\x1b[37m%s\x1b[49;39m"
+			std::snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[%sm\x1b[37m%s\x1b[49;39m"
 				, c, tc, caption.substr(0, progress_chars).c_str(), background
 				, caption.substr(progress_chars).c_str());
 		bar = str;
@@ -128,17 +128,86 @@ std::string const& progress_bar(int progress, int width, color_code c
 	return bar;
 }
 
-bool get_piece(libtorrent::bitfield const& p, int index)
+int get_piece(lt::bitfield const& p, int index)
 {
-	if (index < 0 || index >= p.size()) return false;
-	return p.get_bit(index);
+	if (index < 0 || index >= p.size()) return 0;
+	return p.get_bit(index) ? 1 : 0;
+}
+
+std::string const& piece_bar(lt::bitfield const& p, int width)
+{
+#ifdef _WIN32
+	int const table_size = 5;
+#else
+	int const table_size = 18;
+	width *= 2; // we only print one character for every two "slots"
+#endif
+
+	double const piece_per_char = p.size() / double(width);
+	static std::string bar;
+	bar.clear();
+	bar.reserve(width * 6);
+	bar += "[";
+	if (p.size() == 0)
+	{
+		for (int i = 0; i < width; ++i) bar += ' ';
+		bar += "]";
+		return bar;
+	}
+
+	// the [piece, piece + pieces_per_char) range is the pieces that are represented by each character
+	double piece = 0;
+
+	// we print two blocks at a time, so calculate the color in pair
+#ifndef _WIN32
+	int color[2];
+	int last_color[2] = { -1, -1};
+#endif
+
+	for (int i = 0; i < width; ++i, piece += piece_per_char)
+	{
+		int num_pieces = 0;
+		int num_have = 0;
+		int end = (std::max)(int(piece + piece_per_char), int(piece) + 1);
+		for (int k = int(piece); k < end; ++k, ++num_pieces)
+			if (p[k]) ++num_have;
+		int const c = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
+
+#ifndef _WIN32
+		color[i & 1] = c;
+
+		if ((i & 1) == 1)
+		{
+			// now, print color[0] and [1]
+			// bg determines whether we're settings foreground or background color
+			static int const bg[] = { 38, 48};
+			for (int i = 0; i < 2; ++i)
+			{
+				if (color[i] != last_color[i])
+				{
+					char buf[40];
+					std::snprintf(buf, sizeof(buf), "\x1b[%d;5;%dm", bg[i & 1], 232 + color[i]);
+					last_color[i] = color[i];
+					bar += buf;
+				}
+			}
+			bar += "\u258C";
+		}
+#else
+		static char const table[] = {' ', '\xb0', '\xb1', '\xb2', '\xdb'};
+		bar += table[c];
+#endif
+	}
+	bar += esc("0");
+	bar += "]";
+	return bar;
 }
 
 #ifndef _WIN32
 // this function uses the block characters that splits up the glyph in 4
 // segments and provide all combinations of a segment lit or not. This allows us
 // to print 4 pieces per character.
-std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
+std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 {
 	// print two rows of pieces at a time
 	int piece = 0;
@@ -179,7 +248,7 @@ std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
 			ret += chars[c];
 			piece += 2;
 		}
-		ret += '\n';
+		ret += "\x1b[K\n";
 		++*height;
 		piece += width * 2; // skip another row, as we've already printed it
 	}
@@ -188,7 +257,7 @@ std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
 #else
 // on MS-DOS terminals, we only have block characters for upper half and lower
 // half. This lets us print two pieces per character.
-std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
+std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 {
 	// print two rows of pieces at a time
 	int piece = 0;
@@ -227,10 +296,10 @@ void set_cursor_pos(int x, int y)
 {
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-	COORD c = {x, y};
+	COORD c = {SHORT(x), SHORT(y)};
 	SetConsoleCursorPosition(out, c);
 #else
-	printf("\033[%d;%dH", y + 1, x + 1);
+	std::printf("\033[%d;%dH", y + 1, x + 1);
 #endif
 }
 
@@ -246,7 +315,7 @@ void clear_screen()
 	FillConsoleOutputCharacter(out, ' ', si.dwSize.X * si.dwSize.Y, c, &n);
 	FillConsoleOutputAttribute(out, 0x7, si.dwSize.X * si.dwSize.Y, c, &n);
 #else
-	printf("\033[2J");
+	std::printf("\033[2J");
 #endif
 }
 
@@ -257,7 +326,7 @@ void clear_rows(int y1, int y2)
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
 
-	COORD c = {0, y1};
+	COORD c = {0, SHORT(y1)};
 	SetConsoleCursorPosition(out, c);
 	CONSOLE_SCREEN_BUFFER_INFO si;
 	GetConsoleScreenBufferInfo(out, &si);
@@ -267,46 +336,49 @@ void clear_rows(int y1, int y2)
 	FillConsoleOutputAttribute(out, 0x7, num_chars, c, &n);
 #else
 	for (int i = y1; i < y2; ++i)
-		printf("\033[%d;1H\033[2K", i + 1);
+		std::printf("\033[%d;1H\033[2K", i + 1);
 #endif
 }
 
-void terminal_size(int* terminal_width, int* terminal_height)
+std::pair<int, int> terminal_size()
 {
+	int width = 80;
+	int height = 50;
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO coninfo;
 	if (GetConsoleScreenBufferInfo(out, &coninfo))
 	{
-		*terminal_width = coninfo.dwSize.X;
-		*terminal_height = coninfo.srWindow.Bottom - coninfo.srWindow.Top;
+		width = coninfo.dwSize.X;
+		height = coninfo.srWindow.Bottom - coninfo.srWindow.Top;
 #else
 	int tty = open("/dev/tty", O_RDONLY);
 	if (tty < 0)
 	{
-		*terminal_width = 190;
-		*terminal_height = 100;
-		return;
+		width = 190;
+		height = 100;
+		return {width, height};
 	}
 	winsize size;
 	int ret = ioctl(tty, TIOCGWINSZ, reinterpret_cast<char*>(&size));
 	close(tty);
 	if (ret == 0)
 	{
-		*terminal_width = size.ws_col;
-		*terminal_height = size.ws_row;
+		width = size.ws_col;
+		height = size.ws_row;
 #endif
 
-		if (*terminal_width < 64)
-			*terminal_width = 64;
-		if (*terminal_height < 25)
-			*terminal_height = 25;
+		if (width < 64)
+			width = 64;
+		if (height < 25)
+			height = 25;
 	}
 	else
 	{
-		*terminal_width = 190;
-		*terminal_height = 100;
+		width = 190;
+		height = 100;
 	}
+	return {width, height};
 }
 
 #ifdef _WIN32
@@ -397,7 +469,7 @@ void print(char const* buf)
 	{
 		if (*buf == '\033' && buf[1] == '[')
 		{
-			WriteFile(out, start, buf - start, &written, NULL);
+			WriteFile(out, start, DWORD(buf - start), &written, nullptr);
 			buf += 2; // skip escape and '['
 			start = buf;
 			if (*buf == 0) break;
@@ -466,10 +538,9 @@ one_more:
 			++buf;
 		}
 	}
-	WriteFile(out, start, buf - start, &written, NULL);
+	WriteFile(out, start, DWORD(buf - start), &written, nullptr);
 
 #else
 	fputs(buf, stdout);
 #endif
 }
-

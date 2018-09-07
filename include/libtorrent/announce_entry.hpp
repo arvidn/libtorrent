@@ -34,42 +34,32 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ANNOUNCE_ENTRY_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp" // for time_point
+#include "libtorrent/fwd.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include "libtorrent/string_view.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 #include <string>
-#include <boost/cstdint.hpp>
+#include <cstdint>
+#include <vector>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+namespace libtorrent {
 
-namespace libtorrent
-{
-	namespace aux {
-		struct session_settings;
-	}
-
-	// this class holds information about one bittorrent tracker, as it
-	// relates to a specific torrent.
-	struct TORRENT_EXPORT announce_entry
+	// announces are sent to each tracker using every listen socket
+	// this class holds information about one listen socket for one tracker
+	struct TORRENT_EXPORT announce_endpoint
 	{
-		// constructs a tracker announce entry with ``u`` as the URL.
-		announce_entry(std::string const& u);
-		announce_entry();
-		~announce_entry();
-#if __cplusplus >= 201103L
-		announce_entry(announce_entry const&) = default;
-		announce_entry& operator=(announce_entry const&) = default;
+		friend class torrent;
+#if TORRENT_ABI_VERSION == 1
+		friend struct announce_entry;
+#else
+		friend struct v1_2::announce_entry;
 #endif
 
-		// tracker URL as it appeared in the torrent file
-		std::string url;
-
-		// the current ``&trackerid=`` argument passed to the tracker.
-		// this is optional and is normally empty (in which case no
-		// trackerid is sent).
-		std::string trackerid;
+		// internal
+		explicit announce_endpoint(aux::listen_socket_handle const& s);
 
 		// if this tracker has returned an error or warning message
 		// that message is stored here
@@ -79,21 +69,20 @@ namespace libtorrent
 		// this error code specifies what error occurred
 		error_code last_error;
 
-		// returns the number of seconds to the next announce on this tracker.
-		// ``min_announce_in()`` returns the number of seconds until we are
-		// allowed to force another tracker update with this tracker.
-		// 
-		// If the last time this tracker was contacted failed, ``last_error`` is
-		// the error code describing what error occurred.
-		int next_announce_in() const;
-		int min_announce_in() const;
+		// the local endpoint of the listen interface associated with this endpoint
+		tcp::endpoint local_endpoint;
 
 		// the time of next tracker announce
-		time_point next_announce;
+		time_point32 next_announce = (time_point32::min)();
 
 		// no announces before this time
-		time_point min_announce;
+		time_point32 min_announce = (time_point32::min)();
 
+	private:
+		// internal
+		aux::listen_socket_handle socket;
+
+	public:
 		// TODO: include the number of peers received from this tracker, at last
 		// announce
 
@@ -107,23 +96,79 @@ namespace libtorrent
 		// if this tracker has returned scrape data, these fields are filled in
 		// with valid numbers. Otherwise they are set to -1. the number of
 		// current downloaders
-		int scrape_incomplete;
-		int scrape_complete;
-		int scrape_downloaded;
+		int scrape_incomplete = -1;
+		int scrape_complete = -1;
 
-		// the tier this tracker belongs to
-		boost::uint8_t tier;
-
-		// the max number of failures to announce to this tracker in
-		// a row, before this tracker is not used anymore. 0 means unlimited
-		boost::uint8_t fail_limit;
+		int scrape_downloaded = -1;
 
 		// the number of times in a row we have failed to announce to this
 		// tracker.
-		boost::uint8_t fails:7;
+		std::uint8_t fails : 7;
 
 		// true while we're waiting for a response from the tracker.
-		bool updating:1;
+		bool updating : 1;
+
+		// set to true when we get a valid response from an announce
+		// with event=started. If it is set, we won't send start in the subsequent
+		// announces.
+		bool start_sent : 1;
+
+		// set to true when we send a event=completed.
+		bool complete_sent : 1;
+
+		// internal
+		bool triggered_manually : 1;
+
+		// reset announce counters and clears the started sent flag.
+		// The announce_endpoint will look like we've never talked to
+		// the tracker.
+		void reset();
+
+		// updates the failure counter and time-outs for re-trying.
+		// This is called when the tracker announce fails.
+		void failed(int backoff_ratio, seconds32 retry_interval = seconds32(0));
+
+		// returns true if we can announce to this tracker now.
+		// The current time is passed in as ``now``. The ``is_seed``
+		// argument is necessary because once we become a seed, we
+		// need to announce right away, even if the re-announce timer
+		// hasn't expired yet.
+		bool can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const;
+
+		// returns true if the last time we tried to announce to this
+		// tracker succeeded, or if we haven't tried yet.
+		bool is_working() const { return fails == 0; }
+	};
+
+TORRENT_VERSION_NAMESPACE_2
+
+	// this class holds information about one bittorrent tracker, as it
+	// relates to a specific torrent.
+	struct TORRENT_EXPORT announce_entry
+	{
+		// constructs a tracker announce entry with ``u`` as the URL.
+		explicit announce_entry(string_view u);
+		announce_entry();
+		~announce_entry();
+		announce_entry(announce_entry const&);
+		announce_entry& operator=(announce_entry const&);
+
+		// tracker URL as it appeared in the torrent file
+		std::string url;
+
+		// the current ``&trackerid=`` argument passed to the tracker.
+		// this is optional and is normally empty (in which case no
+		// trackerid is sent).
+		std::string trackerid;
+
+		std::vector<announce_endpoint> endpoints;
+
+		// the tier this tracker belongs to
+		std::uint8_t tier = 0;
+
+		// the max number of failures to announce to this tracker in
+		// a row, before this tracker is not used anymore. 0 means unlimited
+		std::uint8_t fail_limit = 0;
 
 		// flags for the source bitmask, each indicating where
 		// we heard about this tracker
@@ -131,7 +176,7 @@ namespace libtorrent
 		{
 			// the tracker was part of the .torrent file
 			source_torrent = 1,
-			// the tracker was added programatically via the add_troacker()_ function
+			// the tracker was added programmatically via the add_tracker() function
 			source_client = 2,
 			// the tracker was part of a magnet link
 			source_magnet_link = 4,
@@ -140,63 +185,54 @@ namespace libtorrent
 		};
 
 		// a bitmask specifying which sources we got this tracker from.
-		boost::uint8_t source:4;
+		std::uint8_t source:4;
 
 		// set to true the first time we receive a valid response
 		// from this tracker.
 		bool verified:1;
 
-		// set to true when we get a valid response from an announce
-		// with event=started. If it is set, we won't send start in the subsequent
-		// announces.
-		bool start_sent:1;
-
-		// set to true when we send a event=completed.
-		bool complete_sent:1;
-
-		// this is false the stats sent to this tracker will be 0
-		bool send_stats:1;
-
+#if TORRENT_ABI_VERSION == 1
+		// deprecated in 1.2
+		// all of these will be set to false or 0
+		// use the corresponding members in announce_endpoint
+		std::uint8_t TORRENT_DEPRECATED_MEMBER fails:7;
+		bool TORRENT_DEPRECATED_MEMBER send_stats:1;
+		bool TORRENT_DEPRECATED_MEMBER start_sent:1;
+		bool TORRENT_DEPRECATED_MEMBER complete_sent:1;
 		// internal
-		bool triggered_manually:1;
+		bool TORRENT_DEPRECATED_MEMBER triggered_manually:1;
+		bool TORRENT_DEPRECATED_MEMBER updating:1;
+#endif
 
 		// reset announce counters and clears the started sent flag.
 		// The announce_entry will look like we've never talked to
 		// the tracker.
 		void reset();
 
-		// updates the failure counter and time-outs for re-trying.
-		// This is called when the tracker announce fails.
-		void failed(aux::session_settings const& sett, int retry_interval = 0);
-
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 1.0
-		TORRENT_DEPRECATED
-		bool will_announce(time_point now) const
-		{
-			return now <= next_announce
-				&& (fails < fail_limit || fail_limit == 0)
-				&& !updating;
-		}
-#endif
-
+#if TORRENT_ABI_VERSION == 1
+		// deprecated in 1.2, use announce_endpoint::can_announce
 		// returns true if we can announce to this tracker now.
 		// The current time is passed in as ``now``. The ``is_seed``
 		// argument is necessary because once we become a seed, we
 		// need to announce right away, even if the re-announce timer
 		// hasn't expired yet.
-		bool can_announce(time_point now, bool is_seed) const;
+		TORRENT_DEPRECATED bool can_announce(time_point now, bool is_seed) const;
 
+		// deprecated in 1.2, use announce_endpoint::is_working
 		// returns true if the last time we tried to announce to this
 		// tracker succeeded, or if we haven't tried yet.
-		bool is_working() const
-		{ return fails == 0; }
+		TORRENT_DEPRECATED bool is_working() const;
+#endif
+
+		// internal
+		announce_endpoint* find_endpoint(aux::listen_socket_handle const& s);
 
 		// trims whitespace characters from the beginning of the URL.
 		void trim();
 	};
 
+TORRENT_VERSION_NAMESPACE_2_END
+
 }
 
 #endif
-

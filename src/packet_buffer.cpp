@@ -30,43 +30,28 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdlib.h> // free and calloc
-#include <new> // for bad_alloc
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/invariant_check.hpp"
 
 namespace libtorrent {
 
-	bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs
-		, boost::uint32_t mask);
-
-	packet_buffer_impl::packet_buffer_impl()
-		: m_storage(0)
-		, m_capacity(0)
-		, m_size(0)
-		, m_first(0)
-		, m_last(0)
-	{}
+	bool compare_less_wrap(std::uint32_t lhs, std::uint32_t rhs
+		, std::uint32_t mask);
 
 #if TORRENT_USE_INVARIANT_CHECKS
-	void packet_buffer_impl::check_invariant() const
+	void packet_buffer::check_invariant() const
 	{
 		int count = 0;
-		for (int i = 0; i < int(m_capacity); ++i)
+		for (index_type i = 0; i < m_capacity; ++i)
 		{
 			count += m_storage[i] ? 1 : 0;
 		}
-		TORRENT_ASSERT(count == int(m_size));
+		TORRENT_ASSERT(count == m_size);
 	}
 #endif
 
-	packet_buffer_impl::~packet_buffer_impl()
-	{
-		free(m_storage);
-	}
-
-	void* packet_buffer_impl::insert(index_type idx, void* value)
+	packet_ptr packet_buffer::insert(index_type idx, packet_ptr value)
 	{
 		INVARIANT_CHECK;
 
@@ -74,7 +59,7 @@ namespace libtorrent {
 		// you're not allowed to insert NULLs!
 		TORRENT_ASSERT(value);
 
-		if (value == 0) return remove(idx);
+		if (!value) return remove(idx);
 
 		if (m_size != 0)
 		{
@@ -83,7 +68,7 @@ namespace libtorrent {
 				// Index comes before m_first. If we have room, we can simply
 				// adjust m_first backward.
 
-				std::size_t free_space = 0;
+				std::uint32_t free_space = 0;
 
 				for (index_type i = (m_first - 1) & (m_capacity - 1);
 						i != (m_first & (m_capacity - 1)); i = (i - 1) & (m_capacity - 1))
@@ -121,72 +106,62 @@ namespace libtorrent {
 
 		if (m_capacity == 0) reserve(16);
 
-		void* old_value = m_storage[idx & (m_capacity - 1)];
-		m_storage[idx & (m_capacity - 1)] = value;
+		packet_ptr old_value = std::move(m_storage[idx & (m_capacity - 1)]);
+		m_storage[idx & (m_capacity - 1)] = std::move(value);
 
 		if (m_size == 0) m_first = idx;
 		// if we're just replacing an old value, the number
 		// of elements in the buffer doesn't actually increase
-		if (old_value == 0) ++m_size;
+		if (!old_value) ++m_size;
 
 		TORRENT_ASSERT_VAL(m_first <= 0xffff, m_first);
 		return old_value;
 	}
 
-	void* packet_buffer_impl::at(index_type idx) const
+	packet* packet_buffer::at(index_type idx) const
 	{
 		INVARIANT_CHECK;
 		if (idx >= m_first + m_capacity)
-			return 0;
+			return nullptr;
 
 		if (compare_less_wrap(idx, m_first, 0xffff))
-		{
-			return 0;
-		}
+			return nullptr;
 
-		const int mask = (m_capacity - 1);
-		return m_storage[idx & mask];
+		std::size_t const mask = m_capacity - 1;
+		return m_storage[idx & mask].get();
 	}
 
-	void packet_buffer_impl::reserve(std::size_t size)
+	void packet_buffer::reserve(std::uint32_t size)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT_VAL(size <= 0xffff, size);
-		std::size_t new_size = m_capacity == 0 ? 16 : m_capacity;
+		std::uint32_t new_size = m_capacity == 0 ? 16 : m_capacity;
 
 		while (new_size < size)
 			new_size <<= 1;
 
-		void** new_storage = static_cast<void**>(malloc(sizeof(void*) * new_size));
-#ifndef BOOST_NO_EXCEPTIONS
-		if (new_storage == NULL) throw std::bad_alloc();
-#endif
-
-		for (index_type i = 0; i < new_size; ++i)
-			new_storage[i] = 0;
+		aux::unique_ptr<packet_ptr[], index_type> new_storage(new packet_ptr[new_size]);
 
 		for (index_type i = m_first; i < (m_first + m_capacity); ++i)
-			new_storage[i & (new_size - 1)] = m_storage[i & (m_capacity - 1)];
+			new_storage[i & (new_size - 1)] = std::move(m_storage[i & (m_capacity - 1)]);
 
-		free(m_storage);
-
-		m_storage = new_storage;
+		m_storage = std::move(new_storage);
 		m_capacity = new_size;
 	}
 
-	void* packet_buffer_impl::remove(index_type idx)
+	packet_ptr packet_buffer::remove(index_type idx)
 	{
 		INVARIANT_CHECK;
 		// TODO: use compare_less_wrap for this comparison as well
 		if (idx >= m_first + m_capacity)
-			return 0;
+			return packet_ptr();
 
 		if (compare_less_wrap(idx, m_first, 0xffff))
-			return 0;
+			return packet_ptr();
 
-		const int mask = (m_capacity - 1);
-		void* old_value = m_storage[idx & mask];
-		m_storage[idx & mask] = 0;
+		std::size_t const mask = m_capacity - 1;
+		packet_ptr old_value = std::move(m_storage[idx & mask]);
+		m_storage[idx & mask].reset();
 
 		if (old_value)
 		{
@@ -197,7 +172,7 @@ namespace libtorrent {
 		if (idx == m_first && m_size != 0)
 		{
 			++m_first;
-			for (boost::uint32_t i = 0; i < m_capacity; ++i, ++m_first)
+			for (index_type i = 0; i < m_capacity; ++i, ++m_first)
 				if (m_storage[m_first & mask]) break;
 			m_first &= 0xffff;
 		}
@@ -205,7 +180,7 @@ namespace libtorrent {
 		if (((idx + 1) & 0xffff) == m_last && m_size != 0)
 		{
 			--m_last;
-			for (boost::uint32_t i = 0; i < m_capacity; ++i, --m_last)
+			for (index_type i = 0; i < m_capacity; ++i, --m_last)
 				if (m_storage[m_last & mask]) break;
 			++m_last;
 			m_last &= 0xffff;
@@ -214,6 +189,4 @@ namespace libtorrent {
 		TORRENT_ASSERT_VAL(m_first <= 0xffff, m_first);
 		return old_value;
 	}
-
 }
-

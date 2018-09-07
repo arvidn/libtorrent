@@ -2,9 +2,12 @@
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include "libtorrent/ed25519.hpp"
+#include "libtorrent/hasher512.hpp"
 #include "ge.h"
 #include "sc.h"
 
+namespace libtorrent
+{
 
 /* see http://crypto.stackexchange.com/a/6215/4697 */
 void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar) {
@@ -28,14 +31,25 @@ void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, c
     /* private key: a = n + t */
     if (private_key) {
         sc_muladd(private_key, SC_1, n, private_key);
+
+        // Fixed ed25519_add_scalar vulnerability.
+        // https://github.com/orlp/ed25519/commit/09ec167693edff9478b53d772487e94569cb58d0
+        // https://github.com/orlp/ed25519/issues/3
+        hasher512 hash;
+        hash.update({reinterpret_cast<char const*>(private_key) + 32, 32});
+        hash.update({reinterpret_cast<char const*>(scalar), 32});
+        sha512_hash hashbuf = hash.final();
+        for (i = 0; i < 32; ++i) {
+            private_key[32 + i] = hashbuf[i];
+        }
     }
 
     /* public key: A = nB + T */
     if (public_key) {
         /* if we know the private key we don't need a point addition, which is faster */
-        /* using a "timing attack" you could find out wether or not we know the private
+        /* using a "timing attack" you could find out whether or not we know the private
            key, but this information seems rather useless - if this is important pass
-           public_key and private_key seperately in 2 function calls */
+           public_key and private_key separately in 2 function calls */
         if (private_key) {
             ge_scalarmult_base(&A, private_key);
         } else {
@@ -56,4 +70,6 @@ void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, c
         /* pack public key */
         ge_p3_tobytes(public_key, &A);
     }
+}
+
 }

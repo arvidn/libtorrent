@@ -34,98 +34,74 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/node_entry.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_local et.al
-#include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/random.hpp" // for random
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/crc32c.hpp" // for crc32c
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric
 node_id distance(node_id const& n1, node_id const& n2)
 {
-	node_id ret;
-	node_id::iterator k = ret.begin();
-	// TODO: 3 the XORing should be done at full words instead of bytes
-	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
-		, end(n1.end()); i != end; ++i, ++j, ++k)
-	{
-		*k = *i ^ *j;
-	}
-	return ret;
+	return n1 ^ n2;
 }
 
 // returns true if: distance(n1, ref) < distance(n2, ref)
 bool compare_ref(node_id const& n1, node_id const& n2, node_id const& ref)
 {
-	// TODO: 3 the XORing should be done at full words instead of bytes
-	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
-		, k = ref.begin(), end(n1.end()); i != end; ++i, ++j, ++k)
-	{
-		boost::uint8_t lhs = (*i ^ *k);
-		boost::uint8_t rhs = (*j ^ *k);
-		if (lhs < rhs) return true;
-		if (lhs > rhs) return false;
-	}
-	return false;
+	node_id const lhs = n1 ^ ref;
+	node_id const rhs = n2 ^ ref;
+	return lhs < rhs;
 }
 
 // returns n in: 2^n <= distance(n1, n2) < 2^(n+1)
 // useful for finding out which bucket a node belongs to
 int distance_exp(node_id const& n1, node_id const& n2)
 {
-	// TODO: 3 the xoring should be done at full words and _builtin_clz() could
-	// be used as the last step
-	int byte = node_id::size - 1;
-	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
-		, end(n1.end()); i != end; ++i, ++j, --byte)
-	{
-		TORRENT_ASSERT(byte >= 0);
-		boost::uint8_t t = *i ^ *j;
-		if (t == 0) continue;
-		// we have found the first non-zero byte
-		// return the bit-number of the first bit
-		// that differs
-		int const bit = byte * 8;
-		for (int b = 7; b >= 0; --b)
-			if (t >= (1 << b)) return bit + b;
-		return bit;
-	}
-
-	return 0;
+	// TODO: it's a little bit weird to return 159 - leading zeroes. It should
+	// probably be 160 - leading zeroes, but all other code in here is tuned to
+	// this expectation now, and it doesn't really matter (other than complexity)
+	return std::max(159 - distance(n1, n2).count_leading_zeroes(), 0);
 }
 
-node_id generate_id_impl(address const& ip_, boost::uint32_t r)
+int min_distance_exp(node_id const& n1, std::vector<node_id> const& ids)
 {
-	boost::uint8_t* ip = 0;
+	TORRENT_ASSERT(ids.size() > 0);
 
-	static const boost::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
-#if TORRENT_USE_IPV6
-	static const boost::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
-#endif
-	boost::uint8_t const* mask = 0;
+	int min = 160; // see distance_exp for the why of this constant
+	for (auto const& node_id : ids)
+	{
+		min = std::min(min, distance_exp(n1, node_id));
+	}
+
+	return min;
+}
+
+node_id generate_id_impl(address const& ip_, std::uint32_t r)
+{
+	std::uint8_t* ip = nullptr;
+
+	static const std::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
+	static const std::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
+	std::uint8_t const* mask = nullptr;
 	int num_octets = 0;
 
-	address_v4::bytes_type b4;
-#if TORRENT_USE_IPV6
-	address_v6::bytes_type b6;
+	address_v4::bytes_type b4{};
+	address_v6::bytes_type b6{};
 	if (ip_.is_v6())
 	{
 		b6 = ip_.to_v6().to_bytes();
-		ip = &b6[0];
+		ip = b6.data();
 		num_octets = 8;
 		mask = v6mask;
 	}
 	else
-#endif
 	{
 		b4 = ip_.to_v4().to_bytes();
-		ip = &b4[0];
+		ip = b4.data();
 		num_octets = 4;
 		mask = v4mask;
 	}
@@ -136,49 +112,49 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	ip[0] |= (r & 0x7) << 5;
 
 	// this is the crc32c (Castagnoli) polynomial
-	boost::uint32_t c;
+	std::uint32_t c;
 	if (num_octets == 4)
 	{
-		c = crc32c_32(*reinterpret_cast<boost::uint32_t*>(ip));
+		c = crc32c_32(*reinterpret_cast<std::uint32_t*>(ip));
 	}
 	else
 	{
 		TORRENT_ASSERT(num_octets == 8);
-		c = crc32c(reinterpret_cast<boost::uint64_t*>(ip), 1);
+		c = crc32c(reinterpret_cast<std::uint64_t*>(ip), 1);
 	}
 	node_id id;
 
 	id[0] = (c >> 24) & 0xff;
 	id[1] = (c >> 16) & 0xff;
-	id[2] = ((c >> 8) & 0xf8) | (random() & 0x7);
+	id[2] = (((c >> 8) & 0xf8) | random(0x7)) & 0xff;
 
-	for (int i = 3; i < 19; ++i) id[i] = random() & 0xff;
+	for (std::size_t i = 3; i < 19; ++i) id[i] = random(0xff) & 0xff;
 	id[19] = r & 0xff;
 
 	return id;
 }
 
-static boost::uint32_t secret = 0;
+static std::uint32_t secret = 0;
 
 void make_id_secret(node_id& in)
 {
-	if (secret == 0) secret = (random() % 0xfffffffe) + 1;
+	if (secret == 0) secret = random(0xfffffffe) + 1;
 
-	boost::uint32_t rand = random();
+	std::uint32_t const rand = random(0xffffffff);
 
 	// generate the last 4 bytes as a "signature" of the previous 4 bytes. This
 	// lets us verify whether a hash came from this function or not in the future.
-	hasher h(reinterpret_cast<char*>(&secret), 4);
-	h.update(reinterpret_cast<char*>(&rand), 4);
-	sha1_hash secret_hash = h.final();
-	memcpy(&in[20-4], &secret_hash[0], 4);
-	memcpy(&in[20-8], &rand, 4);
+	hasher h(reinterpret_cast<char const*>(&secret), 4);
+	h.update(reinterpret_cast<char const*>(&rand), 4);
+	sha1_hash const secret_hash = h.final();
+	std::memcpy(&in[20 - 4], &secret_hash[0], 4);
+	std::memcpy(&in[20 - 8], &rand, 4);
 }
 
 node_id generate_random_id()
 {
 	char r[20];
-	for (int i = 0; i < 20; ++i) r[i] = random() & 0xff;
+	aux::random_bytes(r);
 	return hasher(r, 20).final();
 }
 
@@ -194,9 +170,9 @@ bool verify_secret_id(node_id const& nid)
 	if (secret == 0) return false;
 
 	hasher h(reinterpret_cast<char*>(&secret), 4);
-	h.update(reinterpret_cast<char const*>(&nid[20-8]), 4);
+	h.update(reinterpret_cast<char const*>(&nid[20 - 8]), 4);
 	sha1_hash secret_hash = h.final();
-	return memcmp(&nid[20-4], &secret_hash[0], 4) == 0;
+	return std::memcmp(&nid[20 - 4], &secret_hash[0], 4) == 0;
 }
 
 // verifies whether a node-id matches the IP it's used from
@@ -213,26 +189,25 @@ bool verify_id(node_id const& nid, address const& source_ip)
 
 node_id generate_id(address const& ip)
 {
-	return generate_id_impl(ip, random());
+	return generate_id_impl(ip, random(0xffffffff));
 }
 
-bool matching_prefix(node_entry const& n, int mask, int prefix, int offset)
+bool matching_prefix(node_id const& nid, int mask, int prefix, int offset)
 {
-	node_id id = n.id;
+	node_id id = nid;
 	id <<= offset;
 	return (id[0] & mask) == prefix;
 }
 
-node_id generate_prefix_mask(int bits)
+node_id generate_prefix_mask(int const bits)
 {
 	TORRENT_ASSERT(bits >= 0);
 	TORRENT_ASSERT(bits <= 160);
-	node_id mask(0);
-	int b = 0;
-	for (; b < bits - 7; b += 8) mask[b/8] |= 0xff;
-	if (bits < 160) mask[b/8] |= (0xff << (8 - (bits&7))) & 0xff;
+	node_id mask;
+	std::size_t b = 0;
+	for (; int(b) < bits - 7; b += 8) mask[b / 8] |= 0xff;
+	if (bits < 160) mask[b / 8] |= (0xff << (8 - (bits & 7))) & 0xff;
 	return mask;
 }
 
 } }  // namespace libtorrent::dht
-

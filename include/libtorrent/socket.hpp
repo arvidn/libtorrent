@@ -50,8 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winsock2.h>
 #endif
 
-#include <boost/version.hpp>
-
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/write.hpp>
@@ -65,23 +63,34 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/simulator.hpp"
 #endif
 
+#if TORRENT_USE_NETLINK
+#include <linux/netlink.h>
+#ifndef SOL_NETLINK
+#define SOL_NETLINK 270
+#endif
+
+// NETLINK_NO_ENOBUFS exists at least since android 2.3, but is not exposed
+#if defined TORRENT_ANDROID && !defined NETLINK_NO_ENOBUFS
+#define NETLINK_NO_ENOBUFS 5
+#endif
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 #if defined TORRENT_BUILD_SIMULATOR
-	using sim::asio::ip::udp;
-	using sim::asio::ip::tcp;
+	using udp = sim::asio::ip::udp;
+	using tcp = sim::asio::ip::tcp;
 	using sim::asio::async_write;
 	using sim::asio::async_read;
-	using sim::asio::null_buffers;
+	using null_buffers = sim::asio::null_buffers;
 #else
-	using boost::asio::ip::tcp;
-	using boost::asio::ip::udp;
+	using tcp = boost::asio::ip::tcp;
+	using udp = boost::asio::ip::udp;
 	using boost::asio::async_write;
 	using boost::asio::async_read;
-	using boost::asio::null_buffers;
+	using null_buffers = boost::asio::null_buffers;
 #endif
 
 #ifdef TORRENT_WINDOWS
@@ -96,7 +105,7 @@ namespace libtorrent
 
 	struct v6_protection_level
 	{
-		v6_protection_level(int level): m_value(level) {}
+		explicit v6_protection_level(int level): m_value(level) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IPV6; }
 		template<class Protocol>
@@ -110,7 +119,7 @@ namespace libtorrent
 
 	struct exclusive_address_use
 	{
-		exclusive_address_use(int enable): m_value(enable) {}
+		explicit exclusive_address_use(int enable): m_value(enable) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return SOL_SOCKET; }
 		template<class Protocol>
@@ -126,7 +135,7 @@ namespace libtorrent
 #ifdef IPV6_TCLASS
 	struct traffic_class
 	{
-		traffic_class(char val): m_value(val) {}
+		explicit traffic_class(char val): m_value(val) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IPV6; }
 		template<class Protocol>
@@ -142,11 +151,11 @@ namespace libtorrent
 	struct type_of_service
 	{
 #ifdef _WIN32
-		typedef DWORD tos_t;
+		using tos_t = DWORD;
 #else
-		typedef int tos_t;
+		using tos_t = int;
 #endif
-		type_of_service(char val): m_value(val) {}
+		explicit type_of_service(char val) : m_value(tos_t(val)) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>
@@ -172,7 +181,7 @@ namespace libtorrent
 
 	struct dont_fragment
 	{
-		dont_fragment(bool val) : m_value(val) {}
+		explicit dont_fragment(bool val) : m_value(val) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>
@@ -197,7 +206,7 @@ namespace libtorrent
 	// it.
 	struct dont_fragment
 	{
-		dont_fragment(bool val)
+		explicit dont_fragment(bool val)
 			: m_value(val ? IP_PMTUDISC_DO : IP_PMTUDISC_DONT) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
@@ -213,7 +222,22 @@ namespace libtorrent
 #endif // IP_DONTFRAG vs. IP_MTU_DISCOVER
 
 #endif // TORRENT_HAS_DONT_FRAGMENT
+
+#if TORRENT_USE_NETLINK
+	struct no_enobufs
+	{
+		explicit no_enobufs(bool val) : m_value(val) {}
+		template<class Protocol>
+		int level(Protocol const&) const { return SOL_NETLINK; }
+		template<class Protocol>
+		int name(Protocol const&) const { return NETLINK_NO_ENOBUFS; }
+		template<class Protocol>
+		int const* data(Protocol const&) const { return &m_value; }
+		template<class Protocol>
+		std::size_t size(Protocol const&) const { return sizeof(m_value); }
+		int m_value;
+	};
+#endif // TORRENT_USE_NETLINK
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED
-

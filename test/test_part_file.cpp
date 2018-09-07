@@ -30,13 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <string.h>
+#include <cstring>
+#include <array>
+
 #include "test.hpp"
 #include "libtorrent/part_file.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(part_file)
 {
@@ -44,22 +46,22 @@ TORRENT_TEST(part_file)
 	std::string cwd = complete(".");
 
 	remove_all(combine_path(cwd, "partfile_test_dir"), ec);
-	if (ec) fprintf(stderr, "remove_all: %s\n", ec.message().c_str());
+	if (ec) std::printf("remove_all: %s\n", ec.message().c_str());
 	remove_all(combine_path(cwd, "partfile_test_dir2"), ec);
-	if (ec) fprintf(stderr, "remove_all: %s\n", ec.message().c_str());
+	if (ec) std::printf("remove_all: %s\n", ec.message().c_str());
 
 	int piece_size = 16 * 0x4000;
-	char buf[1024];
+	std::array<char, 1024> buf;
 
 	{
 		create_directory(combine_path(cwd, "partfile_test_dir"), ec);
-		if (ec) fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
+		if (ec) std::printf("create_directory: %s\n", ec.message().c_str());
 		create_directory(combine_path(cwd, "partfile_test_dir2"), ec);
-		if (ec) fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
+		if (ec) std::printf("create_directory: %s\n", ec.message().c_str());
 
 		part_file pf(combine_path(cwd, "partfile_test_dir"), "partfile.parts", 100, piece_size);
 		pf.flush_metadata(ec);
-		if (ec) fprintf(stderr, "flush_metadata: %s\n", ec.message().c_str());
+		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
 
 		// since we don't have anything in the part file, it will have
 		// not have been created yet
@@ -67,81 +69,72 @@ TORRENT_TEST(part_file)
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir"), "partfile.parts")));
 
 		// write something to the metadata file
-		for (int i = 0; i < 1024; ++i) buf[i] = i;
+		for (int i = 0; i < 1024; ++i) buf[std::size_t(i)] = char(i & 0xff);
 
-		file::iovec_t v = {&buf, 1024};
-		pf.writev(&v, 1, 10, 0, ec);
-		if (ec) fprintf(stderr, "part_file::writev: %s\n", ec.message().c_str());
+		iovec_t v = buf;
+		pf.writev(v, piece_index_t(10), 0, ec);
+		if (ec) std::printf("part_file::writev: %s\n", ec.message().c_str());
 
 		pf.flush_metadata(ec);
-		if (ec) fprintf(stderr, "flush_metadata: %s\n", ec.message().c_str());
+		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
 
 		// now wwe should have created the partfile
 		TEST_CHECK(exists(combine_path(combine_path(cwd, "partfile_test_dir"), "partfile.parts")));
 
 		pf.move_partfile(combine_path(cwd, "partfile_test_dir2"), ec);
 		TEST_CHECK(!ec);
-		if (ec) fprintf(stderr, "move_partfile: %s\n", ec.message().c_str());
+		if (ec) std::printf("move_partfile: %s\n", ec.message().c_str());
 
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir"), "partfile.parts")));
 		TEST_CHECK(exists(combine_path(combine_path(cwd, "partfile_test_dir2"), "partfile.parts")));
 
-		memset(buf, 0, sizeof(buf));
+		buf.fill(0);
 
-		pf.readv(&v, 1, 10, 0, ec);
-		if (ec) fprintf(stderr, "part_file::readv: %s\n", ec.message().c_str());
+		pf.readv(v, piece_index_t(10), 0, ec);
+		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < 1024; ++i)
-			TEST_CHECK(buf[i] == char(i));
+			TEST_CHECK(buf[std::size_t(i)] == char(i));
 	}
 
 	{
 		// load the part file back in
 		part_file pf(combine_path(cwd, "partfile_test_dir2"), "partfile.parts", 100, piece_size);
-	
-		memset(buf, 0, sizeof(buf));
 
-		file::iovec_t v = {&buf, 1024};
-		pf.readv(&v, 1, 10, 0, ec);
-		if (ec) fprintf(stderr, "part_file::readv: %s\n", ec.message().c_str());
+		buf.fill(0);
+
+		iovec_t v = buf;
+		pf.readv(v, piece_index_t(10), 0, ec);
+		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < 1024; ++i)
-			TEST_CHECK(buf[i] == char(i));
+			TEST_CHECK(buf[std::size_t(i)] == static_cast<char>(i));
 
 		// test exporting the piece to a file
 
 		std::string output_filename = combine_path(combine_path(cwd, "partfile_test_dir")
 			, "part_file_test_export");
-		file output(output_filename, file::read_write, ec);
-		if (ec) fprintf(stderr, "export open file: %s\n", ec.message().c_str());
 
-		pf.export_file(output, 10 * piece_size, 1024, ec);
-		if (ec) fprintf(stderr, "export_file: %s\n", ec.message().c_str());
+		pf.export_file([](std::int64_t file_offset, span<char> buf_data)
+		{
+			for (char i : buf_data)
+			{
+				// make sure we got the bytes we expected
+				TEST_CHECK(i == static_cast<char>(file_offset));
+				++file_offset;
+			}
+		}, 10 * piece_size, 1024, ec);
+		if (ec) std::printf("export_file: %s\n", ec.message().c_str());
 
-		pf.free_piece(10);
+		pf.free_piece(piece_index_t(10));
 
 		pf.flush_metadata(ec);
-		if (ec) fprintf(stderr, "flush_metadata: %s\n", ec.message().c_str());
+		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
 
 		// we just removed the last piece. The partfile does not
 		// contain anything anymore, it should have deleted itself
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir2"), "partfile.parts"), ec));
 		TEST_CHECK(!ec);
-		if (ec) fprintf(stderr, "exists: %s\n", ec.message().c_str());
-
-		output.close();
-
-		// verify that the exported file is what we expect it to be
-		output.open(output_filename, file::read_only, ec);
-		if (ec) fprintf(stderr, "exported file open: %s\n", ec.message().c_str());
-
-		memset(buf, 0, sizeof(buf));
-
-		output.readv(0, &v, 1, ec);
-		if (ec) fprintf(stderr, "exported file read: %s\n", ec.message().c_str());
-
-		for (int i = 0; i < 1024; ++i)
-			TEST_CHECK(buf[i] == char(i));
+		if (ec) std::printf("exists: %s\n", ec.message().c_str());
 	}
 }
-

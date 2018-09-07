@@ -34,49 +34,69 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UTP_SOCKET_MANAGER_HPP_INCLUDED
 
 #include <map>
+#include <functional>
 
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/span.hpp"
+#include "libtorrent/packet_pool.hpp"
 
-namespace libtorrent
-{
-	class udp_socket;
-	class utp_stream;
+namespace libtorrent {
+
+	struct utp_stream;
 	struct utp_socket_impl;
 	struct counters;
 
-	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
-
-	struct utp_socket_manager TORRENT_FINAL : udp_socket_observer
+	// interface/handle to the underlying udp socket
+	struct TORRENT_EXTRA_EXPORT utp_socket_interface
 	{
-		utp_socket_manager(aux::session_settings const& sett, udp_socket& s
-			, counters& cnt, void* ssl_context, incoming_utp_callback_t cb);
+		virtual udp::endpoint local_endpoint() = 0;
+	protected:
+		virtual ~utp_socket_interface() = default;
+	};
+
+	struct utp_socket_manager
+	{
+		using send_fun_t = std::function<void(std::weak_ptr<utp_socket_interface>
+			, udp::endpoint const&
+			, span<char const>
+			, error_code&, udp_send_flags_t)>;
+
+		using incoming_utp_callback_t =  std::function<void(std::shared_ptr<aux::socket_type> const&)>;
+
+		utp_socket_manager(send_fun_t const& send_fun
+			, incoming_utp_callback_t const& cb
+			, io_service& ios
+			, aux::session_settings const& sett
+			, counters& cnt, void* ssl_context);
 		~utp_socket_manager();
 
 		// return false if this is not a uTP packet
-		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
-			, char const* p, int size) TORRENT_OVERRIDE;
-		virtual bool incoming_packet(error_code const&, char const*, char const*, int) TORRENT_OVERRIDE
-		{ return false; }
-		virtual void writable() TORRENT_OVERRIDE;
+		bool incoming_packet(std::weak_ptr<utp_socket_interface> socket
+			, udp::endpoint const& ep, span<char const> p);
 
-		virtual void socket_drained() TORRENT_OVERRIDE;
+		// if the UDP socket failed with an EAGAIN or EWOULDBLOCK, this will be
+		// called once the socket is writeable again
+		void writable();
+
+		// when the upper layer has drained the underlying UDP socket, this is
+		// called, and uTP sockets will send their ACKs. This ensures ACKs at
+		// least coalesce packets returned during the same wakeup
+		void socket_drained();
 
 		void tick(time_point now);
 
-		tcp::endpoint local_endpoint(address const& remote, error_code& ec) const;
-		int local_port(error_code& ec) const;
-
-		// flags for send_packet
-		enum { dont_fragment = 1 };
-		void send_packet(udp::endpoint const& ep, char const* p, int len
-			, error_code& ec, int flags = 0);
+		void send_packet(std::weak_ptr<utp_socket_interface> sock, udp::endpoint const& ep
+			, char const* p, int len
+			, error_code& ec, udp_send_flags_t flags = {});
 		void subscribe_writable(utp_socket_impl* s);
 
+		void remove_udp_socket(std::weak_ptr<utp_socket_interface> sock);
+
 		// internal, used by utp_stream
-		void remove_socket(boost::uint16_t id);
+		void remove_socket(std::uint16_t id);
 
 		utp_socket_impl* new_utp_socket(utp_stream* str);
 		int gain_factor() const { return m_sett.get_int(settings_pack::utp_gain_factor); }
@@ -88,17 +108,16 @@ namespace libtorrent
 		int min_timeout() const { return m_sett.get_int(settings_pack::utp_min_timeout); }
 		int loss_multiplier() const { return m_sett.get_int(settings_pack::utp_loss_multiplier); }
 
-		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);
-		void set_sock_buf(int size);
-		int num_sockets() const { return m_utp_sockets.size(); }
+		std::pair<int, int> mtu_for_dest(address const& addr);
+		int num_sockets() const { return int(m_utp_sockets.size()); }
 
 		void defer_ack(utp_socket_impl* s);
 		void subscribe_drained(utp_socket_impl* s);
 
-		void restrict_mtu(int mtu)
+		void restrict_mtu(int const mtu)
 		{
-			m_restrict_mtu[m_mtu_idx] = mtu;
-			m_mtu_idx = (m_mtu_idx + 1) % m_restrict_mtu.size();
+			m_restrict_mtu[std::size_t(m_mtu_idx)] = mtu;
+			m_mtu_idx = (m_mtu_idx + 1) % int(m_restrict_mtu.size());
 		}
 
 		int restrict_mtu() const
@@ -110,69 +129,67 @@ namespace libtorrent
 		// the counter is the enum from ``counters``.
 		void inc_stats_counter(int counter, int delta = 1);
 
-	private:
-		// explicitly disallow assignment, to silence msvc warning
-		utp_socket_manager& operator=(utp_socket_manager const&);
+		packet_ptr acquire_packet(int const allocate) { return m_packet_pool.acquire(allocate); }
+		void release_packet(packet_ptr p) { m_packet_pool.release(std::move(p)); }
+		void decay() { m_packet_pool.decay(); }
 
-		udp_socket& m_sock;
+		// explicitly disallow assignment, to silence msvc warning
+		utp_socket_manager& operator=(utp_socket_manager const&) = delete;
+
+	private:
+
+		send_fun_t m_send_fun;
 		incoming_utp_callback_t m_cb;
 
 		// replace with a hash-map
-		typedef std::multimap<boost::uint16_t, utp_socket_impl*> socket_map_t;
+		using socket_map_t = std::multimap<std::uint16_t, utp_socket_impl*>;
 		socket_map_t m_utp_sockets;
+
+		using socket_vector_t = std::vector<utp_socket_impl*>;
 
 		// this is a list of sockets that needs to send an ack.
 		// once the UDP socket is drained, all of these will
 		// have a chance to do that. This is to avoid sending
 		// an ack for every single packet
-		std::vector<utp_socket_impl*> m_deferred_acks;
+		socket_vector_t m_deferred_acks;
+
+		// storage used for saving cpu time on "push_back"
+		// by using already pre-allocated vector
+		socket_vector_t m_temp_sockets;
 
 		// sockets that have received or sent packets this
 		// round, may subscribe to the event of draining the
 		// UDP socket. At that point they may call the
 		// user callback function to indicate bytes have been
 		// sent or received.
-		std::vector<utp_socket_impl*> m_drained_event;
+		socket_vector_t m_drained_event;
 
 		// list of sockets that received EWOULDBLOCK from the
 		// underlying socket. They are notified when the socket
 		// becomes writable again
-		std::vector<utp_socket_impl*> m_stalled_sockets;
+		socket_vector_t m_stalled_sockets;
 
 		// the last socket we received a packet on
-		utp_socket_impl* m_last_socket;
+		utp_socket_impl* m_last_socket = nullptr;
 
-		int m_new_connection;
+		int m_new_connection = -1;
 
 		aux::session_settings const& m_sett;
-
-		// this is a copy of the routing table, used
-		// to initialize MTU sizes of uTP sockets
-		mutable std::vector<ip_route> m_routes;
-
-		// the timestamp for the last time we updated
-		// the routing table
-		mutable time_point m_last_route_update;
-
-		// cache of interfaces
-		mutable std::vector<ip_interface> m_interfaces;
-		mutable time_point m_last_if_update;
-
-		// the buffer size of the socket. This is used
-		// to now lower the buffer size
-		int m_sock_buf_size;
 
 		// stats counters
 		counters& m_counters;
 
-		boost::array<int, 3> m_restrict_mtu;
-		int m_mtu_idx;
+		io_service& m_ios;
+
+		std::array<int, 3> m_restrict_mtu;
+		int m_mtu_idx = 0;
 
 		// this is  passed on to the instantiate connection
-		// if this is non-null it will create SSL connections over uTP
+		// if this is non-nullptr it will create SSL connections over uTP
 		void* m_ssl_context;
+
+		packet_pool m_packet_pool;
 	};
 }
 
 #endif
-

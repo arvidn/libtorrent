@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/thread.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/address.hpp"
@@ -41,25 +40,27 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "dht_server.hpp"
 #include "test_utils.hpp"
 
-#include <boost/detail/atomic_count.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
-
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#if TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
 
-using namespace libtorrent;
+#include <thread>
+#include <atomic>
+#include <functional>
+#include <memory>
+
+using namespace lt;
+using namespace std::placeholders;
 
 struct dht_server
 {
 
-	libtorrent::io_service m_ios;
-	boost::detail::atomic_count m_dht_requests;
+	lt::io_service m_ios;
+	std::atomic<int> m_dht_requests;
 	udp::socket m_socket;
 	int m_port;
 
-	boost::shared_ptr<libtorrent::thread> m_thread;
+	std::shared_ptr<std::thread> m_thread;
 
 	dht_server()
 		: m_dht_requests(0)
@@ -70,26 +71,26 @@ struct dht_server
 		m_socket.open(udp::v4(), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error opening listen DHT socket: %s\n", ec.message().c_str());
+			std::printf("Error opening listen DHT socket: %s\n", ec.message().c_str());
 			return;
 		}
 
 		m_socket.bind(udp::endpoint(address_v4::any(), 0), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error binding DHT socket to port 0: %s\n", ec.message().c_str());
+			std::printf("Error binding DHT socket to port 0: %s\n", ec.message().c_str());
 			return;
 		}
 		m_port = m_socket.local_endpoint(ec).port();
 		if (ec)
 		{
-			fprintf(stderr, "Error getting local endpoint of DHT socket: %s\n", ec.message().c_str());
+			std::printf("Error getting local endpoint of DHT socket: %s\n", ec.message().c_str());
 			return;
 		}
 
-		fprintf(stderr, "%s: DHT initialized on port %d\n", time_now_string(), m_port);
+		std::printf("%s: DHT initialized on port %d\n", time_now_string(), m_port);
 
-		m_thread.reset(new libtorrent::thread(boost::bind(&dht_server::thread_fun, this)));
+		m_thread = std::make_shared<std::thread>(&dht_server::thread_fun, this);
 	}
 
 	~dht_server()
@@ -103,7 +104,8 @@ struct dht_server
 
 	int num_hits() const { return m_dht_requests; }
 
-	static void incoming_packet(error_code const& ec, size_t bytes_transferred, size_t *ret, error_code* error, bool* done)
+	static void incoming_packet(error_code const& ec, size_t bytes_transferred
+		, size_t *ret, error_code* error, bool* done)
 	{
 		*ret = bytes_transferred;
 		*error = ec;
@@ -122,7 +124,7 @@ struct dht_server
 			bool done = false;
 			m_socket.async_receive_from(
 				boost::asio::buffer(buffer, sizeof(buffer)), from, 0
-				, boost::bind(&incoming_packet, _1, _2, &bytes_transferred, &ec, &done));
+				, std::bind(&incoming_packet, _1, _2, &bytes_transferred, &ec, &done));
 			while (!done)
 			{
 				m_ios.poll_one();
@@ -134,7 +136,7 @@ struct dht_server
 
 			if (ec)
 			{
-				fprintf(stderr, "Error receiving on DHT socket: %s\n", ec.message().c_str());
+				std::printf("Error receiving on DHT socket: %s\n", ec.message().c_str());
 				return;
 			}
 
@@ -142,20 +144,22 @@ struct dht_server
 			{
 				entry msg = bdecode(buffer, buffer + bytes_transferred);
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-				std::cerr << msg << std::endl;
+#if TORRENT_USE_IOSTREAM
+				std::cout << msg << std::endl;
 #endif
 				++m_dht_requests;
 			}
-			catch (std::exception& e)
+			catch (std::exception const& e)
 			{
-				fprintf(stderr, "failed to decode DHT message: %s\n", e.what());
+				std::printf("failed to decode DHT message: %s\n", e.what());
 			}
 		}
 	}
 };
 
-boost::shared_ptr<dht_server> g_dht;
+namespace {
+std::shared_ptr<dht_server> g_dht;
+}
 
 int start_dht()
 {

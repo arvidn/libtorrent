@@ -30,240 +30,200 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPTION
+
+#include <cstdint>
+#include <algorithm>
+#include <random>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
-#include <algorithm>
+#include <boost/multiprecision/integer.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 
-extern "C" {
-#include "libtorrent/tommath.h"
-}
+// for backwards compatibility with boost < 1.60 which was before export_bits
+// and import_bits were introduced
+#if BOOST_VERSION < 106000
+#include "libtorrent/aux_/cppint_import_export.hpp"
+#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/random.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/assert.hpp"
 
-namespace libtorrent
-{
-	namespace
-	{
-		const unsigned char dh_prime[96] = {
-			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC9, 0x0F, 0xDA, 0xA2,
-			0x21, 0x68, 0xC2, 0x34, 0xC4, 0xC6, 0x62, 0x8B, 0x80, 0xDC, 0x1C, 0xD1,
-			0x29, 0x02, 0x4E, 0x08, 0x8A, 0x67, 0xCC, 0x74, 0x02, 0x0B, 0xBE, 0xA6,
-			0x3B, 0x13, 0x9B, 0x22, 0x51, 0x4A, 0x08, 0x79, 0x8E, 0x34, 0x04, 0xDD,
-			0xEF, 0x95, 0x19, 0xB3, 0xCD, 0x3A, 0x43, 0x1B, 0x30, 0x2B, 0x0A, 0x6D,
-			0xF2, 0x5F, 0x14, 0x37, 0x4F, 0xE1, 0x35, 0x6D, 0x6D, 0x51, 0xC2, 0x45,
-			0xE4, 0x85, 0xB5, 0x76, 0x62, 0x5E, 0x7E, 0xC6, 0xF4, 0x4C, 0x42, 0xE9,
-			0xA6, 0x3A, 0x36, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x05, 0x63
-		};
+namespace libtorrent {
+
+	namespace mp = boost::multiprecision;
+
+	namespace {
+		// TODO: it would be nice to get the literal working
+		key_t const dh_prime
+			("0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
 	}
 
-	struct mp_bigint
+	std::array<char, 96> export_key(key_t const& k)
 	{
-		mp_bigint()
-		{ mp_init(&v); }
-		mp_int* operator&() { return &v; }
-		~mp_bigint() { mp_clear(&v); }
-	private:
-		// non-copyable
-		mp_bigint(mp_bigint const&);
-		mp_bigint const& operator=(mp_bigint const&);
-		mp_int v;
-	};
+		std::array<char, 96> ret;
+		auto* begin = reinterpret_cast<std::uint8_t*>(ret.data());
+		std::uint8_t* end = mp::export_bits(k, begin, 8);
+
+		// TODO: it would be nice to be able to export to a fixed width field, so
+		// we wouldn't have to shift it later
+		if (end < begin + 96)
+		{
+			int const len = int(end - begin);
+			std::memmove(begin + 96 - len, begin, aux::numeric_cast<std::size_t>(len));
+			std::memset(begin, 0, aux::numeric_cast<std::size_t>(96 - len));
+		}
+		return ret;
+	}
+
+	void rc4_init(const unsigned char* in, std::size_t len, rc4 *state);
+	std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state);
 
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
 	{
-		// create local key
-		for (int i = 0; i < int(sizeof(m_dh_local_secret)); ++i)
-			m_dh_local_secret[i] = random() & 0xff;
+		std::array<std::uint8_t, 96> random_key;
+		aux::random_bytes({reinterpret_cast<char*>(random_key.data()), random_key.size()});
 
-		mp_bigint prime;
-		mp_bigint secret;
-		mp_bigint key;
+		// create local key (random)
+		mp::import_bits(m_dh_local_secret, random_key.begin(), random_key.end());
 
-		// TODO 2: use exceptions for error reporting here
-		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
-		{
-			TORRENT_ASSERT(false);
-			return;
-		}
-		if (mp_read_unsigned_bin(&secret
-				, reinterpret_cast<unsigned char*>(m_dh_local_secret)
-				, sizeof(m_dh_local_secret)))
-		{
-			TORRENT_ASSERT(false);
-			return;
-		}
-
-		// generator is 2
-		mp_set_int(&key, 2);
 		// key = (2 ^ secret) % prime
-		if (mp_exptmod(&key, &secret, &prime, &key))
-		{
-			TORRENT_ASSERT(false);
-			return;
-		}
-
-		// key is now our local key
-		int const size = mp_unsigned_bin_size(&key);
-		TORRENT_ASSERT(size >= 0);
-		TORRENT_ASSERT(size <= sizeof(m_dh_local_key));
-		if (size < 0 || size > sizeof(m_dh_local_key)) return;
-		std::memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - size);
-		mp_to_unsigned_bin(&key
-			, reinterpret_cast<unsigned char*>(m_dh_local_key)
-			+ sizeof(m_dh_local_key) - size);
-	}
-
-	char const* dh_key_exchange::get_local_key() const
-	{
-		return m_dh_local_key;
+		m_dh_local_key = mp::powm(key_t(2), m_dh_local_secret, dh_prime);
 	}
 
 	// compute shared secret given remote public key
-	int dh_key_exchange::compute_secret(char const* remote_pubkey)
+	void dh_key_exchange::compute_secret(std::uint8_t const* remote_pubkey)
 	{
 		TORRENT_ASSERT(remote_pubkey);
-		mp_bigint prime;
-		mp_bigint secret;
-		mp_bigint remote_key;
-
-		// TODO 2: use exceptions for error reporting here
-		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
-		{
-			TORRENT_ASSERT(false);
-			return -1;
-		}
-		if (mp_read_unsigned_bin(&secret
-				, reinterpret_cast<unsigned char*>(m_dh_local_secret)
-				, sizeof(m_dh_local_secret)))
-		{
-			TORRENT_ASSERT(false);
-			return -1;
-		}
-		if (mp_read_unsigned_bin(&remote_key
-				, reinterpret_cast<const unsigned char*>(remote_pubkey), 96))
-		{
-			TORRENT_ASSERT(false);
-			return -1;
-		}
-
-		if (mp_exptmod(&remote_key, &secret, &prime, &remote_key))
-		{
-			TORRENT_ASSERT(false);
-			return -1;
-		}
-
-		// remote_key is now the shared secret
-		int const size = mp_unsigned_bin_size(&remote_key);
-		TORRENT_ASSERT(size >= 0);
-		TORRENT_ASSERT(size <= sizeof(m_dh_shared_secret));
-		if (size < 0 || size > sizeof(m_dh_shared_secret))
-		{
-			return -1;
-		}
-
-		std::memset(m_dh_shared_secret, 0, sizeof(m_dh_shared_secret) - size);
-		mp_to_unsigned_bin(&remote_key
-			, reinterpret_cast<unsigned char*>(m_dh_shared_secret)
-			+ sizeof(m_dh_shared_secret) - size);
-
-		// calculate the xor mask for the obfuscated hash
-		hasher h;
-		h.update("req3", 4);
-		h.update(m_dh_shared_secret, sizeof(m_dh_shared_secret));
-		m_xor_mask = h.final();
-		return 0;
+		key_t key;
+		mp::import_bits(key, remote_pubkey, remote_pubkey + 96);
+		compute_secret(key);
 	}
 
-	int encryption_handler::encrypt(std::vector<boost::asio::mutable_buffer>& iovec)
+	void dh_key_exchange::compute_secret(key_t const& remote_pubkey)
+	{
+		// shared_secret = (remote_pubkey ^ local_secret) % prime
+		m_dh_shared_secret = mp::powm(remote_pubkey, m_dh_local_secret, dh_prime);
+
+		std::array<char, 96> buffer;
+		mp::export_bits(m_dh_shared_secret, reinterpret_cast<std::uint8_t*>(buffer.data()), 8);
+
+		static char const req3[4] = {'r', 'e', 'q', '3'};
+		// calculate the xor mask for the obfuscated hash
+		m_xor_mask = hasher(req3).update(buffer).final();
+	}
+
+	std::tuple<int, span<span<char const>>>
+	encryption_handler::encrypt(
+		span<span<char>> iovec)
 	{
 		TORRENT_ASSERT(!m_send_barriers.empty());
 		TORRENT_ASSERT(m_send_barriers.front().enc_handler);
 
 		int to_process = m_send_barriers.front().next;
 
+		span<span<char>> bufs;
+		bool need_destruct = false;
 		if (to_process != INT_MAX)
 		{
-			for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
-				to_process >= 0; ++i)
+			TORRENT_ALLOCA(abufs, span<char>, iovec.size());
+			bufs = abufs;
+			need_destruct = true;
+			size_t num_bufs = 0;
+			for (std::size_t i = 0; to_process > 0 && i < iovec.size(); ++i)
 			{
-				if (to_process == 0)
+				++num_bufs;
+				int const size = int(iovec[i].size());
+				if (to_process < size)
 				{
-					iovec.erase(i, iovec.end());
-					break;
-				}
-				else if (to_process < boost::asio::buffer_size(*i))
-				{
-					*i = boost::asio::mutable_buffer(boost::asio::buffer_cast<void*>(*i), to_process);
-					iovec.erase(++i, iovec.end());
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+					new (&bufs[i]) span<char>(
+						iovec[i].data(), aux::numeric_cast<std::size_t>(to_process));
 					to_process = 0;
-#endif
-					break;
 				}
-				to_process -= boost::asio::buffer_size(*i);
+				else
+				{
+					new (&bufs[i]) span<char>(iovec[i]);
+					to_process -= size;
+				}
 			}
-			TORRENT_ASSERT(to_process == 0);
-		}
-
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
-		to_process = 0;
-		for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
-			i != iovec.end(); ++i)
-			to_process += boost::asio::buffer_size(*i);
-#endif
-
-		int next_barrier = 0;
-		if (iovec.empty() || (next_barrier = m_send_barriers.front().enc_handler->encrypt(iovec)))
-		{
-			if (m_send_barriers.front().next != INT_MAX)
-			{
-				if (m_send_barriers.size() == 1)
-					// transitioning back to plaintext
-					next_barrier = INT_MAX;
-				m_send_barriers.pop_front();
-			}
-
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
-			if (next_barrier != INT_MAX)
-			{
-				int overhead = 0;
-				for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
-					i != iovec.end(); ++i)
-					overhead += boost::asio::buffer_size(*i);
-				TORRENT_ASSERT(overhead + to_process == next_barrier);
-			}
-#endif
+			bufs = bufs.first(num_bufs);
 		}
 		else
 		{
-			iovec.clear();
+			bufs = iovec;
 		}
-		return next_barrier;
+
+		int next_barrier = 0;
+		span<span<char const>> out_iovec;
+		if (!bufs.empty())
+		{
+			std::tie(next_barrier, out_iovec)
+				= m_send_barriers.front().enc_handler->encrypt(bufs);
+		}
+
+		if (m_send_barriers.front().next != INT_MAX)
+		{
+			// to_process holds the difference between the size of the buffers
+			// and the bytes left to the next barrier
+			// if it's zero then pop the barrier
+			// otherwise update the number of bytes remaining to the next barrier
+			if (to_process == 0)
+			{
+				if (m_send_barriers.size() == 1)
+				{
+					// transitioning back to plaintext
+					next_barrier = INT_MAX;
+				}
+				m_send_barriers.pop_front();
+			}
+			else
+			{
+				m_send_barriers.front().next = to_process;
+			}
+		}
+
+#if TORRENT_USE_ASSERTS
+		if (next_barrier != INT_MAX && next_barrier != 0)
+		{
+			int payload = 0;
+			for (auto buf : bufs)
+				payload += int(buf.size());
+
+			int overhead = 0;
+			for (auto buf : out_iovec)
+				overhead += int(buf.size());
+			TORRENT_ASSERT(overhead + payload == next_barrier);
+		}
+#endif
+		if (need_destruct)
+		{
+			for (auto buf : bufs)
+				buf.~span<char>();
+		}
+		return std::make_tuple(next_barrier, out_iovec);
 	}
 
-	int encryption_handler::decrypt(crypto_receive_buffer& recv_buffer, std::size_t& bytes_transferred)
+	int encryption_handler::decrypt(crypto_receive_buffer& recv_buffer
+		, std::size_t& bytes_transferred)
 	{
 		TORRENT_ASSERT(!is_recv_plaintext());
 		int consume = 0;
 		if (recv_buffer.crypto_packet_finished())
 		{
-			std::vector<boost::asio::mutable_buffer> wr_buf;
-			recv_buffer.mutable_buffers(wr_buf, bytes_transferred);
+			span<char> wr_buf = recv_buffer.mutable_buffer(bytes_transferred);
+			int produce = 0;
 			int packet_size = 0;
-			int produce = bytes_transferred;
-			m_dec_handler->decrypt(wr_buf, consume, produce, packet_size);
+			std::tie(consume, produce, packet_size) = m_dec_handler->decrypt(wr_buf);
 			TORRENT_ASSERT(packet_size || produce);
 			TORRENT_ASSERT(packet_size >= 0);
-			bytes_transferred = produce;
+			TORRENT_ASSERT(produce >= 0);
+			bytes_transferred = std::size_t(produce);
 			if (packet_size)
 				recv_buffer.crypto_cut(consume, packet_size);
 		}
@@ -272,15 +232,14 @@ namespace libtorrent
 		return consume;
 	}
 
-	bool encryption_handler::switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto
+	bool encryption_handler::switch_send_crypto(std::shared_ptr<crypto_plugin> crypto
 		, int pending_encryption)
 	{
 		bool place_barrier = false;
 		if (!m_send_barriers.empty())
 		{
-			std::list<barrier>::iterator end = m_send_barriers.end(); --end;
-			for (std::list<barrier>::iterator b = m_send_barriers.begin();
-				b != end; ++b)
+			auto const end = std::prev(m_send_barriers.end());
+			for (auto b = m_send_barriers.begin(); b != end; ++b)
 				pending_encryption -= b->next;
 			TORRENT_ASSERT(pending_encryption >= 0);
 			m_send_barriers.back().next = pending_encryption;
@@ -294,7 +253,7 @@ namespace libtorrent
 		return place_barrier;
 	}
 
-	void encryption_handler::switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto
+	void encryption_handler::switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto
 		, crypto_receive_buffer& recv_buffer)
 	{
 		m_dec_handler = crypto;
@@ -303,8 +262,8 @@ namespace libtorrent
 		{
 			int consume = 0;
 			int produce = 0;
-			std::vector<boost::asio::mutable_buffer> wr_buf;
-			crypto->decrypt(wr_buf, consume, produce, packet_size);
+			std::vector<span<char>> wr_buf;
+			std::tie(consume, produce, packet_size) = crypto->decrypt(wr_buf);
 			TORRENT_ASSERT(wr_buf.empty());
 			TORRENT_ASSERT(consume == 0);
 			TORRENT_ASSERT(produce == 0);
@@ -322,92 +281,81 @@ namespace libtorrent
 		m_rc4_outgoing.y = 0;
 	}
 
-	void rc4_handler::set_incoming_key(unsigned char const* key, int len)
+	void rc4_handler::set_incoming_key(span<char const> key)
 	{
 		m_decrypt = true;
-		rc4_init(key, len, &m_rc4_incoming);
+		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
+			, key.size(), &m_rc4_incoming);
 		// Discard first 1024 bytes
 		char buf[1024];
-		std::vector<boost::asio::mutable_buffer> vec(1, boost::asio::mutable_buffer(buf, 1024));
-		int consume = 0;
-		int produce = 0;
-		int packet_size = 0;
-		decrypt(vec, consume, produce, packet_size);
+		span<char> vec(buf, sizeof(buf));
+		decrypt(vec);
 	}
 
-	void rc4_handler::set_outgoing_key(unsigned char const* key, int len)
+	void rc4_handler::set_outgoing_key(span<char const> key)
 	{
 		m_encrypt = true;
-		rc4_init(key, len, &m_rc4_outgoing);
+		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
+			, key.size(), &m_rc4_outgoing);
 		// Discard first 1024 bytes
 		char buf[1024];
-		std::vector<boost::asio::mutable_buffer> vec(1, boost::asio::mutable_buffer(buf, 1024));
+		span<char> vec(buf, sizeof(buf));
 		encrypt(vec);
 	}
 
-	int rc4_handler::encrypt(std::vector<boost::asio::mutable_buffer>& buf)
+	std::tuple<int, span<span<char const>>>
+	rc4_handler::encrypt(span<span<char>> bufs)
 	{
-		if (!m_encrypt) return 0;
-		if (buf.empty()) return 0;
+		span<span<char const>> empty;
+		if (!m_encrypt) return std::make_tuple(0, empty);
+		if (bufs.empty()) return std::make_tuple(0, empty);
 
 		int bytes_processed = 0;
-		for (std::vector<boost::asio::mutable_buffer>::iterator i = buf.begin();
-			i != buf.end(); ++i)
+		for (auto& buf : bufs)
 		{
-			unsigned char* pos = boost::asio::buffer_cast<unsigned char*>(*i);
-			int len = boost::asio::buffer_size(*i);
+			auto* const pos = reinterpret_cast<unsigned char*>(buf.data());
+			int const len = int(buf.size());
 
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-			rc4_encrypt(pos, len, &m_rc4_outgoing);
+			rc4_encrypt(pos, std::uint32_t(len), &m_rc4_outgoing);
 		}
-		buf.clear();
-		return bytes_processed;
+		return std::make_tuple(bytes_processed, empty);
 	}
 
-	void rc4_handler::decrypt(std::vector<boost::asio::mutable_buffer>& buf
-		, int& consume
-		, int& produce
-		, int& packet_size)
+	std::tuple<int, int, int> rc4_handler::decrypt(span<span<char>> bufs)
 	{
-		// these are out-parameters that are not set
-		TORRENT_UNUSED(consume);
-		TORRENT_UNUSED(packet_size);
-
-		if (!m_decrypt) return;
+		if (!m_decrypt) std::make_tuple(0, 0, 0);
 
 		int bytes_processed = 0;
-		for (std::vector<boost::asio::mutable_buffer>::iterator i = buf.begin();
-			i != buf.end(); ++i)
+		for (auto& buf : bufs)
 		{
-			unsigned char* pos = boost::asio::buffer_cast<unsigned char*>(*i);
-			int len = boost::asio::buffer_size(*i);
+			auto* const pos = reinterpret_cast<unsigned char*>(buf.data());
+			int const len = int(buf.size());
 
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-			rc4_encrypt(pos, len, &m_rc4_incoming);
+			rc4_encrypt(pos, std::uint32_t(len), &m_rc4_incoming);
 		}
-		buf.clear();
-		produce = bytes_processed;
+		return std::make_tuple(0, bytes_processed, 0);
 	}
-
-} // namespace libtorrent
 
 // All this code is based on libTomCrypt (http://www.libtomcrypt.com/)
 // this library is public domain and has been specially
 // tailored for libtorrent by Arvid Norberg
 
-void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
+void rc4_init(const unsigned char* in, std::size_t len, rc4 *state)
 {
-	size_t const key_size = sizeof(state->buf);
-	unsigned char key[key_size], tmp, *s;
+	std::size_t const key_size = sizeof(state->buf);
+	aux::array<std::uint8_t, key_size> key;
+	std::uint8_t tmp, *s;
 	int keylen, x, y, j;
 
-	TORRENT_ASSERT(state != 0);
+	TORRENT_ASSERT(state != nullptr);
 	TORRENT_ASSERT(len <= key_size);
 	if (len > key_size) len = key_size;
 
@@ -417,16 +365,16 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	}
 
 	/* extract the key */
-	s = state->buf;
-	std::memcpy(key, s, key_size);
+	s = state->buf.data();
+	std::memcpy(key.data(), s, key_size);
 	keylen = state->x;
 
 	/* make RC4 perm and shuffle */
-	for (x = 0; x < key_size; ++x) {
-		s[x] = x;
+	for (x = 0; x < int(key_size); ++x) {
+		s[x] = x & 0xff;
 	}
 
-	for (j = x = y = 0; x < key_size; x++) {
+	for (j = x = y = 0; x < int(key_size); x++) {
 		y = (y + state->buf[x] + key[j++]) & 255;
 		if (j == keylen) {
 			j = 0;
@@ -437,18 +385,18 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	state->y = 0;
 }
 
-unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
+std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
 {
-	unsigned char x, y, *s, tmp;
-	unsigned long n;
+	std::uint8_t x, y, *s, tmp;
+	std::size_t n;
 
-	TORRENT_ASSERT(out != 0);
-	TORRENT_ASSERT(state != 0);
+	TORRENT_ASSERT(out != nullptr);
+	TORRENT_ASSERT(state != nullptr);
 
 	n = outlen;
-	x = state->x;
-	y = state->y;
-	s = state->buf;
+	x = state->x & 0xff;
+	y = state->y & 0xff;
+	s = state->buf.data();
 	while (outlen--) {
 		x = (x + 1) & 255;
 		y = (y + s[x]) & 255;
@@ -461,5 +409,6 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 	return n;
 }
 
-#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+} // namespace libtorrent
 
+#endif // TORRENT_DISABLE_ENCRYPTION

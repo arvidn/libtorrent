@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace aux {
 
 #ifdef TORRENT_PROFILE_CALLS
-static mutex g_calls_mutex;
-static boost::unordered_map<std::string, int> g_blocking_calls;
+static std::mutex g_calls_mutex;
+static std::unordered_map<std::string, int> g_blocking_calls;
 #endif
 
 void blocking_call()
@@ -44,7 +44,7 @@ void blocking_call()
 #ifdef TORRENT_PROFILE_CALLS
 	char stack[2048];
 	print_backtrace(stack, sizeof(stack), 20);
-	mutex::scoped_lock l(g_calls_mutex);
+	std::unique_lock<std::mutex> l(g_calls_mutex);
 	g_blocking_calls[stack] += 1;
 #endif
 }
@@ -56,45 +56,25 @@ void dump_call_profile()
 
 	std::map<int, std::string> profile;
 
-	mutex::scoped_lock l(g_calls_mutex);
-	for (boost::unordered_map<std::string, int>::const_iterator i = g_blocking_calls.begin()
-		, end(g_blocking_calls.end()); i != end; ++i)
+	std::unique_lock<std::mutex> l(g_calls_mutex);
+	for (auto const& c : g_blocking_calls)
 	{
-		profile[i->second] = i->first;
+		profile[c.second] = c.first;
 	}
 	for (std::map<int, std::string>::const_reverse_iterator i = profile.rbegin()
 		, end(profile.rend()); i != end; ++i)
 	{
-		fprintf(out, "\n\n%d\n%s\n", i->first, i->second.c_str());
+		std::fprintf(out, "\n\n%d\n%s\n", i->first, i->second.c_str());
 	}
 	fclose(out);
 #endif
 }
 
-void fun_wrap(bool& done, condition_variable& e, mutex& m, boost::function<void(void)> f)
-{
-	f();
-	mutex::scoped_lock l(m);
-	done = true;
-	e.notify_all();
-}
-
 void torrent_wait(bool& done, aux::session_impl& ses)
 {
 	blocking_call();
-	mutex::scoped_lock l(ses.mut);
+	std::unique_lock<std::mutex> l(ses.mut);
 	while (!done) { ses.cond.wait(l); };
-}
-
-void sync_call(aux::session_impl& ses, boost::function<void(void)> f)
-{
-	bool done = false;
-	ses.get_io_service().dispatch(boost::bind(&fun_wrap
-		, boost::ref(done)
-		, boost::ref(ses.cond)
-		, boost::ref(ses.mut)
-		, f));
-	torrent_wait(done, ses);
 }
 
 } } // namespace aux namespace libtorrent

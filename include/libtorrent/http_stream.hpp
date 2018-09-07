@@ -33,13 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_STREAM_HPP_INCLUDED
 #define TORRENT_HTTP_STREAM_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <functional>
 
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/string_util.hpp"
@@ -94,22 +88,20 @@ public:
 		// 3. send HTTP CONNECT method and possibly username+password
 		// 4. read CONNECT response
 
-		// to avoid unnecessary copying of the handler,
-		// store it in a shared_ptr
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
-
-		tcp::resolver::query q(m_hostname, to_string(m_port).elems);
-		m_resolver.async_resolve(q, boost::bind(
-			&http_stream::name_lookup, this, _1, _2, h));
+		using std::placeholders::_1;
+		using std::placeholders::_2;
+		tcp::resolver::query q(m_hostname, to_string(m_port).data());
+		m_resolver.async_resolve(q, std::bind(
+			&http_stream::name_lookup, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 private:
 
 	void name_lookup(error_code const& e, tcp::resolver::iterator i
-		, boost::shared_ptr<handler_type> h);
-	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake1(error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake2(error_code const& e, boost::shared_ptr<handler_type> h);
+		, handler_type& h);
+	void connected(error_code const& e, handler_type& h);
+	void handshake1(error_code const& e, handler_type& h);
+	void handshake2(error_code const& e, handler_type& h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;

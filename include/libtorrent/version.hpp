@@ -33,18 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_VERSION_HPP_INCLUDED
 #define TORRENT_VERSION_HPP_INCLUDED
 
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 
 #define LIBTORRENT_VERSION_MAJOR 1
-#define LIBTORRENT_VERSION_MINOR 1
-#define LIBTORRENT_VERSION_TINY 9
+#define LIBTORRENT_VERSION_MINOR 2
+#define LIBTORRENT_VERSION_TINY 0
 
 // the format of this version is: MMmmtt
 // M = Major version, m = minor version, t = tiny version
 #define LIBTORRENT_VERSION_NUM ((LIBTORRENT_VERSION_MAJOR * 10000) + (LIBTORRENT_VERSION_MINOR * 100) + LIBTORRENT_VERSION_TINY)
 
-#define LIBTORRENT_VERSION "1.1.9.0"
-#define LIBTORRENT_REVISION "1ebc5f9ef"
+#define LIBTORRENT_VERSION "1.2.0.0"
+#define LIBTORRENT_REVISION "62cdec8"
 
 namespace libtorrent {
 
@@ -53,5 +53,7 @@ namespace libtorrent {
 	TORRENT_EXPORT char const* version();
 
 }
+
+namespace lt = libtorrent;
 
 #endif

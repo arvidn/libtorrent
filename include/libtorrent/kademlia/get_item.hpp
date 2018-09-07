@@ -33,42 +33,43 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIBTORRENT_GET_ITEM_HPP
 #define LIBTORRENT_GET_ITEM_HPP
 
-#include <string>
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/item.hpp>
 
-namespace libtorrent { namespace dht
-{
+#include <memory>
+
+namespace libtorrent { namespace dht {
 
 class get_item : public find_data
 {
 public:
-	typedef boost::function<void(item const&, bool)> data_callback;
+	using data_callback = std::function<void(item const&, bool)>;
 
 	void got_data(bdecode_node const& v,
-		char const* pk,
-		boost::uint64_t seq,
-		char const* sig);
+		public_key const& pk,
+		sequence_number seq,
+		signature const& sig);
 
-	// for immutable itms
+	// for immutable items
 	get_item(node& dht_node
-		, node_id target
+		, node_id const& target
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback);
 
 	// for mutable items
 	get_item(node& dht_node
-		, char const* pk
-		, std::string const& salt
+		, public_key const& pk
+		, span<char const> salt
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback);
 
-	virtual char const* name() const;
+	char const* name() const override;
 
 protected:
-	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
-	virtual bool invoke(observer_ptr o);
-	virtual void done();
+	observer_ptr new_observer(udp::endpoint const& ep
+		, node_id const& id) override;
+	bool invoke(observer_ptr o) override;
+	void done() override;
 
 	data_callback m_data_callback;
 	item m_data;
@@ -79,12 +80,12 @@ class get_item_observer : public find_data_observer
 {
 public:
 	get_item_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: find_data_observer(algorithm, ep, id)
+		: find_data_observer(std::move(algorithm), ep, id)
 	{}
 
-	virtual void reply(msg const&);
+	void reply(msg const&) override;
 };
 
 } } // namespace libtorrent::dht

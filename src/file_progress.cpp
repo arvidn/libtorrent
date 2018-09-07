@@ -37,26 +37,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 
-namespace libtorrent { namespace aux
-{
-
-	file_progress::file_progress()
-	{
-	}
+namespace libtorrent { namespace aux {
 
 	void file_progress::init(piece_picker const& picker, file_storage const& fs)
 	{
+		INVARIANT_CHECK;
+
 		if (!m_file_progress.empty()) return;
 
-		int const num_pieces = fs.num_pieces();
 		int const num_files = fs.num_files();
 
 #if TORRENT_USE_INVARIANT_CHECKS
+		int const num_pieces = fs.num_pieces();
 		m_have_pieces.clear();
 		m_have_pieces.resize(num_pieces, false);
 		m_file_sizes.clear();
 		m_file_sizes.reserve(num_files);
-		for (int i = 0; i < int(fs.num_files()); ++i)
+		for (file_index_t i(0); i < fs.end_file(); ++i)
 			m_file_sizes.push_back(fs.file_size(i));
 #endif
 
@@ -65,19 +62,19 @@ namespace libtorrent { namespace aux
 
 		// initialize the progress of each file
 
-		const int piece_size = fs.piece_length();
-		boost::uint64_t off = 0;
-		boost::uint64_t total_size = fs.total_size();
-		int file_index = 0;
-		for (int piece = 0; piece < num_pieces; ++piece, off += piece_size)
+		int const piece_size = fs.piece_length();
+		std::int64_t off = 0;
+		std::int64_t const total_size = fs.total_size();
+		file_index_t file_index(0);
+		for (piece_index_t piece(0); piece < fs.end_piece(); ++piece, off += piece_size)
 		{
-			TORRENT_ASSERT(file_index < fs.num_files());
-			boost::int64_t file_offset = off - fs.file_offset(file_index);
+			TORRENT_ASSERT(file_index < fs.end_file());
+			std::int64_t file_offset = off - fs.file_offset(file_index);
 			TORRENT_ASSERT(file_offset >= 0);
 			while (file_offset >= fs.file_size(file_index))
 			{
 				++file_index;
-				TORRENT_ASSERT(file_index < fs.num_files());
+				TORRENT_ASSERT(file_index < fs.end_file());
 				file_offset = off - fs.file_offset(file_index);
 				TORRENT_ASSERT(file_offset >= 0);
 			}
@@ -88,12 +85,14 @@ namespace libtorrent { namespace aux
 #if TORRENT_USE_INVARIANT_CHECKS
 			m_have_pieces.set_bit(piece);
 #endif
-			int size = (std::min)(boost::uint64_t(piece_size), total_size - off);
+
+			TORRENT_ASSERT(total_size >= off);
+			std::int64_t size = std::min(std::int64_t(piece_size), total_size - off);
 			TORRENT_ASSERT(size >= 0);
 
 			while (size)
 			{
-				int const add = (std::min)(boost::int64_t(size), fs.file_size(file_index) - file_offset);
+				std::int64_t const add = std::min(size, fs.file_size(file_index) - file_offset);
 				TORRENT_ASSERT(add >= 0);
 				m_file_progress[file_index] += add;
 
@@ -105,22 +104,25 @@ namespace libtorrent { namespace aux
 				if (size > 0)
 				{
 					++file_index;
-					TORRENT_ASSERT(file_index < fs.num_files());
+					TORRENT_ASSERT(file_index < fs.end_file());
 					file_offset = 0;
 				}
 			}
 		}
 	}
 
-	void file_progress::export_progress(std::vector<boost::int64_t> &fp)
+	void file_progress::export_progress(vector<std::int64_t, file_index_t>& fp)
 	{
+		INVARIANT_CHECK;
 		fp.resize(m_file_progress.size(), 0);
 		std::copy(m_file_progress.begin(), m_file_progress.end(), fp.begin());
 	}
 
 	void file_progress::clear()
 	{
-		std::vector<boost::uint64_t>().swap(m_file_progress);
+		INVARIANT_CHECK;
+		m_file_progress.clear();
+		m_file_progress.shrink_to_fit();
 #if TORRENT_USE_INVARIANT_CHECKS
 		m_have_pieces.clear();
 #endif
@@ -128,30 +130,31 @@ namespace libtorrent { namespace aux
 
 	// update the file progress now that we just completed downloading piece
 	// 'index'
-	void file_progress::update(file_storage const& fs, int index
+	void file_progress::update(file_storage const& fs, piece_index_t const index
 		, alert_manager* alerts, torrent_handle const& h)
 	{
 		INVARIANT_CHECK;
+		if (m_file_progress.empty()) return;
 
 #if TORRENT_USE_INVARIANT_CHECKS
+		// if this assert fires, we've told the file_progress object that we have
+		// a piece twice. That violates its precondition and will cause incorect
+		// accounting
 		TORRENT_ASSERT(m_have_pieces.get_bit(index) == false);
 		m_have_pieces.set_bit(index);
 #endif
 
-		if (m_file_progress.empty())
-			return;
-
-		const int piece_size = fs.piece_length();
-		boost::int64_t off = boost::int64_t(index) * piece_size;
-		int file_index = fs.file_index_at_offset(off);
-		int size = fs.piece_size(index);
+		int const piece_size = fs.piece_length();
+		std::int64_t off = std::int64_t(static_cast<int>(index)) * piece_size;
+		file_index_t file_index = fs.file_index_at_offset(off);
+		std::int64_t size = fs.piece_size(index);
 		for (; size > 0; ++file_index)
 		{
-			boost::int64_t file_offset = off - fs.file_offset(file_index);
-			TORRENT_ASSERT(file_index != fs.num_files());
+			std::int64_t const file_offset = off - fs.file_offset(file_index);
+			TORRENT_ASSERT(file_index != fs.end_file());
 			TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
-			int add = (std::min)(fs.file_size(file_index)
-				- file_offset, boost::int64_t(size));
+			std::int64_t const add = std::min(fs.file_size(file_index)
+				- file_offset, size);
 			m_file_progress[file_index] += add;
 
 			TORRENT_ASSERT(m_file_progress[file_index]
@@ -179,12 +182,12 @@ namespace libtorrent { namespace aux
 	void file_progress::check_invariant() const
 	{
 		if (m_file_progress.empty()) return;
-		for (int i = 0; i < int(m_file_progress.size()); ++i)
+
+		file_index_t index(0);
+		for (std::int64_t progress : m_file_progress)
 		{
-			TORRENT_ASSERT(m_file_progress[i] <= m_file_sizes[i]);
+			TORRENT_ASSERT(progress <= m_file_sizes[index++]);
 		}
 	}
 #endif
 } }
-
-

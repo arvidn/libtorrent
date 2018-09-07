@@ -31,65 +31,62 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/disk_io_thread.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
-	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, char* buf)
-		: m_allocator(alloc), m_buf(buf)
+	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc
+		, char* buf, std::size_t sz) noexcept
+		: m_allocator(&alloc), m_buf(buf), m_size(sz), m_ref()
+	{}
+
+	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h) & noexcept
 	{
-		m_ref.storage = 0;
-		m_ref.piece = -1;
-		m_ref.block = -1;
+		if (&h == this) return *this;
+		disk_buffer_holder(std::move(h)).swap(*this);
+		return *this;
 	}
 
-	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j)
-		: m_allocator(alloc), m_buf(j.buffer.disk_block), m_ref(j.d.io.ref)
+	disk_buffer_holder::disk_buffer_holder(disk_buffer_holder&& h) noexcept
+		: m_allocator(h.m_allocator), m_buf(h.m_buf), m_size(h.m_size), m_ref(h.m_ref)
 	{
-		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.piece >= 0);
-		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.block >= 0);
-		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.piece < static_cast<piece_manager*>(m_ref.storage)->files()->num_pieces());
-		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.block <= static_cast<piece_manager*>(m_ref.storage)->files()->piece_length() / 0x4000);
-		TORRENT_ASSERT(j.action != disk_io_job::save_resume_data);
-		TORRENT_ASSERT(j.action != disk_io_job::rename_file);
-		TORRENT_ASSERT(j.action != disk_io_job::move_storage);
+		// we own this buffer now
+		h.m_buf = nullptr;
+		h.m_ref = aux::block_cache_reference();
 	}
 
-	void disk_buffer_holder::reset(disk_io_job const& j)
-	{
-		if (m_ref.storage) m_allocator.reclaim_block(m_ref);
-		else if (m_buf) m_allocator.free_disk_buffer(m_buf);
-		m_buf = j.buffer.disk_block;
-		m_ref = j.d.io.ref;
+	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc
+		, aux::block_cache_reference const& ref, char* buf
+		, std::size_t sz) noexcept
+		: m_allocator(&alloc), m_buf(buf), m_size(sz), m_ref(ref)
+	{}
 
-		TORRENT_ASSERT(m_ref.piece >= 0);
-		TORRENT_ASSERT(m_ref.storage != 0);
-		TORRENT_ASSERT(m_ref.block >= 0);
-		TORRENT_ASSERT(m_ref.piece < static_cast<piece_manager*>(m_ref.storage)->files()->num_pieces());
-		TORRENT_ASSERT(m_ref.block <= static_cast<piece_manager*>(m_ref.storage)->files()->piece_length() / 0x4000);
-		TORRENT_ASSERT(j.action != disk_io_job::save_resume_data);
-		TORRENT_ASSERT(j.action != disk_io_job::rename_file);
-		TORRENT_ASSERT(j.action != disk_io_job::move_storage);
-	}
-
-	void disk_buffer_holder::reset(char* buf)
+	void disk_buffer_holder::reset(aux::block_cache_reference const& ref, char* buf, std::size_t const sz)
 	{
-		if (m_ref.storage) m_allocator.reclaim_block(m_ref);
-		else if (m_buf) m_allocator.free_disk_buffer(m_buf);
+		if (m_ref.cookie != aux::block_cache_reference::none) m_allocator->reclaim_blocks(m_ref);
+		else if (m_buf) m_allocator->free_disk_buffer(m_buf);
 		m_buf = buf;
-		m_ref.storage = 0;
+		m_size = sz;
+		m_ref = ref;
 	}
 
-	char* disk_buffer_holder::release()
+	void disk_buffer_holder::reset(char* const buf, std::size_t const sz)
 	{
+		if (m_ref.cookie != aux::block_cache_reference::none) m_allocator->reclaim_blocks(m_ref);
+		else if (m_buf) m_allocator->free_disk_buffer(m_buf);
+		m_buf = buf;
+		m_size = sz;
+		m_ref = aux::block_cache_reference();
+	}
+
+	char* disk_buffer_holder::release() noexcept
+	{
+		TORRENT_ASSERT(m_ref.cookie == aux::block_cache_reference::none);
 		char* ret = m_buf;
-		m_buf = 0;
-		m_ref.storage = 0;
+		m_buf = nullptr;
+		m_size = 0;
+		m_ref = aux::block_cache_reference();
 		return ret;
 	}
 
 	disk_buffer_holder::~disk_buffer_holder() { reset(); }
 }
-

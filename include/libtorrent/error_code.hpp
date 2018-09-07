@@ -33,29 +33,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ERROR_CODE_HPP_INCLUDED
 #define TORRENT_ERROR_CODE_HPP_INCLUDED
 
-#include <boost/version.hpp>
 #include "libtorrent/config.hpp"
-#include "libtorrent/string_util.hpp" // for allocate_string_copy
-#include <stdlib.h> // free
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-// asio assumes that the windows error codes are defined already
-#include <winsock2.h>
-#endif
-
 #include <boost/system/error_code.hpp>
-#include <boost/asio/error.hpp>
-
+#include <boost/system/system_error.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/operations.hpp"
 
-#ifndef BOOST_SYSTEM_NOEXCEPT
-#define BOOST_SYSTEM_NOEXCEPT TORRENT_EXCEPTION_THROW_SPECIFIER
-#endif
-
-namespace libtorrent
-{
+namespace libtorrent {
 
 	namespace errors
 	{
@@ -334,19 +321,32 @@ namespace libtorrent
 			// peer was banned because its listen port is within a banned port
 			// range, as specified by the port_filter.
 			banned_by_port_filter,
+			// The session_handle is not referring to a valid session_impl
+			invalid_session_handle,
+			// the listen socket associated with this request was closed
+			invalid_listen_socket,
 
+#if TORRENT_ABI_VERSION == 1
+			// these error codes are deprecated, NAT-PMP/PCP error codes have
+			// been moved to their own category
 
 			// The NAT-PMP router responded with an unsupported protocol version
-			unsupported_protocol_version = 120,
+			unsupported_protocol_version TORRENT_DEPRECATED_ENUM = 120,
 			// You are not authorized to map ports on this NAT-PMP router
-			natpmp_not_authorized,
+			natpmp_not_authorized TORRENT_DEPRECATED_ENUM,
 			// The NAT-PMP router failed because of a network failure
-			network_failure,
+			network_failure TORRENT_DEPRECATED_ENUM,
 			// The NAT-PMP router failed because of lack of resources
-			no_resources,
+			no_resources TORRENT_DEPRECATED_ENUM,
 			// The NAT-PMP router failed because an unsupported opcode was sent
-			unsupported_opcode,
-
+			unsupported_opcode TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_120 = 120,
+			deprecated_121,
+			deprecated_122,
+			deprecated_123,
+			deprecated_124,
+#endif
 
 
 			// The resume data file is missing the 'file sizes' entry
@@ -429,7 +429,7 @@ namespace libtorrent
 			// invalid action field in udp tracker response
 			invalid_tracker_action,
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			// expected string in bencoded string
 			expected_string = 190,
 			// expected colon in bencoded string
@@ -445,6 +445,9 @@ namespace libtorrent
 			// integer overflow
 			overflow,
 #endif
+
+			// random number generation failed
+			no_entropy = 200,
 
 			// the number of error codes
 			error_code_max
@@ -485,35 +488,25 @@ namespace libtorrent
 	// returns the error_category for HTTP errors
 	TORRENT_EXPORT boost::system::error_category& http_category();
 
-	using boost::system::error_code;
-	using boost::system::error_condition;
+	using error_code = boost::system::error_code;
+	using error_condition = boost::system::error_condition;
 
 	// internal
 	using boost::system::generic_category;
 	using boost::system::system_category;
 
-#ifndef TORRENT_NO_DEPRECATE
-	TORRENT_DEPRECATED TORRENT_EXPORT
-	boost::system::error_category& get_libtorrent_category();
-	TORRENT_DEPRECATED TORRENT_EXPORT
-	boost::system::error_category& get_http_category();
-#endif
+	using system_error = boost::system::system_error;
 
 #ifndef BOOST_NO_EXCEPTIONS
-	struct TORRENT_EXPORT libtorrent_exception : std::exception
-	{
-		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
-		virtual const char* what() const TORRENT_EXCEPTION_THROW_SPECIFIER;
-		virtual ~libtorrent_exception() TORRENT_EXCEPTION_THROW_SPECIFIER;
-#if __cplusplus >= 201103L
-		libtorrent_exception(libtorrent_exception const&) = default;
-		libtorrent_exception& operator=(libtorrent_exception const&) = default;
+#if TORRENT_ABI_VERSION == 1
+	TORRENT_DEPRECATED
+	inline boost::system::error_category& get_libtorrent_category()
+	{ return libtorrent_category(); }
+
+	TORRENT_DEPRECATED
+	inline boost::system::error_category& get_http_category()
+	{ return http_category(); }
 #endif
-		error_code error() const { return m_error; }
-	private:
-		error_code m_error;
-		mutable char* m_msg;
-	};
 #endif
 
 	// used by storage to return errors
@@ -521,54 +514,31 @@ namespace libtorrent
 	// error happened on
 	struct TORRENT_EXPORT storage_error
 	{
-		storage_error(): file(-1), operation(0) {}
-		storage_error(error_code e): ec(e), file(-1), operation(0) {}
+		storage_error(): file_idx(-1), operation(operation_t::unknown) {}
+		explicit storage_error(error_code e): ec(e), file_idx(-1), operation(operation_t::unknown) {}
 
-		operator bool() const { return ec.value() != 0; }
+		explicit operator bool() const { return ec.value() != 0; }
 
 		// the error that occurred
 		error_code ec;
 
+		file_index_t file() const { return file_index_t(file_idx); }
+		void file(file_index_t f) { file_idx = static_cast<int>(f); }
+
 		// the file the error occurred on
-		boost::int32_t file:24;
+		std::int32_t file_idx:24;
 
 		// A code from file_operation_t enum, indicating what
 		// kind of operation failed.
-		boost::uint32_t operation:8;
+		operation_t operation;
 
-		enum file_operation_t {
-			none,
-			stat,
-			mkdir,
-			open,
-			rename,
-			remove,
-			copy,
-			read,
-			write,
-			fallocate,
-			alloc_cache_piece,
-			partfile_move,
-			partfile_read,
-			partfile_write,
-			check_resume,
-			hard_link
-		};
-
+#if TORRENT_ABI_VERSION == 1
 		// Returns a string literal representing the file operation
 		// that failed. If there were no failure, it returns
 		// an empty string.
-		char const* operation_str() const
-		{
-			static char const* ops[] =
-			{
-				"", "stat", "mkdir", "open", "rename", "remove", "copy"
-				, "read", "write", "fallocate", "allocate cache piece"
-				, "partfile move", "partfile read", "partfile write"
-				, "check resume", "hard_link"
-			};
-			return ops[operation];
-		}
+		char const* operation_str() const TORRENT_DEPRECATED_MEMBER
+		{ return operation_name(operation); }
+#endif
 	};
 
 }
@@ -583,4 +553,3 @@ namespace boost { namespace system {
 } }
 
 #endif
-

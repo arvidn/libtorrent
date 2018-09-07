@@ -33,62 +33,50 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_CONNECTION
 #define TORRENT_HTTP_CONNECTION
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
-#include <boost/function/function5.hpp>
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/optional.hpp>
-#include <vector>
-#include <string>
-
 #ifdef TORRENT_USE_OPENSSL
 // there is no forward declaration header for asio
 namespace boost {
 namespace asio {
 namespace ssl {
-	struct context;
+	class context;
 }
 }
 }
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <functional>
+#include <vector>
+#include <string>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/socket_type.hpp"
-#include "libtorrent/session_settings.hpp"
-
 #include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
+#include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/optional.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 struct http_connection;
 struct resolver_interface;
 
-const int default_max_bottled_buffer_size = 2*1024*1024;
+constexpr int default_max_bottled_buffer_size = 2 * 1024 * 1024;
 
-typedef boost::function<void(error_code const&
-	, http_parser const&, char const* data, int size, http_connection&)> http_handler;
+using http_handler = std::function<void(error_code const&
+	, http_parser const&, span<char const> data, http_connection&)>;
 
-typedef boost::function<void(http_connection&)> http_connect_handler;
+using http_connect_handler = std::function<void(http_connection&)>;
 
-typedef boost::function<void(http_connection&, std::vector<tcp::endpoint>&)> http_filter_handler;
+using http_filter_handler = std::function<void(http_connection&, std::vector<tcp::endpoint>&)>;
 
 // when bottled, the last two arguments to the handler
 // will always be 0
 struct TORRENT_EXTRA_EXPORT http_connection
-	: boost::enable_shared_from_this<http_connection>
-	, boost::noncopyable
+	: std::enable_shared_from_this<http_connection>
 {
 	http_connection(io_service& ios
 		, resolver_interface& resolver
@@ -98,9 +86,13 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, http_connect_handler const& ch = http_connect_handler()
 		, http_filter_handler const& fh = http_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
-		, ssl::context* ssl_ctx = 0
+		, ssl::context* ssl_ctx = nullptr
 #endif
 		);
+
+	// non-copyable
+	http_connection(http_connection const&) = delete;
+	http_connection& operator=(http_connection const&) = delete;
 
 	virtual ~http_connection();
 
@@ -112,28 +104,28 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	std::string m_sendbuffer;
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
-		, int prio = 0, aux::proxy_settings const* ps = NULL, int handle_redirects = 5
+		, int prio = 0, aux::proxy_settings const* ps = nullptr, int handle_redirects = 5
 		, std::string const& user_agent = std::string()
-		, boost::optional<address> bind_addr = boost::none
-		, int resolve_flags = 0, std::string const& auth_ = std::string()
+		, boost::optional<address> const& bind_addr = boost::optional<address>()
+		, resolver_flags resolve_flags = resolver_flags{}, std::string const& auth_ = std::string()
 #if TORRENT_USE_I2P
-		, i2p_connection* i2p_conn = 0
+		, i2p_connection* i2p_conn = nullptr
 #endif
 		);
 
 	void start(std::string const& hostname, int port
-		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = NULL
+		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = nullptr
 		, bool ssl = false, int handle_redirect = 5
-		, boost::optional<address> bind_addr = boost::none
-		, int resolve_flags = 0
+		, boost::optional<address> const& bind_addr = boost::optional<address>()
+		, resolver_flags resolve_flags = resolver_flags{}
 #if TORRENT_USE_I2P
-		, i2p_connection* i2p_conn = 0
+		, i2p_connection* i2p_conn = nullptr
 #endif
 		);
 
 	void close(bool force = false);
 
-	socket_type const& socket() const { return m_sock; }
+	aux::socket_type const& socket() const { return m_sock; }
 
 	std::vector<tcp::endpoint> const& endpoints() const { return m_endpoints; }
 
@@ -150,25 +142,25 @@ private:
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
 	void on_read(error_code const& e, std::size_t bytes_transferred);
-	static void on_timeout(boost::weak_ptr<http_connection> p
+	static void on_timeout(std::weak_ptr<http_connection> p
 		, error_code const& e);
 	void on_assign_bandwidth(error_code const& e);
 
-	void callback(error_code e, char* data = NULL, int size = 0);
+	void callback(error_code e, span<char> data = {});
 
-	std::vector<char> m_recvbuffer;
+	aux::vector<char> m_recvbuffer;
 
 	std::string m_hostname;
 	std::string m_url;
 	std::string m_user_agent;
 
-	std::vector<tcp::endpoint> m_endpoints;
+	aux::vector<tcp::endpoint> m_endpoints;
 
 	// if the current connection attempt fails, we'll connect to the
 	// endpoint with this index (in m_endpoints) next
 	int m_next_ep;
 
-	socket_type m_sock;
+	aux::socket_type m_sock;
 
 #ifdef TORRENT_USE_OPENSSL
 	ssl::context* m_ssl_ctx;
@@ -227,9 +219,9 @@ private:
 	int m_priority;
 
 	// used for DNS lookups
-	int m_resolve_flags;
+	resolver_flags m_resolve_flags;
 
-	boost::uint16_t m_port;
+	std::uint16_t m_port;
 
 	// bottled means that the handler is called once, when
 	// everything is received (and buffered in memory).

@@ -35,14 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/span.hpp"
 
 #include <vector>
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT void inflate_gzip(
-		char const* in, int size
+		span<char const> in
 		, std::vector<char>& buffer
 		, int maximum_size
 		, error_code& error);
@@ -50,9 +50,10 @@ namespace libtorrent
 	// get the ``error_category`` for zip errors
 	TORRENT_EXPORT boost::system::error_category& gzip_category();
 
-#ifndef TORRENT_NO_DEPRECATE
-	TORRENT_DEPRECATED TORRENT_EXPORT
-	boost::system::error_category& get_gzip_category();
+#if TORRENT_ABI_VERSION == 1
+	TORRENT_DEPRECATED
+	inline boost::system::error_category& get_gzip_category()
+	{ return gzip_category(); }
 #endif
 
 	namespace gzip_errors
@@ -133,4 +134,3 @@ struct is_error_condition_enum<libtorrent::gzip_errors::error_code_enum>
 } }
 
 #endif
-

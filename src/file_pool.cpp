@@ -32,37 +32,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/version.hpp>
-#include <boost/bind.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/file_storage.hpp" // for file_entry
-#include "libtorrent/aux_/time.hpp"
+#include "libtorrent/file_storage.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/disk_interface.hpp"
+#include "libtorrent/aux_/path.hpp"
+#ifdef TORRENT_WINDOWS
+#include "libtorrent/aux_/win_util.hpp"
+#endif
 
-namespace libtorrent
-{
-	file_pool::file_pool(int size)
-		: m_size(size)
-		, m_low_prio_io(true)
-	{
-	}
+#include <limits>
 
-	file_pool::~file_pool()
-	{
-	}
+namespace libtorrent {
+
+	file_pool::file_pool(int size) : m_size(size) {}
+	file_pool::~file_pool() = default;
 
 #ifdef TORRENT_WINDOWS
 	void set_low_priority(file_handle const& f)
 	{
 		// file prio is only supported on vista and up
 		// so load the functions dynamically
-		typedef enum _FILE_INFO_BY_HANDLE_CLASS {
+		enum FILE_INFO_BY_HANDLE_CLASS_LOCAL {
 			FileBasicInfo,
 			FileStandardInfo,
 			FileNameInfo,
@@ -78,77 +71,51 @@ namespace libtorrent
 			FileIoPriorityHintInfo,
 			FileRemoteProtocolInfo,
 			MaximumFileInfoByHandleClass
-		} FILE_INFO_BY_HANDLE_CLASS, *PFILE_INFO_BY_HANDLE_CLASS;
+		};
 
-		typedef enum _PRIORITY_HINT {
+		enum PRIORITY_HINT_LOCAL {
 			IoPriorityHintVeryLow = 0,
 			IoPriorityHintLow,
 			IoPriorityHintNormal,
 			MaximumIoPriorityHintType
-		} PRIORITY_HINT;
+		};
 
-		typedef struct _FILE_IO_PRIORITY_HINT_INFO {
-			PRIORITY_HINT PriorityHint;
-		} FILE_IO_PRIORITY_HINT_INFO, *PFILE_IO_PRIORITY_HINT_INFO;
+		struct FILE_IO_PRIORITY_HINT_INFO_LOCAL {
+			PRIORITY_HINT_LOCAL PriorityHint;
+		};
 
-		typedef BOOL (WINAPI *SetFileInformationByHandle_t)(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
-		static SetFileInformationByHandle_t SetFileInformationByHandle = NULL;
+		using SetFileInformationByHandle_t = BOOL (WINAPI *)(HANDLE
+			, FILE_INFO_BY_HANDLE_CLASS_LOCAL, LPVOID, DWORD);
+		auto SetFileInformationByHandle =
+			aux::get_library_procedure<aux::kernel32, SetFileInformationByHandle_t>(
+				"SetFileInformationByHandle");
 
-		static bool failed_kernel_load = false;
+		if (SetFileInformationByHandle == nullptr) return;
 
-		if (failed_kernel_load) return;
-
-		if (SetFileInformationByHandle == NULL)
-		{
-			HMODULE kernel32 = LoadLibraryA("kernel32.dll");
-			if (kernel32 == NULL)
-			{
-				failed_kernel_load = true;
-				return;
-			}
-
-			SetFileInformationByHandle = (SetFileInformationByHandle_t)GetProcAddress(kernel32, "SetFileInformationByHandle");
-			if (SetFileInformationByHandle == NULL)
-			{
-				failed_kernel_load = true;
-				return;
-			}
-		}
-
-		TORRENT_ASSERT(SetFileInformationByHandle);
-
-		FILE_IO_PRIORITY_HINT_INFO io_hint;
+		FILE_IO_PRIORITY_HINT_INFO_LOCAL io_hint;
 		io_hint.PriorityHint = IoPriorityHintLow;
 		SetFileInformationByHandle(f->native_handle(),
 			FileIoPriorityHintInfo, &io_hint, sizeof(io_hint));
 	}
 #endif // TORRENT_WINDOWS
 
-	file_handle file_pool::open_file(void* st, std::string const& p
-		, int file_index, file_storage const& fs, int m, error_code& ec)
+	file_handle file_pool::open_file(storage_index_t st, std::string const& p
+		, file_index_t const file_index, file_storage const& fs
+		, open_mode_t const m, error_code& ec)
 	{
 		// potentially used to hold a reference to a file object that's
 		// about to be destructed. If we have such object we assign it to
-		// this member to be destructed after we release the mutex. On some
+		// this member to be destructed after we release the std::mutex. On some
 		// operating systems (such as OSX) closing a file may take a long
-		// time. We don't want to hold the mutex for that.
+		// time. We don't want to hold the std::mutex for that.
 		file_handle defer_destruction;
 
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
-#if TORRENT_USE_ASSERTS
-		// we're not allowed to open a file
-		// from a deleted storage!
-		TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
-			, std::make_pair(fs.name(), static_cast<void const*>(&fs)))
-			== m_deleted_storages.end());
-#endif
-
-		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(is_complete(p));
-		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
-			|| (m & file::rw_mask) == file::read_write);
-		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
+		TORRENT_ASSERT((m & open_mode::rw_mask) == open_mode::read_only
+			|| (m & open_mode::rw_mask) == open_mode::read_write);
+		auto const i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -157,42 +124,34 @@ namespace libtorrent
 			// if we asked for a file in write mode,
 			// and the cached file is is not opened in
 			// write mode, re-open it
-			if ((((e.mode & file::rw_mask) != file::read_write)
-				&& ((m & file::rw_mask) == file::read_write))
-				|| (e.mode & file::random_access) != (m & file::random_access))
+			if ((((e.mode & open_mode::rw_mask) != open_mode::read_write)
+				&& ((m & open_mode::rw_mask) == open_mode::read_write))
+				|| (e.mode & open_mode::random_access) != (m & open_mode::random_access))
 			{
-				// close the file before we open it with
-				// the new read/write privileges, since windows may
-				// file opening a file twice. However, since there may
-				// be outstanding operations on it, we can't close the
-				// file, we can only delete our reference to it.
-				// if this is the only reference to the file, it will be closed
-				defer_destruction = e.file_ptr;
-				e.file_ptr = boost::make_shared<file>();
+				file_handle new_file = std::make_shared<file>();
 
 				std::string full_path = fs.file_path(file_index, p);
-				if (!e.file_ptr->open(full_path, m, ec))
-				{
-					m_files.erase(i);
+				if (!new_file->open(full_path, m, ec))
 					return file_handle();
-				}
 #ifdef TORRENT_WINDOWS
 				if (m_low_prio_io)
-					set_low_priority(e.file_ptr);
+					set_low_priority(new_file);
 #endif
 
-				TORRENT_ASSERT(e.file_ptr->is_open());
+				TORRENT_ASSERT(new_file->is_open());
+				defer_destruction = std::move(e.file_ptr);
+				e.file_ptr = std::move(new_file);
 				e.mode = m;
 			}
 			return e.file_ptr;
 		}
 
 		lru_file_entry e;
-		e.file_ptr = boost::make_shared<file>();
+		e.file_ptr = std::make_shared<file>();
 		if (!e.file_ptr)
 		{
 			ec = error_code(boost::system::errc::not_enough_memory, generic_category());
-			return e.file_ptr;
+			return file_handle();
 		}
 		std::string full_path = fs.file_path(file_index, p);
 		if (!e.file_ptr->open(full_path, m, ec))
@@ -215,28 +174,54 @@ namespace libtorrent
 		return file_ptr;
 	}
 
-	void file_pool::get_status(std::vector<pool_file_status>* files, void* st) const
+	namespace {
+
+	file_open_mode_t to_file_open_mode(open_mode_t const mode)
 	{
-		mutex::scoped_lock l(m_mutex);
+		file_open_mode_t ret;
+		open_mode_t const rw_mode = mode & open_mode::rw_mask;
 
-		file_set::const_iterator start = m_files.lower_bound(std::make_pair(st, 0));
-		file_set::const_iterator end = m_files.upper_bound(std::make_pair(st, INT_MAX));
+		ret = (rw_mode == open_mode::read_only)
+			? file_open_mode::read_only
+			: (rw_mode == open_mode::write_only)
+			? file_open_mode::write_only
+			: (rw_mode == open_mode::read_write)
+			? file_open_mode::read_write
+			: file_open_mode_t{};
 
-		for (file_set::const_iterator i = start; i != end; ++i)
-		{
-			pool_file_status s;
-			s.file_index = i->first.second;
-			s.open_mode = i->second.mode;
-			s.last_use = i->second.last_use;
-			files->push_back(s);
-		}
+		if (mode & open_mode::sparse) ret |= file_open_mode::sparse;
+		if (mode & open_mode::no_atime) ret |= file_open_mode::no_atime;
+		if (mode & open_mode::random_access) ret |= file_open_mode::random_access;
+		return ret;
 	}
 
-	file_handle file_pool::remove_oldest(mutex::scoped_lock&)
+	}
+
+	std::vector<open_file_state> file_pool::get_status(storage_index_t const st) const
 	{
-		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
-			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
-				< boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _2)));
+		std::vector<open_file_state> ret;
+		{
+			std::unique_lock<std::mutex> l(m_mutex);
+
+			auto const start = m_files.lower_bound(std::make_pair(st, file_index_t(0)));
+			auto const end = m_files.upper_bound(std::make_pair(st
+				, std::numeric_limits<file_index_t>::max()));
+
+			for (auto i = start; i != end; ++i)
+			{
+				ret.push_back({i->first.second, to_file_open_mode(i->second.mode)
+					, i->second.last_use});
+			}
+		}
+		return ret;
+	}
+
+	file_handle file_pool::remove_oldest(std::unique_lock<std::mutex>&)
+	{
+		using value_type = decltype(m_files)::value_type;
+		auto const i = std::min_element(m_files.begin(), m_files.end()
+			, [] (value_type const& lhs, value_type const& rhs)
+				{ return lhs.second.last_use < rhs.second.last_use; });
 		if (i == m_files.end()) return file_handle();
 
 		file_handle file_ptr = i->second.file_ptr;
@@ -247,11 +232,11 @@ namespace libtorrent
 		return file_ptr;
 	}
 
-	void file_pool::release(void* st, int file_index)
+	void file_pool::release(storage_index_t const st, file_index_t file_index)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
-		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
+		auto const i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
 
 		file_handle file_ptr = i->second.file_ptr;
@@ -264,61 +249,36 @@ namespace libtorrent
 	}
 
 	// closes files belonging to the specified
-	// storage. If 0 is passed, all files are closed
-	void file_pool::release(void* st)
+	// storage, or all if none is specified.
+	void file_pool::release()
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
+		m_files.clear();
+		l.unlock();
+	}
 
-		if (st == 0)
-		{
-			m_files.clear();
-			l.unlock();
-			return;
-		}
+	void file_pool::release(storage_index_t const st)
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
 
-		file_set::iterator begin = m_files.lower_bound(std::make_pair(st, 0));
-		file_set::iterator end = m_files.upper_bound(std::make_pair(st, std::numeric_limits<int>::max()));
+		auto const begin = m_files.lower_bound(std::make_pair(st, file_index_t(0)));
+		auto const end = m_files.upper_bound(std::make_pair(st
+				, std::numeric_limits<file_index_t>::max()));
 
 		std::vector<file_handle> to_close;
-		while (begin != end)
-		{
-			to_close.push_back(begin->second.file_ptr);
-			m_files.erase(begin++);
-		}
+		for (auto it = begin; it != end; ++it)
+			to_close.push_back(std::move(it->second.file_ptr));
+		if (!to_close.empty()) m_files.erase(begin, end);
 		l.unlock();
 		// the files are closed here while the lock is not held
 	}
-
-#if TORRENT_USE_ASSERTS
-	void file_pool::mark_deleted(file_storage const& fs)
-	{
-		mutex::scoped_lock l(m_mutex);
-		m_deleted_storages.push_back(std::make_pair(fs.name()
-			, static_cast<void const*>(&fs)));
-		if(m_deleted_storages.size() > 100)
-			m_deleted_storages.erase(m_deleted_storages.begin());
-	}
-
-	bool file_pool::assert_idle_files(void* st) const
-	{
-		mutex::scoped_lock l(m_mutex);
-
-		for (file_set::const_iterator i = m_files.begin();
-			i != m_files.end(); ++i)
-		{
-			if (i->first.first == st && !i->second.file_ptr.unique())
-				return false;
-		}
-		return true;
-	}
-#endif
 
 	void file_pool::resize(int size)
 	{
 		// these are destructed _after_ the mutex is released
 		std::vector<file_handle> defer_destruction;
 
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		TORRENT_ASSERT(size > 0);
 
@@ -333,11 +293,12 @@ namespace libtorrent
 
 	void file_pool::close_oldest()
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
-		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
-			, boost::bind(&lru_file_entry::opened, boost::bind(&file_set::value_type::second, _1))
-				< boost::bind(&lru_file_entry::opened, boost::bind(&file_set::value_type::second, _2)));
+		using value_type = decltype(m_files)::value_type;
+		auto const i = std::min_element(m_files.begin(), m_files.end()
+			, [] (value_type const& lhs, value_type const& rhs)
+				{ return lhs.second.opened < rhs.second.opened; });
 		if (i == m_files.end()) return;
 
 		file_handle file_ptr = i->second.file_ptr;
@@ -349,4 +310,3 @@ namespace libtorrent
 		l.lock();
 	}
 }
-

@@ -37,11 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/torrent_info.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
+// the disk I/O thread is not simulated with high enough fidelity for this to
+// work
+/*
 TORRENT_TEST(close_file_interval)
 {
 	bool ran_to_completion = false;
@@ -60,15 +62,14 @@ TORRENT_TEST(close_file_interval)
 		, [&](int ticks, lt::session& ses) -> bool
 		{
 			// terminate after 40 seconds
-			if (ticks > 25)
+			if (ticks > 24)
 			{
 				ran_to_completion = true;
 				return true;
 			}
 
 			torrent_handle h = ses.get_torrents().front();
-			std::vector<pool_file_status> file_status;
-			h.file_status(file_status);
+			std::vector<open_file_state> const file_status = h.file_status();
 			printf("%d: %d files\n", ticks, int(file_status.size()));
 			if (ticks > 0 && ticks < 19)
 			{
@@ -84,6 +85,7 @@ TORRENT_TEST(close_file_interval)
 		});
 	TEST_CHECK(ran_to_completion);
 }
+*/
 
 TORRENT_TEST(file_pool_size)
 {
@@ -107,7 +109,7 @@ TORRENT_TEST(file_pool_size)
 				snprintf(filename, sizeof(filename), "root/file-%d", i);
 				fs.add_file(filename, 0x400);
 			}
-			atp.ti = boost::make_shared<torrent_info>(*atp.ti);
+			atp.ti = std::make_shared<torrent_info>(*atp.ti);
 			atp.ti->remap_files(fs);
 		}
 		// on alert
@@ -122,8 +124,7 @@ TORRENT_TEST(file_pool_size)
 				return true;
 			}
 
-			std::vector<pool_file_status> status;
-			ses.get_torrents().at(0).file_status(status);
+			std::vector<open_file_state> const status = ses.get_torrents().at(0).file_status();
 			printf("open files: %d\n", int(status.size()));
 			max_files = std::max(max_files, int(status.size()));
 			if (!is_seed(ses)) return false;

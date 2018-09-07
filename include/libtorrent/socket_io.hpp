@@ -39,134 +39,106 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/peer_id.hpp" // for sha1_hash
+#include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/string_view.hpp"
 #include <string>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	TORRENT_EXTRA_EXPORT std::string print_address(address const& addr);
+	TORRENT_EXTRA_EXPORT std::string print_endpoint(address const& addr, int port);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(udp::endpoint const& ep);
-	TORRENT_EXTRA_EXPORT tcp::endpoint parse_endpoint(std::string str, error_code& ec);
+	TORRENT_EXTRA_EXPORT tcp::endpoint parse_endpoint(string_view str, error_code& ec);
 
 	TORRENT_EXTRA_EXPORT std::string address_to_bytes(address const& a);
-	// internal
-	TORRENT_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);
-	TORRENT_EXTRA_EXPORT void hash_address(address const& ip, sha1_hash& h);
+	TORRENT_EXTRA_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);
+	TORRENT_EXTRA_EXPORT sha1_hash hash_address(address const& ip);
 
-	namespace detail
-	{
-		template<class OutIt>
-		void write_address(address const& a, OutIt& out)
+namespace detail {
+
+		template <class Proto>
+		std::size_t address_size(Proto p)
 		{
-#if TORRENT_USE_IPV6
+			if (p == Proto::v6())
+				return std::tuple_size<address_v6::bytes_type>::value;
+			else
+				return std::tuple_size<address_v4::bytes_type>::value;
+		}
+
+		template<class OutIt>
+		void write_address(address const& a, OutIt&& out)
+		{
 			if (a.is_v4())
 			{
-#endif
 				write_uint32(a.to_v4().to_ulong(), out);
-#if TORRENT_USE_IPV6
 			}
 			else if (a.is_v6())
 			{
-				typedef address_v6::bytes_type bytes_t;
-				bytes_t bytes = a.to_v6().to_bytes();
-				for (bytes_t::iterator i = bytes.begin()
-					, end(bytes.end()); i != end; ++i)
-					write_uint8(*i, out);
+				for (auto b : a.to_v6().to_bytes())
+					write_uint8(b, out);
 			}
-#endif
 		}
 
 		template<class InIt>
-		address read_v4_address(InIt& in)
+		address read_v4_address(InIt&& in)
 		{
-			unsigned long ip = read_uint32(in);
+			std::uint32_t const ip = read_uint32(in);
 			return address_v4(ip);
 		}
 
-#if TORRENT_USE_IPV6
 		template<class InIt>
-		address read_v6_address(InIt& in)
+		address read_v6_address(InIt&& in)
 		{
-			typedef address_v6::bytes_type bytes_t;
-			bytes_t bytes;
-			for (bytes_t::iterator i = bytes.begin()
-				, end(bytes.end()); i != end; ++i)
-				*i = read_uint8(in);
+			address_v6::bytes_type bytes;
+			for (auto& b : bytes)
+				b = read_uint8(in);
 			return address_v6(bytes);
 		}
-#endif
 
 		template<class Endpoint, class OutIt>
-		void write_endpoint(Endpoint const& e, OutIt& out)
+		void write_endpoint(Endpoint const& e, OutIt&& out)
 		{
 			write_address(e.address(), out);
 			write_uint16(e.port(), out);
 		}
 
 		template<class Endpoint, class InIt>
-		Endpoint read_v4_endpoint(InIt& in)
+		Endpoint read_v4_endpoint(InIt&& in)
 		{
 			address addr = read_v4_address(in);
-			int port = read_uint16(in);
+			std::uint16_t port = read_uint16(in);
 			return Endpoint(addr, port);
 		}
 
-#if TORRENT_USE_IPV6
 		template<class Endpoint, class InIt>
-		Endpoint read_v6_endpoint(InIt& in)
+		Endpoint read_v6_endpoint(InIt&& in)
 		{
 			address addr = read_v6_address(in);
-			int port = read_uint16(in);
+			std::uint16_t port = read_uint16(in);
 			return Endpoint(addr, port);
 		}
-#endif
 
 		template <class EndpointType>
-		void read_endpoint_list(libtorrent::bdecode_node const& n
-			, std::vector<EndpointType>& epl)
+		std::vector<EndpointType> read_endpoint_list(libtorrent::bdecode_node const& n)
 		{
-			using namespace libtorrent;
-			if (n.type() != bdecode_node::list_t) return;
+			std::vector<EndpointType> ret;
+			if (n.type() != bdecode_node::list_t) return ret;
 			for (int i = 0; i < n.list_size(); ++i)
 			{
 				bdecode_node e = n.list_at(i);
-				if (e.type() != bdecode_node::string_t) return;
+				if (e.type() != bdecode_node::string_t) return ret;
 				if (e.string_length() < 6) continue;
 				char const* in = e.string_ptr();
 				if (e.string_length() == 6)
-					epl.push_back(read_v4_endpoint<EndpointType>(in));
-#if TORRENT_USE_IPV6
+					ret.push_back(read_v4_endpoint<EndpointType>(in));
 				else if (e.string_length() == 18)
-					epl.push_back(read_v6_endpoint<EndpointType>(in));
-#endif
+					ret.push_back(read_v6_endpoint<EndpointType>(in));
 			}
+			return ret;
 		}
-	}
-
-	template <class EndpointType>
-	void read_endpoint_list(libtorrent::entry const* n, std::vector<EndpointType>& epl)
-	{
-		using namespace libtorrent;
-		if (n->type() != entry::list_t) return;
-		entry::list_type const& contacts = n->list();
-		for (entry::list_type::const_iterator i = contacts.begin()
-			, end(contacts.end()); i != end; ++i)
-		{
-			if (i->type() != entry::string_t) return;
-			std::string const& p = i->string();
-			if (p.size() < 6) continue;
-			std::string::const_iterator in = p.begin();
-			if (p.size() == 6)
-				epl.push_back(detail::read_v4_endpoint<EndpointType>(in));
-#if TORRENT_USE_IPV6
-			else if (p.size() == 18)
-				epl.push_back(detail::read_v6_endpoint<EndpointType>(in));
-#endif
-		}
-	}
+	} // namespace detail
 
 }
 
 #endif
-

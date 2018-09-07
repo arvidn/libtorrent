@@ -37,20 +37,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/cstdint.hpp>
-#include <boost/tuple/tuple.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <cstdint>
+#include <tuple>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
+#include "libtorrent/time.hpp" // for seconds32
+#include "libtorrent/optional.hpp"
 
-namespace libtorrent
-{
-	
+namespace libtorrent {
+
 	// return true if the status code is 200, 206, or in the 300-400 range
 	TORRENT_EXTRA_EXPORT bool is_ok_status(int http_status);
 
@@ -64,30 +61,23 @@ namespace libtorrent
 	{
 	public:
 		enum flags_t { dont_parse_chunks = 1 };
-		http_parser(int flags = 0);
+		explicit http_parser(int flags = 0);
 		~http_parser();
-		std::string const& header(char const* key) const
-		{
-			static std::string empty;
-			std::multimap<std::string, std::string>::const_iterator i
-				= m_header.find(key);
-			if (i == m_header.end()) return empty;
-			return i->second;
-		}
-
+		std::string const& header(string_view key) const;
+		boost::optional<seconds32> header_duration(string_view key) const;
 		std::string const& protocol() const { return m_protocol; }
 		int status_code() const { return m_status_code; }
 		std::string const& method() const { return m_method; }
 		std::string const& path() const { return m_path; }
 		std::string const& message() const { return m_server_message; }
-		buffer::const_interval get_body() const;
+		span<char const> get_body() const;
 		bool header_finished() const { return m_state == read_body; }
 		bool finished() const { return m_finished; }
-		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer
+		std::tuple<int, int> incoming(span<char const> recv_buffer
 			, bool& error);
 		int body_start() const { return m_body_start_pos; }
-		boost::int64_t content_length() const { return m_content_length; }
-		std::pair<boost::int64_t, boost::int64_t> content_range() const
+		std::int64_t content_length() const { return m_content_length; }
+		std::pair<std::int64_t, std::int64_t> content_range() const
 		{ return std::make_pair(m_range_start, m_range_end); }
 
 		// returns true if this response is using chunked encoding.
@@ -101,7 +91,7 @@ namespace libtorrent
 		// instanced parsed. It will use the internal chunk list to determine
 		// where the chunks are in the buffer. It returns the new length of
 		// the buffer
-		int collapse_chunk_headers(char* buffer, int size) const;
+		span<char> collapse_chunk_headers(span<char> buffer) const;
 
 		// returns false if the buffer doesn't contain a complete
 		// chunk header. In this case, call the function again with
@@ -116,8 +106,8 @@ namespace libtorrent
 		// if the function returns false, the chunk size and header
 		// size may still have been modified, but their values are
 		// undefined
-		bool parse_chunk_header(buffer::const_interval buf
-			, boost::int64_t* chunk_size, int* header_size);
+		bool parse_chunk_header(span<char const> buf
+			, std::int64_t* chunk_size, int* header_size);
 
 		// reset the whole state and start over
 		void reset();
@@ -125,52 +115,51 @@ namespace libtorrent
 		bool connection_close() const { return m_connection_close; }
 
 		std::multimap<std::string, std::string> const& headers() const { return m_header; }
-		std::vector<std::pair<boost::int64_t, boost::int64_t> > const& chunks() const { return m_chunked_ranges; }
+		std::vector<std::pair<std::int64_t, std::int64_t>> const& chunks() const { return m_chunked_ranges; }
 
 	private:
-		boost::int64_t m_recv_pos;
+		std::int64_t m_recv_pos = 0;
 		std::string m_method;
 		std::string m_path;
 		std::string m_protocol;
 		std::string m_server_message;
 
-		boost::int64_t m_content_length;
-		boost::int64_t m_range_start;
-		boost::int64_t m_range_end;
+		std::int64_t m_content_length = -1;
+		std::int64_t m_range_start = -1;
+		std::int64_t m_range_end = -1;
 
 		std::multimap<std::string, std::string> m_header;
-		buffer::const_interval m_recv_buffer;
+		span<char const> m_recv_buffer;
 		// contains offsets of the first and one-past-end of
 		// each chunked range in the response
-		std::vector<std::pair<boost::int64_t, boost::int64_t> > m_chunked_ranges;
+		std::vector<std::pair<std::int64_t, std::int64_t>> m_chunked_ranges;
 
 		// while reading a chunk, this is the offset where the
 		// current chunk will end (it refers to the first character
 		// in the chunk tail header or the next chunk header)
-		boost::int64_t m_cur_chunk_end;
+		std::int64_t m_cur_chunk_end = -1;
 
-		int m_status_code;
+		int m_status_code = -1;
 
 		// the sum of all chunk headers read so far
-		int m_chunk_header_size;
+		int m_chunk_header_size = 0;
 
-		int m_partial_chunk_header;
+		int m_partial_chunk_header = 0;
 
 		// controls some behaviors of the parser
 		int m_flags;
 
-		int m_body_start_pos;
+		int m_body_start_pos = 0;
 
-		enum { read_status, read_header, read_body, error_state } m_state;
+		enum { read_status, read_header, read_body, error_state } m_state = read_status;
 
 		// this is true if the server is HTTP/1.0 or
 		// if it sent "connection: close"
-		bool m_connection_close;
-		bool m_chunked_encoding;
-		bool m_finished;
+		bool m_connection_close = false;
+		bool m_chunked_encoding = false;
+		bool m_finished = false;
 	};
 
 }
 
 #endif // TORRENT_HTTP_PARSER_HPP_INCLUDED
-

@@ -31,41 +31,44 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
 
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
 
-namespace libtorrent
-{
-	bool bitfield::all_set() const
+namespace libtorrent {
+
+	bool bitfield::all_set() const noexcept
 	{
-		const int words = size() / 32;
-		for (int i = 0; i < words; ++i)
+		if(size() == 0) return false;
+
+		int const words = size() / 32;
+		for (int i = 1; i < words + 1; ++i)
 		{
 			if (m_buf[i] != 0xffffffff) return false;
 		}
-		int rest = size() & 31;
+		int const rest = size() & 31;
 		if (rest > 0)
 		{
-			boost::uint32_t mask = aux::host_to_network(0xffffffff << (32-rest));
-			if ((m_buf[words] & mask) != mask) return false;
+			std::uint32_t const mask = aux::host_to_network(0xffffffff << (32 - rest));
+			if ((m_buf[words + 1] & mask) != mask) return false;
 		}
 		return true;
 	}
 
-	int bitfield::count() const
+	int bitfield::count() const noexcept
 	{
 		int ret = 0;
-		const int words = num_words();
+		int const words = num_words();
 #if TORRENT_HAS_SSE
 		if (aux::mmx_support)
 		{
-			for (int i = 0; i < words; ++i)
+			for (int i = 1; i < words + 1; ++i)
 			{
 #ifdef __GNUC__
-				boost::uint32_t cnt = 0;
+				std::uint32_t cnt = 0;
 				__asm__("popcnt %1, %0"
 					: "=r"(cnt)
 					: "r"(m_buf[i]));
@@ -75,24 +78,50 @@ namespace libtorrent
 #endif
 			}
 
+			TORRENT_ASSERT(ret <= size());
+			TORRENT_ASSERT(ret >= 0);
 			return ret;
 		}
 #endif // TORRENT_HAS_SSE
 
-		for (int i = 0; i < words; ++i)
+#if TORRENT_HAS_ARM_NEON && defined __arm__
+		if (aux::arm_neon_support)
 		{
-			boost::uint32_t v = m_buf[i];
+			for (int i = 1; i < words + 1; ++i)
+			{
+				std::uint32_t cnt;
+				__asm__(
+					"vld1.u32 d0[0], [%1] \n"
+					"vcnt.u8 d0, d0 \n"
+					"vpaddl.u8 d0, d0 \n"
+					"vpaddl.u16 d0, d0 \n"
+					"vst1.u32 d0[0], [%0]"
+					:: "r"(&cnt), "r"(&m_buf[i])
+					: "d0", "memory");
+				ret += cnt;
+			}
+
+			TORRENT_ASSERT(ret <= size());
+			TORRENT_ASSERT(ret >= 0);
+			return ret;
+		}
+#endif // TORRENT_HAS_ARM_NEON
+
+		for (int i = 1; i < words + 1; ++i)
+		{
+			std::uint32_t const v = m_buf[i];
 			// from:
 			// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
 			static const int S[] = {1, 2, 4, 8, 16}; // Magic Binary Numbers
-			static const int B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
+			static const std::uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
 
-			boost::uint32_t c = v - ((v >> 1) & B[0]);
+			std::uint32_t c = v - ((v >> 1) & B[0]);
 			c = ((c >> S[1]) & B[1]) + (c & B[1]);
 			c = ((c >> S[2]) + c) & B[2];
 			c = ((c >> S[3]) + c) & B[3];
 			c = ((c >> S[4]) + c) & B[4];
 			ret += c;
+			TORRENT_ASSERT(ret <= size());
 		}
 
 		TORRENT_ASSERT(ret <= size());
@@ -100,64 +129,102 @@ namespace libtorrent
 		return ret;
 	}
 
-	void bitfield::resize(int bits, bool val)
+	void bitfield::resize(int const bits, bool const val)
 	{
 		if (bits == size()) return;
 
-		int s = size();
-		int b = size() & 31;
+		int const s = size();
+		int const b = size() & 31;
 		resize(bits);
 		if (s >= size()) return;
-		int old_size_words = (s + 31) / 32;
-		int new_size_words = num_words();
+		int const old_size_words = (s + 31) / 32;
+		int const new_size_words = num_words();
 		if (val)
 		{
-			if (old_size_words && b) m_buf[old_size_words - 1] |= aux::host_to_network((0xffffffff >> b));
+			if (old_size_words && b) buf()[old_size_words - 1] |= aux::host_to_network(0xffffffff >> b);
 			if (old_size_words < new_size_words)
-				std::memset(m_buf + old_size_words, 0xff
-					, size_t((new_size_words - old_size_words) * 4));
+				std::memset(buf() + old_size_words, 0xff
+					, std::size_t((new_size_words - old_size_words) * 4));
 			clear_trailing_bits();
 		}
 		else
 		{
 			if (old_size_words < new_size_words)
-				std::memset(m_buf + old_size_words, 0x00
-					, size_t((new_size_words - old_size_words) * 4));
+				std::memset(buf() + old_size_words, 0x00
+					, std::size_t((new_size_words - old_size_words) * 4));
 		}
 		TORRENT_ASSERT(size() == bits);
 	}
 
-	void bitfield::resize(int bits)
+	void bitfield::resize(int const bits)
 	{
 		if (bits == size()) return;
 
 		TORRENT_ASSERT(bits >= 0);
-		// +1 because the first word is the size (in bits)
-		const int b = (bits + 31) / 32;
-		if (m_buf)
+		if (bits == 0)
 		{
-			boost::uint32_t* tmp = static_cast<boost::uint32_t*>(std::realloc(m_buf-1, (b+1) * 4));
-#ifndef BOOST_NO_EXCEPTIONS
-			if (tmp == NULL) throw std::bad_alloc();
+			m_buf.reset();
+			return;
+		}
+		int const new_size_words = (bits + 31) / 32;
+		int const cur_size_words = num_words();
+		if (cur_size_words != new_size_words)
+		{
+			aux::unique_ptr<std::uint32_t[]> b(new std::uint32_t[std::size_t(new_size_words + 1)]);
+#ifdef BOOST_NO_EXCEPTIONS
+			if (b == nullptr) std::terminate();
 #endif
-			m_buf = tmp + 1;
-			m_buf[-1] = bits;
+			b[0] = aux::numeric_cast<std::uint32_t>(bits);
+			if (m_buf) std::memcpy(&b[1], buf()
+				, aux::numeric_cast<std::size_t>(std::min(new_size_words, cur_size_words) * 4));
+			if (new_size_words > cur_size_words)
+			{
+				std::memset(&b[1 + cur_size_words], 0
+					, aux::numeric_cast<std::size_t>((new_size_words - cur_size_words) * 4));
+			}
+			m_buf = std::move(b);
 		}
-		else if (bits > 0)
+		else
 		{
-			boost::uint32_t* tmp = static_cast<boost::uint32_t*>(std::malloc((b+1) * 4));
-#ifndef BOOST_NO_EXCEPTIONS
-			if (tmp == NULL) throw std::bad_alloc();
-#endif
-			m_buf = tmp + 1;
-			m_buf[-1] = bits;
+			m_buf[0] = aux::numeric_cast<std::uint32_t>(bits);
 		}
-		else if (m_buf != NULL)
-		{
-			std::free(m_buf-1);
-			m_buf = NULL;
-		}
+
 		clear_trailing_bits();
 		TORRENT_ASSERT(size() == bits);
 	}
+
+	int bitfield::find_first_set() const noexcept
+	{
+		int const num = num_words();
+		if (num == 0) return -1;
+		int const count = aux::count_leading_zeros({&m_buf[1], std::size_t(num)});
+		return count != num * 32 ? count : -1;
+	}
+
+	int bitfield::find_last_clear() const noexcept
+	{
+		int const num = num_words();
+		if (num == 0) return - 1;
+		int const size = this->size();
+		std::uint32_t const mask = 0xffffffff << (32 - (size & 31));
+		std::uint32_t const last = m_buf[num] ^ aux::host_to_network(mask);
+		int const ext = aux::count_trailing_ones(~last) - (31 - (size % 32));
+		return last != 0
+			? (num - 1) * 32 + ext
+			: size - (aux::count_trailing_ones({&m_buf[1], std::size_t(num - 1)}) + ext);
+	}
+
+	static_assert(std::is_nothrow_move_constructible<bitfield>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_move_assignable<bitfield>::value
+		, "should be nothrow move assignable");
+	static_assert(std::is_nothrow_default_constructible<bitfield>::value
+		, "should be nothrow default constructible");
+
+	static_assert(std::is_nothrow_move_constructible<typed_bitfield<int>>::value
+		, "should be nothrow move constructible");
+	static_assert(std::is_nothrow_move_assignable<typed_bitfield<int>>::value
+		, "should be nothrow move assignable");
+	static_assert(std::is_nothrow_default_constructible<typed_bitfield<int>>::value
+		, "should be nothrow default constructible");
 }

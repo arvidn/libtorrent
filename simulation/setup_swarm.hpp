@@ -32,22 +32,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "simulator/simulator.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/fwd.hpp"
 #include <functional>
 
 #ifndef TORRENT_SETUP_SWARM_HPP_INCLUDED
 #define TORRENT_SETUP_SWARM_HPP_INCLUDED
-
-namespace libtorrent
-{
-	class alert;
-	class session;
-	struct add_torrent_params;
-	struct settings_pack;
-	struct torrent_handle;
-	struct torrent_status;
-}
-
-namespace lt = libtorrent;
 
 enum class swarm_test { download, upload };
 
@@ -56,7 +45,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate);
+	, std::function<bool(int, lt::session&)> terminate);
 
 void setup_swarm(int num_nodes
 	, swarm_test type
@@ -64,7 +53,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate);
+	, std::function<bool(int, lt::session&)> terminate);
 
 void setup_swarm(int num_nodes
 	, swarm_test type
@@ -74,7 +63,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate);
+	, std::function<bool(int, lt::session&)> terminate);
 
 void setup_swarm(int num_nodes
 	, swarm_test type
@@ -85,7 +74,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate);
+	, std::function<bool(int, lt::session&)> terminate);
 
 bool has_metadata(lt::session& ses);
 bool is_seed(lt::session& ses);

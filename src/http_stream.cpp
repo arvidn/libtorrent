@@ -34,19 +34,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // for base64encode
 #include "libtorrent/socket_io.hpp"
 
-namespace libtorrent
-{
+#include <functional>
+
+using namespace std::placeholders;
+
+namespace libtorrent {
 
 	void http_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
-		, boost::shared_ptr<handler_type> h)
+		, handler_type& h)
 	{
 		if (handle_error(e, h)) return;
 
-		m_sock.async_connect(i->endpoint(), boost::bind(
-			&http_stream::connected, this, _1, h));
+		m_sock.async_connect(i->endpoint(), std::bind(
+			&http_stream::connected, this, _1, std::move(h)));
 	}
 
-	void http_stream::connected(error_code const& e, boost::shared_ptr<handler_type> h)
+	void http_stream::connected(error_code const& e, handler_type& h)
 	{
 		if (handle_error(e, h)) return;
 
@@ -55,13 +58,13 @@ namespace libtorrent
 		if (m_no_connect)
 		{
 			std::vector<char>().swap(m_buffer);
-			(*h)(e);
+			h(e);
 			return;
 		}
 
 		// send CONNECT
-		std::back_insert_iterator<std::vector<char> > p(m_buffer);
-		std::string endpoint = print_endpoint(m_remote_endpoint);
+		std::back_insert_iterator<std::vector<char>> p(m_buffer);
+		std::string const endpoint = print_endpoint(m_remote_endpoint);
 		write_string("CONNECT " + endpoint + " HTTP/1.0\r\n", p);
 		if (!m_user.empty())
 		{
@@ -70,24 +73,24 @@ namespace libtorrent
 		}
 		write_string("\r\n", p);
 		async_write(m_sock, boost::asio::buffer(m_buffer)
-			, boost::bind(&http_stream::handshake1, this, _1, h));
+			, std::bind(&http_stream::handshake1, this, _1, std::move(h)));
 	}
 
-	void http_stream::handshake1(error_code const& e, boost::shared_ptr<handler_type> h)
+	void http_stream::handshake1(error_code const& e, handler_type& h)
 	{
 		if (handle_error(e, h)) return;
 
 		// read one byte from the socket
 		m_buffer.resize(1);
 		async_read(m_sock, boost::asio::buffer(m_buffer)
-			, boost::bind(&http_stream::handshake2, this, _1, h));
+			, std::bind(&http_stream::handshake2, this, _1, std::move(h)));
 	}
 
-	void http_stream::handshake2(error_code const& e, boost::shared_ptr<handler_type> h)
+	void http_stream::handshake2(error_code const& e, handler_type& h)
 	{
 		if (handle_error(e, h)) return;
 
-		int read_pos = m_buffer.size();
+		std::size_t const read_pos = m_buffer.size();
 		// look for \n\n and \r\n\r\n
 		// both of which means end of http response header
 		bool found_end = false;
@@ -109,35 +112,34 @@ namespace libtorrent
 		if (found_end)
 		{
 			m_buffer.push_back(0);
-			char* status = std::strchr(&m_buffer[0], ' ');
-			if (status == 0)
+			char const* status = std::strchr(m_buffer.data(), ' ');
+			if (status == nullptr)
 			{
-				(*h)(boost::asio::error::operation_not_supported);
+				h(boost::asio::error::operation_not_supported);
 				error_code ec;
 				close(ec);
 				return;
 			}
 
 			status++;
-			int code = std::atoi(status);
+			int const code = std::atoi(status);
 			if (code != 200)
 			{
-				(*h)(boost::asio::error::operation_not_supported);
+				h(boost::asio::error::operation_not_supported);
 				error_code ec;
 				close(ec);
 				return;
 			}
 
-			(*h)(e);
+			h(e);
 			std::vector<char>().swap(m_buffer);
 			return;
 		}
 
 		// read another byte from the socket
 		m_buffer.resize(read_pos + 1);
-		async_read(m_sock, boost::asio::buffer(&m_buffer[0] + read_pos, 1)
-			, boost::bind(&http_stream::handshake2, this, _1, h));
+		async_read(m_sock, boost::asio::buffer(m_buffer.data() + read_pos, 1)
+			, std::bind(&http_stream::handshake2, this, _1, std::move(h)));
 	}
 
 }
-

@@ -34,46 +34,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FILE_POOL_HPP
 
 #include <map>
+#include <mutex>
+#include <vector>
+
 #include "libtorrent/file.hpp"
-#include "libtorrent/time.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/storage_defs.hpp"
+#include "libtorrent/disk_interface.hpp" // for open_file_state
 
-namespace libtorrent
-{
-	struct pool_file_status
-	{
-		// the index of the file this entry refers to into the ``file_storage``
-		// file list of this torrent. This starts indexing at 0.
-		int file_index;
+namespace libtorrent {
 
-		// a (high precision) timestamp of when the file was last used.
-		time_point last_use;
-
-		// ``open_mode`` is a bitmask of the file flags this file is currently opened with. These
-		// are the flags used in the ``file::open()`` function. This enum is defined as a member
-		// of the ``file`` class.
-		// 
-		// ::
-		// 
-		// 	enum
-		// 	{
-		// 		read_only = 0,
-		// 		write_only = 1,
-		// 		read_write = 2,
-		// 		rw_mask = 3,
-		// 		no_buffer = 4,
-		// 		sparse = 8,
-		// 		no_atime = 16,
-		// 		random_access = 32,
-		// 		lock_file = 64,
-		// 	};
-		// 
-		// Note that the read/write mode is not a bitmask. The two least significant bits are used
-		// to represent the read/write mode. Those bits can be masked out using the ``rw_mask`` constant.
-		int open_mode;
-	};
+	class file_storage;
+	struct open_file_state;
 
 	// this is an internal cache of open file handles. It's primarily used by
 	// storage_interface implementations. It provides semi weak guarantees of
@@ -84,19 +57,21 @@ namespace libtorrent
 	{
 		// ``size`` specifies the number of allowed files handles
 		// to hold open at any given time.
-		file_pool(int size = 40);
+		explicit file_pool(int size = 40);
 		~file_pool();
 
 		// return an open file handle to file at ``file_index`` in the
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
-		file_handle open_file(void* st, std::string const& p
-			, int file_index, file_storage const& fs, int m, error_code& ec);
+		file_handle open_file(storage_index_t st, std::string const& p
+			, file_index_t file_index, file_storage const& fs, open_mode_t m
+			, error_code& ec);
 		// release all files belonging to the specified storage_interface (``st``)
 		// the overload that takes ``file_index`` releases only the file with
 		// that index in storage ``st``.
-		void release(void* st = NULL);
-		void release(void* st, int file_index);
+		void release();
+		void release(storage_index_t st);
+		void release(storage_index_t st, file_index_t file_index);
 
 		// update the allowed number of open file handles to ``size``.
 		void resize(int size);
@@ -107,7 +82,7 @@ namespace libtorrent
 
 		// internal
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
-		void get_status(std::vector<pool_file_status>* files, void* st) const;
+		std::vector<open_file_state> get_status(storage_index_t st) const;
 
 		// close the file that was opened least recently (i.e. not *accessed*
 		// least recently). The purpose is to make the OS (really just windows)
@@ -115,44 +90,27 @@ namespace libtorrent
 		// any file to stay open for too long, allowing the disk cache to accrue.
 		void close_oldest();
 
-#if TORRENT_USE_ASSERTS
-		bool assert_idle_files(void* st) const;
-
-		// remember that this storage has had
-		// its files deleted. We may not open any
-		// files from it again
-		void mark_deleted(file_storage const& fs);
-#endif
-
 	private:
 
-		file_handle remove_oldest(mutex::scoped_lock&);
+		file_handle remove_oldest(std::unique_lock<std::mutex>&);
 
 		int m_size;
-		bool m_low_prio_io;
+		bool m_low_prio_io = false;
 
 		struct lru_file_entry
 		{
-			lru_file_entry()
-				: opened(aux::time_now())
-				, last_use(opened)
-				, mode(0) {}
 			file_handle file_ptr;
-			time_point const opened;
-			time_point last_use;
-			int mode;
+			time_point const opened{aux::time_now()};
+			time_point last_use{opened};
+			open_mode_t mode{};
 		};
 
 		// maps storage pointer, file index pairs to the
 		// LRU entry for the file
-		typedef std::map<std::pair<void*, int>, lru_file_entry> file_set;
-
-		file_set m_files;
-#if TORRENT_USE_ASSERTS
-		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
-#endif
-		mutable mutex m_mutex;
+		std::map<std::pair<storage_index_t, file_index_t>, lru_file_entry> m_files;
+		mutable std::mutex m_mutex;
 	};
+
 }
 
 #endif

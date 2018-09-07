@@ -33,11 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/linked_list.hpp"
 
-using namespace libtorrent;
+using namespace lt;
+
+namespace {
 
 struct test_node : list_node<test_node>
 {
-	test_node(int v) : val(v) {}
+	explicit test_node(int v) : val(v) {}
 	int val;
 };
 
@@ -46,11 +48,13 @@ void compare(linked_list<test_node> const& list, int* array, int size)
 	TEST_EQUAL(list.size(), size);
 
 	int idx = 0;
-	for (test_node const* i = list.front(); i != NULL; i = i->next, ++idx)
+	for (test_node const* i = list.front(); i != nullptr; i = i->next, ++idx)
 	{
 		TEST_EQUAL(i->val, array[idx]);
 	}
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(push_back)
 {
@@ -169,7 +173,7 @@ TORRENT_TEST(iterate_forward)
 	it.next();
 	TEST_EQUAL(it.get(), &n2);
 	it.next();
-	TEST_EQUAL(it.get(), static_cast<test_node*>(NULL));
+	TEST_EQUAL(it.get(), static_cast<test_node*>(nullptr));
 }
 
 TORRENT_TEST(iterate_backward)
@@ -193,6 +197,5 @@ TORRENT_TEST(iterate_backward)
 	it.prev();
 	TEST_EQUAL(it.get(), &n0);
 	it.prev();
-	TEST_EQUAL(it.get(), static_cast<test_node*>(NULL));
+	TEST_EQUAL(it.get(), static_cast<test_node*>(nullptr));
 }
-

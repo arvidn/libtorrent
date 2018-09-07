@@ -32,83 +32,97 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/thread.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/openssl.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
-#ifdef BOOST_NO_CXX11_HDR_RANDOM
+#if defined BOOST_NO_CXX11_THREAD_LOCAL
+#include <mutex>
+#endif
+
+#if TORRENT_USE_CRYPTOAPI
+#include "libtorrent/aux_/win_crypto_provider.hpp"
+
+#elif defined TORRENT_USE_LIBCRYPTO
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/random/random_device.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#else
-#include <random>
-#endif
-
-namespace libtorrent
-{
-#ifdef BOOST_NO_CXX11_HDR_RANDOM
-	using boost::random::random_device;
-	using boost::random::mt19937;
-	using boost::random::uniform_int_distribution;
-#else
-	using std::random_device;
-	using std::mt19937;
-	using std::uniform_int_distribution;
-#endif
-
-#ifdef TORRENT_BUILD_SIMULATOR
-
-	boost::uint32_t random()
-	{
-		// make sure random numbers are deterministic. Seed with a fixed number
-		static mt19937 random_engine(4040);
-		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);
-	}
-
-#else
-
-	namespace
-	{
-#if !TORRENT_THREADSAFE_STATIC
-		// because local statics are not atomic pre c++11
-		// do it manually, probably at a higher cost
-		random_device* dev = NULL;
-		mt19937* rnd = NULL;
-#endif
-
-		mutex random_device_mutex;
-	}
-
-	boost::uint32_t random()
-	{
-		// TODO: use a thread local mt19937 instance instead!
-		mutex::scoped_lock l(random_device_mutex);
-
-#if TORRENT_THREADSAFE_STATIC
-		static random_device dev;
-		static mt19937 random_engine(dev());
-		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);
-#else
-
-		if (dev == NULL)
-		{
-			dev = new random_device();
-			rnd = new mt19937((*dev)());
-		}
-		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(*rnd);
-#endif
-	}
-
-#endif // TORRENT_BUILD_SIMULATOR
-
-	boost::uint32_t randint(int i)
-	{
-		TORRENT_ASSERT(i > 1);
-		return random() % i;
-	}
-
+extern "C" {
+#include <openssl/rand.h>
+#include <openssl/err.h>
 }
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#endif
+
+#if TORRENT_USE_DEV_RANDOM
+#include "libtorrent/aux_/dev_random.hpp"
+#endif
+
+#ifdef BOOST_NO_CXX11_THREAD_LOCAL
+namespace {
+	// if the random number generator can't be thread local, just protect it with
+	// a mutex. Not ideal, but hopefully not too many people are affected by old
+	// systems
+	std::mutex rng_mutex;
+}
+#endif
+
+namespace libtorrent { namespace aux {
+
+		std::mt19937& random_engine()
+		{
+#ifdef TORRENT_BUILD_SIMULATOR
+			// make sure random numbers are deterministic. Seed with a fixed number
+			static std::mt19937 rng(0x82daf973);
+#else
+
+			static std::random_device dev;
+#ifdef BOOST_NO_CXX11_THREAD_LOCAL
+			static std::mt19937 rng(dev());
+#else
+			thread_local static std::mt19937 rng(dev());
+#endif
+#endif
+			return rng;
+		}
+
+		void random_bytes(span<char> buffer)
+		{
+#ifdef TORRENT_BUILD_SIMULATOR
+			// simulator
+
+			for (auto& b : buffer) b = char(random(0xff));
+
+#elif TORRENT_USE_CRYPTOAPI
+			// windows
+
+			aux::crypt_gen_random(buffer);
+
+#elif TORRENT_USE_DEV_RANDOM
+			// /dev/random
+
+			static dev_random dev;
+			dev.read(buffer);
+
+#elif defined TORRENT_USE_LIBCRYPTO
+			// openssl
+
+			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
+				, int(buffer.size()));
+			if (r != 1) aux::throw_ex<system_error>(errors::no_entropy);
+#else
+			// fallback
+
+			for (auto& b : buffer) b = char(random(0xff));
+#endif
+		}
+	}
+
+	std::uint32_t random(std::uint32_t const max)
+	{
+#ifdef BOOST_NO_CXX11_THREAD_LOCAL
+		std::lock_guard<std::mutex> l(rng_mutex);
+#endif
+		return std::uniform_int_distribution<std::uint32_t>(0, max)(aux::random_engine());
+	}
+}

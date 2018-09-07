@@ -2,33 +2,36 @@
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include "libtorrent/ed25519.hpp"
-#include "sha512.h"
+#include "libtorrent/hasher512.hpp"
 #include "ge.h"
 #include "sc.h"
 
+namespace libtorrent
+{
 
 void ed25519_sign(unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key, const unsigned char *private_key) {
-    sha512_context hash;
-    unsigned char hram[64];
-    unsigned char r[64];
     ge_p3 R;
 
+    hasher512 hash;
+    hash.update({reinterpret_cast<char const*>(private_key) + 32, 32});
+    hash.update({reinterpret_cast<char const*>(message), message_len});
+    sha512_hash r = hash.final();
 
-    sha512_init(&hash);
-    sha512_update(&hash, private_key + 32, 32);
-    sha512_update(&hash, message, message_len);
-    sha512_final(&hash, r);
-
-    sc_reduce(r);
-    ge_scalarmult_base(&R, r);
+    sc_reduce(reinterpret_cast<unsigned char*>(r.data()));
+    ge_scalarmult_base(&R, reinterpret_cast<unsigned char*>(r.data()));
     ge_p3_tobytes(signature, &R);
 
-    sha512_init(&hash);
-    sha512_update(&hash, signature, 32);
-    sha512_update(&hash, public_key, 32);
-    sha512_update(&hash, message, message_len);
-    sha512_final(&hash, hram);
+    hash.reset();
+    hash.update({reinterpret_cast<char const*>(signature), 32});
+    hash.update({reinterpret_cast<char const*>(public_key), 32});
+    hash.update({reinterpret_cast<char const*>(message), message_len});
+    sha512_hash hram = hash.final();
 
-    sc_reduce(hram);
-    sc_muladd(signature + 32, hram, private_key, r);
+    sc_reduce(reinterpret_cast<unsigned char*>(hram.data()));
+    sc_muladd(signature + 32
+        , reinterpret_cast<unsigned char*>(hram.data())
+        , private_key
+        , reinterpret_cast<unsigned char*>(r.data()));
+}
+
 }

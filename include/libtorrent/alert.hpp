@@ -33,38 +33,25 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALERT_HPP_INCLUDED
 #define TORRENT_ALERT_HPP_INCLUDED
 
-#include <memory>
-#include <deque>
 #include <string>
-#include <vector>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
-#include <boost/preprocessor/repetition/enum.hpp>
-#include <boost/preprocessor/repetition/enum_params.hpp>
-#include <boost/preprocessor/repetition/enum_shifted_params.hpp>
-#include <boost/preprocessor/repetition/enum_shifted_binary_params.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 // OVERVIEW
 //
 // The pop_alerts() function on session is the main interface for retrieving
 // alerts (warnings, messages and errors from libtorrent). If no alerts have
 // been posted by libtorrent pop_alerts() will return an empty list.
-// 
+//
 // By default, only errors are reported. settings_pack::alert_mask can be
 // used to specify which kinds of events should be reported. The alert mask is
-// comprised by bits from the category_t enum.
-// 
+// a combination of the alert_category_t flags in the alert class.
+//
 // Every alert belongs to one or more category. There is a cost associated with
 // posting alerts. Only alerts that belong to an enabled category are
 // posted. Setting the alert bitmask to 0 will disable all alerts (except those
 // that are non-discardable). Alerts that are responses to API calls such as
 // save_resume_data() and post_session_stats() are non-discardable and will be
 // posted even if their category is disabled.
-// 
+//
 // There are other alert base classes that some alerts derive from, all the
 // alerts that are generated for a specific torrent are derived from
 // torrent_alert, and tracker events derive from tracker_alert.
@@ -76,8 +63,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/flags.hpp"
 
 namespace libtorrent {
+
+	// hidden
+	using alert_category_t = flags::bitfield_flag<std::uint32_t, struct alert_category_tag>;
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 	// The ``alert`` class is the base class that specific messages are derived from.
 	// alert types are not copyable, and cannot be constructed by the client. The
@@ -85,119 +81,137 @@ namespace libtorrent {
 	// under session_handle::pop_alerts())
 	class TORRENT_EXPORT alert
 	{
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	public:
 
-#ifndef TORRENT_NO_DEPRECATE
+		alert(alert const& rhs) = delete;
+		alert& operator=(alert const&) = delete;
+		alert(alert&& rhs) noexcept = default;
+
+#if TORRENT_ABI_VERSION == 1
 		// only here for backwards compatibility
-		enum TORRENT_DEPRECATED severity_t { debug, info, warning, critical, fatal, none };
+		enum TORRENT_DEPRECATED_ENUM severity_t { debug, info, warning, critical, fatal, none };
 #endif
 
-		// these are bits for the alert_mask used by the session. See
-		// settings_pack::alert_mask.
-		enum category_t
-		{
-			// Enables alerts that report an error. This includes:
-			// 
-			// * tracker errors
-			// * tracker warnings
-			// * file errors
-			// * resume data failures
-			// * web seed errors
-			// * .torrent files errors
-			// * listen socket errors
-			// * port mapping errors
-			error_notification            = 0x1,
+		// Enables alerts that report an error. This includes:
+		//
+		// * tracker errors
+		// * tracker warnings
+		// * file errors
+		// * resume data failures
+		// * web seed errors
+		// * .torrent files errors
+		// * listen socket errors
+		// * port mapping errors
+		static constexpr alert_category_t error_notification = 0_bit;
 
-			// Enables alerts when peers send invalid requests, get banned or
-			// snubbed.
-			peer_notification             = 0x2,
+		// Enables alerts when peers send invalid requests, get banned or
+		// snubbed.
+		static constexpr alert_category_t peer_notification = 1_bit;
 
-			// Enables alerts for port mapping events. For NAT-PMP and UPnP.
-			port_mapping_notification     = 0x4,
+		// Enables alerts for port mapping events. For NAT-PMP and UPnP.
+		static constexpr alert_category_t port_mapping_notification = 2_bit;
 
-			// Enables alerts for events related to the storage. File errors and
-			// synchronization events for moving the storage, renaming files etc.
-			storage_notification          = 0x8,
+		// Enables alerts for events related to the storage. File errors and
+		// synchronization events for moving the storage, renaming files etc.
+		static constexpr alert_category_t storage_notification = 3_bit;
 
-			// Enables all tracker events. Includes announcing to trackers,
-			// receiving responses, warnings and errors.
-			tracker_notification          = 0x10,
+		// Enables all tracker events. Includes announcing to trackers,
+		// receiving responses, warnings and errors.
+		static constexpr alert_category_t tracker_notification = 4_bit;
 
-			// Low level alerts for when peers are connected and disconnected.
-			debug_notification            = 0x20,
+		// Low level alerts for when peers are connected and disconnected.
+		static constexpr alert_category_t debug_notification = 5_bit;
 
-			// Enables alerts for when a torrent or the session changes state.
-			status_notification           = 0x40,
+		// Enables alerts for when a torrent or the session changes state.
+		static constexpr alert_category_t status_notification = 6_bit;
 
-			// Alerts for when blocks are requested and completed. Also when
-			// pieces are completed.
-			progress_notification         = 0x80,
-
-			// Alerts when a peer is blocked by the ip blocker or port blocker.
-			ip_block_notification         = 0x100,
-
-			// Alerts when some limit is reached that might limit the download
-			// or upload rate.
-			performance_warning           = 0x200,
-
-			// Alerts on events in the DHT node. For incoming searches or
-			// bootstrapping being done etc.
-			dht_notification              = 0x400,
-
-			// If you enable these alerts, you will receive a stats_alert
-			// approximately once every second, for every active torrent.
-			// These alerts contain all statistics counters for the interval since
-			// the lasts stats alert.
-			stats_notification            = 0x800,
-
-#ifndef TORRENT_NO_DEPRECATE
-			// Alerts on RSS related events, like feeds being updated, feed error
-			// conditions and successful RSS feed updates. Enabling this categoty
-			// will make you receive rss_alert alerts.
-			rss_notification TORRENT_DEPRECATED_ENUM = 0x1000,
+#if TORRENT_ABI_VERSION == 1
+		// Alerts for when blocks are requested and completed. Also when
+		// pieces are completed.
+		static constexpr alert_category_t TORRENT_DEPRECATED_MEMBER progress_notification = 7_bit;
 #endif
 
-			// Enables debug logging alerts. These are available unless libtorrent
-			// was built with logging disabled (``TORRENT_DISABLE_LOGGING``). The
-			// alerts being posted are log_alert and are session wide.
-			session_log_notification      = 0x2000,
+		// Alerts when a peer is blocked by the ip blocker or port blocker.
+		static constexpr alert_category_t ip_block_notification = 8_bit;
 
-			// Enables debug logging alerts for torrents. These are available
-			// unless libtorrent was built with logging disabled
-			// (``TORRENT_DISABLE_LOGGING``). The alerts being posted are
-			// torrent_log_alert and are torrent wide debug events.
-			torrent_log_notification      = 0x4000,
+		// Alerts when some limit is reached that might limit the download
+		// or upload rate.
+		static constexpr alert_category_t performance_warning = 9_bit;
 
-			// Enables debug logging alerts for peers. These are available unless
-			// libtorrent was built with logging disabled
-			// (``TORRENT_DISABLE_LOGGING``). The alerts being posted are
-			// peer_log_alert and low-level peer events and messages.
-			peer_log_notification         = 0x8000,
+		// Alerts on events in the DHT node. For incoming searches or
+		// bootstrapping being done etc.
+		static constexpr alert_category_t dht_notification = 10_bit;
 
-			// enables the incoming_request_alert.
-			incoming_request_notification = 0x10000,
+		// If you enable these alerts, you will receive a stats_alert
+		// approximately once every second, for every active torrent.
+		// These alerts contain all statistics counters for the interval since
+		// the lasts stats alert.
+		static constexpr alert_category_t stats_notification = 11_bit;
 
-			// enables dht_log_alert, debug logging for the DHT
-			dht_log_notification          = 0x20000,
+#if TORRENT_ABI_VERSION == 1
+		// Alerts on RSS related events, like feeds being updated, feed error
+		// conditions and successful RSS feed updates. Enabling this category
+		// will make you receive rss_alert alerts.
+		static constexpr alert_category_t TORRENT_DEPRECATED_MEMBER rss_notification = 12_bit;
+#endif
 
-			// enable events from pure dht operations not related to torrents
-			dht_operation_notification    = 0x40000,
+		// Enables debug logging alerts. These are available unless libtorrent
+		// was built with logging disabled (``TORRENT_DISABLE_LOGGING``). The
+		// alerts being posted are log_alert and are session wide.
+		static constexpr alert_category_t session_log_notification = 13_bit;
 
-			// enables port mapping log events. This log is useful
-			// for debugging the UPnP or NAT-PMP implementation
-			port_mapping_log_notification = 0x80000,
+		// Enables debug logging alerts for torrents. These are available
+		// unless libtorrent was built with logging disabled
+		// (``TORRENT_DISABLE_LOGGING``). The alerts being posted are
+		// torrent_log_alert and are torrent wide debug events.
+		static constexpr alert_category_t torrent_log_notification = 14_bit;
 
-			// enables verbose logging from the piece picker.
-			picker_log_notification       = 0x100000,
+		// Enables debug logging alerts for peers. These are available unless
+		// libtorrent was built with logging disabled
+		// (``TORRENT_DISABLE_LOGGING``). The alerts being posted are
+		// peer_log_alert and low-level peer events and messages.
+		static constexpr alert_category_t peer_log_notification = 15_bit;
 
-			// The full bitmask, representing all available categories.
-			//
-			// since the enum is signed, make sure this isn't
-			// interpreted as -1. For instance, boost.python
-			// does that and fails when assigning it to an
-			// unsigned parameter.
-			all_categories = 0x7fffffff
-		};
+		// enables the incoming_request_alert.
+		static constexpr alert_category_t incoming_request_notification = 16_bit;
+
+		// enables dht_log_alert, debug logging for the DHT
+		static constexpr alert_category_t dht_log_notification = 17_bit;
+
+		// enable events from pure dht operations not related to torrents
+		static constexpr alert_category_t dht_operation_notification = 18_bit;
+
+		// enables port mapping log events. This log is useful
+		// for debugging the UPnP or NAT-PMP implementation
+		static constexpr alert_category_t port_mapping_log_notification = 19_bit;
+
+		// enables verbose logging from the piece picker.
+		static constexpr alert_category_t picker_log_notification = 20_bit;
+
+		// alerts when files complete downloading
+		static constexpr alert_category_t file_progress_notification = 21_bit;
+
+		// alerts when pieces complete downloading or fail hash check
+		static constexpr alert_category_t piece_progress_notification = 22_bit;
+
+		// alerts when we upload blocks to other peers
+		static constexpr alert_category_t upload_notification = 23_bit;
+
+		// alerts on individual blocks being requested, downloading, finished,
+		// rejected, time-out and cancelled. This is likely to post alerts at a
+		// high rate.
+		static constexpr alert_category_t block_progress_notification = 24_bit;
+
+		// The full bitmask, representing all available categories.
+		//
+		// since the enum is signed, make sure this isn't
+		// interpreted as -1. For instance, boost.python
+		// does that and fails when assigning it to an
+		// unsigned parameter.
+		static constexpr alert_category_t all_categories = alert_category_t::all();
 
 		// hidden
 		alert();
@@ -211,7 +225,7 @@ namespace libtorrent {
 		// compared against a specific alert by querying a static constant called ``alert_type``
 		// in the alert. It can be used to determine the run-time type of an alert* in
 		// order to cast to that alert type and access specific members.
-		// 
+		//
 		// e.g:
 		//
 		// .. code:: c++
@@ -220,7 +234,7 @@ namespace libtorrent {
 		//	ses.pop_alerts(&alerts);
 		//	for (alert* i : alerts) {
 		//		switch (a->type()) {
-		// 
+		//
 		//			case read_piece_alert::alert_type:
 		//			{
 		//				auto* p = static_cast<read_piece_alert*>(a);
@@ -237,11 +251,11 @@ namespace libtorrent {
 		//			}
 		//		}
 		//	}
-		virtual int type() const = 0;
+		virtual int type() const noexcept = 0;
 
 		// returns a string literal describing the type of the alert. It does
 		// not include any information that might be bundled with the alert.
-		virtual char const* what() const = 0;
+		virtual char const* what() const noexcept = 0;
 
 		// generate a string describing the alert and the information bundled
 		// with it. This is mainly intended for debug and development use. It is not suitable
@@ -251,14 +265,14 @@ namespace libtorrent {
 		virtual std::string message() const = 0;
 
 		// returns a bitmask specifying which categories this alert belong to.
-		virtual int category() const = 0;
+		virtual alert_category_t category() const noexcept = 0;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 		// determines whether or not an alert is allowed to be discarded
-		// when the alert queue is full. There are a few alerts which may not be discared,
+		// when the alert queue is full. There are a few alerts which may not be discarded,
 		// since they would break the user contract, such as save_resume_data_alert.
 		TORRENT_DEPRECATED
 		bool discardable() const { return discardable_impl(); }
@@ -266,54 +280,42 @@ namespace libtorrent {
 		TORRENT_DEPRECATED
 		severity_t severity() const { return warning; }
 
-		// returns a pointer to a copy of the alert.
-		TORRENT_DEPRECATED
-		std::auto_ptr<alert> clone() const { return clone_impl(); }
-
 	protected:
 
 		virtual bool discardable_impl() const { return true; }
 
-		virtual std::auto_ptr<alert> clone_impl() const = 0;
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#endif // TORRENT_NO_DEPRECATE
-
-	protected:
-		// the alert is not copyable (but for backwards compatibility reasons it
-		// retains the ability to clone itself, for now).
-#if __cplusplus >= 201103L
-		alert(alert const& rhs) = default;
-#endif
+#endif // TORRENT_ABI_VERSION
 
 	private:
-		// explicitly disallow assignment and copy construction
-		alert& operator=(alert const&);
-
-		time_point m_timestamp;
+		time_point const m_timestamp;
 	};
 
 // When you get an alert, you can use ``alert_cast<>`` to attempt to cast the
 // pointer to a specific alert type, in order to query it for more
 // information.
-// 
+//
 // .. note::
 //   ``alert_cast<>`` can only cast to an exact alert type, not a base class
 template <class T> T* alert_cast(alert* a)
 {
-	if (a == 0) return 0;
+	static_assert(std::is_base_of<alert, T>::value
+		, "alert_cast<> can only be used with alert types (deriving from libtorrent::alert)");
+
+	if (a == nullptr) return nullptr;
 	if (a->type() == T::alert_type) return static_cast<T*>(a);
-	return 0;
+	return nullptr;
 }
 template <class T> T const* alert_cast(alert const* a)
 {
-	if (a == 0) return 0;
+	static_assert(std::is_base_of<alert, T>::value
+		, "alert_cast<> can only be used with alert types (deriving from libtorrent::alert)");
+	if (a == nullptr) return nullptr;
 	if (a->type() == T::alert_type) return static_cast<T const*>(a);
-	return 0;
+	return nullptr;
 }
 
 } // namespace libtorrent
 
 #endif // TORRENT_ALERT_HPP_INCLUDED
-

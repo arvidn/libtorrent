@@ -30,71 +30,69 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdio.h>
+#include <cstdio>
 #include <libtorrent/enum_net.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/broadcast_socket.hpp>
 
-using namespace libtorrent;
+using namespace lt;
 
 int main()
 {
 	io_service ios;
 	error_code ec;
 
-	address def_gw = get_default_gateway(ios, ec);
+	address def_gw = get_default_gateway(ios, "", false, ec);
 	if (ec)
 	{
-		fprintf(stderr, "%s\n", ec.message().c_str());
+		std::printf("%s\n", ec.message().c_str());
 		return 1;
 	}
 
-	printf("Default gateway: %s\n", def_gw.to_string(ec).c_str());
+	std::printf("Default gateway: %s\n", def_gw.to_string(ec).c_str());
 
-	printf("=========== Routes ===========\n");
-	std::vector<ip_route> routes = enum_routes(ios, ec);
+	std::printf("=========== Routes ===========\n");
+	auto const routes = enum_routes(ios, ec);
 	if (ec)
 	{
-		printf("%s\n", ec.message().c_str());
+		std::printf("%s\n", ec.message().c_str());
 		return 1;
 	}
 
-	printf("%-18s%-18s%-35s%-7sinterface\n", "destination", "network", "gateway", "mtu");
+	std::printf("%-18s%-18s%-35s%-7sinterface\n", "destination", "network", "gateway", "mtu");
 
-	for (std::vector<ip_route>::const_iterator i = routes.begin()
-		, end(routes.end()); i != end; ++i)
+	for (auto const& r : routes)
 	{
-		printf("%-18s%-18s%-35s%-7d%s\n"
-			, i->destination.to_string(ec).c_str()
-			, i->netmask.to_string(ec).c_str()
-			, i->gateway.to_string(ec).c_str()
-			, i->mtu
-			, i->name);
+		std::printf("%-18s%-18s%-35s%-7d%s\n"
+			, r.destination.to_string(ec).c_str()
+			, r.netmask.to_string(ec).c_str()
+			, r.gateway.to_string(ec).c_str()
+			, r.mtu
+			, r.name);
 	}
 
-	printf("========= Interfaces =========\n");
+	std::printf("========= Interfaces =========\n");
 
-	std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
+	auto const net = enum_net_interfaces(ios, ec);
 	if (ec)
 	{
-		printf("%s\n", ec.message().c_str());
+		std::printf("%s\n", ec.message().c_str());
 		return 1;
 	}
 
-	printf("%-30s%-45s%-20s%-8sflags\n", "address", "netmask", "name", "mtu");
+	std::printf("%-34s%-45s%-20s%-20s%-34sdescription\n", "address", "netmask", "name", "flags", "default gateway");
 
-	for (std::vector<ip_interface>::const_iterator i = net.begin()
-		, end(net.end()); i != end; ++i)
+	for (auto const& i : net)
 	{
-		printf("%-30s%-45s%-20s%-8d%s%s%s\n"
-			, i->interface_address.to_string(ec).c_str()
-			, i->netmask.to_string(ec).c_str()
-			, i->name
-			, i->mtu
-			, (is_multicast(i->interface_address)?"multicast ":"")
-			, (is_local(i->interface_address)?"local ":"")
-			, (is_loopback(i->interface_address)?"loopback ":"")
-			);
+		address const iface_def_gw = get_default_gateway(ios, i.name, i.interface_address.is_v6(), ec);
+		std::printf("%-34s%-45s%-20s%s%s%-20s%-34s%s %s\n"
+			, i.interface_address.to_string(ec).c_str()
+			, i.netmask.to_string(ec).c_str()
+			, i.name
+			, (i.interface_address.is_multicast()?"multicast ":"")
+			, (is_local(i.interface_address)?"local ":"")
+			, (is_loopback(i.interface_address)?"loopback ":"")
+			, iface_def_gw.to_string(ec).c_str()
+			, i.friendly_name, i.description);
 	}
 }
-

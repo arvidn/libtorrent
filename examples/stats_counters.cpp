@@ -30,18 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdio.h>
 #include "libtorrent/session_stats.hpp"
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 
-using namespace libtorrent;
+using namespace lt;
 
 int main()
 {
 	std::vector<stats_metric> m = session_stats_metrics();
 	for (int i = 0; i < int(m.size()); ++i)
 	{
-		printf("%s: %s (%d)\n"
-			, m[i].type == stats_metric::type_counter ? "CNTR" : "GAUG"
+		std::printf("%s: %s (%d)\n"
+			, m[i].type == metric_type_t::counter ? "CNTR" : "GAUG"
 			, m[i].name, m[i].value_index);
 	}
 	return 0;

@@ -35,25 +35,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/find_data.hpp>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 struct get_peers : find_data
 {
-	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
+	using data_callback = std::function<void(std::vector<tcp::endpoint> const&)>;
 
 	void got_peers(std::vector<tcp::endpoint> const& peers);
 
-	get_peers(node& dht_node, node_id target
+	get_peers(node& dht_node, node_id const& target
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback
 		, bool noseeds);
 
-	virtual char const* name() const;
+	char const* name() const override;
 
 protected:
-	virtual bool invoke(observer_ptr o);
-	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
+	bool invoke(observer_ptr o) override;
+	observer_ptr new_observer(udp::endpoint const& ep
+		, node_id const& id) override;
 
 	data_callback m_data_callback;
 	bool m_noseeds;
@@ -61,21 +61,19 @@ protected:
 
 struct obfuscated_get_peers : get_peers
 {
-	typedef get_peers::nodes_callback done_callback;
-
-	obfuscated_get_peers(node& dht_node, node_id target
+	obfuscated_get_peers(node& dht_node, node_id const& target
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback
 		, bool noseeds);
 
-	virtual char const* name() const;
+	char const* name() const override;
 
 protected:
 
-	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep,
-		node_id const& id);
-	virtual bool invoke(observer_ptr o);
-	virtual void done();
+	observer_ptr new_observer(udp::endpoint const& ep,
+		node_id const& id) override;
+	bool invoke(observer_ptr o) override;
+	void done() override;
 private:
 	// when set to false, we no longer obfuscate
 	// the target hash, and send regular get_peers
@@ -85,22 +83,26 @@ private:
 struct get_peers_observer : find_data_observer
 {
 	get_peers_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: find_data_observer(algorithm, ep, id)
+		: find_data_observer(std::move(algorithm), ep, id)
 	{}
 
-	virtual void reply(msg const&);
+	void reply(msg const&) override;
+#ifndef TORRENT_DISABLE_LOGGING
+private:
+	void log_peers(msg const& m, bdecode_node const& r, int size) const;
+#endif
 };
 
 struct obfuscated_get_peers_observer : traversal_observer
 {
 	obfuscated_get_peers_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: traversal_observer(algorithm, ep, id)
+		: traversal_observer(std::move(algorithm), ep, id)
 	{}
-	virtual void reply(msg const&);
+	void reply(msg const&) override;
 };
 
 } } // namespace libtorrent::dht

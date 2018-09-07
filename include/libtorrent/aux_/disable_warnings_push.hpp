@@ -43,6 +43,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#if __GNUC__ >= 6
+#pragma GCC diagnostic ignored "-Wshift-overflow"
+#pragma GCC diagnostic ignored "-Wshift-count-overflow"
+#pragma GCC diagnostic ignored "-Wshift-count-negative"
+#endif
+#if __GNUC__ >= 7
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#pragma GCC diagnostic ignored "-Wnoexcept-type"
+#endif
 #endif
 
 #ifdef __clang__
@@ -71,13 +82,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
 #pragma clang diagnostic ignored "-Wunused-local-typedef"
-#pragma clang diagnostic ignored "-Wdouble-promotion"
 #pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wgnu-folding-constant"
+#pragma clang diagnostic ignored "-Wdouble-promotion"
 #pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
 #endif
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
+// warning C4005: macro redefinition
+#pragma warning(disable : 4005)
+// expression before comma has no effect; expected expression with side-effect
+#pragma warning(disable : 4548)
+// 'conversion' conversion from 'type1' to 'type2', possible loss of data
+#pragma warning(disable : 4244)
 #endif
-

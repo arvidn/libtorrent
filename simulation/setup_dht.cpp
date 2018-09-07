@@ -30,36 +30,45 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #include "setup_transfer.hpp"
-#include <boost/bind.hpp>
 #include <memory> // for unique_ptr
 #include <random>
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/random.hpp"
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 #include "setup_dht.hpp"
 
-namespace lt = libtorrent;
 using namespace sim;
-using namespace libtorrent;
+using namespace lt;
+
+#ifndef TORRENT_DISABLE_DHT
 
 namespace {
 
 	lt::time_point start_time;
 
 	// this is the IP address assigned to node 'idx'
-	asio::ip::address addr_from_int(int idx)
+	asio::ip::address addr_from_int(int /* idx */)
 	{
-		return asio::ip::address_v4(lt::random());
+		return rand_v4();
+	}
+
+	asio::ip::address addr6_from_int(int /* idx */)
+	{
+		asio::ip::address_v6::bytes_type bytes;
+		for (uint8_t& b : bytes) b = uint8_t(lt::random(0xff));
+		return asio::ip::address_v6(bytes);
 	}
 
 	// this is the node ID assigned to node 'idx'
@@ -68,39 +77,44 @@ namespace {
 		return dht::generate_id(addr);
 	}
 
-} // anonymous namespace
-
-struct dht_node final : lt::dht::udp_socket_interface
-{
-	enum flags_t
+	std::shared_ptr<lt::aux::listen_socket_t> sim_listen_socket(tcp::endpoint ep)
 	{
-		add_dead_nodes = 1
-	};
-
-	dht_node(sim::simulation& sim, lt::dht_settings const& sett, lt::counters& cnt
-		, int idx, std::uint32_t flags)
-		: m_io_service(sim, addr_from_int(idx))
-#if LIBSIMULATOR_USE_MOVE
-		, m_socket(m_io_service)
-		, m_dht(this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt)
-#else
-		, m_socket(new asio::ip::udp::socket(m_io_service))
-		, m_dht(new lt::dht::node(this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt))
-#endif
-		, m_add_dead_nodes(flags & add_dead_nodes)
-	{
-		error_code ec;
-		sock().open(asio::ip::udp::v4());
-		sock().bind(asio::ip::udp::endpoint(lt::address_v4::any(), 6881));
-		sock().non_blocking(true);
-
-		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
-			, m_ep, boost::bind(&dht_node::on_read, this, _1, _2));
+		auto ls = std::make_shared<lt::aux::listen_socket_t>();
+		ls->external_address.cast_vote(ep.address()
+			, lt::aux::session_interface::source_dht, lt::address());
+		ls->local_endpoint = ep;
+		return ls;
 	}
 
-#if LIBSIMULATOR_USE_MOVE
+} // anonymous namespace
+
+struct dht_node final : lt::dht::socket_manager
+{
+	dht_node(sim::simulation& sim, lt::dht::dht_settings const& sett, lt::counters& cnt
+		, int const idx, std::uint32_t const flags)
+		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
+		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))
+		, m_add_dead_nodes((flags & dht_network::add_dead_nodes) != 0)
+		, m_ipv6((flags & dht_network::bind_ipv6) != 0)
+		, m_socket(m_io_service)
+		, m_ls(sim_listen_socket(tcp::endpoint(m_io_service.get_ips().front(), 6881)))
+		, m_dht(m_ls, this, sett, id_from_addr(m_io_service.get_ips().front())
+			, nullptr, cnt
+			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
+			, *m_dht_storage)
+	{
+		m_dht_storage->update_node_ids({id_from_addr(m_io_service.get_ips().front())});
+		error_code ec;
+		sock().open(m_ipv6 ? asio::ip::udp::v6() : asio::ip::udp::v4());
+		sock().bind(asio::ip::udp::endpoint(
+			m_ipv6 ? lt::address(lt::address_v6::any()) : lt::address(lt::address_v4::any()), 6881));
+
+		sock().non_blocking(true);
+		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
+			, m_ep, [&](lt::error_code const& ec, std::size_t bytes_transferred)
+				{ this->on_read(ec, bytes_transferred); });
+	}
+
 	// This type is not copyable, because the socket and the dht node is not
 	// copyable.
 	dht_node(dht_node const&) = delete;
@@ -108,31 +122,16 @@ struct dht_node final : lt::dht::udp_socket_interface
 
 	// it's also not movable, because it passes in its this-pointer to the async
 	// receive function, which pins this object down. However, std::vector cannot
-	// hold non-movable and non-copyable types. Instead, pretend that it's
-	// movable and make sure it never needs to be moved (for instance, by
-	// reserving space in the vector before emplacing any nodes).
-	dht_node(dht_node&& n) noexcept
-		: m_socket(std::move(n.m_socket))
-		, m_dht(this, n.m_dht.settings(), n.m_dht.nid()
-			, n.m_dht.observer(), n.m_dht.stats_counters())
-	{
-		assert(false && "dht_node is not movable");
-		throw std::runtime_error("dht_node is not movable");
-	}
-	dht_node& operator=(dht_node&&)
-		noexcept
-	{
-		assert(false && "dht_node is not movable");
-		throw std::runtime_error("dht_node is not movable");
-	}
-#endif
+	// hold non-movable and non-copyable types.
+	dht_node(dht_node&& n) = delete;
+	dht_node& operator=(dht_node&&) = delete;
 
 	void on_read(lt::error_code const& ec, std::size_t bytes_transferred)
 	{
 		if (ec) return;
 
-		using libtorrent::entry;
-		using libtorrent::bdecode;
+		using lt::entry;
+		using lt::bdecode;
 
 		int pos;
 		error_code err;
@@ -145,15 +144,16 @@ struct dht_node final : lt::dht::udp_socket_interface
 
 		if (msg.type() != bdecode_node::dict_t) return;
 
-		libtorrent::dht::msg m(msg, m_ep);
-		dht().incoming(m);
+		lt::dht::msg m(msg, m_ep);
+		dht().incoming(m_ls, m);
 
 		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
-			, m_ep, boost::bind(&dht_node::on_read, this, _1, _2));
+			, m_ep, [&](lt::error_code const& ec, std::size_t bytes_transferred)
+				{ this->on_read(ec, bytes_transferred); });
 	}
 
 	bool has_quota() override { return true; }
-	bool send_packet(entry& e, udp::endpoint const& addr, int flags) override
+	bool send_packet(lt::aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) override
 	{
 		// since the simulaton is single threaded, we can get away with allocating
 		// just a single send buffer
@@ -196,32 +196,33 @@ struct dht_node final : lt::dht::udp_socket_interface
 			if (n.first == id) continue;
 			int const bucket = 159 - dht::distance_exp(id, n.first);
 
-/*			printf("%s ^ %s = %s %d\n"
+/*			std::printf("%s ^ %s = %s %d\n"
 				, to_hex(id.to_string()).c_str()
 				, to_hex(n.first.to_string()).c_str()
 				, to_hex(dht::distance(id, n.first).to_string()).c_str()
 				, bucket);
 */
-			// there are no more slots in this bucket, just move ont
+			// there are no more slots in this bucket, just move on
 			if (nodes_per_bucket[bucket] == 0) continue;
 			--nodes_per_bucket[bucket];
-			bool const added = dht().m_table.node_seen(n.first, n.second, (lt::random() % 300) + 10);
-			TORRENT_ASSERT(added);
+			bool const added = dht().m_table.node_seen(n.first, n.second, lt::random(300) + 10);
+			TEST_CHECK(added);
 			if (m_add_dead_nodes)
 			{
 				// generate a random node ID that would fall in `bucket`
 				dht::node_id const mask = dht::generate_prefix_mask(bucket + 1);
 				dht::node_id target = dht::generate_random_id() & ~mask;
 				target |= id & mask;
-				dht().m_table.node_seen(target, rand_udp_ep(), (lt::random() % 300) + 10);
+				dht().m_table.node_seen(target, rand_udp_ep(m_ipv6 ? rand_v6 : rand_v4)
+					, lt::random(300) + 10);
 			}
 		}
 /*
 		for (int i = 0; i < 40; ++i)
 		{
-			printf("%d ", nodes_per_bucket[i]);
+			std::printf("%d ", nodes_per_bucket[i]);
 		}
-		printf("\n");
+		std::printf("\n");
 */
 //#error add invalid IPs as well, to simulate churn
 	}
@@ -231,35 +232,26 @@ struct dht_node final : lt::dht::udp_socket_interface
 		sock().close();
 	}
 
-#if LIBSIMULATOR_USE_MOVE
 	lt::dht::node& dht() { return m_dht; }
 	lt::dht::node const& dht() const { return m_dht; }
-#else
-	lt::dht::node& dht() { return *m_dht; }
-	lt::dht::node const& dht() const { return *m_dht; }
-#endif
 
 private:
 	asio::io_service m_io_service;
-#if LIBSIMULATOR_USE_MOVE
+	std::shared_ptr<dht::dht_storage_interface> m_dht_storage;
+	bool const m_add_dead_nodes;
+	bool const m_ipv6;
 	lt::udp::socket m_socket;
 	lt::udp::socket& sock() { return m_socket; }
+	std::shared_ptr<lt::aux::listen_socket_t> m_ls;
 	lt::dht::node m_dht;
-#else
-	std::shared_ptr<lt::udp::socket> m_socket;
-	lt::udp::socket& sock() { return *m_socket; }
-	std::shared_ptr<lt::dht::node> m_dht;
-#endif
 	lt::udp::endpoint m_ep;
-	bool m_add_dead_nodes;
 	char m_buffer[1300];
 };
 
-dht_network::dht_network(sim::simulation& sim, int num_nodes)
+dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flags)
 {
 	m_sett.ignore_dark_internet = false;
 	m_sett.restrict_routing_ips = false;
-	m_nodes.reserve(num_nodes);
 
 // TODO: how can we introduce churn among peers?
 
@@ -269,7 +261,7 @@ dht_network::dht_network(sim::simulation& sim, int num_nodes)
 	for (int i = 0; i < num_nodes; ++i)
 	{
 		// node 0 is the one we log
-		m_nodes.emplace_back(sim, m_sett, m_cnt, i, 0/*, dht_node::add_dead_nodes*/);
+		m_nodes.emplace_back(sim, m_sett, m_cnt, i, flags);
 		all_nodes.push_back(m_nodes.back().node_info());
 	}
 
@@ -277,17 +269,17 @@ dht_network::dht_network(sim::simulation& sim, int num_nodes)
 	for (auto& n : m_nodes)
 	{
 		n.bootstrap(all_nodes);
-		if (++cnt == 50)
+		if (++cnt == 25)
 		{
 			// every now and then, shuffle all_nodes to make the
 			// routing tables more randomly distributed
-			std::random_shuffle(all_nodes.begin(), all_nodes.end());
+			lt::aux::random_shuffle(all_nodes.begin(), all_nodes.end());
 			cnt = 0;
 		}
 	}
 }
 
-dht_network::~dht_network() {}
+dht_network::~dht_network() = default;
 
 void print_routing_table(std::vector<lt::dht_routing_bucket> const& rt)
 {
@@ -301,10 +293,10 @@ void print_routing_table(std::vector<lt::dht_routing_bucket> const& rt)
 			"################################"
 			"################################";
 		char const* short_progress_bar = "--------";
-		printf("%3d [%3d, %d] %s%s\n"
+		std::printf("%3d [%3d, %d] %s%s\n"
 			, bucket, i->num_nodes, i->num_replacements
 			, progress_bar + (128 - i->num_nodes)
-			, short_progress_bar + (8 - (std::min)(8, i->num_replacements)));
+			, short_progress_bar + (8 - std::min(8, i->num_replacements)));
 	}
 }
 
@@ -327,4 +319,5 @@ void dht_network::stop()
 	for (auto& n : m_nodes) n.stop();
 }
 
+#endif // TORRENT_DISABLE_DHT
 

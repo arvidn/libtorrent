@@ -1,8 +1,8 @@
 /*
  * Copyright 2001-2004 Unicode, Inc.
- * 
+ *
  * Disclaimer
- * 
+ *
  * This source code is provided as is by Unicode, Inc. No claims are
  * made as to fitness for any particular purpose. No warranties of any
  * kind are expressed or implied. The recipient agrees to determine
@@ -10,9 +10,9 @@
  * purchased on magnetic or optical media from Unicode, Inc., the
  * sole remedy for any claim will be exchange of defective media
  * within 90 days of receipt.
- * 
+ *
  * Limitations on Rights to Redistribute This Code
- * 
+ *
  * Unicode, Inc. hereby grants the right to freely use the information
  * supplied in this file in the creation of products supporting the
  * Unicode Standard, and to make copies of this file in any form
@@ -33,7 +33,7 @@
 
     Each routine converts the text between *sourceStart and sourceEnd,
     putting the result into the buffer between *targetStart and
-    targetEnd. Note: the end pointers are *after* the last item: e.g. 
+    targetEnd. Note: the end pointers are *after* the last item: e.g.
     *(sourceEnd - 1) is the last item.
 
     The return result indicates whether the conversion was successful,
@@ -71,7 +71,7 @@
 	sequence is malformed.  When "sourceIllegal" is returned, the source
 	value will point to the illegal value that caused the problem. E.g.,
 	in UTF-8 when a sequence is malformed, it points to the start of the
-	malformed sequence.  
+	malformed sequence.
 
     Author: Mark E. Davis, 1994.
     Rev History: Rick McGowan, fixes & updates May 2001.
@@ -79,39 +79,14 @@
 
 ------------------------------------------------------------------------ */
 
-/* ---------------------------------------------------------------------
-    The following 4 definitions are compiler-specific.
-    The C standard does not guarantee that wchar_t has at least
-    16 bits, so wchar_t is no less portable than unsigned short!
-    All should be unsigned values to avoid sign extension during
-    bit mask & shift operations.
------------------------------------------------------------------------- */
-
-#ifdef __cplusplus
 #include "libtorrent/config.hpp"
-// these are standard C types, but they might
-// not be available in c++
-#include <boost/cstdint.hpp>
-typedef boost::uint32_t UTF32;
-typedef boost::uint16_t UTF16;
-typedef boost::uint8_t  UTF8;
+#include <cstdint>
+using UTF32 = std::uint32_t;
+using UTF16 = std::uint16_t;
+using UTF8 = std::uint8_t;
 extern "C" {
-#else
-#define TORRENT_EXTRA_EXPORT
-#ifdef _MSC_VER
-// msvc doesn't seem to have stdint.h
-typedef unsigned __int32 UTF32;
-typedef unsigned __int16 UTF16;
-typedef unsigned __int8  UTF8;
-#else
-#include <stdint.h>
-typedef uint32_t UTF32;
-typedef uint16_t UTF16;
-typedef uint8_t  UTF8;
-#endif
-#endif
 
-typedef unsigned char	Boolean; /* 0 or 1 */
+using Boolean = unsigned char; /* 0 or 1 */
 
 /* Some fundamental constants */
 #define UNI_REPLACEMENT_CHAR UTF32(0x0000FFFD)
@@ -120,12 +95,12 @@ typedef unsigned char	Boolean; /* 0 or 1 */
 #define UNI_MAX_UTF32 UTF32(0x7FFFFFFF)
 #define UNI_MAX_LEGAL_UTF32 UTF32(0x0010FFFF)
 
-typedef enum {
-	conversionOK, 		/* conversion successful */
-	sourceExhausted,	/* partial character in source, but hit end */
-	targetExhausted,	/* insuff. room in target for conversion */
-	sourceIllegal		/* source sequence is illegal/malformed */
-} ConversionResult;
+enum ConversionResult {
+	conversionOK,     /* conversion successful */
+	sourceExhausted,  /* partial character in source, but hit end */
+	targetExhausted,  /* insuff. room in target for conversion */
+	sourceIllegal     /* source sequence is illegal/malformed */
+};
 
 typedef enum {
 	strictConversion = 0,
@@ -133,38 +108,36 @@ typedef enum {
 } ConversionFlags;
 
 TORRENT_EXTRA_EXPORT ConversionResult ConvertUTF8toUTF16 (
-		const UTF8** sourceStart, const UTF8* sourceEnd, 
-		UTF16** targetStart, UTF16* targetEnd, ConversionFlags flags);
+	const UTF8** sourceStart, const UTF8* sourceEnd,
+	UTF16** targetStart, UTF16* targetEnd, ConversionFlags flags);
 
 TORRENT_EXTRA_EXPORT ConversionResult ConvertUTF16toUTF8 (
-		const UTF16** sourceStart, const UTF16* sourceEnd, 
-		UTF8** targetStart, UTF8* targetEnd, ConversionFlags flags);
-		
+	const UTF16** sourceStart, const UTF16* sourceEnd,
+	UTF8** targetStart, UTF8* targetEnd, ConversionFlags flags);
+
 TORRENT_EXTRA_EXPORT ConversionResult ConvertUTF8toUTF32 (
-		const UTF8** sourceStart, const UTF8* sourceEnd, 
-		UTF32** targetStart, UTF32* targetEnd, ConversionFlags flags);
+	const UTF8** sourceStart, const UTF8* sourceEnd,
+	UTF32** targetStart, UTF32* targetEnd, ConversionFlags flags);
 
 TORRENT_EXTRA_EXPORT ConversionResult ConvertUTF32toUTF8 (
-		const UTF32** sourceStart, const UTF32* sourceEnd, 
-		UTF8** targetStart, UTF8* targetEnd, ConversionFlags flags);
-		
+	const UTF32** sourceStart, const UTF32* sourceEnd,
+	UTF8** targetStart, UTF8* targetEnd, ConversionFlags flags);
+
 TORRENT_EXTRA_EXPORT ConversionResult ConvertUTF16toUTF32 (
-		const UTF16** sourceStart, const UTF16* sourceEnd, 
-		UTF32** targetStart, UTF32* targetEnd, ConversionFlags flags);
+	const UTF16** sourceStart, const UTF16* sourceEnd,
+	UTF32** targetStart, UTF32* targetEnd, ConversionFlags flags);
 
 TORRENT_EXTRA_EXPORT ConversionResult ConvertUTF32toUTF16 (
-		const UTF32** sourceStart, const UTF32* sourceEnd, 
-		UTF16** targetStart, UTF16* targetEnd, ConversionFlags flags);
+	const UTF32** sourceStart, const UTF32* sourceEnd,
+	UTF16** targetStart, UTF16* targetEnd, ConversionFlags flags);
 
 TORRENT_EXTRA_EXPORT Boolean isLegalUTF8Sequence(const UTF8 *source,
-		const UTF8 *sourceEnd);
+	const UTF8 *sourceEnd);
 
 TORRENT_EXTRA_EXPORT Boolean isLegalUTF8(const UTF8 *source, int length);
 
 extern const char trailingBytesForUTF8[256];
 extern const UTF32 offsetsFromUTF8[6];
 
-#ifdef __cplusplus
 }
-#endif
 /* --------------------------------------------------------------------- */

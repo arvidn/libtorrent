@@ -1,5 +1,5 @@
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.9
+:Version: 1.2.0
 
 .. raw:: html
 
@@ -11,6 +11,7 @@
 * examples_
 * overview_
 * documentation_
+* `libtorrent 1.2`_
 * contributing_
 * building_
 * troubleshooting_
@@ -67,6 +68,7 @@ libtorrent
 .. _examples: examples.html
 .. _overview: manual-ref.html
 .. _documentation: reference.html
+.. _`libtorrent 1.2`: upgrade_to_1.2-ref.html
 .. _troubleshooting: troubleshooting.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
@@ -183,9 +185,13 @@ Acknowledgements
 
 Written by Arvid Norberg. Copyright |copy| 2003-2018
 
-Contributions by Steven Siloti, Magnus Jonsson, Daniel Wallin and Cory Nelson
+Contributions by Steven Siloti, Alden Torres, Magnus Jonsson, Daniel Wallin and Cory Nelson
 
 Thanks to Reimond Retz for bugfixes, suggestions and testing
+
+See github__ for full list of contributors.
+
+__ https://github.com/arvidn/libtorrent/graphs/contributors
 
 Thanks to `Umeå University`__ for providing development and test hardware.
 

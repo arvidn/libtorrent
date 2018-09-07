@@ -33,25 +33,43 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
-#include <boost/bind.hpp>
-#include <boost/ref.hpp>
-#include <boost/intrusive_ptr.hpp>
+#include "libtorrent/aux_/numeric_cast.hpp"
+#include <functional>
 #include <iostream>
+#include <memory>
 
-using namespace libtorrent;
+using namespace lt;
 
-void callback(int mapping, address extip, int port, error_code const& err)
+namespace
 {
-	std::cerr
-		<< "mapping: " << mapping
-		<< ", port: " << port
-		<< ", external-IP: " << print_address(extip)
-		<< ", error: \"" << err.message() << "\"\n";
-}
+	struct natpmp_callback : aux::portmap_callback
+	{
+		virtual ~natpmp_callback() = default;
 
-void log_callback(char const* line)
-{
-	std::cerr << line << std::endl;
+		void on_port_mapping(port_mapping_t const mapping
+			, address const& ip, int port
+			, portmap_protocol const protocol, error_code const& err
+			, portmap_transport) override
+		{
+			std::cout
+				<< "mapping: " << mapping
+				<< ", port: " << port
+				<< ", protocol: " << static_cast<int>(protocol)
+				<< ", external-IP: " << print_address(ip)
+				<< ", error: \"" << err.message() << "\"\n";
+		}
+#ifndef TORRENT_DISABLE_LOGGING
+		virtual bool should_log_portmap(portmap_transport) const override
+		{
+			return true;
+		}
+
+		virtual void log_portmap(portmap_transport, char const* msg) const override
+		{
+			std::cout << msg << std::endl;
+		}
+#endif
+	};
 }
 
 int main(int argc, char* argv[])
@@ -61,39 +79,39 @@ int main(int argc, char* argv[])
 
 	if (argc != 3)
 	{
-		std::cerr << "usage: " << argv[0] << " tcp-port udp-port" << std::endl;
+		std::cout << "usage: " << argv[0] << " tcp-port udp-port" << std::endl;
 		return 1;
 	}
 
-	boost::intrusive_ptr<natpmp> natpmp_handler = new natpmp(ios, address_v4()
-		, &callback, &log_callback);
+	natpmp_callback cb;
+	auto natpmp_handler = std::make_shared<natpmp>(ios, cb);
 
 	deadline_timer timer(ios);
 
-	int tcp_map = natpmp_handler->add_mapping(natpmp::tcp, atoi(argv[1]), atoi(argv[1]));
-	int udp_map = natpmp_handler->add_mapping(natpmp::udp, atoi(argv[2]), atoi(argv[2]));
+	auto const tcp_map = natpmp_handler->add_mapping(portmap_protocol::tcp
+		, atoi(argv[1]), tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[1]))));
+	natpmp_handler->add_mapping(portmap_protocol::udp, atoi(argv[2])
+		, tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[2]))));
 
 	error_code ec;
 	timer.expires_from_now(seconds(2), ec);
-	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
-	std::cerr << "mapping ports TCP: " << argv[1]
+	timer.async_wait([&] (error_code const&) { ios.io_service::stop(); });
+	std::cout << "mapping ports TCP: " << argv[1]
 		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
 	ios.run(ec);
 	timer.expires_from_now(seconds(2), ec);
-	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
-	std::cerr << "removing mapping " << tcp_map << std::endl;
+	timer.async_wait([&] (error_code const&) { ios.io_service::stop(); });
+	std::cout << "removing mapping " << tcp_map << std::endl;
 	natpmp_handler->delete_mapping(tcp_map);
 
 	ios.reset();
 	ios.run(ec);
-	std::cerr << "removing mappings" << std::endl;
+	std::cout << "removing mappings" << std::endl;
 	natpmp_handler->close();
 
 	ios.reset();
 	ios.run(ec);
-	std::cerr << "closing" << std::endl;
+	std::cout << "closing" << std::endl;
 }
-
-

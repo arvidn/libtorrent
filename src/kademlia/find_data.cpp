@@ -36,45 +36,41 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/io.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/socket_io.hpp>
-#include <vector>
 
-namespace libtorrent { namespace dht
-{
-
-using detail::read_endpoint_list;
-using detail::read_v4_endpoint;
-#if TORRENT_USE_IPV6
-using detail::read_v6_endpoint;
+#ifndef TORRENT_DISABLE_LOGGING
+#include <libtorrent/hex.hpp> // to_hex
 #endif
+
+namespace libtorrent { namespace dht {
 
 void find_data_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] missing response dict"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;
 	}
 
-	bdecode_node id = r.dict_find_string("id");
+	bdecode_node const id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] invalid id in response"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;
 	}
-	bdecode_node token = r.dict_find_string("token");
+	bdecode_node const token = r.dict_find_string("token");
 	if (token)
 	{
 		static_cast<find_data*>(algorithm())->got_write_token(
-			node_id(id.string_ptr()), token.string_value());
+			node_id(id.string_ptr()), token.string_value().to_string());
 	}
 
 	traversal_observer::reply(m);
@@ -83,7 +79,7 @@ void find_data_observer::reply(msg const& m)
 
 find_data::find_data(
 	node& dht_node
-	, node_id target
+	, node_id const& target
 	, nodes_callback const& ncallback)
 	: traversal_algorithm(dht_node, target)
 	, m_nodes_callback(ncallback)
@@ -98,37 +94,40 @@ void find_data::start()
 	if (m_results.empty())
 	{
 		std::vector<node_entry> nodes;
-		m_node.m_table.find_node(m_target, nodes, routing_table::include_failed);
+		m_node.m_table.find_node(target(), nodes, routing_table::include_failed);
 
-		for (std::vector<node_entry>::iterator i = nodes.begin()
-			, end(nodes.end()); i != end; ++i)
+		for (auto const& n : nodes)
 		{
-			add_entry(i->id, i->ep(), observer::flag_initial);
+			add_entry(n.id, n.ep(), observer::flag_initial);
 		}
 	}
 
 	traversal_algorithm::start();
 }
 
-void find_data::got_write_token(node_id const& n, std::string const& write_token)
+void find_data::got_write_token(node_id const& n, std::string write_token)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal
-		, "[%p] adding write token '%s' under id '%s'"
-		, static_cast<void*>(this), to_hex(write_token).c_str()
-		, to_hex(n.to_string()).c_str());
+	auto logger = get_node().observer();
+	if (logger != nullptr && logger->should_log(dht_logger::traversal))
+	{
+		logger->log(dht_logger::traversal
+			, "[%u] adding write token '%s' under id '%s'"
+			, id(), aux::to_hex(write_token).c_str()
+			, aux::to_hex(n).c_str());
+	}
 #endif
-	m_write_tokens[n] = write_token;
+	m_write_tokens[n] = std::move(write_token);
 }
 
-observer_ptr find_data::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
+observer_ptr find_data::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
-	observer_ptr o(new (ptr) find_data_observer(this, ep, id));
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
-	o->m_in_constructor = false;
+	auto o = m_node.m_rpc.allocate_observer<find_data_observer>(self(), ep, id);
+#if TORRENT_USE_ASSERTS
+	if (o) o->m_in_constructor = false;
 #endif
-	return o;
+	return std::move(o);
 }
 
 char const* find_data::name() const { return "find_data"; }
@@ -138,37 +137,50 @@ void find_data::done()
 	m_done = true;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] %s DONE"
-		, static_cast<void*>(this), name());
+	auto logger = get_node().observer();
+	if (logger != nullptr)
+	{
+		logger->log(dht_logger::traversal, "[%u] %s DONE"
+			, id(), name());
+	}
 #endif
 
-	std::vector<std::pair<node_entry, std::string> > results;
+	std::vector<std::pair<node_entry, std::string>> results;
 	int num_results = m_node.m_table.bucket_size();
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+	for (auto i = m_results.begin()
 		, end(m_results.end()); i != end && num_results > 0; ++i)
 	{
 		observer_ptr const& o = *i;
-		if ((o->flags & observer::flag_alive) == 0)
+		if (!(o->flags & observer::flag_alive))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			get_node().observer()->log(dht_logger::traversal, "[%p] not alive: %s"
-				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+			if (logger != nullptr && logger->should_log(dht_logger::traversal))
+			{
+				logger->log(dht_logger::traversal, "[%u] not alive: %s"
+					, id(), print_endpoint(o->target_ep()).c_str());
+			}
 #endif
 			continue;
 		}
-		std::map<node_id, std::string>::iterator j = m_write_tokens.find(o->id());
+		auto j = m_write_tokens.find(o->id());
 		if (j == m_write_tokens.end())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			get_node().observer()->log(dht_logger::traversal, "[%p] no write token: %s"
-				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+			if (logger != nullptr && logger->should_log(dht_logger::traversal))
+			{
+				logger->log(dht_logger::traversal, "[%u] no write token: %s"
+					, id(), print_endpoint(o->target_ep()).c_str());
+			}
 #endif
 			continue;
 		}
-		results.push_back(std::make_pair(node_entry(o->id(), o->target_ep()), j->second));
+		results.emplace_back(node_entry(o->id(), o->target_ep()), j->second);
 #ifndef TORRENT_DISABLE_LOGGING
-			get_node().observer()->log(dht_logger::traversal, "[%p] %s"
-				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+		if (logger != nullptr && logger->should_log(dht_logger::traversal))
+		{
+			logger->log(dht_logger::traversal, "[%u] %s"
+				, id(), print_endpoint(o->target_ep()).c_str());
+		}
 #endif
 		--num_results;
 	}
@@ -179,4 +191,3 @@ void find_data::done()
 }
 
 } } // namespace libtorrent::dht
-

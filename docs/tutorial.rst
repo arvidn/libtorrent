@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.9
+:Version: 1.2.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -31,7 +31,6 @@ For example:
 	#include <libtorrent/torrent_handle.hpp>
 	#include <libtorrent/magnet_uri.hpp>
 
-	namespace lt = libtorrent;
 	int main(int argc, char const* argv[])
 	{
 		if (argc != 2) {
@@ -40,9 +39,7 @@ For example:
 		}
 		lt::session ses;
 
-		lt::add_torrent_params atp;
-		lt::error_code ec;
-		lt::parse_magnet_uri(argv[1], atp, ec);
+		lt::add_torrent_params atp = lt::parse_magnet_uri(argv[1]);
 		atp.save_path = "."; // save in current dir
 		lt::torrent_handle h = ses.add_torrent(atp);
 
@@ -217,7 +214,7 @@ The save_resume_data_alert_ looks something like this:
 		virtual std::string message() const;
 
 		// points to the resume data.
-		boost::shared_ptr<entry> resume_data;
+		std::shared_ptr<entry> resume_data;
 	};
 
 ``resume_data`` points to an entry_ object. This represents a node or a tree of

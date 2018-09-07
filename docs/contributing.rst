@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.9
+:Version: 1.2.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -48,11 +48,13 @@ enumerated on this page, please contact arvid@libtorrent.org or the `mailing lis
 
 For an overview of the internals of libtorrent, see the hacking_ page.
 
-For outstanding things to do, see the `todo list`_.
+For outstanding things to do, see the `todo list`_ or the `sonarqube analysis`_ of master.
 
 .. _hacking: hacking.html
 
 .. _`pull request`: https://github.com/arvidn/libtorrent
 
 .. _`todo list`: todo.html
+
+.. _`sonarqube analysis`: https://sonarcloud.io/dashboard?id=libtorrent
 

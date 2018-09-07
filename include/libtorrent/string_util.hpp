@@ -34,28 +34,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STRING_UTIL_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include "libtorrent/string_view.hpp"
+#include "libtorrent/span.hpp"
 
 #include <vector>
 #include <string>
-#include <boost/cstdint.hpp>
-#include <boost/limits.hpp>
-#include <boost/array.hpp> // for boost::array
+#include <cstdint>
+#include <limits>
+#include <array> // for std::array
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+namespace libtorrent {
 
-namespace libtorrent
-{
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
 
 	TORRENT_EXTRA_EXPORT
-		boost::array<char, 4+std::numeric_limits<boost::int64_t>::digits10>
-		to_string(boost::int64_t n);
+		std::array<char, 4+std::numeric_limits<std::int64_t>::digits10>
+		to_string(std::int64_t n);
 
 	// internal
 	inline bool is_digit(char c)
 	{ return c >= '0' && c <= '9'; }
+	inline void ensure_trailing_slash(std::string& url)
+	{
+		if (url.empty() || url[url.size() - 1] != '/')
+			url += '/';
+	}
 
 	TORRENT_EXTRA_EXPORT bool is_print(char c);
 	TORRENT_EXTRA_EXPORT bool is_space(char c);
@@ -63,15 +66,37 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT int split_string(char const** tags, int buf_size, char* in);
 	TORRENT_EXTRA_EXPORT bool string_begins_no_case(char const* s1, char const* s2);
-	TORRENT_EXTRA_EXPORT bool string_equal_no_case(char const* s1, char const* s2);
+	TORRENT_EXTRA_EXPORT bool string_equal_no_case(string_view s1, string_view s2);
 
-	TORRENT_EXTRA_EXPORT void url_random(char* begin, char* end);
+	TORRENT_EXTRA_EXPORT void url_random(span<char> dest);
 
-	// this parses the string that's used as the liste_interfaces setting.
+	TORRENT_EXTRA_EXPORT bool string_ends_with(string_view s1, string_view s2);
+
+	// Returns offset at which src matches target.
+	// If no sync found, return -1
+	TORRENT_EXTRA_EXPORT int search(span<char const> src, span<char const> target);
+
+	struct listen_interface_t
+	{
+		std::string device;
+		int port;
+		bool ssl;
+	};
+
+	// this parses the string that's used as the listen_interfaces setting.
+	// it is a comma-separated list of IP or device names with ports. For
+	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
+	TORRENT_EXTRA_EXPORT std::vector<listen_interface_t> parse_listen_interfaces(
+		std::string const& in);
+
+	TORRENT_EXTRA_EXPORT std::string print_listen_interfaces(
+		std::vector<listen_interface_t> const& in);
+
+	// this parses the string that's used as the listen_interfaces setting.
 	// it is a comma-separated list of IP or device names with ports. For
 	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
 	TORRENT_EXTRA_EXPORT void parse_comma_separated_string_port(
-		std::string const& in, std::vector<std::pair<std::string, int> >& out);
+		std::string const& in, std::vector<std::pair<std::string, int>>& out);
 
 	// this parses the string that's used as the outgoing_interfaces setting.
 	// it is a comma separated list of IPs and device names. For example:
@@ -84,23 +109,17 @@ namespace libtorrent
 	// in strict ansi mode
 	char* allocate_string_copy(char const* str);
 
-	// returns p + x such that the pointer is 8 bytes aligned
-	// x cannot be greater than 7
-	void* align_pointer(void* p);
-
-	// searches for separator in the string 'last'. the pointer last points to
-	// is set to point to the first character following the separator.
-	// returns a pointer to a null terminated string starting at last, ending
-	// at the separator (the string is mutated to replace the separator with
-	// a '\0' character). If there is no separator, but the end of the string,
-	// the pointer next points to is set to the last null terminator, which will
-	// make the following invocation return NULL, to indicate the end of the
-	// string.
-	TORRENT_EXTRA_EXPORT char* string_tokenize(char* last, char sep, char** next);
+	// searches for separator ('sep') in the string 'last'.
+	// if found, returns the string_view representing the range from the start of
+	// `last` up to (but not including) the separator. The second return value is
+	// the remainder of the string, starting one character after the separator.
+	// if no separator is found, the whole string is returned and the second
+	// return value is an empty string_view.
+	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> split_string(string_view last, char sep);
 
 #if TORRENT_USE_I2P
 
-	bool is_i2p_url(std::string const& url);
+	TORRENT_EXTRA_EXPORT bool is_i2p_url(std::string const& url);
 
 #endif
 
@@ -112,10 +131,6 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT string_eq_no_case
 	{ bool operator()(std::string const& lhs, std::string const& rhs) const; };
 
-	struct TORRENT_EXTRA_EXPORT string_less_no_case
-	{ bool operator()(std::string const& lhs, std::string const& rhs) const; };
-
 }
 
 #endif
-

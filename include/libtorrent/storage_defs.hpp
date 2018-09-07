@@ -34,16 +34,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STORAGE_DEFS_HPP_INCLUDE
 
 #include "libtorrent/config.hpp"
-#include <boost/function.hpp>
+#include "libtorrent/fwd.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/download_priority.hpp"
+#include <functional>
 #include <string>
-#include <vector>
 
-namespace libtorrent
-{
-	struct storage_interface;
-	class file_storage;
-	struct file_pool;
-	class torrent_info;
+namespace libtorrent {
+
+	struct TORRENT_EXPORT storage_interface;
+
+	using storage_index_t = aux::strong_typedef<std::uint32_t, struct storage_index_tag_t>;
 
 	// types of storage allocation used for add_torrent_params::storage_mode.
 	enum storage_mode_t
@@ -58,33 +61,80 @@ namespace libtorrent
 		storage_mode_sparse
 	};
 
-	// see default_storage::default_storage()
-	struct TORRENT_EXPORT storage_params
+	enum class status_t : std::uint8_t
 	{
-		storage_params(): files(NULL), mapped_files(NULL), pool(NULL)
-			, mode(storage_mode_sparse), priorities(NULL), info(NULL) {}
-		file_storage const* files;
-		file_storage const* mapped_files; // optional
-		std::string path;
-		file_pool* pool;
-		storage_mode_t mode;
-		std::vector<boost::uint8_t> const* priorities; // optional
-		torrent_info const* info; // optional
+		// return values from check_fastresume, and move_storage
+		no_error,
+		fatal_disk_error,
+		need_full_check,
+		file_exist
 	};
 
-	typedef boost::function<storage_interface*(storage_params const& params)> storage_constructor_type;
+	// flags for async_move_storage
+	enum class move_flags_t : std::uint8_t
+	{
+		// replace any files in the destination when copying
+		// or moving the storage
+		always_replace_files,
+
+		// if any files that we want to copy exist in the destination
+		// exist, fail the whole operation and don't perform
+		// any copy or move. There is an inherent race condition
+		// in this mode. The files are checked for existence before
+		// the operation starts. In between the check and performing
+		// the copy, the destination files may be created, in which
+		// case they are replaced.
+		fail_if_exist,
+
+		// if any file exist in the target, take those files instead
+		// of the ones we may have in the source.
+		dont_replace
+	};
+
+#if TORRENT_ABI_VERSION == 1
+	// deprecated in 1.2
+	enum deprecated_move_flags_t
+	{
+		always_replace_files TORRENT_DEPRECATED_ENUM,
+		fail_if_exist TORRENT_DEPRECATED_ENUM,
+		dont_replace TORRENT_DEPRECATED_ENUM
+	};
+#endif
+
+	struct TORRENT_EXPORT storage_params
+	{
+		storage_params(file_storage const& f, file_storage const* mf
+			, std::string const& sp, storage_mode_t const sm
+			, aux::vector<download_priority_t, file_index_t> const& prio
+			, sha1_hash const& ih)
+			: files(f)
+			, mapped_files(mf)
+			, path(sp)
+			, mode(sm)
+			, priorities(prio)
+			, info_hash(ih)
+		{}
+		file_storage const& files;
+		file_storage const* mapped_files = nullptr; // optional
+		std::string const& path;
+		storage_mode_t mode{storage_mode_sparse};
+		aux::vector<download_priority_t, file_index_t> const& priorities;
+		sha1_hash const& info_hash;
+	};
+
+	using storage_constructor_type = std::function<storage_interface*(storage_params const& params, file_pool&)>;
 
 	// the constructor function for the regular file storage. This is the
 	// default value for add_torrent_params::storage.
-	TORRENT_EXPORT storage_interface* default_storage_constructor(storage_params const&);
+	TORRENT_EXPORT storage_interface* default_storage_constructor(storage_params const&
+		, file_pool& p);
 
 	// the constructor function for the disabled storage. This can be used for
 	// testing and benchmarking. It will throw away any data written to
 	// it and return garbage for anything read from it.
-	TORRENT_EXPORT storage_interface* disabled_storage_constructor(storage_params const&);
+	TORRENT_EXPORT storage_interface* disabled_storage_constructor(storage_params const&, file_pool&);
 
-	TORRENT_EXPORT storage_interface* zero_storage_constructor(storage_params const&);
+	TORRENT_EXPORT storage_interface* zero_storage_constructor(storage_params const&, file_pool&);
 }
 
 #endif
-

@@ -34,47 +34,44 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ADDRESS_HPP_INCLUDED
 
 #include <boost/version.hpp>
+
 #include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#ifdef __OBJC__
-#define Protocol Protocol_
-#endif
-
-#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-// asio assumes that the windows error codes are defined already
-#include <winsock2.h>
-#endif
-
-#include <boost/asio/ip/address.hpp>
+#include "libtorrent/string_view.hpp"
 
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#ifdef __OBJC__
-#undef Protocol
-#endif
-
-namespace libtorrent
-{
-#if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::asio::ip::address address;
-	typedef sim::asio::ip::address_v4 address_v4;
-#if TORRENT_USE_IPV6
-	typedef sim::asio::ip::address_v6 address_v6;
-#endif
 #else
-	typedef boost::asio::ip::address address;
-	typedef boost::asio::ip::address_v4 address_v4;
-#if TORRENT_USE_IPV6
-	typedef boost::asio::ip::address_v6 address_v6;
-#endif
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/ip/address.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
+
+namespace libtorrent {
+
+#if defined TORRENT_BUILD_SIMULATOR
+	using sim::asio::ip::address;
+	using sim::asio::ip::address_v4;
+	using sim::asio::ip::address_v6;
+#else
+	using boost::asio::ip::address;
+	using boost::asio::ip::address_v4;
+	using boost::asio::ip::address_v6;
+#endif // SIMULATOR
+
+// the from_string member functions are deprecated starting
+// in boost 1.66.0
+#if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
+	using boost::asio::ip::make_address;
+	using boost::asio::ip::make_address_v4;
+	using boost::asio::ip::make_address_v6;
+#else
+	inline address make_address(string_view str, boost::system::error_code& ec)
+	{ return address::from_string(str.data(), ec); }
+	inline address_v4 make_address_v4(string_view str, boost::system::error_code& ec)
+	{ return address_v4::from_string(str.data(), ec); }
+	inline address_v6 make_address_v6(string_view str, boost::system::error_code& ec)
+	{ return address_v6::from_string(str.data(), ec); }
+#endif
 }
 
 #endif
-

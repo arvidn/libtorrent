@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
-namespace lt = libtorrent;
 
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(Setup const& setup
@@ -84,7 +83,8 @@ void run_test(Setup const& setup
 		on_alert(ses, a);
 	});
 
-	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds(60)
+		, [&](boost::system::error_code const&)
 	{
 		test(*ses, test_peers);
 
@@ -119,13 +119,13 @@ TORRENT_TEST(apply_ip_filter)
 		{
 			add_ip_filter(ses);
 
-			lt::add_torrent_params params = create_torrent(0, false);
-			params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-			params.flags &= ~lt::add_torrent_params::flag_paused;
+			lt::add_torrent_params params = ::create_torrent(0, false);
+			params.flags &= ~lt::torrent_flags::auto_managed;
+			params.flags &= ~lt::torrent_flags::paused;
 			ses.async_add_torrent(params);
 		},
 
-		[&](lt::session& ses, lt::alert const* a)
+		[&](lt::session&, lt::alert const* a)
 		{
 			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 			{
@@ -134,9 +134,9 @@ TORRENT_TEST(apply_ip_filter)
 			}
 		},
 
-		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
+		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
-			check_tripped(test_peers, {{false, false, false, true, true}} );
+			check_accepted(test_peers, {{false, false, false, true, true}} );
 		}
 	);
 }
@@ -148,9 +148,9 @@ TORRENT_TEST(update_ip_filter)
 	run_test(
 		[](lt::session& ses)
 		{
-			lt::add_torrent_params params = create_torrent(0, false);
-			params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-			params.flags &= ~lt::add_torrent_params::flag_paused;
+			lt::add_torrent_params params = ::create_torrent(0, false);
+			params.flags &= ~lt::torrent_flags::auto_managed;
+			params.flags &= ~lt::torrent_flags::paused;
 			ses.async_add_torrent(params);
 		},
 
@@ -167,9 +167,9 @@ TORRENT_TEST(update_ip_filter)
 			}
 		},
 
-		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
+		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
-			check_tripped(test_peers, {{false, false, false, true, true}} );
+			check_accepted(test_peers, {{false, false, false, true, true}} );
 		}
 	);
 }
@@ -181,16 +181,16 @@ TORRENT_TEST(apply_ip_filter_to_torrent)
 		{
 			add_ip_filter(ses);
 
-			lt::add_torrent_params params = create_torrent(0, false);
-			params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-			params.flags &= ~lt::add_torrent_params::flag_paused;
+			lt::add_torrent_params params = ::create_torrent(0, false);
+			params.flags &= ~lt::torrent_flags::auto_managed;
+			params.flags &= ~lt::torrent_flags::paused;
 
 			// disable the IP filter!
-			params.flags &= ~lt::add_torrent_params::flag_apply_ip_filter;
+			params.flags &= ~lt::torrent_flags::apply_ip_filter;
 			ses.async_add_torrent(params);
 		},
 
-		[&](lt::session& ses, lt::alert const* a)
+		[&](lt::session&, lt::alert const* a)
 		{
 			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 			{
@@ -199,11 +199,11 @@ TORRENT_TEST(apply_ip_filter_to_torrent)
 			}
 		},
 
-		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
+		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
 			// since the IP filter didn't apply to this torrent, it should have hit
 			// all peers
-			check_tripped(test_peers, {{true, true, true, true, true}} );
+			check_accepted(test_peers, {{true, true, true, true, true}} );
 		}
 	);
 }
@@ -216,9 +216,9 @@ TORRENT_TEST(ip_filter_trackers)
 		{
 			add_ip_filter(ses);
 
-			lt::add_torrent_params params = create_torrent(0, false);
-			params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-			params.flags &= ~lt::add_torrent_params::flag_paused;
+			lt::add_torrent_params params = ::create_torrent(0, false);
+			params.flags &= ~lt::torrent_flags::auto_managed;
+			params.flags &= ~lt::torrent_flags::paused;
 			params.trackers = {
 				"http://60.0.0.0:6881/announce"
 				, "http://60.0.0.1:6881/announce"
@@ -229,10 +229,10 @@ TORRENT_TEST(ip_filter_trackers)
 			ses.async_add_torrent(params);
 		},
 
-		[](lt::session& ses, lt::alert const* a) {},
-		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
+		[](lt::session&, lt::alert const*) {},
+		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
-			check_tripped(test_peers, {{false, false, false, true, true}} );
+			check_accepted(test_peers, {{false, false, false, true, true}} );
 		}
 	);
 }

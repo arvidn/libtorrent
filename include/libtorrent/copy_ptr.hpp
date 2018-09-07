@@ -33,37 +33,35 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_COPY_PTR
 #define TORRENT_COPY_PTR
 
-namespace libtorrent
-{
+#include <memory>
+
+namespace libtorrent {
+
 	template <class T>
 	struct copy_ptr
 	{
-		copy_ptr(): m_ptr(0) {}
-		copy_ptr(T* t): m_ptr(t) {}
-		copy_ptr(copy_ptr const& p): m_ptr(p.m_ptr ? new T(*p.m_ptr) : 0) {}
-		void reset(T* t = 0) { delete m_ptr; m_ptr = t; }
-		copy_ptr& operator=(copy_ptr const& p)
+		copy_ptr() = default;
+		explicit copy_ptr(T* t): m_ptr(t) {}
+		copy_ptr(copy_ptr const& p): m_ptr(p.m_ptr ? new T(*p.m_ptr) : nullptr) {}
+		copy_ptr(copy_ptr&& p) noexcept = default;
+
+		void reset(T* t = nullptr) { m_ptr.reset(t); }
+		copy_ptr& operator=(copy_ptr const& p) &
 		{
-			delete m_ptr;
-			m_ptr = p.m_ptr ? new T(*p.m_ptr) : 0;
+			if (m_ptr == p.m_ptr) return *this;
+			m_ptr.reset(p.m_ptr ? new T(*p.m_ptr) : nullptr);
 			return *this;
 		}
-		T* operator->() { return m_ptr; }
-		T const* operator->() const { return m_ptr; }
+		copy_ptr& operator=(copy_ptr&& p) & noexcept = default;
+		T* operator->() { return m_ptr.get(); }
+		T const* operator->() const { return m_ptr.get(); }
 		T& operator*() { return *m_ptr; }
 		T const& operator*() const { return *m_ptr; }
-		void swap(copy_ptr<T>& p)
-		{
-			T* tmp = m_ptr;
-			m_ptr = p.m_ptr;
-			p.m_ptr = tmp;
-		}
-		operator bool() const { return m_ptr != 0; }
-		~copy_ptr() { delete m_ptr; }
+		void swap(copy_ptr<T>& p) { std::swap(*this, p); }
+		explicit operator bool() const { return m_ptr.get() != nullptr; }
 	private:
-		T* m_ptr;
+		std::unique_ptr<T> m_ptr;
 	};
 }
 
 #endif // TORRENT_COPY_PTR
-

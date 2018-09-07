@@ -31,23 +31,18 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <libtorrent/config.hpp>
-#include <libtorrent/hasher.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/kademlia/get_item.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp>
+#include <libtorrent/performance_counters.hpp>
 
-#if TORRENT_USE_ASSERTS
-#include <libtorrent/bencode.hpp>
-#endif
-
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 void get_item::got_data(bdecode_node const& v,
-	char const* pk,
-	boost::uint64_t seq,
-	char const* sig)
+	public_key const& pk,
+	sequence_number const seq,
+	signature const& sig)
 {
 	// we received data!
 	// if no data_callback, we needn't care about the data we get.
@@ -61,7 +56,7 @@ void get_item::got_data(bdecode_node const& v,
 		if (!m_data.empty()) return;
 
 		sha1_hash incoming_target = item_target_id(v.data_section());
-		if (incoming_target != m_target) return;
+		if (incoming_target != target()) return;
 
 		m_data.assign(v);
 
@@ -74,26 +69,24 @@ void get_item::got_data(bdecode_node const& v,
 		return;
 	}
 
-	// immutalbe data should has been handled before this line, only mutable
-	// data can reach here, which means pk and sig must be valid.
-	if (!pk || !sig) return;
+	// immutable data should have been handled before this line, only mutable
+	// data can reach here, which means pk, sig and seq must be valid.
 
-    std::string temp_copy(m_data.salt());
-	std::pair<char const*, int> salt(temp_copy.c_str(), int(temp_copy.size()));
-	sha1_hash incoming_target = item_target_id(salt, pk);
-	if (incoming_target != m_target) return;
+	std::string const salt_copy(m_data.salt());
+	sha1_hash const incoming_target = item_target_id(salt_copy, pk);
+	if (incoming_target != target()) return;
 
 	// this is mutable data. If it passes the signature
 	// check, remember it. Just keep the version with
 	// the highest sequence number.
 	if (m_data.empty() || m_data.seq() < seq)
 	{
-		if (!m_data.assign(v, salt, seq, pk, sig))
+		if (!m_data.assign(v, salt_copy, seq, pk, sig))
 			return;
 
 		// for get_item, we should call callback when we get data,
 		// even if the date is not authoritative, we can update later.
-		// so caller can get response ASAP without waitting transaction
+		// so caller can get response ASAP without waiting transaction
 		// time-out (15 seconds).
 		// for put_item, the callback function will do nothing
 		// if the data is non-authoritative.
@@ -103,7 +96,7 @@ void get_item::got_data(bdecode_node const& v,
 
 get_item::get_item(
 	node& dht_node
-	, node_id target
+	, node_id const& target
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback)
 	: find_data(dht_node, target, ncallback)
@@ -114,13 +107,11 @@ get_item::get_item(
 
 get_item::get_item(
 	node& dht_node
-	, char const* pk
-	, std::string const& salt
+	, public_key const& pk
+	, span<char const> salt
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback)
-	: find_data(dht_node, item_target_id(
-		std::make_pair(salt.c_str(), int(salt.size())), pk)
-		, ncallback)
+	: find_data(dht_node, item_target_id(salt, pk), ncallback)
 	, m_data_callback(dcallback)
 	, m_data(pk, salt)
 	, m_immutable(false)
@@ -129,14 +120,14 @@ get_item::get_item(
 
 char const* get_item::name() const { return "get"; }
 
-observer_ptr get_item::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
+observer_ptr get_item::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
-	observer_ptr o(new (ptr) get_item_observer(this, ep, id));
+	auto o = m_node.m_rpc.allocate_observer<get_item_observer>(self(), ep, id);
 #if TORRENT_USE_ASSERTS
-	o->m_in_constructor = false;
+	if (o) o->m_in_constructor = false;
 #endif
-	return o;
+	return std::move(o);
 }
 
 bool get_item::invoke(observer_ptr o)
@@ -148,7 +139,9 @@ bool get_item::invoke(observer_ptr o)
 	entry& a = e["a"];
 
 	e["q"] = "get";
-	a["target"] = m_target.to_string();
+	a["target"] = target().to_string();
+
+	m_node.stats_counters().inc_stats_counter(counters::dht_get_out);
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
@@ -168,10 +161,7 @@ void get_item::done()
 #if TORRENT_USE_ASSERTS
 		if (m_data.is_mutable())
 		{
-			TORRENT_ASSERT(m_target
-				== item_target_id(std::pair<char const*, int>(m_data.salt().c_str()
-					, m_data.salt().size())
-					, m_data.pk().data()));
+			TORRENT_ASSERT(target() == item_target_id(m_data.salt(), m_data.pk()));
 		}
 #endif
 	}
@@ -181,11 +171,11 @@ void get_item::done()
 
 void get_item_observer::reply(msg const& m)
 {
-	char const* pk = NULL;
-	char const* sig = NULL;
-	boost::uint64_t seq = 0;
+	public_key pk{};
+	signature sig{};
+	sequence_number seq{0};
 
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -196,18 +186,20 @@ void get_item_observer::reply(msg const& m)
 		return;
 	}
 
-	bdecode_node k = r.dict_find_string("k");
-	if (k && k.string_length() == item_pk_len)
-		pk = k.string_ptr();
+	bdecode_node const k = r.dict_find_string("k");
+	if (k && k.string_length() == public_key::len)
+		std::memcpy(pk.bytes.data(), k.string_ptr(), public_key::len);
 
-	bdecode_node s = r.dict_find_string("sig");
-	if (s && s.string_length() == item_sig_len)
-		sig = s.string_ptr();
+	bdecode_node const s = r.dict_find_string("sig");
+	if (s && s.string_length() == signature::len)
+		std::memcpy(sig.bytes.data(), s.string_ptr(), signature::len);
 
-	bdecode_node q = r.dict_find_int("seq");
+	bdecode_node const q = r.dict_find_int("seq");
 	if (q)
-		seq = q.int_value();
-	else if (pk && sig)
+	{
+		seq = sequence_number(q.int_value());
+	}
+	else if (k && s)
 	{
 		timeout();
 		return;

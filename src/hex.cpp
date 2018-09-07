@@ -32,12 +32,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/hex.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
-	namespace detail {
+	namespace aux {
 
-	TORRENT_EXTRA_EXPORT int hex_to_int(char in)
+	int hex_to_int(char in)
 	{
 		if (in >= '0' && in <= '9') return int(in) - '0';
 		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;
@@ -45,57 +44,61 @@ namespace libtorrent
 		return -1;
 	}
 
-	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len)
+	bool is_hex(span<char const> in)
 	{
-		for (char const* end = in + len; in < end; ++in)
+		for (char const c : in)
 		{
-			int t = hex_to_int(*in);
+			int const t = hex_to_int(c);
 			if (t == -1) return false;
 		}
 		return true;
 	}
 
-	} // detail namespace
-
-	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out)
+	bool from_hex(span<char const> in, char* out)
 	{
-		for (char const* end = in + len; in < end; ++in, ++out)
+		for (auto i = in.begin(), end = in.end(); i != end; ++i, ++out)
 		{
-			int t = detail::hex_to_int(*in);
-			if (t == -1) return false;
-			*out = t << 4;
-			++in;
-			t = detail::hex_to_int(*in);
-			if (t == -1) return false;
-			*out |= t & 15;
+			int const t1 = aux::hex_to_int(*i);
+			if (t1 == -1) return false;
+			*out = char(t1 << 4);
+			++i;
+			int const t2 = aux::hex_to_int(*i);
+			if (t2 == -1) return false;
+			*out |= t2 & 15;
 		}
 		return true;
 	}
 
-	extern const char hex_chars[];
+	extern char const hex_chars[];
 
-	const char hex_chars[] = "0123456789abcdef";
+	char const hex_chars[] = "0123456789abcdef";
+	void to_hex(char const* in, size_t const len, char* out)
+	{
+		int idx = 0;
+		for (size_t i=0; i < len; ++i)
+		{
+			out[idx++] = hex_chars[std::uint8_t(in[i]) >> 4];
+			out[idx++] = hex_chars[std::uint8_t(in[i]) & 0xf];
+		}
+	}
 
-	TORRENT_EXPORT std::string to_hex(std::string const& s)
+	std::string to_hex(span<char const> in)
 	{
 		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
+		if (!in.empty())
 		{
-			ret += hex_chars[boost::uint8_t(*i) >> 4];
-			ret += hex_chars[boost::uint8_t(*i) & 0xf];
+			ret.resize(in.size() * 2);
+			to_hex(in.data(), in.size(), &ret[0]);
 		}
 		return ret;
 	}
 
-	TORRENT_EXPORT void to_hex(char const *in, int len, char* out)
+	void to_hex(span<char const> in, char* out)
 	{
-		for (char const* end = in + len; in < end; ++in)
-		{
-			*out++ = hex_chars[boost::uint8_t(*in) >> 4];
-			*out++ = hex_chars[boost::uint8_t(*in) & 0xf];
-		}
-		*out = '\0';
+		to_hex(in.data(), in.size(), out);
+		out[in.size() * 2] = '\0';
 	}
 
-}
+	} // aux namespace
 
+}

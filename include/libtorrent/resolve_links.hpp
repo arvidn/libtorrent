@@ -33,19 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RESOLVE_LINKS_HPP
 #define TORRENT_RESOLVE_LINKS_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-#include <boost/unordered_map.hpp>
 #include <vector>
 #include <utility>
+#include <unordered_map>
+#include <memory>
+#include <string>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/export.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
-#include "libtorrent/export.hpp"
+namespace libtorrent {
 
-namespace libtorrent
-{
 	class torrent_info;
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -55,35 +54,34 @@ namespace libtorrent
 	{
 		struct TORRENT_EXTRA_EXPORT link_t
 		{
-			boost::shared_ptr<const torrent_info> ti;
+			std::shared_ptr<const torrent_info> ti;
 			std::string save_path;
-			int file_idx;
+			file_index_t file_idx;
 		};
 
-		resolve_links(boost::shared_ptr<torrent_info> ti);
+		explicit resolve_links(std::shared_ptr<torrent_info> ti);
 
 		// check to see if any files are shared with this torrent
-		void match(boost::shared_ptr<const torrent_info> const& ti
+		void match(std::shared_ptr<const torrent_info> const& ti
 			, std::string const& save_path);
 
-		std::vector<link_t> const& get_links() const
+		aux::vector<link_t, file_index_t> const& get_links() const
 		{ return m_links; }
 
 	private:
 		// this is the torrent we're trying to find files for.
-		boost::shared_ptr<torrent_info> m_torrent_file;
+		std::shared_ptr<torrent_info> m_torrent_file;
 
 		// each file in m_torrent_file has an entry in this vector. Any file
 		// that also exists somewhere else, is filled in with the corresponding
 		// torrent_info object and file index
-		std::vector<link_t> m_links;
+		aux::vector<link_t, file_index_t> m_links;
 
 		// maps file size to file index, in m_torrent_file
-		boost::unordered_multimap<boost::int64_t, int> m_file_sizes;
+		std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;
 	};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 }
 
 #endif
-

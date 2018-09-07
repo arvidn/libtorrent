@@ -30,76 +30,182 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-
 #ifndef TORRENT_OPERATIONS_HPP_INCLUDED
 #define TORRENT_OPERATIONS_HPP_INCLUDED
 
-namespace libtorrent
-{
+#include "libtorrent/config.hpp"
+#include <cstdint>
+
+namespace libtorrent {
+
 	// these constants are used to identify the operation that failed, causing a
 	// peer to disconnect
-	enum operation_t
+	enum class operation_t : std::uint8_t
 	{
+		// the error was unexpected and it is unknown which operation caused it
+		unknown,
+
 		// this is used when the bittorrent logic
 		// determines to disconnect
-		op_bittorrent = 0,
+		bittorrent,
 
 		// a call to iocontrol failed
-		op_iocontrol,
+		iocontrol,
 
 		// a call to getpeername failed (querying the remote IP of a
 		// connection)
-		op_getpeername,
+		getpeername,
 
 		// a call to getname failed (querying the local IP of a
 		// connection)
-		op_getname,
+		getname,
 
 		// an attempt to allocate a receive buffer failed
-		op_alloc_recvbuf,
+		alloc_recvbuf,
 
 		// an attempt to allocate a send buffer failed
-		op_alloc_sndbuf,
+		alloc_sndbuf,
 
 		// writing to a file failed
-		op_file_write,
+		file_write,
 
 		// reading from a file failed
-		op_file_read,
+		file_read,
 
 		// a non-read and non-write file operation failed
-		op_file,
+		file,
 
 		// a socket write operation failed
-		op_sock_write,
+		sock_write,
 
 		// a socket read operation failed
-		op_sock_read,
+		sock_read,
 
 		// a call to open(), to create a socket socket failed
-		op_sock_open,
+		sock_open,
 
 		// a call to bind() on a socket failed
-		op_sock_bind,
+		sock_bind,
 
 		// an attempt to query the number of bytes available to read from a socket
 		// failed
-		op_available,
+		available,
 
 		// a call related to bittorrent protocol encryption failed
-		op_encryption,
+		encryption,
 
 		// an attempt to connect a socket failed
-		op_connect,
+		connect,
 
 		// establishing an SSL connection failed
-		op_ssl_handshake,
+		ssl_handshake,
 
 		// a connection failed to satisfy the bind interface setting
-		op_get_interface
+		get_interface,
+
+		// a call to listen() on a socket
+		sock_listen,
+
+		// a call to the ioctl to bind a socket to a specific network device or
+		// adaptor
+		sock_bind_to_device,
+
+		// a call to accept() on a socket
+		sock_accept,
+
+		// convert a string into a valid network address
+		parse_address,
+
+		// enumeration network devices or adapters
+		enum_if,
+
+		file_stat,
+		file_copy,
+		file_fallocate,
+		file_hard_link,
+		file_remove,
+		file_rename,
+		file_open,
+		mkdir,
+		check_resume,
+		exception,
+		alloc_cache_piece,
+		partfile_move,
+		partfile_read,
+		partfile_write,
+		hostname_lookup,
 	};
+
+	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
+	// to its name. See peer_connection for the constants
+	TORRENT_EXPORT char const* operation_name(operation_t op);
+
+#if TORRENT_ABI_VERSION == 1
+	enum deprecated_operation_t : std::uint8_t
+	{
+		// the error was unexpected and it is unknown which operation caused it
+		op_unknown TORRENT_DEPRECATED_ENUM,
+
+		// this is used when the bittorrent logic
+		// determines to disconnect
+		op_bittorrent TORRENT_DEPRECATED_ENUM ,
+
+		// a call to iocontrol failed
+		op_iocontrol TORRENT_DEPRECATED_ENUM,
+
+		// a call to getpeername failed (querying the remote IP of a
+		// connection)
+		op_getpeername TORRENT_DEPRECATED_ENUM,
+
+		// a call to getname failed (querying the local IP of a
+		// connection)
+		op_getname TORRENT_DEPRECATED_ENUM,
+
+		// an attempt to allocate a receive buffer failed
+		op_alloc_recvbuf TORRENT_DEPRECATED_ENUM,
+
+		// an attempt to allocate a send buffer failed
+		op_alloc_sndbuf TORRENT_DEPRECATED_ENUM,
+
+		// writing to a file failed
+		op_file_write TORRENT_DEPRECATED_ENUM,
+
+		// reading from a file failed
+		op_file_read TORRENT_DEPRECATED_ENUM,
+
+		// a non-read and non-write file operation failed
+		op_file TORRENT_DEPRECATED_ENUM,
+
+		// a socket write operation failed
+		op_sock_write TORRENT_DEPRECATED_ENUM,
+
+		// a socket read operation failed
+		op_sock_read TORRENT_DEPRECATED_ENUM,
+
+		// a call to open(), to create a socket socket failed
+		op_sock_open TORRENT_DEPRECATED_ENUM,
+
+		// a call to bind() on a socket failed
+		op_sock_bind TORRENT_DEPRECATED_ENUM,
+
+		// an attempt to query the number of bytes available to read from a socket
+		// failed
+		op_available TORRENT_DEPRECATED_ENUM,
+
+		// a call related to bittorrent protocol encryption failed
+		op_encryption TORRENT_DEPRECATED_ENUM,
+
+		// an attempt to connect a socket failed
+		op_connect TORRENT_DEPRECATED_ENUM,
+
+		// establishing an SSL connection failed
+		op_ssl_handshake TORRENT_DEPRECATED_ENUM,
+
+		// a connection failed to satisfy the bind interface setting
+		op_get_interface TORRENT_DEPRECATED_ENUM,
+	};
+#endif
 
 }
 
 #endif // TORRENT_OPERATIONS_HPP_INCLUDED
-

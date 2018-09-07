@@ -36,26 +36,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "settings.hpp"
+#include "utils.hpp"
 #include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/utils.hpp" // for timer
 #include <iostream>
 
 using namespace sim;
-using namespace libtorrent;
+using namespace lt;
 
 const int num_torrents = 10;
-namespace lt = libtorrent;
 
 using sim::asio::ip::address_v4;
-
-std::unique_ptr<sim::asio::io_service> make_io_service(sim::simulation& sim, int i)
-{
-	char ep[30];
-	snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
-	return std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
-		sim, asio::ip::address_v4::from_string(ep)));
-}
 
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain
@@ -108,9 +100,9 @@ TORRENT_TEST(dont_count_slow_torrents)
 			// add torrents
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
-				params.flags |= lt::add_torrent_params::flag_auto_managed;
-				params.flags |= lt::add_torrent_params::flag_paused;
+				lt::add_torrent_params params = ::create_torrent(i, false);
+				params.flags |= lt::torrent_flags::auto_managed;
+				params.flags |= lt::torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -127,7 +119,7 @@ TORRENT_TEST(dont_count_slow_torrents)
 			int num_started = 0;
 			for (alert* a : alerts)
 			{
-				printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (alert_cast<torrent_resumed_alert>(a) == nullptr) continue;
 
@@ -147,8 +139,8 @@ TORRENT_TEST(dont_count_slow_torrents)
 
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
-				TEST_EQUAL(h.status().paused, false);
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
+				TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			}
 		});
 }
@@ -167,9 +159,9 @@ TORRENT_TEST(count_slow_torrents)
 			// add torrents
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
-				params.flags |= add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				lt::add_torrent_params params = ::create_torrent(i, false);
+				params.flags |= torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -186,7 +178,7 @@ TORRENT_TEST(count_slow_torrents)
 			int num_started = 0;
 			for (alert* a : alerts)
 			{
-				printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (alert_cast<torrent_resumed_alert>(a) == nullptr) continue;
 				++num_started;
@@ -197,8 +189,8 @@ TORRENT_TEST(count_slow_torrents)
 			num_started = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
-				num_started += !h.status().paused;
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
+				num_started += !(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_started, 1);
 		});
@@ -218,10 +210,10 @@ TORRENT_TEST(force_stopped_download)
 			// add torrents
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
+				lt::add_torrent_params params = ::create_torrent(i, false);
 				// torrents are paused and not auto-managed
-				params.flags &= ~add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags &= ~torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -236,7 +228,7 @@ TORRENT_TEST(force_stopped_download)
 
 			for (alert* a : alerts)
 			{
-				printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				// we don't expect any torrents being started or stopped, since
 				// they're all force stopped
@@ -246,8 +238,8 @@ TORRENT_TEST(force_stopped_download)
 
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(!h.status().auto_managed);
-				TEST_CHECK(h.status().paused);
+				TEST_CHECK(!(h.status().flags & torrent_flags::auto_managed));
+				TEST_CHECK(h.status().flags & torrent_flags::paused);
 			}
 		});
 }
@@ -266,10 +258,10 @@ TORRENT_TEST(force_started)
 			// add torrents
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
+				lt::add_torrent_params params = ::create_torrent(i, false);
 				// torrents are started and not auto-managed
-				params.flags &= ~add_torrent_params::flag_auto_managed;
-				params.flags &= ~add_torrent_params::flag_paused;
+				params.flags &= ~torrent_flags::auto_managed;
+				params.flags &= ~torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -284,7 +276,7 @@ TORRENT_TEST(force_started)
 
 			for (alert* a : alerts)
 			{
-				printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				// we don't expect any torrents being started or stopped, since
 				// they're all force started
@@ -294,8 +286,8 @@ TORRENT_TEST(force_started)
 
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(!h.status().auto_managed);
-				TEST_CHECK(!h.status().paused);
+				TEST_CHECK(!(h.status().flags & torrent_flags::auto_managed));
+				TEST_CHECK(!(h.status().flags & torrent_flags::paused));
 			}
 		});
 }
@@ -316,10 +308,10 @@ TORRENT_TEST(seed_limit)
 			// add 5 seeds
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, true);
+				lt::add_torrent_params params = ::create_torrent(i, true);
 				// torrents are paused and auto-managed
-				params.flags |= add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags |= torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -336,13 +328,13 @@ TORRENT_TEST(seed_limit)
 			int num_seeding = 0;
 			for (alert* a : alerts)
 			{
-				fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (alert_cast<torrent_resumed_alert>(a))
 				{
 					++num_started;
 
-					fprintf(stderr, "started: %d checking: %d seeding: %d\n"
+					std::printf("started: %d checking: %d seeding: %d\n"
 						, num_started, num_checking, num_seeding);
 				}
 				else if (alert_cast<torrent_paused_alert>(a))
@@ -350,7 +342,7 @@ TORRENT_TEST(seed_limit)
 					TEST_CHECK(num_started > 0);
 					--num_started;
 
-					fprintf(stderr, "started: %d checking: %d seeding: %d\n"
+					std::printf("started: %d checking: %d seeding: %d\n"
 						, num_started, num_checking, num_seeding);
 				}
 				else if (state_changed_alert* sc = alert_cast<state_changed_alert>(a))
@@ -365,7 +357,7 @@ TORRENT_TEST(seed_limit)
 					else if (sc->state == torrent_status::seeding)
 						++num_seeding;
 
-					fprintf(stderr, "started: %d checking: %d seeding: %d\n"
+					std::printf("started: %d checking: %d seeding: %d\n"
 						, num_started, num_checking, num_seeding);
 
 					// while at least one torrent is checking, there may be another
@@ -381,9 +373,9 @@ TORRENT_TEST(seed_limit)
 			num_started = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
 				TEST_CHECK(h.status().is_seeding);
-				num_started += !h.status().paused;
+				num_started += !(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_started, 3);
 		});
@@ -405,10 +397,10 @@ TORRENT_TEST(download_limit)
 			// add 5 seeds
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, false);
+				lt::add_torrent_params params = ::create_torrent(i, false);
 				// torrents are paused and auto-managed
-				params.flags |= add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags |= torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -425,13 +417,13 @@ TORRENT_TEST(download_limit)
 			int num_downloading = 0;
 			for (alert* a : alerts)
 			{
-				fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (alert_cast<torrent_resumed_alert>(a))
 				{
 					++num_started;
 
-					fprintf(stderr, "started: %d checking: %d downloading: %d\n"
+					std::printf("started: %d checking: %d downloading: %d\n"
 						, num_started, num_checking, num_downloading);
 				}
 				else if (alert_cast<torrent_paused_alert>(a))
@@ -439,7 +431,7 @@ TORRENT_TEST(download_limit)
 					TEST_CHECK(num_started > 0);
 					--num_started;
 
-					fprintf(stderr, "started: %d checking: %d downloading: %d\n"
+					std::printf("started: %d checking: %d downloading: %d\n"
 						, num_started, num_checking, num_downloading);
 				}
 				else if (state_changed_alert* sc = alert_cast<state_changed_alert>(a))
@@ -454,7 +446,7 @@ TORRENT_TEST(download_limit)
 					else if (sc->state == torrent_status::downloading)
 						++num_downloading;
 
-					fprintf(stderr, "started: %d checking: %d downloading: %d\n"
+					std::printf("started: %d checking: %d downloading: %d\n"
 						, num_started, num_checking, num_downloading);
 
 					// while at least one torrent is checking, there may be another
@@ -470,9 +462,9 @@ TORRENT_TEST(download_limit)
 			num_started = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
 				TEST_CHECK(!h.status().is_finished);
-				num_started += !h.status().paused;
+				num_started += !(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_started, 3);
 		});
@@ -501,10 +493,10 @@ TORRENT_TEST(checking_announce)
 			// add 5 seeds
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, true);
+				lt::add_torrent_params params = ::create_torrent(i, true);
 				// torrents are paused and auto-managed
-				params.flags |= add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags |= torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				// we need this to get the tracker_announce_alert
 				params.trackers.push_back("http://10.10.0.2/announce");
 				ses.async_add_torrent(params);
@@ -521,7 +513,7 @@ TORRENT_TEST(checking_announce)
 			int num_announce = 0;
 			for (alert* a : alerts)
 			{
-				fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (alert_cast<tracker_announce_alert>(a))
 					++num_announce;
@@ -532,8 +524,8 @@ TORRENT_TEST(checking_announce)
 			int num_started = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
-				num_started += !h.status().paused;
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
+				num_started += !(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_started, 1);
 		});
@@ -554,10 +546,10 @@ TORRENT_TEST(paused_checking)
 			// add 5 seeds
 			for (int i = 0; i < num_torrents; ++i)
 			{
-				lt::add_torrent_params params = create_torrent(i, true);
+				lt::add_torrent_params params = ::create_torrent(i, true);
 				// torrents are paused and auto-managed
-				params.flags &= ~add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags &= ~torrent_flags::auto_managed;
+				params.flags |= torrent_flags::paused;
 				ses.async_add_torrent(params);
 			}
 		},
@@ -571,7 +563,7 @@ TORRENT_TEST(paused_checking)
 
 			for (alert* a : alerts)
 			{
-				fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (state_changed_alert* sc = alert_cast<state_changed_alert>(a))
 				{
@@ -586,8 +578,8 @@ TORRENT_TEST(paused_checking)
 				// that, because they should never have been checked (because they
 				// were force stopped)
 				TEST_CHECK(!h.status().is_seeding);
-				TEST_CHECK(!h.status().auto_managed);
-				TEST_CHECK(h.status().paused);
+				TEST_CHECK(!(h.status().flags & torrent_flags::auto_managed));
+				TEST_CHECK(h.status().flags & torrent_flags::paused);
 			}
 		});
 }
@@ -597,14 +589,14 @@ TORRENT_TEST(paused_checking)
 TORRENT_TEST(stop_when_ready)
 {
 	run_test(
-		[](settings_pack& sett) {},
+		[](settings_pack&) {},
 
 		[](lt::session& ses) {
 			// add torrents
-			lt::add_torrent_params params = create_torrent(0, true);
+			lt::add_torrent_params params = ::create_torrent(0, true);
 			// torrents are started and auto-managed
-			params.flags |= add_torrent_params::flag_auto_managed;
-			params.flags |= add_torrent_params::flag_stop_when_ready;
+			params.flags |= torrent_flags::auto_managed;
+			params.flags |= torrent_flags::stop_when_ready;
 			// we need this to get the tracker_announce_alert
 			params.trackers.push_back("http://10.10.0.2/announce");
 			ses.async_add_torrent(params);
@@ -620,7 +612,7 @@ TORRENT_TEST(stop_when_ready)
 			int num_paused = 0;
 			for (alert* a : alerts)
 			{
-				fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 
 				if (alert_cast<torrent_paused_alert>(a))
@@ -639,7 +631,7 @@ TORRENT_TEST(stop_when_ready)
 				}
 				// there should not have been any announces. the torrent should have
 				// been stopped *before* announcing.
-				TEST_CHECK(alert_cast<tracker_announce_alert>(a) == NULL);
+				TEST_CHECK(alert_cast<tracker_announce_alert>(a) == nullptr);
 			}
 
 			for (torrent_handle const& h : ses.get_torrents())
@@ -648,8 +640,8 @@ TORRENT_TEST(stop_when_ready)
 				// donw, because we set the stop_when_ready flag). Force stopped
 				// means not auto-managed and paused.
 				torrent_status st = h.status();
-				TEST_CHECK(!st.auto_managed);
-				TEST_EQUAL(st.paused, true);
+				TEST_CHECK(!(st.flags & torrent_flags::auto_managed));
+				TEST_CHECK(st.flags & torrent_flags::paused);
 				// it should be seeding. If it's not seeding it may not have had its
 				// files checked.
 				TEST_EQUAL(st.state, torrent_status::seeding);
@@ -657,9 +649,9 @@ TORRENT_TEST(stop_when_ready)
 		});
 }
 
-// This test makes sure that the fastresume check will still run, and
-// potentially fail, for stopped torrents. The actual checking of files won't
-// start until the torrent is un-paused/resumed though
+// This test makes sure that the fastresume check will still run for stopped
+// torrents. The actual checking of files won't start until the torrent is
+// un-paused/resumed though
 TORRENT_TEST(resume_reject_when_paused)
 {
 	run_test(
@@ -669,16 +661,14 @@ TORRENT_TEST(resume_reject_when_paused)
 
 		[](lt::session& ses) {
 			// add torrents
-			lt::add_torrent_params params = create_torrent(0, true);
+			lt::add_torrent_params params = ::create_torrent(0, true);
 
 			// the torrent is not auto managed and paused. Once the resume data
-			// check completes, it will stay paused but the resume_rejected_alert
-			// will be posted
-			params.flags &= ~add_torrent_params::flag_auto_managed;
-			params.flags |= add_torrent_params::flag_paused;
+			// check completes, it will stay paused but the state_changed_alert
+			// will be posted, when it goes to check the files
+			params.flags &= ~torrent_flags::auto_managed;
+			params.flags |= torrent_flags::paused;
 
-			// an empty dictionary will be rejected
-			params.resume_data = {'d', 'e'};
 			ses.async_add_torrent(params);
 		},
 
@@ -689,12 +679,12 @@ TORRENT_TEST(resume_reject_when_paused)
 			lt::time_point start_time = alerts[0]->timestamp();
 
 			int num_piece_finished = 0;
-			int resume_rejected = 0;
+			int checking_files = 0;
 			int state_changed = 0;
 
 			for (alert* a : alerts)
 			{
-				fprintf(stderr, "%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count())
 					, a->what()
 					, a->message().c_str());
@@ -702,13 +692,11 @@ TORRENT_TEST(resume_reject_when_paused)
 				if (alert_cast<piece_finished_alert>(a))
 					++num_piece_finished;
 
-				if (alert_cast<fastresume_rejected_alert>(a))
-					++resume_rejected;
-
 				if (auto sc = alert_cast<state_changed_alert>(a))
 				{
 					if (sc->state == torrent_status::checking_files)
-						++state_changed;
+						++checking_files;
+					++state_changed;
 				}
 			}
 
@@ -717,16 +705,20 @@ TORRENT_TEST(resume_reject_when_paused)
 				// the torrent should have been force-stopped. Force stopped means
 				// not auto-managed and paused.
 				torrent_status st = h.status();
-				TEST_CHECK(!st.auto_managed);
-				TEST_EQUAL(st.paused, true);
+				TEST_CHECK(!(st.flags & torrent_flags::auto_managed));
+				TEST_CHECK(st.flags & torrent_flags::paused);
 				// it should be checking files, because the resume data should have
 				// failed validation.
 				TEST_EQUAL(st.state, torrent_status::checking_files);
 			}
 
 			TEST_EQUAL(num_piece_finished, 0);
-			TEST_EQUAL(resume_rejected, 1);
+			// it should not actually check the files (since it's paused)
+			// if the files were checked, the state would change to downloading
+			// immediately, and state_changed would be 2. This asserts that's not
+			// the case.
 			TEST_EQUAL(state_changed, 1);
+			TEST_EQUAL(checking_files, 1);
 		});
 }
 
@@ -742,11 +734,11 @@ TORRENT_TEST(no_resume_when_paused)
 
 		[](lt::session& ses) {
 			// add torrents
-			lt::add_torrent_params params = create_torrent(0, true);
+			lt::add_torrent_params params = ::create_torrent(0, true);
 
 			// the torrent is not auto managed and paused.
-			params.flags &= ~add_torrent_params::flag_auto_managed;
-			params.flags |= add_torrent_params::flag_paused;
+			params.flags &= ~torrent_flags::auto_managed;
+			params.flags |= torrent_flags::paused;
 
 			ses.async_add_torrent(params);
 		},
@@ -763,7 +755,7 @@ TORRENT_TEST(no_resume_when_paused)
 
 			for (alert* a : alerts)
 			{
-				fprintf(stderr, "%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count())
 					, a->what()
 					, a->message().c_str());
@@ -786,8 +778,8 @@ TORRENT_TEST(no_resume_when_paused)
 				// the torrent should have been force-stopped. Force stopped means
 				// not auto-managed and paused.
 				torrent_status st = h.status();
-				TEST_CHECK(!st.auto_managed);
-				TEST_EQUAL(st.paused, true);
+				TEST_CHECK(!(st.flags & torrent_flags::auto_managed));
+				TEST_CHECK(st.flags & torrent_flags::paused);
 				// it should be checking files, because the resume data should have
 				// failed validation.
 				TEST_EQUAL(st.state, torrent_status::checking_files);
@@ -810,7 +802,7 @@ TORRENT_TEST(no_resume_when_started)
 
 		[](lt::session& ses) {
 			// add torrents
-			lt::add_torrent_params params = create_torrent(0, true);
+			lt::add_torrent_params params = ::create_torrent(0, true);
 			ses.async_add_torrent(params);
 		},
 
@@ -825,7 +817,7 @@ TORRENT_TEST(no_resume_when_started)
 
 			for (alert* a : alerts)
 			{
-				fprintf(stderr, "%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count())
 					, a->what()
 					, a->message().c_str());
@@ -858,9 +850,9 @@ TORRENT_TEST(pause_completed_torrents)
 
 		[](lt::session& ses) {
 			// add torrent
-			lt::add_torrent_params params = create_torrent(0, true);
-			params.flags |= add_torrent_params::flag_auto_managed;
-			params.flags |= add_torrent_params::flag_paused;
+			lt::add_torrent_params params = ::create_torrent(0, true);
+			params.flags |= torrent_flags::auto_managed;
+			params.flags |= torrent_flags::paused;
 			ses.async_add_torrent(params);
 		},
 
@@ -881,7 +873,7 @@ TORRENT_TEST(pause_completed_torrents)
 			lt::time_point paused;
 			for (alert* a : alerts)
 			{
-				printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (alert_cast<torrent_resumed_alert>(a))
 					++num_started;
@@ -910,8 +902,8 @@ TORRENT_TEST(pause_completed_torrents)
 			num_paused = 0;
 			for (torrent_handle const& h : ses.get_torrents())
 			{
-				TEST_CHECK(h.status().auto_managed);
-				num_paused += h.status().paused;
+				TEST_CHECK(h.status().flags & torrent_flags::auto_managed);
+				num_paused += bool(h.status().flags & torrent_flags::paused);
 			}
 			TEST_EQUAL(num_paused, 1);
 		});

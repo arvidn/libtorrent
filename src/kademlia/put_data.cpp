@@ -34,16 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/io.hpp>
+#include <libtorrent/performance_counters.hpp>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 put_data::put_data(node& dht_node, put_callback const& callback)
-	: traversal_algorithm(dht_node, (node_id::min)())
+	: traversal_algorithm(dht_node, {})
 	, m_put_callback(callback)
-	, m_done(false)
-{
-}
+{}
 
 char const* put_data::name() const { return "put_data"; }
 
@@ -51,25 +49,22 @@ void put_data::start()
 {
 	// router nodes must not be added to puts
 	init();
-	bool is_done = add_requests();
+	bool const is_done = add_requests();
 	if (is_done) done();
 }
 
-void put_data::set_targets(std::vector<std::pair<node_entry, std::string> > const& targets)
+void put_data::set_targets(std::vector<std::pair<node_entry, std::string>> const& targets)
 {
-	for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = targets.begin()
-		, end(targets.end()); i != end; ++i)
+	for (auto const& p : targets)
 	{
-		void* ptr = m_node.m_rpc.allocate_observer();
-		if (ptr == 0) return;
+		auto o = m_node.m_rpc.allocate_observer<put_data_observer>(self(), p.first.ep()
+			, p.first.id, p.second);
+		if (!o) return;
 
-		observer_ptr o(new (ptr) put_data_observer(this, i->first.ep()
-			, i->first.id, i->second));
-
-	#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
-	#endif
-		m_results.push_back(o);
+#endif
+		m_results.push_back(std::move(o));
 	}
 }
 
@@ -78,11 +73,11 @@ void put_data::done()
 	m_done = true;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] %s DONE, response %d, timeout %d"
-		, static_cast<void*>(this), name(), m_responses, m_timeouts);
+	get_node().observer()->log(dht_logger::traversal, "[%u] %s DONE, response %d, timeout %d"
+		, id(), name(), num_responses(), num_timeouts());
 #endif
 
-	m_put_callback(m_data, m_responses);
+	m_put_callback(m_data, num_responses());
 	traversal_algorithm::done();
 }
 
@@ -90,9 +85,9 @@ bool put_data::invoke(observer_ptr o)
 {
 	if (m_done) return false;
 
-	// TODO: what if o is not an isntance of put_data_observer? This need to be
-	// redesigned for better type saftey.
-	put_data_observer* po = static_cast<put_data_observer*>(o.get());
+	// TODO: what if o is not an instance of put_data_observer? This need to be
+	// redesigned for better type safety.
+	auto* po = static_cast<put_data_observer*>(o.get());
 
 	entry e;
 	e["y"] = "q";
@@ -102,17 +97,18 @@ bool put_data::invoke(observer_ptr o)
 	a["token"] = po->m_token;
 	if (m_data.is_mutable())
 	{
-		a["k"] = std::string(m_data.pk().data(), item_pk_len);
-		a["seq"] = m_data.seq();
-		a["sig"] = std::string(m_data.sig().data(), item_sig_len);
+		a["k"] = m_data.pk().bytes;
+		a["seq"] = m_data.seq().value;
+		a["sig"] = m_data.sig().bytes;
 		if (!m_data.salt().empty())
 		{
 			a["salt"] = m_data.salt();
 		}
 	}
 
+	m_node.stats_counters().inc_stats_counter(counters::dht_put_out);
+
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
 } } // namespace libtorrent::dht
-

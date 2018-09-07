@@ -109,8 +109,7 @@ ED25519_SOURCE = \
   ed25519/src/fixedint.h \
   ed25519/src/ge.h \
   ed25519/src/precomp_data.h \
-  ed25519/src/sc.h \
-  ed25519/src/sha512.h
+  ed25519/src/sc.h
 
 EXTRA_DIST = \
   Jamfile \

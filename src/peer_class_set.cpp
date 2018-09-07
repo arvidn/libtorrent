@@ -31,19 +31,18 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/peer_class_set.hpp"
-#include "libtorrent/peer_class.hpp"
-#include <vector>
+
 #include <algorithm> // for find
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	void peer_class_set::add_class(peer_class_pool& pool, peer_class_t c)
 	{
 		if (std::find(m_class.begin(), m_class.begin() + m_size, c)
 			!= m_class.begin() + m_size) return;
-		if (m_size >= m_class.size() - 1)
+		if (m_size >= int(m_class.size()) - 1)
 		{
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FAIL();
 			return;
 		}
 		m_class[m_size] = c;
@@ -57,11 +56,10 @@ namespace libtorrent
 			!= m_class.begin() + m_size;
 	}
 
-	void peer_class_set::remove_class(peer_class_pool& pool, peer_class_t c)
+	void peer_class_set::remove_class(peer_class_pool& pool, peer_class_t const c)
 	{
-		boost::array<peer_class_t, 15>::iterator i = std::find(m_class.begin()
-			, m_class.begin() + m_size, c);
-		int const idx = i - m_class.begin();
+		auto const i = std::find(m_class.begin(), m_class.begin() + m_size, c);
+		int const idx = int(i - m_class.begin());
 		if (idx == m_size) return; // not found
 		if (idx < m_size - 1)
 		{
@@ -72,4 +70,3 @@ namespace libtorrent
 		pool.decref(c);
 	}
 }
-

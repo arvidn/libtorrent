@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/optional.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -46,18 +46,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // TODO: hide this declaration when deprecated functions are disabled, and
 // remove its internal use
-namespace libtorrent
-{
+namespace libtorrent {
+
+namespace aux {
+
+	TORRENT_EXTRA_EXPORT
+	std::string identify_client_impl(const peer_id& p);
+
+}
+
 	// these functions don't really need to be public. This mechanism of
 	// advertising client software and version is also out-dated.
 
 	// This function can can be used to extract a string describing a client
 	// version from its peer-id. It will recognize most clients that have this
 	// kind of identification in the peer-id.
-	TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED
+	TORRENT_DEPRECATED_EXPORT
 	std::string identify_client(const peer_id& p);
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -66,6 +73,10 @@ namespace libtorrent
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable: 4996)
 #endif
 	// Returns an optional fingerprint if any can be identified from the peer
 	// id. This can be used to automate the identification of clients. It will
@@ -81,10 +92,12 @@ namespace libtorrent
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
-#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_ABI_VERSION
 
 }
 
 #endif // TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
-

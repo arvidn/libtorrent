@@ -33,16 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
-	node_entry::node_entry(node_id const& id_, udp::endpoint ep
+	node_entry::node_entry(node_id const& id_, udp::endpoint const& ep
 		, int roundtriptime
 		, bool pinged)
 		: last_queried(pinged ? aux::time_now() : min_time())
 		, id(id_)
-		, a(ep.address().to_v4().to_bytes())
-		, p(ep.port())
+		, endpoint(ep)
 		, rtt(roundtriptime & 0xffff)
 		, timeout_count(pinged ? 0 : 0xff)
 	{
@@ -51,11 +49,10 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
-	node_entry::node_entry(udp::endpoint ep)
+	node_entry::node_entry(udp::endpoint const& ep)
 		: last_queried(min_time())
-		, id(0)
-		, a(ep.address().to_v4().to_bytes())
-		, p(ep.port())
+		, id(nullptr)
+		, endpoint(ep)
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{
@@ -66,8 +63,7 @@ namespace libtorrent { namespace dht
 
 	node_entry::node_entry()
 		: last_queried(min_time())
-		, id(0)
-		, p(0)
+		, id(nullptr)
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{
@@ -76,15 +72,13 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
-	void node_entry::update_rtt(int new_rtt)
+	void node_entry::update_rtt(int const new_rtt)
 	{
 		TORRENT_ASSERT(new_rtt <= 0xffff);
 		TORRENT_ASSERT(new_rtt >= 0);
 		if (new_rtt == 0xffff) return;
-		if (rtt == 0xffff) rtt = new_rtt;
-		else rtt = int(rtt) * 2 / 3 + int(new_rtt) / 3;
+		if (rtt == 0xffff) rtt = std::uint16_t(new_rtt);
+		else rtt = std::uint16_t(int(rtt) * 2 / 3 + new_rtt / 3);
 	}
 
 }}
-
-

@@ -6,7 +6,6 @@ use-project /libtorrent_test : ../test ;
 
 use-project /libsimulator : libsimulator ;
 
-# TODO: create another library with the libtorrent simulator utilities
 project
 	: requirements
 	<simulator>on
@@ -17,14 +16,17 @@ project
 	<source>setup_dht.cpp
 	<source>create_torrent.cpp
 	<source>utils.cpp
+	<toolset>msvc:<cflags>/wd4275
+	<toolset>msvc:<cflags>/wd4005
 	: default-build
 	<threading>multi
 	<invariant-checks>full
-	<debug-iterators>on
+	<asserts>on
 	<picker-debugging>on
 	;
 
 alias libtorrent-sims :
+	[ run test_pause.cpp ]
 	[ run test_socks5.cpp ]
 	[ run test_checking.cpp ]
 	[ run test_optimistic_unchoke.cpp ]
@@ -42,10 +44,13 @@ alias libtorrent-sims :
 	[ run test_dht_storage.cpp ]
 	[ run test_pe_crypto.cpp ]
 	[ run test_metadata_extension.cpp ]
-	[ run test_trackers_extension.cpp ]
 	[ run test_tracker.cpp ]
+	[ run test_thread_pool.cpp ]
 	[ run test_ip_filter.cpp ]
+	[ run test_dht_rate_limit.cpp ]
 	[ run test_fast_extensions.cpp ]
 	[ run test_file_pool.cpp ]
+	[ run test_save_resume.cpp ]
+	[ run test_error_handling.cpp ]
 	;
 

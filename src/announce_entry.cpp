@@ -32,87 +32,86 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/string_util.hpp" // for is_space
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
-namespace libtorrent
-{
-	enum
-	{
+namespace libtorrent {
+
+	namespace {
 		// wait at least 5 seconds before retrying a failed tracker
-		tracker_retry_delay_min = 5
-		// when tracker_failed_max trackers
-		// has failed, wait 60 minutes instead
-		, tracker_retry_delay_max = 60 * 60
-	};
+		seconds32 constexpr tracker_retry_delay_min{5};
 
-	announce_entry::announce_entry(std::string const& u)
-		: url(u)
-		, next_announce(min_time())
-		, min_announce(min_time())
-		, scrape_incomplete(-1)
-		, scrape_complete(-1)
-		, scrape_downloaded(-1)
-		, tier(0)
-		, fail_limit(0)
+		// never wait more than 60 minutes to retry a tracker
+		minutes32 constexpr tracker_retry_delay_max{60};
+	}
+
+	announce_endpoint::announce_endpoint(aux::listen_socket_handle const& s)
+		: local_endpoint(s ? s.get_local_endpoint() : tcp::endpoint())
+		, socket(s)
 		, fails(0)
 		, updating(false)
-		, source(0)
-		, verified(false)
 		, start_sent(false)
 		, complete_sent(false)
-		, send_stats(true)
 		, triggered_manually(false)
+	{}
+
+	announce_entry::announce_entry(string_view u)
+		: url(u.to_string())
+		, source(0)
+		, verified(false)
+#if TORRENT_ABI_VERSION == 1
+		, fails(0)
+		, send_stats(false)
+		, start_sent(false)
+		, complete_sent(false)
+		, triggered_manually(false)
+		, updating(false)
+#endif
 	{}
 
 	announce_entry::announce_entry()
-		: next_announce(min_time())
-		, min_announce(min_time())
-		, scrape_incomplete(-1)
-		, scrape_complete(-1)
-		, scrape_downloaded(-1)
-		, tier(0)
-		, fail_limit(0)
-		, fails(0)
-		, updating(false)
-		, source(0)
+		: source(0)
 		, verified(false)
+#if TORRENT_ABI_VERSION == 1
+		, fails(0)
+		, send_stats(false)
 		, start_sent(false)
 		, complete_sent(false)
-		, send_stats(true)
 		, triggered_manually(false)
+		, updating(false)
+#endif
 	{}
 
-	announce_entry::~announce_entry() {}
+	announce_entry::~announce_entry() = default;
+	announce_entry::announce_entry(announce_entry const&) = default;
+	announce_entry& announce_entry::operator=(announce_entry const&) = default;
 
-	int announce_entry::next_announce_in() const
-	{ return total_seconds(next_announce - aux::time_now()); }
-
-	int announce_entry::min_announce_in() const
-	{ return total_seconds(min_announce - aux::time_now()); }
-
-	void announce_entry::reset()
+	void announce_endpoint::reset()
 	{
 		start_sent = false;
-		next_announce = min_time();
-		min_announce = min_time();
+		next_announce = time_point32::min();
+		min_announce = time_point32::min();
 	}
 
-	void announce_entry::failed(aux::session_settings const& sett, int retry_interval)
+	void announce_endpoint::failed(int const backoff_ratio, seconds32 const retry_interval)
 	{
 		++fails;
 		// the exponential back-off ends up being:
 		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		// with the default tracker_backoff of 250
-		int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
-			* tracker_retry_delay_min * sett.get_int(settings_pack::tracker_backoff) / 100
-			, int(tracker_retry_delay_max));
-		delay = (std::max)(delay, retry_interval);
-		next_announce = aux::time_now() + seconds(delay);
+		int const fail_square = int(fails) * int(fails);
+		seconds32 const delay = std::max(retry_interval
+			, std::min(duration_cast<seconds32>(tracker_retry_delay_max)
+				, tracker_retry_delay_min
+					+ fail_square * tracker_retry_delay_min * backoff_ratio / 100
+			));
+		if (!is_working()) next_announce = aux::time_now32() + delay;
 		updating = false;
 	}
 
-	bool announce_entry::can_announce(time_point now, bool is_seed) const
+	bool announce_endpoint::can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const
 	{
 		// if we're a seed and we haven't sent a completed
 		// event, we need to let this announce through
@@ -125,6 +124,34 @@ namespace libtorrent
 			&& !updating;
 	}
 
+	void announce_entry::reset()
+	{
+		for (auto& aep : endpoints)
+			aep.reset();
+	}
+
+#if TORRENT_ABI_VERSION == 1
+	bool announce_entry::can_announce(time_point now, bool is_seed) const
+	{
+		return std::any_of(endpoints.begin(), endpoints.end()
+			, [&](announce_endpoint const& aep) { return aep.can_announce(now, is_seed, fail_limit); });
+	}
+
+	bool announce_entry::is_working() const
+	{
+		return std::any_of(endpoints.begin(), endpoints.end()
+			, [](announce_endpoint const& aep) { return aep.is_working(); });
+	}
+#endif
+
+	announce_endpoint* announce_entry::find_endpoint(aux::listen_socket_handle const& s)
+	{
+		auto aep = std::find_if(endpoints.begin(), endpoints.end()
+			, [&](announce_endpoint const& a) { return a.socket == s; });
+		if (aep != endpoints.end()) return &*aep;
+		else return nullptr;
+	}
+
 	void announce_entry::trim()
 	{
 		while (!url.empty() && is_space(url[0]))
@@ -132,4 +159,3 @@ namespace libtorrent
 	}
 
 }
-

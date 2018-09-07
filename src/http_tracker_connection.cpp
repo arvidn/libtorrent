@@ -31,45 +31,36 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/gzip.hpp"
 #include "libtorrent/socket_io.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
+#include <string>
+#include <functional>
 #include <vector>
 #include <list>
 #include <cctype>
 #include <algorithm>
-
-#include <boost/bind.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/http_connection.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_local
 #include "libtorrent/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
 
-using namespace libtorrent;
+namespace libtorrent {
 
-namespace libtorrent
-{
 	http_tracker_connection::http_tracker_connection(
 		io_service& ios
 		, tracker_manager& man
 		, tracker_request const& req
-		, boost::weak_ptr<request_callback> c)
-		: tracker_connection(man, req, ios, c)
-		, m_man(man)
+		, std::weak_ptr<request_callback> c)
+		: tracker_connection(man, req, ios, std::move(c))
 	{}
 
 	void http_tracker_connection::start()
@@ -101,22 +92,21 @@ namespace libtorrent
 		// if request-string already contains
 		// some parameters, append an ampersand instead
 		// of a question mark
-		size_t arguments_start = url.find('?');
+		std::size_t arguments_start = url.find('?');
 		if (arguments_start != std::string::npos)
 			url += "&";
 		else
 			url += "?";
 
 		url += "info_hash=";
-		url += escape_string(tracker_req().info_hash.data(), 20);
+		url += escape_string({tracker_req().info_hash.data(), 20});
 
 		if (0 == (tracker_req().kind & tracker_request::scrape_request))
 		{
 			static const char* event_string[] = {"completed", "started", "stopped", "paused"};
 
 			char str[1024];
-			const bool stats = tracker_req().send_stats;
-			snprintf(str, sizeof(str)
+			std::snprintf(str, sizeof(str)
 				, "&peer_id=%s"
 				"&port=%d"
 				"&uploaded=%" PRId64
@@ -128,34 +118,33 @@ namespace libtorrent
 				"&numwant=%d"
 				"&compact=1"
 				"&no_peer_id=1"
-				, escape_string(tracker_req().pid.data(), 20).c_str()
+				, escape_string({tracker_req().pid.data(), 20}).c_str()
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
 				, i2p ? 1 : tracker_req().listen_port
-				, stats ? tracker_req().uploaded : 0
-				, stats ? tracker_req().downloaded : 0
-				, stats ? tracker_req().left : 0
-				, stats ? tracker_req().corrupt : 0
+				, tracker_req().uploaded
+				, tracker_req().downloaded
+				, tracker_req().left
+				, tracker_req().corrupt
 				, tracker_req().key
 				, (tracker_req().event != tracker_request::none) ? "&event=" : ""
 				, (tracker_req().event != tracker_request::none) ? event_string[tracker_req().event - 1] : ""
 				, tracker_req().num_want);
 			url += str;
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPTION
 			if (settings.get_int(settings_pack::in_enc_policy) != settings_pack::pe_disabled
 				&& settings.get_bool(settings_pack::announce_crypto_support))
 				url += "&supportcrypto=1";
 #endif
-			if (stats && settings.get_bool(settings_pack::report_redundant_bytes))
+			if (settings.get_bool(settings_pack::report_redundant_bytes))
 			{
 				url += "&redundant=";
-				url += to_string(tracker_req().redundant).elems;
+				url += to_string(tracker_req().redundant).data();
 			}
 			if (!tracker_req().trackerid.empty())
 			{
-				std::string id = tracker_req().trackerid;
 				url += "&trackerid=";
-				url += escape_string(id.c_str(), id.length());
+				url += escape_string(tracker_req().trackerid);
 			}
 
 #if TORRENT_USE_I2P
@@ -163,56 +152,62 @@ namespace libtorrent
 			{
 				if (tracker_req().i2pconn->local_endpoint().empty())
 				{
-					fail(errors::no_i2p_endpoint, -1, "Waiting for i2p acceptor from SAM bridge", 5);
+					fail(errors::no_i2p_endpoint, "Waiting for i2p acceptor from SAM bridge", seconds32(5));
 					return;
 				}
 				else
 				{
-					url += "&ip=" + tracker_req ().i2pconn->local_endpoint () + ".i2p";
+					url += "&ip=" + tracker_req().i2pconn->local_endpoint () + ".i2p";
 				}
 			}
 			else
 #endif
 			if (!settings.get_bool(settings_pack::anonymous_mode))
 			{
-				std::string announce_ip = settings.get_str(settings_pack::announce_ip);
+				std::string const& announce_ip = settings.get_str(settings_pack::announce_ip);
 				if (!announce_ip.empty())
 				{
-					url += "&ip=" + escape_string(announce_ip.c_str(), announce_ip.size());
+					url += "&ip=" + escape_string(announce_ip);
 				}
 			}
 		}
 
-#if TORRENT_USE_IPV6
-		if (tracker_req().ipv6 != address_v6() && !i2p)
+		if (!tracker_req().ipv6.empty() && !i2p)
 		{
-			error_code err;
-			std::string const ip = tracker_req().ipv6.to_string(err);
-			if (!err)
+			for (auto const& v6 : tracker_req().ipv6)
 			{
+				error_code err;
+				std::string const ip = v6.to_string(err);
+				if (err) continue;
 				url += "&ipv6=";
-				url += escape_string(ip.c_str(), ip.size());
+				url += escape_string(ip);
 			}
 		}
-#endif
 
-		m_tracker_connection.reset(new http_connection(get_io_service(), m_man.host_resolver()
-			, boost::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3, _4)
+		if (!tracker_req().outgoing_socket)
+		{
+			fail(errors::invalid_listen_socket, "outgoing socket was closed");
+			return;
+		}
+
+		using namespace std::placeholders;
+		m_tracker_connection = std::make_shared<http_connection>(get_io_service(), m_man.host_resolver()
+			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
-			, boost::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
-			, boost::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
+			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
+			, std::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
 #ifdef TORRENT_USE_OPENSSL
 			, tracker_req().ssl_ctx
 #endif
-			));
+			);
 
-		int const timeout = tracker_req().event==tracker_request::stopped
-			?settings.get_int(settings_pack::stop_tracker_timeout)
-			:settings.get_int(settings_pack::tracker_completion_timeout);
+		int const timeout = tracker_req().event == tracker_request::stopped
+			? settings.get_int(settings_pack::stop_tracker_timeout)
+			: settings.get_int(settings_pack::tracker_completion_timeout);
 
 		// in anonymous mode we omit the user agent to mitigate fingerprinting of
 		// the client. Private torrents is an exception because some private
-		// trackers may requre the user agent
+		// trackers may require the user agent
 		std::string const user_agent = settings.get_bool(settings_pack::anonymous_mode)
 			&& !tracker_req().private_torrent ? "" : settings.get_str(settings_pack::user_agent);
 
@@ -223,12 +218,12 @@ namespace libtorrent
 		aux::proxy_settings ps(settings);
 		m_tracker_connection->get(url, seconds(timeout)
 			, tracker_req().event == tracker_request::stopped ? 2 : 1
-			, ps.proxy_tracker_connections ? &ps : NULL
-			, 5, user_agent, tracker_req().bind_ip
-			, tracker_req().event == tracker_request::stopped
-				? resolver_interface::cache_only : 0
+			, ps.proxy_tracker_connections ? &ps : nullptr
+			, 5, user_agent, bind_interface()
+			, (tracker_req().event == tracker_request::stopped
+				? resolver_interface::cache_only : resolver_flags{})
 				| resolver_interface::abort_on_shutdown
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 			, tracker_req().auth
 #else
 			, ""
@@ -239,11 +234,11 @@ namespace libtorrent
 			);
 
 		// the url + 100 estimated header size
-		sent_bytes(url.size() + 100);
+		sent_bytes(int(url.size()) + 100);
 
 #ifndef TORRENT_DISABLE_LOGGING
 
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
 			cb->debug_log("==> TRACKER_REQUEST [ url: %s ]", url.c_str());
@@ -258,7 +253,8 @@ namespace libtorrent
 			m_tracker_connection->close();
 			m_tracker_connection.reset();
 		}
-		tracker_connection::close();
+		cancel();
+		m_man.remove_request(this);
 	}
 
 	// endpoints is an in-out parameter
@@ -269,8 +265,7 @@ namespace libtorrent
 		if (!tracker_req().filter) return;
 
 		// remove endpoints that are filtered by the IP filter
-		for (std::vector<tcp::endpoint>::iterator i = endpoints.begin();
-			i != endpoints.end();)
+		for (auto i = endpoints.begin(); i != endpoints.end();)
 		{
 			if (tracker_req().filter->access(i->address()) == ip_filter::blocked)
 				i = endpoints.erase(i);
@@ -279,7 +274,7 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
 			cb->debug_log("*** TRACKER_FILTER");
@@ -294,14 +289,13 @@ namespace libtorrent
 		error_code ec;
 		tcp::endpoint ep = c.socket().remote_endpoint(ec);
 		m_tracker_ip = ep.address();
-		boost::shared_ptr<request_callback> cb = requester();
 	}
 
 	void http_tracker_connection::on_response(error_code const& ec
-		, http_parser const& parser, char const* data, int size)
+		, http_parser const& parser, span<char const> data)
 	{
 		// keep this alive
-		boost::shared_ptr<http_tracker_connection> me(shared_from_this());
+		std::shared_ptr<http_tracker_connection> me(shared_from_this());
 
 		if (ec && ec != boost::asio::error::eof)
 		{
@@ -318,29 +312,29 @@ namespace libtorrent
 		if (parser.status_code() != 200)
 		{
 			fail(error_code(parser.status_code(), http_category())
-				, parser.status_code(), parser.message().c_str());
+				, parser.message().c_str());
 			return;
 		}
 
 		if (ec && ec != boost::asio::error::eof)
 		{
-			fail(ec, parser.status_code());
+			fail(ec);
 			return;
 		}
 
-		received_bytes(size + parser.body_start());
+		received_bytes(static_cast<int>(data.size()) + parser.body_start());
 
 		// handle tracker response
 		error_code ecode;
 
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (!cb)
 		{
 			close();
 			return;
 		}
 
-		tracker_response resp = parse_tracker_response(data, size, ecode
+		tracker_response resp = parse_tracker_response(data, ecode
 			, tracker_req().kind, tracker_req().info_hash);
 
 		if (!resp.warning_message.empty())
@@ -348,7 +342,7 @@ namespace libtorrent
 
 		if (ecode)
 		{
-			fail(ecode, parser.status_code(), resp.failure_reason.c_str()
+			fail(ecode, resp.failure_reason.c_str()
 				, resp.interval, resp.min_interval);
 			close();
 			return;
@@ -365,12 +359,9 @@ namespace libtorrent
 			std::list<address> ip_list;
 			if (m_tracker_connection)
 			{
-				error_code ignore;
-				std::vector<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
-				for (std::vector<tcp::endpoint>::const_iterator i = epts.begin()
-					, end(epts.end()); i != end; ++i)
+				for (auto const& endp : m_tracker_connection->endpoints())
 				{
-					ip_list.push_back(i->address());
+					ip_list.push_back(endp.address());
 				}
 			}
 
@@ -392,42 +383,42 @@ namespace libtorrent
 		bdecode_node i = info.dict_find_string("peer id");
 		if (i && i.string_length() == 20)
 		{
-			std::copy(i.string_ptr(), i.string_ptr()+20, ret.pid.begin());
+			std::copy(i.string_ptr(), i.string_ptr() + 20, ret.pid.begin());
 		}
 		else
 		{
 			// if there's no peer_id, just initialize it to a bunch of zeroes
-			std::fill_n(ret.pid.begin(), 20, 0);
+			ret.pid.clear();
 		}
 
 		// extract ip
 		i = info.dict_find_string("ip");
-		if (i == 0)
+		if (!i)
 		{
 			ec = errors::invalid_tracker_response;
 			return false;
 		}
-		ret.hostname = i.string_value();
+		ret.hostname = i.string_value().to_string();
 
 		// extract port
 		i = info.dict_find_int("port");
-		if (i == 0)
+		if (!i)
 		{
 			ec = errors::invalid_tracker_response;
 			return false;
 		}
-		ret.port = boost::uint16_t(i.int_value());
+		ret.port = std::uint16_t(i.int_value());
 
 		return true;
 	}
 
-	tracker_response parse_tracker_response(char const* data, int size, error_code& ec
-		, int const flags, sha1_hash scrape_ih)
+	tracker_response parse_tracker_response(span<char const> const data, error_code& ec
+		, int const flags, sha1_hash const& scrape_ih)
 	{
 		tracker_response resp;
 
 		bdecode_node e;
-		int res = bdecode(data, data + size, e, ec);
+		int const res = bdecode(data.begin(), data.end(), e, ec);
 
 		if (ec) return resp;
 
@@ -437,41 +428,37 @@ namespace libtorrent
 			return resp;
 		}
 
-		int interval = int(e.dict_find_int_value("interval", 0));
 		// if no interval is specified, default to 30 minutes
-		if (interval == 0) interval = 1800;
-		int const min_interval = int(e.dict_find_int_value("min interval", 30));
+		resp.interval = seconds32{e.dict_find_int_value("interval", 1800)};
+		resp.min_interval = seconds32{e.dict_find_int_value("min interval", 30)};
 
-		resp.interval = interval;
-		resp.min_interval = min_interval;
-
-		bdecode_node tracker_id = e.dict_find_string("tracker id");
+		bdecode_node const tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)
-			resp.trackerid = tracker_id.string_value();
+			resp.trackerid = tracker_id.string_value().to_string();
 
 		// parse the response
-		bdecode_node failure = e.dict_find_string("failure reason");
+		bdecode_node const failure = e.dict_find_string("failure reason");
 		if (failure)
 		{
-			resp.failure_reason = failure.string_value();
+			resp.failure_reason = failure.string_value().to_string();
 			ec = errors::tracker_failure;
 			return resp;
 		}
 
-		bdecode_node warning = e.dict_find_string("warning message");
+		bdecode_node const warning = e.dict_find_string("warning message");
 		if (warning)
-			resp.warning_message = warning.string_value();
+			resp.warning_message = warning.string_value().to_string();
 
 		if (0 != (flags & tracker_request::scrape_request))
 		{
-			bdecode_node files = e.dict_find_dict("files");
+			bdecode_node const files = e.dict_find_dict("files");
 			if (!files)
 			{
 				ec = errors::invalid_files_entry;
 				return resp;
 			}
 
-			bdecode_node scrape_data = files.dict_find_dict(
+			bdecode_node const scrape_data = files.dict_find_dict(
 				scrape_ih.to_string());
 
 			if (!scrape_data)
@@ -497,11 +484,10 @@ namespace libtorrent
 		if (peers_ent && peers_ent.type() == bdecode_node::string_t)
 		{
 			char const* peers = peers_ent.string_ptr();
-			int len = peers_ent.string_length();
+			int const len = peers_ent.string_length();
 #if TORRENT_USE_I2P
 			if (0 != (flags & tracker_request::i2p))
 			{
-				error_code parse_error;
 				for (int i = 0; i < len; i += 32)
 				{
 					if (len - i < 32) break;
@@ -515,7 +501,7 @@ namespace libtorrent
 			else
 #endif
 			{
-				resp.peers4.reserve(len / 6);
+				resp.peers4.reserve(std::size_t(len / 6));
 				for (int i = 0; i < len; i += 6)
 				{
 					if (len - i < 6) break;
@@ -529,8 +515,8 @@ namespace libtorrent
 		}
 		else if (peers_ent && peers_ent.type() == bdecode_node::list_t)
 		{
-			int len = peers_ent.list_size();
-			resp.peers.reserve(len);
+			int const len = peers_ent.list_size();
+			resp.peers.reserve(std::size_t(len));
 			error_code parse_error;
 			for (int i = 0; i < len; ++i)
 			{
@@ -552,13 +538,12 @@ namespace libtorrent
 			peers_ent.clear();
 		}
 
-#if TORRENT_USE_IPV6
 		bdecode_node ipv6_peers = e.dict_find_string("peers6");
 		if (ipv6_peers)
 		{
 			char const* peers = ipv6_peers.string_ptr();
-			int len = ipv6_peers.string_length();
-			resp.peers6.reserve(len / 18);
+			int const len = ipv6_peers.string_length();
+			resp.peers6.reserve(std::size_t(len / 18));
 			for (int i = 0; i < len; i += 18)
 			{
 				if (len - i < 18) break;
@@ -573,9 +558,6 @@ namespace libtorrent
 		{
 			ipv6_peers.clear();
 		}
-#else
-		bdecode_node ipv6_peers;
-#endif
 /*
 		// if we didn't receive any peers. We don't care if we're stopping anyway
 		if (peers_ent == 0 && ipv6_peers == 0
@@ -585,19 +567,16 @@ namespace libtorrent
 			return resp;
 		}
 */
-		bdecode_node ip_ent = e.dict_find_string("external ip");
+		bdecode_node const ip_ent = e.dict_find_string("external ip");
 		if (ip_ent)
 		{
 			char const* p = ip_ent.string_ptr();
-			if (ip_ent.string_length() == int(address_v4::bytes_type().size()))
+			if (ip_ent.string_length() == std::tuple_size<address_v4::bytes_type>::value)
 				resp.external_ip = detail::read_v4_address(p);
-#if TORRENT_USE_IPV6
-			else if (ip_ent.string_length() == int(address_v6::bytes_type().size()))
+			else if (ip_ent.string_length() == std::tuple_size<address_v6::bytes_type>::value)
 				resp.external_ip = detail::read_v6_address(p);
-#endif
 		}
 
 		return resp;
 	}
 }
-

@@ -35,10 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/bdecode.hpp"
 #include <iostream>
 
-using namespace libtorrent;
-using namespace libtorrent::aux;
+using namespace lt;
+using namespace lt::aux;
 
 TORRENT_TEST(default_settings)
 {
@@ -50,9 +51,9 @@ TORRENT_TEST(default_settings)
 	// by save_settings
 	TEST_EQUAL(e.dict().size(), 0);
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#if TORRENT_USE_IOSTREAM
 	if (e.dict().size() > 0)
-		std::cerr << e << std::endl;
+		std::cout << e << std::endl;
 #endif
 }
 
@@ -110,7 +111,6 @@ TORRENT_TEST(sparse_pack)
 
 	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), true);
 	TEST_EQUAL(pack.has_val(settings_pack::user_agent), false);
-	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
 	TEST_EQUAL(pack.get_bool(settings_pack::send_redundant_have), true);
 }
 
@@ -118,16 +118,24 @@ TORRENT_TEST(test_name)
 {
 #define TEST_NAME(n) \
 	TEST_EQUAL(setting_by_name(#n), settings_pack:: n) \
-	TEST_CHECK(strcmp(name_for_setting(settings_pack:: n), #n) == 0)
+	TEST_EQUAL(name_for_setting(settings_pack:: n), std::string(#n))
 
+#if TORRENT_ABI_VERSION == 1
 	TEST_NAME(contiguous_recv_buffer);
+#endif
 	TEST_NAME(choking_algorithm);
 	TEST_NAME(seeding_piece_quota);
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	TEST_NAME(half_open_limit);
 	TEST_NAME(mmap_cache);
 #endif
 	TEST_NAME(peer_turnover_interval);
+	TEST_NAME(peer_fingerprint);
+	TEST_NAME(proxy_tracker_connections);
+	TEST_NAME(cache_size_volatile);
+	TEST_NAME(predictive_piece_announce);
+	TEST_NAME(max_metadata_size);
+	TEST_NAME(num_optimistic_unchoke_slots);
 }
 
 TORRENT_TEST(clear)
@@ -139,14 +147,12 @@ TORRENT_TEST(clear)
 
 	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), true);
 	TEST_EQUAL(pack.has_val(settings_pack::user_agent), false);
-	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
 	TEST_EQUAL(pack.get_bool(settings_pack::send_redundant_have), true);
 
 	pack.clear();
 
 	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), false);
 	TEST_EQUAL(pack.has_val(settings_pack::user_agent), false);
-	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
 }
 
 TORRENT_TEST(clear_single_int)
@@ -196,6 +202,31 @@ TORRENT_TEST(duplicates)
 	TEST_EQUAL(p.get_str(settings_pack::peer_fingerprint), "hij");
 }
 
+TORRENT_TEST(load_pack_from_dict)
+{
+	aux::session_settings p1;
+	p1.set_str(settings_pack::peer_fingerprint, "abc");
+	p1.set_int(settings_pack::max_out_request_queue, 1337);
+	p1.set_bool(settings_pack::send_redundant_have, false);
+
+	entry e;
+	save_settings_to_dict(p1, e.dict());
+
+	std::string s;
+	bencode(std::back_inserter(s), e);
+
+	bdecode_node n;
+	error_code ec;
+	int ret = bdecode(s.data(), s.data() + int(s.size()), n, ec);
+	TEST_EQUAL(ret, 0);
+	TEST_CHECK(!ec);
+
+	settings_pack p2 = load_pack_from_dict(n);
+	TEST_EQUAL(p2.get_str(settings_pack::peer_fingerprint), "abc");
+	TEST_EQUAL(p2.get_int(settings_pack::max_out_request_queue), 1337);
+	TEST_EQUAL(p2.get_bool(settings_pack::send_redundant_have), false);
+}
+
 TORRENT_TEST(settings_pack_abi)
 {
 	// make sure enum values are preserved across libtorrent versions
@@ -212,17 +243,20 @@ TORRENT_TEST(settings_pack_abi)
 	TEST_EQUAL(settings_pack::dht_bootstrap_nodes, settings_pack::string_type_base + 11);
 
 	// bool
-	TEST_EQUAL(settings_pack::lazy_bitfields, settings_pack::bool_type_base + 3);
+	TEST_EQUAL(settings_pack::use_dht_as_fallback, settings_pack::bool_type_base + 4);
 	TEST_EQUAL(settings_pack::use_read_cache, settings_pack::bool_type_base + 7);
-	TEST_EQUAL(settings_pack::proxy_tracker_connections, settings_pack::bool_type_base + 68);
+	TEST_EQUAL(settings_pack::proxy_tracker_connections, settings_pack::bool_type_base + 67);
 
 	// ints
+	TEST_EQUAL(settings_pack::tracker_completion_timeout, settings_pack::int_type_base + 0);
+	TEST_EQUAL(settings_pack::tracker_receive_timeout, settings_pack::int_type_base + 1);
+	TEST_EQUAL(settings_pack::stop_tracker_timeout, settings_pack::int_type_base + 2);
 	TEST_EQUAL(settings_pack::max_suggest_pieces, settings_pack::int_type_base + 66);
 	TEST_EQUAL(settings_pack::connections_slack, settings_pack::int_type_base + 86);
 	TEST_EQUAL(settings_pack::aio_threads, settings_pack::int_type_base + 104);
 	TEST_EQUAL(settings_pack::max_http_recv_buffer_size, settings_pack::int_type_base + 115);
 	TEST_EQUAL(settings_pack::web_seed_name_lookup_retry, settings_pack::int_type_base + 128);
+	TEST_EQUAL(settings_pack::close_file_interval, settings_pack::int_type_base + 129);
+	TEST_EQUAL(settings_pack::max_web_seed_connections, settings_pack::int_type_base + 130);
+	TEST_EQUAL(settings_pack::resolver_cache_timeout, settings_pack::int_type_base + 131);
 }
-
-// TODO: load_pack_from_dict
-

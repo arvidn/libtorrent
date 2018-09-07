@@ -31,20 +31,21 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cctype>
+#include <cstring>
 #include <algorithm>
-#include <stdlib.h>
+#include <cstdlib>
+#include <cinttypes>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_parser.hpp"
+#include "libtorrent/hex.hpp" // for hex_to_int
 #include "libtorrent/assert.hpp"
 #include "libtorrent/parse_url.hpp" // for parse_url_components
+#include "libtorrent/string_util.hpp" // for ensure_trailing_slash, to_lower
 #include "libtorrent/aux_/escape_string.hpp" // for read_until
-#include "libtorrent/hex.hpp"
+#include "libtorrent/time.hpp" // for seconds32
 
-using namespace libtorrent;
-
-namespace libtorrent
-{
+namespace libtorrent {
 
 	bool is_ok_status(int http_status)
 	{
@@ -66,20 +67,20 @@ namespace libtorrent
 		if (location.empty()) return referrer;
 
 		error_code ec;
-		using boost::tuples::ignore;
-		boost::tie(ignore, ignore, ignore, ignore, ignore)
+		using std::ignore;
+		std::tie(ignore, ignore, ignore, ignore, ignore)
 			= parse_url_components(location, ec);
 
 		// if location is a full URL, just return it
 		if (!ec) return location;
-	
+
 		// otherwise it's likely to be just the path, or a relative path
 		std::string url = referrer;
 
 		if (location[0] == '/')
 		{
 			// it's an absolute path. replace the path component of
-			// referrer with location. 
+			// referrer with location.
 
 			// first skip the url scheme of the referer
 			std::size_t i = url.find("://");
@@ -124,42 +125,44 @@ namespace libtorrent
 			// however, we may still need to insert a '/' in case neither side
 			// has one. We know the location doesn't start with a / already.
 			// so, if the referrer doesn't end with one, add it.
-			if ((url.empty() || url[url.size()-1] != '/'))
-				url += '/';
+			ensure_trailing_slash(url);
 			url += location;
 		}
 		return url;
 	}
 
-	http_parser::~http_parser() {}
-
-	http_parser::http_parser(int flags)
-		: m_recv_pos(0)
-		, m_content_length(-1)
-		, m_range_start(-1)
-		, m_range_end(-1)
-		, m_recv_buffer(0, 0)
-		, m_cur_chunk_end(-1)
-		, m_status_code(-1)
-		, m_chunk_header_size(0)
-		, m_partial_chunk_header(0)
-		, m_flags(flags)
-		, m_body_start_pos(0)
-		, m_state(read_status)
-		, m_connection_close(false)
-		, m_chunked_encoding(false)
-		, m_finished(false)
-	{}
-
-	boost::tuple<int, int> http_parser::incoming(
-		buffer::const_interval recv_buffer, bool& error)
+	std::string const& http_parser::header(string_view const key) const
 	{
-		TORRENT_ASSERT(recv_buffer.left() >= m_recv_buffer.left());
-		boost::tuple<int, int> ret(0, 0);
-		int start_pos = m_recv_buffer.left();
+		static std::string const empty;
+		// TODO: remove to_string() if we're in C++14
+		auto const i = m_header.find(key.to_string());
+		if (i == m_header.end()) return empty;
+		return i->second;
+	}
+
+	boost::optional<seconds32> http_parser::header_duration(string_view const key) const
+	{
+		// TODO: remove to_string() if we're in C++14
+		auto const i = m_header.find(key.to_string());
+		if (i == m_header.end()) return boost::none;
+		auto const val = std::atol(i->second.c_str());
+		if (val <= 0) return boost::none;
+		return seconds32(val);
+	}
+
+	http_parser::~http_parser() = default;
+
+	http_parser::http_parser(int const flags) : m_flags(flags) {}
+
+	std::tuple<int, int> http_parser::incoming(
+		span<char const> recv_buffer, bool& error)
+	{
+		TORRENT_ASSERT(recv_buffer.size() >= m_recv_buffer.size());
+		std::tuple<int, int> ret(0, 0);
+		std::size_t start_pos = m_recv_buffer.size();
 
 		// early exit if there's nothing new in the receive buffer
-		if (start_pos == recv_buffer.left()) return ret;
+		if (start_pos == recv_buffer.size()) return ret;
 		m_recv_buffer = recv_buffer;
 
 		if (m_state == error_state)
@@ -168,19 +171,19 @@ namespace libtorrent
 			return ret;
 		}
 
-		char const* pos = recv_buffer.begin + m_recv_pos;
+		char const* pos = recv_buffer.data() + m_recv_pos;
 
 restart_response:
 
 		if (m_state == read_status)
 		{
 			TORRENT_ASSERT(!m_finished);
-			TORRENT_ASSERT(pos <= recv_buffer.end);
-			char const* newline = std::find(pos, recv_buffer.end, '\n');
+			TORRENT_ASSERT(pos <= recv_buffer.end());
+			char const* newline = std::find(pos, recv_buffer.end(), '\n');
 			// if we don't have a full line yet, wait.
-			if (newline == recv_buffer.end)
+			if (newline == recv_buffer.end())
 			{
-				boost::get<1>(ret) += m_recv_buffer.left() - start_pos;
+				std::get<1>(ret) += int(m_recv_buffer.size() - start_pos);
 				return ret;
 			}
 
@@ -199,7 +202,7 @@ restart_response:
 			TORRENT_ASSERT(newline >= pos);
 			int incoming = int(newline - pos);
 			m_recv_pos += incoming;
-			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
+			std::get<1>(ret) += int(newline - (m_recv_buffer.data() + start_pos));
 			pos = newline;
 
 			m_protocol = read_until(line, ' ', line_end);
@@ -224,20 +227,20 @@ restart_response:
 				m_status_code = 0;
 			}
 			m_state = read_header;
-			start_pos = pos - recv_buffer.begin;
+			start_pos = std::size_t(pos - recv_buffer.data());
 		}
 
 		if (m_state == read_header)
 		{
 			TORRENT_ASSERT(!m_finished);
-			TORRENT_ASSERT(pos <= recv_buffer.end);
-			char const* newline = std::find(pos, recv_buffer.end, '\n');
+			TORRENT_ASSERT(pos <= recv_buffer.end());
+			char const* newline = std::find(pos, recv_buffer.end(), '\n');
 			std::string line;
 
-			while (newline != recv_buffer.end && m_state == read_header)
+			while (newline != recv_buffer.end() && m_state == read_header)
 			{
-				// if the LF character is preceeded by a CR
-				// charachter, don't copy it into the line string.
+				// if the LF character is preceded by a CR
+				// character, don't copy it into the line string.
 				char const* line_end = newline;
 				if (pos != line_end && *(line_end - 1) == '\r') --line_end;
 				line.assign(pos, line_end);
@@ -263,7 +266,7 @@ restart_response:
 					// we're done once we reach the end of the headers
 //					if (!m_method.empty()) m_finished = true;
 					// the HTTP header should always be < 2 GB
-					TORRENT_ASSERT(m_recv_pos < INT_MAX);
+					TORRENT_ASSERT(m_recv_pos < std::numeric_limits<int>::max());
 					m_body_start_pos = int(m_recv_pos);
 					break;
 				}
@@ -280,9 +283,9 @@ restart_response:
 
 				if (name == "content-length")
 				{
-					m_content_length = strtoll(value.c_str(), 0, 10);
+					m_content_length = std::strtoll(value.c_str(), nullptr, 10);
 					if (m_content_length < 0
-						|| m_content_length == std::numeric_limits<boost::int64_t>::max())
+						|| m_content_length == std::numeric_limits<std::int64_t>::max())
 					{
 						m_state = error_state;
 						error = true;
@@ -304,9 +307,9 @@ restart_response:
 					// start immediately
 					if (string_begins_no_case("bytes ", ptr)) ptr += 6;
 					char* end;
-					m_range_start = strtoll(ptr, &end, 10);
+					m_range_start = std::strtoll(ptr, &end, 10);
 					if (m_range_start < 0
-						|| m_range_start == std::numeric_limits<boost::int64_t>::max())
+						|| m_range_start == std::numeric_limits<std::int64_t>::max())
 					{
 						m_state = error_state;
 						error = true;
@@ -317,9 +320,9 @@ restart_response:
 					else
 					{
 						ptr = end + 1;
-						m_range_end = strtoll(ptr, &end, 10);
+						m_range_end = std::strtoll(ptr, &end, 10);
 						if (m_range_end < 0
-							|| m_range_end == std::numeric_limits<boost::int64_t>::max())
+							|| m_range_end == std::numeric_limits<std::int64_t>::max())
 						{
 							m_state = error_state;
 							error = true;
@@ -342,16 +345,16 @@ restart_response:
 					m_chunked_encoding = string_begins_no_case("chunked", value.c_str());
 				}
 
-				TORRENT_ASSERT(m_recv_pos <= recv_buffer.left());
-				TORRENT_ASSERT(pos <= recv_buffer.end);
-				newline = std::find(pos, recv_buffer.end, '\n');
+				TORRENT_ASSERT(m_recv_pos <= int(recv_buffer.size()));
+				TORRENT_ASSERT(pos <= recv_buffer.end());
+				newline = std::find(pos, recv_buffer.end(), '\n');
 			}
-			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
+			std::get<1>(ret) += int(newline - (m_recv_buffer.data() + start_pos));
 		}
 
 		if (m_state == read_body)
 		{
-			int incoming = recv_buffer.end - pos;
+			int incoming = int(recv_buffer.end() - pos);
 
 			if (m_chunked_encoding && (m_flags & dont_parse_chunks) == 0)
 			{
@@ -360,16 +363,17 @@ restart_response:
 
 				while (m_cur_chunk_end <= m_recv_pos + incoming && !m_finished && incoming > 0)
 				{
-					boost::int64_t payload = m_cur_chunk_end - m_recv_pos;
+					std::int64_t payload = m_cur_chunk_end - m_recv_pos;
 					if (payload > 0)
 					{
-						TORRENT_ASSERT(payload < INT_MAX);
+						TORRENT_ASSERT(payload < std::numeric_limits<int>::max());
 						m_recv_pos += payload;
-						boost::get<0>(ret) += int(payload);
+						std::get<0>(ret) += int(payload);
 						incoming -= int(payload);
 					}
-					buffer::const_interval buf(recv_buffer.begin + m_cur_chunk_end, recv_buffer.end);
-					boost::int64_t chunk_size;
+					auto const buf = span<char const>(recv_buffer)
+						.subspan(std::size_t(m_cur_chunk_end));
+					std::int64_t chunk_size;
 					int header_size;
 					if (parse_chunk_header(buf, &chunk_size, &header_size))
 					{
@@ -381,7 +385,7 @@ restart_response:
 						}
 						if (chunk_size > 0)
 						{
-							std::pair<boost::int64_t, boost::int64_t> chunk_range(m_cur_chunk_end + header_size
+							std::pair<std::int64_t, std::int64_t> chunk_range(m_cur_chunk_end + header_size
 								, m_cur_chunk_end + header_size + chunk_size);
 							m_chunked_ranges.push_back(chunk_range);
 						}
@@ -392,48 +396,49 @@ restart_response:
 						}
 						header_size -= m_partial_chunk_header;
 						m_partial_chunk_header = 0;
-//						fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
-//							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
+//						std::fprintf(stderr, "parse_chunk_header(%d, -> %" PRId64 ", -> %d) -> %d\n"
+//							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %" PRId64 "\n"
 //							"  content-length = %d\n"
-//							, buf.left(), int(chunk_size), header_size, 1, incoming, int(m_recv_pos)
+//							, int(buf.size()), chunk_size, header_size, 1, incoming, int(m_recv_pos)
 //							, m_cur_chunk_end, int(m_content_length));
 					}
 					else
 					{
 						m_partial_chunk_header += incoming;
 						header_size = incoming;
-						
-//						fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
-//							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
+
+//						std::fprintf(stderr, "parse_chunk_header(%d, -> %" PRId64 ", -> %d) -> %d\n"
+//							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %" PRId64 "\n"
 //							"  content-length = %d\n"
-//							, buf.left(), int(chunk_size), header_size, 0, incoming, int(m_recv_pos)
+//							, int(buf.size()), chunk_size, header_size, 0, incoming, int(m_recv_pos)
 //							, m_cur_chunk_end, int(m_content_length));
 					}
 					m_chunk_header_size += header_size;
 					m_recv_pos += header_size;
-					boost::get<1>(ret) += header_size;
+					std::get<1>(ret) += header_size;
 					incoming -= header_size;
 				}
 				if (incoming > 0)
 				{
 					m_recv_pos += incoming;
-					boost::get<0>(ret) += incoming;
+					std::get<0>(ret) += incoming;
 //					incoming = 0;
 				}
 			}
 			else
 			{
-				boost::int64_t payload_received = m_recv_pos - m_body_start_pos + incoming;
+				std::int64_t payload_received = m_recv_pos - m_body_start_pos + incoming;
 				if (payload_received > m_content_length
 					&& m_content_length >= 0)
 				{
-					TORRENT_ASSERT(m_content_length - m_recv_pos + m_body_start_pos < INT_MAX);
+					TORRENT_ASSERT(m_content_length - m_recv_pos + m_body_start_pos
+						< std::numeric_limits<int>::max());
 					incoming = int(m_content_length - m_recv_pos + m_body_start_pos);
 				}
 
 				TORRENT_ASSERT(incoming >= 0);
 				m_recv_pos += incoming;
-				boost::get<0>(ret) += incoming;
+				std::get<0>(ret) += incoming;
 			}
 
 			if (m_content_length >= 0
@@ -445,24 +450,26 @@ restart_response:
 		}
 		return ret;
 	}
-	
-	bool http_parser::parse_chunk_header(buffer::const_interval buf
-		, boost::int64_t* chunk_size, int* header_size)
+
+	// this function signals error by assigning a negative value to "chunk_size"
+	// the return value indicates whether enough data is available in "buf" to
+	// completely parse the chunk header. Returning false means we need more data
+	bool http_parser::parse_chunk_header(span<char const> buf
+		, std::int64_t* chunk_size, int* header_size)
 	{
-		TORRENT_ASSERT(buf.begin <= buf.end);
-		char const* pos = buf.begin;
+		char const* pos = buf.data();
 
 		// ignore one optional new-line. This is since each chunk
 		// is terminated by a newline. we're likely to see one
 		// before the actual header.
 
-		if (pos < buf.end && pos[0] == '\r') ++pos;
-		if (pos < buf.end && pos[0] == '\n') ++pos;
-		if (pos == buf.end) return false;
+		if (pos < buf.end() && pos[0] == '\r') ++pos;
+		if (pos < buf.end() && pos[0] == '\n') ++pos;
+		if (pos == buf.end()) return false;
 
-		TORRENT_ASSERT(pos <= buf.end);
-		char const* newline = std::find(pos, buf.end, '\n');
-		if (newline == buf.end) return false;
+		TORRENT_ASSERT(pos <= buf.end());
+		char const* newline = std::find(pos, buf.end(), '\n');
+		if (newline == buf.end()) return false;
 		++newline;
 
 		// the chunk header is a single line, a hex length of the
@@ -471,20 +478,22 @@ restart_response:
 		// there are extra tail headers, which is terminated by an
 		// empty line
 
+		*header_size = int(newline - buf.data());
+
 		// first, read the chunk length
-		boost::int64_t size = 0;
+		std::int64_t size = 0;
 		for (char const* i = pos; i != newline; ++i)
 		{
 			if (*i == '\r') continue;
 			if (*i == '\n') continue;
 			if (*i == ';') break;
-			int const digit = detail::hex_to_int(*i);
+			int const digit = aux::hex_to_int(*i);
 			if (digit < 0)
 			{
 				*chunk_size = -1;
 				return true;
 			}
-			if (size >= std::numeric_limits<boost::int64_t>::max() / 16)
+			if (size >= std::numeric_limits<std::int64_t>::max() / 16)
 			{
 				*chunk_size = -1;
 				return true;
@@ -496,23 +505,22 @@ restart_response:
 
 		if (*chunk_size != 0)
 		{
-			*header_size = newline - buf.begin;
 			// the newline is at least 1 byte, and the length-prefix is at least 1
 			// byte
-			TORRENT_ASSERT(newline - buf.begin >= 2);
+			TORRENT_ASSERT(newline - buf.data() >= 2);
 			return true;
 		}
 
 		// this is the terminator of the stream. Also read headers
 		std::map<std::string, std::string> tail_headers;
 		pos = newline;
-		newline = std::find(pos, buf.end, '\n');
+		newline = std::find(pos, buf.end(), '\n');
 
 		std::string line;
-		while (newline != buf.end)
+		while (newline != buf.end())
 		{
-			// if the LF character is preceeded by a CR
-			// charachter, don't copy it into the line string.
+			// if the LF character is preceded by a CR
+			// character, don't copy it into the line string.
 			char const* line_end = newline;
 			if (pos != line_end && *(line_end - 1) == '\r') --line_end;
 			line.assign(pos, line_end);
@@ -525,16 +533,15 @@ restart_response:
 				// this means we got a blank line,
 				// the header is finished and the body
 				// starts.
-				*header_size = newline - buf.begin;
+				*header_size = int(newline - buf.data());
 
 				// the newline alone is two bytes
-				TORRENT_ASSERT(newline - buf.begin > 2);
+				TORRENT_ASSERT(newline - buf.data() > 2);
 
-				// we were successfull in parsing the headers.
+				// we were successful in parsing the headers.
 				// add them to the headers in the parser
-				for (std::map<std::string, std::string>::const_iterator i = tail_headers.begin();
-					i != tail_headers.end(); ++i)
-					m_header.insert(std::make_pair(i->first, i->second));
+				for (auto const& p : tail_headers)
+					m_header.insert(p);
 
 				return true;
 			}
@@ -548,24 +555,23 @@ restart_response:
 				++separator;
 			std::string value = line.substr(separator, std::string::npos);
 			tail_headers.insert(std::make_pair(name, value));
-//			fprintf(stderr, "tail_header: %s: %s\n", name.c_str(), value.c_str());
+//			std::fprintf(stderr, "tail_header: %s: %s\n", name.c_str(), value.c_str());
 
-			newline = std::find(pos, buf.end, '\n');
+			newline = std::find(pos, buf.end(), '\n');
 		}
 		return false;
 	}
 
-	buffer::const_interval http_parser::get_body() const
+	span<char const> http_parser::get_body() const
 	{
 		TORRENT_ASSERT(m_state == read_body);
-		boost::int64_t last_byte = m_chunked_encoding && !m_chunked_ranges.empty()
-			? (std::min)(m_chunked_ranges.back().second, m_recv_pos)
-			: m_content_length < 0
-				? m_recv_pos : (std::min)(m_body_start_pos + m_content_length, m_recv_pos);
+		std::int64_t const received = m_recv_pos - m_body_start_pos;
 
-		TORRENT_ASSERT(last_byte >= m_body_start_pos);
-		return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
-			, m_recv_buffer.begin + last_byte);
+		std::int64_t const body_length = m_chunked_encoding && !m_chunked_ranges.empty()
+			? std::min(m_chunked_ranges.back().second - m_body_start_pos, received)
+			: m_content_length < 0 ? received : std::min(m_content_length, received);
+
+		return m_recv_buffer.subspan(std::size_t(m_body_start_pos), std::size_t(body_length));
 	}
 
 	void http_parser::reset()
@@ -579,8 +585,7 @@ restart_response:
 		m_range_end = -1;
 		m_finished = false;
 		m_state = read_status;
-		m_recv_buffer.begin = 0;
-		m_recv_buffer.end = 0;
+		m_recv_buffer = span<char const>();
 		m_header.clear();
 		m_chunked_encoding = false;
 		m_chunked_ranges.clear();
@@ -589,31 +594,28 @@ restart_response:
 		m_partial_chunk_header = 0;
 	}
 
-	int http_parser::collapse_chunk_headers(char* buffer, int size) const
+	span<char> http_parser::collapse_chunk_headers(span<char> buffer) const
 	{
-		if (!chunked_encoding()) return size;
+		if (!chunked_encoding()) return buffer;
 
 		// go through all chunks and compact them
 		// since we're bottled, and the buffer is our after all
 		// it's OK to mutate it
-		char* write_ptr = buffer;
+		char* write_ptr = buffer.data();
 		// the offsets in the array are from the start of the
 		// buffer, not start of the body, so subtract the size
 		// of the HTTP header from them
-		int offset = body_start();
-		std::vector<std::pair<boost::int64_t, boost::int64_t> > const& c = chunks();
-		for (std::vector<std::pair<boost::int64_t, boost::int64_t> >::const_iterator i = c.begin()
-			, end(c.end()); i != end; ++i)
+		std::size_t const offset = static_cast<std::size_t>(body_start());
+		for (auto const& i : chunks())
 		{
-			TORRENT_ASSERT(i->second - i->first < INT_MAX);
-			TORRENT_ASSERT(i->second - offset <= size);
-			int len = int(i->second - i->first);
-			if (i->first - offset + len > size) len = size - int(i->first) + offset;
-			memmove(write_ptr, buffer + i->first - offset, len);
-			write_ptr += len;
+			size_t const chunk_start = static_cast<std::size_t>(i.first);
+			size_t const chunk_end = static_cast<std::size_t>(i.second);
+			TORRENT_ASSERT(i.second - i.first < std::numeric_limits<int>::max());
+			TORRENT_ASSERT(chunk_end - offset <= buffer.size());
+			span<char> chunk = buffer.subspan(chunk_start - offset, chunk_end - chunk_start);
+			std::memmove(write_ptr, chunk.data(), chunk.size());
+			write_ptr += chunk.size();
 		}
-		size = write_ptr - buffer;
-		return size;
+		return buffer.first(static_cast<std::size_t>(write_ptr - buffer.data()));
 	}
 }
-

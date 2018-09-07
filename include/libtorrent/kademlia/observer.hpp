@@ -33,17 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef OBSERVER_HPP
 #define OBSERVER_HPP
 
+#include <cstdint>
+#include <memory>
+
 #include <libtorrent/time.hpp>
 #include <libtorrent/address.hpp>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/pool/pool.hpp>
-#include <boost/detail/atomic_count.hpp>
-#include <boost/intrusive_ptr.hpp>
-#include <boost/cstdint.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <libtorrent/flags.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -53,34 +48,22 @@ struct observer;
 struct msg;
 struct traversal_algorithm;
 
-// defined in rpc_manager.cpp
-TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
-TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
+using observer_flags_t = libtorrent::flags::bitfield_flag<std::uint8_t, struct observer_flags_tag>;
 
-struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
+struct TORRENT_EXTRA_EXPORT observer
+	: std::enable_shared_from_this<observer>
 {
-	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
-	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
-
-	observer(boost::intrusive_ptr<traversal_algorithm> const& a
+	observer(std::shared_ptr<traversal_algorithm> a
 		, udp::endpoint const& ep, node_id const& id)
-		: m_sent()
-		, m_algorithm(a)
+		: m_algorithm(std::move(a))
 		, m_id(id)
-		, m_refs(0)
-		, m_port(0)
-		, m_transaction_id()
-		, flags(0)
 	{
-		TORRENT_ASSERT(a);
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
-		m_in_constructor = true;
-		m_was_sent = false;
-		m_was_abandoned = false;
-		m_in_use = true;
-#endif
+		TORRENT_ASSERT(m_algorithm);
 		set_target(ep);
 	}
+
+	observer(observer const&) = delete;
+	observer& operator=(observer const&) = delete;
 
 	// defined in rpc_manager.cpp
 	virtual ~observer();
@@ -92,7 +75,7 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 	// a few seconds, before the request has timed out
 	void short_timeout();
 
-	bool has_short_timeout() const { return (flags & flag_short_timeout) != 0; }
+	bool has_short_timeout() const { return bool(flags & flag_short_timeout); }
 
 	// this is called when no reply has been received within
 	// some timeout, or a reply with incorrect format.
@@ -117,22 +100,14 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 	void set_id(node_id const& id);
 	node_id const& id() const { return m_id; }
 
-	void set_transaction_id(boost::uint16_t tid)
-	{ m_transaction_id = tid; }
-
-	boost::uint16_t transaction_id() const
-	{ return m_transaction_id; }
-
-	enum {
-		flag_queried = 1,
-		flag_initial = 2,
-		flag_no_id = 4,
-		flag_short_timeout = 8,
-		flag_failed = 16,
-		flag_ipv6_address = 32,
-		flag_alive = 64,
-		flag_done = 128
-	};
+	static constexpr observer_flags_t flag_queried = 0_bit;
+	static constexpr observer_flags_t flag_initial = 1_bit;
+	static constexpr observer_flags_t flag_no_id = 2_bit;
+	static constexpr observer_flags_t flag_short_timeout = 3_bit;
+	static constexpr observer_flags_t flag_failed = 4_bit;
+	static constexpr observer_flags_t flag_ipv6_address = 5_bit;
+	static constexpr observer_flags_t flag_alive = 6_bit;
+	static constexpr observer_flags_t flag_done = 7_bit;
 
 protected:
 
@@ -140,41 +115,37 @@ protected:
 
 private:
 
+	std::shared_ptr<observer> self()
+	{ return shared_from_this(); }
+
 	time_point m_sent;
 
-	const boost::intrusive_ptr<traversal_algorithm> m_algorithm;
+	std::shared_ptr<traversal_algorithm> const m_algorithm;
 
 	node_id m_id;
 
-	TORRENT_UNION addr_t
+	union addr_t
 	{
-#if TORRENT_USE_IPV6
 		address_v6::bytes_type v6;
-#endif
 		address_v4::bytes_type v4;
 	} m_addr;
 
-	// reference counter for intrusive_ptr
-	mutable boost::uint16_t m_refs;
+	std::uint16_t m_port = 0;
 
-	boost::uint16_t m_port;
-
-	// the transaction ID for this call
-	boost::uint16_t m_transaction_id;
 public:
-	unsigned char flags;
+	observer_flags_t flags{};
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
-	bool m_in_constructor:1;
-	bool m_was_sent:1;
-	bool m_was_abandoned:1;
-	bool m_in_use:1;
+#if TORRENT_USE_ASSERTS
+	bool m_in_constructor = true;
+	bool m_was_sent = false;
+	bool m_was_abandoned = false;
+	bool m_in_use = true;
 #endif
 };
 
-typedef boost::intrusive_ptr<observer> observer_ptr;
+using observer_ptr = std::shared_ptr<observer>;
 
-} }
+}
+}
 
 #endif
-

@@ -34,7 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "test.hpp"
 #include <iostream>
-#include <boost/bind.hpp>
+#include <functional>
+
+namespace {
 
 char upnp_xml[] =
 "<root>"
@@ -264,10 +266,11 @@ char upnp_xml4[] =
 "</s:Body>"
 "</s:Envelope>";
 
-using namespace libtorrent;
+using namespace lt;
+using namespace std::placeholders;
 
-void parser_callback(std::string& out, int token, char const* s, int len
-	, char const* val, int val_len)
+void parser_callback(std::string& out, int token, string_view s
+	, string_view val)
 {
 	switch (token)
 	{
@@ -282,34 +285,35 @@ void parser_callback(std::string& out, int token, char const* s, int len
 		case xml_tag_content: out += "T"; break;
 		default: TEST_CHECK(false);
 	}
-	out.append(s, len);
+	out.append(s.begin(), s.end());
 	if (token == xml_attribute)
 	{
-		TEST_CHECK(val != NULL);
+		TEST_CHECK(!val.empty());
 		out += "V";
-		out.append(val, val_len);
+		out.append(val.begin(), val.end());
 	}
 	else
 	{
-		TEST_CHECK(val == NULL);
+		TEST_CHECK(val.empty());
 	}
 }
 
 void test_parse(char const* in, char const* expected)
 {
 	std::string out;
-	xml_parse(in, in + strlen(in), boost::bind(&parser_callback
-		, boost::ref(out), _1, _2, _3, _4, _5));
-	fprintf(stdout, "in: %s\n     out: %s\nexpected: %s\n"
+	xml_parse(in, std::bind(&parser_callback
+		, std::ref(out), _1, _2, _3));
+	std::printf("in: %s\n     out: %s\nexpected: %s\n"
 		, in, out.c_str(), expected);
 	TEST_EQUAL(out, expected);
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(upnp_parser1)
 {
 	parse_state xml_s;
-	xml_parse(upnp_xml, upnp_xml + sizeof(upnp_xml)
-		, boost::bind(&find_control_url, _1, _2, _3, boost::ref(xml_s)));
+	xml_parse(upnp_xml, std::bind(&find_control_url, _1, _2, std::ref(xml_s)));
 
 	std::cout << "namespace " << xml_s.service_type << std::endl;
 	std::cout << "url_base: " << xml_s.url_base << std::endl;
@@ -323,8 +327,7 @@ TORRENT_TEST(upnp_parser1)
 TORRENT_TEST(upnp_parser2)
 {
 	parse_state xml_s;
-	xml_parse(upnp_xml2, upnp_xml2 + sizeof(upnp_xml2)
-		, boost::bind(&find_control_url, _1, _2, _3, boost::ref(xml_s)));
+	xml_parse(upnp_xml2, std::bind(&find_control_url, _1, _2, std::ref(xml_s)));
 
 	std::cout << "namespace " << xml_s.service_type << std::endl;
 	std::cout << "url_base: " << xml_s.url_base << std::endl;
@@ -338,8 +341,7 @@ TORRENT_TEST(upnp_parser2)
 TORRENT_TEST(upnp_parser3)
 {
 	error_code_parse_state xml_s;
-	xml_parse(upnp_xml3, upnp_xml3 + sizeof(upnp_xml3)
-		, boost::bind(&find_error_code, _1, _2, _3, boost::ref(xml_s)));
+	xml_parse(upnp_xml3, std::bind(&find_error_code, _1, _2, std::ref(xml_s)));
 
 	std::cout << "error_code " << xml_s.error_code << std::endl;
 	TEST_EQUAL(xml_s.error_code, 402);
@@ -348,8 +350,7 @@ TORRENT_TEST(upnp_parser3)
 TORRENT_TEST(upnp_parser4)
 {
 	ip_address_parse_state xml_s;
-	xml_parse(upnp_xml4, upnp_xml4 + sizeof(upnp_xml4)
-		, boost::bind(&find_ip_address, _1, _2, _3, boost::ref(xml_s)));
+	xml_parse(upnp_xml4, std::bind(&find_ip_address, _1, _2, std::ref(xml_s)));
 
 	std::cout << "error_code " << xml_s.error_code << std::endl;
 	std::cout << "ip_address " << xml_s.ip_address << std::endl;

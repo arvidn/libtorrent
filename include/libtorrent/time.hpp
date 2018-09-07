@@ -35,50 +35,36 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/cstdint.hpp>
-
-#if defined BOOST_ASIO_HAS_STD_CHRONO
+#include <cstdint>
 #include <chrono>
-#else
-#include <boost/chrono.hpp>
-#endif
 
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 namespace libtorrent {
 
 #if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::chrono::high_resolution_clock clock_type;
-#elif defined BOOST_ASIO_HAS_STD_CHRONO
-	typedef std::chrono::high_resolution_clock clock_type;
+	using clock_type = sim::chrono::high_resolution_clock;
 #else
-	typedef boost::chrono::high_resolution_clock clock_type;
+	using clock_type = std::chrono::high_resolution_clock;
 #endif
 
-	typedef clock_type::time_point time_point;
-	typedef clock_type::duration time_duration;
+	using time_point = clock_type::time_point;
+	using time_duration = clock_type::duration;
 
-#if defined BOOST_ASIO_HAS_STD_CHRONO
-	using std::chrono::seconds;
-	using std::chrono::milliseconds;
-	using std::chrono::microseconds;
-	using std::chrono::minutes;
-	using std::chrono::hours;
+	// 32 bit versions of time_point and duration, with second resolution
+	using seconds32 = std::chrono::duration<std::int32_t>;
+	using minutes32 = std::chrono::duration<std::int32_t, std::ratio<60>>;
+	using time_point32 = std::chrono::time_point<clock_type, seconds32>;
+
+	using seconds = std::chrono::seconds;
+	using milliseconds = std::chrono::milliseconds;
+	using microseconds = std::chrono::microseconds;
+	using minutes = std::chrono::minutes;
+	using hours = std::chrono::hours;
 	using std::chrono::duration_cast;
-#else
-	using boost::chrono::seconds;
-	using boost::chrono::milliseconds;
-	using boost::chrono::microseconds;
-	using boost::chrono::minutes;
-	using boost::chrono::hours;
-	using boost::chrono::duration_cast;
-#endif
+	using std::chrono::time_point_cast;
 
 	// internal
 	inline time_point min_time() { return (time_point::min)(); }
@@ -87,36 +73,17 @@ namespace libtorrent {
 	inline time_point max_time() { return (time_point::max)(); }
 
 	template<class T>
-	boost::int64_t total_seconds(T td)
+	std::int64_t total_seconds(T td)
 	{ return duration_cast<seconds>(td).count(); }
 
 	template<class T>
-	boost::int64_t total_milliseconds(T td)
+	std::int64_t total_milliseconds(T td)
 	{ return duration_cast<milliseconds>(td).count(); }
 
 	template<class T>
-	boost::int64_t total_microseconds(T td)
+	std::int64_t total_microseconds(T td)
 	{ return duration_cast<microseconds>(td).count(); }
-
-#ifndef TORRENT_NO_DEPRECATE
-
-	TORRENT_DEPRECATED
-	time_point time_now();
-
-	TORRENT_DEPRECATED
-	time_point time_now_hires();
-
-	inline time_point time_now()
-	{ return clock_type::now(); }
-
-	inline time_point time_now_hires()
-	{ return clock_type::now(); }
-
-	typedef time_point ptime;
-
-#endif
 
 }
 
 #endif // TORRENT_TIME_HPP_INCLUDED
-

@@ -33,12 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_connection.hpp"
 
-#ifdef TORRENT_USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
+namespace libtorrent {
 
-namespace libtorrent
-{
 	void peer_class::set_upload_limit(int limit)
 	{
 		TORRENT_ASSERT(limit >= -1);
@@ -73,24 +69,23 @@ namespace libtorrent
 		label = pci->label;
 		set_upload_limit(pci->upload_limit);
 		set_download_limit(pci->download_limit);
-		priority[peer_connection::upload_channel] = (std::max)(1, (std::min)(255, pci->upload_priority));
-		priority[peer_connection::download_channel] = (std::max)(1, (std::min)(255, pci->download_priority));
+		priority[peer_connection::upload_channel] = std::max(1, std::min(255, pci->upload_priority));
+		priority[peer_connection::download_channel] = std::max(1, std::min(255, pci->download_priority));
 	}
 
-	peer_class_t peer_class_pool::new_peer_class(std::string const& label)
+	peer_class_t peer_class_pool::new_peer_class(std::string label)
 	{
-		peer_class_t ret = 0;
+		peer_class_t ret{0};
 		if (!m_free_list.empty())
 		{
 			ret = m_free_list.back();
 			m_free_list.pop_back();
-			m_peer_classes[ret] = peer_class(label);
+			m_peer_classes[ret] = peer_class(std::move(label));
 		}
 		else
 		{
-			TORRENT_ASSERT(m_peer_classes.size() < 0x100000000);
-			ret = m_peer_classes.size();
-			m_peer_classes.push_back(peer_class(label));
+			ret = m_peer_classes.end_index();
+			m_peer_classes.emplace_back(std::move(label));
 		}
 
 		return ret;
@@ -98,10 +93,7 @@ namespace libtorrent
 
 	void peer_class_pool::decref(peer_class_t c)
 	{
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(c);
-#endif
-		TORRENT_ASSERT(c < m_peer_classes.size());
+		TORRENT_ASSERT(c < m_peer_classes.end_index());
 		TORRENT_ASSERT(m_peer_classes[c].in_use);
 		TORRENT_ASSERT(m_peer_classes[c].references > 0);
 
@@ -113,10 +105,7 @@ namespace libtorrent
 
 	void peer_class_pool::incref(peer_class_t c)
 	{
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(c);
-#endif
-		TORRENT_ASSERT(c < m_peer_classes.size());
+		TORRENT_ASSERT(c < m_peer_classes.end_index());
 		TORRENT_ASSERT(m_peer_classes[c].in_use);
 
 		++m_peer_classes[c].references;
@@ -124,18 +113,13 @@ namespace libtorrent
 
 	peer_class* peer_class_pool::at(peer_class_t c)
 	{
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(c);
-#endif
-		if (c >= m_peer_classes.size() || !m_peer_classes[c].in_use) return NULL;
+		if (c >= m_peer_classes.end_index() || !m_peer_classes[c].in_use) return nullptr;
 		return &m_peer_classes[c];
 	}
 
 	peer_class const* peer_class_pool::at(peer_class_t c) const
 	{
-		if (c >= m_peer_classes.size() || !m_peer_classes[c].in_use) return NULL;
+		if (c >= m_peer_classes.end_index() || !m_peer_classes[c].in_use) return nullptr;
 		return &m_peer_classes[c];
 	}
-
 }
-

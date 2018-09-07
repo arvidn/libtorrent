@@ -31,47 +31,60 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/string_util.hpp" // for split_string
+#include "libtorrent/string_view.hpp"
 #include "test.hpp"
-#include "setup_transfer.hpp" // for test_sleep
-#include <string.h> // for strcmp
 #include <vector>
 #include <set>
+#include <thread>
 
-using namespace libtorrent;
+using namespace lt;
+
+namespace {
 
 int touch_file(std::string const& filename, int size)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	std::vector<char> v;
-	v.resize(size);
+	v.resize(aux::numeric_cast<std::size_t>(size));
 	for (int i = 0; i < size; ++i)
-		v[i] = i & 255;
+		v[std::size_t(i)] = char(i & 255);
 
 	file f;
 	error_code ec;
-	if (!f.open(filename, file::write_only, ec)) return -1;
+	if (!f.open(filename, open_mode::write_only, ec)) return -1;
 	if (ec) return -1;
-	file::iovec_t b = {&v[0], v.size()};
-	boost::int64_t written = f.writev(0, &b, 1, ec);
+	iovec_t b = {&v[0], v.size()};
+	std::int64_t written = f.writev(0, b, ec);
 	if (written != int(v.size())) return -3;
 	if (ec) return -3;
 	return 0;
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(create_directory)
 {
 	error_code ec;
 	create_directory("__foobar__", ec);
+	if (ec) std::printf("ERROR: create_directory: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
 	TEST_CHECK(!ec);
 
 	file_status st;
 	stat_file("__foobar__", &st, ec);
+	if (ec) std::printf("ERROR: stat_file: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
 	TEST_CHECK(!ec);
 
 	TEST_CHECK(st.mode & file_status::directory);
 
 	remove("__foobar__", ec);
+	if (ec) std::printf("ERROR: remove: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
 	TEST_CHECK(!ec);
 }
 
@@ -88,7 +101,7 @@ TORRENT_TEST(file_status)
 
 	// sleep for 3 seconds and then make sure the difference in timestamp is
 	// between 2-4 seconds after touching it again
-	test_sleep(3000);
+	std::this_thread::sleep_for(lt::milliseconds(3000));
 
 	touch_file("__test_timestamp__", 10);
 
@@ -97,7 +110,7 @@ TORRENT_TEST(file_status)
 	TEST_CHECK(!ec);
 
 	int diff = int(st2.mtime - st1.mtime);
-	fprintf(stdout, "timestamp difference: %d seconds. expected approx. 3 seconds\n"
+	std::printf("timestamp difference: %d seconds. expected approx. 3 seconds\n"
 		, diff);
 
 	TEST_CHECK(diff >= 2 && diff <= 4);
@@ -108,7 +121,7 @@ TORRENT_TEST(directory)
 	error_code ec;
 
 	create_directory("file_test_dir", ec);
-	if (ec) fprintf(stdout, "create_directory: %s\n", ec.message().c_str());
+	if (ec) std::printf("create_directory: %s\n", ec.message().c_str());
 	TEST_CHECK(!ec);
 
 	std::string cwd = current_working_directory();
@@ -123,7 +136,7 @@ TORRENT_TEST(directory)
 		std::string f = i.file();
 		TEST_CHECK(files.count(f) == 0);
 		files.insert(f);
-		fprintf(stdout, " %s\n", f.c_str());
+		std::printf(" %s\n", f.c_str());
 	}
 
 	TEST_CHECK(files.count("abc") == 1);
@@ -140,13 +153,13 @@ TORRENT_TEST(directory)
 		std::string f = i.file();
 		TEST_CHECK(files.count(f) == 0);
 		files.insert(f);
-		fprintf(stdout, " %s\n", f.c_str());
+		std::printf(" %s\n", f.c_str());
 	}
 
 	remove_all("file_test_dir", ec);
-	if (ec) fprintf(stdout, "remove_all: %s\n", ec.message().c_str());
+	if (ec) std::printf("remove_all: %s\n", ec.message().c_str());
 	remove_all("file_test_dir2", ec);
-	if (ec) fprintf(stdout, "remove_all: %s\n", ec.message().c_str());
+	if (ec) std::printf("remove_all: %s\n", ec.message().c_str());
 }
 
 // test path functions
@@ -160,15 +173,6 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(combine_path("test1", "test2"), "test1\\test2");
 #else
 	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
-#endif
-
-#if TORRENT_USE_UNC_PATHS
-	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
-	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
-	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
-	TEST_EQUAL(canonicalize_path("\\.\\a"), "\\a");
-	TEST_EQUAL(canonicalize_path("\\\\bla\\.\\a"), "\\\\bla\\a");
-	TEST_EQUAL(canonicalize_path("c:\\bla\\a"), "c:\\bla\\a");
 #endif
 
 	TEST_EQUAL(extension("blah"), "");
@@ -253,16 +257,16 @@ TORRENT_TEST(split_string)
 	int ret = split_string(tags, 10, tags_str);
 
 	TEST_CHECK(ret == 10);
-	TEST_CHECK(strcmp(tags[0], "this") == 0);
-	TEST_CHECK(strcmp(tags[1], "is") == 0);
-	TEST_CHECK(strcmp(tags[2], "a") == 0);
-	TEST_CHECK(strcmp(tags[3], "test") == 0);
-	TEST_CHECK(strcmp(tags[4], "string") == 0);
-	TEST_CHECK(strcmp(tags[5], "to") == 0);
-	TEST_CHECK(strcmp(tags[6], "be") == 0);
-	TEST_CHECK(strcmp(tags[7], "split") == 0);
-	TEST_CHECK(strcmp(tags[8], "and") == 0);
-	TEST_CHECK(strcmp(tags[9], "it") == 0);
+	TEST_CHECK(tags[0] == "this"_sv);
+	TEST_CHECK(tags[1] == "is"_sv);
+	TEST_CHECK(tags[2] == "a"_sv);
+	TEST_CHECK(tags[3] == "test"_sv);
+	TEST_CHECK(tags[4] == "string"_sv);
+	TEST_CHECK(tags[5] == "to"_sv);
+	TEST_CHECK(tags[6] == "be"_sv);
+	TEST_CHECK(tags[7] == "split"_sv);
+	TEST_CHECK(tags[8] == "and"_sv);
+	TEST_CHECK(tags[9] == "it"_sv);
 
 	// replace_extension
 	std::string test = "foo.bar";
@@ -283,43 +287,46 @@ TORRENT_TEST(file)
 {
 	error_code ec;
 	file f;
-	TEST_CHECK(f.open("test_file", file::read_write, ec));
+	std::string test_file_name = "test_file";
+	TEST_CHECK(f.open(test_file_name, open_mode::read_write, ec));
 	if (ec)
-		fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	if (ec) fprintf(stdout, "%s\n", ec.message().c_str());
-	file::iovec_t b = {(void*)"test", 4};
-	TEST_EQUAL(f.writev(0, &b, 1, ec), 4);
+	if (ec) std::printf("%s\n", ec.message().c_str());
+	char test[] = "test";
+	size_t const test_word_size = sizeof(test) - 1;
+	iovec_t b = {test, test_word_size};
+	TEST_EQUAL(f.writev(0, b, ec), test_word_size);
 	if (ec)
-		fprintf(stdout, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);
-	char test_buf[5] = {0};
-	b.iov_base = test_buf;
-	b.iov_len = 4;
-	TEST_EQUAL(f.readv(0, &b, 1, ec), 4);
+	char test_buf[test_word_size + 1] = {0};
+	b = { test_buf, test_word_size };
+	TEST_EQUAL(f.readv(0, b, ec), test_word_size);
 	if (ec)
-		fprintf(stdout, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(strcmp(test_buf, "test") == 0);
+	TEST_CHECK(test_buf == "test"_sv);
 	f.close();
 
-	TEST_CHECK(f.open("test_file", file::read_only, ec));
+	TEST_CHECK(f.open(test_file_name, open_mode::read_only, ec));
 	if (ec)
-		fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	file::iovec_t two_buffers[2];
+	if (ec) std::printf("%s\n", ec.message().c_str());
 
+	char test_buf2[test_word_size + 1] = {0};
 	std::memset(test_buf, 0, sizeof(test_buf));
-	char test_buf2[5] = {0};
-	two_buffers[0].iov_base = test_buf;
-	two_buffers[0].iov_len = 4;
-	two_buffers[1].iov_base = test_buf2;
-	two_buffers[1].iov_len = 4;
-	TEST_EQUAL(f.readv(0, two_buffers, 2, ec), 4);
+	iovec_t two_buffers[2] {
+			{test_buf, test_word_size},
+			{test_buf2, test_word_size}
+	};
+
+	TEST_EQUAL(f.readv(0, two_buffers, ec), test_word_size);
 	if (ec)
-		fprintf(stdout, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(strcmp(test_buf, "test") == 0);
+	TEST_CHECK(test_buf == "test"_sv);
 	f.close();
 }
 
@@ -332,89 +339,214 @@ TORRENT_TEST(hard_link)
 	// read that file and assert we get the same stuff we wrote to the first file
 	error_code ec;
 	file f;
-	TEST_CHECK(f.open("original_file", file::read_write, ec));
+	TEST_CHECK(f.open("original_file", open_mode::read_write, ec));
 	if (ec)
-		fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 
-	file::iovec_t b = {(void*)"abcdefghijklmnopqrstuvwxyz", 26};
-	TEST_EQUAL(f.writev(0, &b, 1, ec), 26);
+	char str[] = "abcdefghijklmnopqrstuvwxyz";
+	iovec_t b = { str, 26 };
+	TEST_EQUAL(f.writev(0, b, ec), 26);
 	if (ec)
-		fprintf(stdout, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 	f.close();
 
 	hard_link("original_file", "second_link", ec);
 
 	if (ec)
-		fprintf(stdout, "hard_link failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("hard_link failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 
 
-	TEST_CHECK(f.open("second_link", file::read_write, ec));
+	TEST_CHECK(f.open("second_link", open_mode::read_write, ec));
 	if (ec)
-		fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 
-	char test_buf[27] = {0};
-	b.iov_base = test_buf;
-	b.iov_len = 27;
-	TEST_EQUAL(f.readv(0, &b, 1, ec), 26);
+	char test_buf[27] = {};
+	b = { test_buf, 27 };
+	TEST_EQUAL(f.readv(0, b, ec), 26);
 	if (ec)
-		fprintf(stdout, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(strcmp(test_buf, "abcdefghijklmnopqrstuvwxyz") == 0);
+	TEST_CHECK(test_buf == "abcdefghijklmnopqrstuvwxyz"_sv);
 	f.close();
 
 	remove("original_file", ec);
 	if (ec)
-		fprintf(stdout, "remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 
 	remove("second_link", ec);
 	if (ec)
-		fprintf(stdout, "remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 }
 
 TORRENT_TEST(coalesce_buffer)
 {
 	error_code ec;
 	file f;
-	TEST_CHECK(f.open("test_file", file::read_write, ec));
+	TEST_CHECK(f.open("test_file", open_mode::read_write, ec));
 	if (ec)
-		fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	if (ec) fprintf(stdout, "%s\n", ec.message().c_str());
-	file::iovec_t b[2] = {{(void*)"test", 4}, {(void*)"foobar", 6}};
-	TEST_EQUAL(f.writev(0, b, 2, ec, file::coalesce_buffers), 4 + 6);
+	if (ec) std::printf("%s\n", ec.message().c_str());
+	char test[] = "test";
+	char foobar[] = "foobar";
+	iovec_t b[2] = {{test, 4}, {foobar, 6}};
+	TEST_EQUAL(f.writev(0, b, ec, open_mode::coalesce_buffers), 4 + 6);
 	if (ec)
-		fprintf(stdout, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);
 	char test_buf1[5] = {0};
 	char test_buf2[7] = {0};
-	b[0].iov_base = test_buf1;
-	b[0].iov_len = 4;
-	b[1].iov_base = test_buf2;
-	b[1].iov_len = 6;
-	TEST_EQUAL(f.readv(0, b, 2, ec), 4 + 6);
+	b[0] = { test_buf1, 4 };
+	b[1] = { test_buf2, 6 };
+	TEST_EQUAL(f.readv(0, b, ec), 4 + 6);
 	if (ec)
 	{
-		fprintf(stdout, "readv failed: [%s] %s\n"
+		std::printf("readv failed: [%s] %s\n"
 			, ec.category().name(), ec.message().c_str());
 	}
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(strcmp(test_buf1, "test") == 0);
-	TEST_CHECK(strcmp(test_buf2, "foobar") == 0);
+	TEST_CHECK(test_buf1 == "test"_sv);
+	TEST_CHECK(test_buf2 == "foobar"_sv);
 	f.close();
 }
 
-#if 0 && TORRENT_USE_UNC_PATHS
+TORRENT_TEST(stat_file)
+{
+	file_status st;
+	error_code ec;
+	stat_file("no_such_file_or_directory.file", &st, ec);
+	TEST_CHECK(ec);
+	TEST_EQUAL(ec, boost::system::errc::no_such_file_or_directory);
+}
+
+// specificaly UNC tests
+#if TORRENT_USE_UNC_PATHS
+
+namespace {
+std::tuple<int, bool> fill_current_directory_caps()
+{
+#ifdef TORRENT_WINDOWS
+	error_code ec;
+	DWORD dw_maximum_component_length;
+	DWORD dw_file_system_flags;
+	if (!GetVolumeInformationA(nullptr, nullptr, 0, nullptr, &dw_maximum_component_length, &dw_file_system_flags, nullptr, 0))
+	{
+		ec.assign(GetLastError(), system_category());
+		std::printf("GetVolumeInformation: [%s] %s\n"
+			, ec.category().name(), ec.message().c_str());
+		return std::make_tuple(0, false);
+	}
+	int maximum_component_length = int(dw_maximum_component_length);
+	bool support_hard_links = ((dw_file_system_flags & FILE_SUPPORTS_HARD_LINKS) != 0);
+	return std::make_tuple(maximum_component_length, support_hard_links);
+#else
+	return std::make_tuple(TORRENT_MAX_PATH, true);
+#endif
+}
+}
+
+TORRENT_TEST(unc_tests)
+{
+	using lt::canonicalize_path;
+	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
+	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
+	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
+	TEST_EQUAL(canonicalize_path("\\.\\a"), "\\a");
+	TEST_EQUAL(canonicalize_path("\\\\bla\\.\\a"), "\\\\bla\\a");
+	TEST_EQUAL(canonicalize_path("c:\\bla\\a"), "c:\\bla\\a");
+
+	error_code ec;
+
+	std::vector<std::string> special_names
+	{
+		"CON", "PRN", "AUX", "NUL",
+		"COM1", "COM2", "COM3", "COM4",
+		"COM5", "COM6", "COM7", "COM8",
+		"COM9", "LPT1", "LPT2", "LPT3",
+		"LPT4", "LPT5", "LPT6", "LPT7",
+		"LPT8", "LPT9"
+	};
+
+	for (std::string special_name : special_names)
+	{
+		TEST_EQUAL(touch_file(special_name, 10), 0);
+		TEST_CHECK(lt::exists(special_name));
+		lt::remove(special_name, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(!lt::exists(special_name));
+	}
+
+	int maximum_component_length;
+	bool support_hard_links;
+	std::tie(maximum_component_length, support_hard_links) = fill_current_directory_caps();
+
+	if (maximum_component_length > 0)
+	{
+		std::string long_component_name;
+		long_component_name.resize(size_t(maximum_component_length));
+		for (int i = 0; i < maximum_component_length; ++i)
+			long_component_name[i] = static_cast<char>((i % 26) + 'A');
+
+		std::string long_file_name1 =  combine_path(long_component_name, long_component_name);
+		long_file_name1.back() = '1';
+		std::string long_file_name2 { long_file_name1 };
+		long_file_name2.back() = '2';
+
+		lt::create_directory(long_component_name, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(lt::exists(long_component_name));
+		TEST_CHECK(lt::is_directory(long_component_name, ec));
+
+		TEST_EQUAL(touch_file(long_file_name1, 10), 0);
+		TEST_CHECK(lt::exists(long_file_name1));
+
+		lt::rename(long_file_name1, long_file_name2, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(!lt::exists(long_file_name1));
+		TEST_CHECK(lt::exists(long_file_name2));
+
+		lt::copy_file(long_file_name2, long_file_name1, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(lt::exists(long_file_name1));
+
+		std::set<std::string> files;
+
+		for (lt::directory i(long_component_name, ec); !i.done(); i.next(ec))
+		{
+			std::string f = i.file();
+			files.insert(f);
+		}
+
+		TEST_EQUAL(files.size(), 4);
+
+		lt::remove(long_file_name1, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(!lt::exists(long_file_name1));
+
+		if (support_hard_links)
+		{
+			lt::hard_link(long_file_name2, long_file_name1, ec);
+			TEST_EQUAL(ec, error_code());
+			TEST_CHECK(lt::exists(long_file_name1));
+
+			lt::remove(long_file_name1, ec);
+			TEST_EQUAL(ec, error_code());
+			TEST_CHECK(!lt::exists(long_file_name1));
+		}
+	}
+}
+
 TORRENT_TEST(unc_paths)
 {
 	std::string const reserved_name = "con";
 	error_code ec;
 	{
 		file f;
-		TEST_CHECK(f.open(reserved_name, file::read_write, ec) && !ec);
+		TEST_CHECK(f.open(reserved_name, open_mode::read_write, ec) && !ec);
 	}
 	remove(reserved_name, ec);
 	TEST_CHECK(!ec);

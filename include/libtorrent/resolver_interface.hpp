@@ -34,40 +34,39 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_RESOLVER_INTERFACE_HPP_INCLUDE
 
 #include <vector>
+#include <functional>
+
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/flags.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+namespace libtorrent {
 
-#include <boost/function.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
+// hidden
+using resolver_flags = flags::bitfield_flag<std::uint8_t, struct resolver_flag_tag>;
 
 struct TORRENT_EXTRA_EXPORT resolver_interface
 {
-	typedef boost::function<void(error_code const&, std::vector<address> const&)>
-		callback_t;
+	using callback_t = std::function<void(error_code const&, std::vector<address> const&)>;
 
-	enum flags_t
-	{
-		// this flag will make async_resolve() only use the cache and fail if we
-		// don't have a cache entry, regardless of how old it is. This is usefull
-		// when completing the lookup quickly is more important than accuracy,
-		// like on shutdown
-		cache_only = 1,
+	// this flag will make async_resolve() only use the cache and fail if we
+	// don't have a cache entry, regardless of how old it is. This is usefull
+	// when completing the lookup quickly is more important than accuracy,
+	// like on shutdown
+	static constexpr resolver_flags cache_only = 0_bit;
 
-		// set this flag for lookups that are not critical during shutdown. i.e.
-		// for looking up tracker names _except_ when stopping a tracker.
-		abort_on_shutdown = 2
-	};
+	// set this flag for lookups that are not critical during shutdown. i.e.
+	// for looking up tracker names _except_ when stopping a tracker.
+	static constexpr resolver_flags abort_on_shutdown = 1_bit;
 
-	virtual void async_resolve(std::string const& host, int flags
+	virtual void async_resolve(std::string const& host, resolver_flags flags
 		, callback_t const& h) = 0;
 
 	virtual void abort() = 0;
+
+	virtual void set_cache_timeout(seconds timeout) = 0;
+
 protected:
 	~resolver_interface() {}
 };
@@ -75,4 +74,3 @@ protected:
 }
 
 #endif
-

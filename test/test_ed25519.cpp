@@ -36,33 +36,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-#include "libtorrent/ed25519.hpp"
+#include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/hex.hpp"
 
-using namespace libtorrent;
+using namespace lt;
+using namespace lt::dht;
 
 namespace
 {
 	void test_vector(std::string seed, std::string pub, std::string sig_hex, std::string message)
 	{
-		typedef unsigned char uchar;
-		uchar s[32];
-		uchar sk[64];
-		uchar pk[32];
-		uchar sig[64];
-		std::vector<uchar> msg(int(message.size()) / 2);
+		std::array<char, 32> s;
+		secret_key sk;
+		public_key pk;
+		signature sig;
+		std::vector<char> msg(message.size() / 2);
 
-		from_hex(seed.c_str(), seed.size(), reinterpret_cast<char*>(s));
-		ed25519_create_keypair(pk, sk, s);
+		aux::from_hex(seed, s.data());
+		std::tie(pk, sk) = ed25519_create_keypair(s);
 
-		TEST_EQUAL(to_hex(std::string(reinterpret_cast<char*>(pk), sizeof(pk))), pub);
+		TEST_EQUAL(aux::to_hex(pk.bytes), pub);
 
-		from_hex(message.c_str(), message.size(), reinterpret_cast<char*>(&msg[0]));
-		ed25519_sign(sig, &msg[0], msg.size(), pk, sk);
+		aux::from_hex(message, msg.data());
+		sig = ed25519_sign(msg, pk, sk);
 
-		TEST_EQUAL(to_hex(std::string(reinterpret_cast<char*>(sig), sizeof(sig))), sig_hex);
+		TEST_EQUAL(aux::to_hex(sig.bytes), sig_hex);
 
-		bool r = ed25519_verify(sig, &msg[0], msg.size(), pk);
+		bool r = ed25519_verify(sig, msg, pk);
 
 		TEST_CHECK(r);
 	}
@@ -201,17 +201,14 @@ TORRENT_TEST(ed25519_test_vec1)
 
 TORRENT_TEST(create_seed)
 {
-	typedef unsigned char uchar;
-	uchar s1[32];
-	ed25519_create_seed(s1);
-	uchar s2[32];
-	ed25519_create_seed(s2);
+	std::array<char, 32> s1 = ed25519_create_seed();
+	std::array<char, 32> s2 = ed25519_create_seed();
 
-	TEST_CHECK(memcpy(s1, s2, sizeof(s1)) != 0); // what are the odds
+	TEST_CHECK(s1 != s2); // what are the odds
 
 	int n1 = 0;
 	int n2 = 0;
-	for (int i = 0; i < 32; i++)
+	for (std::size_t i = 0; i < 32; i++)
 	{
 		if (s1[i] != 0) n1++;
 		if (s2[i] != 0) n2++;
@@ -220,9 +217,73 @@ TORRENT_TEST(create_seed)
 	TEST_CHECK(n2 > 0);
 }
 
+TORRENT_TEST(add_scalar)
+{
+	// client
+	std::array<char, 32> s1 = ed25519_create_seed();
+
+	public_key pk1;
+	secret_key sk1;
+	std::tie(pk1, sk1) = ed25519_create_keypair(s1);
+
+	// client sends to server the public key
+
+	// server generates another seed, it could be an scalar
+	// n = HMAC(k, pk1) and sends it back to the client
+	// see http://crypto.stackexchange.com/a/6215/4697
+	std::array<char, 32> n = ed25519_create_seed();
+
+	// now the server knows that the client's public key
+	// must be (or assigns) pk1 + n
+	pk1 = ed25519_add_scalar(pk1, n);
+
+	// server sends n to the client
+
+	// the client, in order to properly sign messages, must
+	// adjust the private key
+	sk1 = ed25519_add_scalar(sk1, n);
+
+	// test sign and verification
+	std::string msg = "Hello world";
+	signature sig = ed25519_sign(msg, pk1, sk1);
+	bool r = ed25519_verify(sig, msg, pk1);
+	TEST_CHECK(r);
+}
+
+TORRENT_TEST(key_exchange)
+{
+	// user A
+	std::array<char, 32> s1 = ed25519_create_seed();
+
+	public_key pk1;
+	secret_key sk1;
+	std::tie(pk1, sk1) = ed25519_create_keypair(s1);
+
+	// user A sends to user B the public key
+
+	// user B
+	std::array<char, 32> s2 = ed25519_create_seed();
+
+	public_key pk2;
+	secret_key sk2;
+	std::tie(pk2, sk2) = ed25519_create_keypair(s2);
+
+	// user B performs the key exchange
+	std::array<char, 32> secretB = ed25519_key_exchange(pk1, sk2);
+
+	// user B sends to user A the public key
+
+	// user A performs the key exchange
+	std::array<char, 32> secretA = ed25519_key_exchange(pk2, sk1);
+
+	// now both users A and B must shared the same secret
+	TEST_EQUAL(aux::to_hex(secretA), aux::to_hex(secretB));
+}
+
 #else
 TORRENT_TEST(empty)
 {
 	TEST_CHECK(true);
 }
 #endif // TORRENT_DISABLE_DHT
+

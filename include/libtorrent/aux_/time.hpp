@@ -35,18 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
-#include <string>
-#include <boost/cstdint.hpp>
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	// returns the current time, as represented by time_point. The
 	// resolution of this timer is about 100 ms.
-	time_point const& time_now();
-
-	TORRENT_EXTRA_EXPORT void update_time_now();
-
+	TORRENT_EXTRA_EXPORT time_point time_now();
+	TORRENT_EXTRA_EXPORT time_point32 time_now32();
 } }
 
 #endif
-

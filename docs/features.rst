@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.9
+:Version: 1.2.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -51,6 +51,8 @@ extensions
   scale well with the size of the content.
 * share-mode. This is a special mode torrents can be put in to optimize share
   ratio rather than downloading the torrent.
+* supports the Magnet URI extension - Select specific file indices for
+  download. `BEP 53`_.
 
 .. _article: utp.html
 .. _extensions: manual-ref.html#extensions
@@ -120,6 +122,7 @@ network
 .. _`BEP 24`: https://bittorrent.org/beps/bep_0024.html
 .. _`BEP 27`: https://bittorrent.org/beps/bep_0027.html
 .. _`BEP 29`: https://bittorrent.org/beps/bep_0029.html
+.. _`BEP 53`: https://bittorrent.org/beps/bep_0053.html
 .. _`extension protocol`: extension_protocol.html
 
 highlighted features
@@ -302,7 +305,7 @@ code to implement a simple bittorrent client::
 		std::cin >> a;
 		return 0;
 	}
-	catch (std::exception& e)
+	catch (std::exception const& e)
 	{
 		std::cerr << ec.what() << std::endl;
 		return 1;
@@ -319,8 +322,9 @@ portability
 
 libtorrent runs on most major operating systems, including Windows,
 MacOS X, Linux, BSD and Solaris.
-It uses Boost.Thread, Boost.Asio, Boost.Chrono, Boost.Random, Boost.Date_time
-and various other boost libraries. At least version 1.49 of boost is required.
+It uses Boost.Asio, Boost.Optional, Boost.System, Boost.Multiprecision,
+Boost.Intrusive, Boost.Pool, Boost.Python (for bindings), Boost.CRC and various
+other boost libraries. At least version 1.49 of boost is required.
 
 Since libtorrent uses Boost.Asio it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,

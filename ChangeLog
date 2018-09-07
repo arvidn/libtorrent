@@ -1,3 +1,93 @@
+	* when updating listen sockets, only post alerts for new ones
+	* deprecate anonymous_mode_alert
+	* deprecated force_proxy setting (when set, the proxy is always used)
+	* add support for Port Control Protocol (PCP)
+	* deliver notification of alerts being dropped via alerts_dropped_alert
+	* deprecated alert::progress_notification alert category, split into
+	  finer grained categories
+	* update plugin interface functions for improved type-safety
+	* implemented support magnet URI extension, select specific file indices
+	  for download, BEP53
+	* make tracker keys multi-homed. remove set_key() function on session.
+	* add flags()/set_flags()/unset_flags() to torrent_handle, deprecate individual functions
+	* added alert for block being sent to the send buffer
+	* drop support for windows compilers without std::wstring
+	* implemented support for DHT infohash indexing, BEP51
+	* removed deprecated support for file_base in file_storage
+	* added support for running separate DHT nodes on each network interface
+	* added support for establishing UTP connections on any network interface
+	* added support for sending tracker announces on every network interface
+	* introduce "lt" namespace alias
+	* need_save_resume_data() will no longer return true every 15 minutes
+	* make the file_status interface explicitly public types
+	* added resolver_cache_timeout setting for internal host name resolver
+	* make parse_magnet_uri take a string_view instead of std::string
+	* deprecate add_torrent_params::url field. use parse_magnet_uri instead
+	* optimize download queue management
+	* deprecated (undocumented) file:// urls
+	* add limit for number of web seed connections
+	* added support for retrieval of DHT live nodes
+	* complete UNC path support
+	* add packets pool allocator
+	* remove disk buffer pool allocator
+	* fix last_upload and last_download overflow after 9 hours in past
+	* python binding add more add_torrent_params fields and an invalid key check
+	* introduce introduce distinct types for peer_class_t, piece_index_t and
+	  file_index_t.
+	* fix crash caused by empty bitfield
+	* removed disk-access-log build configuration
+	* removed mmap_cache feature
+	* strengthened type safety in handling of piece and file indices
+	* deprecate identify_client() and fingerprint type
+	* make sequence number for mutable DHT items backed by std::int64_t
+	* tweaked storage_interface to have stronger type safety
+	* deprecate relative times in torrent_status, replaced by std::chrono::time_point
+	* refactor in alert types to use more const fields and more clear API
+	* changed session_stats_alert counters type to signed (std::int64_t)
+	* remove torrent eviction/ghost torrent feature
+	* include target in DHT lookups, when queried from the session
+	* improve support for HTTP redirects for web seeds
+	* use string_view in entry interface
+	* deprecate "send_stats" property on trackers (since lt_tracker extension has
+	  been removed)
+	* remove deprecate session_settings API (use settings_pack instead)
+	* improve file layout optimization when creating torrents with padfiles
+	* remove remote_dl_rate feature
+	* source code migration from boost::shared_ptr to std::shared_ptr
+	* storage_interface API changed to use span and references
+	* changes in public API to work with std::shared_ptr<torrent_info>
+	* extensions API changed to use span and std::shared_ptr
+	* plugin API changed to handle DHT requests using string_view
+	* removed support for lt_trackers and metadata_transfer extensions
+	  (pre-dating ut_metadata)
+	* support windows' CryptoAPI for SHA-1
+	* separated ssl and crypto options in build
+	* remove lazy-bitfield feature
+	* simplified suggest-read-cache feature to not depend on disk threads
+	* removed option to disable contiguous receive buffers
+	* deprecated public to_hex() and from_hex() functions
+	* separated address and port fields in listen alerts
+	* added support for parsing new x.pe parameter from BEP 9
+	* peer_blocked_alert now derives from peer_alert
+	* transitioned exception types to system_error
+	* made alerts move-only
+	* move files one-by-one when moving storage for a torrent
+	* removed RSS support
+	* removed feature to resolve country for peers
+	* added support for BEP 32, "IPv6 extension for DHT"
+	* overhauled listen socket and UDP socket handling, improving multi-home
+	  support and bind-to-device
+	* resume data is now communicated via add_torrent_params objects
+	* added new read_resume_data()/write_resume_data functions to write bencoded,
+	  backwards compatible resume files
+	* removed deprecated fields from add_torrent_params
+	* deprecate "resume_data" field in add_torrent_params
+	* improved support for bind-to-device
+	* deprecated ssl_listen, SSL sockets are specified in listen_interfaces now
+	* improved support for listening on multiple sockets and interfaces
+	* resume data no longer has timestamps of files
+	* require C++11 to build libtorrent
+
 	* add option to ignore min-interval from trackers on force-reannounce
 	* raise default setting for active_limit
 	* fall back to copy+remove if rename_file fails

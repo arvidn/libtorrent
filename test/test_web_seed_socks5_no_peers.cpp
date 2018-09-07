@@ -34,9 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
-const int proxy = libtorrent::settings_pack::socks5;
+const int proxy = lt::settings_pack::socks5;
 
 TORRENT_TEST(web_seed_socks5_no_peers_ssl)
 {

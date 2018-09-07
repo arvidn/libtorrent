@@ -32,75 +32,65 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/assert.hpp"
-#include <string.h> // for memset
-
-#ifdef TORRENT_USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
+#include <cstring> // for memset
 
 namespace libtorrent {
 
-
-	counters::counters()
+	counters::counters() TORRENT_COUNTER_NOEXCEPT
 	{
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		for (int i = 0; i < sizeof(m_stats_counter)
-			/ sizeof(m_stats_counter[0]); ++i)
-			m_stats_counter[i].store(0, boost::memory_order_relaxed);
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		for (auto& counter : m_stats_counter)
+			counter.store(0, std::memory_order_relaxed);
 #else
-		memset(m_stats_counter, 0, sizeof(m_stats_counter));
+		m_stats_counter.fill(0);
 #endif
 	}
 
-	counters::counters(counters const& c)
+	counters::counters(counters const& c) TORRENT_COUNTER_NOEXCEPT
 	{
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		for (int i = 0; i < sizeof(m_stats_counter)
-			/ sizeof(m_stats_counter[0]); ++i)
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		for (int i = 0; i < m_stats_counter.end_index(); ++i)
 			m_stats_counter[i].store(
-				c.m_stats_counter[i].load(boost::memory_order_relaxed)
-					, boost::memory_order_relaxed);
+				c.m_stats_counter[i].load(std::memory_order_relaxed)
+					, std::memory_order_relaxed);
 #else
-		mutex::scoped_lock l(c.m_mutex);
-		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
+		std::lock_guard<std::mutex> l(c.m_mutex);
+		m_stats_counter = c.m_stats_counter;
 #endif
 	}
 
-	counters& counters::operator=(counters const& c)
+	counters& counters::operator=(counters const& c) TORRENT_COUNTER_NOEXCEPT
 	{
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		for (int i = 0; i < sizeof(m_stats_counter)
-			/ sizeof(m_stats_counter[0]); ++i)
+		if (&c == this) return *this;
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		for (int i = 0; i < m_stats_counter.end_index(); ++i)
 			m_stats_counter[i].store(
-				c.m_stats_counter[i].load(boost::memory_order_relaxed)
-					, boost::memory_order_relaxed);
+				c.m_stats_counter[i].load(std::memory_order_relaxed)
+					, std::memory_order_relaxed);
 #else
-		mutex::scoped_lock l(m_mutex);
-		mutex::scoped_lock l2(c.m_mutex);
-		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
+		std::lock_guard<std::mutex> l(m_mutex);
+		std::lock_guard<std::mutex> l2(c.m_mutex);
+		m_stats_counter = c.m_stats_counter;
 #endif
 		return *this;
 	}
 
-	boost::int64_t counters::operator[](int i) const
+	std::int64_t counters::operator[](int i) const TORRENT_COUNTER_NOEXCEPT
 	{
 		TORRENT_ASSERT(i >= 0);
 		TORRENT_ASSERT(i < num_counters);
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(m_stats_counter[i]);
-#endif
 
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		return m_stats_counter[i].load(boost::memory_order_relaxed);
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		return m_stats_counter[i].load(std::memory_order_relaxed);
 #else
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		return m_stats_counter[i];
 #endif
 	}
 
 	// the argument specifies which counter to
 	// increment or decrement
-	boost::int64_t counters::inc_stats_counter(int c, boost::int64_t value)
+	std::int64_t counters::inc_stats_counter(int const c, std::int64_t const value) TORRENT_COUNTER_NOEXCEPT
 	{
 		// if c >= num_stats_counters, it means it's not
 		// a monotonically increasing counter, but a gauge
@@ -109,51 +99,51 @@ namespace libtorrent {
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
 
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		boost::int64_t pv = m_stats_counter[c].fetch_add(value, boost::memory_order_relaxed);
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		std::int64_t pv = m_stats_counter[c].fetch_add(value, std::memory_order_relaxed);
 		TORRENT_ASSERT(pv + value >= 0);
 		return pv + value;
 #else
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		TORRENT_ASSERT(m_stats_counter[c] + value >= 0);
 		return m_stats_counter[c] += value;
 #endif
 	}
 
-	// ratio is a vaue between 0 and 100 representing the percentage the value
+	// ratio is a value between 0 and 100 representing the percentage the value
 	// is blended in at.
-	void counters::blend_stats_counter(int c, boost::int64_t value, int ratio)
+	void counters::blend_stats_counter(int const c, std::int64_t const value, int const ratio) TORRENT_COUNTER_NOEXCEPT
 	{
 		TORRENT_ASSERT(c >= num_stats_counters);
 		TORRENT_ASSERT(c < num_counters);
 		TORRENT_ASSERT(ratio >= 0);
 		TORRENT_ASSERT(ratio <= 100);
 
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		boost::int64_t current = m_stats_counter[c].load(boost::memory_order_relaxed);
-		boost::int64_t new_value = (current * (100-ratio) + value * ratio) / 100;
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		std::int64_t current = m_stats_counter[c].load(std::memory_order_relaxed);
+		std::int64_t new_value = (current * (100 - ratio) + value * ratio) / 100;
 
 		while (!m_stats_counter[c].compare_exchange_weak(current, new_value
-			, boost::memory_order_relaxed))
+			, std::memory_order_relaxed))
 		{
-			new_value = (current * (100-ratio) + value * ratio) / 100;
+			new_value = (current * (100 - ratio) + value * ratio) / 100;
 		}
 #else
-		mutex::scoped_lock l(m_mutex);
-		boost::int64_t current = m_stats_counter[c];
-		m_stats_counter[c] = (current * (100-ratio) + value * ratio) / 100;
+		std::lock_guard<std::mutex> l(m_mutex);
+		std::int64_t current = m_stats_counter[c];
+		m_stats_counter[c] = (current * (100 - ratio) + value * ratio) / 100;
 #endif
 	}
 
-	void counters::set_value(int c, boost::int64_t value)
+	void counters::set_value(int const c, std::int64_t const value) TORRENT_COUNTER_NOEXCEPT
 	{
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
 
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+#ifdef ATOMIC_LLONG_LOCK_FREE
 		m_stats_counter[c].store(value);
 #else
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 
 		// if this assert fires, someone is trying to decrement a counter
 		// which is not allowed. Counters are monotonically increasing
@@ -164,4 +154,3 @@ namespace libtorrent {
 	}
 
 }
-

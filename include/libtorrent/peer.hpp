@@ -38,14 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT peer_entry
 	{
 		std::string hostname;
 		peer_id pid;
-		boost::uint16_t port;
+		std::uint16_t port;
 
 		bool operator==(const peer_entry& p) const
 		{ return pid == p.pid; }
@@ -57,18 +56,15 @@ namespace libtorrent
 	struct ipv4_peer_entry
 	{
 		address_v4::bytes_type ip;
-		boost::uint16_t port;
+		std::uint16_t port;
 	};
 
-#if TORRENT_USE_IPV6
 	struct ipv6_peer_entry
 	{
 		address_v6::bytes_type ip;
-		boost::uint16_t port;
+		std::uint16_t port;
 	};
-#endif
 
 }
 
 #endif // TORRENT_PEER_HPP_INCLUDED
-

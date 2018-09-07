@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #ifdef TORRENT_PRODUCTION_ASSERTS
-#include <boost/atomic.hpp>
+#include <atomic>
 #endif
 
 #if TORRENT_USE_ASSERTS \
@@ -53,7 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <cstdarg>
 #include <cstdio> // for snprintf
-#include <boost/array.hpp>
+#include <cinttypes> // for PRId64 et.al.
+#include <array>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -63,12 +64,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cxxabi.h>
 
+namespace libtorrent {
 std::string demangle(char const* name)
 {
 // in case this string comes
 	// this is needed on linux
-	char const* start = strchr(name, '(');
-	if (start != NULL)
+	char const* start = std::strchr(name, '(');
+	if (start != nullptr)
 	{
 		++start;
 	}
@@ -76,35 +78,37 @@ std::string demangle(char const* name)
 	{
 		// this is needed on macos x
 		start = strstr(name, "0x");
-		if (start != NULL)
+		if (start != nullptr)
 		{
-			start = strchr(start, ' ');
-			if (start != NULL) ++start;
+			start = std::strchr(start, ' ');
+			if (start != nullptr) ++start;
 			else start = name;
 		}
 		else start = name;
 	}
 
-	char const* end = strchr(start, '+');
+	char const* end = std::strchr(start, '+');
 	if (end) while (*(end-1) == ' ') --end;
 
 	std::string in;
-	if (end == NULL) in.assign(start);
+	if (end == nullptr) in.assign(start);
 	else in.assign(start, end);
 
 	size_t len;
 	int status;
-	char* unmangled = ::abi::__cxa_demangle(in.c_str(), NULL, &len, &status);
-	if (unmangled == NULL) return in;
+	char* unmangled = ::abi::__cxa_demangle(in.c_str(), nullptr, &len, &status);
+	if (unmangled == nullptr) return in;
 	std::string ret(unmangled);
-	free(unmangled);
+	::free(unmangled);
 	return ret;
+}
 }
 #elif defined _WIN32
 
 #include "windows.h"
 #include "dbghelp.h"
 
+namespace libtorrent {
 std::string demangle(char const* name)
 {
 	char demangled_name[256];
@@ -112,9 +116,12 @@ std::string demangle(char const* name)
 		demangled_name[0] = 0;
 	return demangled_name;
 }
+}
 
 #else
+namespace libtorrent {
 std::string demangle(char const* name) { return name; }
+}
 #endif
 
 #include <cstdlib>
@@ -125,39 +132,44 @@ std::string demangle(char const* name) { return name; }
 #if TORRENT_USE_EXECINFO
 #include <execinfo.h>
 
+namespace libtorrent {
+
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 {
 	void* stack[50];
-	int size = backtrace(stack, 50);
-	char** symbols = backtrace_symbols(stack, size);
+	int size = ::backtrace(stack, 50);
+	char** symbols = ::backtrace_symbols(stack, size);
 
 	for (int i = 1; i < size && len > 0; ++i)
 	{
-		int ret = snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
+		int ret = std::snprintf(out, std::size_t(len), "%d: %s\n", i, demangle(symbols[i]).c_str());
 		out += ret;
 		len -= ret;
 		if (i - 1 == max_depth && max_depth > 0) break;
 	}
 
-	free(symbols);
+	::free(symbols);
+}
 }
 
 #elif defined _WIN32
 
 #include "windows.h"
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/thread.hpp"
+#include <mutex>
 
 #include "winbase.h"
 #include "dbghelp.h"
+
+namespace libtorrent {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	, void* ctx)
 {
 	// all calls to DbgHlp.dll are thread-unsafe. i.e. they all need to be
 	// synchronized and not called concurrently. This mutex serializes access
-	static libtorrent::mutex dbghlp_mutex;
-	libtorrent::mutex::scoped_lock l(dbghlp_mutex);
+	static std::mutex dbghlp_mutex;
+	std::lock_guard<std::mutex> l(dbghlp_mutex);
 
 	CONTEXT context_record;
 	if (ctx)
@@ -171,10 +183,9 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	}
 
 	int size = 0;
-	boost::array<void*, 50> stack;
+	std::array<void*, 50> stack;
 
-	STACKFRAME64 stack_frame;
-	memset(&stack_frame, 0, sizeof(stack_frame));
+	STACKFRAME64 stack_frame = {};
 #if defined(_WIN64)
 	int const machine_type = IMAGE_FILE_MACHINE_AMD64;
 	stack_frame.AddrPC.Offset = context_record.Rip;
@@ -194,10 +205,10 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 		GetCurrentThread(),
 		&stack_frame,
 		&context_record,
-		NULL,
+		nullptr,
 		&SymFunctionTableAccess64,
 		&SymGetModuleBase64,
-		NULL) && size < stack.size())
+		nullptr) && size < int(stack.size()))
 	{
 		stack[size++] = reinterpret_cast<void*>(stack_frame.AddrPC.Offset);
 	}
@@ -212,7 +223,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	if (!sym_initialized)
 	{
 		sym_initialized = true;
-		SymInitialize(p, NULL, true);
+		SymInitialize(p, nullptr, true);
 	}
 	SymRefreshModuleList(p);
 	for (int i = 0; i < size && len > 0; ++i)
@@ -231,53 +242,61 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 		BOOL const has_line = SymGetLineFromAddr64(GetCurrentProcess(), frame_ptr,
 			&line_displacement, &line);
 
-		int ret = snprintf(out, len, "%2d: %p", i, stack[i]);
+		int ret = std::snprintf(out, len, "%2d: %p", i, stack[i]);
 		out += ret; len -= ret; if (len <= 0) break;
 
 		if (has_symbol)
 		{
-			ret = snprintf(out, len, " %s +%-4" PRId64
+			ret = std::snprintf(out, len, " %s +%-4" PRId64
 				, demangle(symbol.Name).c_str(), displacement);
 			out += ret; len -= ret; if (len <= 0) break;
 		}
 
 		if (has_line)
 		{
-			ret = snprintf(out, len, " %s:%d"
-				, line.FileName, line.LineNumber);
+			ret = std::snprintf(out, len, " %s:%d"
+				, line.FileName, int(line.LineNumber));
 			out += ret; len -= ret; if (len <= 0) break;
 		}
 
 
-		ret = snprintf(out, len, "\n");
+		ret = std::snprintf(out, len, "\n");
 		out += ret;
 		len -= ret;
 
 		if (i == max_depth && max_depth > 0) break;
 	}
 }
+}
 
 #else
+
+namespace libtorrent {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int /*max_depth*/, void* /* ctx */)
 {
 	out[0] = 0;
-	strncat(out, "<not supported>", len);
+	std::strncat(out, "<not supported>", std::size_t(len));
+}
+
 }
 
 #endif
 
 #endif
 
-#if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
-
-#ifdef TORRENT_PRODUCTION_ASSERTS
+#if (TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING) && \
+	defined TORRENT_PRODUCTION_ASSERTS
 char const* libtorrent_assert_log = "asserts.log";
 namespace {
 // the number of asserts we've printed to the log
-boost::atomic<int> assert_counter(0);
+std::atomic<int> assert_counter(0);
 }
 #endif
+
+namespace libtorrent {
+
+#if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
 
 TORRENT_FORMAT(1,2)
 TORRENT_EXPORT void assert_print(char const* fmt, ...)
@@ -286,13 +305,13 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 	if (assert_counter > 500) return;
 
 	FILE* out = fopen(libtorrent_assert_log, "a+");
-	if (out == 0) out = stderr;
+	if (out == nullptr) out = stderr;
 #else
 	FILE* out = stderr;
 #endif
 	va_list va;
 	va_start(va, fmt);
-	vfprintf(out, fmt, va);
+	std::vfprintf(out, fmt, va);
 	va_end(va);
 
 #ifdef TORRENT_PRODUCTION_ASSERTS
@@ -352,14 +371,15 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 
 	// if production asserts are defined, don't abort, just print the error
 #ifndef TORRENT_PRODUCTION_ASSERTS
-	#ifdef _MSC_VER
-	__debugbreak();
-	#else
+#ifdef TORRENT_WINDOWS
+	// SIGINT doesn't trigger a break with msvc
+	DebugBreak();
+#else
 	// send SIGINT to the current process
 	// to break into the debugger
-	raise(SIGABRT);
-	abort();
-	#endif
+	::raise(SIGABRT);
+#endif
+	::abort();
 #endif
 }
 
@@ -378,4 +398,6 @@ TORRENT_EXPORT void assert_fail(char const*, int, char const*
 	, char const*, char const*, int) {}
 
 #endif
+
+} // libtorrent namespace
 

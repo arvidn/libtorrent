@@ -33,32 +33,34 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DHT_STORAGE_HPP
 #define TORRENT_DHT_STORAGE_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <functional>
 
-#include <boost/function.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/types.hpp>
 
 #include <libtorrent/socket.hpp>
-#include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
+#include <libtorrent/span.hpp>
+#include <libtorrent/string_view.hpp>
 
-namespace libtorrent
-{
-	struct dht_settings;
+namespace libtorrent {
+
 	class entry;
 }
 
-namespace libtorrent {
-namespace dht
-{
+namespace libtorrent { namespace dht {
+	struct dht_settings;
+
 	// This structure hold the relevant counters for the storage
 	struct TORRENT_EXPORT dht_storage_counters
 	{
-		boost::int32_t torrents;
-		boost::int32_t peers;
-		boost::int32_t immutable_data;
-		boost::int32_t mutable_data;
+		std::int32_t torrents = 0;
+		std::int32_t peers = 0;
+		std::int32_t immutable_data = 0;
+		std::int32_t mutable_data = 0;
+
+		// This member function set the counters to zero.
+		void reset();
 	};
 
 	// The DHT storage interface is a pure virtual class that can
@@ -71,10 +73,12 @@ namespace dht
 	// libtorrent comes with one built-in storage implementation:
 	// ``dht_default_storage`` (private non-accessible class). Its
 	// constructor function is called dht_default_storage_constructor().
+	// You should know that if this storage becomes full of DHT items,
+	// the current implementation could degrade in performance.
 	//
 	struct TORRENT_EXPORT dht_storage_interface
 	{
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 		// This function returns the number of torrents tracked by
 		// the DHT at the moment. It's used to fill session_status.
 		// It's deprecated.
@@ -88,6 +92,13 @@ namespace dht
 		virtual size_t num_peers() const = 0;
 #endif
 
+		// This member function notifies the list of all node's ids
+		// of each DHT running inside libtorrent. It's advisable
+		// that the concrete implementation keeps a copy of this list
+		// for an eventual prioritization when deleting an element
+		// to make room for a new one.
+		virtual void update_node_ids(std::vector<node_id> const& ids) = 0;
+
 		// This function retrieve the peers tracked by the DHT
 		// corresponding to the given info_hash. You can specify if
 		// you want only seeds and/or you are scraping the data.
@@ -96,8 +107,8 @@ namespace dht
 		// If the torrent tracked contains a name, such a name
 		// must be stored as a string in peers["n"]
 		//
-		// If the scrape parameter is true, you should fill these keys::
-		// 
+		// If the scrape parameter is true, you should fill these keys:
+		//
 		//    peers["BFpe"] - with the standard bit representation of a
 		//                    256 bloom filter containing the downloaders
 		//    peers["BFsd"] - with the standard bit representation of a
@@ -109,11 +120,11 @@ namespace dht
 		// consider the value of dht_settings::max_peers_reply.
 		// If noseed is true only peers marked as no seed should be included.
 		//
-		// returns true if an entry with the info_hash is found and
-		// the data is returned inside the (entry) out parameter peers.
+		// returns true if the maximum number of peers are stored
+		// for this info_hash.
 		//
 		virtual bool get_peers(sha1_hash const& info_hash
-			, bool noseed, bool scrape
+			, bool noseed, bool scrape, address const& requester
 			, entry& peers) const = 0;
 
 		// This function is named announce_peer for consistency with the
@@ -128,7 +139,7 @@ namespace dht
 		//
 		virtual void announce_peer(sha1_hash const& info_hash
 			, tcp::endpoint const& endp
-			, std::string const& name, bool seed) = 0;
+			, string_view name, bool seed) = 0;
 
 		// This function retrieves the immutable item given its target hash.
 		//
@@ -150,7 +161,7 @@ namespace dht
 		// dht_settings::max_dht_items.
 		//
 		virtual void put_immutable_item(sha1_hash const& target
-			, char const* buf, int size
+			, span<char const> buf
 			, address const& addr) = 0;
 
 		// This function retrieves the sequence number of a mutable item.
@@ -159,7 +170,7 @@ namespace dht
 		// inside the out parameter seq.
 		//
 		virtual bool get_mutable_item_seq(sha1_hash const& target
-			, boost::int64_t& seq) const = 0;
+			, sequence_number& seq) const = 0;
 
 		// This function retrieves the mutable stored in the DHT.
 		//
@@ -175,7 +186,7 @@ namespace dht
 		// inside the (entry) out parameter item.
 		//
 		virtual bool get_mutable_item(sha1_hash const& target
-			, boost::int64_t seq, bool force_fill
+			, sequence_number seq, bool force_fill
 			, entry& item) const = 0;
 
 		// Store the item's data. This layer is only for storage.
@@ -187,12 +198,27 @@ namespace dht
 		// dht_settings::max_dht_items.
 		//
 		virtual void put_mutable_item(sha1_hash const& target
-			, char const* buf, int size
-			, char const* sig
-			, boost::int64_t seq
-			, char const* pk
-			, char const* salt, int salt_size
+			, span<char const> buf
+			, signature const& sig
+			, sequence_number seq
+			, public_key const& pk
+			, span<char const> salt
 			, address const& addr) = 0;
+
+		// This function retrieves a sample info-hashes
+		//
+		// For implementers:
+		// The info-hashes should be stored in ["samples"] (N × 20 bytes).
+		// the following keys should be filled
+		// item["interval"] - the subset refresh interval in seconds.
+		// item["num"] - number of info-hashes in storage.
+		//
+		// Internally, this function is allowed to lazily evaluate, cache
+		// and modify the actual sample to put in ``item``
+		//
+		// returns the number of info-hashes in the sample.
+		//
+		virtual int get_infohashes_sample(entry& item) = 0;
 
 		// This function is called periodically (non-constant frequency).
 		//
@@ -207,11 +233,11 @@ namespace dht
 		virtual ~dht_storage_interface() {}
 	};
 
-	typedef boost::function<dht_storage_interface*(sha1_hash const& id
-		, dht_settings const& settings)> dht_storage_constructor_type;
+	using dht_storage_constructor_type
+		= std::function<std::unique_ptr<dht_storage_interface>(dht_settings const& settings)>;
 
-	TORRENT_EXPORT dht_storage_interface* dht_default_storage_constructor(sha1_hash const& id
-		, dht_settings const& settings);
+	TORRENT_EXPORT std::unique_ptr<dht_storage_interface>
+		dht_default_storage_constructor(dht_settings const& settings);
 
 } } // namespace libtorrent::dht
 

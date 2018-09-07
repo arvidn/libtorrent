@@ -33,15 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp" // for ::create_torrent
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include <fstream>
 
-namespace lt = libtorrent;
 
 std::string save_path(int idx)
 {
-	int swarm_id = test_counter();
+	int const swarm_id = test_counter();
 	char path[200];
-	snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
+	std::snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
 		, swarm_id, idx);
 	return path;
 }
@@ -54,11 +54,11 @@ lt::add_torrent_params create_torrent(int const idx, bool const seed
 	lt::add_torrent_params params;
 	int swarm_id = test_counter();
 	char name[200];
-	snprintf(name, sizeof(name), "temp-%02d", swarm_id);
+	std::snprintf(name, sizeof(name), "temp-%02d", swarm_id);
 	std::string path = save_path(idx);
 	lt::error_code ec;
 	lt::create_directory(path, ec);
-	if (ec) fprintf(stderr, "failed to create directory: \"%s\": %s\n"
+	if (ec) std::printf("failed to create directory: \"%s\": %s\n"
 		, path.c_str(), ec.message().c_str());
 	std::ofstream file(lt::combine_path(path, name).c_str());
 	params.ti = ::create_torrent(&file, name, 0x4000, num_pieces + idx, false);

@@ -36,17 +36,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht {
 
-namespace dht_detail {
-
-bool verify_message(bdecode_node const& message, key_desc_t const desc[]
-	, bdecode_node ret[], int size, char* error, int error_size)
+bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> desc
+	, span<bdecode_node> ret, span<char> error)
 {
+	TORRENT_ASSERT(desc.size() == ret.size());
+
+	std::size_t const size = ret.size();
+
 	// get a non-root bdecode_node that still
 	// points to the root. message should not be copied
 	bdecode_node msg = message.non_owning();
 
 	// clear the return buffer
-	for (int i = 0; i < size; ++i)
+	for (std::size_t i = 0; i < size; ++i)
 		ret[i].clear();
 
 	// when parsing child nodes, this is the stack
@@ -56,25 +58,25 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 
 	if (msg.type() != bdecode_node::dict_t)
 	{
-		snprintf(error, error_size, "not a dictionary");
+		std::snprintf(error.data(), error.size(), "not a dictionary");
 		return false;
 	}
 	++stack_ptr;
 	stack[stack_ptr] = msg;
-	for (int i = 0; i < size; ++i)
+	for (std::size_t i = 0; i < size; ++i)
 	{
 		key_desc_t const& k = desc[i];
 
-		//		fprintf(stderr, "looking for %s in %s\n", k.name, print_entry(*msg).c_str());
+		//		std::fprintf(stderr, "looking for %s in %s\n", k.name, print_entry(*msg).c_str());
 
 		ret[i] = msg.dict_find(k.name);
 		// none_t means any type
 		if (ret[i] && ret[i].type() != k.type && k.type != bdecode_node::none_t)
 			ret[i].clear();
-		if (ret[i] == 0 && (k.flags & key_desc_t::optional) == 0)
+		if (!ret[i] && (k.flags & key_desc_t::optional) == 0)
 		{
 			// the key was not found, and it's not an optional key
-			snprintf(error, error_size, "missing '%s' key", k.name);
+			std::snprintf(error.data(), error.size(), "missing '%s' key", k.name);
 			return false;
 		}
 
@@ -82,11 +84,9 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 			&& ret[i]
 			&& k.type == bdecode_node::string_t)
 		{
-			bool invalid = false;
-			if (k.flags & key_desc_t::size_divisible)
-				invalid = (ret[i].string_length() % k.size) != 0;
-			else
-				invalid = ret[i].string_length() != k.size;
+			bool const invalid = k.flags & key_desc_t::size_divisible
+				? (ret[i].string_length() % k.size) != 0
+				: ret[i].string_length() != k.size;
 
 			if (invalid)
 			{
@@ -94,7 +94,7 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 				ret[i].clear();
 				if ((k.flags & key_desc_t::optional) == 0)
 				{
-					snprintf(error, error_size, "invalid value for '%s'", k.name);
+					std::snprintf(error.data(), error.size(), "invalid value for '%s'", k.name);
 					return false;
 				}
 			}
@@ -130,16 +130,6 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 		}
 	}
 	return true;
-}
-
-}
-
-void incoming_error(entry& e, char const* msg, int error_code)
-{
-	e["y"] = "e";
-	entry::list_type& l = e["e"].list();
-	l.push_back(entry(error_code));
-	l.push_back(entry(msg));
 }
 
 } }

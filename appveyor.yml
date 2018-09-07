@@ -1,78 +1,40 @@
-version: 1.0.{build}
+version: "{build}"
 branches:
   only:
   - master
   - RC_1_1
+  - RC_1_0
+os: Visual Studio 2015
 clone_depth: 1
 environment:
   matrix:
   - variant: test_debug
     compiler: msvc-14.0
-    os: Visual Studio 2015
+    model: 64
     sim: 1
   - variant: test_debug
-    compiler: msvc-12.0
-    os: Visual Studio 2013
-    x64: 1
-  - variant: test_debug
-    python_package: 1
-    compiler: msvc-10.0
-    os: Visual Studio 2015
-  - variant: test_barebones
-    compiler: msvc-12.0
-    os: Visual Studio 2013
+    compiler: msvc-14.0
+    model: 32
   - variant: test_release
-    compiler: msvc-12.0
-    os: Visual Studio 2013
-
-# mingw and boost.random don't like each other. Comment this back in once there
-# is support
-
-#  - variant: test_debug
-#    compiler: gcc
-#    linkflags: '"-LC:\\OpenSSL-Win32\\lib"'
+    compiler: msvc-14.0
+    model: 64
+    python: 1
+    crypto: openssl
+    cmake: 1
+  - variant: test_debug
+    compiler: gcc
+    model: 32
+    crypto: openssl
 
 install:
-- if defined sim ( git submodule update --init --recursive )
+- git submodule update --init --recursive
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
-- if %compiler% == msvc-12.0 (
-    if not exist openssl-1.0.1p-vs2013.7z (
-      echo downloading openssl-2013
-      & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2013.7z"
-    )
+- if %compiler% == msvc-14.0 if defined crypto if not exist openssl-1.0.1p-vs2015.7z (
+    echo downloading openssl-2015
+    & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
   )
-- if %compiler% == msvc-12.0 (
-    echo extracting openssl-2013
-    & 7z x -oc:\ -aoa openssl-1.0.1p-vs2013.7z > nul
-    & rename c:\openssl-1.0.1p-vs2013 openssl
-    & copy c:\openssl\lib64\ssleay32MT.lib c:\openssl\lib64\ssleay32.lib
-    & copy c:\openssl\lib64\libeay32MT.lib c:\openssl\lib64\libeay32.lib
-    & copy c:\openssl\lib\ssleay32MT.lib c:\openssl\lib\ssleay32.lib
-    & copy c:\openssl\lib\libeay32MT.lib c:\openssl\lib\libeay32.lib
-  )
-- if %compiler% == msvc-10.0 (
-    if not exist openssl-1.0.1p-vs2010.7z (
-      echo downloading openssl-2010
-      & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2010.7z"
-    )
-  )
-- if %compiler% == msvc-10.0 (
-    echo extracting openssl-2010
-    & 7z x -oc:\ -aoa openssl-1.0.1p-vs2010.7z > nul
-    & rename c:\openssl-1.0.1p-vs2010 openssl
-    & copy c:\openssl\lib64\ssleay32MT.lib c:\openssl\lib64\ssleay32.lib
-    & copy c:\openssl\lib64\libeay32MT.lib c:\openssl\lib64\libeay32.lib
-    & copy c:\openssl\lib\ssleay32MT.lib c:\openssl\lib\ssleay32.lib
-    & copy c:\openssl\lib\libeay32MT.lib c:\openssl\lib\libeay32.lib
-  )
-- if %compiler% == msvc-14.0 (
-    if not exist openssl-1.0.1p-vs2015.7z (
-      echo downloading openssl-2015
-      & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
-    )
-  )
-- if %compiler% == msvc-14.0 (
+- if %compiler% == msvc-14.0 if defined crypto (
     echo extracting openssl-2015
     & 7z x -oc:\ -aoa openssl-1.0.1p-vs2015.7z > nul
     & rename c:\openssl-1.0.1p-vs2015 openssl
@@ -81,19 +43,19 @@ install:
     & copy c:\openssl\lib\ssleay32MT.lib c:\openssl\lib\ssleay32.lib
     & copy c:\openssl\lib\libeay32MT.lib c:\openssl\lib\libeay32.lib
   )
+- if not defined crypto ( set crypto=built-in )
+- if not defined linkflags ( set linkflags="" )
+- if not defined include ( set include="" )
 - cd %ROOT_DIRECTORY%
 - set BOOST_ROOT=c:\Libraries\boost_1_63_0
 - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
 - echo %BOOST_ROOT%
 - echo %BOOST_BUILD_PATH%
 - set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
-- 'echo using msvc : 10.0 ; >%HOMEDRIVE%%HOMEPATH%/user-config.jam'
-- 'echo using msvc : 14.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
-- 'echo using msvc : 12.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
-- 'echo using msvc : 9.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
+- ps: '"using msvc : 14.0 ;`nusing gcc : : : <cxxflags>-std=c++11 ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
 - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
 - cd %ROOT_DIRECTORY%
-- set PATH=%PATH%;c:\Mingw\bin
+- set PATH=c:\msys64\mingw32\bin;%PATH%
 - g++ --version
 - python --version
 - echo %ROOT_DIRECTORY%
@@ -102,36 +64,62 @@ install:
 - cd %ROOT_DIRECTORY%
 
 cache:
-- openssl-1.0.1p-vs2010.7z
-- openssl-1.0.1p-vs2013.7z
 - openssl-1.0.1p-vs2015.7z
 
 build_script:
-- if not defined x64 (
-  cd %ROOT_DIRECTORY%\examples
-  & if %compiler% == msvc-14.0 (
-    b2.exe --hash -j2 crypto=openssl openssl-version=pre1.1 address-model=32 %compiler% variant=%variant% debug-iterators=on picker-debugging=on invariant-checks=full link=shared bt-get bt-get2
-  ) else (
-    b2.exe --hash -j2 crypto=openssl openssl-version=pre1.1 address-model=32 %compiler% variant=%variant% debug-iterators=on picker-debugging=on invariant-checks=full link=shared
+# examples
+- cd %ROOT_DIRECTORY%\examples
+- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto%
+
+# tools
+- cd %ROOT_DIRECTORY%\tools
+- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto%
+
+# test
+- cd %ROOT_DIRECTORY%\test
+- b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests test_upnp test_natpmp testing.execute=off
+
+# python binding
+- cd %ROOT_DIRECTORY%\bindings\python
+# we use 64 bit python builds
+- if defined python (
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% libtorrent-link=shared stage_module stage_dependencies
   )
-  & cd %ROOT_DIRECTORY%\bindings\python
-  & b2.exe --hash -j2 openssl-version=pre1.1 %compiler% stage_module install-dependencies=on variant=%variant% libtorrent-link=shared crypto=openssl
-  & python test.py
-  & if defined python_package ( python setup.py --bjam bdist_msi )
+
+# simulations
+- cd %ROOT_DIRECTORY%\simulation
+- if defined sim (
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP testing.execute=off
+  )
+
+# minimal support for cmake build
+- cd %ROOT_DIRECTORY%
+- mkdir build && cd build
+- if defined cmake (
+  set "PATH=c:\Python27-x64;%PATH%" &&
+  cmake -DCMAKE_CXX_FLAGS="/WX /wd4244 /wd4459" -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 14 2015 Win64" .. &&
+  cmake --build . --config Release
   )
 
 test_script:
 - cd %ROOT_DIRECTORY%\test
-- if defined x64 (
-  appveyor-retry b2.exe -l400 --hash -j2 openssl-version=pre1.1 address-model=64 win-tests %compiler% variant=%variant% link=shared
-  ) else (
-  appveyor-retry b2.exe -l400 --hash -j2 openssl-version=pre1.1 address-model=32 win-tests %compiler% variant=%variant% link=shared
-  )
-- if defined sim (
-  cd %ROOT_DIRECTORY%\simulation
-  & b2.exe --hash -j2 openssl-version=pre1.1 link=shared crypto=built-in %compiler%
+- appveyor-retry b2.exe -l400 --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests
+
+- cd %ROOT_DIRECTORY%\bindings\python
+# we use 64 bit python build
+- if defined python (
+  copy dependencies\*.* .
+  & c:\Python35-x64\python.exe test.py -b
   )
 
-artifacts:
-  - path: bindings\python\dist\*.msi
-    name: python-binding-win32
+# simulation tests
+# debug iterators are turned off here because msvc has issues with noexcept
+# specifiers when debug iterators are enabled. Specifically, constructors that
+# allocate memory are still marked as noexcept. That results in program
+# termination
+# the IOCP backend in asio appears to have an issue where it hangs under
+# certain unexpected terminations (through exceptions)
+- cd %ROOT_DIRECTORY%\simulation
+- if defined sim (
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP
+  )

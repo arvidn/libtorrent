@@ -30,12 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-
 #ifndef TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
 
-namespace libtorrent
-{
+#include "libtorrent/aux_/export.hpp"
+
+namespace libtorrent {
+
 	struct TORRENT_EXTRA_EXPORT bandwidth_socket
 	{
 		virtual void assign_bandwidth(int channel, int amount) = 0;
@@ -45,4 +46,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
-

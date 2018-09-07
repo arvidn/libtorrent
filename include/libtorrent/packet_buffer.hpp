@@ -34,11 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PACKET_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "boost/cstdint.hpp"
+#include "libtorrent/aux_/unique_ptr.hpp"
+#include "libtorrent/packet_pool.hpp" // for packet_ptr/packet_deleter
+#include <cstdint>
 #include <cstddef>
+#include <memory> // for unique_ptr
 
-namespace libtorrent
-{
+namespace libtorrent {
+
+	struct packet;
+
 	// this is a circular buffer that automatically resizes
 	// itself as elements are inserted. Elements are indexed
 	// by integers and are assumed to be sequential. Unless the
@@ -66,77 +71,47 @@ namespace libtorrent
 	// whenever the element at the cursor is removed, the
 	// cursor is bumped to the next occupied element
 
-	class TORRENT_EXTRA_EXPORT packet_buffer_impl
+	class TORRENT_EXTRA_EXPORT packet_buffer
 	{
 	public:
-		typedef boost::uint32_t index_type;
+		using index_type = std::uint32_t;
 
-		packet_buffer_impl();
-		~packet_buffer_impl();
+		packet_ptr insert(index_type idx, packet_ptr value);
 
-		void* insert(index_type idx, void* value);
-
-		std::size_t size() const
+		int size() const
 		{ return m_size; }
 
-		std::size_t capacity() const
+		std::uint32_t capacity() const
 		{ return m_capacity; }
 
-		void* at(index_type idx) const;
+		packet* at(index_type idx) const;
 
-		void* remove(index_type idx);
+		packet_ptr remove(index_type idx);
 
-		void reserve(std::size_t size);
+		void reserve(std::uint32_t size);
 
-		index_type cursor() const
-		{ return m_first; }
+		index_type cursor() const { return m_first; }
 
-		index_type span() const
-		{ return (m_last - m_first) & 0xffff; }
+		index_type span() const { return (m_last - m_first) & 0xffff; }
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 
 	private:
-		void** m_storage;
-		std::size_t m_capacity;
+		aux::unique_ptr<packet_ptr[], index_type> m_storage;
+		std::uint32_t m_capacity = 0;
 
 		// this is the total number of elements that are occupied
 		// in the array
-		std::size_t m_size;
+		int m_size = 0;
 
 		// This defines the first index that is part of the m_storage.
 		// last is one passed the last used slot
-		index_type m_first;
-		index_type m_last;
-	};
-
-	template <typename T>
-	class packet_buffer : packet_buffer_impl
-	{
-	public:
-
-		using packet_buffer_impl::index_type;
-		using packet_buffer_impl::size;
-		using packet_buffer_impl::capacity;
-		using packet_buffer_impl::reserve;
-		using packet_buffer_impl::cursor;
-		using packet_buffer_impl::span;
-
-		T* insert(index_type i, T* p)
-		{
-			return static_cast<T*>(packet_buffer_impl::insert(i, p));
-		}
-
-		T* at(index_type idx) const
-		{ return static_cast<T*>(packet_buffer_impl::at(idx)); }
-
-		T* remove(index_type idx)
-		{ return static_cast<T*>(packet_buffer_impl::remove(idx)); }
+		index_type m_first{0};
+		index_type m_last{0};
 	};
 
 }
 
 #endif // TORRENT_PACKET_BUFFER_HPP_INCLUDED
-

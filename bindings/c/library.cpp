@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/torrent_handle.hpp"
-#include <boost/bind.hpp>
 
 #include <libtorrent.h>
 #include <stdarg.h>
@@ -60,7 +59,8 @@ namespace
 	int add_handle(libtorrent::torrent_handle const& h)
 	{
 		std::vector<libtorrent::torrent_handle>::iterator i = std::find_if(handles.begin()
-			, handles.end(), !boost::bind(&libtorrent::torrent_handle::is_valid, _1));
+			, handles.end()
+			, [](libtorrent::torrent_handle const& h) { return !h.is_valid(); });
 		if (i != handles.end())
 		{
 			*i = h;
@@ -290,7 +290,7 @@ TORRENT_EXPORT void session_remove_torrent(void* ses, int tor, int flags)
 	if (!h.is_valid()) return;
 
 	session* s = (session*)ses;
-	s->remove_torrent(h, flags);	
+	s->remove_torrent(h, flags);
 }
 
 TORRENT_EXPORT int session_pop_alert(void* ses, char* dest, int len, int* category)

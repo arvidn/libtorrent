@@ -42,8 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator_interface
 	{
@@ -60,42 +59,47 @@ namespace libtorrent
 		~torrent_peer_allocator_interface() {}
 	};
 
-	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator TORRENT_FINAL
+	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator final
 		: torrent_peer_allocator_interface
 	{
-		torrent_peer_allocator();
+#if TORRENT_USE_ASSERTS
+		~torrent_peer_allocator() {
+			m_in_use = false;
+		}
+#endif
 
-		torrent_peer* allocate_peer_entry(int type);
-		void free_peer_entry(torrent_peer* p);
+		torrent_peer* allocate_peer_entry(int type) override;
+		void free_peer_entry(torrent_peer* p) override;
 
-		boost::uint64_t total_bytes() const { return m_total_bytes; }
-		boost::uint64_t total_allocations() const { return m_total_allocations; }
+		std::uint64_t total_bytes() const { return m_total_bytes; }
+		std::uint64_t total_allocations() const { return m_total_allocations; }
 		int live_bytes() const { return m_live_bytes; }
 		int live_allocations() const { return m_live_allocations; }
 
 	private:
-	
+
 		// this is a shared pool where torrent_peer objects
 		// are allocated. It's a pool since we're likely
 		// to have tens of thousands of peers, and a pool
 		// saves significant overhead
 
-		boost::pool<> m_ipv4_peer_pool;
-#if TORRENT_USE_IPV6
-		boost::pool<> m_ipv6_peer_pool;
-#endif
+		boost::pool<> m_ipv4_peer_pool{sizeof(libtorrent::ipv4_peer), 500};
+		boost::pool<> m_ipv6_peer_pool{sizeof(libtorrent::ipv6_peer), 500};
 #if TORRENT_USE_I2P
-		boost::pool<> m_i2p_peer_pool;
+		boost::pool<> m_i2p_peer_pool{sizeof(libtorrent::i2p_peer), 500};
 #endif
 
 		// the total number of bytes allocated (cumulative)
-		boost::uint64_t m_total_bytes;
+		std::uint64_t m_total_bytes = 0;
 		// the total number of allocations (cumulative)
-		boost::uint64_t m_total_allocations;
+		std::uint64_t m_total_allocations = 0;
 		// the number of currently live bytes
-		int m_live_bytes;
+		int m_live_bytes = 0;
 		// the number of currently live allocations
-		int m_live_allocations;
+		int m_live_allocations = 0;
+#if TORRENT_USE_ASSERTS
+		bool m_in_use = true;
+#endif
 	};
 }
 

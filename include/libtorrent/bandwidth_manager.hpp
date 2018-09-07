@@ -33,19 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <memory>
+#include <vector>
 
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include "libtorrent/socket.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
 #include "libtorrent/time.hpp"
 
@@ -53,7 +47,7 @@ namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT bandwidth_manager
 {
-	bandwidth_manager(int channel);
+	explicit bandwidth_manager(int channel);
 
 	void close();
 
@@ -62,14 +56,14 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 #endif
 
 	int queue_size() const;
-	boost::int64_t queued_bytes() const;
-	
+	std::int64_t queued_bytes() const;
+
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
 	// returns the number of bytes to assign to the peer, or 0
 	// if the peer's 'assign_bandwidth' callback will be called later
-	int request_bandwidth(boost::shared_ptr<bandwidth_socket> const& peer
+	int request_bandwidth(std::shared_ptr<bandwidth_socket> peer
 		, int blk, int priority, bandwidth_channel** chan, int num_channels);
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -81,10 +75,9 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 private:
 
 	// these are the consumers that want bandwidth
-	typedef std::vector<bw_request> queue_t;
-	queue_t m_queue;
+	std::vector<bw_request> m_queue;
 	// the number of bytes all the requests in queue are for
-	boost::int64_t m_queued_bytes;
+	std::int64_t m_queued_bytes;
 
 	// this is the channel within the consumers
 	// that bandwidth is assigned to (upload or download)
@@ -96,4 +89,3 @@ private:
 }
 
 #endif
-

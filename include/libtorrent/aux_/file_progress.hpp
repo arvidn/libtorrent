@@ -34,37 +34,44 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FILE_PROGRESS_HPP_INCLUDE
 
 #include <vector>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/vector.hpp"
+
+#if TORRENT_USE_INVARIANT_CHECKS
+#include "libtorrent/bitfield.hpp"
+#include "libtorrent/invariant_check.hpp"
+#endif
 
 #if TORRENT_USE_INVARIANT_CHECKS
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/bitfield.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 class piece_picker;
 class file_storage;
 class alert_manager;
 struct torrent_handle;
 
-namespace aux
-{
+namespace aux {
+
 	struct TORRENT_EXTRA_EXPORT file_progress
 	{
-		file_progress();
+		file_progress() = default;
 
 		void init(piece_picker const& picker
 			, file_storage const& fs);
 
-		void export_progress(std::vector<boost::int64_t> &fp);
+		void export_progress(vector<std::int64_t, file_index_t> &fp);
 
 		bool empty() const { return m_file_progress.empty(); }
 		void clear();
 
-		void update(file_storage const& fs, int index
+		void update(file_storage const& fs, piece_index_t index
 			, alert_manager* alerts, torrent_handle const& h);
 
 	private:
@@ -74,21 +81,20 @@ namespace aux
 		// this lets us trigger on individual files completing
 		// the vector is allocated lazily, when file progress
 		// is first queried by the client
-		std::vector<boost::uint64_t> m_file_progress;
+		vector<std::int64_t, file_index_t> m_file_progress;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend class libtorrent::invariant_access;
 		void check_invariant() const;
+
 		// this is used to assert we never add the same piece twice
-		bitfield m_have_pieces;
+		typed_bitfield<piece_index_t> m_have_pieces;
 
 		// to make sure we never say we've downloaded more bytes of a file than
 		// its file size
-		std::vector<boost::int64_t> m_file_sizes;
+		vector<std::int64_t, file_index_t> m_file_sizes;
 #endif
-
 	};
 } }
 
 #endif
-

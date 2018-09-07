@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+from __future__ import print_function
 
 import glob
 import os
@@ -9,18 +11,18 @@ dump = '--dump' in sys.argv
 internal = '--internal' in sys.argv
 plain_output = '--plain-output' in sys.argv
 if plain_output:
-	plain_file = open('plain_text_out.txt', 'w+')
+    plain_file = open('plain_text_out.txt', 'w+')
 in_code = None
 
 paths = ['include/libtorrent/*.hpp', 'include/libtorrent/kademlia/*.hpp', 'include/libtorrent/extensions/*.hpp']
 
 if internal:
-	paths.append('include/libtorrent/aux_/*.hpp')
+    paths.append('include/libtorrent/aux_/*.hpp')
 
 files = []
 
 for p in paths:
-	files.extend(glob.glob(os.path.join('..', p)))
+    files.extend(glob.glob(os.path.join('..', p)))
 
 functions = []
 classes = []
@@ -35,701 +37,784 @@ symbols = {}
 # some files that need pre-processing to turn symbols into
 # links into the reference documentation
 preprocess_rst = \
-{
-	'manual.rst':'manual-ref.rst',
-	'settings.rst':'settings-ref.rst'
-}
+    {
+        'manual.rst': 'manual-ref.rst',
+        'upgrade_to_1.2.rst': 'upgrade_to_1.2-ref.rst',
+        'settings.rst': 'settings-ref.rst'
+    }
 
 # some pre-defined sections from the main manual
 symbols = \
-{
-	"queuing_": "manual-ref.html#queuing",
-	"fast-resume_": "manual-ref.html#fast-resume",
-	"storage-allocation_": "manual-ref.html#storage-allocation",
-	"alerts_": "manual-ref.html#alerts",
-	"upnp-and-nat-pmp_": "manual-ref.html#upnp-and-nat-pmp",
-	"http-seeding_": "manual-ref.html#http-seeding",
-	"metadata-from-peers_": "manual-ref.html#metadata-from-peers",
-	"magnet-links_": "manual-ref.html#magnet-links",
-	"ssl-torrents_": "manual-ref.html#ssl-torrents",
-	"dynamic-loading-of-torrent-files_": "manual-ref.html#dynamic-loading-of-torrent-files",
-	"session-statistics_": "manual-ref.html#session-statistics",
-	"peer-classes_": "manual-ref.html#peer-classes"
-}
+    {
+        "queuing_": "manual-ref.html#queuing",
+        "fast-resume_": "manual-ref.html#fast-resume",
+        "storage-allocation_": "manual-ref.html#storage-allocation",
+        "alerts_": "manual-ref.html#alerts",
+        "upnp-and-nat-pmp_": "manual-ref.html#upnp-and-nat-pmp",
+        "http-seeding_": "manual-ref.html#http-seeding",
+        "metadata-from-peers_": "manual-ref.html#metadata-from-peers",
+        "magnet-links_": "manual-ref.html#magnet-links",
+        "ssl-torrents_": "manual-ref.html#ssl-torrents",
+        "dynamic-loading-of-torrent-files_": "manual-ref.html#dynamic-loading-of-torrent-files",
+        "session-statistics_": "manual-ref.html#session-statistics",
+        "peer-classes_": "manual-ref.html#peer-classes"
+    }
 
 static_links = \
-{
-	".. _`BEP 3`: https://bittorrent.org/beps/bep_0003.html",
-	".. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html",
-	".. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html"
-}
+    {
+        ".. _`BEP 3`: https://bittorrent.org/beps/bep_0003.html",
+        ".. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html",
+        ".. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html"
+    }
 
 anon_index = 0
 
 category_mapping = {
-	'ed25519.hpp': 'ed25519',
-	'session.hpp': 'Core',
-	'add_torrent_params.hpp': 'Core',
-	'session_status.hpp': 'Core',
-	'error_code.hpp': 'Error Codes',
-	'file.hpp': 'File',
-	'storage.hpp': 'Custom Storage',
-	'storage_defs.hpp': 'Storage',
-	'file_storage.hpp': 'Storage',
-	'file_pool.hpp': 'Custom Storage',
-	'extensions.hpp': 'Plugins',
-	'ut_metadata.hpp': 'Plugins',
-	'ut_pex.hpp': 'Plugins',
-	'ut_trackers.hpp': 'Plugins',
-	'metadata_transfer.hpp': 'Plugins',
-	'smart_ban.hpp': 'Plugins',
-	'lt_trackers.hpp': 'Plugins',
-	'create_torrent.hpp': 'Create Torrents',
-	'alert.hpp': 'Alerts',
-	'alert_types.hpp': 'Alerts',
-	'bencode.hpp': 'Bencoding',
-	'lazy_entry.hpp': 'Bencoding',
-	'bdecode.hpp': 'Bdecoding',
-	'entry.hpp': 'Bencoding',
-	'time.hpp': 'Time',
-	'escape_string.hpp': 'Utility',
-	'enum_net.hpp': 'Network',
-	'broadcast_socket.hpp': 'Network',
-	'socket.hpp': 'Network',
-	'socket_io.hpp': 'Network',
-	'bitfield.hpp': 'Utility',
-	'sha1_hash.hpp': 'Utility',
-	'hasher.hpp': 'Utility',
-	'identify_client.hpp': 'Utility',
-	'thread.hpp': 'Utility',
-	'ip_filter.hpp': 'Filter',
-	'session_settings.hpp': 'Settings',
-	'settings_pack.hpp': 'Settings',
-	'operations.hpp': 'Alerts',
-	'disk_buffer_holder.hpp': 'Custom Storage',
-	'alert_dispatcher.hpp': 'Alerts',
+    'ed25519.hpp': 'ed25519',
+    'session.hpp': 'Core',
+    'add_torrent_params.hpp': 'Core',
+    'session_status.hpp': 'Core',
+    'error_code.hpp': 'Error Codes',
+    'storage.hpp': 'Custom Storage',
+    'storage_defs.hpp': 'Storage',
+    'file_storage.hpp': 'Storage',
+    'file_pool.hpp': 'Custom Storage',
+    'extensions.hpp': 'Plugins',
+    'ut_metadata.hpp': 'Plugins',
+    'ut_pex.hpp': 'Plugins',
+    'ut_trackers.hpp': 'Plugins',
+    'smart_ban.hpp': 'Plugins',
+    'create_torrent.hpp': 'Create Torrents',
+    'alert.hpp': 'Alerts',
+    'alert_types.hpp': 'Alerts',
+    'bencode.hpp': 'Bencoding',
+    'lazy_entry.hpp': 'Bencoding',
+    'bdecode.hpp': 'Bdecoding',
+    'entry.hpp': 'Bencoding',
+    'time.hpp': 'Time',
+    'escape_string.hpp': 'Utility',
+    'enum_net.hpp': 'Network',
+    'broadcast_socket.hpp': 'Network',
+    'socket.hpp': 'Network',
+    'socket_io.hpp': 'Network',
+    'bitfield.hpp': 'Utility',
+    'sha1_hash.hpp': 'Utility',
+    'hasher.hpp': 'Utility',
+    'hasher512.hpp': 'Utility',
+    'identify_client.hpp': 'Utility',
+    'ip_filter.hpp': 'Filter',
+    'session_settings.hpp': 'Settings',
+    'settings_pack.hpp': 'Settings',
+    'operations.hpp': 'Alerts',
+    'disk_buffer_holder.hpp': 'Custom Storage',
+    'alert_dispatcher.hpp': 'Alerts',
 }
 
 category_fun_mapping = {
-	'min_memory_usage()': 'Settings',
-	'high_performance_seed()': 'Settings',
-	'cache_status': 'Core',
+    'min_memory_usage()': 'Settings',
+    'high_performance_seed()': 'Settings',
+    'cache_status': 'Core',
 }
 
+
 def categorize_symbol(name, filename):
-	f = os.path.split(filename)[1]
+    f = os.path.split(filename)[1]
 
-	if name.endswith('_category()') \
-		or name.endswith('_error_code') \
-		or name.endswith('error_code_enum'):
-		return 'Error Codes'
+    if name.endswith('_category()') \
+            or name.endswith('_error_code') \
+            or name.endswith('error_code_enum'):
+        return 'Error Codes'
 
-	if name in category_fun_mapping:
-		return category_fun_mapping[name]
+    if name in category_fun_mapping:
+        return category_fun_mapping[name]
 
-	if f in category_mapping:
-		return category_mapping[f]
+    if f in category_mapping:
+        return category_mapping[f]
 
-	return 'Core'
+    return 'Core'
+
 
 def suppress_warning(filename, name):
-	f = os.path.split(filename)[1]
-	if f != 'alert_types.hpp': return False
+    f = os.path.split(filename)[1]
+    if f != 'alert_types.hpp':
+        return False
 
-#	if name.endswith('_alert') or name == 'message()':
-	return True
+    # if name.endswith('_alert') or name == 'message()':
+    return True
 
-#	return False
+    # return False
+
 
 def first_item(itr):
-	for i in itr:
-		return i
-	return None
+    for i in itr:
+        return i
+    return None
+
 
 def is_visible(desc):
-	if desc.strip().startswith('hidden'): return False
-	if internal: return True
-	if desc.strip().startswith('internal'): return False
-	return True
+    if desc.strip().startswith('hidden'):
+        return False
+    if internal:
+        return True
+    if desc.strip().startswith('internal'):
+        return False
+    return True
+
 
 def highlight_signature(s):
-	s = s.replace('TORRENT_OVERRIDE', 'override').replace('TORRENT_FINAL', 'final')
-	name = s.split('(', 1)
-	name2 = name[0].split(' ')
-	if len(name2[-1]) == 0: return s
+    name = s.split('(', 1)
+    name2 = name[0].split(' ')
+    if len(name2[-1]) == 0:
+        return s
 
-	# make the name of the function bold
-	name2[-1] = '**' + name2[-1] + '** '
+    # make the name of the function bold
+    name2[-1] = '**' + name2[-1] + '** '
 
-	# if there is a return value, make sure we preserve pointer types
-	if len(name2) > 1:
-		name2[0] = name2[0].replace('*', '\\*')
-	name[0] = ' '.join(name2)
+    # if there is a return value, make sure we preserve pointer types
+    if len(name2) > 1:
+        name2[0] = name2[0].replace('*', '\\*')
+    name[0] = ' '.join(name2)
 
-	# we have to escape asterisks, since this is rendered into
-	# a parsed literal in rst
-	name[1] = name[1].replace('*', '\\*')
+    # we have to escape asterisks, since this is rendered into
+    # a parsed literal in rst
+    name[1] = name[1].replace('*', '\\*')
 
-	# we also have to escape colons
-	name[1] = name[1].replace(':', '\\:')
+    # we also have to escape colons
+    name[1] = name[1].replace(':', '\\:')
 
-	# escape trailing underscores
-	name[1] = name[1].replace('_', '\\_')
+    # escape trailing underscores
+    name[1] = name[1].replace('_', '\\_')
 
-	# comments in signatures are italic
-	name[1] = name[1].replace('/\\*', '*/\\*')
-	name[1] = name[1].replace('\\*/', '\\*/*')
-	return '('.join(name)
+    # comments in signatures are italic
+    name[1] = name[1].replace('/\\*', '*/\\*')
+    name[1] = name[1].replace('\\*/', '\\*/*')
+    return '('.join(name)
+
 
 def html_sanitize(s):
-	ret = ''
-	for i in s:
-		if i == '<': ret += '&lt;'
-		elif i == '>': ret += '&gt;'
-		elif i == '&': ret += '&amp;'
-		else: ret += i
-	return ret
+    ret = ''
+    for i in s:
+        if i == '<':
+            ret += '&lt;'
+        elif i == '>':
+            ret += '&gt;'
+        elif i == '&':
+            ret += '&amp;'
+        else:
+            ret += i
+    return ret
+
 
 def looks_like_namespace(line):
-	line = line.strip()
-	if line.startswith('namespace'): return True
-	return False
+    line = line.strip()
+    if line.startswith('namespace'):
+        return True
+    return False
+
 
 def looks_like_blank(line):
-	line = line.split('//')[0]
-	line = line.replace('{', '')
-	line = line.replace('}', '')
-	line = line.replace('[', '')
-	line = line.replace(']', '')
-	line = line.replace(';', '')
-	line = line.strip()
-	return len(line) == 0
+    line = line.split('//')[0]
+    line = line.replace('{', '')
+    line = line.replace('}', '')
+    line = line.replace('[', '')
+    line = line.replace(']', '')
+    line = line.replace(';', '')
+    line = line.strip()
+    return len(line) == 0
+
 
 def looks_like_variable(line):
-	line = line.split('//')[0]
-	line = line.strip()
-	if not ' ' in line and not '\t' in line: return False
-	if line.startswith('friend '): return False
-	if line.startswith('enum '): return False
-	if line.startswith(','): return False
-	if line.startswith(':'): return False
-	if line.startswith('typedef'): return False
-	if ' = ' in line: return True
-	if line.endswith(';'): return True
-	return False
+    line = line.split('//')[0]
+    line = line.strip()
+    if ' ' not in line and '\t' not in line:
+        return False
+    if line.startswith('friend '):
+        return False
+    if line.startswith('enum '):
+        return False
+    if line.startswith(','):
+        return False
+    if line.startswith(':'):
+        return False
+    if line.startswith('typedef'):
+        return False
+    if line.startswith('using'):
+        return False
+    if ' = ' in line:
+        return True
+    if line.endswith(';'):
+        return True
+    return False
+
 
 def looks_like_forward_decl(line):
-	line = line.split('//')[0]
-	line = line.strip()
-	if not line.endswith(';'): return False
-	if '{' in line: return False
-	if '}' in line: return False
-	if line.startswith('friend '): return True
-	if line.startswith('struct '): return True
-	if line.startswith('class '): return True
-	return False
+    line = line.split('//')[0]
+    line = line.strip()
+    if not line.endswith(';'):
+        return False
+    if '{' in line:
+        return False
+    if '}' in line:
+        return False
+    if line.startswith('friend '):
+        return True
+    if line.startswith('struct '):
+        return True
+    if line.startswith('class '):
+        return True
+    return False
+
 
 def looks_like_function(line):
-	if line.startswith('friend'): return False
-	if '::' in line.split('(')[0].split(' ')[-1]: return False
-	if line.startswith(','): return False
-	if line.startswith(':'): return False
-	return '(' in line;
+    if line.startswith('friend'):
+        return False
+    if '::' in line.split('(')[0].split(' ')[-1]:
+        return False
+    if line.startswith(','):
+        return False
+    if line.startswith(':'):
+        return False
+    return '(' in line
+
 
 def parse_function(lno, lines, filename):
-	current_fun = {}
 
-	start_paren = 0
-	end_paren = 0
-	signature = ''
+    start_paren = 0
+    end_paren = 0
+    signature = ''
 
-	while lno < len(lines):
-		l = lines[lno].strip()
-		lno += 1
-		if l.startswith('//'): continue
+    while lno < len(lines):
+        line = lines[lno].strip()
+        lno += 1
+        if line.startswith('//'):
+            continue
 
-		start_paren += l.count('(')
-		end_paren += l.count(')')
+        start_paren += line.count('(')
+        end_paren += line.count(')')
 
-		sig_line = l.replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT','').strip()
-		if signature != '': sig_line = '\n   ' + sig_line
-		signature += sig_line
-		if verbose: print 'fun     %s' % l
+        sig_line = line.replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').strip()
+        if signature != '':
+            sig_line = '\n   ' + sig_line
+        signature += sig_line
+        if verbose:
+            print('fun     %s' % line)
 
-		if start_paren > 0 and start_paren == end_paren:
-			if signature[-1] != ';':
-				# we also need to consume the function body
-				start_paren = 0
-				end_paren = 0
-				for i in range(len(signature)):
-					if signature[i] == '(': start_paren += 1
-					elif signature[i] == ')': end_paren += 1
+        if start_paren > 0 and start_paren == end_paren:
+            if signature[-1] != ';':
+                # we also need to consume the function body
+                start_paren = 0
+                end_paren = 0
+                for i in range(len(signature)):
+                    if signature[i] == '(':
+                        start_paren += 1
+                    elif signature[i] == ')':
+                        end_paren += 1
 
-					if start_paren > 0 and start_paren == end_paren:
-						for k in range(i, len(signature)):
-							if signature[k] == ':' or signature[k] == '{':
-								signature = signature[0:k].strip()
-								break
-						break
+                    if start_paren > 0 and start_paren == end_paren:
+                        for k in range(i, len(signature)):
+                            if signature[k] == ':' or signature[k] == '{':
+                                signature = signature[0:k].strip()
+                                break
+                        break
 
-				lno = consume_block(lno - 1, lines)
-				signature += ';'
-			ret = [{ 'file': filename[11:], 'signatures': set([ signature ]), 'names': set([ signature.split('(')[0].split(' ')[-1].strip() + '()'])}, lno]
-			if first_item(ret[0]['names']) == '()': return [None, lno]
-			return ret
-	if len(signature) > 0:
-		print '\x1b[31mFAILED TO PARSE FUNCTION\x1b[0m %s\nline: %d\nfile: %s' % (signature, lno, filename)
-	return [None, lno]
+                lno = consume_block(lno - 1, lines)
+                signature += ';'
+            ret = [{'file': filename[11:], 'signatures': set([signature]), 'names': set(
+                [signature.split('(')[0].split(' ')[-1].strip() + '()'])}, lno]
+            if first_item(ret[0]['names']) == '()':
+                return [None, lno]
+            return ret
+    if len(signature) > 0:
+        print('\x1b[31mFAILED TO PARSE FUNCTION\x1b[0m %s\nline: %d\nfile: %s' % (signature, lno, filename))
+    return [None, lno]
+
 
 def parse_class(lno, lines, filename):
-	start_brace = 0
-	end_brace = 0
+    start_brace = 0
+    end_brace = 0
 
-	name = ''
-	funs = []
-	fields = []
-	enums = []
-	state = 'public'
-	context = ''
-	class_type = 'struct'
-	blanks = 0
-	decl = ''
+    name = ''
+    funs = []
+    fields = []
+    enums = []
+    state = 'public'
+    context = ''
+    class_type = 'struct'
+    blanks = 0
+    decl = ''
 
-	while lno < len(lines):
-		l = lines[lno].strip()
-		decl += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
-		if '{' in l: break
-		if verbose: print 'class  %s' % l
-		lno += 1
+    while lno < len(lines):
+        line = lines[lno].strip()
+        decl += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
+        if '{' in line:
+            break
+        if verbose:
+            print('class  %s' % line)
+        lno += 1
 
-	if decl.startswith('class'):
-		state = 'private'
-		class_type = 'class'
+    if decl.startswith('class'):
+        state = 'private'
+        class_type = 'class'
 
-	decl = decl.replace('TORRENT_FINAL', 'final')
-	name = decl.split(':')[0].replace('class ', '').replace('struct ', '').replace('final', '').strip()
+    name = decl.split(':')[0].replace('class ', '').replace('struct ', '').replace('final', '').strip()
 
+    while lno < len(lines):
+        line = lines[lno].strip()
+        lno += 1
 
-	while lno < len(lines):
-		l = lines[lno].strip()
-		lno += 1
+        if line == '':
+            blanks += 1
+            context = ''
+            continue
 
-		if l == '':
-			blanks += 1
-			context = ''
-			continue
+        if line.startswith('/*'):
+            lno = consume_comment(lno - 1, lines)
+            continue
 
-		if l.startswith('/*'):
-			lno = consume_comment(lno - 1, lines)
-			continue
+        if line.startswith('#'):
+            lno = consume_ifdef(lno - 1, lines, True)
+            continue
 
-		if l.startswith('#'):
-			lno = consume_ifdef(lno - 1, lines, True)
-			continue
+        if 'TORRENT_DEFINE_ALERT' in line:
+            if verbose:
+                print('xx    %s' % line)
+            blanks += 1
+            continue
+        if 'TORRENT_DEPRECATED' in line:
+            if verbose:
+                print('xx    %s' % line)
+            blanks += 1
+            continue
 
-		if 'TORRENT_DEFINE_ALERT' in l:
-			if verbose: print 'xx    %s' % l
-			blanks += 1
-			continue
-		if 'TORRENT_DEPRECATED' in l:
-			if verbose: print 'xx    %s' % l
-			blanks += 1
-			continue
+        if line.startswith('//'):
+            if verbose:
+                print('desc  %s' % line)
 
-		if l.startswith('//'):
-			if verbose: print 'desc  %s' % l
+            # plain output prints just descriptions and filters out c++ code.
+            # it's used to run spell checker over
+            if plain_output:
+                s = line.split('//')[1]
+                # if the first character is a space, strip it
+                if len(s) > 0 and s[0] == ' ':
+                    s = s[1:]
+                global in_code
+                if in_code is not None and not s.startswith(in_code) and len(s) > 1:
+                    in_code = None
 
-			# plain output prints just descriptions and filters out c++ code.
-			# it's used to run spell checker over
-			if plain_output:
-				line = l.split('//')[1]
-				# if the first character is a space, strip it
-				if len(line) > 0 and line[0] == ' ': line = line[1:]
-				global in_code
-				if in_code != None and not line.startswith(in_code) and len(line) > 1:
-					in_code = None
+                if s.strip().startswith('.. code::'):
+                    in_code = s.split('.. code::')[0] + '\t'
 
-				if line.strip().startswith('.. code::'):
-					in_code = line.split('.. code::')[0] + '\t'
+                # strip out C++ code from the plain text output since it's meant for
+                # running spell checking over
+                if not s.strip().startswith('.. ') and in_code is None:
+                    plain_file.write(s + '\n')
+            line = line[2:]
+            if len(line) and line[0] == ' ':
+                line = line[1:]
+            context += line + '\n'
+            continue
 
-				# strip out C++ code from the plain text output since it's meant for
-				# running spell checking over
-				if not line.strip().startswith('.. ') and in_code == None:
-					plain_file.write(line + '\n')
-			l = l[2:]
-			if len(l) and l[0] == ' ': l = l[1:]
-			context += l + '\n'
-			continue
+        start_brace += line.count('{')
+        end_brace += line.count('}')
 
-		start_brace += l.count('{')
-		end_brace += l.count('}')
+        if line == 'private:':
+            state = 'private'
+        elif line == 'protected:':
+            state = 'protected'
+        elif line == 'public:':
+            state = 'public'
 
-		if l == 'private:': state = 'private'
-		elif l == 'protected:': state = 'protected'
-		elif l == 'public:': state = 'public'
+        if start_brace > 0 and start_brace == end_brace:
+            return [{'file': filename[11:], 'enums': enums, 'fields':fields,
+                     'type': class_type, 'name': name, 'decl': decl, 'fun': funs}, lno]
 
-		if start_brace > 0 and start_brace == end_brace:
-			return [{ 'file': filename[11:], 'enums': enums, 'fields':fields, 'type': class_type, 'name': name, 'decl': decl, 'fun': funs}, lno]
+        if state != 'public' and not internal:
+            if verbose:
+                print('private %s' % line)
+            blanks += 1
+            continue
 
-		if state != 'public' and not internal:
-			if verbose: print 'private %s' % l
-			blanks += 1
-			continue
+        if start_brace - end_brace > 1:
+            if verbose:
+                print('scope   %s' % line)
+            blanks += 1
+            continue
 
-		if start_brace - end_brace > 1:
-			if verbose: print 'scope   %s' % l
-			blanks += 1
-			continue;
+        if looks_like_function(line):
+            current_fun, lno = parse_function(lno - 1, lines, filename)
+            if current_fun is not None and is_visible(context):
+                if context == '' and blanks == 0 and len(funs):
+                    funs[-1]['signatures'].update(current_fun['signatures'])
+                    funs[-1]['names'].update(current_fun['names'])
+                else:
+                    current_fun['desc'] = context
+                    if context == '' and not suppress_warning(filename, first_item(current_fun['names'])):
+                        print('WARNING: member function "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
+                              % (name + '::' + first_item(current_fun['names']), filename, lno))
+                    funs.append(current_fun)
+                context = ''
+                blanks = 0
+            continue
 
-		if looks_like_function(l):
-			current_fun, lno = parse_function(lno - 1, lines, filename)
-			if current_fun != None and is_visible(context):
-				if context == '' and blanks == 0 and len(funs):
-					funs[-1]['signatures'].update(current_fun['signatures'])
-					funs[-1]['names'].update(current_fun['names'])
-				else:
-					current_fun['desc'] = context
-					if context == '' and not suppress_warning(filename, first_item(current_fun['names'])):
-						print 'WARNING: member function "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
-							% (name + '::' + first_item(current_fun['names']), filename, lno)
-					funs.append(current_fun)
-				context = ''
-				blanks = 0
-			continue
+        if looks_like_variable(line):
+            if verbose:
+                print('var     %s' % line)
+            if not is_visible(context):
+                continue
+            line = line.split('//')[0].strip()
+            # the name may look like this:
+            # std::uint8_t fails : 7;
+            # int scrape_downloaded = -1;
+            # static constexpr peer_flags_t interesting{0x1};
+            n = line.split('=')[0].split('{')[0].strip().split(' : ')[0].split(' ')[-1].split(':')[0].split(';')[0]
+            if context == '' and blanks == 0 and len(fields):
+                fields[-1]['names'].append(n)
+                fields[-1]['signatures'].append(line)
+            else:
+                if context == '' and not suppress_warning(filename, n):
+                    print('WARNING: field "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
+                          % (name + '::' + n, filename, lno))
+                fields.append({'signatures': [line], 'names': [n], 'desc': context})
+            context = ''
+            blanks = 0
+            continue
 
-		if looks_like_variable(l):
-			if verbose: print 'var     %s' % l
-			if not is_visible(context):
-				continue
-			l = l.split('//')[0].strip()
-			n = l.split(' ')[-1].split(':')[0].split(';')[0]
-			if context == '' and blanks == 0 and len(fields):
-				fields[-1]['names'].append(n)
-				fields[-1]['signatures'].append(l)
-			else:
-				if context == '' and not suppress_warning(filename, n):
-					print 'WARNING: field "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
-						% (name + '::' + n, filename, lno)
-				fields.append({'signatures': [l], 'names': [n], 'desc': context})
-			context = ''
-			blanks = 0
-			continue
+        if line.startswith('enum '):
+            if verbose:
+                print('enum    %s' % line)
+            if not is_visible(context):
+                consume_block(lno - 1, lines)
+            else:
+                enum, lno = parse_enum(lno - 1, lines, filename)
+                if enum is not None:
+                    enum['desc'] = context
+                    if context == '' and not suppress_warning(filename, enum['name']):
+                        print('WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
+                              % (name + '::' + enum['name'], filename, lno))
+                    enums.append(enum)
+                context = ''
+            continue
 
-		if l.startswith('enum '):
-			if verbose: print 'enum    %s' % l
-			if not is_visible(context):
-				consume_block(lno - 1, lines)
-			else:
-				enum, lno = parse_enum(lno - 1, lines, filename)
-				if enum != None:
-					enum['desc'] = context
-					if context == '' and not suppress_warning(filename, enum['name']):
-						print 'WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
-							% (name + '::' + enum['name'], filename, lno)
-					enums.append(enum)
-				context = ''
-			continue
+        context = ''
 
-		context = ''
+        if verbose:
+            if looks_like_forward_decl(line) \
+                    or looks_like_blank(line) \
+                    or looks_like_namespace(line):
+                print('--      %s' % line)
+            else:
+                print('??      %s' % line)
 
-		if verbose:
-			if looks_like_forward_decl(l) \
-				or looks_like_blank(l) \
-				or looks_like_namespace(l):
-				print '--      %s' % l
-			else:
-				print '??      %s' % l
+    if len(name) > 0:
+        print('\x1b[31mFAILED TO PARSE CLASS\x1b[0m %s\nfile: %s:%d' % (name, filename, lno))
+    return [None, lno]
 
-	if len(name) > 0:
-		print '\x1b[31mFAILED TO PARSE CLASS\x1b[0m %s\nfile: %s:%d' % (name, filename, lno)
-	return [None, lno]
 
 def parse_enum(lno, lines, filename):
-	start_brace = 0
-	end_brace = 0
-	global anon_index
+    start_brace = 0
+    end_brace = 0
+    global anon_index
 
-	l = lines[lno].strip()
-	name = l.replace('enum ', '').split('{')[0].strip()
-	if len(name) == 0:
-		if not internal:
-			print 'WARNING: anonymous enum at: \x1b[34m%s:%d\x1b[0m' % (filename, lno)
-			lno = consume_block(lno - 1, lines)
-			return [None, lno]
-		name = 'anonymous_enum_%d' % anon_index
-		anon_index += 1
+    line = lines[lno].strip()
+    name = line.replace('enum ', '').split('{')[0].strip()
+    if len(name) == 0:
+        if not internal:
+            print('WARNING: anonymous enum at: \x1b[34m%s:%d\x1b[0m' % (filename, lno))
+            lno = consume_block(lno - 1, lines)
+            return [None, lno]
+        name = 'anonymous_enum_%d' % anon_index
+        anon_index += 1
 
-	values = []
-	context = ''
-	if not '{' in l:
-		if verbose: print 'enum  %s' % lines[lno]
-		lno += 1
+    values = []
+    context = ''
+    if '{' not in line:
+        if verbose:
+            print('enum  %s' % lines[lno])
+        lno += 1
 
-	val = 0
-	while lno < len(lines):
-		l = lines[lno].strip()
-		lno += 1
+    val = 0
+    while lno < len(lines):
+        line = lines[lno].strip()
+        lno += 1
 
-		if l.startswith('//'):
-			if verbose: print 'desc  %s' % l
-			l = l[2:]
-			if len(l) and l[0] == ' ': l = l[1:]
-			context += l + '\n'
-			continue
+        if line.startswith('//'):
+            if verbose:
+                print('desc  %s' % line)
+            line = line[2:]
+            if len(line) and line[0] == ' ':
+                line = line[1:]
+            context += line + '\n'
+            continue
 
-		if l.startswith('#'):
-			lno = consume_ifdef(lno - 1, lines)
-			continue
+        if line.startswith('#'):
+            lno = consume_ifdef(lno - 1, lines)
+            continue
 
-		start_brace += l.count('{')
-		end_brace += l.count('}')
+        start_brace += line.count('{')
+        end_brace += line.count('}')
 
-		if '{' in l:
-			l = l.split('{')[1]
-		l = l.split('}')[0]
+        if '{' in line:
+            line = line.split('{')[1]
+        line = line.split('}')[0]
 
-		if len(l):
-			if verbose: print 'enumv %s' % lines[lno-1]
-			for v in l.split(','):
-				v = v.strip();
-				if v.startswith('//'): break
-				if v == '': continue
-				valstr = ''
-				try:
-					if '=' in v: val = int(v.split('=')[1].strip(), 0)
-					valstr = str(val)
-				except: pass
+        if len(line):
+            if verbose:
+                print('enumv %s' % lines[lno - 1])
+            for v in line.split(','):
+                v = v.strip()
+                if v.startswith('//'):
+                    break
+                if v == '':
+                    continue
+                valstr = ''
+                try:
+                    if '=' in v:
+                        val = int(v.split('=')[1].strip(), 0)
+                    valstr = str(val)
+                except BaseException:
+                    pass
 
-				if '=' in v: v = v.split('=')[0].strip()
-				if is_visible(context):
-					values.append({'name': v.strip(), 'desc': context, 'val': valstr})
-					if verbose: print 'enumv %s' % valstr
-				context = ''
-				val += 1
-		else:
-			if verbose: print '??    %s' % lines[lno-1]
+                if '=' in v:
+                    v = v.split('=')[0].strip()
+                if is_visible(context):
+                    values.append({'name': v.strip(), 'desc': context, 'val': valstr})
+                    if verbose:
+                        print('enumv %s' % valstr)
+                context = ''
+                val += 1
+        else:
+            if verbose:
+                print('??    %s' % lines[lno - 1])
 
-		if start_brace > 0 and start_brace == end_brace:
-			return [{'file': filename[11:], 'name': name, 'values': values}, lno]
+        if start_brace > 0 and start_brace == end_brace:
+            return [{'file': filename[11:], 'name': name, 'values': values}, lno]
 
-	if len(name) > 0:
-		print '\x1b[31mFAILED TO PARSE ENUM\x1b[0m %s\nline: %d\nfile: %s' % (name, lno, filename)
-	return [None, lno]
+    if len(name) > 0:
+        print('\x1b[31mFAILED TO PARSE ENUM\x1b[0m %s\nline: %d\nfile: %s' % (name, lno, filename))
+    return [None, lno]
+
 
 def consume_block(lno, lines):
-	start_brace = 0
-	end_brace = 0
+    start_brace = 0
+    end_brace = 0
 
-	while lno < len(lines):
-		l = lines[lno].strip()
-		if verbose: print 'xx    %s' % l
-		lno += 1
+    while lno < len(lines):
+        line = lines[lno].strip()
+        if verbose:
+            print('xx    %s' % line)
+        lno += 1
 
-		start_brace += l.count('{')
-		end_brace += l.count('}')
+        start_brace += line.count('{')
+        end_brace += line.count('}')
 
-		if start_brace > 0 and start_brace == end_brace:
-			break
-	return lno
+        if start_brace > 0 and start_brace == end_brace:
+            break
+    return lno
+
 
 def consume_comment(lno, lines):
-	while lno < len(lines):
-		l = lines[lno].strip()
-		if verbose: print 'xx    %s' % l
-		lno += 1
-		if '*/' in l: break
+    while lno < len(lines):
+        line = lines[lno].strip()
+        if verbose:
+            print('xx    %s' % line)
+        lno += 1
+        if '*/' in line:
+            break
 
-	return lno
+    return lno
 
-def trim_define(l):
-	return l.replace('#ifndef', '').replace('#ifdef', '') \
-		.replace('#if', '').replace('defined', '') \
-		.replace('TORRENT_USE_IPV6', '').replace('TORRENT_NO_DEPRECATE', '') \
-		.replace('||', '').replace('&&', '').replace('(', '').replace(')','') \
-		.replace('!', '').replace('\\', '').strip()
 
-def consume_ifdef(lno, lines, warn_on_ifdefs = False):
-	l = lines[lno].strip()
-	lno += 1
+def trim_define(line):
+    return line.replace('#ifndef', '').replace('#ifdef', '') \
+            .replace('#if', '').replace('defined', '') \
+            .replace('TORRENT_ABI_VERSION == 1', '') \
+            .replace('||', '').replace('&&', '').replace('(', '').replace(')', '') \
+            .replace('!', '').replace('\\', '').strip()
 
-	start_if = 1
-	end_if = 0
 
-	if verbose: print 'prep  %s' % l
+def consume_ifdef(lno, lines, warn_on_ifdefs=False):
+    line = lines[lno].strip()
+    lno += 1
 
-	if warn_on_ifdefs and ('TORRENT_DEBUG' in l):
-		while l.endswith('\\'):
-			lno += 1
-			l += lines[lno].strip()
-			if verbose: print 'prep  %s' % lines[lno].trim()
-		define = trim_define(l)
-		print '\x1b[31mWARNING: possible ABI breakage in public struct! "%s" \x1b[34m %s:%d\x1b[0m' % \
-			(define, filename, lno)
-		# we've already warned once, no need to do it twice
-		warn_on_ifdefs = False
+    start_if = 1
+    end_if = 0
 
-	if warn_on_ifdefs and '#if' in l:
-		while l.endswith('\\'):
-			lno += 1
-			l += lines[lno].strip()
-			if verbose: print 'prep  %s' % lines[lno].trim()
-		define = trim_define(l)
-		if define != '':
-			print '\x1b[33msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno)
+    if verbose:
+        print('prep  %s' % line)
 
-	if l == '#ifndef TORRENT_NO_DEPRECATE' or \
-		l == '#ifdef TORRENT_DEBUG' or \
-		(l.startswith('#if ') and ' TORRENT_USE_ASSERTS' in l) or \
-		(l.startswith('#if ') and ' TORRENT_USE_INVARIANT_CHECKS' in l) or \
-		l == '#ifdef TORRENT_ASIO_DEBUGGING' or \
-		(l.startswith('#if') and 'defined TORRENT_DEBUG' in l) or \
-		(l.startswith('#if') and 'defined TORRENT_ASIO_DEBUGGING' in l):
-		while lno < len(lines):
-			l = lines[lno].strip()
-			lno += 1
-			if verbose: print 'prep  %s' % l
-			if l.startswith('#endif'): end_if += 1
-			if l.startswith('#if'): start_if += 1
-			if l == '#else' and start_if - end_if == 1: break
-			if start_if - end_if == 0: break
-		return lno
-	else:
-		while l.endswith('\\') and lno < len(lines):
-			l = lines[lno].strip()
-			lno += 1
-			if verbose: print 'prep  %s' % l
+    if warn_on_ifdefs and line.strip().startswith('#if'):
+        while line.endswith('\\'):
+            lno += 1
+            line += lines[lno].strip()
+            if verbose:
+                print('prep  %s' % lines[lno].trim())
+        define = trim_define(line)
+        if 'TORRENT_' in define and 'TORRENT_ABI_VERSION' not in define:
+            print('\x1b[31mWARNING: possible ABI breakage in public struct! "%s" \x1b[34m %s:%d\x1b[0m' %
+                  (define, filename, lno))
+            # we've already warned once, no need to do it twice
+            warn_on_ifdefs = False
+        elif define != '':
+            print('\x1b[33msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno))
 
-	return lno
+    if (line.startswith('#if') and (
+            ' TORRENT_USE_ASSERTS' in line or
+            ' TORRENT_USE_INVARIANT_CHECKS' in line or
+            ' TORRENT_ASIO_DEBUGGING' in line) or
+            line == '#if TORRENT_ABI_VERSION == 1'):
+        while lno < len(lines):
+            line = lines[lno].strip()
+            lno += 1
+            if verbose:
+                print('prep  %s' % line)
+            if line.startswith('#endif'):
+                end_if += 1
+            if line.startswith('#if'):
+                start_if += 1
+            if line == '#else' and start_if - end_if == 1:
+                break
+            if start_if - end_if == 0:
+                break
+        return lno
+    else:
+        while line.endswith('\\') and lno < len(lines):
+            line = lines[lno].strip()
+            lno += 1
+            if verbose:
+                print('prep  %s' % line)
+
+    return lno
+
 
 for filename in files:
-	h = open(filename)
-	lines = h.read().split('\n')
+    h = open(filename)
+    lines = h.read().split('\n')
 
-	if verbose: print '\n=== %s ===\n' % filename
+    if verbose:
+        print('\n=== %s ===\n' % filename)
 
-	blanks = 0
-	lno = 0
-	while lno < len(lines):
-		l = lines[lno].strip()
-		lno += 1
+    blanks = 0
+    lno = 0
+    while lno < len(lines):
+        line = lines[lno].strip()
+        lno += 1
 
-		if l == '':
-			blanks += 1
-			context = ''
-			continue
+        if line == '':
+            blanks += 1
+            context = ''
+            continue
 
-		if l.startswith('//') and l[2:].strip() == 'OVERVIEW':
-			# this is a section overview
-			current_overview = ''
-			while lno < len(lines):
-				l = lines[lno].strip()
-				lno += 1
-				if not l.startswith('//'):
-					# end of overview
-					overviews[filename[11:]] = current_overview
-					current_overview = ''
-					break
-				l = l[2:]
-				if l.startswith(' '): l = l[1:]
-				current_overview += l + '\n'
+        if line.startswith('//') and line[2:].strip() == 'OVERVIEW':
+            # this is a section overview
+            current_overview = ''
+            while lno < len(lines):
+                line = lines[lno].strip()
+                lno += 1
+                if not line.startswith('//'):
+                    # end of overview
+                    overviews[filename[11:]] = current_overview
+                    current_overview = ''
+                    break
+                line = line[2:]
+                if line.startswith(' '):
+                    line = line[1:]
+                current_overview += line + '\n'
 
-		if l.startswith('//'):
-			if verbose: print 'desc  %s' % l
-			l = l[2:]
-			if len(l) and l[0] == ' ': l = l[1:]
-			context += l + '\n'
-			continue
+        if line.startswith('//'):
+            if verbose:
+                print('desc  %s' % line)
+            line = line[2:]
+            if len(line) and line[0] == ' ':
+                line = line[1:]
+            context += line + '\n'
+            continue
 
-		if l.startswith('/*'):
-			lno = consume_comment(lno - 1, lines)
-			continue
+        if line.startswith('/*'):
+            lno = consume_comment(lno - 1, lines)
+            continue
 
-		if l.startswith('#'):
-			lno = consume_ifdef(lno - 1, lines)
-			continue
+        if line.startswith('#'):
+            lno = consume_ifdef(lno - 1, lines)
+            continue
 
-		if (l == 'namespace detail' or \
-			l == 'namespace dht_detail' or \
-			l == 'namespace impl' or \
-			l == 'namespace aux') \
-			and not internal:
-			lno = consume_block(lno, lines)
-			continue
+        if (line == 'namespace detail' or
+                line == 'namespace impl' or
+                line == 'namespace aux') \
+                and not internal:
+            lno = consume_block(lno, lines)
+            continue
 
-		if 'TORRENT_CFG' in l:
-			blanks += 1
-			if verbose: print 'xx    %s' % l
-			continue
-		if 'TORRENT_DEPRECATED' in l:
-			if ('class ' in l or 'struct ' in l) and not ';' in l:
-				lno = consume_block(lno - 1, lines)
-				context = ''
-			blanks += 1
-			if verbose: print 'xx    %s' % l
-			continue
+        if 'TORRENT_DEPRECATED' in line:
+            if ('class ' in line or 'struct ' in line) and ';' not in line:
+                lno = consume_block(lno - 1, lines)
+                context = ''
+            blanks += 1
+            if verbose:
+                print('xx    %s' % line)
+            continue
 
-		if 'TORRENT_EXPORT ' in l or l.startswith('inline ') or l.startswith('template') or internal:
-			if l.startswith('class ') or l.startswith('struct '):
-				if not l.endswith(';'):
-					current_class, lno = parse_class(lno -1, lines, filename)
-					if current_class != None and is_visible(context):
-						current_class['desc'] = context
-						if context == '':
-							print 'WARNING: class "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
-							% (current_class['name'], filename, lno)
-						classes.append(current_class)
-				context = ''
-				blanks += 1
-				continue
+        if 'TORRENT_EXPORT ' in line or line.startswith('inline ') or line.startswith('template') or internal:
+            if line.startswith('class ') or line.startswith('struct '):
+                if not line.endswith(';'):
+                    current_class, lno = parse_class(lno - 1, lines, filename)
+                    if current_class is not None and is_visible(context):
+                        current_class['desc'] = context
+                        if context == '':
+                            print('WARNING: class "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
+                                  % (current_class['name'], filename, lno))
+                        classes.append(current_class)
+                context = ''
+                blanks += 1
+                continue
 
-			if looks_like_function(l):
-				current_fun, lno = parse_function(lno - 1, lines, filename)
-				if current_fun != None and is_visible(context):
-					if context == '' and blanks == 0 and len(functions):
-						functions[-1]['signatures'].update(current_fun['signatures'])
-						functions[-1]['names'].update(current_fun['names'])
-					else:
-						current_fun['desc'] = context
-						if context == '':
-							print 'WARNING: function "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
-								% (first_item(current_fun['names']), filename, lno)
-						functions.append(current_fun)
-					context = ''
-					blanks = 0
-				continue
+            if looks_like_function(line):
+                current_fun, lno = parse_function(lno - 1, lines, filename)
+                if current_fun is not None and is_visible(context):
+                    if context == '' and blanks == 0 and len(functions):
+                        functions[-1]['signatures'].update(current_fun['signatures'])
+                        functions[-1]['names'].update(current_fun['names'])
+                    else:
+                        current_fun['desc'] = context
+                        if context == '':
+                            print('WARNING: function "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
+                                  % (first_item(current_fun['names']), filename, lno))
+                        functions.append(current_fun)
+                    context = ''
+                    blanks = 0
+                continue
 
-		if ('class ' in l or 'struct ' in l) and not ';' in l:
-			lno = consume_block(lno - 1, lines)
-			context = ''
-			blanks += 1
-			continue
+        if ('class ' in line or 'struct ' in line) and ';' not in line:
+            lno = consume_block(lno - 1, lines)
+            context = ''
+            blanks += 1
+            continue
 
-		if l.startswith('enum '):
-			if not is_visible(context):
-				consume_block(lno - 1, lines)
-			else:
-				current_enum, lno = parse_enum(lno - 1, lines, filename)
-				if current_enum != None and is_visible(context):
-					current_enum['desc'] = context
-					if context == '':
-						print 'WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
-							% (current_enum['name'], filename, lno)
-					enums.append(current_enum)
-			context = ''
-			blanks += 1
-			continue
+        if line.startswith('enum '):
+            if not is_visible(context):
+                consume_block(lno - 1, lines)
+            else:
+                current_enum, lno = parse_enum(lno - 1, lines, filename)
+                if current_enum is not None and is_visible(context):
+                    current_enum['desc'] = context
+                    if context == '':
+                        print('WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
+                              % (current_enum['name'], filename, lno))
+                    enums.append(current_enum)
+            context = ''
+            blanks += 1
+            continue
 
-		blanks += 1
-		if verbose:
-			if looks_like_forward_decl(l) \
-				or looks_like_blank(l) \
-				or looks_like_namespace(l):
-				print '--    %s' % l
-			else:
-				print '??    %s' % l
+        blanks += 1
+        if verbose:
+            if looks_like_forward_decl(line) \
+                    or looks_like_blank(line) \
+                    or looks_like_namespace(line):
+                print('--    %s' % line)
+            else:
+                print('??    %s' % line)
 
-		context = ''
-	h.close()
+        context = ''
+    h.close()
 
 # ====================================================================
 #
@@ -740,266 +825,291 @@ for filename in files:
 
 if dump:
 
-	if verbose: print '\n===============================\n'
+    if verbose:
+        print('\n===============================\n')
 
-	for c in classes:
-		print '\x1b[4m%s\x1b[0m %s\n{' % (c['type'], c['name'])
-		for f in c['fun']:
-			for s in f['signatures']:
-				print '   %s' % s.replace('\n', '\n   ')
+    for c in classes:
+        print('\x1b[4m%s\x1b[0m %s\n{' % (c['type'], c['name']))
+        for f in c['fun']:
+            for s in f['signatures']:
+                print('   %s' % s.replace('\n', '\n   '))
 
-		if len(c['fun']) > 0 and len(c['fields']) > 0: print ''
+        if len(c['fun']) > 0 and len(c['fields']) > 0:
+            print('')
 
-		for f in c['fields']:
-			for s in f['signatures']:
-				print '   %s' % s
+        for f in c['fields']:
+            for s in f['signatures']:
+                print('   %s' % s)
 
-		if len(c['fields']) > 0 and len(c['enums']) > 0: print ''
+        if len(c['fields']) > 0 and len(c['enums']) > 0:
+            print('')
 
-		for e in c['enums']:
-			print '   \x1b[4menum\x1b[0m %s\n   {' % e['name']
-			for v in e['values']:
-				print '      %s' % v['name']
-			print '   };'
-		print '};\n'
+        for e in c['enums']:
+            print('   \x1b[4menum\x1b[0m %s\n   {' % e['name'])
+            for v in e['values']:
+                print('      %s' % v['name'])
+            print('   };')
+        print('};\n')
 
-	for f in functions:
-		print '%s' % f['signature']
+    for f in functions:
+        print('%s' % f['signature'])
 
-	for e in enums:
-		print '\x1b[4menum\x1b[0m %s\n{' % e['name']
-		for v in e['values']:
-			print '   %s' % v['name']
-		print '};'
+    for e in enums:
+        print('\x1b[4menum\x1b[0m %s\n{' % e['name'])
+        for v in e['values']:
+            print('   %s' % v['name'])
+        print('};')
 
 categories = {}
 
 for c in classes:
-	cat = categorize_symbol(c['name'], c['file'])
-	if not cat in categories:
-		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
+    cat = categorize_symbol(c['name'], c['file'])
+    if cat not in categories:
+        categories[cat] = {'classes': [], 'functions': [], 'enums': [],
+                           'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
 
-	if c['file'] in overviews:
-		categories[cat]['overview'] = overviews[c['file']]
+    if c['file'] in overviews:
+        categories[cat]['overview'] = overviews[c['file']]
 
-	filename = categories[cat]['filename'].replace('.rst', '.html') + '#'
-	categories[cat]['classes'].append(c)
-	symbols[c['name']] = filename + c['name']
-	for f in c['fun']:
-		for n in f['names']:
-			symbols[n] = filename + n
-			symbols[c['name'] + '::' + n] = filename + n
+    filename = categories[cat]['filename'].replace('.rst', '.html') + '#'
+    categories[cat]['classes'].append(c)
+    symbols[c['name']] = filename + c['name']
+    for f in c['fun']:
+        for n in f['names']:
+            symbols[n] = filename + n
+            symbols[c['name'] + '::' + n] = filename + n
 
-	for f in c['fields']:
-		for n in f['names']:
-			symbols[c['name'] + '::' + n] = filename + n
+    for f in c['fields']:
+        for n in f['names']:
+            symbols[c['name'] + '::' + n] = filename + n
 
-	for e in c['enums']:
-		symbols[e['name']] = filename + e['name']
-		symbols[c['name'] + '::' + e['name']] = filename + e['name']
-		for v in e['values']:
-#			symbols[v['name']] = filename + v['name']
-			symbols[e['name'] + '::' + v['name']] = filename + v['name']
-			symbols[c['name'] + '::' + v['name']] = filename + v['name']
+    for e in c['enums']:
+        symbols[e['name']] = filename + e['name']
+        symbols[c['name'] + '::' + e['name']] = filename + e['name']
+        for v in e['values']:
+            # symbols[v['name']] = filename + v['name']
+            symbols[e['name'] + '::' + v['name']] = filename + v['name']
+            symbols[c['name'] + '::' + v['name']] = filename + v['name']
 
 for f in functions:
-	cat = categorize_symbol(first_item(f['names']), f['file'])
-	if not cat in categories:
-		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
+    cat = categorize_symbol(first_item(f['names']), f['file'])
+    if cat not in categories:
+        categories[cat] = {'classes': [], 'functions': [], 'enums': [],
+                           'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
 
-	if f['file'] in overviews:
-		categories[cat]['overview'] = overviews[f['file']]
+    if f['file'] in overviews:
+        categories[cat]['overview'] = overviews[f['file']]
 
-	for n in f['names']:
-		symbols[n] = categories[cat]['filename'].replace('.rst', '.html') + '#' + n
-	categories[cat]['functions'].append(f)
+    for n in f['names']:
+        symbols[n] = categories[cat]['filename'].replace('.rst', '.html') + '#' + n
+    categories[cat]['functions'].append(f)
 
 for e in enums:
-	cat = categorize_symbol(e['name'], e['file'])
-	if not cat in categories:
-		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
-	categories[cat]['enums'].append(e)
-	filename = categories[cat]['filename'].replace('.rst', '.html') + '#'
-	symbols[e['name']] = filename + e['name']
-	for v in e['values']:
-		symbols[e['name'] + '::' + v['name']] = filename + v['name']
+    cat = categorize_symbol(e['name'], e['file'])
+    if cat not in categories:
+        categories[cat] = {'classes': [], 'functions': [], 'enums': [],
+                           'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
+    categories[cat]['enums'].append(e)
+    filename = categories[cat]['filename'].replace('.rst', '.html') + '#'
+    symbols[e['name']] = filename + e['name']
+    for v in e['values']:
+        symbols[e['name'] + '::' + v['name']] = filename + v['name']
+
 
 def print_declared_in(out, o):
-	out.write('Declared in "%s"\n\n' % print_link(o['file'], '../include/%s' % o['file']))
-	print >>out, dump_link_targets()
+    out.write('Declared in "%s"\n\n' % print_link(o['file'], '../include/%s' % o['file']))
+    print(dump_link_targets(), file=out)
 
 # returns RST marked up string
+
+
 def linkify_symbols(string):
-	lines = string.split('\n')
-	ret = []
-	in_literal = False
-	lno = 0
-	for l in lines:
-		lno += 1
-		# don't touch headlines, i.e. lines whose
-		# next line entirely contains one of =, - or .
-		if (lno < len(lines)-1): next_line = lines[lno]
-		else: next_line = ''
+    lines = string.split('\n')
+    ret = []
+    in_literal = False
+    lno = 0
+    for line in lines:
+        lno += 1
+        # don't touch headlines, i.e. lines whose
+        # next line entirely contains one of =, - or .
+        if (lno < len(lines) - 1):
+            next_line = lines[lno]
+        else:
+            next_line = ''
 
-		if len(next_line) > 0 and lines[lno].replace('=',''). \
-			replace('-','').replace('.', '') == '':
-			ret.append(l)
-			continue
+        if len(next_line) > 0 and lines[lno].replace('=', ''). \
+                replace('-', '').replace('.', '') == '':
+            ret.append(line)
+            continue
 
-		if l.startswith('|'):
-			ret.append(l)
-			continue
-		if in_literal and not l.startswith('\t') and not l == '':
-#			print '  end literal: "%s"' % l
-			in_literal = False
-		if in_literal:
-#			print '  literal: "%s"' % l
-			ret.append(l)
-			continue
-		if l.strip() == '.. parsed-literal::' or \
-			l.strip().startswith('.. code::') or \
-			(not l.strip().startswith('..') and l.endswith('::')):
-#			print '  start literal: "%s"' % l
-			in_literal = True
-		words = l.split(' ')
+        if line.startswith('|'):
+            ret.append(line)
+            continue
+        if in_literal and not line.startswith('\t') and not line == '':
+            # print('  end literal: "%s"' % line)
+            in_literal = False
+        if in_literal:
+            # print('  literal: "%s"' % line)
+            ret.append(line)
+            continue
+        if line.strip() == '.. parsed-literal::' or \
+                line.strip().startswith('.. code::') or \
+                (not line.strip().startswith('..') and line.endswith('::')):
+            # print('  start literal: "%s"' % line)
+            in_literal = True
+        words = line.split(' ')
 
-		for i in range(len(words)):
-			# it's important to preserve leading
-			# tabs, since that's relevant for
-			# rst markup
+        for i in range(len(words)):
+            # it's important to preserve leading
+            # tabs, since that's relevant for
+            # rst markup
 
-			leading = ''
-			w = words[i]
+            leading = ''
+            w = words[i]
 
-			if len(w) == 0: continue
+            if len(w) == 0:
+                continue
 
-			while len(w) > 0 and \
-				w[0] in ['\t', ' ', '(', '[', '{']:
-				leading += w[0]
-				w = w[1:]
+            while len(w) > 0 and \
+                    w[0] in ['\t', ' ', '(', '[', '{']:
+                leading += w[0]
+                w = w[1:]
 
-			# preserve commas and dots at the end
-			w = w.strip()
-			trailing = ''
+            # preserve commas and dots at the end
+            w = w.strip()
+            trailing = ''
 
-			if len(w) == 0: continue
+            if len(w) == 0:
+                continue
 
-			while len(w) > 1 and w[-1] in ['.', ',', ')'] and w[-2:] != '()':
-				trailing = w[-1] + trailing
-				w = w[:-1]
+            while len(w) > 1 and w[-1] in ['.', ',', ')'] and w[-2:] != '()':
+                trailing = w[-1] + trailing
+                w = w[:-1]
 
-			link_name = w;
+            link_name = w
 
-#			print w
+            # print(w)
 
-			if len(w) == 0: continue
+            if len(w) == 0:
+                continue
 
-			if link_name[-1] == '_': link_name = link_name[:-1]
+            if link_name[-1] == '_':
+                link_name = link_name[:-1]
 
-			if w in symbols:
-				link_name = link_name.replace('-', ' ')
-#				print '  found %s -> %s' % (w, link_name)
-				words[i] = leading + print_link(link_name, symbols[w]) + trailing
-		ret.append(' '.join(words))
-	return '\n'.join(ret)
+            if w in symbols:
+                link_name = link_name.replace('-', ' ')
+                # print('  found %s -> %s' % (w, link_name))
+                words[i] = leading + print_link(link_name, symbols[w]) + trailing
+        ret.append(' '.join(words))
+    return '\n'.join(ret)
+
 
 link_targets = []
 
+
 def print_link(name, target):
-	global link_targets
-	link_targets.append(target)
-	return "`%s`__" % name
+    global link_targets
+    link_targets.append(target)
+    return "`%s`__" % name
 
-def dump_link_targets(indent = ''):
-	global link_targets
-	ret = '\n'
-	for l in link_targets:
-		ret += '%s__ %s\n' % (indent, l)
-	link_targets = []
-	return ret
 
-def heading(string, c, indent = ''):
-	string = string.strip()
-	return '\n' + indent + string + '\n' + indent + (c * len(string)) + '\n'
+def dump_link_targets(indent=''):
+    global link_targets
+    ret = '\n'
+    for l in link_targets:
+        ret += '%s__ %s\n' % (indent, l)
+    link_targets = []
+    return ret
+
+
+def heading(string, c, indent=''):
+    string = string.strip()
+    return '\n' + indent + string + '\n' + indent + (c * len(string)) + '\n'
+
 
 def render_enums(out, enums, print_declared_reference, header_level):
-	for e in enums:
-		print >>out, '.. raw:: html\n'
-		print >>out, '\t<a name="%s"></a>' % e['name']
-		print >>out, ''
-		print >>out, heading('enum %s' % e['name'], header_level)
+    for e in enums:
+        print('.. raw:: html\n', file=out)
+        print('\t<a name="%s"></a>' % e['name'], file=out)
+        print('', file=out)
+        print(heading('enum %s' % e['name'], header_level), file=out)
 
-		print_declared_in(out, e)
+        print_declared_in(out, e)
 
-		width = [len('name'), len('value'), len('description')]
+        width = [len('name'), len('value'), len('description')]
 
-		for i in range(len(e['values'])):
-			e['values'][i]['desc'] = linkify_symbols(e['values'][i]['desc'])
+        for i in range(len(e['values'])):
+            e['values'][i]['desc'] = linkify_symbols(e['values'][i]['desc'])
 
-		for v in e['values']:
-			width[0] = max(width[0], len(v['name']))
-			width[1] = max(width[1], len(v['val']))
-			for d in v['desc'].split('\n'):
-				width[2] = max(width[2], len(d))
+        for v in e['values']:
+            width[0] = max(width[0], len(v['name']))
+            width[1] = max(width[1], len(v['val']))
+            for d in v['desc'].split('\n'):
+                width[2] = max(width[2], len(d))
 
-		print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+'
-		print >>out, '| ' + 'name'.ljust(width[0]) + ' | '  + 'value'.ljust(width[1]) + ' | ' + 'description'.ljust(width[2]) + ' |'
-		print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+=' + ('=' * width[2]) + '=+'
-		for v in e['values']:
-			d = v['desc'].split('\n')
-			if len(d) == 0: d = ['']
-			print >>out, '| ' + v['name'].ljust(width[0]) + ' | '  + v['val'].ljust(width[1]) + ' | ' + d[0].ljust(width[2]) + ' |'
-			for s in d[1:]:
-				print >>out, '| ' + (' ' * width[0]) + ' | '  + (' ' * width[1]) + ' | ' + s.ljust(width[2]) + ' |'
-			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+'
-		print >>out, ''
+        print('+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+', file=out)
+        print('| ' + 'name'.ljust(width[0]) + ' | ' + 'value'.ljust(width[1]) + ' | '
+              + 'description'.ljust(width[2]) + ' |', file=out)
+        print('+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+=' + ('=' * width[2]) + '=+', file=out)
+        for v in e['values']:
+            d = v['desc'].split('\n')
+            if len(d) == 0:
+                d = ['']
+            print('| ' + v['name'].ljust(width[0]) + ' | ' + v['val'].ljust(width[1]) + ' | '
+                  + d[0].ljust(width[2]) + ' |', file=out)
+            for s in d[1:]:
+                print('| ' + (' ' * width[0]) + ' | ' + (' ' * width[1]) + ' | ' + s.ljust(width[2]) + ' |', file=out)
+            print('+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+', file=out)
+        print('', file=out)
 
-		print >>out, dump_link_targets()
+        print(dump_link_targets(), file=out)
+
 
 sections = \
-{
-	'Core': 0,
-	'Session': 0,
-	'Settings': 0,
+    {
+        'Core': 0,
+        'Session': 0,
+        'Settings': 0,
 
-	'Bencoding': 1,
-	'Bdecoding': 1,
-	'Filter': 1,
-	'Error Codes': 1,
-	'Create Torrents': 1,
+        'Bencoding': 1,
+        'Bdecoding': 1,
+        'Filter': 1,
+        'Error Codes': 1,
+        'Create Torrents': 1,
 
-	'ed25519': 2,
-	'Utility': 2,
-	'Storage': 2,
-	'Custom Storage': 2,
-	'Plugins': 2,
+        'ed25519': 2,
+        'Utility': 2,
+        'Storage': 2,
+        'Custom Storage': 2,
+        'Plugins': 2,
 
-	'Alerts': 3
-}
+        'Alerts': 3
+    }
+
 
 def print_toc(out, categories, s):
-	for cat in categories:
-		if (s != 2 and cat not in sections) or \
-			(cat in sections and sections[cat] != s): continue
+    for cat in categories:
+        if (s != 2 and cat not in sections) or \
+                (cat in sections and sections[cat] != s):
+            continue
 
-		print >>out, '\t.. rubric:: %s\n' % cat
+        print('\t.. rubric:: %s\n' % cat, file=out)
 
-		if 'overview' in categories[cat]:
-			print >>out, '\t| overview__'
+        if 'overview' in categories[cat]:
+            print('\t| overview__', file=out)
 
-		category_filename = categories[cat]['filename'].replace('.rst', '.html')
-		for c in categories[cat]['classes']:
-			print >>out, '\t| ' + print_link(c['name'], symbols[c['name']])
-		for f in categories[cat]['functions']:
-			for n in f['names']:
-				print >>out, '\t| ' + print_link(n, symbols[n])
-		for e in categories[cat]['enums']:
-			print >>out, '\t| ' + print_link(e['name'], symbols[e['name']])
-		print >>out, ''
+        for c in categories[cat]['classes']:
+            print('\t| ' + print_link(c['name'], symbols[c['name']]), file=out)
+        for f in categories[cat]['functions']:
+            for n in f['names']:
+                print('\t| ' + print_link(n, symbols[n]), file=out)
+        for e in categories[cat]['enums']:
+            print('\t| ' + print_link(e['name'], symbols[e['name']]), file=out)
+        print('', file=out)
 
-		if 'overview' in categories[cat]:
-			print >>out, '\t__ %s#overview' % categories[cat]['filename'].replace('.rst', '.html')
-		print >>out, dump_link_targets('\t')
+        if 'overview' in categories[cat]:
+            print('\t__ %s#overview' % categories[cat]['filename'].replace('.rst', '.html'), file=out)
+        print(dump_link_targets('\t'), file=out)
 
 
 out = open('reference.rst', 'w+')
@@ -1013,21 +1123,21 @@ out.write('`single-page version`__\n\n__ single-page-ref.html\n\n')
 
 for i in range(4):
 
-	out.write('.. container:: main-toc\n\n')
-	print_toc(out, categories, i)
+    out.write('.. container:: main-toc\n\n')
+    print_toc(out, categories, i)
 
 out.close()
 
 for cat in categories:
-	out = open(categories[cat]['filename'], 'w+')
+    out = open(categories[cat]['filename'], 'w+')
 
-	classes = categories[cat]['classes']
-	functions = categories[cat]['functions']
-	enums = categories[cat]['enums']
+    classes = categories[cat]['classes']
+    functions = categories[cat]['functions']
+    enums = categories[cat]['enums']
 
-	out.write('''
+    out.write('''
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.9
+:Version: 1.2.0
 
 `home`__
 
@@ -1041,132 +1151,133 @@ __ reference.html
 
 ''' % heading(cat, '='))
 
-	if 'overview' in categories[cat]:
-		out.write('%s\n' % linkify_symbols(categories[cat]['overview']))
+    if 'overview' in categories[cat]:
+        out.write('%s\n' % linkify_symbols(categories[cat]['overview']))
 
-	for c in classes:
+    for c in classes:
 
-		print >>out, '.. raw:: html\n'
-		print >>out, '\t<a name="%s"></a>' % c['name']
-		print >>out, ''
+        print('.. raw:: html\n', file=out)
+        print('\t<a name="%s"></a>' % c['name'], file=out)
+        print('', file=out)
 
-		out.write('%s\n' % heading(c['name'], '-'))
-		print_declared_in(out, c)
-		c['desc'] = linkify_symbols(c['desc'])
-		out.write('%s\n' % c['desc'])
-		print >>out, dump_link_targets()
+        out.write('%s\n' % heading(c['name'], '-'))
+        print_declared_in(out, c)
+        c['desc'] = linkify_symbols(c['desc'])
+        out.write('%s\n' % c['desc'])
+        print(dump_link_targets(), file=out)
 
-		print >>out,'\n.. parsed-literal::\n\t'
+        print('\n.. parsed-literal::\n\t', file=out)
 
-		block = '\n%s\n{\n' % c['decl']
-		for f in c['fun']:
-			for s in f['signatures']:
-				block += '   %s\n' % highlight_signature(s.replace('\n', '\n   '))
+        block = '\n%s\n{\n' % c['decl']
+        for f in c['fun']:
+            for s in f['signatures']:
+                block += '   %s\n' % highlight_signature(s.replace('\n', '\n   '))
 
-		if len(c['fun']) > 0 and len(c['enums']) > 0: block += '\n'
+        if len(c['fun']) > 0 and len(c['enums']) > 0:
+            block += '\n'
 
-		first = True
-		for e in c['enums']:
-			if not first:
-				block += '\n'
-			first = False
-			block += '   enum %s\n   {\n' % e['name']
-			for v in e['values']:
-				block += '      %s,\n' % v['name']
-			block += '   };\n'
+        first = True
+        for e in c['enums']:
+            if not first:
+                block += '\n'
+            first = False
+            block += '   enum %s\n   {\n' % e['name']
+            for v in e['values']:
+                block += '      %s,\n' % v['name']
+            block += '   };\n'
 
-		if len(c['fun']) + len(c['enums']) > 0 and len(c['fields']): block += '\n'
+        if len(c['fun']) + len(c['enums']) > 0 and len(c['fields']):
+            block += '\n'
 
-		for f in c['fields']:
-			for s in f['signatures']:
-				block += '   %s\n' % s
+        for f in c['fields']:
+            for s in f['signatures']:
+                block += '   %s\n' % s
 
-		block += '};'
+        block += '};'
 
-		print >>out, block.replace('\n', '\n\t') + '\n'
+        print(block.replace('\n', '\n\t') + '\n', file=out)
 
-		for f in c['fun']:
-			if f['desc'] == '': continue
-			title = ''
-			print >>out, '.. raw:: html\n'
-			for n in f['names']:
-				print >>out, '\t<a name="%s"></a>' % n
-			print >>out, ''
-			for n in f['names']:
-				title += '%s ' % n
-			print >>out, heading(title.strip(), '.')
+        for f in c['fun']:
+            if f['desc'] == '':
+                continue
+            title = ''
+            print('.. raw:: html\n', file=out)
+            for n in f['names']:
+                print('\t<a name="%s"></a>' % n, file=out)
+            print('', file=out)
+            for n in f['names']:
+                title += '%s ' % n
+            print(heading(title.strip(), '.'), file=out)
 
-			block = '.. parsed-literal::\n\n'
+            block = '.. parsed-literal::\n\n'
 
-			for s in f['signatures']:
-				block += highlight_signature(s.replace('\n', '\n   ')) + '\n'
-			print >>out, '%s\n' % block.replace('\n', '\n\t')
-			f['desc'] = linkify_symbols(f['desc'])
-			print >>out, '%s' % f['desc']
+            for s in f['signatures']:
+                block += highlight_signature(s.replace('\n', '\n   ')) + '\n'
+            print('%s\n' % block.replace('\n', '\n\t'), file=out)
+            f['desc'] = linkify_symbols(f['desc'])
+            print('%s' % f['desc'], file=out)
 
-			print >>out, dump_link_targets()
+            print(dump_link_targets(), file=out)
 
-		render_enums(out, c['enums'], False, '.')
+        render_enums(out, c['enums'], False, '.')
 
-		for f in c['fields']:
-			if f['desc'] == '': continue
+        for f in c['fields']:
+            if f['desc'] == '':
+                continue
 
-			print >>out, '.. raw:: html\n'
-			for n in f['names']:
-				print >>out, '\t<a name="%s"></a>' % n
-			print >>out, ''
+            print('.. raw:: html\n', file=out)
+            for n in f['names']:
+                print('\t<a name="%s"></a>' % n, file=out)
+            print('', file=out)
 
-			for n in f['names']:
-				print >>out, '%s ' % n,
-			print >>out, ''
-			f['desc'] = linkify_symbols(f['desc'])
-			print >>out, '\t%s' % f['desc'].replace('\n', '\n\t')
+            for n in f['names']:
+                print('%s ' % n, end=' ', file=out)
+            print('', file=out)
+            f['desc'] = linkify_symbols(f['desc'])
+            print('\t%s' % f['desc'].replace('\n', '\n\t'), file=out)
 
-			print >>out, dump_link_targets()
+            print(dump_link_targets(), file=out)
 
+    for f in functions:
+        h = ''
+        print('.. raw:: html\n', file=out)
+        for n in f['names']:
+            print('\t<a name="%s"></a>' % n, file=out)
+        print('', file=out)
+        for n in f['names']:
+            h += '%s ' % n
+        print(heading(h, '-'), file=out)
+        print_declared_in(out, f)
 
-	for f in functions:
-		h = ''
-		print >>out, '.. raw:: html\n'
-		for n in f['names']:
-			print >>out, '\t<a name="%s"></a>' % n
-		print >>out, ''
-		for n in f['names']:
-			h += '%s ' % n
-		print >>out, heading(h, '-')
-		print_declared_in(out, f)
+        block = '.. parsed-literal::\n\n'
+        for s in f['signatures']:
+            block += highlight_signature(s) + '\n'
 
-		block = '.. parsed-literal::\n\n'
-		for s in f['signatures']:
-			block += highlight_signature(s) + '\n'
+        print('%s\n' % block.replace('\n', '\n\t'), file=out)
+        print(linkify_symbols(f['desc']), file=out)
 
-		print >>out, '%s\n' % block.replace('\n', '\n\t')
-		print >>out, linkify_symbols(f['desc'])
+        print(dump_link_targets(), file=out)
 
-		print >>out, dump_link_targets()
+    render_enums(out, enums, True, '-')
 
-	render_enums(out, enums, True, '-')
+    print(dump_link_targets(), file=out)
 
-	print >>out, dump_link_targets()
+    for i in static_links:
+        print(i, file=out)
 
-	for i in static_links:
-		print >>out, i
+    out.close()
 
-	out.close()
+# for s in symbols:
+#   print(s)
 
-#for s in symbols:
-#	print s
+for i, o in list(preprocess_rst.items()):
+    f = open(i, 'r')
+    out = open(o, 'w+')
+    print('processing %s -> %s' % (i, o))
+    link = linkify_symbols(f.read())
+    print(link, end=' ', file=out)
 
-for i,o in preprocess_rst.items():
-	f = open(i, 'r')
-	out = open(o, 'w+')
-	print 'processing %s -> %s' % (i, o)
-	l = linkify_symbols(f.read())
-	print >>out, l,
+    print(dump_link_targets(), file=out)
 
-	print >>out, dump_link_targets()
-
-	out.close()
-	f.close()
-
-
+    out.close()
+    f.close()

@@ -33,11 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/tailqueue.hpp"
 
-using namespace libtorrent;
+using namespace lt;
+
+namespace {
 
 struct test_node : tailqueue_node<test_node>
 {
-	test_node(char n) : name(n) {}
+	explicit test_node(char n) : name(n) {}
 	char name;
 };
 
@@ -47,20 +49,24 @@ void check_chain(tailqueue<test_node>& chain, char const* expected)
 
 	while (i.get())
 	{
-		TEST_EQUAL(((test_node*)i.get())->name, *expected);
+		TEST_EQUAL(static_cast<test_node*>(i.get())->name, *expected);
 		i.next();
 		++expected;
+	}
+	if (!chain.empty())
+	{
+		TEST_CHECK(chain.last() == nullptr || chain.last()->next == nullptr);
 	}
 	TEST_EQUAL(expected[0], 0);
 }
 
 void free_chain(tailqueue<test_node>& q)
 {
-	test_node* chain = (test_node*)q.get_all();
+	test_node* chain = static_cast<test_node*>(q.get_all());
 	while(chain)
 	{
-		test_node* del = (test_node*)chain;
-		chain = (test_node*)chain->next;
+		test_node* del = static_cast<test_node*>(chain);
+		chain = static_cast<test_node*>(chain->next);
 		delete del;
 	}
 }
@@ -78,6 +84,8 @@ void build_chain(tailqueue<test_node>& q, char const* str)
 	}
 	check_chain(q, expected);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(tailqueue)
 {
@@ -142,7 +150,7 @@ TORRENT_TEST(tailqueue)
 
 	// test get_all
 	build_chain(t1, "abcdef");
-	test_node* n = (test_node*)t1.get_all();
+	test_node* n = t1.get_all();
 	TEST_EQUAL(t1.empty(), true);
 	TEST_EQUAL(t1.size(), 0);
 
@@ -151,7 +159,7 @@ TORRENT_TEST(tailqueue)
 	{
 		test_node* del = n;
 		TEST_EQUAL(n->name, *expected);
-		n = (test_node*)n->next;
+		n = n->next;
 		++expected;
 		delete del;
 	}
@@ -159,4 +167,3 @@ TORRENT_TEST(tailqueue)
 	free_chain(t1);
 	free_chain(t2);
 }
-

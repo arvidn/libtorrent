@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013, Steven Siloti
+Copyright (c) 2013, Steven Siloti, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,27 +36,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/entry.hpp>
-#include <vector>
-#include <exception>
-#include <boost/array.hpp>
+#include <libtorrent/span.hpp>
+#include <libtorrent/kademlia/types.hpp>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 // calculate the target hash for an immutable item.
-sha1_hash TORRENT_EXTRA_EXPORT item_target_id(
-	std::pair<char const*, int> v);
+TORRENT_EXTRA_EXPORT sha1_hash item_target_id(span<char const> v);
 
 // calculate the target hash for a mutable item.
-sha1_hash TORRENT_EXTRA_EXPORT item_target_id(std::pair<char const*, int> salt
-	, char const* pk);
+TORRENT_EXTRA_EXPORT sha1_hash item_target_id(span<char const> salt
+	, public_key const& pk);
 
-bool TORRENT_EXTRA_EXPORT verify_mutable_item(
-	std::pair<char const*, int> v
-	, std::pair<char const*, int> salt
-	, boost::uint64_t seq
-	, char const* pk
-	, char const* sig);
+TORRENT_EXTRA_EXPORT bool verify_mutable_item(
+	span<char const> v
+	, span<char const> salt
+	, sequence_number seq
+	, public_key const& pk
+	, signature const& sig);
 
 // TODO: since this is a public function, it should probably be moved
 // out of this header and into one with other public functions.
@@ -67,48 +64,40 @@ bool TORRENT_EXTRA_EXPORT verify_mutable_item(
 // is written into a 64 byte buffer pointed to by ``sig``. The caller
 // is responsible for allocating the destination buffer that's passed in
 // as the ``sig`` argument. Typically it would be allocated on the stack.
-void TORRENT_EXPORT sign_mutable_item(
-	std::pair<char const*, int> v
-	, std::pair<char const*, int> salt
-	, boost::uint64_t seq
-	, char const* pk
-	, char const* sk
-	, char* sig);
-
-enum
-{
-	item_pk_len = 32,
-	item_sk_len = 64,
-	item_sig_len = 64
-};
+TORRENT_EXPORT signature sign_mutable_item(
+	span<char const> v
+	, span<char const> salt
+	, sequence_number seq
+	, public_key const& pk
+	, secret_key const& sk);
 
 class TORRENT_EXTRA_EXPORT item
 {
 public:
 	item() : m_seq(0), m_mutable(false)  {}
-	item(char const* pk, std::string const& salt);
-	item(entry const& v) { assign(v); }
-	item(entry const& v
-		, std::pair<char const*, int> salt
-		, boost::uint64_t seq, char const* pk, char const* sk);
-	item(bdecode_node const& v) { assign(v); }
+	item(public_key const& pk, span<char const> salt);
+	explicit item(entry v);
+	item(entry v
+		, span<char const> salt
+		, sequence_number seq
+		, public_key const& pk
+		, secret_key const& sk);
+	explicit item(bdecode_node const& v);
 
-	void assign(entry const& v)
-	{
-		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
-			, 0), 0, NULL, NULL);
-	}
-	void assign(entry const& v, std::pair<char const*, int> salt
-		, boost::uint64_t seq, char const* pk, char const* sk);
-	void assign(bdecode_node const& v)
-	{
-		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
-			, 0), 0, NULL, NULL);
-	}
-	bool assign(bdecode_node const& v, std::pair<char const*, int> salt
-		, boost::uint64_t seq, char const* pk, char const* sig);
-	void assign(entry const& v, std::string salt, boost::uint64_t seq
-		, char const* pk, char const* sig);
+	void assign(entry v);
+	void assign(entry v, span<char const> salt
+		, sequence_number seq
+		, public_key const& pk
+		, secret_key const& sk);
+	void assign(bdecode_node const& v);
+	bool assign(bdecode_node const& v, span<char const> salt
+		, sequence_number seq
+		, public_key const& pk
+		, signature const& sig);
+	void assign(entry v, span<char const> salt
+		, sequence_number seq
+		, public_key const& pk
+		, signature const& sig);
 
 	void clear() { m_value = entry(); }
 	bool empty() const { return m_value.type() == entry::undefined_t; }
@@ -116,19 +105,19 @@ public:
 	bool is_mutable() const { return m_mutable; }
 
 	entry const& value() const { return m_value; }
-	boost::array<char, item_pk_len> const& pk() const
+	public_key const& pk() const
 	{ return m_pk; }
-	boost::array<char, item_sig_len> const& sig() const
+	signature const& sig() const
 	{ return m_sig; }
-	boost::uint64_t seq() const { return m_seq; }
+	sequence_number seq() const { return m_seq; }
 	std::string const& salt() const { return m_salt; }
 
 private:
 	entry m_value;
 	std::string m_salt;
-	boost::array<char, item_pk_len> m_pk;
-	boost::array<char, item_sig_len> m_sig;
-	boost::uint64_t m_seq;
+	public_key m_pk;
+	signature m_sig;
+	sequence_number m_seq;
 	bool m_mutable;
 };
 

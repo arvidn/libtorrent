@@ -33,50 +33,52 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTF8_HPP_INCLUDED
 #define TORRENT_UTF8_HPP_INCLUDED
 
-#include "libtorrent/export.hpp"
+#include "libtorrent/aux_/export.hpp"
 
-// on windows we need these functions for
-// convert_to_native and convert_from_native
-#if TORRENT_USE_WSTRING || defined TORRENT_WINDOWS
-
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <string>
 #include <cwchar>
 
-namespace libtorrent
-{
+#include "libtorrent/string_view.hpp"
+#include "libtorrent/error_code.hpp"
 
-	// internal
-	// results from UTF-8 conversion functions utf8_wchar and
-	// wchar_utf8
-	enum utf8_conv_result_t
+namespace libtorrent {
+
+	namespace utf8_errors
 	{
-		// conversion successful
-		conversion_ok,
+		enum error_code_enum
+		{
+			// conversion successful
+			conversion_ok,
 
-		// partial character in source, but hit end
-		source_exhausted,
+			// partial character in source, but hit end
+			source_exhausted,
 
-		// insuff. room in target for conversion
-		target_exhausted,
+			// insuff. room in target for conversion
+			target_exhausted,
 
-		// source sequence is illegal/malformed
-		source_illegal
-	};
+			// source sequence is illegal/malformed
+			source_illegal
+		};
+
+		// hidden
+		TORRENT_EXPORT error_code make_error_code(error_code_enum e);
+	}
+
+	TORRENT_EXPORT boost::system::error_category const& utf8_category();
 
 	// ``utf8_wchar`` converts a UTF-8 string (``utf8``) to a wide character
 	// string (``wide``). ``wchar_utf8`` converts a wide character string
 	// (``wide``) to a UTF-8 string (``utf8``). The return value is one of
 	// the enumeration values from utf8_conv_result_t.
-	TORRENT_EXTRA_EXPORT utf8_conv_result_t utf8_wchar(
-		const std::string &utf8, std::wstring &wide);
-	TORRENT_EXTRA_EXPORT utf8_conv_result_t wchar_utf8(
-		const std::wstring &wide, std::string &utf8);
+	TORRENT_EXTRA_EXPORT std::wstring utf8_wchar(string_view utf8, error_code& ec);
+	TORRENT_EXTRA_EXPORT std::wstring utf8_wchar(string_view utf8);
+	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide, error_code& ec);
+	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide);
 
-	TORRENT_EXTRA_EXPORT std::pair<boost::int32_t, int>
-		parse_utf8_codepoint(char const* str, int len);
+	// TODO: 3 take a string_view here
+	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
+		parse_utf8_codepoint(string_view str);
 }
-#endif // !BOOST_NO_STD_WSTRING
 
 #endif
-

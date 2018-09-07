@@ -32,7 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cctype>
 #include <algorithm>
-#include <stdio.h>
+#include <cstdio>
+#include <cstring>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/optional.hpp>
@@ -41,16 +42,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace
-{
+namespace {
 
 	using namespace libtorrent;
 
-	int decode_digit(char c)
+	int decode_digit(std::uint8_t c)
 	{
-		if (is_digit(c)) return c - '0';
-		return unsigned(c) - 'A' + 10;
+		if (is_digit(char(c))) return c - '0';
+		return c - 'A' + 10;
 	}
 
 	// takes a peer id and returns a valid boost::optional
@@ -61,14 +62,14 @@ namespace
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (id[0] != '-' || !is_print(id[1]) || (id[2] < '0')
+		if (id[0] != '-' || !is_print(char(id[1])) || (id[2] < '0')
 			|| (id[3] < '0') || (id[4] < '0')
 			|| (id[5] < '0') || (id[6] < '0')
 			|| id[7] != '-')
 			return boost::optional<fingerprint>();
 
-		ret.name[0] = id[1];
-		ret.name[1] = id[2];
+		ret.name[0] = char(id[1]);
+		ret.name[1] = char(id[2]);
 		ret.major_version = decode_digit(id[3]);
 		ret.minor_version = decode_digit(id[4]);
 		ret.revision_version = decode_digit(id[5]);
@@ -83,10 +84,10 @@ namespace
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (!is_alpha(id[0]) && !is_digit(id[0]))
+		if (!is_alpha(char(id[0])) && !is_digit(char(id[0])))
 			return boost::optional<fingerprint>();
 
-		if (std::equal(id.begin()+4, id.begin()+6, "--"))
+		if (std::equal(id.begin() + 4, id.begin() + 6, "--"))
 		{
 			if ((id[1] < '0') || (id[2] < '0')
 				|| (id[3] < '0'))
@@ -104,7 +105,7 @@ namespace
 			ret.revision_version = id[3];
 		}
 
-		ret.name[0] = id[0];
+		ret.name[0] = char(id[0]);
 		ret.name[1] = 0;
 
 		ret.tag_version = 0;
@@ -121,7 +122,7 @@ namespace
 		fingerprint ret("..", 0, 0, 0, 0);
 		ret.name[1] = 0;
 		ret.tag_version = 0;
-		if (sscanf(ids, "%c%d-%d-%d--", &ret.name[0], &ret.major_version, &ret.minor_version
+		if (sscanf(ids, "%1c%3d-%3d-%3d--", &ret.name[0], &ret.major_version, &ret.minor_version
 			, &ret.revision_version) != 4
 			|| !is_print(ret.name[0]))
 			return boost::optional<fingerprint>();
@@ -137,7 +138,7 @@ namespace
 
 	// only support BitTorrentSpecification
 	// must be ordered alphabetically
-	map_entry name_map[] =
+	const map_entry name_map[] =
 	{
 		  {"7T", "aTorrent for android"}
 		, {"A",  "ABC"}
@@ -176,6 +177,7 @@ namespace
 		, {"HL", "Halite"}
 		, {"HN", "Hydranode"}
 		, {"IL", "iLivid"}
+		, {"KC", "Koinonein"}
 		, {"KG", "KGet"}
 		, {"KT", "KTorrent"}
 		, {"LC", "LeechCraft"}
@@ -243,7 +245,7 @@ namespace
 		char const* name;
 	};
 	// non-standard names
-	generic_map_entry generic_mappings[] =
+	const generic_map_entry generic_mappings[] =
 	{
 		{0, "Deadman Walking-", "Deadman"}
 		, {5, "Azureus", "Azureus 2.0.3.2"}
@@ -294,8 +296,8 @@ namespace
 		char identity[200];
 
 		const int size = sizeof(name_map)/sizeof(name_map[0]);
-		map_entry tmp = {f.name, ""};
-		map_entry* i =
+		const map_entry tmp = {f.name, ""};
+		const map_entry* i =
 			std::lower_bound(name_map, name_map + size
 				, tmp, &compare_id);
 
@@ -308,7 +310,7 @@ namespace
 #endif
 
 		char temp[3];
-		char const* name = 0;
+		char const* name = nullptr;
 		if (i < name_map + size && std::equal(f.name, f.name + 2, i->id))
 		{
 			name = i->name;
@@ -317,17 +319,17 @@ namespace
 		{
 			// if we don't have this client in the list
 			// just use the one or two letter code
-			memcpy(temp, f.name, 2);
+			std::memcpy(temp, f.name, 2);
 			temp[2] = 0;
 			name = temp;
 		}
 
-		int num_chars = snprintf(identity, sizeof(identity), "%s %u.%u.%u", name
+		int num_chars = std::snprintf(identity, sizeof(identity), "%s %u.%u.%u", name
 			, f.major_version, f.minor_version, f.revision_version);
 
 		if (f.tag_version != 0)
 		{
-			snprintf(identity + num_chars, sizeof(identity) - num_chars
+			std::snprintf(identity + num_chars, sizeof(identity) - aux::numeric_cast<std::size_t>(num_chars)
 				, ".%u", f.tag_version);
 		}
 
@@ -338,12 +340,12 @@ namespace
 	{
 		return std::equal(search, search + std::strlen(search), id);
 	}
-}
 
-namespace libtorrent
-{
+} // anonymous namespace
 
-#ifndef TORRENT_NO_DEPRECATE
+namespace libtorrent {
+
+#if TORRENT_ABI_VERSION == 1
 
 	boost::optional<fingerprint> client_fingerprint(peer_id const& p)
 	{
@@ -366,8 +368,14 @@ namespace libtorrent
 
 	std::string identify_client(peer_id const& p)
 	{
+		return aux::identify_client_impl(p);
+	}
+
+namespace aux {
+
+	std::string identify_client_impl(peer_id const& p)
+	{
 		char const* PID = p.data();
-		boost::optional<fingerprint> f;
 
 		if (p.is_all_zeros()) return "Unknown";
 
@@ -375,11 +383,8 @@ namespace libtorrent
 		// non standard encodings
 		// ----------------------
 
-		int num_generic_mappings = sizeof(generic_mappings) / sizeof(generic_mappings[0]);
-
-		for (int i = 0; i < num_generic_mappings; ++i)
+		for (auto const& e : generic_mappings)
 		{
-			generic_map_entry const& e = generic_mappings[i];
 			if (find_string(PID + e.offset, e.id)) return e.name;
 		}
 
@@ -388,18 +393,19 @@ namespace libtorrent
 
 		if (find_string(PID, "eX"))
 		{
-			std::string user(PID + 2, PID + 14);
-			return std::string("eXeem ('") + user.c_str() + "')";
+			std::string user(PID + 2, 12);
+			return std::string("eXeem ('") + user + "')";
 		}
+		bool const is_equ_zero = std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0");
 
-		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\x97"))
+		if (is_equ_zero && PID[12] == '\x97')
 			return "Experimental 3.2.1b2";
 
-		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\0"))
+		if (is_equ_zero && PID[12] == '\0')
 			return "Experimental 3.1";
 
 		// look for azureus style id
-		f = parse_az_style(p);
+		boost::optional<fingerprint> f = parse_az_style(p);
 		if (f) return lookup(*f);
 
 		// look for shadow style id
@@ -411,16 +417,15 @@ namespace libtorrent
 		if (f) return lookup(*f);
 
 
-		if (std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0"))
+		if (is_equ_zero)
 			return "Generic";
 
 		std::string unknown("Unknown [");
-		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
-		{
-			unknown += is_print(char(*i))?*i:'.';
-		}
+		for (unsigned char const c : p)
+			unknown += is_print(char(c)) ? char(c) : '.';
 		unknown += "]";
 		return unknown;
 	}
-}
 
+} // aux
+} // libtorrent

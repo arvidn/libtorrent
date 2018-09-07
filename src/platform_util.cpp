@@ -33,17 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/platform_util.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <limits>
 
-#if TORRENT_USE_RLIMIT
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wlong-long"
-#endif // __GNUC__
+#if TORRENT_USE_RLIMIT
 
 #include <sys/resource.h>
 
@@ -51,10 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 const rlim_t rlimit_as = RLIMIT_AS;
 const rlim_t rlimit_nofile = RLIMIT_NOFILE;
 const rlim_t rlim_infinity = RLIM_INFINITY;
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif // __GNUC__
 
 #endif // TORRENT_USE_RLIMIT
 
@@ -69,8 +60,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	int max_open_files()
 	{
@@ -78,13 +68,14 @@ namespace libtorrent
 		return 256;
 #elif TORRENT_USE_RLIMIT
 
-		struct rlimit rl;
+		struct rlimit rl{};
 		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
 		{
 			if (rl.rlim_cur == rlim_infinity)
-				return (std::numeric_limits<int>::max)();
+				return std::numeric_limits<int>::max();
 
-			return rl.rlim_cur;
+			return rl.rlim_cur <= std::numeric_limits<int>::max()
+				? int(rl.rlim_cur) : std::numeric_limits<int>::max();
 		}
 		return 1024;
 #else
@@ -94,16 +85,16 @@ namespace libtorrent
 #endif
 	}
 
-	boost::uint64_t total_physical_ram()
+	std::int64_t total_physical_ram()
 	{
 #if defined TORRENT_BUILD_SIMULATOR
-		return boost::uint64_t(4) * 1024 * 1024 * 1024;
+		return std::int64_t(4) * 1024 * 1024 * 1024;
 #else
 		// figure out how much physical RAM there is in
 		// this machine. This is used for automatically
 		// sizing the disk cache size when it's set to
 		// automatic.
-		boost::uint64_t ret = 0;
+		std::int64_t ret = 0;
 
 #ifdef TORRENT_BSD
 #ifdef HW_MEMSIZE
@@ -114,14 +105,14 @@ namespace libtorrent
 		// than not building
 		int mib[2] = { CTL_HW, HW_PHYSMEM };
 #endif
-		size_t len = sizeof(ret);
-		if (sysctl(mib, 2, &ret, &len, NULL, 0) != 0)
+		std::size_t len = sizeof(ret);
+		if (sysctl(mib, 2, &ret, &len, nullptr, 0) != 0)
 			ret = 0;
 #elif defined TORRENT_WINDOWS
 		MEMORYSTATUSEX ms;
 		ms.dwLength = sizeof(MEMORYSTATUSEX);
 		if (GlobalMemoryStatusEx(&ms))
-			ret = ms.ullTotalPhys;
+			ret = int(ms.ullTotalPhys);
 		else
 			ret = 0;
 #elif defined TORRENT_LINUX
@@ -134,11 +125,11 @@ namespace libtorrent
 #if TORRENT_USE_RLIMIT
 		if (ret > 0)
 		{
-			struct rlimit r;
+			struct rlimit r{};
 			if (getrlimit(rlimit_as, &r) == 0 && r.rlim_cur != rlim_infinity)
 			{
-				if (ret > r.rlim_cur)
-					ret = r.rlim_cur;
+				if (ret > std::int64_t(r.rlim_cur))
+					ret = std::int64_t(r.rlim_cur);
 			}
 		}
 #endif
@@ -146,4 +137,3 @@ namespace libtorrent
 #endif // TORRENT_BUILD_SIMULATOR
 	}
 }
-

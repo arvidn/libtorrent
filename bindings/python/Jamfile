@@ -12,7 +12,7 @@ BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 # this is used to make bjam use the same version of python which is executing setup.py
 LIBTORRENT_PYTHON_INTERPRETER = [ modules.peek : LIBTORRENT_PYTHON_INTERPRETER ] ;
 
-feature visibility : default hidden : composite ;
+feature visibility : default hidden : composite propagated ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
 feature libtorrent-link : shared static : composite propagated ;
@@ -91,6 +91,7 @@ rule libtorrent_linking ( properties * )
 
     if ! <target-os>windows in $(properties)
         && <toolset>gcc in $(properties)
+        && <libtorrent-link>static in $(properties)
     {
         result += <libtorrent-python-pic>on ;
     }
@@ -140,11 +141,11 @@ rule libtorrent_linking ( properties * )
     # (the static build of libpthread is not position independent)
     if <boost-link>shared in $(properties) || <target-os>linux in $(properties)
     {
-        result += <library>$(boost_python_lib)/<link>shared ;
+        result += <library>$(boost_python_lib)/<link>shared/<warnings>off ;
     }
     else
     {
-        result += <library>$(boost_python_lib)/<link>static ;
+        result += <library>$(boost_python_lib)/<link>static/<warnings>off ;
     }
 
     if <libtorrent-link>shared in $(properties)
@@ -182,7 +183,7 @@ rule my-python-extension ( name : sources * : requirements * : default-build * :
 my-python-extension libtorrent
   : # sources
     src/module.cpp
-    src/big_number.cpp
+    src/sha1_hash.cpp
     src/converters.cpp
     src/create_torrent.cpp
     src/fingerprint.cpp
@@ -209,6 +210,8 @@ my-python-extension libtorrent
     <conditional>@libtorrent_linking
     <crypto>openssl:<library>/torrent//ssl
     <crypto>openssl:<library>/torrent//crypto
+  : # default-build
+    <warnings>all
   : # usage-requirements
     <suppress-import-lib>false
   ;
@@ -216,17 +219,17 @@ my-python-extension libtorrent
 install stage_module
   : libtorrent
   : <location>.
-    <install-type>LIB
+    <install-type>PYTHON_EXTENSION
   ;
 
 install stage_dependencies
   : /torrent//torrent
     boost_python
+    boost_python3
   : <location>dependencies
     <install-dependencies>on
     <install-type>SHARED_LIB
   ;
-
 
 explicit stage_module ;
 explicit stage_dependencies ;

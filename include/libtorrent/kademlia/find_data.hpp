@@ -35,52 +35,36 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/routing_table.hpp>
-#include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/msg.hpp>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <vector>
 #include <map>
 
-#include <boost/optional.hpp>
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
+namespace libtorrent { namespace dht {
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent { namespace dht
-{
-
-typedef std::vector<char> packet_t;
-
-class rpc_manager;
 class node;
 
 // -------- find data -----------
 
 struct find_data : traversal_algorithm
 {
-	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
+	using nodes_callback = std::function<void(std::vector<std::pair<node_entry, std::string>> const&)>;
 
-	find_data(node & node, node_id target
+	find_data(node& dht_node, node_id const& target
 		, nodes_callback const& ncallback);
 
-	void got_write_token(node_id const& n, std::string const& write_token);
+	void got_write_token(node_id const& n, std::string write_token);
 
-	virtual void start();
+	void start() override;
 
-	virtual char const* name() const;
-
-	node_id const target() const { return m_target; }
+	char const* name() const override;
 
 protected:
 
-	virtual void done();
-	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep
-		, node_id const& id);
+	void done() override;
+	observer_ptr new_observer(udp::endpoint const& ep
+		, node_id const& id) override;
 
 	nodes_callback m_nodes_callback;
 	std::map<node_id, std::string> m_write_tokens;
@@ -90,15 +74,14 @@ protected:
 struct find_data_observer : traversal_observer
 {
 	find_data_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: traversal_observer(algorithm, ep, id)
+		: traversal_observer(std::move(algorithm), ep, id)
 	{}
 
-	virtual void reply(msg const&);
+	void reply(msg const&) override;
 };
 
 } } // namespace libtorrent::dht
 
 #endif // FIND_DATA_050323_HPP
-

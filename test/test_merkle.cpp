@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 TORRENT_TEST(merkle)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	// test merkle_*() functions
 

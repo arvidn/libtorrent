@@ -6,7 +6,6 @@ nobase_include_HEADERS = \
   alert.hpp                    \
   alert_manager.hpp            \
   alert_types.hpp              \
-  alloca.hpp                   \
   allocator.hpp                \
   announce_entry.hpp           \
   assert.hpp                   \
@@ -22,7 +21,6 @@ nobase_include_HEADERS = \
   broadcast_socket.hpp         \
   bt_peer_connection.hpp       \
   buffer.hpp                   \
-  build_config.hpp             \
   chained_buffer.hpp           \
   choker.hpp                   \
   close_reason.hpp             \
@@ -38,6 +36,7 @@ nobase_include_HEADERS = \
   disk_interface.hpp           \
   disk_io_job.hpp              \
   disk_io_thread.hpp           \
+  disk_io_thread_pool.hpp      \
   disk_observer.hpp            \
   disk_job_pool.hpp            \
   ed25519.hpp                  \
@@ -45,15 +44,16 @@ nobase_include_HEADERS = \
   enum_net.hpp                 \
   error.hpp                    \
   error_code.hpp               \
-  export.hpp                   \
   extensions.hpp               \
   file.hpp                     \
   file_pool.hpp                \
   file_storage.hpp             \
   fingerprint.hpp              \
+  flags.hpp                    \
   fwd.hpp                      \
   gzip.hpp                     \
   hasher.hpp                   \
+  hasher512.hpp                \
   hex.hpp                      \
   heterogeneous_queue.hpp      \
   http_connection.hpp          \
@@ -63,7 +63,6 @@ nobase_include_HEADERS = \
   http_tracker_connection.hpp  \
   i2p_stream.hpp               \
   identify_client.hpp          \
-  instantiate_connection.hpp   \
   invariant_check.hpp          \
   io.hpp                       \
   io_service.hpp               \
@@ -75,11 +74,12 @@ nobase_include_HEADERS = \
   linked_list.hpp              \
   lsd.hpp                      \
   magnet_uri.hpp               \
-  max.hpp                      \
   natpmp.hpp                   \
-  network_thread_pool.hpp      \
+  netlink.hpp                  \
   operations.hpp               \
+  optional.hpp                 \
   packet_buffer.hpp            \
+  packet_pool.hpp              \
   parse_url.hpp                \
   part_file.hpp                \
   pe_crypto.hpp                \
@@ -94,32 +94,36 @@ nobase_include_HEADERS = \
   peer_id.hpp                  \
   peer_info.hpp                \
   peer_request.hpp             \
+  pex_flags.hpp                \
+  piece_block.hpp              \
   piece_block_progress.hpp     \
   piece_picker.hpp             \
   platform_util.hpp            \
   peer_list.hpp                \
+  portmap.hpp                  \
   proxy_base.hpp               \
   puff.hpp                     \
   random.hpp                   \
+  read_resume_data.hpp         \
+  write_resume_data.hpp        \
   receive_buffer.hpp           \
   resolve_links.hpp            \
   resolver.hpp                 \
   resolver_interface.hpp       \
   request_blocks.hpp           \
-  rss.hpp                      \
   session.hpp                  \
   session_handle.hpp           \
   session_settings.hpp         \
   session_stats.hpp            \
   session_status.hpp           \
+  session_types.hpp            \
   settings_pack.hpp            \
   sha1.hpp                     \
+  sha512.hpp                   \
   sha1_hash.hpp                \
   sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
-  socket_type.hpp              \
-  socket_type_fwd.hpp          \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
   stack_allocator.hpp          \
@@ -128,11 +132,11 @@ nobase_include_HEADERS = \
   storage.hpp                  \
   storage_defs.hpp             \
   tailqueue.hpp                \
+  string_view.hpp              \
   string_util.hpp              \
-  thread.hpp                   \
-  thread_pool.hpp              \
   time.hpp                     \
   timestamp_history.hpp        \
+  torrent_flags.hpp            \
   torrent_handle.hpp           \
   torrent.hpp                  \
   torrent_info.hpp             \
@@ -142,8 +146,8 @@ nobase_include_HEADERS = \
   torrent_status.hpp           \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \
-  uncork_interface.hpp         \
   union_endpoint.hpp           \
+  units.hpp                    \
   upnp.hpp                     \
   utp_socket_manager.hpp       \
   utp_stream.hpp               \
@@ -153,42 +157,83 @@ nobase_include_HEADERS = \
   web_connection_base.hpp      \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
+  span.hpp                     \
+  download_priority.hpp        \
+  index_range.hpp              \
   \
-  tommath.h                         \
-  tommath_class.h                   \
-  tommath_superclass.h              \
-  tommath_private.h                 \
-  \
-  aux_/alert_manager_variadic_emplace.hpp \
   aux_/allocating_handler.hpp       \
+  aux_/aligned_storage.hpp          \
+  aux_/aligned_union.hpp            \
+  aux_/bind_to_device.hpp           \
+  aux_/block_cache_reference.hpp    \
+  aux_/container_wrapper.hpp        \
   aux_/cpuid.hpp                    \
   aux_/disable_warnings_push.hpp    \
   aux_/disable_warnings_pop.hpp     \
+  aux_/disk_job_fence.hpp           \
+  aux_/deferred_handler.hpp         \
+  aux_/dev_random.hpp               \
+  aux_/deque.hpp                    \
   aux_/escape_string.hpp            \
+  aux_/export.hpp                   \
+  aux_/generate_peer_id.hpp         \
+  aux_/io.hpp                       \
+  aux_/listen_socket_handle.hpp     \
+  aux_/max_path.hpp                 \
+  aux_/path.hpp                     \
   aux_/merkle.hpp                   \
   aux_/session_call.hpp             \
   aux_/session_impl.hpp             \
   aux_/session_settings.hpp         \
+  aux_/session_udp_sockets.hpp      \
+  aux_/set_socket_buffer.hpp        \
   aux_/proxy_settings.hpp           \
   aux_/session_interface.hpp        \
+  aux_/suggest_piece.hpp            \
+  aux_/socket_type.hpp              \
+  aux_/storage_piece_set.hpp        \
+  aux_/string_ptr.hpp               \
   aux_/time.hpp                     \
   aux_/file_progress.hpp            \
   aux_/openssl.hpp                  \
   aux_/byteswap.hpp                 \
   aux_/route.h                      \
+  aux_/cppint_import_export.hpp     \
+  aux_/ffs.hpp                      \
+  aux_/portmap.hpp                  \
+  aux_/lsd.hpp                      \
+  aux_/has_block.hpp                \
+  aux_/scope_end.hpp                \
+  aux_/vector.hpp                   \
+  aux_/win_crypto_provider.hpp      \
+  aux_/win_util.hpp                 \
+  aux_/storage_utils.hpp            \
+  aux_/numeric_cast.hpp             \
+  aux_/unique_ptr.hpp               \
+  aux_/alloca.hpp                   \
+  aux_/throw.hpp                    \
+  aux_/typed_span.hpp               \
+  aux_/array.hpp                    \
+  aux_/ip_notifier.hpp              \
+  aux_/noexcept_movable.hpp         \
+  aux_/torrent_impl.hpp             \
+  aux_/instantiate_connection.hpp   \
+  aux_/range.hpp                    \
   \
-  extensions/lt_trackers.hpp        \
-  extensions/metadata_transfer.hpp  \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
   extensions/ut_pex.hpp             \
   \
+  kademlia/announce_flags.hpp       \
+  kademlia/dht_settings.hpp         \
+  kademlia/dht_state.hpp            \
   kademlia/dht_storage.hpp          \
   kademlia/dht_tracker.hpp          \
   kademlia/dht_observer.hpp         \
   kademlia/direct_request.hpp       \
   kademlia/dos_blocker.hpp          \
   kademlia/find_data.hpp            \
+  kademlia/io.hpp                   \
   kademlia/put_data.hpp             \
   kademlia/msg.hpp                  \
   kademlia/node.hpp                 \
@@ -199,6 +244,9 @@ nobase_include_HEADERS = \
   kademlia/routing_table.hpp        \
   kademlia/rpc_manager.hpp          \
   kademlia/traversal_algorithm.hpp  \
+  kademlia/types.hpp                \
+  kademlia/ed25519.hpp              \
   kademlia/item.hpp                 \
   kademlia/get_item.hpp             \
+  kademlia/sample_infohashes.hpp    \
   kademlia/get_peers.hpp

@@ -34,138 +34,156 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/hex.hpp" // from_hex
 #include "libtorrent/fingerprint.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
-sha1_hash to_hash(char const* s)
+TORRENT_TEST(retry_interval)
 {
-	sha1_hash ret;
-	from_hex(s, 40, (char*)&ret[0]);
-	return ret;
-}
-
-address_v4 v4(char const* str)
-{
-	error_code ec;
-	return address_v4::from_string(str, ec);
-}
-
-#if TORRENT_USE_IPV6
-address_v6 v6(char const* str)
-{
-	error_code ec;
-	return address_v6::from_string(str, ec);
-}
-#endif
-
-TORRENT_TEST(primitives)
-{
-	using namespace libtorrent;
-	error_code ec;
-
 	// make sure the retry interval keeps growing
 	// on failing announces
 	announce_entry ae("dummy");
+	ae.endpoints.emplace_back(aux::listen_socket_handle());
 	int last = 0;
-	aux::session_settings sett;
-	sett.set_int(settings_pack::tracker_backoff, 250);
+	auto const tracker_backoff = 250;
 	for (int i = 0; i < 10; ++i)
 	{
-		ae.failed(sett, 5);
-		int delay = ae.next_announce_in();
+		ae.endpoints.front().failed(tracker_backoff, seconds32(5));
+		int const delay = static_cast<int>(total_seconds(ae.endpoints.front().next_announce - clock_type::now()));
 		TEST_CHECK(delay > last);
 		last = delay;
-		fprintf(stdout, "%d, ", delay);
+		std::printf("%d, ", delay);
 	}
-	fprintf(stdout, "\n");
+	std::printf("\n");
+}
 
-	// test error codes
+TORRENT_TEST(error_code)
+{
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
-	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
-	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");
+	TEST_CHECK(error_code(errors::missing_file_sizes).message()
+		== "missing or invalid 'file sizes' entry");
+#if TORRENT_ABI_VERSION == 1
+	TEST_CHECK(error_code(errors::unsupported_protocol_version).message()
+		== "unsupported protocol version");
+#endif
 	TEST_CHECK(error_code(errors::no_i2p_router).message() == "no i2p router is set up");
 	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
 	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
 
-	TEST_CHECK(error_code(errors::unauthorized, http_category()).message() == "401 Unauthorized");
-	TEST_CHECK(error_code(errors::service_unavailable, http_category()).message() == "503 Service Unavailable");
+	TEST_CHECK(error_code(errors::unauthorized, http_category()).message()
+		== "401 Unauthorized");
+	TEST_CHECK(error_code(errors::service_unavailable, http_category()).message()
+		== "503 Service Unavailable");
+}
 
-	// test snprintf
+#if defined __GNUC__ && __GNUC__ >= 7
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation="
+#endif
 
+TORRENT_TEST(snprintf)
+{
 	char msg[10];
-	snprintf(msg, sizeof(msg), "too %s format string", "long");
+	std::snprintf(msg, sizeof(msg), "too %s format string", "long");
 	TEST_CHECK(strcmp(msg, "too long ") == 0);
+}
 
-	if (supports_ipv6())
+#if defined __GNUC__ && __GNUC__ >= 7
+#pragma GCC diagnostic pop
+#endif
+
+TORRENT_TEST(address_to_from_string)
+{
+	if (!supports_ipv6()) return;
+
+	error_code ec;
+	// make sure the assumption we use in peer list hold
+	std::multimap<address, int> peers;
+	std::multimap<address, int>::iterator i;
+	peers.insert(std::make_pair(address::from_string("::1", ec), 0));
+	peers.insert(std::make_pair(address::from_string("::2", ec), 3));
+	peers.insert(std::make_pair(address::from_string("::3", ec), 5));
+	i = peers.find(address::from_string("::2", ec));
+	TEST_CHECK(i != peers.end());
+	if (i != peers.end())
 	{
-		// make sure the assumption we use in policy's peer list hold
-		std::multimap<address, int> peers;
-		std::multimap<address, int>::iterator i;
-		peers.insert(std::make_pair(address::from_string("::1", ec), 0));
-		peers.insert(std::make_pair(address::from_string("::2", ec), 3));
-		peers.insert(std::make_pair(address::from_string("::3", ec), 5));
-		i = peers.find(address::from_string("::2", ec));
-		TEST_CHECK(i != peers.end());
-		if (i != peers.end())
-		{
-			TEST_CHECK(i->first == address::from_string("::2", ec));
-			TEST_CHECK(i->second == 3);
-		}
+		TEST_CHECK(i->first == address::from_string("::2", ec));
+		TEST_CHECK(i->second == 3);
 	}
+}
 
-	// test network functions
-
-	// CIDR distance test
-	sha1_hash h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
-	sha1_hash h2 = to_hash("0123456789abcdef01232456789abcdef0123456");
-	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 160);
-	h2 = to_hash("0120456789abcdef01232456789abcdef0123456");
-	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 14);
-	h2 = to_hash("012f456789abcdef01232456789abcdef0123456");
-	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 12);
-	h2 = to_hash("0123456789abcdef11232456789abcdef0123456");
-	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 16 * 4 + 3);
-
-	// test print_endpoint, parse_endpoint and print_address
+TORRENT_TEST(address_endpoint_io)
+{
+	// test print_endpoint, print_address
 	TEST_EQUAL(print_endpoint(ep("127.0.0.1", 23)), "127.0.0.1:23");
-#if TORRENT_USE_IPV6
-	TEST_EQUAL(print_endpoint(ep("ff::1", 1214)), "[ff::1]:1214");
-#endif
-	ec.clear();
-	TEST_EQUAL(parse_endpoint("127.0.0.1:23", ec), ep("127.0.0.1", 23));
-	TEST_CHECK(!ec);
-	ec.clear();
-#if TORRENT_USE_IPV6
-	TEST_EQUAL(parse_endpoint(" \t[ff::1]:1214 \r", ec), ep("ff::1", 1214));
-	TEST_CHECK(!ec);
-#endif
-	TEST_EQUAL(print_address(v4("241.124.23.5")), "241.124.23.5");
-#if TORRENT_USE_IPV6
-	TEST_EQUAL(print_address(v6("2001:ff::1")), "2001:ff::1");
-	parse_endpoint("[ff::1]", ec);
-	TEST_EQUAL(ec, error_code(errors::invalid_port));
-#endif
+	TEST_EQUAL(print_address(addr4("241.124.23.5")), "241.124.23.5");
 
-	parse_endpoint("[ff::1:5", ec);
-	TEST_EQUAL(ec, error_code(errors::expected_close_bracket_in_address));
+	TEST_EQUAL(print_endpoint(ep("ff::1", 1214)), "[ff::1]:1214");
+	TEST_EQUAL(print_address(addr6("2001:ff::1")), "2001:ff::1");
 
 	// test address_to_bytes
-	TEST_EQUAL(address_to_bytes(address_v4::from_string("10.11.12.13")), "\x0a\x0b\x0c\x0d");
-	TEST_EQUAL(address_to_bytes(address_v4::from_string("16.5.127.1")), "\x10\x05\x7f\x01");
+	TEST_EQUAL(address_to_bytes(addr4("10.11.12.13")), "\x0a\x0b\x0c\x0d");
+	TEST_EQUAL(address_to_bytes(addr4("16.5.127.1")), "\x10\x05\x7f\x01");
 
 	// test endpoint_to_bytes
-	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("10.11.12.13"), 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
-	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("16.5.127.1"), 12345)), "\x10\x05\x7f\x01\x30\x39");
+	TEST_EQUAL(endpoint_to_bytes(uep("10.11.12.13", 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
+	TEST_EQUAL(endpoint_to_bytes(uep("16.5.127.1", 12345)), "\x10\x05\x7f\x01\x30\x39");
+}
 
-	// test gen_fingerprint
+TORRENT_TEST(gen_fingerprint)
+{
 	TEST_EQUAL(generate_fingerprint("AB", 1, 2, 3, 4), "-AB1234-");
 	TEST_EQUAL(generate_fingerprint("AB", 1, 2), "-AB1200-");
 	TEST_EQUAL(generate_fingerprint("..", 1, 10), "-..1A00-");
 	TEST_EQUAL(generate_fingerprint("CZ", 1, 15), "-CZ1F00-");
 	TEST_EQUAL(generate_fingerprint("CZ", 1, 15, 16, 17), "-CZ1FGH-");
+}
+
+TORRENT_TEST(printf_int64)
+{
+	char buffer[100];
+	std::int64_t val = 345678901234567ll;
+	std::snprintf(buffer, sizeof(buffer), "%" PRId64 " %s", val, "end");
+	TEST_EQUAL(buffer, std::string("345678901234567 end"))
+}
+
+TORRENT_TEST(printf_uint64)
+{
+	char buffer[100];
+	std::uint64_t val = 18446744073709551615ull;
+	std::snprintf(buffer, sizeof(buffer), "%" PRIu64 " %s", val, "end");
+	TEST_EQUAL(buffer, std::string("18446744073709551615 end"))
+}
+
+#if defined __GNUC__ && __GNUC__ >= 7
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation="
+#endif
+
+TORRENT_TEST(printf_trunc)
+{
+	char buffer[4];
+	int val = 184;
+	std::snprintf(buffer, sizeof(buffer), "%d %s", val, "end");
+	TEST_EQUAL(buffer, std::string("184"))
+}
+
+#if defined __GNUC__ && __GNUC__ >= 7
+#pragma GCC diagnostic pop
+#endif
+
+
+TORRENT_TEST(error_condition)
+{
+#ifdef TORRENT_WINDOWS
+	error_code ec(ERROR_FILE_NOT_FOUND, system_category());
+#else
+	error_code ec(ENOENT, system_category());
+#endif
+	TEST_CHECK(ec == boost::system::errc::no_such_file_or_directory);
 }
 

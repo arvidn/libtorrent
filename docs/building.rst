@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.9
+:Version: 1.2.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -294,13 +294,16 @@ Build features:
 |                          | * ``off`` - mutable torrents are not supported.    |
 +--------------------------+----------------------------------------------------+
 | ``crypto``               | * ``built-in`` - (default) uses built-in SHA-1     |
-|                          |   implementation.                                  |
+|                          |   implementation. In macOS/iOS it uses             |
+|                          |   CommonCrypto SHA-1 implementation.               |
 |                          | * ``openssl`` - links against openssl and          |
 |                          |   libcrypto to use for SHA-1 hashing.              |
 |                          |   This also enables HTTPS-tracker support and      |
 |                          |   support for bittorrent over SSL.                 |
-|                          | * ``gcrypt`` - links against libgcrypt to use for  |
-|                          |   SHA-1 hashing.                                   |
+|                          | * ``libcrypto`` - links against libcrypto          |
+|                          |   to use the SHA-1 implementation.                 |
+|                          | * ``gcrypt`` - links against libgcrypt             |
+|                          |   to use the SHA-1 implementation.                 |
 +--------------------------+----------------------------------------------------+
 | ``openssl-version``      | This can be used on windows to link against the    |
 |                          | special OpenSSL library names used on windows      |
@@ -336,14 +339,6 @@ Build features:
 |                          |   without invariant checks and with optimization.  |
 |                          | * ``profile`` - builds libtorrent with profile     |
 |                          |   information.                                     |
-+--------------------------+----------------------------------------------------+
-| ``character-set``        | This setting will only have an affect on windows.  |
-|                          | Other platforms are expected to support UTF-8.     |
-|                          |                                                    |
-|                          | * ``unicode`` - The unicode version of the win32   |
-|                          |   API is used. This is default.                    |
-|                          | * ``ansi`` - The ansi version of the win32 API is  |
-|                          |   used.                                            |
 +--------------------------+----------------------------------------------------+
 | ``invariant-checks``     | This setting only affects debug builds (where      |
 |                          | ``NDEBUG`` is not defined). It defaults to ``on``. |
@@ -409,13 +404,9 @@ unix/linux systems comes with these preinstalled.
 
 The prerequisites for building libtorrent are boost.system, boost.chrono and
 boost.random. Those are the *compiled* boost libraries needed. The headers-only
-libraries needed include (but is not necessarily limited to) boost.bind,
-boost.ref, boost.multi_index, boost.optional, boost.integer,
-boost.iterator, boost.tuple, boost.array, boost.function, boost.smart_ptr,
-boost.preprocessor, boost.static_assert.
-
-If you want to build the ``client_test`` example, you'll also need boost.regex
-and boost.program_options.
+libraries needed include (but is not necessarily limited to)
+boost.multi_index, boost.optional, boost.multiprecision,
+boost.iterator, boost.preprocessor, boost.static_assert, boost.intrusive.
 
 Step 1: Generating the build system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -553,17 +544,6 @@ defines you can use to control the build.
 |                                        | peer_log_alert. With this build flag, you       |
 |                                        | cannot enable those alerts.                     |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISK_STATS``                 | This will create a log of all disk activity     |
-|                                        | which later can parsed and graphed using        |
-|                                        | ``parse_disk_log.py``.                          |
-+----------------------------------------+-------------------------------------------------+
-| ``UNICODE``                            | If building on windows this will make sure the  |
-|                                        | UTF-8 strings in pathnames are converted into   |
-|                                        | UTF-16 before they are passed to the file       |
-|                                        | operations.                                     |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_POOL_ALLOCATOR``     | Disables use of ``boost::pool<>``.              |
-+----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_MUTABLE_TORRENTS``   | Disables mutable torrent support (`BEP 38`_)    |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |
@@ -592,26 +572,18 @@ defines you can use to control the build.
 |                                        | encrypted supported by clients such as          |
 |                                        | uTorrent, Azureus and KTorrent.                 |
 |                                        | If this is not defined, either                  |
-|                                        | ``TORRENT_USE_OPENSSL`` or                      |
-|                                        | ``TORRENT_USE_GCRYPT`` must be defined.         |
+|                                        | ``TORRENT_USE_LIBCRYPTO`` or                    |
+|                                        | ``TORRENT_USE_LIBGCRYPT`` must be defined.      |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_EXTENSIONS``         | When defined, libtorrent plugin support is      |
 |                                        | disabled along with support for the extension   |
 |                                        | handskake (BEP 10).                             |
 +----------------------------------------+-------------------------------------------------+
-| ``_UNICODE``                           | On windows, this will cause the file IO         |
-|                                        | use wide character API, to properly support     |
-|                                        | non-ansi characters.                            |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_RESOLVE_COUNTRIES``  | Defining this will disable the ability to       |
-|                                        | resolve countries of origin for peer IPs.       |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_INVARIANT_CHECKS``   | This will disable internal invariant checks in  |
-|                                        | libtorrent. The invariant checks can sometime   |
+| ``TORRENT_USE_INVARIANT_CHECKS``       | If defined to non-zero, this will enable        |
+|                                        | internal invariant checks in libtorrent.        |
+|                                        | The invariant checks can sometimes              |
 |                                        | be quite expensive, they typically don't scale  |
-|                                        | very well. This option can be used to still     |
-|                                        | build in debug mode, with asserts enabled, but  |
-|                                        | make the resulting executable faster.           |
+|                                        | very well.                                      |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_EXPENSIVE_INVARIANT_CHECKS`` | This will enable extra expensive invariant      |
 |                                        | checks. Useful for finding particular bugs      |

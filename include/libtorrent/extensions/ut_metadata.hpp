@@ -37,14 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <memory>
 
-#include <boost/shared_ptr.hpp>
+namespace libtorrent {
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
 	struct torrent_plugin;
 	struct torrent_handle;
 
@@ -54,12 +50,11 @@ namespace libtorrent
 	// other. This is the main building block in making magnet links work.
 	// This extension is enabled by default unless explicitly disabled in
 	// the session constructor.
-	// 
+	//
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const&, void*);
+	TORRENT_EXPORT std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const&, void*);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS
 #endif // TORRENT_UT_METADATA_HPP_INCLUDED
-

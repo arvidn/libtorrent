@@ -38,19 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <array>
+#include <cstdint>
 
 #include "libtorrent/debug.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/smart_ptr.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/array.hpp>
-#include <boost/optional.hpp>
-#include <boost/cstdint.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
@@ -62,10 +53,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/io.hpp"
 
-namespace libtorrent
-{
-	class torrent;
+namespace libtorrent {
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	struct TORRENT_EXTRA_EXPORT ut_pex_peer_store
+	{
+		// stores all peers this peer is connected to. These lists
+		// are updated with each pex message and are limited in size
+		// to protect against malicious clients. These lists are also
+		// used for looking up which peer a peer that supports holepunch
+		// came from.
+		// these are vectors to save memory and keep the items close
+		// together for performance. Inserting and removing is relatively
+		// cheap since the lists' size is limited
+		using peers4_t = std::vector<std::pair<address_v4::bytes_type, std::uint16_t>>;
+		peers4_t m_peers;
+		using peers6_t = std::vector<std::pair<address_v6::bytes_type, std::uint16_t>>;
+		peers6_t m_peers6;
+
+		bool was_introduced_by(tcp::endpoint const& ep);
+
+		virtual ~ut_pex_peer_store() {}
+	};
+#endif
 
 	class TORRENT_EXTRA_EXPORT bt_peer_connection
 		: public peer_connection
@@ -76,9 +88,9 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
-		bt_peer_connection(peer_connection_args const& pack);
+		explicit bt_peer_connection(peer_connection_args const& pack);
 
-		virtual void start() TORRENT_OVERRIDE;
+		void start() override;
 
 		enum
 		{
@@ -92,24 +104,26 @@ namespace libtorrent
 			share_mode_msg = 8
 		};
 
-		~bt_peer_connection();
+		~bt_peer_connection() override;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+		peer_id our_pid() const override { return m_our_peer_id; }
+
+#if !defined TORRENT_DISABLE_ENCRYPTION
 		bool supports_encryption() const
 		{ return m_encrypted; }
 		bool rc4_encrypted() const
 		{ return m_rc4_encrypted; }
 
-		void switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto);
-		void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto);
+		void switch_send_crypto(std::shared_ptr<crypto_plugin> crypto);
+		void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto);
 #endif
 
-		virtual int type() const TORRENT_OVERRIDE
-		{ return peer_connection::bittorrent_connection; }
+		connection_type type() const override
+		{ return connection_type::bittorrent; }
 
 		enum message_type
 		{
-	// standard messages
+			// standard messages
 			msg_choke = 0,
 			msg_unchoke,
 			msg_interested,
@@ -152,21 +166,27 @@ namespace libtorrent
 		// work to do.
 
 		void on_sent(error_code const& error
-			, std::size_t bytes_transferred) TORRENT_OVERRIDE;
+			, std::size_t bytes_transferred) override;
 		void on_receive(error_code const& error
-			, std::size_t bytes_transferred) TORRENT_OVERRIDE;
+			, std::size_t bytes_transferred) override;
 		void on_receive_impl(std::size_t bytes_transferred);
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		virtual int hit_send_barrier(std::vector<boost::asio::mutable_buffer>& iovec) TORRENT_OVERRIDE;
+#if !defined TORRENT_DISABLE_ENCRYPTION
+		// next_barrier, buffers-to-prepend
+		std::tuple<int, span<span<char const>>>
+		hit_send_barrier(span<span<char>> iovec) override;
 #endif
 
-		virtual void get_specific_peer_info(peer_info& p) const TORRENT_OVERRIDE;
-		virtual bool in_handshake() const TORRENT_OVERRIDE;
+		void get_specific_peer_info(peer_info& p) const override;
+		bool in_handshake() const override;
 		bool packet_finished() const { return m_recv_buffer.packet_finished(); }
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		bool supports_holepunch() const { return m_holepunch_id != 0; }
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		void set_ut_pex(std::weak_ptr<ut_pex_peer_store> ut_pex)
+		{ m_ut_pex = std::move(ut_pex); }
+		bool was_introduced_by(tcp::endpoint const& ep) const
+		{ auto p = m_ut_pex.lock(); return p && p->was_introduced_by(ep); }
 #endif
 
 		bool support_extensions() const { return m_supports_extensions; }
@@ -179,7 +199,6 @@ namespace libtorrent
 		// be called. i.e. most handlers need
 		// to check how much of the packet they
 		// have received before any processing
-		void on_keepalive();
 		void on_choke(int received);
 		void on_unchoke(int received);
 		void on_interested(int received);
@@ -199,38 +218,30 @@ namespace libtorrent
 		void on_have_none(int received);
 		void on_reject_request(int received);
 		void on_allowed_fast(int received);
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		void on_holepunch();
 
 		void on_extended(int received);
 
 		void on_extended_handshake();
-#endif
-
-		typedef void (bt_peer_connection::*message_handler)(int received);
 
 		// the following functions appends messages
 		// to the send buffer
-		void write_choke() TORRENT_OVERRIDE;
-		void write_unchoke() TORRENT_OVERRIDE;
-		void write_interested() TORRENT_OVERRIDE;
-		void write_not_interested() TORRENT_OVERRIDE;
-		void write_request(peer_request const& r) TORRENT_OVERRIDE;
-		void write_cancel(peer_request const& r) TORRENT_OVERRIDE;
-		void write_bitfield() TORRENT_OVERRIDE;
-		void write_have(int index) TORRENT_OVERRIDE;
-		void write_dont_have(int index) TORRENT_OVERRIDE;
-		void write_piece(peer_request const& r, disk_buffer_holder& buffer) TORRENT_OVERRIDE;
-		void write_keepalive() TORRENT_OVERRIDE;
+		void write_choke() override;
+		void write_unchoke() override;
+		void write_interested() override;
+		void write_not_interested() override;
+		void write_request(peer_request const& r) override;
+		void write_cancel(peer_request const& r) override;
+		void write_bitfield() override;
+		void write_have(piece_index_t index) override;
+		void write_dont_have(piece_index_t index) override;
+		void write_piece(peer_request const& r, disk_buffer_holder buffer) override;
+		void write_keepalive() override;
 		void write_handshake();
-#ifndef TORRENT_DISABLE_EXTENSIONS
+		void write_upload_only(bool enabled) override;
 		void write_extensions();
-		void write_upload_only();
 		void write_share_mode();
 		void write_holepunch_msg(int type, tcp::endpoint const& ep, int error);
-#endif
-		void write_metadata(std::pair<int, int> req);
-		void write_metadata_request(std::pair<int, int> req);
 
 		// DHT extension
 		void write_dht_port(int listen_port);
@@ -238,12 +249,12 @@ namespace libtorrent
 		// FAST extension
 		void write_have_all();
 		void write_have_none();
-		void write_reject_request(peer_request const&) TORRENT_OVERRIDE;
-		void write_allow_fast(int piece) TORRENT_OVERRIDE;
-		void write_suggest(int piece) TORRENT_OVERRIDE;
+		void write_reject_request(peer_request const&) override;
+		void write_allow_fast(piece_index_t piece) override;
+		void write_suggest(piece_index_t piece) override;
 
-		void on_connected() TORRENT_OVERRIDE;
-		void on_metadata() TORRENT_OVERRIDE;
+		void on_connected() override;
+		void on_metadata() override;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
@@ -252,15 +263,39 @@ namespace libtorrent
 
 	private:
 
+		template <typename... Args>
+		void send_message(message_type const type
+			, counters::stats_counter_t const counter
+			, std::uint32_t flags
+			, Args... args)
+		{
+			TORRENT_ASSERT(m_sent_handshake);
+			TORRENT_ASSERT(m_sent_bitfield);
+
+			char msg[5 + sizeof...(Args) * 4]
+				= { 0,0,0,1 + sizeof...(Args) * 4, static_cast<char>(type) };
+			char* ptr = msg + 5;
+			TORRENT_UNUSED(ptr);
+
+			int tmp[] = {0, (detail::write_int32(args, ptr), 0)...};
+			TORRENT_UNUSED(tmp);
+
+			send_buffer(msg, flags);
+
+			stats_counters().inc_stats_counter(counter);
+		}
+
+		void write_dht_port();
+
 		bool dispatch_message(int received);
 		// returns the block currently being
 		// downloaded. And the progress of that
 		// block. If the peer isn't downloading
 		// a piece for the moment, the boost::optional
 		// will be invalid.
-		boost::optional<piece_block_progress> downloading_piece_progress() const TORRENT_OVERRIDE;
+		piece_block_progress downloading_piece_progress() const override;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPTION
 
 		// if (is_local()), we are 'a' otherwise 'b'
 		//
@@ -274,40 +309,42 @@ namespace libtorrent
 		void write_pe3_sync();
 		void write_pe4_sync(int crypto_select);
 
-		void write_pe_vc_cryptofield(char* write_buf, int len
-			, int crypto_field, int pad_size);
-
-		// stream key (info hash of attached torrent)
-		// secret is the DH shared secret
-		// initializes m_enc_handler
-		void init_pe_rc4_handler(char const* secret, sha1_hash const& stream_key);
-
-		// Returns offset at which bytestream (src, src + src_size)
-		// matches bytestream(target, target + target_size).
-		// If no sync found, return -1
-		int get_syncoffset(char const* src, int src_size
-			, char const* target, int target_size) const;
+		void write_pe_vc_cryptofield(span<char> write_buf
+			, int crypto_field, std::size_t pad_size);
 
 		// helper to cut down on boilerplate
-		void rc4_decrypt(char* pos, int len);
+		void rc4_decrypt(span<char> buf);
 #endif
 
-public:
+	public:
 
 		// these functions encrypt the send buffer if m_rc4_encrypted
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names
-		virtual void append_const_send_buffer(char const* buffer, int size
-			, chained_buffer::free_buffer_fun destructor = &nop
-			, void* userdata = NULL, block_cache_reference ref
-			= block_cache_reference()) TORRENT_OVERRIDE;
-
-private:
-
-		enum state_t
+		template <typename Holder>
+		void append_const_send_buffer(Holder holder, int size)
 		{
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-			read_pe_dhkey = 0,
+#if !defined TORRENT_DISABLE_ENCRYPTION
+			if (!m_enc_handler.is_send_plaintext())
+			{
+				// if we're encrypting this buffer, we need to make a copy
+				// since we'll mutate it
+				buffer buf(std::size_t(size), {holder.data(), std::size_t(size)});
+				append_send_buffer(std::move(buf), size);
+			}
+			else
+#endif
+			{
+				append_send_buffer(std::move(holder), size);
+			}
+		}
+
+	private:
+
+		enum class state_t : std::uint8_t
+		{
+#if !defined TORRENT_DISABLE_ENCRYPTION
+			read_pe_dhkey,
 			read_pe_syncvc,
 			read_pe_synchash,
 			read_pe_skey_vc,
@@ -315,10 +352,8 @@ private:
 			read_pe_pad,
 			read_pe_ia,
 			init_bt_handshake,
-			read_protocol_identifier,
-#else
-			read_protocol_identifier = 0,
 #endif
+			read_protocol_identifier,
 			read_info_hash,
 			read_peer_id,
 
@@ -327,16 +362,8 @@ private:
 			read_packet
 		};
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		enum
-		{
-			handshake_len = 68,
-			dh_key_len = 96
-		};
-#endif
-
 		// state of on_receive. one of the enums in state_t
-		boost::uint8_t m_state;
+		state_t m_state = state_t::read_protocol_identifier;
 
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
@@ -359,7 +386,7 @@ private:
 		// only done once per connection
 		bool m_sent_allowed_fast:1;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPTION
 		// this is set to true after the encryption method has been
 		// successfully negotiated (either plaintext or rc4), to signal
 		// automatic encryption/decryption.
@@ -368,13 +395,26 @@ private:
 		// true if rc4, false if plaintext
 		bool m_rc4_encrypted:1;
 
+// this is a legitimate use of a shadow field
+#ifdef __clang__
+#pragma clang diagnostic push
+// macOS clang doesn't have -Wshadow-field
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+// Xcode 9 needs this
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wshadow-field"
+#endif
 		crypto_receive_buffer m_recv_buffer;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #endif
 
 		std::string m_client_version;
 
 		// the peer ID we advertise for ourself
-		peer_id m_our_peer_id;
+		peer_id const m_our_peer_id;
 
 		// this is a queue of ranges that describes
 		// where in the send buffer actual payload
@@ -396,16 +436,16 @@ private:
 
 		std::vector<range> m_payloads;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#if !defined TORRENT_DISABLE_ENCRYPTION
 		// initialized during write_pe1_2_dhkey, and destroyed on
 		// creation of m_enc_handler. Cannot reinitialize once
 		// initialized.
-		boost::scoped_ptr<dh_key_exchange> m_dh_key_exchange;
+		std::unique_ptr<dh_key_exchange> m_dh_key_exchange;
 
 		// used during an encrypted handshake then moved
 		// into m_enc_handler if rc4 encryption is negotiated
 		// otherwise it is destroyed when the handshake completes
-		boost::shared_ptr<rc4_handler> m_rc4;
+		std::shared_ptr<rc4_handler> m_rc4;
 
 		// if encryption is negotiated, this is used for
 		// encryption/decryption during the entire session.
@@ -414,46 +454,38 @@ private:
 		// (outgoing only) synchronize verification constant with
 		// remote peer, this will hold rc4_decrypt(vc). Destroyed
 		// after the sync step.
-		boost::scoped_array<char> m_sync_vc;
+		std::unique_ptr<char[]> m_sync_vc;
 
 		// (incoming only) synchronize hash with remote peer, holds
 		// the sync hash (hash("req1",secret)). Destroyed after the
 		// sync step.
-		boost::scoped_ptr<sha1_hash> m_sync_hash;
-#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+		std::unique_ptr<sha1_hash> m_sync_hash;
 
-		static const message_handler m_message_handler[num_supported_messages];
-
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// used to disconnect peer if sync points are not found within
 		// the maximum number of bytes
-		int m_sync_bytes_read;
+		int m_sync_bytes_read = 0;
 #endif
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
 		// 0 if not supported
-		boost::uint8_t m_upload_only_id;
+		std::uint8_t m_upload_only_id = 0;
 
 		// the message ID for holepunch messages
-		boost::uint8_t m_holepunch_id;
+		std::uint8_t m_holepunch_id = 0;
 
 		// the message ID for don't-have message
-		boost::uint8_t m_dont_have_id;
+		std::uint8_t m_dont_have_id = 0;
 
 		// the message ID for share mode message
 		// 0 if not supported
-		boost::uint8_t m_share_mode_id;
+		std::uint8_t m_share_mode_id = 0;
 
-		char m_reserved_bits[8];
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		std::weak_ptr<ut_pex_peer_store> m_ut_pex;
 #endif
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
-		bool m_in_constructor;
-#endif
-
+		std::array<char, 8> m_reserved_bits;
 	};
 }
 
 #endif // TORRENT_BT_PEER_CONNECTION_HPP_INCLUDED
-

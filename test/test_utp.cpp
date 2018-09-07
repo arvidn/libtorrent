@@ -35,20 +35,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/file.hpp"
-#include <boost/tuple/tuple.hpp>
-#include <boost/bind.hpp>
+#include "libtorrent/aux_/path.hpp"
+#include "libtorrent/utp_stream.hpp"
+#include <tuple>
+#include <functional>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <fstream>
-#include <iostream>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
-using boost::tuples::ignore;
+using namespace lt;
+
+namespace {
 
 void test_transfer()
 {
@@ -63,9 +62,11 @@ void test_transfer()
 	session_proxy p1;
 	session_proxy p2;
 
-	const int mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
+	auto const mask = ~(
+			alert::performance_warning
+#if TORRENT_ABI_VERSION == 1
+			| alert::progress_notification
+#endif
 			| alert::stats_notification);
 
 	settings_pack pack;
@@ -93,31 +94,27 @@ void test_transfer()
 
 	create_directory("./tmp1_utp", ec);
 	std::ofstream file("./tmp1_utp/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 128 * 1024, 6, false);
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 128 * 1024, 6, false);
 	file.close();
 
 	// for performance testing
 	add_torrent_params atp;
-	atp.flags &= ~add_torrent_params::flag_paused;
-	atp.flags &= ~add_torrent_params::flag_auto_managed;
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
 //	atp.storage = &disabled_storage_constructor;
 
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, std::ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, true, "_utp", 0, &t, false, &atp);
 
-#ifdef TORRENT_USE_VALGRIND
 	const int timeout = 16;
-#else
-	const int timeout = 8;
-#endif
 
 	for (int i = 0; i < timeout; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true);
-		print_alerts(ses2, "ses2", true, true, true);
+		print_alerts(ses1, "ses1", true, true);
+		print_alerts(ses2, "ses2", true, true);
 
-		test_sleep(500);
+		std::this_thread::sleep_for(lt::milliseconds(500));
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -139,10 +136,10 @@ void test_transfer()
 	p2 = ses2.abort();
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(utp)
 {
-	using namespace libtorrent;
-
 	test_transfer();
 
 	error_code ec;
@@ -150,3 +147,12 @@ TORRENT_TEST(utp)
 	remove_all("./tmp2_utp", ec);
 }
 
+TORRENT_TEST(compare_less_wrap)
+{
+	TEST_CHECK(compare_less_wrap(1, 2, 0xffff));
+	TEST_CHECK(!compare_less_wrap(2, 1, 0xffff));
+	TEST_CHECK(compare_less_wrap(100, 200, 0xffff));
+	TEST_CHECK(!compare_less_wrap(200, 100, 0xffff));
+	TEST_CHECK(compare_less_wrap(0xfff0, 0x000f, 0xffff)); // wrap
+	TEST_CHECK(!compare_less_wrap(0xfff0, 0xff00, 0xffff));
+}

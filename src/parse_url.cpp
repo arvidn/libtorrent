@@ -30,14 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/parse_url.hpp"
 #include <algorithm>
 
-namespace libtorrent
-{
+#include "libtorrent/parse_url.hpp"
+#include "libtorrent/string_util.hpp"
+
+namespace libtorrent {
 
 	// returns protocol, auth, hostname, port, path
-	boost::tuple<std::string, std::string, std::string, int, std::string>
+	std::tuple<std::string, std::string, std::string, int, std::string>
 		parse_url_components(std::string url, error_code& ec)
 	{
 		std::string hostname; // hostname only
@@ -50,12 +51,11 @@ namespace libtorrent
 		std::string::iterator port_pos;
 
 		// PARSE URL
-		std::string::iterator start = url.begin();
+		auto start = url.begin();
 		// remove white spaces in front of the url
 		while (start != url.end() && is_space(*start))
 			++start;
-		std::string::iterator end
-			= std::find(url.begin(), url.end(), ':');
+		auto end = std::find(url.begin(), url.end(), ':');
 		protocol.assign(start, end);
 
 		if (end == url.end())
@@ -115,7 +115,7 @@ namespace libtorrent
 		if (port_pos < end)
 		{
 			++port_pos;
-			for (std::string::iterator i = port_pos; i < end; ++i)
+			for (auto i = port_pos; i < end; ++i)
 			{
 				if (is_digit(*i)) continue;
 				ec = errors::invalid_port;
@@ -126,9 +126,40 @@ namespace libtorrent
 
 		start = end;
 exit:
-		return boost::make_tuple(protocol, auth, hostname, port
+		return std::make_tuple(std::move(protocol)
+			, std::move(auth)
+			, std::move(hostname)
+			, port
 			, std::string(start, url.end()));
 	}
 
-}
+	// splits a url into the base url and the path
+	std::tuple<std::string, std::string>
+		split_url(std::string url, error_code& ec)
+	{
+		std::string base;
+		std::string path;
 
+		// PARSE URL
+		auto pos = std::find(url.begin(), url.end(), ':');
+
+		if (pos == url.end() || url.end() - pos < 3
+			|| *(pos + 1) != '/' || *(pos + 2) != '/')
+		{
+			ec = errors::unsupported_url_protocol;
+			return std::make_tuple(std::move(url), std::move(path));
+		}
+		pos += 3; // skip "://"
+
+		pos = std::find(pos, url.end(), '/');
+		if (pos == url.end())
+		{
+			return std::make_tuple(std::move(url), std::move(path));
+		}
+
+		base.assign(url.begin(), pos);
+		path.assign(pos, url.end());
+		return std::make_tuple(std::move(base), std::move(path));
+	}
+
+}

@@ -30,40 +30,39 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdlib.h>
+#include <cstdlib>
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"
 
 char const* timestamp()
 {
-	time_t t = std::time(0);
-	tm* timeinfo = std::localtime(&t);
+	std::time_t t = std::time(nullptr);
+	std::tm* timeinfo = std::localtime(&t);
 	static char str[200];
 	std::strftime(str, 200, "%b %d %X", timeinfo);
 	return str;
 }
 
-void print_alert(libtorrent::alert const* a)
+void print_alert(lt::alert const* a)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	if (alert_cast<portmap_error_alert>(a))
 	{
-		printf("%s","\x1b[32m");
+		std::printf("%s","\x1b[32m");
 	}
 	else if (alert_cast<portmap_alert>(a))
 	{
-		printf("%s","\x1b[33m");
+		std::printf("%s","\x1b[33m");
 	}
 
-	printf("[%s] %s\n", timestamp(), a->message().c_str());
-	printf("%s", "\x1b[0m");
+	std::printf("[%s] %s\n", timestamp(), a->message().c_str());
+	std::printf("%s", "\x1b[0m");
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char*[])
 {
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+	using namespace lt;
 
 	if (argc != 1)
 	{
@@ -78,7 +77,7 @@ int main(int argc, char* argv[])
 	for (;;)
 	{
 		alert const* a = s.wait_for_alert(seconds(5));
-		if (a == 0)
+		if (a == nullptr)
 		{
 			settings_pack p;
 			p.set_bool(settings_pack::enable_upnp, false);
@@ -95,12 +94,12 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	printf("\x1b[1m\n\n===================== done mapping. Now deleting mappings ========================\n\n\n\x1b[0m");
+	std::printf("\x1b[1m\n\n===================== done mapping. Now deleting mappings ========================\n\n\n\x1b[0m");
 
 	for (;;)
 	{
 		alert const* a = s.wait_for_alert(seconds(5));
-		if (a == 0) break;
+		if (a == nullptr) break;
 		std::vector<alert*> alerts;
 		s.pop_alerts(&alerts);
 		for (std::vector<alert*>::iterator i = alerts.begin()

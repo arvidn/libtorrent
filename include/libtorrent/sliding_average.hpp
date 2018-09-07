@@ -33,11 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
 #define TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <cstdlib> // for std::abs
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 // an exponential moving average accumulator. Add samples to it and it keeps
 // track of a moving mean value and an average deviation
@@ -45,6 +44,8 @@ template <int inverted_gain>
 struct sliding_average
 {
 	sliding_average(): m_mean(0), m_average_deviation(0), m_num_samples(0) {}
+	sliding_average(sliding_average const&) = default;
+	sliding_average& operator=(sliding_average const&) = default;
 
 	void add_sample(int s)
 	{
@@ -75,44 +76,13 @@ struct sliding_average
 
 private:
 	// both of these are fixed point values (* 64)
-	int m_mean;
-	int m_average_deviation;
+	int m_mean = 0;
+	int m_average_deviation = 0;
 	// the number of samples we have received, but no more than inverted_gain
 	// this is the effective inverted_gain
-	int m_num_samples;
-};
-
-struct average_accumulator
-{
-	average_accumulator()
-		: m_num_samples(0)
-		, m_sample_sum(0)
-	{}
-
-	void add_sample(int s)
-	{
-		++m_num_samples;
-		m_sample_sum += s;
-	}
-
-	int mean()
-	{
-		int ret;
-		if (m_num_samples == 0) ret = 0;
-		else ret = int(m_sample_sum / m_num_samples);
-		// in case we don't get any more samples, at least
-		// let the average roll over, but only be worth a
-		// single sample
-		m_num_samples = 1;
-		m_sample_sum = ret;
-		return ret;
-	}
-
-	int m_num_samples;
-	boost::uint64_t m_sample_sum;
+	int m_num_samples = 0;
 };
 
 }
 
 #endif
-

@@ -31,12 +31,15 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/resolver.hpp"
-#include <boost/bind.hpp>
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
+
+	constexpr resolver_flags resolver_interface::cache_only;
+	constexpr resolver_flags resolver_interface::abort_on_shutdown;
+
 	resolver::resolver(io_service& ios)
 		: m_ios(ios)
 		, m_resolver(ios)
@@ -48,19 +51,15 @@ namespace libtorrent
 	void resolver::on_lookup(error_code const& ec, tcp::resolver::iterator i
 		, resolver_interface::callback_t h, std::string hostname)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("resolver::on_lookup");
-#endif
+		COMPLETE_ASYNC("resolver::on_lookup");
 		if (ec)
 		{
-			std::vector<address> empty;
-			h(ec, empty);
+			h(ec, {});
 			return;
 		}
 
 		dns_cache_entry& ce = m_cache[hostname];
-		time_point now = aux::time_now();
-		ce.last_seen = now;
+		ce.last_seen = aux::time_now();
 		ce.addresses.clear();
 		while (i != tcp::resolver::iterator())
 		{
@@ -72,11 +71,10 @@ namespace libtorrent
 
 		// if m_cache grows too big, weed out the
 		// oldest entries
-		if (m_cache.size() > m_max_size)
+		if (int(m_cache.size()) > m_max_size)
 		{
-			cache_t::iterator oldest = m_cache.begin();
-			for (cache_t::iterator k = m_cache.begin();
-				k != m_cache.end(); ++k)
+			auto oldest = m_cache.begin();
+			for (auto k = m_cache.begin(); k != m_cache.end(); ++k)
 			{
 				if (k->second.last_seen < oldest->second.last_seen)
 					oldest = k;
@@ -87,30 +85,28 @@ namespace libtorrent
 		}
 	}
 
-	void resolver::async_resolve(std::string const& host, int const flags
+	void resolver::async_resolve(std::string const& host, resolver_flags const flags
 		, resolver_interface::callback_t const& h)
 	{
 		// special handling for raw IP addresses. There's no need to get in line
 		// behind actual lookups if we can just resolve it immediately.
 		error_code ec;
-		address ip = address::from_string(host.c_str(), ec);
+		address const ip = make_address(host, ec);
 		if (!ec)
 		{
-			std::vector<address> addresses;
-			addresses.push_back(ip);
-			m_ios.post(boost::bind(h, ec, addresses));
+			m_ios.post(std::bind(h, ec, std::vector<address>{ip}));
 			return;
 		}
 		ec.clear();
 
-		cache_t::iterator i = m_cache.find(host);
+		auto const i = m_cache.find(host);
 		if (i != m_cache.end())
 		{
 			// keep cache entries valid for m_timeout seconds
 			if ((flags & resolver_interface::cache_only)
 				|| i->second.last_seen + m_timeout >= aux::time_now())
 			{
-				m_ios.post(boost::bind(h, ec, i->second.addresses));
+				m_ios.post(std::bind(h, ec, i->second.addresses));
 				return;
 			}
 		}
@@ -118,25 +114,24 @@ namespace libtorrent
 		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
-			m_ios.post(boost::bind(h, boost::asio::error::host_not_found
-					, std::vector<address>()));
+			m_ios.post(std::bind(h, boost::asio::error::host_not_found
+					, std::vector<address>{}));
 			return;
 		}
 
 		// the port is ignored
-		tcp::resolver::query q(host, "80");
+		tcp::resolver::query const q(host, "80");
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("resolver::on_lookup");
-#endif
+		using namespace std::placeholders;
+		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
 		if (flags & resolver_interface::abort_on_shutdown)
 		{
-			m_resolver.async_resolve(q, boost::bind(&resolver::on_lookup, this, _1, _2
+			m_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));
 		}
 		else
 		{
-			m_critical_resolver.async_resolve(q, boost::bind(&resolver::on_lookup, this, _1, _2
+			m_critical_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));
 		}
 	}
@@ -145,5 +140,12 @@ namespace libtorrent
 	{
 		m_resolver.cancel();
 	}
-}
 
+	void resolver::set_cache_timeout(seconds const timeout)
+	{
+		if (timeout >= seconds(0))
+			m_timeout = timeout;
+		else
+			m_timeout = seconds(0);
+	}
+}

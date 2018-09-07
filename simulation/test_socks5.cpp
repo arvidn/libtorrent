@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/http_server.hpp"
 #include "settings.hpp"
 #include "create_torrent.hpp"
+#include "setup_transfer.hpp" // for addr()
 #include "simulator/simulator.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"
@@ -47,17 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace sim;
-using namespace libtorrent;
+using namespace lt;
 
-namespace lt = libtorrent;
-
-std::unique_ptr<sim::asio::io_service> make_io_service(sim::simulation& sim, int i)
-{
-	char ep[30];
-	snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
-	return std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
-		sim, address_v4::from_string(ep)));
-}
 
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain
@@ -89,17 +81,17 @@ void run_test(Setup const& setup
 		on_alert(ses, a);
 	});
 
-	lt::add_torrent_params params = create_torrent(1);
-	params.flags &= ~lt::add_torrent_params::flag_auto_managed;
-	params.flags &= ~lt::add_torrent_params::flag_paused;
+	lt::add_torrent_params params = ::create_torrent(1);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
 	params.save_path = save_path(0);
 	ses->async_add_torrent(params);
 
 	// set up a timer to fire later, to verify everything we expected to happen
 	// happened
-	sim::timer t(sim, lt::seconds(100), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds(100), [&](boost::system::error_code const&)
 	{
-		fprintf(stderr, "shutting down\n");
+		std::printf("shutting down\n");
 		// shut down
 		zombie = ses->abort();
 		ses.reset();
@@ -110,7 +102,7 @@ void run_test(Setup const& setup
 
 TORRENT_TEST(socks5_tcp_announce)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	int tracker_port = -1;
 	int alert_port = -1;
 	run_test(
@@ -124,17 +116,17 @@ TORRENT_TEST(socks5_tcp_announce)
 			params.save_path = ".";
 			ses.async_add_torrent(params);
 		},
-		[&alert_port](lt::session& ses, lt::alert const* alert) {
+		[&alert_port](lt::session&, lt::alert const* alert) {
 			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
 			{
-				if (a->sock_type == listen_succeeded_alert::udp)
+				if (a->socket_type == socket_type_t::udp)
 				{
-					alert_port = a->endpoint.port();
+					alert_port = a->port;
 				}
 			}
 		},
-		[&tracker_port](sim::simulation& sim, lt::session& ses
-			, boost::shared_ptr<lt::torrent_info> ti)
+		[&tracker_port](sim::simulation& sim, lt::session&
+			, std::shared_ptr<lt::torrent_info> ti)
 		{
 			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
 			// listen on port 8080
@@ -161,15 +153,13 @@ TORRENT_TEST(socks5_tcp_announce)
 		}
 	);
 
-	// since force_proxy is enabled, don't send the port
-	TEST_EQUAL(tracker_port, 0);
+	TEST_EQUAL(tracker_port, 6881);
 	TEST_CHECK(alert_port != -1);
-	TEST_CHECK(tracker_port != -1);
 }
 
 TORRENT_TEST(udp_tracker)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	bool tracker_alert = false;
 	bool connected = false;
 	bool announced = false;
@@ -195,13 +185,13 @@ TORRENT_TEST(udp_tracker)
 				tracker_alert = true;
 		},
 		[&](sim::simulation& sim, lt::session& ses
-			, boost::shared_ptr<lt::torrent_info> ti)
+			, std::shared_ptr<lt::torrent_info> ti)
 		{
 			// listen on port 8080
 			udp_server tracker(sim, "2.2.2.2", 8080,
 			[&](char const* msg, int size)
 			{
-				using namespace libtorrent::detail;
+				using namespace lt::detail;
 				std::vector<char> ret;
 				TEST_CHECK(size >= 16);
 
@@ -272,6 +262,7 @@ TORRENT_TEST(socks5_udp_retry)
 	sim::socks_server socks5(proxy_ios, 5555, 5, socks_flag::disconnect_udp_associate);
 
 	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "50.50.50.50:6881");
 	// create session
 	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, *ios);
 	set_proxy(*ses, settings_pack::socks5);

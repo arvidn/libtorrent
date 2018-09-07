@@ -22,42 +22,28 @@ if $(BOOST_ROOT)
 	ECHO "building boost from source directory: " $(BOOST_ROOT) ;
 
 	use-project /boost : $(BOOST_ROOT) ;
-	alias boost_chrono : /boost/chrono//boost_chrono : : : <include>$(BOOST_ROOT) ;
 	alias boost_system : /boost/system//boost_system : : : <include>$(BOOST_ROOT) ;
-	alias boost_random : /boost/random//boost_random : : : <include>$(BOOST_ROOT) ;
 }
 else
 {
 	local boost-lib-search-path =
-		<search>/opt/local/lib
 		<search>/usr/local/lib
-		<search>/sw/lib
-		<search>/usr/g++/lib
 		;
 
 	local boost-include-path =
-		<include>/opt/local/include
 		<include>/usr/local/include
 		<include>/usr/sfw/include
 	;
 
 	# the names are decorated in MacPorts
-	lib boost_chrono : : <target-os>darwin <name>boost_chrono-mt $(boost-lib-search-path)
-		: : $(boost-include-path) ;
 	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
 		: : $(boost-include-path) ;
-	lib boost_random : : <target-os>darwin <name>boost_random-mt $(boost-lib-search-path)
-		: : $(boost-include-path) ;
 
-	lib boost_chrono : : <name>boost_chrono $(boost-lib-search-path)
-		: : $(boost-include-path) ;
 	lib boost_system : : <name>boost_system $(boost-lib-search-path)
-		: : $(boost-include-path) ;
-	lib boost_random : : <name>boost_random $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 }
 
-VERSION = 1.1.9 ;
+VERSION = 1.2.0 ;
 
 rule linking ( properties * )
 {
@@ -68,11 +54,8 @@ rule linking ( properties * )
 	}
 
 	if <target-os>windows in $(properties)
-		&& ( <variant>debug in $(properties)
-			|| <asserts>on in $(properties)
+		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
-			|| <pool-allocators>debug in $(properties)
-			|| <allocator>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		result += <library>dbghelp ;
@@ -81,18 +64,22 @@ rule linking ( properties * )
 	# gcrypt libraries, if enabled
 	if <crypto>gcrypt in $(properties)
 	{
-		# on mac os x, adding the /opt/local/include path
-		# would include openssl headers incompatible with
-		# the system library. Only add this include path
-		# if we're not using openssl (which we're most
-		# likely not if we're using libgcrypt)
-		result += <library>gcrypt <include>/opt/local/include ;
+		result += <library>gcrypt ;
+	}
+	else if <crypto>openssl in $(properties)
+	{
+		result += <library>ssl ;
+		result += <library>crypto ;
+	}
+	else if <crypto>libcrypto in $(properties)
+	{
+		result += <library>crypto ;
 	}
 
-	# socket functions on windows require winsock libraries
 	if <target-os>windows in $(properties)
 		|| <target-os>cygwin in $(properties)
 	{
+		# socket functions on windows require winsock libraries
 		result += <library>ws2_32
 			<library>wsock32
 			<library>iphlpapi
@@ -110,14 +97,32 @@ rule linking ( properties * )
 		}
 	}
 
+	if <target-os>android in $(properties)
+	{
+		result += <library>dl ;
+	}
+
 	if <target-os>beos in $(properties)
 	{
 		result += <library>netkit <library>gcc ;
 	}
 
+	if <target-os>haiku in $(properties)
+	{
+		result += <library>libnetwork <library>gcc ;
+	}
+
+
 	if <target-os>solaris in $(properties)
 	{
 		result += <library>libsocket <library>libnsl ;
+	}
+
+	if <target-os>darwin in $(properties)
+		|| <target-os>iphone in $(properties)
+	{
+		# for ip_notifier
+		result += <framework>CoreFoundation <framework>SystemConfiguration ;
 	}
 
 	if <iconv>on in $(properties)
@@ -128,11 +133,8 @@ rule linking ( properties * )
 	if ( <toolset>gcc in $(properties)
 			|| <toolset>clang in $(properties) )
 		&& <target-os>linux in $(properties)
-		&& ( <variant>debug in $(properties)
-			|| <asserts>on in $(properties)
+		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
-			|| <pool-allocators>debug in $(properties)
-			|| <allocator>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		# for backtraces in assertion failures
@@ -150,14 +152,10 @@ rule linking ( properties * )
 			# library, so that it properly exports its symbols
 			result += <define>BOOST_ALL_DYN_LINK ;
 			result += <library>boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
-			result += <library>boost_chrono/<link>static/<define>BOOST_ALL_DYN_LINK ;
-			result += <library>boost_random/<link>static/<define>BOOST_ALL_DYN_LINK ;
 		}
 		else
 		{
 			result += <library>boost_system/<link>static ;
-			result += <library>boost_chrono/<link>static ;
-			result += <library>boost_random/<link>static ;
 		}
 
 		if <toolset>gcc in $(properties)
@@ -171,18 +169,15 @@ rule linking ( properties * )
 	else if <boost-link>shared in $(properties)
 	{
 		result += <library>boost_system/<link>shared ;
-		result += <library>boost_chrono/<link>shared ;
-		result += <library>boost_random/<link>shared ;
 	}
 	else
 	{
 		result += <library>boost_system ;
-		result += <library>boost_chrono ;
-		result += <library>boost_random ;
 	}
 
 	result += <define>BOOST_ALL_NO_LIB
 		<define>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
+		<define>BOOST_SYSTEM_NO_DEPRECATED
 		;
 
 	return $(result) ;
@@ -205,24 +200,12 @@ rule warnings ( properties * )
 		result += <cxxflags>-Wno-c++98-compat-pedantic ;
 		result += <cflags>-Wno-padded ;
 		result += <cflags>-Wno-global-constructors ;
-		result += <cxxflags>-Wno-c++98-compat ;
 # this warns on any global static object, which are used for error_category
 # objects
 		result += <cflags>-Wno-exit-time-destructors ;
-		result += <cflags>-Wno-unused-command-line-argument ;
-		result += <cflags>-Wno-implicit-fallthrough ;
-		result += <cflags>-Wno-c++11-long-long ;
-		result += <cflags>-Wno-variadic-macros ;
-
-# in C++98 mode there's no way to silence this warning
-# in the code (without final)
-		result += <cflags>-Wno-non-virtual-dtor ;
 
 # enable these warnings again, once the other ones are dealt with
 		result += <cflags>-Wno-weak-vtables ;
-		result += <cflags>-Wno-sign-compare ;
-		result += <cflags>-Wno-sign-conversion ;
-		result += <cflags>-Wno-conversion ;
 	}
 
 	if <toolset>gcc in $(properties)
@@ -235,28 +218,26 @@ rule warnings ( properties * )
 		result += <cflags>-Wvla ;
 		result += <cxxflags>-Wc++11-compat ;
 		result += <cflags>-Wno-format-zero-length ;
-		result += <cflags>-Wno-long-long ;
-
-# enable these warnings again, once the other ones are dealt with
-		result += <cflags>-Wno-sign-compare ;
-		result += <cflags>-Wno-unused-variable ;
 	}
 
 	if <toolset>msvc in $(properties)
 	{
-# disable warning C4503: decorated name length exceeded, name was truncated
-		result += <cflags>/wd4503 ;
+		# on msvc this resolves to /W4
+		result += <warnings>all ;
 
 # enable these warnings again, once the other ones are dealt with
 
-# disable warning C4389: signed/unsigned mismatch
-		result += <cflags>/wd4389 ;
-		result += <cflags>/wd4245 ;
-		result += <cflags>/wd4018 ;
-# disable warning C4244: 'argument' : conversion from 'int' to 'unsigned short', possible loss of data
-		result += <cflags>/wd4244 ;
-# disable warning C4512: assignment operator could not be generated
-		result += <cflags>/wd4512 ;
+# disable warning C4251: 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
+		result += <cflags>/wd4251 ;
+# disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
+		result += <cflags>/wd4275 ;
+# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
+		result += <cflags>/wd4373 ;
+		# C4268: 'identifier' : 'const' static/global data initialized
+		#        with compiler generated default constructor fills the object with zeros
+		result += <cflags>/wd4268 ;
+		# C4503: 'identifier': decorated name length exceeded, name was truncated
+		result += <cflags>/wd4503 ;
 	}
 
 	return $(result) ;
@@ -268,13 +249,11 @@ rule building ( properties * )
 {
 	local result ;
 
-	if <link>shared in $(properties) && <export-extra>on in $(properties)
+	if ( <asserts>off in $(properties) &&
+		! <invariant-checks>off in $(properties) )
 	{
-		# export some internal libtorrent functions
-		# in order to me able to unit test them.
-		# this is off by default to keep the export
-		# symbol table reasonably small
-		result += <define>TORRENT_EXPORT_EXTRA ;
+		ECHO "'invariant-check' requires enabled 'asserts' mode. (e.g. specify build params: invariant-check=on asserts=on)" ;
+		result += <build>no ;
 	}
 
 	if <toolset>msvc in $(properties)
@@ -291,7 +270,7 @@ rule building ( properties * )
 		result += <cflags>-ftrapv ;
 	}
 
-	if ( <variant>debug in $(properties)
+	if ( <asserts>production in $(properties)
 		|| <asserts>on in $(properties) )
 	{
 		result += <source>src/assert.cpp ;
@@ -299,19 +278,30 @@ rule building ( properties * )
 
 	if <encryption>on in $(properties)
 	{
-		result += <source>src/mpi.cpp ;
 		result += <source>src/pe_crypto.cpp ;
 	}
 
-	if <crypo>built-in in $(properties)
+	if <crypto>built-in in $(properties)
+		&& ! <target-os>windows in $(properties)
+		&& ! <target-os>darwin in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
+		if <dht>on in $(properties)
+		{
+			result += <source>src/sha512.cpp ;
+		}
+	}
+
+	if <target-os>windows in $(properties)
+		&& <windows-version>xp in $(properties)
+	{
+		result += <source>src/sha512.cpp ;
 	}
 
 	if ( <toolset>darwin in $(properties)
 		|| <toolset>gcc in $(properties)
-		|| <toolset>clang in $(propertoes)
-		|| <toolset>clang-darwin in $(propertoes) )
+		|| <toolset>clang in $(properties)
+		|| <toolset>clang-darwin in $(properties) )
 		&& <link>shared in $(properties)
 		# on GCC, enabling debugging in libstdc++
 		# breaks the ABI and its ability to appear
@@ -330,6 +320,17 @@ rule building ( properties * )
 		}
 	}
 
+	return $(result) ;
+}
+
+rule default-build ( properties * )
+{
+	local result ;
+	if <variant>debug in $(properties)
+	{
+		result += <variant>debug:<invariant-checks>on
+			<variant>debug:<asserts>on ;
+	}
 	return $(result) ;
 }
 
@@ -416,22 +417,14 @@ rule openssl-include-path ( properties * )
 feature openssl-lib : : free path ;
 feature openssl-include : : free path ;
 
-feature ipv6 : on off : composite propagated link-incompatible ;
-feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
-
-feature sanitize : off address undefined thread rtc : composite propagated link-incompatible ;
+feature sanitize : off address memory undefined thread rtc : composite propagated link-incompatible ;
 # sanitize is a clang and GCC feature
-feature.compose <sanitize>undefined : <cflags>-fsanitize=undefined <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=undefined ;
+feature.compose <sanitize>undefined : <cflags>-fsanitize=undefined <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=undefined <linkflags>-fsanitize-undefined-trap-on-error ;
 feature.compose <sanitize>thread : <cflags>-fsanitize=thread <linkflags>-fsanitize=thread ;
 feature.compose <sanitize>address : <cflags>-fsanitize=address <linkflags>-fsanitize=address ;
+feature.compose <sanitize>memory : <cflags>-fsanitize=memory <linkflags>-fsanitize=memory ;
 # RTC (runtime check) is an msvc feature
 feature.compose <sanitize>rtc : <cflags>/RTCc <cflags>/RTCsu ;
-
-feature fiemap : off on : composite propagated ;
-feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
-
-feature file-leak-logging : off on : composite propagated ;
-feature.compose <file-leak-logging>on : <define>TORRENT_DEBUG_FILE_LEAKS=1 ;
 
 feature i2p : on off : composite propagated ;
 feature.compose <i2p>on : <define>TORRENT_USE_I2P=1 ;
@@ -441,17 +434,10 @@ feature iconv : auto on off : composite propagated ;
 feature.compose <iconv>on : <define>TORRENT_USE_ICONV=1 ;
 feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
 
-feature use-valgrind : off on : composite propagated link-incompatible ;
-feature.compose <use-valgrind>on : <define>TORRENT_USE_VALGRIND=1 ;
-
-feature memory-optimization : off on : composite propagated link-incompatible ;
-feature.compose <memory-optimization>on : <define>TORRENT_OPTIMIZE_MEMORY_USAGE ;
-
-feature asserts : auto on off production system : composite propagated ;
-feature.compose <asserts>on : <define>TORRENT_RELEASE_ASSERTS=1 ;
-feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 <define>TORRENT_RELEASE_ASSERTS=1 ;
-feature.compose <asserts>off : <define>TORRENT_USE_ASSERTS=0 ;
-feature.compose <asserts>system : <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
+feature asserts : off on production system : composite propagated ;
+feature.compose <asserts>on : <define>TORRENT_USE_ASSERTS=1 ;
+feature.compose <asserts>production : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_PRODUCTION_ASSERTS=1 ;
+feature.compose <asserts>system : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
 
 feature windows-version : vista win7 xp : composite propagated link-incompatible ;
 feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
@@ -470,25 +456,13 @@ feature.compose <picker-debugging>on : <define>TORRENT_DEBUG_REFCOUNTS ;
 feature simulator : off on : composite propagated link-incompatible ;
 feature.compose <simulator>on : <define>TORRENT_BUILD_SIMULATOR ;
 
-# deprecated use allocator=pool instead
-feature pool-allocators : on off debug : composite propagated link-incompatible ;
-feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
-feature.compose <pool-allocators>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
-
-feature allocator : pool system debug : composite propagated ;
-feature.compose <allocator>system : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
-feature.compose <allocator>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
-
 feature piece-allocator : valloc memalign posix_memalign : composite propagated ;
 feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
 feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
 
-feature invariant-checks : on off full : composite propagated link-incompatible ;
-feature.compose <invariant-checks>off : <define>TORRENT_DISABLE_INVARIANT_CHECKS ;
-feature.compose <invariant-checks>full : <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
-
-feature disk-stats : off on : composite propagated link-incompatible ;
-feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
+feature invariant-checks : off on full : composite propagated link-incompatible ;
+feature.compose <invariant-checks>on : <define>TORRENT_USE_INVARIANT_CHECKS=1 ;
+feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
 
 feature utp-log : off on : composite propagated link-incompatible ;
 feature.compose <utp-log>on : <define>TORRENT_UTP_LOG_ENABLE ;
@@ -508,25 +482,26 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : built-in openssl gcrypt : composite propagated ;
-feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL ;
-feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
+feature crypto : built-in openssl libcrypto gcrypt : composite propagated ;
+feature.compose <crypto>openssl : <define>TORRENT_USE_LIBCRYPTO <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
+feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
+feature.compose <crypto>gcrypt : <define>TORRENT_USE_LIBGCRYPT ;
 
 feature openssl-version : 1.1 pre1.1 : composite propagated ;
-
-feature resolve-countries : on off : composite propagated link-incompatible ;
-feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
-
-feature character-set : unicode ansi : composite propagated link-incompatible ;
-feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 
 feature deprecated-functions : on off : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
 
 feature boost-link : default static shared : propagated composite ;
 
-feature debug-iterators : off on : composite propagated link-incompatible ;
-feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
+# msvc enables debug iterators by default in debug builds whereas GCC and
+# clang do not, that's why "default" is there. msvc has incorrect noexcept
+# constructors on some containers when enabling debug iterators, so it's
+# possible to turn them off
+feature debug-iterators : default off on : composite propagated link-incompatible ;
+feature.compose <debug-iterators>on : <define>_ITERATOR_DEBUG_LEVEL=2 <define>_GLIBCXX_DEBUG
+	<define>_GLIBCXX_DEBUG_PEDANTIC ;
+feature.compose <debug-iterators>off : <define>_ITERATOR_DEBUG_LEVEL=0 ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
@@ -537,6 +512,11 @@ feature.compose <profile-calls>on : <define>TORRENT_PROFILE_CALLS=1 ;
 # controls whether or not to export some internal
 # libtorrent functions. Used for unit testing
 feature export-extra : off on : composite propagated ;
+# export some internal libtorrent functions
+# in order to me able to unit test them.
+# this is off by default to keep the export
+# symbol table reasonably small
+feature.compose <export-extra>on : <define>TORRENT_EXPORT_EXTRA ;
 
 
 # this is a trick to get filename paths to targets to become shorter
@@ -545,29 +525,34 @@ feature export-extra : off on : composite propagated ;
 # allowed memory usage on travis-ci
 variant test_release : release
 	: <asserts>production <debug-symbols>on
-	  <invariant-checks>full <boost-link>shared <optimization>off
-	  <export-extra>on <debug-iterators>on <threading>multi <inlining>on
+	<invariant-checks>full <boost-link>shared <optimization>off
+	<export-extra>on <threading>multi
+	<inlining>on <deprecated-functions>off
 	;
 variant test_debug : debug
-	: <crypto>openssl <logging>on <disk-stats>on
-	  <allocator>debug <debug-iterators>on
-	  <invariant-checks>full <boost-link>shared
-	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
+	: <logging>on
+	<invariant-checks>full <boost-link>shared
+	<export-extra>on <threading>multi <asserts>on
 	;
 variant test_barebones : debug
-	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
-	  <deprecated-functions>off <invariant-checks>off
-	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
+	: <dht>off <extensions>off <logging>off <boost-link>shared
+	<deprecated-functions>off <invariant-checks>off
+	<export-extra>on <threading>multi <asserts>on
+	;
+variant test_arm : debug
+	: <dht>off <extensions>off <logging>off
+	<deprecated-functions>off <invariant-checks>off
+	<export-extra>on <asserts>on
 	;
 
-# windows variants for libssl and libcrypto (they have different names and some
-# additional dependencies)
 lib advapi32 : : <name>advapi32 ;
 lib user32 : : <name>user32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
 lib z : : <link>shared <name>z ;
 
+# windows variants for libssl and libcrypto (they have different names and some
+# additional dependencies)
 lib crypto
 	: # sources
 	: # requirements
@@ -602,7 +587,7 @@ lib ssl
 	;
 
 
-lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path  : : <conditional>@openssl-include-path ;
 lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
 
 lib dbghelp : : <name>dbghelp ;
@@ -618,11 +603,9 @@ lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
 lib dl : : <link>shared <name>dl ;
 
-# time functions used on linux require librt
-lib librt : : <name>rt <link>shared ;
-
 lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib <link>shared ;
 lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
+lib libnetwork : : <name>network <link>shared ;
 
 # socket libraries on windows
 lib wsock32 : : <name>wsock32 <link>shared ;
@@ -651,14 +634,17 @@ SOURCES =
 	disk_buffer_holder
 	disk_buffer_pool
 	disk_io_job
+	disk_io_thread
+	disk_io_thread_pool
+	disk_job_fence
 	disk_job_pool
 	entry
 	error_code
 	file_storage
-	lazy_bdecode
 	escape_string
 	string_util
 	file
+	path
 	fingerprint
 	gzip
 	hasher
@@ -668,7 +654,9 @@ SOURCES =
 	http_parser
 	identify_client
 	ip_filter
+	ip_notifier
 	ip_voter
+	listen_socket_handle
 	merkle
 	peer_connection
 	platform_util
@@ -679,6 +667,7 @@ SOURCES =
 	peer_connection_handle
 	i2p_stream
 	instantiate_connection
+	lazy_bdecode
 	natpmp
 	packet_buffer
 	piece_picker
@@ -686,19 +675,24 @@ SOURCES =
 	proxy_base
 	puff
 	random
+	read_resume_data
+	write_resume_data
 	receive_buffer
 	resolve_links
-	rss
 	session
 	session_handle
 	session_impl
 	session_call
+	session_udp_sockets
 	settings_pack
+	sha1_hash
 	socket_io
 	socket_type
 	socks5_stream
 	stat
 	storage
+	storage_piece_set
+	storage_utils
 	torrent
 	torrent_handle
 	torrent_info
@@ -709,7 +703,6 @@ SOURCES =
 	tracker_manager
 	http_tracker_connection
 	udp_tracker_connection
-	sha1
 	timestamp_history
 	udp_socket
 	upnp
@@ -718,14 +711,11 @@ SOURCES =
 	utp_stream
 	file_pool
 	lsd
-	disk_buffer_pool
-	disk_io_thread
 	enum_net
 	broadcast_socket
 	magnet_uri
 	parse_url
 	ConvertUTF
-	thread
 	xml_parse
 	version
 	peer_class
@@ -739,16 +729,20 @@ SOURCES =
 	session_settings
 	proxy_settings
 	file_progress
+	ffs
+	add_torrent_params
+	peer_info
+	stack_allocator
+	generate_peer_id
 
 # -- extensions --
-	metadata_transfer
 	ut_pex
 	ut_metadata
-	lt_trackers
 	smart_ban
 	;
 
 KADEMLIA_SOURCES =
+	dht_state
 	dht_storage
 	dht_tracker
 	msg
@@ -765,6 +759,9 @@ KADEMLIA_SOURCES =
 	item
 	get_item
 	put_data
+	ed25519
+	sample_infohashes
+	dht_settings
 	;
 
 ED25519_SOURCES =
@@ -774,8 +771,6 @@ ED25519_SOURCES =
 	key_exchange
 	keypair
 	sc
-	seed
-	sha512
 	sign
 	verify
 	;
@@ -788,23 +783,22 @@ local usage-requirements =
 # and iconv.h is installed there
 	<include>/usr/local/include
 	<variant>release:<define>NDEBUG
-	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
-	<define>BOOST_EXCEPTION_DISABLE
 # enable cancel support in asio
 	<define>BOOST_ASIO_ENABLE_CANCELIO
+# make sure asio uses std::chrono
+	<define>BOOST_ASIO_HAS_STD_CHRONO
 	<conditional>@linking
-# these compiler settings just makes the compiler standard conforming
-	<toolset>msvc:<cflags>"/Zc:wchar_t"
-	<toolset>msvc:<cflags>"/Zc:forScope"
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:ICF=5"
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:REF"
 
+	# disable bogus deprecation warnings on msvc8
+	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+
 	<cxxflags>$(CXXFLAGS)
 	<linkflags>$(LDFLAGS)
-# this works around a bug in asio in boost-1.39
-	<define>BOOST_ASIO_HASH_MAP_BUCKETS=1021
 	;
 
 project torrent ;
@@ -821,19 +815,14 @@ lib torrent
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
-	<crypto>openssl:<library>ssl
-	<crypto>openssl:<library>crypto
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
+	<dht>on:<source>src/hasher512.cpp
 
 	<conditional>@building
 	<conditional>@warnings
 	<cxxflags>$(CXXFLAGS)
-
-	# disable bogus deprecation warnings on msvc8
-	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
-	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
 
 	<tag>@tag
 
@@ -841,10 +830,13 @@ lib torrent
 
 	: # default build
 	<threading>multi
+	<c++-template-depth>512
+	<conditional>@default-build
 
 	: # usage requirements
 	$(usage-requirements)
 	<link>shared:<define>TORRENT_LINKING_SHARED
+
 	;
 
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;
@@ -855,4 +847,3 @@ package.install install
 	: torrent
 	: $(headers)
 	;
-

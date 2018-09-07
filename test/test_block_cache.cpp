@@ -38,47 +38,68 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/aux_/path.hpp" // for bufs_size
 
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
+#include <functional>
+#include <memory>
 
-using namespace libtorrent;
+using namespace lt;
+
+namespace {
 
 struct test_storage_impl : storage_interface
 {
-	virtual void initialize(storage_error& ec) {}
+	explicit test_storage_impl(file_storage const& fs) : storage_interface(fs) {}
+	void initialize(storage_error&) override {}
 
-	virtual int readv(file::iovec_t const* bufs, int num_bufs
-		, int piece, int offset, int flags, storage_error& ec)
+	int readv(span<iovec_t const> bufs
+		, piece_index_t, int /*offset*/, open_mode_t, storage_error&) override
 	{
-		return bufs_size(bufs, num_bufs);
+		return bufs_size(bufs);
 	}
-	virtual int writev(file::iovec_t const* bufs, int num_bufs
-		, int piece, int offset, int flags, storage_error& ec)
+	int writev(span<iovec_t const> bufs
+		, piece_index_t, int /*offset*/, open_mode_t, storage_error&) override
 	{
-		return bufs_size(bufs, num_bufs);
+		return bufs_size(bufs);
 	}
 
-	virtual bool has_any_file(storage_error& ec) { return false; }
-	virtual void set_file_priority(std::vector<boost::uint8_t>& prio
-		, storage_error& ec) {}
-	virtual int move_storage(std::string const& save_path, int flags
-		, storage_error& ec) { return 0; }
-	virtual bool verify_resume_data(bdecode_node const& rd
-		, std::vector<std::string> const* links
-		, storage_error& ec) { return true; }
-	virtual void write_resume_data(entry& rd, storage_error& ec) const {}
-	virtual void release_files(storage_error& ec) {}
-	virtual void rename_file(int index, std::string const& new_filenamem
-		, storage_error& ec) {}
-	virtual void delete_files(int, storage_error& ec) {}
-	virtual void finalize_file(int, storage_error&) {}
+	bool has_any_file(storage_error&) override { return false; }
+	void set_file_priority(aux::vector<download_priority_t, file_index_t>&
+		, storage_error&) override {}
+	status_t move_storage(std::string const&, move_flags_t
+		, storage_error&) override { return status_t::no_error; }
+	bool verify_resume_data(add_torrent_params const&
+		, aux::vector<std::string, file_index_t> const&
+		, storage_error&) override { return true; }
+	void release_files(storage_error&) override {}
+	void rename_file(file_index_t, std::string const&
+		, storage_error&) override {}
+	void delete_files(remove_flags_t, storage_error&) override {}
+};
+
+struct allocator : buffer_allocator_interface
+{
+	allocator(block_cache& bc, storage_interface* st)
+		: m_cache(bc), m_storage(st) {}
+
+	void free_disk_buffer(char* b) override
+	{ m_cache.free_buffer(b); }
+
+	void reclaim_blocks(span<aux::block_cache_reference> refs) override
+	{
+		for (auto ref : refs)
+			m_cache.reclaim_block(m_storage, ref);
+	}
+
+	virtual ~allocator() = default;
+private:
+	block_cache& m_cache;
+	storage_interface* m_storage;
 };
 
 static void nop() {}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 #define INITIALIZE_JOB(j) j.in_use = true;
 #else
 #define INITIALIZE_JOB(j)
@@ -86,7 +107,7 @@ static void nop() {}
 
 #define TEST_SETUP \
 	io_service ios; \
-	block_cache bc(0x4000, ios, boost::bind(&nop)); \
+	block_cache bc(ios, std::bind(&nop)); \
 	aux::session_settings sett; \
 	file_storage fs; \
 	fs.add_file("a/test0", 0x4000); \
@@ -99,63 +120,56 @@ static void nop() {}
 	fs.add_file("a/test7", 0x4000); \
 	fs.set_piece_length(0x8000); \
 	fs.set_num_pieces(5); \
-	test_storage_impl* st = new test_storage_impl; \
-	boost::shared_ptr<piece_manager> pm(boost::make_shared<piece_manager>(st, boost::shared_ptr<int>(new int), &fs)); \
-	error_code ec; \
-	bc.set_settings(sett, ec); \
-	st->m_settings = &sett; \
+	std::shared_ptr<storage_interface> pm \
+		= std::make_shared<test_storage_impl>(fs); \
+	allocator alloc(bc, pm.get()); \
+	bc.set_settings(sett); \
+	pm->m_settings = &sett; \
 	disk_io_job rj; \
 	disk_io_job wj; \
 	INITIALIZE_JOB(rj) \
 	INITIALIZE_JOB(wj) \
 	rj.storage = pm; \
 	wj.storage = pm; \
-	cached_piece_entry* pe = NULL; \
+	cached_piece_entry* pe = nullptr; \
 	int ret = 0; \
-	file::iovec_t iov[1]; \
-	(void)iov[0]; \
+	iovec_t iov; \
+	(void)iov; \
 	(void)ret; \
 	(void)pe
 
 #define WRITE_BLOCK(p, b) \
 	wj.flags = disk_io_job::in_progress; \
-	wj.action = disk_io_job::write; \
-	wj.d.io.offset = b * 0x4000; \
+	wj.action = job_action_t::write; \
+	wj.d.io.offset = (b) * 0x4000; \
 	wj.d.io.buffer_size = 0x4000; \
-	wj.piece = p; \
-	wj.buffer.disk_block = bc.allocate_buffer("write-test"); \
+	wj.piece = piece_index_t(p); \
+	wj.argument = disk_buffer_holder(alloc, bc.allocate_buffer("write-test"), 0x4000); \
 	pe = bc.add_dirty_block(&wj)
 
 #define READ_BLOCK(p, b, r) \
-	rj.action = disk_io_job::read; \
-	rj.d.io.offset = b * 0x4000; \
+	rj.action = job_action_t::read; \
+	rj.d.io.offset = (b) * 0x4000; \
 	rj.d.io.buffer_size = 0x4000; \
-	rj.piece = p; \
+	rj.piece = piece_index_t(p); \
 	rj.storage = pm; \
-	rj.requester = (void*)r; \
-	rj.buffer.disk_block = 0; \
-	ret = bc.try_read(&rj)
-
-#define RETURN_BUFFER \
-	if (rj.d.io.ref.storage) bc.reclaim_block(rj.d.io.ref); \
-	else if (rj.buffer.disk_block) bc.free_buffer(rj.buffer.disk_block); \
-	rj.d.io.ref.storage = 0
+	rj.argument = disk_buffer_holder(alloc, nullptr, 0); \
+	ret = bc.try_read(&rj, alloc)
 
 #define FLUSH(flushing) \
-	for (int i = 0; i < int(sizeof(flushing)/sizeof(flushing[0])); ++i) \
+	for (int i = 0; i < int(sizeof(flushing)/sizeof((flushing)[0])); ++i) \
 	{ \
-		pe->blocks[flushing[i]].pending = true; \
+		pe->blocks[(flushing)[i]].pending = true; \
 		bc.inc_block_refcount(pe, 0, block_cache::ref_flushing); \
 	} \
-	bc.blocks_flushed(pe, flushing, sizeof(flushing)/sizeof(flushing[0]))
+	bc.blocks_flushed(pe, flushing, sizeof(flushing)/sizeof((flushing)[0]))
 
 #define INSERT(p, b) \
-	wj.piece = p; \
-	wj.requester = (void*)1; \
+	wj.piece = piece_index_t(p); \
 	pe = bc.allocate_piece(&wj, cached_piece_entry::read_lru1); \
-	ret = bc.allocate_iovec(iov, 1); \
+	ret = bc.allocate_iovec(iov); \
 	TEST_EQUAL(ret, 0); \
-	bc.insert_blocks(pe, b, iov, 1, &wj)
+	bc.insert_blocks(pe, b, iov, &wj)
 
 void test_write()
 {
@@ -186,7 +200,8 @@ void test_write()
 	TEST_CHECK(ret >= 0);
 
 	// return the reference to the buffer we just read
-	RETURN_BUFFER;
+	rj.argument = remove_flags_t{};
+
 	TEST_EQUAL(bc.pinned_blocks(), 0);
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::pinned_blocks], 0);
@@ -200,9 +215,7 @@ void test_write()
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::pinned_blocks], 0);
 
-	// just in case it wasn't we're supposed to return the reference
-	// to the buffer
-	RETURN_BUFFER;
+	rj.argument = remove_flags_t{};
 
 	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
@@ -325,7 +338,7 @@ void test_arc_promote()
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
-	RETURN_BUFFER;
+	rj.argument = remove_flags_t{};
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -346,7 +359,7 @@ void test_arc_promote()
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
-	RETURN_BUFFER;
+	rj.argument = remove_flags_t{};
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -397,7 +410,7 @@ void test_arc_unghost()
 
 	// the block is now a ghost. If we cache-hit it,
 	// it should be promoted back to the main list
-	bc.cache_hit(pe, (void*)1, false);
+	bc.cache_hit(pe, 0, false);
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -419,8 +432,9 @@ void test_iovec()
 {
 	TEST_SETUP;
 
-	ret = bc.allocate_iovec(iov, 1);
-	bc.free_iovec(iov, 1);
+	ret = bc.allocate_iovec(iov);
+	TEST_EQUAL(ret, 0);
+	bc.free_iovec(iov);
 }
 
 void test_unaligned_read()
@@ -430,14 +444,13 @@ void test_unaligned_read()
 	INSERT(0, 0);
 	INSERT(0, 1);
 
-	rj.action = disk_io_job::read;
+	rj.action = job_action_t::read;
 	rj.d.io.offset = 0x2000;
 	rj.d.io.buffer_size = 0x4000;
-	rj.piece = 0;
+	rj.piece = piece_index_t(0);
 	rj.storage = pm;
-	rj.requester = (void*)1;
-	rj.buffer.disk_block = 0;
-	ret = bc.try_read(&rj);
+	rj.argument = disk_buffer_holder(alloc, nullptr, 0);
+	ret = bc.try_read(&rj, alloc);
 
 	// unaligned reads copies the data into a new buffer
 	// rather than
@@ -449,11 +462,13 @@ void test_unaligned_read()
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
-	RETURN_BUFFER;
+	rj.argument = remove_flags_t{};
 
 	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
 }
+
+} // anonymous namespace
 
 TORRENT_TEST(block_cache)
 {
@@ -484,18 +499,17 @@ TORRENT_TEST(delete_piece)
 
 	TEST_CHECK(bc.num_pieces() == 1);
 
-	rj.action = disk_io_job::read;
+	rj.action = job_action_t::read;
 	rj.d.io.offset = 0x2000;
 	rj.d.io.buffer_size = 0x4000;
-	rj.piece = 0;
+	rj.piece = piece_index_t(0);
 	rj.storage = pm;
-	rj.requester = (void*)1;
-	rj.buffer.disk_block = 0;
-	ret = bc.try_read(&rj);
+	rj.argument = remove_flags_t{};
+	ret = bc.try_read(&rj, alloc);
+	TEST_EQUAL(ret, -1);
 
-	cached_piece_entry* pe_ = bc.find_piece(pm.get(), 0);
+	cached_piece_entry* pe_ = bc.find_piece(pm.get(), piece_index_t(0));
 	bc.mark_for_eviction(pe_, block_cache::disallow_ghost);
 
 	TEST_CHECK(bc.num_pieces() == 0);
 }
-

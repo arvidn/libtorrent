@@ -36,99 +36,79 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
+	struct union_address
+	{
+		union_address() { *this = address(); }
+		explicit union_address(address const& a) { *this = a; }
+		union_address& operator=(address const& a) &
+		{
+			v4 = a.is_v4();
+			if (v4)
+				addr.v4 = a.to_v4().to_bytes();
+			else
+				addr.v6 = a.to_v6().to_bytes();
+			return *this;
+		}
+
+		bool operator==(union_address const& rh) const
+		{
+			if (v4 != rh.v4) return false;
+			if (v4)
+				return addr.v4 == rh.addr.v4;
+			else
+				return addr.v6 == rh.addr.v6;
+		}
+
+		bool operator!=(union_address const& rh) const
+		{
+			return !(*this == rh);
+		}
+
+		operator address() const
+		{
+			if (v4) return address(address_v4(addr.v4));
+			else return address(address_v6(addr.v6));
+		}
+
+		union addr_t
+		{
+			address_v4::bytes_type v4;
+			address_v6::bytes_type v6;
+		};
+		addr_t addr;
+		bool v4:1;
+	};
 
 	struct union_endpoint
 	{
-		union_endpoint(tcp::endpoint const& ep)
-		{
-			*this = ep;
-		}
+		explicit union_endpoint(tcp::endpoint const& ep) { *this = ep; }
+		explicit union_endpoint(udp::endpoint const& ep) { *this = ep; }
+		union_endpoint() { *this = tcp::endpoint(); }
 
-		union_endpoint(udp::endpoint const& ep)
+		union_endpoint& operator=(udp::endpoint const& ep) &
 		{
-			*this = ep;
-		}
-
-		union_endpoint()
-		{
-			*this = tcp::endpoint();
-		}
-
-		union_endpoint& operator=(udp::endpoint const& ep)
-		{
-#if TORRENT_USE_IPV6
-			v4 = ep.address().is_v4();
-			if (v4)
-				addr.v4 = ep.address().to_v4().to_bytes();
-			else
-				addr.v6 = ep.address().to_v6().to_bytes();
-#else
-			addr.v4 = ep.address().to_v4().to_bytes();
-#endif
+			addr = ep.address();
 			port = ep.port();
 			return *this;
 		}
 
-		operator udp::endpoint() const
-		{
-#if TORRENT_USE_IPV6
-			if (v4) return udp::endpoint(address_v4(addr.v4), port);
-			else return udp::endpoint(address_v6(addr.v6), port);
-#else
-			return udp::endpoint(address_v4(addr.v4), port);
-#endif
-		}
+		operator udp::endpoint() const { return udp::endpoint(addr, port); }
 
-		union_endpoint& operator=(tcp::endpoint const& ep)
+		union_endpoint& operator=(tcp::endpoint const& ep) &
 		{
-#if TORRENT_USE_IPV6
-			v4 = ep.address().is_v4();
-			if (v4)
-				addr.v4 = ep.address().to_v4().to_bytes();
-			else
-				addr.v6 = ep.address().to_v6().to_bytes();
-#else
-			addr.v4 = ep.address().to_v4().to_bytes();
-#endif
+			addr = ep.address();
 			port = ep.port();
 			return *this;
 		}
 
-		libtorrent::address address() const
-		{
-#if TORRENT_USE_IPV6
-			if (v4) return address_v4(addr.v4);
-			else return address_v6(addr.v6);
-#else
-			return address_v4(addr.v4);
-#endif
-		}
+		libtorrent::address address() const { return addr; }
+		operator tcp::endpoint() const { return tcp::endpoint(addr, port); }
 
-		operator tcp::endpoint() const
-		{
-#if TORRENT_USE_IPV6
-			if (v4) return tcp::endpoint(address_v4(addr.v4), port);
-			else return tcp::endpoint(address_v6(addr.v6), port);
-#else
-			return tcp::endpoint(address_v4(addr.v4), port);
-#endif
-		}
-
-		TORRENT_UNION addr_t
-		{
-			address_v4::bytes_type v4;
-#if TORRENT_USE_IPV6
-			address_v6::bytes_type v6;
-#endif
-		} addr;
-		boost::uint16_t port;
-#if TORRENT_USE_IPV6
-		bool v4:1;
-#endif
+		union_address addr;
+		std::uint16_t port;
 	};
 }
 
 #endif
-

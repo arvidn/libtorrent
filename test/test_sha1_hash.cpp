@@ -32,20 +32,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/hex.hpp" // from_hex
 
-using namespace libtorrent;
+using namespace lt;
 
 static sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
-	from_hex(s, 40, (char*)&ret[0]);
+	aux::from_hex({s, 40}, ret.data());
 	return ret;
 }
 
 TORRENT_TEST(sha1_hash)
 {
-	sha1_hash h1(0);
-	sha1_hash h2(0);
+	sha1_hash h1(nullptr);
+	sha1_hash h2(nullptr);
 	TEST_CHECK(h1 == h2);
 	TEST_CHECK(!(h1 != h2));
 	TEST_CHECK(!(h1 < h2));
@@ -110,3 +111,36 @@ TORRENT_TEST(sha1_hash)
 	TEST_CHECK(h1 == to_hash("0000000070000000000000000000000000000000"));
 }
 
+TORRENT_TEST(count_leading_zeroes)
+{
+	std::vector<std::pair<char const*, int>> const tests = {
+		{ "ffffffffffffffffffffffffffffffffffffffff", 0 },
+		{ "0000000000000000000000000000000000000000", 160 },
+		{ "fff0000000000000000000000000000000000000", 0 },
+		{ "7ff0000000000000000000000000000000000000", 1 },
+		{ "3ff0000000000000000000000000000000000000", 2 },
+		{ "1ff0000000000000000000000000000000000000", 3 },
+		{ "0ff0000000000000000000000000000000000000", 4 },
+		{ "07f0000000000000000000000000000000000000", 5 },
+		{ "03f0000000000000000000000000000000000000", 6 },
+		{ "01f0000000000000000000000000000000000000", 7 },
+		{ "00f0000000000000000000000000000000000000", 8 },
+		{ "0070000000000000000000000000000000000000", 9 },
+		{ "0030000000000000000000000000000000000000", 10 },
+		{ "0010000000000000000000000000000000000000", 11 },
+		{ "0000000ffff00000000000000000000000000000", 28 },
+		{ "00000007fff00000000000000000000000000000", 29 },
+		{ "00000003fff00000000000000000000000000000", 30 },
+		{ "00000001fff00000000000000000000000000000", 31 },
+		{ "00000000fff00000000000000000000000000000", 32 },
+		{ "000000007ff00000000000000000000000000000", 33 },
+		{ "000000003ff00000000000000000000000000000", 34 },
+		{ "000000001ff00000000000000000000000000000", 35 },
+	};
+
+	for (auto const& t : tests)
+	{
+		std::printf("%s\n", t.first);
+		TEST_EQUAL(to_hash(t.first).count_leading_zeroes(), t.second);
+	}
+}

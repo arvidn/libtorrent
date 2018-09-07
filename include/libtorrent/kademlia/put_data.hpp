@@ -38,53 +38,47 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/item.hpp>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
 #include <vector>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+namespace libtorrent { namespace dht {
 
-namespace libtorrent { namespace dht
-{
 struct msg;
 class node;
 
 struct put_data: traversal_algorithm
 {
-	typedef boost::function<void(item const&, int)> put_callback;
+	using put_callback = std::function<void(item const&, int)>;
 
 	put_data(node& node, put_callback const& callback);
 
-	virtual char const* name() const TORRENT_OVERRIDE;
-	virtual void start() TORRENT_OVERRIDE;
+	char const* name() const override;
+	void start() override;
 
 	void set_data(item const& data) { m_data = data; }
 
-	void set_targets(std::vector<std::pair<node_entry, std::string> > const& targets);
+	void set_targets(std::vector<std::pair<node_entry, std::string>> const& targets);
 
 protected:
 
-	virtual void done() TORRENT_OVERRIDE;
-	virtual bool invoke(observer_ptr o) TORRENT_OVERRIDE;
+	void done() override;
+	bool invoke(observer_ptr o) override;
 
 	put_callback m_put_callback;
 	item m_data;
-	bool m_done;
+	bool m_done = false;
 };
 
 struct put_data_observer : traversal_observer
 {
 	put_data_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
-		, udp::endpoint const& ep, node_id const& id, std::string const& token)
-		: traversal_observer(algorithm, ep, id)
-		, m_token(token)
+		std::shared_ptr<traversal_algorithm> algorithm
+		, udp::endpoint const& ep, node_id const& id, std::string token)
+		: traversal_observer(std::move(algorithm), ep, id)
+		, m_token(std::move(token))
 	{
 	}
 
-	virtual void reply(msg const&) { done(); }
+	void reply(msg const&) override { done(); }
 
 	std::string m_token;
 };
@@ -92,4 +86,3 @@ struct put_data_observer : traversal_observer
 } } // namespace libtorrent::dht
 
 #endif // TORRENT_PUT_DATA_HPP
-

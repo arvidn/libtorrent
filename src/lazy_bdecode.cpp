@@ -30,26 +30,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_NO_DEPRECATE
-
 #include "libtorrent/config.hpp"
+
+#if TORRENT_ABI_VERSION == 1
+
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/bdecode.hpp" // for error codes
-#include <cstring>
+#include "libtorrent/string_util.hpp" // for is_digit
+#include <algorithm>
+#include <cstring> // for memset
 #include <limits> // for numeric_limits
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 
-namespace
-{
+namespace {
+
 	const int lazy_entry_grow_factor = 150; // percent
 	const int lazy_entry_dict_init = 5;
 	const int lazy_entry_list_init = 5;
 }
 
-namespace libtorrent
-{
+namespace libtorrent {
 
-	namespace
-	{
+namespace {
+
 		int fail(int* error_pos
 			, std::vector<lazy_entry*>& stack
 			, char const* start
@@ -64,13 +68,11 @@ namespace libtorrent
 				}
 				stack.pop_back();
 			}
-			if (error_pos) *error_pos = start - orig_start;
+			if (error_pos) *error_pos = int(start - orig_start);
 			return -1;
 		}
 
 #define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); return fail(error_pos, stack, start, orig_start); } TORRENT_WHILE_0
-
-	bool numeric(char c) { return c >= '0' && c <= '9'; }
 
 	char const* find_char(char const* start, char const* end, char delimiter)
 	{
@@ -80,7 +82,7 @@ namespace libtorrent
 
 	} // anonymous namespace
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, int depth_limit, int item_limit)
 	{
@@ -125,8 +127,8 @@ namespace libtorrent
 						stack.pop_back();
 						continue;
 					}
-					if (!numeric(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
-					boost::int64_t len = t - '0';
+					if (!is_digit(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
+					std::int64_t len = t - '0';
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
 					start = parse_int(start, end, ':', len, e);
 					if (e)
@@ -145,7 +147,7 @@ namespace libtorrent
 					++start;
 					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					lazy_entry* ent = top->dict_append(start);
-					if (ent == 0) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
+					if (ent == nullptr) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
 					start += len;
 					if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					stack.push_back(ent);
@@ -162,7 +164,7 @@ namespace libtorrent
 						continue;
 					}
 					lazy_entry* ent = top->list_append();
-					if (ent == 0) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
+					if (ent == nullptr) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
 					stack.push_back(ent);
 					break;
 				}
@@ -188,7 +190,7 @@ namespace libtorrent
 				{
 					char const* int_start = start;
 					start = find_char(start, end, 'e');
-					top->construct_int(int_start, start - int_start);
+					top->construct_int(int_start, int(start - int_start));
 					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					TORRENT_ASSERT(*start == 'e');
 					++start;
@@ -197,10 +199,10 @@ namespace libtorrent
 				}
 				default:
 				{
-					if (!numeric(t))
+					if (!is_digit(t))
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 
-					boost::int64_t len = t - '0';
+					std::int64_t len = t - '0';
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
 					start = parse_int(start, end, ':', len, e);
 					if (e)
@@ -230,21 +232,20 @@ namespace libtorrent
 	int lazy_entry::capacity() const
 	{
 		TORRENT_ASSERT(m_type == dict_t || m_type == list_t);
-		if (m_data.list == NULL) return 0;
+		if (m_data.list == nullptr) return 0;
 		if (m_type == dict_t)
-			return m_data.dict[0].val.m_len;
+			return int(m_data.dict[0].val.m_len);
 		else
-			return m_data.list[0].m_len;
+			return int(m_data.list[0].m_len);
 	}
 
-	boost::int64_t lazy_entry::int_value() const
+	std::int64_t lazy_entry::int_value() const
 	{
 		TORRENT_ASSERT(m_type == int_t);
-		boost::int64_t val = 0;
-		bool negative = false;
-		if (*m_data.start == '-') negative = true;
+		std::int64_t val = 0;
+		bool const negative = (*m_data.start == '-');
 		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
-		parse_int(m_data.start + negative
+		parse_int(m_data.start + int(negative)
 			, m_data.start + m_size, 'e', val, ec);
 		if (ec) return 0;
 		if (negative) val = -val;
@@ -254,29 +255,28 @@ namespace libtorrent
 	lazy_entry* lazy_entry::dict_append(char const* name)
 	{
 		TORRENT_ASSERT(m_type == dict_t);
-		TORRENT_ASSERT(m_size <= this->capacity());
-		if (m_data.dict == NULL)
+		TORRENT_ASSERT(int(m_size) <= this->capacity());
+		if (m_data.dict == nullptr)
 		{
-			int capacity = lazy_entry_dict_init;
-			m_data.dict = new (std::nothrow) lazy_dict_entry[capacity+1];
-			if (m_data.dict == NULL) return NULL;
-			m_data.dict[0].val.m_len = capacity;
+			int const capacity = lazy_entry_dict_init;
+			m_data.dict = new (std::nothrow) lazy_dict_entry[capacity + 1];
+			if (m_data.dict == nullptr) return nullptr;
+			m_data.dict[0].val.m_len = std::uint32_t(capacity);
 		}
-		else if (m_size == this->capacity())
+		else if (int(m_size) == this->capacity())
 		{
-			int capacity = this->capacity() * lazy_entry_grow_factor / 100;
-			lazy_dict_entry* tmp = new (std::nothrow) lazy_dict_entry[capacity+1];
-			if (tmp == NULL) return NULL;
-			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * (m_size + 1));
-			for (int i = 0; i < int(m_size); ++i) m_data.dict[i+1].val.release();
+			std::size_t const capacity = std::size_t(this->capacity()) * lazy_entry_grow_factor / 100;
+			auto* tmp = new (std::nothrow) lazy_dict_entry[capacity + 1];
+			if (tmp == nullptr) return nullptr;
+			std::move(m_data.dict, m_data.dict + m_size + 1, tmp);
 
 			delete[] m_data.dict;
 			m_data.dict = tmp;
-			m_data.dict[0].val.m_len = capacity;
+			m_data.dict[0].val.m_len = std::uint32_t(capacity);
 		}
 
-		TORRENT_ASSERT(m_size < this->capacity());
-		lazy_dict_entry& ret = m_data.dict[1+m_size++];
+		TORRENT_ASSERT(int(m_size) < this->capacity());
+		lazy_dict_entry& ret = m_data.dict[1 + m_size++];
 		ret.name = name;
 		return &ret.val;
 	}
@@ -286,8 +286,8 @@ namespace libtorrent
 		if (m_size > 0) --m_size;
 	}
 
-	namespace
-	{
+namespace {
+
 		// the number of decimal digits needed
 		// to represent the given value
 		int num_digits(int val)
@@ -302,19 +302,20 @@ namespace libtorrent
 		}
 	}
 
-	void lazy_entry::construct_string(char const* start, int length)
+	void lazy_entry::construct_string(char const* start, int const length)
 	{
 		TORRENT_ASSERT(m_type == none_t);
+		TORRENT_ASSERT(length >= 0);
 		m_type = string_t;
 		m_data.start = start;
-		m_size = length;
+		m_size = std::uint32_t(length);
 		m_begin = start - 1 - num_digits(length);
-		m_len = start - m_begin + length;
+		m_len = std::uint32_t(start - m_begin + length);
 	}
 
-	namespace
-	{
-		// str1 is null-terminated
+namespace {
+
+		// str1 is 0-terminated
 		// str2 is not, str2 is len2 chars
 		bool string_equal(char const* str1, char const* str2, int len2)
 		{
@@ -330,68 +331,69 @@ namespace libtorrent
 		}
 	}
 
-	std::pair<std::string, lazy_entry const*> lazy_entry::dict_at(int i) const
+	std::pair<std::string, lazy_entry const*> lazy_entry::dict_at(int const i) const
 	{
 		TORRENT_ASSERT(m_type == dict_t);
 		TORRENT_ASSERT(i < int(m_size));
-		lazy_dict_entry const& e = m_data.dict[i+1];
-		return std::make_pair(std::string(e.name, e.val.m_begin - e.name), &e.val);
+		lazy_dict_entry const& e = m_data.dict[i + 1];
+		TORRENT_ASSERT(e.val.m_begin >= e.name);
+		return std::make_pair(std::string(e.name, std::size_t(e.val.m_begin - e.name)), &e.val);
 	}
 
 	std::string lazy_entry::dict_find_string_value(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
+		if (e == nullptr || e->type() != lazy_entry::string_t) return std::string();
 		return e->string_value();
 	}
 
 	pascal_string lazy_entry::dict_find_pstr(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
+		if (e == nullptr || e->type() != lazy_entry::string_t) return {nullptr, 0};
 		return e->string_pstr();
 	}
 
 	lazy_entry const* lazy_entry::dict_find_string(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::string_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::string_t) return nullptr;
 		return e;
 	}
 
 	lazy_entry const* lazy_entry::dict_find_int(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::int_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::int_t) return nullptr;
 		return e;
 	}
 
-	boost::int64_t lazy_entry::dict_find_int_value(char const* name
-		, boost::int64_t default_val) const
+	std::int64_t lazy_entry::dict_find_int_value(char const* name
+		, std::int64_t default_val) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
+		if (e == nullptr || e->type() != lazy_entry::int_t) return default_val;
 		return e->int_value();
 	}
 
 	lazy_entry const* lazy_entry::dict_find_dict(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::dict_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::dict_t) return nullptr;
 		return e;
 	}
 
 	lazy_entry const* lazy_entry::dict_find_dict(std::string const& name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::dict_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::dict_t) return nullptr;
 		return e;
 	}
 
 	lazy_entry const* lazy_entry::dict_find_list(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::list_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::list_t) return nullptr;
 		return e;
 	}
 
@@ -400,11 +402,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type == dict_t);
 		for (int i = 0; i < int(m_size); ++i)
 		{
-			lazy_dict_entry& e = m_data.dict[i+1];
-			if (string_equal(name, e.name, e.val.m_begin - e.name))
+			lazy_dict_entry& e = m_data.dict[i + 1];
+			if (string_equal(name, e.name, int(e.val.m_begin - e.name)))
 				return &e.val;
 		}
-		return 0;
+		return nullptr;
 	}
 
 	lazy_entry* lazy_entry::dict_find(std::string const& name)
@@ -413,59 +415,58 @@ namespace libtorrent
 		for (int i = 0; i < int(m_size); ++i)
 		{
 			lazy_dict_entry& e = m_data.dict[i+1];
-			if (name.size() != e.val.m_begin - e.name) continue;
+			if (int(name.size()) != e.val.m_begin - e.name) continue;
 			if (std::equal(name.begin(), name.end(), e.name))
 				return &e.val;
 		}
-		return 0;
+		return nullptr;
 	}
 
 	lazy_entry* lazy_entry::list_append()
 	{
 		TORRENT_ASSERT(m_type == list_t);
-		TORRENT_ASSERT(m_size <= this->capacity());
-		if (m_data.start == NULL)
+		TORRENT_ASSERT(int(m_size) <= this->capacity());
+		if (m_data.start == nullptr)
 		{
-			int capacity = lazy_entry_list_init;
-			m_data.list = new (std::nothrow) lazy_entry[capacity+1];
-			if (m_data.list == 0) return 0;
-			m_data.list[0].m_len = capacity;
+			int const capacity = lazy_entry_list_init;
+			m_data.list = new (std::nothrow) lazy_entry[capacity + 1];
+			if (m_data.list == nullptr) return nullptr;
+			m_data.list[0].m_len = std::uint32_t(capacity);
 		}
-		else if (m_size == this->capacity())
+		else if (int(m_size) == this->capacity())
 		{
-			int capacity = this->capacity() * lazy_entry_grow_factor / 100;
-			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity+1];
-			if (tmp == NULL) return NULL;
-			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * (m_size+1));
-			for (int i = 0; i < int(m_size); ++i) m_data.list[i+1].release();
+			std::size_t const capacity = std::size_t(this->capacity()) * lazy_entry_grow_factor / 100;
+			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity + 1];
+			if (tmp == nullptr) return nullptr;
+			std::move(m_data.list, m_data.list + m_size + 1, tmp);
 
 			delete[] m_data.list;
 			m_data.list = tmp;
-			m_data.list[0].m_len = capacity;
+			m_data.list[0].m_len = std::uint32_t(capacity);
 		}
 
-		TORRENT_ASSERT(m_size < this->capacity());
+		TORRENT_ASSERT(int(m_size) < this->capacity());
 		return &m_data.list[1 + (m_size++)];
 	}
 
 	std::string lazy_entry::list_string_value_at(int i) const
 	{
 		lazy_entry const* e = list_at(i);
-		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
+		if (e == nullptr || e->type() != lazy_entry::string_t) return std::string();
 		return e->string_value();
 	}
 
 	pascal_string lazy_entry::list_pstr_at(int i) const
 	{
 		lazy_entry const* e = list_at(i);
-		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
+		if (e == nullptr || e->type() != lazy_entry::string_t) return {nullptr, 0};
 		return e->string_pstr();
 	}
 
-	boost::int64_t lazy_entry::list_int_value_at(int i, boost::int64_t default_val) const
+	std::int64_t lazy_entry::list_int_value_at(int i, std::int64_t default_val) const
 	{
 		lazy_entry const* e = list_at(i);
-		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
+		if (e == nullptr || e->type() != lazy_entry::int_t) return default_val;
 		return e->int_value();
 	}
 
@@ -481,15 +482,26 @@ namespace libtorrent
 				break;
 			default: break;
 		}
-		m_data.start = NULL;
+		m_data.start = nullptr;
 		m_size = 0;
 		m_type = none_t;
 	}
 
 	std::pair<char const*, int> lazy_entry::data_section() const
 	{
-		typedef std::pair<char const*, int> return_t;
-		return return_t(m_begin, m_len);
+		return {m_begin, m_len};
+	}
+
+	lazy_entry::lazy_entry(lazy_entry&& other)
+		: lazy_entry()
+	{
+		this->swap(other);
+	}
+
+	lazy_entry& lazy_entry::operator=(lazy_entry&& other)
+	{
+		this->swap(other);
+		return *this;
 	}
 
 	namespace {
@@ -514,7 +526,7 @@ namespace libtorrent
 			if (line_len > limit) return -1;
 			for (int i = 0; i < e.dict_size(); ++i)
 			{
-				line_len += 4 + e.dict_at(i).first.size();
+				line_len += 4 + int(e.dict_at(i).first.size());
 				if (line_len > limit) return -1;
 				int ret = line_longer_than(*e.dict_at(i).second, limit - line_len);
 				if (ret == -1) return -1;
@@ -526,7 +538,7 @@ namespace libtorrent
 			break;
 		case lazy_entry::int_t:
 		{
-			boost::int64_t val = e.int_value();
+			std::int64_t val = e.int_value();
 			while (val > 0)
 			{
 				++line_len;
@@ -555,14 +567,15 @@ namespace libtorrent
 			else
 			{
 				char tmp[5];
-				snprintf(tmp, sizeof(tmp), "\\x%02x", boost::uint8_t(str[i]));
+				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
 				ret += tmp;
 			}
 		}
 	}
 
-	void print_string(std::string& ret, char const* str, int len, bool single_line)
+	void print_string(std::string& ret, char const* str, int const len, bool single_line)
 	{
+		TORRENT_ASSERT(len >= 0);
 		bool printable = true;
 		for (int i = 0; i < len; ++i)
 		{
@@ -578,10 +591,10 @@ namespace libtorrent
 			{
 				ret.append(str, 14);
 				ret += "...";
-				ret.append(str + len-14, 14);
+				ret.append(str + len - 14, 14);
 			}
 			else
-				ret.append(str, len);
+				ret.append(str, std::size_t(len));
 			ret += "'";
 			return;
 		}
@@ -602,11 +615,11 @@ namespace libtorrent
 	std::string print_entry(lazy_entry const& e, bool single_line, int indent)
 	{
 		char indent_str[200];
-		memset(indent_str, ' ', 200);
+		std::memset(indent_str, ' ', 200);
 		indent_str[0] = ',';
 		indent_str[1] = '\n';
 		indent_str[199] = 0;
-		if (indent < 197 && indent >= 0) indent_str[indent+2] = 0;
+		if (indent < 197 && indent >= 0) indent_str[indent + 2] = 0;
 		std::string ret;
 		switch (e.type())
 		{
@@ -614,7 +627,7 @@ namespace libtorrent
 			case lazy_entry::int_t:
 			{
 				char str[100];
-				snprintf(str, sizeof(str), "%" PRId64, e.int_value());
+				std::snprintf(str, sizeof(str), "%" PRId64, e.int_value());
 				return str;
 			}
 			case lazy_entry::string_t:
@@ -635,20 +648,20 @@ namespace libtorrent
 					if (i < e.list_size() - 1) ret += (one_liner?", ":indent_str);
 					else ret += (one_liner?" ":indent_str+1);
 				}
-				ret += "]";
+				ret += ']';
 				return ret;
 			}
 			case lazy_entry::dict_t:
 			{
-				ret += "{";
+				ret += '{';
 				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
 
 				if (!one_liner) ret += indent_str+1;
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
-					if (i == 0 && one_liner) ret += " ";
+					if (i == 0 && one_liner) ret += ' ';
 					std::pair<std::string, lazy_entry const*> ent = e.dict_at(i);
-					print_string(ret, ent.first.c_str(), ent.first.size(), true);
+					print_string(ret, ent.first.c_str(), int(ent.first.size()), true);
 					ret += ": ";
 					ret += print_entry(*ent.second, single_line, indent + 2);
 					if (i < e.dict_size() - 1) ret += (one_liner?", ":indent_str);
@@ -662,5 +675,4 @@ namespace libtorrent
 	}
 }
 
-#endif // TORRENT_NO_DEPRECATE
-
+#endif // TORRENT_ABI_VERSION

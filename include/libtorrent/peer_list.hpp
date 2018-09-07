@@ -34,7 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_POLICY_HPP_INCLUDED
 
 #include <algorithm>
-#include <deque>
+
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/request_blocks.hpp" // for source_rank
 
@@ -43,16 +44,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/ip_voter.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
+#include "libtorrent/aux_/deque.hpp"
+#include "libtorrent/peer_info.hpp" // for peer_source_flags_t
+#include "libtorrent/string_view.hpp"
+#include "libtorrent/pex_flags.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
-	struct external_ip;
-	struct ip_filter;
-	class port_filter;
 	struct torrent_peer_allocator_interface;
 
 	// this object is used to communicate torrent state and
@@ -60,41 +62,30 @@ namespace libtorrent
 	// the peer_list type not depend on the torrent type directly.
 	struct torrent_state
 	{
-		torrent_state()
-			: is_paused(false)
-			, is_finished(false)
-			, allow_multiple_connections_per_ip(false)
-			, first_time_seen(false)
-			, max_peerlist_size(1000)
-			, min_reconnect_time(60)
-			, loop_counter(0)
-			, ip(NULL), port(0)
-			, max_failcount(3)
-		{}
-		bool is_paused;
-		bool is_finished;
-		bool allow_multiple_connections_per_ip;
+		bool is_paused = false;
+		bool is_finished = false;
+		bool allow_multiple_connections_per_ip = false;
 
 		// this is set by peer_list::add_peer to either true or false
 		// true means the peer we just added was new, false means
 		// we already knew about the peer
-		bool first_time_seen;
+		bool first_time_seen = false;
 
-		int max_peerlist_size;
-		int min_reconnect_time;
+		int max_peerlist_size = 1000;
+		int min_reconnect_time = 60;
 
 		// the number of iterations over the peer list for this operation
-		int loop_counter;
+		int loop_counter = 0;
 
 		// these are used only by find_connect_candidates in order
 		// to implement peer ranking. See:
 		// http://blog.libtorrent.org/2012/12/swarm-connectivity/
-		external_ip const* ip;
-		int port;
+		external_ip ip;
+		int port = 0;
 
 		// the number of times a peer must fail before it's no longer considered
 		// a connect candidate
-		int max_failcount;
+		int max_failcount = 3;
 
 		// if any peer were removed during this call, they are returned in
 		// this vector. The caller would want to make sure there are no
@@ -102,35 +93,38 @@ namespace libtorrent
 		std::vector<torrent_peer*> erased;
 	};
 
+	struct erase_peer_flags_tag;
+	using erase_peer_flags_t = flags::bitfield_flag<std::uint8_t, erase_peer_flags_tag>;
+
 	class TORRENT_EXTRA_EXPORT peer_list : single_threaded
 	{
 	public:
 
-		peer_list(torrent_peer_allocator_interface& alloc);
+		explicit peer_list(torrent_peer_allocator_interface& alloc);
 		~peer_list();
 
+		void clear();
+
+		// not copyable
+		peer_list(peer_list const&) = delete;
+		peer_list& operator=(peer_list const&) = delete;
+
 #if TORRENT_USE_I2P
-		torrent_peer* add_i2p_peer(char const* destination, int src, char flags
+		torrent_peer* add_i2p_peer(string_view destination
+			, peer_source_flags_t src, pex_flags_t flags
 			, torrent_state* state);
 #endif
 
-		enum
-		{
-			// these flags match the flags passed in ut_pex
-			// messages
-			flag_encryption = 0x1,
-			flag_seed = 0x2,
-			flag_utp = 0x4,
-			flag_holepunch = 0x8
-		};
-
 		// this is called once for every torrent_peer we get from
 		// the tracker, pex, lsd or dht.
-		torrent_peer* add_peer(const tcp::endpoint& remote
-			, int source, char flags, torrent_state* state);
+		torrent_peer* add_peer(tcp::endpoint const& remote
+			, peer_source_flags_t source, pex_flags_t flags
+			, torrent_state* state);
 
 		// false means duplicate connection
-		bool update_peer_port(int port, torrent_peer* p, int src, torrent_state* state);
+		bool update_peer_port(int port, torrent_peer* p
+			, peer_source_flags_t src
+			, torrent_state* state);
 
 		// called when an incoming connection is accepted
 		// false means the connection was refused or failed
@@ -165,18 +159,13 @@ namespace libtorrent
 
 		int num_peers() const { return int(m_peers.size()); }
 
-#ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-		typedef std::vector<torrent_peer*> peers_t;
-#else
-		typedef std::deque<torrent_peer*> peers_t;
-#endif
-
-		typedef peers_t::iterator iterator;
-		typedef peers_t::const_iterator const_iterator;
-		iterator begin_peer() { return m_peers.begin(); }
-		iterator end_peer() { return m_peers.end(); }
-		const_iterator begin_peer() const { return m_peers.begin(); }
-		const_iterator end_peer() const { return m_peers.end(); }
+		using peers_t = aux::deque<torrent_peer*>;
+		using iterator = peers_t::iterator;
+		using const_iterator = peers_t::const_iterator;
+		iterator begin() { return m_peers.begin(); }
+		iterator end() { return m_peers.end(); }
+		const_iterator begin() const { return m_peers.begin(); }
+		const_iterator end() const { return m_peers.end(); }
 
 		std::pair<iterator, iterator> find_peers(address const& a)
 		{
@@ -198,7 +187,7 @@ namespace libtorrent
 
 		bool has_peer(torrent_peer const* p) const;
 
-		int num_seeds() const { return m_num_seeds; }
+		int num_seeds() const { return int(m_num_seeds); }
 		int num_connect_candidates() const { return m_num_connect_candidates; }
 
 		void erase_peer(torrent_peer* p, torrent_state* state);
@@ -208,17 +197,14 @@ namespace libtorrent
 
 	private:
 
-		// not copyable
-		peer_list(peer_list const&);
-		peer_list& operator=(peer_list const&);
-
 		void recalculate_connect_candidates(torrent_state* state);
 
 		void update_connect_candidates(int delta);
 
-		void update_peer(torrent_peer* p, int src, int flags
-		, tcp::endpoint const& remote, char const* destination);
-		bool insert_peer(torrent_peer* p, iterator iter, int flags, torrent_state* state);
+		void update_peer(torrent_peer* p, peer_source_flags_t src
+			, pex_flags_t flags, tcp::endpoint const& remote);
+		bool insert_peer(torrent_peer* p, iterator iter
+			, pex_flags_t flags, torrent_state* state);
 
 		bool compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const;
 		bool compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
@@ -232,12 +218,12 @@ namespace libtorrent
 		bool is_force_erase_candidate(torrent_peer const& pe) const;
 		bool should_erase_immediately(torrent_peer const& p) const;
 
-		enum flags_t { force_erase = 1 };
-		void erase_peers(torrent_state* state, int flags = 0);
+		static constexpr erase_peer_flags_t force_erase = 1_bit;
+		void erase_peers(torrent_state* state, erase_peer_flags_t flags = {});
 
 		peers_t m_peers;
 
-		// this should be NULL for the most part. It's set
+		// this should be nullptr for the most part. It's set
 		// to point to a valid torrent_peer object if that
 		// object needs to be kept alive. If we ever feel
 		// like removing a torrent_peer from m_peers, we
@@ -250,7 +236,7 @@ namespace libtorrent
 		torrent_peer_allocator_interface& m_peer_allocator;
 
 		// the number of seeds in the torrent_peer list
-		boost::uint32_t m_num_seeds:31;
+		std::uint32_t m_num_seeds:31;
 
 		// this was the state of the torrent the
 		// last time we recalculated the number of
@@ -260,11 +246,11 @@ namespace libtorrent
 		// this state. Every time m_torrent->is_finished()
 		// is different from this state, we need to
 		// recalculate the connect candidates.
-		boost::uint32_t m_finished:1;
+		std::uint32_t m_finished:1;
 
 		// since the torrent_peer list can grow too large
 		// to scan all of it, start at this index
-		int m_round_robin;
+		int m_round_robin = 0;
 
 		// a list of good connect candidates
 		std::vector<torrent_peer*> m_candidate_cache;
@@ -275,14 +261,13 @@ namespace libtorrent
 		// yet reached their max try count and they
 		// have the connectable state (we have a listen
 		// port for them).
-		int m_num_connect_candidates;
+		int m_num_connect_candidates = 0;
 
 		// if a peer has failed this many times or more, we don't consider
 		// it a connect candidate anymore.
-		int m_max_failcount;
+		int m_max_failcount = 3;
 	};
 
 }
 
 #endif // TORRENT_POLICY_HPP_INCLUDED
-

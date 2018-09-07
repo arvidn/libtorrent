@@ -33,20 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_XML_PARSE_HPP
 #define TORRENT_XML_PARSE_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <cctype>
-#include <cstring>
-
-#include <boost/function.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <functional>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/string_view.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	enum
 	{
 		xml_start_tag,
@@ -66,12 +60,11 @@ namespace libtorrent
 	//   , char const* val, int val_len)
 	// name is element or attribute name
 	// val is attribute value
-	// neither string is null terminated, but their lengths are specified via
+	// neither string is 0-terminated, but their lengths are specified via
 	// name_len and val_len respectively
-	TORRENT_EXTRA_EXPORT void xml_parse(char const* p, char const* end
-		, boost::function<void(int,char const*,int,char const*,int)> callback);
+	TORRENT_EXTRA_EXPORT void xml_parse(string_view input
+		, std::function<void(int, string_view, string_view)> callback);
 }
 
 
 #endif
-

@@ -33,21 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_CLASS_HPP_INCLUDED
 #define TORRENT_PEER_CLASS_HPP_INCLUDED
 
-#include "libtorrent/bandwidth_limit.hpp"
+#include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include "libtorrent/bandwidth_limit.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/deque.hpp"
 
 #include <vector>
-#include <deque>
 #include <string>
-#include <boost/cstdint.hpp>
+#include <cstdint>
+#include <memory>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+namespace libtorrent {
 
-namespace libtorrent
-{
-	typedef int peer_class_t;
+	using peer_class_t = aux::strong_typedef<std::uint32_t, struct peer_class_tag>;
 
 	// holds settings for a peer class. Used in set_peer_class() and
 	// get_peer_class() calls.
@@ -92,11 +91,11 @@ namespace libtorrent
 	{
 		friend struct peer_class_pool;
 
-		peer_class(std::string const& l)
-			: in_use(true)
-			, ignore_unchoke_slots(false)
+		explicit peer_class(std::string l)
+			: ignore_unchoke_slots(false)
 			, connection_limit_factor(100)
-			, label(l)
+			, label(std::move(l))
+			, in_use(true)
 			, references(1)
 		{
 			priority[0] = 1;
@@ -119,9 +118,6 @@ namespace libtorrent
 		// keeps track of the current quotas
 		bandwidth_channel channel[2];
 
-		// this is set to false when this slot is not in use for a peer_class
-		bool in_use;
-
 		bool ignore_unchoke_slots;
 		int connection_limit_factor;
 
@@ -134,12 +130,15 @@ namespace libtorrent
 		std::string label;
 
 	private:
+		// this is set to false when this slot is not in use for a peer_class
+		bool in_use;
+
 		int references;
 	};
 
 	struct TORRENT_EXTRA_EXPORT peer_class_pool
 	{
-		peer_class_t new_peer_class(std::string const& label);
+		peer_class_t new_peer_class(std::string label);
 		void decref(peer_class_t c);
 		void incref(peer_class_t c);
 		peer_class* at(peer_class_t c);
@@ -149,7 +148,7 @@ namespace libtorrent
 
 		// state for peer classes (a peer can belong to multiple classes)
 		// this can control
-		std::deque<peer_class> m_peer_classes;
+		aux::deque<peer_class, peer_class_t> m_peer_classes;
 
 		// indices in m_peer_classes that are no longer used
 		std::vector<peer_class_t> m_free_list;
@@ -157,4 +156,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PEER_CLASS_HPP_INCLUDED
-

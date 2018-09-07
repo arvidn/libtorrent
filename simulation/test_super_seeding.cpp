@@ -35,21 +35,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "test.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(super_seeding)
 {
 	setup_swarm(5, swarm_test::upload
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
-			params.flags |= add_torrent_params::flag_super_seeding;
+			params.flags |= torrent_flags::super_seeding;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int, lt::session&) -> bool
 		{ return true; });
 }
 
@@ -62,12 +62,12 @@ TORRENT_TEST(strict_super_seeding)
 		}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
-			params.flags |= add_torrent_params::flag_super_seeding;
+			params.flags |= torrent_flags::super_seeding;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int, lt::session&) -> bool
 		{ return true; });
 }
 

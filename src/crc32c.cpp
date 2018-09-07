@@ -36,20 +36,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/crc.hpp>
-#if (defined _MSC_VER && _MSC_VER >= 1600)
+#if (defined _MSC_VER && _MSC_VER >= 1600 && (defined _M_IX86 || defined _M_X64))
 #include <nmmintrin.h>
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
-	boost::uint32_t crc32c_32(boost::uint32_t v)
+#if TORRENT_HAS_ARM_CRC32
+#include <arm_acle.h>
+#endif
+
+namespace libtorrent {
+
+	std::uint32_t crc32c_32(std::uint32_t v)
 	{
 #if TORRENT_HAS_SSE
 		if (aux::sse42_support)
 		{
-			boost::uint32_t ret = 0xffffffff;
+			std::uint32_t ret = 0xffffffff;
 #ifdef __GNUC__
 			// we can't use these because then we'd have to tell
 			// -msse4.2 to gcc on the command line
@@ -64,19 +68,27 @@ namespace libtorrent
 		}
 #endif
 
+#if TORRENT_HAS_ARM_CRC32
+		if (aux::arm_crc32c_support)
+		{
+			std::uint32_t ret = 0xffffffff;
+			return __crc32cw(ret, v) ^ 0xffffffff;
+		}
+#endif
+
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 		crc.process_bytes(&v, 4);
 		return crc.checksum();
 	}
 
-	boost::uint32_t crc32c(boost::uint64_t const* buf, int num_words)
+	std::uint32_t crc32c(std::uint64_t const* buf, int num_words)
 	{
 #if TORRENT_HAS_SSE
 		if (aux::sse42_support)
 		{
 #if defined _M_AMD64 || defined __x86_64__ \
 	|| defined __x86_64 || defined _M_X64 || defined __amd64__
-			boost::uint64_t ret = 0xffffffff;
+			std::uint64_t ret = 0xffffffff;
 			for (int i = 0; i < num_words; ++i)
 			{
 #ifdef __GNUC__
@@ -90,10 +102,10 @@ namespace libtorrent
 				ret = _mm_crc32_u64(ret, buf[i]);
 #endif
 			}
-			return boost::uint32_t(ret) ^ 0xffffffff;
+			return std::uint32_t(ret) ^ 0xffffffff;
 #else
-			boost::uint32_t ret = 0xffffffff;
-			boost::uint32_t const* buf0 = reinterpret_cast<boost::uint32_t const*>(buf);
+			std::uint32_t ret = 0xffffffff;
+			std::uint32_t const* buf0 = reinterpret_cast<std::uint32_t const*>(buf);
 			for (int i = 0; i < num_words; ++i)
 			{
 #ifdef __GNUC__
@@ -116,11 +128,21 @@ namespace libtorrent
 #endif // amd64 or x86
 		}
 #endif // x86 or amd64 and gcc or msvc
-	
+
+#if TORRENT_HAS_ARM_CRC32
+		if (aux::arm_crc32c_support)
+		{
+			std::uint32_t ret = 0xffffffff;
+			for (int i = 0; i < num_words; ++i)
+			{
+				ret = __crc32cd(ret, buf[i]);
+			}
+			return ret ^ 0xffffffff;
+		}
+#endif
+
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-		crc.process_bytes(buf, num_words * 8);
+		crc.process_bytes(buf, std::size_t(num_words) * 8);
 		return crc.checksum();
 	}
 }
-
-

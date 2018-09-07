@@ -33,28 +33,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UDP_TRACKER_CONNECTION_HPP_INCLUDED
 #define TORRENT_UDP_TRACKER_CONNECTION_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <string>
 #include <utility>
-#include <ctime>
-
-#include <boost/shared_ptr.hpp>
-#include <boost/cstdint.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <mutex>
+#include <cstdint>
+#include <memory>
+#include <map>
 
 #include "libtorrent/udp_socket.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/span.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{
 	friend class tracker_manager;
@@ -64,26 +57,26 @@ namespace libtorrent
 			io_service& ios
 			, tracker_manager& man
 			, tracker_request const& req
-			, boost::weak_ptr<request_callback> c);
+			, std::weak_ptr<request_callback> c);
 
-		void start();
-		void close();
+		void start() override;
+		void close() override;
 
-		boost::uint32_t transaction_id() const { return m_transaction_id; }
+		std::uint32_t transaction_id() const { return m_transaction_id; }
 
 	private:
 
-		enum action_t
+		enum class action_t : std::uint8_t
 		{
-			action_connect,
-			action_announce,
-			action_scrape,
-			action_error
+			connect,
+			announce,
+			scrape,
+			error
 		};
 
-		boost::shared_ptr<udp_tracker_connection> shared_from_this()
+		std::shared_ptr<udp_tracker_connection> shared_from_this()
 		{
-			return boost::static_pointer_cast<udp_tracker_connection>(
+			return std::static_pointer_cast<udp_tracker_connection>(
 				tracker_connection::shared_from_this());
 		}
 
@@ -91,26 +84,25 @@ namespace libtorrent
 
 		void name_lookup(error_code const& error
 			, std::vector<address> const& addresses, int port);
-		void timeout(error_code const& error);
 		void start_announce();
 
-		bool on_receive(error_code const& e, udp::endpoint const& ep
-			, char const* buf, int size);
-		bool on_receive_hostname(error_code const& e, char const* hostname
-			, char const* buf, int size);
-		bool on_connect_response(char const* buf, int size);
-		bool on_announce_response(char const* buf, int size);
-		bool on_scrape_response(char const* buf, int size);
+		bool on_receive(udp::endpoint const& ep, span<char const> buf);
+		bool on_receive_hostname(char const* hostname, span<char const> buf);
+		bool on_connect_response(span<char const> buf);
+		bool on_announce_response(span<char const> buf);
+		bool on_scrape_response(span<char const> buf);
 
 		// wraps tracker_connection::fail
-		void fail(error_code const& ec, int code = -1
-			, char const* msg = "", int interval = 0, int min_interval = 0);
+		void fail(error_code const& ec
+			, char const* msg = ""
+			, seconds32 interval = seconds32(0)
+			, seconds32 min_interval = seconds32(30));
 
 		void send_udp_connect();
 		void send_udp_announce();
 		void send_udp_scrape();
 
-		virtual void on_timeout(error_code const& ec);
+		void on_timeout(error_code const& ec) override;
 
 		udp::endpoint pick_target_endpoint() const;
 
@@ -119,20 +111,19 @@ namespace libtorrent
 
 		struct connection_cache_entry
 		{
-			boost::int64_t connection_id;
+			std::int64_t connection_id;
 			time_point expires;
 		};
 
 		static std::map<address, connection_cache_entry> m_connection_cache;
-		static mutex m_cache_mutex;
+		static std::mutex m_cache_mutex;
 
 		udp::endpoint m_target;
 
-		boost::uint32_t m_transaction_id;
+		std::uint32_t m_transaction_id;
 		int m_attempts;
 
-		// action_t
-		boost::uint8_t m_state;
+		action_t m_state;
 
 		bool m_abort;
 	};
@@ -140,4 +131,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_UDP_TRACKER_CONNECTION_HPP_INCLUDED
-

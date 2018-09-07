@@ -34,26 +34,32 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
-#include <boost/tuple/tuple.hpp>
+#include "libtorrent/aux_/path.hpp"
+#include <iostream>
+#include <tuple>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "swarm_suite.hpp"
 
-void test_swarm(int flags)
-{
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+#ifdef _MSC_VER
+#pragma warning(push)
+// warning C4706: assignment within conditional expression
+#pragma warning( disable : 4706 )
+#endif
 
-	fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
-		, (flags & super_seeding) ? "super-seeding ": ""
-		, (flags & strict_super_seeding) ? "strict-super-seeding ": ""
-		, (flags & seed_mode) ? "seed-mode ": ""
-		, (flags & time_critical) ? "time-critical ": ""
-		, (flags & suggest) ? "suggest ": ""
+void test_swarm(test_flags_t const flags)
+{
+	using namespace lt;
+
+	std::printf("\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
+		, (flags & test_flags::super_seeding) ? "super-seeding ": ""
+		, (flags & test_flags::strict_super_seeding) ? "strict-super-seeding ": ""
+		, (flags & test_flags::seed_mode) ? "seed-mode ": ""
+		, (flags & test_flags::time_critical) ? "time-critical ": ""
+		, (flags & test_flags::suggest) ? "suggest ": ""
 		);
 
 	// in case the previous run was terminated
@@ -69,9 +75,11 @@ void test_swarm(int flags)
 	session_proxy p2;
 	session_proxy p3;
 
-	const int mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
+	auto const mask = ~(
+			alert::performance_warning
+#if TORRENT_ABI_VERSION == 1
+			| alert::progress_notification
+#endif
 			| alert::stats_notification);
 
 	settings_pack pack;
@@ -82,21 +90,21 @@ void test_swarm(int flags)
 	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 
-	if (flags & strict_super_seeding)
+	if (flags & test_flags::strict_super_seeding)
 		pack.set_bool(settings_pack::strict_super_seeding, true);
 
-	if (flags & suggest)
+	if (flags & test_flags::suggest)
 		pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
 
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	float rate_limit = 100000;
+	float const rate_limit = 100000;
 
-	int port = lt::random() % 100;
+	int const port = static_cast<int>(lt::random(100));
 	char iface[50];
-	snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
-	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
+	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	pack.set_str(settings_pack::listen_interfaces, iface);
 	pack.set_int(settings_pack::max_retry_port_bind, 1000);
 
@@ -105,13 +113,13 @@ void test_swarm(int flags)
 
 	lt::session ses1(pack);
 
-	snprintf(iface, sizeof(iface), "0.0.0.0:490%02d", port);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:490%02d", port);
 	pack.set_str(settings_pack::listen_interfaces, iface);
-	pack.set_int(settings_pack::download_rate_limit, rate_limit / 2);
-	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	pack.set_int(settings_pack::download_rate_limit, int(rate_limit / 2));
+	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	lt::session ses2(pack);
 
-	snprintf(iface, sizeof(iface), "0.0.0.0:500%02d", port);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:500%02d", port);
 	pack.set_str(settings_pack::listen_interfaces, iface);
 	lt::session ses3(pack);
 
@@ -120,18 +128,18 @@ void test_swarm(int flags)
 	torrent_handle tor3;
 
 	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
-	if (flags & seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
+	if (flags & test_flags::seed_mode) p.flags |= torrent_flags::seed_mode;
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 8 * 1024, 0, flags & super_seeding, &p);
+	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
+		, false, true, "_swarm", 8 * 1024, nullptr, bool(flags & test_flags::super_seeding), &p);
 
-	if (flags & time_critical)
+	if (flags & test_flags::time_critical)
 	{
-		tor2.set_piece_deadline(2, 0);
-		tor2.set_piece_deadline(5, 1000);
-		tor2.set_piece_deadline(8, 2000);
+		tor2.set_piece_deadline(piece_index_t(2), 0);
+		tor2.set_piece_deadline(piece_index_t(5), 1000);
+		tor2.set_piece_deadline(piece_index_t(8), 2000);
 	}
 
 	float sum_dl_rate2 = 0.f;
@@ -149,10 +157,10 @@ void test_swarm(int flags)
 		torrent_status st2 = tor2.status();
 		torrent_status st3 = tor3.status();
 
-		if (flags & super_seeding)
+		if (flags & test_flags::super_seeding)
 		{
 			TEST_CHECK(st1.is_seeding);
-			TEST_CHECK(st1.super_seeding);
+			TEST_CHECK(tor1.flags() & torrent_flags::super_seeding);
 		}
 
 		if (st2.progress < 1.f && st2.progress > 0.5f)
@@ -166,23 +174,22 @@ void test_swarm(int flags)
 			++count_dl_rates3;
 		}
 
-		print_ses_rate(i, &st1, &st2, &st3);
+		print_ses_rate(float(i), &st1, &st2, &st3);
 
 		if (st2.is_seeding && st3.is_seeding) break;
-		test_sleep(1000);
+		std::this_thread::sleep_for(lt::milliseconds(1000));
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);
 	TEST_CHECK(tor3.status().is_seeding);
 
-	float average2 = sum_dl_rate2 / float(count_dl_rates2);
-	float average3 = sum_dl_rate3 / float(count_dl_rates3);
+	float average2 = count_dl_rates2 > 0 ? sum_dl_rate2 / float(count_dl_rates2) : -1;
+	float average3 = count_dl_rates3 > 0 ? sum_dl_rate3 / float(count_dl_rates3) : -1;
 
-	std::cerr << average2 << std::endl;
-	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
+	std::cout << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
-	if (tor2.status().is_seeding && tor3.status().is_seeding) std::cerr << "done\n";
+	if (tor2.status().is_seeding && tor3.status().is_seeding) std::cout << "done\n";
 
 	// make sure the files are deleted
 	ses1.remove_torrent(tor1, lt::session::delete_files);
@@ -191,7 +198,7 @@ void test_swarm(int flags)
 
 	alert const* a = wait_for_alert(ses1, torrent_deleted_alert::alert_type, "swarm_suite");
 
-	TEST_CHECK(alert_cast<torrent_deleted_alert>(a) != 0);
+	TEST_CHECK(alert_cast<torrent_deleted_alert>(a) != nullptr);
 
 	// there shouldn't be any alerts generated from now on
 	// make sure that the timer in wait_for_alert() works
@@ -201,19 +208,18 @@ void test_swarm(int flags)
 	alert const* ret;
 	while ((ret = ses1.wait_for_alert(seconds(2))))
 	{
-		fprintf(stderr, "wait returned: %d ms\n"
+		std::printf("wait returned: %d ms\n"
 			, int(total_milliseconds(clock_type::now() - start)));
 		std::vector<alert*> alerts;
 		ses1.pop_alerts(&alerts);
-		for (std::vector<alert*>::iterator i = alerts.begin()
-			, end(alerts.end()); i != end; ++i)
+		for (auto ap : alerts)
 		{
-			fprintf(stderr, "%s\n", ret->message().c_str());
+			std::printf("%s\n", ap->message().c_str());
 		}
 		start = clock_type::now();
 	}
 
-	fprintf(stderr, "loop returned: %d ms\n"
+	std::printf("loop returned: %d ms\n"
 		, int(total_milliseconds(clock_type::now() - start)));
 
 	// this allows shutting down the sessions in parallel
@@ -221,9 +227,9 @@ void test_swarm(int flags)
 	p2 = ses2.abort();
 	p3 = ses3.abort();
 
-	time_point end = clock_type::now();
+	time_point const end = clock_type::now();
 
-	fprintf(stderr, "time: %d ms\n", int(total_milliseconds(end - start)));
+	std::printf("time: %d ms\n", int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start < milliseconds(3000));
 	TEST_CHECK(end - start > milliseconds(1900));
 
@@ -236,4 +242,6 @@ void test_swarm(int flags)
 	remove_all("tmp3_swarm", ec);
 }
 
-
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

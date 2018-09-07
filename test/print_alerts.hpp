@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "test.hpp" // for EXPORT
 
-EXPORT void print_alerts(libtorrent::session* ses, libtorrent::time_point start_time);
+EXPORT void print_alerts(lt::session* ses, lt::time_point start_time);
 
 #endif
 

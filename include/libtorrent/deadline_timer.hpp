@@ -35,24 +35,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/asio/high_resolution_timer.hpp>
-
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
-#if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::asio::high_resolution_timer deadline_timer;
 #else
-	typedef boost::asio::high_resolution_timer deadline_timer;
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/high_resolution_timer.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif // SIMULATOR
+
+namespace libtorrent {
+
+#if defined TORRENT_BUILD_SIMULATOR
+	using deadline_timer = sim::asio::high_resolution_timer;
+#else
+	using deadline_timer = boost::asio::high_resolution_timer;
 #endif
 }
 
 #endif // TORRENT_DEADLINE_TIMER_HPP_INCLUDED
-

@@ -31,68 +31,80 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/sha1.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/openssl.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	hasher::hasher()
 	{
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
-#elif defined TORRENT_USE_OPENSSL
+#elif TORRENT_USE_CRYPTOAPI
+#elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
 		SHA1_init(&m_context);
 #endif
 	}
 
-	hasher::hasher(const char* data, int len)
+	hasher::hasher(span<char const> data)
+		: hasher()
 	{
-		TORRENT_ASSERT(data != 0);
-		TORRENT_ASSERT(len > 0);
-#ifdef TORRENT_USE_GCRYPT
-		gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
-		gcry_md_write(m_context, data, len);
-#elif TORRENT_USE_COMMONCRYPTO
-		CC_SHA1_Init(&m_context);
-		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#elif defined TORRENT_USE_OPENSSL
-		SHA1_Init(&m_context);
-		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#else
-		SHA1_init(&m_context);
-		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#endif
+		update(data);
 	}
 
-#ifdef TORRENT_USE_GCRYPT
+	hasher::hasher(char const* data, int len)
+		: hasher()
+	{
+		TORRENT_ASSERT(len > 0);
+		update({data, size_t(len)});
+	}
+
+#ifdef TORRENT_USE_LIBGCRYPT
 	hasher::hasher(hasher const& h)
 	{
 		gcry_md_copy(&m_context, h.m_context);
 	}
 
-	hasher& hasher::operator=(hasher const& h)
+	hasher& hasher::operator=(hasher const& h) &
 	{
+		if (this == &h) return;
 		gcry_md_close(m_context);
 		gcry_md_copy(&m_context, h.m_context);
 		return *this;
 	}
+#else
+	hasher::hasher(hasher const&) = default;
+	hasher& hasher::operator=(hasher const&) & = default;
 #endif
 
-	hasher& hasher::update(const char* data, int len)
+	hasher& hasher::update(char const* data, int len)
 	{
-		TORRENT_ASSERT(data != 0);
-		TORRENT_ASSERT(len > 0);
-#ifdef TORRENT_USE_GCRYPT
-		gcry_md_write(m_context, data, len);
+		return update({data, size_t(len)});
+	}
+
+	hasher& hasher::update(span<char const> data)
+	{
+		TORRENT_ASSERT(!data.empty());
+#ifdef TORRENT_USE_LIBGCRYPT
+		gcry_md_write(m_context, data.data(), data.size());
 #elif TORRENT_USE_COMMONCRYPTO
-		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#elif defined TORRENT_USE_OPENSSL
-		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), CC_LONG(data.size()));
+#elif TORRENT_USE_CRYPTOAPI
+		m_context.update(data);
+#elif defined TORRENT_USE_LIBCRYPTO
+		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), data.size());
 #else
-		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), data.size());
 #endif
 		return *this;
 	}
@@ -100,26 +112,30 @@ namespace libtorrent
 	sha1_hash hasher::final()
 	{
 		sha1_hash digest;
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_final(m_context);
-		digest.assign((const char*)gcry_md_read(m_context, 0));
+		digest.assign(reinterpret_cast<char const*>(gcry_md_read(m_context, 0)));
 #elif TORRENT_USE_COMMONCRYPTO
-		CC_SHA1_Final(digest.begin(), &m_context);
-#elif defined TORRENT_USE_OPENSSL
-		SHA1_Final(digest.begin(), &m_context);
+		CC_SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+#elif TORRENT_USE_CRYPTOAPI
+		m_context.get_hash(digest.data(), digest.size());
+#elif defined TORRENT_USE_LIBCRYPTO
+		SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #else
-		SHA1_final(digest.begin(), &m_context);
+		SHA1_final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #endif
 		return digest;
 	}
 
 	void hasher::reset()
 	{
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_reset(m_context);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
-#elif defined TORRENT_USE_OPENSSL
+#elif TORRENT_USE_CRYPTOAPI
+		m_context.reset();
+#elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
 		SHA1_init(&m_context);
@@ -128,10 +144,12 @@ namespace libtorrent
 
 	hasher::~hasher()
 	{
-#ifdef TORRENT_USE_GCRYPT
+#if defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
 #endif
 	}
 
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic pop
+#endif
 }
-

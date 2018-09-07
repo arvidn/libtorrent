@@ -30,30 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <ctime>
-#include <string>
-#include <cstdio>
-#include <boost/limits.hpp>
-#include <boost/version.hpp>
-#include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp"
 #include "libtorrent/aux_/time.hpp"
 
-namespace libtorrent { namespace aux
-{
-	// used to cache the current time
-	// every 100 ms. This is cheaper
-	// than a system call and can be
-	// used where more accurate time
-	// is not necessary
-	namespace {
-		time_point g_current_time = clock_type::now();
-	}
+namespace libtorrent { namespace aux {
 
-	time_point const& time_now() { return aux::g_current_time; }
-
-	void update_time_now() { g_current_time = clock_type::now(); }
-
+	time_point time_now() { return clock_type::now(); }
+	time_point32 time_now32() { return time_point_cast<seconds32>(clock_type::now()); }
 
 } }
-

@@ -34,10 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_CLASS_SET_HPP_INCLUDED
 
 #include "libtorrent/peer_class.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/array.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent {
 
@@ -59,15 +56,14 @@ namespace libtorrent {
 	private:
 
 		// the number of elements used in the m_class array
-		boost::uint8_t m_size;
+		std::int8_t m_size;
 
 		// if this object belongs to any peer-class, this vector contains all
 		// class IDs. Each ID refers to a an entry in m_ses.m_peer_classes which
 		// holds the metadata about the class. Classes affect bandwidth limits
 		// among other things
-		boost::array<peer_class_t, 15> m_class;
+		aux::array<peer_class_t, 15> m_class;
 	};
 }
 
 #endif // TORRENT_PEER_CLASS_SET_HPP_INCLUDED
-

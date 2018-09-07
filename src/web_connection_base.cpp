@@ -32,31 +32,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <vector>
 #include <limits>
-#include <boost/bind.hpp>
-#include <stdlib.h>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <cstdlib>
 
 #include "libtorrent/web_connection_base.hpp"
-#include "libtorrent/session.hpp"
-#include "libtorrent/identify_client.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
-#include "libtorrent/io.hpp"
-#include "libtorrent/version.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
-using boost::shared_ptr;
+namespace libtorrent {
 
-namespace libtorrent
-{
 	web_connection_base::web_connection_base(
 		peer_connection_args const& pack
 		, web_seed_t& web)
@@ -84,7 +69,7 @@ namespace libtorrent
 
 		std::string protocol;
 		error_code ec;
-		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
+		std::tie(protocol, m_basic_auth, m_host, m_port, m_path)
 			= parse_url_components(web.url, ec);
 		TORRENT_ASSERT(!ec);
 
@@ -125,16 +110,12 @@ namespace libtorrent
 		disconnect_if_redundant();
 	}
 
-	web_connection_base::~web_connection_base()
-	{}
+	web_connection_base::~web_connection_base() = default;
 
 	void web_connection_base::on_connected()
 	{
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-	
-		// this is always a seed
-		incoming_have_all();
 
 		// it is always possible to request pieces
 		incoming_unchoke();
@@ -169,13 +150,12 @@ namespace libtorrent
 			request += base64encode(sett.get_str(settings_pack::proxy_username)
 				+ ":" + sett.get_str(settings_pack::proxy_password));
 		}
-		for (web_seed_entry::headers_t::const_iterator it = m_extra_headers.begin();
-			it != m_extra_headers.end(); ++it)
+		for (auto const& h : m_extra_headers)
 		{
 			request += "\r\n";
-			request += it->first;
+			request += h.first;
 			request += ": ";
-			request += it->second;
+			request += h.second;
 		}
 		if (using_proxy) {
 			request += "\r\nProxy-Connection: keep-alive";
@@ -211,7 +191,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (error) return;
-		sent_bytes(0, bytes_transferred);
+		sent_bytes(0, int(bytes_transferred));
 	}
 
 
@@ -227,4 +207,3 @@ namespace libtorrent
 #endif
 
 }
-

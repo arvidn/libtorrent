@@ -15,6 +15,7 @@ endif
 
 REFERENCE_TARGETS = \
 	manual-ref \
+	upgrade_to_1.2-ref \
 	reference \
 	reference-Core \
 	reference-Plugins \
@@ -66,7 +67,7 @@ html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html
 
 rst: $(TARGETS:=.rst) todo.html
 
-pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
+pdf: $(TARGETS:=.pdf) $(FIGURES:=.png)
 
 epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 
@@ -107,7 +108,7 @@ spell-check:plain_text_out.txt
 	rst2epub --exit-status=2 $? $@
 
 %.pdf:%.rst
-	rst2pdf --exit-status=2 $? -o $@ --stylesheets stylesheet
+	rst2pdf $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
 	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
@@ -117,12 +118,6 @@ endif
 
 %.png:%.dot
 	dot -Tpng $? >$@
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
-
-%.eps:%.dot
-	dot -Teps $? >$@
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif

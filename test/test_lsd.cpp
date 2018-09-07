@@ -34,17 +34,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/thread.hpp"
-#include <boost/tuple/tuple.hpp>
+#include "libtorrent/aux_/path.hpp"
+#include <tuple>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <iostream>
 
+namespace {
+
 void test_lsd()
 {
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+	using namespace lt;
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -59,7 +60,7 @@ void test_lsd()
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48100");
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
 
@@ -71,36 +72,38 @@ void test_lsd()
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	using boost::tuples::ignore;
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, false, "_lsd"
-		, 16 * 1024, 0, false, 0, false);
+	using std::ignore;
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr, true, false, false, "_lsd"
+		, 16 * 1024, nullptr, false, nullptr, false);
 
 	for (int i = 0; i < 30; ++i)
 	{
-		print_alerts(ses1, "ses1", true);
-		print_alerts(ses2, "ses2", true);
+		print_alerts(ses1, "ses1");
+		print_alerts(ses2, "ses2");
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
-		print_ses_rate(i, &st1, &st2);
+		print_ses_rate(float(i), &st1, &st2);
 
 		if (st2.is_seeding /*&& st3.is_seeding*/) break;
-		test_sleep(1000);
+		std::this_thread::sleep_for(lt::milliseconds(1000));
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);
 
-	if (tor2.status().is_seeding) std::cerr << "done\n";
+	if (tor2.status().is_seeding) std::cout << "done\n";
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
 	p2 = ses2.abort();
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(lsd)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	// in case the previous run was terminated
 	error_code ec;

@@ -34,21 +34,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/disk_io_job.hpp" // for block_cache_reference
+#include "libtorrent/aux_/block_cache_reference.hpp"
+#include "libtorrent/aux_/aligned_storage.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/buffer.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/version.hpp>
-#include <boost/asio/buffer.hpp>
 #include <deque>
 #include <vector>
-#include <string.h> // for memcpy
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/buffer.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+#ifdef _MSC_VER
+// visual studio requires the value in a deque to be copyable. C++11
+// has looser requirements depending on which functions are actually used.
+#define TORRENT_CPP98_DEQUE 1
+#else
+#define TORRENT_CPP98_DEQUE 0
+#endif
+
+namespace libtorrent {
+
+	// TODO: 2 this type should probably be renamed to send_buffer
 	struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0)
@@ -59,20 +67,58 @@ namespace libtorrent
 #endif
 		}
 
-		// destructs/frees the buffer (1st arg) with
-		// 2nd argument as userdata
-		typedef void (*free_buffer_fun)(char*, void*, block_cache_reference ref);
+	private:
+
+		// destructs/frees the holder object
+		using destruct_holder_fun = void (*)(void*);
+		using move_construct_holder_fun = void (*)(void*, void*);
 
 		struct buffer_t
 		{
-			free_buffer_fun free_fun;
-			void* userdata;
-			char* buf; // the first byte of the buffer
-			char* start; // the first byte to send/receive in the buffer
-			int size; // the total size of the buffer
-			int used_size; // this is the number of bytes to send/receive
-			block_cache_reference ref;
+			buffer_t() {}
+#if TORRENT_CPP98_DEQUE
+			buffer_t(buffer_t&& rhs) noexcept
+			{
+				destruct_holder = rhs.destruct_holder;
+				move_holder = rhs.move_holder;
+				buf = rhs.buf;
+				size = rhs.size;
+				used_size = rhs.used_size;
+				move_holder(&holder, &rhs.holder);
+			}
+			buffer_t& operator=(buffer_t&& rhs) & noexcept
+			{
+				destruct_holder(&holder);
+				destruct_holder = rhs.destruct_holder;
+				move_holder = rhs.move_holder;
+				buf = rhs.buf;
+				size = rhs.size;
+				used_size = rhs.used_size;
+				move_holder(&holder, &rhs.holder);
+				return *this;
+			}
+			buffer_t(buffer_t const& rhs) noexcept
+				: buffer_t(std::move(const_cast<buffer_t&>(rhs))) {}
+			buffer_t& operator=(buffer_t const& rhs) & noexcept
+			{ return this->operator=(std::move(const_cast<buffer_t&>(rhs))); }
+#else
+			buffer_t(buffer_t&&) = delete;
+			buffer_t& operator=(buffer_t&&) = delete;
+			buffer_t(buffer_t const&) = delete;
+			buffer_t& operator=(buffer_t const&) = delete;
+#endif
+
+			destruct_holder_fun destruct_holder;
+#if TORRENT_CPP98_DEQUE
+			move_construct_holder_fun move_holder;
+#endif
+			aux::aligned_storage<32>::type holder;
+			char* buf = nullptr; // the first byte of the buffer
+			int size = 0; // the total size of the buffer
+			int used_size = 0; // this is the number of bytes to send/receive
 		};
+
+	public:
 
 		bool empty() const { return m_bytes == 0; }
 		int size() const { return m_bytes; }
@@ -80,13 +126,25 @@ namespace libtorrent
 
 		void pop_front(int bytes_to_pop);
 
-		void append_buffer(char* buffer, int s, int used_size
-			, free_buffer_fun destructor, void* userdata
-			, block_cache_reference ref = block_cache_reference());
+		template <typename Holder>
+		void append_buffer(Holder buffer, int used_size)
+		{
+			TORRENT_ASSERT(is_single_thread());
+			TORRENT_ASSERT(int(buffer.size()) >= used_size);
+			m_vec.emplace_back();
+			buffer_t& b = m_vec.back();
+			init_buffer_entry<Holder>(b, std::move(buffer), used_size);
+		}
 
-		void prepend_buffer(char* buffer, int s, int used_size
-			, free_buffer_fun destructor, void* userdata
-			, block_cache_reference ref = block_cache_reference());
+		template <typename Holder>
+		void prepend_buffer(Holder buffer, int used_size)
+		{
+			TORRENT_ASSERT(is_single_thread());
+			TORRENT_ASSERT(int(buffer.size()) >= used_size);
+			m_vec.emplace_front();
+			buffer_t& b = m_vec.front();
+			init_buffer_entry<Holder>(b, std::move(buffer), used_size);
+		}
 
 		// returns the number of bytes available at the
 		// end of the last chained buffer.
@@ -94,8 +152,8 @@ namespace libtorrent
 
 		// tries to copy the given buffer to the end of the
 		// last chained buffer. If there's not enough room
-		// it returns false
-		char* append(char const* buf, int s);
+		// it returns nullptr
+		char* append(span<char const> buf);
 
 		// tries to allocate memory from the end
 		// of the last buffer. If there isn't
@@ -106,11 +164,46 @@ namespace libtorrent
 
 		void clear();
 
-		void build_mutable_iovec(int bytes, std::vector<boost::asio::mutable_buffer>& vec);
+		void build_mutable_iovec(int bytes, std::vector<span<char>>& vec);
 
 		~chained_buffer();
 
 	private:
+
+		template <typename Holder>
+		void init_buffer_entry(buffer_t& b, Holder buf, int used_size)
+		{
+			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
+
+			b.buf = buf.data();
+			b.size = static_cast<int>(buf.size());
+			b.used_size = used_size;
+
+#ifdef _MSC_VER
+// this appears to be a false positive msvc warning
+#pragma warning(push, 1)
+#pragma warning(disable : 4100)
+#endif
+			b.destruct_holder = [](void* holder)
+			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
+
+#if TORRENT_CPP98_DEQUE
+			b.move_holder = [](void* dst, void* src)
+			{ new (dst) Holder(std::move(*reinterpret_cast<Holder*>(src))); };
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+			new (&b.holder) Holder(std::move(buf));
+
+			m_bytes += used_size;
+			TORRENT_ASSERT(m_capacity < (std::numeric_limits<int>::max)() - b.size);
+			m_capacity += b.size;
+			TORRENT_ASSERT(m_bytes <= m_capacity);
+		}
+
 		template <typename Buffer>
 		void build_vec(int bytes, std::vector<Buffer>& vec);
 
@@ -138,4 +231,3 @@ namespace libtorrent
 }
 
 #endif
-

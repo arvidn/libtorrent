@@ -34,19 +34,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PERFORMANCE_COUNTERS_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/thread.hpp"
+#include "libtorrent/aux_/array.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <cstdint>
+#include <atomic>
+#include <mutex>
 
-#include <boost/cstdint.hpp>
-#include <boost/atomic.hpp>
+namespace libtorrent {
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
 	struct TORRENT_EXTRA_EXPORT counters
 	{
+		// TODO: move this out of counters
 		enum stats_counter_t
 		{
 			// the number of peers that were disconnected this
@@ -118,6 +116,18 @@ namespace libtorrent
 			// the number of iterations over the peer list when finding
 			// a connect candidate
 			connection_attempt_loops,
+
+			// the number of peer connection attempts made as high
+			// priority connections for new torrents
+			boost_connection_attempts,
+
+			// calls to torrent::connect_to_peer() that failed
+			missed_connection_attempts,
+
+			// calls to peer_list::connect_one_peer() resulting in
+			// no peer candidate being found
+			no_peer_connection_attempts,
+
 			// successful incoming connections (not rejected for any reason)
 			incoming_connections,
 
@@ -133,7 +143,9 @@ namespace libtorrent
 			on_disk_queue_counter,
 			on_disk_counter,
 
+#if TORRENT_ABI_VERSION == 1
 			torrent_evicted_counter,
+#endif
 
 			// bittorrent message counters
 			// TODO: should keepalives be in here too?
@@ -217,6 +229,7 @@ namespace libtorrent
 			recv_redundant_bytes,
 
 			dht_messages_in,
+			dht_messages_in_dropped,
 			dht_messages_out,
 			dht_messages_out_dropped,
 			dht_bytes_in,
@@ -234,11 +247,15 @@ namespace libtorrent
 			dht_get_out,
 			dht_put_in,
 			dht_put_out,
+			dht_sample_infohashes_in,
+			dht_sample_infohashes_out,
 
 			dht_invalid_announce,
 			dht_invalid_get_peers,
+			dht_invalid_find_node,
 			dht_invalid_put,
 			dht_invalid_get,
+			dht_invalid_sample_infohashes,
 
 			// uTP counters.
 			utp_packet_loss,
@@ -330,10 +347,6 @@ namespace libtorrent
 			// IP filter applied to them.
 			non_filter_torrents,
 
-			// counters related to evicting torrents
-			num_loaded_torrents,
-			num_pinned_torrents,
-
 			// these counter indices deliberately
 			// match the order of socket type IDs
 			// defined in socket_type.hpp.
@@ -411,7 +424,6 @@ namespace libtorrent
 			num_fenced_save_resume_data,
 			num_fenced_rename_file,
 			num_fenced_stop_torrent,
-			num_fenced_cache_piece,
 			num_fenced_flush_piece,
 			num_fenced_flush_hashed,
 			num_fenced_flush_storage,
@@ -456,18 +468,23 @@ namespace libtorrent
 			num_counters,
 			num_gauges_counters = num_counters - num_stats_counters
 		};
+#ifdef ATOMIC_LLONG_LOCK_FREE
+#define TORRENT_COUNTER_NOEXCEPT noexcept
+#else
+#define TORRENT_COUNTER_NOEXCEPT
+#endif
 
-		counters();
+		counters() TORRENT_COUNTER_NOEXCEPT;
 
-		counters(counters const&);
-		counters& operator=(counters const&);
+		counters(counters const&) TORRENT_COUNTER_NOEXCEPT;
+		counters& operator=(counters const&) TORRENT_COUNTER_NOEXCEPT;
 
 		// returns the new value
-		boost::int64_t inc_stats_counter(int c, boost::int64_t value = 1);
-		boost::int64_t operator[](int i) const;
+		std::int64_t inc_stats_counter(int c, std::int64_t value = 1) TORRENT_COUNTER_NOEXCEPT;
+		std::int64_t operator[](int i) const TORRENT_COUNTER_NOEXCEPT;
 
-		void set_value(int c, boost::int64_t value);
-		void blend_stats_counter(int c, boost::int64_t value, int ratio);
+		void set_value(int c, std::int64_t value) TORRENT_COUNTER_NOEXCEPT;
+		void blend_stats_counter(int c, std::int64_t value, int ratio) TORRENT_COUNTER_NOEXCEPT;
 
 	private:
 
@@ -475,16 +492,15 @@ namespace libtorrent
 		// TODO: restore these to regular integers. Instead have one copy
 		// of the counters per thread and collect them at convenient
 		// synchronization points
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		boost::atomic<boost::int64_t> m_stats_counter[num_counters];
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		aux::array<std::atomic<std::int64_t>, num_counters> m_stats_counter;
 #else
 		// if the atomic type is't lock-free, use a single lock instead, for
 		// the whole array
-		mutable mutex m_mutex;
-		boost::int64_t m_stats_counter[num_counters];
+		mutable std::mutex m_mutex;
+		aux::array<std::int64_t, num_counters> m_stats_counter;
 #endif
 	};
 }
 
 #endif
-

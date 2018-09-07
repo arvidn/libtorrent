@@ -1,8 +1,5 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
-benchmark_programs = \
-  bdecode_benchmark
-
 test_programs = \
   test_primitives            \
   test_recheck               \
@@ -21,6 +18,7 @@ test_programs = \
   test_read_piece            \
   test_receive_buffer        \
   test_resume                \
+  test_read_resume           \
   test_ssl                   \
   test_stack_allocator       \
   test_storage               \
@@ -48,10 +46,13 @@ test_programs = \
   test_file_progress         \
   test_linked_list           \
   test_direct_dht            \
-  test_ed25519
+  test_ffs                   \
+  test_session_params        \
+  test_span                  \
+  test_alloca
 
 if ENABLE_TESTS
-check_PROGRAMS = $(test_programs) $(benchmark_programs)
+check_PROGRAMS = $(test_programs)
 noinst_LTLIBRARIES = libtest.la
 endif
 
@@ -127,7 +128,7 @@ EXTRA_DIST = Jamfile \
   socks.py \
   http.py
 
-EXTRA_PROGRAMS = $(test_programs) $(benchmark_programs)
+EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
   peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
@@ -157,9 +158,11 @@ test_primitives_SOURCES = \
   test_identify_client.cpp \
   test_merkle.cpp \
   test_alert_manager.cpp \
+  test_alert_types.cpp \
   test_resolve_links.cpp \
   test_crc32.cpp \
   test_heterogeneous_queue.cpp \
+  test_listen_socket.cpp \
   test_ip_voter.cpp \
   test_sliding_average.cpp \
   test_socket_io.cpp \
@@ -186,6 +189,8 @@ test_primitives_SOURCES = \
   test_xml.cpp \
   test_ip_filter.cpp \
   test_hasher.cpp \
+  test_hasher512.cpp \
+  test_ed25519.cpp \
   test_dht_storage.cpp \
   test_dht.cpp \
   test_block_cache.cpp \
@@ -193,9 +198,10 @@ test_primitives_SOURCES = \
   test_settings_pack.cpp \
   test_fence.cpp \
   test_dos_blocker.cpp \
-  test_upnp.cpp
+  test_upnp.cpp \
+  test_flags.cpp \
+  test_generate_peer_id.cpp
 
-bdecode_benchmark_SOURCES = bdecode_benchmark.cpp
 test_recheck_SOURCES = test_recheck.cpp
 test_stat_cache_SOURCES = test_stat_cache.cpp
 test_file_SOURCES = test_file.cpp
@@ -215,6 +221,7 @@ test_receive_buffer_SOURCES = test_receive_buffer.cpp
 test_storage_SOURCES = test_storage.cpp
 test_time_critical_SOURCES = test_time_critical.cpp
 test_resume_SOURCES = test_resume.cpp
+test_read_resume_SOURCES = test_read_resume.cpp
 test_stack_allocator_SOURCES = test_stack_allocator.cpp
 test_ssl_SOURCES = test_ssl.cpp
 test_torrent_SOURCES = test_torrent.cpp
@@ -239,13 +246,15 @@ test_remap_files_SOURCES = test_remap_files.cpp
 test_file_progress_SOURCES = test_file_progress.cpp
 test_linked_list_SOURCES = test_linked_list.cpp
 test_direct_dht_SOURCES = test_direct_dht.cpp
-test_ed25519_SOURCES = test_ed25519.cpp
+test_ffs_SOURCES = test_ffs.cpp
+test_session_params_SOURCES = test_session_params.cpp
+test_span_SOURCES = test_span.cpp
+test_alloca_SOURCES = test_alloca.cpp
 
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
 #AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 
-AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@ \
-	@BOOST_CHRONO_LIB@
+AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
 

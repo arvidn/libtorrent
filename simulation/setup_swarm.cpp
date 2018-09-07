@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/address.hpp"
@@ -40,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/alert_types.hpp"
-#include <boost/bind.hpp>
+#include "libtorrent/aux_/path.hpp"
 #include <fstream>
 
 #include "settings.hpp"
@@ -49,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "utils.hpp"
 #include "simulator/queue.hpp"
 
-namespace lt = libtorrent;
 using namespace sim;
 
 namespace {
@@ -101,7 +99,7 @@ sim::route dsl_config::outgoing_route(asio::ip::address ip)
 std::string save_path(int swarm_id, int idx)
 {
 	char path[200];
-	snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
+	std::snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
 		, swarm_id, idx);
 	return path;
 }
@@ -115,7 +113,7 @@ void add_extra_peers(lt::session& ses)
 	for (int i = 0; i < 30; ++i)
 	{
 		char ep[30];
-		snprintf(ep, sizeof(ep), "60.0.0.%d", i + 1);
+		std::snprintf(ep, sizeof(ep), "60.0.0.%d", i + 1);
 		h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
 	}
 }
@@ -156,9 +154,33 @@ int completed_pieces(lt::session& ses)
 	return h.status().num_pieces;
 }
 
+namespace {
+bool should_print(lt::alert* a)
+{
+	using namespace lt;
+
+#ifndef TORRENT_DISABLE_LOGGING
+	if (auto pla = alert_cast<peer_log_alert>(a))
+	{
+		if (pla->direction != peer_log_alert::incoming_message
+			&& pla->direction != peer_log_alert::outgoing_message)
+			return false;
+	}
+#endif
+	if (alert_cast<session_stats_alert>(a)
+		|| alert_cast<piece_finished_alert>(a)
+		|| alert_cast<block_finished_alert>(a)
+		|| alert_cast<block_downloading_alert>(a))
+	{
+		return false;
+	}
+	return true;
+}
+}
+
 void utp_only(lt::settings_pack& p)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	p.set_bool(settings_pack::enable_outgoing_tcp, false);
 	p.set_bool(settings_pack::enable_incoming_tcp, false);
 	p.set_bool(settings_pack::enable_outgoing_utp, true);
@@ -167,7 +189,7 @@ void utp_only(lt::settings_pack& p)
 
 void enable_enc(lt::settings_pack& p)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	p.set_bool(settings_pack::prefer_rc4, true);
 	p.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 	p.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
@@ -179,7 +201,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate)
+	, std::function<bool(int, lt::session&)> terminate)
 {
 	dsl_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -194,13 +216,13 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate)
+	, std::function<bool(int, lt::session&)> terminate)
 {
 	lt::settings_pack pack = settings();
 
 	lt::add_torrent_params p;
-	p.flags &= ~lt::add_torrent_params::flag_paused;
-	p.flags &= ~lt::add_torrent_params::flag_auto_managed;
+	p.flags &= ~lt::torrent_flags::paused;
+	p.flags &= ~lt::torrent_flags::auto_managed;
 
 	setup_swarm(num_nodes, type, sim, pack, p, new_session
 		, add_torrent, on_alert, terminate);
@@ -214,7 +236,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate)
+	, std::function<bool(int, lt::session&)> terminate)
 {
 	setup_swarm(num_nodes, type, sim
 		, default_settings
@@ -235,21 +257,21 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate)
+	, std::function<bool(int, lt::session&)> terminate)
 {
 	asio::io_service ios(sim);
 	lt::time_point start_time(lt::clock_type::now());
 
-	std::vector<boost::shared_ptr<lt::session> > nodes;
-	std::vector<boost::shared_ptr<sim::asio::io_service> > io_service;
+	std::vector<std::shared_ptr<lt::session>> nodes;
+	std::vector<std::shared_ptr<sim::asio::io_service>> io_service;
 	std::vector<lt::session_proxy> zombies;
 	lt::deadline_timer timer(ios);
 
 	lt::error_code ec;
-	int swarm_id = test_counter();
+	int const swarm_id = test_counter();
 	std::string path = save_path(swarm_id, 0);
 	lt::create_directory(path, ec);
-	if (ec) fprintf(stderr, "failed to create directory: \"%s\": %s\n"
+	if (ec) std::printf("failed to create directory: \"%s\": %s\n"
 		, path.c_str(), ec.message().c_str());
 	std::ofstream file(lt::combine_path(path, "temporary").c_str());
 	auto ti = ::create_torrent(&file, "temporary", 0x4000, 9, false);
@@ -260,10 +282,13 @@ void setup_swarm(int num_nodes
 	for (int i = 0; i < num_nodes; ++i)
 	{
 		// create a new io_service
+		std::vector<asio::ip::address> ips;
 		char ep[30];
-		snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
-		io_service.push_back(boost::make_shared<sim::asio::io_service>(
-			boost::ref(sim), addr(ep)));
+		std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+		ips.push_back(addr(ep));
+		std::snprintf(ep, sizeof(ep), "2000::%X%X", (i + 1) >> 8, (i + 1) & 0xff);
+		ips.push_back(addr(ep));
+		io_service.push_back(std::make_shared<sim::asio::io_service>(sim, ips));
 
 		lt::settings_pack pack = default_settings;
 
@@ -273,9 +298,8 @@ void setup_swarm(int num_nodes
 		pack.set_str(lt::settings_pack::peer_fingerprint, pid.to_string());
 		if (i == 0) new_session(pack);
 
-		boost::shared_ptr<lt::session> ses =
-			boost::make_shared<lt::session>(pack
-				, boost::ref(*io_service.back()));
+		std::shared_ptr<lt::session> ses =
+			std::make_shared<lt::session>(pack, *io_service.back());
 		init_session(*ses);
 		nodes.push_back(ses);
 
@@ -327,10 +351,15 @@ void setup_swarm(int num_nodes
 
 					// only print alerts from the session under test
 					lt::time_duration d = a->timestamp() - start_time;
-					boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
-					printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
-						, a->what()
-						, a->message().c_str());
+					std::uint32_t const millis = std::uint32_t(
+						lt::duration_cast<lt::milliseconds>(d).count());
+
+					if (should_print(a))
+					{
+						std::printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+							, a->what()
+							, a->message().c_str());
+					}
 
 					// if a torrent was added save the torrent handle
 					if (lt::add_torrent_alert* at = lt::alert_cast<lt::add_torrent_alert>(a))
@@ -345,7 +374,7 @@ void setup_swarm(int num_nodes
 							// string and an integer is common. It should probably be
 							// factored out into its own function
 							char ep[30];
-							snprintf(ep, sizeof(ep), "50.0.%d.%d", (k + 1) >> 8, (k + 1) & 0xff);
+							std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (k + 1) >> 8, (k + 1) & 0xff);
 							h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
 						}
 					}
@@ -367,18 +396,19 @@ void setup_swarm(int num_nodes
 		if (type == swarm_test::upload)
 		{
 			shut_down |= std::all_of(nodes.begin() + 1, nodes.end()
-				, [](boost::shared_ptr<lt::session> const& s)
+				, [](std::shared_ptr<lt::session> const& s)
 				{ return is_seed(*s); }) && num_nodes > 1;
 
-			if (tick > 70 * (num_nodes - 1) && !shut_down && num_nodes > 1)
+			if (tick > 88 * (num_nodes - 1) && !shut_down && num_nodes > 1)
 			{
 				TEST_ERROR("seeding failed!");
+				shut_down = true;
 			}
 		}
 
 		if (shut_down)
 		{
-			printf("TERMINATING\n");
+			std::printf("TERMINATING\n");
 
 			// terminate simulation
 			for (int i = 0; i < int(nodes.size()); ++i)

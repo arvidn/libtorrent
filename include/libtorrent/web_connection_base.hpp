@@ -33,43 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef WEB_CONNECTION_BASE_HPP_INCLUDED
 #define WEB_CONNECTION_BASE_HPP_INCLUDED
 
-#include "libtorrent/debug.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <ctime>
 #include <algorithm>
-#include <vector>
 #include <deque>
 #include <string>
+#include <cstdint>
 
-#include <boost/smart_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/array.hpp>
-#include <boost/optional.hpp>
-#include <boost/cstdint.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/storage.hpp"
-#include "libtorrent/stat.hpp"
-#include "libtorrent/alert.hpp"
-#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
-// parse_url
-#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_parser.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class torrent;
 
 	class TORRENT_EXTRA_EXPORT web_connection_base
@@ -79,49 +56,52 @@ namespace libtorrent
 	public:
 
 		// this is the constructor where the we are the active part.
-		// The peer_conenction should handshake and verify that the
+		// The peer_connection should handshake and verify that the
 		// other end has the correct id
 		web_connection_base(peer_connection_args const& pack
 			, web_seed_t& web);
 
-		virtual int timeout() const;
-		void start();
+		int timeout() const override;
+		void start() override;
 
-		~web_connection_base();
+		~web_connection_base() override;
 
 		// called from the main loop when this connection has any
 		// work to do.
 		void on_sent(error_code const& error
-			, std::size_t bytes_transferred);
+			, std::size_t bytes_transferred) override;
 
 		virtual std::string const& url() const = 0;
 
-		bool in_handshake() const;
+		bool in_handshake() const override;
+
+		peer_id our_pid() const override { return peer_id(); }
 
 		// the following functions appends messages
 		// to the send buffer
-		void write_choke() {}
-		void write_unchoke() {}
-		void write_interested() {}
-		void write_not_interested() {}
-		virtual void write_request(peer_request const&) = 0;
-		void write_cancel(peer_request const&) {}
-		void write_have(int) {}
-		void write_dont_have(int) {}
-		void write_piece(peer_request const&, disk_buffer_holder&)
-		{ TORRENT_ASSERT(false); }
-		void write_keepalive() {}
-		void on_connected();
-		void write_reject_request(peer_request const&) {}
-		void write_allow_fast(int) {}
-		void write_suggest(int) {}
-		void write_bitfield() {}
+		void write_choke() override {}
+		void write_unchoke() override {}
+		void write_interested() override {}
+		void write_not_interested() override {}
+		void write_request(peer_request const&) override = 0;
+		void write_cancel(peer_request const&) override {}
+		void write_have(piece_index_t) override {}
+		void write_dont_have(piece_index_t) override {}
+		void write_piece(peer_request const&, disk_buffer_holder) override
+		{ TORRENT_ASSERT_FAIL(); }
+		void write_keepalive() override {}
+		void on_connected() override;
+		void write_reject_request(peer_request const&) override {}
+		void write_allow_fast(piece_index_t) override {}
+		void write_suggest(piece_index_t) override {}
+		void write_bitfield() override {}
+		void write_upload_only(bool) override {}
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 
-		virtual void get_specific_peer_info(peer_info& p) const;
+		void get_specific_peer_info(peer_info& p) const override;
 
 	protected:
 
@@ -158,4 +138,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_WEB_CONNECTION_BASE_HPP_INCLUDED
-

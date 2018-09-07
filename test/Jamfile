@@ -3,19 +3,6 @@ import feature : feature ;
 
 use-project /torrent : .. ;
 
-exe test_natpmp : test_natpmp.cpp /torrent//torrent
-	: <threading>multi <debug-iterators>on <invariant-checks>full ;
-
-exe enum_if : enum_if.cpp /torrent//torrent
-	: <threading>multi <debug-iterators>on <invariant-checks>full ;
-
-exe bdecode_benchmark : bdecode_benchmark.cpp /torrent//torrent
-	: <variant>release ;
-
-explicit test_natpmp ;
-explicit enum_if ;
-explicit bdecode_benchmark ;
-
 lib libtorrent_test
 	: # sources
 	main.cpp
@@ -41,7 +28,7 @@ lib libtorrent_test
 	<target-os>windows:<library>advapi32
 	<library>/torrent//torrent
 	<export-extra>on
-	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
+	<conditional>@warnings
 
 	: # default build
 	<link>shared
@@ -60,18 +47,59 @@ project
 	<export-extra>on
 	<library>libtorrent_test
 	<library>/torrent//torrent
-	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
+	# C4127: conditional expression is constant
+	<toolset>msvc:<cflags>/wd4127
+	# C4309: 'conversion' : truncation of constant value
+	<toolset>msvc:<cflags>/wd4309
+	# C4310: cast truncates constant value
+	<toolset>msvc:<cflags>/wd4310
+	<conditional>@warnings
+	<export-extra>on
 	: default-build
 	<threading>multi
+	<asserts>on
 	<invariant-checks>full
 	<link>shared
 	<picker-debugging>on
-	<debug-iterators>on
 	<logging>on
 	;
 
 feature launcher : none valgrind : composite ;
 feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck -v --num-callers=20 --read-var-info=yes --track-origins=yes --error-exitcode=222 --suppressions=valgrind_suppressions.txt" <use-valgrind>on ;
+
+exe test_natpmp : test_natpmp.cpp
+	: # requirements
+	<library>/torrent//torrent
+	<export-extra>on
+	<conditional>@warnings
+	: # default-build
+	<threading>multi
+	<asserts>on
+	<invariant-checks>full
+	<link>shared
+	<picker-debugging>on
+	<logging>on
+	;
+
+exe enum_if : enum_if.cpp
+	: # requirements
+	<library>/torrent//torrent
+	<export-extra>on
+	<conditional>@warnings
+	: # default-build
+	<threading>multi
+	<asserts>on
+	<invariant-checks>full
+	<link>shared
+	<picker-debugging>on
+	<logging>on
+	;
+
+install stage_enum_if : enum_if : <location>. ;
+
+explicit test_natpmp ;
+explicit enum_if ;
+explicit stage_enum_if ;
 
 test-suite libtorrent :
 	[ run
@@ -79,19 +107,15 @@ test-suite libtorrent :
 		test_create_torrent.cpp
 		test_packet_buffer.cpp
 		test_timestamp_history.cpp
-		test_sha1_hash.cpp
 		test_bloom_filter.cpp
 		test_identify_client.cpp
 		test_merkle.cpp
 		test_resolve_links.cpp
-		test_crc32.cpp
 		test_heterogeneous_queue.cpp
 		test_ip_voter.cpp
 		test_sliding_average.cpp
 		test_socket_io.cpp
 #		test_random.cpp
-		test_utf8.cpp
-		test_bitfield.cpp
 		test_part_file.cpp
 		test_peer_list.cpp
 		test_torrent_info.cpp
@@ -102,16 +126,12 @@ test-suite libtorrent :
 		test_tailqueue.cpp
 		test_bandwidth_limiter.cpp
 		test_buffer.cpp
-		test_piece_picker.cpp
 		test_bencoding.cpp
 		test_bdecode.cpp
 		test_http_parser.cpp
-		test_string.cpp
 		test_xml.cpp
 		test_ip_filter.cpp
 		test_hasher.cpp
-		test_dht_storage.cpp
-		test_dht.cpp
 		test_block_cache.cpp
 		test_peer_classes.cpp
 		test_settings_pack.cpp
@@ -121,22 +141,50 @@ test-suite libtorrent :
 		test_enum_net.cpp
 		test_linked_list.cpp
 		test_stack_allocator.cpp
-		test_file_progress.cpp ]
+		test_file_progress.cpp
+		test_generate_peer_id.cpp
+		test_alloca.cpp ]
 
+	[ run test_listen_socket.cpp
+		: : : <crypto>openssl:<library>/torrent//ssl
+		<crypto>openssl:<library>/torrent//crypto
+	]
+
+	[ run test_piece_picker.cpp ]
+
+	[ run test_dht.cpp
+		test_dht_storage.cpp
+		test_direct_dht.cpp
+		test_hasher512.cpp
+		: : : <crypto>openssl:<library>/torrent//ssl
+		<crypto>openssl:<library>/torrent//crypto
+	]
+
+	[ run test_string.cpp test_utf8.cpp ]
+
+	[ run test_sha1_hash.cpp ]
+	[ run test_span.cpp ]
+	[ run test_bitfield.cpp ]
+	[ run test_crc32.cpp ]
+	[ run test_ffs.cpp ]
+	[ run test_ed25519.cpp ]
 	[ run test_gzip.cpp ]
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
-	[ run test_direct_dht.cpp ]
+	[ run test_alert_types.cpp ]
 	[ run test_magnet.cpp ]
 	[ run test_storage.cpp ]
 	[ run test_session.cpp ]
+	[ run test_session_params.cpp ]
 	[ run test_read_piece.cpp ]
 	[ run test_remove_torrent.cpp ]
+	[ run test_flags.cpp ]
 
 	[ run test_file.cpp ]
 	[ run test_fast_extension.cpp ]
 	[ run test_privacy.cpp ]
 	[ run test_recheck.cpp ]
+	[ run test_read_resume.cpp ]
 	[ run test_resume.cpp ]
 	[ run test_ssl.cpp : :
 		: <crypto>openssl:<library>/torrent//ssl
@@ -156,7 +204,6 @@ test-suite libtorrent :
 	[ run test_web_seed_chunked.cpp ]
 	[ run test_web_seed_ban.cpp ]
 	[ run test_pe_crypto.cpp ]
-	[ run test_ed25519.cpp ]
 
 	[ run test_remap_files.cpp ]
 	[ run test_utp.cpp ]
@@ -180,6 +227,11 @@ test-suite libtorrent :
 # transitioned into simulations
 alias win-tests :
 	test_primitives
+	test_string
+	test_dht
+	test_sha1_hash
+	test_bitfield
+	test_crc32
 	test_pe_crypto
 	test_remap_files
 	test_auto_unchoke
@@ -198,47 +250,20 @@ alias win-tests :
 	test_tracker
 	test_checking
 	test_gzip
+	test_piece_picker
+	test_ffs
+	test_ed25519
+	test_session_params
 	;
-
-# the openssl test hangs on the travis osx machine. difficult to debug
-alias osx-tests :
-	test_primitives
-	test_alert_manager
-	test_direct_dht
-	test_magnet
-	test_storage
-	test_session
-	test_read_piece
-	test_file
-	test_fast_extension
-	test_privacy
-	test_recheck
-	test_resume
-#	test_ssl
-	test_tracker
-	test_checking
-	test_url_seed
-	test_web_seed
-	test_web_seed_redirect
-	test_web_seed_socks4
-	test_web_seed_socks5
-	test_web_seed_socks5_pw
-	test_web_seed_http
-	test_web_seed_http_pw
-	test_web_seed_chunked
-	test_web_seed_ban
-	test_pe_crypto
-	test_remap_files
-	test_utp
-	test_auto_unchoke
-	test_http_connection
-	test_torrent
-	test_transfer
-	test_time_critical
-	test_pex
-	test_priority
-	test_gzip
-;
 
 explicit win-tests ;
 
+alias arm-tests :
+	test_sha1_hash
+	test_bitfield
+	test_crc32
+	test_ffs
+	test_ed25519
+	;
+
+explicit arm-tests ;

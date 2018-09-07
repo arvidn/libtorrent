@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <boost/config.hpp>
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h> // for exit()
+#include <cstdio>
+#include <cstdlib> // for exit()
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "setup_transfer.hpp" // for _g_test_failures
@@ -42,13 +42,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "dht_server.hpp" // for stop_dht
 #include "peer_server.hpp" // for stop_peer
 #include "udp_tracker.hpp" // for stop_udp_tracker
+#include <boost/system/system_error.hpp>
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
-#include <signal.h>
+#include <csignal>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h> // fot SetErrorMode
 #include <io.h> // for _dup and _dup2
 #include <process.h> // for _getpid
@@ -63,25 +65,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-using namespace libtorrent;
+using namespace lt;
+
+namespace {
 
 // these are global so we can restore them on abnormal exits and print stuff
 // out, such as the log
 int old_stdout = -1;
 int old_stderr = -1;
 bool redirect_stdout = true;
-bool redirect_stderr = true;
+// sanitizer output will go to stderr and we won't get an opportunity to print
+// it, so don't redirect stderr by default
+bool redirect_stderr = false;
 bool keep_files = false;
 
-extern int _g_test_idx;
-
 // the current tests file descriptor
-unit_test_t* current_test = NULL;
+unit_test_t* current_test = nullptr;
 
 void output_test_log_to_terminal()
 {
-	if (current_test == NULL
-		|| current_test->output == NULL)
+	if (current_test == nullptr
+		|| current_test->output == nullptr)
 		return;
 
 	fflush(stdout);
@@ -98,9 +102,9 @@ void output_test_log_to_terminal()
 	}
 
 	fseek(current_test->output, 0, SEEK_SET);
-	fprintf(stdout, "\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
+	std::printf("\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
 	char buf[4096];
-	int size = 0;
+	std::size_t size = 0;
 	do {
 		size = fread(buf, 1, sizeof(buf), current_test->output);
 		if (size > 0) fwrite(buf, 1, size, stdout);
@@ -119,10 +123,9 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 	print_backtrace(stack_text, sizeof(stack_text), 30
 		, p->ContextRecord);
 #elif defined __FUNCTION__
-	strcat(stack_text, __FUNCTION__);
+	strcpy(stack_text, __FUNCTION__);
 #else
-	stack_text[0] = 0;
-	strcat(stack_text, "<stack traces disabled>");
+	strcpy(stack_text, "<stack traces disabled>");
 #endif
 
 	int const code = p->ExceptionRecord->ExceptionCode;
@@ -153,7 +156,7 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 #undef EXC
 	};
 
-	std::fprintf(stderr, "exception: (0x%x) %s caught:\n%s\n"
+	std::printf("exception: (0x%x) %s caught:\n%s\n"
 		, code, name, stack_text);
 
 	output_test_log_to_terminal();
@@ -163,26 +166,24 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 
 #else
 
-void sig_handler(int sig)
+void TORRENT_NO_RETURN sig_handler(int sig)
 {
 	char stack_text[10000];
 
-#if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
+#if TORRENT_USE_ASSERTS \
 	|| defined TORRENT_ASIO_DEBUGGING \
 	|| defined TORRENT_PROFILE_CALLS \
-	|| defined TORRENT_RELEASE_ASSERTS \
 	|| defined TORRENT_DEBUG_BUFFERS
 	print_backtrace(stack_text, sizeof(stack_text), 30);
 #elif defined __FUNCTION__
-	strcat(stack_text, __FUNCTION__);
+	strcpy(stack_text, __FUNCTION__);
 #else
-	stack_text[0] = 0;
-	strcat(stack_text, "<stack traces disabled>");
+	strcpy(stack_text, "<stack traces disabled>");
 #endif
-	char const* sig_name = 0;
+	char const* name = "<unknown signal>";
 	switch (sig)
 	{
-#define SIG(x) case x: sig_name = #x; break
+#define SIG(x) case x: name = #x; break
 		SIG(SIGSEGV);
 #ifdef SIGBUS
 		SIG(SIGBUS);
@@ -197,22 +198,19 @@ void sig_handler(int sig)
 #endif
 #undef SIG
 	};
-	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
+	std::printf("signal: (%d) %s caught:\n%s\n"
+		, sig, name, stack_text);
 
 	output_test_log_to_terminal();
 
-#ifdef WIN32
-	exit(sig);
-#else
 	exit(128 + sig);
-#endif
 }
 
 #endif // _WIN32
 
 void print_usage(char const* executable)
 {
-	printf("%s [options] [tests...]\n"
+	std::printf("%s [options] [tests...]\n"
 		"\n"
 		"OPTIONS:\n"
 		"-h,--help            show this help\n"
@@ -222,10 +220,7 @@ void print_usage(char const* executable)
 		"-n,--no-redirect     don't redirect test output to\n"
 		"                     temporary file, but let it go straight\n"
 		"                     to stdout\n"
-		"--no-stderr-redirect don't redirect stderr, but still redirect\n"
-		"                     stdout. This is useful when building with\n"
-		"                     sanitizers, which rely on being able to print\n"
-		"                     to stderr and exit\n"
+		"--stderr-redirect    also redirect stderr in addition to stdout\n"
 		"\n"
 		"for tests, specify one or more test names as printed\n"
 		"by -l. If no test is specified, all tests are run\n", executable);
@@ -236,49 +231,69 @@ void change_directory(std::string const& f, error_code& ec)
 	ec.clear();
 
 #ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-#define SetCurrentDirectory_ SetCurrentDirectoryW
-	std::wstring n = convert_to_wstring(f);
-#else
-#define SetCurrentDirectory_ SetCurrentDirectoryA
-	std::string const& n = convert_to_native(f);
-#endif // TORRENT_USE_WSTRING
-
-	if (SetCurrentDirectory_(n.c_str()) == 0)
+	native_path_string const n = convert_to_wstring(f);
+	if (SetCurrentDirectoryW(n.c_str()) == 0)
 		ec.assign(GetLastError(), system_category());
 #else
-	std::string n = convert_to_native(f);
+	native_path_string const n = convert_to_native_path_string(f);
 	int ret = ::chdir(n.c_str());
 	if (ret != 0)
 		ec.assign(errno, system_category());
 #endif
 }
 
+} // anonymous namespace
+
 struct unit_directory_guard
 {
 	std::string dir;
-	unit_directory_guard(std::string const& d) : dir(d) {}
+	unit_directory_guard(unit_directory_guard const&) = delete;
+	unit_directory_guard& operator=(unit_directory_guard const&) = delete;
 	~unit_directory_guard()
 	{
+		if (keep_files) return;
 		error_code ec;
-		std::string parent_dir = parent_path(dir);
-		change_directory(parent_dir, ec); // windows will not allow to remove current dir, so let's change it to root
+		std::string const parent_dir = parent_path(dir);
+		// windows will not allow to remove current dir, so let's change it to root
+		change_directory(parent_dir, ec);
 		if (ec)
 		{
 			TEST_ERROR("Failed to change directory: " + ec.message());
 			return;
 		}
-		if (!keep_files)
+		remove_all(dir, ec);
+#ifdef TORRENT_WINDOWS
+		if (ec.value() == ERROR_SHARING_VIOLATION)
 		{
-			error_code ec;
+			// on windows, files are removed in the background, and we may need
+			// to wait a little bit
+			std::this_thread::sleep_for(milliseconds(400));
 			remove_all(dir, ec);
-			if (ec)
-				TEST_ERROR("Failed to remove unit test directory: " + ec.message());
 		}
+#endif
+		if (ec) std::cerr << "Failed to remove unit test directory: " << ec.message() << "\n";
 	}
 };
 
-EXPORT int main(int argc, char const* argv[])
+void EXPORT reset_output()
+{
+	if (current_test == nullptr || current_test->output == nullptr) return;
+	fflush(stdout);
+	fflush(stderr);
+	rewind(current_test->output);
+#ifdef TORRENT_WINDOWS
+	int const r = _chsize(fileno(current_test->output), 0);
+#else
+	int const r = ftruncate(fileno(current_test->output), 0);
+#endif
+	if (r != 0)
+	{
+		// this is best effort, it's not the end of the world if we fail
+		std::cerr << "ftruncate of temporary test output file failed: " << strerror(errno) << "\n";
+	}
+}
+
+int EXPORT main(int argc, char const* argv[])
 {
 	char const* executable = argv[0];
 	// skip executable name
@@ -288,34 +303,34 @@ EXPORT int main(int argc, char const* argv[])
 	// pick up options
 	while (argc > 0 && argv[0][0] == '-')
 	{
-		if (strcmp(argv[0], "-h") == 0 || strcmp(argv[0], "--help") == 0)
+		if (argv[0] == "-h"_sv || argv[0] == "--help"_sv)
 		{
 			print_usage(executable);
 			return 0;
 		}
 
-		if (strcmp(argv[0], "-l") == 0 || strcmp(argv[0], "--list") == 0)
+		if (argv[0] == "-l"_sv || argv[0] == "--list"_sv)
 		{
-			printf("TESTS:\n");
+			std::printf("TESTS:\n");
 			for (int i = 0; i < _g_num_unit_tests; ++i)
 			{
-				printf(" - %s\n", _g_unit_tests[i].name);
+				std::printf(" - %s\n", _g_unit_tests[i].name);
 			}
 			return 0;
 		}
 
-		if (strcmp(argv[0], "-n") == 0 || strcmp(argv[0], "--no-redirect") == 0)
+		if (argv[0] == "-n"_sv || argv[0] == "--no-redirect"_sv)
 		{
 			redirect_stdout = false;
 			redirect_stderr = false;
 		}
 
-		if (strcmp(argv[0], "--no-stderr-redirect") == 0)
+		if (argv[0] == "--stderr-redirect"_sv)
 		{
-			redirect_stderr = false;
+			redirect_stderr = true;
 		}
 
-		if (strcmp(argv[0], "-k") == 0 || strcmp(argv[0], "--keep") == 0)
+		if (argv[0] == "-k"_sv || argv[0] == "--keep"_sv)
 		{
 			keep_files = true;
 		}
@@ -342,10 +357,10 @@ EXPORT int main(int argc, char const* argv[])
 	fcntl(fileno(stderr), F_SETFL, flags & ~O_NONBLOCK);
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 	// try to suppress hanging the process by windows displaying
 	// modal dialogs.
-	SetErrorMode( SEM_NOALIGNMENTFAULTEXCEPT
+	SetErrorMode(SEM_NOALIGNMENTFAULTEXCEPT
 		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 
 	SetUnhandledExceptionFilter(&seh_exception_handler);
@@ -369,7 +384,7 @@ EXPORT int main(int argc, char const* argv[])
 	signal(SIGSYS, &sig_handler);
 #endif
 
-#endif // WIN32
+#endif // _WIN32
 
 	int process_id = -1;
 #ifdef _WIN32
@@ -377,15 +392,14 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	process_id = getpid();
 #endif
-	std::string root_dir = current_working_directory();
-	char dir[40];
-	snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
-	std::string unit_dir_prefix = combine_path(root_dir, dir);
-	std::printf("cwd_prefix = \"%s\"\n", unit_dir_prefix.c_str());
+	std::string const root_dir = current_working_directory();
+	std::string const unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
+	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd = %x\n"
+		, executable, unit_dir_prefix.c_str(), lt::random(0xffffffff));
 
 	if (_g_num_unit_tests == 0)
 	{
-		fprintf(stderr, "\x1b[31mERROR: no unit tests registered\x1b[0m\n");
+		std::printf("\x1b[31mTEST_ERROR: no unit tests registered\x1b[0m\n");
 		return 1;
 	}
 
@@ -398,58 +412,58 @@ EXPORT int main(int argc, char const* argv[])
 		if (filter && tests_to_run.count(_g_unit_tests[i].name) == 0)
 			continue;
 
-		std::string unit_dir = unit_dir_prefix;
-		char i_str[40];
-		snprintf(i_str, sizeof(i_str), "%u", i);
-		unit_dir.append(i_str);
+		std::string const unit_dir = unit_dir_prefix + std::to_string(i);
 		error_code ec;
 		create_directory(unit_dir, ec);
 		if (ec)
 		{
 			std::printf("Failed to create unit test directory: %s\n", ec.message().c_str());
+			output_test_log_to_terminal();
 			return 1;
 		}
-		unit_directory_guard unit_dir_guard(unit_dir);
+		unit_directory_guard unit_dir_guard{unit_dir};
 		change_directory(unit_dir, ec);
 		if (ec)
 		{
 			std::printf("Failed to change unit test directory: %s\n", ec.message().c_str());
+			output_test_log_to_terminal();
 			return 1;
 		}
 
 		unit_test_t& t = _g_unit_tests[i];
 
-		if (redirect_stdout)
+		if (redirect_stdout || redirect_stderr)
 		{
 			// redirect test output to a temporary file
 			fflush(stdout);
 			fflush(stderr);
 
 			FILE* f = tmpfile();
-			if (f != NULL)
+			if (f != nullptr)
 			{
-				int ret1 = dup2(fileno(f), fileno(stdout));
-				if (redirect_stderr) dup2(fileno(f), fileno(stderr));
+				int ret1 = 0;
+				if (redirect_stdout) ret1 |= dup2(fileno(f), fileno(stdout));
+				if (redirect_stderr) ret1 |= dup2(fileno(f), fileno(stderr));
 				if (ret1 >= 0)
 				{
 					t.output = f;
 				}
 				else
 				{
-					fprintf(stderr, "failed to redirect output: (%d) %s\n"
+					std::printf("failed to redirect output: (%d) %s\n"
 						, errno, strerror(errno));
 				}
 			}
 			else
 			{
-				fprintf(stderr, "failed to create temporary file for redirecting "
+				std::printf("failed to create temporary file for redirecting "
 					"output: (%d) %s\n", errno, strerror(errno));
 			}
 		}
 
 		// get proper interleaving of stderr and stdout
-		setbuf(stdout, NULL);
-		setbuf(stderr, NULL);
+		setbuf(stdout, nullptr);
+		setbuf(stderr, nullptr);
 
 		_g_test_idx = i;
 		current_test = &t;
@@ -459,19 +473,32 @@ EXPORT int main(int argc, char const* argv[])
 		{
 #endif
 
+#if defined TORRENT_BUILD_SIMULATOR
+			lt::aux::random_engine().seed(0x82daf973);
+#endif
+
 			_g_test_failures = 0;
 			(*t.fun)();
 #ifndef BOOST_NO_EXCEPTIONS
 		}
+		catch (boost::system::system_error const& e)
+		{
+			char buf[200];
+			std::snprintf(buf, sizeof(buf), "TEST_ERROR: Terminated with system_error: (%d) [%s] \"%s\""
+				, e.code().value()
+				, e.code().category().name()
+				, e.code().message().c_str());
+			report_failure(buf, __FILE__, __LINE__);
+		}
 		catch (std::exception const& e)
 		{
 			char buf[200];
-			snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
+			std::snprintf(buf, sizeof(buf), "TEST_ERROR: Terminated with exception: \"%s\"", e.what());
 			report_failure(buf, __FILE__, __LINE__);
 		}
 		catch (...)
 		{
-			report_failure("Terminated with unknown exception", __FILE__, __LINE__);
+			report_failure("TEST_ERROR: Terminated with unknown exception", __FILE__, __LINE__);
 		}
 #endif
 
@@ -495,17 +522,18 @@ EXPORT int main(int argc, char const* argv[])
 
 	if (!tests_to_run.empty())
 	{
-		fprintf(stderr, "\x1b[1mUNKONWN tests:\x1b[0m\n");
+		std::printf("\x1b[1mUNKONWN tests:\x1b[0m\n");
 		for (std::set<std::string>::iterator i = tests_to_run.begin()
 			, end(tests_to_run.end()); i != end; ++i)
 		{
-			fprintf(stderr, "  %s\n", i->c_str());
+			std::printf("  %s\n", i->c_str());
 		}
 	}
 
 	if (num_run == 0)
 	{
-		fprintf(stderr, "\x1b[31mERROR: no unit tests run\x1b[0m\n");
+		std::printf("\x1b[31mTEST_ERROR: no unit tests run\x1b[0m\n");
+		output_test_log_to_terminal();
 		return 1;
 	}
 
@@ -520,8 +548,6 @@ EXPORT int main(int argc, char const* argv[])
 	if (redirect_stdout) fflush(stdout);
 	if (redirect_stderr) fflush(stderr);
 
-	int total_num_failures = print_failures();
-
-	return total_num_failures ? 333 : 0;
+	return print_failures() ? 333 : 0;
 }
 

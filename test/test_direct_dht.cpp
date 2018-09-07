@@ -32,30 +32,31 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
+#if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/bdecode.hpp"
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 namespace
 {
 
 struct test_plugin : plugin
 {
-	virtual void register_dht_extensions(dht_extensions_t& ext)
+	feature_flags_t implemented_features() override
 	{
-		ext.push_back(dht_extensions_t::value_type("test_good", &good_response));
+		return plugin::dht_request_feature;
 	}
 
-	static bool good_response(udp::endpoint const& source
-		, bdecode_node const& request, entry& response)
+	bool on_dht_request(string_view /* query */
+		, udp::endpoint const& /* source */, bdecode_node const& message
+		, entry& response) override
 	{
-		if (request.dict_find_string_value("q") == "test_good")
+		if (message.dict_find_string_value("q") == "test_good")
 		{
 			response["r"]["good"] = 1;
 			return true;
@@ -68,11 +69,11 @@ dht_direct_response_alert* get_direct_response(lt::session& ses)
 {
 	for (;;)
 	{
-		alert* a = ses.wait_for_alert(seconds(20));
-		// it shouldn't take more than 20 seconds to get a response
+		alert* a = ses.wait_for_alert(seconds(30));
+		// it shouldn't take more than 30 seconds to get a response
 		// so fail the test and bail out if we don't get an alert in that time
 		TEST_CHECK(a);
-		if (!a) return NULL;
+		if (!a) return nullptr;
 		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
 		for (std::vector<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)
@@ -85,11 +86,11 @@ dht_direct_response_alert* get_direct_response(lt::session& ses)
 
 }
 
-#endif // #ifndef TORRENT_DISABLE_EXTENSIONS
+#endif // #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 
 TORRENT_TEST(direct_dht_request)
 {
-#ifndef TORRENT_DISABLE_EXTENSIONS
+#if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 	settings_pack sp;
 	sp.set_bool(settings_pack::enable_lsd, false);
 	sp.set_bool(settings_pack::enable_natpmp, false);
@@ -97,44 +98,44 @@ TORRENT_TEST(direct_dht_request)
 	sp.set_str(settings_pack::dht_bootstrap_nodes, "");
 	sp.set_int(settings_pack::max_retry_port_bind, 800);
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:42434");
-	lt::session responder(sp, 0);
+	lt::session responder(sp, {});
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:45434");
-	lt::session requester(sp, 0);
+	lt::session requester(sp, {});
 
-	responder.add_extension(boost::static_pointer_cast<plugin>(boost::make_shared<test_plugin>()));
+	responder.add_extension(std::make_shared<test_plugin>());
 
 	// successful request
 
 	entry r;
 	r["q"] = "test_good";
-	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1"), responder.listen_port())
-		, r, (void*)12345);
+	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1")
+		, responder.listen_port()), r, reinterpret_cast<void*>(12345));
 
 	dht_direct_response_alert* ra = get_direct_response(requester);
 	TEST_CHECK(ra);
 	if (ra)
 	{
 		bdecode_node response = ra->response();
-		TEST_EQUAL(ra->addr.address(), address::from_string("127.0.0.1"));
-		TEST_EQUAL(ra->addr.port(), responder.listen_port());
+		TEST_EQUAL(ra->endpoint.address(), address::from_string("127.0.0.1"));
+		TEST_EQUAL(ra->endpoint.port(), responder.listen_port());
 		TEST_EQUAL(response.type(), bdecode_node::dict_t);
 		TEST_EQUAL(response.dict_find_dict("r").dict_find_int_value("good"), 1);
-		TEST_EQUAL(ra->userdata, (void*)12345);
+		TEST_EQUAL(ra->userdata, reinterpret_cast<void*>(12345));
 	}
 
 	// failed request
 
 	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1"), 53545)
-		, r, (void*)123456);
+		, r, reinterpret_cast<void*>(123456));
 
 	ra = get_direct_response(requester);
 	TEST_CHECK(ra);
 	if (ra)
 	{
-		TEST_EQUAL(ra->addr.address(), address::from_string("127.0.0.1"));
-		TEST_EQUAL(ra->addr.port(), 53545);
+		TEST_EQUAL(ra->endpoint.address(), address::from_string("127.0.0.1"));
+		TEST_EQUAL(ra->endpoint.port(), 53545);
 		TEST_EQUAL(ra->response().type(), bdecode_node::none_t);
-		TEST_EQUAL(ra->userdata, (void*)123456);
+		TEST_EQUAL(ra->userdata, reinterpret_cast<void*>(123456));
 	}
-#endif // #ifndef TORRENT_DISABLE_EXTENSIONS
+#endif // #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 }

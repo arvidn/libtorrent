@@ -30,8 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_UTILS_HPP_INCLUDED
+#define TORRENT_UTILS_HPP_INCLUDED
+
 #include <functional>
 #include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp"
+#include "simulator/simulator.hpp"
 
 namespace libtorrent
 {
@@ -39,16 +44,14 @@ namespace libtorrent
 	class alert;
 }
 
-namespace lt = libtorrent;
-
-// construct an address from string
-lt::address addr(char const* str);
-
 void utp_only(lt::session& ses);
 void enable_enc(lt::session& ses);
 void filter_ips(lt::session& ses);
 void set_cache_size(lt::session& ses, int val);
 int get_cache_size(lt::session& ses);
+
+std::unique_ptr<sim::asio::io_service> make_io_service(
+	sim::simulation& sim, int i);
 
 enum flags_t
 {
@@ -60,5 +63,7 @@ void set_proxy(lt::session& ses, int proxy_type, int flags = 0
 
 void print_alerts(lt::session& ses
 	, std::function<void(lt::session&, lt::alert const*)> on_alert
-		= [](lt::session& ses, lt::alert const* a) {});
+		= [](lt::session&, lt::alert const*) {}, int idx = 0);
+
+#endif
 

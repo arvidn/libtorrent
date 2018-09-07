@@ -31,33 +31,37 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "setup_transfer.hpp" // for test_sleep
 
 #include "libtorrent/time.hpp"
-#include "libtorrent/thread.hpp"
 
-#include <boost/bind.hpp>
+#include <functional>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
-using namespace libtorrent;
+using namespace lt;
 
-void check_timer_loop(mutex& m, time_point& last, condition_variable& cv)
+namespace {
+
+void check_timer_loop(std::mutex& m, time_point& last, std::condition_variable& cv)
 {
-	mutex::scoped_lock l(m);
+	std::unique_lock<std::mutex> l(m);
 	cv.wait(l);
 	l.unlock();
 
 	for (int i = 0; i < 10000; ++i)
 	{
-		mutex::scoped_lock l(m);
+		std::lock_guard<std::mutex> ll(m);
 		time_point now = clock_type::now();
 		TEST_CHECK(now >= last);
 		last = now;
 	}
 }
 
+} // anonymous namespace
+
 TORRENT_TEST(time)
 {
-
 	// make sure the time classes have correct semantics
 
 	TEST_EQUAL(total_milliseconds(milliseconds(100)), 100);
@@ -80,15 +84,15 @@ TORRENT_TEST(time)
 		TEST_CHECK(now >= last);
 		last = now;
 	}
-	
-	mutex m;
-	condition_variable cv;
-	libtorrent::thread t1(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
-	libtorrent::thread t2(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
-	libtorrent::thread t3(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
-	libtorrent::thread t4(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
 
-	test_sleep(100);
+	std::mutex m;
+	std::condition_variable cv;
+	std::thread t1(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
+	std::thread t2(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
+	std::thread t3(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
+	std::thread t4(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
+
+	std::this_thread::sleep_for(lt::milliseconds(100));
 
 	cv.notify_all();
 

@@ -33,45 +33,34 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef RPC_MANAGER_HPP
 #define RPC_MANAGER_HPP
 
+#include <unordered_map>
+#include <cstdint>
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <vector>
-#include <deque>
-#include <map>
-#include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
-#include <boost/function/function3.hpp>
-
-#if TORRENT_HAS_BOOST_UNORDERED
-#include <boost/unordered_map.hpp>
-#else
-#include <multimap>
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/socket.hpp>
-#include <libtorrent/entry.hpp>
+#include <libtorrent/time.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/observer.hpp>
+#include <libtorrent/aux_/listen_socket_handle.hpp>
 
-#include "libtorrent/time.hpp"
+namespace libtorrent { class entry; }
 
-namespace libtorrent { namespace aux { struct session_impl; } }
+namespace libtorrent {
+namespace dht {
 
-namespace libtorrent { struct dht_settings; }
-
-namespace libtorrent { namespace dht
-{
-
+struct dht_settings;
 struct dht_logger;
-struct udp_socket_interface;
+struct socket_manager;
 
-struct TORRENT_EXTRA_EXPORT null_observer : public observer
+struct TORRENT_EXTRA_EXPORT null_observer : observer
 {
-	null_observer(boost::intrusive_ptr<traversal_algorithm> const& a
-		, udp::endpoint const& ep, node_id const& id): observer(a, ep, id) {}
-	virtual void reply(msg const&) { flags |= flag_done; }
+	null_observer(std::shared_ptr<traversal_algorithm> a
+		, udp::endpoint const& ep, node_id const& id)
+		: observer(std::move(a), ep, id) {}
+	void reply(msg const&) override { flags |= flag_done; }
 };
 
 class routing_table;
@@ -83,7 +72,8 @@ public:
 	rpc_manager(node_id const& our_id
 		, dht_settings const& settings
 		, routing_table& table
-		, udp_socket_interface* sock
+		, aux::listen_socket_handle const& sock
+		, socket_manager* sock_man
 		, dht_logger* log);
 	~rpc_manager();
 
@@ -94,7 +84,7 @@ public:
 	bool incoming(msg const&, node_id* id);
 	time_duration tick();
 
-	bool invoke(entry& e, udp::endpoint target
+	bool invoke(entry& e, udp::endpoint const& target
 		, observer_ptr o);
 
 	void add_our_id(entry& e);
@@ -106,8 +96,19 @@ public:
 	void check_invariant() const;
 #endif
 
-	void* allocate_observer();
-	void free_observer(void* ptr);
+	template <typename T, typename... Args>
+	std::shared_ptr<T> allocate_observer(Args&&... args)
+	{
+		void* ptr = allocate_observer();
+		if (ptr == nullptr) return std::shared_ptr<T>();
+
+		auto deleter = [this](observer* o)
+		{
+			o->~observer();
+			free_observer(o);
+		};
+		return std::shared_ptr<T>(new (ptr) T(std::forward<Args>(args)...), deleter);
+	}
 
 	int num_allocated_observers() const { return m_allocated_observers; }
 
@@ -115,29 +116,25 @@ public:
 
 private:
 
-	boost::uint32_t calc_connection_id(udp::endpoint addr);
+	void* allocate_observer();
+	void free_observer(void* ptr);
 
 	mutable boost::pool<> m_pool_allocator;
 
-#if TORRENT_HAS_BOOST_UNORDERED
-	typedef boost::unordered_multimap<int, observer_ptr> transactions_t;
-#else
-	typedef std::multimap<int, observer_ptr> transactions_t;
-#endif
-	transactions_t m_transactions;
+	std::unordered_multimap<int, observer_ptr> m_transactions;
 
-	udp_socket_interface* m_sock;
+	aux::listen_socket_handle m_sock;
+	socket_manager* m_sock_man;
+#ifndef TORRENT_DISABLE_LOGGING
 	dht_logger* m_log;
+#endif
 	dht_settings const& m_settings;
 	routing_table& m_table;
-	time_point m_timer;
 	node_id m_our_id;
-	boost::uint32_t m_allocated_observers:31;
-	boost::uint32_t m_destructing:1;
+	std::uint32_t m_allocated_observers:31;
+	std::uint32_t m_destructing:1;
 };
 
 } } // namespace libtorrent::dht
 
 #endif
-
-

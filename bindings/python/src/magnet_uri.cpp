@@ -3,6 +3,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include "boost_python.hpp"
+#include "bytes.hpp"
 #include <libtorrent/session.hpp>
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
@@ -10,14 +11,13 @@
 #include "bytes.hpp"
 
 using namespace boost::python;
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 extern void dict_to_add_torrent_params(dict params, add_torrent_params& p);
 
 namespace {
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	torrent_handle _add_magnet_uri(lt::session& s, std::string uri, dict params)
 	{
 		add_torrent_params p;
@@ -39,15 +39,14 @@ namespace {
 
 	dict parse_magnet_uri_dict(std::string const& uri)
 	{
-		add_torrent_params p;
 		error_code ec;
-		parse_magnet_uri(uri, p, ec);
+		add_torrent_params p = parse_magnet_uri(uri, ec);
 
-		if (ec) throw libtorrent_exception(ec);
+		if (ec) throw system_error(ec);
 
 		dict ret;
 
-		ret["ti"] = p.ti;
+		if (p.ti) ret["ti"] = p.ti;
 		list tracker_list;
 		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
 			, end(p.trackers.end()); i != end; ++i)
@@ -55,19 +54,27 @@ namespace {
 		ret["trackers"] = tracker_list;
 
 		list nodes_list;
-		for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
-			, end(p.dht_nodes.end()); i != end; ++i)
-			nodes_list.append(boost::python::make_tuple(i->first, i->second));
+		for (auto const& i : p.dht_nodes)
+			nodes_list.append(boost::python::make_tuple(i.first, i.second));
 		ret["dht_nodes"] =  nodes_list;
 		ret["info_hash"] = bytes(p.info_hash.to_string());
 		ret["name"] = p.name;
 		ret["save_path"] = p.save_path;
 		ret["storage_mode"] = p.storage_mode;
+#if TORRENT_ABI_VERSION == 1
 		ret["url"] = p.url;
 		ret["uuid"] = p.uuid;
-		ret["source_feed_url"] = p.source_feed_url;
+#endif
 		ret["flags"] = p.flags;
 		return ret;
+	}
+
+	add_torrent_params parse_magnet_uri_wrap(std::string const& uri)
+	{
+		error_code ec;
+		add_torrent_params p = parse_magnet_uri(uri, ec);
+		if (ec) throw system_error(ec);
+		return p;
 	}
 
 	std::string (*make_magnet_uri0)(torrent_handle const&) = make_magnet_uri;
@@ -76,12 +83,11 @@ namespace {
 
 void bind_magnet_uri()
 {
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION == 1
 	def("add_magnet_uri", &_add_magnet_uri);
 #endif
 	def("make_magnet_uri", make_magnet_uri0);
 	def("make_magnet_uri", make_magnet_uri1);
-	def("parse_magnet_uri", parse_magnet_uri_dict);
+	def("parse_magnet_uri", parse_magnet_uri_wrap);
 	def("parse_magnet_uri_dict", parse_magnet_uri_dict);
 }
-

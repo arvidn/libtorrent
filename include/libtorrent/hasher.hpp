@@ -33,51 +33,51 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HASHER_HPP_INCLUDED
 #define TORRENT_HASHER_HPP_INCLUDED
 
-#include "libtorrent/peer_id.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
+#include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/span.hpp"
+
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/cstdint.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 #include <gcrypt.h>
 
 #elif TORRENT_USE_COMMONCRYPTO
-
 #include <CommonCrypto/CommonDigest.h>
 
-#elif defined TORRENT_USE_OPENSSL
+#elif TORRENT_USE_CRYPTOAPI
+#include "libtorrent/aux_/win_crypto_provider.hpp"
 
-extern "C"
-{
+#elif defined TORRENT_USE_LIBCRYPTO
+
+extern "C" {
 #include <openssl/sha.h>
 }
 
 #else
 #include "libtorrent/sha1.hpp"
 #endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// this is a SHA-1 hash class.
-	// 
+	//
 	// You use it by first instantiating it, then call ``update()`` to feed it
 	// with data. i.e. you don't have to keep the entire buffer of which you want to
 	// create the hash in memory. You can feed the hasher parts of it at a time. When
 	// You have fed the hasher with all the data, you call ``final()`` and it
 	// will return the sha1-hash of the data.
-	// 
+	//
 	// The constructor that takes a ``char const*`` and an integer will construct the
 	// sha1 context and feed it the data passed in.
-	// 
+	//
 	// If you want to reuse the hasher object once you have created a hash, you have to
 	// call ``reset()`` to reinitialize it.
-	// 
-	// The sha1-algorithm used was implemented by Steve Reid and released as public domain.
+	//
+	// The built-in software version of sha1-algorithm was implemented
+	// by Steve Reid and released as public domain.
 	// For more info, see ``src/sha1.cpp``.
 	class TORRENT_EXPORT hasher
 	{
@@ -87,20 +87,19 @@ namespace libtorrent
 
 		// this is the same as default constructing followed by a call to
 		// ``update(data, len)``.
-		hasher(const char* data, int len);
-
-#ifdef TORRENT_USE_GCRYPT
-		hasher(hasher const& h);
-		hasher& operator=(hasher const& h);
-#endif
+		hasher(char const* data, int len);
+		explicit hasher(span<char const> data);
+		hasher(hasher const&);
+		hasher& operator=(hasher const&) &;
 
 		// append the following bytes to what is being hashed
-		hasher& update(std::string const& data) { update(data.c_str(), int(data.size())); return *this; }
-		hasher& update(const char* data, int len);
+		hasher& update(span<char const> data);
+		hasher& update(char const* data, int len);
 
 		// returns the SHA-1 digest of the buffers previously passed to
 		// update() and the hasher constructor.
 		sha1_hash final();
+
 		// restore the hasher state to be as if the hasher has just been
 		// default constructed.
 		void reset();
@@ -109,18 +108,19 @@ namespace libtorrent
 
 	private:
 
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_CTX m_context;
-#elif defined TORRENT_USE_OPENSSL
+#elif TORRENT_USE_CRYPTOAPI
+		aux::crypt_hash<CALG_SHA1, PROV_RSA_FULL> m_context;
+#elif defined TORRENT_USE_LIBCRYPTO
 		SHA_CTX m_context;
 #else
-		sha_ctx m_context;
+		sha1_ctx m_context;
 #endif
 	};
 
 }
 
 #endif // TORRENT_HASHER_HPP_INCLUDED
-
