@@ -7377,6 +7377,14 @@ bool is_downloading_state(int const st)
 			// of which torrents to have active
 			m_ses.trigger_auto_manage();
 		}
+		
+		INVARIANT_CHECK;
+
+		if (m_ses.alerts().should_post<torrent_checked_alert>())
+		{
+			m_ses.alerts().emplace_alert<torrent_checked_alert>(
+				get_handle());
+		}
 
 		if (!is_seed())
 		{
@@ -7410,14 +7418,6 @@ bool is_downloading_state(int const st)
 			&& !m_seed_mode)
 		{
 			set_state(torrent_status::downloading);
-		}
-
-		INVARIANT_CHECK;
-
-		if (m_ses.alerts().should_post<torrent_checked_alert>())
-		{
-			m_ses.alerts().emplace_alert<torrent_checked_alert>(
-				get_handle());
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
