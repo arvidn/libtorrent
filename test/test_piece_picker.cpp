@@ -2061,5 +2061,90 @@ TORRENT_TEST(pad_blocks_in_last_piece)
 	TEST_EQUAL(p->pad_blocks_in_piece(piece_index_t{0}), 0);
 }
 
+namespace {
+void validate_piece_count(piece_count const& c)
+{
+	// it's an impossible combination to have 0 pieces, but still have one of them be the last piece
+	TEST_CHECK(!(c.num_pieces == 0 && c.last_piece == true));
+
+	// if we have 0 pieces, we can't have any pad blocks either
+	TEST_CHECK(!(c.num_pieces == 0 && c.pad_blocks > 0));
+
+	// if we have all pieces, we must also have the last one
+	TEST_CHECK(!(c.num_pieces == 4 && c.last_piece == false));
+}
+
+void validate_all_pieces(piece_count const& c)
+{
+	TEST_EQUAL(c.last_piece, true);
+	TEST_EQUAL(c.num_pieces, 4);
+	TEST_EQUAL(c.pad_blocks, 3);
+}
+
+void validate_no_pieces(piece_count const& c)
+{
+	TEST_EQUAL(c.last_piece, false);
+	TEST_EQUAL(c.num_pieces, 0);
+	TEST_EQUAL(c.pad_blocks, 0);
+}
+}
+
+TORRENT_TEST(pad_blocks_all_filtered)
+{
+	auto p = setup_picker("1111", "    ", "0000", "");
+	p->mark_as_pad({piece_index_t{1}, 0});
+	p->mark_as_pad({piece_index_t{1}, 1});
+	p->mark_as_pad({piece_index_t{2}, 0});
+
+	validate_piece_count(p->all_pieces());
+	validate_piece_count(p->have());
+	validate_piece_count(p->have_want());
+	validate_piece_count(p->want());
+
+	validate_all_pieces(p->all_pieces());
+	validate_no_pieces(p->have());
+	validate_no_pieces(p->have_want());
+	validate_no_pieces(p->want());
+}
+
+TORRENT_TEST(pad_blocks_all_wanted)
+{
+	auto p = setup_picker("1111", "    ", "4444", "");
+	p->mark_as_pad({piece_index_t{1}, 0});
+	p->mark_as_pad({piece_index_t{1}, 1});
+	p->mark_as_pad({piece_index_t{2}, 0});
+
+	validate_piece_count(p->all_pieces());
+	validate_piece_count(p->have());
+	validate_piece_count(p->have_want());
+	validate_piece_count(p->want());
+
+	validate_all_pieces(p->all_pieces());
+	validate_all_pieces(p->want());
+	validate_no_pieces(p->have());
+	validate_no_pieces(p->have_want());
+}
+
+TORRENT_TEST(pad_blocks_some_wanted)
+{
+	auto p = setup_picker("1111", "    ", "0404", "");
+	p->mark_as_pad({piece_index_t{1}, 0});
+	p->mark_as_pad({piece_index_t{1}, 1});
+	p->mark_as_pad({piece_index_t{2}, 0});
+
+	validate_piece_count(p->all_pieces());
+	validate_piece_count(p->have());
+	validate_piece_count(p->have_want());
+	validate_piece_count(p->want());
+
+	validate_all_pieces(p->all_pieces());
+	validate_no_pieces(p->have());
+	validate_no_pieces(p->have_want());
+
+	TEST_EQUAL(p->want().num_pieces, 2);
+	TEST_EQUAL(p->want().last_piece, true);
+	TEST_EQUAL(p->want().pad_blocks, 2);
+}
+
 //TODO: 2 test picking with partial pieces and other peers present so that both
 // backup_pieces and backup_pieces2 are used

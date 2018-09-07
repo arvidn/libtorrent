@@ -3526,6 +3526,12 @@ get_out:
 
 		++m_pads_in_piece[block.piece_index];
 
+		piece_pos& p = m_piece_map[block.piece_index];
+		if (p.filtered())
+		{
+			++m_filtered_pad_blocks;
+		}
+
 		// if we mark and entire piece as a pad file, we need to also
 		// consder that piece as "had" and increment some counters
 		int const blocks = blocks_in_piece(block.piece_index);
@@ -3664,33 +3670,49 @@ get_out:
 	piece_count piece_picker::want() const
 	{
 		bool const want_last = piece_priority(piece_index_t(num_pieces() - 1)) != dont_download;
-		return { num_pieces() - m_num_filtered - m_num_have_filtered
+		piece_count ret{ num_pieces() - m_num_filtered - m_num_have_filtered
 			, num_pad_blocks() - m_filtered_pad_blocks - m_have_filtered_pad_blocks
 			, want_last };
+		TORRENT_ASSERT(!(ret.num_pieces == 0 && ret.last_piece == true));
+		TORRENT_ASSERT(!(ret.num_pieces == 0 && ret.pad_blocks > 0));
+		TORRENT_ASSERT(!(ret.num_pieces == num_pieces() && ret.last_piece == false));
+		return ret;
 	}
 
 	piece_count piece_picker::have_want() const
 	{
 		bool const have_last = have_piece(piece_index_t(num_pieces() - 1));
 		bool const want_last = piece_priority(piece_index_t(num_pieces() - 1)) != dont_download;
-		return { m_num_have - m_num_have_filtered
+		piece_count ret{ m_num_have - m_num_have_filtered
 			, m_have_pad_blocks - m_have_filtered_pad_blocks
 			, have_last && want_last };
+		TORRENT_ASSERT(!(ret.num_pieces == 0 && ret.last_piece == true));
+		TORRENT_ASSERT(!(ret.num_pieces == 0 && ret.pad_blocks > 0));
+		TORRENT_ASSERT(!(ret.num_pieces == num_pieces() && ret.last_piece == false));
+		return ret;
 	}
 
 	piece_count piece_picker::have() const
 	{
 		bool const have_last = have_piece(piece_index_t(num_pieces() - 1));
-		return { m_num_have
+		piece_count ret{ m_num_have
 			, m_have_pad_blocks
 			, have_last };
+		TORRENT_ASSERT(!(ret.num_pieces == 0 && ret.last_piece == true));
+		TORRENT_ASSERT(!(ret.num_pieces == 0 && ret.pad_blocks > 0));
+		TORRENT_ASSERT(!(ret.num_pieces == num_pieces() && ret.last_piece == false));
+		return ret;
 	}
 
 	piece_count piece_picker::all_pieces() const
 	{
-		return { num_pieces()
+		piece_count ret{ num_pieces()
 			, num_pad_blocks()
 			, true};
+		TORRENT_ASSERT(!(ret.num_pieces == 0 && ret.last_piece == true));
+		TORRENT_ASSERT(!(ret.num_pieces == 0 && ret.pad_blocks > 0));
+		TORRENT_ASSERT(!(ret.num_pieces == num_pieces() && ret.last_piece == false));
+		return ret;
 	}
 
 }
