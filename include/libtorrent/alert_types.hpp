@@ -2514,12 +2514,26 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_LOGGING
 	};
 
+	// This alert is generated when a fastresume file has been passed to
+	// add_torrent() and the files on disk checked out and matched it.
+	struct TORRENT_EXPORT fastresume_accepted_alert TORRENT_FINAL : torrent_alert
+	{
+		// internal
+		fastresume_accepted_alert(aux::stack_allocator& alloc
+			, torrent_handle const& h);
+
+		TORRENT_DEFINE_ALERT_PRIO(fastresume_accepted_alert, 90, alert_priority_normal)
+
+		static const int static_category = alert::status_notification;
+		virtual std::string message() const TORRENT_OVERRIDE;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef TORRENT_CLONE
 
-	enum { num_alert_types = 90 }; // this enum represents "max_alert_index" + 1
+	enum { num_alert_types = 91 }; // this enum represents "max_alert_index" + 1
 }
 
 
