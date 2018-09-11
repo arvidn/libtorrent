@@ -6264,11 +6264,6 @@ bool is_downloading_state(int const st)
 
 		const int blocks_per_piece = m_picker->blocks_in_piece(piece_index_t(0));
 		blk.resize(q.size() * aux::numeric_cast<std::size_t>(blocks_per_piece));
-		// for some weird reason valgrind claims these are uninitialized
-		// unless it's zeroed out here (block_info has a construct that's
-		// supposed to initialize it)
-		if (!blk.empty())
-			std::memset(blk.data(), 0, sizeof(blk[0]) * blk.size());
 
 		int counter = 0;
 		for (auto i = q.begin(); i != q.end(); ++i, ++counter)
