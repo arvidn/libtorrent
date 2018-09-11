@@ -418,5 +418,6 @@ namespace libtorrent
 		file::iovec_t b = {header.get(), size_t(m_header_size) };
 		m_file->writev(0, &b, 1, ec);
 		if (ec) return;
+		m_dirty_metadata = false;
 	}
 }
