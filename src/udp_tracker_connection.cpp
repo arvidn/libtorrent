@@ -154,7 +154,7 @@ namespace libtorrent {
 #endif
 
 		// pick another target endpoint and try again
-		m_target = pick_target_endpoint();
+		m_target = udp::endpoint(m_endpoints.front().address(), m_endpoints.front().port());
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb && cb->should_log())
@@ -252,47 +252,9 @@ namespace libtorrent {
 			return;
 		}
 
-		m_target = pick_target_endpoint();
+		m_target = udp::endpoint(m_endpoints.front().address(), m_endpoints.front().port());
 
 		start_announce();
-	}
-
-	udp::endpoint udp_tracker_connection::pick_target_endpoint() const
-	{
-		auto iter = m_endpoints.begin();
-		udp::endpoint target = udp::endpoint(iter->address(), iter->port());
-
-		if (bind_interface() != address_v4::any())
-		{
-			// find first endpoint that matches our bind interface type
-			for (; iter != m_endpoints.end() && is_v4(*iter)
-				!= bind_interface().is_v4(); ++iter);
-
-			if (iter == m_endpoints.end())
-			{
-				TORRENT_ASSERT(target.address().is_v4() != bind_interface().is_v4());
-				std::shared_ptr<request_callback> cb = requester();
-				if (cb)
-				{
-					char const* tracker_address_type = is_v4(target) ? "IPv4" : "IPv6";
-					char const* bind_address_type = bind_interface().is_v4() ? "IPv4" : "IPv6";
-					char msg[200];
-					std::snprintf(msg, sizeof(msg)
-						, "the tracker only resolves to an %s address, and you're "
-						"listening on an %s socket. This may prevent you from receiving "
-						"incoming connections."
-						, tracker_address_type, bind_address_type);
-
-					cb->tracker_warning(tracker_req(), msg);
-				}
-			}
-			else
-			{
-				target = udp::endpoint(iter->address(), iter->port());
-			}
-		}
-
-		return target;
 	}
 
 	void udp_tracker_connection::start_announce()
