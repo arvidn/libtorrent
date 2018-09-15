@@ -104,8 +104,6 @@ namespace libtorrent {
 
 		void on_timeout(error_code const& ec) override;
 
-		udp::endpoint pick_target_endpoint() const;
-
 		std::string m_hostname;
 		std::vector<tcp::endpoint> m_endpoints;
 
