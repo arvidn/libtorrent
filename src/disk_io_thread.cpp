@@ -826,7 +826,10 @@ namespace libtorrent
 			// we're removing the torrent, don't keep any entries around in the
 			// ghost list
 			// mark_for_eviction may erase the piece from the cache
-			m_disk_cache.mark_for_eviction(pe, block_cache::disallow_ghost);
+			if (m_disk_cache.mark_for_eviction(pe, block_cache::disallow_ghost))
+			{
+				return true;
+			}
 		}
 		return false;
 	}
@@ -3146,7 +3149,7 @@ restart:
 			return 0;
 		}
 
-		m_disk_cache.mark_for_eviction(pe, block_cache::allow_ghost);
+		if (m_disk_cache.mark_for_eviction(pe, block_cache::allow_ghost)) return 0;
 		if (pe->num_blocks == 0) return 0;
 
 		// we should always be able to evict the piece, since
