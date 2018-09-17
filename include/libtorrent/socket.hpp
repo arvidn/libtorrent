@@ -93,6 +93,12 @@ namespace libtorrent {
 	using null_buffers = boost::asio::null_buffers;
 #endif
 
+	inline udp::endpoint make_udp(tcp::endpoint const ep)
+	{ return {ep.address(), ep.port()}; }
+
+	inline tcp::endpoint make_tcp(udp::endpoint const ep)
+	{ return {ep.address(), ep.port()}; }
+
 #ifdef TORRENT_WINDOWS
 
 #ifndef PROTECTION_LEVEL_UNRESTRICTED

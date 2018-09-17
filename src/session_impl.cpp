@@ -2104,11 +2104,6 @@ namespace aux {
 			if (ep != EndpointType())
 				map_handle = m.add_mapping(protocol, ep.port(), ep);
 		}
-
-		tcp::endpoint to_tcp(udp::endpoint const& ep)
-		{
-			return tcp::endpoint(ep.address(), ep.port());
-		}
 	}
 
 	void session_impl::remap_ports(remap_port_mask_t const mask
@@ -2120,12 +2115,12 @@ namespace aux {
 		if ((mask & remap_natpmp) && s.natpmp_mapper)
 		{
 			map_port(*s.natpmp_mapper, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[0]);
-			map_port(*s.natpmp_mapper, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[0]);
+			map_port(*s.natpmp_mapper, portmap_protocol::udp, make_tcp(udp_ep), s.udp_port_mapping[0]);
 		}
 		if ((mask & remap_upnp) && m_upnp)
 		{
 			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[1]);
-			map_port(*m_upnp, portmap_protocol::udp, to_tcp(udp_ep), s.udp_port_mapping[1]);
+			map_port(*m_upnp, portmap_protocol::udp, make_tcp(udp_ep), s.udp_port_mapping[1]);
 		}
 	}
 

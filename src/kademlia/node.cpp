@@ -773,7 +773,7 @@ entry write_nodes_entry(std::vector<node_entry> const& nodes)
 	for (auto const& n : nodes)
 	{
 		std::copy(n.id.begin(), n.id.end(), out);
-		detail::write_endpoint(udp::endpoint(n.addr(), std::uint16_t(n.port())), out);
+		detail::write_endpoint(n.ep(), out);
 	}
 	return r;
 }
