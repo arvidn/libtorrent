@@ -132,7 +132,7 @@ namespace libtorrent {
 	{
 		// m_target failed. remove it from the endpoint list
 		auto const i = std::find(m_endpoints.begin()
-			, m_endpoints.end(), tcp::endpoint(m_target.address(), m_target.port()));
+			, m_endpoints.end(), make_tcp(m_target));
 
 		if (i != m_endpoints.end()) m_endpoints.erase(i);
 
@@ -154,7 +154,7 @@ namespace libtorrent {
 #endif
 
 		// pick another target endpoint and try again
-		m_target = udp::endpoint(m_endpoints.front().address(), m_endpoints.front().port());
+		m_target = make_udp(m_endpoints.front());
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb && cb->should_log())
@@ -252,7 +252,7 @@ namespace libtorrent {
 			return;
 		}
 
-		m_target = udp::endpoint(m_endpoints.front().address(), m_endpoints.front().port());
+		m_target = make_udp(m_endpoints.front());
 
 		start_announce();
 	}
