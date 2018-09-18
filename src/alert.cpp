@@ -2005,5 +2005,16 @@ namespace libtorrent {
 
 #endif // TORRENT_DISABLE_LOGGING
 
+	fastresume_accepted_alert::fastresume_accepted_alert(
+		aux::stack_allocator& alloc
+		, torrent_handle const& h)
+		: torrent_alert(alloc, h)
+	{}
+
+	std::string fastresume_accepted_alert::message() const
+	{
+		return torrent_alert::message() + " fast resume accepted";
+	}
+
 } // namespace libtorrent
 

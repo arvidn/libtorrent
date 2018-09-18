@@ -2496,11 +2496,20 @@ namespace libtorrent
 #endif
 
 		// only report this error if the user actually provided resume data
-		if ((j->error || j->ret != 0) && m_resume_data
-			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
+		if (m_resume_data)
 		{
-			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle(), j->error.ec
-				, resolve_filename(j->error.file), j->error.operation_str());
+			if (j->error || j->ret != 0)
+			{
+				if (m_ses.alerts().should_post<fastresume_rejected_alert>())
+				{
+					m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle(), j->error.ec
+						, resolve_filename(j->error.file), j->error.operation_str());
+				}
+			}
+			else if (m_ses.alerts().should_post<fastresume_accepted_alert>())
+			{
+				m_ses.alerts().emplace_alert<fastresume_accepted_alert>(get_handle());
+			}
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
