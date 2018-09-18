@@ -731,6 +731,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(l.locked());
 		INVARIANT_CHECK;
+		TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
 		DLOG("flush_range: piece=%d [%d, %d)\n"
 			, int(pe->piece), start, end);
@@ -791,6 +792,7 @@ namespace libtorrent
 		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
+		TORRENT_PIECE_ASSERT(pe->in_use, pe);
 		if (flags & flush_delete_cache)
 		{
 			// delete dirty blocks and post handlers with
@@ -814,6 +816,8 @@ namespace libtorrent
 				return true;
 			}
 		}
+
+		TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
 		if (flags & flush_read_cache)
 		{
@@ -847,6 +851,7 @@ restart:
 			{
 				TORRENT_ASSERT((*i)->get_storage() == storage);
 				cached_piece_entry* pe = *i;
+				TORRENT_PIECE_ASSERT(pe->in_use, pe);
 				++i;
 				// if flush_piece() returns true, it means it actually went
 				// writing to the disk, which means the mutex was released

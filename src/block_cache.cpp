@@ -934,6 +934,7 @@ bool block_cache::mark_for_eviction(cached_piece_entry* p
 	, eviction_mode const mode)
 {
 	INVARIANT_CHECK;
+	TORRENT_PIECE_ASSERT(p->in_use, p);
 
 	DLOG(stderr, "[%p] block_cache mark-for-deletion "
 		"piece: %d\n", static_cast<void*>(this), int(p->piece));
