@@ -841,10 +841,19 @@ namespace libtorrent
 	void disk_io_thread::flush_cache(piece_manager* storage, boost::uint32_t flags
 		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
 	{
+		TORRENT_ASSERT(l.locked());
 		if (storage)
 		{
 restart:
 			boost::unordered_set<cached_piece_entry*> const& pieces = storage->cached_pieces();
+
+#if TORRENT_USE_ASSERTS
+			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
+				, end(pieces.end()); i != end;)
+			{
+				TORRENT_PIECE_ASSERT((*i)->in_use, *i);
+			}
+#endif
 
 			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
 				, end(pieces.end()); i != end;)
@@ -862,7 +871,6 @@ restart:
 			}
 
 #if TORRENT_USE_ASSERTS
-			TORRENT_ASSERT(l.locked());
 			// if the user asked to delete the cache for this storage
 			// we really should not have any pieces left. This is only called
 			// from disk_io_thread::do_delete, which is a fence job and should
@@ -899,6 +907,7 @@ restart:
 					}
 				}
 				cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*range.first);
+				TORRENT_PIECE_ASSERT(pe->in_use, pe);
 				flush_piece(pe, flags, completed_jobs, l);
 				range = m_disk_cache.all_pieces();
 			}
@@ -3717,6 +3726,13 @@ restart:
 #if TORRENT_USE_INVARIANT_CHECKS
 	void disk_io_thread::check_invariant() const
 	{
+		for (std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
+			range.first != range.second; ++range.first)
+		{
+			cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*range.first);
+			TORRENT_PIECE_ASSERT(pe->in_use, pe);
+			TORRENT_PIECE_ASSERT(pe->storage->cached_pieces().count(pe) == 1, pe);
+		}
 	}
 #endif
 }
