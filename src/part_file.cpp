@@ -397,5 +397,7 @@ namespace libtorrent {
 		std::memset(ptr, 0, std::size_t(m_header_size - (ptr - header.data())));
 		iovec_t b = header;
 		m_file->writev(0, b, ec);
+		if (ec) return;
+		m_dirty_metadata = false;
 	}
 }

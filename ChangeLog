@@ -88,6 +88,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix redundant flushes of partfile metadata
 	* add option to ignore min-interval from trackers on force-reannounce
 	* raise default setting for active_limit
 	* fall back to copy+remove if rename_file fails
