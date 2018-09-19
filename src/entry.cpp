@@ -679,6 +679,12 @@ namespace {
 		return false;
 	}
 
+	std::string print_string(std::string const& str)
+	{
+		if (is_binary(str)) return aux::to_hex(str);
+		else return str;
+	}
+
 	void add_indent(std::string& out, int const indent)
 	{
 		out.resize(out.size() + size_t(indent), ' ');
@@ -697,20 +703,19 @@ namespace {
 		case string_t:
 			{
 				out += "'";
-				if (is_binary(string())) out += aux::to_hex(string());
-				else out += string();
+				out += print_string(string());
 				out += "'";
 			} break;
 		case list_t:
 			{
 				out += single_line ? "[ " : "[\n";
 				bool first = true;
-				for (list_type::const_iterator i = list().begin(); i != list().end(); ++i)
+				for (auto const& item : list())
 				{
 					if (!first) out += single_line ? ", " : ",\n";
 					first = false;
 					if (!single_line) add_indent(out, indent+1);
-					i->to_string_impl(out, indent+1, single_line);
+					item.to_string_impl(out, indent+1, single_line);
 				}
 				out += " ]";
 			} break;
@@ -718,17 +723,16 @@ namespace {
 			{
 				out += single_line ? "{ " : "{\n";
 				bool first = true;
-				for (dictionary_type::const_iterator i = dict().begin(); i != dict().end(); ++i)
+				for (auto const& item : dict())
 				{
 					if (!first) out += single_line ? ", " : ",\n";
 					first = false;
 					if (!single_line) add_indent(out, indent+1);
 					out += "'";
-					if (is_binary(i->first)) out += aux::to_hex(i->first);
-					else out += i->first;
+					out += print_string(item.first);
 					out += "': ";
 
-					i->second.to_string_impl(out, indent+2, single_line);
+					item.second.to_string_impl(out, indent+2, single_line);
 				}
 				out += " }";
 			} break;
@@ -737,6 +741,10 @@ namespace {
 			break;
 		case undefined_t:
 			out += "<uninitialized>";
+			break;
+		default:
+			out += "<error>";
+			break;
 		}
 	}
 }

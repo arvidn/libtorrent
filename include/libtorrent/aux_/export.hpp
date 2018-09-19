@@ -36,19 +36,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 
 #if !defined TORRENT_ABI_VERSION
-	#ifdef TORRENT_NO_DEPRECATE
-		#define TORRENT_ABI_VERSION 2
-	#else
-		#define TORRENT_ABI_VERSION 1
-	#endif
+# ifdef TORRENT_NO_DEPRECATE
+#  define TORRENT_ABI_VERSION 2
+# else
+#  define TORRENT_ABI_VERSION 1
+# endif
 #endif
 
 #if TORRENT_ABI_VERSION >= 2
-#define TORRENT_VERSION_NAMESPACE_2 inline namespace v1_2 {
-#define TORRENT_VERSION_NAMESPACE_2_END  }
+# define TORRENT_VERSION_NAMESPACE_2 inline namespace v1_2 {
+# define TORRENT_VERSION_NAMESPACE_2_END  }
 #else
-#define TORRENT_VERSION_NAMESPACE_2
-#define TORRENT_VERSION_NAMESPACE_2_END
+# define TORRENT_VERSION_NAMESPACE_2
+# define TORRENT_VERSION_NAMESPACE_2_END
 #endif
 
 // backwards compatibility with older versions of boost
@@ -91,9 +91,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // only export this type if deprecated functions are enabled
 #if TORRENT_ABI_VERSION >= 2
-#define TORRENT_DEPRECATED_EXPORT TORRENT_EXTRA_EXPORT
+# define TORRENT_DEPRECATED_EXPORT TORRENT_EXTRA_EXPORT
 #else
-#define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
+# define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
 #endif
 
 #endif

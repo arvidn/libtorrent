@@ -89,7 +89,7 @@ namespace aux {
 			case portmap_action::none: return "none";
 			case portmap_action::add: return "add";
 			case portmap_action::del: return "delete";
-		};
+		}
 		return "";
 	}
 }}

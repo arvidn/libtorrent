@@ -1992,6 +1992,7 @@ namespace {
 		TORRENT_ASSERT(num_pieces > 0);
 
 		constexpr std::uint8_t char_bit_mask = CHAR_BIT - 1;
+		constexpr std::uint8_t char_top_bit = 1 << (CHAR_BIT - 1);
 
 		const int packet_size = (num_pieces + char_bit_mask) / CHAR_BIT + 5;
 
@@ -2013,14 +2014,14 @@ namespace {
 		{
 			std::memset(ptr, 0, aux::numeric_cast<std::size_t>(packet_size - 5));
 			piece_picker const& p = t->picker();
-			int mask = 0x80;
+			int mask = char_top_bit;
 			for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
 			{
 				if (p.have_piece(i)) *ptr |= mask;
 				mask >>= 1;
 				if (mask == 0)
 				{
-					mask = 0x80;
+					mask = char_top_bit;
 					++ptr;
 				}
 			}
@@ -2029,7 +2030,7 @@ namespace {
 		// add predictive pieces to the bitfield as well, since we won't
 		// announce them again
 		for (piece_index_t const p : t->predictive_pieces())
-			msg[5 + static_cast<int>(p) / CHAR_BIT] |= (0x80 >> (static_cast<int>(p) & char_bit_mask));
+			msg[5 + static_cast<int>(p) / CHAR_BIT] |= (char_top_bit >> (static_cast<int>(p) & char_bit_mask));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
@@ -2039,7 +2040,7 @@ namespace {
 			bitfield_string.resize(n_pieces);
 			for (std::size_t k = 0; k < n_pieces; ++k)
 			{
-				if (msg[5 + int(k) / CHAR_BIT] & (0x80 >> (k % CHAR_BIT))) bitfield_string[k] = '1';
+				if (msg[5 + int(k) / CHAR_BIT] & (char_top_bit >> (k % CHAR_BIT))) bitfield_string[k] = '1';
 				else bitfield_string[k] = '0';
 			}
 			peer_log(peer_log_alert::outgoing_message, "BITFIELD"
