@@ -380,8 +380,9 @@ namespace libtorrent
 
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
-		// passed in iterator will be invalidated
-		void mark_for_eviction(cached_piece_entry* p, eviction_mode mode);
+		// passed in iterator will be invalidated. The function returns
+		// true if the piece is removed immediately, false otherwise.
+		bool mark_for_eviction(cached_piece_entry* p, eviction_mode mode);
 
 		// similar to mark_for_eviction, except for actually marking the
 		// piece for deletion. If the piece was actually deleted,

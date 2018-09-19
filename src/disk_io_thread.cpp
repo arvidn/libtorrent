@@ -731,6 +731,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(l.locked());
 		INVARIANT_CHECK;
+		TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
 		DLOG("flush_range: piece=%d [%d, %d)\n"
 			, int(pe->piece), start, end);
@@ -787,10 +788,11 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::flush_piece(cached_piece_entry* pe, int flags
+	bool disk_io_thread::flush_piece(cached_piece_entry* pe, int flags
 		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
+		TORRENT_PIECE_ASSERT(pe->in_use, pe);
 		if (flags & flush_delete_cache)
 		{
 			// delete dirty blocks and post handlers with
@@ -804,50 +806,71 @@ namespace libtorrent
 		else if ((flags & flush_write_cache) && pe->num_dirty > 0)
 		{
 			// issue write commands
-			flush_range(pe, 0, INT_MAX, completed_jobs, l);
+			if (flush_range(pe, 0, INT_MAX, completed_jobs, l) > 0)
+			{
+				// pe may be invalid at this point
 
-			// if we're also flushing the read cache, this piece
-			// should be removed as soon as all write jobs finishes
-			// otherwise it will turn into a read piece
+				// if we're also flushing the read cache, this piece
+				// should be removed as soon as all write jobs finishes
+				// otherwise it will turn into a read piece
+				return true;
+			}
 		}
 
-		// mark_for_eviction may erase the piece from the cache, that's
-		// why we don't have the 'i' iterator referencing it at this point
+		TORRENT_PIECE_ASSERT(pe->in_use, pe);
+
+		if (flags & flush_read_cache)
+		{
+			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
+				, pe->jobs, completed_jobs);
+		}
+
 		if (flags & (flush_read_cache | flush_delete_cache))
 		{
-			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), pe->jobs, completed_jobs);
 			// we're removing the torrent, don't keep any entries around in the
 			// ghost list
-			m_disk_cache.mark_for_eviction(pe, block_cache::disallow_ghost);
+			// mark_for_eviction may erase the piece from the cache
+			if (m_disk_cache.mark_for_eviction(pe, block_cache::disallow_ghost))
+			{
+				return true;
+			}
 		}
+		return false;
 	}
 
 	void disk_io_thread::flush_cache(piece_manager* storage, boost::uint32_t flags
 		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
 	{
+		TORRENT_ASSERT(l.locked());
 		if (storage)
 		{
+restart:
 			boost::unordered_set<cached_piece_entry*> const& pieces = storage->cached_pieces();
-			std::vector<int> piece_index;
-			piece_index.reserve(pieces.size());
+
+#if TORRENT_USE_ASSERTS
 			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
-				, end(pieces.end()); i != end; ++i)
+				, end(pieces.end()); i != end;)
+			{
+				TORRENT_PIECE_ASSERT((*i)->in_use, *i);
+			}
+#endif
+
+			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
+				, end(pieces.end()); i != end;)
 			{
 				TORRENT_ASSERT((*i)->get_storage() == storage);
-				if ((*i)->get_storage() != storage) continue;
-				piece_index.push_back((*i)->piece);
+				cached_piece_entry* pe = *i;
+				TORRENT_PIECE_ASSERT(pe->in_use, pe);
+				++i;
+				// if flush_piece() returns true, it means it actually went
+				// writing to the disk, which means the mutex was released
+				// and the set of pieces may have changed. In that case,
+				// break out from this loop and query the pieces from the
+				// storage again
+				if (flush_piece(pe, flags, completed_jobs, l)) goto restart;
 			}
 
-			for (std::vector<int>::iterator i = piece_index.begin()
-				, end(piece_index.end()); i != end; ++i)
-			{
-				cached_piece_entry* pe = m_disk_cache.find_piece(storage, *i);
-				if (pe == NULL) continue;
-				TORRENT_PIECE_ASSERT(pe->storage.get() == storage, pe);
-				flush_piece(pe, flags, completed_jobs, l);
-			}
 #if TORRENT_USE_ASSERTS
-			TORRENT_ASSERT(l.locked());
 			// if the user asked to delete the cache for this storage
 			// we really should not have any pieces left. This is only called
 			// from disk_io_thread::do_delete, which is a fence job and should
@@ -884,6 +907,7 @@ namespace libtorrent
 					}
 				}
 				cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*range.first);
+				TORRENT_PIECE_ASSERT(pe->in_use, pe);
 				flush_piece(pe, flags, completed_jobs, l);
 				range = m_disk_cache.all_pieces();
 			}
@@ -3139,7 +3163,7 @@ namespace libtorrent
 			return 0;
 		}
 
-		m_disk_cache.mark_for_eviction(pe, block_cache::allow_ghost);
+		if (m_disk_cache.mark_for_eviction(pe, block_cache::allow_ghost)) return 0;
 		if (pe->num_blocks == 0) return 0;
 
 		// we should always be able to evict the piece, since
@@ -3702,6 +3726,13 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 	void disk_io_thread::check_invariant() const
 	{
+		for (std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
+			range.first != range.second; ++range.first)
+		{
+			cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*range.first);
+			TORRENT_PIECE_ASSERT(pe->in_use, pe);
+			TORRENT_PIECE_ASSERT(pe->storage->cached_pieces().count(pe) == 1, pe);
+		}
 	}
 #endif
 }

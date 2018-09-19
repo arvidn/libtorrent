@@ -930,21 +930,25 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 	return false;
 }
 
-void block_cache::mark_for_eviction(cached_piece_entry* p
+bool block_cache::mark_for_eviction(cached_piece_entry* p
 	, eviction_mode const mode)
 {
 	INVARIANT_CHECK;
+	TORRENT_PIECE_ASSERT(p->in_use, p);
 
 	DLOG(stderr, "[%p] block_cache mark-for-deletion "
 		"piece: %d\n", static_cast<void*>(this), int(p->piece));
 
 	TORRENT_PIECE_ASSERT(p->jobs.empty(), p);
 	tailqueue<disk_io_job> jobs;
-	if (!evict_piece(p, jobs, mode))
+
+	bool const ret = evict_piece(p, jobs, mode);
+	if (!ret)
 	{
 		p->marked_for_eviction = true;
 		p->marked_for_deletion = mode == disallow_ghost;
 	}
+	return ret;
 }
 
 void block_cache::erase_piece(cached_piece_entry* pe)
