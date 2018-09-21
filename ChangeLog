@@ -1,3 +1,4 @@
+	* exposed default add_torrent_params flags to python bindings
 	* fix redundant flushes of partfile metadata
 	* add option to ignore min-interval from trackers on force-reannounce
 	* raise default setting for active_limit

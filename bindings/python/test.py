@@ -43,7 +43,7 @@ class test_torrent_handle(unittest.TestCase):
 	def setup(self):
 		self.ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
 		self.ti = lt.torrent_info('url_seed_multi.torrent');
-		self.h = self.ses.add_torrent({'ti': self.ti, 'save_path': os.getcwd()})
+		self.h = self.ses.add_torrent({'ti': self.ti, 'save_path': os.getcwd(), 'flags': lt.add_torrent_params_flags_t.default_flags})
 
 	def test_torrent_handle(self):
 		self.setup()
