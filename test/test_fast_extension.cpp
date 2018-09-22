@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 #include "test_utils.hpp"
 
 #include "libtorrent/socket.hpp"
@@ -413,9 +414,8 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 {
 	boost::shared_ptr<torrent_info> t = ::create_torrent();
 	ih = t->info_hash();
-	settings_pack sett;
+	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48900");
-	sett.set_int(settings_pack::alert_mask, alert::all_categories);
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);

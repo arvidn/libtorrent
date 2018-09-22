@@ -226,6 +226,9 @@ void bind_alert()
             .value("dht_operation_notification", alert::dht_operation_notification)
             .value("port_mapping_log_notification", alert::port_mapping_log_notification)
             .value("picker_log_notification", alert::picker_log_notification)
+            .value("file_progress_notification", alert::file_progress_notification)
+            .value("piece_progress_notification", alert::piece_progress_notification)
+            .value("block_progress_notification", alert::block_progress_notification)
             // deliberately not INT_MAX. Arch linux crash while throwing an exception
             .value("all_categories", (alert::category_t)0xfffffff)
             ;

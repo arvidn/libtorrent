@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 #include "test.hpp"
 
 #include <fstream>
@@ -69,20 +70,15 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	// in case the previous run was terminated
 	error_code ec;
 
-	int const alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
-
 	session_proxy p1;
 	session_proxy p2;
 
-	settings_pack sett;
+	settings_pack sett = settings();
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
 	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	sett.set_int(settings_pack::alert_mask, alert_mask);
 
 	lt::session ses1(sett);
 
@@ -231,25 +227,19 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	// in case the previous run was terminated
 	error_code ec;
 
-	int const alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
-
 	session_proxy p1;
 	session_proxy p2;
 
-	settings_pack sett;
+	settings_pack sett = settings();
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
 	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	sett.set_int(settings_pack::alert_mask, alert_mask);
 
 	lt::session ses1(sett);
 
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
-	sett.set_int(settings_pack::alert_mask, alert_mask);
 	lt::session ses2(sett);
 
 	torrent_handle tor1;
@@ -374,20 +364,15 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	// in case the previous run was terminated
 	error_code ec;
 
-	int const alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
-
 	session_proxy p1;
 	session_proxy p2;
 
-	settings_pack sett;
+	settings_pack sett = settings();
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
 	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	sett.set_int(settings_pack::alert_mask, alert_mask);
 	lt::session ses1(sett);
 
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");

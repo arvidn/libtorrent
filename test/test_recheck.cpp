@@ -44,14 +44,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 
 #include <fstream>
 #include <iostream>
 
 using namespace libtorrent;
 namespace lt = libtorrent;
-
-const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 
 void wait_for_complete(lt::session& ses, torrent_handle h)
 {
@@ -77,9 +76,8 @@ void wait_for_complete(lt::session& ses, torrent_handle h)
 TORRENT_TEST(recheck)
 {
 	error_code ec;
-	settings_pack sett;
+	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48675");
-	sett.set_int(settings_pack::alert_mask, mask);
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);

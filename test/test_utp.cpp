@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -63,17 +64,11 @@ void test_transfer()
 	session_proxy p1;
 	session_proxy p2;
 
-	const int mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
-			| alert::stats_notification);
-
-	settings_pack pack;
+	settings_pack pack = settings();
 	pack.set_bool(settings_pack::enable_lsd, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_dht, false);
-	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
 	pack.set_bool(settings_pack::enable_outgoing_tcp, false);
