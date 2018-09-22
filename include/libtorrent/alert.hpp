@@ -79,17 +79,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	// The ``alert`` class is the base class that specific messages are derived from.
 	// alert types are not copyable, and cannot be constructed by the client. The
 	// pointers returned by libtorrent are short lived (the details are described
 	// under session_handle::pop_alerts())
 	class TORRENT_EXPORT alert
 	{
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	public:
 
 #ifndef TORRENT_NO_DEPRECATE
 		// only here for backwards compatibility
-		enum TORRENT_DEPRECATED severity_t { debug, info, warning, critical, fatal, none };
+		enum TORRENT_DEPRECATED_ENUM severity_t { debug, info, warning, critical, fatal, none };
 #endif
 
 		// these are bits for the alert_mask used by the session. See
@@ -189,6 +197,17 @@ namespace libtorrent {
 
 			// enables verbose logging from the piece picker.
 			picker_log_notification       = 0x100000,
+
+			// alerts when files complete downloading
+			file_progress_notification    = 0x200000,
+
+			// alerts when pieces complete downloading or fail hash check
+			piece_progress_notification   = 0x400000,
+
+			// alerts on individual blocks being requested, downloading, finished,
+			// rejected, time-out and cancelled. This is likely to post alerts at a
+			// high rate.
+			block_progress_notification   = 0x800000,
 
 			// The full bitmask, representing all available categories.
 			//

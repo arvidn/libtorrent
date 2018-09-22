@@ -280,7 +280,10 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT_PRIO(file_completed_alert, 6, alert_priority_normal)
 
-		static const int static_category = alert::progress_notification;
+		static const int static_category =
+			alert::file_progress_notification
+			| alert::progress_notification
+			;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		// refers to the index of the file that completed.
@@ -823,7 +826,10 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(piece_finished_alert, 27)
 
-		static const int static_category = alert::progress_notification;
+		static const int static_category =
+			alert::piece_progress_notification
+			| alert::progress_notification
+			;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		// the index of the piece that finished
@@ -840,8 +846,11 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(request_dropped_alert, 28)
 
-		static const int static_category = alert::progress_notification
-			| alert::peer_notification;
+		static const int static_category =
+			alert::block_progress_notification
+			| alert::peer_notification
+			| alert::progress_notification
+			;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		int block_index;
@@ -858,8 +867,11 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(block_timeout_alert, 29)
 
-		static const int static_category = alert::progress_notification
-			| alert::peer_notification;
+		static const int static_category =
+			alert::block_progress_notification
+			| alert::peer_notification
+			| alert::progress_notification
+			;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		int block_index;
@@ -876,7 +888,10 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(block_finished_alert, 30)
 
-		static const int static_category = alert::progress_notification;
+		static const int static_category =
+			alert::block_progress_notification
+			| alert::progress_notification
+			;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		int block_index;
@@ -893,7 +908,10 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(block_downloading_alert, 31)
 
-		static const int static_category = alert::progress_notification;
+		static const int static_category =
+			alert::block_progress_notification
+			| alert::progress_notification
+			;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 #ifndef TORRENT_NO_DEPRECATE

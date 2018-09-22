@@ -51,8 +51,6 @@ using namespace libtorrent;
 namespace lt = libtorrent;
 using boost::tuples::ignore;
 
-const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
-
 int peer_disconnects = 0;
 
 bool on_alert(alert const* a)
@@ -92,7 +90,6 @@ void test_transfer(settings_pack const& sett)
 
 	pack.set_bool(settings_pack::enable_outgoing_utp, false);
 	pack.set_bool(settings_pack::enable_incoming_utp, false);
-	pack.set_int(settings_pack::alert_mask, mask);
 
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
@@ -105,7 +102,6 @@ void test_transfer(settings_pack const& sett)
 	pack.set_bool(settings_pack::enable_dht, false);
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	pack.set_int(settings_pack::alert_mask, mask);
 #ifndef TORRENT_NO_DEPRECATE
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
@@ -113,7 +109,6 @@ void test_transfer(settings_pack const& sett)
 	lt::session ses1(pack);
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
-	pack.set_int(settings_pack::alert_mask, mask);
 	lt::session ses2(pack);
 
 	torrent_handle tor1;

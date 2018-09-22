@@ -492,7 +492,6 @@ TORRENT_TEST(current_tracker)
 	pack.set_int(settings_pack::tracker_completion_timeout, 2);
 	pack.set_int(settings_pack::tracker_receive_timeout, 1);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:39775");
-	//pack.set_int(settings_pack::alert_mask, alert::tracker_notification);
 
 	boost::scoped_ptr<lt::session> s(new lt::session(pack));
 
@@ -649,7 +648,6 @@ void test_stop_tracker_timeout(int const timeout)
 	settings_pack p = settings();
 	p.set_bool(settings_pack::announce_to_all_trackers, true);
 	p.set_bool(settings_pack::announce_to_all_tiers, true);
-	p.set_int(settings_pack::alert_mask, alert::all_categories);
 	p.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
 	p.set_int(settings_pack::stop_tracker_timeout, timeout);
 

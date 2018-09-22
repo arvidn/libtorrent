@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 #include <iostream>
 
 void test_pex()
@@ -58,16 +59,10 @@ void test_pex()
 	session_proxy p2;
 	session_proxy p3;
 
-	int mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
-			| alert::stats_notification);
-
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	settings_pack pack;
-	pack.set_int(settings_pack::alert_mask, mask);
+	settings_pack pack = settings();
 	pack.set_int(settings_pack::download_rate_limit, 2000);
 	pack.set_int(settings_pack::upload_rate_limit, 2000);
 	pack.set_int(settings_pack::max_retry_port_bind, 800);

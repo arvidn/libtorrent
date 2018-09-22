@@ -91,7 +91,6 @@ TORRENT_TEST(web_seed_redirect)
 	{
 		settings_pack p = settings();
 		p.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
-		p.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
 		libtorrent::session ses(p);
 
 		// disable keep-alive because otherwise the test will choke on seeing

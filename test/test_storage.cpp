@@ -659,17 +659,11 @@ TORRENT_TEST(fastresume)
 
 	entry resume;
 	{
-		const int mask = alert::all_categories
-			& ~(alert::progress_notification
-				| alert::performance_warning
-				| alert::stats_notification);
-
-		settings_pack pack;
+		settings_pack pack = settings();
 		pack.set_bool(settings_pack::enable_lsd, false);
 		pack.set_bool(settings_pack::enable_natpmp, false);
 		pack.set_bool(settings_pack::enable_upnp, false);
 		pack.set_bool(settings_pack::enable_dht, false);
-		pack.set_int(settings_pack::alert_mask, mask);
 		lt::session ses(pack);
 
 		error_code ec;
@@ -720,17 +714,11 @@ TORRENT_TEST(fastresume)
 
 	// make sure the fast resume check fails! since we removed the file
 	{
-		const int mask = alert::all_categories
-			& ~(alert::progress_notification
-				| alert::performance_warning
-				| alert::stats_notification);
-
-		settings_pack pack;
+		settings_pack pack = settings();
 		pack.set_bool(settings_pack::enable_lsd, false);
 		pack.set_bool(settings_pack::enable_natpmp, false);
 		pack.set_bool(settings_pack::enable_upnp, false);
 		pack.set_bool(settings_pack::enable_dht, false);
-		pack.set_int(settings_pack::alert_mask, mask);
 		lt::session ses(pack);
 
 		add_torrent_params p;
@@ -765,12 +753,7 @@ TORRENT_TEST(rename_file)
 	file_storage fs;
 	boost::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
 
-	const int mask = alert::all_categories
-		& ~(alert::performance_warning
-			| alert::stats_notification);
-
 	settings_pack pack = settings();
-	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_bool(settings_pack::disable_hash_checks, true);
 	lt::session ses(pack);
 
@@ -835,17 +818,11 @@ TORRENT_TEST(rename_file_fastresume)
 
 	entry resume;
 	{
-		const int mask = alert::all_categories
-			& ~(alert::progress_notification
-				| alert::performance_warning
-				| alert::stats_notification);
-
-		settings_pack pack;
+		settings_pack pack = settings();
 		pack.set_bool(settings_pack::enable_lsd, false);
 		pack.set_bool(settings_pack::enable_natpmp, false);
 		pack.set_bool(settings_pack::enable_upnp, false);
 		pack.set_bool(settings_pack::enable_dht, false);
-		pack.set_int(settings_pack::alert_mask, mask);
 		lt::session ses(pack);
 
 		add_torrent_params p;
@@ -883,17 +860,11 @@ TORRENT_TEST(rename_file_fastresume)
 
 	// make sure the fast resume check succeeds, even though we renamed the file
 	{
-		const int mask = alert::all_categories
-			& ~(alert::progress_notification
-				| alert::performance_warning
-				| alert::stats_notification);
-
-		settings_pack pack;
+		settings_pack pack = settings();
 		pack.set_bool(settings_pack::enable_lsd, false);
 		pack.set_bool(settings_pack::enable_natpmp, false);
 		pack.set_bool(settings_pack::enable_upnp, false);
 		pack.set_bool(settings_pack::enable_dht, false);
-		pack.set_int(settings_pack::alert_mask, mask);
 		lt::session ses(pack);
 
 		add_torrent_params p;

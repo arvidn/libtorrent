@@ -1539,6 +1539,8 @@ int main(int argc, char* argv[])
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::alert_mask, alert::all_categories
 		& ~(alert::dht_notification
+		+ alert::piece_progress_notification
+		+ alert::block_progress_notification
 		+ alert::progress_notification
 		+ alert::stats_notification
 		+ alert::session_log_notification

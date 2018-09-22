@@ -445,7 +445,7 @@ TORRENT_TEST(torrent_completed_alert)
 		// add session
 		, [](lt::settings_pack& pack)
 		{
-			pack.set_int(lt::settings_pack::alert_mask, alert::progress_notification);
+			pack.set_int(lt::settings_pack::alert_mask, alert::file_progress_notification);
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}

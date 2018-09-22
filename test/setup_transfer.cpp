@@ -744,8 +744,15 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	ses2->set_peer_class_filter(f);
 	if (ses3) ses3->set_peer_class_filter(f);
 
+	const int mask = alert::all_categories
+		& ~(alert::progress_notification
+			| alert::piece_progress_notification
+			| alert::block_progress_notification
+			| alert::performance_warning
+			| alert::stats_notification
+			| alert::picker_log_notification);
 	settings_pack pack;
-	pack.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
+	pack.set_int(settings_pack::alert_mask, mask);
 	if (ses3) pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 	pack.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
 	pack.set_int(settings_pack::max_failcount, 1);

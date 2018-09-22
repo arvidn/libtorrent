@@ -38,11 +38,25 @@ using namespace libtorrent;
 
 libtorrent::settings_pack settings()
 {
-	const int mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
-			| alert::stats_notification
-			| alert::picker_log_notification);
+	const int mask =
+		alert::error_notification
+		| alert::peer_notification
+		| alert::port_mapping_notification
+		| alert::storage_notification
+		| alert::tracker_notification
+		| alert::debug_notification
+		| alert::status_notification
+		| alert::ip_block_notification
+		| alert::dht_notification
+		| alert::session_log_notification
+		| alert::torrent_log_notification
+		| alert::peer_log_notification
+		| alert::incoming_request_notification
+		| alert::dht_log_notification
+		| alert::dht_operation_notification
+		| alert::port_mapping_log_notification
+		| alert::file_progress_notification
+		| alert::piece_progress_notification;
 
 	settings_pack pack;
 	pack.set_bool(settings_pack::enable_lsd, false);

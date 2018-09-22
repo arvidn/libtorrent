@@ -98,10 +98,6 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 	int const prev_udp_announces = num_udp_announces();
 
-	int const alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
-
 	settings_pack sett = settings();
 	sett.set_int(settings_pack::stop_tracker_timeout, 2);
 	sett.set_int(settings_pack::tracker_completion_timeout, 2);
@@ -109,7 +105,6 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	sett.set_bool(settings_pack::announce_to_all_trackers, true);
 	sett.set_bool(settings_pack::announce_to_all_tiers, true);
 	sett.set_bool(settings_pack::force_proxy, flags & force_proxy_mode);
-	sett.set_int(settings_pack::alert_mask, alert_mask);
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
