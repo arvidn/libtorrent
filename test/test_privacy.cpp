@@ -87,20 +87,12 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 
 	int const prev_udp_announces = num_udp_announces();
 
-	auto const alert_mask = ~(
-			alert::performance_warning
-#if TORRENT_ABI_VERSION == 1
-			| alert::progress_notification
-#endif
-			| alert::stats_notification);
-
 	settings_pack sett = settings();
 	sett.set_int(settings_pack::stop_tracker_timeout, 2);
 	sett.set_int(settings_pack::tracker_completion_timeout, 2);
 	sett.set_int(settings_pack::tracker_receive_timeout, 2);
 	sett.set_bool(settings_pack::announce_to_all_trackers, true);
 	sett.set_bool(settings_pack::announce_to_all_tiers, true);
-	sett.set_int(settings_pack::alert_mask, alert_mask);
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);

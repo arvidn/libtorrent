@@ -800,12 +800,7 @@ TORRENT_TEST(rename_file)
 	file_storage fs;
 	std::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
 
-	auto const mask = alert::all_categories
-		& ~(alert::performance_warning
-			| alert::stats_notification);
-
 	settings_pack pack = settings();
-	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_bool(settings_pack::disable_hash_checks, true);
 	lt::session ses(pack);
 

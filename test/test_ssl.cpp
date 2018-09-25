@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -62,10 +63,6 @@ using namespace lt;
 using std::ignore;
 
 namespace {
-
-auto const alert_mask = alert::all_categories
-	& ~alert::progress_notification
-	& ~alert::stats_notification;
 
 struct test_config_t
 {
@@ -144,8 +141,7 @@ void test_ssl(int const test_idx, bool const use_utp)
 	remove_all("tmp2_ssl", ec);
 
 	int port = 1024 + rand() % 50000;
-	settings_pack sett;
-	sett.set_int(settings_pack::alert_mask, alert_mask);
+	settings_pack sett = settings();
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
 
 	char listen_iface[100];
@@ -553,8 +549,7 @@ void test_malicious_peer()
 
 	// set up session
 	int port = 1024 + rand() % 50000;
-	settings_pack sett;
-	sett.set_int(settings_pack::alert_mask, alert_mask);
+	settings_pack sett = settings();
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
 
 	char listen_iface[100];

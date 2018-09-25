@@ -836,6 +836,7 @@ void bind_session()
     s.attr("stop_when_ready") = torrent_flags::stop_when_ready;
     s.attr("override_trackers") = torrent_flags::override_trackers;
     s.attr("override_web_seeds") = torrent_flags::override_web_seeds;
+    s.attr("default_flags") = torrent_flags::default_flags;
     }
 
 #if TORRENT_ABI_VERSION == 1
@@ -859,6 +860,7 @@ void bind_session()
     s.attr("flag_merge_resume_trackers") = add_torrent_params::flag_merge_resume_trackers;
     s.attr("flag_use_resume_save_path") = add_torrent_params::flag_use_resume_save_path;
     s.attr("flag_merge_resume_http_seeds") = add_torrent_params::flag_merge_resume_http_seeds;
+    s.attr("default_flags") = add_torrent_params::flag_default_flags;
     }
 #endif
 

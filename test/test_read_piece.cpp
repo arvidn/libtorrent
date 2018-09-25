@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -90,21 +91,8 @@ void test_read_piece(int flags)
 	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"
 		, aux::to_hex(ti->info_hash()).c_str());
 
-	auto const mask = ~(
-			alert::performance_warning
-#if TORRENT_ABI_VERSION == 1
-			| alert::progress_notification
-#endif
-			| alert::stats_notification);
-
-	settings_pack sett;
-	sett.set_bool(settings_pack::enable_lsd, false);
-	sett.set_bool(settings_pack::enable_natpmp, false);
-	sett.set_bool(settings_pack::enable_upnp, false);
-	sett.set_bool(settings_pack::enable_dht, false);
-	sett.set_int(settings_pack::alert_mask, mask);
+	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
-	sett.set_int(settings_pack::alert_mask, alert::all_categories);
 	lt::session ses(sett);
 
 	add_torrent_params p;

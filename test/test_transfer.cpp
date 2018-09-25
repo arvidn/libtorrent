@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 #include "test_utils.hpp"
 
 #include <tuple>
@@ -54,9 +55,6 @@ using namespace lt;
 using std::ignore;
 
 namespace {
-
-auto const mask = alert::all_categories
-	& ~(alert::performance_warning | alert::stats_notification);
 
 int peer_disconnects = 0;
 
@@ -154,9 +152,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	session_proxy p1;
 	session_proxy p2;
 
-	settings_pack pack;
+	settings_pack pack = settings();
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	pack.set_int(settings_pack::alert_mask, mask);
 
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
@@ -212,7 +209,6 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_dht, false);
-	pack.set_int(settings_pack::alert_mask, mask);
 
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);

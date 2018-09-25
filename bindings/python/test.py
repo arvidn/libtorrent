@@ -70,7 +70,8 @@ class test_torrent_handle(unittest.TestCase):
         self.ses = lt.session(settings)
         self.ti = lt.torrent_info('url_seed_multi.torrent')
         self.h = self.ses.add_torrent({
-            'ti': self.ti, 'save_path': os.getcwd()})
+            'ti': self.ti, 'save_path': os.getcwd(),
+            'flags': lt.torrent_flags.default_flags})
 
     def test_torrent_handle(self):
         self.setup()
@@ -536,7 +537,8 @@ class test_session(unittest.TestCase):
         self.assertEqual(s.get_settings()['user_agent'], 'test123')
 
     def test_post_session_stats(self):
-        s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
+        s = lt.session({'alert_mask': lt.alert.category_t.stats_notification,
+                        'enable_dht': False})
         s.post_session_stats()
         alerts = []
         # first the stats headers log line. but not if logging is disabled

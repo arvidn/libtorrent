@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 #include "swarm_suite.hpp"
 
 #ifdef _MSC_VER
@@ -75,19 +76,7 @@ void test_swarm(test_flags_t const flags)
 	session_proxy p2;
 	session_proxy p3;
 
-	auto const mask = ~(
-			alert::performance_warning
-#if TORRENT_ABI_VERSION == 1
-			| alert::progress_notification
-#endif
-			| alert::stats_notification);
-
-	settings_pack pack;
-	pack.set_bool(settings_pack::enable_lsd, false);
-	pack.set_bool(settings_pack::enable_natpmp, false);
-	pack.set_bool(settings_pack::enable_upnp, false);
-	pack.set_bool(settings_pack::enable_dht, false);
-	pack.set_int(settings_pack::alert_mask, mask);
+	settings_pack pack = settings();
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 
 	if (flags & test_flags::strict_super_seeding)

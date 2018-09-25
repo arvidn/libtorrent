@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 
 namespace {
 
@@ -60,12 +61,11 @@ void test_swarm()
 	// three peers before finishing.
 	float rate_limit = 50000;
 
-	settings_pack pack;
+	settings_pack pack = settings();
 	// run the choker once per second, to make it more likely to actually trigger
 	// during the test.
 	pack.set_int(settings_pack::unchoke_interval, 1);
 
-	pack.set_int(settings_pack::alert_mask, alert::all_categories);
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 	pack.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));

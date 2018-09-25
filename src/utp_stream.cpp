@@ -1447,7 +1447,7 @@ void utp_socket_impl::parse_close_reason(std::uint8_t const* ptr, int const size
 	UTP_LOGV("%8p: incoming close_reason: %d\n"
 		, static_cast<void*>(this), int(incoming_close_reason));
 
-	if (m_userdata == nullptr) return;
+	if (m_userdata == nullptr || !m_attached) return;
 
 	utp_stream::on_close_reason(m_userdata, incoming_close_reason);
 }
