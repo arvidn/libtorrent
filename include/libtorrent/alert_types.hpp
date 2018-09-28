@@ -757,7 +757,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT(peer_connect_alert, 23)
 
-		static constexpr alert_category_t static_category = alert::debug_notification;
+		static constexpr alert_category_t static_category = alert::connect_notification;
 		std::string message() const override;
 
 		int const socket_type;
@@ -775,7 +775,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT(peer_disconnected_alert, 24)
 
-		static constexpr alert_category_t static_category = alert::debug_notification;
+		static constexpr alert_category_t static_category = alert::connect_notification;
 		std::string message() const override;
 
 		// the kind of socket this peer was connected over

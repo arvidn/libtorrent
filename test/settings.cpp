@@ -44,7 +44,7 @@ lt::settings_pack settings()
 		| alert::port_mapping_notification
 		| alert::storage_notification
 		| alert::tracker_notification
-		| alert::debug_notification
+		| alert::connect_notification
 		| alert::status_notification
 		| alert::ip_block_notification
 		| alert::dht_notification

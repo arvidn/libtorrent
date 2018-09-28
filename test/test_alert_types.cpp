@@ -51,6 +51,7 @@ TORRENT_TEST(alerts_types)
 	TEST_EQUAL(torrent_alert::alert_type, 0);
 	TEST_EQUAL(peer_alert::alert_type, 1);
 	TEST_EQUAL(tracker_alert::alert_type, 2);
+	TEST_EQUAL(alert::debug_notification, alert::connect_notification);
 #endif
 
 #define TEST_ALERT_TYPE(name, seq, prio, cat) \
@@ -92,8 +93,8 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(peer_unsnubbed_alert, 20, 0, alert::peer_notification);
 	TEST_ALERT_TYPE(peer_snubbed_alert, 21, 0, alert::peer_notification);
 	TEST_ALERT_TYPE(peer_error_alert, 22, 0, alert::peer_notification);
-	TEST_ALERT_TYPE(peer_connect_alert, 23, 0, alert::debug_notification);
-	TEST_ALERT_TYPE(peer_disconnected_alert, 24, 0, alert::debug_notification);
+	TEST_ALERT_TYPE(peer_connect_alert, 23, 0, alert::connect_notification);
+	TEST_ALERT_TYPE(peer_disconnected_alert, 24, 0, alert::connect_notification);
 	TEST_ALERT_TYPE(invalid_request_alert, 25, 0, alert::peer_notification);
 	TEST_ALERT_TYPE(torrent_finished_alert, 26, 1, alert::status_notification);
 	TEST_ALERT_TYPE(piece_finished_alert, 27, 0, PROGRESS_NOTIFICATION alert::piece_progress_notification);
