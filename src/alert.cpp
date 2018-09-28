@@ -60,9 +60,10 @@ namespace libtorrent {
 	constexpr alert_category_t alert::port_mapping_notification;
 	constexpr alert_category_t alert::storage_notification;
 	constexpr alert_category_t alert::tracker_notification;
-	constexpr alert_category_t alert::debug_notification;
+	constexpr alert_category_t alert::connect_notification;
 	constexpr alert_category_t alert::status_notification;
 #if TORRENT_ABI_VERSION == 1
+	constexpr alert_category_t alert::debug_notification;
 	constexpr alert_category_t alert::progress_notification;
 #endif
 	constexpr alert_category_t alert::ip_block_notification;

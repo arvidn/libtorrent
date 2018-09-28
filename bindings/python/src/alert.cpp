@@ -280,9 +280,10 @@ void bind_alert()
         s.attr("port_mapping_notification") = alert::port_mapping_notification;
         s.attr("storage_notification") = alert::storage_notification;
         s.attr("tracker_notification") = alert::tracker_notification;
-        s.attr("debug_notification") = alert::debug_notification;
+        s.attr("connect_notification") = alert::connect_notification;
         s.attr("status_notification") = alert::status_notification;
 #if TORRENT_ABI_VERSION == 1
+        s.attr("debug_notification") = alert::debug_notification;
         s.attr("progress_notification") = alert::progress_notification;
 #endif
         s.attr("ip_block_notification") = alert::ip_block_notification;

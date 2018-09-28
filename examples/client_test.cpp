@@ -1095,7 +1095,7 @@ example alert_masks:
 		| alert::port_mapping_notification
 		| alert::storage_notification
 		| alert::tracker_notification
-		| alert::debug_notification
+		| alert::connect_notification
 		| alert::status_notification
 		| alert::ip_block_notification
 		| alert::performance_warning
