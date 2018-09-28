@@ -586,8 +586,10 @@ void udp_socket::setup_read(udp::socket* s)
 		error_code ec;
 		boost::system::system_error e(ec);
 #endif
-		get_io_service().post(boost::bind(&udp_socket::on_read
-			, this, e.code(), s));
+		on_read_impl(udp::endpoint(), e.code(), 0);
+		m_abort = true;
+		close();
+		return;
 	}
 }
 
