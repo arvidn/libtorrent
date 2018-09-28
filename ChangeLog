@@ -1,3 +1,4 @@
+	* fix issue in udp_socket with unusual socket failure
 	* split progress_notification alert category into file-, piece- and block progress
 	* utp close-reason fix
 	* exposed default add_torrent_params flags to python bindings
