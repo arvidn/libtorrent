@@ -1854,6 +1854,10 @@ namespace aux {
 		// an existing socket
 		for (auto const& ep : eps)
 		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+#endif
+		{
 			std::shared_ptr<listen_socket_t> s = setup_listener(ep, ec);
 
 			if (!ec && (s->sock || s->udp_sock))
@@ -1868,6 +1872,21 @@ namespace aux {
 				TORRENT_ASSERT((s->incoming == duplex::accept_incoming) == bool(s->sock));
 				if (s->sock) async_accept(s->sock, s->ssl);
 			}
+		}
+#ifndef BOOST_NO_EXCEPTIONS
+		catch (std::exception const& e)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				session_log("setup_listener(%s) device: %s failed: %s"
+					, print_endpoint(ep.addr, ep.port).c_str()
+					, ep.device.c_str()
+					, e.what());
+			}
+#endif // TORRENT_DISABLE_LOGGING
+		}
+#endif // BOOST_NO_EXCEPTIONS
 		}
 
 		if (m_listen_sockets.empty())

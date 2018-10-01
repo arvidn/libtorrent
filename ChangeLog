@@ -89,6 +89,9 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+1.1.10 release
+
+	* fix issue in udp_socket with unusual socket failure
 	* split progress_notification alert category into file-, piece- and block progress
 	* utp close-reason fix
 	* exposed default add_torrent_params flags to python bindings
