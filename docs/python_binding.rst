@@ -2,7 +2,7 @@
 libtorrent python binding
 =========================
 
-:Author: Arvid Norberg, arvid@libtorrent.org
+.. include:: header.rst
 
 .. contents:: Table of contents
 	:depth: 2

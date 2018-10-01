@@ -85,6 +85,7 @@ DOCS_PAGES = \
   docs/utp.rst                    \
   docs/streaming.rst              \
   docs/tutorial.rst               \
+  docs/header.rst                 \
   docs/tutorial.html              \
   docs/reference-Alerts.html      \
   docs/reference-Bdecoding.html   \

@@ -1,6 +1,8 @@
 Streaming implementation
 ========================
 
+.. include:: header.rst
+
 This documents describes the algorithm libtorrent uses to satisfy time critical
 piece requests, i.e. streaming.
 

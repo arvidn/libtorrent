@@ -2,6 +2,8 @@
 client_test example program
 ===========================
 
+.. include:: header.rst
+
 Client test is a, more or less, complete bittorrent client. It lacks most
 settings and you can't start or stop torrents once you've started it. All
 the settings are hardcoded. The commandline arguments are::
