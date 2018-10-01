@@ -8858,6 +8858,14 @@ namespace {
 			m_ses.trigger_auto_manage();
 		}
 
+		INVARIANT_CHECK;
+
+		if (m_ses.alerts().should_post<torrent_checked_alert>())
+		{
+			m_ses.alerts().emplace_alert<torrent_checked_alert>(
+				get_handle());
+		}
+		
 		if (!is_seed())
 		{
 			// turn off super seeding if we're not a seed
@@ -8890,14 +8898,6 @@ namespace {
 			&& !m_seed_mode)
 		{
 			set_state(torrent_status::downloading);
-		}
-
-		INVARIANT_CHECK;
-
-		if (m_ses.alerts().should_post<torrent_checked_alert>())
-		{
-			m_ses.alerts().emplace_alert<torrent_checked_alert>(
-				get_handle());
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
