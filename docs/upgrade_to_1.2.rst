@@ -3,7 +3,6 @@ Upgrading to libtorrent 1.2
 ===========================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.2.0
 
 .. contents:: Table of contents
   :depth: 1

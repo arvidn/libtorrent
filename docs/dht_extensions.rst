@@ -1,7 +1,7 @@
-:Author: Arvid Norberg, arvid@libtorrent.org
-
 Mainline DHT extensions
 =======================
+
+.. include:: header.rst
 
 libtorrent implements a few extensions to the Mainline DHT protocol.
 

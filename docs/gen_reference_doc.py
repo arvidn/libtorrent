@@ -1135,9 +1135,7 @@ for cat in categories:
     functions = categories[cat]['functions']
     enums = categories[cat]['enums']
 
-    out.write('''
-:Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.2.0
+    out.write('''.. include:: header.rst
 
 `home`__
 

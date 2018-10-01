@@ -2,8 +2,7 @@
 BitTorrent extension for arbitrary DHT store
 ============================================
 
-:Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.2.0
+.. include:: header.rst
 
 .. contents:: Table of contents
   :depth: 2
