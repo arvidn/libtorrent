@@ -472,7 +472,7 @@ struct utp_socket_impl
 	std::int32_t m_recv_delay = 0;
 
 	// average RTT
-	sliding_average<16> m_rtt;
+	sliding_average<int, 16> m_rtt;
 
 	// if this is != 0, it means the upper layer provided a reason for why
 	// the connection is being closed. The reason is indicated by this

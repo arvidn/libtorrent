@@ -60,7 +60,7 @@ span<char> receive_buffer::reserve(int const size)
 
 		// since we just increased the size of the buffer, reset the watermark to
 		// start at our new size (avoid flapping the buffer size)
-		m_watermark = sliding_average<20>();
+		m_watermark = {};
 	}
 
 	return aux::typed_span<char>(m_recv_buffer).subspan(m_recv_end, size);
@@ -83,7 +83,7 @@ void receive_buffer::grow(int const limit)
 
 	// since we just increased the size of the buffer, reset the watermark to
 	// start at our new size (avoid flapping the buffer size)
-	m_watermark = sliding_average<20>();
+	m_watermark = {};
 }
 
 int receive_buffer::advance_pos(int const bytes)
@@ -180,7 +180,7 @@ void receive_buffer::normalize(int const force_shrink)
 
 	// if the running average drops below half of the current buffer size,
 	// reallocate a smaller one.
-	bool const shrink_buffer = int(m_recv_buffer.size()) / 2 > m_watermark.mean()
+	bool const shrink_buffer = std::int64_t(m_recv_buffer.size()) / 2 > m_watermark.mean()
 		&& m_watermark.mean() > (m_recv_end - m_recv_start);
 
 	span<char const> bytes_to_shift(m_recv_buffer.data() + m_recv_start

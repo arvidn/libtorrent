@@ -35,26 +35,29 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 #include <cstdlib> // for std::abs
+#include <limits>
+
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent {
 
 // an exponential moving average accumulator. Add samples to it and it keeps
 // track of a moving mean value and an average deviation
-template <int inverted_gain>
+template <typename Int, Int inverted_gain>
 struct sliding_average
 {
+	static_assert(std::is_integral<Int>::value, "template argument must be integral");
+
 	sliding_average(): m_mean(0), m_average_deviation(0), m_num_samples(0) {}
 	sliding_average(sliding_average const&) = default;
 	sliding_average& operator=(sliding_average const&) = default;
 
-	void add_sample(int s)
+	void add_sample(Int s)
 	{
+		TORRENT_ASSERT(s < std::numeric_limits<Int>::max() / 64);
 		// fixed point
 		s *= 64;
-		int deviation = 0;
-
-		if (m_num_samples > 0)
-			deviation = std::abs(m_mean - s);
+		Int const deviation = (m_num_samples > 0) ? std::abs(m_mean - s) : 0;
 
 		if (m_num_samples < inverted_gain)
 			++m_num_samples;
@@ -70,14 +73,14 @@ struct sliding_average
 		}
 	}
 
-	int mean() const { return m_num_samples > 0 ? (m_mean + 32) / 64 : 0; }
-	int avg_deviation() const { return m_num_samples > 1 ? (m_average_deviation + 32) / 64 : 0; }
+	Int mean() const { return m_num_samples > 0 ? (m_mean + 32) / 64 : 0; }
+	Int avg_deviation() const { return m_num_samples > 1 ? (m_average_deviation + 32) / 64 : 0; }
 	int num_samples() const { return m_num_samples; }
 
 private:
 	// both of these are fixed point values (* 64)
-	int m_mean = 0;
-	int m_average_deviation = 0;
+	Int m_mean = 0;
+	Int m_average_deviation = 0;
 	// the number of samples we have received, but no more than inverted_gain
 	// this is the effective inverted_gain
 	int m_num_samples = 0;

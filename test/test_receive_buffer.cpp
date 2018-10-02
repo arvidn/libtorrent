@@ -211,6 +211,17 @@ TORRENT_TEST(receive_buffer_max_receive)
 	TEST_EQUAL(b.max_receive(), max_receive - 20);
 }
 
+TORRENT_TEST(receive_buffer_watermark)
+{
+	receive_buffer b;
+	b.reset(0x4000);
+	b.reserve(35000000);
+	b.received(35000000);
+	b.normalize();
+
+	TEST_EQUAL(b.watermark(), 35000000);
+}
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 TORRENT_TEST(recv_buffer_mutable_buffers)

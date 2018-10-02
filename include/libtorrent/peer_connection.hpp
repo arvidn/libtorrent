@@ -842,7 +842,7 @@ namespace aux {
 		// outstanding request, the time since the piece was requested. It
 		// is essentially an estimate of the time it will take to completely
 		// receive a payload message after it has been requested.
-		sliding_average<20> m_request_time;
+		sliding_average<int, 20> m_request_time;
 
 		// keep the io_service running as long as we
 		// have peer connections
