@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/sliding_average.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 #include <climits>
 
@@ -57,8 +58,8 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	bool packet_finished() const { return m_packet_size <= m_recv_pos; }
 	int pos() const { return m_recv_pos; }
-	int capacity() const { return int(m_recv_buffer.size()); }
-	int watermark() const { return m_watermark.mean(); }
+	int capacity() const { return aux::numeric_cast<int>(m_recv_buffer.size()); }
+	int watermark() const { return aux::numeric_cast<int>(m_watermark.mean()); }
 
 	span<char> reserve(int size);
 	void grow(int limit);
@@ -154,7 +155,7 @@ private:
 
 	// keep track of how much of the receive buffer we use, if we're not using
 	// enough of it we shrink it
-	sliding_average<20> m_watermark;
+	sliding_average<std::int64_t, 20> m_watermark;
 
 	buffer m_recv_buffer;
 };

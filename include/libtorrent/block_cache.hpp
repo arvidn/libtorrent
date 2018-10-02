@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/sliding_average.hpp"
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"

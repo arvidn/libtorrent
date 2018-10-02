@@ -119,7 +119,7 @@ private:
 	// have higher priority
 	vector<piece_index_t, int> m_priority_pieces;
 
-	sliding_average<30> m_availability;
+	sliding_average<int, 30> m_availability;
 };
 
 }}

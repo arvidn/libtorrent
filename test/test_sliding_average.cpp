@@ -53,7 +53,7 @@ using namespace lt;
 // make sure we react quickly for the first few samples
 TORRENT_TEST(reaction_time)
 {
-	sliding_average<10> avg;
+	sliding_average<int, 10> avg;
 
 	avg.add_sample(-10);
 	avg.add_sample(10);
@@ -63,7 +63,7 @@ TORRENT_TEST(reaction_time)
 
 TORRENT_TEST(reaction_time2)
 {
-	sliding_average<10> avg;
+	sliding_average<int, 10> avg;
 
 	avg.add_sample(10);
 	avg.add_sample(20);
@@ -74,7 +74,7 @@ TORRENT_TEST(reaction_time2)
 // make sure we converge
 TORRENT_TEST(converge)
 {
-	sliding_average<10> avg;
+	sliding_average<int, 10> avg;
 	avg.add_sample(100);
 	for (int i = 0; i < 20; ++i)
 		avg.add_sample(10);
@@ -83,7 +83,7 @@ TORRENT_TEST(converge)
 
 TORRENT_TEST(converge2)
 {
-	sliding_average<10> avg;
+	sliding_average<int, 10> avg;
 	avg.add_sample(-100);
 	for (int i = 0; i < 20; ++i)
 		avg.add_sample(-10);
@@ -93,7 +93,7 @@ TORRENT_TEST(converge2)
 // test with a more realistic input
 TORRENT_TEST(random_converge)
 {
-	sliding_average<10> avg;
+	sliding_average<int, 10> avg;
 	for (int i = 0; i < int(sizeof(samples)/sizeof(samples[0])); ++i)
 		avg.add_sample(samples[i]);
 	TEST_CHECK(abs(avg.mean() - 60) <= 3);
@@ -101,7 +101,7 @@ TORRENT_TEST(random_converge)
 
 TORRENT_TEST(sliding_average)
 {
-	sliding_average<4> avg;
+	sliding_average<int, 4> avg;
 	TEST_EQUAL(avg.mean(), 0);
 	TEST_EQUAL(avg.avg_deviation(), 0);
 	avg.add_sample(500);
