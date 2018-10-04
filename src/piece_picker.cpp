@@ -378,27 +378,25 @@ namespace libtorrent {
 
 	void piece_picker::check_piece_state() const
 	{
-		for (download_queue_t k{}; k != piece_pos::num_download_categories; ++k)
+		for (auto const k : categories())
 		{
-			if (!m_downloads[k].empty())
+			if (m_downloads[k].empty()) continue;
+			for (std::vector<downloading_piece>::const_iterator i = m_downloads[k].begin();
+				i != m_downloads[k].end() - 1; ++i)
 			{
-				for (std::vector<downloading_piece>::const_iterator i = m_downloads[k].begin();
-						i != m_downloads[k].end() - 1; ++i)
+				downloading_piece const& dp = *i;
+				downloading_piece const& next = *(i + 1);
+				TORRENT_ASSERT(dp.index < next.index);
+				TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
+					+ m_blocks_per_piece <= int(m_block_info.size()));
+				for (auto const& bl : blocks_for_piece(dp))
 				{
-					downloading_piece const& dp = *i;
-					downloading_piece const& next = *(i + 1);
-					TORRENT_ASSERT(dp.index < next.index);
-					TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
-						+ m_blocks_per_piece <= int(m_block_info.size()));
-					for (auto const& bl : blocks_for_piece(dp))
+					if (bl.peer)
 					{
-						if (bl.peer)
-						{
-							torrent_peer* p = bl.peer;
-							TORRENT_ASSERT(p->in_use);
-							TORRENT_ASSERT(p->connection == nullptr
-								|| static_cast<peer_connection*>(p->connection)->m_in_use);
-						}
+						torrent_peer* p = bl.peer;
+						TORRENT_ASSERT(p->in_use);
+						TORRENT_ASSERT(p->connection == nullptr
+							|| static_cast<peer_connection*>(p->connection)->m_in_use);
 					}
 				}
 			}
@@ -474,37 +472,34 @@ namespace libtorrent {
 			last = b;
 		}
 
-		for (download_queue_t k{}; k != piece_pos::num_download_categories; ++k)
+		for (auto const k : categories())
 		{
-			if (!m_downloads[k].empty())
+			if (m_downloads[k].empty()) continue;
+			for (std::vector<downloading_piece>::const_iterator i = m_downloads[k].begin();
+					i != m_downloads[k].end() - 1; ++i)
 			{
-				for (std::vector<downloading_piece>::const_iterator i = m_downloads[k].begin();
-						i != m_downloads[k].end() - 1; ++i)
-				{
-					downloading_piece const& dp = *i;
-					downloading_piece const& next = *(i + 1);
-//					TORRENT_ASSERT(dp.finished + dp.writing >= next.finished + next.writing);
-					TORRENT_ASSERT(dp.index < next.index);
-					TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
-						+ m_blocks_per_piece <= int(m_block_info.size()));
+				downloading_piece const& dp = *i;
+				downloading_piece const& next = *(i + 1);
+				TORRENT_ASSERT(dp.index < next.index);
+				TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
+					+ m_blocks_per_piece <= int(m_block_info.size()));
 #if TORRENT_USE_ASSERTS
-					for (auto const& bl : blocks_for_piece(dp))
-					{
-						if (!bl.peer) continue;
-						torrent_peer* p = bl.peer;
-						TORRENT_ASSERT(p->in_use);
-						TORRENT_ASSERT(p->connection == nullptr
-							|| static_cast<peer_connection*>(p->connection)->m_in_use);
-					}
-#endif
+				for (auto const& bl : blocks_for_piece(dp))
+				{
+					if (!bl.peer) continue;
+					torrent_peer* p = bl.peer;
+					TORRENT_ASSERT(p->in_use);
+					TORRENT_ASSERT(p->connection == nullptr
+						|| static_cast<peer_connection*>(p->connection)->m_in_use);
 				}
+#endif
 			}
 		}
 
 		if (t != nullptr)
 			TORRENT_ASSERT(num_pieces() == t->torrent_file().num_pieces());
 
-		for (download_queue_t j{}; j != piece_pos::num_download_categories; ++j)
+		for (auto const j : categories())
 		{
 			for (auto const& dp : m_downloads[j])
 			{
@@ -2810,8 +2805,10 @@ get_out:
 		auto const state = p.download_queue();
 		if (state == piece_pos::piece_open)
 		{
-			for (download_queue_t i{}; i != piece_pos::num_download_categories; ++i)
+#if TORRENT_USE_ASSERTS
+			for (auto const i : categories())
 				TORRENT_ASSERT(find_dl_piece(i, index) == m_downloads[i].end());
+#endif
 			return false;
 		}
 		auto const i = find_dl_piece(state, index);
@@ -2844,8 +2841,10 @@ get_out:
 		auto const state = p.download_queue();
 		if (state == piece_pos::piece_open)
 		{
-			for (download_queue_t i{}; i < piece_pos::num_download_categories; ++i)
+#if TORRENT_USE_ASSERTS
+			for (auto const i : categories())
 				TORRENT_ASSERT(find_dl_piece(i, index) == m_downloads[i].end());
+#endif
 			return false;
 		}
 		auto const i = find_dl_piece(state, index);

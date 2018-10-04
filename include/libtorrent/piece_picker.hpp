@@ -714,6 +714,9 @@ namespace libtorrent {
 
 	private:
 
+		index_range<download_queue_t> categories() const
+		{ return {{}, piece_picker::piece_pos::num_download_categories}; }
+
 		// the following vectors are mutable because they sometimes may
 		// be updated lazily, triggered by const functions
 
