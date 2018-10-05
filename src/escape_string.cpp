@@ -473,29 +473,6 @@ namespace libtorrent {
 		return pos + p;
 	}
 
-	string_view url_has_argument(
-		string_view url, std::string argument, std::string::size_type* out_pos)
-	{
-		auto i = url.find('?');
-		if (i == std::string::npos) return {};
-		++i;
-
-		argument += '=';
-
-		if (url.substr(i, argument.size()) == argument)
-		{
-			auto const pos = i + argument.size();
-			if (out_pos) *out_pos = pos;
-			return url.substr(pos, url.substr(pos).find('&'));
-		}
-		argument.insert(0, "&");
-		i = find(url, argument, i);
-		if (i == std::string::npos) return {};
-		auto const pos = i + argument.size();
-		if (out_pos) *out_pos = pos;
-		return url.substr(pos, find(url, "&", pos) - pos);
-	}
-
 #if defined TORRENT_WINDOWS
 	std::wstring convert_to_wstring(std::string const& s)
 	{
