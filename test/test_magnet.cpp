@@ -145,6 +145,7 @@ TORRENT_TEST(magnet)
 		"&tr=http://2"
 		"&dn=foo"
 		"&dht=127.0.0.1:43"
+		"&xt=urn:ed2k:a0a9277894123b27945224fbac8366c9"
 		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
@@ -481,48 +482,56 @@ TORRENT_TEST(parse_magnet_select_only_multiple)
 		, {no, yes, yes, yes, yes});
 }
 
-TORRENT_TEST(parse_magnet_select_only_invalid_index_and_range)
+TORRENT_TEST(parse_magnet_select_only_inverted_range)
 {
 	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&so=-4,3-,7-4,a,100000000&dht=10.0.0.1:1337&so=10"
+		"&dn=foo&so=7-4,100000000&dht=10.0.0.1:1337&so=10"
+		, {no, no, no, no, no, no, no, no, no, no, yes});
+}
+
+TORRENT_TEST(parse_magnet_select_only_index_bounds)
+{
+	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=100000000&dht=10.0.0.1:1337&so=10"
 		, {no, no, no, no, no, no, no, no, no, no, yes});
 }
 
 TORRENT_TEST(parse_magnet_select_only_invalid_range1)
 {
 	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&so=-4", {});
+		"&dn=foo&so=-4&so=1", {no, yes});
 }
 
 TORRENT_TEST(parse_magnet_select_only_invalid_range2)
 {
 	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&so=3-", {});
-}
-
-TORRENT_TEST(parse_magnet_select_only_invalid_range3)
-{
-	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&so=7-4", {});
+		"&dn=foo&so=3-&so=1", {no, yes});
 }
 
 TORRENT_TEST(parse_magnet_select_only_invalid_index_character)
 {
 	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&so=a", {});
+		"&dn=foo&so=a&so=1", {no, yes});
 }
 
 TORRENT_TEST(parse_magnet_select_only_invalid_index_value)
 {
 	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&so=100000000", {});
+		"&dn=foo&so=100000000&so=1", {no, yes});
+}
+
+TORRENT_TEST(parse_magnet_select_only_invalid_no_value)
+{
+	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&so=&dht=10.0.0.1:1337&so=", {});
 }
 
 TORRENT_TEST(parse_magnet_select_only_invalid_no_values)
 {
 	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&so=&dht=10.0.0.1:1337&so=", {});
+		"&dn=foo&so=&dht=10.0.0.1:1337&so=,,1", {no, yes});
 }
+
 
 TORRENT_TEST(parse_magnet_select_only_invalid_quotes)
 {

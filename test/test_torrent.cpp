@@ -609,7 +609,7 @@ TORRENT_TEST(test_move_storage_no_metadata)
 {
 	lt::session ses(settings());
 	error_code ec;
-	add_torrent_params p = parse_magnet_uri("magnet?xt=urn:btih:abababababababababababababababababababab", ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab", ec);
 	p.save_path = "save_path";
 	torrent_handle h = ses.add_torrent(p);
 
@@ -624,7 +624,7 @@ TORRENT_TEST(test_have_piece_no_metadata)
 {
 	lt::session ses(settings());
 	error_code ec;
-	add_torrent_params p = parse_magnet_uri("magnet?xt=urn:btih:abababababababababababababababababababab", ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab", ec);
 	p.save_path = "save_path";
 	torrent_handle h = ses.add_torrent(p);
 
@@ -655,7 +655,7 @@ TORRENT_TEST(test_read_piece_no_metadata)
 {
 	lt::session ses(settings());
 	error_code ec;
-	add_torrent_params p = parse_magnet_uri("magnet?xt=urn:btih:abababababababababababababababababababab", ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab", ec);
 	p.save_path = "save_path";
 	torrent_handle h = ses.add_torrent(p);
 
