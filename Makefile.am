@@ -87,6 +87,7 @@ DOCS_PAGES = \
   docs/tutorial.rst               \
   docs/header.rst                 \
   docs/tutorial.html              \
+  docs/upgrade_to_1.2-ref.html    \
   docs/reference-Alerts.html      \
   docs/reference-Bdecoding.html   \
   docs/reference-Bencoding.html   \

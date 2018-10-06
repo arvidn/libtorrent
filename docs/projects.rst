@@ -12,7 +12,7 @@ Wyzo
 
 wyzo_ is a media browser with built-in bittorrent support.
 
-.. _wyzo: http://www.wyzo.com/
+.. _wyzo: http://wyzo.findmysoft.com/#
 
 deluge
 ------
@@ -95,7 +95,7 @@ interfaces which connects to the daemon. One GUI (Gtkmm), one terminal
 interface (ncurses) and one web interface (accessable through a web browser).
 Written by Michael Wojciechowski and Johan Strom.
 
-.. _btg: http://btg.berlios.de//
+.. _btg: https://sourceforge.net/projects/btg/
 
 electric sheep
 --------------
@@ -111,7 +111,7 @@ Tvitty
 tvitty_ is a bittorrent client for Vista Media Center, which allows
 searching and downloading of torrents directly on your TV.
 
-.. _tvitty: http://tvitty.com
+.. _tvitty: https://tvitty.soft112.com/
 
 hrktorrent
 ----------
@@ -144,7 +144,7 @@ Arctic Torrent
 bittorrent client for windows.
 Written by Cory Nelson.
 
-.. _`Arctic Torrent`: http://www.int64.org/arctic.html
+.. _`Arctic Torrent`: https://www.softpedia.com/get/Internet/File-Sharing/Arctic-Torrent.shtml
 
 bubba
 -----
@@ -153,7 +153,7 @@ Bubba_ is a mini-sized server, designed to fit your home better than
 an always running PC. Boasting Torrent downloader, DAAP streaming,
 Web, E-mail, printer and FTP server etc.
 
-.. _Bubba: http://excito.com/bubba/about-bubba.html
+.. _Bubba: https://excitostore.com/
 
 tvblob
 ------
@@ -165,7 +165,7 @@ like surfing the web.
 This means that anyone will have the ability to reach viewers via the Internet
 directly on TV, without them having to connect a PC.
 
-.. _BLOBbox: http://www.tvblob.com
+.. _BLOBbox: https://www.reviewed.com/cameras/news/blobbox-by-tvblob-20479
 
 Flush
 -----
@@ -182,20 +182,6 @@ and gtkmm for the interface, it has been designed to be a light and full
 featured client.
 
 .. _Lince: http://lincetorrent.sourceforge.net/
-
-Linkage
--------
-
-Linkage_ is a gtkmm client that aims to be middle weight.
-
-.. _Linkage: http://code.google.com/p/linkage/
-
-Bitfox
-------
-
-Bitfox_ is a firefox plugin integrating bittorrent downloads in firefox.
-
-.. _Bitfox: http://code.google.com/p/bitfox/
 
 BitSlug
 -------
@@ -230,5 +216,5 @@ home theater system, while the built in download manager can automatically
 download video and audio podcasts as well as allow you to download bittorrent
 files without needing to leave your computer on.
 
-.. _ZyXEL: http://us.zyxel.com/Products/details.aspx?PC1IndexFlag=20050125090459&CategoryGroupNo=758BFE64-3A95-463C-9E1E-3D30E3B58D9C
+.. _ZyXEL: https://www.zyxel.com/uk/en/products_services/nsa_220_plus.shtml
 
