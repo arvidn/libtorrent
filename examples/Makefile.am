@@ -14,7 +14,7 @@ bin_PROGRAMS = $(example_programs)
 endif
 
 EXTRA_PROGRAMS = $(example_programs)
-EXTRA_DIST = Jamfile CMakeLists.txt run_cmake.sh.in session_view.hpp torrent_view.hpp print.hpp cmake/FindLibtorrentRasterbar.cmake
+EXTRA_DIST = Jamfile CMakeLists.txt session_view.hpp torrent_view.hpp print.hpp cmake/FindLibtorrentRasterbar.cmake
 
 client_test_SOURCES = client_test.cpp print.cpp session_view.cpp torrent_view.cpp
 stats_counters_SOURCES = stats_counters.cpp

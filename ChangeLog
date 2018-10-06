@@ -1,3 +1,5 @@
+1.2 release
+
 	* renamed debug_notification to connect_notification
 	* when updating listen sockets, only post alerts for new ones
 	* deprecate anonymous_mode_alert
