@@ -150,9 +150,7 @@ torrent_handle test_resume_flags(lt::session& ses
 	else
 #endif
 	{
-		error_code ec;
-		p = read_resume_data(rd, ec);
-		TEST_CHECK(!ec);
+		p = read_resume_data(rd);
 	}
 
 	p.ti = ti;
@@ -243,9 +241,7 @@ void test_piece_priorities(bool test_deprecated = false)
 		else
 #endif
 		{
-			error_code ec;
-			p = read_resume_data(resume_data, ec);
-			TEST_CHECK(!ec);
+			p = read_resume_data(resume_data);
 			p.ti = ti;
 			p.save_path = ".";
 		}
@@ -851,9 +847,7 @@ void test_zero_file_prio(bool test_deprecated = false, bool mix_prios = false)
 	else
 #endif
 	{
-		error_code ec;
-		p = read_resume_data(resume_data, ec);
-		TEST_CHECK(!ec);
+		p = read_resume_data(resume_data);
 		p.ti = ti;
 		p.save_path = ".";
 	}

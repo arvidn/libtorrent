@@ -52,6 +52,8 @@ namespace libtorrent {
 		, error_code& ec);
 	TORRENT_EXPORT add_torrent_params read_resume_data(span<char const> buffer
 		, error_code& ec);
+	TORRENT_EXPORT add_torrent_params read_resume_data(bdecode_node const& rd);
+	TORRENT_EXPORT add_torrent_params read_resume_data(span<char const> buffer);
 }
 
 #endif

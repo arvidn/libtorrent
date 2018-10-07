@@ -77,10 +77,7 @@ TORRENT_TEST(read_resume)
 	std::vector<char> resume_data;
 	bencode(std::back_inserter(resume_data), rd);
 
-	error_code ec;
-	add_torrent_params atp = read_resume_data(resume_data, ec);
-
-	TEST_CHECK(!ec);
+	add_torrent_params atp = read_resume_data(resume_data);
 
 	TEST_EQUAL(atp.info_hash, sha1_hash("abcdefghijklmnopqrst"));
 	TEST_EQUAL(atp.have_pieces.size(), 6);
@@ -165,9 +162,7 @@ TORRENT_TEST(read_resume_mismatching_torrent)
 
 	// the info-hash field does not match the torrent in the "info" field, so it
 	// will be ignored
-	error_code ec;
-	add_torrent_params atp = read_resume_data(resume_data, ec);
-	TEST_CHECK(!ec);
+	add_torrent_params atp = read_resume_data(resume_data);
 	TEST_CHECK(!atp.ti);
 }
 
@@ -213,9 +208,7 @@ TORRENT_TEST(read_resume_torrent)
 
 	// the info-hash field does not match the torrent in the "info" field, so it
 	// will be ignored
-	error_code ec;
-	add_torrent_params atp = read_resume_data(resume_data, ec);
-	TEST_CHECK(!ec);
+	add_torrent_params atp = read_resume_data(resume_data);
 	TEST_CHECK(atp.ti);
 
 	TEST_EQUAL(atp.ti->info_hash(), ti->info_hash());
