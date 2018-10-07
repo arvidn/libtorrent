@@ -116,6 +116,7 @@ EXTRA_DIST = \
   Jamfile \
   Jamroot.jam \
   CMakeLists.txt \
+  test/CMakeLists.txt \
   setup.py \
   LICENSE \
   README.rst \
