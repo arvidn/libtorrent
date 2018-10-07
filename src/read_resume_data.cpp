@@ -354,4 +354,23 @@ namespace {
 
 		return read_resume_data(rd, ec);
 	}
+
+	add_torrent_params read_resume_data(bdecode_node const& rd)
+	{
+		error_code ec;
+		auto ret = read_resume_data(rd, ec);
+		if (ec) throw system_error(ec);
+		return ret;
+	}
+
+	add_torrent_params read_resume_data(span<char const> buffer)
+	{
+		error_code ec;
+		bdecode_node rd = bdecode(buffer, ec);
+		if (ec) throw system_error(ec);
+
+		auto ret = read_resume_data(rd, ec);
+		if (ec) throw system_error(ec);
+		return ret;
+	}
 }

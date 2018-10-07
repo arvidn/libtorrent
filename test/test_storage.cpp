@@ -747,8 +747,7 @@ void test_fastresume(bool const test_deprecated)
 		else
 #endif
 		{
-			p = read_resume_data(resume_data, ec);
-			TEST_CHECK(!ec);
+			p = read_resume_data(resume_data);
 		}
 
 		p.flags &= ~torrent_flags::paused;
@@ -928,8 +927,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		else
 #endif
 		{
-			p = read_resume_data(resume_data, ec);
-			TEST_CHECK(!ec);
+			p = read_resume_data(resume_data);
 		}
 		p.ti = std::make_shared<torrent_info>(std::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
