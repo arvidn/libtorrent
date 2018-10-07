@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 project(libtorrent)
-set (SOVERSION "8")
+set (SOVERSION "9")
 set (VERSION "1.1.10")
 
 set(sources
