@@ -166,7 +166,7 @@ option(resolve-countries "enable support for resolving countries from peer IPs" 
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
 option(exceptions "build with exception support" ON)
-option(logging "build with logging" OFF)
+option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
