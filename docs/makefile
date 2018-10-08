@@ -77,10 +77,10 @@ single-page-ref.rst: $(REFERENCE_TARGETS:=.rst)
 	python join_rst.py $(filter-out reference.rst, $(REFERENCE_TARGETS:=.rst)) >single-page-ref.rst
 
 settings.rst: ../include/libtorrent/settings_pack.hpp
-	python gen_settings_doc.py
+	python gen_settings_doc.py || { rm $@; exit 1; }
 
 stats_counters.rst: ../src/session_stats.cpp ../include/libtorrent/performance_counters.hpp
-	python gen_stats_doc.py
+	python gen_stats_doc.py || { rm $@; exit 1; }
 
 manual.rst: stats_counters.rst
 	touch manual.rst
@@ -111,19 +111,19 @@ spell-check:plain_text_out.txt
 	rst2pdf $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
-	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
+	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@ || { rm $@; exit 1; }
 ifneq ($(STAGE),)
-	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@
+	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@ || { rm $@; exit 1; }
 endif
 
 %.png:%.dot
-	dot -Tpng $? >$@
+	dot -Tpng $? >$@ || { rm $@; exit 1; }
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
 
 %.png:%.diagram
-	$(AAFIGURE) --scale 0.6 -o $@ $?
+	$(AAFIGURE) --scale 0.6 -o $@ $? || { rm $@; exit 1; }
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
