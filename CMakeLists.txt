@@ -543,12 +543,10 @@ set_target_properties(torrent-rasterbar
 		SOVERSION ${SOVERSION}
 )
 
-if (cxx_std_14 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
-	target_compile_features(torrent-rasterbar PUBLIC cxx_std_14)
-	message(STATUS "Building in C++14 mode")
-else()
-	target_compile_features(torrent-rasterbar PUBLIC cxx_std_11)
-	message(STATUS "Building in C++11 mode")
+# make the CXX_STANDARD property public to ensure it makes it into the pkg-config file
+get_target_property(_std torrent-rasterbar CXX_STANDARD)
+if (${_std})
+	target_compile_features(torrent-rasterbar PUBLIC cxx_std_${_std})
 endif()
 
 target_include_directories(torrent-rasterbar PUBLIC
