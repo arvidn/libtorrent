@@ -79,7 +79,6 @@ int main(int argc, char*[])
 		alert const* a = s.wait_for_alert(seconds(5));
 		if (a == nullptr)
 		{
-			settings_pack p;
 			p.set_bool(settings_pack::enable_upnp, false);
 			p.set_bool(settings_pack::enable_natpmp, false);
 			s.apply_settings(p);

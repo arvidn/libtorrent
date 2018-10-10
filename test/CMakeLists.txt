@@ -17,6 +17,12 @@ add_library(test_common main.cpp test.cpp setup_transfer.cpp dht_server.cpp udp_
 )
 target_link_libraries(test_common PUBLIC torrent-rasterbar)
 target_compile_features(test_common PUBLIC cxx_std_11)
+if (MSVC)
+	# C4127: conditional expression is constant
+	# C4309: 'conversion' : truncation of constant value
+	# C4310: cast truncates constant value
+	target_compile_options(test_common PUBLIC /wd4127 /wd4309 /wd4310 )
+endif()
 
 foreach(TARGET_SRC ${tests})
 	get_filename_component(TARGET ${TARGET_SRC} NAME_WE)

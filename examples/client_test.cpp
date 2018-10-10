@@ -1238,11 +1238,11 @@ example alert_masks:
 
 	// create directory for resume files
 #ifdef TORRENT_WINDOWS
-	int ret = _mkdir(path_append(save_path, ".resume").c_str());
+	int mkdir_ret = _mkdir(path_append(save_path, ".resume").c_str());
 #else
-	int ret = mkdir(path_append(save_path, ".resume").c_str(), 0777);
+	int mkdir_ret = mkdir(path_append(save_path, ".resume").c_str(), 0777);
 #endif
-	if (ret < 0 && errno != EEXIST)
+	if (mkdir_ret < 0 && errno != EEXIST)
 	{
 		std::fprintf(stderr, "failed to create resume file directory: (%d) %s\n"
 			, errno, strerror(errno));
@@ -1455,8 +1455,8 @@ example alert_masks:
 					set_keypress s(set_keypress::echo | set_keypress::canonical);
 #endif
 					char response = 'n';
-					int ret = std::scanf("%c", &response);
-					if (ret == 1 && response == 'y')
+					int scan_ret = std::scanf("%c", &response);
+					if (scan_ret == 1 && response == 'y')
 					{
 						// also delete the resume file
 						std::string const rpath = resume_file(st.info_hash);
@@ -1723,7 +1723,6 @@ COLUMN OPTIONS
 				out += str;
 				pos += 1;
 				std::vector<lt::announce_entry> tr = h.trackers();
-				lt::time_point now = lt::clock_type::now();
 				for (lt::announce_entry const& ae : h.trackers())
 				{
 					auto best_ae = std::min_element(ae.endpoints.begin(), ae.endpoints.end()
@@ -1744,9 +1743,9 @@ COLUMN OPTIONS
 
 			if (print_matrix)
 			{
-				int height = 0;
-				print(piece_matrix(s.pieces, terminal_width, &height).c_str());
-				pos += height;
+				int height_out = 0;
+				print(piece_matrix(s.pieces, terminal_width, &height_out).c_str());
+				pos += height_out;
 			}
 
 			if (print_downloads)
