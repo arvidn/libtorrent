@@ -793,13 +793,13 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 	const std::int64_t total_size = std::int64_t(piece_size) * num_pieces;
 
 	std::int64_t s = total_size;
-	int i = 0;
+	int file_index = 0;
 	std::int64_t file_size = total_size / num_files;
 	while (s > 0)
 	{
 		char b[100];
-		std::snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
-		++i;
+		std::snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, file_index);
+		++file_index;
 		fs.add_file(b, std::min(s, file_size));
 		s -= file_size;
 		file_size += 200;
