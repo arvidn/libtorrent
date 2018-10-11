@@ -48,9 +48,9 @@ std::string to_string(int v, int width)
 	return buf;
 }
 
-std::string add_suffix_float(float val, char const* suffix)
+std::string add_suffix_float(double val, char const* suffix)
 {
-	if (val < 0.001f)
+	if (val < 0.001)
 	{
 		std::string ret;
 		ret.resize(4 + 2, ' ');
@@ -63,8 +63,8 @@ std::string add_suffix_float(float val, char const* suffix)
 	int i = 0;
 	for (; i < num_prefix - 1; ++i)
 	{
-		val /= 1000.f;
-		if (std::fabs(val) < 1000.f) break;
+		val /= 1000.;
+		if (std::fabs(val) < 1000.) break;
 	}
 	char ret[100];
 	std::snprintf(ret, sizeof(ret), "%4.*f%s%s", val < 99 ? 1 : 0, val, prefix[i], suffix ? suffix : "");
@@ -88,7 +88,7 @@ std::string const& progress_bar(int progress, int width, color_code c
 	bar.clear();
 	bar.reserve(size_t(width + 10));
 
-	int const progress_chars = (progress * width + 500) / 1000;
+	auto const progress_chars = static_cast<std::size_t>((progress * width + 500) / 1000);
 
 	if (caption.empty())
 	{
@@ -181,13 +181,13 @@ std::string const& piece_bar(lt::bitfield const& p, int width)
 			// now, print color[0] and [1]
 			// bg determines whether we're settings foreground or background color
 			static int const bg[] = { 38, 48};
-			for (int i = 0; i < 2; ++i)
+			for (int k = 0; k < 2; ++k)
 			{
-				if (color[i] != last_color[i])
+				if (color[k] != last_color[k])
 				{
 					char buf[40];
-					std::snprintf(buf, sizeof(buf), "\x1b[%d;5;%dm", bg[i & 1], 232 + color[i]);
-					last_color[i] = color[i];
+					std::snprintf(buf, sizeof(buf), "\x1b[%d;5;%dm", bg[k & 1], 232 + color[k]);
+					last_color[k] = color[k];
 					bar += buf;
 				}
 			}
