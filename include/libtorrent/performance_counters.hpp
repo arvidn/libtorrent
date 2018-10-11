@@ -42,7 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct TORRENT_EXTRA_EXPORT counters
+	// TODO: It would be nice if this could be an internal type. default_disk_constructor depends on it now
+	struct TORRENT_EXPORT counters
 	{
 		// TODO: move this out of counters
 		enum stats_counter_t
@@ -376,7 +377,7 @@ namespace libtorrent {
 			// of peers unchoked via the optimistic unchoke
 			// (``up_unchoked_optimistic``) and peers unchoked via the
 			// reciprocation (regular) unchoke mechanism (``up_unchoked``).
-			// and the number of peers that have unchoked us (``down_unchoked).
+			// and the number of peers that have unchoked us (``down_unchoked``).
 			num_peers_up_unchoked_all,
 			num_peers_up_unchoked_optimistic,
 			num_peers_up_unchoked,

@@ -31,8 +31,6 @@ def clean():
         '*.hpp.rej',
         '*.hpp.gcov',
         '*.cpp.gcov',
-        'Makefile.in',
-        'Makefile',
         'lib*.a',
         'Jamfile.rej',
         'Jamfile.orig',

@@ -15,10 +15,9 @@ To download the latest version of libtorrent, clone the `github repository`__.
 
 __ https://github.com/arvidn/libtorrent
 
-The build systems supported "out of the box" in libtorrent are boost-build v2
-(BBv2) and cmake. If you still can't build after following these instructions,
-you can usually get help in the ``#libtorrent`` IRC channel on
-``irc.freenode.net``.
+The build systems supported "out of the box" in libtorrent are boost-build
+cmake. If you still can't build after following these instructions, you can
+usually get help in the ``#libtorrent`` IRC channel on ``irc.freenode.net``.
 
 .. warning::
 
@@ -32,9 +31,6 @@ you can usually get help in the ``#libtorrent`` IRC channel on
 	link against libtorrent as when you build it.
 
 	Boost-build supports propagating configuration options to dependencies.
-	When building using the makefiles, this is handled by setting the
-	configuration options in the pkg-config file. Always use pkg-config
-	when linking against libtorrent.
 
 building from git
 -----------------

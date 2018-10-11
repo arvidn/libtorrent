@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 
-from distutils.core import setup, Extension
-from distutils.sysconfig import get_config_vars
+from distutils.core import setup
 import os
 import platform
 import sys
@@ -52,130 +51,71 @@ def target_specific():
     return []
 
 
-try:
-    with open('compile_flags') as _file:
-        extra_cmd = _file.read()
-except Exception:
-    extra_cmd = None
+if '--help' not in sys.argv \
+        and '--help-commands' not in sys.argv:
 
-try:
-    with open('link_flags') as _file:
-        ldflags = _file.read()
-except Exception:
-    ldflags = None
+    toolset = ''
+    file_ext = '.so'
 
-# this is to pull out compiler arguments from the CXX flags set up by the
-# configure script. Specifically, the -std=c++11 flag is added to CXX and here
-# we pull out everything starting from the first flag (i.e. something starting
-# with a '-'). The actual command to call the compiler may be more than one
-# word, for instance "ccache g++".
-try:
-    with open('compile_cmd') as _file:
-        cmd = _file.read().split(' ')
-        while len(cmd) > 0 and not cmd[0].startswith('-'):
-            cmd = cmd[1:]
-        extra_cmd += ' '.join(cmd)
-except Exception:
-    pass
-
-ext = None
-packages = None
-
-if '--bjam' in sys.argv:
-    del sys.argv[sys.argv.index('--bjam')]
-
-    if '--help' not in sys.argv \
-            and '--help-commands' not in sys.argv:
-
-        toolset = ''
-        file_ext = '.so'
-
-        if platform.system() == 'Windows':
-            file_ext = '.pyd'
-            # See https://wiki.python.org/moin/WindowsCompilers for a table of msvc versions
-            # used for each python version
-            # Specify the full version number for 9.0 and 10.0 because apparently
-            # older versions of boost don't support only specifying the major number and
-            # there was only one version of msvc with those majors.
-            # Only specify the major for msvc-14 so that 14.1, 14.11, etc can be used.
-            # Hopefully people building with msvc-14 are using a new enough version of boost
-            # for this to work.
-            if sys.version_info[0:2] in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
-                toolset = ' toolset=msvc-9.0'
-            elif sys.version_info[0:2] in ((3, 3), (3, 4)):
-                toolset = ' toolset=msvc-10.0'
-            elif sys.version_info[0:2] in ((3, 5), (3, 6)):
-                toolset = ' toolset=msvc-14'
-            else:
-                # unknown python version, lets hope the user has the right version of msvc configured
-                toolset = ' toolset=msvc'
-
-        parallel_builds = ' -j%d' % multiprocessing.cpu_count()
-        if sys.maxsize > 2**32:
-            address_model = ' address-model=64'
+    if platform.system() == 'Windows':
+        file_ext = '.pyd'
+        # See https://wiki.python.org/moin/WindowsCompilers for a table of msvc versions
+        # used for each python version
+        # Specify the full version number for 9.0 and 10.0 because apparently
+        # older versions of boost don't support only specifying the major number and
+        # there was only one version of msvc with those majors.
+        # Only specify the major for msvc-14 so that 14.1, 14.11, etc can be used.
+        # Hopefully people building with msvc-14 are using a new enough version of boost
+        # for this to work.
+        if sys.version_info[0:2] in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
+            toolset = ' toolset=msvc-9.0'
+        elif sys.version_info[0:2] in ((3, 3), (3, 4)):
+            toolset = ' toolset=msvc-10.0'
+        elif sys.version_info[0:2] in ((3, 5), (3, 6)):
+            toolset = ' toolset=msvc-14.0'
         else:
-            address_model = ' address-model=32'
+            # unknown python version, lets hope the user has the right version of msvc configured
+            toolset = ' toolset=msvc'
 
-        # add extra quoting around the path to prevent bjam from parsing it as a list
-        # if the path has spaces
-        os.environ['LIBTORRENT_PYTHON_INTERPRETER'] = '"' + sys.executable + '"'
+        # on windows, just link all the dependencies together to keep it simple
+        toolset += ' libtorrent-link=static boost-link=static'
 
-        # build libtorrent using bjam and build the installer with distutils
-        cmdline = ('b2 libtorrent-link=static boost-link=static release '
-                   'optimization=space stage_module --abbreviate-paths' +
-                   address_model + toolset + parallel_builds)
-        print(cmdline)
-        if os.system(cmdline) != 0:
-            print('build failed')
-            sys.exit(1)
+    parallel_builds = ' -j%d' % multiprocessing.cpu_count()
+    if sys.maxsize > 2**32:
+        address_model = ' address-model=64'
+    else:
+        address_model = ' address-model=32'
 
-        try:
-            os.mkdir('build')
-        except Exception:
-            pass
-        try:
-            shutil.rmtree('build/lib')
-        except Exception:
-            pass
-        try:
-            os.mkdir('build/lib')
-        except Exception:
-            pass
-        try:
-            os.mkdir('libtorrent')
-        except Exception:
-            pass
-        shutil.copyfile('libtorrent' + file_ext,
-                        'build/lib/libtorrent' + file_ext)
+    # add extra quoting around the path to prevent bjam from parsing it as a list
+    # if the path has spaces
+    os.environ['LIBTORRENT_PYTHON_INTERPRETER'] = '"' + sys.executable + '"'
 
-    packages = ['libtorrent']
+    # build libtorrent using bjam and build the installer with distutils
+    cmdline = ('bjam release optimization=space stage_module --hash' +
+               address_model + toolset + parallel_builds)
+    print(cmdline)
+    if os.system(cmdline) != 0:
+        print('build failed')
+        sys.exit(1)
 
-else:
-    # Remove '-Wstrict-prototypes' compiler option, which isn't valid for C++.
-    cfg_vars = get_config_vars()
-    for key, value in list(cfg_vars.items()):
-        if isinstance(value, str):
-            cfg_vars[key] = value.replace('-Wstrict-prototypes', '')
-
-    src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
-    source_list = [os.path.join(src_dir, s) for s in os.listdir(src_dir) if s.endswith(".cpp")]
-
-    if extra_cmd:
-        flags = flags_parser()
-        # ldflags parsed first to ensure the correct library search path order
-        extra_link = flags.parse(ldflags)
-        extra_compile = flags.parse(extra_cmd)
-
-        ext = [Extension(
-            'libtorrent',
-            sources=sorted(source_list),
-            language='c++',
-            include_dirs=flags.include_dirs,
-            library_dirs=flags.library_dirs,
-            extra_link_args=extra_link + arch(),
-            extra_compile_args=extra_compile + arch() + target_specific(),
-            libraries=['torrent-rasterbar'] + flags.libraries)
-        ]
+    try:
+        os.mkdir('build')
+    except BaseException:
+        pass
+    try:
+        shutil.rmtree('build/lib')
+    except BaseException:
+        pass
+    try:
+        os.mkdir('build/lib')
+    except BaseException:
+        pass
+    try:
+        os.mkdir('libtorrent')
+    except BaseException:
+        pass
+    shutil.copyfile('libtorrent' + file_ext,
+                    'build/lib/libtorrent' + file_ext)
 
 setup(
     name='python-libtorrent',
@@ -187,6 +127,6 @@ setup(
     url='http://libtorrent.org',
     platforms=[platform.system() + '-' + platform.machine()],
     license='BSD',
-    packages=packages,
-    ext_modules=ext
+    packages=['libtorrent'],
+    ext_modules=None
 )
