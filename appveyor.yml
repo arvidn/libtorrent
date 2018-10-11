@@ -21,6 +21,7 @@ environment:
       compiler: msvc-14.0
       model: 64
       python: 1
+      python_dist: 1
       crypto: openssl
       bjam: 1
     - variant: test_debug
@@ -28,6 +29,10 @@ environment:
       model: 32
       crypto: openssl
       bjam: 1
+
+artifacts:
+  - path: bindings/python/dist/*
+    name: python-module
 
 install:
   - git submodule update --init --recursive
@@ -78,6 +83,9 @@ build_script:
   # we use 64 bit python builds
   - if defined python (
     b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% libtorrent-link=shared stage_module stage_dependencies
+    )
+  - if defined python_dist (
+    c:\Python35-x64\python.exe setup.py bdist --format=msi
     )
 
   # simulations
