@@ -39,11 +39,11 @@ using namespace lt;
 int main()
 {
 	std::vector<stats_metric> m = session_stats_metrics();
-	for (int i = 0; i < int(m.size()); ++i)
+	for (auto const& c : m)
 	{
 		std::printf("%s: %s (%d)\n"
-			, m[i].type == metric_type_t::counter ? "CNTR" : "GAUG"
-			, m[i].name, m[i].value_index);
+			, c.type == metric_type_t::counter ? "CNTR" : "GAUG"
+			, c.name, c.value_index);
 	}
 	return 0;
 }

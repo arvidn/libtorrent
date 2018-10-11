@@ -63,6 +63,7 @@ int main(int argc, char* argv[])
 
 #else
 
+namespace {
 void usage()
 {
 	std::fprintf(stderr,
@@ -190,7 +191,7 @@ void load_dht_state(lt::session& s)
 	std::vector<char> state;
 	state.resize(static_cast<std::size_t>(size));
 
-	f.read(state.data(), state.size());
+	f.read(state.data(), size);
 	if (f.fail())
 	{
 		std::fprintf(stderr, "failed to read .dht");
@@ -210,7 +211,6 @@ void load_dht_state(lt::session& s)
 	}
 }
 
-
 int save_dht_state(lt::session& s)
 {
 	entry e;
@@ -219,9 +219,10 @@ int save_dht_state(lt::session& s)
 	bencode(std::back_inserter(state), e);
 
 	std::fstream f(".dht", std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-	f.write(state.data(), state.size());
+	f.write(state.data(), static_cast<std::streamsize>(state.size()));
 	return 0;
 }
+} // anonymous namespace
 
 int main(int argc, char* argv[])
 {
@@ -251,7 +252,7 @@ int main(int argc, char* argv[])
 
 	settings_pack sett;
 	sett.set_bool(settings_pack::enable_dht, false);
-	sett.set_int(settings_pack::alert_mask, 0xffffffff);
+	sett.set_int(settings_pack::alert_mask, 0x7fffffff);
 	lt::session s(sett);
 
 	sett.set_bool(settings_pack::enable_dht, true);
@@ -272,7 +273,7 @@ int main(int argc, char* argv[])
 			usage();
 		}
 		sha1_hash target;
-		bool ret = from_hex({argv[0], 40}, (char*)&target[0]);
+		bool ret = from_hex({argv[0], 40}, target.data());
 		if (!ret)
 		{
 			std::fprintf(stderr, "invalid hex encoding of target hash\n");

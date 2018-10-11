@@ -52,7 +52,7 @@ std::vector<char> load_file(std::string const& filename)
 	size_t const size = size_t(in.tellg());
 	in.seekg(0, std::ios_base::beg);
 	std::vector<char> ret(size);
-	in.read(ret.data(), ret.size());
+	in.read(ret.data(), size);
 	return ret;
 }
 

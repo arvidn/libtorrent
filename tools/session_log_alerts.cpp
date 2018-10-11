@@ -44,7 +44,7 @@ int main(int /*argc*/, char* /*argv*/[])
 	std::printf("press Ctrl+C, kill the process or wait for 1000 alerts\n");
 
 	settings_pack sett;
-	sett.set_int(settings_pack::alert_mask, 0xffffffff);
+	sett.set_int(settings_pack::alert_mask, 0x7fffffff);
 	session s(sett);
 
 	int count = 0;

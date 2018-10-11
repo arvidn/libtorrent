@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"
 
+namespace {
 char const* timestamp()
 {
 	std::time_t t = std::time(nullptr);
@@ -59,6 +60,7 @@ void print_alert(lt::alert const* a)
 	std::printf("[%s] %s\n", timestamp(), a->message().c_str());
 	std::printf("%s", "\x1b[0m");
 }
+} // anonymous namespace
 
 int main(int argc, char*[])
 {
