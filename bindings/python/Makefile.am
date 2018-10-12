@@ -1,6 +1,8 @@
 
 EXTRA_DIST = \
   Jamfile                   \
+  CMakeLists.txt            \
+  setup.py.cmake.in         \
   setup.py                  \
   client.py                 \
   simple_client.py          \

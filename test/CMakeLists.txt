@@ -12,11 +12,10 @@ file(GLOB tests "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
 list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_natpmp.cpp") # doesn't build at time of writing
 list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_utils.cpp") # helper file, not a test
 
-add_library(test_common main.cpp test.cpp setup_transfer.cpp dht_server.cpp udp_tracker.cpp
+add_library(test_common STATIC main.cpp test.cpp setup_transfer.cpp dht_server.cpp udp_tracker.cpp
 	peer_server.cpp web_seed_suite.cpp swarm_suite.cpp test_utils.cpp make_torrent.cpp settings.cpp
 )
 target_link_libraries(test_common PUBLIC torrent-rasterbar)
-target_compile_features(test_common PUBLIC cxx_std_11)
 if (MSVC)
 	# C4127: conditional expression is constant
 	# C4309: 'conversion' : truncation of constant value
@@ -27,7 +26,6 @@ endif()
 foreach(TARGET_SRC ${tests})
 	get_filename_component(TARGET ${TARGET_SRC} NAME_WE)
 	add_executable(${TARGET} ${TARGET_SRC})
-	target_compile_features(${TARGET} PRIVATE cxx_std_11)
 	target_link_libraries(${TARGET} test_common)
 	add_test(${TARGET} ${TARGET})
 endforeach()
