@@ -1,4 +1,4 @@
 
 SUBDIRS = python
 
-EXTRA_DIST = README.txt
+EXTRA_DIST = README.txt CMakeLists.txt

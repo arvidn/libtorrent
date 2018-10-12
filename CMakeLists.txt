@@ -581,9 +581,8 @@ if (WIN32)
 	)
 
 	target_compile_definitions(torrent-rasterbar
-		PUBLIC
-			_WIN32_WINNT=0x0600 # target Windows Vista or later
-			WIN32_LEAN_AND_MEAN # prevent winsock1 to be included
+		PRIVATE _WIN32_WINNT=0x0600 # target Windows Vista or later
+		PUBLIC WIN32_LEAN_AND_MEAN # prevent winsock1 to be included
 	)
 
 	if (MSVC)

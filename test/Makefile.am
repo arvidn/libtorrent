@@ -121,12 +121,23 @@ EXTRA_DIST = Jamfile \
   mutable_test_torrents/test2_pad_files.torrent \
   mutable_test_torrents/test3.torrent \
   mutable_test_torrents/test3_pad_files.torrent \
+  ssl/regenerate_test_certificate.sh \
+  ssl/cert_request.pem \
+  ssl/dhparams.pem \
+  ssl/invalid_peer_certificate.pem \
+  ssl/invalid_peer_private_key.pem \
+  ssl/peer_certificate.pem \
+  ssl/peer_private_key.pem \
+  ssl/root_ca_cert.pem \
+  ssl/root_ca_private.pem \
+  ssl/server.pem \
   zeroes.gz \
   corrupt.gz \
   utf8_test.txt \
   web_server.py \
   socks.py \
-  http.py
+  http.py \
+  CMakeLists.txt
 
 EXTRA_PROGRAMS = $(test_programs)
 
