@@ -1,3 +1,5 @@
+	* fix python binding for torrent_info::creation_date()
+
 1.1.10 release
 
 	* fix issue in udp_socket with unusual socket failure

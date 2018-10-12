@@ -137,5 +137,6 @@ void bind_datetime()
     >();
 
     optional_to_python<boost::posix_time::ptime>();
+    optional_to_python<std::time_t>();
 }
 
