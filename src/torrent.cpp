@@ -4176,6 +4176,21 @@ bool is_downloading_state(int const st)
 			m_predictive_pieces.erase(it);
 		}
 
+		if (!torrent_file().info_hash().has_v1() && chunks.empty())
+		{
+			// This is a v2 only torrent so we can definitely get block
+			// level hashes. Don't fail the piece yet, let it sit in the
+			// finished state and request block hashes.
+
+			// If this is a hybrid torrent we might be able to get block level
+			// hashes, but there is no guarantee that there is a v2 peer to
+			// request them from. For now be conservative and re-request
+			// the block without waiting for block hashes.
+
+			get_hash_picker().verify_chunk_hashes(index);
+			return;
+		}
+
 		// increase the total amount of failed bytes
 		if (chunks.empty())
 			add_failed_bytes(m_torrent_file->piece_size(index));
