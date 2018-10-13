@@ -388,7 +388,7 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 		progress_bar_color = col_green;
 
 	auto ti = s.torrent_file.lock();
-	int const total_pieces = ti ? ti->num_pieces() : 0;
+	int const total_pieces = ti && ti->is_valid() ? ti->num_pieces() : 0;
 	color_code piece_color = total_pieces == s.num_pieces ? col_green : col_yellow;
 
 	pos += std::snprintf(str + pos, sizeof(str) - pos, "%s%-3s %-50s %s%s %s/%s %s (%s) "
