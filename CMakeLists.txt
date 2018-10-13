@@ -613,6 +613,7 @@ endif()
 feature_option(build_tests "build tests" OFF)
 feature_option(build_examples "build examples" OFF)
 feature_option(build_tools "build tools" OFF)
+feature_option(c-bindings "build C bindings" OFF)
 feature_option(python-bindings "build python bindings" OFF)
 
 # these options require existing target
