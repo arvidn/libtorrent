@@ -419,10 +419,17 @@ system to actually schedule builds, for example ``ninja``.
 
 Step 1: Generating the build system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Create a build directory for out-of-source build inside the libtorrent root directory::
 
-Run ``cmake`` in the libtorrent root directory, like this::
+	mkdir build
 
-	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=11 -G Ninja .
+and ``cd`` there::
+
+	cd build
+
+Run ``cmake`` in the build directory, like this::
+
+	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=11 -G Ninja ..
 
 The ``CMAKE_CXX_STANDARD`` has to be at least 11, but you may want to raise it
 to ``14`` or ``17`` if your project use a newer version of the C++ standard.
@@ -460,7 +467,7 @@ Other build options are:
 |                       | over TLS, and obfuscated bittorrent connections.  |
 +-----------------------+---------------------------------------------------+
 
-Options are set on the ``cmake`` command line with the ``-D`` option.
+Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and and their current values.
 
 Step 2: Building libtorrent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -469,7 +476,7 @@ In the terminal, run::
 
 	ninja -j8
 
-(the number after 8 specifies the number of parallel jobs to build in).
+in the build directory the number after ``-j`` specifies the number of parallel jobs to build in; you may omit this option to let ``ninja`` use all your cores).
 
 If you enabled test in the configuration step, to run them, run::
 
