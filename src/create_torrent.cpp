@@ -245,6 +245,18 @@ namespace libtorrent
 			, default_pred, flags);
 	}
 
+namespace {
+	struct disk_aborter
+	{
+		disk_aborter(disk_io_thread& dio) : m_dio(dio) {}
+		~disk_aborter() { m_dio.abort(true); }
+	private:
+		disk_aborter(disk_aborter const&);
+		disk_aborter& operator=(disk_aborter const);
+		disk_io_thread& m_dio;
+	};
+}
+
 	void set_piece_hashes(create_torrent& t, std::string const& p
 		, boost::function<void(int)> const& f, error_code& ec)
 	{
@@ -284,6 +296,7 @@ namespace libtorrent
 #else
 		disk_thread.set_num_threads(1);
 #endif
+		disk_aborter da(disk_thread);
 
 		storage_params params;
 		params.files = &t.files();
@@ -326,7 +339,6 @@ namespace libtorrent
 #else
 		ios.run(ec);
 #endif
-		disk_thread.abort(true);
 	}
 
 	create_torrent::~create_torrent() {}
