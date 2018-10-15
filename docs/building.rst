@@ -411,6 +411,15 @@ __ https://boostorg.github.io/build/manual/develop/index.html
 __ https://boostorg.github.io/build/manual/develop/index.html#bbv2.overview.builtins.features
 
 
+Step 4: Installing libtorrent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To install libtorrent run ``b2`` with the ``install`` target::
+
+	b2 install --prefix=/usr/local
+
+Change the value of the ``--prefix`` argument to install it in a different location.
+
 building with cmake
 -------------------
 
