@@ -70,7 +70,7 @@ namespace libtorrent {
 
 	hasher512& hasher512::operator=(hasher512 const& h) &
 	{
-		if (this == &h) return;
+		if (this == &h) return *this;
 		gcry_md_close(m_context);
 		gcry_md_copy(&m_context, h.m_context);
 		return *this;
