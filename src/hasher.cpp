@@ -77,7 +77,7 @@ namespace libtorrent {
 
 	hasher& hasher::operator=(hasher const& h) &
 	{
-		if (this == &h) return;
+		if (this == &h) return *this;
 		gcry_md_close(m_context);
 		gcry_md_copy(&m_context, h.m_context);
 		return *this;
