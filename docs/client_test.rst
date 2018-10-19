@@ -42,6 +42,6 @@ The commands available in the client are:
 The list at the bottom (shown if you press ``d``) shows which blocks has
 been requested from which peer. The green background means that it has been
 downloaded. It shows that fast peers will prefer to request whole pieces
-instead of dowloading parts of pieces. It may make it easier to determine
+instead of downloading parts of pieces. It may make it easier to determine
 which peer that sent the corrupt data if a piece fails the hash test.
 
