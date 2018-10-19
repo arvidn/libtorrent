@@ -81,7 +81,7 @@ for line in f:
                         client_histogram[v[0:2]] = 1
                     else:
                         client_histogram[v[0:2]] += 1
-        except BaseException:
+        except Exception:
             pass
 
         if 'announce-distance:' in line:
@@ -153,7 +153,7 @@ for line in f:
                 start_time = convert_timestamp(s[0]['t'])
                 for i in range(len(s)):
                     s[i]['t'] = convert_timestamp(s[i]['t']) - start_time
-            except BaseException:
+            except Exception:
                 pass
             searches.append(s)
             del outstanding_searches[search_id]

@@ -960,7 +960,7 @@ bool is_downloading_state(int const st)
 		if (mask & torrent_flags::paused)
 		{
 			if (flags & torrent_flags::paused)
-				graceful_pause();
+				pause(torrent_handle::graceful_pause);
 			else
 				resume();
 		}

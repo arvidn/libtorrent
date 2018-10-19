@@ -55,13 +55,13 @@ def target_specific():
 try:
     with open('compile_flags') as _file:
         extra_cmd = _file.read()
-except BaseException:
+except Exception:
     extra_cmd = None
 
 try:
     with open('link_flags') as _file:
         ldflags = _file.read()
-except BaseException:
+except Exception:
     ldflags = None
 
 # this is to pull out compiler arguments from the CXX flags set up by the
@@ -75,7 +75,7 @@ try:
         while len(cmd) > 0 and not cmd[0].startswith('-'):
             cmd = cmd[1:]
         extra_cmd += ' '.join(cmd)
-except BaseException:
+except Exception:
     pass
 
 ext = None
@@ -131,19 +131,19 @@ if '--bjam' in sys.argv:
 
         try:
             os.mkdir('build')
-        except BaseException:
+        except Exception:
             pass
         try:
             shutil.rmtree('build/lib')
-        except BaseException:
+        except Exception:
             pass
         try:
             os.mkdir('build/lib')
-        except BaseException:
+        except Exception:
             pass
         try:
             os.mkdir('libtorrent')
-        except BaseException:
+        except Exception:
             pass
         shutil.copyfile('libtorrent' + file_ext,
                         'build/lib/libtorrent' + file_ext)

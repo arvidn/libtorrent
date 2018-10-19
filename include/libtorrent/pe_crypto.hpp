@@ -30,10 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if !defined TORRENT_DISABLE_ENCRYPTION
-
 #ifndef TORRENT_PE_CRYPTO_HPP_INCLUDED
 #define TORRENT_PE_CRYPTO_HPP_INCLUDED
+
+#if !defined TORRENT_DISABLE_ENCRYPTION
 
 #include "libtorrent/config.hpp"
 
@@ -157,5 +157,6 @@ namespace libtorrent {
 
 } // namespace libtorrent
 
-#endif // TORRENT_PE_CRYPTO_HPP_INCLUDED
 #endif // TORRENT_DISABLE_ENCRYPTION
+
+#endif // TORRENT_PE_CRYPTO_HPP_INCLUDED

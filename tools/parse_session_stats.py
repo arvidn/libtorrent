@@ -54,7 +54,7 @@ keys = line.split('session stats header:')[1].strip().split(', ')
 
 try:
     os.mkdir(output_dir)
-except BaseException:
+except Exception:
     pass
 data_out = open(os.path.join(output_dir, 'counters.dat'), 'w+')
 
@@ -91,8 +91,8 @@ for i in range(0, len(pattern) * 3):
     op = i / len(pattern)
 
     c = list(pattern[i % len(pattern)])
-    for i in range(3):
-        c[i] *= 0xff
+    for j in range(3):
+        c[j] *= 0xff
     c = process_color(c, op)
 
     c = '#%02x%02x%02x' % (c[0], c[1], c[2])
@@ -156,7 +156,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
             sys.stdout.write('.')
             return None
 
-    except BaseException:
+    except Exception:
         pass
 
     script = os.path.join(output_dir, '%s_%04d.gnuplot' % (name, generation))
@@ -180,7 +180,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
             colors = gradient6_colors
         if options['colors'] == 'gradient18':
             colors = gradient18_colors
-    except BaseException:
+    except Exception:
         pass
 
     if options['type'] == histogram:
@@ -197,7 +197,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
         k = lines[0]
         try:
             column = keys.index(k) + 2
-        except BaseException:
+        except Exception:
             print('"%s" not found' % k)
             return
         print('plot "%s" using (bin($%d,binwidth)):(1.0) smooth freq with boxes' % (log_file, column), file=out)
@@ -212,7 +212,6 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
         print('set format y "%%.1s%%c%s";' % short_unit, file=out)
         print('set style fill solid 1.0 noborder', file=out)
         print('plot', end=' ', file=out)
-        column = 2
         first = True
         graph = ''
         plot_expression = ''
@@ -220,7 +219,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
         for k in lines:
             try:
                 column = keys.index(k) + 2
-            except BaseException:
+            except Exception:
                 print('"%s" not found' % k)
                 continue
             if not first:
@@ -238,14 +237,13 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
         print('set ylabel "%s"' % unit, file=out)
         print('set xlabel "time (s)"', file=out)
         print('set format y "%%.1s%%c%s";' % short_unit, file=out)
-        column = 2
         first = True
         graph = ''
         title = ''
         for k in lines:
             try:
                 column = keys.index(k) + 2
-            except BaseException:
+            except Exception:
                 print('"%s" not found' % k)
                 continue
             if not first:
@@ -261,13 +259,12 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
         print('set xlabel "time (s)"', file=out)
         print('set format y "%%.1s%%c%s";' % short_unit, file=out)
         print('plot', end=' ', file=out)
-        column = 2
         first = True
         color = 0
         for k in lines:
             try:
                 column = keys.index(k) + 2
-            except BaseException:
+            except Exception:
                 print('"%s" not found' % k)
                 continue
             if not first:
@@ -643,7 +640,7 @@ print('[%s] %04d\r[' % (' ' * len(reports), g), end='')
 for i in reports:
     try:
         options = i[5]
-    except BaseException:
+    except Exception:
         options = {}
     if 'type' not in options:
         options['type'] = line_graph

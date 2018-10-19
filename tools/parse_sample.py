@@ -27,7 +27,7 @@ fold = -1
 
 try:
     sample_limit = int(sys.argv[2])
-except BaseException:
+except Exception:
     sample_limit = 5
 
 fun_samples = {}

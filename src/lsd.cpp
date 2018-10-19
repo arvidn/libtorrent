@@ -257,7 +257,7 @@ void lsd::on_announce(udp::endpoint const& from, span<char const> buf)
 		sha1_hash ih;
 		aux::from_hex(ih_str, ih.data());
 
-		if (!ih.is_all_zeros() && port != 0)
+		if (!ih.is_all_zeros())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
