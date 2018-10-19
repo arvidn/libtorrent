@@ -38,7 +38,7 @@ whose hash will be *closest* to the target info-hash. Given the current
 size of the DHT, that is quite likely to be possible by anyone in control
 of a /8 IP block.
 
-The size of the DHT is approximately 8.4 million nodes. This is estmiated
+The size of the DHT is approximately 8.4 million nodes. This is estimated
 by observing that a typical routing table typically has about 20 of its
 top routing table buckets full. That means the key space is dense enough
 to contain 8 nodes for every combination of the 20 top bits of node IDs.
@@ -50,7 +50,7 @@ By controlling 8 times that many IP addresses, an attacker could actually
 take over any info-hash.
 
 With IPv4, snooping would require a /8 IP block, giving access to 16.7 million
-Ips.
+IPs.
 
 Another problem with hashing the IP is that multiple users behind a NAT are
 forced to run their DHT nodes on the same node ID.
@@ -63,7 +63,7 @@ of IPs, as well as allowing more than one node ID per external IP, the node
 ID can be restricted at each class level of the IP.
 
 Another important property of the restriction put on node IDs is that the
-distribution of the IDs remoain uniform. This is why CRC32C (Castagnoli) was
+distribution of the IDs remain uniform. This is why CRC32C (Castagnoli) was
 chosen as the hash function.
 
 The expression to calculate a valid ID prefix (from an IPv4 address) is::
@@ -79,7 +79,7 @@ representing the masked IP address is supposed to be big-endian before
 hashed. The "|" operator means bit-wise OR.
 
 The details of implementing this is to evaluate the expression, store the
-result in a big endian 64 bit integer and hash those 8 bytes with CRC32C.
+result in a big-endian 64 bit integer and hash those 8 bytes with CRC32C.
 
 The first (most significant) 21 bits of the node ID used in the DHT MUST
 match the first 21 bits of the resulting hash. The last byte of the hash MUST
@@ -137,7 +137,7 @@ bootstrapping
 In order to set ones initial node ID, the external IP needs to be known. This
 is not a trivial problem. With this extension, *all* DHT responses SHOULD include
 a *top-level* field called ``ip``, containing a compact binary representation of
-the requestor's IP and port. That is big endian IP followed by 2 bytes of big endian
+the requester's IP and port. That is big-endian IP followed by 2 bytes of big-endian
 port.
 
 The IP portion is the same byte sequence used to verify the node ID.
@@ -181,7 +181,7 @@ to this property.
 
 This test takes into account IP addresses that are not globally routable, i.e.
 reserved for local networks, multicast and other things. It also takes into
-account that some /8 blocks are not in use by end-users and exremely unlikely
+account that some /8 blocks are not in use by end-users and extremely unlikely
 to ever run a DHT node. This makes the results likely to be very similar to
 what we would see in the wild.
 
@@ -192,7 +192,7 @@ were to be used, there would be certain node IDs that would be impossible to
 have, which would make routing sub-optimal.
 
 The second test is more of a sanity test for the uniform distribution property.
-The target space (32 bit interger) is divided up into 1000 buckets. Every valid
+The target space (32 bit integer) is divided up into 1000 buckets. Every valid
 IP and ``r`` input is run through the algorithm and the result is put in the
 bucket it falls in. The expectation is that each bucket has roughly an equal
 number of results falling into it. The following graph shows the resulting

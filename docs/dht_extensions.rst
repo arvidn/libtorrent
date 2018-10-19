@@ -28,7 +28,7 @@ client identification
 ---------------------
 
 In each DHT packet, an extra key is inserted named "v". This is a string
-describing the client and version used. This can help alot when debugging
+describing the client and version used. This can help a lot when debugging
 and finding errors in client implementations. The string is encoded as four
 characters, two characters describing the client and two characters interpreted
 as a binary number describing the client version.
@@ -48,7 +48,7 @@ Currently known clients:
 IPv6 support
 ------------
 
-**This extension is superseeded by** `BEP 32`_.
+**This extension is superseded by** `BEP 32`_.
 
 .. _`BEP 32`: https://bittorrent.org/beps/bep_0032.html
 

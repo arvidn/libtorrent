@@ -35,14 +35,14 @@ Extensions
 * `DHT store extension`_
 * `UDP tracker protocol`_
 * `HTTP seed`_
-* multitracker_
+* multi-tracker_
 
 --------
 
 Bindings
 
 * python_
-* java_
+* Java_
 * go_
 * node_
 
@@ -80,7 +80,7 @@ libtorrent
 .. _`DHT store extension`: dht_store.html
 .. _`UDP tracker protocol`: udp_tracker_protocol.html
 .. _`HTTP seed`: http://www.getright.com/seedtorrent.html
-.. _multitracker: https://bittorrent.org/beps/bep_0012.html
+.. _multi-tracker: https://bittorrent.org/beps/bep_0012.html
 .. _mailing list: https://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 .. _archive: https://sourceforge.net/p/libtorrent/mailman/libtorrent-discuss/
 .. _`who's using libtorrent?`: projects.html
@@ -88,7 +88,7 @@ libtorrent
 .. _`github page`: https://github.com/arvidn/libtorrent
 .. _blog: https://blog.libtorrent.org
 
-.. _java: https://github.com/frostwire/frostwire-jlibtorrent/
+.. _Java: https://github.com/frostwire/frostwire-jlibtorrent/
 .. _python: python_binding.html
 .. _go: https://github.com/steeve/libtorrent-go
 .. _node: https://github.com/fanatid/node-libtorrent
@@ -105,7 +105,7 @@ __ client_test.html
 
 The main goals of libtorrent are:
 
-* to be cpu efficient
+* to be CPU efficient
 * to be memory efficient
 * to be very easy to use
 
@@ -186,7 +186,7 @@ Written by Arvid Norberg. Copyright |copy| 2003-2018
 
 Contributions by Steven Siloti, Alden Torres, Magnus Jonsson, Daniel Wallin and Cory Nelson
 
-Thanks to Reimond Retz for bugfixes, suggestions and testing
+Thanks to Reimond Retz for bug fixes, suggestions and testing
 
 See github__ for full list of contributors.
 

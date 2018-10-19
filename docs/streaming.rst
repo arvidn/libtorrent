@@ -79,7 +79,7 @@ swarm is well seeded, most peers will send data to you at close to the same
 rate. This makes it important to support streaming from many slow peers. For
 instance, this means you can't make assumptions about the download time of a
 block being less than some absolute time. You may be downloading at well above
-the bitrate of the video, but each individual peer only transfers at 5 kiB/s.
+the bit rate of the video, but each individual peer only transfers at 5 kiB/s.
 
 In this state, your download rate is a zero-sum-game. Any block you request
 that is not urgent, will take away from the bandwidth you get for peers that

@@ -6,11 +6,11 @@ client_test example program
 
 Client test is a, more or less, complete bittorrent client. It lacks most
 settings and you can't start or stop torrents once you've started it. All
-the settings are hardcoded. The commandline arguments are::
+the settings are hard coded. The command line arguments are::
 
   client_test <filename1.torrent> <filename2.torrent> ...
 
-You can start any number of torrent downloads/seeds via the commandline.
+You can start any number of torrent downloads/seeds via the command line.
 If one argument starts with ``http://`` it is interpreted as a tracker
 announce url, and it expects an info-hash as the next argument. The info-hash
 has to be hex-encoded. For example: ``2410d4554d5ed856d69f426c38791673c59f4418``.
@@ -34,7 +34,7 @@ The commands available in the client are:
 * ``d`` toggle download info. Will show the block list for each torrent,
   showing downloaded and requested blocks.
 * ``p`` pause all torrents.
-* ``u`` unpause all torrents.
+* ``u`` resume all torrents.
 * ``r`` force tracker reannounce for all torrents.
 * ``f`` toggle show file progress. Displays a list of all files and the
   download progress for each file.

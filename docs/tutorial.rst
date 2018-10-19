@@ -60,7 +60,7 @@ kind of alert may include additional state, specific to the kind of message. All
 alerts implement a message() function that prints out pertinent information
 of the alert message. This can be convenient for simply logging events.
 
-For programatically react to certain events, use `alert_cast<>`_ to attempt
+For programmatically react to certain events, use `alert_cast<>`_ to attempt
 a down cast of an alert object to a more specific type.
 
 In order to print out events from libtorrent as well as exiting when the torrent

@@ -33,13 +33,13 @@ extensions
 * supports the bittorrent `extension protocol`_. See extensions_. `BEP 10`_.
 * supports the uTorrent metadata transfer protocol `BEP 9`_ (i.e. magnet links).
 * supports the uTorrent peer exchange protocol (PEX).
-* supports local peer discovery (multicasts for peers on the same local network)
-* multitracker extension support (supports both strict `BEP 12`_ and the
+* supports local peer discovery (multicast for peers on the same local network)
+* multi-tracker extension support (supports both strict `BEP 12`_ and the
   uTorrent interpretation).
 * tracker scrapes
 * supports lt_trackers extension, to exchange trackers between peers
 * `HTTP seeding`_, as specified in `BEP 17`_ and `BEP 19`_.
-* supports the udp-tracker protocol. (`BEP 15`_).
+* supports the UDP-tracker protocol. (`BEP 15`_).
 * supports the ``no_peer_id=1`` extension that will ease the load off trackers.
 * supports the ``compact=1`` tracker parameter.
 * super seeding/initial seeding (`BEP 16`_).
@@ -60,7 +60,7 @@ extensions
 disk management
 ---------------
 
-* can use multipled disk I/O threads to not have the disk block network or
+* can use multiple disk I/O threads to not have the disk block network or
   client interaction.
 * supports verifying the SHA-1 hash of pieces in multiple threads, to take
   advantage of multi core machines.
@@ -89,7 +89,7 @@ network
   It will also prefer to download whole pieces from single peers if the
   download speed is high enough from that particular peer.
 * supports http proxies and basic proxy authentication
-* supports gzipped tracker-responses
+* supports gzip tracker-responses
 * can limit the upload and download bandwidth usage and the maximum number of
   unchoked peers
 * possibility to limit the number of connections.
@@ -134,7 +134,7 @@ All disk I/O in libtorrent is done asynchronously to the network thread, by the
 disk io threads. When a block is read, the disk io thread reads all subsequent
 blocks from that piece into the read cache, assuming that the peer requesting
 the block will also request more blocks from the same piece. This decreases the
-number of syscalls for reading data. It also decreases delay from seeking.
+number of system calls for reading data. It also decreases delay from seeking.
 
 Similarly, for write requests, blocks are cached and flushed to disk once one full
 piece is complete or the piece is the least recently updated one when more cache
@@ -152,7 +152,7 @@ used to flush multiple cache blocks in a single call.
 On low-memory systems, the disk cache can be disabled altogether or set to smaller
 limit, to save memory.
 
-The disk caching algorithm is configurable between 'LRU' and 'largest contiguous'.
+The disk caching algorithm is configurable between *LRU* and *largest contiguous*.
 The largest contiguous algorithm is the default and flushes the largest contiguous
 block of buffers, instead of flushing all blocks belonging to the piece which was
 written to least recently.
@@ -168,7 +168,7 @@ for payload data is received directly into a page aligned disk buffer. If the co
 is encrypted, the buffer is decrypted in-place. The buffer is then moved into the disk
 cache without being copied. Once all the blocks for a piece have been received, or the
 cache needs to be flushed, all the blocks are passed directly to ``writev()`` to flush
-them in a single syscall. This means a single copy into user space memory, and a single
+them in a single system call. This means a single copy into user space memory, and a single
 copy back into kernel memory, as illustrated by this figure:
 
 .. image:: write_disk_buffers.png
@@ -242,11 +242,11 @@ Another problem with large piece sizes is that it is harder for a client to pinp
 the malicious or buggy peer when a piece fails, and it will take longer to re-download
 it and take more tries before the piece succeeds the larger the pieces are.
 
-The piece size in regular torrents is a tradeoff between the size of the .torrent file
+The piece size in regular torrents is a trade-off between the size of the .torrent file
 itself and the piece size. Often, for files that are 4 GB, the piece size is 2 or 4 MB,
 just to avoid making the .torrent file too big.
 
-Merkle torrents solves these problems by removing the tradeoff between .torrent size and
+Merkle torrents solves these problems by removing the trade-off between .torrent size and
 piece size. With merkle torrents, the piece size can be the minimum block size (16 kB),
 which lets peers verify every block of data received from peers, immediately. This
 gives a minimum turnaround time and completely removes the problem of identifying malicious
@@ -269,7 +269,7 @@ long as it can be retrieved and seeded. In that case a new storage class can be 
 (inheriting from the ``storage_interface`` class) that avoids the unnecessary step of mapping
 slots to files and offsets. The storage can ignore the file boundaries and just store the
 entire torrent in a single file (which will end up being all the files concatenated). The main
-advantage of this, other than a slight cpu performance gain, is that all file operations would
+advantage of this, other than a slight CPU performance gain, is that all file operations would
 be page (and sector) aligned. This enables efficient unbuffered I/O, and can potentially
 lead to more efficient read caching (using the built in disk cache rather than relying on the
 operating system's disk cache).
@@ -320,14 +320,14 @@ portability
 ===========
 
 libtorrent runs on most major operating systems, including Windows,
-MacOS X, Linux, BSD and Solaris.
+macOS, Linux, BSD and Solaris.
 It uses Boost.Asio, Boost.Optional, Boost.System, Boost.Multiprecision,
 Boost.Intrusive, Boost.Pool, Boost.Python (for bindings), Boost.CRC and various
 other boost libraries. At least version 1.49 of boost is required.
 
 Since libtorrent uses Boost.Asio it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,
-epoll on linux and kqueue on MacOS X and BSD.
+epoll on Linux and kqueue on macOS and BSD.
 
 libtorrent does not build with the following compilers:
 

@@ -1,4 +1,4 @@
-Bittorrent udp-tracker protocol extension
+Bittorrent UDP-tracker protocol extension
 =========================================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
@@ -20,13 +20,13 @@ xbt-tracker_.
 
 .. _xbt-tracker: http://xbtt.sourceforge.net
 
-For additional information and descritptions of
+For additional information and descriptions of
 the terminology used in this document, see
 the `protocol specification`__
 
 __ http://wiki.theory.org/index.php/BitTorrentSpecification
 
-All values are sent in network byte order (big endian). The sizes
+All values are sent in network byte order (big-endian). The sizes
 are specified with ANSI-C standard types.
 
 If no response to a request is received within 15 seconds, resend
@@ -112,7 +112,7 @@ Client sends packet:
 +-------------+---------------------+----------------------------------------+
 | uint32_t    | ip                  | Your ip address. Set to 0 if you want  |
 |             |                     | the tracker to use the ``sender`` of   |
-|             |                     | this udp packet.                       |
+|             |                     | this UDP packet.                       |
 +-------------+---------------------+----------------------------------------+
 | uint32_t    | key                 | A unique key that is randomized by the |
 |             |                     | client.                                |
@@ -140,7 +140,7 @@ Server replies with packet:
 |             |                     | in the announce request.               |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | interval            | the number of seconds you should wait  |
-|             |                     | until reannouncing yourself.           |
+|             |                     | until re-announcing yourself.          |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | leechers            | The number of peers in the swarm that  |
 |             |                     | has not finished downloading.          |
@@ -169,7 +169,7 @@ Client sends packet:
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
 +=============+=====================+========================================+
-| int64_t     | connection_id       | The connection id retreived from the   |
+| int64_t     | connection_id       | The connection id retrieved from the   |
 |             |                     | establishing of the connection.        |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | action              | The action, in this case, 2 for        |
@@ -302,13 +302,13 @@ in the tracker URL for each user. The extension body has the following format:
 |             |                     | string.                                |
 +-------------+---------------------+----------------------------------------+
 | int8_t[]    | request string      | The string that comes after the host-  |
-|             |                     | name and port in the udp tracker URL.  |
+|             |                     | name and port in the UDP tracker URL.  |
 |             |                     | Typically this starts with "/announce" |
 |             |                     | The bittorrent client is not expected  |
 |             |                     | to append query string arguments for   |
 |             |                     | stats reporting, like "uploaded" and   |
 |             |                     | "downloaded" since this is already     |
-|             |                     | reported in the udp tracker protocol.  |
+|             |                     | reported in the UDP tracker protocol.  |
 |             |                     | However, the client is free to add     |
 |             |                     | arguments as extensions.               |
 +-------------+---------------------+----------------------------------------+

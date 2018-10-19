@@ -22,7 +22,7 @@ helps understanding what's going on.
 
 A *piece* is a part of the data of a torrent that has a SHA-1 hash in
 the .torrent file. Pieces are almost always a power of two in size, but not
-necessarily. Each piece is plit up in *blocks*, which is a 16 kiB. A block
+necessarily. Each piece is split up in *blocks*, which is a 16 kiB. A block
 never spans two pieces. If a piece is smaller than 16 kiB or not divisible
 by 16 kiB, there are blocks smaller than that.
 
@@ -43,7 +43,7 @@ usage.
 
 A *torrent* object represents all the state of swarm download. This includes
 a piece picker, a list of peer connections, file storage (torrent file). One
-important distiction is between a connected peer (*peer_connection*) and a peer
+important distinction is between a connected peer (*peer_connection*) and a peer
 we just know about, and may have been connected to, and may connect to in the
 future (*torrent_peer*). The list of (not connected) peers may grow very large
 if not limited (through tracker responses, DHT and peer exchange). This list
@@ -128,10 +128,10 @@ disk cache
 
 The disk cache implements *ARC*, Adaptive Replacement Cache. This consists of a number of LRUs:
 
-1. lru L1 (recently used)
-2. lru L1 ghost (recently evicted)
-3. lru L2 (frequently used)
-4. lru L2 ghost (recently evicted)
+1. LRU L1 (recently used)
+2. LRU L1 ghost (recently evicted)
+3. LRU L2 (frequently used)
+4. LRU L2 ghost (recently evicted)
 5. volatile read blocks
 6. write cache (blocks waiting to be flushed to disk)
 

@@ -49,7 +49,7 @@ There are two major drawbacks with this technique:
 1. The user needs to actively make this setting (very few protocols
    require the user to provide this sort of information). This also
    means the user needs to figure out what its up-link capacity is.
-   This is unfortunately a number that many ISPs are not advertizing
+   This is unfortunately a number that many ISPs are not advertising
    (because it's often much lower than the download capacity) which
    might make it hard to find.
 
@@ -141,7 +141,7 @@ target, and less for delays that are close to the target. This makes it converge
 at the target delay. Although, due to noise there is almost always some amount of
 oscillation. This oscillation is typically smaller than the saw tooth TCP forms.
 
-The figure to the right shows how (TCP) cross traffic causese uTP to essentially
+The figure to the right shows how (TCP) cross traffic causes uTP to essentially
 entirely stop sending anything. Its delay measurements are mostly well above the target
 during this time. The cross traffic is only a single TCP stream in this test.
 
@@ -196,7 +196,7 @@ A histogram of typical delay measurements is shown to the right. This is from
 a transfer between a cable modem connection and a DSL connection.
 
 The details of the delay measurements are slightly more complicated since the
-values needs to be able to wrap (cross the 2^32 boundry and start over at 0).
+values needs to be able to wrap (cross the 2^32 boundary and start over at 0).
 
 Path MTU discovery
 ------------------
@@ -270,7 +270,7 @@ we can do a binary search for the MTU. This would let us find it in just a few r
 
 On top of this, libtorrent has an optimization where it figures out which interface a
 uTP connection will be sent over, and initialize the MTU ceiling to that interface's MTU.
-This means that a VPN tunnel would advertize its MTU as lower, and the uTP connection would
+This means that a VPN tunnel would advertise its MTU as lower, and the uTP connection would
 immediately know to send smaller packets, no search required. It also has the side-effect
 of being able to use much larger packet sizes for non-ethernet interfaces or ethernet links
 with jumbo frames.
@@ -302,7 +302,7 @@ Clocks progresses at different rates depending on temperature. This means comput
 running hot are likely to have a clock drift compared to computers running cool.
 
 So, by updating the delay base periodically based on the lowest seen sample, you'll either
-end up changing it upwards (artificaially making the delay samples appear small) without
+end up changing it upwards (artificially making the delay samples appear small) without
 the congestion or delay actually having changed, or you'll end up with a significant clock
 drift and have artificially low samples because of that.
 
@@ -341,6 +341,6 @@ libtorrent's uTP implementation includes the following features:
 * Microsecond resolution timestamps.
 * Advertised receive window, to support download rate limiting.
 * Correct handling of wrapping sequence numbers.
-* Easy configuration of target-delay, gain-factor, timeouts, delayed-ack
+* Easy configuration of target-delay, gain-factor, timeouts, delayed-ACK
   and socket buffers.
 

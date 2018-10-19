@@ -31,7 +31,7 @@ REFERENCE_TARGETS = \
 	reference-Bdecoding \
 	reference-ed25519
 
-TARGETS = index \
+MANUAL_TARGETS = index \
 	udp_tracker_protocol \
 	dht_rss \
 	dht_store \
@@ -50,8 +50,10 @@ TARGETS = index \
 	tuning \
 	hacking \
 	streaming \
-	tutorial \
-	single-page-ref \
+	tutorial
+
+TARGETS = single-page-ref \
+	$(MANUAL_TARGETS) \
 	$(REFERENCE_TARGETS)
 
 FIGURES = \
@@ -100,8 +102,9 @@ endif
 $(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst settings.rst stats_counters.rst
 	python gen_reference_doc.py --plain-output
 
-spell-check:plain_text_out.txt
+spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html)
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l plain_text_out.txt >hunspell-report.txt
+	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -H -l $(MANUAL_TARGETS:=.html) >>hunspell-report.txt
 	@if [ -s hunspell-report.txt ]; then echo 'spellcheck failed, fix words or add to dictionary:'; cat hunspell-report.txt; false; fi;
 
 %.epub:%.rst

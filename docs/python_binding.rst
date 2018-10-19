@@ -42,7 +42,7 @@ Move the file ``user-config.jam`` from ``%BOOST_BUILD_PATH%/example/`` to ``%BOO
 Navigate to bindings/python and execute::
 	python setup.py build --bjam
 	
-Note: If you are using 64bits python you should edit setup.py and add this to the b2 command:
+Note: If you are using 64 bits python you should edit setup.py and add this to the b2 command:
 ``address-model=64``
 
 This will create the file libtorrent.pyd inside build/lib/ that contains the binding.
@@ -70,7 +70,7 @@ For more information on how to install and set up boost-build, see the
 .. __: building.html#step-2-setup-bbv2
 
 Once you have boost-build set up, you cd to the ``bindings/python``
-directory and invoke ``bjam`` with the apropriate settings. For the available
+directory and invoke ``bjam`` with the appropriate settings. For the available
 build variants, see `libtorrent build options`_.
 
 .. _`libtorrent build options`: building.html#step-3-building-libtorrent
@@ -91,7 +91,7 @@ the `library reference`_. The main differences are:
 
 asio::tcp::endpoint
 	The endpoint type is represented as a tuple of a string (as the address) and an int for
-	the port number. E.g. ``('127.0.0.1', 6881)`` represents the localhost port 6881.
+	the port number. E.g. ``("127.0.0.1", 6881)`` represents the localhost port 6881.
 
 lt::time_duration
 	The time duration is represented as a number of seconds in a regular integer.
