@@ -30,6 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_RANDOM_HPP_INCLUDED
+#define TORRENT_RANDOM_HPP_INCLUDED
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
 
@@ -59,3 +62,5 @@ namespace libtorrent { namespace aux {
 
 	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t m);
 }
+
+#endif // TORRENT_RANDOM_HPP_INCLUDED

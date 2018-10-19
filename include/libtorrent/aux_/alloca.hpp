@@ -30,7 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ALLOCA
+#ifndef TORRENT_ALLOCA_HPP_INCLUDED
+#define TORRENT_ALLOCA_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/typed_span.hpp"
@@ -108,4 +109,4 @@ struct alloca_destructor
 
 #endif
 
-#endif
+#endif // TORRENT_ALLOCA_HPP_INCLUDED

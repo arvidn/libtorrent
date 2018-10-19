@@ -44,7 +44,7 @@ if not os.path.exists('cpu_benchmark.torrent'):
 
 try:
     shutil.rmtree('t')
-except BaseException:
+except Exception:
     pass
 
 
@@ -53,22 +53,22 @@ def run_test(name, test_cmd, client_arg, num_peers):
 
     try:
         shutil.rmtree(output_dir)
-    except BaseException:
+    except Exception:
         pass
     try:
         os.mkdir(output_dir)
-    except BaseException:
+    except Exception:
         pass
 
     port = (int(time.time()) % 50000) + 2000
 
     try:
         shutil.rmtree('session_stats')
-    except BaseException:
+    except Exception:
         pass
     try:
         shutil.rmtree('session_stats_report')
-    except BaseException:
+    except Exception:
         pass
 
     start = time.time()
@@ -92,7 +92,7 @@ def run_test(name, test_cmd, client_arg, num_peers):
 
     try:
         c.communicate('q')
-    except BaseException:
+    except Exception:
         pass
     c.wait()
 
@@ -108,11 +108,11 @@ def run_test(name, test_cmd, client_arg, num_peers):
     os.system('python parse_session_stats.py session_stats/*.log')
     try:
         shutil.move('session_stats_report', '%s/session_stats_report' % output_dir)
-    except BaseException:
+    except Exception:
         pass
     try:
         shutil.move('session_stats', '%s/session_stats' % output_dir)
-    except BaseException:
+    except Exception:
         pass
 
 

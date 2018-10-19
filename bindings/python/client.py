@@ -162,7 +162,7 @@ def add_torrent(ses, filename, options):
         atp.ti = lt.torrent_info(filename)
         try:
             atp.resume_data = open(os.path.join(options.save_path, atp.info.name() + '.fastresume'), 'rb').read()
-        except BaseException:
+        except Exception:
             pass
 
     atp.save_path = options.save_path
@@ -303,7 +303,7 @@ def main():
                         out += progress_bar(p / float(f.size), 20)
                         out += ' ' + f.path + '\n'
                     write_line(console, out)
-                except BaseException:
+                except Exception:
                     pass
 
         write_line(console, 76 * '-' + '\n')

@@ -64,7 +64,7 @@ def plot_nodes(nodes, frame):
             if nodes[dst]['c'] != 'white' and nodes[e]['c'] != 'white':
                 style = 'solid'
                 col = 'black'
-                print('"%s" -- "%s" [style="%s" color="%s"];' % (e, dst, style, col), file=out)
+            print('"%s" -- "%s" [style="%s" color="%s"];' % (e, dst, style, col), file=out)
 
     print('}', file=out)
     out.close()

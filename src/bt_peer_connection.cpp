@@ -1016,22 +1016,19 @@ namespace {
 				received_bytes(0, received);
 				return;
 			}
-			if (recv_pos >= 13)
+			char const* ptr = recv_buffer.begin() + 9;
+			int const list_size = detail::read_int32(ptr);
+
+			if (list_size > m_recv_buffer.packet_size() - 13)
 			{
-				char const* ptr = recv_buffer.begin() + 9;
-				int const list_size = detail::read_int32(ptr);
+				disconnect(errors::invalid_hash_list, operation_t::bittorrent, peer_error);
+				return;
+			}
 
-				if (list_size > m_recv_buffer.packet_size() - 13)
-				{
-					disconnect(errors::invalid_hash_list, operation_t::bittorrent, peer_error);
-					return;
-				}
-
-				if (m_recv_buffer.packet_size() - 13 - list_size > t->block_size())
-				{
-					disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
-					return;
-				}
+			if (m_recv_buffer.packet_size() - 13 - list_size > t->block_size())
+			{
+				disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
+				return;
 			}
 		}
 		else

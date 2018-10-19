@@ -10,6 +10,9 @@ libtorrent
 .. image:: https://doozer.io/badge/arvidn/libtorrent/buildstatus/master
 	:target: https://doozer.io/user/arvidn/libtorrent
 
+.. image:: https://img.shields.io/lgtm/alerts/g/arvidn/libtorrent.svg?logo=lgtm&logoWidth=18
+	:target: https://lgtm.com/projects/g/arvidn/libtorrent/alerts/
+
 .. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=master
     :target: https://codecov.io/github/arvidn/libtorrent?branch=master&view=all#sort=missing&dir=desc
 

@@ -27,7 +27,7 @@ if socket_filter is None:
         try:
             a = l.strip().split(" ")
             socket_index = a[1][:-1]
-        except BaseException:
+        except Exception:
             continue
 
         # msvc's runtime library doesn't prefix pointers
@@ -127,7 +127,7 @@ for line in file:
         a = line.strip().split(" ")
         t = a[0][1:-1]
         socket_index = a[1][:-1]
-    except BaseException:
+    except Exception:
         continue
 #    if socket_index[:2] != '0x':
 #        continue
@@ -179,7 +179,7 @@ for line in file:
     for i in a[2:]:
         try:
             n, v = i.split(':')
-        except BaseException:
+        except Exception:
             continue
         v = float(v)
         if n == "our_delay":

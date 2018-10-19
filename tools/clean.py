@@ -18,7 +18,7 @@ def clean():
         'build-aux',
         '.deps',
         'test_tmp_*',
-        'bjam_build.*.xml'
+        'bjam_build.*.xml',
         '*.exe',
         '*.pdb',
         '*.pyd',
