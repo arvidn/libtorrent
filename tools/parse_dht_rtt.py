@@ -21,7 +21,7 @@ for line in f:
     if (time < 0 or time > max_rtt - quantize):
         continue
     num_messages += 1
-    time /= quantize
+    time //= quantize
     time *= quantize
     distribution[time] += 1
 

@@ -91,7 +91,7 @@ import errno
 # Python 3 renamed thread module to _thread
 try:
     import _thread as thread
-except BaseException:
+except Exception:
     import thread
 
 __version__ = '0.1.0 Draft 1'
@@ -125,7 +125,7 @@ class ConnectionHandler:
             elif self.method in ('OPTIONS', 'GET', 'HEAD', 'POST', 'PUT',
                                  'DELETE', 'TRACE'):
                 self.method_others()
-        except BaseException:
+        except Exception:
             try:
                 self.client.send(HTTPVER + ' 502 Connection failed\n' +
                                  'Proxy-agent: %s\n\n' % VERSION)

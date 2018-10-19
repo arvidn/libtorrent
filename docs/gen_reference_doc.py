@@ -571,7 +571,7 @@ def parse_enum(lno, lines, filename):
                     if '=' in v:
                         val = int(v.split('=')[1].strip(), 0)
                     valstr = str(val)
-                except BaseException:
+                except Exception:
                     pass
 
                 if '=' in v:

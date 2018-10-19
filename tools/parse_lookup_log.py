@@ -34,7 +34,7 @@ def plot_nodes(nodes, frame):
 
     try:
         os.mkdir('dht_frames')
-    except BaseException:
+    except Exception:
         pass
 
     out = open('dht_frames/plot-%02d.dot' % frame, 'w+')

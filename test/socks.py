@@ -11,7 +11,7 @@ import sys
 # Python 3 renamed SocketServer to socketserver
 try:
     from socketserver import StreamRequestHandler, ThreadingTCPServer
-except BaseException:
+except Exception:
     from SocketServer import StreamRequestHandler, ThreadingTCPServer
 
 
@@ -51,7 +51,7 @@ def send(dest, msg):
     if msg == CLOSE:
         try:
             dest.shutdown(socket.SHUT_WR)
-        except BaseException:
+        except Exception:
             pass
         dest.close()
         return 0
