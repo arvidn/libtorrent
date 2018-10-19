@@ -70,7 +70,7 @@ test_duration = 200  # 700
 try:
     if os.name == 'posix':
         resource.setrlimit(resource.RLIMIT_NOFILE, (4000, 5000))
-except BaseException:
+except Exception:
     if resource.getrlimit(resource.RLIMIT_NOFILE)[0] < 4000:
         print('please set ulimit -n to at least 4000')
         sys.exit(1)
@@ -131,7 +131,7 @@ def build_commandline(config, port):
     if config['build'] == 'utorrent':
         try:
             os.mkdir('utorrent_session')
-        except BaseException:
+        except Exception:
             pass
         cfg = open('utorrent_session/settings.dat', 'w+')
 
@@ -158,11 +158,11 @@ def build_commandline(config, port):
         cfg.close()
         try:
             os.mkdir('utorrent_session/autoload')
-        except BaseException:
+        except Exception:
             pass
         try:
             shutil.copy(torrent_path, 'utorrent_session/autoload/')
-        except BaseException:
+        except Exception:
             pass
         return './utorrent-server-v3_0/utserver -logfile session_stats/alerts_log.txt -settingspath utorrent_session'
 
@@ -172,12 +172,12 @@ def build_commandline(config, port):
         else:
             try:
                 os.mkdir('rtorrent_session')
-            except BaseException:
+            except Exception:
                 pass
             # it seems rtorrent may delete the original torrent when it's being added
             try:
                 shutil.copy(torrent_path, 'rtorrent_session/')
-            except BaseException:
+            except Exception:
                 pass
             add_command = '-O load_start_verbose=rtorrent_session/%s ' % torrent_path
 
@@ -198,14 +198,14 @@ def delete_files(files):
     for i in files:
         try:
             os.remove(i)
-        except BaseException:
+        except Exception:
             try:
                 shutil.rmtree(i)
-            except BaseException:
+            except Exception:
                 try:
                     if os.path.exists(i):
                         print('failed to delete %s' % i)
-                except BaseException:
+                except Exception:
                     pass
 
 # typically the schedulers available are 'noop', 'deadline' and 'cfq'
@@ -284,7 +284,7 @@ def find_library(name):
         try:
             if os.path.exists(p + name):
                 return p + name
-        except BaseException:
+        except Exception:
             pass
     return name
 
@@ -296,7 +296,7 @@ def find_binary(names):
             try:
                 if os.path.exists(p + n):
                     return p + n
-            except BaseException:
+            except Exception:
                 pass
     return names[0]
 
@@ -331,7 +331,7 @@ def run_test(config):
 
     try:
         os.mkdir('session_stats')
-    except BaseException:
+    except Exception:
         pass
 
     # save off the command line for reference
@@ -402,7 +402,7 @@ def run_test(config):
         try:
             print('killing client')
             client.send_signal(signal.SIGINT)
-        except BaseException:
+        except Exception:
             pass
 
     time.sleep(10)
@@ -420,16 +420,16 @@ def run_test(config):
 
     try:
         shutil.copy('asserts.log', 'session_stats/')
-    except BaseException:
+    except Exception:
         pass
 
     try:
         shutil.move('libtorrent_logs0', 'session_stats/')
-    except BaseException:
+    except Exception:
         pass
     try:
         shutil.move('libtorrent_logs%s' % port, 'session_stats/')
-    except BaseException:
+    except Exception:
         pass
 
     # run fragmentation test
@@ -437,13 +437,13 @@ def run_test(config):
     os.system('./stage_aio/fragmentation_test test.torrent %s' % (config['save-path']))
     try:
         shutil.copy('fragmentation.log', 'session_stats/')
-    except BaseException:
+    except Exception:
         pass
 
     shutil.copy('fragmentation.gnuplot', 'session_stats/')
     try:
         shutil.copy('file_access.log', 'session_stats/')
-    except BaseException:
+    except Exception:
         pass
 
     os.system('filefrag %s >session_stats/filefrag.out' % config['save-path'])
@@ -468,7 +468,7 @@ def run_test(config):
             profile = 'session_stats/heap_profile.prof.%04d.heap' % i
             try:
                 os.stat(profile)
-            except BaseException:
+            except Exception:
                 break
             print('analyzing heap profile [%s] %d' % (binary, i))
             os.system('%s --pdf %s %s >session_stats/heap_profile_%d.pdf' %

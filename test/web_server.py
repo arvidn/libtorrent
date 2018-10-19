@@ -25,7 +25,7 @@ try:
     f.writelines(fin)
     f.close()
     fin.close()
-except BaseException:
+except Exception:
     pass
 
 

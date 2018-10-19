@@ -91,7 +91,7 @@ metrics = {
     'recv_buffer': ['receive buffer size (B)', 'x1y1', 'lines']
 }
 
-histogram_quantization = 1
+histogram_quantization = 1.0
 socket_index = None
 
 columns = []
@@ -202,7 +202,7 @@ out.close()
 
 out = open('%s.histogram' % out_file, 'wb')
 for d, f in delay_histogram.items():
-    print(float(d * histogram_quantization) + histogram_quantization / 2, f, file=out)
+    print(float(d * histogram_quantization) + histogram_quantization / 2.0, f, file=out)
 out.close()
 
 out = open('%s_packet_size.histogram' % out_file, 'wb')
