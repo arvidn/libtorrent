@@ -142,7 +142,7 @@ significant.
 If you're short of memory, you should consider lowering the limit. 500 is probably
 enough. You can do this by setting ``settings_pack::max_peerlist_size`` to
 the max number of peers you want in a torrent's peer list. This limit applies per
-torrent. For 5 torrents, the total number of peers in peerlists will be 5 times
+torrent. For 5 torrents, the total number of peers in peer lists will be 5 times
 the setting.
 
 You should also lower the same limit but for paused torrents. It might even make sense
@@ -197,7 +197,7 @@ One, probably, safe macro to define is ``TORRENT_NO_DEPRECATE`` which removes al
 deprecated functions and struct members. As long as no deprecated functions are
 relied upon, this should be a simple way to eliminate a little bit of code.
 
-For all available options, see the `building libtorrent`_ secion.
+For all available options, see the `building libtorrent`_ section.
 
 .. _`building libtorrent`: building.html
 
@@ -254,9 +254,9 @@ there is a mixed mode algorithm. This attempts to detect congestion on the uTP p
 throttle TCP to avoid it taking over all bandwidth. This balances the bandwidth resources
 between the two protocols. When running on a network where the bandwidth is in such an
 abundance that it's virtually infinite, this algorithm is no longer necessary, and might
-even be harmful to throughput. It is adviced to experiment with the
+even be harmful to throughput. It is advised to experiment with the
 ``session_setting::mixed_mode_algorithm``, setting it to ``settings_pack::prefer_tcp``.
-This setting entirely disables the balancing and unthrottles all connections. On a typical
+This setting entirely disables the balancing and un-throttles all connections. On a typical
 home connection, this would mean that none of the benefits of uTP would be preserved
 (the modem's send buffer would be full at all times) and uTP connections would for the most
 part be squashed by the TCP traffic.

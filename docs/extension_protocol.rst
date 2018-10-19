@@ -38,7 +38,7 @@ follows (including the message headers used by the bittorrent protocol):
 | size     | description                                             |
 +==========+=========================================================+
 | uint32_t | length prefix. Specifies the number of bytes for the    |
-|          | entire message. (Big endian)                            |
+|          | entire message. (big-endian)                            |
 +----------+---------------------------------------------------------+
 | uint8_t  | bittorrent message ID, = 20                             |
 +----------+---------------------------------------------------------+
@@ -155,7 +155,7 @@ any other extensions, this message should be sent:
 ``d11:LT_metadatai0ee``.
 As specified above, the value 0 is used to turn off an extension.
 
-The extension IDs must be stored for every peer, becuase every peer may have
+The extension IDs must be stored for every peer, because every peer may have
 different IDs for the same extension.
 
 This specification, deliberately, does not specify any extensions such as
@@ -247,17 +247,17 @@ request metadata:
 | size      | name          | description                            |
 +===========+===============+========================================+
 | uint8_t   | msg_type      | Determines the kind of message this is |
-|           |               | 0 means 'request metadata'             |
+|           |               | 0 means *request metadata*             |
 +-----------+---------------+----------------------------------------+
 | uint8_t   | start         | The start of the metadata block that   |
-|           |               | is requested. It is given in 256:ths   |
+|           |               | is requested. It is given in 256ths    |
 |           |               | of the total size of the metadata,     |
 |           |               | since the requesting client don't know |
 |           |               | the size of the metadata.              |
 +-----------+---------------+----------------------------------------+
 | uint8_t   | size          | The size of the metadata block that is |
 |           |               | requested. This is also given in       |
-|           |               | 256:ths of the total size of the       |
+|           |               | 256ths of the total size of the        |
 |           |               | metadata. The size is given as size-1. |
 |           |               | That means that if this field is set   |
 |           |               | 0, the request wants one 256:th of the |
@@ -269,7 +269,7 @@ metadata:
 +-----------+---------------+----------------------------------------+
 | size      | name          | description                            |
 +===========+===============+========================================+
-| uint8_t   | msg_type      | 1 means 'metadata'                     |
+| uint8_t   | msg_type      | 1 means *metadata*                     |
 +-----------+---------------+----------------------------------------+
 | int32_t   | total_size    | The total size of the metadata, given  |
 |           |               | in number of bytes.                    |
@@ -289,7 +289,7 @@ Don't have metadata:
 +-----------+---------------+----------------------------------------+
 | size      | name          | description                            |
 +===========+===============+========================================+
-| uint8_t   | msg_type      | 2 means 'I don't have metadata'.       |
+| uint8_t   | msg_type      | 2 means "I don't have metadata".       |
 |           |               | This message is sent as a reply to a   |
 |           |               | metadata request if the the client     |
 |           |               | doesn't have any metadata.             |
@@ -307,7 +307,7 @@ longer has a specific piece. The extension message should be advertised in the
 ``m`` dictionary as ``lt_donthave``. The message format mimics the regular
 ``HAVE`` bittorrent message.
 
-Just like all extension messages, the first 2 bytes in the mssage itself are 20
+Just like all extension messages, the first 2 bytes in the message itself are 20
 (the bittorrent extension message) and the message ID assigned to this
 extension in the ``m`` dictionary in the handshake.
 

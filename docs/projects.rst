@@ -10,9 +10,9 @@ project listed here, let me_ know.
 Wyzo
 ----
 
-wyzo_ is a media browser with built-in bittorrent support.
+Wyzo_ is a media browser with built-in bittorrent support.
 
-.. _wyzo: http://wyzo.findmysoft.com/#
+.. _Wyzo: http://wyzo.findmysoft.com/#
 
 deluge
 ------
@@ -26,17 +26,17 @@ background to the system tray.
 qBittorrent
 -----------
 
-qBittorrent_ is a QT bittorrent client available for linux (likely portable to
+qBittorrent_ is a QT bittorrent client available for Linux (likely portable to
 most other desktops as well). Written by Christophe Dumez.
 
 .. _qBittorrent: http://www.qbittorrent.org/
 
-tonidoplug
+Tonidoplug
 ----------
 
 Tonidoplug_ is a tiny, low-power, low-cost home server and
 NAS device powered by Tonido software that allows you to access
-your apps, files, music and media from anywhere.
+your applications, files, music and media from anywhere.
 
 .. _Tonidoplug: http://www.tonidoplug.com/
 
@@ -56,7 +56,7 @@ Miro
 ----
 
 Miro_ is a free application for channels of internet video (also known as
-video podcasts and video rss). Miro is designed to be easy to use and to give
+video podcasts and video RSS). Miro is designed to be easy to use and to give
 you an elegant fullscreen viewing experience.
 
 .. _Miro: http://getmiro.com
@@ -90,9 +90,9 @@ GPL License.
 btg
 ---
 
-btg_ is a unix bittorrent client which is run as a daemon. It has multiple user
-interfaces which connects to the daemon. One GUI (Gtkmm), one terminal
-interface (ncurses) and one web interface (accessable through a web browser).
+btg_ is a Unix bittorrent client which is run as a daemon. It has multiple user
+interfaces which connects to the daemon. One GUI (gtkmm), one terminal
+interface (ncurses) and one web interface (accessible through a web browser).
 Written by Michael Wojciechowski and Johan Strom.
 
 .. _btg: https://sourceforge.net/projects/btg/
@@ -108,10 +108,10 @@ lets the users vote which one to live on.
 Tvitty
 ------
 
-tvitty_ is a bittorrent client for Vista Media Center, which allows
+Tvitty_ is a bittorrent client for Vista Media Center, which allows
 searching and downloading of torrents directly on your TV.
 
-.. _tvitty: https://tvitty.soft112.com/
+.. _Tvitty: https://tvitty.soft112.com/
 
 hrktorrent
 ----------
@@ -132,7 +132,7 @@ install.
 halite BitTorrent
 -----------------
 
-Halite_ is a windows bittorrent client controllabel via an xml-rpc
+Halite_ is a windows bittorrent client controllable via an XML-RPC
 interface.
 
 .. _Halite: http://www.binarynotions.com/halite-bittorrent-client
@@ -146,7 +146,7 @@ Written by Cory Nelson.
 
 .. _`Arctic Torrent`: https://www.softpedia.com/get/Internet/File-Sharing/Arctic-Torrent.shtml
 
-bubba
+Bubba
 -----
 
 Bubba_ is a mini-sized server, designed to fit your home better than
@@ -155,7 +155,7 @@ Web, E-mail, printer and FTP server etc.
 
 .. _Bubba: https://excitostore.com/
 
-tvblob
+TVblob
 ------
 
 The BLOBbox_ represents the ability to harness all of the content available
@@ -186,21 +186,21 @@ featured client.
 BitSlug
 -------
 
-BitSlug_ is a MacOSX cocoa client.
+BitSlug_ is a macOS cocoa client.
 
 .. _BitSlug: http://bitslug.sourceforge.net/
 
 DelCo
 -----
 
-DelCo_ is a research project at Tampere university of technology, finland.
+DelCo_ is a research project at Tampere university of technology, Finland.
 
 .. _DelCo: http://delco.cs.tut.fi/
 
 Torrent2Exe
 -----------
 
-Torrent2Exe_ Torrent2exe is a small BitTorrent client. Its basic idea is to
+Torrent2Exe_ is a small BitTorrent client. Its basic idea is to
 let users download a custom-built EXE program with the torrent file
 integrated into it.
 

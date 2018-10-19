@@ -45,7 +45,7 @@ from them.
 linked lists
 ------------
 
-Items are chained together in a geneal singly linked list. A linked
+Items are chained together in a general singly linked list. A linked
 list does not necessarily contain RSS items, and no RSS related items
 are mandatory. However, RSS items will be used as examples in this BEP::
 
@@ -68,7 +68,7 @@ The ``next`` pointer is at least 20 byte ID in the DHT key space pointing to whe
 item in the list is announced. The list is terminated with an ID of all zeros.
 
 The ID an items is announced to is determined by the SHA1 hash of the bencoded representation
-of the item iteself. This contains all fields in the item, except the signature.
+of the item itself. This contains all fields in the item, except the signature.
 The only mandatory fields in an item are ``next``, ``key`` and ``sig``.
 
 The ``key`` field MUST match the public key of the list head node. The ``sig`` field
@@ -82,7 +82,7 @@ chain of items considered terminated.
 
 Each item holds a bencoded dictionary with arbitrary keys, except two mandatory keys:
 ``next`` and ``key``. The signature ``sig`` is transferred outside of this dictionary
-and is the signature of all of it. An implementation should stora any arbitrary keys that
+and is the signature of all of it. An implementation should store any arbitrary keys that
 are announced to an item, within reasonable restriction such as nesting, size and numeric
 range of integers.
 

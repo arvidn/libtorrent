@@ -13,8 +13,7 @@ examples
 
 Except for the example programs in this manual, there's also a bigger example
 of a (little bit) more complete client, ``client_test``. There are separate
-instructions for how to use it here__ if you'd like to try it. Note that building
-``client_test`` also requires boost.regex and boost.program_options library.
+instructions for how to use it here__ if you'd like to try it.
 
 __ client_test.html
 
