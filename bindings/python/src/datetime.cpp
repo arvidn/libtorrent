@@ -146,5 +146,6 @@ void bind_datetime()
       , chrono_duration_to_python<std::chrono::seconds>>();
 
     optional_to_python<boost::posix_time::ptime>();
+    optional_to_python<std::time_t>();
 }
 

@@ -297,6 +297,7 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(f.file_name(0), 'test_torrent')
         self.assertEqual(f.file_size(0), 1234)
         self.assertEqual(info.total_size(), 1234)
+        self.assertEqual(info.creation_date(), 0)
 
     def test_metadata(self):
         ti = lt.torrent_info('base.torrent')
