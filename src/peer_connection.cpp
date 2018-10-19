@@ -5446,9 +5446,9 @@ namespace libtorrent {
 		// deduct the bytes we already have quota for
 		bytes -= m_quota[channel];
 
-		int priority = get_priority(channel);
+		int const priority = get_priority(channel);
 
-		int max_channels = num_classes() + (t ? t->num_classes() : 0) + 2;
+		int const max_channels = num_classes() + (t ? t->num_classes() : 0) + 2;
 		TORRENT_ALLOCA(channels, bandwidth_channel*, max_channels);
 
 		// collect the pointers to all bandwidth channels
