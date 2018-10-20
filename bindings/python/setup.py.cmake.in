@@ -1,0 +1,15 @@
+from setuptools import setup
+import platform
+
+setup(
+    name='libtorrent',
+    version='@libtorrent_VERSION@',
+    author='Arvid Norberg',
+    author_email='arvid@libtorrent.org',
+    description='Python bindings for libtorrent-rasterbar',
+    long_description='Python bindings for libtorrent-rasterbar',
+    url='http://libtorrent.org',
+    platforms=[platform.system() + '-' + platform.machine()],
+    license='BSD',
+    package_dir = {'': '@CMAKE_CURRENT_BINARY_DIR@'}
+)

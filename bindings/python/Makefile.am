@@ -1,5 +1,6 @@
 
 EXTRA_DIST = \
+  CMakeLists.txt            \
   Jamfile                   \
   setup.py                  \
   client.py                 \
