@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
 
 project(libtorrent
 	DESCRIPTION "Bittorrent library"
@@ -7,9 +7,9 @@ project(libtorrent
 set (SOVERSION "10")
 
 list(APPEND CMAKE_MODULE_PATH ${libtorrent_SOURCE_DIR}/cmake/Modules)
-include(FeatureSummary)
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
+include(LibtorrentMacros)
 
 set(libtorrent_include_files
 	add_torrent_params
@@ -428,45 +428,17 @@ set(ed25519_sources
 	verify
 )
 
-function(target_optional_compile_definitions _target _scope)
-	set(options FEATURE)
-	set(oneValueArgs NAME DESCRIPTION DEFAULT)
-	set(multiValueArgs ENABLED DISABLED)
-	cmake_parse_arguments(TOCD ${options} "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-	option(${TOCD_NAME} "${TOCD_DESCRIPTION}" ${TOCD_DEFAULT})
-	if (${${TOCD_NAME}})
-		target_compile_definitions(${_target} ${_scope} ${TOCD_ENABLED})
-	else()
-		target_compile_definitions(${_target} ${_scope} ${TOCD_DISABLED})
-	endif()
-	if(${TOCD_FEATURE})
-		add_feature_info(${TOCD_NAME} ${TOCD_NAME} "${TOCD_DESCRIPTION}")
-	endif()
-endfunction()
-
-macro(feature_option _name _description _default)
-	option(${_name} "${_description}" ${_default})
-	add_feature_info(${_name} ${_name} "${_description}")
-endmacro()
+list(TRANSFORM sources PREPEND "src/")
+list(TRANSFORM kademlia_sources PREPEND "src/kademlia/")
+list(TRANSFORM ed25519_sources PREPEND "ed25519/src/")
+list(TRANSFORM libtorrent_include_files PREPEND "include/libtorrent/")
+list(TRANSFORM libtorrent_extensions_include_files PREPEND "include/libtorrent/extensions/")
+list(TRANSFORM libtorrent_aux_include_files PREPEND "include/libtorrent/aux_/")
+list(TRANSFORM libtorrent_kademlia_include_files PREPEND "include/libtorrent/kademlia/")
 
 # these options control target creation and thus have to be declared before the add_library() call
 feature_option(BUILD_SHARED_LIBS "build libtorrent as a shared library" ON)
 feature_option(static_runtime "build libtorrent with static runtime" OFF)
-
-macro(find_public_dependency _name)
-	find_package(${_name} ${ARGN})
-	string(TOUPPER "${_name}" _name_uppercased)
-	if (${_name}_FOUND OR ${_name_uppercased}_FOUND)
-		# Dependencies to be used below for generating Config.cmake file
-		# We don't need the 'REQUIRED' argument there
-		set(_args "${_name}")
-		list(APPEND _args "${ARGN}")
-		list(REMOVE_ITEM _args "REQUIRED")
-		list(REMOVE_ITEM _args "") # just in case
-		string(REPLACE ";" " " _args "${_args}")
-		list(APPEND _package_dependencies "${_args}")
-	endif()
-endmacro()
 
 find_public_dependency(Threads REQUIRED)
 
@@ -522,11 +494,13 @@ if (NOT BUILD_SHARED_LIBS)
 endif()
 
 add_library(torrent-rasterbar
-	src/$<JOIN:${sources}, src/>
-	include/libtorrent/$<JOIN:${libtorrent_include_files}, include/libtorrent/>
-	include/libtorrent/extensions/$<JOIN:${libtorrent_extensions_include_files}, include/libtorrent/extensions/>
-	include/libtorrent/aux_/$<JOIN:${libtorrent_aux_include_files}, include/libtorrent/aux_/>
+	${sources}
+	${libtorrent_include_files}
+	${libtorrent_extensions_include_files}
+	${libtorrent_aux_include_files}
 )
+
+select_cxx_standard(torrent-rasterbar 11)
 
 if (BUILD_SHARED_LIBS)
 	target_compile_definitions(torrent-rasterbar
@@ -542,14 +516,6 @@ set_target_properties(torrent-rasterbar
 		VERSION ${PROJECT_VERSION}
 		SOVERSION ${SOVERSION}
 )
-
-if (cxx_std_14 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
-	target_compile_features(torrent-rasterbar PUBLIC cxx_std_14)
-	message(STATUS "Building in C++14 mode")
-else()
-	target_compile_features(torrent-rasterbar PUBLIC cxx_std_11)
-	message(STATUS "Building in C++11 mode")
-endif()
 
 target_include_directories(torrent-rasterbar PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -580,8 +546,9 @@ if (WIN32)
 			debug dbghelp
 	)
 
+	add_definitions(-D_WIN32_WINNT=0x0600) # target Windows Vista or later
+
 	target_compile_definitions(torrent-rasterbar
-		PRIVATE _WIN32_WINNT=0x0600 # target Windows Vista or later
 		PUBLIC WIN32_LEAN_AND_MEAN # prevent winsock1 to be included
 	)
 
@@ -696,9 +663,9 @@ endif()
 
 if (dht)
 	target_sources(torrent-rasterbar PRIVATE
-		src/kademlia/$<JOIN:${kademlia_sources}, src/kademlia/>
-		ed25519/src/$<JOIN:${ed25519_sources}, ed25519/src/>
-		include/libtorrent/kademlia/$<JOIN:${libtorrent_kademlia_include_files}, include/libtorrent/kademlia/>
+		${kademlia_sources}
+		${ed25519_sources}
+		${libtorrent_kademlia_include_files}
 		src/hasher512
 	)
 	target_include_directories(torrent-rasterbar PRIVATE ed25519/src)
@@ -792,16 +759,10 @@ set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/LibtorrentRasterbar)
 string(REGEX REPLACE "([^;]+)" "find_dependency(\\1)" _find_dependency_calls "${_package_dependencies}")
 string(REPLACE ";" "\n" _find_dependency_calls "${_find_dependency_calls}")
 
-if(CMAKE_VERSION VERSION_LESS "3.11.0")
-	set(_compatibility ExactVersion)
-else()
-	set(_compatibility SameMinorVersion)
-endif()
-
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfigVersion.cmake"
 	VERSION ${libtorrent_VERSION}
-	COMPATIBILITY ${_compatibility}
+	COMPATIBILITY SameMinorVersion
 )
 
 export(EXPORT LibtorrentRasterbarTargets
