@@ -96,7 +96,6 @@ TORRENT_TEST(session_get_ip_filter)
 TORRENT_TEST(ip_filter)
 {
 	std::vector<ip_range<address_v4>> range;
-	error_code ec;
 
 	// **** test joining of ranges at the end ****
 	ip_range<address_v4> expected1[] =

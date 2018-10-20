@@ -315,11 +315,23 @@ namespace {
 	}
 } // namespace
 # else
+
+#  ifdef __clang__
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wreserved-id-macro"
+#   pragma clang diagnostic ignored "-Wunused-macros"
+#  endif
+
 #  undef _BSD_SOURCE
 #  define _BSD_SOURCE // deprecated since glibc 2.20
 #  undef _DEFAULT_SOURCE
 #  define _DEFAULT_SOURCE
 #  include <sys/uio.h>
+
+#  ifdef __clang__
+#   pragma clang diagnostic pop
+#  endif
+
 # endif
 #endif
 

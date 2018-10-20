@@ -887,7 +887,6 @@ void upnp::delete_port_mapping(rootdevice& d, port_mapping_t const i)
 	char const* soap_action = "DeletePortMapping";
 
 	char soap[2048];
-	error_code ec;
 	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"

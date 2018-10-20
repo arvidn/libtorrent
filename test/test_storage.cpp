@@ -982,7 +982,7 @@ void alloc_iov(iovec_t* iov, int num_bufs)
 {
 	for (int i = 0; i < num_bufs; ++i)
 	{
-		iov[i] = { new char[num_bufs * (i + 1)]
+		iov[i] = { new char[static_cast<std::size_t>(num_bufs * (i + 1))]
 			, static_cast<std::size_t>(num_bufs * (i + 1)) };
 	}
 }
