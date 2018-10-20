@@ -4887,7 +4887,6 @@ namespace aux {
 			params.url.clear();
 			auto t = std::make_shared<torrent_info>(torrent_file_path, std::ref(ec), 0);
 			if (ec) return std::make_pair(ptr_t(), false);
-			params.url.clear();
 			params.ti = t;
 		}
 #endif
