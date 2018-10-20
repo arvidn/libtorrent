@@ -115,9 +115,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_LIBGCRYPT
 
+#if GCRYPT_VERSION_NUMBER < 0x010600
 extern "C" {
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 }
+#endif
 
 namespace {
 
@@ -126,11 +128,13 @@ namespace {
 	{
 		gcrypt_setup()
 		{
-			gcry_check_version(0);
+			gcry_check_version(nullptr);
+#if GCRYPT_VERSION_NUMBER < 0x010600
 			gcry_error_t e = gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 			if (e != 0) std::fprintf(stderr, "libcrypt ERROR: %s\n", gcry_strerror(e));
 			e = gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
 			if (e != 0) std::fprintf(stderr, "initialization finished error: %s\n", gcry_strerror(e));
+#endif
 		}
 	} gcrypt_global_constructor;
 }
@@ -475,8 +479,8 @@ namespace aux {
 		session_log("start session");
 #endif
 
-		error_code ec;
 #ifdef TORRENT_USE_OPENSSL
+		error_code ec;
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 		aux::openssl_set_tlsext_servername_callback(m_ssl_ctx.native_handle()

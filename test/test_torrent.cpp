@@ -636,7 +636,6 @@ TORRENT_TEST(test_have_piece_no_metadata)
 TORRENT_TEST(test_have_piece_out_of_range)
 {
 	lt::session ses(settings());
-	error_code ec;
 
 	add_torrent_params p;
 	static std::array<const int, 2> const file_sizes{{100000, 100000}};
@@ -672,7 +671,6 @@ TORRENT_TEST(test_read_piece_no_metadata)
 TORRENT_TEST(test_read_piece_out_of_range)
 {
 	lt::session ses(settings());
-	error_code ec;
 
 	add_torrent_params p;
 	static std::array<const int, 2> const file_sizes{{100000, 100000}};

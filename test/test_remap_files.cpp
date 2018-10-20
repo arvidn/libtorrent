@@ -59,9 +59,6 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 {
 	using namespace lt;
 
-	// in case the previous run was terminated
-	error_code ec;
-
 	// create a torrent with 2 files, remap them into 3 files and make sure
 	// the file priorities don't break things
 	static std::array<const int, 2> const file_sizes{{100000, 100000}};

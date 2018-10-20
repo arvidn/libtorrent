@@ -140,10 +140,16 @@ namespace libtorrent {
 	std::string convert_from_native_path(char const* s) { return convert_from_native(s); }
 #endif
 
-	template <typename T>
-	std::unique_ptr<T, decltype(&std::free)> make_free_holder(T* ptr)
+namespace {
+	struct free_function
 	{
-		return std::unique_ptr<T, decltype(&std::free)>(ptr, &std::free);
+		void operator()(void* ptr) const noexcept { std::free(ptr); }
+	};
+
+	template <typename T>
+	std::unique_ptr<T, free_function> make_free_holder(T* ptr)
+	{
+		return std::unique_ptr<T, free_function>(ptr, free_function{});
 	}
 
 #ifdef TORRENT_WINDOWS
@@ -158,6 +164,7 @@ namespace libtorrent {
 		return time_t(ft / 10000000 - posix_time_offset);
 	}
 #endif
+} // anonymous namespace
 
 	native_path_string convert_to_native_path_string(std::string const& path)
 	{
