@@ -120,10 +120,15 @@ EXTRA_DIST = \
   setup.py \
   LICENSE \
   README.rst \
+  cmake/Modules/FindLibGcrypt.cmake \
+  cmake/Modules/GeneratePkgConfig.cmake \
+  cmake/Modules/ucm_flags.cmake \
+  cmake/Modules/GeneratePkgConfig/generate-pkg-config.cmake.in \
+  cmake/Modules/GeneratePkgConfig/pkg-config.cmake.in \
+  cmake/Modules/GeneratePkgConfig/target-compile-settings.cmake.in \
   $(DOCS_PAGES) \
   $(DOCS_IMAGES) \
   $(ED25519_SOURCE)
 
 pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent-rasterbar.pc
-

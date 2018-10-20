@@ -1,0 +1,22 @@
+include(@_variables_file_name@)
+
+function (cmake_list_to_pkg_config _result _list _prefix)
+	set(_tmp_list "${_list}")
+	list(REMOVE_ITEM _tmp_list "")
+	# remove prefix from prefixed items
+	string(REGEX REPLACE "(^|;)(${_prefix})" "\\1" _tmp_list "${_tmp_list}")
+	# append 'prefix' to each element
+	string(REGEX REPLACE "([^;]+)" "${_prefix}\\1" _tmp_list "${_tmp_list}")
+	# transform cmake list into a space delimited list
+	string(REPLACE ";" " " _tmp_list "${_tmp_list}")
+	set(${_result} "${_tmp_list}" PARENT_SCOPE)
+endfunction()
+
+cmake_list_to_pkg_config(_interface_link_libraries "${_TARGET_INTERFACE_LINK_LIBRARIES}" "-l")
+cmake_list_to_pkg_config(_interface_definitions "${_TARGET_INTERFACE_DEFINITIONS}" "-D")
+cmake_list_to_pkg_config(_interface_include_dirs "${_TARGET_INTERFACE_INCLUDE_DIRS}" "-I")
+set(_interface_compile_options "${_TARGET_INTERFACE_COMPILE_OPTIONS}")
+string(REPLACE ";" " " _interface_compile_options "${_interface_compile_options}")
+
+configure_file("@_pkg_config_file_template_filename@" "@_generate_target_dir@/@_output_name@.pc" @ONLY)
+file(INSTALL "@_generate_target_dir@/@_output_name@.pc" DESTINATION "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/pkgconfig")
