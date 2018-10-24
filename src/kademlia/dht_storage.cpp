@@ -455,7 +455,7 @@ namespace {
 			}
 			else
 			{
-				// this is the case where we already
+				// this is the case where we already have an item in this slot
 				dht_mutable_item& item = i->second;
 
 				if (item.seq < seq)
