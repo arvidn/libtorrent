@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/optional.hpp>
+#include <boost/noncopyable.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
 // there is no forward declaration header for asio

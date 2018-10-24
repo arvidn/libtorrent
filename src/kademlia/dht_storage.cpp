@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/function/function1.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/noncopyable.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
