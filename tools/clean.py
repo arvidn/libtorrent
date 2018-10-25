@@ -71,7 +71,7 @@ def clean():
                 try:
                     shutil.rmtree(p)
                     print(p)
-                except Exception as e:
+                except Exception:
                     try:
                         os.remove(p)
                         print(p)
