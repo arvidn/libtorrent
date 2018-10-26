@@ -1421,7 +1421,7 @@ namespace libtorrent
 		{
 			error_code err;
 			std::string subdir = combine_path(old_save_path, *it);
-			while (subdir != old_save_path && !err)
+			while (!compare_path(subdir, old_save_path) && !err)
 			{
 				remove(subdir, err);
 				subdir = parent_path(subdir);
