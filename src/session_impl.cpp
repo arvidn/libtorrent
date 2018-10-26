@@ -1320,7 +1320,7 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 		// SSL torrents use the SSL listen port
 		if (req.ssl_ctx) req.listen_port = ssl_listen_port();
-		req.ssl_ctx = &m_ssl_ctx;
+		else req.ssl_ctx = &m_ssl_ctx;
 #endif
 #if TORRENT_USE_I2P
 		if (!m_settings.get_str(settings_pack::i2p_hostname).empty())
@@ -5511,7 +5511,16 @@ retry:
 		// potentially identify us if it is leaked elsewere
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
 		if (m_listen_sockets.empty()) return 0;
+#ifdef TORRENT_USE_OPENSSL
+		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
+			, end(m_listen_sockets.end()); i != end; ++i)
+		{
+			if (!i->ssl) return i->external_port;
+		}
+		return 0;
+#else
 		return m_listen_sockets.front().external_port;
+#endif
 	}
 
 	boost::uint16_t session_impl::ssl_listen_port() const

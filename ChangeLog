@@ -1,3 +1,4 @@
+	* fix tracker announce issue, advertising port 0 in secondary IPv6 announce
 	* fix missing boost/noncopyable.hpp includes
 	* fix python binding for torrent_info::creation_date()
 
