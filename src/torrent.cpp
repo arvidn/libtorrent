@@ -3372,11 +3372,20 @@ namespace {
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d"
+			debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d ssl: %p "
+				"port: %d ssl-port: %d force-proxy: %d"
 				, req.url.c_str()
 				, (req.event==tracker_request::stopped?"stopped"
-					:req.event==tracker_request::started?"started":"")
-				, m_abort);
+					:req.event==tracker_request::started?"started":"-")
+				, m_abort
+#ifdef TORRENT_USE_OPENSSL
+				, static_cast<void*>(req.ssl_ctx)
+#else
+				, static_cast<void*>(0)
+#endif
+				, m_ses.listen_port()
+				, m_ses.ssl_listen_port()
+				, settings().get_bool(settings_pack::force_proxy));
 
 			// if we're not logging session logs, don't bother creating an
 			// observer object just for logging
