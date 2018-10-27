@@ -290,7 +290,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT http_error_category : boost::system::error_category
 	{
 		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
-		{ return "http error"; }
+		{ return "http"; }
 		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
 		{
 			std::string ret;

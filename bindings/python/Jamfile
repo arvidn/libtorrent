@@ -12,8 +12,8 @@ BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 # this is used to make bjam use the same version of python which is executing setup.py
 LIBTORRENT_PYTHON_INTERPRETER = [ modules.peek : LIBTORRENT_PYTHON_INTERPRETER ] ;
 
-feature visibility : default hidden : composite ;
-feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
+feature lt-visibility : default hidden : composite ;
+feature.compose <lt-visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
 feature libtorrent-link : shared static : composite propagated ;
 feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
@@ -100,7 +100,7 @@ rule libtorrent_linking ( properties * )
       || <toolset>clang in $(properties)
       || <toolset>clang-darwin in $(properties)
     {
-        result += <visibility>hidden ;
+        result += <lt-visibility>hidden ;
 
         if ( <toolset>gcc in $(properties) )
         {
