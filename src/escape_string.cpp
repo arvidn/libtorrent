@@ -628,7 +628,6 @@ namespace {
 		ws.resize(s.size());
 		std::size_t size = mbstowcs(&ws[0], s.c_str(), s.size());
 		if (size == std::size_t(-1)) return s;
-		std::string ret;
 		return libtorrent::wchar_utf8(ws);
 	}
 
