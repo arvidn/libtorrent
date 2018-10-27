@@ -1159,7 +1159,7 @@ struct upnp_error_category : boost::system::error_category
 {
 	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
 	{
-		return "UPnP error";
+		return "upnp";
 	}
 
 	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT

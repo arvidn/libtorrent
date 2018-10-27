@@ -112,11 +112,58 @@ namespace {
 	};
 }
 
+struct category_holder
+{
+	category_holder(boost::system::error_category const& cat) : m_cat(&cat) {}
+	char const* name() const { return m_cat->name(); }
+	std::string message(int const v) const { return m_cat->message(v); }
+
+	friend bool operator==(category_holder const lhs, category_holder const rhs)
+	{ return *lhs.m_cat == *rhs.m_cat; }
+
+	friend bool operator!=(category_holder const lhs, category_holder const rhs)
+	{ return *lhs.m_cat != *rhs.m_cat; }
+
+	friend bool operator<(category_holder const lhs, category_holder const rhs)
+	{ return *lhs.m_cat < *rhs.m_cat; }
+
+	boost::system::error_category const& ref() const { return *m_cat; }
+	operator boost::system::error_category const&() const { return *m_cat; }
+private:
+	boost::system::error_category const* m_cat;
+};
+
+void error_code_assign(boost::system::error_code& self, int const v, category_holder const cat)
+{
+	self.assign(v, cat.ref());
+}
+
+category_holder error_code_category(boost::system::error_code const& self)
+{
+	return category_holder(self.category());
+}
+
+#define WRAP_CAT(name) \
+	category_holder wrap_ ##name## _category() { return category_holder(name## _category()); }
+
+WRAP_CAT(libtorrent)
+WRAP_CAT(upnp)
+WRAP_CAT(http)
+WRAP_CAT(socks)
+WRAP_CAT(bdecode)
+#if TORRENT_USE_I2P
+WRAP_CAT(i2p)
+#endif
+WRAP_CAT(generic)
+WRAP_CAT(system)
+
+#undef WRAP_CAT
+
 void bind_error_code()
 {
-    class_<boost::system::error_category, boost::noncopyable>("error_category", no_init)
-        .def("name", &error_category::name)
-        .def("message", &error_category::message)
+    class_<category_holder>("error_category", no_init)
+        .def("name", &category_holder::name)
+        .def("message", &category_holder::message)
         .def(self == self)
         .def(self < self)
         .def(self != self)
@@ -124,39 +171,37 @@ void bind_error_code()
 
     class_<error_code>("error_code")
         .def(init<>())
-        .def("message", &error_code::message)
+        .def(init<int, category_holder>())
+        .def("message", static_cast<std::string (error_code::*)() const>(&error_code::message))
         .def("value", &error_code::value)
         .def("clear", &error_code::clear)
-        .def("category", &error_code::category
-           , return_internal_reference<>())
-        .def("assign", &error_code::assign)
+        .def("category", &error_code_category)
+        .def("assign", &error_code_assign)
         .def_pickle(ec_pickle_suite())
         ;
 
-typedef return_value_policy<reference_existing_object> return_existing;
-
-    def("libtorrent_category", &libtorrent_category, return_existing());
-    def("upnp_category", &upnp_category, return_existing());
-    def("http_category", &http_category, return_existing());
-    def("socks_category", &socks_category, return_existing());
-    def("bdecode_category", &bdecode_category, return_existing());
+    def("libtorrent_category", &wrap_libtorrent_category);
+    def("upnp_category", &wrap_upnp_category);
+    def("http_category", &wrap_http_category);
+    def("socks_category", &wrap_socks_category);
+    def("bdecode_category", &wrap_bdecode_category);
 #if TORRENT_USE_I2P
-    def("i2p_category", &i2p_category, return_existing());
+    def("i2p_category", &wrap_i2p_category);
 #endif
 
 #ifndef TORRENT_NO_DEPRECATE
-    def("get_libtorrent_category", &libtorrent_category, return_existing());
-    def("get_upnp_category", &upnp_category, return_existing());
-    def("get_http_category", &http_category, return_existing());
-    def("get_socks_category", &socks_category, return_existing());
-    def("get_bdecode_category", &bdecode_category, return_existing());
+    def("get_libtorrent_category", &wrap_libtorrent_category);
+    def("get_upnp_category", &wrap_upnp_category);
+    def("get_http_category", &wrap_http_category);
+    def("get_socks_category", &wrap_socks_category);
+    def("get_bdecode_category", &wrap_bdecode_category);
 #if TORRENT_USE_I2P
-    def("get_i2p_category", &i2p_category, return_existing());
+    def("get_i2p_category", &wrap_i2p_category);
 #endif
 #endif // TORRENT_NO_DEPRECATE
 
-    def("generic_category", &boost::system::generic_category, return_existing());
+    def("generic_category", &wrap_generic_category);
 
-    def("system_category", &boost::system::system_category, return_existing());
+    def("system_category", &wrap_system_category);
 }
 
