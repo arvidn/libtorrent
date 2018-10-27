@@ -190,7 +190,7 @@ namespace libtorrent {
 		virtual bool is_disk_buffer(char* buffer) const = 0;
 #endif
 	protected:
-		~disk_interface() {}
+		virtual ~disk_interface() {}
 	};
 
 	struct storage_holder

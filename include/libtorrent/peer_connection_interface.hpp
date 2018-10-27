@@ -76,7 +76,7 @@ namespace libtorrent {
 			, char const* event, char const* fmt = "", ...) const noexcept TORRENT_FORMAT(4,5) = 0;
 #endif
 	protected:
-		~peer_connection_interface() {}
+		virtual ~peer_connection_interface() {}
 	};
 }
 

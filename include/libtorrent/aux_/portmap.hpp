@@ -60,7 +60,7 @@ namespace aux {
 #endif
 
 	protected:
-		~portmap_callback() {}
+		virtual ~portmap_callback() {}
 	};
 
 	struct base_mapping

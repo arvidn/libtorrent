@@ -45,7 +45,7 @@ namespace libtorrent {
 		virtual void free_disk_buffer(char* b) = 0;
 		virtual void reclaim_blocks(span<aux::block_cache_reference> refs) = 0;
 	protected:
-		~buffer_allocator_interface() = default;
+		virtual ~buffer_allocator_interface() = default;
 	};
 
 	// The disk buffer holder acts like a ``unique_ptr`` that frees a disk buffer

@@ -68,7 +68,7 @@ struct TORRENT_EXTRA_EXPORT resolver_interface
 	virtual void set_cache_timeout(seconds timeout) = 0;
 
 protected:
-	~resolver_interface() {}
+	virtual ~resolver_interface() {}
 };
 
 }

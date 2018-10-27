@@ -123,7 +123,7 @@ namespace aux {
 		virtual bool is_posting_torrent_updates() const = 0;
 #endif
 	protected:
-		~session_logger() {}
+		virtual ~session_logger() {}
 	};
 #endif // TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 

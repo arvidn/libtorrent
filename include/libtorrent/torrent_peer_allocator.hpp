@@ -56,7 +56,7 @@ namespace libtorrent {
 		virtual torrent_peer* allocate_peer_entry(int type) = 0;
 		virtual void free_peer_entry(torrent_peer* p) = 0;
 	protected:
-		~torrent_peer_allocator_interface() {}
+		virtual ~torrent_peer_allocator_interface() {}
 	};
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator final

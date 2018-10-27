@@ -81,7 +81,7 @@ struct socket_manager
 	virtual bool has_quota() = 0;
 	virtual bool send_packet(aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) = 0;
 protected:
-	~socket_manager() = default;
+	virtual ~socket_manager() = default;
 };
 
 // get the closest node to the id with the given family_name

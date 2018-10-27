@@ -45,7 +45,7 @@ namespace libtorrent { namespace aux {
 #endif
 
 	protected:
-		~lsd_callback() {}
+		virtual ~lsd_callback() {}
 	};
 }}
 

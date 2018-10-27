@@ -44,7 +44,7 @@ namespace libtorrent {
 		// resume downloading from peers
 		virtual void on_disk() = 0;
 	protected:
-		~disk_observer() {}
+		virtual ~disk_observer() {}
 	};
 }
 

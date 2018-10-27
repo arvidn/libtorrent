@@ -72,7 +72,7 @@ namespace dht {
 #endif
 
 	protected:
-		~dht_logger() = default;
+		virtual ~dht_logger() = default;
 	};
 
 	struct TORRENT_EXTRA_EXPORT dht_observer : dht_logger
