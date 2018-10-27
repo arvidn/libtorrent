@@ -273,9 +273,8 @@ bool is_downloading_state(int const st)
 			ws.emplace_back(web_seed_t(u, web_seed_entry::url_seed));
 
 			// correct URLs to end with a "/" for multi-file torrents
-			std::string& url = ws.back().url;
 			if (multi_file)
-				ensure_trailing_slash(url);
+				ensure_trailing_slash(ws.back().url);
 		}
 
 		for (auto const& e : p.http_seeds)
