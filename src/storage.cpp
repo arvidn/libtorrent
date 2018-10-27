@@ -345,15 +345,11 @@ namespace libtorrent {
 		if (!ec) return true;
 
 		// the part file not existing is expected
-		if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
+		if (ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
 
-		if (ec)
-		{
-			ec.file(torrent_status::error_file_partfile);
-			ec.operation = operation_t::file_stat;
-			return false;
-		}
+		ec.file(torrent_status::error_file_partfile);
+		ec.operation = operation_t::file_stat;
 		return false;
 	}
 

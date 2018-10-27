@@ -148,11 +148,10 @@ namespace libtorrent { namespace aux {
 		// the number of bytes left to read in the current file (specified by
 		// file_index). This is the minimum of (file_size - file_offset) and
 		// bytes_left.
-		int file_bytes_left;
 
 		while (bytes_left > 0)
 		{
-			file_bytes_left = bytes_left;
+			int file_bytes_left = bytes_left;
 			if (file_offset + file_bytes_left > files.file_size(file_index))
 				file_bytes_left = std::max(static_cast<int>(files.file_size(file_index) - file_offset), 0);
 
