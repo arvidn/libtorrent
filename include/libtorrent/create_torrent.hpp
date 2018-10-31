@@ -146,15 +146,19 @@ namespace libtorrent {
 		// another torrent.
 		//
 		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 		// BEP 52 requires files to be piece aligned so all torrents are now compatible
 		// with BEP 38
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER mutable_torrent_support = 4_bit;
 #endif
 
+		// Do not generate v1 metadata. The resulting torrent will only be usable by
+		// clients which support v2.
+		static constexpr create_flags_t v2_only = 5_bit;
+
 		// do not generate v2 metadata or enforce v2 alignment and padding rules
 		// this is mainly for tests, not recommended for production use
-		static constexpr create_flags_t v1_only = 5_bit;
+		static constexpr create_flags_t v1_only = 6_bit;
 
 		// The ``piece_size`` is the size of each piece in bytes. It must
 		// be a power of 2 and a minimum of 16 kiB. If a piece size of 0 is specified, a
@@ -268,6 +272,7 @@ namespace libtorrent {
 		void set_priv(bool p) { m_private = p; }
 		bool priv() const { return m_private; }
 
+		bool is_v2_only() const { return m_v2_only; }
 		bool is_v1_only() const { return m_v1_only; }
 
 		// returns the number of pieces in the associated file_storage object.
@@ -365,6 +370,8 @@ namespace libtorrent {
 		// the torrent file. The full data of the pointed-to
 		// file is still included
 		bool m_include_symlinks:1;
+
+		bool m_v2_only:1;
 
 		// only generate v1 metadata and do not enforce v2 padding rules
 		bool m_v1_only:1;

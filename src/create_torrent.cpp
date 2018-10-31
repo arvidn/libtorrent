@@ -65,6 +65,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION <= 2
 	constexpr create_flags_t create_torrent::mutable_torrent_support;
 #endif
+	constexpr create_flags_t create_torrent::v2_only;
 	constexpr create_flags_t create_torrent::v1_only;
 
 namespace {
@@ -388,8 +389,11 @@ namespace {
 		, m_private(false)
 		, m_include_mtime(bool(flags & create_torrent::modification_time))
 		, m_include_symlinks(bool(flags & create_torrent::symlinks))
+		, m_v2_only(bool(flags & create_torrent::v2_only))
 		, m_v1_only(bool(flags & create_torrent::v1_only))
 	{
+		TORRENT_ASSERT_PRECOND(!(m_v2_only && m_v1_only));
+
 		// return instead of crash in release mode
 		if (fs.num_files() == 0 || fs.total_size() == 0) return;
 
@@ -641,31 +645,34 @@ namespace {
 		{
 			file_index_t const first(0);
 			if (m_include_mtime) info["mtime"] = m_files.mtime(first);
-			info["length"] = m_files.file_size(first);
-			file_flags_t const flags = m_files.file_flags(first);
-			if (flags & (file_storage::flag_pad_file
-				| file_storage::flag_hidden
-				| file_storage::flag_executable
-				| file_storage::flag_symlink))
+			if (!m_v2_only)
 			{
-				std::string& attr = info["attr"].string();
-				if (flags & file_storage::flag_pad_file) attr += 'p';
-				if (flags & file_storage::flag_hidden) attr += 'h';
-				if (flags & file_storage::flag_executable) attr += 'x';
-				if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
-			}
-			if (m_include_symlinks
-				&& (flags & file_storage::flag_symlink))
-			{
-				entry& sympath_e = info["symlink path"];
+				info["length"] = m_files.file_size(first);
+				file_flags_t const flags = m_files.file_flags(first);
+				if (flags & (file_storage::flag_pad_file
+					| file_storage::flag_hidden
+					| file_storage::flag_executable
+					| file_storage::flag_symlink))
+				{
+					std::string& attr = info["attr"].string();
+					if (flags & file_storage::flag_pad_file) attr += 'p';
+					if (flags & file_storage::flag_hidden) attr += 'h';
+					if (flags & file_storage::flag_executable) attr += 'x';
+					if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
+				}
+				if (m_include_symlinks
+					&& (flags & file_storage::flag_symlink))
+				{
+					entry& sympath_e = info["symlink path"];
 
-				std::string const split = split_path(m_files.symlink(first));
-				for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
-					sympath_e.list().emplace_back(e);
-			}
-			if (!m_filehashes.empty())
-			{
-				info["sha1"] = m_filehashes[first].to_string();
+					std::string const split = split_path(m_files.symlink(first));
+					for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
+						sympath_e.list().emplace_back(e);
+				}
+				if (!m_filehashes.empty())
+				{
+					info["sha1"] = m_filehashes[first].to_string();
+				}
 			}
 
 			if (!m_v1_only && !info.find_key("file tree"))
@@ -677,7 +684,7 @@ namespace {
 		}
 		else
 		{
-			if (!info.find_key("files"))
+			if (!m_v2_only && !info.find_key("files"))
 			{
 				entry& files = info["files"];
 
@@ -775,10 +782,13 @@ namespace {
 
 		info["piece length"] = m_files.piece_length();
 
-		std::string& p = info["pieces"].string();
+		if (!m_v2_only)
+		{
+			std::string& p = info["pieces"].string();
 
-		for (sha1_hash const& h : m_piece_hash)
-			p.append(h.data(), h.size());
+			for (sha1_hash const& h : m_piece_hash)
+				p.append(h.data(), h.size());
+		}
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), info);

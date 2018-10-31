@@ -147,3 +147,19 @@ TORRENT_TEST(path_conflict)
 		TEST_EQUAL(t.generate(), lt::entry());
 	}
 }
+
+TORRENT_TEST(v2_only)
+{
+	lt::file_storage fs;
+	fs.add_file("test/A", 0x8000);
+	fs.add_file("test/B", 0x4000);
+	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v2_only);
+	std::vector<char> buffer;
+	lt::bencode(std::back_inserter(buffer), t.generate());
+	lt::torrent_info info(buffer, lt::from_span);
+	TEST_CHECK(info.info_hash().has_v2());
+	TEST_CHECK(!info.info_hash().has_v1());
+	TEST_EQUAL(info.files().file_name(0), "A");
+	TEST_EQUAL(info.files().file_name(1), "B");
+	TEST_EQUAL(info.name(), "test");
+}
