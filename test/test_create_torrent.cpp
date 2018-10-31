@@ -41,6 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring>
 
+constexpr lt::file_index_t operator""_file (unsigned long long int const v)
+{ return lt::file_index_t{static_cast<int>(v)}; }
+
 
 // make sure creating a torrent from an existing handle preserves the
 // info-dictionary verbatim, so as to not alter the info-hash
@@ -176,4 +179,20 @@ TORRENT_TEST(path_conflict)
 		lt::create_torrent t(fs, 0x4000);
 		TEST_THROW(t.generate());
 	}
+}
+
+TORRENT_TEST(v2_only)
+{
+	lt::file_storage fs;
+	fs.add_file("test/A", 0x8000);
+	fs.add_file("test/B", 0x4000);
+	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v2_only);
+	std::vector<char> buffer;
+	lt::bencode(std::back_inserter(buffer), t.generate());
+	lt::torrent_info info(buffer, lt::from_span);
+	TEST_CHECK(info.info_hash().has_v2());
+	TEST_CHECK(!info.info_hash().has_v1());
+	TEST_EQUAL(info.files().file_name(0_file), "A");
+	TEST_EQUAL(info.files().file_name(1_file), "B");
+	TEST_EQUAL(info.name(), "test");
 }
