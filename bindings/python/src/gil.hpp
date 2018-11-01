@@ -19,90 +19,35 @@
 // RAII helper to release GIL.
 struct allow_threading_guard
 {
-    allow_threading_guard()
-      : save(PyEval_SaveThread())
-    {}
-
-    ~allow_threading_guard()
-    {
-        PyEval_RestoreThread(save);
-    }
-
+    allow_threading_guard() : save(PyEval_SaveThread()) {}
+    ~allow_threading_guard() { PyEval_RestoreThread(save); }
     PyThreadState* save;
 };
 
 struct lock_gil
 {
-  lock_gil()
-    : state(PyGILState_Ensure())
-  {}
-
-  ~lock_gil()
-  {
-      PyGILState_Release(state);
-  }
-
+  lock_gil() : state(PyGILState_Ensure()) {}
+  ~lock_gil() { PyGILState_Release(state); }
   PyGILState_STATE state;
 };
 
 template <class F, class R>
 struct allow_threading
 {
-    allow_threading(F fn)
-      : fn(fn)
-    {}
-
-    template <class A0>
-    R operator()(A0& a0)
+    allow_threading(F fn) : fn(fn) {}
+    template <typename Self, typename... Args>
+    R operator()(Self&& s, Args&&... args)
     {
         allow_threading_guard guard;
-        return (a0.*fn)();
+        return (std::forward<Self>(s).*fn)(std::forward<Args>(args)...);
     }
-
-    template <class A0, class A1>
-    R operator()(A0& a0, A1& a1)
-    {
-        allow_threading_guard guard;
-        return (a0.*fn)(a1);
-    }
-
-    template <class A0, class A1, class A2>
-    R operator()(A0& a0, A1& a1, A2& a2)
-    {
-        allow_threading_guard guard;
-        return (a0.*fn)(a1,a2);
-    }
-
-    template <class A0, class A1, class A2, class A3>
-    R operator()(A0& a0, A1& a1, A2& a2, A3& a3)
-    {
-        allow_threading_guard guard;
-        return (a0.*fn)(a1,a2,a3);
-    }
-
-    template <class A0, class A1, class A2, class A3, class A4>
-    R operator()(A0& a0, A1& a1, A2& a2, A3& a3, A4& a4)
-    {
-        allow_threading_guard guard;
-        return (a0.*fn)(a1,a2,a3,a4);
-    }
-
-    template <class A0, class A1, class A2, class A3, class A4, class A5>
-    R operator()(A0& a0, A1& a1, A2& a2, A3& a3, A4& a4, A5& a5)
-    {
-        allow_threading_guard guard;
-        return (a0.*fn)(a1,a2,a3,a4,a5);
-    }
-
     F fn;
 };
 
 template <class F>
 struct visitor : boost::python::def_visitor<visitor<F>>
 {
-    visitor(F fn)
-      : fn(fn)
-    {}
+    visitor(F fn) : fn(fn) {}
 
     template <class Class, class Options, class Signature>
     void visit_aux(
