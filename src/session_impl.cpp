@@ -1046,8 +1046,8 @@ namespace aux {
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-		bool use_ssl = req.ssl_ctx != nullptr;
-		req.ssl_ctx = &m_ssl_ctx;
+		bool const use_ssl = req.ssl_ctx != nullptr;
+		if (!use_ssl) req.ssl_ctx = &m_ssl_ctx;
 #endif
 
 		if (req.outgoing_socket)
@@ -5415,7 +5415,22 @@ namespace aux {
 			else
 				return std::uint16_t(sock->tcp_external_port);
 		}
+
+#ifdef TORRENT_USE_OPENSSL
+		for (auto const& s : m_listen_sockets)
+		{
+			if (s->ssl == transport::plaintext)
+			{
+				if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
+					return std::uint16_t(s->udp_external_port);
+				else
+					return std::uint16_t(s->tcp_external_port);
+			}
+		}
+		return 0;
+#else
 		return std::uint16_t(m_listen_sockets.front()->tcp_external_port);
+#endif
 	}
 
 	// TODO: 2 this function should be removed and users need to deal with the

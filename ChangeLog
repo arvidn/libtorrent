@@ -91,6 +91,8 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix tracker announce issue, advertising port 0 in secondary IPv6 announce
+	* fix missing boost/noncopyable.hpp includes
 	* fix python binding for torrent_info::creation_date()
 
 1.1.10 release

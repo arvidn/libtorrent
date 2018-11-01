@@ -270,11 +270,7 @@ namespace libtorrent {
 			, req.listen_port);
 #endif
 
-		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
-		if (m_abort && req.event != tracker_request::stopped)
-			return;
-
-		std::string protocol = req.url.substr(0, req.url.find(':'));
+		std::string const protocol = req.url.substr(0, req.url.find(':'));
 
 #ifdef TORRENT_USE_OPENSSL
 		if (protocol == "http" || protocol == "https")

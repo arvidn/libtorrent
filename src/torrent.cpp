@@ -2899,11 +2899,19 @@ bool is_downloading_state(int const st)
 				req.outgoing_socket = aep.socket;
 
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d fails: %d upd: %d"
+				debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d ssl: %p "
+					"port: %d ssl-port: %d fails: %d upd: %d"
 					, req.url.c_str()
 					, (req.event == tracker_request::stopped ? "stopped"
 						: req.event == tracker_request::started ? "started" : "")
 					, m_abort
+#ifdef TORRENT_USE_OPENSSL
+					, static_cast<void*>(req.ssl_ctx)
+#else
+					, static_cast<void*>(nullptr)
+#endif
+					, m_ses.listen_port()
+					, m_ses.ssl_listen_port()
 					, aep.fails
 					, aep.updating);
 
