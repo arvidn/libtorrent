@@ -72,10 +72,10 @@ namespace libtorrent {
 	extern char const hex_chars[];
 
 	char const hex_chars[] = "0123456789abcdef";
-	void to_hex(char const* in, size_t const len, char* out)
+	void to_hex(char const* in, int const len, char* out)
 	{
 		int idx = 0;
-		for (size_t i=0; i < len; ++i)
+		for (int i = 0; i < len; ++i)
 		{
 			out[idx++] = hex_chars[std::uint8_t(in[i]) >> 4];
 			out[idx++] = hex_chars[std::uint8_t(in[i]) & 0xf];
@@ -87,15 +87,15 @@ namespace libtorrent {
 		std::string ret;
 		if (!in.empty())
 		{
-			ret.resize(in.size() * 2);
-			to_hex(in.data(), in.size(), &ret[0]);
+			ret.resize(std::size_t(in.size() * 2));
+			to_hex(in.data(), int(in.size()), &ret[0]);
 		}
 		return ret;
 	}
 
 	void to_hex(span<char const> in, char* out)
 	{
-		to_hex(in.data(), in.size(), out);
+		to_hex(in.data(), int(in.size()), out);
 		out[in.size() * 2] = '\0';
 	}
 

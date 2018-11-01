@@ -122,7 +122,7 @@ namespace libtorrent {namespace {
 				TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
 					== m_torrent.torrent_file().info_hash());
 			}
-			return {m_metadata.get(), aux::numeric_cast<std::size_t>(m_metadata_size)};
+			return {m_metadata.get(), m_metadata_size};
 		}
 
 		bool received_metadata(ut_metadata_peer_plugin& source
@@ -278,13 +278,13 @@ namespace libtorrent {namespace {
 			io::write_uint8(bt_peer_connection::msg_extended, header);
 			io::write_uint8(m_message_index, header);
 
-			m_pc.send_buffer({msg, static_cast<std::size_t>(len + 6)});
+			m_pc.send_buffer({msg, len + 6});
 			// TODO: we really need to increment the refcounter on the torrent
 			// while this buffer is still in the peer's send buffer
 			if (metadata_piece_size)
 			{
 				m_pc.append_const_send_buffer(
-					span<char>(const_cast<char*>(metadata), std::size_t(metadata_piece_size)), metadata_piece_size);
+					span<char>(const_cast<char*>(metadata), metadata_piece_size), metadata_piece_size);
 			}
 
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_extended);
@@ -591,7 +591,7 @@ namespace libtorrent {namespace {
 
 		if (!have_all) return false;
 
-		if (!m_torrent.set_metadata({m_metadata.get(), aux::numeric_cast<std::size_t>(m_metadata_size)}))
+		if (!m_torrent.set_metadata({m_metadata.get(), m_metadata_size}))
 		{
 			if (!m_torrent.valid_metadata())
 			{

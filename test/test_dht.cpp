@@ -95,9 +95,8 @@ void add_and_replace(node_id& dst, node_id const& add)
 	bool carry = false;
 	for (int k = 19; k >= 0; --k)
 	{
-		std::size_t idx = std::size_t(k);
-		int sum = dst[idx] + add[idx] + (carry ? 1 : 0);
-		dst[idx] = sum & 255;
+		int sum = dst[k] + add[k] + (carry ? 1 : 0);
+		dst[k] = sum & 255;
 		carry = sum > 255;
 	}
 }
@@ -261,7 +260,7 @@ struct msg_args
 	msg_args& samples(std::vector<sha1_hash> const& samples)
 	{
 		a["samples"] = span<char const>(
-			reinterpret_cast<char const*>(samples.data()), samples.size() * 20);
+			reinterpret_cast<char const*>(samples.data()), int(samples.size()) * 20);
 		return *this;
 	}
 
@@ -1236,35 +1235,35 @@ namespace {
 		{ generate_next(), 8 }
 	};
 
-	std::array<node_entry, 8> build_nodes()
+	lt::aux::array<node_entry, 8> build_nodes()
 	{
-		std::array<node_entry, 8> nodes = {
-			{ node_entry(items[0].target, udp::endpoint(addr4("1.1.1.1"), 1231), 10, true)
-			, node_entry(items[1].target, udp::endpoint(addr4("2.2.2.2"), 1232), 10, true)
-			, node_entry(items[2].target, udp::endpoint(addr4("3.3.3.3"), 1233), 10, true)
-			, node_entry(items[3].target, udp::endpoint(addr4("4.4.4.4"), 1234), 10, true)
-			, node_entry(items[4].target, udp::endpoint(addr4("5.5.5.5"), 1235), 10, true)
-			, node_entry(items[5].target, udp::endpoint(addr4("6.6.6.6"), 1236), 10, true)
-			, node_entry(items[6].target, udp::endpoint(addr4("7.7.7.7"), 1237), 10, true)
-			, node_entry(items[7].target, udp::endpoint(addr4("8.8.8.8"), 1238), 10, true) }
-		};
-		return nodes;
+		return lt::aux::array<node_entry, 8>(
+			std::array<node_entry, 8> {
+			{ { items[0].target, udp::endpoint(addr4("1.1.1.1"), 1231), 10, true}
+			, { items[1].target, udp::endpoint(addr4("2.2.2.2"), 1232), 10, true}
+			, { items[2].target, udp::endpoint(addr4("3.3.3.3"), 1233), 10, true}
+			, { items[3].target, udp::endpoint(addr4("4.4.4.4"), 1234), 10, true}
+			, { items[4].target, udp::endpoint(addr4("5.5.5.5"), 1235), 10, true}
+			, { items[5].target, udp::endpoint(addr4("6.6.6.6"), 1236), 10, true}
+			, { items[6].target, udp::endpoint(addr4("7.7.7.7"), 1237), 10, true}
+			, { items[7].target, udp::endpoint(addr4("8.8.8.8"), 1238), 10, true} }
+		});
 	}
 
-	std::array<node_entry, 9> build_nodes(sha1_hash target)
+	lt::aux::array<node_entry, 9> build_nodes(sha1_hash target)
 	{
-		std::array<node_entry, 9> nodes = {
-			{ node_entry(target, udp::endpoint(addr4("1.1.1.1"), 1231), 10, true)
-			, node_entry(target, udp::endpoint(addr4("2.2.2.2"), 1232), 10, true)
-			, node_entry(target, udp::endpoint(addr4("3.3.3.3"), 1233), 10, true)
-			, node_entry(target, udp::endpoint(addr4("4.4.4.4"), 1234), 10, true)
-			, node_entry(target, udp::endpoint(addr4("5.5.5.5"), 1235), 10, true)
-			, node_entry(target, udp::endpoint(addr4("6.6.6.6"), 1236), 10, true)
-			, node_entry(target, udp::endpoint(addr4("7.7.7.7"), 1237), 10, true)
-			, node_entry(target, udp::endpoint(addr4("8.8.8.8"), 1238), 10, true)
-			, node_entry(target, udp::endpoint(addr4("9.9.9.9"), 1239), 10, true) }
-		};
-		return nodes;
+		return lt::aux::array<node_entry, 9>(
+			std::array<node_entry, 9> {
+			{ { target, udp::endpoint(addr4("1.1.1.1"), 1231), 10, true}
+			, { target, udp::endpoint(addr4("2.2.2.2"), 1232), 10, true}
+			, { target, udp::endpoint(addr4("3.3.3.3"), 1233), 10, true}
+			, { target, udp::endpoint(addr4("4.4.4.4"), 1234), 10, true}
+			, { target, udp::endpoint(addr4("5.5.5.5"), 1235), 10, true}
+			, { target, udp::endpoint(addr4("6.6.6.6"), 1236), 10, true}
+			, { target, udp::endpoint(addr4("7.7.7.7"), 1237), 10, true}
+			, { target, udp::endpoint(addr4("8.8.8.8"), 1238), 10, true}
+			, { target, udp::endpoint(addr4("9.9.9.9"), 1239), 10, true} }
+		});
 	}
 
 span<char const> const empty_salt;
@@ -1367,7 +1366,7 @@ void test_put(address(&rand_addr)())
 			TEST_ERROR(t.error_string);
 		}
 
-		itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[0].ent)));
+		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
 		sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), true);
 
@@ -1436,7 +1435,7 @@ void test_put(address(&rand_addr)())
 
 		// also test that invalid signatures fail!
 
-		itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[0].ent)));
+		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
 		sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 		// break the signature
@@ -1500,7 +1499,7 @@ void test_put(address(&rand_addr)())
 		// increment sequence number
 		seq = next_seq(seq);
 		// put item 1
-		itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[1].ent)));
+		itemv = span<char const>(buffer, bencode(buffer, items[1].ent));
 		sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 
@@ -2261,7 +2260,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 	g_sent_packets.clear();
 
 	signature sig;
-	itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[0].ent)));
+	itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
 	sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 	send_dht_response(t.dht_node, response, initial_node
 		, msg_args()
@@ -2383,7 +2382,7 @@ TORRENT_TEST(immutable_put)
 		// set the branching factor to k to make this a little easier
 		t.sett.search_branching = 8;
 
-		std::array<node_entry, 8> const nodes = build_nodes();
+		lt::aux::array<node_entry, 8> const nodes = build_nodes();
 
 		for (node_entry const& n : nodes)
 			t.dht_node.m_table.add_node(n);
@@ -2399,9 +2398,11 @@ TORRENT_TEST(immutable_put)
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		for (std::size_t i = 0; i < 8; ++i)
+		int idx = -1;
+		for (auto& node : nodes)
 		{
-			auto const packet = find_packet(nodes[i].ep());
+			++idx;
+			auto const packet = find_packet(node.ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2415,22 +2416,24 @@ TORRENT_TEST(immutable_put)
 				continue;
 			}
 			char tok[10];
-			std::snprintf(tok, sizeof(tok), "%02d", int(i));
+			std::snprintf(tok, sizeof(tok), "%02d", idx);
 
 			msg_args args;
-			args.token(tok).port(1234).nid(nodes[i].id).nodes({nodes[i]});
-			send_dht_response(t.dht_node, response, nodes[i].ep(), args);
+			args.token(tok).port(1234).nid(node.id).nodes({node});
+			send_dht_response(t.dht_node, response, node.ep(), args);
 			g_sent_packets.erase(packet);
 		}
 
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		itemv = span<char const>(buffer, std::size_t(bencode(buffer, put_data)));
+		itemv = span<char const>(buffer, bencode(buffer, put_data));
 
-		for (int i = 0; i < 8; ++i)
+		idx = -1;
+		for (auto& node : nodes)
 		{
-			auto const packet = find_packet(nodes[std::size_t(i)].ep());
+			++idx;
+			auto const packet = find_packet(node.ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2444,12 +2447,12 @@ TORRENT_TEST(immutable_put)
 				span<const char> const v = put_immutable_item_keys[6].data_section();
 				TEST_EQUAL(v, span<char const>(flat_data));
 				char tok[10];
-				std::snprintf(tok, sizeof(tok), "%02d", i);
+				std::snprintf(tok, sizeof(tok), "%02d", idx);
 				TEST_EQUAL(put_immutable_item_keys[5].string_value(), tok);
 				if (put_immutable_item_keys[0].string_value() != "q"
 					|| put_immutable_item_keys[2].string_value() != "put") continue;
 
-				if (i < loop) send_dht_response(t.dht_node, response, nodes[std::size_t(i)].ep());
+				if (idx < loop) send_dht_response(t.dht_node, response, node.ep());
 			}
 			else
 			{
@@ -2486,7 +2489,7 @@ TORRENT_TEST(mutable_put)
 		t.sett.search_branching = 8;
 
 		enum { num_test_nodes = 8 };
-		std::array<node_entry, num_test_nodes> const nodes = build_nodes();
+		lt::aux::array<node_entry, num_test_nodes> const nodes = build_nodes();
 
 		for (auto const& n : nodes)
 			t.dht_node.m_table.add_node(n);
@@ -2500,9 +2503,11 @@ TORRENT_TEST(mutable_put)
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		for (std::size_t i = 0; i < 8; ++i)
+		int idx = -1;
+		for (auto& node : nodes)
 		{
-			auto const packet = find_packet(nodes[i].ep());
+			++idx;
+			auto const packet = find_packet(node.ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2516,22 +2521,24 @@ TORRENT_TEST(mutable_put)
 				continue;
 			}
 			char tok[10];
-			std::snprintf(tok, sizeof(tok), "%02d", int(i));
+			std::snprintf(tok, sizeof(tok), "%02d", idx);
 
 			msg_args args;
-			args.token(tok).port(1234).nid(nodes[i].id).nodes({nodes[i]});
-			send_dht_response(t.dht_node, response, nodes[i].ep(), args);
+			args.token(tok).port(1234).nid(node.id).nodes({node});
+			send_dht_response(t.dht_node, response, node.ep(), args);
 			g_sent_packets.erase(packet);
 		}
 
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		itemv = span<char const>(buffer, std::size_t(bencode(buffer, items[0].ent)));
+		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
 
-		for (int i = 0; i < 8; ++i)
+		idx = -1;
+		for (auto& node : nodes)
 		{
-			auto const packet = find_packet(nodes[std::size_t(i)].ep());
+			++idx;
+			auto const packet = find_packet(node.ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2550,12 +2557,12 @@ TORRENT_TEST(mutable_put)
 				span<const char> const v = put_mutable_item_keys[10].data_section();
 				TEST_CHECK(v == itemv);
 				char tok[10];
-				std::snprintf(tok, sizeof(tok), "%02d", i);
+				std::snprintf(tok, sizeof(tok), "%02d", idx);
 				TEST_EQUAL(put_mutable_item_keys[9].string_value(), tok);
 				if (put_mutable_item_keys[0].string_value() != "q"
 					|| put_mutable_item_keys[2].string_value() != "put") continue;
 
-				if (i < loop) send_dht_response(t.dht_node, response, nodes[std::size_t(i)].ep());
+				if (idx < loop) send_dht_response(t.dht_node, response, node.ep());
 			}
 			else
 			{
@@ -2591,15 +2598,15 @@ TORRENT_TEST(traversal_done)
 	sha1_hash const target = hasher(pk.bytes).final();
 	constexpr int num_test_nodes = 9; // we need K + 1 nodes to create the failing sequence
 
-	std::array<node_entry, num_test_nodes> nodes = build_nodes(target);
+	lt::aux::array<node_entry, num_test_nodes> nodes = build_nodes(target);
 
 	// invert the ith most significant byte so that the test nodes are
 	// progressively closer to the target item
-	for (std::size_t i = 0; i < num_test_nodes; ++i)
+	for (int i = 0; i < num_test_nodes; ++i)
 		nodes[i].id[i] = ~nodes[i].id[i];
 
 	// add the first k nodes to the subject's routing table
-	for (std::size_t i = 0; i < 8; ++i)
+	for (int i = 0; i < 8; ++i)
 		t.dht_node.m_table.add_node(nodes[i]);
 
 	// kick off a mutable put request
@@ -2618,7 +2625,7 @@ TORRENT_TEST(traversal_done)
 		// get_item_cb
 		if (i == num_test_nodes) i = 0;
 
-		auto const packet = find_packet(nodes[std::size_t(i)].ep());
+		auto const packet = find_packet(nodes[i].ep());
 		TEST_CHECK(packet != g_sent_packets.end());
 		if (packet == g_sent_packets.end()) continue;
 
@@ -2635,13 +2642,13 @@ TORRENT_TEST(traversal_done)
 		std::snprintf(tok, sizeof(tok), "%02d", i);
 
 		msg_args args;
-		args.token(tok).port(1234).nid(nodes[std::size_t(i)].id);
+		args.token(tok).port(1234).nid(nodes[i].id);
 
 		// add the address of the closest node to the first response
 		if (i == 1)
 			args.nodes({nodes[8]});
 
-		send_dht_response(t.dht_node, response, nodes[std::size_t(i)].ep(), args);
+		send_dht_response(t.dht_node, response, nodes[i].ep(), args);
 		g_sent_packets.erase(packet);
 
 		// once we've sent the response from the farthest node, we're done

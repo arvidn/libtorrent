@@ -345,7 +345,7 @@ int main(int argc, char* argv[])
 		--argc;
 		if (argc < 1) usage();
 
-		size_t len = strlen(argv[0]);
+		auto const len = static_cast<std::ptrdiff_t>(strlen(argv[0]));
 		if (len != 64)
 		{
 			std::fprintf(stderr, "public key is expected to be 64 hex digits\n");

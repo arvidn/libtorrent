@@ -1309,12 +1309,14 @@ namespace aux {
 		if (iface.is_v4())
 		{
 			auto const b = iface.to_v4().to_bytes();
-			h.update({reinterpret_cast<char const*>(b.data()), b.size()});
+			h.update({reinterpret_cast<char const*>(b.data())
+				, std::ptrdiff_t(b.size())});
 		}
 		else
 		{
 			auto const b = iface.to_v6().to_bytes();
-			h.update({reinterpret_cast<char const*>(b.data()), b.size()});
+			h.update({reinterpret_cast<char const*>(b.data())
+				, std::ptrdiff_t(b.size())});
 		}
 		sha1_hash const hash = h.final();
 		unsigned char const* ptr = &hash[0];
@@ -1848,7 +1850,7 @@ namespace aux {
 
 		// all sockets in there stayed the same. Only sockets after this point are
 		// new and should post alerts
-		auto const existing_sockets = m_listen_sockets.size();
+		int const existing_sockets = int(m_listen_sockets.size());
 
 		m_stats_counters.set_value(counters::has_incoming_connections
 			, std::any_of(m_listen_sockets.begin(), m_listen_sockets.end()

@@ -73,7 +73,7 @@ TORRENT_TEST(buffer_swap)
 	buffer b1;
 	TEST_CHECK(b1.size() == 0);
 	buffer b2(10, data);
-	std::size_t const b2_size = b2.size();
+	auto const b2_size = b2.size();
 	TEST_CHECK(b2_size >= 10);
 
 	b1.swap(b2);
@@ -90,7 +90,7 @@ TORRENT_TEST(buffer_subscript)
 	TEST_CHECK(b.size() >= 50);
 
 	for (int i = 0; i < int(sizeof(data)/sizeof(data[0])); ++i)
-		TEST_CHECK(b[std::size_t(i)] == data[i]);
+		TEST_CHECK(b[i] == data[i]);
 }
 
 TORRENT_TEST(buffer_subscript2)
@@ -99,10 +99,10 @@ TORRENT_TEST(buffer_subscript2)
 	TEST_CHECK(b.size() >= 1);
 
 	for (int i = 0; i < int(b.size()); ++i)
-		b[std::size_t(i)] = char(i & 0xff);
+		b[i] = char(i & 0xff);
 
 	for (int i = 0; i < int(b.size()); ++i)
-		TEST_CHECK(b[std::size_t(i)] == (i & 0xff));
+		TEST_CHECK(b[i] == (i & 0xff));
 }
 
 TORRENT_TEST(buffer_move_construct)

@@ -385,7 +385,7 @@ namespace libtorrent {
 		if (action == action_t::error)
 		{
 			fail(error_code(errors::tracker_failure)
-				, std::string(buf.data(), buf.size()).c_str());
+				, std::string(buf.data(), static_cast<std::size_t>(buf.size())).c_str());
 			return true;
 		}
 
@@ -582,9 +582,8 @@ namespace libtorrent {
 		resp.incomplete = aux::read_int32(buf);
 		resp.complete = aux::read_int32(buf);
 
-		std::size_t const ip_stride = is_v6(m_target) ? 18 : 6;
-
-		std::size_t const num_peers = buf.size() / ip_stride;
+		int const ip_stride = is_v6(m_target) ? 18 : 6;
+		auto const num_peers = buf.size() / ip_stride;
 		if (buf.size() % ip_stride != 0)
 		{
 			fail(error_code(errors::invalid_tracker_response_length));
@@ -607,8 +606,8 @@ namespace libtorrent {
 
 		if (is_v6(m_target))
 		{
-			resp.peers6.reserve(num_peers);
-			for (std::size_t i = 0; i < num_peers; ++i)
+			resp.peers6.reserve(static_cast<std::size_t>(num_peers));
+			for (int i = 0; i < num_peers; ++i)
 			{
 				ipv6_peer_entry e{};
 				std::memcpy(e.ip.data(), buf.data(), 16);
@@ -619,8 +618,8 @@ namespace libtorrent {
 		}
 		else
 		{
-			resp.peers4.reserve(num_peers);
-			for (std::size_t i = 0; i < num_peers; ++i)
+			resp.peers4.reserve(static_cast<std::size_t>(num_peers));
+			for (int i = 0; i < num_peers; ++i)
 			{
 				ipv4_peer_entry e{};
 				std::memcpy(e.ip.data(), buf.data(), 4);
@@ -658,7 +657,7 @@ namespace libtorrent {
 		if (action == action_t::error)
 		{
 			fail(error_code(errors::tracker_failure)
-				, std::string(buf.data(), buf.size()).c_str());
+				, std::string(buf.data(), static_cast<std::size_t>(buf.size())).c_str());
 			return true;
 		}
 
@@ -761,16 +760,16 @@ namespace libtorrent {
 		if (!m_hostname.empty())
 		{
 			m_man.send_hostname(bind_socket(), m_hostname.c_str()
-				, m_target.port(), {buf, std::size_t(sizeof(buf) - out.size())}, ec
+				, m_target.port(), {buf, int(sizeof(buf)) - out.size()}, ec
 				, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.send(bind_socket(), m_target, {buf, std::size_t(sizeof(buf) - out.size())}, ec
+			m_man.send(bind_socket(), m_target, {buf, int(sizeof(buf)) - out.size()}, ec
 				, udp_socket::tracker_connection);
 		}
 		m_state = action_t::announce;
-		sent_bytes(int(sizeof(buf) - out.size()) + 28); // assuming UDP/IP header
+		sent_bytes(int(sizeof(buf)) - int(out.size()) + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{

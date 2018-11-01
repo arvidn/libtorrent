@@ -318,7 +318,7 @@ TORRENT_TEST(file)
 	TEST_EQUAL(ec, error_code());
 	if (ec) std::printf("%s\n", ec.message().c_str());
 	char test[] = "test";
-	size_t const test_word_size = sizeof(test) - 1;
+	int const test_word_size = int(sizeof(test)) - 1;
 	iovec_t b = {test, test_word_size};
 	TEST_EQUAL(f.writev(0, b, ec), test_word_size);
 	if (ec)

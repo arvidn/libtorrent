@@ -2076,7 +2076,7 @@ namespace {
 		, node(ep)
 		, m_alloc(alloc)
 		, m_msg_idx(alloc.copy_buffer(buf))
-		, m_size(buf.size())
+		, m_size(aux::numeric_cast<int>(buf.size()))
 #if TORRENT_ABI_VERSION == 1
 		, dir(d)
 #endif

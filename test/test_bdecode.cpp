@@ -500,7 +500,7 @@ TORRENT_TEST(item_limit)
 {
 	char b[10240];
 	b[0] = 'l';
-	std::size_t i = 1;
+	std::ptrdiff_t i = 1;
 	for (i = 1; i < 10239; i += 2)
 		memcpy(&b[i], "0:", 2);
 	b[i] = 'e';
@@ -782,18 +782,18 @@ TORRENT_TEST(parse_int_overflow)
 
 TORRENT_TEST(parse_length_overflow)
 {
-	char const* b[] = {
-		"d1:a1919191010:11111",
-		"d2143289344:a4:aaaae",
-		"d214328934114:a4:aaaae",
-		"d9205357638345293824:a4:aaaae",
-		"d1:a9205357638345293824:11111",
+	string_view const b[] = {
+		"d1:a1919191010:11111"_sv,
+		"d2143289344:a4:aaaae"_sv,
+		"d214328934114:a4:aaaae"_sv,
+		"d9205357638345293824:a4:aaaae"_sv,
+		"d1:a9205357638345293824:11111"_sv
 	};
 
-	for (int i = 0; i < int(sizeof(b)/sizeof(b[0])); ++i)
+	for (auto const& buf : b)
 	{
 		error_code ec;
-		bdecode_node e = bdecode({b[i], strlen(b[i])}, ec);
+		bdecode_node e = bdecode(buf, ec);
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 }

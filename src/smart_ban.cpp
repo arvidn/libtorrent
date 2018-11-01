@@ -182,7 +182,7 @@ namespace {
 			if (error) return;
 
 			hasher h;
-			h.update({buffer.get(), std::size_t(block_size)});
+			h.update({buffer.get(), block_size});
 			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 
 			auto const range = m_torrent.find_peers(a);
@@ -263,7 +263,7 @@ namespace {
 			if (error) return;
 
 			hasher h;
-			h.update({buffer.get(), std::size_t(block_size)});
+			h.update({buffer.get(), block_size});
 			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 			sha1_hash const ok_digest = h.final();
 

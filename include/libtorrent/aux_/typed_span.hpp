@@ -46,6 +46,8 @@ namespace libtorrent { namespace aux {
 	{
 		using base = span<T>;
 		using underlying_index = typename underlying_index_t<IndexType>::type;
+		using typename span<T>::difference_type;
+		using typename span<T>::index_type;
 
 		// disallow conversions from other index types
 		template <typename OtherIndex>
@@ -60,13 +62,13 @@ namespace libtorrent { namespace aux {
 			: span<T>(v) {}
 
 		typed_span(T& p) noexcept : span<T>(p) {} // NOLINT
-		typed_span(T* p, std::size_t const l) noexcept : span<T>(p, l) {} // NOLINT
+		typed_span(T* p, difference_type const l) noexcept : span<T>(p, l) {} // NOLINT
 
 		template <typename U, std::size_t N>
 		typed_span(std::array<U, N>& arr) noexcept // NOLINT
-			: span<T>(arr.data(), arr.size()) {}
+			: span<T>(arr.data(), static_cast<difference_type>(arr.size())) {}
 
-		template <typename U, std::size_t N>
+		template <typename U, difference_type N>
 		typed_span(U (&arr)[N]) noexcept // NOLINT
 			: span<T>(&arr[0], N) {}
 
@@ -86,12 +88,12 @@ namespace libtorrent { namespace aux {
 #endif
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
-			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
+			return this->base::operator[](index_type(static_cast<underlying_index>(idx)));
 		}
 
 		IndexType end_index() const
 		{
-			TORRENT_ASSERT(this->size() <= std::size_t((std::numeric_limits<underlying_index>::max)()));
+			TORRENT_ASSERT(this->size() <= difference_type((std::numeric_limits<underlying_index>::max)()));
 			return IndexType(static_cast<underlying_index>(this->size()));
 		}
 
@@ -100,13 +102,13 @@ namespace libtorrent { namespace aux {
 		typed_span first(underlying_index n) const
 		{
 			TORRENT_ASSERT(n >= 0);
-			auto const s = this->base::first(std::size_t(n));
+			auto const s = this->base::first(difference_type(n));
 			return {s.data(), s.size()};
 		}
 
-		typed_span first(std::size_t n) const
+		typed_span first(difference_type n) const
 		{
-			TORRENT_ASSERT(n <= std::size_t((std::numeric_limits<underlying_index>::max)()));
+			TORRENT_ASSERT(n <= difference_type((std::numeric_limits<underlying_index>::max)()));
 			auto const s = this->base::first(n);
 			return {s.data(), s.size()};
 		}
@@ -116,13 +118,13 @@ namespace libtorrent { namespace aux {
 		typed_span last(underlying_index n) const
 		{
 			TORRENT_ASSERT(n >= 0);
-			auto const s = this->base::last(std::size_t(n));
+			auto const s = this->base::last(difference_type(n));
 			return {s.data(), s.size()};
 		}
 
-		typed_span last(std::size_t n) const
+		typed_span last(difference_type n) const
 		{
-			TORRENT_ASSERT(n <= std::size_t((std::numeric_limits<underlying_index>::max)()));
+			TORRENT_ASSERT(n <= difference_type((std::numeric_limits<underlying_index>::max)()));
 			auto const s = this->base::last(n);
 			return {s.data(), s.size()};
 		}
@@ -132,7 +134,7 @@ namespace libtorrent { namespace aux {
 		typed_span subspan(underlying_index offset) const
 		{
 			TORRENT_ASSERT(offset >= 0);
-			auto const s = this->base::subspan(std::size_t(offset));
+			auto const s = this->base::subspan(index_type(offset));
 			return {s.data(), s.size()};
 		}
 
@@ -142,21 +144,21 @@ namespace libtorrent { namespace aux {
 		{
 			TORRENT_ASSERT(offset >= 0);
 			TORRENT_ASSERT(count >= 0);
-			auto const s = this->base::subspan(std::size_t(offset), std::size_t(count));
+			auto const s = this->base::subspan(index_type(offset), difference_type(count));
 			return {s.data(), s.size()};
 		}
 
-		typed_span subspan(std::size_t offset) const
+		typed_span subspan(index_type const offset) const
 		{
-			TORRENT_ASSERT(offset <= std::size_t((std::numeric_limits<underlying_index>::max)()));
+			TORRENT_ASSERT(offset <= index_type((std::numeric_limits<underlying_index>::max)()));
 			auto const s = this->base::subspan(offset);
 			return {s.data(), s.size()};
 		}
 
-		typed_span subspan(std::size_t offset, std::size_t count) const
+		typed_span subspan(index_type const offset, difference_type const count) const
 		{
-			TORRENT_ASSERT(offset <= std::size_t((std::numeric_limits<underlying_index>::max)()));
-			TORRENT_ASSERT(count <= std::size_t((std::numeric_limits<underlying_index>::max)()));
+			TORRENT_ASSERT(offset <= index_type((std::numeric_limits<underlying_index>::max)()));
+			TORRENT_ASSERT(count <= difference_type((std::numeric_limits<underlying_index>::max)()));
 			auto const s = this->base::subspan(offset, count);
 			return {s.data(), s.size()};
 		}

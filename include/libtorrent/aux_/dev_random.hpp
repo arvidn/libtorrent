@@ -56,7 +56,8 @@ namespace libtorrent { namespace aux {
 
 		void read(span<char> buffer)
 		{
-			std::int64_t const ret = ::read(m_fd, buffer.data(), buffer.size());
+			std::int64_t const ret = ::read(m_fd, buffer.data()
+				, static_cast<std::size_t>(buffer.size()));
 			if (ret != int(buffer.size()))
 			{
 				throw_ex<system_error>(errors::no_entropy);

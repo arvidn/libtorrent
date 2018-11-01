@@ -607,9 +607,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		int const piece_size = pe->storage->files().piece_size(pe->piece);
 		TORRENT_PIECE_ASSERT(piece_size > 0, pe);
 
-		std::size_t iov_len = 0;
+		int iov_len = 0;
 		// the blocks we're flushing
-		std::size_t num_flushing = 0;
+		int num_flushing = 0;
 
 #if DEBUG_DISK_THREAD
 		DLOG("build_iov: piece: %d [", int(pe->piece));
@@ -640,7 +640,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			TORRENT_UNUSED(locked);
 
 			flushing[num_flushing++] = i + block_base_index;
-			iov[iov_len] = { pe->blocks[i].buf, aux::numeric_cast<std::size_t>(std::min(default_block_size, size_left)) };
+			iov[iov_len] = { pe->blocks[i].buf, std::min(default_block_size, size_left) };
 			++iov_len;
 			pe->blocks[i].pending = true;
 
@@ -677,14 +677,13 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		// issue the actual write operation
 		auto iov_start = iov;
-		std::size_t flushing_start = 0;
+		int flushing_start = 0;
 		piece_index_t const piece = pe->piece;
 		int const blocks_in_piece = int(pe->blocks_in_piece);
 		bool failed = false;
-		std::size_t const n_blocks = aux::numeric_cast<std::size_t>(num_blocks);
-		for (std::size_t i = 1; i <= n_blocks; ++i)
+		for (int i = 1; i <= num_blocks; ++i)
 		{
-			if (i < n_blocks && flushing[i] == flushing[i - 1] + 1) continue;
+			if (i < num_blocks && flushing[i] == flushing[i - 1] + 1) continue;
 			int const ret = pe->storage->writev(
 				iov_start.first(i - flushing_start)
 				, piece_index_t(static_cast<int>(piece) + flushing[flushing_start] / blocks_in_piece)
@@ -1252,7 +1251,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		open_mode_t const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
-		iovec_t b = {buffer.get(), std::size_t(j->d.io.buffer_size)};
+		iovec_t b = {buffer.get(), j->d.io.buffer_size};
 
 		int const ret = j->storage->readv(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
@@ -1311,13 +1310,13 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		}
 
 		// this is the offset that's aligned to block boundaries
-		std::int64_t const adjusted_offset = j->d.io.offset & ~(default_block_size - 1);
+		int const adjusted_offset = aux::numeric_cast<int>(j->d.io.offset & ~(default_block_size - 1));
 
 		// if this is the last piece, adjust the size of the
 		// last buffer to match up
-		iov[iov_len - 1] = iov[iov_len - 1].first(aux::numeric_cast<std::size_t>(
-				std::min(piece_size - int(adjusted_offset) - (iov_len - 1)
-				* default_block_size, default_block_size)));
+		iov[iov_len - 1] = iov[iov_len - 1].first(
+			std::min(piece_size - adjusted_offset - (iov_len - 1)
+			* default_block_size, default_block_size));
 		TORRENT_ASSERT(iov[iov_len - 1].size() > 0);
 
 		// at this point, all the buffers are allocated and iov is initialized
@@ -1485,7 +1484,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		time_point const start_time = clock_type::now();
 		auto buffer = std::move(boost::get<disk_buffer_holder>(j->argument));
 
-		iovec_t const b = { buffer.get(), std::size_t(j->d.io.buffer_size)};
+		iovec_t const b = { buffer.get(), j->d.io.buffer_size};
 		open_mode_t const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_writes));
 
@@ -2131,11 +2130,10 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 			time_point const start_time = clock_type::now();
 
-			iov = iov.first(aux::numeric_cast<std::size_t>(std::min(default_block_size, piece_size - offset)));
-			ret = j->storage->readv(iov, j->piece
-				, offset, file_flags, j->error);
+			iov = iov.first(std::min(default_block_size, piece_size - offset));
+			ret = j->storage->readv(iov, j->piece, offset, file_flags, j->error);
 			if (ret < 0) break;
-			iov = iov.first(std::size_t(ret));
+			iov = iov.first(ret);
 
 			if (!j->error.ec)
 			{
@@ -2308,8 +2306,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			{
 				// if this is the last piece, adjust the size of the
 				// last buffer to match up
-				iov[blocks_left - 1] = iov[blocks_left - 1].first(aux::numeric_cast<std::size_t>(
-					piece_size - (blocks_in_piece - 1) * default_block_size));
+				iov[blocks_left - 1] = iov[blocks_left - 1].first(
+					piece_size - (blocks_in_piece - 1) * default_block_size);
 				TORRENT_ASSERT(iov[blocks_left - 1].size() > 0);
 				TORRENT_ASSERT(iov[blocks_left - 1].size() <= default_block_size);
 
@@ -2363,12 +2361,12 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 					TORRENT_PIECE_ASSERT(pe->blocks[first_block + i].buf, pe);
 					TORRENT_PIECE_ASSERT(offset == (first_block + i) * default_block_size, pe);
 					offset += len;
-					ph->h.update({pe->blocks[first_block + i].buf, aux::numeric_cast<std::size_t>(len)});
+					ph->h.update({pe->blocks[first_block + i].buf, len});
 				}
 				else
 				{
 					iovec_t const iov = { m_disk_cache.allocate_buffer("hashing")
-						, aux::numeric_cast<std::size_t>(std::min(default_block_size, piece_size - offset))};
+						, std::min(default_block_size, piece_size - offset)};
 
 					if (iov.data() == nullptr)
 					{

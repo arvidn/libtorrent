@@ -68,16 +68,19 @@ namespace aux {
 	//
 	// This data structure is 32 bits aligned, like it's the case for
 	// each SHA-N specification.
-	template <std::size_t N>
+	template <std::ptrdiff_t N>
 	class digest32
 	{
 		static_assert(N % 32 == 0, "N must be a multiple of 32");
-		static constexpr std::size_t number_size = N / 32;
+		static constexpr std::ptrdiff_t number_size = N / 32;
 		constexpr static int bits_in_byte = 8;
 	public:
 
+		using difference_type = std::ptrdiff_t;
+		using index_type = std::ptrdiff_t;
+
 		// the size of the hash in bytes
-		static constexpr std::size_t size() noexcept { return N / bits_in_byte; }
+		static constexpr difference_type size() noexcept { return N / bits_in_byte; }
 
 		// constructs an all-zero digest
 		digest32() noexcept { clear(); }
@@ -127,8 +130,8 @@ namespace aux {
 		void assign(span<char const> s) noexcept
 		{
 			TORRENT_ASSERT(s.size() >= N / bits_in_byte);
-			std::size_t const sl = s.size() < size() ? s.size() : size();
-			std::memcpy(m_number.data(), s.data(), sl);
+			auto const sl = s.size() < size() ? s.size() : size();
+			std::memcpy(m_number.data(), s.data(), static_cast<std::size_t>(sl));
 		}
 		void assign(char const* str) noexcept { std::memcpy(m_number.data(), str, size()); }
 
@@ -205,7 +208,6 @@ namespace aux {
 		// in-place bit-wise XOR with the passed in digest.
 		digest32& operator^=(digest32 const& n) noexcept
 		{
-
 			for (auto const v : boost::combine(m_number, n.m_number))
 				boost::get<0>(v) ^= boost::get<1>(v);
 			return *this;
@@ -236,12 +238,12 @@ namespace aux {
 		}
 
 		// accessors for specific bytes
-		std::uint8_t& operator[](std::size_t i) noexcept
+		std::uint8_t& operator[](index_type i) noexcept
 		{
 			TORRENT_ASSERT(i < size());
 			return reinterpret_cast<std::uint8_t*>(m_number.data())[i];
 		}
-		std::uint8_t const& operator[](std::size_t i) const noexcept
+		std::uint8_t const& operator[](index_type i) const noexcept
 		{
 			TORRENT_ASSERT(i < size());
 			return reinterpret_cast<std::uint8_t const*>(m_number.data())[i];

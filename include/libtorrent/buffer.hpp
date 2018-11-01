@@ -63,32 +63,34 @@ namespace libtorrent {
 class buffer
 {
 public:
+	using difference_type = std::ptrdiff_t;
+	using index_type = std::ptrdiff_t;
 
 	// allocate an uninitialized buffer of the specified size
-	explicit buffer(std::size_t size = 0)
+	explicit buffer(difference_type size = 0)
 	{
-		TORRENT_ASSERT(size < std::size_t((std::numeric_limits<std::int32_t>::max)()));
+		TORRENT_ASSERT(size < (std::numeric_limits<std::int32_t>::max)());
 
 		if (size == 0) return;
 
 		// this rounds up the size to be 8 bytes aligned
 		// it mostly makes sense for platforms without support
 		// for a variation of "malloc_size()"
-		size = (size + 7) & (~std::size_t(0x7));
+		size = (size + 7) & (~difference_type(0x7));
 
 		// we have to use malloc here, to be compatible with the fancy query
 		// functions below
-		m_begin = static_cast<char*>(std::malloc(size));
+		m_begin = static_cast<char*>(std::malloc(static_cast<std::size_t>(size)));
 		if (m_begin == nullptr) aux::throw_ex<std::bad_alloc>();
 
 		// the actual allocation may be larger than we requested. If so, let the
 		// user take advantage of every single byte
 #if defined __GLIBC__ || defined __FreeBSD__
-		m_size = ::malloc_usable_size(m_begin);
+		m_size = static_cast<difference_type>(::malloc_usable_size(m_begin));
 #elif defined _MSC_VER
-		m_size = ::_msize(m_begin);
+		m_size = static_cast<difference_type>(::_msize(m_begin));
 #elif defined TORRENT_BSD
-		m_size = ::malloc_size(m_begin);
+		m_size = static_cast<difference_type>(::malloc_size(m_begin));
 #else
 		m_size = size;
 #endif
@@ -96,13 +98,14 @@ public:
 
 	// allocate an uninitialized buffer of the specified size
 	// and copy the initialization range into the start of the buffer
-	buffer(std::size_t const size, span<char const> initialize)
+	buffer(difference_type const size, span<char const> initialize)
 		: buffer(size)
 	{
 		TORRENT_ASSERT(initialize.size() <= size);
 		if (!initialize.empty())
 		{
-			std::memcpy(m_begin, initialize.data(), (std::min)(initialize.size(), size));
+			std::copy(initialize.begin(), initialize.begin()
+				+ (std::min)(initialize.size(), size), m_begin);
 		}
 	}
 
@@ -133,11 +136,11 @@ public:
 
 	char* data() { return m_begin; }
 	char const* data() const { return m_begin; }
-	std::size_t size() const { return m_size; }
+	difference_type size() const { return m_size; }
 
 	bool empty() const { return m_size == 0; }
-	char& operator[](std::size_t i) { TORRENT_ASSERT(i < size()); return m_begin[i]; }
-	char const& operator[](std::size_t i) const { TORRENT_ASSERT(i < size()); return m_begin[i]; }
+	char& operator[](index_type const i) { TORRENT_ASSERT(i < size()); return m_begin[i]; }
+	char const& operator[](difference_type const i) const { TORRENT_ASSERT(i < size()); return m_begin[i]; }
 
 	char* begin() { return m_begin; }
 	char const* begin() const { return m_begin; }
@@ -154,7 +157,7 @@ public:
 private:
 	char* m_begin = nullptr;
 	// m_begin points to an allocation of this size.
-	std::size_t m_size = 0;
+	difference_type m_size = 0;
 };
 
 }

@@ -69,7 +69,7 @@ namespace aux {
 		int const number_size = number.end_index();
 		if (num_words >= number_size)
 		{
-			std::memset(number.data(), 0, number.size() * 4);
+			std::memset(number.data(), 0, std::size_t(number.size() * 4));
 			return;
 		}
 
@@ -107,7 +107,7 @@ namespace aux {
 		int const number_size = number.end_index();
 		if (num_words >= number_size)
 		{
-			std::memset(number.data(), 0, number.size() * 4);
+			std::memset(number.data(), 0, std::size_t(number.size() * 4));
 			return;
 		}
 		if (num_words > 0)

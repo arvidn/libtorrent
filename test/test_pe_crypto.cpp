@@ -52,9 +52,9 @@ void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 	int const repcount = 128;
 	for (int rep = 0; rep < repcount; ++rep)
 	{
-		std::size_t const buf_len = rand() % (512 * 1024);
-		std::vector<char> buf(buf_len);
-		std::vector<char> cmp_buf(buf_len);
+		std::ptrdiff_t const buf_len = rand() % (512 * 1024);
+		std::vector<char> buf(static_cast<std::size_t>(buf_len));
+		std::vector<char> cmp_buf(static_cast<std::size_t>(buf_len));
 
 		std::generate(buf.begin(), buf.end(), &std::rand);
 		std::copy(buf.begin(), buf.end(), cmp_buf.begin());

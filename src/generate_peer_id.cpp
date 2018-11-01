@@ -43,12 +43,13 @@ peer_id generate_peer_id(session_settings const& sett)
 {
 	peer_id ret;
 	std::string print = sett.get_str(settings_pack::peer_fingerprint);
-	if (print.size() > ret.size()) print.resize(ret.size());
+	if (std::ptrdiff_t(print.size()) > ret.size())
+		print.resize(std::size_t(ret.size()));
 
 	// the client's fingerprint
 	std::copy(print.begin(), print.end(), ret.begin());
-	if (print.length() < ret.size())
-		url_random(span<char>(ret).subspan(print.length()));
+	if (std::ptrdiff_t(print.size()) < ret.size())
+		url_random(span<char>(ret).subspan(std::ptrdiff_t(print.length())));
 	return ret;
 }
 

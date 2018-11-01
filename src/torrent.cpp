@@ -2138,7 +2138,7 @@ bool is_downloading_state(int const st)
 
 					need_picker();
 
-					const int num_bits = std::min(num_blocks_per_piece, blocks.size());
+					const int num_bits = std::min(num_blocks_per_piece, int(blocks.size()));
 					for (int k = 0; k < num_bits; ++k)
 					{
 						if (blocks.get_bit(k))

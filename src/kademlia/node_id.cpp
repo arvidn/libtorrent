@@ -84,8 +84,8 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 {
 	std::uint8_t* ip = nullptr;
 
-	static const std::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
-	static const std::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
+	static std::uint8_t const v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
+	static std::uint8_t const v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
 	std::uint8_t const* mask = nullptr;
 	int num_octets = 0;
 
@@ -128,7 +128,7 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 	id[1] = (c >> 16) & 0xff;
 	id[2] = (((c >> 8) & 0xf8) | random(0x7)) & 0xff;
 
-	for (std::size_t i = 3; i < 19; ++i) id[i] = random(0xff) & 0xff;
+	for (int i = 3; i < 19; ++i) id[i] = random(0xff) & 0xff;
 	id[19] = r & 0xff;
 
 	return id;

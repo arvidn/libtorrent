@@ -142,7 +142,7 @@ namespace {
 		{
 			if (buffer.size() < 2) return -1;
 
-			auto const extra_len = static_cast<std::size_t>((buffer[1] << 8) | buffer[0]);
+			auto const extra_len = (buffer[1] << 8) | buffer[0];
 			if (buffer.size() < extra_len + 2) return -1;
 			buffer = buffer.subspan(extra_len + 2);
 		}
@@ -198,7 +198,7 @@ namespace {
 		// if needed
 		unsigned long destlen = 4096;
 		int ret = 0;
-		in = in.subspan(static_cast<std::size_t>(header_len));
+		in = in.subspan(header_len);
 		unsigned long srclen = std::uint32_t(in.size());
 
 		do

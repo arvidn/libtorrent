@@ -244,7 +244,7 @@ void send_bitfield(tcp::socket& s, char const* bits)
 		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << i % 8;
 	}
 	error_code ec;
-	boost::asio::write(s, boost::asio::buffer(msg.data(), msg.size())
+	boost::asio::write(s, boost::asio::buffer(msg.data(), std::size_t(msg.size()))
 		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
