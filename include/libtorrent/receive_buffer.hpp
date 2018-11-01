@@ -155,7 +155,7 @@ private:
 
 	// keep track of how much of the receive buffer we use, if we're not using
 	// enough of it we shrink it
-	sliding_average<std::int64_t, 20> m_watermark;
+	sliding_average<std::ptrdiff_t, 20> m_watermark;
 
 	buffer m_recv_buffer;
 };
@@ -207,7 +207,7 @@ struct crypto_receive_buffer
 
 	span<char const> get() const;
 
-	span<char> mutable_buffer(std::size_t bytes);
+	span<char> mutable_buffer(int bytes);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning

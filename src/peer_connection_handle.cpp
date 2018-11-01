@@ -283,7 +283,7 @@ void peer_connection_handle::send_buffer(char const* begin, int size
 {
 	std::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
-	pc->send_buffer({begin, std::size_t(size)}, flags);
+	pc->send_buffer({begin, size}, flags);
 }
 
 std::time_t peer_connection_handle::last_seen_complete() const

@@ -2684,7 +2684,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
 		{
-			if (e->on_piece(p, {data, std::size_t(p.length)}))
+			if (e->on_piece(p, {data, p.length}))
 			{
 #if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_received_in_piece == p.length);
@@ -5729,7 +5729,7 @@ namespace libtorrent {
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
 		auto conn = self();
 		m_socket->async_read_some(
-			boost::asio::mutable_buffers_1(vec.data(), vec.size()), make_handler(
+			boost::asio::mutable_buffers_1(vec.data(), std::size_t(vec.size())), make_handler(
 				std::bind(&peer_connection::on_receive_data, conn, _1, _2)
 				, m_read_handler_storage, *this));
 	}
@@ -5748,8 +5748,8 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_UNUSED(flags);
 
-		std::size_t const free_space = std::min(
-			std::size_t(m_send_buffer.space_in_last_buffer()), buf.size());
+		int const free_space = std::min(
+			m_send_buffer.space_in_last_buffer(), int(buf.size()));
 		if (free_space > 0)
 		{
 			char* dst = m_send_buffer.append(buf.first(free_space));
@@ -5763,7 +5763,7 @@ namespace libtorrent {
 		if (buf.empty()) return;
 
 		// allocate a buffer and initialize the beginning of it with 'buf'
-		buffer snd_buf(std::max(buf.size(), std::size_t(128)), buf);
+		buffer snd_buf(std::max(int(buf.size()), 128), buf);
 		m_send_buffer.append_buffer(std::move(snd_buf), int(buf.size()));
 
 		setup_send();
@@ -5891,7 +5891,7 @@ namespace libtorrent {
 			{
 				span<char> const vec = m_recv_buffer.reserve(buffer_size);
 				std::size_t const bytes = m_socket->read_some(
-					boost::asio::mutable_buffers_1(vec.data(), vec.size()), ec);
+					boost::asio::mutable_buffers_1(vec.data(), std::size_t(vec.size())), ec);
 
 				// this is weird. You would imagine read_some() would do this
 				if (bytes == 0 && !ec) ec = boost::asio::error::eof;

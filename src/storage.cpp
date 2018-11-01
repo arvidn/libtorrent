@@ -800,7 +800,7 @@ namespace {
 				int ret = 0;
 				for (auto const& b : bufs)
 				{
-					std::memset(b.data(), 0, b.size());
+					std::memset(b.data(), 0, std::size_t(b.size()));
 					ret += int(b.size());
 				}
 				return 0;

@@ -676,7 +676,7 @@ struct peer_conn
 
 	void write_piece(piece_index_t const piece, int start, int length)
 	{
-		generate_block({write_buffer, static_cast<std::size_t>(length / 4)}
+		generate_block({write_buffer, length / 4}
 			, piece, start);
 
 		if (corrupt)
@@ -860,7 +860,7 @@ void generate_data(char const* path, torrent_info const& ti)
 			generate_block(piece, i, j);
 			int const left_in_piece = ti.piece_size(i) - j;
 			iovec_t const b = { reinterpret_cast<char*>(piece)
-				, size_t(std::min(left_in_piece, 0x4000))};
+				, std::min(left_in_piece, 0x4000)};
 			storage_error error;
 			st->writev(b, i, j, open_mode::write_only, error);
 			if (error)

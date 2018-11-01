@@ -166,7 +166,7 @@ std::map<std::string, std::int64_t> get_counters(lt::session& s)
 
 	static std::vector<stats_metric> metrics = session_stats_metrics();
 	for (auto const& m : metrics)
-		ret[m.name] = sa->counters()[static_cast<std::size_t>(m.value_index)];
+		ret[m.name] = sa->counters()[m.value_index];
 	return ret;
 }
 namespace {
@@ -623,7 +623,7 @@ lt::file_storage make_file_storage(span<const int> const file_sizes
 {
 	using namespace lt;
 	file_storage fs;
-	for (std::size_t i = 0; i != file_sizes.size(); ++i)
+	for (std::ptrdiff_t i = 0; i != file_sizes.size(); ++i)
 	{
 		char filename[200];
 		std::snprintf(filename, sizeof(filename), "test%d", int(i));
@@ -666,7 +666,7 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 {
 	error_code ec;
 	aux::vector<char> random_data(300000);
-	for (std::size_t i = 0; i != file_sizes.size(); ++i)
+	for (std::ptrdiff_t i = 0; i != file_sizes.size(); ++i)
 	{
 		aux::random_bytes(random_data);
 		char filename[200];
@@ -691,7 +691,7 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 		while (to_write > 0)
 		{
 			int const s = std::min(to_write, static_cast<int>(random_data.size()));
-			iovec_t const b = { random_data.data(), size_t(s)};
+			iovec_t const b = { random_data.data(), s};
 			f.writev(offset, b, ec);
 			if (ec) std::printf("failed to write file \"%s\": (%d) %s\n"
 				, full_path.c_str(), ec.value(), ec.message().c_str());

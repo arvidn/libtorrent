@@ -196,7 +196,7 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 			buffer[static_cast<std::size_t>(o)] = data;
 		}
 
-		iovec_t b = { &buffer[0], size_t(piece_size) };
+		iovec_t b = { &buffer[0], piece_size };
 		storage_error ec;
 		int ret = st.writev(b, i, 0, open_mode::read_only, ec);
 		if (ret != piece_size || ec)

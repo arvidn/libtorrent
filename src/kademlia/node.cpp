@@ -1007,7 +1007,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		span<char const> salt;
 		if (msg_keys[6])
-			salt = {msg_keys[6].string_ptr(), std::size_t(msg_keys[6].string_length())};
+			salt = {msg_keys[6].string_ptr(), msg_keys[6].string_length()};
 		if (salt.size() > 64)
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);

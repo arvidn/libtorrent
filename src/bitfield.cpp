@@ -197,7 +197,7 @@ namespace libtorrent {
 	{
 		int const num = num_words();
 		if (num == 0) return -1;
-		int const count = aux::count_leading_zeros({&m_buf[1], std::size_t(num)});
+		int const count = aux::count_leading_zeros({&m_buf[1], num});
 		return count != num * 32 ? count : -1;
 	}
 
@@ -211,7 +211,7 @@ namespace libtorrent {
 		int const ext = aux::count_trailing_ones(~last) - (31 - (size % 32));
 		return last != 0
 			? (num - 1) * 32 + ext
-			: size - (aux::count_trailing_ones({&m_buf[1], std::size_t(num - 1)}) + ext);
+			: size - (aux::count_trailing_ones({&m_buf[1], num - 1}) + ext);
 	}
 
 	static_assert(std::is_nothrow_move_constructible<bitfield>::value

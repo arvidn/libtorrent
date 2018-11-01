@@ -220,8 +220,8 @@ namespace {
 
 		for (;;)
 		{
-			auto next_msg = buf.subspan(std::size_t(msg_len));
-			int read_len = int(recv(sock, next_msg.data(), next_msg.size(), 0));
+			auto next_msg = buf.subspan(msg_len);
+			int const read_len = int(recv(sock, next_msg.data(), static_cast<std::size_t>(next_msg.size()), 0));
 			if (read_len < 0) return -1;
 
 			nl_hdr = reinterpret_cast<nlmsghdr*>(next_msg.data());

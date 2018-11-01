@@ -984,7 +984,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	parse_state s;
 	auto body = p.get_body();
-	xml_parse({body.data(), body.size()}, std::bind(&find_control_url, _1, _2, std::ref(s)));
+	xml_parse({body.data(), std::size_t(body.size())}, std::bind(&find_control_url, _1, _2, std::ref(s)));
 	if (s.control_url.empty())
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1275,12 +1275,12 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	if (should_log())
 	{
 		log("get external IP address response: %s"
-			, std::string(body.data(), body.size()).c_str());
+			, std::string(body.data(), static_cast<std::size_t>(body.size())).c_str());
 	}
 #endif
 
 	ip_address_parse_state s;
-	xml_parse({body.data(), body.size()}, std::bind(&find_ip_address, _1, _2, std::ref(s)));
+	xml_parse({body.data(), std::size_t(body.size())}, std::bind(&find_ip_address, _1, _2, std::ref(s)));
 #ifndef TORRENT_DISABLE_LOGGING
 	if (s.error_code != -1)
 	{
@@ -1381,7 +1381,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	error_code_parse_state s;
 	span<char const> body = p.get_body();
-	xml_parse({body.data(), body.size()}, std::bind(&find_error_code, _1, _2, std::ref(s)));
+	xml_parse({body.data(), std::size_t(body.size())}, std::bind(&find_error_code, _1, _2, std::ref(s)));
 
 	if (s.error_code != -1)
 	{
@@ -1426,7 +1426,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (should_log())
 	{
 		log("map response: %s"
-			, std::string(body.data(), body.size()).c_str());
+			, std::string(body.data(), static_cast<std::size_t>(body.size())).c_str());
 	}
 #endif
 
@@ -1528,7 +1528,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 		{
 			span<char const> body = p.get_body();
 			log("unmap response: %s"
-				, std::string(body.data(), body.size()).c_str());
+				, std::string(body.data(), static_cast<std::size_t>(body.size())).c_str());
 		}
 #endif
 	}
@@ -1537,7 +1537,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	if (p.header_finished())
 	{
 		span<char const> body = p.get_body();
-		xml_parse({body.data(), body.size()}, std::bind(&find_error_code, _1, _2, std::ref(s)));
+		xml_parse({body.data(), std::size_t(body.size())}, std::bind(&find_error_code, _1, _2, std::ref(s)));
 	}
 
 	portmap_protocol const proto = m_mappings[mapping].protocol;

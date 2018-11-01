@@ -524,7 +524,7 @@ namespace aux {
 #if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED
 		bool set_metadata(char const* metadata, int size) const
-		{ return set_metadata({metadata, size_t(size)}); }
+		{ return set_metadata({metadata, size}); }
 #endif
 
 		// Returns true if this handle refers to a valid torrent and false if it

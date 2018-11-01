@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-	template <typename T, typename IndexType = int>
+	template <typename T, typename IndexType = std::ptrdiff_t>
 	using deque = container_wrapper<T, IndexType, std::deque<T>>;
 
 }}

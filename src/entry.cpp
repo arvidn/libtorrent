@@ -325,7 +325,7 @@ namespace {
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
 #endif
-		new(&data) string_type(v.data(), v.size());
+		new(&data) string_type(v.data(), std::size_t(v.size()));
 		m_type = string_t;
 	}
 
@@ -462,7 +462,7 @@ namespace {
 	entry& entry::operator=(span<char const> v) &
 	{
 		destruct();
-		new(&data) string_type(v.data(), v.size());
+		new(&data) string_type(v.data(), std::size_t(v.size()));
 		m_type = string_t;
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;

@@ -102,7 +102,7 @@ void get_peers_observer::log_peers(msg const& m, bdecode_node const& r, int cons
 						, algorithm()->invoke_count()
 						, algorithm()->branch_factor()
 						, print_endpoint(m.addr).c_str()
-						, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
+						, aux::to_hex({id.string_ptr(), id.string_length()}).c_str()
 						, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
 						, size);
 				}

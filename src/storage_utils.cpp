@@ -53,7 +53,7 @@ namespace libtorrent { namespace aux {
 		if (bytes == 0) return ret;
 		for (iovec_t const& src : bufs)
 		{
-			std::size_t const to_copy = std::min(src.size(), std::size_t(bytes));
+			auto const to_copy = std::min(src.size(), std::ptrdiff_t(bytes));
 			*dst = src.first(to_copy);
 			bytes -= int(to_copy);
 			++ret;
@@ -66,13 +66,13 @@ namespace libtorrent { namespace aux {
 	typed_span<iovec_t> advance_bufs(typed_span<iovec_t> bufs, int const bytes)
 	{
 		TORRENT_ASSERT(bytes >= 0);
-		std::size_t size = 0;
+		std::ptrdiff_t size = 0;
 		for (;;)
 		{
 			size += bufs.front().size();
-			if (size >= std::size_t(bytes))
+			if (size >= bytes)
 			{
-				bufs.front() = bufs.front().last(size - std::size_t(bytes));
+				bufs.front() = bufs.front().last(size - bytes);
 				return bufs;
 			}
 			bufs = bufs.subspan(1);
@@ -90,14 +90,14 @@ namespace libtorrent { namespace aux {
 
 	int count_bufs(span<iovec_t const> bufs, int bytes)
 	{
-		std::size_t size = 0;
+		std::ptrdiff_t size = 0;
 		int count = 0;
 		if (bytes == 0) return count;
 		for (auto b : bufs)
 		{
 			++count;
 			size += b.size();
-			if (size >= std::size_t(bytes)) return count;
+			if (size >= bytes) return count;
 		}
 		return count;
 	}

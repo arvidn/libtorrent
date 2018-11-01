@@ -151,7 +151,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(!src.empty());
 		TORRENT_ASSERT(!target.empty());
 		TORRENT_ASSERT(target.size() >= src.size());
-		TORRENT_ASSERT(target.size() < std::size_t(std::numeric_limits<int>::max()));
+		TORRENT_ASSERT(target.size() < std::numeric_limits<int>::max());
 
 		auto const it = std::search(target.begin(), target.end(), src.begin(), src.end());
 

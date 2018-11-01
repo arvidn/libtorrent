@@ -486,15 +486,15 @@ namespace {
 			return;
 		}
 
-		std::size_t const pad_size = random(512);
+		int const pad_size = int(random(512));
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %zu", pad_size);
+		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %d", pad_size);
 #endif
 
 		char msg[dh_key_len + 512];
 		char* ptr = msg;
-		std::size_t const buf_size = dh_key_len + pad_size;
+		int const buf_size = int(dh_key_len) + pad_size;
 
 		std::array<char, dh_key_len> const local_key = export_key(m_dh_key_exchange->get_local_key());
 		std::memcpy(ptr, local_key.data(), dh_key_len);
@@ -525,7 +525,7 @@ namespace {
 		key_t const secret_key = m_dh_key_exchange->get_secret();
 		std::array<char, dh_key_len> const secret = export_key(secret_key);
 
-		std::size_t const pad_size = random(512);
+		int const pad_size = int(random(512));
 
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
 		char msg[20 + 20 + 8 + 4 + 2 + 512 + 2];
@@ -574,7 +574,7 @@ namespace {
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 
 		// write the verification constant and crypto field
-		std::size_t const encrypt_size = sizeof(msg) - 512 + pad_size - 40;
+		int const encrypt_size = int(sizeof(msg)) - 512 + pad_size - 40;
 
 		// this is an invalid setting, but let's just make the best of the situation
 		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
@@ -589,9 +589,9 @@ namespace {
 #endif
 
 		write_pe_vc_cryptofield({ptr, encrypt_size}, crypto_provide, pad_size);
-		span<char> vec(ptr, aux::numeric_cast<std::size_t>(encrypt_size));
+		span<char> vec(ptr, encrypt_size);
 		m_rc4->encrypt(vec);
-		send_buffer({msg, sizeof(msg) - 512 + pad_size});
+		send_buffer({msg, int(sizeof(msg)) - 512 + pad_size});
 	}
 
 	void bt_peer_connection::write_pe4_sync(int const crypto_select)
@@ -604,9 +604,9 @@ namespace {
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		std::size_t const pad_size = random(512);
+		int const pad_size = int(random(512));
 
-		std::size_t const buf_size = 8 + 4 + 2 + pad_size;
+		int const buf_size = 8 + 4 + 2 + pad_size;
 		char msg[512 + 8 + 4 + 2];
 		write_pe_vc_cryptofield(msg, crypto_select, pad_size);
 
@@ -629,7 +629,7 @@ namespace {
 	void bt_peer_connection::write_pe_vc_cryptofield(
 		span<char> write_buf
 		, int const crypto_field
-		, std::size_t const pad_size)
+		, int const pad_size)
 	{
 		INVARIANT_CHECK;
 
@@ -1520,7 +1520,7 @@ namespace {
 
 		TORRENT_ASSERT(ptr <= buf + sizeof(buf));
 
-		send_buffer({buf, std::size_t(ptr - buf)});
+		send_buffer({buf, ptr - buf});
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 	}
@@ -2703,7 +2703,7 @@ namespace {
 			if (!m_recv_buffer.packet_finished()) return;
 
 			rc4_decrypt(m_recv_buffer.mutable_buffer().first(
-				size_t(m_recv_buffer.packet_size())));
+				m_recv_buffer.packet_size()));
 
 			recv_buffer = m_recv_buffer.get();
 
@@ -2807,14 +2807,13 @@ namespace {
 
 			int const pad_size = is_outgoing() ? m_recv_buffer.packet_size() : m_recv_buffer.packet_size() - 2;
 
-			rc4_decrypt(m_recv_buffer.mutable_buffer().first(
-				size_t(m_recv_buffer.packet_size())));
+			rc4_decrypt(m_recv_buffer.mutable_buffer().first(m_recv_buffer.packet_size()));
 
 			recv_buffer = m_recv_buffer.get();
 
 			if (!is_outgoing())
 			{
-				recv_buffer = recv_buffer.subspan(aux::numeric_cast<std::size_t>(pad_size));
+				recv_buffer = recv_buffer.subspan(pad_size);
 				int const len_ia = aux::read_int16(recv_buffer);
 
 				if (len_ia < 0)
@@ -2866,7 +2865,7 @@ namespace {
 			if (!m_recv_buffer.packet_finished()) return;
 
 			// ia is always rc4, so decrypt it
-			rc4_decrypt(m_recv_buffer.mutable_buffer().first(size_t(m_recv_buffer.packet_size())));
+			rc4_decrypt(m_recv_buffer.mutable_buffer().first(m_recv_buffer.packet_size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ENCRYPTION"
@@ -2896,7 +2895,7 @@ namespace {
 			if (m_rc4_encrypted)
 			{
 				span<char> const remaining = m_recv_buffer.mutable_buffer()
-					.subspan(aux::numeric_cast<std::size_t>(m_recv_buffer.packet_size()));
+					.subspan(m_recv_buffer.packet_size());
 				rc4_decrypt(remaining);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3025,15 +3024,11 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 			std::string extensions;
-			extensions.resize(8 * 8);
-			for (std::size_t i = 0; i < 8; ++i)
-			{
-				for (std::size_t j = 0; j < 8; ++j)
-				{
-					if (recv_buffer[i] & (0x80 >> j)) extensions[i * 8 + j] = '1';
-					else extensions[i * 8 + j] = '0';
-				}
-			}
+			extensions.reserve(8 * 8);
+			for (int i = 0; i < 8; ++i)
+				for (int j = 0; j < 8; ++j)
+					extensions += (recv_buffer[i] & (0x80 >> j)) ? '1' : '0';
+
 			if (should_log(peer_log_alert::incoming_message))
 			{
 				peer_log(peer_log_alert::incoming_message, "EXTENSIONS", "%s ext: %s%s%s"
@@ -3126,11 +3121,9 @@ namespace {
 				hex_pid[40] = 0;
 				char ascii_pid[21];
 				ascii_pid[20] = 0;
-				for (std::size_t i = 0; i != 20; ++i)
-				{
-					if (is_print(recv_buffer[i])) ascii_pid[i] = recv_buffer[i];
-					else ascii_pid[i] = '.';
-				}
+				for (int i = 0; i != 20; ++i)
+					ascii_pid[i] = (is_print(recv_buffer[i])) ? recv_buffer[i] : '.';
+
 				peer_log(peer_log_alert::incoming, "HANDSHAKE", "received peer_id: %s client: %s ascii: \"%s\""
 					, hex_pid, identify_client(peer_id(recv_buffer.begin())).c_str(), ascii_pid);
 			}

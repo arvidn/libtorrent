@@ -365,7 +365,7 @@ namespace libtorrent {
 	{
 		int idx = int(dp.info_idx) * m_blocks_per_piece;
 		TORRENT_ASSERT(idx + m_blocks_per_piece <= int(m_block_info.size()));
-		return { &m_block_info[idx], static_cast<std::size_t>(blocks_in_piece(dp.index)) };
+		return { &m_block_info[idx], blocks_in_piece(dp.index) };
 	}
 
 	aux::typed_span<piece_picker::block_info const> piece_picker::blocks_for_piece(
@@ -1258,7 +1258,7 @@ namespace libtorrent {
 			return;
 		}
 
-		int const size = std::min(50, bitmask.size() / 2);
+		int const size = std::min(50, int(bitmask.size() / 2));
 
 		// this is an optimization where if just a few
 		// pieces end up changing, instead of making
@@ -1354,7 +1354,7 @@ namespace libtorrent {
 			return;
 		}
 
-		int const size = std::min(50, bitmask.size() / 2);
+		int const size = std::min(50, int(bitmask.size() / 2));
 
 		// this is an optimization where if just a few
 		// pieces end up changing, instead of making

@@ -9,7 +9,7 @@
 namespace libtorrent
 {
 
-void ed25519_sign(unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key, const unsigned char *private_key) {
+void ed25519_sign(unsigned char *signature, const unsigned char *message, std::ptrdiff_t message_len, const unsigned char *public_key, const unsigned char *private_key) {
     ge_p3 R;
 
     hasher512 hash;

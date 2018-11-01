@@ -170,8 +170,8 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 
 	while (ret < num)
 	{
-		std::size_t const len = m_socket.receive_from(boost::asio::buffer(*m_buf)
-			, p.from, 0, ec);
+		int const len = int(m_socket.receive_from(boost::asio::buffer(*m_buf)
+			, p.from, 0, ec));
 
 		if (ec == error::would_block
 			|| ec == error::try_again
@@ -223,7 +223,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 			}
 		}
 
-		pkts[aux::numeric_cast<std::size_t>(ret)] = p;
+		pkts[ret] = p;
 		++ret;
 
 		// we only have a single buffer for now, so we can only return a
@@ -309,7 +309,7 @@ void udp_socket::send(udp::endpoint const& ep, span<char const> p
 	set_dont_frag df(m_socket, (flags & dont_fragment)
 		&& is_v4(ep));
 
-	m_socket.send_to(boost::asio::buffer(p.data(), p.size()), ep, 0, ec);
+	m_socket.send_to(boost::asio::buffer(p.data(), static_cast<std::size_t>(p.size())), ep, 0, ec);
 }
 
 void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
@@ -328,7 +328,7 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 
 	std::array<boost::asio::const_buffer, 2> iovec;
 	iovec[0] = boost::asio::const_buffer(header.data(), aux::numeric_cast<std::size_t>(h - header.data()));
-	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
+	iovec[1] = boost::asio::const_buffer(p.data(), static_cast<std::size_t>(p.size()));
 
 	// set the DF flag for the socket and clear it again in the destructor
 	set_dont_frag df(m_socket, (flags & dont_fragment)
@@ -356,7 +356,7 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 
 	std::array<boost::asio::const_buffer, 2> iovec;
 	iovec[0] = boost::asio::const_buffer(header.data(), aux::numeric_cast<std::size_t>(h - header.data()));
-	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
+	iovec[1] = boost::asio::const_buffer(p.data(), static_cast<std::size_t>(p.size()));
 
 	// set the DF flag for the socket and clear it again in the destructor
 	set_dont_frag df(m_socket, (flags & dont_fragment)
@@ -407,7 +407,7 @@ bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 		from = udp::endpoint(addr, read_uint16(p));
 	}
 
-	buf = {p, aux::numeric_cast<std::size_t>(size - (p - buf.data()))};
+	buf = {p, size - (p - buf.data())};
 	return true;
 }
 

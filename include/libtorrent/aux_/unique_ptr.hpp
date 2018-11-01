@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-	template <typename T, typename IndexType = int>
+	template <typename T, typename IndexType = std::ptrdiff_t>
 	struct unique_ptr;
 
 	template <typename T, typename IndexType>

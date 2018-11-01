@@ -157,7 +157,7 @@ namespace libtorrent {
 #ifndef BOOST_NO_EXCEPTIONS
 		explicit torrent_info(bdecode_node const& torrent_file);
 		torrent_info(char const* buffer, int size)
-			: torrent_info(span<char const>{buffer, std::size_t(size)}, from_span) {}
+			: torrent_info(span<char const>{buffer, size}, from_span) {}
 		explicit torrent_info(span<char const> buffer, from_span_t);
 		explicit torrent_info(std::string const& filename);
 #endif // BOOST_NO_EXCEPTIONS
@@ -165,7 +165,7 @@ namespace libtorrent {
 		explicit torrent_info(sha1_hash const& info_hash);
 		torrent_info(bdecode_node const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec)
-			: torrent_info(span<char const>{buffer, std::size_t(size)}, ec, from_span) {}
+			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
 		torrent_info(span<char const> buffer, error_code& ec, from_span_t);
 		torrent_info(std::string const& filename, error_code& ec);
 
@@ -173,7 +173,7 @@ namespace libtorrent {
 #ifndef BOOST_NO_EXCEPTIONS
 		TORRENT_DEPRECATED
 		torrent_info(char const* buffer, int size, int)
-			: torrent_info(span<char const>{buffer, std::size_t(size)}, from_span) {}
+			: torrent_info(span<char const>{buffer, size}, from_span) {}
 #endif
 		TORRENT_DEPRECATED
 		torrent_info(bdecode_node const& torrent_file, error_code& ec, int)
@@ -183,7 +183,7 @@ namespace libtorrent {
 			: torrent_info(filename, ec) {}
 		TORRENT_DEPRECATED
 		torrent_info(char const* buffer, int size, error_code& ec, int)
-			: torrent_info(span<char const>{buffer, std::size_t(size)}, ec, from_span) {}
+			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
 		TORRENT_DEPRECATED
 		explicit torrent_info(lazy_entry const& torrent_file);
 		TORRENT_DEPRECATED

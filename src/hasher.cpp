@@ -66,7 +66,7 @@ namespace libtorrent {
 		: hasher()
 	{
 		TORRENT_ASSERT(len > 0);
-		update({data, size_t(len)});
+		update({data, len});
 	}
 
 #ifdef TORRENT_USE_LIBGCRYPT
@@ -89,7 +89,7 @@ namespace libtorrent {
 
 	hasher& hasher::update(char const* data, int len)
 	{
-		return update({data, size_t(len)});
+		return update({data, len});
 	}
 
 	hasher& hasher::update(span<char const> data)
@@ -102,9 +102,11 @@ namespace libtorrent {
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.update(data);
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), data.size());
+		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
+			, static_cast<std::size_t>(data.size()));
 #else
-		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), data.size());
+		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
+			, static_cast<std::size_t>(data.size()));
 #endif
 		return *this;
 	}

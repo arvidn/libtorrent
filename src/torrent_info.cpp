@@ -938,7 +938,7 @@ namespace {
 		// hash the info-field to calculate info-hash
 		auto section = info.data_section();
 		m_info_hash = hasher(section).final();
-		if (info.data_section().size() >= std::numeric_limits<std::uint32_t>::max())
+		if (info.data_section().size() >= std::numeric_limits<int>::max())
 		{
 			ec = errors::metadata_too_large;
 			return false;
@@ -949,7 +949,7 @@ namespace {
 		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
 		std::memcpy(m_info_section.get(), section.data(), aux::numeric_cast<std::size_t>(m_info_section_size));
 		TORRENT_ASSERT(section[0] == 'd');
-		TORRENT_ASSERT(section[aux::numeric_cast<std::size_t>(m_info_section_size - 1)] == 'e');
+		TORRENT_ASSERT(section[m_info_section_size - 1] == 'e');
 
 		// when translating a pointer that points into the 'info' tree's
 		// backing buffer, into a pointer to our copy of the info section,

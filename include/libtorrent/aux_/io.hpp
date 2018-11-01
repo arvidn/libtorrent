@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <type_traits>
 #include "libtorrent/span.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -55,7 +56,7 @@ namespace libtorrent { namespace aux {
 			ret <<= 8;
 			ret |= static_cast<std::uint8_t>(b);
 		}
-		view = view.subspan(sizeof(T));
+		view = view.subspan(int(sizeof(T)));
 		return ret;
 	}
 
@@ -73,7 +74,7 @@ namespace libtorrent { namespace aux {
 			shift -= 8;
 			b = static_cast<Byte>((val >> shift) & 0xff);
 		}
-		view = view.subspan(sizeof(T));
+		view = view.subspan(int(sizeof(T)));
 	}
 
 	// the single-byte case is separate to avoid a warning on the shift-left by
@@ -167,8 +168,9 @@ namespace libtorrent { namespace aux {
 	template<typename Byte>
 	inline int write_string(std::string const& str, span<Byte>& view)
 	{
+		TORRENT_ASSERT(view.size() >= numeric_cast<int>(str.size()));
 		std::copy(str.begin(), str.end(), view.begin());
-		view = view.subspan(str.size());
+		view = view.subspan(int(str.size()));
 		return int(str.size());
 	}
 

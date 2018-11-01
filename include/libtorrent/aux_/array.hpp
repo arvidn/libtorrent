@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-	template <typename T, std::size_t Size, typename IndexType = int>
+	template <typename T, std::size_t Size, typename IndexType = std::ptrdiff_t>
 	using array = container_wrapper<T, IndexType, std::array<T, Size>>;
 
 }}

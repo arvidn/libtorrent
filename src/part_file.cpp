@@ -313,13 +313,13 @@ namespace libtorrent {
 				// don't hold the lock during disk I/O
 				l.unlock();
 
-				iovec_t v = {buf.get(), std::size_t(block_to_copy)};
-				auto bytes_read = std::size_t(local_file->readv(slot_offset(slot) + piece_offset, v, ec));
-				v = v.first(bytes_read);
+				iovec_t v = {buf.get(), block_to_copy};
+				auto bytes_read = local_file->readv(slot_offset(slot) + piece_offset, v, ec);
+				v = v.first(static_cast<std::ptrdiff_t>(bytes_read));
 				TORRENT_ASSERT(!ec);
 				if (ec || v.empty()) return;
 
-				f(file_offset, {buf.get(), std::size_t(block_to_copy)});
+				f(file_offset, {buf.get(), block_to_copy});
 
 				// we're done with the disk I/O, grab the lock again to update
 				// the slot map

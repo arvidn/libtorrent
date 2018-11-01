@@ -2604,7 +2604,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 	auto const* ph = reinterpret_cast<utp_header const*>(buf.data());
 	m_sm.inc_stats_counter(counters::utp_packets_in);
 
-	if (buf.size() < sizeof(utp_header))
+	if (buf.size() < int(sizeof(utp_header)))
 	{
 		UTP_LOG("%8p: ERROR: incoming packet size too small:%d (ignored)\n"
 			, static_cast<void*>(this), int(buf.size()));

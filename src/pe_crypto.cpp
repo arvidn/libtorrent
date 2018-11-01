@@ -87,8 +87,9 @@ namespace libtorrent {
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
 	{
-		std::array<std::uint8_t, 96> random_key;
-		aux::random_bytes({reinterpret_cast<char*>(random_key.data()), random_key.size()});
+		aux::array<std::uint8_t, 96> random_key;
+		aux::random_bytes({reinterpret_cast<char*>(random_key.data())
+			, static_cast<std::ptrdiff_t>(random_key.size())});
 
 		// create local key (random)
 		mp::import_bits(m_dh_local_secret, random_key.begin(), random_key.end());
@@ -135,15 +136,15 @@ namespace libtorrent {
 			TORRENT_ALLOCA(abufs, span<char>, iovec.size());
 			bufs = abufs;
 			need_destruct = true;
-			size_t num_bufs = 0;
-			for (std::size_t i = 0; to_process > 0 && i < iovec.size(); ++i)
+			int num_bufs = 0;
+			for (int i = 0; to_process > 0 && i < iovec.size(); ++i)
 			{
 				++num_bufs;
 				int const size = int(iovec[i].size());
 				if (to_process < size)
 				{
 					new (&bufs[i]) span<char>(
-						iovec[i].data(), aux::numeric_cast<std::size_t>(to_process));
+						iovec[i].data(), to_process);
 					to_process = 0;
 				}
 				else
@@ -216,7 +217,7 @@ namespace libtorrent {
 		int consume = 0;
 		if (recv_buffer.crypto_packet_finished())
 		{
-			span<char> wr_buf = recv_buffer.mutable_buffer(bytes_transferred);
+			span<char> wr_buf = recv_buffer.mutable_buffer(int(bytes_transferred));
 			int produce = 0;
 			int packet_size = 0;
 			std::tie(consume, produce, packet_size) = m_dec_handler->decrypt(wr_buf);
@@ -285,7 +286,7 @@ namespace libtorrent {
 	{
 		m_decrypt = true;
 		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
-			, key.size(), &m_rc4_incoming);
+			, std::size_t(key.size()), &m_rc4_incoming);
 		// Discard first 1024 bytes
 		char buf[1024];
 		span<char> vec(buf, sizeof(buf));
@@ -296,7 +297,7 @@ namespace libtorrent {
 	{
 		m_encrypt = true;
 		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
-			, key.size(), &m_rc4_outgoing);
+			, std::size_t(key.size()), &m_rc4_outgoing);
 		// Discard first 1024 bytes
 		char buf[1024];
 		span<char> vec(buf, sizeof(buf));

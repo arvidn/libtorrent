@@ -115,7 +115,7 @@ namespace {
 			item.value.reset(new char[std::size_t(size)]);
 			item.size = size;
 		}
-		std::memcpy(item.value.get(), buf.data(), buf.size());
+		std::copy(buf.begin(), buf.end(), item.value.get());
 	}
 
 	void touch_item(dht_immutable_item& f, address const& addr)
@@ -479,7 +479,7 @@ namespace {
 
 			aux::vector<sha1_hash> const& samples = m_infohashes_sample.samples;
 			item["samples"] = span<char const>(
-				reinterpret_cast<char const*>(samples.data()), samples.size() * 20);
+				reinterpret_cast<char const*>(samples.data()), static_cast<std::ptrdiff_t>(samples.size()) * 20);
 
 			return m_infohashes_sample.count();
 		}

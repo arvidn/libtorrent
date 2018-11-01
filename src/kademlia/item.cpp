@@ -61,17 +61,17 @@ namespace {
 #endif
 		char* ptr = out.data();
 
-		std::size_t left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
+		auto left = out.size() - (ptr - out.data());
 		if (!salt.empty())
 		{
-			ptr += std::snprintf(ptr, left, "4:salt%d:", int(salt.size()));
-			left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
+			ptr += std::snprintf(ptr, static_cast<std::size_t>(left), "4:salt%d:", int(salt.size()));
+			left = out.size() - (ptr - out.data());
 			std::copy(salt.begin(), salt.begin() + std::min(salt.size(), left), ptr);
 			ptr += std::min(salt.size(), left);
-			left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
+			left = out.size() - (ptr - out.data());
 		}
-		ptr += std::snprintf(ptr, left, "3:seqi%" PRId64 "e1:v", seq.value);
-		left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
+		ptr += std::snprintf(ptr, static_cast<std::size_t>(left), "3:seqi%" PRId64 "e1:v", seq.value);
+		left = out.size() - (ptr - out.data());
 		std::copy(v.begin(), v.begin() + std::min(v.size(), left), ptr);
 		ptr += std::min(v.size(), left);
 		TORRENT_ASSERT((ptr - out.data()) <= int(out.size()));
@@ -104,7 +104,7 @@ bool verify_mutable_item(
 	char str[1200];
 	int len = canonical_string(v, seq, salt, str);
 
-	return ed25519_verify(sig, {str, size_t(len)}, pk);
+	return ed25519_verify(sig, {str, len}, pk);
 }
 
 // given the bencoded buffer ``v``, the salt (which is optional and may have
@@ -123,11 +123,11 @@ signature sign_mutable_item(
 	char str[1200];
 	int const len = canonical_string(v, seq, salt, str);
 
-	return ed25519_sign({str, size_t(len)}, pk, sk);
+	return ed25519_sign({str, len}, pk, sk);
 }
 
 item::item(public_key const& pk, span<char const> salt)
-	: m_salt(salt.data(), salt.size())
+	: m_salt(salt.data(), static_cast<std::size_t>(salt.size()))
 	, m_pk(pk)
 	, m_seq(0)
 	, m_mutable(true)
@@ -165,9 +165,9 @@ void item::assign(entry v, span<char const> salt
 	char buffer[1000];
 	int bsize = bencode(buffer, v);
 	TORRENT_ASSERT(bsize <= 1000);
-	m_sig = sign_mutable_item({buffer, aux::numeric_cast<std::size_t>(bsize)}
+	m_sig = sign_mutable_item({buffer, bsize}
 		, salt, seq, pk, sk);
-	m_salt.assign(salt.data(), salt.size());
+	m_salt.assign(salt.data(), static_cast<std::size_t>(salt.size()));
 	m_pk = pk;
 	m_seq = seq;
 	m_mutable = true;
@@ -189,7 +189,7 @@ bool item::assign(bdecode_node const& v, span<char const> salt
 	m_pk = pk;
 	m_sig = sig;
 	if (!salt.empty())
-		m_salt.assign(salt.data(), salt.size());
+		m_salt.assign(salt.data(), static_cast<std::size_t>(salt.size()));
 	else
 		m_salt.clear();
 	m_seq = seq;
@@ -206,7 +206,7 @@ void item::assign(entry v, span<char const> salt
 
 	m_pk = pk;
 	m_sig = sig;
-	m_salt.assign(salt.data(), salt.size());
+	m_salt.assign(salt.data(), static_cast<std::size_t>(salt.size()));
 	m_seq = seq;
 	m_mutable = true;
 	m_value = std::move(v);

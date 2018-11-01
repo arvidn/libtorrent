@@ -310,7 +310,7 @@ namespace libtorrent {
 		void write_pe4_sync(int crypto_select);
 
 		void write_pe_vc_cryptofield(span<char> write_buf
-			, int crypto_field, std::size_t pad_size);
+			, int crypto_field, int pad_size);
 
 		// helper to cut down on boilerplate
 		void rc4_decrypt(span<char> buf);
@@ -329,7 +329,7 @@ namespace libtorrent {
 			{
 				// if we're encrypting this buffer, we need to make a copy
 				// since we'll mutate it
-				buffer buf(std::size_t(size), {holder.data(), std::size_t(size)});
+				buffer buf(size, {holder.data(), size});
 				append_send_buffer(std::move(buf), size);
 			}
 			else

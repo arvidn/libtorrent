@@ -754,7 +754,7 @@ void http_connection::on_read(error_code const& e
 	{
 		span<char const> rcv_buf(m_recvbuffer);
 		bool error = false;
-		m_parser.incoming(rcv_buf.first(std::size_t(m_read_pos)), error);
+		m_parser.incoming(rcv_buf.first(m_read_pos), error);
 		if (error)
 		{
 			// HTTP parse error
@@ -804,8 +804,8 @@ void http_connection::on_read(error_code const& e
 			if (m_read_pos > m_parser.body_start())
 			{
 				callback(e, span<char>(m_recvbuffer)
-					.first(static_cast<std::size_t>(m_read_pos))
-					.subspan(static_cast<std::size_t>(m_parser.body_start())));
+					.first(m_read_pos)
+					.subspan(m_parser.body_start()));
 			}
 			m_read_pos = 0;
 			m_last_receive = clock_type::now();
@@ -815,14 +815,14 @@ void http_connection::on_read(error_code const& e
 			error_code ec;
 			m_timer.cancel(ec);
 			callback(e, span<char>(m_recvbuffer)
-				.first(static_cast<std::size_t>(m_read_pos))
-				.subspan(static_cast<std::size_t>(m_parser.body_start())));
+				.first(m_read_pos)
+				.subspan(m_parser.body_start()));
 		}
 	}
 	else
 	{
 		TORRENT_ASSERT(!m_bottled);
-		callback(e, span<char>(m_recvbuffer).first(static_cast<std::size_t>(m_read_pos)));
+		callback(e, span<char>(m_recvbuffer).first(m_read_pos));
 		m_read_pos = 0;
 		m_last_receive = clock_type::now();
 	}
