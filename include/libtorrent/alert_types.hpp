@@ -2675,7 +2675,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& ep, peer_id const& peer_id, picker_flags_t flags
-			, piece_block const* blocks, int num_blocks);
+			, span<piece_block const> blocks);
 
 		TORRENT_DEFINE_ALERT(picker_log_alert, 89)
 

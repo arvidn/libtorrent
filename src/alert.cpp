@@ -2220,12 +2220,12 @@ namespace {
 
 	picker_log_alert::picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, picker_flags_t const flags
-		, piece_block const* blocks, int num_blocks)
+		, span<piece_block const> blocks)
 		: peer_alert(alloc, h, ep, peer_id)
 		, picker_flags(flags)
-		, m_array_idx(alloc.copy_buffer({reinterpret_cast<char const*>(blocks)
-			, aux::numeric_cast<std::size_t>(num_blocks) * sizeof(piece_block)}))
-		, m_num_blocks(num_blocks)
+		, m_array_idx(alloc.copy_buffer({reinterpret_cast<char const*>(blocks.data())
+			, blocks.size() * int(sizeof(piece_block))}))
+		, m_num_blocks(int(blocks.size()))
 	{}
 
 	std::vector<piece_block> picker_log_alert::blocks() const
