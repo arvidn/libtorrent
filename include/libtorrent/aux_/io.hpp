@@ -59,10 +59,10 @@ namespace libtorrent { namespace aux {
 		return ret;
 	}
 
-	template <class T, class In, class Byte, typename Cond
-		= typename std::enable_if<std::is_integral<T>::value &&
-		(std::is_integral<In>::value || std::is_enum<In>::value)>::type>
-	inline typename std::enable_if<sizeof(Byte)==1, void>::type
+	template <class T, class In, class Byte>
+	inline typename std::enable_if<std::is_integral<T>::value
+		&& (std::is_integral<In>::value || std::is_enum<In>::value)
+		&& sizeof(Byte)==1>::type
 	write_impl(In data, span<Byte>& view)
 	{
 		T val = static_cast<T>(data);
