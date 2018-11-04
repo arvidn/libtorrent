@@ -283,7 +283,7 @@ namespace libtorrent {
 	struct TORRENT_EXPORT http_error_category : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override
-		{ return "http error"; }
+		{ return "http"; }
 		std::string message(int ev) const override
 		{
 			std::string ret;

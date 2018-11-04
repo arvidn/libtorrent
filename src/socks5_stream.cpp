@@ -46,7 +46,7 @@ namespace libtorrent {
 	struct socks_error_category : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override
-		{ return "socks error"; }
+		{ return "socks"; }
 		std::string message(int ev) const override
 		{
 			static char const* messages[] =

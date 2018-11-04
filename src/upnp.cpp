@@ -1195,7 +1195,7 @@ struct upnp_error_category : boost::system::error_category
 {
 	const char* name() const BOOST_SYSTEM_NOEXCEPT override
 	{
-		return "UPnP error";
+		return "upnp";
 	}
 
 	std::string message(int ev) const override

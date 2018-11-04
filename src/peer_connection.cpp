@@ -889,15 +889,16 @@ namespace libtorrent {
 		else
 		{
 			ret |= piece_picker::rarest_first;
-		}
 
-		if (m_snubbed)
-		{
-			// snubbed peers should request
-			// the common pieces first, just to make
-			// it more likely for all snubbed peers to
-			// request blocks from the same piece
-			ret |= piece_picker::reverse;
+			if (m_snubbed)
+			{
+				// snubbed peers should request
+				// the common pieces first, just to make
+				// it more likely for all snubbed peers to
+				// request blocks from the same piece
+				ret |= piece_picker::reverse;
+			}
+
 		}
 
 		if (m_settings.get_bool(settings_pack::prioritize_partial_pieces))

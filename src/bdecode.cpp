@@ -167,7 +167,7 @@ namespace {
 
 	const char* bdecode_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
-		return "bdecode error";
+		return "bdecode";
 	}
 
 	std::string bdecode_error_category::message(int ev) const
