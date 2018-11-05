@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
-#include "libtorrent/aux_/typed_span.hpp"
+#include "libtorrent/span.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
@@ -58,8 +58,8 @@ namespace libtorrent {
 	// TODO: find a better place for these functions
 namespace aux {
 
-		TORRENT_EXTRA_EXPORT void bits_shift_left(typed_span<std::uint32_t> number, int n);
-		TORRENT_EXTRA_EXPORT void bits_shift_right(typed_span<std::uint32_t> number, int n);
+		TORRENT_EXTRA_EXPORT void bits_shift_left(span<std::uint32_t> number, int n);
+		TORRENT_EXTRA_EXPORT void bits_shift_right(span<std::uint32_t> number, int n);
 	}
 
 	// This type holds an N digest or any other kind of N bits

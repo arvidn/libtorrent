@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
-#include "libtorrent/aux_/typed_span.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent {
 
@@ -62,7 +62,7 @@ span<char> receive_buffer::reserve(int const size)
 		m_watermark = {};
 	}
 
-	return aux::typed_span<char>(m_recv_buffer).subspan(m_recv_end, size);
+	return span<char>(m_recv_buffer).subspan(m_recv_end, size);
 }
 
 void receive_buffer::grow(int const limit)
@@ -145,14 +145,14 @@ span<char const> receive_buffer::get() const
 	}
 
 	TORRENT_ASSERT(m_recv_start + m_recv_pos <= int(m_recv_buffer.size()));
-	return aux::typed_span<char const>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
+	return span<char const>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
 }
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 span<char> receive_buffer::mutable_buffer()
 {
 	INVARIANT_CHECK;
-	return aux::typed_span<char>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
+	return span<char>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
 }
 
 span<char> receive_buffer::mutable_buffer(int const bytes)
@@ -161,7 +161,7 @@ span<char> receive_buffer::mutable_buffer(int const bytes)
 	// bytes is the number of bytes we just received, and m_recv_pos has
 	// already been adjusted for these bytes. The receive pos immediately
 	// before we received these bytes was (m_recv_pos - bytes)
-	return aux::typed_span<char>(m_recv_buffer).subspan(m_recv_start + m_recv_pos - bytes, bytes);
+	return span<char>(m_recv_buffer).subspan(m_recv_start + m_recv_pos - bytes, bytes);
 }
 #endif
 

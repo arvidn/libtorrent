@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/aux_/typed_span.hpp"
+#include "libtorrent/span.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp" // for status_t
 #include "libtorrent/session_types.hpp"
@@ -57,7 +57,7 @@ namespace aux {
 
 	TORRENT_EXTRA_EXPORT int copy_bufs(span<iovec_t const> bufs
 		, int bytes, span<iovec_t> target);
-	TORRENT_EXTRA_EXPORT typed_span<iovec_t> advance_bufs(typed_span<iovec_t> bufs, int bytes);
+	TORRENT_EXTRA_EXPORT span<iovec_t> advance_bufs(span<iovec_t> bufs, int bytes);
 	TORRENT_EXTRA_EXPORT void clear_bufs(span<iovec_t const> bufs);
 
 	// this is a read or write operation so that readwritev() knows

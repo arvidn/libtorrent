@@ -212,7 +212,6 @@ nobase_include_HEADERS = \
   aux_/unique_ptr.hpp               \
   aux_/alloca.hpp                   \
   aux_/throw.hpp                    \
-  aux_/typed_span.hpp               \
   aux_/array.hpp                    \
   aux_/ip_notifier.hpp              \
   aux_/noexcept_movable.hpp         \

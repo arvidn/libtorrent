@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/array.hpp"
-#include "libtorrent/aux_/typed_span.hpp"
+#include "libtorrent/span.hpp"
 #include "libtorrent/alert_types.hpp" // for picker_flags_t
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/flags.hpp"
@@ -465,13 +465,13 @@ namespace libtorrent {
 
 		// return the array of block_info objects for a given downloading_piece.
 		// this array has m_blocks_per_piece elements in it
-		aux::typed_span<block_info const> blocks_for_piece(downloading_piece const& dp) const;
+		span<block_info const> blocks_for_piece(downloading_piece const& dp) const;
 
 	private:
 
 		int num_pad_blocks() const { return m_num_pad_blocks; }
 
-		aux::typed_span<block_info> mutable_blocks_for_piece(downloading_piece const& dp);
+		span<block_info> mutable_blocks_for_piece(downloading_piece const& dp);
 
 		std::tuple<bool, bool, int, int> requested_from(
 			piece_picker::downloading_piece const& p
