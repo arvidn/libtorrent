@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/chained_buffer.hpp"
 #include "libtorrent/assert.hpp"
 
-#include <cstring> // for memcpy
+#include <algorithm> // for copy
 
 namespace libtorrent {
 
@@ -90,7 +90,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(!m_destructed);
 		char* const insert = allocate_appendix(static_cast<int>(buf.size()));
 		if (insert == nullptr) return nullptr;
-		std::memcpy(insert, buf.data(), buf.size());
+		std::copy(buf.begin(), buf.end(), insert);
 		return insert;
 	}
 

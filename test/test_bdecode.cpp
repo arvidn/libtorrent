@@ -44,9 +44,7 @@ TORRENT_TEST(integer)
 	bdecode_node e = bdecode(b, ec);
 	TEST_CHECK(!ec);
 	std::printf("%s\n", print_entry(e).c_str());
-	span<const char> section = e.data_section();
-	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
-	TEST_EQUAL(section.size(), sizeof(b) - 1);
+	TEST_CHECK(span<char>(b, sizeof(b) - 1) == e.data_section());
 	TEST_EQUAL(e.type(), bdecode_node::int_t);
 	TEST_EQUAL(e.int_value(), 12453);
 }
@@ -84,9 +82,7 @@ TORRENT_TEST(string)
 	bdecode_node e = bdecode(b, ec);
 	TEST_CHECK(!ec);
 	std::printf("%s\n", print_entry(e).c_str());
-	span<const char> section = e.data_section();
-	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
-	TEST_EQUAL(section.size(), sizeof(b) - 1);
+	TEST_CHECK(span<char>(b, sizeof(b) - 1) == e.data_section());
 	TEST_EQUAL(e.type(), bdecode_node::string_t);
 	TEST_EQUAL(e.string_value(), std::string("abcdefghijklmnopqrstuvwxyz"));
 	TEST_EQUAL(e.string_length(), 26);
@@ -104,9 +100,7 @@ TORRENT_TEST(string_prefix1)
 	bdecode_node e = bdecode(test, ec);
 	TEST_CHECK(!ec);
 	std::printf("%d bytes string\n", e.string_length());
-	span<const char> section = e.data_section();
-	TEST_CHECK(std::memcmp(test.c_str(), section.data(), section.size()) == 0);
-	TEST_EQUAL(section.size(), test.size());
+	TEST_CHECK(span<char const>(test) == e.data_section());
 	TEST_EQUAL(e.type(), bdecode_node::string_t);
 	TEST_EQUAL(e.string_length(), 1000000);
 	TEST_EQUAL(e.string_ptr(), test.c_str() + 8);
@@ -120,9 +114,7 @@ TORRENT_TEST(list)
 	bdecode_node e = bdecode(b, ec);
 	TEST_CHECK(!ec);
 	std::printf("%s\n", print_entry(e).c_str());
-	span<const char> section = e.data_section();
-	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
-	TEST_EQUAL(section.size(), sizeof(b) - 1);
+	TEST_CHECK(span<char>(b, sizeof(b) - 1) == e.data_section());
 	TEST_EQUAL(e.type(), bdecode_node::list_t);
 	TEST_EQUAL(e.list_size(), 2);
 	TEST_EQUAL(e.list_at(0).type(), bdecode_node::int_t);
@@ -130,9 +122,7 @@ TORRENT_TEST(list)
 	TEST_EQUAL(e.list_at(0).int_value(), 12453);
 	TEST_EQUAL(e.list_at(1).string_value(), std::string("aaa"));
 	TEST_EQUAL(e.list_at(1).string_length(), 3);
-	section = e.list_at(1).data_section();
-	TEST_CHECK(std::memcmp("3:aaa", section.data(), section.size()) == 0);
-	TEST_EQUAL(section.size(), 5);
+	TEST_CHECK(span<char const>("3:aaa", 5) == e.list_at(1).data_section());
 }
 
 // test dict
@@ -143,9 +133,7 @@ TORRENT_TEST(dict)
 	bdecode_node e = bdecode(b, ec);
 	TEST_CHECK(!ec);
 	std::printf("%s\n", print_entry(e).c_str());
-	span<const char> section = e.data_section();
-	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
-	TEST_EQUAL(section.size(), sizeof(b) - 1);
+	TEST_CHECK(span<char>(b, sizeof(b) - 1) == e.data_section());
 	TEST_EQUAL(e.type(), bdecode_node::dict_t);
 	TEST_EQUAL(e.dict_size(), 4);
 	TEST_EQUAL(e.dict_find("a").type(), bdecode_node::int_t);

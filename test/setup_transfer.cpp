@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/random.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -114,8 +115,7 @@ address rand_v4()
 sha1_hash rand_hash()
 {
 	sha1_hash ret;
-	for (int i = 0; i < 20; ++i)
-		ret[static_cast<std::size_t>(i)] = std::uint8_t(lt::random(0xff));
+	aux::random_bytes(ret);
 	return ret;
 }
 
@@ -668,7 +668,7 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 	aux::vector<char> random_data(300000);
 	for (std::size_t i = 0; i != file_sizes.size(); ++i)
 	{
-		std::generate(random_data.begin(), random_data.end(), random_byte);
+		aux::random_bytes(random_data);
 		char filename[200];
 		std::snprintf(filename, sizeof(filename), "test%d", int(i));
 		char dirname[200];
