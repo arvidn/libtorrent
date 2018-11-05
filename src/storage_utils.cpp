@@ -82,7 +82,7 @@ namespace libtorrent { namespace aux {
 	void clear_bufs(span<iovec_t const> bufs)
 	{
 		for (auto buf : bufs)
-			std::memset(buf.data(), 0, buf.size());
+			std::fill(buf.begin(), buf.end(), 0);
 	}
 
 #if TORRENT_USE_ASSERTS

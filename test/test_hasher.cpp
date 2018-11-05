@@ -71,7 +71,7 @@ void test_vector(std::string s, std::string output, int const n = 1)
 	TEST_EQUAL(digest_hex, output);
 
 	std::string output_hex = digest_hex;
-	aux::to_hex(digest.c_str(), digest.size(), &output_hex[0]);
+	aux::to_hex(digest, &output_hex[0]);
 
 	TEST_EQUAL(output_hex, digest_hex);
 }

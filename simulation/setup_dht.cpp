@@ -104,7 +104,6 @@ struct dht_node final : lt::dht::socket_manager
 			, *m_dht_storage)
 	{
 		m_dht_storage->update_node_ids({id_from_addr(m_io_service.get_ips().front())});
-		error_code ec;
 		sock().open(m_ipv6 ? asio::ip::udp::v6() : asio::ip::udp::v4());
 		sock().bind(asio::ip::udp::endpoint(
 			m_ipv6 ? lt::address(lt::address_v6::any()) : lt::address(lt::address_v4::any()), 6881));
@@ -161,8 +160,6 @@ struct dht_node final : lt::dht::socket_manager
 
 		send_buf.clear();
 		bencode(std::back_inserter(send_buf), e);
-		error_code ec;
-
 		sock().send_to(boost::asio::const_buffers_1(send_buf.data(), int(send_buf.size())), addr);
 		return true;
 	}

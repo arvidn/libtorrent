@@ -306,7 +306,6 @@ struct peer_conn
 			// unchoke
 			write_uint32(1, ptr);
 			write_uint8(1, ptr);
-			error_code ec;
 			boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, ptr - write_buf_proto)
 				, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		}
@@ -322,7 +321,6 @@ struct peer_conn
 			// unchoke
 			write_uint32(1, ptr);
 			write_uint8(1, ptr);
-			error_code ec;
 			boost::asio::async_write(s, boost::asio::buffer((char*)buffer, len + 10)
 				, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		}
@@ -390,7 +388,6 @@ struct peer_conn
 		write_uint32(static_cast<int>(current_piece), ptr);
 		write_uint32(block * 16 * 1024, ptr);
 		write_uint32(16 * 1024, ptr);
-		error_code ec;
 		boost::asio::async_write(s, boost::asio::buffer(m, sizeof(msg) - 1)
 			, std::bind(&peer_conn::on_req_sent, this, m, _1, _2));
 

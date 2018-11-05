@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
-#include <cstring> // for memcpy
+#include <algorithm> // for copy
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/bdecode.hpp"
@@ -66,13 +66,13 @@ namespace {
 		{
 			ptr += std::snprintf(ptr, left, "4:salt%d:", int(salt.size()));
 			left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
-			std::memcpy(ptr, salt.data(), std::min(salt.size(), left));
+			std::copy(salt.begin(), salt.begin() + std::min(salt.size(), left), ptr);
 			ptr += std::min(salt.size(), left);
 			left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
 		}
 		ptr += std::snprintf(ptr, left, "3:seqi%" PRId64 "e1:v", seq.value);
 		left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
-		std::memcpy(ptr, v.data(), std::min(v.size(), left));
+		std::copy(v.begin(), v.begin() + std::min(v.size(), left), ptr);
 		ptr += std::min(v.size(), left);
 		TORRENT_ASSERT((ptr - out.data()) <= int(out.size()));
 		return int(ptr - out.data());

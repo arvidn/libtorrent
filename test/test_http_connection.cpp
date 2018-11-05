@@ -91,7 +91,7 @@ void http_handler_test(error_code const& ec, http_parser const& parser
 		http_status = parser.status_code();
 		if (http_status == 200)
 		{
-			TEST_CHECK(memcmp(data.data(), data_buffer, data.size()) == 0);
+			TEST_CHECK(span<char>(data_buffer, data.size()) == data);
 		}
 	}
 	print_http_header(parser);

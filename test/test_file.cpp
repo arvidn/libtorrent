@@ -57,7 +57,7 @@ int touch_file(std::string const& filename, int size)
 	error_code ec;
 	if (!f.open(filename, open_mode::write_only, ec)) return -1;
 	if (ec) return -1;
-	iovec_t b = {&v[0], v.size()};
+	iovec_t b = {v};
 	std::int64_t written = f.writev(0, b, ec);
 	if (written != int(v.size())) return -3;
 	if (ec) return -3;

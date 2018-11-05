@@ -62,7 +62,7 @@ void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 		using namespace lt::aux;
 
 		{
-			lt::span<char> iovec(&buf[0], buf_len);
+			lt::span<char> iovec(buf.data(), buf_len);
 			int next_barrier;
 			lt::span<lt::span<char const>> iovec_out;
 			std::tie(next_barrier, iovec_out) = a.encrypt(iovec);
@@ -75,7 +75,7 @@ void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 			int consume = 0;
 			int produce = 0;
 			int packet_size = 0;
-			lt::span<char> iovec(&buf[0], buf_len);
+			lt::span<char> iovec(buf.data(), buf_len);
 			std::tie(consume, produce, packet_size) = b.decrypt(iovec);
 			TEST_CHECK(buf == cmp_buf);
 			TEST_EQUAL(consume, 0);
@@ -84,7 +84,7 @@ void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 		}
 
 		{
-			lt::span<char> iovec(&buf[0], buf_len);
+			lt::span<char> iovec(buf.data(), buf_len);
 			int next_barrier;
 			lt::span<lt::span<char const>> iovec_out;
 			std::tie(next_barrier, iovec_out) = b.encrypt(iovec);
@@ -95,7 +95,7 @@ void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 			int consume = 0;
 			int produce = 0;
 			int packet_size = 0;
-			lt::span<char> iovec2(&buf[0], buf_len);
+			lt::span<char> iovec2(buf.data(), buf_len);
 			std::tie(consume, produce, packet_size) = a.decrypt(iovec2);
 			TEST_CHECK(buf == cmp_buf);
 			TEST_EQUAL(consume, 0);

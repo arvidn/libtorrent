@@ -2392,8 +2392,7 @@ TORRENT_TEST(immutable_put)
 		put_data = "Hello world";
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), put_data);
-		sha1_hash target = item_target_id(
-			span<char const>(flat_data.c_str(), flat_data.size()));
+		sha1_hash target = item_target_id(flat_data);
 
 		t.dht_node.put_item(target, put_data, std::bind(&put_immutable_item_cb, _1, loop));
 
@@ -2442,8 +2441,8 @@ TORRENT_TEST(immutable_put)
 			{
 				TEST_EQUAL(put_immutable_item_keys[0].string_value(), "q");
 				TEST_EQUAL(put_immutable_item_keys[2].string_value(), "put");
-				span<const char> v = put_immutable_item_keys[6].data_section();
-				TEST_EQUAL(std::string(v.data(), v.size()), flat_data);
+				span<const char> const v = put_immutable_item_keys[6].data_section();
+				TEST_EQUAL(v, span<char const>(flat_data));
 				char tok[10];
 				std::snprintf(tok, sizeof(tok), "%02d", i);
 				TEST_EQUAL(put_immutable_item_keys[5].string_value(), tok);
@@ -2548,9 +2547,8 @@ TORRENT_TEST(mutable_put)
 				TEST_EQUAL(put_mutable_item_keys[7].int_value(), int(seq.value));
 				TEST_EQUAL(put_mutable_item_keys[8].string_value()
 					, std::string(sig.bytes.data(), signature::len));
-				span<const char> v = put_mutable_item_keys[10].data_section();
-				TEST_EQUAL(v.size(), itemv.size());
-				TEST_CHECK(memcmp(v.data(), itemv.data(), itemv.size()) == 0);
+				span<const char> const v = put_mutable_item_keys[10].data_section();
+				TEST_CHECK(v == itemv);
 				char tok[10];
 				std::snprintf(tok, sizeof(tok), "%02d", i);
 				TEST_EQUAL(put_mutable_item_keys[9].string_value(), tok);
@@ -2591,9 +2589,9 @@ TORRENT_TEST(traversal_done)
 	g_sent_packets.clear();
 
 	sha1_hash const target = hasher(pk.bytes).final();
-	enum { num_test_nodes = 9 }; // we need K + 1 nodes to create the failing sequence
+	constexpr int num_test_nodes = 9; // we need K + 1 nodes to create the failing sequence
 
-	std::array<node_entry, 9> nodes = build_nodes(target);
+	std::array<node_entry, num_test_nodes> nodes = build_nodes(target);
 
 	// invert the ith most significant byte so that the test nodes are
 	// progressively closer to the target item
