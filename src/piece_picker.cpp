@@ -360,7 +360,7 @@ namespace libtorrent {
 		*zero_prio = int(m_downloads[piece_pos::piece_zero_prio].size());
 	}
 
-	aux::typed_span<piece_picker::block_info> piece_picker::mutable_blocks_for_piece(
+	span<piece_picker::block_info> piece_picker::mutable_blocks_for_piece(
 		downloading_piece const& dp)
 	{
 		int idx = int(dp.info_idx) * m_blocks_per_piece;
@@ -368,7 +368,7 @@ namespace libtorrent {
 		return { &m_block_info[idx], blocks_in_piece(dp.index) };
 	}
 
-	aux::typed_span<piece_picker::block_info const> piece_picker::blocks_for_piece(
+	span<piece_picker::block_info const> piece_picker::blocks_for_piece(
 		downloading_piece const& dp) const
 	{
 		return const_cast<piece_picker*>(this)->mutable_blocks_for_piece(dp);
