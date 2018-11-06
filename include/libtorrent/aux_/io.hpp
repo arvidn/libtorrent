@@ -50,10 +50,10 @@ namespace libtorrent { namespace aux {
 	read_impl(span<Byte>& view, type<T>)
 	{
 		T ret = 0;
-		for (std::size_t i = 0; i < sizeof(T); ++i)
+		for (Byte const b : view.first(sizeof(T)))
 		{
 			ret <<= 8;
-			ret |= static_cast<std::uint8_t>(view[i]);
+			ret |= static_cast<std::uint8_t>(b);
 		}
 		view = view.subspan(sizeof(T));
 		return ret;
@@ -68,10 +68,10 @@ namespace libtorrent { namespace aux {
 		T val = static_cast<T>(data);
 		TORRENT_ASSERT(data == static_cast<In>(val));
 		int shift = int(sizeof(T)) * 8;
-		for (std::size_t i = 0; i < sizeof(T); ++i)
+		for (Byte& b : view.first(sizeof(T)))
 		{
 			shift -= 8;
-			view[i] = static_cast<Byte>((val >> shift) & 0xff);
+			b = static_cast<Byte>((val >> shift) & 0xff);
 		}
 		view = view.subspan(sizeof(T));
 	}
@@ -167,12 +167,9 @@ namespace libtorrent { namespace aux {
 	template<typename Byte>
 	inline int write_string(std::string const& str, span<Byte>& view)
 	{
-		std::size_t const len = str.size();
-		for (std::size_t i = 0; i < len; ++i)
-			view[i] = str[i];
-
-		view = view.subspan(len);
-		return int(len);
+		std::copy(str.begin(), str.end(), view.begin());
+		view = view.subspan(str.size());
+		return int(str.size());
 	}
 
 }}
