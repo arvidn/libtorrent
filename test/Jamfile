@@ -104,6 +104,7 @@ explicit stage_enum_if ;
 test-suite libtorrent :
 	[ run
 		test_primitives.cpp
+		test_io.cpp
 		test_create_torrent.cpp
 		test_packet_buffer.cpp
 		test_timestamp_history.cpp
