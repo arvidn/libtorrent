@@ -205,6 +205,30 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(is_root_path("/"), true);
 #endif
 
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(compare_path("c:\\blah\\", "c:\\blah"));
+	TEST_CHECK(compare_path("c:\\blah", "c:\\blah"));
+	TEST_CHECK(compare_path("c:\\blah/", "c:\\blah"));
+	TEST_CHECK(compare_path("c:\\blah", "c:\\blah\\"));
+	TEST_CHECK(compare_path("c:\\blah", "c:\\blah"));
+	TEST_CHECK(compare_path("c:\\blah", "c:\\blah/"));
+
+	TEST_CHECK(!compare_path("c:\\bla", "c:\\blah/"));
+	TEST_CHECK(!compare_path("c:\\bla", "c:\\blah"));
+	TEST_CHECK(!compare_path("c:\\blah", "c:\\bla"));
+	TEST_CHECK(!compare_path("c:\\blah\\sdf", "c:\\blah"));
+#else
+	TEST_CHECK(compare_path("/blah", "/blah"));
+	TEST_CHECK(compare_path("/blah/", "/blah"));
+	TEST_CHECK(compare_path("/blah", "/blah"));
+	TEST_CHECK(compare_path("/blah", "/blah/"));
+
+	TEST_CHECK(!compare_path("/bla", "/blah/"));
+	TEST_CHECK(!compare_path("/bla", "/blah"));
+	TEST_CHECK(!compare_path("/blah", "/bla"));
+	TEST_CHECK(!compare_path("/blah/sdf", "/blah"));
+#endif
+
 	// if has_parent_path() returns false
 	// parent_path() should return the empty string
 	TEST_EQUAL(parent_path("blah"), "");
