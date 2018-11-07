@@ -38,7 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cstring>
 #include <array>
-#include <climits> // for CHAR_BIT
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/range/combine.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
@@ -70,10 +73,11 @@ namespace aux {
 	{
 		static_assert(N % 32 == 0, "N must be a multiple of 32");
 		static constexpr std::size_t number_size = N / 32;
+		constexpr static int bits_in_byte = 8;
 	public:
 
 		// the size of the hash in bytes
-		static constexpr std::size_t size() noexcept { return N / CHAR_BIT; }
+		static constexpr std::size_t size() noexcept { return N / bits_in_byte; }
 
 		// constructs an all-zero digest
 		digest32() noexcept { clear(); }
@@ -82,7 +86,7 @@ namespace aux {
 		digest32& operator=(digest32 const&) noexcept = default;
 
 		// returns an all-F digest. i.e. the maximum value
-		// representable by an N bit number (N/CHAR_BIT bytes). This is
+		// representable by an N bit number (N/8 bytes). This is
 		// a static member function.
 		static digest32 (max)() noexcept
 		{
@@ -92,7 +96,7 @@ namespace aux {
 		}
 
 		// returns an all-zero digest. i.e. the minimum value
-		// representable by an N bit number (N/CHAR_BIT bytes). This is
+		// representable by an N bit number (N/8 bytes). This is
 		// a static member function.
 		static digest32 (min)() noexcept
 		{
@@ -101,8 +105,8 @@ namespace aux {
 			return ret;
 		}
 
-		// copies N/CHAR_BIT bytes from the pointer provided, into the digest.
-		// The passed in string MUST be at least N/CHAR_BIT bytes. 0-terminators
+		// copies N/8 bytes from the pointer provided, into the digest.
+		// The passed in string MUST be at least N/8 bytes. 0-terminators
 		// are ignored, ``s`` is treated like a raw memory buffer.
 		explicit digest32(char const* s) noexcept
 		{
@@ -122,7 +126,7 @@ namespace aux {
 		}
 		void assign(span<char const> s) noexcept
 		{
-			TORRENT_ASSERT(s.size() >= N / CHAR_BIT);
+			TORRENT_ASSERT(s.size() >= N / bits_in_byte);
 			std::size_t const sl = s.size() < size() ? s.size() : size();
 			std::memcpy(m_number.data(), s.data(), sl);
 		}
@@ -137,9 +141,8 @@ namespace aux {
 		// return true if the digest is all zero.
 		bool is_all_zeros() const noexcept
 		{
-			for (auto const& v : m_number)
-				if (v != 0) return false;
-			return true;
+			return std::all_of(m_number.begin(), m_number.end()
+				, [](std::uint32_t v) { return v == 0; });
 		}
 
 		// shift left ``n`` bits.
@@ -167,10 +170,10 @@ namespace aux {
 		}
 		bool operator<(digest32 const& n) const noexcept
 		{
-			for (std::size_t i = 0; i < number_size; ++i)
+			for (auto const v : boost::combine(m_number, n.m_number))
 			{
-				std::uint32_t const lhs = aux::network_to_host(m_number[i]);
-				std::uint32_t const rhs = aux::network_to_host(n.m_number[i]);
+				std::uint32_t const lhs = aux::network_to_host(boost::get<0>(v));
+				std::uint32_t const rhs = aux::network_to_host(boost::get<1>(v));
 				if (lhs < rhs) return true;
 				if (lhs > rhs) return false;
 			}
@@ -186,8 +189,8 @@ namespace aux {
 		digest32 operator~() const noexcept
 		{
 			digest32 ret;
-			for (std::size_t i = 0; i < number_size; ++i)
-				ret.m_number[i] = ~m_number[i];
+			for (auto const v : boost::combine(m_number, ret.m_number))
+				boost::get<1>(v) = ~boost::get<0>(v);
 			return ret;
 		}
 
@@ -202,8 +205,9 @@ namespace aux {
 		// in-place bit-wise XOR with the passed in digest.
 		digest32& operator^=(digest32 const& n) noexcept
 		{
-			for (std::size_t i = 0; i < number_size; ++i)
-				m_number[i] ^= n.m_number[i];
+
+			for (auto const v : boost::combine(m_number, n.m_number))
+				boost::get<0>(v) ^= boost::get<1>(v);
 			return *this;
 		}
 
@@ -218,16 +222,16 @@ namespace aux {
 		// in-place bit-wise AND of the passed in digest
 		digest32& operator&=(digest32 const& n) noexcept
 		{
-			for (std::size_t i = 0; i < number_size; ++i)
-				m_number[i] &= n.m_number[i];
+			for (auto const v : boost::combine(m_number, n.m_number))
+				boost::get<0>(v) &= boost::get<1>(v);
 			return *this;
 		}
 
 		// in-place bit-wise OR of the two digests.
 		digest32& operator|=(digest32 const& n) noexcept
 		{
-			for (std::size_t i = 0; i < number_size; ++i)
-				m_number[i] |= n.m_number[i];
+			for (auto const v : boost::combine(m_number, n.m_number))
+				boost::get<0>(v) |= boost::get<1>(v);
 			return *this;
 		}
 
@@ -257,8 +261,8 @@ namespace aux {
 		iterator end()
 		{ return reinterpret_cast<std::uint8_t*>(m_number.data()) + size(); }
 
-		// return a copy of the N/CHAR_BIT bytes representing the digest as a std::string.
-		// It's still a binary string with N/CHAR_BIT binary characters.
+		// return a copy of the N/8 bytes representing the digest as a std::string.
+		// It's still a binary string with N/8 binary characters.
 		std::string to_string() const
 		{
 			return std::string(reinterpret_cast<char const*>(m_number.data()), size());
