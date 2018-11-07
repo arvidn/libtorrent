@@ -30,7 +30,7 @@ qBittorrent_ is a free and open-source cross-platform bittorrent client written 
 is available for Linux, macOS and Windows and is released under GPLv2 license.
 
 It comes with a powerful and easy-to-use graphical interface, as well as an embedded Web interface.
-It has a range of featues such as an RSS downloader, scheduling rate limits, torrent queueing,
+It has a range of features such as an RSS downloader, scheduling rate limits, torrent queueing,
 automatic resuming, background downloading, and system tray icon with a password-protected lock.
 
 Originally written by Christophe Dumez, currently maintained by sledgehammer999.
