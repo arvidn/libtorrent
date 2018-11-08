@@ -1,3 +1,5 @@
+1.1.11 release
+
 	* fix move_storage with save_path with a trailing slash
 	* fix tracker announce issue, advertising port 0 in secondary IPv6 announce
 	* fix missing boost/noncopyable.hpp includes

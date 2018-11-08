@@ -42,6 +42,8 @@ def substitute_file(name):
 			l = "\tversion = '%d.%d.%d',\n" % (version[0], version[1], version[2])
 		elif "version = '" in l and name.endswith('setup.py'):
 			l = "\tversion = '%d.%d.%d',\n" % (version[0], version[1], version[2])
+		elif l.startswith('\tVERSION ') and len(l.split('.')) == 3 and name.endswith('CMakeLists.txt'):
+			l = "\tVERSION %d.%d.%d\n" % (version[0], version[1], version[2])
 		elif '"-LT' in l and name.endswith('settings_pack.cpp'):
 			l = re.sub('"-LT[0-9A-Za-z]{4}-"', '"-LT%c%c%c%c-"' % v(version), l)
 
