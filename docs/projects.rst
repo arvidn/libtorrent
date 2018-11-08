@@ -1,7 +1,7 @@
 projects using libtorrent
 =========================
 
-These are some of the public projects that uses libtorrent. If you want your
+These are some of the public projects that use libtorrent. If you want your
 project listed here, let me_ know.
 
 .. _me: mailto:arvid@libtorrent.org
@@ -26,8 +26,14 @@ background to the system tray.
 qBittorrent
 -----------
 
-qBittorrent_ is a QT bittorrent client available for Linux (likely portable to
-most other desktops as well). Written by Christophe Dumez.
+qBittorrent_ is a free and open-source cross-platform bittorrent client written in Qt, that
+is available for Linux, macOS and Windows and is released under GPLv2 license.
+
+It comes with a powerful and easy-to-use graphical interface, as well as an embedded Web interface.
+It has a range of features such as an RSS downloader, scheduling rate limits, torrent queueing,
+automatic resuming, background downloading, and system tray icon with a password-protected lock.
+
+Originally written by Christophe Dumez, currently maintained by sledgehammer999.
 
 .. _qBittorrent: http://www.qbittorrent.org/
 
@@ -43,7 +49,7 @@ your applications, files, music and media from anywhere.
 Folx
 ----
 
-Folx_ is a torrent client and download manager for Mac OS X.
+Folx_ is a torrent client and download manager for macOS.
 The Free version of Folx has all the basic functionality of the torrent 
 client, which allows users to download and create torrent files.
 Folx PRO (available for a small fee) features the possibility to search 
@@ -74,7 +80,7 @@ LeechCraft
 
 LeechCraft_ LeechCraft is a free open source cross-platform extensible
 software, which primary goal is support of file sharing networks and protocols
-like HTTP and FTP
+like HTTP and FTP.
 
 .. _LeechCraft: http://leechcraft.org/
 
