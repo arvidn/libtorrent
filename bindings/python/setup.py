@@ -154,7 +154,7 @@ else:
 			libraries = ['torrent-rasterbar'] + flags.libraries)]
 
 setup(name = 'python-libtorrent',
-	version = '1.1.10',
+	version = '1.1.11',
 	author = 'Arvid Norberg',
 	author_email = 'arvid@libtorrent.org',
 	description = 'Python bindings for libtorrent-rasterbar',

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10.0 FATAL_ERROR)
 
 project(libtorrent
 	DESCRIPTION "Bittorrent library"
-	VERSION 1.1.10
+	VERSION 1.1.11
 )
 
 set (SOVERSION "9")
