@@ -583,15 +583,20 @@ void natpmp::send_map_request(port_mapping_t const i)
 		// linear back-off instead of exponential
 		++m_retry_count;
 		m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
-		m_send_timer.async_wait(std::bind(&natpmp::resend_request, self(), i, _1));
+		m_send_timer.async_wait(std::bind(&natpmp::on_resend_request, self(), i, _1));
 	}
 }
 
-void natpmp::resend_request(port_mapping_t const i, error_code const& e)
+void natpmp::on_resend_request(port_mapping_t const i, error_code const& e)
 {
 	TORRENT_ASSERT(is_single_thread());
 	COMPLETE_ASYNC("natpmp::resend_request");
 	if (e) return;
+	resend_request(i);
+}
+
+void natpmp::resend_request(port_mapping_t const i)
+{
 	if (m_currently_mapping != i) return;
 
 	// if we're shutting down, don't retry, just move on
@@ -696,7 +701,7 @@ void natpmp::on_reply(error_code const& e
 		if (m_version == version_pcp && !is_v6(m_socket.local_endpoint()))
 		{
 			m_version = version_natpmp;
-			resend_request(m_currently_mapping, error_code());
+			resend_request(m_currently_mapping);
 			send_get_ip_address_request();
 		}
 		return;

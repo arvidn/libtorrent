@@ -104,7 +104,8 @@ private:
 	void update_mapping(port_mapping_t i);
 	void send_map_request(port_mapping_t i);
 	void send_get_ip_address_request();
-	void resend_request(port_mapping_t i, error_code const& e);
+	void on_resend_request(port_mapping_t i, error_code const& e);
+	void resend_request(port_mapping_t);
 	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
 	void try_next_mapping(port_mapping_t i);
