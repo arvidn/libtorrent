@@ -88,6 +88,7 @@ pread
 preadv
 pwrite
 pwritev
+queueing
 readv
 writev
 ftruncate
@@ -358,6 +359,7 @@ Folx
 Tonido
 Dumez
 qBittorrent
+sledgehammer999
 ntx86
 Tonidoplug
 nodes2
@@ -390,6 +392,7 @@ tcp
 rlimit
 screensaver
 GPL
+GPLv2
 routable
 L1
 L2
