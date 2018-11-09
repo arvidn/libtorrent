@@ -1193,7 +1193,9 @@ namespace aux {
 			aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_tick_handler_storage;
 
 			// abort may not fail and cannot allocate memory
-#ifdef _M_AMD64
+#if defined BOOST_ASIO_ENABLE_HANDLER_TRACKING
+			aux::handler_storage<100> m_abort_handler_storage;
+#elif defined _M_AMD64
 			aux::handler_storage<88> m_abort_handler_storage;
 #else
 			aux::handler_storage<56> m_abort_handler_storage;

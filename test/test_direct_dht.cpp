@@ -91,6 +91,8 @@ dht_direct_response_alert* get_direct_response(lt::session& ses)
 TORRENT_TEST(direct_dht_request)
 {
 #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
+
+	std::vector<lt::session_proxy> abort;
 	settings_pack sp;
 	sp.set_bool(settings_pack::enable_lsd, false);
 	sp.set_bool(settings_pack::enable_natpmp, false);
@@ -137,5 +139,8 @@ TORRENT_TEST(direct_dht_request)
 		TEST_EQUAL(ra->response().type(), bdecode_node::none_t);
 		TEST_EQUAL(ra->userdata, reinterpret_cast<void*>(123456));
 	}
+
+	abort.emplace_back(responder.abort());
+	abort.emplace_back(requester.abort());
 #endif // #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 }
