@@ -146,6 +146,7 @@ namespace libtorrent { namespace dht {
 
 		if (m_running && n.second)
 		{
+			ADD_OUTSTANDING_ASYNC("dht_tracker::connection_timeout");
 			error_code ec;
 			n.first->second.connection_timer.expires_from_now(seconds(1), ec);
 			n.first->second.connection_timer.async_wait(
@@ -170,10 +171,13 @@ namespace libtorrent { namespace dht {
 	{
 		m_running = true;
 		error_code ec;
+
+		ADD_OUTSTANDING_ASYNC("dht_tracker::refresh_key");
 		refresh_key(ec);
 
 		for (auto& n : m_nodes)
 		{
+			ADD_OUTSTANDING_ASYNC("dht_tracker::connection_timeout");
 			n.second.connection_timer.expires_from_now(seconds(1), ec);
 			n.second.connection_timer.async_wait(
 				std::bind(&dht_tracker::connection_timeout, self(), n.first, _1));
@@ -183,6 +187,7 @@ namespace libtorrent { namespace dht {
 				n.second.dht.bootstrap(concat(m_state.nodes, m_state.nodes6), f);
 		}
 
+		ADD_OUTSTANDING_ASYNC("dht_tracker::refresh_timeout");
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_timeout, self(), _1));
 
@@ -242,6 +247,7 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::connection_timeout(aux::listen_socket_handle const& s, error_code const& e)
 	{
+		COMPLETE_ASYNC("dht_tracker::connection_timeout");
 		if (e || !m_running) return;
 
 		auto const it = m_nodes.find(s);
@@ -254,11 +260,13 @@ namespace libtorrent { namespace dht {
 		error_code ec;
 		deadline_timer& timer = n.connection_timer;
 		timer.expires_from_now(d, ec);
+		ADD_OUTSTANDING_ASYNC("dht_tracker::connection_timeout");
 		timer.async_wait(std::bind(&dht_tracker::connection_timeout, self(), s, _1));
 	}
 
 	void dht_tracker::refresh_timeout(error_code const& e)
 	{
+		COMPLETE_ASYNC("dht_tracker::refresh_timeout");
 		if (e || !m_running) return;
 
 		for (auto& n : m_nodes)
@@ -270,14 +278,17 @@ namespace libtorrent { namespace dht {
 
 		error_code ec;
 		m_refresh_timer.expires_from_now(seconds(5), ec);
+		ADD_OUTSTANDING_ASYNC("dht_tracker::refresh_timeout");
 		m_refresh_timer.async_wait(
 			std::bind(&dht_tracker::refresh_timeout, self(), _1));
 	}
 
 	void dht_tracker::refresh_key(error_code const& e)
 	{
+		COMPLETE_ASYNC("dht_tracker::refresh_key");
 		if (e || !m_running) return;
 
+		ADD_OUTSTANDING_ASYNC("dht_tracker::refresh_key");
 		error_code ec;
 		m_key_refresh_timer.expires_from_now(key_refresh, ec);
 		m_key_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_key, self(), _1));
