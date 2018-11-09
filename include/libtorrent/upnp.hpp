@@ -209,6 +209,8 @@ private:
 	void next(rootdevice& d, port_mapping_t i);
 	void update_map(rootdevice& d, port_mapping_t i);
 
+	void connect(rootdevice& d);
+
 	void on_upnp_xml(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
 		, http_connection& c);

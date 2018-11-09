@@ -344,29 +344,33 @@ void upnp::resend_request(error_code const& ec)
 
 		// we don't have a WANIP or WANPPP url for this device,
 		// ask for it
-		rootdevice& d = const_cast<rootdevice&>(dev);
-		TORRENT_ASSERT(d.magic == 1337);
-		TORRENT_TRY
-		{
+		connect(const_cast<rootdevice&>(dev));
+	}
+}
+
+void upnp::connect(rootdevice& d)
+{
+	TORRENT_ASSERT(d.magic == 1337);
+	TORRENT_TRY
+	{
 #ifndef TORRENT_DISABLE_LOGGING
-			log("connecting to: %s", d.url.c_str());
+		log("connecting to: %s", d.url.c_str());
 #endif
-			if (d.upnp_connection) d.upnp_connection->close();
-			d.upnp_connection = std::make_shared<http_connection>(m_io_service
-				, m_resolver
-				, std::bind(&upnp::on_upnp_xml, self(), _1, _2
-					, std::ref(d), _4));
-			d.upnp_connection->get(d.url, seconds(30), 1);
-		}
-		TORRENT_CATCH (std::exception const& exc)
-		{
-			TORRENT_DECLARE_DUMMY(std::exception, exc);
-			TORRENT_UNUSED(exc);
+		if (d.upnp_connection) d.upnp_connection->close();
+		d.upnp_connection = std::make_shared<http_connection>(m_io_service
+			, m_resolver
+			, std::bind(&upnp::on_upnp_xml, self(), _1, _2
+				, std::ref(d), _4));
+		d.upnp_connection->get(d.url, seconds(30), 1);
+	}
+	TORRENT_CATCH (std::exception const& exc)
+	{
+		TORRENT_DECLARE_DUMMY(std::exception, exc);
+		TORRENT_UNUSED(exc);
 #ifndef TORRENT_DISABLE_LOGGING
-			log("connection failed to: %s %s", d.url.c_str(), exc.what());
+		log("connection failed to: %s %s", d.url.c_str(), exc.what());
 #endif
-			d.disabled = true;
-		}
+		d.disabled = true;
 	}
 }
 
@@ -687,29 +691,7 @@ void upnp::try_map_upnp(bool const timer)
 		{
 			// we don't have a WANIP or WANPPP url for this device,
 			// ask for it
-			rootdevice& d = const_cast<rootdevice&>(*i);
-			TORRENT_ASSERT(d.magic == 1337);
-			TORRENT_TRY
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				log("connecting to: %s", d.url.c_str());
-#endif
-				if (d.upnp_connection) d.upnp_connection->close();
-				d.upnp_connection = std::make_shared<http_connection>(m_io_service
-					, m_resolver
-					, std::bind(&upnp::on_upnp_xml, self(), _1, _2
-						, std::ref(d), _4));
-				d.upnp_connection->get(d.url, seconds(30), 1);
-			}
-			TORRENT_CATCH (std::exception const& exc)
-			{
-				TORRENT_DECLARE_DUMMY(std::exception, exc);
-				TORRENT_UNUSED(exc);
-#ifndef TORRENT_DISABLE_LOGGING
-				log("connection failed to: %s %s", d.url.c_str(), exc.what());
-#endif
-				d.disabled = true;
-			}
+			connect(const_cast<rootdevice&>(*i));
 		}
 	}
 }
