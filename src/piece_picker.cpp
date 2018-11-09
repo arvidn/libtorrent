@@ -381,8 +381,7 @@ namespace libtorrent {
 		for (auto const k : categories())
 		{
 			if (m_downloads[k].empty()) continue;
-			for (std::vector<downloading_piece>::const_iterator i = m_downloads[k].begin();
-				i != m_downloads[k].end() - 1; ++i)
+			for (auto i = m_downloads[k].begin(); i != m_downloads[k].end() - 1; ++i)
 			{
 				downloading_piece const& dp = *i;
 				downloading_piece const& next = *(i + 1);
@@ -391,13 +390,11 @@ namespace libtorrent {
 					+ m_blocks_per_piece <= int(m_block_info.size()));
 				for (auto const& bl : blocks_for_piece(dp))
 				{
-					if (bl.peer)
-					{
-						torrent_peer* p = bl.peer;
-						TORRENT_ASSERT(p->in_use);
-						TORRENT_ASSERT(p->connection == nullptr
-							|| static_cast<peer_connection*>(p->connection)->m_in_use);
-					}
+					if (!bl.peer) continue;
+					torrent_peer* p = bl.peer;
+					TORRENT_ASSERT(p->in_use);
+					TORRENT_ASSERT(p->connection == nullptr
+						|| static_cast<peer_connection*>(p->connection)->m_in_use);
 				}
 			}
 		}
@@ -472,29 +469,7 @@ namespace libtorrent {
 			last = b;
 		}
 
-		for (auto const k : categories())
-		{
-			if (m_downloads[k].empty()) continue;
-			for (std::vector<downloading_piece>::const_iterator i = m_downloads[k].begin();
-					i != m_downloads[k].end() - 1; ++i)
-			{
-				downloading_piece const& dp = *i;
-				downloading_piece const& next = *(i + 1);
-				TORRENT_ASSERT(dp.index < next.index);
-				TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
-					+ m_blocks_per_piece <= int(m_block_info.size()));
-#if TORRENT_USE_ASSERTS
-				for (auto const& bl : blocks_for_piece(dp))
-				{
-					if (!bl.peer) continue;
-					torrent_peer* p = bl.peer;
-					TORRENT_ASSERT(p->in_use);
-					TORRENT_ASSERT(p->connection == nullptr
-						|| static_cast<peer_connection*>(p->connection)->m_in_use);
-				}
-#endif
-			}
-		}
+		check_piece_state();
 
 		if (t != nullptr)
 			TORRENT_ASSERT(num_pieces() == t->torrent_file().num_pieces());

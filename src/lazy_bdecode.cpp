@@ -80,6 +80,36 @@ namespace {
 		return start;
 	}
 
+	char const* parse_string(char const* start, char const* end
+		, bdecode_errors::error_code_enum& e, std::int64_t& len)
+	{
+		start = parse_int(start, end, ':', len, e);
+		if (e) return start;
+		if (start == end)
+		{
+			e = bdecode_errors::expected_colon;
+		}
+		else
+		{
+			// remaining buffer size excluding ':'
+			const ptrdiff_t buff_size = end - start - 1;
+			if (len > buff_size)
+			{
+				e = bdecode_errors::unexpected_eof;
+			}
+			else if (len < 0)
+			{
+				e = bdecode_errors::overflow;
+			}
+			else
+			{
+				++start;
+				if (start >= end) e = bdecode_errors::unexpected_eof;
+			}
+		}
+		return start;
+	}
+
 	} // anonymous namespace
 
 #if TORRENT_ABI_VERSION == 1
@@ -130,22 +160,9 @@ namespace {
 					if (!is_digit(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
 					std::int64_t len = t - '0';
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
-					start = parse_int(start, end, ':', len, e);
-					if (e)
-						TORRENT_FAIL_BDECODE(e);
-					if (start == end)
-						TORRENT_FAIL_BDECODE(bdecode_errors::expected_colon);
+					start = parse_string(start, end, e, len);
+					if (e) TORRENT_FAIL_BDECODE(e);
 
-					// remaining buffer size excluding ':'
-					const ptrdiff_t buff_size = end - start - 1;
-					if (len > buff_size)
-						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
-
-					if (len < 0)
-						TORRENT_FAIL_BDECODE(bdecode_errors::overflow);
-
-					++start;
-					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					lazy_entry* ent = top->dict_append(start);
 					if (ent == nullptr) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
 					start += len;
@@ -199,26 +216,13 @@ namespace {
 				}
 				default:
 				{
-					if (!is_digit(t))
-						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 
+					if (!is_digit(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 					std::int64_t len = t - '0';
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
-					start = parse_int(start, end, ':', len, e);
-					if (e)
-						TORRENT_FAIL_BDECODE(e);
-					if (start == end)
-						TORRENT_FAIL_BDECODE(bdecode_errors::expected_colon);
+					start = parse_string(start, end, e, len);
+					if (e) TORRENT_FAIL_BDECODE(e);
 
-					// remaining buffer size excluding ':'
-					const ptrdiff_t buff_size = end - start - 1;
-					if (len > buff_size)
-						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
-					if (len < 0)
-						TORRENT_FAIL_BDECODE(bdecode_errors::overflow);
-
-					++start;
-					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					top->construct_string(start, int(len));
 					start += len;
 					stack.pop_back();
