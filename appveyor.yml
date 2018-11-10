@@ -88,7 +88,8 @@ build_script:
 # test
 - cd %ROOT_DIRECTORY%\test
 - if defined bjam (
-  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests test_upnp test_natpmp testing.execute=off
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% testing.execute=off
+  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% test_upnp test_natpmp testing.execute=off
   )
 
 # python binding
@@ -116,7 +117,7 @@ build_script:
 test_script:
 - cd %ROOT_DIRECTORY%\test
 - if defined bjam (
-  appveyor-retry b2.exe -l400 --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests
+  appveyor-retry b2.exe -l400 --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto%
   )
 
 - cd %ROOT_DIRECTORY%\bindings\python

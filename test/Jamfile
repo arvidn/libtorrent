@@ -218,41 +218,6 @@ run test_priority.cpp ;
 run test_upnp.cpp ;
 run test_lsd.cpp ;
 
-# these are the tests run on appveyor, while the flapping ones are being
-# transitioned into simulations
-alias win-tests :
-	test_primitives
-	test_string
-	test_dht
-	test_sha1_hash
-	test_bitfield
-	test_crc32
-	test_pe_crypto
-	test_remap_files
-	test_auto_unchoke
-	test_torrent
-	test_transfer
-	test_time_critical
-	test_pex
-	test_priority
-	test_storage
-	test_session
-	test_read_piece
-	test_file
-	test_fast_extension
-	test_recheck
-	test_resume
-	test_tracker
-	test_checking
-	test_gzip
-	test_piece_picker
-	test_ffs
-	test_ed25519
-	test_session_params
-	;
-
-explicit win-tests ;
-
 alias arm-tests :
 	test_sha1_hash
 	test_bitfield
