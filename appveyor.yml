@@ -125,8 +125,10 @@ test_script:
   & c:\Python35-x64\python.exe test.py -b
   )
 
+- cd %ROOT_DIRECTORY%\build
 - if defined cmake (
-  appveyor-retry ctest
+  set "PATH=%ROOT_DIRECTORY%\build\Release;c:\Libraries\boost_1_63_0\lib64-msvc-14.0;c:\OpenSSL-Win64\;%PATH%" &&
+  appveyor-retry ctest --output-on-failure
   )
 
 # simulation tests
