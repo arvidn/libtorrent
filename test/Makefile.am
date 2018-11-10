@@ -190,7 +190,6 @@ test_primitives_SOURCES = \
   test_ip_voter.cpp \
   test_sliding_average.cpp \
   test_socket_io.cpp \
-  test_random.cpp \
   test_utf8.cpp \
   test_gzip.cpp \
   test_bitfield.cpp \

@@ -101,128 +101,122 @@ explicit test_natpmp ;
 explicit enum_if ;
 explicit stage_enum_if ;
 
-test-suite libtorrent :
-	[ run
-		test_primitives.cpp
-		test_io.cpp
-		test_create_torrent.cpp
-		test_packet_buffer.cpp
-		test_timestamp_history.cpp
-		test_bloom_filter.cpp
-		test_identify_client.cpp
-		test_merkle.cpp
-		test_resolve_links.cpp
-		test_heterogeneous_queue.cpp
-		test_ip_voter.cpp
-		test_sliding_average.cpp
-		test_socket_io.cpp
-#		test_random.cpp
-		test_part_file.cpp
-		test_peer_list.cpp
-		test_torrent_info.cpp
-		test_time.cpp
-		test_file_storage.cpp
-		test_peer_priority.cpp
-		test_threads.cpp
-		test_tailqueue.cpp
-		test_bandwidth_limiter.cpp
-		test_buffer.cpp
-		test_bencoding.cpp
-		test_bdecode.cpp
-		test_http_parser.cpp
-		test_xml.cpp
-		test_ip_filter.cpp
-		test_hasher.cpp
-		test_block_cache.cpp
-		test_peer_classes.cpp
-		test_settings_pack.cpp
-		test_fence.cpp
-		test_dos_blocker.cpp
-		test_stat_cache.cpp
-		test_enum_net.cpp
-		test_linked_list.cpp
-		test_stack_allocator.cpp
-		test_file_progress.cpp
-		test_generate_peer_id.cpp
-		test_alloca.cpp ]
+run test_primitives.cpp ;
+run test_io.cpp ;
+run test_packet_buffer.cpp ;
+run test_timestamp_history.cpp ;
+run test_bloom_filter.cpp ;
+run test_merkle.cpp ;
+run test_heterogeneous_queue.cpp ;
+run test_ip_voter.cpp ;
+run test_sliding_average.cpp ;
+run test_time.cpp ;
+run test_threads.cpp ;
+run test_http_parser.cpp ;
+run test_xml.cpp ;
+run test_ip_filter.cpp ;
+run test_hasher.cpp ;
+run test_settings_pack.cpp ;
+run test_dos_blocker.cpp ;
 
-	[ run test_listen_socket.cpp
-		: : : <crypto>openssl:<library>/torrent//ssl
-		<crypto>openssl:<library>/torrent//crypto
-	]
+run test_peer_classes.cpp ;
+run test_bandwidth_limiter.cpp ;
+run test_buffer.cpp ;
+run test_peer_priority.cpp ;
+run test_peer_list.cpp ;
+run test_identify_client.cpp ;
 
-	[ run test_piece_picker.cpp ]
+run test_bencoding.cpp ;
+run test_bdecode.cpp ;
+run test_file_progress.cpp ;
+run test_generate_peer_id.cpp ;
 
-	[ run test_dht.cpp
-		test_dht_storage.cpp
-		test_direct_dht.cpp
-		test_hasher512.cpp
-		: : : <crypto>openssl:<library>/torrent//ssl
-		<crypto>openssl:<library>/torrent//crypto
-	]
+run test_block_cache.cpp ;
+run test_file_storage.cpp ;
+run test_fence.cpp ;
+run test_tailqueue.cpp ;
+run test_linked_list.cpp ;
+run test_stat_cache.cpp ;
+run test_part_file.cpp ;
+run test_resolve_links.cpp ;
+run test_enum_net.cpp ;
+run test_socket_io.cpp ;
+run test_stack_allocator.cpp ;
+run test_alloca.cpp ;
+run test_create_torrent.cpp ;
+run test_torrent_info.cpp ;
+run test_piece_picker.cpp ;
 
-	[ run test_string.cpp test_utf8.cpp ]
+run test_dht.cpp
+	test_dht_storage.cpp
+	test_direct_dht.cpp
+	test_hasher512.cpp
+	test_listen_socket.cpp
+	: : : <crypto>openssl:<library>/torrent//ssl
+	<crypto>openssl:<library>/torrent//crypto
+	;
 
-	[ run test_sha1_hash.cpp ]
-	[ run test_span.cpp ]
-	[ run test_bitfield.cpp ]
-	[ run test_crc32.cpp ]
-	[ run test_ffs.cpp ]
-	[ run test_ed25519.cpp ]
-	[ run test_gzip.cpp ]
-	[ run test_receive_buffer.cpp ]
-	[ run test_alert_manager.cpp ]
-	[ run test_alert_types.cpp ]
-	[ run test_magnet.cpp ]
-	[ run test_storage.cpp ]
-	[ run test_session.cpp ]
-	[ run test_session_params.cpp ]
-	[ run test_read_piece.cpp ]
-	[ run test_remove_torrent.cpp ]
-	[ run test_flags.cpp ]
+run test_string.cpp test_utf8.cpp ;
 
-	[ run test_file.cpp ]
-	[ run test_fast_extension.cpp ]
-	[ run test_privacy.cpp ]
-	[ run test_recheck.cpp ]
-	[ run test_read_resume.cpp ]
-	[ run test_resume.cpp ]
-	[ run test_ssl.cpp : :
-		: <crypto>openssl:<library>/torrent//ssl
-		<crypto>openssl:<library>/torrent//crypto
-	]
-	[ run test_tracker.cpp ]
-	[ run test_checking.cpp ]
-	[ run test_url_seed.cpp ]
-	[ run test_web_seed.cpp ]
-	[ run test_web_seed_redirect.cpp ]
-	[ run test_web_seed_socks4.cpp ]
-	[ run test_web_seed_socks5.cpp ]
-	[ run test_web_seed_socks5_no_peers.cpp ]
-	[ run test_web_seed_socks5_pw.cpp ]
-	[ run test_web_seed_http.cpp ]
-	[ run test_web_seed_http_pw.cpp ]
-	[ run test_web_seed_chunked.cpp ]
-	[ run test_web_seed_ban.cpp ]
-	[ run test_pe_crypto.cpp ]
+run test_sha1_hash.cpp ;
+run test_span.cpp ;
+run test_bitfield.cpp ;
+run test_crc32.cpp ;
+run test_ffs.cpp ;
+run test_ed25519.cpp ;
+run test_gzip.cpp ;
+run test_receive_buffer.cpp ;
+run test_alert_manager.cpp ;
+run test_alert_types.cpp ;
+run test_magnet.cpp ;
+run test_storage.cpp ;
+run test_session.cpp ;
+run test_session_params.cpp ;
+run test_read_piece.cpp ;
+run test_remove_torrent.cpp ;
+run test_flags.cpp ;
 
-	[ run test_remap_files.cpp ]
-	[ run test_utp.cpp ]
-	[ run test_auto_unchoke.cpp ]
-	[ run test_http_connection.cpp : :
-		: <crypto>openssl:<library>/torrent//ssl
-		<crypto>openssl:<library>/torrent//crypto
-	]
-	[ run test_torrent.cpp ]
-	[ run test_transfer.cpp ]
-	[ run test_time_critical.cpp ]
-	[ run test_pex.cpp ]
-	[ run test_priority.cpp ]
+run test_file.cpp ;
+run test_fast_extension.cpp ;
+run test_privacy.cpp ;
+run test_recheck.cpp ;
+run test_read_resume.cpp ;
+run test_resume.cpp ;
+run test_ssl.cpp : :
+ : <crypto>openssl:<library>/torrent//ssl
+ <crypto>openssl:<library>/torrent//crypto ;
+
+run test_tracker.cpp ;
+run test_checking.cpp ;
+run test_url_seed.cpp ;
+run test_web_seed.cpp ;
+run test_web_seed_redirect.cpp ;
+run test_web_seed_socks4.cpp ;
+run test_web_seed_socks5.cpp ;
+run test_web_seed_socks5_no_peers.cpp ;
+run test_web_seed_socks5_pw.cpp ;
+run test_web_seed_http.cpp ;
+run test_web_seed_http_pw.cpp ;
+run test_web_seed_chunked.cpp ;
+run test_web_seed_ban.cpp ;
+run test_pe_crypto.cpp ;
+
+run test_remap_files.cpp ;
+run test_utp.cpp ;
+run test_auto_unchoke.cpp ;
+run test_http_connection.cpp : :
+ : <crypto>openssl:<library>/torrent//ssl
+ <crypto>openssl:<library>/torrent//crypto ;
+
+run test_torrent.cpp ;
+run test_transfer.cpp ;
+run test_time_critical.cpp ;
+run test_pex.cpp ;
+run test_priority.cpp ;
 
 # turn these tests into simulations
-	[ run test_upnp.cpp ]
-	[ run test_lsd.cpp ]
-	;
+run test_upnp.cpp ;
+run test_lsd.cpp ;
 
 # these are the tests run on appveyor, while the flapping ones are being
 # transitioned into simulations
