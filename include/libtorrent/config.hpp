@@ -624,7 +624,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
-# ifdef _GLIBCXX_DEBUG
+# if defined _GLIBCXX_DEBUG || !defined NDEBUG
 #  define TORRENT_READ_HANDLER_MAX_SIZE 400
 # else
 // if this is not divisible by 8, we're wasting space
@@ -633,7 +633,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
-# ifdef _GLIBCXX_DEBUG
+# if defined _GLIBCXX_DEBUG || !defined NDEBUG
 #  define TORRENT_WRITE_HANDLER_MAX_SIZE 400
 # else
 // if this is not divisible by 8, we're wasting space
