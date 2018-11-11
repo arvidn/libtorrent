@@ -179,7 +179,7 @@ void run_suite(std::string const& protocol
 	ps.hostname = "127.0.0.1";
 	ps.username = "testuser";
 	ps.password = "testpass";
-	ps.type = proxy_type;
+	ps.type = static_cast<std::uint8_t>(proxy_type);
 
 	if (ps.type != settings_pack::none)
 		ps.port = aux::numeric_cast<std::uint16_t>(start_proxy(ps.type));
