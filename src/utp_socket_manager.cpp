@@ -105,10 +105,6 @@ namespace libtorrent {
 		}
 #endif
 
-		// clamp the MTU within reasonable bounds
-		if (mtu < TORRENT_INET_MIN_MTU) mtu = TORRENT_INET_MIN_MTU;
-		else if (mtu > TORRENT_INET_MAX_MTU) mtu = TORRENT_INET_MAX_MTU;
-
 		int const link_mtu = mtu;
 
 		mtu -= TORRENT_UDP_HEADER;

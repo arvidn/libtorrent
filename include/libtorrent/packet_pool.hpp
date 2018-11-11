@@ -56,7 +56,6 @@ namespace libtorrent {
 	constexpr int TORRENT_ETHERNET_MTU = 1500;
 	constexpr int TORRENT_TEREDO_MTU = 1280;
 	constexpr int TORRENT_INET_MIN_MTU = 576;
-	constexpr int TORRENT_INET_MAX_MTU = 0xffff;
 
 	// used for out-of-order incoming packets
 	// as well as sent packets that are waiting to be ACKed
