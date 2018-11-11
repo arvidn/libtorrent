@@ -462,7 +462,9 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-Wno-format-zero-length
 		-ftemplate-depth=512)
 elseif(MSVC)
-	add_compile_options(
+    # remove default warning level from CMAKE_CXX_FLAGS
+    string (REGEX REPLACE " +/(W|w)[0-4] +" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    add_compile_options(
 		/W4
 		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
 		#        used by clients of class 'type2'
