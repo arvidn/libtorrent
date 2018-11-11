@@ -131,10 +131,15 @@ namespace aux {
 		// (ut_metadata, ut_pex and smart_ban). The default values in the
 		// settings is to start the default features like upnp, NAT-PMP,
 		// and dht for example.
-		explicit session_params(settings_pack sp = settings_pack());
+		explicit session_params(settings_pack&& sp);
+		explicit session_params(settings_pack const& sp);
+		session_params();
+
 		// This constructor helps to configure the set of initial plugins
 		// to be added to the session before it's started.
-		session_params(settings_pack sp
+		session_params(settings_pack&& sp
+			, std::vector<std::shared_ptr<plugin>> exts);
+		session_params(settings_pack const& sp
 			, std::vector<std::shared_ptr<plugin>> exts);
 
 		session_params(session_params const&) = default;
@@ -178,8 +183,13 @@ namespace aux {
 		// In order to avoid a race condition between starting the session and
 		// configuring it, you can pass in a session_params object. Its settings
 		// will take effect before the session starts up.
-		explicit session(session_params params = session_params())
+		explicit session(session_params const& params)
+		{ start(session_params(params), nullptr); }
+		explicit session(session_params&& params)
+		{ start(std::move(params), nullptr); }
+		session()
 		{
+			session_params params;
 			start(std::move(params), nullptr);
 		}
 
@@ -196,10 +206,10 @@ namespace aux {
 		// 	call session::abort() and save the session_proxy first, then
 		// 	destruct the session object, then sync with the io_service, then
 		// 	destruct the session_proxy object.
-		session(session_params params, io_service& ios)
-		{
-			start(std::move(params), &ios);
-		}
+		session(session_params&& params, io_service& ios)
+		{ start(std::move(params), &ios); }
+		session(session_params const& params, io_service& ios)
+		{ start(session_params(params), &ios); }
 
 		// Constructs the session objects which acts as the container of torrents.
 		// It provides configuration options across torrents (such as rate limits,
@@ -212,11 +222,12 @@ namespace aux {
 		// NAT-PMP) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
-		session(settings_pack pack
+		session(settings_pack&& pack
 			, session_flags_t const flags = start_default_features | add_default_plugins)
-		{
-			start(flags, std::move(pack), nullptr);
-		}
+		{ start(flags, std::move(pack), nullptr); }
+		session(settings_pack const& pack
+			, session_flags_t const flags = start_default_features | add_default_plugins)
+		{ start(flags, settings_pack(pack), nullptr); }
 
 		// movable
 		session(session&&) = default;
@@ -239,12 +250,14 @@ namespace aux {
 		// 	call session::abort() and save the session_proxy first, then
 		// 	destruct the session object, then sync with the io_service, then
 		// 	destruct the session_proxy object.
-		session(settings_pack pack
+		session(settings_pack&& pack
 			, io_service& ios
 			, session_flags_t const flags = start_default_features | add_default_plugins)
-		{
-			start(flags, std::move(pack), &ios);
-		}
+		{ start(flags, std::move(pack), &ios); }
+		session(settings_pack const& pack
+			, io_service& ios
+			, session_flags_t const flags = start_default_features | add_default_plugins)
+		{ start(flags, settings_pack(pack), &ios); }
 
 #if TORRENT_ABI_VERSION == 1
 #ifdef __GNUC__
@@ -348,8 +361,11 @@ namespace aux {
 
 	private:
 
-		void start(session_params params, io_service* ios);
-		void start(session_flags_t flags, settings_pack sp, io_service* ios);
+		void start(session_params&& params, io_service* ios);
+		void start(session_flags_t flags, settings_pack&& sp, io_service* ios);
+
+		void start(session_params const& params, io_service* ios) = delete;
+		void start(session_flags_t flags, settings_pack const& sp, io_service* ios) = delete;
 
 		// data shared between the main thread
 		// and the working thread

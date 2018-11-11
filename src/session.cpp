@@ -319,7 +319,7 @@ namespace {
 		return params;
 	}
 
-	void session::start(session_params params, io_service* ios)
+	void session::start(session_params&& params, io_service* ios)
 	{
 		bool const internal_executor = ios == nullptr;
 
@@ -334,16 +334,18 @@ namespace {
 		*static_cast<session_handle*>(this) = session_handle(m_impl);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto const& ext : params.extensions)
+		for (auto& ext : params.extensions)
 		{
-			m_impl->add_ses_extension(ext);
+			m_impl->add_ses_extension(std::move(ext));
 		}
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
-		m_impl->set_dht_settings(params.dht_settings);
+		m_impl->set_dht_settings(std::move(params.dht_settings));
 		m_impl->set_dht_state(std::move(params.dht_state));
-		m_impl->set_dht_storage(params.dht_storage_constructor);
+
+		TORRENT_ASSERT(params.dht_storage_constructor);
+		m_impl->set_dht_storage(std::move(params.dht_storage_constructor));
 #endif
 
 		m_impl->start_session();
@@ -376,7 +378,7 @@ namespace {
 		}
 	}
 
-	void session::start(session_flags_t const flags, settings_pack sp, io_service* ios)
+	void session::start(session_flags_t const flags, settings_pack&& sp, io_service* ios)
 	{
 		start({std::move(sp),
 			default_plugins(!(flags & add_default_plugins))}, ios);
@@ -431,13 +433,33 @@ namespace {
 		}
 	}
 
-	session_params::session_params(settings_pack sp)
+	session_params::session_params(settings_pack&& sp)
 		: session_params(std::move(sp), default_plugins())
 	{}
 
-	session_params::session_params(settings_pack sp
+	session_params::session_params(settings_pack const& sp)
+		: session_params(sp, default_plugins())
+	{}
+
+	session_params::session_params()
+		: extensions(default_plugins())
+#ifndef TORRENT_DISABLE_DHT
+		, dht_storage_constructor(dht::dht_default_storage_constructor)
+#endif
+	{}
+
+	session_params::session_params(settings_pack&& sp
 		, std::vector<std::shared_ptr<plugin>> exts)
 		: settings(std::move(sp))
+		, extensions(std::move(exts))
+#ifndef TORRENT_DISABLE_DHT
+		, dht_storage_constructor(dht::dht_default_storage_constructor)
+#endif
+	{}
+
+	session_params::session_params(settings_pack const& sp
+		, std::vector<std::shared_ptr<plugin>> exts)
+		: settings(sp)
 		, extensions(std::move(exts))
 #ifndef TORRENT_DISABLE_DHT
 		, dht_storage_constructor(dht::dht_default_storage_constructor)

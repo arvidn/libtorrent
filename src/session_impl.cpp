@@ -5860,7 +5860,7 @@ namespace aux {
 		m_dht_settings = settings;
 	}
 
-	void session_impl::set_dht_state(dht::dht_state state)
+	void session_impl::set_dht_state(dht::dht_state&& state)
 	{
 		m_dht_state = std::move(state);
 	}

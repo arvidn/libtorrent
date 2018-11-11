@@ -393,7 +393,12 @@ namespace {
 		return sync_call_ret<torrent_handle>(&session_impl::add_torrent, p, ecr);
 	}
 
-	void session_handle::async_add_torrent(add_torrent_params params)
+	void session_handle::async_add_torrent(add_torrent_params const& params)
+	{
+		async_add_torrent(add_torrent_params(params));
+	}
+
+	void session_handle::async_add_torrent(add_torrent_params&& params)
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
