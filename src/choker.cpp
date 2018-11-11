@@ -46,13 +46,6 @@ namespace {
 
 	int compare_peers(peer_connection const* lhs, peer_connection const* rhs)
 	{
-		// if one peer belongs to a higher priority torrent than the other one
-		// that one should be unchoked.
-		std::shared_ptr<torrent> const t1 = lhs->associated_torrent().lock();
-		std::shared_ptr<torrent> const t2 = rhs->associated_torrent().lock();
-		TORRENT_ASSERT(t1);
-		TORRENT_ASSERT(t2);
-
 		int const prio1 = lhs->get_priority(peer_connection::upload_channel);
 		int const prio2 = rhs->get_priority(peer_connection::upload_channel);
 
@@ -87,6 +80,8 @@ namespace {
 
 		std::shared_ptr<torrent> const t1 = lhs->associated_torrent().lock();
 		std::shared_ptr<torrent> const t2 = rhs->associated_torrent().lock();
+		TORRENT_ASSERT(t1);
+		TORRENT_ASSERT(t2);
 
 		// if a peer is already unchoked, the number of bytes sent since it was unchoked
 		// is greater than the send quanta, and it has been unchoked for at least one minute
@@ -150,6 +145,8 @@ namespace {
 
 		std::shared_ptr<torrent> const t1 = lhs->associated_torrent().lock();
 		std::shared_ptr<torrent> const t2 = rhs->associated_torrent().lock();
+		TORRENT_ASSERT(t1);
+		TORRENT_ASSERT(t2);
 
 		// the anti-leech seeding algorithm is based on the paper "Improving
 		// BitTorrent: A Simple Approach" from Chow et. al. and ranks peers based
