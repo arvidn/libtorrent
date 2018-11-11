@@ -30,7 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ASSERT
+#ifndef TORRENT_ASSERT_HPP_INCLUDED
+#define TORRENT_ASSERT_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/export.hpp"
@@ -126,4 +127,4 @@ extern TORRENT_EXPORT char const* libtorrent_assert_log;
 
 #endif // TORRENT_USE_ASSERTS
 
-#endif
+#endif // TORRENT_ASSERT_HPP_INCLUDED
