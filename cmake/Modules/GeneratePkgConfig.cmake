@@ -147,9 +147,6 @@ function(generate_and_install_pkg_config_file _target)
 		set(_output_name "${_target}")
 	endif()
 
-	# TODO make it robust
-	set(_output_name "lib${_output_name}")
-
 	# remove standard include directories
 	foreach(d IN LISTS CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
 		list(REMOVE_ITEM _interface_include_dirs "${d}")
