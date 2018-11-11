@@ -2919,12 +2919,12 @@ bool is_downloading_state(int const st)
 				if (m_abort && m_ses.should_log())
 				{
 					auto tl = std::make_shared<aux::tracker_logger>(m_ses);
-					m_ses.queue_tracker_request(req, tl);
+					m_ses.queue_tracker_request(tracker_request(req), tl);
 				}
 				else
 #endif
 				{
-					m_ses.queue_tracker_request(req, shared_from_this());
+					m_ses.queue_tracker_request(tracker_request(req), shared_from_this());
 				}
 
 				aep.updating = true;
@@ -2979,7 +2979,7 @@ bool is_downloading_state(int const st)
 #endif
 		req.key = tracker_key();
 		req.triggered_manually = user_triggered;
-		m_ses.queue_tracker_request(req, shared_from_this());
+		m_ses.queue_tracker_request(std::move(req), shared_from_this());
 	}
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)

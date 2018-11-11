@@ -1035,7 +1035,7 @@ namespace aux {
 		return ret;
 	}
 
-	void session_impl::queue_tracker_request(tracker_request& req
+	void session_impl::queue_tracker_request(tracker_request&& req
 		, std::weak_ptr<request_callback> c)
 	{
 #if TORRENT_USE_I2P
@@ -1062,7 +1062,7 @@ namespace aux {
 				use_ssl ? ssl_listen_port(ls) :
 #endif
 				listen_port(ls);
-			m_tracker_manager.queue_request(get_io_service(), req, c);
+			m_tracker_manager.queue_request(get_io_service(), std::move(req), c);
 		}
 		else
 		{
@@ -1071,7 +1071,8 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 				if ((ls->ssl == transport::ssl) != use_ssl) continue;
 #endif
-				req.listen_port =
+				tracker_request socket_req(req);
+				socket_req.listen_port =
 #ifdef TORRENT_USE_OPENSSL
 				// SSL torrents use the SSL listen port
 					use_ssl ? ssl_listen_port(ls.get()) :
@@ -1080,9 +1081,9 @@ namespace aux {
 
 				// we combine the per-torrent key with the per-interface key to make
 				// them consistent and unique per torrent and interface
-				req.key ^= ls->tracker_key;
-				req.outgoing_socket = ls;
-				m_tracker_manager.queue_request(get_io_service(), req, c);
+				socket_req.key ^= ls->tracker_key;
+				socket_req.outgoing_socket = ls;
+				m_tracker_manager.queue_request(get_io_service(), std::move(socket_req), c);
 			}
 		}
 	}
