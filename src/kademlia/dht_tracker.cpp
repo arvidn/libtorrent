@@ -88,7 +88,7 @@ namespace libtorrent { namespace dht {
 		, dht_settings const& settings
 		, counters& cnt
 		, dht_storage_interface& storage
-		, dht_state state)
+		, dht_state&& state)
 		: m_counters(cnt)
 		, m_storage(storage)
 		, m_state(std::move(state))

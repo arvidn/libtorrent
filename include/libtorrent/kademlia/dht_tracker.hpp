@@ -72,7 +72,16 @@ namespace libtorrent { namespace dht {
 			, dht_settings const& settings
 			, counters& cnt
 			, dht_storage_interface& storage
-			, dht_state state);
+			, dht_state&& state);
+
+		// the dht_state must be moved in!
+		dht_tracker(dht_observer* observer
+			, io_service& ios
+			, send_fun_t const& send_fun
+			, dht_settings const& settings
+			, counters& cnt
+			, dht_storage_interface& storage
+			, dht_state const& state) = delete;
 
 #if defined(_MSC_VER) && _MSC_VER < 1910
 		// workaround for a bug in msvc 14.0

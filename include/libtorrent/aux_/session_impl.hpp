@@ -395,7 +395,11 @@ namespace aux {
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht::dht_settings const& s);
 			dht::dht_settings const& get_dht_settings() const { return m_dht_settings; }
-			void set_dht_state(dht::dht_state state);
+
+			// you must give up ownership of the dht state
+			void set_dht_state(dht::dht_state&& state);
+			void set_dht_state(dht::dht_state const& state) = delete;
+
 			void set_dht_storage(dht::dht_storage_constructor_type sc);
 			void start_dht();
 			void stop_dht();
