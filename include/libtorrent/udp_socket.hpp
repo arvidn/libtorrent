@@ -64,15 +64,15 @@ namespace libtorrent {
 		io_service& get_io_service() { return m_socket.get_io_service(); }
 
 		template <typename Handler>
-		void async_read(Handler h)
+		void async_read(Handler&& h)
 		{
-			m_socket.async_receive(null_buffers(), h);
+			m_socket.async_receive(null_buffers(), std::forward<Handler>(h));
 		}
 
 		template <typename Handler>
-		void async_write(Handler h)
+		void async_write(Handler&& h)
 		{
-			m_socket.async_send(null_buffers(), h);
+			m_socket.async_send(null_buffers(), std::forward<Handler>(h));
 		}
 
 		struct packet
