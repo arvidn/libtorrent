@@ -357,9 +357,14 @@ namespace libtorrent {
 
 		void queue_request(
 			io_service& ios
-			, tracker_request r
+			, tracker_request&& r
 			, std::weak_ptr<request_callback> c
 				= std::weak_ptr<request_callback>());
+		void queue_request(
+			io_service& ios
+			, tracker_request const& r
+			, std::weak_ptr<request_callback> c
+				= std::weak_ptr<request_callback>()) = delete;
 		void abort_all_requests(bool all = false);
 
 		void remove_request(http_tracker_connection const* c);
