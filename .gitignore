@@ -41,6 +41,7 @@ libtool
 
 bin
 cmake-build-*
+CMakeLists.txt.user
 config*
 Makefile
 build-aux
