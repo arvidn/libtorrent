@@ -109,18 +109,19 @@ namespace libtorrent {
 
 	namespace {
 		torrent_handle add_magnet_uri_deprecated(session& ses, std::string const& uri
-			, add_torrent_params p, error_code& ec)
+			, add_torrent_params const& p, error_code& ec)
 		{
-			parse_magnet_uri(uri, p, ec);
+			add_torrent_params params(p);
+			parse_magnet_uri(uri, params, ec);
 			if (ec) return torrent_handle();
-			return ses.add_torrent(std::move(p), ec);
+			return ses.add_torrent(std::move(params), ec);
 		}
 	}
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p, error_code& ec)
+		, add_torrent_params const& p, error_code& ec)
 	{
-		return add_magnet_uri_deprecated(ses, uri, std::move(p), ec);
+		return add_magnet_uri_deprecated(ses, uri, p, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -145,10 +146,10 @@ namespace libtorrent {
 	}
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p)
+		, add_torrent_params const& p)
 	{
 		error_code ec;
-		torrent_handle ret = add_magnet_uri_deprecated(ses, uri, std::move(p), ec);
+		torrent_handle ret = add_magnet_uri_deprecated(ses, uri, p, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
 	}
