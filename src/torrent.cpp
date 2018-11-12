@@ -3722,9 +3722,6 @@ namespace {
 
 				req.private_torrent = m_torrent_file->priv();
 				req.second_announce = true;
-#ifdef TORRENT_USE_OPENSSL
-				req.ssl_ctx = NULL;
-#endif
 
 				// tell the tracker to bind to the opposite protocol type
 				req.bind_ip = tracker_ip.is_v4()

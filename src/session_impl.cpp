@@ -1319,7 +1319,7 @@ namespace aux {
 
 #ifdef TORRENT_USE_OPENSSL
 		// SSL torrents use the SSL listen port
-		if (req.ssl_ctx) req.listen_port = ssl_listen_port();
+		if (req.ssl_ctx && req.ssl_ctx != &m_ssl_ctx) req.listen_port = ssl_listen_port();
 		else req.ssl_ctx = &m_ssl_ctx;
 #endif
 #if TORRENT_USE_I2P
