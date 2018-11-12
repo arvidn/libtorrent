@@ -136,7 +136,7 @@ function(_expand_targets _targets _libraries_var _include_dirs_var _compile_opti
 endfunction()
 
 # Generates and installs a pkg-config file for a given target
-function(generate_and_install_pkg_config_file _target)
+function(generate_and_install_pkg_config_file _target _packageName)
 	# collect target properties
 	_expand_targets(${_target}
 		_interface_link_libraries _interface_include_dirs
@@ -146,6 +146,8 @@ function(generate_and_install_pkg_config_file _target)
 	if (NOT _output_name)
 		set(_output_name "${_target}")
 	endif()
+
+	set(_package_name "${_packageName}")
 
 	# remove standard include directories
 	foreach(d IN LISTS CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
