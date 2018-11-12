@@ -79,6 +79,9 @@
 
 ------------------------------------------------------------------------ */
 
+#ifndef CONVERT_UTF_H_INCLUDED
+#define CONVERT_UTF_H_INCLUDED
+
 #include "libtorrent/config.hpp"
 #include <cstdint>
 using UTF32 = std::uint32_t;
@@ -141,3 +144,5 @@ extern const UTF32 offsetsFromUTF8[6];
 
 }
 /* --------------------------------------------------------------------- */
+
+#endif // CONVERT_UTF_H_INCLUDED
