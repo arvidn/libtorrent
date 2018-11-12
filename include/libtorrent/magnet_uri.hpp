@@ -77,8 +77,8 @@ namespace libtorrent
 
 	// This function parses out information from the magnet link and populates the
 	// add_torrent_params object.
-	TORRENT_EXPORT
-	void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec);
+	TORRENT_EXPORT void parse_magnet_uri(std::string const& uri
+		, add_torrent_params& p, error_code& ec);
 
 	// internal, delete when merge in master
 	TORRENT_EXTRA_EXPORT

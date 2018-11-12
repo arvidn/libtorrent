@@ -97,7 +97,7 @@ namespace libtorrent
 	TORRENT_EXPORT boost::system::error_category& upnp_category();
 
 #ifndef TORRENT_NO_DEPRECATED
-	TORRENT_DEPRECATED TORRENT_EXPORT
+	TORRENT_DEPRECATED_EXPORT
 	boost::system::error_category& get_upnp_category();
 #endif
 

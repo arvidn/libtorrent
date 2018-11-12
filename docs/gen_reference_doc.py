@@ -32,6 +32,8 @@ overviews = {}
 # maps names -> URL
 symbols = {}
 
+global orphaned_export
+
 # some files that need pre-processing to turn symbols into
 # links into the reference documentation
 preprocess_rst = \
@@ -243,6 +245,9 @@ def parse_function(lno, lines, filename):
 	end_paren = 0
 	signature = ''
 
+	global orphaned_export
+	orphaned_export = False
+
 	while lno < len(lines):
 		l = lines[lno].strip()
 		lno += 1
@@ -309,6 +314,8 @@ def parse_class(lno, lines, filename):
 	decl = decl.replace('TORRENT_FINAL', 'final')
 	name = decl.split(':')[0].replace('class ', '').replace('struct ', '').replace('final', '').strip()
 
+	global orphaned_export
+	orphaned_export = False
 
 	while lno < len(lines):
 		l = lines[lno].strip()
@@ -609,7 +616,14 @@ for filename in files:
 
 	blanks = 0
 	lno = 0
+	global orphaned_export
+	orphaned_export = False
+
 	while lno < len(lines):
+		if orphaned_export:
+			print('ERROR: TORRENT_EXPORT without function or class!\n%s:%d\n%s' % (filename, lno, l))
+			sys.exit(1)
+
 		l = lines[lno].strip()
 		lno += 1
 
@@ -617,6 +631,15 @@ for filename in files:
 			blanks += 1
 			context = ''
 			continue
+
+		if 'TORRENT_EXPORT' in l.split() \
+			and not 'ifndef TORRENT_EXPORT' in l \
+			and not 'define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT' in l \
+			and not 'define TORRENT_EXPORT' in l \
+			and not 'for TORRENT_EXPORT' in l \
+			and not 'TORRENT_EXPORT TORRENT_CFG' in l:
+			orphaned_export = True;
+			if verbose: print 'maybe orphaned: %s\n' % l
 
 		if l.startswith('//') and l[2:].strip() == 'OVERVIEW':
 			# this is a section overview
