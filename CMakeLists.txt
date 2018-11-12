@@ -740,7 +740,7 @@ if(developer-options)
 		ENABLED TORRENT_PROFILE_CALLS=1)
 endif()
 
-generate_and_install_pkg_config_file(torrent-rasterbar)
+generate_and_install_pkg_config_file(torrent-rasterbar libtorrent-rasterbar)
 
 include(CheckCXXCompilerFlag)
 
