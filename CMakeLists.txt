@@ -408,7 +408,7 @@ foreach (s ${COMPILETIME_OPTIONS_LIST})
 	set (COMPILETIME_OPTIONS "${COMPILETIME_OPTIONS} -D${s}")
 endforeach (s)
 
-generate_and_install_pkg_config_file(torrent-rasterbar)
+generate_and_install_pkg_config_file(torrent-rasterbar libtorrent-rasterbar)
 
 install(TARGETS torrent-rasterbar EXPORT LibtorrentRasterbarTargets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

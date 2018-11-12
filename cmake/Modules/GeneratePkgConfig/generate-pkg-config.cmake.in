@@ -48,5 +48,5 @@ cmake_list_to_pkg_config(_interface_include_dirs "${_TARGET_INTERFACE_INCLUDE_DI
 set(_interface_compile_options "${_TARGET_INTERFACE_COMPILE_OPTIONS}")
 string(REPLACE ";" " " _interface_compile_options "${_interface_compile_options}")
 
-configure_file("@_pkg_config_file_template_filename@" "@_generate_target_dir@/@_output_name@.pc" @ONLY)
-file(INSTALL "@_generate_target_dir@/@_output_name@.pc" DESTINATION "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/pkgconfig")
+configure_file("@_pkg_config_file_template_filename@" "@_generate_target_dir@/@_package_name@.pc" @ONLY)
+file(INSTALL "@_generate_target_dir@/@_package_name@.pc" DESTINATION "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/pkgconfig")
