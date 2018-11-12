@@ -1114,8 +1114,11 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		save_resume_data_alert(aux::stack_allocator& alloc
-			, add_torrent_params params
+			, add_torrent_params&& params
 			, torrent_handle const& h);
+		save_resume_data_alert(aux::stack_allocator& alloc
+			, add_torrent_params const& params
+			, torrent_handle const& h) = delete;
 
 		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37, alert_priority_critical)
 
