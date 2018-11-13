@@ -430,6 +430,8 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
+	if (m_abort) return;
+
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("natpmp::on_reply");
 #endif
@@ -581,8 +583,6 @@ void natpmp::on_reply(error_code const& e
 			, errors::no_error);
 		l.lock();
 	}
-
-	if (m_abort) return;
 
 	m_currently_mapping = -1;
 	m->action = mapping_t::action_none;
