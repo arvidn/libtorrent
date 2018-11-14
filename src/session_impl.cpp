@@ -2055,7 +2055,7 @@ retry:
 			// used to send to the tracker
 			std::vector<ip_interface> ifs = enum_net_interfaces(m_io_service, ec);
 			for (std::vector<ip_interface>::const_iterator i = ifs.begin()
-					, end(ifs.end()); i != end && (want_v4 && want_v6); ++i)
+					, end(ifs.end()); i != end && (want_v4 || want_v6); ++i)
 			{
 				address const& addr = i->interface_address;
 				if (want_v4 && addr.is_v4() && !is_local(addr) && !is_loopback(addr))
