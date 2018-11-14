@@ -117,6 +117,7 @@ EXTRA_DIST = \
   Jamfile \
   Jamroot.jam \
   CMakeLists.txt \
+  LibtorrentRasterbarConfig.cmake.in \
   cmake/Modules/FindLibGcrypt.cmake \
   cmake/Modules/GeneratePkgConfig.cmake \
   cmake/Modules/ucm_flags.cmake \

@@ -497,7 +497,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
-# ifdef _GLIBCXX_DEBUG
+# if defined _GLIBCXX_DEBUG || !defined NDEBUG
 constexpr std::size_t TORRENT_READ_HANDLER_MAX_SIZE = 400;
 # else
 // if this is not divisible by 8, we're wasting space
@@ -506,7 +506,7 @@ constexpr std::size_t TORRENT_READ_HANDLER_MAX_SIZE = 342;
 #endif
 
 #if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
-# ifdef _GLIBCXX_DEBUG
+# if defined _GLIBCXX_DEBUG || !defined NDEBUG
 constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 400;
 # else
 // if this is not divisible by 8, we're wasting space

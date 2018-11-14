@@ -139,16 +139,7 @@ enum
 
 	// if a packet receives more than this number of
 	// duplicate acks, we'll trigger a fast re-send
-	dup_ack_limit = 3,
-
-	// the max number of packets to fast-resend per
-	// selective ack message
-	// only re-sending a single packet per sack
-	// appears to improve performance by making it
-	// less likely to loose the re-sent packet. Because
-	// when that happens, we must time-out in order
-	// to continue, which takes a long time.
-	sack_resend_limit = 1
+	dup_ack_limit = 3
 };
 
 // compare if lhs is less than rhs, taking wrapping
@@ -1543,15 +1534,21 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 	{
 		experienced_loss(m_fast_resend_seq_nr);
 		int num_resent = 0;
-		while (m_fast_resend_seq_nr != last_ack)
+
+		// only re-sending a single packet per sack
+		// appears to improve performance by making it
+		// less likely to loose the re-sent packet. Because
+		// when that happens, we must time-out in order
+		// to continue, which takes a long time.
+		if (m_fast_resend_seq_nr != last_ack)
 		{
 			packet* p = m_outbuf.at(m_fast_resend_seq_nr);
 			m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
-			if (!p) continue;
-			++num_resent;
-			if (!resend_packet(p, true)) break;
-			m_duplicate_acks = 0;
-			if (num_resent >= sack_resend_limit) break;
+			if (p)
+			{
+				++num_resent;
+				if (resend_packet(p, true)) m_duplicate_acks = 0;
+			}
 		}
 	}
 
@@ -2876,13 +2873,6 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 		}
 		std::uint8_t const next_extension = *ptr++;
 		int const len = *ptr++;
-		if (len < 0)
-		{
-			UTP_LOGV("%8p: invalid extension length:%d packet:%d\n"
-				, static_cast<void*>(this), len, int(ptr - buf.data()));
-			m_sm.inc_stats_counter(counters::utp_invalid_pkts_in);
-			return true;
-		}
 		if (ptr - buf.data() + len > size)
 		{
 			UTP_LOG("%8p: ERROR: invalid extension header size:%d packet:%d\n"

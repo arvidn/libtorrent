@@ -91,19 +91,19 @@ list dht_stats_routing_table(dht_stats_alert const& a)
 dict dht_immutable_item(dht_immutable_item_alert const& alert)
 {
     dict d;
-    d["key"] = alert.target.to_string();
-    d["value"] = alert.item.to_string();
+    d["key"] = alert.target;
+    d["value"] = bytes(alert.item.to_string());
     return d;
 }
 
 dict dht_mutable_item(dht_mutable_item_alert const& alert)
 {
     dict d;
-    d["key"] = std::string(alert.key.data(), alert.key.size());
-    d["value"] = alert.item.to_string();
-    d["signature"] = std::string(alert.signature.data(), alert.signature.size());
+    d["key"] = bytes(alert.key.data(), alert.key.size());
+    d["value"] = bytes(alert.item.to_string());
+    d["signature"] = bytes(alert.signature.data(), alert.signature.size());
     d["seq"] = alert.seq;
-    d["salt"] = alert.salt;
+    d["salt"] = bytes(alert.salt);
     d["authoritative"] = alert.authoritative;
     return d;
 }
@@ -112,12 +112,12 @@ dict dht_put_item(dht_put_alert const& alert)
 {
     dict d;
     if (alert.target.is_all_zeros()) {
-        d["public_key"] = std::string(alert.public_key.data(), alert.public_key.size());
-        d["signature"] = std::string(alert.signature.data(), alert.signature.size());
+        d["public_key"] = bytes(alert.public_key.data(), alert.public_key.size());
+        d["signature"] = bytes(alert.signature.data(), alert.signature.size());
         d["seq"] = alert.seq;
-        d["salt"] = alert.salt;
+        d["salt"] = bytes(alert.salt);
     } else {
-        d["target"] = alert.target.to_string();
+        d["target"] = alert.target;
     }
     return d;
 }

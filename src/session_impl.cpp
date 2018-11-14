@@ -1046,7 +1046,7 @@ namespace aux {
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-		bool const use_ssl = req.ssl_ctx != nullptr;
+		bool const use_ssl = req.ssl_ctx != nullptr && req.ssl_ctx != &m_ssl_ctx;
 		if (!use_ssl) req.ssl_ctx = &m_ssl_ctx;
 #endif
 
