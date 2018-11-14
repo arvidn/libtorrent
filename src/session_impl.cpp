@@ -4353,7 +4353,7 @@ namespace aux {
 			if (e->on_unknown_torrent(info_hash, peer_connection_handle(pc->self()), p))
 			{
 				error_code ec;
-				torrent_handle handle = add_torrent(p, ec);
+				torrent_handle handle = add_torrent(std::move(p), ec);
 
 				return handle.native_handle();
 			}
@@ -4735,7 +4735,7 @@ namespace aux {
 	}
 #endif
 
-	torrent_handle session_impl::add_torrent(add_torrent_params params
+	torrent_handle session_impl::add_torrent(add_torrent_params&& params
 		, error_code& ec)
 	{
 		// params is updated by add_torrent_impl()

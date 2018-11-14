@@ -212,8 +212,10 @@ namespace libtorrent {
 		//
 		// all torrent_handles must be destructed before the session is destructed!
 #ifndef BOOST_NO_EXCEPTIONS
+		torrent_handle add_torrent(add_torrent_params&& params);
 		torrent_handle add_torrent(add_torrent_params const& params);
 #endif
+		torrent_handle add_torrent(add_torrent_params&& params, error_code& ec);
 		torrent_handle add_torrent(add_torrent_params const& params, error_code& ec);
 		void async_add_torrent(add_torrent_params&& params);
 		void async_add_torrent(add_torrent_params const& params);
