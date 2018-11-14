@@ -516,15 +516,16 @@ void put(std::vector<std::pair<node_entry, std::string>> const& nodes
 	ta->start();
 }
 
-void put_data_cb(item i, bool auth
+void put_data_cb(item const& i, bool auth
 	, std::shared_ptr<put_data> const& ta
 	, std::function<void(item&)> const& f)
 {
 	// call data_callback only when we got authoritative data.
 	if (auth)
 	{
-		f(i);
-		ta->set_data(i);
+		item copy(i);
+		f(copy);
+		ta->set_data(std::move(copy));
 	}
 }
 
@@ -543,7 +544,7 @@ void node::put_item(sha1_hash const& target, entry const& data, std::function<vo
 	item i;
 	i.assign(data);
 	auto put_ta = std::make_shared<dht::put_data>(*this, std::bind(f, _2));
-	put_ta->set_data(i);
+	put_ta->set_data(std::move(i));
 
 	auto ta = std::make_shared<dht::get_item>(*this, target
 		, get_item::data_callback(), std::bind(&put, _1, put_ta));
