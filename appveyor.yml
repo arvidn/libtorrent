@@ -13,7 +13,6 @@ environment:
     compiler: msvc-14.0
     model: 64
     sim: 1
-    bjam: 1
   - variant: test_debug
     compiler: msvc-14.0
     model: 32
