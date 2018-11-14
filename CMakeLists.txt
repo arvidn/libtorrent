@@ -8,9 +8,9 @@ project(libtorrent
 set (SOVERSION "9")
 
 list(APPEND CMAKE_MODULE_PATH ${libtorrent_SOURCE_DIR}/cmake/Modules)
-include(FeatureSummary)
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
+include(LibtorrentMacros)
 
 set(sources
 	web_connection_base
@@ -165,54 +165,13 @@ set(ed25519_sources
 
 set(includes include ed25519/src)
 
-function(list_prepend _listName _prefix)
-  string(REGEX REPLACE "([^;]+)" "${_prefix}\\1" _tmp_list "${${_listName}}")
-  set (${_listName} "${_tmp_list}" PARENT_SCOPE)
-endfunction()
-
 list_prepend(sources "src/")
 list_prepend(kademlia_sources "src/kademlia/")
 list_prepend(ed25519_sources "ed25519/src/")
 
-function(target_optional_compile_definitions _target _scope)
-	set(options FEATURE)
-	set(oneValueArgs NAME DESCRIPTION DEFAULT)
-	set(multiValueArgs ENABLED DISABLED)
-	cmake_parse_arguments(TOCD ${options} "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-	option(${TOCD_NAME} "${TOCD_DESCRIPTION}" ${TOCD_DEFAULT})
-	if (${${TOCD_NAME}})
-		target_compile_definitions(${_target} ${_scope} ${TOCD_ENABLED})
-	else()
-		target_compile_definitions(${_target} ${_scope} ${TOCD_DISABLED})
-	endif()
-	if(${TOCD_FEATURE})
-		add_feature_info(${TOCD_NAME} ${TOCD_NAME} "${TOCD_DESCRIPTION}")
-	endif()
-endfunction()
-
-macro(feature_option _name _description _default)
-	option(${_name} "${_description}" ${_default})
-	add_feature_info(${_name} ${_name} "${_description}")
-endmacro()
-
 # these options control target creation and thus have to be declared before the add_library() call
 feature_option(BUILD_SHARED_LIBS "build libtorrent as a shared library" ON)
 feature_option(static_runtime "build libtorrent with static runtime" OFF)
-
-macro(find_public_dependency _name)
-	find_package(${_name} ${ARGN})
-	string(TOUPPER "${_name}" _name_uppercased)
-	if (${_name}_FOUND OR ${_name_uppercased}_FOUND)
-		# Dependencies to be used below for generating Config.cmake file
-		# We don't need the 'REQUIRED' argument there
-		set(_args "${_name}")
-		list(APPEND _args "${ARGN}")
-		list(REMOVE_ITEM _args "REQUIRED")
-		list(REMOVE_ITEM _args "") # just in case
-		string(REPLACE ";" " " _args "${_args}")
-		list(APPEND _package_dependencies "${_args}")
-	endif()
-endmacro()
 
 find_public_dependency(Threads REQUIRED)
 
@@ -319,6 +278,7 @@ option(tcmalloc "link against google performance tools tcmalloc" OFF)
 # 1. With C++11 onward, we require Boost system component, with C++03 we need chrono and random components too
 # 2. When building against boost 1.66 and newer, C++11 is required.
 
+set(minimal_required_cxx_standard 98)
 # For the first requirement we do:
 set(required_boost_components system)
 if (NOT cxx_std_11 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
@@ -331,20 +291,14 @@ target_link_libraries(torrent-rasterbar PUBLIC ${Boost_SYSTEM_LIBRARY})
 
 # now test the second requirement:
 if (Boost_VERSION VERSION_GREATER_EQUAL 106600)
+	set(minimal_required_cxx_standard 11)
 	if (NOT cxx_std_11 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
 		message(FATAL_ERROR "When building against boost 1.66 and newer, C++11 is required,\n"
 		                    "and your compiler does not support that")
 	endif()
 endif()
 
-# selecting C++14/11 mode if available
-if (cxx_std_14 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
-	target_compile_features(torrent-rasterbar PUBLIC cxx_std_14)
-	message(STATUS "Building in C++14 mode")
-elseif(cxx_std_11 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
-	target_compile_features(torrent-rasterbar PUBLIC cxx_std_11)
-	message(STATUS "Building in C++11 mode")
-endif()
+select_cxx_standard(torrent-rasterbar ${minimal_required_cxx_standard})
 
 target_link_libraries(torrent-rasterbar PUBLIC ${Boost_LIBRARIES})
 
