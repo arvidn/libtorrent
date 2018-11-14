@@ -118,6 +118,7 @@ EXTRA_DIST = \
   CMakeLists.txt \
   test/CMakeLists.txt \
   setup.py \
+  LibtorrentRasterbarConfig.cmake.in \
   LICENSE \
   README.rst \
   cmake/Modules/FindLibGcrypt.cmake \
