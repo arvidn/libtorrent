@@ -74,7 +74,7 @@ TORRENT_EXPORT signature sign_mutable_item(
 class TORRENT_EXTRA_EXPORT item
 {
 public:
-	item() : m_seq(0), m_mutable(false)  {}
+	item() {}
 	item(public_key const& pk, span<char const> salt);
 	explicit item(entry v);
 	item(entry v
@@ -117,8 +117,8 @@ private:
 	std::string m_salt;
 	public_key m_pk;
 	signature m_sig;
-	sequence_number m_seq;
-	bool m_mutable;
+	sequence_number m_seq{0};
+	bool m_mutable = false;
 };
 
 } } // namespace libtorrent::dht
