@@ -360,37 +360,41 @@ namespace {
 #endif // TORRENT_ABI_VERSION
 
 #ifndef BOOST_NO_EXCEPTIONS
-	torrent_handle session_handle::add_torrent(add_torrent_params const& params)
+	torrent_handle session_handle::add_torrent(add_torrent_params&& params)
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
 #if TORRENT_ABI_VERSION == 1
-		add_torrent_params p = params;
-		handle_backwards_compatible_resume_data(p);
-#else
-		add_torrent_params const& p = params;
+		handle_backwards_compatible_resume_data(params);
 #endif
 		error_code ec;
 		auto ecr = std::ref(ec);
-		torrent_handle r = sync_call_ret<torrent_handle>(&session_impl::add_torrent, p, ecr);
+		torrent_handle r = sync_call_ret<torrent_handle>(&session_impl::add_torrent, std::move(params), ecr);
 		if (ec) aux::throw_ex<system_error>(ec);
 		return r;
 	}
+
+	torrent_handle session_handle::add_torrent(add_torrent_params const& params)
+	{
+		return add_torrent(add_torrent_params(params));
+	}
 #endif
 
-	torrent_handle session_handle::add_torrent(add_torrent_params const& params, error_code& ec)
+	torrent_handle session_handle::add_torrent(add_torrent_params&& params, error_code& ec)
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
 		ec.clear();
 #if TORRENT_ABI_VERSION == 1
-		add_torrent_params p = params;
-		handle_backwards_compatible_resume_data(p);
-#else
-		add_torrent_params const& p = params;
+		handle_backwards_compatible_resume_data(params);
 #endif
 		auto ecr = std::ref(ec);
-		return sync_call_ret<torrent_handle>(&session_impl::add_torrent, p, ecr);
+		return sync_call_ret<torrent_handle>(&session_impl::add_torrent, std::move(params), ecr);
+	}
+
+	torrent_handle session_handle::add_torrent(add_torrent_params const& params, error_code& ec)
+	{
+		return add_torrent(add_torrent_params(params), ec);
 	}
 
 	void session_handle::async_add_torrent(add_torrent_params const& params)

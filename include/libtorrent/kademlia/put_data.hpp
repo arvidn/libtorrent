@@ -54,7 +54,8 @@ struct put_data: traversal_algorithm
 	char const* name() const override;
 	void start() override;
 
-	void set_data(item const& data) { m_data = data; }
+	void set_data(item&& data) { m_data = std::move(data); }
+	void set_data(item const& data) = delete;
 
 	void set_targets(std::vector<std::pair<node_entry, std::string>> const& targets);
 
