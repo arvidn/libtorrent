@@ -1,15 +1,18 @@
 cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
+include(LibtorrentMacros)
+
+read_version("${CMAKE_CURRENT_SOURCE_DIR}/include/libtorrent/version.hpp" VER_MAJOR VER_MINOR VER_TINY)
+
 project(libtorrent
 	DESCRIPTION "Bittorrent library"
-	VERSION 1.2.0
+	VERSION ${VER_MAJOR}.${VER_MINOR}.${VER_TINY}
 )
 set (SOVERSION "10")
 
-list(APPEND CMAKE_MODULE_PATH ${libtorrent_SOURCE_DIR}/cmake/Modules)
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
-include(LibtorrentMacros)
 
 set(libtorrent_include_files
 	add_torrent_params

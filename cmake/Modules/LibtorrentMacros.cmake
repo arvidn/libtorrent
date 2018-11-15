@@ -80,3 +80,28 @@ function(select_cxx_standard _target _minimal_supported_version)
 
 	message(STATUS "Building in C++${_std} mode")
 endfunction()
+
+# function for parsing version variables that are set in version.hpp file
+# the version identifiers there are defined as follows:
+# #define LIBTORRENT_VERSION_MAJOR 1
+# #define LIBTORRENT_VERSION_MINOR 2
+# #define LIBTORRENT_VERSION_TINY 0
+
+function(read_version _verFile _outVarMajor _outVarMinor _outVarTiny)
+	file(STRINGS ${_verFile} verFileContents REGEX ".+LIBTORRENT_VERSION_[A-Z]+.[0-9]+.*")
+# 	message(STATUS "version file contents: ${verFileContents}")
+	# the verFileContents variable contains something like the following:
+	# #define LIBTORRENT_VERSION_MAJOR 1;#define LIBTORRENT_VERSION_MINOR 2;#define LIBTORRENT_VERSION_TINY 0
+	set(_regex ".+_MAJOR +([0-9]+);.+_MINOR +([0-9]+);.+_TINY +([0-9]+)")
+	 # note quotes around _regex, they are needed because the variable contains semicolons
+	string(REGEX MATCH "${_regex}" _tmp "${verFileContents}")
+	if (NOT _tmp)
+		message(FATAL_ERROR "Could not detect project version number from ${_verFile}")
+	endif()
+
+# 	message(STATUS "Matched version string: ${_tmp}")
+
+	set(${_outVarMajor} ${CMAKE_MATCH_1} PARENT_SCOPE)
+	set(${_outVarMinor} ${CMAKE_MATCH_2} PARENT_SCOPE)
+	set(${_outVarTiny} ${CMAKE_MATCH_3} PARENT_SCOPE)
+endfunction()
