@@ -519,7 +519,7 @@ namespace {
 		switch (t)
 		{
 		case int_t:
-			new (&data) integer_type;
+			new (&data) integer_type(0);
 			break;
 		case string_t:
 			new (&data) string_type;
