@@ -342,9 +342,9 @@ namespace aux {
 
 namespace detail {
 
-		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
-			, entry::integer_type val);
-	}
+	TORRENT_EXTRA_EXPORT string_view integer_to_str(span<char> buf
+		, entry::integer_type val);
+}
 
 #if TORRENT_USE_IOSTREAM
 	// prints the bencoded structure to the ostream as a JSON-style structure.
