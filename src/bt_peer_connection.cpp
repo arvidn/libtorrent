@@ -1336,7 +1336,7 @@ namespace {
 		// ignore invalid messages
 		if (int(recv_buffer.size()) < 2) return;
 
-		int const msg_type = detail::read_uint8(ptr);
+		auto const msg_type = static_cast<hp_message>(detail::read_uint8(ptr));
 		int const addr_type = detail::read_uint8(ptr);
 
 		tcp::endpoint ep;
@@ -1361,7 +1361,9 @@ namespace {
 				static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
 				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
 					, "msg: %s from %s to: unknown address type"
-					, (msg_type >= 0 && msg_type < 3 ? hp_msg_name[msg_type] : "unknown message type")
+					, (static_cast<int>(msg_type) < 3
+						? hp_msg_name[static_cast<int>(msg_type)]
+						: "unknown message type")
 					, print_address(remote().address()).c_str());
 			}
 #endif
@@ -1369,12 +1371,26 @@ namespace {
 			return; // unknown address type
 		}
 
+#ifndef TORRENT_DISABLE_LOGGING
+		if (msg_type > hp_message::failed)
+		{
+			if (should_log(peer_log_alert::incoming_message))
+			{
+				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+					, "msg: unknown message type (%d) to: %s"
+					, static_cast<int>(msg_type)
+					, print_address(ep.address()).c_str());
+			}
+			return;
+		}
+#endif
+
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		if (!t) return;
 
 		switch (msg_type)
 		{
-			case hp_rendezvous: // rendezvous
+			case hp_message::rendezvous: // rendezvous
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::incoming_message))
@@ -1390,24 +1406,24 @@ namespace {
 				if (p == nullptr)
 				{
 					// we're not connected to this peer
-					write_holepunch_msg(hp_failed, ep, hp_not_connected);
+					write_holepunch_msg(hp_message::failed, ep, hp_error::not_connected);
 					break;
 				}
 				if (!p->supports_holepunch())
 				{
-					write_holepunch_msg(hp_failed, ep, hp_no_support);
+					write_holepunch_msg(hp_message::failed, ep, hp_error::no_support);
 					break;
 				}
 				if (p == this)
 				{
-					write_holepunch_msg(hp_failed, ep, hp_no_self);
+					write_holepunch_msg(hp_message::failed, ep, hp_error::no_self);
 					break;
 				}
 
-				write_holepunch_msg(hp_connect, ep, 0);
-				p->write_holepunch_msg(hp_connect, remote(), 0);
+				write_holepunch_msg(hp_message::connect, ep);
+				p->write_holepunch_msg(hp_message::connect, remote());
 			} break;
-			case hp_connect:
+			case hp_message::connect:
 			{
 				// add or find the peer with this endpoint
 				torrent_peer* p = t->add_peer(ep, peer_info::pex);
@@ -1457,7 +1473,7 @@ namespace {
 				}
 #endif
 			} break;
-			case hp_failed:
+			case hp_message::failed:
 			{
 				std::uint32_t error = detail::read_uint32(ptr);
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1472,21 +1488,11 @@ namespace {
 				// #error deal with holepunch errors
 				(void)error;
 			} break;
-#ifndef TORRENT_DISABLE_LOGGING
-			default:
-			{
-				if (should_log(peer_log_alert::incoming_message))
-				{
-					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-						, "msg: unknown message type (%d) to: %s"
-						, msg_type, print_address(ep.address()).c_str());
-				}
-			}
-#endif
 		}
 	}
 
-	void bt_peer_connection::write_holepunch_msg(int const type, tcp::endpoint const& ep, int const error)
+	void bt_peer_connection::write_holepunch_msg(hp_message const type
+		, tcp::endpoint const& ep, hp_error const error)
 	{
 		char buf[35];
 		char* ptr = buf + 6;
@@ -1502,14 +1508,16 @@ namespace {
 			static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
 			peer_log(peer_log_alert::outgoing_message, "HOLEPUNCH"
 				, "msg: %s to: %s error: %s"
-				, (type >= 0 && type < 3 ? hp_msg_name[type] : "unknown message type")
+				, (static_cast<std::uint8_t>(type) < 3
+					? hp_msg_name[static_cast<std::uint8_t>(type)]
+					: "unknown message type")
 				, print_address(ep.address()).c_str()
-				, hp_error_string[error]);
+				, hp_error_string[static_cast<int>(error)]);
 		}
 #endif
-		if (type == hp_failed)
+		if (type == hp_message::failed)
 		{
-			detail::write_uint32(error, ptr);
+			detail::write_uint32(static_cast<int>(error), ptr);
 		}
 
 		// write the packet length and type
