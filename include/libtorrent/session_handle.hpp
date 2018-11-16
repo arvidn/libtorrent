@@ -788,7 +788,8 @@ namespace libtorrent {
 		// Applies the settings specified by the settings_pack ``s``. This is an
 		// asynchronous operation that will return immediately and actually apply
 		// the settings to the main thread of libtorrent some time later.
-		void apply_settings(settings_pack s);
+		void apply_settings(settings_pack const& s);
+		void apply_settings(settings_pack&& s);
 		settings_pack get_settings() const;
 
 #if TORRENT_ABI_VERSION == 1
