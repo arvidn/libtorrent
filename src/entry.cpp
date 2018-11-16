@@ -45,7 +45,7 @@ namespace libtorrent {
 
 namespace detail {
 
-	char const* integer_to_str(char* buf, int size
+	string_view integer_to_str(span<char> buf
 		, entry::integer_type val)
 	{
 		int sign = 0;
@@ -54,15 +54,17 @@ namespace detail {
 			sign = 1;
 			val = -val;
 		}
-		buf[--size] = '\0';
-		if (val == 0) buf[--size] = '0';
-		while (size > sign && val != 0)
+		char* ptr = &buf.back();
+		*ptr-- = '\0';
+		if (val == 0) *ptr-- = '0';
+		while (ptr > buf.data() + sign && val != 0)
 		{
-			buf[--size] = '0' + char(val % 10);
+			*ptr-- = '0' + char(val % 10);
 			val /= 10;
 		}
-		if (sign) buf[--size] = '-';
-		return buf + size;
+		if (sign) *ptr-- = '-';
+		++ptr;
+		return {ptr, static_cast<std::size_t>(&buf.back() - ptr)};
 	}
 } // detail
 

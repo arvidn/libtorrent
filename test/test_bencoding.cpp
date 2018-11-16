@@ -228,6 +228,18 @@ TORRENT_TEST(print_deep_dict)
 	TEST_EQUAL(e.to_string(), "{\n 'a': 'foobar',\n 'ints': [\n   1,\n   2,\n   3 ],\n 'strings': [\n   'foo',\n   'bar' ] }");
 }
 
+TORRENT_TEST(integer_to_str)
+{
+	using lt::detail::integer_to_str;
+
+	char buf[30];
+	TEST_CHECK(integer_to_str(buf, 0) == "0"_sv);
+	TEST_CHECK(integer_to_str(buf, 1234) == "1234"_sv);
+	TEST_CHECK(integer_to_str(buf, -1234) == "-1234"_sv);
+	TEST_CHECK(integer_to_str(buf, 123456789012345678LL) == "123456789012345678"_sv);
+	TEST_CHECK(integer_to_str(buf, -123456789012345678LL) == "-123456789012345678"_sv);
+}
+
 TORRENT_TEST(lazy_entry)
 {
 	{

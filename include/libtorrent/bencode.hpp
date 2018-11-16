@@ -97,15 +97,13 @@ namespace detail {
 			static_assert(sizeof(entry::integer_type) <= 8, "64 bit integers required");
 			static_assert(sizeof(data) <= sizeof(entry::integer_type), "input data too big, see entry::integer_type");
 			char buf[21];
-			int ret = 0;
-			for (char const* str = integer_to_str(buf, 21, val);
-				*str != 0; ++str)
+			auto const str = integer_to_str(buf, val);
+			for (char const c : str)
 			{
-				*out = *str;
+				*out = c;
 				++out;
-				++ret;
 			}
-			return ret;
+			return static_cast<int>(str.size());
 		}
 
 		template <class OutIt>
