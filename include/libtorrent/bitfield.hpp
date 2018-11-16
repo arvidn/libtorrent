@@ -145,6 +145,7 @@ namespace libtorrent {
 		// assignment operator
 		bitfield& operator=(bitfield const& rhs)
 		{
+			if (&rhs == this) return *this;
 			assign(rhs.data(), rhs.size());
 			return *this;
 		}
