@@ -110,9 +110,9 @@ TORRENT_TEST(seed_mode_suggest)
 			params.flags |= torrent_flags::seed_mode;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int, lt::session&) -> bool
 		{ return true; });
 }
 
@@ -559,7 +559,7 @@ TORRENT_TEST(delete_partfile)
 		// add torrent
 		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session&) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
 		, [&save_path](int, lt::session& ses) -> bool
 		{
@@ -637,10 +637,10 @@ TORRENT_TEST(block_uploaded_alert)
 				int blocks_per_piece = at->handle.torrent_file()->piece_length() / 0x4000;
 				blocks.resize(at->handle.torrent_file()->num_pieces(), std::vector<bool>(blocks_per_piece, false));
 			}
-			else if (auto at = lt::alert_cast<lt::block_uploaded_alert>(a))
+			else if (auto ua = lt::alert_cast<lt::block_uploaded_alert>(a))
 			{
-				TEST_EQUAL(blocks[static_cast<int>(at->piece_index)][at->block_index], false);
-				blocks[static_cast<int>(at->piece_index)][at->block_index] = true;
+				TEST_EQUAL(blocks[static_cast<int>(ua->piece_index)][ua->block_index], false);
+				blocks[static_cast<int>(ua->piece_index)][ua->block_index] = true;
 			}
 		}
 		// terminate
@@ -667,9 +667,9 @@ void test_settings(SettingsFun fun)
 		// add session
 		, fun
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{

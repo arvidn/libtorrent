@@ -102,7 +102,7 @@ bool sleep_and_input(int* c, lt::time_duration const sleep)
 		std::this_thread::sleep_for(sleep / 2);
 	}
 	return false;
-};
+}
 
 #else
 

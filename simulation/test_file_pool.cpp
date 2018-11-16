@@ -113,8 +113,7 @@ TORRENT_TEST(file_pool_size)
 			atp.ti->remap_files(fs);
 		}
 		// on alert
-		, [&](lt::alert const* a, lt::session&)
-		{}
+		, [&](lt::alert const*, lt::session&) {}
 		// terminate
 		, [&](int ticks, lt::session& ses) -> bool
 		{

@@ -180,11 +180,11 @@ TORRENT_TEST(udp_tracker)
 			params.save_path = ".";
 			ses.async_add_torrent(params);
 		},
-		[&tracker_alert](lt::session& ses, lt::alert const* alert) {
+		[&tracker_alert](lt::session&, lt::alert const* alert) {
 			if (lt::alert_cast<lt::tracker_announce_alert>(alert))
 				tracker_alert = true;
 		},
-		[&](sim::simulation& sim, lt::session& ses
+		[&](sim::simulation& sim, lt::session&
 			, std::shared_ptr<lt::torrent_info> ti)
 		{
 			// listen on port 8080
@@ -269,7 +269,7 @@ TORRENT_TEST(socks5_udp_retry)
 
 	// run for 60 seconds.The sokcks5 retry interval is expected to be 5 seconds,
 	// meaning there should have been 12 connection attempts
-	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&)
 	{
 		fprintf(stderr, "shutting down\n");
 		// shut down

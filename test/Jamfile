@@ -53,6 +53,9 @@ project
 	<toolset>msvc:<cflags>/wd4309
 	# C4310: cast truncates constant value
 	<toolset>msvc:<cflags>/wd4310
+	# C4268: 'identifier' : 'const' static/global data initialized
+	#        with compiler generated default constructor fills the object with zeros
+	<toolset>msvc:<cflags>/wd4268
 	<conditional>@warnings
 	<export-extra>on
 	: default-build

@@ -127,7 +127,7 @@ void run_test(Setup const& setup
 
 	// set up a timer to fire later, to verify everything we expected to happen
 	// happened
-	sim::timer t(sim, timeout, [&](boost::system::error_code const& ec)
+	sim::timer t(sim, timeout, [&](boost::system::error_code const&)
 	{
 		std::printf("shutting down\n");
 		// shut down
@@ -153,8 +153,8 @@ TORRENT_TEST(single_file)
 		{
 			ses.async_add_torrent(params);
 		},
-		[](lt::session& ses, lt::alert const* alert) {},
-		[&expected](sim::simulation& sim, lt::session& ses)
+		[](lt::session&, lt::alert const*) {},
+		[&expected](sim::simulation& sim, lt::session&)
 		{
 			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
 			// listen on port 8080
@@ -191,8 +191,8 @@ TORRENT_TEST(multi_file)
 		{
 			ses.async_add_torrent(params);
 		},
-		[](lt::session& ses, lt::alert const* alert) {},
-		[&expected](sim::simulation& sim, lt::session& ses)
+		[](lt::session&, lt::alert const*) {},
+		[&expected](sim::simulation& sim, lt::session&)
 		{
 			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
 			// listen on port 8080
@@ -226,9 +226,9 @@ std::string generate_content(lt::file_storage const& fs, file_index_t file
 	std::string ret;
 	ret.reserve(lt::aux::numeric_cast<std::size_t>(len));
 	std::int64_t const file_offset = fs.file_offset(file);
-	int const piece_size = fs.piece_length();
+	int const piece_sz = fs.piece_length();
 	for (std::int64_t i = offset + file_offset; i < offset + file_offset + len; ++i)
-		ret.push_back(((i % piece_size) % 26) + 'A');
+		ret.push_back(((i % piece_sz) % 26) + 'A');
 	return ret;
 }
 
@@ -258,11 +258,11 @@ TORRENT_TEST(unaligned_file_redirect)
 		{
 			ses.async_add_torrent(params);
 		},
-		[&](lt::session& ses, lt::alert const* alert) {
+		[&](lt::session&, lt::alert const* alert) {
 			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
 				seeding = true;
 		},
-		[&fs](sim::simulation& sim, lt::session& ses)
+		[&fs](sim::simulation& sim, lt::session&)
 		{
 			// http1 is the root web server that will just redirect requests to
 			// other servers
@@ -307,11 +307,11 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 		{
 			ses.async_add_torrent(params);
 		},
-		[&](lt::session& ses, lt::alert const* alert) {
+		[&](lt::session&, lt::alert const* alert) {
 			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
 				seeding = true;
 		},
-		[&fs](sim::simulation& sim, lt::session& ses)
+		[&fs](sim::simulation& sim, lt::session&)
 		{
 			// http1 is the root web server that will just redirect requests to
 			// other servers
@@ -355,11 +355,11 @@ TORRENT_TEST(multi_file_redirect)
 		{
 			ses.async_add_torrent(params);
 		},
-		[&](lt::session& ses, lt::alert const* alert) {
+		[&](lt::session&, lt::alert const* alert) {
 			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
 				seeding = true;
 		},
-		[&fs](sim::simulation& sim, lt::session& ses)
+		[&fs](sim::simulation& sim, lt::session&)
 		{
 			// http1 is the root web server that will just redirect requests to
 			// other servers
@@ -413,12 +413,12 @@ TORRENT_TEST(multi_file_redirect_through_proxy)
 
 			ses.async_add_torrent(params);
 		},
-		[&](lt::session& ses, lt::alert const* alert) {
+		[&](lt::session&, lt::alert const* alert) {
 			if (lt::alert_cast<lt::torrent_finished_alert>(alert)) {
 				seeding = true;
 			}
 		},
-		[&fs](sim::simulation& sim, lt::session& ses)
+		[&fs](sim::simulation& sim, lt::session&)
 		{
 			sim::asio::io_service proxy_ios(sim, address_v4::from_string("50.50.50.50"));
 			sim::http_proxy http_p(proxy_ios, 4445);
@@ -464,11 +464,11 @@ TORRENT_TEST(multi_file_unaligned_redirect)
 		{
 			ses.async_add_torrent(params);
 		},
-		[&](lt::session& ses, lt::alert const* alert) {
+		[&](lt::session&, lt::alert const* alert) {
 			// We don't expect to get this aslert
 			TEST_CHECK(lt::alert_cast<lt::torrent_finished_alert>(alert) == nullptr);
 		},
-		[&fs](sim::simulation& sim, lt::session& ses)
+		[&fs](sim::simulation& sim, lt::session&)
 		{
 			// http1 is the root web server that will just redirect requests to
 			// other servers
@@ -507,13 +507,13 @@ TORRENT_TEST(urlseed_timeout)
 			params.save_path = ".";
 			ses.async_add_torrent(params);
 		},
-		[&timeout](lt::session& ses, lt::alert const* alert) {
+		[&timeout](lt::session&, lt::alert const* alert) {
 			const lt::peer_disconnected_alert *pda = lt::alert_cast<lt::peer_disconnected_alert>(alert);
 			if (pda && pda->error == errors::timed_out_inactivity){
 				timeout = true;
 			}
 		},
-		[](sim::simulation& sim, lt::session& ses)
+		[](sim::simulation& sim, lt::session&)
 		{
 			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
 
@@ -547,8 +547,8 @@ TORRENT_TEST(no_close_redudant_webseed)
 			ses.apply_settings(pack);
 			ses.async_add_torrent(params);
 		},
-		[](lt::session& ses, lt::alert const* alert) {},
-		[&expected](sim::simulation& sim, lt::session& ses)
+		[](lt::session&, lt::alert const*) {},
+		[&expected](sim::simulation& sim, lt::session&)
 		{
 			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
 			// listen on port 8080
@@ -595,8 +595,8 @@ TORRENT_TEST(web_seed_connection_limit)
 			ses.apply_settings(pack);
 			ses.async_add_torrent(params);
 		},
-		[](lt::session& ses, lt::alert const* alert) {},
-		[&expected](sim::simulation& sim, lt::session& ses)
+		[](lt::session&, lt::alert const*) {},
+		[&expected](sim::simulation& sim, lt::session&)
 		{
 			using ios = sim::asio::io_service;
 			ios web_server1{sim, address_v4::from_string("2.2.2.1")};

@@ -191,9 +191,9 @@ void dict_to_announce_entry(dict d, announce_entry& ae)
 {
    ae.url = extract<std::string>(d["url"]);
    if (d.has_key("tier"))
-      ae.tier = extract<int>(d["tier"]);
+      ae.tier = extract<std::uint8_t>(d["tier"]);
    if (d.has_key("fail_limit"))
-      ae.fail_limit = extract<int>(d["fail_limit"]);
+      ae.fail_limit = extract<std::uint8_t>(d["fail_limit"]);
 }
 
 void replace_trackers(torrent_handle& h, object trackers)

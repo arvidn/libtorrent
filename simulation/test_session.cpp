@@ -58,9 +58,9 @@ TORRENT_TEST(seed_mode)
 			params.flags |= torrent_flags::seed_mode;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool {
+		, [](int ticks, lt::session&) -> bool {
 			// we don't need to finish seeding, exit after 20 seconds
 			return ticks > 20;
 		});
@@ -80,9 +80,9 @@ TORRENT_TEST(ip_notifier_setting)
 			pack.set_int(settings_pack::alert_mask, alert::all_categories);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&s_tick, &working_count](lt::alert const* a, lt::session& ses)
+		, [&s_tick, &working_count](lt::alert const* a, lt::session&)
 		{
 			std::string const msg = a->message();
 			if (msg.find("received error on_ip_change:") != std::string::npos)
@@ -148,13 +148,13 @@ TORRENT_TEST(add_extension_while_transfer)
 			pack.set_int(settings_pack::alert_mask, alert::all_categories);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&done, p](lt::alert const* a, lt::session& ses)
+		, [&done, p](lt::alert const* a, lt::session&)
 		{
 			if (a->type() == peer_connect_alert::alert_type)
 			{
-				auto create_test_plugin = [p](torrent_handle const& th, void*)
+				auto create_test_plugin = [p](torrent_handle const&, void*)
 				{ return p; };
 
 				lt::torrent_handle th = alert_cast<peer_connect_alert>(a)->handle;
@@ -164,7 +164,7 @@ TORRENT_TEST(add_extension_while_transfer)
 			}
 		}
 		// terminate
-		, [&done](int ticks, lt::session& ses) -> bool
+		, [&done](int ticks, lt::session&) -> bool
 		{
 			// exit after 10 seconds
 			return ticks > 10 || done;

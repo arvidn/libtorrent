@@ -89,7 +89,7 @@ TORRENT_TEST(no_truncate_checking)
 	std::string filename;
 	int size = 0;
 	run_test(
-		[&](lt::add_torrent_params& atp, lt::settings_pack& p) {
+		[&](lt::add_torrent_params& atp, lt::settings_pack&) {
 			filename = lt::combine_path(atp.save_path, atp.ti->files().file_path(lt::file_index_t{0}));
 			std::ofstream f(filename);
 			// create a file that's 100 bytes larger
@@ -97,7 +97,7 @@ TORRENT_TEST(no_truncate_checking)
 			std::vector<char> dummy(size);
 			f.write(dummy.data(), dummy.size());
 		},
-		[](lt::session& ses) {}
+		[](lt::session&) {}
 		);
 
 	// file should not have been truncated just by checking
@@ -127,7 +127,7 @@ std::shared_ptr<lt::torrent_info> create_multifile_torrent()
 TORRENT_TEST(aligned_zero_priority)
 {
 	run_test(
-		[&](lt::add_torrent_params& atp, lt::settings_pack& p) {
+		[&](lt::add_torrent_params& atp, lt::settings_pack&) {
 			atp.file_priorities.push_back(lt::download_priority_t{1});
 			atp.file_priorities.push_back(lt::download_priority_t{0});
 			atp.ti = create_multifile_torrent();
@@ -147,7 +147,7 @@ TORRENT_TEST(aligned_zero_priority_no_file)
 {
 	std::string partfile;
 	run_test(
-		[&](lt::add_torrent_params& atp, lt::settings_pack& p) {
+		[&](lt::add_torrent_params& atp, lt::settings_pack&) {
 			atp.ti = create_multifile_torrent();
 			atp.save_path = ".";
 			atp.file_priorities.push_back(lt::download_priority_t{1});
@@ -181,7 +181,7 @@ TORRENT_TEST(zero_priority_missing_partfile)
 {
 	std::shared_ptr<lt::torrent_info> ti = create_multifile_torrent();
 	run_test(
-		[&](lt::add_torrent_params& atp, lt::settings_pack& p) {
+		[&](lt::add_torrent_params& atp, lt::settings_pack&) {
 			atp.ti = ti;
 			atp.save_path = ".";
 			atp.file_priorities.push_back(lt::download_priority_t{1});

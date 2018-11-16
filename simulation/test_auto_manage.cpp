@@ -74,7 +74,7 @@ void run_test(Settings const& sett, Setup const& setup, Test const& test)
 	// set up a timer to fire later, to verify everything we expected to happen
 	// happened
 	sim::timer t(sim, lt::seconds((num_torrents + 1) * 60)
-		, [&](boost::system::error_code const& ec)
+		, [&](boost::system::error_code const&)
 	{
 		test(*ses);
 

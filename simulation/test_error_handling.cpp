@@ -129,7 +129,7 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 	params.save_path = save_path(1);
 	ses[1]->async_add_torrent(params);
 
-	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&)
 	{
 		test(ses);
 
@@ -200,7 +200,7 @@ TORRENT_TEST(error_handling)
 			using namespace lt;
 			run_test(
 				[](lt::session&, lt::alert const*) {},
-				[](std::shared_ptr<lt::session> ses[2]) {}
+				[](std::shared_ptr<lt::session>[2]) {}
 			);
 		}
 		catch (std::bad_alloc const&)

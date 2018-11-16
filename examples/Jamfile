@@ -15,6 +15,9 @@ project client_test
 	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 	<toolset>msvc:<cflags>/wd4275
+	# C4268: 'identifier' : 'const' static/global data initialized
+	#        with compiler generated default constructor fills the object with zeros
+	<toolset>msvc:<cflags>/wd4268
 	: default-build
 	<link>static
 	;

@@ -210,6 +210,9 @@ my-python-extension libtorrent
     <conditional>@libtorrent_linking
     <crypto>openssl:<library>/torrent//ssl
     <crypto>openssl:<library>/torrent//crypto
+	# C4268: 'identifier' : 'const' static/global data initialized
+	#        with compiler generated default constructor fills the object with zeros
+	<toolset>msvc:<cflags>/wd4268
   : # default-build
     <warnings>all
   : # usage-requirements

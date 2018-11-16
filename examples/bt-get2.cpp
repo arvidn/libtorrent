@@ -118,8 +118,8 @@ int main(int argc, char const* argv[]) try
 			if (auto rd = lt::alert_cast<lt::save_resume_data_alert>(a)) {
 				std::ofstream of(".resume_file", std::ios_base::binary);
 				of.unsetf(std::ios_base::skipws);
-				auto buf = write_resume_data_buf(rd->params);
-				of.write(buf.data(), buf.size());
+				auto const b = write_resume_data_buf(rd->params);
+				of.write(b.data(), b.size());
 			}
 
 			if (auto st = lt::alert_cast<lt::state_update_alert>(a)) {

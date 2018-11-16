@@ -199,7 +199,7 @@ TORRENT_TEST(dht_storage_infohashes_sample)
 
 	sim::asio::high_resolution_timer timer(ios);
 	timer.expires_from_now(hours(1)); // expiration of torrents
-	timer.async_wait([&s](boost::system::error_code const& ec)
+	timer.async_wait([&s](boost::system::error_code const&)
 	{
 		// tick here to trigger the torrents expiration
 		s->tick();

@@ -54,7 +54,7 @@ struct tuple_to_endpoint
         if (PyTuple_Size(x) != 2) return nullptr;
         extract<std::string> ip(object(borrowed(PyTuple_GetItem(x, 0))));
         if (!ip.check()) return nullptr;
-        extract<int> port(object(borrowed(PyTuple_GetItem(x, 1))));
+        extract<std::uint16_t> port(object(borrowed(PyTuple_GetItem(x, 1))));
         if (!port.check()) return nullptr;
         lt::error_code ec;
         lt::address::from_string(ip, ec);
@@ -69,7 +69,7 @@ struct tuple_to_endpoint
 
         object o(borrowed(x));
         data->convertible = new (storage) T(lt::address::from_string(
-           extract<std::string>(o[0])), extract<int>(o[1]));
+           extract<std::string>(o[0])), extract<std::uint16_t>(o[1]));
     }
 };
 

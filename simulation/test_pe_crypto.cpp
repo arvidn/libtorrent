@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-char const* pe_policy(std::uint8_t policy)
+char const* pe_policy(int const policy)
 {
 	if (policy == settings_pack::pe_disabled) return "disabled";
 	else if (policy == settings_pack::pe_enabled) return "enabled";
@@ -90,9 +90,9 @@ void test_transfer(int enc_policy, int level, bool prefer_rc4)
 			pack.set_bool(settings_pack::prefer_rc4, false);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
@@ -176,9 +176,9 @@ TORRENT_TEST(disabled_failing)
 			pack.set_bool(settings_pack::prefer_rc4, true);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
