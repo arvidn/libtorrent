@@ -3,6 +3,7 @@ EXTRA_DIST = \
   CMakeLists.txt            \
   Jamfile                   \
   setup.py                  \
+  setup.py.cmake.in         \
   client.py                 \
   simple_client.py          \
   make_torrent.py           \
