@@ -622,7 +622,7 @@ TORRENT_TEST(http_connection_ssl_proxy)
 	int proxy_counter = 0;
 
 	http_proxy.register_handler("10.0.0.2:8080"
-		, [&proxy_counter](std::string method, std::string req, std::map<std::string, std::string>& headers)
+		, [&proxy_counter](std::string method, std::string req, std::map<std::string, std::string>&)
 		{
 			proxy_counter++;
 			TEST_EQUAL(method, "CONNECT");
@@ -631,8 +631,8 @@ TORRENT_TEST(http_connection_ssl_proxy)
 
 	auto h = std::make_shared<http_connection>(client_ios
 		, res
-		, [&client_counter](error_code const& ec, http_parser const& parser
-		, span<char const>, http_connection& c)
+		, [&client_counter](error_code const& ec, http_parser const&
+		, span<char const>, http_connection&)
 		{
 			client_counter++;
 			TEST_EQUAL(ec, boost::asio::error::operation_not_supported);

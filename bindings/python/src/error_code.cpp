@@ -145,14 +145,14 @@ private:
 	boost::system::error_category const* m_cat;
 };
 
-void error_code_assign(boost::system::error_code& self, int const v, category_holder const cat)
+void error_code_assign(boost::system::error_code& me, int const v, category_holder const cat)
 {
-	self.assign(v, cat.ref());
+	me.assign(v, cat.ref());
 }
 
-category_holder error_code_category(boost::system::error_code const& self)
+category_holder error_code_category(boost::system::error_code const& me)
 {
-	return category_holder(self.category());
+	return category_holder(me.category());
 }
 
 #define WRAP_CAT(name) \

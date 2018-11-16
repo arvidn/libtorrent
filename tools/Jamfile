@@ -30,6 +30,9 @@ project tools
 	<threading>multi
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 	<toolset>msvc:<cflags>/wd4275
+	# C4268: 'identifier' : 'const' static/global data initialized
+	#        with compiler generated default constructor fills the object with zeros
+	<toolset>msvc:<cflags>/wd4268
 	<conditional>@link_libtorrent
 	: default-build
 	<link>static

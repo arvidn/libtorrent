@@ -118,7 +118,7 @@ TORRENT_TEST(torrent_paused_disconnect)
 {
 	run_test(
 		[](lt::session&) {},
-		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			add_fake_peers(h, 3);
 		},
 

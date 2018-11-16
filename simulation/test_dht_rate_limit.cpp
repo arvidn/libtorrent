@@ -73,7 +73,7 @@ struct obs : dht::dht_observer
 
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log(module_t) const override { return true; }
-	void log(dht_logger::module_t l, char const* fmt, ...) override
+	void log(dht_logger::module_t, char const* fmt, ...) override
 	{
 		va_list v;
 		va_start(v, fmt);

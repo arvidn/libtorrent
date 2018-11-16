@@ -382,9 +382,9 @@ std::pair<int, int> terminal_size()
 }
 
 #ifdef _WIN32
-void apply_ansi_code(int* attributes, bool* reverse, bool* support_chaining, int code)
+void apply_ansi_code(WORD* attributes, bool* reverse, bool* support_chaining, int code)
 {
-	static const int color_table[8] =
+	static const WORD color_table[8] =
 	{
 		0, // black
 		FOREGROUND_RED, // red
@@ -459,7 +459,7 @@ void print(char const* buf)
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
 
-	int current_attributes = 7;
+	WORD current_attributes = 7;
 	bool reverse = false;
 	SetConsoleTextAttribute(out, current_attributes);
 

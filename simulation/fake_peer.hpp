@@ -288,7 +288,8 @@ struct udp_server
 		boost::system::error_code ec;
 		m_socket.open(asio::ip::udp::v4(), ec);
 		TEST_CHECK(!ec);
-		m_socket.bind(asio::ip::udp::endpoint(asio::ip::address_v4::any(), port), ec);
+		m_socket.bind(asio::ip::udp::endpoint(asio::ip::address_v4::any()
+			, static_cast<std::uint16_t>(port)), ec);
 		TEST_CHECK(!ec);
 
 		m_socket.non_blocking(true);
