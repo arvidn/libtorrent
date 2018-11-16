@@ -4123,7 +4123,7 @@ namespace libtorrent {
 			// see if we can try a holepunch
 			bt_peer_connection* p = t->find_introducer(remote());
 			if (p)
-				p->write_holepunch_msg(bt_peer_connection::hp_rendezvous, remote(), 0);
+				p->write_holepunch_msg(bt_peer_connection::hp_message::rendezvous, remote());
 		}
 #endif
 
