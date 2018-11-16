@@ -387,6 +387,14 @@ TORRENT_TEST(not_initialized)
 	// get_bit, clear_bit, set_bit
 }
 
+TORRENT_TEST(self_assign)
+{
+	bitfield test1(123, false);
+	test1 = test1;
+	TEST_EQUAL(test1.size(), 123);
+	TEST_EQUAL(test1.count(), 0);
+}
+
 TORRENT_TEST(not_initialized_assign)
 {
 	// check a not initialized empty bitfield
