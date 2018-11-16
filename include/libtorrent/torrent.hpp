@@ -1429,7 +1429,7 @@ namespace libtorrent
 		// the number of bytes that has been
 		// downloaded that failed the hash-test
 		boost::uint32_t m_total_failed_bytes;
-		boost::uint32_t m_total_redundant_bytes;
+		boost::uint64_t m_total_redundant_bytes;
 
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
