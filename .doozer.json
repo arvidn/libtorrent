@@ -3,9 +3,9 @@
   "targets": {
     "x86_64": {
       "buildenv": "xenial-amd64",
-      "builddeps": ["build-essential", "libssl-dev", "libboost-all-dev", "ccache"],
+      "builddeps": ["build-essential", "libssl-dev", "libboost-all-dev"],
       "buildcmd": [
-        "echo \"using gcc : : ccache g++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
+        "echo \"using gcc : : g++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
         "cd simulation",
         "bjam -j${PARALLEL} deprecated-functions=off",
         "cd test",
@@ -14,13 +14,13 @@
     },
     "macOS": {
       "buildenv": "osx",
-      "homebrew": { "formulae": ["wget", "ccache"] },
+      "homebrew": { "formulae": ["wget"] },
       "buildcmd": [
          "wget --quiet -O boost.zip https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.zip",
          "unzip -qq boost.zip",
          "rm boost.zip",
          "(cd boost_1_68_0/tools/build/src/engine && ./build.sh)",
-         "echo \"using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
+         "echo \"using darwin : : clang++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
          "cd simulation",
          "BOOST_ROOT=${PWD}/../boost_1_68_0 ../boost_1_68_0/tools/build/src/engine/bin.macosxx86_64/bjam --hash -j${PARALLEL}"
       ]
