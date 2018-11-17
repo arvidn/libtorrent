@@ -16,6 +16,9 @@ libtorrent
 .. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=master
     :target: https://codecov.io/github/arvidn/libtorrent?branch=master&view=all#sort=missing&dir=desc
 
+.. image:: https://img.shields.io/lgtm/grade/cpp/g/arvidn/libtorrent.svg?logo=lgtm&logoWidth=18
+	:target: https://lgtm.com/projects/g/arvidn/libtorrent/context:cpp
+
 .. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=alert_status
 	:target: https://sonarcloud.io/dashboard?id=libtorrent
 
