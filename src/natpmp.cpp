@@ -633,6 +633,8 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
+	if (m_abort) return;
+
 	ADD_OUTSTANDING_ASYNC("natpmp::on_reply");
 	// make a copy of the response packet buffer
 	// to avoid overwriting it in the next receive call
@@ -844,8 +846,6 @@ void natpmp::on_reply(error_code const& e
 		m_callback.on_port_mapping(port_mapping_t{index}, ext_ip, m->external_port, proto
 			, errors::pcp_success, portmap_transport::natpmp);
 	}
-
-	if (m_abort) return;
 
 	m_currently_mapping = port_mapping_t{-1};
 	m->act = portmap_action::none;

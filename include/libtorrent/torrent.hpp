@@ -1421,7 +1421,7 @@ namespace libtorrent {
 		// the number of bytes that has been
 		// downloaded that failed the hash-test
 		std::int32_t m_total_failed_bytes = 0;
-		std::int32_t m_total_redundant_bytes = 0;
+		std::int64_t m_total_redundant_bytes = 0;
 
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
