@@ -162,10 +162,10 @@ void item::assign(entry v)
 void item::assign(entry v, span<char const> salt
 	, sequence_number const seq, public_key const& pk, secret_key const& sk)
 {
-	char buffer[1000];
-	int bsize = bencode(buffer, v);
+	std::array<char, 1000> buffer;
+	int const bsize = bencode(buffer.begin(), v);
 	TORRENT_ASSERT(bsize <= 1000);
-	m_sig = sign_mutable_item({buffer, bsize}
+	m_sig = sign_mutable_item(span<char const>(buffer).first(bsize)
 		, salt, seq, pk, sk);
 	m_salt.assign(salt.data(), static_cast<std::size_t>(salt.size()));
 	m_pk = pk;

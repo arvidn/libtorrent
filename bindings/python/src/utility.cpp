@@ -5,6 +5,7 @@
 #include "boost_python.hpp"
 #include <libtorrent/identify_client.hpp>
 #include <libtorrent/bencode.hpp>
+#include <libtorrent/bdecode.hpp>
 #include "bytes.hpp"
 
 using namespace boost::python;
@@ -74,7 +75,7 @@ object client_fingerprint_(peer_id const& id)
 
 entry bdecode_(bytes const& data)
 {
-    return bdecode(data.arr.begin(), data.arr.end());
+    return bdecode(data.arr);
 }
 
 bytes bencode_(entry const& e)
