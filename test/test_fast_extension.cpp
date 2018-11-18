@@ -154,7 +154,7 @@ void print_message(char const* buffer, int len)
 		else if (msg == 20 && len > 4 && buffer[1] == 0 )
 		{
 			std::snprintf(extra, sizeof(extra), "%s"
-				, bdecode(buffer + 2, buffer + len).to_string().c_str());
+				, print_entry(bdecode({buffer + 2, len - 2})).c_str());
 		}
 	}
 
@@ -356,7 +356,7 @@ entry read_extension_handshake(tcp::socket& s, char* recv_buffer, int size)
 		int extmsg = recv_buffer[1];
 		if (extmsg != 0) continue;
 
-		return bdecode(recv_buffer + 2, recv_buffer + len);
+		return bdecode({recv_buffer + 2, len - 2});
 	}
 }
 
@@ -409,7 +409,7 @@ entry read_ut_metadata_msg(tcp::socket& s, char* recv_buffer, int size)
 		int extmsg = recv_buffer[1];
 		if (extmsg != 1) continue;
 
-		return bdecode(recv_buffer + 2, recv_buffer + len);
+		return bdecode({recv_buffer + 2, len - 2});
 	}
 }
 #endif // TORRENT_DISABLE_EXTENSIONS
@@ -831,7 +831,7 @@ TORRENT_TEST(dont_have)
 	{
 		print_session_log(*ses);
 
-		int len = read_message(s, recv_buffer, sizeof(recv_buffer));
+		int const len = read_message(s, recv_buffer, sizeof(recv_buffer));
 		if (len == -1) break;
 		print_message(recv_buffer, len);
 		if (len == 0) continue;
@@ -840,15 +840,15 @@ TORRENT_TEST(dont_have)
 		int ext_msg = recv_buffer[1];
 		if (ext_msg != 0) continue;
 
-		bdecode_node e;
 		int pos = 0;
-		int ret = bdecode(recv_buffer + 2, recv_buffer + len, e, ec, &pos);
-		if (ret != 0)
+		ec.clear();
+		bdecode_node e = bdecode({recv_buffer + 2, len - 2}, ec, &pos);
+		if (ec)
 		{
 			log("failed to parse extension handshake: %s at pos %d"
 				, ec.message().c_str(), pos);
 		}
-		TEST_EQUAL(ret, 0);
+		TEST_CHECK(!ec);
 
 		log("extension handshake: %s", print_entry(e).c_str());
 		bdecode_node m = e.dict_find_dict("m");

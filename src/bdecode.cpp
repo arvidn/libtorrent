@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/error_code.hpp"
 #include <limits>
 #include <cstring> // for memset
 #include <cstdio> // for snprintf
@@ -733,6 +734,14 @@ namespace {
 	{
 		ret = bdecode({start, end - start}, ec, error_pos, depth_limit, token_limit);
 		return ec ? -1 : 0;
+	}
+
+	bdecode_node bdecode(span<char const> buffer, int depth_limit, int token_limit)
+	{
+		error_code ec;
+		bdecode_node ret = bdecode(buffer, ec, nullptr, depth_limit, token_limit);
+		if (ec) throw system_error(ec);
+		return ret;
 	}
 
 	bdecode_node bdecode(span<char const> buffer

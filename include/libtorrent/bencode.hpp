@@ -434,7 +434,6 @@ namespace detail {
 		if (err) return entry();
 		return e;
 	}
-	entry bdecode(span<char const> buffer);
 }
 
 #endif // TORRENT_BENCODE_HPP_INCLUDED

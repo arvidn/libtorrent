@@ -178,15 +178,14 @@ namespace aux {
 		entry(entry const& e);
 		entry(entry&& e) noexcept;
 
+		// construct from bdecode_node parsed form (see bdecode())
+		entry(bdecode_node const& n); // NOLINT
+
 		// hidden
 		entry();
 
 		// hidden
 		~entry();
-
-		// hidden
-		bool operator==(entry const& e) const;
-		bool operator!=(entry const& e) const { return !(*this == e); }
 
 		// copies the structure of the right hand side into this
 		// entry.
@@ -340,9 +339,13 @@ namespace aux {
 		mutable std::uint8_t m_type_queried:1;
 	};
 
+	TORRENT_EXPORT bool operator==(entry const& lhs, entry const& rhs);
+	inline bool operator!=(entry const& lhs, entry const& rhs) { return !(lhs == rhs); }
+
 namespace detail {
 
-	TORRENT_EXTRA_EXPORT string_view integer_to_str(span<char> buf
+	// internal
+	TORRENT_EXPORT string_view integer_to_str(span<char> buf
 		, entry::integer_type val);
 }
 

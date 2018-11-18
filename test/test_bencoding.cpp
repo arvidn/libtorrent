@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/bdecode.hpp"
 
 #include <iostream>
 #include <cstring>
@@ -56,39 +57,34 @@ std::string encode(entry const& e)
 	return ret;
 }
 
-entry decode(std::string const& str)
-{
-	return bdecode(str.begin(), str.end());
-}
-
 } // anonymous namespace
 
 TORRENT_TEST(strings)
 {
 	entry e("spam");
 	TEST_CHECK(encode(e) == "4:spam");
-	TEST_CHECK(decode(encode(e)) == e);
+	TEST_CHECK(bdecode(encode(e)) == e);
 }
 
 TORRENT_TEST(integers)
 {
 	entry e(3);
 	TEST_CHECK(encode(e) == "i3e");
-	TEST_CHECK(decode(encode(e)) == e);
+	TEST_CHECK(bdecode(encode(e)) == e);
 }
 
 TORRENT_TEST(integers2)
 {
 	entry e(-3);
 	TEST_CHECK(encode(e) == "i-3e");
-	TEST_CHECK(decode(encode(e)) == e);
+	TEST_CHECK(bdecode(encode(e)) == e);
 }
 
 TORRENT_TEST(integers3)
 {
 	entry e(int(0));
 	TEST_CHECK(encode(e) == "i0e");
-	TEST_CHECK(decode(encode(e)) == e);
+	TEST_CHECK(bdecode(encode(e)) == e);
 }
 
 TORRENT_TEST(lists)
@@ -98,7 +94,7 @@ TORRENT_TEST(lists)
 	l.push_back(entry("eggs"));
 	entry e(l);
 	TEST_CHECK(encode(e) == "l4:spam4:eggse");
-	TEST_CHECK(decode(encode(e)) == e);
+	TEST_CHECK(bdecode(encode(e)) == e);
 }
 
 TORRENT_TEST(dictionaries)
@@ -107,7 +103,7 @@ TORRENT_TEST(dictionaries)
 	e["spam"] = entry("eggs");
 	e["cow"] = entry("moo");
 	TEST_CHECK(encode(e) == "d3:cow3:moo4:spam4:eggse");
-	TEST_CHECK(decode(encode(e)) == e);
+	TEST_CHECK(bdecode(encode(e)) == e);
 }
 
 TORRENT_TEST(preformatted)
@@ -620,7 +616,8 @@ TORRENT_TEST(lazy_entry)
 
 	{
 		unsigned char buf[] = { 0x44, 0x91, 0x3a };
-		entry ent = bdecode(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf) + sizeof(buf));
+		error_code ec;
+		entry ent = bdecode({reinterpret_cast<char*>(buf), int(sizeof(buf))}, ec);
 		TEST_CHECK(ent == entry());
 	}
 

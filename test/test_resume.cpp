@@ -890,7 +890,7 @@ TORRENT_TEST(backwards_compatible_resume_info_dict)
 	rd["name"] = ti->name();
 	rd["info-hash"] = ti->info_hash();
 	auto metainfo = ti->metadata();
-	rd["info"] = bdecode(metainfo.get(), metainfo.get() + ti->metadata_size());
+	rd["info"] = bdecode({metainfo.get(), ti->metadata_size()});
 	std::vector<char> resume_data;
 	bencode(back_inserter(resume_data), rd);
 
@@ -917,7 +917,7 @@ TORRENT_TEST(resume_info_dict)
 	rd["name"] = ti->name();
 	rd["info-hash"] = ti->info_hash();
 	auto metainfo = ti->metadata();
-	rd["info"] = bdecode(metainfo.get(), metainfo.get() + ti->metadata_size());
+	rd["info"] = bdecode({metainfo.get(), ti->metadata_size()});
 	std::vector<char> resume_data;
 	bencode(back_inserter(resume_data), rd);
 

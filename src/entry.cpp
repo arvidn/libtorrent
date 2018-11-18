@@ -68,17 +68,6 @@ namespace detail {
 	}
 } // detail
 
-	entry bdecode(span<char const> buffer)
-	{
-		entry e;
-		bool err = false;
-		auto it = buffer.begin();
-		detail::bdecode_recursive(it, buffer.end(), e, err, 0);
-		TORRENT_ASSERT(e.m_type_queried == false);
-		if (err) return entry();
-		return e;
-	}
-
 namespace {
 
 	inline void TORRENT_NO_RETURN throw_error()
@@ -311,6 +300,12 @@ namespace {
 		this->operator=(std::move(e));
 	}
 
+	entry::entry(bdecode_node const& n)
+		: m_type(undefined_t)
+	{
+		this->operator=(n);
+	}
+
 	entry::entry(dictionary_type v)
 		: m_type(undefined_t)
 	{
@@ -494,26 +489,26 @@ namespace {
 		return *this;
 	}
 
-	bool entry::operator==(entry const& e) const
+	bool operator==(entry const& lhs, entry const& rhs)
 	{
-		if (type() != e.type()) return false;
+		if (lhs.type() != rhs.type()) return false;
 
-		switch (m_type)
+		switch (lhs.type())
 		{
-		case int_t:
-			return integer() == e.integer();
-		case string_t:
-			return string() == e.string();
-		case list_t:
-			return list() == e.list();
-		case dictionary_t:
-			return dict() == e.dict();
-		case preformatted_t:
-			return preformatted() == e.preformatted();
-		default:
-			TORRENT_ASSERT(m_type == undefined_t);
+		case entry::int_t:
+			return lhs.integer() == rhs.integer();
+		case entry::string_t:
+			return lhs.string() == rhs.string();
+		case entry::list_t:
+			return lhs.list() == rhs.list();
+		case entry::dictionary_t:
+			return lhs.dict() == rhs.dict();
+		case entry::preformatted_t:
+			return lhs.preformatted() == rhs.preformatted();
+		case entry::undefined_t:
 			return true;
 		}
+		return false;
 	}
 
 	void entry::construct(data_type t)
