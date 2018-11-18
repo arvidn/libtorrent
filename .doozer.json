@@ -14,11 +14,8 @@
     },
     "macOS": {
       "buildenv": "osx",
-      "homebrew": { "formulae": ["wget"] },
       "buildcmd": [
-         "wget --quiet -O boost.zip https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.zip",
-         "unzip -qq boost.zip",
-         "rm boost.zip",
+         "curl -Ls https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.bz2 | tar xj",
          "(cd boost_1_68_0/tools/build/src/engine && ./build.sh)",
          "echo \"using darwin : : clang++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
          "cd simulation",
