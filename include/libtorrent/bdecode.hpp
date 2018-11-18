@@ -438,6 +438,8 @@ TORRENT_EXPORT int bdecode(char const* start, char const* end, bdecode_node& ret
 TORRENT_EXPORT bdecode_node bdecode(span<char const> buffer
 	, error_code& ec, int* error_pos = nullptr, int depth_limit = 100
 	, int token_limit = 2000000);
+TORRENT_EXPORT bdecode_node bdecode(span<char const> buffer
+	, int depth_limit = 100, int token_limit = 2000000);
 
 }
 

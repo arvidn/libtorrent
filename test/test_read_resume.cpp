@@ -201,7 +201,7 @@ TORRENT_TEST(read_resume_torrent)
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
 	rd["info-hash"] = ti->info_hash().to_string();
-	rd["info"] = bdecode(ti->metadata().get(), ti->metadata().get() + ti->metadata_size());
+	rd["info"] = bdecode({ti->metadata().get(), ti->metadata_size()});
 
 	std::vector<char> resume_data;
 	bencode(std::back_inserter(resume_data), rd);
