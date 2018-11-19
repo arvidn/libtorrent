@@ -144,6 +144,7 @@ namespace libtorrent {
 		std::uint32_t key;
 		int num_want;
 		std::vector<address_v6> ipv6;
+		std::vector<address_v4> ipv4;
 		sha1_hash info_hash;
 		peer_id pid;
 
