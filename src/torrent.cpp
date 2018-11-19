@@ -3246,17 +3246,19 @@ namespace {
 
 		req.event = e;
 
-#if TORRENT_USE_IPV6
-		// since sending our IPv6 address to the tracker may be sensitive. Only
+		// since sending our IPv4/v6 address to the tracker may be sensitive. Only
 		// do that if we're not in anonymous mode and if it's a private torrent
 		if (!settings().get_bool(settings_pack::anonymous_mode)
 			&& m_torrent_file
 			&& m_torrent_file->priv())
 		{
-			boost::optional<tcp::endpoint> ep = m_ses.get_ipv6_interface();
-			if (ep) req.ipv6 = ep->address().to_v6();
-		}
+			boost::optional<tcp::endpoint> ep4 = m_ses.get_ipv4_interface();
+			if (ep4) req.ipv4 = ep4->address().to_v4();
+#if TORRENT_USE_IPV6
+			boost::optional<tcp::endpoint> ep6 = m_ses.get_ipv6_interface();
+			if (ep6) req.ipv6 = ep6->address().to_v6();
 #endif
+		}
 
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
