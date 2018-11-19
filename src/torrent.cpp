@@ -2782,11 +2782,13 @@ bool is_downloading_state(int const st)
 		{
 			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s)
 			{
-				if (s.is_ssl() != is_ssl_torrent())
-					return;
-				if (!is_v6(s.get_local_endpoint()))
-					return;
-				req.ipv6.push_back(s.get_local_endpoint().address().to_v6());
+				if (s.is_ssl() != is_ssl_torrent()) return;
+				tcp::endpoint const ep = s.get_local_endpoint();
+				if (is_any(ep.address())) return;
+				if (is_v6(ep))
+					req.ipv6.push_back(ep.address().to_v6());
+				else
+					req.ipv4.push_back(ep.address().to_v4());
 			});
 		}
 
