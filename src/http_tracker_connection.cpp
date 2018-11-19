@@ -183,6 +183,17 @@ namespace libtorrent
 			}
 		}
 
+		if (tracker_req().ipv4 != address_v4() && !i2p)
+		{
+			error_code err;
+			std::string const ip = tracker_req().ipv4.to_string(err);
+			if (!err)
+			{
+				url += "&ipv4=";
+				url += escape_string(ip.c_str(), ip.size());
+			}
+		}
+
 #if TORRENT_USE_IPV6
 		if (tracker_req().ipv6 != address_v6() && !i2p)
 		{

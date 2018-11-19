@@ -161,6 +161,8 @@ namespace libtorrent
 
 		boost::uint32_t key;
 		int num_want;
+
+		address_v4 ipv4;
 #if TORRENT_USE_IPV6
 		address_v6 ipv6;
 #endif
