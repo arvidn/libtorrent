@@ -36,9 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/throw.hpp"
+#include "libtorrent/aux_/windows.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <windows.h>
 #include <wincrypt.h>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

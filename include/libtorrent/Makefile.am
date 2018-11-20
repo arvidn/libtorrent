@@ -218,6 +218,7 @@ nobase_include_HEADERS = \
   aux_/torrent_impl.hpp             \
   aux_/instantiate_connection.hpp   \
   aux_/range.hpp                    \
+  aux_/windows.hpp                  \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
