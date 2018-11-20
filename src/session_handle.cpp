@@ -1051,7 +1051,7 @@ namespace {
 		// setting
 		settings_pack pack;
 		pack.set_bool(settings_pack::proxy_tracker_connections
-			, s.type != aux::proxy_settings::none);
+			, s.type != settings_pack::none);
 		apply_settings(pack);
 	}
 

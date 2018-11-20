@@ -41,7 +41,7 @@ inline lt::aux::proxy_settings make_proxy_settings(
 	using namespace lt;
 
 	aux::proxy_settings ps;
-	ps.type = std::uint8_t(proxy_type);
+	ps.type = proxy_type;
 	ps.proxy_hostnames = false;
 	// this IP and ports are specific to test_http_connection.cpp
 	if (proxy_type != settings_pack::none)

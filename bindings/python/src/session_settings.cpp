@@ -52,7 +52,7 @@ void bind_session_settings()
         .value("enabled", settings_pack::pe_enabled)
         .value("disabled", settings_pack::pe_disabled)
 #endif
-	  ;
+    ;
 
     enum_<settings_pack::enc_level>("enc_level")
         .value("pe_rc4", settings_pack::pe_rc4)
@@ -65,7 +65,7 @@ void bind_session_settings()
 #endif
     ;
 
-    enum_<settings_pack::proxy_type_t>("proxy_type_t")
+    scope s = enum_<settings_pack::proxy_type_t>("proxy_type_t")
         .value("none", settings_pack::none)
         .value("socks4", settings_pack::socks4)
         .value("socks5", settings_pack::socks5)
@@ -76,15 +76,7 @@ void bind_session_settings()
    ;
 
 #if TORRENT_ABI_VERSION == 1
-    enum_<proxy_settings::proxy_type>("proxy_type")
-        .value("none", proxy_settings::none)
-        .value("socks4", proxy_settings::socks4)
-        .value("socks5", proxy_settings::socks5)
-        .value("socks5_pw", proxy_settings::socks5_pw)
-        .value("http", proxy_settings::http)
-        .value("http_pw", proxy_settings::http_pw)
-        .value("i2p_proxy", proxy_settings::i2p_proxy)
-    ;
+    scope().attr("proxy_type") = s;
 
     class_<proxy_settings>("proxy_settings")
         .def_readwrite("hostname", &proxy_settings::hostname)

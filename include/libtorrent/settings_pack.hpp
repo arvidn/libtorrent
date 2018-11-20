@@ -1668,30 +1668,30 @@ namespace libtorrent {
 			max_int_setting_internal
 		};
 
-		enum settings_counts_t
+		enum settings_counts_t : std::uint8_t
 		{
 			num_string_settings = max_string_setting_internal - string_type_base,
 			num_bool_settings = max_bool_setting_internal - bool_type_base,
 			num_int_settings = max_int_setting_internal - int_type_base
 		};
 
-		enum suggest_mode_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
+		enum suggest_mode_t : std::uint8_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
 
-		enum choking_algorithm_t
+		enum choking_algorithm_t : std::uint8_t
 		{
 			fixed_slots_choker = 0,
 			rate_based_choker = 2,
 			bittyrant_choker = 3
 		};
 
-		enum seed_choking_algorithm_t
+		enum seed_choking_algorithm_t : std::uint8_t
 		{
 			round_robin,
 			fastest_upload,
 			anti_leech
 		};
 
-		enum io_buffer_mode_t
+		enum io_buffer_mode_t : std::uint8_t
 		{
 			enable_os_cache = 0,
 #if TORRENT_ABI_VERSION == 1
@@ -1702,7 +1702,7 @@ namespace libtorrent {
 			disable_os_cache = 2
 		};
 
-		enum bandwidth_mixed_algo_t
+		enum bandwidth_mixed_algo_t : std::uint8_t
 		{
 			// disables the mixed mode bandwidth balancing
 			prefer_tcp = 0,
@@ -1714,7 +1714,7 @@ namespace libtorrent {
 
 		// the encoding policy options for use with
 		// settings_pack::out_enc_policy and settings_pack::in_enc_policy.
-		enum enc_policy
+		enum enc_policy : std::uint8_t
 		{
 			// Only encrypted connections are allowed. Incoming connections that
 			// are not encrypted are closed and if the encrypted outgoing
@@ -1733,7 +1733,7 @@ namespace libtorrent {
 
 		// the encryption levels, to be used with
 		// settings_pack::allowed_enc_level.
-		enum enc_level
+		enum enc_level : std::uint8_t
 		{
 			// use only plaintext encryption
 			pe_plaintext = 1,
@@ -1743,7 +1743,7 @@ namespace libtorrent {
 			pe_both = 3
 		};
 
-		enum proxy_type_t
+		enum proxy_type_t : std::uint8_t
 		{
 			// This is the default, no proxy server is used, all other fields are
 			// ignored.
