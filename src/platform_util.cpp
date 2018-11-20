@@ -55,7 +55,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #endif
 
 #if defined TORRENT_WINDOWS
-#include <windows.h>
+#include "libtorrent/aux_/windows.hpp"
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

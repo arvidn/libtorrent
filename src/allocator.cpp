@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_WINDOWS
 // windows.h must be included after stdlib.h under mingw
-#include <windows.h>
+#include "libtorrent/aux_/windows.hpp"
 #endif
 
 #ifdef TORRENT_MINGW

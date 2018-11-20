@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <csignal>
 
 #ifdef _WIN32
-#include <windows.h> // fot SetErrorMode
+#include "libtorrent/aux_/windows.hpp" // fot SetErrorMode
 #include <io.h> // for _dup and _dup2
 #include <process.h> // for _getpid
 #include <crtdbg.h>

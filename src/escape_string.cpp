@@ -39,10 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 
 #ifdef TORRENT_WINDOWS
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
+#include "libtorrent/aux_/windows.hpp"
 #endif
 
 #if TORRENT_USE_ICONV
