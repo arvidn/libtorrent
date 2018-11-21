@@ -83,6 +83,8 @@ namespace libtorrent {
 
 		void set_settings(aux::session_settings const& sett);
 
+		void trim_freelist();
+
 	protected:
 
 		void free_buffer_impl(char* buf, std::unique_lock<std::mutex>& l);
@@ -122,6 +124,9 @@ namespace libtorrent {
 		void remove_buffer_in_use(char* buf);
 
 		mutable std::mutex m_pool_mutex;
+
+		// recently freed buffers, cached
+		std::vector<char*> m_free_list;
 
 		// this is specifically exempt from release_asserts
 		// since it's a quite costly check. Only for debug

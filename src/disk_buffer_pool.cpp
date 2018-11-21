@@ -85,6 +85,7 @@ namespace libtorrent {
 	disk_buffer_pool::~disk_buffer_pool()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
+		for (char* b : m_free_list) std::free(b);
 #if TORRENT_USE_ASSERTS
 		m_magic = 0;
 #endif
@@ -224,13 +225,23 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		char* ret = static_cast<char*>(std::malloc(default_block_size));
-
-		if (ret == nullptr)
+		char* ret;
+		if (m_free_list.empty())
 		{
-			m_exceeded_max_size = true;
-			m_trigger_cache_trim();
-			return nullptr;
+			ret = static_cast<char*>(std::malloc(default_block_size));
+
+			if (ret == nullptr)
+			{
+				m_exceeded_max_size = true;
+				m_trigger_cache_trim();
+				return nullptr;
+			}
+		}
+		else
+		{
+			ret = m_free_list.back();
+			TORRENT_ASSERT(ret != nullptr);
+			m_free_list.resize(m_free_list.size() - 1);
 		}
 
 		++m_in_use;
@@ -261,9 +272,6 @@ namespace libtorrent {
 
 	void disk_buffer_pool::free_multiple_buffers(span<char*> bufvec)
 	{
-		// sort the pointers in order to maximize cache hits
-		std::sort(bufvec.begin(), bufvec.end());
-
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (char* buf : bufvec)
 		{
@@ -372,9 +380,24 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		std::free(buf);
+		m_free_list.push_back(buf);
 
 		--m_in_use;
+	}
+
+	void disk_buffer_pool::trim_freelist()
+	{
+		std::size_t const minimum_free_list = 32;
+
+		std::unique_lock<std::mutex> l(m_pool_mutex);
+		if (m_free_list.size() <= minimum_free_list) return;
+		std::size_t const pos = std::max(m_free_list.size() - (m_free_list.size() / 8)
+			, minimum_free_list);
+		std::vector<char*> to_free(m_free_list.begin() + std::ptrdiff_t(pos), m_free_list.end());
+		m_free_list.resize(pos);
+		l.unlock();
+
+		for (char* b : to_free) std::free(b);
 	}
 
 }

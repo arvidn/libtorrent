@@ -2591,6 +2591,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			, completed_jobs, l);
 		l.unlock();
 
+		m_disk_cache.trim_freelist();
+
 		j->storage->release_files(j->error);
 		return j->error ? status_t::fatal_disk_error : status_t::no_error;
 	}
@@ -3148,6 +3150,13 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 						m_file_pool.close_oldest();
 					}
 				}
+
+				if (now > m_next_trim)
+				{
+					m_disk_cache.trim_freelist();
+					m_next_trim = now + seconds(10);
+				}
+
 			}
 
 			execute_job(j);

@@ -529,6 +529,9 @@ namespace aux {
 		// time we should call it
 		time_point m_next_close_oldest_file = min_time();
 
+		// the next time we call trim_freelist() on the disk buffer pool
+		time_point m_next_trim = min_time();
+
 		// LRU cache of open files
 		file_pool m_file_pool{40};
 
