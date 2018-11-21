@@ -195,7 +195,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(support_merkle_torrents, true, nullptr),
 		SET(report_redundant_bytes, true, nullptr),
 		SET(listen_system_port_fallback, true, nullptr),
-		DEPRECATED_SET(use_disk_cache_pool, false, nullptr),
+		SET(use_disk_cache_pool, false, nullptr),
 		SET(announce_crypto_support, true, nullptr),
 		SET(enable_upnp, true, &session_impl::update_upnp),
 		SET(enable_natpmp, true, &session_impl::update_natpmp),

@@ -35,6 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/pool/pool.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #if TORRENT_USE_INVARIANT_CHECKS
 #include <set>
 #endif
@@ -122,6 +126,26 @@ namespace libtorrent {
 		void remove_buffer_in_use(char* buf);
 
 		mutable std::mutex m_pool_mutex;
+
+		// if this is true, all buffers are allocated
+		// from m_pool. If this is false, all buffers
+		// are allocated using page_aligned_allocator.
+		// if the settings change to prefer the other
+		// allocator, this bool will not switch over
+		// to match the settings until all buffers have
+		// been freed. That way, we never have a mixture
+		// of buffers allocated from different sources.
+		// in essence, this make the setting only take
+		// effect after a restart (which seems fine).
+		// or once the client goes idle for a while.
+		bool m_using_pool_allocator = false;
+
+		// this is the actual user setting
+		bool m_want_pool_allocator = false;
+
+		// memory pool for read and write operations
+		// and disk cache
+		boost::pool<> m_pool;
 
 		// this is specifically exempt from release_asserts
 		// since it's a quite costly check. Only for debug

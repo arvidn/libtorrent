@@ -33,7 +33,6 @@
 	* added support for retrieval of DHT live nodes
 	* complete UNC path support
 	* add packets pool allocator
-	* remove disk buffer pool allocator
 	* fix last_upload and last_download overflow after 9 hours in past
 	* python binding add more add_torrent_params fields and an invalid key check
 	* introduce introduce distinct types for peer_class_t, piece_index_t and

@@ -76,6 +76,7 @@ namespace libtorrent {
 		, m_trigger_cache_trim(trigger_trim)
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
+		, m_pool(default_block_size, 32)
 	{
 #if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
@@ -140,8 +141,10 @@ namespace libtorrent {
 #elif defined TORRENT_DEBUG_BUFFERS
 		return page_in_use(buffer);
 #else
-		TORRENT_UNUSED(buffer);
-		return true;
+		if (m_using_pool_allocator)
+			return m_pool.is_from(buffer);
+		else
+			return true;
 #endif
 	}
 
@@ -227,7 +230,20 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		char* ret = page_malloc(default_block_size);
+		char* ret;
+		if (m_using_pool_allocator)
+		{
+			std::size_t const effective_block_size
+				= m_in_use >= m_max_use
+				? 20u // use small increments once we've exceeded the cache size
+				: std::max(unsigned(m_max_use) / 10u, 1u);
+			m_pool.set_next_size(effective_block_size);
+			ret = static_cast<char*>(m_pool.malloc());
+		}
+		else
+		{
+			ret = page_malloc(default_block_size);
+		}
 
 		if (ret == nullptr)
 		{
@@ -290,6 +306,12 @@ namespace libtorrent {
 	void disk_buffer_pool::set_settings(aux::session_settings const& sett)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
+
+		// if the chunk size is set to 1, there's no point in creating a pool
+		m_want_pool_allocator = sett.get_bool(settings_pack::use_disk_cache_pool);
+		// if there are no allocated blocks, it's OK to switch allocator
+		if (m_in_use == 0)
+			m_using_pool_allocator = m_want_pool_allocator;
 
 		int const cache_size = sett.get_int(settings_pack::cache_size);
 		if (cache_size < 0)
@@ -375,9 +397,19 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		page_free(buf);
+		if (m_using_pool_allocator)
+			m_pool.free(buf);
+		else
+			page_free(buf);
 
 		--m_in_use;
+
+		// should we switch which allocator to use?
+		if (m_in_use == 0 && m_want_pool_allocator != m_using_pool_allocator)
+		{
+			m_pool.release_memory();
+			m_using_pool_allocator = m_want_pool_allocator;
+		}
 	}
 
 }
