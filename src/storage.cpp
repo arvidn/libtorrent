@@ -498,7 +498,7 @@ namespace libtorrent {
 
 			int ret = 0;
 			error_code e;
-			span<byte const volatile> file_range = handle->range();
+			span<byte const> file_range = handle->range();
 			if (file_range.size() > file_offset)
 			{
 				file_range = file_range.subspan(static_cast<std::ptrdiff_t>(file_offset));
@@ -583,7 +583,7 @@ namespace libtorrent {
 
 			int ret = 0;
 			error_code e;
-			span<byte volatile> file_range = handle->range().subspan(static_cast<std::ptrdiff_t>(file_offset));
+			span<byte> file_range = handle->range().subspan(static_cast<std::ptrdiff_t>(file_offset));
 			for (auto buf : vec)
 			{
 				TORRENT_ASSERT(file_range.size() >= buf.size());
@@ -665,7 +665,7 @@ namespace libtorrent {
 			if (ec) return -1;
 
 			int ret = 0;
-			span<byte const volatile> file_range = handle->range();
+			span<byte const> file_range = handle->range();
 			if (file_range.size() > file_offset)
 			{
 				file_range = file_range.subspan(std::ptrdiff_t(file_offset)
