@@ -136,10 +136,10 @@ namespace aux {
 		void close();
 
 		// the memory range this file has been mapped into
-		span<byte volatile> memory()
+		span<byte> memory()
 		{
 			TORRENT_ASSERT(m_mapping || m_size == 0);
-			return { static_cast<byte volatile*>(m_mapping), static_cast<std::ptrdiff_t>(m_size) };
+			return { static_cast<byte*>(m_mapping), static_cast<std::ptrdiff_t>(m_size) };
 		}
 
 		std::int64_t m_size;
@@ -157,13 +157,13 @@ namespace aux {
 		file_view(file_view&&) = default;
 		file_view& operator=(file_view&&) = default;
 
-		span<byte const volatile> range() const
+		span<byte const> range() const
 		{
 			TORRENT_ASSERT(m_mapping);
 			return m_mapping->memory();
 		}
 
-		span<byte volatile> range()
+		span<byte> range()
 		{
 			TORRENT_ASSERT(m_mapping);
 			return m_mapping->memory();
