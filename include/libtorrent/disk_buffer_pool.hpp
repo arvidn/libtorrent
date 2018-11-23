@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/utility.hpp>
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-#include "libtorrent/allocator.hpp" // for page_aligned_allocator
 #include <boost/pool/pool.hpp>
 #endif
 
@@ -158,7 +157,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		// if this is true, all buffers are allocated
 		// from m_pool. If this is false, all buffers
-		// are allocated using page_aligned_allocator.
+		// are allocated using malloc.
 		// if the settings change to prefer the other
 		// allocator, this bool will not switch over
 		// to match the settings until all buffers have
@@ -174,7 +173,7 @@ namespace libtorrent
 
 		// memory pool for read and write operations
 		// and disk cache
-		boost::pool<page_aligned_allocator> m_pool;
+		boost::pool<> m_pool;
 #endif
 
 		// this is specifically exempt from release_asserts
