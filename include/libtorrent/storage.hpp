@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disk_job_fence.hpp"
 #include "libtorrent/aux_/storage_piece_set.hpp"
 #include "libtorrent/storage_defs.hpp"
-#include "libtorrent/allocator.hpp"
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/bitfield.hpp"

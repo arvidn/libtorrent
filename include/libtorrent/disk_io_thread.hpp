@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/allocator.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/disk_io_thread_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"

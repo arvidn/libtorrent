@@ -20,7 +20,6 @@ set(libtorrent_include_files
 	alert
 	alert_manager
 	alert_types
-	allocator
 	announce_entry
 	assert
 	bandwidth_limit
@@ -269,7 +268,6 @@ set(sources
 	web_connection_base
 	alert
 	alert_manager
-	allocator
 	announce_entry
 	assert
 	bandwidth_limit

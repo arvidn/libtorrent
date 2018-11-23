@@ -2774,7 +2774,7 @@ bool is_downloading_state(int const st)
 
 		req.event = e;
 
-		// since sending our IPv6 address to the tracker may be sensitive. Only
+		// since sending our IPv4/v6 address to the tracker may be sensitive. Only
 		// do that if we're not in anonymous mode and if it's a private torrent
 		if (!settings().get_bool(settings_pack::anonymous_mode)
 			&& m_torrent_file

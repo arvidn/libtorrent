@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/allocator.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/disk_observer.hpp"
@@ -137,8 +136,6 @@ namespace libtorrent {
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		return m_buffers_in_use.count(buffer) == 1;
-#elif defined TORRENT_DEBUG_BUFFERS
-		return page_in_use(buffer);
 #else
 		TORRENT_UNUSED(buffer);
 		return true;
@@ -196,8 +193,8 @@ namespace libtorrent {
 					if (j.data() == nullptr) break;
 					char* buf = j.data();
 					TORRENT_ASSERT(is_disk_buffer(buf, l));
-					free_buffer_impl(buf, l);
 					remove_buffer_in_use(buf);
+					free_buffer_impl(buf, l);
 				}
 				return -1;
 			}
@@ -213,8 +210,8 @@ namespace libtorrent {
 		{
 			char* buf = i.data();
 			TORRENT_ASSERT(is_disk_buffer(buf, l));
-			free_buffer_impl(buf, l);
 			remove_buffer_in_use(buf);
+			free_buffer_impl(buf, l);
 		}
 		check_buffer_level(l);
 	}
@@ -227,7 +224,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		char* ret = page_malloc(default_block_size);
+		char* ret = static_cast<char*>(std::malloc(default_block_size));
 
 		if (ret == nullptr)
 		{
@@ -271,8 +268,8 @@ namespace libtorrent {
 		for (char* buf : bufvec)
 		{
 			TORRENT_ASSERT(is_disk_buffer(buf, l));
-			free_buffer_impl(buf, l);
 			remove_buffer_in_use(buf);
+			free_buffer_impl(buf, l);
 		}
 
 		check_buffer_level(l);
@@ -282,8 +279,8 @@ namespace libtorrent {
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		TORRENT_ASSERT(is_disk_buffer(buf, l));
-		free_buffer_impl(buf, l);
 		remove_buffer_in_use(buf);
+		free_buffer_impl(buf, l);
 		check_buffer_level(l);
 	}
 
@@ -375,7 +372,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		page_free(buf);
+		std::free(buf);
 
 		--m_in_use;
 	}
