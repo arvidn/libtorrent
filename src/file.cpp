@@ -64,7 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
-#include "libtorrent/allocator.hpp" // page_size
 #include "libtorrent/file.hpp"
 #include <cstring>
 #include <vector>

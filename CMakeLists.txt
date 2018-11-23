@@ -16,7 +16,6 @@ set(sources
 	web_connection_base
 	alert
 	alert_manager
-	allocator
 	announce_entry
 	assert
 	bandwidth_limit

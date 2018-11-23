@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/allocator.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/alert.hpp"
@@ -185,8 +184,6 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG
 		return m_buffers_in_use.count(buffer) == 1;
-#elif defined TORRENT_DEBUG_BUFFERS
-		return page_aligned_allocator::in_use(buffer);
 #elif defined TORRENT_DISABLE_POOL_ALLOCATOR
 		return true;
 #else
@@ -290,7 +287,7 @@ namespace libtorrent
 		{
 #if defined TORRENT_DISABLE_POOL_ALLOCATOR
 
-			ret = page_aligned_allocator::malloc(m_block_size);
+			ret = static_cast<char*>(std::malloc(m_block_size));
 
 #else
 			if (m_using_pool_allocator)
@@ -306,7 +303,7 @@ namespace libtorrent
 			}
 			else
 			{
-				ret = page_aligned_allocator::malloc(m_block_size);
+				ret = static_cast<char*>(std::malloc(m_block_size));
 			}
 #endif
 			if (ret == NULL)
@@ -549,13 +546,13 @@ namespace libtorrent
 		{
 #if defined TORRENT_DISABLE_POOL_ALLOCATOR
 
-		page_aligned_allocator::free(buf);
+		std::free(buf);
 
 #else
 		if (m_using_pool_allocator)
 			m_pool.free(buf);
 		else
-			page_aligned_allocator::free(buf);
+			std::free(buf);
 #endif // TORRENT_DISABLE_POOL_ALLOCATOR
 		}
 
