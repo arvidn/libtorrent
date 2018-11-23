@@ -568,42 +568,26 @@ lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
 lib z : : <link>shared <name>z ;
 
-lib crypto
-	: # sources
-	: # requirements
-	<target-os>windows
-	<openssl-version>pre1.1
-	<name>libeay32
-	<conditional>@openssl-lib-path
-	: # default-build
-	: # usage-requirements
-	<conditional>@openssl-include-path
-	<library>advapi32
-	<library>user32
-	<library>shell32
-	<library>gdi32
-	;
+# openssl libraries on windows
+alias ssl-deps : advapi32 user32 shell32 gdi32 ;
 
-lib ssl
-	: # sources
-	: # requirements
-	<target-os>windows
-	<openssl-version>pre1.1
-	<name>ssleay32
-	<use>crypto
-	<conditional>@openssl-lib-path
-	: # default-build
-	: # usage-requirments
-	<conditional>@openssl-include-path
-	<library>advapi32
-	<library>user32
-	<library>shell32
-	<library>gdi32
-	;
+# pre OpenSSL 1.1 windows
+lib crypto : ssl-deps : <target-os>windows <openssl-version>pre1.1 <name>libeay32
+	<conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+lib ssl : ssl-deps : <target-os>windows <openssl-version>pre1.1 <name>ssleay32
+	<use>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
 
+# OpenSSL 1.1+ windows
+lib crypto : ssl-deps : <target-os>windows <name>libcrypto
+	<conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+lib ssl : ssl-deps : <target-os>windows <name>libssl <use>crypto
+	<conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
 
-lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
-lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
+# generic OpenSSL
+lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : :
+	<conditional>@openssl-include-path ;
+lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : :
+	<conditional>@openssl-include-path ;
 
 lib dbghelp : : <name>dbghelp ;
 
