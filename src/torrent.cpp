@@ -633,6 +633,22 @@ bool is_downloading_state(int const st)
 			{
 				add_peer(peer, peer_info::resume_data);
 			}
+
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				std::string str;
+				for (auto const& peer : p.peers)
+				{
+					error_code ec;
+					str += peer.address().to_string(ec);
+					str += ' ';
+				}
+				debug_log("add_torrent add_peer() [ %s] connect-candidates: %d"
+					, str.c_str(), m_peer_list
+					? m_peer_list->num_connect_candidates() : -1);
+			}
+#endif
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2007,6 +2023,22 @@ bool is_downloading_state(int const st)
 				add_peer(p , peer_info::resume_data);
 			}
 
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				error_code ec;
+				std::string str;
+				for (auto const& peer : m_add_torrent_params->peers)
+				{
+					str += peer.address().to_string(ec);
+					str += ' ';
+				}
+				debug_log("resume-checked add_peer() [ %s] connect-candidates: %d"
+					, str.c_str(), m_peer_list
+					? m_peer_list->num_connect_candidates() : -1);
+			}
+#endif
+
 			for (auto const& p : m_add_torrent_params->banned_peers)
 			{
 				torrent_peer* peer = add_peer(p, peer_info::resume_data);
@@ -2021,7 +2053,8 @@ bool is_downloading_state(int const st)
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_peer_list && m_peer_list->num_peers() > 0)
-				debug_log("resume added peers (%d)", m_peer_list->num_peers());
+				debug_log("resume added peers (total peers: %d)"
+					, m_peer_list->num_peers());
 #endif
 		}
 
@@ -2639,6 +2672,22 @@ bool is_downloading_state(int const st)
 		for (auto& p : peers)
 			add_peer(p, peer_info::dht);
 
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+		{
+			error_code ec;
+			std::string str;
+			for (auto const& peer : peers)
+			{
+				str += peer.address().to_string(ec);
+				str += ' ';
+			}
+			debug_log("DHT add_peer() [ %s] connect-candidates: %d"
+				, str.c_str(), m_peer_list
+				? m_peer_list->num_connect_candidates() : -1);
+		}
+#endif
+
 		do_connect_boost();
 
 		update_want_peers();
@@ -3229,6 +3278,27 @@ bool is_downloading_state(int const st)
 			tcp::endpoint a(address_v6(i.ip), i.port);
 			need_update |= bool(add_peer(a, peer_info::tracker) != nullptr);
 		}
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+		{
+			error_code ec;
+			std::string str;
+			for (auto const& peer : resp.peers4)
+			{
+				str += address_v4(peer.ip).to_string(ec);
+				str += ' ';
+			}
+			for (auto const& peer : resp.peers6)
+			{
+				str += address_v6(peer.ip).to_string(ec);
+				str += ' ';
+			}
+			debug_log("tracker add_peer() [ %s] connect-candidates: %d"
+				, str.c_str(), m_peer_list
+				? m_peer_list->num_connect_candidates() : -1);
+		}
+#endif
 		if (need_update) state_updated();
 
 		update_want_peers();
@@ -3444,6 +3514,16 @@ bool is_downloading_state(int const st)
 
 		if (add_peer(host, peer_info::tracker))
 			state_updated();
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+		{
+			error_code ec;
+			debug_log("name-lookup add_peer() [ %s ] connect-candidates: %d"
+				, host.address().to_string(ec).c_str()
+				, m_peer_list ? m_peer_list->num_connect_candidates() : -1);
+		}
+#endif
 		update_want_peers();
 	}
 	catch (...) { handle_exception(); }
@@ -6908,15 +6988,12 @@ bool is_downloading_state(int const st)
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("incoming peer (%d)", num_peers());
-#endif
-
-#ifndef TORRENT_DISABLE_LOGGING
 		if (should_log()) try
 		{
-			debug_log("ATTACHED CONNECTION \"%s\" connections: %d limit: %d"
+			debug_log("ATTACHED CONNECTION \"%s\" connections: %d limit: %d num-peers: %d"
 				, print_endpoint(p->remote()).c_str(), num_peers()
-				, m_max_connections);
+				, m_max_connections
+				, num_peers());
 		}
 		catch (std::exception const&) {}
 #endif
@@ -7933,7 +8010,8 @@ bool is_downloading_state(int const st)
 		if (int(m_max_uploads)!= limit && state_update) state_updated();
 		m_max_uploads = aux::numeric_cast<std::uint32_t>(limit);
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** set-max-uploads: %d", m_max_uploads);
+		if (should_log() && state_update)
+			debug_log("*** set-max-uploads: %d", m_max_uploads);
 #endif
 
 		if (state_update)
@@ -7950,7 +8028,8 @@ bool is_downloading_state(int const st)
 		update_want_peers();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** set-max-connections: %d", m_max_connections);
+		if (should_log() && state_update)
+			debug_log("*** set-max-connections: %d", m_max_connections);
 #endif
 
 		if (num_peers() > int(m_max_connections))
@@ -9978,15 +10057,6 @@ bool is_downloading_state(int const st)
 		torrent_state st = get_peer_list_state();
 		torrent_peer* p = m_peer_list->add_peer(adr, source, flags, &st);
 		peers_erased(st.erased);
-
-#ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
-		{
-			error_code ec;
-			debug_log("add_peer() %s connect-candidates: %d"
-				, adr.address().to_string(ec).c_str(), m_peer_list->num_connect_candidates());
-		}
-#endif
 
 		if (p)
 		{

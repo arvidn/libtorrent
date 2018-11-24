@@ -541,6 +541,8 @@ namespace libtorrent {
 #endif
 	};
 
+	// internal
+	std::string print_error(error_code const&);
 }
 
 namespace boost { namespace system {

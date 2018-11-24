@@ -1436,7 +1436,7 @@ namespace {
 					if (should_log(peer_log_alert::incoming_message))
 					{
 						peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-							, "msg:connect to: %s error: failed to add peer"
+							, "msg:connect to: %s ERROR: failed to add peer"
 							, print_address(ep.address()).c_str());
 					}
 #endif
@@ -1450,7 +1450,7 @@ namespace {
 					if (should_log(peer_log_alert::incoming_message))
 					{
 						peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-							, "msg:connect to: %s error: peer banned", print_address(ep.address()).c_str());
+							, "msg:connect to: %s ERROR: peer banned", print_address(ep.address()).c_str());
 					}
 #endif
 					// this peer is banned, don't connect to it
@@ -1484,7 +1484,7 @@ namespace {
 				{
 					static char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
 					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-						, "msg:failed error: %d msg: %s", error
+						, "msg:failed ERROR: %d msg: %s", error
 						, ((error > 0 && error < 5)?err_msg[error-1]:"unknown message id"));
 				}
 #endif
@@ -1510,7 +1510,7 @@ namespace {
 			static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
 			static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
 			peer_log(peer_log_alert::outgoing_message, "HOLEPUNCH"
-				, "msg: %s to: %s error: %s"
+				, "msg: %s to: %s ERROR: %s"
 				, (static_cast<std::uint8_t>(type) < 3
 					? hp_msg_name[static_cast<std::uint8_t>(type)]
 					: "unknown message type")
@@ -1584,7 +1584,7 @@ namespace {
 #endif
 				return;
 			}
-			bool ul = aux::read_uint8(recv_buffer) != 0;
+			bool const ul = aux::read_uint8(recv_buffer) != 0;
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming_message, "UPLOAD_ONLY"
 				, "%s", (ul?"true":"false"));
@@ -1675,8 +1675,8 @@ namespace {
 			if (should_log(peer_log_alert::info))
 			{
 				peer_log(peer_log_alert::info, "EXTENSION_MESSAGE"
-					, "invalid extended handshake: %s pos: %d"
-					, ec.message().c_str(), pos);
+					, "invalid extended handshake. pos: %d %s"
+					, pos, print_error(ec).c_str());
 			}
 #endif
 			return;

@@ -148,7 +148,7 @@ namespace libtorrent {
 		std::shared_ptr<request_callback> cb = requester();
 		if (cb && cb->should_log())
 		{
-			cb->debug_log(R"(*** UDP_TRACKER [ host: "%s" ip: "%s" | error: "%s" ])"
+			cb->debug_log(R"(*** UDP_TRACKER [ host: "%s" ip: "%s" | ERROR: "%s" ])"
 				, m_hostname.c_str(), print_endpoint(m_target).c_str(), ec.message().c_str());
 		}
 #endif
@@ -513,7 +513,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb && cb->should_log())
 		{
-			cb->debug_log("==> UDP_TRACKER_CONNECT [ to: %s ih: %s]"
+			cb->debug_log("==> UDP_TRACKER_CONNECT [ to: %s ih: %s ]"
 				, m_hostname.empty()
 					? print_endpoint(m_target).c_str()
 					: (m_hostname + ":" + to_string(m_target.port()).data()).c_str()

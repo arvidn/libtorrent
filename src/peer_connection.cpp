@@ -255,7 +255,7 @@ namespace libtorrent {
 	{
 		TORRENT_UNUSED(e);
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "PEER_ERROR" ,"error: %s"
+		peer_log(peer_log_alert::info, "PEER_ERROR", "ERROR: %s"
 			, e.what());
 #endif
 		disconnect(error_code(), operation_t::unknown, peer_error);
@@ -370,11 +370,14 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
 		{
+			std::string classes;
 			for (int i = 0; i < num_classes(); ++i)
 			{
-				peer_log(peer_log_alert::info, "CLASS", "%s"
-					, m_ses.peer_classes().at(class_at(i))->label.c_str());
+				classes += m_ses.peer_classes().at(class_at(i))->label;
+				classes += ' ';
 			}
+			peer_log(peer_log_alert::info, "CLASS", "%s"
+				, classes.c_str());
 		}
 #endif
 
@@ -427,12 +430,6 @@ namespace libtorrent {
 		}
 #endif
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_connection_complete");
-
-#ifndef TORRENT_DISABLE_LOGGING
-		if (t && t->should_log())
-			t->debug_log("START connect [%p] (%d)", static_cast<void*>(this)
-				, t->num_peers());
-#endif
 
 		auto conn = self();
 		m_socket->async_connect(m_remote
@@ -1641,12 +1638,6 @@ namespace libtorrent {
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-#ifndef TORRENT_DISABLE_LOGGING
-		m_unchoke_time = clock_type::now();
-		t->debug_log("UNCHOKE [%p] (%d ms)", static_cast<void*>(this)
-			, int(total_milliseconds(m_unchoke_time - m_bitfield_time)));
-#endif
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
 		{
@@ -2844,12 +2835,6 @@ namespace libtorrent {
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (t->should_log())
-		{
-			t->debug_log("PIECE [%p] (%d ms) (%d)", static_cast<void*>(this)
-				, int(total_milliseconds(now - m_unchoke_time)), t->num_have());
-		}
-
 		peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE", "piece: %d s: %x l: %x"
 			, static_cast<int>(p.piece), p.start, p.length);
 #endif
@@ -3348,14 +3333,6 @@ namespace libtorrent {
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (t->should_log())
-		{
-			time_point const now = clock_type::now();
-			t->debug_log("ALLOW FAST [%p] (%d ms)"
-				, static_cast<void*>(this)
-				, int(total_milliseconds(now - m_connect_time)));
-			if (m_peer_choked) m_unchoke_time = now;
-		}
 		peer_log(peer_log_alert::incoming_message, "ALLOWED_FAST", "%d"
 			, static_cast<int>(index));
 #endif
@@ -4046,9 +4023,6 @@ namespace libtorrent {
 			// previously did not have a request. That's when we start the
 			// request timeout.
 			m_requested = aux::time_now();
-#ifndef TORRENT_DISABLE_LOGGING
-			t->debug_log("REQUEST [%p]", static_cast<void*>(this));
-#endif
 		}
 	}
 
@@ -4061,7 +4035,7 @@ namespace libtorrent {
 		if (should_log(peer_log_alert::info))
 		{
 			peer_log(peer_log_alert::info, "CONNECTION FAILED"
-				, "%s", print_endpoint(m_remote).c_str());
+				, "%s %s", print_endpoint(m_remote).c_str(), print_error(e).c_str());
 		}
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
@@ -4166,8 +4140,8 @@ namespace libtorrent {
 		{
 			static aux::array<char const*, 3, disconnect_severity_t> const str{{{
 				"CONNECTION_CLOSED", "CONNECTION_FAILED", "PEER_ERROR"}}};
-			peer_log(peer_log_alert::info, str[error], "op: %d error: %s"
-				, static_cast<int>(op), ec.message().c_str());
+			peer_log(peer_log_alert::info, str[error], "op: %d %s"
+				, static_cast<int>(op), print_error(ec).c_str());
 
 			if (ec == boost::asio::error::eof
 				&& !in_handshake()
@@ -4179,7 +4153,7 @@ namespace libtorrent {
 		}
 		catch (std::exception const& err)
 		{
-			peer_log(peer_log_alert::info, "PEER_ERROR" ,"op: %d error: unknown error (failed with exception) %s"
+			peer_log(peer_log_alert::info, "PEER_ERROR" ,"op: %d ERROR: unknown error (failed with exception) %s"
 				, static_cast<int>(op), err.what());
 		}
 #endif
@@ -5808,9 +5782,8 @@ namespace libtorrent {
 		if (should_log(peer_log_alert::incoming))
 		{
 			peer_log(peer_log_alert::incoming, "ON_RECEIVE_DATA"
-				, "bytes: %d error: (%s:%d) %s"
-				, int(bytes_transferred), error.category().name(), error.value()
-				, error.message().c_str());
+				, "bytes: %d %s"
+				, int(bytes_transferred), print_error(error).c_str());
 		}
 #endif
 
@@ -5831,8 +5804,8 @@ namespace libtorrent {
 			if (should_log(peer_log_alert::info))
 			{
 				peer_log(peer_log_alert::info, "ERROR"
-					, "in peer_connection::on_receive_data_impl error: %s"
-					, error.message().c_str());
+					, "in peer_connection::on_receive_data_impl %s"
+					, print_error(error).c_str());
 			}
 #endif
 			on_receive(error, bytes_transferred);
@@ -6015,11 +5988,7 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		{
-			std::shared_ptr<torrent> t = m_torrent.lock();
-			if (t) t->debug_log("END connect [%p]", static_cast<void*>(this));
-			m_connect_time = aux::time_now();
-		}
+		m_connect_time = aux::time_now();
 #endif
 
 		// if t is nullptr, we better not be connecting, since
@@ -6174,8 +6143,8 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
 		{
-			peer_log(peer_log_alert::info, "ON_SEND_DATA", "bytes: %d error: %s"
-				, int(bytes_transferred), error.message().c_str());
+			peer_log(peer_log_alert::info, "ON_SEND_DATA", "bytes: %d %s"
+				, int(bytes_transferred), print_error(error).c_str());
 		}
 #endif
 

@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_util.hpp" // for to_string()
 
+#include <sstream>
+
 namespace libtorrent {
 
 	struct libtorrent_error_category : boost::system::error_category
@@ -330,6 +332,15 @@ namespace libtorrent {
 		{
 			return boost::system::error_code(e, libtorrent_category());
 		}
+	}
+
+	std::string print_error(error_code const& ec)
+	{
+		if (!ec) return {};
+		std::stringstream ret;
+		ret << "ERROR: (" << ec.category().name() << ":" << ec.value() << ") "
+			<< ec.message();
+		return ret.str();
 	}
 
 }
