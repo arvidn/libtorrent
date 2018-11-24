@@ -309,12 +309,6 @@ Build features:
 |                          | * ``pre1.1`` - link against the old windows names  |
 |                          |   (i.e. ``ssleay32`` and ``libeay32``.             |
 +--------------------------+----------------------------------------------------+
-| ``piece-allocator``      | * ``valloc`` - default, uses ``valloc()`` or       |
-|                          |   ``_aligned_malloc()`` for disk cache blocks.     |
-|                          |   send buffers.                                    |
-|                          | * ``memalign`` - uses ``memalign()``.              |
-|                          | * ``posix_memalign`` - uses ``posix_memalign()``.  |
-+--------------------------+----------------------------------------------------+
 | ``link``                 | * ``static`` - builds libtorrent as a static       |
 |                          |   library (.a / .lib)                              |
 |                          | * ``shared`` - builds libtorrent as a shared       |
