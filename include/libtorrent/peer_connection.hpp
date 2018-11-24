@@ -526,7 +526,6 @@ namespace aux {
 
 		time_point m_connect_time;
 		time_point m_bitfield_time;
-		time_point m_unchoke_time;
 #endif
 
 		// the message handlers are called

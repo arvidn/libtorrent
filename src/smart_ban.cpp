@@ -76,15 +76,17 @@ namespace {
 
 		void on_piece_pass(piece_index_t const p) override
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
-				, static_cast<int>(p), int(m_block_hashes.size()));
-#endif
 			// has this piece failed earlier? If it has, go through the
 			// CRCs from the time it failed and ban the peers that
 			// sent bad blocks
 			auto i = m_block_hashes.lower_bound(piece_block(p, 0));
 			if (i == m_block_hashes.end() || i->first.piece_index != p) return;
+
+#ifndef TORRENT_DISABLE_LOGGING
+			if (m_torrent.should_log())
+				m_torrent.debug_log("PIECE PASS [ p: %d | block_hash_size: %d ]"
+					, static_cast<int>(p), int(m_block_hashes.size()));
+#endif
 
 			int size = m_torrent.torrent_file().piece_size(p);
 			peer_request r = {p, 0, std::min(16 * 1024, size)};
@@ -215,7 +217,7 @@ namespace {
 							p->connection->get_peer_info(info);
 							client = info.client.c_str();
 						}
-						m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
+						m_torrent.debug_log("BANNING PEER [ p: %d | b: %d | c: %s"
 							" | hash1: %s | hash2: %s | ip: %s ]"
 							, static_cast<int>(b.piece_index), b.block_index, client
 							, aux::to_hex(i->second.digest).c_str()
@@ -244,7 +246,7 @@ namespace {
 					p->connection->get_peer_info(info);
 					client = info.client.c_str();
 				}
-				m_torrent.debug_log(" STORE BLOCK CRC [ p: %d | b: %d | c: %s"
+				m_torrent.debug_log("STORE BLOCK CRC [ p: %d | b: %d | c: %s"
 					" | digest: %s | ip: %s ]"
 					, static_cast<int>(b.piece_index), b.block_index, client
 					, aux::to_hex(e.digest).c_str()
@@ -290,7 +292,7 @@ namespace {
 					p->connection->get_peer_info(info);
 					client = info.client.c_str();
 				}
-				m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
+				m_torrent.debug_log("BANNING PEER [ p: %d | b: %d | c: %s"
 					" | ok_digest: %s | bad_digest: %s | ip: %s ]"
 					, static_cast<int>(b.first.piece_index), b.first.block_index, client
 					, aux::to_hex(ok_digest).c_str()
