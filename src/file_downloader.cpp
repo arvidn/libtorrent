@@ -54,6 +54,38 @@ extern "C" {
 #include "local_mongoose.h"
 }
 
+namespace {
+	lt::string_view::size_type find(lt::string_view haystack, lt::string_view needle, lt::string_view::size_type pos)
+	{
+		auto const p = haystack.substr(pos).find(needle);
+		if (p == lt::string_view::npos) return p;
+		return pos + p;
+	}
+
+	lt::string_view url_has_argument(
+		lt::string_view url, std::string argument, std::string::size_type* out_pos = nullptr)
+	{
+		auto i = url.find('?');
+		if (i == std::string::npos) return {};
+		++i;
+
+		argument += '=';
+
+		if (url.substr(i, argument.size()) == argument)
+		{
+			auto const pos = i + argument.size();
+			if (out_pos) *out_pos = pos;
+			return url.substr(pos, url.substr(pos).find('&'));
+		}
+		argument.insert(0, "&");
+		i = find(url, argument, i);
+		if (i == std::string::npos) return {};
+		auto const pos = i + argument.size();
+		if (out_pos) *out_pos = pos;
+		return url.substr(pos, find(url, "&", pos) - pos);
+	}
+}
+
 namespace libtorrent
 {
 	struct piece_entry
