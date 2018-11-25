@@ -113,9 +113,13 @@ namespace libtorrent {
 #if TORRENT_USE_ASSERTS
 	bool peer_connection::is_single_thread() const
 	{
+#ifdef TORRENT_USE_INVARIANT_CHECKS
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return true;
 		return t->is_single_thread();
+#else
+		return true;
+#endif
 	}
 #endif
 
