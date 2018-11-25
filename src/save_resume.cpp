@@ -61,6 +61,14 @@ save_resume::save_resume(session& s, std::string const& resume_file, alert_handl
 	, m_num_in_flight(0)
 	, m_shutting_down(false)
 {
+	int ret = sqlite3_open(resume_file.c_str(), &m_db);
+	if (ret != SQLITE_OK)
+	{
+		fprintf(stderr, "Can't open resume file [%s]: %s\n"
+			, resume_file.c_str(), sqlite3_errmsg(m_db));
+		return;
+	}
+
 	m_alerts->subscribe(this, 0, add_torrent_alert::alert_type
 		, torrent_removed_alert::alert_type
 		, stats_alert::alert_type // just to get woken up regularly
@@ -70,17 +78,14 @@ save_resume::save_resume(session& s, std::string const& resume_file, alert_handl
 		, torrent_finished_alert::alert_type
 		, 0);
 
-	int ret = sqlite3_open(resume_file.c_str(), &m_db);
+	ret = sqlite3_exec(m_db, "CREATE TABLE TORRENTS("
+		"INFOHASH STRING PRIMARY KEY NOT NULL,"
+		"RESUME BLOB NOT NULL);", nullptr, 0, nullptr);
 	if (ret != SQLITE_OK)
 	{
-		fprintf(stderr, "Can't open resume file [%s]: %s\n"
-			, resume_file.c_str(), sqlite3_errmsg(m_db));
-		return;
+		fprintf(stderr, "Failed to create table: %s\n"
+			, sqlite3_errmsg(m_db));
 	}
-
-	sqlite3_exec(m_db, "CREATE TABLE TORRENTS("
-		"INFOHASH STRING PRIMARY KEY NOT nullptr,"
-		"RESUME BLOB NOT nullptr);", NULL, 0, NULL);
 
 	// ignore errors, since the table is likely to already
 	// exist (and sqlite doesn't give a reasonable way to
@@ -223,8 +228,6 @@ void save_resume::handle_alert(alert const* a) try
 		}
 		sqlite3_finalize(stmt);
 		printf("saving %s\n", ih.c_str());
-
-		sr->handle.set_pinned(false);
 	}
 	else if (sf)
 	{
