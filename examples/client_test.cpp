@@ -1356,7 +1356,11 @@ example alert_masks:
 
 			torrent_handle h = view.get_active_handle();
 
-			if (c == EOF) { break; }
+			if (c == EOF)
+			{
+				quit = true;
+				break;
+			}
 			do
 			{
 				if (c == escape_seq)
@@ -1366,11 +1370,19 @@ example alert_masks:
 					int c2 = _getch();
 #else
 					int c2 = getc(stdin);
-					if (c2 == EOF) { break; }
+					if (c2 == EOF)
+					{
+						quit = true;
+						break;
+					}
 					if (c2 != '[') continue;
 					c2 = getc(stdin);
 #endif
-					if (c2 == EOF) break;
+					if (c2 == EOF)
+					{
+						quit = true;
+						break;
+					}
 					if (c2 == left_arrow)
 					{
 						int const filter = view.filter();
