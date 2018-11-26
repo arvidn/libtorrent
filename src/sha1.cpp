@@ -122,7 +122,7 @@ using u8 = std::uint8_t;
 	void SHAPrintContext(sha1_ctx *context, char *msg)
 	{
 		using namespace std;
-		std::printf("%s (%d,%d) %x %x %x %x %x\n"
+		std::printf("%s (%u,%u) %x %x %x %x %x\n"
 			, msg, (unsigned int)context->count[0]
 			, (unsigned int)context->count[1]
 			, (unsigned int)context->state[0]
