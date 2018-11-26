@@ -990,7 +990,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return std::vector<ip_route>();
 	}
 
-	if (needed <= 0)
+	if (needed == 0)
 	{
 		return std::vector<ip_route>();
 	}

@@ -84,7 +84,7 @@ bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> des
 			&& ret[i]
 			&& k.type == bdecode_node::string_t)
 		{
-			bool const invalid = k.flags & key_desc_t::size_divisible
+			bool const invalid = (k.flags & key_desc_t::size_divisible)
 				? (ret[i].string_length() % k.size) != 0
 				: ret[i].string_length() != k.size;
 

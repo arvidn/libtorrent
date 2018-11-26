@@ -114,7 +114,7 @@ public:
 		// if this assert trips, set_dst_name() is called wth an IP address rather
 		// than a hostname. Instead, resolve the IP into an address and pass it to
 		// async_connect instead
-		TORRENT_ASSERT(!is_ip_address(host.c_str()));
+		TORRENT_ASSERT(!is_ip_address(host));
 		m_dst_name = host;
 		if (m_dst_name.size() > 255)
 			m_dst_name.resize(255);

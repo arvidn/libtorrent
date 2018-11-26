@@ -1265,7 +1265,6 @@ namespace libtorrent {
 		// the piece list dirty, just update those pieces
 		// instead
 		TORRENT_ALLOCA(incremented, piece_index_t, size);
-		int num_inc = 0;
 
 		if (!m_dirty)
 		{
@@ -1275,6 +1274,7 @@ namespace libtorrent {
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
 			piece_index_t index = piece_index_t(0);
+			int num_inc = 0;
 			for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
 			{
 				if (!*i) continue;
@@ -1361,7 +1361,6 @@ namespace libtorrent {
 		// the piece list dirty, just update those pieces
 		// instead
 		TORRENT_ALLOCA(decremented, piece_index_t, size);
-		int num_dec = 0;
 
 		if (!m_dirty)
 		{
@@ -1371,6 +1370,7 @@ namespace libtorrent {
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
 			piece_index_t index = piece_index_t(0);
+			int num_dec = 0;
 			for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
 			{
 				if (!*i) continue;

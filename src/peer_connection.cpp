@@ -2308,8 +2308,8 @@ namespace libtorrent {
 		{
 			if (e->on_request(r)) return;
 		}
-#endif
 		if (is_disconnecting()) return;
+#endif
 
 		if (!t->valid_metadata())
 		{
@@ -5305,7 +5305,7 @@ namespace libtorrent {
 				, "piece: %d s: %x l: %x b: %p c: %s e: %s rtt: %d us"
 				, static_cast<int>(r.piece), r.start, r.length
 				, static_cast<void*>(buffer.get())
-				, (flags & disk_interface::cache_hit ? "cache hit" : "cache miss")
+				, ((flags & disk_interface::cache_hit) ? "cache hit" : "cache miss")
 				, error.ec.message().c_str(), disk_rtt);
 		}
 #endif

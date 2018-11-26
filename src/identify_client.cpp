@@ -359,9 +359,7 @@ namespace libtorrent {
 		if (f) return f;
 
 		// look for mainline style id
-		f = parse_mainline_style(p);
-		if (f) return f;
-		return f;
+		return parse_mainline_style(p);
 	}
 
 #endif
