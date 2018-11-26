@@ -177,10 +177,8 @@ std::tuple<int, int, int> routing_table::size() const
 	for (auto const& i : m_buckets)
 	{
 		nodes += int(i.live_nodes.size());
-		for (auto const& k : i.live_nodes)
-		{
-			if (k.confirmed()) ++confirmed;
-		}
+		confirmed += static_cast<int>(std::count_if(i.live_nodes.begin(), i.live_nodes.end()
+			, [](node_entry const& k) { return k.confirmed(); } ));
 
 		replacements += int(i.replacements.size());
 	}

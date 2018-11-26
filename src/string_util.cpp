@@ -137,8 +137,8 @@ namespace libtorrent {
 			"abcdefghijklmnopqrstuvwxyz-_.!~*()";
 
 		// the random number
-		for (char& c : dest)
-			c = printable[random(sizeof(printable) - 2)];
+		std::generate(dest.begin(), dest.end()
+			, []{ return printable[random(sizeof(printable) - 2)]; });
 	}
 
 	bool string_ends_with(string_view s1, string_view s2)

@@ -345,10 +345,8 @@ namespace libtorrent {
 
 	int piece_picker::get_download_queue_size() const
 	{
-		int ret = 0;
-		for (auto const& c : m_downloads)
-			ret += int(c.size());
-		return ret;
+		return std::accumulate(m_downloads.begin(), m_downloads.end(), 0
+			, [](int const acc, aux::vector<downloading_piece> const& q) { return acc + int(q.size()); });
 	}
 
 	void piece_picker::get_download_queue_sizes(int* partial

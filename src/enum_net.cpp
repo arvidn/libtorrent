@@ -537,12 +537,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 	bool in_local_network(std::vector<ip_interface> const& net, address const& addr)
 	{
-		for (auto const& i : net)
-		{
-			if (match_addr_mask(addr, i.interface_address, i.netmask))
-				return true;
-		}
-		return false;
+		return std::any_of(net.begin(), net.end(), [&addr](ip_interface const& i)
+			{ return match_addr_mask(addr, i.interface_address, i.netmask); });
 	}
 
 	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)
@@ -1248,10 +1244,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	std::string device_for_address(address addr, io_service& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
-		if (ec) return std::string();
+		if (ec) return {};
 
-		for (auto const& iface : ifs)
-			if (iface.interface_address == addr) return iface.name;
-		return std::string();
+		auto const iter = std::find_if(ifs.begin(), ifs.end()
+			, [&addr](ip_interface const& iface)
+			{ return iface.interface_address == addr; });
+		return (iter == ifs.end()) ? std::string() : iter->name;
 	}
 }

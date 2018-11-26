@@ -1222,7 +1222,7 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 	}
 }
 
-node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
+node::protocol_descriptor const& node::map_protocol_to_descriptor(udp const protocol)
 {
 	static std::array<protocol_descriptor, 2> const descriptors =
 	{{
@@ -1230,14 +1230,16 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 		{udp::v6(), "n6", "nodes6"}
 	}};
 
-	for (auto const& d : descriptors)
+	auto const iter = std::find_if(descriptors.begin(), descriptors.end()
+		, [&protocol](protocol_descriptor const& d) { return d.protocol == protocol; });
+
+	if (iter == descriptors.end())
 	{
-		if (d.protocol == protocol)
-			return d;
+		TORRENT_ASSERT_FAIL();
+		aux::throw_ex<std::out_of_range>("unknown protocol");
 	}
 
-	TORRENT_ASSERT_FAIL();
-	aux::throw_ex<std::out_of_range>("unknown protocol");
+	return *iter;
 }
 
 } } // namespace libtorrent::dht
