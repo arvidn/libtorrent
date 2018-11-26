@@ -186,15 +186,13 @@ namespace libtorrent {
 
 	void convert_path_to_posix(std::string& path)
 	{
-		for (char& c : path)
-			if (c == '\\') c = '/';
+		std::replace(path.begin(), path.end(), '\\', '/');
 	}
 
 #ifdef TORRENT_WINDOWS
 	void convert_path_to_windows(std::string& path)
 	{
-		for (char& c : path)
-			if (c == '/') c = '\\';
+		std::replace(path.begin(), path.end(), '/', '\\');
 	}
 #endif
 

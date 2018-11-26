@@ -113,7 +113,7 @@ namespace libtorrent { namespace aux {
 #else
 			// fallback
 
-			for (auto& b : buffer) b = char(random(0xff));
+			std::generate(buffer.begin(), buffer.end(), [] { return char(random(0xff)); });
 #endif
 		}
 	}

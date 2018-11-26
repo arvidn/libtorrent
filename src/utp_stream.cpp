@@ -44,6 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <limits>
 
+#if TORRENT_USE_INVARIANT_CHECKS
+#include <numeric> // for accumulate
+#endif
+
 // the behavior of the sequence numbers as implemented by uTorrent is not
 // particularly regular. This switch indicates the odd parts.
 #define TORRENT_UT_SEQ 1
@@ -302,9 +306,8 @@ struct utp_socket_impl
 
 	// TODO: 2 it would be nice if not everything would have to be public here
 
-	void check_receive_buffers() const;
-
 #if TORRENT_USE_INVARIANT_CHECKS
+	void check_receive_buffers() const;
 	void check_invariant() const;
 #endif
 
@@ -1029,7 +1032,9 @@ std::size_t utp_stream::read_some(bool const clear_buffers)
 			break;
 		}
 
+#if TORRENT_USE_INVARIANT_CHECKS
 		m_impl->check_receive_buffers();
+#endif
 
 		packet* p = i->get();
 		int to_copy = std::min(p->size - p->header_size, aux::numeric_cast<int>(target->len));
@@ -1045,7 +1050,9 @@ std::size_t utp_stream::read_some(bool const clear_buffers)
 		p->header_size += std::uint16_t(to_copy);
 		if (target->len == 0) target = m_impl->m_read_buffer.erase(target);
 
+#if TORRENT_USE_INVARIANT_CHECKS
 		m_impl->check_receive_buffers();
+#endif
 
 		TORRENT_ASSERT(m_impl->m_receive_buffer_size >= 0);
 
@@ -2391,7 +2398,9 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet_ptr p
 
 	UTP_LOGV("%8p: incoming: saving packet in receive buffer (%d)\n", static_cast<void*>(this), m_receive_buffer_size);
 
+#if TORRENT_USE_INVARIANT_CHECKS
 	check_receive_buffers();
+#endif
 }
 
 bool utp_socket_impl::cancel_handlers(error_code const& ec, bool shutdown)
@@ -3643,16 +3652,17 @@ void utp_socket_impl::tick(time_point const now)
 	}
 }
 
+#if TORRENT_USE_INVARIANT_CHECKS
 void utp_socket_impl::check_receive_buffers() const
 {
 	INVARIANT_CHECK;
 
-	int size = 0;
-	for (auto const& p : m_receive_buffer)
-		size += p ? p->size - p->header_size : 0;
+	int const size = std::accumulate(m_receive_buffer.begin(), m_receive_buffer.end(), 0
+		, [](int const acc, packet_ptr const& p) { return acc + (p ? p->size - p->header_size : 0); } );
 
 	TORRENT_ASSERT(size == m_receive_buffer_size);
 }
+#endif
 
 #if TORRENT_USE_INVARIANT_CHECKS
 void utp_socket_impl::check_invariant() const

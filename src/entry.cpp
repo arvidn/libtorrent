@@ -662,11 +662,8 @@ namespace {
 namespace {
 	bool is_binary(std::string const& str)
 	{
-		for (char const c : str)
-		{
-			if (!is_print(c)) return true;
-		}
-		return false;
+		return std::any_of(str.begin(), str.end()
+			, [](char const c) { return !is_print(c); });
 	}
 
 	std::string print_string(std::string const& str)

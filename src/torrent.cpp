@@ -773,11 +773,8 @@ bool is_downloading_state(int const st)
 		if (m_trackers.empty()) return true;
 		if (!settings().get_bool(settings_pack::use_dht_as_fallback)) return true;
 
-		int verified_trackers = 0;
-		for (auto const& tr : m_trackers)
-			if (tr.verified) ++verified_trackers;
-
-		return verified_trackers == 0;
+		return std::none_of(m_trackers.begin(), m_trackers.end()
+			, [](announce_entry const& tr) { return bool(tr.verified); });
 	}
 
 #endif
@@ -2566,9 +2563,9 @@ bool is_downloading_state(int const st)
 
 				if (settings().get_bool(settings_pack::use_dht_as_fallback))
 				{
-					int verified_trackers = 0;
-					for (auto const& t : m_trackers)
-						if (t.verified) ++verified_trackers;
+					int const verified_trackers = static_cast<int>(std::count_if(
+						m_trackers.begin(), m_trackers.end()
+						, [](announce_entry const& t) { return t.verified; }));
 
 					if (verified_trackers > 0)
 						debug_log("DHT: only using DHT as fallback, and there are %d working trackers", verified_trackers);
@@ -9132,23 +9129,20 @@ bool is_downloading_state(int const st)
 			&& (num_peers * 100 / m_max_connections > 90
 				|| num_peers > 20))
 		{
-			// we are connected to more than 90% seeds (and we're beyond
+			// we are connected to more than 50% seeds (and we're beyond
 			// 90% of the max number of connections). That will
 			// limit our ability to upload. We need more downloaders.
 			// disconnect some seeds so that we don't have more than 50%
 			int const to_disconnect = num_seeds - num_peers / 2;
 			aux::vector<peer_connection*> seeds;
 			seeds.reserve(num_seeds);
-			for (auto const p : m_connections)
-			{
-				if (p->is_seed()) seeds.push_back(p);
-			}
+			std::copy_if(m_connections.begin(), m_connections.end(), std::back_inserter(seeds)
+				, [](peer_connection const* p) { return p->is_seed(); });
 
 			aux::random_shuffle(seeds.begin(), seeds.end());
 			TORRENT_ASSERT(to_disconnect <= seeds.end_index());
-			for (int i = 0; i < to_disconnect; ++i)
-				seeds[i]->disconnect(errors::upload_upload_connection
-					, operation_t::bittorrent);
+			for (auto const& p : span<peer_connection*>(seeds).first(to_disconnect))
+				p->disconnect(errors::upload_upload_connection, operation_t::bittorrent);
 		}
 
 		if (num_downloaders == 0) return;
@@ -9420,9 +9414,7 @@ bool is_downloading_state(int const st)
 
 		// then insert them into the interesting_blocks vector
 		for (auto const& block : busy_blocks)
-		{
 			interesting_blocks.emplace_back(piece, block.index);
-		}
 	}
 
 	void pick_time_critical_block(std::vector<peer_connection*>& peers

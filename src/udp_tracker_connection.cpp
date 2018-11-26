@@ -629,14 +629,12 @@ namespace libtorrent {
 			}
 		}
 
+		// TODO: why is this a linked list?
 		std::list<address> ip_list;
-		for (auto const& endp : m_endpoints)
-		{
-			ip_list.push_back(endp.address());
-		}
+		std::transform(m_endpoints.begin(), m_endpoints.end(), std::back_inserter(ip_list)
+			, [](tcp::endpoint const& ep) { return ep.address(); } );
 
-		cb->tracker_response(tracker_req(), m_target.address(), ip_list
-			, resp);
+		cb->tracker_response(tracker_req(), m_target.address(), ip_list, resp);
 
 		close();
 		return true;

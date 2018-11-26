@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <ctime>
 #include <algorithm>
+#include <numeric>
 #include <set>
 #include <functional>
 #include <cstdio>
@@ -803,15 +804,13 @@ namespace {
 					std::memset(b.data(), 0, std::size_t(b.size()));
 					ret += int(b.size());
 				}
-				return 0;
+				return ret;
 			}
 			int writev(span<iovec_t const> bufs
 				, piece_index_t, int, open_mode_t, storage_error&) override
 			{
-				int ret = 0;
-				for (auto const& b : bufs)
-					ret += int(b.size());
-				return 0;
+				return std::accumulate(bufs.begin(), bufs.end(), 0
+					, [](int const acc, iovec_t const& b) { return acc + int(b.size()); });
 			}
 
 			bool has_any_file(storage_error&) override { return false; }

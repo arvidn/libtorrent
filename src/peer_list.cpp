@@ -79,39 +79,6 @@ namespace {
 		address const& m_addr;
 		std::uint16_t m_port;
 	};
-
-#if TORRENT_USE_INVARIANT_CHECKS
-	struct match_peer_connection
-	{
-		explicit match_peer_connection(peer_connection_interface const& c) : m_conn(c) {}
-
-		bool operator()(torrent_peer const* p) const
-		{
-			TORRENT_ASSERT(p->in_use);
-			return p->connection == &m_conn;
-		}
-
-		peer_connection_interface const& m_conn;
-	};
-#endif
-
-#if TORRENT_USE_ASSERTS
-	struct match_peer_connection_or_endpoint
-	{
-		explicit match_peer_connection_or_endpoint(peer_connection_interface const& c) : m_conn(c) {}
-
-		bool operator()(torrent_peer const* p) const
-		{
-			TORRENT_ASSERT(p->in_use);
-			return p->connection == &m_conn
-				|| (p->ip() == m_conn.remote()
-					&& p->connectable);
-		}
-
-		peer_connection_interface const& m_conn;
-	};
-#endif
-
 }
 
 namespace libtorrent {
@@ -1162,11 +1129,12 @@ namespace libtorrent {
 		// web seeds are special, they're not connected via the peer list
 		// so they're not kept in m_peers
 		TORRENT_ASSERT(p->web_seed
-			|| std::find_if(
-				m_peers.begin()
-				, m_peers.end()
-				, match_peer_connection(c))
-				!= m_peers.end());
+			|| std::any_of(m_peers.begin(), m_peers.end()
+				, [&c](torrent_peer const* tp)
+				{
+					TORRENT_ASSERT(tp->in_use);
+					return tp->connection == &c;
+				}));
 #endif
 
 		TORRENT_ASSERT(p->connection == &c);
@@ -1224,10 +1192,8 @@ namespace libtorrent {
 		m_finished = state->is_finished;
 		m_max_failcount = state->max_failcount;
 
-		for (auto const& p : m_peers)
-		{
-			m_num_connect_candidates += is_connect_candidate(*p);
-		}
+		m_num_connect_candidates += static_cast<int>(std::count_if(m_peers.begin(), m_peers.end()
+			, [this](torrent_peer const* p) { return this->is_connect_candidate(*p); } ));
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		// the invariant is not likely to be upheld at the entry of this function
@@ -1244,17 +1210,19 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(c);
 
-		iterator iter = std::lower_bound(
-			m_peers.begin(), m_peers.end()
+		iterator iter = std::lower_bound(m_peers.begin(), m_peers.end()
 			, c->remote().address(), peer_address_compare());
 
 		if (iter != m_peers.end() && (*iter)->address() == c->remote().address())
 			return true;
 
-		return std::find_if(
-			m_peers.begin()
-			, m_peers.end()
-			, match_peer_connection_or_endpoint(*c)) != m_peers.end();
+		return std::any_of(m_peers.begin(), m_peers.end()
+			, [c](torrent_peer const* p)
+			{
+				TORRENT_ASSERT(p->in_use);
+				return p->connection == c
+					|| (p->ip() == c->remote() && p->connectable);
+			});
 	}
 #endif
 

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes> // for PRId64 et.al.
 #include <functional>
 #include <type_traits>
+#include <numeric> // for accumulate
 
 #if TORRENT_USE_INVARIANT_CHECKS
 #include <unordered_set>
@@ -2906,15 +2907,9 @@ namespace aux {
 		// perform this check.
 		if (!m_settings.get_bool(settings_pack::incoming_starts_queued_torrents))
 		{
-			bool has_active_torrent = false;
-			for (auto& i : m_torrents)
-			{
-				if (!i.second->is_torrent_paused())
-				{
-					has_active_torrent = true;
-					break;
-				}
-			}
+			bool has_active_torrent = std::any_of(m_torrents.begin(), m_torrents.end()
+				, [](std::pair<sha1_hash, std::shared_ptr<torrent>> const& i)
+				{ return !i.second->is_torrent_paused(); });
 			if (!has_active_torrent)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -5068,17 +5063,15 @@ namespace aux {
 		return bind_ep;
 	}
 
-	// verify that the interface ``addr`` belongs to, allows incoming connections
+	// verify that ``addr``s interface allows incoming connections
 	bool session_impl::verify_incoming_interface(address const& addr)
 	{
-		for (auto const& s : m_listen_sockets)
-		{
-			if (s->local_endpoint.address() == addr)
-			{
-				return s->incoming == duplex::accept_incoming;
-			}
-		}
-		return false;
+		auto const iter = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
+			, [&addr](std::shared_ptr<listen_socket_t> const& s)
+			{ return s->local_endpoint.address() == addr; });
+		return iter == m_listen_sockets.end()
+			? false
+			: (*iter)->incoming == duplex::accept_incoming;
 	}
 
 	// verify that the given local address satisfies the requirements of
@@ -5114,12 +5107,8 @@ namespace aux {
 		// if no device was found to have this address, we fail
 		if (device.empty()) return false;
 
-		for (auto const& s : m_outgoing_interfaces)
-		{
-			if (s == device) return true;
-		}
-
-		return false;
+		return std::any_of(m_outgoing_interfaces.begin(), m_outgoing_interfaces.end()
+			, [&device](std::string const& s) { return s == device; });
 	}
 
 	void session_impl::remove_torrent(const torrent_handle& h
@@ -5737,13 +5726,9 @@ namespace aux {
 
 		// this loop is potentially expensive. It could be optimized by
 		// simply keeping a global counter
-		int peerlist_size = 0;
-		for (auto const& i : m_torrents)
-		{
-			peerlist_size += i.second->num_known_peers();
-		}
-
-		s.peerlist_size = peerlist_size;
+		s.peerlist_size = std::accumulate(m_torrents.begin(), m_torrents.end(), 0
+			, [](int const acc, std::pair<sha1_hash, std::shared_ptr<torrent>> const& t)
+			{ return acc + t.second->num_known_peers(); });
 
 		return s;
 	}
