@@ -784,7 +784,7 @@ void natpmp::on_reply(error_code const& e
 #ifndef TORRENT_DISABLE_LOGGING
 	char msg[200];
 	int const num_chars = std::snprintf(msg, sizeof(msg), "<== port map ["
-		" transport: %s protocol: %s local: %u external: %u ttl: %u ]"
+		" transport: %s protocol: %s local: %d external: %d ttl: %d ]"
 		, version_to_string(protocol_version(version))
 		, (protocol == portmap_protocol::udp ? "udp" : "tcp")
 		, private_port, public_port, lifetime);
