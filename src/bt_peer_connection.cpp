@@ -759,7 +759,7 @@ namespace {
 			|| recv_buffer[0] != msg_piece)
 			return piece_block_progress();
 
-		const char* ptr = recv_buffer.begin() + 1;
+		const char* ptr = recv_buffer.data() + 1;
 		peer_request r;
 		r.piece = piece_index_t(detail::read_int32(ptr));
 		r.start = detail::read_int32(ptr);
@@ -920,7 +920,7 @@ namespace {
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 
-		const char* ptr = recv_buffer.begin() + 1;
+		const char* ptr = recv_buffer.data() + 1;
 		piece_index_t const index(detail::read_int32(ptr));
 
 		incoming_have(index);
@@ -954,7 +954,7 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		typed_bitfield<piece_index_t> bits;
-		bits.assign(recv_buffer.begin() + 1
+		bits.assign(recv_buffer.data() + 1
 			, t->valid_metadata()?get_bitfield().size():(m_recv_buffer.packet_size()-1)*CHAR_BIT);
 
 		incoming_bitfield(bits);
@@ -980,7 +980,7 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		peer_request r;
-		const char* ptr = recv_buffer.begin() + 1;
+		const char* ptr = recv_buffer.data() + 1;
 		r.piece = piece_index_t(detail::read_int32(ptr));
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
@@ -999,7 +999,7 @@ namespace {
 		TORRENT_ASSERT(received >= 0);
 
 		span<char const> recv_buffer = m_recv_buffer.get();
-		int const recv_pos = m_recv_buffer.pos(); // recv_buffer.end - recv_buffer.begin;
+		int const recv_pos = m_recv_buffer.pos();
 
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
@@ -1016,7 +1016,7 @@ namespace {
 				received_bytes(0, received);
 				return;
 			}
-			char const* ptr = recv_buffer.begin() + 9;
+			char const* ptr = recv_buffer.data() + 9;
 			int const list_size = detail::read_int32(ptr);
 
 			if (list_size > m_recv_buffer.packet_size() - 13)
@@ -1053,7 +1053,7 @@ namespace {
 
 		if (recv_pos >= header_size)
 		{
-			const char* ptr = recv_buffer.begin() + 1;
+			const char* ptr = recv_buffer.data() + 1;
 			p.piece = piece_index_t(detail::read_int32(ptr));
 			p.start = detail::read_int32(ptr);
 
@@ -1122,10 +1122,10 @@ namespace {
 			peer_log(peer_log_alert::incoming_message, "HASHPIECE"
 				, "piece: %d list: %d", static_cast<int>(p.piece), list_size);
 #endif
-			bdecode_node hash_list;
 			error_code ec;
-			if (bdecode(recv_buffer.begin() + 13, recv_buffer.begin() + 13 + list_size
-				, hash_list, ec) != 0)
+			bdecode_node const hash_list = bdecode(recv_buffer.subspan(13).first(list_size)
+				, ec);
+			if (ec)
 			{
 				disconnect(errors::invalid_hash_piece, operation_t::bittorrent, peer_error);
 				return;
@@ -1159,7 +1159,7 @@ namespace {
 			}
 		}
 
-		incoming_piece(p, recv_buffer.begin() + header_size);
+		incoming_piece(p, recv_buffer.data() + header_size);
 	}
 
 	// -----------------------------
@@ -1182,7 +1182,7 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		peer_request r;
-		const char* ptr = recv_buffer.begin() + 1;
+		const char* ptr = recv_buffer.data() + 1;
 		r.piece = piece_index_t(detail::read_int32(ptr));
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
@@ -1209,7 +1209,7 @@ namespace {
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 
-		const char* ptr = recv_buffer.begin() + 1;
+		const char* ptr = recv_buffer.data() + 1;
 		int const listen_port = detail::read_uint16(ptr);
 
 		incoming_dht_port(listen_port);
@@ -1236,7 +1236,7 @@ namespace {
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 
-		const char* ptr = recv_buffer.begin() + 1;
+		const char* ptr = recv_buffer.data() + 1;
 		piece_index_t const piece(detail::read_int32(ptr));
 		incoming_suggest(piece);
 	}
@@ -1283,7 +1283,7 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		peer_request r;
-		const char* ptr = recv_buffer.begin() + 1;
+		const char* ptr = recv_buffer.data() + 1;
 		r.piece = piece_index_t(detail::read_int32(ptr));
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
@@ -1304,7 +1304,7 @@ namespace {
 
 		if (!m_recv_buffer.packet_finished()) return;
 		span<char const> recv_buffer = m_recv_buffer.get();
-		const char* ptr = recv_buffer.begin() + 1;
+		const char* ptr = recv_buffer.data() + 1;
 		piece_index_t const index(detail::read_int32(ptr));
 
 		incoming_allowed_fast(index);
@@ -1331,7 +1331,7 @@ namespace {
 		TORRENT_ASSERT(recv_buffer.front() == holepunch_msg);
 		recv_buffer = recv_buffer.subspan(1);
 
-		const char* ptr = recv_buffer.begin();
+		const char* ptr = recv_buffer.data();
 
 		// ignore invalid messages
 		if (int(recv_buffer.size()) < 2) return;
@@ -1663,11 +1663,10 @@ namespace {
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 
-		bdecode_node root;
 		error_code ec;
 		int pos;
-		int ret = bdecode(recv_buffer.begin() + 2, recv_buffer.end(), root, ec, &pos);
-		if (ret != 0 || ec || root.type() != bdecode_node::dict_t)
+		bdecode_node root = bdecode(recv_buffer.subspan(2), ec, &pos);
+		if (ec || root.type() != bdecode_node::dict_t)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
@@ -2421,7 +2420,7 @@ namespace {
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
 			TORRENT_ASSERT(m_recv_buffer.packet_size() == dh_key_len);
-			TORRENT_ASSERT(recv_buffer.begin() == m_recv_buffer.get().begin());
+			TORRENT_ASSERT(recv_buffer.data() == m_recv_buffer.get().data());
 			TORRENT_ASSERT(recv_buffer.size() == m_recv_buffer.get().size());
 
 			if (!m_recv_buffer.packet_finished()) return;
@@ -2433,7 +2432,7 @@ namespace {
 
 			// read dh key, generate shared secret
 			m_dh_key_exchange->compute_secret(
-				reinterpret_cast<std::uint8_t const*>(recv_buffer.begin()));
+				reinterpret_cast<std::uint8_t const*>(recv_buffer.data()));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ENCRYPTION", "received DH key");
@@ -2479,7 +2478,7 @@ namespace {
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
 			TORRENT_ASSERT(!is_outgoing());
-			TORRENT_ASSERT(recv_buffer.begin() == m_recv_buffer.get().begin());
+			TORRENT_ASSERT(recv_buffer.data() == m_recv_buffer.get().data());
 			TORRENT_ASSERT(recv_buffer.size() == m_recv_buffer.get().size());
 
 			if (int(recv_buffer.size()) < 20)
@@ -2575,7 +2574,7 @@ namespace {
 
 			TORRENT_ASSERT(!is_disconnecting());
 
-			sha1_hash ih(recv_buffer.begin());
+			sha1_hash ih(recv_buffer.data());
 			torrent const* ti = m_ses.find_encrypted_torrent(ih, m_dh_key_exchange->get_hash_xor_mask());
 
 			if (ti)
@@ -2627,7 +2626,7 @@ namespace {
 			TORRENT_ASSERT(is_outgoing());
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
-			TORRENT_ASSERT(recv_buffer.begin() == m_recv_buffer.get().begin());
+			TORRENT_ASSERT(recv_buffer.data() == m_recv_buffer.get().data());
 			TORRENT_ASSERT(recv_buffer.size() == m_recv_buffer.get().size());
 
 			if (int(recv_buffer.size()) < 8)
@@ -2941,11 +2940,11 @@ namespace {
 			if (!m_recv_buffer.packet_finished()) return;
 			recv_buffer = m_recv_buffer.get();
 
-			int packet_size = recv_buffer[0];
+			int const packet_size = recv_buffer[0];
 			static const char protocol_string[] = "\x13" "BitTorrent protocol";
 
 			if (packet_size != 19 ||
-				std::memcmp(recv_buffer.begin(), protocol_string, 20) != 0)
+				recv_buffer.first(20) != span<char const>{protocol_string, 20})
 			{
 #if !defined TORRENT_DISABLE_ENCRYPTION
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3047,7 +3046,7 @@ namespace {
 			}
 #endif
 
-			std::memcpy(m_reserved_bits.data(), recv_buffer.begin(), 8);
+			std::memcpy(m_reserved_bits.data(), recv_buffer.data(), 8);
 			if (recv_buffer[5] & 0x10)
 				m_supports_extensions = true;
 
@@ -3133,7 +3132,7 @@ namespace {
 					ascii_pid[i] = (is_print(recv_buffer[i])) ? recv_buffer[i] : '.';
 
 				peer_log(peer_log_alert::incoming, "HANDSHAKE", "received peer_id: %s client: %s ascii: \"%s\""
-					, hex_pid, identify_client(peer_id(recv_buffer.begin())).c_str(), ascii_pid);
+					, hex_pid, identify_client(peer_id(recv_buffer.data())).c_str(), ascii_pid);
 			}
 #endif
 			peer_id pid;
@@ -3248,7 +3247,7 @@ namespace {
 		if (m_state == state_t::read_packet_size)
 		{
 			// Make sure this is not fallen though into
-			TORRENT_ASSERT(recv_buffer.begin() == m_recv_buffer.get().begin());
+			TORRENT_ASSERT(recv_buffer.data() == m_recv_buffer.get().data());
 			TORRENT_ASSERT(recv_buffer.size() == m_recv_buffer.get().size());
 			TORRENT_ASSERT(m_recv_buffer.packet_size() == 5);
 
@@ -3265,7 +3264,7 @@ namespace {
 
 			TORRENT_ASSERT(bytes_transferred <= 1);
 
-			const char* ptr = recv_buffer.begin();
+			const char* ptr = recv_buffer.data();
 			int const packet_size = detail::read_int32(ptr);
 
 			// don't accept packets larger than 1 MB
@@ -3299,7 +3298,7 @@ namespace {
 
 		if (m_state == state_t::read_packet)
 		{
-			TORRENT_ASSERT(recv_buffer.begin() == m_recv_buffer.get().begin());
+			TORRENT_ASSERT(recv_buffer.data() == m_recv_buffer.get().data());
 			TORRENT_ASSERT(recv_buffer.size() == m_recv_buffer.get().size());
 			if (!t)
 			{

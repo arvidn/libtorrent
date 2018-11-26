@@ -165,14 +165,14 @@ namespace aux {
 	inline bool operator==(span<T> const& lhs, span<U> const& rhs)
 	{
 		return  lhs.size() == rhs.size()
-			&& (lhs.begin() == rhs.begin() || std::equal(lhs.begin(), lhs.end(), rhs.begin()));
+			&& (lhs.data() == rhs.data() || std::equal(lhs.begin(), lhs.end(), rhs.begin()));
 	}
 
 	template <class T, class U>
 	inline bool operator!=(span<T> const& lhs, span<U> const& rhs)
 	{
 		return  lhs.size() != rhs.size()
-			|| (lhs.begin() != rhs.begin() && !std::equal(lhs.begin(), lhs.end(), rhs.begin()));
+			|| (lhs.data() != rhs.data() && !std::equal(lhs.begin(), lhs.end(), rhs.begin()));
 	}
 }
 
