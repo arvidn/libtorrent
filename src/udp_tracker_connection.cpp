@@ -267,10 +267,10 @@ namespace libtorrent {
 			// use if if it hasn't expired
 			if (aux::time_now() < cc->second.expires)
 			{
-				if (0 == (tracker_req().kind & tracker_request::scrape_request))
-					send_udp_announce();
-				else if (0 != (tracker_req().kind & tracker_request::scrape_request))
+				if (tracker_req().kind & tracker_request::scrape_request)
 					send_udp_scrape();
+				else
+					send_udp_announce();
 				return;
 			}
 			// if it expired, remove it from the cache

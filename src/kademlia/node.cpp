@@ -451,7 +451,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, announce_flags_
 	if (listen_port == 0 && m_observer != nullptr)
 	{
 		listen_port = m_observer->get_listen_port(
-			flags & announce::ssl_torrent ? aux::transport::ssl : aux::transport::plaintext
+			(flags & announce::ssl_torrent) ? aux::transport::ssl : aux::transport::plaintext
 			, m_sock);
 	}
 
@@ -687,7 +687,6 @@ void node::send_single_refresh(udp::endpoint const& ep, int const bucket
 #endif
 	entry e;
 	e["y"] = "q";
-	entry& a = e["a"];
 
 	if (m_table.is_full(bucket))
 	{
@@ -700,7 +699,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int const bucket
 		// use get_peers instead of find_node. We'll get nodes in the response
 		// either way.
 		e["q"] = "get_peers";
-		a["info_hash"] = target.to_string();
+		e["a"]["info_hash"] = target.to_string();
 		m_counters.inc_stats_counter(counters::dht_get_peers_out);
 	}
 

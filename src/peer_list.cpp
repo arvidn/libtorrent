@@ -1266,8 +1266,6 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_num_connect_candidates <= int(m_peers.size()));
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		int total_connections = 0;
-		int nonempty_connections = 0;
 		int connect_candidates = 0;
 
 		const_iterator prev = m_peers.end();
@@ -1282,7 +1280,6 @@ namespace libtorrent {
 			torrent_peer const& p = **i;
 			TORRENT_ASSERT(p.in_use);
 			if (is_connect_candidate(p)) ++connect_candidates;
-			++total_connections;
 			if (!p.connection)
 			{
 				continue;
@@ -1294,7 +1291,6 @@ namespace libtorrent {
 			}
 			TORRENT_ASSERT(p.connection->peer_info_struct() == nullptr
 				|| p.connection->peer_info_struct() == &p);
-			++nonempty_connections;
 		}
 
 		TORRENT_ASSERT(m_num_connect_candidates == connect_candidates);
