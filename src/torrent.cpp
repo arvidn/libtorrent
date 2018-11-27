@@ -1259,6 +1259,7 @@ bool is_downloading_state(int const st)
 		for (auto const p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
+			if (p->is_disconnecting()) continue;
 			peer_has(p->get_bitfield(), p);
 		}
 	}
