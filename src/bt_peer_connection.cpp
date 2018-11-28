@@ -1373,7 +1373,9 @@ namespace libtorrent
 		{
 			m_supports_dht_port = true;
 #ifndef TORRENT_DISABLE_DHT
-			if (m_supports_dht_port && m_ses.has_dht())
+			// if we're done with the handshake, respond right away, otherwise
+			// we'll send the DHT port later
+			if (m_sent_handshake && m_ses.has_dht())
 				write_dht_port(m_ses.external_udp_port());
 #endif
 		}
