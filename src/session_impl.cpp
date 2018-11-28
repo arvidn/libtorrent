@@ -2920,20 +2920,6 @@ namespace aux {
 		if (m_alerts.should_post<incoming_connection_alert>())
 			m_alerts.emplace_alert<incoming_connection_alert>(s->type(), endp);
 
-		{
-			error_code err;
-			set_socket_buffer_size(*s, m_settings, err);
-#ifndef TORRENT_DISABLE_LOGGING
-			if (err && should_log())
-			{
-				error_code ignore;
-				session_log("socket buffer size [ %s %d ]: %s"
-					, s->local_endpoint().address().to_string(ignore).c_str()
-					, s->local_endpoint().port(), print_error(err).c_str());
-			}
-#endif
-		}
-
 		peer_connection_args pack{
 			this
 			, &m_settings
@@ -6419,9 +6405,9 @@ namespace aux {
 			if (ec && should_log())
 			{
 				error_code err;
-				session_log("socket buffer size [ udp %s %d]: (%d) %s"
+				session_log("listen socket buffer size [ udp %s:%d ] %s"
 					, l->udp_sock->sock.local_endpoint().address().to_string(err).c_str()
-					, l->udp_sock->sock.local_port(), ec.value(), ec.message().c_str());
+					, l->udp_sock->sock.local_port(), print_error(ec).c_str());
 			}
 #endif
 			ec.clear();
@@ -6430,9 +6416,9 @@ namespace aux {
 			if (ec && should_log())
 			{
 				error_code err;
-				session_log("socket buffer size [ udp %s %d]: (%d) %s"
+				session_log("listen socket buffer size [ tcp %s:%d] %s"
 					, l->sock->local_endpoint().address().to_string(err).c_str()
-					, l->sock->local_endpoint().port(), ec.value(), ec.message().c_str());
+					, l->sock->local_endpoint().port(), print_error(ec).c_str());
 			}
 #endif
 		}
