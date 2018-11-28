@@ -5325,7 +5325,6 @@ namespace libtorrent {
 				return;
 			}
 
-			TORRENT_ASSERT(buffer.get() == nullptr);
 			write_dont_have(r.piece);
 			write_reject_request(r);
 			if (t->alerts().should_post<file_error_alert>())
