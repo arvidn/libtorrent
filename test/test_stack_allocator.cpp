@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/string_view.hpp"
+#include <cstdarg> // for va_list, va_start, va_end
 
 using lt::aux::stack_allocator;
 using lt::aux::allocation_slot;
@@ -107,3 +108,34 @@ TORRENT_TEST(swap)
 	TEST_CHECK(a2.ptr(idx1) == "testing"_sv);
 }
 
+namespace {
+
+TORRENT_FORMAT(2,3)
+allocation_slot format_string_helper(stack_allocator& stack, char const* fmt, ...)
+{
+		va_list v;
+		va_start(v, fmt);
+		auto const ret = stack.format_string(fmt, v);
+		va_end(v);
+		return ret;
+}
+
+}
+
+TORRENT_TEST(format_string_long)
+{
+	stack_allocator a;
+	std::string long_string;
+	for (int i = 0; i < 1024; ++i) long_string += "foobar-";
+	auto const idx = format_string_helper(a, "%s", long_string.c_str());
+
+	TEST_EQUAL(a.ptr(idx), long_string);
+}
+
+TORRENT_TEST(format_string)
+{
+	stack_allocator a;
+	auto const idx = format_string_helper(a, "%d", 10);
+
+	TEST_EQUAL(a.ptr(idx), "10"_sv);
+}
