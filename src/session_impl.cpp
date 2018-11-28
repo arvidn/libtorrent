@@ -2533,6 +2533,7 @@ namespace aux {
 #endif
 
 		std::weak_ptr<tcp::acceptor> ls(listener);
+		m_stats_counters.inc_stats_counter(counters::num_outstanding_accept);
 		listener->async_accept(*str, [this, c, ls, ssl] (error_code const& ec)
 			{ return this->wrap(&session_impl::on_accept_connection, c, ls, ec, ssl); });
 	}
@@ -2543,6 +2544,8 @@ namespace aux {
 	{
 		COMPLETE_ASYNC("session_impl::on_accept_connection");
 		m_stats_counters.inc_stats_counter(counters::on_accept_counter);
+		m_stats_counters.inc_stats_counter(counters::num_outstanding_accept, -1);
+
 		TORRENT_ASSERT(is_single_thread());
 		std::shared_ptr<tcp::acceptor> listener = listen_socket.lock();
 		if (!listener) return;

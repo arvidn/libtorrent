@@ -624,6 +624,9 @@ reports = [
         'picker.piece_picker_rand_loops', \
         'picker.piece_picker_busy_loops' \
     ], {'type': stacked}),
+    ('async_accept', 'number of outstanding accept calls', '', '', [ \
+        'ses.num_outstanding_accept' \
+    ]),
 
     # ('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'],
     #  {'type': histogram, 'binwidth': 5, 'numbins': 120}),
