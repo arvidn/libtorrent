@@ -465,6 +465,8 @@ namespace libtorrent {
 			num_utp_close_wait,
 			num_utp_deleted,
 
+			num_outstanding_accept,
+
 			num_counters,
 			num_gauges_counters = num_counters - num_stats_counters
 		};

@@ -252,6 +252,10 @@ namespace {
 		// the number of allowed unchoked peers
 		METRIC(ses, num_unchoke_slots)
 
+		// the number of listen sockets that are currently accepting incoming
+		// connections
+		METRIC(ses, num_outstanding_accept)
+
 		// bittorrent message counters. These counters are incremented
 		// every time a message of the corresponding type is received from
 		// or sent to a bittorrent peer.
