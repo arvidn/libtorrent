@@ -57,13 +57,14 @@ namespace aux {
 	allocation_slot stack_allocator::format_string(char const* fmt, va_list v)
 	{
 		int const ret = int(m_storage.size());
-		m_storage.resize(ret + 512);
+		int const max_size = 1024;
+		m_storage.resize(ret + max_size);
 
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
-		int const len = std::vsnprintf(m_storage.data() + ret, 512, fmt, v);
+		int const len = std::vsnprintf(m_storage.data() + ret, max_size, fmt, v);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -75,7 +76,7 @@ namespace aux {
 		}
 
 		// +1 is to include the 0-terminator
-		m_storage.resize(ret + (len > 512 ? 512 : len) + 1);
+		m_storage.resize(ret + std::min(len, max_size) + 1);
 		return allocation_slot(ret);
 	}
 

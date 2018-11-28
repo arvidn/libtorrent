@@ -99,7 +99,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp" // for cache_status
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/aux_/set_socket_buffer.hpp"
 #include "libtorrent/aux_/generate_peer_id.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3204,12 +3203,8 @@ bool is_downloading_state(int const st)
 				resolved_to += i.to_string();
 				resolved_to += ", ";
 			}
-			debug_log("TRACKER RESPONSE\n"
-					"interval: %d\n"
-					"min-interval: %d\n"
-					"external ip: %s\n"
-					"resolved to: %s\n"
-					"we connected to: %s\n"
+			debug_log("TRACKER RESPONSE [ interval: %d | min-interval: %d | "
+				"external ip: %s | resolved to: %s | we connected to: %s ]"
 				, interval.count()
 				, resp.min_interval.count()
 				, print_address(resp.external_ip).c_str()
@@ -6559,21 +6554,6 @@ bool is_downloading_state(int const st)
 				};
 			}
 #undef CASE
-#endif
-		}
-
-		{
-			error_code err;
-			aux::set_socket_buffer_size(*s, settings(), err);
-#ifndef TORRENT_DISABLE_LOGGING
-			if (err && should_log())
-			{
-				error_code ignore;
-				auto const lep = s->local_endpoint(ignore);
-				debug_log("socket buffer size [ %s %d]: (%d) %s"
-					, lep.address().to_string(ignore).c_str()
-					, lep.port(), err.value(), err.message().c_str());
-			}
 #endif
 		}
 

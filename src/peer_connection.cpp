@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/set_socket_buffer.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <set>
@@ -387,7 +388,22 @@ namespace libtorrent {
 		}
 
 		// if this is an incoming connection, we're done here
-		if (!m_connecting) return;
+		if (!m_connecting)
+		{
+			error_code err;
+			aux::set_socket_buffer_size(*m_socket, m_settings, err);
+#ifndef TORRENT_DISABLE_LOGGING
+			if (err && should_log(peer_log_alert::incoming))
+			{
+				error_code ignore;
+				peer_log(peer_log_alert::incoming, "SOCKET_BUFFER", "%s %s"
+					, print_endpoint(m_remote).c_str()
+					, print_error(err).c_str());
+			}
+#endif
+
+			return;
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))
@@ -420,6 +436,20 @@ namespace libtorrent {
 		{
 			disconnect(ec, operation_t::sock_bind);
 			return;
+		}
+
+		{
+			error_code err;
+			aux::set_socket_buffer_size(*m_socket, m_settings, err);
+#ifndef TORRENT_DISABLE_LOGGING
+			if (err && should_log(peer_log_alert::outgoing))
+			{
+				error_code ignore;
+				peer_log(peer_log_alert::outgoing, "SOCKET_BUFFER", "%s %s"
+					, print_endpoint(m_remote).c_str()
+					, print_error(err).c_str());
+			}
+#endif
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
