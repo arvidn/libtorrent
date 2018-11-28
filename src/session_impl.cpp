@@ -2306,7 +2306,7 @@ namespace aux {
 
 		auto s = std::static_pointer_cast<session_udp_socket>(si);
 
-		TORRENT_ASSERT(s->sock.local_endpoint().protocol() == ep.protocol());
+		TORRENT_ASSERT(s->sock.is_closed() || s->sock.local_endpoint().protocol() == ep.protocol());
 
 		s->sock.send(ep, p, ec, flags);
 
