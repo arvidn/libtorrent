@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/stack_allocator.hpp"
+#include <cstdarg> // for va_list, va_copy, va_end
 
 namespace libtorrent {
 namespace aux {
@@ -56,28 +57,44 @@ namespace aux {
 
 	allocation_slot stack_allocator::format_string(char const* fmt, va_list v)
 	{
-		int const ret = int(m_storage.size());
-		int const max_size = 1024;
-		m_storage.resize(ret + max_size);
+		int const pos = int(m_storage.size());
+		int len = 512;
+
+		for(;;)
+		{
+			m_storage.resize(pos + len + 1);
+
+			va_list args;
+			va_copy(args, v);
 
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
-		int const len = std::vsnprintf(m_storage.data() + ret, max_size, fmt, v);
+			int const ret = std::vsnprintf(m_storage.data() + pos, static_cast<std::size_t>(len + 1), fmt, args);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
 
-		if (len < 0)
-		{
-			m_storage.resize(ret);
-			return copy_string("(format error)");
+			va_end(args);
+
+			if (ret < 0)
+			{
+				m_storage.resize(pos);
+				return copy_string("(format error)");
+			}
+			if (ret > len)
+			{
+				// try again
+				len = ret;
+				continue;
+			}
+			break;
 		}
 
 		// +1 is to include the 0-terminator
-		m_storage.resize(ret + std::min(len, max_size) + 1);
-		return allocation_slot(ret);
+		m_storage.resize(pos + len + 1);
+		return allocation_slot(pos);
 	}
 
 	allocation_slot stack_allocator::copy_buffer(span<char const> buf)
