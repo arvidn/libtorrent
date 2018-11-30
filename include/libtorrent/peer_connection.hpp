@@ -523,9 +523,6 @@ namespace aux {
 			, char const* event, char const* fmt, ...) const noexcept final TORRENT_FORMAT(4,5);
 		void peer_log(peer_log_alert::direction_t direction
 			, char const* event) const noexcept;
-
-		time_point m_connect_time;
-		time_point m_bitfield_time;
 #endif
 
 		// the message handlers are called

@@ -1233,7 +1233,6 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		m_connect_time = clock_type::now();
 		peer_log(peer_log_alert::info, "ATTACH", "attached to torrent");
 #endif
 
@@ -2130,12 +2129,6 @@ namespace libtorrent {
 
 		m_bitfield_received = true;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		m_bitfield_time = clock_type::now();
-		t->debug_log("HANDSHAKE [%p] (%d ms)"
-			, static_cast<void*>(this)
-			, int(total_milliseconds(m_bitfield_time - m_connect_time)));
-#endif
 		// if we don't have metadata yet
 		// just remember the bitmask
 		// don't update the piecepicker
@@ -3258,13 +3251,6 @@ namespace libtorrent {
 		m_upload_only = true;
 		m_bitfield_received = true;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		m_bitfield_time = clock_type::now();
-		t->debug_log("HANDSHAKE [%p] (%d ms)"
-			, static_cast<void*>(this)
-			, int(total_milliseconds(m_bitfield_time - m_connect_time)));
-#endif
-
 		// if we don't have metadata yet
 		// just remember the bitmask
 		// don't update the piecepicker
@@ -3331,12 +3317,6 @@ namespace libtorrent {
 		t->set_seed(m_peer_info, false);
 		m_bitfield_received = true;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		m_bitfield_time = clock_type::now();
-		t->debug_log("HANDSHAKE [%p] (%d ms)"
-			, static_cast<void*>(this)
-			, int(total_milliseconds(m_bitfield_time - m_connect_time)));
-#endif
 		m_have_piece.clear_all();
 		m_num_pieces = 0;
 
@@ -6016,10 +5996,6 @@ namespace libtorrent {
 		COMPLETE_ASYNC("peer_connection::on_connection_complete");
 
 		INVARIANT_CHECK;
-
-#ifndef TORRENT_DISABLE_LOGGING
-		m_connect_time = aux::time_now();
-#endif
 
 		// if t is nullptr, we better not be connecting, since
 		// we can't decrement the connecting counter
