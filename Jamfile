@@ -557,9 +557,9 @@ lib ssl : ssl-deps : <target-os>windows <openssl-version>pre1.1 <name>ssleay32
 	<use>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
 
 # OpenSSL 1.1+ windows
-lib crypto : ssl-deps : <target-os>windows <name>libcrypto
+lib crypto : ssl-deps : <toolset>msvc <openssl-version>1.1 <name>libcrypto
 	<conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
-lib ssl : ssl-deps : <target-os>windows <name>libssl <use>crypto
+lib ssl : ssl-deps : <toolset>msvc <openssl-version>1.1 <name>libssl <use>crypto
 	<conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
 
 # generic OpenSSL
