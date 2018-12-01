@@ -1,47 +1,47 @@
 version: "{build}"
 branches:
   only:
-  - master
-  - RC_1_1
-  - RC_1_0
+    - master
+    - RC_1_1
+    - RC_1_0
 os: Visual Studio 2015
 clone_depth: 1
 environment:
   matrix:
-  - cmake: 1
-  - variant: test_debug
-    compiler: msvc-14.0
-    model: 64
-    sim: 1
-  - variant: test_debug
-    compiler: msvc-14.0
-    model: 32
-    bjam: 1
-  - variant: test_release
-    compiler: msvc-14.0
-    model: 64
-    python: 1
-    crypto: openssl
-    bjam: 1
-  - variant: test_debug
-    compiler: gcc
-    model: 32
-    crypto: openssl
-    bjam: 1
+    - cmake: 1
+    - variant: test_debug
+      compiler: msvc-14.0
+      model: 64
+      sim: 1
+    - variant: test_debug
+      compiler: msvc-14.0
+      model: 32
+      bjam: 1
+    - variant: test_release
+      compiler: msvc-14.0
+      model: 64
+      python: 1
+      crypto: openssl
+      bjam: 1
+    - variant: test_debug
+      compiler: gcc
+      model: 32
+      crypto: openssl
+      bjam: 1
 
 install:
-- git submodule update --init --recursive
-- set ROOT_DIRECTORY=%CD%
-- cd %ROOT_DIRECTORY%
-- if not defined compiler ( set compiler="" )
-- if not defined crypto ( set crypto=built-in )
-- if not defined linkflags ( set linkflags="" )
-- if not defined include ( set include="" )
-- if %compiler% == msvc-14.0 if defined crypto if not exist openssl-1.0.1p-vs2015.7z (
+  - git submodule update --init --recursive
+  - set ROOT_DIRECTORY=%CD%
+  - cd %ROOT_DIRECTORY%
+  - if not defined compiler ( set compiler="" )
+  - if not defined crypto ( set crypto=built-in )
+  - if not defined linkflags ( set linkflags="" )
+  - if not defined include ( set include="" )
+  - if %compiler% == msvc-14.0 if defined crypto if not exist openssl-1.0.1p-vs2015.7z (
     echo downloading openssl-2015
     & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
-  )
-- if %compiler% == msvc-14.0 if defined crypto (
+    )
+  - if %compiler% == msvc-14.0 if defined crypto (
     echo extracting openssl-2015
     & 7z x -oc:\ -aoa openssl-1.0.1p-vs2015.7z > nul
     & rename c:\openssl-1.0.1p-vs2015 openssl
@@ -49,94 +49,93 @@ install:
     & copy c:\openssl\lib64\libeay32MT.lib c:\openssl\lib64\libeay32.lib
     & copy c:\openssl\lib\ssleay32MT.lib c:\openssl\lib\ssleay32.lib
     & copy c:\openssl\lib\libeay32MT.lib c:\openssl\lib\libeay32.lib
-  )
-- cd %ROOT_DIRECTORY%
-- set BOOST_ROOT=c:\Libraries\boost_1_63_0
-- set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
-- echo %BOOST_ROOT%
-- echo %BOOST_BUILD_PATH%
-- set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
-- ps: '"using msvc : 14.0 ;`nusing gcc : : : <cxxflags>-std=c++11 ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
-- type %HOMEDRIVE%%HOMEPATH%\user-config.jam
-- cd %ROOT_DIRECTORY%
-- set PATH=c:\msys64\mingw32\bin;%PATH%
-- g++ --version
-- python --version
-- echo %ROOT_DIRECTORY%
-- cd %BOOST_BUILD_PATH%\src\engine
-- build.bat >nul
-- cd %ROOT_DIRECTORY%
+    )
+  - cd %ROOT_DIRECTORY%
+  - set BOOST_ROOT=c:\Libraries\boost_1_63_0
+  - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
+  - echo %BOOST_ROOT%
+  - echo %BOOST_BUILD_PATH%
+  - set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
+  - ps: '"using msvc : 14.0 ;`nusing gcc : : : <cxxflags>-std=c++11 ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
+  - cd %ROOT_DIRECTORY%
+  - set PATH=c:\msys64\mingw32\bin;%PATH%
+  - g++ --version
+  - python --version
+  - echo %ROOT_DIRECTORY%
+  - cd %BOOST_BUILD_PATH%\src\engine
+  - build.bat >nul
+  - cd %ROOT_DIRECTORY%
 
 cache:
-- openssl-1.0.1p-vs2015.7z
+  - openssl-1.0.1p-vs2015.7z
 
 build_script:
+  # examples
+  - cd %ROOT_DIRECTORY%\examples
+  - if defined bjam (
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto%
+    )
 
-# examples
-- cd %ROOT_DIRECTORY%\examples
-- if defined bjam (
-  b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto%
-  )
+  # tools
+  - cd %ROOT_DIRECTORY%\tools
+  - if defined bjam (
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto%
+    )
 
-# tools
-- cd %ROOT_DIRECTORY%\tools
-- if defined bjam (
-  b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto%
-  )
+  # test
+  - cd %ROOT_DIRECTORY%\test
+  - if defined bjam (
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests test_upnp test_natpmp testing.execute=off
+    )
 
-# test
-- cd %ROOT_DIRECTORY%\test
-- if defined bjam (
-  b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests test_upnp test_natpmp testing.execute=off
-  )
+  # python binding
+  - cd %ROOT_DIRECTORY%\bindings\python
+  # we use 64 bit python builds
+  - if defined python (
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% libtorrent-link=shared stage_module stage_dependencies
+    )
 
-# python binding
-- cd %ROOT_DIRECTORY%\bindings\python
-# we use 64 bit python builds
-- if defined python (
-  b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% libtorrent-link=shared stage_module stage_dependencies
-  )
+  # simulations
+  - cd %ROOT_DIRECTORY%\simulation
+  - if defined sim (
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP testing.execute=off
+    )
 
-# simulations
-- cd %ROOT_DIRECTORY%\simulation
-- if defined sim (
-  b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP testing.execute=off
-  )
-
-# minimal support for cmake build
-- cd %ROOT_DIRECTORY%
-- mkdir build && cd build
-- if defined cmake (
-  set "PATH=c:\Python27-x64;%PATH%" &&
-  cmake -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 14 2015 Win64" .. &&
-  cmake --build . --config Release -- -verbosity:quiet
-  )
+  # minimal support for cmake build
+  - cd %ROOT_DIRECTORY%
+  - mkdir build && cd build
+  - if defined cmake (
+    set "PATH=c:\Python27-x64;%PATH%" &&
+    cmake -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 14 2015 Win64" .. &&
+    cmake --build . --config Release -- -verbosity:quiet
+    )
 
 test_script:
-- cd %ROOT_DIRECTORY%\test
-- if defined bjam (
-  appveyor-retry b2.exe -l400 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests
-  )
+  - cd %ROOT_DIRECTORY%\test
+  - if defined bjam (
+    appveyor-retry b2.exe -l400 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j2 %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests
+    )
 
-- cd %ROOT_DIRECTORY%\bindings\python
-# we use 64 bit python build
-- if defined python (
-  copy dependencies\*.* .
-  & c:\Python35-x64\python.exe test.py -b
-  )
+  - cd %ROOT_DIRECTORY%\bindings\python
+  # we use 64 bit python build
+  - if defined python (
+    copy dependencies\*.* .
+    & c:\Python35-x64\python.exe test.py -b
+    )
 
-- if defined cmake (
-  appveyor-retry ctest
-  )
+  - if defined cmake (
+    appveyor-retry ctest
+    )
 
-# simulation tests
-# debug iterators are turned off here because msvc has issues with noexcept
-# specifiers when debug iterators are enabled. Specifically, constructors that
-# allocate memory are still marked as noexcept. That results in program
-# termination
-# the IOCP backend in asio appears to have an issue where it hangs under
-# certain unexpected terminations (through exceptions)
-- cd %ROOT_DIRECTORY%\simulation
-- if defined sim (
-  b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP
-  )
+  # simulation tests
+  # debug iterators are turned off here because msvc has issues with noexcept
+  # specifiers when debug iterators are enabled. Specifically, constructors that
+  # allocate memory are still marked as noexcept. That results in program
+  # termination
+  # the IOCP backend in asio appears to have an issue where it hangs under
+  # certain unexpected terminations (through exceptions)
+  - cd %ROOT_DIRECTORY%\simulation
+  - if defined sim (
+    b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP
+    )
