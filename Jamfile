@@ -359,20 +359,13 @@ rule openssl-lib-path ( properties * )
 		# brew install openssl
 		OPENSSL_LIB = /usr/local/opt/openssl/lib ;
 	}
-	else if <target-os>windows in $(properties)
-		&& <toolset>gcc in $(properties)
-		&& $(OPENSSL_LIB) = ""
-	{
-		# on mingw, assume openssl is installed in c:\OpenSSL-Win32 by default
-		OPENSSL_LIB = c:\\OpenSSL-Win32\\lib ;
-	}
 	else if <target-os>windows in $(properties) && $(OPENSSL_LIB) = ""
 	{
-		# on windows, just assume openssl is installed to c:\openssl
+		# on windows, assume openssl is installed to c:\OpenSSL-Win32
 		if <address-model>64 in $(properties)
-		{ OPENSSL_LIB = c:\\openssl\\lib64 ; }
+		{ OPENSSL_LIB = c:\\OpenSSL-Win64\\lib ; }
 		else
-		{ OPENSSL_LIB = c:\\openssl\\lib ; }
+		{ OPENSSL_LIB = c:\\OpenSSL-Win32\\lib ; }
 	}
 
 	local result ;
@@ -392,21 +385,13 @@ rule openssl-include-path ( properties * )
 		# brew install openssl
 		OPENSSL_INCLUDE = /usr/local/opt/openssl/include ;
 	}
-	else if <target-os>windows in $(properties)
-		&& <toolset>gcc in $(properties)
-		&& $(OPENSSL_INCLUDE) = ""
-	{
-		# on mingw, assume openssl is installed in c:\OpenSSL-Win32 by default
-		OPENSSL_INCLUDE = c:\\OpenSSL-Win32\\include ;
-	}
 	else if <target-os>windows in $(properties) && $(OPENSSL_INCLUDE) = ""
 	{
-		# on windows, just assume openssl is installed to c:\openssl
-		# not sure if there's a better way to find out where it may be
+		# on windows, assume openssl is installed to c:\OpenSSL-Win32
 		if <address-model>64 in $(properties)
-		{ OPENSSL_INCLUDE = c:\\openssl\\include64 ; }
+		{ OPENSSL_INCLUDE = c:\\OpenSSL-Win64\\include ; }
 		else
-		{ OPENSSL_INCLUDE = c:\\openssl\\include ; }
+		{ OPENSSL_INCLUDE = c:\\OpenSSL-Win32\\include ; }
 	}
 
 	local result ;

@@ -37,19 +37,6 @@ install:
   - if not defined crypto ( set crypto=built-in )
   - if not defined linkflags ( set linkflags="" )
   - if not defined include ( set include="" )
-  - if %compiler% == msvc-14.0 if defined crypto if not exist openssl-1.0.1p-vs2015.7z (
-    echo downloading openssl-2015
-    & appveyor DownloadFile "https://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
-    )
-  - if %compiler% == msvc-14.0 if defined crypto (
-    echo extracting openssl-2015
-    & 7z x -oc:\ -aoa openssl-1.0.1p-vs2015.7z > nul
-    & rename c:\openssl-1.0.1p-vs2015 openssl
-    & copy c:\openssl\lib64\ssleay32MT.lib c:\openssl\lib64\ssleay32.lib
-    & copy c:\openssl\lib64\libeay32MT.lib c:\openssl\lib64\libeay32.lib
-    & copy c:\openssl\lib\ssleay32MT.lib c:\openssl\lib\ssleay32.lib
-    & copy c:\openssl\lib\libeay32MT.lib c:\openssl\lib\libeay32.lib
-    )
   - cd %ROOT_DIRECTORY%
   - set BOOST_ROOT=c:\Libraries\boost_1_63_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
@@ -66,9 +53,6 @@ install:
   - cd %BOOST_BUILD_PATH%\src\engine
   - build.bat >nul
   - cd %ROOT_DIRECTORY%
-
-cache:
-  - openssl-1.0.1p-vs2015.7z
 
 build_script:
   # examples
