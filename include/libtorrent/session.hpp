@@ -223,10 +223,10 @@ namespace aux {
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
 		session(settings_pack&& pack
-			, session_flags_t const flags = start_default_features | add_default_plugins)
+			, session_flags_t const flags = add_default_plugins)
 		{ start(flags, std::move(pack), nullptr); }
 		session(settings_pack const& pack
-			, session_flags_t const flags = start_default_features | add_default_plugins)
+			, session_flags_t const flags = add_default_plugins)
 		{ start(flags, settings_pack(pack), nullptr); }
 
 		// movable
@@ -252,11 +252,11 @@ namespace aux {
 		// 	destruct the session_proxy object.
 		session(settings_pack&& pack
 			, io_service& ios
-			, session_flags_t const flags = start_default_features | add_default_plugins)
+			, session_flags_t const flags = add_default_plugins)
 		{ start(flags, std::move(pack), &ios); }
 		session(settings_pack const& pack
 			, io_service& ios
-			, session_flags_t const flags = start_default_features | add_default_plugins)
+			, session_flags_t const flags = add_default_plugins)
 		{ start(flags, settings_pack(pack), &ios); }
 
 #if TORRENT_ABI_VERSION == 1

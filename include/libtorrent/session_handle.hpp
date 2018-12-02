@@ -753,9 +753,11 @@ namespace libtorrent {
 		// smart_ban and possibly others.
 		static constexpr session_flags_t add_default_plugins = 0_bit;
 
+#if TORRENT_ABI_VERSION == 1
 		// this will start features like DHT, local service discovery, UPnP
 		// and NAT-PMP.
-		static constexpr session_flags_t start_default_features = 1_bit;
+		static constexpr session_flags_t TORRENT_DEPRECATED_MEMBER start_default_features = 1_bit;
+#endif
 
 		// ``remove_torrent()`` will close all peer connections associated with
 		// the torrent and tell the tracker that we've stopped participating in

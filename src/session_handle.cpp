@@ -67,7 +67,9 @@ namespace libtorrent {
 #endif
 
 	constexpr session_flags_t session_handle::add_default_plugins;
+#if TORRENT_ABI_VERSION == 1
 	constexpr session_flags_t session_handle::start_default_features;
+#endif
 
 	constexpr remove_flags_t session_handle::delete_files;
 	constexpr remove_flags_t session_handle::delete_partfile;
