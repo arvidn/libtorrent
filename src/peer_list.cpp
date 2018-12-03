@@ -589,7 +589,7 @@ namespace libtorrent {
 			TORRENT_ASSERT(i->address() == c.remote().address());
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (c.should_log(peer_log_alert::info))
+			if (i->connection != nullptr && c.should_log(peer_log_alert::info))
 			{
 				c.peer_log(peer_log_alert::info, "DUPLICATE PEER", "this: \"%s\" that: \"%s\""
 					, print_address(c.remote().address()).c_str()
