@@ -67,7 +67,7 @@ namespace libtorrent {
 		, aux::session_impl* ses = nullptr);
 	TORRENT_EXTRA_EXPORT void run_all_updates(aux::session_impl& ses);
 
-	TORRENT_EXPORT int setting_by_name(std::string const& name);
+	TORRENT_EXPORT int setting_by_name(string_view name);
 	TORRENT_EXPORT char const* name_for_setting(int s);
 
 	// returns a settings_pack with every setting set to its default value
