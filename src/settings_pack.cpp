@@ -350,7 +350,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 
 	} // anonymous namespace
 
-	int setting_by_name(std::string const& key)
+	int setting_by_name(string_view const key)
 	{
 		for (int k = 0; k < str_settings.end_index(); ++k)
 		{
