@@ -395,7 +395,6 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (err && should_log(peer_log_alert::incoming))
 			{
-				error_code ignore;
 				peer_log(peer_log_alert::incoming, "SOCKET_BUFFER", "%s %s"
 					, print_endpoint(m_remote).c_str()
 					, print_error(err).c_str());
@@ -444,7 +443,6 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (err && should_log(peer_log_alert::outgoing))
 			{
-				error_code ignore;
 				peer_log(peer_log_alert::outgoing, "SOCKET_BUFFER", "%s %s"
 					, print_endpoint(m_remote).c_str()
 					, print_error(err).c_str());
