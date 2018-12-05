@@ -327,12 +327,6 @@ namespace libtorrent {
 			return;
 		}
 
-		if (ec && ec != boost::asio::error::eof)
-		{
-			fail(ec);
-			return;
-		}
-
 		received_bytes(static_cast<int>(data.size()) + parser.body_start());
 
 		// handle tracker response

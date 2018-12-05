@@ -357,7 +357,7 @@ namespace aux {
 		auto* ses = reinterpret_cast<session_impl*>(arg);
 		const char* servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
 
-		if (!servername || strlen(servername) < 40)
+		if (!servername || std::strlen(servername) < 40)
 			return SSL_TLSEXT_ERR_ALERT_FATAL;
 
 		sha1_hash info_hash;
@@ -7143,7 +7143,7 @@ namespace aux {
 		}
 
 		void tracker_logger::tracker_request_error(tracker_request const&
-			, error_code const& ec, const std::string& str
+			, error_code const& ec, std::string const& str
 			, seconds32 const retry_interval)
 		{
 			TORRENT_UNUSED(retry_interval);
