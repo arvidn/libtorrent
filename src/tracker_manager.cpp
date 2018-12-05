@@ -292,9 +292,9 @@ namespace libtorrent {
 		}
 
 		// we need to post the error to avoid deadlock
-		if (std::shared_ptr<request_callback> r = c.lock())
+		if (auto r = c.lock())
 			ios.post(std::bind(&request_callback::tracker_request_error, r, std::move(req)
-				, error_code(errors::unsupported_url_protocol)
+				, errors::unsupported_url_protocol
 				, "", seconds32(0)));
 	}
 

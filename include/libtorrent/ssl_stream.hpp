@@ -84,7 +84,7 @@ public:
 	executor_type get_executor() { return m_sock.get_executor(); }
 #endif
 
-	void set_host_name(std::string name)
+	void set_host_name(std::string const& name)
 	{
 		aux::openssl_set_tlsext_hostname(m_sock.native_handle(), name.c_str());
 	}
