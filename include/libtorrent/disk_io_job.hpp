@@ -196,7 +196,7 @@ namespace libtorrent {
 		status_t ret = status_t::no_error;
 
 		// flags controlling this job
-		disk_job_flags_t flags{};
+		disk_job_flags_t flags = disk_job_flags_t{};
 
 		move_flags_t move_flags = move_flags_t::always_replace_files;
 

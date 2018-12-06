@@ -2882,6 +2882,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		disk_io_job* fj = allocate_job(job_action_t::flush_storage);
 		fj->storage = j->storage;
+		TORRENT_ASSERT(fj->flags == disk_job_flags_t{});
 
 		int ret = j->storage->raise_fence(j, fj, m_stats_counters);
 		if (ret == aux::disk_job_fence::fence_post_fence)
