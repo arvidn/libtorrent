@@ -181,6 +181,7 @@ namespace libtorrent { namespace aux {
 	int disk_job_fence::raise_fence(disk_io_job* j, disk_io_job* fj
 		, counters& cnt)
 	{
+		TORRENT_ASSERT(!(j->flags & disk_io_job::in_progress));
 		TORRENT_ASSERT(!(j->flags & disk_io_job::fence));
 		j->flags |= disk_io_job::fence;
 
@@ -214,6 +215,7 @@ namespace libtorrent { namespace aux {
 #endif
 			m_blocked_jobs.push_back(fj);
 			cnt.inc_stats_counter(counters::blocked_disk_jobs);
+			TORRENT_ASSERT(!(j->flags & disk_io_job::in_progress));
 		}
 		else
 		{
