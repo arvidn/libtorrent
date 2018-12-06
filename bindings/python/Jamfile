@@ -31,16 +31,16 @@ if $(LIBTORRENT_PYTHON_INTERPRETER)
 # copied from boost 1.63's boost python jamfile
 rule find-py3-version
 {
-    local versions = [ feature.values python ] ;
-    local py3ver ;
-    for local v in $(versions)
-    {
-        if $(v) >= 3.0
-        {
-            py3ver = $(v) ;
-        }
-    }
-    return $(py3ver) ;
+	local versions = [ feature.values python ] ;
+	local py3ver ;
+	for local v in $(versions)
+	{
+		if $(v) >= 3.0
+		{
+			py3ver = $(v) ;
+		}
+	}
+	return $(py3ver) ;
 }
 
 if $(BOOST_ROOT)
@@ -87,37 +87,37 @@ else
 
 rule libtorrent_linking ( properties * )
 {
-    local result ;
+	local result ;
 
-    if ! <target-os>windows in $(properties)
-        && <toolset>gcc in $(properties)
-        && <libtorrent-link>static in $(properties)
-    {
-        result += <libtorrent-python-pic>on ;
-    }
+	if ! <target-os>windows in $(properties)
+		&& <toolset>gcc in $(properties)
+		&& <libtorrent-link>static in $(properties)
+	{
+		result += <libtorrent-python-pic>on ;
+	}
 
-    if <toolset>gcc in $(properties)
-      || <toolset>darwin in $(properties)
-      || <toolset>clang in $(properties)
-      || <toolset>clang-darwin in $(properties)
-    {
-        result += <lt-visibility>hidden ;
+	if <toolset>gcc in $(properties)
+		|| <toolset>darwin in $(properties)
+		|| <toolset>clang in $(properties)
+		|| <toolset>clang-darwin in $(properties)
+	{
+		result += <lt-visibility>hidden ;
 
-        if ( <toolset>gcc in $(properties) )
-        {
-           result += <linkflags>-Wl,-Bsymbolic ;
-        }
-    }
+		if ( <toolset>gcc in $(properties) )
+		{
+			 result += <linkflags>-Wl,-Bsymbolic ;
+		}
+	}
 
-    if <link>static in $(properties)
-    {
-        ECHO "WARNING: you probably want to specify libtorrent-link=static rather than link=static" ;
-    }
+	if <link>static in $(properties)
+	{
+		ECHO "WARNING: you probably want to specify libtorrent-link=static rather than link=static" ;
+	}
 
-    if <boost-link>static in $(properties) && <target-os>linux in $(properties)
-    {
-        ECHO "WARNING: you cannot link statically against boost-python on linux, because it links against pthread statically in that case, which is not allowed" ;
-    }
+	if <boost-link>static in $(properties) && <target-os>linux in $(properties)
+	{
+		ECHO "WARNING: you cannot link statically against boost-python on linux, because it links against pthread statically in that case, which is not allowed" ;
+	}
 
 	local boost_python_lib ;
 
@@ -136,28 +136,28 @@ rule libtorrent_linking ( properties * )
 		boost_python_lib = boost_python ;
 	}
 
-    # linux must link dynamically against boost python because it pulls
-    # in libpthread, which must be linked dynamically since we're building a .so
-    # (the static build of libpthread is not position independent)
-    if <boost-link>shared in $(properties) || <target-os>linux in $(properties)
-    {
-        result += <library>$(boost_python_lib)/<link>shared/<warnings>off ;
-    }
-    else
-    {
-        result += <library>$(boost_python_lib)/<link>static/<warnings>off ;
-    }
+	# linux must link dynamically against boost python because it pulls
+	# in libpthread, which must be linked dynamically since we're building a .so
+	# (the static build of libpthread is not position independent)
+	if <boost-link>shared in $(properties) || <target-os>linux in $(properties)
+	{
+		result += <library>$(boost_python_lib)/<link>shared/<warnings>off ;
+	}
+	else
+	{
+		result += <library>$(boost_python_lib)/<link>static/<warnings>off ;
+	}
 
-    if <libtorrent-link>shared in $(properties)
-    {
-        result += <library>/torrent//torrent/<link>shared ;
-    }
-    else
-    {
-        result += <library>/torrent//torrent/<link>static ;
-    }
+	if <libtorrent-link>shared in $(properties)
+	{
+		result += <library>/torrent//torrent/<link>shared ;
+	}
+	else
+	{
+		result += <library>/torrent//torrent/<link>static ;
+	}
 
-    return $(result) ;
+	return $(result) ;
 }
 
 # this is a copy of the rule from boost-build's python-extension, but without
@@ -166,73 +166,73 @@ rule libtorrent_linking ( properties * )
 # runtime library and kernel32 on windows
 
 rule my-python-extension ( name : sources * : requirements * : default-build * :
-                        usage-requirements * )
+	usage-requirements * )
 {
-    requirements += <use>/python//python_for_extensions ;
+	requirements += <use>/python//python_for_extensions ;
 
-    local project = [ project.current ] ;
+	local project = [ project.current ] ;
 
-    targets.main-target-alternative
-        [ new typed-target $(name) : $(project) : PYTHON_EXTENSION
-            : [ targets.main-target-sources $(sources) : $(name) ]
-            : [ targets.main-target-requirements $(requirements) : $(project) ]
-            : [ targets.main-target-default-build $(default-build) : $(project) ]
-        ] ;
+	targets.main-target-alternative
+		[ new typed-target $(name) : $(project) : PYTHON_EXTENSION
+			: [ targets.main-target-sources $(sources) : $(name) ]
+			: [ targets.main-target-requirements $(requirements) : $(project) ]
+			: [ targets.main-target-default-build $(default-build) : $(project) ]
+		] ;
 }
 
 my-python-extension libtorrent
-  : # sources
-    src/module.cpp
-    src/sha1_hash.cpp
-    src/converters.cpp
-    src/create_torrent.cpp
-    src/fingerprint.cpp
-    src/utility.cpp
-    src/session.cpp
-    src/entry.cpp
-    src/torrent_info.cpp
-    src/string.cpp
-    src/torrent_handle.cpp
-    src/torrent_status.cpp
-    src/session_settings.cpp
-    src/version.cpp
-    src/alert.cpp
-    src/datetime.cpp
-    src/peer_info.cpp
-    src/ip_filter.cpp
-    src/magnet_uri.cpp
-    src/error_code.cpp
-  : # requirements
-    <include>src
-    <toolset>gcc:<cxxflags>-Wno-deprecated-declarations
-    <toolset>darwin:<cxxflags>-Wno-deprecated-declarations
-    <toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
-    <conditional>@libtorrent_linking
-    <crypto>openssl:<library>/torrent//ssl
-    <crypto>openssl:<library>/torrent//crypto
+	: # sources
+	src/module.cpp
+	src/sha1_hash.cpp
+	src/converters.cpp
+	src/create_torrent.cpp
+	src/fingerprint.cpp
+	src/utility.cpp
+	src/session.cpp
+	src/entry.cpp
+	src/torrent_info.cpp
+	src/string.cpp
+	src/torrent_handle.cpp
+	src/torrent_status.cpp
+	src/session_settings.cpp
+	src/version.cpp
+	src/alert.cpp
+	src/datetime.cpp
+	src/peer_info.cpp
+	src/ip_filter.cpp
+	src/magnet_uri.cpp
+	src/error_code.cpp
+	: # requirements
+	<include>src
+	<toolset>gcc:<cxxflags>-Wno-deprecated-declarations
+	<toolset>darwin:<cxxflags>-Wno-deprecated-declarations
+	<toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
+	<conditional>@libtorrent_linking
+	<crypto>openssl:<library>/torrent//ssl
+	<crypto>openssl:<library>/torrent//crypto
 	# C4268: 'identifier' : 'const' static/global data initialized
-	#        with compiler generated default constructor fills the object with zeros
+	#		with compiler generated default constructor fills the object with zeros
 	<toolset>msvc:<cflags>/wd4268
-  : # default-build
-    <warnings>all
-  : # usage-requirements
-    <suppress-import-lib>false
-  ;
+	: # default-build
+	<warnings>all
+	: # usage-requirements
+	<suppress-import-lib>false
+	;
 
 install stage_module
-  : libtorrent
-  : <location>.
-    <install-type>PYTHON_EXTENSION
-  ;
+	: libtorrent
+	: <location>.
+	<install-type>PYTHON_EXTENSION
+	;
 
 install stage_dependencies
-  : /torrent//torrent
-    boost_python
-    boost_python3
-  : <location>dependencies
-    <install-dependencies>on
-    <install-type>SHARED_LIB
-  ;
+	: /torrent//torrent
+	boost_python
+	boost_python3
+	: <location>dependencies
+	<install-dependencies>on
+	<install-type>SHARED_LIB
+	;
 
 explicit stage_module ;
 explicit stage_dependencies ;
