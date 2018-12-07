@@ -110,6 +110,7 @@ TORRENT_TEST(parse_peers4)
 	}
 }
 
+#if TORRENT_USE_I2P
 TORRENT_TEST(parse_i2p_peers)
 {
 	// d8:completei8e10:incompletei4e8:intervali3600e5:peers352: ...
@@ -171,6 +172,7 @@ TORRENT_TEST(parse_i2p_peers)
 			, "ufunemgwuun5t2sn3oay4zv7jvwdezwcrirgwr6b2fjgczvaowvq.b32.i2p");
 	}
 }
+#endif // TORRENT_USE_I2P
 
 TORRENT_TEST(parse_interval)
 {
