@@ -1070,8 +1070,6 @@ example alert_masks:
 
 	lt::session_params params;
 
-	lt::error_code ec;
-
 #ifndef TORRENT_DISABLE_DHT
 	params.dht_settings.privacy_lookups = true;
 
@@ -1079,6 +1077,7 @@ example alert_masks:
 	if (load_file(".ses_state", in))
 	{
 		lt::bdecode_node e;
+		lt::error_code ec;
 		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
 			params = read_session_params(e, session_handle::save_dht_state);
 	}
