@@ -22,7 +22,7 @@ function(split_library_dirs _libraries _base_library_dir _library_dirs_var _libr
 			get_filename_component(lDir "${lDir}" REALPATH)
 		endif()
 		get_filename_component(lFile "${l}" NAME_WE)
-		string(REGEX REPLACE "${_SHARED_LIBRARY_PREFIX}" "" lFile "${lFile}")
+		string(REPLACE "${_SHARED_LIBRARY_PREFIX}" "" lFile "${lFile}")
 		list(APPEND libdirs "${lDir}")
 		list(APPEND libs "${lFile}")
 	endforeach()
