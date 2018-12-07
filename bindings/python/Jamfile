@@ -61,7 +61,7 @@ if $(BOOST_ROOT)
 	}
 	else
 	{
-		alias boost_python3 ;
+		alias boost_python3 : boost_python ;
 	}
 }
 else
