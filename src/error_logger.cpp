@@ -75,7 +75,6 @@ namespace libtorrent
 				, udp_error_alert::alert_type
 				, listen_failed_alert::alert_type
 				, invalid_request_alert::alert_type
-				, mmap_cache_alert::alert_type
 				, 0);
 		}
 	}
@@ -110,7 +109,7 @@ namespace libtorrent
 #endif
 				{
 					fprintf(m_file, "%s\terror [%s] (%s:%d) %s\n", timestamp
-						, print_endpoint(pe->ip).c_str(), pe->error.category().name()
+						, print_endpoint(pe->endpoint).c_str(), pe->error.category().name()
 						, pe->error.value(), pe->error.message().c_str());
 				}
 				break;
@@ -147,7 +146,7 @@ namespace libtorrent
 					&& pd->error != error_code(libtorrent::errors::timed_out_no_handshake)
 					&& pd->error != error_code(libtorrent::errors::upload_upload_connection))
 					fprintf(m_file, "%s\tdisconnect [%s][%s] (%s:%d) %s\n", timestamp
-						, print_endpoint(pd->ip).c_str(), operation_name(pd->operation)
+						, print_endpoint(pd->endpoint).c_str(), operation_name(pd->op)
 						, pd->error.category().name(), pd->error.value(), pd->error.message().c_str());
 				break;
 			}
@@ -237,14 +236,6 @@ namespace libtorrent
 				if (ira)
 					fprintf(m_file, "%s\tinvalid-request %s\n", timestamp
 						, ira->message().c_str());
-			}
-			case mmap_cache_alert::alert_type:
-			{
-				mmap_cache_alert const* ma = alert_cast<mmap_cache_alert>(a);
-				if (ma)
-					fprintf(m_file, "%s\tmmap-cache-error (%s:%d )%s\n", timestamp
-						, ma->error.category().name(), ma->error.value()
-						, ma->message().c_str());
 			}
 		}
 	}
