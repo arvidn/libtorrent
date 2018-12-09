@@ -65,7 +65,7 @@ deluge::deluge(session& s, std::string pem_path, auth_interface const* auth)
 	: m_ses(s)
 	, m_auth(auth)
 	, m_listen_socket(nullptr)
-	, m_context(m_ios, boost::asio::ssl::context::sslv23)
+	, m_context(boost::asio::ssl::context::sslv23)
 	, m_shutdown(false)
 {
 	if (m_auth == nullptr)
