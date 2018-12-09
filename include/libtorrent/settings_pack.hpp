@@ -590,7 +590,7 @@ namespace libtorrent {
 			// ``SHARE_READ`` and ``SHARE_WRITE`` on windows. This might prevent
 			// 3rd party processes from corrupting the files under libtorrent's
 			// feet.
-			lock_files,
+			lock_files TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated_lock_files,
 #endif
@@ -628,7 +628,7 @@ namespace libtorrent {
 			// closed, and incoming connections will only be accepted through a
 			// SOCKS5 or I2P proxy (if a peer proxy is set up and is run on the
 			// same machine as the tracker proxy).
-			force_proxy,
+			force_proxy TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated_force_proxy,
 #endif
@@ -654,7 +654,7 @@ namespace libtorrent {
 			// cache blocks. Enabling it makes the cache perform better at high
 			// throughput. It also makes the cache less likely and slower at
 			// returning memory back to the system, once allocated.
-			use_disk_cache_pool,
+			use_disk_cache_pool TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated_use_disk_cache_pool,
 #endif
@@ -989,7 +989,7 @@ namespace libtorrent {
 			// 2 GiB to avoid exceeding the virtual address space limit.
 			cache_size,
 #if TORRENT_ABI_VERSION == 1
-			cache_buffer_chunk_size,
+			cache_buffer_chunk_size TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated_cache_buffer_chunk_size,
 #endif
@@ -1486,12 +1486,14 @@ namespace libtorrent {
 			predictive_piece_announce,
 
 			// for some aio back-ends, ``aio_threads`` specifies the number of
-			// io-threads to use,  and ``aio_max`` the max number of outstanding
-			// jobs.
+			// io-threads to use.
 			aio_threads,
-			aio_max,
 
 #if TORRENT_ABI_VERSION == 1
+			// for some aio back-ends, ``aio_max`` specifies the max number of
+			// outstanding jobs.
+			aio_max TORRENT_DEPRECATED_ENUM,
+
 			// .. note:: This is not implemented
 			//
 			// ``network_threads`` is the number of threads to use to call
@@ -1511,6 +1513,7 @@ namespace libtorrent {
 			ssl_listen TORRENT_DEPRECATED_ENUM,
 #else
 			// hidden
+			deprecated_aio_max,
 			deprecated_network_threads,
 			deprecated_ssl_listen,
 #endif
@@ -1697,7 +1700,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 			disable_os_cache_for_aligned_files TORRENT_DEPRECATED_ENUM = 2,
 #else
-			deprecated = 1,
+			deprecated_disable_os_cache_for_aligned_files = 1,
 #endif
 			disable_os_cache = 2
 		};
