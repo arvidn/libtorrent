@@ -133,11 +133,17 @@ namespace libtorrent
 #endif
 					&& pd->error != error_code(libtorrent::errors::self_connection)
 					&& pd->error != error_code(libtorrent::errors::torrent_removed)
+					&& pd->error != error_code(libtorrent::errors::torrent_paused)
 					&& pd->error != error_code(libtorrent::errors::torrent_aborted)
 					&& pd->error != error_code(libtorrent::errors::stopping_torrent)
 					&& pd->error != error_code(libtorrent::errors::session_closing)
 					&& pd->error != error_code(libtorrent::errors::duplicate_peer_id)
+					&& pd->error != error_code(libtorrent::errors::uninteresting_upload_peer)
+					&& pd->error != error_code(libtorrent::errors::unsupported_encryption_mode)
+					&& pd->error != error_code(libtorrent::errors::torrent_finished)
 					&& pd->error != error_code(libtorrent::errors::timed_out)
+					&& pd->error != error_code(libtorrent::errors::timed_out_inactivity)
+					&& pd->error != error_code(libtorrent::errors::timed_out_no_request)
 					&& pd->error != error_code(libtorrent::errors::timed_out_no_handshake)
 					&& pd->error != error_code(libtorrent::errors::upload_upload_connection))
 					fprintf(m_file, "%s\tdisconnect [%s][%s] (%s:%d) %s\n", timestamp
