@@ -105,8 +105,7 @@ bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_c
 		if (disposition != "application/octet-stream"
 			&& disposition != "application/x-bittorrent") continue;
 
-		char const* torrent_start = part.get_body().data();
-		params.ti = std::make_shared<torrent_info>(torrent_start, part_end - torrent_start, std::ref(ec), 0);
+		params.ti = std::make_shared<torrent_info>(part.get_body(), ec, from_span);
 		if (ec) return false;
 		return true;
 	}

@@ -53,7 +53,7 @@ private:
 	int flags;
 };
 
-};
+}
 
 #endif // TORRENT_ALERT_OBSERVER_HPP_INCLUDED
 

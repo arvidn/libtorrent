@@ -16,6 +16,7 @@
 #include "stats_logging.hpp"
 
 #include <signal.h>
+#include <iostream>
 
 bool quit = false;
 bool force_quit = false;
@@ -82,16 +83,19 @@ struct external_ip_observer : alert_observer
 
 int main(int argc, char *const argv[])
 {
-	settings_pack s;
-	s.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
-	s.set_int(settings_pack::alert_mask, 0xffffffff);
+	session_params s;
+	error_code ec;
+	s.settings.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
+	s.settings.set_int(settings_pack::alert_mask, 0xffffffff);
+
+	load_settings(s, "settings.dat", ec);
+	if (ec) std::cout << "Failed to load settings: " << ec.message() << '\n';
+
 	lt::session ses(s);
 
 	alert_handler alerts(ses);
 
-	error_code ec;
-	save_settings sett(ses, "settings.dat");
-	sett.load(ec);
+	save_settings sett(ses, s.settings, "settings.dat");
 
 	torrent_history hist(&alerts);
 	auth authorizer;

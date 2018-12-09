@@ -96,7 +96,7 @@ struct method_handler
 		, char* buffer, permissions_interface const* p);
 };
 
-static method_handler handlers[] =
+static const method_handler handlers[] =
 {
 	{"torrent-add", &transmission_webui::add_torrent },
 	{"torrent-get", &transmission_webui::get_torrent },
@@ -127,9 +127,9 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 	buffer[method->end] = 0;
 	char const* m = &buffer[method->start];
 	jsmntok_t* args = nullptr;
-	for (int i = 0; i < sizeof(handlers)/sizeof(handlers[0]); ++i)
+	for (auto const& handler : handlers)
 	{
-		if (strcmp(m, handlers[i].method_name)) continue;
+		if (strcmp(m, handler.method_name)) continue;
 
 		args = find_key(tokens, buffer, "arguments", JSMN_OBJECT);
 		std::int64_t tag = find_int(tokens, buffer, "tag");
@@ -138,7 +138,7 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 		if (args) buffer[args->end] = 0;
 //		printf("%s: %s\n", m, args ? buffer + args->start : "{}");
 
-		(this->*handlers[i].fun)(buf, args, tag, buffer, p);
+		(this->*handler.fun)(buf, args, tag, buffer, p);
 		break;
 	}
 	if (!handled)
@@ -154,7 +154,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
-	jsmntok_t* cookies = find_key(args, buffer, "cookies", JSMN_STRING);
+//	jsmntok_t* cookies = find_key(args, buffer, "cookies", JSMN_STRING);
 
 	add_torrent_params params = m_params_model;
 	std::string save_path = find_string(args, buffer, "download-dir");
@@ -174,11 +174,15 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	}
 
 	std::string url = find_string(args, buffer, "filename");
-	if (url.substr(0, 7) == "http://"
-		|| url.substr(0, 8) == "https://"
-		|| url.substr(0, 7) == "magnet:")
+	if (url.substr(0, 7) == "magnet:")
 	{
-		params.url = url;
+		error_code ec;
+		parse_magnet_uri(url, params, ec);
+		if (ec)
+		{
+			return_failure(buf, ec.message().c_str(), tag);
+			return;
+		}
 	}
 	else if (!url.empty())
 	{
@@ -223,11 +227,6 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 
 char const* to_bool(bool b) { return b ? "true" : "false"; }
 
-bool all_torrents(torrent_status const& s)
-{
-	return true;
-}
-
 std::uint32_t tracker_id(announce_entry const& ae)
 {
 	sha1_hash urlhash = lt::hasher(ae.url).final();
@@ -247,10 +246,16 @@ int tracker_status(announce_entry const& ae, torrent_status const& ts)
 		TR_TRACKER_ACTIVE = 3
 	};
 
-	if (ae.updating) return TR_TRACKER_ACTIVE;
-	if (ts.paused) return TR_TRACKER_INACTIVE;
-	if (ae.fails >= ae.fail_limit) return TR_TRACKER_INACTIVE;
-	if (ae.verified && ae.start_sent) return TR_TRACKER_WAITING;
+	auto const& eps = ae.endpoints;
+	if (eps.empty()) return TR_TRACKER_INACTIVE;
+
+	if (std::any_of(eps.begin(), eps.end(), [](announce_endpoint const& e) { return e.updating;}))
+		return TR_TRACKER_ACTIVE;
+	if (ts.flags & torrent_flags::paused) return TR_TRACKER_INACTIVE;
+	if (std::all_of(eps.begin(), eps.end(), [&](announce_endpoint const& e) { return e.fails >= ae.fail_limit;}))
+		return TR_TRACKER_INACTIVE;
+	if (std::any_of(eps.begin(), eps.end(), [](announce_endpoint const& e) { return e.start_sent;}))
+		return TR_TRACKER_WAITING;
 	return TR_TRACKER_QUEUED;
 }
 
@@ -266,33 +271,33 @@ int torrent_tr_status(torrent_status const& ts)
 		TR_STATUS_SEED_WAIT = 5,
 		TR_STATUS_SEED = 6
 	};
-	int res = 0;
+	int res = TR_STATUS_STOPPED;
 
-	if (ts.paused && !ts.auto_managed)
+	if (ts.flags & torrent_flags::paused && !(ts.flags & torrent_flags::auto_managed))
 		return TR_STATUS_STOPPED;
-	switch(ts.state)
+	switch (ts.state)
 	{
 		case libtorrent::torrent_status::checking_resume_data:
 			res = TR_STATUS_CHECK;
 			break;
 		case libtorrent::torrent_status::checking_files:
-			if (ts.paused) return TR_STATUS_CHECK_WAIT;
+			if (ts.flags & torrent_flags::paused) return TR_STATUS_CHECK_WAIT;
 			else return TR_STATUS_CHECK;
 			break;
 		case libtorrent::torrent_status::downloading_metadata:
 		case libtorrent::torrent_status::downloading:
 		case libtorrent::torrent_status::allocating:
-			if (ts.paused) return TR_STATUS_DOWNLOAD_WAIT;
+			if (ts.flags & torrent_flags::paused) return TR_STATUS_DOWNLOAD_WAIT;
 			else return TR_STATUS_DOWNLOAD;
 			break;
 		case libtorrent::torrent_status::seeding:
 		case libtorrent::torrent_status::finished:
-			if (ts.paused) return TR_STATUS_SEED_WAIT;
+			if (ts.flags & torrent_flags::paused) return TR_STATUS_SEED_WAIT;
 			else return TR_STATUS_SEED;
 		default:
 			TORRENT_ASSERT(false);
 	}
-	return TR_STATUS_STOPPED;
+	return res;
 }
 
 int tr_file_priority(int prio)
@@ -354,8 +359,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 	std::set<std::uint32_t> torrent_ids;
 	parse_ids(torrent_ids, args, buffer);
 
-	std::vector<torrent_status> t;
-	m_ses.get_torrent_status(&t, &all_torrents);
+	std::vector<torrent_status> t = m_ses.get_torrent_status([](torrent_status const&) { return true; });
 
 	appendf(buf, "{ \"result\": \"success\", \"arguments\": { \"torrents\": [");
 
@@ -368,16 +372,15 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 	int returned_torrents = 0;
 	error_code ec;
 	torrent_info empty("", ec);
-	for (int i = 0; i < t.size(); ++i)
+	for (torrent_status const& ts : t)
 	{
 		torrent_info const* ti = &empty;
 		std::shared_ptr<torrent_info const> holder;
-		if (t[i].has_metadata)
+		if (ts.has_metadata)
 		{
-			holder = t[i].torrent_file.lock();
+			holder = ts.torrent_file.lock();
 			ti = holder.get();
 		}
-		torrent_status const& ts = t[i];
 
 		if (!torrent_ids.empty() && torrent_ids.count(ts.handle.id()) == 0)
 			continue;
@@ -385,8 +388,9 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		// skip comma on any item that's not the first one
 		appendf(buf, ", {" + (returned_torrents?0:2));
 		int count = 0;
-		TORRENT_PROPERTY("activityDate", "%" PRId64, time(0) - (std::min)(ts.time_since_download
-			, ts.time_since_upload));
+		TORRENT_PROPERTY("activityDate", "%" PRId64, time(nullptr)
+			- duration_cast<seconds>(lt::clock_type::now() - (std::max)(ts.last_download
+			, ts.last_upload)).count());
 		TORRENT_PROPERTY("addedDate", "%" PRId64, ts.added_time);
 		TORRENT_PROPERTY("comment", "\"%s\"", escape_json(ti->comment()).c_str());
 		TORRENT_PROPERTY("creator", "\"%s\"", escape_json(ti->creator()).c_str());
@@ -444,12 +448,15 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			std::vector<std::int64_t> progress;
 			ts.handle.file_progress(progress);
 			appendf(buf, ", \"files\": [" + (count?0:2));
-			for (int i = 0; i < files.num_files(); ++i)
+			
+			for (auto i : files.file_range())
 			{
 				appendf(buf, ", { \"bytesCompleted\": %" PRId64 ","
 					"\"length\": %" PRId64 ","
 					"\"name\": \"%s\" }" + (i?0:2)
-					, progress[i], files.file_size(i), escape_json(files.file_path(i)).c_str());
+					, progress[static_cast<int>(i)]
+					, files.file_size(i)
+					, escape_json(files.file_path(i)).c_str());
 			}
 			appendf(buf, "]");
 			++count;
@@ -591,9 +598,9 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		{
 			std::vector<announce_entry> trackers = ts.handle.trackers();
 			appendf(buf, ", \"trackerStats\": [" + (count?0:2));
-			for (int i = 0; i < trackers.size(); ++i)
+			int i = 0;
+			for (announce_entry const& a : trackers)
 			{
-				announce_entry const& a = trackers[i];
 				using std::ignore;
 				error_code ec;
 				std::string hostname;
@@ -644,7 +651,9 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 					, to_bool(a.endpoints.empty() ? false : a.endpoints.front().last_error == boost::asio::error::timed_out) // lastAnnounceSucceeded
 					, 0, "", 0, "false", 0, "false"
 					, 0 // leecherCount
-					, a.endpoints.empty() ? 0 : time(nullptr) + duration_cast<seconds>(a.endpoints.front().next_announce - lt::clock_type::now()).count()
+					, a.endpoints.empty() ? 0 : time(nullptr)
+						+ duration_cast<seconds>(a.endpoints.front().next_announce
+						- lt::clock_type::now()).count()
 					, 0
 					, a.url.c_str()
 					, 0
@@ -670,8 +679,7 @@ void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
-	std::vector<torrent_handle> handles;
-	get_torrents(handles, args, buffer);
+	std::vector<torrent_handle> handles = get_torrents(args, buffer);
 
 	bool set_dl_limit = false;
 	int download_limit = find_int(args, buffer, "downloadLimit", &set_dl_limit);
@@ -808,13 +816,11 @@ void transmission_webui::start_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
-	std::vector<torrent_handle> handles;
-	get_torrents(handles, args, buffer);
-	for (std::vector<torrent_handle>::iterator i = handles.begin()
-		, end(handles.end()); i != end; ++i)
+	std::vector<torrent_handle> handles = get_torrents(args, buffer);
+	for (torrent_handle& h : handles)
 	{
-		i->auto_managed(true);
-		i->resume();
+		h.set_flags(torrent_flags::auto_managed);
+		h.resume();
 	}
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": {} }", tag);
@@ -829,13 +835,11 @@ void transmission_webui::start_torrent_now(std::vector<char>& buf, jsmntok_t* ar
 		return;
 	}
 
-	std::vector<torrent_handle> handles;
-	get_torrents(handles, args, buffer);
-	for (std::vector<torrent_handle>::iterator i = handles.begin()
-		, end(handles.end()); i != end; ++i)
+	std::vector<torrent_handle> handles = get_torrents(args, buffer);
+	for (torrent_handle& h : handles)
 	{
-		i->auto_managed(false);
-		i->resume();
+		h.unset_flags(torrent_flags::auto_managed);
+		h.resume();
 	}
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": {} }", tag);
@@ -850,13 +854,11 @@ void transmission_webui::stop_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
-	std::vector<torrent_handle> handles;
-	get_torrents(handles, args, buffer);
-	for (std::vector<torrent_handle>::iterator i = handles.begin()
-		, end(handles.end()); i != end; ++i)
+	std::vector<torrent_handle> handles = get_torrents(args, buffer);
+	for (torrent_handle const& h : handles)
 	{
-		i->auto_managed(false);
-		i->pause();
+		h.unset_flags(torrent_flags::auto_managed);
+		h.pause();
 	}
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": {} }", tag);
@@ -871,12 +873,10 @@ void transmission_webui::verify_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
-	std::vector<torrent_handle> handles;
-	get_torrents(handles, args, buffer);
-	for (std::vector<torrent_handle>::iterator i = handles.begin()
-		, end(handles.end()); i != end; ++i)
+	std::vector<torrent_handle> handles = get_torrents(args, buffer);
+	for (torrent_handle const& h : handles)
 	{
-		i->force_recheck();
+		h.force_recheck();
 	}
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": {} }", tag);
@@ -891,12 +891,10 @@ void transmission_webui::reannounce_torrent(std::vector<char>& buf, jsmntok_t* a
 		return;
 	}
 
-	std::vector<torrent_handle> handles;
-	get_torrents(handles, args, buffer);
-	for (std::vector<torrent_handle>::iterator i = handles.begin()
-		, end(handles.end()); i != end; ++i)
+	std::vector<torrent_handle> handles = get_torrents(args, buffer);
+	for (torrent_handle const& h : handles)
 	{
-		i->force_reannounce();
+		h.force_reannounce();
 	}
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": {} }", tag);
@@ -913,8 +911,7 @@ void transmission_webui::remove_torrent(std::vector<char>& buf, jsmntok_t* args
 
 	bool const delete_data = find_bool(args, buffer, "delete-local-data");
 
-	std::vector<torrent_handle> handles;
-	get_torrents(handles, args, buffer);
+	std::vector<torrent_handle> handles = get_torrents(args, buffer);
 	for (std::vector<torrent_handle>::iterator i = handles.begin()
 		, end(handles.end()); i != end; ++i)
 	{
@@ -1194,9 +1191,10 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, st
 		{
 			if (!p->allow_set_settings(-1)) continue;
 			int port = atoi(value);
-			error_code ec;
-			m_ses.listen_on(std::make_pair(port, port+1), ec);
 			if (m_settings) m_settings->set_int("listen_port", port);
+			settings_pack sett;
+			sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:" + std::to_string(port));
+			m_ses.apply_settings(std::move(sett));
 		}
 		else if (strcmp(key, "utp-enabled") == 0)
 		{
@@ -1257,10 +1255,10 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, st
 	}
 }
 
-void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmntok_t* args
+std::vector<torrent_handle> transmission_webui::get_torrents(jsmntok_t* args
 	, char* buffer)
 {
-	std::vector<torrent_handle> h = m_ses.get_torrents();
+	std::vector<torrent_handle> handles = m_ses.get_torrents();
 
 	std::set<std::uint32_t> torrent_ids;
 	parse_ids(torrent_ids, args, buffer);
@@ -1268,15 +1266,16 @@ void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmn
 	if (torrent_ids.empty())
 	{
 		// if ids is omitted, return all torrents
-		handles.swap(h);
-		return;
+		return handles;
 	}
-	for (std::vector<torrent_handle>::iterator i = h.begin()
-		, end(h.end()); i != end; ++i)
+
+	std::vector<torrent_handle> ret;
+	for (auto const& h : handles)
 	{
-		if (torrent_ids.count(i->id()))
-			handles.insert(handles.begin(), *i);
+		if (torrent_ids.count(h.id()))
+			ret.emplace_back(h);
 	}
+	return ret;
 }
 
 transmission_webui::transmission_webui(session& s, save_settings_interface* sett, auth_interface const* auth)
@@ -1292,17 +1291,6 @@ transmission_webui::transmission_webui(session& s, save_settings_interface* sett
 
 	m_params_model.save_path = ".";
 	m_start_time = time(nullptr);
-
-	if (m_settings)
-	{
-		m_params_model.save_path = m_settings->get_str("save_path", ".");
-		int port = m_settings->get_int("listen_port", -1);
-		if (port != -1)
-		{
-			error_code ec;
-			m_ses.listen_on(std::make_pair(port, port+1), ec);
-		}
-	}
 }
 
 transmission_webui::~transmission_webui() {}

@@ -77,8 +77,7 @@ namespace libtorrent
 
 	private:
 
-		void get_torrents(std::vector<torrent_handle>& handles, jsmntok_t* args
-			, char* buffer);
+		std::vector<torrent_handle> get_torrents(jsmntok_t* args, char* buffer);
 		void handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer, permissions_interface const* p);
 		void parse_ids(std::set<std::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer);
 
