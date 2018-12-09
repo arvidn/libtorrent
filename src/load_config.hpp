@@ -36,13 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/fwd.hpp"
 
 namespace libtorrent
 {
-	class session;
-
-	void load_config(std::string const& config_file, session* ses, error_code& ec);
-
+	void load_config(std::string const& config_file, settings_pack& pack, error_code& ec);
 }
 
 #endif

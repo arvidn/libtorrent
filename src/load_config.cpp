@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #include <syslog.h>
 #include <stdio.h>
-#include "libtorrent/session.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "load_config.hpp"
 
@@ -46,7 +45,7 @@ namespace libtorrent
 // simple text file, where each line is a key value pair. The keys are
 // the keys used by libtorrent. The values are either strings, integers
 // or booleans.
-void load_config(std::string const& config_file, session* ses, error_code& ec)
+void load_config(std::string const& config_file, settings_pack& p, error_code& ec)
 {
 	static time_t last_load = 0;
 
@@ -67,8 +66,6 @@ void load_config(std::string const& config_file, session* ses, error_code& ec)
 		ec = error_code(errno, system_category());
 		return;
 	}
-
-	settings_pack p;
 
 	char key[512];
 	char value[512];
@@ -94,8 +91,6 @@ void load_config(std::string const& config_file, session* ses, error_code& ec)
 	}
 
 	fclose(f);
-
-	ses->apply_settings(p);
 }
 
 }
