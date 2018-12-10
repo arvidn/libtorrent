@@ -117,6 +117,7 @@ static test_torrent_t test_torrents[] =
 	{ "no_creation_date.torrent" },
 	{ "url_seed.torrent" },
 	{ "url_seed_multi.torrent" },
+	{ "url_seed_multi_single_file.torrent" },
 	{ "url_seed_multi_space.torrent" },
 	{ "url_seed_multi_space_nolist.torrent" },
 	{ "root_hash.torrent" },
@@ -699,50 +700,50 @@ TORRENT_TEST(parse_torrents)
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
 
 	std::string root_dir = parent_path(current_working_directory());
-	for (int i = 0; i < int(sizeof(test_torrents)/sizeof(test_torrents[0])); ++i)
+	for (auto const t : test_torrents)
 	{
-		std::printf("loading %s\n", test_torrents[i].file);
+		std::printf("loading %s\n", t.file);
 		std::string filename = combine_path(combine_path(root_dir, "test_torrents")
-			, test_torrents[i].file);
+			, t.file);
 		error_code ec;
 		auto ti = std::make_shared<torrent_info>(filename, ec);
 		TEST_CHECK(!ec);
 		if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
 			, ec.message().c_str());
 
-		if (std::string(test_torrents[i].file) == "whitespace_url.torrent")
+		if (t.file == "whitespace_url.torrent"_sv)
 		{
 			// make sure we trimmed the url
 			TEST_CHECK(ti->trackers().size() > 0);
 			if (ti->trackers().size() > 0)
 				TEST_CHECK(ti->trackers()[0].url == "udp://test.com/announce");
 		}
-		else if (std::string(test_torrents[i].file) == "duplicate_files.torrent")
+		else if (t.file == "duplicate_files.torrent"_sv)
 		{
 			// make sure we disambiguated the files
 			TEST_EQUAL(ti->num_files(), 2);
 			TEST_CHECK(ti->files().file_path(file_index_t{0}) == combine_path(combine_path("temp", "foo"), "bar.txt"));
 			TEST_CHECK(ti->files().file_path(file_index_t{1}) == combine_path(combine_path("temp", "foo"), "bar.1.txt"));
 		}
-		else if (std::string(test_torrents[i].file) == "pad_file.torrent")
+		else if (t.file == "pad_file.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
 			TEST_EQUAL(bool(ti->files().file_flags(file_index_t{0}) & file_storage::flag_pad_file), false);
 			TEST_EQUAL(bool(ti->files().file_flags(file_index_t{1}) & file_storage::flag_pad_file), true);
 		}
-		else if (std::string(test_torrents[i].file) == "creation_date.torrent")
+		else if (t.file == "creation_date.torrent"_sv)
 		{
 			TEST_EQUAL(ti->creation_date(), 1234567);
 		}
-		else if (std::string(test_torrents[i].file) == "duplicate_web_seeds.torrent")
+		else if (t.file == "duplicate_web_seeds.torrent"_sv)
 		{
 			TEST_EQUAL(ti->web_seeds().size(), 3);
 		}
-		else if (std::string(test_torrents[i].file) == "no_creation_date.torrent")
+		else if (t.file == "no_creation_date.torrent"_sv)
 		{
 			TEST_CHECK(!ti->creation_date());
 		}
-		else if (std::string(test_torrents[i].file) == "url_seed.torrent")
+		else if (t.file == "url_seed.torrent"_sv)
 		{
 			TEST_EQUAL(ti->web_seeds().size(), 1);
 			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file");
@@ -752,7 +753,7 @@ TORRENT_TEST(parse_torrents)
 			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file");
 #endif
 		}
-		else if (std::string(test_torrents[i].file) == "url_seed_multi.torrent")
+		else if (t.file == "url_seed_multi.torrent"_sv)
 		{
 			TEST_EQUAL(ti->web_seeds().size(), 1);
 			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/");
@@ -762,8 +763,13 @@ TORRENT_TEST(parse_torrents)
 			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file/");
 #endif
 		}
-		else if (std::string(test_torrents[i].file) == "url_seed_multi_space.torrent"
-			|| std::string(test_torrents[i].file) == "url_seed_multi_space_nolist.torrent")
+		else if (t.file == "url_seed_multi_single_file.torrent"_sv)
+		{
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/temp/foo/bar.txt");
+		}
+		else if (t.file == "url_seed_multi_space.torrent"_sv
+			|| t.file == "url_seed_multi_space_nolist.torrent"_sv)
 		{
 			TEST_EQUAL(ti->web_seeds().size(), 1);
 			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/test%20file/foo%20bar/");
@@ -773,14 +779,14 @@ TORRENT_TEST(parse_torrents)
 			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
 #endif
 		}
-		else if (std::string(test_torrents[i].file) == "invalid_name2.torrent")
+		else if (t.file == "invalid_name2.torrent"_sv)
 		{
 			// if, after all invalid characters are removed from the name, it ends up
 			// being empty, it's set to the info-hash. Some torrents also have an empty name
 			// in which case it's also set to the info-hash
 			TEST_EQUAL(ti->name(), "b61560c2918f463768cd122b6d2fdd47b77bdb35");
 		}
-		else if (std::string(test_torrents[i].file) == "invalid_name3.torrent")
+		else if (t.file == "invalid_name3.torrent"_sv)
 		{
 			// windows does not allow trailing spaces in filenames
 #ifdef TORRENT_WINDOWS
@@ -789,42 +795,42 @@ TORRENT_TEST(parse_torrents)
 			TEST_EQUAL(ti->name(), "foobar ");
 #endif
 		}
-		else if (std::string(test_torrents[i].file) == "slash_path.torrent")
+		else if (t.file == "slash_path.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 1);
 			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "bar");
 		}
-		else if (std::string(test_torrents[i].file) == "slash_path2.torrent")
+		else if (t.file == "slash_path2.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 1);
 			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "abc....def" SEPARATOR "bar");
 		}
-		else if (std::string(test_torrents[i].file) == "slash_path3.torrent")
+		else if (t.file == "slash_path3.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 1);
 			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp....abc");
 		}
-		else if (std::string(test_torrents[i].file) == "symlink_zero_size.torrent")
+		else if (t.file == "symlink_zero_size.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
 			TEST_EQUAL(ti->files().symlink(file_index_t(1)), combine_path("foo", "bar"));
 		}
-		else if (std::string(test_torrents[i].file) == "pad_file_no_path.torrent")
+		else if (t.file == "pad_file_no_path.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
 			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path(".pad", "0"));
 		}
-		else if (std::string(test_torrents[i].file) == "absolute_filename.torrent")
+		else if (t.file == "absolute_filename.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
 			TEST_EQUAL(ti->files().file_path(file_index_t{0}), combine_path("temp", "abcde"));
 			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path("temp", "foobar"));
 		}
-		else if (std::string(test_torrents[i].file) == "invalid_filename.torrent")
+		else if (t.file == "invalid_filename.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
 		}
-		else if (std::string(test_torrents[i].file) == "invalid_filename2.torrent")
+		else if (t.file == "invalid_filename2.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 3);
 		}
