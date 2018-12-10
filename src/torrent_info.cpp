@@ -1377,7 +1377,7 @@ namespace {
 		{
 			web_seed_entry ent(maybe_url_encode(url_seeds.string_value().to_string())
 				, web_seed_entry::url_seed);
-			if (m_flags & multifile)
+			if ((m_flags & multifile) && num_files() > 1)
 				ensure_trailing_slash(ent.url);
 			m_web_seeds.push_back(ent);
 		}
@@ -1392,7 +1392,7 @@ namespace {
 				if (url.string_length() == 0) continue;
 				web_seed_entry ent(maybe_url_encode(url.string_value().to_string())
 					, web_seed_entry::url_seed);
-				if (m_flags & multifile)
+				if ((m_flags & multifile) && num_files() > 1)
 					ensure_trailing_slash(ent.url);
 				if (!unique.insert(ent.url).second) continue;
 				m_web_seeds.push_back(ent);
