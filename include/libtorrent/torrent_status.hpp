@@ -131,7 +131,7 @@ TORRENT_VERSION_NAMESPACE_2
 		};
 
 #if TORRENT_ABI_VERSION == 1
-		std::string error;
+		std::string TORRENT_DEPRECATED_MEMBER error;
 #endif
 
 		// may be set to an error code describing why the torrent was paused, in
@@ -193,7 +193,7 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION == 1
 		// the time the tracker want us to wait until we announce ourself
 		// again the next time.
-		time_duration announce_interval;
+		time_duration TORRENT_DEPRECATED_MEMBER announce_interval;
 #endif
 
 		// the URL of the last working tracker. If no tracker request has
@@ -387,7 +387,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// number of bytes that each piece request asks for and the number of
 		// bytes that each bit in the ``partial_piece_info``'s bitset represents,
 		// see get_download_queue(). This is typically 16 kB, but it may be
-		// larger if the pieces are larger.
+		// smaller, if the pieces are smaller.
 		int block_size = 0;
 
 		// the number of unchoked peers in this torrent.
@@ -452,9 +452,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// the number of seconds since this torrent acquired scrape data.
 		// If it has never done that, this value is -1.
 		int TORRENT_DEPRECATED_MEMBER last_scrape = 0;
-#endif
 
-#if TORRENT_ABI_VERSION == 1
 		// the priority of this torrent
 		int TORRENT_DEPRECATED_MEMBER priority = 0;
 #endif
