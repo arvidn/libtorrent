@@ -108,6 +108,15 @@ namespace aux {
 		span(Cont const& c) // NOLINT
 			: m_ptr(c.data()), m_len(static_cast<difference_type>(c.size())) {}
 
+		template <typename U, typename
+			= typename std::enable_if<aux::compatible_type<U, T>::value>::type>
+		span& operator=(span<U> const& rhs) noexcept
+		{
+			m_ptr = rhs.data();
+			m_len = rhs.size();
+			return *this;
+		}
+
 		index_type size() const noexcept { return m_len; }
 		bool empty() const noexcept { return m_len == 0; }
 		T* data() const noexcept { return m_ptr; }
