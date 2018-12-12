@@ -56,6 +56,25 @@ TORRENT_TEST(span_vector)
 	TEST_CHECK(a.size() == 4);
 }
 
+TORRENT_TEST(span_vector_assignment)
+{
+	std::vector<char> v1 = {1,2,3,4};
+	span<char> a;
+	a = v1;
+	TEST_CHECK(a == f(v1));
+	TEST_CHECK(a.size() == 4);
+}
+
+TORRENT_TEST(span_assignment)
+{
+	char v1[] = {1,2,3,4};
+	span<char> a2(v1);
+	span<char> a;
+	a = a2;
+	TEST_CHECK(a == f(v1));
+	TEST_CHECK(a.size() == 4);
+}
+
 namespace {
 
 void do_span_temp_vector(span<char const> a)
