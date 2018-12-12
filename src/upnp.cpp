@@ -705,7 +705,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 
 	char header[2048];
 	std::snprintf(header, sizeof(header), "POST %s HTTP/1.1\r\n"
-		"Host: %s:%u\r\n"
+		"Host: %s:%d\r\n"
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
 		"Content-Length: %d\r\n"
 		"Soapaction: \"%s#%s\"\r\n\r\n"
@@ -754,7 +754,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d
 		"<NewInternalClient>%s</NewInternalClient>"
 		"<NewEnabled>1</NewEnabled>"
 		"<NewPortMappingDescription>%s</NewPortMappingDescription>"
-		"<NewLeaseDuration>%u</NewLeaseDuration>"
+		"<NewLeaseDuration>%d</NewLeaseDuration>"
 		"</u:%s></s:Body></s:Envelope>"
 		, soap_action, d.service_namespace.c_str(), d.mapping[i].external_port
 		, to_string(d.mapping[i].protocol)

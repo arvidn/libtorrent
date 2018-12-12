@@ -1762,7 +1762,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		m_cwnd_full = true;
 
 		UTP_LOGV("%8p: no space in window send_buffer_size:%d cwnd:%d "
-			"adv_wnd:%d in-flight:%d mtu:%d\n"
+			"adv_wnd:%u in-flight:%d mtu:%u\n"
 			, static_cast<void*>(this), m_write_buffer_size, int(m_cwnd >> 16)
 			, m_adv_wnd, m_bytes_in_flight, m_mtu);
 
@@ -1771,7 +1771,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 #if TORRENT_UTP_LOG
 			UTP_LOGV("%8p: skipping send seq_nr:%d ack_nr:%d "
 				"id:%d target:%s header_size:%d error:%s send_buffer_size:%d cwnd:%d "
-				"adv_wnd:%d in-flight:%d mtu:%d effective-mtu:%d\n"
+				"adv_wnd:%d in-flight:%d mtu:%u effective-mtu:%d\n"
 				, static_cast<void*>(this), int(m_seq_nr), int(m_ack_nr)
 				, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 				, header_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
@@ -1788,7 +1788,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: skipping send (no payload and no force) seq_nr:%d ack_nr:%d "
 			"id:%d target:%s header_size:%d error:%s send_buffer_size:%d cwnd:%d "
-			"adv_wnd:%d in-flight:%d mtu:%d\n"
+			"adv_wnd:%u in-flight:%d mtu:%u\n"
 			, static_cast<void*>(this), int(m_seq_nr), int(m_ack_nr)
 			, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 			, header_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
@@ -1916,7 +1916,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// outstanding packet is acked, we'll send this
 		// payload
 		UTP_LOGV("%8p: NAGLE not enough payload send_buffer_size:%d cwnd:%d "
-			"adv_wnd:%d in-flight:%d mtu:%d effective_mtu:%d\n"
+			"adv_wnd:%u in-flight:%d mtu:%d effective_mtu:%d\n"
 			, static_cast<void*>(this), m_write_buffer_size, int(m_cwnd >> 16)
 			, m_adv_wnd, m_bytes_in_flight, m_mtu, effective_mtu);
 		TORRENT_ASSERT(!m_nagle_packet);
@@ -1956,7 +1956,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 #if TORRENT_UTP_LOG
 	UTP_LOG("%8p: sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
-		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u "
+		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%d "
 		"mtu_probe:%d extension:%d\n"
 		, static_cast<void*>(this), int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
@@ -2177,7 +2177,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
-		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
+		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%d\n"
 		, static_cast<void*>(this), int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, p->size, ec.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
@@ -3434,7 +3434,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 	if ((m_cwnd >> 16) >= m_adv_wnd)
 	{
 		m_slow_start = false;
-		UTP_LOGV("%8p: cwnd > advertized wnd (%d) slow_start -> 0\n"
+		UTP_LOGV("%8p: cwnd > advertized wnd (%u) slow_start -> 0\n"
 			, static_cast<void*>(this), m_adv_wnd);
 	}
 }
