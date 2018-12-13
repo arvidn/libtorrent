@@ -521,6 +521,10 @@ constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
 #define TORRENT_USE_INVARIANT_CHECKS 0
 #endif
 
+#if TORRENT_USE_INVARIANT_CHECKS && !TORRENT_USE_ASSERTS
+#error "invariant checks cannot be enabled without asserts"
+#endif
+
 // for non-exception builds
 #ifdef BOOST_NO_EXCEPTIONS
 #define TORRENT_TRY if (true)

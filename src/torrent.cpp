@@ -7729,7 +7729,6 @@ bool is_downloading_state(int const st)
 			TORRENT_ASSERT(m_info_hash == m_torrent_file->info_hash());
 		}
 
-#if TORRENT_USE_ASSERTS
 		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
 		{
 			if (!m_links[i].in_list()) continue;
@@ -7738,7 +7737,6 @@ bool is_downloading_state(int const st)
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < int(m_ses.torrent_list(i).size()));
 		}
-#endif
 
 		TORRENT_ASSERT(want_peers_download() == m_links[aux::session_interface::torrent_want_peers_download].in_list());
 		TORRENT_ASSERT(want_peers_finished() == m_links[aux::session_interface::torrent_want_peers_finished].in_list());

@@ -88,11 +88,12 @@ namespace libtorrent { namespace aux {
 		for (int i = 0; i < num; i++)
 		{
 			if (ptr[i] == 0) continue;
-			std::uint32_t v = aux::network_to_host(ptr[i]);
 
 #if TORRENT_HAS_BUILTIN_CLZ
+			std::uint32_t const v = aux::network_to_host(ptr[i]);
 			return i * 32 + __builtin_clz(v);
 #elif defined _MSC_VER
+			std::uint32_t const v = aux::network_to_host(ptr[i]);
 			DWORD pos;
 			_BitScanReverse(&pos, v);
 			return i * 32 + 31 - pos;
@@ -148,11 +149,12 @@ namespace libtorrent { namespace aux {
 		for (int i = num - 1; i >= 0; i--)
 		{
 			if (ptr[i] == 0xffffffff) continue;
-			std::uint32_t v = ~aux::network_to_host(ptr[i]);
 
 #if TORRENT_HAS_BUILTIN_CTZ
+			std::uint32_t const v = ~aux::network_to_host(ptr[i]);
 			return (num - i - 1) * 32 + __builtin_ctz(v);
 #elif defined _MSC_VER
+			std::uint32_t const v = ~aux::network_to_host(ptr[i]);
 			DWORD pos;
 			_BitScanForward(&pos, v);
 			return (num - i - 1) * 32 + pos;
