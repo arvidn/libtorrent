@@ -387,6 +387,13 @@ namespace libtorrent {
 		return {last.substr(0, pos), last.substr(pos + found_sep)};
 	}
 
+	bool is_numeric(string_view s)
+	{
+		if (s.empty()) return false;
+
+        return std::all_of(s.begin(), s.end(), [](char c) { return is_digit(c); } );
+	}
+
 #if TORRENT_USE_I2P
 
 	bool is_i2p_url(std::string const& url)

@@ -227,6 +227,31 @@ TORRENT_TEST(magnet)
 	p2 = s->abort();
 }
 
+TORRENT_TEST(magnet_tr_x_uri)
+{
+
+    add_torrent_params p = parse_magnet_uri("magnet:"
+        "?tr.0=udp://1"
+        "&tr.1=http://2"
+        "&tr=http://3"
+        "&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+    TEST_EQUAL(p.trackers.size(), 3);
+    TEST_EQUAL(p.trackers[0], "udp://1");
+    TEST_EQUAL(p.tracker_tiers[0], 0);
+    TEST_EQUAL(p.trackers[1], "http://2");
+    TEST_EQUAL(p.tracker_tiers[1], 1);
+    TEST_EQUAL(p.trackers[2], "http://3");
+    TEST_EQUAL(p.tracker_tiers[2], 2);
+
+    p = parse_magnet_uri("magnet:"
+        "?tr.a=udp://1"
+        "&tr.1=http://2"
+        "&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+    TEST_EQUAL(p.trackers.size(), 1);
+    TEST_EQUAL(p.trackers[0], "http://2");
+    TEST_EQUAL(p.tracker_tiers[0], 0);
+}
+
 TORRENT_TEST(parse_escaped_hash_parameter)
 {
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn%3Abtih%3Acdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");

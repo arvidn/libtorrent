@@ -421,6 +421,31 @@ TORRENT_TEST(split_string)
 	TEST_CHECK(split_string(""_sv, ' ') == std::make_pair(""_sv, ""_sv));
 }
 
+TORRENT_TEST(is_numeric)
+{
+	TEST_CHECK(is_numeric("0"_sv));
+	TEST_CHECK(is_numeric("1"_sv));
+	TEST_CHECK(is_numeric("2"_sv));
+	TEST_CHECK(is_numeric("3"_sv));
+	TEST_CHECK(is_numeric("4"_sv));
+	TEST_CHECK(is_numeric("5"_sv));
+	TEST_CHECK(is_numeric("6"_sv));
+	TEST_CHECK(is_numeric("7"_sv));
+	TEST_CHECK(is_numeric("8"_sv));
+	TEST_CHECK(is_numeric("9"_sv));
+	TEST_CHECK(is_numeric("1"_sv));
+	TEST_CHECK(is_numeric("23"_sv));
+	TEST_CHECK(is_numeric("456"_sv));
+	TEST_CHECK(is_numeric("7890"_sv));
+
+	TEST_CHECK(!is_numeric(""_sv));
+	TEST_CHECK(!is_numeric(" "_sv));
+	TEST_CHECK(!is_numeric("a"_sv));
+	TEST_CHECK(!is_numeric("Z"_sv));
+	TEST_CHECK(!is_numeric("1A"_sv));
+	TEST_CHECK(!is_numeric("1 111"_sv));
+}
+
 TORRENT_TEST(convert_from_native)
 {
 	TEST_EQUAL(std::string("foobar"), convert_from_native(convert_to_native("foobar")));

@@ -190,7 +190,8 @@ namespace libtorrent {
 				error_code e;
 				display_name = unescape_string(value, e);
 			}
-			else if (name == "tr"_sv) // tracker
+			else if (name == "tr"_sv ||
+			    (name.substr(0, 3) == "tr."_sv && is_numeric(name.substr(3)))) // tracker
 			{
 				// since we're about to assign tiers to the trackers, make sure the two
 				// vectors are aligned
