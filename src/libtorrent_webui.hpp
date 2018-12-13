@@ -92,9 +92,6 @@ namespace libtorrent
 
 		bool get_file_updates(conn_state* st);
 
-		// parse the arguments to the simple torrent commands
-		int parse_torrent_args(std::vector<torrent_status>& torrents, conn_state* st);
-
 		bool call_rpc(mg_connection* conn, int function, char const* data, int len);
 
 		bool respond(conn_state* st, int error, int val);
@@ -114,6 +111,10 @@ namespace libtorrent
 		};
 
 	private:
+
+		// parse the arguments to the simple torrent commands
+		template <typename Fun>
+		bool apply_torrent_fun(conn_state* st, Fun const& f);
 
 		session& m_ses;
 		torrent_history const* m_hist;

@@ -45,7 +45,7 @@ using namespace libtorrent;
 std::size_t file_requests::hash_value(piece_request const& r) const
 {
 	sha1_hash const& h = r.info_hash;
-	return (h[0] | (h[1] << 8) | (h[2] << 16) | (h[3] << 24)) ^ r.piece;
+	return (h[0] | (h[1] << 8) | (h[2] << 16) | (h[3] << 24)) ^ static_cast<int>(r.piece);
 }
 
 file_requests::file_requests()
@@ -65,7 +65,7 @@ void file_requests::on_alert(alert const* a)
 		rq.piece = p->piece;
 		typedef requests_t::iterator iter;
 
-		DLOG("read_piece_alert: %d (%s)\n", p->piece, p->ec.message().c_str());
+		DLOG("read_piece_alert: %d (%s)\n", p->piece, p->error.message().c_str());
 		std::unique_lock<std::mutex> l(m_mutex);
 		std::pair<iter, iter> range = m_requests.equal_range(rq);
 		if (range.first == m_requests.end()) return;
@@ -86,7 +86,7 @@ void file_requests::on_alert(alert const* a)
 		for (iter i = m_requests.begin(); i != m_requests.end(); ++i)
 		{
 			TORRENT_ASSERT(i->info_hash != rq.info_hash || i->piece != rq.piece);
-			DLOG("(%02x%02x, %d) ", i->info_hash[0], i->info_hash[1], i->piece);
+			DLOG("(%02x%02x, %d) ", i->info_hash[0], i->info_hash[1], static_cast<int>(i->piece));
 		}
 		DLOG("\n");
 		return;
@@ -95,12 +95,12 @@ void file_requests::on_alert(alert const* a)
 	piece_finished_alert const* pf = alert_cast<piece_finished_alert>(a);
 	if (pf)
 	{
-		DLOG("piece_finished: %d\n", pf->piece_index);
+		DLOG("piece_finished: %d\n", static_cast<int>(pf->piece_index));
 		std::shared_ptr<torrent> t = pf->handle.native_handle();
 		piece_request rq;
 		rq.info_hash = t->info_hash();
 		rq.piece = pf->piece_index;
-		typedef requests_t::iterator iter;
+		using iter = requests_t::iterator;
 		m_have_pieces[rq.info_hash].insert(pf->piece_index);
 
 		std::unique_lock<std::mutex> l(m_mutex);
@@ -108,7 +108,7 @@ void file_requests::on_alert(alert const* a)
 		if (range.first == m_requests.end()) return;
 		l.unlock();
 
-		DLOG("read_piece: %d\n", pf->piece_index);
+		DLOG("read_piece: %d\n", static_cast<int>(pf->piece_index));
 		pf->handle.read_piece(pf->piece_index);
 		return;
 	}
@@ -128,12 +128,12 @@ void file_requests::on_alert(alert const* a)
 	else return;
 
 	// remove all requests for the torrent
-	rq.piece = 0;
+	rq.piece = piece_index_t{0};
 	typedef requests_t::iterator iter;
 
 	std::unique_lock<std::mutex> l(m_mutex);
 	iter first = m_requests.lower_bound(rq);
-	rq.piece = INT_MAX;
+	rq.piece = piece_index_t{INT_MAX};
 	iter last = m_requests.upper_bound(rq);
 	if (first == last) return;
 
@@ -190,8 +190,8 @@ std::shared_future<piece_entry> file_requests::read_piece(
 	m_requests.insert(rq);
 	l.unlock();
 
-	DLOG("piece_priority: %d <- 7\n", piece);
-	h.piece_priority(piece, 7);
+	DLOG("piece_priority: %d <- 7\n", static_cast<int>(piece));
+	h.piece_priority(piece, lt::top_priority);
 //	h.set_piece_deadline(piece, 0, torrent_handle::alert_when_available);
 	if (m_have_pieces[rq.info_hash].count(piece))
 	{

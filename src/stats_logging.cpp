@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "alert_handler.hpp"
 #include "libtorrent/session_stats.hpp"
-
 #include "libtorrent/aux_/path.hpp"
 
 namespace libtorrent {
@@ -47,41 +46,6 @@ using namespace std::placeholders;
 
 // TODO: get rid of these dependencies
 using lt::create_directories;
-
-/*
-
-#if defined TORRENT_STATS && defined __MACH__
-#include <mach/vm_statistics.h>
-#include <mach/mach_init.h>
-#include <mach/host_info.h>
-#include <mach/mach_host.h>
-#endif
-
-#if !defined __MACH__
-	struct vm_statistics_data_t
-	{
-		std::uint64_t active_count;
-		std::uint64_t inactive_count;
-		std::uint64_t wire_count;
-		std::uint64_t free_count;
-		std::uint64_t pageins;
-		std::uint64_t pageouts;
-		std::uint64_t faults;
-	};
-#endif
-
-	struct thread_cpu_usage
-	{
-		libtorrent::time_duration user_time;
-		libtorrent::time_duration system_time;
-	};
-
-	libtorrent::counters m_last_stats_counters;
-
-	libtorrent::cache_status m_last_cache_status;
-	vm_statistics_data_t m_last_vm_stat;
-	thread_cpu_usage m_network_thread_cpu_usage;
-*/
 
 stats_logging::stats_logging(session& s, alert_handler* h)
 	: m_alerts(h)
@@ -134,17 +98,17 @@ void stats_logging::rotate_stats_log()
 
 	int idx = 0;
 	fputs("second", m_stats_logger);
-	for (int i = 0; i < cnts.size(); ++i)
+	for (auto const c : cnts)
 	{
 		// just in case there are some indices that don't have names
 		// (it shouldn't really happen)
-		while (idx < cnts[i].value_index)
+		while (idx < c.value_index)
 		{
 			fprintf(m_stats_logger, ":");
 			++idx;
 		}
 
-		fprintf(m_stats_logger, ":%s", cnts[i].name);
+		fprintf(m_stats_logger, ":%s", c.name);
 		++idx;
 	}
 	fputs("\n\n", m_stats_logger);
@@ -164,10 +128,8 @@ void stats_logging::handle_alert(alert const* a)
 		rotate_stats_log();
 
 	fprintf(m_stats_logger, "%f", double(total_microseconds(s->timestamp() - m_last_log_rotation)) / 1000000.0);
-	for (int i = 0; i < counters::num_counters; ++i)
-	{
-		fprintf(m_stats_logger, "\t%" PRId64, s->values[i]);
-	}
+	for (auto const v : s->counters())
+		fprintf(m_stats_logger, "\t%" PRId64, v);
 	fprintf(m_stats_logger, "\n");
 }
 

@@ -53,7 +53,7 @@ struct piece_entry
 {
 	boost::shared_array<char> buffer;
 	int size;
-	int piece;
+	piece_index_t piece;
 };
 
 // this is a session plugin which wraps the concept of reading pieces
@@ -88,7 +88,7 @@ private:
 	requests_t::iterator m_next_timeout;
 
 	// TOOD: figure out a way to clear out info-hashes
-	std::map<sha1_hash, std::set<int> > m_have_pieces;
+	std::map<sha1_hash, std::set<piece_index_t> > m_have_pieces;
 };
 
 }

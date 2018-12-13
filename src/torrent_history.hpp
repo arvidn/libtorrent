@@ -45,6 +45,8 @@ namespace libtorrent
 {
 	struct alert_handler;
 
+	using frame_t = int;
+
 	// this is the type that keeps track of frame counters for each
 	// field in torrent_status. The frame counters indicate which frame
 	// they were last modified in. This is used to send minimal updates
@@ -54,27 +56,24 @@ namespace libtorrent
 		// this is the current state of the torrent
 		torrent_status status;
 
-		void update_status(torrent_status const& s, int frame);
+		void update_status(torrent_status const& s, frame_t frame);
 
 		bool operator==(torrent_history_entry const& e) const { return e.status.info_hash == status.info_hash; }
 
 		enum
 		{
 			state,
-			paused,
-			auto_managed,
-			sequential_download,
+			flags,
 			is_seeding,
 			is_finished,
-			is_loaded,
 			has_metadata,
 			progress,
 			progress_ppm,
-			error,
+			errc,
+			error_file,
 			save_path,
 			name,
 			next_announce,
-			announce_interval,
 			current_tracker,
 			total_download,
 			total_upload,
@@ -95,11 +94,11 @@ namespace libtorrent
 			connect_candidates,
 			num_pieces,
 			total_done,
+			total,
 			total_wanted_done,
 			total_wanted,
 			distributed_full_copies,
 			distributed_fraction,
-			distributed_copies,
 			block_size,
 			num_uploads,
 			num_connections,
@@ -111,37 +110,31 @@ namespace libtorrent
 			down_bandwidth_queue,
 			all_time_upload,
 			all_time_download,
-			active_time,
-			finished_time,
-			seeding_time,
+			active_duration,
+			finished_duration,
+			seeding_duration,
 			seed_rank,
-			last_scrape,
 			has_incoming,
-			sparse_regions,
-			seed_mode,
-			upload_mode,
-			share_mode,
-			super_seeding,
-			priority,
 			added_time,
 			completed_time,
 			last_seen_complete,
-			time_since_upload,
-			time_since_download,
+			last_upload,
+			last_download,
 			queue_position,
-			need_save_resume,
-			ip_filter_applies,
-			listen_port,
+			moving_storage,
+			announcing_to_trackers,
+			announcing_to_lsd,
+			announcing_to_dht,
 
 			num_fields,
 		};
 
 		// these are the frames each individual field was last changed
-		int frame[num_fields];
+		std::array<frame_t, num_fields> frame;
 
 		torrent_history_entry() {}
 
-		torrent_history_entry(torrent_status const& st, int f)
+		torrent_history_entry(torrent_status const& st, frame_t const f)
 			: status(st)
 		{
 			for (int i = 0; i < num_fields; ++i)
@@ -162,18 +155,18 @@ namespace libtorrent
 
 		// returns the info-hashes of the torrents that have been
 		// removed since the specified frame number
-		void removed_since(int frame, std::vector<sha1_hash>& torrents) const;
+		void removed_since(frame_t frame, std::vector<sha1_hash>& torrents) const;
 
 		// returns the torrent_status structures for the torrents
 		// that have changed since the specified frame number
-		void updated_since(int frame, std::vector<torrent_status>& torrents) const;
+		void updated_since(frame_t frame, std::vector<torrent_status>& torrents) const;
 
-		void updated_fields_since(int frame, std::vector<torrent_history_entry>& torrents) const;
+		void updated_fields_since(frame_t frame, std::vector<torrent_history_entry>& torrents) const;
 
 		torrent_status get_torrent_status(sha1_hash const& ih) const;
 
 		// the current frame number
-		int frame() const;
+		frame_t frame() const;
 
 		virtual void handle_alert(alert const* a);
 
@@ -189,13 +182,13 @@ namespace libtorrent
 
 		queue_t m_queue;
 
-		std::deque<std::pair<int, sha1_hash> > m_removed;
+		std::deque<std::pair<frame_t, sha1_hash> > m_removed;
 
 		alert_handler* m_alerts;
 
 		// frame counter. This is incremented every
 		// time we get a status update for torrents
-		mutable int m_frame;
+		mutable frame_t m_frame;
 
 		// if we haven't gotten any status updates
 		// but we have received add or delete alerts,

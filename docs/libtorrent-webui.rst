@@ -160,18 +160,23 @@ The fields on torrents, in bitmask bit-order (LSB is bit 0), are:
 | 0        | uint64_t            | ``flags`` bitmask with the following     |
 |          |                     | bits:                                    |
 |          |                     |                                          |
-|          |                     |  | 0x001. stopped                        |
-|          |                     |  | 0x002. auto-managed                   |
-|          |                     |  | 0x004. sequential-downloads           |
-|          |                     |  | 0x008. seeding                        |
-|          |                     |  | 0x010. finished                       |
-|          |                     |  | 0x020. loaded                         |
-|          |                     |  | 0x040. has-metadata                   |
-|          |                     |  | 0x080. has-incoming-connections       |
-|          |                     |  | 0x100. seed-mode                      |
-|          |                     |  | 0x200. upload-mode                    |
-|          |                     |  | 0x400. share-mode                     |
-|          |                     |  | 0x800. super-seeding                  |
+|          |                     |  | 0x00001. stopped                      |
+|          |                     |  | 0x00002. auto-managed                 |
+|          |                     |  | 0x00004. sequential-downloads         |
+|          |                     |  | 0x00008. seeding                      |
+|          |                     |  | 0x00010. finished                     |
+|          |                     |  | 0x00020. loaded                       |
+|          |                     |  | 0x00040. has-metadata                 |
+|          |                     |  | 0x00080. has-incoming-connections     |
+|          |                     |  | 0x00100. seed-mode                    |
+|          |                     |  | 0x00200. upload-mode                  |
+|          |                     |  | 0x00400. share-mode                   |
+|          |                     |  | 0x00800. super-seeding                |
+|          |                     |  | 0x01000. moving storage               |
+|          |                     |  | 0x02000. announcing to trackers       |
+|          |                     |  | 0x04000. announcing to lsd            |
+|          |                     |  | 0x08000. announcing to dht            |
+|          |                     |  | 0x10000. has metadata                 |
 |          |                     |                                          |
 +----------+---------------------+------------------------------------------+
 | 1        | uint16_t, uint8_t[] | ``name``. This is a variable length      |

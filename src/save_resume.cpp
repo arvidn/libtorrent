@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/read_resume_data.hpp"
+#include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/entry.hpp"
@@ -191,8 +193,7 @@ void save_resume::handle_alert(alert const* a) try
 		TORRENT_ASSERT(m_num_in_flight > 0);
 		--m_num_in_flight;
 		error_code ec;
-		std::vector<char> buf;
-		bencode(std::back_inserter(buf), *sr->resume_data);
+		std::vector<char> buf = write_resume_data_buf(sr->params);
 
 		sqlite3_stmt* stmt = nullptr;
 		int ret = sqlite3_prepare_v2(m_db, "INSERT OR REPLACE INTO TORRENTS(INFOHASH,RESUME) "
@@ -203,7 +204,7 @@ void save_resume::handle_alert(alert const* a) try
 			return;
 		}
 
-		std::string ih = to_hex((*sr->resume_data)["info-hash"].string());
+		std::string const ih = to_hex(sr->params.info_hash);
 		ret = sqlite3_bind_text(stmt, 1, ih.c_str(), 40, SQLITE_STATIC);
 		if (ret != SQLITE_OK)
 		{
@@ -211,7 +212,7 @@ void save_resume::handle_alert(alert const* a) try
 			sqlite3_finalize(stmt);
 			return;
 		}
-		ret = sqlite3_bind_blob(stmt, 2, &buf[0], buf.size(), SQLITE_STATIC);
+		ret = sqlite3_bind_blob(stmt, 2, buf.data(), buf.size(), SQLITE_STATIC);
 		if (ret != SQLITE_OK)
 		{
 			printf("failed to bind insert statement: %s\n", sqlite3_errmsg(m_db));
@@ -312,7 +313,9 @@ void save_resume::load(error_code& ec, add_torrent_params model)
 		if (bytes > 0)
 		{
 			void const* buffer = sqlite3_column_blob(stmt, 0);
-			p.resume_data.assign((char*)buffer, ((char*)buffer) + bytes);
+			error_code ec;
+			p = read_resume_data({static_cast<char const*>(buffer), bytes}, ec);
+			if (ec) continue;
 			m_ses.async_add_torrent(p);
 		}
 

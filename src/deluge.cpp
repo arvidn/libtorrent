@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/puff.hpp"
+#include "libtorrent/torrent_status.hpp"
 #include "disk_space.hpp"
 #include "no_auth.hpp"
 #include "deluge.hpp"
@@ -352,7 +353,7 @@ void deluge::output_config_value(std::string set_name, settings_pack const& sett
 		if (set_name == "dht")
 			out.append_bool(m_ses.is_dht_running());
 		else if (set_name == "add_paused")
-			out.append_bool(m_params_model.flags & add_torrent_params::flag_paused);
+			out.append_bool(m_params_model.flags & torrent_flags::paused);
 		else if (set_name == "max_connections_per_torrent")
 			out.append_int(m_params_model.max_connections);
 		else if (set_name == "max_upload_slots_per_torrent")
@@ -469,16 +470,18 @@ void deluge::handle_get_num_connections(conn_state* st)
 
 char const* deluge_state_str(torrent_status const& st)
 {
-	if (!st.error.empty())
+	if (st.errc)
 		return "Error";
 
 	if (st.state == torrent_status::allocating)
 		return "Allocating";
 
-	if (st.paused && st.auto_managed)
+	if (st.flags & (torrent_flags::paused | torrent_flags::auto_managed) ==
+		(torrent_flags::paused | torrent_flags::auto_managed))
 		return "Queued";
 
-	if (st.paused && !st.auto_managed)
+	if (st.flags & (torrent_flags::paused | torrent_flags::auto_managed) ==
+		torrent_flags::paused)
 		return "Paused";
 
 	if (st.state == torrent_status::checking_files
@@ -753,8 +756,8 @@ void deluge::handle_add_torrent_file(conn_state* st)
 			if (options[1].type() != type_bool) continue;
 			if (options[1].boolean(buf))
 			{
-				p.flags |= add_torrent_params::flag_paused;
-				p.flags &= ~add_torrent_params::flag_auto_managed;
+				p.flags |= torrent_flags::paused;
+				p.flags &= ~torrent_flags::auto_managed;
 			}
 		}
 		else if (key == "max_download_speed")
