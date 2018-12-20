@@ -6299,7 +6299,7 @@ bool is_downloading_state(int const st)
 
 		auto& f = m_torrent_file->file_merkle_tree(req.file);
 
-		int const base_layer_idx = merkle_num_layers((f.size() + 1) >> 1) - req.base - 1;
+		int const base_layer_idx = merkle_num_layers((f.size() + 1) >> 1) - req.base;
 		int const base_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
 
 		int layer_start_idx = base_start_idx;
@@ -6315,7 +6315,7 @@ bool is_downloading_state(int const st)
 
 		// the number of layers up the tree which can be computed from the base layer hashes
 		// subtract one because we need the sibling of the root node
-		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(req.count)) - 1;
+		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(req.count));
 		// plus one because the base layer doesn't count as a proof layer
 		int proof_layers = req.proof_layers + 1;
 

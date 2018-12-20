@@ -78,7 +78,7 @@ namespace libtorrent {
 	int merkle_num_layers(int leaves)
 	{
 		int layers = 0;
-		while (leaves)
+		while (leaves > 1)
 		{
 			++layers;
 			leaves >>= 1;

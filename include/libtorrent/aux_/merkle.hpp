@@ -43,6 +43,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT int merkle_to_flat_index(int layer, int offset);
 	TORRENT_EXTRA_EXPORT int merkle_num_leafs(int);
 	TORRENT_EXTRA_EXPORT int merkle_num_nodes(int);
+	// does not include the root node in the layer count
 	TORRENT_EXTRA_EXPORT int merkle_num_layers(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_sibling(int);
