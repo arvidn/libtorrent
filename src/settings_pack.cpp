@@ -331,7 +331,7 @@ namespace libtorrent
 		SET(utp_num_resends, 3, 0),
 		SET(utp_connect_timeout, 3000, 0),
 		SET(utp_delayed_ack, 0, 0),
-		SET(utp_loss_multiplier, 50, 0),
+		SET(utp_loss_multiplier, 78, 0),
 		SET(mixed_mode_algorithm, settings_pack::peer_proportional, 0),
 		SET(listen_queue_size, 5, 0),
 		SET(torrent_connect_boost, 30, 0),

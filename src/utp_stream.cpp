@@ -2342,7 +2342,8 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 	// cut window size in 2
 	m_cwnd = std::max(m_cwnd * m_sm->loss_multiplier() / 100
 		, boost::int64_t(m_mtu) * (1 << 16));
-	m_loss_seq_nr = m_seq_nr;
+	int const packets_in_flight = (m_seq_nr - m_acked_seq_nr) & ACK_MASK;
+	m_loss_seq_nr = m_seq_nr + packets_in_flight;
 	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", static_cast<void*>(this), seq_nr);
 
 	// if we happen to be in slow-start mode, we need to leave it

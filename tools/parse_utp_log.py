@@ -81,7 +81,9 @@ metrics = {
 	'their_actual_delay':['their actual delay (us)', 'x1y1', delay_samples],
 	'actual_delay':['actual_delay (us)', 'x1y1', delay_samples],
 	'send_buffer':['send buffer size (B)', 'x1y1', send_buffer],
-	'recv_buffer':['receive buffer size (B)', 'x1y1', 'lines']
+	'recv_buffer':['receive buffer size (B)', 'x1y1', 'lines'],
+	'packet_loss':['packet lost', 'x1y2', 'steps'],
+	'packet_timeout':['packet timed out', 'x1y2', 'steps']
 }
 
 histogram_quantization = 1
@@ -130,11 +132,11 @@ for l in file:
     if (counter % 300 == 0):
         print "\r%d  " % counter,
 
-    if "lost." in l:
-        packet_loss = packet_loss + 1
+    if "Lost packet" in l:
+        packet_loss += 1
         continue
-    if "Packet timeout" in l:
-        packet_timeout = packet_timeout + 1
+    if "Packet lost (timeout)" in l:
+        packet_timeout += 1
         continue
 
     if "sending packet" in l:
@@ -184,7 +186,10 @@ for l in file:
             print >>out, '%f\t' % int(reduce(lambda a,b: a+b, window_size.values())),
         else:
             print >>out, '%f\t' % v,
-    print >>out, float(packet_loss * 8000), float(packet_timeout * 8000)
+
+    if fill_columns:
+        columns += ['packet_loss', 'packet_timeout']
+    print >>out, float(packet_loss), float(packet_timeout)
     packet_loss = 0
     packet_timeout = 0
 
@@ -218,6 +223,12 @@ plot = [
 		'title': 'cwnd',
 		'y1': 'Bytes',
 		'y2': 'Time (ms)'
+	},
+	{
+		'data': ['max_window', 'cur_window', 'packet_loss', 'packet_timeout'],
+		'title': 'packet loss',
+		'y1': 'Bytes',
+		'y2': 'count'
 	},
 	{
 		'data': ['our_delay', 'max_window', 'target_delay', 'cur_window', 'wnduser', 'cur_window_packets'],
