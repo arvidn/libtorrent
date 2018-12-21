@@ -1591,8 +1591,9 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 	TORRENT_ASSERT(m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) || ((m_seq_nr - m_acked_seq_nr) & ACK_MASK) <= 1);
 
 	// we received more than dup_ack_limit ACKs in this SACK message.
-	// trigger fast re-send
-	if (dups >= dup_ack_limit && compare_less_wrap(m_fast_resend_seq_nr, last_ack, ACK_MASK))
+	// trigger fast re-send. This is not an equal check because 3 identical ACKS
+	// are only 2 duplicates
+	if (dups > dup_ack_limit && compare_less_wrap(m_fast_resend_seq_nr, last_ack, ACK_MASK))
 	{
 		experienced_loss(m_fast_resend_seq_nr);
 		int num_resent = 0;
@@ -2344,7 +2345,8 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 		, boost::int64_t(m_mtu) * (1 << 16));
 	int const packets_in_flight = (m_seq_nr - m_acked_seq_nr) & ACK_MASK;
 	m_loss_seq_nr = m_seq_nr + packets_in_flight;
-	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", static_cast<void*>(this), seq_nr);
+	UTP_LOGV("%8p: Lost packet %d caused cwnd cut:%d packets_in_flight:%d loss_seq_nr:%d\n"
+		, static_cast<void*>(this), seq_nr, m_cwnd >> 16, packets_in_flight, m_loss_seq_nr);
 
 	// if we happen to be in slow-start mode, we need to leave it
 	// note that we set ssthres to the window size _after_ reducing it. Next slow
@@ -2353,7 +2355,8 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 	{
 		m_ssthres = m_cwnd >> 16;
 		m_slow_start = false;
-		UTP_LOGV("%8p: experienced loss, slow_start -> 0\n", static_cast<void*>(this));
+		UTP_LOGV("%8p: experienced loss, slow_start -> 0 ssthres:%d\n"
+			, static_cast<void*>(this), m_ssthres);
 	}
 }
 
@@ -3529,13 +3532,15 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 			, static_cast<void*>(this), m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
 		m_cwnd_full = false;
 	}
-
+/*
 	if ((m_cwnd >> 16) >= m_adv_wnd)
 	{
 		m_slow_start = false;
+		m_ssthres = (m_cwnd >> 16);
 		UTP_LOGV("%8p: cwnd > advertized wnd (%d) slow_start -> 0\n"
 			, static_cast<void*>(this), m_adv_wnd);
 	}
+*/
 }
 
 void utp_stream::bind(endpoint_type const&, error_code&) { }
