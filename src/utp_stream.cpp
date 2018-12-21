@@ -773,6 +773,8 @@ void utp_send_ack(utp_socket_impl* s)
 {
 	TORRENT_ASSERT(s->m_deferred_ack);
 	s->m_deferred_ack = false;
+
+	UTP_LOGV("%8p: issuing deferred ACK\n", static_cast<void*>(s));
 	s->send_pkt(utp_socket_impl::pkt_ack);
 }
 
@@ -1120,8 +1122,8 @@ size_t utp_stream::read_some(bool clear_buffers)
 
 		if (m_impl->m_receive_buffer_size == 0)
 		{
-			UTP_LOGV("  Didn't fill entire target: %d bytes left in buffer\n"
-				, m_impl->m_receive_buffer_size);
+			UTP_LOGV("%8p: Didn't fill entire target: %d bytes left in buffer\n"
+				, static_cast<void*>(m_impl), m_impl->m_receive_buffer_size);
 			break;
 		}
 	}
@@ -1918,7 +1920,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			p = reinterpret_cast<packet*>(TORRENT_ALLOCA(char, sizeof(packet) + packet_size
 				+ sizeof(packet*) - 1));
 			p = reinterpret_cast<packet*>(align_pointer(p));
-			UTP_LOGV("%8p: allocating %d bytes on the stack\n", static_cast<void*>(this), packet_size);
+//			UTP_LOGV("%8p: allocating %d bytes on the stack\n", static_cast<void*>(this), packet_size);
 			p->allocated = packet_size;
 		}
 
@@ -1977,8 +1979,11 @@ bool utp_socket_impl::send_pkt(int const flags)
 		write_payload(p->buf + p->size, size_left);
 		p->size += size_left;
 
-		UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
-			, static_cast<void*>(this), size_left, p->size, p->allocated);
+		if (size_left > 0)
+		{
+			UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
+				, static_cast<void*>(this), size_left, p->size, p->allocated);
+		}
 
 		// did we fill up the whole mtu?
 		// if we didn't, we may still send it if there's
@@ -2346,7 +2351,8 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 	int const packets_in_flight = (m_seq_nr - m_acked_seq_nr) & ACK_MASK;
 	m_loss_seq_nr = m_seq_nr + packets_in_flight;
 	UTP_LOGV("%8p: Lost packet %d caused cwnd cut:%d packets_in_flight:%d loss_seq_nr:%d\n"
-		, static_cast<void*>(this), seq_nr, m_cwnd >> 16, packets_in_flight, m_loss_seq_nr);
+		, static_cast<void*>(this), seq_nr, int(m_cwnd >> 16), packets_in_flight
+		, m_loss_seq_nr);
 
 	// if we happen to be in slow-start mode, we need to leave it
 	// note that we set ssthres to the window size _after_ reducing it. Next slow
