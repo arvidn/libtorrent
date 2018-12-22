@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <map>
 #include <vector>
+#include <array>
 
 struct mg_connection;
 
@@ -77,7 +78,7 @@ namespace libtorrent
 			sha1_hash password_hash(std::string const& pwd) const;
 
 			sha1_hash hash;
-			char salt[10];
+			std::array<char, 10> salt;
 			int group;
 		};
 

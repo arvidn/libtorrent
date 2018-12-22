@@ -75,10 +75,9 @@ std::vector<std::string> auth::users() const
 	std::unique_lock<std::mutex> l(m_mutex);
 
 	std::vector<std::string> users;
-	for (std::map<std::string, account_t>::const_iterator i = m_accounts.begin()
-		, end(m_accounts.end()); i != end; ++i)
+	for (auto const& a : m_accounts)
 	{
-		users.push_back(i->first);
+		users.push_back(a.first);
 	}
 	return users;
 }
@@ -97,12 +96,11 @@ void auth::add_account(std::string const& user, std::string const& pwd, int grou
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 
-	std::map<std::string, account_t>::iterator i = m_accounts.find(user);
+	auto const i = m_accounts.find(user);
 	if (i == m_accounts.end())
 	{
 		account_t acct;
-		for (int i = 0; i < sizeof(acct.salt); ++i)
-			acct.salt[i] = rand();
+		for (char& c : acct.salt) c = rand();
 		acct.group = group;
 		acct.hash = acct.password_hash(pwd);
 		m_accounts.insert(std::make_pair(user, acct));
@@ -123,7 +121,7 @@ void auth::remove_account(std::string const& user)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 
-	std::map<std::string, account_t>::iterator i = m_accounts.find(user);
+	auto const i = m_accounts.find(user);
 	if (i == m_accounts.end()) return;
 	m_accounts.erase(i);
 }
@@ -174,7 +172,7 @@ permissions_interface const* auth::find_user(std::string username, std::string p
 sha1_hash auth::account_t::password_hash(std::string const& pwd) const
 {
 	hasher h;
-	h.update(salt, sizeof(salt));
+	h.update(salt);
 	if (pwd.size()) h.update(pwd);
 	sha1_hash ret = h.final();
 
@@ -194,6 +192,7 @@ void auth::save_accounts(std::string const& filename, error_code& ec) const
 		ec = error_code(errno, system_category());
 		return;
 	}
+	ec.clear();
 
 	std::unique_lock<std::mutex> l(m_mutex);
 
@@ -222,6 +221,7 @@ void auth::load_accounts(std::string const& filename, error_code& ec)
 		ec = error_code(errno, system_category());
 		return;
 	}
+	ec.clear();
 
 	std::unique_lock<std::mutex> l(m_mutex);
 
@@ -240,7 +240,7 @@ void auth::load_accounts(std::string const& filename, error_code& ec)
 	{
 		account_t a;
 		if (!from_hex({pwdhash.data(), 40}, a.hash.data())) continue;
-		if (!from_hex({salt.data(), 20}, a.salt)) continue;
+		if (!from_hex({salt.data(), 20}, a.salt.data())) continue;
 		if (group < 0) continue;
 		a.group = group;
 		m_accounts[std::string(username.data())] = a;

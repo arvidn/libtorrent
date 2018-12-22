@@ -76,6 +76,7 @@ std::vector<char> load_file(std::string const& filename, error_code& ec
 int save_file(std::string const& filename, std::vector<char>& v, error_code& ec)
 {
 	file f;
+	ec.clear();
 	if (!f.open(filename, open_mode::write_only, ec)) return -1;
 	if (ec) return -1;
 	iovec_t b = {&v[0], v.size()};
@@ -119,8 +120,8 @@ void save_settings::save(error_code& ec) const
 {
 	// back-up current settings file as .bak before saving the new one
 	std::string backup = m_settings_file + ".bak";
-	bool has_settings = exists(m_settings_file);
-	bool has_backup = exists(backup);
+	bool const has_settings = exists(m_settings_file);
+	bool const has_backup = exists(backup);
 
 	if (has_settings && has_backup)
 		remove(backup, ec);
@@ -151,6 +152,7 @@ namespace {
 void load_settings_impl(session_params& params, std::string const& filename
 	, error_code& ec)
 {
+	ec.clear();
 	std::vector<char> buf = load_file(filename, ec);
 	if (ec) return;
 
@@ -204,9 +206,9 @@ void load_settings(session_params& params
 	, std::string const& filename
 	, error_code& ec)
 {
+	ec.clear();
 	load_settings_impl(params, filename, ec);
 	if (!ec) return;
-	ec.clear();
 	std::string const backup = filename + ".bak";
 	load_settings_impl(params, backup, ec);
 }
