@@ -55,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 
-#include "libtorrent/utp_stream.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/entry.hpp"
@@ -1204,7 +1203,6 @@ void print_piece(libtorrent::partial_piece_info* pp
 
 int main(int argc, char* argv[])
 {
-	lt::set_utp_stream_logging(true);
 #ifndef _WIN32
 	// sets the terminal to single-character mode
 	// and resets when destructed
@@ -1539,8 +1537,7 @@ int main(int argc, char* argv[])
 	settings.set_str(settings_pack::listen_interfaces, iface_str);
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
-	settings.set_int(settings_pack::alert_mask, 0);
-	/*alert::all_categories
+	settings.set_int(settings_pack::alert_mask, alert::all_categories
 		& ~(alert::dht_notification
 		+ alert::piece_progress_notification
 		+ alert::block_progress_notification
@@ -1552,7 +1549,7 @@ int main(int argc, char* argv[])
 		+ alert::dht_log_notification
 		+ alert::picker_log_notification
 		));
-*/
+
 	libtorrent::session ses(settings);
 
 	if (rate_limit_locals)
