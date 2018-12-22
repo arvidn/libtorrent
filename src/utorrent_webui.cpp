@@ -1037,31 +1037,30 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 		int first_peer = 1;
 		std::vector<peer_info> peers;
 		i->handle.get_peer_info(peers);
-		for (std::vector<peer_info>::iterator p = peers.begin()
-			, pend(peers.end()); p != pend; ++p)
+		for (peer_info const& p : peers)
 		{
 			appendf(response, ",[\"  \",\"%s\",\"%s\",%d,%d,\"%s\",\"%s\",%d,%d,%d,%d,%d"
 				",%d,%" PRId64 ",%" PRId64 ",%d,%d,%d,%d,%d,%d,%d]" + first_peer
-				, print_endpoint(p->ip).c_str()
+				, print_endpoint(p.ip).c_str()
 				, ""
-				, !(p->flags & peer_info::utp_socket)
-				, p->ip.port()
-				, escape_json(p->client).c_str()
-				, utorrent_peer_flags(*p).c_str()
-				, p->num_pieces * 1000 / ti->num_pieces()
-				, p->down_speed
-				, p->up_speed
-				, p->download_queue_length
-				, p->upload_queue_length
-				, total_seconds(p->last_request)
-				, p->total_upload
-				, p->total_download
-				, p->num_hashfails
+				, bool(p.flags & peer_info::utp_socket)
+				, p.ip.port()
+				, escape_json(p.client).c_str()
+				, utorrent_peer_flags(p).c_str()
+				, p.num_pieces * 1000 / ti->num_pieces()
+				, p.down_speed
+				, p.up_speed
+				, p.download_queue_length
+				, p.upload_queue_length
+				, total_seconds(p.last_request)
+				, p.total_upload
+				, p.total_download
+				, p.num_hashfails
 				, 0
 				, 0
 				, 0
-				, p->send_buffer_size
-				, total_seconds(p->last_active)
+				, p.send_buffer_size
+				, total_seconds(p.last_active)
 				, 0
 				);
 			first_peer = 0;
