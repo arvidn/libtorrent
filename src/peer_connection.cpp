@@ -2306,7 +2306,7 @@ namespace libtorrent {
 			{
 				// msvc 12 appears to deduce the rvalue reference template
 				// incorrectly for bool temporaries. So, create a dummy instance
-				bool peer_interested = bool(m_peer_interested);
+				bool const peer_interested = bool(m_peer_interested);
 				t->alerts().emplace_alert<invalid_request_alert>(
 					t->get_handle(), m_remote, m_peer_id, r
 					, t->has_piece_passed(r.piece), peer_interested, true);
@@ -2379,13 +2379,10 @@ namespace libtorrent {
 #endif
 			if (t->alerts().should_post<invalid_request_alert>())
 			{
-				// msvc 12 appears to deduce the rvalue reference template
-				// incorrectly for bool temporaries. So, create a dummy instance
-				bool peer_interested = bool(m_peer_interested);
 				t->alerts().emplace_alert<invalid_request_alert>(
 					t->get_handle(), m_remote, m_peer_id, r
 					, t->has_piece_passed(r.piece)
-					, peer_interested, false);
+					, false, false);
 			}
 
 			// be lenient and pretend that the peer said it was interested
@@ -2433,7 +2430,7 @@ namespace libtorrent {
 			{
 				// msvc 12 appears to deduce the rvalue reference template
 				// incorrectly for bool temporaries. So, create a dummy instance
-				bool peer_interested = bool(m_peer_interested);
+				bool const peer_interested = bool(m_peer_interested);
 				t->alerts().emplace_alert<invalid_request_alert>(
 					t->get_handle(), m_remote, m_peer_id, r
 					, t->has_piece_passed(r.piece), peer_interested, false);

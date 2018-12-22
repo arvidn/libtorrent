@@ -536,7 +536,7 @@ namespace libtorrent {
 
 	std::string invalid_request_alert::message() const
 	{
-		char ret[200];
+		char ret[400];
 		std::snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request "
 			"(piece: %d start: %d len: %d)%s"
 			, peer_alert::message().c_str()
