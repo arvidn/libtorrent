@@ -2334,6 +2334,9 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 
 	m_sm->inc_stats_counter(counters::utp_packet_loss);
 
+	m_loss_seq_nr = m_seq_nr + packets_in_flight;
+	UTP_LOGV("%8p: Lost packet %d\n", seq_nr);
+
 	// since loss often comes in bursts, we only cut the
 	// window in half once per RTT. This is implemented
 	// by limiting which packets can cause us to cut the
@@ -2350,8 +2353,8 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 		, boost::int64_t(m_mtu) * (1 << 16));
 	int const packets_in_flight = (m_seq_nr - m_acked_seq_nr) & ACK_MASK;
 	m_loss_seq_nr = m_seq_nr + packets_in_flight;
-	UTP_LOGV("%8p: Lost packet %d caused cwnd cut:%d packets_in_flight:%d loss_seq_nr:%d\n"
-		, static_cast<void*>(this), seq_nr, int(m_cwnd >> 16), packets_in_flight
+	UTP_LOGV("%8p: cwnd cut:%d packets_in_flight:%d loss_seq_nr:%d\n"
+		, static_cast<void*>(this), int(m_cwnd >> 16), packets_in_flight
 		, m_loss_seq_nr);
 
 	// if we happen to be in slow-start mode, we need to leave it
