@@ -363,7 +363,7 @@ struct utp_socket_impl
 	bool consume_incoming_data(
 		utp_header const* ph, boost::uint8_t const* ptr, int payload_size, time_point now);
 	void update_mtu_limits();
-	void experienced_loss(int seq_nr);
+	void experienced_loss(int seq_nr, time_point now);
 
 	void set_state(int s);
 
@@ -470,6 +470,10 @@ public:
 
 	// the last time we stepped the timestamp history
 	time_point m_last_history_step;
+
+	// the next time we allow a lost packet to halve cwnd. We only do this once every
+	// 100 ms
+	time_point m_next_loss;
 
 	// the max number of bytes in-flight. This is a fixed point
 	// value, to get the true number of bytes, shift right 16 bits
@@ -1599,7 +1603,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 	{
 		UTP_LOGV("%8p: Packet %d lost. (%d duplicate acks, trigger fast-resend)\n"
 			, static_cast<void*>(this), m_fast_resend_seq_nr, m_duplicate_acks);
-		experienced_loss(m_fast_resend_seq_nr);
+		experienced_loss(m_fast_resend_seq_nr, now);
 		int num_resent = 0;
 
 		// only re-sending a single packet per sack
@@ -2327,7 +2331,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	return !m_stalled;
 }
 
-void utp_socket_impl::experienced_loss(int const seq_nr)
+void utp_socket_impl::experienced_loss(int const seq_nr, time_point const now)
 {
 	INVARIANT_CHECK;
 
@@ -2346,6 +2350,11 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 	// less than or equal to. If we experience loss of the
 	// same packet again, ignore it.
 	if (compare_less_wrap(seq_nr, m_loss_seq_nr + 1, ACK_MASK)) return;
+
+	// don't reduce cwnd more than once every 100ms
+	if (m_next_loss > now) return;
+
+	m_next_loss = now + milliseconds(100);
 
 	// cut window size in 2
 	m_cwnd = std::max(m_cwnd * m_sm->loss_multiplier() / 100
@@ -2545,7 +2554,7 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 
 bool utp_socket_impl::consume_incoming_data(
 	utp_header const* ph, boost::uint8_t const* ptr, int payload_size
-	, time_point now)
+	, time_point const now)
 {
 	INVARIANT_CHECK;
 
@@ -3036,7 +3045,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 		if (p)
 		{
-			experienced_loss(m_fast_resend_seq_nr);
+			experienced_loss(m_fast_resend_seq_nr, receive_time);
 			resend_packet(p, true);
 			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 		}
@@ -3580,7 +3589,7 @@ int utp_socket_impl::packet_timeout() const
 	return timeout;
 }
 
-void utp_socket_impl::tick(time_point now)
+void utp_socket_impl::tick(time_point const now)
 {
 	INVARIANT_CHECK;
 
