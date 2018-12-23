@@ -1597,6 +1597,8 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 	// are only 2 duplicates
 	if (dups > dup_ack_limit && compare_less_wrap(m_fast_resend_seq_nr, last_ack, ACK_MASK))
 	{
+		UTP_LOGV("%8p: Packet %d lost. (%d duplicate acks, trigger fast-resend)\n"
+			, static_cast<void*>(this), m_fast_resend_seq_nr, m_duplicate_acks);
 		experienced_loss(m_fast_resend_seq_nr);
 		int num_resent = 0;
 
@@ -2333,9 +2335,6 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 	// we'll get a timeout in about one second
 
 	m_sm->inc_stats_counter(counters::utp_packet_loss);
-
-	m_loss_seq_nr = m_seq_nr + packets_in_flight;
-	UTP_LOGV("%8p: Lost packet %d\n", seq_nr);
 
 	// since loss often comes in bursts, we only cut the
 	// window in half once per RTT. This is implemented
