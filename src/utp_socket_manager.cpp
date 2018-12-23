@@ -54,6 +54,7 @@ namespace libtorrent
 		: m_sock(s)
 		, m_cb(cb)
 		, m_last_socket(0)
+		, m_deferred_ack(0)
 		, m_new_connection(-1)
 		, m_sett(sett)
 		, m_last_route_update(min_time())
@@ -394,6 +395,7 @@ namespace libtorrent
 		if (i == m_utp_sockets.end()) return;
 		delete_utp_impl(i->second);
 		if (m_last_socket == i->second) m_last_socket = 0;
+		if (m_deferred_ack == i->second) m_deferred_ack = 0;
 		m_utp_sockets.erase(i);
 	}
 
