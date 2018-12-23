@@ -132,10 +132,10 @@ for l in file:
     if (counter % 300 == 0):
         print "\r%d  " % counter,
 
-    if "Lost packet" in l:
+    if "lost." in l:
         packet_loss += 1
         continue
-    if "Packet lost (timeout)" in l:
+    if "lost (timeout)" in l:
         packet_timeout += 1
         continue
 
