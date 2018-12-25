@@ -83,7 +83,8 @@ metrics = {
 	'send_buffer':['send buffer size (B)', 'x1y1', send_buffer],
 	'recv_buffer':['receive buffer size (B)', 'x1y1', 'lines'],
 	'packet_loss':['packet lost', 'x1y2', 'steps'],
-	'packet_timeout':['packet timed out', 'x1y2', 'steps']
+	'packet_timeout':['packet timed out', 'x1y2', 'steps'],
+	'bytes_sent':['cumulative bytes sent', 'x1y2', 'steps']
 }
 
 histogram_quantization = 1
@@ -100,6 +101,7 @@ packet_timeout = 0
 delay_histogram = {}
 packet_size_histogram = {}
 window_size = {'0': 0, '1': 0}
+bytes_sent = 0
 
 # [35301484] 0x00ec1190: actual_delay:1021583 our_delay:102 their_delay:-1021345 off_target:297 max_window:2687 upload_rate:18942 delay_base:1021481154 delay_sum:-1021242 target_delay:400 acked_bytes:1441 cur_window:2882 scaled_gain:2.432
 
@@ -142,6 +144,7 @@ for l in file:
     if "sending packet" in l:
         v = l.split('size:')[1].split(' ')[0]
         packet_size_histogram[v] = 1 + packet_size_histogram.get(v, 0)
+        bytes_sent += int(v)
 
     if "our_delay:" not in l:
         continue
@@ -188,8 +191,8 @@ for l in file:
             print >>out, '%f\t' % v,
 
     if fill_columns:
-        columns += ['packet_loss', 'packet_timeout']
-    print >>out, float(packet_loss), float(packet_timeout)
+        columns += ['packet_loss', 'packet_timeout', 'bytes_sent']
+    print >>out, float(packet_loss), float(packet_timeout), float(bytes_sent)
     packet_loss = 0
     packet_timeout = 0
 
@@ -229,6 +232,12 @@ plot = [
 		'title': 'packet loss',
 		'y1': 'Bytes',
 		'y2': 'count'
+	},
+	{
+		'data': ['max_window', 'cur_window', 'bytes_sent'],
+		'title': 'cumulative_bytes_sent',
+		'y1': 'Bytes',
+		'y2': 'Cumulative Bytes'
 	},
 	{
 		'data': ['our_delay', 'max_window', 'target_delay', 'cur_window', 'wnduser', 'cur_window_packets'],
