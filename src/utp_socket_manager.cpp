@@ -378,7 +378,7 @@ namespace libtorrent
 
 	void utp_socket_manager::defer_ack(utp_socket_impl* s)
 	{
-		TORRENT_ASSERT(m_deferred_ack == NULL);
+		TORRENT_ASSERT(m_deferred_ack == NULL || m_deferred_ack == s);
 		m_deferred_ack = s;
 	}
 
