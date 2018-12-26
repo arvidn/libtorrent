@@ -228,14 +228,20 @@ plot = [
 		'y2': 'Time (ms)'
 	},
 	{
-		'data': ['max_window', 'cur_window', 'packet_loss', 'packet_timeout'],
-		'title': 'packet loss',
+		'data': ['max_window', 'cur_window', 'packet_loss'],
+		'title': 'packet-loss',
+		'y1': 'Bytes',
+		'y2': 'count'
+	},
+	{
+		'data': ['max_window', 'cur_window', 'packet_timeout'],
+		'title': 'packet-timeout',
 		'y1': 'Bytes',
 		'y2': 'count'
 	},
 	{
 		'data': ['max_window', 'cur_window', 'bytes_sent'],
-		'title': 'cumulative_bytes_sent',
+		'title': 'cumulative-bytes-sent',
 		'y1': 'Bytes',
 		'y2': 'Cumulative Bytes'
 	},
@@ -247,7 +253,7 @@ plot = [
 	},
 	{
 		'data': ['our_delay', 'max_window', 'target_delay', 'cur_window', 'send_buffer'],
-		'title': 'uploading_packets',
+		'title': 'uploading-packets',
 		'y1': 'Bytes',
 		'y2': 'Time (ms)'
 	},
@@ -259,7 +265,7 @@ plot = [
 	},
 	{
 		'data': ['their_actual_delay','their_delay_base'],
-		'title': 'their_delay_base',
+		'title': 'their-delay-base',
 		'y1': 'Time (us)',
 		'y2': ''
 	},
@@ -271,7 +277,7 @@ plot = [
 	},
 	{
 		'data': ['actual_delay', 'delay_base'],
-		'title': 'our_delay_base',
+		'title': 'our-delay-base',
 		'y1': 'Time (us)',
 		'y2': ''
 	}
