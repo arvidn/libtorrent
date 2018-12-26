@@ -75,6 +75,8 @@ metrics = {
 	'get_microseconds':['clock (us)', 'x1y1', 'steps'],
 	'wnduser':['advertised window size (B)', 'x1y1', 'steps'],
 	'ssthres':['slow-start threshold (B)', 'x1y1', 'steps'],
+	'timeout':['until next timeout (ms)', 'x1y2', 'steps'],
+	'rto':['current timeout (ms)', 'x1y2', 'steps'],
 
 	'delay_base':['delay base (us)', 'x1y1', delay_base],
 	'their_delay_base':['their delay base (us)', 'x1y1', delay_base],
@@ -246,6 +248,12 @@ plot = [
 		'y2': 'Cumulative Bytes'
 	},
 	{
+		'data': ['max_window', 'cur_window', 'rto', 'timeout'],
+		'title': 'connection-timeout',
+		'y1': 'Bytes',
+		'y2': 'Time (ms)'
+	},
+	{
 		'data': ['our_delay', 'max_window', 'target_delay', 'cur_window', 'wnduser', 'cur_window_packets'],
 		'title': 'uploading',
 		'y1': 'Bytes',
@@ -259,7 +267,7 @@ plot = [
 	},
 	{
 		'data': ['their_delay', 'target_delay', 'rtt'],
-		'title': 'their_delay',
+		'title': 'their-delay',
 		'y1': '',
 		'y2': 'Time (ms)'
 	},
