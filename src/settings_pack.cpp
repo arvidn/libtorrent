@@ -325,7 +325,7 @@ namespace libtorrent
 		SET(connections_slack, 10, 0),
 		SET(utp_target_delay, 100, 0),
 		SET(utp_gain_factor, 3000, 0),
-		SET(utp_min_timeout, 500, 0),
+		SET(utp_min_timeout, 1000, 0),
 		SET(utp_syn_resends, 2, 0),
 		SET(utp_fin_resends, 2, 0),
 		SET(utp_num_resends, 3, 0),
