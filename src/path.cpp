@@ -305,7 +305,7 @@ namespace {
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
 			ec.assign(GetLastError(), system_category());
 #else
-		int ret = ::mkdir(n.c_str(), S_IRWXU | S_IRGRP | S_IROTH);
+		int ret = ::mkdir(n.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
 		if (ret < 0 && errno != EEXIST)
 			ec.assign(errno, system_category());
 #endif

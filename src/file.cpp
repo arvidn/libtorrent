@@ -114,11 +114,6 @@ struct iovec
 #endif
 #include <windows.h>
 #include <winioctl.h>
-#ifndef TORRENT_MINGW
-#include <direct.h> // for _getcwd, _mkdir
-#else
-#include <dirent.h>
-#endif
 #include <sys/types.h>
 #else
 // posix part
