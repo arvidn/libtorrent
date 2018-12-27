@@ -993,7 +993,7 @@ std::string utorrent_peer_flags(peer_info const& pi)
 	// separate flags from sources with a space
 	ret += ' ';
 
-	if (!(pi.flags & peer_info::local_connection))
+	if (!(pi.source & peer_info::incoming))
 		ret += 'I';
 
 	if ((pi.source & peer_info::dht))
