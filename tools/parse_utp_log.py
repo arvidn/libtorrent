@@ -89,6 +89,8 @@ metrics = {
 	'packet_timeout':['packet timed out', 'x1y2', 'steps'],
 	'acked_bytes':['Bytes ACKed by packet', 'x1y2', 'steps'],
 	'bytes_sent':['cumulative bytes sent', 'x1y2', 'steps'],
+	'bytes_resent':['cumulative bytes resent', 'x1y2', 'steps'],
+	'written':['reported written bytes', 'x1y2', 'steps'],
 	'ack_nr':['acked sequence number', 'x1y2', 'steps'],
 	'seq_nr':['sent sequence number', 'x1y2', 'steps'],
 }
@@ -109,6 +111,8 @@ delay_histogram = {}
 packet_size_histogram = {}
 window_size = {'0': 0, '1': 0}
 bytes_sent = 0
+bytes_resent = 0
+written = 0
 
 # [35301484] 0x00ec1190: actual_delay:1021583 our_delay:102 their_delay:-1021345 off_target:297 max_window:2687 upload_rate:18942 delay_base:1021481154 delay_sum:-1021242 target_delay:400 acked_bytes:1441 cur_window:2882 scaled_gain:2.432
 
@@ -154,6 +158,14 @@ for l in file:
         v = l.split('size:')[1].split(' ')[0]
         packet_size_histogram[v] = 1 + packet_size_histogram.get(v, 0)
         bytes_sent += int(v)
+
+    if "re-sending packet" in l:
+        v = l.split('size:')[1].split(' ')[0]
+        bytes_resent += int(v)
+
+    if 'calling write handler' in l:
+        v = l.split('written:')[1].split(' ')[0]
+        written += int(v)
 
     if "incoming packet" in l \
         and not "ERROR" in l \
@@ -208,11 +220,12 @@ for l in file:
             print >>out, '%f\t' % v,
 
     if fill_columns:
-        columns += ['packet_loss', 'packet_timeout', 'bytes_sent', 'ack_nr', 'seq_nr']
-    print >>out, float(packet_loss), float(packet_timeout), float(bytes_sent), ack_nr, seq_nr
+        columns += ['packet_loss', 'packet_timeout', 'bytes_sent', 'ack_nr', 'seq_nr', 'bytes_resent', 'written']
+    print >>out, float(packet_loss), float(packet_timeout), float(bytes_sent), ack_nr, seq_nr, float(bytes_resent), written
     packet_loss = 0
     packet_timeout = 0
     num_acked = 0;
+    written = 0
 
 out.close()
 
@@ -230,6 +243,12 @@ plot = [
 	{
 		'data': ['max_window', 'send_buffer', 'cur_window', 'rtt'],
 		'title': 'send-packet-size',
+		'y1': 'Bytes',
+		'y2': 'Time (ms)'
+	},
+	{
+		'data': ['max_window', 'send_buffer', 'cur_window', 'written'],
+		'title': 'bytes-written',
 		'y1': 'Bytes',
 		'y2': 'Time (ms)'
 	},
@@ -258,7 +277,7 @@ plot = [
 		'y2': 'count'
 	},
 	{
-		'data': ['max_window', 'cur_window', 'bytes_sent'],
+		'data': ['max_window', 'cur_window', 'bytes_sent', 'bytes_resent'],
 		'title': 'cumulative-bytes-sent',
 		'y1': 'Bytes',
 		'y2': 'Cumulative Bytes'
@@ -324,6 +343,7 @@ out = open('utp.gnuplot', 'w+')
 files = ''
 
 #print >>out, 'set xtics 0, 20'
+#print >>out, 'show grid'
 print >>out, "set term png size 1280,800"
 print >>out, 'set output "%s.delays.png"' % out_file
 print >>out, 'set xrange [0:200]'
