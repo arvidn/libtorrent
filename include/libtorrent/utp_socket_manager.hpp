@@ -121,11 +121,10 @@ namespace libtorrent
 		typedef std::multimap<boost::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
 
-		// this is a list of sockets that needs to send an ack.
-		// once the UDP socket is drained, all of these will
-		// have a chance to do that. This is to avoid sending
-		// an ack for every single packet
-		std::vector<utp_socket_impl*> m_deferred_acks;
+		// if this is set, it means this socket still needs to send an ACK. Once
+		// we exit the loop processing packets, or switch to processing packets
+		// for a different socket, issue the ACK packet and clear this.
+		utp_socket_impl* m_deferred_ack;
 
 		// sockets that have received or sent packets this
 		// round, may subscribe to the event of draining the
