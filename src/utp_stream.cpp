@@ -739,7 +739,7 @@ void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu)
 }
 
 bool utp_incoming_packet(utp_socket_impl* s, char const* p
-	, int size, udp::endpoint const& ep, time_point receive_time)
+	, int size, udp::endpoint const& ep, time_point const receive_time)
 {
 	return s->incoming_packet(reinterpret_cast<boost::uint8_t const*>(p), size
 		, ep, receive_time);
@@ -1120,8 +1120,8 @@ size_t utp_stream::read_some(bool clear_buffers)
 
 		if (m_impl->m_receive_buffer_size == 0)
 		{
-			UTP_LOGV("  Didn't fill entire target: %d bytes left in buffer\n"
-				, m_impl->m_receive_buffer_size);
+			UTP_LOGV("%8p: Didn't fill entire target: %d bytes left in buffer\n"
+				, static_cast<void*>(m_impl), m_impl->m_receive_buffer_size);
 			break;
 		}
 	}
@@ -1509,8 +1509,8 @@ void utp_socket_impl::parse_close_reason(boost::uint8_t const* ptr, int size)
 	utp_stream::on_close_reason(m_userdata, incoming_close_reason);
 }
 
-void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t const* ptr
-	, int size, int* acked_bytes, time_point const now, boost::uint32_t& min_rtt)
+void utp_socket_impl::parse_sack(boost::uint16_t const packet_ack, boost::uint8_t const* ptr
+	, int const size, int* acked_bytes, time_point const now, boost::uint32_t& min_rtt)
 {
 	INVARIANT_CHECK;
 
@@ -1917,7 +1917,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 			p = reinterpret_cast<packet*>(TORRENT_ALLOCA(char, sizeof(packet) + packet_size
 				+ sizeof(packet*) - 1));
 			p = reinterpret_cast<packet*>(align_pointer(p));
-			UTP_LOGV("%8p: allocating %d bytes on the stack\n", static_cast<void*>(this), packet_size);
 			p->allocated = packet_size;
 		}
 
@@ -1976,8 +1975,11 @@ bool utp_socket_impl::send_pkt(int const flags)
 		write_payload(p->buf + p->size, size_left);
 		p->size += size_left;
 
-		UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
-			, static_cast<void*>(this), size_left, p->size, p->allocated);
+		if (size_left > 0)
+		{
+			UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
+				, static_cast<void*>(this), size_left, p->size, p->allocated);
+		}
 
 		// did we fill up the whole mtu?
 		// if we didn't, we may still send it if there's
@@ -2352,7 +2354,8 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 	{
 		m_ssthres = m_cwnd >> 16;
 		m_slow_start = false;
-		UTP_LOGV("%8p: experienced loss, slow_start -> 0\n", static_cast<void*>(this));
+		UTP_LOGV("%8p: experienced loss, slow_start -> 0 ssthres:%d\n"
+			, static_cast<void*>(this), m_ssthres);
 	}
 }
 
@@ -2533,7 +2536,7 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 
 bool utp_socket_impl::consume_incoming_data(
 	utp_header const* ph, boost::uint8_t const* ptr, int payload_size
-	, time_point now)
+	, time_point const now)
 {
 	INVARIANT_CHECK;
 
@@ -3566,7 +3569,7 @@ int utp_socket_impl::packet_timeout() const
 	return timeout;
 }
 
-void utp_socket_impl::tick(time_point now)
+void utp_socket_impl::tick(time_point const now)
 {
 	INVARIANT_CHECK;
 
