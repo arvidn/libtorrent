@@ -69,6 +69,7 @@ metrics = {
 	'cur_window_packets':['number of packets in-flight', 'x1y2', 'steps'],
 	'packet_size':['current packet size (B)', 'x1y2', 'steps'],
 	'rtt':['rtt (ms)', 'x1y2', rtt],
+	'min_rtt':['smallest rtt (ms)', 'x1y2', 'lines'],
 	'off_target':['off-target (ms)', 'x1y2', off_target],
 	'delay_sum':['delay sum (ms)', 'x1y2', 'steps'],
 	'their_delay':['their delay (ms)', 'x1y2', delay_samples],
@@ -86,7 +87,10 @@ metrics = {
 	'recv_buffer':['receive buffer size (B)', 'x1y1', 'lines'],
 	'packet_loss':['packet lost', 'x1y2', 'steps'],
 	'packet_timeout':['packet timed out', 'x1y2', 'steps'],
-	'bytes_sent':['cumulative bytes sent', 'x1y2', 'steps']
+	'acked_bytes':['Bytes ACKed by packet', 'x1y2', 'steps'],
+	'bytes_sent':['cumulative bytes sent', 'x1y2', 'steps'],
+	'ack_nr':['acked sequence number', 'x1y2', 'steps'],
+	'seq_nr':['sent sequence number', 'x1y2', 'steps'],
 }
 
 histogram_quantization = 1
@@ -99,6 +103,7 @@ begin = None
 title = "-"
 packet_loss = 0
 packet_timeout = 0
+num_acked = 0
 
 delay_histogram = {}
 packet_size_histogram = {}
@@ -142,11 +147,21 @@ for l in file:
     if "lost (timeout)" in l:
         packet_timeout += 1
         continue
+    if "acked packet " in l:
+        num_acked += 1
 
     if "sending packet" in l:
         v = l.split('size:')[1].split(' ')[0]
         packet_size_histogram[v] = 1 + packet_size_histogram.get(v, 0)
         bytes_sent += int(v)
+
+    if "incoming packet" in l \
+        and not "ERROR" in l \
+        and "seq_nr:" in l \
+        and "type:ST_SYN" not in l:
+        if "ack_nr:" not in l: print l
+        ack_nr = int(l.split('ack_nr:')[1].split(' ')[0])
+        seq_nr = int(l.split('seq_nr:')[1].split(' ')[0])
 
     if "our_delay:" not in l:
         continue
@@ -193,10 +208,11 @@ for l in file:
             print >>out, '%f\t' % v,
 
     if fill_columns:
-        columns += ['packet_loss', 'packet_timeout', 'bytes_sent']
-    print >>out, float(packet_loss), float(packet_timeout), float(bytes_sent)
+        columns += ['packet_loss', 'packet_timeout', 'bytes_sent', 'ack_nr', 'seq_nr']
+    print >>out, float(packet_loss), float(packet_timeout), float(bytes_sent), ack_nr, seq_nr
     packet_loss = 0
     packet_timeout = 0
+    num_acked = 0;
 
 out.close()
 
@@ -278,7 +294,7 @@ plot = [
 		'y2': ''
 	},
 	{
-		'data': ['our_delay', 'target_delay', 'rtt'],
+		'data': ['our_delay', 'target_delay', 'rtt', 'min_rtt'],
 		'title': 'our-delay',
 		'y1': '',
 		'y2': 'Time (ms)'
@@ -288,6 +304,18 @@ plot = [
 		'title': 'our-delay-base',
 		'y1': 'Time (us)',
 		'y2': ''
+	},
+	{
+		'data': ['ack_nr', 'seq_nr'],
+		'title': 'sequence-numbers',
+		'y1': 'Bytes',
+		'y2': 'seqnr'
+	},
+	{
+		'data': ['max_window', 'cur_window', 'acked_bytes'],
+		'title': 'ack-rate',
+		'y1': 'Bytes',
+		'y2': 'Bytes'
 	}
 ]
 
