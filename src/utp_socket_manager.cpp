@@ -43,8 +43,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // #define TORRENT_DEBUG_MTU 1135
 
+#if TORRENT_UTP_LOG
+#define UTP_LOG utp_log
+#if TORRENT_VERBOSE_UTP_LOG
+#define UTP_LOGV utp_log
+#else
+#define UTP_LOGV TORRENT_WHILE_0 printf
+#endif
+
+#else
+
+#if __cplusplus >= 201103L || defined __clang__
+
+#define UTP_LOG(...) do {} while(false)
+#define UTP_LOGV(...) do {} while(false)
+
+#else
+
+#define UTP_LOG TORRENT_WHILE_0 printf
+#define UTP_LOGV TORRENT_WHILE_0 printf
+
+#endif // cplusplus
+
+#endif
+
 namespace libtorrent
 {
+	void utp_log(char const* fmt, ...);
 
 	utp_socket_manager::utp_socket_manager(aux::session_settings const& sett
 		, udp_socket& s
@@ -245,15 +270,23 @@ namespace libtorrent
 		// TODO: 2 we may want to take ec into account here. possibly close
 		// connections quicker
 		TORRENT_UNUSED(ec);
-//		UTP_LOGV("incoming packet size:%d\n", size);
 
-		if (size < int(sizeof(utp_header))) return false;
+		if (size < int(sizeof(utp_header)))
+		{
+			UTP_LOGV("ERROR: incoming packet size too small:%d (expected %d)\n"
+				, size, sizeof(utp_header));
+			return false;
+		}
 
 		utp_header const* ph = reinterpret_cast<utp_header const*>(p);
 
-//		UTP_LOGV("incoming packet version:%d\n", int(ph->get_version()));
 
-		if (ph->get_version() != 1) return false;
+		if (ph->get_version() != 1)
+		{
+			UTP_LOGV("ERROR: incoming packet version:%d (expected 1)\n"
+				, int(ph->get_version()));
+			return false;
+		}
 
 		const time_point receive_time = clock_type::now();
 
@@ -286,7 +319,7 @@ namespace libtorrent
 			return ret;
 		}
 
-//		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
+		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
 
 		if (!m_sett.get_bool(settings_pack::enable_incoming_utp))
 			return false;
@@ -365,6 +398,8 @@ namespace libtorrent
 			utp_send_ack(m_deferred_ack);
 			m_deferred_ack = NULL;
 		}
+
+		UTP_LOGV("UDP socket drained\n");
 
 		std::vector<utp_socket_impl*> drained_event;
 		m_drained_event.swap(drained_event);

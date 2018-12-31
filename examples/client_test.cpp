@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 
+#include "libtorrent/utp_stream.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/entry.hpp"
@@ -1203,6 +1204,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 
 int main(int argc, char* argv[])
 {
+	lt::set_utp_stream_logging(true);
 #ifndef _WIN32
 	// sets the terminal to single-character mode
 	// and resets when destructed

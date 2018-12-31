@@ -1550,10 +1550,19 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 	// the sequence number of the last ACKed packet
 	int last_ack = packet_ack;
 
+	boost::array<boost::uint16_t, 16> resend;
+	int num_to_resend = 0;
+
+	// this was implicitly lost
+	resend[num_to_resend++] = (packet_ack + 1) & ACK_MASK;
+
+//#error it's possible to have two cursors here, one that trails 3 or 4 ACKed \
+packets behind the main one, to establish what the last packet that got 3 \
+duplicate ACKs is.
 	// for each byte
 	for (boost::uint8_t const* end = ptr + size; ptr != end; ++ptr)
 	{
-		unsigned char bitfield = unsigned(*ptr);
+		unsigned char const bitfield = unsigned(*ptr);
 		unsigned char mask = 1;
 		// for each bit
 		for (int i = 0; i < 8; ++i)
@@ -1561,8 +1570,6 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 			if (mask & bitfield)
 			{
 				last_ack = ack_nr;
-				if (m_fast_resend_seq_nr == ack_nr)
-					m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 
 				if (compare_less_wrap(m_fast_resend_seq_nr, ack_nr, ACK_MASK)) ++dups;
 				// this bit was set, ack_nr was received
@@ -1570,9 +1577,6 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 				if (p)
 				{
 					*acked_bytes += p->size - p->header_size;
-					// each ACKed packet counts as a duplicate ack
-					UTP_LOGV("%8p: duplicate_acks:%u fast_resend_seq_nr:%u\n"
-						, static_cast<void*>(this), m_duplicate_acks, m_fast_resend_seq_nr);
 					ack_packet(p, now, min_rtt, ack_nr);
 				}
 				else
@@ -1581,6 +1585,11 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 					// selective ack
 					maybe_inc_acked_seq_nr();
 				}
+			}
+			else
+			{
+				if (num_to_resend < resend.size())
+					resend[num_to_resend++] = ack_nr;
 			}
 
 			mask <<= 1;
@@ -1594,31 +1603,54 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 		if (ack_nr == m_seq_nr) break;
 	}
 
+	// now we need to (likely) prune the tail of the resend list, since all
+	// "unacked" packets that weren't followed by an acked one, don't count
+	while (num_to_resend > 0 && !compare_less_wrap(resend[num_to_resend - 1], last_ack, ACK_MASK))
+	{
+		UTP_LOGV("%8p: last ack:%d excluding:%d\n"
+			, static_cast<void*>(this), last_ack, resend[num_to_resend-1]);
+		--num_to_resend;
+	}
+
 	TORRENT_ASSERT(m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) || ((m_seq_nr - m_acked_seq_nr) & ACK_MASK) <= 1);
+
+	bool cut_cwnd = true;
+
+	UTP_LOGV("%8p: resend buffer size:%d\n"
+		, static_cast<void*>(this), num_to_resend);
 
 	// we received more than dup_ack_limit ACKs in this SACK message.
 	// trigger fast re-send. This is not an equal check because 3 identical ACKS
 	// are only 2 duplicates
-	if (dups > dup_ack_limit && compare_less_wrap(m_fast_resend_seq_nr, last_ack, ACK_MASK))
+	for (int i = 0; i < num_to_resend; ++i)
 	{
-		UTP_LOGV("%8p: Packet %d lost. (%d duplicate acks, trigger fast-resend)\n"
-			, static_cast<void*>(this), m_fast_resend_seq_nr, m_duplicate_acks);
-		experienced_loss(m_fast_resend_seq_nr, now);
-		int num_resent = 0;
+		boost::uint16_t const pkt_seq = resend[i];
 
-		// only re-sending a single packet per sack
-		// appears to improve performance by making it
-		// less likely to loose the re-sent packet. Because
-		// when that happens, we must time-out in order
-		// to continue, which takes a long time.
-		if (m_fast_resend_seq_nr != last_ack)
+		UTP_LOGV("%8p: resend buffer slot:%d packet:%d last_ack:%d fast_resend_seq_nr:%d\n"
+			, static_cast<void*>(this), i, pkt_seq, last_ack, m_fast_resend_seq_nr);
+
+		// #error the check against dup_ack_limit is not correct here, we need to
+		// actually count the number of ACKed packets that come after, not just
+		// the number of packets
+		if (((pkt_seq - last_ack) & ACK_MASK) >= dup_ack_limit
+			&& !compare_less_wrap(pkt_seq, m_fast_resend_seq_nr, ACK_MASK))
 		{
-			packet* p = m_outbuf.at(m_fast_resend_seq_nr);
-			m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
+			packet* p = m_outbuf.at(pkt_seq);
+			UTP_LOGV("%8p: Packet %d lost. (fast_resend_seq_nr:%d trigger fast-resend)\n"
+				, static_cast<void*>(this), pkt_seq, m_fast_resend_seq_nr);
 			if (p)
 			{
-				++num_resent;
-				if (resend_packet(p, true)) m_duplicate_acks = 0;
+				if (resend_packet(p, true))
+				{
+					m_duplicate_acks = 0;
+					m_fast_resend_seq_nr = (pkt_seq + 1) & ACK_MASK;
+				}
+			}
+
+			if (cut_cwnd)
+			{
+				experienced_loss(pkt_seq, now);
+				cut_cwnd = false;
 			}
 		}
 	}
