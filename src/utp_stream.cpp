@@ -1539,22 +1539,15 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 		, static_cast<void*>(this), ack_nr, bitmask.c_str(), m_seq_nr);
 #endif
 
-	// the number of acked packets past the fast re-send sequence number
-	// this is used to determine if we should trigger more fast re-sends
-	int dups = 0;
-
 	// the sequence number of the last ACKed packet
 	int last_ack = packet_ack;
 
-	boost::array<boost::uint16_t, 16> resend;
+	boost::array<boost::uint16_t, 8> resend;
 	int num_to_resend = 0;
 
 	// this was implicitly lost
 	resend[num_to_resend++] = (packet_ack + 1) & ACK_MASK;
 
-//#error it's possible to have two cursors here, one that trails 3 or 4 ACKed \
-packets behind the main one, to establish what the last packet that got 3 \
-duplicate ACKs is.
 	// for each byte
 	for (boost::uint8_t const* end = ptr + size; ptr != end; ++ptr)
 	{
@@ -1567,7 +1560,6 @@ duplicate ACKs is.
 			{
 				last_ack = ack_nr;
 
-				if (compare_less_wrap(m_fast_resend_seq_nr, ack_nr, ACK_MASK)) ++dups;
 				// this bit was set, ack_nr was received
 				packet* p = m_outbuf.remove(ack_nr);
 				if (p)
@@ -1599,12 +1591,35 @@ duplicate ACKs is.
 		if (ack_nr == m_seq_nr) break;
 	}
 
+	// now, scan the bits in reverse, and count the number of ACKed packets. Only
+	// lost packets followed by 'dup_ack_limit' packets may be resent
+	int last_resend = last_ack;
+
+	// the number of acked packets past the fast re-send sequence number
+	// this is used to determine if we should trigger more fast re-sends
+	int dups = 0;
+
+	for (boost::uint8_t const* i = ptr + size; i != ptr; --ptr)
+	{
+		unsigned char const bitfield = unsigned(i[-1]);
+		unsigned char mask = 0x70;
+		// for each bit
+		for (int i = 7; i >= 0; --i)
+		{
+			if (mask & bitfield) ++dups;
+			if (dups > dup_ack_limit) break;
+			last_resend = (last_resend - 1) & ACK_MASK;
+			mask >>= 1;
+		}
+		if (dups > dup_ack_limit) break;
+	}
+
 	// now we need to (likely) prune the tail of the resend list, since all
 	// "unacked" packets that weren't followed by an acked one, don't count
-	while (num_to_resend > 0 && !compare_less_wrap(resend[num_to_resend - 1], last_ack, ACK_MASK))
+	while (num_to_resend > 0 && !compare_less_wrap(resend[num_to_resend - 1], last_resend, ACK_MASK))
 	{
-		UTP_LOGV("%8p: last ack:%d excluding:%d\n"
-			, static_cast<void*>(this), last_ack, resend[num_to_resend-1]);
+		UTP_LOGV("%8p: last_resend:%d excluding:%d\n"
+			, static_cast<void*>(this), last_resend, resend[num_to_resend-1]);
 		--num_to_resend;
 	}
 
