@@ -3528,13 +3528,15 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 			, static_cast<void*>(this), m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
 		m_cwnd_full = false;
 	}
-
+/*
 	if ((m_cwnd >> 16) >= m_adv_wnd)
 	{
 		m_slow_start = false;
+		m_ssthres = (m_cwnd >> 16);
 		UTP_LOGV("%8p: cwnd > advertized wnd (%d) slow_start -> 0\n"
 			, static_cast<void*>(this), m_adv_wnd);
 	}
+*/
 }
 
 void utp_stream::bind(endpoint_type const&, error_code&) { }
