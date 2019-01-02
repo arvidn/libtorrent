@@ -82,13 +82,23 @@ metrics = {
     'get_microseconds': ['clock (us)', 'x1y1', 'steps'],
     'wnduser': ['advertised window size (B)', 'x1y1', 'steps'],
     'ssthres': ['slow-start threshold (B)', 'x1y1', 'steps'],
+    'timeout': ['until next timeout (ms)', 'x1y2', 'steps'],
+    'rto': ['current timeout (ms)', 'x1y2', 'steps'],
 
     'delay_base': ['delay base (us)', 'x1y1', delay_base],
     'their_delay_base': ['their delay base (us)', 'x1y1', delay_base],
     'their_actual_delay': ['their actual delay (us)', 'x1y1', delay_samples],
     'actual_delay': ['actual_delay (us)', 'x1y1', delay_samples],
     'send_buffer': ['send buffer size (B)', 'x1y1', send_buffer],
-    'recv_buffer': ['receive buffer size (B)', 'x1y1', 'lines']
+    'recv_buffer': ['receive buffer size (B)', 'x1y1', 'lines'],
+    'packet_loss': ['packet lost', 'x1y2', 'steps'],
+    'packet_timeout': ['packet timed out', 'x1y2', 'steps'],
+    'acked_bytes': ['Bytes ACKed by packet', 'x1y2', 'steps'],
+    'bytes_sent': ['cumulative bytes sent', 'x1y2', 'steps'],
+    'bytes_resent': ['cumulative bytes resent', 'x1y2', 'steps'],
+    'written': ['reported written bytes', 'x1y2', 'steps'],
+    'ack_nr': ['acked sequence number', 'x1y2', 'steps'],
+    'seq_nr': ['sent sequence number', 'x1y2', 'steps'],
 }
 
 histogram_quantization = 1.0
@@ -101,10 +111,16 @@ begin = None
 title = "-"
 packet_loss = 0
 packet_timeout = 0
+num_acked = 0
 
 delay_histogram = {}
 packet_size_histogram = {}
 window_size = {'0': 0, '1': 0}
+bytes_sent = 0
+bytes_resent = 0
+written = 0
+ack_nr = 0
+seq_nr = 0
 
 # [35301484] 0x00ec1190: actual_delay:1021583 our_delay:102 their_delay:-1021345 off_target:297 max_window:2687
 # upload_rate:18942 delay_base:1021481154 delay_sum:-1021242 target_delay:400 acked_bytes:1441 cur_window:2882
@@ -140,15 +156,37 @@ for line in file:
         print("\r%d  " % counter, end=' ')
 
     if "lost." in line:
-        packet_loss = packet_loss + 1
+        packet_loss += 1
         continue
-    if "Packet timeout" in line:
-        packet_timeout = packet_timeout + 1
+
+    if "lost (timeout)" in line:
+        packet_timeout += 1
         continue
+
+    if "acked packet " in line:
+        num_acked += 1
 
     if "sending packet" in line:
         v = line.split('size:')[1].split(' ')[0]
         packet_size_histogram[v] = 1 + packet_size_histogram.get(v, 0)
+        bytes_sent += int(v)
+
+    if "re-sending packet" in line:
+        v = line.split('size:')[1].split(' ')[0]
+        bytes_resent += int(v)
+
+    if 'calling write handler' in line:
+        v = line.split('written:')[1].split(' ')[0]
+        written += int(v)
+
+    if "incoming packet" in line \
+            and "ERROR" not in line \
+            and "seq_nr:" in line \
+            and "type:ST_SYN" not in line:
+        if "ack_nr:" not in line:
+            print(line)
+        ack_nr = int(line.split('ack_nr:')[1].split(' ')[0])
+        seq_nr = int(line.split('seq_nr:')[1].split(' ')[0])
 
     if "our_delay:" not in line:
         continue
@@ -194,9 +232,16 @@ for line in file:
             print('%f\t' % int(reduce(lambda a, b: a + b, list(window_size.values()))), end=' ', file=out)
         else:
             print('%f\t' % v, end=' ', file=out)
-    print(float(packet_loss * 8000), float(packet_timeout * 8000), file=out)
+
+    if fill_columns:
+        columns += ['packet_loss', 'packet_timeout', 'bytes_sent', 'ack_nr',
+                    'seq_nr', 'bytes_resent', 'written']
+    print(float(packet_loss), float(packet_timeout), float(bytes_sent),
+          ack_nr, seq_nr, float(bytes_resent), written, file=out)
     packet_loss = 0
     packet_timeout = 0
+    num_acked = 0
+    written = 0
 
 out.close()
 
@@ -218,6 +263,12 @@ plot = [
         'y2': 'Time (ms)'
     },
     {
+        'data': ['max_window', 'send_buffer', 'cur_window', 'written'],
+        'title': 'bytes-written',
+        'y1': 'Bytes',
+        'y2': 'Time (ms)'
+    },
+    {
         'data': ['upload_rate', 'max_window', 'cur_window', 'wnduser', 'cur_window_packets', 'packet_size', 'rtt'],
         'title': 'slow-start',
         'y1': 'Bytes',
@@ -230,6 +281,30 @@ plot = [
         'y2': 'Time (ms)'
     },
     {
+        'data': ['max_window', 'cur_window', 'packet_loss'],
+        'title': 'packet-loss',
+        'y1': 'Bytes',
+        'y2': 'count'
+    },
+    {
+        'data': ['max_window', 'cur_window', 'packet_timeout'],
+        'title': 'packet-timeout',
+        'y1': 'Bytes',
+        'y2': 'count'
+    },
+    {
+        'data': ['max_window', 'cur_window', 'bytes_sent', 'bytes_resent'],
+        'title': 'cumulative-bytes-sent',
+        'y1': 'Bytes',
+        'y2': 'Cumulative Bytes'
+    },
+    {
+        'data': ['max_window', 'cur_window', 'rto', 'timeout'],
+        'title': 'connection-timeout',
+        'y1': 'Bytes',
+        'y2': 'Time (ms)'
+    },
+    {
         'data': ['our_delay', 'max_window', 'target_delay', 'cur_window', 'wnduser', 'cur_window_packets'],
         'title': 'uploading',
         'y1': 'Bytes',
@@ -237,19 +312,19 @@ plot = [
     },
     {
         'data': ['our_delay', 'max_window', 'target_delay', 'cur_window', 'send_buffer'],
-        'title': 'uploading_packets',
+        'title': 'uploading-packets',
         'y1': 'Bytes',
         'y2': 'Time (ms)'
     },
     {
         'data': ['their_delay', 'target_delay', 'rtt'],
-        'title': 'their_delay',
+        'title': 'their-delay',
         'y1': '',
         'y2': 'Time (ms)'
     },
     {
         'data': ['their_actual_delay', 'their_delay_base'],
-        'title': 'their_delay_base',
+        'title': 'their-delay-base',
         'y1': 'Time (us)',
         'y2': ''
     },
@@ -261,9 +336,21 @@ plot = [
     },
     {
         'data': ['actual_delay', 'delay_base'],
-        'title': 'our_delay_base',
+        'title': 'our-delay-base',
         'y1': 'Time (us)',
         'y2': ''
+    },
+    {
+        'data': ['ack_nr', 'seq_nr'],
+        'title': 'sequence-numbers',
+        'y1': 'Bytes',
+        'y2': 'seqnr'
+    },
+    {
+        'data': ['max_window', 'cur_window', 'acked_bytes'],
+        'title': 'ack-rate',
+        'y1': 'Bytes',
+        'y2': 'Bytes'
     }
 ]
 

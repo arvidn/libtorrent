@@ -48,10 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric> // for accumulate
 #endif
 
-// the behavior of the sequence numbers as implemented by uTorrent is not
-// particularly regular. This switch indicates the odd parts.
-#define TORRENT_UT_SEQ 1
-
 #if TORRENT_UTP_LOG
 #include <cstdarg>
 #include <cinttypes> // for PRId64 et.al.
@@ -280,7 +276,7 @@ struct utp_socket_impl
 	void parse_close_reason(std::uint8_t const* ptr, int size);
 	void write_payload(std::uint8_t* ptr, int size);
 	void maybe_inc_acked_seq_nr();
-	std::uint32_t ack_packet(packet_ptr p, time_point const& receive_time
+	std::uint32_t ack_packet(packet_ptr p, time_point receive_time
 		, std::uint16_t seq_nr);
 	void write_sack(std::uint8_t* buf, int size) const;
 	void incoming(std::uint8_t const* buf, int size, packet_ptr p, time_point now);
@@ -1067,8 +1063,8 @@ std::size_t utp_stream::read_some(bool const clear_buffers)
 
 		if (m_impl->m_receive_buffer_size == 0)
 		{
-			UTP_LOGV("  Didn't fill entire target: %d bytes left in buffer\n"
-				, m_impl->m_receive_buffer_size);
+			UTP_LOGV("%8p: Didn't fill entire target: %d bytes left in buffer\n"
+				, static_cast<void*>(m_impl), m_impl->m_receive_buffer_size);
 			break;
 		}
 	}
@@ -1452,14 +1448,14 @@ void utp_socket_impl::parse_close_reason(std::uint8_t const* ptr, int const size
 
 // returns (rtt, acked_bytes)
 std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const packet_ack
-	, std::uint8_t const* ptr, int size, time_point const now)
+	, std::uint8_t const* ptr, int const size, time_point const now)
 {
 	INVARIANT_CHECK;
 
 	if (size == 0) return { 0u, 0 };
 
 	// this is the sequence number the current bit represents
-	std::uint32_t ack_nr = (packet_ack + 2) & ACK_MASK;
+	std::uint16_t ack_nr = (packet_ack + 2) & ACK_MASK;
 
 #if TORRENT_VERBOSE_UTP_LOG
 	std::string bitmask;
@@ -1475,35 +1471,34 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 			mask <<= 1;
 		}
 	}
-	UTP_LOGV("%8p: got SACK first:%d %s our_seq_nr:%u\n"
-		, static_cast<void*>(this), ack_nr, bitmask.c_str(), m_seq_nr);
+	UTP_LOGV("%8p: got SACK first:%d %s our_seq_nr:%u fast_resend_seq_nr:%d\n"
+		, static_cast<void*>(this), ack_nr, bitmask.c_str(), m_seq_nr, m_fast_resend_seq_nr);
 #endif
 
-	// the number of acked packets past the fast re-send sequence number
-	// this is used to determine if we should trigger more fast re-sends
-	int dups = 0;
-
-	// the sequence number of the last ACKed packet
-	std::uint32_t last_ack = packet_ack;
+	aux::array<std::uint16_t, 5> resend;
+	int num_to_resend = 0;
 
 	int acked_bytes = 0;
 	std::uint32_t min_rtt = std::numeric_limits<std::uint32_t>::max();
 
+	// this was implicitly lost
+	if (!compare_less_wrap((packet_ack + 1) & ACK_MASK, m_fast_resend_seq_nr, ACK_MASK))
+	{
+		resend[num_to_resend++] = (packet_ack + 1) & ACK_MASK;
+	}
+
 	// for each byte
-	for (std::uint8_t const* end = ptr + size; ptr != end; ++ptr)
+	std::uint8_t const* const start = ptr;
+	std::uint8_t const* const end = ptr + size;
+	for (; ptr != end; ++ptr)
 	{
 		std::uint8_t bitfield = *ptr;
-		unsigned char mask = 1;
+		std::uint8_t mask = 1;
 		// for each bit
 		for (int i = 0; i < 8; ++i)
 		{
 			if (mask & bitfield)
 			{
-				last_ack = ack_nr;
-				if (m_fast_resend_seq_nr == ack_nr)
-					m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
-
-				if (compare_less_wrap(m_fast_resend_seq_nr, ack_nr, ACK_MASK)) ++dups;
 				// this bit was set, ack_nr was received
 				packet_ptr p = m_outbuf.remove(aux::numeric_cast<packet_buffer::index_type>(ack_nr));
 				if (p)
@@ -1521,6 +1516,11 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 					maybe_inc_acked_seq_nr();
 				}
 			}
+			else if (!compare_less_wrap(ack_nr, m_fast_resend_seq_nr, ACK_MASK)
+				&& num_to_resend < int(resend.size()))
+			{
+				resend[num_to_resend++] = ack_nr;
+			}
 
 			mask <<= 1;
 			ack_nr = (ack_nr + 1) & ACK_MASK;
@@ -1533,29 +1533,73 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 		if (ack_nr == m_seq_nr) break;
 	}
 
+	// now, scan the bits in reverse, and count the number of ACKed packets. Only
+	// lost packets followed by 'dup_ack_limit' packets may be resent
+	// start with the sequence number represented by the last bit in the SACK
+	// bitmask
+	std::uint16_t last_resend = (packet_ack + 1 + size * 8) & ACK_MASK;
+
+	// the number of acked packets past the fast re-send sequence number
+	// this is used to determine if we should trigger more fast re-sends
+	int dups = 0;
+
+	for (std::uint8_t const* i = end; i != start; --i)
+	{
+		std::uint8_t const bitfield = i[-1];
+		std::uint8_t mask = 0x80;
+		// for each bit
+		for (int k = 0; k < 8; ++k)
+		{
+			if (mask & bitfield) ++dups;
+			if (dups > dup_ack_limit) break;
+			last_resend = (last_resend - 1) & ACK_MASK;
+			mask >>= 1;
+		}
+		if (dups > dup_ack_limit) break;
+	}
+
+	// we did not get enough packets acked in this message to warrant a resend
+	if (dups <= dup_ack_limit)
+	{
+		UTP_LOGV("%8p: only %d ACKs in SACK, requires more than %d to trigger fast retransmit\n"
+			, static_cast<void*>(this), dups, dup_ack_limit);
+		num_to_resend = 0;
+	}
+
+	// now we need to (likely) prune the tail of the resend list, since all
+	// "unacked" packets that weren't followed by an acked one, don't count
+	while (num_to_resend > 0 && !compare_less_wrap(resend[num_to_resend - 1], last_resend, ACK_MASK))
+	{
+		--num_to_resend;
+	}
+
 	TORRENT_ASSERT(m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) || ((m_seq_nr - m_acked_seq_nr) & ACK_MASK) <= 1);
 
-	// we received more than dup_ack_limit ACKs in this SACK message.
-	// trigger fast re-send
-	if (dups >= dup_ack_limit && compare_less_wrap(m_fast_resend_seq_nr, last_ack, ACK_MASK))
-	{
-		experienced_loss(m_fast_resend_seq_nr);
-		int num_resent = 0;
+	bool cut_cwnd = true;
 
-		// only re-sending a single packet per sack
-		// appears to improve performance by making it
-		// less likely to loose the re-sent packet. Because
-		// when that happens, we must time-out in order
-		// to continue, which takes a long time.
-		if (m_fast_resend_seq_nr != last_ack)
+	// we received more than dup_ack_limit ACKs in this SACK message.
+	// trigger fast re-send. This is not an equal check because 3 identical ACKS
+	// are only 2 duplicates
+	for (int i = 0; i < num_to_resend; ++i)
+	{
+		std::uint16_t const pkt_seq = resend[i];
+
+		packet* p = m_outbuf.at(pkt_seq);
+		UTP_LOGV("%8p: Packet %d lost. (fast_resend_seq_nr:%d trigger fast-resend)\n"
+			, static_cast<void*>(this), pkt_seq, m_fast_resend_seq_nr);
+		if (p)
 		{
-			packet* p = m_outbuf.at(m_fast_resend_seq_nr);
-			m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
-			if (p)
+			if (resend_packet(p, true))
 			{
-				++num_resent;
-				if (resend_packet(p, true)) m_duplicate_acks = 0;
+				m_duplicate_acks = 0;
+				m_fast_resend_seq_nr = (pkt_seq + 1) & ACK_MASK;
 			}
+		}
+
+		if (cut_cwnd)
+		{
+			experienced_loss(pkt_seq);
+			cut_cwnd = false;
 		}
 	}
 
@@ -1869,8 +1913,11 @@ bool utp_socket_impl::send_pkt(int const flags)
 		write_payload(p->buf + p->size, size_left);
 		p->size += std::uint16_t(size_left);
 
-		UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
-			, static_cast<void*>(this), size_left, p->size, p->allocated);
+		if (size_left > 0)
+		{
+			UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
+				, static_cast<void*>(this), size_left, p->size, p->allocated);
+		}
 
 		// did we fill up the whole mtu?
 		// if we didn't, we may still send it if there's
@@ -2031,12 +2078,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// be a nagle packet waiting for more data
 		TORRENT_ASSERT(!m_nagle_packet);
 
-#if !TORRENT_UT_SEQ
-		// if the other end closed the connection immediately
-		// our FIN packet will end up having the same sequence
-		// number as the SYN, so this assert is invalid
-		TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
-#endif
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
 
 		// 0 is a special sequence number, since it's also used as "uninitialized".
@@ -2243,7 +2284,8 @@ void utp_socket_impl::experienced_loss(std::uint32_t const seq_nr)
 	{
 		m_ssthres = std::int32_t(m_cwnd >> 16);
 		m_slow_start = false;
-		UTP_LOGV("%8p: experienced loss, slow_start -> 0\n", static_cast<void*>(this));
+		UTP_LOGV("%8p: experienced loss, slow_start -> 0 ssthres:%d\n"
+			, static_cast<void*>(this), m_ssthres);
 	}
 }
 
@@ -2290,7 +2332,7 @@ void utp_socket_impl::maybe_inc_acked_seq_nr()
 }
 
 // returns RTT
-std::uint32_t utp_socket_impl::ack_packet(packet_ptr p, time_point const& receive_time
+std::uint32_t utp_socket_impl::ack_packet(packet_ptr p, time_point const receive_time
 	, std::uint16_t seq_nr)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -2314,7 +2356,6 @@ std::uint32_t utp_socket_impl::ack_packet(packet_ptr p, time_point const& receiv
 		TORRENT_ASSERT(p->mtu_probe);
 		// our mtu probe was acked!
 		m_mtu_floor = std::max(m_mtu_floor, p->size);
-		if (m_mtu_ceiling < m_mtu_floor) m_mtu_ceiling = m_mtu_floor;
 		update_mtu_limits();
 	}
 
@@ -2703,11 +2744,10 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 	// something is wrong.
 	// If our state is state_none, this packet must be a syn packet
 	// and the ack_nr should be ignored
-	std::uint16_t cmp_seq_nr = (m_seq_nr - 1) & ACK_MASK;
-#if TORRENT_UT_SEQ
-	if (m_state == UTP_STATE_SYN_SENT && ph->get_type() == ST_STATE)
-		cmp_seq_nr = m_seq_nr;
-#endif
+	std::uint16_t const cmp_seq_nr =
+		(m_state == UTP_STATE_SYN_SENT && ph->get_type() == ST_STATE)
+		? m_seq_nr : (m_seq_nr - 1) & ACK_MASK;
+
 	if ((m_state != UTP_STATE_NONE || ph->get_type() != ST_SYN)
 		&& (compare_less_wrap(cmp_seq_nr, ph->ack_nr, ACK_MASK)
 			|| compare_less_wrap(ph->ack_nr, m_acked_seq_nr
@@ -2745,7 +2785,9 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 
 	// if the socket is closing, always ignore any packet
 	// with a higher sequence number than the FIN sequence number
-	if (m_eof && compare_less_wrap(m_eof_seq_nr, ph->seq_nr, ACK_MASK))
+	// ST_STATE messages always include the next seqnr.
+	if (m_eof && (compare_less_wrap(m_eof_seq_nr, ph->seq_nr, ACK_MASK)
+		|| (m_eof_seq_nr == ph->seq_nr && ph->get_type() != ST_STATE)))
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOG("%8p: ERROR: incoming packet type: %s seq_nr:%d eof_seq_nr:%d (ignored)\n"
@@ -3430,13 +3472,15 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 			, static_cast<void*>(this), m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
 		m_cwnd_full = false;
 	}
-
+/*
 	if ((m_cwnd >> 16) >= m_adv_wnd)
 	{
 		m_slow_start = false;
+		m_ssthres = (m_cwnd >> 16);
 		UTP_LOGV("%8p: cwnd > advertized wnd (%u) slow_start -> 0\n"
 			, static_cast<void*>(this), m_adv_wnd);
 	}
+*/
 }
 
 void utp_stream::bind(endpoint_type const&, error_code&) { }
@@ -3531,7 +3575,6 @@ void utp_socket_impl::tick(time_point const now)
 			// we had was the probe. Assume it was dropped
 			// because it was too big
 			m_mtu_ceiling = m_mtu - 1;
-			if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
 			update_mtu_limits();
 		}
 

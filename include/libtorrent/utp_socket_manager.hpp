@@ -147,11 +147,10 @@ namespace libtorrent {
 
 		using socket_vector_t = std::vector<utp_socket_impl*>;
 
-		// this is a list of sockets that needs to send an ack.
-		// once the UDP socket is drained, all of these will
-		// have a chance to do that. This is to avoid sending
-		// an ack for every single packet
-		socket_vector_t m_deferred_acks;
+		// if this is set, it means this socket still needs to send an ACK. Once
+		// we exit the loop processing packets, or switch to processing packets
+		// for a different socket, issue the ACK packet and clear this.
+		utp_socket_impl* m_deferred_ack = nullptr;
 
 		// storage used for saving cpu time on "push_back"
 		// by using already pre-allocated vector
