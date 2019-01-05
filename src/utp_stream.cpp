@@ -1586,6 +1586,8 @@ void utp_socket_impl::parse_sack(boost::uint16_t const packet_ack, boost::uint8_
 		if (ack_nr == m_seq_nr) break;
 	}
 
+	if (m_outbuf.empty()) m_duplicate_acks = 0;
+
 	// now, scan the bits in reverse, and count the number of ACKed packets. Only
 	// lost packets followed by 'dup_ack_limit' packets may be resent
 	// start with the sequence number represented by the last bit in the SACK
@@ -2975,6 +2977,8 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		++m_duplicate_acks;
 	}
 
+	TORRENT_ASSERT_VAL(m_outbuf.size() > 0 || m_duplicate_acks == 0, m_duplicate_acks);
+
 	boost::uint32_t min_rtt = (std::numeric_limits<boost::uint32_t>::max)();
 
 	TORRENT_ASSERT(m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) || ((m_seq_nr - m_acked_seq_nr) & ACK_MASK) <= 1);
@@ -3003,6 +3007,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		}
 
 		maybe_inc_acked_seq_nr();
+		if (m_outbuf.empty()) m_duplicate_acks = 0;
 	}
 
 	// look for extended headers
@@ -3341,7 +3346,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 					, packet_timeout()
 					, int(total_milliseconds(m_timeout - receive_time))
 					, int(total_microseconds(receive_time.time_since_epoch()))
-					, (m_seq_nr - m_acked_seq_nr) & ACK_MASK
+					, m_outbuf.size()
 					, m_mtu
 					, their_delay_base
 					, boost::uint32_t(m_reply_micro)

@@ -76,8 +76,9 @@ namespace libtorrent
 
 		void* insert(index_type idx, void* value);
 
-		std::size_t size() const
-		{ return m_size; }
+		std::size_t size() const { return m_size; }
+
+		bool empty() const { return m_size == 0; }
 
 		std::size_t capacity() const
 		{ return m_capacity; }
@@ -119,6 +120,7 @@ namespace libtorrent
 
 		using packet_buffer_impl::index_type;
 		using packet_buffer_impl::size;
+		using packet_buffer_impl::empty;
 		using packet_buffer_impl::capacity;
 		using packet_buffer_impl::reserve;
 		using packet_buffer_impl::cursor;
