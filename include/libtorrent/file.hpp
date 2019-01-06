@@ -186,10 +186,6 @@ namespace libtorrent {
 
 		std::int64_t get_size(error_code& ec) const;
 
-		// return the offset of the first byte that
-		// belongs to a data-region
-		std::int64_t sparse_end(std::int64_t start) const;
-
 		handle_type native_handle() const { return m_file_handle; }
 
 	private:
