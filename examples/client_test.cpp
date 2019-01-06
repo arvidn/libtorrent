@@ -51,9 +51,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/extensions/ut_metadata.hpp"
-#include "libtorrent/extensions/ut_pex.hpp"
-#include "libtorrent/extensions/smart_ban.hpp"
+#ifdef TORRENT_UTP_LOG_ENABLE
+#include "libtorrent/utp_stream.hpp"
+#endif
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
@@ -1226,6 +1226,9 @@ int main(int argc, char* argv[])
 			"                        are present and check hashes on-demand)\n"
 			"  -E <num-threads>      specify how many disk I/O threads to use\n"
 			"  -O                    print session stats counters to the log\n"
+#ifdef TORRENT_UTP_LOG_ENABLE
+			"  -q                    Enable uTP transport-level verbose logging\n"
+#endif
 			"\n BITTORRENT OPTIONS\n"
 			"  -c <limit>            sets the max number of connections\n"
 			"  -T <limit>            sets the max number of connections per torrent\n"
@@ -1385,6 +1388,11 @@ int main(int argc, char* argv[])
 				if (strcmp(arg, "allocate") == 0) allocation_mode = storage_mode_allocate;
 				else if (strcmp(arg, "sparse") == 0) allocation_mode = storage_mode_sparse;
 				break;
+#ifdef TORRENT_UTP_LOG_ENABLE
+			case 'q':
+				libtorrent::set_utp_stream_logging(true);
+				break;
+#endif
 			case 's': save_path = arg; break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
