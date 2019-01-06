@@ -97,7 +97,6 @@ namespace libtorrent {
 		~directory();
 		void next(error_code& ec);
 		std::string file() const;
-		std::uint64_t inode() const;
 		bool done() const { return m_done; }
 	private:
 #ifdef TORRENT_WINDOWS
@@ -106,15 +105,6 @@ namespace libtorrent {
 		WIN32_FIND_DATAW m_fd;
 #else
 		DIR* m_handle;
-#ifdef TORRENT_ANDROID
-// this is due to a documented bug in android related to a wrong type
-// of ino_t, for general discussion and internal changes see:
-// https://issuetracker.google.com/issues/37011207 - for general discussion
-// https://android-review.googlesource.com/#/c/platform/system/core/+/123482/
-		std::uint64_t m_inode;
-#else
-		ino_t m_inode;
-#endif // TORRENT_ANDROID
 		std::string m_name;
 #endif
 		bool m_done;
