@@ -356,8 +356,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		native_path_string f = convert_to_native_path_string(p);
 
 #ifdef TORRENT_WINDOWS
-		m_inode = 0;
-
 		m_handle = FindFirstFileW(f.c_str(), &m_fd);
 		if (m_handle == INVALID_HANDLE_VALUE)
 		{
@@ -366,7 +364,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 			return;
 		}
 #else
-
 		m_handle = ::opendir(f.c_str());
 		if (m_handle == nullptr)
 		{
@@ -376,7 +373,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		}
 		// read the first entry
 		next(ec);
-#endif
+#endif // TORRENT_WINDOWS
 	}
 
 	directory::~directory()
@@ -387,11 +384,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 #else
 		if (m_handle) ::closedir(m_handle);
 #endif
-	}
-
-	std::uint64_t directory::inode() const
-	{
-		return m_inode;
 	}
 
 	std::string directory::file() const
@@ -420,7 +412,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		errno = 0;
 		if ((de = ::readdir(m_handle)) != nullptr)
 		{
-			m_inode = de->d_ino;
 			m_name = de->d_name;
 		}
 		else
