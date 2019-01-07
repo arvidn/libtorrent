@@ -396,7 +396,6 @@ void set_metadata(torrent_handle& handle, std::string const& buf)
 }
 
 #if TORRENT_ABI_VERSION == 1
-#if BOOST_VERSION > 104200
 
 std::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
 {
@@ -404,20 +403,7 @@ std::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
     return h.torrent_file();
 }
 
-#else
-
-std::shared_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
-{
-    // I can't figure out how to expose shared_ptr<const torrent_info>
-    // as well as supporting mutable instances. So, this hack is better
-    // than compilation errors. It seems to work on newer versions of boost though
-    allow_threading_guard guard;
-    return std::const_pointer_cast<torrent_info>(h.torrent_file());
-}
-
-#endif
-
-#endif // TORRENT_NO_DEPRECAE
+#endif // TORRENT_ABI_VERSION
 
 void add_piece(torrent_handle& th, piece_index_t piece, char const *data
     , add_piece_flags_t const flags)

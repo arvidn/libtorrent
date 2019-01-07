@@ -11,19 +11,6 @@
 
 using namespace boost::python;
 
-#if BOOST_VERSION < 103400
-
-// From Boost 1.34
-object import(str name)
-{
-    // should be 'char const *' but older python versions don't use 'const' yet.
-    char *n = extract<char *>(name);
-    handle<> module(borrowed(PyImport_ImportModule(n)));
-    return object(module);
-}
-
-#endif
-
 object datetime_timedelta;
 object datetime_datetime;
 
