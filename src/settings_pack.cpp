@@ -366,6 +366,7 @@ namespace libtorrent
 		SET_NOPREV(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
 		SET_NOPREV(web_seed_name_lookup_retry, 1800, 0),
 		SET_NOPREV(close_file_interval, CLOSE_FILE_INTERVAL, &session_impl::update_close_file_interval),
+		SET_NOPREV(utp_cwnd_reduce_timer, 100, 0),
 	};
 
 #undef SET
