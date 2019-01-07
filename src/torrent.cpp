@@ -3253,10 +3253,12 @@ namespace {
 			&& m_torrent_file->priv())
 		{
 			boost::optional<tcp::endpoint> ep4 = m_ses.get_ipv4_interface();
-			if (ep4) req.ipv4 = ep4->address().to_v4();
+			if (ep4 && !is_local(ep4->address()) && !is_loopback(ep4->address()))
+				req.ipv4 = ep4->address().to_v4();
 #if TORRENT_USE_IPV6
 			boost::optional<tcp::endpoint> ep6 = m_ses.get_ipv6_interface();
-			if (ep6) req.ipv6 = ep6->address().to_v6();
+			if (ep6 && !is_local(ep6->address()) && !is_loopback(ep6->address()))
+				req.ipv6 = ep6->address().to_v6();
 #endif
 		}
 
