@@ -79,8 +79,8 @@ You'll find boost here__.
 __ https://www.boost.org/users/download/#live
 
 Extract the archive to some directory where you want it. For the sake of this
-guide, let's assume you extract the package to ``c:\boost_1_68_0``. You'll
-need at least version 1.56 of the boost library in order to build libtorrent.
+guide, let's assume you extract the package to ``c:\boost_1_69_0``. You'll
+need at least version 1.58 of the boost library in order to build libtorrent.
 
 
 Step 2: Setup BBv2

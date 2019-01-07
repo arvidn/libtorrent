@@ -1,5 +1,6 @@
 1.2 release
 
+	* requires boost >= 1.58 to build
 	* tweak heuristic of how to interpret url seeds in multi-file torrents
 	* support &ipv4= tracker argument for private torrents
 	* renamed debug_notification to connect_notification

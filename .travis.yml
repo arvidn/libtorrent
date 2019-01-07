@@ -1,5 +1,5 @@
 language: cpp
-dist: trusty
+dist: xenial
 
 matrix:
   fast_finish: true
@@ -9,13 +9,10 @@ matrix:
     - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
       addons:
         apt:
-          sources:
-          - ubuntu-toolchain-r-test
           packages:
-          - libc++-dev
           - python3-pip
-          - libboost1.55-all-dev
-          - libboost1.55-tools-dev
+          - libboost1.58-all-dev
+          - libboost1.58-tools-dev
     - env: variant=test_debug tests=1 toolset=gcc-sanitizer
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
@@ -47,15 +44,12 @@ cache:
 # packages list: https://github.com/travis-ci/apt-package-whitelist/blob/master/ubuntu-precise
 addons:
   apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    - sourceline: 'ppa:dluxen/cmake-backports'
     packages:
-    - libboost1.55-all-dev
-    - libboost1.55-tools-dev
+    - libboost1.58-all-dev
+    - libboost1.58-tools-dev
     - python2.7-dev
     - g++-5
-    - [cmake3, ninja-build]
+    - ninja-build
 
 before_install:
 
@@ -120,7 +114,7 @@ install:
         <linkflags>-static-libgcc ;" >> ~/user-config.jam;
     fi;'
   - 'if [ $clang_tidy == "1" ]; then
-      echo "using clang_tidy : : clang-tidy "-checks=-clang-analyzer-core.*" : <cxxflags>-std=c++11 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+      echo "using clang_tidy : : clang-tidy "-checks=-clang-analyzer-core.*" : <cxxflags>-std=c++11 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
     fi'
   - 'echo "using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using darwin : ios_sim : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
@@ -166,9 +160,9 @@ install:
       tar xf gcc-linaro.tar.xz;
       export PATH=${PWD}/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
       armv8l-linux-gnueabihf-g++ --version;
-      wget -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip;
+      wget -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.58.0/boost_1_58_0.zip;
       unzip -qq boost.zip;
-      export BOOST_ROOT=$PWD/boost_1_55_0;
+      export BOOST_ROOT=$PWD/boost_1_58_0;
       travis_retry sudo apt-get install -y qemu-user-static;
       wget -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
       sudo mkdir rootfs;
@@ -179,13 +173,7 @@ install:
     fi'
 
   - which python2
-  - |
-    if [[ $TRAVIS_OS_NAME == "linux" ]] ; then
-        # There is an outdated cmake in /usr/local/cmake-<version> which we don't want to use
-        # but /usr/local/cmake-<version>/bin is in $PATH, therefore
-        # remove all paths containing 'cmake' to use the executable from /usr/bin
-        export PATH=`echo ${PATH} | awk -v RS=: -v ORS=: '/cmake/ {next} {print}'`
-    fi
+
   - if [[ "$cmake" == "1" ]]; then
       which cmake;
       cmake --version;

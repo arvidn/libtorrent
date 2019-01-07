@@ -52,11 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <chrono>
 
 #if BOOST_ASIO_DYN_LINK
-#if BOOST_VERSION >= 104500
 #include <boost/asio/impl/src.hpp>
-#elif BOOST_VERSION >= 104400
-#include <boost/asio/impl/src.cpp>
-#endif
 #endif
 
 using namespace lt;
