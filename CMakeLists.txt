@@ -678,8 +678,12 @@ else()
 endif()
 
 # Boost
-find_public_dependency(Boost REQUIRED COMPONENTS system date_time)
-target_link_libraries(torrent-rasterbar PUBLIC Boost::system Boost::date_time)
+find_public_dependency(Boost REQUIRED COMPONENTS system)
+target_link_libraries(torrent-rasterbar PUBLIC Boost::system)
+if (TORRENT_NO_DEPRECATE)
+	find_public_dependency(Boost REQUIRED COMPONENTS date_time)
+	target_link_libraries(torrent-rasterbar PUBLIC Boost::date_time)
+endif()
 
 if (exceptions)
 	if (MSVC)
