@@ -17,7 +17,7 @@ include(CMakeDependentOption)
 
 # Boost
 find_public_dependency(Boost REQUIRED COMPONENTS system)
-find_public_dependency(Boost REQUIRED COMPONENTS date_time)
+find_public_dependency(Boost COMPONENTS date_time)
 
 set(libtorrent_include_files
 	add_torrent_params
