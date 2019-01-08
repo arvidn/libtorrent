@@ -15,7 +15,28 @@ include(GNUInstallDirs)
 include(GeneratePkgConfig)
 include(CMakeDependentOption)
 
-# Boost
+# Options
+
+# these options control target creation and thus have to be declared before the add_library() call
+feature_option(BUILD_SHARED_LIBS "build libtorrent as a shared library" ON)
+feature_option(static_runtime "build libtorrent with static runtime" OFF)
+
+# Configuration
+
+if(static_runtime)
+	include(ucm_flags)
+	ucm_set_runtime(STATIC)
+	set(Boost_USE_MULTITHREADED ON)
+	set(Boost_USE_STATIC_RUNTIME ON)
+	set(OPENSSL_USE_STATIC_LIBS TRUE)
+	set(OPENSSL_MSVC_STATIC_RT TRUE)
+endif()
+
+if (NOT BUILD_SHARED_LIBS)
+	set(Boost_USE_STATIC_LIBS ON)
+endif()
+
+# Packages
 find_public_dependency(Boost REQUIRED COMPONENTS system)
 find_public_dependency(Boost COMPONENTS date_time)
 
@@ -441,10 +462,6 @@ list(TRANSFORM libtorrent_extensions_include_files PREPEND "include/libtorrent/e
 list(TRANSFORM libtorrent_aux_include_files PREPEND "include/libtorrent/aux_/")
 list(TRANSFORM libtorrent_kademlia_include_files PREPEND "include/libtorrent/kademlia/")
 
-# these options control target creation and thus have to be declared before the add_library() call
-feature_option(BUILD_SHARED_LIBS "build libtorrent as a shared library" ON)
-feature_option(static_runtime "build libtorrent with static runtime" OFF)
-
 find_public_dependency(Threads REQUIRED)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
@@ -483,19 +500,6 @@ elseif(MSVC)
 		/wd4268
 		# C4503: 'identifier': decorated name length exceeded, name was truncated
 		/wd4503)
-endif()
-
-if(static_runtime)
-	include(ucm_flags)
-	ucm_set_runtime(STATIC)
-	set(Boost_USE_MULTITHREADED ON)
-	set(Boost_USE_STATIC_RUNTIME ON)
-	set(OPENSSL_USE_STATIC_LIBS TRUE)
-	set(OPENSSL_MSVC_STATIC_RT TRUE)
-endif()
-
-if (NOT BUILD_SHARED_LIBS)
-	set(Boost_USE_STATIC_LIBS ON)
 endif()
 
 add_library(torrent-rasterbar
@@ -541,6 +545,8 @@ target_compile_definitions(torrent-rasterbar
 target_link_libraries(torrent-rasterbar
 	PUBLIC
 		Threads::Threads
+	PRIVATE
+		Boost::system
 )
 
 # Unconditional platform-specific settings
