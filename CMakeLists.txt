@@ -545,7 +545,6 @@ target_compile_definitions(torrent-rasterbar
 target_link_libraries(torrent-rasterbar
 	PUBLIC
 		Threads::Threads
-	PRIVATE
 		Boost::system
 )
 
