@@ -13,6 +13,11 @@ set (SOVERSION "10")
 
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
+include(CMakeDependentOption)
+
+# Boost
+find_public_dependency(Boost REQUIRED COMPONENTS system)
+find_public_dependency(Boost REQUIRED COMPONENTS date_time)
 
 set(libtorrent_include_files
 	add_torrent_params
@@ -577,17 +582,20 @@ if (APPLE)
 	target_link_libraries(torrent-rasterbar PRIVATE "-framework CoreFoundation" "-framework SystemConfiguration")
 endif()
 
-feature_option(build_tests "build tests" OFF)
 feature_option(build_examples "build examples" OFF)
 feature_option(build_tools "build tools" OFF)
 feature_option(python-bindings "build python bindings" OFF)
 
 # these options require existing target
 feature_option(dht "enable support for Mainline DHT" ON)
-if(NOT build_tests) # tests require deprecated symbols
-	target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME deprecated-functions DEFAULT ON
-		DESCRIPTION "enable deprecated functions for backwards compatibility" DISABLED TORRENT_NO_DEPRECATE)
-endif()
+cmake_dependent_option(deprecated-functions "enable deprecated functions for backwards compatibility" ON "Boost_DATE_TIME_FOUND" OFF)
+add_feature_info(deprecated-functions deprecated-functions "enables deprecated functions for backwards compatibility")
+target_compile_definitions(torrent-rasterbar PUBLIC $<$<NOT:$<BOOL:${deprecated-functions}>>:TORRENT_NO_DEPRECATE>)
+target_link_libraries(torrent-rasterbar PUBLIC $<$<BOOL:${deprecated-functions}>:Boost::date_time>)
+
+cmake_dependent_option(build_tests "build tests" OFF "deprecated-functions" OFF)
+add_feature_info(build_tests build_tests "build tests")
+
 feature_option(encryption "Enables encryption in libtorrent" ON)
 feature_option(exceptions "build with exception support" ON)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME extensions DEFAULT ON
@@ -675,14 +683,6 @@ if (dht)
 	endif()
 else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
-endif()
-
-# Boost
-find_public_dependency(Boost REQUIRED COMPONENTS system)
-target_link_libraries(torrent-rasterbar PUBLIC Boost::system)
-if (TORRENT_NO_DEPRECATE)
-	find_public_dependency(Boost REQUIRED COMPONENTS date_time)
-	target_link_libraries(torrent-rasterbar PUBLIC Boost::date_time)
 endif()
 
 if (exceptions)
