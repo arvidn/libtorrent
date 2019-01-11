@@ -85,7 +85,7 @@ namespace libtorrent { namespace dht {
 	dht_tracker::dht_tracker(dht_observer* observer
 		, io_service& ios
 		, send_fun_t const& send_fun
-		, dht_settings const& settings
+		, dht::settings const& settings
 		, counters& cnt
 		, dht_storage_interface& storage
 		, dht_state&& state)
@@ -576,7 +576,7 @@ namespace libtorrent { namespace dht {
 
 	dht_tracker::tracker_node::tracker_node(io_service& ios
 		, aux::listen_socket_handle const& s, socket_manager* sock
-		, dht_settings const& settings
+		, dht::settings const& settings
 		, node_id const& nid
 		, dht_observer* observer, counters& cnt
 		, get_foreign_node_t get_foreign_node

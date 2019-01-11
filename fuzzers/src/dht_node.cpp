@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 
 #if LIBTORRENT_VERSION_NUM >= 10200
-dht::dht_settings sett;
+dht::settings sett;
 dht::dht_state state;
 std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(sett));
 #else

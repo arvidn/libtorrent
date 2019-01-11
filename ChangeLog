@@ -1,3 +1,4 @@
+	* add DHT routing table affinity for BEP 42 nodes
 	* add torrent_info constructor overloads to control torrent file limits
 	* feature to disable DHT, PEX and LSD per torrent
 	* fix issue where trackers from magnet links were not included in create_torrent()

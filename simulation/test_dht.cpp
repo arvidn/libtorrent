@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "setup_swarm.hpp"
-#include "setup_dht.hpp"
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/kademlia/item.hpp"

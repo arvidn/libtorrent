@@ -56,8 +56,6 @@ using namespace lt;
 
 namespace {
 
-	lt::time_point start_time;
-
 	// this is the IP address assigned to node 'idx'
 	asio::ip::address addr_from_int(int /* idx */)
 	{
@@ -90,7 +88,7 @@ namespace {
 
 struct dht_node final : lt::dht::socket_manager
 {
-	dht_node(sim::simulation& sim, lt::dht::dht_settings const& sett, lt::counters& cnt
+	dht_node(sim::simulation& sim, lt::dht::settings const& sett, lt::counters& cnt
 		, int const idx, std::uint32_t const flags)
 		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
 		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))

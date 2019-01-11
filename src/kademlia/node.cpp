@@ -106,7 +106,7 @@ void incoming_error(entry& e, char const* msg, int error_code = 203)
 } // anonymous namespace
 
 node::node(aux::listen_socket_handle const& sock, socket_manager* sock_man
-	, dht_settings const& settings
+	, dht::settings const& settings
 	, node_id const& nid
 	, dht_observer* observer
 	, counters& cnt

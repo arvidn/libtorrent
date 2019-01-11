@@ -563,9 +563,9 @@ struct obs : dht::dht_observer
 #endif
 };
 
-dht::dht_settings test_settings()
+dht::settings test_settings()
 {
-	dht::dht_settings sett;
+	dht::settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
 	sett.enforce_node_id = false;
@@ -585,7 +585,7 @@ struct dht_test_setup
 		dht_storage->update_node_ids({node_id::min()});
 	}
 
-	dht::dht_settings sett;
+	dht::settings sett;
 	mock_socket s;
 	std::shared_ptr<aux::listen_socket_t> ls;
 	obs observer;
@@ -1585,17 +1585,13 @@ void test_routing_table(address(&rand_addr)())
 	bdecode_node response;
 
 	// test kademlia routing table
-	dht::dht_settings s;
+	dht::settings s;
 	s.extended_routing_table = false;
 	//	s.restrict_routing_ips = false;
-	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
+	node_id const nid = to_hash("3123456789abcdef01232456789abcdef0123456");
 	const int bucket_size = 10;
-	dht::routing_table table(id, t.source.protocol(), bucket_size, s, &t.observer);
-	std::vector<node_entry> nodes;
+	dht::routing_table table(nid, t.source.protocol(), bucket_size, s, &t.observer);
 	TEST_EQUAL(std::get<0>(table.size()), 0);
-
-	node_id tmp = id;
-	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
 	address node_addr;
 	address node_near_addr;
@@ -1611,9 +1607,11 @@ void test_routing_table(address(&rand_addr)())
 	}
 
 	// test a node with the same IP:port changing ID
-	add_and_replace(tmp, diff);
+	node_id const tmp = generate_id_impl(node_addr, 1);
 	table.node_seen(tmp, udp::endpoint(node_addr, 4), 10);
-	table.find_node(id, nodes, 0, 10);
+
+	std::vector<node_entry> nodes;
+	table.find_node(nid, nodes, 0, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	TEST_EQUAL(std::get<0>(table.size()), 1);
 	TEST_EQUAL(nodes.size(), 1);
@@ -1654,7 +1652,7 @@ void test_routing_table(address(&rand_addr)())
 
 	// test adding the same node ID again with a different IP (should be ignored)
 	table.node_seen(tmp, udp::endpoint(node_addr, 5), 10);
-	table.find_node(id, nodes, 0, 10);
+	table.find_node(nid, nodes, 0, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	if (!nodes.empty())
 	{
@@ -1667,7 +1665,7 @@ void test_routing_table(address(&rand_addr)())
 	// very close to the current one (should be ignored)
 	// if restrict_routing_ips == true
 	table.node_seen(tmp, udp::endpoint(node_near_addr, 5), 10);
-	table.find_node(id, nodes, 0, 10);
+	table.find_node(nid, nodes, 0, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	if (!nodes.empty())
 	{
@@ -1677,9 +1675,11 @@ void test_routing_table(address(&rand_addr)())
 	}
 
 	// test adding the same IP:port again with a new node ID (should remove the node)
-	add_and_replace(tmp, diff);
-	table.node_seen(tmp, udp::endpoint(node_addr, 4), 10);
-	table.find_node(id, nodes, 0, 10);
+	{
+		auto const id = generate_id_impl(node_addr, 2);
+		table.node_seen(id, udp::endpoint(node_addr, 4), 10);
+		table.find_node(id, nodes, 0, 10);
+	}
 	TEST_EQUAL(table.bucket_size(0), 0);
 	TEST_EQUAL(nodes.size(), 0);
 
@@ -1687,17 +1687,22 @@ void test_routing_table(address(&rand_addr)())
 
 	init_rand_address();
 
-	add_and_replace(tmp, diff);
-	table.node_seen(id, rand_udp_ep(rand_addr), 10);
+	{
+		auto const ep = rand_udp_ep(rand_addr);
+		auto const id = generate_id(ep.address());
+		table.node_seen(id, ep, 10);
+	}
 
 	nodes.clear();
 	for (int i = 0; i < 7000; ++i)
 	{
-		table.node_seen(tmp, rand_udp_ep(rand_addr), 20 + (tmp[19] & 0xff));
-		add_and_replace(tmp, diff);
+		auto const ep = rand_udp_ep(rand_addr);
+		auto const id = generate_id(ep.address());
+		table.node_seen(id, ep, 20 + (id[19] & 0xff));
 	}
 	std::printf("active buckets: %d\n", table.num_active_buckets());
-	TEST_EQUAL(table.num_active_buckets(), 10);
+	TEST_CHECK(table.num_active_buckets() == 10
+		|| table.num_active_buckets() == 11);
 	TEST_CHECK(std::get<0>(table.size()) >= 10 * 10);
 	//TODO: 2 test num_global_nodes
 	//TODO: 2 test need_refresh
@@ -1710,10 +1715,12 @@ void test_routing_table(address(&rand_addr)())
 
 	std::vector<node_entry> temp;
 
-	aux::random_bytes(tmp);
-	table.find_node(tmp, temp, 0, int(nodes.size()) * 2);
-	std::printf("returned-all: %d\n", int(temp.size()));
-	TEST_EQUAL(temp.size(), nodes.size());
+	{
+		node_id const id = generate_random_id();
+		table.find_node(id, temp, 0, int(nodes.size()) * 2);
+		std::printf("returned-all: %d\n", int(temp.size()));
+		TEST_EQUAL(temp.size(), nodes.size());
+	}
 
 	// This makes sure enough of the nodes returned are actually
 	// part of the closest nodes
@@ -1723,21 +1730,19 @@ void test_routing_table(address(&rand_addr)())
 
 	for (int r = 0; r < reps; ++r)
 	{
-		aux::random_bytes(tmp);
-		table.find_node(tmp, temp, 0, bucket_size * 2);
-		std::printf("returned: %d\n", int(temp.size()));
+		node_id const id = generate_random_id();
+		table.find_node(id, temp, 0, bucket_size * 2);
 		TEST_EQUAL(int(temp.size()), std::min(bucket_size * 2, int(nodes.size())));
 
 		std::sort(nodes.begin(), nodes.end(), std::bind(&compare_ref
 				, std::bind(&node_entry::id, _1)
-				, std::bind(&node_entry::id, _2), tmp));
+				, std::bind(&node_entry::id, _2), id));
 
 		int expected = std::accumulate(nodes.begin(), nodes.begin() + (bucket_size * 2)
-			, 0, std::bind(&sum_distance_exp, _1, _2, tmp));
+			, 0, std::bind(&sum_distance_exp, _1, _2, id));
 		int sum_hits = std::accumulate(temp.begin(), temp.end()
-			, 0, std::bind(&sum_distance_exp, _1, _2, tmp));
+			, 0, std::bind(&sum_distance_exp, _1, _2, id));
 		TEST_EQUAL(bucket_size * 2, int(temp.size()));
-		std::printf("expected: %d actual: %d\n", expected, sum_hits);
 		TEST_EQUAL(expected, sum_hits);
 
 		duplicates.clear();
@@ -2667,7 +2672,7 @@ TORRENT_TEST(traversal_done)
 TORRENT_TEST(dht_dual_stack)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::dht_settings sett = test_settings();
+	dht::settings sett = test_settings();
 	mock_socket s;
 	auto sock4 = dummy_listen_socket4();
 	auto sock6 = dummy_listen_socket6();
@@ -2989,10 +2994,13 @@ TORRENT_TEST(verify_message)
 TORRENT_TEST(routing_table_uniform)
 {
 	// test routing table
-	dht::dht_settings sett = test_settings();
+	dht::settings sett = test_settings();
 	obs observer;
 
 	sett.extended_routing_table = false;
+	// it's difficult to generate valid nodes with specific node IDs, so just
+	// turn off that check
+	sett.prefer_verified_node_ids = false;
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
@@ -3031,10 +3039,11 @@ TORRENT_TEST(routing_table_uniform)
 
 TORRENT_TEST(routing_table_balance)
 {
-	dht::dht_settings sett = test_settings();
+	dht::settings sett = test_settings();
 	obs observer;
 
 	sett.extended_routing_table = false;
+	sett.prefer_verified_node_ids = false;
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
@@ -3054,9 +3063,10 @@ TORRENT_TEST(routing_table_balance)
 
 TORRENT_TEST(routing_table_extended)
 {
-	dht::dht_settings sett = test_settings();
+	dht::settings sett = test_settings();
 	obs observer;
 	sett.extended_routing_table = true;
+	sett.prefer_verified_node_ids = false;
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
@@ -3088,9 +3098,10 @@ void inserter(std::set<node_id>* nodes, node_entry const& ne)
 
 TORRENT_TEST(routing_table_set_id)
 {
-	dht::dht_settings sett = test_settings();
+	dht::settings sett = test_settings();
 	sett.enforce_node_id = false;
 	sett.extended_routing_table = false;
+	sett.prefer_verified_node_ids = false;
 	obs observer;
 	node_id id = to_hash("0000000000000000000000000000000000000000");
 
@@ -3134,10 +3145,11 @@ TORRENT_TEST(routing_table_set_id)
 
 TORRENT_TEST(routing_table_for_each)
 {
-	dht::dht_settings sett = test_settings();
+	dht::settings sett = test_settings();
 	obs observer;
 
 	sett.extended_routing_table = false;
+	sett.prefer_verified_node_ids = false;
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 
 	routing_table tbl(id, udp::v4(), 2, sett, &observer);
@@ -3205,7 +3217,7 @@ TORRENT_TEST(node_set_id)
 TORRENT_TEST(read_only_node)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::dht_settings sett = test_settings();
+	dht::settings sett = test_settings();
 	sett.read_only = true;
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
@@ -3304,7 +3316,7 @@ TORRENT_TEST(read_only_node)
 TORRENT_TEST(invalid_error_msg)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::dht_settings sett = test_settings();
+	dht::settings sett = test_settings();
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
@@ -3357,6 +3369,8 @@ struct test_algo : dht::traversal_algorithm
 
 TORRENT_TEST(unsorted_traversal_results)
 {
+	init_rand_address();
+
 	// make sure the handling of an unsorted tail of nodes is correct in the
 	// traversal algorithm. Initial nodes (that we bootstrap from) remain
 	// unsorted, since we don't know their node IDs
@@ -3395,7 +3409,7 @@ TORRENT_TEST(unsorted_traversal_results)
 TORRENT_TEST(rpc_invalid_error_msg)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::dht_settings sett = test_settings();
+	dht::settings sett = test_settings();
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
@@ -3460,6 +3474,8 @@ TORRENT_TEST(rpc_invalid_error_msg)
 // test bucket distribution
 TORRENT_TEST(node_id_bucket_distribution)
 {
+	init_rand_address();
+
 	int nodes_per_bucket[160] = {0};
 	dht::node_id reference_id = generate_id(rand_v4());
 	int const num_samples = 100000;
@@ -3519,7 +3535,7 @@ TORRENT_TEST(dht_verify_node_address)
 {
 	obs observer;
 	// initial setup taken from dht test above
-	dht::dht_settings s;
+	dht::settings s;
 	s.extended_routing_table = false;
 	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 	const int bucket_size = 10;
@@ -3697,6 +3713,8 @@ TORRENT_TEST(dht_state)
 
 TORRENT_TEST(sample_infohashes)
 {
+	init_rand_address();
+
 	dht_test_setup t(rand_udp_ep());
 	bdecode_node response;
 
@@ -3761,6 +3779,59 @@ TORRENT_TEST(sample_infohashes)
 			.nodes(nodes));
 
 	TEST_CHECK(g_sent_packets.empty());
+}
+
+namespace {
+node_entry fake_node(bool verified, int rtt = 0)
+{
+	node_entry e(rand_udp_ep());
+	e.verified = verified;
+	e.rtt = static_cast<std::uint16_t>(rtt);
+	return e;
+}
+}
+
+TORRENT_TEST(node_entry_comparison)
+{
+	// being verified or not always trumps RTT in sort order
+	TEST_CHECK(fake_node(true, 10) < fake_node(false, 5));
+	TEST_CHECK(fake_node(true, 5) < fake_node(false, 10));
+	TEST_CHECK(!(fake_node(false, 10) < fake_node(true, 5)));
+	TEST_CHECK(!(fake_node(false, 5) < fake_node(true, 10)));
+
+	// if both are verified, lower RTT is better
+	TEST_CHECK(fake_node(true, 5) < fake_node(true, 10));
+	TEST_CHECK(!(fake_node(true, 10) < fake_node(true, 5)));
+
+	// if neither are verified, lower RTT is better
+	TEST_CHECK(fake_node(false, 5) < fake_node(false, 10));
+	TEST_CHECK(!(fake_node(false, 10) < fake_node(false, 5)));
+}
+
+TORRENT_TEST(mostly_verified_nodes)
+{
+	// an empty bucket is OK
+	TEST_CHECK(mostly_verified_nodes({}));
+	TEST_CHECK(mostly_verified_nodes({fake_node(true)}));
+	TEST_CHECK(mostly_verified_nodes({fake_node(true), fake_node(false)}));
+	TEST_CHECK(mostly_verified_nodes({fake_node(true), fake_node(true), fake_node(false)}));
+	TEST_CHECK(mostly_verified_nodes({fake_node(true), fake_node(true), fake_node(true), fake_node(false)}));
+
+	// a large bucket with only half of the nodes verified, does not count as
+	// "mostly"
+	TEST_CHECK(!mostly_verified_nodes({fake_node(true), fake_node(false)
+		, fake_node(true), fake_node(false)
+		, fake_node(true), fake_node(false)
+		, fake_node(true), fake_node(false)
+		, fake_node(true), fake_node(false)
+		, fake_node(true), fake_node(false)}));
+
+	// 1 of 3 is not "mostly"
+	TEST_CHECK(!mostly_verified_nodes({fake_node(false), fake_node(true), fake_node(false)}));
+
+	TEST_CHECK(!mostly_verified_nodes({fake_node(false)}));
+	TEST_CHECK(!mostly_verified_nodes({fake_node(false), fake_node(false)}));
+	TEST_CHECK(!mostly_verified_nodes({fake_node(false), fake_node(false), fake_node(false)}));
 }
 
 // TODO: test obfuscated_get_peers
