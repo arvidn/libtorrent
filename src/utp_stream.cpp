@@ -289,7 +289,7 @@ struct utp_socket_impl
 	bool consume_incoming_data(
 		utp_header const* ph, std::uint8_t const* ptr, int payload_size, time_point now);
 	void update_mtu_limits();
-	void experienced_loss(std::uint32_t seq_nr);
+	void experienced_loss(std::uint32_t seq_nr, time_point now);
 
 	void set_state(int s);
 
@@ -393,6 +393,10 @@ struct utp_socket_impl
 
 	// the last time we stepped the timestamp history
 	time_point m_last_history_step = clock_type::now();
+
+	// the next time we allow a lost packet to halve cwnd. We only do this once every
+	// 100 ms
+	time_point m_next_loss;
 
 	// the max number of bytes in-flight. This is a fixed point
 	// value, to get the true number of bytes, shift right 16 bits
@@ -1533,6 +1537,8 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 		if (ack_nr == m_seq_nr) break;
 	}
 
+	if (m_outbuf.empty()) m_duplicate_acks = 0;
+
 	// now, scan the bits in reverse, and count the number of ACKed packets. Only
 	// lost packets followed by 'dup_ack_limit' packets may be resent
 	// start with the sequence number represented by the last bit in the SACK
@@ -1587,19 +1593,20 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 		packet* p = m_outbuf.at(pkt_seq);
 		UTP_LOGV("%8p: Packet %d lost. (fast_resend_seq_nr:%d trigger fast-resend)\n"
 			, static_cast<void*>(this), pkt_seq, m_fast_resend_seq_nr);
-		if (p)
+		if (!p) continue;
+
+		// don't cut cwnd if the packet we lost was the MTU probe
+		// the logic to handle a lost MTU probe is in resend_packet()
+		if (cut_cwnd && (pkt_seq != m_mtu_seq || m_mtu_seq == 0))
 		{
-			if (resend_packet(p, true))
-			{
-				m_duplicate_acks = 0;
-				m_fast_resend_seq_nr = (pkt_seq + 1) & ACK_MASK;
-			}
+			experienced_loss(pkt_seq, now);
+			cut_cwnd = false;
 		}
 
-		if (cut_cwnd)
+		if (resend_packet(p, true))
 		{
-			experienced_loss(pkt_seq);
-			cut_cwnd = false;
+			m_duplicate_acks = 0;
+			m_fast_resend_seq_nr = (pkt_seq + 1) & ACK_MASK;
 		}
 	}
 
@@ -2251,7 +2258,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	return !m_stalled;
 }
 
-void utp_socket_impl::experienced_loss(std::uint32_t const seq_nr)
+void utp_socket_impl::experienced_loss(std::uint32_t const seq_nr, time_point const now)
 {
 	INVARIANT_CHECK;
 
@@ -2271,11 +2278,17 @@ void utp_socket_impl::experienced_loss(std::uint32_t const seq_nr)
 	// same packet again, ignore it.
 	if (compare_less_wrap(seq_nr, m_loss_seq_nr + 1, ACK_MASK)) return;
 
+	// don't reduce cwnd more than once every 100ms
+	if (m_next_loss >= now) return;
+
+	m_next_loss = now + milliseconds(m_sm.cwnd_reduce_timer());
+
 	// cut window size in 2
 	m_cwnd = std::max(m_cwnd * m_sm.loss_multiplier() / 100
 		, std::int64_t(m_mtu) * (1 << 16));
 	m_loss_seq_nr = m_seq_nr;
-	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", static_cast<void*>(this), seq_nr);
+	UTP_LOGV("%8p: Lost packet %d caused cwnd cut. m_loss_seq_nr:%d\n"
+		, static_cast<void*>(this), seq_nr, m_seq_nr);
 
 	// if we happen to be in slow-start mode, we need to leave it
 	// note that we set ssthres to the window size _after_ reducing it. Next slow
@@ -2875,6 +2888,8 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 		++m_duplicate_acks;
 	}
 
+	TORRENT_ASSERT_VAL(m_outbuf.size() > 0 || m_duplicate_acks == 0, m_duplicate_acks);
+
 	std::uint32_t min_rtt = std::numeric_limits<std::uint32_t>::max();
 
 	TORRENT_ASSERT(m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) || ((m_seq_nr - m_acked_seq_nr) & ACK_MASK) <= 1);
@@ -2904,6 +2919,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 		}
 
 		maybe_inc_acked_seq_nr();
+		if (m_outbuf.empty()) m_duplicate_acks = 0;
 	}
 
 	// look for extended headers
@@ -2969,7 +2985,9 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 
 		if (p)
 		{
-			experienced_loss(m_fast_resend_seq_nr);
+			// don't consider a lost probe as proper loss, it doesn't necessarily
+			// signal congestion
+			if (!p->mtu_probe) experienced_loss(m_fast_resend_seq_nr, receive_time);
 			resend_packet(p, true);
 			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 		}
@@ -3178,6 +3196,8 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 				if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 			}
 
+			TORRENT_ASSERT(!compare_less_wrap(m_seq_nr, m_acked_seq_nr, ACK_MASK));
+
 #if TORRENT_UTP_LOG
 			if (sample && acked_bytes && prev_bytes_in_flight)
 			{
@@ -3246,7 +3266,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 					, packet_timeout()
 					, int(total_milliseconds(m_timeout - receive_time))
 					, int(total_microseconds(receive_time.time_since_epoch()))
-					, (m_seq_nr - m_acked_seq_nr) & ACK_MASK
+					, m_outbuf.size()
 					, m_mtu
 					, their_delay_base
 					, std::uint32_t(m_reply_micro)
@@ -3532,7 +3552,20 @@ void utp_socket_impl::tick(time_point const now)
 	if (now > m_timeout)
 	{
 		// TIMEOUT!
-		// set cwnd to 1 MSS
+
+		bool ignore_loss = false;
+
+		if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
+			&& ((m_seq_nr - 1) & ACK_MASK) == m_mtu_seq
+			&& m_mtu_seq != 0)
+		{
+			// we timed out, and the only outstanding packet
+			// we had was the probe. Assume it was dropped
+			// because it was too big
+			m_mtu_ceiling = m_mtu - 1;
+			update_mtu_limits();
+			ignore_loss = true;
+		}
 
 		// the close_reason here is a bit of a hack. When it's set, it indicates
 		// that the upper layer intends to close the socket. However, it has been
@@ -3541,7 +3574,9 @@ void utp_socket_impl::tick(time_point const now)
 		// other end. This catches that case and let the socket time out.
 		if (m_outbuf.size() || m_close_reason != close_reason_t::none)
 		{
-			++m_num_timeouts;
+			// m_num_timeouts is used to update the connection timeout, and if we
+			// lose this packet because it's an MTU-probe, don't change the timeout
+			if (!ignore_loss) ++m_num_timeouts;
 			m_sm.inc_stats_counter(counters::utp_timeout);
 		}
 
@@ -3567,51 +3602,44 @@ void utp_socket_impl::tick(time_point const now)
 			return;
 		}
 
-		if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
-			&& ((m_seq_nr - 1) & ACK_MASK) == m_mtu_seq
-			&& m_mtu_seq != 0)
+		if (!ignore_loss)
 		{
-			// we timed out, and the only outstanding packet
-			// we had was the probe. Assume it was dropped
-			// because it was too big
-			m_mtu_ceiling = m_mtu - 1;
-			update_mtu_limits();
+			// set cwnd to 1 MSS
+			if (m_bytes_in_flight == 0 && (m_cwnd >> 16) >= m_mtu)
+			{
+				// this is just a timeout because this direction of
+				// the stream is idle. Don't reset the cwnd, just decay it
+				m_cwnd = std::max(m_cwnd * 2 / 3, std::int64_t(m_mtu) * (1 << 16));
+			}
+			else
+			{
+				// we timed out because a packet was not ACKed or because
+				// the cwnd was made smaller than one packet
+				m_cwnd = std::int64_t(m_mtu) * (1 << 16);
+			}
+
+			TORRENT_ASSERT(m_cwnd >= 0);
+
+			m_timeout = now + milliseconds(packet_timeout());
+
+			UTP_LOGV("%8p: resetting cwnd:%d\n"
+				, static_cast<void*>(this), int(m_cwnd >> 16));
+
+			// since we've already timed out now, don't count
+			// loss that we might detect for packets that just
+			// timed out
+			m_loss_seq_nr = m_seq_nr;
+
+			// when we time out, the cwnd is reset to 1 MSS, which means we
+			// need to ramp it up quickly again. enter slow start mode. This time
+			// we're very likely to have an ssthres set, which will make us leave
+			// slow start before inducing more delay or loss.
+			m_slow_start = true;
+			UTP_LOGV("%8p: slow_start -> 1\n", static_cast<void*>(this));
 		}
-
-		if (m_bytes_in_flight == 0 && (m_cwnd >> 16) >= m_mtu)
-		{
-			// this is just a timeout because this direction of
-			// the stream is idle. Don't reset the cwnd, just decay it
-			m_cwnd = std::max(m_cwnd * 2 / 3, std::int64_t(m_mtu) * (1 << 16));
-		}
-		else
-		{
-			// we timed out because a packet was not ACKed or because
-			// the cwnd was made smaller than one packet
-			m_cwnd = std::int64_t(m_mtu) * (1 << 16);
-		}
-
-		TORRENT_ASSERT(m_cwnd >= 0);
-
-		m_timeout = now + milliseconds(packet_timeout());
-
-		UTP_LOGV("%8p: resetting cwnd:%d\n"
-			, static_cast<void*>(this), int(m_cwnd >> 16));
 
 		// we dropped all packets, that includes the mtu probe
 		m_mtu_seq = 0;
-
-		// since we've already timed out now, don't count
-		// loss that we might detect for packets that just
-		// timed out
-		m_loss_seq_nr = m_seq_nr;
-
-		// when we time out, the cwnd is reset to 1 MSS, which means we
-		// need to ramp it up quickly again. enter slow start mode. This time
-		// we're very likely to have an ssthres set, which will make us leave
-		// slow start before inducing more delay or loss.
-		m_slow_start = true;
-		UTP_LOGV("%8p: slow_start -> 1\n", static_cast<void*>(this));
 
 		// we need to go one past m_seq_nr to cover the case
 		// where we just sent a SYN packet and then adjusted for

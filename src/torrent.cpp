@@ -2832,9 +2832,15 @@ bool is_downloading_state(int const st)
 				tcp::endpoint const ep = s.get_local_endpoint();
 				if (is_any(ep.address())) return;
 				if (is_v6(ep))
-					req.ipv6.push_back(ep.address().to_v6());
+				{
+					if (!is_local(ep.address()) && !is_loopback(ep.address()))
+						req.ipv6.push_back(ep.address().to_v6());
+				}
 				else
-					req.ipv4.push_back(ep.address().to_v4());
+				{
+					if (!is_local(ep.address()) && !is_loopback(ep.address()))
+						req.ipv4.push_back(ep.address().to_v4());
+				}
 			});
 		}
 

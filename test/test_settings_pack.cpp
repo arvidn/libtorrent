@@ -257,6 +257,6 @@ TORRENT_TEST(settings_pack_abi)
 	TEST_EQUAL(settings_pack::max_http_recv_buffer_size, settings_pack::int_type_base + 115);
 	TEST_EQUAL(settings_pack::web_seed_name_lookup_retry, settings_pack::int_type_base + 128);
 	TEST_EQUAL(settings_pack::close_file_interval, settings_pack::int_type_base + 129);
-	TEST_EQUAL(settings_pack::max_web_seed_connections, settings_pack::int_type_base + 130);
-	TEST_EQUAL(settings_pack::resolver_cache_timeout, settings_pack::int_type_base + 131);
+	TEST_EQUAL(settings_pack::max_web_seed_connections, settings_pack::int_type_base + 131);
+	TEST_EQUAL(settings_pack::resolver_cache_timeout, settings_pack::int_type_base + 132);
 }

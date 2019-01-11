@@ -1659,6 +1659,11 @@ namespace libtorrent {
 			// systems.
 			close_file_interval,
 
+			// When uTP experiences packet loss, it will reduce the congestion
+			// window, and not reduce it again for this many milliseconds, even if
+			// experiencing another lost packet.
+			utp_cwnd_reduce_timer,
+
 			// the max number of web seeds to have connected per torrent at any
 			// given time.
 			max_web_seed_connections,

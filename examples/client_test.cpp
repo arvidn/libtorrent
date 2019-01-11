@@ -47,6 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #endif
 
+#ifdef TORRENT_UTP_LOG_ENABLE
+#include "libtorrent/utp_stream.hpp"
+#endif
+
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/entry.hpp"
@@ -1022,8 +1026,13 @@ CLIENT OPTIONS
                         previous command line options, so be sure to specify this first
   -G                    Add torrents in seed-mode (i.e. assume all pieces
                         are present and check hashes on-demand)
-  -O                    print session stats counters to the log
-
+  -O                    print session stats counters to the log)"
+#ifdef TORRENT_UTP_LOG_ENABLE
+R"(
+  -q                    Enable uTP transport-level verbose logging
+)"
+#endif
+R"(
 LIBTORRENT SETTINGS
   --<name-of-setting>=<value>
                         set the libtorrent setting <name> to <value>
@@ -1190,6 +1199,11 @@ example alert_masks:
 			case 'G': seed_mode = true; --i; break;
 			case 's': save_path = make_absolute_path(arg); break;
 			case 'O': stats_enabled = true; --i; break;
+#ifdef TORRENT_UTP_LOG_ENABLE
+			case 'q':
+				libtorrent::set_utp_stream_logging(true);
+				break;
+#endif
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
 			case 'm': monitor_dir = make_absolute_path(arg); break;

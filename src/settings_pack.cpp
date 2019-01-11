@@ -341,6 +341,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(urlseed_max_request_bytes, 16 * 1024 * 1024, nullptr),
 		SET(web_seed_name_lookup_retry, 1800, nullptr),
 		SET(close_file_interval, CLOSE_FILE_INTERVAL, nullptr),
+		SET(utp_cwnd_reduce_timer, 100, nullptr),
 		SET(max_web_seed_connections, 3, nullptr),
 		SET(resolver_cache_timeout, 1200, &session_impl::update_resolver_cache_timeout),
 	}});
