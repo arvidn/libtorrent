@@ -43,7 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 
 using namespace lt;
-using namespace lt::dht;
+using dht::dht_storage_interface;
+using dht::dht_state;
 
 namespace
 {

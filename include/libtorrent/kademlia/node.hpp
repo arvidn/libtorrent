@@ -91,7 +91,7 @@ class TORRENT_EXTRA_EXPORT node
 {
 public:
 	node(aux::listen_socket_handle const& sock, socket_manager* sock_man
-		, dht_settings const& settings
+		, dht::settings const& settings
 		, node_id const& nid
 		, dht_observer* observer, counters& cnt
 		, get_foreign_node_t get_foreign_node
@@ -198,7 +198,7 @@ public:
 	void status(libtorrent::session_status& s);
 #endif
 
-	dht_settings const& settings() const { return m_settings; }
+	dht::settings const& settings() const { return m_settings; }
 	counters& stats_counters() const { return m_counters; }
 
 	dht_observer* observer() const { return m_observer; }
@@ -224,7 +224,7 @@ private:
 	bool lookup_peers(sha1_hash const& info_hash, entry& reply
 		, bool noseed, bool scrape, address const& requester) const;
 
-	dht_settings const& m_settings;
+	dht::settings const& m_settings;
 
 	std::mutex m_mutex;
 

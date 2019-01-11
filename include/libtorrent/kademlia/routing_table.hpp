@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht {
 
-struct dht_settings;
+struct settings;
 struct dht_logger;
 
 using bucket_t = aux::vector<node_entry>;
@@ -112,7 +112,13 @@ struct ip_set
 // 	the most times is replaced. If none of the nodes in the
 // 	bucket has failed, then it is put in the replacement
 // 	cache (just like in the paper).
+// * The routing table bucket sizes are larger towards the "top" of the routing
+// 	table. This is to get closer to the target in fewer round-trips.
+// * Nodes with lower RTT are preferred and may replace nodes with higher RTT
+// * Nodes that are "verified" (i.e. use a node-ID derived from their IP) are
+// 	preferred and may replace nodes that are not verified.
 
+TORRENT_EXTRA_EXPORT bool mostly_verified_nodes(bucket_t const&);
 TORRENT_EXTRA_EXPORT bool compare_ip_cidr(address const& lhs, address const& rhs);
 
 class TORRENT_EXTRA_EXPORT routing_table
@@ -125,7 +131,7 @@ public:
 
 	routing_table(node_id const& id, udp proto
 		, int bucket_size
-		, dht_settings const& settings
+		, dht::settings const& settings
 		, dht_logger* log);
 
 	routing_table(routing_table const&) = delete;
@@ -266,7 +272,7 @@ private:
 
 	void prune_empty_bucket();
 
-	dht_settings const& m_settings;
+	dht::settings const& m_settings;
 
 	// (k-bucket, replacement cache) pairs
 	// the first entry is the bucket the furthest

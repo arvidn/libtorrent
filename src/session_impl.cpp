@@ -648,7 +648,7 @@ namespace aux {
 			settings = e->dict_find_dict("dht");
 			if (settings)
 			{
-				m_dht_settings = dht::read_dht_settings(settings);
+				static_cast<dht::dht_settings&>(m_dht_settings) = dht::read_dht_settings(settings);
 			}
 		}
 
@@ -5346,6 +5346,16 @@ namespace aux {
 #endif
 	}
 
+	void session_impl::update_dht_settings()
+	{
+#ifndef TORRENT_DISABLE_DHT
+		bool const prefer_verified_nodes = m_settings.get_bool(
+			settings_pack::dht_prefer_verified_node_ids);
+
+		m_dht_settings.prefer_verified_node_ids = prefer_verified_nodes;
+#endif
+	}
+
 	void session_impl::update_count_slow()
 	{
 		error_code ec;
@@ -5817,7 +5827,7 @@ namespace aux {
 
 	void session_impl::set_dht_settings(dht::dht_settings const& settings)
 	{
-		m_dht_settings = settings;
+		static_cast<dht::dht_settings&>(m_dht_settings) = settings;
 	}
 
 	void session_impl::set_dht_state(dht::dht_state&& state)

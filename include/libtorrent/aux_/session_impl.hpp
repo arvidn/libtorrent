@@ -788,6 +788,7 @@ namespace aux {
 			void update_dht();
 			void update_count_slow();
 			void update_dht_bootstrap_nodes();
+			void update_dht_settings();
 
 			void update_socket_buffer_size();
 			void update_dht_announce_interval();
@@ -1088,7 +1089,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 			std::unique_ptr<dht::dht_storage_interface> m_dht_storage;
 			std::shared_ptr<dht::dht_tracker> m_dht;
-			dht::dht_settings m_dht_settings;
+			dht::settings m_dht_settings;
 			dht::dht_storage_constructor_type m_dht_storage_constructor
 				= dht::dht_default_storage_constructor;
 

@@ -68,7 +68,7 @@ namespace {
 		container.erase(i);
 	}
 
-	bool verify_node_address(dht_settings const& settings
+	bool verify_node_address(dht::settings const& settings
 		, node_id const& id, address const& addr)
 	{
 		// only when the node_id pass the verification, add it to routing table.
@@ -100,8 +100,16 @@ void ip_set::erase(address const& addr)
 		erase_one(m_ip4s, addr.to_v4().to_bytes());
 }
 
+bool mostly_verified_nodes(bucket_t const& b)
+{
+	int const num_verified = static_cast<int>(std::count_if(b.begin(), b.end()
+		, [](node_entry const& e) { return e.verified; }));
+	if (num_verified == 0 && b.size() > 0) return false;
+	return num_verified >= static_cast<int>(b.size()) * 2 / 3;
+}
+
 routing_table::routing_table(node_id const& id, udp proto, int bucket_size
-	, dht_settings const& settings
+	, dht::settings const& settings
 	, dht_logger* log)
 	:
 #ifndef TORRENT_DISABLE_LOGGING
@@ -654,6 +662,8 @@ ip_ok:
 	// split the last bucket
 	bool const can_split = (std::next(i) == m_buckets.end()
 		&& m_buckets.size() < 159)
+		&& (m_settings.prefer_verified_node_ids == false
+			|| (e.verified && mostly_verified_nodes(b)))
 		&& e.confirmed()
 		&& (i == m_buckets.begin() || std::prev(i)->live_nodes.size() > 1);
 
@@ -742,7 +752,7 @@ ip_ok:
 		{
 			j = *std::max_element(nodes.begin(), nodes.end()
 				, [](bucket_t::iterator lhs, bucket_t::iterator rhs)
-				{ return lhs->rtt < rhs->rtt; });
+				{ return *lhs < *rhs; });
 		}
 		else
 		{
@@ -788,7 +798,7 @@ ip_ok:
 
 				auto k = std::max_element(nodes.begin(), nodes.end()
 					, [](bucket_t::iterator lhs, bucket_t::iterator rhs)
-					{ return lhs->rtt < rhs->rtt; });
+					{ return *lhs < *rhs; });
 
 				// in this case, we would really rather replace the node even if
 				// the new node has higher RTT, because it fills a new prefix that we otherwise
@@ -798,24 +808,24 @@ ip_ok:
 			}
 			else
 			{
-				j = std::max_element(b.begin(), b.end()
-					, [](node_entry const& lhs, node_entry const& rhs)
-					{ return lhs.rtt < rhs.rtt; });
+				j = std::max_element(b.begin(), b.end());
 			}
 		}
 
-		if (j != b.end() && (force_replace || j->rtt > e.rtt))
+		if (j != b.end() && (force_replace || e < *j))
 		{
-			m_ips.erase(j->addr());
-			*j = e;
-			m_ips.insert(e.addr());
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 			{
-				m_log->log(dht_logger::routing_table, "replacing node with higher RTT: %s %s"
-					, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str());
+				m_log->log(dht_logger::routing_table, "replacing node with better one: %s %s %s %dms vs. %s %dms"
+					, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str()
+					, e.verified ? "verified" : "not-verified", e.rtt
+					, j->verified ? "verified" : "not-verified", j->rtt);
 			}
 #endif
+			m_ips.erase(j->addr());
+			*j = e;
+			m_ips.insert(e.addr());
 			return node_added;
 		}
 		// in order to keep lookup times small, prefer nodes with low RTTs
@@ -1056,7 +1066,7 @@ void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 // top of its bucket. the return value indicates if the table needs a refresh.
 // if true, the node should refresh the table (i.e. do a find_node on its own
 // id)
-bool routing_table::node_seen(node_id const& id, udp::endpoint const& ep, int rtt)
+bool routing_table::node_seen(node_id const& id, udp::endpoint const& ep, int const rtt)
 {
 	return verify_node_address(m_settings, id, ep.address()) && add_node(node_entry(id, ep, rtt, true));
 }
