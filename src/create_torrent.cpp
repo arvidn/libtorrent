@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/session.hpp" // for default_disk_io_constructor
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -166,7 +167,7 @@ namespace {
 	{
 		create_torrent& ct;
 		storage_holder storage;
-		disk_io_thread& iothread;
+		disk_interface& iothread;
 		piece_index_t piece_counter;
 		piece_index_t completed_piece;
 		std::function<void(piece_index_t)> const& f;
@@ -250,12 +251,12 @@ namespace {
 namespace {
 	struct disk_aborter
 	{
-		explicit disk_aborter(disk_io_thread& dio) : m_dio(dio) {}
+		explicit disk_aborter(disk_interface& dio) : m_dio(dio) {}
 		~disk_aborter() { m_dio.abort(true); }
 		disk_aborter(disk_aborter const&) = delete;
 		disk_aborter& operator=(disk_aborter const&) = delete;
 	private:
-		disk_io_thread& m_dio;
+		disk_interface& m_dio;
 	};
 }
 
@@ -290,8 +291,8 @@ namespace {
 		}
 
 		counters cnt;
-		disk_io_thread disk_thread(ios, cnt);
-		disk_aborter da(disk_thread);
+		std::unique_ptr<disk_interface> disk_thread = default_disk_io_constructor(ios, cnt);
+		disk_aborter da(*disk_thread.get());
 
 		aux::vector<download_priority_t, file_index_t> priorities;
 		sha1_hash info_hash;
@@ -304,28 +305,28 @@ namespace {
 			info_hash
 		};
 
-		storage_holder storage = disk_thread.new_torrent(std::move(params)
+		storage_holder storage = disk_thread->new_torrent(std::move(params)
 			, std::shared_ptr<void>());
 
 		settings_pack sett;
-		int const num_threads = disk_io_thread::hasher_thread_divisor - 1;
+		int const num_threads = hasher_thread_divisor - 1;
 		int const jobs_per_thread = 4;
 		sett.set_int(settings_pack::aio_threads, num_threads);
 
-		disk_thread.set_settings(&sett);
+		disk_thread->set_settings(&sett);
 
 		int const piece_read_ahead = std::max(num_threads * jobs_per_thread
 			, default_block_size / t.piece_length());
 
-		hash_state st = { t, std::move(storage), disk_thread, piece_index_t(0), piece_index_t(0), f, ec };
+		hash_state st = { t, std::move(storage), *disk_thread.get(), piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
-			disk_thread.async_hash(st.storage, i, disk_interface::sequential_access
+			disk_thread->async_hash(st.storage, i, disk_interface::sequential_access
 				, std::bind(&on_hash, _1, _2, _3, &st));
 			++st.piece_counter;
 			if (st.piece_counter >= t.files().end_piece()) break;
 		}
-		disk_thread.submit_jobs();
+		disk_thread->submit_jobs();
 
 #ifdef TORRENT_BUILD_SIMULATOR
 		sim.run();

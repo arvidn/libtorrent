@@ -529,10 +529,10 @@ void test_check_files(std::string const& test_path
 	boost::asio::io_service ios;
 	counters cnt;
 
-	disk_io_thread io(ios, cnt);
+	std::unique_ptr<disk_interface> io = default_disk_io_constructor(ios, cnt);
 	settings_pack sett;
 	sett.set_int(settings_pack::aio_threads, 1);
-	io.set_settings(&sett);
+	io->set_settings(&sett);
 
 	aux::vector<download_priority_t, file_index_t> priorities(
 		std::size_t(info->num_files()), download_priority_t{});
@@ -546,28 +546,28 @@ void test_check_files(std::string const& test_path
 		info_hash
 	};
 
-	auto st = io.new_torrent(std::move(p), std::shared_ptr<void>());
+	auto st = io->new_torrent(std::move(p), std::shared_ptr<void>());
 
 	bool done = false;
 	add_torrent_params frd;
 	aux::vector<std::string, file_index_t> links;
-	io.async_check_files(st, &frd, links
+	io->async_check_files(st, &frd, links
 		, std::bind(&on_check_resume_data, _1, _2, &done));
-	io.submit_jobs();
+	io->submit_jobs();
 	ios.reset();
 	run_until(ios, done);
 
 	for (auto const i : info->piece_range())
 	{
 		done = false;
-		io.async_hash(st, i, disk_interface::sequential_access | disk_interface::volatile_read
+		io->async_hash(st, i, disk_interface::sequential_access | disk_interface::volatile_read
 			, std::bind(&on_piece_checked, _1, _2, _3, &done));
-		io.submit_jobs();
+		io->submit_jobs();
 		ios.reset();
 		run_until(ios, done);
 	}
 
-	io.abort(true);
+	io->abort(true);
 }
 
 // TODO: 2 split this test up into smaller parts
