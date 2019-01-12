@@ -64,7 +64,8 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string maybe_url_encode(std::string const& url);
 
 	TORRENT_EXTRA_EXPORT string_view trim(string_view);
-	TORRENT_EXTRA_EXPORT string_view::size_type find(string_view haystack, string_view needle, string_view::size_type pos);
+	TORRENT_EXTRA_EXPORT string_view::size_type find(string_view haystack
+		, string_view needle, string_view::size_type pos);
 
 #if TORRENT_ABI_VERSION == 1
 	// deprecated in 1.2

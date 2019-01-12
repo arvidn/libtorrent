@@ -810,7 +810,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	{
 		error_code ec;
 		create_directory("tmp1" + suffix, ec);
-		std::ofstream file(combine_path("tmp1" + suffix, "temporary").c_str());
+		std::string const file_path = combine_path("tmp1" + suffix, "temporary");
+		std::ofstream file(file_path.c_str());
 		t = ::create_torrent(&file, "temporary", piece_size, 9, false);
 		file.close();
 		if (clear_files)
@@ -818,7 +819,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 			remove_all(combine_path("tmp2" + suffix, "temporary"), ec);
 			remove_all(combine_path("tmp3" + suffix, "temporary"), ec);
 		}
-		std::printf("generated torrent: %s tmp1%s/temporary\n", aux::to_hex(t->info_hash()).c_str(), suffix.c_str());
+		std::printf("generated torrent: %s %s\n", aux::to_hex(t->info_hash()).c_str(), file_path.c_str());
 	}
 	else
 	{

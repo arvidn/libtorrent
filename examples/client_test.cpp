@@ -299,7 +299,7 @@ FILE* g_log_file = nullptr;
 int peer_index(lt::tcp::endpoint addr, std::vector<lt::peer_info> const& peers)
 {
 	using namespace lt;
-	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin(), peers.end()
+	auto i = std::find_if(peers.begin(), peers.end()
 		, [&addr](peer_info const& pi) { return pi.ip == addr; });
 	if (i == peers.end()) return -1;
 

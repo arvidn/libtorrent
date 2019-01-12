@@ -70,8 +70,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #include <dirent.h> // for DIR
 
-#include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
-
 #undef _FILE_OFFSET_BITS
 
 #endif

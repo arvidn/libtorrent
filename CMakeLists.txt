@@ -234,7 +234,6 @@ set(libtorrent_aux_include_files
 	ip_notifier
 	listen_socket_handle
 	lsd
-	max_path
 	merkle
 	noexcept_movable
 	numeric_cast
