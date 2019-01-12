@@ -2,8 +2,8 @@ version: "{build}"
 branches:
   only:
     - master
+    - RC_1_2
     - RC_1_1
-    - RC_1_0
 os: Visual Studio 2015
 clone_depth: 1
 environment:
