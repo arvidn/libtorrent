@@ -2310,7 +2310,7 @@ bool is_downloading_state(int const st)
 		// outstanding per hasher thread
 		int const min_outstanding = 4
 			* std::max(1, settings().get_int(settings_pack::aio_threads)
-				/ disk_io_thread::hasher_thread_divisor);
+				/ hasher_thread_divisor);
 		if (num_outstanding < min_outstanding) num_outstanding = min_outstanding;
 
 		// we might already have some outstanding jobs, if we were paused and

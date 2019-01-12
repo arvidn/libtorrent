@@ -41,7 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/string_view.hpp"
-#include "libtorrent/disk_io_thread.hpp"
+#include "libtorrent/session.hpp" // for default_disk_io_constructor
+#include "libtorrent/disk_interface.hpp"
+#include "libtorrent/performance_counters.hpp"
 #include <random>
 #include <cstring>
 #include <thread>
@@ -825,7 +827,7 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 }
 
 void write_handler(file_storage const& fs
-	, disk_io_thread& disk, storage_holder& st
+	, disk_interface& disk, storage_holder& st
 	, piece_index_t& piece, int& offset
 	, lt::storage_error const& error)
 {
@@ -865,7 +867,7 @@ void generate_data(char const* path, torrent_info const& ti)
 {
 	io_service ios;
 	counters stats_counters;
-	std::unique_ptr<lt::disk_io_thread> disk(new disk_io_thread(ios, stats_counters));
+	std::unique_ptr<lt::disk_interface> disk = default_disk_io_constructor(ios, stats_counters);
 
 	file_storage const& fs = ti.files();
 
