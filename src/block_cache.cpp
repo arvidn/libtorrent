@@ -154,23 +154,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define DEBUG_CACHE 0
 
-#if __cplusplus >= 201103L || defined __clang__
-
 #if DEBUG_CACHE
 #define DLOG(...) std::fprintf(__VA_ARGS__)
 #else
 #define DLOG(...) do {} while (false)
 #endif
-
-#else // cplusplus
-
-#if DEBUG_CACHE
-#define DLOG fprintf
-#else
-#define DLOG TORRENT_WHILE_0 fprintf
-#endif
-
-#endif // cplusplus
 
 namespace libtorrent {
 
