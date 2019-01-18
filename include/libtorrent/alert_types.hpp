@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <bitset>
+#include <cstdarg> // for va_list
 
 #if TORRENT_ABI_VERSION == 1
 #define PROGRESS_NOTIFICATION | alert::progress_notification
