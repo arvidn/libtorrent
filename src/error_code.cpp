@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct libtorrent_error_category : boost::system::error_category
+	struct libtorrent_error_category final : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
 		std::string message(int ev) const override;
@@ -282,7 +282,7 @@ namespace libtorrent {
 		return libtorrent_category;
 	}
 
-	struct TORRENT_EXPORT http_error_category : boost::system::error_category
+	struct http_error_category final : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "http"; }
