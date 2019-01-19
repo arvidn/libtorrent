@@ -157,7 +157,7 @@ namespace {
 	}
 
 
-	struct bdecode_error_category : boost::system::error_category
+	struct bdecode_error_category final : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
 		std::string message(int ev) const override;

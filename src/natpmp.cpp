@@ -62,7 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-struct TORRENT_EXPORT pcp_error_category : boost::system::error_category
+struct pcp_error_category final : boost::system::error_category
 {
 	const char* name() const BOOST_SYSTEM_NOEXCEPT override
 	{ return "pcp error"; }

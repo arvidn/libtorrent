@@ -51,7 +51,7 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-	struct i2p_error_category : boost::system::error_category
+	struct i2p_error_category final : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "i2p error"; }
