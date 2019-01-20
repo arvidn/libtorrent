@@ -806,6 +806,7 @@ lib torrent
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 	<crypto>openssl:<library>ssl
 	<crypto>openssl:<library>crypto
+	<crypto>openssl,<target-os>linux:<library>dl
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
