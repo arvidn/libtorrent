@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/ip_voter.hpp"
 
-#include <boost/detail/endian.hpp> // for BIG_ENDIAN and LITTLE_ENDIAN macros
+#include <boost/predef/other/endian.h>
 
 namespace libtorrent
 {
@@ -84,10 +84,10 @@ namespace libtorrent
 			if (e1.port() > e2.port())
 				swap(e1, e2);
 			boost::uint32_t p;
-#if defined BOOST_BIG_ENDIAN
+#if BOOST_ENDIAN_BIG_BYTE
 			p = e1.port() << 16;
 			p |= e2.port();
-#elif defined BOOST_LITTLE_ENDIAN
+#elif BOOST_ENDIAN_LITTLE_BYTE
 			p = aux::host_to_network(e2.port()) << 16;
 			p |= aux::host_to_network(e1.port());
 #else
