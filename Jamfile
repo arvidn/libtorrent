@@ -70,6 +70,10 @@ rule linking ( properties * )
 	{
 		result += <library>ssl ;
 		result += <library>crypto ;
+		if <target-os>linux in $(properties)
+		{
+			result += <library>dl ;
+		}
 	}
 	else if <crypto>libcrypto in $(properties)
 	{
