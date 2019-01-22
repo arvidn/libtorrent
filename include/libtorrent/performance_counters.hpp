@@ -487,7 +487,7 @@ namespace libtorrent {
 #ifdef ATOMIC_LLONG_LOCK_FREE
 		aux::array<std::atomic<std::int64_t>, num_counters> m_stats_counter;
 #else
-		// if the atomic type is't lock-free, use a single lock instead, for
+		// if the atomic type isn't lock-free, use a single lock instead, for
 		// the whole array
 		mutable std::mutex m_mutex;
 		aux::array<std::int64_t, num_counters> m_stats_counter;
