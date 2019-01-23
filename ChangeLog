@@ -94,6 +94,8 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* replace use of boost-endian with boost-predef
+
 1.1.12 release
 
 	* uTP performance fixes

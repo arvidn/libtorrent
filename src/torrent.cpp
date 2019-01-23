@@ -3805,7 +3805,15 @@ bool is_downloading_state(int const st)
 
 		// update m_file_progress (if we have one)
 		m_file_progress.update(m_torrent_file->files(), index
-			, &m_ses.alerts(), get_handle());
+			, [this](file_index_t const file_index)
+			{
+				if (m_ses.alerts().should_post<file_completed_alert>())
+				{
+					// this file just completed, post alert
+					m_ses.alerts().emplace_alert<file_completed_alert>(
+						get_handle(), file_index);
+				}
+			});
 
 		remove_time_critical_piece(index, true);
 
