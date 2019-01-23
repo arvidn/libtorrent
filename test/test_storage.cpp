@@ -125,7 +125,7 @@ void run_until(io_context& ios, bool const& done)
 {
 	while (!done)
 	{
-		ios.reset();
+		ios.restart();
 		error_code ec;
 		ios.run_one(ec);
 		if (ec)
@@ -554,7 +554,7 @@ void test_check_files(std::string const& test_path
 	io->async_check_files(st, &frd, links
 		, std::bind(&on_check_resume_data, _1, _2, &done));
 	io->submit_jobs();
-	ios.reset();
+	ios.restart();
 	run_until(ios, done);
 
 	for (auto const i : info->piece_range())
@@ -563,7 +563,7 @@ void test_check_files(std::string const& test_path
 		io->async_hash(st, i, disk_interface::sequential_access | disk_interface::volatile_read
 			, std::bind(&on_piece_checked, _1, _2, _3, &done));
 		io->submit_jobs();
-		ios.reset();
+		ios.restart();
 		run_until(ios, done);
 	}
 

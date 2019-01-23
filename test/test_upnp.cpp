@@ -200,7 +200,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 	for (int i = 0; i < 20; ++i)
 	{
-		ios.reset();
+		ios.restart();
 		ios.poll(ec);
 		if (ec)
 		{
@@ -220,7 +220,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 	for (int i = 0; i < 40; ++i)
 	{
-		ios.reset();
+		ios.restart();
 		ios.poll(ec);
 		if (ec)
 		{
@@ -246,7 +246,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 	for (int i = 0; i < 40; ++i)
 	{
-		ios.reset();
+		ios.restart();
 		ios.poll(ec);
 		if (ec)
 		{
