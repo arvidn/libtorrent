@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/openssl.hpp"
 
 #include <functional>
@@ -69,8 +69,8 @@ class ssl_stream
 {
 public:
 
-	explicit ssl_stream(io_service& io_service, ssl::context& ctx)
-		: m_sock(io_service, ctx)
+	explicit ssl_stream(io_context& io_context, ssl::context& ctx)
+		: m_sock(io_context, ctx)
 	{
 	}
 
@@ -297,7 +297,7 @@ public:
 		return const_cast<sock_type&>(m_sock).next_layer().local_endpoint(ec);
 	}
 
-	io_service& get_io_service()
+	io_context& get_io_service()
 	{
 		return m_sock.get_io_service();
 	}

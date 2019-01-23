@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 
 #include <thread>
@@ -52,7 +52,7 @@ namespace libtorrent {
 		virtual ~pool_thread_interface() {}
 
 		virtual void notify_all() = 0;
-		virtual void thread_fun(disk_io_thread_pool&, io_service::work) = 0;
+		virtual void thread_fun(disk_io_thread_pool&, io_context::work) = 0;
 	};
 
 	// this class implements the policy for creating and destroying I/O threads
@@ -64,7 +64,7 @@ namespace libtorrent {
 	struct TORRENT_EXTRA_EXPORT disk_io_thread_pool
 	{
 		disk_io_thread_pool(pool_thread_interface& thread_iface
-			, io_service& ios);
+			, io_context& ios);
 		~disk_io_thread_pool();
 
 		// set the maximum number of I/O threads which may be running

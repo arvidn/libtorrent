@@ -67,7 +67,7 @@ std::size_t const max_header_size = 25;
 //    the common case cheaper by not allocating this space unconditionally
 struct socks5 : std::enable_shared_from_this<socks5>
 {
-	explicit socks5(io_service& ios)
+	explicit socks5(io_context& ios)
 		: m_socks5_sock(ios)
 		, m_resolver(ios)
 		, m_timer(ios)
@@ -155,7 +155,7 @@ struct set_dont_frag
 { set_dont_frag(udp::socket&, int) {} };
 #endif
 
-udp_socket::udp_socket(io_service& ios)
+udp_socket::udp_socket(io_context& ios)
 	: m_socket(ios)
 	, m_buf(new receive_buffer())
 	, m_bind_port(0)

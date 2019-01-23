@@ -192,7 +192,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	executor_type get_executor() { return m_io_service.get_executor(); }
 #endif
 
-	explicit utp_stream(io_service& io_service);
+	explicit utp_stream(io_context& io_context);
 	~utp_stream();
 	utp_stream& operator=(utp_stream const&) = delete;
 	utp_stream(utp_stream const&) = delete;
@@ -294,7 +294,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	std::size_t available() const;
 	std::size_t available(error_code& /*ec*/) const { return available(); }
 
-	io_service& get_io_service() { return m_io_service; }
+	io_context& get_io_service() { return m_io_service; }
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
@@ -501,7 +501,7 @@ private:
 	std::function<void(error_code const&, std::size_t)> m_read_handler;
 	std::function<void(error_code const&, std::size_t)> m_write_handler;
 
-	io_service& m_io_service;
+	io_context& m_io_service;
 	utp_socket_impl* m_impl;
 
 	close_reason_t m_incoming_close_reason = close_reason_t::none;

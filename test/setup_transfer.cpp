@@ -536,7 +536,7 @@ int start_proxy(int proxy_type)
 
 	int port = 2000 + static_cast<int>(lt::random(6000));
 	error_code ec;
-	io_service ios;
+	io_context ios;
 
 	// make sure the port we pick is free
 	do {
@@ -948,7 +948,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 {
 	int port = 2000 + static_cast<int>(lt::random(6000));
 	error_code ec;
-	io_service ios;
+	io_context ios;
 
 	// make sure the port we pick is free
 	do {

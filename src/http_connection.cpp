@@ -59,7 +59,7 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-http_connection::http_connection(io_service& ios
+http_connection::http_connection(io_context& ios
 	, resolver_interface& resolver
 	, http_handler const& handler
 	, bool bottled

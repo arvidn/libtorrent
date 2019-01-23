@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <vector>
 
 namespace libtorrent { namespace aux {
@@ -48,7 +48,7 @@ namespace libtorrent { namespace aux {
 
 	struct session_udp_socket : utp_socket_interface
 	{
-		explicit session_udp_socket(io_service& ios)
+		explicit session_udp_socket(io_context& ios)
 			: sock(ios) {}
 
 		udp::endpoint local_endpoint() override { return sock.local_endpoint(); }
@@ -68,7 +68,7 @@ namespace libtorrent { namespace aux {
 
 	struct outgoing_udp_socket final : session_udp_socket
 	{
-		outgoing_udp_socket(io_service& ios, std::string const& dev, transport ssl_)
+		outgoing_udp_socket(io_context& ios, std::string const& dev, transport ssl_)
 			: session_udp_socket(ios), device(dev), ssl(ssl_) {}
 
 		// the name of the device the socket is bound to, may be empty

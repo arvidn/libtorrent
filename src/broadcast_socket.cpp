@@ -125,7 +125,7 @@ namespace libtorrent {
 			return !ec;
 		} TORRENT_CATCH(std::exception const&) { return false; }
 #else
-		io_service ios;
+		io_context ios;
 		tcp::socket test(ios);
 		error_code ec;
 		test.open(tcp::v6(), ec);
@@ -151,7 +151,7 @@ namespace libtorrent {
 	}
 
 	void broadcast_socket::open(receive_handler_t handler
-		, io_service& ios, error_code& ec, bool loopback)
+		, io_context& ios, error_code& ec, bool loopback)
 	{
 		m_on_receive = std::move(handler);
 
@@ -177,7 +177,7 @@ namespace libtorrent {
 		}
 	}
 
-	void broadcast_socket::open_multicast_socket(io_service& ios
+	void broadcast_socket::open_multicast_socket(io_context& ios
 		, address const& addr, bool loopback, error_code& ec)
 	{
 		using namespace boost::asio::ip::multicast;
@@ -203,7 +203,7 @@ namespace libtorrent {
 		++m_outstanding_operations;
 	}
 
-	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr
+	void broadcast_socket::open_unicast_socket(io_context& ios, address const& addr
 		, address_v4 const& mask)
 	{
 		error_code ec;

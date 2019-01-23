@@ -396,7 +396,7 @@ namespace aux {
 #endif
 #endif
 
-	session_impl::session_impl(io_service& ios, settings_pack const& pack
+	session_impl::session_impl(io_context& ios, settings_pack const& pack
 		, disk_io_constructor_type disk_io_constructor)
 		: m_settings(pack)
 		, m_io_service(ios)
@@ -421,7 +421,7 @@ namespace aux {
 			, *this
 #endif
 			)
-		, m_work(new io_service::work(m_io_service))
+		, m_work(new io_context::work(m_io_service))
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
@@ -475,9 +475,9 @@ namespace aux {
 #endif
 
 	// This function is called by the creating thread, not in the message loop's
-	// io_service thread.
+	// io_context thread.
 	// TODO: 2 is there a reason not to move all of this into init()? and just
-	// post it to the io_service?
+	// post it to the io_context?
 	void session_impl::start_session()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -6083,7 +6083,7 @@ namespace aux {
 //		TORRENT_ASSERT(is_not_thread());
 // TODO: asserts that no outstanding async operations are still in flight
 
-		// this can happen if we end the io_service run loop with an exception
+		// this can happen if we end the io_context run loop with an exception
 		for (auto& t : m_torrents)
 		{
 			t.second->panic();

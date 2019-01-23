@@ -79,7 +79,6 @@ set(libtorrent_include_files
 	invariant_check
 	io
 	io_service
-	io_service_fwd
 	ip_filter
 	ip_voter
 	lazy_entry

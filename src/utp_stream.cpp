@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/performance_counters.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include <cstdint>
 #include <limits>
 
@@ -757,8 +757,8 @@ int utp_stream::recv_delay() const
 	return m_impl ? m_impl->m_recv_delay : 0;
 }
 
-utp_stream::utp_stream(io_service& io_service)
-	: m_io_service(io_service)
+utp_stream::utp_stream(io_context& io_context)
+	: m_io_service(io_context)
 	, m_impl(nullptr)
 	, m_open(false)
 {

@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/address.hpp"
@@ -50,7 +50,7 @@ namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 {
-	explicit resolver(io_service& ios);
+	explicit resolver(io_context& ios);
 
 	void async_resolve(std::string const& host, resolver_flags flags
 		, callback_t const& h) override;
@@ -71,7 +71,7 @@ private:
 	};
 
 	std::unordered_map<std::string, dns_cache_entry> m_cache;
-	io_service& m_ios;
+	io_context& m_ios;
 
 	// all lookups in this resolver are aborted on shutdown.
 	tcp::resolver m_resolver;

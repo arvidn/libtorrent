@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PROXY_BASE_HPP_INCLUDED
 
 #include "libtorrent/io.hpp"
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
@@ -52,7 +52,7 @@ public:
 	using endpoint_type = tcp::socket::endpoint_type;
 	using protocol_type = tcp::socket::protocol_type;
 
-	explicit proxy_base(io_service& io_service);
+	explicit proxy_base(io_context& io_context);
 	~proxy_base();
 	proxy_base(proxy_base const&) = delete;
 	proxy_base& operator=(proxy_base const&) = delete;
@@ -244,7 +244,7 @@ public:
 		return m_sock.local_endpoint(ec);
 	}
 
-	io_service& get_io_service()
+	io_context& get_io_service()
 	{
 		return m_sock.get_io_service();
 	}

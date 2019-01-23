@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
@@ -79,7 +79,7 @@ namespace libtorrent {
 		explicit broadcast_socket(udp::endpoint const& multicast_endpoint);
 		~broadcast_socket() { close(); }
 
-		void open(receive_handler_t handler, io_service& ios
+		void open(receive_handler_t handler, io_context& ios
 			, error_code& ec, bool loopback = true);
 
 		enum flags_t { flag_broadcast = 1 };
@@ -124,9 +124,9 @@ namespace libtorrent {
 
 		void on_receive(socket_entry* s, error_code const& ec
 			, std::size_t bytes_transferred);
-		void open_unicast_socket(io_service& ios, address const& addr
+		void open_unicast_socket(io_context& ios, address const& addr
 			, address_v4 const& mask);
-		void open_multicast_socket(io_service& ios, address const& addr
+		void open_multicast_socket(io_context& ios, address const& addr
 			, bool loopback, error_code& ec);
 
 		// if we're aborting, destruct the handler and return true

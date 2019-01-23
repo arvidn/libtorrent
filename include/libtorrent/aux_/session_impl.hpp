@@ -275,7 +275,7 @@ namespace aux {
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 			using torrent_map = std::unordered_map<sha1_hash, std::shared_ptr<torrent>>;
 
-			session_impl(io_service& ios, settings_pack const& pack
+			session_impl(io_context& ios, settings_pack const& pack
 				, disk_io_constructor_type disk_io);
 			~session_impl() override;
 
@@ -329,7 +329,7 @@ namespace aux {
 			torrent_peer_allocator_interface& get_peer_allocator() override
 			{ return m_peer_allocator; }
 
-			io_service& get_io_service() override { return m_io_service; }
+			io_context& get_io_service() override { return m_io_service; }
 			resolver_interface& get_resolver() override { return m_host_resolver; }
 
 			aux::vector<torrent*>& torrent_list(torrent_list_index_t i) override
@@ -819,7 +819,7 @@ namespace aux {
 			// by torrent::get_download_queue.
 			std::vector<block_info> m_block_info_storage;
 
-			io_service& m_io_service;
+			io_context& m_io_service;
 
 #ifdef TORRENT_USE_OPENSSL
 			// this is a generic SSL context used when talking to
@@ -905,9 +905,9 @@ namespace aux {
 			// they are deleted (from the network thread)
 			std::vector<std::shared_ptr<peer_connection>> m_undead_peers;
 
-			// keep the io_service alive until we have posted the job
+			// keep the io_context alive until we have posted the job
 			// to clear the undead peers
-			std::unique_ptr<io_service::work> m_work;
+			std::unique_ptr<io_context::work> m_work;
 
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
@@ -1167,7 +1167,7 @@ namespace aux {
 			struct work_thread_t
 			{
 				work_thread_t()
-					: work(new boost::asio::io_service::work(ios))
+					: work(new boost::asio::io_context::work(ios))
 					, thread([this] { ios.run(); })
 				{}
 				~work_thread_t()
@@ -1178,8 +1178,8 @@ namespace aux {
 				work_thread_t(work_thread_t const&) = delete;
 				work_thread_t& operator=(work_thread_t const&) = delete;
 
-				boost::asio::io_service ios;
-				std::unique_ptr<boost::asio::io_service::work> work;
+				boost::asio::io_context ios;
+				std::unique_ptr<boost::asio::io_context::work> work;
 				std::thread thread;
 			};
 			std::unique_ptr<work_thread_t> m_torrent_load_thread;

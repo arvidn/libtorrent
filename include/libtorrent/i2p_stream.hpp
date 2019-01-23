@@ -83,7 +83,7 @@ class i2p_stream : public proxy_base
 {
 public:
 
-	explicit i2p_stream(io_service& io_service);
+	explicit i2p_stream(io_context& io_context);
 #if TORRENT_USE_ASSERTS
 	~i2p_stream();
 #endif
@@ -166,7 +166,7 @@ private:
 class i2p_connection
 {
 public:
-	explicit i2p_connection(io_service& ios);
+	explicit i2p_connection(io_context& ios);
 	~i2p_connection();
 
 	aux::proxy_settings proxy() const;
@@ -221,7 +221,7 @@ private:
 
 	state_t m_state;
 
-	io_service& m_io_service;
+	io_context& m_io_service;
 };
 
 }

@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <memory>
 
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
@@ -54,7 +54,7 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool
 	{
-		explicit disk_buffer_pool(io_service& ios);
+		explicit disk_buffer_pool(io_context& ios);
 		~disk_buffer_pool();
 		disk_buffer_pool(disk_buffer_pool const&) = delete;
 		disk_buffer_pool& operator=(disk_buffer_pool const&) = delete;
@@ -98,10 +98,10 @@ namespace libtorrent {
 		// set to true to throttle more allocations
 		bool m_exceeded_max_size;
 
-		// this is the main thread io_service. Callbacks are
+		// this is the main thread io_context. Callbacks are
 		// posted on this in order to have them execute in
 		// the main thread.
-		io_service& m_ios;
+		io_context& m_ios;
 
 	private:
 

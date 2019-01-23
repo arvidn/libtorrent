@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
@@ -142,7 +142,7 @@ std::mt19937 rng(dev());
 
 struct peer_conn
 {
-	peer_conn(io_service& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
+	peer_conn(io_context& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
 		, char const* ih, bool seed_, int churn_, bool corrupt_)
 		: s(ios)
 		, read_pos(0)
@@ -865,7 +865,7 @@ void write_handler(file_storage const& fs
 
 void generate_data(char const* path, torrent_info const& ti)
 {
-	io_service ios;
+	io_context ios;
 	counters stats_counters;
 	std::unique_ptr<lt::disk_interface> disk = default_disk_io_constructor(ios, stats_counters);
 
@@ -905,7 +905,7 @@ void generate_data(char const* path, torrent_info const& ti)
 	ios.run();
 }
 
-void io_thread(io_service* ios)
+void io_thread(io_context* ios)
 {
 	error_code ec;
 	ios->run(ec);
@@ -1104,7 +1104,7 @@ int main(int argc, char* argv[])
 	std::vector<peer_conn*> conns;
 	conns.reserve(num_connections);
 	int const num_threads = 2;
-	io_service ios[num_threads];
+	io_context ios[num_threads];
 	for (int i = 0; i < num_connections; ++i)
 	{
 		bool corrupt = test_corruption && (i & 1) == 0;

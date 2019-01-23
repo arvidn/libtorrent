@@ -488,7 +488,7 @@ TORRENT_TEST(reject_fast)
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	setup_peer(s, ih, ses);
 
@@ -558,7 +558,7 @@ TORRENT_TEST(invalid_suggest)
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	setup_peer(s, ih, ses);
 
@@ -600,7 +600,7 @@ TORRENT_TEST(reject_suggest)
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	setup_peer(s, ih, ses);
 
@@ -680,7 +680,7 @@ TORRENT_TEST(suggest_order)
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	setup_peer(s, ih, ses);
 
@@ -741,7 +741,7 @@ TORRENT_TEST(multiple_bitfields)
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 	print_session_log(*ses);
@@ -775,7 +775,7 @@ TORRENT_TEST(multiple_have_all)
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
@@ -809,7 +809,7 @@ TORRENT_TEST(dont_have)
 	sha1_hash ih;
 	torrent_handle th;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, true
 		, torrent_flags_t{}, &th);
@@ -907,7 +907,7 @@ TORRENT_TEST(extension_handshake)
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
@@ -948,7 +948,7 @@ TORRENT_TEST(invalid_metadata_request)
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
@@ -1001,7 +1001,7 @@ TORRENT_TEST(invalid_request)
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	setup_peer(s, ih, ses);
 
@@ -1023,7 +1023,7 @@ void have_all_test(bool const incoming)
 {
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
 	setup_peer(s, ih, ses, incoming, torrent_flags::seed_mode);
 

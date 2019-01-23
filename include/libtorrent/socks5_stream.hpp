@@ -88,8 +88,8 @@ public:
 		socks5_udp_associate = 3
 	};
 
-	explicit socks5_stream(io_service& io_service)
-		: proxy_base(io_service)
+	explicit socks5_stream(io_context& io_context)
+		: proxy_base(io_context)
 		, m_version(5)
 		, m_command(socks5_connect)
 	{}

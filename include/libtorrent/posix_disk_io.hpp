@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_POSIX_DISK_IO
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 
 #include <memory>
 
@@ -47,7 +47,7 @@ namespace libtorrent {
 	// havea 64 bit virtual address space or don't support memory mapped files.
 	// It's implemented using portable C file functions and is single-threaded.
 	TORRENT_EXPORT std::unique_ptr<disk_interface> posix_disk_io_constructor(
-		io_service& ios, counters& cnt);
+		io_context& ios, counters& cnt);
 }
 
 #endif

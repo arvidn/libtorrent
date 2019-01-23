@@ -66,7 +66,7 @@ int render_lsd_packet(char* dst, int const len, int const listen_port
 
 static error_code dummy;
 
-lsd::lsd(io_service& ios, aux::lsd_callback& cb)
+lsd::lsd(io_context& ios, aux::lsd_callback& cb)
 	: m_callback(cb)
 	, m_socket(udp::endpoint(make_address_v4("239.192.152.143", dummy), 6771))
 	, m_socket6(udp::endpoint(make_address_v6("ff15::efc0:988f", dummy), 6771))

@@ -68,7 +68,7 @@ namespace libtorrent {
 
 		utp_socket_manager(send_fun_t const& send_fun
 			, incoming_utp_callback_t const& cb
-			, io_service& ios
+			, io_context& ios
 			, aux::session_settings const& sett
 			, counters& cnt, void* ssl_context);
 		~utp_socket_manager();
@@ -179,7 +179,7 @@ namespace libtorrent {
 		// stats counters
 		counters& m_counters;
 
-		io_service& m_ios;
+		io_context& m_ios;
 
 		std::array<int, 3> m_restrict_mtu;
 		int m_mtu_idx = 0;

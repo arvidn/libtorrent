@@ -366,7 +366,7 @@ bool try_connect(lt::session& ses1, int port
 	std::printf(" port: %d\n", port);
 
 	error_code ec;
-	boost::asio::io_service ios;
+	boost::asio::io_context ios;
 
 	// create the SSL context for this torrent. We need to
 	// inject the root certificate, and no other, to

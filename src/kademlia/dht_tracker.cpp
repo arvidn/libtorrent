@@ -83,7 +83,7 @@ namespace libtorrent { namespace dht {
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(dht_observer* observer
-		, io_service& ios
+		, io_context& ios
 		, send_fun_t const& send_fun
 		, dht_settings const& settings
 		, counters& cnt
@@ -574,7 +574,7 @@ namespace libtorrent { namespace dht {
 		return true;
 	}
 
-	dht_tracker::tracker_node::tracker_node(io_service& ios
+	dht_tracker::tracker_node::tracker_node(io_context& ios
 		, aux::listen_socket_handle const& s, socket_manager* sock
 		, dht_settings const& settings
 		, node_id const& nid

@@ -267,9 +267,9 @@ namespace {
 #ifdef TORRENT_BUILD_SIMULATOR
 		sim::default_config conf;
 		sim::simulation sim{conf};
-		io_service ios{sim};
+		io_context ios{sim};
 #else
-		io_service ios;
+		io_context ios;
 #endif
 
 #if TORRENT_USE_UNC_PATHS

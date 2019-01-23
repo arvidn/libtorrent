@@ -528,7 +528,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			== (a2.to_v4().to_ulong() & mask.to_v4().to_ulong());
 	}
 
-	bool in_local_network(io_service& ios, address const& addr, error_code& ec)
+	bool in_local_network(io_context& ios, address const& addr, error_code& ec)
 	{
 		std::vector<ip_interface> net = enum_net_interfaces(ios, ec);
 		if (ec) return false;
@@ -541,7 +541,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{ return match_addr_mask(addr, i.interface_address, i.netmask); });
 	}
 
-	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)
+	std::vector<ip_interface> enum_net_interfaces(io_context& ios, error_code& ec)
 	{
 		TORRENT_UNUSED(ios); // this may be unused depending on configuration
 		std::vector<ip_interface> ret;
@@ -814,7 +814,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return ret;
 	}
 
-	boost::optional<ip_route> get_default_route(io_service& ios
+	boost::optional<ip_route> get_default_route(io_context& ios
 		, string_view const device, bool const v6, error_code& ec)
 	{
 		std::vector<ip_route> const ret = enum_routes(ios, ec);
@@ -829,14 +829,14 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return *i;
 	}
 
-	address get_default_gateway(io_service& ios
+	address get_default_gateway(io_context& ios
 		, string_view const device, bool const v6, error_code& ec)
 	{
 		auto const default_route = get_default_route(ios, device, v6, ec);
 		return default_route ? default_route->gateway : address();
 	}
 
-	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)
+	std::vector<ip_route> enum_routes(io_context& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret;
 		TORRENT_UNUSED(ios);
@@ -1241,7 +1241,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 	// returns the device name whose local address is ``addr``. If
 	// no such device is found, an empty string is returned.
-	std::string device_for_address(address addr, io_service& ios, error_code& ec)
+	std::string device_for_address(address addr, io_context& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return {};

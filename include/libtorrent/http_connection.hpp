@@ -78,7 +78,7 @@ using http_filter_handler = std::function<void(http_connection&, std::vector<tcp
 struct TORRENT_EXTRA_EXPORT http_connection
 	: std::enable_shared_from_this<http_connection>
 {
-	http_connection(io_service& ios
+	http_connection(io_context& ios
 		, resolver_interface& resolver
 		, http_handler const& handler
 		, bool bottled = true

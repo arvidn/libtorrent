@@ -34,10 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	proxy_base::proxy_base(io_service& io_service)
-		: m_sock(io_service)
+	proxy_base::proxy_base(io_context& io_context)
+		: m_sock(io_context)
 		, m_port(0)
-		, m_resolver(io_service)
+		, m_resolver(io_context)
 	{}
 
 	proxy_base::~proxy_base() = default;

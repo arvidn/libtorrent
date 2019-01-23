@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
 #include <vector>
@@ -52,7 +52,7 @@ namespace libtorrent {
 		: disk_interface
 		, buffer_allocator_interface
 	{
-		disabled_disk_io(io_service& ios
+		disabled_disk_io(io_context& ios
 			, counters& cnt);
 
 		void set_settings(settings_pack const* sett) override;
@@ -112,14 +112,14 @@ namespace libtorrent {
 		// disk cache
 		disk_buffer_pool m_buffer_pool;
 
-		// this is the main thread io_service. Callbacks are
+		// this is the main thread io_context. Callbacks are
 		// posted on this in order to have them execute in
 		// the main thread.
-		io_service& m_ios;
+		io_context& m_ios;
 	};
 
 	TORRENT_EXPORT std::unique_ptr<disk_interface> disabled_disk_io_constructor(
-		io_service& ios, counters& cnt);
+		io_context& ios, counters& cnt);
 }
 
 #endif

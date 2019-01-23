@@ -30,34 +30,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_IO_SERVICE_FWD_HPP_INCLUDED
-#define TORRENT_IO_SERVICE_FWD_HPP_INCLUDED
-
-#include "libtorrent/config.hpp"
-#include <boost/version.hpp>
+#ifndef TORRENT_IO_CONTEXT_HPP_INCLUDED
+#define TORRENT_IO_CONTEXT_HPP_INCLUDED
 
 #if defined TORRENT_BUILD_SIMULATOR
-namespace sim { namespace asio {
-
-	struct io_service;
-}}
+#include "simulator/simulator.hpp"
 #else
-namespace boost { namespace asio {
-#if BOOST_VERSION < 106600
-	class io_service;
-#else
-	class io_context;
-	typedef io_context io_service;
-#endif
-}}
-#endif
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/ts/io_context.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif // SIMULATOR
 
 namespace libtorrent {
 
 #if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::asio::io_service io_service;
+	using io_context = sim::asio::io_context;
 #else
-	typedef boost::asio::io_service io_service;
+	using io_context = boost::asio::io_context;
 #endif
 }
 

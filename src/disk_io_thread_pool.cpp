@@ -43,7 +43,7 @@ namespace {
 namespace libtorrent {
 
 	disk_io_thread_pool::disk_io_thread_pool(pool_thread_interface& thread_iface
-		, io_service& ios)
+		, io_context& ios)
 		: m_thread_iface(thread_iface)
 		, m_max_threads(0)
 		, m_threads_to_exit(0)
@@ -164,17 +164,17 @@ namespace libtorrent {
 				m_idle_timer.async_wait([this](error_code const& ec) { reap_idle_threads(ec); });
 			}
 
-			// work keeps the io_service::run() call blocked from returning.
+			// work keeps the io_context::run() call blocked from returning.
 			// When shutting down, it's possible that the event queue is drained
 			// before the disk_io_thread has posted its last callback. When this
-			// happens, the io_service will have a pending callback from the
+			// happens, the io_context will have a pending callback from the
 			// disk_io_thread, but the event loop is not running. this means
 			// that the event is destructed after the disk_io_thread. If the
 			// event refers to a disk buffer it will try to free it, but the
 			// buffer pool won't exist anymore, and crash. This prevents that.
 			m_threads.emplace_back(&pool_thread_interface::thread_fun
 				, &m_thread_iface, std::ref(*this)
-				, io_service::work(m_idle_timer.get_io_service()));
+				, io_context::work(m_idle_timer.get_io_service()));
 		}
 	}
 

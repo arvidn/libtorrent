@@ -94,7 +94,7 @@ upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) = default;
 // TODO: 3 bind the broadcast socket. it would probably have to be changed to a vector of interfaces to
 // bind to, since the broadcast socket opens one socket per local
 // interface by default
-upnp::upnp(io_service& ios
+upnp::upnp(io_context& ios
 	, std::string const& user_agent
 	, aux::portmap_callback& cb
 	, bool ignore_nonrouters)

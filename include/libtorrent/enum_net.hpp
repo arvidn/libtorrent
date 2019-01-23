@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
@@ -79,10 +79,10 @@ namespace libtorrent {
 
 	// returns a list of the configured IP interfaces
 	// on the machine
-	TORRENT_EXTRA_EXPORT std::vector<ip_interface> enum_net_interfaces(io_service& ios
+	TORRENT_EXTRA_EXPORT std::vector<ip_interface> enum_net_interfaces(io_context& ios
 		, error_code& ec);
 
-	TORRENT_EXTRA_EXPORT std::vector<ip_route> enum_routes(io_service& ios
+	TORRENT_EXTRA_EXPORT std::vector<ip_route> enum_routes(io_context& ios
 		, error_code& ec);
 
 	// return (a1 & mask) == (a2 & mask)
@@ -91,16 +91,16 @@ namespace libtorrent {
 
 	// returns true if the specified address is on the same
 	// local network as us
-	TORRENT_EXTRA_EXPORT bool in_local_network(io_service& ios, address const& addr
+	TORRENT_EXTRA_EXPORT bool in_local_network(io_context& ios, address const& addr
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool in_local_network(std::vector<ip_interface> const& net
 		, address const& addr);
 
-	TORRENT_EXTRA_EXPORT boost::optional<ip_route> get_default_route(io_service& ios
+	TORRENT_EXTRA_EXPORT boost::optional<ip_route> get_default_route(io_context& ios
 		, string_view device, bool v6, error_code& ec);
 
 	// returns the first default gateway found if device is empty
-	TORRENT_EXTRA_EXPORT address get_default_gateway(io_service& ios
+	TORRENT_EXTRA_EXPORT address get_default_gateway(io_context& ios
 		, string_view device, bool v6, error_code& ec);
 
 	// attempt to bind socket to the device with the specified name. For systems
@@ -111,7 +111,7 @@ namespace libtorrent {
 	// in case SO_BINDTODEVICE succeeded and we don't need to verify it).
 	// TODO: 3 use string_view for device_name
 	template <class Socket>
-	address bind_socket_to_device(io_service& ios, Socket& sock
+	address bind_socket_to_device(io_context& ios, Socket& sock
 		, tcp const& protocol
 		, char const* device_name, int port, error_code& ec)
 	{
@@ -175,7 +175,7 @@ namespace libtorrent {
 	// returns the device name whose local address is ``addr``. If
 	// no such device is found, an empty string is returned.
 	TORRENT_EXTRA_EXPORT std::string device_for_address(address addr
-		, io_service& ios, error_code& ec);
+		, io_context& ios, error_code& ec);
 
 }
 

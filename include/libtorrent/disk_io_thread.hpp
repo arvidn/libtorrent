@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/disk_interface.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 
 namespace libtorrent {
 
@@ -44,7 +44,7 @@ namespace libtorrent {
 	struct counters;
 
 	TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
-		io_service& ios, counters& cnt);
+		io_context& ios, counters& cnt);
 
 #endif // HAVE_MMAP || HAVE_MAP_VIEW_OF_FILE
 
