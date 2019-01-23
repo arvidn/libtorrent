@@ -351,26 +351,6 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		issue_read();
 	}
 
-	template <class Handler>
-	void async_read_some(null_buffers const&, Handler const& handler)
-	{
-		if (m_impl == nullptr)
-		{
-			post(m_io_service, std::bind<void>(handler, boost::asio::error::not_connected, std::size_t(0)));
-			return;
-		}
-
-		TORRENT_ASSERT(!m_read_handler);
-		if (m_read_handler)
-		{
-			TORRENT_ASSERT_FAIL(); // we should never do this!
-			post(m_io_service, std::bind<void>(handler, boost::asio::error::operation_not_supported, std::size_t(0)));
-			return;
-		}
-		m_read_handler = handler;
-		issue_read();
-	}
-
 	template <class Protocol>
 	void open(Protocol const&, error_code&)
 	{ m_open = true; }
