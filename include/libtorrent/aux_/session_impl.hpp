@@ -82,6 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/lsd.hpp"
+#include "libtorrent/io_context.hpp"
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/session_settings.hpp"
@@ -286,7 +287,7 @@ namespace aux {
 			void call_abort()
 			{
 				auto ptr = shared_from_this();
-				m_io_service.dispatch(make_handler([ptr] { ptr->abort(); }
+				dispatch(m_io_context, make_handler([ptr] { ptr->abort(); }
 					, m_abort_handler_storage, *this));
 			}
 

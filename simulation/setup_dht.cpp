@@ -56,8 +56,6 @@ using namespace lt;
 
 namespace {
 
-	lt::time_point start_time;
-
 	// this is the IP address assigned to node 'idx'
 	asio::ip::address addr_from_int(int /* idx */)
 	{

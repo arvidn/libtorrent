@@ -152,7 +152,7 @@ namespace {
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
-				m_ios.post([=]{ handler(disk_buffer_holder(*this, nullptr, 0), error); });
+				post(m_ios, [=]{ handler(disk_buffer_holder(*this, nullptr, 0), error); });
 				return;
 			}
 
@@ -174,7 +174,7 @@ namespace {
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
-			m_ios.post(move_handler(call_read_handler(std::move(handler), std::move(buffer), error)));
+			post(m_ios, move_handler(call_read_handler(std::move(handler), std::move(buffer), error)));
 		}
 
 		bool async_write(storage_index_t storage, peer_request const& r
@@ -201,7 +201,7 @@ namespace {
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 			}
 
-			m_ios.post([=]{ handler(error); });
+			post(m_ios, [=]{ handler(error); });
 			return false;
 		}
 
@@ -216,7 +216,7 @@ namespace {
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
-				m_ios.post([=]{ handler(piece, sha1_hash{}, error); });
+				post(m_ios, [=]{ handler(piece, sha1_hash{}, error); });
 				return;
 			}
 			hasher ph;
@@ -251,13 +251,13 @@ namespace {
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
-			m_ios.post([=]{ handler(piece, hash, error); });
+			post(m_ios, [=]{ handler(piece, hash, error); });
 		}
 
 		void async_move_storage(storage_index_t, std::string p, move_flags_t
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override
 		{
-			m_ios.post([=]{
+			post(m_ios, [=]{
 				handler(status_t::fatal_disk_error, p
 					, storage_error(error_code(boost::system::errc::operation_not_supported, system_category())));
 			});
@@ -271,7 +271,7 @@ namespace {
 			storage_error error;
 			posix_storage* st = m_torrents[storage].get();
 			st->delete_files(options, error);
-			m_ios.post([=]{ handler(error); });
+			post(m_ios, [=]{ handler(error); });
 		}
 
 		void async_check_files(storage_index_t storage
@@ -308,7 +308,7 @@ namespace {
 				ret = status_t::fatal_disk_error;
 			}
 
-			m_ios.post([=]{ handler(ret, error); });
+			post(m_ios, [=]{ handler(ret, error); });
 		}
 
 		void async_rename_file(storage_index_t const storage
@@ -319,13 +319,13 @@ namespace {
 			posix_storage* st = m_torrents[storage].get();
 			storage_error error;
 			st->rename_file(idx, name, error);
-			m_ios.post([=]{ handler(name, idx, error); });
+			post(m_ios, [=]{ handler(name, idx, error); });
 		}
 
 		void async_stop_torrent(storage_index_t
 			, std::function<void()> handler) override
 		{
-			m_ios.post(handler);
+			post(m_ios, handler);
 		}
 
 		void async_set_file_priority(storage_index_t
@@ -333,7 +333,7 @@ namespace {
 			, std::function<void(storage_error const&
 				, aux::vector<download_priority_t, file_index_t>)> handler) override
 		{
-			m_ios.post([=]{
+			post(m_ios, [=]{
 				handler(storage_error(error_code(
 					boost::system::errc::operation_not_supported, system_category())), std::move(prio));
 			});
@@ -342,7 +342,7 @@ namespace {
 		void async_clear_piece(storage_index_t, piece_index_t index
 			, std::function<void(piece_index_t)> handler) override
 		{
-			m_ios.post([=]{ handler(index); });
+			post(m_ios, [=]{ handler(index); });
 		}
 
 		// implements buffer_allocator_interface

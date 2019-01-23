@@ -73,11 +73,11 @@ private:
 struct deferred_handler
 {
 	template <typename Handler>
-	void post(io_context& ios, Handler&& h)
+	void post_deferred(io_context& ios, Handler&& h)
 	{
 		if (m_in_flight) return;
 		m_in_flight = true;
-		ios.post(handler_wrapper<Handler>(m_in_flight, std::forward<Handler>(h)));
+		post(ios, handler_wrapper<Handler>(m_in_flight, std::forward<Handler>(h)));
 	}
 private:
 	bool m_in_flight = false;

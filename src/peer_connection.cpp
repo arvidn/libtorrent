@@ -492,7 +492,7 @@ namespace libtorrent {
 			// the update until the current message queue is
 			// flushed
 			auto conn = self();
-			m_ios.post([conn] { conn->wrap(&peer_connection::do_update_interest); });
+			post(m_ios, [conn] { conn->wrap(&peer_connection::do_update_interest); });
 		}
 		m_need_interest_update = true;
 	}
@@ -4078,7 +4078,7 @@ namespace libtorrent {
 				// we can't touch m_connections here, since we're likely looping
 				// over it. So defer the actual reconnection to after we've handled
 				// the existing message queue
-				m_ses.get_io_service().post([weak_t, weak_self]()
+				post(m_ses.get_io_service(), [weak_t, weak_self]()
 				{
 					std::shared_ptr<torrent> tor = weak_t.lock();
 					std::shared_ptr<peer_connection> p = weak_self.lock();

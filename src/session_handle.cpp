@@ -81,7 +81,7 @@ namespace libtorrent {
 	{
 		std::shared_ptr<session_impl> s = m_impl.lock();
 		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
-		s->get_io_service().dispatch([=]() mutable
+		dispatch(s->get_io_service(), [=]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
@@ -111,7 +111,7 @@ namespace libtorrent {
 		bool done = false;
 
 		std::exception_ptr ex;
-		s->get_io_service().dispatch([=, &done, &ex]() mutable
+		dispatch(s->get_io_service(), [=, &done, &ex]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
@@ -143,7 +143,7 @@ namespace libtorrent {
 		bool done = false;
 		Ret r;
 		std::exception_ptr ex;
-		s->get_io_service().dispatch([=, &r, &done, &ex]() mutable
+		dispatch(s->get_io_service(), [=, &r, &done, &ex]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {

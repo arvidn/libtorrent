@@ -46,7 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/ip/v6_only.hpp>
+#include <boost/asio/ts/internet.hpp>
+#include <boost/asio/ts/executor.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/aux_/openssl.hpp"
@@ -544,7 +545,7 @@ namespace aux {
 		}
 #endif
 
-		m_io_service.post([this] { this->wrap(&session_impl::init); });
+		post(m_io_service, [this] { this->wrap(&session_impl::init); });
 	}
 
 	void session_impl::init()
@@ -567,7 +568,7 @@ namespace aux {
 		async_inc_threads();
 		add_outstanding_async("session_impl::on_tick");
 #endif
-		m_io_service.post([this]{ this->wrap(&session_impl::on_tick, error_code()); });
+		post(m_io_service, [this]{ this->wrap(&session_impl::on_tick, error_code()); });
 
 		int const lsd_announce_interval
 			= m_settings.get_int(settings_pack::local_service_announce_interval);
@@ -918,7 +919,7 @@ namespace aux {
 		// shutdown_stage2 from there.
 		if (m_undead_peers.empty())
 		{
-			m_io_service.post(make_handler([this] { abort_stage2(); }
+			post(m_io_service, make_handler([this] { abort_stage2(); }
 				, m_abort_handler_storage, *this));
 		}
 	}
@@ -1177,7 +1178,7 @@ namespace aux {
 	{
 		if (m_deferred_submit_disk_jobs) return;
 		m_deferred_submit_disk_jobs = true;
-		m_io_service.post([this] { this->wrap(&session_impl::submit_disk_jobs); } );
+		post(m_io_service, [this] { this->wrap(&session_impl::submit_disk_jobs); } );
 	}
 
 	void session_impl::submit_disk_jobs()
@@ -3157,7 +3158,7 @@ namespace aux {
 				// shut-down
 				if (m_abort)
 				{
-					m_io_service.post(std::bind(&session_impl::abort_stage2, this));
+					post(m_io_service, std::bind(&session_impl::abort_stage2, this));
 				}
 			}
 		}
@@ -4667,7 +4668,7 @@ namespace aux {
 			if (!m_torrent_load_thread)
 				m_torrent_load_thread.reset(new work_thread_t());
 
-			m_torrent_load_thread->ios.post([params, this]
+			post(m_torrent_load_thread->ios, [params, this]
 			{
 				std::string const torrent_file_path = resolve_file_url(params->url);
 				params->url.clear();
@@ -4675,7 +4676,7 @@ namespace aux {
 				std::unique_ptr<add_torrent_params> holder2(params);
 				error_code ec;
 				params->ti = std::make_shared<torrent_info>(torrent_file_path, ec);
-				this->m_io_service.post(std::bind(&session_impl::on_async_load_torrent
+				post(this->m_io_service, std::bind(&session_impl::on_async_load_torrent
 					, this, params, ec));
 				holder2.release();
 			});
@@ -6340,7 +6341,7 @@ namespace aux {
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
 
-		m_io_service.post([this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
+		post(m_io_service, [this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
 	}
 
 	void session_impl::on_trigger_auto_manage()

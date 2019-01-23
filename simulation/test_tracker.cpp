@@ -299,7 +299,7 @@ struct sim_config : sim::default_config
 
 void on_alert_notify(lt::session* ses)
 {
-	ses->get_io_service().post([ses] {
+	post(ses->get_context(), [ses] {
 		std::vector<lt::alert*> alerts;
 		ses->pop_alerts(&alerts);
 
@@ -459,7 +459,7 @@ void test_udpv6_support(char const* listen_interfaces
 		// since we don't have a udp tracker to run in the sim, looking for the
 		// alerts is the closest proxy
 		ses->set_alert_notify([&]{
-			ses->get_io_service().post([&] {
+			post(ses->get_context(), [&] {
 				std::vector<lt::alert*> alerts;
 				ses->pop_alerts(&alerts);
 

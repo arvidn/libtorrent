@@ -95,7 +95,7 @@ void print_alerts(lt::session& ses
 	static std::vector<lt::alert*> alerts;
 
 	ses.set_alert_notify([&ses,start_time,on_alert,idx] {
-		ses.get_io_service().post([&ses,start_time,on_alert,idx] {
+		post(ses.get_context(), [&ses,start_time,on_alert,idx] {
 
 		try {
 			alerts.clear();

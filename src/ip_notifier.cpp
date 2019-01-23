@@ -61,7 +61,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
-		m_ios.post([cb]()
+		post(m_ios, [cb]()
 		{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
@@ -196,7 +196,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCNetworkReachabilityRef /*target*/, SCNetworkReachabilityFlags /*flags*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				obj->m_ios.post([obj]()
+				post(obj->m_ios, [obj]()
 				{
 					if (!obj->m_cb) return;
 					auto cb = std::move(obj->m_cb);
@@ -222,7 +222,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		if (m_queue)
 			m_cb = std::move(cb);
 		else
-			m_ios.post([cb]()
+			post(m_ios, [cb]()
 			{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
@@ -296,7 +296,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCDynamicStoreRef /*store*/, CFArrayRef /*changedKeys*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				obj->m_ios.post([obj]()
+				post(obj->m_ios, [obj]()
 				{
 					if (!obj->m_cb) return;
 					auto cb = std::move(obj->m_cb);
@@ -322,7 +322,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		if (m_queue)
 			m_cb = std::move(cb);
 		else
-			m_ios.post([cb]()
+			post(m_ios, [cb]()
 			{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
@@ -380,7 +380,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		}
 		else
 		{
-			m_hnd.get_io_service().post([cb, err]()
+			post(m_hnd.get_executor(), [cb, err]()
 			{ cb(error_code(err, system_category())); });
 		}
 	}
@@ -403,7 +403,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
-		m_ios.post([cb]()
+		post(m_ios, [cb]()
 		{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
