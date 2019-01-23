@@ -163,7 +163,7 @@ namespace libtorrent {
 				, m_hostname.c_str(), print_endpoint(m_target).c_str());
 		}
 #endif
-		get_io_service().post(std::bind(
+		post(get_io_service(), std::bind(
 			&udp_tracker_connection::start_announce, shared_from_this()));
 
 		aux::session_settings const& settings = m_man.settings();

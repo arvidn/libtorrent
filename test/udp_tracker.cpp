@@ -216,7 +216,7 @@ struct udp_tracker
 	{
 		std::printf("%s: UDP tracker [%p], ~udp_tracker\n"
 			, time_now_string(), static_cast<void*>(this));
-		m_ios.post(std::bind(&udp_tracker::stop, this));
+		post(m_ios, std::bind(&udp_tracker::stop, this));
 		if (m_thread) m_thread->join();
 	}
 

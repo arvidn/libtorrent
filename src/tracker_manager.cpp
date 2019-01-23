@@ -164,7 +164,7 @@ namespace libtorrent {
 		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// we need to post the error to avoid deadlock
-		get_io_service().post(std::bind(&tracker_connection::fail_impl
+		post(get_io_service(), std::bind(&tracker_connection::fail_impl
 			, shared_from_this(), ec, std::string(msg), interval, min_interval));
 	}
 
@@ -293,7 +293,7 @@ namespace libtorrent {
 
 		// we need to post the error to avoid deadlock
 		if (auto r = c.lock())
-			ios.post(std::bind(&request_callback::tracker_request_error, r, std::move(req)
+			post(ios, std::bind(&request_callback::tracker_request_error, r, std::move(req)
 				, errors::unsupported_url_protocol
 				, "", seconds32(0)));
 	}

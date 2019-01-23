@@ -148,7 +148,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	if (ec)
 	{
-		m_timer.get_io_service().post(std::bind(&http_connection::callback
+		post(m_timer.get_io_service(), std::bind(&http_connection::callback
 			, me, ec, span<char>{}));
 		return;
 	}
@@ -160,7 +160,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		)
 	{
 		error_code err(errors::unsupported_url_protocol);
-		m_timer.get_io_service().post(std::bind(&http_connection::callback
+		post(m_timer.get_io_service(), std::bind(&http_connection::callback
 			, me, err, span<char>{}));
 		return;
 	}
@@ -258,7 +258,7 @@ void http_connection::start(std::string const& hostname, int port
 
 	if (ec)
 	{
-		m_timer.get_io_service().post(std::bind(&http_connection::callback
+		post(m_timer.get_io_service(), std::bind(&http_connection::callback
 			, me, ec, span<char>{}));
 		return;
 	}
@@ -297,7 +297,7 @@ void http_connection::start(std::string const& hostname, int port
 #if TORRENT_USE_I2P
 			if (i2p_conn->proxy().type != settings_pack::i2p_proxy)
 			{
-				m_timer.get_io_service().post(std::bind(&http_connection::callback
+				post(m_timer.get_io_service(), std::bind(&http_connection::callback
 					, me, error_code(errors::no_i2p_router), span<char>{}));
 				return;
 			}
@@ -332,7 +332,7 @@ void http_connection::start(std::string const& hostname, int port
 					m_ssl_ctx->set_verify_mode(ssl::context::verify_none, ec);
 					if (ec)
 					{
-						m_timer.get_io_service().post(std::bind(&http_connection::callback
+						post(m_timer.get_io_service(), std::bind(&http_connection::callback
 								, me, ec, span<char>{}));
 						return;
 					}
@@ -353,7 +353,7 @@ void http_connection::start(std::string const& hostname, int port
 			m_sock.bind(tcp::endpoint(*m_bind_addr, 0), ec);
 			if (ec)
 			{
-				m_timer.get_io_service().post(std::bind(&http_connection::callback
+				post(m_timer.get_io_service(), std::bind(&http_connection::callback
 					, me, ec, span<char>{}));
 				return;
 			}
@@ -362,7 +362,7 @@ void http_connection::start(std::string const& hostname, int port
 		setup_ssl_hostname(m_sock, hostname, ec);
 		if (ec)
 		{
-			m_timer.get_io_service().post(std::bind(&http_connection::callback
+			post(m_timer.get_io_service(), std::bind(&http_connection::callback
 				, me, ec, span<char>{}));
 			return;
 		}

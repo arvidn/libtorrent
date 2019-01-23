@@ -245,8 +245,8 @@ void web_peer_connection::disconnect(error_code const& ec
 	{
 		// if the web server doesn't support keepalive and we were
 		// disconnected as a graceful EOF, reconnect right away
-		if (t) get_io_service().post(
-			std::bind(&torrent::maybe_connect_web_seeds, t));
+		if (t) post(get_io_service()
+			, std::bind(&torrent::maybe_connect_web_seeds, t));
 	}
 	peer_connection::disconnect(ec, op, error);
 	if (t) t->disconnect_web_seed(this);
@@ -453,7 +453,7 @@ void web_peer_connection::write_request(peer_request const& r)
 
 	if (num_pad_files == int(m_file_requests.size()))
 	{
-		get_io_service().post(std::bind(
+		post(get_io_service(), std::bind(
 			&web_peer_connection::on_receive_padfile,
 			std::static_pointer_cast<web_peer_connection>(self())));
 		return;

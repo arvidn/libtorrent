@@ -80,7 +80,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_UNUSED(r);
 
-		m_ios.post([=]()
+		post(m_ios, [=]()
 		{
 			disk_buffer_holder holder(*this, this->m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
 			std::fill(holder.get(), holder.get() + default_block_size, 0);
@@ -97,7 +97,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_UNUSED(r);
 
-		m_ios.post([=]() { handler(storage_error{}); });
+		post(m_ios, [=]() { handler(storage_error{}); });
 		return false;
 	}
 
@@ -105,26 +105,26 @@ namespace libtorrent {
 		, piece_index_t piece, disk_job_flags_t
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 	{
-		m_ios.post([=]() { handler(piece, sha1_hash{}, storage_error{}); });
+		post(m_ios, [=]() { handler(piece, sha1_hash{}, storage_error{}); });
 	}
 
 	void disabled_disk_io::async_move_storage(storage_index_t
 		, std::string p, move_flags_t
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler)
 	{
-		m_ios.post([=]() { handler(status_t::no_error, p, storage_error{}); });
+		post(m_ios, [=]() { handler(status_t::no_error, p, storage_error{}); });
 	}
 
 	void disabled_disk_io::async_release_files(storage_index_t
 		, std::function<void()> handler)
 	{
-		m_ios.post([=]() { handler(); });
+		post(m_ios, [=]() { handler(); });
 	}
 
 	void disabled_disk_io::async_delete_files(storage_index_t
 		, remove_flags_t, std::function<void(storage_error const&)> handler)
 	{
-		m_ios.post([=]() { handler(storage_error{}); });
+		post(m_ios, [=]() { handler(storage_error{}); });
 	}
 
 	void disabled_disk_io::async_check_files(storage_index_t
@@ -132,20 +132,20 @@ namespace libtorrent {
 		, aux::vector<std::string, file_index_t>&
 		, std::function<void(status_t, storage_error const&)> handler)
 	{
-		m_ios.post([=]() { handler(status_t::no_error, storage_error{}); });
+		post(m_ios, [=]() { handler(status_t::no_error, storage_error{}); });
 	}
 
 	void disabled_disk_io::async_rename_file(storage_index_t
 		, file_index_t index, std::string name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler)
 	{
-		m_ios.post([=]() { handler(name, index, storage_error{}); });
+		post(m_ios, [=]() { handler(name, index, storage_error{}); });
 	}
 
 	void disabled_disk_io::async_stop_torrent(storage_index_t
 		, std::function<void()> handler)
 	{
-		m_ios.post([=]() { handler(); });
+		post(m_ios, [=]() { handler(); });
 	}
 
 	void disabled_disk_io::async_set_file_priority(storage_index_t
@@ -153,13 +153,13 @@ namespace libtorrent {
 		, std::function<void(storage_error const&
 			, aux::vector<download_priority_t, file_index_t>)> handler)
 	{
-		m_ios.post([=]() { handler(storage_error{}, prio); });
+		post(m_ios, [=]() { handler(storage_error{}, prio); });
 	}
 
 	void disabled_disk_io::async_clear_piece(storage_index_t
 		, piece_index_t const index, std::function<void(piece_index_t)> handler)
 	{
-		m_ios.post([=]() { handler(index); });
+		post(m_ios, [=]() { handler(index); });
 	}
 
 	void disabled_disk_io::update_stats_counters(counters& c) const

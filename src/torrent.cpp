@@ -4561,7 +4561,7 @@ bool is_downloading_state(int const st)
 			// this gives the client a chance to specify multiple time-critical
 			// pieces before libtorrent cancels requests
 			auto self = shared_from_this();
-			m_ses.get_io_service().post([self] { self->wrap(&torrent::cancel_non_critical); });
+			post(m_ses.get_io_service(), [self] { self->wrap(&torrent::cancel_non_critical); });
 		}
 
 		for (auto i = m_time_critical_pieces.begin()
@@ -5410,7 +5410,7 @@ bool is_downloading_state(int const st)
 			TORRENT_ASSERT_VAL(m_peers_to_disconnect.capacity() > m_peers_to_disconnect.size()
 				, m_peers_to_disconnect.capacity());
 			m_peers_to_disconnect.push_back(p);
-			m_deferred_disconnect.post(m_ses.get_io_service(), aux::make_handler([=]()
+			m_deferred_disconnect.post_deferred(m_ses.get_io_service(), aux::make_handler([=]()
 			{
 				std::shared_ptr<torrent> t = weak_t.lock();
 				if (t) t->on_remove_peers();

@@ -1426,7 +1426,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// we take this lock just to make the logging prettier (non-interleaved)
 			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
 
-			m_ios.post(std::bind(&disk_io_thread::call_job_handlers, this));
+			post(m_ios, std::bind(&disk_io_thread::call_job_handlers, this));
 			m_job_completions_in_flight = true;
 		}
 	}
