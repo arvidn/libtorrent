@@ -48,7 +48,7 @@ namespace libtorrent {
 		, m_timeout(seconds(1200))
 	{}
 
-	void resolver::on_lookup(error_code const& ec, tcp::resolver::iterator i
+	void resolver::on_lookup(error_code const& ec, tcp::resolver::results_type ips
 		, resolver_interface::callback_t h, std::string hostname)
 	{
 		COMPLETE_ASYNC("resolver::on_lookup");
@@ -61,11 +61,8 @@ namespace libtorrent {
 		dns_cache_entry& ce = m_cache[hostname];
 		ce.last_seen = aux::time_now();
 		ce.addresses.clear();
-		while (i != tcp::resolver::iterator())
-		{
-			ce.addresses.push_back(i->endpoint().address());
-			++i;
-		}
+		for (auto i : ips)
+			ce.addresses.push_back(i.endpoint().address());
 
 		h(ec, ce.addresses);
 
@@ -120,18 +117,16 @@ namespace libtorrent {
 		}
 
 		// the port is ignored
-		tcp::resolver::query const q(host, "80");
-
 		using namespace std::placeholders;
 		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
 		if (flags & resolver_interface::abort_on_shutdown)
 		{
-			m_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
+			m_resolver.async_resolve(host, "80", std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));
 		}
 		else
 		{
-			m_critical_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
+			m_critical_resolver.async_resolve(host, "80", std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));
 		}
 	}

@@ -157,14 +157,13 @@ public:
 		using std::placeholders::_1;
 		using std::placeholders::_2;
 		ADD_OUTSTANDING_ASYNC("socks5_stream::name_lookup");
-		tcp::resolver::query q(m_hostname, to_string(m_port).data());
-		m_resolver.async_resolve(q, std::bind(
+		m_resolver.async_resolve(m_hostname, to_string(m_port).data(), std::bind(
 			&socks5_stream::name_lookup, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 private:
 
-	void name_lookup(error_code const& e, tcp::resolver::iterator i
+	void name_lookup(error_code const& e, tcp::resolver::results_type ips
 		, handler_type h);
 	void connected(error_code const& e, handler_type h);
 	void handshake1(error_code const& e, handler_type h);

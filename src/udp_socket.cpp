@@ -86,7 +86,7 @@ private:
 
 	std::shared_ptr<socks5> self() { return shared_from_this(); }
 
-	void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
+	void on_name_lookup(error_code const& e, tcp::resolver::results_type ips);
 	void on_connect_timeout(error_code const& e);
 	void on_connected(error_code const& e);
 	void handshake1(error_code const& e);
@@ -504,13 +504,12 @@ void socks5::start(aux::proxy_settings const& ps)
 	m_proxy_settings = ps;
 
 	// TODO: use the system resolver_interface here
-	tcp::resolver::query q(ps.hostname, to_string(ps.port).data());
 	ADD_OUTSTANDING_ASYNC("socks5::on_name_lookup");
-	m_resolver.async_resolve(q, std::bind(
+	m_resolver.async_resolve(ps.hostname, to_string(ps.port).data(), std::bind(
 		&socks5::on_name_lookup, self(), _1, _2));
 }
 
-void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
+void socks5::on_name_lookup(error_code const& e, tcp::resolver::results_type ips)
 {
 	COMPLETE_ASYNC("socks5::on_name_lookup");
 
@@ -520,6 +519,7 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 	if (e) return;
 
+	auto i = ips.begin();
 	m_proxy_addr.address(i->endpoint().address());
 	m_proxy_addr.port(i->endpoint().port());
 

@@ -61,7 +61,7 @@ struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 
 private:
 
-	void on_lookup(error_code const& ec, tcp::resolver::iterator i
+	void on_lookup(error_code const& ec, tcp::resolver::results_type ips
 		, resolver_interface::callback_t h, std::string hostname);
 
 	struct dns_cache_entry
