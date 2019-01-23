@@ -129,7 +129,7 @@ struct dht_server
 			while (!done)
 			{
 				m_ios.poll_one();
-				m_ios.reset();
+				m_ios.restart();
 			}
 
 			if (ec == boost::asio::error::operation_aborted
