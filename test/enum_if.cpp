@@ -39,7 +39,7 @@ using namespace lt;
 
 int main()
 {
-	io_service ios;
+	io_context ios;
 	error_code ec;
 
 	address def_gw = get_default_gateway(ios, "", false, ec);

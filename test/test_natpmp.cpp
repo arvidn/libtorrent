@@ -74,7 +74,7 @@ namespace
 
 int main(int argc, char* argv[])
 {
-	io_service ios;
+	io_context ios;
 	std::string user_agent = "test agent";
 
 	if (argc != 3)
@@ -95,14 +95,14 @@ int main(int argc, char* argv[])
 
 	error_code ec;
 	timer.expires_from_now(seconds(2), ec);
-	timer.async_wait([&] (error_code const&) { ios.io_service::stop(); });
+	timer.async_wait([&] (error_code const&) { ios.io_context::stop(); });
 	std::cout << "mapping ports TCP: " << argv[1]
 		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
 	ios.run(ec);
 	timer.expires_from_now(seconds(2), ec);
-	timer.async_wait([&] (error_code const&) { ios.io_service::stop(); });
+	timer.async_wait([&] (error_code const&) { ios.io_context::stop(); });
 	std::cout << "removing mapping " << tcp_map << std::endl;
 	natpmp_handler->delete_mapping(tcp_map);
 

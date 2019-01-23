@@ -50,7 +50,7 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-	timeout_handler::timeout_handler(io_service& ios)
+	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)
 		, m_timeout(ios)
@@ -147,7 +147,7 @@ namespace libtorrent {
 	tracker_connection::tracker_connection(
 		tracker_manager& man
 		, tracker_request const& req
-		, io_service& ios
+		, io_context& ios
 		, std::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
 		, m_req(req)
@@ -255,7 +255,7 @@ namespace libtorrent {
 	}
 
 	void tracker_manager::queue_request(
-		io_service& ios
+		io_context& ios
 		, tracker_request&& req
 		, std::weak_ptr<request_callback> c)
 	{

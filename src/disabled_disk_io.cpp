@@ -45,12 +45,12 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	std::unique_ptr<disk_interface> disabled_disk_io_constructor(
-		io_service& ios, counters& cnt)
+		io_context& ios, counters& cnt)
 	{
 		return std::unique_ptr<disk_interface>(new disabled_disk_io(ios, cnt));
 	}
 
-	disabled_disk_io::disabled_disk_io(io_service& ios, counters&)
+	disabled_disk_io::disabled_disk_io(io_context& ios, counters&)
 		: m_buffer_pool(ios)
 		, m_ios(ios)
 	{

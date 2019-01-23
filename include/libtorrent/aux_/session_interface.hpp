@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/error_code.hpp"
@@ -159,7 +159,7 @@ namespace aux {
 		virtual alert_manager& alerts() = 0;
 
 		virtual torrent_peer_allocator_interface& get_peer_allocator() = 0;
-		virtual io_service& get_io_service() = 0;
+		virtual io_context& get_io_service() = 0;
 		virtual resolver_interface& get_resolver() = 0;
 
 		virtual bool has_connection(peer_connection* p) const = 0;

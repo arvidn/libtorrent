@@ -470,8 +470,8 @@ HEADERS = \
   index_range.hpp              \
   invariant_check.hpp          \
   io.hpp                       \
+  io_context.hpp               \
   io_service.hpp               \
-  io_service_fwd.hpp           \
   ip_filter.hpp                \
   ip_voter.hpp                 \
   lazy_entry.hpp               \

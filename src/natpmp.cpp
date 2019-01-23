@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/random.hpp"
@@ -133,7 +133,7 @@ char const* natpmp::version_to_string(protocol_version version)
 using namespace aux;
 using namespace std::placeholders;
 
-natpmp::natpmp(io_service& ios
+natpmp::natpmp(io_context& ios
 	, aux::portmap_callback& cb)
 	: m_callback(cb)
 	, m_socket(ios)

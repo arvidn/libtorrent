@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_handle.hpp"
 #include "libtorrent/kademlia/dht_settings.hpp"
@@ -95,7 +95,7 @@ namespace aux {
 	struct counters;
 
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
-		io_service& ios, counters& cnt);
+		io_context& ios, counters& cnt);
 
 	// this is a holder for the internal session implementation object. Once the
 	// session destruction is explicitly initiated, this holder is used to
@@ -117,17 +117,17 @@ namespace aux {
 		session_proxy& operator=(session_proxy&&) noexcept;
 	private:
 		session_proxy(
-			std::shared_ptr<io_service> ios
+			std::shared_ptr<io_context> ios
 			, std::shared_ptr<std::thread> t
 			, std::shared_ptr<aux::session_impl> impl);
 
-		std::shared_ptr<io_service> m_io_service;
+		std::shared_ptr<io_context> m_io_service;
 		std::shared_ptr<std::thread> m_thread;
 		std::shared_ptr<aux::session_impl> m_impl;
 	};
 
 	using disk_io_constructor_type = std::function<std::unique_ptr<disk_interface>(
-		io_service&, counters&)>;
+		io_context&, counters&)>;
 
 	// The session_params is a parameters pack for configuring the session
 	// before it's started.
@@ -201,22 +201,22 @@ namespace aux {
 			start(std::move(params), nullptr);
 		}
 
-		// Overload of the constructor that takes an external io_service to run
+		// Overload of the constructor that takes an external io_context to run
 		// the session object on. This is primarily useful for tests that may want
-		// to run multiple sessions on a single io_service, or low resource
+		// to run multiple sessions on a single io_context, or low resource
 		// systems where additional threads are expensive and sharing an
-		// io_service with other events is fine.
+		// io_context with other events is fine.
 		//
 		// .. warning::
 		// 	The session object does not cleanly terminate with an external
-		// 	``io_service``. The ``io_service::run()`` call _must_ have returned
+		// 	``io_context``. The ``io_context::run()`` call _must_ have returned
 		// 	before it's safe to destruct the session. Which means you *MUST*
 		// 	call session::abort() and save the session_proxy first, then
-		// 	destruct the session object, then sync with the io_service, then
+		// 	destruct the session object, then sync with the io_context, then
 		// 	destruct the session_proxy object.
-		session(session_params&& params, io_service& ios)
+		session(session_params&& params, io_context& ios)
 		{ start(std::move(params), &ios); }
-		session(session_params const& params, io_service& ios)
+		session(session_params const& params, io_context& ios)
 		{ start(session_params(params), &ios); }
 
 		// Constructs the session objects which acts as the container of torrents.
@@ -245,25 +245,25 @@ namespace aux {
 		session(session const&) = delete;
 		session& operator=(session const&) = delete;
 
-		// overload of the constructor that takes an external io_service to run
+		// overload of the constructor that takes an external io_context to run
 		// the session object on. This is primarily useful for tests that may want
-		// to run multiple sessions on a single io_service, or low resource
+		// to run multiple sessions on a single io_context, or low resource
 		// systems where additional threads are expensive and sharing an
-		// io_service with other events is fine.
+		// io_context with other events is fine.
 		//
 		// .. warning::
 		// 	The session object does not cleanly terminate with an external
-		// 	``io_service``. The ``io_service::run()`` call _must_ have returned
+		// 	``io_context``. The ``io_context::run()`` call _must_ have returned
 		// 	before it's safe to destruct the session. Which means you *MUST*
 		// 	call session::abort() and save the session_proxy first, then
-		// 	destruct the session object, then sync with the io_service, then
+		// 	destruct the session object, then sync with the io_context, then
 		// 	destruct the session_proxy object.
 		session(settings_pack&& pack
-			, io_service& ios
+			, io_context& ios
 			, session_flags_t const flags = add_default_plugins)
 		{ start(flags, std::move(pack), &ios); }
 		session(settings_pack const& pack
-			, io_service& ios
+			, io_context& ios
 			, session_flags_t const flags = add_default_plugins)
 		{ start(flags, settings_pack(pack), &ios); }
 
@@ -369,15 +369,15 @@ namespace aux {
 
 	private:
 
-		void start(session_params&& params, io_service* ios);
-		void start(session_flags_t flags, settings_pack&& sp, io_service* ios);
+		void start(session_params&& params, io_context* ios);
+		void start(session_flags_t flags, settings_pack&& sp, io_context* ios);
 
-		void start(session_params const& params, io_service* ios) = delete;
-		void start(session_flags_t flags, settings_pack const& sp, io_service* ios) = delete;
+		void start(session_params const& params, io_context* ios) = delete;
+		void start(session_flags_t flags, settings_pack const& sp, io_context* ios) = delete;
 
 		// data shared between the main thread
 		// and the working thread
-		std::shared_ptr<io_service> m_io_service;
+		std::shared_ptr<io_context> m_io_service;
 		std::shared_ptr<std::thread> m_thread;
 		std::shared_ptr<aux::session_impl> m_impl;
 	};

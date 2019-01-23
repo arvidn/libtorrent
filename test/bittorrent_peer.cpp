@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "bittorrent_peer.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/random.hpp"
 
@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 using namespace std::placeholders;
 
-peer_conn::peer_conn(io_service& ios
+peer_conn::peer_conn(io_context& ios
 	, std::function<void(int, char const*, int)> on_msg
 	, torrent_info const& ti
 	, tcp::endpoint const& ep

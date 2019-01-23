@@ -136,7 +136,7 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 	, disk_interface
 	, buffer_allocator_interface
 {
-	disk_io_thread(io_service& ios, counters& cnt);
+	disk_io_thread(io_context& ios, counters& cnt);
 #if TORRENT_USE_ASSERTS
 	~disk_io_thread() override;
 #endif
@@ -217,12 +217,12 @@ private:
 			m_job_cond.notify_all();
 		}
 
-		void thread_fun(disk_io_thread_pool& pool, io_service::work work) override
+		void thread_fun(disk_io_thread_pool& pool, io_context::work work) override
 		{
 			ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
 			m_owner.thread_fun(*this, pool);
 
-			// w's dtor releases the io_service to allow the run() call to return
+			// w's dtor releases the io_context to allow the run() call to return
 			// we do this once we stop posting new callbacks to it.
 			// after the dtor has been called, the disk_io_thread object may be destructed
 			TORRENT_UNUSED(work);
@@ -313,10 +313,10 @@ private:
 
 	counters& m_stats_counters;
 
-	// this is the main thread io_service. Callbacks are
+	// this is the main thread io_context. Callbacks are
 	// posted on this in order to have them execute in
 	// the main thread.
-	io_service& m_ios;
+	io_context& m_ios;
 
 	// jobs that are completed are put on this queue
 	// whenever the queue size grows from 0 to 1
@@ -353,14 +353,14 @@ constexpr disk_job_flags_t disk_interface::sequential_access;
 constexpr disk_job_flags_t disk_interface::volatile_read;
 
 TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
-	io_service& ios, counters& cnt)
+	io_context& ios, counters& cnt)
 {
 	return std::unique_ptr<disk_interface>(new disk_io_thread(ios, cnt));
 }
 
 // ------- disk_io_thread ------
 
-	disk_io_thread::disk_io_thread(io_service& ios, counters& cnt)
+	disk_io_thread::disk_io_thread(io_context& ios, counters& cnt)
 		: m_generic_io_jobs(*this)
 		, m_generic_threads(m_generic_io_jobs, ios)
 		, m_hash_io_jobs(*this)

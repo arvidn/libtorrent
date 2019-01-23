@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/posix_disk_io.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -110,7 +110,7 @@ namespace {
 		: disk_interface
 		, buffer_allocator_interface
 	{
-		posix_disk_io(io_service& ios, counters& cnt)
+		posix_disk_io(io_context& ios, counters& cnt)
 			: m_buffer_pool(ios)
 			, m_stats_counters(cnt)
 			, m_ios(ios)
@@ -371,11 +371,11 @@ namespace {
 		counters& m_stats_counters;
 
 		// callbacks are posted on this
-		io_service& m_ios;
+		io_context& m_ios;
 	};
 
 	TORRENT_EXPORT std::unique_ptr<disk_interface> posix_disk_io_constructor(
-		io_service& ios, counters& cnt)
+		io_context& ios, counters& cnt)
 	{
 		return std::unique_ptr<disk_interface>(new posix_disk_io(ios, cnt));
 	}

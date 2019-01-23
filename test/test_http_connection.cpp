@@ -50,7 +50,7 @@ using namespace lt;
 
 namespace {
 
-io_service ios;
+io_context ios;
 resolver res(ios);
 
 int connect_handler_called = 0;

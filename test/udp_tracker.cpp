@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
@@ -54,7 +54,7 @@ using namespace std::placeholders;
 struct udp_tracker
 {
 
-	lt::io_service m_ios;
+	lt::io_context m_ios;
 	std::atomic<int> m_udp_announces{0};
 	udp::socket m_socket{m_ios};
 	int m_port = 0;

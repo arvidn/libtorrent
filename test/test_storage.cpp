@@ -121,7 +121,7 @@ void print_error(char const* call, int ret, storage_error const& ec)
 		, static_cast<int>(ec.file()), operation_name(ec.operation));
 }
 
-void run_until(io_service& ios, bool const& done)
+void run_until(io_context& ios, bool const& done)
 {
 	while (!done)
 	{
@@ -299,7 +299,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	{
 	// avoid having two storages use the same files
 	aux::file_view_pool fp;
-	boost::asio::io_service ios;
+	boost::asio::io_context ios;
 	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
 	std::string const cwd = current_working_directory();
@@ -389,7 +389,7 @@ void test_remove(std::string const& test_path)
 	file_storage fs;
 	std::vector<char> buf;
 	aux::file_view_pool fp;
-	io_service ios;
+	io_context ios;
 
 	aux::session_settings set;
 	auto s = setup_torrent<StorageType>(fs, fp, buf, test_path, set);
@@ -458,7 +458,7 @@ void test_rename(std::string const& test_path)
 	file_storage fs;
 	std::vector<char> buf;
 	aux::file_view_pool fp;
-	io_service ios;
+	io_context ios;
 	aux::session_settings set;
 
 	auto s = setup_torrent<StorageType>(fs, fp, buf, test_path, set);
@@ -526,7 +526,7 @@ void test_check_files(std::string const& test_path
 
 	aux::session_settings set;
 	aux::file_view_pool fp;
-	boost::asio::io_service ios;
+	boost::asio::io_context ios;
 	counters cnt;
 
 	std::unique_ptr<disk_interface> io = default_disk_io_constructor(ios, cnt);
@@ -1383,7 +1383,7 @@ TORRENT_TEST(move_storage_to_self)
 	file_storage fs;
 	std::vector<char> buf;
 	aux::file_view_pool fp;
-	io_service ios;
+	io_context ios;
 	auto s = setup_torrent<default_storage>(fs, fp, buf, save_path, set);
 
 	iovec_t const b = {&buf[0], 4};
@@ -1411,7 +1411,7 @@ TORRENT_TEST(move_storage_into_self)
 	file_storage fs;
 	std::vector<char> buf;
 	aux::file_view_pool fp;
-	io_service ios;
+	io_context ios;
 	auto s = setup_torrent<default_storage>(fs, fp, buf, save_path, set);
 
 	iovec_t const b = {&buf[0], 4};
@@ -1456,7 +1456,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	file_storage fs;
 	std::vector<char> buf;
 	aux::file_view_pool fp;
-	io_service ios;
+	io_context ios;
 	auto s = setup_torrent<default_storage>(fs, fp, buf, save_path, set);
 
 	iovec_t b = {&buf[0], 4};

@@ -156,7 +156,7 @@ namespace // TODO: remove this nested namespace
 
 void run_upnp_test(char const* root_filename, char const* control_name, int igd_version)
 {
-	lt::io_service ios;
+	lt::io_context ios;
 
 	g_port = start_web_server();
 
@@ -204,7 +204,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 		ios.poll(ec);
 		if (ec)
 		{
-			std::printf("io_service::run(): %s\n", ec.message().c_str());
+			std::printf("io_context::run(): %s\n", ec.message().c_str());
 			ec.clear();
 			break;
 		}
@@ -224,7 +224,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 		ios.poll(ec);
 		if (ec)
 		{
-			std::printf("io_service::run(): %s\n", ec.message().c_str());
+			std::printf("io_context::run(): %s\n", ec.message().c_str());
 			ec.clear();
 			break;
 		}
@@ -250,7 +250,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 		ios.poll(ec);
 		if (ec)
 		{
-			std::printf("io_service::run(): %s\n", ec.message().c_str());
+			std::printf("io_context::run(): %s\n", ec.message().c_str());
 			ec.clear();
 			break;
 		}
@@ -279,7 +279,7 @@ TORRENT_TEST(upnp)
 
 TORRENT_TEST(upnp_max_mappings)
 {
-	lt::io_service ios;
+	lt::io_context ios;
 	upnp_callback cb;
 	auto upnp_handler = std::make_shared<upnp>(ios, "test agent", cb, false);
 

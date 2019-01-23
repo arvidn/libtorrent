@@ -297,14 +297,14 @@ namespace {
 		return params;
 	}
 
-	void session::start(session_params&& params, io_service* ios)
+	void session::start(session_params&& params, io_context* ios)
 	{
 		bool const internal_executor = ios == nullptr;
 
 		if (internal_executor)
 		{
 			// the user did not provide an executor, we have to use our own
-			m_io_service = std::make_shared<io_service>();
+			m_io_service = std::make_shared<io_context>();
 			ios = m_io_service.get();
 		}
 
@@ -358,7 +358,7 @@ namespace {
 		}
 	}
 
-	void session::start(session_flags_t const flags, settings_pack&& sp, io_service* ios)
+	void session::start(session_flags_t const flags, settings_pack&& sp, io_context* ios)
 	{
 		start({std::move(sp),
 			default_plugins(!(flags & add_default_plugins))}, ios);
@@ -391,7 +391,7 @@ namespace {
 	}
 
 	session_proxy::session_proxy() = default;
-	session_proxy::session_proxy(std::shared_ptr<io_service> ios
+	session_proxy::session_proxy(std::shared_ptr<io_context> ios
 		, std::shared_ptr<std::thread> t
 		, std::shared_ptr<aux::session_impl> impl)
 		: m_io_service(std::move(ios))
@@ -447,7 +447,7 @@ namespace {
 	{}
 
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
-		io_service& ios, counters& cnt)
+		io_context& ios, counters& cnt)
 	{
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 		return mmap_disk_io_constructor(ios, cnt);

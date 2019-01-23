@@ -44,8 +44,8 @@ class http_stream : public proxy_base
 {
 public:
 
-	explicit http_stream(io_service& io_service)
-		: proxy_base(io_service)
+	explicit http_stream(io_context& io_context)
+		: proxy_base(io_context)
 		, m_no_connect(false)
 	{}
 

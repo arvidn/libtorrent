@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/aux_/time.hpp"
@@ -142,7 +142,7 @@ namespace aux {
 		aux::session_settings const* sett;
 		counters* stats_counters;
 		disk_interface* disk_thread;
-		io_service* ios;
+		io_context* ios;
 		std::weak_ptr<torrent> tor;
 		std::shared_ptr<aux::socket_type> s;
 		tcp::endpoint endp;
@@ -735,7 +735,7 @@ namespace aux {
 
 		virtual int timeout() const;
 
-		io_service& get_io_service() { return m_ios; }
+		io_context& get_io_service() { return m_ios; }
 
 	private:
 
@@ -826,7 +826,7 @@ namespace aux {
 		disk_interface& m_disk_thread;
 
 		// io service
-		io_service& m_ios;
+		io_context& m_ios;
 
 	protected:
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -840,9 +840,9 @@ namespace aux {
 		// receive a payload message after it has been requested.
 		sliding_average<int, 20> m_request_time;
 
-		// keep the io_service running as long as we
+		// keep the io_context running as long as we
 		// have peer connections
-		io_service::work m_work;
+		io_context::work m_work;
 
 		// the time when we last got a part of a
 		// piece packet from this peer

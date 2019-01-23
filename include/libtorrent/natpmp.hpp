@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_NATPMP_HPP
 #define TORRENT_NATPMP_HPP
 
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
@@ -83,7 +83,7 @@ struct TORRENT_EXTRA_EXPORT natpmp
 	: std::enable_shared_from_this<natpmp>
 	, single_threaded
 {
-	natpmp(io_service& ios, aux::portmap_callback& cb);
+	natpmp(io_context& ios, aux::portmap_callback& cb);
 
 	void start(address local_address, std::string device);
 

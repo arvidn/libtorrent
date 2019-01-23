@@ -58,7 +58,7 @@ namespace libtorrent {
 	std::mutex udp_tracker_connection::m_cache_mutex;
 
 	udp_tracker_connection::udp_tracker_connection(
-		io_service& ios
+		io_context& ios
 		, tracker_manager& man
 		, tracker_request const& req
 		, std::weak_ptr<request_callback> c)

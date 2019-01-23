@@ -147,7 +147,7 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	: std::enable_shared_from_this<upnp>
 	, single_threaded
 {
-	upnp(io_service& ios
+	upnp(io_context& ios
 		, std::string const& user_agent
 		, aux::portmap_callback& cb
 		, bool ignore_nonrouters);
@@ -332,7 +332,7 @@ private:
 	// current retry count
 	int m_retry_count;
 
-	io_service& m_io_service;
+	io_context& m_io_service;
 
 	resolver m_resolver;
 

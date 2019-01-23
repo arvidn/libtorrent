@@ -93,7 +93,7 @@ namespace libtorrent {
 		}
 	}
 
-	i2p_connection::i2p_connection(io_service& ios)
+	i2p_connection::i2p_connection(io_context& ios)
 		: m_port(0)
 		, m_state(sam_idle)
 		, m_io_service(ios)
@@ -216,8 +216,8 @@ namespace libtorrent {
 		handler(ec, name.c_str());
 	}
 
-	i2p_stream::i2p_stream(io_service& io_service)
-		: proxy_base(io_service)
+	i2p_stream::i2p_stream(io_context& io_context)
+		: proxy_base(io_context)
 		, m_id(nullptr)
 		, m_command(cmd_create_session)
 		, m_state(read_hello_response)

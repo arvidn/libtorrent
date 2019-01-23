@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DEFERRED_HANDLER_HPP
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -73,7 +73,7 @@ private:
 struct deferred_handler
 {
 	template <typename Handler>
-	void post(io_service& ios, Handler&& h)
+	void post(io_context& ios, Handler&& h)
 	{
 		if (m_in_flight) return;
 		m_in_flight = true;
