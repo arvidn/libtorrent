@@ -77,12 +77,13 @@ namespace libtorrent {
 		return cat;
 	}
 
-	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
+	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::results_type ips
 		, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::name_lookup");
 		if (handle_error(e, h)) return;
 
+		auto i = ips.begin();
 		error_code ec;
 		if (!m_sock.is_open())
 		{

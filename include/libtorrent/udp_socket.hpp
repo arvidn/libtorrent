@@ -72,7 +72,7 @@ namespace libtorrent {
 		template <typename Handler>
 		void async_write(Handler&& h)
 		{
-			m_socket.async_wait(ud::socket::wait_write, std::forward<Handler>(h));
+			m_socket.async_wait(udp::socket::wait_write, std::forward<Handler>(h));
 		}
 
 		struct packet
