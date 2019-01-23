@@ -46,14 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/buffer.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#ifdef _MSC_VER
-// visual studio requires the value in a deque to be copyable. C++11
-// has looser requirements depending on which functions are actually used.
-#define TORRENT_CPP98_DEQUE 1
-#else
-#define TORRENT_CPP98_DEQUE 0
-#endif
-
 namespace libtorrent {
 
 	// TODO: 2 this type should probably be renamed to send_buffer
@@ -76,42 +68,12 @@ namespace libtorrent {
 		struct buffer_t
 		{
 			buffer_t() {}
-#if TORRENT_CPP98_DEQUE
-			buffer_t(buffer_t&& rhs) noexcept
-			{
-				destruct_holder = rhs.destruct_holder;
-				move_holder = rhs.move_holder;
-				buf = rhs.buf;
-				size = rhs.size;
-				used_size = rhs.used_size;
-				move_holder(&holder, &rhs.holder);
-			}
-			buffer_t& operator=(buffer_t&& rhs) & noexcept
-			{
-				destruct_holder(&holder);
-				destruct_holder = rhs.destruct_holder;
-				move_holder = rhs.move_holder;
-				buf = rhs.buf;
-				size = rhs.size;
-				used_size = rhs.used_size;
-				move_holder(&holder, &rhs.holder);
-				return *this;
-			}
-			buffer_t(buffer_t const& rhs) noexcept
-				: buffer_t(std::move(const_cast<buffer_t&>(rhs))) {}
-			buffer_t& operator=(buffer_t const& rhs) & noexcept
-			{ return this->operator=(std::move(const_cast<buffer_t&>(rhs))); }
-#else
 			buffer_t(buffer_t&&) = delete;
 			buffer_t& operator=(buffer_t&&) = delete;
 			buffer_t(buffer_t const&) = delete;
 			buffer_t& operator=(buffer_t const&) = delete;
-#endif
 
 			destruct_holder_fun destruct_holder;
-#if TORRENT_CPP98_DEQUE
-			move_construct_holder_fun move_holder;
-#endif
 			aux::aligned_storage<32>::type holder;
 			char* buf = nullptr; // the first byte of the buffer
 			int size = 0; // the total size of the buffer
@@ -186,11 +148,6 @@ namespace libtorrent {
 #endif
 			b.destruct_holder = [](void* holder)
 			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
-
-#if TORRENT_CPP98_DEQUE
-			b.move_holder = [](void* dst, void* src)
-			{ new (dst) Holder(std::move(*reinterpret_cast<Holder*>(src))); };
-#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)
