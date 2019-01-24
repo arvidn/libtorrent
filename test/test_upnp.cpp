@@ -200,13 +200,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	for (int i = 0; i < 20; ++i)
 	{
 		ios.restart();
-		ios.poll(ec);
-		if (ec)
-		{
-			std::printf("io_context::run(): %s\n", ec.message().c_str());
-			ec.clear();
-			break;
-		}
+		ios.poll();
 		if (!upnp_handler->router_model().empty()) break;
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
@@ -220,13 +214,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	for (int i = 0; i < 40; ++i)
 	{
 		ios.restart();
-		ios.poll(ec);
-		if (ec)
-		{
-			std::printf("io_context::run(): %s\n", ec.message().c_str());
-			ec.clear();
-			break;
-		}
+		ios.poll();
 		if (callbacks.size() >= 2) break;
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
@@ -246,13 +234,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	for (int i = 0; i < 40; ++i)
 	{
 		ios.restart();
-		ios.poll(ec);
-		if (ec)
-		{
-			std::printf("io_context::run(): %s\n", ec.message().c_str());
-			ec.clear();
-			break;
-		}
+		ios.poll();
 		if (callbacks.size() >= 4) break;
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}

@@ -198,7 +198,7 @@ namespace libtorrent {
 		}
 
 		using namespace std::placeholders;
-		m_tracker_connection = std::make_shared<http_connection>(get_io_service(), m_man.host_resolver()
+		m_tracker_connection = std::make_shared<http_connection>(get_executor().context(), m_man.host_resolver()
 			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)

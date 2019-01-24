@@ -735,7 +735,7 @@ namespace aux {
 
 		virtual int timeout() const;
 
-		io_context& get_io_service() { return m_ios; }
+		io_context& get_executor() { return m_ios; }
 
 	private:
 

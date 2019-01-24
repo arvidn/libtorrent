@@ -330,7 +330,7 @@ namespace aux {
 			torrent_peer_allocator_interface& get_peer_allocator() override
 			{ return m_peer_allocator; }
 
-			io_context& get_io_service() override { return m_io_service; }
+			io_context& get_context() override { return m_io_context; }
 			resolver_interface& get_resolver() override { return m_host_resolver; }
 
 			aux::vector<torrent*>& torrent_list(torrent_list_index_t i) override
@@ -820,7 +820,7 @@ namespace aux {
 			// by torrent::get_download_queue.
 			std::vector<block_info> m_block_info_storage;
 
-			io_context& m_io_service;
+			io_context& m_io_context;
 
 #ifdef TORRENT_USE_OPENSSL
 			// this is a generic SSL context used when talking to

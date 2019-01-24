@@ -174,7 +174,7 @@ namespace libtorrent {
 			// buffer pool won't exist anymore, and crash. This prevents that.
 			m_threads.emplace_back(&pool_thread_interface::thread_fun
 				, &m_thread_iface, std::ref(*this)
-				, io_context::work(m_idle_timer.get_io_service()));
+				, io_context::work(m_idle_timer.get_executor()));
 		}
 	}
 

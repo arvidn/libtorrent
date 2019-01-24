@@ -164,7 +164,7 @@ namespace libtorrent {
 		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// we need to post the error to avoid deadlock
-		post(get_io_service(), std::bind(&tracker_connection::fail_impl
+		post(get_executor(), std::bind(&tracker_connection::fail_impl
 			, shared_from_this(), ec, std::string(msg), interval, min_interval));
 	}
 

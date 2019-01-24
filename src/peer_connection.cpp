@@ -4078,7 +4078,7 @@ namespace libtorrent {
 				// we can't touch m_connections here, since we're likely looping
 				// over it. So defer the actual reconnection to after we've handled
 				// the existing message queue
-				post(m_ses.get_io_service(), [weak_t, weak_self]()
+				post(m_ses.get_executor(), [weak_t, weak_self]()
 				{
 					std::shared_ptr<torrent> tor = weak_t.lock();
 					std::shared_ptr<peer_connection> p = weak_self.lock();

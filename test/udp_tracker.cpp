@@ -228,19 +228,12 @@ struct udp_tracker
 	{
 		char buffer[2000];
 
-		error_code ec;
 		udp::endpoint from;
 		m_socket.async_receive_from(
 			boost::asio::buffer(buffer, int(sizeof(buffer))), from, 0
 			, std::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], int(sizeof(buffer))));
 
-		m_ios.run(ec);
-
-		if (ec)
-		{
-			std::printf("UDP Error running UDP tracker service: %s\n", ec.message().c_str());
-			return;
-		}
+		m_ios.run();
 
 		std::printf("UDP exiting UDP tracker [%p] thread\n", static_cast<void*>(this));
 	}

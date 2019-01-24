@@ -462,7 +462,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	}
 	else
 	{
-		tcp::acceptor l(s.get_io_service());
+		tcp::acceptor l(s.get_executor().context());
 		l.open(tcp::v4());
 		l.bind(ep("127.0.0.1", 0));
 		l.listen();
