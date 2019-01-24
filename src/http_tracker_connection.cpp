@@ -176,9 +176,7 @@ namespace libtorrent {
 		{
 			for (auto const& v4 : tracker_req().ipv4)
 			{
-				error_code err;
-				std::string const ip = v4.to_string(err);
-				if (err) continue;
+				std::string const ip = v4.to_string();
 				url += "&ipv4=";
 				url += escape_string(ip);
 			}
@@ -187,9 +185,7 @@ namespace libtorrent {
 		{
 			for (auto const& v6 : tracker_req().ipv6)
 			{
-				error_code err;
-				std::string const ip = v6.to_string(err);
-				if (err) continue;
+				std::string const ip = v6.to_string();
 				url += "&ipv6=";
 				url += escape_string(ip);
 			}
@@ -512,7 +508,7 @@ namespace libtorrent {
 					if (len - i < 6) break;
 
 					ipv4_peer_entry p;
-					p.ip = detail::read_v4_address(peers).to_v4().to_bytes();
+					p.ip = detail::read_v4_address(peers).to_bytes();
 					p.port = detail::read_uint16(peers);
 					resp.peers4.push_back(p);
 				}
@@ -554,7 +550,7 @@ namespace libtorrent {
 				if (len - i < 18) break;
 
 				ipv6_peer_entry p;
-				p.ip = detail::read_v6_address(peers).to_v6().to_bytes();
+				p.ip = detail::read_v6_address(peers).to_bytes();
 				p.port = detail::read_uint16(peers);
 				resp.peers6.push_back(p);
 			}

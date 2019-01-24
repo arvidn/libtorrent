@@ -2620,8 +2620,7 @@ namespace aux {
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
-				error_code err;
-				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string(err)
+				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string()
 					, ep, operation_t::sock_accept, e
 					, ssl == transport::ssl ? socket_type_t::tcp_ssl : socket_type_t::tcp);
 			}
@@ -2788,9 +2787,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
 				{
-					error_code err;
 					session_log("<== INCOMING CONNECTION [ rejected, local interface has incoming connections disabled: %s ]"
-						, local.address().to_string(err).c_str());
+						, local.address().to_string().c_str());
 				}
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
@@ -2815,9 +2813,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
 				{
-					error_code err;
 					session_log("<== INCOMING CONNECTION [ rejected, not allowed local interface: %s ]"
-						, local.address().to_string(err).c_str());
+						, local.address().to_string().c_str());
 				}
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
@@ -5510,9 +5507,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			error_code ec;
 			t->debug_log("lsd add_peer() [ %s ]"
-				, peer.address().to_string(ec).c_str());
+				, peer.address().to_string().c_str());
 		}
 #endif
 
@@ -6368,9 +6364,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec && should_log())
 			{
-				error_code err;
 				session_log("listen socket buffer size [ udp %s:%d ] %s"
-					, l->udp_sock->sock.local_endpoint().address().to_string(err).c_str()
+					, l->udp_sock->sock.local_endpoint().address().to_string().c_str()
 					, l->udp_sock->sock.local_port(), print_error(ec).c_str());
 			}
 #endif
@@ -6379,9 +6374,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec && should_log())
 			{
-				error_code err;
 				session_log("listen socket buffer size [ tcp %s:%d] %s"
-					, l->sock->local_endpoint().address().to_string(err).c_str()
+					, l->sock->local_endpoint().address().to_string().c_str()
 					, l->sock->local_endpoint().port(), print_error(ec).c_str());
 			}
 #endif

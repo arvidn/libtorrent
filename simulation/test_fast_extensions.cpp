@@ -54,7 +54,7 @@ void run_fake_peer_test(
 	sim::default_config cfg;
 	sim::simulation sim{cfg};
 
-	sim::asio::io_service ios(sim, lt::address_v4::from_string("50.0.0.1"));
+	sim::asio::io_context ios(sim, lt::make_address_v4("50.0.0.1"));
 	lt::session_proxy zombie;
 
 	// setup settings pack to use for the session (customization point)

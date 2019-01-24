@@ -186,8 +186,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	xml.write(soap_add_response[igd_version-1], sizeof(soap_add_response[igd_version-1])-1);
 	xml.close();
 
-	sock = new broadcast_socket(udp::endpoint(address_v4::from_string("239.255.255.250")
-		, 1900));
+	sock = new broadcast_socket(uep("239.255.255.250", 1900));
 
 	sock->open(&incoming_msearch, ios, ec);
 

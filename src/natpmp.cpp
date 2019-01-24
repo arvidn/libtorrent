@@ -510,7 +510,7 @@ void natpmp::send_map_request(port_mapping_t const i)
 		write_uint32(ttl, out);
 		address const local_addr = m_socket.local_endpoint().address();
 		auto const local_bytes = local_addr.is_v4()
-			? address_v6::v4_mapped(local_addr.to_v4()).to_bytes()
+			? make_address_v6(v4_mapped, local_addr.to_v4()).to_bytes()
 			: local_addr.to_v6().to_bytes();
 		out = std::copy(local_bytes.begin(), local_bytes.end(), out);
 		out = std::copy(m.nonce.begin(), m.nonce.end(), out);
@@ -528,18 +528,18 @@ void natpmp::send_map_request(port_mapping_t const i)
 		if (!m.external_address.is_unspecified())
 		{
 			external_addr = m.external_address.is_v4()
-				? address_v6::v4_mapped(m.external_address.to_v4())
+				? make_address_v6(v4_mapped, m.external_address.to_v4())
 				: m.external_address.to_v6();
 		}
 		else if (is_local(local_addr))
 		{
 			external_addr = local_addr.is_v4()
-				? address_v6::v4_mapped(address_v4())
+				? make_address_v6(v4_mapped, address_v4())
 				: address_v6();
 		}
 		else if (local_addr.is_v4())
 		{
-			external_addr = address_v6::v4_mapped(local_addr.to_v4());
+			external_addr = make_address_v6(v4_mapped, local_addr.to_v4());
 		}
 		else
 		{
@@ -771,7 +771,7 @@ void natpmp::on_reply(error_code const& e
 	{
 		external_addr = read_v6_address(in);
 		if (external_addr.to_v6().is_v4_mapped())
-			external_addr = external_addr.to_v6().to_v4();
+			external_addr = make_address_v4(v4_mapped, external_addr.to_v6());
 	}
 
 	if (version == version_natpmp)

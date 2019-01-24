@@ -66,30 +66,30 @@ struct sim_config : sim::default_config
 	{
 		if (hostname == "try-next.com")
 		{
-			result.push_back(address_v4::from_string("10.0.0.10"));
-			result.push_back(address_v4::from_string("10.0.0.9"));
-			result.push_back(address_v4::from_string("10.0.0.8"));
-			result.push_back(address_v4::from_string("10.0.0.7"));
-			result.push_back(address_v4::from_string("10.0.0.6"));
-			result.push_back(address_v4::from_string("10.0.0.5"));
-			result.push_back(address_v4::from_string("10.0.0.4"));
-			result.push_back(address_v4::from_string("10.0.0.3"));
+			result.push_back(make_address_v4("10.0.0.10"));
+			result.push_back(make_address_v4("10.0.0.9"));
+			result.push_back(make_address_v4("10.0.0.8"));
+			result.push_back(make_address_v4("10.0.0.7"));
+			result.push_back(make_address_v4("10.0.0.6"));
+			result.push_back(make_address_v4("10.0.0.5"));
+			result.push_back(make_address_v4("10.0.0.4"));
+			result.push_back(make_address_v4("10.0.0.3"));
 
 			// this is the IP that works, all other should fail
-			result.push_back(address_v4::from_string("10.0.0.2"));
+			result.push_back(make_address_v4("10.0.0.2"));
 			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
 		}
 
 		if (hostname == "test-hostname.com")
 		{
-			result.push_back(address_v4::from_string("10.0.0.2"));
+			result.push_back(make_address_v4("10.0.0.2"));
 			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
 		}
 
 		if (hostname == "dual-stack.test-hostname.com")
 		{
-			result.push_back(address_v4::from_string("10.0.0.2"));
-			result.push_back(address_v6::from_string("ff::dead:beef"));
+			result.push_back(make_address_v4("10.0.0.2"));
+			result.push_back(make_address_v6("ff::dead:beef"));
 			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
 		}
 
@@ -116,7 +116,7 @@ std::string chunk_string(std::string s)
 	return ret;
 }
 
-std::shared_ptr<http_connection> test_request(io_service& ios
+std::shared_ptr<http_connection> test_request(io_context& ios
 	, resolver& res
 	, std::string const& url
 	, char const* expected_data
@@ -299,9 +299,9 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	// allow sparse expected counters
 	expect_counters.resize(num_counters, 0);
 
-	sim::asio::io_service web_server(sim, address_v4::from_string("10.0.0.2"));
-	sim::asio::io_service ios(sim, address_v4::from_string("10.0.0.1"));
-	sim::asio::io_service proxy_ios(sim, address_v4::from_string("50.50.50.50"));
+	sim::asio::io_context web_server(sim, make_address_v4("10.0.0.2"));
+	sim::asio::io_context ios(sim, make_address_v4("10.0.0.1"));
+	sim::asio::io_context proxy_ios(sim, make_address_v4("50.50.50.50"));
 	lt::resolver res(ios);
 
 	sim::http_server http(web_server, 8080);
@@ -460,12 +460,12 @@ TORRENT_TEST(http_connection_timeout_server_stalls)
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 	// server has two ip addresses (ipv4/ipv6)
-	sim::asio::io_service server_ios(sim, address_v4::from_string("10.0.0.2"));
-	sim::asio::io_service server_ios_ipv6(sim, address_v6::from_string("ff::dead:beef"));
+	sim::asio::io_context server_ios(sim, make_address_v4("10.0.0.2"));
+	sim::asio::io_context server_ios_ipv6(sim, make_address_v6("ff::dead:beef"));
 	// same for client
-	sim::asio::io_service client_ios(sim, {
-		address_v4::from_string("10.0.0.1"),
-		address_v6::from_string("ff::abad:cafe")
+	sim::asio::io_context client_ios(sim, {
+		make_address_v4("10.0.0.1"),
+		make_address_v6("ff::abad:cafe")
 	});
 	lt::resolver resolver(client_ios);
 
@@ -504,14 +504,14 @@ TORRENT_TEST(http_connection_timeout_server_does_not_accept)
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 	// server has two ip addresses (ipv4/ipv6)
-	sim::asio::io_service server_ios(sim, {
-		address_v4::from_string("10.0.0.2"),
-		address_v6::from_string("ff::dead:beef")
+	sim::asio::io_context server_ios(sim, {
+		make_address_v4("10.0.0.2"),
+		make_address_v6("ff::dead:beef")
 	});
 	// same for client
-	sim::asio::io_service client_ios(sim, {
-		address_v4::from_string("10.0.0.1"),
-		address_v6::from_string("ff::abad:cafe")
+	sim::asio::io_context client_ios(sim, {
+		make_address_v4("10.0.0.1"),
+		make_address_v6("ff::abad:cafe")
 	});
 	lt::resolver resolver(client_ios);
 
@@ -554,8 +554,8 @@ void test_proxy_failure(lt::settings_pack::proxy_type_t proxy_type)
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 
-	sim::asio::io_service web_server(sim, address_v4::from_string("10.0.0.2"));
-	sim::asio::io_service ios(sim, address_v4::from_string("10.0.0.1"));
+	sim::asio::io_context web_server(sim, make_address_v4("10.0.0.2"));
+	sim::asio::io_context ios(sim, make_address_v4("10.0.0.1"));
 	lt::resolver res(ios);
 
 	sim::http_server http(web_server, 8080);
@@ -610,8 +610,8 @@ TORRENT_TEST(http_connection_ssl_proxy)
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 
-	sim::asio::io_service client_ios(sim, address_v4::from_string("10.0.0.1"));
-	sim::asio::io_service proxy_ios(sim, address_v4::from_string("50.50.50.50"));
+	sim::asio::io_context client_ios(sim, make_address_v4("10.0.0.1"));
+	sim::asio::io_context proxy_ios(sim, make_address_v4("50.50.50.50"));
 	lt::resolver res(client_ios);
 
 	sim::http_server http_proxy(proxy_ios, 4445);

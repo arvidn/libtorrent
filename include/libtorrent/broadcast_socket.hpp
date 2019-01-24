@@ -118,7 +118,7 @@ namespace libtorrent {
 			address_v4 broadcast_address() const
 			{
 				error_code ec;
-				return address_v4::broadcast(socket->local_endpoint(ec).address().to_v4(), netmask);
+				return make_network_v4(socket->local_endpoint(ec).address().to_v4(), netmask).broadcast();
 			}
 		};
 

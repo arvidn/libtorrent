@@ -2677,7 +2677,7 @@ namespace libtorrent {
 #ifdef TORRENT_CORRUPT_DATA
 		// corrupt all pieces from certain peers
 		if (is_v4(m_remote)
-			&& (m_remote.address().to_v4().to_ulong() & 0xf) == 0)
+			&& (m_remote.address().to_v4().to_uint() & 0xf) == 0)
 		{
 			data[0] = ~data[0];
 		}

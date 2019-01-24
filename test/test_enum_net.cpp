@@ -41,22 +41,22 @@ using namespace lt;
 TORRENT_TEST(is_local)
 {
 	error_code ec;
-	TEST_CHECK(is_local(address::from_string("192.168.0.1", ec)));
+	TEST_CHECK(is_local(make_address("192.168.0.1", ec)));
 	TEST_CHECK(!ec);
-	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
+	TEST_CHECK(is_local(make_address("10.1.1.56", ec)));
 	TEST_CHECK(!ec);
-	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
+	TEST_CHECK(!is_local(make_address("14.14.251.63", ec)));
 	TEST_CHECK(!ec);
 }
 
 TORRENT_TEST(is_loopback)
 {
 	error_code ec;
-	TEST_CHECK(is_loopback(address::from_string("127.0.0.1", ec)));
+	TEST_CHECK(is_loopback(make_address("127.0.0.1", ec)));
 	TEST_CHECK(!ec);
 	if (supports_ipv6())
 	{
-		TEST_CHECK(is_loopback(address::from_string("::1", ec)));
+		TEST_CHECK(is_loopback(make_address("::1", ec)));
 		TEST_CHECK(!ec);
 	}
 }
@@ -65,7 +65,7 @@ TORRENT_TEST(is_any)
 {
 	TEST_CHECK(is_any(address_v4::any()));
 	error_code ec;
-	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
+	TEST_CHECK(!is_any(make_address("31.53.21.64", ec)));
 	TEST_CHECK(!ec);
 	if (supports_ipv6())
 	{
@@ -78,21 +78,21 @@ TORRENT_TEST(match_addr_mask)
 {
 	error_code ec;
 	TEST_CHECK(match_addr_mask(
-		address::from_string("10.0.1.176", ec),
-		address::from_string("10.0.1.176", ec),
-		address::from_string("255.255.255.0", ec)));
+		make_address("10.0.1.176", ec),
+		make_address("10.0.1.176", ec),
+		make_address("255.255.255.0", ec)));
 	TEST_CHECK(!ec);
 
 	TEST_CHECK(match_addr_mask(
-		address::from_string("10.0.1.3", ec),
-		address::from_string("10.0.3.3", ec),
-		address::from_string("255.255.0.0", ec)));
+		make_address("10.0.1.3", ec),
+		make_address("10.0.3.3", ec),
+		make_address("255.255.0.0", ec)));
 	TEST_CHECK(!ec);
 
 	TEST_CHECK(!match_addr_mask(
-		address::from_string("10.0.1.3", ec),
-		address::from_string("10.1.3.3", ec),
-		address::from_string("255.255.0.0", ec)));
+		make_address("10.0.1.3", ec),
+		make_address("10.1.3.3", ec),
+		make_address("255.255.0.0", ec)));
 	TEST_CHECK(!ec);
 }
 

@@ -78,7 +78,7 @@ void http_connect_handler_test(http_connection& c)
 	std::cout << time_now_string() << " connected to: "
 		<< print_endpoint(c.socket().remote_endpoint(ec)) << std::endl;
 // this is not necessarily true when using a proxy and proxying hostnames
-//	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
+//	TEST_CHECK(c.socket().remote_endpoint(ec).address() == make_address("127.0.0.1", ec));
 }
 
 void http_handler_test(error_code const& ec, http_parser const& parser

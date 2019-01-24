@@ -73,7 +73,7 @@ namespace libtorrent {
 					|| (a6.to_bytes()[0] & 0xfe) == 0xfc;
 			}
 			address_v4 a4 = a.to_v4();
-			unsigned long ip = a4.to_ulong();
+			std::uint32_t const ip = a4.to_uint();
 			return ((ip & 0xff000000) == 0x0a000000 // 10.x.x.x
 				|| (ip & 0xfff00000) == 0xac100000 // 172.16.x.x
 				|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
@@ -98,7 +98,7 @@ namespace libtorrent {
 		if (addr.is_v4())
 			return addr.to_v4() == address_v4::any();
 		else if (addr.to_v6().is_v4_mapped())
-			return (addr.to_v6().to_v4() == address_v4::any());
+			return (make_address_v4(v4_mapped, addr.to_v6()) == address_v4::any());
 		else
 			return addr.to_v6() == address_v6::any();
 		} TORRENT_CATCH(std::exception const&) { return false; }

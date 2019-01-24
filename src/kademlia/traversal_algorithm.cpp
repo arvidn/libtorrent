@@ -195,7 +195,7 @@ void traversal_algorithm::add_entry(node_id const& id
 				{
 					// mask the lower octet
 					std::uint32_t const prefix4
-						= o->target_addr().to_v4().to_ulong() & 0xffffff00;
+						= o->target_addr().to_v4().to_uint() & 0xffffff00;
 
 					if (m_peer4_prefixes.insert(prefix4).second)
 						goto add_result;

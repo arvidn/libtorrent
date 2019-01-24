@@ -1028,9 +1028,8 @@ namespace {
 
 	std::string udp_error_alert::message() const
 	{
-		error_code ec;
 		return "UDP error: " + convert_from_native(error.message())
-			+ " from: " + endpoint.address().to_string(ec)
+			+ " from: " + endpoint.address().to_string()
 			+ " op: " + operation_name(operation);
 	}
 
@@ -1041,8 +1040,7 @@ namespace {
 
 	std::string external_ip_alert::message() const
 	{
-		error_code ec;
-		return "external IP received: " + external_address.to_string(ec);
+		return "external IP received: " + external_address.to_string();
 	}
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator&
@@ -1215,10 +1213,9 @@ namespace {
 
 	std::string dht_announce_alert::message() const
 	{
-		error_code ec;
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), "incoming dht announce: %s:%d (%s)"
-			, ip.to_string(ec).c_str(), port, aux::to_hex(info_hash).c_str());
+			, ip.to_string().c_str(), port, aux::to_hex(info_hash).c_str());
 		return msg;
 	}
 
