@@ -397,21 +397,21 @@ namespace aux {
 #endif
 #endif
 
-	session_impl::session_impl(io_context& ios, settings_pack const& pack
+	session_impl::session_impl(io_context& ioc, settings_pack const& pack
 		, disk_io_constructor_type disk_io_constructor)
 		: m_settings(pack)
-		, m_io_service(ios)
+		, m_io_context(ioc)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(boost::asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
 		, m_disk_thread(disk_io_constructor
-			? disk_io_constructor(m_io_service, m_stats_counters)
-			: default_disk_io_constructor(m_io_service, m_stats_counters))
+			? disk_io_constructor(m_io_context, m_stats_counters)
+			: default_disk_io_constructor(m_io_context, m_stats_counters))
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
-		, m_host_resolver(m_io_service)
+		, m_host_resolver(m_io_context)
 		, m_tracker_manager(
 			std::bind(&session_impl::send_udp_packet_listen, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::send_udp_packet_hostname_listen, this, _1, _2, _3, _4, _5, _6)
@@ -422,9 +422,9 @@ namespace aux {
 			, *this
 #endif
 			)
-		, m_work(new io_context::work(m_io_service))
+		, m_work(new io_context::work(m_io_context))
 #if TORRENT_USE_I2P
-		, m_i2p_conn(m_io_service)
+		, m_i2p_conn(m_io_context)
 #endif
 		, m_created(clock_type::now())
 		, m_last_tick(m_created)
@@ -432,24 +432,24 @@ namespace aux {
 		, m_last_choke(m_created)
 		, m_last_auto_manage(m_created)
 #ifndef TORRENT_DISABLE_DHT
-		, m_dht_announce_timer(m_io_service)
+		, m_dht_announce_timer(m_io_context)
 #endif
 		, m_utp_socket_manager(
 			std::bind(&session_impl::send_udp_packet, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::incoming_connection, this, _1)
-			, m_io_service
+			, m_io_context
 			, m_settings, m_stats_counters, nullptr)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_utp_socket_manager(
 			std::bind(&session_impl::send_udp_packet, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::on_incoming_utp_ssl, this, _1)
-			, m_io_service
+			, m_io_context
 			, m_settings, m_stats_counters
 			, &m_ssl_ctx)
 #endif
-		, m_timer(m_io_service)
-		, m_lsd_announce_timer(m_io_service)
-		, m_close_file_timer(m_io_service)
+		, m_timer(m_io_context)
+		, m_lsd_announce_timer(m_io_context)
+		, m_close_file_timer(m_io_context)
 	{
 		m_disk_thread->set_settings(&pack);
 	}
@@ -545,7 +545,7 @@ namespace aux {
 		}
 #endif
 
-		post(m_io_service, [this] { this->wrap(&session_impl::init); });
+		post(m_io_context, [this] { this->wrap(&session_impl::init); });
 	}
 
 	void session_impl::init()
@@ -568,7 +568,7 @@ namespace aux {
 		async_inc_threads();
 		add_outstanding_async("session_impl::on_tick");
 #endif
-		post(m_io_service, [this]{ this->wrap(&session_impl::on_tick, error_code()); });
+		post(m_io_context, [this]{ this->wrap(&session_impl::on_tick, error_code()); });
 
 		int const lsd_announce_interval
 			= m_settings.get_int(settings_pack::local_service_announce_interval);
@@ -919,7 +919,7 @@ namespace aux {
 		// shutdown_stage2 from there.
 		if (m_undead_peers.empty())
 		{
-			post(m_io_service, make_handler([this] { abort_stage2(); }
+			post(m_io_context, make_handler([this] { abort_stage2(); }
 				, m_abort_handler_storage, *this));
 		}
 	}
@@ -1069,7 +1069,7 @@ namespace aux {
 				use_ssl ? ssl_listen_port(ls) :
 #endif
 				listen_port(ls);
-			m_tracker_manager.queue_request(get_io_service(), std::move(req), c);
+			m_tracker_manager.queue_request(get_executor(), std::move(req), c);
 		}
 		else
 		{
@@ -1090,7 +1090,7 @@ namespace aux {
 				// them consistent and unique per torrent and interface
 				socket_req.key ^= ls->tracker_key;
 				socket_req.outgoing_socket = ls;
-				m_tracker_manager.queue_request(get_io_service(), std::move(socket_req), c);
+				m_tracker_manager.queue_request(get_executor(), std::move(socket_req), c);
 			}
 		}
 	}
@@ -1178,7 +1178,7 @@ namespace aux {
 	{
 		if (m_deferred_submit_disk_jobs) return;
 		m_deferred_submit_disk_jobs = true;
-		post(m_io_service, [this] { this->wrap(&session_impl::submit_disk_jobs); } );
+		post(m_io_context, [this] { this->wrap(&session_impl::submit_disk_jobs); } );
 	}
 
 	void session_impl::submit_disk_jobs()
@@ -1360,7 +1360,7 @@ namespace aux {
 		// separate function. At least most of it
 		if (ret->incoming == duplex::accept_incoming)
 		{
-			ret->sock = std::make_shared<tcp::acceptor>(m_io_service);
+			ret->sock = std::make_shared<tcp::acceptor>(m_io_context);
 			ret->sock->open(bind_ep.protocol(), ec);
 			last_op = operation_t::sock_open;
 			if (ec)
@@ -1556,7 +1556,7 @@ namespace aux {
 			: socket_type_t::udp;
 		udp::endpoint udp_bind_ep(bind_ep.address(), bind_ep.port());
 
-		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_service);
+		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_context);
 		ret->udp_sock->sock.open(udp_bind_ep.protocol(), ec);
 		if (ec)
 		{
@@ -1732,7 +1732,7 @@ namespace aux {
 			// enumerate all IPs associated with this device
 
 			// TODO: 3 only run this once in the caller
-			std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, err);
+			std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, err);
 			if (err)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1816,7 +1816,7 @@ namespace aux {
 			interface_to_endpoints(device, port, ssl, incoming, eps);
 		}
 
-		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
+		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
 		if (!ec)
 		{
 			expand_unspecified_address(ifs, eps);
@@ -2039,7 +2039,7 @@ namespace aux {
 			error_code ec;
 			udp::endpoint const udp_bind_ep(ep.addr, 0);
 
-			auto udp_sock = std::make_shared<outgoing_udp_socket>(m_io_service, ep.device, ep.ssl);
+			auto udp_sock = std::make_shared<outgoing_udp_socket>(m_io_context, ep.device, ep.ssl);
 			udp_sock->sock.open(udp_bind_ep.protocol(), ec);
 			if (ec)
 			{
@@ -2230,8 +2230,8 @@ namespace aux {
 
 		if (m_i2p_listen_socket) return;
 
-		m_i2p_listen_socket = std::make_shared<socket_type>(m_io_service);
-		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
+		m_i2p_listen_socket = std::make_shared<socket_type>(m_io_context);
+		bool ret = instantiate_connection(m_io_context, m_i2p_conn.proxy()
 			, *m_i2p_listen_socket, nullptr, nullptr, true, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
@@ -2513,7 +2513,7 @@ namespace aux {
 		, transport const ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
-		std::shared_ptr<socket_type> c = std::make_shared<socket_type>(m_io_service);
+		std::shared_ptr<socket_type> c = std::make_shared<socket_type>(m_io_context);
 		tcp::socket* str = nullptr;
 
 #ifdef TORRENT_USE_OPENSSL
@@ -2523,13 +2523,13 @@ namespace aux {
 			// use the generic m_ssl_ctx context. However, since it has
 			// the servername callback set on it, we will switch away from
 			// this context into a specific torrent once we start handshaking
-			c->instantiate<ssl_stream<tcp::socket>>(m_io_service, &m_ssl_ctx);
+			c->instantiate<ssl_stream<tcp::socket>>(m_io_context, &m_ssl_ctx);
 			str = &c->get<ssl_stream<tcp::socket>>()->next_layer();
 		}
 		else
 #endif
 		{
-			c->instantiate<tcp::socket>(m_io_service);
+			c->instantiate<tcp::socket>(m_io_context);
 			str = c->get<tcp::socket>();
 		}
 
@@ -2927,7 +2927,7 @@ namespace aux {
 			, &m_settings
 			, &m_stats_counters
 			, m_disk_thread.get()
-			, &m_io_service
+			, &m_io_context
 			, std::weak_ptr<torrent>()
 			, s
 			, endp
@@ -3155,7 +3155,7 @@ namespace aux {
 				// shut-down
 				if (m_abort)
 				{
-					post(m_io_service, std::bind(&session_impl::abort_stage2, this));
+					post(m_io_context, std::bind(&session_impl::abort_stage2, this));
 				}
 			}
 		}
@@ -4673,7 +4673,7 @@ namespace aux {
 				std::unique_ptr<add_torrent_params> holder2(params);
 				error_code ec;
 				params->ti = std::make_shared<torrent_info>(torrent_file_path, ec);
-				post(this->m_io_service, std::bind(&session_impl::on_async_load_torrent
+				post(this->m_io_context, std::bind(&session_impl::on_async_load_torrent
 					, this, params, ec));
 				holder2.release();
 			});
@@ -5027,7 +5027,7 @@ namespace aux {
 
 			if (ec) return bind_ep;
 
-			bind_ep.address(bind_socket_to_device(m_io_service, s
+			bind_ep.address(bind_socket_to_device(m_io_context, s
 				, remote_address.is_v4() ? tcp::v4() : tcp::v6()
 				, ifname.c_str(), bind_ep.port(), ec));
 			return bind_ep;
@@ -5085,7 +5085,7 @@ namespace aux {
 
 		// we didn't find the address as an IP in the interface list. Now,
 		// resolve which device (if any) has this IP address.
-		std::string const device = device_for_address(addr, m_io_service, ec);
+		std::string const device = device_for_address(addr, m_io_context, ec);
 		if (ec) return false;
 
 		// if no device was found to have this address, we fail
@@ -5529,7 +5529,7 @@ namespace aux {
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
-			s.natpmp_mapper = std::make_shared<natpmp>(m_io_service, *this);
+			s.natpmp_mapper = std::make_shared<natpmp>(m_io_context, *this);
 			s.natpmp_mapper->start(s.local_endpoint.address(), s.device);
 		}
 	}
@@ -5760,7 +5760,7 @@ namespace aux {
 		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
 		m_dht = std::make_shared<dht::dht_tracker>(
 			static_cast<dht::dht_observer*>(this)
-			, m_io_service
+			, m_io_context
 			, [=](aux::listen_socket_handle const& sock
 				, udp::endpoint const& ep
 				, span<char const> p
@@ -6337,7 +6337,7 @@ namespace aux {
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
 
-		post(m_io_service, [this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
+		post(m_io_context, [this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
 	}
 
 	void session_impl::on_trigger_auto_manage()
@@ -6612,7 +6612,7 @@ namespace aux {
 
 		if (m_ip_notifier) return;
 
-		m_ip_notifier = create_ip_notifier(m_io_service);
+		m_ip_notifier = create_ip_notifier(m_io_context);
 		m_ip_notifier->async_wait([this](error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
 	}
@@ -6623,7 +6623,7 @@ namespace aux {
 
 		if (m_lsd) return;
 
-		m_lsd = std::make_shared<lsd>(m_io_service, *this);
+		m_lsd = std::make_shared<lsd>(m_io_context, *this);
 		error_code ec;
 		m_lsd->start(ec);
 		if (ec && m_alerts.should_post<lsd_error_alert>())
@@ -6647,7 +6647,7 @@ namespace aux {
 		if (m_upnp) return m_upnp.get();
 
 		// the upnp constructor may fail and call the callbacks
-		m_upnp = std::make_shared<upnp>(m_io_service
+		m_upnp = std::make_shared<upnp>(m_io_context
 			, m_settings.get_bool(settings_pack::anonymous_mode)
 				? "" : m_settings.get_str(settings_pack::user_agent)
 			, *this

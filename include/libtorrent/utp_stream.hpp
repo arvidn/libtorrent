@@ -187,10 +187,8 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	using endpoint_type = tcp::socket::endpoint_type;
 	using protocol_type = tcp::socket::protocol_type;
 
-#if BOOST_VERSION >= 106600
 	using executor_type = tcp::socket::executor_type;
 	executor_type get_executor() { return m_io_service.get_executor(); }
-#endif
 
 	explicit utp_stream(io_context& io_context);
 	~utp_stream();
@@ -293,8 +291,6 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 
 	std::size_t available() const;
 	std::size_t available(error_code& /*ec*/) const { return available(); }
-
-	io_context& get_io_service() { return m_io_service; }
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)

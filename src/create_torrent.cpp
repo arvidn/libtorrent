@@ -331,7 +331,7 @@ namespace {
 #ifdef TORRENT_BUILD_SIMULATOR
 		sim.run();
 #else
-		ios.run(ec);
+		ios.run();
 #endif
 	}
 

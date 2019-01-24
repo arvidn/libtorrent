@@ -126,13 +126,7 @@ void run_until(io_context& ios, bool const& done)
 	while (!done)
 	{
 		ios.restart();
-		error_code ec;
-		ios.run_one(ec);
-		if (ec)
-		{
-			std::cout << "run_one: " << ec.message().c_str() << std::endl;
-			return;
-		}
+		ios.run_one();
 		std::cout << time_now_string() << " done: " << done << std::endl;
 	}
 }

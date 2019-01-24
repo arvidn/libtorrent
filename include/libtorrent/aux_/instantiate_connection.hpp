@@ -42,7 +42,7 @@ namespace libtorrent {
 namespace aux {
 
 	// instantiate a socket_type (s) according to the specified criteria
-	TORRENT_EXTRA_EXPORT bool instantiate_connection(io_context& ios
+	TORRENT_EXTRA_EXPORT bool instantiate_connection(io_context& exec
 		, aux::proxy_settings const& ps, aux::socket_type& s
 		, void* ssl_context
 		, utp_socket_manager* sm

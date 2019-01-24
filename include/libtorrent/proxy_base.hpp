@@ -63,10 +63,8 @@ public:
 		m_port = port;
 	}
 
-#if BOOST_VERSION >= 106600
 	using executor_type = tcp::socket::executor_type;
 	executor_type get_executor() { return m_sock.get_executor(); }
-#endif
 
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
@@ -242,11 +240,6 @@ public:
 	endpoint_type local_endpoint(error_code& ec) const
 	{
 		return m_sock.local_endpoint(ec);
-	}
-
-	io_context& get_io_service()
-	{
-		return m_sock.get_io_service();
 	}
 
 	lowest_layer_type& lowest_layer()

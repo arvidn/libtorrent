@@ -159,7 +159,7 @@ namespace aux {
 		virtual alert_manager& alerts() = 0;
 
 		virtual torrent_peer_allocator_interface& get_peer_allocator() = 0;
-		virtual io_context& get_io_service() = 0;
+		virtual io_context& get_context() = 0;
 		virtual resolver_interface& get_resolver() = 0;
 
 		virtual bool has_connection(peer_connection* p) const = 0;

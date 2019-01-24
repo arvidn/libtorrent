@@ -174,7 +174,7 @@ namespace libtorrent {
 		void post_dht_stats();
 
 		// internal
-		io_context& get_io_service();
+		io_context& get_executor();
 
 		// ``find_torrent()`` looks for a torrent with the given info-hash. In
 		// case there is such a torrent in the session, a torrent_handle to that

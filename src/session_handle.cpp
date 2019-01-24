@@ -81,7 +81,7 @@ namespace libtorrent {
 	{
 		std::shared_ptr<session_impl> s = m_impl.lock();
 		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
-		dispatch(s->get_io_service(), [=]() mutable
+		dispatch(s->get_context(), [=]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
@@ -111,7 +111,7 @@ namespace libtorrent {
 		bool done = false;
 
 		std::exception_ptr ex;
-		dispatch(s->get_io_service(), [=, &done, &ex]() mutable
+		dispatch(s->get_context(), [=, &done, &ex]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
@@ -143,7 +143,7 @@ namespace libtorrent {
 		bool done = false;
 		Ret r;
 		std::exception_ptr ex;
-		dispatch(s->get_io_service(), [=, &r, &done, &ex]() mutable
+		dispatch(s->get_context(), [=, &r, &done, &ex]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
@@ -217,11 +217,11 @@ namespace libtorrent {
 		async_call(&session_impl::post_dht_stats);
 	}
 
-	io_context& session_handle::get_io_service()
+	io_context& session_handle::get_executor()
 	{
 		std::shared_ptr<session_impl> s = m_impl.lock();
 		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
-		return s->get_io_service();
+		return s->get_context();
 	}
 
 	torrent_handle session_handle::find_torrent(sha1_hash const& info_hash) const

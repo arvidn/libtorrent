@@ -297,9 +297,9 @@ public:
 		return const_cast<sock_type&>(m_sock).next_layer().local_endpoint(ec);
 	}
 
-	io_context& get_io_service()
+	io_context& get_executor()
 	{
-		return m_sock.get_io_service();
+		return m_sock.get_executor();
 	}
 
 	lowest_layer_type& lowest_layer()
