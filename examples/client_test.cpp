@@ -87,6 +87,9 @@ using lt::seconds;
 using lt::operator""_sv;
 using lt::address_v4;
 using lt::address_v6;
+using lt::make_address_v6;
+using lt::make_address_v4;
+using lt::make_address;
 
 using std::chrono::duration_cast;
 
@@ -283,13 +286,12 @@ std::string make_absolute_path(std::string const& p)
 std::string print_endpoint(lt::tcp::endpoint const& ep)
 {
 	using namespace lt;
-	lt::error_code ec;
 	char buf[200];
 	address const& addr = ep.address();
 	if (addr.is_v6())
-		std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
+		std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string().c_str(), ep.port());
 	else
-		std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
+		std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string().c_str(), ep.port());
 	return buf;
 }
 
@@ -839,7 +841,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 					int peer_port = atoi(port);
 					error_code ec;
 					if (peer_port > 0)
-						h.connect_peer(tcp::endpoint(address::from_string(ip, ec), std::uint16_t(peer_port)));
+						h.connect_peer(tcp::endpoint(make_address(ip, ec), std::uint16_t(peer_port)));
 				}
 			}
 		}
@@ -1254,11 +1256,11 @@ example alert_masks:
 	if (rate_limit_locals)
 	{
 		lt::ip_filter pcf;
-		pcf.add_rule(address_v4::from_string("0.0.0.0")
-			, address_v4::from_string("255.255.255.255")
+		pcf.add_rule(make_address_v4("0.0.0.0")
+			, make_address_v4("255.255.255.255")
 			, 1 << static_cast<std::uint32_t>(lt::session::global_peer_class_id));
-		pcf.add_rule(address_v6::from_string("::")
-			, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
+		pcf.add_rule(make_address_v6("::")
+			, make_address_v6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
 		ses.set_peer_class_filter(pcf);
 	}
 

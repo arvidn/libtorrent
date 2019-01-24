@@ -104,14 +104,14 @@ TORRENT_TEST(address_to_from_string)
 	// make sure the assumption we use in peer list hold
 	std::multimap<address, int> peers;
 	std::multimap<address, int>::iterator i;
-	peers.insert(std::make_pair(address::from_string("::1", ec), 0));
-	peers.insert(std::make_pair(address::from_string("::2", ec), 3));
-	peers.insert(std::make_pair(address::from_string("::3", ec), 5));
-	i = peers.find(address::from_string("::2", ec));
+	peers.insert(std::make_pair(make_address("::1", ec), 0));
+	peers.insert(std::make_pair(make_address("::2", ec), 3));
+	peers.insert(std::make_pair(make_address("::3", ec), 5));
+	i = peers.find(make_address("::2", ec));
 	TEST_CHECK(i != peers.end());
 	if (i != peers.end())
 	{
-		TEST_CHECK(i->first == address::from_string("::2", ec));
+		TEST_CHECK(i->first == make_address("::2", ec));
 		TEST_CHECK(i->second == 3);
 	}
 }

@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/address.hpp>
+#include <boost/asio/ip/network_v4.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
 
@@ -56,21 +57,18 @@ namespace libtorrent {
 	using boost::asio::ip::address;
 	using boost::asio::ip::address_v4;
 	using boost::asio::ip::address_v6;
+	using boost::asio::ip::network_v4;
+	using boost::asio::ip::v4_mapped;
 #endif // SIMULATOR
 
-// the from_string member functions are deprecated starting
-// in boost 1.66.0
-#if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
+#if defined TORRENT_BUILD_SIMULATOR
+	using sim::asio::ip::make_address;
+	using sim::asio::ip::make_address_v4;
+	using sim::asio::ip::make_address_v6;
+#else
 	using boost::asio::ip::make_address;
 	using boost::asio::ip::make_address_v4;
 	using boost::asio::ip::make_address_v6;
-#else
-	inline address make_address(string_view str, boost::system::error_code& ec)
-	{ return address::from_string(str.data(), ec); }
-	inline address_v4 make_address_v4(string_view str, boost::system::error_code& ec)
-	{ return address_v4::from_string(str.data(), ec); }
-	inline address_v6 make_address_v6(string_view str, boost::system::error_code& ec)
-	{ return address_v6::from_string(str.data(), ec); }
 #endif
 }
 

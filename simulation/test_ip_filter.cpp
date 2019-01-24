@@ -55,7 +55,7 @@ void run_test(Setup const& setup
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	sim::asio::io_service ios(sim, asio::ip::address_v4::from_string("50.0.0.1"));
+	sim::asio::io_context ios(sim, asio::ip::make_address_v4("50.0.0.1"));
 	lt::session_proxy zombie;
 
 	// setup settings pack to use for the session (customization point)
@@ -104,8 +104,8 @@ void add_ip_filter(lt::session& ses)
 	lt::ip_filter filter;
 	// filter out 0-2 inclusive
 	filter.add_rule(
-		asio::ip::address_v4::from_string("60.0.0.0")
-		, asio::ip::address_v4::from_string("60.0.0.2")
+		asio::ip::make_address_v4("60.0.0.0")
+		, asio::ip::make_address_v4("60.0.0.2")
 		, lt::ip_filter::blocked);
 	ses.set_ip_filter(filter);
 }

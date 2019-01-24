@@ -1758,7 +1758,7 @@ namespace {
 				address_v6 ipv6_address(bytes);
 				if (ipv6_address.is_v4_mapped())
 					m_ses.set_external_address(local_endpoint()
-						, ipv6_address.to_v4()
+						, make_address_v4(v4_mapped, ipv6_address)
 						, aux::session_interface::source_peer, remote().address());
 				else
 					m_ses.set_external_address(local_endpoint()

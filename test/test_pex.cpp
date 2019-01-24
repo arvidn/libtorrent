@@ -106,8 +106,8 @@ void test_pex()
 	// in this test, ses1 is a seed, ses2 is connected to ses1 and ses3.
 	// the expected behavior is that ses2 will introduce ses1 and ses3 to each other
 	error_code ec;
-	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()));
-	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec), ses3.listen_port()));
+	tor2.connect_peer(tcp::endpoint(make_address("127.0.0.1", ec), ses1.listen_port()));
+	tor2.connect_peer(tcp::endpoint(make_address("127.0.0.1", ec), ses3.listen_port()));
 
 	torrent_status st1;
 	torrent_status st2;

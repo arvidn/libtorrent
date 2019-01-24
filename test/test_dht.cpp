@@ -3662,12 +3662,12 @@ TORRENT_TEST(dht_state)
 {
 	dht_state s;
 
-	s.nids.emplace_back(address::from_string("1.1.1.1"), to_hash("0000000000000000000000000000000000000001"));
+	s.nids.emplace_back(make_address("1.1.1.1"), to_hash("0000000000000000000000000000000000000001"));
 	s.nodes.push_back(uep("1.1.1.1", 1));
 	s.nodes.push_back(uep("2.2.2.2", 2));
 	// remove these for now because they will only get used if the host system has IPv6 support
 	// hopefully in the future we can rely on the test system supporting IPv6
-	//s.nids.emplace_back(address::from_string("1::1"), to_hash("0000000000000000000000000000000000000002"));
+	//s.nids.emplace_back(make_address("1::1"), to_hash("0000000000000000000000000000000000000002"));
 	//s.nodes6.push_back(uep("1::1", 3));
 	//s.nodes6.push_back(uep("2::2", 4));
 

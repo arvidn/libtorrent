@@ -60,7 +60,7 @@ namespace
 	ip_interface ifc(char const* ip, char const* device)
 	{
 		ip_interface ipi;
-		ipi.interface_address = address::from_string(ip);
+		ipi.interface_address = make_address(ip);
 		strncpy(ipi.name, device, sizeof(ipi.name));
 		return ipi;
 	}
@@ -69,21 +69,21 @@ namespace
 		, tp ssl = tp::plaintext
 		, std::string device = {})
 	{
-		return aux::listen_endpoint_t(address::from_string(ip), port, device, ssl);
+		return aux::listen_endpoint_t(make_address(ip), port, device, ssl);
 	}
 
 	aux::listen_endpoint_t ep(char const* ip, int port
 		, std::string device
 		, tp ssl = tp::plaintext)
 	{
-		return aux::listen_endpoint_t(address::from_string(ip), port, device, ssl);
+		return aux::listen_endpoint_t(make_address(ip), port, device, ssl);
 	}
 
 	std::shared_ptr<aux::listen_socket_t> sock(char const* ip, int const port
 		, int const original_port, char const* device = "")
 	{
 		auto s = std::make_shared<aux::listen_socket_t>();
-		s->local_endpoint = tcp::endpoint(address::from_string(ip)
+		s->local_endpoint = tcp::endpoint(make_address(ip)
 			, aux::numeric_cast<std::uint16_t>(port));
 		s->original_port = original_port;
 		s->device = device;
@@ -113,9 +113,9 @@ TORRENT_TEST(partition_listen_sockets_wildcard2specific)
 	TEST_EQUAL(eps.size(), 1);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(*sockets.front(), address_v4::from_string("4.4.4.4"), 6881, "", tp::plaintext);
+	test_equal(*sockets.front(), make_address_v4("4.4.4.4"), 6881, "", tp::plaintext);
 	test_equal(*sockets.back(), address_v4(), 6881, "", tp::plaintext);
-	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
+	test_equal(eps.front(), make_address_v4("4.4.4.5"), 6881, "", tp::plaintext);
 }
 
 TORRENT_TEST(partition_listen_sockets_port_change)
@@ -149,7 +149,7 @@ TORRENT_TEST(partition_listen_sockets_device_bound)
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(*sockets.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
+	test_equal(*sockets.front(), make_address_v4("4.4.4.5"), 6881, "", tp::plaintext);
 	test_equal(*sockets.back(), address_v4(), 6881, "", tp::plaintext);
 	TEST_EQUAL(eps.size(), 2);
 }
@@ -169,10 +169,10 @@ TORRENT_TEST(partition_listen_sockets_device_ip_change)
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(*sockets.front(), address_v4::from_string("10.10.10.10"), 6881, "enp3s0", tp::plaintext);
-	test_equal(*sockets.back(), address_v4::from_string("4.4.4.4"), 6881, "enp3s0", tp::plaintext);
+	test_equal(*sockets.front(), make_address_v4("10.10.10.10"), 6881, "enp3s0", tp::plaintext);
+	test_equal(*sockets.back(), make_address_v4("4.4.4.4"), 6881, "enp3s0", tp::plaintext);
 	TEST_EQUAL(eps.size(), 1);
-	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "enp3s0", tp::plaintext);
+	test_equal(eps.front(), make_address_v4("4.4.4.5"), 6881, "enp3s0", tp::plaintext);
 }
 
 TORRENT_TEST(partition_listen_sockets_original_port)

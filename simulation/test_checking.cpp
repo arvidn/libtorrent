@@ -58,8 +58,8 @@ void run_test(Setup const& setup, Test const& test)
 
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	auto ios = std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
-		sim, lt::address_v4::from_string("50.0.0.1")));
+	auto ios = std::unique_ptr<sim::asio::io_context>(new sim::asio::io_context(
+		sim, lt::make_address_v4("50.0.0.1")));
 	lt::session_proxy zombie;
 
 	// setup settings pack to use for the session (customization point)

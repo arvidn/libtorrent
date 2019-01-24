@@ -154,7 +154,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	torrent_handle h = s->add_torrent(addp);
 
 	std::printf("connect_peer: 127.0.0.1:%d\n", peer_port);
-	h.connect_peer({address_v4::from_string("127.0.0.1"), std::uint16_t(peer_port)});
+	h.connect_peer({make_address_v4("127.0.0.1"), std::uint16_t(peer_port)});
 
 	std::vector<std::string> accepted_trackers;
 
