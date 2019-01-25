@@ -908,7 +908,7 @@ namespace aux {
 
 			// keep the io_context alive until we have posted the job
 			// to clear the undead peers
-			std::unique_ptr<io_context::work> m_work;
+			executor_work_guard<io_context::executor_type> m_work;
 
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
@@ -1168,7 +1168,7 @@ namespace aux {
 			struct work_thread_t
 			{
 				work_thread_t()
-					: work(new boost::asio::io_context::work(ios))
+					: work(make_work_guard(ios))
 					, thread([this] { ios.run(); })
 				{}
 				~work_thread_t()
@@ -1180,7 +1180,7 @@ namespace aux {
 				work_thread_t& operator=(work_thread_t const&) = delete;
 
 				boost::asio::io_context ios;
-				std::unique_ptr<boost::asio::io_context::work> work;
+				executor_work_guard<io_context::executor_type> work;
 				std::thread thread;
 			};
 			std::unique_ptr<work_thread_t> m_torrent_load_thread;

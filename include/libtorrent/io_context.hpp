@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ts/io_context.hpp>
+#include <boost/asio/executor_work_guard.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
 
@@ -46,7 +47,8 @@ namespace libtorrent {
 #if defined TORRENT_BUILD_SIMULATOR
 	using io_context = sim::asio::io_context;
 #else
-	using io_context = boost::asio::io_context;
+	using boost::asio::io_context;
+	using boost::asio::executor_work_guard;
 #endif
 }
 

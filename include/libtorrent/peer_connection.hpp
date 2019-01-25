@@ -842,7 +842,7 @@ namespace aux {
 
 		// keep the io_context running as long as we
 		// have peer connections
-		io_context::work m_work;
+		executor_work_guard<io_context::executor_type> m_work;
 
 		// the time when we last got a part of a
 		// piece packet from this peer
