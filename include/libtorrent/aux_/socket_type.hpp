@@ -256,8 +256,8 @@ namespace aux {
 #endif
 
 		template <class SettableSocketOption>
-		error_code set_option(SettableSocketOption const& opt, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD_RET(set_option(opt, ec), ec) }
+		void set_option(SettableSocketOption const& opt, error_code& ec)
+		{ TORRENT_SOCKTYPE_FORWARD(set_option(opt, ec)) }
 
 		void non_blocking(bool b, error_code& ec)
 		{ TORRENT_SOCKTYPE_FORWARD(non_blocking(b, ec)) }
@@ -274,8 +274,8 @@ namespace aux {
 #endif
 
 		template <class GettableSocketOption>
-		error_code get_option(GettableSocketOption& opt, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD_RET(get_option(opt, ec), ec) }
+		void get_option(GettableSocketOption& opt, error_code& ec)
+		{ TORRENT_SOCKTYPE_FORWARD(get_option(opt, ec)) }
 
 		template <class S>
 		void instantiate(io_context& ios, void* userdata = nullptr)

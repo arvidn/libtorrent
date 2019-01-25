@@ -320,11 +320,12 @@ void http_connection::start(std::string const& hostname, int port
 				if (m_ssl_ctx)
 				{
 					m_own_ssl_context = true;
+					error_code ec;
 					m_ssl_ctx->set_verify_mode(ssl::context::verify_none, ec);
 					if (ec)
 					{
 						post(m_timer.get_executor(), std::bind(&http_connection::callback
-								, me, ec, span<char>{}));
+							, me, ec, span<char>{}));
 						return;
 					}
 				}
