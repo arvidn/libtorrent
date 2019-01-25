@@ -4266,8 +4266,7 @@ bool is_downloading_state(int const st)
 			m_peer_class = peer_class_t{0};
 		}
 
-		error_code ec;
-		m_inactivity_timer.cancel(ec);
+		m_inactivity_timer.cancel();
 
 #ifndef TORRENT_DISABLE_LOGGING
 		log_to_all_peers("aborting");
@@ -8782,12 +8781,11 @@ bool is_downloading_state(int const st)
 
 		// don't re-issue the timer if it's the same expiration time as last time
 		// if m_waiting_tracker is 0, expires_at() is undefined
-		if (m_waiting_tracker && m_tracker_timer.expires_at() == next_announce) return;
+		if (m_waiting_tracker && m_tracker_timer.expiry() == next_announce) return;
 
-		error_code ec;
 		auto self = shared_from_this();
 
-		m_tracker_timer.expires_at(next_announce, ec);
+		m_tracker_timer.expires_at(next_announce);
 		ADD_OUTSTANDING_ASYNC("tracker::on_tracker_announce");
 		++m_waiting_tracker;
 		m_tracker_timer.async_wait([self](error_code const& e)
@@ -8862,8 +8860,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(is_single_thread());
 		if (!m_announcing) return;
 
-		error_code ec;
-		m_tracker_timer.cancel(ec);
+		m_tracker_timer.cancel();
 
 		m_announcing = false;
 
@@ -9054,7 +9051,7 @@ bool is_downloading_state(int const st)
 			if (is_inactive != m_inactive && !m_pending_active_change)
 			{
 				int const delay = settings().get_int(settings_pack::auto_manage_startup);
-				m_inactivity_timer.expires_from_now(seconds(delay));
+				m_inactivity_timer.expires_after(seconds(delay));
 				m_inactivity_timer.async_wait([self](error_code const& ec) {
 					self->wrap(&torrent::on_inactivity_tick, ec); });
 				m_pending_active_change = true;
@@ -10596,10 +10593,10 @@ bool is_downloading_state(int const st)
 		st->download_payload_rate = m_stat.download_payload_rate();
 		st->upload_payload_rate = m_stat.upload_payload_rate();
 
-		if (is_paused() || m_tracker_timer.expires_at() < now)
+		if (is_paused() || m_tracker_timer.expiry() < now)
 			st->next_announce = seconds(0);
 		else
-			st->next_announce = m_tracker_timer.expires_at() - now;
+			st->next_announce = m_tracker_timer.expiry() - now;
 
 		if (st->next_announce.count() < 0)
 			st->next_announce = seconds(0);

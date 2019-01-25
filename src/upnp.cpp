@@ -192,7 +192,7 @@ void upnp::discover_device_impl()
 
 	ADD_OUTSTANDING_ASYNC("upnp::resend_request");
 	++m_retry_count;
-	m_broadcast_timer.expires_from_now(seconds(2 * m_retry_count), ec);
+	m_broadcast_timer.expires_after(seconds(2 * m_retry_count));
 	m_broadcast_timer.async_wait(std::bind(&upnp::resend_request
 		, self(), _1));
 
@@ -641,7 +641,7 @@ void upnp::on_reply(udp::endpoint const& from, span<char const> buffer)
 		// check back in in a little bit to see if we have seen any
 		// devices at one of our default routes. If not, we want to override
 		// ignoring them and use them instead (better than not working).
-		m_map_timer.expires_from_now(seconds(1), ec);
+		m_map_timer.expires_after(seconds(1));
 		m_map_timer.async_wait(std::bind(&upnp::map_timer, self(), _1));
 	}
 }
@@ -1108,10 +1108,9 @@ void upnp::disable(error_code const& ec)
 	// might be outstanding requests relying on
 	// the device entry being present when they
 	// complete
-	error_code e;
-	m_broadcast_timer.cancel(e);
-	m_refresh_timer.cancel(e);
-	m_map_timer.cancel(e);
+	m_broadcast_timer.cancel();
+	m_refresh_timer.cancel();
+	m_map_timer.cancel();
 	m_socket.close();
 }
 
@@ -1438,13 +1437,12 @@ void upnp::on_upnp_map_response(error_code const& e
 		{
 			m.expires = aux::time_now()
 				+ seconds(int(d.lease_duration * 0.75f));
-			time_point next_expire = m_refresh_timer.expires_at();
+			time_point next_expire = m_refresh_timer.expiry();
 			if (next_expire < aux::time_now()
 				|| next_expire > m.expires)
 			{
 				ADD_OUTSTANDING_ASYNC("upnp::on_expire");
-				error_code ec;
-				m_refresh_timer.expires_at(m.expires, ec);
+				m_refresh_timer.expires_at(m.expires);
 				m_refresh_timer.async_wait(std::bind(&upnp::on_expire, self(), _1));
 			}
 		}
@@ -1594,8 +1592,7 @@ void upnp::on_expire(error_code const& ec)
 	if (next_expire != max_time())
 	{
 		ADD_OUTSTANDING_ASYNC("upnp::on_expire");
-		error_code e;
-		m_refresh_timer.expires_at(next_expire, e);
+		m_refresh_timer.expires_at(next_expire);
 		m_refresh_timer.async_wait(std::bind(&upnp::on_expire, self(), _1));
 	}
 }
@@ -1604,10 +1601,9 @@ void upnp::close()
 {
 	TORRENT_ASSERT(is_single_thread());
 
-	error_code ec;
-	m_refresh_timer.cancel(ec);
-	m_broadcast_timer.cancel(ec);
-	m_map_timer.cancel(ec);
+	m_refresh_timer.cancel();
+	m_broadcast_timer.cancel();
+	m_map_timer.cancel();
 	m_closing = true;
 	m_socket.close();
 

@@ -534,7 +534,7 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::results_type ips
 		, std::bind(&socks5::on_connected, self(), _1));
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_connect_timeout");
-	m_timer.expires_from_now(seconds(10));
+	m_timer.expires_after(seconds(10));
 	m_timer.async_wait(std::bind(&socks5::on_connect_timeout
 		, self(), _1));
 }
@@ -759,7 +759,7 @@ void socks5::hung_up(error_code const& e)
 	if (e == boost::asio::error::operation_aborted || m_abort) return;
 
 	// the socks connection was closed, re-open it in a bit
-	m_retry_timer.expires_from_now(seconds(5));
+	m_retry_timer.expires_after(seconds(5));
 	m_retry_timer.async_wait(std::bind(&socks5::retry_socks_connect
 		, self(), _1));
 }

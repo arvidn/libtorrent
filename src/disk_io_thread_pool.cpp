@@ -160,7 +160,7 @@ namespace libtorrent {
 			// if this is the first thread started, start the reaper timer
 			if (m_threads.empty())
 			{
-				m_idle_timer.expires_from_now(reap_idle_threads_interval);
+				m_idle_timer.expires_after(reap_idle_threads_interval);
 				m_idle_timer.async_wait([this](error_code const& ec) { reap_idle_threads(ec); });
 			}
 
@@ -186,7 +186,7 @@ namespace libtorrent {
 		std::lock_guard<std::mutex> l(m_mutex);
 		if (m_abort) return;
 		if (m_threads.empty()) return;
-		m_idle_timer.expires_from_now(reap_idle_threads_interval);
+		m_idle_timer.expires_after(reap_idle_threads_interval);
 		m_idle_timer.async_wait([this](error_code const& e) { reap_idle_threads(e); });
 		int const min_idle = m_min_idle_threads.exchange(m_num_idle_threads);
 		if (min_idle <= 0) return;
