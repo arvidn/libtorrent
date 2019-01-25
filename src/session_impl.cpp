@@ -422,7 +422,7 @@ namespace aux {
 			, *this
 #endif
 			)
-		, m_work(new io_context::work(m_io_context))
+		, m_work(make_work_guard(m_io_context))
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_context)
 #endif

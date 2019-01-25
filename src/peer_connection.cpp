@@ -134,7 +134,7 @@ namespace libtorrent {
 		, m_remote(pack.endp)
 		, m_disk_thread(*pack.disk_thread)
 		, m_ios(*pack.ios)
-		, m_work(m_ios)
+		, m_work(make_work_guard(m_ios))
 		, m_outstanding_piece_verification(0)
 		, m_outgoing(!pack.tor.expired())
 		, m_received_listen_port(false)

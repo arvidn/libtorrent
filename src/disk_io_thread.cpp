@@ -217,7 +217,7 @@ private:
 			m_job_cond.notify_all();
 		}
 
-		void thread_fun(disk_io_thread_pool& pool, io_context::work work) override
+		void thread_fun(disk_io_thread_pool& pool, executor_work_guard<io_context::executor_type> work) override
 		{
 			ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
 			m_owner.thread_fun(*this, pool);

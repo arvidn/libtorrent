@@ -52,7 +52,7 @@ namespace libtorrent {
 		virtual ~pool_thread_interface() {}
 
 		virtual void notify_all() = 0;
-		virtual void thread_fun(disk_io_thread_pool&, io_context::work) = 0;
+		virtual void thread_fun(disk_io_thread_pool&, executor_work_guard<io_context::executor_type>) = 0;
 	};
 
 	// this class implements the policy for creating and destroying I/O threads
