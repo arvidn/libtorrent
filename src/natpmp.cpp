@@ -433,8 +433,8 @@ void natpmp::try_next_mapping(port_mapping_t const i)
 	{
 		if (m_abort)
 		{
+			m_send_timer.cancel();
 			error_code ec;
-			m_send_timer.cancel(ec);
 			m_socket.close(ec);
 		}
 		return;
@@ -450,8 +450,8 @@ void natpmp::update_mapping(port_mapping_t const i)
 	{
 		if (m_abort)
 		{
+			m_send_timer.cancel();
 			error_code ec;
-			m_send_timer.cancel(ec);
 			m_socket.close(ec);
 		}
 		return;
@@ -582,7 +582,7 @@ void natpmp::send_map_request(port_mapping_t const i)
 		ADD_OUTSTANDING_ASYNC("natpmp::resend_request");
 		// linear back-off instead of exponential
 		++m_retry_count;
-		m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+		m_send_timer.expires_after(milliseconds(250 * m_retry_count));
 		m_send_timer.async_wait(std::bind(&natpmp::on_resend_request, self(), i, _1));
 	}
 }
@@ -657,8 +657,7 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
-	error_code ec;
-	m_send_timer.cancel(ec);
+	m_send_timer.cancel();
 
 	if (bytes_transferred < 4)
 	{
@@ -849,7 +848,7 @@ void natpmp::on_reply(error_code const& e
 
 	m_currently_mapping = port_mapping_t{-1};
 	m->act = portmap_action::none;
-	m_send_timer.cancel(ec);
+	m_send_timer.cancel();
 	update_expiration_timer();
 	try_next_mapping(index);
 }
@@ -892,11 +891,10 @@ void natpmp::update_expiration_timer()
 		log("next expiration [ idx: %d ttl: %" PRId64 " ]"
 			, static_cast<int>(min_index), total_seconds(min_expire - aux::time_now()));
 #endif
-		error_code ec;
-		if (m_next_refresh >= port_mapping_t{}) m_refresh_timer.cancel(ec);
+		if (m_next_refresh >= port_mapping_t{}) m_refresh_timer.cancel();
 
 		ADD_OUTSTANDING_ASYNC("natpmp::mapping_expired");
-		m_refresh_timer.expires_from_now(min_expire - now, ec);
+		m_refresh_timer.expires_after(min_expire - now);
 		m_refresh_timer.async_wait(std::bind(&natpmp::mapping_expired, self(), _1, min_index));
 		m_next_refresh = min_index;
 	}
@@ -934,8 +932,7 @@ void natpmp::close_impl()
 		if (m.protocol == portmap_protocol::none) continue;
 		m.act = portmap_action::del;
 	}
-	error_code ec;
-	m_refresh_timer.cancel(ec);
+	m_refresh_timer.cancel();
 	m_currently_mapping = port_mapping_t{-1};
 	update_mapping(port_mapping_t{});
 }

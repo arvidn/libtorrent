@@ -574,12 +574,10 @@ namespace aux {
 			= m_settings.get_int(settings_pack::local_service_announce_interval);
 		int const delay = std::max(lsd_announce_interval
 			/ std::max(static_cast<int>(m_torrents.size()), 1), 1);
-		error_code ec;
-		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		m_lsd_announce_timer.expires_after(seconds(delay));
 		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
 		m_lsd_announce_timer.async_wait([this](error_code const& e) {
 			this->wrap(&session_impl::on_lsd_announce, e); } );
-		TORRENT_ASSERT(!ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" done starting session");
@@ -842,9 +840,9 @@ namespace aux {
 		stop_natpmp();
 #ifndef TORRENT_DISABLE_DHT
 		stop_dht();
-		m_dht_announce_timer.cancel(ec);
+		m_dht_announce_timer.cancel();
 #endif
-		m_lsd_announce_timer.cancel(ec);
+		m_lsd_announce_timer.cancel();
 
 		for (auto const& s : m_incoming_sockets)
 		{
@@ -3202,8 +3200,7 @@ namespace aux {
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
-		error_code ec;
-		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)), ec);
+		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)));
 		m_timer.async_wait(aux::make_handler([this](error_code const& err)
 		{ this->wrap(&session_impl::on_tick, err); }, m_tick_handler_storage, *this));
 
@@ -3584,8 +3581,7 @@ namespace aux {
 		if (m_dht_torrents.size() == 1)
 		{
 			ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
-			error_code ec;
-			m_dht_announce_timer.expires_from_now(seconds(0), ec);
+			m_dht_announce_timer.expires_after(seconds(0));
 			m_dht_announce_timer.async_wait([this](error_code const& err) {
 				this->wrap(&session_impl::on_dht_announce, err); });
 		}
@@ -3636,8 +3632,7 @@ namespace aux {
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
-		error_code ec;
-		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
+		m_dht_announce_timer.expires_after(seconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& err)
 			{ this->wrap(&session_impl::on_dht_announce, err); });
 
@@ -3682,8 +3677,7 @@ namespace aux {
 		// announce on local network every 5 minutes
 		int const delay = std::max(m_settings.get_int(settings_pack::local_service_announce_interval)
 			/ std::max(int(m_torrents.size()), 1), 1);
-		error_code ec;
-		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		m_lsd_announce_timer.expires_after(seconds(delay));
 		m_lsd_announce_timer.async_wait([this](error_code const& err) {
 			this->wrap(&session_impl::on_lsd_announce, err); });
 
@@ -6404,10 +6398,9 @@ namespace aux {
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
-		error_code ec;
 		int delay = std::max(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ std::max(int(m_torrents.size()), 1), 1);
-		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
+		m_dht_announce_timer.expires_after(seconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& e) {
 			this->wrap(&session_impl::on_dht_announce, e); });
 #endif
