@@ -215,7 +215,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	void non_blocking(bool) {}
 #endif
 
-	error_code non_blocking(bool, error_code&) { return error_code(); }
+	void non_blocking(bool, error_code&) {}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& /*endpoint*/) {}
@@ -229,7 +229,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 #endif
 
 	template <class SettableSocketOption>
-	error_code set_option(SettableSocketOption const&, error_code& ec) { return ec; }
+	void set_option(SettableSocketOption const&, error_code&) { }
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class GettableSocketOption>
@@ -237,13 +237,11 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 #endif
 
 	template <class GettableSocketOption>
-	error_code get_option(GettableSocketOption&, error_code& ec)
-	{ return ec; }
+	void get_option(GettableSocketOption&, error_code&) {}
 
-	error_code cancel(error_code&)
+	void cancel(error_code&)
 	{
 		cancel_handlers(boost::asio::error::operation_aborted);
-		return error_code();
 	}
 
 	void close();
