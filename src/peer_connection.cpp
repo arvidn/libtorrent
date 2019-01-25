@@ -5708,7 +5708,7 @@ namespace libtorrent {
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
 		auto conn = self();
 		m_socket->async_read_some(
-			boost::asio::mutable_buffers_1(vec.data(), std::size_t(vec.size())), make_handler(
+			boost::asio::mutable_buffer(vec.data(), std::size_t(vec.size())), make_handler(
 				std::bind(&peer_connection::on_receive_data, conn, _1, _2)
 				, m_read_handler_storage, *this));
 	}
@@ -5869,7 +5869,7 @@ namespace libtorrent {
 			{
 				span<char> const vec = m_recv_buffer.reserve(buffer_size);
 				std::size_t const bytes = m_socket->read_some(
-					boost::asio::mutable_buffers_1(vec.data(), std::size_t(vec.size())), ec);
+					boost::asio::mutable_buffer(vec.data(), std::size_t(vec.size())), ec);
 
 				// this is weird. You would imagine read_some() would do this
 				if (bytes == 0 && !ec) ec = boost::asio::error::eof;
