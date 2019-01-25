@@ -1069,7 +1069,7 @@ namespace aux {
 				use_ssl ? ssl_listen_port(ls) :
 #endif
 				listen_port(ls);
-			m_tracker_manager.queue_request(get_executor(), std::move(req), c);
+			m_tracker_manager.queue_request(get_context(), std::move(req), c);
 		}
 		else
 		{
@@ -1090,7 +1090,7 @@ namespace aux {
 				// them consistent and unique per torrent and interface
 				socket_req.key ^= ls->tracker_key;
 				socket_req.outgoing_socket = ls;
-				m_tracker_manager.queue_request(get_executor(), std::move(socket_req), c);
+				m_tracker_manager.queue_request(get_context(), std::move(socket_req), c);
 			}
 		}
 	}

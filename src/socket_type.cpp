@@ -317,8 +317,8 @@ namespace aux {
 		return names[m_type];
 	}
 
-	io_context& socket_type::get_executor() const
-	{ return m_io_service; }
+	io_context::executor_type socket_type::get_executor()
+	{ return m_io_service.get_executor(); }
 
 	socket_type::~socket_type()
 	{ destruct(); }

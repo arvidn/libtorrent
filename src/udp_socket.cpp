@@ -492,7 +492,7 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 	{
 		// connect to socks5 server and open up the UDP tunnel
 
-		m_socks5_connection = std::make_shared<socks5>(m_socket.get_executor().get_context());
+		m_socks5_connection = std::make_shared<socks5>(m_socket.get_executor().context());
 		m_socks5_connection->start(ps);
 	}
 }
