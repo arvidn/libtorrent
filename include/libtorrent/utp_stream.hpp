@@ -321,19 +321,12 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			return;
 		}
 		std::size_t bytes_added = 0;
-#if BOOST_VERSION >= 106600
 		for (auto i = buffer_sequence_begin(buffers)
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
-#else
-		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
-			, end(buffers.end()); i != end; ++i)
-#endif
 		{
-			if (buffer_size(*i) == 0) continue;
-			using boost::asio::buffer_cast;
-			using boost::asio::buffer_size;
-			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
-			bytes_added += buffer_size(*i);
+			if (i->size() == 0) continue;
+			add_read_buffer(i->data(), i->size());
+			bytes_added += i->size();
 		}
 		if (bytes_added == 0)
 		{
@@ -374,19 +367,12 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		size_t buf_size = 0;
 #endif
 
-#if BOOST_VERSION >= 106600
 		for (auto i = buffer_sequence_begin(buffers)
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
-#else
-		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
-			, end(buffers.end()); i != end; ++i)
-#endif
 		{
-			using boost::asio::buffer_cast;
-			using boost::asio::buffer_size;
-			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
+			add_read_buffer(i->data(), i->size());
 #if TORRENT_USE_ASSERTS
-			buf_size += buffer_size(*i);
+			buf_size += i->size();
 #endif
 		}
 		std::size_t ret = read_some(true);
@@ -444,19 +430,12 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		}
 
 		std::size_t bytes_added = 0;
-#if BOOST_VERSION >= 106600
 		for (auto i = buffer_sequence_begin(buffers)
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
-#else
-		for (typename Const_Buffers::const_iterator i = buffers.begin()
-			, end(buffers.end()); i != end; ++i)
-#endif
 		{
-			if (buffer_size(*i) == 0) continue;
-			using boost::asio::buffer_cast;
-			using boost::asio::buffer_size;
-			add_write_buffer(buffer_cast<void const*>(*i), buffer_size(*i));
-			bytes_added += buffer_size(*i);
+			if (i->size() == 0) continue;
+			add_write_buffer(i->data(), i->size());
+			bytes_added += i->size();
 		}
 		if (bytes_added == 0)
 		{

@@ -161,12 +161,11 @@ template <class T>
 int copy_buffers(T const& b, char* target)
 {
 	int copied = 0;
-	for (typename T::const_iterator i = b.begin()
-		, end(b.end()); i != end; ++i)
+	for (auto const& i : b)
 	{
-		memcpy(target, boost::asio::buffer_cast<char const*>(*i), boost::asio::buffer_size(*i));
-		target += boost::asio::buffer_size(*i);
-		copied += int(boost::asio::buffer_size(*i));
+		memcpy(target, i.data(), i.size());
+		target += i.size();
+		copied += int(i.size());
 	}
 	return copied;
 }
