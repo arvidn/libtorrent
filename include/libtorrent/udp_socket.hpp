@@ -61,7 +61,7 @@ namespace libtorrent {
 		static constexpr udp_send_flags_t dont_fragment = 3_bit;
 
 		bool is_open() const { return m_abort == false; }
-		udp::socket::executor_type& get_executor() { return m_socket.get_executor(); }
+		udp::socket::executor_type get_executor() { return m_socket.get_executor(); }
 
 		template <typename Handler>
 		void async_read(Handler&& h)

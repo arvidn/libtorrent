@@ -259,7 +259,7 @@ namespace libtorrent {
 		virtual void on_timeout(error_code const& ec) = 0;
 		virtual ~timeout_handler();
 
-		io_context::executor_type& get_executor() { return m_timeout.get_executor(); }
+		io_context::executor_type get_executor() { return m_timeout.get_executor(); }
 
 	private:
 

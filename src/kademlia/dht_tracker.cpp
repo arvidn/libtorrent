@@ -130,7 +130,7 @@ namespace libtorrent { namespace dht {
 		// must use piecewise construction because tracker_node::connection_timer
 		// is neither copyable nor movable
 		auto n = m_nodes.emplace(std::piecewise_construct_t(), std::forward_as_tuple(s)
-			, std::forward_as_tuple(m_key_refresh_timer.get_executor()
+			, std::forward_as_tuple(m_key_refresh_timer.get_executor().context()
 			, s, this, m_settings, nid, m_log, m_counters
 			, std::bind(&dht_tracker::get_node, this, _1, _2)
 			, m_storage));

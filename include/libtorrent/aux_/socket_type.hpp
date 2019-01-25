@@ -187,7 +187,7 @@ namespace aux {
 		explicit socket_type(io_context& ios): m_io_service(ios), m_type(0) {}
 		~socket_type();
 
-		io_context& get_io_service() const;
+		io_context::executor_type get_executor();
 		bool is_open() const;
 
 		char const* type_name() const;

@@ -173,8 +173,8 @@ bool is_downloading_state(int const st)
 		: torrent_hot_members(ses, p, session_paused)
 		, m_total_uploaded(p.total_uploaded)
 		, m_total_downloaded(p.total_downloaded)
-		, m_tracker_timer(ses.get_executor())
-		, m_inactivity_timer(ses.get_executor())
+		, m_tracker_timer(ses.get_context())
+		, m_inactivity_timer(ses.get_context())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
 #if TORRENT_ABI_VERSION == 1
@@ -717,7 +717,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(!m_url.empty());
 		TORRENT_ASSERT(!m_torrent_file->is_valid());
 		std::shared_ptr<http_connection> conn(
-			new http_connection(m_ses.get_executor()
+			new http_connection(m_ses.get_context()
 				, m_ses.get_resolver()
 				, std::bind(&torrent::on_torrent_download, shared_from_this()
 					, _1, _2, _3)
@@ -4555,7 +4555,7 @@ bool is_downloading_state(int const st)
 			// this gives the client a chance to specify multiple time-critical
 			// pieces before libtorrent cancels requests
 			auto self = shared_from_this();
-			post(m_ses.get_executor(), [self] { self->wrap(&torrent::cancel_non_critical); });
+			post(m_ses.get_context(), [self] { self->wrap(&torrent::cancel_non_critical); });
 		}
 
 		for (auto i = m_time_critical_pieces.begin()
@@ -5404,7 +5404,7 @@ bool is_downloading_state(int const st)
 			TORRENT_ASSERT_VAL(m_peers_to_disconnect.capacity() > m_peers_to_disconnect.size()
 				, m_peers_to_disconnect.capacity());
 			m_peers_to_disconnect.push_back(p);
-			m_deferred_disconnect.post_deferred(m_ses.get_executor(), aux::make_handler([=]()
+			m_deferred_disconnect.post_deferred(m_ses.get_context(), aux::make_handler([=]()
 			{
 				std::shared_ptr<torrent> t = weak_t.lock();
 				if (t) t->on_remove_peers();
@@ -5885,7 +5885,7 @@ bool is_downloading_state(int const st)
 			&& web->have_files.none_set()) return;
 
 		std::shared_ptr<aux::socket_type> s
-			= std::make_shared<aux::socket_type>(m_ses.get_executor());
+			= std::make_shared<aux::socket_type>(m_ses.get_context());
 		if (!s) return;
 
 		void* userdata = nullptr;
@@ -5897,7 +5897,7 @@ bool is_downloading_state(int const st)
 			if (!userdata) userdata = m_ses.ssl_ctx();
 		}
 #endif
-		bool ret = instantiate_connection(m_ses.get_executor(), m_ses.proxy()
+		bool ret = instantiate_connection(m_ses.get_context(), m_ses.proxy()
 			, *s, userdata, nullptr, true, false);
 		(void)ret;
 		TORRENT_ASSERT(ret);
@@ -5958,7 +5958,7 @@ bool is_downloading_state(int const st)
 			, &settings()
 			, &m_ses.stats_counters()
 			, &m_ses.disk_thread()
-			, &m_ses.get_executor()
+			, &m_ses.get_context()
 			, shared_from_this()
 			, s
 			, a
@@ -6452,7 +6452,7 @@ bool is_downloading_state(int const st)
 			|| !m_ip_filter
 			|| (m_ip_filter->access(peerinfo->address()) & ip_filter::blocked) == 0);
 
-		std::shared_ptr<aux::socket_type> s = std::make_shared<aux::socket_type>(m_ses.get_executor());
+		std::shared_ptr<aux::socket_type> s = std::make_shared<aux::socket_type>(m_ses.get_context());
 
 #if TORRENT_USE_I2P
 		bool const i2p = peerinfo->is_i2p_addr;
@@ -6471,7 +6471,7 @@ bool is_downloading_state(int const st)
 			// one. The main feature of a peer connection is that whether or not we
 			// proxy it is configurable. When we use i2p, we want to always prox
 			// everything via i2p.
-			bool const ret = instantiate_connection(m_ses.get_executor()
+			bool const ret = instantiate_connection(m_ses.get_context()
 				, m_ses.i2p_proxy(), *s, nullptr, nullptr, false, false);
 			(void)ret;
 			TORRENT_ASSERT(ret);
@@ -6521,7 +6521,7 @@ bool is_downloading_state(int const st)
 			}
 #endif
 
-			bool ret = instantiate_connection(m_ses.get_executor()
+			bool ret = instantiate_connection(m_ses.get_context()
 				, m_ses.proxy(), *s, userdata, sm, true, false);
 			(void)ret;
 			TORRENT_ASSERT(ret);
@@ -6554,7 +6554,7 @@ bool is_downloading_state(int const st)
 			, &settings()
 			, &m_ses.stats_counters()
 			, &m_ses.disk_thread()
-			, &m_ses.get_executor()
+			, &m_ses.get_context()
 			, shared_from_this()
 			, s
 			, a
