@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/add_torrent_params.hpp"
@@ -77,7 +77,7 @@ sim::route dsl_config::incoming_route(asio::ip::address ip)
 	auto it = m_incoming.find(ip);
 	if (it != m_incoming.end()) return sim::route().append(it->second);
 	it = m_incoming.insert(it, std::make_pair(ip, std::make_shared<queue>(
-		std::ref(m_sim->get_io_service())
+		m_sim->get_io_context()
 		, rate * 1000
 		, lt::duration_cast<duration>(milliseconds(rate / 2))
 		, 200 * 1000, "DSL modem in")));
@@ -91,7 +91,7 @@ sim::route dsl_config::outgoing_route(asio::ip::address ip)
 	auto it = m_outgoing.find(ip);
 	if (it != m_outgoing.end()) return sim::route().append(it->second);
 	it = m_outgoing.insert(it, std::make_pair(ip, std::make_shared<queue>(
-		std::ref(m_sim->get_io_service()), rate * 1000
+		m_sim->get_io_context(), rate * 1000
 		, lt::duration_cast<duration>(milliseconds(rate / 2)), 200 * 1000, "DSL modem out")));
 	return sim::route().append(it->second);
 }
@@ -259,11 +259,11 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
 	, std::function<bool(int, lt::session&)> terminate)
 {
-	asio::io_service ios(sim);
+	asio::io_context ios(sim);
 	lt::time_point start_time(lt::clock_type::now());
 
 	std::vector<std::shared_ptr<lt::session>> nodes;
-	std::vector<std::shared_ptr<sim::asio::io_service>> io_service;
+	std::vector<std::shared_ptr<sim::asio::io_context>> io_context;
 	std::vector<lt::session_proxy> zombies;
 	lt::deadline_timer timer(ios);
 
@@ -281,14 +281,14 @@ void setup_swarm(int num_nodes
 	// it's either a downloader or a seed
 	for (int i = 0; i < num_nodes; ++i)
 	{
-		// create a new io_service
+		// create a new io_context
 		std::vector<asio::ip::address> ips;
 		char ep[30];
 		std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 		ips.push_back(addr(ep));
 		std::snprintf(ep, sizeof(ep), "2000::%X%X", (i + 1) >> 8, (i + 1) & 0xff);
 		ips.push_back(addr(ep));
-		io_service.push_back(std::make_shared<sim::asio::io_service>(sim, ips));
+		io_context.push_back(std::make_shared<sim::asio::io_context>(sim, ips));
 
 		lt::settings_pack pack = default_settings;
 
@@ -299,7 +299,7 @@ void setup_swarm(int num_nodes
 		if (i == 0) new_session(pack);
 
 		std::shared_ptr<lt::session> ses =
-			std::make_shared<lt::session>(pack, *io_service.back());
+			std::make_shared<lt::session>(pack, *io_context.back());
 		init_session(*ses);
 		nodes.push_back(ses);
 
@@ -332,7 +332,7 @@ void setup_swarm(int num_nodes
 		ses->set_alert_notify([&, i]() {
 			// this function is called inside libtorrent and we cannot perform work
 			// immediately in it. We have to notify the outside to pull all the alerts
-			io_service[i]->post([&,i]()
+			post(*io_context[i], [&,i]()
 			{
 				lt::session* ses = nodes[i].get();
 
@@ -421,11 +421,11 @@ void setup_swarm(int num_nodes
 
 		++tick;
 
-		timer.expires_from_now(lt::seconds(1));
+		timer.expires_after(lt::seconds(1));
 		timer.async_wait(on_tick);
 	};
 
-	timer.expires_from_now(lt::seconds(1));
+	timer.expires_after(lt::seconds(1));
 	timer.async_wait(on_tick);
 
 	sim.run();

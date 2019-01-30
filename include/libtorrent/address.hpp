@@ -57,9 +57,11 @@ namespace libtorrent {
 	using boost::asio::ip::address;
 	using boost::asio::ip::address_v4;
 	using boost::asio::ip::address_v6;
-	using boost::asio::ip::network_v4;
-	using boost::asio::ip::v4_mapped;
 #endif // SIMULATOR
+
+	using boost::asio::ip::network_v4;
+	using boost::asio::ip::make_network_v4;
+	using boost::asio::ip::v4_mapped;
 
 #if defined TORRENT_BUILD_SIMULATOR
 	using sim::asio::ip::make_address;

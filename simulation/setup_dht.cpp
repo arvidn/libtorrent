@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/kademlia/dht_settings.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
@@ -90,24 +90,24 @@ struct dht_node final : lt::dht::socket_manager
 {
 	dht_node(sim::simulation& sim, lt::dht::dht_settings const& sett, lt::counters& cnt
 		, int const idx, std::uint32_t const flags)
-		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
+		: m_io_context(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
 		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))
 		, m_add_dead_nodes((flags & dht_network::add_dead_nodes) != 0)
 		, m_ipv6((flags & dht_network::bind_ipv6) != 0)
-		, m_socket(m_io_service)
-		, m_ls(sim_listen_socket(tcp::endpoint(m_io_service.get_ips().front(), 6881)))
-		, m_dht(m_ls, this, sett, id_from_addr(m_io_service.get_ips().front())
+		, m_socket(m_io_context)
+		, m_ls(sim_listen_socket(tcp::endpoint(m_io_context.get_ips().front(), 6881)))
+		, m_dht(m_ls, this, sett, id_from_addr(m_io_context.get_ips().front())
 			, nullptr, cnt
 			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
 			, *m_dht_storage)
 	{
-		m_dht_storage->update_node_ids({id_from_addr(m_io_service.get_ips().front())});
+		m_dht_storage->update_node_ids({id_from_addr(m_io_context.get_ips().front())});
 		sock().open(m_ipv6 ? asio::ip::udp::v6() : asio::ip::udp::v4());
 		sock().bind(asio::ip::udp::endpoint(
 			m_ipv6 ? lt::address(lt::address_v6::any()) : lt::address(lt::address_v4::any()), 6881));
 
 		sock().non_blocking(true);
-		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
+		sock().async_receive_from(asio::buffer(m_buffer.data(), m_buffer.size())
 			, m_ep, [&](lt::error_code const& ec, std::size_t bytes_transferred)
 				{ this->on_read(ec, bytes_transferred); });
 	}
@@ -136,7 +136,7 @@ struct dht_node final : lt::dht::socket_manager
 		// since the simulation is single threaded, we can get away with just
 		// allocating a single of these
 		static bdecode_node msg;
-		int const ret = bdecode(m_buffer, m_buffer + bytes_transferred, msg, err, &pos, 10, 500);
+		int const ret = bdecode(m_buffer.data(), m_buffer.data() + bytes_transferred, msg, err, &pos, 10, 500);
 		if (ret != 0) return;
 
 		if (msg.type() != bdecode_node::dict_t) return;
@@ -144,7 +144,7 @@ struct dht_node final : lt::dht::socket_manager
 		lt::dht::msg m(msg, m_ep);
 		dht().incoming(m_ls, m);
 
-		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
+		sock().async_receive_from(asio::buffer(m_buffer.data(), m_buffer.size())
 			, m_ep, [&](lt::error_code const& ec, std::size_t bytes_transferred)
 				{ this->on_read(ec, bytes_transferred); });
 	}
@@ -158,14 +158,14 @@ struct dht_node final : lt::dht::socket_manager
 
 		send_buf.clear();
 		bencode(std::back_inserter(send_buf), e);
-		sock().send_to(boost::asio::const_buffers_1(send_buf.data(), int(send_buf.size())), addr);
+		sock().send_to(boost::asio::const_buffer(send_buf.data(), send_buf.size()), addr);
 		return true;
 	}
 
 	// the node_id and IP address of this node
 	std::pair<dht::node_id, lt::udp::endpoint> node_info() const
 	{
-		return std::make_pair(dht().nid(), lt::udp::endpoint(m_io_service.get_ips().front(), 6881));
+		return std::make_pair(dht().nid(), lt::udp::endpoint(m_io_context.get_ips().front(), 6881));
 	}
 
 	void bootstrap(std::vector<std::pair<dht::node_id, lt::udp::endpoint>> const& nodes)
@@ -231,7 +231,7 @@ struct dht_node final : lt::dht::socket_manager
 	lt::dht::node const& dht() const { return m_dht; }
 
 private:
-	asio::io_service m_io_service;
+	asio::io_context m_io_context;
 	std::shared_ptr<dht::dht_storage_interface> m_dht_storage;
 	bool const m_add_dead_nodes;
 	bool const m_ipv6;
@@ -240,7 +240,7 @@ private:
 	std::shared_ptr<lt::aux::listen_socket_t> m_ls;
 	lt::dht::node m_dht;
 	lt::udp::endpoint m_ep;
-	char m_buffer[1300];
+	std::array<char, 1300> m_buffer;
 };
 
 dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flags)

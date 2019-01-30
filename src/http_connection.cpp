@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/io_context.hpp"
 
 #include <functional>
 #include <string>

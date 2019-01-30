@@ -85,12 +85,12 @@ void run_test(
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	sim::asio::io_service ios0 { sim, peer0 };
-	sim::asio::io_service ios1 { sim, peer1 };
+	sim::asio::io_context ios0 { sim, peer0 };
+	sim::asio::io_context ios1 { sim, peer1 };
 
 	lt::session_proxy zombie[2];
 
-	sim::asio::io_service proxy_ios{sim, proxy };
+	sim::asio::io_context proxy_ios{sim, proxy };
 	sim::socks_server socks4(proxy_ios, 4444, 4);
 	sim::socks_server socks5(proxy_ios, 5555, 5);
 

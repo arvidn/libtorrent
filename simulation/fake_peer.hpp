@@ -53,7 +53,7 @@ using namespace sim;
 struct fake_peer
 {
 	fake_peer(simulation& sim, char const* ip)
-		: m_ios(sim, asio::ip::address::from_string(ip))
+		: m_ioc(sim, asio::ip::make_address(ip))
 	{
 		boost::system::error_code ec;
 		m_acceptor.open(asio::ip::tcp::v4(), ec);
@@ -68,7 +68,7 @@ struct fake_peer
 			using namespace std::placeholders;
 			if (ec) return;
 
-			asio::async_read(m_socket, asio::mutable_buffers_1(&m_out_buffer[0], 68)
+			asio::async_read(m_socket, asio::buffer(m_out_buffer.data(), 68)
 				, std::bind(&fake_peer::read_handshake, this, _1, _2));
 
 			m_accepted = true;
@@ -149,11 +149,11 @@ private:
 			"                    " // space for info-hash
 			"aaaaaaaaaaaaaaaaaaaa"; // peer-id
 		int const len = sizeof(handshake) - 1;
-		memcpy(m_out_buffer, handshake, len);
+		memcpy(m_out_buffer.data(), handshake, len);
 		memcpy(&m_out_buffer[28], ih.data(), 20);
 
-		asio::async_write(m_socket, asio::const_buffers_1(&m_out_buffer[0]
-			, len), [this, ep](boost::system::error_code const& ec
+		asio::async_write(m_socket, asio::buffer(m_out_buffer.data(), len)
+			, [this, ep](boost::system::error_code const& ec
 			, size_t /* bytes_transferred */)
 		{
 			std::printf("fake_peer::write_handshake(%s) -> (%d) %s\n"
@@ -161,13 +161,12 @@ private:
 				, ec.message().c_str());
 			if (!m_send_buffer.empty())
 			{
-				asio::async_write(m_socket, asio::const_buffers_1(
-					m_send_buffer.data(), m_send_buffer.size())
+				asio::async_write(m_socket, asio::buffer(m_send_buffer)
 					, std::bind(&fake_peer::write_send_buffer, this, _1, _2));
 			}
 			else
 			{
-				asio::async_read(m_socket, asio::mutable_buffers_1(&m_out_buffer[0], 68)
+				asio::async_read(m_socket, asio::buffer(m_out_buffer.data(), 68)
 					, std::bind(&fake_peer::read_handshake, this, _1, _2));
 			}
 		});
@@ -185,7 +184,7 @@ private:
 			return;
 		}
 
-		if (memcmp(&m_out_buffer[0], "\x13" "BitTorrent protocol", 20) != 0)
+		if (memcmp(m_out_buffer.data(), "\x13" "BitTorrent protocol", 20) != 0)
 		{
 			std::printf("  invalid protocol specifier\n");
 			m_socket.close();
@@ -205,8 +204,7 @@ private:
 		m_connected = true;
 
 		// keep reading until we receie EOF, then set m_disconnected = true
-		m_socket.async_read_some(asio::mutable_buffers_1(&m_out_buffer[0]
-			, sizeof(m_out_buffer))
+		m_socket.async_read_some(asio::buffer(m_out_buffer)
 			, std::bind(&fake_peer::on_read, this, _1, _2));
 	}
 
@@ -224,8 +222,8 @@ private:
 			return;
 		}
 
-		m_socket.async_read_some(asio::mutable_buffers_1(&m_out_buffer[0]
-			, sizeof(m_out_buffer))
+		m_socket.async_read_some(asio::buffer(m_out_buffer.data()
+			, m_out_buffer.size())
 			, std::bind(&fake_peer::on_read, this, _1, _2));
 	}
 
@@ -237,15 +235,15 @@ private:
 		printf("fake_peer::write_send_buffer() -> (%d) %s\n"
 			, ec.value(), ec.message().c_str());
 
-		asio::async_read(m_socket, asio::mutable_buffers_1(&m_out_buffer[0], 68)
+		asio::async_read(m_socket, asio::buffer(m_out_buffer.data(), 68)
 			, std::bind(&fake_peer::read_handshake, this, _1, _2));
 	}
 
-	char m_out_buffer[300];
+	std::array<char, 300> m_out_buffer;
 
-	asio::io_service m_ios;
-	asio::ip::tcp::acceptor m_acceptor{m_ios};
-	asio::ip::tcp::socket m_socket{m_ios};
+	asio::io_context m_ioc;
+	asio::ip::tcp::acceptor m_acceptor{m_ioc};
+	asio::ip::tcp::socket m_socket{m_ioc};
 	lt::sha1_hash m_info_hash;
 
 	// set to true if this peer received an incoming connection
@@ -266,7 +264,7 @@ inline void add_fake_peer(lt::torrent_handle& h, int const i)
 	char ep[30];
 	std::snprintf(ep, sizeof(ep), "60.0.0.%d", i);
 	h.connect_peer(lt::tcp::endpoint(
-		lt::address_v4::from_string(ep), 6881));
+		asio::ip::make_address_v4(ep), 6881));
 }
 
 inline void add_fake_peers(lt::torrent_handle& h, int const n = 5)
@@ -282,7 +280,7 @@ struct udp_server
 {
 	udp_server(simulation& sim, char const* ip, int port
 		, std::function<std::vector<char>(char const*, int)> handler)
-		: m_ios(sim, asio::ip::address::from_string(ip))
+		: m_ioc(sim, asio::ip::make_address(ip))
 		, m_handler(handler)
 	{
 		boost::system::error_code ec;
@@ -296,7 +294,7 @@ struct udp_server
 
 		std::printf("udp_server::async_read_some\n");
 		using namespace std::placeholders;
-		m_socket.async_receive_from(boost::asio::buffer(m_in_buffer)
+		m_socket.async_receive_from(boost::asio::buffer(m_in_buffer.data(), m_in_buffer.size())
 			, m_from, 0, std::bind(&udp_server::on_read, this, _1, _2));
 	}
 
@@ -315,7 +313,7 @@ private:
 		if (!send_buffer.empty())
 		{
 			lt::error_code err;
-			m_socket.send_to(boost::asio::buffer(send_buffer), m_from, 0, err);
+			m_socket.send_to(boost::asio::buffer(send_buffer, send_buffer.size()), m_from, 0, err);
 			if (err)
 			{
 				std::printf("send_to FAILED: %s\n", err.message().c_str());
@@ -335,8 +333,8 @@ private:
 
 	std::array<char, 1500> m_in_buffer;
 
-	asio::io_service m_ios;
-	asio::ip::udp::socket m_socket{m_ios};
+	asio::io_context m_ioc;
+	asio::ip::udp::socket m_socket{m_ioc};
 	asio::ip::udp::endpoint m_from;
 
 	std::function<std::vector<char>(char const*, int)> m_handler;

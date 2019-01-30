@@ -1179,7 +1179,7 @@ namespace aux {
 				work_thread_t(work_thread_t const&) = delete;
 				work_thread_t& operator=(work_thread_t const&) = delete;
 
-				boost::asio::io_context ios;
+				io_context ios;
 				executor_work_guard<io_context::executor_type> work;
 				std::thread thread;
 			};
