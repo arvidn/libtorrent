@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_storage.hpp"
 #include "libtorrent/kademlia/dht_settings.hpp"
 
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/time.hpp"
 
@@ -100,14 +100,13 @@ void test_expiration(high_resolution_clock::duration const& expiry_time
 {
 	default_config cfg;
 	simulation sim(cfg);
-	sim::asio::io_service ios(sim, addr("10.0.0.1"));
+	sim::asio::io_context ios(sim, addr("10.0.0.1"));
 
 	sim::asio::high_resolution_timer timer(ios);
-	timer.expires_from_now(expiry_time);
+	timer.expires_after(expiry_time);
 	timer.async_wait(std::bind(&timer_tick, s.get(), c, _1));
 
-	boost::system::error_code ec;
-	sim.run(ec);
+	sim.run();
 }
 
 TORRENT_TEST(dht_storage_counters)
@@ -195,10 +194,10 @@ TORRENT_TEST(dht_storage_infohashes_sample)
 
 	default_config cfg;
 	simulation sim(cfg);
-	sim::asio::io_service ios(sim, addr("10.0.0.1"));
+	sim::asio::io_context ios(sim, addr("10.0.0.1"));
 
 	sim::asio::high_resolution_timer timer(ios);
-	timer.expires_from_now(hours(1)); // expiration of torrents
+	timer.expires_after(hours(1)); // expiration of torrents
 	timer.async_wait([&s](boost::system::error_code const&)
 	{
 		// tick here to trigger the torrents expiration
@@ -209,8 +208,7 @@ TORRENT_TEST(dht_storage_infohashes_sample)
 		TEST_EQUAL(r, 0);
 	});
 
-	boost::system::error_code ec;
-	sim.run(ec);
+	sim.run();
 }
 #else
 TORRENT_TEST(disabled) {}

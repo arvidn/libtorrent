@@ -78,11 +78,11 @@ TORRENT_TEST(dht_bootstrap)
 	pack.set_bool(lt::settings_pack::enable_upnp, false);
 	pack.set_bool(lt::settings_pack::enable_natpmp, false);
 	pack.set_bool(lt::settings_pack::enable_dht, true);
-	sim::asio::io_service ios(sim, addr("10.0.0.1"));
+	sim::asio::io_context ios(sim, addr("10.0.0.1"));
 	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, ios);
 
 	lt::deadline_timer timer(ios);
-	timer.expires_from_now(lt::seconds(10));
+	timer.expires_after(lt::seconds(10));
 	timer.async_wait([&](lt::error_code const&) {
 		zombies.push_back(ses->abort());
 		node.close();

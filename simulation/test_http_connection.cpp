@@ -406,11 +406,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 		, expect_status, expect_error, ps, &counters[connect_handler]
 		, &counters[handler]);
 
-	error_code e;
-	sim.run(e);
-
-	if (e) std::cerr << " run failed: " << e.message() << std::endl;
-	TEST_EQUAL(e, error_code());
+	sim.run();
 
 	TEST_EQUAL(counters.size(), expect_counters.size());
 	for (int i = 0; i < int(counters.size()); ++i)
@@ -489,9 +485,7 @@ TORRENT_TEST(http_connection_timeout_server_stalls)
 		, timed_out, lt::aux::proxy_settings()
 		, &connect_counter, &handler_counter);
 
-	error_code e;
-	sim.run(e);
-	TEST_CHECK(!e);
+	sim.run();
 	TEST_EQUAL(connect_counter, 2); // both endpoints are connected to
 	TEST_EQUAL(handler_counter, 1); // the handler only gets called once with error_code == timed_out
 }
@@ -541,9 +535,7 @@ TORRENT_TEST(http_connection_timeout_server_does_not_accept)
 		, timed_out, lt::aux::proxy_settings()
 		, &connect_counter, &handler_counter);
 
-	error_code e;
-	sim.run(e);
-	TEST_CHECK(!e);
+	sim.run();
 	TEST_EQUAL(connect_counter, 0); // no connection takes place
 	TEST_EQUAL(handler_counter, 1); // the handler only gets called once with error_code == timed_out
 }
@@ -582,11 +574,7 @@ void test_proxy_failure(lt::settings_pack::proxy_type_t proxy_type)
 		, error_condition(boost::system::errc::connection_refused, boost::system::generic_category())
 		, ps, &connect_counter, &handler_counter);
 
-	error_code e;
-	sim.run(e);
-
-	if (e) std::cerr << " run failed: " << e.message() << std::endl;
-	TEST_EQUAL(e, error_code());
+	sim.run();
 }
 
 // if we set up to user a proxy that does not exist, expect failure!
@@ -640,13 +628,10 @@ TORRENT_TEST(http_connection_ssl_proxy)
 
 	h->start("10.0.0.2", 8080, seconds(1), 0, &ps, true /*ssl*/);
 
-	error_code e;
-	sim.run(e);
+	sim.run();
 
 	TEST_EQUAL(client_counter, 1);
 	TEST_EQUAL(proxy_counter, 1);
-	if (e) std::cerr << " run failed: " << e.message() << std::endl;
-	TEST_EQUAL(e, error_code());
 }
 
 // TODO: test http proxy with password
