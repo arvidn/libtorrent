@@ -11,12 +11,10 @@ matrix:
         apt:
           packages:
           - python3-pip
-          - libboost1.58-all-dev
-          - libboost1.58-tools-dev
     - env: variant=test_debug tests=1 toolset=gcc-sanitizer
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
-    - env: dist=1 toolset=gcc
+    - env: dist=1 toolset=gcc install_boost=1
       addons:
         apt:
           packages:
@@ -25,10 +23,7 @@ matrix:
           - python-pil
           - python-aafigure
           - graphviz
-          - libboost-dev
-          - libboost-system-dev
-          - libboost-python-dev
-    - env: cmake=1 toolset=gcc
+    - env: cmake=1 toolset=gcc install_boost=1
       addons:
         apt:
           packages:
@@ -72,13 +67,21 @@ before_install:
   # on linux, pull down a recent version of boost and build boost-build
   - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
     cd ..;
-    wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.zip;
-    unzip -qq boost_1_64_0.zip;
-    export BOOST_ROOT=$PWD/boost_1_64_0;
-    (cd boost_1_64_0/tools/build/src/engine; ./build.sh);
-    export BOOST_BUILD_PATH=$BOOST_ROOT/tools/build;
-    export PATH=$BOOST_BUILD_PATH/src/engine/bin.linuxx86_64:$PATH;
-    cd libtorrent;
+    wget --quiet https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.zip;
+    unzip -qq boost_1_68_0.zip;
+    export BOOST_ROOT=$PWD/boost_1_68_0;
+    cd boost_1_68_0/;
+    ./bootstrap.sh;
+    if [[ "$install_boost" = "1" ]]; then
+      sudo ./b2 release install --with-python --with-system | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
+      cd tools/build/;
+      ./bootstrap.sh;
+      sudo ./b2 install --prefix=/usr/ | grep -v "^common.copy ";
+      cd ../../;
+      sudo ln -s /usr/local/lib/libboost_python27.so /usr/local/lib/libboost_python.so;
+    fi;
+    export PATH=$BOOST_ROOT:$PATH;
+    cd ../libtorrent;
     fi'
 
   - git submodule update --init --recursive
@@ -286,7 +289,7 @@ script:
       (cd $BOOST_ROOT; bjam -j2 stage);
       export CXX=g++-5 &&
       export CC=gcc-5 &&
-      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
+      BOOST_LIBRARYDIR=/usr/local/lib cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
       cmake --build . -- -j2;
     fi
   - cd ..
@@ -296,7 +299,7 @@ script:
       make dist &&
       cd libtorrent-rasterbar-1.1.2 &&
       make &&
-      make examples python-binding tools examples check;
+      make python-binding tools examples;
     fi
 
   - ccache --show-stats

@@ -3,23 +3,24 @@
   "targets": {
     "x86_64": {
       "buildenv": "xenial-amd64",
-      "builddeps": ["build-essential", "libssl-dev", "libboost-all-dev"],
+      "builddeps": ["build-essential", "libssl-dev", "curl"],
       "buildcmd": [
+        "curl -Ls https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz | tar xz",
+        "(cd boost_1_68_0 && ./bootstrap.sh)",
+        "",
         "echo \"using gcc : : g++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
         "cd simulation",
-        "bjam -j${PARALLEL} deprecated-functions=off",
-        "cd test",
-        "bjam -j${PARALLEL} deprecated-functions=off"
+        "BOOST_ROOT=${PWD}/../boost_1_68_0 ../boost_1_68_0/bjam --hash -j${PARALLEL}"
       ]
     },
     "macOS": {
       "buildenv": "osx",
       "buildcmd": [
-         "curl -Ls https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz | tar xz",
-         "(cd boost_1_68_0 && ./bootstrap.sh)",
-         "echo \"using darwin : : clang++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
-         "cd simulation",
-         "BOOST_ROOT=${PWD}/../boost_1_68_0 ../boost_1_68_0/bjam --hash -j${PARALLEL}"
+        "curl -Ls https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz | tar xz",
+        "(cd boost_1_68_0 && ./bootstrap.sh)",
+        "echo \"using darwin : : clang++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
+        "cd simulation",
+        "BOOST_ROOT=${PWD}/../boost_1_68_0 ../boost_1_68_0/bjam --hash -j${PARALLEL}"
       ]
     }
   }
