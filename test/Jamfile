@@ -154,7 +154,6 @@ run test_piece_picker.cpp ;
 run test_dht.cpp
 	test_dht_storage.cpp
 	test_direct_dht.cpp
-	test_hasher512.cpp
 	: : : <crypto>openssl:<library>/torrent//ssl
 	<crypto>openssl:<library>/torrent//crypto ;
 

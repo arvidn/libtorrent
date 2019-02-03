@@ -150,20 +150,24 @@ DOCS_PAGES = \
 
 ED25519_SOURCE = \
   readme.md \
-  test.c \
+  license.txt \
+  src/ed25519.h \
   src/fe.h \
   src/fixedint.h \
   src/ge.h \
   src/precomp_data.h \
   src/sc.h \
-  src/add_scalar.cpp \
-  src/fe.cpp \
-  src/ge.cpp \
-  src/key_exchange.cpp \
-  src/keypair.cpp \
-  src/sc.cpp \
-  src/sign.cpp \
-  src/verify.cpp
+  src/sha512.h \
+  src/add_scalar.c \
+  src/fe.c \
+  src/ge.c \
+  src/key_exchange.c \
+  src/keypair.c \
+  src/sc.c \
+  src/seed.c \
+  src/sha512.c \
+  src/sign.c \
+  src/verify.c
 
 EXTRA_DIST = \
   Jamfile \
@@ -318,7 +322,6 @@ SOURCES = \
   generate_peer_id.cpp            \
   gzip.cpp                        \
   hasher.cpp                      \
-  hasher512.cpp                   \
   hex.cpp                         \
   http_connection.cpp             \
   http_parser.cpp                 \
@@ -373,7 +376,6 @@ SOURCES = \
   settings_pack.cpp               \
   sha1.cpp                        \
   sha1_hash.cpp                   \
-  sha512.cpp                      \
   smart_ban.cpp                   \
   socket_io.cpp                   \
   socket_type.cpp                 \
@@ -446,7 +448,6 @@ HEADERS = \
   disk_job_pool.hpp            \
   disk_observer.hpp            \
   download_priority.hpp        \
-  ed25519.hpp                  \
   entry.hpp                    \
   enum_net.hpp                 \
   error.hpp                    \
@@ -459,7 +460,6 @@ HEADERS = \
   fwd.hpp                      \
   gzip.hpp                     \
   hasher.hpp                   \
-  hasher512.hpp                \
   heterogeneous_queue.hpp      \
   hex.hpp                      \
   http_connection.hpp          \
@@ -526,7 +526,6 @@ HEADERS = \
   settings_pack.hpp            \
   sha1.hpp                     \
   sha1_hash.hpp                \
-  sha512.hpp                   \
   sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
@@ -796,7 +795,6 @@ TEST_SOURCES = \
   test_generate_peer_id.cpp \
   test_gzip.cpp \
   test_hasher.cpp \
-  test_hasher512.cpp \
   test_heterogeneous_queue.cpp \
   test_http_connection.cpp \
   test_http_parser.cpp \
@@ -1008,7 +1006,7 @@ dist: FORCE
     $(addprefix simulation/libsimulator/test,${LIBSIM_TEST}) \
     $(addprefix simulation/libsimulator/include/simulator/,${LIBSIM_HEADERS}) \
     $(addprefix simulation/libsimulator/src/,${LIBSIM_SOURCES}) \
-    $(addprefix ed25519/,$(ED25519_SOURCE)) \
+    $(addprefix deps/ed25519/,$(ED25519_SOURCE)) \
     libtorrent-rasterbar-${VERSION}
 	tar -czf libtorrent-rasterbar-${VERSION}.tar.gz libtorrent-rasterbar-${VERSION}
 

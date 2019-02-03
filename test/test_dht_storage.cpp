@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
-#include "libtorrent/ed25519.hpp"
 #include "libtorrent/hex.hpp" // from_hex
 
 #include "libtorrent/kademlia/dht_storage.hpp"
@@ -46,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/item.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/kademlia/ed25519.hpp"
 
 #include <numeric>
 

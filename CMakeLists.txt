@@ -52,7 +52,6 @@ set(libtorrent_include_files
 	disk_job_pool
 	disk_observer
 	download_priority
-	ed25519
 	entry
 	enum_net
 	error
@@ -65,7 +64,6 @@ set(libtorrent_include_files
 	fwd
 	gzip
 	hasher
-	hasher512
 	heterogeneous_queue
 	hex
 	http_connection
@@ -131,7 +129,6 @@ set(libtorrent_include_files
 	settings_pack
 	sha1
 	sha1_hash
-	sha512
 	sliding_average
 	socket
 	socket_io
@@ -432,6 +429,8 @@ set(ed25519_sources
 	sc
 	sign
 	verify
+	seed
+	sha512
 )
 
 set(try_signal_sources
@@ -441,7 +440,7 @@ set(try_signal_sources
 
 list(TRANSFORM sources PREPEND "src/")
 list(TRANSFORM kademlia_sources PREPEND "src/kademlia/")
-list(TRANSFORM ed25519_sources PREPEND "ed25519/src/")
+list(TRANSFORM ed25519_sources PREPEND "deps/ed25519/src/")
 list(TRANSFORM libtorrent_include_files PREPEND "include/libtorrent/")
 list(TRANSFORM libtorrent_extensions_include_files PREPEND "include/libtorrent/extensions/")
 list(TRANSFORM libtorrent_aux_include_files PREPEND "include/libtorrent/aux_/")
@@ -680,13 +679,8 @@ if (dht)
 		${kademlia_sources}
 		${ed25519_sources}
 		${libtorrent_kademlia_include_files}
-		src/hasher512
 	)
-	target_include_directories(torrent-rasterbar PRIVATE ed25519/src)
-
-	if (NOT OpenSSL_FOUND AND NOT LibGcrypt_FOUND AND NOT WIN32 AND NOT APPLE)
-		target_sources(torrent-rasterbar PRIVATE src/sha512)
-	endif()
+	target_include_directories(torrent-rasterbar PRIVATE deps/ed25519/src)
 else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
 endif()

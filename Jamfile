@@ -301,16 +301,6 @@ rule building ( properties * )
 		&& ! <target-os>darwin in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
-		if <dht>on in $(properties)
-		{
-			result += <source>src/sha512.cpp ;
-		}
-	}
-
-	if <target-os>windows in $(properties)
-		&& <windows-version>xp in $(properties)
-	{
-		result += <source>src/sha512.cpp ;
 	}
 
 	if ( <toolset>darwin in $(properties)
@@ -750,6 +740,8 @@ ED25519_SOURCES =
 	key_exchange
 	keypair
 	sc
+	seed
+	sha512
 	sign
 	verify
 	;
@@ -788,7 +780,7 @@ lib torrent
 	src/$(SOURCES).cpp
 
 	: # requirements
-	<include>./ed25519/src
+	<include>./deps/ed25519/src
 	<threading>multi
 	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
@@ -796,8 +788,7 @@ lib torrent
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
-	<dht>on:<source>src/hasher512.cpp
+	<dht>on:<source>deps/ed25519/src/$(ED25519_SOURCES).c
 
 	<conditional>@building
 	<conditional>@warnings

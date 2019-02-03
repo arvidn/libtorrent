@@ -1,5 +1,5 @@
 {
-  "submodules": ["simulation/libsimulator", "deps/try_signal"],
+  "submodules": ["simulation/libsimulator", "deps/try_signal", "deps/ed25519"],
   "targets": {
     "x86_64": {
       "buildenv": "xenial-amd64",
