@@ -1427,9 +1427,9 @@ namespace libtorrent {
 		std::vector<std::shared_ptr<peer_connection>> m_peers_to_disconnect;
 		aux::deferred_handler m_deferred_disconnect;
 #ifdef _M_AMD64
-		aux::handler_storage<96> m_deferred_handler_storage;
+		aux::handler_storage<112> m_deferred_handler_storage;
 #else
-		aux::handler_storage<64> m_deferred_handler_storage;
+		aux::handler_storage<80> m_deferred_handler_storage;
 #endif
 
 		// these are the peer IDs we've used for our outgoing peer connections for
