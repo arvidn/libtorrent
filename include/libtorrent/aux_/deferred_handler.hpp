@@ -44,6 +44,7 @@ struct handler_wrapper
 	handler_wrapper(bool& in_flight, Handler&& h)
 		: m_handler(std::move(h))
 		, m_in_flight(in_flight) {}
+
 	template <typename... Args>
 	void operator()(Args&&... a)
 	{
@@ -52,18 +53,11 @@ struct handler_wrapper
 		m_handler(std::forward<Args>(a)...);
 	}
 
-	// forward asio handler allocator to the underlying handler's
-	friend void* asio_handler_allocate(
-		std::size_t size, handler_wrapper<Handler>* h)
-	{
-		return asio_handler_allocate(size, &h->m_handler);
-	}
+	// forward allocator to the underlying handler's
+	using allocator_type = typename Handler::allocator_type;
 
-	friend void asio_handler_deallocate(
-		void* ptr, std::size_t size, handler_wrapper<Handler>* h)
-	{
-		asio_handler_deallocate(ptr, size, &h->m_handler);
-	}
+	allocator_type get_allocator() const noexcept
+	{ return m_handler.get_allocator(); }
 
 private:
 	Handler m_handler;

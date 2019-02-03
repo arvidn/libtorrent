@@ -1203,9 +1203,9 @@ namespace aux {
 #if defined BOOST_ASIO_ENABLE_HANDLER_TRACKING
 			aux::handler_storage<100> m_abort_handler_storage;
 #elif defined _M_AMD64
-			aux::handler_storage<88> m_abort_handler_storage;
+			aux::handler_storage<104> m_abort_handler_storage;
 #else
-			aux::handler_storage<56> m_abort_handler_storage;
+			aux::handler_storage<72> m_abort_handler_storage;
 #endif
 
 			// torrents are announced on the local network in a
