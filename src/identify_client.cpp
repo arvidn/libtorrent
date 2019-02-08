@@ -171,6 +171,7 @@ namespace {
 		, {"ES", "electric sheep"}
 		, {"FC", "FileCroc"}
 		, {"FT", "FoxTorrent"}
+		, {"FW", "FrostWire"}
 		, {"FX", "Freebox BitTorrent"}
 		, {"GS", "GSTorrent"}
 		, {"HK", "Hekate"}
