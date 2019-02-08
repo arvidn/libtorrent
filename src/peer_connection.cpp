@@ -5616,7 +5616,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "ASYNC_WRITE", "bytes: %d", amount_to_send);
 #endif
-		std::vector<boost::asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
+		auto const vec = m_send_buffer.build_iovec(amount_to_send);
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_send_data");
 
 #if TORRENT_USE_ASSERTS

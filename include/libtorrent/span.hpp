@@ -121,6 +121,8 @@ namespace aux {
 		bool empty() const noexcept { return m_len == 0; }
 		T* data() const noexcept { return m_ptr; }
 
+		using const_iterator = T const*;
+		using const_reverse_iterator = std::reverse_iterator<T const*>;
 		using iterator = T*;
 		using reverse_iterator = std::reverse_iterator<T*>;
 
