@@ -5623,8 +5623,8 @@ namespace libtorrent {
 
 		auto conn = self();
 		m_socket->async_write_some(vec, make_handler(
-				std::bind(&peer_connection::on_send_data, conn, _1, _2)
-				, m_write_handler_storage, *this));
+			[conn](error_code const& ec, std::size_t transferred) { conn->on_send_data(ec, transferred); }
+			, m_write_handler_storage, *this));
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
 		m_last_sent = aux::time_now();
@@ -5709,7 +5709,7 @@ namespace libtorrent {
 		auto conn = self();
 		m_socket->async_read_some(
 			boost::asio::mutable_buffer(vec.data(), std::size_t(vec.size())), make_handler(
-				std::bind(&peer_connection::on_receive_data, conn, _1, _2)
+				[conn](error_code const& ec, std::size_t transferred) { conn->on_receive_data(ec, transferred); }
 				, m_read_handler_storage, *this));
 	}
 

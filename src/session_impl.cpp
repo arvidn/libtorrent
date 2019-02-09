@@ -1666,8 +1666,8 @@ namespace aux {
 		ret->udp_sock->sock.set_proxy_settings(proxy());
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
-		ret->udp_sock->sock.async_read(aux::make_handler(std::bind(&session_impl::on_udp_packet
-			, this, ret->udp_sock, ret, ret->ssl, _1)
+		ret->udp_sock->sock.async_read(aux::make_handler([this, ret](error_code const& e)
+			{ this->on_udp_packet(ret->udp_sock, ret, ret->ssl, e); }
 			, ret->udp_handler_storage, *this));
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2101,8 +2101,9 @@ namespace aux {
 			udp_sock->sock.set_proxy_settings(proxy());
 
 			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
-			udp_sock->sock.async_read(aux::make_handler(std::bind(&session_impl::on_udp_packet
-				, this, udp_sock, std::weak_ptr<listen_socket_t>(), ep.ssl, _1)
+			auto const ssl = ep.ssl;
+			udp_sock->sock.async_read(aux::make_handler([this, udp_sock, ssl](error_code const& e)
+				{ this->on_udp_packet(udp_sock, std::weak_ptr<listen_socket_t>(), ssl, e); }
 					, udp_sock->udp_handler_storage, *this));
 
 			if (!ec && udp_sock)
@@ -2502,9 +2503,9 @@ namespace aux {
 		mgr.socket_drained();
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
-		s->sock.async_read(make_handler(std::bind(&session_impl::on_udp_packet
-			, this, std::move(socket), std::move(ls), ssl, _1), s->udp_handler_storage
-				, *this));
+		s->sock.async_read(make_handler([this, socket, ls, ssl](error_code const& e)
+			{ this->on_udp_packet(std::move(socket), std::move(ls), ssl, e); }
+			, s->udp_handler_storage, *this));
 	}
 
 	void session_impl::async_accept(std::shared_ptr<tcp::acceptor> const& listener
