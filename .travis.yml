@@ -170,8 +170,8 @@ install:
       python3 -m flake8 --version;
     fi'
   - 'if [ $sonar_scan == "1" ]; then
-      wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.2.0.1227-linux.zip
-      wget https://sonarqube.com/static/cpp/build-wrapper-linux-x86.zip;
+      wget --quiet https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.2.0.1227-linux.zip
+      wget --quiet https://sonarqube.com/static/cpp/build-wrapper-linux-x86.zip;
       unzip sonar-scanner-cli-3.2.0.1227-linux.zip;
       unzip build-wrapper-linux-x86.zip;
       export PATH=$PWD/sonar-scanner-3.2.0.1227-linux/bin:$PWD/build-wrapper-linux-x86:$PATH;
@@ -183,12 +183,12 @@ install:
 
   - 'if [[ "$arch" == "arm" ]]; then
       cd test;
-      wget -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/armv8l-linux-gnueabihf/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf.tar.xz;
+      wget --quiet -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/armv8l-linux-gnueabihf/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf.tar.xz;
       tar xf gcc-linaro.tar.xz;
       export PATH=${PWD}/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
       armv8l-linux-gnueabihf-g++ --version;
       travis_retry sudo apt-get install -y qemu-user-static;
-      wget -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
+      wget --quiet -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
       sudo mkdir rootfs;
       sudo tar xf ubuntu-base.tar.gz -C rootfs;
       sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
