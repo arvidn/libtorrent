@@ -1,3 +1,6 @@
+	* requires boost >= 1.66 to build
+	* update networking API to networking TS compatible boost.asio
+
 1.2 release
 
 	* requires boost >= 1.58 to build
