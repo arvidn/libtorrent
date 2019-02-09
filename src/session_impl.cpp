@@ -195,6 +195,10 @@ namespace libtorrent {
 	std::deque<wakeup_t> _wakeups;
 	int _async_ops_nthreads = 0;
 	std::mutex _async_ops_mutex;
+
+	std::map<int, handler_alloc_t> _handler_storage;
+	std::mutex _handler_storage_mutex;
+	bool _handler_logger_registered = false;
 #endif
 
 namespace aux {

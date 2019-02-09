@@ -47,9 +47,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <map>
+#include <set>
 #include <cstring>
 #include <deque>
 #include <mutex>
+#include <algorithm>
 
 #ifdef __MACH__
 #include <mach/task_info.h>
@@ -153,14 +155,68 @@ namespace libtorrent {
 	{
 		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		int ret = 0;
-		for (std::map<std::string, async_t>::iterator i = _async_ops.begin()
-			, end(_async_ops.end()); i != end; ++i)
+		for (auto const& op : _async_ops)
 		{
-			if (i->second.refs <= _async_ops_nthreads - 1) continue;
-			ret += i->second.refs;
-			std::printf("%s: (%d)\n%s\n", i->first.c_str(), i->second.refs, i->second.stack.c_str());
+			if (op.second.refs <= _async_ops_nthreads - 1) continue;
+			ret += op.second.refs;
+			std::printf("%s: (%d)\n%s\n", op.first.c_str(), op.second.refs, op.second.stack.c_str());
 		}
 		return ret;
+	}
+
+	struct handler_alloc_t
+	{
+		std::size_t capacity;
+		std::set<std::pair<std::type_info const*, std::size_t>> allocations;
+	};
+	// defined in session_impl.cpp
+	extern std::map<int, handler_alloc_t> _handler_storage;
+	extern std::mutex _handler_storage_mutex;
+	extern bool _handler_logger_registered;
+
+	inline void log_handler_allocators() noexcept
+	{
+		static char const* const handler_names[] = {
+			"write_handler",
+			"read_handler",
+			"udp_handler",
+			"tick_handler",
+			"abort_handler",
+			"defer_handler",
+			"utp_handler"
+		};
+		std::lock_guard<std::mutex> l(_handler_storage_mutex);
+		std::printf("handler allocator storage:\n\n");
+		for (auto const& e : _handler_storage)
+		{
+			std::size_t allocated = 0;
+			std::string handler_name;
+			// pick the largest allocation, in case the storage was used for
+			// different handlers
+			for (auto const& a : e.second.allocations)
+			{
+				if (allocated >= a.second) continue;
+				allocated = a.second;
+				handler_name = demangle(e.second.allocations.begin()->first->name());
+			}
+
+			std::printf("%15s: capacity: %-3d allocated: %-3d handler: %s\n"
+				, handler_names[e.first], int(e.second.capacity), int(allocated), handler_name.c_str());
+		}
+	}
+
+	template <typename Handler>
+	void record_handler_allocation(int const type, std::size_t const capacity)
+	{
+		std::lock_guard<std::mutex> l(_handler_storage_mutex);
+		auto& e = _handler_storage[type];
+		e.capacity = capacity;
+		e.allocations.emplace(&typeid(Handler), sizeof(Handler));
+		if (!_handler_logger_registered)
+		{
+			std::atexit(&log_handler_allocators);
+			_handler_logger_registered = true;
+		}
 	}
 }
 

@@ -923,8 +923,8 @@ namespace aux {
 		// have sent to it
 		int m_outstanding_bytes = 0;
 
-		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
-		aux::handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
+		aux::handler_storage<aux::read_handler_max_size, aux::read_handler> m_read_handler_storage;
+		aux::handler_storage<aux::write_handler_max_size, aux::write_handler> m_write_handler_storage;
 
 		// these are pieces we have recently sent suggests for to this peer.
 		// it just serves as a queue to remember what we've sent, to avoid
