@@ -796,7 +796,7 @@ lib torrent
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
+	<dht>on:<source>src/ed25519/$(ED25519_SOURCES).cpp
 	<dht>on:<source>src/hasher512.cpp
 
 	<conditional>@building
