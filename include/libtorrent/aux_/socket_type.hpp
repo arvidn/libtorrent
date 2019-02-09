@@ -184,7 +184,7 @@ namespace aux {
 		using receive_buffer_size = tcp::socket::receive_buffer_size;
 		using send_buffer_size = tcp::socket::send_buffer_size;
 
-		explicit socket_type(io_context& ios): m_io_service(ios), m_type(0) {}
+		explicit socket_type(io_context& ios): m_io_context(ios), m_type(0) {}
 		~socket_type();
 
 		io_context::executor_type get_executor();
@@ -281,7 +281,7 @@ namespace aux {
 		void instantiate(io_context& ios, void* userdata = nullptr)
 		{
 			TORRENT_UNUSED(ios);
-			TORRENT_ASSERT(&ios == &m_io_service);
+			TORRENT_ASSERT(&ios == &m_io_context);
 			construct(socket_type_int_impl<S>::value, userdata);
 		}
 
@@ -305,7 +305,7 @@ namespace aux {
 		void destruct();
 		void construct(int type, void* userdata);
 
-		io_context& m_io_service;
+		io_context& m_io_context;
 		int m_type;
 
 		aux::aligned_union<1
