@@ -441,7 +441,7 @@ set(try_signal_sources
 
 list(TRANSFORM sources PREPEND "src/")
 list(TRANSFORM kademlia_sources PREPEND "src/kademlia/")
-list(TRANSFORM ed25519_sources PREPEND "ed25519/src/")
+list(TRANSFORM ed25519_sources PREPEND "src/ed25519/")
 list(TRANSFORM libtorrent_include_files PREPEND "include/libtorrent/")
 list(TRANSFORM libtorrent_extensions_include_files PREPEND "include/libtorrent/extensions/")
 list(TRANSFORM libtorrent_aux_include_files PREPEND "include/libtorrent/aux_/")

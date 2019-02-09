@@ -149,21 +149,19 @@ DOCS_PAGES = \
   docs/single-page-ref.html
 
 ED25519_SOURCE = \
-  readme.md \
-  test.c \
-  src/fe.h \
-  src/fixedint.h \
-  src/ge.h \
-  src/precomp_data.h \
-  src/sc.h \
-  src/add_scalar.cpp \
-  src/fe.cpp \
-  src/ge.cpp \
-  src/key_exchange.cpp \
-  src/keypair.cpp \
-  src/sc.cpp \
-  src/sign.cpp \
-  src/verify.cpp
+  fe.h \
+  fixedint.h \
+  ge.h \
+  precomp_data.h \
+  sc.h \
+  add_scalar.cpp \
+  fe.cpp \
+  ge.cpp \
+  key_exchange.cpp \
+  keypair.cpp \
+  sc.cpp \
+  sign.cpp \
+  verify.cpp
 
 EXTRA_DIST = \
   Jamfile \
@@ -1008,7 +1006,7 @@ dist: FORCE
     $(addprefix simulation/libsimulator/test,${LIBSIM_TEST}) \
     $(addprefix simulation/libsimulator/include/simulator/,${LIBSIM_HEADERS}) \
     $(addprefix simulation/libsimulator/src/,${LIBSIM_SOURCES}) \
-    $(addprefix ed25519/,$(ED25519_SOURCE)) \
+    $(addprefix src/ed25519/,$(ED25519_SOURCE)) \
     libtorrent-rasterbar-${VERSION}
 	tar -czf libtorrent-rasterbar-${VERSION}.tar.gz libtorrent-rasterbar-${VERSION}
 
