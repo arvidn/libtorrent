@@ -39,14 +39,74 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <type_traits>
 
+#ifdef TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
+#endif
+
 namespace libtorrent { namespace aux {
+
+#ifdef BOOST_ASIO_ENABLE_HANDLER_TRACKING
+	constexpr std::size_t tracking = 8;
+#else
+	constexpr std::size_t tracking = 0;
+#endif
+
+#ifdef _MSC_VER
+#ifdef TORRENT_USE_OPENSSL
+	constexpr std::size_t write_handler_max_size = tracking + 224;
+	constexpr std::size_t read_handler_max_size = tracking + 224;
+#else
+	constexpr std::size_t write_handler_max_size = tracking + 146;
+	constexpr std::size_t read_handler_max_size = tracking + 152;
+#endif
+	constexpr std::size_t udp_handler_max_size = tracking + 144;
+	constexpr std::size_t utp_handler_max_size = tracking + 168;
+	constexpr std::size_t tick_handler_max_size = tracking + 96;
+	constexpr std::size_t abort_handler_max_size = tracking + 104;
+	constexpr std::size_t deferred_handler_max_size = tracking + 112;
+#elif defined __clang__
+#ifdef TORRENT_USE_OPENSSL
+	constexpr std::size_t write_handler_max_size = tracking + 352;
+	constexpr std::size_t read_handler_max_size = tracking + 400;
+	constexpr std::size_t utp_handler_max_size = tracking + 136;
+	constexpr std::size_t udp_handler_max_size = tracking + 136;
+#else
+	constexpr std::size_t write_handler_max_size = tracking + 120;
+	constexpr std::size_t read_handler_max_size = tracking + 120;
+	constexpr std::size_t utp_handler_max_size = tracking + 120;
+	constexpr std::size_t udp_handler_max_size = tracking + 96;
+#endif
+	constexpr std::size_t tick_handler_max_size = tracking + 64;
+	constexpr std::size_t deferred_handler_max_size = tracking + 80;
+	constexpr std::size_t abort_handler_max_size = tracking + 72;
+#else
+#ifdef TORRENT_USE_OPENSSL
+	constexpr std::size_t write_handler_max_size = tracking + 248;
+	constexpr std::size_t read_handler_max_size = tracking + 240;
+	constexpr std::size_t utp_handler_max_size = tracking + 136;
+	constexpr std::size_t udp_handler_max_size = tracking + 136;
+#else
+	constexpr std::size_t write_handler_max_size = tracking + 120;
+	constexpr std::size_t read_handler_max_size = tracking + 152;
+	constexpr std::size_t utp_handler_max_size = tracking + 120;
+	constexpr std::size_t udp_handler_max_size = tracking + 96;
+#endif
+	constexpr std::size_t abort_handler_max_size = tracking + 72;
+	constexpr std::size_t deferred_handler_max_size = tracking + 80;
+	constexpr std::size_t tick_handler_max_size = tracking + 64;
+#endif
+
+	enum HandlerName
+	{
+		write_handler, read_handler, udp_handler, tick_handler, abort_handler, defer_handler, utp_handler
+	};
 
 	// this is meant to provide the actual storage for the handler allocator.
 	// There's only a single slot, so the allocator is only supposed to be used
 	// for handlers where there's only a single outstanding operation at a time,
 	// per storage object. For instance, peers only ever have one outstanding
 	// read operation at a time, so it can reuse its storage for read handlers.
-	template <std::size_t Size>
+	template <std::size_t Size, HandlerName Name>
 	struct handler_storage
 	{
 #if TORRENT_USE_ASSERTS
@@ -72,7 +132,7 @@ namespace libtorrent { namespace aux {
 	template <std::size_t V>
 	struct available_size { static std::size_t const value = V; };
 
-	template <typename Required, typename Available>
+	template <typename Required, typename Available, HandlerName Name>
 	struct assert_message
 	{
 		static_assert(Required::value <= Available::value
@@ -80,10 +140,10 @@ namespace libtorrent { namespace aux {
 		static std::size_t const value = Available::value;
 	};
 
-	template <typename T, std::size_t Size>
+	template <typename T, std::size_t Size, HandlerName Name>
 	struct handler_allocator
 	{
-		template <typename U, std::size_t S>
+		template <typename U, std::size_t S, HandlerName N>
 		friend struct handler_allocator;
 
 		using value_type = T;
@@ -98,20 +158,24 @@ namespace libtorrent { namespace aux {
 		struct rebind {
 			using other = handler_allocator<U
 				, assert_message<required_size<sizeof(U)>
-				, available_size<Size>>::value>;
+				, available_size<Size>, Name>::value, Name>;
 		};
 
-		explicit handler_allocator(handler_storage<Size>* s) : m_storage(s) {}
+		explicit handler_allocator(handler_storage<Size, Name>* s) : m_storage(s) {}
 		template <typename U>
-		handler_allocator(handler_allocator<U, Size> const& other) : m_storage(other.m_storage) {}
+		handler_allocator(handler_allocator<U, Size, Name> const& other) : m_storage(other.m_storage) {}
 
 		T* allocate(std::size_t size)
 		{
 			TORRENT_UNUSED(size);
-			TORRENT_ASSERT_VAL(size * sizeof(T) <= Size, size * sizeof(T));
-#if TORRENT_USE_ASSERTS
+			TORRENT_ASSERT_VAL(size == 1, size);
+			TORRENT_ASSERT_VAL(sizeof(T) <= Size, sizeof(T));
 			TORRENT_ASSERT(!m_storage->used);
+#if TORRENT_USE_ASSERTS
 			m_storage->used = true;
+#endif
+#ifdef TORRENT_ASIO_DEBUGGING
+			record_handler_allocation<T>(static_cast<int>(Name), Size);
 #endif
 			return reinterpret_cast<T*>(&m_storage->bytes);
 		}
@@ -121,26 +185,28 @@ namespace libtorrent { namespace aux {
 			TORRENT_UNUSED(ptr);
 			TORRENT_UNUSED(size);
 
-			TORRENT_ASSERT_VAL(size * sizeof(T) <= Size, size * sizeof(T));
+			TORRENT_ASSERT_VAL(size == 1, size);
+			TORRENT_ASSERT_VAL(sizeof(T) <= Size, sizeof(T));
 			TORRENT_ASSERT(ptr == reinterpret_cast<T*>(&m_storage->bytes));
+			TORRENT_ASSERT(m_storage->used);
 #if TORRENT_USE_ASSERTS
 			m_storage->used = false;
 #endif
 		}
 
 	private:
-		handler_storage<Size>* m_storage;
+		handler_storage<Size, Name>* m_storage;
 	};
 
 	// this class is a wrapper for an asio handler object. Its main purpose
 	// is to pass along additional parameters to the asio handler allocator
 	// function, as well as providing a distinct type for the handler
 	// allocator function to overload on
-	template <class Handler, std::size_t Size>
+	template <class Handler, std::size_t Size, HandlerName Name>
 	struct allocating_handler
 	{
 		allocating_handler(
-			Handler h, handler_storage<Size>* s, error_handler_interface* eh)
+			Handler h, handler_storage<Size, Name>* s, error_handler_interface* eh)
 			: handler(std::move(h))
 			, storage(s)
 #ifndef BOOST_NO_EXCEPTIONS
@@ -176,7 +242,7 @@ namespace libtorrent { namespace aux {
 #endif
 		}
 
-		using allocator_type = handler_allocator<allocating_handler<Handler, Size>, Size>;
+		using allocator_type = handler_allocator<allocating_handler<Handler, Size, Name>, Size, Name>;
 
 		allocator_type get_allocator() const noexcept
 		{ return allocator_type{storage}; }
@@ -184,19 +250,19 @@ namespace libtorrent { namespace aux {
 	private:
 
 		Handler handler;
-		handler_storage<Size>* storage;
+		handler_storage<Size, Name>* storage;
 #ifndef BOOST_NO_EXCEPTIONS
 		error_handler_interface* error_handler;
 #endif
 	};
 
-	template <class Handler, size_t Size>
-	aux::allocating_handler<Handler, Size>
+	template <class Handler, size_t Size, HandlerName Name>
+	aux::allocating_handler<Handler, Size, Name>
 	make_handler(Handler handler
-		, handler_storage<Size>& storage
+		, handler_storage<Size, Name>& storage
 		, error_handler_interface& err_handler)
 	{
-		return aux::allocating_handler<Handler, Size>(
+		return aux::allocating_handler<Handler, Size, Name>(
 			std::forward<Handler>(handler), &storage, &err_handler);
 	}
 }

@@ -57,7 +57,7 @@ namespace libtorrent { namespace aux {
 
 		// since udp packets are expected to be dispatched frequently, this saves
 		// time on handler allocation every time we read again.
-		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> udp_handler_storage;
+		aux::handler_storage<aux::utp_handler_max_size, utp_handler> udp_handler_storage;
 
 		// this is true when the udp socket send() has failed with EAGAIN or
 		// EWOULDBLOCK. i.e. we're currently waiting for the socket to become

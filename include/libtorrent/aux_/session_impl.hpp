@@ -201,7 +201,7 @@ namespace aux {
 
 		// since udp packets are expected to be dispatched frequently, this saves
 		// time on handler allocation every time we read again.
-		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> udp_handler_storage;
+		aux::handler_storage<aux::udp_handler_max_size, aux::udp_handler> udp_handler_storage;
 
 		std::shared_ptr<natpmp> natpmp_mapper;
 
@@ -1197,16 +1197,10 @@ namespace aux {
 
 			// the timer used to fire the tick
 			deadline_timer m_timer;
-			aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_tick_handler_storage;
+			aux::handler_storage<aux::tick_handler_max_size, aux::tick_handler> m_tick_handler_storage;
 
 			// abort may not fail and cannot allocate memory
-#if defined BOOST_ASIO_ENABLE_HANDLER_TRACKING
-			aux::handler_storage<100> m_abort_handler_storage;
-#elif defined _M_AMD64
-			aux::handler_storage<104> m_abort_handler_storage;
-#else
-			aux::handler_storage<72> m_abort_handler_storage;
-#endif
+			aux::handler_storage<aux::abort_handler_max_size, aux::abort_handler> m_abort_handler_storage;
 
 			// torrents are announced on the local network in a
 			// round-robin fashion. All torrents are cycled through

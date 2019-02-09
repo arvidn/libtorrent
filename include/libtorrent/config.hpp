@@ -471,24 +471,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_AUTO_RETURN_TYPES 0
 #endif
 
-#if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
-# if defined _GLIBCXX_DEBUG || !defined NDEBUG
-constexpr std::size_t TORRENT_READ_HANDLER_MAX_SIZE = 416;
-# else
-// if this is not divisible by 8, we're wasting space
-constexpr std::size_t TORRENT_READ_HANDLER_MAX_SIZE = 342;
-# endif
-#endif
-
-#if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
-# if defined _GLIBCXX_DEBUG || !defined NDEBUG
-constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 416;
-# else
-// if this is not divisible by 8, we're wasting space
-constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
-# endif
-#endif
-
 #if defined __GNUC__
 #define TORRENT_FUNCTION __PRETTY_FUNCTION__
 #else
