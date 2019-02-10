@@ -38,6 +38,8 @@ namespace libtorrent
 {
 	namespace
 	{
+		time_duration min_request_interval = seconds(3);
+
 		// used as a flag in m_piece_hash_requested to indicate that all of the hashes
 		// for an entry where loaded from disk so we don't know where we originaly got them
 		torrent_peer* const source_unknown = reinterpret_cast<torrent_peer*>(-1);
@@ -109,7 +111,7 @@ namespace libtorrent
 
 			if (m_files.file_size(f) > m_files.piece_length())
 			{
-				m_piece_hash_requested[f].resize((m_files.file_num_pieces(f) + 511) / 512, nullptr);
+				m_piece_hash_requested[f].resize((m_files.file_num_pieces(f) + 511) / 512);
 			}
 			else
 			{
@@ -126,7 +128,7 @@ namespace libtorrent
 				{
 					if (j == (i + 1) * 512 || j >= m_files.file_num_pieces(f))
 					{
-						m_piece_hash_requested[f][i] = source_unknown;
+						m_piece_hash_requested[f][i].have = true;
 						break;
 					}
 					if ((m_files.piece_length() == default_block_size && !m_hash_verified[f][j])
@@ -151,58 +153,45 @@ namespace libtorrent
 		}
 	}
 
-	std::vector<hash_request> hash_picker::pick_hashes(typed_bitfield<piece_index_t> const& pieces
-		, int num_blocks, peer_connection_interface* peer)
+	hash_request hash_picker::pick_hashes(typed_bitfield<piece_index_t> const& pieces
+		, peer_connection_interface* peer)
 	{
-		std::vector<hash_request> ret;
-		// convert from 16KB blocks to 32 byte hashes
-		int num_hashes = num_blocks * 512;
+		auto now = aux::time_now();
 
-		for (piece_index_t p : m_priority_pieces)
+		if (!m_priority_block_requests.empty())
 		{
-			if (!pieces[p]) continue;
-
-			int const fidx = m_files.file_index_at_offset(p * m_files.piece_length());
-			int const piece_idx = (int(p) - m_files.file_offset(fidx) / m_files.piece_length()) / 512;
-			int const piece_tree_root_layer = std::max(0, file_num_layers(fidx) - m_piece_tree_root_layer);
-
-			int piece_tree_root = merkle_to_flat_index(piece_tree_root_layer, piece_idx);
-
-			ret.emplace_back(fidx
-				, m_piece_layer
-				, piece_idx * 512
-				, std::min(512, int(m_files.file_num_pieces(fidx) - piece_idx * 512))
-				, layers_to_verify({ fidx, piece_tree_root }) + m_piece_tree_root_layer);
-
-			m_piece_hash_requested[fidx][piece_idx] = peer->peer_info_struct();
-
-			num_hashes -= ret.back().count;
-
-			if (num_hashes <= 0)
-				return ret;
+			auto& req = m_priority_block_requests.front();
+			node_index const nidx(req.file, m_files.file_first_block_node(req.file) + req.block);
+			hash_request hash_req(req.file
+				, 0
+				, req.block
+				, 2
+				, layers_to_verify(nidx));
+			m_priority_block_requests.front().num_requests++;
+			std::sort(m_priority_block_requests.begin(), m_priority_block_requests.end());
+			return hash_req;
 		}
 
-		for (chunks_request p : m_chunk_requests)
+		if (!m_piece_block_requests.empty())
 		{
-			if (p.peer != nullptr) continue;
-			if (!pieces[p.index]) continue;
-
-			int const fidx = m_files.file_index_at_offset(p.index * m_files.piece_length());
-			int const chunks_per_piece = m_files.piece_size2(p.index) / default_block_size;
-			int const piece_idx = int(p.index) - m_files.file_offset(fidx) / m_files.piece_length();
-
-			ret.emplace_back(fidx
-				, 0
-				, piece_idx * chunks_per_piece
-				, std::max(chunks_per_piece, 2)
-				, 0);
-
-			p.peer = peer;
-
-			num_hashes -= ret.back().count;
-
-			if (num_hashes <= 0)
-				return ret;
+			auto req = std::find_if(m_piece_block_requests.begin(), m_piece_block_requests.end()
+				, [now](piece_block_request const& e)
+					{ return e.last_request == min_time() || e.last_request - now > min_request_interval; });
+			if (req != m_piece_block_requests.end())
+			{
+				int const blocks_per_piece = m_files.piece_length() / default_block_size;
+				int const first_block = req->piece * blocks_per_piece;
+				node_index const nidx(req->file, m_files.file_first_block_node(req->file) + first_block);
+				hash_request hash_req(req->file
+					, 0
+					, first_block
+					, blocks_per_piece
+					, layers_to_verify(nidx));
+				req->num_requests++;
+				req->last_request = now;
+				std::sort(m_piece_block_requests.begin(), m_piece_block_requests.end());
+				return hash_req;
+			}
 		}
 
 		for (int fidx = 0; fidx < int(m_piece_hash_requested.size()); ++fidx)
@@ -213,7 +202,9 @@ namespace libtorrent
 
 			for (int i = 0; i < int(f.size()); ++i)
 			{
-				if (f[i] != nullptr) continue;
+				if (f[i].have ||
+					(f[i].last_request != min_time() && aux::time_now() - f[i].last_request < min_request_interval))
+					continue;
 
 				bool have = false;
 				for (int p = i * 512; p < std::min<int>((i + 1) * 512, m_files.file_num_pieces(fidx)); ++p)
@@ -229,22 +220,18 @@ namespace libtorrent
 
 				int piece_tree_root = merkle_to_flat_index(piece_tree_root_layer, i);
 
-				ret.emplace_back(fidx
+				++f[i].num_requests;
+				f[i].last_request = now;
+
+				return hash_request(fidx
 					, m_piece_layer
 					, i * 512
 					, std::min(512, int(m_files.file_num_pieces(fidx) - i * 512))
 					, layers_to_verify({ fidx, piece_tree_root }) + m_piece_tree_root_layer - m_piece_layer);
-
-				f[i] = peer->peer_info_struct();
-
-				num_hashes -= ret.back().count;
-
-				if (num_hashes <= 0)
-					return ret;
 			}
 		}
 
-		return ret;
+		return {};
 	}
 
 	add_hashes_result hash_picker::add_hashes(hash_request const& req, span<sha256_hash> hashes)
@@ -383,15 +370,6 @@ namespace libtorrent
 		if (req.base == 0)
 		{
 			std::fill_n(m_hash_verified[req.file].begin() + req.index, req.count, true);
-
-			if (base_num_layers == m_piece_layer)
-			{
-				// this was a chunk hash request, remove the downloading record
-				piece_index_t piece = m_files.file_offset(req.file) / m_files.piece_length() + root_layer_offset;
-				auto new_end = std::remove_if(m_chunk_requests.begin(), m_chunk_requests.end()
-					, [piece](chunks_request const& e) { return e.index == piece; });
-				m_chunk_requests.erase(new_end, m_chunk_requests.end());
-			}
 			// TODO: add passing pieces to ret.hash_passed
 		}
 
@@ -435,7 +413,8 @@ namespace libtorrent
 					merkle_clear_tree(m_merkle_trees[req.file], num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
 					m_merkle_trees[req.file][merkle_to_flat_index(base_layer_index, req.index + i)] = hashes[i];
 					TORRENT_ASSERT(num_leafs == m_files.piece_length() / default_block_size);
-					verify_chunk_hashes(m_files.file_offset(req.file) / m_files.piece_length() + req.index);
+					//verify_chunk_hashes(m_files.file_offset(req.file) / m_files.piece_length() + req.index);
+					// TODO: add to 
 				}
 				else
 				{
@@ -553,32 +532,31 @@ namespace libtorrent
 	{
 		if (req.base == m_piece_layer && req.index % 512 == 0)
 		{
-			for (int i = req.index / 512; i < req.index / 512 + req.count / 512; ++i)
+			for (int i = req.index; i < req.index + req.count; i += 512)
 			{
-				if (m_piece_hash_requested[req.file][i] == source->peer_info_struct())
-					m_piece_hash_requested[req.file][i] = nullptr;
+				m_piece_hash_requested[req.file][i / 512].last_request = min_time();
+				--m_piece_hash_requested[req.file][i / 512].num_requests;
 			}
 		}
 		else if (req.base == 0)
 		{
-			for (auto& r : m_chunk_requests)
+			priority_block_request block_req(req.file, req.index);
+			auto existing_req = std::find(
+				m_priority_block_requests.begin()
+				, m_priority_block_requests.end()
+				, block_req);
+
+			if (existing_req == m_priority_block_requests.end())
 			{
-				auto const piece_offset = r.index * m_files.piece_length();
-				auto const f = m_files.file_index_at_offset(piece_offset);
-				if (f != req.file) continue;
-				auto const file_offset = m_files.file_offset(f);
-				auto const piece_offset_blocks = (piece_offset - file_offset) / default_block_size;
-				TORRENT_ASSERT((piece_offset - file_offset) % default_block_size == 0);
-				if (req.index != piece_offset_blocks) continue;
-				if (r.peer == source)
-					r.peer = nullptr;
-				break;
+				m_priority_block_requests.insert(m_priority_block_requests.begin()
+					, priority_block_request(req.file, req.index));
 			}
 		}
 	}
 
 	void hash_picker::peer_disconnected(peer_connection_interface* peer)
 	{
+#if 0
 		torrent_peer* tp = peer->peer_info_struct();
 		for (int f = 0; f < int(m_piece_hash_requested.size()); ++f)
 		{
@@ -600,15 +578,20 @@ namespace libtorrent
 		{
 			if (r.peer == peer) r.peer = nullptr;
 		}
+#endif
 	}
 
 	void hash_picker::verify_chunk_hashes(piece_index_t index)
 	{
-		if (std::find_if(m_chunk_requests.begin(), m_chunk_requests.end()
-			, [index](chunks_request const& r) { return r.index == index; })
-			!= m_chunk_requests.end())
+		file_index_t const fidx = m_files.file_index_at_offset(index * m_files.piece_length());
+		int const piece = int(index) - m_files.file_offset(fidx) / m_files.piece_length();
+		piece_block_request req(fidx, piece);
+
+		if (std::find(m_piece_block_requests.begin(), m_piece_block_requests.end(), req)
+			!= m_piece_block_requests.end())
 			return; // already requested
-		m_chunk_requests.push_back(chunks_request{ index });
+
+		m_piece_block_requests.insert(m_piece_block_requests.begin(), req);
 	}
 
 	bool hash_picker::have_hash(piece_index_t index) const

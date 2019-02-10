@@ -6115,11 +6115,11 @@ bool is_downloading_state(int const st)
 #endif
 	}
 
-	std::vector<hash_request> torrent::pick_hashes(int num_blocks, peer_connection* peer)
+	hash_request torrent::pick_hashes(peer_connection* peer)
 	{
 		need_hash_picker();
 		if (!m_hash_picker) return {};
-		return m_hash_picker->pick_hashes(peer->get_bitfield(), num_blocks, peer);
+		return m_hash_picker->pick_hashes(peer->get_bitfield(), peer);
 	}
 
 	std::vector<sha256_hash> torrent::get_hashes(hash_request const& req)

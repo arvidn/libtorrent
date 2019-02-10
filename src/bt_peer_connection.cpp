@@ -1812,10 +1812,8 @@ namespace {
 
 		if (!t->valid_metadata()) return;
 
-		auto reqs = t->pick_hashes(2 - m_hash_requests.size(), this);
-
-		for (auto& req : reqs)
-			write_hash_request(req);
+		auto req = t->pick_hashes(this);
+		if (req.count > 0) write_hash_request(req);
 	}
 
 	// -----------------------------

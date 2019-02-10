@@ -1014,7 +1014,7 @@ namespace libtorrent {
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
-		std::vector<hash_request> pick_hashes(int num_blocks, peer_connection* peer);
+		hash_request pick_hashes(peer_connection* peer);
 		std::vector<sha256_hash> get_hashes(hash_request const& req);
 		bool add_hashes(hash_request const& req, span<sha256_hash> hashes);
 		void hashes_rejected(peer_connection_interface* source, hash_request const& req);
