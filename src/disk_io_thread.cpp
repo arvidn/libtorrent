@@ -2132,7 +2132,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 			iov = iov.first(std::min(default_block_size, piece_size - offset));
 			ret = j->storage->readv(iov, j->piece, offset, file_flags, j->error);
-			if (ret < 0) break;
+			if (ret <= 0) break;
 			iov = iov.first(ret);
 
 			if (!j->error.ec)
