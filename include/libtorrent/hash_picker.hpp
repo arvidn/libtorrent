@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/time.hpp"
 #include <deque>
 #include <map>
 
@@ -89,6 +90,7 @@ namespace libtorrent
 
 	struct TORRENT_EXTRA_EXPORT hash_request
 	{
+		hash_request() : file(0), base(0), index(0), count(0), proof_layers(0) {}
 		hash_request(int file, int base, int index, int count, int proofs)
 			: file(file), base(base), index(index), count(count), proof_layers(proofs)
 		{
@@ -125,7 +127,7 @@ namespace libtorrent
 
 		void set_verified(aux::vector<std::vector<bool>, file_index_t> const& verified);
 
-		std::vector<hash_request> pick_hashes(typed_bitfield<piece_index_t> const& pieces, int num_blocks
+		hash_request pick_hashes(typed_bitfield<piece_index_t> const& pieces
 			, peer_connection_interface* peer);
 
 		add_hashes_result add_hashes(hash_request const& req, span<sha256_hash> hashes);
@@ -152,26 +154,56 @@ namespace libtorrent
 		int layers_to_verify(node_index idx) const;
 		int file_num_layers(file_index_t idx) const;
 
-		struct chunks_request
+		struct piece_hash_request
 		{
-			explicit chunks_request(piece_index_t i)
-				: index(i), peer(nullptr) {}
-			chunks_request(piece_index_t i, peer_connection_interface* p)
-				: index(i), peer(p) {}
-			bool operator<(chunks_request const& rhs) const { return index < rhs.index; }
-			piece_index_t index;
-			peer_connection_interface* peer;
+			time_point last_request;
+			int num_requests = 0;
+			bool have = false;
+		};
+
+		struct priority_block_request
+		{
+			priority_block_request(file_index_t file, int block) : file(file), block(block) {}
+			file_index_t file;
+			int block;
+			int num_requests = 0;
+			bool operator==(priority_block_request const& o) const
+			{ return file == o.file && block == o.block; }
+			bool operator!=(priority_block_request const& o) const
+			{ return !(*this == o); }
+			bool operator<(priority_block_request const& o) const
+			{ return num_requests < o.num_requests; }
+		};
+
+		struct piece_block_request
+		{
+			piece_block_request(file_index_t file, int piece) : file(file), piece(piece) {}
+			file_index_t file;
+			int piece;
+			time_point last_request;
+			int num_requests = 0;
+			bool operator==(piece_block_request const& o) const
+			{ return file == o.file && piece == o.piece; }
+			bool operator!=(piece_block_request const& o) const
+			{ return !(*this == o); }
+			bool operator<(piece_block_request const& o) const
+			{ return num_requests < o.num_requests; }
 		};
 
 		file_storage const& m_files;
 		aux::vector<std::vector<sha256_hash>, file_index_t>& m_merkle_trees;
 		aux::vector<std::vector<bool>, file_index_t> m_hash_verified;
-		// stores the peer each chunk of piece hashes was requested from
-		// or nullptr if the chunk has not been requested or received
-		aux::vector<std::vector<torrent_peer*>, file_index_t> m_piece_hash_requested;
-		std::deque<piece_index_t> m_priority_pieces;
-		// pieces which we need to download chunk hashes for
-		std::deque<chunks_request> m_chunk_requests;
+		aux::vector<std::vector<piece_hash_request>, file_index_t> m_piece_hash_requested;
+		// blocks are only added to this list if there is a time critial block which
+		// has been downloaded but we don't have its hash or if the initial request
+		// for the hash was rejected
+		// this block hash will be requested from every peer possible until the hash
+		// is received
+		// the vector is sorted by the number of requests sent for each block
+		aux::vector<priority_block_request> m_priority_block_requests;
+		// when a piece fails hash check a request is queued to download the piece's
+		// block hashes
+		aux::vector<piece_block_request> m_piece_block_requests;
 		int const m_piece_layer;
 		int const m_piece_tree_root_layer;
 	};
