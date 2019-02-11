@@ -112,7 +112,7 @@ namespace libtorrent {
 		return insert;
 	}
 
-	std::vector<boost::asio::const_buffer> const& chained_buffer::build_iovec(int const to_send)
+	span<boost::asio::const_buffer const> chained_buffer::build_iovec(int const to_send)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(!m_destructed);
