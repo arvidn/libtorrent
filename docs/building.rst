@@ -36,13 +36,15 @@ building from git
 -----------------
 
 To build libtorrent from git you need to clone the libtorrent repository from
-github. If you downloaded a release `tarball`__, you can skip this section.
+github. Note that the git repository depends on other git repositories via
+submodules, which also need to be initialized and updated. If you downloaded a
+release `tarball`__, you can skip this section.
 
 __ https://github.com/arvidn/libtorrent/releases/latest
 
 ::
 
-	git clone https://github.com/arvidn/libtorrent.git
+	git clone --recurse-submodules https://github.com/arvidn/libtorrent.git
 
 
 building with BBv2
