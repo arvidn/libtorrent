@@ -69,7 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	from_span_t from_span;
+	TORRENT_EXPORT from_span_t from_span;
 
 	namespace {
 
