@@ -160,7 +160,7 @@ namespace libtorrent {
 		// enough room, returns 0
 		char* allocate_appendix(int s);
 
-		std::vector<boost::asio::const_buffer> const& build_iovec(int to_send);
+		span<boost::asio::const_buffer const> build_iovec(int to_send);
 
 		void clear();
 

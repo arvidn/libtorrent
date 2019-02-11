@@ -175,7 +175,7 @@ bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
 {
 	if (size == 0) return true;
 	std::vector<char> flat((std::size_t(size)));
-	std::vector<boost::asio::const_buffer> const& iovec2 = b.build_iovec(size);
+	auto const iovec2 = b.build_iovec(size);
 	int copied = copy_buffers(iovec2, &flat[0]);
 	TEST_CHECK(copied == size);
 	return std::memcmp(&flat[0], mem, std::size_t(size)) == 0;
