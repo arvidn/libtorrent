@@ -2,6 +2,12 @@
 #define TORRENT_SHA512_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+
+#if !defined TORRENT_USE_LIBGCRYPT \
+	&& !TORRENT_USE_COMMONCRYPTO \
+	&& !TORRENT_USE_CRYPTOAPI_SHA_512 \
+	&& !defined TORRENT_USE_LIBCRYPTO
+
 #include <cstdint>
 
 namespace libtorrent {
@@ -20,4 +26,5 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT int SHA512_final(std::uint8_t* digest, sha512_ctx* context);
 }
 
+#endif
 #endif

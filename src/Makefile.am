@@ -35,12 +35,6 @@ KADEMLIA_SOURCES = \
   hasher512.cpp
 endif
 
-if ! WITH_OPENSSL
-BUILTIN_CRYPTO_SOURCES = \
-  sha1.cpp                      \
-  sha512.cpp
-endif
-
 libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp         \
   alert.cpp                       \
@@ -166,10 +160,10 @@ libtorrent_rasterbar_la_SOURCES = \
   add_torrent_params.cpp          \
   peer_info.cpp                   \
   stack_allocator.cpp             \
+  sha1.cpp                        \
+  sha512.cpp                      \
   \
-  $(KADEMLIA_SOURCES)             \
-  \
-  $(BUILTIN_CRYPTO_SOURCES)
+  $(KADEMLIA_SOURCES)
 
 AM_CFLAGS = -I$(top_srcdir)/ed25519/src -std=c99
 AM_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY -I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@

@@ -3,6 +3,11 @@
 
 #include "libtorrent/sha512.hpp"
 
+#if !defined TORRENT_USE_LIBGCRYPT \
+	&& !TORRENT_USE_COMMONCRYPTO \
+	&& !TORRENT_USE_CRYPTOAPI_SHA_512 \
+	&& !defined TORRENT_USE_LIBCRYPTO
+
 // ignore warnings in this file
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -280,3 +285,5 @@ int SHA512_final(std::uint8_t* out, sha512_ctx* md)
 }
 
 } // libtorrent namespace
+
+#endif
