@@ -444,7 +444,6 @@ HEADERS = \
   disk_job_pool.hpp            \
   disk_observer.hpp            \
   download_priority.hpp        \
-  ed25519.hpp                  \
   entry.hpp                    \
   enum_net.hpp                 \
   error.hpp                    \
@@ -581,6 +580,7 @@ HEADERS = \
   aux_/disable_warnings_pop.hpp     \
   aux_/disable_warnings_push.hpp    \
   aux_/disk_job_fence.hpp           \
+  aux_/ed25519.hpp                  \
   aux_/escape_string.hpp            \
   aux_/export.hpp                   \
   aux_/ffs.hpp                      \
