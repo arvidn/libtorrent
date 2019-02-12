@@ -52,7 +52,6 @@ set(libtorrent_include_files
 	disk_job_pool
 	disk_observer
 	download_priority
-	ed25519
 	entry
 	enum_net
 	error
@@ -220,6 +219,7 @@ set(libtorrent_aux_include_files
 	disable_warnings_pop
 	disable_warnings_push
 	disk_job_fence
+	ed25519
 	escape_string
 	export
 	ffs
