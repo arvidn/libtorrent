@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/ed25519.hpp>
 #include <libtorrent/random.hpp>
-#include <libtorrent/ed25519.hpp>
+#include <libtorrent/aux_/ed25519.hpp>
 
 namespace libtorrent { namespace dht {
 
@@ -53,7 +53,7 @@ namespace libtorrent { namespace dht {
 		auto const sk_ptr = reinterpret_cast<unsigned char*>(sk.bytes.data());
 		auto const seed_ptr = reinterpret_cast<unsigned char const*>(seed.data());
 
-		libtorrent::ed25519_create_keypair(pk_ptr, sk_ptr, seed_ptr);
+		lt::aux::ed25519_create_keypair(pk_ptr, sk_ptr, seed_ptr);
 
 		return std::make_tuple(pk, sk);
 	}
@@ -68,7 +68,7 @@ namespace libtorrent { namespace dht {
 		auto const pk_ptr = reinterpret_cast<unsigned char const*>(pk.bytes.data());
 		auto const sk_ptr = reinterpret_cast<unsigned char const*>(sk.bytes.data());
 
-		libtorrent::ed25519_sign(sig_ptr, msg_ptr, msg.size(), pk_ptr, sk_ptr);
+		lt::aux::ed25519_sign(sig_ptr, msg_ptr, msg.size(), pk_ptr, sk_ptr);
 
 		return sig;
 	}
@@ -80,7 +80,7 @@ namespace libtorrent { namespace dht {
 		auto const msg_ptr = reinterpret_cast<unsigned char const*>(msg.data());
 		auto const pk_ptr = reinterpret_cast<unsigned char const*>(pk.bytes.data());
 
-		return libtorrent::ed25519_verify(sig_ptr, msg_ptr, msg.size(), pk_ptr) == 1;
+		return lt::aux::ed25519_verify(sig_ptr, msg_ptr, msg.size(), pk_ptr) == 1;
 	}
 
 	public_key ed25519_add_scalar(public_key const& pk
@@ -91,7 +91,7 @@ namespace libtorrent { namespace dht {
 		auto const ret_ptr = reinterpret_cast<unsigned char*>(ret.bytes.data());
 		auto const scalar_ptr = reinterpret_cast<unsigned char const*>(scalar.data());
 
-		libtorrent::ed25519_add_scalar(ret_ptr, nullptr, scalar_ptr);
+		lt::aux::ed25519_add_scalar(ret_ptr, nullptr, scalar_ptr);
 
 		return ret;
 	}
@@ -104,7 +104,7 @@ namespace libtorrent { namespace dht {
 		auto const ret_ptr = reinterpret_cast<unsigned char*>(ret.bytes.data());
 		auto const scalar_ptr = reinterpret_cast<unsigned char const*>(scalar.data());
 
-		libtorrent::ed25519_add_scalar(nullptr, ret_ptr, scalar_ptr);
+		lt::aux::ed25519_add_scalar(nullptr, ret_ptr, scalar_ptr);
 
 		return ret;
 	}
@@ -118,7 +118,7 @@ namespace libtorrent { namespace dht {
 		auto const pk_ptr = reinterpret_cast<unsigned char const*>(pk.bytes.data());
 		auto const sk_ptr = reinterpret_cast<unsigned char const*>(sk.bytes.data());
 
-		libtorrent::ed25519_key_exchange(secret_ptr, pk_ptr, sk_ptr);
+		lt::aux::ed25519_key_exchange(secret_ptr, pk_ptr, sk_ptr);
 
 		return secret;
 	}
