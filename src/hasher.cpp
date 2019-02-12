@@ -94,9 +94,9 @@ namespace libtorrent {
 
 	hasher& hasher::update(span<char const> data)
 	{
-		TORRENT_ASSERT(!data.empty());
+		TORRENT_ASSERT(data.size() > 0);
 #ifdef TORRENT_USE_LIBGCRYPT
-		gcry_md_write(m_context, data.data(), data.size());
+		gcry_md_write(m_context, data.data(), static_cast<std::size_t>(data.size()));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), CC_LONG(data.size()));
 #elif TORRENT_USE_CRYPTOAPI
