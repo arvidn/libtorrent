@@ -304,7 +304,7 @@ namespace libtorrent {
 template <class T> T* alert_cast(alert* a)
 {
 	static_assert(std::is_base_of<alert, T>::value
-		, "alert_cast<> can only be used with alert types (deriving from libtorrent::alert)");
+		, "alert_cast<> can only be used with alert types (deriving from lt::alert)");
 
 	if (a == nullptr) return nullptr;
 	if (a->type() == T::alert_type) return static_cast<T*>(a);
@@ -313,7 +313,7 @@ template <class T> T* alert_cast(alert* a)
 template <class T> T const* alert_cast(alert const* a)
 {
 	static_assert(std::is_base_of<alert, T>::value
-		, "alert_cast<> can only be used with alert types (deriving from libtorrent::alert)");
+		, "alert_cast<> can only be used with alert types (deriving from lt::alert)");
 	if (a == nullptr) return nullptr;
 	if (a->type() == T::alert_type) return static_cast<T const*>(a);
 	return nullptr;

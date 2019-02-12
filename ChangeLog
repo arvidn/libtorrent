@@ -1,3 +1,4 @@
+	* consistently use "lt" namespace in examples and documentation
 	* fix Mingw build to use native cryptoAPI
 
 1.2 release

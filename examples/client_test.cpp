@@ -1201,7 +1201,7 @@ example alert_masks:
 			case 'O': stats_enabled = true; --i; break;
 #ifdef TORRENT_UTP_LOG_ENABLE
 			case 'q':
-				libtorrent::set_utp_stream_logging(true);
+				lt::set_utp_stream_logging(true);
 				break;
 #endif
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;

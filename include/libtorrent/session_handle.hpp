@@ -488,7 +488,7 @@ namespace libtorrent {
 		// .. code:: c++
 		//
 		// 	#include <libtorrent/extensions/ut_metadata.hpp>
-		// 	ses.add_extension(&libtorrent::create_ut_metadata_plugin);
+		// 	ses.add_extension(&lt::create_ut_metadata_plugin);
 		//
 		// uTorrent peer exchange
 		// 	Exchanges peers between clients.
@@ -496,7 +496,7 @@ namespace libtorrent {
 		// .. code:: c++
 		//
 		// 	#include <libtorrent/extensions/ut_pex.hpp>
-		// 	ses.add_extension(&libtorrent::create_ut_pex_plugin);
+		// 	ses.add_extension(&lt::create_ut_pex_plugin);
 		//
 		// smart ban plugin
 		// 	A plugin that, with a small overhead, can ban peers
@@ -506,7 +506,7 @@ namespace libtorrent {
 		// .. code:: c++
 		//
 		// 	#include <libtorrent/extensions/smart_ban.hpp>
-		// 	ses.add_extension(&libtorrent::create_smart_ban_plugin);
+		// 	ses.add_extension(&lt::create_smart_ban_plugin);
 		//
 		//
 		// .. _`libtorrent plugins`: libtorrent_plugins.html
