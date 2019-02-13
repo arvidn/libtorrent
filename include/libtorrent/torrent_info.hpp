@@ -470,7 +470,7 @@ namespace libtorrent {
 
 		bool is_loaded() const { return m_files.num_files() > 0; }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
 
 		// ``merkle_tree()`` returns a reference to the merkle tree for this
@@ -552,7 +552,7 @@ namespace libtorrent {
 		aux::vector<std::vector<sha256_hash>, file_index_t>& merkle_trees();
 		std::vector<sha256_hash>& file_merkle_tree(file_index_t file) const;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
 
 		// internal
@@ -629,7 +629,7 @@ namespace libtorrent {
 		// cannot be pointers into that buffer.
 		std::vector<std::string> m_owned_collections;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 		// if this is a merkle torrent, this is the merkle
 		// tree. It has space for merkle_num_nodes(merkle_num_leafs(num_pieces))
 		// hashes
@@ -674,7 +674,7 @@ namespace libtorrent {
 		// the number of bytes in m_info_section
 		std::int32_t m_info_section_size = 0;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 		// the index to the first leaf. This is where the hash for the
 		// first piece is stored
 		std::int32_t m_merkle_first_leaf = 0;

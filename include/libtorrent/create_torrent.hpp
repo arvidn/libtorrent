@@ -284,7 +284,7 @@ namespace libtorrent {
 		int piece_length() const { return m_files.piece_length(); }
 		int piece_size(piece_index_t i) const { return m_files.piece_size(i); }
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
 
 		// This function returns the merkle hash tree, if the torrent was created as a merkle

@@ -313,7 +313,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// precedence.
 		aux::noexcept_movable<std::vector<download_priority_t>> piece_priorities;
 
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
 
 		// if this is a merkle tree torrent, and you're seeding, this field must
