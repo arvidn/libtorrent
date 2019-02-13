@@ -45,37 +45,38 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace errors
+namespace errors {
+	// See RFC 6887 Section 7.4
+	enum pcp_errors
 	{
-		// See RFC 6887 Section 7.4
-		enum pcp_errors
-		{
-			pcp_success = 0,
-			pcp_unsupp_version,
-			pcp_not_authorized,
-			pcp_malformed_request,
-			pcp_unsupp_opcode,
-			pcp_unsupp_option,
-			pcp_malformed_option,
-			pcp_network_failure,
-			pcp_no_resources,
-			pcp_unsupp_protocol,
-			pcp_user_ex_quota,
-			pcp_cannot_provide_external,
-			pcp_address_mismatch,
-			pcp_excessive_remote_peers,
-		};
+		pcp_success = 0,
+		pcp_unsupp_version,
+		pcp_not_authorized,
+		pcp_malformed_request,
+		pcp_unsupp_opcode,
+		pcp_unsupp_option,
+		pcp_malformed_option,
+		pcp_network_failure,
+		pcp_no_resources,
+		pcp_unsupp_protocol,
+		pcp_user_ex_quota,
+		pcp_cannot_provide_external,
+		pcp_address_mismatch,
+		pcp_excessive_remote_peers,
+	};
 
-		boost::system::error_code make_error_code(pcp_errors e);
-	}
+	boost::system::error_code make_error_code(pcp_errors e);
+} // namespace errors
 
 	boost::system::error_category& pcp_category();
-}
+} // namespace libtorrent
 
-namespace boost { namespace system {
+namespace boost {
+namespace system {
 	template<> struct is_error_code_enum<libtorrent::errors::pcp_errors>
 	{ static const bool value = true; };
-} }
+}
+}
 
 namespace libtorrent {
 
@@ -204,6 +205,6 @@ private:
 	bool m_abort = false;
 };
 
-}
+} // namespace libtorrent
 
 #endif

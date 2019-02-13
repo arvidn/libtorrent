@@ -43,7 +43,9 @@ namespace libtorrent {
 
 class entry;
 
-namespace aux { struct listen_socket_handle; }
+namespace aux {
+struct listen_socket_handle;
+}
 
 namespace dht {
 
@@ -90,6 +92,7 @@ namespace dht {
 	protected:
 		~dht_observer() = default;
 	};
-}}
+}
+}
 
 #endif

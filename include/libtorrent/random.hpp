@@ -40,7 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 #include <algorithm>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 
 		TORRENT_EXTRA_EXPORT std::mt19937& random_engine();
 
@@ -58,7 +59,7 @@ namespace libtorrent { namespace aux {
 		// If the above conditions are not true, then a standard
 		// fill of bytes is used.
 		TORRENT_EXTRA_EXPORT void random_bytes(span<char> buffer);
-	}
+}
 
 	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t m);
 }

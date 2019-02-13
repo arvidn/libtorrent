@@ -44,26 +44,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace utf8_errors
+namespace utf8_errors {
+	enum error_code_enum
 	{
-		enum error_code_enum
-		{
-			// conversion successful
-			conversion_ok,
+		// conversion successful
+		conversion_ok,
 
-			// partial character in source, but hit end
-			source_exhausted,
+		// partial character in source, but hit end
+		source_exhausted,
 
-			// insuff. room in target for conversion
-			target_exhausted,
+		// insuff. room in target for conversion
+		target_exhausted,
 
-			// source sequence is illegal/malformed
-			source_illegal
-		};
+		// source sequence is illegal/malformed
+		source_illegal
+	};
 
-		// hidden
-		TORRENT_EXPORT error_code make_error_code(error_code_enum e);
-	}
+	// hidden
+	TORRENT_EXPORT error_code make_error_code(error_code_enum e);
+} // namespace utf8_errors
 
 	TORRENT_EXPORT boost::system::error_category const& utf8_category();
 
@@ -79,6 +78,6 @@ namespace libtorrent {
 	// TODO: 3 take a string_view here
 	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
 		parse_utf8_codepoint(string_view str);
-}
+} // namespace libtorrent
 
 #endif

@@ -2879,6 +2879,6 @@ TORRENT_VERSION_NAMESPACE_2_END
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef PROGRESS_NOTIFICATION
 
-}
+} // namespace libtorrent
 
 #endif

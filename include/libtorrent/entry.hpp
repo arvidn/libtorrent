@@ -117,7 +117,7 @@ namespace aux {
 			}
 		};
 #endif
-	}
+}
 
 	// The ``entry`` class represents one node in a bencoded hierarchy. It works as a
 	// variant type, it can be either a list, a dictionary (``std::map``), an integer

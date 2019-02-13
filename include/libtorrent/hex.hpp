@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace aux {
+namespace aux {
 
 	TORRENT_EXTRA_EXPORT int hex_to_int(char in);
 	TORRENT_EXTRA_EXPORT bool is_hex(span<char const> in);
@@ -63,7 +63,7 @@ namespace libtorrent {
 	// (len + 1) / 2 bytes.
 	TORRENT_DEPRECATED_EXPORT bool from_hex(span<char const> in, char* out);
 
-	}
+} // namespace aux
 
 #if TORRENT_ABI_VERSION == 1
 	// deprecated in 1.2
@@ -77,6 +77,6 @@ namespace libtorrent {
 	inline bool from_hex(char const *in, int len, char* out)
 	{ return aux::from_hex({in, len}, out); }
 #endif
-}
+} // namespace libtorrent
 
 #endif // TORRENT_HEX_HPP_INCLUDED

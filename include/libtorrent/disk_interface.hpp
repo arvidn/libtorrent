@@ -61,39 +61,38 @@ namespace libtorrent {
 	// this is a bittorrent constant
 	constexpr int default_block_size = 0x4000;
 
-	namespace file_open_mode
-	{
-		// open the file for reading only
-		constexpr file_open_mode_t read_only{};
+namespace file_open_mode {
+	// open the file for reading only
+	constexpr file_open_mode_t read_only{};
 
-		// open the file for writing only
-		constexpr file_open_mode_t write_only = 0_bit;
+	// open the file for writing only
+	constexpr file_open_mode_t write_only = 0_bit;
 
-		// open the file for reading and writing
-		constexpr file_open_mode_t read_write = 1_bit;
+	// open the file for reading and writing
+	constexpr file_open_mode_t read_write = 1_bit;
 
-		// the mask for the bits determining read or write mode
-		constexpr file_open_mode_t rw_mask = read_only | write_only | read_write;
+	// the mask for the bits determining read or write mode
+	constexpr file_open_mode_t rw_mask = read_only | write_only | read_write;
 
-		// open the file in sparse mode (if supported by the
-		// filesystem).
-		constexpr file_open_mode_t sparse = 2_bit;
+	// open the file in sparse mode (if supported by the
+	// filesystem).
+	constexpr file_open_mode_t sparse = 2_bit;
 
-		// don't update the access timestamps on the file (if
-		// supported by the operating system and filesystem).
-		// this generally improves disk performance.
-		constexpr file_open_mode_t no_atime = 3_bit;
+	// don't update the access timestamps on the file (if
+	// supported by the operating system and filesystem).
+	// this generally improves disk performance.
+	constexpr file_open_mode_t no_atime = 3_bit;
 
-		// open the file for random access. This disables read-ahead
-		// logic
-		constexpr file_open_mode_t random_access = 5_bit;
+	// open the file for random access. This disables read-ahead
+	// logic
+	constexpr file_open_mode_t random_access = 5_bit;
 
 #if TORRENT_ABI_VERSION == 1
-		// prevent the file from being opened by another process
-		// while it's still being held open by this handle
-		constexpr file_open_mode_t TORRENT_DEPRECATED locked = 6_bit;
+	// prevent the file from being opened by another process
+	// while it's still being held open by this handle
+	constexpr file_open_mode_t TORRENT_DEPRECATED locked = 6_bit;
 #endif
-	}
+}
 
 	// this contains information about a file that's currently open by the
 	// libtorrent disk I/O subsystem. It's associated with a single torrent.
@@ -232,6 +231,6 @@ namespace libtorrent {
 		storage_index_t m_idx{0};
 	};
 
-}
+} // namespace libtorrent
 
 #endif

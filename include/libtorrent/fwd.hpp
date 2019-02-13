@@ -158,9 +158,8 @@ struct create_torrent;
 
 // include/libtorrent/disk_interface.hpp
 struct open_file_state;
-
-// include/libtorrent/disk_io_thread.hpp
-struct cache_status;
+struct disk_interface;
+struct storage_holder;
 
 // include/libtorrent/entry.hpp
 class entry;
@@ -173,9 +172,6 @@ struct plugin;
 struct torrent_plugin;
 struct peer_plugin;
 struct crypto_plugin;
-
-// include/libtorrent/file_pool.hpp
-struct file_pool;
 
 // include/libtorrent/file_storage.hpp
 struct file_slice;
@@ -227,6 +223,9 @@ TORRENT_VERSION_NAMESPACE_2_END
 // include/libtorrent/peer_request.hpp
 struct peer_request;
 
+// include/libtorrent/performance_counters.hpp
+struct counters;
+
 // include/libtorrent/session.hpp
 class session_proxy;
 struct session_params;
@@ -244,10 +243,6 @@ struct session_status;
 
 // include/libtorrent/settings_pack.hpp
 struct settings_pack;
-
-// include/libtorrent/storage.hpp
-struct storage_interface;
-struct default_storage;
 
 // include/libtorrent/storage_defs.hpp
 struct storage_interface;
@@ -279,6 +274,9 @@ TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/file_storage.hpp
 struct file_entry;
+
+// include/libtorrent/fingerprint.hpp
+struct fingerprint;
 
 // include/libtorrent/lazy_entry.hpp
 struct pascal_string;

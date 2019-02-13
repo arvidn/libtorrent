@@ -113,7 +113,6 @@ category_mapping = {
 category_fun_mapping = {
     'min_memory_usage()': 'Settings',
     'high_performance_seed()': 'Settings',
-    'cache_status': 'Core',
 }
 
 

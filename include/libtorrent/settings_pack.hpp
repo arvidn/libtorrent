@@ -56,7 +56,10 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 namespace libtorrent {
 
-	namespace aux { struct session_impl; struct session_settings; }
+namespace aux {
+	struct session_impl;
+	struct session_settings;
+}
 
 	struct settings_pack;
 	struct bdecode_node;

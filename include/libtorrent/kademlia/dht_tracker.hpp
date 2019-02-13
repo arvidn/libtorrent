@@ -55,7 +55,8 @@ namespace libtorrent {
 #endif
 }
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 	struct dht_settings;
 
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
@@ -213,6 +214,7 @@ namespace libtorrent { namespace dht {
 		int m_send_quota;
 		time_point m_last_tick;
 	};
-}}
+} // namespace dht
+} // namespace libtorrent
 
 #endif

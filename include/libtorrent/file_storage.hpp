@@ -589,7 +589,7 @@ namespace libtorrent {
 		std::int64_t m_total_size;
 	};
 
-	namespace aux {
+namespace aux {
 
 	// returns the piece range that entirely falls within the specified file. the
 	// end piece is one-past the last piece that entirely falls within the file.

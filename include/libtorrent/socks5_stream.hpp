@@ -190,11 +190,13 @@ private:
 
 }
 
-namespace boost { namespace system {
+namespace boost {
+namespace system {
 
 	template<> struct is_error_code_enum<libtorrent::socks_error::socks_error_code>
 	{ static const bool value = true; };
 
-} }
+}
+}
 
 #endif

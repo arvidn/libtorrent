@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace aux { struct session_settings; }
+namespace aux {
+	struct session_settings;
+}
 	class peer_connection;
 
 	// sorts the vector of peers in-place. When returning, the top unchoke slots

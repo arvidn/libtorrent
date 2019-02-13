@@ -95,6 +95,7 @@ bool verify_message(bdecode_node const& msg, key_desc_t const (&desc)[Size]
 	return verify_message_impl(msg, desc, ret, error);
 }
 
-} }
+}
+}
 
 #endif

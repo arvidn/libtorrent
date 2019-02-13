@@ -82,7 +82,7 @@ namespace aux {
 	// id. This can be used to automate the identification of clients. It will
 	// not be able to identify peers with non- standard encodings. Only Azureus
 	// style, Shadow's style and Mainline style.
-	TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED
+	TORRENT_DEPRECATED_EXPORT
 	boost::optional<fingerprint>
 		client_fingerprint(peer_id const& p);
 
