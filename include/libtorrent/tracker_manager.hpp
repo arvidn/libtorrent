@@ -82,7 +82,10 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	class i2p_connection;
 #endif
-	namespace aux { struct session_logger; struct session_settings; }
+namespace aux {
+	struct session_logger;
+	struct session_settings;
+}
 
 	struct TORRENT_EXTRA_EXPORT tracker_request
 	{

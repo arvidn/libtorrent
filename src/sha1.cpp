@@ -235,7 +235,7 @@ void SHA1_final(u8* digest, sha1_ctx* context)
 	}
 }
 
-} // libtorrent namespace
+} // namespace libtorrent
 
 /************************************************************
 

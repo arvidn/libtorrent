@@ -49,26 +49,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace i2p_error {
+namespace i2p_error {
 
-		// error values for the i2p_category error_category.
-		enum i2p_error_code
-		{
-			no_error = 0,
-			parse_failed,
-			cant_reach_peer,
-			i2p_error,
-			invalid_key,
-			invalid_id,
-			timeout,
-			key_not_found,
-			duplicated_id,
-			num_errors
-		};
+	// error values for the i2p_category error_category.
+	enum i2p_error_code
+	{
+		no_error = 0,
+		parse_failed,
+		cant_reach_peer,
+		i2p_error,
+		invalid_key,
+		invalid_id,
+		timeout,
+		key_not_found,
+		duplicated_id,
+		num_errors
+	};
 
-		// hidden
-		TORRENT_EXPORT boost::system::error_code make_error_code(i2p_error_code e);
-	}
+	// hidden
+	TORRENT_EXPORT boost::system::error_code make_error_code(i2p_error_code e);
+}
 
 	// returns the error category for I2P errors
 	TORRENT_EXPORT boost::system::error_category& i2p_category();
@@ -225,13 +225,15 @@ private:
 
 }
 
-namespace boost { namespace system {
+namespace boost {
+namespace system {
 
 template<>
 struct is_error_code_enum<libtorrent::i2p_error::i2p_error_code>
 { static const bool value = true; };
 
-} }
+}
+}
 
 #endif // TORRENT_USE_I2P
 

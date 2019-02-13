@@ -36,7 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/get_peers.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 
 class bootstrap : public get_peers
 {
@@ -58,6 +59,7 @@ protected:
 
 };
 
-} } // namespace libtorrent::dht
+} // namesapce dht
+} // namespace libtorrent
 
 #endif // REFRESH_050324_HPP

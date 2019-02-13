@@ -41,7 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <map>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 
 class node;
 
@@ -82,6 +83,7 @@ struct find_data_observer : traversal_observer
 	void reply(msg const&) override;
 };
 
-} } // namespace libtorrent::dht
+} // namespace dht
+} // namespace libtorrent
 
 #endif // FIND_DATA_050323_HPP

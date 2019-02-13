@@ -44,18 +44,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace aux {
+namespace aux {
 
-		struct free_deleter
-		{ void operator()(char* ptr) { return std::free(ptr); } };
+	struct free_deleter
+	{ void operator()(char* ptr) { return std::free(ptr); } };
 
-		inline std::size_t calculate_pad_bytes(char const* inptr, std::size_t alignment)
-		{
-			std::uintptr_t const ptr = reinterpret_cast<std::uintptr_t>(inptr);
-			std::uintptr_t const offset = ptr & (alignment - 1);
-			return (alignment - offset) & (alignment - 1);
-		}
+	inline std::size_t calculate_pad_bytes(char const* inptr, std::size_t alignment)
+	{
+		std::uintptr_t const ptr = reinterpret_cast<std::uintptr_t>(inptr);
+		std::uintptr_t const offset = ptr & (alignment - 1);
+		return (alignment - offset) & (alignment - 1);
 	}
+} // namespace aux
 
 	template <class T>
 	struct heterogeneous_queue
@@ -255,6 +255,6 @@ namespace libtorrent {
 		// the number of objects allocated in m_storage
 		int m_num_items = 0;
 	};
-}
+} // namespace libtorrent
 
 #endif

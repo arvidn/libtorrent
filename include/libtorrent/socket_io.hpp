@@ -137,7 +137,7 @@ namespace detail {
 			}
 			return ret;
 		}
-	} // namespace detail
+} // namespace detail
 
 }
 

@@ -80,7 +80,6 @@ using lt::piece_index_t;
 using lt::file_index_t;
 using lt::torrent_handle;
 using lt::add_torrent_params;
-using lt::cache_status;
 using lt::total_seconds;
 using lt::torrent_flags_t;
 using lt::seconds;

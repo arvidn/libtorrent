@@ -43,7 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for vsnprintf
 #include <cstring>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 
 	struct allocation_slot
 	{
@@ -88,6 +89,7 @@ namespace libtorrent { namespace aux {
 		vector<char> m_storage;
 	};
 
-} }
+}
+}
 
 #endif

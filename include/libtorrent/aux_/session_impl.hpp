@@ -599,8 +599,6 @@ namespace aux {
 			peer_id deprecated_get_peer_id() const;
 #endif
 
-			void get_cache_info(torrent_handle h, cache_status* ret, int flags) const;
-
 			std::uint16_t listen_port() const override;
 			std::uint16_t listen_port(listen_socket_t* sock) const;
 			std::uint16_t ssl_listen_port() const override;

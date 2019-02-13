@@ -51,9 +51,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #elif defined TORRENT_USE_LIBCRYPTO
 
-extern "C" {
-#include <openssl/sha.h>
-}
+	extern "C" {
+	#include <openssl/sha.h>
+	}
 
 #else
 #include "libtorrent/sha512.hpp"

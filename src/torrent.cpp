@@ -95,8 +95,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/range.hpp"
-// TODO: factor out cache_status to its own header
-#include "libtorrent/disk_io_thread.hpp" // for cache_status
+#include "libtorrent/disk_io_thread.hpp" // for hasher_thread_divisor
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/generate_peer_id.hpp"

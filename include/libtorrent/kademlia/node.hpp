@@ -57,7 +57,8 @@ namespace libtorrent {
 	struct counters;
 }
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 
 struct traversal_algorithm;
 struct dht_observer;
@@ -279,6 +280,7 @@ private:
 #endif
 };
 
-} } // namespace libtorrent::dht
+} // namespace dht
+} // namespace libtorrent
 
 #endif // NODE_HPP

@@ -50,8 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
-
-	namespace ssl {
+namespace ssl {
 
 #if defined TORRENT_BUILD_SIMULATOR
 	using sim::asio::ssl::context;
@@ -62,7 +61,7 @@ namespace libtorrent {
 	using boost::asio::ssl::stream_base;
 	using boost::asio::ssl::stream;
 #endif
-	}
+}
 
 template <class Stream>
 class ssl_stream
