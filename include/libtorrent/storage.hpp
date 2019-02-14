@@ -201,12 +201,6 @@ namespace libtorrent {
 		// (i.e one has to seek first and then read), only one disk thread is
 		// used.
 		//
-		// Every buffer in ``bufs`` can be assumed to be page aligned and be of a
-		// page aligned size, except for the last buffer of the torrent. The
-		// allocated buffer can be assumed to fit a fully page aligned number of
-		// bytes though. This is useful when reading and writing the last piece
-		// of a file in unbuffered mode.
-		//
 		// The ``offset`` is aligned to 16 kiB boundaries  *most of the time*, but
 		// there are rare exceptions when it's not. Specifically if the read
 		// cache is disabled/or full and a peer requests unaligned data. Most
