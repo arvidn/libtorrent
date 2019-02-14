@@ -460,7 +460,7 @@ TORRENT_TEST(file_priorities_override_resume_deprecated)
 	TEST_EQUAL(file_priorities[2], 3);
 }
 
-TORRENT_TEST(file_priorities_resume_seed_mode_deprecated)
+TORRENT_TEST(file_priorities_resume_share_mode_deprecated)
 {
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
@@ -473,7 +473,7 @@ TORRENT_TEST(file_priorities_resume_seed_mode_deprecated)
 	TEST_EQUAL(file_priorities[2], 0);
 }
 
-TORRENT_TEST(file_priorities_seed_mode_deprecated)
+TORRENT_TEST(file_priorities_share_mode_deprecated)
 {
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
@@ -782,7 +782,7 @@ TORRENT_TEST(file_priorities_default)
 	TEST_EQUAL(file_priorities[2], 4_pri);
 }
 
-TORRENT_TEST(file_priorities_resume_seed_mode)
+TORRENT_TEST(file_priorities_resume_share_mode)
 {
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
@@ -795,7 +795,7 @@ TORRENT_TEST(file_priorities_resume_seed_mode)
 	TEST_EQUAL(file_priorities[2], 0_pri);
 }
 
-TORRENT_TEST(file_priorities_seed_mode)
+TORRENT_TEST(file_priorities_share_mode)
 {
 	// in share mode file priorities should always be 0
 	lt::session ses(settings());
@@ -953,7 +953,7 @@ namespace {
 void test_seed_mode(test_mode_t const flags)
 {
 	lt::session ses(settings());
-	std::shared_ptr<torrent_info> ti = generate_torrent();
+	std::shared_ptr<torrent_info> ti = generate_torrent(true);
 	add_torrent_params p;
 	p.ti = ti;
 	p.save_path = ".";
@@ -979,19 +979,19 @@ void test_seed_mode(test_mode_t const flags)
 		}
 	}
 
-	std::string pieces(std::size_t(ti->num_pieces()), '\x01');
 	if (flags & test_mode::pieces_have)
 	{
+		std::string pieces(std::size_t(ti->num_pieces()), '\x01');
 		pieces[0] = '\0';
+		rd["pieces"] = pieces;
 	}
-	rd["pieces"] = pieces;
 
-	std::string pieces_prio(std::size_t(ti->num_pieces()), '\x01');
 	if (flags & test_mode::piece_prio)
 	{
+		std::string pieces_prio(std::size_t(ti->num_pieces()), '\x01');
 		pieces_prio[0] = '\0';
+		rd["piece_priority"] = pieces_prio;
 	}
-	rd["piece_priority"] = pieces_prio;
 
 	rd["seed_mode"] = 1;
 
@@ -1015,15 +1015,54 @@ void test_seed_mode(test_mode_t const flags)
 
 	torrent_handle h = ses.add_torrent(p);
 
-	torrent_status s = h.status();
 	if (flags & (test_mode::file_prio
 		| test_mode::piece_prio
 		| test_mode::pieces_have))
 	{
+		std::vector<alert*> alerts;
+		bool done = false;
+		auto const start_time = lt::clock_type::now();
+		while (!done)
+		{
+			ses.wait_for_alert(seconds(1));
+			ses.pop_alerts(&alerts);
+			for (auto a : alerts)
+			{
+				std::printf("%s\n", a->message().c_str());
+				if (auto const* sca = alert_cast<state_changed_alert>(a))
+				{
+					TEST_CHECK(sca->state != torrent_status::seeding);
+					if (sca->state == torrent_status::downloading) done = true;
+				}
+			}
+			if (lt::clock_type::now() - start_time > seconds(5)) break;
+		}
+		TEST_CHECK(done);
+		torrent_status const s = h.status();
 		TEST_CHECK(!(s.flags & torrent_flags::seed_mode));
 	}
 	else
 	{
+		std::vector<alert*> alerts;
+		bool done = false;
+		auto const start_time = lt::clock_type::now();
+		while (!done)
+		{
+			ses.wait_for_alert(seconds(1));
+			ses.pop_alerts(&alerts);
+			for (auto a : alerts)
+			{
+				std::printf("%s\n", a->message().c_str());
+				if (auto const* sca = alert_cast<state_changed_alert>(a))
+				{
+					TEST_CHECK(sca->state != torrent_status::checking_files);
+					if (sca->state == torrent_status::seeding) done = true;
+				}
+			}
+			if (lt::clock_type::now() - start_time > seconds(5)) break;
+		}
+		TEST_CHECK(done);
+		torrent_status const s = h.status();
 		TEST_CHECK(s.flags & torrent_flags::seed_mode);
 	}
 }

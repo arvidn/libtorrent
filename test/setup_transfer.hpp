@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/fwd.hpp"
 
-EXPORT std::shared_ptr<lt::torrent_info> generate_torrent();
+EXPORT std::shared_ptr<lt::torrent_info> generate_torrent(bool with_files = false);
 
 EXPORT int print_failures();
 

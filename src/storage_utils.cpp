@@ -472,6 +472,7 @@ namespace libtorrent { namespace aux {
 #ifdef TORRENT_DISABLE_MUTABLE_TORRENTS
 		TORRENT_UNUSED(links);
 #else
+		// TODO: this should probably be moved to default_storage::initialize
 		if (!links.empty())
 		{
 			TORRENT_ASSERT(int(links.size()) == fs.num_files());
