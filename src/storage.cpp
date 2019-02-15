@@ -253,7 +253,6 @@ namespace libtorrent {
 			}
 		}
 		// first, create zero-sized files
-		std::string last_path;
 		for (auto const file_index : fs.file_range())
 		{
 			// ignore files that have priority 0
