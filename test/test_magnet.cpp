@@ -538,3 +538,23 @@ TORRENT_TEST(parse_magnet_select_only_invalid_quotes)
 	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
 		"&dn=foo&so=\"1,2\"", {});
 }
+
+TORRENT_TEST(magnet_tr_x_uri)
+{
+	add_torrent_params p = parse_magnet_uri("magnet:"
+		"?tr.0=udp://1"
+		"&tr.1=http://2"
+		"&tr=http://3"
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_CHECK((p.trackers == std::vector<std::string>{
+		"udp://1", "http://2", "http://3"}));
+
+	TEST_CHECK((p.tracker_tiers == std::vector<int>{0, 1, 2 }));
+
+	p = parse_magnet_uri("magnet:"
+		"?tr.a=udp://1"
+		"&tr.1=http://2"
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_CHECK((p.trackers == std::vector<std::string>{"http://2" }));
+	TEST_CHECK((p.tracker_tiers == std::vector<int>{0}));
+}
