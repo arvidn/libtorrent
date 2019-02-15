@@ -18,6 +18,7 @@
 #include <libtorrent/session_stats.hpp>
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/peer_class_type_filter.hpp>
+#include <libtorrent/torrent_status.hpp>
 
 #ifndef TORRENT_NO_DEPRECATE
 #include <libtorrent/extensions/lt_trackers.hpp>
@@ -469,17 +470,49 @@ namespace
 
     list get_torrents(lt::session& s)
     {
-        list ret;
         std::vector<torrent_handle> torrents;
         {
            allow_threading_guard guard;
            torrents = s.get_torrents();
         }
 
+        list ret;
         for (std::vector<torrent_handle>::iterator i = torrents.begin(); i != torrents.end(); ++i)
-        {
             ret.append(*i);
+        return ret;
+    }
+
+    bool wrap_pred(object pred, torrent_status const& st)
+    {
+        return pred(st);
+    }
+
+    list get_torrent_status(lt::session& s, object pred, int const flags)
+    {
+        std::vector<torrent_status> torrents;
+        s.get_torrent_status(&torrents, boost::bind(&wrap_pred, pred, _1), flags);
+
+        list ret;
+        for (std::vector<torrent_status>::iterator i = torrents.begin(); i != torrents.end(); ++i)
+            ret.append(*i);
+        return ret;
+    }
+
+    list refresh_torrent_status(lt::session& s, list in_torrents, int const flags)
+    {
+        std::vector<torrent_status> torrents;
+        int const n = boost::python::len(in_torrents);
+        for (int i = 0; i < n; ++i)
+           torrents.push_back(extract<torrent_status>(in_torrents[i]));
+
+        {
+           allow_threading_guard guard;
+           s.refresh_torrent_status(&torrents, flags);
         }
+
+        list ret;
+        for (std::vector<torrent_status>::iterator i = torrents.begin(); i != torrents.end(); ++i)
+            ret.append(*i);
         return ret;
     }
 
@@ -972,6 +1005,8 @@ void bind_session()
         .def("get_ip_filter", allow_threads(&lt::session::get_ip_filter))
         .def("find_torrent", allow_threads(&lt::session::find_torrent))
         .def("get_torrents", &get_torrents)
+        .def("get_torrent_status", &get_torrent_status, (arg("session"), arg("pred"), arg("flags") = 0))
+        .def("refresh_torrent_status", &refresh_torrent_status, (arg("session"), arg("torrents"), arg("flags") = 0))
         .def("pause", allow_threads(&lt::session::pause))
         .def("resume", allow_threads(&lt::session::resume))
         .def("is_paused", allow_threads(&lt::session::is_paused))
