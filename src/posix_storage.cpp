@@ -234,7 +234,6 @@ namespace aux {
 		m_stat_cache.reserve(files().num_files());
 
 		// first, create zero-sized files
-		std::string last_path;
 		file_storage const& fs = files();
 		for (file_index_t file_index(0); file_index < fs.end_file(); ++file_index)
 		{
