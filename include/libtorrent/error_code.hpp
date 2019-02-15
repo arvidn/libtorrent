@@ -256,6 +256,8 @@ namespace libtorrent {
 			redirecting,
 			// The HTTP range header is invalid
 			invalid_range,
+			// The HTTP response did have a invalid content length
+			invalid_content_length,
 			// The HTTP response did not have a content length
 			no_content_length,
 			// The IP is blocked by the IP filter

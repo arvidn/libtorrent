@@ -269,11 +269,12 @@ namespace libtorrent {
 						if (divider == token.size() - 1) // no end index
 							continue;
 
-						idx1 = std::atoi(token.substr(0, divider).to_string().c_str());
-						if (idx1 < 0 || idx1 > max_index) // invalid index
+                        char *str;
+						idx1 = std::strtod(token.substr(0, divider).to_string().c_str(), &str);
+						if (idx1 < 0 || idx1 > max_index || *str) // invalid index
 							continue;
-						idx2 = std::atoi(token.substr(divider + 1).to_string().c_str());
-						if (idx2 < 0 || idx2 > max_index) // invalid index
+						idx2 = std::strtod(token.substr(divider + 1).to_string().c_str(), &str);
+						if (idx2 < 0 || idx2 > max_index || *str) // invalid index
 							continue;
 
 						if (idx1 > idx2) // wrong range limits
@@ -281,8 +282,9 @@ namespace libtorrent {
 					}
 					else // it's an index
 					{
-						idx1 = std::atoi(token.to_string().c_str());
-						if (idx1 < 0 || idx1 > max_index) // invalid index
+                        char *str;
+						idx1 = std::strtod(token.to_string().c_str(), &str);
+						if (idx1 < 0 || idx1 > max_index || *str) // invalid index
 							continue;
 						idx2 = idx1;
 					}
@@ -307,8 +309,9 @@ namespace libtorrent {
 				auto const divider = value.find_last_of(':');
 				if (divider != std::string::npos)
 				{
-					int const port = std::atoi(value.substr(divider + 1).to_string().c_str());
-					if (port > 0 && port < int(std::numeric_limits<std::uint16_t>::max()))
+                    char str*
+					int const port = std::strtod(value.substr(divider + 1).to_string().c_str(), &str);
+					if (port > 0 && port < int(std::numeric_limits<std::uint16_t>::max()) && !*str)
 						p.dht_nodes.emplace_back(value.substr(0, divider).to_string(), port);
 				}
 			}

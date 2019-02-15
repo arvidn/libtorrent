@@ -146,8 +146,9 @@ namespace libtorrent {
 		// TODO: remove to_string() if we're in C++14
 		auto const i = m_header.find(key.to_string());
 		if (i == m_header.end()) return boost::none;
-		auto const val = std::atol(i->second.c_str());
-		if (val <= 0) return boost::none;
+        char *str;
+		auto const val = std::strtod(i->second.c_str(), &str);
+		if (val <= 0 || *str) return boost::none;
 		return seconds32(val);
 	}
 
@@ -209,7 +210,14 @@ restart_response:
 			m_protocol = read_until(line, ' ', line_end);
 			if (m_protocol.substr(0, 5) == "HTTP/")
 			{
-				m_status_code = atoi(read_until(line, ' ', line_end).c_str());
+                char *str;
+				m_status_code = strtol(read_until(line, ' ', line_end).c_str(), &str);
+			    if (*str)
+			    {
+				    m_state = error_state;
+				    error = true;
+				    return ret;
+			    }
 				m_server_message = read_until(line, '\r', line_end);
 
 				// HTTP 1.0 always closes the connection after

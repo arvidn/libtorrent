@@ -331,7 +331,13 @@ namespace libtorrent {
 					m_server_string += ")";
 				}
 
-				m_response_left = atol(m_parser.header("content-length").c_str());
+                char *str;
+				m_response_left = strtod(m_parser.header("content-length").c_str(), &str);
+                if (*str)
+                {
+                    received_bytes(0, int(bytes_transferred));
+                    t->remove_web_seed_conn(this, errors::invalid_content_length, operation_t::bittorrent, peer_error);
+                }
 				if (m_response_left == -1)
 				{
 					received_bytes(0, int(bytes_transferred));
@@ -414,7 +420,10 @@ namespace libtorrent {
 			{
 				if (!m_parser.finished()) return;
 
-				int retry_time = std::atoi(std::string(recv_buffer.begin(), recv_buffer.end()).c_str());
+                char *str;
+				int retry_time = std::strtod(std::string(recv_buffer.begin(), recv_buffer.end()).c_str(), &str);
+                // Need some log about an invalid retry time, for now patch the data
+                if (*str) retry_time = 60;
 				if (retry_time <= 0) retry_time = 60;
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "CONNECT", "retrying in %d seconds", retry_time);

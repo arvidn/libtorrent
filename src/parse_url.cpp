@@ -115,13 +115,13 @@ namespace libtorrent {
 		if (port_pos < end)
 		{
 			++port_pos;
-			for (auto i = port_pos; i < end; ++i)
-			{
-				if (is_digit(*i)) continue;
+            char *str;
+			port = std::strtod(std::string(port_pos, end).c_str(), &str);
+            if (*str)
+            {
 				ec = errors::invalid_port;
 				goto exit;
-			}
-			port = std::atoi(std::string(port_pos, end).c_str());
+            }
 		}
 
 		start = end;

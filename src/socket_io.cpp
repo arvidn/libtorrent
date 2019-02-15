@@ -141,8 +141,9 @@ namespace libtorrent {
 			return ret;
 		}
 
-		int const port_num = std::atoi(port.to_string().c_str());
-		if (port_num <= 0 || port_num > std::numeric_limits<std::uint16_t>::max())
+        char *str;
+		int const port_num = std::strtod(port.to_string().c_str(), &str);
+		if (port_num <= 0 || port_num > std::numeric_limits<std::uint16_t>::max() || *str)
 		{
 			ec = errors::invalid_port;
 			return ret;

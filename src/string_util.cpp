@@ -258,8 +258,9 @@ namespace libtorrent {
 			}
 			else
 			{
-				iface.port = std::atoi(port.c_str());
-				if (iface.port < 0 || iface.port > 65535) iface.port = -1;
+                char *str;
+				iface.port = std::strtod(port.c_str(), &str);
+				if (iface.port < 0 || iface.port > 65535 || *str) iface.port = -1;
 			}
 
 			// skip spaces
@@ -313,7 +314,9 @@ namespace libtorrent {
 
 			if (colon != std::string::npos && colon > start)
 			{
-				int port = std::atoi(in.substr(colon + 1, end - colon - 1).c_str());
+                char *str;
+				int port = std::strtod(in.substr(colon + 1, end - colon - 1).c_str(), &str);
+                if (*str) port = -1;
 
 				// skip trailing spaces
 				std::string::size_type soft_end = colon;

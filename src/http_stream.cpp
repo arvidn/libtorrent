@@ -122,7 +122,16 @@ namespace libtorrent {
 			}
 
 			status++;
-			int const code = std::atoi(status);
+            char *str;
+			int const code = std::strtod(status, &str);
+            if (*str)
+            {
+                // Change to invalid data
+				h(boost::asio::error::operation_not_supported);
+				error_code ec;
+				close(ec);
+				return;
+            }
 			if (code != 200)
 			{
 				h(boost::asio::error::operation_not_supported);
