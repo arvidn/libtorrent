@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ALERT_OBSERVER_HPP_INCLUDED
 
 #include <cstdint>
+#include <array>
 
 namespace libtorrent
 {
@@ -45,12 +46,14 @@ struct alert_observer
 {
 	friend struct alert_handler;
 
-	alert_observer(): num_types(0), flags(0) {}
+	alert_observer() = default;
+	alert_observer(alert_observer const&) = delete;
+
 	virtual void handle_alert(alert const* a) = 0;
 private:
-	std::uint8_t types[64];
-	int num_types;
-	int flags;
+	std::array<std::uint8_t, 64> types;
+	int num_types = 0;
+	int flags = 0;
 };
 
 }

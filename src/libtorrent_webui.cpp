@@ -86,8 +86,8 @@ namespace libtorrent
 		bool (libtorrent_webui::*handler)(libtorrent_webui::conn_state*);
 	};
 
-	rpc_entry const functions[] =
-	{
+	std::array<rpc_entry, 20> const functions =
+	{{
 		{ "get-torrent-updates", &libtorrent_webui::get_torrent_updates },
 		{ "start", &libtorrent_webui::start },
 		{ "stop", &libtorrent_webui::stop },
@@ -108,12 +108,12 @@ namespace libtorrent
 		{ "list-stats", &libtorrent_webui::list_stats },
 		{ "get-stats", &libtorrent_webui::get_stats },
 		{ "get-file-updates", &libtorrent_webui::get_file_updates },
-	};
+	}};
 
 	// maps torrent field to RPC field. These fields are the ones defined in
 	// torrent_history_entry
-	int const torrent_field_map[] =
-	{
+	std::array<int const, torrent_history_entry::num_fields> const torrent_field_map =
+	{{
 		20, // state,
 		0, // flags,
 		0, // is_seeding,
@@ -177,9 +177,7 @@ namespace libtorrent
 		0, // announcing_to_trackers,
 		0, // announcing_to_lsd,
 		0, // announcing_to_dht,
-	};
-
-	static_assert(sizeof(torrent_field_map)/sizeof(torrent_field_map[0]) == torrent_history_entry::num_fields, "map size mismatch");
+	}};
 
 	// this is one of the key functions in the interface. It goes to
 	// some length to ensure we only send relevant information back,
@@ -352,9 +350,6 @@ namespace libtorrent
 						int state;
 						switch (s.state)
 						{
-#ifndef TORRENT_NO_DEPRECATE
-							case torrent_status::queued_for_checking:
-#endif
 							case torrent_status::checking_files:
 							case torrent_status::allocating:
 							case torrent_status::checking_resume_data:
@@ -719,7 +714,7 @@ namespace libtorrent
 
 		span<std::int64_t const> stats = ss->counters();
 */
-		std::int64_t stats[300];
+		std::array<std::int64_t, 300> stats;
 
 		if (m_stats.size() < counters::num_counters)
 			m_stats.resize(counters::num_counters
@@ -743,7 +738,7 @@ namespace libtorrent
 		for (int i = 0; i < num_stats; ++i)
 		{
 			int c = io::read_uint16(iptr);
-			if (c < 0 || c > m_stats.size())
+			if (c < 0 || c > int(m_stats.size()))
 				return error(st, invalid_argument);
 
 			if (m_stats[c].second <= frame) continue;
@@ -829,9 +824,9 @@ namespace libtorrent
 		return send_packet(st->conn, 0x2, &response[0], response.size());
 	}
 
-	char const* fun_name(int function_id)
+	char const* fun_name(int const function_id)
 	{
-		if (function_id < 0 || function_id >= sizeof(functions)/sizeof(functions[0]))
+		if (function_id < 0 || function_id >= int(functions.size()))
 		{
 			return "unknown function";
 		}
@@ -893,7 +888,7 @@ namespace libtorrent
 			st.perms = NULL;
 
 //			fprintf(stderr, "CALL: %s (%d bytes arguments)\n", fun_name(st.function_id), st.len);
-			if (st.function_id >= 0 && st.function_id < sizeof(functions)/sizeof(functions[0]))
+			if (st.function_id >= 0 && st.function_id < int(functions.size()))
 			{
 				return (this->*functions[st.function_id].handler)(&st);
 			}

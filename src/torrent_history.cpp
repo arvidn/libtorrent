@@ -169,7 +169,7 @@ namespace libtorrent
 		return m_frame;
 	}
 
-	void torrent_history_entry::update_status(torrent_status const& s, int f)
+	void torrent_history_entry::update_status(torrent_status const& s, frame_t const f)
 	{
 #define CMP_SET(x) if (s.x != status.x) frame[int(x)] = f
 
@@ -266,11 +266,11 @@ namespace libtorrent
 	int fmt(lt::torrent_status::state_t const s)
 	{ return static_cast<int>(s); }
 
-	void torrent_history_entry::debug_print(int current_frame) const
+	void torrent_history_entry::debug_print(frame_t const current_frame) const
 	{
 		int frame_diff;
 
-#define PRINT(x, type) frame_diff = (std::min)(current_frame - frame[x], 20); \
+#define PRINT(x, type) frame_diff = (std::min)(current_frame - frame[x], 20u); \
 		printf("%s\x1b[38;5;%dm%" type "\x1b[0m ", frame[x] >= current_frame  ? "\x1b[41m" : "", 255 - frame_diff, fmt(status.x));
 
 		PRINT(state, "d");

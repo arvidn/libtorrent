@@ -67,7 +67,7 @@ std::vector<char> load_file(std::string const& filename, error_code& ec
 	}
 	ret.resize(s);
 	if (s == 0) return ret;
-	iovec_t b = {ret.data(), size_t(s) };
+	iovec_t b = {ret.data(), s };
 	std::int64_t const read = f.readv(0, b, ec);
 	if (read != s) return ret;
 	return ret;
@@ -79,7 +79,7 @@ int save_file(std::string const& filename, std::vector<char>& v, error_code& ec)
 	ec.clear();
 	if (!f.open(filename, open_mode::write_only, ec)) return -1;
 	if (ec) return -1;
-	iovec_t b = {&v[0], v.size()};
+	iovec_t b = {&v[0], int(v.size())};
 	std::int64_t written = f.writev(0, b, ec);
 	if (written != int(v.size())) return -3;
 	if (ec) return -3;

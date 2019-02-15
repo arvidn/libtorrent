@@ -52,8 +52,8 @@ namespace libtorrent
 
 	void alert_handler::subscribe(alert_observer* o, int const flags, ...)
 	{
-		int types[64];
-		memset(types, 0, sizeof(types));
+		std::array<int, 64> types;
+		types.fill(0);
 		va_list l;
 		va_start(l, flags);
 		int t = va_arg(l, int);
@@ -65,7 +65,7 @@ namespace libtorrent
 			t = va_arg(l, int);
 		}
 		va_end(l);
-		subscribe_impl(types, i, o, flags);
+		subscribe_impl(types.data(), i, o, flags);
 	}
 
 	void alert_handler::dispatch_alerts(std::vector<alert*>& alerts) const
@@ -101,9 +101,9 @@ namespace libtorrent
 			int const type = o->types[i];
 			if (type == 0) continue;
 			TORRENT_ASSERT(type >= 0);
-			TORRENT_ASSERT(type < sizeof(m_observers)/sizeof(m_observers[0]));
-			if (type < 0 || type >= sizeof(m_observers)/sizeof(m_observers[0])) continue;
-			std::vector<alert_observer*>& alert_observers = m_observers[type];
+			TORRENT_ASSERT(type < int(m_observers.size()));
+			if (type < 0 || type >= int(m_observers.size())) continue;
+			auto& alert_observers = m_observers[type];
 			std::vector<alert_observer*>::iterator j = std::find(alert_observers.begin()
 				, alert_observers.end(), o);
 			if (j != alert_observers.end()) alert_observers.erase(j);
@@ -111,10 +111,11 @@ namespace libtorrent
 		o->num_types = 0;
 	}
 
-	void alert_handler::subscribe_impl(int const* type_list, int num_types
-		, alert_observer* o, int flags)
+	// TODO: use span<int const>
+	void alert_handler::subscribe_impl(int const* type_list, int const num_types
+		, alert_observer* o, int const flags)
 	{
-		memset(o->types, 0, sizeof(o->types));
+		o->types.fill(0);
 		o->flags = flags;
 		for (int i = 0; i < num_types; ++i)
 		{
@@ -122,11 +123,11 @@ namespace libtorrent
 			if (type == 0) break;
 
 			// only subscribe once per observer per type
-			if (std::count(o->types, o->types + o->num_types, type) > 0) continue;
+			if (std::count(o->types.data(), o->types.data() + o->num_types, type) > 0) continue;
 
 			TORRENT_ASSERT(type >= 0);
-			TORRENT_ASSERT(type < sizeof(m_observers)/sizeof(m_observers[0]));
-			if (type < 0 || type >= sizeof(m_observers)/sizeof(m_observers[0])) continue;
+			TORRENT_ASSERT(type < int(m_observers.size()));
+			if (type < 0 || type >= int(m_observers.size())) continue;
 
 			o->types[o->num_types++] = type;
 			m_observers[type].push_back(o);

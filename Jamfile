@@ -18,14 +18,11 @@ if $(BOOST_ROOT)
 
 SOURCES =
 	webui
-	transmission_webui
-	utorrent_webui
 	libtorrent_webui
 	json_util
 	file_downloader
 	torrent_post
 	rencode
-	deluge
 	disk_space
 	base64
 	escape_json
@@ -44,6 +41,9 @@ SOURCES =
 	file_requests
 	stats_logging
 	hex
+	transmission_webui
+	utorrent_webui
+	deluge
 	;
 
 lib torrent-webui

@@ -45,7 +45,7 @@ namespace libtorrent
 {
 	struct alert_handler;
 
-	using frame_t = int;
+	using frame_t = std::uint32_t;
 
 	// this is the type that keeps track of frame counters for each
 	// field in torrent_status. The frame counters indicate which frame
@@ -137,11 +137,10 @@ namespace libtorrent
 		torrent_history_entry(torrent_status const& st, frame_t const f)
 			: status(st)
 		{
-			for (int i = 0; i < num_fields; ++i)
-				frame[i] = f;
+			frame.fill(f);
 		}
 
-		void debug_print(int current_frame) const;
+		void debug_print(frame_t  current_frame) const;
 	};
 
 	inline std::size_t hash_value(torrent_history_entry const& te)
@@ -175,7 +174,7 @@ namespace libtorrent
 		// first is the frame this torrent was last
 		// seen modified in, second is the information
 		// about the torrent that was modified
-		typedef boost::bimap<boost::bimaps::list_of<int>
+		typedef boost::bimap<boost::bimaps::list_of<frame_t>
 			, boost::bimaps::unordered_set_of<torrent_history_entry> > queue_t;
 
 		mutable std::mutex m_mutex;

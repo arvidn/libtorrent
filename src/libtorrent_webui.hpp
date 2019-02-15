@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LIBTORRENT_WEBUI_HPP
 
 #include "websocket_handler.hpp"
+#include "torrent_history.hpp" // for frame_t
 #include "libtorrent/torrent_handle.hpp"
 #include <boost/atomic.hpp>
 
@@ -125,10 +126,10 @@ namespace libtorrent
 		std::mutex m_stats_mutex;
 		// TODO: factor this out into its own class
 		// the frame numbers where the stats counters changed
-		std::vector<std::pair<std::uint64_t, std::uint32_t> > m_stats;
+		std::vector<std::pair<std::int64_t, frame_t> > m_stats;
 		// the current stats frame (incremented every time) stats
 		// are requested
-		std::uint32_t m_stats_frame;
+		frame_t m_stats_frame;
 
 	};
 }

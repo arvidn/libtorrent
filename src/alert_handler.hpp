@@ -66,7 +66,7 @@ private:
 
 	void subscribe_impl(int const* type_list, int num_types, alert_observer* o, int flags);
 
-	std::vector<alert_observer*> m_observers[num_alert_types];
+	std::array<std::vector<alert_observer*>, num_alert_types> m_observers;
 
 	// when set to true, all outstanding (std::future-based) subscriptions
 	// are cancelled, and new such subscriptions are disabled, by failing

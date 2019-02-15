@@ -65,7 +65,7 @@ void file_requests::on_alert(alert const* a)
 		rq.piece = p->piece;
 		typedef requests_t::iterator iter;
 
-		DLOG("read_piece_alert: %d (%s)\n", p->piece, p->error.message().c_str());
+		DLOG("read_piece_alert: %d (%s)\n", static_cast<int>(p->piece), p->error.message().c_str());
 		std::unique_lock<std::mutex> l(m_mutex);
 		std::pair<iter, iter> range = m_requests.equal_range(rq);
 		if (range.first == m_requests.end()) return;

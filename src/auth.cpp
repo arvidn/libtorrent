@@ -140,17 +140,17 @@ void auth::set_group(int g, permissions_interface const* perms)
 
 	std::unique_lock<std::mutex> l(m_mutex);
 
-	if (g >= m_groups.size())
-		m_groups.resize(g+1, NULL);
+	if (g >= int(m_groups.size()))
+		m_groups.resize(g+1, nullptr);
 	m_groups[g] = perms;
 }
 
 /**
 	Finds appropriate permissions for the given user. If authentication fails, or the user
-	doesn't exist, NULL is returned, which is interpreted as authentication failure.
+	doesn't exist, nullptr is returned, which is interpreted as authentication failure.
 	\param username The username to authenticate
 	\param password The password for this user
-	\return The permissions_interface appropriate for this user's access permissions, or NULL
+	\return The permissions_interface appropriate for this user's access permissions, or nullptr
 	        if authentication failed.
 */
 permissions_interface const* auth::find_user(std::string username, std::string password) const
@@ -158,13 +158,13 @@ permissions_interface const* auth::find_user(std::string username, std::string p
 	std::unique_lock<std::mutex> l(m_mutex);
 
 	std::map<std::string, account_t>::const_iterator i = m_accounts.find(username);
-	if (i == m_accounts.end()) return NULL;
+	if (i == m_accounts.end()) return nullptr;
 
 	sha1_hash ph = i->second.password_hash(password);
-	if (ph != i->second.hash) return NULL;
+	if (ph != i->second.hash) return nullptr;
 
-	if (i->second.group < 0 || i->second.group >= m_groups.size())
-		return NULL;
+	if (i->second.group < 0 || i->second.group >= int(m_groups.size()))
+		return nullptr;
 
 	return m_groups[i->second.group];
 }
@@ -187,7 +187,7 @@ sha1_hash auth::account_t::password_hash(std::string const& pwd) const
 void auth::save_accounts(std::string const& filename, error_code& ec) const
 {
 	FILE* f = fopen(filename.c_str(), "w+");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		ec = error_code(errno, system_category());
 		return;
@@ -216,7 +216,7 @@ void auth::save_accounts(std::string const& filename, error_code& ec) const
 void auth::load_accounts(std::string const& filename, error_code& ec)
 {
 	FILE* f = fopen(filename.c_str(), "r");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		ec = error_code(errno, system_category());
 		return;
@@ -254,7 +254,7 @@ void auth::load_accounts(std::string const& filename, error_code& ec)
 	provided auth_interface for a permissions object.
 	\param conn the mongoos connection object
 	\param auth the auth_interface object
-	\return the permission object appropriate for the user, or NULL in case authentication failed.
+	\return the permission object appropriate for the user, or nullptr in case authentication failed.
 */
 permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface const* auth)
 {
@@ -279,7 +279,7 @@ permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface
 	}
 
 	permissions_interface const* perms = auth->find_user(user, pwd);
-	if (perms == NULL) return NULL;
+	if (perms == nullptr) return NULL;
 	return perms;
 }
 
