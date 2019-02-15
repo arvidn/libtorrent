@@ -1,7 +1,5 @@
-#include "transmission_webui.hpp"
 #include "utorrent_webui.hpp"
 #include "libtorrent_webui.hpp"
-#include "deluge.hpp"
 #include "file_downloader.hpp"
 #include "auto_load.hpp"
 #include "save_settings.hpp"
@@ -115,7 +113,6 @@ int main(int argc, char *const argv[])
 
 	auto_load al(ses, &sett);
 
-	transmission_webui tr_handler(ses, &sett, &authorizer);
 	utorrent_webui ut_handler(ses, &sett, &al, &hist, &authorizer);
 	file_downloader file_handler(ses, &authorizer);
 	libtorrent_webui lt_handler(ses, &hist, &authorizer, &alerts);
@@ -124,7 +121,6 @@ int main(int argc, char *const argv[])
 	webui_base webport;
 	webport.add_handler(&lt_handler);
 	webport.add_handler(&ut_handler);
-	webport.add_handler(&tr_handler);
 	webport.add_handler(&file_handler);
 	webport.start(8090);
 	if (!webport.is_running())
@@ -132,9 +128,6 @@ int main(int argc, char *const argv[])
 		fprintf(stderr, "failed to start web server\n");
 		return 1;
 	}
-
-	deluge dlg(ses, "server.pem", &authorizer);
-	dlg.start(58846);
 
 	signal(SIGTERM, &sighandler);
 	signal(SIGINT, &sighandler);
@@ -168,7 +161,6 @@ int main(int argc, char *const argv[])
 	// this point.
 	alerts.abort();
 	fprintf(stderr, "closing web server\n");
-	dlg.stop();
 	webport.stop();
 
 	fprintf(stderr, "saving settings\n");
