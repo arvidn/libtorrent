@@ -185,6 +185,16 @@ namespace libtorrent {
 			string_view value;
 			std::tie(value, sv) = split_string(sv, '&');
 
+			// parameter names are allowed to have a .<number>-suffix.
+			// the number has no meaning, just strip it
+			// if the characters after the period are not digits, don't strip
+			// anything
+			string_view number;
+			string_view stripped_name;
+			std::tie(stripped_name, number) = split_string(name, '.');
+			if (std::all_of(number.begin(), number.end(), [](char const c) { return is_digit(c); } ))
+				name = stripped_name;
+
 			if (name == "dn"_sv) // display name
 			{
 				error_code e;
