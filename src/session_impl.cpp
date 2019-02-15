@@ -182,7 +182,7 @@ using namespace std::placeholders;
 #ifdef BOOST_NO_EXCEPTIONS
 namespace boost {
 
-	void throw_exception(std::exception const& e) { std::abort(); }
+	void throw_exception(std::exception const& e) { exit(0); }
 }
 #endif
 
