@@ -147,7 +147,7 @@ namespace libtorrent {
 		auto const i = m_header.find(key.to_string());
 		if (i == m_header.end()) return boost::none;
         char *str;
-		auto const val = std::strtod(i->second.c_str(), &str);
+		auto const val = std::strtol(i->second.c_str(), &str, 10);
 		if (val <= 0 || *str) return boost::none;
 		return seconds32(val);
 	}
@@ -211,7 +211,7 @@ restart_response:
 			if (m_protocol.substr(0, 5) == "HTTP/")
 			{
                 char *str;
-				m_status_code = strtol(read_until(line, ' ', line_end).c_str(), &str);
+				m_status_code = strtol(read_until(line, ' ', line_end).c_str(), &str, 10);
 			    if (*str)
 			    {
 				    m_state = error_state;

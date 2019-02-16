@@ -116,7 +116,7 @@ namespace libtorrent {
 		{
 			++port_pos;
             char *str;
-			port = std::strtod(std::string(port_pos, end).c_str(), &str);
+			port = std::strtol(std::string(port_pos, end).c_str(), &str, 10);
             if (*str)
             {
 				ec = errors::invalid_port;

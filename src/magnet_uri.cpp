@@ -270,10 +270,10 @@ namespace libtorrent {
 							continue;
 
                         char *str;
-						idx1 = std::strtod(token.substr(0, divider).to_string().c_str(), &str);
+						idx1 = std::strtol(token.substr(0, divider).to_string().c_str(), &str, 10);
 						if (idx1 < 0 || idx1 > max_index || *str) // invalid index
 							continue;
-						idx2 = std::strtod(token.substr(divider + 1).to_string().c_str(), &str);
+						idx2 = std::strtol(token.substr(divider + 1).to_string().c_str(), &str, 10);
 						if (idx2 < 0 || idx2 > max_index || *str) // invalid index
 							continue;
 
@@ -283,7 +283,7 @@ namespace libtorrent {
 					else // it's an index
 					{
                         char *str;
-						idx1 = std::strtod(token.to_string().c_str(), &str);
+						idx1 = std::strtol(token.to_string().c_str(), &str, 10);
 						if (idx1 < 0 || idx1 > max_index || *str) // invalid index
 							continue;
 						idx2 = idx1;
@@ -309,8 +309,8 @@ namespace libtorrent {
 				auto const divider = value.find_last_of(':');
 				if (divider != std::string::npos)
 				{
-                    char str*
-					int const port = std::strtod(value.substr(divider + 1).to_string().c_str(), &str);
+                    char *str;
+					int const port = std::strtol(value.substr(divider + 1).to_string().c_str(), &str, 10);
 					if (port > 0 && port < int(std::numeric_limits<std::uint16_t>::max()) && !*str)
 						p.dht_nodes.emplace_back(value.substr(0, divider).to_string(), port);
 				}

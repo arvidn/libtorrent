@@ -123,11 +123,10 @@ namespace libtorrent {
 
 			status++;
             char *str;
-			int const code = std::strtod(status, &str);
+			int const code = std::strtol(status, &str, 10);
             if (*str)
             {
-                // Change to invalid data
-				h(boost::asio::error::operation_not_supported);
+				h(boost::asio::error::invalid_argument);
 				error_code ec;
 				close(ec);
 				return;

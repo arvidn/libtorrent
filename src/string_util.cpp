@@ -259,7 +259,7 @@ namespace libtorrent {
 			else
 			{
                 char *str;
-				iface.port = std::strtod(port.c_str(), &str);
+				iface.port = std::strtol(port.c_str(), &str, 10);
 				if (iface.port < 0 || iface.port > 65535 || *str) iface.port = -1;
 			}
 
@@ -315,7 +315,7 @@ namespace libtorrent {
 			if (colon != std::string::npos && colon > start)
 			{
                 char *str;
-				int port = std::strtod(in.substr(colon + 1, end - colon - 1).c_str(), &str);
+				int port = std::strtol(in.substr(colon + 1, end - colon - 1).c_str(), &str, 10);
                 if (*str) port = -1;
 
 				// skip trailing spaces
