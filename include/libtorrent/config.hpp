@@ -41,10 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-// TODO: don't include that here. Make each header that use the export macros
-// include it instead. and move it to aux_
-#include "libtorrent/aux_/export.hpp"
-
 #ifdef __linux__
 #include <linux/version.h> // for LINUX_VERSION_CODE and KERNEL_VERSION
 #endif // __linux
@@ -569,6 +565,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #	define TORRENT_HAS_ARM_CRC32 0
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
+
+#include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {}
 

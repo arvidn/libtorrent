@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+TORRENT_CRYPTO_NAMESPACE
+
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -154,4 +156,7 @@ namespace libtorrent {
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
 #pragma clang diagnostic pop
 #endif
+
+TORRENT_CRYPTO_NAMESPACE_END
+
 }

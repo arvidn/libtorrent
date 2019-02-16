@@ -68,7 +68,9 @@ def print_classes(out, classes, keyword):
     classes = [l for l in classes if l[0].endswith('.hpp') and not l[0].endswith('/fwd.hpp') and '/aux_/' not in l[0]]
 
     namespaces = ['TORRENT_VERSION_NAMESPACE_2',
-                  'TORRENT_VERSION_NAMESPACE_2_END']
+                  'TORRENT_VERSION_NAMESPACE_2_END',
+                  'TORRENT_CRYPTO_NAMESPACE',
+                  'TORRENT_CRYPTO_NAMESPACE_END']
 
     # only include classes with the right kind of export
     classes = [

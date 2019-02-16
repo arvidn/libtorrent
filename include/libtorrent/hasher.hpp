@@ -61,6 +61,7 @@ extern "C" {
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+TORRENT_CRYPTO_NAMESPACE
 
 	// this is a SHA-1 hash class.
 	//
@@ -121,6 +122,7 @@ namespace libtorrent {
 #endif
 	};
 
+TORRENT_CRYPTO_NAMESPACE_END
 }
 
 #endif // TORRENT_HASHER_HPP_INCLUDED
