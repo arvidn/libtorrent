@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "libtorrent/sha512.hpp"
+#include "libtorrent/aux_/sha512.hpp"
 
 // ignore warnings in this file
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -26,6 +26,7 @@ using i32 = std::int32_t;
 #endif
 
 namespace libtorrent {
+namespace aux {
 
 /* the K array */
 static const u64 K[80] = {
@@ -278,5 +279,5 @@ int SHA512_final(std::uint8_t* out, sha512_ctx* md)
 
     return 0;
 }
-
+} // aux namespace
 } // libtorrent namespace

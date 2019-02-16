@@ -182,9 +182,6 @@ TORRENT_CRYPTO_NAMESPACE
 class hasher;
 TORRENT_CRYPTO_NAMESPACE_END
 
-// include/libtorrent/hasher512.hpp
-class hasher512;
-
 // include/libtorrent/ip_filter.hpp
 struct ip_filter;
 class port_filter;

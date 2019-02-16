@@ -161,7 +161,9 @@ ED25519_SOURCE = \
   keypair.cpp \
   sc.cpp \
   sign.cpp \
-  verify.cpp
+  verify.cpp \
+  sha512.cpp \
+  hasher512.cpp \
 
 EXTRA_DIST = \
   Jamfile \
@@ -316,7 +318,6 @@ SOURCES = \
   generate_peer_id.cpp            \
   gzip.cpp                        \
   hasher.cpp                      \
-  hasher512.cpp                   \
   hex.cpp                         \
   http_connection.cpp             \
   http_parser.cpp                 \
@@ -371,7 +372,6 @@ SOURCES = \
   settings_pack.cpp               \
   sha1.cpp                        \
   sha1_hash.cpp                   \
-  sha512.cpp                      \
   smart_ban.cpp                   \
   socket_io.cpp                   \
   socket_type.cpp                 \
@@ -456,7 +456,6 @@ HEADERS = \
   fwd.hpp                      \
   gzip.hpp                     \
   hasher.hpp                   \
-  hasher512.hpp                \
   heterogeneous_queue.hpp      \
   hex.hpp                      \
   http_connection.hpp          \
@@ -523,7 +522,6 @@ HEADERS = \
   settings_pack.hpp            \
   sha1.hpp                     \
   sha1_hash.hpp                \
-  sha512.hpp                   \
   sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
@@ -588,6 +586,7 @@ HEADERS = \
   aux_/file_view_pool.hpp           \
   aux_/generate_peer_id.hpp         \
   aux_/has_block.hpp                \
+  aux_/hasher512.hpp                \
   aux_/instantiate_connection.hpp   \
   aux_/io.hpp                       \
   aux_/ip_notifier.hpp              \
@@ -612,6 +611,7 @@ HEADERS = \
   aux_/session_settings.hpp         \
   aux_/session_udp_sockets.hpp      \
   aux_/set_socket_buffer.hpp        \
+  aux_/sha512.hpp                   \
   aux_/socket_type.hpp              \
   aux_/storage_utils.hpp            \
   aux_/store_buffer.hpp             \
