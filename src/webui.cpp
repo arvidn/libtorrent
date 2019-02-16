@@ -103,50 +103,38 @@ webui_base::~webui_base() {}
 
 void webui_base::remove_handler(http_handler* h)
 {
-	std::vector<http_handler*>::iterator i = std::find(m_handlers.begin(), m_handlers.end(), h);
+	auto i = std::find(m_handlers.begin(), m_handlers.end(), h);
 	if (i != m_handlers.end()) m_handlers.erase(i);
 }
 
 bool webui_base::handle_http(mg_connection* conn
 	, mg_request_info const* request_info)
 {
-	for (std::vector<http_handler*>::iterator i = m_handlers.begin()
-		, end(m_handlers.end()); i != end; ++i)
-	{
-		if ((*i)->handle_http(conn, request_info)) return true;
-	}
+	for (auto* h : m_handlers)
+		if (h->handle_http(conn, request_info)) return true;
 	return false;
 }
 
 bool webui_base::handle_websocket_connect(mg_connection* conn
 	, mg_request_info const* request_info)
 {
-	for (std::vector<http_handler*>::iterator i = m_handlers.begin()
-		, end(m_handlers.end()); i != end; ++i)
-	{
-		if ((*i)->handle_websocket_connect(conn, request_info)) return true;
-	}
+	for (auto* h : m_handlers)
+		if (h->handle_websocket_connect(conn, request_info)) return true;
 	return false;
 }
 
 bool webui_base::handle_websocket_data(mg_connection* conn
 	, int bits, char* data, size_t data_len)
 {
-	for (std::vector<http_handler*>::iterator i = m_handlers.begin()
-		, end(m_handlers.end()); i != end; ++i)
-	{
-		if ((*i)->handle_websocket_data(conn, bits, data, data_len)) return true;
-	}
+	for (auto* h : m_handlers)
+		if (h->handle_websocket_data(conn, bits, data, data_len)) return true;
 	return false;
 }
 
 void webui_base::handle_end_request(mg_connection* conn)
 {
-	for (std::vector<http_handler*>::iterator i = m_handlers.begin()
-		, end(m_handlers.end()); i != end; ++i)
-	{
-		(*i)->handle_end_request(conn);
-	}
+	for (auto* h : m_handlers)
+		h->handle_end_request(conn);
 }
 
 bool webui_base::is_running() const

@@ -77,11 +77,8 @@ namespace libtorrent
 			// copy this vector since handlers may unsubscribe while we're looping
 			std::vector<alert_observer*> alert_dispatchers = m_observers[type];
 			{
-				for (std::vector<alert_observer*>::const_iterator k = alert_dispatchers.begin()
-					, end(alert_dispatchers.end()); k != end; ++k)
-				{
-					(*k)->handle_alert(a);
-				}
+				for (auto& h : m_observers)
+					h->handle_alert(a);
 			}
 		}
 		alerts.clear();
@@ -104,8 +101,7 @@ namespace libtorrent
 			TORRENT_ASSERT(type < int(m_observers.size()));
 			if (type < 0 || type >= int(m_observers.size())) continue;
 			auto& alert_observers = m_observers[type];
-			std::vector<alert_observer*>::iterator j = std::find(alert_observers.begin()
-				, alert_observers.end(), o);
+			auto j = std::find(alert_observers.begin(), alert_observers.end(), o);
 			if (j != alert_observers.end()) alert_observers.erase(j);
 		}
 		o->num_types = 0;
