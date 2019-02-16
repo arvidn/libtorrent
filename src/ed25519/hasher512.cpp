@@ -30,12 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/hasher512.hpp"
+#include "libtorrent/aux_/hasher512.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/openssl.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
 #pragma clang diagnostic push
@@ -144,4 +145,5 @@ namespace libtorrent {
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
 #pragma clang diagnostic pop
 #endif
+}
 }

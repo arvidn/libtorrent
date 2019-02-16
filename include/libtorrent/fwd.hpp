@@ -180,9 +180,6 @@ class file_storage;
 // include/libtorrent/hasher.hpp
 class hasher;
 
-// include/libtorrent/hasher512.hpp
-class hasher512;
-
 // include/libtorrent/ip_filter.hpp
 struct ip_filter;
 class port_filter;

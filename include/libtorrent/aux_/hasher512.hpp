@@ -56,12 +56,13 @@ POSSIBILITY OF SUCH DAMAGE.
 	}
 
 #else
-#include "libtorrent/sha512.hpp"
+#include "libtorrent/aux_/sha512.hpp"
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	using sha512_hash = digest32<512>;
 
@@ -81,10 +82,8 @@ namespace libtorrent {
 	//
 	// The built-in software version of the sha512-algorithm is from LibTomCrypt
 	// For more info, see ``src/sha512.cpp``.
-	class TORRENT_EXPORT hasher512
+	struct TORRENT_EXTRA_EXPORT hasher512
 	{
-	public:
-
 		hasher512();
 
 		// this is the same as default constructing followed by a call to
@@ -121,6 +120,7 @@ namespace libtorrent {
 #endif
 	};
 
+}
 }
 
 #endif // TORRENT_HASHER512_HPP_INCLUDED

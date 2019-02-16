@@ -2,7 +2,7 @@
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include "libtorrent/aux_/ed25519.hpp"
-#include "libtorrent/hasher512.hpp"
+#include "libtorrent/aux_/hasher512.hpp"
 #include "ge.h"
 #include "sc.h"
 
