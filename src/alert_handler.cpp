@@ -76,10 +76,8 @@ namespace libtorrent
 
 			// copy this vector since handlers may unsubscribe while we're looping
 			std::vector<alert_observer*> alert_dispatchers = m_observers[type];
-			{
-				for (auto& h : m_observers)
-					h->handle_alert(a);
-			}
+			for (auto* h : alert_dispatchers)
+				h->handle_alert(a);
 		}
 		alerts.clear();
 	}

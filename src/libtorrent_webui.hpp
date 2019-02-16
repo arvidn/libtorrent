@@ -36,7 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "websocket_handler.hpp"
 #include "torrent_history.hpp" // for frame_t
 #include "libtorrent/torrent_handle.hpp"
-#include <boost/atomic.hpp>
+#include "alert_observer.hpp"
+#include <atomic>
 
 struct mg_connection;
 
@@ -48,7 +49,7 @@ namespace libtorrent
 	struct alert_handler;
 	class session;
 
-	struct libtorrent_webui : websocket_handler
+	struct libtorrent_webui : websocket_handler, alert_observer
 	{
 		libtorrent_webui(session& ses, torrent_history const* hist
 			, auth_interface const* auth, alert_handler* alerts);
@@ -68,6 +69,8 @@ namespace libtorrent
 			int len;
 			permissions_interface const* perms;
 		};
+
+		void handle_alert(alert const* a) override;
 
 		bool get_torrent_updates(conn_state* st);
 		bool start(conn_state* st);
@@ -121,7 +124,7 @@ namespace libtorrent
 		torrent_history const* m_hist;
 		auth_interface const* m_auth;
 		alert_handler* m_alert;
-		boost::atomic<int> m_transaction_id;
+		std::atomic<int> m_transaction_id;
 
 		std::mutex m_stats_mutex;
 		// TODO: factor this out into its own class
@@ -129,7 +132,7 @@ namespace libtorrent
 		std::vector<std::pair<std::int64_t, frame_t> > m_stats;
 		// the current stats frame (incremented every time) stats
 		// are requested
-		frame_t m_stats_frame;
+		frame_t m_stats_frame = 0;
 
 	};
 }

@@ -46,39 +46,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "alert_handler.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+namespace {
+
 	namespace io = libtorrent::detail;
-
-	libtorrent_webui::libtorrent_webui(session& ses, torrent_history const* hist
-		, auth_interface const* auth, alert_handler* alert)
-		: m_ses(ses)
-		, m_hist(hist)
-		, m_auth(auth)
-		, m_alert(alert)
-		, m_stats_frame(0)
-	{}
-
-	libtorrent_webui::~libtorrent_webui() {}
-
-	bool libtorrent_webui::handle_websocket_connect(mg_connection* conn,
-		mg_request_info const* request_info)
-	{
-		// we only provide access to /bt/control
-		if ("/bt/control"_sv != request_info->uri) return false;
-
-		// authenticate
-/*		permissions_interface const* perms = parse_http_auth(conn, m_auth);
-		if (!perms)
-		{
-			mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
-				"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
-				"Content-Length: 0\r\n\r\n");
-			return true;
-		}
-*/
-		return websocket_handler::handle_websocket_connect(conn, request_info);
-	}
 
 	struct rpc_entry
 	{
@@ -178,6 +149,46 @@ namespace libtorrent
 		0, // announcing_to_lsd,
 		0, // announcing_to_dht,
 	}};
+
+} // anonymous namespace
+
+	libtorrent_webui::libtorrent_webui(session& ses, torrent_history const* hist
+		, auth_interface const* auth, alert_handler* alert)
+		: m_ses(ses)
+		, m_hist(hist)
+		, m_auth(auth)
+		, m_alert(alert)
+	{
+		if (m_stats.size() < counters::num_counters)
+			m_stats.resize(counters::num_counters
+				, std::pair<std::int64_t, frame_t>(0, 0));
+
+		m_alert->subscribe(this, 0, session_stats_alert::alert_type, 0);
+	}
+
+	libtorrent_webui::~libtorrent_webui()
+	{
+		m_alert->unsubscribe(this);
+	}
+
+	bool libtorrent_webui::handle_websocket_connect(mg_connection* conn,
+		mg_request_info const* request_info)
+	{
+		// we only provide access to /bt/control
+		if ("/bt/control"_sv != request_info->uri) return false;
+
+		// authenticate
+/*		permissions_interface const* perms = parse_http_auth(conn, m_auth);
+		if (!perms)
+		{
+			mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
+				"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+				"Content-Length: 0\r\n\r\n");
+			return true;
+		}
+*/
+		return websocket_handler::handle_websocket_connect(conn, request_info);
+	}
 
 	// this is one of the key functions in the interface. It goes to
 	// some length to ensure we only send relevant information back,
@@ -680,6 +691,29 @@ namespace libtorrent
 		return send_packet(st->conn, 0x2, &response[0], response.size());
 	}
 
+	void libtorrent_webui::handle_alert(alert const* a)
+	{
+		if (auto* ss = alert_cast<session_stats_alert>(a))
+		{
+			std::unique_lock<std::mutex> l(m_stats_mutex);
+    
+			++m_stats_frame;
+			span<std::int64_t const> stats = ss->counters();
+    
+			// first update our copy of the stats, and update their frame counters
+			for (int i = 0; i < counters::num_counters; ++i)
+			{
+				if (m_stats[i].first != stats[i])
+				{
+					m_stats[i].second = m_stats_frame;
+					m_stats[i].first = stats[i];
+				}
+			}
+    
+			// TODO: notify handler?
+		}
+	}
+
 	bool libtorrent_webui::get_stats(conn_state* st)
 	{
 		char* iptr = st->data;
@@ -690,6 +724,8 @@ namespace libtorrent
 
 		if (st->len < num_stats * 2) return error(st, invalid_number_of_args);
 
+		m_ses.post_session_stats();
+
 		std::vector<char> response;
 		std::back_insert_iterator<std::vector<char> > ptr(response);
 
@@ -697,42 +733,12 @@ namespace libtorrent
 		io::write_uint16(st->transaction_id, ptr);
 		io::write_uint8(no_error, ptr);
 
-		// TODO: 4 this needs resolving
-/*
-#error separate handling alerts and responding to this request
-		std::future<alert*> f
-			= m_alert->subscribe<session_stats_alert>();
-		m_ses.post_session_stats();
-		// wait for the alert to arrive
-		auto* ss = alert_cast<session_stats_alert>(f.get());
-
-		if (ss == nullptr) return error(st, no_such_function);
-
 		std::unique_lock<std::mutex> l(m_stats_mutex);
-		++m_stats_frame;
 		io::write_uint32(m_stats_frame, ptr);
-
-		span<std::int64_t const> stats = ss->counters();
-*/
-		std::array<std::int64_t, 300> stats;
-
-		if (m_stats.size() < counters::num_counters)
-			m_stats.resize(counters::num_counters
-				, std::pair<std::int64_t, std::uint32_t>(0, 0));
 
 		// we'll fill in the counter later
 		int const counter_pos = response.size();
 		io::write_uint16(0, ptr);
-
-		// first update our copy of the stats, and update their frame counters
-		for (int i = 0; i < counters::num_counters; ++i)
-		{
-			if (m_stats[i].first != stats[i])
-			{
-				m_stats[i].second = m_stats_frame;
-				m_stats[i].first = stats[i];
-			}
-		}
 
 		int num_updates = 0;
 		for (int i = 0; i < num_stats; ++i)

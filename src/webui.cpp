@@ -49,7 +49,7 @@ using namespace libtorrent;
 static int handle_http_request(mg_connection* conn)
 {
 	const mg_request_info *request_info = mg_get_request_info(conn);
-	if (request_info->user_data == NULL) return 0;
+	if (request_info->user_data == nullptr) return 0;
 
 	return reinterpret_cast<webui_base*>(request_info->user_data)->handle_http(
 		conn, request_info);
@@ -66,7 +66,7 @@ static int websocket_connect(mg_connection const* c)
 {
 	mg_connection* conn = const_cast<mg_connection*>(c);
 	const mg_request_info *request_info = mg_get_request_info(conn);
-	if (request_info->user_data == NULL)
+	if (request_info->user_data == nullptr)
 		return 1;
 
 	return reinterpret_cast<webui_base*>(request_info->user_data)->handle_websocket_connect(
@@ -78,7 +78,7 @@ static int websocket_data(mg_connection* conn, int bits
 	, char *data, size_t data_len)
 {
 	const mg_request_info *request_info = mg_get_request_info(conn);
-	if (request_info->user_data == NULL)
+	if (request_info->user_data == nullptr)
 		return 0;
 
 	return reinterpret_cast<webui_base*>(request_info->user_data)->handle_websocket_data(
@@ -89,16 +89,12 @@ static void end_request(mg_connection const* c, int reply_status_code)
 {
 	mg_connection* conn = const_cast<mg_connection*>(c);
 	const mg_request_info *request_info = mg_get_request_info(conn);
-	if (request_info->user_data == NULL) return;
+	if (request_info->user_data == nullptr) return;
 
 	reinterpret_cast<webui_base*>(request_info->user_data)->handle_end_request(conn);
 }
 
-webui_base::webui_base()
-	: m_document_root(".")
-	, m_ctx(NULL)
-{}
-
+webui_base::webui_base() {}
 webui_base::~webui_base() {}
 
 void webui_base::remove_handler(http_handler* h)
@@ -170,7 +166,7 @@ void webui_base::start(int port, char const* cert_path, int num_threads)
 	snprintf(threads_str, sizeof(threads_str), "%d", num_threads);
 	options[i++] = "num_threads";
 	options[i++] = threads_str;
-	options[i++] = NULL;
+	options[i++] = nullptr;
 
 	mg_callbacks cb;
 	memset(&cb, 0, sizeof(cb));
@@ -186,6 +182,6 @@ void webui_base::start(int port, char const* cert_path, int num_threads)
 void webui_base::stop()
 {
 	if (m_ctx) mg_stop(m_ctx);
-	m_ctx = NULL;
+	m_ctx = nullptr;
 }
 

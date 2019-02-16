@@ -83,9 +83,9 @@ namespace libtorrent
 	private:
 
 		std::vector<http_handler*> m_handlers;
-		std::string m_document_root;
+		std::string m_document_root = ".";
 
-		mg_context* m_ctx;
+		mg_context* m_ctx = nullptr;
 		int m_listen_port;
 	};
 

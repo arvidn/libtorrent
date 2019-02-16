@@ -15,6 +15,8 @@
 
 #include <signal.h>
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 bool quit = false;
 bool force_quit = false;
@@ -122,7 +124,7 @@ int main(int argc, char *const argv[])
 	webport.add_handler(&lt_handler);
 	webport.add_handler(&ut_handler);
 	webport.add_handler(&file_handler);
-	webport.start(8090, "server.pem");
+	webport.start(8090/*, "server.pem"*/);
 	if (!webport.is_running())
 	{
 		fprintf(stderr, "failed to start web server\n");
@@ -135,7 +137,7 @@ int main(int argc, char *const argv[])
 	bool shutting_down = false;
 	while (!quit || !resume.ok_to_quit())
 	{
-		usleep(500000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		alerts.dispatch_alerts();
 		if (!shutting_down) ses.post_torrent_updates();
 		if (quit && !shutting_down)
