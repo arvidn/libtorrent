@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
 <title>libtorrent websocket test</title>
-<script language="javascript" type="text/javascript" src="lt.js"></script>
-<script language="javascript" type="text/javascript" src="lt-g.js"></script>
+<script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
+<script language="javascript" type="text/javascript" src="libtorrent-graph.js"></script>
 <script language="javascript" type="text/javascript">
 
 var conn = null;
@@ -91,7 +91,19 @@ redraw = function(updates)
 			if (field == 'upload-rate') torrent_rate[torrent_rate.length-1][ih + 'u'] = t[field];
 			if (!field_map.hasOwnProperty(field)) continue;
 			var cell = row.cells[field_map[field]];
-			cell.textContent = t[field];
+
+			if (field == 'progress')
+			{
+				cell.innerHTML =
+					'<hr style="color:#c00;background-color:#c00;height:15px; '
+					+ 'border:none; margin:0;" align="left" width="'
+					+ (t[field] / 10000) + '%" />';
+			}
+			else if (field == 'name')
+			{
+				cell.innerHTML = '<a href="test_files.html#' + ih + '"></a>';
+				cell.children[0].textContent = t[field];
+			}
 		}
 	}
 
@@ -118,6 +130,9 @@ window.onload = function() {
 </script>
 <style>.updated { background-color: #faa; }</style>
 <table id="torrents" border="1" style="border-collapse: collapse; border-color: black;">
+<a href="dashboard.html">dashboard</a> |
+<a href="test_stats_graphs.html">stats (graph)</a> |
+<a href="test_stats.html">stats (numbers)</a>
 <tr><th>controls</th><th>Name</th><th>Progress</th></tr>
 </table>
 <canvas id="graph" width="800" height="500"/>

@@ -53,6 +53,9 @@ window.onload = function() {
 			return;
 		}
 
+		document.getElementById('headline').innerText = 'Files for ' + window.location.hash.substring(1);
+
+
 		window.setInterval(function() {
 				conn.get_file_updates(window.location.hash.substring(1), update_file_list);
 			}, 1000);
@@ -61,6 +64,7 @@ window.onload = function() {
 </script>
 <style>.updated { background-color: #faa; }</style>
 <table id="files" border="1" style="border-collapse: collapse;">
+<h1 id="headline"></h1>
 <form>
 <tr><th>Name</th><th>Size</th><th>Progress</th><th>Downloaded</th></tr>
 </table>

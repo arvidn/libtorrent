@@ -2,7 +2,7 @@
 <meta charset="utf-8" />
 <title>libtorrent websocket test</title>
 <script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
-<script language="javascript" type="text/javascript" src="lt-g.js"></script>
+<script language="javascript" type="text/javascript" src="libtorrent-graph.js"></script>
 <script language="javascript" type="text/javascript">
 
 var conn = null;
@@ -67,7 +67,7 @@ window.onload = function() {
 			var i = 0;
 			for (s in stats)
 			{
-				var row = table[Math.floor(i/55)].insertRow(-1);
+				var row = table[Math.floor(i/60)].insertRow(-1);
 				row.id = s;
 				row.insertCell(0).textContent = s;
 				row.insertCell(1).textContent = stats[s].type == 0 ? 'counter' : 'gauge';

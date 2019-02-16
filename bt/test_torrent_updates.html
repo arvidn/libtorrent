@@ -3,7 +3,7 @@
 <html>
 <head>
 <title>libtorrent websocket test</title>
-<script language="javascript" type="text/javascript" src="lt.js"></script>
+<script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
 <script language="javascript" type="text/javascript">
 
 var conn = null;
@@ -76,7 +76,7 @@ update_torrent_list = function(updates)
 };
 
 window.onload = function() {
-	var url = 'ws://' + window.location.host + '/bt/control';
+	var url = 'wss://' + window.location.host + '/bt/control';
 	conn = new libtorrent_connection(url, function(state)
 	{
 		if (state != "OK") {
