@@ -62,12 +62,19 @@ namespace libtorrent {
 		update(data);
 	}
 
+#if TORRENT_ABI_VERSION == 1
 	hasher::hasher(char const* data, int len)
 		: hasher()
 	{
 		TORRENT_ASSERT(len > 0);
 		update({data, len});
 	}
+
+	hasher& hasher::update(char const* data, int len)
+	{
+		return update({data, len});
+	}
+#endif
 
 #ifdef TORRENT_USE_LIBGCRYPT
 	hasher::hasher(hasher const& h)
@@ -86,11 +93,6 @@ namespace libtorrent {
 	hasher::hasher(hasher const&) = default;
 	hasher& hasher::operator=(hasher const&) & = default;
 #endif
-
-	hasher& hasher::update(char const* data, int len)
-	{
-		return update({data, len});
-	}
 
 	hasher& hasher::update(span<char const> data)
 	{

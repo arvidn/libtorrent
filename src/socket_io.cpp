@@ -154,12 +154,12 @@ namespace libtorrent {
 		if (ip.is_v6())
 		{
 			address_v6::bytes_type b = ip.to_v6().to_bytes();
-			return hasher(reinterpret_cast<char const*>(b.data()), int(b.size())).final();
+			return hasher({reinterpret_cast<char const*>(b.data()), b.size()}).final();
 		}
 		else
 		{
 			address_v4::bytes_type b = ip.to_v4().to_bytes();
-			return hasher(reinterpret_cast<char const*>(b.data()), int(b.size())).final();
+			return hasher({reinterpret_cast<char const*>(b.data()), b.size()}).final();
 		}
 	}
 

@@ -4473,9 +4473,9 @@ bool is_downloading_state(int const st)
 		std::uint32_t const storage = m_storage
 			? static_cast<std::uint32_t>(static_cast<storage_index_t>(m_storage))
 			: 0;
-		sha1_hash const h = hasher(reinterpret_cast<char const*>(&self), sizeof(self))
-			.update(reinterpret_cast<char const*>(&storage), sizeof(storage))
-			.update(reinterpret_cast<char const*>(&ses), sizeof(ses))
+		sha1_hash const h = hasher({reinterpret_cast<char const*>(&self), int(sizeof(self))})
+			.update({reinterpret_cast<char const*>(&storage), int(sizeof(storage))})
+			.update({reinterpret_cast<char const*>(&ses), int(sizeof(ses))})
 			.final();
 		unsigned char const* ptr = &h[0];
 		return detail::read_uint32(ptr);

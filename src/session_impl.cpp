@@ -1314,7 +1314,7 @@ namespace aux {
 	std::uint32_t session_impl::get_tracker_key(address const& iface) const
 	{
 		auto const ses = reinterpret_cast<uintptr_t>(this);
-		hasher h(reinterpret_cast<char const*>(&ses), sizeof(ses));
+		hasher h({reinterpret_cast<char const*>(&ses), int(sizeof(ses))});
 		if (iface.is_v4())
 		{
 			auto const b = iface.to_v4().to_bytes();

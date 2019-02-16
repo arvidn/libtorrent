@@ -119,7 +119,7 @@ namespace libtorrent {namespace {
 			{
 				m_metadata = m_torrent.torrent_file().metadata();
 				m_metadata_size = m_torrent.torrent_file().metadata_size();
-				TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
+				TORRENT_ASSERT(hasher({m_metadata.get(), m_metadata_size}).final()
 					== m_torrent.torrent_file().info_hash());
 			}
 			return {m_metadata.get(), m_metadata_size};

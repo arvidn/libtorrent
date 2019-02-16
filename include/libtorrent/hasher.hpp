@@ -70,8 +70,8 @@ namespace libtorrent {
 	// You have fed the hasher with all the data, you call ``final()`` and it
 	// will return the sha1-hash of the data.
 	//
-	// The constructor that takes a ``char const*`` and an integer will construct the
-	// sha1 context and feed it the data passed in.
+	// The constructor that takes a span will construct the sha1 context and feed
+	// it the data passed in.
 	//
 	// If you want to reuse the hasher object once you have created a hash, you have to
 	// call ``reset()`` to reinitialize it.
@@ -79,22 +79,23 @@ namespace libtorrent {
 	// The built-in software version of sha1-algorithm was implemented
 	// by Steve Reid and released as public domain.
 	// For more info, see ``src/sha1.cpp``.
-	class TORRENT_EXPORT hasher
+	struct TORRENT_EXPORT hasher
 	{
-	public:
-
 		hasher();
 
 		// this is the same as default constructing followed by a call to
 		// ``update(data, len)``.
-		hasher(char const* data, int len);
 		explicit hasher(span<char const> data);
 		hasher(hasher const&);
 		hasher& operator=(hasher const&) &;
 
+#if TORRENT_ABI_VERSION == 1
+		TORRENT_DEPRECATED explicit hasher(char const* data, int len);
+		TORRENT_DEPRECATED hasher& update(char const* data, int len);
+#endif
+
 		// append the following bytes to what is being hashed
 		hasher& update(span<char const> data);
-		hasher& update(char const* data, int len);
 
 		// returns the SHA-1 digest of the buffers previously passed to
 		// update() and the hasher constructor.

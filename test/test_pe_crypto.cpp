@@ -142,8 +142,8 @@ TORRENT_TEST(rc4)
 {
 	using namespace lt;
 
-	sha1_hash test1_key = hasher("test1_key",8).final();
-	sha1_hash test2_key = hasher("test2_key",8).final();
+	sha1_hash test1_key = hasher("test1_key"_sv).final();
+	sha1_hash test2_key = hasher("test2_key"_sv).final();
 
 	std::printf("testing RC4 handler\n");
 	rc4_handler rc41;

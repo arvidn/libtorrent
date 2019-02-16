@@ -144,8 +144,8 @@ void make_id_secret(node_id& in)
 
 	// generate the last 4 bytes as a "signature" of the previous 4 bytes. This
 	// lets us verify whether a hash came from this function or not in the future.
-	hasher h(reinterpret_cast<char const*>(&secret), 4);
-	h.update(reinterpret_cast<char const*>(&rand), 4);
+	hasher h({reinterpret_cast<char const*>(&secret), 4});
+	h.update({reinterpret_cast<char const*>(&rand), 4});
 	sha1_hash const secret_hash = h.final();
 	std::memcpy(&in[20 - 4], &secret_hash[0], 4);
 	std::memcpy(&in[20 - 8], &rand, 4);
@@ -155,7 +155,7 @@ node_id generate_random_id()
 {
 	char r[20];
 	aux::random_bytes(r);
-	return hasher(r, 20).final();
+	return hasher(r).final();
 }
 
 node_id generate_secret_id()
@@ -169,8 +169,8 @@ bool verify_secret_id(node_id const& nid)
 {
 	if (secret == 0) return false;
 
-	hasher h(reinterpret_cast<char*>(&secret), 4);
-	h.update(reinterpret_cast<char const*>(&nid[20 - 8]), 4);
+	hasher h({reinterpret_cast<char const*>(&secret), 4});
+	h.update({reinterpret_cast<char const*>(&nid[20 - 8]), 4});
 	sha1_hash secret_hash = h.final();
 	return std::memcmp(&nid[20 - 4], &secret_hash[0], 4) == 0;
 }

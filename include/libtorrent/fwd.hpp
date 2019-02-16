@@ -178,7 +178,7 @@ struct file_slice;
 class file_storage;
 
 // include/libtorrent/hasher.hpp
-class hasher;
+struct hasher;
 
 // include/libtorrent/hasher512.hpp
 class hasher512;

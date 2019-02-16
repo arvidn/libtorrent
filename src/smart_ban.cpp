@@ -185,7 +185,7 @@ namespace {
 
 			hasher h;
 			h.update({buffer.get(), block_size});
-			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
+			h.update({reinterpret_cast<char const*>(&m_salt), int(sizeof(m_salt))});
 
 			auto const range = m_torrent.find_peers(a);
 
@@ -266,7 +266,7 @@ namespace {
 
 			hasher h;
 			h.update({buffer.get(), block_size});
-			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
+			h.update({reinterpret_cast<char const*>(&m_salt), int(sizeof(m_salt))});
 			sha1_hash const ok_digest = h.final();
 
 			if (b.second.digest == ok_digest) return;

@@ -43,10 +43,10 @@ namespace {
 void test_set_and_get()
 {
 	bloom_filter<32> filter;
-	sha1_hash k1 = hasher("test1", 5).final();
-	sha1_hash k2 = hasher("test2", 5).final();
-	sha1_hash k3 = hasher("test3", 5).final();
-	sha1_hash k4 = hasher("test4", 5).final();
+	sha1_hash k1 = hasher("test1"_sv).final();
+	sha1_hash k2 = hasher("test2"_sv).final();
+	sha1_hash k3 = hasher("test3"_sv).final();
+	sha1_hash k4 = hasher("test4"_sv).final();
 	TEST_CHECK(!filter.find(k1));
 	TEST_CHECK(!filter.find(k2));
 	TEST_CHECK(!filter.find(k3));

@@ -351,8 +351,8 @@ struct announce_item
 
 		char buf[512];
 		char* ptr = buf;
-		int len = bencode(ptr, ent);
-		target = hasher(buf, len).final();
+		int const len = bencode(ptr, ent);
+		target = hasher({buf, len}).final();
 	}
 	sha1_hash next;
 	int num_peers;

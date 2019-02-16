@@ -42,23 +42,20 @@ namespace
 // test vectors from RFC 3174
 // http://www.faqs.org/rfcs/rfc3174.html
 
-char const* test_array[4] =
+struct test_case
 {
-	"abc",
-	"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
-	"a",
-	"0123456701234567012345670123456701234567012345670123456701234567"
+	string_view input;
+	int repeat_count;
+	string_view result;
 };
 
-long int repeat_count[4] = { 1, 1, 1000000, 10 };
-
-char const* result_array[4] =
-{
-	"A9993E364706816ABA3E25717850C26C9CD0D89D",
-	"84983E441C3BD26EBAAE4AA1F95129E5E54670F1",
-	"34AA973CD4C4DAA4F61EEB2BDBAD27316534016F",
-	"DEA356A2CDDD90C7A7ECEDC5EBB563934F460452"
-};
+std::array<test_case, 4> const test_array =
+{{
+	{"abc"_sv, 1, "A9993E364706816ABA3E25717850C26C9CD0D89D"_sv},
+	{"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"_sv, 1, "84983E441C3BD26EBAAE4AA1F95129E5E54670F1"_sv},
+	{"a"_sv, 1000000, "34AA973CD4C4DAA4F61EEB2BDBAD27316534016F"_sv},
+	{"0123456701234567012345670123456701234567012345670123456701234567"_sv, 10, "DEA356A2CDDD90C7A7ECEDC5EBB563934F460452"_sv}
+}};
 
 void test_vector(std::string s, std::string output, int const n = 1)
 {
@@ -80,14 +77,14 @@ void test_vector(std::string s, std::string output, int const n = 1)
 
 TORRENT_TEST(hasher)
 {
-	for (int test = 0; test < 4; ++test)
+	for (auto const& test : test_array)
 	{
 		hasher h;
-		for (int i = 0; i < repeat_count[test]; ++i)
-			h.update(test_array[test], int(std::strlen(test_array[test])));
+		for (int i = 0; i < test.repeat_count; ++i)
+			h.update(test.input);
 
 		sha1_hash result;
-		aux::from_hex({result_array[test], 40}, result.data());
+		aux::from_hex(test.result, result.data());
 		TEST_CHECK(result == h.final());
 	}
 }
