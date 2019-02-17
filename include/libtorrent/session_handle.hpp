@@ -147,6 +147,18 @@ namespace libtorrent {
 		//
 		// Any torrent_status object whose ``handle`` member is not referring to
 		// a valid torrent are ignored.
+		//
+		// The intended use of these functions is to start off by calling
+		// ``get_torrent_status()`` to get a list of all torrents that match your
+		// criteria. Then call ``refresh_torrent_status()`` on that list. This
+		// will only refresh the status for the torrents in your list, and thus
+		// ignore all other torrents you might be running. This may save a
+		// significant amount of time, especially if the number of torrents you're
+		// interested in is small. In order to keep your list of interested
+		// torrents up to date, you can either call ``get_torrent_status()`` from
+		// time to time, to include torrents you might have become interested in
+		// since the last time. In order to stop refreshing a certain torrent,
+		// simply remove it from the list.
 		std::vector<torrent_status> get_torrent_status(
 			std::function<bool(torrent_status const&)> const& pred
 			, status_flags_t flags = {}) const;
