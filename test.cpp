@@ -124,7 +124,7 @@ int main(int argc, char *const argv[])
 	webport.add_handler(&lt_handler);
 	webport.add_handler(&ut_handler);
 	webport.add_handler(&file_handler);
-	webport.start(8090/*, "server.pem"*/);
+	webport.start(8090, "server.pem");
 	if (!webport.is_running())
 	{
 		fprintf(stderr, "failed to start web server\n");

@@ -45,7 +45,7 @@ update_file_list = function(files)
 };
 
 window.onload = function() {
-	var url = 'ws://' + window.location.host + '/bt/control';
+	var url = 'wss://' + window.location.host + '/bt/control';
 	conn = new libtorrent_connection(url, function(state)
 	{
 		if (state != "OK") {
