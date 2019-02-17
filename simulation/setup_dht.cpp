@@ -270,7 +270,7 @@ dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flag
 		{
 			// every now and then, shuffle all_nodes to make the
 			// routing tables more randomly distributed
-			lt::aux::random_shuffle(all_nodes.begin(), all_nodes.end());
+			lt::aux::random_shuffle(all_nodes);
 			cnt = 0;
 		}
 	}

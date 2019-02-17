@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 #include "settings.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
 
@@ -48,8 +49,8 @@ TORRENT_TEST(web_seed_redirect)
 	file_storage fs;
 	int piece_size = 0x4000;
 
-	char random_data[16000];
-	std::generate(random_data, random_data + sizeof(random_data), random_byte);
+	std::array<char, 16000> random_data;
+	aux::random_bytes(random_data);
 	file f("test_file", open_mode::write_only, ec);
 	if (ec)
 	{
@@ -58,7 +59,7 @@ TORRENT_TEST(web_seed_redirect)
 		TEST_ERROR("failed to create file");
 		return;
 	}
-	iovec_t b = { random_data, size_t(16000)};
+	iovec_t b = random_data;
 	f.writev(0, b, ec);
 	fs.add_file("test_file", 16000);
 

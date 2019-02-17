@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
 
 #include <functional>

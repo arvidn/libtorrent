@@ -279,7 +279,7 @@ bool is_downloading_state(int const st)
 		for (auto const& e : p.http_seeds)
 			ws.emplace_back(e, web_seed_entry::http_seed);
 
-		aux::random_shuffle(ws.begin(), ws.end());
+		aux::random_shuffle(ws);
 		for (auto& w : ws) m_web_seeds.emplace_back(std::move(w));
 
 		// --- TRACKERS ---
@@ -486,7 +486,7 @@ bool is_downloading_state(int const st)
 		// add the web seeds from the .torrent file
 		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
 		std::vector<web_seed_t> ws(web_seeds.begin(), web_seeds.end());
-		aux::random_shuffle(ws.begin(), ws.end());
+		aux::random_shuffle(ws);
 		for (auto& w : ws) m_web_seeds.push_back(std::move(w));
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
@@ -6265,7 +6265,7 @@ bool is_downloading_state(int const st)
 		// if we didn't save 100 peers, fill in with second choice peers
 		if (int(ret.peers.size()) < 100)
 		{
-			aux::random_shuffle(deferred_peers.begin(), deferred_peers.end());
+			aux::random_shuffle(deferred_peers);
 			for (auto const p : deferred_peers)
 			{
 				ret.peers.push_back(p->ip());
@@ -9210,7 +9210,7 @@ bool is_downloading_state(int const st)
 			std::copy_if(m_connections.begin(), m_connections.end(), std::back_inserter(seeds)
 				, [](peer_connection const* p) { return p->is_seed(); });
 
-			aux::random_shuffle(seeds.begin(), seeds.end());
+			aux::random_shuffle(seeds);
 			TORRENT_ASSERT(to_disconnect <= seeds.end_index());
 			for (auto const& p : span<peer_connection*>(seeds).first(to_disconnect))
 				p->disconnect(errors::upload_upload_connection, operation_t::bittorrent);
