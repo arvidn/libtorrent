@@ -1509,8 +1509,8 @@ namespace libtorrent {
 		for (auto b : m_priority_boundaries)
 		{
 			if (start == b) continue;
-			auto r = range(m_pieces, start, b);
-			aux::random_shuffle(r.begin(), r.end());
+			span<piece_index_t> r(&m_pieces[start], static_cast<int>(b - start));
+			aux::random_shuffle(r);
 			start = b;
 		}
 

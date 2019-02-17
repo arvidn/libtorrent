@@ -520,7 +520,7 @@ void http_connection::on_resolve(error_code const& e
 		return;
 	}
 
-	aux::random_shuffle(m_endpoints.begin(), m_endpoints.end());
+	aux::random_shuffle(m_endpoints);
 
 	// if we have been told to bind to a particular address
 	// only connect to addresses of the same family

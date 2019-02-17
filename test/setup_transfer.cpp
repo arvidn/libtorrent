@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <tuple>
 #include <functional>
-#include <random>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
@@ -51,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/random.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -600,9 +598,6 @@ std::shared_ptr<T> clone_ptr(std::shared_ptr<T> const& ptr)
 {
 	return std::make_shared<T>(*ptr);
 }
-
-std::uint8_t random_byte()
-{ return static_cast<std::uint8_t>(lt::random(0xff)); }
 
 std::vector<char> generate_piece(piece_index_t const idx, int const piece_size)
 {

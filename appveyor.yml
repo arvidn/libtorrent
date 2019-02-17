@@ -92,7 +92,7 @@ build_script:
   - if defined cmake (
     set "PATH=c:\Python27-x64;%PATH%" &&
     cmake -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 14 2015 Win64" .. &&
-    cmake --build . --config Release -- -verbosity:quiet
+    cmake --build . --config Release -- -verbosity:minimal
     )
 
 test_script:

@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
+#include "libtorrent/random.hpp"
 
 #include <memory>
 #include <functional> // for bind
@@ -185,7 +186,7 @@ std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 std::vector<char> new_piece(std::size_t const size)
 {
 	std::vector<char> ret(size);
-	std::generate(ret.begin(), ret.end(), random_byte);
+	aux::random_bytes(ret);
 	return ret;
 }
 

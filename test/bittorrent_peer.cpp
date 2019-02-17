@@ -394,7 +394,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 			pieces.clear();
 			for (int i = 0; i < int(pieces.size()); ++i)
 				pieces.push_back(i);
-			aux::random_shuffle(pieces.begin(), pieces.end());
+			aux::random_shuffle(pieces);
 		}
 		else if (msg == 4) // have
 		{
@@ -418,7 +418,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 				}
 				++ptr;
 			}
-			aux::random_shuffle(pieces.begin(), pieces.end());
+			aux::random_shuffle(pieces);
 		}
 		else if (msg == 7) // piece
 		{
