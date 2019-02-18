@@ -189,13 +189,15 @@ namespace {
 			}
 		}
 
+		auto flags = disk_interface::sequential_access;
+		if (!st->ct.is_v2_only()) flags |= disk_interface::v1_hash;
+
 		st->f(st->completed_piece);
 		++st->completed_piece;
 		if (st->piece_counter < st->ct.files().end_piece())
 		{
 			span<sha256_hash> v2_span(v2_chunks);
-			st->iothread.async_hash(st->storage, st->piece_counter, v2_span
-				, disk_interface::sequential_access
+			st->iothread.async_hash(st->storage, st->piece_counter, v2_span, flags
 				, std::bind(&on_hash, std::move(v2_chunks), _1, _2, _3, st));
 			++st->piece_counter;
 		}
@@ -366,10 +368,14 @@ namespace {
 			
 			if (!t.is_v1_only())
 				v2_chunks.resize(t.piece_length() / default_block_size);
+
+			auto flags = disk_interface::sequential_access;
+			if (!t.is_v2_only()) flags |= disk_interface::v1_hash;
+
 			// the span needs to be created before the call to async_hash to ensure that
 			// it is constructed before the vector is moved into the bind context
 			span<sha256_hash> v2_span(v2_chunks);
-			disk_thread->async_hash(st.storage, i, v2_span, disk_interface::sequential_access
+			disk_thread->async_hash(st.storage, i, v2_span, flags
 				, std::bind(&on_hash, std::move(v2_chunks), _1, _2, _3, &st));
 			++st.piece_counter;
 			if (st.piece_counter >= t.files().end_piece()) break;
