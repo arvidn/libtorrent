@@ -169,7 +169,7 @@ namespace {
 		{
 			time_point const start_time = clock_type::now();
 
-			bool v1 = flags | disk_interface::v1_hash;
+			bool v1 = flags & disk_interface::v1_hash;
 			bool v2 = !chunk_hashes.empty();
 
 			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);

@@ -5207,7 +5207,7 @@ namespace libtorrent {
 				}
 
 				span<sha256_hash> v2_hashes(hashes);
-				m_disk_thread.async_hash(t->storage(), r.piece, v2_hashes, {}
+				m_disk_thread.async_hash(t->storage(), r.piece, v2_hashes, flags
 					, [conn = self(), h2 = std::move(hashes)]
 					(piece_index_t p, sha1_hash const& ph, storage_error const& e)
 					{ conn->wrap(&peer_connection::on_seed_mode_hashed, p, ph, h2, e); });
