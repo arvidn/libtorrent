@@ -4348,7 +4348,7 @@ bool is_downloading_state(int const st)
 		m_num_connecting_seeds = 0;
 	}
 
-	void torrent::set_super_seeding(bool on)
+	void torrent::set_super_seeding(bool const on)
 	{
 		if (on == m_super_seeding) return;
 

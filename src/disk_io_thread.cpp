@@ -348,10 +348,6 @@ private:
 #endif
 };
 
-constexpr disk_job_flags_t disk_interface::force_copy;
-constexpr disk_job_flags_t disk_interface::sequential_access;
-constexpr disk_job_flags_t disk_interface::volatile_read;
-
 TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	io_context& ios, counters& cnt)
 {

@@ -63,6 +63,14 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 using namespace lt;
 
+#if ! TORRENT_HAVE_MMAP && ! TORRENT_HAVE_MAP_VIEW_OF_FILE
+namespace libtorrent {
+namespace aux {
+	struct file_view_pool {};
+}
+}
+#endif
+
 namespace {
 
 using lt::aux::posix_storage;
@@ -164,12 +172,14 @@ template <typename StorageType>
 std::shared_ptr<StorageType> make_storage(storage_params const& p
 	, aux::file_view_pool& fp);
 
+#if TORRENT_HAVE_MMAP
 template <>
 std::shared_ptr<default_storage> make_storage(storage_params const& p
 	, aux::file_view_pool& fp)
 {
 	return std::make_shared<default_storage>(p, fp);
 }
+#endif
 
 template <>
 std::shared_ptr<posix_storage> make_storage(storage_params const& p
@@ -212,6 +222,7 @@ std::shared_ptr<StorageType> setup_torrent(file_storage& fs
 	return s;
 }
 
+#if TORRENT_HAVE_MMAP
 int writev(std::shared_ptr<default_storage> s
 	, aux::session_settings const& sett
 	, span<iovec_t const> bufs
@@ -220,16 +231,6 @@ int writev(std::shared_ptr<default_storage> s
 	, storage_error& error)
 {
 	return s->writev(sett, bufs, piece, offset, mode, error);
-}
-
-int writev(std::shared_ptr<posix_storage> s
-	, aux::session_settings const& sett
-	, span<iovec_t const> bufs
-	, piece_index_t const piece, int const offset
-	, aux::open_mode_t
-	, storage_error& error)
-{
-	return s->writev(sett, bufs, piece, offset, error);
 }
 
 int readv(std::shared_ptr<default_storage> s
@@ -243,6 +244,22 @@ int readv(std::shared_ptr<default_storage> s
 	return s->readv(sett, bufs, piece, offset, flags, ec);
 }
 
+void release_files(std::shared_ptr<default_storage> s, storage_error& ec)
+{
+	s->release_files(ec);
+}
+#endif
+
+int writev(std::shared_ptr<posix_storage> s
+	, aux::session_settings const& sett
+	, span<iovec_t const> bufs
+	, piece_index_t const piece, int const offset
+	, aux::open_mode_t
+	, storage_error& error)
+{
+	return s->writev(sett, bufs, piece, offset, error);
+}
+
 int readv(std::shared_ptr<posix_storage> s
 	, aux::session_settings const& sett
 	, span<iovec_t const> bufs
@@ -252,11 +269,6 @@ int readv(std::shared_ptr<posix_storage> s
 	, storage_error& ec)
 {
 	return s->readv(sett, bufs, piece, offset, ec);
-}
-
-void release_files(std::shared_ptr<default_storage> s, storage_error& ec)
-{
-	s->release_files(ec);
 }
 
 void release_files(std::shared_ptr<posix_storage>, storage_error&) {}
@@ -520,7 +532,6 @@ void test_check_files(std::string const& test_path
 	info = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	aux::session_settings set;
-	aux::file_view_pool fp;
 	boost::asio::io_context ios;
 	counters cnt;
 
@@ -639,19 +650,21 @@ TORRENT_TEST(check_files_allocate)
 	test_check_files(current_working_directory(), storage_mode_allocate);
 }
 
+#if TORRENT_HAVE_MMAP
 TORRENT_TEST(rename_mmap_disk_io)
 {
 	test_rename<default_storage>(current_working_directory());
 }
 
-TORRENT_TEST(rename_posix_disk_io)
-{
-	test_rename<posix_storage>(current_working_directory());
-}
-
 TORRENT_TEST(remove_mmap_disk_io)
 {
 	test_remove<default_storage>(current_working_directory());
+}
+#endif
+
+TORRENT_TEST(rename_posix_disk_io)
+{
+	test_rename<posix_storage>(current_working_directory());
 }
 
 TORRENT_TEST(remove_posix_disk_io)
@@ -1106,7 +1119,9 @@ TORRENT_TEST(iovec_advance_bufs)
 	free_iov(iov1, 10);
 }
 
+#if TORRENT_HAVE_MMAP
 TORRENT_TEST(mmap_disk_io) { run_test<default_storage>(); }
+#endif
 TORRENT_TEST(posix_disk_io) { run_test<posix_storage>(); }
 
 namespace {
@@ -1367,6 +1382,7 @@ TORRENT_TEST(readwritev_zero_size_files)
 	TEST_CHECK(check_pattern(buf, 0));
 }
 
+#if TORRENT_HAVE_MMAP
 TORRENT_TEST(move_storage_to_self)
 {
 	// call move_storage with the path to the exising storage. should be a no-op
@@ -1426,6 +1442,7 @@ TORRENT_TEST(move_storage_into_self)
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", "test4.tmp")))));
 }
+#endif
 
 TORRENT_TEST(storage_paths_string_pooling)
 {
@@ -1439,6 +1456,7 @@ TORRENT_TEST(storage_paths_string_pooling)
 	TEST_CHECK(file_storage.paths().size() <= 2);
 }
 
+#if TORRENT_HAVE_MMAP
 TORRENT_TEST(dont_move_intermingled_files)
 {
 	std::string const save_path = complete("save_path_1");
@@ -1498,3 +1516,4 @@ TORRENT_TEST(dont_move_intermingled_files)
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", "alien_folder1")))));
 }
+#endif

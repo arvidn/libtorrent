@@ -303,7 +303,7 @@ void test_ssl(int const test_idx, bool const use_utp)
 	p2 = ses2.abort();
 }
 
-std::string password_callback(int /*length*/, boost::asio::ssl::context::password_purpose p
+std::string password_callback(std::size_t /*length*/, boost::asio::ssl::context::password_purpose p
 	, std::string pw)
 {
 	if (p != boost::asio::ssl::context::for_reading) return "";

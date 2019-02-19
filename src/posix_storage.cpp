@@ -83,7 +83,8 @@ namespace aux {
 					, static_cast<std::size_t>(buf.size()), f));
 				if (r == 0)
 				{
-					ec.ec.assign(errno, generic_category());
+					if (ferror(f)) ec.ec.assign(errno, generic_category());
+					else ec.ec.assign(errors::file_too_short, libtorrent_category());
 					break;
 				}
 				ret += r;
@@ -139,7 +140,8 @@ namespace aux {
 					, static_cast<std::size_t>(buf.size()), f));
 				if (r != buf.size())
 				{
-					ec.ec.assign(errno, generic_category());
+					if (ferror(f)) ec.ec.assign(errno, generic_category());
+					else ec.ec.assign(errors::file_too_short, libtorrent_category());
 					break;
 				}
 				ret += r;
@@ -173,6 +175,11 @@ namespace aux {
 	{
 		return aux::verify_resume_data(rd, links, files()
 			, m_file_priority, m_stat_cache, m_save_path, ec);
+	}
+
+	void posix_storage::release_files()
+	{
+		m_stat_cache.clear();
 	}
 
 	void posix_storage::delete_files(remove_flags_t const options, storage_error& error)
@@ -248,8 +255,7 @@ namespace aux {
 			if (files().pad_file_at(file_index)) continue;
 
 			error_code err;
-			std::int64_t size = m_stat_cache.get_filesize(file_index, files()
-				, m_save_path, err);
+			m_stat_cache.get_filesize(file_index, files(), m_save_path, err);
 
 			if (err && err != boost::system::errc::no_such_file_or_directory)
 			{
@@ -259,28 +265,24 @@ namespace aux {
 				break;
 			}
 
-			// if the file already exists, but is larger than what
-			// it's supposed to be, truncate it
-			// if the file is empty, just create it either way.
-			std::int64_t const file_size = files().file_size(file_index);
-			if ((!err && size > file_size)
-				|| files().file_size(file_index) == 0)
+			// if the file is empty and doesn't already exist, create it
+			// deliberately don't truncate files that already exist
+			// if a file is supposed to have size 0, but already exists, we will
+			// never truncate it to 0.
+			if (files().file_size(file_index) == 0
+				&& err == boost::system::errc::no_such_file_or_directory)
 			{
+				// just creating the file is enough to make it zero-sized. If
+				// there's a race here and some other process truncates the file,
+				// it's not a problem, we won't access empty files ever again
+				ec.ec.clear();
 				FILE* f = open_file(file_index, aux::open_mode::write, 0, ec);
-				if (ec) return;
-#ifndef TORRENT_WINDOWS
-				if (file_size > 0)
+				if (ec)
 				{
-					int const ret = ftruncate(fileno(f), file_size);
-					if (ret < 0)
-					{
-						fclose(f);
-						ec.file(file_index);
-						ec.operation = operation_t::file_fallocate;
-						return;
-					}
+					ec.file(file_index);
+					ec.operation = operation_t::file_fallocate;
+					return;
 				}
-#endif
 				fclose(f);
 			}
 			ec.ec.clear();

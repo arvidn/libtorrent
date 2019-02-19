@@ -128,7 +128,7 @@ namespace {
 			storage_index_t const idx = m_free_slots.empty()
 				? m_torrents.end_index()
 				: pop(m_free_slots);
-			auto storage = std::make_shared<posix_storage>(std::move(params));
+			auto storage = std::make_unique<posix_storage>(std::move(params));
 			if (idx == m_torrents.end_index()) m_torrents.emplace_back(std::move(storage));
 			else m_torrents[idx] = std::move(storage);
 			return storage_holder(idx, *this);
@@ -263,7 +263,13 @@ namespace {
 			});
 		}
 
-		void async_release_files(storage_index_t, std::function<void()>) override {}
+		void async_release_files(storage_index_t storage, std::function<void()> handler) override
+		{
+			posix_storage* st = m_torrents[storage].get();
+			st->release_files();
+			if (!handler) return;
+			post(m_ios, [=]{ handler(); });
+		}
 
 		void async_delete_files(storage_index_t storage, remove_flags_t const options
 			, std::function<void(storage_error const&)> handler) override
@@ -325,6 +331,7 @@ namespace {
 		void async_stop_torrent(storage_index_t
 			, std::function<void()> handler) override
 		{
+			if (!handler) return;
 			post(m_ios, handler);
 		}
 
@@ -334,8 +341,7 @@ namespace {
 				, aux::vector<download_priority_t, file_index_t>)> handler) override
 		{
 			post(m_ios, [=]{
-				handler(storage_error(error_code(
-					boost::system::errc::operation_not_supported, system_category())), std::move(prio));
+				handler(storage_error(), std::move(prio));
 			});
 		}
 
@@ -358,7 +364,7 @@ namespace {
 
 	private:
 
-		aux::vector<std::shared_ptr<posix_storage>, storage_index_t> m_torrents;
+		aux::vector<std::unique_ptr<posix_storage>, storage_index_t> m_torrents;
 
 		// slots that are unused in the m_torrents vector
 		std::vector<storage_index_t> m_free_slots;

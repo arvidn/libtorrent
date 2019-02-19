@@ -14,9 +14,10 @@ matrix:
           packages:
           - python3-pip
           - g++-6
-    - env: variant=test_debug tests=1 toolset=gcc-sanitizer
+    - env: variant=test_debug tests=1 mmap=on toolset=gcc-sanitizer
+    - env: variant=test_debug tests=1 mmap=off toolset=gcc
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
-    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
+    - env: variant=test_release coverage=1 tests=1 mmap=on toolset=gcc-coverage python=1 python_dist=1
     - env: dist=1 toolset=gcc install_boost=1
       addons:
         apt:
@@ -37,7 +38,7 @@ matrix:
           packages:
           - ninja-build
           - g++-6
-    - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 python=1 toolset=darwin ios=1
+    - env: variant=test_debug crypto=openssl docs=1 tests=1 mmap=on examples=1 tools=1 python=1 toolset=darwin ios=1
       os: osx
       osx_image: xcode9.2
     - env: arch=arm toolset=gcc-arm
@@ -246,11 +247,11 @@ script:
 # libtorrent is the name of the test suite target
   - cd $TRAVIS_BUILD_DIR/test;
   - 'if [ "$tests" == "1" ]; then
-      bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
-      travis_retry bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
-      travis_retry bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
+      bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
+      travis_retry bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
+      travis_retry bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-        travis_retry bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
+        travis_retry bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
       fi &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
