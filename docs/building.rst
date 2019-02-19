@@ -384,6 +384,11 @@ Build features:
 |                          |   building a static library to be linked into a    |
 |                          |   shared library).                                 |
 +--------------------------+----------------------------------------------------+
+| ``mmap-disk-io``         | * ``on`` - default. Enable mmap disk storage (if   |
+|                          |   available.                                       |
+|                          | * ``off`` - disable mmap storage, and fall back to |
+|                          |   single-threaded, portable file operations.       |
++--------------------------+----------------------------------------------------+
 
 The ``variant`` feature is *implicit*, which means you don't need to specify
 the name of the feature, just the value.
@@ -567,6 +572,8 @@ defines you can use to control the build.
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_SYSTEM_ASSERTS``         | Uses the libc assert macro rather then the      |
 |                                        | custom one.                                     |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_HAVE_MMAP``                  | Define as 0 to disable mmap support.            |
 +----------------------------------------+-------------------------------------------------+
 
 .. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html

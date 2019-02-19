@@ -475,6 +475,8 @@ TORRENT_TEST(no_metadata_piece_prio)
 	ses.remove_torrent(h);
 }
 
+// only the mmap disk io supports partfiles rigth now
+#if TORRENT_HAVE_MMAP
 TORRENT_TEST(export_file_while_seed)
 {
 	settings_pack pack = settings();
@@ -523,6 +525,7 @@ TORRENT_TEST(export_file_while_seed)
 
 	TEST_CHECK(exists("temporary"));
 }
+#endif
 
 TORRENT_TEST(test_piece_priority_after_resume)
 {

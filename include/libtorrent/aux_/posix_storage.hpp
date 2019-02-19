@@ -68,6 +68,8 @@ namespace aux {
 			, aux::vector<std::string, file_index_t> const& links
 			, storage_error& ec);
 
+		void release_files();
+
 		void delete_files(remove_flags_t options, storage_error& error);
 
 		void rename_file(file_index_t const index, std::string const& new_filename, storage_error& ec);

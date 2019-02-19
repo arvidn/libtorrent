@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/extensions.hpp" // for add_peer_flags_t
 #include "libtorrent/disk_interface.hpp"
+#include "libtorrent/posix_disk_io.hpp"
 
 namespace libtorrent {
 

@@ -57,7 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/hex.hpp" // to_hex
-//#include "libtorrent/aux_/escape_string.hpp"
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 namespace libtorrent {
 
@@ -784,3 +785,5 @@ namespace libtorrent {
 		return false;
 	}
 } // namespace libtorrent
+
+#endif // TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE

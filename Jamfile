@@ -442,6 +442,9 @@ feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 feature picker-debugging : off on : composite propagated link-incompatible ;
 feature.compose <picker-debugging>on : <define>TORRENT_DEBUG_REFCOUNTS ;
 
+feature mmap-disk-io : on off : composite propagated ;
+feature.compose <mmap-disk-io>off : <define>TORRENT_HAVE_MMAP=0 ;
+
 feature simulator : off on : composite propagated link-incompatible ;
 feature.compose <simulator>on : <define>TORRENT_BUILD_SIMULATOR ;
 
@@ -598,6 +601,7 @@ SOURCES =
 	create_torrent
 	disk_buffer_holder
 	disk_buffer_pool
+	disk_interface
 	disk_io_job
 	disk_io_thread
 	disk_io_thread_pool
