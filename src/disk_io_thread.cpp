@@ -180,7 +180,7 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 		, std::function<void(piece_index_t)> handler) override;
 
 	// implements buffer_allocator_interface
-	void free_disk_buffer(char* b, aux::block_cache_reference const&) override
+	void free_disk_buffer(char* b) override
 	{ m_buffer_pool.free_buffer(b); }
 
 	void update_stats_counters(counters& c) const override;
@@ -399,12 +399,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void disk_io_thread::remove_torrent(storage_index_t const idx)
 	{
-		auto& pos = m_torrents[idx];
-		if (pos->dec_refcount() == 0)
-		{
-			pos.reset();
-			m_free_slots.push_back(idx);
-		}
+		m_torrents[idx].reset();
+		m_free_slots.push_back(idx);
 	}
 
 #if TORRENT_USE_ASSERTS

@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/aux_/aligned_storage.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/buffer.hpp"

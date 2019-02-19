@@ -35,14 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/block_cache_reference.hpp"
-#include "libtorrent/span.hpp"
+#include <utility>
 
 namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface
 	{
-		virtual void free_disk_buffer(char* b, aux::block_cache_reference const& ref) = 0;
+		virtual void free_disk_buffer(char* b) = 0;
 	protected:
 		~buffer_allocator_interface() = default;
 	};
@@ -55,10 +54,6 @@ namespace libtorrent {
 	// this buffer has been released, ``data()`` will return nullptr.
 	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
 	{
-		// internal
-		disk_buffer_holder(buffer_allocator_interface& alloc
-			, char* buf, std::size_t sz) noexcept;
-
 		disk_buffer_holder& operator=(disk_buffer_holder&&) & noexcept;
 		disk_buffer_holder(disk_buffer_holder&&) noexcept;
 
@@ -69,9 +64,7 @@ namespace libtorrent {
 		// using a disk buffer pool directly (there's only one
 		// disk_buffer_pool per session)
 		disk_buffer_holder(buffer_allocator_interface& alloc
-			, aux::block_cache_reference const& ref
-			, char* buf
-			, std::size_t sz) noexcept;
+			, char* buf, std::size_t sz) noexcept;
 
 		// frees any unreleased disk buffer held by this object
 		~disk_buffer_holder();
@@ -88,7 +81,7 @@ namespace libtorrent {
 		// set the holder object to hold the specified buffer
 		// (or nullptr by default). If it's already holding a
 		// disk buffer, it will first be freed.
-		void reset(char* buf, std::size_t sz, aux::block_cache_reference const& ref);
+		void reset(char* buf, std::size_t sz);
 		void reset();
 
 		// swap pointers of two disk buffer holders.
@@ -97,11 +90,10 @@ namespace libtorrent {
 			TORRENT_ASSERT(h.m_allocator == m_allocator);
 			std::swap(h.m_buf, m_buf);
 			std::swap(h.m_size, m_size);
-			std::swap(h.m_ref, m_ref);
 		}
 
 		// if this returns true, the buffer may not be modified in place
-		bool is_mutable() const noexcept { return m_ref.cookie == aux::block_cache_reference::none; }
+		bool is_mutable() const noexcept { return false; }
 
 		// implicitly convertible to true if the object is currently holding a
 		// buffer
@@ -114,7 +106,6 @@ namespace libtorrent {
 		buffer_allocator_interface* m_allocator;
 		char* m_buf;
 		std::size_t m_size;
-		aux::block_cache_reference m_ref;
 	};
 
 }

@@ -72,7 +72,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/peer_class.hpp"
-#include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"

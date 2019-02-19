@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/link.hpp" // for torrent_list_index_t
+#include "libtorrent/sha1_hash.hpp"
 
 #include <functional>
 #include <memory>

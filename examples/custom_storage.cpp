@@ -232,7 +232,7 @@ struct temp_disk_io final : lt::disk_interface
 	}
 
 	// implements buffer_allocator_interface
-	void free_disk_buffer(char*, lt::aux::block_cache_reference const&) override
+	void free_disk_buffer(char*) override
 	{
 		// never free any buffer. We only return buffers owned by the storage
 		// object

@@ -207,7 +207,6 @@ set(libtorrent_aux_include_files
 	allocating_handler
 	array
 	bind_to_device
-	block_cache_reference
 	byteswap
 	cppint_import_export
 	cpuid

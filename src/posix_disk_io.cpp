@@ -346,7 +346,7 @@ namespace {
 		}
 
 		// implements buffer_allocator_interface
-		void free_disk_buffer(char* b, aux::block_cache_reference const&) override
+		void free_disk_buffer(char* b) override
 		{ m_buffer_pool.free_buffer(b); }
 
 		void update_stats_counters(counters&) const override {}

@@ -568,7 +568,6 @@ HEADERS = \
   aux_/allocating_handler.hpp       \
   aux_/array.hpp                    \
   aux_/bind_to_device.hpp           \
-  aux_/block_cache_reference.hpp    \
   aux_/byteswap.hpp                 \
   aux_/container_wrapper.hpp        \
   aux_/cppint_import_export.hpp     \

@@ -31,19 +31,21 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/disk_buffer_holder.hpp"
+#include <utility>
 
 namespace libtorrent {
 
 	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc
-		, char* buf, std::size_t sz) noexcept
-		: m_allocator(&alloc), m_buf(buf), m_size(sz), m_ref()
+		, char* const buf, std::size_t const sz) noexcept
+		: m_allocator(&alloc), m_buf(buf), m_size(sz)
 	{}
 
-	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc
-		, aux::block_cache_reference const& ref, char* const buf
-		, std::size_t const sz) noexcept
-		: m_allocator(&alloc), m_buf(buf), m_size(sz), m_ref(ref)
-	{}
+	disk_buffer_holder::disk_buffer_holder(disk_buffer_holder&& h) noexcept
+		: m_allocator(h.m_allocator), m_buf(h.m_buf), m_size(h.m_size)
+	{
+		h.m_buf = nullptr;
+		h.m_size = 0;
+	}
 
 	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h) & noexcept
 	{
@@ -52,37 +54,26 @@ namespace libtorrent {
 		return *this;
 	}
 
-	disk_buffer_holder::disk_buffer_holder(disk_buffer_holder&& h) noexcept
-		: m_allocator(h.m_allocator), m_buf(h.m_buf), m_size(h.m_size), m_ref(h.m_ref)
+	void disk_buffer_holder::reset(char* const buf, std::size_t const sz)
 	{
-		// we own this buffer now
-		h.m_buf = nullptr;
-		h.m_ref = aux::block_cache_reference();
-	}
-
-	void disk_buffer_holder::reset(char* const buf, std::size_t const sz, aux::block_cache_reference const& ref)
-	{
-		if (m_buf) m_allocator->free_disk_buffer(m_buf, m_ref);
+		TORRENT_ASSERT(m_allocator);
+		if (m_buf) m_allocator->free_disk_buffer(m_buf);
 		m_buf = buf;
 		m_size = sz;
-		m_ref = ref;
 	}
 
 	void disk_buffer_holder::reset()
 	{
-		if (m_buf) m_allocator->free_disk_buffer(m_buf, m_ref);
+		if (m_buf) m_allocator->free_disk_buffer(m_buf);
 		m_buf = nullptr;
 		m_size = 0;
-		m_ref = aux::block_cache_reference();
 	}
 
 	char* disk_buffer_holder::release() noexcept
 	{
-		TORRENT_ASSERT(m_ref.cookie == aux::block_cache_reference::none);
 		char* ret = m_buf;
 		m_buf = nullptr;
 		m_size = 0;
-		m_ref = aux::block_cache_reference();
 		return ret;
 	}
 
