@@ -120,6 +120,17 @@ namespace file_open_mode {
 
 	using disk_job_flags_t = flags::bitfield_flag<std::uint8_t, struct disk_job_flags_tag>;
 
+	// The disk_interface is the customization point for disk I/O in libtorrent.
+	// implement this interface and provide a factory function to the session constructor
+	// use custom disk I/O.
+	//
+	// Example use:
+	//
+	// .. include:: ../examples/custom_storage.cpp
+	// 	:code: c++
+	// 	:tab-width: 2
+	// 	:start-after: -- example begin
+	// 	:end-before: // -- example end
 	struct TORRENT_EXPORT disk_interface
 	{
 		// force making a copy of the cached block, rather
@@ -182,6 +193,12 @@ namespace file_open_mode {
 		virtual ~disk_interface() {}
 	};
 
+	// a unique, owning, reference to the storage of a torrent in a disk io
+	// subsystem (class that implements disk_interface). This is held by the
+	// internal libtorrent torrent object to tie the storage object allocated
+	// for a torrent to the lifetime of the internal torrent object. When a
+	// torrent is removed from the session, this holder is destructed and will
+	// inform the disk object.
 	struct TORRENT_EXPORT storage_holder
 	{
 		storage_holder() = default;

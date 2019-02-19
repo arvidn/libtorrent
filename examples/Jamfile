@@ -18,6 +18,7 @@ project client_test
 	# C4268: 'identifier' : 'const' static/global data initialized
 	#        with compiler generated default constructor fills the object with zeros
 	<toolset>msvc:<cflags>/wd4268
+	<toolset>msvc:<cflags>/wd4373
 	: default-build
 	<link>static
 	;
@@ -25,6 +26,7 @@ project client_test
 exe client_test : client_test.cpp print.cpp torrent_view.cpp session_view.cpp ;
 
 exe simple_client : simple_client.cpp ;
+exe custom_storage : custom_storage.cpp ;
 exe bt-get : bt-get.cpp ;
 exe bt-get2 : bt-get2.cpp ;
 exe stats_counters : stats_counters.cpp ;

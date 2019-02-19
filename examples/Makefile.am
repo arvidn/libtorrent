@@ -4,6 +4,7 @@ example_programs =  \
   dump_torrent      \
   make_torrent      \
   simple_client     \
+  custom_storage    \
   upnp_test         \
   bt_get            \
   bt_get2           \
@@ -23,6 +24,7 @@ bt_get2_SOURCES = bt-get2.cpp
 dump_torrent_SOURCES = dump_torrent.cpp
 make_torrent_SOURCES = make_torrent.cpp
 simple_client_SOURCES = simple_client.cpp
+custom_storage_SOURCES = custom_storage.cpp
 connection_tester_SOURCES = connection_tester.cpp
 upnp_test_SOURCES = upnp_test.cpp
 

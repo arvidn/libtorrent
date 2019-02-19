@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/random.hpp"
 #include <fstream>
 
 #include "settings.hpp"
@@ -294,7 +295,7 @@ void setup_swarm(int num_nodes
 
 		// make sure the sessions have different peer ids
 		lt::peer_id pid;
-		std::generate(&pid[0], &pid[0] + 20, &random_byte);
+		lt::aux::random_bytes(pid);
 		pack.set_str(lt::settings_pack::peer_fingerprint, pid.to_string());
 		if (i == 0) new_session(pack);
 

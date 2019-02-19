@@ -2,6 +2,7 @@ project(libtorrent-examples)
 
 set(single_file_examples
     simple_client
+    custom_storage
     stats_counters
     dump_torrent
     make_torrent

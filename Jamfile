@@ -296,13 +296,6 @@ rule building ( properties * )
 		result += <source>src/pe_crypto.cpp ;
 	}
 
-	if <crypto>built-in in $(properties)
-		&& ! <target-os>windows in $(properties)
-		&& ! <target-os>darwin in $(properties)
-	{
-		result += <source>src/sha1.cpp ;
-	}
-
 	if ( <toolset>darwin in $(properties)
 		|| <toolset>gcc in $(properties)
 		|| <toolset>clang in $(properties)
@@ -651,6 +644,7 @@ SOURCES =
 	session_call
 	session_udp_sockets
 	settings_pack
+	sha1
 	sha1_hash
 	socket_io
 	socket_type

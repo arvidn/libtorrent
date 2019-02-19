@@ -1710,7 +1710,7 @@ void test_routing_table(address(&rand_addr)())
 
 	std::vector<node_entry> temp;
 
-	std::generate(tmp.begin(), tmp.end(), random_byte);
+	aux::random_bytes(tmp);
 	table.find_node(tmp, temp, 0, int(nodes.size()) * 2);
 	std::printf("returned-all: %d\n", int(temp.size()));
 	TEST_EQUAL(temp.size(), nodes.size());
@@ -1723,7 +1723,7 @@ void test_routing_table(address(&rand_addr)())
 
 	for (int r = 0; r < reps; ++r)
 	{
-		std::generate(tmp.begin(), tmp.end(), random_byte);
+		aux::random_bytes(tmp);
 		table.find_node(tmp, temp, 0, bucket_size * 2);
 		std::printf("returned: %d\n", int(temp.size()));
 		TEST_EQUAL(int(temp.size()), std::min(bucket_size * 2, int(nodes.size())));
@@ -3065,7 +3065,7 @@ TORRENT_TEST(routing_table_extended)
 	std::vector<std::uint8_t> node_id_prefix;
 	node_id_prefix.reserve(256);
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i & 0xff);
-	aux::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
+	aux::random_shuffle(node_id_prefix);
 
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 	for (std::size_t i = 0; i < 256; ++i)
@@ -3099,7 +3099,7 @@ TORRENT_TEST(routing_table_set_id)
 	std::vector<std::uint8_t> node_id_prefix;
 	node_id_prefix.reserve(256);
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i & 0xff);
-	aux::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
+	aux::random_shuffle(node_id_prefix);
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 	for (std::size_t i = 0; i < 256; ++i)
 	{

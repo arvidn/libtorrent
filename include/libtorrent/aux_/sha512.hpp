@@ -2,6 +2,12 @@
 #define TORRENT_SHA512_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+
+#if !defined TORRENT_USE_LIBGCRYPT \
+	&& !TORRENT_USE_COMMONCRYPTO \
+	&& !TORRENT_USE_CRYPTOAPI_SHA_512 \
+	&& !defined TORRENT_USE_LIBCRYPTO
+
 #include <cstdint>
 
 namespace libtorrent {
@@ -22,4 +28,5 @@ namespace aux {
 }
 }
 
+#endif
 #endif

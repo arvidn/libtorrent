@@ -69,7 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	from_span_t from_span;
+	TORRENT_EXPORT from_span_t from_span;
 
 	namespace {
 
@@ -1320,19 +1320,10 @@ namespace {
 			if (!m_urls.empty())
 			{
 				// shuffle each tier
-				auto start = m_urls.begin();
-				std::vector<announce_entry>::iterator stop;
-				int current_tier = m_urls.front().tier;
-				for (stop = m_urls.begin(); stop != m_urls.end(); ++stop)
-				{
-					if (stop->tier != current_tier)
-					{
-						aux::random_shuffle(start, stop);
-						start = stop;
-						current_tier = stop->tier;
-					}
-				}
-				aux::random_shuffle(start, stop);
+				aux::random_shuffle(m_urls);
+				std::stable_sort(m_urls.begin(), m_urls.end()
+					, [](announce_entry const& lhs, announce_entry const& rhs)
+					{ return lhs.tier < rhs.tier; });
 			}
 		}
 

@@ -298,6 +298,7 @@ set(sources
 	fingerprint
 	gzip
 	hasher
+	sha1
 	hex
 	http_connection
 	http_stream
@@ -661,10 +662,6 @@ else(OPENSSL_FOUND)
 	if (LibGcrypt_FOUND)
 		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBGCRYPT)
 		target_link_libraries(torrent-rasterbar PRIVATE LibGcrypt::LibGcrypt)
-	else()
-		if (NOT WIN32 AND NOT APPLE)
-			target_sources(torrent-rasterbar PRIVATE src/sha1)
-		endif()
 	endif()
 endif(OPENSSL_FOUND)
 

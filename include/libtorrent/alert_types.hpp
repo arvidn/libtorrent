@@ -1410,19 +1410,19 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// internal
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
-			, libtorrent::address const& listen_addr, int listen_port
-			, operation_t op, error_code const& ec, libtorrent::socket_type_t t);
+			, lt::address const& listen_addr, int listen_port
+			, operation_t op, error_code const& ec, lt::socket_type_t t);
 
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
 			, tcp::endpoint const& ep, operation_t op, error_code const& ec
-			, libtorrent::socket_type_t t);
+			, lt::socket_type_t t);
 
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
 			, udp::endpoint const& ep, operation_t op, error_code const& ec
-			, libtorrent::socket_type_t t);
+			, lt::socket_type_t t);
 
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
-			, operation_t op, error_code const& ec, libtorrent::socket_type_t t);
+			, operation_t op, error_code const& ec, lt::socket_type_t t);
 
 		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48, alert_priority_critical)
 
@@ -1439,11 +1439,11 @@ TORRENT_VERSION_NAMESPACE_2
 		operation_t op;
 
 		// the type of listen socket this alert refers to.
-		libtorrent::socket_type_t const socket_type;
+		lt::socket_type_t const socket_type;
 
 		// the address libtorrent attempted to listen on
 		// see alert documentation for validity of this value
-		aux::noexcept_movable<libtorrent::address> address;
+		aux::noexcept_movable<lt::address> address;
 
 		// the port libtorrent attempted to listen on
 		// see alert documentation for validity of this value
@@ -1496,17 +1496,17 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// internal
 		listen_succeeded_alert(aux::stack_allocator& alloc
-			, libtorrent::address const& listen_addr
+			, lt::address const& listen_addr
 			, int listen_port
-			, libtorrent::socket_type_t t);
+			, lt::socket_type_t t);
 
 		listen_succeeded_alert(aux::stack_allocator& alloc
 			, tcp::endpoint const& ep
-			, libtorrent::socket_type_t t);
+			, lt::socket_type_t t);
 
 		listen_succeeded_alert(aux::stack_allocator& alloc
 			, udp::endpoint const& ep
-			, libtorrent::socket_type_t t);
+			, lt::socket_type_t t);
 
 		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49, alert_priority_critical)
 
@@ -1515,13 +1515,13 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// the address libtorrent ended up listening on. This address
 		// refers to the local interface.
-		aux::noexcept_movable<libtorrent::address> address;
+		aux::noexcept_movable<lt::address> address;
 
 		// the port libtorrent ended up listening on.
 		int const port;
 
 		// the type of listen socket this alert refers to.
-		libtorrent::socket_type_t const socket_type;
+		lt::socket_type_t const socket_type;
 
 #if TORRENT_ABI_VERSION == 1
 		// the endpoint libtorrent ended up listening on. The address

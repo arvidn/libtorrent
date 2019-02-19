@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 EXPORT std::shared_ptr<lt::torrent_info> generate_torrent();
 
 EXPORT int print_failures();
-EXPORT unsigned char random_byte();
 
 EXPORT int load_file(std::string const& filename, std::vector<char>& v
 	, lt::error_code& ec, int limit = 8000000);

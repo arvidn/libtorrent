@@ -35,12 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
-#include "libtorrent/session.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/buffer.hpp"
 
-#include "setup_transfer.hpp"
 #include "test.hpp"
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
@@ -52,11 +49,11 @@ void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 	int const repcount = 128;
 	for (int rep = 0; rep < repcount; ++rep)
 	{
-		std::ptrdiff_t const buf_len = rand() % (512 * 1024);
+		std::ptrdiff_t const buf_len = lt::random(512 * 1024);
 		std::vector<char> buf(static_cast<std::size_t>(buf_len));
 		std::vector<char> cmp_buf(static_cast<std::size_t>(buf_len));
 
-		std::generate(buf.begin(), buf.end(), &std::rand);
+		lt::aux::random_bytes(buf);
 		std::copy(buf.begin(), buf.end(), cmp_buf.begin());
 
 		using namespace lt::aux;

@@ -1,6 +1,10 @@
 	* requires boost >= 1.66 to build
 	* update networking API to networking TS compatible boost.asio
 
+	* support magnet link parameters with number siffixes
+	* consistently use "lt" namespace in examples and documentation
+	* fix Mingw build to use native cryptoAPI
+
 1.2 release
 
 	* requires boost >= 1.58 to build

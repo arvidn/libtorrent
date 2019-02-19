@@ -236,6 +236,7 @@ EXAMPLE_FILES= \
   session_view.cpp \
   session_view.hpp \
   simple_client.cpp \
+  custom_storage.cpp \
   stats_counters.cpp \
   torrent_view.cpp \
   torrent_view.hpp \
