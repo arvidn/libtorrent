@@ -130,12 +130,6 @@ namespace aux {
 		storage_index_t storage_index() const { return m_storage_index; }
 		void set_storage_index(storage_index_t st) { m_storage_index = st; }
 
-		int dec_refcount()
-		{
-			TORRENT_ASSERT(m_references > 0);
-			return --m_references;
-		}
-		void inc_refcount() { ++m_references; }
 	private:
 
 		bool m_need_tick = false;
@@ -150,9 +144,6 @@ namespace aux {
 		std::shared_ptr<void> m_torrent;
 
 		storage_index_t m_storage_index{0};
-
-		// the number of block_cache_reference objects referencing this storage
-		std::atomic<int> m_references{1};
 
 		void need_partfile();
 
