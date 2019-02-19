@@ -45,7 +45,7 @@ struct temp_storage : lt::storage_interface
 	explicit temp_storage(lt::file_storage const& fs) : lt::storage_interface(fs) {}
 	void initialize(lt::storage_error&) override {}
 	bool has_any_file(lt::storage_error&) override { return false; }
-	virtual void set_file_priority(lt::aux::vector<lt::download_priority_t, lt::file_index_t>&
+	void set_file_priority(lt::aux::vector<lt::download_priority_t, lt::file_index_t>&
 		, lt::storage_error&) override {}
 	int readv(lt::span<lt::iovec_t const> bufs, lt::piece_index_t piece
 		, int offset, lt::open_mode_t, lt::storage_error&) override
