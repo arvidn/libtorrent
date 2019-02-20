@@ -3,12 +3,13 @@
   "targets": {
     "x86_64": {
       "buildenv": "xenial-amd64",
-      "builddeps": ["build-essential", "libssl-dev", "curl"],
+      "builddeps": ["build-essential", "libssl-dev", "curl", "clang-3.8"],
       "buildcmd": [
+        "clang++-3.8 --version",
         "curl -Ls https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz | tar xz",
         "(cd boost_1_68_0 && ./bootstrap.sh)",
         "",
-        "echo \"using gcc : : g++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
+        "echo \"using clang : : clang++-3.8 ;\" > ~/user-config.jam",
         "cd simulation",
         "BOOST_ROOT=${PWD}/../boost_1_68_0 ../boost_1_68_0/bjam --hash -j${PARALLEL}"
       ]
@@ -18,7 +19,7 @@
       "buildcmd": [
         "curl -Ls https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz | tar xz",
         "(cd boost_1_68_0 && ./bootstrap.sh)",
-        "echo \"using darwin : : clang++ : <cxxflags>-std=c++11 ;\" > ~/user-config.jam",
+        "echo \"using darwin : : clang++ ;\" > ~/user-config.jam",
         "cd simulation",
         "BOOST_ROOT=${PWD}/../boost_1_68_0 ../boost_1_68_0/bjam --hash -j${PARALLEL}"
       ]

@@ -21,6 +21,7 @@ project client_test
 	<toolset>msvc:<cflags>/wd4373
 	: default-build
 	<link>static
+	<cxxstd>14
 	;
 
 exe client_test : client_test.cpp print.cpp torrent_view.cpp session_view.cpp ;

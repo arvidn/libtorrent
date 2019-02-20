@@ -222,6 +222,7 @@ my-python-extension libtorrent
 	<toolset>msvc:<cflags>/wd4268
 	: # default-build
 	<warnings>all
+	<cxxstd>14
 	: # usage-requirements
 	<suppress-import-lib>false
 	;
@@ -230,6 +231,7 @@ install stage_module
 	: libtorrent
 	: <location>.
 	<install-type>PYTHON_EXTENSION
+	: <cxxstd>14
 	;
 
 install stage_dependencies
@@ -239,6 +241,7 @@ install stage_dependencies
 	: <location>dependencies
 	<install-dependencies>on
 	<install-type>SHARED_LIB
+	: <cxxstd>14
 	;
 
 explicit stage_module ;
