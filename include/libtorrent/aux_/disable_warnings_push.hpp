@@ -99,4 +99,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable : 4548)
 // 'conversion' conversion from 'type1' to 'type2', possible loss of data
 #pragma warning(disable : 4244)
+// potentially uninitialized local variable 'result' used
+#pragma warning(disable : 4701)
 #endif

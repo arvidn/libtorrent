@@ -93,9 +93,9 @@ struct temp_storage
 private:
 	int piece_size(lt::piece_index_t piece) const
 	{
-		int const num_pieces = (m_total_size + m_piece_size - 1) / m_piece_size;
+		int const num_pieces = static_cast<int>((m_total_size + m_piece_size - 1) / m_piece_size);
 		return static_cast<int>(piece) < num_pieces - 1
-			? m_piece_size : m_total_size - (num_pieces - 1) * m_piece_size;
+			? m_piece_size : static_cast<int>(m_total_size - (num_pieces - 1) * m_piece_size);
 	}
 
 	int m_piece_size;
