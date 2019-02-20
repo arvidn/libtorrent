@@ -180,6 +180,11 @@ void operator delete(void* ptr) noexcept
 	std::free(ptr);
 }
 
+void operator delete(void* ptr, std::size_t) noexcept
+{
+	std::free(ptr);
+}
+
 TORRENT_TEST(error_handling)
 {
 	for (int i = 0; i < 8000; ++i)
