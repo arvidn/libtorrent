@@ -59,7 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # if !defined TORRENT_BUILDING_LIBRARY
 // TODO: figure out which version of clang this is supported in
 #  define TORRENT_DEPRECATED_ENUM __attribute__ ((deprecated))
-#  define TORRENT_DEPRECATED_MEMBER __attribute__ ((deprecated))
 # endif
 
 // ======= GCC =========
@@ -73,13 +72,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // deprecation markup is only enabled when libtorrent
 // headers are included by clients, not while building
 // libtorrent itself
-# if __GNUC__ >= 3 && !defined TORRENT_BUILDING_LIBRARY
-#  define TORRENT_DEPRECATED __attribute__ ((deprecated))
-# endif
-
 # if __GNUC__ >= 6 && !defined TORRENT_BUILDING_LIBRARY
 #  define TORRENT_DEPRECATED_ENUM __attribute__ ((deprecated))
-#  define TORRENT_DEPRECATED_MEMBER __attribute__ ((deprecated))
 # endif
 
 // ======= SUNPRO =========
@@ -340,16 +334,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_UNUSED(x) (void)(x)
 
-// at the highest warning level, clang actually warns about functions
-// that could be marked noreturn.
-#if defined __clang__ || defined __GNUC__
-#define TORRENT_NO_RETURN __attribute((noreturn))
-#elif _MSC_VER
-#define TORRENT_NO_RETURN __declspec(noreturn)
-#else
-#define TORRENT_NO_RETURN
-#endif
-
 #if defined __GNUC__ || defined __clang__
 #define TORRENT_FORMAT(fmt, ellipsis) __attribute__((__format__(__printf__, fmt, ellipsis)))
 #else
@@ -401,17 +385,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_FALLOCATE 1
 #endif
 
-#ifndef TORRENT_DEPRECATED
+// deprecation markup is only enabled when libtorrent
+// headers are included by clients, not while building
+// libtorrent itself
+#if !defined TORRENT_BUILDING_LIBRARY
+#define TORRENT_DEPRECATED [[deprecated]]
+#define TORRENT_DEPRECATED_MEMBER [[deprecated]]
+#else
 #define TORRENT_DEPRECATED
+#define TORRENT_DEPRECATED_MEMBER
 #endif
 
 #ifndef TORRENT_DEPRECATED_ENUM
 #define TORRENT_DEPRECATED_ENUM
 #endif
 
-#ifndef TORRENT_DEPRECATED_MEMBER
-#define TORRENT_DEPRECATED_MEMBER
-#endif
+#define TORRENT_NO_RETURN [[noreturn]]
 
 #ifndef TORRENT_USE_COMMONCRYPTO
 #define TORRENT_USE_COMMONCRYPTO 0

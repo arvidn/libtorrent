@@ -91,14 +91,14 @@ namespace libtorrent {
 
 #if TORRENT_ABI_VERSION == 1
 		// save pe_settings
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_encryption_settings = 3_bit;
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_as_map = 4_bit;
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_proxy = 5_bit;
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_i2p_proxy = 6_bit;
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_dht_proxy = 7_bit;
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_peer_proxy = 8_bit;
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_web_proxy = 9_bit;
-		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_tracker_proxy = 10_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr save_state_flags_t save_encryption_settings = 3_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr save_state_flags_t save_as_map = 4_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr save_state_flags_t save_proxy = 5_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr save_state_flags_t save_i2p_proxy = 6_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr save_state_flags_t save_dht_proxy = 7_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr save_state_flags_t save_peer_proxy = 8_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr save_state_flags_t save_web_proxy = 9_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr save_state_flags_t save_tracker_proxy = 10_bit;
 #endif
 
 		// TODO: 2 the ip filter should probably be saved here too
@@ -743,7 +743,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 		// this will start features like DHT, local service discovery, UPnP
 		// and NAT-PMP.
-		static constexpr session_flags_t TORRENT_DEPRECATED_MEMBER start_default_features = 1_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr session_flags_t start_default_features = 1_bit;
 #endif
 
 		// ``remove_torrent()`` will close all peer connections associated with

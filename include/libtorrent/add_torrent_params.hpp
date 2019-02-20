@@ -102,7 +102,7 @@ TORRENT_VERSION_NAMESPACE_2
 		using flags_t = torrent_flags_t;
 
 #define DECL_FLAG(name) \
-		static constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER flag_##name = torrent_flags::name
+		TORRENT_DEPRECATED_MEMBER static constexpr torrent_flags_t flag_##name = torrent_flags::name
 
 			DECL_FLAG(seed_mode);
 			DECL_FLAG(upload_mode);
@@ -338,13 +338,13 @@ TORRENT_VERSION_NAMESPACE_2
 		// until the .torrent file has been downloaded. If there is any error
 		// while downloading, the torrent will be stopped and the torrent error
 		// state (``torrent_status::error``) will indicate what went wrong.
-		std::string TORRENT_DEPRECATED_MEMBER url;
+		TORRENT_DEPRECATED_MEMBER std::string url;
 
 		// if ``uuid`` is specified, it is used to find duplicates. If another
 		// torrent is already running with the same UUID as the one being added,
 		// it will be considered a duplicate. This is mainly useful for RSS feed
 		// items which has UUIDs specified.
-		std::string TORRENT_DEPRECATED_MEMBER uuid;
+		TORRENT_DEPRECATED_MEMBER std::string uuid;
 
 		// The optional parameter, ``resume_data`` can be given if up to date
 		// fast-resume data is available. The fast-resume data can be acquired
@@ -352,7 +352,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
 		// will be swapped into the running torrent instance with
 		// ``std::vector::swap()``.
-		aux::noexcept_movable<std::vector<char>> TORRENT_DEPRECATED_MEMBER resume_data;
+		TORRENT_DEPRECATED_MEMBER aux::noexcept_movable<std::vector<char>> resume_data;
 
 		// to support the deprecated use case of reading the resume data into
 		// resume_data field and getting a reject alert, any parse failure is

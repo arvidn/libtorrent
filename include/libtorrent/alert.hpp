@@ -125,7 +125,7 @@ namespace libtorrent {
 		// Low level alerts for when peers are connected and disconnected.
 		static constexpr alert_category_t connect_notification = 5_bit;
 #if TORRENT_ABI_VERSION == 1
-		static constexpr alert_category_t TORRENT_DEPRECATED_MEMBER debug_notification = connect_notification;
+		TORRENT_DEPRECATED_MEMBER static constexpr alert_category_t debug_notification = connect_notification;
 #endif
 
 		// Enables alerts for when a torrent or the session changes state.
@@ -134,7 +134,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 		// Alerts for when blocks are requested and completed. Also when
 		// pieces are completed.
-		static constexpr alert_category_t TORRENT_DEPRECATED_MEMBER progress_notification = 7_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr alert_category_t progress_notification = 7_bit;
 #endif
 
 		// Alerts when a peer is blocked by the ip blocker or port blocker.
@@ -158,7 +158,7 @@ namespace libtorrent {
 		// Alerts on RSS related events, like feeds being updated, feed error
 		// conditions and successful RSS feed updates. Enabling this category
 		// will make you receive rss_alert alerts.
-		static constexpr alert_category_t TORRENT_DEPRECATED_MEMBER rss_notification = 12_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr alert_category_t rss_notification = 12_bit;
 #endif
 
 		// Enables debug logging alerts. These are available unless libtorrent

@@ -108,7 +108,7 @@ namespace libtorrent {
 		static constexpr create_flags_t optimize_alignment = 0_bit;
 #if TORRENT_ABI_VERSION == 1
 		// same as optimize_alignment, for backwards compatibility
-		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize = 0_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr create_flags_t optimize = 0_bit;
 #endif
 
 		// This will create a merkle hash tree torrent. A merkle torrent cannot

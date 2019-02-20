@@ -4945,7 +4945,7 @@ bool is_downloading_state(int const st)
 			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
 				, std::move(new_priority)
-				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p) mutable
+				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p)
 				{ self->on_file_priority(ec, std::move(p)); });
 		}
 		else
@@ -4990,7 +4990,7 @@ bool is_downloading_state(int const st)
 			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
 				, std::move(new_priority)
-				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p) mutable
+				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p)
 				{ self->on_file_priority(ec, std::move(p)); });
 		}
 		else

@@ -195,13 +195,13 @@ TORRENT_VERSION_NAMESPACE_2
 		// deprecated in 1.2
 		// all of these will be set to false or 0
 		// use the corresponding members in announce_endpoint
-		std::uint8_t TORRENT_DEPRECATED_MEMBER fails:7;
-		bool TORRENT_DEPRECATED_MEMBER send_stats:1;
-		bool TORRENT_DEPRECATED_MEMBER start_sent:1;
-		bool TORRENT_DEPRECATED_MEMBER complete_sent:1;
+		TORRENT_DEPRECATED_MEMBER std::uint8_t fails:7;
+		TORRENT_DEPRECATED_MEMBER bool send_stats:1;
+		TORRENT_DEPRECATED_MEMBER bool start_sent:1;
+		TORRENT_DEPRECATED_MEMBER bool complete_sent:1;
 		// internal
-		bool TORRENT_DEPRECATED_MEMBER triggered_manually:1;
-		bool TORRENT_DEPRECATED_MEMBER updating:1;
+		TORRENT_DEPRECATED_MEMBER bool triggered_manually:1;
+		TORRENT_DEPRECATED_MEMBER bool updating:1;
 #endif
 
 		// reset announce counters and clears the started sent flag.

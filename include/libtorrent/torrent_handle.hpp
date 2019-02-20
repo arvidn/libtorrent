@@ -72,7 +72,7 @@ namespace aux {
 	class torrent;
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void TORRENT_NO_RETURN throw_invalid_handle();
+	TORRENT_NO_RETURN void throw_invalid_handle();
 #endif
 
 	using status_flags_t = flags::bitfield_flag<std::uint32_t, struct status_flags_tag>;
@@ -204,7 +204,7 @@ namespace aux {
 		// downloaded pieces down. Pieces set to ``none`` can be converted into
 		// any of ``fast``, ``medium`` or ``slow`` as soon as a peer want to
 		// download from it.
-		state_t TORRENT_DEPRECATED_MEMBER piece_state;
+		TORRENT_DEPRECATED_MEMBER state_t piece_state;
 #endif
 	};
 

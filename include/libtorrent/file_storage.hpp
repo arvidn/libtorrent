@@ -221,10 +221,10 @@ namespace libtorrent {
 		bool is_valid() const { return m_piece_length > 0; }
 
 #if TORRENT_ABI_VERSION == 1
-		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER pad_file = 0_bit;
-		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_hidden = 1_bit;
-		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_executable = 2_bit;
-		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_symlink = 3_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr file_flags_t pad_file = 0_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr file_flags_t attribute_hidden = 1_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr file_flags_t attribute_executable = 2_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr file_flags_t attribute_symlink = 3_bit;
 #endif
 
 		// allocates space for ``num_files`` in the internal file list. This can
