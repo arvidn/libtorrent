@@ -91,7 +91,7 @@ TORRENT_TEST(magnet)
 	pack.set_bool(settings_pack::close_redundant_connections, false);
 	pack.set_int(settings_pack::auto_scrape_interval, 235);
 	pack.set_int(settings_pack::auto_scrape_min_interval, 62);
-	std::unique_ptr<lt::session> s(new lt::session(pack));
+	auto s = std::make_unique<lt::session>(pack);
 
 	TEST_EQUAL(pack.get_str(settings_pack::user_agent), "test");
 	TEST_EQUAL(pack.get_int(settings_pack::tracker_receive_timeout), 1234);

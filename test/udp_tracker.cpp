@@ -240,13 +240,13 @@ struct udp_tracker
 };
 
 namespace {
-std::shared_ptr<udp_tracker> g_udp_tracker;
+std::unique_ptr<udp_tracker> g_udp_tracker;
 }
 
 int start_udp_tracker(address iface)
 {
 	TORRENT_ASSERT(!g_udp_tracker);
-	g_udp_tracker.reset(new udp_tracker(iface));
+	g_udp_tracker = std::make_unique<udp_tracker>(iface);
 	return g_udp_tracker->port();
 }
 
