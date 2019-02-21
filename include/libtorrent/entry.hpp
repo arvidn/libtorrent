@@ -75,6 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/aligned_union.hpp"
+#include "libtorrent/aux_/strview_less.hpp"
 
 namespace libtorrent {
 
@@ -84,40 +85,6 @@ namespace libtorrent {
 	using type_error = system_error;
 #endif
 	struct bdecode_node;
-
-namespace aux {
-
-#if (__cplusplus > 201103) || (defined _MSC_VER && _MSC_VER >= 1900)
-		// this enables us to compare a string_view against the std::string that's
-		// held by the std::map
-		// is_transparent was introduced in C++14
-		struct strview_less
-		{
-			using is_transparent = std::true_type;
-			template <typename T1, typename T2>
-			bool operator()(T1 const& rhs, T2 const& lhs) const
-			{ return rhs < lhs; }
-		};
-
-		template<class T> using map_string = std::map<std::string, T, aux::strview_less>;
-#else
-		template<class T>
-		struct map_string : std::map<std::string, T>
-		{
-			using base = std::map<std::string, T>;
-
-			typename base::iterator find(const string_view& key)
-			{
-				return this->base::find(key.to_string());
-			}
-
-			typename base::const_iterator find(const string_view& key) const
-			{
-				return this->base::find(key.to_string());
-			}
-		};
-#endif
-}
 
 	// The ``entry`` class represents one node in a bencoded hierarchy. It works as a
 	// variant type, it can be either a list, a dictionary (``std::map``), an integer
@@ -129,7 +96,7 @@ namespace aux {
 		// the key is always a string. If a generic entry would be allowed
 		// as a key, sorting would become a problem (e.g. to compare a string
 		// to a list). The definition doesn't mention such a limit though.
-		using dictionary_type = aux::map_string<entry>;
+		using dictionary_type = std::map<std::string, entry, aux::strview_less>;
 		using string_type = std::string;
 		using list_type = std::vector<entry>;
 		using integer_type = std::int64_t;

@@ -247,6 +247,7 @@ set(libtorrent_aux_include_files
 	socket_type
 	storage_utils
 	string_ptr
+	strview_less
 	suggest_piece
 	throw
 	time
