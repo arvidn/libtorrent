@@ -623,7 +623,7 @@ void dht_storage_counters::reset()
 std::unique_ptr<dht_storage_interface> dht_default_storage_constructor(
 	dht_settings const& settings)
 {
-	return std::unique_ptr<dht_default_storage>(new dht_default_storage(settings));
+	return std::make_unique<dht_default_storage>(settings);
 }
 
 } } // namespace libtorrent::dht

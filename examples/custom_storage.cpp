@@ -259,7 +259,7 @@ private:
 std::unique_ptr<lt::disk_interface> temp_disk_constructor(
 	lt::io_context& ioc, lt::counters&)
 {
-	return std::unique_ptr<lt::disk_interface>(new temp_disk_io(ioc));
+	return std::make_unique<temp_disk_io>(ioc);
 }
 // -- example end
 

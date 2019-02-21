@@ -382,7 +382,7 @@ void test_ipv6_support(char const* listen_interfaces
 		{
 			sett.set_str(settings_pack::listen_interfaces, listen_interfaces);
 		}
-		std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+		auto ses = std::make_unique<lt::session>(sett, ios);
 
 		ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
 
@@ -454,7 +454,7 @@ void test_udpv6_support(char const* listen_interfaces
 		{
 			sett.set_str(settings_pack::listen_interfaces, listen_interfaces);
 		}
-		std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+		auto ses = std::make_unique<lt::session>(sett, ios);
 
 		// since we don't have a udp tracker to run in the sim, looking for the
 		// alerts is the closest proxy
@@ -609,7 +609,7 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	asio::io_context ios(sim, { make_address_v4("123.0.0.3")
 		, make_address_v6("ffff::1337") });
 	lt::settings_pack sett = settings();
-	std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+	auto ses = std::make_unique<lt::session>(sett, ios);
 
 	ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
 

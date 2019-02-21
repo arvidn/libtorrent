@@ -70,7 +70,7 @@ namespace libtorrent {
 		, m_pool(pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
-		if (params.mapped_files) m_mapped_files.reset(new file_storage(*params.mapped_files));
+		if (params.mapped_files) m_mapped_files = std::make_unique<file_storage>(*params.mapped_files);
 
 		TORRENT_ASSERT(files().num_files() > 0);
 	}
@@ -89,9 +89,9 @@ namespace libtorrent {
 	{
 		if (m_part_file) return;
 
-		m_part_file.reset(new part_file(
+		m_part_file = std::make_unique<part_file>(
 			m_save_path, m_part_file_name
-			, files().num_pieces(), files().piece_length()));
+			, files().num_pieces(), files().piece_length());
 	}
 
 	void default_storage::set_file_priority(aux::session_settings const& sett
@@ -397,7 +397,7 @@ namespace libtorrent {
 		// in our file_storage, so that when it is created
 		// it will get the new name
 		if (!m_mapped_files)
-		{ m_mapped_files.reset(new file_storage(files())); }
+		{ m_mapped_files = std::make_unique<file_storage>(files()); }
 		m_mapped_files->rename_file(index, new_filename);
 	}
 

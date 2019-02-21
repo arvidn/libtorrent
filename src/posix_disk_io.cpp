@@ -377,7 +377,7 @@ namespace {
 	TORRENT_EXPORT std::unique_ptr<disk_interface> posix_disk_io_constructor(
 		io_context& ios, counters& cnt)
 	{
-		return std::unique_ptr<disk_interface>(new posix_disk_io(ios, cnt));
+		return std::make_unique<posix_disk_io>(ios, cnt);
 	}
 }
 

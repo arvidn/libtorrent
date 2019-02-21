@@ -355,7 +355,7 @@ constexpr disk_job_flags_t disk_interface::volatile_read;
 TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	io_context& ios, counters& cnt)
 {
-	return std::unique_ptr<disk_interface>(new disk_io_thread(ios, cnt));
+	return std::make_unique<disk_io_thread>(ios, cnt);
 }
 
 // ------- disk_io_thread ------

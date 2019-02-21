@@ -123,6 +123,5 @@ std::unique_ptr<sim::asio::io_context> make_io_context(sim::simulation& sim, int
 {
 	char ep[30];
 	std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
-	return std::unique_ptr<sim::asio::io_context>(new sim::asio::io_context(
-		sim, lt::make_address_v4(ep)));
+	return std::make_unique<sim::asio::io_context>(sim, lt::make_address_v4(ep));
 }

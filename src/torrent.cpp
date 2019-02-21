@@ -227,7 +227,7 @@ bool is_downloading_state(int const st)
 
 		// TODO: 3 we could probably get away with just saving a few fields here
 		// TODO: 2 p should probably be moved in here
-		m_add_torrent_params.reset(new add_torrent_params(p));
+		m_add_torrent_params = std::make_unique<add_torrent_params>(p);
 
 #if TORRENT_USE_UNC_PATHS
 		m_save_path = canonicalize_path(m_save_path);
@@ -715,20 +715,20 @@ bool is_downloading_state(int const st)
 	{
 		TORRENT_ASSERT(!m_url.empty());
 		TORRENT_ASSERT(!m_torrent_file->is_valid());
-		std::shared_ptr<http_connection> conn(
-			new http_connection(m_ses.get_context()
-				, m_ses.get_resolver()
-				, std::bind(&torrent::on_torrent_download, shared_from_this()
-					, _1, _2, _3)
-				, true // bottled
-				//bottled buffer size
-				, settings().get_int(settings_pack::max_http_recv_buffer_size)
-				, http_connect_handler()
-				, http_filter_handler()
+		auto conn = std::make_shared<http_connection>(
+			m_ses.get_context()
+			, m_ses.get_resolver()
+			, std::bind(&torrent::on_torrent_download, shared_from_this()
+				, _1, _2, _3)
+			, true // bottled
+			//bottled buffer size
+			, settings().get_int(settings_pack::max_http_recv_buffer_size)
+			, http_connect_handler()
+			, http_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
-				, m_ssl_ctx.get()
+			, m_ssl_ctx.get()
 #endif
-				));
+			);
 		aux::proxy_settings ps = m_ses.proxy();
 		conn->get(m_url, seconds(30), 0, &ps
 			, 5
@@ -1051,7 +1051,7 @@ bool is_downloading_state(int const st)
 	void torrent::need_peer_list()
 	{
 		if (m_peer_list) return;
-		m_peer_list.reset(new peer_list(m_ses.get_peer_allocator()));
+		m_peer_list = std::make_unique<peer_list>(m_ses.get_peer_allocator());
 	}
 
 	void torrent::handle_exception()
@@ -1249,9 +1249,9 @@ bool is_downloading_state(int const st)
 			= ((m_torrent_file->total_size() % m_torrent_file->piece_length())
 			+ block_size() - 1) / block_size();
 
-		std::unique_ptr<piece_picker> pp(new piece_picker(blocks_per_piece
+		auto pp = std::make_unique<piece_picker>(blocks_per_piece
 			, blocks_in_last_piece
-			, m_torrent_file->num_pieces()));
+			, m_torrent_file->num_pieces());
 
 		// initialize the file progress too
 		if (m_file_progress.empty())

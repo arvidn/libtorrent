@@ -188,7 +188,7 @@ private:
 std::unique_ptr<disk_interface> disabled_disk_io_constructor(
 	io_context& ios, counters& cnt)
 {
-	return std::unique_ptr<disk_interface>(new disabled_disk_io(ios, cnt));
+	return std::make_unique<disabled_disk_io>(ios, cnt);
 }
 
 }
