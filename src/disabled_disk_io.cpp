@@ -80,7 +80,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		post(m_ios, [=]()
 			{
 			disk_buffer_holder holder(*this, this->m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
-			std::fill(holder.get(), holder.get() + default_block_size, 0);
+			std::memset(holder.get(), 0, std::size_t(default_block_size));
 			handler(std::move(holder), storage_error{});
 		});
 	}

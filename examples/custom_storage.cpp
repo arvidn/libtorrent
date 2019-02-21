@@ -88,7 +88,7 @@ struct temp_storage
 			ec.ec = boost::asio::error::eof;
 			return {};
 		};
-		return lt::hasher(i->second.data(), i->second.size()).final();
+		return lt::hasher(i->second.data(), int(i->second.size())).final();
 	}
 private:
 	int piece_size(lt::piece_index_t piece) const
