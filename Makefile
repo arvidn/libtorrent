@@ -616,6 +616,7 @@ HEADERS = \
   aux_/storage_utils.hpp            \
   aux_/store_buffer.hpp             \
   aux_/string_ptr.hpp               \
+  aux_/strview_less.hpp             \
   aux_/suggest_piece.hpp            \
   aux_/throw.hpp                    \
   aux_/time.hpp                     \

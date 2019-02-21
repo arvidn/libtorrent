@@ -135,16 +135,14 @@ namespace libtorrent {
 	std::string const& http_parser::header(string_view const key) const
 	{
 		static std::string const empty;
-		// TODO: remove to_string() if we're in C++14
-		auto const i = m_header.find(key.to_string());
+		auto const i = m_header.find(key);
 		if (i == m_header.end()) return empty;
 		return i->second;
 	}
 
 	boost::optional<seconds32> http_parser::header_duration(string_view const key) const
 	{
-		// TODO: remove to_string() if we're in C++14
-		auto const i = m_header.find(key.to_string());
+		auto const i = m_header.find(key);
 		if (i == m_header.end()) return boost::none;
 		auto const val = std::atol(i->second.c_str());
 		if (val <= 0) return boost::none;
