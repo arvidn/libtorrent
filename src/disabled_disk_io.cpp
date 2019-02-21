@@ -39,60 +39,57 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/disk_interface.hpp"
+#include "libtorrent/peer_request.hpp"
 
+#include <vector>
 #include <functional>
 
 namespace libtorrent {
 
-	std::unique_ptr<disk_interface> disabled_disk_io_constructor(
-		io_context& ios, counters& cnt)
-	{
-		return std::unique_ptr<disk_interface>(new disabled_disk_io(ios, cnt));
-	}
-
-	disabled_disk_io::disabled_disk_io(io_context& ios, counters&)
+// This is a dummy implementation of the disk_interface. It discards any data
+// written to it and when reading, it returns zeroes
+struct TORRENT_EXTRA_EXPORT disabled_disk_io final
+	: disk_interface
+	, buffer_allocator_interface
+{
+	disabled_disk_io(io_context& ios, counters&)
 		: m_buffer_pool(ios)
 		, m_ios(ios)
-	{
-		m_buffer_pool.set_settings(m_settings);
-	}
+	{}
 
-	storage_holder disabled_disk_io::new_torrent(storage_params
-		, std::shared_ptr<void> const&)
+	storage_holder new_torrent(storage_params
+		, std::shared_ptr<void> const&) override
 	{
 		return storage_holder(storage_index_t(0), *this);
 	}
 
-	void disabled_disk_io::remove_torrent(storage_index_t)
-	{
-	}
+	void remove_torrent(storage_index_t) override {}
 
-	void disabled_disk_io::set_settings(settings_pack const* pack)
-	{
-		apply_pack(pack, m_settings);
-		m_buffer_pool.set_settings(m_settings);
-	}
+	void abort(bool) override {}
 
-	void disabled_disk_io::async_read(storage_index_t, peer_request const& r
+	void set_settings(settings_pack const*) override {}
+
+	void async_read(storage_index_t, peer_request const& r
 		, std::function<void(disk_buffer_holder, storage_error const&)> handler
-		, disk_job_flags_t)
+		, disk_job_flags_t) override
 	{
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_UNUSED(r);
 
 		post(m_ios, [=]()
-		{
+			{
 			disk_buffer_holder holder(*this, this->m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
 			std::fill(holder.get(), holder.get() + default_block_size, 0);
 			handler(std::move(holder), storage_error{});
 		});
 	}
 
-	bool disabled_disk_io::async_write(storage_index_t
+	bool async_write(storage_index_t
 		, peer_request const& r
 		, char const*, std::shared_ptr<disk_observer>
 		, std::function<void(storage_error const&)> handler
-		, disk_job_flags_t)
+		, disk_job_flags_t) override
 	{
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_UNUSED(r);
@@ -101,71 +98,98 @@ namespace libtorrent {
 		return false;
 	}
 
-	void disabled_disk_io::async_hash(storage_index_t
+	void async_hash(storage_index_t
 		, piece_index_t piece, disk_job_flags_t
-		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
+		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override
 	{
 		post(m_ios, [=]() { handler(piece, sha1_hash{}, storage_error{}); });
 	}
 
-	void disabled_disk_io::async_move_storage(storage_index_t
+	void async_move_storage(storage_index_t
 		, std::string p, move_flags_t
-		, std::function<void(status_t, std::string const&, storage_error const&)> handler)
+		, std::function<void(status_t, std::string const&, storage_error const&)> handler) override
 	{
 		post(m_ios, [=]() { handler(status_t::no_error, p, storage_error{}); });
 	}
 
-	void disabled_disk_io::async_release_files(storage_index_t
-		, std::function<void()> handler)
+	void async_release_files(storage_index_t, std::function<void()> handler) override
 	{
 		post(m_ios, [=]() { handler(); });
 	}
 
-	void disabled_disk_io::async_delete_files(storage_index_t
-		, remove_flags_t, std::function<void(storage_error const&)> handler)
+	void async_delete_files(storage_index_t
+		, remove_flags_t, std::function<void(storage_error const&)> handler) override
 	{
 		post(m_ios, [=]() { handler(storage_error{}); });
 	}
 
-	void disabled_disk_io::async_check_files(storage_index_t
+	void async_check_files(storage_index_t
 		, add_torrent_params const*
 		, aux::vector<std::string, file_index_t>&
-		, std::function<void(status_t, storage_error const&)> handler)
+		, std::function<void(status_t, storage_error const&)> handler) override
 	{
 		post(m_ios, [=]() { handler(status_t::no_error, storage_error{}); });
 	}
 
-	void disabled_disk_io::async_rename_file(storage_index_t
+	void async_rename_file(storage_index_t
 		, file_index_t index, std::string name
-		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler)
+		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override
 	{
 		post(m_ios, [=]() { handler(name, index, storage_error{}); });
 	}
 
-	void disabled_disk_io::async_stop_torrent(storage_index_t
-		, std::function<void()> handler)
+	void async_stop_torrent(storage_index_t
+		, std::function<void()> handler) override
 	{
 		post(m_ios, [=]() { handler(); });
 	}
 
-	void disabled_disk_io::async_set_file_priority(storage_index_t
+	void async_set_file_priority(storage_index_t
 		, aux::vector<download_priority_t, file_index_t> prio
 		, std::function<void(storage_error const&
-			, aux::vector<download_priority_t, file_index_t>)> handler)
+			, aux::vector<download_priority_t, file_index_t>)> handler) override
 	{
 		post(m_ios, [=]() { handler(storage_error{}, prio); });
 	}
 
-	void disabled_disk_io::async_clear_piece(storage_index_t
-		, piece_index_t const index, std::function<void(piece_index_t)> handler)
+	void async_clear_piece(storage_index_t
+		, piece_index_t const index, std::function<void(piece_index_t)> handler) override
 	{
 		post(m_ios, [=]() { handler(index); });
 	}
 
-	void disabled_disk_io::update_stats_counters(counters& c) const
+	void update_stats_counters(counters& c) const override
 	{
 		// gauges
 		c.set_value(counters::disk_blocks_in_use, m_buffer_pool.in_use());
 	}
+
+	// implements buffer_allocator_interface
+	void free_disk_buffer(char* b) override
+	{ m_buffer_pool.free_buffer(b); }
+
+	std::vector<open_file_state> get_status(storage_index_t) const override
+	{ return {}; }
+
+	// this submits all queued up jobs to the thread
+	void submit_jobs() override {}
+
+private:
+
+	// disk cache
+	disk_buffer_pool m_buffer_pool;
+
+	// this is the main thread io_context. Callbacks are
+	// posted on this in order to have them execute in
+	// the main thread.
+	io_context& m_ios;
+};
+
+std::unique_ptr<disk_interface> disabled_disk_io_constructor(
+	io_context& ios, counters& cnt)
+{
+	return std::unique_ptr<disk_interface>(new disabled_disk_io(ios, cnt));
+}
+
 }
 
