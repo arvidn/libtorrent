@@ -3464,7 +3464,7 @@ bool is_downloading_state(int const st)
 #endif
 
 	void torrent::on_peer_name_lookup(error_code const& e
-		, std::vector<address> const& host_list, int const port) try
+		, std::vector<address> host_list, int const port) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 

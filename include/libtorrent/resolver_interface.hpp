@@ -48,7 +48,7 @@ using resolver_flags = flags::bitfield_flag<std::uint8_t, struct resolver_flag_t
 
 struct TORRENT_EXTRA_EXPORT resolver_interface
 {
-	using callback_t = std::function<void(error_code const&, std::vector<address> const&)>;
+	using callback_t = std::function<void(error_code const&, std::vector<address>)>;
 
 	// this flag will make async_resolve() only use the cache and fail if we
 	// don't have a cache entry, regardless of how old it is. This is usefull
@@ -61,7 +61,7 @@ struct TORRENT_EXTRA_EXPORT resolver_interface
 	static constexpr resolver_flags abort_on_shutdown = 1_bit;
 
 	virtual void async_resolve(std::string const& host, resolver_flags flags
-		, callback_t const& h) = 0;
+		, callback_t h) = 0;
 
 	virtual void abort() = 0;
 

@@ -83,7 +83,7 @@ namespace libtorrent {
 	}
 
 	void resolver::async_resolve(std::string const& host, resolver_flags const flags
-		, resolver_interface::callback_t const& h)
+		, resolver_interface::callback_t h)
 	{
 		// special handling for raw IP addresses. There's no need to get in line
 		// behind actual lookups if we can just resolve it immediately.
@@ -91,7 +91,7 @@ namespace libtorrent {
 		address const ip = make_address(host, ec);
 		if (!ec)
 		{
-			post(m_ios, std::bind(h, ec, std::vector<address>{ip}));
+			post(m_ios, [cb = std::move(h), ec, ip] { cb(ec, std::vector<address>{ip}); } );
 			return;
 		}
 		ec.clear();
@@ -103,7 +103,7 @@ namespace libtorrent {
 			if ((flags & resolver_interface::cache_only)
 				|| i->second.last_seen + m_timeout >= aux::time_now())
 			{
-				post(m_ios, std::bind(h, ec, i->second.addresses));
+				post(m_ios, [cb = std::move(h), res = i->second.addresses, ec] { cb(ec, std::move(res)); });
 				return;
 			}
 		}
@@ -111,8 +111,7 @@ namespace libtorrent {
 		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
-			post(m_ios, std::bind(h, boost::asio::error::host_not_found
-					, std::vector<address>{}));
+			post(m_ios, [cb = std::move(h)] { cb(boost::asio::error::host_not_found, std::vector<address>{}); });
 			return;
 		}
 
@@ -121,13 +120,15 @@ namespace libtorrent {
 		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
 		if (flags & resolver_interface::abort_on_shutdown)
 		{
-			m_resolver.async_resolve(host, "80", std::bind(&resolver::on_lookup, this, _1, _2
-				, h, host));
+			m_resolver.async_resolve(host, "80", [this, cb = std::move(h), host]
+				(error_code const& ec, tcp::resolver::results_type ips)
+				{ this->on_lookup(ec, std::move(ips), std::move(cb), std::move(host)); });
 		}
 		else
 		{
-			m_critical_resolver.async_resolve(host, "80", std::bind(&resolver::on_lookup, this, _1, _2
-				, h, host));
+			m_critical_resolver.async_resolve(host, "80", [this, cb = std::move(h), host]
+				(error_code const& ec, tcp::resolver::results_type ips)
+				{ this->on_lookup(ec, std::move(ips), std::move(cb), std::move(host)); });
 		}
 	}
 

@@ -877,8 +877,7 @@ namespace libtorrent {
 		// this is the asio callback that is called when a name
 		// lookup for a PEER is completed.
 		void on_peer_name_lookup(error_code const& e
-			, std::vector<address> const& addrs
-			, int port);
+			, std::vector<address> addrs, int port);
 
 		// this is the asio callback that is called when a name
 		// lookup for a WEB SEED is completed.

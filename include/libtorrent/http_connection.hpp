@@ -136,8 +136,7 @@ private:
 	void on_i2p_resolve(error_code const& e
 		, char const* destination);
 #endif
-	void on_resolve(error_code const& e
-		, std::vector<address> const& addresses);
+	void on_resolve(error_code const& e, std::vector<address> addresses);
 	void connect();
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);

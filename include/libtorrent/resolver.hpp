@@ -53,7 +53,7 @@ struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 	explicit resolver(io_context& ios);
 
 	void async_resolve(std::string const& host, resolver_flags flags
-		, callback_t const& h) override;
+		, callback_t h) override;
 
 	void abort() override;
 

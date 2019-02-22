@@ -494,7 +494,7 @@ void http_connection::on_i2p_resolve(error_code const& e, char const* destinatio
 #endif
 
 void http_connection::on_resolve(error_code const& e
-	, std::vector<address> const& addresses)
+	, std::vector<address> addresses)
 {
 	COMPLETE_ASYNC("http_connection::on_resolve");
 	if (e)
