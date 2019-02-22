@@ -102,12 +102,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # define TORRENT_DEPRECATED __declspec(deprecated)
 #endif
 
-// auto and decltype(auto) return types supports since MSVS2015
-// https://msdn.microsoft.com/en-us/library/hh567368.aspx
-// we need to force C++14 feature due VS2017 inability to parse C++11 syntax
-#if defined(_MSC_VER) && (_MSC_VER > 1900)
-#define TORRENT_AUTO_RETURN_TYPES 1
-#endif
 #endif
 
 
@@ -478,10 +472,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_I2P
 #define TORRENT_USE_I2P 1
-#endif
-
-#ifndef TORRENT_AUTO_RETURN_TYPES
-#define TORRENT_AUTO_RETURN_TYPES 0
 #endif
 
 #ifndef TORRENT_HAS_SYMLINK
