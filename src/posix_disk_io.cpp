@@ -51,49 +51,6 @@ namespace libtorrent {
 
 namespace {
 
-	template <typename F>
-	struct move_wrapper : F
-	{
-		move_wrapper(F&& f) : F(std::move(f)) {} // NOLINT
-
-		move_wrapper(move_wrapper&&) = default;
-		move_wrapper& operator=(move_wrapper&&) = default;
-
-		move_wrapper(const move_wrapper&);
-		move_wrapper& operator=(const move_wrapper&);
-	};
-
-	template <typename T>
-	auto move_handler(T&& t) -> move_wrapper<typename std::decay<T>::type>
-	{
-		return std::move(t);
-	}
-
-	// the only reason this type exists, is because in C++11 you cannot move
-	// objects into a lambda capture, and the disk_buffer_holder has to be moved
-	struct call_read_handler
-	{
-		call_read_handler(
-			std::function<void(disk_buffer_holder, storage_error const&)> handler
-			, disk_buffer_holder buf
-			, storage_error error)
-			: m_buf(std::move(buf))
-			, m_handler(std::move(handler))
-			, m_error(std::move(error))
-		{}
-
-		void operator()()
-		{
-			m_handler(std::move(m_buf), m_error);
-		}
-
-	private:
-
-		disk_buffer_holder m_buf;
-		std::function<void(disk_buffer_holder, storage_error const&)> m_handler;
-		storage_error m_error;
-	};
-
 	storage_index_t pop(std::vector<storage_index_t>& q)
 	{
 		TORRENT_ASSERT(!q.empty());
@@ -152,16 +109,15 @@ namespace {
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
-				post(m_ios, [=]{ handler(disk_buffer_holder(*this, nullptr, 0), error); });
+				post(m_ios, [=, h = std::move(handler)]{ h(disk_buffer_holder(*this, nullptr, 0), error); });
 				return;
 			}
 
 			time_point const start_time = clock_type::now();
 
-			iovec_t b = {buffer.get(), r.length};
+			iovec_t buf = {buffer.get(), r.length};
 
-			m_torrents[storage]->readv(m_settings, b, r.piece, r.start
-				, error);
+			m_torrents[storage]->readv(m_settings, buf, r.piece, r.start, error);
 
 			if (!error.ec)
 			{
@@ -174,7 +130,8 @@ namespace {
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
-			post(m_ios, move_handler(call_read_handler(std::move(handler), std::move(buffer), error)));
+			post(m_ios, [h = std::move(handler), b = std::move(buffer), error] () mutable
+				{ h(std::move(b), error); });
 		}
 
 		bool async_write(storage_index_t storage, peer_request const& r
@@ -201,7 +158,7 @@ namespace {
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 			}
 
-			post(m_ios, [=]{ handler(error); });
+			post(m_ios, [=, h = std::move(handler)]{ h(error); });
 			return false;
 		}
 
@@ -216,7 +173,7 @@ namespace {
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
-				post(m_ios, [=]{ handler(piece, sha1_hash{}, error); });
+				post(m_ios, [=, h = std::move(handler)]{ h(piece, sha1_hash{}, error); });
 				return;
 			}
 			hasher ph;
@@ -251,14 +208,14 @@ namespace {
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
-			post(m_ios, [=]{ handler(piece, hash, error); });
+			post(m_ios, [=, h = std::move(handler)]{ h(piece, hash, error); });
 		}
 
 		void async_move_storage(storage_index_t, std::string p, move_flags_t
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override
 		{
-			post(m_ios, [=]{
-				handler(status_t::fatal_disk_error, p
+			post(m_ios, [=, h = std::move(handler)]{
+				h(status_t::fatal_disk_error, p
 					, storage_error(error_code(boost::system::errc::operation_not_supported, system_category())));
 			});
 		}
@@ -277,7 +234,7 @@ namespace {
 			storage_error error;
 			posix_storage* st = m_torrents[storage].get();
 			st->delete_files(options, error);
-			post(m_ios, [=]{ handler(error); });
+			post(m_ios, [=, h = std::move(handler)]{ h(error); });
 		}
 
 		void async_check_files(storage_index_t storage
@@ -314,25 +271,25 @@ namespace {
 				ret = status_t::fatal_disk_error;
 			}
 
-			post(m_ios, [=]{ handler(ret, error); });
+			post(m_ios, [error, ret, h = std::move(handler)]{ h(ret, error); });
 		}
 
 		void async_rename_file(storage_index_t const storage
 			, file_index_t const idx
-			, std::string const name
+			, std::string name
 			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override
 		{
 			posix_storage* st = m_torrents[storage].get();
 			storage_error error;
 			st->rename_file(idx, name, error);
-			post(m_ios, [=]{ handler(name, idx, error); });
+			post(m_ios, [idx, error, h = std::move(handler), n = std::move(name)] () mutable
+				{ h(std::move(n), idx, error); });
 		}
 
-		void async_stop_torrent(storage_index_t
-			, std::function<void()> handler) override
+		void async_stop_torrent(storage_index_t, std::function<void()> handler) override
 		{
 			if (!handler) return;
-			post(m_ios, handler);
+			post(m_ios, std::move(handler));
 		}
 
 		void async_set_file_priority(storage_index_t
@@ -340,15 +297,14 @@ namespace {
 			, std::function<void(storage_error const&
 				, aux::vector<download_priority_t, file_index_t>)> handler) override
 		{
-			post(m_ios, [=]{
-				handler(storage_error(), std::move(prio));
-			});
+			post(m_ios, [p = std::move(prio), h = std::move(handler)] () mutable
+				{ h(storage_error(), std::move(p)); });
 		}
 
 		void async_clear_piece(storage_index_t, piece_index_t index
 			, std::function<void(piece_index_t)> handler) override
 		{
-			post(m_ios, [=]{ handler(index); });
+			post(m_ios, [=, h = std::move(handler)]{ h(index); });
 		}
 
 		// implements buffer_allocator_interface
