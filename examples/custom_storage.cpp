@@ -195,7 +195,7 @@ struct temp_disk_io final : lt::disk_interface
 
 	void async_check_files(lt::storage_index_t
 		, lt::add_torrent_params const*
-		, lt::aux::vector<std::string, lt::file_index_t>&
+		, lt::aux::vector<std::string, lt::file_index_t>
 		, std::function<void(lt::status_t, lt::storage_error const&)> handler) override
 	{
 		post(m_ioc, [=]{ handler(lt::status_t::no_error, lt::storage_error()); });

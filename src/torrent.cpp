@@ -1916,9 +1916,8 @@ bool is_downloading_state(int const st)
 #endif
 		m_ses.disk_thread().async_check_files(
 			m_storage, m_add_torrent_params ? m_add_torrent_params.get() : nullptr
-			, links, [self = shared_from_this()](status_t st, storage_error const& error)
+			, std::move(links), [self = shared_from_this()](status_t st, storage_error const& error)
 			{ self->on_resume_data_checked(st, error); });
-		// async_check_files will gut links
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("init, async_check_files");
 #endif
@@ -2258,9 +2257,9 @@ bool is_downloading_state(int const st)
 		// filesystem for files again
 		m_ses.disk_thread().async_release_files(m_storage);
 
-		aux::vector<std::string, file_index_t> links;
 		m_ses.disk_thread().async_check_files(m_storage, nullptr
-			, links, [self = shared_from_this()](status_t st, storage_error const& error) { self->on_force_recheck(st, error); });
+			, {}, [self = shared_from_this()](status_t st, storage_error const& error)
+			{ self->on_force_recheck(st, error); });
 	}
 
 	void torrent::on_force_recheck(status_t const status, storage_error const& error) try

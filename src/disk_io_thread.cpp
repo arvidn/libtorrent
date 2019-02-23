@@ -165,7 +165,7 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 		, std::function<void(storage_error const&)> handler) override;
 	void async_check_files(storage_index_t storage
 		, add_torrent_params const* resume_data
-		, aux::vector<std::string, file_index_t>& links
+		, aux::vector<std::string, file_index_t> links
 		, std::function<void(status_t, storage_error const&)> handler) override;
 	void async_rename_file(storage_index_t storage, file_index_t index, std::string name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override;
@@ -783,17 +783,17 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void disk_io_thread::async_check_files(storage_index_t const storage
 		, add_torrent_params const* resume_data
-		, aux::vector<std::string, file_index_t>& links
+		, aux::vector<std::string, file_index_t> links
 		, std::function<void(status_t, storage_error const&)> handler)
 	{
-		auto links_vector = new aux::vector<std::string, file_index_t>();
-		links_vector->swap(links);
-
 		disk_io_job* j = allocate_job(job_action_t::check_fastresume);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->argument = resume_data;
-		j->d.links = links_vector;
 		j->callback = std::move(handler);
+
+		aux::vector<std::string, file_index_t>* links_vector = nullptr;
+		if (!links.empty()) links_vector = new aux::vector<std::string, file_index_t>(std::move(links));
+		j->d.links = links_vector;
 
 		add_fence_job(j);
 	}

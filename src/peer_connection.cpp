@@ -2863,9 +2863,8 @@ namespace libtorrent {
 
 		if (t->is_deleted()) return;
 
-		auto conn = self();
 		bool const exceeded = m_disk_thread.async_write(t->storage(), p, data, self()
-			, [conn, p, t] (storage_error const& e)
+			, [conn = self(), p, t] (storage_error const& e)
 			{ conn->wrap(&peer_connection::on_disk_write_complete, e, p, t); });
 
 		// every peer is entitled to have two disk blocks allocated at any given
@@ -5161,9 +5160,8 @@ namespace libtorrent {
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				auto conn = self();
 				m_disk_thread.async_hash(t->storage(), r.piece, {}
-					, [conn](piece_index_t p, sha1_hash const& ph, storage_error const& e) {
+					, [conn = self()](piece_index_t p, sha1_hash const& ph, storage_error const& e) {
 					conn->wrap(&peer_connection::on_seed_mode_hashed, p, ph, e); });
 				t->verifying(r.piece);
 				continue;
@@ -5198,9 +5196,8 @@ namespace libtorrent {
 				TORRENT_ASSERT(r.piece >= piece_index_t(0));
 				TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
 
-				auto conn = self();
 				m_disk_thread.async_read(t->storage(), r
-					, [conn, r](disk_buffer_holder buf, storage_error const& ec)
+					, [conn = self(), r](disk_buffer_holder buf, storage_error const& ec)
 					{ conn->wrap(&peer_connection::on_disk_read_complete, std::move(buf), ec, r, clock_type::now()); });
 			}
 			m_last_sent_payload = clock_type::now();

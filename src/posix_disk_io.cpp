@@ -239,7 +239,7 @@ namespace {
 
 		void async_check_files(storage_index_t storage
 			, add_torrent_params const* resume_data
-			, aux::vector<std::string, file_index_t>& links
+			, aux::vector<std::string, file_index_t> links
 			, std::function<void(status_t, storage_error const&)> handler) override
 		{
 			posix_storage* st = m_torrents[storage].get();
@@ -252,7 +252,7 @@ namespace {
 
 			storage_error se;
 			if ((rd->have_pieces.empty()
-					|| !st->verify_resume_data(*rd, links, error))
+					|| !st->verify_resume_data(*rd, std::move(links), error))
 				&& !m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
 			{
 				bool const has_files = st->has_any_file(se);
