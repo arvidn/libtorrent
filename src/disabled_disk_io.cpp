@@ -48,15 +48,18 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 // This is a dummy implementation of the disk_interface. It discards any data
-// written to it and when reading, it returns zeroes
+// written to it and when reading, it returns zeroes. It is primarily useful for
+// testing and benchmarking
 struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 	: disk_interface
 	, buffer_allocator_interface
 {
 	disabled_disk_io(io_context& ios, counters&)
-		: m_buffer_pool(ios)
+		: m_zero_buffer(std::make_unique<char[]>(default_block_size))
 		, m_ios(ios)
-	{}
+	{
+		std::memset(m_zero_buffer.get(), 0, default_block_size);
+	}
 
 	storage_holder new_torrent(storage_params
 		, std::shared_ptr<void> const&) override
@@ -77,11 +80,9 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_UNUSED(r);
 
-		post(m_ios, [=]()
-			{
-			disk_buffer_holder holder(*this, this->m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
-			std::memset(holder.get(), 0, std::size_t(default_block_size));
-			handler(std::move(holder), storage_error{});
+		post(m_ios, [this, h = std::move(handler)] {
+			h(disk_buffer_holder(*this, this->m_zero_buffer.get(), default_block_size)
+				, storage_error{});
 		});
 	}
 
@@ -94,7 +95,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_UNUSED(r);
 
-		post(m_ios, [=]() { handler(storage_error{}); });
+		post(m_ios, [h = std::move(handler)] { h(storage_error{}); });
 		return false;
 	}
 
@@ -102,25 +103,27 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		, piece_index_t piece, disk_job_flags_t
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override
 	{
-		post(m_ios, [=]() { handler(piece, sha1_hash{}, storage_error{}); });
+		// TODO: it would be nice to return a valid hash of zeroes here
+		post(m_ios, [h = std::move(handler), piece] { h(piece, sha1_hash{}, storage_error{}); });
 	}
 
 	void async_move_storage(storage_index_t
 		, std::string p, move_flags_t
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler) override
 	{
-		post(m_ios, [=]() { handler(status_t::no_error, p, storage_error{}); });
+		post(m_ios, [h = std::move(handler), path = std::move(p)] () mutable
+			{ h(status_t::no_error, std::move(path), storage_error{}); });
 	}
 
 	void async_release_files(storage_index_t, std::function<void()> handler) override
 	{
-		post(m_ios, [=]() { handler(); });
+		post(m_ios, [h = std::move(handler)] { h(); });
 	}
 
 	void async_delete_files(storage_index_t
 		, remove_flags_t, std::function<void(storage_error const&)> handler) override
 	{
-		post(m_ios, [=]() { handler(storage_error{}); });
+		post(m_ios, [h = std::move(handler)] { h(storage_error{}); });
 	}
 
 	void async_check_files(storage_index_t
@@ -128,20 +131,20 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		, aux::vector<std::string, file_index_t>&
 		, std::function<void(status_t, storage_error const&)> handler) override
 	{
-		post(m_ios, [=]() { handler(status_t::no_error, storage_error{}); });
+		post(m_ios, [h = std::move(handler)] { h(status_t::no_error, storage_error{}); });
 	}
 
 	void async_rename_file(storage_index_t
 		, file_index_t index, std::string name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override
 	{
-		post(m_ios, [=]() { handler(name, index, storage_error{}); });
+		post(m_ios, [h = std::move(handler), index, n = std::move(name)]
+			{ h(std::move(n), index, storage_error{}); });
 	}
 
-	void async_stop_torrent(storage_index_t
-		, std::function<void()> handler) override
+	void async_stop_torrent(storage_index_t, std::function<void()> handler) override
 	{
-		post(m_ios, [=]() { handler(); });
+		post(m_ios, [h = std::move(handler)] { h(); });
 	}
 
 	void async_set_file_priority(storage_index_t
@@ -149,24 +152,25 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		, std::function<void(storage_error const&
 			, aux::vector<download_priority_t, file_index_t>)> handler) override
 	{
-		post(m_ios, [=]() { handler(storage_error{}, prio); });
+		post(m_ios, [h = std::move(handler), p = std::move(prio)] () mutable
+			{ h(storage_error{}, std::move(p)); });
 	}
 
 	void async_clear_piece(storage_index_t
 		, piece_index_t const index, std::function<void(piece_index_t)> handler) override
 	{
-		post(m_ios, [=]() { handler(index); });
+		post(m_ios, [h = std::move(handler), index] { h(index); });
 	}
 
 	void update_stats_counters(counters& c) const override
 	{
-		// gauges
-		c.set_value(counters::disk_blocks_in_use, m_buffer_pool.in_use());
+		c.set_value(counters::disk_blocks_in_use, 1);
 	}
 
 	// implements buffer_allocator_interface
-	void free_disk_buffer(char* b) override
-	{ m_buffer_pool.free_buffer(b); }
+	// since we just have a single zeroed buffer, we don't need to free anything
+	// here. The buffer is owned by the disabled_disk_io object itself
+	void free_disk_buffer(char*) override {}
 
 	std::vector<open_file_state> get_status(storage_index_t) const override
 	{ return {}; }
@@ -176,8 +180,8 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 
 private:
 
-	// disk cache
-	disk_buffer_pool m_buffer_pool;
+	// this is the one buffer of zeroes we hand back to all read jobs
+	std::unique_ptr<char[]> m_zero_buffer;
 
 	// this is the main thread io_context. Callbacks are
 	// posted on this in order to have them execute in
