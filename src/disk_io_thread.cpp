@@ -554,7 +554,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		j->argument = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
 		auto& buffer = boost::get<disk_buffer_holder>(j->argument);
-		if (buffer.get() == nullptr)
+		if (!buffer)
 		{
 			j->error.ec = error::no_memory;
 			j->error.operation = operation_t::alloc_cache_piece;
@@ -564,7 +564,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		time_point const start_time = clock_type::now();
 
 		aux::open_mode_t const file_flags = file_flags_for_job(j);
-		iovec_t b = {buffer.get(), j->d.io.buffer_size};
+		iovec_t b = {buffer.data(), j->d.io.buffer_size};
 
 		int const ret = j->storage->readv(m_settings, b
 			, j->piece, j->d.io.offset, file_flags, j->error);
@@ -590,7 +590,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		time_point const start_time = clock_type::now();
 		auto buffer = std::move(boost::get<disk_buffer_holder>(j->argument));
 
-		iovec_t const b = { buffer.get(), j->d.io.buffer_size};
+		iovec_t const b = { buffer.data(), j->d.io.buffer_size};
 		aux::open_mode_t const file_flags = file_flags_for_job(j);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
@@ -640,14 +640,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			, [&](char* buf)
 		{
 			buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), 0x4000);
-			if (buffer.get() == nullptr)
+			if (!buffer)
 			{
 				ec.ec = error::no_memory;
 				ec.operation = operation_t::alloc_cache_piece;
 				return;
 			}
 
-			std::memcpy(buffer.get(), buf, std::size_t(default_block_size));
+			std::memcpy(buffer.data(), buf, std::size_t(default_block_size));
 		}))
 		{
 			handler(std::move(buffer), ec);
@@ -689,7 +689,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		disk_buffer_holder buffer(*this, m_buffer_pool.allocate_buffer(
 			exceeded, o, "receive buffer"), default_block_size);
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
-		std::memcpy(buffer.get(), buf, aux::numeric_cast<std::size_t>(r.length));
+		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 
 		disk_io_job* j = allocate_job(job_action_t::write);
 		j->storage = m_torrents[storage]->shared_from_this();
@@ -703,7 +703,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT((r.start % default_block_size) == 0);
 
 		m_store_buffer.insert({j->storage->storage_index(), j->piece, j->d.io.offset}
-			, boost::get<disk_buffer_holder>(j->argument).get());
+			, boost::get<disk_buffer_holder>(j->argument).data());
 
 		if (j->storage->is_blocked(j))
 		{
