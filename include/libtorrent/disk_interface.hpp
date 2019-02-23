@@ -49,6 +49,27 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/flags.hpp"
 #include "libtorrent/session_types.hpp"
 
+// OVERVIEW
+//
+// The disk I/O can be customized in libtorrent. In previous versions, the
+// customization was at the level of each torrent. Now, the customization point
+// is at the session level. All torrents added to a session will use the same
+// disk I/O subsystem, as determined by the disk_io_constructor (in
+// session_params).
+//
+// This allows the disk subsystem to also customize threading and disk job
+// management.
+//
+// To customize the disk subsystem, implement disk_interface and provide a
+// factory function to the session constructor (via session_params).
+//
+// Example use:
+//
+// .. include:: ../examples/custom_storage.cpp
+// 	:code: c++
+// 	:tab-width: 2
+// 	:start-after: -- example begin
+// 	:end-before: // -- example end
 namespace libtorrent {
 
 	struct disk_observer;
@@ -123,14 +144,6 @@ namespace file_open_mode {
 	// The disk_interface is the customization point for disk I/O in libtorrent.
 	// implement this interface and provide a factory function to the session constructor
 	// use custom disk I/O.
-	//
-	// Example use:
-	//
-	// .. include:: ../examples/custom_storage.cpp
-	// 	:code: c++
-	// 	:tab-width: 2
-	// 	:start-after: -- example begin
-	// 	:end-before: // -- example end
 	struct TORRENT_EXPORT disk_interface
 	{
 		// force making a copy of the cached block, rather

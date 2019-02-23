@@ -43,6 +43,7 @@ namespace libtorrent {
 
 	struct counters;
 
+	// constructs a memory mapped file disk I/O object.
 	TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		io_context& ios, counters& cnt);
 

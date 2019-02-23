@@ -79,6 +79,10 @@ category_mapping = {
     'error_code.hpp': 'Error Codes',
     'storage_defs.hpp': 'Storage',
     'file_storage.hpp': 'Storage',
+    'disk_interface.hpp': 'Custom Storage',
+    'disk_io_thread.hpp': 'Storage',
+    'disabled_disk_io.hpp': 'Storage',
+    'posix_disk_io.hpp': 'Storage',
     'extensions.hpp': 'Plugins',
     'ut_metadata.hpp': 'Plugins',
     'ut_pex.hpp': 'Plugins',
@@ -112,6 +116,7 @@ category_mapping = {
 category_fun_mapping = {
     'min_memory_usage()': 'Settings',
     'high_performance_seed()': 'Settings',
+    'default_disk_io_constructor()': 'Storage'
 }
 
 
