@@ -36,15 +36,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/export.hpp"
 
 #define LIBTORRENT_VERSION_MAJOR 1
-#define LIBTORRENT_VERSION_MINOR 2
+#define LIBTORRENT_VERSION_MINOR 3
 #define LIBTORRENT_VERSION_TINY 0
 
 // the format of this version is: MMmmtt
 // M = Major version, m = minor version, t = tiny version
 #define LIBTORRENT_VERSION_NUM ((LIBTORRENT_VERSION_MAJOR * 10000) + (LIBTORRENT_VERSION_MINOR * 100) + LIBTORRENT_VERSION_TINY)
 
-#define LIBTORRENT_VERSION "1.2.0.0"
-#define LIBTORRENT_REVISION "c76e9cc5e"
+#define LIBTORRENT_VERSION "1.3.0.0"
+#define LIBTORRENT_REVISION "a0fb31ff5"
 
 namespace libtorrent {
 

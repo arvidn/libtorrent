@@ -43,14 +43,14 @@ def substitute_file(name):
             line = 'set (VERSION "%d.%d.%d")\n' % (version[0], version[1], version[2])
         elif ':Version: ' in line and (name.endswith('.rst') or name.endswith('.py')):
             line = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
-        elif 'VERSION = ' in line and name.endswith('Jamfile'):
+        elif line.startswith('VERSION = ') and name.endswith('Jamfile'):
             line = 'VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
         elif 'VERSION=' in line and name.endswith('Makefile'):
-            line = 'VERSION=%d.%d.%d ;\n' % (version[0], version[1], version[2])
+            line = 'VERSION=%d.%d.%d\n' % (version[0], version[1], version[2])
         elif 'version=' in line and name.endswith('setup.py'):
-            line = "\tversion = '%d.%d.%d',\n" % (version[0], version[1], version[2])
+            line = "    version='%d.%d.%d',\n" % (version[0], version[1], version[2])
         elif "version = '" in line and name.endswith('setup.py'):
-            line = "\tversion = '%d.%d.%d',\n" % (version[0], version[1], version[2])
+            line = "    version='%d.%d.%d',\n" % (version[0], version[1], version[2])
         elif '"-LT' in line and name.endswith('settings_pack.cpp'):
             line = re.sub('"-LT[0-9A-Za-z]{4}-"', '"-LT%c%c%c%c-"' % v(version), line)
 
@@ -63,7 +63,6 @@ def substitute_file(name):
 substitute_file('include/libtorrent/version.hpp')
 substitute_file('Makefile')
 substitute_file('CMakeLists.txt')
-substitute_file('configure.ac')
 substitute_file('bindings/python/setup.py')
 substitute_file('docs/gen_reference_doc.py')
 substitute_file('src/settings_pack.cpp')

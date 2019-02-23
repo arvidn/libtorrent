@@ -45,7 +45,7 @@ else
 
 use-project /try_signal : ./deps/try_signal ;
 
-VERSION = 1.2.0 ;
+VERSION = 1.3.0 ;
 
 rule linking ( properties * )
 {
