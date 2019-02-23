@@ -128,7 +128,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 
 	void async_check_files(storage_index_t
 		, add_torrent_params const*
-		, aux::vector<std::string, file_index_t>&
+		, aux::vector<std::string, file_index_t>
 		, std::function<void(status_t, storage_error const&)> handler) override
 	{
 		post(m_ios, [h = std::move(handler)] { h(status_t::no_error, storage_error{}); });

@@ -178,7 +178,7 @@ namespace file_open_mode {
 			, std::function<void()> handler = std::function<void()>()) = 0;
 		virtual void async_check_files(storage_index_t storage
 			, add_torrent_params const* resume_data
-			, aux::vector<std::string, file_index_t>& links
+			, aux::vector<std::string, file_index_t> links
 			, std::function<void(status_t, storage_error const&)> handler) = 0;
 		virtual void async_stop_torrent(storage_index_t storage
 			, std::function<void()> handler = std::function<void()>()) = 0;
