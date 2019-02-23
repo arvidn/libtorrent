@@ -881,7 +881,7 @@ bool is_downloading_state(int const st)
 		{
 			r.length = std::min(piece_size - r.start, block_size());
 			m_ses.disk_thread().async_read(m_storage, r
-				, [self, r, rp](disk_buffer_holder block, storage_error const& se)
+				, [self, r, rp](disk_buffer_holder block, storage_error const& se) mutable
 				{ self->on_disk_read_complete(std::move(block), se, r, rp); });
 		}
 		m_ses.disk_thread().submit_jobs();
@@ -1914,10 +1914,10 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_outstanding_check_files = true;
 #endif
-		auto self = shared_from_this();
 		m_ses.disk_thread().async_check_files(
 			m_storage, m_add_torrent_params ? m_add_torrent_params.get() : nullptr
-			, links, [self](status_t st, storage_error const& error) { self->on_resume_data_checked(st, error); });
+			, links, [self = shared_from_this()](status_t st, storage_error const& error)
+			{ self->on_resume_data_checked(st, error); });
 		// async_check_files will gut links
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("init, async_check_files");
@@ -2259,9 +2259,8 @@ bool is_downloading_state(int const st)
 		m_ses.disk_thread().async_release_files(m_storage);
 
 		aux::vector<std::string, file_index_t> links;
-		auto self = shared_from_this();
 		m_ses.disk_thread().async_check_files(m_storage, nullptr
-			, links, [self](status_t st, storage_error const& error) { self->on_force_recheck(st, error); });
+			, links, [self = shared_from_this()](status_t st, storage_error const& error) { self->on_force_recheck(st, error); });
 	}
 
 	void torrent::on_force_recheck(status_t const status, storage_error const& error) try
@@ -2327,12 +2326,11 @@ bool is_downloading_state(int const st)
 			- static_cast<int>(m_num_checked_pieces));
 		if (num_outstanding < 0) num_outstanding = 0;
 
-		auto self = shared_from_this();
 		for (int i = 0; i < num_outstanding; ++i)
 		{
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece
 				, disk_interface::sequential_access | disk_interface::volatile_read
-				, [self](piece_index_t p, sha1_hash const& h, storage_error const& error)
+				, [self = shared_from_this()](piece_index_t p, sha1_hash const& h, storage_error const& error)
 					{ self->on_piece_hashed(p, h, error); });
 			++m_checking_piece;
 			if (m_checking_piece >= m_torrent_file->end_piece()) break;
@@ -2447,10 +2445,9 @@ bool is_downloading_state(int const st)
 				return;
 			}
 
-			auto self = shared_from_this();
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece
 				, disk_interface::sequential_access | disk_interface::volatile_read
-				, [self](piece_index_t p, sha1_hash const& h, storage_error const& e)
+				, [self = shared_from_this()](piece_index_t p, sha1_hash const& h, storage_error const& e)
 				{ self->on_piece_hashed(p, h, e); });
 			++m_checking_piece;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3222,8 +3219,8 @@ bool is_downloading_state(int const st)
 				{
 					ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
 					r.i2pconn->async_name_lookup(i.hostname.c_str()
-						, std::bind(&torrent::on_i2p_resolve
-						, shared_from_this(), _1, _2));
+						, [self = shared_from_this()] (error_code const& ec, char const* dest)
+						{ self->torrent::on_i2p_resolve(ec, dest); });
 				}
 				else
 				{
@@ -4094,7 +4091,8 @@ bool is_downloading_state(int const st)
 			// to read back the blocks that failed, for blame purposes
 			// this way they have a chance to hit the cache
 			m_ses.disk_thread().async_clear_piece(m_storage, index
-				, std::bind(&torrent::on_piece_sync, shared_from_this(), _1));
+				, [self = shared_from_this()] (piece_index_t const& p)
+				{ self->on_piece_sync(p); });
 		}
 		else
 		{
@@ -4947,7 +4945,9 @@ bool is_downloading_state(int const st)
 
 			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
-				, std::move(new_priority), std::bind(&torrent::on_file_priority, shared_from_this(), _1, _2));
+				, std::move(new_priority)
+				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p) mutable
+				{ self->on_file_priority(ec, std::move(p)); });
 		}
 		else
 		{
@@ -4990,7 +4990,9 @@ bool is_downloading_state(int const st)
 			update_piece_priorities(new_priority);
 			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
-				, std::move(new_priority), std::bind(&torrent::on_file_priority, shared_from_this(), _1, _2));
+				, std::move(new_priority)
+				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p) mutable
+				{ self->on_file_priority(ec, std::move(p)); });
 		}
 		else
 		{
@@ -5669,16 +5671,13 @@ bool is_downloading_state(int const st)
 			debug_log("resolving proxy for web seed: %s", web->url.c_str());
 #endif
 
-			auto self = shared_from_this();
 			std::uint16_t const proxy_port = ps.port;
 
 			// use proxy
 			web->resolving = true;
 			m_ses.get_resolver().async_resolve(ps.hostname, resolver_interface::abort_on_shutdown
-				, [self, web, proxy_port](error_code const& e, std::vector<address> const& addrs)
-				{
-					self->wrap(&torrent::on_proxy_name_lookup, e, addrs, web, proxy_port);
-				});
+				, [self = shared_from_this(), web, proxy_port](error_code const& e, std::vector<address> const& addrs)
+				{ self->wrap(&torrent::on_proxy_name_lookup, e, addrs, web, proxy_port); });
 		}
 		else if (ps.proxy_hostnames
 			&& (ps.type == settings_pack::socks5
@@ -8470,7 +8469,7 @@ bool is_downloading_state(int const st)
 			{
 				// the torrent_paused alert will be posted from on_torrent_paused
 				m_ses.disk_thread().async_stop_torrent(m_storage
-					, std::bind(&torrent::on_torrent_paused, shared_from_this()));
+					, [self = shared_from_this()] { self->on_torrent_paused(); });
 			}
 			else
 			{
@@ -8785,12 +8784,10 @@ bool is_downloading_state(int const st)
 		// if m_waiting_tracker is 0, expires_at() is undefined
 		if (m_waiting_tracker && m_tracker_timer.expiry() == next_announce) return;
 
-		auto self = shared_from_this();
-
 		m_tracker_timer.expires_at(next_announce);
 		ADD_OUTSTANDING_ASYNC("tracker::on_tracker_announce");
 		++m_waiting_tracker;
-		m_tracker_timer.async_wait([self](error_code const& e)
+		m_tracker_timer.async_wait([self = shared_from_this()](error_code const& e)
 			{ self->wrap(&torrent::on_tracker_announce, e); });
 	}
 
@@ -10112,9 +10109,8 @@ bool is_downloading_state(int const st)
 
 		TORRENT_ASSERT(m_storage);
 
-		auto self = shared_from_this();
 		m_ses.disk_thread().async_hash(m_storage, piece, {}
-			, [self](piece_index_t p, sha1_hash const& h, storage_error const& error)
+			, [self = shared_from_this()](piece_index_t p, sha1_hash const& h, storage_error const& error)
 			{ self->on_piece_verified(p, h, error); });
 	}
 
