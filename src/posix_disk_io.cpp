@@ -105,7 +105,7 @@ namespace {
 		{
 			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
 			storage_error error;
-			if (buffer.get() == nullptr)
+			if (!buffer)
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
@@ -115,7 +115,7 @@ namespace {
 
 			time_point const start_time = clock_type::now();
 
-			iovec_t buf = {buffer.get(), r.length};
+			iovec_t buf = {buffer.data(), r.length};
 
 			m_torrents[storage]->readv(m_settings, buf, r.piece, r.start, error);
 
@@ -169,7 +169,7 @@ namespace {
 
 			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);
 			storage_error error;
-			if (buffer.get() == nullptr)
+			if (!buffer)
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
@@ -188,7 +188,7 @@ namespace {
 			{
 				auto const len = std::min(default_block_size, piece_size - offset);
 
-				iovec_t b = {buffer.get(), len};
+				iovec_t b = {buffer.data(), len};
 				int const ret = st->readv(m_settings, b, piece, offset, error);
 				offset += default_block_size;
 				if (ret <= 0) break;

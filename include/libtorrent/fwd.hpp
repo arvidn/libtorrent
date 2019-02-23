@@ -156,6 +156,10 @@ struct bitfield;
 // include/libtorrent/create_torrent.hpp
 struct create_torrent;
 
+// include/libtorrent/disk_buffer_holder.hpp
+struct buffer_allocator_interface;
+struct disk_buffer_holder;
+
 // include/libtorrent/disk_interface.hpp
 struct open_file_state;
 struct disk_interface;
@@ -244,7 +248,6 @@ struct session_status;
 struct settings_pack;
 
 // include/libtorrent/storage_defs.hpp
-struct storage_interface;
 struct storage_params;
 
 // include/libtorrent/torrent_handle.hpp

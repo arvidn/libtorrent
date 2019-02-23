@@ -69,13 +69,5 @@ namespace libtorrent {
 		m_size = 0;
 	}
 
-	char* disk_buffer_holder::release() noexcept
-	{
-		char* ret = m_buf;
-		m_buf = nullptr;
-		m_size = 0;
-		return ret;
-	}
-
 	disk_buffer_holder::~disk_buffer_holder() { reset(); }
 }

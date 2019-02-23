@@ -44,8 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct TORRENT_EXPORT storage_interface;
-
 	using storage_index_t = aux::strong_typedef<std::uint32_t, struct storage_index_tag_t>;
 
 	// types of storage allocation used for add_torrent_params::storage_mode.

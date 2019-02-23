@@ -39,7 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface
+	// the interface for freeing disk buffers, used by the disk_buffer_holder.
+	// when implementing disk_interface, this must also be implemented in order
+	// to return disk buffers back to libtorrent
+	struct TORRENT_EXPORT buffer_allocator_interface
 	{
 		virtual void free_disk_buffer(char* b) = 0;
 	protected:
@@ -47,12 +50,11 @@ namespace libtorrent {
 	};
 
 	// The disk buffer holder acts like a ``unique_ptr`` that frees a disk buffer
-	// when it's destructed, unless it's released. ``release`` returns the disk
-	// buffer and transfers ownership and responsibility to free it to the caller.
+	// when it's destructed
 	//
-	// ``data()`` returns the pointer without transferring ownership. If
-	// this buffer has been released, ``data()`` will return nullptr.
-	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
+	// If this buffer holder is moved-from, default constructed or reset,
+	// ``data()`` will return nullptr.
+	struct TORRENT_EXPORT disk_buffer_holder
 	{
 		disk_buffer_holder& operator=(disk_buffer_holder&&) & noexcept;
 		disk_buffer_holder(disk_buffer_holder&&) noexcept;
@@ -66,17 +68,11 @@ namespace libtorrent {
 		disk_buffer_holder(buffer_allocator_interface& alloc
 			, char* buf, std::size_t sz) noexcept;
 
-		// frees any unreleased disk buffer held by this object
+		// frees disk buffer held by this object
 		~disk_buffer_holder();
 
-		// return the held disk buffer and clear it from the
-		// holder. The responsibility to free it is passed on
-		// to the caller
-		char* release() noexcept;
-
-		// return a pointer to the held buffer
+		// return a pointer to the held buffer, if any. Otherwise returns nullptr.
 		char* data() const noexcept { return m_buf; }
-		char* get() const noexcept { return m_buf; }
 
 		// set the holder object to hold the specified buffer
 		// (or nullptr by default). If it's already holding a

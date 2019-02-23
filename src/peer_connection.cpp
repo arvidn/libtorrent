@@ -5287,7 +5287,7 @@ namespace libtorrent {
 			peer_log(peer_log_alert::info, "FILE_ASYNC_READ_COMPLETE"
 				, "piece: %d s: %x l: %x b: %p e: %s rtt: %d us"
 				, static_cast<int>(r.piece), r.start, r.length
-				, static_cast<void*>(buffer.get())
+				, static_cast<void*>(buffer.data())
 				, error.ec.message().c_str(), disk_rtt);
 		}
 #endif

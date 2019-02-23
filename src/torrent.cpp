@@ -1205,7 +1205,7 @@ bool is_downloading_state(int const st)
 		}
 		else
 		{
-			std::memcpy(rp->piece_data.get() + r.start, buffer.get(), aux::numeric_cast<std::size_t>(r.length));
+			std::memcpy(rp->piece_data.get() + r.start, buffer.data(), aux::numeric_cast<std::size_t>(r.length));
 		}
 
 		if (rp->blocks_left == 0)
