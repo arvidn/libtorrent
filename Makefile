@@ -144,6 +144,7 @@ DOCS_PAGES = \
   docs/reference-Plugins.html     \
   docs/reference-Settings.html    \
   docs/reference-Storage.html     \
+  docs/reference-Custom_Storage.html \
   docs/reference-Utility.html     \
   docs/reference.html             \
   docs/single-page-ref.html

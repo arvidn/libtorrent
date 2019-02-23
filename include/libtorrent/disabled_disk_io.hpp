@@ -43,6 +43,9 @@ namespace libtorrent {
 	struct counters;
 	struct disk_interface;
 
+	// creates a disk io object that discards all data written to it, and only
+	// returns zero-buffers when read from. May be useful for testing and
+	// benchmarking.
 	TORRENT_EXPORT std::unique_ptr<disk_interface> disabled_disk_io_constructor(
 		io_context& ios, counters& cnt);
 }
