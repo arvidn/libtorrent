@@ -101,7 +101,7 @@ namespace libtorrent {
 			auto& trees = atp.merkle_trees;
 			auto& ret_trees = ret["trees"].list();
 			ret_trees.reserve(atp.merkle_trees.size());
-			for (file_index_t f(0); f < atp.merkle_trees.size(); ++f)
+			for (file_index_t f(0); f < file_index_t(atp.merkle_trees.size()); ++f)
 			{
 				auto& tree = trees[f];
 				ret_trees.emplace_back(entry::dictionary_t);

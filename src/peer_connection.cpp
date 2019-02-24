@@ -5304,7 +5304,7 @@ namespace libtorrent {
 			int const piece_size = tf.files().piece_size2(piece);
 			int const file_num_leafs = merkle_num_leafs(tf.files().file_num_blocks(f));
 			int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
-			int const first_block_idx = tf.files().file_first_block_node(f) + piece * blocks_in_piece;
+			int const first_block_idx = tf.files().file_first_block_node(f) + static_cast<int>(piece) * blocks_in_piece;
 			auto& tree = tf.file_merkle_tree(f);
 
 			TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));

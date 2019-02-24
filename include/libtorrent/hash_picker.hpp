@@ -91,10 +91,10 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT hash_request
 	{
 		hash_request() = default;
-		hash_request(int const f, int const b, int const i, int const c, int const p)
+		hash_request(file_index_t const f, int const b, int const i, int const c, int const p)
 			: file(f), base(b), index(i), count(c), proof_layers(p)
 		{
-			TORRENT_ASSERT(file >= 0 && base >= 0 && index >= 0 && count >= 0 && proof_layers >= 0);
+			TORRENT_ASSERT(file >= file_index_t{0} && base >= 0 && index >= 0 && count >= 0 && proof_layers >= 0);
 		}
 
 		hash_request(hash_request const&) = default;
@@ -110,7 +110,7 @@ namespace libtorrent
 				&& proof_layers == o.proof_layers;
 		}
 
-		int const file = 0;
+		file_index_t const file{0};
 		int const base = 0;
 		int const index = 0;
 		int const count = 0;

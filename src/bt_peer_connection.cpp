@@ -1123,7 +1123,7 @@ namespace {
 
 		if (m_recv_buffer.packet_size() != 1 + 32 + 4 + 4 + 4 + 4)
 		{
-			disconnect(errors::invalid_hash_request, operation_t::bittorrent, 2);
+			disconnect(errors::invalid_hash_request, operation_t::bittorrent, peer_connection_interface::peer_error);
 			return;
 		}
 		if (!m_recv_buffer.packet_finished()) return;
@@ -1137,8 +1137,8 @@ namespace {
 		const char* ptr = recv_buffer.begin() + 1;
 
 		auto file_root = sha256_hash(ptr);
-		int file_index = -1;
-		for (auto i = file_index_t(0); i < files.end_file(); ++i)
+		file_index_t file_index{-1};
+		for (file_index_t i : files.file_range())
 		{
 			if (files.root(i) == file_root)
 			{
@@ -1200,8 +1200,8 @@ namespace {
 		const char* ptr = recv_buffer.begin() + 1;
 
 		auto file_root = sha256_hash(ptr);
-		int file_index = -1;
-		for (auto i = file_index_t(0); i < files.end_file(); ++i)
+		file_index_t file_index{-1};
+		for (file_index_t i : files.file_range())
 		{
 			if (files.root(i) == file_root)
 			{
@@ -1215,9 +1215,9 @@ namespace {
 		int count = detail::read_int32(ptr);
 		int proof_layers = detail::read_int32(ptr);
 
-		if (file_index < 0 || base < 0 || index < 0 || count < 0 || proof_layers < 0)
+		if (file_index < file_index_t{0} || base < 0 || index < 0 || count < 0 || proof_layers < 0)
 		{
-			disconnect(errors::invalid_hashes, operation_t::bittorrent, 2);
+			disconnect(errors::invalid_hashes, operation_t::bittorrent, peer_connection_interface::peer_error);
 			return;
 		}
 
@@ -1229,7 +1229,7 @@ namespace {
 		if (m_recv_buffer.packet_size() != header_size
 			+ (count + proof_hashes) * int(sha256_hash::size()))
 		{
-			disconnect(errors::invalid_hashes, operation_t::bittorrent, 2);
+			disconnect(errors::invalid_hashes, operation_t::bittorrent, peer_connection_interface::peer_error);
 			return;
 		}
 
@@ -1253,7 +1253,7 @@ namespace {
 
 		if (!t->add_hashes(hr, hashes))
 		{
-			disconnect(errors::invalid_hashes, operation_t::bittorrent, 2);
+			disconnect(errors::invalid_hashes, operation_t::bittorrent, peer_connection_interface::peer_error);
 			return;
 		}
 
@@ -1275,7 +1275,7 @@ namespace {
 
 		if (m_recv_buffer.packet_size() != 1 + 32 + 4 + 4 + 4 + 4)
 		{
-			disconnect(errors::invalid_hash_reject, operation_t::bittorrent, 2);
+			disconnect(errors::invalid_hash_reject, operation_t::bittorrent, peer_connection_interface::peer_error);
 			return;
 		}
 		if (!m_recv_buffer.packet_finished()) return;
@@ -1289,8 +1289,8 @@ namespace {
 		const char* ptr = recv_buffer.begin() + 1;
 
 		auto file_root = sha256_hash(ptr);
-		int file_index = -1;
-		for (auto i = file_index_t(0); i < files.end_file(); ++i)
+		file_index_t file_index{-1};
+		for (file_index_t i : files.file_range())
 		{
 			if (files.root(i) == file_root)
 			{
@@ -1710,7 +1710,7 @@ namespace {
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HASH_REQUEST"
-				, "%d %d %d %d %d", req.file, req.base, req.index, req.count, req.proof_layers);
+				, "%d %d %d %d %d", static_cast<int>(req.file), req.base, req.index, req.count, req.proof_layers);
 		}
 
 		send_buffer(buf, 0);

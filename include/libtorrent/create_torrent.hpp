@@ -327,7 +327,7 @@ namespace libtorrent {
 		aux::vector<sha1_hash, file_index_t> m_filehashes;
 
 		mutable aux::vector<sha256_hash, file_index_t> m_fileroots;
-		aux::vector<std::vector<sha256_hash>, file_index_t> m_file_piece_hash;
+		aux::vector<aux::vector<sha256_hash, piece_index_t::diff_type>, file_index_t> m_file_piece_hash;
 
 		std::vector<sha1_hash> m_similar;
 		std::vector<std::string> m_collections;

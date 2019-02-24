@@ -196,7 +196,7 @@ namespace {
 
 		if (!st->ct.is_v1_only())
 		{
-			std::int64_t const piece_offset = std::int64_t(piece) * st->ct.piece_length();
+			std::int64_t const piece_offset = static_cast<int>(piece) * std::int64_t(st->ct.piece_length());
 			file_index_t const current_file = st->ct.files().file_index_at_offset(piece_offset);
 			if (!st->ct.files().pad_file_at(current_file))
 			{
@@ -361,7 +361,7 @@ namespace {
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
 			std::vector<sha256_hash> v2_chunks;
-			
+
 			if (!t.is_v1_only())
 				v2_chunks.resize(t.piece_length() / default_block_size);
 
@@ -459,7 +459,7 @@ namespace {
 		{
 			m_fileroots.resize(m_files.num_files());
 			m_file_piece_hash.resize(m_files.num_files());
-			for (file_index_t i(0); i != m_files.num_files(); ++i)
+			for (file_index_t i : m_files.file_range())
 				m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
 		}
 	}
@@ -595,7 +595,8 @@ namespace {
 
 		if (!m_file_piece_hash.empty())
 		{
-			sha256_hash pad_hash = merkle_root(std::vector<sha256_hash>(m_files.piece_length() / (16 * 1024)));
+			sha256_hash const pad_hash = merkle_root(std::vector<sha256_hash>(
+				m_files.piece_length() / default_block_size));
 			auto& file_pieces = dict["piece layers"].dict();
 
 			for (file_index_t fi(0); fi != m_files.end_file(); ++fi)
@@ -841,8 +842,8 @@ namespace {
 	{
 		TORRENT_ASSERT(file >= file_index_t(0));
 		TORRENT_ASSERT(file < m_files.end_file());
-		TORRENT_ASSERT(piece >= piece_index_t(0));
-		TORRENT_ASSERT(std::size_t(piece) < m_file_piece_hash[file].size());
+		TORRENT_ASSERT(piece >= piece_index_t::diff_type(0));
+		TORRENT_ASSERT(piece < m_file_piece_hash[file].end_index());
 		TORRENT_ASSERT(!m_files.pad_file_at(file));
 		m_file_piece_hash[file][piece] = h;
 	}
