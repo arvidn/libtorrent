@@ -61,7 +61,7 @@ struct mock_peer_connection : peer_connection_interface
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log(peer_log_alert::direction_t) const override { return true; }
 	void peer_log(peer_log_alert::direction_t
-		, char const*, char const*, ...) const noexcept TORRENT_FORMAT(4, 5) override {}
+		, char const*, char const*, ...) const noexcept override TORRENT_FORMAT(4, 5) {}
 #endif
 
 	torrent_peer* m_torrent_peer;
