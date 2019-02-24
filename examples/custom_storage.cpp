@@ -152,7 +152,7 @@ struct temp_disk_io final : lt::disk_interface
 		lt::span<char const> b = m_torrents[storage]->readv(r.piece, r.start, error);
 
 		post(m_ioc, [handler, error, b, this]
-			{ handler(lt::disk_buffer_holder(*this, const_cast<char*>(b.data()), b.size()), error); });
+			{ handler(lt::disk_buffer_holder(*this, const_cast<char*>(b.data()), int(b.size())), error); });
 	}
 
 	bool async_write(lt::storage_index_t storage, lt::peer_request const& r
