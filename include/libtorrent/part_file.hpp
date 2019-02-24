@@ -87,7 +87,7 @@ namespace libtorrent {
 		{ return m_header_size + static_cast<int>(slot) * m_piece_size; }
 
 		template <typename Hasher>
-		int do_hashv(Hasher& ph, std::size_t len, piece_index_t piece, int offset, error_code& ec);
+		int do_hashv(Hasher& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
 
 		std::string m_path;
 		std::string const m_name;

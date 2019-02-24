@@ -73,7 +73,7 @@ namespace libtorrent
 
 	struct add_hashes_result
 	{
-		explicit add_hashes_result(bool valid) : valid(valid) {}
+		explicit add_hashes_result(bool const v) : valid(v) {}
 
 		bool valid;
 		std::map<piece_index_t, std::vector<int>> hash_failed;
@@ -90,11 +90,11 @@ namespace libtorrent
 
 	struct TORRENT_EXTRA_EXPORT hash_request
 	{
-		hash_request() : file(0), base(0), index(0), count(0), proof_layers(0) {}
-		hash_request(int file, int base, int index, int count, int proofs)
-			: file(file), base(base), index(index), count(count), proof_layers(proofs)
+		hash_request() = default;
+		hash_request(int const f, int const b, int const i, int const c, int const p)
+			: file(f), base(b), index(i), count(c), proof_layers(p)
 		{
-			TORRENT_ASSERT(file >= 0 && base >= 0 && index >= 0 && count >= 0 && proofs >= 0);
+			TORRENT_ASSERT(file >= 0 && base >= 0 && index >= 0 && count >= 0 && proof_layers >= 0);
 		}
 
 		hash_request(hash_request const&) = default;
@@ -110,11 +110,11 @@ namespace libtorrent
 				&& proof_layers == o.proof_layers;
 		}
 
-		int const file;
-		int const base;
-		int const index;
-		int const count;
-		int const proof_layers;
+		int const file = 0;
+		int const base = 0;
+		int const index = 0;
+		int const count = 0;
+		int const proof_layers = 0;
 	};
 
 	class TORRENT_EXTRA_EXPORT hash_picker
@@ -163,7 +163,8 @@ namespace libtorrent
 
 		struct priority_block_request
 		{
-			priority_block_request(file_index_t file, int block) : file(file), block(block) {}
+			priority_block_request(file_index_t const f, int const b)
+				: file(f), block(b) {}
 			file_index_t file;
 			int block;
 			int num_requests = 0;
@@ -177,7 +178,7 @@ namespace libtorrent
 
 		struct piece_block_request
 		{
-			piece_block_request(file_index_t file, int piece) : file(file), piece(piece) {}
+			piece_block_request(file_index_t const f, int const p) : file(f), piece(p) {}
 			file_index_t file;
 			int piece;
 			time_point last_request;

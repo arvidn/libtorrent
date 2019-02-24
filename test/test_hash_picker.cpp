@@ -43,26 +43,25 @@ using namespace lt;
 
 struct mock_peer_connection : peer_connection_interface
 {
-	virtual tcp::endpoint const& remote() const { return m_remote; }
-	virtual tcp::endpoint local_endpoint() const { return {}; }
-	virtual void disconnect(error_code const& ec
-		, operation_t op, disconnect_severity_t error = peer_connection_interface::normal) {}
-	virtual peer_id const& pid() const { return m_pid; }
-	virtual peer_id our_pid() const { return m_pid; }
-	virtual void set_holepunch_mode() {}
-	virtual torrent_peer* peer_info_struct() const { return m_torrent_peer; }
-	virtual void set_peer_info(torrent_peer* pi) { m_torrent_peer = pi; }
-	virtual bool is_outgoing() const { return false; }
-	virtual void add_stat(std::int64_t downloaded, std::int64_t uploaded) {}
-	virtual bool fast_reconnect() const { return false; }
-	virtual bool is_choked() const { return false; }
-	virtual bool failed() const { return false; }
-	virtual lt::stat const& statistics() const { return m_stat; }
-	virtual void get_peer_info(peer_info& p) const {}
+	tcp::endpoint const& remote() const override { return m_remote; }
+	tcp::endpoint local_endpoint() const override { return {}; }
+	void disconnect(error_code const&, operation_t, disconnect_severity_t) override {}
+	peer_id const& pid() const override { return m_pid; }
+	peer_id our_pid() const override { return m_pid; }
+	void set_holepunch_mode() override {}
+	torrent_peer* peer_info_struct() const override { return m_torrent_peer; }
+	void set_peer_info(torrent_peer* pi) override { m_torrent_peer = pi; }
+	bool is_outgoing() const override { return false; }
+	void add_stat(std::int64_t, std::int64_t) override {}
+	bool fast_reconnect() const override { return false; }
+	bool is_choked() const override { return false; }
+	bool failed() const override { return false; }
+	lt::stat const& statistics() const override { return m_stat; }
+	void get_peer_info(peer_info&) const override {}
 #ifndef TORRENT_DISABLE_LOGGING
-	virtual bool should_log(peer_log_alert::direction_t direction) const { return true; }
-	virtual void peer_log(peer_log_alert::direction_t direction
-		, char const* event, char const* fmt = "", ...) const noexcept TORRENT_FORMAT(4, 5) {}
+	bool should_log(peer_log_alert::direction_t) const override { return true; }
+	void peer_log(peer_log_alert::direction_t
+		, char const*, char const*, ...) const noexcept TORRENT_FORMAT(4, 5) override {}
 #endif
 
 	torrent_peer* m_torrent_peer;
@@ -166,7 +165,7 @@ TORRENT_TEST(reject_piece_request)
 	pieces.set_all();
 
 	mock_peer_connection mock_peer1;
-	mock_peer1.m_torrent_peer = (torrent_peer*)0x1;
+	mock_peer1.m_torrent_peer = reinterpret_cast<torrent_peer*>(0x1);
 
 	auto picked = picker.pick_hashes(pieces, &mock_peer1);
 	picker.hashes_rejected(&mock_peer1, picked);
