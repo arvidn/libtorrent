@@ -65,7 +65,7 @@ struct sliding_average
 		m_mean += (s - m_mean) / m_num_samples;
 
 		if (m_num_samples > 1) {
-			// the the exact same thing for deviation off the mean except -1 on
+			// the exact same thing for deviation off the mean except -1 on
 			// the samples, because the number of deviation samples always lags
 			// behind by 1 (you need to actual samples to have a single deviation
 			// sample).

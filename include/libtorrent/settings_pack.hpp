@@ -1362,7 +1362,7 @@ namespace libtorrent {
 			// be met.
 			connections_limit,
 
-			// ``connections_slack`` is the the number of incoming connections
+			// ``connections_slack`` is the number of incoming connections
 			// exceeding the connection limit to accept in order to potentially
 			// replace existing ones.
 			connections_slack,

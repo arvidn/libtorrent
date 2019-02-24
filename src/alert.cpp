@@ -1678,7 +1678,7 @@ namespace {
 	}
 
 	// TODO: 2 the salt here is allocated on the heap. It would be nice to
-	// allocate in in the stack_allocator
+	// allocate in the stack_allocator
 	dht_mutable_item_alert::dht_mutable_item_alert(aux::stack_allocator&
 		, std::array<char, 32> const& k
 		, std::array<char, 64> const& sig

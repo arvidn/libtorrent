@@ -299,7 +299,7 @@ namespace {
 		// unchoke few enough peers to not be able to saturate the up-link.
 		// this is done by traversing the peers sorted by our upload rate to
 		// them in decreasing rates. For each peer we increase our threshold
-		// by 1 kB/s. The first peer we get to to whom we upload slower than
+		// by 1 kB/s. The first peer we get to whom we upload slower than
 		// the threshold, we stop and that's the number of unchoke slots we have.
 		if (sett.get_int(settings_pack::choking_algorithm)
 			== settings_pack::rate_based_choker)

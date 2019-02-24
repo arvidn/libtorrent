@@ -337,7 +337,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int receive_quota;
 
 		// an estimated round trip time to this peer, in milliseconds. It is
-		// estimated by timing the the TCP ``connect()``. It may be 0 for
+		// estimated by timing the TCP ``connect()``. It may be 0 for
 		// incoming connections.
 		int rtt;
 
