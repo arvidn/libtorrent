@@ -514,7 +514,7 @@ add_library(torrent-rasterbar
 	${libtorrent_aux_include_files}
 )
 
-select_cxx_standard(torrent-rasterbar 11)
+select_cxx_standard(torrent-rasterbar 14)
 
 if (BUILD_SHARED_LIBS)
 	target_compile_definitions(torrent-rasterbar
