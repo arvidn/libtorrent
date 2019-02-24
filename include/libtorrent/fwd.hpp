@@ -142,8 +142,9 @@ struct alerts_dropped_alert;
 TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/announce_entry.hpp
-struct announce_endpoint;
+struct announce_infohash;
 TORRENT_VERSION_NAMESPACE_2
+struct announce_endpoint;
 struct announce_entry;
 TORRENT_VERSION_NAMESPACE_2_END
 
@@ -184,7 +185,11 @@ class file_storage;
 // include/libtorrent/hasher.hpp
 TORRENT_CRYPTO_NAMESPACE
 class hasher;
+class hasher256;
 TORRENT_CRYPTO_NAMESPACE_END
+
+// include/libtorrent/info_hash.hpp
+struct info_hash_t;
 
 // include/libtorrent/ip_filter.hpp
 struct ip_filter;
