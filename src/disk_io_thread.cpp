@@ -628,18 +628,32 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= default_block_size);
-		TORRENT_ASSERT(r.start % default_block_size == 0);
+
+		// in case r.start is not aligned to a block, calculate that offset,
+		// since that's how the store_buffer is indexed
+		int const block_offset = r.start - (r.start % default_block_size);
+		// this is the offset into the block that we're reading from
+		int const read_offset = r.start - block_offset;
+
+		storage_error ec;
+		if (read_offset + r.length > default_block_size || r.length <= 0)
+		{
+			// this is an invalid read request. We don't support read requests
+			// spanning multiple blocks
+			ec.ec = errors::invalid_request;
+			ec.operation = operation_t::file_read;
+			handler(disk_buffer_holder{}, ec);
+			return;
+		}
 
 		DLOG("async_read piece: %d block: %d\n", static_cast<int>(r.piece)
-			, r.start / default_block_size);
+			, block_offset / default_block_size);
 
-		disk_buffer_holder buffer(*this, nullptr, 0);
-		storage_error ec;
+		disk_buffer_holder buffer;
 
-		if (m_store_buffer.get({ storage, r.piece, r.start }
-			, [&](char* buf)
+		if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char* buf)
 		{
-			buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), 0x4000);
+			buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), r.length);
 			if (!buffer)
 			{
 				ec.ec = error::no_memory;
@@ -647,7 +661,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				return;
 			}
 
-			std::memcpy(buffer.data(), buf, std::size_t(default_block_size));
+			std::memcpy(buffer.data(), buf + read_offset, std::size_t(r.length));
 		}))
 		{
 			handler(std::move(buffer), ec);
@@ -659,13 +673,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
 		j->d.io.buffer_size = std::uint16_t(r.length);
-		j->argument = disk_buffer_holder(*this, nullptr, 0);
 		j->flags = flags;
 		j->callback = std::move(handler);
 
-		// check to see if there's a fence up for this job, and if there is, add
-		// it to the fence queue. If there's no fence we can add the job to the
-		// normal queue
 		if (j->storage->is_blocked(j))
 		{
 			// this means the job was queued up inside storage

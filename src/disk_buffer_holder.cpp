@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc
-		, char* const buf, std::size_t const sz) noexcept
+		, char* const buf, int const sz) noexcept
 		: m_allocator(&alloc), m_buf(buf), m_size(sz)
 	{}
 
@@ -52,14 +52,6 @@ namespace libtorrent {
 		if (&h == this) return *this;
 		disk_buffer_holder(std::move(h)).swap(*this);
 		return *this;
-	}
-
-	void disk_buffer_holder::reset(char* const buf, std::size_t const sz)
-	{
-		TORRENT_ASSERT(m_allocator);
-		if (m_buf) m_allocator->free_disk_buffer(m_buf);
-		m_buf = buf;
-		m_size = sz;
 	}
 
 	void disk_buffer_holder::reset()
