@@ -67,3 +67,22 @@ libtorrent_logs*
 *.pyc
 dist
 *.egg-info
+
+# python binary
+bindings/python/compile_cmd
+
+# binaries in the examples directory
+examples/bt_get
+examples/bt_get2
+examples/client_test
+examples/connection_tester
+examples/custom_storage
+examples/dump_torrent
+examples/make_torrent
+examples/simple_client
+examples/stats_counters
+examples/upnp_test
+
+# binaries in the tests directory
+tools/dht_put
+tools/session_log_alerts
