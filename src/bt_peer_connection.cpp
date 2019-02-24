@@ -1185,6 +1185,12 @@ namespace {
 		int proof_layers = detail::read_int32(ptr);
 		hash_request hr(file_index, base, index, count, proof_layers);
 
+		if (should_log(peer_log_alert::incoming_message))
+		{
+			peer_log(peer_log_alert::incoming_message, "HASH_REQUEST", "%d %d %d %d %d"
+				, hr.file, hr.base, hr.index, hr.count, hr.proof_layers);
+		}
+
 		std::vector<sha256_hash> hashes = t->get_hashes(hr);
 
 		if (hashes.empty())
@@ -1271,6 +1277,12 @@ namespace {
 			ptr += sha256_hash::size();
 		}
 
+		if (should_log(peer_log_alert::incoming_message))
+		{
+			peer_log(peer_log_alert::incoming_message, "HASHES", "%d %d %d %d %d"
+				, hr.file, hr.base, hr.index, hr.count, hr.proof_layers);
+		}
+
 		if (!t->add_hashes(hr, hashes))
 		{
 			disconnect(errors::invalid_hashes, operation_t::bittorrent, 2);
@@ -1324,6 +1336,12 @@ namespace {
 		int count = detail::read_int32(ptr);
 		int proof_layers = detail::read_int32(ptr);
 		hash_request hr(file_index, base, index, count, proof_layers);
+
+		if (should_log(peer_log_alert::incoming_message))
+		{
+			peer_log(peer_log_alert::incoming_message, "HASH_REJECT", "%d %d %d %d %d"
+				, hr.file, hr.base, hr.index, hr.count, hr.proof_layers);
+		}
 
 		auto new_end = std::remove(m_hash_requests.begin(), m_hash_requests.end(), hr);
 		if (new_end == m_hash_requests.end()) return;
@@ -1763,7 +1781,7 @@ namespace {
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HASHES"
-				, "%d %d %d %d", req.base, req.index, req.count, req.proof_layers);
+				, "%d %d %d %d %d", req.file, req.base, req.index, req.count, req.proof_layers);
 		}
 
 		send_buffer(buf);
