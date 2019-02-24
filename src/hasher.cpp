@@ -177,7 +177,7 @@ TORRENT_CRYPTO_NAMESPACE
 		: hasher256()
 	{
 		TORRENT_ASSERT(len > 0);
-		update({ data, size_t(len) });
+		update({ data, len });
 	}
 
 #ifdef TORRENT_USE_LIBGCRYPT
@@ -200,7 +200,7 @@ TORRENT_CRYPTO_NAMESPACE
 
 	hasher256& hasher256::update(char const* data, int len)
 	{
-		return update({ data, size_t(len) });
+		return update({ data, len });
 	}
 
 	hasher256& hasher256::update(span<char const> data)

@@ -234,7 +234,7 @@ namespace libtorrent {
 
 	template <typename Hasher>
 	int part_file::do_hashv(Hasher& ph
-		, std::size_t const len
+		, std::ptrdiff_t const len
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{

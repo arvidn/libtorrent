@@ -732,7 +732,7 @@ namespace libtorrent {
 	}
 
 	int default_storage::hashv2(aux::session_settings const& sett
-		, hasher256& ph, std::size_t const len
+		, hasher256& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
 	{
@@ -764,14 +764,14 @@ namespace libtorrent {
 		auto handle = open_file(sett, file_index, flags, error);
 		if (error) return -1;
 
-		span<byte const volatile> file_range = handle->range();
+		span<byte const> file_range = handle->range();
 		if (std::int64_t(file_range.size()) <= file_offset)
 			return 0;
-		file_range = file_range.subspan(std::size_t(file_offset)
-			, std::size_t(std::min(len, file_range.size() - std::size_t(file_offset))));
-		ph.update({ const_cast<char const*>(file_range.data()), file_range.size() });
+		file_range = file_range.subspan(file_offset);
+		file_range = file_range.first(std::min(std::ptrdiff_t(len), file_range.size()));
+		ph.update(file_range);
 
-		return file_range.size();
+		return static_cast<int>(file_range.size());
 	}
 
 	// a wrapper around open_file_impl that, if it fails, makes sure the
