@@ -466,7 +466,7 @@ Other build options are:
 |                       | over TLS, and obfuscated bittorrent connections.  |
 +-----------------------+---------------------------------------------------+
 
-Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and and their current values.
+Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and their current values.
 
 Step 2: Building libtorrent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

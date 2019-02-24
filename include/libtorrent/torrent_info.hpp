@@ -424,7 +424,7 @@ namespace libtorrent {
 
 		// Returns the SSL root certificate for the torrent, if it is an SSL
 		// torrent. Otherwise returns an empty string. The certificate is
-		// the the public certificate in x509 format.
+		// the public certificate in x509 format.
 		string_view ssl_cert() const;
 
 		// returns true if this torrent_info object has a torrent loaded.
