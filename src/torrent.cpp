@@ -3804,8 +3804,8 @@ bool is_downloading_state(int const st)
 		}
 	}
 
-	boost::tribool torrent::on_blocks_hashed(piece_index_t piece
-		, span<sha256_hash> block_hashes)
+	boost::tribool torrent::on_blocks_hashed(piece_index_t const piece
+		, span<sha256_hash> const block_hashes)
 	{
 		boost::tribool ret = boost::indeterminate;
 		need_hash_picker();
@@ -3838,10 +3838,12 @@ bool is_downloading_state(int const st)
 				std::fill_n(block_passed.begin() + first_chunk
 					, std::min(blocks_in_piece - first_chunk, result.num_verified), true);
 
+				using piece_delta = piece_index_t::diff_type;
+
 				// if the hashes for more than one piece have been verified, check for any pieces which
 				// were already checked but couldn't be verified and mark them as verified
-				for (piece_index_t verified_piece = int(piece) + result.first_verified_chunk / blocks_per_piece
-					, end = int(verified_piece) + result.num_verified / blocks_per_piece
+				for (piece_index_t verified_piece = piece + piece_delta(result.first_verified_chunk / blocks_per_piece)
+					, end = verified_piece + piece_delta(result.num_verified / blocks_per_piece)
 					; verified_piece < end; ++verified_piece)
 				{
 					if (!has_picker()

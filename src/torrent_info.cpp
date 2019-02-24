@@ -1088,7 +1088,7 @@ namespace {
 		if (m_merkle_trees.empty())
 			m_merkle_trees.resize(orig_files().num_files());
 
-		for (int i = 0; i < int(m_merkle_trees.size()); ++i)
+		for (file_index_t i{0}; i < m_merkle_trees.end_index(); ++i)
 		{
 			auto& f = m_merkle_trees[i];
 			if (f.empty() && orig_files().file_size(i) > 0)

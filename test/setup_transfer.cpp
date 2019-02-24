@@ -101,7 +101,7 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 	{
 		sha256_hash ph;
 		aux::random_bytes(ph);
-		file_index_t f(fs.file_index_at_piece(i));
+		file_index_t const f(fs.file_index_at_piece(i));
 		t.set_hash2(f, i - piece_index_t(fs.file_offset(f) / fs.piece_length()), ph);
 	}
 
@@ -677,7 +677,7 @@ std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
 				= hasher256(piece.data() + j, std::min(default_block_size, int(piece.size()) - j)).final();
 		}
 		merkle_fill_tree(tree, fs.piece_length() / default_block_size);
-		file_index_t f(fs.file_index_at_piece(i));
+		file_index_t const f(fs.file_index_at_piece(i));
 		ct.set_hash2(f, i - piece_index_t(fs.file_offset(f) / fs.piece_length()), tree[0]);
 	}
 
@@ -782,14 +782,14 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 		merkle_fill_tree(v2tree, merkle_num_leafs(blocks_in_piece));
 
 		for (piece_index_t i(0); i < t.files().end_piece(); ++i)
-			t.set_hash2(0, piece_index_t(0) + i, v2tree[0]);
+			t.set_hash2(file_index_t{0}, i - piece_index_t(0), v2tree[0]);
 	}
 
 	if (file)
 	{
 		while (total_size > 0)
 		{
-			file->write(&piece[0], std::min(piece.end_index(), total_size));
+			file->write(piece.data(), std::min(piece.end_index(), total_size));
 			total_size -= piece.end_index();
 		}
 	}

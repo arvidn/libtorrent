@@ -195,7 +195,7 @@ namespace libtorrent
 			}
 		}
 
-		for (int fidx = 0; fidx < int(m_piece_hash_requested.size()); ++fidx)
+		for (file_index_t fidx(0); fidx < m_piece_hash_requested.end_index(); ++fidx)
 		{
 			int const file_first_piece = m_files.file_offset(fidx) / m_files.piece_length();
 			int const num_layers = file_num_layers(fidx);
@@ -213,7 +213,7 @@ namespace libtorrent
 				bool have = false;
 				for (int p = i * 512; p < std::min<int>((i + 1) * 512, m_files.file_num_pieces(fidx)); ++p)
 				{
-					if (pieces[file_first_piece + p])
+					if (pieces[piece_index_t{file_first_piece + p}])
 					{
 						have = true;
 						break;
@@ -426,7 +426,7 @@ namespace libtorrent
 				}
 				else
 				{
-					ret.hash_passed.push_back(file_piece_offset + piece);
+					ret.hash_passed.push_back(piece_index_t{file_piece_offset + piece});
 				}
 			}
 		}
@@ -436,9 +436,9 @@ namespace libtorrent
 
 	set_chunk_hash_result hash_picker::set_chunk_hash(piece_index_t piece, int offset, sha256_hash const& h)
 	{
-		auto f = m_files.file_index_at_piece(piece);
+		auto const f = m_files.file_index_at_piece(piece);
 		auto& merkle_tree = m_merkle_trees[f];
-		int const chunk_offset = piece * m_files.piece_length() + offset - m_files.file_offset(f);
+		int const chunk_offset = static_cast<int>(piece) * std::int64_t(m_files.piece_length()) + offset - m_files.file_offset(f);
 		int const chunk_index = chunk_offset / default_block_size;
 		int const file_num_chunks = m_files.file_num_blocks(f);
 		int const first_chunk_index = m_files.file_first_block_node(f);
@@ -531,9 +531,9 @@ namespace libtorrent
 		}
 
 		int const blocks_per_piece = m_files.piece_length() / default_block_size;
-		piece_index_t const file_first_piece = m_files.file_offset(f) / m_files.piece_length();
-		return { leafs_index - (piece - file_first_piece) * blocks_per_piece
-			, std::min(leafs_size, m_files.file_num_pieces(f) * (m_files.piece_length() / default_block_size) - leafs_index) };
+		piece_index_t const file_first_piece(m_files.file_offset(f) / m_files.piece_length());
+		return { leafs_index - static_cast<int>(piece - file_first_piece) * blocks_per_piece
+			, std::min(leafs_size, m_files.file_num_pieces(f) * blocks_per_piece - leafs_index) };
 	}
 
 	void hash_picker::hashes_rejected(peer_connection_interface* source, hash_request const& req)
@@ -626,7 +626,7 @@ namespace libtorrent
 	{
 		file_index_t const f = m_files.file_index_at_piece(piece);
 		piece_index_t file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));;
-		int const block_offset = (piece - file_first_piece) * (m_files.piece_length() / default_block_size);
+		int const block_offset = static_cast<int>(piece - file_first_piece) * (m_files.piece_length() / default_block_size);
 		int const blocks_in_piece = (m_files.piece_size2(piece) + default_block_size - 1) / default_block_size;
 		auto const& file_leafs = m_hash_verified[f];
 		return std::all_of(file_leafs.begin() + block_offset, file_leafs.begin() + block_offset + blocks_in_piece

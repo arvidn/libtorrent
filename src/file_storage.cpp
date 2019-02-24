@@ -122,7 +122,7 @@ namespace {
 		TORRENT_ASSERT(index >= piece_index_t(0) && index < end_piece());
 		// find the file iterator and file offset
 		internal_file_entry target;
-		target.offset = aux::numeric_cast<std::uint64_t>(piece_length()) * index;
+		target.offset = aux::numeric_cast<std::uint64_t>(piece_length()) * static_cast<int>(index);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		auto file_iter = std::upper_bound(
@@ -691,10 +691,10 @@ namespace {
 		{
 			// a root hash implies a v2 file tree
 			// insert an implicit pad file if necessary
-			auto const pad_size = piece_length() - m_files[0].size % piece_length();
+			auto const pad_size = piece_length() - m_files.front().size % piece_length();
 			if (int(pad_size) != piece_length())
 			{
-				auto offset = m_files[0].offset + m_files[0].size;
+				auto const offset = m_files.front().offset + m_files.front().size;
 				m_files.emplace_back();
 				// e is invalid from here down!
 				auto& pad_file = m_files.back();
@@ -755,7 +755,7 @@ namespace {
 			auto const pad_size = piece_length() - e.size % piece_length();
 			if (int(pad_size) != piece_length())
 			{
-				auto offset = e.offset + e.size;
+				auto const offset = e.offset + e.size;
 				m_files.emplace_back();
 				// e is invalid from here down!
 				auto& pad_file = m_files.back();
@@ -1020,7 +1020,7 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
-		int index = int(&fe - &m_files[0]);
+		int index = int(&fe - &m_files.front());
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		if (m_files[index].hash == nullptr) return sha1_hash();
 		return sha1_hash(m_files[index].hash);
@@ -1034,14 +1034,14 @@ namespace {
 
 	std::time_t file_storage::mtime(internal_file_entry const& fe) const
 	{
-		int index = int(&fe - &m_files[0]);
+		int index = int(&fe - &m_files.front());
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		return m_files[index].mtime;
 	}
 
 	int file_storage::file_index(internal_file_entry const& fe) const
 	{
-		int index = int(&fe - &m_files[0]);
+		int index = int(&fe - &m_files.front());
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		return index;
 	}
@@ -1049,7 +1049,7 @@ namespace {
 	std::string file_storage::file_path(internal_file_entry const& fe
 		, std::string const& save_path) const
 	{
-		int const index = int(&fe - &m_files[0]);
+		int const index = int(&fe - &m_files.front());
 		return file_path(index, save_path);
 	}
 
@@ -1154,7 +1154,7 @@ namespace {
 
 		// re-compute offsets and insert pad files as necessary
 		std::uint64_t off = 0;
-		for (file_index_t i(0); i < int(m_files.size()); ++i)
+		for (file_index_t i(0); i < m_files.end_index(); ++i)
 		{
 			auto& file = m_files[i];
 			TORRENT_ASSERT(!file.pad_file);
@@ -1163,7 +1163,7 @@ namespace {
 			auto const pad_size = piece_length() - file.size % piece_length();
 			if (int(pad_size) != piece_length())
 			{
-				auto pad_file = m_files.emplace(m_files.begin() + i + 1);
+				auto pad_file = m_files.emplace(m_files.begin() + static_cast<int>(i) + 1);
 				pad_file->size = pad_size;
 				pad_file->offset = off;
 				off += pad_size;

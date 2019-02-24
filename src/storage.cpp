@@ -736,9 +736,9 @@ namespace libtorrent {
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
 	{
-		std::int64_t const start_offset = piece * std::int64_t(files().piece_length()) + offset;
-		file_index_t file_index = files().file_index_at_offset(start_offset);
-		std::int64_t file_offset = start_offset - files().file_offset(file_index);
+		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
+		file_index_t const file_index = files().file_index_at_offset(start_offset);
+		std::int64_t const file_offset = start_offset - files().file_offset(file_index);
 		TORRENT_ASSERT(file_offset >= 0);
 		TORRENT_ASSERT(!files().pad_file_at(file_index));
 

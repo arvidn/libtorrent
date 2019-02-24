@@ -325,7 +325,7 @@ TORRENT_TEST(torrent)
 		for (auto const i : fs.piece_range())
 			t.set_hash(i, ph);
 
-		t.set_hash2(0, 0, lt::hasher256(piece).final());
+		t.set_hash2(file_index_t{0}, piece_index_t::diff_type{0}, lt::hasher256(piece).final());
 
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char>> out(tmp);
