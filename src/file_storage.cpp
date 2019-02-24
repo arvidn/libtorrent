@@ -491,6 +491,11 @@ namespace {
 	}
 #endif
 
+	file_index_t file_storage::file_index_at_piece(piece_index_t const piece) const
+	{
+		return file_index_at_offset(static_cast<int>(piece) * std::int64_t(piece_length()));
+	}
+
 	file_index_t file_storage::file_index_at_offset(std::int64_t const offset) const
 	{
 		TORRENT_ASSERT_PRECOND(offset >= 0);

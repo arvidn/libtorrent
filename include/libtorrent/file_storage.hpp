@@ -520,6 +520,7 @@ namespace libtorrent {
 
 		// returns the index of the file at the given offset in the torrent
 		file_index_t file_index_at_offset(std::int64_t offset) const;
+		file_index_t file_index_at_piece(piece_index_t piece) const;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		// internal
