@@ -74,14 +74,19 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t abort_handler_max_size = tracking + 104;
 	constexpr std::size_t deferred_handler_max_size = tracking + 112;
 #elif defined __clang__
+#ifdef _GLIBCXX_DEBUG
+	constexpr std::size_t debug_iter = 4 * sizeof(void*);
+#else
+	constexpr std::size_t debug_iter = 0;
+#endif
 #ifdef TORRENT_USE_OPENSSL
 	constexpr std::size_t write_handler_max_size = tracking + 352;
-	constexpr std::size_t read_handler_max_size = tracking + 400;
+	constexpr std::size_t read_handler_max_size = tracking + debug_iter + 400;
 	constexpr std::size_t utp_handler_max_size = tracking + 136;
 	constexpr std::size_t udp_handler_max_size = tracking + 136;
 #else
 	constexpr std::size_t write_handler_max_size = tracking + 120;
-	constexpr std::size_t read_handler_max_size = tracking + 120;
+	constexpr std::size_t read_handler_max_size = tracking + debug_iter + 120;
 	constexpr std::size_t utp_handler_max_size = tracking + 120;
 	constexpr std::size_t udp_handler_max_size = tracking + 96;
 #endif
@@ -89,9 +94,16 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t deferred_handler_max_size = tracking + 80;
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
 #else
+#ifdef _GLIBCXX_DEBUG
+	constexpr std::size_t debug_write_iter = 5 * sizeof(void*);
+	constexpr std::size_t debug_read_iter = 10 * sizeof(void*);
+#else
+	constexpr std::size_t debug_write_iter = 0;
+	constexpr std::size_t debug_read_iter = 0;
+#endif
 #ifdef TORRENT_USE_OPENSSL
-	constexpr std::size_t write_handler_max_size = tracking + 248;
-	constexpr std::size_t read_handler_max_size = tracking + 240;
+	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + 248;
+	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + 240;
 	constexpr std::size_t utp_handler_max_size = tracking + 136;
 	constexpr std::size_t udp_handler_max_size = tracking + 136;
 #else
