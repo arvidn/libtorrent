@@ -519,6 +519,7 @@ namespace libtorrent {
 
 		// returns the index of the file at the given offset in the torrent
 		file_index_t file_index_at_offset(std::int64_t offset) const;
+		file_index_t file_index_at_piece(piece_index_t piece) const;
 
 		// low-level function. returns a pointer to the internal storage for
 		// the filename. This string may not be 0-terminated!

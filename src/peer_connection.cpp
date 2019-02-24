@@ -5300,7 +5300,7 @@ namespace libtorrent {
 			hash_failed[1] = false;
 
 			auto& tf = t->torrent_file();
-			file_index_t const f = tf.files().file_index_at_offset(piece * tf.piece_length());
+			file_index_t const f = tf.files().file_index_at_piece(piece);
 			int const piece_size = tf.files().piece_size2(piece);
 			int const file_num_leafs = merkle_num_leafs(tf.files().file_num_blocks(f));
 			int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;

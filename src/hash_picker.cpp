@@ -428,7 +428,7 @@ namespace libtorrent
 
 	set_chunk_hash_result hash_picker::set_chunk_hash(piece_index_t piece, int offset, sha256_hash const& h)
 	{
-		auto f = m_files.file_index_at_offset(piece * m_files.piece_length());
+		auto f = m_files.file_index_at_piece(piece);
 		auto& merkle_tree = m_merkle_trees[f];
 		int const chunk_offset = piece * m_files.piece_length() + offset - m_files.file_offset(f);
 		int const chunk_index = chunk_offset / default_block_size;
@@ -583,7 +583,7 @@ namespace libtorrent
 
 	void hash_picker::verify_chunk_hashes(piece_index_t index)
 	{
-		file_index_t const fidx = m_files.file_index_at_offset(index * m_files.piece_length());
+		file_index_t const fidx = m_files.file_index_at_piece(index);
 		int const piece = int(index) - m_files.file_offset(fidx) / m_files.piece_length();
 		piece_block_request req(fidx, piece);
 
@@ -596,7 +596,7 @@ namespace libtorrent
 
 	bool hash_picker::have_hash(piece_index_t index) const
 	{
-		file_index_t f = m_files.file_index_at_offset(index * m_files.piece_length());
+		file_index_t const f = m_files.file_index_at_piece(index);
 		if (m_files.file_size(f) <= m_files.piece_length()) return true;
 		piece_index_t const file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));
 		return !m_merkle_trees[f][m_files.file_first_piece_node(f) + int(index - file_first_piece)].is_all_zeros();
@@ -609,14 +609,14 @@ namespace libtorrent
 
 	bool hash_picker::have_all() const
 	{
-		for (file_index_t f(0); f != m_files.end_file(); ++f)
+		for (file_index_t f : m_files.file_range())
 			if (!have_all(f)) return false;
 		return true;
 	}
 
 	bool hash_picker::piece_verified(piece_index_t piece) const
 	{
-		file_index_t f = m_files.file_index_at_offset(piece * m_files.piece_length());
+		file_index_t const f = m_files.file_index_at_piece(piece);
 		piece_index_t file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));;
 		int const block_offset = (piece - file_first_piece) * (m_files.piece_length() / default_block_size);
 		int const blocks_in_piece = (m_files.piece_size2(piece) + default_block_size - 1) / default_block_size;
