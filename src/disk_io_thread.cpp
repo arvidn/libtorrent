@@ -912,10 +912,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				, [&](char* buf)
 				{
 					if (v1)
-						h.update({buf, len});
+					{
+						h.update({ buf, len });
+						ret = int(len);
+					}
 					if (v2_chunk)
-						h2.update({buf, len2});
-					ret = int(len);
+					{
+						h2.update({ buf, len2 });
+						ret = int(len2);
+					}
 				}))
 			{
 				if (v1)
