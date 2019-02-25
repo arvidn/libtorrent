@@ -339,9 +339,9 @@ namespace libtorrent
 					// they can be verified
 					int const file_first_leaf = m_files.file_first_block_node(req.file);
 					TORRENT_ASSERT(dest_start_idx + i >= file_first_leaf);
-					piece_index_t piece = (dest_start_idx + i - file_first_leaf) / (m_files.piece_length() / default_block_size);
-					int block_index = (dest_start_idx + i - file_first_leaf) % (m_files.piece_length() / default_block_size);
-					ret.hash_failed[piece].push_back(block_index);
+					std::div_t const pos = std::div(dest_start_idx + i - file_first_leaf
+						, m_files.piece_length() / default_block_size);
+					ret.hash_failed[piece_index_t{pos.quot}].push_back(pos.rem);
 				}
 
 				m_merkle_trees[req.file][dest_start_idx + i] = tree[source_start_idx + i];
