@@ -881,8 +881,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// just read straight from the file
 		TORRENT_ASSERT(m_magic == 0x1337);
 
-		bool v1 = j->flags & disk_interface::v1_hash;
-		bool v2 = !j->d.h.chunk_hashes.empty();
+		bool const v1 = bool(j->flags & disk_interface::v1_hash);
+		bool const v2 = !j->d.h.chunk_hashes.empty();
 
 		int const piece_size = v1 ? j->storage->files().piece_size(j->piece) : 0;
 		int const piece_size2 = v2 ? j->storage->orig_files().piece_size2(j->piece) : 0;

@@ -47,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	class torrent;
+
 	struct TORRENT_EXPORT announce_infohash
 	{
 		announce_infohash();
@@ -128,12 +130,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// this class holds information about one listen socket for one tracker
 	struct TORRENT_EXPORT announce_endpoint
 	{
-		friend class torrent;
-#if TORRENT_ABI_VERSION == 1
+		friend class lt::torrent;
 		friend struct announce_entry;
-#else
-		friend struct v1_2::announce_entry;
-#endif
 
 		// internal
 		explicit announce_endpoint(aux::listen_socket_handle const& s);
