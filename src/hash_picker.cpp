@@ -118,7 +118,8 @@ namespace libtorrent
 				continue;
 			}
 
-			int const piece_layer_idx = merkle_num_layers(m_files.file_num_blocks(f)) - m_piece_layer;
+			int const piece_layer_idx = merkle_num_layers(
+				merkle_num_leafs(m_files.file_num_blocks(f))) - m_piece_layer;
 
 			// check for hashes we already have and flag entries in m_piece_hash_requested
 			// so that we don't request them again
@@ -197,14 +198,17 @@ namespace libtorrent
 		for (int fidx = 0; fidx < int(m_piece_hash_requested.size()); ++fidx)
 		{
 			int const file_first_piece = m_files.file_offset(fidx) / m_files.piece_length();
-			int const piece_tree_root_layer = std::max(0, file_num_layers(fidx) - m_piece_tree_root_layer);
+			int const num_layers = file_num_layers(fidx);
+			int const piece_tree_root_layer = std::max(0, num_layers - m_piece_tree_root_layer);
 			auto& f = m_piece_hash_requested[fidx];
 
 			for (int i = 0; i < int(f.size()); ++i)
 			{
 				if (f[i].have ||
 					(f[i].last_request != min_time() && aux::time_now() - f[i].last_request < min_request_interval))
+				{
 					continue;
+				}
 
 				bool have = false;
 				for (int p = i * 512; p < std::min<int>((i + 1) * 512, m_files.file_num_pieces(fidx)); ++p)
@@ -218,16 +222,20 @@ namespace libtorrent
 
 				if (!have) continue;
 
-				int piece_tree_root = merkle_to_flat_index(piece_tree_root_layer, i);
+				int const piece_tree_root = merkle_to_flat_index(piece_tree_root_layer, i);
 
 				++f[i].num_requests;
 				f[i].last_request = now;
+
+				// subtract one because the base layer doesn't count
+				int const piece_tree_num_layers
+					= num_layers - piece_tree_root_layer - m_piece_layer - 1;
 
 				return hash_request(fidx
 					, m_piece_layer
 					, i * 512
 					, std::min(512, int(m_files.file_num_pieces(fidx) - i * 512))
-					, layers_to_verify({ fidx, piece_tree_root }) + m_piece_tree_root_layer - m_piece_layer);
+					, layers_to_verify({ fidx, piece_tree_root }) + piece_tree_num_layers);
 			}
 		}
 
@@ -328,9 +336,9 @@ namespace libtorrent
 
 		add_hashes_result ret(true);
 
-		for (int count = req.count; count != 0; count /= 2)
+		for (int layer_size = count; layer_size != 0; layer_size /= 2)
 		{
-			for (int i = 0; i < count; ++i)
+			for (int i = 0; i < layer_size; ++i)
 			{
 				if (!m_merkle_trees[req.file][dest_start_idx + i].is_all_zeros()
 					&& m_merkle_trees[req.file][dest_start_idx + i] != tree[source_start_idx + i])
@@ -346,7 +354,7 @@ namespace libtorrent
 
 				m_merkle_trees[req.file][dest_start_idx + i] = tree[source_start_idx + i];
 			}
-			if (count == 1) break;
+			if (layer_size == 1) break;
 			dest_start_idx = merkle_get_parent(dest_start_idx);
 			source_start_idx = merkle_get_parent(source_start_idx);
 		}
@@ -379,7 +387,8 @@ namespace libtorrent
 			int const file_num_chunks = m_files.file_num_blocks(req.file);
 			int const file_first_leaf = m_files.file_first_block_node(req.file);
 			int const file_first_piece = m_files.file_first_piece_node(req.file);
-			int const base_layer_index = merkle_num_layers(file_num_chunks) - req.base;
+			int const base_layer_index = merkle_num_layers(merkle_num_leafs(file_num_chunks)) - req.base;
+			int const file_piece_offset = m_files.file_offset(req.file) / m_files.piece_length();
 
 			// it may now be possible to verify the hashes of previously received chunks
 			// try to verify as many child nodes of the received hashes as possible
@@ -418,7 +427,7 @@ namespace libtorrent
 				}
 				else
 				{
-					ret.hash_passed.push_back(piece);
+					ret.hash_passed.push_back(file_piece_offset + piece);
 				}
 			}
 		}
