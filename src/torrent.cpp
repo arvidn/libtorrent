@@ -6147,33 +6147,27 @@ bool is_downloading_state(int const st)
 		}
 
 		// the number of layers up the tree which can be computed from the base layer hashes
-		// subtract one because we need the sibling of the root node
-		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(req.count));
-		// plus one because the base layer doesn't count as a proof layer
-		int proof_layers = req.proof_layers + 1;
-
-		for (int i = 0; i < base_tree_layers; ++i)
-		{
-			layer_start_idx = merkle_get_parent(layer_start_idx);
-			if (--proof_layers == 0)
-				return ret;
-			if (layer_start_idx == 0)
-				return {}; // the requester set proof_layers too high
-		}
+		// subtract one because the base layer doesn't count
+		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(req.count)) - 1;
+		int proof_layers = req.proof_layers;
 
 		for (int i = 0; i < proof_layers; ++i)
 		{
+			layer_start_idx = merkle_get_parent(layer_start_idx);
+
 			if (layer_start_idx == 0)
 				return {}; // the requester set proof_layers too high
 
-			int const sibling = merkle_get_sibling(layer_start_idx);
+			if (i >= base_tree_layers)
+			{
+				int const sibling = merkle_get_sibling(layer_start_idx);
 
-			if (f[layer_start_idx].is_all_zeros()
-				|| f[sibling].is_all_zeros())
-				return {};
+				if (f[layer_start_idx].is_all_zeros()
+					|| f[sibling].is_all_zeros())
+					return {};
 
-			ret.push_back(f[sibling]);
-			layer_start_idx = merkle_get_parent(layer_start_idx);
+				ret.push_back(f[sibling]);
+			}
 		}
 
 		return ret;
