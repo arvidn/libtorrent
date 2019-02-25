@@ -151,11 +151,9 @@ TORRENT_VERSION_NAMESPACE_2
 		// the error occurred setting up the SSL context
 		static constexpr file_index_t error_file_ssl_ctx{-3};
 
-#if TORRENT_ABI_VERSION == 1
 		// the error occurred while loading the .torrent file via the user
 		// supplied load function
-		static constexpr file_index_t TORRENT_DEPRECATED error_file_metadata{-4};
-#endif
+		static constexpr file_index_t error_file_metadata{-4};
 
 		// there was a serious error reported in this torrent. The error code
 		// or a torrent log alert may provide more information.
