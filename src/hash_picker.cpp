@@ -167,7 +167,7 @@ namespace libtorrent
 				, 0
 				, req.block
 				, 2
-				, layers_to_verify(nidx));
+				, layers_to_verify(nidx) + 1);
 			m_priority_block_requests.front().num_requests++;
 			std::sort(m_priority_block_requests.begin(), m_priority_block_requests.end());
 			return hash_req;
@@ -187,7 +187,7 @@ namespace libtorrent
 					, 0
 					, first_block
 					, blocks_per_piece
-					, layers_to_verify(nidx));
+					, layers_to_verify(nidx) + merkle_num_layers(blocks_per_piece));
 				req->num_requests++;
 				req->last_request = now;
 				std::sort(m_piece_block_requests.begin(), m_piece_block_requests.end());
@@ -227,9 +227,8 @@ namespace libtorrent
 				++f[i].num_requests;
 				f[i].last_request = now;
 
-				// subtract one because the base layer doesn't count
 				int const piece_tree_num_layers
-					= num_layers - piece_tree_root_layer - m_piece_layer - 1;
+					= num_layers - piece_tree_root_layer - m_piece_layer;
 
 				return hash_request(fidx
 					, m_piece_layer
@@ -636,7 +635,11 @@ namespace libtorrent
 
 	int hash_picker::layers_to_verify(node_index idx) const
 	{
-		if (idx.node == 0) return 0;
+		// the root layer doesn't have a sibling so it should never
+		// be requested as a proof layer
+		// return -1 to signal to the caller that no proof is required
+		// even for the first layer it is trying to verify
+		if (idx.node == 0) return -1;
 
 		int layers = 0;
 		int const file_internal_layers = merkle_num_layers(merkle_num_leafs(m_files.file_num_pieces(idx.file))) - 1;
