@@ -4002,8 +4002,10 @@ bool is_downloading_state(int const st)
 			block_passed[i] = result.status == set_chunk_hash_result::success;
 			if (result.status == set_chunk_hash_result::success)
 			{
-				std::fill_n(block_passed.begin() + std::max(0, result.first_verified_chunk)
-					, std::min(blocks_in_piece, result.num_verified), true);
+				TORRENT_ASSERT(result.first_verified_chunk <= blocks_in_piece);
+				auto const first_chunk = std::max(0, result.first_verified_chunk);
+				std::fill_n(block_passed.begin() + first_chunk
+					, std::min(blocks_in_piece - first_chunk, result.num_verified), true);
 
 				// if the hashes for more than one piece have been verified, check for any pieces which
 				// were already checked but couldn't be verified and mark them as verified
