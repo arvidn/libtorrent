@@ -515,13 +515,6 @@ constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
 # endif
 #endif
 
-#if defined __GNUC__
-#define TORRENT_FUNCTION __PRETTY_FUNCTION__
-#else
-#define TORRENT_FUNCTION __FUNCTION__
-#endif
-
-
 // debug builds have asserts enabled by default, release
 // builds have asserts if they are explicitly enabled by
 // the release_asserts macro.
