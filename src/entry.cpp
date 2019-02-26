@@ -70,7 +70,7 @@ namespace detail {
 
 namespace {
 
-	inline void TORRENT_NO_RETURN throw_error()
+	[[noreturn]] inline void throw_error()
 	{ aux::throw_ex<system_error>(errors::invalid_entry_type); }
 
 	template <class T>
