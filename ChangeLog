@@ -1,3 +1,4 @@
+	* support creating symlinks, for torrents with symlinks in them
 	* fix error in seed_mode flag
 	* support magnet link parameters with number siffixes
 	* consistently use "lt" namespace in examples and documentation

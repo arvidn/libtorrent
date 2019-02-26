@@ -62,6 +62,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mount.h>
 #endif
 
+#if TORRENT_HAS_SYMLINK
+#include <unistd.h> // for symlink()
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/storage.hpp"
@@ -294,6 +298,7 @@ namespace libtorrent {
 				break;
 			}
 
+
 			// if the file is empty and doesn't already exist, create it
 			// deliberately don't truncate files that already exist
 			// if a file is supposed to have size 0, but already exists, we will
@@ -301,8 +306,7 @@ namespace libtorrent {
 			if (fs.file_size(file_index) == 0
 				&& err == boost::system::errc::no_such_file_or_directory)
 			{
-				std::string file_path = fs.file_path(file_index, m_save_path);
-				std::string dir = parent_path(file_path);
+				std::string dir = parent_path(fs.file_path(file_index, m_save_path));
 
 				if (dir != last_path)
 				{
@@ -317,12 +321,30 @@ namespace libtorrent {
 					}
 				}
 				ec.ec.clear();
-				// just creating the file is enough to make it zero-sized. If
-				// there's a race here and some other process truncates the file,
-				// it's not a problem, we won't access empty files ever again
-				file_handle f = open_file(file_index, open_mode::read_write
-					| open_mode::random_access, ec);
-				if (ec) return;
+
+#if TORRENT_HAS_SYMLINK
+				// create symlinks
+				if (fs.file_flags(file_index) & file_storage::flag_symlink)
+				{
+					if (::symlink(fs.symlink(file_index).c_str()
+							, fs.file_path(file_index, m_save_path).c_str()) != 0)
+					{
+						ec.ec = error_code(errno, generic_category());
+						ec.file(file_index);
+						ec.operation = operation_t::symlink;
+						break;
+					}
+				}
+				else
+#endif
+				{
+					// just creating the file is enough to make it zero-sized. If
+					// there's a race here and some other process truncates the file,
+					// it's not a problem, we won't access empty files ever again
+					file_handle f = open_file(file_index, open_mode::read_write
+						| open_mode::random_access, ec);
+					if (ec) return;
+				}
 			}
 			ec.ec.clear();
 		}

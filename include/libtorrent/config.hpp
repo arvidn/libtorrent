@@ -166,6 +166,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // __APPLE__
 
+#define TORRENT_HAS_SYMLINK 1
 #define TORRENT_USE_DEV_RANDOM 1
 #define TORRENT_HAVE_MMAP 1
 
@@ -188,6 +189,7 @@ POSSIBILITY OF SUCH DAMAGE.
 # define TORRENT_USE_PREAD 1
 #endif
 
+#define TORRENT_HAS_SYMLINK 1
 #define TORRENT_HAVE_MMAP 1
 #define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFADDRS 0
@@ -308,6 +310,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 1
 #define TORRENT_HAVE_MMAP 1
+#define TORRENT_HAS_SYMLINK 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -323,6 +326,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HURD
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_IFCONF 1
+#define TORRENT_HAS_SYMLINK 1
 
 // ==== eCS(OS/2) ===
 #elif defined __OS2__
@@ -503,6 +507,10 @@ constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 400;
 // if this is not divisible by 8, we're wasting space
 constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
 # endif
+#endif
+
+#ifndef TORRENT_HAS_SYMLINK
+#define TORRENT_HAS_SYMLINK 0
 #endif
 
 // debug builds have asserts enabled by default, release
