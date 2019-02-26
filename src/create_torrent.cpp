@@ -66,28 +66,6 @@ namespace {
 	bool ignore_subdir(std::string const& leaf)
 	{ return leaf == ".." || leaf == "."; }
 
-	file_flags_t get_file_attributes(std::string const& p)
-	{
-		auto const path = convert_to_native_path_string(p);
-
-#ifdef TORRENT_WINDOWS
-		WIN32_FILE_ATTRIBUTE_DATA attr;
-		GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attr);
-		if (attr.dwFileAttributes == INVALID_FILE_ATTRIBUTES) return {};
-		if (attr.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) return file_storage::flag_hidden;
-		return {};
-#else
-		struct ::stat s;
-		if (::lstat(path.c_str(), &s) < 0) return {};
-		file_flags_t file_attr = {};
-		if (s.st_mode & S_IXUSR)
-			file_attr |= file_storage::flag_executable;
-		if (S_ISLNK(s.st_mode))
-			file_attr |= file_storage::flag_symlink;
-		return file_attr;
-#endif
-	}
-
 #ifndef TORRENT_WINDOWS
 	std::string get_symlink_path_impl(char const* path)
 	{
@@ -102,16 +80,6 @@ namespace {
 		return convert_from_native_path(buf);
 	}
 #endif
-
-	std::string get_symlink_path(std::string const& p)
-	{
-#if defined TORRENT_WINDOWS
-		TORRENT_UNUSED(p);
-		return "";
-#else
-		return get_symlink_path_impl(p.c_str());
-#endif
-	}
 
 	void add_files_impl(file_storage& fs, std::string const& p
 		, std::string const& l, std::function<bool(std::string)> const& pred
@@ -201,6 +169,39 @@ namespace {
 	}
 
 } // anonymous namespace
+
+	file_flags_t get_file_attributes(std::string const& p)
+	{
+		auto const path = convert_to_native_path_string(p);
+
+#ifdef TORRENT_WINDOWS
+		WIN32_FILE_ATTRIBUTE_DATA attr;
+		GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attr);
+		if (attr.dwFileAttributes == INVALID_FILE_ATTRIBUTES) return {};
+		if (attr.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) return file_storage::flag_hidden;
+		return {};
+#else
+		struct ::stat s;
+		if (::lstat(path.c_str(), &s) < 0) return {};
+		file_flags_t file_attr = {};
+		if (s.st_mode & S_IXUSR)
+			file_attr |= file_storage::flag_executable;
+		if (S_ISLNK(s.st_mode))
+			file_attr |= file_storage::flag_symlink;
+		return file_attr;
+#endif
+	}
+
+	std::string get_symlink_path(std::string const& p)
+	{
+#if defined TORRENT_WINDOWS
+		TORRENT_UNUSED(p);
+		return "";
+#else
+		return get_symlink_path_impl(p.c_str());
+#endif
+	}
+
 
 #if TORRENT_ABI_VERSION == 1
 

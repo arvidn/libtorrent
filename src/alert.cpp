@@ -894,6 +894,7 @@ namespace {
 			case o::partfile_read: return -1;
 			case o::partfile_write: return -1;
 			case o::hostname_lookup: return -1;
+			case o::symlink: return -1;
 		};
 		return -1;
 	}
@@ -1558,7 +1559,8 @@ namespace {
 			"partfile_move",
 			"partfile_read",
 			"partfile_write",
-			"hostname_lookup"
+			"hostname_lookup",
+			"symlink"
 		};
 
 		int const idx = static_cast<int>(op);

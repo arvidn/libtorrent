@@ -465,6 +465,8 @@ namespace detail {
 	}
 #endif // TORRENT_ABI_VERSION
 
+	TORRENT_EXTRA_EXPORT file_flags_t get_file_attributes(std::string const& p);
+	TORRENT_EXTRA_EXPORT std::string get_symlink_path(std::string const& p);
 }
 
 #endif
