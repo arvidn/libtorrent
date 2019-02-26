@@ -166,7 +166,7 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 
 #else
 
-void TORRENT_NO_RETURN sig_handler(int sig)
+[[noreturn]] void sig_handler(int sig)
 {
 	char stack_text[10000];
 
