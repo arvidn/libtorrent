@@ -913,6 +913,40 @@ std::vector<lt::aux::vector<file_t, lt::file_index_t>> const test_cases
 		{"test/filler-1", 0x4000, {}, "test/filler-1"},
 		{"test/filler-2", 0x4000, {}, "test/filler-2"},
 	},
+	{
+		// pad files are allowed to collide, as long as they have the same size
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files of different sizes are NOT allowed to collide
+		{"test/.pad/1234", 0x8000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files are NOT allowed to collide with normal files
+		{"test/.pad/1234", 0x4000, {}, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// normal files are NOT allowed to collide with pad files
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, {}, "test/.pad/1234.1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files are NOT allowed to collide with directories
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234/filler-2", 0x4000, {}, "test/.pad/1234/filler-2"},
+	},
 };
 
 void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
