@@ -205,7 +205,7 @@ namespace libtorrent { namespace aux {
 	}
 
 	std::pair<status_t, std::string> move_storage(file_storage const& f
-		, std::string const& save_path
+		, std::string save_path
 		, std::string const& destination_save_path
 		, part_file* pf
 		, move_flags_t const flags, storage_error& ec)

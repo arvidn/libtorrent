@@ -439,19 +439,19 @@ namespace libtorrent {
 			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
-	status_t default_storage::move_storage(std::string const& sp
+	std::pair<status_t, std::string> default_storage::move_storage(std::string sp
 		, move_flags_t const flags, storage_error& ec)
 	{
 		m_pool.release(storage_index());
 
 		status_t ret;
-		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, sp
+		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, std::move(sp)
 			, m_part_file.get(), flags, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();
 
-		return ret;
+		return { ret, m_save_path };
 	}
 
 	int default_storage::readv(aux::session_settings const& sett

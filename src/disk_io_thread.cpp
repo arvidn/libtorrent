@@ -911,8 +911,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
 		// if files have to be closed, that's the storage's responsibility
-		return j->storage->move_storage(boost::get<std::string>(j->argument)
+		status_t ret;
+		std::string p;
+		std::tie(ret, p) = j->storage->move_storage(boost::get<std::string>(j->argument)
 			, j->move_flags, j->error);
+
+		boost::get<std::string>(j->argument) = p;
+		return ret;
 	}
 
 	status_t disk_io_thread::do_release_files(disk_io_job* j)
