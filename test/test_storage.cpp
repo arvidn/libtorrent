@@ -179,6 +179,10 @@ std::shared_ptr<default_storage> make_storage(storage_params const& p
 {
 	return std::make_shared<default_storage>(p, fp);
 }
+#else
+template <>
+std::shared_ptr<default_storage> make_storage(storage_params const& p
+	, aux::file_view_pool& fp) = delete;
 #endif
 
 template <>
@@ -237,7 +241,7 @@ int readv(std::shared_ptr<default_storage> s
 	, aux::session_settings const& sett
 	, span<iovec_t const> bufs
 	, piece_index_t piece
-	, int offset
+	, int const offset
 	, aux::open_mode_t flags
 	, storage_error& ec)
 {
@@ -253,7 +257,8 @@ void release_files(std::shared_ptr<default_storage> s, storage_error& ec)
 int writev(std::shared_ptr<posix_storage> s
 	, aux::session_settings const& sett
 	, span<iovec_t const> bufs
-	, piece_index_t const piece, int const offset
+	, piece_index_t const piece
+	, int const offset
 	, aux::open_mode_t
 	, storage_error& error)
 {
@@ -1382,8 +1387,8 @@ TORRENT_TEST(readwritev_zero_size_files)
 	TEST_CHECK(check_pattern(buf, 0));
 }
 
-#if TORRENT_HAVE_MMAP
-TORRENT_TEST(move_storage_to_self)
+template <typename StorageType>
+void test_move_storage_to_self()
 {
 	// call move_storage with the path to the exising storage. should be a no-op
 	std::string const save_path = current_working_directory();
@@ -1395,11 +1400,11 @@ TORRENT_TEST(move_storage_to_self)
 	std::vector<char> buf;
 	aux::file_view_pool fp;
 	io_context ios;
-	auto s = setup_torrent<default_storage>(fs, fp, buf, save_path, set);
+	auto s = setup_torrent<StorageType>(fs, fp, buf, save_path, set);
 
 	iovec_t const b = {&buf[0], 4};
 	storage_error se;
-	s->writev(set, b, piece_index_t(1), 0, aux::open_mode::write, se);
+	writev(s, set, b, piece_index_t(1), 0, aux::open_mode::write, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("folder2", "test3.tmp"))));
 	TEST_CHECK(exists(combine_path(test_path, combine_path("_folder3", "test4.tmp"))));
@@ -1413,7 +1418,8 @@ TORRENT_TEST(move_storage_to_self)
 	TEST_CHECK(exists(combine_path(test_path, combine_path("_folder3", "test4.tmp"))));
 }
 
-TORRENT_TEST(move_storage_into_self)
+template <typename StorageType>
+void test_move_storage_into_self()
 {
 	std::string const save_path = current_working_directory();
 	delete_dirs("temp_storage");
@@ -1423,11 +1429,11 @@ TORRENT_TEST(move_storage_into_self)
 	std::vector<char> buf;
 	aux::file_view_pool fp;
 	io_context ios;
-	auto s = setup_torrent<default_storage>(fs, fp, buf, save_path, set);
+	auto s = setup_torrent<StorageType>(fs, fp, buf, save_path, set);
 
 	iovec_t const b = {&buf[0], 4};
 	storage_error se;
-	s->writev(set, b, piece_index_t(2), 0, aux::open_mode::write, se);
+	writev(s, set, b, piece_index_t(2), 0, aux::open_mode::write, se);
 
 	std::string const test_path = combine_path(save_path, combine_path("temp_storage", "folder1"));
 	s->move_storage(test_path, move_flags_t::always_replace_files, se);
@@ -1442,7 +1448,29 @@ TORRENT_TEST(move_storage_into_self)
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", "test4.tmp")))));
 }
+
+#if TORRENT_HAVE_MMAP
+TORRENT_TEST(move_default_storage_to_self)
+{
+	test_move_storage_to_self<default_storage>();
+}
+
+TORRENT_TEST(move_default_storage_into_self)
+{
+	test_move_storage_into_self<default_storage>();
+}
+
 #endif
+
+TORRENT_TEST(move_posix_storage_to_self)
+{
+	test_move_storage_to_self<posix_storage>();
+}
+
+TORRENT_TEST(move_posix_storage_into_self)
+{
+	test_move_storage_into_self<posix_storage>();
+}
 
 TORRENT_TEST(storage_paths_string_pooling)
 {

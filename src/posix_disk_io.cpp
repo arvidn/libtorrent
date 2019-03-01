@@ -211,13 +211,15 @@ namespace {
 			post(m_ios, [=, h = std::move(handler)]{ h(piece, hash, error); });
 		}
 
-		void async_move_storage(storage_index_t, std::string p, move_flags_t
+		void async_move_storage(storage_index_t const storage, std::string p
+			, move_flags_t const flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override
 		{
-			post(m_ios, [=, h = std::move(handler)]{
-				h(status_t::fatal_disk_error, p
-					, storage_error(error_code(boost::system::errc::operation_not_supported, system_category())));
-			});
+			posix_storage* st = m_torrents[storage].get();
+			storage_error ec;
+			status_t ret;
+			std::tie(ret, p) = st->move_storage(p, flags, ec);
+			post(m_ios, [=, h = std::move(handler)]{ h(ret, p, ec); });
 		}
 
 		void async_release_files(storage_index_t storage, std::function<void()> handler) override

@@ -72,6 +72,9 @@ namespace aux {
 
 		void delete_files(remove_flags_t options, storage_error& error);
 
+		std::pair<status_t, std::string> move_storage(std::string const& sp
+			, move_flags_t const flags, storage_error& ec);
+
 		void rename_file(file_index_t const index, std::string const& new_filename, storage_error& ec);
 
 		void initialize(aux::session_settings const&, storage_error& ec);

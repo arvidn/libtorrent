@@ -187,6 +187,19 @@ namespace aux {
 		aux::delete_files(files(), m_save_path, m_part_file_name, options, error);
 	}
 
+	std::pair<status_t, std::string> posix_storage::move_storage(std::string const& sp
+		, move_flags_t const flags, storage_error& ec)
+	{
+		status_t ret;
+		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, sp
+			, /* m_part_file.get() */ nullptr, flags, ec);
+
+		// clear the stat cache in case the new location has new files
+		m_stat_cache.clear();
+
+		return { ret, m_save_path };
+	}
+
 	void posix_storage::rename_file(file_index_t const index, std::string const& new_filename, storage_error& ec)
 	{
 		if (index < file_index_t(0) || index >= files().end_file()) return;
