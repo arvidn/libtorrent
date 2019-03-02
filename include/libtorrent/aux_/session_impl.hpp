@@ -373,7 +373,10 @@ namespace aux {
 			int num_torrents() const override { return int(m_torrents.size()); }
 
 			void insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
-				, std::string uuid) override;
+#if TORRENT_ABI_VERSION == 1
+				, std::string uuid
+#endif
+			) override;
 
 			std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 				, peer_connection* pc) override;
