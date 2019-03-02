@@ -1020,7 +1020,6 @@ namespace {
 		int const header_size = 9;
 
 		peer_request p;
-		int list_size = 0;
 
 		if (recv_pos >= header_size)
 		{
@@ -1156,7 +1155,7 @@ namespace {
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, "HASH_REQUEST", "%d %d %d %d %d"
-				, hr.file, hr.base, hr.index, hr.count, hr.proof_layers);
+				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
 
 		std::vector<sha256_hash> hashes = t->get_hashes(hr);
@@ -1248,7 +1247,7 @@ namespace {
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, "HASHES", "%d %d %d %d %d"
-				, hr.file, hr.base, hr.index, hr.count, hr.proof_layers);
+				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
 
 		if (!t->add_hashes(hr, hashes))
@@ -1308,7 +1307,7 @@ namespace {
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, "HASH_REJECT", "%d %d %d %d %d"
-				, hr.file, hr.base, hr.index, hr.count, hr.proof_layers);
+				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
 
 		auto new_end = std::remove(m_hash_requests.begin(), m_hash_requests.end(), hr);
@@ -1749,7 +1748,7 @@ namespace {
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HASHES"
-				, "%d %d %d %d %d", req.file, req.base, req.index, req.count, req.proof_layers);
+				, "%d %d %d %d %d", static_cast<int>(req.file), req.base, req.index, req.count, req.proof_layers);
 		}
 
 		send_buffer(buf, 0);
