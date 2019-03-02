@@ -222,7 +222,7 @@ namespace libtorrent {
 	};
 #define TORRENT_INCREMENT(x) increment_guard inc_(x)
 #else
-#define TORRENT_INCREMENT(x) do {} while (false)
+#define TORRENT_INCREMENT(x) do {} TORRENT_WHILE_0
 #endif
 }
 
