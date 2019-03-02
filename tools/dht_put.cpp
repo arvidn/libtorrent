@@ -194,7 +194,7 @@ void load_dht_state(lt::session& s)
 	f.read(state.data(), size);
 	if (f.fail())
 	{
-		std::fprintf(stderr, "failed to read .dht");
+		std::fprintf(stderr, "failed to read .dht\n");
 		return;
 	}
 
@@ -290,7 +290,7 @@ int main(int argc, char* argv[])
 		dht_immutable_item_alert* item = alert_cast<dht_immutable_item_alert>(a);
 
 		std::string str = item->item.to_string();
-		std::printf("%s", str.c_str());
+		std::printf("%s\n", str.c_str());
 	}
 	else if (argv[0] == "put"_sv)
 	{
@@ -373,7 +373,7 @@ int main(int argc, char* argv[])
 
 			authoritative = item->authoritative;
 			std::string str = item->item.to_string();
-			std::printf("%s: %s", authoritative ? "auth" : "non-auth", str.c_str());
+			std::printf("%s: %s\n", authoritative ? "auth" : "non-auth", str.c_str());
 		}
 	}
 	else
