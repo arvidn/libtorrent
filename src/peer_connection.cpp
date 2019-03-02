@@ -33,7 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <functional>
 #include <cstdint>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/logic/tribool.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_connection.hpp"

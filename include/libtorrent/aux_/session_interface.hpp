@@ -231,7 +231,6 @@ namespace aux {
 		virtual void apply_settings_pack(std::shared_ptr<settings_pack> pack) = 0;
 		virtual session_settings const& settings() const = 0;
 
-		// the tracker request object must be moved in
 		virtual void queue_tracker_request(tracker_request req
 			, std::weak_ptr<request_callback> c) = 0;
 
