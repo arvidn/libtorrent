@@ -236,7 +236,7 @@ namespace {
 
 			posix_storage* st = m_torrents[storage].get();
 
-			int const piece_size = st->files().piece_size(piece);
+			int const piece_size = st->files().piece_size2(piece);
 
 			std::ptrdiff_t const len = std::min(default_block_size, piece_size - offset);
 
