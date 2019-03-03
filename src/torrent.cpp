@@ -3570,7 +3570,8 @@ bool is_downloading_state(int const st)
 #endif
 
 	void torrent::on_peer_name_lookup(error_code const& e
-		, std::vector<address> const& host_list, int const port, protocol_version v) try
+		, std::vector<address> const& host_list, int const port
+		, protocol_version const v) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -10594,7 +10595,7 @@ bool is_downloading_state(int const st)
 		span<sha256_hash> v2_span(hashes);
 		m_ses.disk_thread().async_hash(m_storage, piece, v2_span, flags
 			, [self = shared_from_this(), hashes = std::move(hashes)]
-			(piece_index_t p, sha1_hash const& h, storage_error const& error)
+			(piece_index_t p, sha1_hash const& h, storage_error const& error) mutable
 			{ self->on_piece_verified(std::move(hashes), p, h, error); });
 		m_picker->started_hash_job(piece);
 	}
