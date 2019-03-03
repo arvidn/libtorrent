@@ -177,6 +177,13 @@ namespace libtorrent {
 			, create_flags_t flags = {});
 		explicit create_torrent(torrent_info const& ti);
 
+#if TORRENT_ABI_VERSION <= 2
+		TORRENT_DEPRECATED
+		explicit create_torrent(file_storage& fs, int piece_size
+			, int, create_flags_t flags = {}, int = -1)
+			: create_torrent(fs, piece_size, flags) {}
+#endif
+
 		// internal
 		~create_torrent();
 
