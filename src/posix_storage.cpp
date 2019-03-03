@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/path.hpp" // for bufs_size
 #include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/torrent_status.hpp"
 
 using namespace libtorrent::flags; // for flag operators
 
@@ -51,6 +52,96 @@ namespace aux {
 
 	file_storage const& posix_storage::files() const { return m_mapped_files ? *m_mapped_files.get() : m_files; }
 
+	posix_storage::~posix_storage()
+	{
+		error_code ec;
+		if (m_part_file) m_part_file->flush_metadata(ec);
+	}
+
+	void posix_storage::need_partfile()
+	{
+		if (m_part_file) return;
+
+		m_part_file = std::make_unique<part_file>(
+			m_save_path, m_part_file_name
+			, files().num_pieces(), files().piece_length());
+	}
+
+	void posix_storage::set_file_priority(aux::vector<download_priority_t, file_index_t>& prio
+		, storage_error& ec)
+	{
+		// extend our file priorities in case it's truncated
+		// the default assumed priority is 4 (the default)
+		if (prio.size() > m_file_priority.size())
+			m_file_priority.resize(prio.size(), default_priority);
+
+		file_storage const& fs = files();
+		for (file_index_t i(0); i < prio.end_index(); ++i)
+		{
+			// pad files always have priority 0.
+			if (fs.pad_file_at(i)) continue;
+
+			download_priority_t const old_prio = m_file_priority[i];
+			download_priority_t new_prio = prio[i];
+			if (old_prio == dont_download && new_prio != dont_download)
+			{
+				// move stuff out of the part file
+				if (ec)
+				{
+					prio = m_file_priority;
+					return;
+				}
+
+				if (m_part_file && use_partfile(i))
+				{
+					m_part_file->export_file([this, i, &ec](std::int64_t file_offset, span<char> buf)
+					{
+						FILE* const f = open_file(i, open_mode::write, file_offset, ec);
+						if (ec.ec) return;
+						int const r = static_cast<int>(fwrite(buf.data(), 1
+							, static_cast<std::size_t>(buf.size()), f));
+						if (r != buf.size())
+						{
+							if (ferror(f)) ec.ec.assign(errno, generic_category());
+							else ec.ec.assign(errors::file_too_short, libtorrent_category());
+							return;
+						}
+					}, fs.file_offset(i), fs.file_size(i), ec.ec);
+
+					if (ec)
+					{
+						ec.file(i);
+						ec.operation = operation_t::partfile_write;
+						prio = m_file_priority;
+						return;
+					}
+				}
+			}
+			else if (old_prio != dont_download && new_prio == dont_download)
+			{
+				// move stuff into the part file
+				// this is not implemented yet.
+				// so we just don't use a partfile for this file
+
+				std::string const fp = fs.file_path(i, m_save_path);
+				if (exists(fp)) use_partfile(i, false);
+			}
+			ec.ec.clear();
+			m_file_priority[i] = new_prio;
+
+			if (m_file_priority[i] == dont_download && use_partfile(i))
+			{
+				need_partfile();
+			}
+		}
+		if (m_part_file) m_part_file->flush_metadata(ec.ec);
+		if (ec)
+		{
+			ec.file(torrent_status::error_file_partfile);
+			ec.operation = operation_t::partfile_write;
+		}
+	}
+
 	int posix_storage::readv(session_settings const&
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
@@ -66,6 +157,26 @@ namespace aux {
 				// reading from a pad file yields zeroes
 				clear_bufs(vec);
 				return bufs_size(vec);
+			}
+
+			if (file_index < m_file_priority.end_index()
+				&& m_file_priority[file_index] == dont_download
+				&& use_partfile(file_index))
+			{
+				TORRENT_ASSERT(m_part_file);
+
+				error_code e;
+				peer_request map = files().map_file(file_index, file_offset, 0);
+				int const ret = m_part_file->readv(vec, map.piece, map.start, e);
+
+				if (e)
+				{
+					ec.ec = e;
+					ec.file(file_index);
+					ec.operation = operation_t::partfile_read;
+					return -1;
+				}
+				return ret;
 			}
 
 			FILE* const f = open_file(file_index, open_mode::read_only
@@ -125,6 +236,27 @@ namespace aux {
 				return bufs_size(vec);
 			}
 
+			if (file_index < m_file_priority.end_index()
+				&& m_file_priority[file_index] == dont_download
+				&& use_partfile(file_index))
+			{
+				TORRENT_ASSERT(m_part_file);
+
+				error_code e;
+				peer_request map = files().map_file(file_index
+					, file_offset, 0);
+				int const ret = m_part_file->writev(vec, map.piece, map.start, e);
+
+				if (e)
+				{
+					ec.ec = e;
+					ec.file(file_index);
+					ec.operation = operation_t::partfile_write;
+					return -1;
+				}
+				return ret;
+			}
+
 			FILE* const f = open_file(file_index, open_mode::write
 				, file_offset, ec);
 			if (ec.ec) return -1;
@@ -180,10 +312,19 @@ namespace aux {
 	void posix_storage::release_files()
 	{
 		m_stat_cache.clear();
+		if (m_part_file)
+		{
+			error_code ignore;
+			m_part_file->flush_metadata(ignore);
+		}
 	}
 
 	void posix_storage::delete_files(remove_flags_t const options, storage_error& error)
 	{
+		// if there's a part file open, make sure to destruct it to have it
+		// release the underlying part file. Otherwise we may not be able to
+		// delete it
+		if (m_part_file) m_part_file.reset();
 		aux::delete_files(files(), m_save_path, m_part_file_name, options, error);
 	}
 
@@ -192,7 +333,7 @@ namespace aux {
 	{
 		status_t ret;
 		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, sp
-			, /* m_part_file.get() */ nullptr, flags, ec);
+			, m_part_file.get(), flags, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();
@@ -253,9 +394,32 @@ namespace aux {
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		// first, create zero-sized files
 		file_storage const& fs = files();
-		for (file_index_t file_index(0); file_index < fs.end_file(); ++file_index)
+		// if some files have priority 0, we need to check if they exist on the
+		// filesystem, in which case we won't use a partfile for them.
+		// this is to be backwards compatible with previous versions of
+		// libtorrent, when part files were not supported.
+		for (file_index_t i(0); i < m_file_priority.end_index(); ++i)
+		{
+			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
+				continue;
+
+			file_status s;
+			std::string const file_path = fs.file_path(i, m_save_path);
+			error_code err;
+			stat_file(file_path, &s, err);
+			if (!err)
+			{
+				use_partfile(i, false);
+			}
+			else
+			{
+				need_partfile();
+			}
+		}
+
+		// first, create zero-sized files
+		for (auto file_index : fs.file_range())
 		{
 			// ignore files that have priority 0
 			if (m_file_priority.end_index() > file_index
@@ -372,6 +536,20 @@ namespace aux {
 
 		return f;
 	}
+
+	bool posix_storage::use_partfile(file_index_t const index) const
+	{
+		TORRENT_ASSERT_VAL(index >= file_index_t{}, index);
+		if (index >= m_use_partfile.end_index()) return true;
+		return m_use_partfile[index];
+	}
+
+	void posix_storage::use_partfile(file_index_t const index, bool const b)
+	{
+		if (index >= m_use_partfile.end_index()) m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		m_use_partfile[index] = b;
+	}
+
 }
 }
 
