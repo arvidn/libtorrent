@@ -73,6 +73,12 @@ namespace libtorrent
 			return has_v2() ? get(protocol_version::V2) : v1;
 		}
 
+		friend bool operator!=(info_hash_t const& lhs, info_hash_t const& rhs)
+		{ return std::tie(lhs.v1, lhs.v2) != std::tie(rhs.v1, rhs.v2); }
+
+		friend bool operator==(info_hash_t const& lhs, info_hash_t const& rhs)
+		{ return std::tie(lhs.v1, lhs.v2) == std::tie(rhs.v1, rhs.v2); }
+
 		template <typename F>
 		void for_each(F func) const
 		{
