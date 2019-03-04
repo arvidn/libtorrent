@@ -39,15 +39,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/span.hpp"
 
 #include <fstream>
 #include <iostream>
 
-std::vector<char> load_file(std::string const& filename)
+std::vector<char> load_file(char const* filename)
 {
 	std::fstream in;
 	in.exceptions(std::ifstream::failbit);
-	in.open(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+	in.open(filename, std::ios_base::in | std::ios_base::binary);
 	in.seekg(0, std::ios_base::end);
 	size_t const size = size_t(in.tellg());
 	in.seekg(0, std::ios_base::beg);
@@ -56,20 +57,61 @@ std::vector<char> load_file(std::string const& filename)
 	return ret;
 }
 
-int main(int argc, char* argv[]) try
+void print_usage()
 {
-	if (argc < 2 || argc > 4) {
-		std::cerr << "usage: dump_torrent torrent-file [total-items-limit] [recursion-limit]\n";
-		return 1;
-	}
+	std::cerr << R"(usage: dump_torrent torrent-file [options]
+    OPTIONS:
+    --items-limit <count>    set the upper limit of the number of bencode items
+                             in the torrent file.
+    --depth-limit <count>    set the recursion limit in the bdecoder
+    --show-padfiles          show pad files in file list
+)";
+	std::exit(1);
+}
+
+int main(int argc, char const* argv[]) try
+{
+	lt::span<char const*> args(argv, argc);
+
+	// strip executable name
+	args = args.subspan(1);
 
 	int item_limit = 1000000;
 	int depth_limit = 1000;
+	bool show_pad = false;
 
-	if (argc > 2) item_limit = atoi(argv[2]);
-	if (argc > 3) depth_limit = atoi(argv[3]);
+	if (args.empty()) print_usage();
 
-	std::vector<char> buf = load_file(argv[1]);
+	char const* filename = args[0];
+	args = args.subspan(1);
+
+	using namespace lt::literals;
+
+	while (!args.empty())
+	{
+		if (args[0] == "--items-limit"_sv && args.size() > 1)
+		{
+			item_limit = atoi(args[1]);
+			args = args.subspan(2);
+		}
+		else if (args[0] == "--depth-limit"_sv && args.size() > 1)
+		{
+			depth_limit = atoi(args[1]);
+			args = args.subspan(2);
+		}
+		else if (args[0] == "--show-padfiles"_sv)
+		{
+			show_pad = true;
+			args = args.subspan(1);
+		}
+		else
+		{
+			std::cerr << "unknown option: " << args[0] << "\n";
+			print_usage();
+		}
+	}
+
+	std::vector<char> buf = load_file(filename);
 	lt::bdecode_node e;
 	int pos = -1;
 	lt::error_code ec;
@@ -126,9 +168,10 @@ int main(int argc, char* argv[]) try
 		auto const first = st.map_file(i, 0, 0).piece;
 		auto const last = st.map_file(i, std::max(std::int64_t(st.file_size(i)) - 1, std::int64_t(0)), 0).piece;
 		auto const flags = st.file_flags(i);
-		std::stringstream file_hash;
-		if (!st.hash(i).is_all_zeros())
-			file_hash << st.hash(i);
+		if ((flags & lt::file_storage::flag_pad_file) && !show_pad) continue;
+		std::stringstream file_root;
+		if (!st.root(i).is_all_zeros())
+			file_root << st.root(i);
 		std::printf(" %8" PRIx64 " %11" PRId64 " %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
 			, st.file_offset(i)
 			, st.file_size(i)
@@ -139,7 +182,7 @@ int main(int argc, char* argv[]) try
 			, static_cast<int>(first)
 			, static_cast<int>(last)
 			, std::uint32_t(st.mtime(i))
-			, file_hash.str().c_str()
+			, file_root.str().c_str()
 			, st.file_path(i).c_str()
 			, (flags & lt::file_storage::flag_symlink) ? "-> " : ""
 			, (flags & lt::file_storage::flag_symlink) ? st.symlink(i).c_str() : "");
