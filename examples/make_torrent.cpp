@@ -124,8 +124,6 @@ OPTIONS:
               -t options
 -c comment    sets the comment to the specified string
 -C creator    sets the created-by field to the specified string
--p bytes      enables padding files. Files larger
-              than bytes will be piece-aligned
 -s bytes      specifies a piece size for the torrent
               This has to be a power of 2, minimum 16KB
 -l            Don't follow symlinks, instead encode them as
@@ -207,9 +205,6 @@ int main(int argc_, char const* argv_[]) try
 			case 'c': comment_str = args[1]; break;
 			case 'r': root_cert = args[1]; break;
 			case 'L': collections.push_back(args[1]); break;
-			case 'p':
-				flags |= lt::create_torrent::optimize_alignment;
-				break;
 			case 'S': {
 				if (strlen(args[1]) != 40) {
 					std::cerr << "invalid info-hash for -S. "

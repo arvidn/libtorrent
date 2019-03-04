@@ -445,6 +445,9 @@ namespace libtorrent {
 		// provided in the torrent file. This can potentially be used to
 		// join a bittorrent network with other file sharing networks.
 		//
+		// ``root()`` returns the sha256 merkle tree root of the specified file,
+		// in case this is a v2 torrent. Otherwise returns zeroes.
+		//
 		// The ``mtime()`` is the modification time is the posix
 		// time when a file was last modified when the torrent
 		// was created, or 0 if it was not included in the torrent file.
