@@ -953,7 +953,11 @@ TEST_TORRENTS = \
   url_seed_multi_single_file.torrent \
   url_seed_multi_space.torrent \
   url_seed_multi_space_nolist.torrent \
-  whitespace_url.torrent
+  whitespace_url.torrent \
+  v2.torrent \
+  v2_invalid_file.torrent \
+  v2_multipiece_file.torrent \
+  v2_only.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \

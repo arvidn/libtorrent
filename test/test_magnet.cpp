@@ -302,6 +302,21 @@ TORRENT_TEST(parse_v2_hash)
 {
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 	TEST_EQUAL(aux::to_hex(p.info_hash.v2), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hash.v1), "0000000000000000000000000000000000000000");
+}
+
+TORRENT_TEST(parse_v2_short_hash)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdccdcdcdcdcdcdcd", ec);
+	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
+}
+
+TORRENT_TEST(parse_v2_invalid_hash_prefix)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1221cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", ec);
+	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
 }
 
 TORRENT_TEST(parse_hybrid_uri)
