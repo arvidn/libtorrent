@@ -164,40 +164,6 @@ namespace libtorrent {
 		if (paused) params.flags |= add_torrent_params::flag_paused;
 		else params.flags &= ~add_torrent_params::flag_paused;
 
-#if 0
-<<<<<<< HEAD
-||||||| parent of 1eabd0c54... add info hash type
-		error_code ec;
-		string_view display_name = url_has_argument(uri, "dn");
-		if (!display_name.empty()) params.name = unescape_string(display_name, ec);
-		string_view tracker_string = url_has_argument(uri, "tr");
-		if (!tracker_string.empty()) params.trackers.push_back(unescape_string(tracker_string, ec));
-
-		string_view btih = url_has_argument(uri, "xt");
-		if (btih.empty()) return torrent_handle();
-
-		if (btih.substr(0, 9) != "urn:btih:") return torrent_handle();
-
-		if (btih.size() == 40 + 9) aux::from_hex({&btih[9], 40}, params.info_hash.data());
-		else params.info_hash.assign(base32decode(btih.substr(9)).c_str());
-
-=======
-		error_code ec;
-		string_view display_name = url_has_argument(uri, "dn");
-		if (!display_name.empty()) params.name = unescape_string(display_name, ec);
-		string_view tracker_string = url_has_argument(uri, "tr");
-		if (!tracker_string.empty()) params.trackers.push_back(unescape_string(tracker_string, ec));
-
-		string_view btih = url_has_argument(uri, "xt");
-		if (btih.empty()) return torrent_handle();
-
-		if (btih.substr(0, 9) != "urn:btih:") return torrent_handle();
-
-		if (btih.size() == 40 + 9) aux::from_hex({&btih[9], 40}, params.info_hash.v1.data());
-		else params.info_hash.v1.assign(base32decode(btih.substr(9)).c_str());
-
->>>>>>> 1eabd0c54... add info hash type
-#endif
 		return ses.add_torrent(std::move(params));
 	}
 
@@ -291,7 +257,7 @@ namespace libtorrent {
 					value = value.substr(9);
 
 					sha1_hash info_hash;
-					if (value.size() == 40) aux::from_hex({ value.data(), 40 }, info_hash.data());
+					if (value.size() == 40) aux::from_hex(value, info_hash.data());
 					else if (value.size() == 32)
 					{
 						std::string const ih = base32decode(value);
@@ -323,14 +289,12 @@ namespace libtorrent {
 
 					value = value.substr(4);
 
-					sha256_hash info_hash;
-					if (value.size() == 64) aux::from_hex({ value.data(), 64 }, info_hash.data());
-					else
+					if (value.size() != 64)
 					{
 						ec = errors::invalid_info_hash;
 						return;
 					}
-					p.info_hash.v2 = info_hash;
+					aux::from_hex(value, p.info_hash.v2.data());
 					has_ih[1] = true;
 				}
 			}
