@@ -969,7 +969,9 @@ TEST_TORRENTS = \
   v2_invalid_piece_layer.torrent \
   v2_invalid_piece_layer_size.torrent \
   v2_multiple_files.torrent \
-  v2_bad_file_alignment.torrent
+  v2_bad_file_alignment.torrent \
+  v2_no_piece_layers.torrent \
+  v2_large_file.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \
