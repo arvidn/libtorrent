@@ -379,9 +379,13 @@ namespace {
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
 		std::int64_t const file_size = (file_flags & file_storage::flag_symlink)
-			? 0
-			: dict.dict_find_int_value("length", -1);
-		if (file_size < 0)
+			? 0 : dict.dict_find_int_value("length", -1);
+
+		// if a file is too big, it will cause integer overflow in our
+		// calculations of the size of the merkle tree (which is all 'int'
+		// indices)
+		if (file_size < 0
+			|| (file_size / default_block_size) >= std::numeric_limits<int>::max() / 2)
 		{
 			ec = errors::torrent_invalid_length;
 			return false;
@@ -439,9 +443,13 @@ namespace {
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
 		std::int64_t const file_size = (file_flags & file_storage::flag_symlink)
-			? 0
-			: dict.dict_find_int_value("length", -1);
-		if (file_size < 0 )
+			? 0 : dict.dict_find_int_value("length", -1);
+
+		// if a file is too big, it will cause integer overflow in our
+		// calculations of the size of the merkle tree (which is all 'int'
+		// indices)
+		if (file_size < 0
+			|| (file_size / default_block_size) >= std::numeric_limits<int>::max() / 2)
 		{
 			ec = errors::torrent_invalid_length;
 			return false;
@@ -1351,9 +1359,8 @@ namespace {
 		// we want this division to round upwards, that's why we have the
 		// extra addition
 
-		if (files.total_size() >=
-			static_cast<std::int64_t>(std::numeric_limits<int>::max()
-			- files.piece_length()) * files.piece_length())
+		if (files.total_size() / files.piece_length() >=
+			std::numeric_limits<int>::max() - files.piece_length())
 		{
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid
