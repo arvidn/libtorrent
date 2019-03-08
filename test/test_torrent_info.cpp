@@ -179,6 +179,8 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_unordered_files.torrent", errors::invalid_bencoding},
 	{ "v2_overlong_integer.torrent", errors::invalid_bencoding},
 	{ "v2_missing_file_root_invalid_symlink.torrent", errors::torrent_missing_pieces_root},
+	{ "v2_large_file.torrent", errors::torrent_invalid_length},
+	{ "v2_no_piece_layers.torrent", errors::torrent_missing_piece_layer},
 };
 
 } // anonymous namespace
@@ -917,6 +919,13 @@ TORRENT_TEST(parse_torrents)
 			TEST_EQUAL(ti->files().symlink(file_index_t(0)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
 			TEST_EQUAL(ti->files().symlink(file_index_t(1)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
 			TEST_EQUAL(ti->files().symlink(file_index_t(2)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
+		}
+		else if (t.file == "v2_no_piece_layers.torrent"_sv)
+		{
+			TEST_EQUAL(ti->num_files(), 1);
+			auto pieces = ti->file_merkle_tree(file_index_t{0});
+			TEST_CHECK(std::all_of(pieces.begin() + 1, pieces.end(), [](sha256_hash const& c)
+			{ return c.is_all_zeros(); }));
 		}
 
 		file_storage const& fs = ti->files();
