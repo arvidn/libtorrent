@@ -959,7 +959,9 @@ TEST_TORRENTS = \
   v2_multipiece_file.torrent \
   v2_only.torrent \
   v2_mismatching_metadata.torrent \
-  v2_invalid_filename.torrent
+  v2_invalid_filename.torrent \
+  v2_no_piece_layers.torrent \
+  v2_large_file.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \

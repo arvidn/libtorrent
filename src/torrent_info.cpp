@@ -379,9 +379,13 @@ namespace {
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
 		std::int64_t const file_size = (file_flags & file_storage::flag_symlink)
-			? 0
-			: dict.dict_find_int_value("length", -1);
-		if (file_size < 0)
+			? 0 : dict.dict_find_int_value("length", -1);
+
+		// if a file is too big, it will cause integer overflow in our
+		// calculations of the size of the merkle tree (which is all 'int'
+		// indices)
+		if (file_size < 0
+			|| (file_size / default_block_size) >= std::numeric_limits<int>::max() / 2)
 		{
 			ec = errors::torrent_invalid_length;
 			return false;
@@ -439,9 +443,13 @@ namespace {
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
 		std::int64_t const file_size = (file_flags & file_storage::flag_symlink)
-			? 0
-			: dict.dict_find_int_value("length", -1);
-		if (file_size < 0 )
+			? 0 : dict.dict_find_int_value("length", -1);
+
+		// if a file is too big, it will cause integer overflow in our
+		// calculations of the size of the merkle tree (which is all 'int'
+		// indices)
+		if (file_size < 0
+			|| (file_size / default_block_size) >= std::numeric_limits<int>::max() / 2)
 		{
 			ec = errors::torrent_invalid_length;
 			return false;
@@ -1150,7 +1158,7 @@ namespace {
 		auto const file_leafs = merkle_num_leafs(int((orig_files().file_size(index) + default_block_size - 1) / default_block_size));
 		m_merkle_trees[index].resize(merkle_num_nodes(file_leafs));
 
-		auto const file_piece_nodes = merkle_num_leafs(int(orig_files().file_num_pieces(index)));
+		auto const file_piece_nodes = merkle_num_leafs(orig_files().file_num_pieces(index));
 		auto const first_piece = merkle_num_nodes(file_piece_nodes) - file_piece_nodes;
 
 		for (int p = 0; p < orig_files().file_num_pieces(index); ++p)
@@ -1346,7 +1354,7 @@ namespace {
 				return false;
 			}
 
-			for (file_index_t i(0); i != files.end_file(); ++i)
+			for (file_index_t i : files.file_range())
 			{
 				bool mismatch = false;
 				mismatch |= files.file_flags(i) != v1_files.file_flags(i);
@@ -1368,9 +1376,8 @@ namespace {
 		// we want this division to round upwards, that's why we have the
 		// extra addition
 
-		if (files.total_size() >=
-			static_cast<std::int64_t>(std::numeric_limits<int>::max()
-			- files.piece_length()) * files.piece_length())
+		if (files.total_size() / files.piece_length() >=
+			std::numeric_limits<int>::max() - files.piece_length())
 		{
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid
@@ -1467,8 +1474,7 @@ namespace {
 		return true;
 	}
 
-	bool torrent_info::parse_piece_layers(
-		bdecode_node const& e, error_code& ec)
+	bool torrent_info::parse_piece_layers(bdecode_node const& e, error_code& ec)
 	{
 		std::map<sha256_hash, string_view> piece_layers;
 
@@ -1513,7 +1519,7 @@ namespace {
 				return false;
 			}
 
-			int const num_pieces = int(m_files.file_num_pieces(i));
+			int const num_pieces = m_files.file_num_pieces(i);
 			int const num_chunks = int((m_files.file_size(i) + default_block_size - 1) / default_block_size);
 			int const piece_layer_size = merkle_num_leafs(num_pieces);
 			int const num_leafs = merkle_num_leafs(num_chunks);
