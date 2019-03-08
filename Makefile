@@ -957,7 +957,9 @@ TEST_TORRENTS = \
   v2.torrent \
   v2_invalid_file.torrent \
   v2_multipiece_file.torrent \
-  v2_only.torrent
+  v2_only.torrent \
+  v2_mismatching_metadata.torrent \
+  v2_invalid_filename.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \

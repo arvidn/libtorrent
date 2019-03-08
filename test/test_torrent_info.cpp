@@ -136,6 +136,7 @@ static test_torrent_t test_torrents[] =
 	{ "v2.torrent" },
 	{ "v2_multipiece_file.torrent" },
 	{ "v2_only.torrent" },
+	{ "v2_invalid_filename.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -165,6 +166,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
 	{ "no_files.torrent", errors::no_files_in_torrent},
 	{ "v2_invalid_file.torrent", errors::torrent_file_parse_failed},
+	{ "v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
 };
 
 } // anonymous namespace
@@ -872,6 +874,11 @@ TORRENT_TEST(parse_torrents)
 			TEST_EQUAL(ti->info_hash().has_v1(), true);
 			TEST_EQUAL(ti->info_hash().has_v2(), true);
 			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "108ac2c3718ce722e6896edc56c4afa98f1d711ecaace7aad74fca418ebd03de"_sv);
+		}
+		else if (t.file == "v2_invalid_filename.torrent"_sv)
+		{
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "_estMB"_sv);
 		}
 
 		file_storage const& fs = ti->files();

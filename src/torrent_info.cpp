@@ -369,7 +369,7 @@ namespace {
 	}
 
 	bool extract_single_file2(bdecode_node const& dict, file_storage& files
-		, std::string const& path, string_view name, std::ptrdiff_t const info_ptr_diff
+		, std::string const& path, string_view const name, std::ptrdiff_t const info_ptr_diff
 		, error_code& ec)
 	{
 		if (dict.type() != bdecode_node::dict_t) return false;
@@ -570,7 +570,8 @@ namespace {
 	}
 
 	bool extract_files2(bdecode_node const& tree, file_storage& target
-		, std::string const& root_dir, ptrdiff_t info_ptr_diff, bool single_file, error_code& ec)
+		, std::string const& root_dir, ptrdiff_t const info_ptr_diff
+		, bool const top_level, error_code& ec)
 	{
 		if (tree.type() != bdecode_node::dict_t)
 		{
@@ -587,24 +588,30 @@ namespace {
 				return false;
 			}
 
-			std::string path = root_dir;
-			sanitize_append_path_element(path, e.first);
+			string_view filename = { e.first.data() + info_ptr_diff, e.first.size() };
+			while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
+				filename.remove_prefix(1);
 
-			if (e.second.dict_size() == 1 && e.second.dict_at(0).first.empty())
+			bool const leaf_node = e.second.dict_size() == 1 && e.second.dict_at(0).first.empty();
+			bool const single_file = leaf_node && top_level && tree.dict_size() == 1;
+
+			std::string path = single_file ? std::string() : root_dir;
+			sanitize_append_path_element(path, filename);
+
+			if (leaf_node)
 			{
-				if (single_file && tree.dict_size() == 1)
+				if (filename.size() > path.length()
+					|| path.substr(path.size() - filename.size()) != filename)
 				{
-					// this is a single file torrent
-					// drop the torrent name from the path to match the bahavior
-					// of v1 metadata
-					path.clear();
-					sanitize_append_path_element(path, e.first);
+					// if the filename was sanitized and differ, clear it to just use path
+					filename = {};
 				}
 
 				if (!extract_single_file2(e.second.dict_at(0).second, target
-					, path, { e.first.data() + info_ptr_diff, e.first.size() }
-					, info_ptr_diff, ec))
+					, path, filename , info_ptr_diff, ec))
+				{
 					return false;
+				}
 				continue;
 			}
 
