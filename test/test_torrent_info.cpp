@@ -37,7 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
+#include "libtorrent/piece_picker.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 
 #include <iostream>
@@ -182,6 +184,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_large_file.torrent", errors::torrent_invalid_length},
 	{ "v2_no_piece_layers.torrent", errors::torrent_missing_piece_layer},
 	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
+	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
 };
 
 } // anonymous namespace
@@ -739,6 +742,19 @@ TORRENT_TEST(parse_torrents)
 		TEST_CHECK(!ec);
 		if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
 			, ec.message().c_str());
+
+		// construct a piece_picker to get some more test coverage. Perhaps
+		// loading the torrent is fine, but if we can't construct a piece_picker
+		// for it, it's still no good.
+		int const block_size = std::min(ti->piece_length(), default_block_size);
+		int const blocks_per_piece
+			= (ti->piece_length() + block_size - 1) / block_size;
+		int const blocks_in_last_piece
+			= ((ti->total_size() % ti->piece_length())
+			+ block_size - 1) / block_size;
+		piece_picker pp(blocks_per_piece, blocks_in_last_piece, ti->num_pieces());
+
+		TEST_CHECK(ti->piece_length() < std::numeric_limits<int>::max() / 2);
 
 		if (t.file == "whitespace_url.torrent"_sv)
 		{
