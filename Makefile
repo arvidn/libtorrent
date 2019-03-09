@@ -976,7 +976,8 @@ TEST_TORRENTS = \
   v2_symlinks.torrent \
   v2_no_piece_layers.torrent \
   v2_large_file.torrent \
-  v2_large_offset.torrent
+  v2_large_offset.torrent \
+  v2_piece_size.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \
