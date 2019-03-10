@@ -170,6 +170,8 @@ namespace {
 
 } // anonymous namespace
 
+namespace aux {
+
 	file_flags_t get_file_attributes(std::string const& p)
 	{
 		auto const path = convert_to_native_path_string(p);
@@ -181,7 +183,7 @@ namespace {
 		if (attr.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) return file_storage::flag_hidden;
 		return {};
 #else
-		struct ::stat s;
+		struct ::stat s{};
 		if (::lstat(path.c_str(), &s) < 0) return {};
 		file_flags_t file_attr = {};
 		if (s.st_mode & S_IXUSR)
@@ -202,6 +204,7 @@ namespace {
 #endif
 	}
 
+} // anonymous aux
 
 #if TORRENT_ABI_VERSION == 1
 
