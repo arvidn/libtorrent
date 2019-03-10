@@ -532,9 +532,6 @@ namespace libtorrent {
 		// fails (typically if the info dictionary is malformed).
 		bool parse_info_section(bdecode_node const& e, error_code& ec);
 
-		// populate the piece layers from the metadata
-		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
-
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
 		// .torrent file. If the specified key cannot be found, it returns nullptr.
@@ -577,6 +574,9 @@ namespace libtorrent {
 
 		// if we're logging member offsets, we need access to them
 	private:
+
+		// populate the piece layers from the metadata
+		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
 
 		void resolve_duplicate_filenames();
 
