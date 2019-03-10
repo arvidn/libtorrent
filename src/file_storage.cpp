@@ -1194,6 +1194,34 @@ namespace {
 
 namespace aux {
 
+bool files_equal(file_storage const& lhs, file_storage const& rhs)
+{
+	if (lhs.num_files() != rhs.num_files())
+		return false;
+
+	if (lhs.piece_length() != rhs.piece_length())
+		return false;
+
+	for (file_index_t i : lhs.file_range())
+	{
+		if (lhs.file_flags(i) != rhs.file_flags(i)
+			|| lhs.mtime(i) != rhs.mtime(i)
+			|| lhs.file_size(i) != rhs.file_size(i)
+			|| lhs.file_path(i) != rhs.file_path(i)
+			|| lhs.file_offset(i) != rhs.file_offset(i))
+		{
+			return false;
+		}
+
+		if ((lhs.file_flags(i) & file_storage::flag_symlink)
+			&& lhs.symlink(i) != rhs.symlink(i))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 	std::tuple<piece_index_t, piece_index_t>
 	file_piece_range_exclusive(file_storage const& fs, file_index_t const file)
 	{

@@ -460,6 +460,125 @@ TORRENT_TEST(map_block_mid)
 	}
 }
 
+TORRENT_TEST(files_equal)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 2);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/1", 2);
+
+	TEST_CHECK(lt::aux::files_equal(fs1, fs2));
+}
+
+TORRENT_TEST(files_equal_num_files)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 2);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 3);
+
+	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+}
+
+TORRENT_TEST(files_equal_size)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 2);
+	fs1.add_file("test/1", 1);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/1", 2);
+
+	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+}
+
+TORRENT_TEST(files_equal_name)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/1", 1);
+	fs1.add_file("test/0", 2);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/1", 2);
+
+	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+}
+
+TORRENT_TEST(files_equal_flags)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 2, file_storage::flag_hidden);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/1", 2);
+
+	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+}
+
+TORRENT_TEST(files_equal_mtime)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1, {}, 1234);
+	fs1.add_file("test/1", 2, {}, 1235);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1, {}, 1234);
+	fs2.add_file("test/1", 2, {}, 1234);
+
+	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+}
+
+TORRENT_TEST(files_equal_piece_size)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x8000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 2);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/1", 2);
+
+	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+}
+
+TORRENT_TEST(files_equal_symlink)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 2, file_storage::flag_symlink, 0, "test/0");
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/1", 2, file_storage::flag_symlink, 0, "test/1");
+
+	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+}
+
 // TODO: test file attributes
 // TODO: test symlinks
 // TODO: test reorder_file (make sure internal_file_entry::swap() is used)
