@@ -1150,7 +1150,7 @@ namespace {
 		}
 
 		// extract piece length
-		std::int64_t piece_length = info.dict_find_int_value("piece length", -1);
+		std::int64_t const piece_length = info.dict_find_int_value("piece length", -1);
 		// limit the piece length at INT_MAX / 2 to get a bit of headroom. We
 		// commonly compute the number of blocks per pieces by adding
 		// block_size - 1 before dividing by block_size. That would overflow with
@@ -1161,6 +1161,15 @@ namespace {
 			ec = errors::torrent_missing_piece_length;
 			return false;
 		}
+
+		// according to BEP 52: "It must be a power of two and at least 16KiB."
+		if (version > 1 && (piece_length < default_block_size
+			|| (piece_length & (piece_length - 1) != 0)))
+		{
+			ec = errors::torrent_missing_piece_length;
+			return false;
+		}
+
 		file_storage files;
 		files.set_piece_length(static_cast<int>(piece_length));
 
