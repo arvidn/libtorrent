@@ -172,6 +172,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
 	{ "v2_large_file.torrent", errors::torrent_invalid_length},
 	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
+	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
 };
 
 } // anonymous namespace
