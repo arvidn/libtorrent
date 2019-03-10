@@ -36,6 +36,7 @@ namespace libtorrent {
 
 	int merkle_to_flat_index(int layer, int offset)
 	{
+		TORRENT_ASSERT(layer < sizeof(int) * 8);
 		return (1 << layer) - 1 + offset;
 	}
 
@@ -60,15 +61,21 @@ namespace libtorrent {
 		return tree_node * 2 + 1;
 	}
 
-	int merkle_num_nodes(int leafs)
+	int merkle_num_nodes(int const leafs)
 	{
 		TORRENT_ASSERT(leafs > 0);
-		return (leafs << 1) - 1;
+		TORRENT_ASSERT(leafs <= (std::numeric_limits<int>::max() / 2) + 1);
+		// This is a way to calculate: (leafs << 1) - 1 without requiring an extra
+		// bit in the far left. The first 1 we subtract is worth 2 after we
+		// multiply by 2, so by just adding back one, we have effectively
+		// subtracted one from the result of multiplying by 2
+		return ((leafs - 1) << 1) + 1;
 	}
 
-	int merkle_num_leafs(int pieces)
+	int merkle_num_leafs(int const pieces)
 	{
 		TORRENT_ASSERT(pieces > 0);
+		TORRENT_ASSERT(pieces <= std::numeric_limits<int>::max() / 2);
 		// round up to nearest 2 exponent
 		int ret = 1;
 		while (pieces > ret) ret <<= 1;

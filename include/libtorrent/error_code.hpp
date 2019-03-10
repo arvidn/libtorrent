@@ -71,7 +71,7 @@ namespace errors {
 		// The .torrent file's name entry is invalid
 		torrent_invalid_name,
 		// The length of a file, or of the whole .torrent file is invalid.
-		// Either negative or not an integer
+		// Either negative , not an integer or too large.
 		torrent_invalid_length,
 		// Failed to parse a file entry in the .torrent
 		torrent_file_parse_failed,
