@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "setup_transfer.hpp" // for load_file
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -172,6 +173,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_large_file.torrent", errors::torrent_invalid_length},
 	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
 	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
+	{ "v2_deep_recursion.torrent", errors::torrent_file_parse_failed},
 };
 
 } // anonymous namespace
@@ -921,8 +923,13 @@ TORRENT_TEST(parse_torrents)
 	{
 		error_code ec;
 		std::printf("loading %s\n", test_error_torrents[i].file);
-		auto ti = std::make_shared<torrent_info>(combine_path(
-			combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec);
+		std::vector<char> data;
+		std::string const filename = combine_path(combine_path(root_dir, "test_torrents")
+			, test_error_torrents[i].file);
+		TEST_CHECK(load_file(filename, data, ec) == 0);
+		TEST_CHECK(!ec);
+
+		auto ti = std::make_shared<torrent_info>(bdecode(data, 1000), ec);
 		std::printf("E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
 			, test_error_torrents[i].error.message().c_str());
 		TEST_EQUAL(ec.message(), test_error_torrents[i].error.message());

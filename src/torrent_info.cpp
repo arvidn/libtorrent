@@ -571,9 +571,19 @@ namespace {
 
 	bool extract_files2(bdecode_node const& tree, file_storage& target
 		, std::string const& root_dir, ptrdiff_t const info_ptr_diff
-		, bool const top_level, error_code& ec)
+		, bool const has_files, int const depth, error_code& ec)
 	{
 		if (tree.type() != bdecode_node::dict_t)
+		{
+			ec = errors::torrent_file_parse_failed;
+			return false;
+		}
+
+		// since we're parsing this recursively, we have to be careful not to blow
+		// up the stack. 100 levels of sub directories should be enough. This
+		// could be improved by an iterative parser, keeping the state on a more
+		// compact side-stack
+		if (depth > 100)
 		{
 			ec = errors::torrent_file_parse_failed;
 			return false;
@@ -593,7 +603,7 @@ namespace {
 				filename.remove_prefix(1);
 
 			bool const leaf_node = e.second.dict_size() == 1 && e.second.dict_at(0).first.empty();
-			bool const single_file = leaf_node && top_level && tree.dict_size() == 1;
+			bool const single_file = leaf_node && !has_files && tree.dict_size() == 1;
 
 			std::string path = single_file ? std::string() : root_dir;
 			sanitize_append_path_element(path, filename);
@@ -608,14 +618,14 @@ namespace {
 				}
 
 				if (!extract_single_file2(e.second.dict_at(0).second, target
-					, path, filename , info_ptr_diff, ec))
+					, path, filename, info_ptr_diff, ec))
 				{
 					return false;
 				}
 				continue;
 			}
 
-			if (!extract_files2(e.second, target, path, info_ptr_diff, false, ec))
+			if (!extract_files2(e.second, target, path, info_ptr_diff, true, depth + 1, ec))
 				return false;
 		}
 
@@ -1206,7 +1216,7 @@ namespace {
 		bdecode_node file_tree_node = info.dict_find_dict("file tree");
 		if (version >= 2 && file_tree_node)
 		{
-			if (!extract_files2(file_tree_node, files, name, info_ptr_diff, !files_node, ec))
+			if (!extract_files2(file_tree_node, files, name, info_ptr_diff, bool(files_node), 0, ec))
 			{
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
