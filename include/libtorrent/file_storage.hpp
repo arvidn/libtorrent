@@ -611,6 +611,12 @@ namespace libtorrent {
 
 namespace aux {
 
+	// this is used when loading v2 torrents that are backwards compatible with
+	// v1 torrents. Both v1 and v2 structures must describe the same file layout,
+	// this compares the two.
+	TORRENT_EXTRA_EXPORT
+	bool files_equal(file_storage const& lhs, file_storage const& rhs);
+
 	// returns the piece range that entirely falls within the specified file. the
 	// end piece is one-past the last piece that entirely falls within the file.
 	// i.e. They can conveniently be used as loop boundaries. No edge partial

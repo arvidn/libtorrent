@@ -1358,32 +1358,14 @@ namespace {
 			return false;
 		}
 
-		if (version >= 2 && v1_files.num_files() > 0)
+		if (version >= 2
+			&& v1_files.num_files() > 0
+			&& !aux::files_equal(files, v1_files))
 		{
-			if (files.num_files() != v1_files.num_files())
-			{
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
-				ec = errors::torrent_inconsistent_files;
-				return false;
-			}
-
-			for (file_index_t i : files.file_range())
-			{
-				bool mismatch = false;
-				mismatch |= files.file_flags(i) != v1_files.file_flags(i);
-				mismatch |= files.mtime(i) != v1_files.mtime(i);
-				mismatch |= files.file_size(i) != v1_files.file_size(i);
-				mismatch |= files.file_path(i) != v1_files.file_path(i);
-				mismatch |= files.file_offset(i) != v1_files.file_offset(i);
-				if (mismatch)
-				{
-					// mark the torrent as invalid
-					m_files.set_piece_length(0);
-					ec = errors::torrent_inconsistent_files;
-					return false;
-				}
-			}
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			ec = errors::torrent_inconsistent_files;
+			return false;
 		}
 
 		// extract SHA-1 hashes for all pieces
