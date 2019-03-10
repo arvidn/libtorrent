@@ -758,7 +758,7 @@ TORRENT_TEST(symlinks_restore)
 	wait_for_alert(ses, torrent_checked_alert::alert_type, "torrent_checked_alert");
 
 	std::string const f = combine_path(combine_path(work_dir, "Some.framework"), "SDL2");
-	TEST_CHECK(get_file_attributes(f) & file_storage::flag_symlink);
-	TEST_CHECK(get_symlink_path(f) == "Versions/A/SDL2");
+	TEST_CHECK(aux::get_file_attributes(f) & file_storage::flag_symlink);
+	TEST_CHECK(aux::get_symlink_path(f) == "Versions/A/SDL2");
 }
 #endif
