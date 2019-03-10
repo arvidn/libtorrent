@@ -223,7 +223,7 @@ namespace {
 
 		// posix version
 
-		struct stat ret{};
+		struct ::stat ret{};
 		int retval;
 		if (flags & dont_follow_links)
 			retval = ::lstat(f.c_str(), &ret);
