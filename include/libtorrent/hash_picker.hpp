@@ -99,16 +99,10 @@ namespace libtorrent
 		hash_request() = default;
 		hash_request(file_index_t const f, int const b, int const i, int const c, int const p)
 			: file(f), base(b), index(i), count(c), proof_layers(p)
-		{
-			TORRENT_ASSERT(file >= file_index_t{0} && base >= 0 && index >= 0 && count >= 0 && proof_layers >= 0);
-		}
+		{}
 
 		hash_request(hash_request const&) = default;
-		hash_request& operator=(hash_request const& o)
-		{
-			new (this) hash_request(o);
-			return *this;
-		}
+		hash_request& operator=(hash_request const& o) = default;
 
 		bool operator==(hash_request const& o) const
 		{
@@ -116,12 +110,15 @@ namespace libtorrent
 				&& proof_layers == o.proof_layers;
 		}
 
-		file_index_t const file{0};
-		int const base = 0;
-		int const index = 0;
-		int const count = 0;
-		int const proof_layers = 0;
+		file_index_t file{0};
+		int base = 0;
+		int index = 0;
+		int count = 0;
+		int proof_layers = 0;
 	};
+
+	TORRENT_EXTRA_EXPORT
+	bool validate_hash_request(hash_request const& hr, file_storage const& fs);
 
 	class TORRENT_EXTRA_EXPORT hash_picker
 	{
