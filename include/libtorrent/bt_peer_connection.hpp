@@ -80,9 +80,6 @@ namespace libtorrent {
 	};
 #endif
 
-	TORRENT_EXTRA_EXPORT
-	bool validate_hash_request(hash_request const& hr, file_storage const& fs);
-
 	class TORRENT_EXTRA_EXPORT bt_peer_connection
 		: public peer_connection
 	{

@@ -543,3 +543,74 @@ TORRENT_TEST(only_pick_have_pieces)
 	TEST_EQUAL(picked[1].proof_layers, 10);
 	TEST_EQUAL(picked[2].count, 0);
 }
+
+TORRENT_TEST(validate_hash_request)
+{
+	file_storage fs;
+	fs.set_piece_length(16 * 1024);
+	fs.add_file("test/tmp1", 2048 * 16 * 1024);
+
+	// the merkle tree for this file has 2048 blocks
+	int const num_leaves = merkle_num_leafs(2048);
+	int const num_layers = merkle_num_layers(num_leaves);
+
+	int const max = std::numeric_limits<int>::max();
+	int const min = std::numeric_limits<int>::min();
+
+	// hash_request make function
+	// (file_index_t const f, int const b, int const i, int const c, int const p)
+
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
+
+	// file index out-of-range
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{1}, 0, 0, 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{-1}, 0, 0, 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{max}, 0, 0, 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{min}, 0, 0, 1, 0), fs));
+
+	// base out-of-range
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, -1, 0, 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, num_layers, 0, 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, max, 0, 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, min, 0, 1, 0), fs));
+
+	// base in-range
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, num_layers-1, 0, 1, 0), fs));
+
+	// count out-of-range
+	// the upper limit of count depends on base and index
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 0, 0, 0, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 0, 0, num_leaves + 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 0, 100, num_leaves - 100 + 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 0, 0, 8193, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 0, 0, min, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 0, 0, max, 0), fs));
+
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 1, 0, num_leaves / 2 + 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 2, 0, num_leaves / 4 + 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 3, 0, num_leaves / 8 + 1, 0), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 3, 5, num_leaves / 8 - 5 + 1, 0), fs));
+
+	// count in-range
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 0, 100, num_leaves - 100, 0), fs));
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 0, 0, num_leaves, 0), fs));
+
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 1, 0, num_leaves / 2, 0), fs));
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 2, 0, num_leaves / 4, 0), fs));
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 3, 0, num_leaves / 8, 0), fs));
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 3, 5, num_leaves / 8 - 5, 0), fs));
+
+	// proof_layers out-of-range
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 0, 0, 1, num_layers), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 1, 0, 1, num_layers), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 1, 0, 1, min), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 1, 0, 1, max), fs));
+	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 1, 0, 1, -1), fs));
+
+	// proof_layers in-range
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 0, 0, 1, num_layers - 1), fs));
+	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 1, 0, 1, num_layers - 2), fs));
+}
+

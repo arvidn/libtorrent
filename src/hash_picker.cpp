@@ -83,6 +83,49 @@ namespace libtorrent
 		}
 	}
 
+/*
+merkle tree for a file:
+
+             ^            x
+proof_layer  |    x                x
+       ^      x       [****************]
+       |    x   x   x   x    x   x   x   x
+  base |   x x x x x x x x  x x x x x x x x  <- block hash layer, leaves
+              ------->
+              index
+                      ----------------->
+                      count
+*/
+
+bool validate_hash_request(hash_request const& hr, file_storage const& fs)
+{
+	if (hr.file < file_index_t{0}
+		|| hr.file >= fs.end_file()
+		|| hr.base < 0
+		|| hr.index < 0
+		|| hr.count <= 0
+		|| hr.count > 8192
+		|| hr.proof_layers < 0)
+		return false;
+
+	int const num_leafs = merkle_num_leafs(fs.file_num_blocks(hr.file));
+	int const num_layers = merkle_num_layers(num_leafs);
+
+	if (hr.base >= num_layers) return false;
+
+	// the number of hashes at the specified level
+	int const level_size = num_leafs / (1 << hr.base);
+
+	// [index, index + count] must be within the number of nodes at the specified
+	// level
+	if (hr.index >= level_size || hr.index + hr.count > level_size)
+		return false;
+
+	if (hr.proof_layers >= num_layers - hr.base) return false;
+
+	return true;
+}
+
 	hash_picker::hash_picker(file_storage const& files
 		, aux::vector<std::vector<sha256_hash>, file_index_t>& trees
 		, aux::vector<std::vector<bool>, file_index_t> verified
