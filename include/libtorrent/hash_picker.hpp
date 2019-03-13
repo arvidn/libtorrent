@@ -88,6 +88,12 @@ namespace libtorrent
 		std::int32_t node;
 	};
 
+	// the hash request represents a range of hashes in the merkle hash tree for
+	// a specific file ('file').
+	// base indicates which *level* of the tree we're referring to. 0 means the
+	// leaf level.
+	// index is the index of the first hash at the specified level.
+	// count is the number of hashes in the range
 	struct TORRENT_EXTRA_EXPORT hash_request
 	{
 		hash_request() = default;

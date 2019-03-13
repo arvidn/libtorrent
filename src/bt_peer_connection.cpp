@@ -121,6 +121,35 @@ namespace {
 } // anonymous namespace
 #endif
 
+bool validate_hash_request(hash_request const& hr, file_storage const& fs)
+{
+	if (hr.file < file_index_t{0}
+		|| hr.file >= fs.end_file()
+		|| hr.base < 0
+		|| hr.index < 0
+		|| hr.count <= 0
+		|| hr.count > 8192
+		|| hr.proof_layers < 0)
+		return false;
+
+	int const num_leafs = merkle_num_leafs(fs.file_num_pieces(hr.file));
+	int const num_layers = merkle_num_layers(num_leafs);
+
+	if (hr.base >= num_layers) return false;
+
+	// the number of hashes at the specified level
+	int const level_size = num_leafs / (1 << hr.base);
+
+	// [index, index + count] must be within the number of nodes at the specified
+	// level
+	if (hr.index >= level_size || hr.index + hr.count > level_size)
+		return false;
+
+	if (hr.proof_layers > num_layers - hr.base) return false;
+
+	return true;
+}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	bool ut_pex_peer_store::was_introduced_by(tcp::endpoint const &ep)
 	{
@@ -1130,12 +1159,12 @@ namespace {
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		auto files = t->torrent_file().files();
+		auto const& files = t->torrent_file().files();
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 		const char* ptr = recv_buffer.begin() + 1;
 
-		auto file_root = sha256_hash(ptr);
+		auto const file_root = sha256_hash(ptr);
 		file_index_t file_index{-1};
 		for (file_index_t i : files.file_range())
 		{
@@ -1146,17 +1175,25 @@ namespace {
 			}
 		}
 		ptr += sha256_hash::size();
-		int base = detail::read_int32(ptr);
-		int index = detail::read_int32(ptr);
-		int count = detail::read_int32(ptr);
-		int proof_layers = detail::read_int32(ptr);
+		int const base = detail::read_int32(ptr);
+		int const index = detail::read_int32(ptr);
+		int const count = detail::read_int32(ptr);
+		int const proof_layers = detail::read_int32(ptr);
 		hash_request hr(file_index, base, index, count, proof_layers);
 
+		if (!validate_hash_request(hr, t->torrent_file().files()))
+		{
+			write_hash_reject(hr);
+			return;
+		}
+
+#ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, "HASH_REQUEST", "%d %d %d %d %d"
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
+#endif
 
 		std::vector<sha256_hash> hashes = t->get_hashes(hr);
 
@@ -1185,7 +1222,7 @@ namespace {
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		auto files = t->torrent_file().files();
+		auto const& files = t->torrent_file().files();
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 
@@ -1198,7 +1235,7 @@ namespace {
 
 		const char* ptr = recv_buffer.begin() + 1;
 
-		auto file_root = sha256_hash(ptr);
+		auto const file_root = sha256_hash(ptr);
 		file_index_t file_index{-1};
 		for (file_index_t i : files.file_range())
 		{
@@ -1209,22 +1246,23 @@ namespace {
 			}
 		}
 		ptr += sha256_hash::size();
-		int base = detail::read_int32(ptr);
-		int index = detail::read_int32(ptr);
-		int count = detail::read_int32(ptr);
-		int proof_layers = detail::read_int32(ptr);
+		int const base = detail::read_int32(ptr);
+		int const index = detail::read_int32(ptr);
+		int const count = detail::read_int32(ptr);
+		int const proof_layers = detail::read_int32(ptr);
 
-		if (file_index < file_index_t{0} || base < 0 || index < 0 || count < 0 || proof_layers < 0)
+		hash_request const hr(file_index, base, index, count, proof_layers);
+
+		if (!validate_hash_request(hr, t->torrent_file().files()))
 		{
 			disconnect(errors::invalid_hashes, operation_t::bittorrent, peer_connection_interface::peer_error);
 			return;
 		}
 
-		hash_request hr(file_index, base, index, count, proof_layers);
-
 		// subtract one because the the base layer doesn't count
 		int const proof_hashes = std::max(0
 			, proof_layers - (merkle_num_layers(merkle_num_leafs(count)) - 1));
+
 		if (m_recv_buffer.packet_size() != header_size
 			+ (count + proof_hashes) * int(sha256_hash::size()))
 		{
@@ -1244,11 +1282,13 @@ namespace {
 			ptr += sha256_hash::size();
 		}
 
+#ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, "HASHES", "%d %d %d %d %d"
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
+#endif
 
 		if (!t->add_hashes(hr, hashes))
 		{
@@ -1304,11 +1344,13 @@ namespace {
 		int proof_layers = detail::read_int32(ptr);
 		hash_request hr(file_index, base, index, count, proof_layers);
 
+#ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, "HASH_REJECT", "%d %d %d %d %d"
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
+#endif
 
 		auto new_end = std::remove(m_hash_requests.begin(), m_hash_requests.end(), hr);
 		if (new_end == m_hash_requests.end()) return;
@@ -1679,7 +1721,7 @@ namespace {
 		if (!t) return;
 		auto const& ti = t->torrent_file();
 		auto const& fs = ti.files();
-		auto root = fs.root(req.file);
+		auto const root = fs.root(req.file);
 
 		ptr = std::copy(root.begin(), root.end(), ptr);
 
@@ -1697,6 +1739,8 @@ namespace {
 		}
 #endif
 
+		TORRENT_ASSERT(validate_hash_request(req, t->torrent_file().files()));
+
 		detail::write_uint32(req.base, ptr);
 		detail::write_uint32(req.index, ptr);
 		detail::write_uint32(req.count, ptr);
@@ -1706,16 +1750,18 @@ namespace {
 
 		m_hash_requests.push_back(req);
 
+#ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HASH_REQUEST"
 				, "%d %d %d %d %d", static_cast<int>(req.file), req.base, req.index, req.count, req.proof_layers);
 		}
+#endif
 
 		send_buffer(buf, 0);
 	}
 
-	void bt_peer_connection::write_hashes(hash_request req, span<sha256_hash> hashes)
+	void bt_peer_connection::write_hashes(hash_request const& req, span<sha256_hash> hashes)
 	{
 		INVARIANT_CHECK;
 
@@ -1745,11 +1791,13 @@ namespace {
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_hashes);
 
+#ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HASHES"
 				, "%d %d %d %d %d", static_cast<int>(req.file), req.base, req.index, req.count, req.proof_layers);
 		}
+#endif
 
 		send_buffer(buf, 0);
 	}
@@ -1778,11 +1826,13 @@ namespace {
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_hash_reject);
 
+#ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HASH_REJECT"
 				, "%d %d %d %d", req.base, req.index, req.count, req.proof_layers);
 		}
+#endif
 
 		send_buffer(buf, 0);
 	}
