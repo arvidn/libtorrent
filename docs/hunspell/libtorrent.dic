@@ -84,6 +84,7 @@ async
 uTorrent
 pred
 sha1
+sha512
 pread
 preadv
 pwrite
@@ -296,6 +297,7 @@ DLL
 gettime
 toolsets
 libgcrypt
+LibTomCrypt
 CommonCrypto
 cygwin
 gcc

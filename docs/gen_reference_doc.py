@@ -98,6 +98,7 @@ category_mapping = {
     'enum_net.hpp': 'Network',
     'broadcast_socket.hpp': 'Network',
     'socket.hpp': 'Network',
+    'address.hpp': 'Network',
     'socket_io.hpp': 'Network',
     'bitfield.hpp': 'Utility',
     'sha1_hash.hpp': 'Utility',
@@ -765,9 +766,8 @@ for filename in files:
             lno = consume_ifdef(lno - 1, lines)
             continue
 
-        if (line == 'namespace detail' or
-                line == 'namespace impl' or
-                line == 'namespace aux') \
+        if (line == 'namespace detail {' or
+                line == 'namespace aux {') \
                 and not internal:
             lno = consume_block(lno, lines)
             continue
