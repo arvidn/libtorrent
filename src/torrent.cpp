@@ -6158,8 +6158,9 @@ bool is_downloading_state(int const st)
 		{
 			layer_start_idx = merkle_get_parent(layer_start_idx);
 
-			if (layer_start_idx == 0)
-				return {}; // the requester set proof_layers too high
+			// if this assert fire, the requester set proof_layers too high
+			// and it wasn't correctly validated
+			TORRENT_ASSERT(layer_start_idx > 0);
 
 			if (i >= base_tree_layers)
 			{
