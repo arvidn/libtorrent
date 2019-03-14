@@ -126,6 +126,7 @@ static test_torrent_t test_torrents[] =
 	{ "invalid_name2.torrent" },
 	{ "invalid_name3.torrent" },
 	{ "symlink1.torrent" },
+	{ "symlink2.torrent" },
 	{ "unordered.torrent" },
 	{ "symlink_zero_size.torrent" },
 	{ "pad_file_no_path.torrent" },
@@ -795,6 +796,17 @@ TORRENT_TEST(parse_torrents)
 			TEST_EQUAL(ti->name(), "foobar ");
 #endif
 		}
+		else if (t.file == "symlink1.torrent"_sv)
+		{
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().symlink(file_index_t{1}), "temp" SEPARATOR "a" SEPARATOR "b" SEPARATOR "bar");
+		}
+		else if (t.file == "symlink2.torrent"_sv)
+		{
+			TEST_EQUAL(ti->num_files(), 5);
+			TEST_EQUAL(ti->files().symlink(file_index_t{0}), "Some.framework" SEPARATOR "Versions" SEPARATOR "A" SEPARATOR "SDL2");
+			TEST_EQUAL(ti->files().symlink(file_index_t{4}), "Some.framework" SEPARATOR "Versions" SEPARATOR "A");
+		}
 		else if (t.file == "slash_path.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 1);
@@ -813,7 +825,7 @@ TORRENT_TEST(parse_torrents)
 		else if (t.file == "symlink_zero_size.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().symlink(file_index_t(1)), combine_path("foo", "bar"));
+			TEST_EQUAL(ti->files().symlink(file_index_t(1)), "temp" SEPARATOR "a" SEPARATOR "b" SEPARATOR "bar");
 		}
 		else if (t.file == "pad_file_no_path.torrent"_sv)
 		{
