@@ -256,7 +256,7 @@ namespace libtorrent {
 		void write_holepunch_msg(hp_message type, tcp::endpoint const& ep
 			, hp_error error = hp_error::no_error);
 		void write_hash_request(hash_request req);
-		void write_hashes(hash_request req, span<sha256_hash> hashes);
+		void write_hashes(hash_request const& req, span<sha256_hash> hashes);
 		void write_hash_reject(hash_request req);
 
 		void maybe_send_hash_request();

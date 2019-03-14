@@ -34,20 +34,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	int merkle_to_flat_index(int layer, int offset)
+	int merkle_to_flat_index(int const layer, int const offset)
 	{
 		TORRENT_ASSERT(layer < sizeof(int) * 8);
 		return (1 << layer) - 1 + offset;
 	}
 
-	int merkle_get_parent(int tree_node)
+	int merkle_get_parent(int const tree_node)
 	{
 		// node 0 doesn't have a parent
 		TORRENT_ASSERT(tree_node > 0);
 		return (tree_node - 1) / 2;
 	}
 
-	int merkle_get_sibling(int tree_node)
+	int merkle_get_sibling(int const tree_node)
 	{
 		// node 0 doesn't have a sibling
 		TORRENT_ASSERT(tree_node > 0);
@@ -56,7 +56,7 @@ namespace libtorrent {
 		return tree_node + ((tree_node&1)?1:-1);
 	}
 
-	int merkle_get_first_child(int tree_node)
+	int merkle_get_first_child(int const tree_node)
 	{
 		return tree_node * 2 + 1;
 	}
@@ -72,18 +72,20 @@ namespace libtorrent {
 		return ((leafs - 1) << 1) + 1;
 	}
 
-	int merkle_num_leafs(int const pieces)
+	int merkle_num_leafs(int const blocks)
 	{
-		TORRENT_ASSERT(pieces > 0);
-		TORRENT_ASSERT(pieces <= std::numeric_limits<int>::max() / 2);
+		TORRENT_ASSERT(blocks > 0);
+		TORRENT_ASSERT(blocks <= std::numeric_limits<int>::max() / 2);
 		// round up to nearest 2 exponent
 		int ret = 1;
-		while (pieces > ret) ret <<= 1;
+		while (blocks > ret) ret <<= 1;
 		return ret;
 	}
 
 	int merkle_num_layers(int leaves)
 	{
+		// leaves must be a power of 2
+		TORRENT_ASSERT((leaves & (leaves - 1)) == 0);
 		int layers = 0;
 		while (leaves > 1)
 		{
@@ -129,14 +131,14 @@ namespace libtorrent {
 
 	sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad)
 	{
-		int const num_pieces = int(leaves.size());
-		int const num_leafs = merkle_num_leafs(num_pieces);
+		int const num_blocks = int(leaves.size());
+		int const num_leafs = merkle_num_leafs(num_blocks);
 		int const num_nodes = merkle_num_nodes(num_leafs);
 		int const first_leaf = num_nodes - num_leafs;
 		std::vector<sha256_hash> merkle_tree(num_nodes);
-		for (int i = 0; i < num_pieces; ++i)
+		for (int i = 0; i < num_blocks; ++i)
 			merkle_tree[first_leaf + i] = leaves[i];
-		for (int i = num_pieces; i < num_leafs; ++i)
+		for (int i = num_blocks; i < num_leafs; ++i)
 			merkle_tree[first_leaf + i] = pad;
 
 		merkle_fill_tree(merkle_tree, num_leafs);

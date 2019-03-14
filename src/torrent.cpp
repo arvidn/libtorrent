@@ -6296,15 +6296,15 @@ bool is_downloading_state(int const st)
 		return m_hash_picker->pick_hashes(peer->get_bitfield(), peer);
 	}
 
-	std::vector<sha256_hash> torrent::get_hashes(hash_request const& req)
+	std::vector<sha256_hash> torrent::get_hashes(hash_request const& req) const
 	{
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		if (!m_torrent_file->is_valid()) return {};
-		if (req.count > 8192) return {};
+		TORRENT_ASSERT(validate_hash_request(req, m_torrent_file->files()));
 
 		auto& f = m_torrent_file->file_merkle_tree(req.file);
 
-		int const base_layer_idx = merkle_num_layers((f.size() + 1) >> 1) - req.base;
+		int const base_layer_idx = merkle_num_layers((f.size() + 1) / 2) - req.base;
 		int const base_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
 
 		int layer_start_idx = base_start_idx;
@@ -6321,14 +6321,15 @@ bool is_downloading_state(int const st)
 		// the number of layers up the tree which can be computed from the base layer hashes
 		// subtract one because the base layer doesn't count
 		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(req.count)) - 1;
-		int proof_layers = req.proof_layers;
+		int const proof_layers = req.proof_layers;
 
 		for (int i = 0; i < proof_layers; ++i)
 		{
 			layer_start_idx = merkle_get_parent(layer_start_idx);
 
-			if (layer_start_idx == 0)
-				return {}; // the requester set proof_layers too high
+			// if this assert fire, the requester set proof_layers too high
+			// and it wasn't correctly validated
+			TORRENT_ASSERT(layer_start_idx > 0);
 
 			if (i >= base_tree_layers)
 			{
