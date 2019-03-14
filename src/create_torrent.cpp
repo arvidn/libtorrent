@@ -120,7 +120,7 @@ namespace {
 			if ((file_flags & file_storage::flag_symlink)
 				&& (flags & create_torrent::symlinks))
 			{
-				std::string sym_path = aux::get_symlink_path(f);
+				std::string const sym_path = aux::get_symlink_path(f);
 				fs.add_file(l, 0, file_flags, std::time_t(s.mtime), sym_path);
 			}
 			else

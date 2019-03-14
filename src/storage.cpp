@@ -298,7 +298,6 @@ namespace libtorrent {
 				break;
 			}
 
-
 			// if the file is empty and doesn't already exist, create it
 			// deliberately don't truncate files that already exist
 			// if a file is supposed to have size 0, but already exists, we will
@@ -326,13 +325,35 @@ namespace libtorrent {
 				// create symlinks
 				if (fs.file_flags(file_index) & file_storage::flag_symlink)
 				{
-					if (::symlink(fs.symlink(file_index).c_str()
-							, fs.file_path(file_index, m_save_path).c_str()) != 0)
+					// we make the symlink target relative to the link itself
+					std::string const target = lexically_relative(
+						parent_path(fs.file_path(file_index)), fs.symlink(file_index));
+					std::string const link = fs.file_path(file_index, m_save_path);
+					if (::symlink(target.c_str(), link.c_str()) != 0)
 					{
-						ec.ec = error_code(errno, generic_category());
-						ec.file(file_index);
-						ec.operation = operation_t::symlink;
-						break;
+						int const error = errno;
+						if (error == EEXIST)
+						{
+							// if the file exist, it may be a symlink already. if so,
+							// just verify the link target is what it's supposed to be
+							// note that readlink() does not null terminate the buffer
+							char buffer[512];
+							auto const ret = ::readlink(link.c_str(), buffer, sizeof(buffer));
+							if (ret <= 0 || target != string_view(buffer, std::size_t(ret)))
+							{
+								ec.ec = error_code(error, generic_category());
+								ec.file(file_index);
+								ec.operation = operation_t::symlink;
+								return;
+							}
+						}
+						else
+						{
+							ec.ec = error_code(error, generic_category());
+							ec.file(file_index);
+							ec.operation = operation_t::symlink;
+							return;
+						}
 					}
 				}
 				else

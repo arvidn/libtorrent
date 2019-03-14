@@ -450,6 +450,46 @@ TORRENT_TEST(stat_file)
 	TEST_EQUAL(ec, boost::system::errc::no_such_file_or_directory);
 }
 
+TORRENT_TEST(relative_path)
+{
+#ifdef TORRENT_WINDOWS
+#define S "\\"
+#else
+#define S "/"
+#endif
+	TEST_EQUAL(lexically_relative("A" S "B" S "C", "A" S "C" S "B")
+		, ".." S ".." S "C" S "B");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C" S, "A" S "C" S "B")
+		, ".." S ".." S "C" S "B");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C" S, "A" S "C" S "B" S)
+		, ".." S ".." S "C" S "B");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C", "A" S "B" S "B")
+		, ".." S "B");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C", "A" S "B" S "C")
+		, "");
+
+	TEST_EQUAL(lexically_relative("A" S "B", "A" S "B")
+		, "");
+
+	TEST_EQUAL(lexically_relative("A" S "B", "A" S "B" S "C")
+		, "C");
+
+	TEST_EQUAL(lexically_relative("A" S, "A" S)
+		, "");
+
+	TEST_EQUAL(lexically_relative("", "A" S "B" S "C")
+		, "A" S "B" S "C");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C", "")
+		, ".." S ".." S ".." S);
+
+	TEST_EQUAL(lexically_relative("", ""), "");
+}
+
 // UNC tests
 #if TORRENT_USE_UNC_PATHS
 
@@ -605,4 +645,5 @@ TORRENT_TEST(unc_paths)
 	remove(reserved_name, ec);
 	TEST_CHECK(!ec);
 }
+
 #endif

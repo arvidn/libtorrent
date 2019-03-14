@@ -667,7 +667,7 @@ namespace {
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
 		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
-		return m_symlinks[file_index_t(fe.symlink_index)];
+		return m_symlinks[fe.symlink_index];
 	}
 
 	std::time_t file_storage::mtime(file_index_t const index) const
@@ -884,7 +884,7 @@ namespace {
 	std::string const& file_storage::symlink(internal_file_entry const& fe) const
 	{
 		TORRENT_ASSERT_PRECOND(fe.symlink_index < int(m_symlinks.size()));
-		return m_symlinks[file_index_t(fe.symlink_index)];
+		return m_symlinks[fe.symlink_index];
 	}
 
 	std::time_t file_storage::mtime(internal_file_entry const& fe) const
@@ -1115,6 +1115,83 @@ namespace {
 
 		if (index != cur_index) reorder_file(index, cur_index);
 	}
+
+	void file_storage::sanitize_symlinks()
+	{
+		// symlinks are unusual, this function is optimized assuming there are no
+		// symbolic links in the torrent. If we find one symbolic link, we'll
+		// build the hash table of files it's allowed to refer to, but don't pay
+		// that price up-front.
+		std::unordered_map<std::string, file_index_t> file_map;
+		bool file_map_initialized = false;
+
+		for (auto const i : file_range())
+		{
+			if (!(file_flags(i) & file_storage::flag_symlink)) continue;
+
+			if (!file_map_initialized)
+			{
+				for (auto const j : file_range()) file_map[file_path(j)] = j;
+				file_map_initialized = true;
+			}
+
+			internal_file_entry const& fe = m_files[i];
+			TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
+
+			// symlink targets are only allowed to point to files or directories in
+			// this torrent.
+			{
+				std::string target = symlink(i);
+
+				// if it points to a directory, that's OK
+				auto it = std::find(m_paths.begin(), m_paths.end(), target);
+				if (it != m_paths.end())
+				{
+					m_symlinks[fe.symlink_index] = combine_path(name(), *it);
+					continue;
+				}
+
+				target = combine_path(name(), target);
+
+				auto const idx = file_map.find(target);
+				if (idx != file_map.end())
+				{
+					m_symlinks[fe.symlink_index] = target;
+					continue;
+				}
+			}
+
+			// this symlink target points to a file that's not part of this torrent
+			// file structure. That's not allowed by the spec.
+
+			// for backwards compatibility, allow paths relative to the link as
+			// well
+			if (fe.path_index >= 0)
+			{
+				std::string target = m_paths[fe.path_index];
+				append_path(target, symlink(i));
+				// if it points to a directory, that's OK
+				auto it = std::find(m_paths.begin(), m_paths.end(), target);
+				if (it != m_paths.end())
+				{
+					m_symlinks[fe.symlink_index] = combine_path(name(), *it);
+					continue;
+				}
+
+				target = combine_path(name(), target);
+				auto const idx = file_map.find(target);
+				if (idx != file_map.end())
+				{
+					m_symlinks[fe.symlink_index] = target;
+					continue;
+				}
+			}
+
+			// this symlink is invalid, make it point to itself
+			m_symlinks[fe.symlink_index] = file_path(i);
+		}
+	}
+
 
 namespace aux {
 

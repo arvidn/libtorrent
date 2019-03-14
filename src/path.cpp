@@ -737,6 +737,47 @@ namespace {
 		return ret;
 	}
 
+	std::string lexically_relative(string_view base, string_view target)
+	{
+		// first, strip trailing directory separators
+		if (!base.empty() && base.back() == TORRENT_SEPARATOR_CHAR)
+			base.remove_suffix(1);
+		if (!target.empty() && target.back() == TORRENT_SEPARATOR_CHAR)
+			target.remove_suffix(1);
+
+		// strip common path elements
+		for (;;)
+		{
+			if (base.empty()) break;
+			string_view prev_base = base;
+			string_view prev_target = target;
+
+			string_view base_element;
+			string_view target_element;
+			std::tie(base_element, base) = split_string(base, TORRENT_SEPARATOR_CHAR);
+			std::tie(target_element, target) = split_string(target, TORRENT_SEPARATOR_CHAR);
+			if (base_element == target_element) continue;
+
+			base = prev_base;
+			target = prev_target;
+			break;
+		}
+
+		// count number of path elements left in base, and prepend that number of
+		// "../" to target
+
+		// base alwaus points to a directory. There's an implied directory
+		// separator at the end of it
+		int const num_steps = static_cast<int>(std::count(
+			base.begin(), base.end(), TORRENT_SEPARATOR_CHAR)) + (base.empty() ? 0 : 1);
+		std::string ret;
+		for (int i = 0; i < num_steps; ++i)
+			ret += ".." TORRENT_SEPARATOR;
+
+		ret += target.to_string();
+		return ret;
+	}
+
 	std::string current_working_directory()
 	{
 #if defined TORRENT_WINDOWS

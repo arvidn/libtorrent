@@ -156,6 +156,8 @@ namespace libtorrent {
 		, string_view rhs);
 	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
 		, string_view leaf);
+	TORRENT_EXTRA_EXPORT std::string lexically_relative(string_view base
+		, string_view target);
 
 	// internal used by create_torrent.hpp
 	TORRENT_EXTRA_EXPORT std::string complete(string_view f);
