@@ -5338,12 +5338,12 @@ namespace libtorrent {
 
 			t->need_hash_picker();
 			auto picker = t->get_hash_picker();
-			set_chunk_hash_result result = set_chunk_hash_result::unknown;
+			set_block_hash_result result = set_block_hash_result::unknown;
 			for (int i = 0; i < blocks_in_piece; ++i)
 			{
-				result = picker.set_chunk_hash(piece, i * default_block_size, block_hashes[i]);
-				if (result.status == set_chunk_hash_result::chunk_hash_failed
-					|| result.status == set_chunk_hash_result::piece_hash_failed)
+				result = picker.set_block_hash(piece, i * default_block_size, block_hashes[i]);
+				if (result.status == set_block_hash_result::block_hash_failed
+					|| result.status == set_block_hash_result::piece_hash_failed)
 				{
 					hash_failed[1] = true;
 				}
@@ -5352,7 +5352,7 @@ namespace libtorrent {
 			// if the last block still couldn't be verified
 			// it means we don't know the piece's root hash
 			// we must leave seed mode
-			if (result.status == set_chunk_hash_result::unknown)
+			if (result.status == set_block_hash_result::unknown)
 				hash_failed[0] = hash_failed[1] = true;
 		}
 
@@ -5403,24 +5403,24 @@ namespace libtorrent {
 		t->picker().completed_hash_job(r.piece);
 
 		t->need_hash_picker();
-		auto result = t->get_hash_picker().set_chunk_hash(r.piece, r.start, hash);
+		auto result = t->get_hash_picker().set_block_hash(r.piece, r.start, hash);
 
 		switch (result.status)
 		{
-		case set_chunk_hash_result::chunk_hash_failed:
+		case set_block_hash_result::block_hash_failed:
 			// If the hash failed immediately at the leaf layer it means that
 			// the chuck hash is known so this peer definately sent bad data.
 			t->piece_failed(r.piece, std::vector<int>{r.start / default_block_size});
 			TORRENT_ASSERT(m_disconnecting);
 			return;
-		case set_chunk_hash_result::piece_hash_failed:
-			t->verify_chunk_hashes(r.piece);
+		case set_block_hash_result::piece_hash_failed:
+			t->verify_block_hashes(r.piece);
 			break;
-		case set_chunk_hash_result::success:
+		case set_block_hash_result::success:
 		{
 			t->need_picker();
 			int const blocks_per_piece = t->torrent_file().files().piece_length() / default_block_size;
-			for (piece_index_t verified_piece = int(r.piece) + result.first_verified_chunk / blocks_per_piece
+			for (piece_index_t verified_piece = int(r.piece) + result.first_verified_block / blocks_per_piece
 				, end = int(verified_piece) + (result.num_verified + blocks_per_piece - 1) / blocks_per_piece
 				; verified_piece < end; ++verified_piece)
 			{
@@ -5432,7 +5432,7 @@ namespace libtorrent {
 			}
 			break;
 		}
-		case set_chunk_hash_result::unknown:break;
+		case set_block_hash_result::unknown:break;
 		default:
 			TORRENT_ASSERT_FAIL();
 			break;

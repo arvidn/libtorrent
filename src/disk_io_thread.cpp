@@ -769,7 +769,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		disk_io_job* j = allocate_job(job_action_t::hash);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = piece;
-		j->d.h.chunk_hashes = v2;
+		j->d.h.block_hashes = v2;
 		j->callback = std::move(handler);
 		j->flags = flags;
 		add_job(j);
@@ -918,7 +918,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(m_magic == 0x1337);
 
 		bool const v1 = bool(j->flags & disk_interface::v1_hash);
-		bool const v2 = !j->d.h.chunk_hashes.empty();
+		bool const v2 = !j->d.h.block_hashes.empty();
 
 		int const piece_size = v1 ? j->storage->files().piece_size(j->piece) : 0;
 		int const piece_size2 = v2 ? j->storage->orig_files().piece_size2(j->piece) : 0;
@@ -926,21 +926,21 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		int const blocks_in_piece2 = v2 ? (piece_size2 + default_block_size - 1) / default_block_size : 0;
 		aux::open_mode_t const file_flags = file_flags_for_job(j);
 
-		TORRENT_ASSERT(!v2 || int(j->d.h.chunk_hashes.size()) >= blocks_in_piece2);
+		TORRENT_ASSERT(!v2 || int(j->d.h.block_hashes.size()) >= blocks_in_piece2);
 
 		hasher h;
 		int ret = 0;
 		int offset = 0;
 		for (int i = 0; i < std::max(blocks_in_piece, blocks_in_piece2); ++i)
 		{
-			bool const v2_chunk = i < blocks_in_piece2;
+			bool const v2_block = i < blocks_in_piece2;
 
 			DLOG("do_hash: reading (piece: %d block: %d)\n", int(j->piece), i);
 
 			time_point const start_time = clock_type::now();
 
 			std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
-			std::ptrdiff_t const len2 = v2_chunk ? std::min(default_block_size, piece_size2 - offset) : 0;
+			std::ptrdiff_t const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
 
 			hasher256 h2;
 
@@ -952,7 +952,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 						h.update({ buf, len });
 						ret = int(len);
 					}
-					if (v2_chunk)
+					if (v2_block)
 					{
 						h2.update({ buf, len2 });
 						ret = int(len2);
@@ -965,7 +965,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 					ret = j->storage->hashv(m_settings, h, len, j->piece, offset, file_flags, j->error);
 					if (ret < 0) break;
 				}
-				if (v2_chunk)
+				if (v2_block)
 				{
 					j->error.ec.clear();
 					ret = j->storage->hashv2(m_settings, h2, len2, j->piece, offset, file_flags, j->error);
@@ -983,8 +983,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
-			if (v2_chunk)
-				j->d.h.chunk_hashes[i] = h2.final();
+			if (v2_block)
+				j->d.h.block_hashes[i] = h2.final();
 
 			if (ret <= 0) break;
 

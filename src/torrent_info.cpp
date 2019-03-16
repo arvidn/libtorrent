@@ -1526,9 +1526,9 @@ namespace {
 			}
 
 			int const num_pieces = m_files.file_num_pieces(i);
-			int const num_chunks = int((m_files.file_size(i) + default_block_size - 1) / default_block_size);
+			int const num_blocks = int((m_files.file_size(i) + default_block_size - 1) / default_block_size);
 			int const piece_layer_size = merkle_num_leafs(num_pieces);
-			int const num_leafs = merkle_num_leafs(num_chunks);
+			int const num_leafs = merkle_num_leafs(num_blocks);
 			int const num_nodes = merkle_num_nodes(num_leafs);
 			int const first_piece_node = merkle_num_nodes(piece_layer_size) - piece_layer_size;
 

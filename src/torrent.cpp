@@ -3829,21 +3829,21 @@ bool is_downloading_state(int const st)
 				ret = false;
 				break;
 			}
-			auto result = get_hash_picker().set_chunk_hash(piece, i * default_block_size, block_hashes[i]);
+			auto result = get_hash_picker().set_block_hash(piece, i * default_block_size, block_hashes[i]);
 
-			block_passed[i] = result.status == set_chunk_hash_result::success;
-			if (result.status == set_chunk_hash_result::success)
+			block_passed[i] = result.status == set_block_hash_result::success;
+			if (result.status == set_block_hash_result::success)
 			{
-				TORRENT_ASSERT(result.first_verified_chunk <= blocks_in_piece);
-				auto const first_chunk = std::max(0, result.first_verified_chunk);
-				std::fill_n(block_passed.begin() + first_chunk
-					, std::min(blocks_in_piece - first_chunk, result.num_verified), true);
+				TORRENT_ASSERT(result.first_verified_block <= blocks_in_piece);
+				auto const first_block = std::max(0, result.first_verified_block);
+				std::fill_n(block_passed.begin() + first_block
+					, std::min(blocks_in_piece - first_block, result.num_verified), true);
 
 				using piece_delta = piece_index_t::diff_type;
 
 				// if the hashes for more than one piece have been verified, check for any pieces which
 				// were already checked but couldn't be verified and mark them as verified
-				for (piece_index_t verified_piece = piece + piece_delta(result.first_verified_chunk / blocks_per_piece)
+				for (piece_index_t verified_piece = piece + piece_delta(result.first_verified_block / blocks_per_piece)
 					, end = verified_piece + piece_delta(result.num_verified / blocks_per_piece)
 					; verified_piece < end; ++verified_piece)
 				{
@@ -3859,7 +3859,7 @@ bool is_downloading_state(int const st)
 					we_have(verified_piece);
 				}
 			}
-			else if (result.status == set_chunk_hash_result::chunk_hash_failed)
+			else if (result.status == set_block_hash_result::block_hash_failed)
 			{
 				ret = false;
 			}
@@ -3978,7 +3978,7 @@ bool is_downloading_state(int const st)
 		m_predictive_pieces.insert(i, index);
 	}
 
-	void torrent::piece_failed(piece_index_t const index, std::vector<int> chunks)
+	void torrent::piece_failed(piece_index_t const index, std::vector<int> blocks)
 	{
 		// if the last piece fails the peer connection will still
 		// think that it has received all of it until this function
@@ -3991,7 +3991,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= piece_index_t(0));
 		TORRENT_ASSERT(index < m_torrent_file->end_piece());
-		TORRENT_ASSERT(std::is_sorted(chunks.begin(), chunks.end()));
+		TORRENT_ASSERT(std::is_sorted(blocks.begin(), blocks.end()));
 
 		inc_stats_counter(counters::num_piece_failed);
 
@@ -4012,7 +4012,7 @@ bool is_downloading_state(int const st)
 			m_predictive_pieces.erase(it);
 		}
 
-		if (!torrent_file().info_hash().has_v1() && chunks.empty())
+		if (!torrent_file().info_hash().has_v1() && blocks.empty())
 		{
 			// This is a v2 only torrent so we can definitely get block
 			// level hashes. Don't fail the piece yet, let it sit in the
@@ -4023,15 +4023,15 @@ bool is_downloading_state(int const st)
 			// request them from. For now be conservative and re-request
 			// the block without waiting for block hashes.
 
-			get_hash_picker().verify_chunk_hashes(index);
+			get_hash_picker().verify_block_hashes(index);
 			return;
 		}
 
 		// increase the total amount of failed bytes
-		if (chunks.empty())
+		if (blocks.empty())
 			add_failed_bytes(m_torrent_file->piece_size(index));
 		else
-			add_failed_bytes(chunks.size() * default_block_size);
+			add_failed_bytes(blocks.size() * default_block_size);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_extensions)
@@ -4044,15 +4044,15 @@ bool is_downloading_state(int const st)
 		if (m_picker)
 			m_picker->get_downloaders(downloaders, index);
 
-		// if we know which chunks failed null out all the non-failing
+		// if we know which blocks failed null out all the non-failing
 		// downloaders
-		if (!chunks.empty() && !downloaders.empty())
+		if (!blocks.empty() && !downloaders.empty())
 		{
 			auto begin = downloaders.begin();
-			for (int chunk : chunks)
+			for (int block : blocks)
 			{
-				std::fill(begin, downloaders.begin() + chunk, nullptr);
-				begin = downloaders.begin() + chunk + 1;
+				std::fill(begin, downloaders.begin() + block, nullptr);
+				begin = downloaders.begin() + block + 1;
 			}
 			std::fill(begin, downloaders.end(), nullptr);
 		}
@@ -4075,8 +4075,8 @@ bool is_downloading_state(int const st)
 #endif
 
 		// did we receive this piece from a single peer?
-		// or do we know which chunks where bad?
-		bool const known_bad_peer = peers.size() == 1 || !chunks.empty();
+		// or do we know which blocks where bad?
+		bool const known_bad_peer = peers.size() == 1 || !blocks.empty();
 
 		for (auto p : peers)
 		{
@@ -4166,7 +4166,7 @@ bool is_downloading_state(int const st)
 			// to read back the blocks that failed, for blame purposes
 			// this way they have a chance to hit the cache
 			m_ses.disk_thread().async_clear_piece(m_storage, index
-				, [self = shared_from_this(), c = std::move(chunks)](piece_index_t const& p)
+				, [self = shared_from_this(), c = std::move(blocks)](piece_index_t const& p)
 				{ self->on_piece_sync(p, c); });
 		}
 		else
@@ -4175,7 +4175,7 @@ bool is_downloading_state(int const st)
 			// it doesn't really matter what we do
 			// here, since we're about to destruct the
 			// torrent anyway.
-			on_piece_sync(index, std::move(chunks));
+			on_piece_sync(index, std::move(blocks));
 		}
 
 #if TORRENT_USE_ASSERTS
@@ -4208,7 +4208,7 @@ bool is_downloading_state(int const st)
 		c.send_block_requests();
 	}
 
-	void torrent::on_piece_sync(piece_index_t const piece, std::vector<int> const& chunks) try
+	void torrent::on_piece_sync(piece_index_t const piece, std::vector<int> const& blocks) try
 	{
 		// the user may have called force_recheck, which clears
 		// the piece picker
@@ -4216,7 +4216,7 @@ bool is_downloading_state(int const st)
 
 		// unlock the piece and restore it, as if no block was
 		// ever downloaded for it.
-		m_picker->restore_piece(piece, chunks);
+		m_picker->restore_piece(piece, blocks);
 
 		if (m_ses.alerts().should_post<hash_failed_alert>())
 			m_ses.alerts().emplace_alert<hash_failed_alert>(get_handle(), piece);
@@ -4235,8 +4235,8 @@ bool is_downloading_state(int const st)
 			{
 				if (b.timed_out || b.not_wanted) continue;
 				if (b.block.piece_index != piece) continue;
-				if (!chunks.empty()
-					&& std::find(chunks.begin(), chunks.end(), b.block.block_index) == chunks.end())
+				if (!blocks.empty()
+					&& std::find(blocks.begin(), blocks.end(), b.block.block_index) == blocks.end())
 					continue;
 				m_picker->mark_as_downloading(b.block, p->peer_info_struct()
 					, p->picker_options());
@@ -4244,8 +4244,8 @@ bool is_downloading_state(int const st)
 			for (auto const& b : p->request_queue())
 			{
 				if (b.block.piece_index != piece) continue;
-				if (!chunks.empty()
-					&& std::find(chunks.begin(), chunks.end(), b.block.block_index) == chunks.end())
+				if (!blocks.empty()
+					&& std::find(blocks.begin(), blocks.end(), b.block.block_index) == blocks.end())
 					continue;
 				m_picker->mark_as_downloading(b.block, p->peer_info_struct()
 					, p->picker_options());
@@ -6231,12 +6231,12 @@ bool is_downloading_state(int const st)
 		}
 	}
 
-	void torrent::verify_chunk_hashes(piece_index_t index)
+	void torrent::verify_block_hashes(piece_index_t index)
 	{
 		need_hash_picker();
 		if (!m_hash_picker) return;
 		debug_log("Piece %d hash failure, requesting block hashes", int(index));
-		m_hash_picker->verify_chunk_hashes(index);
+		m_hash_picker->verify_block_hashes(index);
 	}
 
 	std::shared_ptr<const torrent_info> torrent::get_torrent_copy()

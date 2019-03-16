@@ -47,7 +47,7 @@ namespace libtorrent
 	struct torrent_peer;
 	struct peer_connection_interface;
 
-	struct set_chunk_hash_result
+	struct set_block_hash_result
 	{
 		enum result_status
 		{
@@ -56,18 +56,18 @@ namespace libtorrent
 			// hash cannot be verified yet
 			unknown,
 			// hash conflict in leaf node
-			chunk_hash_failed,
+			block_hash_failed,
 			// hash conflict in a parent node
 			piece_hash_failed
 		};
 
-		set_chunk_hash_result(result_status s) : status(s), first_verified_chunk(0), num_verified(0) {}
-		set_chunk_hash_result(int first_chunk, int num) : status(success), first_verified_chunk(first_chunk), num_verified(num) {}
+		set_block_hash_result(result_status s) : status(s), first_verified_block(0), num_verified(0) {}
+		set_block_hash_result(int first_block, int num) : status(success), first_verified_block(first_block), num_verified(num) {}
 
 		result_status status;
 		// if status is success, this will hold the index of the first verified
 		// block hash as an offset from the index of the first block in the piece
-		int first_verified_chunk;
+		int first_verified_block;
 		int num_verified;
 	};
 
@@ -134,11 +134,11 @@ namespace libtorrent
 			, peer_connection_interface* peer);
 
 		add_hashes_result add_hashes(hash_request const& req, span<sha256_hash> hashes);
-		// TODO: support batched adding of chunk hashes for reduced overhead?
-		set_chunk_hash_result set_chunk_hash(piece_index_t piece, int offset, sha256_hash const& h);
+		// TODO: support batched adding of block hashes for reduced overhead?
+		set_block_hash_result set_block_hash(piece_index_t piece, int offset, sha256_hash const& h);
 		void hashes_rejected(peer_connection_interface* source, hash_request const& req);
 		void peer_disconnected(peer_connection_interface* peer);
-		void verify_chunk_hashes(piece_index_t index);
+		void verify_block_hashes(piece_index_t index);
 
 		// do we know the piece layer hash for a piece
 		bool have_hash(piece_index_t index) const;

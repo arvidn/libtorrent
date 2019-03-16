@@ -249,7 +249,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	add_hashes_result hash_picker::add_hashes(hash_request const& req, span<sha256_hash> hashes)
 	{
 		// limit the size of the base layer to something reasonable
-		// Chunks are requested for an entire piece so this limit
+		// Blocks are requested for an entire piece so this limit
 		// effectivly caps the piece size we can handle. A limit of 8192
 		// corresponds to a piece size of 128MB.
 		if (req.count > 8192)
@@ -347,7 +347,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				if (!m_merkle_trees[req.file][dest_start_idx + i].is_all_zeros()
 					&& m_merkle_trees[req.file][dest_start_idx + i] != tree[source_start_idx + i])
 				{
-					// this must be a chunk hash because inner nodes are not filled in until
+					// this must be a block hash because inner nodes are not filled in until
 					// they can be verified
 					int const file_first_leaf = m_files.file_first_block_node(req.file);
 					TORRENT_ASSERT(dest_start_idx + i >= file_first_leaf);
@@ -388,13 +388,13 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (req.base != 0)
 		{
 			TORRENT_ASSERT(req.base == m_piece_layer);
-			int const file_num_chunks = m_files.file_num_blocks(req.file);
+			int const file_num_blocks = m_files.file_num_blocks(req.file);
 			int const file_first_leaf = m_files.file_first_block_node(req.file);
 			int const file_first_piece = m_files.file_first_piece_node(req.file);
-			int const base_layer_index = merkle_num_layers(merkle_num_leafs(file_num_chunks)) - req.base;
+			int const base_layer_index = merkle_num_layers(merkle_num_leafs(file_num_blocks)) - req.base;
 			int const file_piece_offset = m_files.file_offset(req.file) / m_files.piece_length();
 
-			// it may now be possible to verify the hashes of previously received chunks
+			// it may now be possible to verify the hashes of previously received blocks
 			// try to verify as many child nodes of the received hashes as possible
 			for (int i = 0; i < req.count; ++i)
 			{
@@ -410,7 +410,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				int const num_leafs = 1 << req.base;
 
 				bool done = false;
-				for (int j = 0; j < std::min(num_leafs, file_num_chunks - first_leaf); ++j)
+				for (int j = 0; j < std::min(num_leafs, file_num_blocks - first_leaf); ++j)
 				{
 					if (m_merkle_trees[req.file][file_first_leaf + first_leaf + j].is_all_zeros())
 					{
@@ -426,7 +426,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					merkle_clear_tree(m_merkle_trees[req.file], num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
 					m_merkle_trees[req.file][merkle_to_flat_index(base_layer_index, req.index + i)] = hashes[i];
 					TORRENT_ASSERT(num_leafs == m_files.piece_length() / default_block_size);
-					//verify_chunk_hashes(m_files.file_offset(req.file) / m_files.piece_length() + req.index);
+					//verify_block_hashes(m_files.file_offset(req.file) / m_files.piece_length() + req.index);
 					// TODO: add to 
 				}
 				else
@@ -439,54 +439,54 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		return ret;
 	}
 
-	set_chunk_hash_result hash_picker::set_chunk_hash(piece_index_t piece, int offset, sha256_hash const& h)
+	set_block_hash_result hash_picker::set_block_hash(piece_index_t piece, int offset, sha256_hash const& h)
 	{
 		auto const f = m_files.file_index_at_piece(piece);
 		auto& merkle_tree = m_merkle_trees[f];
-		int const chunk_offset = static_cast<int>(piece) * std::int64_t(m_files.piece_length()) + offset - m_files.file_offset(f);
-		int const chunk_index = chunk_offset / default_block_size;
-		int const file_num_chunks = m_files.file_num_blocks(f);
-		int const first_chunk_index = m_files.file_first_block_node(f);
-		int const chunk_tree_index = first_chunk_index + chunk_index;
+		int const block_offset = static_cast<int>(piece) * std::int64_t(m_files.piece_length()) + offset - m_files.file_offset(f);
+		int const block_index = block_offset / default_block_size;
+		int const file_num_blocks = m_files.file_num_blocks(f);
+		int const first_block_index = m_files.file_first_block_node(f);
+		int const block_tree_index = first_block_index + block_index;
 
 		if (m_files.pad_file_at(f))
 		{
 			// TODO: verify pad file hashes
-			return set_chunk_hash_result::success;
+			return set_block_hash_result::success;
 		}
 
-		// if this chunk's hash is already known, check the passed-in hash against it
-		if (m_hash_verified[f][chunk_index])
+		// if this blocks's hash is already known, check the passed-in hash against it
+		if (m_hash_verified[f][block_index])
 		{
-			TORRENT_ASSERT(!merkle_tree[chunk_tree_index].is_all_zeros());
-			if (chunk_tree_index > 0)
-				TORRENT_ASSERT(!merkle_tree[merkle_get_parent(chunk_tree_index)].is_all_zeros());
-			return merkle_tree[chunk_tree_index] == h ? set_chunk_hash_result{offset / default_block_size, 1}
-				: set_chunk_hash_result::chunk_hash_failed;
+			TORRENT_ASSERT(!merkle_tree[block_tree_index].is_all_zeros());
+			if (block_tree_index > 0)
+				TORRENT_ASSERT(!merkle_tree[merkle_get_parent(block_tree_index)].is_all_zeros());
+			return merkle_tree[block_tree_index] == h ? set_block_hash_result{offset / default_block_size, 1}
+				: set_block_hash_result::block_hash_failed;
 		}
 		else if (h.is_all_zeros())
 		{
 			TORRENT_ASSERT_FAIL();
-			return set_chunk_hash_result::chunk_hash_failed;
+			return set_block_hash_result::block_hash_failed;
 		}
 
-		merkle_tree[chunk_tree_index] = h;
+		merkle_tree[block_tree_index] = h;
 
 		// to avoid wasting a lot of time hashing nodes only to discover they
 		// cannot be verrified, check first to see if the root of the largest
 		// computable subtree is known
 
 		// find the largest block of leafs from a single subtree we know the hashes of
-		int leafs_index = chunk_index;
+		int leafs_index = block_index;
 		int leafs_size = 1;
-		int root_index = merkle_get_sibling(first_chunk_index + chunk_index);
-		for (int i = chunk_index;; i >>= 1)
+		int root_index = merkle_get_sibling(first_block_index + block_index);
+		for (int i = block_index;; i >>= 1)
 		{
 			int const first_check_index = leafs_index + ((i & 1) ? -leafs_size : leafs_size);
 			bool done = false;
-			for (int j = 0; j < std::min(leafs_size, file_num_chunks - first_check_index); ++j)
+			for (int j = 0; j < std::min(leafs_size, file_num_blocks - first_check_index); ++j)
 			{
-				if (merkle_tree[first_chunk_index + first_check_index + j].is_all_zeros())
+				if (merkle_tree[first_block_index + first_check_index + j].is_all_zeros())
 				{
 					done = true;
 					break;
@@ -502,37 +502,37 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			if (!merkle_tree[root_index].is_all_zeros()) break;
 			TORRENT_ASSERT(root_index != 0);
 			TORRENT_ASSERT(leafs_index >= 0);
-			TORRENT_ASSERT(leafs_size <= merkle_num_leafs(file_num_chunks));
+			TORRENT_ASSERT(leafs_size <= merkle_num_leafs(file_num_blocks));
 		}
 
 		TORRENT_ASSERT(leafs_index >= 0);
 		TORRENT_ASSERT(leafs_index < merkle_num_leafs(m_files.file_num_blocks(f)));
-		TORRENT_ASSERT(leafs_index + leafs_size > chunk_index);
+		TORRENT_ASSERT(leafs_index + leafs_size > block_index);
 
 		// if the root node is unknown the hashes cannot be verified yet
 		if (merkle_tree[root_index].is_all_zeros())
-			return set_chunk_hash_result::unknown;
+			return set_block_hash_result::unknown;
 
 		// save the root hash because merkle_fill_tree will overwrite it
 		sha256_hash root = merkle_tree[root_index];
-		merkle_fill_tree(merkle_tree, leafs_size, first_chunk_index + leafs_index);
+		merkle_fill_tree(merkle_tree, leafs_size, first_block_index + leafs_index);
 
 		if (root != merkle_tree[root_index])
 		{
 			// hash failure, clear all the internal nodes
-			merkle_clear_tree(merkle_tree, leafs_size / 2, merkle_get_parent(first_chunk_index + leafs_index));
+			merkle_clear_tree(merkle_tree, leafs_size / 2, merkle_get_parent(first_block_index + leafs_index));
 			merkle_tree[root_index] = root;
 			// If the hash failure was detected within a single piece then report a piece failure
 			// otherwise report unknown. The pieces will be checked once their hashes have been
 			// downloaded.
 			if (leafs_size <= m_files.piece_length() / default_block_size)
-				return set_chunk_hash_result::piece_hash_failed;
+				return set_block_hash_result::piece_hash_failed;
 			else
-				return set_chunk_hash_result::unknown;
+				return set_block_hash_result::unknown;
 		}
 		else
 		{
-			std::fill_n(m_hash_verified[f].begin() + leafs_index, std::min(leafs_size, file_num_chunks - leafs_index), true);
+			std::fill_n(m_hash_verified[f].begin() + leafs_index, std::min(leafs_size, file_num_blocks - leafs_index), true);
 		}
 
 		int const blocks_per_piece = m_files.piece_length() / default_block_size;
@@ -587,14 +587,14 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			}
 		}
 
-		for (auto& r : m_chunk_requests)
+		for (auto& r : m_block_requests)
 		{
 			if (r.peer == peer) r.peer = nullptr;
 		}
 #endif
 	}
 
-	void hash_picker::verify_chunk_hashes(piece_index_t index)
+	void hash_picker::verify_block_hashes(piece_index_t index)
 	{
 		file_index_t const fidx = m_files.file_index_at_piece(index);
 		int const piece = int(index) - m_files.file_offset(fidx) / m_files.piece_length();
