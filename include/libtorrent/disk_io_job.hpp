@@ -157,7 +157,7 @@ namespace libtorrent {
 			struct hash_args
 			{
 				sha1_hash piece_hash;
-				span<sha256_hash> chunk_hashes;
+				span<sha256_hash> block_hashes;
 			} h;
 			sha256_hash piece_hash2;
 

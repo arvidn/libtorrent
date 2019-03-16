@@ -947,14 +947,14 @@ namespace libtorrent {
 		void piece_passed(piece_index_t index);
 
 		// piece_failed is called when a piece fails the hash check
-		// for failures detected with v2 hashes the failing chunk(s)
-		// are specified in chunks
-		// *chunks must be sorted in acending order*
-		void piece_failed(piece_index_t index, std::vector<int> chunks = std::vector<int>());
+		// for failures detected with v2 hashes the failing blocks(s)
+		// are specified in blocks
+		// *blocks must be sorted in acending order*
+		void piece_failed(piece_index_t index, std::vector<int> blocks = std::vector<int>());
 
 		// this is the handler for hash failure piece synchronization
 		// i.e. resetting the piece
-		void on_piece_sync(piece_index_t piece, std::vector<int> const& chunks);
+		void on_piece_sync(piece_index_t piece, std::vector<int> const& blocks);
 
 		// this is the handler for write failure piece synchronization
 		void on_piece_fail_sync(piece_index_t piece, piece_block b);
@@ -1025,7 +1025,7 @@ namespace libtorrent {
 		std::vector<sha256_hash> get_hashes(hash_request const& req) const;
 		bool add_hashes(hash_request const& req, span<sha256_hash> hashes);
 		void hashes_rejected(peer_connection_interface* source, hash_request const& req);
-		void verify_chunk_hashes(piece_index_t index);
+		void verify_block_hashes(piece_index_t index);
 
 		std::shared_ptr<const torrent_info> get_torrent_copy();
 

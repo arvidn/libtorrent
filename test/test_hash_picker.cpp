@@ -337,7 +337,7 @@ TORRENT_TEST(add_bad_hashes)
 	TEST_CHECK(!result.valid);
 }
 
-TORRENT_TEST(bad_chunk_hash)
+TORRENT_TEST(bad_block_hash)
 {
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
@@ -383,7 +383,7 @@ TORRENT_TEST(bad_chunk_hash)
 	}
 }
 
-TORRENT_TEST(set_chunk_hash)
+TORRENT_TEST(set_block_hash)
 {
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
@@ -408,17 +408,17 @@ TORRENT_TEST(set_chunk_hash)
 	int const first_leaf = full_tree.size() - merkle_num_leafs(4 * 512);
 
 	hash_picker picker(fs, trees);
-	auto result = picker.set_chunk_hash(1_piece, default_block_size
+	auto result = picker.set_block_hash(1_piece, default_block_size
 		, full_tree[first_leaf + 5]);
-	TEST_CHECK(result.status == set_chunk_hash_result::success);
+	TEST_CHECK(result.status == set_block_hash_result::success);
 
-	result = picker.set_chunk_hash(2_piece, default_block_size * 2
+	result = picker.set_block_hash(2_piece, default_block_size * 2
 		, full_tree[first_leaf + 10]);
-	TEST_CHECK(result.status == set_chunk_hash_result::success);
+	TEST_CHECK(result.status == set_block_hash_result::success);
 
-	result = picker.set_chunk_hash(2_piece, default_block_size * 2
+	result = picker.set_block_hash(2_piece, default_block_size * 2
 		, sha256_hash("01234567890123456789"));
-	TEST_CHECK(result.status == set_chunk_hash_result::chunk_hash_failed);
+	TEST_CHECK(result.status == set_block_hash_result::block_hash_failed);
 
 	// zero out the inner nodes for a piece along with a single leaf node
 	// then add a bogus hash for the leaf
@@ -426,8 +426,8 @@ TORRENT_TEST(set_chunk_hash)
 	trees.front()[merkle_get_parent(first_leaf + 14)].clear();
 	trees.front()[first_leaf + 13].clear();
 
-	result = picker.set_chunk_hash(3_piece, default_block_size, sha256_hash("01234567890123456789"));
-	TEST_CHECK(result.status == set_chunk_hash_result::piece_hash_failed);
+	result = picker.set_block_hash(3_piece, default_block_size, sha256_hash("01234567890123456789"));
+	TEST_CHECK(result.status == set_block_hash_result::piece_hash_failed);
 
 	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 12)].is_all_zeros());
 	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 14)].is_all_zeros());
@@ -461,9 +461,9 @@ TORRENT_TEST(pass_piece)
 
 	for (int i = 0; i < 4; ++i)
 	{
-		auto result = picker.set_chunk_hash(0_piece, default_block_size * i
+		auto result = picker.set_block_hash(0_piece, default_block_size * i
 			, full_tree[first_leaf + i]);
-		TEST_CHECK(result.status == set_chunk_hash_result::unknown);
+		TEST_CHECK(result.status == set_block_hash_result::unknown);
 	}
 
 	auto pieces_start = full_tree.begin() + merkle_num_nodes(512) - 512;

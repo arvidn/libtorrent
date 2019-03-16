@@ -182,7 +182,7 @@ namespace {
 		error_code& ec;
 	};
 
-	void on_hash(std::vector<sha256_hash> v2_chunks, piece_index_t const piece
+	void on_hash(std::vector<sha256_hash> v2_blocks, piece_index_t const piece
 		, sha1_hash const& piece_hash, storage_error const& error, hash_state* st)
 	{
 		if (error)
@@ -213,10 +213,10 @@ namespace {
 					? merkle_num_leafs(int((file_size + default_block_size - 1) / default_block_size))
 					: st->ct.piece_length() / default_block_size;
 
-				TORRENT_ASSERT(paded_leaves <= int(v2_chunks.size()));
+				TORRENT_ASSERT(paded_leaves <= int(v2_blocks.size()));
 				for (auto i = piece_blocks; i < paded_leaves; ++i)
-					v2_chunks[i].clear();
-				sha256_hash piece_root = merkle_root(span<sha256_hash>(v2_chunks).first(paded_leaves));
+					v2_blocks[i].clear();
+				sha256_hash piece_root = merkle_root(span<sha256_hash>(v2_blocks).first(paded_leaves));
 				st->ct.set_hash2(current_file, file_piece_offset, piece_root);
 			}
 		}
@@ -228,9 +228,9 @@ namespace {
 		++st->completed_piece;
 		if (st->piece_counter < st->ct.files().end_piece())
 		{
-			span<sha256_hash> v2_span(v2_chunks);
+			span<sha256_hash> v2_span(v2_blocks);
 			st->iothread.async_hash(st->storage, st->piece_counter, v2_span, flags
-				, std::bind(&on_hash, std::move(v2_chunks), _1, _2, _3, st));
+				, std::bind(&on_hash, std::move(v2_blocks), _1, _2, _3, st));
 			++st->piece_counter;
 		}
 		else
@@ -360,19 +360,19 @@ namespace {
 		hash_state st = { t, std::move(storage), *disk_thread.get(), piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
-			std::vector<sha256_hash> v2_chunks;
+			std::vector<sha256_hash> v2_blocks;
 
 			if (!t.is_v1_only())
-				v2_chunks.resize(t.piece_length() / default_block_size);
+				v2_blocks.resize(t.piece_length() / default_block_size);
 
 			auto flags = disk_interface::sequential_access;
 			if (!t.is_v2_only()) flags |= disk_interface::v1_hash;
 
 			// the span needs to be created before the call to async_hash to ensure that
 			// it is constructed before the vector is moved into the bind context
-			span<sha256_hash> v2_span(v2_chunks);
+			span<sha256_hash> v2_span(v2_blocks);
 			disk_thread->async_hash(st.storage, i, v2_span, flags
-				, std::bind(&on_hash, std::move(v2_chunks), _1, _2, _3, &st));
+				, std::bind(&on_hash, std::move(v2_blocks), _1, _2, _3, &st));
 			++st.piece_counter;
 			if (st.piece_counter >= t.files().end_piece()) break;
 		}

@@ -164,13 +164,13 @@ namespace {
 		}
 
 		void async_hash(storage_index_t storage, piece_index_t const piece
-			, span<sha256_hash> chunk_hashes, disk_job_flags_t flags
+			, span<sha256_hash> block_hashes, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override
 		{
 			time_point const start_time = clock_type::now();
 
 			bool const v1 = bool(flags & disk_interface::v1_hash);
-			bool const v2 = !chunk_hashes.empty();
+			bool const v2 = !block_hashes.empty();
 
 			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);
 			storage_error error;
@@ -200,7 +200,7 @@ namespace {
 				if (v1)
 					ph.update(b.first(ret));
 				if (v2)
-					chunk_hashes[i] = hasher256(b.first(ret)).final();
+					block_hashes[i] = hasher256(b.first(ret)).final();
 			}
 
 			sha1_hash const hash = ph.final();

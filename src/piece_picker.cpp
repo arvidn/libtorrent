@@ -1035,7 +1035,7 @@ namespace libtorrent {
 		std::swap(m_pieces[other_index], m_pieces[elem_index]);
 	}
 
-	void piece_picker::restore_piece(piece_index_t const index, std::vector<int> const& chunks)
+	void piece_picker::restore_piece(piece_index_t const index, std::vector<int> const& blocks)
 	{
 		INVARIANT_CHECK;
 
@@ -1060,12 +1060,12 @@ namespace libtorrent {
 
 		piece_pos& p = m_piece_map[index];
 		int const prev_priority = p.priority(this);
-		if (!chunks.empty())
+		if (!blocks.empty())
 		{
 			auto const binfo = mutable_blocks_for_piece(*i);
-			for (int chunk : chunks)
+			for (int block : blocks)
 			{
-				block_info& info = binfo[chunk];
+				block_info& info = binfo[block];
 				TORRENT_ASSERT(info.state >= block_info::state_writing);
 				if (info.state == block_info::state_writing)
 					--i->writing;
@@ -1078,7 +1078,7 @@ namespace libtorrent {
 			update_piece_state(i);
 		}
 
-		if (chunks.empty() || i->requested + i->finished + i->writing == 0)
+		if (blocks.empty() || i->requested + i->finished + i->writing == 0)
 		{
 			erase_download_piece(i);
 

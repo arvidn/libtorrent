@@ -77,7 +77,7 @@ struct temp_storage
 		std::memcpy(data.data() + offset, b.data(), b.size());
 	}
 	lt::sha1_hash hash(lt::piece_index_t const piece
-		, lt::span<lt::sha256_hash> const chunk_hashes, lt::storage_error& ec) const
+		, lt::span<lt::sha256_hash> const block_hashes, lt::storage_error& ec) const
 	{
 		auto const i = m_file_data.find(piece);
 		if (i == m_file_data.end())
@@ -86,7 +86,7 @@ struct temp_storage
 			ec.ec = boost::asio::error::eof;
 			return {};
 		};
-		if (!chunk_hashes.empty())
+		if (!block_hashes.empty())
 		{
 			int const piece_size2 = m_files.piece_size2(piece);
 			int const blocks_in_piece2 = (piece_size2 + lt::default_block_size - 1) / lt::default_block_size;
@@ -99,7 +99,7 @@ struct temp_storage
 				h2.update({ buf, len2 });
 				buf += len2;
 				offset += len2;
-				chunk_hashes[i] = h2.final();
+				block_hashes[i] = h2.final();
 			}
 		}
 		return lt::hasher(i->second).final();
@@ -199,11 +199,11 @@ struct temp_disk_io final : lt::disk_interface
 	}
 
 	void async_hash(lt::storage_index_t storage, lt::piece_index_t const piece
-		, lt::span<lt::sha256_hash> chunk_hashes, lt::disk_job_flags_t
+		, lt::span<lt::sha256_hash> block_hashes, lt::disk_job_flags_t
 		, std::function<void(lt::piece_index_t, lt::sha1_hash const&, lt::storage_error const&)> handler) override
 	{
 		lt::storage_error error;
-		lt::sha1_hash const hash = m_torrents[storage]->hash(piece, chunk_hashes, error);
+		lt::sha1_hash const hash = m_torrents[storage]->hash(piece, block_hashes, error);
 		post(m_ioc, [=]{ handler(piece, hash, error); });
 	}
 
