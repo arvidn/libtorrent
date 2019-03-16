@@ -43,44 +43,6 @@ namespace libtorrent
 		// used as a flag in m_piece_hash_requested to indicate that all of the hashes
 		// for an entry where loaded from disk so we don't know where we originaly got them
 		torrent_peer* const source_unknown = reinterpret_cast<torrent_peer*>(-1);
-
-		int merkle_get_layer(int idx)
-		{
-			TORRENT_ASSERT(idx >= 0);
-			int layer = 1;
-			while (idx > (1 << layer) - 2) layer++;
-			return layer - 1;
-		}
-
-		int merkle_get_layer_offset(int idx)
-		{
-			return idx - ((1 << merkle_get_layer(idx)) - 1);
-		}
-
-		std::pair<int,int> merkle_piece_range(int idx, int num_pieces)
-		{
-			int const piece_layer_size = merkle_num_leafs(num_pieces);
-			int const first_piece = merkle_num_nodes(piece_layer_size) - piece_layer_size;
-
-			if (idx < first_piece)
-			{
-				int count = 1;
-				while (idx < first_piece)
-				{
-					idx = merkle_get_first_child(idx);
-					count *= 2;
-				}
-				return { idx, count };
-			}
-			else
-			{
-				while (idx >= first_piece + piece_layer_size)
-				{
-					idx = merkle_get_parent(idx);
-				}
-				return { idx, 1 };
-			}
-		}
 	}
 
 /*
