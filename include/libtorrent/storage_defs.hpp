@@ -117,7 +117,7 @@ namespace libtorrent {
 		std::string const& path;
 		storage_mode_t mode{storage_mode_sparse};
 		aux::vector<download_priority_t, file_index_t> const& priorities;
-		sha1_hash const& info_hash;
+		sha1_hash info_hash;
 	};
 }
 
