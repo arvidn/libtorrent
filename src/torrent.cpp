@@ -9217,7 +9217,7 @@ bool is_downloading_state(int const st)
 					{
 						time_point32 const next_tracker_announce = std::max(a.next_announce, a.min_announce);
 						if (next_tracker_announce < next_announce
-							&& (!state.found_working || aep.is_working()))
+							&& (!state.found_working || a.is_working()))
 							next_announce = next_tracker_announce;
 					}
 					if (a.is_working()) state.found_working = true;
