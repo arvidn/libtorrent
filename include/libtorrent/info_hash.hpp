@@ -49,10 +49,24 @@ namespace libtorrent
 	struct TORRENT_EXPORT info_hash_t
 	{
 		info_hash_t() {}
-		explicit info_hash_t(sha1_hash h1) : v1(h1) {}
+		// for backwards compatibility, make it possible to construct directly
+		// from a v1 hash
+#if TORRENT_ABI_VERSION > 2
+		explicit
+#endif
+		info_hash_t(sha1_hash h1) : v1(h1) {} // NOLINT
 		explicit info_hash_t(sha256_hash h2) : v2(h2) {}
 		info_hash_t(sha1_hash h1, sha256_hash h2)
 			: v1(h1), v2(h2) {}
+
+#if TORRENT_ABI_VERSION <= 2
+		// for backwards compatibility, assume the v1 hash is the one the client
+		// is interested in
+		TORRENT_DEPRECATED operator sha1_hash() const
+		{
+			return v1;
+		}
+#endif
 
 		bool has_v1() const { return !v1.is_all_zeros(); }
 		bool has_v2() const { return !v2.is_all_zeros(); }
