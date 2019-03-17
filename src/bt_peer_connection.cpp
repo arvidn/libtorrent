@@ -1144,14 +1144,16 @@ namespace libtorrent
 				// and we can allocate the disk buffer and receive
 				// into it
 
-				if (list_size > m_recv_buffer.packet_size() - 13)
+				if (list_size > m_recv_buffer.packet_size() - 13 || list_size < 0)
 				{
+					received_bytes(0, received);
 					disconnect(errors::invalid_hash_list, op_bittorrent, 2);
 					return;
 				}
 
 				if (m_recv_buffer.packet_size() - 13 - list_size > t->block_size())
 				{
+					received_bytes(0, received);
 					disconnect(errors::packet_too_large, op_bittorrent, 2);
 					return;
 				}
@@ -1176,6 +1178,7 @@ namespace libtorrent
 
 				if (m_recv_buffer.packet_size() - 9 > t->block_size())
 				{
+					received_bytes(0, received);
 					disconnect(errors::packet_too_large, op_bittorrent, 2);
 					return;
 				}
@@ -1210,6 +1213,12 @@ namespace libtorrent
 			if (merkle)
 			{
 				list_size = detail::read_int32(ptr);
+				if (list_size < 0)
+				{
+					received_bytes(0, received);
+					disconnect(errors::invalid_hash_list, op_bittorrent, 2);
+					return;
+				}
 				p.length = m_recv_buffer.packet_size() - list_size - header_size;
 				header_size += list_size;
 			}
