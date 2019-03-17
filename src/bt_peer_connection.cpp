@@ -1019,14 +1019,16 @@ namespace {
 			char const* ptr = recv_buffer.data() + 9;
 			int const list_size = detail::read_int32(ptr);
 
-			if (list_size > m_recv_buffer.packet_size() - 13)
+			if (list_size > m_recv_buffer.packet_size() - 13 || list_size < 0)
 			{
+				received_bytes(0, received);
 				disconnect(errors::invalid_hash_list, operation_t::bittorrent, peer_error);
 				return;
 			}
 
 			if (m_recv_buffer.packet_size() - 13 - list_size > t->block_size())
 			{
+				received_bytes(0, received);
 				disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
 				return;
 			}
@@ -1037,6 +1039,7 @@ namespace {
 			{
 				if (m_recv_buffer.packet_size() - 9 > t->block_size())
 				{
+					received_bytes(0, received);
 					disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
 					return;
 				}
@@ -1060,6 +1063,12 @@ namespace {
 			if (merkle)
 			{
 				list_size = detail::read_int32(ptr);
+				if (list_size < 0)
+				{
+					received_bytes(0, received);
+					disconnect(errors::invalid_hash_list, operation_t::bittorrent, peer_error);
+					return;
+				}
 				p.length = m_recv_buffer.packet_size() - list_size - header_size;
 				header_size += list_size;
 			}
