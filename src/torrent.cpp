@@ -2065,8 +2065,11 @@ bool is_downloading_state(int const st)
 		{
 			if (status != status_t::no_error || error)
 			{
-				debug_log("fastresume data rejected: ret: %d (%d) %s"
-					, static_cast<int>(status), error.ec.value(), error.ec.message().c_str());
+				debug_log("fastresume data rejected: ret: %d (%d) op: %s file: %d %s"
+					, static_cast<int>(status), error.ec.value()
+					, operation_name(error.operation)
+					, static_cast<int>(error.file())
+					, error.ec.message().c_str());
 			}
 			else
 			{
@@ -2075,7 +2078,8 @@ bool is_downloading_state(int const st)
 		}
 #endif
 
-		bool should_start_full_check = status != status_t::no_error;
+		bool should_start_full_check = (status != status_t::no_error)
+			&& !m_seed_mode;
 
 		// if we got a partial pieces bitfield, it means we were in the middle of
 		// checking this torrent. pick it up where we left off

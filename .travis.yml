@@ -93,7 +93,10 @@ before_install:
   - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" ) ]]; then
     travis_retry brew update > /dev/null && brew install ccache boost-build;
     fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then travis_retry brew install boost-python python2; fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
+      travis_retry brew install boost-python python2;
+      brew link --overwrite python@2;
+    fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
   # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)

@@ -66,6 +66,9 @@ namespace aux {
 
 	using sha512_hash = digest32<512>;
 
+	// internal
+	struct TORRENT_EXTRA_EXPORT hasher512
+	{
 	// this is a SHA-512 hash class.
 	//
 	// You use it by first instantiating it, then call ``update()`` to feed it
@@ -81,9 +84,6 @@ namespace aux {
 	// call ``reset()`` to reinitialize it.
 	//
 	// The built-in software version of the sha512-algorithm is from LibTomCrypt
-	// For more info, see ``src/sha512.cpp``.
-	struct TORRENT_EXTRA_EXPORT hasher512
-	{
 		hasher512();
 
 		// this is the same as default constructing followed by a call to

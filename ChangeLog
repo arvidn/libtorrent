@@ -1,6 +1,9 @@
 	* requires boost >= 1.66 to build
 	* update networking API to networking TS compatible boost.asio
 
+	* fix python bindings for peer_info
+	* support creating symlinks, for torrents with symlinks in them
+	* fix error in seed_mode flag
 	* support magnet link parameters with number siffixes
 	* consistently use "lt" namespace in examples and documentation
 	* fix Mingw build to use native cryptoAPI

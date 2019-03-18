@@ -872,37 +872,87 @@ TORRENT_TEST(parse_torrents)
 
 namespace {
 
-void test_resolve_duplicates(int test_case)
+struct file_t
+{
+	std::string filename;
+	int size;
+	file_flags_t flags;
+	string_view expected_filename;
+};
+
+std::vector<lt::aux::vector<file_t, lt::file_index_t>> const test_cases
+{
+	{
+		{"test/temporary.txt", 0x4000, {}, "test/temporary.txt"},
+		{"test/Temporary.txt", 0x4000, {}, "test/Temporary.1.txt"},
+		{"test/TeMPorArY.txT", 0x4000, {}, "test/TeMPorArY.2.txT"},
+		// a file with the same name in a seprate directory is fine
+		{"test/test/TEMPORARY.TXT", 0x4000, {}, "test/test/TEMPORARY.TXT"},
+	},
+	{
+		{"test/b.exe", 0x4000, {}, "test/b.exe"},
+		// duplicate of b.exe
+		{"test/B.ExE", 0x4000, {}, "test/B.1.ExE"},
+		// duplicate of b.exe
+		{"test/B.exe", 0x4000, {}, "test/B.2.exe"},
+		{"test/filler", 0x4000, {}, "test/filler"},
+	},
+	{
+		{"test/A/tmp", 0x4000, {}, "test/A/tmp"},
+		// a file may not have the same name as a directory
+		{"test/a", 0x4000, {}, "test/a.1"},
+		// duplicate of directory a
+		{"test/A", 0x4000, {}, "test/A.2"},
+		{"test/filler", 0x4000, {}, "test/filler"},
+	},
+	{
+		// a subset of this path collides with the next filename
+		{"test/long/path/name/that/collides", 0x4000, {}, "test/long/path/name/that/collides"},
+		// so this file needs to be renamed, to not collide with the path name
+		{"test/long/path", 0x4000, {}, "test/long/path.1"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files are allowed to collide, as long as they have the same size
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files of different sizes are NOT allowed to collide
+		{"test/.pad/1234", 0x8000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files are NOT allowed to collide with normal files
+		{"test/.pad/1234", 0x4000, {}, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// normal files are NOT allowed to collide with pad files
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, {}, "test/.pad/1234.1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files are NOT allowed to collide with directories
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234/filler-2", 0x4000, {}, "test/.pad/1234/filler-2"},
+	},
+};
+
+void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 {
 	file_storage fs;
-
-	switch (test_case)
-	{
-		case 0:
-			fs.add_file("test/temporary.txt", 0x4000);
-			fs.add_file("test/Temporary.txt", 0x4000);
-			fs.add_file("test/TeMPorArY.txT", 0x4000);
-			fs.add_file("test/test/TEMPORARY.TXT", 0x4000);
-			break;
-		case 1:
-			fs.add_file("test/b.exe", 0x4000);
-			fs.add_file("test/B.ExE", 0x4000);
-			fs.add_file("test/B.exe", 0x4000);
-			fs.add_file("test/filler", 0x4000);
-			break;
-		case 2:
-			fs.add_file("test/A/tmp", 0x4000);
-			fs.add_file("test/a", 0x4000);
-			fs.add_file("test/A", 0x4000);
-			fs.add_file("test/filler", 0x4000);
-			break;
-		case 3:
-			fs.add_file("test/long/path/name/that/collides", 0x4000);
-			fs.add_file("test/long/path", 0x4000);
-			fs.add_file("test/filler-1", 0x4000);
-			fs.add_file("test/filler-2", 0x4000);
-			break;
-	}
+	for (auto const& f : test) fs.add_file(f.filename, f.size, f.flags);
 
 	lt::create_torrent t(fs, 0x4000);
 
@@ -918,45 +968,13 @@ void test_resolve_duplicates(int test_case)
 	bencode(out, tor);
 
 	torrent_info ti(tmp, from_span);
-
-	aux::vector<aux::vector<char const*, file_index_t>> const filenames
-	{
-		{ // case 0
-			"test/temporary.txt",
-			"test/Temporary.1.txt", // duplicate of temporary.txt
-			"test/TeMPorArY.2.txT", // duplicate of temporary.txt
-			// a file with the same name in a seprate directory is fine
-			"test/test/TEMPORARY.TXT",
-		},
-		{ // case 1
-			"test/b.exe",
-			"test/B.1.ExE", // duplicate of b.exe
-			"test/B.2.exe", // duplicate of b.exe
-			"test/filler",
-		},
-		{ // case 2
-			"test/A/tmp",
-			"test/a.1", // a file may not have the same name as a directory
-			"test/A.2", // duplicate of directory a
-			"test/filler",
-		},
-		{ // case 3
-			// a subset of this path collides with the next filename
-			"test/long/path/name/that/collides",
-			// so this file needs to be renamed, to not collide with the path name
-			"test/long/path.1",
-			"test/filler-1",
-			"test/filler-2",
-		}
-	};
-
 	for (auto const i : fs.file_range())
 	{
 		std::string p = ti.files().file_path(i);
 		convert_path_to_posix(p);
-		std::printf("%s == %s\n", p.c_str(), filenames[test_case][i]);
+		std::printf("%s == %s\n", p.c_str(), test[i].expected_filename.to_string().c_str());
 
-		TEST_EQUAL(p, filenames[test_case][i]);
+		TEST_EQUAL(p, test[i].expected_filename);
 	}
 }
 
@@ -964,8 +982,8 @@ void test_resolve_duplicates(int test_case)
 
 TORRENT_TEST(resolve_duplicates)
 {
-	for (int i = 0; i < 4; ++i)
-		test_resolve_duplicates(i);
+	for (auto const& t : test_cases)
+		test_resolve_duplicates(t);
 }
 
 TORRENT_TEST(empty_file)

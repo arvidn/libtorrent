@@ -4364,15 +4364,50 @@ namespace aux {
 	}
 
 	void session_impl::insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
-		, std::string uuid)
+#if TORRENT_ABI_VERSION == 1
+		, std::string const uuid
+#endif
+		)
 	{
-		m_torrents.insert(std::make_pair(ih, t));
+		sha1_hash const next_lsd = m_next_lsd_torrent != m_torrents.end()
+			? m_next_lsd_torrent->first : sha1_hash();
+#ifndef TORRENT_DISABLE_DHT
+		sha1_hash const next_dht = m_next_dht_torrent != m_torrents.end()
+			? m_next_dht_torrent->first : sha1_hash();
+#endif
+
+		float const load_factor = m_torrents.load_factor();
+
+		m_torrents.emplace(ih, t);
+
+#if !defined TORRENT_DISABLE_ENCRYPTION
+		static char const req2[4] = {'r', 'e', 'q', '2'};
+		hasher h(req2);
+		h.update(ih);
+		// this is SHA1("req2" + info-hash), used for
+		// encrypted hand shakes
+		m_obfuscated_torrents.emplace(h.final(), t);
+#endif
+
+		// if this insert made the hash grow, the iterators became invalid
+		// we need to reset them
+		if (m_torrents.load_factor() < load_factor)
+		{
+			// this indicates the hash table re-hashed
+			if (!next_lsd.is_all_zeros())
+				m_next_lsd_torrent = m_torrents.find(next_lsd);
+#ifndef TORRENT_DISABLE_DHT
+			if (!next_dht.is_all_zeros())
+				m_next_dht_torrent = m_torrents.find(next_dht);
+#endif
+		}
+
 #if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		if (!uuid.empty()) m_uuids.insert(std::make_pair(uuid, t));
-#else
-		TORRENT_UNUSED(uuid);
 #endif
+
+		t->added();
 	}
 
 	void session_impl::set_queue_position(torrent* me, queue_position_t p)
@@ -4773,48 +4808,18 @@ namespace aux {
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
 #endif
 
-		sha1_hash const next_lsd = m_next_lsd_torrent != m_torrents.end()
-			? m_next_lsd_torrent->first : sha1_hash();
-#ifndef TORRENT_DISABLE_DHT
-		sha1_hash const next_dht = m_next_dht_torrent != m_torrents.end()
-			? m_next_dht_torrent->first : sha1_hash();
+		insert_torrent(params.info_hash, torrent_ptr
+#if TORRENT_ABI_VERSION == 1
+			//deprecated in 1.2
+			, params.uuid.empty()
+				? params.url.empty() ? std::string()
+				: params.url
+				: params.uuid
 #endif
-		float const load_factor = m_torrents.load_factor();
-
-		m_torrents.emplace(params.info_hash, torrent_ptr);
-
-#if !defined TORRENT_DISABLE_ENCRYPTION
-		static char const req2[4] = {'r', 'e', 'q', '2'};
-		hasher h(req2);
-		h.update(params.info_hash);
-		// this is SHA1("req2" + info-hash), used for
-		// encrypted hand shakes
-		m_obfuscated_torrents.emplace(h.final(), torrent_ptr);
-#endif
+		);
 
 		// once we successfully add the torrent, we can disarm the abort action
 		abort_torrent.disarm();
-		torrent_ptr->added();
-
-		// if this insert made the hash grow, the iterators became invalid
-		// we need to reset them
-		if (m_torrents.load_factor() < load_factor)
-		{
-			// this indicates the hash table re-hashed
-			if (!next_lsd.is_all_zeros())
-				m_next_lsd_torrent = m_torrents.find(next_lsd);
-#ifndef TORRENT_DISABLE_DHT
-			if (!next_dht.is_all_zeros())
-				m_next_dht_torrent = m_torrents.find(next_dht);
-#endif
-		}
-
-#if TORRENT_ABI_VERSION == 1
-		//deprecated in 1.2
-		if (!params.uuid.empty() || !params.url.empty())
-			m_uuids.emplace(params.uuid.empty()
-				? params.url : params.uuid, torrent_ptr);
-#endif
 
 		// recalculate auto-managed torrents sooner (or put it off)
 		// if another torrent will be added within one second from now

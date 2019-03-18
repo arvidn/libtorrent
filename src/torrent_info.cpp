@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #endif
 
+#include <unordered_map>
 #include <unordered_set>
 #include <cstdint>
 #include <iterator>
@@ -637,9 +638,8 @@ namespace {
 	void torrent_info::resolve_duplicate_filenames_slow()
 	{
 		INVARIANT_CHECK;
-		int cnt = 0;
 
-		std::unordered_set<std::string, string_hash_no_case, string_eq_no_case> files;
+		std::unordered_map<std::string, file_index_t, string_hash_no_case, string_eq_no_case> files;
 
 		std::vector<std::string> const& paths = m_files.paths();
 		files.reserve(paths.size() + aux::numeric_cast<std::size_t>(m_files.num_files()));
@@ -649,14 +649,14 @@ namespace {
 		for (auto const& i : paths)
 		{
 			std::string p = combine_path(m_files.name(), i);
-			files.insert(p);
+			files.insert({p, file_index_t{-1}});
 			while (has_parent_path(p))
 			{
-				p = parent_path(p);
+				p = parent_path(std::move(p));
 				// we don't want trailing slashes here
 				TORRENT_ASSERT(p[p.size() - 1] == TORRENT_SEPARATOR);
 				p.resize(p.size() - 1);
-				files.insert(p);
+				files.insert({p, file_index_t{-1}});
 			}
 		}
 
@@ -665,23 +665,31 @@ namespace {
 			// as long as this file already exists
 			// increase the counter
 			std::string filename = m_files.file_path(i);
-			if (!files.insert(filename).second)
-			{
-				std::string base = remove_extension(filename);
-				std::string ext = extension(filename);
-				do
-				{
-					++cnt;
-					char new_ext[50];
-					std::snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
-					filename = base + new_ext;
-				}
-				while (!files.insert(filename).second);
+			auto const ret = files.insert({filename, i});
+			if (ret.second) continue;
+			// pad files are allowed to collide with each-other, as long as they have
+			// the same size.
+			file_index_t const other_idx = ret.first->second;
+			if (other_idx != file_index_t{-1}
+				&& (m_files.file_flags(i) & file_storage::flag_pad_file)
+				&& (m_files.file_flags(other_idx) & file_storage::flag_pad_file)
+				&& m_files.file_size(i) == m_files.file_size(other_idx))
+				continue;
 
-				copy_on_write();
-				m_files.rename_file(i, filename);
+			std::string base = remove_extension(filename);
+			std::string ext = extension(filename);
+			int cnt = 0;
+			do
+			{
+				++cnt;
+				char new_ext[50];
+				std::snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
+				filename = base + new_ext;
 			}
-			cnt = 0;
+			while (!files.insert({filename, i}).second);
+
+			copy_on_write();
+			m_files.rename_file(i, filename);
 		}
 	}
 

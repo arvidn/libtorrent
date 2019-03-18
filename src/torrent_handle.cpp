@@ -78,7 +78,7 @@ namespace libtorrent {
 	constexpr status_flags_t torrent_handle::query_save_path;
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void TORRENT_NO_RETURN throw_invalid_handle()
+	[[noreturn]] void throw_invalid_handle()
 	{
 		throw system_error(errors::invalid_torrent_handle);
 	}

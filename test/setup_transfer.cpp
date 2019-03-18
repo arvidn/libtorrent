@@ -66,8 +66,18 @@ using namespace lt;
 #include <conio.h>
 #endif
 
-std::shared_ptr<torrent_info> generate_torrent()
+std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 {
+	if (with_files)
+	{
+		error_code ec;
+		create_directories("test_resume", ec);
+		std::vector<char> a(128 * 1024 * 8);
+		std::vector<char> b(128 * 1024);
+		std::ofstream("test_resume/tmp1").write(a.data(), std::streamsize(a.size()));
+		std::ofstream("test_resume/tmp2").write(b.data(), std::streamsize(b.size()));
+		std::ofstream("test_resume/tmp3").write(b.data(), std::streamsize(b.size()));
+	}
 	file_storage fs;
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
 	fs.add_file("test_resume/tmp2", 128 * 1024);

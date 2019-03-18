@@ -895,6 +895,7 @@ namespace {
 			case o::partfile_write: return -1;
 			case o::hostname_lookup: return -1;
 			case o::file_seek: return -1;
+			case o::symlink: return -1;
 		};
 		return -1;
 	}
@@ -1558,6 +1559,7 @@ namespace {
 			"partfile_write",
 			"hostname_lookup",
 			"file_seek"
+			"symlink"
 		};
 
 		int const idx = static_cast<int>(op);
@@ -1677,7 +1679,7 @@ namespace {
 	}
 
 	// TODO: 2 the salt here is allocated on the heap. It would be nice to
-	// allocate in in the stack_allocator
+	// allocate in the stack_allocator
 	dht_mutable_item_alert::dht_mutable_item_alert(aux::stack_allocator&
 		, std::array<char, 32> const& k
 		, std::array<char, 64> const& sig

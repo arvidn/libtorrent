@@ -41,11 +41,11 @@ namespace libtorrent { namespace aux {
 
 	template <typename T, typename... Args>
 #ifdef BOOST_NO_EXCEPTIONS
-	void TORRENT_NO_RETURN throw_ex(Args&&...) {
+	[[noreturn]] void throw_ex(Args&&...) {
 		std::terminate();
 	}
 #else
-	void TORRENT_NO_RETURN throw_ex(Args&&... args) {
+	[[noreturn]] void throw_ex(Args&&... args) {
 		throw T(std::forward<Args>(args)...);
 	}
 #endif

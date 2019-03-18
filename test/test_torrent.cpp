@@ -739,3 +739,26 @@ TORRENT_TEST(test_calc_bytes_all_pieces_two_pad)
 	auto const fs = test_fs();
 	TEST_EQUAL(calc_bytes(fs, piece_count{fs.num_pieces(), 2, true}), fs.total_size() - 2 * 0x4000);
 }
+
+#if TORRENT_HAS_SYMLINK
+TORRENT_TEST(symlinks_restore)
+{
+	// downloading test torrent with symlinks
+	std::string const work_dir = current_working_directory();
+	lt::add_torrent_params p;
+	p.ti = std::make_shared<lt::torrent_info>(combine_path(
+		combine_path(parent_path(work_dir), "test_torrents"), "symlink2.torrent"));
+	p.flags &= ~lt::torrent_flags::paused;
+	p.save_path = work_dir;
+	settings_pack pack = settings();
+	pack.set_int(libtorrent::settings_pack::alert_mask, libtorrent::alert::status_notification | libtorrent::alert::error_notification);
+	lt::session ses(std::move(pack));
+	ses.add_torrent(p);
+
+	wait_for_alert(ses, torrent_checked_alert::alert_type, "torrent_checked_alert");
+
+	std::string const f = combine_path(combine_path(work_dir, "Some.framework"), "SDL2");
+	TEST_CHECK(aux::get_file_attributes(f) & file_storage::flag_symlink);
+	TEST_EQUAL(aux::get_symlink_path(f), "Versions/A/SDL2");
+}
+#endif

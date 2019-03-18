@@ -46,6 +46,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/optional.hpp>
+
+#if TORRENT_HAS_SYMLINK
+#include <unistd.h> // for symlink()
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/storage.hpp"
@@ -278,24 +283,51 @@ namespace libtorrent {
 				break;
 			}
 
+
 			// if the file is empty and doesn't already exist, create it
 			// deliberately don't truncate files that already exist
 			// if a file is supposed to have size 0, but already exists, we will
 			// never truncate it to 0.
-			if (fs.file_size(file_index) == 0
-				&& err == boost::system::errc::no_such_file_or_directory)
+			if (fs.file_size(file_index) == 0)
 			{
-				// just creating the file is enough to make it zero-sized. If
-				// there's a race here and some other process truncates the file,
-				// it's not a problem, we won't access empty files ever again
-				ec.ec.clear();
-				auto f = open_file(sett, file_index, aux::open_mode::write
-					| aux::open_mode::random_access | aux::open_mode::truncate, ec);
-				if (ec)
+#if TORRENT_HAS_SYMLINK
+				// create symlinks
+				if (fs.file_flags(file_index) & file_storage::flag_symlink)
 				{
-					ec.file(file_index);
-					ec.operation = operation_t::file_fallocate;
-					return;
+					std::string path = fs.file_path(file_index, m_save_path);
+					create_directories(parent_path(path), ec.ec);
+					if (ec)
+					{
+						ec.ec = error_code(errno, generic_category());
+						ec.file(file_index);
+						ec.operation = operation_t::mkdir;
+						break;
+					}
+					if (::symlink(fs.symlink(file_index).c_str()
+							, fs.file_path(file_index, m_save_path).c_str()) != 0)
+					{
+						ec.ec = error_code(errno, generic_category());
+						ec.file(file_index);
+						ec.operation = operation_t::symlink;
+						break;
+					}
+				}
+				else
+#endif
+				if (err == boost::system::errc::no_such_file_or_directory)
+				{
+					// just creating the file is enough to make it zero-sized. If
+					// there's a race here and some other process truncates the file,
+					// it's not a problem, we won't access empty files ever again
+					ec.ec.clear();
+					auto f = open_file(sett, file_index, aux::open_mode::write
+						| aux::open_mode::random_access | aux::open_mode::truncate, ec);
+					if (ec)
+					{
+						ec.file(file_index);
+						ec.operation = operation_t::file_fallocate;
+						return;
+					}
 				}
 			}
 			ec.ec.clear();

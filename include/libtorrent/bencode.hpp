@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // OVERVIEW
 //
-// Bencoding is a common representation in bittorrent used for for dictionary,
+// Bencoding is a common representation in bittorrent used for dictionary,
 // list, int and string hierarchies. It's used to encode .torrent files and
 // some messages in the network protocol. libtorrent also uses it to store
 // settings, resume data and other session state.

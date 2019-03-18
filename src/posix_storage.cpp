@@ -37,6 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/torrent_status.hpp"
 
+#if TORRENT_HAS_SYMLINK
+#include <unistd.h> // for symlink()
+#endif
+
 using namespace libtorrent::flags; // for flag operators
 
 namespace libtorrent {
@@ -429,10 +433,10 @@ namespace aux {
 			}
 
 			// ignore pad files
-			if (files().pad_file_at(file_index)) continue;
+			if (fs.pad_file_at(file_index)) continue;
 
 			error_code err;
-			m_stat_cache.get_filesize(file_index, files(), m_save_path, err);
+			m_stat_cache.get_filesize(file_index, fs, m_save_path, err);
 
 			if (err && err != boost::system::errc::no_such_file_or_directory)
 			{
@@ -446,21 +450,47 @@ namespace aux {
 			// deliberately don't truncate files that already exist
 			// if a file is supposed to have size 0, but already exists, we will
 			// never truncate it to 0.
-			if (files().file_size(file_index) == 0
-				&& err == boost::system::errc::no_such_file_or_directory)
+			if (fs.file_size(file_index) == 0)
 			{
-				// just creating the file is enough to make it zero-sized. If
-				// there's a race here and some other process truncates the file,
-				// it's not a problem, we won't access empty files ever again
-				ec.ec.clear();
-				FILE* f = open_file(file_index, aux::open_mode::write, 0, ec);
-				if (ec)
+#if TORRENT_HAS_SYMLINK
+				// create symlinks
+				if (fs.file_flags(file_index) & file_storage::flag_symlink)
 				{
-					ec.file(file_index);
-					ec.operation = operation_t::file_fallocate;
-					return;
+					std::string path = fs.file_path(file_index, m_save_path);
+					create_directories(parent_path(path), ec.ec);
+					if (ec)
+					{
+						ec.ec = error_code(errno, generic_category());
+						ec.file(file_index);
+						ec.operation = operation_t::mkdir;
+						break;
+					}
+					if (::symlink(fs.symlink(file_index).c_str()
+							, fs.file_path(file_index, m_save_path).c_str()) != 0)
+					{
+						ec.ec = error_code(errno, generic_category());
+						ec.file(file_index);
+						ec.operation = operation_t::symlink;
+						break;
+					}
 				}
-				fclose(f);
+				else
+#endif
+				if (err == boost::system::errc::no_such_file_or_directory)
+				{
+					// just creating the file is enough to make it zero-sized. If
+					// there's a race here and some other process truncates the file,
+					// it's not a problem, we won't access empty files ever again
+					ec.ec.clear();
+					FILE* f = open_file(file_index, aux::open_mode::write, 0, ec);
+					if (ec)
+					{
+						ec.file(file_index);
+						ec.operation = operation_t::file_fallocate;
+						return;
+					}
+					fclose(f);
+				}
 			}
 			ec.ec.clear();
 		}

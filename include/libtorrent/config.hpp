@@ -162,6 +162,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // __APPLE__
 
+#define TORRENT_HAS_SYMLINK 1
 #define TORRENT_USE_DEV_RANDOM 1
 #ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 1
@@ -182,6 +183,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 1
 #endif
+
+#define TORRENT_HAS_SYMLINK 1
 #define TORRENT_USE_MADVISE 1
 #define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFADDRS 0
@@ -304,6 +307,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAVE_MMAP 1
 #endif
 #define TORRENT_USE_MADVISE 1
+#define TORRENT_HAS_SYMLINK 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -319,6 +323,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HURD
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_IFCONF 1
+#define TORRENT_HAS_SYMLINK 1
 
 // ==== eCS(OS/2) ===
 #elif defined __OS2__
@@ -339,16 +344,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define TORRENT_UNUSED(x) (void)(x)
-
-// at the highest warning level, clang actually warns about functions
-// that could be marked noreturn.
-#if defined __clang__ || defined __GNUC__
-#define TORRENT_NO_RETURN __attribute((noreturn))
-#elif _MSC_VER
-#define TORRENT_NO_RETURN __declspec(noreturn)
-#else
-#define TORRENT_NO_RETURN
-#endif
 
 #if defined __GNUC__ || defined __clang__
 #define TORRENT_FORMAT(fmt, ellipsis) __attribute__((__format__(__printf__, fmt, ellipsis)))
@@ -489,12 +484,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_AUTO_RETURN_TYPES 0
 #endif
 
-#if defined __GNUC__
-#define TORRENT_FUNCTION __PRETTY_FUNCTION__
-#else
-#define TORRENT_FUNCTION __FUNCTION__
+#ifndef TORRENT_HAS_SYMLINK
+#define TORRENT_HAS_SYMLINK 0
 #endif
-
 
 // debug builds have asserts enabled by default, release
 // builds have asserts if they are explicitly enabled by

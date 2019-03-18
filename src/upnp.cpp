@@ -638,7 +638,7 @@ void upnp::on_reply(udp::endpoint const& from, span<char const> buffer)
 	if (m_ignore_non_routers)
 	{
 		ADD_OUTSTANDING_ASYNC("upnp::map_timer");
-		// check back in in a little bit to see if we have seen any
+		// check back in a little bit to see if we have seen any
 		// devices at one of our default routes. If not, we want to override
 		// ignoring them and use them instead (better than not working).
 		m_map_timer.expires_after(seconds(1));
