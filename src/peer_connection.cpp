@@ -5726,10 +5726,9 @@ namespace libtorrent {
 		return {};
 	}
 
-	void peer_connection::send_buffer(span<char const> buf, std::uint32_t const flags)
+	void peer_connection::send_buffer(span<char const> buf)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_UNUSED(flags);
 
 		int const free_space = std::min(
 			m_send_buffer.space_in_last_buffer(), int(buf.size()));
