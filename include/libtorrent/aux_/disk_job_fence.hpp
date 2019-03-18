@@ -46,14 +46,14 @@ struct counters;
 
 namespace aux {
 
-	// implements the disk I/O job fence used by the storage_interface
+	// implements the disk I/O job fence used by the default_storage
 	// to provide to the disk thread. Whenever a disk job needs
 	// exclusive access to the storage for that torrent, it raises
 	// the fence, blocking all new jobs, until there are no longer
 	// any outstanding jobs on the torrent, then the fence is lowered
 	// and it can be performed, along with the backlog of jobs that
 	// accrued while the fence was up
-	struct TORRENT_EXPORT disk_job_fence
+	struct TORRENT_EXTRA_EXPORT disk_job_fence
 	{
 		disk_job_fence() = default;
 
