@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
-#include "libtorrent/string_util.hpp" // for split_string
 #include "libtorrent/string_view.hpp"
 #include "test.hpp"
 #include <vector>
@@ -273,40 +272,6 @@ TORRENT_TEST(paths)
 #endif
 
 	TEST_EQUAL(complete("."), current_working_directory());
-}
-
-// test split_string
-TORRENT_TEST(split_string)
-{
-	char const* tags[10];
-	char tags_str[] = "  this  is\ta test\t string\x01to be split  and it cannot "
-		"extend over the limit of elements \t";
-	int ret = split_string(tags, 10, tags_str);
-
-	TEST_CHECK(ret == 10);
-	TEST_CHECK(tags[0] == "this"_sv);
-	TEST_CHECK(tags[1] == "is"_sv);
-	TEST_CHECK(tags[2] == "a"_sv);
-	TEST_CHECK(tags[3] == "test"_sv);
-	TEST_CHECK(tags[4] == "string"_sv);
-	TEST_CHECK(tags[5] == "to"_sv);
-	TEST_CHECK(tags[6] == "be"_sv);
-	TEST_CHECK(tags[7] == "split"_sv);
-	TEST_CHECK(tags[8] == "and"_sv);
-	TEST_CHECK(tags[9] == "it"_sv);
-
-	// replace_extension
-	std::string test = "foo.bar";
-	replace_extension(test, "txt");
-	TEST_EQUAL(test, "foo.txt");
-
-	test = "_";
-	replace_extension(test, "txt");
-	TEST_EQUAL(test, "_.txt");
-
-	test = "1.2.3/_";
-	replace_extension(test, "txt");
-	TEST_EQUAL(test, "1.2.3/_.txt");
 }
 
 // file class
