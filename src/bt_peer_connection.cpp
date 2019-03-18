@@ -349,7 +349,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_ALL");
 #endif
-		send_message(msg_have_all, counters::num_outgoing_have_all, 0);
+		send_message(msg_have_all, counters::num_outgoing_have_all);
 	}
 
 	void bt_peer_connection::write_have_none()
@@ -359,7 +359,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_NONE");
 #endif
-		send_message(msg_have_none, counters::num_outgoing_have_none, 0);
+		send_message(msg_have_none, counters::num_outgoing_have_none);
 	}
 
 	void bt_peer_connection::write_reject_request(peer_request const& r)
@@ -376,7 +376,7 @@ namespace {
 			, r.start, r.length);
 #endif
 
-		send_message(msg_reject_request, counters::num_outgoing_reject, 0
+		send_message(msg_reject_request, counters::num_outgoing_reject
 			, static_cast<int>(r.piece), r.start, r.length);
 	}
 
@@ -393,7 +393,7 @@ namespace {
 
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
-		send_message(msg_allowed_fast, counters::num_outgoing_allowed_fast, 0
+		send_message(msg_allowed_fast, counters::num_outgoing_allowed_fast
 			, static_cast<int>(piece));
 	}
 
@@ -421,7 +421,7 @@ namespace {
 		}
 #endif
 
-		send_message(msg_suggest_piece, counters::num_outgoing_suggest, 0
+		send_message(msg_suggest_piece, counters::num_outgoing_suggest
 			, static_cast<int>(piece));
 	}
 
@@ -1939,7 +1939,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_cancel, counters::num_outgoing_cancel, 0
+		send_message(msg_cancel, counters::num_outgoing_cancel
 			, static_cast<int>(r.piece), r.start, r.length);
 
 		if (!m_supports_fast) incoming_reject_request(r);
@@ -1949,7 +1949,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_request, counters::num_outgoing_request, message_type_request
+		send_message(msg_request, counters::num_outgoing_request
 			, static_cast<int>(r.piece), r.start, r.length);
 	}
 
@@ -2195,14 +2195,14 @@ namespace {
 		INVARIANT_CHECK;
 
 		if (is_choked()) return;
-		send_message(msg_choke, counters::num_outgoing_choke, 0);
+		send_message(msg_choke, counters::num_outgoing_choke);
 	}
 
 	void bt_peer_connection::write_unchoke()
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_unchoke, counters::num_outgoing_unchoke, 0);
+		send_message(msg_unchoke, counters::num_outgoing_unchoke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
@@ -2216,14 +2216,14 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_interested, counters::num_outgoing_interested, 0);
+		send_message(msg_interested, counters::num_outgoing_interested);
 	}
 
 	void bt_peer_connection::write_not_interested()
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_not_interested, counters::num_outgoing_not_interested, 0);
+		send_message(msg_not_interested, counters::num_outgoing_not_interested);
 	}
 
 	void bt_peer_connection::write_have(piece_index_t const index)
@@ -2237,7 +2237,7 @@ namespace {
 		// there instead
 		if (!m_sent_bitfield) return;
 
-		send_message(msg_have, counters::num_outgoing_have, 0
+		send_message(msg_have, counters::num_outgoing_have
 			, static_cast<int>(index));
 	}
 

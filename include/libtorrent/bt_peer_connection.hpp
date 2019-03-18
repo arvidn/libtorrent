@@ -271,7 +271,6 @@ namespace libtorrent {
 		template <typename... Args>
 		void send_message(message_type const type
 			, counters::stats_counter_t const counter
-			, std::uint32_t flags
 			, Args... args)
 		{
 			TORRENT_ASSERT(m_sent_handshake);
@@ -285,7 +284,7 @@ namespace libtorrent {
 			int tmp[] = {0, (detail::write_int32(args, ptr), 0)...};
 			TORRENT_UNUSED(tmp);
 
-			send_buffer(msg, flags);
+			send_buffer(msg);
 
 			stats_counters().inc_stats_counter(counter);
 		}
