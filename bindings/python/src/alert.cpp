@@ -439,7 +439,7 @@ void bind_alert()
         ;
 
     class_<peer_request>("peer_request")
-        .def_readonly("piece", &peer_request::piece)
+        .add_property("piece", make_getter(&peer_request::piece, by_value()))
         .def_readonly("start", &peer_request::start)
         .def_readonly("length", &peer_request::length)
         .def(self == self)
