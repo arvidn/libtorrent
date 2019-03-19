@@ -817,13 +817,14 @@ namespace {
 
 	sha256_hash file_storage::root(file_index_t const index) const
 	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		if (m_files[index].root == nullptr) return sha256_hash();
 		return sha256_hash(m_files[index].root);
 	}
 
 	std::string const& file_storage::symlink(file_index_t const index) const
 	{
-		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		internal_file_entry const& fe = m_files[index];
 		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
 		return m_symlinks[fe.symlink_index];
@@ -831,6 +832,7 @@ namespace {
 
 	std::time_t file_storage::mtime(file_index_t const index) const
 	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		if (index >= m_mtime.end_index()) return 0;
 		return m_mtime[index];
 	}
@@ -1085,14 +1087,15 @@ namespace {
 
 	std::time_t file_storage::mtime(internal_file_entry const& fe) const
 	{
-		int index = int(&fe - &m_files[0]);
+		int const index = int(&fe - &m_files.front());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		if (index >= int(m_mtime.size())) return 0;
 		return m_mtime[index];
 	}
 
 	int file_storage::file_index(internal_file_entry const& fe) const
 	{
-		int index = int(&fe - &m_files[0]);
+		int const index = int(&fe - &m_files.front());
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		return index;
 	}
@@ -1100,7 +1103,8 @@ namespace {
 	std::string file_storage::file_path(internal_file_entry const& fe
 		, std::string const& save_path) const
 	{
-		int const index = int(&fe - &m_files[0]);
+		int const index = int(&fe - &m_files.front());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		return file_path(index, save_path);
 	}
 
