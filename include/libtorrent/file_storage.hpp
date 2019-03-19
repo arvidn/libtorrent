@@ -165,22 +165,10 @@ namespace libtorrent {
 		// that's why it's private, to keep people away from it
 		char const* name;
 	public:
-
-		// the sha1 hash of the file, nullptr if unknown
-		// if hash_is_owned is false, this points into the .torrent file
-		// in memory which is _not_ owned by this file_storage object.
-		// It's simply a non-owning pointer.
-		// It is the user's responsibility that the hash stays valid
-		// throughout the lifetime of this file_storage object.
-		char const* hash;
-
 		// the sha256 root of the merkle tree for this file
 		// like hash, this may be a pointer into the .torrent file or
 		// an owned pointer depending on the value of root_is_owned
 		char const* root;
-
-		// the modification time of the file, zero if unknown
-		std::time_t mtime;
 
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
@@ -192,7 +180,6 @@ namespace libtorrent {
 		// in this field contains the full, absolute path
 		// to the file
 		std::uint32_t path_index:30;
-		std::uint32_t hash_is_owned:1;
 		std::uint32_t root_is_owned:1;
 	};
 
@@ -589,10 +576,27 @@ namespace libtorrent {
 		// the list of files that this torrent consists of
 		aux::vector<internal_file_entry, file_index_t> m_files;
 
+		// if there are sha1 hashes for each individual file there are as many
+		// entries in this array as the m_files array. Each entry in m_files has
+		// a corresponding hash pointer in this array. The reason to split it up
+		// in separate arrays is to save memory in case the torrent doesn't have
+		// file hashes
+		// the pointers in this vector are pointing into the .torrent file in
+		// memory which is _not_ owned by this file_storage object. It's simply
+		// a non-owning pointer. It is the user's responsibility that the hash
+		// stays valid throughout the lifetime of this file_storage object.
+		aux::vector<char const*, file_index_t> m_file_hashes;
+
 		// for files that are symlinks, the symlink
 		// path_index in the internal_file_entry indexes
 		// this vector of strings
 		std::vector<std::string> m_symlinks;
+
+		// the modification times of each file. This vector
+		// is empty if no file have a modification time.
+		// each element corresponds to the file with the same
+		// index in m_files
+		aux::vector<std::time_t, file_index_t> m_mtime;
 
 		// all unique paths files have. The internal_file_entry::path_index
 		// points into this array. The paths don't include the root directory

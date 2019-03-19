@@ -225,11 +225,8 @@ namespace {
 		, executable_attribute(false)
 		, symlink_attribute(false)
 		, name(nullptr)
-		, hash(nullptr)
 		, root(nullptr)
-		, mtime(0)
 		, path_index(internal_file_entry::no_path)
-		, hash_is_owned(0)
 		, root_is_owned(0)
 	{}
 
@@ -249,21 +246,12 @@ namespace {
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
 		, name(nullptr)
-		, hash(fe.hash)
 		, root(fe.root)
-		, mtime(fe.mtime)
 		, path_index(fe.path_index)
-		, hash_is_owned(fe.hash_is_owned)
 		, root_is_owned(fe.root_is_owned)
 	{
 		bool const borrow = fe.name_len != name_is_owned;
 		set_name(fe.filename(), borrow);
-		if (fe.hash_is_owned)
-		{
-			char* new_hash = new char[20];
-			std::memcpy(new_hash, fe.hash, 20);
-			hash = new_hash;
-		}
 		if (fe.root_is_owned)
 		{
 			char* new_root = new char[32];
@@ -289,19 +277,6 @@ namespace {
 		// same metadata buffer
 		bool const borrow = fe.name_len != name_is_owned;
 		set_name(fe.filename(), borrow);
-
-		mtime = fe.mtime;
-
-		if (fe.hash_is_owned)
-		{
-			char* new_hash = new char[20];
-			std::memcpy(new_hash, fe.hash, 20);
-			hash = new_hash;
-		}
-		else
-		{
-			hash = fe.hash;
-		}
 		if (fe.root_is_owned)
 		{
 			char* new_root = new char[32];
@@ -327,18 +302,13 @@ namespace {
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
 		, name(fe.name)
-		, hash(fe.hash)
 		, root(fe.root)
-		, mtime(fe.mtime)
 		, path_index(fe.path_index)
-		, hash_is_owned(fe.hash_is_owned)
 		, root_is_owned(fe.root_is_owned)
 	{
 		fe.name_len = 0;
 		fe.name = nullptr;
-		fe.hash_is_owned = 1;
 		fe.root_is_owned = 1;
-		fe.hash = nullptr;
 		fe.root = nullptr;
 	}
 
@@ -355,18 +325,13 @@ namespace {
 		symlink_attribute = fe.symlink_attribute;
 		no_root_dir = fe.no_root_dir;
 		name = fe.name;
-		hash = fe.hash;
 		root = fe.root;
-		mtime = fe.mtime;
 		name_len = fe.name_len;
-		hash_is_owned = fe.hash_is_owned;
 		root_is_owned = fe.root_is_owned;
 
 		fe.name_len = 0;
 		fe.name = nullptr;
-		fe.hash_is_owned = 1;
 		fe.root_is_owned = 1;
-		fe.hash = nullptr;
 		fe.root = nullptr;
 		return *this;
 	}
@@ -412,7 +377,12 @@ namespace {
 		{
 			if (f.name_len == internal_file_entry::name_is_owned) continue;
 			f.name += off;
-			if (f.hash != nullptr) f.hash += off;
+		}
+
+		for (auto& h : m_file_hashes)
+		{
+			if (h == nullptr) continue;
+			h += off;
 		}
 	}
 
@@ -710,8 +680,7 @@ namespace {
 			}
 		}
 
-		// this is poor-man's emplace_back()
-		m_files.resize(m_files.size() + 1);
+		m_files.emplace_back();
 		internal_file_entry& e = m_files.back();
 
 		// the last argument specified whether the function should also set
@@ -731,10 +700,13 @@ namespace {
 		e.hidden_attribute = bool(file_flags & file_storage::flag_hidden);
 		e.executable_attribute = bool(file_flags & file_storage::flag_executable);
 		e.symlink_attribute = bool(file_flags & file_storage::flag_symlink);
-		e.hash = filehash;
 		e.root = root_hash;
-		e.mtime = mtime;
 
+		if (filehash)
+		{
+			if (m_file_hashes.size() < m_files.size()) m_file_hashes.resize(m_files.size());
+			m_file_hashes[last_file()] = filehash;
+		}
 		if (!symlink_path.empty()
 			&& m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
 		{
@@ -744,6 +716,11 @@ namespace {
 		else
 		{
 			e.symlink_attribute = false;
+		}
+		if (mtime)
+		{
+			if (m_mtime.size() < m_files.size()) m_mtime.resize(m_files.size());
+			m_mtime[last_file()] = std::time_t(mtime);
 		}
 
 		m_total_size += e.size;
@@ -774,19 +751,21 @@ namespace {
 
 	sha1_hash file_storage::hash(file_index_t const index) const
 	{
-		if (m_files[index].hash == nullptr) return sha1_hash();
-		return sha1_hash(m_files[index].hash);
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
+		if (index >= m_file_hashes.end_index()) return sha1_hash();
+		return sha1_hash(m_file_hashes[index]);
 	}
 
 	sha256_hash file_storage::root(file_index_t index) const
 	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		if (m_files[index].root == nullptr) return sha256_hash();
 		return sha256_hash(m_files[index].root);
 	}
 
 	std::string const& file_storage::symlink(file_index_t const index) const
 	{
-		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		internal_file_entry const& fe = m_files[index];
 		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
 		return m_symlinks[fe.symlink_index];
@@ -794,7 +773,9 @@ namespace {
 
 	std::time_t file_storage::mtime(file_index_t const index) const
 	{
-		return m_files[index].mtime;
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
+		if (index >= m_mtime.end_index()) return 0;
+		return m_mtime[index];
 	}
 
 namespace {
@@ -1020,10 +1001,10 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
-		int index = int(&fe - &m_files.front());
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
-		if (m_files[index].hash == nullptr) return sha1_hash();
-		return sha1_hash(m_files[index].hash);
+		int const index = int(&fe - &m_files.front());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
+		if (index >= int(m_file_hashes.size())) return sha1_hash(nullptr);
+		return sha1_hash(m_file_hashes[index]);
 	}
 
 	std::string const& file_storage::symlink(internal_file_entry const& fe) const
@@ -1034,14 +1015,15 @@ namespace {
 
 	std::time_t file_storage::mtime(internal_file_entry const& fe) const
 	{
-		int index = int(&fe - &m_files.front());
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
-		return m_files[index].mtime;
+		int const index = int(&fe - &m_files.front());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
+		if (index >= int(m_mtime.size())) return 0;
+		return m_mtime[index];
 	}
 
 	int file_storage::file_index(internal_file_entry const& fe) const
 	{
-		int index = int(&fe - &m_files.front());
+		int const index = int(&fe - &m_files.front());
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		return index;
 	}
@@ -1050,6 +1032,7 @@ namespace {
 		, std::string const& save_path) const
 	{
 		int const index = int(&fe - &m_files.front());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		return file_path(index, save_path);
 	}
 
@@ -1081,7 +1064,9 @@ namespace {
 	{
 		using std::swap;
 		swap(ti.m_files, m_files);
+		swap(ti.m_file_hashes, m_file_hashes);
 		swap(ti.m_symlinks, m_symlinks);
+		swap(ti.m_mtime, m_mtime);
 		swap(ti.m_paths, m_paths);
 		swap(ti.m_name, m_name);
 		swap(ti.m_total_size, m_total_size);
