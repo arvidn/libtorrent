@@ -94,6 +94,9 @@ class test_torrent_handle(unittest.TestCase):
         self.h.connect_peer(('127.0.0.3', 6881), flags=2)
         self.h.connect_peer(('127.0.0.4', 6881), flags=2, source=4)
 
+        torrent_files = self.h.torrent_file()
+        print(torrent_files.map_file(0, 0, 0).piece)
+
         print(self.h.queue_position())
 
     def test_torrent_handle_in_set(self):
