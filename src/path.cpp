@@ -531,25 +531,6 @@ namespace {
 		return f.substr(0, aux::numeric_cast<std::size_t>(ext - &f[0]));
 	}
 
-	void replace_extension(std::string& f, std::string const& ext)
-	{
-		for (int i = int(f.size()) - 1; i >= 0; --i)
-		{
-			std::size_t const idx = std::size_t(i);
-			if (f[idx] == '/') break;
-#ifdef TORRENT_WINDOWS
-			if (f[idx] == '\\') break;
-#endif
-
-			if (f[idx] != '.') continue;
-
-			f.resize(idx);
-			break;
-		}
-		f += '.';
-		f += ext;
-	}
-
 	bool is_root_path(std::string const& f)
 	{
 		if (f.empty()) return false;
