@@ -163,12 +163,11 @@ namespace libtorrent {
 	private:
 		// This string is not necessarily 0-terminated!
 		// that's why it's private, to keep people away from it
-		char const* name;
+		char const* name = nullptr;
 	public:
 		// the sha256 root of the merkle tree for this file
-		// like hash, this may be a pointer into the .torrent file or
-		// an owned pointer depending on the value of root_is_owned
-		char const* root;
+		// this is a pointer into the .torrent file
+		char const* root = nullptr;
 
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
@@ -179,8 +178,7 @@ namespace libtorrent {
 		// path_is_absolute means the filename
 		// in this field contains the full, absolute path
 		// to the file
-		std::uint32_t path_index:30;
-		std::uint32_t root_is_owned:1;
+		std::uint32_t path_index = internal_file_entry::no_path;
 	};
 
 

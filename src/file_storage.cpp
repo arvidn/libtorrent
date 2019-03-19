@@ -224,10 +224,6 @@ namespace {
 		, hidden_attribute(false)
 		, executable_attribute(false)
 		, symlink_attribute(false)
-		, name(nullptr)
-		, root(nullptr)
-		, path_index(internal_file_entry::no_path)
-		, root_is_owned(0)
 	{}
 
 	internal_file_entry::~internal_file_entry()
@@ -245,19 +241,11 @@ namespace {
 		, hidden_attribute(fe.hidden_attribute)
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
-		, name(nullptr)
 		, root(fe.root)
 		, path_index(fe.path_index)
-		, root_is_owned(fe.root_is_owned)
 	{
 		bool const borrow = fe.name_len != name_is_owned;
 		set_name(fe.filename(), borrow);
-		if (fe.root_is_owned)
-		{
-			char* new_root = new char[32];
-			std::memcpy(new_root, fe.root, 32);
-			root = new_root;
-		}
 	}
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe) &
@@ -272,21 +260,12 @@ namespace {
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
 		no_root_dir = fe.no_root_dir;
+		root = fe.root;
 
 		// if the name is not owned, don't allocate memory, we can point into the
 		// same metadata buffer
 		bool const borrow = fe.name_len != name_is_owned;
 		set_name(fe.filename(), borrow);
-		if (fe.root_is_owned)
-		{
-			char* new_root = new char[32];
-			std::memcpy(new_root, fe.root, 32);
-			root = new_root;
-		}
-		else
-		{
-			root = fe.root;
-		}
 
 		return *this;
 	}
@@ -304,12 +283,9 @@ namespace {
 		, name(fe.name)
 		, root(fe.root)
 		, path_index(fe.path_index)
-		, root_is_owned(fe.root_is_owned)
 	{
 		fe.name_len = 0;
 		fe.name = nullptr;
-		fe.root_is_owned = 1;
-		fe.root = nullptr;
 	}
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry&& fe) & noexcept
@@ -327,12 +303,9 @@ namespace {
 		name = fe.name;
 		root = fe.root;
 		name_len = fe.name_len;
-		root_is_owned = fe.root_is_owned;
 
 		fe.name_len = 0;
 		fe.name = nullptr;
-		fe.root_is_owned = 1;
-		fe.root = nullptr;
 		return *this;
 	}
 
@@ -375,8 +348,9 @@ namespace {
 	{
 		for (auto& f : m_files)
 		{
-			if (f.name_len == internal_file_entry::name_is_owned) continue;
-			f.name += off;
+			if (f.name_len != internal_file_entry::name_is_owned)
+				f.name += off;
+			if (f.root != nullptr) f.root += off;
 		}
 
 		for (auto& h : m_file_hashes)
@@ -756,7 +730,7 @@ namespace {
 		return sha1_hash(m_file_hashes[index]);
 	}
 
-	sha256_hash file_storage::root(file_index_t index) const
+	sha256_hash file_storage::root(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		if (m_files[index].root == nullptr) return sha256_hash();
