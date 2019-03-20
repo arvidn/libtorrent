@@ -1238,7 +1238,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 5)
 		{
 			disconnect(errors::invalid_suggest, operation_t::bittorrent, peer_error);
 			return;
@@ -1258,7 +1258,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 1)
 		{
 			disconnect(errors::invalid_have_all, operation_t::bittorrent, peer_error);
 			return;
@@ -1271,7 +1271,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 1)
 		{
 			disconnect(errors::invalid_have_none, operation_t::bittorrent, peer_error);
 			return;
@@ -1284,7 +1284,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 13)
 		{
 			disconnect(errors::invalid_reject, operation_t::bittorrent, peer_error);
 			return;
@@ -1308,7 +1308,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 5)
 		{
 			disconnect(errors::invalid_allow_fast, operation_t::bittorrent, peer_error);
 			return;
@@ -1355,14 +1355,14 @@ namespace {
 
 		if (addr_type == 0)
 		{
-			if (int(recv_buffer.size()) < 2 + 4 + 2) return;
+			if (int(recv_buffer.size()) != 2 + 4 + 2) return;
 			// IPv4 address
 			ep = detail::read_v4_endpoint<tcp::endpoint>(ptr);
 		}
 		else if (addr_type == 1)
 		{
 			// IPv6 address
-			if (int(recv_buffer.size()) < 2 + 18 + 2) return;
+			if (int(recv_buffer.size()) != 2 + 18 + 2) return;
 			ep = detail::read_v6_endpoint<tcp::endpoint>(ptr);
 		}
 		else
