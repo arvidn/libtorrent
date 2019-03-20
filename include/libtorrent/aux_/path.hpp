@@ -136,9 +136,10 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT void hard_link(std::string const& file
 		, std::string const& link, error_code& ec);
 
-	TORRENT_EXTRA_EXPORT std::string split_path(std::string const& f
-		, bool only_first_part = false);
-	TORRENT_EXTRA_EXPORT char const* next_path_element(char const* p);
+	// split out a path segment from the left side or right side
+	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> rsplit_path(string_view p);
+	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> lsplit_path(string_view p);
+
 	TORRENT_EXTRA_EXPORT std::string extension(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string remove_extension(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_root_path(std::string const& f);
@@ -147,7 +148,6 @@ namespace libtorrent {
 	// internal used by create_torrent.hpp
 	TORRENT_EXTRA_EXPORT std::string parent_path(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool has_parent_path(std::string const& f);
-	TORRENT_EXTRA_EXPORT char const* filename_cstr(char const* f);
 
 	// internal used by create_torrent.hpp
 	TORRENT_EXTRA_EXPORT std::string filename(std::string const& f);
