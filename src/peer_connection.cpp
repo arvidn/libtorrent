@@ -1518,6 +1518,20 @@ namespace libtorrent {
 		if (is_disconnecting()) return;
 
 		int const block_size = t->block_size();
+		if (r.piece < piece_index_t{}
+			|| r.piece >= t->torrent_file().files().end_piece()
+			|| r.start < 0
+			|| r.start >= block_size
+			|| (r.start % block_size) != 0
+			|| r.length != std::min(t->torrent_file().piece_size(r.piece) - r.start, block_size))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::info, "REJECT_PIECE", "invalid reject message (%d, %d, %d)"
+				, int(r.piece), int(r.start), int(r.length));
+#endif
+			return;
+		}
+
 		auto const dlq_iter = std::find_if(
 			m_download_queue.begin(), m_download_queue.end()
 			, [&r, block_size](pending_block const& pb)
@@ -1525,7 +1539,6 @@ namespace libtorrent {
 				auto const& b = pb.block;
 				if (b.piece_index != r.piece) return false;
 				if (b.block_index != r.start / block_size) return false;
-				if (r.start % block_size != 0) return false;
 				return true;
 			});
 
@@ -1561,7 +1574,8 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		else
 		{
-			peer_log(peer_log_alert::info, "REJECT_PIECE", "piece not in request queue");
+			peer_log(peer_log_alert::info, "REJECT_PIECE", "piece not in request queue (%d, %d, %d)"
+				, int(r.piece), int(r.start), int(r.length));
 		}
 #endif
 		if (has_peer_choked())
