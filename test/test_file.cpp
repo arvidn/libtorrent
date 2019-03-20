@@ -188,11 +188,6 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(remove_extension("blah.foo.bar"), "blah.foo");
 	TEST_EQUAL(remove_extension("blah.foo."), "blah.foo");
 
-	TEST_EQUAL(filename("blah"), "blah");
-	TEST_EQUAL(filename("/blah/foo/bar"), "bar");
-	TEST_EQUAL(filename("/blah/foo/bar/"), "bar");
-	TEST_EQUAL(filename("blah/"), "blah");
-
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(is_root_path("c:\\blah"), false);
 	TEST_EQUAL(is_root_path("c:\\"), true);
@@ -272,6 +267,54 @@ TORRENT_TEST(paths)
 #endif
 
 	TEST_EQUAL(complete("."), current_working_directory());
+}
+
+TORRENT_TEST(filename)
+{
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(filename("blah"), "blah");
+	TEST_EQUAL(filename("\\blah\\foo\\bar"), "bar");
+	TEST_EQUAL(filename("\\blah\\foo\\bar\\"), "bar");
+	TEST_EQUAL(filename("blah\\"), "blah");
+#endif
+	TEST_EQUAL(filename("blah"), "blah");
+	TEST_EQUAL(filename("/blah/foo/bar"), "bar");
+	TEST_EQUAL(filename("/blah/foo/bar/"), "bar");
+	TEST_EQUAL(filename("blah/"), "blah");
+}
+
+TORRENT_TEST(split_path)
+{
+	using r = std::pair<string_view, string_view>;
+
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(lsplit_path("\\b\\c\\d") == r("b", "c\\d"));
+	TEST_CHECK(lsplit_path("a\\b\\c\\d") == r("a", "b\\c\\d"));
+	TEST_CHECK(lsplit_path("a") == r("a", ""));
+	TEST_CHECK(lsplit_path("") == r("", ""));
+
+	TEST_CHECK(lsplit_path("a\\b/c\\d") == r("a", "b/c\\d"));
+	TEST_CHECK(lsplit_path("a/b\\c\\d") == r("a", "b\\c\\d"));
+
+	TEST_CHECK(rsplit_path("a\\b\\c\\d\\") == r("a\\b\\c", "d"));
+	TEST_CHECK(rsplit_path("\\a\\b\\c\\d") == r("\\a\\b\\c", "d"));
+	TEST_CHECK(rsplit_path("\\a") == r("", "a"));
+	TEST_CHECK(rsplit_path("a") == r("", "a"));
+	TEST_CHECK(rsplit_path("") == r("", ""));
+
+	TEST_CHECK(rsplit_path("a\\b/c\\d\\") == r("a\\b/c", "d"));
+	TEST_CHECK(rsplit_path("a\\b\\c/d\\") == r("a\\b\\c", "d"));
+#endif
+	TEST_CHECK(lsplit_path("/b/c/d") == r("b", "c/d"));
+	TEST_CHECK(lsplit_path("a/b/c/d") == r("a", "b/c/d"));
+	TEST_CHECK(lsplit_path("a") == r("a", ""));
+	TEST_CHECK(lsplit_path("") == r("", ""));
+
+	TEST_CHECK(rsplit_path("a/b/c/d/") == r("a/b/c", "d"));
+	TEST_CHECK(rsplit_path("/a/b/c/d") == r("/a/b/c", "d"));
+	TEST_CHECK(rsplit_path("/a") == r("", "a"));
+	TEST_CHECK(rsplit_path("a") == r("", "a"));
+	TEST_CHECK(rsplit_path("") == r("", ""));
 }
 
 // file class

@@ -468,42 +468,6 @@ namespace {
 		rename(inf, newf, ec);
 	}
 
-	std::string split_path(std::string const& f, bool only_first_part)
-	{
-		if (f.empty()) return f;
-
-		std::string ret;
-		char const* start = f.c_str();
-		char const* p = start;
-		while (*start != 0)
-		{
-			while (*p != '/'
-				&& *p != '\0'
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-				&& *p != '\\'
-#endif
-				) ++p;
-			if (p - start > 0)
-			{
-				ret.append(start, aux::numeric_cast<std::size_t>(p - start));
-				if (only_first_part) return ret;
-				ret.append(1, '\0');
-			}
-			if (*p != 0) ++p;
-			start = p;
-		}
-		if (only_first_part) return ret;
-		ret.append(1, '\0');
-		return ret;
-	}
-
-	char const* next_path_element(char const* p)
-	{
-		p += strlen(p) + 1;
-		if (*p == 0) return nullptr;
-		return p;
-	}
-
 	std::string extension(std::string const& f)
 	{
 		for (int i = int(f.size()) - 1; i >= 0; --i)
@@ -623,19 +587,6 @@ namespace {
 
 		if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') ++len;
 		return std::string(f.c_str(), std::size_t(len));
-	}
-
-	char const* filename_cstr(char const* f)
-	{
-		if (f == nullptr) return f;
-
-		char const* sep = std::strrchr(f, '/');
-#ifdef TORRENT_WINDOWS
-		char const* altsep = std::strrchr(f, '\\');
-		if (sep == 0 || altsep > sep) sep = altsep;
-#endif
-		if (sep == nullptr) return f;
-		return sep+1;
 	}
 
 	std::string filename(std::string const& f)
@@ -917,6 +868,39 @@ namespace {
 			}
 		}
 		remove(f, ec);
+	}
+
+	std::pair<string_view, string_view> rsplit_path(string_view p)
+	{
+		if (p.empty()) return {{}, {}};
+		if (p.back() == TORRENT_SEPARATOR_CHAR) p.remove_suffix(1);
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+		else if (p.back() == '/') p.remove_suffix(1);
+#endif
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+		auto const sep = p.find_last_of("/\\");
+#else
+		auto const sep = p.find_last_of(TORRENT_SEPARATOR_CHAR);
+#endif
+		if (sep == string_view::npos) return {{}, p};
+		return { p.substr(0, sep), p.substr(sep + 1) };
+	}
+
+	std::pair<string_view, string_view> lsplit_path(string_view p)
+	{
+		if (p.empty()) return {{}, {}};
+		// for absolute paths, skip the initial "/"
+		if (p.front() == TORRENT_SEPARATOR_CHAR) p.remove_prefix(1);
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+		else if (p.front() == '/') p.remove_prefix(1);
+#endif
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+		auto const sep = p.find_first_of("/\\");
+#else
+		auto const sep = p.find_first_of(TORRENT_SEPARATOR_CHAR);
+#endif
+		if (sep == string_view::npos) return {p, {}};
+		return { p.substr(0, sep), p.substr(sep + 1) };
 	}
 
 	std::string complete(string_view f)

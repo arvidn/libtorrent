@@ -597,9 +597,9 @@ namespace {
 			{
 				entry& sympath_e = info["symlink path"];
 
-				std::string const split = split_path(m_files.symlink(first));
-				for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
-					sympath_e.list().emplace_back(e);
+				for (auto elems = lsplit_path(m_files.symlink(first)); !elems.first.empty();
+					elems = lsplit_path(elems.second))
+					sympath_e.list().emplace_back(elems.first);
 			}
 			if (!m_filehashes.empty())
 			{
@@ -623,12 +623,13 @@ namespace {
 
 					{
 						entry& path_e = file_e["path"];
-						std::string const split = split_path(m_files.file_path(i));
-						TORRENT_ASSERT(split.c_str() == m_files.name());
 
-						for (char const* e = next_path_element(split.c_str());
-							e != nullptr; e = next_path_element(e))
-							path_e.list().emplace_back(e);
+						std::string const p = m_files.file_path(i);
+						// deliberately skip the first path element, since that's the
+						// "name" of the torrent already
+						string_view path = lsplit_path(p).second;
+						for (auto elems = lsplit_path(path); !elems.first.empty(); elems = lsplit_path(elems.second))
+							path_e.list().emplace_back(elems.first);
 					}
 
 					file_flags_t const flags = m_files.file_flags(i);
@@ -646,9 +647,9 @@ namespace {
 					{
 						entry& sympath_e = file_e["symlink path"];
 
-						std::string const split = split_path(m_files.symlink(i));
-						for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
-							sympath_e.list().emplace_back(e);
+						for (auto elems = lsplit_path(m_files.symlink(i)); !elems.first.empty();
+							elems = lsplit_path(elems.second))
+							sympath_e.list().emplace_back(elems.first);
 					}
 					if (!m_filehashes.empty() && m_filehashes[i] != sha1_hash())
 					{
