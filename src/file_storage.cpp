@@ -122,7 +122,7 @@ namespace {
 		if (is_complete(path))
 		{
 			TORRENT_ASSERT(set_name);
-			e.set_name(path.c_str());
+			e.set_name(path);
 			e.path_index = -2;
 			return;
 		}
@@ -137,7 +137,7 @@ namespace {
 
 		if (branch_path.empty())
 		{
-			if (set_name) e.set_name(leaf.data());
+			if (set_name) e.set_name(leaf);
 			e.path_index = -1;
 			return;
 		}
@@ -162,7 +162,7 @@ namespace {
 		}
 
 		e.path_index = get_or_add_path(branch_path);
-		if (set_name) e.set_name(leaf.data());
+		if (set_name) e.set_name(leaf);
 	}
 
 	int file_storage::get_or_add_path(string_view const path)
@@ -227,10 +227,8 @@ namespace {
 		, name(nullptr)
 		, path_index(fe.path_index)
 	{
-		if (fe.name_len == name_is_owned)
-			name = allocate_string_copy(fe.name);
-		else
-			name = fe.name;
+		bool const borrow = fe.name_len != name_is_owned;
+		set_name(fe.filename(), borrow);
 	}
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe) &
@@ -245,7 +243,10 @@ namespace {
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
 		no_root_dir = fe.no_root_dir;
-		set_name(fe.filename().to_string().c_str());
+		// if the name is not owned, don't allocate memory, we can point into the
+		// same metadata buffer
+		bool const borrow = fe.name_len != name_is_owned;
+		set_name(fe.filename(), borrow);
 		return *this;
 	}
 
@@ -262,7 +263,7 @@ namespace {
 		, name(fe.name)
 		, path_index(fe.path_index)
 	{
-		fe.name_len = name_is_owned;
+		fe.name_len = 0;
 		fe.name = nullptr;
 	}
 
@@ -281,35 +282,32 @@ namespace {
 		name = fe.name;
 		name_len = fe.name_len;
 
-		fe.name_len = name_is_owned;
+		fe.name_len = 0;
 		fe.name = nullptr;
 		return *this;
 	}
 
-	// if borrow_chars >= 0, don't take ownership over n, just
-	// point to it. It points to borrow_chars number of characters.
-	// if borrow_chars == -1, n is a 0-terminated string that
-	// should be copied.
-	void internal_file_entry::set_name(char const* n, bool const borrow_string
-		, int string_len)
+	// if borrow_string is true, don't take ownership over n, just
+	// point to it.
+	// if borrow_string is false, n will be copied and owned by the
+	// internal_file_entry.
+	void internal_file_entry::set_name(string_view n, bool const borrow_string)
 	{
-		TORRENT_ASSERT(string_len >= 0);
-
-		// we have limited space in the length field. truncate string
-		// if it's too long
-		if (string_len >= name_is_owned) string_len = name_is_owned - 1;
-
 		// free the current string, before assigning the new one
 		if (name_len == name_is_owned) delete[] name;
-		if (n == nullptr)
+		if (n.empty())
 		{
 			TORRENT_ASSERT(borrow_string == false);
 			name = nullptr;
 		}
 		else if (borrow_string)
 		{
-			name = n;
-			name_len = aux::numeric_cast<std::uint64_t>(string_len);
+			// we have limited space in the length field. truncate string
+			// if it's too long
+			if (n.size() >= name_is_owned) n = n.substr(name_is_owned - 1);
+
+			name = n.data();
+			name_len = aux::numeric_cast<std::uint64_t>(n.size());
 		}
 		else
 		{
@@ -615,7 +613,7 @@ namespace {
 
 		// filename is allowed to be empty, in which case we just use path
 		if (!filename.empty())
-			e.set_name(filename.data(), true, int(filename.size()));
+			e.set_name(filename, true);
 
 		e.size = aux::numeric_cast<std::uint64_t>(file_size);
 		e.offset = aux::numeric_cast<std::uint64_t>(m_total_size);
@@ -680,15 +678,14 @@ namespace {
 		template <class CRC>
 		void process_path_lowercase(
 			std::unordered_set<std::uint32_t>& table
-			, CRC crc
-			, char const* str, int len)
+			, CRC crc, string_view str)
 		{
-			if (len == 0) return;
-			for (int i = 0; i < len; ++i, ++str)
+			if (str.empty()) return;
+			for (char const c : str)
 			{
-				if (*str == TORRENT_SEPARATOR)
+				if (c == TORRENT_SEPARATOR)
 					table.insert(crc.checksum());
-				crc.process_byte(to_lower(*str) & 0xff);
+				crc.process_byte(to_lower(c) & 0xff);
 			}
 			table.insert(crc.checksum());
 		}
@@ -707,9 +704,7 @@ namespace {
 		}
 
 		for (auto const& p : m_paths)
-		{
-			process_path_lowercase(table, crc, p.c_str(), int(p.size()));
-		}
+			process_path_lowercase(table, crc, p);
 	}
 
 	std::uint32_t file_storage::file_path_hash(file_index_t const index
