@@ -123,7 +123,7 @@ namespace libtorrent {
 		internal_file_entry& operator=(internal_file_entry&& fe) & noexcept;
 		~internal_file_entry();
 
-		void set_name(char const* n, bool borrow_string = false, int string_len = 0);
+		void set_name(string_view n, bool borrow_string = false);
 		string_view filename() const;
 
 		enum {

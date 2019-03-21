@@ -106,7 +106,7 @@ namespace libtorrent {
 	// strdup is not part of the C standard. Some systems
 	// don't have it and it won't be available when building
 	// in strict ansi mode
-	char* allocate_string_copy(char const* str);
+	char* allocate_string_copy(string_view str);
 
 	// searches for separator ('sep') in the string 'last'.
 	// if found, returns the string_view representing the range from the start of

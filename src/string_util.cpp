@@ -140,13 +140,12 @@ namespace libtorrent {
 		return static_cast<int>(it - target.begin());
 	}
 
-	char* allocate_string_copy(char const* str)
+	char* allocate_string_copy(string_view str)
 	{
-		if (str == nullptr) return nullptr;
-		std::size_t const len = std::strlen(str);
-		auto* tmp = new char[len + 1];
-		std::copy(str, str + len, tmp);
-		tmp[len] = '\0';
+		if (str.empty()) return nullptr;
+		auto* tmp = new char[str.size() + 1];
+		std::copy(str.data(), str.data() + str.size(), tmp);
+		tmp[str.size()] = '\0';
 		return tmp;
 	}
 
