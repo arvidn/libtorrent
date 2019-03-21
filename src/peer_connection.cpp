@@ -2034,6 +2034,16 @@ namespace libtorrent {
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+		if (index < piece_index_t{}
+			|| index >= t->torrent_file().end_piece())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::incoming, "DONT_HAVE"
+				, "invalid piece: %d", static_cast<int>(index));
+#endif
+			return;
+		}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
 		{
