@@ -207,11 +207,11 @@ set_target_properties(torrent-rasterbar
 target_compile_definitions(torrent-rasterbar
 	PUBLIC
 		$<$<CONFIG:Debug>:TORRENT_DEBUG>
+		BOOST_ASIO_ENABLE_CANCELIO
 	PRIVATE
 		TORRENT_BUILDING_LIBRARY
 		_FILE_OFFSET_BITS=64
 		BOOST_EXCEPTION_DISABLE
-		BOOST_ASIO_ENABLE_CANCELIO
 )
 
 target_include_directories(torrent-rasterbar
