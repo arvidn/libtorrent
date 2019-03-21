@@ -139,7 +139,6 @@ static test_torrent_t test_torrents[] =
 	{ "v2_multipiece_file.torrent" },
 	{ "v2_only.torrent" },
 	{ "v2_invalid_filename.torrent" },
-	{ "v2_no_piece_layers.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -174,6 +173,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
 	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
 	{ "v2_deep_recursion.torrent", errors::torrent_file_parse_failed},
+	{ "v2_no_piece_layers.torrent", errors::torrent_missing_piece_layer},
 };
 
 } // anonymous namespace
