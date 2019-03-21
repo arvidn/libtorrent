@@ -1643,7 +1643,7 @@ namespace {
 #endif
 				return;
 			}
-			piece_index_t const piece(aux::numeric_cast<int>(aux::read_uint32(recv_buffer)));
+			piece_index_t const piece(aux::read_int32(recv_buffer));
 			incoming_dont_have(piece);
 			return;
 		}
