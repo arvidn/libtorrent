@@ -439,6 +439,7 @@ namespace {
 		return file_index_t(int(file_iter - m_files.begin()));
 	}
 
+#if TORRENT_ABI_VERSION <= 2
 	char const* file_storage::file_name_ptr(file_index_t const index) const
 	{
 		return m_files[index].name;
@@ -450,6 +451,7 @@ namespace {
 			return -1;
 		return m_files[index].name_len;
 	}
+#endif
 
 	std::vector<file_slice> file_storage::map_block(piece_index_t const piece
 		, std::int64_t const offset, int size) const
