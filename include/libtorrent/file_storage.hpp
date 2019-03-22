@@ -495,12 +495,22 @@ namespace libtorrent {
 		// returns the index of the file at the given offset in the torrent
 		file_index_t file_index_at_offset(std::int64_t offset) const;
 
+#if TORRENT_USE_INVARIANT_CHECKS
+		// internal
+		bool owns_name(file_index_t const f) const
+		{ return m_files[f].name_len == internal_file_entry::name_is_owned; }
+#endif
+
+#if TORRENT_ABI_VERSION <= 2
 		// low-level function. returns a pointer to the internal storage for
 		// the filename. This string may not be 0-terminated!
 		// the ``file_name_len()`` function returns the length of the filename.
 		// prefer to use ``file_name()`` instead, which returns a ``string_view``.
+		TORRENT_DEPRECATED
 		char const* file_name_ptr(file_index_t index) const;
+		TORRENT_DEPRECATED
 		int file_name_len(file_index_t index) const;
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 		// these were deprecated in 1.0. Use the versions that take an index instead

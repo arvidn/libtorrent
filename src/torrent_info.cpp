@@ -1545,17 +1545,18 @@ namespace {
 	{
 		for (auto const i : m_files.file_range())
 		{
-			TORRENT_ASSERT(m_files.file_name_ptr(i) != nullptr);
-			if (m_files.file_name_len(i) != -1)
+			TORRENT_ASSERT(m_files.file_name(i).data() != nullptr);
+			if (!m_files.owns_name(i))
 			{
 				// name needs to point into the allocated info section buffer
-				TORRENT_ASSERT(m_files.file_name_ptr(i) >= m_info_section.get());
-				TORRENT_ASSERT(m_files.file_name_ptr(i) < m_info_section.get() + m_info_section_size);
+				TORRENT_ASSERT(m_files.file_name(i).data() >= m_info_section.get());
+				TORRENT_ASSERT(m_files.file_name(i).data() < m_info_section.get() + m_info_section_size);
 			}
 			else
 			{
-				// name must be a valid string
-				TORRENT_ASSERT(strlen(m_files.file_name_ptr(i)) < 2048);
+				// name must be a null terminated string
+				string_view const name = m_files.file_name(i);
+				TORRENT_ASSERT(name.data()[name.size()] == '\0');
 			}
 		}
 
