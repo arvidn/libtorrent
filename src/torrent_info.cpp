@@ -1135,7 +1135,7 @@ namespace {
 		std::ptrdiff_t const info_ptr_diff = m_info_section.get() - section.data();
 
 		// check for a version key
-		int version = int(info.dict_find_int_value("meta version", -1));
+		int const version = int(info.dict_find_int_value("meta version", -1));
 		if (version > 0)
 		{
 			char error_string[200];
@@ -1400,14 +1400,11 @@ namespace {
 	{
 		std::map<sha256_hash, string_view> piece_layers;
 
-		if (e && e.type() != bdecode_node::dict_t)
+		if (!e || e.type() != bdecode_node::dict_t)
 		{
+			m_files.set_piece_length(0);
 			ec = errors::torrent_missing_piece_layer;
 			return false;
-		}
-		else if (!e)
-		{
-			return true;
 		}
 
 		for (int i = 0; i < e.dict_size(); ++i)
@@ -1525,7 +1522,7 @@ namespace {
 			return false;
 		resolve_duplicate_filenames();
 
-		if (!parse_piece_layers(torrent_file.dict_find_dict("piece layers"), ec))
+		if (m_info_hash.has_v2() && !parse_piece_layers(torrent_file.dict_find_dict("piece layers"), ec))
 			return false;
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
