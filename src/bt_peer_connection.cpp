@@ -360,7 +360,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_ALL");
 #endif
-		send_message(msg_have_all, counters::num_outgoing_have_all, 0);
+		send_message(msg_have_all, counters::num_outgoing_have_all);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		extension_notify(&peer_plugin::sent_have_all);
@@ -374,7 +374,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_NONE");
 #endif
-		send_message(msg_have_none, counters::num_outgoing_have_none, 0);
+		send_message(msg_have_none, counters::num_outgoing_have_none);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		extension_notify(&peer_plugin::sent_have_none);
@@ -395,7 +395,7 @@ namespace {
 			, r.start, r.length);
 #endif
 
-		send_message(msg_reject_request, counters::num_outgoing_reject, 0
+		send_message(msg_reject_request, counters::num_outgoing_reject
 			, static_cast<int>(r.piece), r.start, r.length);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -416,7 +416,7 @@ namespace {
 
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
-		send_message(msg_allowed_fast, counters::num_outgoing_allowed_fast, 0
+		send_message(msg_allowed_fast, counters::num_outgoing_allowed_fast
 			, static_cast<int>(piece));
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -448,7 +448,7 @@ namespace {
 		}
 #endif
 
-		send_message(msg_suggest_piece, counters::num_outgoing_suggest, 0
+		send_message(msg_suggest_piece, counters::num_outgoing_suggest
 			, static_cast<int>(piece));
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1269,7 +1269,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 5)
 		{
 			disconnect(errors::invalid_suggest, operation_t::bittorrent, peer_error);
 			return;
@@ -1289,7 +1289,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 1)
 		{
 			disconnect(errors::invalid_have_all, operation_t::bittorrent, peer_error);
 			return;
@@ -1302,7 +1302,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 1)
 		{
 			disconnect(errors::invalid_have_none, operation_t::bittorrent, peer_error);
 			return;
@@ -1315,7 +1315,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 13)
 		{
 			disconnect(errors::invalid_reject, operation_t::bittorrent, peer_error);
 			return;
@@ -1339,7 +1339,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 5)
 		{
 			disconnect(errors::invalid_allow_fast, operation_t::bittorrent, peer_error);
 			return;
@@ -1386,14 +1386,14 @@ namespace {
 
 		if (addr_type == 0)
 		{
-			if (int(recv_buffer.size()) < 2 + 4 + 2) return;
+			if (int(recv_buffer.size()) != 2 + 4 + 2) return;
 			// IPv4 address
 			ep = detail::read_v4_endpoint<tcp::endpoint>(ptr);
 		}
 		else if (addr_type == 1)
 		{
 			// IPv6 address
-			if (int(recv_buffer.size()) < 2 + 18 + 2) return;
+			if (int(recv_buffer.size()) != 2 + 18 + 2) return;
 			ep = detail::read_v6_endpoint<tcp::endpoint>(ptr);
 		}
 		else
@@ -1674,7 +1674,7 @@ namespace {
 #endif
 				return;
 			}
-			piece_index_t const piece(aux::numeric_cast<int>(aux::read_uint32(recv_buffer)));
+			piece_index_t const piece(aux::read_int32(recv_buffer));
 			incoming_dont_have(piece);
 			return;
 		}
@@ -1970,7 +1970,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_cancel, counters::num_outgoing_cancel, 0
+		send_message(msg_cancel, counters::num_outgoing_cancel
 			, static_cast<int>(r.piece), r.start, r.length);
 
 		if (!m_supports_fast) incoming_reject_request(r);
@@ -1984,7 +1984,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_request, counters::num_outgoing_request, message_type_request
+		send_message(msg_request, counters::num_outgoing_request
 			, static_cast<int>(r.piece), r.start, r.length);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -2234,7 +2234,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		if (is_choked()) return;
-		send_message(msg_choke, counters::num_outgoing_choke, 0);
+		send_message(msg_choke, counters::num_outgoing_choke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		extension_notify(&peer_plugin::sent_choke);
@@ -2245,7 +2245,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_unchoke, counters::num_outgoing_unchoke, 0);
+		send_message(msg_unchoke, counters::num_outgoing_unchoke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		extension_notify(&peer_plugin::sent_unchoke);
@@ -2256,7 +2256,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_interested, counters::num_outgoing_interested, 0);
+		send_message(msg_interested, counters::num_outgoing_interested);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		extension_notify(&peer_plugin::sent_interested);
@@ -2267,7 +2267,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_not_interested, counters::num_outgoing_not_interested, 0);
+		send_message(msg_not_interested, counters::num_outgoing_not_interested);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		extension_notify(&peer_plugin::sent_not_interested);
@@ -2285,7 +2285,7 @@ namespace {
 		// there instead
 		if (!m_sent_bitfield) return;
 
-		send_message(msg_have, counters::num_outgoing_have, 0
+		send_message(msg_have, counters::num_outgoing_have
 			, static_cast<int>(index));
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

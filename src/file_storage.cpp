@@ -114,38 +114,27 @@ namespace {
 
 }
 
-	// path is not supposed to include the name of the torrent itself.
+	// path is supposed to include the name of the torrent itself.
+	// or an absolute path, to move a file outside of the download directory
 	void file_storage::update_path_index(internal_file_entry& e
 		, std::string const& path, bool const set_name)
 	{
 		if (is_complete(path))
 		{
 			TORRENT_ASSERT(set_name);
-			e.set_name(path.c_str());
+			e.set_name(path);
 			e.path_index = -2;
 			return;
 		}
 
 		TORRENT_ASSERT(path[0] != '/');
 
-		// sorry about this messy string handling, but I did
-		// profile it, and it was expensive
-		char const* leaf = filename_cstr(path.c_str());
+		// split the string into the leaf filename
+		// and the branch path
+		string_view leaf;
 		string_view branch_path;
-		if (leaf > path.c_str())
-		{
-			// split the string into the leaf filename
-			// and the branch path
-			branch_path = path;
-			branch_path = branch_path.substr(0
-				, static_cast<std::size_t>(leaf - path.c_str()));
+		std::tie(branch_path, leaf) = rsplit_path(path);
 
-			// trim trailing slashes
-			while (!branch_path.empty() && branch_path.back() == TORRENT_SEPARATOR)
-			{
-				branch_path.remove_suffix(1);
-			}
-		}
 		if (branch_path.empty())
 		{
 			if (set_name) e.set_name(leaf);
@@ -153,15 +142,18 @@ namespace {
 			return;
 		}
 
-		if (branch_path.size() >= m_name.size()
-			&& branch_path.substr(0, m_name.size()) == m_name
-			&& branch_path[m_name.size()] == TORRENT_SEPARATOR)
+		// if the path *does* contain the name of the torrent (as we expect)
+		// strip it before adding it to m_paths
+		if (lsplit_path(branch_path).first == m_name)
 		{
-			branch_path.remove_prefix(m_name.size());
-			while (!branch_path.empty() && branch_path.front() == TORRENT_SEPARATOR)
-			{
+			branch_path = lsplit_path(branch_path).second;
+			// strip duplicate separators
+			while (!branch_path.empty() && (branch_path.front() == TORRENT_SEPARATOR
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+				|| branch_path.front() == '/'
+#endif
+				))
 				branch_path.remove_prefix(1);
-			}
 			e.no_root_dir = false;
 		}
 		else
@@ -235,10 +227,8 @@ namespace {
 		, name(nullptr)
 		, path_index(fe.path_index)
 	{
-		if (fe.name_len == name_is_owned)
-			name = allocate_string_copy(fe.name);
-		else
-			name = fe.name;
+		bool const borrow = fe.name_len != name_is_owned;
+		set_name(fe.filename(), borrow);
 	}
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe) &
@@ -253,7 +243,10 @@ namespace {
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
 		no_root_dir = fe.no_root_dir;
-		set_name(fe.filename().to_string().c_str());
+		// if the name is not owned, don't allocate memory, we can point into the
+		// same metadata buffer
+		bool const borrow = fe.name_len != name_is_owned;
+		set_name(fe.filename(), borrow);
 		return *this;
 	}
 
@@ -270,7 +263,7 @@ namespace {
 		, name(fe.name)
 		, path_index(fe.path_index)
 	{
-		fe.name_len = name_is_owned;
+		fe.name_len = 0;
 		fe.name = nullptr;
 	}
 
@@ -289,35 +282,32 @@ namespace {
 		name = fe.name;
 		name_len = fe.name_len;
 
-		fe.name_len = name_is_owned;
+		fe.name_len = 0;
 		fe.name = nullptr;
 		return *this;
 	}
 
-	// if borrow_chars >= 0, don't take ownership over n, just
-	// point to it. It points to borrow_chars number of characters.
-	// if borrow_chars == -1, n is a 0-terminated string that
-	// should be copied.
-	void internal_file_entry::set_name(char const* n, bool const borrow_string
-		, int string_len)
+	// if borrow_string is true, don't take ownership over n, just
+	// point to it.
+	// if borrow_string is false, n will be copied and owned by the
+	// internal_file_entry.
+	void internal_file_entry::set_name(string_view n, bool const borrow_string)
 	{
-		TORRENT_ASSERT(string_len >= 0);
-
-		// we have limited space in the length field. truncate string
-		// if it's too long
-		if (string_len >= name_is_owned) string_len = name_is_owned - 1;
-
 		// free the current string, before assigning the new one
 		if (name_len == name_is_owned) delete[] name;
-		if (n == nullptr)
+		if (n.empty())
 		{
 			TORRENT_ASSERT(borrow_string == false);
 			name = nullptr;
 		}
 		else if (borrow_string)
 		{
-			name = n;
-			name_len = aux::numeric_cast<std::uint64_t>(string_len);
+			// we have limited space in the length field. truncate string
+			// if it's too long
+			if (n.size() >= name_is_owned) n = n.substr(name_is_owned - 1);
+
+			name = n.data();
+			name_len = aux::numeric_cast<std::uint64_t>(n.size());
 		}
 		else
 		{
@@ -609,7 +599,7 @@ namespace {
 		else
 		{
 			if (m_files.empty())
-				m_name = split_path(path, true);
+				m_name = lsplit_path(path).first.to_string();
 		}
 
 		// this is poor-man's emplace_back()
@@ -618,14 +608,14 @@ namespace {
 
 		// the last argument specified whether the function should also set
 		// the filename. If it does, it will copy the leaf filename from path.
-		// if filename is nullptr, we should copy it. If it isn't, we're borrowing
+		// if filename is empty, we should copy it. If it isn't, we're borrowing
 		// it and we can save the copy by setting it after this call to
 		// update_path_index().
 		update_path_index(e, path, filename.empty());
 
-		// filename is allowed to be nullptr, in which case we just use path
+		// filename is allowed to be empty, in which case we just use path
 		if (!filename.empty())
-			e.set_name(filename.data(), true, int(filename.size()));
+			e.set_name(filename, true);
 
 		e.size = aux::numeric_cast<std::uint64_t>(file_size);
 		e.offset = aux::numeric_cast<std::uint64_t>(m_total_size);
@@ -669,7 +659,7 @@ namespace {
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
 		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
-		return m_symlinks[file_index_t(fe.symlink_index)];
+		return m_symlinks[fe.symlink_index];
 	}
 
 	std::time_t file_storage::mtime(file_index_t const index) const
@@ -690,15 +680,14 @@ namespace {
 		template <class CRC>
 		void process_path_lowercase(
 			std::unordered_set<std::uint32_t>& table
-			, CRC crc
-			, char const* str, int len)
+			, CRC crc, string_view str)
 		{
-			if (len == 0) return;
-			for (int i = 0; i < len; ++i, ++str)
+			if (str.empty()) return;
+			for (char const c : str)
 			{
-				if (*str == TORRENT_SEPARATOR)
+				if (c == TORRENT_SEPARATOR)
 					table.insert(crc.checksum());
-				crc.process_byte(to_lower(*str) & 0xff);
+				crc.process_byte(to_lower(c) & 0xff);
 			}
 			table.insert(crc.checksum());
 		}
@@ -717,9 +706,7 @@ namespace {
 		}
 
 		for (auto const& p : m_paths)
-		{
-			process_path_lowercase(table, crc, p.c_str(), int(p.size()));
-		}
+			process_path_lowercase(table, crc, p);
 	}
 
 	std::uint32_t file_storage::file_path_hash(file_index_t const index
@@ -886,7 +873,7 @@ namespace {
 	std::string const& file_storage::symlink(internal_file_entry const& fe) const
 	{
 		TORRENT_ASSERT_PRECOND(fe.symlink_index < int(m_symlinks.size()));
-		return m_symlinks[file_index_t(fe.symlink_index)];
+		return m_symlinks[fe.symlink_index];
 	}
 
 	std::time_t file_storage::mtime(internal_file_entry const& fe) const
@@ -1117,6 +1104,83 @@ namespace {
 
 		if (index != cur_index) reorder_file(index, cur_index);
 	}
+
+	void file_storage::sanitize_symlinks()
+	{
+		// symlinks are unusual, this function is optimized assuming there are no
+		// symbolic links in the torrent. If we find one symbolic link, we'll
+		// build the hash table of files it's allowed to refer to, but don't pay
+		// that price up-front.
+		std::unordered_map<std::string, file_index_t> file_map;
+		bool file_map_initialized = false;
+
+		for (auto const i : file_range())
+		{
+			if (!(file_flags(i) & file_storage::flag_symlink)) continue;
+
+			if (!file_map_initialized)
+			{
+				for (auto const j : file_range()) file_map[file_path(j)] = j;
+				file_map_initialized = true;
+			}
+
+			internal_file_entry const& fe = m_files[i];
+			TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
+
+			// symlink targets are only allowed to point to files or directories in
+			// this torrent.
+			{
+				std::string target = symlink(i);
+
+				// if it points to a directory, that's OK
+				auto it = std::find(m_paths.begin(), m_paths.end(), target);
+				if (it != m_paths.end())
+				{
+					m_symlinks[fe.symlink_index] = combine_path(name(), *it);
+					continue;
+				}
+
+				target = combine_path(name(), target);
+
+				auto const idx = file_map.find(target);
+				if (idx != file_map.end())
+				{
+					m_symlinks[fe.symlink_index] = target;
+					continue;
+				}
+			}
+
+			// this symlink target points to a file that's not part of this torrent
+			// file structure. That's not allowed by the spec.
+
+			// for backwards compatibility, allow paths relative to the link as
+			// well
+			if (fe.path_index >= 0)
+			{
+				std::string target = m_paths[fe.path_index];
+				append_path(target, symlink(i));
+				// if it points to a directory, that's OK
+				auto it = std::find(m_paths.begin(), m_paths.end(), target);
+				if (it != m_paths.end())
+				{
+					m_symlinks[fe.symlink_index] = combine_path(name(), *it);
+					continue;
+				}
+
+				target = combine_path(name(), target);
+				auto const idx = file_map.find(target);
+				if (idx != file_map.end())
+				{
+					m_symlinks[fe.symlink_index] = target;
+					continue;
+				}
+			}
+
+			// this symlink is invalid, make it point to itself
+			m_symlinks[fe.symlink_index] = file_path(i);
+		}
+	}
+
 
 namespace aux {
 

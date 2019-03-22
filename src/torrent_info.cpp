@@ -488,9 +488,12 @@ namespace {
 					sanitize_append_path_element(symlink_path, pe);
 				}
 			}
+			// symlink targets are validated later, as it may point to a file or
+			// directory we haven't parsed yet
 		}
 		else
 		{
+			// technically this is an invalid torrent. "symlink path" must exist
 			file_flags &= ~file_storage::flag_symlink;
 		}
 
@@ -526,6 +529,8 @@ namespace {
 				, info_ptr_diff, false, pad_file_cnt, ec))
 				return false;
 		}
+		// this rewrites invalid symlinks to point to themselves
+		target.sanitize_symlinks();
 		return true;
 	}
 
@@ -1006,6 +1011,7 @@ namespace {
 				return false;
 			}
 
+			files.sanitize_symlinks();
 			m_flags &= ~multifile;
 		}
 		else
