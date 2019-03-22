@@ -181,14 +181,18 @@ TORRENT_TEST(pointer_offset)
 	// test applying pointer offset
 	file_storage st;
 	char const filename[] = "test1fooba";
+	char const filehash[] = "01234567890123456789-----";
+	char const roothash[] = "01234567890123456789012345678912-----";
 
 	st.add_file_borrow({filename, 5}, combine_path("test-torrent-1", "test1")
-		, 10);
+		, 10, file_flags_t{}, filehash, 0, {}, roothash);
 
 	// test filename_ptr and filename_len
 	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
 	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename, 5));
+	TEST_EQUAL(st.hash(file_index_t{0}), sha1_hash(filehash));
+	TEST_EQUAL(st.root(file_index_t{0}), sha256_hash(roothash));
 
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test-torrent-1", "test1"));
 	TEST_EQUAL(st.file_path(file_index_t{0}, "tmp"), combine_path("tmp"
@@ -206,6 +210,9 @@ TORRENT_TEST(pointer_offset)
 	// test filename_ptr and filename_len
 	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename + 5);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
+	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename + 5, 5));
+	TEST_EQUAL(st.hash(file_index_t{0}), sha1_hash(filehash + 5));
+	TEST_EQUAL(st.root(file_index_t{0}), sha256_hash(roothash + 5));
 }
 
 TORRENT_TEST(invalid_path1)
