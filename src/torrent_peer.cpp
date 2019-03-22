@@ -166,6 +166,7 @@ namespace libtorrent {
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
 		, web_seed(false)
+		, protocol_v2(false)
 	{}
 
 	std::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
