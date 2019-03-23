@@ -140,14 +140,33 @@ struct to_string_view
 
     static void* convertible(PyObject* x)
     {
-        return PyUnicode_Check(x) ? x: nullptr;
+#if PY_VERSION_HEX >= 0x03020000
+        return PyBytes_Check(x)
+#else
+        return PyString_Check(x)
+#endif
+            ? x : PyUnicode_Check(x) ? x : nullptr;
     }
 
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
     {
         void* storage = ((converter::rvalue_from_python_storage<
             lt::string_view>*)data)->storage.bytes;
-        data->convertible = new (storage) lt::string_view(PyUnicode_AS_DATA(x), PyUnicode_GET_DATA_SIZE(x));
+
+        if (PyUnicode_Check(x))
+        {
+            data->convertible = new (storage) lt::string_view(PyUnicode_AS_DATA(x), PyUnicode_GET_DATA_SIZE(x));
+        }
+        else
+        {
+            data->convertible = new (storage) lt::string_view(
+#if PY_VERSION_HEX >= 0x03020000
+                PyBytes_AsString(x), PyBytes_Size(x)
+#else
+                PyString_AsString(x), PyString_Size(x)
+#endif
+                );
+        }
     }
 };
 
@@ -264,12 +283,12 @@ struct list_to_bitfield
 
         T p;
         int const size = int(PyList_Size(x));
-		  p.resize(size);
+        p.resize(size);
         for (int i = 0; i < size; ++i)
         {
            object o(borrowed(PyList_GetItem(x, i)));
            if (extract<bool>(o)) p.set_bit(IndexType{i});
-			  else p.clear_bit(IndexType{i});
+           else p.clear_bit(IndexType{i});
         }
         data->convertible = new (storage) T(std::move(p));
     }
@@ -496,4 +515,5 @@ void bind_converters()
     to_bitfield_flag<lt::create_flags_t>();
     to_bitfield_flag<lt::pex_flags_t>();
     to_bitfield_flag<lt::reannounce_flags_t>();
+    to_string_view();
 }

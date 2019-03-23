@@ -229,6 +229,9 @@ void bind_create_torrent()
         .def("piece_size", &create_torrent::piece_size)
         .def("priv", &create_torrent::priv)
         .def("set_root_cert", &create_torrent::set_root_cert, (arg("pem")))
+        .def("add_collection", &create_torrent::add_collection)
+        .def("add_similar_torrent", &create_torrent::add_similar_torrent)
+
         ;
 
         s.attr("optimize_alignment") = create_torrent::optimize_alignment;
