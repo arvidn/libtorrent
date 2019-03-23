@@ -90,6 +90,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
 #include "libtorrent/aux_/generate_peer_id.hpp"
+#include "libtorrent/aux_/ffs.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -3510,37 +3511,15 @@ namespace aux {
 		}
 	}
 
-	namespace {
-	// returns the index of the first set bit.
-	int log2(std::uint32_t v)
-	{
-// http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
-		static const int MultiplyDeBruijnBitPosition[32] =
-		{
-			0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
-			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-		};
-
-		v |= v >> 1; // first round down to one less than a power of 2
-		v |= v >> 2;
-		v |= v >> 4;
-		v |= v >> 8;
-		v |= v >> 16;
-
-		return MultiplyDeBruijnBitPosition[std::uint32_t(v * 0x07C4ACDDU) >> 27];
-	}
-
-	} // anonymous namespace
-
 	void session_impl::received_buffer(int s)
 	{
-		int index = std::min(log2(std::uint32_t(s >> 3)), 17);
+		int index = std::min(aux::log2p1(std::uint32_t(s >> 3)), 17);
 		m_stats_counters.inc_stats_counter(counters::socket_recv_size3 + index);
 	}
 
 	void session_impl::sent_buffer(int s)
 	{
-		int index = std::min(log2(std::uint32_t(s >> 3)), 17);
+		int index = std::min(aux::log2p1(std::uint32_t(s >> 3)), 17);
 		m_stats_counters.inc_stats_counter(counters::socket_send_size3 + index);
 	}
 
