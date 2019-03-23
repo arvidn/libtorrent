@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
@@ -604,8 +605,10 @@ namespace {
 	void file_storage::add_file(std::string const& path, std::int64_t file_size
 		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path)
 	{
-		add_file_borrow({}, path, file_size, file_flags, nullptr, mtime
+		error_code ec;
+		add_file_borrow(ec, {}, path, file_size, file_flags, nullptr, mtime
 			, symlink_path);
+		if (ec) aux::throw_ex<system_error>(ec);
 	}
 
 	void file_storage::add_file_borrow(string_view filename
@@ -614,8 +617,54 @@ namespace {
 		, std::int64_t const mtime, string_view symlink_path
 		, char const* root_hash)
 	{
+		error_code ec;
+		add_file_borrow(ec, filename, path, file_size
+		, file_flags, filehash, mtime, symlink_path, root_hash);
+		if (ec) aux::throw_ex<system_error>(ec);
+	}
+
+	void file_storage::add_file(error_code& ec, std::string const& path, std::int64_t file_size
+		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path)
+	{
+		add_file_borrow(ec, {}, path, file_size, file_flags, nullptr, mtime
+			, symlink_path);
+	}
+
+	void file_storage::add_file_borrow(error_code& ec, string_view filename
+		, std::string const& path, std::int64_t const file_size
+		, file_flags_t const file_flags, char const* filehash
+		, std::int64_t const mtime, string_view symlink_path
+		, char const* root_hash)
+	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
 		TORRENT_ASSERT_PRECOND(!is_complete(filename));
+
+		if (file_size > max_file_size)
+		{
+			ec = make_error_code(boost::system::errc::file_too_large);
+			return;
+		}
+
+		if (max_file_size - m_total_size < file_size)
+		{
+			ec = make_error_code(errors::torrent_invalid_length);
+			return;
+		}
+
+		if (!filename.empty())
+		{
+			if (filename.size() >= (1 << 12))
+			{
+				ec = make_error_code(boost::system::errc::filename_too_long);
+				return;
+			}
+		}
+		else if (lt::filename(path).size() >= (1 << 12))
+		{
+			ec = make_error_code(boost::system::errc::filename_too_long);
+			return;
+		}
+
 		if (!has_parent_path(path))
 		{
 			// you have already added at least one file with a
@@ -639,6 +688,12 @@ namespace {
 			if (int(pad_size) != piece_length())
 			{
 				auto const offset = m_files.front().offset + m_files.front().size;
+				if (offset > max_file_size)
+				{
+					ec = make_error_code(errors::torrent_invalid_length);
+					return;
+				}
+
 				m_files.emplace_back();
 				// e is invalid from here down!
 				auto& pad_file = m_files.back();
