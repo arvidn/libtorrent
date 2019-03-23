@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/file.hpp" // for is_sparse
 #include <cstdint>
 
 #if TORRENT_HAVE_MMAP
@@ -236,45 +237,6 @@ file_handle::file_handle(string_view name, std::int64_t const size
 		}
 	}
 }
-#endif
-
-#ifdef TORRENT_WINDOWS
-namespace {
-	// returns true if the given file has any regions that are
-	// sparse, i.e. not allocated.
-	bool is_sparse(HANDLE file)
-	{
-		LARGE_INTEGER file_size;
-		if (!GetFileSizeEx(file, &file_size))
-			return false;
-
-#ifndef FSCTL_QUERY_ALLOCATED_RANGES
-typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
-	LARGE_INTEGER FileOffset;
-	LARGE_INTEGER Length;
-} FILE_ALLOCATED_RANGE_BUFFER;
-#define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
-#endif
-		FILE_ALLOCATED_RANGE_BUFFER in;
-		in.FileOffset.QuadPart = 0;
-		in.Length.QuadPart = file_size.QuadPart;
-
-		FILE_ALLOCATED_RANGE_BUFFER out[2];
-
-		DWORD returned_bytes = 0;
-		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, (void*)&in, sizeof(in)
-			, out, sizeof(out), &returned_bytes, nullptr);
-
-		if (ret == FALSE) return true;
-
-		// if we have more than one range in the file, we're sparse
-		if (returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
-			return true;
-		}
-
-		return (in.Length.QuadPart != out[0].Length.QuadPart);
-	}
-} // anonymous namespace
 #endif
 
 void file_handle::close()

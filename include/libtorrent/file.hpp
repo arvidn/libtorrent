@@ -89,6 +89,10 @@ namespace libtorrent {
 	using handle_type = int;
 #endif
 
+#ifdef TORRENT_WINDOWS
+	bool is_sparse(HANDLE file);
+#endif
+
 	class TORRENT_EXTRA_EXPORT directory : public boost::noncopyable
 	{
 	public:
