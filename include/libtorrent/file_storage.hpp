@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 #include <ctime>
 #include <cstdint>
 
@@ -61,7 +62,7 @@ namespace libtorrent {
 		file_entry(file_entry const&) = default;
 		file_entry& operator=(file_entry const&) & = default;
 		file_entry(file_entry&&) noexcept = default;
-		file_entry& operator=(file_entry&&) & noexcept = default;
+		file_entry& operator=(file_entry&&) & = default;
 
 		// the full path of this file. The paths are unicode strings
 		// encoded in UTF-8.
@@ -104,6 +105,7 @@ namespace libtorrent {
 		// where the data for this file was found.
 		bool symlink_attribute:1;
 	};
+
 #endif // TORRENT_ABI_VERSION
 
 	// internal
@@ -122,7 +124,7 @@ namespace libtorrent {
 		internal_file_entry& operator=(internal_file_entry&& fe) & noexcept;
 		~internal_file_entry();
 
-		void set_name(char const* n, bool borrow_string = false, int string_len = 0);
+		void set_name(string_view n, bool borrow_string = false);
 		string_view filename() const;
 
 		enum {
@@ -494,12 +496,22 @@ namespace libtorrent {
 		// returns the index of the file at the given offset in the torrent
 		file_index_t file_index_at_offset(std::int64_t offset) const;
 
+#if TORRENT_USE_INVARIANT_CHECKS
+		// internal
+		bool owns_name(file_index_t const f) const
+		{ return m_files[f].name_len == internal_file_entry::name_is_owned; }
+#endif
+
+#if TORRENT_ABI_VERSION <= 2
 		// low-level function. returns a pointer to the internal storage for
 		// the filename. This string may not be 0-terminated!
 		// the ``file_name_len()`` function returns the length of the filename.
 		// prefer to use ``file_name()`` instead, which returns a ``string_view``.
+		TORRENT_DEPRECATED
 		char const* file_name_ptr(file_index_t index) const;
+		TORRENT_DEPRECATED
 		int file_name_len(file_index_t index) const;
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 		// these were deprecated in 1.0. Use the versions that take an index instead
@@ -526,6 +538,8 @@ namespace libtorrent {
 		// if the backing buffer changed for this storage, this is the pointer
 		// offset to add to any pointers to make them point into the new buffer
 		void apply_pointer_offset(std::ptrdiff_t off);
+
+		void sanitize_symlinks();
 
 	private:
 
@@ -566,7 +580,7 @@ namespace libtorrent {
 		// for files that are symlinks, the symlink
 		// path_index in the internal_file_entry indexes
 		// this vector of strings
-		aux::vector<std::string, file_index_t> m_symlinks;
+		std::vector<std::string> m_symlinks;
 
 		// the modification times of each file. This vector
 		// is empty if no file have a modification time.
@@ -589,7 +603,7 @@ namespace libtorrent {
 		std::int64_t m_total_size;
 	};
 
-	namespace aux {
+namespace aux {
 
 	// returns the piece range that entirely falls within the specified file. the
 	// end piece is one-past the last piece that entirely falls within the file.

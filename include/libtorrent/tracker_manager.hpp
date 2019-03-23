@@ -63,7 +63,7 @@ namespace ssl {
 #include "libtorrent/peer.hpp" // peer_entry
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/union_endpoint.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
@@ -82,7 +82,10 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	class i2p_connection;
 #endif
-	namespace aux { struct session_logger; struct session_settings; }
+namespace aux {
+	struct session_logger;
+	struct session_settings;
+}
 
 	struct TORRENT_EXTRA_EXPORT tracker_request
 	{
@@ -246,7 +249,7 @@ namespace libtorrent {
 	struct TORRENT_EXTRA_EXPORT timeout_handler
 		: std::enable_shared_from_this<timeout_handler>
 	{
-		explicit timeout_handler(io_service& str);
+		explicit timeout_handler(io_context& str);
 
 		timeout_handler(timeout_handler const&) = delete;
 		timeout_handler& operator=(timeout_handler const&) = delete;
@@ -259,7 +262,7 @@ namespace libtorrent {
 		virtual void on_timeout(error_code const& ec) = 0;
 		virtual ~timeout_handler();
 
-		io_service& get_io_service() { return m_timeout.get_io_service(); }
+		io_context::executor_type get_executor() { return m_timeout.get_executor(); }
 
 	private:
 
@@ -290,7 +293,7 @@ namespace libtorrent {
 	{
 		tracker_connection(tracker_manager& man
 			, tracker_request const& req
-			, io_service& ios
+			, io_context& ios
 			, std::weak_ptr<request_callback> r);
 
 		std::shared_ptr<request_callback> requester() const;
@@ -357,12 +360,12 @@ namespace libtorrent {
 		tracker_manager& operator=(tracker_manager const&) = delete;
 
 		void queue_request(
-			io_service& ios
+			io_context& ios
 			, tracker_request&& r
 			, std::weak_ptr<request_callback> c
 				= std::weak_ptr<request_callback>());
 		void queue_request(
-			io_service& ios
+			io_context& ios
 			, tracker_request const& r
 			, std::weak_ptr<request_callback> c
 				= std::weak_ptr<request_callback>()) = delete;

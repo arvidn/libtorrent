@@ -14,6 +14,12 @@ changelog at the end of sha1.cpp
 #define TORRENT_SHA1_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+
+#if !defined TORRENT_USE_LIBGCRYPT \
+	&& !TORRENT_USE_COMMONCRYPTO \
+	&& !TORRENT_USE_CRYPTOAPI \
+	&& !defined TORRENT_USE_LIBCRYPTO
+
 #include <cstdint>
 
 namespace libtorrent {
@@ -32,4 +38,5 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT void SHA1_final(std::uint8_t* digest, sha1_ctx* context);
 }
 
+#endif
 #endif

@@ -49,26 +49,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace i2p_error {
+namespace i2p_error {
 
-		// error values for the i2p_category error_category.
-		enum i2p_error_code
-		{
-			no_error = 0,
-			parse_failed,
-			cant_reach_peer,
-			i2p_error,
-			invalid_key,
-			invalid_id,
-			timeout,
-			key_not_found,
-			duplicated_id,
-			num_errors
-		};
+	// error values for the i2p_category error_category.
+	enum i2p_error_code
+	{
+		no_error = 0,
+		parse_failed,
+		cant_reach_peer,
+		i2p_error,
+		invalid_key,
+		invalid_id,
+		timeout,
+		key_not_found,
+		duplicated_id,
+		num_errors
+	};
 
-		// hidden
-		TORRENT_EXPORT boost::system::error_code make_error_code(i2p_error_code e);
-	}
+	// hidden
+	TORRENT_EXPORT boost::system::error_code make_error_code(i2p_error_code e);
+}
 
 	// returns the error category for I2P errors
 	TORRENT_EXPORT boost::system::error_category& i2p_category();
@@ -83,7 +83,7 @@ class i2p_stream : public proxy_base
 {
 public:
 
-	explicit i2p_stream(io_service& io_service);
+	explicit i2p_stream(io_context& io_context);
 #if TORRENT_USE_ASSERTS
 	~i2p_stream();
 #endif
@@ -118,8 +118,7 @@ public:
 
 		using std::placeholders::_1;
 		using std::placeholders::_2;
-		tcp::resolver::query q(m_hostname, to_string(m_port).data());
-		m_resolver.async_resolve(q, std::bind(
+		m_resolver.async_resolve(m_hostname, to_string(m_port).data(), std::bind(
 			&i2p_stream::do_connect, this, _1, _2, handler_type(std::move(handler))));
 	}
 
@@ -132,7 +131,7 @@ private:
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_stream& operator=(i2p_stream const&);
 
-	void do_connect(error_code const& e, tcp::resolver::iterator i
+	void do_connect(error_code const& e, tcp::resolver::results_type ips
 		, handler_type h);
 	void connected(error_code const& e, handler_type& h);
 	void start_read_line(error_code const& e, handler_type& h);
@@ -166,7 +165,7 @@ private:
 class i2p_connection
 {
 public:
-	explicit i2p_connection(io_service& ios);
+	explicit i2p_connection(io_context& ios);
 	~i2p_connection();
 
 	aux::proxy_settings proxy() const;
@@ -221,18 +220,20 @@ private:
 
 	state_t m_state;
 
-	io_service& m_io_service;
+	io_context& m_io_service;
 };
 
 }
 
-namespace boost { namespace system {
+namespace boost {
+namespace system {
 
 template<>
 struct is_error_code_enum<libtorrent::i2p_error::i2p_error_code>
 { static const bool value = true; };
 
-} }
+}
+}
 
 #endif // TORRENT_USE_I2P
 

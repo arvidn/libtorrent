@@ -326,7 +326,7 @@ bool compare_ip_cidr(address const& lhs, address const& rhs)
 		// if IPv4 addresses is in the same /24, they're too close and we won't
 		// trust the second one
 		std::uint32_t const mask
-			= std::uint32_t(lhs.to_v4().to_ulong() ^ rhs.to_v4().to_ulong());
+			= std::uint32_t(lhs.to_v4().to_uint() ^ rhs.to_v4().to_uint());
 		return mask <= 0x000000ff;
 	}
 }

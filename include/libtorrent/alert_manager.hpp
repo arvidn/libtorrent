@@ -70,18 +70,19 @@ namespace libtorrent {
 		{
 			std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
+			heterogeneous_queue<alert>& queue = m_alerts[m_generation];
+
 			// don't add more than this number of alerts, unless it's a
 			// high priority alert, in which case we try harder to deliver it
 			// for high priority alerts, double the upper limit
-			if (m_alerts[m_generation].size() / (1 + T::priority)
-				>= m_queue_size_limit)
+			if (queue.size() / (1 + T::priority) >= m_queue_size_limit)
 			{
 				// record that we dropped an alert of this type
 				m_dropped.set(T::alert_type);
 				return;
 			}
 
-			T& alert = m_alerts[m_generation].emplace_back<T>(
+			T& alert = queue.emplace_back<T>(
 				m_allocations[m_generation], std::forward<Args>(args)...);
 
 			maybe_notify(&alert);

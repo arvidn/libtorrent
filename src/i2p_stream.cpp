@@ -51,7 +51,7 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-	struct i2p_error_category : boost::system::error_category
+	struct i2p_error_category final : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "i2p error"; }
@@ -93,7 +93,7 @@ namespace libtorrent {
 		}
 	}
 
-	i2p_connection::i2p_connection(io_service& ios)
+	i2p_connection::i2p_connection(io_context& ios)
 		: m_port(0)
 		, m_state(sam_idle)
 		, m_io_service(ios)
@@ -216,8 +216,8 @@ namespace libtorrent {
 		handler(ec, name.c_str());
 	}
 
-	i2p_stream::i2p_stream(io_service& io_service)
-		: proxy_base(io_service)
+	i2p_stream::i2p_stream(io_context& io_context)
+		: proxy_base(io_context)
 		, m_id(nullptr)
 		, m_command(cmd_create_session)
 		, m_state(read_hello_response)
@@ -235,11 +235,11 @@ namespace libtorrent {
 	}
 #endif
 
-	void i2p_stream::do_connect(error_code const& e, tcp::resolver::iterator i
+	void i2p_stream::do_connect(error_code const& e, tcp::resolver::results_type ips
 		, handler_type h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		if (e || i == tcp::resolver::iterator())
+		if (e || ips.empty())
 		{
 			h(e);
 			error_code ec;
@@ -247,6 +247,7 @@ namespace libtorrent {
 			return;
 		}
 
+		auto i = ips.begin();
 		ADD_OUTSTANDING_ASYNC("i2p_stream::connected");
 		m_sock.async_connect(i->endpoint(), std::bind(
 			&i2p_stream::connected, this, _1, std::move(h)));

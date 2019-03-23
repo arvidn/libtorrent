@@ -58,8 +58,8 @@ void run_test(Setup const& setup, Test const& test)
 
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	auto ios = std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
-		sim, lt::address_v4::from_string("50.0.0.1")));
+	auto ios = std::make_unique<sim::asio::io_context>(
+		sim, lt::make_address_v4("50.0.0.1"));
 	lt::session_proxy zombie;
 
 	// setup settings pack to use for the session (customization point)
@@ -116,7 +116,6 @@ std::shared_ptr<lt::torrent_info> create_multifile_torrent()
 	lt::create_torrent t(fs, 0x40000, -1, {});
 
 	// calculate the hash for all pieces
-	lt::error_code ec;
 	set_piece_hashes(t, ".");
 
 	std::vector<char> buf;

@@ -341,6 +341,17 @@ namespace {
 		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
 	}
 
+	template<class F, typename... Args>
+	void bt_peer_connection::extension_notify(F message, Args... args)
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (auto const& e : m_extensions)
+		{
+			(*e.*message)(args...);
+		}
+#endif
+	}
+
 	void bt_peer_connection::write_have_all()
 	{
 		INVARIANT_CHECK;
@@ -349,7 +360,11 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_ALL");
 #endif
-		send_message(msg_have_all, counters::num_outgoing_have_all, 0);
+		send_message(msg_have_all, counters::num_outgoing_have_all);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_have_all);
+#endif
 	}
 
 	void bt_peer_connection::write_have_none()
@@ -359,7 +374,11 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_NONE");
 #endif
-		send_message(msg_have_none, counters::num_outgoing_have_none, 0);
+		send_message(msg_have_none, counters::num_outgoing_have_none);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_have_none);
+#endif
 	}
 
 	void bt_peer_connection::write_reject_request(peer_request const& r)
@@ -376,8 +395,12 @@ namespace {
 			, r.start, r.length);
 #endif
 
-		send_message(msg_reject_request, counters::num_outgoing_reject, 0
+		send_message(msg_reject_request, counters::num_outgoing_reject
 			, static_cast<int>(r.piece), r.start, r.length);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_reject_request, r);
+#endif
 	}
 
 	void bt_peer_connection::write_allow_fast(piece_index_t const piece)
@@ -393,8 +416,12 @@ namespace {
 
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
-		send_message(msg_allowed_fast, counters::num_outgoing_allowed_fast, 0
+		send_message(msg_allowed_fast, counters::num_outgoing_allowed_fast
 			, static_cast<int>(piece));
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_allow_fast, piece);
+#endif
 	}
 
 	void bt_peer_connection::write_suggest(piece_index_t const piece)
@@ -421,8 +448,12 @@ namespace {
 		}
 #endif
 
-		send_message(msg_suggest_piece, counters::num_outgoing_suggest, 0
+		send_message(msg_suggest_piece, counters::num_outgoing_suggest
 			, static_cast<int>(piece));
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_suggest, piece);
+#endif
 	}
 
 	void bt_peer_connection::get_specific_peer_info(peer_info& p) const
@@ -1019,14 +1050,16 @@ namespace {
 			char const* ptr = recv_buffer.data() + 9;
 			int const list_size = detail::read_int32(ptr);
 
-			if (list_size > m_recv_buffer.packet_size() - 13)
+			if (list_size > m_recv_buffer.packet_size() - 13 || list_size < 0)
 			{
+				received_bytes(0, received);
 				disconnect(errors::invalid_hash_list, operation_t::bittorrent, peer_error);
 				return;
 			}
 
 			if (m_recv_buffer.packet_size() - 13 - list_size > t->block_size())
 			{
+				received_bytes(0, received);
 				disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
 				return;
 			}
@@ -1037,6 +1070,7 @@ namespace {
 			{
 				if (m_recv_buffer.packet_size() - 9 > t->block_size())
 				{
+					received_bytes(0, received);
 					disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
 					return;
 				}
@@ -1060,6 +1094,12 @@ namespace {
 			if (merkle)
 			{
 				list_size = detail::read_int32(ptr);
+				if (list_size < 0)
+				{
+					received_bytes(0, received);
+					disconnect(errors::invalid_hash_list, operation_t::bittorrent, peer_error);
+					return;
+				}
 				p.length = m_recv_buffer.packet_size() - list_size - header_size;
 				header_size += list_size;
 			}
@@ -1229,7 +1269,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 5)
 		{
 			disconnect(errors::invalid_suggest, operation_t::bittorrent, peer_error);
 			return;
@@ -1249,7 +1289,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 1)
 		{
 			disconnect(errors::invalid_have_all, operation_t::bittorrent, peer_error);
 			return;
@@ -1262,7 +1302,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 1)
 		{
 			disconnect(errors::invalid_have_none, operation_t::bittorrent, peer_error);
 			return;
@@ -1275,7 +1315,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 13)
 		{
 			disconnect(errors::invalid_reject, operation_t::bittorrent, peer_error);
 			return;
@@ -1299,7 +1339,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		received_bytes(0, received);
-		if (!m_supports_fast)
+		if (!m_supports_fast || m_recv_buffer.packet_size() != 5)
 		{
 			disconnect(errors::invalid_allow_fast, operation_t::bittorrent, peer_error);
 			return;
@@ -1346,14 +1386,14 @@ namespace {
 
 		if (addr_type == 0)
 		{
-			if (int(recv_buffer.size()) < 2 + 4 + 2) return;
+			if (int(recv_buffer.size()) != 2 + 4 + 2) return;
 			// IPv4 address
 			ep = detail::read_v4_endpoint<tcp::endpoint>(ptr);
 		}
 		else if (addr_type == 1)
 		{
 			// IPv6 address
-			if (int(recv_buffer.size()) < 2 + 18 + 2) return;
+			if (int(recv_buffer.size()) != 2 + 18 + 2) return;
 			ep = detail::read_v6_endpoint<tcp::endpoint>(ptr);
 		}
 		else
@@ -1634,7 +1674,7 @@ namespace {
 #endif
 				return;
 			}
-			piece_index_t const piece(aux::numeric_cast<int>(aux::read_uint32(recv_buffer)));
+			piece_index_t const piece(aux::read_int32(recv_buffer));
 			incoming_dont_have(piece);
 			return;
 		}
@@ -1758,7 +1798,7 @@ namespace {
 				address_v6 ipv6_address(bytes);
 				if (ipv6_address.is_v4_mapped())
 					m_ses.set_external_address(local_endpoint()
-						, ipv6_address.to_v4()
+						, make_address_v4(v4_mapped, ipv6_address)
 						, aux::session_interface::source_peer, remote().address());
 				else
 					m_ses.set_external_address(local_endpoint()
@@ -1930,18 +1970,26 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_cancel, counters::num_outgoing_cancel, 0
+		send_message(msg_cancel, counters::num_outgoing_cancel
 			, static_cast<int>(r.piece), r.start, r.length);
 
 		if (!m_supports_fast) incoming_reject_request(r);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_cancel, r);
+#endif
 	}
 
 	void bt_peer_connection::write_request(peer_request const& r)
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_request, counters::num_outgoing_request, message_type_request
+		send_message(msg_request, counters::num_outgoing_request
 			, static_cast<int>(r.piece), r.start, r.length);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_request, r);
+#endif
 	}
 
 	void bt_peer_connection::write_bitfield()
@@ -2186,20 +2234,21 @@ namespace {
 		INVARIANT_CHECK;
 
 		if (is_choked()) return;
-		send_message(msg_choke, counters::num_outgoing_choke, 0);
+		send_message(msg_choke, counters::num_outgoing_choke);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_choke);
+#endif
 	}
 
 	void bt_peer_connection::write_unchoke()
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_unchoke, counters::num_outgoing_unchoke, 0);
+		send_message(msg_unchoke, counters::num_outgoing_unchoke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto const& e : m_extensions)
-		{
-			e->sent_unchoke();
-		}
+		extension_notify(&peer_plugin::sent_unchoke);
 #endif
 	}
 
@@ -2207,14 +2256,22 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_interested, counters::num_outgoing_interested, 0);
+		send_message(msg_interested, counters::num_outgoing_interested);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_interested);
+#endif
 	}
 
 	void bt_peer_connection::write_not_interested()
 	{
 		INVARIANT_CHECK;
 
-		send_message(msg_not_interested, counters::num_outgoing_not_interested, 0);
+		send_message(msg_not_interested, counters::num_outgoing_not_interested);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_not_interested);
+#endif
 	}
 
 	void bt_peer_connection::write_have(piece_index_t const index)
@@ -2228,8 +2285,12 @@ namespace {
 		// there instead
 		if (!m_sent_bitfield) return;
 
-		send_message(msg_have, counters::num_outgoing_have, 0
+		send_message(msg_have, counters::num_outgoing_have
 			, static_cast<int>(index));
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_have, index);
+#endif
 	}
 
 	void bt_peer_connection::write_dont_have(piece_index_t const index)
@@ -2333,6 +2394,10 @@ namespace {
 			t->alerts().emplace_alert<block_uploaded_alert>(t->get_handle(),
 				remote(), pid(), r.start / t->block_size() , r.piece);
 		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		extension_notify(&peer_plugin::sent_piece, r);
+#endif
 	}
 
 	// --------------------------

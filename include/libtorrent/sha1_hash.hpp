@@ -60,7 +60,7 @@ namespace aux {
 
 		TORRENT_EXTRA_EXPORT void bits_shift_left(span<std::uint32_t> number, int n);
 		TORRENT_EXTRA_EXPORT void bits_shift_right(span<std::uint32_t> number, int n);
-	}
+} // namespace aux
 
 	// This type holds an N digest or any other kind of N bits
 	// sequence. It implements a number of convenience functions, such
@@ -295,8 +295,7 @@ namespace aux {
 #endif // TORRENT_USE_IOSTREAM
 }
 
-namespace std
-{
+namespace std {
 	template <>
 	struct hash<libtorrent::sha1_hash>
 	{

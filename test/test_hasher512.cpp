@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_DHT
 
-#include "libtorrent/hasher512.hpp"
+#include "libtorrent/aux_/hasher512.hpp"
 #include "libtorrent/hex.hpp"
 
 #include "test.hpp"
@@ -43,7 +43,7 @@ namespace
 {
 	void test_vector(std::string s, std::string output, int const n = 1)
 	{
-		hasher512 h;
+		aux::hasher512 h;
 		for (int i = 0; i < n; i++)
 			h.update(s);
 		std::string digest = h.final().to_string();

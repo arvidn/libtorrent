@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
-#include "libtorrent/string_util.hpp" // for split_string
 #include "libtorrent/string_view.hpp"
 #include "test.hpp"
 #include <vector>
@@ -189,11 +188,6 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(remove_extension("blah.foo.bar"), "blah.foo");
 	TEST_EQUAL(remove_extension("blah.foo."), "blah.foo");
 
-	TEST_EQUAL(filename("blah"), "blah");
-	TEST_EQUAL(filename("/blah/foo/bar"), "bar");
-	TEST_EQUAL(filename("/blah/foo/bar/"), "bar");
-	TEST_EQUAL(filename("blah/"), "blah");
-
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(is_root_path("c:\\blah"), false);
 	TEST_EQUAL(is_root_path("c:\\"), true);
@@ -275,38 +269,52 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(complete("."), current_working_directory());
 }
 
-// test split_string
-TORRENT_TEST(split_string)
+TORRENT_TEST(filename)
 {
-	char const* tags[10];
-	char tags_str[] = "  this  is\ta test\t string\x01to be split  and it cannot "
-		"extend over the limit of elements \t";
-	int ret = split_string(tags, 10, tags_str);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(filename("blah"), "blah");
+	TEST_EQUAL(filename("\\blah\\foo\\bar"), "bar");
+	TEST_EQUAL(filename("\\blah\\foo\\bar\\"), "bar");
+	TEST_EQUAL(filename("blah\\"), "blah");
+#endif
+	TEST_EQUAL(filename("blah"), "blah");
+	TEST_EQUAL(filename("/blah/foo/bar"), "bar");
+	TEST_EQUAL(filename("/blah/foo/bar/"), "bar");
+	TEST_EQUAL(filename("blah/"), "blah");
+}
 
-	TEST_CHECK(ret == 10);
-	TEST_CHECK(tags[0] == "this"_sv);
-	TEST_CHECK(tags[1] == "is"_sv);
-	TEST_CHECK(tags[2] == "a"_sv);
-	TEST_CHECK(tags[3] == "test"_sv);
-	TEST_CHECK(tags[4] == "string"_sv);
-	TEST_CHECK(tags[5] == "to"_sv);
-	TEST_CHECK(tags[6] == "be"_sv);
-	TEST_CHECK(tags[7] == "split"_sv);
-	TEST_CHECK(tags[8] == "and"_sv);
-	TEST_CHECK(tags[9] == "it"_sv);
+TORRENT_TEST(split_path)
+{
+	using r = std::pair<string_view, string_view>;
 
-	// replace_extension
-	std::string test = "foo.bar";
-	replace_extension(test, "txt");
-	TEST_EQUAL(test, "foo.txt");
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(lsplit_path("\\b\\c\\d") == r("b", "c\\d"));
+	TEST_CHECK(lsplit_path("a\\b\\c\\d") == r("a", "b\\c\\d"));
+	TEST_CHECK(lsplit_path("a") == r("a", ""));
+	TEST_CHECK(lsplit_path("") == r("", ""));
 
-	test = "_";
-	replace_extension(test, "txt");
-	TEST_EQUAL(test, "_.txt");
+	TEST_CHECK(lsplit_path("a\\b/c\\d") == r("a", "b/c\\d"));
+	TEST_CHECK(lsplit_path("a/b\\c\\d") == r("a", "b\\c\\d"));
 
-	test = "1.2.3/_";
-	replace_extension(test, "txt");
-	TEST_EQUAL(test, "1.2.3/_.txt");
+	TEST_CHECK(rsplit_path("a\\b\\c\\d\\") == r("a\\b\\c", "d"));
+	TEST_CHECK(rsplit_path("\\a\\b\\c\\d") == r("\\a\\b\\c", "d"));
+	TEST_CHECK(rsplit_path("\\a") == r("", "a"));
+	TEST_CHECK(rsplit_path("a") == r("", "a"));
+	TEST_CHECK(rsplit_path("") == r("", ""));
+
+	TEST_CHECK(rsplit_path("a\\b/c\\d\\") == r("a\\b/c", "d"));
+	TEST_CHECK(rsplit_path("a\\b\\c/d\\") == r("a\\b\\c", "d"));
+#endif
+	TEST_CHECK(lsplit_path("/b/c/d") == r("b", "c/d"));
+	TEST_CHECK(lsplit_path("a/b/c/d") == r("a", "b/c/d"));
+	TEST_CHECK(lsplit_path("a") == r("a", ""));
+	TEST_CHECK(lsplit_path("") == r("", ""));
+
+	TEST_CHECK(rsplit_path("a/b/c/d/") == r("a/b/c", "d"));
+	TEST_CHECK(rsplit_path("/a/b/c/d") == r("/a/b/c", "d"));
+	TEST_CHECK(rsplit_path("/a") == r("", "a"));
+	TEST_CHECK(rsplit_path("a") == r("", "a"));
+	TEST_CHECK(rsplit_path("") == r("", ""));
 }
 
 // file class
@@ -420,6 +428,46 @@ TORRENT_TEST(stat_file)
 	stat_file("no_such_file_or_directory.file", &st, ec);
 	TEST_CHECK(ec);
 	TEST_EQUAL(ec, boost::system::errc::no_such_file_or_directory);
+}
+
+TORRENT_TEST(relative_path)
+{
+#ifdef TORRENT_WINDOWS
+#define S "\\"
+#else
+#define S "/"
+#endif
+	TEST_EQUAL(lexically_relative("A" S "B" S "C", "A" S "C" S "B")
+		, ".." S ".." S "C" S "B");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C" S, "A" S "C" S "B")
+		, ".." S ".." S "C" S "B");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C" S, "A" S "C" S "B" S)
+		, ".." S ".." S "C" S "B");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C", "A" S "B" S "B")
+		, ".." S "B");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C", "A" S "B" S "C")
+		, "");
+
+	TEST_EQUAL(lexically_relative("A" S "B", "A" S "B")
+		, "");
+
+	TEST_EQUAL(lexically_relative("A" S "B", "A" S "B" S "C")
+		, "C");
+
+	TEST_EQUAL(lexically_relative("A" S, "A" S)
+		, "");
+
+	TEST_EQUAL(lexically_relative("", "A" S "B" S "C")
+		, "A" S "B" S "C");
+
+	TEST_EQUAL(lexically_relative("A" S "B" S "C", "")
+		, ".." S ".." S ".." S);
+
+	TEST_EQUAL(lexically_relative("", ""), "");
 }
 
 // UNC tests
@@ -577,4 +625,5 @@ TORRENT_TEST(unc_paths)
 	remove(reserved_name, ec);
 	TEST_CHECK(!ec);
 }
+
 #endif

@@ -77,7 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent {
-
 namespace {
 
 #if DEBUG_DISK_THREAD
@@ -136,7 +135,7 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 	, disk_interface
 	, buffer_allocator_interface
 {
-	disk_io_thread(io_service& ios, counters& cnt);
+	disk_io_thread(io_context& ios, counters& cnt);
 #if TORRENT_USE_ASSERTS
 	~disk_io_thread() override;
 #endif
@@ -165,7 +164,7 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 		, std::function<void(storage_error const&)> handler) override;
 	void async_check_files(storage_index_t storage
 		, add_torrent_params const* resume_data
-		, aux::vector<std::string, file_index_t>& links
+		, aux::vector<std::string, file_index_t> links
 		, std::function<void(status_t, storage_error const&)> handler) override;
 	void async_rename_file(storage_index_t storage, file_index_t index, std::string name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override;
@@ -180,7 +179,7 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 		, std::function<void(piece_index_t)> handler) override;
 
 	// implements buffer_allocator_interface
-	void free_disk_buffer(char* b, aux::block_cache_reference const&) override
+	void free_disk_buffer(char* b) override
 	{ m_buffer_pool.free_buffer(b); }
 
 	void update_stats_counters(counters& c) const override;
@@ -217,12 +216,12 @@ private:
 			m_job_cond.notify_all();
 		}
 
-		void thread_fun(disk_io_thread_pool& pool, io_service::work work) override
+		void thread_fun(disk_io_thread_pool& pool, executor_work_guard<io_context::executor_type> work) override
 		{
 			ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
 			m_owner.thread_fun(*this, pool);
 
-			// w's dtor releases the io_service to allow the run() call to return
+			// w's dtor releases the io_context to allow the run() call to return
 			// we do this once we stop posting new callbacks to it.
 			// after the dtor has been called, the disk_io_thread object may be destructed
 			TORRENT_UNUSED(work);
@@ -313,10 +312,10 @@ private:
 
 	counters& m_stats_counters;
 
-	// this is the main thread io_service. Callbacks are
+	// this is the main thread io_context. Callbacks are
 	// posted on this in order to have them execute in
 	// the main thread.
-	io_service& m_ios;
+	io_context& m_ios;
 
 	// jobs that are completed are put on this queue
 	// whenever the queue size grows from 0 to 1
@@ -348,19 +347,15 @@ private:
 #endif
 };
 
-constexpr disk_job_flags_t disk_interface::force_copy;
-constexpr disk_job_flags_t disk_interface::sequential_access;
-constexpr disk_job_flags_t disk_interface::volatile_read;
-
 TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
-	io_service& ios, counters& cnt)
+	io_context& ios, counters& cnt)
 {
-	return std::unique_ptr<disk_interface>(new disk_io_thread(ios, cnt));
+	return std::make_unique<disk_io_thread>(ios, cnt);
 }
 
 // ------- disk_io_thread ------
 
-	disk_io_thread::disk_io_thread(io_service& ios, counters& cnt)
+	disk_io_thread::disk_io_thread(io_context& ios, counters& cnt)
 		: m_generic_io_jobs(*this)
 		, m_generic_threads(m_generic_io_jobs, ios)
 		, m_hash_io_jobs(*this)
@@ -399,12 +394,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void disk_io_thread::remove_torrent(storage_index_t const idx)
 	{
-		auto& pos = m_torrents[idx];
-		if (pos->dec_refcount() == 0)
-		{
-			pos.reset();
-			m_free_slots.push_back(idx);
-		}
+		m_torrents[idx].reset();
+		m_free_slots.push_back(idx);
 	}
 
 #if TORRENT_USE_ASSERTS
@@ -562,7 +553,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		j->argument = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
 		auto& buffer = boost::get<disk_buffer_holder>(j->argument);
-		if (buffer.get() == nullptr)
+		if (!buffer)
 		{
 			j->error.ec = error::no_memory;
 			j->error.operation = operation_t::alloc_cache_piece;
@@ -572,7 +563,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		time_point const start_time = clock_type::now();
 
 		aux::open_mode_t const file_flags = file_flags_for_job(j);
-		iovec_t b = {buffer.get(), j->d.io.buffer_size};
+		iovec_t b = {buffer.data(), j->d.io.buffer_size};
 
 		int const ret = j->storage->readv(m_settings, b
 			, j->piece, j->d.io.offset, file_flags, j->error);
@@ -598,7 +589,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		time_point const start_time = clock_type::now();
 		auto buffer = std::move(boost::get<disk_buffer_holder>(j->argument));
 
-		iovec_t const b = { buffer.get(), j->d.io.buffer_size};
+		iovec_t const b = { buffer.data(), j->d.io.buffer_size};
 		aux::open_mode_t const file_flags = file_flags_for_job(j);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
@@ -636,26 +627,40 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= default_block_size);
-		TORRENT_ASSERT(r.start % default_block_size == 0);
+
+		// in case r.start is not aligned to a block, calculate that offset,
+		// since that's how the store_buffer is indexed
+		int const block_offset = r.start - (r.start % default_block_size);
+		// this is the offset into the block that we're reading from
+		int const read_offset = r.start - block_offset;
+
+		storage_error ec;
+		if (read_offset + r.length > default_block_size || r.length <= 0)
+		{
+			// this is an invalid read request. We don't support read requests
+			// spanning multiple blocks
+			ec.ec = errors::invalid_request;
+			ec.operation = operation_t::file_read;
+			handler(disk_buffer_holder{}, ec);
+			return;
+		}
 
 		DLOG("async_read piece: %d block: %d\n", static_cast<int>(r.piece)
-			, r.start / default_block_size);
+			, block_offset / default_block_size);
 
-		disk_buffer_holder buffer(*this, nullptr, 0);
-		storage_error ec;
+		disk_buffer_holder buffer;
 
-		if (m_store_buffer.get({ storage, r.piece, r.start }
-			, [&](char* buf)
+		if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char* buf)
 		{
-			buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), 0x4000);
-			if (buffer.get() == nullptr)
+			buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), r.length);
+			if (!buffer)
 			{
 				ec.ec = error::no_memory;
 				ec.operation = operation_t::alloc_cache_piece;
 				return;
 			}
 
-			std::memcpy(buffer.get(), buf, std::size_t(default_block_size));
+			std::memcpy(buffer.data(), buf + read_offset, std::size_t(r.length));
 		}))
 		{
 			handler(std::move(buffer), ec);
@@ -667,13 +672,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
 		j->d.io.buffer_size = std::uint16_t(r.length);
-		j->argument = disk_buffer_holder(*this, nullptr, 0);
 		j->flags = flags;
 		j->callback = std::move(handler);
 
-		// check to see if there's a fence up for this job, and if there is, add
-		// it to the fence queue. If there's no fence we can add the job to the
-		// normal queue
 		if (j->storage->is_blocked(j))
 		{
 			// this means the job was queued up inside storage
@@ -697,7 +698,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		disk_buffer_holder buffer(*this, m_buffer_pool.allocate_buffer(
 			exceeded, o, "receive buffer"), default_block_size);
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
-		std::memcpy(buffer.get(), buf, aux::numeric_cast<std::size_t>(r.length));
+		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 
 		disk_io_job* j = allocate_job(job_action_t::write);
 		j->storage = m_torrents[storage]->shared_from_this();
@@ -711,7 +712,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT((r.start % default_block_size) == 0);
 
 		m_store_buffer.insert({j->storage->storage_index(), j->piece, j->d.io.offset}
-			, boost::get<disk_buffer_holder>(j->argument).get());
+			, boost::get<disk_buffer_holder>(j->argument).data());
 
 		if (j->storage->is_blocked(j))
 		{
@@ -791,17 +792,17 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void disk_io_thread::async_check_files(storage_index_t const storage
 		, add_torrent_params const* resume_data
-		, aux::vector<std::string, file_index_t>& links
+		, aux::vector<std::string, file_index_t> links
 		, std::function<void(status_t, storage_error const&)> handler)
 	{
-		auto links_vector = new aux::vector<std::string, file_index_t>();
-		links_vector->swap(links);
-
 		disk_io_job* j = allocate_job(job_action_t::check_fastresume);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->argument = resume_data;
-		j->d.links = links_vector;
 		j->callback = std::move(handler);
+
+		aux::vector<std::string, file_index_t>* links_vector = nullptr;
+		if (!links.empty()) links_vector = new aux::vector<std::string, file_index_t>(std::move(links));
+		j->d.links = links_vector;
 
 		add_fence_job(j);
 	}
@@ -919,8 +920,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
 		// if files have to be closed, that's the storage's responsibility
-		return j->storage->move_storage(boost::get<std::string>(j->argument)
+		status_t ret;
+		std::string p;
+		std::tie(ret, p) = j->storage->move_storage(boost::get<std::string>(j->argument)
 			, j->move_flags, j->error);
+
+		boost::get<std::string>(j->argument) = p;
+		return ret;
 	}
 
 	status_t disk_io_thread::do_release_files(disk_io_job* j)
@@ -962,14 +968,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		TORRENT_ASSERT(j->storage->files().piece_length() > 0);
 
+		bool const verify_success = j->storage->verify_resume_data(*rd
+			, links ? *links : aux::vector<std::string, file_index_t>(), j->error);
+
 		// if we don't have any resume data, return
 		// or if error is set and return value is 'no_error' or 'need_full_check'
 		// the error message indicates that the fast resume data was rejected
 		// if 'fatal_disk_error' is returned, the error message indicates what
 		// when wrong in the disk access
-		if ((rd->have_pieces.empty()
-			|| !j->storage->verify_resume_data(*rd
-				, links ? *links : aux::vector<std::string, file_index_t>(), j->error))
+		if ((rd->have_pieces.empty() || !verify_success)
 			&& !m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
 		{
 			// j->error may have been set at this point, by verify_resume_data()
@@ -1426,7 +1433,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// we take this lock just to make the logging prettier (non-interleaved)
 			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
 
-			m_ios.post(std::bind(&disk_io_thread::call_job_handlers, this));
+			post(m_ios, [this] { this->call_job_handlers(); });
 			m_job_completions_in_flight = true;
 		}
 	}

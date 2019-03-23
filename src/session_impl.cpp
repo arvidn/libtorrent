@@ -46,7 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/ip/v6_only.hpp>
+#include <boost/asio/ts/internet.hpp>
+#include <boost/asio/ts/executor.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/aux_/openssl.hpp"
@@ -194,6 +195,10 @@ namespace libtorrent {
 	std::deque<wakeup_t> _wakeups;
 	int _async_ops_nthreads = 0;
 	std::mutex _async_ops_mutex;
+
+	std::map<int, handler_alloc_t> _handler_storage;
+	std::mutex _handler_storage_mutex;
+	bool _handler_logger_registered = false;
 #endif
 
 namespace aux {
@@ -396,21 +401,21 @@ namespace aux {
 #endif
 #endif
 
-	session_impl::session_impl(io_service& ios, settings_pack const& pack
+	session_impl::session_impl(io_context& ioc, settings_pack const& pack
 		, disk_io_constructor_type disk_io_constructor)
 		: m_settings(pack)
-		, m_io_service(ios)
+		, m_io_context(ioc)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(boost::asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
 		, m_disk_thread(disk_io_constructor
-			? disk_io_constructor(m_io_service, m_stats_counters)
-			: default_disk_io_constructor(m_io_service, m_stats_counters))
+			? disk_io_constructor(m_io_context, m_stats_counters)
+			: default_disk_io_constructor(m_io_context, m_stats_counters))
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
-		, m_host_resolver(m_io_service)
+		, m_host_resolver(m_io_context)
 		, m_tracker_manager(
 			std::bind(&session_impl::send_udp_packet_listen, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::send_udp_packet_hostname_listen, this, _1, _2, _3, _4, _5, _6)
@@ -421,9 +426,9 @@ namespace aux {
 			, *this
 #endif
 			)
-		, m_work(new io_service::work(m_io_service))
+		, m_work(make_work_guard(m_io_context))
 #if TORRENT_USE_I2P
-		, m_i2p_conn(m_io_service)
+		, m_i2p_conn(m_io_context)
 #endif
 		, m_created(clock_type::now())
 		, m_last_tick(m_created)
@@ -431,24 +436,24 @@ namespace aux {
 		, m_last_choke(m_created)
 		, m_last_auto_manage(m_created)
 #ifndef TORRENT_DISABLE_DHT
-		, m_dht_announce_timer(m_io_service)
+		, m_dht_announce_timer(m_io_context)
 #endif
 		, m_utp_socket_manager(
 			std::bind(&session_impl::send_udp_packet, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::incoming_connection, this, _1)
-			, m_io_service
+			, m_io_context
 			, m_settings, m_stats_counters, nullptr)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_utp_socket_manager(
 			std::bind(&session_impl::send_udp_packet, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::on_incoming_utp_ssl, this, _1)
-			, m_io_service
+			, m_io_context
 			, m_settings, m_stats_counters
 			, &m_ssl_ctx)
 #endif
-		, m_timer(m_io_service)
-		, m_lsd_announce_timer(m_io_service)
-		, m_close_file_timer(m_io_service)
+		, m_timer(m_io_context)
+		, m_lsd_announce_timer(m_io_context)
+		, m_close_file_timer(m_io_context)
 	{
 		m_disk_thread->set_settings(&pack);
 	}
@@ -475,9 +480,9 @@ namespace aux {
 #endif
 
 	// This function is called by the creating thread, not in the message loop's
-	// io_service thread.
+	// io_context thread.
 	// TODO: 2 is there a reason not to move all of this into init()? and just
-	// post it to the io_service?
+	// post it to the io_context?
 	void session_impl::start_session()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -544,7 +549,7 @@ namespace aux {
 		}
 #endif
 
-		m_io_service.post([this] { this->wrap(&session_impl::init); });
+		post(m_io_context, [this] { this->wrap(&session_impl::init); });
 	}
 
 	void session_impl::init()
@@ -567,18 +572,16 @@ namespace aux {
 		async_inc_threads();
 		add_outstanding_async("session_impl::on_tick");
 #endif
-		m_io_service.post([this]{ this->wrap(&session_impl::on_tick, error_code()); });
+		post(m_io_context, [this]{ this->wrap(&session_impl::on_tick, error_code()); });
 
 		int const lsd_announce_interval
 			= m_settings.get_int(settings_pack::local_service_announce_interval);
 		int const delay = std::max(lsd_announce_interval
 			/ std::max(static_cast<int>(m_torrents.size()), 1), 1);
-		error_code ec;
-		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		m_lsd_announce_timer.expires_after(seconds(delay));
 		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
 		m_lsd_announce_timer.async_wait([this](error_code const& e) {
 			this->wrap(&session_impl::on_lsd_announce, e); } );
-		TORRENT_ASSERT(!ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" done starting session");
@@ -841,9 +844,9 @@ namespace aux {
 		stop_natpmp();
 #ifndef TORRENT_DISABLE_DHT
 		stop_dht();
-		m_dht_announce_timer.cancel(ec);
+		m_dht_announce_timer.cancel();
 #endif
-		m_lsd_announce_timer.cancel(ec);
+		m_lsd_announce_timer.cancel();
 
 		for (auto const& s : m_incoming_sockets)
 		{
@@ -918,7 +921,7 @@ namespace aux {
 		// shutdown_stage2 from there.
 		if (m_undead_peers.empty())
 		{
-			m_io_service.post(make_handler([this] { abort_stage2(); }
+			post(m_io_context, make_handler([this] { abort_stage2(); }
 				, m_abort_handler_storage, *this));
 		}
 	}
@@ -1068,7 +1071,7 @@ namespace aux {
 				use_ssl ? ssl_listen_port(ls) :
 #endif
 				listen_port(ls);
-			m_tracker_manager.queue_request(get_io_service(), std::move(req), c);
+			m_tracker_manager.queue_request(get_context(), std::move(req), c);
 		}
 		else
 		{
@@ -1089,7 +1092,7 @@ namespace aux {
 				// them consistent and unique per torrent and interface
 				socket_req.key ^= ls->tracker_key;
 				socket_req.outgoing_socket = ls;
-				m_tracker_manager.queue_request(get_io_service(), std::move(socket_req), c);
+				m_tracker_manager.queue_request(get_context(), std::move(socket_req), c);
 			}
 		}
 	}
@@ -1177,7 +1180,7 @@ namespace aux {
 	{
 		if (m_deferred_submit_disk_jobs) return;
 		m_deferred_submit_disk_jobs = true;
-		m_io_service.post([this] { this->wrap(&session_impl::submit_disk_jobs); } );
+		post(m_io_context, [this] { this->wrap(&session_impl::submit_disk_jobs); } );
 	}
 
 	void session_impl::submit_disk_jobs()
@@ -1359,7 +1362,7 @@ namespace aux {
 		// separate function. At least most of it
 		if (ret->incoming == duplex::accept_incoming)
 		{
-			ret->sock = std::make_shared<tcp::acceptor>(m_io_service);
+			ret->sock = std::make_shared<tcp::acceptor>(m_io_context);
 			ret->sock->open(bind_ep.protocol(), ec);
 			last_op = operation_t::sock_open;
 			if (ec)
@@ -1555,7 +1558,7 @@ namespace aux {
 			: socket_type_t::udp;
 		udp::endpoint udp_bind_ep(bind_ep.address(), bind_ep.port());
 
-		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_service);
+		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_context);
 		ret->udp_sock->sock.open(udp_bind_ep.protocol(), ec);
 		if (ec)
 		{
@@ -1667,8 +1670,8 @@ namespace aux {
 		ret->udp_sock->sock.set_proxy_settings(proxy());
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
-		ret->udp_sock->sock.async_read(aux::make_handler(std::bind(&session_impl::on_udp_packet
-			, this, ret->udp_sock, ret, ret->ssl, _1)
+		ret->udp_sock->sock.async_read(aux::make_handler([this, ret](error_code const& e)
+			{ this->on_udp_packet(ret->udp_sock, ret, ret->ssl, e); }
 			, ret->udp_handler_storage, *this));
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1731,7 +1734,7 @@ namespace aux {
 			// enumerate all IPs associated with this device
 
 			// TODO: 3 only run this once in the caller
-			std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, err);
+			std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, err);
 			if (err)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1815,7 +1818,7 @@ namespace aux {
 			interface_to_endpoints(device, port, ssl, incoming, eps);
 		}
 
-		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
+		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
 		if (!ec)
 		{
 			expand_unspecified_address(ifs, eps);
@@ -2038,7 +2041,7 @@ namespace aux {
 			error_code ec;
 			udp::endpoint const udp_bind_ep(ep.addr, 0);
 
-			auto udp_sock = std::make_shared<outgoing_udp_socket>(m_io_service, ep.device, ep.ssl);
+			auto udp_sock = std::make_shared<outgoing_udp_socket>(m_io_context, ep.device, ep.ssl);
 			udp_sock->sock.open(udp_bind_ep.protocol(), ec);
 			if (ec)
 			{
@@ -2102,8 +2105,9 @@ namespace aux {
 			udp_sock->sock.set_proxy_settings(proxy());
 
 			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
-			udp_sock->sock.async_read(aux::make_handler(std::bind(&session_impl::on_udp_packet
-				, this, udp_sock, std::weak_ptr<listen_socket_t>(), ep.ssl, _1)
+			auto const ssl = ep.ssl;
+			udp_sock->sock.async_read(aux::make_handler([this, udp_sock, ssl](error_code const& e)
+				{ this->on_udp_packet(udp_sock, std::weak_ptr<listen_socket_t>(), ssl, e); }
 					, udp_sock->udp_handler_storage, *this));
 
 			if (!ec && udp_sock)
@@ -2229,8 +2233,8 @@ namespace aux {
 
 		if (m_i2p_listen_socket) return;
 
-		m_i2p_listen_socket = std::make_shared<socket_type>(m_io_service);
-		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
+		m_i2p_listen_socket = std::make_shared<socket_type>(m_io_context);
+		bool ret = instantiate_connection(m_io_context, m_i2p_conn.proxy()
 			, *m_i2p_listen_socket, nullptr, nullptr, true, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
@@ -2503,16 +2507,16 @@ namespace aux {
 		mgr.socket_drained();
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
-		s->sock.async_read(make_handler(std::bind(&session_impl::on_udp_packet
-			, this, std::move(socket), std::move(ls), ssl, _1), s->udp_handler_storage
-				, *this));
+		s->sock.async_read(make_handler([this, socket, ls, ssl](error_code const& e)
+			{ this->on_udp_packet(std::move(socket), std::move(ls), ssl, e); }
+			, s->udp_handler_storage, *this));
 	}
 
 	void session_impl::async_accept(std::shared_ptr<tcp::acceptor> const& listener
 		, transport const ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
-		std::shared_ptr<socket_type> c = std::make_shared<socket_type>(m_io_service);
+		std::shared_ptr<socket_type> c = std::make_shared<socket_type>(m_io_context);
 		tcp::socket* str = nullptr;
 
 #ifdef TORRENT_USE_OPENSSL
@@ -2522,13 +2526,13 @@ namespace aux {
 			// use the generic m_ssl_ctx context. However, since it has
 			// the servername callback set on it, we will switch away from
 			// this context into a specific torrent once we start handshaking
-			c->instantiate<ssl_stream<tcp::socket>>(m_io_service, &m_ssl_ctx);
+			c->instantiate<ssl_stream<tcp::socket>>(m_io_context, &m_ssl_ctx);
 			str = &c->get<ssl_stream<tcp::socket>>()->next_layer();
 		}
 		else
 #endif
 		{
-			c->instantiate<tcp::socket>(m_io_service);
+			c->instantiate<tcp::socket>(m_io_context);
 			str = c->get<tcp::socket>();
 		}
 
@@ -2619,8 +2623,7 @@ namespace aux {
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
-				error_code err;
-				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string(err)
+				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string()
 					, ep, operation_t::sock_accept, e
 					, ssl == transport::ssl ? socket_type_t::tcp_ssl : socket_type_t::tcp);
 			}
@@ -2787,9 +2790,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
 				{
-					error_code err;
 					session_log("<== INCOMING CONNECTION [ rejected, local interface has incoming connections disabled: %s ]"
-						, local.address().to_string(err).c_str());
+						, local.address().to_string().c_str());
 				}
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
@@ -2814,9 +2816,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
 				{
-					error_code err;
 					session_log("<== INCOMING CONNECTION [ rejected, not allowed local interface: %s ]"
-						, local.address().to_string(err).c_str());
+						, local.address().to_string().c_str());
 				}
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
@@ -2929,7 +2930,7 @@ namespace aux {
 			, &m_settings
 			, &m_stats_counters
 			, m_disk_thread.get()
-			, &m_io_service
+			, &m_io_context
 			, std::weak_ptr<torrent>()
 			, s
 			, endp
@@ -3157,7 +3158,7 @@ namespace aux {
 				// shut-down
 				if (m_abort)
 				{
-					m_io_service.post(std::bind(&session_impl::abort_stage2, this));
+					post(m_io_context, std::bind(&session_impl::abort_stage2, this));
 				}
 			}
 		}
@@ -3204,8 +3205,7 @@ namespace aux {
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
-		error_code ec;
-		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)), ec);
+		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)));
 		m_timer.async_wait(aux::make_handler([this](error_code const& err)
 		{ this->wrap(&session_impl::on_tick, err); }, m_tick_handler_storage, *this));
 
@@ -3586,8 +3586,7 @@ namespace aux {
 		if (m_dht_torrents.size() == 1)
 		{
 			ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
-			error_code ec;
-			m_dht_announce_timer.expires_from_now(seconds(0), ec);
+			m_dht_announce_timer.expires_after(seconds(0));
 			m_dht_announce_timer.async_wait([this](error_code const& err) {
 				this->wrap(&session_impl::on_dht_announce, err); });
 		}
@@ -3638,8 +3637,7 @@ namespace aux {
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
-		error_code ec;
-		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
+		m_dht_announce_timer.expires_after(seconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& err)
 			{ this->wrap(&session_impl::on_dht_announce, err); });
 
@@ -3684,8 +3682,7 @@ namespace aux {
 		// announce on local network every 5 minutes
 		int const delay = std::max(m_settings.get_int(settings_pack::local_service_announce_interval)
 			/ std::max(int(m_torrents.size()), 1), 1);
-		error_code ec;
-		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		m_lsd_announce_timer.expires_after(seconds(delay));
 		m_lsd_announce_timer.async_wait([this](error_code const& err) {
 			this->wrap(&session_impl::on_lsd_announce, err); });
 
@@ -4367,15 +4364,50 @@ namespace aux {
 	}
 
 	void session_impl::insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
-		, std::string uuid)
+#if TORRENT_ABI_VERSION == 1
+		, std::string const uuid
+#endif
+		)
 	{
-		m_torrents.insert(std::make_pair(ih, t));
+		sha1_hash const next_lsd = m_next_lsd_torrent != m_torrents.end()
+			? m_next_lsd_torrent->first : sha1_hash();
+#ifndef TORRENT_DISABLE_DHT
+		sha1_hash const next_dht = m_next_dht_torrent != m_torrents.end()
+			? m_next_dht_torrent->first : sha1_hash();
+#endif
+
+		float const load_factor = m_torrents.load_factor();
+
+		m_torrents.emplace(ih, t);
+
+#if !defined TORRENT_DISABLE_ENCRYPTION
+		static char const req2[4] = {'r', 'e', 'q', '2'};
+		hasher h(req2);
+		h.update(ih);
+		// this is SHA1("req2" + info-hash), used for
+		// encrypted hand shakes
+		m_obfuscated_torrents.emplace(h.final(), t);
+#endif
+
+		// if this insert made the hash grow, the iterators became invalid
+		// we need to reset them
+		if (m_torrents.load_factor() < load_factor)
+		{
+			// this indicates the hash table re-hashed
+			if (!next_lsd.is_all_zeros())
+				m_next_lsd_torrent = m_torrents.find(next_lsd);
+#ifndef TORRENT_DISABLE_DHT
+			if (!next_dht.is_all_zeros())
+				m_next_dht_torrent = m_torrents.find(next_dht);
+#endif
+		}
+
 #if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		if (!uuid.empty()) m_uuids.insert(std::make_pair(uuid, t));
-#else
-		TORRENT_UNUSED(uuid);
 #endif
+
+		t->added();
 	}
 
 	void session_impl::set_queue_position(torrent* me, queue_position_t p)
@@ -4667,7 +4699,7 @@ namespace aux {
 			if (!m_torrent_load_thread)
 				m_torrent_load_thread.reset(new work_thread_t());
 
-			m_torrent_load_thread->ios.post([params, this]
+			post(m_torrent_load_thread->ios, [params, this]
 			{
 				std::string const torrent_file_path = resolve_file_url(params->url);
 				params->url.clear();
@@ -4675,7 +4707,7 @@ namespace aux {
 				std::unique_ptr<add_torrent_params> holder2(params);
 				error_code ec;
 				params->ti = std::make_shared<torrent_info>(torrent_file_path, ec);
-				this->m_io_service.post(std::bind(&session_impl::on_async_load_torrent
+				post(this->m_io_context, std::bind(&session_impl::on_async_load_torrent
 					, this, params, ec));
 				holder2.release();
 			});
@@ -4776,48 +4808,18 @@ namespace aux {
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
 #endif
 
-		sha1_hash const next_lsd = m_next_lsd_torrent != m_torrents.end()
-			? m_next_lsd_torrent->first : sha1_hash();
-#ifndef TORRENT_DISABLE_DHT
-		sha1_hash const next_dht = m_next_dht_torrent != m_torrents.end()
-			? m_next_dht_torrent->first : sha1_hash();
+		insert_torrent(params.info_hash, torrent_ptr
+#if TORRENT_ABI_VERSION == 1
+			//deprecated in 1.2
+			, params.uuid.empty()
+				? params.url.empty() ? std::string()
+				: params.url
+				: params.uuid
 #endif
-		float const load_factor = m_torrents.load_factor();
-
-		m_torrents.emplace(params.info_hash, torrent_ptr);
-
-#if !defined TORRENT_DISABLE_ENCRYPTION
-		static char const req2[4] = {'r', 'e', 'q', '2'};
-		hasher h(req2);
-		h.update(params.info_hash);
-		// this is SHA1("req2" + info-hash), used for
-		// encrypted hand shakes
-		m_obfuscated_torrents.emplace(h.final(), torrent_ptr);
-#endif
+		);
 
 		// once we successfully add the torrent, we can disarm the abort action
 		abort_torrent.disarm();
-		torrent_ptr->added();
-
-		// if this insert made the hash grow, the iterators became invalid
-		// we need to reset them
-		if (m_torrents.load_factor() < load_factor)
-		{
-			// this indicates the hash table re-hashed
-			if (!next_lsd.is_all_zeros())
-				m_next_lsd_torrent = m_torrents.find(next_lsd);
-#ifndef TORRENT_DISABLE_DHT
-			if (!next_dht.is_all_zeros())
-				m_next_dht_torrent = m_torrents.find(next_dht);
-#endif
-		}
-
-#if TORRENT_ABI_VERSION == 1
-		//deprecated in 1.2
-		if (!params.uuid.empty() || !params.url.empty())
-			m_uuids.emplace(params.uuid.empty()
-				? params.url : params.uuid, torrent_ptr);
-#endif
 
 		// recalculate auto-managed torrents sooner (or put it off)
 		// if another torrent will be added within one second from now
@@ -5029,7 +5031,7 @@ namespace aux {
 
 			if (ec) return bind_ep;
 
-			bind_ep.address(bind_socket_to_device(m_io_service, s
+			bind_ep.address(bind_socket_to_device(m_io_context, s
 				, remote_address.is_v4() ? tcp::v4() : tcp::v6()
 				, ifname.c_str(), bind_ep.port(), ec));
 			return bind_ep;
@@ -5087,7 +5089,7 @@ namespace aux {
 
 		// we didn't find the address as an IP in the interface list. Now,
 		// resolve which device (if any) has this IP address.
-		std::string const device = device_for_address(addr, m_io_service, ec);
+		std::string const device = device_for_address(addr, m_io_context, ec);
 		if (ec) return false;
 
 		// if no device was found to have this address, we fail
@@ -5509,9 +5511,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			error_code ec;
 			t->debug_log("lsd add_peer() [ %s ]"
-				, peer.address().to_string(ec).c_str());
+				, peer.address().to_string().c_str());
 		}
 #endif
 
@@ -5532,7 +5533,7 @@ namespace aux {
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
-			s.natpmp_mapper = std::make_shared<natpmp>(m_io_service, *this);
+			s.natpmp_mapper = std::make_shared<natpmp>(m_io_context, *this);
 			s.natpmp_mapper->start(s.local_endpoint.address(), s.device);
 		}
 	}
@@ -5754,16 +5755,15 @@ namespace aux {
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("starting DHT, running: %s, router lookups: %d, aborting: %s"
-			, m_dht ? "true" : "false", m_outstanding_router_lookups
-			, m_abort ? "true" : "false");
+		session_log("starting DHT, running: %s, router lookups: %d"
+			, m_dht ? "true" : "false", m_outstanding_router_lookups);
 #endif
 
 		// TODO: refactor, move the storage to dht_tracker
 		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
 		m_dht = std::make_shared<dht::dht_tracker>(
 			static_cast<dht::dht_observer*>(this)
-			, m_io_service
+			, m_io_context
 			, [=](aux::listen_socket_handle const& sock
 				, udp::endpoint const& ep
 				, span<char const> p
@@ -6083,7 +6083,7 @@ namespace aux {
 //		TORRENT_ASSERT(is_not_thread());
 // TODO: asserts that no outstanding async operations are still in flight
 
-		// this can happen if we end the io_service run loop with an exception
+		// this can happen if we end the io_context run loop with an exception
 		for (auto& t : m_torrents)
 		{
 			t.second->panic();
@@ -6340,7 +6340,7 @@ namespace aux {
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
 
-		m_io_service.post([this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
+		post(m_io_context, [this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
 	}
 
 	void session_impl::on_trigger_auto_manage()
@@ -6367,9 +6367,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec && should_log())
 			{
-				error_code err;
 				session_log("listen socket buffer size [ udp %s:%d ] %s"
-					, l->udp_sock->sock.local_endpoint().address().to_string(err).c_str()
+					, l->udp_sock->sock.local_endpoint().address().to_string().c_str()
 					, l->udp_sock->sock.local_port(), print_error(ec).c_str());
 			}
 #endif
@@ -6378,9 +6377,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec && should_log())
 			{
-				error_code err;
 				session_log("listen socket buffer size [ tcp %s:%d] %s"
-					, l->sock->local_endpoint().address().to_string(err).c_str()
+					, l->sock->local_endpoint().address().to_string().c_str()
 					, l->sock->local_endpoint().port(), print_error(ec).c_str());
 			}
 #endif
@@ -6409,10 +6407,9 @@ namespace aux {
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
-		error_code ec;
 		int delay = std::max(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ std::max(int(m_torrents.size()), 1), 1);
-		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
+		m_dht_announce_timer.expires_after(seconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& e) {
 			this->wrap(&session_impl::on_dht_announce, e); });
 #endif
@@ -6617,7 +6614,7 @@ namespace aux {
 
 		if (m_ip_notifier) return;
 
-		m_ip_notifier = create_ip_notifier(m_io_service);
+		m_ip_notifier = create_ip_notifier(m_io_context);
 		m_ip_notifier->async_wait([this](error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
 	}
@@ -6628,7 +6625,7 @@ namespace aux {
 
 		if (m_lsd) return;
 
-		m_lsd = std::make_shared<lsd>(m_io_service, *this);
+		m_lsd = std::make_shared<lsd>(m_io_context, *this);
 		error_code ec;
 		m_lsd->start(ec);
 		if (ec && m_alerts.should_post<lsd_error_alert>())
@@ -6652,7 +6649,7 @@ namespace aux {
 		if (m_upnp) return m_upnp.get();
 
 		// the upnp constructor may fail and call the callbacks
-		m_upnp = std::make_shared<upnp>(m_io_service
+		m_upnp = std::make_shared<upnp>(m_io_context
 			, m_settings.get_bool(settings_pack::anonymous_mode)
 				? "" : m_settings.get_str(settings_pack::user_agent)
 			, *this

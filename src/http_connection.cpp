@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/io_context.hpp"
 
 #include <functional>
 #include <string>
@@ -59,7 +60,7 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-http_connection::http_connection(io_service& ios
+http_connection::http_connection(io_context& ios
 	, resolver_interface& resolver
 	, http_handler const& handler
 	, bool bottled
@@ -148,7 +149,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	if (ec)
 	{
-		m_timer.get_io_service().post(std::bind(&http_connection::callback
+		post(m_timer.get_executor(), std::bind(&http_connection::callback
 			, me, ec, span<char>{}));
 		return;
 	}
@@ -160,7 +161,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		)
 	{
 		error_code err(errors::unsupported_url_protocol);
-		m_timer.get_io_service().post(std::bind(&http_connection::callback
+		post(m_timer.get_executor(), std::bind(&http_connection::callback
 			, me, err, span<char>{}));
 		return;
 	}
@@ -244,9 +245,7 @@ void http_connection::start(std::string const& hostname, int port
 	m_completion_timeout = timeout;
 	m_read_timeout = seconds(5);
 	if (m_read_timeout < timeout / 5) m_read_timeout = timeout / 5;
-	error_code ec;
-	m_timer.expires_from_now(std::min(
-		m_read_timeout, m_completion_timeout), ec);
+	m_timer.expires_after(std::min(m_read_timeout, m_completion_timeout));
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
 	m_timer.async_wait(std::bind(&http_connection::on_timeout
 		, std::weak_ptr<http_connection>(me), _1));
@@ -255,13 +254,6 @@ void http_connection::start(std::string const& hostname, int port
 	m_recvbuffer.clear();
 	m_read_pos = 0;
 	m_priority = prio;
-
-	if (ec)
-	{
-		m_timer.get_io_service().post(std::bind(&http_connection::callback
-			, me, ec, span<char>{}));
-		return;
-	}
 
 	if (m_sock.is_open() && m_hostname == hostname && m_port == port
 		&& m_ssl == ssl && m_bind_addr == bind_addr)
@@ -297,7 +289,7 @@ void http_connection::start(std::string const& hostname, int port
 #if TORRENT_USE_I2P
 			if (i2p_conn->proxy().type != settings_pack::i2p_proxy)
 			{
-				m_timer.get_io_service().post(std::bind(&http_connection::callback
+				post(m_timer.get_executor(), std::bind(&http_connection::callback
 					, me, error_code(errors::no_i2p_router), span<char>{}));
 				return;
 			}
@@ -329,11 +321,12 @@ void http_connection::start(std::string const& hostname, int port
 				if (m_ssl_ctx)
 				{
 					m_own_ssl_context = true;
+					error_code ec;
 					m_ssl_ctx->set_verify_mode(ssl::context::verify_none, ec);
 					if (ec)
 					{
-						m_timer.get_io_service().post(std::bind(&http_connection::callback
-								, me, ec, span<char>{}));
+						post(m_timer.get_executor(), std::bind(&http_connection::callback
+							, me, ec, span<char>{}));
 						return;
 					}
 				}
@@ -344,25 +337,27 @@ void http_connection::start(std::string const& hostname, int port
 		// assume this is not a tracker connection. Tracker connections that
 		// shouldn't be subject to the proxy should pass in nullptr as the proxy
 		// pointer.
-		instantiate_connection(m_timer.get_io_service()
+		instantiate_connection(m_timer.get_executor().context()
 			, proxy ? *proxy : null_proxy, m_sock, userdata, nullptr, false, false);
 
 		if (m_bind_addr)
 		{
+			error_code ec;
 			m_sock.open(m_bind_addr->is_v4() ? tcp::v4() : tcp::v6(), ec);
 			m_sock.bind(tcp::endpoint(*m_bind_addr, 0), ec);
 			if (ec)
 			{
-				m_timer.get_io_service().post(std::bind(&http_connection::callback
+				post(m_timer.get_executor(), std::bind(&http_connection::callback
 					, me, ec, span<char>{}));
 				return;
 			}
 		}
 
+		error_code ec;
 		setup_ssl_hostname(m_sock, hostname, ec);
 		if (ec)
 		{
-			m_timer.get_io_service().post(std::bind(&http_connection::callback
+			post(m_timer.get_executor(), std::bind(&http_connection::callback
 				, me, ec, span<char>{}));
 			return;
 		}
@@ -444,10 +439,9 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 	}
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
-	error_code ec;
 	c->m_timer.expires_at(std::min(
 		c->m_last_receive + c->m_read_timeout
-		, c->m_start_time + c->m_completion_timeout), ec);
+		, c->m_start_time + c->m_completion_timeout));
 	c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));
 }
 
@@ -461,8 +455,8 @@ void http_connection::close(bool force)
 	else
 		async_shutdown(m_sock, shared_from_this());
 
-	m_timer.cancel(ec);
-	m_limiter_timer.cancel(ec);
+	m_timer.cancel();
+	m_limiter_timer.cancel();
 
 	m_hostname.clear();
 	m_port = 0;
@@ -520,7 +514,7 @@ void http_connection::on_resolve(error_code const& e
 		return;
 	}
 
-	aux::random_shuffle(m_endpoints.begin(), m_endpoints.end());
+	aux::random_shuffle(m_endpoints);
 
 	// if we have been told to bind to a particular address
 	// only connect to addresses of the same family
@@ -662,8 +656,7 @@ void http_connection::callback(error_code e, span<char> data)
 		if (m_parser.finished()) e.clear();
 	}
 	m_called = true;
-	error_code ec;
-	m_timer.cancel(ec);
+	m_timer.cancel();
 	if (m_handler) m_handler(e, m_parser, data, *this);
 }
 
@@ -812,8 +805,7 @@ void http_connection::on_read(error_code const& e
 		}
 		else if (m_bottled && m_parser.finished())
 		{
-			error_code ec;
-			m_timer.cancel(ec);
+			m_timer.cancel();
 			callback(e, span<char>(m_recvbuffer)
 				.first(m_read_pos)
 				.subspan(m_parser.body_start()));
@@ -890,9 +882,8 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 		, std::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));
 
-	error_code ec;
 	m_limiter_timer_active = true;
-	m_limiter_timer.expires_from_now(milliseconds(250), ec);
+	m_limiter_timer.expires_after(milliseconds(250));
 	ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
 	m_limiter_timer.async_wait(std::bind(&http_connection::on_assign_bandwidth
 		, shared_from_this(), _1));
@@ -904,9 +895,8 @@ void http_connection::rate_limit(int limit)
 
 	if (!m_limiter_timer_active)
 	{
-		error_code ec;
 		m_limiter_timer_active = true;
-		m_limiter_timer.expires_from_now(milliseconds(250), ec);
+		m_limiter_timer.expires_after(milliseconds(250));
 		ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
 		m_limiter_timer.async_wait(std::bind(&http_connection::on_assign_bandwidth
 			, shared_from_this(), _1));

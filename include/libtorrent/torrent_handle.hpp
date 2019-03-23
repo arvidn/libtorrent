@@ -72,7 +72,7 @@ namespace aux {
 	class torrent;
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void TORRENT_NO_RETURN throw_invalid_handle();
+	[[noreturn]] void throw_invalid_handle();
 #endif
 
 	using status_flags_t = flags::bitfield_flag<std::uint32_t, struct status_flags_tag>;
@@ -426,7 +426,7 @@ namespace aux {
 			piece_granularity = 1
 		};
 
-		// This function fills in the supplied vector with the the number of
+		// This function fills in the supplied vector with the number of
 		// bytes downloaded of each file in this torrent. The progress values are
 		// ordered the same as the files in the torrent_info. This operation is
 		// not very cheap. Its complexity is *O(n + mj)*. Where *n* is the number
@@ -574,6 +574,9 @@ namespace aux {
 		// the specified flags and leave any other flags unchanged.
 		// ``unset_flags`` clears the specified flags, while leaving
 		// any other flags unchanged.
+		//
+		// The `seed_mode` flag is special, it can only be cleared by the
+		// `set_flags()` function, not set.
 		torrent_flags_t flags() const;
 		void set_flags(torrent_flags_t flags, torrent_flags_t mask) const;
 		void set_flags(torrent_flags_t flags) const;
@@ -1264,8 +1267,7 @@ namespace aux {
 	};
 }
 
-namespace std
-{
+namespace std {
 	template <>
 	struct hash<libtorrent::torrent_handle>
 	{

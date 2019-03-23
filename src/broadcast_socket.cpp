@@ -73,7 +73,7 @@ namespace libtorrent {
 					|| (a6.to_bytes()[0] & 0xfe) == 0xfc;
 			}
 			address_v4 a4 = a.to_v4();
-			unsigned long ip = a4.to_ulong();
+			std::uint32_t const ip = a4.to_uint();
 			return ((ip & 0xff000000) == 0x0a000000 // 10.x.x.x
 				|| (ip & 0xfff00000) == 0xac100000 // 172.16.x.x
 				|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
@@ -98,7 +98,7 @@ namespace libtorrent {
 		if (addr.is_v4())
 			return addr.to_v4() == address_v4::any();
 		else if (addr.to_v6().is_v4_mapped())
-			return (addr.to_v6().to_v4() == address_v4::any());
+			return (make_address_v4(v4_mapped, addr.to_v6()) == address_v4::any());
 		else
 			return addr.to_v6() == address_v6::any();
 		} TORRENT_CATCH(std::exception const&) { return false; }
@@ -125,7 +125,7 @@ namespace libtorrent {
 			return !ec;
 		} TORRENT_CATCH(std::exception const&) { return false; }
 #else
-		io_service ios;
+		io_context ios;
 		tcp::socket test(ios);
 		error_code ec;
 		test.open(tcp::v6(), ec);
@@ -151,7 +151,7 @@ namespace libtorrent {
 	}
 
 	void broadcast_socket::open(receive_handler_t handler
-		, io_service& ios, error_code& ec, bool loopback)
+		, io_context& ios, error_code& ec, bool loopback)
 	{
 		m_on_receive = std::move(handler);
 
@@ -177,7 +177,7 @@ namespace libtorrent {
 		}
 	}
 
-	void broadcast_socket::open_multicast_socket(io_service& ios
+	void broadcast_socket::open_multicast_socket(io_context& ios
 		, address const& addr, bool loopback, error_code& ec)
 	{
 		using namespace boost::asio::ip::multicast;
@@ -203,7 +203,7 @@ namespace libtorrent {
 		++m_outstanding_operations;
 	}
 
-	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr
+	void broadcast_socket::open_unicast_socket(io_context& ios, address const& addr
 		, address_v4 const& mask)
 	{
 		error_code ec;

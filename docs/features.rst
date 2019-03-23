@@ -255,29 +255,24 @@ peers.
 The root hash is built by hashing all the piece hashes pair-wise, until they all collapse
 down to the root.
 
-customizable file storage
--------------------------
+customizable file I/O
+---------------------
 
 .. image:: storage.png
 	:align: right
 
-libtorrent's storage implementation is customizable. That means a special purpose bittorrent
-client can replace the default way to store files on disk.
+libtorrent's disk I/O implementation is customizable. That means a special
+purpose bittorrent client can replace the default way to store files on disk.
 
 When implementing a bittorrent cache, it doesn't matter how the data is stored on disk, as
-long as it can be retrieved and seeded. In that case a new storage class can be implemented
-(inheriting from the ``storage_interface`` class) that avoids the unnecessary step of mapping
-slots to files and offsets. The storage can ignore the file boundaries and just store the
+long as it can be retrieved and seeded. In that case a new disk I/O class can be implemented
+(inheriting from the ``disk_interface``) that avoids the unnecessary step of mapping
+pieces to files and offsets. The storage can ignore the file boundaries and just store the
 entire torrent in a single file (which will end up being all the files concatenated). The main
 advantage of this, other than a slight CPU performance gain, is that all file operations would
 be page (and sector) aligned. This enables efficient unbuffered I/O, and can potentially
 lead to more efficient read caching (using the built in disk cache rather than relying on the
 operating system's disk cache).
-
-The storage interface supports operating systems where you can ask for sparse regions
-(such as Windows and Solaris). The advantage of this is that when checking files, the regions
-that are known to be sparse can be skipped, which can reduce the time to check a torrent
-significantly.
 
 easy to use API
 ---------------

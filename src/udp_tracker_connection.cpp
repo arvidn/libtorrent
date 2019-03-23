@@ -58,7 +58,7 @@ namespace libtorrent {
 	std::mutex udp_tracker_connection::m_cache_mutex;
 
 	udp_tracker_connection::udp_tracker_connection(
-		io_service& ios
+		io_context& ios
 		, tracker_manager& man
 		, tracker_request const& req
 		, std::weak_ptr<request_callback> c)
@@ -163,7 +163,7 @@ namespace libtorrent {
 				, m_hostname.c_str(), print_endpoint(m_target).c_str());
 		}
 #endif
-		get_io_service().post(std::bind(
+		post(get_executor(), std::bind(
 			&udp_tracker_connection::start_announce, shared_from_this()));
 
 		aux::session_settings const& settings = m_man.settings();
@@ -725,7 +725,7 @@ namespace libtorrent {
 			address ip = make_address(settings.get_str(settings_pack::announce_ip).c_str(), ec);
 			if (!ec && ip.is_v4()) announce_ip = ip.to_v4();
 		}
-		aux::write_uint32(announce_ip.to_ulong(), out);
+		aux::write_uint32(announce_ip.to_uint(), out);
 		aux::write_int32(req.key, out); // key
 		aux::write_int32(req.num_want, out); // num_want
 		aux::write_uint16(req.listen_port, out); // port

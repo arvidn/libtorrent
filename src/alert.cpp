@@ -895,6 +895,7 @@ namespace {
 			case o::partfile_write: return -1;
 			case o::hostname_lookup: return -1;
 			case o::file_seek: return -1;
+			case o::symlink: return -1;
 		};
 		return -1;
 	}
@@ -1028,9 +1029,8 @@ namespace {
 
 	std::string udp_error_alert::message() const
 	{
-		error_code ec;
 		return "UDP error: " + convert_from_native(error.message())
-			+ " from: " + endpoint.address().to_string(ec)
+			+ " from: " + endpoint.address().to_string()
 			+ " op: " + operation_name(operation);
 	}
 
@@ -1041,8 +1041,7 @@ namespace {
 
 	std::string external_ip_alert::message() const
 	{
-		error_code ec;
-		return "external IP received: " + external_address.to_string(ec);
+		return "external IP received: " + external_address.to_string();
 	}
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator&
@@ -1215,10 +1214,9 @@ namespace {
 
 	std::string dht_announce_alert::message() const
 	{
-		error_code ec;
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), "incoming dht announce: %s:%d (%s)"
-			, ip.to_string(ec).c_str(), port, aux::to_hex(info_hash).c_str());
+			, ip.to_string().c_str(), port, aux::to_hex(info_hash).c_str());
 		return msg;
 	}
 
@@ -1561,6 +1559,7 @@ namespace {
 			"partfile_write",
 			"hostname_lookup",
 			"file_seek"
+			"symlink"
 		};
 
 		int const idx = static_cast<int>(op);
@@ -1680,7 +1679,7 @@ namespace {
 	}
 
 	// TODO: 2 the salt here is allocated on the heap. It would be nice to
-	// allocate in in the stack_allocator
+	// allocate in the stack_allocator
 	dht_mutable_item_alert::dht_mutable_item_alert(aux::stack_allocator&
 		, std::array<char, 32> const& k
 		, std::array<char, 64> const& sig

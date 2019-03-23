@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef WEB_CONNECTION_BASE_HPP_INCLUDED
 #define WEB_CONNECTION_BASE_HPP_INCLUDED
 
-#include <ctime>
-#include <algorithm>
 #include <deque>
 #include <string>
 #include <cstdint>
@@ -47,8 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
-
 	class TORRENT_EXTRA_EXPORT web_connection_base
 		: public peer_connection
 	{
@@ -59,7 +55,7 @@ namespace libtorrent {
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
 		web_connection_base(peer_connection_args const& pack
-			, web_seed_t& web);
+			, web_seed_t const& web);
 
 		int timeout() const override;
 		void start() override;

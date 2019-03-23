@@ -32,15 +32,7 @@ KADEMLIA_SOURCES = \
   ../ed25519/src/sc.cpp         \
   ../ed25519/src/sign.cpp       \
   ../ed25519/src/verify.cpp     \
-  hasher512.cpp                 \
-  ../deps/try_signal/try_signal.cpp \
-  ../deps/try_signal/signal_error_code.cpp
-endif
-
-if ! WITH_OPENSSL
-BUILTIN_CRYPTO_SOURCES = \
-  sha1.cpp                      \
-  sha512.cpp
+  hasher512.cpp
 endif
 
 libtorrent_rasterbar_la_SOURCES = \
@@ -56,6 +48,7 @@ libtorrent_rasterbar_la_SOURCES = \
   bitfield.cpp                    \
   bloom_filter.cpp                \
   broadcast_socket.cpp            \
+  block_cache.cpp                 \
   bt_peer_connection.cpp          \
   chained_buffer.cpp              \
   choker.cpp                      \
@@ -69,7 +62,6 @@ libtorrent_rasterbar_la_SOURCES = \
   disk_io_job.cpp                 \
   disk_io_thread.cpp              \
   disk_io_thread_pool.cpp         \
-  disabled_disk_io.cpp            \
   disk_job_fence.cpp              \
   disk_job_pool.cpp               \
   entry.cpp                       \
@@ -78,7 +70,7 @@ libtorrent_rasterbar_la_SOURCES = \
   escape_string.cpp               \
   file.cpp                        \
   path.cpp                        \
-  file_view_pool.cpp              \
+  file_pool.cpp                   \
   file_storage.cpp                \
   fingerprint.cpp                 \
   generate_peer_id.cpp            \
@@ -139,6 +131,7 @@ libtorrent_rasterbar_la_SOURCES = \
   stat.cpp                        \
   stat_cache.cpp                  \
   storage.cpp                     \
+  storage_piece_set.cpp           \
   storage_utils.cpp               \
   session_stats.cpp               \
   string_util.cpp                 \
@@ -167,16 +160,13 @@ libtorrent_rasterbar_la_SOURCES = \
   add_torrent_params.cpp          \
   peer_info.cpp                   \
   stack_allocator.cpp             \
-  mmap.cpp                        \
-  posix_disk_io.cpp               \
-  posix_storage.cpp               \
+  sha1.cpp                        \
+  sha512.cpp                      \
   \
-  $(KADEMLIA_SOURCES)             \
-  \
-  $(BUILTIN_CRYPTO_SOURCES)
+  $(KADEMLIA_SOURCES)
 
 AM_CFLAGS = -I$(top_srcdir)/ed25519/src -std=c99
-AM_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY -I$(top_srcdir)/include -I$(top_srcdir)/deps/try_signal -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+AM_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY -I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 AM_LDFLAGS = @OPENSSL_LDFLAGS@
 
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)

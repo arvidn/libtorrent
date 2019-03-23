@@ -78,7 +78,7 @@ namespace libtorrent {
 
 	// The fingerprint class represents information about a client and its version. It is used
 	// to encode this information into the client's peer id.
-	struct TORRENT_DEPRECATED TORRENT_DEPRECATED_EXPORT fingerprint
+	struct TORRENT_DEPRECATED_EXPORT fingerprint
 	{
 		fingerprint(const char* id_string, int major, int minor, int revision, int tag);
 

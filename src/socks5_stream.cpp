@@ -43,7 +43,7 @@ namespace libtorrent {
 		{ return {e, socks_category()}; }
 	}
 
-	struct socks_error_category : boost::system::error_category
+	struct socks_error_category final : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "socks"; }
@@ -77,12 +77,13 @@ namespace libtorrent {
 		return cat;
 	}
 
-	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
+	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::results_type ips
 		, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::name_lookup");
 		if (handle_error(e, h)) return;
 
+		auto i = ips.begin();
 		error_code ec;
 		if (!m_sock.is_open())
 		{
@@ -281,7 +282,7 @@ namespace libtorrent {
 			write_uint8(4, p); // SOCKS VERSION 4
 			write_uint8(std::uint8_t(m_command), p); // CONNECT command
 			write_uint16(m_remote_endpoint.port(), p);
-			write_uint32(m_remote_endpoint.address().to_v4().to_ulong(), p);
+			write_uint32(m_remote_endpoint.address().to_v4().to_uint(), p);
 			std::copy(m_user.begin(), m_user.end(), p);
 			p += m_user.size();
 			write_uint8(0, p); // 0-terminator

@@ -35,7 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 
 	struct public_key
 	{
@@ -90,6 +91,7 @@ namespace libtorrent { namespace dht {
 		std::int64_t value;
 	};
 
-}}
+} // namespace dht
+} // namespace libtorrent
 
 #endif // LIBTORRENT_TYPES_HPP

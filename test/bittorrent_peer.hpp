@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -48,7 +48,7 @@ struct EXPORT peer_conn
 	enum class peer_mode_t
 	{ uploader, downloader, idle };
 
-	peer_conn(lt::io_service& ios
+	peer_conn(lt::io_context& ios
 		, std::function<void(int, char const*, int)> on_msg
 		, lt::torrent_info const& ti
 		, lt::tcp::endpoint const& ep

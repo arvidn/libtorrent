@@ -44,7 +44,7 @@ namespace libtorrent {
 
 	web_connection_base::web_connection_base(
 		peer_connection_args const& pack
-		, web_seed_t& web)
+		, web_seed_t const& web)
 		: peer_connection(pack)
 		, m_first_request(true)
 		, m_ssl(false)
@@ -124,7 +124,7 @@ namespace libtorrent {
 	}
 
 	void web_connection_base::add_headers(std::string& request
-		, aux::session_settings const& sett, bool using_proxy) const
+		, aux::session_settings const& sett, bool const using_proxy) const
 	{
 		request += "Host: ";
 		request += m_host;

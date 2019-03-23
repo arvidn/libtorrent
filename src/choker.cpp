@@ -269,7 +269,8 @@ namespace {
 			// if we're using the bittyrant choker, sort peers by their return
 			// on investment. i.e. download rate / upload rate
 			std::sort(peers.begin(), peers.end()
-				, std::bind(&bittyrant_unchoke_compare, _1, _2));
+				, [](peer_connection const* lhs, peer_connection const* rhs)
+				{ return bittyrant_unchoke_compare(lhs, rhs); } );
 
 			int upload_capacity_left = max_upload_rate;
 
@@ -299,7 +300,7 @@ namespace {
 		// unchoke few enough peers to not be able to saturate the up-link.
 		// this is done by traversing the peers sorted by our upload rate to
 		// them in decreasing rates. For each peer we increase our threshold
-		// by 1 kB/s. The first peer we get to to whom we upload slower than
+		// by 1 kB/s. The first peer we get to whom we upload slower than
 		// the threshold, we stop and that's the number of unchoke slots we have.
 		if (sett.get_int(settings_pack::choking_algorithm)
 			== settings_pack::rate_based_choker)
@@ -311,10 +312,9 @@ namespace {
 			// TODO: optimize this using partial_sort or something. We don't need
 			// to sort the entire list
 
-			// TODO: make the comparison function a free function and move it
-			// into this cpp file
 			std::sort(peers.begin(), peers.end()
-				, std::bind(&upload_rate_compare, _1, _2));
+				, [](peer_connection const* lhs, peer_connection const* rhs)
+				{ return upload_rate_compare(lhs, rhs); });
 
 			// TODO: make configurable
 			int rate_threshold = 1024;
@@ -349,28 +349,32 @@ namespace {
 
 			std::partial_sort(peers.begin(), peers.begin()
 				+ std::min(upload_slots, int(peers.size())), peers.end()
-				, std::bind(&unchoke_compare_rr, _1, _2, pieces));
+				, [pieces](peer_connection const* lhs, peer_connection const* rhs)
+				{ return unchoke_compare_rr(lhs, rhs, pieces); });
 		}
 		else if (sett.get_int(settings_pack::seed_choking_algorithm)
 			== settings_pack::fastest_upload)
 		{
 			std::partial_sort(peers.begin(), peers.begin()
 				+ std::min(upload_slots, int(peers.size())), peers.end()
-				, std::bind(&unchoke_compare_fastest_upload, _1, _2));
+				, [](peer_connection const* lhs, peer_connection const* rhs)
+				{ return unchoke_compare_fastest_upload(lhs, rhs); });
 		}
 		else if (sett.get_int(settings_pack::seed_choking_algorithm)
 			== settings_pack::anti_leech)
 		{
 			std::partial_sort(peers.begin(), peers.begin()
 				+ std::min(upload_slots, int(peers.size())), peers.end()
-				, std::bind(&unchoke_compare_anti_leech, _1, _2));
+				, [](peer_connection const* lhs, peer_connection const* rhs)
+				{ return unchoke_compare_anti_leech(lhs, rhs); });
 		}
 		else
 		{
 			int const pieces = sett.get_int(settings_pack::seeding_piece_quota);
 			std::partial_sort(peers.begin(), peers.begin()
 				+ std::min(upload_slots, int(peers.size())), peers.end()
-				, std::bind(&unchoke_compare_rr, _1, _2, pieces));
+				, [pieces](peer_connection const* lhs, peer_connection const* rhs)
+				{ return unchoke_compare_rr(lhs, rhs, pieces); } );
 
 			TORRENT_ASSERT_FAIL();
 		}

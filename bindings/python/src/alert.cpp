@@ -345,6 +345,7 @@ void bind_alert()
        .value("partfile_read", operation_t::partfile_read)
        .value("partfile_write", operation_t::partfile_write)
        .value("hostname_lookup", operation_t::hostname_lookup)
+       .value("symlink", operation_t::symlink)
        ;
 
     def("operation_name", static_cast<char const*(*)(operation_t)>(&lt::operation_name));
@@ -438,7 +439,7 @@ void bind_alert()
         ;
 
     class_<peer_request>("peer_request")
-        .def_readonly("piece", &peer_request::piece)
+        .add_property("piece", make_getter(&peer_request::piece, by_value()))
         .def_readonly("start", &peer_request::start)
         .def_readonly("length", &peer_request::length)
         .def(self == self)

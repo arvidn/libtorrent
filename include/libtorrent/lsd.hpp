@@ -44,7 +44,7 @@ namespace libtorrent {
 class lsd : public std::enable_shared_from_this<lsd>
 {
 public:
-	lsd(io_service& ios, aux::lsd_callback& cb);
+	lsd(io_context& ios, aux::lsd_callback& cb);
 	~lsd();
 
 	void start(error_code& ec);

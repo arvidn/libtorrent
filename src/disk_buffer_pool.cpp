@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/platform_util.hpp" // for total_physical_ram
 #include "libtorrent/disk_interface.hpp" // for default_block_size
@@ -67,7 +67,7 @@ namespace libtorrent {
 
 	} // anonymous namespace
 
-	disk_buffer_pool::disk_buffer_pool(io_service& ios)
+	disk_buffer_pool::disk_buffer_pool(io_context& ios)
 		: m_in_use(0)
 		, m_max_use(64)
 		, m_low_watermark(std::max(m_max_use - 32, 0))
@@ -102,7 +102,7 @@ namespace libtorrent {
 		std::vector<std::weak_ptr<disk_observer>> cbs;
 		m_observers.swap(cbs);
 		l.unlock();
-		m_ios.post(std::bind(&watermark_callback, std::move(cbs)));
+		post(m_ios, std::bind(&watermark_callback, std::move(cbs)));
 	}
 
 	char* disk_buffer_pool::allocate_buffer(char const* category)

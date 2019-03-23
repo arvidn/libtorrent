@@ -52,7 +52,6 @@ set(libtorrent_include_files
 	disk_job_pool
 	disk_observer
 	download_priority
-	ed25519
 	entry
 	enum_net
 	error
@@ -65,7 +64,6 @@ set(libtorrent_include_files
 	fwd
 	gzip
 	hasher
-	hasher512
 	heterogeneous_queue
 	hex
 	http_connection
@@ -79,7 +77,6 @@ set(libtorrent_include_files
 	invariant_check
 	io
 	io_service
-	io_service_fwd
 	ip_filter
 	ip_voter
 	lazy_entry
@@ -131,7 +128,6 @@ set(libtorrent_include_files
 	settings_pack
 	sha1
 	sha1_hash
-	sha512
 	sliding_average
 	socket
 	socket_io
@@ -211,7 +207,6 @@ set(libtorrent_aux_include_files
 	allocating_handler
 	array
 	bind_to_device
-	block_cache_reference
 	byteswap
 	cppint_import_export
 	cpuid
@@ -221,6 +216,7 @@ set(libtorrent_aux_include_files
 	disable_warnings_pop
 	disable_warnings_push
 	disk_job_fence
+	ed25519
 	escape_string
 	export
 	ffs
@@ -251,6 +247,7 @@ set(libtorrent_aux_include_files
 	socket_type
 	storage_utils
 	string_ptr
+	strview_less
 	suggest_piece
 	throw
 	time
@@ -301,6 +298,7 @@ set(sources
 	fingerprint
 	gzip
 	hasher
+	sha1
 	hex
 	http_connection
 	http_stream
@@ -374,6 +372,7 @@ set(sources
 	disk_job_fence
 	disk_job_pool
 	disk_buffer_pool
+	disk_interface
 	disk_io_thread
 	disk_io_thread_pool
 	disabled_disk_io
@@ -432,6 +431,8 @@ set(ed25519_sources
 	sc
 	sign
 	verify
+	sha512
+	hasher512
 )
 
 set(try_signal_sources
@@ -441,7 +442,7 @@ set(try_signal_sources
 
 list(TRANSFORM sources PREPEND "src/")
 list(TRANSFORM kademlia_sources PREPEND "src/kademlia/")
-list(TRANSFORM ed25519_sources PREPEND "ed25519/src/")
+list(TRANSFORM ed25519_sources PREPEND "src/ed25519/")
 list(TRANSFORM libtorrent_include_files PREPEND "include/libtorrent/")
 list(TRANSFORM libtorrent_extensions_include_files PREPEND "include/libtorrent/extensions/")
 list(TRANSFORM libtorrent_aux_include_files PREPEND "include/libtorrent/aux_/")
@@ -513,7 +514,7 @@ add_library(torrent-rasterbar
 	${libtorrent_aux_include_files}
 )
 
-select_cxx_standard(torrent-rasterbar 11)
+select_cxx_standard(torrent-rasterbar 14)
 
 if (BUILD_SHARED_LIBS)
 	target_compile_definitions(torrent-rasterbar
@@ -539,11 +540,11 @@ target_include_directories(torrent-rasterbar PUBLIC
 target_compile_definitions(torrent-rasterbar
 	PUBLIC
 		$<$<CONFIG:Debug>:TORRENT_USE_ASSERTS>
+		BOOST_ASIO_ENABLE_CANCELIO
 	PRIVATE
 		TORRENT_BUILDING_LIBRARY
 		_FILE_OFFSET_BITS=64
 		BOOST_EXCEPTION_DISABLE
-		BOOST_ASIO_ENABLE_CANCELIO
 		BOOST_ASIO_HAS_STD_CHRONO
 )
 
@@ -662,10 +663,6 @@ else(OPENSSL_FOUND)
 	if (LibGcrypt_FOUND)
 		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBGCRYPT)
 		target_link_libraries(torrent-rasterbar PRIVATE LibGcrypt::LibGcrypt)
-	else()
-		if (NOT WIN32 AND NOT APPLE)
-			target_sources(torrent-rasterbar PRIVATE src/sha1)
-		endif()
 	endif()
 endif(OPENSSL_FOUND)
 
@@ -680,13 +677,8 @@ if (dht)
 		${kademlia_sources}
 		${ed25519_sources}
 		${libtorrent_kademlia_include_files}
-		src/hasher512
 	)
 	target_include_directories(torrent-rasterbar PRIVATE ed25519/src)
-
-	if (NOT OpenSSL_FOUND AND NOT LibGcrypt_FOUND AND NOT WIN32 AND NOT APPLE)
-		target_sources(torrent-rasterbar PRIVATE src/sha512)
-	endif()
 else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
 endif()

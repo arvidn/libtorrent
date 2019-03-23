@@ -247,41 +247,41 @@ namespace aux {
 		{
 			case 0: break;
 			case socket_type_int_impl<tcp::socket>::value:
-				new (reinterpret_cast<tcp::socket*>(&m_data)) tcp::socket(m_io_service);
+				new (reinterpret_cast<tcp::socket*>(&m_data)) tcp::socket(m_io_context);
 				break;
 			case socket_type_int_impl<socks5_stream>::value:
-				new (reinterpret_cast<socks5_stream*>(&m_data)) socks5_stream(m_io_service);
+				new (reinterpret_cast<socks5_stream*>(&m_data)) socks5_stream(m_io_context);
 				break;
 			case socket_type_int_impl<http_stream>::value:
-				new (reinterpret_cast<http_stream*>(&m_data)) http_stream(m_io_service);
+				new (reinterpret_cast<http_stream*>(&m_data)) http_stream(m_io_context);
 				break;
 			case socket_type_int_impl<utp_stream>::value:
-				new (reinterpret_cast<utp_stream*>(&m_data)) utp_stream(m_io_service);
+				new (reinterpret_cast<utp_stream*>(&m_data)) utp_stream(m_io_context);
 				break;
 #if TORRENT_USE_I2P
 			case socket_type_int_impl<i2p_stream>::value:
-				new (reinterpret_cast<i2p_stream*>(&m_data)) i2p_stream(m_io_service);
+				new (reinterpret_cast<i2p_stream*>(&m_data)) i2p_stream(m_io_context);
 				break;
 #endif
 #ifdef TORRENT_USE_OPENSSL
 			case socket_type_int_impl<ssl_stream<tcp::socket>>::value:
 				TORRENT_ASSERT(userdata);
-				new (reinterpret_cast<ssl_stream<tcp::socket>*>(&m_data)) ssl_stream<tcp::socket>(m_io_service
+				new (reinterpret_cast<ssl_stream<tcp::socket>*>(&m_data)) ssl_stream<tcp::socket>(m_io_context
 					, *static_cast<ssl::context*>(userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<socks5_stream>>::value:
 				TORRENT_ASSERT(userdata);
-				new (reinterpret_cast<ssl_stream<socks5_stream>*>(&m_data)) ssl_stream<socks5_stream>(m_io_service
+				new (reinterpret_cast<ssl_stream<socks5_stream>*>(&m_data)) ssl_stream<socks5_stream>(m_io_context
 					, *static_cast<ssl::context*>(userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<http_stream>>::value:
 				TORRENT_ASSERT(userdata);
-				new (reinterpret_cast<ssl_stream<http_stream>*>(&m_data)) ssl_stream<http_stream>(m_io_service
+				new (reinterpret_cast<ssl_stream<http_stream>*>(&m_data)) ssl_stream<http_stream>(m_io_context
 					, *static_cast<ssl::context*>(userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
 				TORRENT_ASSERT(userdata);
-				new (reinterpret_cast<ssl_stream<utp_stream>*>(&m_data)) ssl_stream<utp_stream>(m_io_service
+				new (reinterpret_cast<ssl_stream<utp_stream>*>(&m_data)) ssl_stream<utp_stream>(m_io_context
 					, *static_cast<ssl::context*>(userdata));
 				break;
 #endif
@@ -317,8 +317,8 @@ namespace aux {
 		return names[m_type];
 	}
 
-	io_service& socket_type::get_io_service() const
-	{ return m_io_service; }
+	io_context::executor_type socket_type::get_executor()
+	{ return m_io_context.get_executor(); }
 
 	socket_type::~socket_type()
 	{ destruct(); }

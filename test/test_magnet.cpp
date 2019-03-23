@@ -91,7 +91,7 @@ TORRENT_TEST(magnet)
 	pack.set_bool(settings_pack::close_redundant_connections, false);
 	pack.set_int(settings_pack::auto_scrape_interval, 235);
 	pack.set_int(settings_pack::auto_scrape_min_interval, 62);
-	std::unique_ptr<lt::session> s(new lt::session(pack));
+	auto s = std::make_unique<lt::session>(pack);
 
 	TEST_EQUAL(pack.get_str(settings_pack::user_agent), "test");
 	TEST_EQUAL(pack.get_int(settings_pack::tracker_receive_timeout), 1234);
@@ -536,4 +536,24 @@ TORRENT_TEST(parse_magnet_select_only_invalid_quotes)
 {
 	test_select_only("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
 		"&dn=foo&so=\"1,2\"", {});
+}
+
+TORRENT_TEST(magnet_tr_x_uri)
+{
+	add_torrent_params p = parse_magnet_uri("magnet:"
+		"?tr.0=udp://1"
+		"&tr.1=http://2"
+		"&tr=http://3"
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_CHECK((p.trackers == std::vector<std::string>{
+		"udp://1", "http://2", "http://3"}));
+
+	TEST_CHECK((p.tracker_tiers == std::vector<int>{0, 1, 2 }));
+
+	p = parse_magnet_uri("magnet:"
+		"?tr.a=udp://1"
+		"&tr.1=http://2"
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_CHECK((p.trackers == std::vector<std::string>{"http://2" }));
+	TEST_CHECK((p.tracker_tiers == std::vector<int>{0}));
 }

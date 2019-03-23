@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "bittorrent_peer.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/random.hpp"
 
@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 using namespace std::placeholders;
 
-peer_conn::peer_conn(io_service& ios
+peer_conn::peer_conn(io_context& ios
 	, std::function<void(int, char const*, int)> on_msg
 	, torrent_info const& ti
 	, tcp::endpoint const& ep
@@ -270,10 +270,10 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 	char ep_str[200];
 	address const& addr = s.local_endpoint(e).address();
 	if (addr.is_v6())
-		std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
+		std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string().c_str()
 			, s.local_endpoint(e).port());
 	else
-		std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
+		std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string().c_str()
 			, s.local_endpoint(e).port());
 	std::printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
 		, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
@@ -394,7 +394,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 			pieces.clear();
 			for (int i = 0; i < int(pieces.size()); ++i)
 				pieces.push_back(i);
-			aux::random_shuffle(pieces.begin(), pieces.end());
+			aux::random_shuffle(pieces);
 		}
 		else if (msg == 4) // have
 		{
@@ -418,7 +418,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 				}
 				++ptr;
 			}
-			aux::random_shuffle(pieces.begin(), pieces.end());
+			aux::random_shuffle(pieces);
 		}
 		else if (msg == 7) // piece
 		{

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2018, Arvid Norberg
+Copyright (c) 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,35 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_IO_SERVICE_FWD_HPP_INCLUDED
-#define TORRENT_IO_SERVICE_FWD_HPP_INCLUDED
-
-#include "libtorrent/config.hpp"
-#include <boost/version.hpp>
-
-#if defined TORRENT_BUILD_SIMULATOR
-namespace sim { namespace asio {
-
-	struct io_service;
-}}
-#else
-namespace boost { namespace asio {
-#if BOOST_VERSION < 106600
-	class io_service;
-#else
-	class io_context;
-	typedef io_context io_service;
-#endif
-}}
-#endif
+#include "libtorrent/disk_interface.hpp"
 
 namespace libtorrent {
 
-#if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::asio::io_service io_service;
-#else
-	typedef boost::asio::io_service io_service;
-#endif
-}
+constexpr disk_job_flags_t disk_interface::force_copy;
+constexpr disk_job_flags_t disk_interface::sequential_access;
+constexpr disk_job_flags_t disk_interface::volatile_read;
 
-#endif
+}

@@ -62,10 +62,10 @@ void run_test(Setup const& setup
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	std::unique_ptr<sim::asio::io_service> ios = make_io_service(sim, 0);
+	std::unique_ptr<sim::asio::io_context> ios = make_io_context(sim, 0);
 	lt::session_proxy zombie;
 
-	sim::asio::io_service proxy_ios{sim, addr("50.50.50.50") };
+	sim::asio::io_context proxy_ios{sim, addr("50.50.50.50") };
 	sim::socks_server socks4(proxy_ios, 4444, 4);
 	sim::socks_server socks5(proxy_ios, 5555, 5);
 
@@ -128,7 +128,7 @@ TORRENT_TEST(socks5_tcp_announce)
 		[&tracker_port](sim::simulation& sim, lt::session&
 			, std::shared_ptr<lt::torrent_info> ti)
 		{
-			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
 			// listen on port 8080
 			sim::http_server http(web_server, 8080);
 
@@ -254,10 +254,10 @@ TORRENT_TEST(socks5_udp_retry)
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	std::unique_ptr<sim::asio::io_service> ios = make_io_service(sim, 0);
+	std::unique_ptr<sim::asio::io_context> ios = make_io_context(sim, 0);
 	lt::session_proxy zombie;
 
-	sim::asio::io_service proxy_ios{sim, addr("50.50.50.50") };
+	sim::asio::io_context proxy_ios{sim, addr("50.50.50.50") };
 	// close UDP associate connectons prematurely
 	sim::socks_server socks5(proxy_ios, 5555, 5, socks_flag::disconnect_udp_associate);
 

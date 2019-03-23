@@ -56,24 +56,24 @@ namespace {
 #if defined TORRENT_BUILD_SIMULATOR
 struct ip_change_notifier_impl final : ip_change_notifier
 {
-	explicit ip_change_notifier_impl(io_service& ios)
+	explicit ip_change_notifier_impl(io_context& ios)
 		: m_ios(ios) {}
 
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
-		m_ios.post([cb]()
+		post(m_ios, [cb]()
 		{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
 	void cancel() override {}
 
 private:
-	io_service& m_ios;
+	io_context& m_ios;
 };
 #elif TORRENT_USE_NETLINK
 struct ip_change_notifier_impl final : ip_change_notifier
 {
-	explicit ip_change_notifier_impl(io_service& ios)
+	explicit ip_change_notifier_impl(io_context& ios)
 		: m_socket(ios
 			, netlink::endpoint(netlink(NETLINK_ROUTE), RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR))
 	{
@@ -188,7 +188,7 @@ CFRef<SCNetworkReachabilityRef> create_reachability(SCNetworkReachabilityCallBac
 
 struct ip_change_notifier_impl final : ip_change_notifier
 {
-	explicit ip_change_notifier_impl(io_service& ios)
+	explicit ip_change_notifier_impl(io_context& ios)
 		: m_ios(ios)
 	{
 		m_queue = dispatch_queue_create("libtorrent.IPChangeNotifierQueue", nullptr);
@@ -196,7 +196,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCNetworkReachabilityRef /*target*/, SCNetworkReachabilityFlags /*flags*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				obj->m_ios.post([obj]()
+				post(obj->m_ios, [obj]()
 				{
 					if (!obj->m_cb) return;
 					auto cb = std::move(obj->m_cb);
@@ -222,7 +222,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		if (m_queue)
 			m_cb = std::move(cb);
 		else
-			m_ios.post([cb]()
+			post(m_ios, [cb]()
 			{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
@@ -237,7 +237,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 	}
 
 private:
-	io_service& m_ios;
+	io_context& m_ios;
 	CFDispatchRef m_queue;
 	CFRef<SCNetworkReachabilityRef> m_reach;
 	std::function<void(error_code const&)> m_cb = nullptr;
@@ -288,7 +288,7 @@ CFRef<SCDynamicStoreRef> create_dynamic_store(SCDynamicStoreCallBack callback, v
 
 struct ip_change_notifier_impl final : ip_change_notifier
 {
-	explicit ip_change_notifier_impl(io_service& ios)
+	explicit ip_change_notifier_impl(io_context& ios)
 		: m_ios(ios)
 	{
 		m_queue = dispatch_queue_create("libtorrent.IPChangeNotifierQueue", nullptr);
@@ -296,7 +296,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCDynamicStoreRef /*store*/, CFArrayRef /*changedKeys*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				obj->m_ios.post([obj]()
+				post(obj->m_ios, [obj]()
 				{
 					if (!obj->m_cb) return;
 					auto cb = std::move(obj->m_cb);
@@ -322,7 +322,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		if (m_queue)
 			m_cb = std::move(cb);
 		else
-			m_ios.post([cb]()
+			post(m_ios, [cb]()
 			{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
@@ -337,7 +337,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 	}
 
 private:
-	io_service& m_ios;
+	io_context& m_ios;
 	CFDispatchRef m_queue;
 	CFRef<SCDynamicStoreRef> m_store;
 	std::function<void(error_code const&)> m_cb = nullptr;
@@ -347,7 +347,7 @@ private:
 #elif defined TORRENT_WINDOWS
 struct ip_change_notifier_impl final : ip_change_notifier
 {
-	explicit ip_change_notifier_impl(io_service& ios)
+	explicit ip_change_notifier_impl(io_context& ios)
 		: m_hnd(ios, WSACreateEvent())
 	{
 		if (!m_hnd.is_open()) aux::throw_ex<system_error>(WSAGetLastError(), system_category());
@@ -380,7 +380,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		}
 		else
 		{
-			m_hnd.get_io_service().post([cb, err]()
+			post(m_hnd.get_executor(), [cb, err]()
 			{ cb(error_code(err, system_category())); });
 		}
 	}
@@ -398,26 +398,26 @@ private:
 #else
 struct ip_change_notifier_impl final : ip_change_notifier
 {
-	explicit ip_change_notifier_impl(io_service& ios)
+	explicit ip_change_notifier_impl(io_context& ios)
 		: m_ios(ios) {}
 
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
-		m_ios.post([cb]()
+		post(m_ios, [cb]()
 		{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
 	void cancel() override {}
 
 private:
-	io_service& m_ios;
+	io_context& m_ios;
 };
 #endif
 
 } // anonymous namespace
 
-	std::unique_ptr<ip_change_notifier> create_ip_notifier(io_service& ios)
+	std::unique_ptr<ip_change_notifier> create_ip_notifier(io_context& ios)
 	{
-		return std::unique_ptr<ip_change_notifier>(new ip_change_notifier_impl(ios));
+		return std::make_unique<ip_change_notifier_impl>(ios);
 	}
 }}

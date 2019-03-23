@@ -45,7 +45,7 @@ else
 
 use-project /try_signal : ./deps/try_signal ;
 
-VERSION = 1.2.0 ;
+VERSION = 1.3.0 ;
 
 rule linking ( properties * )
 {
@@ -72,6 +72,10 @@ rule linking ( properties * )
 	{
 		result += <library>ssl ;
 		result += <library>crypto ;
+		if <target-os>linux in $(properties)
+		{
+			result += <library>dl ;
+		}
 	}
 	else if <crypto>libcrypto in $(properties)
 	{
@@ -267,6 +271,13 @@ rule building ( properties * )
 		result += <build>no ;
 	}
 
+	local VERSION = [ feature.get-values <cxxstd> : $(properties) ] ;
+	if ! $(VERSION) || $(VERSION) < 14
+	{
+		ECHO "libtorrent requires at least C++14. Specify <cxxstd>14 or higher" ;
+		result += <build>no ;
+	}
+
 	if <toolset>msvc in $(properties)
 	{
 		# allow larger .obj files (with more sections)
@@ -292,28 +303,10 @@ rule building ( properties * )
 		result += <source>src/pe_crypto.cpp ;
 	}
 
-	if <crypto>built-in in $(properties)
-		&& ! <target-os>windows in $(properties)
-		&& ! <target-os>darwin in $(properties)
-	{
-		result += <source>src/sha1.cpp ;
-		if <dht>on in $(properties)
-		{
-			result += <source>src/sha512.cpp ;
-		}
-	}
-
-	if <target-os>windows in $(properties)
-		&& <windows-version>xp in $(properties)
-	{
-		result += <source>src/sha512.cpp ;
-	}
-
 	if ( <toolset>darwin in $(properties)
 		|| <toolset>gcc in $(properties)
 		|| <toolset>clang in $(properties)
 		|| <toolset>clang-darwin in $(properties) )
-		&& <link>shared in $(properties)
 		# on GCC, enabling debugging in libstdc++
 		# breaks the ABI and its ability to appear
 		# in shared object interfaces, so when it's
@@ -448,6 +441,9 @@ feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 
 feature picker-debugging : off on : composite propagated link-incompatible ;
 feature.compose <picker-debugging>on : <define>TORRENT_DEBUG_REFCOUNTS ;
+
+feature mmap-disk-io : on off : composite propagated ;
+feature.compose <mmap-disk-io>off : <define>TORRENT_HAVE_MMAP=0 ;
 
 feature simulator : off on : composite propagated link-incompatible ;
 feature.compose <simulator>on : <define>TORRENT_BUILD_SIMULATOR ;
@@ -605,6 +601,7 @@ SOURCES =
 	create_torrent
 	disk_buffer_holder
 	disk_buffer_pool
+	disk_interface
 	disk_io_job
 	disk_io_thread
 	disk_io_thread_pool
@@ -658,6 +655,7 @@ SOURCES =
 	session_call
 	session_udp_sockets
 	settings_pack
+	sha1
 	sha1_hash
 	socket_io
 	socket_type
@@ -748,6 +746,8 @@ ED25519_SOURCES =
 	sc
 	sign
 	verify
+	hasher512
+	sha512
 	;
 
 local usage-requirements =
@@ -763,6 +763,7 @@ local usage-requirements =
 	<define>BOOST_ASIO_ENABLE_CANCELIO
 # make sure asio uses std::chrono
 	<define>BOOST_ASIO_HAS_STD_CHRONO
+	<define>BOOST_ASIO_NO_DEPRECATED
 	<conditional>@linking
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:ICF=5"
@@ -792,8 +793,7 @@ lib torrent
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
-	<dht>on:<source>src/hasher512.cpp
+	<dht>on:<source>src/ed25519/$(ED25519_SOURCES).cpp
 
 	<conditional>@building
 	<conditional>@warnings

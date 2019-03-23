@@ -572,10 +572,9 @@ TORRENT_VERSION_NAMESPACE_2
 	};
 
 TORRENT_VERSION_NAMESPACE_2_END
-}
+} // namespace libtorrent
 
-namespace std
-{
+namespace std {
 	template <>
 	struct hash<libtorrent::torrent_status>
 	{

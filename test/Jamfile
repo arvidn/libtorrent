@@ -32,6 +32,7 @@ lib libtorrent_test
 
 	: # default build
 	<link>shared
+	<cxxstd>14
 
 	: # user-requirements
 	<link>shared:<define>TORRENT_LINK_TEST_SHARED
@@ -65,6 +66,7 @@ project
 	<link>shared
 	<picker-debugging>on
 	<logging>on
+	<cxxstd>14
 	;
 
 feature launcher : none valgrind : composite ;
@@ -82,6 +84,7 @@ exe test_natpmp : test_natpmp.cpp
 	<link>shared
 	<picker-debugging>on
 	<logging>on
+	<cxxstd>14
 	;
 
 exe enum_if : enum_if.cpp
@@ -96,6 +99,7 @@ exe enum_if : enum_if.cpp
 	<link>shared
 	<picker-debugging>on
 	<logging>on
+	<cxxstd>14
 	;
 
 install stage_enum_if : enum_if : <location>. ;

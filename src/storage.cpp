@@ -46,6 +46,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/optional.hpp>
+
+#if TORRENT_HAS_SYMLINK
+#include <unistd.h> // for symlink()
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/storage.hpp"
@@ -57,7 +62,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/hex.hpp" // to_hex
-//#include "libtorrent/aux_/escape_string.hpp"
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 namespace libtorrent {
 
@@ -70,7 +76,7 @@ namespace libtorrent {
 		, m_pool(pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
-		if (params.mapped_files) m_mapped_files.reset(new file_storage(*params.mapped_files));
+		if (params.mapped_files) m_mapped_files = std::make_unique<file_storage>(*params.mapped_files);
 
 		TORRENT_ASSERT(files().num_files() > 0);
 	}
@@ -89,9 +95,9 @@ namespace libtorrent {
 	{
 		if (m_part_file) return;
 
-		m_part_file.reset(new part_file(
+		m_part_file = std::make_unique<part_file>(
 			m_save_path, m_part_file_name
-			, files().num_pieces(), files().piece_length()));
+			, files().num_pieces(), files().piece_length());
 	}
 
 	void default_storage::set_file_priority(aux::session_settings const& sett
@@ -253,7 +259,6 @@ namespace libtorrent {
 			}
 		}
 		// first, create zero-sized files
-		std::string last_path;
 		for (auto const file_index : fs.file_range())
 		{
 			// ignore files that have priority 0
@@ -282,20 +287,68 @@ namespace libtorrent {
 			// deliberately don't truncate files that already exist
 			// if a file is supposed to have size 0, but already exists, we will
 			// never truncate it to 0.
-			if (fs.file_size(file_index) == 0
-				&& err == boost::system::errc::no_such_file_or_directory)
+			if (fs.file_size(file_index) == 0)
 			{
-				// just creating the file is enough to make it zero-sized. If
-				// there's a race here and some other process truncates the file,
-				// it's not a problem, we won't access empty files ever again
-				ec.ec.clear();
-				auto f = open_file(sett, file_index, aux::open_mode::write
-					| aux::open_mode::random_access | aux::open_mode::truncate, ec);
-				if (ec)
+#if TORRENT_HAS_SYMLINK
+				// create symlinks
+				if (fs.file_flags(file_index) & file_storage::flag_symlink)
 				{
-					ec.file(file_index);
-					ec.operation = operation_t::file_fallocate;
-					return;
+					std::string path = fs.file_path(file_index, m_save_path);
+					create_directories(parent_path(path), ec.ec);
+					if (ec)
+					{
+						ec.ec = error_code(errno, generic_category());
+						ec.file(file_index);
+						ec.operation = operation_t::mkdir;
+						break;
+					}
+					// we make the symlink target relative to the link itself
+					std::string const target = lexically_relative(
+						parent_path(fs.file_path(file_index)), fs.symlink(file_index));
+					std::string const link = fs.file_path(file_index, m_save_path);
+					if (::symlink(target.c_str(), link.c_str()) != 0)
+					{
+						int const error = errno;
+						if (error == EEXIST)
+						{
+							// if the file exist, it may be a symlink already. if so,
+							// just verify the link target is what it's supposed to be
+							// note that readlink() does not null terminate the buffer
+							char buffer[512];
+							auto const ret = ::readlink(link.c_str(), buffer, sizeof(buffer));
+							if (ret <= 0 || target != string_view(buffer, std::size_t(ret)))
+							{
+								ec.ec = error_code(error, generic_category());
+								ec.file(file_index);
+								ec.operation = operation_t::symlink;
+								return;
+							}
+						}
+						else
+						{
+							ec.ec = error_code(error, generic_category());
+							ec.file(file_index);
+							ec.operation = operation_t::symlink;
+							return;
+						}
+					}
+				}
+				else
+#endif
+				if (err == boost::system::errc::no_such_file_or_directory)
+				{
+					// just creating the file is enough to make it zero-sized. If
+					// there's a race here and some other process truncates the file,
+					// it's not a problem, we won't access empty files ever again
+					ec.ec.clear();
+					auto f = open_file(sett, file_index, aux::open_mode::write
+						| aux::open_mode::random_access | aux::open_mode::truncate, ec);
+					if (ec)
+					{
+						ec.file(file_index);
+						ec.operation = operation_t::file_fallocate;
+						return;
+					}
 				}
 			}
 			ec.ec.clear();
@@ -398,7 +451,7 @@ namespace libtorrent {
 		// in our file_storage, so that when it is created
 		// it will get the new name
 		if (!m_mapped_files)
-		{ m_mapped_files.reset(new file_storage(files())); }
+		{ m_mapped_files = std::make_unique<file_storage>(files()); }
 		m_mapped_files->rename_file(index, new_filename);
 	}
 
@@ -439,19 +492,19 @@ namespace libtorrent {
 			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
-	status_t default_storage::move_storage(std::string const& sp
+	std::pair<status_t, std::string> default_storage::move_storage(std::string sp
 		, move_flags_t const flags, storage_error& ec)
 	{
 		m_pool.release(storage_index());
 
 		status_t ret;
-		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, sp
+		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, std::move(sp)
 			, m_part_file.get(), flags, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();
 
-		return ret;
+		return { ret, m_save_path };
 	}
 
 	int default_storage::readv(aux::session_settings const& sett
@@ -785,3 +838,5 @@ namespace libtorrent {
 		return false;
 	}
 } // namespace libtorrent
+
+#endif // TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE

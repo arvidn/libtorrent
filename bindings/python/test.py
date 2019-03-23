@@ -94,6 +94,9 @@ class test_torrent_handle(unittest.TestCase):
         self.h.connect_peer(('127.0.0.3', 6881), flags=2)
         self.h.connect_peer(('127.0.0.4', 6881), flags=2, source=4)
 
+        torrent_files = self.h.torrent_file()
+        print(torrent_files.map_file(0, 0, 0).piece)
+
         print(self.h.queue_position())
 
     def test_torrent_handle_in_set(self):
@@ -705,6 +708,27 @@ class test_error_code(unittest.TestCase):
         self.assertEqual(lt.bdecode_category().name(), 'bdecode')
         self.assertEqual(lt.generic_category().name(), 'generic')
         self.assertEqual(lt.system_category().name(), 'system')
+
+
+class test_peer_info(unittest.TestCase):
+
+    def test_peer_info_members(self):
+
+        p = lt.peer_info()
+
+        print(p.client)
+        print(p.pieces)
+        print(p.pieces)
+        print(p.last_request)
+        print(p.last_active)
+        print(p.flags)
+        print(p.source)
+        print(p.pid)
+        print(p.downloading_piece_index)
+        print(p.ip)
+        print(p.local_endpoint)
+        print(p.read_state)
+        print(p.write_state)
 
 
 if __name__ == '__main__':

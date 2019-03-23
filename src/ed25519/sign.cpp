@@ -1,13 +1,13 @@
 // ignore warnings in this file
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include "libtorrent/ed25519.hpp"
-#include "libtorrent/hasher512.hpp"
+#include "libtorrent/aux_/ed25519.hpp"
+#include "libtorrent/aux_/hasher512.hpp"
 #include "ge.h"
 #include "sc.h"
 
-namespace libtorrent
-{
+namespace libtorrent {
+namespace aux {
 
 void ed25519_sign(unsigned char *signature, const unsigned char *message, std::ptrdiff_t message_len, const unsigned char *public_key, const unsigned char *private_key) {
     ge_p3 R;
@@ -34,4 +34,4 @@ void ed25519_sign(unsigned char *signature, const unsigned char *message, std::p
         , reinterpret_cast<unsigned char*>(r.data()));
 }
 
-}
+} }

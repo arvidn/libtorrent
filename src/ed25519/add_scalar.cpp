@@ -1,19 +1,19 @@
 // ignore warnings in this file
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include "libtorrent/ed25519.hpp"
-#include "libtorrent/hasher512.hpp"
+#include "libtorrent/aux_/ed25519.hpp"
+#include "libtorrent/aux_/hasher512.hpp"
 #include "ge.h"
 #include "sc.h"
 
-namespace libtorrent
-{
+namespace libtorrent {
+namespace aux {
 
 /* see http://crypto.stackexchange.com/a/6215/4697 */
 void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar) {
     const unsigned char SC_1[32] = {1}; /* scalar with value 1 */
-    
-    unsigned char n[32]; 
+
+    unsigned char n[32];
     ge_p3 nB;
     ge_p1p1 A_p1p1;
     ge_p3 A;
@@ -72,4 +72,4 @@ void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, c
     }
 }
 
-}
+} }

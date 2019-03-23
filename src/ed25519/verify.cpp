@@ -1,13 +1,13 @@
 // ignore warnings in this file
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include "libtorrent/ed25519.hpp"
-#include "libtorrent/hasher512.hpp"
+#include "libtorrent/aux_/ed25519.hpp"
+#include "libtorrent/aux_/hasher512.hpp"
 #include "ge.h"
 #include "sc.h"
 
-namespace libtorrent
-{
+namespace libtorrent {
+namespace aux {
 
 static int consttime_equal(const unsigned char *x, const unsigned char *y) {
     unsigned char r = 0;
@@ -81,4 +81,4 @@ int ed25519_verify(const unsigned char *signature, const unsigned char *message,
     return 1;
 }
 
-}
+} }

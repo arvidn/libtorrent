@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/performance_counters.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include <cstdint>
 #include <limits>
 
@@ -119,17 +119,8 @@ void set_utp_stream_logging(bool enable) {
 
 #else
 
-#if __cplusplus >= 201103L || defined __clang__
-
 #define UTP_LOG(...) do {} while(false)
 #define UTP_LOGV(...) do {} while(false)
-
-#else
-
-#define UTP_LOG TORRENT_WHILE_0 printf
-#define UTP_LOGV TORRENT_WHILE_0 printf
-
-#endif // cplusplus
 
 #endif
 
@@ -766,8 +757,8 @@ int utp_stream::recv_delay() const
 	return m_impl ? m_impl->m_recv_delay : 0;
 }
 
-utp_stream::utp_stream(io_service& io_service)
-	: m_io_service(io_service)
+utp_stream::utp_stream(io_context& io_context)
+	: m_io_service(io_context)
 	, m_impl(nullptr)
 	, m_open(false)
 {
@@ -880,7 +871,7 @@ void utp_stream::on_read(void* self, std::size_t const bytes_transferred
 
 	TORRENT_ASSERT(s->m_read_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec || s->m_impl->m_null_buffers);
-	s->m_io_service.post(std::bind<void>(std::move(s->m_read_handler), ec, bytes_transferred));
+	post(s->m_io_service, std::bind<void>(std::move(s->m_read_handler), ec, bytes_transferred));
 	s->m_read_handler = nullptr;
 	if (shutdown && s->m_impl)
 	{
@@ -901,7 +892,7 @@ void utp_stream::on_write(void* self, std::size_t const bytes_transferred
 
 	TORRENT_ASSERT(s->m_write_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec);
-	s->m_io_service.post(std::bind<void>(std::move(s->m_write_handler), ec, bytes_transferred));
+	post(s->m_io_service, std::bind<void>(std::move(s->m_write_handler), ec, bytes_transferred));
 	s->m_write_handler = nullptr;
 	if (shutdown && s->m_impl)
 	{
@@ -920,7 +911,7 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool const shutdow
 		, static_cast<void*>(s->m_impl), ec.message().c_str(), shutdown);
 
 	TORRENT_ASSERT(s->m_connect_handler);
-	s->m_io_service.post(std::bind<void>(std::move(s->m_connect_handler), ec));
+	post(s->m_io_service, std::bind<void>(std::move(s->m_connect_handler), ec));
 	s->m_connect_handler = nullptr;
 	if (shutdown && s->m_impl)
 	{

@@ -47,7 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/vector.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 
 struct dht_settings;
 struct dht_logger;
@@ -300,6 +301,7 @@ private:
 	int const m_bucket_size;
 };
 
-} } // namespace libtorrent::dht
+} // namespace dht
+} // namespace libtorrent
 
 #endif // ROUTING_TABLE_HPP

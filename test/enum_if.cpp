@@ -39,7 +39,7 @@ using namespace lt;
 
 int main()
 {
-	io_service ios;
+	io_context ios;
 	error_code ec;
 
 	address def_gw = get_default_gateway(ios, "", false, ec);
@@ -49,7 +49,7 @@ int main()
 		return 1;
 	}
 
-	std::printf("Default gateway: %s\n", def_gw.to_string(ec).c_str());
+	std::printf("Default gateway: %s\n", def_gw.to_string().c_str());
 
 	std::printf("=========== Routes ===========\n");
 	auto const routes = enum_routes(ios, ec);
@@ -64,9 +64,9 @@ int main()
 	for (auto const& r : routes)
 	{
 		std::printf("%-18s%-18s%-35s%-7d%s\n"
-			, r.destination.to_string(ec).c_str()
-			, r.netmask.to_string(ec).c_str()
-			, r.gateway.to_string(ec).c_str()
+			, r.destination.to_string().c_str()
+			, r.netmask.to_string().c_str()
+			, r.gateway.to_string().c_str()
 			, r.mtu
 			, r.name);
 	}
@@ -86,13 +86,13 @@ int main()
 	{
 		address const iface_def_gw = get_default_gateway(ios, i.name, i.interface_address.is_v6(), ec);
 		std::printf("%-34s%-45s%-20s%s%s%-20s%-34s%s %s\n"
-			, i.interface_address.to_string(ec).c_str()
-			, i.netmask.to_string(ec).c_str()
+			, i.interface_address.to_string().c_str()
+			, i.netmask.to_string().c_str()
 			, i.name
 			, (i.interface_address.is_multicast()?"multicast ":"")
 			, (is_local(i.interface_address)?"local ":"")
 			, (is_loopback(i.interface_address)?"loopback ":"")
-			, iface_def_gw.to_string(ec).c_str()
+			, iface_def_gw.to_string().c_str()
 			, i.friendly_name, i.description);
 	}
 }

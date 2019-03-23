@@ -76,7 +76,7 @@ void test_interval(int interval)
 
 	bool ran_to_completion = false;
 
-	sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+	sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
 	// listen on port 8080
 	sim::http_server http(web_server, 8080);
 
@@ -157,7 +157,7 @@ TORRENT_TEST(event_completed)
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
 
-	sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+	sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
 	// listen on port 8080
 	sim::http_server http(web_server, 8080);
 
@@ -285,9 +285,9 @@ struct sim_config : sim::default_config
 	{
 		if (hostname == "tracker.com")
 		{
-			result.push_back(address_v4::from_string("123.0.0.2"));
+			result.push_back(make_address_v4("123.0.0.2"));
 			if (ipv6)
-				result.push_back(address_v6::from_string("ff::dead:beef"));
+				result.push_back(make_address_v6("ff::dead:beef"));
 			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
 		}
 
@@ -299,7 +299,7 @@ struct sim_config : sim::default_config
 
 void on_alert_notify(lt::session* ses)
 {
-	ses->get_io_service().post([ses] {
+	post(ses->get_context(), [ses] {
 		std::vector<lt::alert*> alerts;
 		ses->pop_alerts(&alerts);
 
@@ -323,8 +323,8 @@ void test_ipv6_support(char const* listen_interfaces
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 
-	sim::asio::io_service web_server_v4(sim, address_v4::from_string("123.0.0.2"));
-	sim::asio::io_service web_server_v6(sim, address_v6::from_string("ff::dead:beef"));
+	sim::asio::io_context web_server_v4(sim, make_address_v4("123.0.0.2"));
+	sim::asio::io_context web_server_v6(sim, make_address_v6("ff::dead:beef"));
 
 	// listen on port 8080
 	sim::http_server http_v4(web_server_v4, 8080);
@@ -371,18 +371,18 @@ void test_ipv6_support(char const* listen_interfaces
 		{
 			char ep[30];
 			std::snprintf(ep, sizeof(ep), "123.0.0.%d", i + 1);
-			ips.push_back(address::from_string(ep));
+			ips.push_back(make_address(ep));
 			std::snprintf(ep, sizeof(ep), "ffff::1337:%d", i + 1);
-			ips.push_back(address::from_string(ep));
+			ips.push_back(make_address(ep));
 		}
 
-		asio::io_service ios(sim, ips);
+		asio::io_context ios(sim, ips);
 		lt::settings_pack sett = settings();
 		if (listen_interfaces)
 		{
 			sett.set_str(settings_pack::listen_interfaces, listen_interfaces);
 		}
-		std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+		auto ses = std::make_unique<lt::session>(sett, ios);
 
 		ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
 
@@ -428,8 +428,8 @@ void test_udpv6_support(char const* listen_interfaces
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 
-	sim::asio::io_service web_server_v4(sim, address_v4::from_string("123.0.0.2"));
-	sim::asio::io_service web_server_v6(sim, address_v6::from_string("ff::dead:beef"));
+	sim::asio::io_context web_server_v4(sim, make_address_v4("123.0.0.2"));
+	sim::asio::io_context web_server_v6(sim, make_address_v6("ff::dead:beef"));
 
 	int v4_announces = 0;
 	int v6_announces = 0;
@@ -443,23 +443,23 @@ void test_udpv6_support(char const* listen_interfaces
 		{
 			char ep[30];
 			std::snprintf(ep, sizeof(ep), "123.0.0.%d", i + 1);
-			ips.push_back(address::from_string(ep));
+			ips.push_back(make_address(ep));
 			std::snprintf(ep, sizeof(ep), "ffff::1337:%d", i + 1);
-			ips.push_back(address::from_string(ep));
+			ips.push_back(make_address(ep));
 		}
 
-		asio::io_service ios(sim, ips);
+		asio::io_context ios(sim, ips);
 		lt::settings_pack sett = settings();
 		if (listen_interfaces)
 		{
 			sett.set_str(settings_pack::listen_interfaces, listen_interfaces);
 		}
-		std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+		auto ses = std::make_unique<lt::session>(sett, ios);
 
 		// since we don't have a udp tracker to run in the sim, looking for the
 		// alerts is the closest proxy
 		ses->set_alert_notify([&]{
-			ses->get_io_service().post([&] {
+			post(ses->get_context(), [&] {
 				std::vector<lt::alert*> alerts;
 				ses->pop_alerts(&alerts);
 
@@ -594,8 +594,8 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 
-	sim::asio::io_service tracker_ios(sim, address_v4::from_string("123.0.0.2"));
-	sim::asio::io_service tracker_ios6(sim, address_v6::from_string("ff::dead:beef"));
+	sim::asio::io_context tracker_ios(sim, make_address_v4("123.0.0.2"));
+	sim::asio::io_context tracker_ios6(sim, make_address_v6("ff::dead:beef"));
 
 	// listen on port 8080
 	sim::http_server http(tracker_ios, 8080);
@@ -606,10 +606,10 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 
 	lt::session_proxy zombie;
 
-	asio::io_service ios(sim, { address_v4::from_string("123.0.0.3")
-		, address_v6::from_string("ffff::1337") });
+	asio::io_context ios(sim, { make_address_v4("123.0.0.3")
+		, make_address_v6("ffff::1337") });
 	lt::settings_pack sett = settings();
-	std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+	auto ses = std::make_unique<lt::session>(sett, ios);
 
 	ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
 
@@ -1169,11 +1169,11 @@ TORRENT_TEST(tracker_tiers)
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	sim::asio::io_service ios0 { sim, peer0 };
-	sim::asio::io_service ios1 { sim, peer1 };
+	sim::asio::io_context ios0 { sim, peer0 };
+	sim::asio::io_context ios1 { sim, peer1 };
 
-	sim::asio::io_service tracker1(sim, address_v4::from_string("3.0.0.1"));
-	sim::asio::io_service tracker2(sim, address_v4::from_string("3.0.0.2"));
+	sim::asio::io_context tracker1(sim, make_address_v4("3.0.0.1"));
+	sim::asio::io_context tracker2(sim, make_address_v4("3.0.0.2"));
 	sim::http_server http1(tracker1, 8080);
 	sim::http_server http2(tracker2, 8080);
 

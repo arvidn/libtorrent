@@ -9,16 +9,36 @@ matrix:
     - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
       addons:
         apt:
+          sources:
+          - ubuntu-toolchain-r-test
           packages:
           - python3-pip
-          - libboost1.58-all-dev
-          - libboost1.58-tools-dev
-    - env: variant=test_debug tests=1 toolset=gcc-sanitizer
+          - g++-6
+    - env: variant=test_debug tests=1 mmap=on toolset=gcc-sanitizer
+    - env: variant=test_debug tests=1 mmap=off toolset=gcc
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
-    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
-    - env: autotools=1 toolset=gcc
-    - env: cmake=1 toolset=gcc
-    - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 python=1 toolset=darwin ios=1
+    - env: variant=test_release coverage=1 tests=1 mmap=on toolset=gcc-coverage python=1 python_dist=1
+    - env: dist=1 toolset=gcc install_boost=1
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - python-docutils
+          - python-pygments
+          - python-pil
+          - python-aafigure
+          - graphviz
+          - g++-6
+    - env: cmake=1 toolset=gcc install_boost=1
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - ninja-build
+          - g++-6
+    - env: variant=test_debug crypto=openssl docs=1 tests=1 mmap=on examples=1 tools=1 python=1 toolset=darwin ios=1
       os: osx
       osx_image: xcode9.2
     - env: arch=arm toolset=gcc-arm
@@ -44,10 +64,11 @@ cache:
 # packages list: https://github.com/travis-ci/apt-package-whitelist/blob/master/ubuntu-precise
 addons:
   apt:
+    sources:
+    - ubuntu-toolchain-r-test
     packages:
     - python2.7-dev
-    - g++-5
-    - ninja-build
+    - g++-6
 
 before_install:
 
@@ -58,21 +79,24 @@ before_install:
   # on linux, pull down a recent version of boost and build boost-build
   - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
     cd ..;
-    wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.zip;
-    unzip -qq boost_1_64_0.zip;
-    export BOOST_ROOT=$PWD/boost_1_64_0;
-    (cd boost_1_64_0/tools/build/src/engine; ./build.sh);
-    export BOOST_BUILD_PATH=$BOOST_ROOT/tools/build;
-    export PATH=$BOOST_BUILD_PATH/src/engine/bin.linuxx86_64:$PATH;
-    cd libtorrent;
+    wget --quiet https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.zip;
+    unzip -qq boost_1_68_0.zip;
+    export BOOST_ROOT=$PWD/boost_1_68_0;
+    cd boost_1_68_0/;
+    ./bootstrap.sh;
+    export PATH=$BOOST_ROOT:$PATH;
     fi'
 
+  - cd $TRAVIS_BUILD_DIR;
   - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" ) ]]; then
     travis_retry brew update > /dev/null && brew install ccache boost-build;
     fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then travis_retry brew install boost-python python2; fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
+      travis_retry brew install boost-python python2;
+      brew link --overwrite python@2;
+    fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
   # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
@@ -95,12 +119,11 @@ before_install:
 install:
   - touch ~/user-config.jam
   - 'if [[ $toolset == "gcc" ]]; then
-      g++-5 --version;
-      echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
+      g++-6 --version;
+      echo "using gcc : : ccache g++-6 : ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-sanitizer" ]]; then
-      echo "using gcc : sanitizer : ccache g++-5 :
-        <cxxflags>-std=c++11
+      echo "using gcc : sanitizer : ccache g++-6 :
         <compileflags>-fstack-protector-all
         <compileflags>-fstack-check
         <compileflags>-fsanitize=address,undefined
@@ -110,11 +133,10 @@ install:
         <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-coverage" ]]; then
-      echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
+      echo "using gcc : coverage : ccache g++-6 --coverage : <linkflags>--coverage ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-arm" ]]; then
       echo "using gcc : arm : ccache armv8l-linux-gnueabihf-g++ :
-        <cxxflags>-std=c++11
         <cxxflags>-fsigned-char
         <cxxflags>-march=armv8-a+crc
         <cxxflags>-mfpu=crypto-neon-fp-armv8
@@ -124,17 +146,18 @@ install:
         <linkflags>-static-libgcc ;" >> ~/user-config.jam;
     fi;'
   - 'if [ $clang_tidy == "1" ]; then
-      echo "using clang_tidy : : clang-tidy "-checks=-clang-analyzer-core.*" : <cxxflags>-std=c++11 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+      echo "using clang_tidy : : clang-tidy "-checks=-clang-analyzer-core.*" : <cxxflags>-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW=1 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
     fi'
-  - 'echo "using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
-  - 'echo "using darwin : ios_sim : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
+  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+       echo "using darwin : : ccache clang++ : ;" >> ~/user-config.jam;
+       echo "using darwin : ios_sim : ccache clang++ : <cflags>-std=c14 <compileflags>-Wno-deprecated-declarations
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
        <compileflags>-mios-simulator-version-min=7
        <compileflags>-fobjc-abi-version=2
        <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
        <linkflags>-mios-simulator-version-min=7
-       <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam'
-  - 'echo "using darwin : ios : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations
+       <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
+       echo "using darwin : ios : ccache clang++ : <cflags>-std=c14 <compileflags>-Wno-deprecated-declarations
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
        <compileflags>-mios-version-min=7
        <compileflags>\"-arch armv7\"
@@ -142,8 +165,21 @@ install:
        <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
        <linkflags>-mios-version-min=7
        <linkflags>\"-arch armv7\"
-       <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam'
+       <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
+    fi'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
+  - 'if [[ "$install_boost" = "1" ]]; then
+      cd $BOOST_ROOT;
+      sudo ./b2 cxxstd=14 release install --with-python --with-system | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
+      cd tools/build/;
+      echo "bootstrapping boost.build";
+      ./bootstrap.sh;
+      echo "installing boost.build";
+      sudo ./b2 install --prefix=/usr/;
+      sudo ln -s /usr/local/lib/libboost_python27.so /usr/local/lib/libboost_python.so;
+      cd $TRAVIS_BUILD_DIR;
+    fi;'
+  - cat ~/user-config.jam
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
   - 'if [ "$lint" == "1" ]; then curl "https://raw.githubusercontent.com/google/styleguide/71ec7f1e524969c19ce33cfc72e8e023f2b98ee2/cpplint/cpplint.py" >~/cpplint.py; fi'
   - 'if [ "$pylint" == "1" ]; then
@@ -153,8 +189,8 @@ install:
       python3 -m flake8 --version;
     fi'
   - 'if [ $sonar_scan == "1" ]; then
-      wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.2.0.1227-linux.zip
-      wget https://sonarqube.com/static/cpp/build-wrapper-linux-x86.zip;
+      wget --quiet https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.2.0.1227-linux.zip
+      wget --quiet https://sonarqube.com/static/cpp/build-wrapper-linux-x86.zip;
       unzip sonar-scanner-cli-3.2.0.1227-linux.zip;
       unzip build-wrapper-linux-x86.zip;
       export PATH=$PWD/sonar-scanner-3.2.0.1227-linux/bin:$PWD/build-wrapper-linux-x86:$PATH;
@@ -165,18 +201,17 @@ install:
   - ccache --zero-stats
 
   - 'if [[ "$arch" == "arm" ]]; then
-      cd test;
-      wget -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/armv8l-linux-gnueabihf/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf.tar.xz;
+      cd $TRAVIS_BUILD_DIR/test;
+      wget --quiet -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/armv8l-linux-gnueabihf/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf.tar.xz;
       tar xf gcc-linaro.tar.xz;
       export PATH=${PWD}/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
       armv8l-linux-gnueabihf-g++ --version;
       travis_retry sudo apt-get install -y qemu-user-static;
-      wget -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
+      wget --quiet -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
       sudo mkdir rootfs;
       sudo tar xf ubuntu-base.tar.gz -C rootfs;
       sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
       sudo chroot rootfs mount -t proc none /proc;
-      cd ..;
     fi'
 
   - which python2
@@ -188,12 +223,12 @@ install:
 
 script:
 
-  - cd docs
+  - cd $TRAVIS_BUILD_DIR/docs;
   - 'if [ "$docs" == "1" ]; then
       make spell-check html RST2HTML=rst2html.py AAFIGURE=echo;
     fi'
-  - cd ..
 
+  - cd $TRAVIS_BUILD_DIR;
   - 'if [ "$lint" == "1" ]; then
       python ~/cpplint.py --extensions=cpp --headers=hpp --filter=-,+runtime/explicit,+whitespace/end_of_line --linelength=90 test/*.{cpp,hpp} src/*.cpp include/libtorrent/*.hpp include/libtorrent/kademlia/*.hpp src/kademlia/*.cpp include/libtorrent/aux_/*.hpp include/libtorrent/extensions/*.hpp simulation/*.{cpp,hpp} tools/*.{cpp,hpp} examples/*.{cpp,hpp};
     fi'
@@ -213,30 +248,30 @@ script:
 
 # if we are building with code coverage, report it as soon as possible
 # libtorrent is the name of the test suite target
-  - cd test
+  - cd $TRAVIS_BUILD_DIR/test;
   - 'if [ "$tests" == "1" ]; then
-      travis_retry bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
-      travis_retry bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
+      bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
+      travis_retry bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
+      travis_retry bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-        travis_retry bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
+        travis_retry bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
       fi &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
     fi'
 
-  - cd ../examples
+  - cd $TRAVIS_BUILD_DIR/examples;
   - 'if [ "$examples" == "1" ]; then
       bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
-  - cd ..
 
-  - cd tools
+  - cd $TRAVIS_BUILD_DIR/tools;
   - 'if [ "$tools" == "1" ]; then
       bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
-  - cd ..
 
+  - cd $TRAVIS_BUILD_DIR;
   - if [[ $ios == "1" ]]; then
       bjam -q darwin-ios darwin-ios_sim -j2 link=static;
     fi
@@ -244,7 +279,7 @@ script:
 # a binary built with sanitizer does not interact well with python
 # on OSX we need to use the brew version of python, for reasons explained above
 # boost.python cannot be built with warnings-as-errors=on
-  - cd bindings/python
+  - cd $TRAVIS_BUILD_DIR/bindings/python;
   - 'if [[ "$python" == "1" ]]; then
       bjam -j3 warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
@@ -253,42 +288,40 @@ script:
         LD_LIBRARY_PATH=./dependencies python test.py -b;
       fi;
     fi'
+  - 'if [[ "$python_dist" == "1" ]]; then
+      python setup.py bdist;
+    fi'
   - cd ../..;
 
 # simulation
-  - cd simulation
+  - cd $TRAVIS_BUILD_DIR/simulation;
   - 'if [[ "$sim" == "1" ]]; then
       bjam -j2 crypto=built-in warnings-as-errors=on warnings=all debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset deprecated-functions=off;
     fi'
-  - cd ..
 
 # minimal support for cmake build
+  - cd $TRAVIS_BUILD_DIR;
   - mkdir build && cd build
   - if [[ "$cmake" == "1" ]]; then
-      (cd $BOOST_ROOT; bjam -j2 stage);
-      export CXX=g++-5 &&
-      export CC=gcc-5 &&
-      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
+      export CXX=g++-6 &&
+      export CC=gcc-6 &&
+      BOOST_LIBRARYDIR=/usr/local/lib cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
       cmake --build . -- -j2;
     fi
-  - cd ..
 
-# run through autotools and ./configure to make sure it works
-  - if [[ "$autotools" == "1" ]]; then
-      (cd $BOOST_ROOT; bjam -j2 stage);
-      ./autotool.sh &&
-      export CXX=g++-5 &&
-      export CC=gcc-5 &&
-      export CXXFLAGS="-Werror -Wno-deprecated-declarations" &&
-      ./configure --enable-debug --enable-encryption --enable-examples --enable-tests --enable-python-binding &&
-      LD_LIBRARY_PATH=$BOOST_ROOT/stage/lib make -j2 check;
+# run through building a tarball and make sure it works
+  - cd $TRAVIS_BUILD_DIR;
+  - if [[ "$dist" == "1" ]]; then
+      make dist &&
+      cd libtorrent-rasterbar-1.3.0 &&
+      make &&
+      make python-binding tools examples;
     fi
 
   - ccache --show-stats
 
-  - cd test
+  - cd $TRAVIS_BUILD_DIR/test;
   - 'if [[ "$arch" == "arm" ]];
     then
       bjam arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'
-  - cd ..

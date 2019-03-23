@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/portmap.hpp" // for portmap_protocol
 
@@ -146,6 +146,18 @@ namespace libtorrent {
 		//
 		// Any torrent_status object whose ``handle`` member is not referring to
 		// a valid torrent are ignored.
+		//
+		// The intended use of these functions is to start off by calling
+		// ``get_torrent_status()`` to get a list of all torrents that match your
+		// criteria. Then call ``refresh_torrent_status()`` on that list. This
+		// will only refresh the status for the torrents in your list, and thus
+		// ignore all other torrents you might be running. This may save a
+		// significant amount of time, especially if the number of torrents you're
+		// interested in is small. In order to keep your list of interested
+		// torrents up to date, you can either call ``get_torrent_status()`` from
+		// time to time, to include torrents you might have become interested in
+		// since the last time. In order to stop refreshing a certain torrent,
+		// simply remove it from the list.
 		std::vector<torrent_status> get_torrent_status(
 			std::function<bool(torrent_status const&)> const& pred
 			, status_flags_t flags = {}) const;
@@ -174,7 +186,7 @@ namespace libtorrent {
 		void post_dht_stats();
 
 		// internal
-		io_service& get_io_service();
+		io_context& get_context();
 
 		// ``find_torrent()`` looks for a torrent with the given info-hash. In
 		// case there is such a torrent in the session, a torrent_handle to that
@@ -463,7 +475,7 @@ namespace libtorrent {
 		// .. code:: c++
 		//
 		// 	#include <libtorrent/extensions/ut_metadata.hpp>
-		// 	ses.add_extension(&libtorrent::create_ut_metadata_plugin);
+		// 	ses.add_extension(&lt::create_ut_metadata_plugin);
 		//
 		// uTorrent peer exchange
 		// 	Exchanges peers between clients.
@@ -471,7 +483,7 @@ namespace libtorrent {
 		// .. code:: c++
 		//
 		// 	#include <libtorrent/extensions/ut_pex.hpp>
-		// 	ses.add_extension(&libtorrent::create_ut_pex_plugin);
+		// 	ses.add_extension(&lt::create_ut_pex_plugin);
 		//
 		// smart ban plugin
 		// 	A plugin that, with a small overhead, can ban peers
@@ -481,7 +493,7 @@ namespace libtorrent {
 		// .. code:: c++
 		//
 		// 	#include <libtorrent/extensions/smart_ban.hpp>
-		// 	ses.add_extension(&libtorrent::create_smart_ban_plugin);
+		// 	ses.add_extension(&lt::create_smart_ban_plugin);
 		//
 		//
 		// .. _`libtorrent plugins`: libtorrent_plugins.html

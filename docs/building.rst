@@ -15,10 +15,9 @@ To download the latest version of libtorrent, clone the `github repository`__.
 
 __ https://github.com/arvidn/libtorrent
 
-The build systems supported "out of the box" in libtorrent are boost-build v2
-(BBv2) and cmake. If you still can't build after following these instructions,
-you can usually get help in the ``#libtorrent`` IRC channel on
-``irc.freenode.net``.
+The build systems supported "out of the box" in libtorrent are boost-build
+cmake. If you still can't build after following these instructions, you can
+usually get help in the ``#libtorrent`` IRC channel on ``irc.freenode.net``.
 
 .. warning::
 
@@ -32,21 +31,20 @@ you can usually get help in the ``#libtorrent`` IRC channel on
 	link against libtorrent as when you build it.
 
 	Boost-build supports propagating configuration options to dependencies.
-	When building using the makefiles, this is handled by setting the
-	configuration options in the pkg-config file. Always use pkg-config
-	when linking against libtorrent.
 
 building from git
 -----------------
 
 To build libtorrent from git you need to clone the libtorrent repository from
-github. If you downloaded a release `tarball`__, you can skip this section.
+github. Note that the git repository depends on other git repositories via
+submodules, which also need to be initialized and updated. If you downloaded a
+release `tarball`__, you can skip this section.
 
 __ https://github.com/arvidn/libtorrent/releases/latest
 
 ::
 
-	git clone https://github.com/arvidn/libtorrent.git
+	git clone --recurse-submodules https://github.com/arvidn/libtorrent.git
 
 
 building with BBv2
@@ -80,7 +78,7 @@ __ https://www.boost.org/users/download/#live
 
 Extract the archive to some directory where you want it. For the sake of this
 guide, let's assume you extract the package to ``c:\boost_1_69_0``. You'll
-need at least version 1.58 of the boost library in order to build libtorrent.
+need at least version 1.66 of the boost library in order to build libtorrent.
 
 
 Step 2: Setup BBv2
@@ -386,6 +384,11 @@ Build features:
 |                          |   building a static library to be linked into a    |
 |                          |   shared library).                                 |
 +--------------------------+----------------------------------------------------+
+| ``mmap-disk-io``         | * ``on`` - default. Enable mmap disk storage (if   |
+|                          |   available.                                       |
+|                          | * ``off`` - disable mmap storage, and fall back to |
+|                          |   single-threaded, portable file operations.       |
++--------------------------+----------------------------------------------------+
 
 The ``variant`` feature is *implicit*, which means you don't need to specify
 the name of the feature, just the value.
@@ -428,10 +431,10 @@ and ``cd`` there::
 
 Run ``cmake`` in the build directory, like this::
 
-	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=11 -G Ninja ..
+	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 -G Ninja ..
 
-The ``CMAKE_CXX_STANDARD`` has to be at least 11, but you may want to raise it
-to ``14`` or ``17`` if your project use a newer version of the C++ standard.
+The ``CMAKE_CXX_STANDARD`` has to be at least 14, but you may want to raise it
+to ``17`` if your project use a newer version of the C++ standard.
 
 .. warning::
 
@@ -466,7 +469,7 @@ Other build options are:
 |                       | over TLS, and obfuscated bittorrent connections.  |
 +-----------------------+---------------------------------------------------+
 
-Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and and their current values.
+Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and their current values.
 
 Step 2: Building libtorrent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -569,6 +572,8 @@ defines you can use to control the build.
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_SYSTEM_ASSERTS``         | Uses the libc assert macro rather then the      |
 |                                        | custom one.                                     |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_HAVE_MMAP``                  | Define as 0 to disable mmap support.            |
 +----------------------------------------+-------------------------------------------------+
 
 .. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html

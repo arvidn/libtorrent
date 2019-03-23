@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/error_code.hpp"
@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/link.hpp" // for torrent_list_index_t
+#include "libtorrent/sha1_hash.hpp"
 
 #include <functional>
 #include <memory>
@@ -159,7 +160,7 @@ namespace aux {
 		virtual alert_manager& alerts() = 0;
 
 		virtual torrent_peer_allocator_interface& get_peer_allocator() = 0;
-		virtual io_service& get_io_service() = 0;
+		virtual io_context& get_context() = 0;
 		virtual resolver_interface& get_resolver() = 0;
 
 		virtual bool has_connection(peer_connection* p) const = 0;
@@ -186,7 +187,10 @@ namespace aux {
 		virtual std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 			, peer_connection* pc) = 0;
 		virtual void insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
-			, std::string uuid) = 0;
+#if TORRENT_ABI_VERSION == 1
+			, std::string uuid
+#endif
+			) = 0;
 #if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		virtual void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) = 0;

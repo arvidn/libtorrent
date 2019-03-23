@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #endif
 
+#include <unordered_map>
 #include <unordered_set>
 #include <cstdint>
 #include <iterator>
@@ -69,7 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	from_span_t from_span;
+	TORRENT_EXPORT from_span_t from_span;
 
 	namespace {
 
@@ -487,9 +488,12 @@ namespace {
 					sanitize_append_path_element(symlink_path, pe);
 				}
 			}
+			// symlink targets are validated later, as it may point to a file or
+			// directory we haven't parsed yet
 		}
 		else
 		{
+			// technically this is an invalid torrent. "symlink path" must exist
 			file_flags &= ~file_storage::flag_symlink;
 		}
 
@@ -525,6 +529,8 @@ namespace {
 				, info_ptr_diff, false, pad_file_cnt, ec))
 				return false;
 		}
+		// this rewrites invalid symlinks to point to themselves
+		target.sanitize_symlinks();
 		return true;
 	}
 
@@ -637,9 +643,8 @@ namespace {
 	void torrent_info::resolve_duplicate_filenames_slow()
 	{
 		INVARIANT_CHECK;
-		int cnt = 0;
 
-		std::unordered_set<std::string, string_hash_no_case, string_eq_no_case> files;
+		std::unordered_map<std::string, file_index_t, string_hash_no_case, string_eq_no_case> files;
 
 		std::vector<std::string> const& paths = m_files.paths();
 		files.reserve(paths.size() + aux::numeric_cast<std::size_t>(m_files.num_files()));
@@ -649,14 +654,14 @@ namespace {
 		for (auto const& i : paths)
 		{
 			std::string p = combine_path(m_files.name(), i);
-			files.insert(p);
+			files.insert({p, file_index_t{-1}});
 			while (has_parent_path(p))
 			{
-				p = parent_path(p);
+				p = parent_path(std::move(p));
 				// we don't want trailing slashes here
 				TORRENT_ASSERT(p[p.size() - 1] == TORRENT_SEPARATOR);
 				p.resize(p.size() - 1);
-				files.insert(p);
+				files.insert({p, file_index_t{-1}});
 			}
 		}
 
@@ -665,23 +670,31 @@ namespace {
 			// as long as this file already exists
 			// increase the counter
 			std::string filename = m_files.file_path(i);
-			if (!files.insert(filename).second)
-			{
-				std::string base = remove_extension(filename);
-				std::string ext = extension(filename);
-				do
-				{
-					++cnt;
-					char new_ext[50];
-					std::snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
-					filename = base + new_ext;
-				}
-				while (!files.insert(filename).second);
+			auto const ret = files.insert({filename, i});
+			if (ret.second) continue;
+			// pad files are allowed to collide with each-other, as long as they have
+			// the same size.
+			file_index_t const other_idx = ret.first->second;
+			if (other_idx != file_index_t{-1}
+				&& (m_files.file_flags(i) & file_storage::flag_pad_file)
+				&& (m_files.file_flags(other_idx) & file_storage::flag_pad_file)
+				&& m_files.file_size(i) == m_files.file_size(other_idx))
+				continue;
 
-				copy_on_write();
-				m_files.rename_file(i, filename);
+			std::string base = remove_extension(filename);
+			std::string ext = extension(filename);
+			int cnt = 0;
+			do
+			{
+				++cnt;
+				char new_ext[50];
+				std::snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
+				filename = base + new_ext;
 			}
-			cnt = 0;
+			while (!files.insert({filename, i}).second);
+
+			copy_on_write();
+			m_files.rename_file(i, filename);
 		}
 	}
 
@@ -998,6 +1011,7 @@ namespace {
 				return false;
 			}
 
+			files.sanitize_symlinks();
 			m_flags &= ~multifile;
 		}
 		else
@@ -1320,19 +1334,10 @@ namespace {
 			if (!m_urls.empty())
 			{
 				// shuffle each tier
-				auto start = m_urls.begin();
-				std::vector<announce_entry>::iterator stop;
-				int current_tier = m_urls.front().tier;
-				for (stop = m_urls.begin(); stop != m_urls.end(); ++stop)
-				{
-					if (stop->tier != current_tier)
-					{
-						aux::random_shuffle(start, stop);
-						start = stop;
-						current_tier = stop->tier;
-					}
-				}
-				aux::random_shuffle(start, stop);
+				aux::random_shuffle(m_urls);
+				std::stable_sort(m_urls.begin(), m_urls.end()
+					, [](announce_entry const& lhs, announce_entry const& rhs)
+					{ return lhs.tier < rhs.tier; });
 			}
 		}
 
@@ -1546,17 +1551,18 @@ namespace {
 	{
 		for (auto const i : m_files.file_range())
 		{
-			TORRENT_ASSERT(m_files.file_name_ptr(i) != nullptr);
-			if (m_files.file_name_len(i) != -1)
+			TORRENT_ASSERT(m_files.file_name(i).data() != nullptr);
+			if (!m_files.owns_name(i))
 			{
 				// name needs to point into the allocated info section buffer
-				TORRENT_ASSERT(m_files.file_name_ptr(i) >= m_info_section.get());
-				TORRENT_ASSERT(m_files.file_name_ptr(i) < m_info_section.get() + m_info_section_size);
+				TORRENT_ASSERT(m_files.file_name(i).data() >= m_info_section.get());
+				TORRENT_ASSERT(m_files.file_name(i).data() < m_info_section.get() + m_info_section_size);
 			}
 			else
 			{
-				// name must be a valid string
-				TORRENT_ASSERT(strlen(m_files.file_name_ptr(i)) < 2048);
+				// name must be a null terminated string
+				string_view const name = m_files.file_name(i);
+				TORRENT_ASSERT(name.data()[name.size()] == '\0');
 			}
 		}
 

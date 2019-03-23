@@ -79,6 +79,10 @@ category_mapping = {
     'error_code.hpp': 'Error Codes',
     'storage_defs.hpp': 'Storage',
     'file_storage.hpp': 'Storage',
+    'disk_interface.hpp': 'Custom Storage',
+    'disk_io_thread.hpp': 'Storage',
+    'disabled_disk_io.hpp': 'Storage',
+    'posix_disk_io.hpp': 'Storage',
     'extensions.hpp': 'Plugins',
     'ut_metadata.hpp': 'Plugins',
     'ut_pex.hpp': 'Plugins',
@@ -96,11 +100,11 @@ category_mapping = {
     'enum_net.hpp': 'Network',
     'broadcast_socket.hpp': 'Network',
     'socket.hpp': 'Network',
+    'address.hpp': 'Network',
     'socket_io.hpp': 'Network',
     'bitfield.hpp': 'Utility',
     'sha1_hash.hpp': 'Utility',
     'hasher.hpp': 'Utility',
-    'hasher512.hpp': 'Utility',
     'identify_client.hpp': 'Utility',
     'ip_filter.hpp': 'Filter',
     'session_settings.hpp': 'Settings',
@@ -113,7 +117,7 @@ category_mapping = {
 category_fun_mapping = {
     'min_memory_usage()': 'Settings',
     'high_performance_seed()': 'Settings',
-    'cache_status': 'Core',
+    'default_disk_io_constructor()': 'Storage'
 }
 
 
@@ -763,9 +767,8 @@ for filename in files:
             lno = consume_ifdef(lno - 1, lines)
             continue
 
-        if (line == 'namespace detail' or
-                line == 'namespace impl' or
-                line == 'namespace aux') \
+        if (line == 'namespace detail {' or
+                line == 'namespace aux {') \
                 and not internal:
             lno = consume_block(lno, lines)
             continue

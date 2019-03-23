@@ -190,7 +190,7 @@ it possible to map extensions in the handshake to existing extensions with
 fixed message IDs.
 
 The reasoning behind having a single byte as extended message identifier is
-to follow the the bittorrent spec. with its single byte message identifiers.
+to follow the bittorrent spec. with its single byte message identifiers.
 It is also considered to be enough. It won't limit the total number of
 extensions, only the number of extensions used simultaneously.
 

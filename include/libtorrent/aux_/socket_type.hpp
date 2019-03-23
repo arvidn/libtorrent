@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_stream.hpp"
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/utp_stream.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/assert.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
@@ -184,10 +184,10 @@ namespace aux {
 		using receive_buffer_size = tcp::socket::receive_buffer_size;
 		using send_buffer_size = tcp::socket::send_buffer_size;
 
-		explicit socket_type(io_service& ios): m_io_service(ios), m_type(0) {}
+		explicit socket_type(io_context& ios): m_io_context(ios), m_type(0) {}
 		~socket_type();
 
-		io_service& get_io_service() const;
+		io_context::executor_type get_executor();
 		bool is_open() const;
 
 		char const* type_name() const;
@@ -256,8 +256,8 @@ namespace aux {
 #endif
 
 		template <class SettableSocketOption>
-		error_code set_option(SettableSocketOption const& opt, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD_RET(set_option(opt, ec), ec) }
+		void set_option(SettableSocketOption const& opt, error_code& ec)
+		{ TORRENT_SOCKTYPE_FORWARD(set_option(opt, ec)) }
 
 		void non_blocking(bool b, error_code& ec)
 		{ TORRENT_SOCKTYPE_FORWARD(non_blocking(b, ec)) }
@@ -274,14 +274,14 @@ namespace aux {
 #endif
 
 		template <class GettableSocketOption>
-		error_code get_option(GettableSocketOption& opt, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD_RET(get_option(opt, ec), ec) }
+		void get_option(GettableSocketOption& opt, error_code& ec)
+		{ TORRENT_SOCKTYPE_FORWARD(get_option(opt, ec)) }
 
 		template <class S>
-		void instantiate(io_service& ios, void* userdata = nullptr)
+		void instantiate(io_context& ios, void* userdata = nullptr)
 		{
 			TORRENT_UNUSED(ios);
-			TORRENT_ASSERT(&ios == &m_io_service);
+			TORRENT_ASSERT(&ios == &m_io_context);
 			construct(socket_type_int_impl<S>::value, userdata);
 		}
 
@@ -305,7 +305,7 @@ namespace aux {
 		void destruct();
 		void construct(int type, void* userdata);
 
-		io_service& m_io_service;
+		io_context& m_io_context;
 		int m_type;
 
 		aux::aligned_union<1

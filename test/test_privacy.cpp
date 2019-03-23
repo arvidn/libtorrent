@@ -119,7 +119,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	sett.set_bool(settings_pack::proxy_tracker_connections, !(flags & dont_proxy_trackers));
 	sett.set_int(settings_pack::proxy_port, 4444);
 
-	std::unique_ptr<lt::session> s(new lt::session(sett));
+	auto s = std::make_unique<lt::session>(sett);
 
 	error_code ec;
 	remove_all("tmp1_privacy", ec);
@@ -154,7 +154,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	torrent_handle h = s->add_torrent(addp);
 
 	std::printf("connect_peer: 127.0.0.1:%d\n", peer_port);
-	h.connect_peer({address_v4::from_string("127.0.0.1"), std::uint16_t(peer_port)});
+	h.connect_peer({make_address_v4("127.0.0.1"), std::uint16_t(peer_port)});
 
 	std::vector<std::string> accepted_trackers;
 

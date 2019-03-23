@@ -93,8 +93,8 @@ namespace aux {
 		void release_files(storage_error& ec);
 		void delete_files(remove_flags_t options, storage_error& ec);
 		void initialize(aux::session_settings const&, storage_error& ec);
-		status_t move_storage(std::string const& save_path, move_flags_t flags
-			, storage_error& ec);
+		std::pair<status_t, std::string> move_storage(std::string save_path
+			, move_flags_t flags, storage_error& ec);
 		bool verify_resume_data(add_torrent_params const& rd
 			, aux::vector<std::string, file_index_t> const& links
 			, storage_error& error);
@@ -130,12 +130,6 @@ namespace aux {
 		storage_index_t storage_index() const { return m_storage_index; }
 		void set_storage_index(storage_index_t st) { m_storage_index = st; }
 
-		int dec_refcount()
-		{
-			TORRENT_ASSERT(m_references > 0);
-			return --m_references;
-		}
-		void inc_refcount() { ++m_references; }
 	private:
 
 		bool m_need_tick = false;
@@ -150,9 +144,6 @@ namespace aux {
 		std::shared_ptr<void> m_torrent;
 
 		storage_index_t m_storage_index{0};
-
-		// the number of block_cache_reference objects referencing this storage
-		std::atomic<int> m_references{1};
 
 		void need_partfile();
 

@@ -171,7 +171,7 @@ find_packet(udp::endpoint ep)
 		{ return p.first == ep; });
 }
 
-void lazy_from_entry(entry const& e, bdecode_node& l)
+void node_from_entry(entry const& e, bdecode_node& l)
 {
 	error_code ec;
 	static char inbuf[1500];
@@ -272,7 +272,7 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	, char const* t = "10", bool has_response = true)
 {
 	// we're about to clear out the backing buffer
-	// for this lazy_entry, so we better clear it now
+	// for this bdecode_node, so we better clear it now
 	reply->clear();
 	entry e;
 	e["q"] = msg;
@@ -302,7 +302,7 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 			return;
 		}
 
-		lazy_from_entry(i->second, *reply);
+		node_from_entry(i->second, *reply);
 		g_sent_packets.erase(i);
 
 		return;
@@ -1710,7 +1710,7 @@ void test_routing_table(address(&rand_addr)())
 
 	std::vector<node_entry> temp;
 
-	std::generate(tmp.begin(), tmp.end(), random_byte);
+	aux::random_bytes(tmp);
 	table.find_node(tmp, temp, 0, int(nodes.size()) * 2);
 	std::printf("returned-all: %d\n", int(temp.size()));
 	TEST_EQUAL(temp.size(), nodes.size());
@@ -1723,7 +1723,7 @@ void test_routing_table(address(&rand_addr)())
 
 	for (int r = 0; r < reps; ++r)
 	{
-		std::generate(tmp.begin(), tmp.end(), random_byte);
+		aux::random_bytes(tmp);
 		table.find_node(tmp, temp, 0, bucket_size * 2);
 		std::printf("returned: %d\n", int(temp.size()));
 		TEST_EQUAL(int(temp.size()), std::min(bucket_size * 2, int(nodes.size())));
@@ -1830,7 +1830,7 @@ void test_bootstrap(address(&rand_addr)())
 	if (g_sent_packets.empty()) return;
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
-	lazy_from_entry(g_sent_packets.front().second, response);
+	node_from_entry(g_sent_packets.front().second, response);
 	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string);
 	if (ret)
 	{
@@ -1862,7 +1862,7 @@ void test_bootstrap(address(&rand_addr)())
 	if (g_sent_packets.empty()) return;
 	TEST_EQUAL(g_sent_packets.front().first, found_node);
 
-	lazy_from_entry(g_sent_packets.front().second, response);
+	node_from_entry(g_sent_packets.front().second, response);
 	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string);
 	if (ret)
 	{
@@ -1934,7 +1934,7 @@ void test_bootstrap_want(address(&rand_addr)())
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	TEST_EQUAL(g_sent_packets.front().first, nodesv[0]);
 
-	lazy_from_entry(g_sent_packets.front().second, response);
+	node_from_entry(g_sent_packets.front().second, response);
 	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string);
 	if (ret)
 	{
@@ -2005,7 +2005,7 @@ void test_short_nodes(address(&rand_addr)())
 	if (g_sent_packets.empty()) return;
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
-	lazy_from_entry(g_sent_packets.front().second, response);
+	node_from_entry(g_sent_packets.front().second, response);
 	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string);
 	if (ret)
 	{
@@ -2094,7 +2094,7 @@ void test_get_peers(address(&rand_addr)())
 	if (g_sent_packets.empty()) return;
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
-	lazy_from_entry(g_sent_packets.front().second, response);
+	node_from_entry(g_sent_packets.front().second, response);
 	ret = verify_message(response, get_peers_desc, get_peers_keys, t.error_string);
 	if (ret)
 	{
@@ -2137,7 +2137,7 @@ void test_get_peers(address(&rand_addr)())
 	if (g_sent_packets.empty()) return;
 	TEST_EQUAL(g_sent_packets.front().first, next_node);
 
-	lazy_from_entry(g_sent_packets.front().second, response);
+	node_from_entry(g_sent_packets.front().second, response);
 	ret = verify_message(response, get_peers_desc, get_peers_keys, t.error_string);
 	if (ret)
 	{
@@ -2239,7 +2239,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 	if (g_sent_packets.empty()) return;
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
-	lazy_from_entry(g_sent_packets.front().second, response);
+	node_from_entry(g_sent_packets.front().second, response);
 	bdecode_node get_item_keys[6];
 	bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 	if (ret)
@@ -2326,7 +2326,7 @@ TORRENT_TEST(immutable_get)
 	if (g_sent_packets.empty()) return;
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
-	lazy_from_entry(g_sent_packets.front().second, response);
+	node_from_entry(g_sent_packets.front().second, response);
 	bdecode_node get_item_keys[6];
 	bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 	if (ret)
@@ -2406,7 +2406,7 @@ TORRENT_TEST(immutable_put)
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
-			lazy_from_entry(packet->second, response);
+			node_from_entry(packet->second, response);
 			bdecode_node get_item_keys[6];
 			bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 			if (!ret)
@@ -2437,7 +2437,7 @@ TORRENT_TEST(immutable_put)
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
-			lazy_from_entry(packet->second, response);
+			node_from_entry(packet->second, response);
 			bool const ret = verify_message(response, put_immutable_item_desc, put_immutable_item_keys
 				, t.error_string);
 			if (ret)
@@ -2511,7 +2511,7 @@ TORRENT_TEST(mutable_put)
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
-			lazy_from_entry(packet->second, response);
+			node_from_entry(packet->second, response);
 			bdecode_node get_item_keys[6];
 			bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 			if (!ret)
@@ -2542,7 +2542,7 @@ TORRENT_TEST(mutable_put)
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
-			lazy_from_entry(packet->second, response);
+			node_from_entry(packet->second, response);
 			bool const ret = verify_message(response, put_mutable_item_desc, put_mutable_item_keys
 				, t.error_string);
 			if (ret)
@@ -2629,7 +2629,7 @@ TORRENT_TEST(traversal_done)
 		TEST_CHECK(packet != g_sent_packets.end());
 		if (packet == g_sent_packets.end()) continue;
 
-		lazy_from_entry(packet->second, response);
+		node_from_entry(packet->second, response);
 		bdecode_node get_item_keys[6];
 		bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 		if (!ret)
@@ -3065,7 +3065,7 @@ TORRENT_TEST(routing_table_extended)
 	std::vector<std::uint8_t> node_id_prefix;
 	node_id_prefix.reserve(256);
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i & 0xff);
-	aux::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
+	aux::random_shuffle(node_id_prefix);
 
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 	for (std::size_t i = 0; i < 256; ++i)
@@ -3099,7 +3099,7 @@ TORRENT_TEST(routing_table_set_id)
 	std::vector<std::uint8_t> node_id_prefix;
 	node_id_prefix.reserve(256);
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i & 0xff);
-	aux::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
+	aux::random_shuffle(node_id_prefix);
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 	for (std::size_t i = 0; i < 256; ++i)
 	{
@@ -3254,7 +3254,7 @@ TORRENT_TEST(read_only_node)
 			{"target", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
 
-	lazy_from_entry(g_sent_packets.front().second, request);
+	node_from_entry(g_sent_packets.front().second, request);
 	bool ret = verify_message(request, get_item_desc_ro, parsed, error_string);
 
 	TEST_CHECK(ret);
@@ -3284,13 +3284,13 @@ TORRENT_TEST(read_only_node)
 	TEST_EQUAL(g_sent_packets.size(), 2);
 
 	// both of them shouldn't have a 'ro' key.
-	lazy_from_entry(g_sent_packets.front().second, request);
+	node_from_entry(g_sent_packets.front().second, request);
 	ret = verify_message(request, get_item_desc_ro, parsed, error_string);
 
 	TEST_CHECK(ret);
 	TEST_CHECK(!parsed[3]);
 
-	lazy_from_entry(g_sent_packets.back().second, request);
+	node_from_entry(g_sent_packets.back().second, request);
 	ret = verify_message(request, get_item_desc_ro, parsed, error_string);
 
 	TEST_CHECK(ret);
@@ -3662,12 +3662,12 @@ TORRENT_TEST(dht_state)
 {
 	dht_state s;
 
-	s.nids.emplace_back(address::from_string("1.1.1.1"), to_hash("0000000000000000000000000000000000000001"));
+	s.nids.emplace_back(make_address("1.1.1.1"), to_hash("0000000000000000000000000000000000000001"));
 	s.nodes.push_back(uep("1.1.1.1", 1));
 	s.nodes.push_back(uep("2.2.2.2", 2));
 	// remove these for now because they will only get used if the host system has IPv6 support
 	// hopefully in the future we can rely on the test system supporting IPv6
-	//s.nids.emplace_back(address::from_string("1::1"), to_hash("0000000000000000000000000000000000000002"));
+	//s.nids.emplace_back(make_address("1::1"), to_hash("0000000000000000000000000000000000000002"));
 	//s.nodes6.push_back(uep("1::1", 3));
 	//s.nodes6.push_back(uep("2::2", 4));
 
@@ -3728,7 +3728,7 @@ TORRENT_TEST(sample_infohashes)
 	if (g_sent_packets.empty()) return;
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
-	lazy_from_entry(g_sent_packets.front().second, response);
+	node_from_entry(g_sent_packets.front().second, response);
 	bdecode_node sample_infohashes_keys[6];
 	bool const ret = verify_message(response
 		, sample_infohashes_desc, sample_infohashes_keys, t.error_string);

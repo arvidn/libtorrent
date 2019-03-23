@@ -30,12 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/hasher512.hpp"
+#include "libtorrent/aux_/hasher512.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/openssl.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
 #pragma clang diagnostic push
@@ -82,9 +83,9 @@ namespace libtorrent {
 
 	hasher512& hasher512::update(span<char const> data)
 	{
-		TORRENT_ASSERT(!data.empty());
+		TORRENT_ASSERT(data.size() > 0);
 #ifdef TORRENT_USE_LIBGCRYPT
-		gcry_md_write(m_context, data.data(), data.size());
+		gcry_md_write(m_context, data.data(), static_cast<std::size_t>(data.size()));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), CC_LONG(data.size()));
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
@@ -144,4 +145,5 @@ namespace libtorrent {
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
 #pragma clang diagnostic pop
 #endif
+}
 }

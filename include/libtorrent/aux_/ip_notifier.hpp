@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -51,7 +51,7 @@ namespace libtorrent { namespace aux {
 		virtual ~ip_change_notifier() {}
 	};
 
-	TORRENT_EXTRA_EXPORT std::unique_ptr<ip_change_notifier> create_ip_notifier(io_service& ios);
+	TORRENT_EXTRA_EXPORT std::unique_ptr<ip_change_notifier> create_ip_notifier(io_context& ios);
 }}
 
 #endif

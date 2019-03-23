@@ -46,7 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/aux_/listen_socket_handle.hpp>
 
-namespace libtorrent { class entry; }
+namespace libtorrent {
+class entry;
+}
 
 namespace libtorrent {
 namespace dht {
@@ -135,6 +137,7 @@ private:
 	std::uint32_t m_destructing:1;
 };
 
-} } // namespace libtorrent::dht
+} // namespace dht
+} // namespace libtorrent
 
 #endif

@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/time.hpp>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent {
+namespace dht {
 
 class sample_infohashes final : public traversal_algorithm
 {
@@ -74,6 +74,7 @@ public:
 	void reply(msg const&) override;
 };
 
-}} // namespace libtorrent::dht
+} // namespace dht
+} // namespace libtorrent
 
 #endif // TORRENT_SAMPLE_INFOHASHES_HPP

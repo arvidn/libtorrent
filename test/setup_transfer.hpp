@@ -40,10 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/fwd.hpp"
 
-EXPORT std::shared_ptr<lt::torrent_info> generate_torrent();
+EXPORT std::shared_ptr<lt::torrent_info> generate_torrent(bool with_files = false);
 
 EXPORT int print_failures();
-EXPORT unsigned char random_byte();
 
 EXPORT int load_file(std::string const& filename, std::vector<char>& v
 	, lt::error_code& ec, int limit = 8000000);

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UDP_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/debug.hpp"
@@ -53,7 +53,7 @@ namespace libtorrent {
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
 	{
 	public:
-		explicit udp_socket(io_service& ios);
+		explicit udp_socket(io_context& ios);
 
 		static constexpr udp_send_flags_t peer_connection = 0_bit;
 		static constexpr udp_send_flags_t tracker_connection = 1_bit;
@@ -61,18 +61,18 @@ namespace libtorrent {
 		static constexpr udp_send_flags_t dont_fragment = 3_bit;
 
 		bool is_open() const { return m_abort == false; }
-		io_service& get_io_service() { return m_socket.get_io_service(); }
+		udp::socket::executor_type get_executor() { return m_socket.get_executor(); }
 
 		template <typename Handler>
 		void async_read(Handler&& h)
 		{
-			m_socket.async_receive(null_buffers(), std::forward<Handler>(h));
+			m_socket.async_wait(udp::socket::wait_read, std::forward<Handler>(h));
 		}
 
 		template <typename Handler>
 		void async_write(Handler&& h)
 		{
-			m_socket.async_send(null_buffers(), std::forward<Handler>(h));
+			m_socket.async_wait(udp::socket::wait_write, std::forward<Handler>(h));
 		}
 
 		struct packet

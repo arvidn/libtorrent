@@ -10,13 +10,18 @@ By Steve Reid <sreid@sea-to-sky.net>
 changelog at the end of the file.
 */
 
+#include "libtorrent/sha1.hpp"
+
+#if !defined TORRENT_USE_LIBGCRYPT \
+	&& !TORRENT_USE_COMMONCRYPTO \
+	&& !TORRENT_USE_CRYPTOAPI \
+	&& !defined TORRENT_USE_LIBCRYPTO
+
 #include <cstdio>
 #include <cstring>
 
-#include "libtorrent/sha1.hpp"
-
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/detail/endian.hpp> // for BIG_ENDIAN and LITTLE_ENDIAN macros
+#include <boost/predef/other/endian.h>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
@@ -165,7 +170,7 @@ using u8 = std::uint8_t;
 #endif
 	}
 
-#if !defined BOOST_BIG_ENDIAN && !defined BOOST_LITTLE_ENDIAN
+#if !BOOST_ENDIAN_BIG_BYTE && !BOOST_ENDIAN_LITTLE_BYTE
 	bool is_big_endian()
 	{
 		u32 test = 1;
@@ -194,9 +199,9 @@ void SHA1_update(sha1_ctx* context, u8 const* data, size_t len)
 {
 	// GCC standard defines for endianness
 	// test with: cpp -dM /dev/null
-#if defined BOOST_BIG_ENDIAN
+#if BOOST_ENDIAN_BIG_BYTE
 	internal_update<big_endian_blk0>(context, data, len);
-#elif defined BOOST_LITTLE_ENDIAN
+#elif BOOST_ENDIAN_LITTLE_BYTE
 	internal_update<little_endian_blk0>(context, data, len);
 #else
 	// select different functions depending on endianess
@@ -235,7 +240,9 @@ void SHA1_final(u8* digest, sha1_ctx* context)
 	}
 }
 
-} // libtorrent namespace
+} // namespace libtorrent
+
+#endif
 
 /************************************************************
 

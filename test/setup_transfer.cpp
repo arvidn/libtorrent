@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <tuple>
 #include <functional>
-#include <random>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
@@ -51,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/random.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -68,8 +66,18 @@ using namespace lt;
 #include <conio.h>
 #endif
 
-std::shared_ptr<torrent_info> generate_torrent()
+std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 {
+	if (with_files)
+	{
+		error_code ec;
+		create_directories("test_resume", ec);
+		std::vector<char> a(128 * 1024 * 8);
+		std::vector<char> b(128 * 1024);
+		std::ofstream("test_resume/tmp1").write(a.data(), std::streamsize(a.size()));
+		std::ofstream("test_resume/tmp2").write(b.data(), std::streamsize(b.size()));
+		std::ofstream("test_resume/tmp3").write(b.data(), std::streamsize(b.size()));
+	}
 	file_storage fs;
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
 	fs.add_file("test_resume/tmp2", 128 * 1024);
@@ -536,7 +544,7 @@ int start_proxy(int proxy_type)
 
 	int port = 2000 + static_cast<int>(lt::random(6000));
 	error_code ec;
-	io_service ios;
+	io_context ios;
 
 	// make sure the port we pick is free
 	do {
@@ -544,7 +552,7 @@ int start_proxy(int proxy_type)
 		tcp::socket s(ios);
 		s.open(tcp::v4(), ec);
 		if (ec) break;
-		s.bind(tcp::endpoint(address::from_string("127.0.0.1")
+		s.bind(tcp::endpoint(make_address("127.0.0.1")
 			, std::uint16_t(port)), ec);
 	} while (ec);
 
@@ -600,9 +608,6 @@ std::shared_ptr<T> clone_ptr(std::shared_ptr<T> const& ptr)
 {
 	return std::make_shared<T>(*ptr);
 }
-
-std::uint8_t random_byte()
-{ return static_cast<std::uint8_t>(lt::random(0xff)); }
 
 std::vector<char> generate_piece(piece_index_t const idx, int const piece_size)
 {
@@ -787,8 +792,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	// This has the effect of applying the global
 	// rule to all peers, regardless of if they're local or not
 	ip_filter f;
-	f.add_rule(address_v4::from_string("0.0.0.0")
-		, address_v4::from_string("255.255.255.255")
+	f.add_rule(make_address_v4("0.0.0.0")
+		, make_address_v4("255.255.255.255")
 		, 1 << static_cast<std::uint32_t>(lt::session::global_peer_class_id));
 	ses1->set_peer_class_filter(f);
 	ses2->set_peer_class_filter(f);
@@ -906,7 +911,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 		std::printf("%s: ses1: connecting peer port: %d\n"
 			, time_now_string(), port);
-		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+		tor1.connect_peer(tcp::endpoint(make_address("127.0.0.1", ec)
 			, std::uint16_t(port)));
 
 		if (ses3)
@@ -929,10 +934,10 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 			std::printf("ses3: connecting peer port: %d\n", port);
 			tor3.connect_peer(tcp::endpoint(
-					address::from_string("127.0.0.1", ec), std::uint16_t(port)));
+					make_address("127.0.0.1", ec), std::uint16_t(port)));
 			std::printf("ses3: connecting peer port: %d\n", port2);
 				tor3.connect_peer(tcp::endpoint(
-					address::from_string("127.0.0.1", ec)
+					make_address("127.0.0.1", ec)
 					, std::uint16_t(port2)));
 		}
 	}
@@ -948,7 +953,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 {
 	int port = 2000 + static_cast<int>(lt::random(6000));
 	error_code ec;
-	io_service ios;
+	io_context ios;
 
 	// make sure the port we pick is free
 	do {
@@ -956,7 +961,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 		tcp::socket s(ios);
 		s.open(tcp::v4(), ec);
 		if (ec) break;
-		s.bind(tcp::endpoint(address::from_string("127.0.0.1")
+		s.bind(tcp::endpoint(make_address("127.0.0.1")
 			, std::uint16_t(port)), ec);
 	} while (ec);
 
@@ -986,7 +991,7 @@ void stop_web_server()
 tcp::endpoint ep(char const* ip, int port)
 {
 	error_code ec;
-	tcp::endpoint ret(address::from_string(ip, ec), std::uint16_t(port));
+	tcp::endpoint ret(make_address(ip, ec), std::uint16_t(port));
 	TEST_CHECK(!ec);
 	return ret;
 }
@@ -994,7 +999,7 @@ tcp::endpoint ep(char const* ip, int port)
 udp::endpoint uep(char const* ip, int port)
 {
 	error_code ec;
-	udp::endpoint ret(address::from_string(ip, ec), std::uint16_t(port));
+	udp::endpoint ret(make_address(ip, ec), std::uint16_t(port));
 	TEST_CHECK(!ec);
 	return ret;
 }
@@ -1002,7 +1007,7 @@ udp::endpoint uep(char const* ip, int port)
 lt::address addr(char const* ip)
 {
 	lt::error_code ec;
-	auto ret = lt::address::from_string(ip, ec);
+	auto ret = lt::make_address(ip, ec);
 	TEST_CHECK(!ec);
 	return ret;
 }
@@ -1010,7 +1015,7 @@ lt::address addr(char const* ip)
 lt::address_v4 addr4(char const* ip)
 {
 	lt::error_code ec;
-	auto ret = lt::address_v4::from_string(ip, ec);
+	auto ret = lt::make_address_v4(ip, ec);
 	TEST_CHECK(!ec);
 	return ret;
 }
@@ -1018,7 +1023,7 @@ lt::address_v4 addr4(char const* ip)
 lt::address_v6 addr6(char const* ip)
 {
 	lt::error_code ec;
-	auto ret = lt::address_v6::from_string(ip, ec);
+	auto ret = lt::make_address_v6(ip, ec);
 	TEST_CHECK(!ec);
 	return ret;
 }

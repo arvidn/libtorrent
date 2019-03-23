@@ -72,7 +72,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/peer_class.hpp"
-#include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
@@ -82,6 +81,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/lsd.hpp"
+#include "libtorrent/io_context.hpp"
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/session_settings.hpp"
@@ -200,7 +200,7 @@ namespace aux {
 
 		// since udp packets are expected to be dispatched frequently, this saves
 		// time on handler allocation every time we read again.
-		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> udp_handler_storage;
+		aux::handler_storage<aux::udp_handler_max_size, aux::udp_handler> udp_handler_storage;
 
 		std::shared_ptr<natpmp> natpmp_mapper;
 
@@ -275,7 +275,7 @@ namespace aux {
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 			using torrent_map = std::unordered_map<sha1_hash, std::shared_ptr<torrent>>;
 
-			session_impl(io_service& ios, settings_pack const& pack
+			session_impl(io_context& ios, settings_pack const& pack
 				, disk_io_constructor_type disk_io);
 			~session_impl() override;
 
@@ -286,7 +286,7 @@ namespace aux {
 			void call_abort()
 			{
 				auto ptr = shared_from_this();
-				m_io_service.dispatch(make_handler([ptr] { ptr->abort(); }
+				dispatch(m_io_context, make_handler([ptr] { ptr->abort(); }
 					, m_abort_handler_storage, *this));
 			}
 
@@ -329,7 +329,7 @@ namespace aux {
 			torrent_peer_allocator_interface& get_peer_allocator() override
 			{ return m_peer_allocator; }
 
-			io_service& get_io_service() override { return m_io_service; }
+			io_context& get_context() override { return m_io_context; }
 			resolver_interface& get_resolver() override { return m_host_resolver; }
 
 			aux::vector<torrent*>& torrent_list(torrent_list_index_t i) override
@@ -374,7 +374,10 @@ namespace aux {
 			int num_torrents() const override { return int(m_torrents.size()); }
 
 			void insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
-				, std::string uuid) override;
+#if TORRENT_ABI_VERSION == 1
+				, std::string uuid
+#endif
+			) override;
 
 			std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 				, peer_connection* pc) override;
@@ -598,8 +601,6 @@ namespace aux {
 			peer_id deprecated_get_peer_id() const;
 #endif
 
-			void get_cache_info(torrent_handle h, cache_status* ret, int flags) const;
-
 			std::uint16_t listen_port() const override;
 			std::uint16_t listen_port(listen_socket_t* sock) const;
 			std::uint16_t ssl_listen_port() const override;
@@ -819,7 +820,7 @@ namespace aux {
 			// by torrent::get_download_queue.
 			std::vector<block_info> m_block_info_storage;
 
-			io_service& m_io_service;
+			io_context& m_io_context;
 
 #ifdef TORRENT_USE_OPENSSL
 			// this is a generic SSL context used when talking to
@@ -905,9 +906,9 @@ namespace aux {
 			// they are deleted (from the network thread)
 			std::vector<std::shared_ptr<peer_connection>> m_undead_peers;
 
-			// keep the io_service alive until we have posted the job
+			// keep the io_context alive until we have posted the job
 			// to clear the undead peers
-			std::unique_ptr<io_service::work> m_work;
+			executor_work_guard<io_context::executor_type> m_work;
 
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
@@ -1167,7 +1168,7 @@ namespace aux {
 			struct work_thread_t
 			{
 				work_thread_t()
-					: work(new boost::asio::io_service::work(ios))
+					: work(make_work_guard(ios))
 					, thread([this] { ios.run(); })
 				{}
 				~work_thread_t()
@@ -1178,8 +1179,8 @@ namespace aux {
 				work_thread_t(work_thread_t const&) = delete;
 				work_thread_t& operator=(work_thread_t const&) = delete;
 
-				boost::asio::io_service ios;
-				std::unique_ptr<boost::asio::io_service::work> work;
+				io_context ios;
+				executor_work_guard<io_context::executor_type> work;
 				std::thread thread;
 			};
 			std::unique_ptr<work_thread_t> m_torrent_load_thread;
@@ -1196,16 +1197,10 @@ namespace aux {
 
 			// the timer used to fire the tick
 			deadline_timer m_timer;
-			aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_tick_handler_storage;
+			aux::handler_storage<aux::tick_handler_max_size, aux::tick_handler> m_tick_handler_storage;
 
 			// abort may not fail and cannot allocate memory
-#if defined BOOST_ASIO_ENABLE_HANDLER_TRACKING
-			aux::handler_storage<100> m_abort_handler_storage;
-#elif defined _M_AMD64
-			aux::handler_storage<88> m_abort_handler_storage;
-#else
-			aux::handler_storage<56> m_abort_handler_storage;
-#endif
+			aux::handler_storage<aux::abort_handler_max_size, aux::abort_handler> m_abort_handler_storage;
 
 			// torrents are announced on the local network in a
 			// round-robin fashion. All torrents are cycled through

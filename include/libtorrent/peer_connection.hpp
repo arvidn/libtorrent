@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/aux_/time.hpp"
@@ -142,7 +142,7 @@ namespace aux {
 		aux::session_settings const* sett;
 		counters* stats_counters;
 		disk_interface* disk_thread;
-		io_service* ios;
+		io_context* ios;
 		std::weak_ptr<torrent> tor;
 		std::shared_ptr<aux::socket_type> s;
 		tcp::endpoint endp;
@@ -617,8 +617,7 @@ namespace aux {
 		// value invalid (the default constructor).
 		virtual piece_block_progress downloading_piece_progress() const;
 
-		enum message_type_flags { message_type_request = 1 };
-		void send_buffer(span<char const> buf, std::uint32_t flags = 0);
+		void send_buffer(span<char const> buf);
 		void setup_send();
 
 		template <typename Holder>
@@ -735,7 +734,7 @@ namespace aux {
 
 		virtual int timeout() const;
 
-		io_service& get_io_service() { return m_ios; }
+		io_context& get_context() { return m_ios; }
 
 	private:
 
@@ -826,7 +825,7 @@ namespace aux {
 		disk_interface& m_disk_thread;
 
 		// io service
-		io_service& m_ios;
+		io_context& m_ios;
 
 	protected:
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -840,9 +839,9 @@ namespace aux {
 		// receive a payload message after it has been requested.
 		sliding_average<int, 20> m_request_time;
 
-		// keep the io_service running as long as we
+		// keep the io_context running as long as we
 		// have peer connections
-		io_service::work m_work;
+		executor_work_guard<io_context::executor_type> m_work;
 
 		// the time when we last got a part of a
 		// piece packet from this peer
@@ -923,8 +922,8 @@ namespace aux {
 		// have sent to it
 		int m_outstanding_bytes = 0;
 
-		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
-		aux::handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
+		aux::handler_storage<aux::read_handler_max_size, aux::read_handler> m_read_handler_storage;
+		aux::handler_storage<aux::write_handler_max_size, aux::write_handler> m_write_handler_storage;
 
 		// these are pieces we have recently sent suggests for to this peer.
 		// it just serves as a queue to remember what we've sent, to avoid

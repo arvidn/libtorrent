@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
 #include "libtorrent/storage_defs.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/time.hpp"
@@ -67,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/vector_utils.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/piece_block.hpp"
-#include "libtorrent/disk_interface.hpp" // for status_t
+#include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/suggest_piece.hpp"
 #include "libtorrent/units.hpp"
@@ -1426,11 +1425,7 @@ namespace libtorrent {
 		// used to post a message to defer disconnecting peers
 		std::vector<std::shared_ptr<peer_connection>> m_peers_to_disconnect;
 		aux::deferred_handler m_deferred_disconnect;
-#ifdef _M_AMD64
-		aux::handler_storage<96> m_deferred_handler_storage;
-#else
-		aux::handler_storage<64> m_deferred_handler_storage;
-#endif
+		aux::handler_storage<aux::deferred_handler_max_size, aux::defer_handler> m_deferred_handler_storage;
 
 		// these are the peer IDs we've used for our outgoing peer connections for
 		// this torrent. If we get an incoming peer claiming to have one of these,

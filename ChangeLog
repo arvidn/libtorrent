@@ -1,3 +1,14 @@
+	* requires boost >= 1.66 to build
+	* update networking API to networking TS compatible boost.asio
+
+	* update symlinks to conform to BEP 47
+	* fix python bindings for peer_info
+	* support creating symlinks, for torrents with symlinks in them
+	* fix error in seed_mode flag
+	* support magnet link parameters with number siffixes
+	* consistently use "lt" namespace in examples and documentation
+	* fix Mingw build to use native cryptoAPI
+
 1.2 release
 
 	* requires boost >= 1.58 to build
@@ -93,6 +104,8 @@
 	* improved support for listening on multiple sockets and interfaces
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
+
+	* replace use of boost-endian with boost-predef
 
 1.1.12 release
 

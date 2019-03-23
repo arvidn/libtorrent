@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/torrent_info.hpp"
 
+#include <array>
+
 const int header_size = 2;
 using lt::queue_position_t;
 
@@ -323,45 +325,47 @@ void torrent_view::print_tabs()
 {
 	set_cursor_pos(0, 0);
 
-	char str[400];
-	int pos = 0;
-	char const* filter_names[] = { "all", "downloading", "non-paused"
-		, "seeding", "queued", "stopped", "checking"};
-	for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
+	std::array<char, 400> str;
+	lt::span<char> dest(str);
+	static std::array<char const*, 7> const filter_names{{ "all", "downloading", "non-paused"
+		, "seeding", "queued", "stopped", "checking"}};
+	for (int i = 0; i < int(filter_names.size()); ++i)
 	{
-		pos += std::snprintf(str+ pos, sizeof(str) - pos, "%s[%s]%s"
+		int const ret = std::snprintf(dest.data(), dest.size(), "%s[%s]%s"
 			, m_torrent_filter == i?esc("7"):""
 			, filter_names[i], m_torrent_filter == i?esc("0"):"");
+		if (ret >= 0 && ret <= dest.size()) dest = dest.subspan(ret);
 	}
-	pos += std::snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
+	int const ret = std::snprintf(dest.data(), dest.size(), "\x1b[K");
+	if (ret >= 0 && ret <= dest.size()) dest = dest.subspan(ret);
 
-	if (m_width + 1 < int(sizeof(str)))
+	if (m_width + 1 < int(str.size()))
 		str[m_width + 1] = '\0';
-	print(str);
+	print(str.data());
 }
 
 void torrent_view::print_headers()
 {
 	set_cursor_pos(0, 1);
 
-	char str[400];
+	std::array<char, 400> str;
 
 	// print title bar for torrent list
-	std::snprintf(str, sizeof(str)
+	std::snprintf(str.data(), str.size()
 		, " %-3s %-50s %-35s %-14s %-17s %-17s %-11s %-6s %-6s %-4s\x1b[K"
 		, "#", "Name", "Progress", "Pieces", "Download", "Upload", "Peers (D:S)"
 		, "Down", "Up", "Flags");
 
-	if (m_width + 1 < int(sizeof(str)))
+	if (m_width + 1 < int(str.size()))
 		str[m_width + 1] = '\0';
 
-	print(str);
+	print(str.data());
 }
 
 void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 {
-	int pos = 0;
-	char str[512];
+	std::array<char, 512> str;
+	lt::span<char> dest(str);
 
 	// the active torrent is highligted in the list
 	// this inverses the forground and background colors
@@ -391,7 +395,7 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 	int const total_pieces = ti && ti->is_valid() ? ti->num_pieces() : 0;
 	color_code piece_color = total_pieces == s.num_pieces ? col_green : col_yellow;
 
-	pos += std::snprintf(str + pos, sizeof(str) - pos, "%s%-3s %-50s %s%s %s/%s %s (%s) "
+	int const ret = std::snprintf(dest.data(), dest.size(), "%s%-3s %-50s %s%s %s/%s %s (%s) "
 		"%s (%s) %5d:%-5d %s %s %c"
 		, selection
 		, queue_pos
@@ -408,14 +412,19 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 		, color(add_suffix(s.all_time_download), col_green).c_str()
 		, color(add_suffix(s.all_time_upload), col_red).c_str()
 		, s.need_save_resume?'S':' ');
+	if (ret >= 0 && ret <= dest.size()) dest = dest.subspan(ret);
 
 	// if this is the selected torrent, restore the background color
 	if (selected)
-		pos += std::snprintf(str + pos, sizeof(str) - pos, "%s", esc("0"));
+	{
+		int const ret2 = std::snprintf(dest.data(), dest.size(), "%s", esc("0"));
+		if (ret2 >= 0 && ret2 <= dest.size()) dest = dest.subspan(ret2);
+	}
 
-	pos += std::snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
+	int const ret2 = std::snprintf(dest.data(), dest.size(), "\x1b[K");
+	if (ret2 >= 0 && ret2 <= dest.size()) dest = dest.subspan(ret2);
 
-	print(str);
+	print(str.data());
 }
 
 bool torrent_view::show_torrent(lt::torrent_status const& st)

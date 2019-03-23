@@ -51,20 +51,24 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #elif defined TORRENT_USE_LIBCRYPTO
 
-extern "C" {
-#include <openssl/sha.h>
-}
+	extern "C" {
+	#include <openssl/sha.h>
+	}
 
 #else
-#include "libtorrent/sha512.hpp"
+#include "libtorrent/aux_/sha512.hpp"
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	using sha512_hash = digest32<512>;
 
+	// internal
+	struct TORRENT_EXTRA_EXPORT hasher512
+	{
 	// this is a SHA-512 hash class.
 	//
 	// You use it by first instantiating it, then call ``update()`` to feed it
@@ -80,11 +84,6 @@ namespace libtorrent {
 	// call ``reset()`` to reinitialize it.
 	//
 	// The built-in software version of the sha512-algorithm is from LibTomCrypt
-	// For more info, see ``src/sha512.cpp``.
-	class TORRENT_EXPORT hasher512
-	{
-	public:
-
 		hasher512();
 
 		// this is the same as default constructing followed by a call to
@@ -121,6 +120,7 @@ namespace libtorrent {
 #endif
 	};
 
+}
 }
 
 #endif // TORRENT_HASHER512_HPP_INCLUDED

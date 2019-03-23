@@ -64,7 +64,6 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT bool is_space(char c);
 	TORRENT_EXTRA_EXPORT char to_lower(char c);
 
-	TORRENT_EXTRA_EXPORT int split_string(char const** tags, int buf_size, char* in);
 	TORRENT_EXTRA_EXPORT bool string_begins_no_case(char const* s1, char const* s2);
 	TORRENT_EXTRA_EXPORT bool string_equal_no_case(string_view s1, string_view s2);
 
@@ -107,7 +106,7 @@ namespace libtorrent {
 	// strdup is not part of the C standard. Some systems
 	// don't have it and it won't be available when building
 	// in strict ansi mode
-	char* allocate_string_copy(char const* str);
+	char* allocate_string_copy(string_view str);
 
 	// searches for separator ('sep') in the string 'last'.
 	// if found, returns the string_view representing the range from the start of

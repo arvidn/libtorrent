@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket.hpp>
 #include <libtorrent/deadline_timer.hpp>
 #include <libtorrent/span.hpp>
-#include <libtorrent/io_service.hpp>
+#include <libtorrent/io_context.hpp>
 #include <libtorrent/udp_socket.hpp>
 #include <libtorrent/entry.hpp>
 
@@ -55,7 +55,8 @@ namespace libtorrent {
 #endif
 }
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 	struct dht_settings;
 
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
@@ -67,7 +68,7 @@ namespace libtorrent { namespace dht {
 			, span<char const>, error_code&, udp_send_flags_t)>;
 
 		dht_tracker(dht_observer* observer
-			, io_service& ios
+			, io_context& ios
 			, send_fun_t const& send_fun
 			, dht_settings const& settings
 			, counters& cnt
@@ -76,7 +77,7 @@ namespace libtorrent { namespace dht {
 
 		// the dht_state must be moved in!
 		dht_tracker(dht_observer* observer
-			, io_service& ios
+			, io_context& ios
 			, send_fun_t const& send_fun
 			, dht_settings const& settings
 			, counters& cnt
@@ -157,7 +158,7 @@ namespace libtorrent { namespace dht {
 	private:
 		struct tracker_node
 		{
-			tracker_node(io_service& ios
+			tracker_node(io_context& ios
 				, aux::listen_socket_handle const& s, socket_manager* sock
 				, dht_settings const& settings
 				, node_id const& nid
@@ -213,6 +214,7 @@ namespace libtorrent { namespace dht {
 		int m_send_quota;
 		time_point m_last_tick;
 	};
-}}
+} // namespace dht
+} // namespace libtorrent
 
 #endif

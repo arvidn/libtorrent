@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 using namespace lt::detail; // for write_* and read_*
+using lt::make_address_v4;
 
 using namespace std::placeholders;
 
@@ -142,7 +143,7 @@ std::mt19937 rng(dev());
 
 struct peer_conn
 {
-	peer_conn(io_service& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
+	peer_conn(io_context& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
 		, char const* ih, bool seed_, int churn_, bool corrupt_)
 		: s(ios)
 		, read_pos(0)
@@ -426,10 +427,10 @@ struct peer_conn
 		char ep_str[200];
 		address const& addr = s.local_endpoint(e).address();
 		if (addr.is_v6())
-			std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
+			std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string().c_str()
 				, s.local_endpoint(e).port());
 		else
-			std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
+			std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string().c_str()
 				, s.local_endpoint(e).port());
 		std::printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
 			, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
@@ -865,7 +866,7 @@ void write_handler(file_storage const& fs
 
 void generate_data(char const* path, torrent_info const& ti)
 {
-	io_service ios;
+	io_context ios;
 	counters stats_counters;
 	std::unique_ptr<lt::disk_interface> disk = default_disk_io_constructor(ios, stats_counters);
 
@@ -905,11 +906,13 @@ void generate_data(char const* path, torrent_info const& ti)
 	ios.run();
 }
 
-void io_thread(io_service* ios)
+void io_thread(io_context* ios) try
 {
-	error_code ec;
-	ios->run(ec);
-	if (ec) std::fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
+	ios->run();
+}
+catch (std::exception const& e)
+{
+	std::fprintf(stderr, "ERROR: %s\n", e.what());
 }
 
 int main(int argc, char* argv[])
@@ -1076,7 +1079,7 @@ int main(int argc, char* argv[])
 	}
 
 	error_code ec;
-	address_v4 addr = address_v4::from_string(destination_ip, ec);
+	address_v4 addr = make_address_v4(destination_ip, ec);
 	if (ec)
 	{
 		std::fprintf(stderr, "ERROR RESOLVING %s: %s\n", destination_ip, ec.message().c_str());
@@ -1087,7 +1090,7 @@ int main(int argc, char* argv[])
 #if !defined __APPLE__
 	// apparently darwin doesn't seems to let you bind to
 	// loopback on any other IP than 127.0.0.1
-	std::uint32_t const ip = addr.to_ulong();
+	std::uint32_t const ip = addr.to_uint();
 	if ((ip & 0xff000000) == 0x7f000000)
 	{
 		local_bind = true;
@@ -1104,7 +1107,7 @@ int main(int argc, char* argv[])
 	std::vector<peer_conn*> conns;
 	conns.reserve(num_connections);
 	int const num_threads = 2;
-	io_service ios[num_threads];
+	io_context ios[num_threads];
 	for (int i = 0; i < num_connections; ++i)
 	{
 		bool corrupt = test_corruption && (i & 1) == 0;
@@ -1114,12 +1117,7 @@ int main(int argc, char* argv[])
 		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
 			, ep, (char const*)&ti.info_hash()[0], seed, churn, corrupt));
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		ios[i % num_threads].poll_one(ec);
-		if (ec)
-		{
-			std::fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
-			break;
-		}
+		ios[i % num_threads].poll_one();
 	}
 
 	std::thread t1(&io_thread, &ios[0]);
@@ -1133,10 +1131,8 @@ int main(int argc, char* argv[])
 	std::uint64_t total_sent = 0;
 	std::uint64_t total_received = 0;
 
-	for (std::vector<peer_conn*>::iterator i = conns.begin()
-		, end(conns.end()); i != end; ++i)
+	for (peer_conn* p : conns)
 	{
-		peer_conn* p = *i;
 		int time = int(total_milliseconds(p->end_time - p->start_time));
 		if (time == 0) time = 1;
 		total_sent += p->blocks_sent;

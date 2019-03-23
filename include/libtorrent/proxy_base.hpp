@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PROXY_BASE_HPP_INCLUDED
 
 #include "libtorrent/io.hpp"
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
@@ -52,7 +52,7 @@ public:
 	using endpoint_type = tcp::socket::endpoint_type;
 	using protocol_type = tcp::socket::protocol_type;
 
-	explicit proxy_base(io_service& io_service);
+	explicit proxy_base(io_context& io_context);
 	~proxy_base();
 	proxy_base(proxy_base const&) = delete;
 	proxy_base& operator=(proxy_base const&) = delete;
@@ -63,10 +63,8 @@ public:
 		m_port = port;
 	}
 
-#if BOOST_VERSION >= 106600
 	using executor_type = tcp::socket::executor_type;
 	executor_type get_executor() { return m_sock.get_executor(); }
-#endif
 
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
@@ -131,9 +129,9 @@ public:
 	}
 #endif
 
-	error_code non_blocking(bool b, error_code& ec)
+	void non_blocking(bool b, error_code& ec)
 	{
-		return m_sock.non_blocking(b, ec);
+		m_sock.non_blocking(b, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -145,9 +143,9 @@ public:
 #endif
 
 	template <class SettableSocketOption>
-	error_code set_option(SettableSocketOption const& opt, error_code& ec)
+	void set_option(SettableSocketOption const& opt, error_code& ec)
 	{
-		return m_sock.set_option(opt, ec);
+		m_sock.set_option(opt, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -159,9 +157,9 @@ public:
 #endif
 
 	template <class GettableSocketOption>
-	error_code get_option(GettableSocketOption& opt, error_code& ec)
+	void get_option(GettableSocketOption& opt, error_code& ec)
 	{
-		return m_sock.get_option(opt, ec);
+		m_sock.get_option(opt, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -171,9 +169,14 @@ public:
 	}
 #endif
 
-	error_code cancel(error_code& ec)
+	void cancel()
 	{
-		return m_sock.cancel(ec);
+		m_sock.cancel();
+	}
+
+	void cancel(error_code& ec)
+	{
+		m_sock.cancel(ec);
 	}
 
 	void bind(endpoint_type const& /* endpoint */, error_code& /* ec */)
@@ -242,11 +245,6 @@ public:
 	endpoint_type local_endpoint(error_code& ec) const
 	{
 		return m_sock.local_endpoint(ec);
-	}
-
-	io_service& get_io_service()
-	{
-		return m_sock.get_io_service();
 	}
 
 	lowest_layer_type& lowest_layer()

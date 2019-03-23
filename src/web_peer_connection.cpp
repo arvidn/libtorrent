@@ -245,8 +245,8 @@ void web_peer_connection::disconnect(error_code const& ec
 	{
 		// if the web server doesn't support keepalive and we were
 		// disconnected as a graceful EOF, reconnect right away
-		if (t) get_io_service().post(
-			std::bind(&torrent::maybe_connect_web_seeds, t));
+		if (t) post(get_context()
+			, std::bind(&torrent::maybe_connect_web_seeds, t));
 	}
 	peer_connection::disconnect(ec, op, error);
 	if (t) t->disconnect_web_seed(this);
@@ -453,7 +453,7 @@ void web_peer_connection::write_request(peer_request const& r)
 
 	if (num_pad_files == int(m_file_requests.size()))
 	{
-		get_io_service().post(std::bind(
+		post(get_context(), std::bind(
 			&web_peer_connection::on_receive_padfile,
 			std::static_pointer_cast<web_peer_connection>(self())));
 		return;
@@ -463,7 +463,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	peer_log(peer_log_alert::outgoing_message, "REQUEST", "%s", request.c_str());
 #endif
 
-	send_buffer(request, message_type_request);
+	send_buffer(request);
 }
 
 namespace {
@@ -790,7 +790,7 @@ void web_peer_connection::on_receive(error_code const& error
 			{
 				peer_log(peer_log_alert::info, "STATUS"
 					, "%d %s", m_parser.status_code(), m_parser.message().c_str());
-				std::multimap<std::string, std::string> const& headers = m_parser.headers();
+				auto const& headers = m_parser.headers();
 				for (auto const &i : headers)
 					peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i.first.c_str(), i.second.c_str());
 			}

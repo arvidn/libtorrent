@@ -41,10 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-// TODO: don't include that here. Make each header that use the export macros
-// include it instead. and move it to aux_
-#include "libtorrent/aux_/export.hpp"
-
 #ifdef __linux__
 #include <linux/version.h> // for LINUX_VERSION_CODE and KERNEL_VERSION
 #endif // __linux
@@ -106,12 +102,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # define TORRENT_DEPRECATED __declspec(deprecated)
 #endif
 
-// auto and decltype(auto) return types supports since MSVS2015
-// https://msdn.microsoft.com/en-us/library/hh567368.aspx
-// we need to force C++14 feature due VS2017 inability to parse C++11 syntax
-#if defined(_MSC_VER) && (_MSC_VER > 1900)
-#define TORRENT_AUTO_RETURN_TYPES 1
-#endif
 #endif
 
 
@@ -166,8 +156,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // __APPLE__
 
+#define TORRENT_HAS_SYMLINK 1
 #define TORRENT_USE_DEV_RANDOM 1
+#ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 1
+#endif
 #define TORRENT_USE_MADVISE 1
 
 #define TORRENT_HAS_FALLOCATE 0
@@ -181,7 +174,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined __linux__
 #define TORRENT_LINUX
 
+#ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 1
+#endif
+
+#define TORRENT_HAS_SYMLINK 1
 #define TORRENT_USE_MADVISE 1
 #define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFADDRS 0
@@ -226,6 +223,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_GETIPFORWARDTABLE 1
 #define TORRENT_USE_UNC_PATHS 1
 
+# if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
+// unless some other crypto library has been specified, default to the native
+// windows CryptoAPI
+#define TORRENT_USE_CRYPTOAPI 1
+
+#ifdef NTDDI_VERSION
+# if (NTDDI_VERSION > NTDDI_WINXPSP2)
+#  define TORRENT_USE_CRYPTOAPI_SHA_512 1
+# endif
+#else // NTDDI_VERSION not defined so use simple _WIN32_WINNT check
+# if _WIN32_WINNT >= 0x0600
+#  define TORRENT_USE_CRYPTOAPI_SHA_512 1
+# endif
+#endif
+
+#endif
 // ==== WINDOWS ===
 #elif defined _WIN32
 #define TORRENT_WINDOWS
@@ -274,7 +287,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) \
   && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #  define TORRENT_WINRT
-#  define TORRENT_USE_CRYPTOGRAPHIC_BUFFER 1
 # endif
 #endif
 
@@ -283,9 +295,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SOLARIS
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
-#define TORRENT_HAS_SEM_RELTIMEDWAIT 1
+#ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 1
+#endif
 #define TORRENT_USE_MADVISE 1
+#define TORRENT_HAS_SYMLINK 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -301,6 +315,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HURD
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_IFCONF 1
+#define TORRENT_HAS_SYMLINK 1
 
 // ==== eCS(OS/2) ===
 #elif defined __OS2__
@@ -321,16 +336,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define TORRENT_UNUSED(x) (void)(x)
-
-// at the highest warning level, clang actually warns about functions
-// that could be marked noreturn.
-#if defined __clang__ || defined __GNUC__
-#define TORRENT_NO_RETURN __attribute((noreturn))
-#elif _MSC_VER
-#define TORRENT_NO_RETURN __declspec(noreturn)
-#else
-#define TORRENT_NO_RETURN
-#endif
 
 #if defined __GNUC__ || defined __clang__
 #define TORRENT_FORMAT(fmt, ellipsis) __attribute__((__format__(__printf__, fmt, ellipsis)))
@@ -365,10 +370,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_GETIPFORWARDTABLE
 #define TORRENT_USE_GETIPFORWARDTABLE 0
-#endif
-
-#ifndef TORRENT_HAS_SEM_RELTIMEDWAIT
-#define TORRENT_HAS_SEM_RELTIMEDWAIT 0
 #endif
 
 #ifndef TORRENT_USE_LOCALE
@@ -467,34 +468,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_I2P 1
 #endif
 
-#ifndef TORRENT_AUTO_RETURN_TYPES
-#define TORRENT_AUTO_RETURN_TYPES 0
+#ifndef TORRENT_HAS_SYMLINK
+#define TORRENT_HAS_SYMLINK 0
 #endif
-
-#if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
-# if defined _GLIBCXX_DEBUG || !defined NDEBUG
-constexpr std::size_t TORRENT_READ_HANDLER_MAX_SIZE = 400;
-# else
-// if this is not divisible by 8, we're wasting space
-constexpr std::size_t TORRENT_READ_HANDLER_MAX_SIZE = 342;
-# endif
-#endif
-
-#if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
-# if defined _GLIBCXX_DEBUG || !defined NDEBUG
-constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 400;
-# else
-// if this is not divisible by 8, we're wasting space
-constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
-# endif
-#endif
-
-#if defined __GNUC__
-#define TORRENT_FUNCTION __PRETTY_FUNCTION__
-#else
-#define TORRENT_FUNCTION __FUNCTION__
-#endif
-
 
 // debug builds have asserts enabled by default, release
 // builds have asserts if they are explicitly enabled by
@@ -587,6 +563,8 @@ constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
 #	define TORRENT_HAS_ARM_CRC32 0
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
+
+#include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {}
 

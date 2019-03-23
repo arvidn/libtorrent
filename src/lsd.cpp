@@ -66,7 +66,7 @@ int render_lsd_packet(char* dst, int const len, int const listen_port
 
 static error_code dummy;
 
-lsd::lsd(io_service& ios, aux::lsd_callback& cb)
+lsd::lsd(io_context& ios, aux::lsd_callback& cb)
 	: m_callback(cb)
 	, m_socket(udp::endpoint(make_address_v4("239.192.152.143", dummy), 6771))
 	, m_socket6(udp::endpoint(make_address_v6("ff15::efc0:988f", dummy), 6771))
@@ -100,11 +100,11 @@ void lsd::debug_log(char const* fmt, ...) const
 void lsd::start(error_code& ec)
 {
 	m_socket.open(std::bind(&lsd::on_announce, self(), _1, _2)
-		, m_broadcast_timer.get_io_service(), ec);
+		, m_broadcast_timer.get_executor().context(), ec);
 	if (ec) return;
 
 	m_socket6.open(std::bind(&lsd::on_announce, self(), _1, _2)
-		, m_broadcast_timer.get_io_service(), ec);
+		, m_broadcast_timer.get_executor().context(), ec);
 }
 
 lsd::~lsd() = default;
@@ -168,7 +168,7 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 	if (m_disabled && m_disabled6) return;
 
 	ADD_OUTSTANDING_ASYNC("lsd::resend_announce");
-	m_broadcast_timer.expires_from_now(seconds(2 * retry_count), ec);
+	m_broadcast_timer.expires_after(seconds(2 * retry_count));
 	m_broadcast_timer.async_wait(std::bind(&lsd::resend_announce, self(), _1
 		, ih, listen_port, retry_count));
 }
@@ -277,8 +277,7 @@ void lsd::close()
 {
 	m_socket.close();
 	m_socket6.close();
-	error_code ec;
-	m_broadcast_timer.cancel(ec);
+	m_broadcast_timer.cancel();
 	m_disabled = true;
 	m_disabled6 = true;
 }

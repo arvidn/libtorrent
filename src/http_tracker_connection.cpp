@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	http_tracker_connection::http_tracker_connection(
-		io_service& ios
+		io_context& ios
 		, tracker_manager& man
 		, tracker_request const& req
 		, std::weak_ptr<request_callback> c)
@@ -176,9 +176,7 @@ namespace libtorrent {
 		{
 			for (auto const& v4 : tracker_req().ipv4)
 			{
-				error_code err;
-				std::string const ip = v4.to_string(err);
-				if (err) continue;
+				std::string const ip = v4.to_string();
 				url += "&ipv4=";
 				url += escape_string(ip);
 			}
@@ -187,9 +185,7 @@ namespace libtorrent {
 		{
 			for (auto const& v6 : tracker_req().ipv6)
 			{
-				error_code err;
-				std::string const ip = v6.to_string(err);
-				if (err) continue;
+				std::string const ip = v6.to_string();
 				url += "&ipv6=";
 				url += escape_string(ip);
 			}
@@ -202,7 +198,7 @@ namespace libtorrent {
 		}
 
 		using namespace std::placeholders;
-		m_tracker_connection = std::make_shared<http_connection>(get_io_service(), m_man.host_resolver()
+		m_tracker_connection = std::make_shared<http_connection>(get_executor().context(), m_man.host_resolver()
 			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
@@ -512,7 +508,7 @@ namespace libtorrent {
 					if (len - i < 6) break;
 
 					ipv4_peer_entry p;
-					p.ip = detail::read_v4_address(peers).to_v4().to_bytes();
+					p.ip = detail::read_v4_address(peers).to_bytes();
 					p.port = detail::read_uint16(peers);
 					resp.peers4.push_back(p);
 				}
@@ -554,7 +550,7 @@ namespace libtorrent {
 				if (len - i < 18) break;
 
 				ipv6_peer_entry p;
-				p.ip = detail::read_v6_address(peers).to_v6().to_bytes();
+				p.ip = detail::read_v6_address(peers).to_bytes();
 				p.port = detail::read_uint16(peers);
 				resp.peers6.push_back(p);
 			}

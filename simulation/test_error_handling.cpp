@@ -80,8 +80,8 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	sim::asio::io_service ios0 { sim, peer0 };
-	sim::asio::io_service ios1 { sim, peer1 };
+	sim::asio::io_context ios0 { sim, peer0 };
+	sim::asio::io_context ios1 { sim, peer1 };
 
 	lt::session_proxy zombie[2];
 
@@ -176,6 +176,11 @@ void* operator new(std::size_t sz)
 }
 
 void operator delete(void* ptr) noexcept
+{
+	std::free(ptr);
+}
+
+void operator delete(void* ptr, std::size_t) noexcept
 {
 	std::free(ptr);
 }

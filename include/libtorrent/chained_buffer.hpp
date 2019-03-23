@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/aux_/aligned_storage.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/buffer.hpp"
@@ -160,7 +159,7 @@ namespace libtorrent {
 		// enough room, returns 0
 		char* allocate_appendix(int s);
 
-		std::vector<boost::asio::const_buffer> const& build_iovec(int to_send);
+		span<boost::asio::const_buffer const> build_iovec(int to_send);
 
 		void clear();
 

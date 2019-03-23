@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
@@ -54,7 +54,7 @@ using namespace std::placeholders;
 struct udp_tracker
 {
 
-	lt::io_service m_ios;
+	lt::io_context m_ios;
 	std::atomic<int> m_udp_announces{0};
 	udp::socket m_socket{m_ios};
 	int m_port = 0;
@@ -216,7 +216,7 @@ struct udp_tracker
 	{
 		std::printf("%s: UDP tracker [%p], ~udp_tracker\n"
 			, time_now_string(), static_cast<void*>(this));
-		m_ios.post(std::bind(&udp_tracker::stop, this));
+		post(m_ios, std::bind(&udp_tracker::stop, this));
 		if (m_thread) m_thread->join();
 	}
 
@@ -228,32 +228,25 @@ struct udp_tracker
 	{
 		char buffer[2000];
 
-		error_code ec;
 		udp::endpoint from;
 		m_socket.async_receive_from(
 			boost::asio::buffer(buffer, int(sizeof(buffer))), from, 0
 			, std::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], int(sizeof(buffer))));
 
-		m_ios.run(ec);
-
-		if (ec)
-		{
-			std::printf("UDP Error running UDP tracker service: %s\n", ec.message().c_str());
-			return;
-		}
+		m_ios.run();
 
 		std::printf("UDP exiting UDP tracker [%p] thread\n", static_cast<void*>(this));
 	}
 };
 
 namespace {
-std::shared_ptr<udp_tracker> g_udp_tracker;
+std::unique_ptr<udp_tracker> g_udp_tracker;
 }
 
 int start_udp_tracker(address iface)
 {
 	TORRENT_ASSERT(!g_udp_tracker);
-	g_udp_tracker.reset(new udp_tracker(iface));
+	g_udp_tracker = std::make_unique<udp_tracker>(iface);
 	return g_udp_tracker->port();
 }
 

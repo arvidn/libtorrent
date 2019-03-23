@@ -36,6 +36,7 @@ project tools
 	<conditional>@link_libtorrent
 	: default-build
 	<link>static
+	<cxxstd>14
    ;  
 
 exe dht : dht_put.cpp : <include>../ed25519/src ;

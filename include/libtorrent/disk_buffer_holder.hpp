@@ -35,30 +35,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/block_cache_reference.hpp"
-#include "libtorrent/span.hpp"
+#include <utility>
 
 namespace libtorrent {
 
-	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface
+	// the interface for freeing disk buffers, used by the disk_buffer_holder.
+	// when implementing disk_interface, this must also be implemented in order
+	// to return disk buffers back to libtorrent
+	struct TORRENT_EXPORT buffer_allocator_interface
 	{
-		virtual void free_disk_buffer(char* b, aux::block_cache_reference const& ref) = 0;
+		virtual void free_disk_buffer(char* b) = 0;
 	protected:
 		~buffer_allocator_interface() = default;
 	};
 
 	// The disk buffer holder acts like a ``unique_ptr`` that frees a disk buffer
-	// when it's destructed, unless it's released. ``release`` returns the disk
-	// buffer and transfers ownership and responsibility to free it to the caller.
+	// when it's destructed
 	//
-	// ``data()`` returns the pointer without transferring ownership. If
-	// this buffer has been released, ``data()`` will return nullptr.
-	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
+	// If this buffer holder is moved-from, default constructed or reset,
+	// ``data()`` will return nullptr.
+	struct TORRENT_EXPORT disk_buffer_holder
 	{
-		// internal
-		disk_buffer_holder(buffer_allocator_interface& alloc
-			, char* buf, std::size_t sz) noexcept;
-
 		disk_buffer_holder& operator=(disk_buffer_holder&&) & noexcept;
 		disk_buffer_holder(disk_buffer_holder&&) noexcept;
 
@@ -69,52 +66,44 @@ namespace libtorrent {
 		// using a disk buffer pool directly (there's only one
 		// disk_buffer_pool per session)
 		disk_buffer_holder(buffer_allocator_interface& alloc
-			, aux::block_cache_reference const& ref
-			, char* buf
-			, std::size_t sz) noexcept;
+			, char* buf, int sz) noexcept;
 
-		// frees any unreleased disk buffer held by this object
+		// default construct a holder that does not own any buffer
+		disk_buffer_holder() noexcept = default;
+
+		// frees disk buffer held by this object
 		~disk_buffer_holder();
 
-		// return the held disk buffer and clear it from the
-		// holder. The responsibility to free it is passed on
-		// to the caller
-		char* release() noexcept;
-
-		// return a pointer to the held buffer
+		// return a pointer to the held buffer, if any. Otherwise returns nullptr.
 		char* data() const noexcept { return m_buf; }
-		char* get() const noexcept { return m_buf; }
 
-		// set the holder object to hold the specified buffer
-		// (or nullptr by default). If it's already holding a
-		// disk buffer, it will first be freed.
-		void reset(char* buf, std::size_t sz, aux::block_cache_reference const& ref);
+		// free the held disk buffer, if any, and clear the holder. This sets the
+		// holder object to a default-constructed state
 		void reset();
 
 		// swap pointers of two disk buffer holders.
 		void swap(disk_buffer_holder& h) noexcept
 		{
-			TORRENT_ASSERT(h.m_allocator == m_allocator);
-			std::swap(h.m_buf, m_buf);
-			std::swap(h.m_size, m_size);
-			std::swap(h.m_ref, m_ref);
+			using std::swap;
+			swap(h.m_allocator, m_allocator);
+			swap(h.m_buf, m_buf);
+			swap(h.m_size, m_size);
 		}
 
 		// if this returns true, the buffer may not be modified in place
-		bool is_mutable() const noexcept { return m_ref.cookie == aux::block_cache_reference::none; }
+		bool is_mutable() const noexcept { return false; }
 
 		// implicitly convertible to true if the object is currently holding a
 		// buffer
 		explicit operator bool() const noexcept { return m_buf != nullptr; }
 
-		std::size_t size() const { return m_size; }
+		std::ptrdiff_t size() const { return m_size; }
 
 	private:
 
-		buffer_allocator_interface* m_allocator;
-		char* m_buf;
-		std::size_t m_size;
-		aux::block_cache_reference m_ref;
+		buffer_allocator_interface* m_allocator = nullptr;
+		char* m_buf = nullptr;
+		int m_size = 0;
 	};
 
 }

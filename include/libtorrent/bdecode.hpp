@@ -109,8 +109,7 @@ inline boost::system::error_category& get_bdecode_category()
 { return bdecode_category(); }
 #endif
 
-namespace bdecode_errors
-{
+namespace bdecode_errors {
 	// libtorrent uses boost.system's ``error_code`` class to represent
 	// errors. libtorrent has its own error category bdecode_category()
 	// with the error codes defined by error_code_enum.
@@ -142,12 +141,14 @@ namespace bdecode_errors
 }
 } // namespace libtorrent
 
-namespace boost { namespace system {
+namespace boost {
+namespace system {
 
 	template<> struct is_error_code_enum<libtorrent::bdecode_errors::error_code_enum>
 	{ static const bool value = true; };
 
-} }
+}
+}
 
 namespace libtorrent {
 

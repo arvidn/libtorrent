@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm> // for std::max
 
-using libtorrent::span;
+using lt::span;
 
 session_view::session_view()
 {

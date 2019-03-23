@@ -77,36 +77,26 @@ struct alloca_destructor
 #if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
 #include <malloc.h>
-#define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
-	auto TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::ptrdiff_t>(n); \
-	auto* TORRENT_ALLOCA_tmp = static_cast<t*>(_alloca(sizeof(t) * static_cast<std::size_t>(TORRENT_ALLOCA_size))); \
-	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
-	::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
-	} \
-	::libtorrent::aux::alloca_destructor<t> v##_destructor{v};
+#define TORRENT_ALLOCA_FUN _alloca
 
 #elif defined TORRENT_BSD
 
 #include <stdlib.h>
-#define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
-	auto TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::ptrdiff_t>(n); \
-	auto* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * static_cast<std::size_t>(TORRENT_ALLOCA_size))); \
-	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
-	::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
-	} \
-	::libtorrent::aux::alloca_destructor<t> v##_destructor{v};
+#define TORRENT_ALLOCA_FUN alloca
 
 #else
 
 #include <alloca.h>
+#define TORRENT_ALLOCA_FUN alloca
+
+#endif
+
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
 	auto TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::ptrdiff_t>(n); \
-	auto* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * static_cast<std::size_t>(TORRENT_ALLOCA_size))); \
+	auto* TORRENT_ALLOCA_tmp = static_cast<t*>(TORRENT_ALLOCA_FUN(sizeof(t) * static_cast<std::size_t>(TORRENT_ALLOCA_size))); \
 	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
 	::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
 	} \
 	::libtorrent::aux::alloca_destructor<t> v##_destructor{v};
-
-#endif
 
 #endif // TORRENT_ALLOCA_HPP_INCLUDED

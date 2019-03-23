@@ -39,10 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
+#include <cstdarg> // for va_list
 #include <cstdio> // for vsnprintf
 #include <cstring>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 
 	struct allocation_slot
 	{
@@ -87,6 +89,7 @@ namespace libtorrent { namespace aux {
 		vector<char> m_storage;
 	};
 
-} }
+}
+}
 
 #endif

@@ -13,12 +13,12 @@ namespace
 {
     void add_rule(ip_filter& filter, std::string start, std::string end, int flags)
     {
-        return filter.add_rule(address::from_string(start), address::from_string(end), flags);
+        return filter.add_rule(make_address(start), make_address(end), flags);
     }
 
     int access0(ip_filter& filter, std::string addr)
     {
-        return filter.access(address::from_string(addr));
+        return filter.access(make_address(addr));
     }
 }
 

@@ -231,7 +231,7 @@ void test_ssl(int const test_idx, bool const use_utp)
 	if (test.use_ssl_ports == false) port += 20;
 	std::printf("\n\n%s: ses1: connecting peer port: %d\n\n\n"
 		, time_now_string(), port);
-	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+	tor1.connect_peer(tcp::endpoint(make_address("127.0.0.1", ec)
 		, std::uint16_t(port)));
 
 	const int timeout = 40;
@@ -303,7 +303,7 @@ void test_ssl(int const test_idx, bool const use_utp)
 	p2 = ses2.abort();
 }
 
-std::string password_callback(int /*length*/, boost::asio::ssl::context::password_purpose p
+std::string password_callback(std::size_t /*length*/, boost::asio::ssl::context::password_purpose p
 	, std::string pw)
 {
 	if (p != boost::asio::ssl::context::for_reading) return "";
@@ -366,7 +366,7 @@ bool try_connect(lt::session& ses1, int port
 	std::printf(" port: %d\n", port);
 
 	error_code ec;
-	boost::asio::io_service ios;
+	boost::asio::io_context ios;
 
 	// create the SSL context for this torrent. We need to
 	// inject the root certificate, and no other, to
@@ -444,7 +444,7 @@ bool try_connect(lt::session& ses1, int port
 
 	std::printf("connecting 127.0.0.1:%d\n", port);
 	ssl_sock.lowest_layer().connect(tcp::endpoint(
-		address_v4::from_string("127.0.0.1"), std::uint16_t(port)), ec);
+		make_address_v4("127.0.0.1"), std::uint16_t(port)), ec);
 	print_alerts(ses1, "ses1", true, true, &on_alert);
 
 	if (ec)

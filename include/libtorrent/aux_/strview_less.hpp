@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2016, Arvid Norberg
+Copyright (c) 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,28 +30,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BLOCK_CACHE_REFERENCE_HPP
-#define TORRENT_BLOCK_CACHE_REFERENCE_HPP
+#ifndef TORRENT_STRLESS_HPP_INCLUDED
+#define TORRENT_STRLESS_HPP_INCLUDED
 
-#include "libtorrent/units.hpp"
-#include "libtorrent/storage_defs.hpp"
-
-namespace libtorrent { namespace aux {
-
-	struct block_cache_reference
+namespace libtorrent {
+namespace aux {
+	// this enables us to compare a string_view against the std::string that's
+	// held by the std::map
+	struct strview_less
 	{
-		block_cache_reference() = default;
-		block_cache_reference(storage_index_t const idx, std::int32_t const c)
-			: storage(idx), cookie(c) {}
-
-		// if the cookie is set to this value, it doesn't refer to anything in the
-		// cache (and the buffer is mutable)
-		constexpr static std::int32_t none = 0x7fffffff;
-
-		storage_index_t storage{0};
-		std::int32_t cookie = none;
+		using is_transparent = std::true_type;
+		template <typename T1, typename T2>
+		bool operator()(T1 const& rhs, T2 const& lhs) const
+		{ return rhs < lhs; }
 	};
-
-}}
+}
+}
 
 #endif
