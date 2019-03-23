@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_ABI_VERSION == 1
 
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/bdecode.hpp" // for error codes
+#include "libtorrent/bdecode.hpp" // for error codes and escape_string
 #include "libtorrent/string_util.hpp" // for is_digit
 #include <algorithm>
 #include <cstring> // for memset
@@ -560,23 +560,6 @@ namespace {
 		return line_len;
 	}
 
-	void escape_string(std::string& ret, char const* str, int len)
-	{
-		for (int i = 0; i < len; ++i)
-		{
-			if (str[i] >= 32 && str[i] < 127)
-			{
-				ret += str[i];
-			}
-			else
-			{
-				char tmp[5];
-				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
-				ret += tmp;
-			}
-		}
-	}
-
 	void print_string(std::string& ret, char const* str, int const len, bool single_line)
 	{
 		TORRENT_ASSERT(len >= 0);
@@ -604,13 +587,13 @@ namespace {
 		}
 		if (single_line && len > 20)
 		{
-			escape_string(ret, str, 9);
+			detail::escape_string(ret, str, 9);
 			ret += "...";
-			escape_string(ret, str + len - 9, 9);
+			detail::escape_string(ret, str + len - 9, 9);
 		}
 		else
 		{
-			escape_string(ret, str, len);
+			detail::escape_string(ret, str, len);
 		}
 		ret += "'";
 	}
