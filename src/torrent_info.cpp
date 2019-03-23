@@ -385,7 +385,8 @@ namespace {
 		// calculations of the size of the merkle tree (which is all 'int'
 		// indices)
 		if (file_size < 0
-			|| (file_size / default_block_size) >= std::numeric_limits<int>::max() / 2)
+			|| (file_size / default_block_size) >= std::numeric_limits<int>::max() / 2
+			|| file_size > file_storage::max_file_size)
 		{
 			ec = errors::torrent_invalid_length;
 			return false;
@@ -422,7 +423,7 @@ namespace {
 			pieces_root = root.string_ptr() + info_ptr_diff;
 		}
 
-		files.add_file_borrow(name, path, file_size, file_flags, nullptr
+		files.add_file_borrow(ec, name, path, file_size, file_flags, nullptr
 			, mtime, symlink_path, pieces_root);
 		return !ec;
 	}
@@ -449,7 +450,8 @@ namespace {
 		// calculations of the size of the merkle tree (which is all 'int'
 		// indices)
 		if (file_size < 0
-			|| (file_size / default_block_size) >= std::numeric_limits<int>::max() / 2)
+			|| (file_size / default_block_size) >= std::numeric_limits<int>::max() / 2
+			|| file_size > file_storage::max_file_size)
 		{
 			ec = errors::torrent_invalid_length;
 			return false;
@@ -572,9 +574,9 @@ namespace {
 			filename = {};
 		}
 
-		files.add_file_borrow(filename, path, file_size, file_flags, filehash
+		files.add_file_borrow(ec, filename, path, file_size, file_flags, filehash
 			, mtime, symlink_path);
-		return true;
+		return !ec;
 	}
 
 	bool extract_files2(bdecode_node const& tree, file_storage& target

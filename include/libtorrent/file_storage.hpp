@@ -279,6 +279,9 @@ namespace libtorrent {
 		// That is, the first path element of all files must be the same.
 		// This shared path element is also set to the name of the torrent. It
 		// can be changed by calling ``set_name``.
+		//
+		// The overloads that take an `error_code` reference will report failures
+		// via that variable, otherwise `system_error` is thrown.
 		void add_file_borrow(string_view filename
 			, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}, char const* filehash = nullptr
