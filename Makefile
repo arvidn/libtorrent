@@ -975,7 +975,8 @@ TEST_TORRENTS = \
   v2_missing_file_root_invalid_symlink.torrent \
   v2_symlinks.torrent \
   v2_no_piece_layers.torrent \
-  v2_large_file.torrent
+  v2_large_file.torrent \
+  v2_large_offset.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \

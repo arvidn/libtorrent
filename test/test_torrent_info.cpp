@@ -181,6 +181,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_missing_file_root_invalid_symlink.torrent", errors::torrent_missing_pieces_root},
 	{ "v2_large_file.torrent", errors::torrent_invalid_length},
 	{ "v2_no_piece_layers.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
 };
 
 } // anonymous namespace
