@@ -119,7 +119,27 @@ namespace {
 		return (&t)[1].offset - t.offset;
 	}
 
-	} // anonymous namespace
+} // anonymous namespace
+
+namespace detail {
+	void escape_string(std::string& ret, char const* str, int len)
+	{
+		for (int i = 0; i < len; ++i)
+		{
+			if (str[i] >= 32 && str[i] < 127)
+			{
+				ret += str[i];
+			}
+			else
+			{
+				char tmp[5];
+				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
+				ret += tmp;
+			}
+		}
+	}
+}
+
 
 
 	// reads the string between start and end, or up to the first occurrance of
@@ -1016,23 +1036,6 @@ done:
 		return line_len;
 	}
 
-	void escape_string(std::string& ret, char const* str, int len)
-	{
-		for (int i = 0; i < len; ++i)
-		{
-			if (str[i] >= 32 && str[i] < 127)
-			{
-				ret += str[i];
-			}
-			else
-			{
-				char tmp[5];
-				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
-				ret += tmp;
-			}
-		}
-	}
-
 	void print_string(std::string& ret, string_view str, bool single_line)
 	{
 		int const len = int(str.size());
@@ -1060,13 +1063,13 @@ done:
 		}
 		if (single_line && len > 20)
 		{
-			escape_string(ret, str.data(), 9);
+			detail::escape_string(ret, str.data(), 9);
 			ret += "...";
-			escape_string(ret, str.data() + len - 9, 9);
+			detail::escape_string(ret, str.data() + len - 9, 9);
 		}
 		else
 		{
-			escape_string(ret, str.data(), len);
+			detail::escape_string(ret, str.data(), len);
 		}
 		ret += "'";
 	}
