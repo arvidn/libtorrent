@@ -586,6 +586,47 @@ TORRENT_TEST(files_equal_symlink)
 	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
 }
 
+TORRENT_TEST(large_files)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	TEST_THROW(fs1.add_file("test/0", std::int64_t(1) << 48));
+
+	error_code ec;
+	fs1.add_file(ec, "test/0", (std::int64_t(1) << 48));
+	TEST_EQUAL(ec, make_error_code(boost::system::errc::file_too_large));
+
+	// should not throw
+	TEST_NOTHROW(fs1.add_file("test/1", (std::int64_t(1) << 48) - 1));
+}
+
+TORRENT_TEST(large_offset)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", (std::int64_t(1) << 48) - 10);
+	// 11 bytes + (2^48 - 10) exceeds the limit
+	TEST_THROW(fs1.add_file("test/1", 11));
+
+	error_code ec;
+	fs1.add_file(ec, "test/1", 11);
+	TEST_EQUAL(ec, make_error_code(errors::torrent_invalid_length));
+}
+
+TORRENT_TEST(large_filename)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	// yes, this creates an invalid string_view, as it claims to be larger than
+	// the allocation. This should be OK though as the test for size never
+	// actually looks at the string
+	TEST_THROW(fs1.add_file_borrow(string_view("0", 1 << 12), "test/path/", 10));
+
+	error_code ec;
+	fs1.add_file_borrow(ec, string_view("0", 1 << 12), "test/path/", 10);
+	TEST_EQUAL(ec, make_error_code(boost::system::errc::filename_too_long));
+}
+
 // TODO: test file attributes
 // TODO: test symlinks
 // TODO: test reorder_file (make sure internal_file_entry::swap() is used)

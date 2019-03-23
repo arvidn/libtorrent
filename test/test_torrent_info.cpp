@@ -174,6 +174,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
 	{ "v2_deep_recursion.torrent", errors::torrent_file_parse_failed},
 	{ "v2_no_piece_layers.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
 };
 
 } // anonymous namespace

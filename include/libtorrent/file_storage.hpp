@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
 
@@ -219,6 +220,9 @@ namespace libtorrent {
 		file_storage(file_storage&&) noexcept;
 		file_storage& operator=(file_storage&&) = default;
 
+		// internal limitations restrict file sizes to not be larger than this
+		static constexpr std::int64_t max_file_size = (std::int64_t(1) << 48) - 1;
+
 		// returns true if the piece length has been initialized
 		// on the file_storage. This is typically taken as a proxy
 		// of whether the file_storage as a whole is initialized or
@@ -274,12 +278,23 @@ namespace libtorrent {
 		// That is, the first path element of all files must be the same.
 		// This shared path element is also set to the name of the torrent. It
 		// can be changed by calling ``set_name``.
+		//
+		// The overloads that take an `error_code` reference will report failures
+		// via that variable, otherwise `system_error` is thrown.
 		void add_file_borrow(string_view filename
 			, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}, char const* filehash = nullptr
 			, std::int64_t mtime = 0, string_view symlink_path = string_view()
 			, char const* root_hash = nullptr);
 		void add_file(std::string const& path, std::int64_t file_size
+			, file_flags_t file_flags = {}
+			, std::time_t mtime = 0, string_view symlink_path = string_view());
+		void add_file_borrow(error_code& ec, string_view filename
+			, std::string const& path, std::int64_t file_size
+			, file_flags_t file_flags = {}, char const* filehash = nullptr
+			, std::int64_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
+		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view());
 
