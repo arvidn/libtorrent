@@ -61,6 +61,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define DEBUG_DISK_THREAD 0
 
+namespace libtorrent {
+char const* job_name(job_action_t const job);
+}
+
 #if DEBUG_DISK_THREAD
 #include <cstdarg> // for va_list
 #include <sstream>
@@ -95,6 +99,14 @@ namespace libtorrent {
 	{
 		static std::mutex log_mutex;
 		static const time_point start = clock_type::now();
+		// map thread IDs to low numbers
+		static std::unordered_map<std::thread::id, int> thread_ids;
+
+		std::thread::id const self = std::this_thread::get_id();
+
+		std::unique_lock<std::mutex> l(log_mutex);
+		auto it = thread_ids.insert({self, int(thread_ids.size())}).first;
+
 		va_list v;
 		va_start(v, fmt);
 
@@ -105,16 +117,15 @@ namespace libtorrent {
 		if (!prepend_time)
 		{
 			prepend_time = (usr[len-1] == '\n');
-			std::unique_lock<std::mutex> l(log_mutex);
 			fputs(usr, stderr);
 			return;
 		}
 		va_end(v);
 		char buf[2300];
 		int const t = int(total_milliseconds(clock_type::now() - start));
-		std::snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);
+		std::snprintf(buf, sizeof(buf), "\x1b[3%dm%05d: [%d] %s\x1b[0m"
+			, (it->second % 7) + 1, t, it->second, usr);
 		prepend_time = (usr[len-1] == '\n');
-		std::unique_lock<std::mutex> l(log_mutex);
 		fputs(buf, stderr);
 	}
 
@@ -269,6 +280,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 	void disk_io_thread::abort(bool const wait)
 	{
+		DLOG("disk_io_thread::abort: (%d)\n", int(wait));
+
 		// first make sure queued jobs have been submitted
 		// otherwise the queue may not get processed
 		submit_jobs();
@@ -281,6 +294,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			&& m_hash_threads.num_threads() == 0;
 		// abort outstanding jobs belonging to this torrent
 
+		DLOG("aborting hash jobs\n");
 		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
 			i.get()->flags |= disk_io_job::aborted;
 		l.unlock();
@@ -292,6 +306,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			abort_jobs();
 		}
 
+		DLOG("aborting thread pools\n");
 		// even if there are no threads it doesn't hurt to abort the pools
 		// it prevents threads from being started after an abort which is a good
 		// defensive programming measure
@@ -329,6 +344,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
 		// add one hasher thread for every three generic threads
 		int const num_hash_threads = num_threads / hasher_thread_divisor;
+
+		DLOG("set_max_threads(%d, %d)\n", num_threads - num_hash_threads
+			, num_hash_threads);
 		m_generic_threads.set_max_threads(num_threads - num_hash_threads);
 		m_hash_threads.set_max_threads(num_hash_threads);
 	}
@@ -1133,10 +1151,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		{
 			std::unique_lock<std::mutex> l(m_cache_mutex);
 
-			DLOG("perform_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
-				, job_action_name[j->action]
+			DLOG("perform_job job: %s ( %s) piece: %d offset: %d outstanding: %d\n"
+				, job_name(j->action)
 				, (j->flags & disk_io_job::fence) ? "fence ": ""
-				, (j->flags & disk_io_job::force_copy) ? "force_copy ": ""
 				, static_cast<int>(j->piece), j->d.io.offset
 				, j->storage ? j->storage->num_outstanding_jobs() : -1);
 		}
@@ -1662,7 +1679,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			// this means the job was queued up inside storage
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
+				, job_name(j->action), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));
 			return 2;
 		}
@@ -1761,7 +1778,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			// this means the job was queued up inside storage
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
+				, job_name(j->action), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));
 			return exceeded;
 		}
@@ -2893,7 +2910,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		TORRENT_ASSERT(!m_abort);
 
 		DLOG("add_fence:job: %s (outstanding: %d)\n"
-			, job_action_name[j->action]
+			, job_name(j->action)
 			, j->storage->num_outstanding_jobs());
 
 		m_stats_counters.inc_stats_counter(counters::num_fenced_read + static_cast<int>(j->action));
@@ -2973,7 +2990,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		}
 
 		DLOG("add_job: %s (outstanding: %d)\n"
-			, job_action_name[j->action]
+			, job_name(j->action)
 			, j->storage ? j->storage->num_outstanding_jobs() : 0);
 
 		// is the fence up for this storage?
@@ -2985,7 +3002,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		{
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
+				, job_name(j->action), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));
 			return;
 		}
@@ -3110,12 +3127,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		, disk_io_thread_pool& pool)
 	{
 		std::thread::id const thread_id = std::this_thread::get_id();
-#if DEBUG_DISK_THREAD
-		std::stringstream thread_id_str;
-		thread_id_str << thread_id;
-#endif
 
-		DLOG("started disk thread %s\n", thread_id_str.str().c_str());
+		DLOG("started disk thread\n");
 
 		std::unique_lock<std::mutex> l(m_job_mutex);
 
@@ -3180,8 +3193,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
 		if (--m_num_running_threads > 0 || !m_abort)
 		{
-			DLOG("exiting disk thread %s. num_threads: %d aborting: %d\n"
-				, thread_id_str.str().c_str(), num_threads(), int(m_abort));
+			DLOG("exiting disk thread. num_threads: %d aborting: %d\n"
+				, num_threads(), int(m_abort));
 			TORRENT_ASSERT(m_magic == 0x1337);
 			return;
 		}
@@ -3212,7 +3225,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		}
 		l2.unlock();
 
-		DLOG("disk thread %s is the last one alive. cleaning up\n", thread_id_str.str().c_str());
+		DLOG("the last disk thread alive. cleaning up\n");
 
 		abort_jobs();
 
@@ -3221,6 +3234,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 	void disk_io_thread::abort_jobs()
 	{
+		DLOG("disk_io_thread::abort_jobs\n");
+
 		TORRENT_ASSERT(m_magic == 0x1337);
 		if (m_jobs_aborted.test_and_set()) return;
 
@@ -3303,7 +3318,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
 //			DLOG("job_complete %s outstanding: %d\n"
-//				, job_action_name[j->action], j->storage ? j->storage->num_outstanding_jobs() : 0);
+//				, job_name(j->action), j->storage ? j->storage->num_outstanding_jobs() : 0);
 
 			if (j->storage)
 			{
@@ -3471,7 +3486,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		{
 			TORRENT_ASSERT(j->job_posted == true);
 			TORRENT_ASSERT(j->callback_called == false);
-//			DLOG("   callback: %s\n", job_action_name[j->action]);
+//			DLOG("   callback: %s\n", job_name(j->action));
 			disk_io_job* next = j->next;
 
 #if TORRENT_USE_ASSERTS
