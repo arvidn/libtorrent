@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/random.hpp"
 
 #include "make_proxy_settings.hpp"
 
@@ -309,7 +310,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	sim::http_proxy http_p(proxy_ios, 4445);
 
 	char data_buffer[4000];
-	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+	lt::aux::random_bytes(data_buffer);
 
 	std::vector<int> counters(num_counters, 0);
 
@@ -477,7 +478,7 @@ TORRENT_TEST(http_connection_timeout_server_stalls)
 	http_ipv6.register_stall_handler("/timeout");
 
 	char data_buffer[4000];
-	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+	lt::aux::random_bytes(data_buffer);
 
 	int connect_counter = 0;
 	int handler_counter = 0;
@@ -534,7 +535,7 @@ TORRENT_TEST(http_connection_timeout_server_does_not_accept)
 	error_condition timed_out(boost::system::errc::timed_out, boost::system::generic_category());
 
 	char data_buffer[4000];
-	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+	lt::aux::random_bytes(data_buffer);
 
 	auto c = test_request(client_ios, resolver
 		, "http://dual-stack.test-hostname.com:8080/timeout_server_does_not_accept", data_buffer, -1, -1
@@ -563,7 +564,7 @@ void test_proxy_failure(lt::settings_pack::proxy_type_t proxy_type)
 	lt::aux::proxy_settings ps = make_proxy_settings(proxy_type);
 
 	char data_buffer[4000];
-	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+	lt::aux::random_bytes(data_buffer);
 
 	http.register_handler("/test_file"
 		, [&data_buffer](std::string method, std::string req

@@ -166,15 +166,20 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 			, [&](lt::alert const* a)
 			{
 				if (auto const* ta = alert_cast<tracker_reply_alert>(a))
+				{
+					std::printf("accepted tracker: %s\n", ta->tracker_url());
 					accepted_trackers.push_back(ta->tracker_url());
+				}
 				return false;
 			});
 		std::this_thread::sleep_for(lt::milliseconds(100));
 
 		if (num_udp_announces() >= prev_udp_announces + 1
 			&& num_peer_hits() > 0
-			&& !accepted_trackers.empty())
+			&& accepted_trackers.size() >= 2)
+		{
 			break;
+		}
 	}
 
 	// we should have announced to the tracker by now

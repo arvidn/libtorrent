@@ -2603,7 +2603,7 @@ TORRENT_TEST(traversal_done)
 	// invert the ith most significant byte so that the test nodes are
 	// progressively closer to the target item
 	for (int i = 0; i < num_test_nodes; ++i)
-		nodes[i].id[i] = ~nodes[i].id[i];
+		nodes[i].id[i] = static_cast<std::uint8_t>(~nodes[i].id[i]);
 
 	// add the first k nodes to the subject's routing table
 	for (int i = 0; i < 8; ++i)
@@ -3348,6 +3348,8 @@ struct test_algo : dht::traversal_algorithm
 		: traversal_algorithm(dht_node, target)
 	{}
 
+	void done() { this->dht::traversal_algorithm::done(); }
+
 	std::vector<observer_ptr> const& results() const { return m_results; }
 
 	using traversal_algorithm::num_sorted_results;
@@ -3387,6 +3389,7 @@ TORRENT_TEST(unsorted_traversal_results)
 	results = algo->results();
 	TEST_CHECK(results.size() == eps.size());
 	TEST_CHECK(eps[5] == results[0]->target_ep());
+	algo->done();
 }
 
 TORRENT_TEST(rpc_invalid_error_msg)
