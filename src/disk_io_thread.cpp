@@ -270,7 +270,8 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// see also the comment in thread_fun
 		std::unique_lock<std::mutex> l(m_job_mutex);
 		if (m_abort.exchange(true)) return;
-		bool const no_threads = m_num_running_threads == 0;
+
+		bool const no_threads = num_threads() == 0;
 		// abort outstanding jobs belonging to this torrent
 
 		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
@@ -3100,7 +3101,6 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		DLOG("started disk thread %s\n", thread_id_str.str().c_str());
 
 		std::unique_lock<std::mutex> l(m_job_mutex);
-		if (m_abort) return;
 
 		++m_num_running_threads;
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, 1);

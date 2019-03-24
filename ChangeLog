@@ -1,3 +1,4 @@
+	* fix subtle race condition in disk I/O thread (for short-lived sessions)
 	* update symlinks to conform to BEP 47
 	* fix python bindings for peer_info
 	* support creating symlinks, for torrents with symlinks in them

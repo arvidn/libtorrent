@@ -70,8 +70,6 @@ namespace libtorrent {
 	void disk_io_thread_pool::abort(bool wait)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
-		if (m_abort) return;
-		m_max_threads = 0;
 		m_abort = true;
 		m_idle_timer.cancel();
 		stop_threads(int(m_threads.size()));
@@ -103,6 +101,8 @@ namespace libtorrent {
 
 	bool disk_io_thread_pool::try_thread_exit(std::thread::id id)
 	{
+		if (m_abort) return true;
+
 		int to_exit = m_threads_to_exit;
 		while (to_exit > 0 &&
 			!m_threads_to_exit.compare_exchange_weak(to_exit, to_exit - 1));
@@ -142,7 +142,6 @@ namespace libtorrent {
 		// but do it to avoid acquiring the mutex in the trivial case
 		if (m_num_idle_threads >= queue_size) return;
 		std::lock_guard<std::mutex> l(m_mutex);
-		if (m_abort) return;
 
 		// reduce the number of threads requested to stop if we're going to need
 		// them for these new jobs
@@ -158,7 +157,7 @@ namespace libtorrent {
 			; ++i)
 		{
 			// if this is the first thread started, start the reaper timer
-			if (m_threads.empty())
+			if (m_threads.empty() && !m_abort)
 			{
 				m_idle_timer.expires_from_now(reap_idle_threads_interval);
 				m_idle_timer.async_wait([this](error_code const& ec) { reap_idle_threads(ec); });
