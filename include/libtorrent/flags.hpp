@@ -73,7 +73,7 @@ struct bitfield_flag
 
 	static constexpr bitfield_flag all()
 	{
-		return bitfield_flag(~UnderlyingType{0});
+		return bitfield_flag(static_cast<UnderlyingType>(~UnderlyingType{0}));
 	}
 
 	bool constexpr operator==(bitfield_flag const f) const noexcept
@@ -117,7 +117,10 @@ struct bitfield_flag
 
 	constexpr bitfield_flag operator~() const noexcept
 	{
-		return bitfield_flag(~m_val);
+		// technically, m_val is promoted to int before applying operator~, which
+		// means the result may not fit into the underlying type again. So,
+		// explicitly cast it
+		return bitfield_flag(static_cast<UnderlyingType>(~m_val));
 	}
 
 	bitfield_flag& operator=(bitfield_flag const& rhs) noexcept = default;
