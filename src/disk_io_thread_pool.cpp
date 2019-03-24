@@ -46,7 +46,6 @@ namespace libtorrent {
 		, io_service& ios)
 		: m_thread_iface(thread_iface)
 		, m_max_threads(0)
-		, m_threads_to_exit(0)
 		, m_abort(false)
 		, m_num_idle_threads(0)
 		, m_min_idle_threads(0)
@@ -62,9 +61,8 @@ namespace libtorrent {
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 		if (i == m_max_threads) return;
-		m_max_threads = i;
-		if (int(m_threads.size()) < i) return;
-		stop_threads(int(m_threads.size()) - i);
+		if (m_max_threads < i) return;
+		stop_threads(m_max_threads - i);
 	}
 
 	void disk_io_thread_pool::abort(bool wait)
@@ -101,14 +99,11 @@ namespace libtorrent {
 
 	bool disk_io_thread_pool::try_thread_exit(std::thread::id id)
 	{
+		std::unique_lock<std::mutex> l(m_mutex);
 		if (m_abort) return true;
-
-		int to_exit = m_threads_to_exit;
-		while (to_exit > 0 &&
-			!m_threads_to_exit.compare_exchange_weak(to_exit, to_exit - 1));
+		int const to_exit = int(m_threads.size()) - m_max_threads;
 		if (to_exit > 0)
 		{
-			std::unique_lock<std::mutex> l(m_mutex);
 			if (!m_abort)
 			{
 				auto new_end = std::remove_if(m_threads.begin(), m_threads.end()
@@ -142,13 +137,6 @@ namespace libtorrent {
 		// but do it to avoid acquiring the mutex in the trivial case
 		if (m_num_idle_threads >= queue_size) return;
 		std::lock_guard<std::mutex> l(m_mutex);
-
-		// reduce the number of threads requested to stop if we're going to need
-		// them for these new jobs
-		int to_exit = m_threads_to_exit;
-		while (to_exit > std::max(0, m_num_idle_threads - queue_size) &&
-			!m_threads_to_exit.compare_exchange_weak(to_exit
-				, std::max(0, m_num_idle_threads - queue_size)));
 
 		// now start threads until we either have enough to service
 		// all queued jobs without blocking or hit the max
@@ -197,7 +185,7 @@ namespace libtorrent {
 
 	void disk_io_thread_pool::stop_threads(int num_to_stop)
 	{
-		m_threads_to_exit = num_to_stop;
+		m_max_threads -= num_to_stop;
 		m_thread_iface.notify_all();
 	}
 

@@ -88,7 +88,11 @@ namespace libtorrent {
 		// check if there is an outstanding request for I/O threads to stop
 		// this is a weak check, if it returns true try_thread_exit may still
 		// return false
-		bool should_exit() { return m_threads_to_exit > 0; }
+		bool should_exit() const
+		{
+			std::unique_lock<std::mutex> l(m_mutex);
+			return m_max_threads > int(m_threads.size());
+		}
 		// this should be the last function an I/O thread calls before breaking
 		// out of its service loop
 		// if it returns true then the thread MUST exit
@@ -100,7 +104,7 @@ namespace libtorrent {
 		// thread exits
 		// it can be used to trigger maintenance jobs which should only run on one thread
 		std::thread::id first_thread_id();
-		int num_threads()
+		int num_threads() const
 		{
 			std::lock_guard<std::mutex> l(m_mutex);
 			return int(m_threads.size());
@@ -120,8 +124,6 @@ namespace libtorrent {
 		pool_thread_interface& m_thread_iface;
 
 		std::atomic<int> m_max_threads;
-		// the number of threads the reaper decided should exit
-		std::atomic<int> m_threads_to_exit;
 
 		// must hold m_mutex to access
 		bool m_abort;
@@ -131,7 +133,7 @@ namespace libtorrent {
 		std::atomic<int> m_min_idle_threads;
 
 		// ensures thread creation/destruction is atomic
-		std::mutex m_mutex;
+		mutable std::mutex m_mutex;
 
 		// the actual threads running disk jobs
 		std::vector<std::thread> m_threads;
