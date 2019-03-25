@@ -103,6 +103,8 @@ namespace aux {
 		, std::string const& save_path
 		, stat_cache& stat
 		, storage_error& ec);
+
+	TORRENT_EXTRA_EXPORT int read_zeroes(span<iovec_t const> bufs);
 }}
 
 #endif

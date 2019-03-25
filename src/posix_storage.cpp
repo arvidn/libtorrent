@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/path.hpp" // for bufs_size
 #include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/torrent_status.hpp"
 
 #if TORRENT_HAS_SYMLINK
@@ -89,19 +90,14 @@ namespace aux {
 			download_priority_t new_prio = prio[i];
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
-				// move stuff out of the part file
-				if (ec)
-				{
-					prio = m_file_priority;
-					return;
-				}
-
 				if (m_part_file && use_partfile(i))
 				{
 					m_part_file->export_file([this, i, &ec](std::int64_t file_offset, span<char> buf)
 					{
+						// move stuff out of the part file
 						FILE* const f = open_file(i, open_mode::write, file_offset, ec);
-						if (ec.ec) return;
+						if (ec) return;
+						auto sc = scope_end([f]{ fclose(f); });
 						int const r = static_cast<int>(fwrite(buf.data(), 1
 							, static_cast<std::size_t>(buf.size()), f));
 						if (r != buf.size())
@@ -156,12 +152,8 @@ namespace aux {
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
-			if (files().pad_file_at(file_index))
-			{
-				// reading from a pad file yields zeroes
-				clear_bufs(vec);
-				return bufs_size(vec);
-			}
+			// reading from a pad file yields zeroes
+			if (files().pad_file_at(file_index)) return aux::read_zeroes(vec);
 
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == dont_download
@@ -186,6 +178,7 @@ namespace aux {
 			FILE* const f = open_file(file_index, open_mode::read_only
 				, file_offset, ec);
 			if (ec.ec) return -1;
+			auto sc = scope_end([f]{ fclose(f); });
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
@@ -207,8 +200,6 @@ namespace aux {
 				// the file may be shorter than we think
 				if (r < buf.size()) break;
 			}
-
-			fclose(f);
 
 			// we either get an error or 0 or more bytes read
 			TORRENT_ASSERT(ec.ec || ret > 0);
@@ -264,6 +255,7 @@ namespace aux {
 			FILE* const f = open_file(file_index, open_mode::write
 				, file_offset, ec);
 			if (ec.ec) return -1;
+			auto sc = scope_end([f]{ fclose(f); });
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
@@ -282,8 +274,6 @@ namespace aux {
 				}
 				ret += r;
 			}
-
-			fclose(f);
 
 			// invalidate our stat cache for this file, since
 			// we're writing to it

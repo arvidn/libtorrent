@@ -602,4 +602,15 @@ namespace libtorrent { namespace aux {
 		return false;
 	}
 
+	int read_zeroes(span<iovec_t const> bufs)
+	{
+		int ret = 0;
+		for (auto buf : bufs)
+		{
+			ret += buf.size();
+			std::fill(buf.begin(), buf.end(), 0);
+		}
+		return ret;
+	}
+
 }}

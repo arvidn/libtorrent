@@ -520,12 +520,8 @@ namespace libtorrent {
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
-			if (files().pad_file_at(file_index))
-			{
-				// reading from a pad file yields zeroes
-				aux::clear_bufs(vec);
-				return bufs_size(vec);
-			}
+			// reading from a pad file yields zeroes
+			if (files().pad_file_at(file_index)) return aux::read_zeroes(vec);
 
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == dont_download
