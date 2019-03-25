@@ -810,12 +810,12 @@ namespace {
 			// pretend that we received reject request messages
 			std::shared_ptr<torrent> t = associated_torrent().lock();
 			TORRENT_ASSERT(t);
-			while (!download_queue().empty())
+			auto const dlq = download_queue();
+			for (pending_block const& pb : dlq)
 			{
-				piece_block const& b = download_queue().front().block;
 				peer_request r;
-				r.piece = b.piece_index;
-				r.start = b.block_index * t->block_size();
+				r.piece = pb.block.piece_index;
+				r.start = pb.block.block_index * t->block_size();
 				r.length = t->block_size();
 				// if it's the last piece, make sure to
 				// set the length of the request to not
