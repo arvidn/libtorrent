@@ -341,6 +341,23 @@ block_cache::block_cache(io_service& ios
 {
 }
 
+block_cache::~block_cache()
+{
+	std::vector<char*> bufs;
+	for (auto const& pe : m_pieces)
+	{
+		if (!pe.blocks) continue;
+
+		int const num_blocks = int(pe.blocks_in_piece);
+		for (int i = 0; i < num_blocks; ++i)
+		{
+			if (pe.blocks[i].buf == nullptr) continue;
+			bufs.push_back(pe.blocks[i].buf);
+		}
+	}
+	free_multiple_buffers(bufs);
+}
+
 // returns:
 // -1: not in cache
 // -2: no memory

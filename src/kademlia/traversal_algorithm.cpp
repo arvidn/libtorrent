@@ -127,6 +127,8 @@ void traversal_algorithm::resort_result(observer* o)
 void traversal_algorithm::add_entry(node_id const& id
 	, udp::endpoint const& addr, observer_flags_t const flags)
 {
+	if (m_done) return;
+
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	auto o = new_observer(addr, id);
 	if (!o)
@@ -284,6 +286,8 @@ char const* traversal_algorithm::name() const
 
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint const& addr)
 {
+	if (m_done) return;
+
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_observer* logger = get_node().observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal) && id.is_all_zeros())
@@ -408,6 +412,8 @@ void traversal_algorithm::log_timeout(observer_ptr const& o, char const* prefix)
 
 void traversal_algorithm::done()
 {
+	TORRENT_ASSERT(m_done == false);
+	m_done = true;
 #ifndef TORRENT_DISABLE_LOGGING
 	int results_target = m_node.m_table.bucket_size();
 	int closest_target = 160;
@@ -459,6 +465,8 @@ void traversal_algorithm::done()
 
 bool traversal_algorithm::add_requests()
 {
+	if (m_done) return true;
+
 	int results_target = m_node.m_table.bucket_size();
 
 	// this only counts outstanding requests at the top of the

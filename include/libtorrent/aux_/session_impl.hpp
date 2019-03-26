@@ -284,8 +284,8 @@ namespace aux {
 
 			void call_abort()
 			{
-				auto ptr = shared_from_this();
-				m_io_service.dispatch(make_handler([ptr] { ptr->abort(); }
+				auto self = shared_from_this();
+				m_io_service.dispatch(make_handler([self] { self->abort(); }
 					, m_abort_handler_storage, *this));
 			}
 

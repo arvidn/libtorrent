@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #include <functional>
 
@@ -1315,6 +1316,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			return s;
 		}
 
+		// free buffers at the end of the scope
+		auto iov_dealloc = aux::scope_end([&]{ m_disk_cache.free_iovec(iov); });
+
 		// this is the offset that's aligned to block boundaries
 		int const adjusted_offset = aux::numeric_cast<int>(j->d.io.offset & ~(default_block_size - 1));
 
@@ -1353,9 +1357,6 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		if (ret < 0)
 		{
-			// read failed. free buffers and return error
-			m_disk_cache.free_iovec(iov);
-
 			pe = m_disk_cache.find_piece(j);
 			if (pe == nullptr)
 			{
@@ -1381,6 +1382,10 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 #if TORRENT_USE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action, block));
 #endif
+
+		// we want to hold on to the iov now
+		iov_dealloc.disarm();
+
 		// as soon we insert the blocks they may be evicted
 		// (if using purgeable memory). In order to prevent that
 		// until we can read from them, increment the refcounts
@@ -2126,6 +2131,10 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		iovec_t iov = { m_disk_cache.allocate_buffer("hashing")
 			, static_cast<std::size_t>(default_block_size) };
+
+		// free at the end of the scope
+		auto iov_dealloc = aux::scope_end([&]{ m_disk_cache.free_buffer(iov.data()); });
+
 		hasher h;
 		int ret = 0;
 		int offset = 0;
@@ -2154,8 +2163,6 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			offset += default_block_size;
 			h.update(iov);
 		}
-
-		m_disk_cache.free_buffer(iov.data());
 
 		j->d.piece_hash = h.final();
 		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
@@ -2310,6 +2317,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			TORRENT_ALLOCA(iov, iovec_t, blocks_left);
 			if (m_disk_cache.allocate_iovec(iov) >= 0)
 			{
+				// free buffers at the end of the scope
+				auto iov_dealloc = aux::scope_end([&]{ m_disk_cache.free_iovec(iov); });
+
 				// if this is the last piece, adjust the size of the
 				// last buffer to match up
 				iov[blocks_left - 1] = iov[blocks_left - 1].first(
@@ -2342,13 +2352,12 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 					TORRENT_ASSERT(offset == piece_size);
 
+					// we want to hold on to the buffers now, to insert them in the
+					// cache
+					iov_dealloc.disarm();
 					l.lock();
 					m_disk_cache.insert_blocks(pe, first_block, iov, j);
 					l.unlock();
-				}
-				else
-				{
-					m_disk_cache.free_iovec(iov);
 				}
 			}
 		}
@@ -2391,6 +2400,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 						return status_t::fatal_disk_error;
 					}
 
+					// free buffers at the end of the scope
+					auto iov_dealloc = aux::scope_end([&]{ m_disk_cache.free_buffer(iov.data()); });
+
 					DLOG("do_hash: reading (piece: %d block: %d)\n"
 						, static_cast<int>(pe->piece), first_block + i);
 
@@ -2403,7 +2415,6 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 					{
 						ret = status_t::fatal_disk_error;
 						TORRENT_ASSERT(j->error.ec && j->error.operation != operation_t::unknown);
-						m_disk_cache.free_buffer(iov.data());
 						break;
 					}
 
@@ -2415,7 +2426,6 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 						ret = status_t::fatal_disk_error;
 						j->error.ec = boost::asio::error::eof;
 						j->error.operation = operation_t::file_read;
-						m_disk_cache.free_buffer(iov.data());
 						break;
 					}
 
@@ -2434,6 +2444,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 					offset += int(iov.size());
 					ph->h.update(iov);
 
+					iov_dealloc.disarm();
 					l.lock();
 					m_disk_cache.insert_blocks(pe, first_block + i, iov, j);
 					l.unlock();
