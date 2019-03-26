@@ -439,7 +439,25 @@ int EXPORT main(int argc, char const* argv[])
 			fflush(stdout);
 			fflush(stderr);
 
+#ifdef TORRENT_MINGW
+			// mingw has a buggy tmpfile() and tmpname() that needs a . prepended
+			// to it (or some other directory)
+			char temp_name[512];
+			FILE* f = nullptr;
+			if (tmpnam_s(temp_name + 1, sizeof(temp_name) - 1) == 0)
+			{
+				temp_name[0] = '.';
+				std::printf("using temporary filename %s\n", temp_name);
+				f = fopen(temp_name, "wb+");
+			}
+			else
+			{
+				std::printf("failed to generate filename for redirecting "
+					"output: (%d) %s\n", errno, strerror(errno));
+			}
+#else
 			FILE* f = tmpfile();
+#endif
 			if (f != nullptr)
 			{
 				int ret1 = 0;
