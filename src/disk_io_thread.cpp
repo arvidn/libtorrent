@@ -3211,7 +3211,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 	void disk_io_thread::abort_jobs()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		TORRENT_ASSERT(!m_jobs_aborted.exchange(true));
+		if (m_jobs_aborted.test_and_set()) return;
 
 		jobqueue_t jobs;
 		m_disk_cache.clear(jobs);
