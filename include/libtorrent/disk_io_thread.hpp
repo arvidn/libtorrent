@@ -578,9 +578,10 @@ namespace aux {
 		// indices into m_torrents to empty slots
 		std::vector<storage_index_t> m_free_slots;
 
+		std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
+
 #if TORRENT_USE_ASSERTS
 		int m_magic = 0x1337;
-		std::atomic<bool> m_jobs_aborted{false};
 #endif
 	};
 }
