@@ -100,8 +100,9 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 
 	pack.set_str(settings_pack::listen_interfaces, peer0.to_string() + ":6881");
 
-	// create session
 	std::shared_ptr<lt::session> ses[2];
+
+	// create session
 	ses[0] = std::make_shared<lt::session>(pack, ios0);
 
 	pack.set_str(settings_pack::listen_interfaces, peer1.to_string() + ":6881");
@@ -179,6 +180,13 @@ void operator delete(void* ptr) noexcept
 {
 	std::free(ptr);
 }
+
+#ifdef __cpp_sized_deallocation
+void operator delete(void* ptr, std::size_t) noexcept
+{
+	std::free(ptr);
+}
+#endif
 
 TORRENT_TEST(error_handling)
 {

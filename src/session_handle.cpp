@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/read_resume_data.hpp"
@@ -411,7 +412,9 @@ namespace {
 		// we cannot capture a unique_ptr into a lambda in c++11, so we use a raw
 		// pointer for now. async_call uses a lambda expression to post the call
 		// to the main thread
+		// TODO: in C++14, use unique_ptr and move it into the lambda
 		auto* p = new add_torrent_params(std::move(params));
+		auto guard = aux::scope_end([p]{ delete p; });
 		p->save_path = complete(p->save_path);
 
 #if TORRENT_ABI_VERSION == 1
@@ -419,6 +422,7 @@ namespace {
 #endif
 
 		async_call(&session_impl::async_add_torrent, p);
+		guard.disarm();
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
