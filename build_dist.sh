@@ -14,8 +14,12 @@ chmod a-x docs/*.rst docs/*.htm* src/*.cpp include/libtorrent/*.hpp
 
 ./autotool.sh
 ./configure --enable-python-binding --enable-examples=yes --enable-encryption --enable-tests=yes
-make V=1 -j16 check
+make dist
 
-./configure --enable-python-binding --enable-examples=yes --enable-encryption
-make V=1 -j16 dist
+VERSION=1.2.0
+
+tar xvzf libtorrent-rasterbar-${VERSION}.tar.gz
+cd libtorrent-rasterbar-${VERSION}/test
+
+bjam link=static $1
 

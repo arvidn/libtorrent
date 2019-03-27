@@ -108,6 +108,7 @@ TEST_TORRENTS = \
   slash_path3.torrent \
   string.torrent \
   symlink1.torrent \
+  symlink2.torrent \
   symlink_zero_size.torrent \
   unaligned_pieces.torrent \
   unordered.torrent \
@@ -118,6 +119,7 @@ TEST_TORRENTS = \
   url_seed_multi.torrent \
   url_seed_multi_space.torrent \
   url_seed_multi_space_nolist.torrent \
+  url_seed_multi_single_file.torrent \
   whitespace_url.torrent
 
 MUTABLE_TEST_TORRENTS = \
