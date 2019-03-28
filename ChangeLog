@@ -1,3 +1,4 @@
+	* pick contiguous pieces from peers with high download rate
 	* fix error handling of moving storage to a drive letter that isn't mounted
 	* fix HTTP Host header when using proxy
 
