@@ -40,6 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #endif
 
+#if TORRENT_BROKEN_RANDOM_DEVICE
+#include "libtorrent/time.hpp"
+#include <atomic>
+#endif
+
 #if TORRENT_USE_CRYPTOAPI
 #include "libtorrent/aux_/win_crypto_provider.hpp"
 
@@ -67,7 +72,8 @@ namespace {
 }
 #endif
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 
 		std::mt19937& random_engine()
 		{
@@ -76,7 +82,18 @@ namespace libtorrent { namespace aux {
 			static std::mt19937 rng(0x82daf973);
 #else
 
+#if TORRENT_BROKEN_RANDOM_DEVICE
+			struct {
+				std::uint32_t operator()() const
+				{
+					static std::atomic<std::uint32_t> seed{static_cast<std::uint32_t>(duration_cast<microseconds>(
+						std::chrono::high_resolution_clock::now().time_since_epoch()).count())};
+					return seed++;
+				}
+			} dev;
+#else
 			static std::random_device dev;
+#endif
 #ifdef BOOST_NO_CXX11_THREAD_LOCAL
 			static std::mt19937 rng(dev());
 #else
