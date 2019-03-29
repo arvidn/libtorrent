@@ -138,8 +138,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0_pri);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "setting priorities: ";
-	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<download_priority_t>(std::cout, ", "));
-	std::cout << std::endl;
+	for (auto p : priorities) std::cout << int(static_cast<std::uint8_t>(p)) << " ";
+	std::cout << '\n';
 
 	for (int i = 0; i < 200; ++i)
 	{
@@ -171,10 +171,18 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);
 
-		if (peer_disconnects >= 2) break;
+		if (peer_disconnects >= 2)
+		{
+			std::printf("too many disconnects (%d), exiting\n", peer_disconnects);
+			break;
+		}
 
-		// if nothing is being transferred after 2 seconds, we're failing the test
-		if (st1.upload_payload_rate == 0 && i > 20) break;
+		// if nothing is being transferred after 3 seconds, we're failing the test
+		if (st1.upload_payload_rate == 0 && i > 30)
+		{
+			std::cout << "no upload in " << (i / 10) << " seconds, failing\n";
+			break;
+		}
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
