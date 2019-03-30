@@ -1521,7 +1521,7 @@ namespace libtorrent {
 		if (r.piece < piece_index_t{}
 			|| r.piece >= t->torrent_file().files().end_piece()
 			|| r.start < 0
-			|| r.start >= block_size
+			|| r.start >= t->torrent_file().piece_length()
 			|| (r.start % block_size) != 0
 			|| r.length != std::min(t->torrent_file().piece_size(r.piece) - r.start, block_size))
 		{

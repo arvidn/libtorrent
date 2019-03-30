@@ -132,6 +132,11 @@ private:
 	std::int16_t m_responses = 0;
 	std::int16_t m_timeouts = 0;
 
+	// set to true when done() is called, and will prevent adding new results, as
+	// they would never be serviced and the whole traversal algorithm would stall
+	// and leak
+	bool m_done = false;
+
 #ifndef TORRENT_DISABLE_LOGGING
 	// this is a unique ID for this specific traversal_algorithm instance,
 	// just used for logging

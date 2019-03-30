@@ -1,6 +1,7 @@
 	* requires boost >= 1.66 to build
 	* update networking API to networking TS compatible boost.asio
 
+	* fix create_torrent python binding
 	* update symlinks to conform to BEP 47
 	* fix python bindings for peer_info
 	* support creating symlinks, for torrents with symlinks in them

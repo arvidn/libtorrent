@@ -84,7 +84,7 @@ void peer_conn::on_connect(error_code const& ec)
 	char* h = static_cast<char*>(malloc(sizeof(handshake)));
 	memcpy(h, handshake, sizeof(handshake));
 	std::memcpy(h + 28, m_ti.info_hash().data(), 20);
-	std::generate(h + 48, h + 68, &rand);
+	lt::aux::random_bytes({h + 48, 20});
 	// for seeds, don't send the interested message
 	boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1)
 		- (m_mode == peer_mode_t::uploader ? 5 : 0))

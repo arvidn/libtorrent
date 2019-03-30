@@ -45,7 +45,7 @@ def substitute_file(name):
             line = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
         elif line.startswith('VERSION = ') and name.endswith('Jamfile'):
             line = 'VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
-        elif 'VERSION=' in line and name.endswith('Makefile'):
+        elif 'VERSION=' in line and (name.endswith('Makefile') or name.endswith('build_dist.sh')):
             line = 'VERSION=%d.%d.%d\n' % (version[0], version[1], version[2])
         elif 'version=' in line and name.endswith('setup.py'):
             line = "    version='%d.%d.%d',\n" % (version[0], version[1], version[2])
@@ -63,6 +63,7 @@ def substitute_file(name):
 substitute_file('include/libtorrent/version.hpp')
 substitute_file('Makefile')
 substitute_file('CMakeLists.txt')
+substitute_file('build_dist.sh')
 substitute_file('bindings/python/setup.py')
 substitute_file('docs/gen_reference_doc.py')
 substitute_file('src/settings_pack.cpp')

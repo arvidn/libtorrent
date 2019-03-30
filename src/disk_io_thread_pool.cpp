@@ -71,7 +71,6 @@ namespace libtorrent {
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		if (m_abort) return;
-		m_max_threads = 0;
 		m_abort = true;
 		m_idle_timer.cancel();
 		stop_threads(int(m_threads.size()));

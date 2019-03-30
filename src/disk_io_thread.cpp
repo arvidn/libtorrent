@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #include <functional>
 #include <condition_variable>
@@ -65,6 +66,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #define DEBUG_DISK_THREAD 0
+
+namespace libtorrent {
+char const* job_name(job_action_t const job);
+}
 
 #if DEBUG_DISK_THREAD
 #include <cstdarg> // for va_list
@@ -85,6 +90,14 @@ namespace {
 	{
 		static std::mutex log_mutex;
 		static const time_point start = clock_type::now();
+		// map thread IDs to low numbers
+		static std::unordered_map<std::thread::id, int> thread_ids;
+
+		std::thread::id const self = std::this_thread::get_id();
+
+		std::unique_lock<std::mutex> l(log_mutex);
+		auto it = thread_ids.insert({self, int(thread_ids.size())}).first;
+
 		va_list v;
 		va_start(v, fmt);
 
@@ -95,16 +108,15 @@ namespace {
 		if (!prepend_time)
 		{
 			prepend_time = (usr[len-1] == '\n');
-			std::unique_lock<std::mutex> l(log_mutex);
 			fputs(usr, stderr);
 			return;
 		}
 		va_end(v);
 		char buf[2300];
 		int const t = int(total_milliseconds(clock_type::now() - start));
-		std::snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);
+		std::snprintf(buf, sizeof(buf), "\x1b[3%dm%05d: [%d] %s\x1b[0m"
+			, (it->second % 7) + 1, t, it->second, usr);
 		prepend_time = (usr[len-1] == '\n');
-		std::unique_lock<std::mutex> l(log_mutex);
 		fputs(buf, stderr);
 	}
 
@@ -341,9 +353,10 @@ private:
 	// indices into m_torrents to empty slots
 	std::vector<storage_index_t> m_free_slots;
 
+	std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
+
 #if TORRENT_USE_ASSERTS
 	int m_magic = 0x1337;
-	std::atomic<bool> m_jobs_aborted{false};
 #endif
 };
 
@@ -404,18 +417,28 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		DLOG("destructing disk_io_thread\n");
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_magic = 0xdead;
+		TORRENT_ASSERT(m_generic_io_jobs.m_queued_jobs.empty());
+		TORRENT_ASSERT(m_hash_io_jobs.m_queued_jobs.empty());
 	}
 #endif
 
 	void disk_io_thread::abort(bool const wait)
 	{
+		DLOG("disk_io_thread::abort: (%d)\n", int(wait));
+
+		// first make sure queued jobs have been submitted
+		// otherwise the queue may not get processed
+		submit_jobs();
+
 		// abuse the job mutex to make setting m_abort and checking the thread count atomic
 		// see also the comment in thread_fun
 		std::unique_lock<std::mutex> l(m_job_mutex);
 		if (m_abort.exchange(true)) return;
-		bool const no_threads = m_num_running_threads == 0;
+		bool const no_threads = m_generic_threads.num_threads() == 0
+			&& m_hash_threads.num_threads() == 0;
 		// abort outstanding jobs belonging to this torrent
 
+		DLOG("aborting hash jobs\n");
 		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
 			i.get()->flags |= disk_io_job::aborted;
 		l.unlock();
@@ -427,6 +450,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			abort_jobs();
 		}
 
+		DLOG("aborting thread pools\n");
 		// even if there are no threads it doesn't hurt to abort the pools
 		// it prevents threads from being started after an abort which is a good
 		// defensive programming measure
@@ -444,6 +468,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
 		// add one hasher thread for every three generic threads
 		int const num_hash_threads = num_threads / hasher_thread_divisor;
+
+		DLOG("set_max_threads(%d, %d)\n", num_threads - num_hash_threads
+			, num_hash_threads);
 		m_generic_threads.set_max_threads(num_threads - num_hash_threads);
 		m_hash_threads.set_max_threads(num_hash_threads);
 	}
@@ -680,7 +707,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// this means the job was queued up inside storage
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
+				, job_name(j->action), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));
 		}
 		else
@@ -719,7 +746,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// this means the job was queued up inside storage
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
+				, job_name(j->action), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));
 			return exceeded;
 		}
@@ -1071,7 +1098,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(!m_abort);
 
 		DLOG("add_fence:job: %s (outstanding: %d)\n"
-			, job_action_name[j->action]
+			, job_name(j->action)
 			, j->storage->num_outstanding_jobs());
 
 		m_stats_counters.inc_stats_counter(counters::num_fenced_read + static_cast<int>(j->action));
@@ -1126,7 +1153,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 
 		DLOG("add_job: %s (outstanding: %d)\n"
-			, job_action_name[j->action]
+			, job_name(j->action)
 			, j->storage ? j->storage->num_outstanding_jobs() : 0);
 
 		// is the fence up for this storage?
@@ -1138,7 +1165,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
+				, job_name(j->action), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));
 			return;
 		}
@@ -1245,15 +1272,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, disk_io_thread_pool& pool)
 	{
 		std::thread::id const thread_id = std::this_thread::get_id();
-#if DEBUG_DISK_THREAD
-		std::stringstream thread_id_str;
-		thread_id_str << thread_id;
-#endif
 
-		DLOG("started disk thread %s\n", thread_id_str.str().c_str());
+		DLOG("started disk thread\n");
 
 		std::unique_lock<std::mutex> l(m_job_mutex);
-		if (m_abort) return;
 
 		++m_num_running_threads;
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, 1);
@@ -1299,8 +1321,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
 		if (--m_num_running_threads > 0 || !m_abort)
 		{
-			DLOG("exiting disk thread %s. num_threads: %d aborting: %d\n"
-				, thread_id_str.str().c_str(), num_threads(), int(m_abort));
+			DLOG("exiting disk thread. num_threads: %d aborting: %d\n"
+				, num_threads(), int(m_abort));
 			TORRENT_ASSERT(m_magic == 0x1337);
 			return;
 		}
@@ -1321,7 +1343,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// for shut down after all peers have shut down (see
 		// session_impl::abort_stage2()).
 
-		DLOG("disk thread %s is the last one alive. cleaning up\n", thread_id_str.str().c_str());
+		DLOG("the last disk thread alive. cleaning up\n");
 
 		abort_jobs();
 
@@ -1330,8 +1352,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void disk_io_thread::abort_jobs()
 	{
+		DLOG("disk_io_thread::abort_jobs\n");
+
 		TORRENT_ASSERT(m_magic == 0x1337);
-		TORRENT_ASSERT(!m_jobs_aborted.exchange(true));
+		if (m_jobs_aborted.test_and_set()) return;
 
 		// close all files. This may take a long
 		// time on certain OSes (i.e. Mac OS)
@@ -1459,7 +1483,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			TORRENT_ASSERT(j->job_posted == true);
 			TORRENT_ASSERT(j->callback_called == false);
-//			DLOG("   callback: %s\n", job_action_name[j->action]);
+//			DLOG("   callback: %s\n", job_name(j->action));
 			disk_io_job* next = j->next;
 
 #if TORRENT_USE_ASSERTS

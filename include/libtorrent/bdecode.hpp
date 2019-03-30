@@ -161,6 +161,9 @@ TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 namespace detail {
 
 // internal
+void escape_string(std::string& ret, char const* str, int len);
+
+// internal
 struct bdecode_token
 {
 	// the node with type 'end' is a logical node, pointing to the end

@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
+#include "libtorrent/random.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -145,8 +146,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 void write_test_file()
 {
-	std::srand(unsigned(std::time(nullptr)));
-	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+	aux::random_bytes(data_buffer);
 	error_code ec;
 	file test_file("test_file", aux::open_mode::write, ec);
 	TEST_CHECK(!ec);
