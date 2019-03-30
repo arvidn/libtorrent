@@ -434,6 +434,10 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 		}
 		else
 		{
+			// the socket may have an outstanding operation, that keeps the
+			// http_connection object alive. We want to cancel all that.
+			error_code ec;
+			c->m_sock.close(ec);
 			c->callback(boost::asio::error::timed_out);
 			return;
 		}
@@ -602,7 +606,7 @@ void http_connection::connect()
 	TORRENT_ASSERT(!m_connecting);
 	m_connecting = true;
 	m_sock.async_connect(target_address, std::bind(&http_connection::on_connect
-		, shared_from_this(), _1));
+		, me, _1));
 }
 
 void http_connection::on_connect(error_code const& e)
@@ -629,6 +633,8 @@ void http_connection::on_connect(error_code const& e)
 	}
 	else
 	{
+		error_code ec;
+		m_sock.close(ec);
 		callback(e);
 	}
 }
@@ -783,7 +789,7 @@ void http_connection::on_read(error_code const& e
 				// it would be nice to gracefully shut down SSL here
 				// but then we'd have to do all the reconnect logic
 				// in its handler. For now, just kill the connection.
-//				async_shutdown(m_sock, shared_from_this());
+//				async_shutdown(m_sock, me);
 				m_sock.close(ec);
 
 				std::string url = resolve_redirect_location(m_url, location);
