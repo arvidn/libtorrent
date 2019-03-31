@@ -489,10 +489,6 @@ namespace libtorrent {
 		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
 #endif
 
-		// initialize the piece layer for a file
-		// piece_layer must be an array of the complete piece layer hashes
-		void set_piece_layer(file_index_t index, char const* piece_layer);
-
 		// ``name()`` returns the name of the torrent.
 		// name contains UTF-8 encoded string.
 		const std::string& name() const { return m_files.name(); }
