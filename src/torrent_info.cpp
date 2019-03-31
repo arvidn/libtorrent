@@ -1469,19 +1469,16 @@ namespace {
 
 		if (!e || e.type() != bdecode_node::dict_t)
 		{
-			m_files.set_piece_length(0);
 			ec = errors::torrent_missing_piece_layer;
 			return false;
 		}
 
 		for (int i = 0; i < e.dict_size(); ++i)
 		{
-			auto f = e.dict_at(i);
-			if (f.first.size() != sha256_hash::size())
-				continue;
-			if (f.second.type() != bdecode_node::string_t)
-				continue;
-			if (f.second.string_length() % sha256_hash::size() != 0)
+			auto const f = e.dict_at(i);
+			if (f.first.size() != sha256_hash::size()
+				|| f.second.type() != bdecode_node::string_t
+				|| f.second.string_length() % sha256_hash::size() != 0)
 				continue;
 
 			piece_layers.emplace(sha256_hash(f.first), f.second.string_value());
@@ -1496,11 +1493,9 @@ namespace {
 
 			auto& tree = m_merkle_trees[i];
 
-			auto piece_layer = piece_layers.find(m_files.root(i));
+			auto const piece_layer = piece_layers.find(m_files.root(i));
 			if (piece_layer == piece_layers.end())
 			{
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
 				ec = errors::torrent_missing_piece_layer;
 				return false;
 			}
@@ -1514,8 +1509,6 @@ namespace {
 
 			if (piece_layer->second.size() != num_pieces * sha256_hash::size())
 			{
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
 				ec = errors::torrent_invalid_piece_layer;
 				return false;
 			}
@@ -1532,8 +1525,6 @@ namespace {
 
 			if (tree[0] != m_files.root(i))
 			{
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
 				ec = errors::torrent_invalid_piece_layer;
 				return false;
 			}
@@ -1590,7 +1581,11 @@ namespace {
 		resolve_duplicate_filenames();
 
 		if (m_info_hash.has_v2() && !parse_piece_layers(torrent_file.dict_find_dict("piece layers"), ec))
+		{
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
 			return false;
+		}
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		bdecode_node const similar = torrent_file.dict_find_list("similar");

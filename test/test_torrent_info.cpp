@@ -176,6 +176,10 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_deep_recursion.torrent", errors::torrent_file_parse_failed},
 	{ "v2_no_piece_layers.torrent", errors::torrent_missing_piece_layer},
 	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
+	{ "v2_non_multiple_piece_layer.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_invalid_piece_layer.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
 };
 
 } // anonymous namespace
