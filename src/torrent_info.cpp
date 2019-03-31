@@ -1160,25 +1160,6 @@ namespace {
 		return m_info_dict.dict_find_string_value("ssl-cert");
 	}
 
-	void torrent_info::set_piece_layer(file_index_t index, char const* piece_layer)
-	{
-		if (m_merkle_trees.empty())
-			m_merkle_trees.resize(orig_files().num_files());
-
-		auto const file_leafs = merkle_num_leafs(int((orig_files().file_size(index) + default_block_size - 1) / default_block_size));
-		m_merkle_trees[index].resize(merkle_num_nodes(file_leafs));
-
-		auto const file_piece_nodes = merkle_num_leafs(orig_files().file_num_pieces(index));
-		auto const first_piece = merkle_num_nodes(file_piece_nodes) - file_piece_nodes;
-
-		for (int p = 0; p < orig_files().file_num_pieces(index); ++p)
-		{
-			auto& e = m_merkle_trees[index][first_piece + p];
-			e.assign(piece_layer);
-			piece_layer += e.size();
-		}
-	}
-
 	bool torrent_info::parse_info_section(bdecode_node const& info
 		, error_code& ec)
 	{
