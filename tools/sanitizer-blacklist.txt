@@ -1,0 +1,4 @@
+# this function relies on implicit integer truncation
+fun:_ZN5boost6detail10crc_helper*index*
+fun:_ZN3std*mersenne_twister_engine*
+
