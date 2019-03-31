@@ -965,7 +965,11 @@ TEST_TORRENTS = \
   v2_no_power2_piece.torrent \
   v2_deep_recursion.torrent \
   v2_no_piece_layers.torrent \
-  v2_large_offset.torrent
+  v2_large_offset.torrent \
+  v2_non_multiple_piece_layer.torrent \
+  v2_piece_layer_invalid_file_hash.torrent \
+  v2_invalid_piece_layer.torrent \
+  v2_invalid_piece_layer_size.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \
