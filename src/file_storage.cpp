@@ -1005,14 +1005,26 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
-		return int((m_files[index].size + m_piece_length - 1) / m_piece_length);
+		auto const& f = m_files[index];
+
+		// this function only works for v2 torrents, where files are guaranteed to
+		// be aligned to pieces
+		TORRENT_ASSERT(f.pad_file == false);
+		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
+		return int((f.size + m_piece_length - 1) / m_piece_length);
 	}
 
 	int file_storage::file_num_blocks(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
-		return int((m_files[index].size + default_block_size - 1) / default_block_size);
+		auto const& f = m_files[index];
+
+		// this function only works for v2 torrents, where files are guaranteed to
+		// be aligned to pieces
+		TORRENT_ASSERT(f.pad_file == false);
+		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
+		return int((f.size + default_block_size - 1) / default_block_size);
 	}
 
 	int file_storage::file_first_piece_node(file_index_t index) const

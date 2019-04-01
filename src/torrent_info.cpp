@@ -1041,6 +1041,7 @@ namespace {
 
 		for (file_index_t i{0}; i < m_merkle_trees.end_index(); ++i)
 		{
+			if (m_files.pad_file_at(i)) continue;
 			auto& f = m_merkle_trees[i];
 			if (f.empty() && orig_files().file_size(i) > 0)
 			{
