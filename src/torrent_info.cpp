@@ -1120,7 +1120,7 @@ namespace {
 			auto& f = m_merkle_trees[i];
 			if (f.empty() && orig_files().file_size(i) > 0)
 			{
-				auto const leafs = merkle_num_leafs(int((orig_files().file_size(i) + default_block_size - 1) / default_block_size));
+				auto const leafs = merkle_num_leafs(orig_files().file_num_blocks(i));
 				f.resize(merkle_num_nodes(leafs));
 				f[0] = orig_files().root(i);
 			}
@@ -1136,7 +1136,7 @@ namespace {
 
 		if (m_merkle_trees[file].empty() && orig_files().file_size(file) > 0)
 		{
-			auto const leafs = merkle_num_leafs(int((orig_files().file_size(file) + default_block_size - 1) / default_block_size));
+			auto const leafs = merkle_num_leafs(orig_files().file_num_blocks(file));
 			m_merkle_trees[file].resize(merkle_num_nodes(leafs));
 			m_merkle_trees[file][0] = orig_files().root(file);
 		}
@@ -1501,7 +1501,7 @@ namespace {
 			}
 
 			int const num_pieces = m_files.file_num_pieces(i);
-			int const num_blocks = int((m_files.file_size(i) + default_block_size - 1) / default_block_size);
+			int const num_blocks = m_files.file_num_blocks(i);
 			int const piece_layer_size = merkle_num_leafs(num_pieces);
 			int const num_leafs = merkle_num_leafs(num_blocks);
 			int const num_nodes = merkle_num_nodes(num_leafs);

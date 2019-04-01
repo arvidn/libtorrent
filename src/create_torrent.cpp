@@ -173,12 +173,13 @@ namespace {
 
 				auto const file_piece_offset = piece - file_first_piece;
 				auto const file_size = st->ct.files().file_size(current_file);
+				auto const file_blocks = st->ct.files().file_num_blocks(current_file);
 				int const piece_blocks = (st->ct.files().piece_size2(piece) + default_block_size - 1) / default_block_size;
 				// If the file is smaller than one piece then the block hashes
 				// should be padded to the next power of two instead of the next
 				// piece boundary.
 				int const paded_leaves = file_size < st->ct.piece_length()
-					? merkle_num_leafs(int((file_size + default_block_size - 1) / default_block_size))
+					? merkle_num_leafs(file_blocks)
 					: st->ct.piece_length() / default_block_size;
 
 				TORRENT_ASSERT(paded_leaves <= int(v2_blocks.size()));
