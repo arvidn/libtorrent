@@ -459,8 +459,8 @@ namespace libtorrent {
 		sha1_hash hash_for_piece(piece_index_t index) const;
 		char const* hash_for_piece_ptr(piece_index_t const index) const
 		{
-			TORRENT_ASSERT(index >= piece_index_t(0));
-			TORRENT_ASSERT(index < m_files.end_piece());
+			TORRENT_ASSERT_PRECOND(index >= piece_index_t(0));
+			TORRENT_ASSERT_PRECOND(index < m_files.end_piece());
 			TORRENT_ASSERT(is_loaded());
 			int const idx = static_cast<int>(index);
 			if (is_merkle_torrent())
