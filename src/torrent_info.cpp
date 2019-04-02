@@ -1223,8 +1223,15 @@ namespace libtorrent
 			return false;
 		}
 
+		// this is an arbitrary limit to avoid malicious torrents causing
+		// unreasaonably large allocations for the merkle hash tree
+		// the size of the tree would be max_pieces * sizeof(int) * 2
+		// which is about 6.3 MB with this limit
+		const int max_pieces = 0xC0000;
+
 		// we expect the piece hashes to be < 2 GB in size
-		if (files.num_pieces() >= std::numeric_limits<int>::max() / 20)
+		if (files.num_pieces() >= std::numeric_limits<int>::max() / 20
+			|| files.num_pieces() > max_pieces)
 		{
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid
