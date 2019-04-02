@@ -140,6 +140,7 @@ static test_torrent_t test_torrents[] =
 	{ "v2_multipiece_file.torrent" },
 	{ "v2_only.torrent" },
 	{ "v2_invalid_filename.torrent" },
+	{ "v2_multiple_files.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -180,6 +181,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_missing_piece_layer},
 	{ "v2_invalid_piece_layer.torrent", errors::torrent_missing_piece_layer},
 	{ "v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
+	{ "v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
 };
 
 } // anonymous namespace
@@ -912,6 +914,11 @@ TORRENT_TEST(parse_torrents)
 			auto pieces = ti->file_merkle_tree(file_index_t{0});
 			TEST_CHECK(std::all_of(pieces.begin() + 1, pieces.end(), [](sha256_hash const& c)
 			{ return c.is_all_zeros(); }));
+		}
+		else if (t.file == "v2_multiple_files.torrent"_sv)
+		{
+			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+			TEST_EQUAL(ti->num_files(), 5);
 		}
 
 		file_storage const& fs = ti->files();
