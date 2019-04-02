@@ -360,7 +360,7 @@ list get_download_queue(torrent_handle& handle)
 
     {
         allow_threading_guard guard;
-        handle.get_download_queue(downloading);
+        downloading = handle.get_download_queue();
     }
 
     for (std::vector<partial_piece_info>::iterator i = downloading.begin()
