@@ -342,10 +342,11 @@ namespace aux {
 		// what to *include* are defined in the status_flags_t enum.
 		torrent_status status(status_flags_t flags = status_flags_t::all()) const;
 
-		// ``get_download_queue()`` takes a non-const reference to a vector which
-		// it will fill with information about pieces that are partially
-		// downloaded or not downloaded at all but partially requested. See
-		// partial_piece_info for the fields in the returned vector.
+		// ``get_download_queue()`` returns a vector with information about pieces
+		// that are partially downloaded or not downloaded but partially
+		// requested. See partial_piece_info for the fields in the returned
+		// vector.
+		std::vector<partial_piece_info> get_download_queue() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 		// used to ask libtorrent to send an alert once the piece has been

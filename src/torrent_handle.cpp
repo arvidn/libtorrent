@@ -792,6 +792,13 @@ namespace libtorrent {
 		sync_call(&torrent::get_download_queue, queuep);
 	}
 
+	std::vector<partial_piece_info> torrent_handle::get_download_queue() const
+	{
+		std::vector<partial_piece_info> queue;
+		sync_call(&torrent::get_download_queue, &queue);
+		return queue;
+	}
+
 	void torrent_handle::set_piece_deadline(piece_index_t index, int deadline
 		, deadline_flags_t const flags) const
 	{

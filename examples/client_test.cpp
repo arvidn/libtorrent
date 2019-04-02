@@ -1313,7 +1313,6 @@ example alert_masks:
 
 	// main loop
 	std::vector<lt::peer_info> peers;
-	std::vector<lt::partial_piece_info> queue;
 
 #ifndef _WIN32
 	signal(SIGTERM, signal_handler);
@@ -1753,7 +1752,7 @@ COLUMN OPTIONS
 
 			if (print_downloads)
 			{
-				h.get_download_queue(queue);
+				std::vector<lt::partial_piece_info> queue = h.get_download_queue();
 
 				int p = 0; // this is horizontal position
 				for (lt::partial_piece_info const& i : queue)
