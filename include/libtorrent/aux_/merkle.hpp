@@ -42,15 +42,37 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT int merkle_to_flat_index(int layer, int offset);
+
+	// given the number of blocks, how many leaves do we need? this rounds up to
+	// an even power of 2
 	TORRENT_EXTRA_EXPORT int merkle_num_leafs(int);
+
+	// returns the number of nodes in the tree, given the number of leaves
 	TORRENT_EXTRA_EXPORT int merkle_num_nodes(int);
-	// does not include the root node in the layer count
+
+	// takes the number of leaves and returns the height of the merkle tree.
+	// does not include the root node in the layer count. i.e. if there's only a
+	// root hash, there are 0 layerrs. Note that the number of leaves must be
+	// valid, i.e. a power of 2.
 	TORRENT_EXTRA_EXPORT int merkle_num_layers(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_sibling(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_first_child(int);
-	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf = 0);
-	TORRENT_EXTRA_EXPORT void merkle_clear_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf = 0);
+
+	// given a tree and the number of leaves, expect all leaf hashes to be set and
+	// compute all other hashes starting with the leaves.
+	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs, int level_start);
+	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs);
+
+	// given a merkle tree (`tree`), clears all hashes in the range of nodes:
+	// [ first_leaf, first_leaf + num_leafs), as well as all of their parents,
+	// within the sub-tree. It does not clear the root of the sub-tree.
+	// see unit test for examples.
+	TORRENT_EXTRA_EXPORT void merkle_clear_tree(span<sha256_hash> tree, int num_leafs, int first_leaf);
+
+	// given the leaf hashes, computes the merkle root hash. The pad is the hash
+	// to use for the right-side padding, in case the number of leaves is not a
+	// power of two.
 	TORRENT_EXTRA_EXPORT sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad = {});
 
 	// given a flat index, return which layer the node is in

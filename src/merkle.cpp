@@ -36,6 +36,8 @@ namespace libtorrent {
 
 	int merkle_to_flat_index(int const layer, int const offset)
 	{
+		TORRENT_ASSERT(layer >= 0);
+		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(layer < int(sizeof(int) * 8));
 		return (1 << layer) - 1 + offset;
 	}
@@ -95,9 +97,16 @@ namespace libtorrent {
 		return layers;
 	}
 
-	void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf)
+	void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs)
 	{
-		int level_start = first_leaf ? first_leaf : merkle_num_nodes(num_leafs) - num_leafs;
+		merkle_fill_tree(tree, num_leafs, merkle_num_nodes(num_leafs) - num_leafs);
+	}
+
+	void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs, int level_start)
+	{
+		TORRENT_ASSERT(level_start >= 0);
+		TORRENT_ASSERT(num_leafs >= 1);
+
 		int level_size = num_leafs;
 		while (level_size > 1)
 		{
@@ -115,9 +124,15 @@ namespace libtorrent {
 		TORRENT_ASSERT(level_size == 1);
 	}
 
-	void merkle_clear_tree(span<sha256_hash> tree, int const num_leafs, int const first_leaf)
+	void merkle_clear_tree(span<sha256_hash> tree, int const num_leafs, int level_start)
 	{
-		int level_start = first_leaf ? first_leaf : merkle_num_nodes(num_leafs) - num_leafs;
+		TORRENT_ASSERT(num_leafs >= 1);
+		TORRENT_ASSERT(level_start > 0);
+		TORRENT_ASSERT(level_start < tree.size());
+		TORRENT_ASSERT(level_start + num_leafs <= tree.size());
+		// the range of nodes must be within a single level
+		TORRENT_ASSERT(merkle_get_layer(level_start) == merkle_get_layer(level_start + num_leafs - 1));
+
 		int level_size = num_leafs;
 		while (level_size > 1)
 		{
