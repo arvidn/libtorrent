@@ -118,20 +118,24 @@ namespace {
 
 }
 
-	int file_storage::piece_size2(piece_index_t index) const
+	int file_storage::piece_size2(piece_index_t const index) const
 	{
-		TORRENT_ASSERT(index >= piece_index_t(0) && index < end_piece());
+		TORRENT_ASSERT_PRECOND(index >= piece_index_t{} && index < end_piece());
 		// find the file iterator and file offset
 		internal_file_entry target;
 		target.offset = aux::numeric_cast<std::uint64_t>(piece_length()) * static_cast<int>(index);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
-		auto file_iter = std::upper_bound(
+		auto const file_iter = std::upper_bound(
 			m_files.begin(), m_files.end(), target, compare_file_offset);
 
 		TORRENT_ASSERT(file_iter != m_files.begin());
 		if (file_iter == m_files.end()) return piece_size(index);
-		return int(std::min<std::uint64_t>(unsigned(piece_length()), file_iter->offset - target.offset));
+
+		// this static cast is safe because the resulting value is capped by
+		// piece_length(), which fits in an int
+		return static_cast<int>(
+			std::min(static_cast<std::uint64_t>(piece_length()), file_iter->offset - target.offset));
 	}
 
 	// path is not supposed to include the name of the torrent itself.
@@ -615,11 +619,12 @@ namespace {
 	}
 
 	void file_storage::add_file(std::string const& path, std::int64_t file_size
-		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path)
+		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path
+		, char const* root_hash)
 	{
 		error_code ec;
 		add_file_borrow(ec, {}, path, file_size, file_flags, nullptr, mtime
-			, symlink_path);
+			, symlink_path, root_hash);
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 
@@ -635,11 +640,12 @@ namespace {
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 
-	void file_storage::add_file(error_code& ec, std::string const& path, std::int64_t file_size
-		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path)
+	void file_storage::add_file(error_code& ec, std::string const& path
+		, std::int64_t file_size, file_flags_t const file_flags, std::time_t mtime
+		, string_view symlink_path, char const* root_hash)
 	{
 		add_file_borrow(ec, {}, path, file_size, file_flags, nullptr, mtime
-			, symlink_path);
+			, symlink_path, root_hash);
 	}
 
 	void file_storage::add_file_borrow(error_code& ec, string_view filename
@@ -999,14 +1005,26 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
-		return int((m_files[index].size + m_piece_length - 1) / m_piece_length);
+		auto const& f = m_files[index];
+
+		// this function only works for v2 torrents, where files are guaranteed to
+		// be aligned to pieces
+		TORRENT_ASSERT(f.pad_file == false);
+		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
+		return int((f.size + m_piece_length - 1) / m_piece_length);
 	}
 
 	int file_storage::file_num_blocks(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
-		return int((m_files[index].size + default_block_size - 1) / default_block_size);
+		auto const& f = m_files[index];
+
+		// this function only works for v2 torrents, where files are guaranteed to
+		// be aligned to pieces
+		TORRENT_ASSERT(f.pad_file == false);
+		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
+		return int((f.size + default_block_size - 1) / default_block_size);
 	}
 
 	int file_storage::file_first_piece_node(file_index_t index) const

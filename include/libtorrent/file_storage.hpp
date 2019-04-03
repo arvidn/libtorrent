@@ -288,7 +288,8 @@ namespace libtorrent {
 			, char const* root_hash = nullptr);
 		void add_file(std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
-			, std::time_t mtime = 0, string_view symlink_path = string_view());
+			, std::time_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
 		void add_file_borrow(error_code& ec, string_view filename
 			, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}, char const* filehash = nullptr
@@ -296,7 +297,8 @@ namespace libtorrent {
 			, char const* root_hash = nullptr);
 		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
-			, std::time_t mtime = 0, string_view symlink_path = string_view());
+			, std::time_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
 
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
 		// that filenames are expected to be UTF-8 encoded.
@@ -421,8 +423,10 @@ namespace libtorrent {
 		// for the last piece, which may be shorter.
 		int piece_size(piece_index_t index) const;
 
-		// return the size of the piece which contains the file the piece starts with
-		// this is only meaningful for v2 metadata
+		// Returns the size of the given piece. If the piece spans multiple files,
+		// only the first file is considered part of the piece. This is used for
+		// v2 torrents, where all files are piece aligned and padded. i.e. The pad
+		// files are not considered part of the piece for this purpose.
 		int piece_size2(piece_index_t index) const;
 
 		// set and get the name of this torrent. For multi-file torrents, this is also
@@ -475,9 +479,15 @@ namespace libtorrent {
 		bool pad_file_at(file_index_t index) const;
 		std::int64_t file_offset(file_index_t index) const;
 
-		// only meaningful for v2 torrents
+		// Returns the number of pieces or blocks the file at `index` spans,
+		// under the assumption that the file is aligned to the start of a piece.
+		// This is only meaningful for v2 torrents, where files are guaranteed
+		// such alignment.
+		// These numbers are used to size and navigate the merkle hash tree for
+		// each file.
 		int file_num_pieces(file_index_t index) const;
 		int file_num_blocks(file_index_t index) const;
+
 		// index of first piece node in the merkle tree
 		int file_first_piece_node(file_index_t index) const;
 		int file_first_block_node(file_index_t index) const;

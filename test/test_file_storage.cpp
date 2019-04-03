@@ -627,6 +627,93 @@ TORRENT_TEST(large_filename)
 	TEST_EQUAL(ec, make_error_code(boost::system::errc::filename_too_long));
 }
 
+TORRENT_TEST(piece_size2)
+{
+	file_storage fs;
+	fs.set_piece_length(0x8000);
+	// passing in a root hash (the last argument) makes it follow v2 rules, to
+	// add pad files
+	fs.add_file("test/0", 0x5000, {}, 0, {}, "01234567890123456789012345678901");
+
+	fs.set_num_pieces((fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+	TEST_EQUAL(fs.num_pieces(), 1);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{0}), 0x5000);
+
+	fs.add_file("test/1", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
+
+	fs.set_num_pieces((fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+	TEST_EQUAL(fs.num_pieces(), 3);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{2}), 0x8000);
+
+	fs.add_file("test/3", 8, {}, 0, {}, "01234567890123456789012345678901");
+
+	fs.set_num_pieces((fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+	TEST_EQUAL(fs.num_pieces(), 4);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{0}), 0x5000);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{1}), 0x2000);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{2}), 0x8000);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{3}), 8);
+
+	fs.add_file("test/4", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
+
+	fs.set_num_pieces((fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+	TEST_EQUAL(fs.num_pieces(), 6);
+
+	TEST_EQUAL(fs.piece_size2(piece_index_t{0}), 0x5000);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{1}), 0x2000);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{2}), 0x8000);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{3}), 8);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{4}), 0x8000);
+	TEST_EQUAL(fs.piece_size2(piece_index_t{5}), 1);
+}
+
+TORRENT_TEST(file_num_blocks)
+{
+	file_storage fs;
+	fs.set_piece_length(0x8000);
+	fs.add_file("test/0", 0x5000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/1", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/3", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/4", 1, {}, 0, {}, "01234567890123456789012345678901");
+
+	// generally the number of blocks in a file is:
+	// (file_size + lt::default_block_size - 1) / lt::default_block_size
+
+	TEST_EQUAL(fs.file_num_blocks(file_index_t{0}), 2);
+	// pad file at index 1
+	TEST_EQUAL(fs.file_num_blocks(file_index_t{2}), 1);
+	// pad file at index 3
+	TEST_EQUAL(fs.file_num_blocks(file_index_t{4}), 2);
+	TEST_EQUAL(fs.file_num_blocks(file_index_t{5}), 3);
+	// pad file at index 6
+	TEST_EQUAL(fs.file_num_blocks(file_index_t{7}), 1);
+}
+
+TORRENT_TEST(file_num_pieces)
+{
+	file_storage fs;
+	fs.set_piece_length(0x8000);
+	fs.add_file("test/0", 0x5000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/1", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/3", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/4", 1, {}, 0, {}, "01234567890123456789012345678901");
+
+	// generally the number of blocks in a file is:
+	// (file_size + lt::default_block_size - 1) / lt::default_block_size
+
+	TEST_EQUAL(fs.file_num_pieces(file_index_t{0}), 1);
+	// pad file at index 1
+	TEST_EQUAL(fs.file_num_pieces(file_index_t{2}), 1);
+	// pad file at index 3
+	TEST_EQUAL(fs.file_num_pieces(file_index_t{4}), 1);
+	TEST_EQUAL(fs.file_num_pieces(file_index_t{5}), 2);
+	// pad file at index 6
+	TEST_EQUAL(fs.file_num_pieces(file_index_t{7}), 1);
+}
+
 // TODO: test file attributes
 // TODO: test symlinks
 // TODO: test reorder_file (make sure internal_file_entry::swap() is used)

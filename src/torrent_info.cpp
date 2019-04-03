@@ -1041,10 +1041,11 @@ namespace {
 
 		for (file_index_t i{0}; i < m_merkle_trees.end_index(); ++i)
 		{
+			if (m_files.pad_file_at(i)) continue;
 			auto& f = m_merkle_trees[i];
 			if (f.empty() && orig_files().file_size(i) > 0)
 			{
-				auto const leafs = merkle_num_leafs(int((orig_files().file_size(i) + default_block_size - 1) / default_block_size));
+				auto const leafs = merkle_num_leafs(orig_files().file_num_blocks(i));
 				f.resize(merkle_num_nodes(leafs));
 				f[0] = orig_files().root(i);
 			}
@@ -1060,7 +1061,7 @@ namespace {
 
 		if (m_merkle_trees[file].empty() && orig_files().file_size(file) > 0)
 		{
-			auto const leafs = merkle_num_leafs(int((orig_files().file_size(file) + default_block_size - 1) / default_block_size));
+			auto const leafs = merkle_num_leafs(orig_files().file_num_blocks(file));
 			m_merkle_trees[file].resize(merkle_num_nodes(leafs));
 			m_merkle_trees[file][0] = orig_files().root(file);
 		}
@@ -1385,19 +1386,16 @@ namespace {
 
 		if (!e || e.type() != bdecode_node::dict_t)
 		{
-			m_files.set_piece_length(0);
 			ec = errors::torrent_missing_piece_layer;
 			return false;
 		}
 
 		for (int i = 0; i < e.dict_size(); ++i)
 		{
-			auto f = e.dict_at(i);
-			if (f.first.size() != sha256_hash::size())
-				continue;
-			if (f.second.type() != bdecode_node::string_t)
-				continue;
-			if (f.second.string_length() % sha256_hash::size() != 0)
+			auto const f = e.dict_at(i);
+			if (f.first.size() != sha256_hash::size()
+				|| f.second.type() != bdecode_node::string_t
+				|| f.second.string_length() % sha256_hash::size() != 0)
 				continue;
 
 			piece_layers.emplace(sha256_hash(f.first), f.second.string_value());
@@ -1412,17 +1410,15 @@ namespace {
 
 			auto& tree = m_merkle_trees[i];
 
-			auto piece_layer = piece_layers.find(m_files.root(i));
+			auto const piece_layer = piece_layers.find(m_files.root(i));
 			if (piece_layer == piece_layers.end())
 			{
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
 				ec = errors::torrent_missing_piece_layer;
 				return false;
 			}
 
 			int const num_pieces = m_files.file_num_pieces(i);
-			int const num_blocks = int((m_files.file_size(i) + default_block_size - 1) / default_block_size);
+			int const num_blocks = m_files.file_num_blocks(i);
 			int const piece_layer_size = merkle_num_leafs(num_pieces);
 			int const num_leafs = merkle_num_leafs(num_blocks);
 			int const num_nodes = merkle_num_nodes(num_leafs);
@@ -1430,8 +1426,6 @@ namespace {
 
 			if (piece_layer->second.size() != num_pieces * sha256_hash::size())
 			{
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
 				ec = errors::torrent_invalid_piece_layer;
 				return false;
 			}
@@ -1448,8 +1442,6 @@ namespace {
 
 			if (tree[0] != m_files.root(i))
 			{
-				// mark the torrent as invalid
-				m_files.set_piece_length(0);
 				ec = errors::torrent_invalid_piece_layer;
 				return false;
 			}
@@ -1506,7 +1498,11 @@ namespace {
 		resolve_duplicate_filenames();
 
 		if (m_info_hash.has_v2() && !parse_piece_layers(torrent_file.dict_find_dict("piece layers"), ec))
+		{
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
 			return false;
+		}
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		bdecode_node const similar = torrent_file.dict_find_list("similar");
