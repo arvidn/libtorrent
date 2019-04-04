@@ -910,6 +910,25 @@ std::vector<lt::aux::vector<file_t, lt::file_index_t>> const test_cases
 		{"test/filler", 0x4000, {}, "test/filler"},
 	},
 	{
+		{"test/a/b/c/d/e/f/g/h/i/j/k/l/m", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i/j/k/l/m"},
+		{"test/a", 0x4000, {}, "test/a.1"},
+		{"test/a/b", 0x4000, {}, "test/a/b.1"},
+		{"test/a/b/c", 0x4000, {}, "test/a/b/c.1"},
+		{"test/a/b/c/d", 0x4000, {}, "test/a/b/c/d.1"},
+		{"test/a/b/c/d/e", 0x4000, {}, "test/a/b/c/d/e.1"},
+		{"test/a/b/c/d/e/f", 0x4000, {}, "test/a/b/c/d/e/f.1"},
+		{"test/a/b/c/d/e/f/g", 0x4000, {}, "test/a/b/c/d/e/f/g.1"},
+		{"test/a/b/c/d/e/f/g/h", 0x4000, {}, "test/a/b/c/d/e/f/g/h.1"},
+		{"test/a/b/c/d/e/f/g/h/i", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i.1"},
+		{"test/a/b/c/d/e/f/g/h/i/j", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i/j.1"},
+	},
+	{
+		// it doesn't matter whether the file comes before the directory,
+		// directories take precedence
+		{"test/a", 0x4000, {}, "test/a.1"},
+		{"test/a/b", 0x4000, {}, "test/a/b"},
+	},
+	{
 		{"test/A/tmp", 0x4000, {}, "test/A/tmp"},
 		// a file may not have the same name as a directory
 		{"test/a", 0x4000, {}, "test/a.1"},
