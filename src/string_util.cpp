@@ -379,28 +379,4 @@ namespace libtorrent {
 	}
 
 #endif
-
-	std::size_t string_hash_no_case::operator()(std::string const& s) const
-	{
-		std::size_t ret = 5381;
-		for (auto const c : s)
-			ret = (ret * 33) ^ static_cast<std::size_t>(to_lower(c));
-		return ret;
-	}
-
-	bool string_eq_no_case::operator()(std::string const& lhs, std::string const& rhs) const
-	{
-		if (lhs.size() != rhs.size()) return false;
-
-		auto s1 = lhs.cbegin();
-		auto s2 = rhs.cbegin();
-
-		while (s1 != lhs.end() && s2 != rhs.end())
-		{
-			if (to_lower(*s1) != to_lower(*s2)) return false;
-			++s1;
-			++s2;
-		}
-		return true;
-	}
 }

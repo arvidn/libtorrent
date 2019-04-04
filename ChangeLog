@@ -1,3 +1,4 @@
+	* optimize resolving duplicate filenames in loading torrent files
 	* fix python binding of dht_settings
 	* tighten up various input validation checks
 	* fix create_torrent python binding
