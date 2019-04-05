@@ -714,6 +714,73 @@ TORRENT_TEST(file_num_pieces)
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{7}), 1);
 }
 
+int first_piece_node(int piece_size, int file_size)
+{
+	file_storage fs;
+	fs.set_piece_length(piece_size);
+	fs.add_file("test/0", file_size, {}, 0, {}, "01234567890123456789012345678901");
+	int const num_pieces = (int(fs.total_size()) + piece_size - 1) / piece_size;
+	fs.set_num_pieces(num_pieces);
+	return fs.file_first_piece_node(file_index_t{0});
+}
+
+int first_block_node(int file_size)
+{
+	file_storage fs;
+	fs.set_piece_length(0x10000);
+	fs.add_file("test/0", file_size, {}, 0, {}, "01234567890123456789012345678901");
+	int const num_pieces = (int(fs.total_size()) + fs.piece_length() - 1) / fs.piece_length();
+	fs.set_num_pieces(num_pieces);
+	return fs.file_first_block_node(file_index_t{0});
+}
+
+TORRENT_TEST(file_first_piece_node)
+{
+	// the size of the merkle tree is implied by the size of the file.
+	// 0x500000 / 0x10000 = 80 pieces
+	// a merkle tree must have a power of 2 number of leaves, so that's 128,
+	// thats 7 layers
+	TEST_EQUAL(first_piece_node(0x10000, 0x500000), 127);
+	TEST_EQUAL(first_piece_node(0x8000, 0x500000), 255);
+	TEST_EQUAL(first_piece_node(0x4000, 0x500000), 511);
+	TEST_EQUAL(first_piece_node(0x2000, 0x500000), 1023);
+	TEST_EQUAL(first_piece_node(0x1000, 0x500000), 2047);
+
+	// also test boundary cases around exact power of two file size
+	// technically piece size is not allowed to be less than 16kB
+	TEST_EQUAL(first_piece_node(0x1000, 0x7fffff), 2047);
+	TEST_EQUAL(first_piece_node(0x1000, 0x800000), 2047);
+	TEST_EQUAL(first_piece_node(0x1000, 0x800001), 4095);
+
+	TEST_EQUAL(first_piece_node(0x1000, 0x7fff), 7);
+	TEST_EQUAL(first_piece_node(0x1000, 0x8000), 7);
+	TEST_EQUAL(first_piece_node(0x1000, 0x8001), 15);
+
+	// edge case of file smaller than one block
+	TEST_EQUAL(first_piece_node(0x1000, 0x1000), 0);
+
+	// edge case of file smaller than one piece
+	TEST_EQUAL(first_piece_node(0x4000, 0x1000), 0);
+}
+
+TORRENT_TEST(file_first_block_node)
+{
+	// the full merkle tree, all the way down to blocks, does not depend on the
+	// piece size. Blocks are always 0x4000 bytes.
+
+	// there must be an even power of two number of leaves, e.g.
+	// file size 0x500000 / 0x4000 = 320 blocks -> 512 leaves
+	TEST_EQUAL(first_block_node(0x500000), 511);
+
+	// edge case of file smaller than one block
+	TEST_EQUAL(first_block_node(0x1000), 0);
+
+	// even power-of-two boundary condition
+	TEST_EQUAL(first_block_node(0x7fffff), 511);
+	TEST_EQUAL(first_block_node(0x800000), 511);
+	TEST_EQUAL(first_block_node(0x800001), 1023);
+}
+
 // TODO: test file attributes
 // TODO: test symlinks
 // TODO: test reorder_file (make sure internal_file_entry::swap() is used)
