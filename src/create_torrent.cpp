@@ -785,6 +785,17 @@ namespace {
 					file_e["length"] = m_files.file_size(i);
 					file_e["pieces root"] = m_fileroots[i];
 					if (m_include_mtime && m_files.mtime(i)) file_e["mtime"] = m_files.mtime(i);
+
+					file_flags_t const flags = m_files.file_flags(i);
+					if (flags & (file_storage::flag_hidden
+						| file_storage::flag_executable
+						| file_storage::flag_symlink))
+					{
+						std::string& attr = file_e["attr"].string();
+						if (flags & file_storage::flag_hidden) attr += 'h';
+						if (flags & file_storage::flag_executable) attr += 'x';
+						if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
+					}
 				}
 			}
 		}

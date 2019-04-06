@@ -698,33 +698,31 @@ namespace {
 				m_name = split_path(path, true);
 		}
 
-		if (root_hash && m_files.size() == 1)
+		// a root hash implies a v2 file tree
+		// if the current size is not aligned to piece boundaries, we need to
+		// insert a pad file
+		if (root_hash && (m_total_size % piece_length()) != 0)
 		{
-			// a root hash implies a v2 file tree
-			// insert an implicit pad file if necessary
-			auto const pad_size = piece_length() - m_files.front().size % piece_length();
-			if (int(pad_size) != piece_length())
+			auto const pad_size = piece_length() - (m_total_size % piece_length());
+			TORRENT_ASSERT(int(pad_size) != piece_length());
+			if (m_total_size > max_file_size - pad_size - file_size)
 			{
-				auto const offset = m_files.front().offset + m_files.front().size;
-				if (offset > max_file_size)
-				{
-					ec = make_error_code(errors::torrent_invalid_length);
-					return;
-				}
-
-				m_files.emplace_back();
-				// e is invalid from here down!
-				auto& pad_file = m_files.back();
-				pad_file.size = pad_size;
-				pad_file.offset = offset;
-				pad_file.path_index = get_or_add_path(".pad");
-				char name[30];
-				std::snprintf(name, sizeof(name), "%" PRIu64
-					, pad_file.size);
-				pad_file.set_name(name);
-				pad_file.pad_file = true;
-				m_total_size += pad_size;
+				ec = make_error_code(errors::torrent_invalid_length);
+				return;
 			}
+
+			m_files.emplace_back();
+			// e is invalid from here down!
+			auto& pad_file = m_files.back();
+			pad_file.size = pad_size;
+			pad_file.offset = m_total_size;
+			pad_file.path_index = get_or_add_path(".pad");
+			char name[30];
+			std::snprintf(name, sizeof(name), "%" PRIu64
+				, pad_file.size);
+			pad_file.set_name(name);
+			pad_file.pad_file = true;
+			m_total_size += pad_size;
 		}
 
 		m_files.emplace_back();
@@ -771,29 +769,6 @@ namespace {
 		}
 
 		m_total_size += e.size;
-
-		if (root_hash && m_files.size() > 1)
-		{
-			// a root hash implies a v2 file tree
-			// insert an implicit pad file if necessary
-			auto const pad_size = piece_length() - e.size % piece_length();
-			if (int(pad_size) != piece_length())
-			{
-				auto const offset = e.offset + e.size;
-				m_files.emplace_back();
-				// e is invalid from here down!
-				auto& pad_file = m_files.back();
-				pad_file.size = pad_size;
-				pad_file.offset = offset;
-				pad_file.path_index = get_or_add_path(".pad");
-				char name[30];
-				std::snprintf(name, sizeof(name), "%" PRIu64
-					, pad_file.size);
-				pad_file.set_name(name);
-				pad_file.pad_file = true;
-				m_total_size += pad_size;
-			}
-		}
 	}
 
 	sha1_hash file_storage::hash(file_index_t const index) const
@@ -1203,14 +1178,11 @@ namespace {
 		std::uint64_t off = 0;
 		for (file_index_t i(0); i < m_files.end_index(); ++i)
 		{
-			auto& file = m_files[i];
-			TORRENT_ASSERT(!file.pad_file);
-			file.offset = off;
-			off += file.size;
-			auto const pad_size = piece_length() - file.size % piece_length();
-			if (int(pad_size) != piece_length())
+			if ((off % piece_length()) != 0)
 			{
-				auto pad_file = m_files.emplace(m_files.begin() + static_cast<int>(i) + 1);
+				auto const pad_size = piece_length() - (off % piece_length());
+				TORRENT_ASSERT(int(pad_size) != piece_length());
+				auto pad_file = m_files.emplace(m_files.begin() + static_cast<int>(i));
 				pad_file->size = pad_size;
 				pad_file->offset = off;
 				off += pad_size;
@@ -1222,7 +1194,12 @@ namespace {
 				pad_file->pad_file = true;
 				++i;
 			}
+			auto& file = m_files[i];
+			TORRENT_ASSERT(!file.pad_file);
+			file.offset = off;
+			off += file.size;
 		}
+
 		m_total_size = off;
 	}
 
