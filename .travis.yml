@@ -13,7 +13,7 @@ matrix:
           - python3-pip
           - libboost1.58-all-dev
           - libboost1.58-tools-dev
-    - env: variant=test_debug tests=1 toolset=gcc-sanitizer
+    - env: variant=test_debug tests=1 toolset=gcc-sanitizer fuzzers=1
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
@@ -220,6 +220,13 @@ script:
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
+    fi'
+
+  # build fuzzers with the same build configuration as the test above, to avoid
+  # rebuilding libtorrent itself.
+  - cd ../fuzzers
+  - 'if [ "$fuzzers" == "1" ]; then
+      bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant sanitize=off fuzz=off link=shared stage;
     fi'
 
   - cd ../examples
