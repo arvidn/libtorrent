@@ -14,10 +14,10 @@ matrix:
           packages:
           - python3-pip
           - g++-6
-    - env: variant=test_debug tests=1 mmap=on toolset=gcc sanitizer=on
+    - env: variant=test_debug tests=1 toolset=gcc sanitizer=on
     - env: variant=test_debug tests=1 mmap=off toolset=gcc
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc sanitizer=on
-    - env: variant=test_release coverage=1 tests=1 mmap=on toolset=gcc-coverage python=1 python_dist=1
+    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
     - env: dist=1 toolset=gcc install_boost=1
       addons:
         apt:
@@ -38,7 +38,7 @@ matrix:
           packages:
           - ninja-build
           - g++-6
-    - env: variant=test_debug crypto=openssl docs=1 tests=1 mmap=on examples=1 tools=1 python=1 toolset=darwin ios=1
+    - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 python=1 toolset=darwin ios=1
       os: osx
       osx_image: xcode9.2
     - env: arch=arm toolset=gcc-arm
@@ -90,6 +90,8 @@ before_install:
   - cd $TRAVIS_BUILD_DIR;
   - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
+  - 'if [[ $sanitizer == "" ]]; then export sanitizer=off; fi'
+  - 'if [[ $mmap == "" ]]; then export mmap=on; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" ) ]]; then
     travis_retry brew update > /dev/null && brew install ccache boost-build;
     fi'
@@ -120,7 +122,7 @@ install:
   - touch ~/user-config.jam
   - 'if [[ $toolset == "gcc" ]]; then
       g++-6 --version;
-      echo "using gcc : : ccache g++-6 : ;" >> ~/user-config.jam;
+      echo "using gcc : : ccache g++-6 : <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-coverage" ]]; then
       echo "using gcc : coverage : ccache g++-6 --coverage : <linkflags>--coverage ;" >> ~/user-config.jam;
@@ -240,7 +242,7 @@ script:
 # libtorrent is the name of the test suite target
   - cd $TRAVIS_BUILD_DIR/test;
   - 'if [ "$tests" == "1" ]; then
-                   bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
+      bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
       travis_retry bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
       travis_retry bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
