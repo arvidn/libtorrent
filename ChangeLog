@@ -1,3 +1,4 @@
+	* fix python binding of dht_settings
 	* tighten up various input validation checks
 	* fix create_torrent python binding
 	* update symlinks to conform to BEP 47
