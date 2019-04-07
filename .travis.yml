@@ -14,9 +14,9 @@ matrix:
           packages:
           - python3-pip
           - g++-6
-    - env: variant=test_debug tests=1 mmap=on toolset=gcc-sanitizer
+    - env: variant=test_debug tests=1 mmap=on toolset=gcc sanitizer=on
     - env: variant=test_debug tests=1 mmap=off toolset=gcc
-    - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
+    - env: variant=test_debug sim=1 crypto=openssl toolset=gcc sanitizer=on
     - env: variant=test_release coverage=1 tests=1 mmap=on toolset=gcc-coverage python=1 python_dist=1
     - env: dist=1 toolset=gcc install_boost=1
       addons:
@@ -121,16 +121,6 @@ install:
   - 'if [[ $toolset == "gcc" ]]; then
       g++-6 --version;
       echo "using gcc : : ccache g++-6 : ;" >> ~/user-config.jam;
-    fi'
-  - 'if [[ $toolset == "gcc-sanitizer" ]]; then
-      echo "using gcc : sanitizer : ccache g++-6 :
-        <compileflags>-fstack-protector-all
-        <compileflags>-fstack-check
-        <compileflags>-fsanitize=address,undefined
-        <compileflags>-fno-sanitize-recover=address,undefined
-        <linkflags>-fsanitize=address,undefined
-        <linkflags>-fno-sanitize-recover=address,undefined
-        <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-coverage" ]]; then
       echo "using gcc : coverage : ccache g++-6 --coverage : <linkflags>--coverage ;" >> ~/user-config.jam;
@@ -250,11 +240,11 @@ script:
 # libtorrent is the name of the test suite target
   - cd $TRAVIS_BUILD_DIR/test;
   - 'if [ "$tests" == "1" ]; then
-      bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
-      travis_retry bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
-      travis_retry bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
+                   bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
+      travis_retry bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
+      travis_retry bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-        travis_retry bjam -j3 warnings-as-errors=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
+        travis_retry bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
       fi &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
@@ -263,12 +253,12 @@ script:
 
   - cd $TRAVIS_BUILD_DIR/examples;
   - 'if [ "$examples" == "1" ]; then
-      bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
 
   - cd $TRAVIS_BUILD_DIR/tools;
   - 'if [ "$tools" == "1" ]; then
-      bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
 
   - cd $TRAVIS_BUILD_DIR;
@@ -281,7 +271,7 @@ script:
 # boost.python cannot be built with warnings-as-errors=on
   - cd $TRAVIS_BUILD_DIR/bindings/python;
   - 'if [[ "$python" == "1" ]]; then
-      bjam -j3 warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
+      bjam -j3 warnings=all sanitize=$sanitizer mmap-disk-io=$mmap crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
         DYLD_LIBRARY_PATH=./dependencies python2 test.py -b;
       else
