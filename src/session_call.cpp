@@ -74,7 +74,7 @@ void torrent_wait(bool& done, aux::session_impl& ses)
 {
 	blocking_call();
 	std::unique_lock<std::mutex> l(ses.mut);
-	while (!done) { ses.cond.wait(l); };
+	while (!done) { ses.cond.wait(l); }
 }
 
 } } // namespace aux namespace libtorrent

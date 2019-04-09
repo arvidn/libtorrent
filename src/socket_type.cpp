@@ -57,7 +57,7 @@ namespace aux {
 			CASE(utp_stream)
 				return true;
 			default: return false;
-		};
+		}
 #undef CASE
 #else
 		TORRENT_UNUSED(s);
