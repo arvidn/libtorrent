@@ -234,9 +234,9 @@ namespace libtorrent {
 	ipv4_peer& ipv4_peer::operator=(ipv4_peer const& p) = default;
 
 #if TORRENT_USE_I2P
-	i2p_peer::i2p_peer(string_view dest, bool connectable
+	i2p_peer::i2p_peer(string_view dest, bool connectable_
 		, peer_source_flags_t const src)
-		: torrent_peer(0, connectable, src)
+		: torrent_peer(0, connectable_, src)
 		, destination(dest)
 	{
 		is_v6_addr = false;

@@ -6569,7 +6569,7 @@ bool is_downloading_state(int const st)
 					CASE(http_stream)
 					CASE(utp_stream)
 					default: break;
-				};
+				}
 			}
 #undef CASE
 #endif
@@ -6752,7 +6752,7 @@ bool is_downloading_state(int const st)
 				case SSL(socks5_stream)
 				case SSL(http_stream)
 				case SSL(utp_stream)
-			};
+			}
 
 #undef SSL
 

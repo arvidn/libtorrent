@@ -390,7 +390,8 @@ TORRENT_TEST(not_initialized)
 TORRENT_TEST(self_assign)
 {
 	bitfield test1(123, false);
-	test1 = test1;
+	bitfield* self_ptr = &test1;
+	test1 = *self_ptr;
 	TEST_EQUAL(test1.size(), 123);
 	TEST_EQUAL(test1.count(), 0);
 }
