@@ -918,7 +918,7 @@ TORRENT_TEST(parse_torrents)
 		else if (t.file == "v2_multiple_files.torrent"_sv)
 		{
 			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
-			TEST_EQUAL(ti->num_files(), 5);
+			TEST_EQUAL(ti->num_files(), 4);
 		}
 
 		file_storage const& fs = ti->files();

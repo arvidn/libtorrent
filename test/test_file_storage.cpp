@@ -180,6 +180,7 @@ TORRENT_TEST(pointer_offset)
 {
 	// test applying pointer offset
 	file_storage st;
+	st.set_piece_length(16 * 1024);
 	char const filename[] = "test1fooba";
 	char const filehash[] = "01234567890123456789-----";
 	char const roothash[] = "01234567890123456789012345678912-----";
@@ -218,6 +219,7 @@ TORRENT_TEST(pointer_offset)
 TORRENT_TEST(invalid_path1)
 {
 	file_storage st;
+	st.set_piece_length(16 * 1024);
 #ifdef TORRENT_WINDOWS
 	st.add_file_borrow({}, R"(+\\\()", 10);
 #else
@@ -231,6 +233,7 @@ TORRENT_TEST(invalid_path1)
 TORRENT_TEST(invalid_path2)
 {
 	file_storage st;
+	st.set_piece_length(16 * 1024);
 #ifdef TORRENT_WINDOWS
 	st.add_file_borrow({}, R"(+\\\+\\()", 10);
 #else
@@ -296,7 +299,7 @@ TORRENT_TEST(canonicalize)
 
 	fs.canonicalize();
 
-	TEST_EQUAL(fs.num_files(), 6);
+	TEST_EQUAL(fs.num_files(), 5);
 
 	TEST_EQUAL(fs.file_size(file_index_t(0)), 1);
 	TEST_EQUAL(fs.file_name(file_index_t(0)), "1");
@@ -315,9 +318,6 @@ TORRENT_TEST(canonicalize)
 	TEST_EQUAL(fs.file_size(file_index_t(4)), 0x7001);
 	TEST_EQUAL(fs.file_name(file_index_t(4)), "3");
 	TEST_EQUAL(fs.pad_file_at(file_index_t(4)), false);
-
-	TEST_EQUAL(fs.file_size(file_index_t(5)), 0x8000 - 0x7001);
-	TEST_EQUAL(fs.pad_file_at(file_index_t(5)), true);
 }
 
 TORRENT_TEST(piece_range_exclusive)

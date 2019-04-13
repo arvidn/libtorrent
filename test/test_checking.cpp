@@ -329,7 +329,7 @@ TORRENT_TEST(discrete_checking)
 	printf("generated torrent: %s test_torrent_dir\n", aux::to_hex(ti->info_hash().v1.to_string()).c_str());
 
 	// we have two files, but there's two padfiles now too
-	TEST_EQUAL(ti->num_files(), 4);
+	TEST_EQUAL(ti->num_files(), 3);
 
 	{
 		session ses1(settings());
