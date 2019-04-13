@@ -61,7 +61,7 @@ namespace libtorrent {
 
 	// given a tree and the number of leaves, expect all leaf hashes to be set and
 	// compute all other hashes starting with the leaves.
-	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs, int level_start);
+	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs, int first_leaf);
 	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs);
 
 	// given a merkle tree (`tree`), clears all hashes in the range of nodes:

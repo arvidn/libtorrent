@@ -134,10 +134,11 @@ namespace libtorrent {
 		TORRENT_ASSERT(merkle_get_layer(level_start) == merkle_get_layer(level_start + num_leafs - 1));
 
 		int level_size = num_leafs;
-		while (level_size > 1)
+		for (;;)
 		{
 			for (int i = level_start; i < level_start + level_size; ++i)
 				tree[i].clear();
+			if (level_size == 1) break;
 			level_start = merkle_get_parent(level_start);
 			level_size /= 2;
 		}

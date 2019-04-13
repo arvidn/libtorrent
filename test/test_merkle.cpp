@@ -391,9 +391,8 @@ TORRENT_TEST(merkle_clear_tree)
 		merkle_clear_tree(tree, 8, 7);
 		print_tree(tree);
 
-		// notably, the root hash is left intact
 		TEST_CHECK((tree ==
-		     v{l,
+		     v{o,
 		   o,      o,
 		  o, o,   o, o,
 		o,o,o,o,o,o,o,o}));
@@ -412,7 +411,7 @@ TORRENT_TEST(merkle_clear_tree)
 
 		TEST_CHECK((tree ==
 		     v{l,
-		   l,      l,
+		   o,      l,
 		  o, o,   l, l,
 		o,o,o,o,l,l,l,l}));
 	}
@@ -430,7 +429,7 @@ TORRENT_TEST(merkle_clear_tree)
 
 		TEST_CHECK((tree ==
 		     v{l,
-		   l,      l,
+		   l,      o,
 		  l, l,   o, o,
 		l,l,l,l,o,o,o,o}));
 	}
@@ -448,7 +447,7 @@ TORRENT_TEST(merkle_clear_tree)
 
 		TEST_CHECK((tree ==
 		     v{l,
-		   l,      l,
+		   o,      l,
 		  o, o,   l, l,
 		l,l,l,l,l,l,l,l}));
 	}
@@ -466,7 +465,7 @@ TORRENT_TEST(merkle_clear_tree)
 
 		TEST_CHECK((tree ==
 		     v{l,
-		   l,      l,
+		   l,      o,
 		  l, l,   o, o,
 		l,l,l,l,l,l,l,l}));
 	}
