@@ -1096,6 +1096,43 @@ namespace {
 		swap(ti.m_piece_length, m_piece_length);
 	}
 
+namespace {
+	// TODO: replace all use of this with lsplit_path() and rsplit_path()
+	std::string split_path(std::string const& f)
+	{
+		if (f.empty()) return f;
+
+		std::string ret;
+		char const* start = f.c_str();
+		char const* p = start;
+		while (*start != 0)
+		{
+			while (*p != '/'
+				&& *p != '\0'
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+				&& *p != '\\'
+#endif
+				) ++p;
+			if (p - start > 0)
+			{
+				ret.append(start, aux::numeric_cast<std::size_t>(p - start));
+				ret.append(1, '\0');
+			}
+			if (*p != 0) ++p;
+			start = p;
+		}
+		ret.append(1, '\0');
+		return ret;
+	}
+
+	char const* next_path_element(char const* p)
+	{
+		p += strlen(p) + 1;
+		if (*p == 0) return nullptr;
+		return p;
+	}
+}
+
 	void file_storage::canonicalize()
 	{
 		TORRENT_ASSERT(piece_length() >= 16 * 1024);
