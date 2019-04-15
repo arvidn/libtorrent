@@ -500,9 +500,9 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
-		m_next_dht_torrent = m_torrents.begin();
+		m_next_dht_torrent = 0;
 #endif
-		m_next_lsd_torrent = m_torrents.begin();
+		m_next_lsd_torrent = 0;
 
 		m_global_class = m_classes.new_peer_class("global");
 		m_tcp_peer_class = m_classes.new_peer_class("tcp");
@@ -794,7 +794,7 @@ namespace aux {
 		m_paused = true;
 		for (auto& te : m_torrents)
 		{
-			te.second->set_session_paused(true);
+			te->set_session_paused(true);
 		}
 	}
 
@@ -807,7 +807,7 @@ namespace aux {
 
 		for (auto& te : m_torrents)
 		{
-			te.second->set_session_paused(false);
+			te->set_session_paused(false);
 		}
 	}
 
@@ -870,7 +870,7 @@ namespace aux {
 		// abort all torrents
 		for (auto const& te : m_torrents)
 		{
-			te.second->abort();
+			te->abort();
 		}
 		m_torrents.clear();
 		m_stats_counters.set_value(counters::num_peers_up_unchoked_all, 0);
@@ -966,7 +966,7 @@ namespace aux {
 		// Close connections whose endpoint is filtered
 		// by the new ip-filter
 		for (auto const& t : m_torrents)
-			t.second->port_filter_updated();
+			t->port_filter_updated();
 	}
 
 	void session_impl::set_ip_filter(std::shared_ptr<ip_filter> const& f)
@@ -978,7 +978,7 @@ namespace aux {
 		// Close connections whose endpoint is filtered
 		// by the new ip-filter
 		for (auto& i : m_torrents)
-			i.second->set_ip_filter(m_ip_filter);
+			i->set_ip_filter(m_ip_filter);
 	}
 
 	void session_impl::ban_ip(address addr)
@@ -987,7 +987,7 @@ namespace aux {
 		if (!m_ip_filter) m_ip_filter = std::make_shared<ip_filter>();
 		m_ip_filter->add_rule(addr, addr, ip_filter::blocked);
 		for (auto& i : m_torrents)
-			i.second->set_ip_filter(m_ip_filter);
+			i->set_ip_filter(m_ip_filter);
 	}
 
 	ip_filter const& session_impl::get_ip_filter()
@@ -2603,8 +2603,8 @@ namespace aux {
 				{
 					// now, disconnect a random peer
 					auto const i = std::max_element(m_torrents.begin(), m_torrents.end()
-						, [](torrent_map::value_type const& lhs, torrent_map::value_type const& rhs)
-						{ return lhs.second->num_peers() < rhs.second->num_peers(); });
+						, [](torrent_array::value_type const& lhs, torrent_array::value_type const& rhs)
+						{ return lhs->num_peers() < rhs->num_peers(); });
 
 					if (m_alerts.should_post<performance_alert>())
 						m_alerts.emplace_alert<performance_alert>(
@@ -2612,7 +2612,7 @@ namespace aux {
 
 					if (i != m_torrents.end())
 					{
-						i->second->disconnect_peers(1, e);
+						(*i)->disconnect_peers(1, e);
 					}
 
 					m_settings.set_int(settings_pack::connections_limit
@@ -2909,8 +2909,8 @@ namespace aux {
 		if (!m_settings.get_bool(settings_pack::incoming_starts_queued_torrents))
 		{
 			bool has_active_torrent = std::any_of(m_torrents.begin(), m_torrents.end()
-				, [](std::pair<sha1_hash, std::shared_ptr<torrent>> const& i)
-				{ return !i.second->is_torrent_paused(); });
+				, [](std::shared_ptr<torrent> const& i)
+				{ return !i->is_torrent_paused(); });
 			if (!has_active_torrent)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3065,7 +3065,7 @@ namespace aux {
 	bool session_impl::any_torrent_has_peer(peer_connection const* p) const
 	{
 		for (auto& pe : m_torrents)
-			if (pe.second->has_peer(p)) return true;
+			if (pe->has_peer(p)) return true;
 		return false;
 	}
 
@@ -3251,7 +3251,7 @@ namespace aux {
 			constexpr int four_hours = 60 * 60 * 4;
 			for (auto& i : m_torrents)
 			{
-				i.second->step_session_time(four_hours);
+				i->step_session_time(four_hours);
 			}
 		}
 
@@ -3479,24 +3479,22 @@ namespace aux {
 					// every 90 seconds, disconnect the worst peers
 					// if we have reached the connection limit
 					auto const i = std::max_element(m_torrents.begin(), m_torrents.end()
-						, [] (torrent_map::value_type const& lhs, torrent_map::value_type const& rhs)
-						{ return lhs.second->num_peers() < rhs.second->num_peers(); });
+						, [] (torrent_array::value_type const& lhs, torrent_array::value_type const& rhs)
+						{ return lhs->num_peers() < rhs->num_peers(); });
 
 					TORRENT_ASSERT(i != m_torrents.end());
 					int const peers_to_disconnect = std::min(std::max(
-						i->second->num_peers() * m_settings.get_int(settings_pack::peer_turnover) / 100, 1)
-						, i->second->num_connect_candidates());
-					i->second->disconnect_peers(peers_to_disconnect
+						(*i)->num_peers() * m_settings.get_int(settings_pack::peer_turnover) / 100, 1)
+						, (*i)->num_connect_candidates());
+					(*i)->disconnect_peers(peers_to_disconnect
 						, error_code(errors::optimistic_disconnect));
 				}
 				else
 				{
 					// if we haven't reached the global max. see if any torrent
 					// has reached its local limit
-					for (auto const& pt : m_torrents)
+					for (auto const& t : m_torrents)
 					{
-						std::shared_ptr<torrent> t = pt.second;
-
 						// ths disconnect logic is disabled for torrents with
 						// too low connection limit
 						if (t->num_peers() < t->max_connections()
@@ -3636,14 +3634,14 @@ namespace aux {
 		}
 		if (m_torrents.empty()) return;
 
-		if (m_next_dht_torrent == m_torrents.end())
-			m_next_dht_torrent = m_torrents.begin();
-		m_next_dht_torrent->second->dht_announce();
+		if (m_next_dht_torrent >= m_torrents.size())
+			m_next_dht_torrent = 0;
+		m_torrents[m_next_dht_torrent]->dht_announce();
 		// TODO: 2 make a list for torrents that want to be announced on the DHT so we
 		// don't have to loop over all torrents, just to find the ones that want to announce
 		++m_next_dht_torrent;
-		if (m_next_dht_torrent == m_torrents.end())
-			m_next_dht_torrent = m_torrents.begin();
+		if (m_next_dht_torrent >= m_torrents.size())
+			m_next_dht_torrent = 0;
 	}
 #endif
 
@@ -3666,12 +3664,12 @@ namespace aux {
 
 		if (m_torrents.empty()) return;
 
-		if (m_next_lsd_torrent == m_torrents.end())
-			m_next_lsd_torrent = m_torrents.begin();
-		m_next_lsd_torrent->second->lsd_announce();
+		if (m_next_lsd_torrent >= m_torrents.size())
+			m_next_lsd_torrent = 0;
+		m_torrents[m_next_lsd_torrent]->lsd_announce();
 		++m_next_lsd_torrent;
-		if (m_next_lsd_torrent == m_torrents.end())
-			m_next_lsd_torrent = m_torrents.begin();
+		if (m_next_lsd_torrent >= m_torrents.size())
+			m_next_lsd_torrent = 0;
 	}
 
 	void session_impl::auto_manage_checking_torrents(std::vector<torrent*>& list
@@ -4330,33 +4328,26 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		auto const i = m_torrents.find(info_hash);
+		auto const i = m_torrent_index.find(info_hash);
 #if TORRENT_USE_INVARIANT_CHECKS
 		for (auto const& te : m_torrents)
 		{
-			TORRENT_ASSERT(te.second);
+			TORRENT_ASSERT(te);
 		}
 #endif
-		if (i != m_torrents.end()) return i->second;
+		if (i != m_torrent_index.end()) return i->second;
 		return std::weak_ptr<torrent>();
 	}
 
-	void session_impl::insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
+	void session_impl::insert_torrent(std::shared_ptr<torrent> const& t
 #if TORRENT_ABI_VERSION == 1
 		, std::string const uuid
 #endif
 		)
 	{
-		sha1_hash const next_lsd = m_next_lsd_torrent != m_torrents.end()
-			? m_next_lsd_torrent->first : sha1_hash();
-#ifndef TORRENT_DISABLE_DHT
-		sha1_hash const next_dht = m_next_dht_torrent != m_torrents.end()
-			? m_next_dht_torrent->first : sha1_hash();
-#endif
-
-		float const load_factor = m_torrents.load_factor();
-
-		m_torrents.emplace(ih, t);
+		auto const ih = t->torrent_file().info_hash();
+		m_torrents.push_back(t);
+		m_torrent_index.insert(std::make_pair(ih, t));
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		static char const req2[4] = {'r', 'e', 'q', '2'};
@@ -4366,19 +4357,6 @@ namespace aux {
 		// encrypted hand shakes
 		m_obfuscated_torrents.emplace(h.final(), t);
 #endif
-
-		// if this insert made the hash grow, the iterators became invalid
-		// we need to reset them
-		if (m_torrents.load_factor() < load_factor)
-		{
-			// this indicates the hash table re-hashed
-			if (!next_lsd.is_all_zeros())
-				m_next_lsd_torrent = m_torrents.find(next_lsd);
-#ifndef TORRENT_DISABLE_DHT
-			if (!next_dht.is_all_zeros())
-				m_next_dht_torrent = m_torrents.find(next_dht);
-#endif
-		}
 
 #if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
@@ -4480,9 +4458,8 @@ namespace aux {
 		std::string const& collection) const
 	{
 		std::vector<std::shared_ptr<torrent>> ret;
-		for (auto const& tp : m_torrents)
+		for (auto const& t : m_torrents)
 		{
-			std::shared_ptr<torrent> t = tp.second;
 			if (!t) continue;
 			std::vector<std::string> const& c = t->torrent_file().collections();
 			if (std::find(c.begin(), c.end(), collection) == c.end()) continue;
@@ -4495,20 +4472,20 @@ namespace aux {
 	namespace {
 
 	// returns true if lhs is a better disconnect candidate than rhs
-	bool compare_disconnect_torrent(session_impl::torrent_map::value_type const& lhs
-		, session_impl::torrent_map::value_type const& rhs)
+	bool compare_disconnect_torrent(std::shared_ptr<torrent> const& lhs
+		, std::shared_ptr<torrent> const& rhs)
 	{
 		// a torrent with 0 peers is never a good disconnect candidate
 		// since there's nothing to disconnect
-		if ((lhs.second->num_peers() == 0) != (rhs.second->num_peers() == 0))
-			return lhs.second->num_peers() != 0;
+		if ((lhs->num_peers() == 0) != (rhs->num_peers() == 0))
+			return lhs->num_peers() != 0;
 
 		// other than that, always prefer to disconnect peers from seeding torrents
 		// in order to not harm downloading ones
-		if (lhs.second->is_seed() != rhs.second->is_seed())
-			return lhs.second->is_seed();
+		if (lhs->is_seed() != rhs->is_seed())
+			return lhs->is_seed();
 
-		return lhs.second->num_peers() > rhs.second->num_peers();
+		return lhs->num_peers() > rhs->num_peers();
 	}
 
 	} // anonymous namespace
@@ -4521,7 +4498,7 @@ namespace aux {
 		TORRENT_ASSERT(i != m_torrents.end());
 		if (i == m_torrents.end()) return std::shared_ptr<torrent>();
 
-		return i->second;
+		return *i;
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -4549,9 +4526,9 @@ namespace aux {
 	{
 		for (auto const& t : m_torrents)
 		{
-			if (t.second->is_aborted()) continue;
+			if (t->is_aborted()) continue;
 			torrent_status st;
-			t.second->status(&st, flags);
+			t->status(&st, flags);
 			if (!pred(st)) continue;
 			ret->push_back(std::move(st));
 		}
@@ -4656,8 +4633,8 @@ namespace aux {
 
 		for (auto const& i : m_torrents)
 		{
-			if (i.second->is_aborted()) continue;
-			ret.push_back(torrent_handle(i.second));
+			if (i->is_aborted()) continue;
+			ret.push_back(torrent_handle(i));
 		}
 		return ret;
 	}
@@ -4786,7 +4763,8 @@ namespace aux {
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
 #endif
 
-		insert_torrent(params.info_hash, torrent_ptr
+		TORRENT_ASSERT(params.info_hash == torrent_ptr->torrent_file().info_hash());
+		insert_torrent(torrent_ptr
 #if TORRENT_ABI_VERSION == 1
 			//deprecated in 1.2
 			, params.uuid.empty()
@@ -4912,10 +4890,10 @@ namespace aux {
 		if (!torrent_ptr && !params.url.empty())
 		{
 			auto const i = std::find_if(m_torrents.begin(), m_torrents.end()
-				, [&params](torrent_map::value_type const& te)
-				{ return te.second->url() == params.url; });
+				, [&params](torrent_array::value_type const& te)
+				{ return te->url() == params.url; });
 			if (i != m_torrents.end())
-				torrent_ptr = i->second;
+				torrent_ptr = *i;
 		}
 #endif
 
@@ -5106,18 +5084,18 @@ namespace aux {
 		}
 #endif
 
-		auto i = m_torrents.find(tptr->torrent_file().info_hash());
+		auto i = m_torrent_index.find(tptr->torrent_file().info_hash());
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		// this torrent might be filed under the URL-hash
-		if (i == m_torrents.end() && !tptr->url().empty())
+		if (i == m_torrent_index.end() && !tptr->url().empty())
 		{
-			i = m_torrents.find(hasher(tptr->url()).final());
+			i = m_torrent_index.find(hasher(tptr->url()).final());
 		}
 #endif
 
-		if (i == m_torrents.end()) return;
+		if (i == m_torrent_index.end()) return;
 
 		torrent& t = *i->second;
 		if (options)
@@ -5135,14 +5113,15 @@ namespace aux {
 #if TORRENT_USE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
-#ifndef TORRENT_DISABLE_DHT
-		if (i == m_next_dht_torrent)
-			++m_next_dht_torrent;
-#endif
-		if (i == m_next_lsd_torrent)
-			++m_next_lsd_torrent;
 
-		m_torrents.erase(i);
+		auto array_iter = std::find(m_torrents.begin(), m_torrents.end(), i->second);
+		TORRENT_ASSERT(array_iter != m_torrents.end());
+		if (array_iter != m_torrents.end())
+		{
+			std::swap(*array_iter, m_torrents.back());
+			m_torrents.pop_back();
+		}
+		m_torrent_index.erase(i);
 		tptr->removed();
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
@@ -5153,16 +5132,16 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
-		if (m_next_dht_torrent == m_torrents.end())
-			m_next_dht_torrent = m_torrents.begin();
+		if (m_next_dht_torrent == m_torrents.size())
+			m_next_dht_torrent = 0;
 #endif
-		if (m_next_lsd_torrent == m_torrents.end())
-			m_next_lsd_torrent = m_torrents.begin();
+		if (m_next_lsd_torrent == m_torrents.size())
+			m_next_lsd_torrent = 0;
 
 		// this torrent may open up a slot for a queued torrent
 		trigger_auto_manage();
 
-		TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
+		TORRENT_ASSERT(m_torrent_index.find(i_hash) == m_torrent_index.end());
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -5236,7 +5215,7 @@ namespace aux {
 			// Close connections whose endpoint is filtered
 			// by the new ip-filter
 			for (auto const& t : m_torrents)
-				t.second->port_filter_updated();
+				t->port_filter_updated();
 		}
 		else
 		{
@@ -5247,13 +5226,13 @@ namespace aux {
 	void session_impl::update_auto_sequential()
 	{
 		for (auto& i : m_torrents)
-			i.second->update_auto_sequential();
+			i->update_auto_sequential();
 	}
 
 	void session_impl::update_max_failcount()
 	{
 		for (auto& i : m_torrents)
-			i.second->update_max_failcount();
+			i->update_max_failcount();
 	}
 
 	void session_impl::update_resolver_cache_timeout()
@@ -5349,7 +5328,7 @@ namespace aux {
 		error_code ec;
 		for (auto const& tp : m_torrents)
 		{
-			tp.second->on_inactivity_tick(ec);
+			tp->on_inactivity_tick(ec);
 		}
 	}
 
@@ -5697,8 +5676,8 @@ namespace aux {
 		// this loop is potentially expensive. It could be optimized by
 		// simply keeping a global counter
 		s.peerlist_size = std::accumulate(m_torrents.begin(), m_torrents.end(), 0
-			, [](int const acc, std::pair<sha1_hash, std::shared_ptr<torrent>> const& t)
-			{ return acc + t.second->num_known_peers(); });
+			, [](int const acc, std::shared_ptr<torrent> const& t)
+			{ return acc + t->num_known_peers(); });
 
 		return s;
 	}
@@ -6064,10 +6043,11 @@ namespace aux {
 		// this can happen if we end the io_context run loop with an exception
 		for (auto& t : m_torrents)
 		{
-			t.second->panic();
-			t.second->abort();
+			t->panic();
+			t->abort();
 		}
 		m_torrents.clear();
+		m_torrent_index.clear();
 
 #if defined TORRENT_ASIO_DEBUGGING
 		FILE* f = fopen("wakeups.log", "w+");
@@ -6468,7 +6448,7 @@ namespace aux {
 				int num_above = 0;
 				for (auto const& t : m_torrents)
 				{
-					int const num = t.second->num_peers();
+					int const num = t->num_peers();
 					if (num <= last_average) continue;
 					if (num > average) ++num_above;
 					if (num < average) extra += average - num;
@@ -6485,7 +6465,7 @@ namespace aux {
 
 			for (auto const& t : m_torrents)
 			{
-				int const num = t.second->num_peers();
+				int const num = t->num_peers();
 				if (num <= average) continue;
 
 				// distribute the remainder
@@ -6498,7 +6478,7 @@ namespace aux {
 
 				int const disconnect = std::min(to_disconnect, num - my_average);
 				to_disconnect -= disconnect;
-				t.second->disconnect_peers(disconnect, errors::too_many_connections);
+				t->disconnect_peers(disconnect, errors::too_many_connections);
 			}
 		}
 	}
@@ -6872,7 +6852,7 @@ namespace aux {
 
 		for (auto const& t : m_torrents)
 		{
-			t.second->new_external_ip();
+			t->new_external_ip();
 		}
 
 		// since we have a new external IP now, we need to
@@ -6921,7 +6901,7 @@ namespace aux {
 		int total_downloaders = 0;
 		for (auto const& tor : m_torrents)
 		{
-			std::shared_ptr<torrent> const& t = tor.second;
+			std::shared_ptr<torrent> const& t = tor;
 			if (t->want_peers_download()) ++num_active_downloading;
 			if (t->want_peers_finished()) ++num_active_finished;
 			TORRENT_ASSERT(!(t->want_peers_download() && t->want_peers_finished()));
@@ -7037,7 +7017,7 @@ namespace aux {
 
 		for (auto const& te : m_torrents)
 		{
-			TORRENT_ASSERT(te.second);
+			TORRENT_ASSERT(te);
 		}
 	}
 #endif // TORRENT_USE_INVARIANT_CHECKS

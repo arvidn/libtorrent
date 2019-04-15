@@ -463,7 +463,7 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		m_ses.insert_torrent(m_torrent_file->info_hash(), me, m_uuid);
+		m_ses.insert_torrent(me, m_uuid);
 
 		// if the user added any trackers while downloading the
 		// .torrent file, merge them into the new tracker list
