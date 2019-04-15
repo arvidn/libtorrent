@@ -274,6 +274,7 @@ namespace aux {
 #endif
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 			using torrent_map = std::unordered_map<sha1_hash, std::shared_ptr<torrent>>;
+			using torrent_array = std::vector<std::shared_ptr<torrent>>;
 
 			session_impl(io_context& ios, settings_pack const& pack
 				, disk_io_constructor_type disk_io);
@@ -373,7 +374,7 @@ namespace aux {
 			std::weak_ptr<torrent> find_disconnect_candidate_torrent() const override;
 			int num_torrents() const override { return int(m_torrents.size()); }
 
-			void insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
+			void insert_torrent(std::shared_ptr<torrent> const& t
 #if TORRENT_ABI_VERSION == 1
 				, std::string uuid
 #endif
@@ -881,7 +882,9 @@ namespace aux {
 			// the torrents must be destructed after the torrent_peer_allocator,
 			// since the torrents hold the peer lists that own the torrent_peers
 			// (which are allocated in the torrent_peer_allocator)
-			torrent_map m_torrents;
+			torrent_map m_torrent_index;
+
+			torrent_array m_torrents;
 
 			// all torrents that are downloading or queued,
 			// ordered by their queue position
@@ -1206,14 +1209,14 @@ namespace aux {
 			// round-robin fashion. All torrents are cycled through
 			// within the LSD announce interval (which defaults to
 			// 5 minutes)
-			torrent_map::iterator m_next_lsd_torrent;
+			std::size_t m_next_lsd_torrent;
 
 #ifndef TORRENT_DISABLE_DHT
 			// torrents are announced on the DHT in a
 			// round-robin fashion. All torrents are cycled through
 			// within the DHT announce interval (which defaults to
 			// 15 minutes)
-			torrent_map::iterator m_next_dht_torrent;
+			std::size_t m_next_dht_torrent;
 
 			// torrents that don't have any peers
 			// when added should be announced to the DHT
