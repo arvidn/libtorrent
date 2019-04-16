@@ -487,13 +487,6 @@ bool is_downloading_state(int const st)
 		aux::random_shuffle(ws);
 		for (auto& w : ws) m_web_seeds.push_back(std::move(w));
 
-#if !defined TORRENT_DISABLE_ENCRYPTION
-		static char const req2[4] = {'r', 'e', 'q', '2'};
-		hasher h(req2);
-		h.update(m_torrent_file->info_hash());
-		m_ses.add_obfuscated_hash(h.final(), shared_from_this());
-#endif
-
 		if (m_ses.alerts().should_post<metadata_received_alert>())
 		{
 			m_ses.alerts().emplace_alert<metadata_received_alert>(

@@ -623,6 +623,7 @@ HEADERS = \
   aux_/throw.hpp                    \
   aux_/time.hpp                     \
   aux_/torrent_impl.hpp             \
+  aux_/torrent_list.hpp             \
   aux_/unique_ptr.hpp               \
   aux_/vector.hpp                   \
   aux_/win_crypto_provider.hpp      \
