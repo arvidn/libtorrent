@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/torrent_list.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -273,8 +274,6 @@ namespace aux {
 			friend class libtorrent::invariant_access;
 #endif
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
-			using torrent_map = std::unordered_map<sha1_hash, std::shared_ptr<torrent>>;
-			using torrent_array = std::vector<std::shared_ptr<torrent>>;
 
 			session_impl(io_context& ios, settings_pack const& pack
 				, disk_io_constructor_type disk_io);
@@ -456,8 +455,6 @@ namespace aux {
 #if !defined TORRENT_DISABLE_ENCRYPTION
 			torrent const* find_encrypted_torrent(
 				sha1_hash const& info_hash, sha1_hash const& xor_mask) override;
-
-			void add_obfuscated_hash(sha1_hash const& obfuscated, std::weak_ptr<torrent> const& t) override;
 #endif
 
 			void on_lsd_announce(error_code const& e);
@@ -882,19 +879,11 @@ namespace aux {
 			// the torrents must be destructed after the torrent_peer_allocator,
 			// since the torrents hold the peer lists that own the torrent_peers
 			// (which are allocated in the torrent_peer_allocator)
-			torrent_map m_torrent_index;
-
-			torrent_array m_torrents;
+			aux::torrent_list<torrent> m_torrents;
 
 			// all torrents that are downloading or queued,
 			// ordered by their queue position
 			aux::vector<torrent*, queue_position_t> m_download_queue;
-
-#if !defined TORRENT_DISABLE_ENCRYPTION
-			// this maps obfuscated hashes to torrents. It's only
-			// used when encryption is enabled
-			torrent_map m_obfuscated_torrents;
-#endif
 
 #if TORRENT_ABI_VERSION == 1
 			//deprecated in 1.2

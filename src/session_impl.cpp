@@ -2603,7 +2603,7 @@ namespace aux {
 				{
 					// now, disconnect a random peer
 					auto const i = std::max_element(m_torrents.begin(), m_torrents.end()
-						, [](torrent_array::value_type const& lhs, torrent_array::value_type const& rhs)
+						, [](std::shared_ptr<torrent> const& lhs, std::shared_ptr<torrent> const& rhs)
 						{ return lhs->num_peers() < rhs->num_peers(); });
 
 					if (m_alerts.should_post<performance_alert>())
@@ -3479,7 +3479,7 @@ namespace aux {
 					// every 90 seconds, disconnect the worst peers
 					// if we have reached the connection limit
 					auto const i = std::max_element(m_torrents.begin(), m_torrents.end()
-						, [] (torrent_array::value_type const& lhs, torrent_array::value_type const& rhs)
+						, [] (std::shared_ptr<torrent> const& lhs, std::shared_ptr<torrent> const& rhs)
 						{ return lhs->num_peers() < rhs->num_peers(); });
 
 					TORRENT_ASSERT(i != m_torrents.end());
@@ -4328,14 +4328,14 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		auto const i = m_torrent_index.find(info_hash);
+		auto const i = m_torrents.find(info_hash);
 #if TORRENT_USE_INVARIANT_CHECKS
 		for (auto const& te : m_torrents)
 		{
 			TORRENT_ASSERT(te);
 		}
 #endif
-		if (i != m_torrent_index.end()) return i->second;
+		if (i != nullptr) return i->shared_from_this();
 		return std::weak_ptr<torrent>();
 	}
 
@@ -4346,17 +4346,7 @@ namespace aux {
 		)
 	{
 		auto const ih = t->torrent_file().info_hash();
-		m_torrents.push_back(t);
-		m_torrent_index.insert(std::make_pair(ih, t));
-
-#if !defined TORRENT_DISABLE_ENCRYPTION
-		static char const req2[4] = {'r', 'e', 'q', '2'};
-		hasher h(req2);
-		h.update(ih);
-		// this is SHA1("req2" + info-hash), used for
-		// encrypted hand shakes
-		m_obfuscated_torrents.emplace(h.final(), t);
-#endif
+		m_torrents.insert(ih, t);
 
 #if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
@@ -4435,9 +4425,7 @@ namespace aux {
 		sha1_hash obfuscated = info_hash;
 		obfuscated ^= xor_mask;
 
-		auto const i = m_obfuscated_torrents.find(obfuscated);
-		if (i == m_obfuscated_torrents.end()) return nullptr;
-		return i->second.get();
+		return m_torrents.find_obfuscated(obfuscated);
 	}
 #endif
 
@@ -4890,7 +4878,7 @@ namespace aux {
 		if (!torrent_ptr && !params.url.empty())
 		{
 			auto const i = std::find_if(m_torrents.begin(), m_torrents.end()
-				, [&params](torrent_array::value_type const& te)
+				, [&params](std::shared_ptr<torrent> const& te)
 				{ return te->url() == params.url; });
 			if (i != m_torrents.end())
 				torrent_ptr = *i;
@@ -5084,20 +5072,19 @@ namespace aux {
 		}
 #endif
 
-		auto i = m_torrent_index.find(tptr->torrent_file().info_hash());
-
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		// this torrent might be filed under the URL-hash
-		if (i == m_torrent_index.end() && !tptr->url().empty())
+		if (!m_torrents.erase(tptr->torrent_file().info_hash()))
 		{
-			i = m_torrent_index.find(hasher(tptr->url()).final());
-		}
+#if TORRENT_ABI_VERSION == 1
+			// deprecated in 1.2
+			// this torrent might be filed under the URL-hash
+			if (!tptr->url().empty())
+			{
+				m_torrents.erase(hasher(tptr->url()).final());
+			}
 #endif
+		}
 
-		if (i == m_torrent_index.end()) return;
-
-		torrent& t = *i->second;
+		torrent& t = *tptr;
 		if (options)
 		{
 			if (!t.delete_files(options))
@@ -5109,27 +5096,7 @@ namespace aux {
 		}
 
 		tptr->update_gauge();
-
-#if TORRENT_USE_ASSERTS
-		sha1_hash i_hash = t.torrent_file().info_hash();
-#endif
-
-		auto array_iter = std::find(m_torrents.begin(), m_torrents.end(), i->second);
-		TORRENT_ASSERT(array_iter != m_torrents.end());
-		if (array_iter != m_torrents.end())
-		{
-			std::swap(*array_iter, m_torrents.back());
-			m_torrents.pop_back();
-		}
-		m_torrent_index.erase(i);
 		tptr->removed();
-
-#if !defined TORRENT_DISABLE_ENCRYPTION
-		static char const req2[4] = {'r', 'e', 'q', '2'};
-		hasher h(req2);
-		h.update(tptr->info_hash());
-		m_obfuscated_torrents.erase(h.final());
-#endif
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_next_dht_torrent == m_torrents.size())
@@ -5140,8 +5107,6 @@ namespace aux {
 
 		// this torrent may open up a slot for a queued torrent
 		trigger_auto_manage();
-
-		TORRENT_ASSERT(m_torrent_index.find(i_hash) == m_torrent_index.end());
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -6017,14 +5982,6 @@ namespace aux {
 
 #endif
 
-#if !defined TORRENT_DISABLE_ENCRYPTION
-	void session_impl::add_obfuscated_hash(sha1_hash const& obfuscated
-		, std::weak_ptr<torrent> const& t)
-	{
-		m_obfuscated_torrents.insert(std::make_pair(obfuscated, t.lock()));
-	}
-#endif // TORRENT_DISABLE_ENCRYPTION
-
 	bool session_impl::is_listening() const
 	{
 		return !m_listen_sockets.empty();
@@ -6047,7 +6004,6 @@ namespace aux {
 			t->abort();
 		}
 		m_torrents.clear();
-		m_torrent_index.clear();
 
 #if defined TORRENT_ASIO_DEBUGGING
 		FILE* f = fopen("wakeups.log", "w+");

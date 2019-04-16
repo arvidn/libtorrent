@@ -304,8 +304,6 @@ namespace aux {
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		virtual torrent const* find_encrypted_torrent(
 			sha1_hash const& info_hash, sha1_hash const& xor_mask) = 0;
-		virtual void add_obfuscated_hash(sha1_hash const& obfuscated
-			, std::weak_ptr<torrent> const& t) = 0;
 #endif
 
 #ifndef TORRENT_DISABLE_DHT

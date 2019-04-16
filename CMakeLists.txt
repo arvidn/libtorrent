@@ -252,6 +252,7 @@ set(libtorrent_aux_include_files
 	throw
 	time
 	torrent_impl
+	torrent_list
 	unique_ptr
 	vector
 	win_crypto_provider

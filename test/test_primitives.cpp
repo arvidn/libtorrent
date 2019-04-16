@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/entry.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/announce_entry.hpp"
