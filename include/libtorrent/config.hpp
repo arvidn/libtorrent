@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define _FILE_OFFSET_BITS 64
 
 #include <boost/config.hpp>
+#include <boost/version.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -54,6 +55,14 @@ POSSIBILITY OF SUCH DAMAGE.
 // format codes are. So we need to disable those for mingw targets
 #pragma GCC diagnostic ignored "-Wformat"
 #pragma GCC diagnostic ignored "-Wformat-extra-args"
+#endif
+
+// ====== BOOST ========
+
+#if BOOST_VERSION >= 107000
+#define GET_IO_SERVICE(s) ((boost::asio::io_context&)(s).get_executor().context())
+#else
+#define GET_IO_SERVICE(s) ((s).get_io_service())
 #endif
 
 // ====== CLANG ========

@@ -121,7 +121,7 @@ void upnp::start()
 
 	error_code ec;
 	m_socket.open(std::bind(&upnp::on_reply, self(), _1, _2)
-		, m_refresh_timer.get_io_service(), ec);
+		, GET_IO_SERVICE(m_refresh_timer), ec);
 
 	m_mappings.reserve(10);
 }
