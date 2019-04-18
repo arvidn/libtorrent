@@ -989,7 +989,7 @@ void bind_alert()
     class_<block_uploaded_alert, bases<peer_alert>, noncopyable>(
        "block_uploaded_alert", no_init)
         .add_property("block_index", &block_uploaded_alert::block_index)
-        .add_property("piece_index", &block_uploaded_alert::piece_index)
+        .add_property("piece_index", make_getter((&block_uploaded_alert::piece_index), by_value()))
         ;
 
 }
