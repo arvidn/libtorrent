@@ -38,8 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/io_service.hpp>
+#include <boost/version.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
+
+#include "libtorrent/io_service_fwd.hpp"
 
 namespace libtorrent {
 

@@ -246,7 +246,7 @@ public:
 
 	io_service& get_io_service()
 	{
-		return m_sock.get_io_service();
+		return lt::get_io_service(m_sock);
 	}
 
 	lowest_layer_type& lowest_layer()
