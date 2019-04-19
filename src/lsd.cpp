@@ -100,11 +100,11 @@ void lsd::debug_log(char const* fmt, ...) const
 void lsd::start(error_code& ec)
 {
 	m_socket.open(std::bind(&lsd::on_announce, self(), _1, _2)
-		, GET_IO_SERVICE(m_broadcast_timer), ec);
+		, lt::get_io_service(m_broadcast_timer), ec);
 	if (ec) return;
 
 	m_socket6.open(std::bind(&lsd::on_announce, self(), _1, _2)
-		, GET_IO_SERVICE(m_broadcast_timer), ec);
+		, lt::get_io_service(m_broadcast_timer), ec);
 }
 
 lsd::~lsd() = default;
