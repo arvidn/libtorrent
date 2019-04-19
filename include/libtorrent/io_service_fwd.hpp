@@ -55,10 +55,19 @@ namespace boost { namespace asio {
 namespace libtorrent {
 
 #if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::asio::io_service io_service;
+	using io_service = sim::asio::io_service;
 #else
-	typedef boost::asio::io_service io_service;
+	using io_service = boost::asio::io_service;
 #endif
+
+#if BOOST_VERSION >= 107000
+template <typename T>
+io_service& get_io_service(T& o) { return static_cast<io_service&>(o.get_executor().context()); }
+#else
+template <typename T>
+io_service& get_io_service(T& o) { return o.get_io_service(); }
+#endif
+
 }
 
 #endif

@@ -160,13 +160,13 @@ void natpmp::start(address local_address, std::string device)
 	// try to find one even if the listen socket isn't bound to a device
 	if (device.empty())
 	{
-		device = device_for_address(local_address, GET_IO_SERVICE(m_socket), ec);
+		device = device_for_address(local_address, get_io_service(m_socket), ec);
 		// if this fails fall back to using the first default gateway in the
 		// routing table
 		ec.clear();
 	}
 
-	auto const route = get_default_route(GET_IO_SERVICE(m_socket)
+	auto const route = get_default_route(get_io_service(m_socket)
 		, device, local_address.is_v6(), ec);
 
 	if (!route)
@@ -194,7 +194,7 @@ void natpmp::start(address local_address, std::string device)
 	if (local_address.is_unspecified())
 	{
 		std::vector<ip_interface> const net = enum_net_interfaces(
-			GET_IO_SERVICE(m_socket), ec);
+			get_io_service(m_socket), ec);
 
 		auto const it = std::find_if(net.begin(), net.end(), [&](ip_interface const& i)
 		{
