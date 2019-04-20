@@ -85,7 +85,7 @@ public:
 
 		// the actual allocation may be larger than we requested. If so, let the
 		// user take advantage of every single byte
-#if defined __GLIBC__ || defined __FreeBSD__
+#if (defined __GLIBC__ && !defined __UCLIBC__) || defined __FreeBSD__
 		m_size = static_cast<difference_type>(::malloc_usable_size(m_begin));
 #elif defined _MSC_VER
 		m_size = static_cast<difference_type>(::_msize(m_begin));
