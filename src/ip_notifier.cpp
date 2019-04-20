@@ -380,7 +380,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		}
 		else
 		{
-			m_hnd.get_io_service().post([cb, err]()
+			lt::get_io_service(m_hnd).post([cb, err]()
 			{ cb(error_code(err, system_category())); });
 		}
 	}
