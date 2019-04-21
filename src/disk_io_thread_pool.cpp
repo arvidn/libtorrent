@@ -51,6 +51,7 @@ namespace libtorrent {
 		, m_num_idle_threads(0)
 		, m_min_idle_threads(0)
 		, m_idle_timer(ios)
+		, m_ioc(ios)
 	{}
 
 	disk_io_thread_pool::~disk_io_thread_pool()
@@ -173,7 +174,7 @@ namespace libtorrent {
 			// buffer pool won't exist anymore, and crash. This prevents that.
 			m_threads.emplace_back(&pool_thread_interface::thread_fun
 				, &m_thread_iface, std::ref(*this)
-				, make_work_guard(m_idle_timer.get_executor()));
+				, make_work_guard(m_ioc));
 		}
 	}
 

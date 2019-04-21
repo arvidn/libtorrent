@@ -262,7 +262,7 @@ namespace aux {
 		virtual void on_timeout(error_code const& ec) = 0;
 		virtual ~timeout_handler();
 
-		executor get_executor() { return m_timeout.get_executor(); }
+		auto get_executor() { return m_timeout.get_executor(); }
 
 	private:
 
