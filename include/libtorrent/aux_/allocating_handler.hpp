@@ -85,12 +85,12 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t utp_handler_max_size = tracking + 136;
 	constexpr std::size_t udp_handler_max_size = tracking + 136;
 #else
-	constexpr std::size_t write_handler_max_size = tracking + 120;
-	constexpr std::size_t read_handler_max_size = tracking + debug_iter + 120;
-	constexpr std::size_t utp_handler_max_size = tracking + 120;
-	constexpr std::size_t udp_handler_max_size = tracking + 96;
+	constexpr std::size_t write_handler_max_size = tracking + 136;
+	constexpr std::size_t read_handler_max_size = tracking + debug_iter + 136;
+	constexpr std::size_t utp_handler_max_size = tracking + 136;
+	constexpr std::size_t udp_handler_max_size = tracking + 112;
 #endif
-	constexpr std::size_t tick_handler_max_size = tracking + 64;
+	constexpr std::size_t tick_handler_max_size = tracking + 80;
 	constexpr std::size_t deferred_handler_max_size = tracking + 80;
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
 #else
@@ -107,10 +107,10 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t utp_handler_max_size = tracking + 136;
 	constexpr std::size_t udp_handler_max_size = tracking + 136;
 #else
-	constexpr std::size_t write_handler_max_size = tracking + 120;
+	constexpr std::size_t write_handler_max_size = tracking + 136;
 	constexpr std::size_t read_handler_max_size = tracking + 152;
-	constexpr std::size_t utp_handler_max_size = tracking + 120;
-	constexpr std::size_t udp_handler_max_size = tracking + 96;
+	constexpr std::size_t utp_handler_max_size = tracking + 136;
+	constexpr std::size_t udp_handler_max_size = tracking + 112;
 #endif
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
 	constexpr std::size_t deferred_handler_max_size = tracking + 80;

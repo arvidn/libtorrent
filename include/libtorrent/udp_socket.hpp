@@ -142,6 +142,8 @@ namespace libtorrent {
 
 		udp::socket m_socket;
 
+		io_context& m_ioc;
+
 		using receive_buffer = std::array<char, 1500>;
 		std::unique_ptr<receive_buffer> m_buf;
 

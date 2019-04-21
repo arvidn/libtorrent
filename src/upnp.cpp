@@ -108,6 +108,7 @@ upnp::upnp(io_context& ios
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_map_timer(ios)
+	, m_ioc(ios)
 	, m_disabled(false)
 	, m_closing(false)
 	, m_ignore_non_routers(ignore_nonrouters)
@@ -120,8 +121,7 @@ void upnp::start()
 	TORRENT_ASSERT(is_single_thread());
 
 	error_code ec;
-	m_socket.open(std::bind(&upnp::on_reply, self(), _1, _2)
-		, m_refresh_timer.get_executor().context(), ec);
+	m_socket.open(std::bind(&upnp::on_reply, self(), _1, _2), m_ioc, ec);
 
 	m_mappings.reserve(10);
 }

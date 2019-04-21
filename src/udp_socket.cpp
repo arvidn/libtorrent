@@ -157,6 +157,7 @@ struct set_dont_frag
 
 udp_socket::udp_socket(io_context& ios)
 	: m_socket(ios)
+	, m_ioc(ios)
 	, m_buf(new receive_buffer())
 	, m_bind_port(0)
 	, m_abort(true)
@@ -492,7 +493,7 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 	{
 		// connect to socks5 server and open up the UDP tunnel
 
-		m_socks5_connection = std::make_shared<socks5>(m_socket.get_executor().context());
+		m_socks5_connection = std::make_shared<socks5>(m_ioc);
 		m_socks5_connection->start(ps);
 	}
 }
