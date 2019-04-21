@@ -65,6 +65,7 @@ fuzzer upnp ;
 fuzzer dht_node ;
 fuzzer utp ;
 fuzzer resume_data ;
+fuzzer peer_conn ;
 
 local LARGE_TARGETS =
 	torrent_info
@@ -77,6 +78,7 @@ local LARGE_TARGETS =
 	file_storage_add_file
 	sanitize_path
 	upnp
+	peer_conn
 	;
 
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;
