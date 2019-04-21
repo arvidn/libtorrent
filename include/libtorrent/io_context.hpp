@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ts/io_context.hpp>
 #include <boost/asio/executor_work_guard.hpp>
-#include <boost/asio/executor.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/defer.hpp>
 #include <boost/asio/dispatch.hpp>
@@ -53,7 +52,6 @@ namespace libtorrent {
 #else
 	using boost::asio::io_context;
 #endif
-	using boost::asio::executor;
 	using boost::asio::executor_work_guard;
 	using boost::asio::make_work_guard;
 
