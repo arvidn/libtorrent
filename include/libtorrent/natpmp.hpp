@@ -80,7 +80,7 @@ namespace system {
 
 namespace libtorrent {
 
-struct TORRENT_EXTRA_EXPORT natpmp
+struct TORRENT_EXTRA_EXPORT natpmp final
 	: std::enable_shared_from_this<natpmp>
 	, single_threaded
 {
@@ -199,6 +199,8 @@ private:
 
 	// the mapping index that will expire next
 	port_mapping_t m_next_refresh{-1};
+
+	io_context& m_ioc;
 
 	bool m_disabled = false;
 

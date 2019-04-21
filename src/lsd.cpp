@@ -71,6 +71,7 @@ lsd::lsd(io_context& ios, aux::lsd_callback& cb)
 	, m_socket(udp::endpoint(make_address_v4("239.192.152.143", dummy), 6771))
 	, m_socket6(udp::endpoint(make_address_v6("ff15::efc0:988f", dummy), 6771))
 	, m_broadcast_timer(ios)
+	, m_ioc(ios)
 	, m_cookie((random(0x7fffffff) ^ std::uintptr_t(this)) & 0x7fffffff)
 	, m_disabled(false)
 	, m_disabled6(false)
@@ -99,12 +100,10 @@ void lsd::debug_log(char const* fmt, ...) const
 
 void lsd::start(error_code& ec)
 {
-	m_socket.open(std::bind(&lsd::on_announce, self(), _1, _2)
-		, m_broadcast_timer.get_executor().context(), ec);
+	m_socket.open(std::bind(&lsd::on_announce, self(), _1, _2), m_ioc, ec);
 	if (ec) return;
 
-	m_socket6.open(std::bind(&lsd::on_announce, self(), _1, _2)
-		, m_broadcast_timer.get_executor().context(), ec);
+	m_socket6.open(std::bind(&lsd::on_announce, self(), _1, _2), m_ioc, ec);
 }
 
 lsd::~lsd() = default;

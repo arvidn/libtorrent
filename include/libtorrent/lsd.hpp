@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-class lsd : public std::enable_shared_from_this<lsd>
+class lsd final : public std::enable_shared_from_this<lsd>
 {
 public:
 	lsd(io_context& ios, aux::lsd_callback& cb);
@@ -76,6 +76,8 @@ private:
 	// used to resend udp packets in case
 	// they time out
 	deadline_timer m_broadcast_timer;
+
+	io_context& m_ioc;
 
 	// this is a random (presumably unique)
 	// ID for this LSD node. It is used to

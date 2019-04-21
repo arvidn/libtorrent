@@ -139,6 +139,7 @@ natpmp::natpmp(io_context& ios
 	, m_socket(ios)
 	, m_send_timer(ios)
 	, m_refresh_timer(ios)
+	, m_ioc(ios)
 {
 	// unfortunately async operations rely on the storage
 	// for this array not to be reallocated, by passing
@@ -160,14 +161,13 @@ void natpmp::start(address local_address, std::string device)
 	// try to find one even if the listen socket isn't bound to a device
 	if (device.empty())
 	{
-		device = device_for_address(local_address, m_socket.get_executor().context(), ec);
+		device = device_for_address(local_address, m_ioc, ec);
 		// if this fails fall back to using the first default gateway in the
 		// routing table
 		ec.clear();
 	}
 
-	auto const route = get_default_route(m_socket.get_executor().context()
-		, device, local_address.is_v6(), ec);
+	auto const route = get_default_route(m_ioc, device, local_address.is_v6(), ec);
 
 	if (!route)
 	{
@@ -193,8 +193,7 @@ void natpmp::start(address local_address, std::string device)
 	// address from the OS
 	if (local_address.is_unspecified())
 	{
-		std::vector<ip_interface> const net = enum_net_interfaces(
-			m_socket.get_executor().context(), ec);
+		std::vector<ip_interface> const net = enum_net_interfaces(m_ioc, ec);
 
 		auto const it = std::find_if(net.begin(), net.end(), [&](ip_interface const& i)
 		{

@@ -80,6 +80,7 @@ namespace libtorrent {
 
 		std::shared_ptr<http_connection> m_tracker_connection;
 		address m_tracker_ip;
+		io_context& m_ioc;
 	};
 
 	TORRENT_EXTRA_EXPORT tracker_response parse_tracker_response(

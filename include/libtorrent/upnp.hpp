@@ -353,6 +353,8 @@ private:
 	// map them anyway.
 	deadline_timer m_map_timer;
 
+	io_context& m_ioc;
+
 	bool m_disabled;
 	bool m_closing;
 	bool m_ignore_non_routers;

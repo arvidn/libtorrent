@@ -213,6 +213,8 @@ namespace dht {
 		// state for the send rate limit
 		int m_send_quota;
 		time_point m_last_tick;
+
+		io_context& m_ioc;
 	};
 } // namespace dht
 } // namespace libtorrent

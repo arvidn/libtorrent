@@ -101,6 +101,7 @@ namespace libtorrent { namespace dht {
 		, m_host_resolver(ios)
 		, m_send_quota(settings.upload_rate_limit)
 		, m_last_tick(aux::time_now())
+		, m_ioc(ios)
 	{
 		m_blocker.set_block_timer(m_settings.block_timeout);
 		m_blocker.set_rate_limit(m_settings.block_ratelimit);
@@ -130,7 +131,7 @@ namespace libtorrent { namespace dht {
 		// must use piecewise construction because tracker_node::connection_timer
 		// is neither copyable nor movable
 		auto n = m_nodes.emplace(std::piecewise_construct_t(), std::forward_as_tuple(s)
-			, std::forward_as_tuple(m_key_refresh_timer.get_executor().context()
+			, std::forward_as_tuple(m_ioc
 			, s, this, m_settings, nid, m_log, m_counters
 			, std::bind(&dht_tracker::get_node, this, _1, _2)
 			, m_storage));
