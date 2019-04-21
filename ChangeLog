@@ -10,6 +10,7 @@
 	* support magnet link parameters with number siffixes
 	* consistently use "lt" namespace in examples and documentation
 	* fix Mingw build to use native cryptoAPI
+	* uPnP/NAT-PMP errors no longer set the client's advertised listen port to zero
 
 1.2 release
 
