@@ -2142,13 +2142,17 @@ namespace aux {
 
 		if ((mask & remap_natpmp) && s.natpmp_mapper)
 		{
-			map_port(*s.natpmp_mapper, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[0].mapping);
-			map_port(*s.natpmp_mapper, portmap_protocol::udp, make_tcp(udp_ep), s.udp_port_mapping[0].mapping);
+			map_port(*s.natpmp_mapper, portmap_protocol::tcp, tcp_ep
+				, s.tcp_port_mapping[portmap_transport::natpmp].mapping);
+			map_port(*s.natpmp_mapper, portmap_protocol::udp, make_tcp(udp_ep)
+				, s.udp_port_mapping[portmap_transport::natpmp].mapping);
 		}
 		if ((mask & remap_upnp) && m_upnp)
 		{
-			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[1].mapping);
-			map_port(*m_upnp, portmap_protocol::udp, make_tcp(udp_ep), s.udp_port_mapping[1].mapping);
+			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep
+				, s.tcp_port_mapping[portmap_transport::upnp].mapping);
+			map_port(*m_upnp, portmap_protocol::udp, make_tcp(udp_ep)
+				, s.udp_port_mapping[portmap_transport::upnp].mapping);
 		}
 	}
 
@@ -5519,13 +5523,13 @@ namespace aux {
 		bool find_tcp_port_mapping(portmap_transport const transport
 			, port_mapping_t mapping, std::shared_ptr<listen_socket_t> const& ls)
 		{
-			return ls->tcp_port_mapping[static_cast<int>(transport)].mapping == mapping;
+			return ls->tcp_port_mapping[transport].mapping == mapping;
 		}
 
 		bool find_udp_port_mapping(portmap_transport const transport
 			, port_mapping_t mapping, std::shared_ptr<listen_socket_t> const& ls)
 		{
-			return ls->udp_port_mapping[static_cast<int>(transport)].mapping == mapping;
+			return ls->udp_port_mapping[transport].mapping == mapping;
 		}
 	}
 
@@ -5570,8 +5574,8 @@ namespace aux {
 				(*ls)->external_address.cast_vote(ip, source_router, address());
 			}
 
-			if (tcp) (*ls)->tcp_port_mapping[static_cast<int>(transport)].port = port;
-			else (*ls)->tcp_port_mapping[static_cast<int>(transport)].port = port;
+			if (tcp) (*ls)->tcp_port_mapping[transport].port = port;
+			else (*ls)->tcp_port_mapping[transport].port = port;
 		}
 
 		if (!ec && m_alerts.should_post<portmap_alert>())
@@ -6729,8 +6733,8 @@ namespace aux {
 	{
 		for (auto& s : m_listen_sockets)
 		{
-			s->tcp_port_mapping[0] = listen_port_mapping();
-			s->udp_port_mapping[0] = listen_port_mapping();
+			s->tcp_port_mapping[portmap_transport::natpmp] = listen_port_mapping();
+			s->udp_port_mapping[portmap_transport::natpmp] = listen_port_mapping();
 			if (!s->natpmp_mapper) continue;
 			s->natpmp_mapper->close();
 			s->natpmp_mapper.reset();
@@ -6744,8 +6748,8 @@ namespace aux {
 		m_upnp->close();
 		for (auto& s : m_listen_sockets)
 		{
-			s->tcp_port_mapping[1] = listen_port_mapping();
-			s->udp_port_mapping[1] = listen_port_mapping();
+			s->tcp_port_mapping[portmap_transport::upnp] = listen_port_mapping();
+			s->udp_port_mapping[portmap_transport::upnp] = listen_port_mapping();
 		}
 		m_upnp.reset();
 	}

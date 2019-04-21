@@ -196,8 +196,8 @@ namespace aux {
 		// 0 is natpmp 1 is upnp
 		// the order of these arrays determines the priorty in
 		// which their ports will be announced to peers
-		listen_port_mapping tcp_port_mapping[2];
-		listen_port_mapping udp_port_mapping[2];
+		aux::array<listen_port_mapping, 2, portmap_transport> tcp_port_mapping;
+		aux::array<listen_port_mapping, 2, portmap_transport> udp_port_mapping;
 
 		// indicates whether this is an SSL listen socket or not
 		transport ssl = transport::plaintext;
