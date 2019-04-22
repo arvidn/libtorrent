@@ -1598,24 +1598,6 @@ namespace {
 		return buf;
 	}
 
-#if TORRENT_ABI_VERSION == 1
-	torrent_update_alert::torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
-		, sha1_hash const& old_hash, sha1_hash const& new_hash)
-		: torrent_alert(alloc, h)
-		, old_ih(old_hash)
-		, new_ih(new_hash)
-	{}
-
-	std::string torrent_update_alert::message() const
-	{
-		char msg[200];
-		std::snprintf(msg, sizeof(msg), " torrent changed info-hash from: %s to %s"
-			, aux::to_hex(old_ih).c_str()
-			, aux::to_hex(new_ih).c_str());
-		return torrent_alert::message() + msg;
-	}
-#endif
-
 	peer_disconnected_alert::peer_disconnected_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
 		, peer_id const& peer_id, operation_t op_, int type, error_code const& e
@@ -2694,7 +2676,6 @@ namespace {
 	constexpr alert_category_t anonymous_mode_alert::static_category;
 	constexpr alert_category_t mmap_cache_alert::static_category;
 	constexpr alert_category_t torrent_added_alert::static_category;
-	constexpr alert_category_t torrent_update_alert::static_category;
 #endif
 
 } // namespace libtorrent

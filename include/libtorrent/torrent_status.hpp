@@ -155,9 +155,6 @@ TORRENT_VERSION_NAMESPACE_2
 		// the error occurred while loading the .torrent file via the user
 		// supplied load function
 		static constexpr file_index_t TORRENT_DEPRECATED error_file_metadata{-4};
-
-		// the error occurred on m_url
-		static constexpr file_index_t TORRENT_DEPRECATED error_file_url{-2};
 #endif
 
 		// there was a serious error reported in this torrent. The error code

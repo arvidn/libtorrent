@@ -2120,47 +2120,6 @@ TORRENT_VERSION_NAMESPACE_2
 #endif
 	};
 
-#if TORRENT_ABI_VERSION == 1
-	// hidden
-	// When a torrent changes its info-hash, this alert is posted. This only
-	// happens in very specific cases. For instance, when a torrent is
-	// downloaded from a URL, the true info hash is not known immediately. First
-	// the .torrent file must be downloaded and parsed.
-	//
-	// Once this download completes, the ``torrent_update_alert`` is posted to
-	// notify the client of the info-hash changing.
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-// warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-	struct TORRENT_DEPRECATED_EXPORT torrent_update_alert final : torrent_alert
-	{
-		// internal
-		torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
-			, sha1_hash const& old_hash, sha1_hash const& new_hash);
-
-		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71, alert_priority_critical)
-
-		static constexpr alert_category_t static_category = alert::status_notification;
-		std::string message() const override;
-
-		// ``old_ih`` and ``new_ih`` are the previous and new info-hash for the torrent, respectively.
-		sha1_hash old_ih;
-		sha1_hash new_ih;
-	};
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#endif // TORRENT_ABI_VERSION
-
 	// posted when something fails in the DHT. This is not necessarily a fatal
 	// error, but it could prevent proper operation
 	struct TORRENT_EXPORT dht_error_alert final : alert

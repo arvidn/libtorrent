@@ -149,11 +149,7 @@ TORRENT_TEST(alerts_types)
 	count_alert_types++;
 #endif
 	TEST_ALERT_TYPE(session_stats_alert, 70, 2, alert::stats_notification);
-#if TORRENT_ABI_VERSION == 1
-	TEST_ALERT_TYPE(torrent_update_alert, 71, 2, alert::status_notification);
-#else
 	count_alert_types++;
-#endif
 	count_alert_types++; // 72 is gone
 	TEST_ALERT_TYPE(dht_error_alert, 73, 0, alert::error_notification | alert::dht_notification);
 	TEST_ALERT_TYPE(dht_immutable_item_alert, 74, 2, alert::dht_notification);

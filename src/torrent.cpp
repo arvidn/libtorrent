@@ -178,7 +178,6 @@ bool is_downloading_state(int const st)
 		, m_save_path(complete(p.save_path))
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
-		, m_url(p.url)
 		, m_uuid(p.uuid)
 #endif
 		, m_stats_counters(ses.stats_counters())
@@ -355,11 +354,6 @@ bool is_downloading_state(int const st)
 			if (!p.name.empty()) m_name.reset(new std::string(p.name));
 		}
 
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		if (!m_url.empty() && m_uuid.empty()) m_uuid = m_url;
-#endif
-
 		TORRENT_ASSERT(is_single_thread());
 		m_file_priority.assign(p.file_priorities.begin(), p.file_priorities.end());
 
@@ -381,10 +375,6 @@ bool is_downloading_state(int const st)
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
-#if TORRENT_ABI_VERSION == 1
-		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
-#endif
-
 		if (valid_metadata())
 		{
 			inc_stats_counter(counters::num_total_pieces_added
@@ -394,114 +384,6 @@ bool is_downloading_state(int const st)
 
 	void torrent::inc_stats_counter(int c, int value)
 	{ m_ses.stats_counters().inc_stats_counter(c, value); }
-
-#if TORRENT_ABI_VERSION == 1
-	// deprecated in 1.2
-	void torrent::on_torrent_download(error_code const& ec
-		, http_parser const& parser, span<char const> data) try
-	{
-		if (m_abort) return;
-
-		if (ec && ec != boost::asio::error::eof)
-		{
-			set_error(ec, torrent_status::error_file_url);
-			pause();
-			return;
-		}
-
-		if (parser.status_code() != 200)
-		{
-			set_error(error_code(parser.status_code(), http_category()), torrent_status::error_file_url);
-			pause();
-			return;
-		}
-
-		error_code e;
-		auto tf = std::make_shared<torrent_info>(data, std::ref(e), from_span);
-		if (e)
-		{
-			set_error(e, torrent_status::error_file_url);
-			pause();
-			return;
-		}
-
-		// update our torrent_info object and move the
-		// torrent from the old info-hash to the new one
-		// as we replace the torrent_info object
-		// we're about to erase the session's reference to this
-		// torrent, create another reference
-		auto me = shared_from_this();
-
-		m_ses.remove_torrent_impl(me, {});
-
-		if (alerts().should_post<torrent_update_alert>())
-			alerts().emplace_alert<torrent_update_alert>(get_handle(), info_hash(), tf->info_hash());
-
-		m_torrent_file = tf;
-		m_info_hash = tf->info_hash();
-
-		// now, we might already have this torrent in the session.
-		std::shared_ptr<torrent> t = m_ses.find_torrent(m_torrent_file->info_hash()).lock();
-		if (t)
-		{
-			if (!m_uuid.empty() && t->uuid().empty())
-				t->set_uuid(m_uuid);
-			if (!m_url.empty() && t->url().empty())
-				t->set_url(m_url);
-
-			// insert this torrent in the uuid index
-			if (!m_uuid.empty() || !m_url.empty())
-			{
-				m_ses.insert_uuid_torrent(m_uuid.empty() ? m_url : m_uuid, t);
-			}
-
-			// TODO: if the existing torrent doesn't have metadata, insert
-			// the metadata we just downloaded into it.
-
-			set_error(errors::duplicate_torrent, torrent_status::error_file_url);
-			abort();
-			return;
-		}
-
-		m_ses.insert_torrent(me, m_uuid);
-
-		// if the user added any trackers while downloading the
-		// .torrent file, merge them into the new tracker list
-		std::vector<announce_entry> new_trackers = m_torrent_file->trackers();
-		for (auto const& tr : m_trackers)
-		{
-			// if we already have this tracker, ignore it
-			if (std::any_of(new_trackers.begin(), new_trackers.end()
-				, [&tr] (announce_entry const& ae) { return ae.url == tr.url; }))
-				continue;
-
-			// insert the tracker ordered by tier
-			new_trackers.insert(std::find_if(new_trackers.begin(), new_trackers.end()
-				, [&tr] (announce_entry const& ae) { return ae.tier >= tr.tier; }), tr);
-		}
-		m_trackers.swap(new_trackers);
-
-		// add the web seeds from the .torrent file
-		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
-		std::vector<web_seed_t> ws(web_seeds.begin(), web_seeds.end());
-		aux::random_shuffle(ws);
-		for (auto& w : ws) m_web_seeds.push_back(std::move(w));
-
-		if (m_ses.alerts().should_post<metadata_received_alert>())
-		{
-			m_ses.alerts().emplace_alert<metadata_received_alert>(
-				get_handle());
-		}
-
-		state_updated();
-
-		set_state(torrent_status::downloading);
-
-		init();
-	}
-	catch (...) { handle_exception(); }
-
-#endif // TORRENT_ABI_VERSION
 
 	int torrent::current_stats_state() const
 	{
@@ -676,15 +558,6 @@ bool is_downloading_state(int const st)
 		update_want_tick();
 		update_state_list();
 
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		if (!m_torrent_file->is_valid() && !m_url.empty())
-		{
-			// we need to download the .torrent file from m_url
-			start_download_url();
-		}
-		else
-#endif
 		if (m_torrent_file->is_valid())
 		{
 			init();
@@ -701,35 +574,6 @@ bool is_downloading_state(int const st)
 		check_invariant();
 #endif
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	// deprecated in 1.2
-	void torrent::start_download_url()
-	{
-		TORRENT_ASSERT(!m_url.empty());
-		TORRENT_ASSERT(!m_torrent_file->is_valid());
-		auto conn = std::make_shared<http_connection>(
-			m_ses.get_context()
-			, m_ses.get_resolver()
-			, std::bind(&torrent::on_torrent_download, shared_from_this()
-				, _1, _2, _3)
-			, true // bottled
-			//bottled buffer size
-			, settings().get_int(settings_pack::max_http_recv_buffer_size)
-			, http_connect_handler()
-			, http_filter_handler()
-#ifdef TORRENT_USE_OPENSSL
-			, m_ssl_ctx.get()
-#endif
-			);
-		aux::proxy_settings ps = m_ses.proxy();
-		conn->get(m_url, seconds(30), 0, &ps
-			, 5
-			, settings().get_bool(settings_pack::anonymous_mode)
-				? "" : settings().get_str(settings_pack::user_agent));
-		set_state(torrent_status::downloading_metadata);
-	}
-#endif
 
 	void torrent::set_apply_ip_filter(bool b)
 	{
@@ -764,14 +608,6 @@ bool is_downloading_state(int const st)
 		if (m_torrent_file->is_valid() && !m_files_checked) return false;
 		if (!m_announce_to_dht) return false;
 		if (m_paused) return false;
-
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		// if we don't have the metadata, and we're waiting
-		// for a web server to serve it to us, no need to announce
-		// because the info-hash is just the URL hash
-		if (!m_torrent_file->is_valid() && !m_url.empty()) return false;
-#endif
 
 		// don't announce private torrents
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return false;
@@ -2562,12 +2398,6 @@ bool is_downloading_state(int const st)
 
 				if (m_paused)
 					debug_log("DHT: torrent paused, no DHT announce");
-
-#if TORRENT_ABI_VERSION == 1
-				// deprecated in 1.2
-				if (!m_torrent_file->is_valid() && !m_url.empty())
-					debug_log("DHT: no info-hash, waiting for \"%s\"", m_url.c_str());
-#endif
 
 				if (m_torrent_file->is_valid() && m_torrent_file->priv())
 					debug_log("DHT: private torrent, no DHT announce");
@@ -6073,7 +5903,6 @@ bool is_downloading_state(int const st)
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
-		ret.url = m_url;
 		ret.uuid = m_uuid;
 #endif
 
@@ -8108,15 +7937,6 @@ bool is_downloading_state(int const st)
 		update_want_peers();
 		update_state_list();
 
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		// if we haven't downloaded the metadata from m_url, try again
-		if (!m_url.empty() && !m_torrent_file->is_valid())
-		{
-			start_download_url();
-			return;
-		}
-#endif
 		// if the error happened during initialization, try again now
 		if (!m_connections_initialized && valid_metadata()) init();
 		if (!checking_files && should_check_files())
@@ -8129,7 +7949,6 @@ bool is_downloading_state(int const st)
 		if (file == torrent_status::error_file_exception) return "exception";
 		if (file == torrent_status::error_file_partfile) return "partfile";
 #if TORRENT_ABI_VERSION == 1
-		if (file == torrent_status::error_file_url) return m_url;
 		if (file == torrent_status::error_file_metadata) return "metadata (from user load function)";
 #endif
 
@@ -8808,16 +8627,6 @@ bool is_downloading_state(int const st)
 #endif
 			return;
 		}
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		if (!m_torrent_file->is_valid() && !m_url.empty())
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("start_announcing(), downloading URL");
-#endif
-			return;
-		}
-#endif
 		if (m_announcing) return;
 
 		m_announcing = true;
