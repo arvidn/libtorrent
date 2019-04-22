@@ -6090,6 +6090,12 @@ namespace aux {
 			t.second->abort();
 		}
 		m_torrents.clear();
+#if !defined TORRENT_DISABLE_ENCRYPTION
+		m_obfuscated_torrents.clear();
+#endif
+#if TORRENT_ABI_VERSION == 1
+		m_uuids.clear();
+#endif
 
 #if defined TORRENT_ASIO_DEBUGGING
 		FILE* f = fopen("wakeups.log", "w+");
