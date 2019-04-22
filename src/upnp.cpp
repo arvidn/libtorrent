@@ -135,7 +135,7 @@ void upnp::start()
 {
 	error_code ec;
 	m_socket.open(boost::bind(&upnp::on_reply, self(), _1, _2, _3)
-		, m_refresh_timer.get_io_service(), ec);
+		, lt::get_io_service(m_refresh_timer), ec);
 
 	m_mappings.reserve(10);
 }

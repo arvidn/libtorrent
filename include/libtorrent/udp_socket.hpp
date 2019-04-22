@@ -80,7 +80,7 @@ namespace libtorrent
 		};
 
 		bool is_open() const { return m_abort == false; }
-		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
+		io_service& get_io_service() { return lt::get_io_service(m_ipv4_sock); }
 
 		void subscribe(udp_socket_observer* o);
 		void unsubscribe(udp_socket_observer* o);
