@@ -69,6 +69,14 @@ namespace libtorrent
 #else
 	typedef boost::asio::io_service io_service;
 #endif
+
+#if BOOST_VERSION >= 107000
+template <typename T>
+io_service& get_io_service(T& o) { return static_cast<io_service&>(o.get_executor().context()); }
+#else
+template <typename T>
+io_service& get_io_service(T& o) { return o.get_io_service(); }
+#endif
 }
 
 #endif

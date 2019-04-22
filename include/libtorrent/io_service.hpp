@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/asio/io_service.hpp>
+#include <boost/version.hpp>
 
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
@@ -57,6 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef __OBJC__
 #undef Protocol
 #endif
+
+#include "libtorrent/io_service_fwd.hpp"
 
 namespace libtorrent
 {
