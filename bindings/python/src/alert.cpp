@@ -230,7 +230,6 @@ namespace boost
 #if TORRENT_ABI_VERSION == 1
 	POLY(anonymous_mode_alert)
 	POLY(torrent_added_alert)
-	POLY(torrent_update_alert)
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -881,14 +880,6 @@ void bind_alert()
        .def_readonly("error", &add_torrent_alert::error)
        .add_property("params", &add_torrent_alert::params)
        ;
-
-#if TORRENT_ABI_VERSION == 1
-    class_<torrent_update_alert, bases<torrent_alert>, noncopyable>(
-       "torrent_update_alert", no_init)
-        .def_readonly("old_ih", &torrent_update_alert::old_ih)
-        .def_readonly("new_ih", &torrent_update_alert::new_ih)
-        ;
-#endif
 
     class_<dht_outgoing_get_peers_alert, bases<alert>, noncopyable>(
        "dht_outgoing_get_peers_alert", no_init)

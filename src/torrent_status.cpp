@@ -40,7 +40,6 @@ namespace libtorrent {
 	file_index_t constexpr torrent_status::error_file_partfile;
 
 #if TORRENT_ABI_VERSION == 1
-	file_index_t constexpr torrent_status::error_file_url;
 	file_index_t constexpr torrent_status::error_file_metadata;
 #endif
 

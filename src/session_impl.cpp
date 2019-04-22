@@ -4874,15 +4874,6 @@ namespace aux {
 #if TORRENT_ABI_VERSION == 1
 		//deprecated in 1.2
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
-		// if we still can't find the torrent, look for it by url
-		if (!torrent_ptr && !params.url.empty())
-		{
-			auto const i = std::find_if(m_torrents.begin(), m_torrents.end()
-				, [&params](std::shared_ptr<torrent> const& te)
-				{ return te->url() == params.url; });
-			if (i != m_torrents.end())
-				torrent_ptr = *i;
-		}
 #endif
 
 		if (torrent_ptr)
@@ -4893,8 +4884,6 @@ namespace aux {
 				//deprecated in 1.2
 				if (!params.uuid.empty() && torrent_ptr->uuid().empty())
 					torrent_ptr->set_uuid(params.uuid);
-				if (!params.url.empty() && torrent_ptr->url().empty())
-					torrent_ptr->set_url(params.url);
 #endif
 				return std::make_pair(torrent_ptr, false);
 			}
@@ -5072,17 +5061,7 @@ namespace aux {
 		}
 #endif
 
-		if (!m_torrents.erase(tptr->torrent_file().info_hash()))
-		{
-#if TORRENT_ABI_VERSION == 1
-			// deprecated in 1.2
-			// this torrent might be filed under the URL-hash
-			if (!tptr->url().empty())
-			{
-				m_torrents.erase(hasher(tptr->url()).final());
-			}
-#endif
-		}
+		m_torrents.erase(tptr->torrent_file().info_hash());
 
 		torrent& t = *tptr;
 		if (options)

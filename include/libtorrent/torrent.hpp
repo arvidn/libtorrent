@@ -347,11 +347,6 @@ namespace libtorrent {
 			update_gauge();
 		}
 
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		void start_download_url();
-#endif
-
 		// returns which stats gauge this torrent currently
 		// has incremented.
 		int current_stats_state() const;
@@ -993,8 +988,6 @@ namespace libtorrent {
 		// deprecated in 1.2
 		std::string const& uuid() const { return m_uuid; }
 		void set_uuid(std::string const& s) { m_uuid = s; }
-		std::string const& url() const { return m_url; }
-		void set_url(std::string const& s) { m_url = s; }
 		std::string const& source_feed_url() const { return m_source_feed_url; }
 		void set_source_feed_url(std::string const& s) { m_source_feed_url = s; }
 #endif
@@ -1060,11 +1053,6 @@ namespace libtorrent {
 		// of the storage.
 		// a return value of false indicates an error
 		bool set_metadata(span<char const> metadata);
-
-#if TORRENT_ABI_VERSION == 1
-		void on_torrent_download(error_code const& ec, http_parser const& parser
-			, span<char const> data);
-#endif
 
 		queue_position_t sequence_number() const { return m_sequence_number; }
 
@@ -1289,10 +1277,6 @@ namespace libtorrent {
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
-
-		// if we don't have the metadata, this is a url to
-		// the torrent file
-		std::string m_url;
 
 		// if this was added from an RSS feed, this is the unique
 		// identifier in the feed.
