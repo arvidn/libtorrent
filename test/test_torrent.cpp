@@ -440,32 +440,6 @@ TORRENT_TEST(rename_file)
 	TEST_EQUAL(info->files().file_path(file_index_t(0)), "tmp1");
 }
 
-#if TORRENT_ABI_VERSION == 1
-TORRENT_TEST(async_load_deprecated)
-{
-	settings_pack pack = settings();
-	lt::session ses(pack);
-
-	add_torrent_params p;
-	p.flags &= ~torrent_flags::paused;
-	p.flags &= ~torrent_flags::auto_managed;
-	std::string dir = parent_path(current_working_directory());
-
-	p.url = "file://" + combine_path(combine_path(dir, "test_torrents"), "base.torrent");
-	p.save_path = ".";
-	ses.async_add_torrent(std::move(p));
-
-	alert const* a = wait_for_alert(ses, add_torrent_alert::alert_type);
-	TEST_CHECK(a);
-	if (a == nullptr) return;
-	auto const* ta = alert_cast<add_torrent_alert const>(a);
-	TEST_CHECK(ta);
-	if (ta == nullptr) return;
-	TEST_CHECK(!ta->error);
-	TEST_CHECK(ta->params.ti->name() == "temp");
-}
-#endif
-
 TORRENT_TEST(torrent_status)
 {
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_none), -1);

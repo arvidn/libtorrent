@@ -325,22 +325,6 @@ TORRENT_TEST(path)
 	std::string path = "a\\b\\c";
 	convert_path_to_posix(path);
 	TEST_EQUAL(path, "a/b/c");
-
-#if TORRENT_ABI_VERSION == 1
-	// resolve_file_url
-
-#ifdef TORRENT_WINDOWS
-	std::string p = "c:/blah/foo/bar\\";
-	convert_path_to_windows(p);
-	TEST_EQUAL(p, "c:\\blah\\foo\\bar\\");
-	TEST_EQUAL(resolve_file_url("file:///c:/blah/foo/bar"), "c:\\blah\\foo\\bar");
-	TEST_EQUAL(resolve_file_url("file:///c:/b%3fah/foo/bar"), "c:\\b?ah\\foo\\bar");
-	TEST_EQUAL(resolve_file_url("file://\\c:\\b%3fah\\foo\\bar"), "c:\\b?ah\\foo\\bar");
-#else
-	TEST_EQUAL(resolve_file_url("file:///c/blah/foo/bar"), "/c/blah/foo/bar");
-	TEST_EQUAL(resolve_file_url("file:///c/b%3fah/foo/bar"), "/c/b?ah/foo/bar");
-#endif
-#endif
 }
 
 namespace {

@@ -520,10 +520,6 @@ namespace aux {
 			add_torrent_impl(add_torrent_params& p, error_code& ec);
 			void async_add_torrent(add_torrent_params* params);
 
-#if TORRENT_ABI_VERSION == 1
-			void on_async_load_torrent(add_torrent_params* params, error_code ec);
-#endif
-
 			void remove_torrent(torrent_handle const& h, remove_flags_t options) override;
 			void remove_torrent_impl(std::shared_ptr<torrent> tptr, remove_flags_t options) override;
 
@@ -1155,28 +1151,6 @@ namespace aux {
 
 			std::shared_ptr<upnp> m_upnp;
 			std::shared_ptr<lsd> m_lsd;
-
-#if TORRENT_ABI_VERSION == 1
-			struct work_thread_t
-			{
-				work_thread_t()
-					: work(make_work_guard(ios))
-					, thread([this] { ios.run(); })
-				{}
-				~work_thread_t()
-				{
-					work.reset();
-					thread.join();
-				}
-				work_thread_t(work_thread_t const&) = delete;
-				work_thread_t& operator=(work_thread_t const&) = delete;
-
-				io_context ios;
-				executor_work_guard<io_context::executor_type> work;
-				std::thread thread;
-			};
-			std::unique_ptr<work_thread_t> m_torrent_load_thread;
-#endif
 
 			// mask is a bitmask of which protocols to remap on:
 			enum remap_port_mask_t
