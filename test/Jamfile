@@ -137,7 +137,6 @@ run
 	test_http_parser.cpp
 	test_xml.cpp
 	test_ip_filter.cpp
-	test_hasher.cpp
 	test_peer_classes.cpp
 	test_settings_pack.cpp
 	test_fence.cpp
@@ -158,12 +157,13 @@ run test_piece_picker.cpp ;
 run test_dht.cpp
 	test_dht_storage.cpp
 	test_direct_dht.cpp
-	test_hasher512.cpp
 	: : : <crypto>openssl:<library>/torrent//ssl
 	<crypto>openssl:<library>/torrent//crypto ;
 
 run test_string.cpp test_utf8.cpp ;
 
+run test_hasher.cpp ;
+run test_hasher512.cpp ;
 run test_sha1_hash.cpp ;
 run test_span.cpp ;
 run test_bitfield.cpp ;
@@ -226,6 +226,8 @@ run test_upnp.cpp ;
 
 run test_lsd.cpp ;
 explicit test_lsd ;
+explicit test_hasher ;
+explicit test_hasher512 ;
 
 # these are the tests run on appveyor, while the flapping ones are being
 # transitioned into simulations

@@ -5,6 +5,10 @@
 	* requires boost >= 1.66 to build
 	* update networking API to networking TS compatible boost.asio
 
+	* fix python bindins for block_uploaded_alert
+	* optimize resolving duplicate filenames in loading torrent files
+	* fix python binding of dht_settings
+	* tighten up various input validation checks
 	* fix create_torrent python binding
 	* update symlinks to conform to BEP 47
 	* fix python bindings for peer_info
@@ -13,6 +17,7 @@
 	* support magnet link parameters with number siffixes
 	* consistently use "lt" namespace in examples and documentation
 	* fix Mingw build to use native cryptoAPI
+	* uPnP/NAT-PMP errors no longer set the client's advertised listen port to zero
 
 1.2 release
 

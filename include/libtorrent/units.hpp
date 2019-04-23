@@ -95,10 +95,14 @@ namespace aux {
 		UnderlyingType m_val;
 	};
 
-	// meta function to return the underlying type of a strong_typedef, or the
-	// type itself if it isn't a strong_typedef
-	template <typename T>
+	// meta function to return the underlying type of a strong_typedef or enumeration
+	// , or the type itself if it isn't a strong_typedef
+	template <typename T, typename = void>
 	struct underlying_index_t { using type = T; };
+
+	template <typename T>
+	struct underlying_index_t<T, typename std::enable_if<std::is_enum<T>::value>::type>
+	{ using type = typename std::underlying_type<T>::type; };
 
 	template <typename U, typename Tag>
 	struct underlying_index_t<aux::strong_typedef<U, Tag>> { using type = U; };

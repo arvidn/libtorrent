@@ -20,7 +20,7 @@ struct entry_to_python
             result.append(*i);
         }
 
-        return result;
+        return std::move(result);
     }
 
     static object convert(entry::dictionary_type const& d)
@@ -30,7 +30,7 @@ struct entry_to_python
         for (entry::dictionary_type::const_iterator i(d.begin()), e(d.end()); i != e; ++i)
             result[bytes(i->first)] = i->second;
 
-        return result;
+        return std::move(result);
     }
 
     static object convert0(entry const& e)

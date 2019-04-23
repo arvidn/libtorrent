@@ -134,15 +134,15 @@ namespace aux {
 		only_outgoing
 	};
 
+	struct listen_port_mapping
+	{
+		port_mapping_t mapping = port_mapping_t{-1};
+		int port = 0;
+	};
+
 	struct listen_socket_t
 	{
-		listen_socket_t()
-		{
-			tcp_port_mapping[0] = port_mapping_t{-1};
-			tcp_port_mapping[1] = port_mapping_t{-1};
-			udp_port_mapping[0] = port_mapping_t{-1};
-			udp_port_mapping[1] = port_mapping_t{-1};
-		}
+		listen_socket_t() = default;
 
 		// listen_socket_t should not be copied or moved because
 		// references to it are held by the DHT and tracker announce
@@ -170,19 +170,35 @@ namespace aux {
 		// had to retry binding with a higher port
 		int original_port = 0;
 
-		// this is typically set to the same as the local
-		// listen port. In case a NAT port forward was
-		// successfully opened, this will be set to the
-		// port that is open on the external (NAT) interface
-		// on the NAT box itself. This is the port that has
-		// to be published to peers, since this is the port
-		// the client is reachable through.
-		int tcp_external_port = 0;
-		int udp_external_port = 0;
+		// tcp_external_port and udp_external_port return the port which
+		// should be published to peers/trackers for this socket
+		// If there are active NAT mappings the return value will be
+		// the external port returned by the NAT router, otherwise the
+		// local listen port is returned
+		int tcp_external_port()
+		{
+			for (auto const& m : tcp_port_mapping)
+			{
+				if (m.port != 0) return m.port;
+			}
+			return local_endpoint.port();
+		}
+
+		int udp_external_port()
+		{
+			for (auto const& m : udp_port_mapping)
+			{
+				if (m.port != 0) return m.port;
+			}
+			if (udp_sock) return udp_sock->sock.local_port();
+			return 0;
+		}
 
 		// 0 is natpmp 1 is upnp
-		port_mapping_t tcp_port_mapping[2];
-		port_mapping_t udp_port_mapping[2];
+		// the order of these arrays determines the priorty in
+		// which their ports will be announced to peers
+		aux::array<listen_port_mapping, 2, portmap_transport> tcp_port_mapping;
+		aux::array<listen_port_mapping, 2, portmap_transport> udp_port_mapping;
 
 		// indicates whether this is an SSL listen socket or not
 		transport ssl = transport::plaintext;

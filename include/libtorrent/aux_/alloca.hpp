@@ -97,6 +97,6 @@ struct alloca_destructor
 	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
 	::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
 	} \
-	::libtorrent::aux::alloca_destructor<t> v##_destructor{v};
+	::libtorrent::aux::alloca_destructor<t> v##_destructor{v}
 
 #endif // TORRENT_ALLOCA_HPP_INCLUDED

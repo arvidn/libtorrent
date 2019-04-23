@@ -411,28 +411,43 @@ rule sanitizer-options ( properties * )
 	if <sanitize>on in $(properties)
 	{
 		local sanitizers ;
-		local blacklist ;
+		local extra ;
+		local flags ;
    
 		# sanitize is a clang and GCC feature
 		# TODO: carve out specific sanitizers based on compiler version
 		# <toolset-gcc:version> <toolset-clang:version>
 		if <toolset>clang in $(properties)
 		{
-			sanitizers += address,undefined,implicit-conversion ;
-			blacklist = <cflags>-fsanitize-blacklist=$(blacklist-file) ;
+			local version = [ feature.get-values <toolset-clang:version> : $(properties) ] ;
+			# implicit-conversion sanitizer was added in clang-7
+			if $(version) >= 7 {
+				sanitizers += address,undefined,leak,implicit-conversion ;
+			}
+			else {
+				sanitizers += address,undefined,leak ;
+			}
+			extra = <cflags>-fsanitize-blacklist=$(blacklist-file) ;
+			flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
 		}
 		else if <toolset>gcc in $(properties)
 		{
-			sanitizers = address,undefined,leak ;
+			local version = [ feature.get-values <toolset-gcc:version> : $(properties) ] ;
+			if $(version) >= 7 {
+				extra = <cflags>-fsanitize-address-use-after-scope ;
+			}
+			if $(version) >= 5 {
+				sanitizers = address,undefined,leak ;
+				flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
+			}
 		}
 		else if <toolset>darwin in $(properties)
 		{
 			sanitizers = address,undefined ;
+			flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
 		}
 
-		local flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
-
-		result = <cflags>$(flags) <linkflags>$(flags) $(blacklist) ;
+		result = <cflags>$(flags) <linkflags>$(flags) $(extra) ;
 	}
 	return $(result) ;
 }

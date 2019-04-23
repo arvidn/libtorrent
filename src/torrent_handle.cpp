@@ -693,7 +693,7 @@ namespace libtorrent {
 
 		std::lock_guard<std::mutex> l(holder_mutex);
 		holder[cursor++] = r;
-		cursor = cursor % holder.end_index();;
+		cursor = cursor % holder.end_index();
 		return *r;
 	}
 

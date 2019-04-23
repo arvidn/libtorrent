@@ -372,7 +372,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 				return int_settings[s - settings_pack::int_type_base].name;
 			case settings_pack::bool_type_base:
 				return bool_settings[s - settings_pack::bool_type_base].name;
-		};
+		}
 		return "";
 	}
 

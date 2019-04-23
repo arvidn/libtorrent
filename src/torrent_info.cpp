@@ -59,6 +59,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #endif
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/crc.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <unordered_map>
 #include <unordered_set>
 #include <cstdint>
@@ -640,58 +644,117 @@ namespace {
 		}
 	}
 
+namespace {
+
+	template <class CRC>
+	void process_string_lowercase(CRC& crc, string_view str)
+	{
+		for (char const c : str)
+			crc.process_byte(to_lower(c) & 0xff);
+	}
+
+	struct name_entry
+	{
+		file_index_t idx;
+		int length;
+	};
+}
+
 	void torrent_info::resolve_duplicate_filenames_slow()
 	{
 		INVARIANT_CHECK;
 
-		std::unordered_map<std::string, file_index_t, string_hash_no_case, string_eq_no_case> files;
+		// maps filename hash to file index
+		// or, if the file_index is negative, maps into the paths vector
+		std::unordered_multimap<std::uint32_t, name_entry> files;
 
 		std::vector<std::string> const& paths = m_files.paths();
 		files.reserve(paths.size() + aux::numeric_cast<std::size_t>(m_files.num_files()));
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
-		for (auto const& i : paths)
 		{
-			std::string p = combine_path(m_files.name(), i);
-			files.insert({p, file_index_t{-1}});
-			while (has_parent_path(p))
+			boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+			if (!m_files.name().empty())
 			{
-				p = parent_path(std::move(p));
-				// we don't want trailing slashes here
-				TORRENT_ASSERT(p[p.size() - 1] == TORRENT_SEPARATOR);
-				p.resize(p.size() - 1);
-				files.insert({p, file_index_t{-1}});
+				process_string_lowercase(crc, m_files.name());
+			}
+			file_index_t path_index{-1};
+			for (auto const& path : paths)
+			{
+				auto local_crc = crc;
+				if (!path.empty()) local_crc.process_byte(TORRENT_SEPARATOR);
+				int count = 0;
+				for (char const c : path)
+				{
+					if (c == TORRENT_SEPARATOR)
+						files.insert({local_crc.checksum(), {path_index, count}});
+					local_crc.process_byte(to_lower(c) & 0xff);
+					++count;
+				}
+				files.insert({local_crc.checksum(), {path_index, int(path.size())}});
+				--path_index;
 			}
 		}
 
+		// keep track of the total number of name collisions. If there are too
+		// many, it's probably a malicious torrent and we should just fail
+		int num_collisions = 0;
 		for (auto const i : m_files.file_range())
 		{
 			// as long as this file already exists
 			// increase the counter
-			std::string filename = m_files.file_path(i);
-			auto const ret = files.insert({filename, i});
-			if (ret.second) continue;
+			std::uint32_t const hash = m_files.file_path_hash(i, "");
+			auto range = files.equal_range(hash);
+			auto const match = std::find_if(range.first, range.second, [&](std::pair<std::uint32_t, name_entry> const& o)
+			{
+				std::string const other_name = o.second.idx < file_index_t{}
+					? combine_path(m_files.name(), paths[std::size_t(-static_cast<int>(o.second.idx)-1)].substr(0, std::size_t(o.second.length)))
+					: m_files.file_path(o.second.idx);
+				return string_equal_no_case(other_name, m_files.file_path(i));
+			});
+
+			if (match == range.second)
+			{
+				files.insert({hash, {i, 0}});
+				continue;
+			}
+
 			// pad files are allowed to collide with each-other, as long as they have
 			// the same size.
-			file_index_t const other_idx = ret.first->second;
-			if (other_idx != file_index_t{-1}
+			file_index_t const other_idx = match->second.idx;
+			if (other_idx >= file_index_t{}
 				&& (m_files.file_flags(i) & file_storage::flag_pad_file)
 				&& (m_files.file_flags(other_idx) & file_storage::flag_pad_file)
 				&& m_files.file_size(i) == m_files.file_size(other_idx))
 				continue;
 
+			std::string filename = m_files.file_path(i);
 			std::string base = remove_extension(filename);
 			std::string ext = extension(filename);
 			int cnt = 0;
-			do
+			for (;;)
 			{
 				++cnt;
 				char new_ext[50];
 				std::snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
 				filename = base + new_ext;
+
+				boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+				process_string_lowercase(crc, filename);
+				std::uint32_t const new_hash = crc.checksum();
+				if (files.find(new_hash) == files.end())
+				{
+					files.insert({new_hash, {i, 0}});
+					break;
+				}
+				++num_collisions;
+				if (num_collisions > 100)
+				{
+				// TODO: this should be considered a failure, and the .torrent file
+				// rejected
+				}
 			}
-			while (!files.insert({filename, i}).second);
 
 			copy_on_write();
 			m_files.rename_file(i, filename);
@@ -1066,8 +1129,15 @@ namespace {
 			return false;
 		}
 
+		// this is an arbitrary limit to avoid malicious torrents causing
+		// unreasaonably large allocations for the merkle hash tree
+		// the size of the tree would be max_pieces * sizeof(int) * 2
+		// which is about 6.3 MB with this limit
+		const int max_pieces = 0xC0000;
+
 		// we expect the piece hashes to be < 2 GB in size
-		if (files.num_pieces() >= std::numeric_limits<int>::max() / 20)
+		if (files.num_pieces() >= std::numeric_limits<int>::max() / 20
+			|| files.num_pieces() > max_pieces)
 		{
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid

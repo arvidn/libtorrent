@@ -6358,7 +6358,7 @@ bool is_downloading_state(int const st)
 					CASE(http_stream)
 					CASE(utp_stream)
 					default: break;
-				};
+				}
 			}
 #undef CASE
 #endif
@@ -6541,7 +6541,7 @@ bool is_downloading_state(int const st)
 				case SSL(socks5_stream)
 				case SSL(http_stream)
 				case SSL(utp_stream)
-			};
+			}
 
 #undef SSL
 
@@ -6918,7 +6918,7 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 	char const* list_name(torrent_list_index_t const idx)
 	{
-#define TORRENT_LIST_NAME(n) case static_cast<int>(aux::session_interface:: n): return #n;
+#define TORRENT_LIST_NAME(n) case static_cast<int>(aux::session_interface:: n): return #n
 		switch (static_cast<int>(idx))
 		{
 			TORRENT_LIST_NAME(torrent_state_updates);

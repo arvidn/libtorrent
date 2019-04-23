@@ -745,6 +745,32 @@ class test_peer_info(unittest.TestCase):
         print(p.write_state)
 
 
+class test_dht_settings(unittest.TestCase):
+
+    def test_construct(self):
+
+        ds = lt.dht_settings()
+
+        print(ds.max_peers_reply)
+        print(ds.search_branching)
+        print(ds.max_fail_count)
+        print(ds.max_fail_count)
+        print(ds.max_torrents)
+        print(ds.max_dht_items)
+        print(ds.restrict_routing_ips)
+        print(ds.restrict_search_ips)
+        print(ds.max_torrent_search_reply)
+        print(ds.extended_routing_table)
+        print(ds.aggressive_lookups)
+        print(ds.privacy_lookups)
+        print(ds.enforce_node_id)
+        print(ds.ignore_dark_internet)
+        print(ds.block_timeout)
+        print(ds.block_ratelimit)
+        print(ds.read_only)
+        print(ds.item_lifetime)
+
+
 if __name__ == '__main__':
     print(lt.__version__)
     shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',

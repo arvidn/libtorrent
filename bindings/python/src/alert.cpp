@@ -226,6 +226,7 @@ namespace boost
 	POLY(dht_put_alert)
 	POLY(session_stats_alert)
 	POLY(dht_get_peers_reply_alert)
+	POLY(block_uploaded_alert)
 
 #if TORRENT_ABI_VERSION == 1
 	POLY(anonymous_mode_alert)
@@ -974,6 +975,12 @@ void bind_alert()
         .def_readonly("info_hash", &dht_get_peers_reply_alert::info_hash)
         .def("num_peers", &dht_get_peers_reply_alert::num_peers)
         .def("peers", peers)
+        ;
+
+    class_<block_uploaded_alert, bases<peer_alert>, noncopyable>(
+       "block_uploaded_alert", no_init)
+        .add_property("block_index", &block_uploaded_alert::block_index)
+        .add_property("piece_index", make_getter((&block_uploaded_alert::piece_index), by_value()))
         ;
 
 }

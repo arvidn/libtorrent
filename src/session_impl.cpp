@@ -1527,8 +1527,7 @@ namespace aux {
 				return ret;
 			}
 
-			ret->tcp_external_port = ret->local_endpoint.port();
-			TORRENT_ASSERT(ret->tcp_external_port == bind_ep.port()
+			TORRENT_ASSERT(ret->local_endpoint.port() == bind_ep.port()
 				|| bind_ep.port() == 0);
 
 			ret->sock->listen(m_settings.get_int(settings_pack::listen_queue_size), ec);
@@ -1641,7 +1640,6 @@ namespace aux {
 
 			return ret;
 		}
-		ret->udp_external_port = ret->udp_sock->sock.local_port();
 
 		// if we did not open a TCP listen socket, ret->local_endpoint was never
 		// initialized, so do that now, based on the UDP socket
@@ -1679,7 +1677,7 @@ namespace aux {
 		{
 			session_log(" listening on: %s TCP port: %d UDP port: %d"
 				, bind_ep.address().to_string().c_str()
-				, ret->tcp_external_port, ret->udp_external_port);
+				, ret->tcp_external_port(), ret->udp_external_port());
 		}
 #endif
 		return ret;
@@ -2151,13 +2149,17 @@ namespace aux {
 
 		if ((mask & remap_natpmp) && s.natpmp_mapper)
 		{
-			map_port(*s.natpmp_mapper, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[0]);
-			map_port(*s.natpmp_mapper, portmap_protocol::udp, make_tcp(udp_ep), s.udp_port_mapping[0]);
+			map_port(*s.natpmp_mapper, portmap_protocol::tcp, tcp_ep
+				, s.tcp_port_mapping[portmap_transport::natpmp].mapping);
+			map_port(*s.natpmp_mapper, portmap_protocol::udp, make_tcp(udp_ep)
+				, s.udp_port_mapping[portmap_transport::natpmp].mapping);
 		}
 		if ((mask & remap_upnp) && m_upnp)
 		{
-			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[1]);
-			map_port(*m_upnp, portmap_protocol::udp, make_tcp(udp_ep), s.udp_port_mapping[1]);
+			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep
+				, s.tcp_port_mapping[portmap_transport::upnp].mapping);
+			map_port(*m_upnp, portmap_protocol::udp, make_tcp(udp_ep)
+				, s.udp_port_mapping[portmap_transport::upnp].mapping);
 		}
 	}
 
@@ -2190,7 +2192,7 @@ namespace aux {
 		});
 
 		if (ls != m_listen_sockets.end())
-			return (*ls)->udp_external_port;
+			return (*ls)->udp_external_port();
 		else
 			return -1;
 	}
@@ -5178,9 +5180,9 @@ namespace aux {
 			// connections. We may be able to accept uTP connections though, so
 			// announce the UDP port instead
 			if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
-				return std::uint16_t(sock->udp_external_port);
+				return std::uint16_t(sock->udp_external_port());
 			else
-				return std::uint16_t(sock->tcp_external_port);
+				return std::uint16_t(sock->tcp_external_port());
 		}
 
 #ifdef TORRENT_USE_OPENSSL
@@ -5189,14 +5191,14 @@ namespace aux {
 			if (s->ssl == transport::plaintext)
 			{
 				if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
-					return std::uint16_t(s->udp_external_port);
+					return std::uint16_t(s->udp_external_port());
 				else
-					return std::uint16_t(s->tcp_external_port);
+					return std::uint16_t(s->tcp_external_port());
 			}
 		}
 		return 0;
 #else
-		return std::uint16_t(m_listen_sockets.front()->tcp_external_port);
+		return std::uint16_t(m_listen_sockets.front()->tcp_external_port());
 #endif
 	}
 
@@ -5217,9 +5219,9 @@ namespace aux {
 			// connections. We may be able to accept uTP connections though, so
 			// announce the UDP port instead
 			if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
-				return std::uint16_t(sock->udp_external_port);
+				return std::uint16_t(sock->udp_external_port());
 			else
-				return std::uint16_t(sock->tcp_external_port);
+				return std::uint16_t(sock->tcp_external_port());
 		}
 
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
@@ -5230,9 +5232,9 @@ namespace aux {
 			if (s->ssl == transport::ssl)
 			{
 				if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
-					return std::uint16_t(s->udp_external_port);
+					return std::uint16_t(s->udp_external_port());
 				else
-					return std::uint16_t(s->tcp_external_port);
+					return std::uint16_t(s->tcp_external_port());
 			}
 		}
 #else
@@ -5256,7 +5258,7 @@ namespace aux {
 			if (alt_socket != m_listen_sockets.end())
 				socket = alt_socket->get();
 		}
-		return socket->udp_external_port;
+		return socket->udp_external_port();
 	}
 
 	int session_impl::listen_port(transport const ssl, address const& local_addr)
@@ -5270,7 +5272,7 @@ namespace aux {
 					|| (listen_addr.is_v4() == local_addr.is_v4() && listen_addr.is_unspecified()));
 		});
 		if (socket != m_listen_sockets.end())
-			return (*socket)->tcp_external_port;
+			return (*socket)->tcp_external_port();
 		return 0;
 	}
 
@@ -5329,13 +5331,13 @@ namespace aux {
 		bool find_tcp_port_mapping(portmap_transport const transport
 			, port_mapping_t mapping, std::shared_ptr<listen_socket_t> const& ls)
 		{
-			return ls->tcp_port_mapping[static_cast<int>(transport)] == mapping;
+			return ls->tcp_port_mapping[transport].mapping == mapping;
 		}
 
 		bool find_udp_port_mapping(portmap_transport const transport
 			, port_mapping_t mapping, std::shared_ptr<listen_socket_t> const& ls)
 		{
-			return ls->udp_port_mapping[static_cast<int>(transport)] == mapping;
+			return ls->udp_port_mapping[transport].mapping == mapping;
 		}
 	}
 
@@ -5380,8 +5382,8 @@ namespace aux {
 				(*ls)->external_address.cast_vote(ip, source_router, address());
 			}
 
-			if (tcp) (*ls)->tcp_external_port = port;
-			else (*ls)->udp_external_port = port;
+			if (tcp) (*ls)->tcp_port_mapping[transport].port = port;
+			else (*ls)->tcp_port_mapping[transport].port = port;
 		}
 
 		if (!ec && m_alerts.should_post<portmap_alert>())
@@ -6487,8 +6489,8 @@ namespace aux {
 	{
 		for (auto& s : m_listen_sockets)
 		{
-			s->tcp_port_mapping[0] = port_mapping_t{-1};
-			s->udp_port_mapping[0] = port_mapping_t{-1};
+			s->tcp_port_mapping[portmap_transport::natpmp] = listen_port_mapping();
+			s->udp_port_mapping[portmap_transport::natpmp] = listen_port_mapping();
 			if (!s->natpmp_mapper) continue;
 			s->natpmp_mapper->close();
 			s->natpmp_mapper.reset();
@@ -6502,8 +6504,8 @@ namespace aux {
 		m_upnp->close();
 		for (auto& s : m_listen_sockets)
 		{
-			s->tcp_port_mapping[1] = port_mapping_t{-1};
-			s->udp_port_mapping[1] = port_mapping_t{-1};
+			s->tcp_port_mapping[portmap_transport::upnp] = listen_port_mapping();
+			s->udp_port_mapping[portmap_transport::upnp] = listen_port_mapping();
 		}
 		m_upnp.reset();
 	}

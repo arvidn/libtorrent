@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014-2018, Arvid Norberg, Steven Siloti
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,52 +29,13 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
+#include "libtorrent/bdecode.hpp"
 
-#include "libtorrent/aux_/session_call.hpp"
-
-namespace libtorrent { namespace aux {
-
-#ifdef TORRENT_PROFILE_CALLS
-static std::mutex g_calls_mutex;
-static std::unordered_map<std::string, int> g_blocking_calls;
-#endif
-
-void blocking_call()
+extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-#ifdef TORRENT_PROFILE_CALLS
-	char stack[2048];
-	print_backtrace(stack, sizeof(stack), 20);
-	std::unique_lock<std::mutex> l(g_calls_mutex);
-	g_blocking_calls[stack] += 1;
-#endif
+	lt::bdecode_errors::error_code_enum ec;
+	std::int64_t val;
+	lt::parse_int(reinterpret_cast<char const*>(data), reinterpret_cast<char const*>(data) + size, ':', val, ec);
+	return 0;
 }
 
-void dump_call_profile()
-{
-#ifdef TORRENT_PROFILE_CALLS
-	FILE* out = fopen("blocking_calls.txt", "w+");
-
-	std::map<int, std::string> profile;
-
-	std::unique_lock<std::mutex> l(g_calls_mutex);
-	for (auto const& c : g_blocking_calls)
-	{
-		profile[c.second] = c.first;
-	}
-	for (std::map<int, std::string>::const_reverse_iterator i = profile.rbegin()
-		, end(profile.rend()); i != end; ++i)
-	{
-		std::fprintf(out, "\n\n%d\n%s\n", i->first, i->second.c_str());
-	}
-	fclose(out);
-#endif
-}
-
-void torrent_wait(bool& done, aux::session_impl& ses)
-{
-	blocking_call();
-	std::unique_lock<std::mutex> l(ses.mut);
-	while (!done) { ses.cond.wait(l); }
-}
-
-} } // namespace aux namespace libtorrent

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014-2018, Arvid Norberg, Steven Siloti
+Copyright (c) 2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,51 +30,66 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/session_call.hpp"
+#include "libtorrent/version.hpp"
+#include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/performance_counters.hpp"
+#include "libtorrent/utp_stream.hpp"
+#include "libtorrent/udp_socket.hpp"
 
-namespace libtorrent { namespace aux {
+using namespace lt;
 
-#ifdef TORRENT_PROFILE_CALLS
-static std::mutex g_calls_mutex;
-static std::unordered_map<std::string, int> g_blocking_calls;
+#if LIBTORRENT_VERSION_NUM >= 10300
+io_context ios;
+#else
+io_service ios;
+#endif
+lt::aux::session_settings sett;
+counters cnt;
+
+#if LIBTORRENT_VERSION_NUM >= 10200
+utp_socket_manager man(
+	[](std::weak_ptr<utp_socket_interface>, udp::endpoint const&, span<char const>, error_code&, udp_send_flags_t){}
+	, [](std::shared_ptr<aux::socket_type> const&){}
+	, ios
+	, sett
+	, cnt
+	, nullptr);
+#else
+udp_socket sock(ios);
+utp_socket_manager man(
+	sett
+	, sock
+	, cnt
+	, nullptr
+	, [](boost::shared_ptr<socket_type> const&){}
+	);
 #endif
 
-void blocking_call()
+extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-#ifdef TORRENT_PROFILE_CALLS
-	char stack[2048];
-	print_backtrace(stack, sizeof(stack), 20);
-	std::unique_lock<std::mutex> l(g_calls_mutex);
-	g_blocking_calls[stack] += 1;
-#endif
-}
-
-void dump_call_profile()
-{
-#ifdef TORRENT_PROFILE_CALLS
-	FILE* out = fopen("blocking_calls.txt", "w+");
-
-	std::map<int, std::string> profile;
-
-	std::unique_lock<std::mutex> l(g_calls_mutex);
-	for (auto const& c : g_blocking_calls)
+	utp_socket_impl* sock = NULL;
 	{
-		profile[c.second] = c.first;
-	}
-	for (std::map<int, std::string>::const_reverse_iterator i = profile.rbegin()
-		, end(profile.rend()); i != end; ++i)
-	{
-		std::fprintf(out, "\n\n%d\n%s\n", i->first, i->second.c_str());
-	}
-	fclose(out);
+		utp_stream str(ios);
+#if LIBTORRENT_VERSION_NUM >= 10200
+		sock = construct_utp_impl(1, 0, &str, man);
+#else
+		sock = construct_utp_impl(1, 0, &str, &man);
 #endif
+		str.set_impl(sock);
+		udp::endpoint ep;
+		time_point ts(seconds(100));
+#if LIBTORRENT_VERSION_NUM >= 10200
+		span<char const> buf(reinterpret_cast<char const*>(data), size);
+		utp_incoming_packet(sock, buf, ep, ts);
+#else
+		utp_incoming_packet(sock, reinterpret_cast<char const*>(data), size, ep, ts);
+#endif
+
+		// clear any deferred acks
+		man.socket_drained();
+	}
+	delete_utp_impl(sock);
+	return 0;
 }
 
-void torrent_wait(bool& done, aux::session_impl& ses)
-{
-	blocking_call();
-	std::unique_lock<std::mutex> l(ses.mut);
-	while (!done) { ses.cond.wait(l); }
-}
-
-} } // namespace aux namespace libtorrent

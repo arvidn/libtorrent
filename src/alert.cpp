@@ -893,7 +893,7 @@ namespace {
 			case o::hostname_lookup: return -1;
 			case o::file_seek: return -1;
 			case o::symlink: return -1;
-		};
+		}
 		return -1;
 	}
 #ifdef __GNUC__

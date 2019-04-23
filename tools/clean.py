@@ -50,6 +50,7 @@ def clean():
         'tools',
         'src',
         'simulation',
+        'fuzzers',
         os.path.join('src', 'kademlia'),
         os.path.join('include', 'libtorrent'),
         os.path.join('include', os.path.join('libtorrent', '_aux')),

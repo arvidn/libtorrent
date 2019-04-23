@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014-2018, Arvid Norberg, Steven Siloti
+Copyright (c) 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,52 +29,28 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
+#include <iostream>
+#include <cstdint>
+#include <vector>
+#include <fstream>
 
-#include "libtorrent/aux_/session_call.hpp"
+extern "C" int LLVMFuzzerTestOneInput(uint8_t const*, size_t);
 
-namespace libtorrent { namespace aux {
-
-#ifdef TORRENT_PROFILE_CALLS
-static std::mutex g_calls_mutex;
-static std::unordered_map<std::string, int> g_blocking_calls;
-#endif
-
-void blocking_call()
+int main(int const argc, char const** argv)
 {
-#ifdef TORRENT_PROFILE_CALLS
-	char stack[2048];
-	print_backtrace(stack, sizeof(stack), 20);
-	std::unique_lock<std::mutex> l(g_calls_mutex);
-	g_blocking_calls[stack] += 1;
-#endif
-}
-
-void dump_call_profile()
-{
-#ifdef TORRENT_PROFILE_CALLS
-	FILE* out = fopen("blocking_calls.txt", "w+");
-
-	std::map<int, std::string> profile;
-
-	std::unique_lock<std::mutex> l(g_calls_mutex);
-	for (auto const& c : g_blocking_calls)
+	if (argc < 2)
 	{
-		profile[c.second] = c.first;
+		std::cout << "usage: " << argv[0] << " test-case-file\n";
+		return 1;
 	}
-	for (std::map<int, std::string>::const_reverse_iterator i = profile.rbegin()
-		, end(profile.rend()); i != end; ++i)
-	{
-		std::fprintf(out, "\n\n%d\n%s\n", i->first, i->second.c_str());
-	}
-	fclose(out);
-#endif
+
+	std::fstream f(argv[1], std::ios_base::in | std::ios_base::binary);
+	f.seekg(0, std::ios_base::end);
+	auto const s = f.tellg();
+	f.seekg(0, std::ios_base::beg);
+	std::vector<std::uint8_t> v(static_cast<std::size_t>(s));
+	f.read(reinterpret_cast<char*>(v.data()), v.size());
+
+	return LLVMFuzzerTestOneInput(v.data(), v.size());
 }
 
-void torrent_wait(bool& done, aux::session_impl& ses)
-{
-	blocking_call();
-	std::unique_lock<std::mutex> l(ses.mut);
-	while (!done) { ses.cond.wait(l); }
-}
-
-} } // namespace aux namespace libtorrent
