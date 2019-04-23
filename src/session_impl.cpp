@@ -4850,18 +4850,6 @@ namespace aux {
 		// figure out the info hash of the torrent and make sure params.info_hash
 		// is set correctly
 		if (params.ti) params.info_hash = params.ti->info_hash();
-#if TORRENT_ABI_VERSION == 1
-		//deprecated in 1.2
-		else if (!params.url.empty())
-		{
-			// in order to avoid info-hash collisions, for
-			// torrents where we don't have an info-hash, but
-			// just a URL, set the temporary info-hash to the
-			// hash of the URL. This will be changed once we
-			// have the actual .torrent file
-			params.info_hash = hasher(&params.url[0], int(params.url.size())).final();
-		}
-#endif
 
 		if (params.info_hash.is_all_zeros())
 		{
