@@ -4339,20 +4339,10 @@ namespace aux {
 		return std::weak_ptr<torrent>();
 	}
 
-	void session_impl::insert_torrent(std::shared_ptr<torrent> const& t
-#if TORRENT_ABI_VERSION == 1
-		, std::string const uuid
-#endif
-		)
+	void session_impl::insert_torrent(std::shared_ptr<torrent> const& t)
 	{
 		auto const ih = t->torrent_file().info_hash();
 		m_torrents.insert(ih, t);
-
-#if TORRENT_ABI_VERSION == 1
-		//deprecated in 1.2
-		if (!uuid.empty()) m_uuids.insert(std::make_pair(uuid, t));
-#endif
-
 		t->added();
 	}
 
@@ -4426,18 +4416,6 @@ namespace aux {
 		obfuscated ^= xor_mask;
 
 		return m_torrents.find_obfuscated(obfuscated);
-	}
-#endif
-
-#if TORRENT_ABI_VERSION == 1
-	//deprecated in 1.2
-	std::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid) const
-	{
-		TORRENT_ASSERT(is_single_thread());
-
-		auto const i = m_uuids.find(uuid);
-		if (i != m_uuids.end()) return i->second;
-		return std::weak_ptr<torrent>();
 	}
 #endif
 
@@ -4710,15 +4688,7 @@ namespace aux {
 #endif
 
 		TORRENT_ASSERT(params.info_hash == torrent_ptr->torrent_file().info_hash());
-		insert_torrent(torrent_ptr
-#if TORRENT_ABI_VERSION == 1
-			//deprecated in 1.2
-			, params.uuid.empty()
-				? params.url.empty() ? std::string()
-				: params.url
-				: params.uuid
-#endif
-		);
+		insert_torrent(torrent_ptr);
 
 		// once we successfully add the torrent, we can disarm the abort action
 		abort_torrent.disarm();
@@ -4808,22 +4778,11 @@ namespace aux {
 
 		// is the torrent already active?
 		std::shared_ptr<torrent> torrent_ptr = find_torrent(params.info_hash).lock();
-#if TORRENT_ABI_VERSION == 1
-		//deprecated in 1.2
-		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
-#endif
 
 		if (torrent_ptr)
 		{
 			if (!(params.flags & torrent_flags::duplicate_is_error))
-			{
-#if TORRENT_ABI_VERSION == 1
-				//deprecated in 1.2
-				if (!params.uuid.empty() && torrent_ptr->uuid().empty())
-					torrent_ptr->set_uuid(params.uuid);
-#endif
 				return std::make_pair(torrent_ptr, false);
-			}
 
 			ec = errors::duplicate_torrent;
 			return std::make_pair(ptr_t(), false);
@@ -4988,16 +4947,6 @@ namespace aux {
 	void session_impl::remove_torrent_impl(std::shared_ptr<torrent> tptr
 		, remove_flags_t const options)
 	{
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		// remove from uuid list
-		if (!tptr->uuid().empty())
-		{
-			auto const j = m_uuids.find(tptr->uuid());
-			if (j != m_uuids.end()) m_uuids.erase(j);
-		}
-#endif
-
 		m_torrents.erase(tptr->torrent_file().info_hash());
 
 		torrent& t = *tptr;

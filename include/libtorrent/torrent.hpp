@@ -984,14 +984,6 @@ namespace libtorrent {
 
 		std::shared_ptr<const torrent_info> get_torrent_copy();
 
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		std::string const& uuid() const { return m_uuid; }
-		void set_uuid(std::string const& s) { m_uuid = s; }
-		std::string const& source_feed_url() const { return m_source_feed_url; }
-		void set_source_feed_url(std::string const& s) { m_source_feed_url = s; }
-#endif
-
 		std::vector<announce_entry> const& trackers() const
 		{ return m_trackers; }
 
@@ -1274,18 +1266,6 @@ namespace libtorrent {
 #endif
 
 		std::string m_save_path;
-
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-
-		// if this was added from an RSS feed, this is the unique
-		// identifier in the feed.
-		std::string m_uuid;
-
-		// if this torrent was added by an RSS feed, this is the
-		// URL to that feed
-		std::string m_source_feed_url;
-#endif
 
 		// this is a list of all pieces that we have announced
 		// as having, without actually having yet. If we receive

@@ -315,7 +315,6 @@ namespace {
 		atp.last_upload = resume_data.last_upload;
 		atp.last_download = resume_data.last_download;
 		atp.url = resume_data.url;
-		atp.uuid = resume_data.uuid;
 
 		atp.added_time = resume_data.added_time;
 		atp.completed_time = resume_data.completed_time;

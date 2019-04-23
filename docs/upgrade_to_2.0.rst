@@ -95,4 +95,13 @@ Since libtorrent no longer manages the disk cache (except for a store-buffer),
 `get_cache_info()` and `get_cache_status()` on the session object has also
 been removed. They cannot return anything useful.
 
+last remnants of RSS support removed
+====================================
+
+The `rss_notification` alert category flag has been removed, which has been unused
+and deprecated since libtorrent 1.2.
+
+The `uuid` member of add_torrent_params has been removed. Torrents can no longer
+be added under a specific UUID. This feature was specifically meant for RSS feeds,
+which was removed in the previous version of libtorrent.
 

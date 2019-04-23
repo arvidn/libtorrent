@@ -1,3 +1,5 @@
+	* remove support for adding a torrent under a UUID (used for previous RSS
+	* support)
 	* remove deprecated feature to add torrents by file:// URL
 	* remove deprecated feature to download .torrent file from URL
 	* requires boost >= 1.66 to build

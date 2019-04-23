@@ -154,13 +154,6 @@ namespace libtorrent {
 		// the lasts stats alert.
 		static constexpr alert_category_t stats_notification = 11_bit;
 
-#if TORRENT_ABI_VERSION == 1
-		// Alerts on RSS related events, like feeds being updated, feed error
-		// conditions and successful RSS feed updates. Enabling this category
-		// will make you receive rss_alert alerts.
-		static constexpr alert_category_t TORRENT_DEPRECATED_MEMBER rss_notification = 12_bit;
-#endif
-
 		// Enables debug logging alerts. These are available unless libtorrent
 		// was built with logging disabled (``TORRENT_DISABLE_LOGGING``). The
 		// alerts being posted are log_alert and are session wide.

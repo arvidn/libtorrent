@@ -63,7 +63,6 @@ namespace {
 		ret["storage_mode"] = p.storage_mode;
 #if TORRENT_ABI_VERSION == 1
 		ret["url"] = p.url;
-		ret["uuid"] = p.uuid;
 #endif
 		ret["flags"] = p.flags;
 		return ret;

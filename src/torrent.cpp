@@ -176,10 +176,6 @@ bool is_downloading_state(int const st)
 		, m_inactivity_timer(ses.get_context())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		, m_uuid(p.uuid)
-#endif
 		, m_stats_counters(ses.stats_counters())
 		, m_added_time(p.added_time ? p.added_time : std::time(nullptr))
 		, m_completed_time(p.completed_time)
@@ -5900,11 +5896,6 @@ bool is_downloading_state(int const st)
 		ret.completed_time = m_completed_time;
 
 		ret.save_path = m_save_path;
-
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		ret.uuid = m_uuid;
-#endif
 
 		ret.info_hash = torrent_file().info_hash();
 

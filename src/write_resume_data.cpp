@@ -82,7 +82,6 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		if (!atp.url.empty()) ret["url"] = atp.url;
-		if (!atp.uuid.empty()) ret["uuid"] = atp.uuid;
 #endif
 
 		ret["info-hash"] = atp.info_hash;

@@ -358,13 +358,6 @@ namespace aux {
 			TORRENT_DEPRECATED
 			void set_load_function(user_load_function_t fun)
 			{ m_user_load_torrent = fun; }
-
-			TORRENT_DEPRECATED
-			std::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
-
-			TORRENT_DEPRECATED
-			void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) override
-			{ m_uuids.insert(std::make_pair(uuid, t)); }
 #endif
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 			std::vector<std::shared_ptr<torrent>> find_collection(
@@ -373,11 +366,7 @@ namespace aux {
 			std::weak_ptr<torrent> find_disconnect_candidate_torrent() const override;
 			int num_torrents() const override { return int(m_torrents.size()); }
 
-			void insert_torrent(std::shared_ptr<torrent> const& t
-#if TORRENT_ABI_VERSION == 1
-				, std::string uuid
-#endif
-			) override;
+			void insert_torrent(std::shared_ptr<torrent> const& t) override;
 
 			std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 				, peer_connection* pc) override;
@@ -880,11 +869,6 @@ namespace aux {
 			// all torrents that are downloading or queued,
 			// ordered by their queue position
 			aux::vector<torrent*, queue_position_t> m_download_queue;
-
-#if TORRENT_ABI_VERSION == 1
-			//deprecated in 1.2
-			std::map<std::string, std::shared_ptr<torrent>> m_uuids;
-#endif
 
 			// peer connections are put here when disconnected to avoid
 			// race conditions with the disk thread. It's important that
