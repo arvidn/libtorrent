@@ -340,12 +340,6 @@ TORRENT_VERSION_NAMESPACE_2
 		// state (``torrent_status::error``) will indicate what went wrong.
 		std::string TORRENT_DEPRECATED_MEMBER url;
 
-		// if ``uuid`` is specified, it is used to find duplicates. If another
-		// torrent is already running with the same UUID as the one being added,
-		// it will be considered a duplicate. This is mainly useful for RSS feed
-		// items which has UUIDs specified.
-		std::string TORRENT_DEPRECATED_MEMBER uuid;
-
 		// The optional parameter, ``resume_data`` can be given if up to date
 		// fast-resume data is available. The fast-resume data can be acquired
 		// from a running torrent by calling save_resume_data() on

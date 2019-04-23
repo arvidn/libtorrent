@@ -153,7 +153,6 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		ret.url = rd.dict_find_string_value("url").to_string();
-		ret.uuid = rd.dict_find_string_value("uuid").to_string();
 #endif
 
 		bdecode_node const mapped_files = rd.dict_find_list("mapped_files");

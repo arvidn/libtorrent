@@ -269,11 +269,6 @@ namespace
                 p.resume_data.assign(resume.begin(), resume.end());
                 continue;
             }
-            else if(key == "uuid")
-            {
-                p.uuid = extract<std::string>(value);
-                continue;
-            }
 #endif
             else if(key == "storage_mode")
             {
@@ -785,7 +780,6 @@ void bind_session()
 
 #if TORRENT_ABI_VERSION == 1
         .def_readwrite("url", &add_torrent_params::url)
-        .def_readwrite("uuid", &add_torrent_params::uuid)
         .add_property("resume_data", PROP(&add_torrent_params::resume_data))
 #endif
       ;

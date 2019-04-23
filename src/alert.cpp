@@ -83,9 +83,6 @@ namespace libtorrent {
 	constexpr alert_category_t alert::block_progress_notification;
 
 	constexpr alert_category_t alert::all_categories;
-#if TORRENT_ABI_VERSION == 1
-	constexpr alert_category_t alert::rss_notification;
-#endif
 
 	alert::alert() : m_timestamp(clock_type::now()) {}
 	alert::~alert() = default;

@@ -186,15 +186,7 @@ namespace aux {
 		virtual std::weak_ptr<torrent> find_disconnect_candidate_torrent() const = 0;
 		virtual std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 			, peer_connection* pc) = 0;
-		virtual void insert_torrent(std::shared_ptr<torrent> const& t
-#if TORRENT_ABI_VERSION == 1
-			, std::string uuid
-#endif
-			) = 0;
-#if TORRENT_ABI_VERSION == 1
-		//deprecated in 1.2
-		virtual void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) = 0;
-#endif
+		virtual void insert_torrent(std::shared_ptr<torrent> const& t) = 0;
 		virtual void set_queue_position(torrent* t, queue_position_t p) = 0;
 		virtual int num_torrents() const = 0;
 
