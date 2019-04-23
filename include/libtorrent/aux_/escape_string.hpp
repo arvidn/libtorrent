@@ -67,12 +67,6 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT string_view::size_type find(string_view haystack
 		, string_view needle, string_view::size_type pos);
 
-#if TORRENT_ABI_VERSION == 1
-	// deprecated in 1.2
-	// convert a file://-URL to a proper path
-	TORRENT_EXTRA_EXPORT std::string resolve_file_url(std::string const& url);
-#endif
-
 	// returns true if the given string (not 0-terminated) contains
 	// characters that would need to be escaped if used in a URL
 	TORRENT_EXTRA_EXPORT bool need_encoding(char const* str, int len);
@@ -87,9 +81,6 @@ namespace libtorrent {
 
 	// replaces \ with /
 	TORRENT_EXTRA_EXPORT void convert_path_to_posix(std::string& path);
-#ifdef TORRENT_WINDOWS
-	TORRENT_EXTRA_EXPORT void convert_path_to_windows(std::string& path);
-#endif
 
 	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim
 		, char const* end);

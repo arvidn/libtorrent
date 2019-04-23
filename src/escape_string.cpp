@@ -189,13 +189,6 @@ namespace libtorrent {
 		std::replace(path.begin(), path.end(), '\\', '/');
 	}
 
-#ifdef TORRENT_WINDOWS
-	void convert_path_to_windows(std::string& path)
-	{
-		std::replace(path.begin(), path.end(), '/', '\\');
-	}
-#endif
-
 	// TODO: 2 this should probably be moved into string_util.cpp
 	std::string read_until(char const*& str, char const delim, char const* end)
 	{
@@ -250,34 +243,6 @@ namespace libtorrent {
 
 		return msg;
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	std::string resolve_file_url(std::string const& url)
-	{
-		TORRENT_ASSERT(url.substr(0, 7) == "file://");
-		// first, strip the file:// part.
-		// On windows, we have
-		// to strip the first / as well
-		std::size_t num_to_strip = 7;
-#ifdef TORRENT_WINDOWS
-		if (url[7] == '/' || url[7] == '\\') ++num_to_strip;
-#endif
-		std::string ret = url.substr(num_to_strip);
-
-		// we also need to URL-decode it
-		error_code ec;
-		std::string unescaped = unescape_string(ret, ec);
-		if (ec) unescaped = ret;
-
-		// on windows, we need to convert forward slashes
-		// to backslashes
-#ifdef TORRENT_WINDOWS
-		convert_path_to_windows(unescaped);
-#endif
-
-		return unescaped;
-	}
-#endif
 
 	std::string base64encode(const std::string& s)
 	{

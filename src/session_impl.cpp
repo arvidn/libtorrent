@@ -4635,51 +4635,9 @@ namespace aux {
 	void session_impl::async_add_torrent(add_torrent_params* params)
 	{
 		std::unique_ptr<add_torrent_params> holder(params);
-
-#if TORRENT_ABI_VERSION == 1
-		if (!params->ti && string_begins_no_case("file://", params->url.c_str()))
-		{
-			if (!m_torrent_load_thread)
-				m_torrent_load_thread.reset(new work_thread_t());
-
-			post(m_torrent_load_thread->ios, [params, this]
-			{
-				std::string const torrent_file_path = resolve_file_url(params->url);
-				params->url.clear();
-
-				std::unique_ptr<add_torrent_params> holder2(params);
-				error_code ec;
-				params->ti = std::make_shared<torrent_info>(torrent_file_path, ec);
-				post(this->m_io_context, std::bind(&session_impl::on_async_load_torrent
-					, this, params, ec));
-				holder2.release();
-			});
-			holder.release();
-			return;
-		}
-#endif
-
 		error_code ec;
 		add_torrent(std::move(*params), ec);
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	void session_impl::on_async_load_torrent(add_torrent_params* params, error_code ec)
-	{
-		std::unique_ptr<add_torrent_params> holder(params);
-
-		if (ec)
-		{
-			m_alerts.emplace_alert<add_torrent_alert>(torrent_handle()
-				, *params, ec);
-			return;
-		}
-		TORRENT_ASSERT(params->ti->is_valid());
-		TORRENT_ASSERT(params->ti->num_files() > 0);
-		params->url.clear();
-		add_torrent(std::move(*params), ec);
-	}
-#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session_impl::add_extensions_to_torrent(
@@ -4809,15 +4767,6 @@ namespace aux {
 			parse_magnet_uri(params.url, params, ec);
 			if (ec) return std::make_pair(ptr_t(), false);
 			params.url.clear();
-		}
-
-		if (!params.ti && string_begins_no_case("file://", params.url.c_str()))
-		{
-			std::string const torrent_file_path = resolve_file_url(params.url);
-			params.url.clear();
-			auto t = std::make_shared<torrent_info>(torrent_file_path, std::ref(ec), 0);
-			if (ec) return std::make_pair(ptr_t(), false);
-			params.ti = t;
 		}
 #endif
 

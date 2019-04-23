@@ -1,3 +1,4 @@
+	* remove deprecated feature to add torrents by file:// URL
 	* remove deprecated feature to download .torrent file from URL
 	* requires boost >= 1.66 to build
 	* update networking API to networking TS compatible boost.asio
