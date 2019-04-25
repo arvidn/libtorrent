@@ -15,6 +15,7 @@
 * building_
 * troubleshooting_
 * `tuning`_
+* fuzzing_
 * screenshot_
 * `mailing list`_ (archive_)
 * `who's using libtorrent?`_
@@ -70,6 +71,7 @@ libtorrent
 .. _`libtorrent 1.2`: upgrade_to_1.2-ref.html
 .. _troubleshooting: troubleshooting.html
 .. _`tuning`: tuning.html
+.. _fuzzing: fuzzing.html
 .. _screenshot: client_test.png
 .. _`uTP`: utp.html
 .. _`extensions protocol`: extension_protocol.html

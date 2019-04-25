@@ -50,7 +50,8 @@ MANUAL_TARGETS = index \
 	tuning \
 	hacking \
 	streaming \
-	tutorial
+	tutorial \
+	fuzzing
 
 TARGETS = single-page-ref \
 	$(MANUAL_TARGETS) \
