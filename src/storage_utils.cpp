@@ -383,7 +383,7 @@ namespace libtorrent { namespace aux {
 			error_code err;
 			std::string subdir = combine_path(save_path, s);
 
-			while (!compare_path(subdir, save_path) && !err)
+			while (!path_equal(subdir, save_path) && !err)
 			{
 				remove(subdir, err);
 				subdir = parent_path(subdir);

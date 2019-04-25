@@ -1115,31 +1115,23 @@ namespace {
 			new_order.erase(pad_begin, new_order.end());
 		}
 
+		// TODO: this would be more efficient if m_paths was sorted first, such
+		// that a lower path index always meant sorted-before
+
 		// sort files by path/name
 		std::sort(new_order.begin(), new_order.end()
 			, [this](file_index_t l, file_index_t r)
 		{
 			// assuming m_paths are unqiue!
-			if (m_files[l].path_index != m_files[r].path_index)
+			auto const& lf = m_files[l];
+			auto const& rf = m_files[r];
+			if (lf.path_index != rf.path_index)
 			{
-				auto lsplit = lsplit_path(m_paths[m_files[l].path_index]);
-				auto rsplit = lsplit_path(m_paths[m_files[r].path_index]);
-
-				while (!lsplit.first.empty() || !rsplit.first.empty())
-				{
-					string_view left = lsplit.first;
-					if (left.empty()) left = m_files[l].filename();
-
-					string_view right = rsplit.first;
-					if (right.empty()) right = m_files[l].filename();
-
-					if (left != right) return left < right;
-
-					lsplit = lsplit_path(lsplit.second);
-					rsplit = lsplit_path(rsplit.second);
-				}
+				int const ret = path_compare(m_paths[lf.path_index], lf.filename()
+					, m_paths[rf.path_index], rf.filename());
+				if (ret != 0) return ret < 0;
 			}
-			return m_files[l].filename() < m_files[r].filename();
+			return lf.filename() < rf.filename();
 		});
 
 		aux::vector<internal_file_entry, file_index_t> new_files;
