@@ -289,7 +289,7 @@ TORRENT_TEST(file_path_hash)
 }
 
 // make sure we fill in padding with small files
-TORRENT_TEST(canonicalize)
+TORRENT_TEST(canonicalize_pad)
 {
 	file_storage fs;
 	fs.set_piece_length(0x4000);
@@ -318,6 +318,26 @@ TORRENT_TEST(canonicalize)
 	TEST_EQUAL(fs.file_size(file_index_t(4)), 0x7001);
 	TEST_EQUAL(fs.file_name(file_index_t(4)), "3");
 	TEST_EQUAL(fs.pad_file_at(file_index_t(4)), false);
+}
+
+// make sure canonicalize sorts by path correctly
+TORRENT_TEST(canonicalize_path)
+{
+	file_storage fs;
+	fs.set_piece_length(0x4000);
+	fs.add_file(combine_path("b", combine_path("2", "a")), 0x4000);
+	fs.add_file(combine_path("b", combine_path("1", "a")), 0x4000);
+	fs.add_file(combine_path("b", combine_path("3", "a")), 0x4000);
+	fs.add_file(combine_path("b", "11"), 0x4000);
+
+	fs.canonicalize();
+
+	TEST_EQUAL(fs.num_files(), 4);
+
+	TEST_EQUAL(fs.file_path(file_index_t(0)), combine_path("b", combine_path("1", "a")));
+	TEST_EQUAL(fs.file_path(file_index_t(1)), combine_path("b", "11"));
+	TEST_EQUAL(fs.file_path(file_index_t(2)), combine_path("b", combine_path("2", "a")));
+	TEST_EQUAL(fs.file_path(file_index_t(3)), combine_path("b", combine_path("3", "a")));
 }
 
 TORRENT_TEST(piece_range_exclusive)
