@@ -66,7 +66,21 @@ fuzzer dht_node ;
 fuzzer utp ;
 fuzzer resume_data ;
 
+local LARGE_TARGETS =
+	torrent_info
+	lazy_bdecode
+	bdecode_node
+	http_parser
+	dht_node
+	utp
+	resume_data
+	file_storage_add_file
+	sanitize_path
+	;
+
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;
+install stage-large : $(LARGE_TARGETS) : <install-type>EXE <location>fuzzers ;
 
 explicit stage ;
+explicit stage-large ;
 
