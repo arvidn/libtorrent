@@ -162,6 +162,7 @@ std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
 	{
 		std::printf("torrent_info constructor failed: %s\n"
 			, ec.message().c_str());
+		throw system_error(ec);
 	}
 
 	return info;
@@ -220,6 +221,7 @@ std::shared_ptr<StorageType> setup_torrent(file_storage& fs
 		TEST_ERROR(se.ec.message().c_str());
 		std::printf("default_storage::initialize %s: %d\n"
 			, se.ec.message().c_str(), static_cast<int>(se.file()));
+		throw system_error(se.ec);
 	}
 
 	return s;

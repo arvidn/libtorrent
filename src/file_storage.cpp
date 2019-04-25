@@ -1096,43 +1096,6 @@ namespace {
 		swap(ti.m_piece_length, m_piece_length);
 	}
 
-namespace {
-	// TODO: replace all use of this with lsplit_path() and rsplit_path()
-	std::string split_path(std::string const& f)
-	{
-		if (f.empty()) return f;
-
-		std::string ret;
-		char const* start = f.c_str();
-		char const* p = start;
-		while (*start != 0)
-		{
-			while (*p != '/'
-				&& *p != '\0'
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-				&& *p != '\\'
-#endif
-				) ++p;
-			if (p - start > 0)
-			{
-				ret.append(start, aux::numeric_cast<std::size_t>(p - start));
-				ret.append(1, '\0');
-			}
-			if (*p != 0) ++p;
-			start = p;
-		}
-		ret.append(1, '\0');
-		return ret;
-	}
-
-	char const* next_path_element(char const* p)
-	{
-		p += strlen(p) + 1;
-		if (*p == 0) return nullptr;
-		return p;
-	}
-}
-
 	void file_storage::canonicalize()
 	{
 		TORRENT_ASSERT(piece_length() >= 16 * 1024);
@@ -1151,6 +1114,9 @@ namespace {
 			return;
 		}
 
+		// TODO: this would be more efficient if m_paths was sorted first, such
+		// that a lower path index always meant sorted-before
+
 		// sort files by path/name
 		std::sort(m_files.begin(), m_files.end()
 			, [&](internal_file_entry const& l, internal_file_entry const& r)
@@ -1158,40 +1124,9 @@ namespace {
 			// assuming m_paths are unqiue!
 			if (l.path_index != r.path_index)
 			{
-				std::string lsplit = split_path(m_paths[l.path_index]);
-				std::string rsplit = split_path(m_paths[r.path_index]);
-				for (char const* le = lsplit.empty() ? nullptr : lsplit.c_str()
-					, *re = rsplit.empty() ? nullptr : rsplit.c_str()
-					; le != nullptr || re != nullptr
-					; le = next_path_element(le), re = next_path_element(re))
-				{
-					if (le != nullptr && re != nullptr)
-					{
-						int cmp = strcmp(le, re);
-						if (cmp != 0) return cmp < 0;
-					}
-					else if (le == nullptr && re != nullptr)
-					{
-						int cmp =  memcmp(l.filename().data(), re
-							, std::min(l.filename().size(), strlen(re)));
-						// TODO: detect filename/directory name conflict here?
-						if (cmp == 0) return l.filename().size() < strlen(re);
-						else return cmp < 0;
-					}
-					else if (le != nullptr && re == nullptr)
-					{
-						int cmp = memcmp(le, r.filename().data()
-							, std::min(r.filename().size(), strlen(le)));
-						// TODO: detect filename/directory name conflict here?
-						if (cmp == 0) return strlen(le) < r.filename().size();
-						else return cmp < 0;
-					}
-					else
-					{
-						// the loop should have terminated in this case
-						TORRENT_ASSERT_FAIL();
-					}
-				}
+				int const ret = path_compare(m_paths[l.path_index], l.filename()
+					, m_paths[r.path_index], r.filename());
+				if (ret != 0) return ret < 0;
 			}
 			return l.filename() < r.filename();
 		});
