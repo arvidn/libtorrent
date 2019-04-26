@@ -75,3 +75,10 @@ large fuzz targets. Call `b2` like this::
 
 	b2 clang stage-large -j$(nproc)
 
+sharing corpora
+---------------
+
+Before sharing your fuzz corpus, it should be minimized. There is a script
+called `minimize.sh` which moves `corpus` to `prev-corpus` and copies over
+a minimized set of inputs to a new `corpus` directory.
+
