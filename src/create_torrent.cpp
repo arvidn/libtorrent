@@ -700,9 +700,6 @@ namespace {
 				p.append(h.data(), h.size());
 		}
 
-		std::vector<char> buf;
-		bencode(std::back_inserter(buf), info);
-
 		return dict;
 	}
 
