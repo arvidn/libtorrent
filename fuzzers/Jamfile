@@ -76,6 +76,7 @@ local LARGE_TARGETS =
 	resume_data
 	file_storage_add_file
 	sanitize_path
+	upnp
 	;
 
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;
