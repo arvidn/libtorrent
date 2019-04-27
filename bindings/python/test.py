@@ -5,6 +5,7 @@
 import libtorrent as lt
 
 import unittest
+import pytest
 import time
 import datetime
 import os
@@ -14,6 +15,7 @@ import subprocess as sub
 import sys
 import pickle
 import threading
+
 
 # include terminal interface for travis parallel executions of scripts which use
 # terminal features: fix multiple stdin assignment at termios.tcgetattr
@@ -784,4 +786,5 @@ if __name__ == '__main__':
                              'base.torrent'), '.')
     shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
                              'unordered.torrent'), '.')
+    pytest.main()
     unittest.main()

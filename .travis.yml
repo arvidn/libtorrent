@@ -72,6 +72,7 @@ before_install:
   - 'if [ "$docs" = "1" ]; then
     pip install docutils;
     pip install Pygments;
+    pip install pytest;
     travis_retry brew install graphviz hunspell;
     fi'
 

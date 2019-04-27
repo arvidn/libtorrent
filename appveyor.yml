@@ -104,6 +104,7 @@ test_script:
   - cd %ROOT_DIRECTORY%\bindings\python
   # we use 64 bit python build
   - if defined python (
+    c:\Python35-x64\python.exe -m pip install pytest
     copy dependencies\*.* .
     & c:\Python35-x64\python.exe test.py -b
     )
