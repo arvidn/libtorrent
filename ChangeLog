@@ -1,3 +1,4 @@
+	* add dht_pkt_alert and alerts_dropped_alert to python bindings
 	* fix python bindins for block_uploaded_alert
 	* optimize resolving duplicate filenames in loading torrent files
 	* fix python binding of dht_settings
