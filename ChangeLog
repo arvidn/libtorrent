@@ -1,3 +1,6 @@
+1.1.13 release
+
+	* fix sock_type_t python binding
 	* tighten up various input validation checks
 	* replace use of boost-endian with boost-predef
 
