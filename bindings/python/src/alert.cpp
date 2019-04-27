@@ -417,7 +417,26 @@ void bind_alert()
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
         "listen_succeeded_alert", no_init)
         .add_property("endpoint", make_getter(&listen_succeeded_alert::endpoint, by_value()))
+        .def_readonly("sock_type", &listen_succeeded_alert::sock_type)
         ;
+
+    enum_<listen_succeeded_alert::socket_type_t>("listen_succeded_alert_socket_type_t")
+       .value("tcp", listen_succeeded_alert::tcp)
+       .value("tcp_ssl", listen_succeeded_alert::tcp_ssl)
+       .value("udp", listen_succeeded_alert::udp)
+       .value("i2p", listen_succeeded_alert::i2p)
+       .value("socks5", listen_succeeded_alert::socks5)
+       .value("utp_ssl", listen_succeeded_alert::utp_ssl)
+       ;
+
+    enum_<listen_failed_alert::socket_type_t>("listen_failed_alert_socket_type_t")
+       .value("tcp", listen_failed_alert::tcp)
+       .value("tcp_ssl", listen_failed_alert::tcp_ssl)
+       .value("udp", listen_failed_alert::udp)
+       .value("i2p", listen_failed_alert::i2p)
+       .value("socks5", listen_failed_alert::socks5)
+       .value("utp_ssl", listen_failed_alert::utp_ssl)
+       ;
 
     class_<portmap_error_alert, bases<alert>, noncopyable>(
         "portmap_error_alert", no_init)
