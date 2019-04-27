@@ -41,7 +41,10 @@ addons:
 before_install:
   - git submodule update --init --recursive
   - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install ccache boost-build; fi
-  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then travis_retry brew install boost-python python2; fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+      travis_retry brew install boost-python python2;
+      brew link --overwrite python@2;
+     fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
   # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
