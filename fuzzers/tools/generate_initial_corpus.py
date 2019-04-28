@@ -5,11 +5,11 @@ from random import shuffle
 import struct
 
 corpus_dirs = [
-    'torrent_info', 'upnp', 'gzip' 'base32decode', 'base32encode',
+    'torrent_info', 'upnp', 'gzip', 'base32decode', 'base32encode',
     'base64encode', 'bdecode_node', 'convert_from_native', 'convert_to_native',
-    'dht_node', 'escape_path', 'escape_string', 'file_storage_add_file', 'gzip',
+    'dht_node', 'escape_path', 'escape_string', 'file_storage_add_file',
     'http_parser', 'lazy_bdecode', 'parse_int', 'parse_magnet_uri', 'resume_data',
-    'sanitize_path', 'torrent_info', 'upnp', 'utf8_codepoint', 'utf8_wchar', 'utp',
+    'sanitize_path', 'utf8_codepoint', 'utf8_wchar', 'utp',
     'verify_encoding', 'wchar_utf8', 'peer_conn']
 
 for p in corpus_dirs:
