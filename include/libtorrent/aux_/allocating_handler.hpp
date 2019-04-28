@@ -65,12 +65,12 @@ namespace libtorrent { namespace aux {
 #ifdef NDEBUG
 	constexpr std::size_t read_handler_max_size = tracking + 152;
 #else
-	constexpr std::size_t read_handler_max_size = tracking + 192;
+	constexpr std::size_t read_handler_max_size = tracking + 208;
 #endif
 #endif
-	constexpr std::size_t udp_handler_max_size = tracking + 144;
-	constexpr std::size_t utp_handler_max_size = tracking + 168;
-	constexpr std::size_t tick_handler_max_size = tracking + 96;
+	constexpr std::size_t udp_handler_max_size = tracking + 160;
+	constexpr std::size_t utp_handler_max_size = tracking + 184;
+	constexpr std::size_t tick_handler_max_size = tracking + 112;
 	constexpr std::size_t abort_handler_max_size = tracking + 104;
 	constexpr std::size_t deferred_handler_max_size = tracking + 112;
 #elif defined __clang__
