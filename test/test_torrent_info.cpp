@@ -182,6 +182,8 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_invalid_piece_layer.torrent", errors::torrent_missing_piece_layer},
 	{ "v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
 	{ "v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
+	{ "v2_unordered_files.torrent", errors::invalid_bencoding},
+	{ "v2_overlong_integer.torrent", errors::invalid_bencoding},
 };
 
 } // anonymous namespace
