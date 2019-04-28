@@ -397,16 +397,9 @@ namespace {
 			alignment = piece_size;
 
 		// make sure the size is an even power of 2
-#if TORRENT_USE_ASSERTS
-		for (int i = 0; i < 31; ++i)
-		{
-			if (piece_size & (1 << i))
-			{
-				TORRENT_ASSERT((piece_size & ~(1 << i)) == 0);
-				break;
-			}
-		}
-#endif
+		// i.e. only a single bit is set
+		TORRENT_ASSERT((piece_size & (piece_size - 1)) == 0);
+
 		m_files.set_piece_length(piece_size);
 		if (flags & (optimize_alignment | mutable_torrent_support))
 			m_files.optimize(pad_file_limit, alignment, bool(flags & mutable_torrent_support));
@@ -699,9 +692,6 @@ namespace {
 			for (sha1_hash const& h : m_piece_hash)
 				p.append(h.data(), h.size());
 		}
-
-		std::vector<char> buf;
-		bencode(std::back_inserter(buf), info);
 
 		return dict;
 	}

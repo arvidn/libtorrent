@@ -849,6 +849,7 @@ TEST_SOURCES = \
   test_timestamp_history.cpp \
   test_torrent.cpp \
   test_torrent_info.cpp \
+  test_torrent_list.cpp \
   test_tracker.cpp \
   test_transfer.cpp \
   test_upnp.cpp \
@@ -942,6 +943,7 @@ TEST_TORRENTS = \
   slash_path3.torrent \
   string.torrent \
   symlink1.torrent \
+  symlink2.torrent \
   symlink_zero_size.torrent \
   unaligned_pieces.torrent \
   unordered.torrent \

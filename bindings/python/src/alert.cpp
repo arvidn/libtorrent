@@ -200,6 +200,9 @@ namespace boost
 	POLY(state_changed_alert)
 	POLY(state_update_alert)
 	POLY(i2p_alert)
+	POLY(dht_immutable_item_alert)
+	POLY(dht_mutable_item_alert)
+	POLY(dht_put_alert)
 	POLY(dht_reply_alert)
 	POLY(dht_announce_alert)
 	POLY(dht_get_peers_alert)
@@ -221,12 +224,18 @@ namespace boost
 	POLY(dht_outgoing_get_peers_alert)
 	POLY(lsd_error_alert)
 	POLY(dht_stats_alert)
-	POLY(dht_immutable_item_alert)
-	POLY(dht_mutable_item_alert)
-	POLY(dht_put_alert)
-	POLY(session_stats_alert)
+	POLY(incoming_request_alert)
+	POLY(dht_log_alert)
+	POLY(dht_pkt_alert)
 	POLY(dht_get_peers_reply_alert)
+	POLY(dht_direct_response_alert)
+	POLY(session_error_alert)
+	POLY(dht_live_nodes_alert)
+	POLY(session_stats_header_alert)
+	POLY(dht_sample_infohashes_alert)
 	POLY(block_uploaded_alert)
+	POLY(alerts_dropped_alert)
+	POLY(session_stats_alert)
 
 #if TORRENT_ABI_VERSION == 1
 	POLY(anonymous_mode_alert)
@@ -245,6 +254,19 @@ namespace boost
 }
 
 struct dummy3 {};
+
+bytes get_pkt_buf(dht_pkt_alert const& alert)
+{
+    return {alert.pkt_buf().data(), static_cast<std::size_t>(alert.pkt_buf().size())};
+}
+
+list get_dropped_alerts(alerts_dropped_alert const& alert)
+{
+    list ret;
+    for (int i = 0; i < int(alert.dropped_alerts.size()); ++i)
+        ret.append(bool(alert.dropped_alerts[i]));
+    return ret;
+}
 
 void bind_alert()
 {
@@ -933,6 +955,16 @@ void bind_alert()
        .add_property("routing_table", &dht_stats_routing_table)
         ;
 
+    class_<dht_log_alert, bases<alert>, noncopyable>("dht_log_alert", no_init)
+        .def_readonly("module", &dht_log_alert::module)
+        .def("log_message", &dht_log_alert::log_message)
+    ;
+
+    class_<dht_pkt_alert, bases<alert>, noncopyable>(
+        "dht_pkt_alert", no_init)
+        .add_property("pkt_buf", &get_pkt_buf)
+        ;
+
     class_<dht_immutable_item_alert, bases<alert>, noncopyable>(
        "dht_immutable_item_alert", no_init)
         .def_readonly("target", &dht_immutable_item_alert::target)
@@ -981,6 +1013,11 @@ void bind_alert()
        "block_uploaded_alert", no_init)
         .add_property("block_index", &block_uploaded_alert::block_index)
         .add_property("piece_index", make_getter((&block_uploaded_alert::piece_index), by_value()))
+        ;
+
+    class_<alerts_dropped_alert, bases<alert>, noncopyable>(
+       "alerts_dropped_alert", no_init)
+        .add_property("dropped_alerts", &get_dropped_alerts)
         ;
 
 }
