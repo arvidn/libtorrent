@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	enum class protocol_version
+	enum class protocol_version : std::uint8_t
 	{
 		V1,
 		V2,
@@ -106,8 +106,7 @@ namespace libtorrent
 
 		bool operator<(info_hash_t const& o) const
 		{
-			if (v1 < o.v1) return true;
-			return v2 < o.v2;
+			return std::tie(v1, v2) < std::tie(o.v1, o.v2);
 		}
 
 		sha1_hash v1;
