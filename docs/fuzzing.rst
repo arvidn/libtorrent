@@ -75,6 +75,24 @@ large fuzz targets. Call `b2` like this::
 
 	b2 clang stage-large -j$(nproc)
 
+fast+slow
+---------
+
+When building an initial corpus, it can be useful to quickly build a corpus with
+a large code coverage. To speed up this process, you can build the fuzzers
+without sanitizers, asserts and invariant checks. This won't find as many errors,
+but build a good corpus which can then be run against a fully instrumented
+fuzzer.
+
+To build the fuzzers in this "fast" mode, there's a build variant `build_coverage`.
+Invoke `b2` like this::
+
+	b2 clang stage build_coverage -j$(nproc)
+
+For more details on "fast + slow" see `Paul Dreik's talk`_.
+
+.. _`Paul Dreik's talk`: https://youtu.be/e_Oc9SkCo5s?t=1679
+
 sharing corpora
 ---------------
 
