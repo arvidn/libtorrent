@@ -259,7 +259,7 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 {
 	// is this a reply?
 	bdecode_node const y_ent = m.message.dict_find_string("y");
-	if (!y_ent || y_ent.string_length() == 0)
+	if (!y_ent || y_ent.string_length() != 1)
 	{
 		// don't respond to this obviously broken messages. We don't
 		// want to open up a magnification opportunity
