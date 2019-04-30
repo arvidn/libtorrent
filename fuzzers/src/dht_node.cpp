@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/ip_filter.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 #include <memory>
 
@@ -97,34 +99,44 @@ struct obs : dht::dht_observer
 };
 
 obs o;
-extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
-{
 #if LIBTORRENT_VERSION_NUM >= 10300
-	io_context ios;
+io_context ios;
 #else
-	io_service ios;
+io_service ios;
 #endif
 #if LIBTORRENT_VERSION_NUM < 10200
-	rate_limited_udp_socket sock(ios);
+rate_limited_udp_socket sock(ios);
 #endif
-
-	dht::dht_tracker(&o
+dht::dht_tracker dht_node(&o
 #if LIBTORRENT_VERSION_NUM >= 10200
-		, ios
-		, [](aux::listen_socket_handle const&, udp::endpoint const&
-			, span<char const>, error_code&, udp_send_flags_t) {}
+	, ios
+	, [](aux::listen_socket_handle const&, udp::endpoint const&
+		, span<char const>, error_code&, udp_send_flags_t) {}
 #else
-		, sock
+	, sock
 #endif
-		, sett
-		, cnt
+	, sett
+	, cnt
 #if LIBTORRENT_VERSION_NUM >= 10200
-		, *dht_storage
+	, *dht_storage
 #else
-		, dht::dht_default_storage_constructor
+	, dht::dht_default_storage_constructor
 #endif
-		, std::move(state));
+	, std::move(state));
+auto listen_socket = std::make_shared<aux::listen_socket_t>();
+aux::listen_socket_handle s(listen_socket);
 
+error_code ignore;
+lt::address_v4 src = make_address_v4("2.2.2.2", ignore);
+udp::endpoint ep(src, 6881);
+std::once_flag once_flag;
+
+extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
+{
+	ep.address(src);
+	src = lt::address_v4(detail::plus_one(src.to_bytes()));
+	std::call_once(once_flag, []{ dht_node.new_socket(s); });
+	dht_node.incoming_packet(s, ep, {reinterpret_cast<char const*>(data), int(size)});
 	return 0;
 }
 
