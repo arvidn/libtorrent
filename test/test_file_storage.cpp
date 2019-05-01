@@ -219,6 +219,7 @@ TORRENT_TEST(pointer_offset)
 TORRENT_TEST(invalid_path1)
 {
 	file_storage st;
+	st.set_piece_length(16 * 1024);
 #ifdef TORRENT_WINDOWS
 	st.add_file_borrow({}, R"(+\\\()", 10);
 #else
@@ -232,6 +233,7 @@ TORRENT_TEST(invalid_path1)
 TORRENT_TEST(invalid_path2)
 {
 	file_storage st;
+	st.set_piece_length(16 * 1024);
 #ifdef TORRENT_WINDOWS
 	st.add_file_borrow({}, R"(+\\\+\\()", 10);
 #else

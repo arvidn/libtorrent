@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "setup_transfer.hpp" // for load_file
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -133,6 +134,11 @@ static test_torrent_t test_torrents[] =
 	{ "absolute_filename.torrent" },
 	{ "invalid_filename.torrent" },
 	{ "invalid_filename2.torrent" },
+	{ "v2.torrent" },
+	{ "v2_multipiece_file.torrent" },
+	{ "v2_only.torrent" },
+	{ "v2_invalid_filename.torrent" },
+	{ "v2_multiple_files.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -161,6 +167,15 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_symlink.torrent", errors::torrent_invalid_name },
 	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
 	{ "no_files.torrent", errors::no_files_in_torrent},
+	{ "v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
+	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
+	{ "v2_invalid_file.torrent", errors::torrent_file_parse_failed},
+	{ "v2_deep_recursion.torrent", errors::torrent_file_parse_failed},
+	{ "v2_non_multiple_piece_layer.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_invalid_piece_layer.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
+	{ "v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
 };
 
 } // anonymous namespace
@@ -839,6 +854,46 @@ TORRENT_TEST(parse_torrents)
 		{
 			TEST_EQUAL(ti->num_files(), 3);
 		}
+		else if (t.file == "v2.torrent"_sv)
+		{
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{ 0 }), "test64K"_sv);
+			TEST_EQUAL(ti->files().file_size(file_index_t{ 0 }), 65536);
+			TEST_EQUAL(aux::to_hex(ti->files().root(file_index_t{ 0 })), "60aae9c7b428f87e0713e88229e18f0adf12cd7b22a0dd8a92bb2485eb7af242"_sv);
+			TEST_EQUAL(ti->info_hash().has_v1(), true);
+			TEST_EQUAL(ti->info_hash().has_v2(), true);
+			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "597b180c1a170a585dfc5e85d834d69013ceda174b8f357d5bb1a0ca509faf0a"_sv);
+		}
+		else if (t.file == "v2_only.torrent"_sv)
+		{
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{ 0 }), "test1MB"_sv);
+			TEST_EQUAL(ti->files().file_size(file_index_t{ 0 }), 1048576);
+			TEST_EQUAL(aux::to_hex(ti->files().root(file_index_t{ 0 })), "515ea9181744b817744ded9d2e8e9dc6a8450c0b0c52e24b5077f302ffbd9008"_sv);
+			TEST_EQUAL(ti->info_hash().has_v1(), false);
+			TEST_EQUAL(ti->info_hash().has_v2(), true);
+			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "95e04d0c4bad94ab206efa884666fd89777dbe4f7bd9945af1829037a85c6192"_sv);
+		}
+		else if (t.file == "v2_multipiece_file.torrent"_sv)
+		{
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{ 0 }), "test1MB"_sv);
+			TEST_EQUAL(ti->files().file_size(file_index_t{ 0 }), 1048576);
+			TEST_EQUAL(aux::to_hex(ti->files().root(file_index_t{ 0 })), "515ea9181744b817744ded9d2e8e9dc6a8450c0b0c52e24b5077f302ffbd9008"_sv);
+			TEST_EQUAL(ti->info_hash().has_v1(), true);
+			TEST_EQUAL(ti->info_hash().has_v2(), true);
+			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "108ac2c3718ce722e6896edc56c4afa98f1d711ecaace7aad74fca418ebd03de"_sv);
+		}
+		else if (t.file == "v2_invalid_filename.torrent"_sv)
+		{
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "_estMB"_sv);
+		}
+		else if (t.file == "v2_multiple_files.torrent"_sv)
+		{
+			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+			TEST_EQUAL(ti->num_files(), 4);
+		}
 
 		file_storage const& fs = ti->files();
 		for (file_index_t idx{0}; idx != file_index_t(fs.num_files()); ++idx)
@@ -866,11 +921,16 @@ TORRENT_TEST(parse_torrents)
 	{
 		error_code ec;
 		std::printf("loading %s\n", test_error_torrents[i].file);
-		auto ti = std::make_shared<torrent_info>(combine_path(
-			combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec);
+		std::vector<char> data;
+		std::string const filename = combine_path(combine_path(root_dir, "test_torrents")
+			, test_error_torrents[i].file);
+		TEST_CHECK(load_file(filename, data, ec) == 0);
+		TEST_CHECK(!ec);
+
+		auto ti = std::make_shared<torrent_info>(bdecode(data, 1000), ec);
 		std::printf("E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
 			, test_error_torrents[i].error.message().c_str());
-		TEST_CHECK(ec.message() == test_error_torrents[i].error.message());
+		TEST_EQUAL(ec.message(), test_error_torrents[i].error.message());
 		TEST_EQUAL(ti->is_valid(), false);
 	}
 }

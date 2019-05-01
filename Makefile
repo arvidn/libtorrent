@@ -955,7 +955,21 @@ TEST_TORRENTS = \
   url_seed_multi_single_file.torrent \
   url_seed_multi_space.torrent \
   url_seed_multi_space_nolist.torrent \
-  whitespace_url.torrent
+  whitespace_url.torrent \
+  v2.torrent \
+  v2_multipiece_file.torrent \
+  v2_only.torrent \
+  v2_invalid_filename.torrent \
+  v2_mismatching_metadata.torrent \
+  v2_no_power2_piece.torrent \
+  v2_invalid_file.torrent \
+  v2_deep_recursion.torrent \
+  v2_non_multiple_piece_layer.torrent \
+  v2_piece_layer_invalid_file_hash.torrent \
+  v2_invalid_piece_layer.torrent \
+  v2_invalid_piece_layer_size.torrent \
+  v2_multiple_files.torrent \
+  v2_bad_file_alignment.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \
