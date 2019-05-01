@@ -448,6 +448,8 @@ namespace libtorrent {
 		// to peers over anything other than the i2p network.
 		bool is_i2p() const { return (m_flags & i2p) != 0; }
 
+		bool v2_piece_hashes_verified() const { return (m_flags & v2_has_piece_hashes) != 0; }
+
 		// returns the piece size of file with ``index``. This will be the same as piece_length(),
 		// except for the last piece, which may be shorter.
 		int piece_size(piece_index_t index) const { return m_files.piece_size(index); }
@@ -471,7 +473,7 @@ namespace libtorrent {
 			return &m_piece_hashes[idx * 20];
 		}
 
-		bool is_loaded() const { return m_piece_hashes; }
+		bool is_loaded() const { return m_files.num_files() > 0; }
 
 #if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
@@ -545,6 +547,9 @@ namespace libtorrent {
 		boost::shared_array<char> metadata() const
 		{ return m_info_section; }
 
+		aux::vector<aux::vector<sha256_hash>, file_index_t>& merkle_trees();
+		aux::vector<sha256_hash>& file_merkle_tree(file_index_t file);
+
 #if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
 
@@ -570,6 +575,9 @@ namespace libtorrent {
 
 		// if we're logging member offsets, we need access to them
 	private:
+
+		// populate the piece layers from the metadata
+		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
 
 		void resolve_duplicate_filenames();
 
@@ -630,6 +638,20 @@ namespace libtorrent {
 #else
 		aux::vector<sha1_hash> deprecated1;
 #endif
+
+		// v2 merkle tree for each file
+		// technically this state belongs in the torrent object, but there are
+		// some practical reasons to keep it in the torrent_info object.
+		// the piece_layers, if present, are parsed out of the .torrent file, and
+		// they are not part of the info-dict. This means they have to be parsed
+		// out and stored in the torrent_info object in order to be preserved when
+		// a torrent is added.
+		// For the merkle trees to be owned by the torrent object, the piece
+		// layers would either have to be stored twice (once in torrent_info and
+		// once in torrent), or they would have to be moved out of torrent_info as
+		// the torrent is added. Storing it twice can use a lot of memory. Moving
+		// it out leaves a "one-time-use" API on torrent_info class.
+		aux::vector<aux::vector<sha256_hash>, file_index_t> m_merkle_trees;
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
@@ -694,6 +716,9 @@ namespace libtorrent {
 			// this flag is set if we found an ssl-cert field in the info
 			// dictionary
 			ssl_torrent = 8,
+
+			// v2 piece hashes were loaded from the torrent file and verified
+			v2_has_piece_hashes = 16,
 		};
 
 		// any combination of values from flags_t enum
