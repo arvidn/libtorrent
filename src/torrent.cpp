@@ -95,6 +95,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/range.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/disk_io_thread.hpp" // for hasher_thread_divisor
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -1069,6 +1070,28 @@ bool is_downloading_state(int const st)
 			if (p->is_disconnecting()) continue;
 			peer_has(p->get_bitfield(), p);
 		}
+	}
+
+	void torrent::need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified)
+	{
+		if (m_hash_picker)
+		{
+			if (!verified.empty())
+			{
+				m_hash_picker->set_verified(verified);
+			}
+			return;
+		}
+
+		TORRENT_ASSERT(valid_metadata());
+		TORRENT_ASSERT(m_connections_initialized);
+
+		//INVARIANT_CHECK;
+
+		m_hash_picker.reset(new hash_picker(m_torrent_file->orig_files()
+			, m_torrent_file->merkle_trees(), std::move(verified)
+			, m_torrent_file->v2_piece_hashes_verified()
+				&& m_torrent_file->piece_length() == default_block_size));
 	}
 
 	struct piece_refcount
@@ -3442,6 +3465,8 @@ bool is_downloading_state(int const st)
 		if (m_abort) return;
 		if (m_deleted) return;
 
+		m_picker->completed_hash_job(piece);
+
 		bool const passed = settings().get_bool(settings_pack::disable_hash_checks)
 			|| (!error && sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece));
 
@@ -3730,7 +3755,7 @@ bool is_downloading_state(int const st)
 		m_predictive_pieces.insert(i, index);
 	}
 
-	void torrent::piece_failed(piece_index_t const index)
+	void torrent::piece_failed(piece_index_t const index, std::vector<int> blocks)
 	{
 		// if the last piece fails the peer connection will still
 		// think that it has received all of it until this function
@@ -3743,6 +3768,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= piece_index_t(0));
 		TORRENT_ASSERT(index < m_torrent_file->end_piece());
+		TORRENT_ASSERT(std::is_sorted(blocks.begin(), blocks.end()));
 
 		inc_stats_counter(counters::num_piece_failed);
 
@@ -3762,8 +3788,27 @@ bool is_downloading_state(int const st)
 			}
 			m_predictive_pieces.erase(it);
 		}
+
+		if (!torrent_file().info_hash().has_v1() && blocks.empty())
+		{
+			// This is a v2 only torrent so we can definitely get block
+			// level hashes. Don't fail the piece yet, let it sit in the
+			// finished state and request block hashes.
+
+			// If this is a hybrid torrent we might be able to get block level
+			// hashes, but there is no guarantee that there is a v2 peer to
+			// request them from. For now be conservative and re-request
+			// the block without waiting for block hashes.
+
+			get_hash_picker().verify_block_hashes(index);
+			return;
+		}
+
 		// increase the total amount of failed bytes
-		add_failed_bytes(m_torrent_file->piece_size(index));
+		if (blocks.empty())
+			add_failed_bytes(m_torrent_file->piece_size(index));
+		else
+			add_failed_bytes(blocks.size() * default_block_size);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_extensions)
@@ -3775,6 +3820,19 @@ bool is_downloading_state(int const st)
 		std::vector<torrent_peer*> downloaders;
 		if (m_picker)
 			m_picker->get_downloaders(downloaders, index);
+
+		// if we know which blocks failed null out all the non-failing
+		// downloaders
+		if (!blocks.empty() && !downloaders.empty())
+		{
+			auto begin = downloaders.begin();
+			for (int block : blocks)
+			{
+				std::fill(begin, downloaders.begin() + block, nullptr);
+				begin = downloaders.begin() + block + 1;
+			}
+			std::fill(begin, downloaders.end(), nullptr);
+		}
 
 		// decrease the trust point of all peers that sent
 		// parts of this piece.
@@ -3794,7 +3852,8 @@ bool is_downloading_state(int const st)
 #endif
 
 		// did we receive this piece from a single peer?
-		bool const single_peer = peers.size() == 1;
+		// or do we know which blocks where bad?
+		bool const known_bad_peer = peers.size() == 1 || !blocks.empty();
 
 		for (auto p : peers)
 		{
@@ -3809,7 +3868,7 @@ bool is_downloading_state(int const st)
 				// the peer implementation can ask not to be disconnected.
 				// this is used for web seeds for instance, to instead of
 				// disconnecting, mark the file as not being had.
-				allow_disconnect = peer->received_invalid_data(index, single_peer);
+				allow_disconnect = peer->received_invalid_data(index, known_bad_peer);
 			}
 
 			if (settings().get_bool(settings_pack::use_parole_mode))
@@ -3832,7 +3891,7 @@ bool is_downloading_state(int const st)
 			// if we have failed more than 3 pieces from this peer,
 			// don't trust it regardless.
 			if (p->trust_points <= -7
-				|| (single_peer && allow_disconnect))
+				|| (known_bad_peer && allow_disconnect))
 			{
 				// we don't trust this peer anymore
 				// ban it.
@@ -3884,8 +3943,8 @@ bool is_downloading_state(int const st)
 			// to read back the blocks that failed, for blame purposes
 			// this way they have a chance to hit the cache
 			m_ses.disk_thread().async_clear_piece(m_storage, index
-				, [self = shared_from_this()] (piece_index_t const& p)
-				{ self->on_piece_sync(p); });
+				, [self = shared_from_this(), c = std::move(blocks)](piece_index_t const& p)
+			{ self->on_piece_sync(p, c); });
 		}
 		else
 		{
@@ -3893,7 +3952,7 @@ bool is_downloading_state(int const st)
 			// it doesn't really matter what we do
 			// here, since we're about to destruct the
 			// torrent anyway.
-			on_piece_sync(index);
+			on_piece_sync(index, std::move(blocks));
 		}
 
 #if TORRENT_USE_ASSERTS
@@ -3926,7 +3985,7 @@ bool is_downloading_state(int const st)
 		c.send_block_requests();
 	}
 
-	void torrent::on_piece_sync(piece_index_t const piece) try
+	void torrent::on_piece_sync(piece_index_t const piece, std::vector<int> const& blocks) try
 	{
 		// the user may have called force_recheck, which clears
 		// the piece picker
@@ -3934,7 +3993,7 @@ bool is_downloading_state(int const st)
 
 		// unlock the piece and restore it, as if no block was
 		// ever downloaded for it.
-		m_picker->restore_piece(piece);
+		m_picker->restore_piece(piece, blocks);
 
 		if (m_ses.alerts().should_post<hash_failed_alert>())
 			m_ses.alerts().emplace_alert<hash_failed_alert>(get_handle(), piece);
@@ -3953,12 +4012,18 @@ bool is_downloading_state(int const st)
 			{
 				if (b.timed_out || b.not_wanted) continue;
 				if (b.block.piece_index != piece) continue;
+				if (!blocks.empty()
+					&& std::find(blocks.begin(), blocks.end(), b.block.block_index) == blocks.end())
+					continue;
 				m_picker->mark_as_downloading(b.block, p->peer_info_struct()
 					, p->picker_options());
 			}
 			for (auto const& b : p->request_queue())
 			{
 				if (b.block.piece_index != piece) continue;
+				if (!blocks.empty()
+					&& std::find(blocks.begin(), blocks.end(), b.block.block_index) == blocks.end())
+					continue;
 				m_picker->mark_as_downloading(b.block, p->peer_info_struct()
 					, p->picker_options());
 			}
@@ -5831,6 +5896,125 @@ bool is_downloading_state(int const st)
 #endif
 	}
 
+	hash_request torrent::pick_hashes(peer_connection* peer)
+	{
+		need_hash_picker();
+		if (!m_hash_picker) return {};
+		return m_hash_picker->pick_hashes(peer->get_bitfield());
+	}
+
+	std::vector<sha256_hash> torrent::get_hashes(hash_request const& req) const
+	{
+		TORRENT_ASSERT(m_torrent_file->is_valid());
+		if (!m_torrent_file->is_valid()) return {};
+		TORRENT_ASSERT(validate_hash_request(req, m_torrent_file->files()));
+
+		auto& f = m_torrent_file->file_merkle_tree(req.file);
+
+		int const base_layer_idx = merkle_num_layers((f.size() + 1) / 2) - req.base;
+		int const base_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
+
+		int layer_start_idx = base_start_idx;
+
+		std::vector<sha256_hash> ret;
+
+		for (int i = 0; i < req.count; ++i)
+		{
+			if (f[layer_start_idx + i].is_all_zeros())
+				return {};
+			ret.push_back(f[layer_start_idx + i]);
+		}
+
+		// the number of layers up the tree which can be computed from the base layer hashes
+		// subtract one because the base layer doesn't count
+		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(req.count)) - 1;
+		int const proof_layers = req.proof_layers;
+
+		for (int i = 0; i < proof_layers; ++i)
+		{
+			layer_start_idx = merkle_get_parent(layer_start_idx);
+
+			// if this assert fire, the requester set proof_layers too high
+			// and it wasn't correctly validated
+			TORRENT_ASSERT(layer_start_idx > 0);
+
+			if (i >= base_tree_layers)
+			{
+				int const sibling = merkle_get_sibling(layer_start_idx);
+
+				if (f[layer_start_idx].is_all_zeros()
+					|| f[sibling].is_all_zeros())
+					return {};
+
+				ret.push_back(f[sibling]);
+			}
+		}
+
+		return ret;
+	}
+
+	bool torrent::add_hashes(hash_request const& req, span<sha256_hash> hashes)
+	{
+		need_hash_picker();
+		if (!m_hash_picker) return true;
+		add_hashes_result result = m_hash_picker->add_hashes(req, hashes);
+		TORRENT_ASSERT(!(!result.hash_failed.empty() && result.valid));
+		for (auto& p : result.hash_failed)
+		{
+			if (torrent_file().info_hash().has_v1() && have_piece(p.first))
+			{
+				set_error(errors::torrent_inconsistent_hashes, torrent_status::error_file_none);
+				pause();
+				return result.valid;
+			}
+
+			TORRENT_ASSERT(!have_piece(p.first));
+
+			// the piece may not have been downloaded in this session
+			// it should be open for downloading so nothing needs to be done here
+			if (!m_picker || !m_picker->is_downloading(p.first)) continue;
+			piece_failed(p.first, std::move(p.second));
+		}
+		for (piece_index_t p : result.hash_passed)
+		{
+			if (torrent_file().info_hash().has_v1() && !have_piece(p))
+			{
+				set_error(errors::torrent_inconsistent_hashes, torrent_status::error_file_none);
+				pause();
+				return result.valid;
+			}
+
+			if (m_picker && m_picker->is_downloading(p) && m_picker->is_piece_finished(p)
+				&& !m_picker->is_hashing(p))
+			{
+				piece_passed(p);
+			}
+		}
+		return result.valid;
+	}
+
+	void torrent::hashes_rejected(hash_request const& req)
+	{
+		if (!m_hash_picker) return;
+		m_hash_picker->hashes_rejected(req);
+		// we need to poke all of the v2 peers in case there are no other
+		// outstanding hash requests
+		for (auto peer : m_connections)
+		{
+			if (peer->type() != connection_type::bittorrent) continue;
+			bt_peer_connection* btpeer = static_cast<bt_peer_connection*>(peer);
+			btpeer->maybe_send_hash_request();
+		}
+	}
+
+	void torrent::verify_block_hashes(piece_index_t index)
+	{
+		need_hash_picker();
+		if (!m_hash_picker) return;
+		debug_log("Piece %d hash failure, requesting block hashes", int(index));
+		m_hash_picker->verify_block_hashes(index);
+	}
+
 	std::shared_ptr<const torrent_info> torrent::get_torrent_copy()
 	{
 		if (!m_torrent_file->is_valid()) return std::shared_ptr<const torrent_info>();
@@ -7166,6 +7350,7 @@ bool is_downloading_state(int const st)
 				!= settings_pack::suggest_read_cache)
 			{
 				m_picker.reset();
+				m_hash_picker.reset();
 				m_file_progress.clear();
 			}
 			m_have_all = true;
@@ -9925,6 +10110,7 @@ bool is_downloading_state(int const st)
 		m_ses.disk_thread().async_hash(m_storage, piece, {}, disk_interface::v1_hash
 			, [self = shared_from_this()](piece_index_t p, sha1_hash const& h, storage_error const& error)
 			{ self->on_piece_verified(p, h, error); });
+		m_picker->started_hash_job(piece);
 	}
 
 	announce_entry* torrent::find_tracker(std::string const& url)

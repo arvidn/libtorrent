@@ -1035,7 +1035,7 @@ namespace libtorrent {
 		std::swap(m_pieces[other_index], m_pieces[elem_index]);
 	}
 
-	void piece_picker::restore_piece(piece_index_t const index)
+	void piece_picker::restore_piece(piece_index_t const index, std::vector<int> const& blocks)
 	{
 		INVARIANT_CHECK;
 
@@ -1060,21 +1060,43 @@ namespace libtorrent {
 
 		piece_pos& p = m_piece_map[index];
 		int const prev_priority = p.priority(this);
-		erase_download_piece(i);
-		int const new_priority = p.priority(this);
+		if (!blocks.empty())
+		{
+			auto const binfo = mutable_blocks_for_piece(*i);
+			for (int block : blocks)
+			{
+				block_info& info = binfo[block];
+				TORRENT_ASSERT(info.state >= block_info::state_writing);
+				if (info.state == block_info::state_writing)
+					--i->writing;
+				else if (info.state == block_info::state_finished)
+					--i->finished;
+				info.peer = nullptr;
+				info.state = block_info::state_none;
+			}
+			//p.download_state = piece_pos::piece_downloading;
+			update_piece_state(i);
+		}
+
+		if (blocks.empty() || i->requested + i->finished + i->writing == 0)
+		{
+			erase_download_piece(i);
+
+			int const new_priority = p.priority(this);
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		check_piece_state();
+			check_piece_state();
 #endif
 
-		if (new_priority == prev_priority) return;
-		if (m_dirty) return;
-		if (prev_priority == -1) add(index);
-		else update(prev_priority, p.index);
+			if (new_priority == prev_priority) return;
+			if (m_dirty) return;
+			if (prev_priority == -1) add(index);
+			else update(prev_priority, p.index);
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		check_piece_state();
+			check_piece_state();
 #endif
+		}
 	}
 
 	void piece_picker::inc_refcount_all(const torrent_peer* peer)
@@ -1639,6 +1661,7 @@ namespace libtorrent {
 		{
 			auto const i = find_dl_piece(state, index);
 			TORRENT_ASSERT(i != m_downloads[state].end());
+			TORRENT_ASSERT(i->hashing == 0);
 			// decrement num_passed here to compensate
 			// for the unconditional increment further down
 			if (i->passed_hash_check) --m_num_passed;
@@ -2803,6 +2826,17 @@ get_out:
 		return true;
 	}
 
+	bool piece_picker::is_hashing(piece_index_t const piece) const
+	{
+		piece_pos const& p = m_piece_map[piece];
+		auto const state = p.download_queue();
+		if (state == piece_pos::piece_open)
+			return false;
+		auto const i = find_dl_piece(state, piece);
+		TORRENT_ASSERT(i != m_downloads[state].end());
+		return i->hashing > 0;
+	}
+
 	bool piece_picker::has_piece_passed(piece_index_t const index) const
 	{
 		TORRENT_ASSERT(index < m_piece_map.end_index());
@@ -3220,6 +3254,37 @@ get_out:
 		return true;
 	}
 
+	void piece_picker::started_hash_job(piece_index_t piece)
+	{
+		TORRENT_ASSERT(piece != piece_block::invalid.piece_index);
+		TORRENT_ASSERT(piece < m_piece_map.end_index());
+
+		piece_pos& p = m_piece_map[piece];
+		TORRENT_ASSERT(p.downloading());
+		if (p.downloading())
+		{
+			auto i = find_dl_piece(p.download_queue(), piece);
+			TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
+			++i->hashing;
+		}
+	}
+
+	void piece_picker::completed_hash_job(piece_index_t piece)
+	{
+		TORRENT_ASSERT(piece != piece_block::invalid.piece_index);
+		TORRENT_ASSERT(piece < m_piece_map.end_index());
+
+		piece_pos& p = m_piece_map[piece];
+		TORRENT_ASSERT(p.downloading());
+		if (p.downloading())
+		{
+			auto i = find_dl_piece(p.download_queue(), piece);
+			TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
+			TORRENT_ASSERT(i->hashing > 0);
+			--i->hashing;
+		}
+	}
+
 	// calling this function prevents this piece from being picked
 	// by the piece picker until the pieces is restored. This allow
 	// the disk thread to synchronize and flush any failed state
@@ -3311,7 +3376,7 @@ get_out:
 
 		i = update_piece_state(i);
 
-		if (i->finished + i->writing + i->requested == 0)
+		if (i->finished + i->writing + i->requested + i->hashing == 0)
 		{
 			piece_pos& p = m_piece_map[block.piece_index];
 			int const prev_priority = p.priority(this);
@@ -3360,7 +3425,7 @@ get_out:
 			// i may be invalid after this call
 			i = update_piece_state(i);
 
-			if (i->finished + i->writing + i->requested == 0)
+			if (i->finished + i->writing + i->requested + i->hashing == 0)
 			{
 				int const prev_priority = p.priority(this);
 				erase_download_piece(i);
@@ -3470,7 +3535,7 @@ get_out:
 			if (i->finished < blocks_in_piece(i->index))
 				return;
 
-			if (i->passed_hash_check)
+			if (i->passed_hash_check && i->hashing == 0)
 				we_have(i->index);
 		}
 
@@ -3622,7 +3687,7 @@ get_out:
 
 		// if there are no other blocks in this piece
 		// that's being downloaded, remove it from the list
-		if (i->requested + i->finished + i->writing == 0)
+		if (i->requested + i->finished + i->writing + i->hashing == 0)
 		{
 			TORRENT_ASSERT(prev_prio < int(m_priority_boundaries.size())
 				|| m_dirty);

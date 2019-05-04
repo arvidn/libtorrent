@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/piece_picker.hpp"
+#include "libtorrent/hash_picker.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
@@ -232,6 +233,8 @@ namespace libtorrent {
 		// difference between having everything and nothing in
 		// the case there is no piece picker, see m_have_all.
 		std::unique_ptr<piece_picker> m_picker;
+
+		std::unique_ptr<hash_picker> m_hash_picker;
 
 		// TODO: make this a raw pointer. perhaps keep the shared_ptr
 		// around further down the object to maintain an owner
@@ -928,11 +931,14 @@ namespace libtorrent {
 		void piece_passed(piece_index_t index);
 
 		// piece_failed is called when a piece fails the hash check
-		void piece_failed(piece_index_t index);
+		// for failures detected with v2 hashes the failing blocks(s)
+		// are specified in blocks
+		// *blocks must be sorted in acending order*
+		void piece_failed(piece_index_t index, std::vector<int> blocks = std::vector<int>());
 
 		// this is the handler for hash failure piece synchronization
 		// i.e. resetting the piece
-		void on_piece_sync(piece_index_t piece);
+		void on_piece_sync(piece_index_t piece, std::vector<int> const& blocks);
 
 		// this is the handler for write failure piece synchronization
 		void on_piece_fail_sync(piece_index_t piece, piece_block b);
@@ -967,6 +973,23 @@ namespace libtorrent {
 			return m_picker.get() != nullptr;
 		}
 
+		hash_picker& get_hash_picker()
+		{
+			TORRENT_ASSERT(m_hash_picker.get());
+			return *m_hash_picker;
+		}
+		hash_picker const& get_hash_picker() const
+		{
+			TORRENT_ASSERT(m_hash_picker.get());
+			return *m_hash_picker;
+		}
+
+		void need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified = {});
+		bool has_hash_picker() const
+		{
+			return m_hash_picker.get() != nullptr;
+		}
+
 		void update_max_failcount()
 		{
 			if (!m_peer_list) return;
@@ -981,6 +1004,12 @@ namespace libtorrent {
 
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
+
+		hash_request pick_hashes(peer_connection* peer);
+		std::vector<sha256_hash> get_hashes(hash_request const& req) const;
+		bool add_hashes(hash_request const& req, span<sha256_hash> hashes);
+		void hashes_rejected(hash_request const& req);
+		void verify_block_hashes(piece_index_t index);
 
 		std::shared_ptr<const torrent_info> get_torrent_copy();
 
