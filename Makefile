@@ -320,6 +320,7 @@ SOURCES = \
   fingerprint.cpp                 \
   generate_peer_id.cpp            \
   gzip.cpp                        \
+  hash_picker.cpp                 \
   hasher.cpp                      \
   hex.cpp                         \
   http_connection.cpp             \
@@ -459,6 +460,7 @@ HEADERS = \
   flags.hpp                    \
   fwd.hpp                      \
   gzip.hpp                     \
+  hash_picker.hpp              \
   hasher.hpp                   \
   heterogeneous_queue.hpp      \
   hex.hpp                      \
@@ -800,6 +802,7 @@ TEST_SOURCES = \
   test_flags.cpp \
   test_generate_peer_id.cpp \
   test_gzip.cpp \
+  test_hash_picker.cpp \
   test_hasher.cpp \
   test_hasher512.cpp \
   test_heterogeneous_queue.cpp \

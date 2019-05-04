@@ -75,6 +75,7 @@ libtorrent_rasterbar_la_SOURCES = \
   fingerprint.cpp                 \
   generate_peer_id.cpp            \
   gzip.cpp                        \
+  hash_picker.cpp                 \
   hasher.cpp                      \
   hex.cpp                         \
   http_connection.cpp             \
