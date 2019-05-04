@@ -190,6 +190,9 @@ namespace libtorrent {
 			num_outgoing_pex,
 			num_outgoing_metadata,
 			num_outgoing_extended,
+			num_outgoing_hash_request,
+			num_outgoing_hashes,
+			num_outgoing_hash_reject,
 
 			num_piece_passed,
 			num_piece_failed,

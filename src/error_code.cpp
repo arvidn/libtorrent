@@ -172,9 +172,9 @@ namespace libtorrent {
 			"banned by port filter",
 			"invalid session handle used",
 			"listen socket has been closed",
-			"",
-			"",
-			"",
+			"invalid hash request",
+			"invalid hashes",
+			"invalid hash reject",
 
 // natpmp errors
 			"unsupported protocol version",

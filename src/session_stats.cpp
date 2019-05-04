@@ -298,6 +298,9 @@ namespace {
 		METRIC(ses, num_outgoing_pex)
 		METRIC(ses, num_outgoing_metadata)
 		METRIC(ses, num_outgoing_extended)
+		METRIC(ses, num_outgoing_hash_request)
+		METRIC(ses, num_outgoing_hashes)
+		METRIC(ses, num_outgoing_hash_reject)
 
 		// the number of wasted downloaded bytes by reason of the bytes being
 		// wasted.

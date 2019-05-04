@@ -1022,8 +1022,8 @@ TORRENT_TEST(piece_priorities)
 	std::vector<download_priority_t> prios;
 	p->piece_priorities(prios);
 	TEST_CHECK(prios.size() == 7);
-	download_priority_t prio_comp[] = {0_pri, 6_pri, 5_pri, 4_pri, 3_pri, 2_pri, 1_pri};
-	TEST_CHECK(std::equal(prios.begin(), prios.end(), prio_comp));
+	std::vector<download_priority_t> const prio_comp{0_pri, 6_pri, 5_pri, 4_pri, 3_pri, 2_pri, 1_pri};
+	TEST_CHECK(prios == prio_comp);
 }
 
 TORRENT_TEST(restore_piece)
@@ -1063,6 +1063,92 @@ TORRENT_TEST(restore_piece)
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == piece_index_t(0));
+}
+
+TORRENT_TEST(restore_piece_finished_blocks)
+{
+	// test restore_piece with a list of blocks to reset, not the whole piece
+	auto p = setup_picker("1234567", "       ", "", "");
+	p->mark_as_finished({piece_index_t(0), 0}, nullptr);
+	p->mark_as_finished({piece_index_t(0), 1}, nullptr);
+	p->mark_as_finished({piece_index_t(0), 2}, nullptr);
+	p->mark_as_finished({piece_index_t(0), 3}, nullptr);
+
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 0)));
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 1)));
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 2)));
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 3)));
+
+	{
+		auto const dl = p->get_download_queue();
+		TEST_EQUAL(dl.size(), 1);
+		auto const blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_finished);
+	}
+
+	// this should only restore block 1 and 2
+	p->restore_piece(piece_index_t(0), std::vector<int>{1, 2});
+
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 0)));
+	TEST_CHECK(!p->is_finished(piece_block(piece_index_t{0}, 1)));
+	TEST_CHECK(!p->is_finished(piece_block(piece_index_t{0}, 2)));
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 3)));
+
+	{
+		auto const dl = p->get_download_queue();
+		TEST_EQUAL(dl.size(), 1);
+		auto const blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_finished);
+	}
+}
+
+TORRENT_TEST(restore_piece_downloading_blocks)
+{
+	// test restore_piece with a list of blocks to reset, not the whole piece
+	auto p = setup_picker("1234567", "       ", "", "");
+	p->mark_as_writing({piece_index_t(0), 0}, nullptr);
+	p->mark_as_writing({piece_index_t(0), 1}, nullptr);
+	p->mark_as_writing({piece_index_t(0), 2}, nullptr);
+	p->mark_as_writing({piece_index_t(0), 3}, nullptr);
+
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 0)));
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 1)));
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 2)));
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 3)));
+
+	{
+		auto const dl = p->get_download_queue();
+		TEST_EQUAL(dl.size(), 1);
+		auto const blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_writing);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_writing);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_writing);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_writing);
+	}
+
+	// this should only restore block 1 and 2
+	p->restore_piece(piece_index_t(0), std::vector<int>{1, 2});
+
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 0)));
+	TEST_CHECK(!p->is_downloaded(piece_block(piece_index_t{0}, 1)));
+	TEST_CHECK(!p->is_downloaded(piece_block(piece_index_t{0}, 2)));
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 3)));
+
+	{
+		auto const dl = p->get_download_queue();
+		TEST_EQUAL(dl.size(), 1);
+		auto const blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_writing);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_writing);
+	}
 }
 
 TORRENT_TEST(random_pick)
@@ -1194,23 +1280,23 @@ TORRENT_TEST(clear_peer)
 	p->mark_as_downloading({piece_index_t(3), 1}, &tmp3);
 
 	std::vector<torrent_peer*> dls;
-	torrent_peer* expected_dls1[] = {&tmp1, &tmp2, &tmp3, nullptr};
-	torrent_peer* expected_dls2[] = {nullptr, &tmp1, nullptr, nullptr};
-	torrent_peer* expected_dls3[] = {nullptr, &tmp2, nullptr, nullptr};
-	torrent_peer* expected_dls4[] = {nullptr, &tmp3, nullptr, nullptr};
-	torrent_peer* expected_dls5[] = {&tmp1, nullptr, &tmp3, nullptr};
+	std::vector<torrent_peer*> const expected_dls1{&tmp1, &tmp2, &tmp3, nullptr};
+	std::vector<torrent_peer*> const expected_dls2{nullptr, &tmp1, nullptr, nullptr};
+	std::vector<torrent_peer*> const expected_dls3{nullptr, &tmp2, nullptr, nullptr};
+	std::vector<torrent_peer*> const expected_dls4{nullptr, &tmp3, nullptr, nullptr};
+	std::vector<torrent_peer*> const expected_dls5{&tmp1, nullptr, &tmp3, nullptr};
 	p->get_downloaders(dls, piece_index_t(0));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls1));
+	TEST_CHECK(dls == expected_dls1);
 	p->get_downloaders(dls, piece_index_t(1));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls2));
+	TEST_CHECK(dls == expected_dls2);
 	p->get_downloaders(dls, piece_index_t(2));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls3));
+	TEST_CHECK(dls == expected_dls3);
 	p->get_downloaders(dls, piece_index_t(3));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls4));
+	TEST_CHECK(dls == expected_dls4);
 
 	p->clear_peer(&tmp2);
 	p->get_downloaders(dls, piece_index_t(0));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls5));
+	TEST_CHECK(dls == expected_dls5);
 }
 
 TORRENT_TEST(have_all_have_none)
@@ -1339,8 +1425,8 @@ TORRENT_TEST(prefer_aligned_whole_pieces)
 	for (auto idx : picked) picked_pieces.insert(idx.piece_index);
 
 	TEST_CHECK(picked_pieces.size() == 4);
-	piece_index_t expected_pieces[] = {piece_index_t(4),piece_index_t(5),piece_index_t(6),piece_index_t(7)};
-	TEST_CHECK(std::equal(picked_pieces.begin(), picked_pieces.end(), expected_pieces))
+	std::set<piece_index_t> const expected_pieces{piece_index_t(4),piece_index_t(5),piece_index_t(6),piece_index_t(7)};
+	TEST_CHECK(picked_pieces == expected_pieces);
 }
 
 TORRENT_TEST(parole_mode)
@@ -2144,6 +2230,36 @@ TORRENT_TEST(pad_blocks_some_wanted)
 	TEST_EQUAL(p->want().num_pieces, 2);
 	TEST_EQUAL(p->want().last_piece, true);
 	TEST_EQUAL(p->want().pad_blocks, 2);
+}
+
+TORRENT_TEST(started_hash_job)
+{
+	auto p = setup_picker("1111", "    ", "0404", "");
+	TEST_CHECK(!p->is_hashing(piece_index_t{0}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{1}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{2}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{3}));
+
+	// we cannot start a hash job unless the block is also marked as downloading,
+	// writing or finished
+	p->mark_as_downloading(piece_block(piece_index_t{0}, 0), tmp_peer);
+
+	TEST_CHECK(!p->is_hashing(piece_index_t{0}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{1}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{2}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{3}));
+
+	p->started_hash_job(piece_index_t{0});
+	TEST_CHECK(p->is_hashing(piece_index_t{0}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{1}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{2}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{3}));
+
+	p->completed_hash_job(piece_index_t{0});
+	TEST_CHECK(!p->is_hashing(piece_index_t{0}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{1}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{2}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{3}));
 }
 
 //TODO: 2 test picking with partial pieces and other peers present so that both
