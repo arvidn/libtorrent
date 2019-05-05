@@ -801,6 +801,30 @@ TORRENT_TEST(file_first_block_node)
 	TEST_EQUAL(first_block_node(0x800001), 1023);
 }
 
+TORRENT_TEST(mismatching_file_hash1)
+{
+	file_storage st;
+	st.set_piece_length(0x4000);
+
+	error_code ec;
+	st.add_file(ec, combine_path("test", "a"), 10000);
+	TEST_CHECK(!ec);
+	st.add_file(ec, combine_path("test", "B"), 10000, {}, 0, {}, "abababababababababababababababab");
+	TEST_CHECK(ec);
+}
+
+TORRENT_TEST(mismatching_file_hash2)
+{
+	file_storage st;
+	st.set_piece_length(0x4000);
+
+	error_code ec;
+	st.add_file(ec, combine_path("test", "B"), 10000, {}, 0, {}, "abababababababababababababababab");
+	TEST_CHECK(!ec);
+	st.add_file(ec, combine_path("test", "a"), 10000);
+	TEST_CHECK(ec);
+}
+
 // TODO: test file attributes
 // TODO: test symlinks
 // TODO: test reorder_file (make sure internal_file_entry::swap() is used)

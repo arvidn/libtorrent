@@ -71,11 +71,7 @@ namespace libtorrent {
 	constexpr file_flags_t file_storage::attribute_symlink;
 #endif
 
-	file_storage::file_storage()
-		: m_piece_length(0)
-		, m_num_pieces(0)
-		, m_total_size(0)
-	{}
+	file_storage::file_storage() {}
 
 	file_storage::~file_storage() = default;
 
@@ -684,6 +680,20 @@ namespace {
 		{
 			if (m_files.empty())
 				m_name = lsplit_path(path).first.to_string();
+		}
+
+		bool const v2 = (root_hash != nullptr);
+		if (m_files.empty())
+		{
+			m_v2 = v2;
+		}
+		else if (m_v2 != v2)
+		{
+			// you cannot mix v1 and v2 files when building torrent_storage. Either
+			// all files are v1 or all files are v2
+			ec = m_v2 ? make_error_code(errors::torrent_missing_pieces_root)
+				: make_error_code(errors::torrent_inconsistent_files);
+			return;
 		}
 
 		// a root hash implies a v2 file tree
