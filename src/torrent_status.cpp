@@ -38,10 +38,7 @@ namespace libtorrent {
 	file_index_t constexpr torrent_status::error_file_ssl_ctx;
 	file_index_t constexpr torrent_status::error_file_exception;
 	file_index_t constexpr torrent_status::error_file_partfile;
-
-#if TORRENT_ABI_VERSION == 1
 	file_index_t constexpr torrent_status::error_file_metadata;
-#endif
 
 	torrent_status::torrent_status() noexcept {}
 	torrent_status::~torrent_status() = default;
