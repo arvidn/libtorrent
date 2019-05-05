@@ -411,7 +411,8 @@ namespace {
 				}
 			}
 		}
-		else
+
+		if (symlink_path.empty())
 		{
 			bdecode_node const root = dict.dict_find_string("pieces root");
 			if (!root || root.type() != bdecode_node::string_t

@@ -975,7 +975,8 @@ TEST_TORRENTS = \
   v2_multiple_files.torrent \
   v2_bad_file_alignment.torrent \
   v2_unordered_files.torrent \
-  v2_overlong_integer.torrent
+  v2_overlong_integer.torrent \
+  v2_missing_file_root_invalid_symlink.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \
