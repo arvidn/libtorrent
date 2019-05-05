@@ -588,10 +588,14 @@ namespace libtorrent {
 
 		// the number of bytes in a regular piece
 		// (i.e. not the potentially truncated last piece)
-		int m_piece_length;
+		int m_piece_length = 0;
 
 		// the number of pieces in the torrent
-		int m_num_pieces;
+		int m_num_pieces = 0;
+
+		// whether this is a v2 torrent or not. Additional requirements apply to
+		// v2 torrents
+		bool m_v2 = false;
 
 		void update_path_index(internal_file_entry& e, std::string const& path
 			, bool set_name = true);
@@ -633,7 +637,7 @@ namespace libtorrent {
 		std::string m_name;
 
 		// the sum of all file sizes
-		std::int64_t m_total_size;
+		std::int64_t m_total_size = 0;
 	};
 
 namespace aux {
