@@ -1234,7 +1234,7 @@ namespace {
 
 		// according to BEP 52: "It must be a power of two and at least 16KiB."
 		if (version > 1 && (piece_length < default_block_size
-			|| ((piece_length & (piece_length - 1)) != 0)))
+			|| (piece_length & (piece_length - 1)) != 0))
 		{
 			ec = errors::torrent_missing_piece_length;
 			return false;
