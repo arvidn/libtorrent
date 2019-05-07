@@ -87,14 +87,14 @@ struct torrent_list
 		TORRENT_ASSERT(t);
 
 		bool duplicate = false;
-		ih.for_each([&](sha1_hash const& ih, protocol_version)
+		ih.for_each([&](sha1_hash const& hash, protocol_version)
 		{
-			duplicate |= !m_index.insert({ih, t.get()}).second;
+			duplicate |= !m_index.insert({hash, t.get()}).second;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 			static char const req2[4] = { 'r', 'e', 'q', '2' };
 			hasher h(req2);
-			h.update(ih);
+			h.update(hash);
 			// this is SHA1("req2" + info-hash), used for
 			// encrypted hand shakes
 			m_obfuscated_index.insert({h.final(), t.get()});
@@ -128,9 +128,9 @@ struct torrent_list
 	bool erase(info_hash_t const& ih)
 	{
 		T* found = nullptr;
-		ih.for_each([&](sha1_hash const& ih, protocol_version)
+		ih.for_each([&](sha1_hash const& hash, protocol_version)
 		{
-			auto const i = m_index.find(ih);
+			auto const i = m_index.find(hash);
 			if (i != m_index.end())
 			{
 				TORRENT_ASSERT(found == nullptr || found == i->second);
@@ -140,7 +140,7 @@ struct torrent_list
 
 			static char const req2[4] = { 'r', 'e', 'q', '2' };
 			hasher h(req2);
-			h.update(ih);
+			h.update(hash);
 			m_obfuscated_index.erase(h.final());
 		});
 		if (!found) return false;
