@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <libtorrent/address.hpp>
 #include <libtorrent/flags.hpp>
+#include <libtorrent/socket.hpp> // for udp
+#include <libtorrent/kademlia/node_id.hpp>
 
 namespace libtorrent {
 namespace dht {

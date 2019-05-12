@@ -36,6 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <array>
 
+#include "aux_/export.hpp"
+#include "peer_class.hpp" // for peer_class_t
+
 namespace libtorrent {
 
 	// ``peer_class_type_filter`` is a simple container for rules for adding and subtracting

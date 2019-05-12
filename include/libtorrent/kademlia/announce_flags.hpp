@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef ANNOUNCE_FLAGS_HPP
 #define ANNOUNCE_FLAGS_HPP
 
+#include <cstdint>
+
 #include "libtorrent/flags.hpp"
 
 namespace libtorrent { namespace dht {

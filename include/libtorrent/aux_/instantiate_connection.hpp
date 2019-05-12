@@ -34,6 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_INSTANTIATE_CONNECTION
 
 #include "libtorrent/aux_/export.hpp"
+#include "libtorrent/io_service.hpp"
+#include "libtorrent/aux_/proxy_settings.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 
 namespace libtorrent {
 

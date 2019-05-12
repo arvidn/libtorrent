@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define LIBTORRENT_LSD_HPP
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/socket.hpp" // for tcp::endpoint
+#include "libtorrent/sha1_hash.hpp"
 
 namespace libtorrent { namespace aux {
 	struct TORRENT_EXTRA_EXPORT lsd_callback
