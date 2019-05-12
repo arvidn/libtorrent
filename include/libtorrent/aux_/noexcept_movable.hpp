@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_NOEXCEPT_MOVABLE_HPP_INCLUDED
 
 #include <type_traits>
+#include <utility>
 
 namespace libtorrent {
 namespace aux {

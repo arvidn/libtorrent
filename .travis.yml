@@ -5,7 +5,7 @@ matrix:
   fast_finish: true
   include:
     - if: repo = arvidn/libtorrent
-      env: variant=release sonar_scan=1 toolset=gcc
+      env: variant=release sonar_scan=1 toolset=gcc check_headers=1
     - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
       addons:
         apt:
@@ -59,7 +59,7 @@ before_install:
 
   - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" ) ]]; then
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" || "$check_headers" == "1" ) ]]; then
     travis_retry brew update > /dev/null && brew install ccache boost-build;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
@@ -205,6 +205,10 @@ script:
        which clang-tidy;
        clang-tidy --version;
        bjam -a -j3 clang_tidy;
+    fi'
+
+  - 'if [ "$check_headers" == "1" ]; then
+      bjam -j3 check-headers crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant;
     fi'
 
 # if we are building with code coverage, report it as soon as possible

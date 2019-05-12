@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TORRENT_FLAGS_HPP
 #define TORRENT_TORRENT_FLAGS_HPP
 
+#include <cstdint>
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/flags.hpp"
 

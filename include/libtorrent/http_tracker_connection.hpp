@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/tracker_manager.hpp" // for tracker_connection
 
 namespace libtorrent {
 

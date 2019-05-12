@@ -8,6 +8,7 @@ import errors ;
 import feature : feature ;
 import package ;
 import virtual-target ;
+import cast ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
@@ -844,3 +845,20 @@ package.install install
 	: torrent
 	: $(headers)
 	;
+
+local header_targets ;
+for local target in $(headers)
+{
+	if ! [ path.basename $(target) ] in windows.hpp win_util.hpp win_crypto_provider.hpp torrent_impl.hpp cppint_import_export.hpp
+	{
+		# this cast tells boost build that the header files really *are* cpp files
+		# otherwise the object rule doesn't know which language to interpret them as
+		obj header-build/$(target).o : [ cast.cast _ cpp : $(target) ]
+			: <library>/torrent <cxxflags>-fsyntax-only ;
+		explicit header-build/$(target).o ;
+		header_targets += $(target) ;
+	}
+}
+
+alias check-headers : header-build/$(header_targets).o ;
+explicit check-headers ;

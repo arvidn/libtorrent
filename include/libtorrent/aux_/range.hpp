@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RANGE_HPP
 #define TORRENT_RANGE_HPP
 
+#include "libtorrent/aux_/vector.hpp"
+
 namespace libtorrent { namespace aux {
 
 	template <typename Iter>

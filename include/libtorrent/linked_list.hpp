@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_LINKED_LIST_HPP
 #define TORRENT_LINKED_LIST_HPP
 
+#include <type_traits>
+
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent {

@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_BLOCK_HPP_INCLUDED
 
 #include "libtorrent/piece_block.hpp"
+#include "libtorrent/peer_connection.hpp" // for pending_block
 
 namespace libtorrent { namespace aux {
 

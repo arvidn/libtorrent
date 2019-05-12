@@ -35,6 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/portmap.hpp"
+#include "libtorrent/address.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
 namespace aux {
