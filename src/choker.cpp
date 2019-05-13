@@ -59,6 +59,14 @@ namespace {
 		return 0;
 	}
 
+	// return true if peer is suspected of dishonesty
+	bool dishonest_peer(peer_connection const* peer, int piece_length)
+	{
+		// some clients (e.g. XunLei) always claim they have zero pieces as fresh starter,
+		// no matter how many we have uploaded.
+		return peer->num_have_pieces() == 0 && peer->uploaded_at_last_round() >= piece_length;
+	}
+
 	// return true if 'lhs' peer should be preferred to be unchoke over 'rhs'
 	bool unchoke_compare_rr(peer_connection const* lhs
 		, peer_connection const* rhs, int pieces)
@@ -168,6 +176,13 @@ namespace {
 		//   |             V             |
 		//   +---------------------------+
 		//   0%    num have pieces     100%
+
+		// the algorithm presupposes peers reporting their info honestly.
+		// those obviously cheating for a high score should be banned in advance.
+		bool const dishonest1 = dishonest_peer(lhs, t1->torrent_file().piece_length());
+		bool const dishonest2 = dishonest_peer(rhs, t2->torrent_file().piece_length());
+		if (dishonest1 != dishonest2) return !dishonest1;
+
 		int const t1_total = t1->torrent_file().num_pieces();
 		int const t2_total = t2->torrent_file().num_pieces();
 		int const score1 = (lhs->num_have_pieces() < t1_total / 2
