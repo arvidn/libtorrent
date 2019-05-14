@@ -48,13 +48,24 @@ namespace libtorrent {
 		, m_timeout(seconds(1200))
 	{}
 
+
+	void resolver::callback(resolver_interface::callback_t const& h
+		, error_code const& ec, std::vector<address> const& ips)
+	{
+		try {
+			h(ec, ips);
+		} catch (std::exception&) {
+			TORRENT_ASSERT_FAIL();
+		}
+	}
+
 	void resolver::on_lookup(error_code const& ec, tcp::resolver::iterator i
-		, resolver_interface::callback_t h, std::string hostname)
+		, resolver_interface::callback_t const& h, std::string const& hostname)
 	{
 		COMPLETE_ASYNC("resolver::on_lookup");
 		if (ec)
 		{
-			h(ec, {});
+			callback(h, ec, {});
 			return;
 		}
 
@@ -67,7 +78,7 @@ namespace libtorrent {
 			++i;
 		}
 
-		h(ec, ce.addresses);
+		callback(h, ec, ce.addresses);
 
 		// if m_cache grows too big, weed out the
 		// oldest entries
@@ -94,7 +105,7 @@ namespace libtorrent {
 		address const ip = make_address(host, ec);
 		if (!ec)
 		{
-			m_ios.post(std::bind(h, ec, std::vector<address>{ip}));
+			m_ios.post([=]{ callback(h, ec, std::vector<address>{ip}); });
 			return;
 		}
 		ec.clear();
@@ -106,7 +117,8 @@ namespace libtorrent {
 			if ((flags & resolver_interface::cache_only)
 				|| i->second.last_seen + m_timeout >= aux::time_now())
 			{
-				m_ios.post(std::bind(h, ec, i->second.addresses));
+				std::vector<address> ips = i->second.addresses;
+				m_ios.post([=] { callback(h, ec, ips); });
 				return;
 			}
 		}
@@ -114,8 +126,9 @@ namespace libtorrent {
 		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
-			m_ios.post(std::bind(h, boost::asio::error::host_not_found
-					, std::vector<address>{}));
+			m_ios.post([=] {
+				callback(h, boost::asio::error::host_not_found, std::vector<address>{});
+			});
 			return;
 		}
 
