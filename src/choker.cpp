@@ -59,14 +59,6 @@ namespace {
 		return 0;
 	}
 
-	// return true if peer is suspected of dishonesty
-	bool dishonest_peer(peer_connection const* peer, int piece_length)
-	{
-		// some clients (e.g. XunLei) always claim they have zero pieces as fresh starter,
-		// no matter how many we have uploaded.
-		return peer->num_have_pieces() == 0 && peer->uploaded_at_last_round() >= piece_length;
-	}
-
 	// return true if 'lhs' peer should be preferred to be unchoke over 'rhs'
 	bool unchoke_compare_rr(peer_connection const* lhs
 		, peer_connection const* rhs, int pieces)
@@ -144,18 +136,8 @@ namespace {
 		return lhs->time_of_last_unchoke() < rhs->time_of_last_unchoke();
 	}
 
-	// return true if 'lhs' peer should be preferred to be unchoke over 'rhs'
-	bool unchoke_compare_anti_leech(peer_connection const* lhs
-		, peer_connection const* rhs)
+	int anti_leech_score(peer_connection const* peer)
 	{
-		int const cmp = compare_peers(lhs, rhs);
-		if (cmp != 0) return cmp > 0;
-
-		std::shared_ptr<torrent> const t1 = lhs->associated_torrent().lock();
-		std::shared_ptr<torrent> const t2 = rhs->associated_torrent().lock();
-		TORRENT_ASSERT(t1);
-		TORRENT_ASSERT(t2);
-
 		// the anti-leech seeding algorithm is based on the paper "Improving
 		// BitTorrent: A Simple Approach" from Chow et. al. and ranks peers based
 		// on how many pieces they have, preferring to unchoke peers that just
@@ -176,20 +158,24 @@ namespace {
 		//   |             V             |
 		//   +---------------------------+
 		//   0%    num have pieces     100%
+		std::shared_ptr<torrent> const t = peer->associated_torrent().lock();
+		TORRENT_ASSERT(t);
 
-		// the algorithm presupposes peers reporting their info honestly.
-		// those obviously cheating for a high score should be banned in advance.
-		bool const dishonest1 = dishonest_peer(lhs, t1->torrent_file().piece_length());
-		bool const dishonest2 = dishonest_peer(rhs, t2->torrent_file().piece_length());
-		if (dishonest1 != dishonest2) return !dishonest1;
+		std::int64_t const total_size = t->torrent_file().total_size();
+		std::int64_t have_size = peer->num_have_pieces() * t->torrent_file().piece_length();
+		have_size = std::max(have_size, peer->uploaded_at_last_round());
+		return int(std::abs((have_size - total_size / 2) * 2000 / total_size));
+	}
 
-		int const t1_total = t1->torrent_file().num_pieces();
-		int const t2_total = t2->torrent_file().num_pieces();
-		int const score1 = (lhs->num_have_pieces() < t1_total / 2
-			? t1_total - lhs->num_have_pieces() : lhs->num_have_pieces()) * 1000 / t1_total;
-		int const score2 = (rhs->num_have_pieces() < t2_total / 2
-			? t2_total - rhs->num_have_pieces() : rhs->num_have_pieces()) * 1000 / t2_total;
+	// return true if 'lhs' peer should be preferred to be unchoke over 'rhs'
+	bool unchoke_compare_anti_leech(peer_connection const* lhs
+		, peer_connection const* rhs)
+	{
+		int const cmp = compare_peers(lhs, rhs);
+		if (cmp != 0) return cmp > 0;
 
+		int const score1 = anti_leech_score(lhs);
+		int const score2 = anti_leech_score(rhs);
 		if (score1 != score2) return score1 > score2;
 
 		// prioritize the one that has waited the longest to be unchoked
