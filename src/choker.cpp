@@ -163,7 +163,7 @@ namespace {
 
 		std::int64_t const total_size = t->torrent_file().total_size();
 		std::int64_t have_size = peer->num_have_pieces() * t->torrent_file().piece_length();
-		have_size = std::max(have_size, peer->uploaded_at_last_round());
+		have_size = std::max(have_size, peer->statistics().total_payload_upload());
 		return int(std::abs((have_size - total_size / 2) * 2000 / total_size));
 	}
 
