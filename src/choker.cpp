@@ -162,8 +162,8 @@ namespace {
 		TORRENT_ASSERT(t);
 
 		std::int64_t const total_size = t->torrent_file().total_size();
-		std::int64_t have_size = peer->num_have_pieces() * t->torrent_file().piece_length();
-		have_size = std::max(have_size, peer->statistics().total_payload_upload());
+		std::int64_t const have_size = std::max(peer->statistics().total_payload_upload()
+			, std::int64_t(t->torrent_file().piece_length()) * peer->num_have_pieces());
 		return int(std::abs((have_size - total_size / 2) * 2000 / total_size));
 	}
 
