@@ -591,18 +591,18 @@ namespace {
 		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
 		std::memcpy(m_info_section.get(), t.m_info_section.get(), aux::numeric_cast<std::size_t>(m_info_section_size));
 
-		std::ptrdiff_t const offset = m_info_section.get() - t.m_info_section.get();
-
-		m_files.apply_pointer_offset(offset);
+		char const* current_base = t.m_info_section.get();
+		char const* new_base = m_info_section.get();
+		m_files.rebase_pointers(current_base, new_base);
 		if (m_orig_files)
-			const_cast<file_storage&>(*m_orig_files).apply_pointer_offset(offset);
+			const_cast<file_storage&>(*m_orig_files).rebase_pointers(current_base, new_base);
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		for (auto& c : m_collections)
-			c.first += offset;
+			c.first = new_base + (c.first - current_base);
 
 		for (auto& st : m_similar_torrents)
-			st += offset;
+			st = new_base + (st - current_base);
 #endif
 
 		if (m_info_dict)
@@ -612,7 +612,7 @@ namespace {
 			m_info_dict.switch_underlying_buffer(m_info_section.get());
 		}
 
-		m_piece_hashes += offset;
+		m_piece_hashes = new_base + (m_piece_hashes - current_base);
 		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
 		TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
 	}
