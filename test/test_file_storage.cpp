@@ -196,7 +196,7 @@ TORRENT_TEST(pointer_offset)
 	// apply a pointer offset of 5 bytes. The name of the file should
 	// change to "fooba".
 
-	st.apply_pointer_offset(5);
+	st.rebase_pointers(filename, filename + 5);
 
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test-torrent-1", "fooba"));
 	TEST_EQUAL(st.file_path(file_index_t{0}, "tmp"), combine_path("tmp"

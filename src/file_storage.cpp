@@ -322,18 +322,18 @@ namespace {
 		return name ? string_view(name) : string_view();
 	}
 
-	void file_storage::apply_pointer_offset(std::ptrdiff_t const off)
+	void file_storage::rebase_pointers(char const* current_base, char const* new_base)
 	{
 		for (auto& f : m_files)
 		{
 			if (f.name_len == internal_file_entry::name_is_owned) continue;
-			f.name += off;
+			f.name = new_base + (f.name - current_base);
 		}
 
 		for (auto& h : m_file_hashes)
 		{
 			if (h == nullptr) continue;
-			h += off;
+			h = new_base + (h - current_base);
 		}
 	}
 
