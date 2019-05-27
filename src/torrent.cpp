@@ -356,6 +356,7 @@ bool is_downloading_state(int const st)
 			if (!p.merkle_trees.empty())
 			{
 				auto& trees = m_torrent_file->merkle_trees();
+				trees.clear();
 				trees.reserve(p.merkle_trees.size());
 				for (auto const& t : p.merkle_trees)
 					trees.emplace_back(t.begin(), t.end());
