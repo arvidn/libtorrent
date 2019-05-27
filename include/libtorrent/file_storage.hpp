@@ -584,7 +584,7 @@ namespace libtorrent {
 
 		file_index_t last_file() const noexcept;
 
-		int get_or_add_path(string_view path);
+		std::uint32_t get_or_add_path(string_view path);
 
 		// the number of bytes in a regular piece
 		// (i.e. not the potentially truncated last piece)

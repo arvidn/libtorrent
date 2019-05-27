@@ -119,7 +119,7 @@ namespace {
 		TORRENT_ASSERT_PRECOND(index >= piece_index_t{} && index < end_piece());
 		// find the file iterator and file offset
 		internal_file_entry target;
-		target.offset = aux::numeric_cast<std::uint64_t>(piece_length()) * static_cast<int>(index);
+		target.offset = static_cast<std::int64_t>(piece_length()) * static_cast<int>(index);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		auto const file_iter = std::upper_bound(
@@ -185,7 +185,7 @@ namespace {
 		if (set_name) e.set_name(leaf);
 	}
 
-	int file_storage::get_or_add_path(string_view const path)
+	std::uint32_t file_storage::get_or_add_path(string_view const path)
 	{
 		// do we already have this path in the path list?
 		auto const p = std::find(m_paths.rbegin(), m_paths.rend(), path);
@@ -193,7 +193,7 @@ namespace {
 		if (p == m_paths.rend())
 		{
 			// no, we don't. add it
-			int const ret = int(m_paths.size());
+			std::uint32_t const ret = aux::numeric_cast<std::uint32_t>(m_paths.size());
 			TORRENT_ASSERT(path.size() == 0 || path[0] != '/');
 			m_paths.emplace_back(path.data(), path.size());
 			return ret;
@@ -201,7 +201,7 @@ namespace {
 		else
 		{
 			// yes we do. use it
-			return int(p.base() - m_paths.begin() - 1);
+			return aux::numeric_cast<std::uint32_t>(p.base() - m_paths.begin() - 1);
 		}
 	}
 
