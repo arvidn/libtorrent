@@ -675,7 +675,7 @@ file_storage test_fs()
 	file_storage fs;
 	fs.set_piece_length(piece_size);
 	fs.add_file("temp", 99999999999);
-	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs;
 }
 }
