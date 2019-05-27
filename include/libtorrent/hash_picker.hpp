@@ -124,7 +124,7 @@ namespace libtorrent
 	{
 	public:
 		hash_picker(file_storage const& files
-			, aux::vector<std::vector<sha256_hash>, file_index_t>& trees
+			, aux::vector<aux::vector<sha256_hash>, file_index_t>& trees
 			, aux::vector<std::vector<bool>, file_index_t> verified = {}
 			, bool all_verified = false);
 
@@ -195,7 +195,7 @@ namespace libtorrent
 		};
 
 		file_storage const& m_files;
-		aux::vector<std::vector<sha256_hash>, file_index_t>& m_merkle_trees;
+		aux::vector<aux::vector<sha256_hash>, file_index_t>& m_merkle_trees;
 		aux::vector<std::vector<bool>, file_index_t> m_hash_verified;
 		aux::vector<std::vector<piece_hash_request>, file_index_t> m_piece_hash_requested;
 		// blocks are only added to this list if there is a time critial block which

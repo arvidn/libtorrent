@@ -1220,7 +1220,7 @@ namespace {
 
 			// for backwards compatibility, allow paths relative to the link as
 			// well
-			if (fe.path_index >= 0)
+			if (fe.path_index < internal_file_entry::path_is_absolute)
 			{
 				std::string target = m_paths[fe.path_index];
 				append_path(target, symlink(i));

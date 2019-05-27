@@ -139,7 +139,7 @@ namespace {
 				if (!dh || dh.string_length() % 32 != 0) break;
 
 				ret.merkle_trees.emplace_back();
-				ret.merkle_trees.back().reserve(dh.string_length() / 32);
+				ret.merkle_trees.back().reserve(dh.string_value().size() / 32);
 				for (auto hashes = dh.string_value();
 					!hashes.empty(); hashes = hashes.substr(32))
 				{

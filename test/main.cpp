@@ -73,7 +73,7 @@ namespace {
 // out, such as the log
 int old_stdout = -1;
 int old_stderr = -1;
-#if WIN32
+#ifdef WIN32
 bool redirect_stdout = !IsDebuggerPresent();
 #else
 bool redirect_stdout = true;

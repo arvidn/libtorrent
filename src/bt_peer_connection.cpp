@@ -1770,7 +1770,7 @@ namespace {
 
 		int const packet_size = 5 + sha256_hash::size()
 			+ 4 * 4
-			+ sha256_hash::size() * hashes.size();
+			+ aux::numeric_cast<int>(sha256_hash::size() * hashes.size());
 		TORRENT_ALLOCA(buf, char, packet_size);
 		char* ptr = buf.data();
 		detail::write_uint32(packet_size - 4, ptr);

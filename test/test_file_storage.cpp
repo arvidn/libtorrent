@@ -734,6 +734,7 @@ TORRENT_TEST(file_num_pieces)
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{7}), 1);
 }
 
+namespace {
 int first_piece_node(int piece_size, int file_size)
 {
 	file_storage fs;
@@ -752,6 +753,7 @@ int first_block_node(int file_size)
 	int const num_pieces = (int(fs.total_size()) + fs.piece_length() - 1) / fs.piece_length();
 	fs.set_num_pieces(num_pieces);
 	return fs.file_first_block_node(file_index_t{0});
+}
 }
 
 TORRENT_TEST(file_first_piece_node)

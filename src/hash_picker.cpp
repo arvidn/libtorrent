@@ -89,7 +89,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 }
 
 	hash_picker::hash_picker(file_storage const& files
-		, aux::vector<std::vector<sha256_hash>, file_index_t>& trees
+		, aux::vector<aux::vector<sha256_hash>, file_index_t>& trees
 		, aux::vector<std::vector<bool>, file_index_t> verified
 		, bool all_verified)
 		: m_files(files)

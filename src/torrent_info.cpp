@@ -1111,7 +1111,7 @@ namespace {
 		swap(m_flags, ti.m_flags);
 	}
 
-	aux::vector<std::vector<sha256_hash>, file_index_t>& torrent_info::merkle_trees()
+	aux::vector<aux::vector<sha256_hash>, file_index_t>& torrent_info::merkle_trees()
 	{
 		if (m_merkle_trees.empty())
 			m_merkle_trees.resize(orig_files().num_files());
@@ -1131,7 +1131,7 @@ namespace {
 		return m_merkle_trees;
 	}
 
-	std::vector<sha256_hash>& torrent_info::file_merkle_tree(file_index_t file) const
+	aux::vector<sha256_hash>& torrent_info::file_merkle_tree(file_index_t file) const
 	{
 		if (m_merkle_trees.empty())
 			m_merkle_trees.resize(orig_files().num_files());
@@ -1509,14 +1509,15 @@ namespace {
 			int const num_nodes = merkle_num_nodes(num_leafs);
 			int const first_piece_node = merkle_num_nodes(piece_layer_size) - piece_layer_size;
 
-			if (piece_layer->second.size() != num_pieces * sha256_hash::size())
+			if (piece_layer->second.size() != std::size_t(num_pieces) * sha256_hash::size())
 			{
 				ec = errors::torrent_invalid_piece_layer;
 				return false;
 			}
 
 			tree.resize(num_nodes);
-			sha256_hash pad_hash = merkle_root(std::vector<sha256_hash>(m_files.piece_length() / default_block_size));
+			sha256_hash pad_hash = merkle_root(std::vector<sha256_hash>(
+				static_cast<std::size_t>(m_files.piece_length()) / default_block_size));
 
 			for (int n = 0; n < num_pieces; ++n)
 				tree[first_piece_node + n].assign(piece_layer->second.data() + n * sha256_hash::size());
