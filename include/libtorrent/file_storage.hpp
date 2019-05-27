@@ -642,6 +642,9 @@ namespace libtorrent {
 
 namespace aux {
 
+	TORRENT_EXTRA_EXPORT
+	int calc_num_pieces(file_storage const& fs);
+
 	// this is used when loading v2 torrents that are backwards compatible with
 	// v1 torrents. Both v1 and v2 structures must describe the same file layout,
 	// this compares the two.

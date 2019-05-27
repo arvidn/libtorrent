@@ -450,8 +450,7 @@ namespace {
 		m_files.set_piece_length(piece_size);
 		if (!m_v1_only)
 			m_files.canonicalize();
-		m_files.set_num_pieces(static_cast<int>(
-			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
+		m_files.set_num_pieces(aux::calc_num_pieces(m_files));
 		m_piece_hash.resize(m_files.num_pieces());
 		if (!m_v1_only)
 		{
