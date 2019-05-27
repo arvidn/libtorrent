@@ -1304,5 +1304,11 @@ bool files_equal(file_storage const& lhs, file_storage const& rhs)
 		return std::make_tuple(range.piece, end_piece);
 	}
 
+	int calc_num_pieces(file_storage const& fs)
+	{
+		return aux::numeric_cast<int>(
+			(fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+	}
+
 	} // namespace aux
 }

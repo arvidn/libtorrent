@@ -49,7 +49,7 @@ void setup_test_storage(file_storage& st)
 	st.add_file(combine_path("test", combine_path("c", "b")), 40000);
 
 	st.set_piece_length(0x4000);
-	st.set_num_pieces((int(st.total_size()) + st.piece_length() - 1) / 0x4000);
+	st.set_num_pieces(aux::calc_num_pieces(st));
 
 	TEST_EQUAL(st.file_name(file_index_t{0}), "a");
 	TEST_EQUAL(st.file_name(file_index_t{1}), "b");
@@ -348,7 +348,7 @@ TORRENT_TEST(piece_range_exclusive)
 	fs.add_file(combine_path("temp_storage", "0"), piece_size);
 	fs.add_file(combine_path("temp_storage", "1"), piece_size * 4 + 1);
 	fs.add_file(combine_path("temp_storage", "2"), piece_size * 4 - 1);
-	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	//        +---+---+---+---+---+---+---+---+---+
 	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 	//        +---+---+---+---+---+---+---+---+---+
@@ -368,7 +368,7 @@ TORRENT_TEST(piece_range_inclusive)
 	fs.add_file(combine_path("temp_storage", "0"), piece_size);
 	fs.add_file(combine_path("temp_storage", "1"), piece_size * 4 + 1);
 	fs.add_file(combine_path("temp_storage", "2"), piece_size * 4 - 1);
-	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	//        +---+---+---+---+---+---+---+---+---+
 	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 	//        +---+---+---+---+---+---+---+---+---+
@@ -387,7 +387,7 @@ TORRENT_TEST(piece_range)
 	fs.set_piece_length(piece_size);
 	fs.add_file(combine_path("temp_storage", "0"), piece_size * 3);
 	fs.add_file(combine_path("temp_storage", "1"), piece_size * 3 + 0x30);
-	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	//        +---+---+---+---+---+---+---+
 	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
 	//        +---+---+---+---+---+---+---+
@@ -406,7 +406,7 @@ TORRENT_TEST(piece_size_last_piece)
 	file_storage fs;
 	fs.set_piece_length(1024);
 	fs.add_file("0", 100);
-	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.piece_size(piece_index_t{0}), 100);
 }
 
@@ -415,7 +415,7 @@ TORRENT_TEST(piece_size_middle_piece)
 	file_storage fs;
 	fs.set_piece_length(1024);
 	fs.add_file("0", 2000);
-	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.piece_size(piece_index_t{0}), 1024);
 	TEST_EQUAL(fs.piece_size(piece_index_t{1}), 2000 - 1024);
 }
@@ -445,7 +445,7 @@ TORRENT_TEST(map_block_start)
 	fs.add_file("test/2", 3);
 	fs.add_file("test/3", 4);
 	fs.add_file("test/4", 5);
-	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	int len = 0;
 	for (int f : {0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5})
 	{
@@ -473,7 +473,7 @@ TORRENT_TEST(map_block_mid)
 	fs.add_file("test/2", 3);
 	fs.add_file("test/3", 4);
 	fs.add_file("test/4", 5);
-	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	int offset = 0;
 	for (int f : {0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4})
 	{
@@ -655,20 +655,20 @@ TORRENT_TEST(piece_size2)
 	// add pad files
 	fs.add_file("test/0", 0x5000, {}, 0, {}, "01234567890123456789012345678901");
 
-	fs.set_num_pieces((fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 1);
 	TEST_EQUAL(fs.piece_size2(piece_index_t{0}), 0x5000);
 
 	fs.add_file("test/1", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
 	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
 
-	fs.set_num_pieces((fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 3);
 	TEST_EQUAL(fs.piece_size2(piece_index_t{2}), 0x8000);
 
 	fs.add_file("test/3", 8, {}, 0, {}, "01234567890123456789012345678901");
 
-	fs.set_num_pieces((fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 4);
 	TEST_EQUAL(fs.piece_size2(piece_index_t{0}), 0x5000);
 	TEST_EQUAL(fs.piece_size2(piece_index_t{1}), 0x2000);
@@ -677,7 +677,7 @@ TORRENT_TEST(piece_size2)
 
 	fs.add_file("test/4", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
 
-	fs.set_num_pieces((fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 6);
 
 	TEST_EQUAL(fs.piece_size2(piece_index_t{0}), 0x5000);
@@ -740,8 +740,7 @@ int first_piece_node(int piece_size, int file_size)
 	file_storage fs;
 	fs.set_piece_length(piece_size);
 	fs.add_file("test/0", file_size, {}, 0, {}, "01234567890123456789012345678901");
-	int const num_pieces = (int(fs.total_size()) + piece_size - 1) / piece_size;
-	fs.set_num_pieces(num_pieces);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs.file_first_piece_node(file_index_t{0});
 }
 
@@ -750,8 +749,7 @@ int first_block_node(int file_size)
 	file_storage fs;
 	fs.set_piece_length(0x10000);
 	fs.add_file("test/0", file_size, {}, 0, {}, "01234567890123456789012345678901");
-	int const num_pieces = (int(fs.total_size()) + fs.piece_length() - 1) / fs.piece_length();
-	fs.set_num_pieces(num_pieces);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs.file_first_block_node(file_index_t{0});
 }
 }
