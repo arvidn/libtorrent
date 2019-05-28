@@ -102,7 +102,7 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 		sha256_hash ph;
 		aux::random_bytes(ph);
 		file_index_t const f(fs.file_index_at_piece(i));
-		t.set_hash2(f, i - piece_index_t(fs.file_offset(f) / fs.piece_length()), ph);
+		t.set_hash2(f, i - fs.piece_index_at_file(f), ph);
 	}
 
 	std::vector<char> buf;
@@ -669,16 +669,17 @@ std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
 		std::vector<char> piece = generate_piece(i, fs.piece_size(i));
 		ct.set_hash(i, hasher(piece).final());
 
-		std::vector<sha256_hash> tree(merkle_num_nodes(fs.piece_length() / default_block_size));
+		aux::vector<sha256_hash> tree(merkle_num_nodes(fs.piece_length() / default_block_size));
 
+		int const blocks_per_piece = fs.piece_length() / default_block_size;
 		for (int j = 0; j < int(piece.size()); j += default_block_size)
 		{
-			tree[tree.size() - fs.piece_length() / default_block_size + j / default_block_size]
+			tree[tree.end_index() - blocks_per_piece + j / default_block_size]
 				= hasher256(piece.data() + j, std::min(default_block_size, int(piece.size()) - j)).final();
 		}
 		merkle_fill_tree(tree, fs.piece_length() / default_block_size);
 		file_index_t const f(fs.file_index_at_piece(i));
-		ct.set_hash2(f, i - piece_index_t(fs.file_offset(f) / fs.piece_length()), tree[0]);
+		ct.set_hash2(f, i - fs.piece_index_at_file(f), tree[0]);
 	}
 
 	std::vector<char> buf;
@@ -773,11 +774,11 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	if (!v1)
 	{
 		int const blocks_in_piece = piece_size / default_block_size;
-		std::vector<sha256_hash> v2tree(merkle_num_nodes(merkle_num_leafs(blocks_in_piece)));
+		aux::vector<sha256_hash> v2tree(merkle_num_nodes(merkle_num_leafs(blocks_in_piece)));
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			sha256_hash const block_hash = hasher256(span<char>(piece).subspan(i * default_block_size, default_block_size)).final();
-			v2tree[v2tree.size() - merkle_num_leafs(blocks_in_piece) + i] = block_hash;
+			v2tree[v2tree.end_index() - merkle_num_leafs(blocks_in_piece) + i] = block_hash;
 		}
 		merkle_fill_tree(v2tree, merkle_num_leafs(blocks_in_piece));
 

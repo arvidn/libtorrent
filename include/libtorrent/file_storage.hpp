@@ -230,6 +230,7 @@ namespace aux {
 
 		// internal limitations restrict file sizes to not be larger than this
 		static constexpr std::int64_t max_file_size = (std::int64_t(1) << 48) - 1;
+		static constexpr std::int64_t max_file_offset = (std::int64_t(1) << 48) - 1;
 
 		// returns true if the piece length has been initialized
 		// on the file_storage. This is typically taken as a proxy
@@ -437,6 +438,9 @@ namespace aux {
 		// files are not considered part of the piece for this purpose.
 		int piece_size2(piece_index_t index) const;
 
+		// returns the number of blocks in the specified piece, for v2 torrents.
+		int blocks_in_piece2(piece_index_t index) const;
+
 		// set and get the name of this torrent. For multi-file torrents, this is also
 		// the name of the root directory all the files are stored in.
 		void set_name(std::string const& n) { m_name = n; }
@@ -542,6 +546,9 @@ namespace aux {
 		// returns the index of the file at the given offset in the torrent
 		file_index_t file_index_at_offset(std::int64_t offset) const;
 		file_index_t file_index_at_piece(piece_index_t piece) const;
+
+		// returns the piece index the given file starts at
+		piece_index_t piece_index_at_file(file_index_t f) const;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		// internal

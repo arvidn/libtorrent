@@ -89,7 +89,7 @@ struct temp_storage
 		if (!block_hashes.empty())
 		{
 			int const piece_size2 = m_files.piece_size2(piece);
-			int const blocks_in_piece2 = (piece_size2 + lt::default_block_size - 1) / lt::default_block_size;
+			int const blocks_in_piece2 = m_files.blocks_in_piece2(piece);
 			char const* buf = i->second.data();
 			std::int64_t offset = 0;
 			for (int i = 0; i < blocks_in_piece2; ++i)

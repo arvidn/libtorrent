@@ -5221,12 +5221,9 @@ namespace libtorrent {
 				disk_job_flags_t flags;
 				if (t->torrent_file().info_hash().has_v1())
 					flags |= disk_interface::v1_hash;
-				std::vector<sha256_hash> hashes;
+				aux::vector<sha256_hash> hashes;
 				if (t->torrent_file().info_hash().has_v2())
-				{
-					auto const piece_size = t->torrent_file().orig_files().piece_size2(r.piece);
-					hashes.resize((piece_size + default_block_size - 1) / default_block_size);
-				}
+					hashes.resize(t->torrent_file().orig_files().blocks_in_piece2(r.piece));
 
 				span<sha256_hash> v2_hashes(hashes);
 				m_disk_thread.async_hash(t->storage(), r.piece, v2_hashes, flags
@@ -5287,7 +5284,7 @@ namespace libtorrent {
 	// this is called when a previously unchecked piece has been
 	// checked, while in seed-mode
 	void peer_connection::on_seed_mode_hashed(piece_index_t const piece
-		, sha1_hash const& piece_hash, std::vector<sha256_hash> const& block_hashes
+		, sha1_hash const& piece_hash, aux::vector<sha256_hash> const& block_hashes
 		, storage_error const& error)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5321,8 +5318,7 @@ namespace libtorrent {
 		{
 			hash_failed[1] = false;
 
-			int const piece_size = t->torrent_file().files().piece_size2(piece);
-			int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
+			int const blocks_in_piece = t->torrent_file().files().blocks_in_piece2(piece);
 
 			TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
 

@@ -38,11 +38,7 @@ namespace libtorrent
 {
 	namespace
 	{
-		time_duration min_request_interval = seconds(3);
-
-		// used as a flag in m_piece_hash_requested to indicate that all of the hashes
-		// for an entry where loaded from disk so we don't know where we originaly got them
-		torrent_peer* const source_unknown = reinterpret_cast<torrent_peer*>(-1);
+		time_duration const min_request_interval = seconds(3);
 	}
 
 /*
@@ -90,7 +86,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 	hash_picker::hash_picker(file_storage const& files
 		, aux::vector<aux::vector<sha256_hash>, file_index_t>& trees
-		, aux::vector<std::vector<bool>, file_index_t> verified
+		, aux::vector<aux::vector<bool>, file_index_t> verified
 		, bool all_verified)
 		: m_files(files)
 		, m_merkle_trees(trees)
@@ -146,7 +142,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		}
 	}
 
-	void hash_picker::set_verified(aux::vector<std::vector<bool>, file_index_t> const& verified)
+	void hash_picker::set_verified(aux::vector<aux::vector<bool>, file_index_t> const& verified)
 	{
 		if (verified.empty()) return;
 		TORRENT_ASSERT(int(verified.size()) == m_files.num_files());
@@ -282,15 +278,15 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (req.base != m_piece_layer && req.base != 0)
 			return add_hashes_result(false);
 
-		std::vector<sha256_hash> tree(merkle_num_nodes(count));
+		aux::vector<sha256_hash> tree(merkle_num_nodes(count));
 		std::copy(hashes.begin(), hashes.begin() + req.count, tree.end() - count);
 
 		// the end of a file is a special case, we may need to pad the leaf layer
 		if (req.base == m_piece_layer && count != req.count)
 		{
-			sha256_hash pad_hash = merkle_root(std::vector<sha256_hash>(m_files.piece_length() / default_block_size));
+			sha256_hash pad_hash = merkle_root(aux::vector<sha256_hash>(m_files.piece_length() / default_block_size));
 			for (int i = req.count; i < count; ++i)
-				tree[tree.size() - count + i] = pad_hash;
+				tree[tree.end_index() - count + i] = pad_hash;
 		}
 
 		merkle_fill_tree(tree, count);
@@ -301,7 +297,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			return add_hashes_result(false);
 
 		int proof_leafs = req.count;
-		std::vector<std::pair<sha256_hash, sha256_hash>> proofs(
+		aux::vector<std::pair<sha256_hash, sha256_hash>> proofs(
 			std::max(0, req.proof_layers - base_num_layers + 1));
 		auto proof_iter = proofs.begin();
 		sha256_hash tree_root = tree[0];
@@ -608,7 +604,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		file_index_t const f = m_files.file_index_at_piece(piece);
 		piece_index_t file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));;
 		int const block_offset = static_cast<int>(piece - file_first_piece) * (m_files.piece_length() / default_block_size);
-		int const blocks_in_piece = (m_files.piece_size2(piece) + default_block_size - 1) / default_block_size;
+		int const blocks_in_piece = m_files.blocks_in_piece2(piece);
 		auto const& file_leafs = m_hash_verified[f];
 		return std::all_of(file_leafs.begin() + block_offset, file_leafs.begin() + block_offset + blocks_in_piece
 			, [](bool b) { return b; });

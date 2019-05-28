@@ -124,10 +124,10 @@ namespace libtorrent
 	public:
 		hash_picker(file_storage const& files
 			, aux::vector<aux::vector<sha256_hash>, file_index_t>& trees
-			, aux::vector<std::vector<bool>, file_index_t> verified = {}
+			, aux::vector<aux::vector<bool>, file_index_t> verified = {}
 			, bool all_verified = false);
 
-		void set_verified(aux::vector<std::vector<bool>, file_index_t> const& verified);
+		void set_verified(aux::vector<aux::vector<bool>, file_index_t> const& verified);
 
 		hash_request pick_hashes(typed_bitfield<piece_index_t> const& pieces);
 
@@ -143,7 +143,7 @@ namespace libtorrent
 		bool have_all(file_index_t file) const;
 		bool have_all() const;
 		// get bits indicating if each leaf hash is verified
-		aux::vector<std::vector<bool>, file_index_t> const& verified_leafs() const
+		aux::vector<aux::vector<bool>, file_index_t> const& verified_leafs() const
 		{ return m_hash_verified; }
 		bool piece_verified(piece_index_t piece) const;
 
@@ -193,8 +193,8 @@ namespace libtorrent
 
 		file_storage const& m_files;
 		aux::vector<aux::vector<sha256_hash>, file_index_t>& m_merkle_trees;
-		aux::vector<std::vector<bool>, file_index_t> m_hash_verified;
-		aux::vector<std::vector<piece_hash_request>, file_index_t> m_piece_hash_requested;
+		aux::vector<aux::vector<bool>, file_index_t> m_hash_verified;
+		aux::vector<aux::vector<piece_hash_request>, file_index_t> m_piece_hash_requested;
 		// blocks are only added to this list if there is a time critial block which
 		// has been downloaded but we don't have its hash or if the initial request
 		// for the hash was rejected
