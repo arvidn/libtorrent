@@ -1103,8 +1103,8 @@ namespace {
 		// use this vector to track the new ordering of files
 		// this allows the use of STL algorthims despite them
 		// not supporting a custom swap functor
-		std::vector<file_index_t> new_order(num_files());
-		for (file_index_t i(0); i < num_files(); ++i)
+		aux::vector<file_index_t, file_index_t> new_order(num_files());
+		for (file_index_t i(0); i < end_file(); ++i)
 			new_order[i] = i;
 
 		// remove any existing pad files
@@ -1180,12 +1180,12 @@ namespace {
 			TORRENT_ASSERT(!m_files[i].pad_file);
 			new_files.emplace_back(std::move(m_files[i]));
 
-			if (int(m_file_hashes.size()) > i)
+			if (i < m_file_hashes.end_index())
 				new_file_hashes.push_back(m_file_hashes[i]);
 			else if (!m_file_hashes.empty())
 				new_file_hashes.push_back(nullptr);
 
-			if (int(m_mtime.size()) > i)
+			if (i < m_mtime.end_index())
 				new_mtime.push_back(m_mtime[i]);
 			else if (!m_mtime.empty())
 				new_mtime.push_back(0);

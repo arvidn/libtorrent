@@ -189,8 +189,10 @@ TORRENT_TEST(pointer_offset)
 		, 10, file_flags_t{}, filehash, 0, {}, roothash);
 
 	// test filename_ptr and filename_len
-	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename);
+#ifndef TORRENT_NO_DEPRECATE
+	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), string_view(filename).substr(0, 5));
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
+#endif
 	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename, 5));
 	TEST_EQUAL(st.hash(file_index_t{0}), sha1_hash(filehash));
 	TEST_EQUAL(st.root(file_index_t{0}), sha256_hash(roothash));
@@ -209,8 +211,10 @@ TORRENT_TEST(pointer_offset)
 		, combine_path("test-torrent-1", "fooba")));
 
 	// test filename_ptr and filename_len
+#ifndef TORRENT_NO_DEPRECATE
 	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename + 5);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
+#endif
 	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename + 5, 5));
 	TEST_EQUAL(st.hash(file_index_t{0}), sha1_hash(filehash + 5));
 	TEST_EQUAL(st.root(file_index_t{0}), sha256_hash(roothash + 5));
