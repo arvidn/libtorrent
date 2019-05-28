@@ -78,6 +78,9 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.num_pieces(), (100000 + 0x3fff) / 0x4000);
 }
 
+aux::path_index_t operator""_path(unsigned long long i)
+{ return aux::path_index_t(i); }
+
 } // anonymous namespace
 
 TORRENT_TEST(coalesce_path)
@@ -86,29 +89,29 @@ TORRENT_TEST(coalesce_path)
 	st.set_piece_length(0x4000);
 	st.add_file(combine_path("test", "a"), 10000);
 	TEST_EQUAL(st.paths().size(), 1);
-	TEST_EQUAL(st.paths()[0], "");
+	TEST_EQUAL(st.paths()[0_path], "");
 	st.add_file(combine_path("test", "b"), 20000);
 	TEST_EQUAL(st.paths().size(), 1);
-	TEST_EQUAL(st.paths()[0], "");
+	TEST_EQUAL(st.paths()[0_path], "");
 	st.add_file(combine_path("test", combine_path("c", "a")), 30000);
 	TEST_EQUAL(st.paths().size(), 2);
-	TEST_EQUAL(st.paths()[0], "");
-	TEST_EQUAL(st.paths()[1], "c");
+	TEST_EQUAL(st.paths()[0_path], "");
+	TEST_EQUAL(st.paths()[1_path], "c");
 
 	// make sure that two files with the same path shares the path entry
 	st.add_file(combine_path("test", combine_path("c", "b")), 40000);
 	TEST_EQUAL(st.paths().size(), 2);
-	TEST_EQUAL(st.paths()[0], "");
-	TEST_EQUAL(st.paths()[1], "c");
+	TEST_EQUAL(st.paths()[0_path], "");
+	TEST_EQUAL(st.paths()[1_path], "c");
 
 	// cause pad files to be created, to make sure the pad files also share the
 	// same path entries
 	st.canonicalize();
 
 	TEST_EQUAL(st.paths().size(), 3);
-	TEST_EQUAL(st.paths()[0], "");
-	TEST_EQUAL(st.paths()[1], "c");
-	TEST_EQUAL(st.paths()[2], ".pad");
+	TEST_EQUAL(st.paths()[0_path], "");
+	TEST_EQUAL(st.paths()[1_path], "c");
+	TEST_EQUAL(st.paths()[2_path], ".pad");
 }
 
 TORRENT_TEST(rename_file)
