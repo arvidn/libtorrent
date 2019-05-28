@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent {
 
@@ -151,7 +152,7 @@ namespace libtorrent {
 		int const num_leafs = merkle_num_leafs(num_blocks);
 		int const num_nodes = merkle_num_nodes(num_leafs);
 		int const first_leaf = num_nodes - num_leafs;
-		std::vector<sha256_hash> merkle_tree(num_nodes);
+		aux::vector<sha256_hash> merkle_tree(num_nodes);
 		for (int i = 0; i < num_blocks; ++i)
 			merkle_tree[first_leaf + i] = leaves[i];
 		for (int i = num_blocks; i < num_leafs; ++i)

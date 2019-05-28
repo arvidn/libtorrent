@@ -395,7 +395,7 @@ namespace libtorrent {
 
 		void on_resume_data_checked(status_t status, storage_error const& error);
 		void on_force_recheck(status_t status, storage_error const& error);
-		void on_piece_hashed(std::vector<sha256_hash> block_hashes
+		void on_piece_hashed(aux::vector<sha256_hash> block_hashes
 			, piece_index_t piece, sha1_hash const& piece_hash
 			, storage_error const& error);
 		void files_checked();
@@ -927,7 +927,7 @@ namespace libtorrent {
 		void resume_download();
 
 		void verify_piece(piece_index_t piece, bool check_v2 = true);
-		void on_piece_verified(std::vector<sha256_hash> block_hashes
+		void on_piece_verified(aux::vector<sha256_hash> block_hashes
 			, piece_index_t piece
 			, sha1_hash const& piece_hash, storage_error const& error);
 
@@ -995,7 +995,7 @@ namespace libtorrent {
 			return *m_hash_picker;
 		}
 
-		void need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified = {});
+		void need_hash_picker(aux::vector<aux::vector<bool>, file_index_t> verified = {});
 		bool has_hash_picker() const
 		{
 			return m_hash_picker.get() != nullptr;

@@ -78,8 +78,8 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.num_pieces(), (100000 + 0x3fff) / 0x4000);
 }
 
-aux::path_index_t operator""_path(unsigned long long i)
-{ return aux::path_index_t(i); }
+constexpr aux::path_index_t operator""_path(unsigned long long i)
+{ return aux::path_index_t(static_cast<std::uint32_t>(i)); }
 
 } // anonymous namespace
 
@@ -193,7 +193,7 @@ TORRENT_TEST(pointer_offset)
 
 	// test filename_ptr and filename_len
 #ifndef TORRENT_NO_DEPRECATE
-	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), string_view(filename).substr(0, 5));
+	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
 #endif
 	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename, 5));
@@ -693,6 +693,24 @@ TORRENT_TEST(piece_size2)
 	TEST_EQUAL(fs.piece_size2(piece_index_t{3}), 8);
 	TEST_EQUAL(fs.piece_size2(piece_index_t{4}), 0x8000);
 	TEST_EQUAL(fs.piece_size2(piece_index_t{5}), 1);
+}
+
+TORRENT_TEST(blocks_in_piece2)
+{
+	static std::map<int, int> const piece_sizes = {
+		{0x3fff, 1},
+		{0x4000, 1},
+		{0x4001, 2},
+	};
+
+	for (auto t : piece_sizes)
+	{
+		file_storage fs;
+		fs.set_piece_length(0x8000);
+		fs.add_file("test/0", t.first, {}, 0, {}, "01234567890123456789012345678901");
+		fs.set_num_pieces(aux::calc_num_pieces(fs));
+		TEST_EQUAL(fs.blocks_in_piece2(piece_index_t{0}), t.second);
+	}
 }
 
 TORRENT_TEST(file_num_blocks)

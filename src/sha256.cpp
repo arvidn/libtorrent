@@ -86,7 +86,7 @@ namespace libtorrent { namespace {
 			h = t0 + t1;
 		};
 
-		for (int i = 0; i < 64; ++i)
+		for (unsigned i = 0; i < 64; ++i)
 		{
 			RND(S[0], S[1], S[2], S[3], S[4], S[5], S[6], S[7], i);
 			t = S[7]; S[7] = S[6]; S[6] = S[5]; S[5] = S[4];
