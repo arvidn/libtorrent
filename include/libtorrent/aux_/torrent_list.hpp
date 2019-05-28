@@ -149,7 +149,7 @@ struct torrent_list
 			, [&](std::shared_ptr<T> const& p) { return p.get() == found; });
 		TORRENT_ASSERT(array_iter != m_array.end());
 
-		TORRENT_ASSERT(m_index.find(ih) == m_index.end());
+		TORRENT_ASSERT(m_index.find(ih.v1) == m_index.end());
 
 		if (array_iter != m_array.end() - 1)
 			std::swap(*array_iter, m_array.back());

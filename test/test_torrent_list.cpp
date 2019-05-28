@@ -38,6 +38,7 @@ using namespace lt;
 
 namespace {
 info_hash_t ih(char const* s) { return info_hash_t(sha1_hash(s)); }
+sha1_hash ih1(char const* s) { return sha1_hash(s); }
 }
 
 TORRENT_TEST(torrent_list_empty)
@@ -78,9 +79,9 @@ TORRENT_TEST(torrent_list_lookup)
 	l.insert(ih("abababababababababab"), std::make_shared<int>(1337));
 	l.insert(ih("cdababababababababab"), std::make_shared<int>(1338));
 
-	TEST_EQUAL(*l.find(ih("abababababababababab")), 1337);
-	TEST_EQUAL(*l.find(ih("cdababababababababab")), 1338);
-	TEST_CHECK(l.find(ih("deababababababababab")) == nullptr);
+	TEST_EQUAL(*l.find(ih1("abababababababababab")), 1337);
+	TEST_EQUAL(*l.find(ih1("cdababababababababab")), 1338);
+	TEST_CHECK(l.find(ih1("deababababababababab")) == nullptr);
 }
 
 TORRENT_TEST(torrent_list_order)
@@ -117,9 +118,9 @@ TORRENT_TEST(torrent_list_erase)
 	TEST_CHECK(!l.erase(ih("bcababababababababab")));
 	TEST_CHECK(!l.empty());
 
-	TEST_EQUAL(*l.find(ih("abababababababababab")), 1337);
+	TEST_EQUAL(*l.find(ih1("abababababababababab")), 1337);
 	TEST_CHECK(l.erase(ih("abababababababababab")));
-	TEST_CHECK(l.find(ih("abababababababababab")) == nullptr);
+	TEST_CHECK(l.find(ih1("abababababababababab")) == nullptr);
 	TEST_CHECK(l.empty());
 }
 
@@ -129,16 +130,16 @@ TORRENT_TEST(torrent_list_erase2)
 	l.insert(ih("abababababababababab"), std::make_shared<int>(1337));
 	l.insert(ih("bcababababababababab"), std::make_shared<int>(1338));
 
-	TEST_EQUAL(*l.find(ih("abababababababababab")), 1337);
+	TEST_EQUAL(*l.find(ih1("abababababababababab")), 1337);
 	TEST_EQUAL(l.size(), 2);
 	TEST_CHECK(!l.empty());
 
 	// delete an entry that isn't the last one
 	TEST_CHECK(l.erase(ih("abababababababababab")));
-	TEST_CHECK(l.find(ih("abababababababababab")) == nullptr);
+	TEST_CHECK(l.find(ih1("abababababababababab")) == nullptr);
 	TEST_EQUAL(l.size(), 1);
 	TEST_CHECK(!l.empty());
-	TEST_EQUAL(*l.find(ih("bcababababababababab")), 1338);
+	TEST_EQUAL(*l.find(ih1("bcababababababababab")), 1338);
 }
 
 TORRENT_TEST(torrent_list_clear)
@@ -159,7 +160,7 @@ TORRENT_TEST(torrent_list_obfuscated_lookup)
 {
 	sha1_hash const ih("abababababababababab");
 	aux::torrent_list<int> l;
-	l.insert(ih, std::make_shared<int>(1337));
+	l.insert(info_hash_t(ih), std::make_shared<int>(1337));
 
 	TEST_EQUAL(*l.find(ih), 1337);
 	static char const req2[4] = {'r', 'e', 'q', '2'};
