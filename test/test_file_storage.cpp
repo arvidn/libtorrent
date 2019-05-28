@@ -734,6 +734,7 @@ TORRENT_TEST(file_num_pieces)
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{7}), 1);
 }
 
+namespace {
 int first_piece_node(int piece_size, int file_size)
 {
 	file_storage fs;
@@ -750,6 +751,7 @@ int first_block_node(int file_size)
 	fs.add_file("test/0", file_size, {}, 0, {}, "01234567890123456789012345678901");
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs.file_first_block_node(file_index_t{0});
+}
 }
 
 TORRENT_TEST(file_first_piece_node)

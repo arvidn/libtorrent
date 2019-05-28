@@ -356,7 +356,7 @@ TORRENT_TEST(merkle_root)
 namespace {
 void print_tree(span<sha256_hash const> tree)
 {
-	int const num_leafs = (tree.size() + 1) / 2;
+	int const num_leafs = static_cast<int>((tree.size() + 1) / 2);
 	int spacing = num_leafs;
 	int const num_levels = merkle_num_layers(num_leafs) + 1;
 	int layer_width = 1;

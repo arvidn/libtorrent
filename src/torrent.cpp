@@ -354,7 +354,13 @@ bool is_downloading_state(int const st)
 		if (m_torrent_file->is_valid() && m_torrent_file->info_hash().has_v2())
 		{
 			if (!p.merkle_trees.empty())
-				m_torrent_file->merkle_trees() = p.merkle_trees;
+			{
+				auto& trees = m_torrent_file->merkle_trees();
+				trees.clear();
+				trees.reserve(p.merkle_trees.size());
+				for (auto const& t : p.merkle_trees)
+					trees.emplace_back(t.begin(), t.end());
+			}
 
 			if (!p.verified_leaf_hashes.empty())
 			{
@@ -4031,7 +4037,7 @@ bool is_downloading_state(int const st)
 		if (blocks.empty())
 			add_failed_bytes(m_torrent_file->piece_size(index));
 		else
-			add_failed_bytes(blocks.size() * default_block_size);
+			add_failed_bytes(static_cast<int>(blocks.size()) * default_block_size);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_extensions)
@@ -6133,9 +6139,10 @@ bool is_downloading_state(int const st)
 		if (!m_torrent_file->is_valid()) return {};
 		TORRENT_ASSERT(validate_hash_request(req, m_torrent_file->files()));
 
-		auto& f = m_torrent_file->file_merkle_tree(req.file);
+		auto const& f = m_torrent_file->file_merkle_tree(req.file);
 
-		int const base_layer_idx = merkle_num_layers((f.size() + 1) / 2) - req.base;
+		int const base_layer_idx = merkle_num_layers(merkle_num_leafs(
+			aux::numeric_cast<int>(f.size()))) - req.base;
 		int const base_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
 
 		int layer_start_idx = base_start_idx;
@@ -6477,7 +6484,10 @@ bool is_downloading_state(int const st)
 
 		if (m_torrent_file->info_hash().has_v2())
 		{
-			ret.merkle_trees = m_torrent_file->merkle_trees();
+			ret.merkle_trees.clear();
+			ret.merkle_trees.reserve(m_torrent_file->merkle_trees().size());
+			for (auto const& t : m_torrent_file->merkle_trees())
+				ret.merkle_trees.emplace_back(t.begin(), t.end());
 			if (has_hash_picker())
 			{
 				ret.verified_leaf_hashes = get_hash_picker().verified_leafs();
