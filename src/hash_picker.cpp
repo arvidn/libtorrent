@@ -206,12 +206,14 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			int const file_first_piece = int(m_files.file_offset(fidx) / m_files.piece_length());
 			int const num_layers = file_num_layers(fidx);
 			int const piece_tree_root_layer = std::max(0, num_layers - m_piece_tree_root_layer);
-			auto& f = m_piece_hash_requested[fidx];
 
-			for (int i = 0; i < int(f.size()); ++i)
+			int i = -1;
+			for (auto& r : m_piece_hash_requested[fidx])
 			{
-				if (f[i].have ||
-					(f[i].last_request != min_time() && aux::time_now() - f[i].last_request < min_request_interval))
+				++i;
+				if (r.have ||
+					(r.last_request != min_time()
+					 && aux::time_now() - r.last_request < min_request_interval))
 				{
 					continue;
 				}
@@ -230,8 +232,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 				int const piece_tree_root = merkle_to_flat_index(piece_tree_root_layer, i);
 
-				++f[i].num_requests;
-				f[i].last_request = now;
+				++r.num_requests;
+				r.last_request = now;
 
 				int const piece_tree_num_layers
 					= num_layers - piece_tree_root_layer - m_piece_layer;
