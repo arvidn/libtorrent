@@ -250,6 +250,13 @@ namespace libtorrent {
 		void rename_file(file_index_t index, std::wstring const& new_filename);
 #endif // TORRENT_ABI_VERSION
 
+		// .. warning::
+		// 	Using `remap_files()` is discouraged as it's incompatible with v2
+		// 	torrents. This is because the piece boundaries and piece hashes in
+		// 	v2 torrents are intimitely tied to the file boundaries. Instead,
+		// 	just rename individual files, or implement a custom disk_interface
+		// 	to customize how to store files.
+		//
 		// Remaps the file storage to a new file layout. This can be used to, for
 		// instance, download all data in a torrent to a single file, or to a
 		// number of fixed size sector aligned files, regardless of the number
