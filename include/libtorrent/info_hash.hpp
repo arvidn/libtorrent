@@ -112,6 +112,14 @@ namespace libtorrent
 		sha1_hash v1;
 		sha256_hash v2;
 	};
+
+#if TORRENT_USE_IOSTREAM
+	inline std::ostream& operator<<(std::ostream& os, info_hash_t const& ih)
+	{
+		return os << '[' << ih.v1 << ',' << ih.v2 << ']';
+	}
+#endif // TORRENT_USE_IOSTREAM
+
 }
 
 #endif
