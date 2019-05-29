@@ -104,6 +104,9 @@ namespace libtorrent {
 			return piece_length();
 	}
 
+constexpr aux::path_index_t internal_file_entry::no_path;
+constexpr aux::path_index_t internal_file_entry::path_is_absolute;
+
 namespace {
 
 	bool compare_file_offset(internal_file_entry const& lhs
@@ -185,7 +188,7 @@ namespace {
 		if (set_name) e.set_name(leaf);
 	}
 
-	int file_storage::get_or_add_path(string_view const path)
+	aux::path_index_t file_storage::get_or_add_path(string_view const path)
 	{
 		// do we already have this path in the path list?
 		auto const p = std::find(m_paths.rbegin(), m_paths.rend(), path);
@@ -193,7 +196,7 @@ namespace {
 		if (p == m_paths.rend())
 		{
 			// no, we don't. add it
-			int const ret = int(m_paths.size());
+			auto const ret = m_paths.end_index();
 			TORRENT_ASSERT(path.size() == 0 || path[0] != '/');
 			m_paths.emplace_back(path.data(), path.size());
 			return ret;
@@ -201,7 +204,7 @@ namespace {
 		else
 		{
 			// yes we do. use it
-			return int(p.base() - m_paths.begin() - 1);
+			return aux::path_index_t(p.base() - m_paths.begin() - 1);
 		}
 	}
 
@@ -1113,8 +1116,8 @@ namespace {
 		// use this vector to track the new ordering of files
 		// this allows the use of STL algorthims despite them
 		// not supporting a custom swap functor
-		std::vector<file_index_t> new_order(num_files());
-		for (file_index_t i(0); i < num_files(); ++i)
+		aux::vector<file_index_t, file_index_t> new_order(num_files());
+		for (file_index_t i(0); i < end_file(); ++i)
 			new_order[i] = i;
 
 		// remove any existing pad files
@@ -1182,12 +1185,12 @@ namespace {
 			TORRENT_ASSERT(!m_files[i].pad_file);
 			new_files.emplace_back(std::move(m_files[i]));
 
-			if (int(m_file_hashes.size()) > i)
+			if (i < m_file_hashes.end_index())
 				new_file_hashes.push_back(m_file_hashes[i]);
 			else if (!m_file_hashes.empty())
 				new_file_hashes.push_back(nullptr);
 
-			if (int(m_mtime.size()) > i)
+			if (i < m_mtime.end_index())
 				new_mtime.push_back(m_mtime[i]);
 			else if (!m_mtime.empty())
 				new_mtime.push_back(0);
@@ -1254,7 +1257,7 @@ namespace {
 
 			// for backwards compatibility, allow paths relative to the link as
 			// well
-			if (fe.path_index < (1 << 29))
+			if (fe.path_index < internal_file_entry::path_is_absolute)
 			{
 				std::string target = m_paths[fe.path_index];
 				append_path(target, symlink(i));

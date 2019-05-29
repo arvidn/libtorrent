@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent {
 
@@ -109,6 +110,11 @@ namespace libtorrent {
 
 #endif // TORRENT_ABI_VERSION
 
+namespace aux {
+	struct path_index_tag;
+	using path_index_t = aux::strong_typedef<std::uint32_t, path_index_tag>;
+}
+
 	// internal
 	struct internal_file_entry
 	{
@@ -131,9 +137,10 @@ namespace libtorrent {
 		enum {
 			name_is_owned = (1 << 12) - 1,
 			not_a_symlink = (1 << 15) - 1,
-			no_path = (1 << 30) - 1,
-			path_is_absolute = (1 << 30) - 2,
 		};
+
+		static constexpr aux::path_index_t no_path{(1 << 30) - 1};
+		static constexpr aux::path_index_t path_is_absolute{(1 << 30) - 2};
 
 		// the offset of this file inside the torrent
 		std::uint64_t offset:48;
@@ -179,7 +186,7 @@ namespace libtorrent {
 		// path_is_absolute means the filename
 		// in this field contains the full, absolute path
 		// to the file
-		std::uint32_t path_index = internal_file_entry::no_path;
+		aux::path_index_t path_index = internal_file_entry::no_path;
 	};
 
 
@@ -520,7 +527,8 @@ namespace libtorrent {
 		// target string associated with it.
 		static constexpr file_flags_t flag_symlink = 3_bit;
 
-		std::vector<std::string> const& paths() const { return m_paths; }
+		// internal
+		aux::vector<std::string, aux::path_index_t> const& paths() const { return m_paths; }
 
 		// returns a bitmask of flags from file_flags_t that apply
 		// to file at ``index``.
@@ -584,7 +592,7 @@ namespace libtorrent {
 
 		file_index_t last_file() const noexcept;
 
-		int get_or_add_path(string_view path);
+		aux::path_index_t get_or_add_path(string_view path);
 
 		// the number of bytes in a regular piece
 		// (i.e. not the potentially truncated last piece)
@@ -630,7 +638,7 @@ namespace libtorrent {
 		// name for multi-file torrents. The m_name field need to be
 		// prepended to these paths, and the filename of a specific file
 		// entry appended, to form full file paths
-		aux::vector<std::string> m_paths;
+		aux::vector<std::string, aux::path_index_t> m_paths;
 
 		// name of torrent. For multi-file torrents
 		// this is always the root directory
