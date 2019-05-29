@@ -549,8 +549,8 @@ namespace libtorrent {
 		boost::shared_array<char> metadata() const
 		{ return m_info_section; }
 
-		aux::vector<std::vector<sha256_hash>, file_index_t>& merkle_trees();
-		std::vector<sha256_hash>& file_merkle_tree(file_index_t file) const;
+		aux::vector<aux::vector<sha256_hash>, file_index_t>& merkle_trees();
+		aux::vector<sha256_hash>& file_merkle_tree(file_index_t file) const;
 
 #if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
@@ -642,7 +642,7 @@ namespace libtorrent {
 #endif
 
 		// v2 merkle tree for each file
-		mutable aux::vector<std::vector<sha256_hash>, file_index_t> m_merkle_trees;
+		mutable aux::vector<aux::vector<sha256_hash>, file_index_t> m_merkle_trees;
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
