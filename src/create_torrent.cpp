@@ -512,43 +512,6 @@ namespace {
 		m_info_dict.preformatted().assign(&info[0], &info[0] + size);
 	}
 
-namespace {
-	// TODO: replace all use of this with lsplit_path() and rsplit_path()
-	std::string split_path(std::string const& f)
-	{
-		if (f.empty()) return f;
-
-		std::string ret;
-		char const* start = f.c_str();
-		char const* p = start;
-		while (*start != 0)
-		{
-			while (*p != '/'
-				&& *p != '\0'
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-				&& *p != '\\'
-#endif
-				) ++p;
-			if (p - start > 0)
-			{
-				ret.append(start, aux::numeric_cast<std::size_t>(p - start));
-				ret.append(1, '\0');
-			}
-			if (*p != 0) ++p;
-			start = p;
-		}
-		ret.append(1, '\0');
-		return ret;
-	}
-
-	char const* next_path_element(char const* p)
-	{
-		p += strlen(p) + 1;
-		if (*p == 0) return nullptr;
-		return p;
-	}
-}
-
 	entry create_torrent::generate() const
 	{
 		entry dict;
@@ -791,18 +754,21 @@ namespace {
 					entry* file_e_ptr = &tree;
 
 					{
-						std::string split = split_path(m_files.file_path(i));
-						TORRENT_ASSERT(split.c_str() == m_files.name());
+						std::string const file_path = m_files.file_path(i);
+						auto const split = lsplit_path(file_path);
+						TORRENT_ASSERT(split.first == m_files.name());
 
-						for (char const* e = next_path_element(split.c_str());
-							e != nullptr; e = next_path_element(e))
+						for (auto e = lsplit_path(split.second);
+							!e.first.empty();
+							e = lsplit_path(e.second))
 						{
-							file_e_ptr = &(*file_e_ptr)[e];
+							file_e_ptr = &(*file_e_ptr)[e.first];
 							if (file_e_ptr->dict().find({}) != file_e_ptr->dict().end())
 							{
 								// path conflict
 								// there is already a file with this name
 								// refuse to generate a torrent with such a conflict
+								// TODO: 3 report error
 								return entry();
 							}
 						}
@@ -813,6 +779,7 @@ namespace {
 						// path conflict
 						// there is already a directory with this name
 						// refuse to generate a torrent with such a conflict
+						// TODO: 3 report error
 						return entry();
 					}
 

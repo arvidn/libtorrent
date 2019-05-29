@@ -203,27 +203,27 @@ TORRENT_TEST(paths)
 #endif
 
 #ifdef TORRENT_WINDOWS
-	TEST_CHECK(compare_path("c:\\blah\\", "c:\\blah"));
-	TEST_CHECK(compare_path("c:\\blah", "c:\\blah"));
-	TEST_CHECK(compare_path("c:\\blah/", "c:\\blah"));
-	TEST_CHECK(compare_path("c:\\blah", "c:\\blah\\"));
-	TEST_CHECK(compare_path("c:\\blah", "c:\\blah"));
-	TEST_CHECK(compare_path("c:\\blah", "c:\\blah/"));
+	TEST_CHECK(path_equal("c:\\blah\\", "c:\\blah"));
+	TEST_CHECK(path_equal("c:\\blah", "c:\\blah"));
+	TEST_CHECK(path_equal("c:\\blah/", "c:\\blah"));
+	TEST_CHECK(path_equal("c:\\blah", "c:\\blah\\"));
+	TEST_CHECK(path_equal("c:\\blah", "c:\\blah"));
+	TEST_CHECK(path_equal("c:\\blah", "c:\\blah/"));
 
-	TEST_CHECK(!compare_path("c:\\bla", "c:\\blah/"));
-	TEST_CHECK(!compare_path("c:\\bla", "c:\\blah"));
-	TEST_CHECK(!compare_path("c:\\blah", "c:\\bla"));
-	TEST_CHECK(!compare_path("c:\\blah\\sdf", "c:\\blah"));
+	TEST_CHECK(!path_equal("c:\\bla", "c:\\blah/"));
+	TEST_CHECK(!path_equal("c:\\bla", "c:\\blah"));
+	TEST_CHECK(!path_equal("c:\\blah", "c:\\bla"));
+	TEST_CHECK(!path_equal("c:\\blah\\sdf", "c:\\blah"));
 #else
-	TEST_CHECK(compare_path("/blah", "/blah"));
-	TEST_CHECK(compare_path("/blah/", "/blah"));
-	TEST_CHECK(compare_path("/blah", "/blah"));
-	TEST_CHECK(compare_path("/blah", "/blah/"));
+	TEST_CHECK(path_equal("/blah", "/blah"));
+	TEST_CHECK(path_equal("/blah/", "/blah"));
+	TEST_CHECK(path_equal("/blah", "/blah"));
+	TEST_CHECK(path_equal("/blah", "/blah/"));
 
-	TEST_CHECK(!compare_path("/bla", "/blah/"));
-	TEST_CHECK(!compare_path("/bla", "/blah"));
-	TEST_CHECK(!compare_path("/blah", "/bla"));
-	TEST_CHECK(!compare_path("/blah/sdf", "/blah"));
+	TEST_CHECK(!path_equal("/bla", "/blah/"));
+	TEST_CHECK(!path_equal("/bla", "/blah"));
+	TEST_CHECK(!path_equal("/blah", "/bla"));
+	TEST_CHECK(!path_equal("/blah/sdf", "/blah"));
 #endif
 
 	// if has_parent_path() returns false
@@ -267,6 +267,31 @@ TORRENT_TEST(paths)
 #endif
 
 	TEST_EQUAL(complete("."), current_working_directory());
+}
+
+TORRENT_TEST(path_compare)
+{
+	TEST_EQUAL(path_compare("a/b/c", "x", "a/b/c", "x"), 0);
+
+	// the path and filenames are implicitly concatenated when compared
+	TEST_CHECK(path_compare("a/b/", "a", "a/b/c", "a") < 0);
+	TEST_CHECK(path_compare("a/b/c", "a", "a/b/", "a") > 0);
+
+	// if one path is shorter and a substring of the other, they are considered
+	// equal. This case is invalid for the purposes of sorting files in v2
+	// torrents and will fail anyway
+	TEST_EQUAL(path_compare("a/b/", "c", "a/b/c", "a"), 0);
+	TEST_EQUAL(path_compare("a/b/c", "a", "a/b", "c"), 0);
+
+	TEST_CHECK(path_compare("foo/b/c", "x", "a/b/c", "x") > 0);
+	TEST_CHECK(path_compare("a/b/c", "x", "foo/b/c", "x") < 0);
+	TEST_CHECK(path_compare("aaa/b/c", "x", "a/b/c", "x") > 0);
+	TEST_CHECK(path_compare("a/b/c", "x", "aaa/b/c", "x") < 0);
+	TEST_CHECK(path_compare("a/b/c/2", "x", "a/b/c/1", "x") > 0);
+	TEST_CHECK(path_compare("a/b/c/1", "x", "a/b/c/2", "x") < 0);
+	TEST_CHECK(path_compare("a/1/c", "x", "a/2/c", "x") < 0);
+	TEST_CHECK(path_compare("a/a/c", "x", "a/aa/c", "x") < 0);
+	TEST_CHECK(path_compare("a/aa/c", "x", "a/a/c", "x") > 0);
 }
 
 TORRENT_TEST(filename)
