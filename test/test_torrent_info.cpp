@@ -184,6 +184,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
 	{ "v2_unordered_files.torrent", errors::invalid_bencoding},
 	{ "v2_overlong_integer.torrent", errors::invalid_bencoding},
+	{ "v2_missing_file_root_invalid_symlink.torrent", errors::torrent_missing_pieces_root},
 };
 
 } // anonymous namespace
