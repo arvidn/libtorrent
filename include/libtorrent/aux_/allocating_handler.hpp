@@ -54,8 +54,8 @@ namespace libtorrent { namespace aux {
 #ifdef _MSC_VER
 #ifdef TORRENT_USE_OPENSSL
 #ifdef NDEBUG
-	constexpr std::size_t write_handler_max_size = tracking + 224;
-	constexpr std::size_t read_handler_max_size = tracking + 224;
+	constexpr std::size_t write_handler_max_size = tracking + 240;
+	constexpr std::size_t read_handler_max_size = tracking + 240;
 #else
 	constexpr std::size_t write_handler_max_size = tracking + 352;
 	constexpr std::size_t read_handler_max_size = tracking + 416;
