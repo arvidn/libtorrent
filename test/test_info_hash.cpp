@@ -94,9 +94,11 @@ TORRENT_TEST(ordering)
 	}
 }
 
+#if TORRENT_ABI_VERSION <= 2
 namespace {
 sha1_hash implicit_conv(sha1_hash const& h) { return h;}
 }
+#endif
 
 TORRENT_TEST(has)
 {

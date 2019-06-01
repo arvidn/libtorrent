@@ -150,7 +150,7 @@ namespace {
 		error_code& ec;
 	};
 
-	void on_hash(std::vector<sha256_hash> v2_blocks, piece_index_t const piece
+	void on_hash(aux::vector<sha256_hash> v2_blocks, piece_index_t const piece
 		, sha1_hash const& piece_hash, storage_error const& error, hash_state* st)
 	{
 		if (error)
@@ -164,8 +164,7 @@ namespace {
 
 		if (!st->ct.is_v1_only())
 		{
-			std::int64_t const piece_offset = static_cast<int>(piece) * std::int64_t(st->ct.piece_length());
-			file_index_t const current_file = st->ct.files().file_index_at_offset(piece_offset);
+			file_index_t const current_file = st->ct.files().file_index_at_piece(piece);
 			if (!st->ct.files().pad_file_at(current_file))
 			{
 				piece_index_t const file_first_piece(int(st->ct.files().file_offset(current_file) / st->ct.piece_length()));
@@ -174,7 +173,7 @@ namespace {
 				auto const file_piece_offset = piece - file_first_piece;
 				auto const file_size = st->ct.files().file_size(current_file);
 				auto const file_blocks = st->ct.files().file_num_blocks(current_file);
-				int const piece_blocks = (st->ct.files().piece_size2(piece) + default_block_size - 1) / default_block_size;
+				auto const piece_blocks = st->ct.files().blocks_in_piece2(piece);
 				// If the file is smaller than one piece then the block hashes
 				// should be padded to the next power of two instead of the next
 				// piece boundary.
@@ -365,7 +364,7 @@ namespace {
 		hash_state st = { t, std::move(storage), *disk_thread.get(), piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
-			std::vector<sha256_hash> v2_blocks;
+			aux::vector<sha256_hash> v2_blocks;
 
 			if (!t.is_v1_only())
 				v2_blocks.resize(t.piece_length() / default_block_size);
@@ -596,7 +595,7 @@ namespace {
 
 		if (!m_file_piece_hash.empty())
 		{
-			sha256_hash const pad_hash = merkle_root(std::vector<sha256_hash>(
+			sha256_hash const pad_hash = merkle_root(aux::vector<sha256_hash>(
 				m_files.piece_length() / default_block_size));
 			auto& file_pieces = dict["piece layers"].dict();
 

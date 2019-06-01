@@ -365,7 +365,11 @@ bool is_downloading_state(int const st)
 			if (!p.verified_leaf_hashes.empty())
 			{
 				TORRENT_ASSERT(!has_hash_picker());
-				need_hash_picker(p.verified_leaf_hashes);
+				aux::vector<aux::vector<bool>, file_index_t> verified;
+				verified.reserve(p.verified_leaf_hashes.size());
+				for (auto const& v : p.verified_leaf_hashes)
+					verified.emplace_back(v.begin(), v.end());
+				need_hash_picker(verified);
 			}
 		}
 
@@ -1092,7 +1096,7 @@ bool is_downloading_state(int const st)
 		}
 	}
 
-	void torrent::need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified)
+	void torrent::need_hash_picker(aux::vector<aux::vector<bool>, file_index_t> verified)
 	{
 		if (m_hash_picker)
 		{
@@ -2173,9 +2177,9 @@ bool is_downloading_state(int const st)
 			auto flags = disk_interface::sequential_access | disk_interface::volatile_read;
 			if (torrent_file().info_hash().has_v1())
 				flags |= disk_interface::v1_hash;
-			std::vector<sha256_hash> hashes;
+			aux::vector<sha256_hash> hashes;
 			if (torrent_file().info_hash().has_v2())
-				hashes.resize((torrent_file().orig_files().piece_size2(m_checking_piece) + default_block_size - 1) / default_block_size);
+				hashes.resize(torrent_file().orig_files().blocks_in_piece2(m_checking_piece));
 
 			span<sha256_hash> v2_span(hashes);
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
@@ -2193,7 +2197,7 @@ bool is_downloading_state(int const st)
 
 	// This is only used for checking of torrents. i.e. force-recheck or initial checking
 	// of existing files
-	void torrent::on_piece_hashed(std::vector<sha256_hash> block_hashes
+	void torrent::on_piece_hashed(aux::vector<sha256_hash> block_hashes
 		, piece_index_t const piece, sha1_hash const& piece_hash
 		, storage_error const& error) try
 	{
@@ -2340,7 +2344,7 @@ bool is_downloading_state(int const st)
 			if (torrent_file().info_hash().has_v1())
 				flags |= disk_interface::v1_hash;
 			if (torrent_file().info_hash().has_v2())
-				block_hashes.resize((torrent_file().orig_files().piece_size2(m_checking_piece) + default_block_size - 1) / default_block_size);
+				block_hashes.resize(torrent_file().orig_files().blocks_in_piece2(m_checking_piece));
 
 			span<sha256_hash> v2_span(block_hashes);
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
@@ -3588,7 +3592,7 @@ bool is_downloading_state(int const st)
 		}
 	}
 
-	void torrent::on_piece_verified(std::vector<sha256_hash> block_hashes
+	void torrent::on_piece_verified(aux::vector<sha256_hash> block_hashes
 		, piece_index_t const piece
 		, sha1_hash const& piece_hash, storage_error const& error) try
 	{
@@ -3817,8 +3821,7 @@ bool is_downloading_state(int const st)
 		boost::tribool ret = boost::indeterminate;
 		need_hash_picker();
 
-		int const piece_size = torrent_file().orig_files().piece_size2(piece);
-		int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
+		int const blocks_in_piece = torrent_file().orig_files().blocks_in_piece2(piece);
 		int const blocks_per_piece = torrent_file().orig_files().piece_length() / default_block_size;
 
 		TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
@@ -6141,8 +6144,10 @@ bool is_downloading_state(int const st)
 
 		auto const& f = m_torrent_file->file_merkle_tree(req.file);
 
-		int const base_layer_idx = merkle_num_layers(merkle_num_leafs(
-			aux::numeric_cast<int>(f.size()))) - req.base;
+		// given the full size of the tree, half of it, rounded up, are leaf nodes
+		int const base_layer_idx = merkle_num_layers(
+			aux::numeric_cast<int>((f.size() + 1) / 2))
+			- req.base;
 		int const base_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
 
 		int layer_start_idx = base_start_idx;
@@ -6490,7 +6495,11 @@ bool is_downloading_state(int const st)
 				ret.merkle_trees.emplace_back(t.begin(), t.end());
 			if (has_hash_picker())
 			{
-				ret.verified_leaf_hashes = get_hash_picker().verified_leafs();
+				auto const& leafs = get_hash_picker().verified_leafs();
+				ret.verified_leaf_hashes.clear();
+				ret.verified_leaf_hashes.reserve(leafs.size());
+				for (auto const& l : leafs)
+					ret.verified_leaf_hashes.emplace_back(l);
 			}
 			else if (!m_have_all)
 			{
@@ -10409,10 +10418,10 @@ bool is_downloading_state(int const st)
 		disk_job_flags_t flags;
 		if (torrent_file().info_hash().has_v1())
 			flags |= disk_interface::v1_hash;
-		std::vector<sha256_hash> hashes;
+		aux::vector<sha256_hash> hashes;
 		if (check_v2 && torrent_file().info_hash().has_v2())
 		{
-			hashes.resize((torrent_file().orig_files().piece_size2(piece) + default_block_size - 1) / default_block_size);
+			hashes.resize(torrent_file().orig_files().blocks_in_piece2(piece));
 		}
 
 		span<sha256_hash> v2_span(hashes);

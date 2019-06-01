@@ -122,7 +122,8 @@ namespace {
 		TORRENT_ASSERT_PRECOND(index >= piece_index_t{} && index < end_piece());
 		// find the file iterator and file offset
 		internal_file_entry target;
-		target.offset = aux::numeric_cast<std::uint64_t>(piece_length()) * static_cast<int>(index);
+		TORRENT_ASSERT(max_file_offset / piece_length() > static_cast<int>(index));
+		target.offset = aux::numeric_cast<std::uint64_t>(std::int64_t(piece_length()) * static_cast<int>(index));
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		auto const file_iter = std::upper_bound(
@@ -135,6 +136,12 @@ namespace {
 		// piece_length(), which fits in an int
 		return static_cast<int>(
 			std::min(static_cast<std::uint64_t>(piece_length()), file_iter->offset - target.offset));
+	}
+
+	int file_storage::blocks_in_piece2(piece_index_t const index) const
+	{
+		// the number of default_block_size in a piece size, rounding up
+		return (piece_size2(index) + default_block_size - 1) / default_block_size;
 	}
 
 	// path is supposed to include the name of the torrent itself.
@@ -204,7 +211,8 @@ namespace {
 		else
 		{
 			// yes we do. use it
-			return aux::path_index_t(p.base() - m_paths.begin() - 1);
+			return aux::path_index_t(aux::numeric_cast<std::uint32_t>(
+				p.base() - m_paths.begin() - 1));
 		}
 	}
 
@@ -422,6 +430,7 @@ namespace {
 	{
 		// find the file iterator and file offset
 		internal_file_entry target;
+		TORRENT_ASSERT(offset <= max_file_offset);
 		target.offset = aux::numeric_cast<std::uint64_t>(offset);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
@@ -443,6 +452,7 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(offset >= 0);
 		TORRENT_ASSERT_PRECOND(offset < m_total_size);
+		TORRENT_ASSERT(offset <= max_file_offset);
 		// find the file iterator and file offset
 		internal_file_entry target;
 		target.offset = aux::numeric_cast<std::uint64_t>(offset);
@@ -459,6 +469,11 @@ namespace {
 	file_index_t file_storage::file_index_at_piece(piece_index_t const piece) const
 	{
 		return file_index_at_offset(static_cast<int>(piece) * std::int64_t(piece_length()));
+	}
+
+	piece_index_t file_storage::piece_index_at_file(file_index_t f) const
+	{
+		return piece_index_t(aux::numeric_cast<int>(file_offset(f) / piece_length()));
 	}
 
 #if TORRENT_ABI_VERSION <= 2
@@ -487,12 +502,13 @@ namespace {
 
 		// find the file iterator and file offset
 		internal_file_entry target;
+		TORRENT_ASSERT(max_file_offset / m_piece_length > static_cast<int>(piece));
 		target.offset = aux::numeric_cast<std::uint64_t>(static_cast<int>(piece) * std::int64_t(m_piece_length) + offset);
-		TORRENT_ASSERT_PRECOND(std::int64_t(target.offset) + size <= m_total_size);
+		TORRENT_ASSERT_PRECOND(std::int64_t(target.offset) <= m_total_size - size);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		// in case the size is past the end, fix it up
-		if (std::int64_t(target.offset) + size > m_total_size)
+		if (std::int64_t(target.offset) > m_total_size - size)
 			size = aux::numeric_cast<int>(m_total_size - std::int64_t(target.offset));
 
 		auto file_iter = std::upper_bound(
@@ -706,7 +722,8 @@ namespace {
 		{
 			auto const pad_size = piece_length() - (m_total_size % piece_length());
 			TORRENT_ASSERT(int(pad_size) != piece_length());
-			if (m_total_size > max_file_size - pad_size - file_size)
+			TORRENT_ASSERT(int(pad_size) > 0);
+			if (m_total_size > max_file_offset - pad_size - file_size)
 			{
 				ec = make_error_code(errors::torrent_invalid_length);
 				return;
@@ -714,15 +731,17 @@ namespace {
 
 			m_files.emplace_back();
 			// e is invalid from here down!
-			auto& pad_file = m_files.back();
-			pad_file.size = pad_size;
-			pad_file.offset = m_total_size;
-			pad_file.path_index = get_or_add_path(".pad");
+			auto& pad = m_files.back();
+			pad.size = static_cast<std::uint64_t>(pad_size);
+			TORRENT_ASSERT(m_total_size <= max_file_offset);
+			TORRENT_ASSERT(m_total_size > 0);
+			pad.offset = static_cast<std::uint64_t>(m_total_size);
+			pad.path_index = get_or_add_path(".pad");
 			char name[30];
 			std::snprintf(name, sizeof(name), "%" PRIu64
-				, pad_file.size);
-			pad_file.set_name(name);
-			pad_file.pad_file = true;
+				, pad.size);
+			pad.set_name(name);
+			pad.pad_file = true;
 			m_total_size += pad_size;
 		}
 
@@ -983,8 +1002,9 @@ namespace {
 		// this function only works for v2 torrents, where files are guaranteed to
 		// be aligned to pieces
 		TORRENT_ASSERT(f.pad_file == false);
-		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
-		return int((f.size + m_piece_length - 1) / m_piece_length);
+		TORRENT_ASSERT((static_cast<std::int64_t>(f.offset) % m_piece_length) == 0);
+		return aux::numeric_cast<int>(
+			(static_cast<std::int64_t>(f.size) + m_piece_length - 1) / m_piece_length);
 	}
 
 	int file_storage::file_num_blocks(file_index_t const index) const
@@ -996,7 +1016,7 @@ namespace {
 		// this function only works for v2 torrents, where files are guaranteed to
 		// be aligned to pieces
 		TORRENT_ASSERT(f.pad_file == false);
-		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
+		TORRENT_ASSERT((static_cast<std::int64_t>(f.offset) % m_piece_length) == 0);
 		return int((f.size + default_block_size - 1) / default_block_size);
 	}
 
@@ -1116,8 +1136,8 @@ namespace {
 		// use this vector to track the new ordering of files
 		// this allows the use of STL algorthims despite them
 		// not supporting a custom swap functor
-		aux::vector<file_index_t, file_index_t> new_order(num_files());
-		for (file_index_t i(0); i < end_file(); ++i)
+		aux::vector<file_index_t, file_index_t> new_order(end_file());
+		for (auto i : file_range())
 			new_order[i] = i;
 
 		// remove any existing pad files
@@ -1158,23 +1178,24 @@ namespace {
 			new_mtime.reserve(new_order.size() * 2 - 1);
 
 		// re-compute offsets and insert pad files as necessary
-		std::uint64_t off = 0;
+		std::int64_t off = 0;
 		for (file_index_t i : new_order)
 		{
 			if ((off % piece_length()) != 0)
 			{
 				auto const pad_size = piece_length() - (off % piece_length());
-				TORRENT_ASSERT(int(pad_size) != piece_length());
+				TORRENT_ASSERT(pad_size < piece_length());
+				TORRENT_ASSERT(pad_size > 0);
 				new_files.emplace_back();
-				auto& pad_file = new_files.back();
-				pad_file.size = pad_size;
-				pad_file.offset = off;
+				auto& pad = new_files.back();
+				pad.size = static_cast<std::uint64_t>(pad_size);
+				pad.offset = static_cast<std::uint64_t>(off);
 				off += pad_size;
-				pad_file.path_index = get_or_add_path(".pad");
+				pad.path_index = get_or_add_path(".pad");
 				char name[30];
-				std::snprintf(name, sizeof(name), "%" PRIu64, pad_file.size);
-				pad_file.set_name(name);
-				pad_file.pad_file = true;
+				std::snprintf(name, sizeof(name), "%" PRIu64, pad.size);
+				pad.set_name(name);
+				pad.pad_file = true;
 
 				if (!m_file_hashes.empty())
 					new_file_hashes.push_back(nullptr);
@@ -1196,7 +1217,9 @@ namespace {
 				new_mtime.push_back(0);
 
 			auto& file = new_files.back();
-			file.offset = off;
+			TORRENT_ASSERT(static_cast<std::int64_t>(file.size) <= max_file_size);
+			TORRENT_ASSERT(off < max_file_offset - static_cast<std::int64_t>(file.size));
+			file.offset = static_cast<std::uint64_t>(off);
 			off += file.size;
 		}
 
