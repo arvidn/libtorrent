@@ -77,7 +77,7 @@ observer_ptr traversal_algorithm::new_observer(udp::endpoint const& ep
 #if TORRENT_USE_ASSERTS
 	if (o) o->m_in_constructor = false;
 #endif
-	return std::move(o);
+	return o;
 }
 
 traversal_algorithm::traversal_algorithm(node& dht_node, node_id const& target)
