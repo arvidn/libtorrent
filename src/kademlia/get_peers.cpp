@@ -157,7 +157,7 @@ observer_ptr get_peers::new_observer(udp::endpoint const& ep
 #if TORRENT_USE_ASSERTS
 	if (o) o->m_in_constructor = false;
 #endif
-	return std::move(o);
+	return o;
 }
 
 obfuscated_get_peers::obfuscated_get_peers(
@@ -184,7 +184,7 @@ observer_ptr obfuscated_get_peers::new_observer(udp::endpoint const& ep
 #if TORRENT_USE_ASSERTS
 		if (o) o->m_in_constructor = false;
 #endif
-		return std::move(o);
+		return o;
 	}
 	else
 	{
@@ -193,7 +193,7 @@ observer_ptr obfuscated_get_peers::new_observer(udp::endpoint const& ep
 #if TORRENT_USE_ASSERTS
 		if (o) o->m_in_constructor = false;
 #endif
-		return std::move(o);
+		return o;
 	}
 }
 

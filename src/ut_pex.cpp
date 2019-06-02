@@ -628,7 +628,7 @@ namespace libtorrent { namespace {
 		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
 		auto p = std::make_shared<ut_pex_peer_plugin>(m_torrent, *c, *this);
 		c->set_ut_pex(p);
-		return std::move(p);
+		return p;
 	}
 } }
 

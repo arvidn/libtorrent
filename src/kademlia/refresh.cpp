@@ -44,7 +44,7 @@ observer_ptr bootstrap::new_observer(udp::endpoint const& ep
 #if TORRENT_USE_ASSERTS
 	if (o) o->m_in_constructor = false;
 #endif
-	return std::move(o);
+	return o;
 }
 
 bool bootstrap::invoke(observer_ptr o)

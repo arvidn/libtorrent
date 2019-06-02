@@ -127,7 +127,7 @@ observer_ptr get_item::new_observer(udp::endpoint const& ep
 #if TORRENT_USE_ASSERTS
 	if (o) o->m_in_constructor = false;
 #endif
-	return std::move(o);
+	return o;
 }
 
 bool get_item::invoke(observer_ptr o)
