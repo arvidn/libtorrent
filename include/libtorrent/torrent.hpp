@@ -820,7 +820,7 @@ namespace libtorrent {
 
 		// process the v2 block hashes for a piece
 		boost::tribool on_blocks_hashed(piece_index_t piece
-			, span<sha256_hash> block_hashes);
+			, span<sha256_hash const> block_hashes);
 
 	public:
 

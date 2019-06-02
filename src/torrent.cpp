@@ -2734,11 +2734,11 @@ bool is_downloading_state(int const st)
 		req.num_want = (req.event == tracker_request::stopped)
 			? 0 : settings().get_int(settings_pack::num_want);
 
-		bool const supports_protocol[2] =
-		{
+		aux::array<bool const, 2> const supports_protocol
+		{{
 			m_info_hash.has_v1(),
 			m_info_hash.has_v2()
-		};
+		}};
 
 		time_point32 const now = aux::time_now32();
 
@@ -2911,8 +2911,8 @@ bool is_downloading_state(int const st)
 						if (supports_protocol[ih] && !s.state[ih].done)
 							return false;
 					}
-					return true;;
-					}))
+					return true;
+				}))
 				break;
 		}
 		update_tracker_timer(now);
@@ -3816,7 +3816,7 @@ bool is_downloading_state(int const st)
 	}
 
 	boost::tribool torrent::on_blocks_hashed(piece_index_t const piece
-		, span<sha256_hash> const block_hashes)
+		, span<sha256_hash const> const block_hashes)
 	{
 		boost::tribool ret = boost::indeterminate;
 		need_hash_picker();
@@ -6897,12 +6897,11 @@ bool is_downloading_state(int const st)
 		// the torrent's info hash might change
 		// e.g. it could be a hybrid torrent which we only had one of the hashes for
 		// so remove the existing entry
-		info_hash_t old_ih = m_torrent_file->info_hash();
+		info_hash_t const old_ih = m_torrent_file->info_hash();
 
-		bdecode_node metadata;
 		error_code ec;
-		int ret = bdecode(metadata_buf.begin(), metadata_buf.end(), metadata, ec);
-		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec))
+		bdecode_node const metadata = bdecode(metadata_buf, ec);
+		if (ec || !m_torrent_file->parse_info_section(metadata, ec))
 		{
 			update_gauge();
 			// this means the metadata is correct, since we
