@@ -131,7 +131,7 @@ namespace libtorrent
 
 		hash_request pick_hashes(typed_bitfield<piece_index_t> const& pieces);
 
-		add_hashes_result add_hashes(hash_request const& req, span<sha256_hash> hashes);
+		add_hashes_result add_hashes(hash_request const& req, span<sha256_hash const> hashes);
 		// TODO: support batched adding of block hashes for reduced overhead?
 		set_block_hash_result set_block_hash(piece_index_t piece, int offset, sha256_hash const& h);
 		void hashes_rejected(hash_request const& req);

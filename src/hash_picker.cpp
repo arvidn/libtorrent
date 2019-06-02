@@ -245,7 +245,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		return {};
 	}
 
-	add_hashes_result hash_picker::add_hashes(hash_request const& req, span<sha256_hash> hashes)
+	add_hashes_result hash_picker::add_hashes(hash_request const& req, span<sha256_hash const> hashes)
 	{
 		// limit the size of the base layer to something reasonable
 		// Blocks are requested for an entire piece so this limit
