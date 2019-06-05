@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define VC_EXTRALEAN
 #endif
 #include <windows.h>
+#include <mutex>
 
 #endif // TORRENT_HAVE_MAP_VIEW_OF_FILE
 
@@ -119,7 +120,11 @@ namespace aux {
 	{
 		friend struct file_view;
 
-		file_mapping(file_handle file, open_mode_t mode, std::int64_t file_size);
+		file_mapping(file_handle file, open_mode_t mode, std::int64_t file_size
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+			);
 
 		// non-copyable
 		file_mapping(file_mapping const&) = delete;
@@ -145,6 +150,7 @@ namespace aux {
 		std::int64_t m_size;
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		file_mapping_handle m_file;
+		std::shared_ptr<std::mutex> m_open_unmap_lock;
 #else
 		file_handle m_file;
 #endif

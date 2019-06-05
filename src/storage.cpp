@@ -79,6 +79,11 @@ namespace libtorrent {
 		if (params.mapped_files) m_mapped_files = std::make_unique<file_storage>(*params.mapped_files);
 
 		TORRENT_ASSERT(files().num_files() > 0);
+
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		m_file_open_unmap_lock.reset(new std::mutex[files().num_files()]
+			, [](std::mutex* o) { delete[] o; });
+#endif
 	}
 
 	default_storage::~default_storage()
@@ -816,7 +821,12 @@ namespace libtorrent {
 
 		try {
 			return m_pool.open_file(storage_index(), m_save_path, file
-				, files(), mode);
+				, files(), mode
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+				, std::shared_ptr<std::mutex>(m_file_open_unmap_lock
+					, &m_file_open_unmap_lock.get()[int(file)])
+#endif
+				);
 		}
 		catch (system_error const& ex)
 		{
