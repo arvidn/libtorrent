@@ -80,7 +80,11 @@ namespace aux {
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
 		file_view open_file(storage_index_t st, std::string const& p
-			, file_index_t file_index, file_storage const& fs, open_mode_t m);
+			, file_index_t file_index, file_storage const& fs, open_mode_t m
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+			);
 
 		// release all file views belonging to the specified storage_interface
 		// (``st``) the overload that takes ``file_index`` releases only the file
@@ -111,9 +115,17 @@ namespace aux {
 			file_entry(file_id k
 				, string_view name
 				, open_mode_t const m
-				, std::int64_t const size)
+				, std::int64_t const size
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+				, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+				)
 				: key(k)
-				, mapping(std::make_shared<file_mapping>(file_handle(name, size, m), m, size))
+				, mapping(std::make_shared<file_mapping>(file_handle(name, size, m), m, size
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+					, open_unmap_lock
+#endif
+					))
 				, mode(m)
 			{}
 

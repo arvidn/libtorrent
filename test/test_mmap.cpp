@@ -67,7 +67,11 @@ TORRENT_TEST(mmap_read)
 	}
 
 	auto m = std::make_shared<file_mapping>(aux::file_handle("test_file1", 100, open_mode::read_only)
-		, open_mode::read_only, 100);
+		, open_mode::read_only, 100
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		, std::make_shared<std::mutex>()
+#endif
+		);
 
 	for (auto const i : boost::combine(m->view().range(), buf))
 	{
@@ -82,7 +86,11 @@ TORRENT_TEST(mmap_write)
 	{
 		auto m = std::make_shared<file_mapping>(aux::file_handle("test_file2", 100
 				, open_mode::write | open_mode::truncate)
-			, open_mode::write | open_mode::truncate, 100);
+			, open_mode::write | open_mode::truncate, 100
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			, std::make_shared<std::mutex>()
+#endif
+			);
 
 		file_view v = m->view();
 		auto range = v.range();

@@ -405,9 +405,11 @@ DWORD map_access(open_mode_t const m)
 } // anonymous
 
 file_mapping::file_mapping(file_handle file, open_mode_t const mode
-	, std::int64_t const file_size)
+	, std::int64_t const file_size
+	, std::shared_ptr<std::mutex> open_unmap_lock)
 	: m_size(memory_map_size(mode, file_size, file))
 	, m_file(std::move(file), mode, m_size)
+	, m_open_unmap_lock(open_unmap_lock)
 	, m_mapping(MapViewOfFile(m_file.handle()
 		, map_access(mode), 0, 0, static_cast<std::size_t>(m_size)))
 {
@@ -423,6 +425,7 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode
 void file_mapping::close()
 {
 	if (m_mapping == nullptr) return;
+	std::lock_guard<std::mutex> l(*m_open_unmap_lock);
 	UnmapViewOfFile(m_mapping);
 	m_mapping = nullptr;
 }

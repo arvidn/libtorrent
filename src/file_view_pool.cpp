@@ -56,7 +56,11 @@ namespace libtorrent { namespace aux {
 
 	file_view file_view_pool::open_file(storage_index_t st, std::string const& p
 		, file_index_t const file_index, file_storage const& fs
-		, open_mode_t const m)
+		, open_mode_t const m
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+		)
 	{
 		// potentially used to hold a reference to a file object that's
 		// about to be destructed. If we have such object we assign it to
@@ -82,11 +86,18 @@ namespace libtorrent { namespace aux {
 				// mode
 				if (!(e.mode & open_mode::write) && (m & open_mode::write))
 				{
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+					std::unique_lock<std::mutex> lou(*open_unmap_lock);
+#endif
 					defer_destruction = std::move(e.mapping);
 					e.mapping = std::make_shared<file_mapping>(
 						file_handle(fs.file_path(file_index, p)
 							, fs.file_size(file_index), m), m
-						, fs.file_size(file_index));
+						, fs.file_size(file_index)
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+						, open_unmap_lock
+#endif
+						);
 					e.mode = m;
 				}
 			});
@@ -105,8 +116,19 @@ namespace libtorrent { namespace aux {
 		}
 
 		l.unlock();
+
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		std::unique_lock<std::mutex> lou(*open_unmap_lock);
+#endif
 		file_entry e({st, file_index}, fs.file_path(file_index, p), m
-			, fs.file_size(file_index));
+			, fs.file_size(file_index)
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			, open_unmap_lock
+#endif
+			);
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		lou.unlock();
+#endif
 		auto ret = e.mapping->view();
 
 		l.lock();

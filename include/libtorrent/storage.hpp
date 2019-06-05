@@ -194,6 +194,18 @@ namespace aux {
 		mutable std::mutex m_file_created_mutex;
 		mutable typed_bitfield<file_index_t> m_file_created;
 
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		// Windows has a race condition when unmapping a view while a new
+		// view or mapping object is being created in a different thread.
+		// The race can cause a page of written data to be zeroed out before
+		// it is written out to disk. To avoid the race these calls must be
+		// serialized on a per-file basis. See github issue #3842 for details.
+
+		// This array stores a mutex for each file in the storage object
+		// It must be aquired before calling CreateFileMapping or UnmapViewOfFile
+		mutable std::shared_ptr<std::mutex> m_file_open_unmap_lock;
+#endif
+
 		bool m_allocate_files;
 	};
 
