@@ -224,6 +224,11 @@ namespace libtorrent {
 		// called when plugin is added to a session
 		virtual void added(session_handle const&) {}
 
+		// called when the session is aborted
+		// the plugin should perform any cleanup necessary to allow the session's
+		// destruction (e.g. cancel outstanding async operations)
+		virtual void abort() {}
+
 		// called when a dht request is received.
 		// If your plugin expects this to be called, make sure to include the flag
 		// ``dht_request_feature`` in the return value from implemented_features().
