@@ -824,6 +824,13 @@ namespace aux {
 		// session will become invalid.
 		m_alerts.set_notify_function({});
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (auto& ext : m_ses_extensions[plugins_all_idx])
+		{
+			ext->abort();
+		}
+#endif
+
 		// this will cancel requests that are not critical for shutting down
 		// cleanly. i.e. essentially tracker hostname lookups that we're not
 		// about to send event=stopped to
