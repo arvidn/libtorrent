@@ -72,7 +72,7 @@ if '--help' not in sys.argv \
         elif sys.version_info[0:2] in ((3, 3), (3, 4)):
             toolset = ' toolset=msvc-10.0'
         elif sys.version_info[0:2] in ((3, 5), (3, 6)):
-            toolset = ' toolset=msvc-14.0'
+            toolset = ' toolset=msvc-14.1'  # libtorrent requires VS 2017 or newer
         else:
             # unknown python version, lets hope the user has the right version of msvc configured
             toolset = ' toolset=msvc'
