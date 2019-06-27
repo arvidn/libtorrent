@@ -184,12 +184,12 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 			request << "Proxy-Authorization: Basic " << base64encode(
 				ps->username + ":" + ps->password) << "\r\n";
 
-		hostname = ps->hostname;
-		port = ps->port;
-
 		request << "Host: " << hostname;
 		if (port != default_port) request << ":" << port << "\r\n";
 		else request << "\r\n";
+
+		hostname = ps->hostname;
+		port = ps->port;
 	}
 	else
 	{
