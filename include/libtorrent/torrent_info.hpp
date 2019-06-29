@@ -51,10 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/vector.hpp"
-
-#if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/announce_entry.hpp"
-#endif
 
 namespace libtorrent {
 
@@ -267,6 +264,8 @@ namespace libtorrent {
 		// lower tier will always be tried before the one with higher tier
 		// number. For more information, see announce_entry_.
 		void add_tracker(std::string const& url, int tier = 0);
+		void add_tracker(std::string const& url, int tier
+			, announce_entry::tracker_source source);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
 		// These two functions are related to `BEP 38`_ (mutable torrents). The

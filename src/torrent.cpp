@@ -252,6 +252,14 @@ bool is_downloading_state(int const st)
 		if (!m_torrent_file)
 			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info>(m_info_hash));
 
+		// in case we added the torrent via magnet link, make sure to preserve any
+		// DHT nodes passed in on the URI in the torrent file itself
+		if (!m_torrent_file->is_valid())
+		{
+			for (auto const& n : p.dht_nodes)
+				m_torrent_file->add_node(n);
+		}
+
 		// --- WEB SEEDS ---
 
 		// if override web seed flag is set, don't load any web seeds from the
@@ -274,10 +282,16 @@ bool is_downloading_state(int const st)
 			// correct URLs to end with a "/" for multi-file torrents
 			if (multi_file)
 				ensure_trailing_slash(ws.back().url);
+			if (!m_torrent_file->is_valid())
+				m_torrent_file->add_url_seed(ws.back().url);
 		}
 
 		for (auto const& e : p.http_seeds)
+		{
 			ws.emplace_back(e, web_seed_entry::http_seed);
+			if (!m_torrent_file->is_valid())
+				m_torrent_file->add_http_seed(e);
+		}
 
 		aux::random_shuffle(ws);
 		for (auto& w : ws) m_web_seeds.emplace_back(std::move(w));
@@ -305,6 +319,11 @@ bool is_downloading_state(int const st)
 			if (!find_tracker(e.url))
 			{
 				m_trackers.push_back(e);
+				// add the tracker to the m_torrent_file here so that the trackers
+				// will be preserved via create_torrent() when passing in just the
+				// torrent_info object.
+				if (!m_torrent_file->is_valid())
+					m_torrent_file->add_tracker(e.url, e.tier, announce_entry::tracker_source(e.source));
 			}
 		}
 
@@ -6067,7 +6086,7 @@ bool is_downloading_state(int const st)
 
 	std::shared_ptr<const torrent_info> torrent::get_torrent_copy()
 	{
-		if (!m_torrent_file->is_valid()) return std::shared_ptr<const torrent_info>();
+		if (!m_torrent_file->is_valid()) return {};
 		return m_torrent_file;
 	}
 

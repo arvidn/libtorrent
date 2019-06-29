@@ -432,6 +432,48 @@ TORRENT_TEST(trailing_whitespace)
 	TEST_CHECK(h.is_valid());
 }
 
+// These tests don't work because we don't hand out an incomplete torrent_info
+// object. To make them work we would either have to set the correct metadata in
+// the test, or change the behavior to make `h.torrent_file()` return the
+// internal torrent_info object unconditionally
+/*
+TORRENT_TEST(preserve_trackers)
+{
+	session ses(settings());
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&tr=https://test.com/announce", ec);
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+	TEST_CHECK(h.is_valid());
+	TEST_CHECK(h.torrent_file()->trackers().size() == 1);
+	TEST_CHECK(h.torrent_file()->trackers().at(0).url == "https://test.com/announce");
+}
+
+TORRENT_TEST(preserve_web_seeds)
+{
+	session ses(settings());
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&ws=https://test.com/test", ec);
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+	TEST_CHECK(h.is_valid());
+	TEST_CHECK(h.torrent_file()->web_seeds().size() == 1);
+	TEST_CHECK(h.torrent_file()->web_seeds().at(0).url == "https://test.com/test");
+}
+
+TORRENT_TEST(preserve_dht_nodes)
+{
+	session ses(settings());
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&dht=test:1234", ec);
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+	TEST_CHECK(h.is_valid());
+	TEST_CHECK(h.torrent_file()->nodes().size() == 1);
+	TEST_CHECK(h.torrent_file()->nodes().at(0).first == "test");
+	TEST_CHECK(h.torrent_file()->nodes().at(0).second == 1234);
+}
+*/
 TORRENT_TEST(invalid_tracker_escaping)
 {
 	error_code ec;
