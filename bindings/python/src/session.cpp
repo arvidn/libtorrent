@@ -322,9 +322,9 @@ namespace
         {
             list l = extract<list>(params["file_priorities"]);
             int n = boost::python::len(l);
+            p.file_priorities.clear();
             for(int i = 0; i < n; i++)
                 p.file_priorities.push_back(extract<boost::uint8_t>(l[i]));
-            p.file_priorities.clear();
         }
     }
 
