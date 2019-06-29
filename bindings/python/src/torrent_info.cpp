@@ -234,6 +234,15 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
+    enum_<announce_entry::tracker_source>("tracker_source")
+        .value("source_torrent", announce_entry::source_torrent)
+        .value("source_client", announce_entry::source_client)
+        .value("source_magnet_link", announce_entry::source_magnet_link)
+        .value("source_tex", announce_entry::source_tex)
+    ;
+
+    using add_tracker1 = void (torrent_info::*)(std::string const&, int, announce_entry::tracker_source);
+
     class_<torrent_info, std::shared_ptr<torrent_info>>("torrent_info", no_init)
         .def(init<sha1_hash const&>(arg("info_hash")))
         .def("__init__", make_constructor(&bencoded_constructor0))
@@ -245,7 +254,7 @@ void bind_torrent_info()
         .def(init<std::wstring>((arg("file"))))
 #endif
 
-        .def("add_tracker", &torrent_info::add_tracker, arg("url"))
+        .def("add_tracker", (add_tracker1)&torrent_info::add_tracker, arg("url"), arg("tier") = 0, arg("source") = announce_entry::source_client)
         .def("add_url_seed", &torrent_info::add_url_seed)
         .def("add_http_seed", &torrent_info::add_http_seed)
         .def("web_seeds", get_web_seeds)
@@ -338,13 +347,6 @@ void bind_torrent_info()
         .def("reset", &announce_entry::reset)
         .def("trim", &announce_entry::trim)
         ;
-
-    enum_<announce_entry::tracker_source>("tracker_source")
-        .value("source_torrent", announce_entry::source_torrent)
-        .value("source_client", announce_entry::source_client)
-        .value("source_magnet_link", announce_entry::source_magnet_link)
-        .value("source_tex", announce_entry::source_tex)
-    ;
 
     implicitly_convertible<std::shared_ptr<torrent_info>, std::shared_ptr<const torrent_info>>();
     boost::python::register_ptr_to_python<std::shared_ptr<const torrent_info>>();

@@ -1511,13 +1511,19 @@ namespace {
 
 	void torrent_info::add_tracker(std::string const& url, int const tier)
 	{
+		add_tracker(url, tier, announce_entry::source_client);
+	}
+
+	void torrent_info::add_tracker(std::string const& url, int const tier
+		, announce_entry::tracker_source const source)
+	{
 		auto const i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.url == url; });
 		if (i != m_urls.end()) return;
 
 		announce_entry e(url);
 		e.tier = std::uint8_t(tier);
-		e.source = announce_entry::source_client;
+		e.source = source;
 		m_urls.push_back(e);
 
 		std::sort(m_urls.begin(), m_urls.end()
