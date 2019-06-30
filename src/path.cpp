@@ -278,7 +278,14 @@ namespace {
 		if (ec != boost::system::errc::no_such_file_or_directory)
 			return;
 		ec.clear();
-		if (is_root_path(f)) return;
+		if (is_root_path(f))
+		{
+			// this is just to set ec correctly, in case this root path isn't
+			// mounted
+			file_status s;
+			stat_file(f, &s, ec);
+			return;
+		}
 		if (has_parent_path(f))
 		{
 			create_directories(parent_path(f), ec);
