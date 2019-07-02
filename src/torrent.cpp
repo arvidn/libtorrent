@@ -369,7 +369,7 @@ bool is_downloading_state(int const st)
 				verified.reserve(p.verified_leaf_hashes.size());
 				for (auto const& v : p.verified_leaf_hashes)
 					verified.emplace_back(v.begin(), v.end());
-				need_hash_picker(verified);
+				need_hash_picker(std::move(verified));
 			}
 		}
 
@@ -2581,6 +2581,20 @@ bool is_downloading_state(int const st)
 
 	namespace
 	{
+		struct announce_protocol_state
+		{
+			// the tier is kept as INT_MAX until we find the first
+			// tracker that works, then it's set to that tracker's
+			// tier.
+			int tier = INT_MAX;
+
+			// have we sent an announce in this tier yet?
+			bool sent_announce = false;
+
+			// have we finished sending announces on this listen socket?
+			bool done = false;
+		};
+
 		struct announce_state
 		{
 			explicit announce_state(aux::listen_socket_handle const& s)
@@ -2588,19 +2602,7 @@ bool is_downloading_state(int const st)
 
 			aux::listen_socket_handle socket;
 
-			struct
-			{
-				// the tier is kept as INT_MAX until we find the first
-				// tracker that works, then it's set to that tracker's
-				// tier.
-				int tier = INT_MAX;
-
-				// have we sent an announce in this tier yet?
-				bool sent_announce = false;
-
-				// have we finished sending announces on this listen socket?
-				bool done = false;
-			} state[int(protocol_version::NUM)];
+			aux::array<announce_protocol_state, int(protocol_version::NUM)> state;
 		};
 	}
 
