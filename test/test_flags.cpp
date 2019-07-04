@@ -166,3 +166,25 @@ TORRENT_TEST(flag_stop_when_ready)
 	//test_set_after_add(torrent_flags::stop_when_ready);
 	test_unset_after_add(torrent_flags::stop_when_ready);
 }
+
+TORRENT_TEST(flag_disable_dht)
+{
+	test_add_and_get_flags(torrent_flags::disable_dht);
+	test_set_after_add(torrent_flags::disable_dht);
+	test_unset_after_add(torrent_flags::disable_dht);
+}
+
+
+TORRENT_TEST(flag_disable_lsd)
+{
+	test_add_and_get_flags(torrent_flags::disable_lsd);
+	test_set_after_add(torrent_flags::disable_lsd);
+	test_unset_after_add(torrent_flags::disable_lsd);
+}
+
+TORRENT_TEST(flag_disable_pex)
+{
+	test_add_and_get_flags(torrent_flags::disable_pex);
+	test_set_after_add(torrent_flags::disable_pex);
+	test_unset_after_add(torrent_flags::disable_pex);
+}

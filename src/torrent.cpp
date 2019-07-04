@@ -203,10 +203,13 @@ bool is_downloading_state(int const st)
 		, m_super_seeding(p.flags & torrent_flags::super_seeding)
 		, m_stop_when_ready(p.flags & torrent_flags::stop_when_ready)
 		, m_need_save_resume_data(p.flags & torrent_flags::need_save_resume)
+		, m_enable_dht(!bool(p.flags & torrent_flags::disable_dht))
+		, m_enable_lsd(!bool(p.flags & torrent_flags::disable_lsd))
 		, m_max_uploads((1 << 24) - 1)
 		, m_save_resume_flags()
 		, m_num_uploads(0)
 		, m_lsd_seq(0)
+		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
 		, m_pending_active_change(false)
@@ -787,6 +790,7 @@ bool is_downloading_state(int const st)
 	bool torrent::should_announce_dht() const
 	{
 		TORRENT_ASSERT(is_single_thread());
+		if (!m_enable_dht) return false;
 		if (!m_ses.announce_dht()) return false;
 
 		if (!m_ses.dht()) return false;
@@ -970,6 +974,12 @@ bool is_downloading_state(int const st)
 			ret |= torrent_flags::sequential_download;
 		if (m_stop_when_ready)
 			ret |= torrent_flags::stop_when_ready;
+		if (!m_enable_dht)
+			ret |= torrent_flags::disable_dht;
+		if (!m_enable_lsd)
+			ret |= torrent_flags::disable_lsd;
+		if (!m_enable_pex)
+			ret |= torrent_flags::disable_pex;
 		return ret;
 	}
 
@@ -1002,6 +1012,12 @@ bool is_downloading_state(int const st)
 			set_sequential_download(bool(flags & torrent_flags::sequential_download));
 		if (mask & torrent_flags::stop_when_ready)
 			stop_when_ready(bool(flags & torrent_flags::stop_when_ready));
+		if (mask & torrent_flags::disable_dht)
+			m_enable_dht = !bool(flags & torrent_flags::disable_dht);
+		if (mask & torrent_flags::disable_lsd)
+			m_enable_lsd = !bool(flags & torrent_flags::disable_lsd);
+		if (mask & torrent_flags::disable_pex)
+			m_enable_pex = !bool(flags & torrent_flags::disable_pex);
 	}
 
 	void torrent::set_share_mode(bool s)
@@ -2542,6 +2558,7 @@ bool is_downloading_state(int const st)
 	void torrent::lsd_announce()
 	{
 		if (m_abort) return;
+		if (!m_enable_lsd) return;
 
 		// if the files haven't been checked yet, we're
 		// not ready for peers. Except, if we don't have metadata,
@@ -2606,6 +2623,9 @@ bool is_downloading_state(int const st)
 
 				if (m_paused)
 					debug_log("DHT: torrent paused, no DHT announce");
+
+				if (!m_enable_dht)
+					debug_log("DHT: torrent has DHT disabled flag");
 
 #if TORRENT_ABI_VERSION == 1
 				// deprecated in 1.2

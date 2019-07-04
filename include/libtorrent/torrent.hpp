@@ -1548,7 +1548,11 @@ namespace libtorrent {
 		// whenever something is downloaded
 		bool m_need_save_resume_data:1;
 
-		// 2 bits here
+		// when this is true, this torrent participates in the DHT
+		bool m_enable_dht:1;
+
+		// when this is true, this torrent participates in local service discovery
+		bool m_enable_lsd:1;
 
 // ----
 
@@ -1573,11 +1577,12 @@ namespace libtorrent {
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
 
-		// 1 bit here
-
 		// rotating sequence number for LSD announces sent out.
 		// used to only use IP broadcast for every 8th lsd announce
 		std::uint8_t m_lsd_seq:3;
+
+		// when this is true, this torrent supports peer exchange
+		bool m_enable_pex:1;
 
 		// this is set to true if the torrent was started without
 		// metadata. It is used to save metadata in the resume file

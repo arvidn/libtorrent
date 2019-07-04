@@ -100,6 +100,8 @@ namespace libtorrent { namespace {
 		// max_peer_entries limits the packet size
 		void tick() override
 		{
+			if (m_torrent.flags() & torrent_flags::disable_pex) return;
+
 			time_point const now = aux::time_now();
 			if (now - seconds(60) < m_last_msg) return;
 			m_last_msg = now;
@@ -259,6 +261,8 @@ namespace libtorrent { namespace {
 		{
 			if (msg != extension_index) return false;
 			if (m_message_index == 0) return false;
+
+			if (m_torrent.flags() & torrent_flags::disable_pex) return true;
 
 			if (length > 500 * 1024)
 			{
@@ -463,6 +467,8 @@ namespace libtorrent { namespace {
 
 		void send_ut_peer_diff()
 		{
+			if (m_torrent.flags() & torrent_flags::disable_pex) return;
+
 			// if there's no change in out peer set, don't send anything
 			if (m_tp.peers_in_msg() == 0) return;
 
@@ -507,6 +513,8 @@ namespace libtorrent { namespace {
 
 		void send_ut_peer_list()
 		{
+			if (m_torrent.flags() & torrent_flags::disable_pex) return;
+
 			entry pex;
 			// leave the dropped string empty
 			pex["dropped"].string();
