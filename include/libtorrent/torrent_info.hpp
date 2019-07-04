@@ -642,6 +642,17 @@ namespace libtorrent {
 #endif
 
 		// v2 merkle tree for each file
+		// technically this state belongs in the torrent object, but there are
+		// some practical reasons to keep it in the torrent_info object.
+		// the piece_layers, if present, are parsed out of the .torrent file, and
+		// they are not part of the info-dict. This means they have to be parsed
+		// out and stored in the torrent_info object in order to be preserved when
+		// a torrent is added.
+		// For the merkle trees to be owned by the torrent object, the piece
+		// layers would either have to be stored twice (once in torrent_info and
+		// once in torrent), or they would have to be moved out of torrent_info as
+		// the torrent is added. Storing it twice can use a lot of memory. Moving
+		// it out leaves a "one-time-use" API on torrent_info class.
 		mutable aux::vector<aux::vector<sha256_hash>, file_index_t> m_merkle_trees;
 
 		// this is a copy of the info section from the torrent.

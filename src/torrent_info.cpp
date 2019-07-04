@@ -1480,7 +1480,7 @@ namespace {
 		for (int i = 0; i < e.dict_size(); ++i)
 		{
 			auto const f = e.dict_at(i);
-			if (f.first.size() != sha256_hash::size()
+			if (f.first.size() != static_cast<std::size_t>(sha256_hash::size())
 				|| f.second.type() != bdecode_node::string_t
 				|| f.second.string_length() % sha256_hash::size() != 0)
 				continue;
