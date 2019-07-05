@@ -536,7 +536,7 @@ void node::put_item(sha1_hash const& target, entry const& data, std::function<vo
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
-		m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
+		m_observer->log(dht_logger::node, "starting put for [ hash: %s ]"
 			, aux::to_hex(target).c_str());
 	}
 #endif
@@ -560,7 +560,7 @@ void node::put_item(public_key const& pk, std::string const& salt
 	{
 		char hex_key[65];
 		aux::to_hex(pk.bytes, hex_key);
-		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
+		m_observer->log(dht_logger::node, "starting put for [ key: %s ]", hex_key);
 	}
 #endif
 
