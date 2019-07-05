@@ -5324,12 +5324,12 @@ namespace libtorrent {
 
 			t->need_hash_picker();
 			auto picker = t->get_hash_picker();
-			set_block_hash_result result = set_block_hash_result::unknown;
+			set_block_hash_result result = set_block_hash_result::unknown();
 			for (int i = 0; i < blocks_in_piece; ++i)
 			{
 				result = picker.set_block_hash(piece, i * default_block_size, block_hashes[i]);
-				if (result.status == set_block_hash_result::block_hash_failed
-					|| result.status == set_block_hash_result::piece_hash_failed)
+				if (result.status == set_block_hash_result::result::block_hash_failed
+					|| result.status == set_block_hash_result::result::piece_hash_failed)
 				{
 					hash_failed[1] = true;
 				}
@@ -5338,7 +5338,7 @@ namespace libtorrent {
 			// if the last block still couldn't be verified
 			// it means we don't know the piece's root hash
 			// we must leave seed mode
-			if (result.status == set_block_hash_result::unknown)
+			if (result.status == set_block_hash_result::result::unknown)
 				hash_failed[0] = hash_failed[1] = true;
 		}
 

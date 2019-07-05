@@ -451,7 +451,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (m_files.pad_file_at(f))
 		{
 			// TODO: verify pad file hashes
-			return set_block_hash_result::success;
+			return { 0, 0 };
 		}
 
 		// if this blocks's hash is already known, check the passed-in hash against it
@@ -461,12 +461,12 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			if (block_tree_index > 0)
 				TORRENT_ASSERT(!merkle_tree[merkle_get_parent(block_tree_index)].is_all_zeros());
 			return merkle_tree[block_tree_index] == h ? set_block_hash_result{offset / default_block_size, 1}
-				: set_block_hash_result::block_hash_failed;
+				: set_block_hash_result::block_hash_failed();
 		}
 		else if (h.is_all_zeros())
 		{
 			TORRENT_ASSERT_FAIL();
-			return set_block_hash_result::block_hash_failed;
+			return set_block_hash_result::block_hash_failed();
 		}
 
 		merkle_tree[block_tree_index] = h;
@@ -510,7 +510,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		// if the root node is unknown the hashes cannot be verified yet
 		if (merkle_tree[root_index].is_all_zeros())
-			return set_block_hash_result::unknown;
+			return set_block_hash_result::unknown();
 
 		// save the root hash because merkle_fill_tree will overwrite it
 		sha256_hash root = merkle_tree[root_index];
@@ -525,9 +525,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			// otherwise report unknown. The pieces will be checked once their hashes have been
 			// downloaded.
 			if (leafs_size <= m_files.piece_length() / default_block_size)
-				return set_block_hash_result::piece_hash_failed;
+				return set_block_hash_result::piece_hash_failed();
 			else
-				return set_block_hash_result::unknown;
+				return set_block_hash_result::unknown();
 		}
 		else
 		{

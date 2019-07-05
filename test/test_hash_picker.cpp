@@ -382,15 +382,15 @@ TORRENT_TEST(set_block_hash)
 	hash_picker picker(fs, trees);
 	auto result = picker.set_block_hash(1_piece, default_block_size
 		, full_tree[first_leaf + 5]);
-	TEST_CHECK(result.status == set_block_hash_result::success);
+	TEST_CHECK(result.status == set_block_hash_result::result::success);
 
 	result = picker.set_block_hash(2_piece, default_block_size * 2
 		, full_tree[first_leaf + 10]);
-	TEST_CHECK(result.status == set_block_hash_result::success);
+	TEST_CHECK(result.status == set_block_hash_result::result::success);
 
 	result = picker.set_block_hash(2_piece, default_block_size * 2
 		, sha256_hash("01234567890123456789012345678901"));
-	TEST_CHECK(result.status == set_block_hash_result::block_hash_failed);
+	TEST_CHECK(result.status == set_block_hash_result::result::block_hash_failed);
 
 	// zero out the inner nodes for a piece along with a single leaf node
 	// then add a bogus hash for the leaf
@@ -399,7 +399,7 @@ TORRENT_TEST(set_block_hash)
 	trees.front()[first_leaf + 13].clear();
 
 	result = picker.set_block_hash(3_piece, default_block_size, sha256_hash("01234567890123456789012345678901"));
-	TEST_CHECK(result.status == set_block_hash_result::piece_hash_failed);
+	TEST_CHECK(result.status == set_block_hash_result::result::piece_hash_failed);
 
 	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 12)].is_all_zeros());
 	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 14)].is_all_zeros());
@@ -426,7 +426,7 @@ TORRENT_TEST(pass_piece)
 	{
 		auto result = picker.set_block_hash(0_piece, default_block_size * i
 			, full_tree[first_leaf + i]);
-		TEST_CHECK(result.status == set_block_hash_result::unknown);
+		TEST_CHECK(result.status == set_block_hash_result::result::unknown);
 	}
 
 	auto pieces_start = full_tree.begin() + merkle_num_nodes(512) - 512;

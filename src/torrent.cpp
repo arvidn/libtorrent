@@ -3842,8 +3842,8 @@ bool is_downloading_state(int const st)
 			}
 			auto result = get_hash_picker().set_block_hash(piece, i * default_block_size, block_hashes[i]);
 
-			block_passed[i] = result.status == set_block_hash_result::success;
-			if (result.status == set_block_hash_result::success)
+			block_passed[i] = result.status == set_block_hash_result::result::success;
+			if (result.status == set_block_hash_result::result::success)
 			{
 				TORRENT_ASSERT(result.first_verified_block <= blocks_in_piece);
 				auto const first_block = std::max(0, result.first_verified_block);
@@ -3870,7 +3870,7 @@ bool is_downloading_state(int const st)
 					we_have(verified_piece);
 				}
 			}
-			else if (result.status == set_block_hash_result::block_hash_failed)
+			else if (result.status == set_block_hash_result::result::block_hash_failed)
 			{
 				ret = false;
 			}

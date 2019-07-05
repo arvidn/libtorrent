@@ -48,7 +48,7 @@ namespace libtorrent
 
 	struct set_block_hash_result
 	{
-		enum result_status
+		enum class result
 		{
 			// hash is verified
 			success,
@@ -60,10 +60,14 @@ namespace libtorrent
 			piece_hash_failed
 		};
 
-		set_block_hash_result(result_status s) : status(s), first_verified_block(0), num_verified(0) {}
-		set_block_hash_result(int first_block, int num) : status(success), first_verified_block(first_block), num_verified(num) {}
+		explicit set_block_hash_result(result s) : status(s), first_verified_block(0), num_verified(0) {}
+		set_block_hash_result(int first_block, int num) : status(result::success), first_verified_block(first_block), num_verified(num) {}
 
-		result_status status;
+		static set_block_hash_result unknown() { return set_block_hash_result(result::unknown); }
+		static set_block_hash_result block_hash_failed() { return set_block_hash_result(result::block_hash_failed); }
+		static set_block_hash_result piece_hash_failed() { return set_block_hash_result(result::piece_hash_failed); }
+
+		result status;
 		// if status is success, this will hold the index of the first verified
 		// block hash as an offset from the index of the first block in the piece
 		int first_verified_block;
