@@ -356,7 +356,7 @@ namespace {
 		m_type = preformatted_t;
 	}
 
-	// convert a bdecode_node into an old skool entry
+	// convert a bdecode_node into an old school entry
 	entry& entry::operator=(bdecode_node const& e) &
 	{
 		switch (e.type())
@@ -395,7 +395,7 @@ namespace {
 	}
 
 #if TORRENT_ABI_VERSION == 1
-	// convert a lazy_entry into an old skool entry
+	// convert a lazy_entry into an old school entry
 	entry& entry::operator=(lazy_entry const& e) &
 	{
 		switch (e.type())
