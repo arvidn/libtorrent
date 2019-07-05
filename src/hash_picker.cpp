@@ -426,7 +426,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					m_merkle_trees[req.file][merkle_to_flat_index(base_layer_index, req.index + i)] = hashes[i];
 					TORRENT_ASSERT(num_leafs == m_files.piece_length() / default_block_size);
 					//verify_block_hashes(m_files.file_offset(req.file) / m_files.piece_length() + req.index);
-					// TODO: add to
+					// TODO: add to failed hashes
 				}
 				else
 				{
