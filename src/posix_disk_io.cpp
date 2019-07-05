@@ -185,25 +185,32 @@ namespace {
 
 			posix_storage* st = m_torrents[storage].get();
 
-			int const piece_size = st->files().piece_size(piece);
-			int const blocks_in_piece =  st->files().blocks_in_piece2(piece);
+			int const piece_size = v1 ? st->files().piece_size(piece) : 0;
+			int const piece_size2 = v2 ? st->orig_files().piece_size2(piece) : 0;
+			int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
+			int const blocks_in_piece2 = v2 ? st->orig_files().blocks_in_piece2(piece) : 0;
+
+			TORRENT_ASSERT(!v2 || int(block_hashes.size()) >= blocks_in_piece2);
 
 			int offset = 0;
-			for (int i = 0; i < blocks_in_piece; ++i)
+			for (int i = 0; i < std::max(blocks_in_piece, blocks_in_piece2); ++i)
 			{
-				auto const len = std::min(default_block_size, piece_size - offset);
+				bool const v2_block = i < blocks_in_piece2;
 
-				iovec_t b = {buffer.data(), len};
+				auto const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
+				auto const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
+
+				iovec_t b = {buffer.data(), std::max(len, len2)};
 				int const ret = st->readv(m_settings, b, piece, offset, error);
 				offset += default_block_size;
 				if (ret <= 0) break;
 				if (v1)
-					ph.update(b.first(ret));
-				if (v2)
-					block_hashes[i] = hasher256(b.first(ret)).final();
+					ph.update(b.first(std::min(ret, len)));
+				if (v2_block)
+					block_hashes[i] = hasher256(b.first(std::min(ret, len2))).final();
 			}
 
-			sha1_hash const hash = ph.final();
+			sha1_hash const hash = v1 ? ph.final() : sha1_hash();
 
 			if (!error.ec)
 			{
