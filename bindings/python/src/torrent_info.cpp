@@ -126,18 +126,18 @@ namespace
 #if TORRENT_ABI_VERSION == 1
     // Create getters for announce_entry data members with non-trivial types which need converting.
     lt::time_point get_next_announce(announce_entry const& ae)
-    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().next_announce); }
+    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().info_hashes[0].next_announce); }
     lt::time_point get_min_announce(announce_entry const& ae)
-    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().min_announce); }
+    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().info_hashes[0].min_announce); }
     // announce_entry data member bit-fields.
     int get_fails(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().fails; }
+    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().info_hashes[0].fails; }
     bool get_updating(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().updating; }
+    { return ae.endpoints.empty() ? false : ae.endpoints.front().info_hashes[0].updating; }
     bool get_start_sent(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().start_sent; }
+    { return ae.endpoints.empty() ? false : ae.endpoints.front().info_hashes[0].start_sent; }
     bool get_complete_sent(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().complete_sent; }
+    { return ae.endpoints.empty() ? false : ae.endpoints.front().info_hashes[0].complete_sent; }
     // announce_entry method requires lt::time_point.
     bool can_announce(announce_entry const& ae, bool is_seed) {
         // an entry without endpoints implies it has never been announced so it can be now
@@ -153,15 +153,15 @@ namespace
 
 #if TORRENT_ABI_VERSION == 1
     std::string get_message(announce_entry const& ae)
-    { return ae.endpoints.empty() ? "" : ae.endpoints.front().message; }
+    { return ae.endpoints.empty() ? "" : ae.endpoints.front().info_hashes[0].message; }
     error_code get_last_error(announce_entry const& ae)
-    { return ae.endpoints.empty() ? error_code() : ae.endpoints.front().last_error; }
+    { return ae.endpoints.empty() ? error_code() : ae.endpoints.front().info_hashes[0].last_error; }
     int get_scrape_incomplete(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_incomplete; }
+    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().info_hashes[0].scrape_incomplete; }
     int get_scrape_complete(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_complete; }
+    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().info_hashes[0].scrape_complete; }
     int get_scrape_downloaded(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_downloaded; }
+    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().info_hashes[0].scrape_downloaded; }
     int next_announce_in(announce_entry const&) { return 0; }
     int min_announce_in(announce_entry const&) { return 0; }
     bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
