@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // -- example begin
 struct temp_storage
 {
-	temp_storage(lt::file_storage const& fs) : m_files(fs) {}
+	explicit temp_storage(lt::file_storage const& fs) : m_files(fs) {}
 
 	lt::span<char const> readv(lt::piece_index_t const piece, int const offset, lt::storage_error& ec) const
 	{
@@ -92,14 +92,14 @@ struct temp_storage
 			int const blocks_in_piece2 = m_files.blocks_in_piece2(piece);
 			char const* buf = i->second.data();
 			std::int64_t offset = 0;
-			for (int i = 0; i < blocks_in_piece2; ++i)
+			for (int k = 0; k < blocks_in_piece2; ++k)
 			{
 				lt::hasher256 h2;
 				std::ptrdiff_t const len2 = std::min(lt::default_block_size, int(piece_size2 - offset));
 				h2.update({ buf, len2 });
 				buf += len2;
 				offset += len2;
-				block_hashes[i] = h2.final();
+				block_hashes[k] = h2.final();
 			}
 		}
 		return lt::hasher(i->second).final();

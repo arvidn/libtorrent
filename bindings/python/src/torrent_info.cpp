@@ -81,6 +81,7 @@ namespace
         ti.set_web_seeds(web_seeds);
     }
 
+#if TORRENT_ABI_VERSION <= 2
     list get_merkle_tree(torrent_info const& ti)
     {
         std::vector<sha1_hash> const& mt = ti.merkle_tree();
@@ -101,6 +102,7 @@ namespace
 
         ti.set_merkle_tree(h);
     }
+#endif
 
     bytes hash_for_piece(torrent_info const& ti, piece_index_t i)
     {
@@ -234,8 +236,29 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
+    enum_<protocol_version>("protocol_version")
+        .value("V1", protocol_version::V1)
+        .value("V2", protocol_version::V2)
+        ;
+
+    class_<info_hash_t>("info_hash_t")
+        .def(init<sha1_hash const&>(arg("sha1_hash")))
+        .def(init<sha256_hash const&>(arg("sha256_hash")))
+        .def(init<sha1_hash const&, sha256_hash const&>((arg("sha1_hash"), arg("sha256_hash"))))
+        .def("has_v1", &info_hash_t::has_v1)
+        .def("has_v2", &info_hash_t::has_v2)
+        .def("has", &info_hash_t::has)
+        .def("get", &info_hash_t::get)
+        .def("get_best", &info_hash_t::get_best)
+        .add_property("v1", &info_hash_t::v1)
+        .add_property("v2", &info_hash_t::v2)
+        .def(self == self)
+        .def(self != self)
+        .def(self < self)
+        ;
+
     class_<torrent_info, std::shared_ptr<torrent_info>>("torrent_info", no_init)
-        .def(init<sha1_hash const&>(arg("info_hash")))
+        .def(init<info_hash_t const&>(arg("info_hash")))
         .def("__init__", make_constructor(&bencoded_constructor0))
         .def("__init__", make_constructor(&buffer_constructor0))
         .def("__init__", make_constructor(&file_constructor0))
@@ -259,8 +282,10 @@ void bind_torrent_info()
         .def("num_pieces", &torrent_info::num_pieces)
         .def("info_hash", &torrent_info::info_hash, copy)
         .def("hash_for_piece", &hash_for_piece)
+#if TORRENT_ABI_VERSION <= 2
         .def("merkle_tree", get_merkle_tree)
         .def("set_merkle_tree", set_merkle_tree)
+#endif
         .def("piece_size", &torrent_info::piece_size)
 
         .def("similar_torrents", &torrent_info::similar_torrents)
@@ -280,7 +305,9 @@ void bind_torrent_info()
         .def("is_valid", &torrent_info::is_valid)
         .def("priv", &torrent_info::priv)
         .def("is_i2p", &torrent_info::is_i2p)
+#if TORRENT_ABI_VERSION <= 2
         .def("is_merkle_torrent", &torrent_info::is_merkle_torrent)
+#endif
         .def("trackers", range(begin_trackers, end_trackers))
 
         .def("creation_date", &torrent_info::creation_date)

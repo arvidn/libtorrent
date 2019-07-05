@@ -2736,11 +2736,19 @@ bool is_downloading_state(int const st)
 		req.num_want = (req.event == tracker_request::stopped)
 			? 0 : settings().get_int(settings_pack::num_want);
 
+// some older versions of clang had a bug where it would fire this warning here
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
+#endif
 		aux::array<bool const, 2> const supports_protocol
 		{{
 			m_info_hash.has_v1(),
 			m_info_hash.has_v2()
 		}};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 		time_point32 const now = aux::time_now32();
 
@@ -6249,7 +6257,12 @@ bool is_downloading_state(int const st)
 	{
 		need_hash_picker();
 		if (!m_hash_picker) return;
-		debug_log("Piece %d hash failure, requesting block hashes", int(index));
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+		{
+			debug_log("Piece %d hash failure, requesting block hashes", int(index));
+		}
+#endif
 		m_hash_picker->verify_block_hashes(index);
 	}
 

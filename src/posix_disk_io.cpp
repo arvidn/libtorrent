@@ -186,7 +186,7 @@ namespace {
 			posix_storage* st = m_torrents[storage].get();
 
 			int const piece_size = st->files().piece_size(piece);
-			int const blocks_in_piece = (piece_size + default_block_size - 1) / default_block_size;
+			int const blocks_in_piece =  st->files().blocks_in_piece2(piece);
 
 			int offset = 0;
 			for (int i = 0; i < blocks_in_piece; ++i)
