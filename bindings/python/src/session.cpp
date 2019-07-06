@@ -248,8 +248,16 @@ namespace
             }
             else if(key == "info_hash")
             {
-                p.info_hash = sha1_hash(
-                bytes(extract<bytes>(value)).arr.data());
+                if (boost::python::len(value) == 40)
+                {
+                    p.info_hash = info_hash_t(sha1_hash(
+                            bytes(extract<bytes>(value)).arr.data()));
+                }
+                else
+                {
+                    p.info_hash = info_hash_t(sha256_hash(
+                            bytes(extract<bytes>(value)).arr.data()));
+                }
                 continue;
             }
             else if(key == "name")
@@ -775,7 +783,9 @@ void bind_session()
         .add_property("have_pieces", PROP(&add_torrent_params::have_pieces))
         .add_property("verified_pieces", PROP(&add_torrent_params::verified_pieces))
         .add_property("piece_priorities", PROP(&add_torrent_params::piece_priorities))
+#if TORRENT_ABI_VERSION <= 2
         .add_property("merkle_tree", PROP(&add_torrent_params::merkle_tree))
+#endif
         .add_property("renamed_files", PROP(&add_torrent_params::renamed_files))
 
 #if TORRENT_ABI_VERSION == 1

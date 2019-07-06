@@ -1218,7 +1218,6 @@ namespace {
 				new_mtime.push_back(0);
 
 			auto& file = new_files.back();
-			TORRENT_ASSERT(static_cast<std::int64_t>(file.size) <= max_file_size);
 			TORRENT_ASSERT(off < max_file_offset - static_cast<std::int64_t>(file.size));
 			file.offset = static_cast<std::uint64_t>(off);
 			off += file.size;

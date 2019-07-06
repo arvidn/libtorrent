@@ -101,11 +101,11 @@ namespace libtorrent {
 	// .torrent file using bencode().
 	struct TORRENT_EXPORT create_torrent
 	{
+#if TORRENT_ABI_VERSION <= 2
 		// This will insert pad files to align the files to piece boundaries, for
 		// optimized disk-I/O. This will minimize the number of bytes of pad-
 		// files, to keep the impact down for clients that don't support
 		// them.
-#if TORRENT_ABI_VERSION <= 2
 		// incompatible with v2 metadata, ignored
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize_alignment = 0_bit;
 #endif
@@ -114,6 +114,7 @@ namespace libtorrent {
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize = 0_bit;
 #endif
 
+#if TORRENT_ABI_VERSION <= 2
 		// This will create a merkle hash tree torrent. A merkle torrent cannot
 		// be opened in clients that don't specifically support merkle torrents.
 		// The benefit is that the resulting torrent file will be much smaller and
@@ -122,7 +123,6 @@ namespace libtorrent {
 		// When creating merkle torrents, the full hash tree is also generated
 		// and should be saved off separately. It is accessed through the
 		// create_torrent::merkle_tree() function.
-#if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
 		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER merkle = 1_bit;
 #endif

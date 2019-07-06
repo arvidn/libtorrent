@@ -213,7 +213,8 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.update(data);
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA256_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), data.size());
+		SHA256_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
+			, static_cast<std::size_t>(data.size()));
 #else
 		SHA256_update(m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
