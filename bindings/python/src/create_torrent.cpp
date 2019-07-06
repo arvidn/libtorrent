@@ -238,6 +238,7 @@ void bind_create_torrent()
         s.attr("optimize_alignment") = create_torrent::optimize_alignment;
         s.attr("merkle") = create_torrent::merkle;
 #endif
+        s.attr("v2_only") = create_torrent::v2_only;
         s.attr("modification_time") = create_torrent::modification_time;
         s.attr("symlinks") = create_torrent::symlinks;
     }
