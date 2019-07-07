@@ -248,7 +248,7 @@ namespace
             }
             else if(key == "info_hash")
             {
-                if (boost::python::len(value) == 40)
+                if (boost::python::len(value) == sha1_hash::size())
                 {
                     p.info_hash = info_hash_t(sha1_hash(
                             bytes(extract<bytes>(value)).arr.data()));
