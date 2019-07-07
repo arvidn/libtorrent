@@ -471,7 +471,10 @@ namespace {
 		, m_private(ti.priv())
 		, m_include_mtime(false)
 		, m_include_symlinks(false)
+		, m_v2_only(!ti.info_hash().has_v1())
+		, m_v1_only(!ti.info_hash().has_v2())
 	{
+		TORRENT_ASSERT_PRECOND(!(m_v2_only && m_v1_only));
 		TORRENT_ASSERT(ti.is_valid());
 		TORRENT_ASSERT(ti.num_pieces() > 0);
 		TORRENT_ASSERT(ti.num_files() > 0);
@@ -498,12 +501,15 @@ namespace {
 		}
 
 		m_piece_hash.resize(m_files.num_pieces());
-		m_fileroots.resize(m_files.num_files());
-		m_file_piece_hash.resize(m_files.num_files());
-		for (auto const i : m_files.file_range())
-			m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
-		for (auto const i : m_files.piece_range())
-			set_hash(i, ti.hash_for_piece(i));
+		if (!m_v1_only)
+		{
+			m_fileroots.resize(m_files.num_files());
+			m_file_piece_hash.resize(m_files.num_files());
+			for (auto const i : m_files.file_range())
+				m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
+			for (auto const i : m_files.piece_range())
+				set_hash(i, ti.hash_for_piece(i));
+		}
 
 		boost::shared_array<char> const info = ti.metadata();
 		int const size = ti.metadata_size();
