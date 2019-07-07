@@ -477,7 +477,7 @@ namespace libtorrent {namespace {
 		// this is set to the next time we can request pieces
 		// again. It is updated every time we get a
 		// "I don't have metadata" message, but also when
-		// we receive metadata that fails the infohash check
+		// we receive metadata that fails the info hash check
 		time_point m_request_limit;
 
 		// request queues

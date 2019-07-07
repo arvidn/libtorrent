@@ -470,3 +470,6 @@ libFuzzer
 clang's
 prev
 mmap
+hash2
+infohash
+v1
