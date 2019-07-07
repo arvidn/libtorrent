@@ -173,7 +173,7 @@ namespace aux {
 		// that's why it's private, to keep people away from it
 		char const* name = nullptr;
 	public:
-		// the sha256 root of the merkle tree for this file
+		// the SHA-256 root of the merkle tree for this file
 		// this is a pointer into the .torrent file
 		char const* root = nullptr;
 
@@ -424,7 +424,7 @@ namespace aux {
 		index_range<piece_index_t> piece_range() const noexcept;
 
 		// set and get the size of each piece in this torrent. It must be a power of two
-		// and at least 16KB.
+		// and at least 16 kiB.
 		void set_piece_length(int l)  { m_piece_length = l; }
 		int piece_length() const { TORRENT_ASSERT(m_piece_length > 0); return m_piece_length; }
 
@@ -449,7 +449,7 @@ namespace aux {
 		// swap all content of *this* with *ti*.
 		void swap(file_storage& ti) noexcept;
 
-		// arrange files and padding to match the cannonical form required
+		// arrange files and padding to match the canonical form required
 		// by BEP 52
 		void canonicalize();
 
@@ -460,8 +460,8 @@ namespace aux {
 		// provided in the torrent file. This can potentially be used to
 		// join a bittorrent network with other file sharing networks.
 		//
-		// ``root()`` returns the sha256 merkle tree root of the specified file,
-		// in case this is a v2 torrent. Otherwise returns zeroes.
+		// ``root()`` returns the SHA-256 merkle tree root of the specified file,
+		// in case this is a v2 torrent. Otherwise returns zeros.
 		//
 		// The ``mtime()`` is the modification time is the posix
 		// time when a file was last modified when the torrent
