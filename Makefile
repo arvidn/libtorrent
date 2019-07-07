@@ -320,6 +320,7 @@ SOURCES = \
   fingerprint.cpp                 \
   generate_peer_id.cpp            \
   gzip.cpp                        \
+  hash_picker.cpp                 \
   hasher.cpp                      \
   hex.cpp                         \
   http_connection.cpp             \
@@ -375,6 +376,7 @@ SOURCES = \
   settings_pack.cpp               \
   sha1.cpp                        \
   sha1_hash.cpp                   \
+  sha256.cpp                      \
   smart_ban.cpp                   \
   socket_io.cpp                   \
   socket_type.cpp                 \
@@ -458,6 +460,7 @@ HEADERS = \
   flags.hpp                    \
   fwd.hpp                      \
   gzip.hpp                     \
+  hash_picker.hpp              \
   hasher.hpp                   \
   heterogeneous_queue.hpp      \
   hex.hpp                      \
@@ -469,6 +472,7 @@ HEADERS = \
   i2p_stream.hpp               \
   identify_client.hpp          \
   index_range.hpp              \
+  info_hash.hpp                \
   invariant_check.hpp          \
   io.hpp                       \
   io_context.hpp               \
@@ -525,6 +529,7 @@ HEADERS = \
   settings_pack.hpp            \
   sha1.hpp                     \
   sha1_hash.hpp                \
+  sha256.hpp                   \
   sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
@@ -797,6 +802,7 @@ TEST_SOURCES = \
   test_flags.cpp \
   test_generate_peer_id.cpp \
   test_gzip.cpp \
+  test_hash_picker.cpp \
   test_hasher.cpp \
   test_hasher512.cpp \
   test_heterogeneous_queue.cpp \
