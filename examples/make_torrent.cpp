@@ -125,7 +125,7 @@ OPTIONS:
 -c comment    sets the comment to the specified string
 -C creator    sets the created-by field to the specified string
 -s bytes      specifies a piece size for the torrent
-              This has to be a power of 2, minimum 16KB
+              This has to be a power of 2, minimum 16kiB
 -l            Don't follow symlinks, instead encode them as
               links in the torrent file
 -o file       specifies the output filename of the torrent file
