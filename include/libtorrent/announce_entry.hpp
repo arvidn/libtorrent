@@ -142,8 +142,8 @@ TORRENT_VERSION_NAMESPACE_2
 		// torrents can be announced using multiple info hashes
 		// for different protocol versions
 
-		// info_hashs[0] is the v1 info hash (SHA1)
-		// info_hashs[1] is the v2 info hash (truncated SHA256)
+		// info_hashes[0] is the v1 info hash (SHA1)
+		// info_hashes[1] is the v2 info hash (truncated SHA-256)
 		announce_infohash info_hashes[2];
 
 		// reset announce counters and clears the started sent flag.

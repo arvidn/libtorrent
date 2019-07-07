@@ -2902,7 +2902,7 @@ namespace {
 					TORRENT_ASSERT(t);
 				}
 
-				// compute the obfuscated hash of the torrent's valid infohashes
+				// compute the obfuscated hash of the torrent's valid info hashes
 				// to find the one which matches the received hash
 
 				sha1_hash oih(ih);

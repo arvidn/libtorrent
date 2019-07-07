@@ -253,7 +253,7 @@ namespace libtorrent {
 		// .. warning::
 		// 	Using `remap_files()` is discouraged as it's incompatible with v2
 		// 	torrents. This is because the piece boundaries and piece hashes in
-		// 	v2 torrents are intimitely tied to the file boundaries. Instead,
+		// 	v2 torrents are intimately tied to the file boundaries. Instead,
 		// 	just rename individual files, or implement a custom disk_interface
 		// 	to customize how to store files.
 		//
