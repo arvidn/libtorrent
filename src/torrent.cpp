@@ -1510,7 +1510,7 @@ bool is_downloading_state(int const st)
 			m_save_path,
 			static_cast<storage_mode_t>(m_storage_mode),
 			m_file_priority,
-			m_info_hash.has_v1() ? m_info_hash.v1 : m_info_hash.get(protocol_version::V2)
+			m_info_hash.get_best()
 		};
 
 		// the shared_from_this() will create an intentional
