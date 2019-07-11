@@ -6526,9 +6526,7 @@ bool is_downloading_state(int const st)
 						ret.verified_leaf_hashes.emplace_back();
 						continue;
 					}
-					ret.verified_leaf_hashes.emplace_back(m_torrent_file->files().file_num_blocks(f));
-					std::fill(ret.verified_leaf_hashes.back().begin()
-						, ret.verified_leaf_hashes.back().end(), false);
+					ret.verified_leaf_hashes.emplace_back(m_torrent_file->files().file_num_blocks(f), false);
 				}
 			}
 		}
