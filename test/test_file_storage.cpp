@@ -850,5 +850,21 @@ TORRENT_TEST(mismatching_file_hash2)
 	TEST_CHECK(ec);
 }
 
+TORRENT_TEST(file_index_for_root)
+{
+	file_storage fs;
+	fs.set_piece_length(0x8000);
+	fs.add_file("test/0", 0x8000, {}, 0, {}, "11111111111111111111111111111111");
+	fs.add_file("test/1", 0x8000, {}, 0, {}, "22222222222222222222222222222222");
+	fs.add_file("test/2", 0x8000, {}, 0, {}, "33333333333333333333333333333333");
+	fs.add_file("test/3", 0x8000, {}, 0, {}, "44444444444444444444444444444444");
+
+	TEST_EQUAL(fs.file_index_for_root(sha256_hash("11111111111111111111111111111111")), file_index_t{0});
+	TEST_EQUAL(fs.file_index_for_root(sha256_hash("22222222222222222222222222222222")), file_index_t{1});
+	TEST_EQUAL(fs.file_index_for_root(sha256_hash("33333333333333333333333333333333")), file_index_t{2});
+	TEST_EQUAL(fs.file_index_for_root(sha256_hash("44444444444444444444444444444444")), file_index_t{3});
+	TEST_EQUAL(fs.file_index_for_root(sha256_hash("55555555555555555555555555555555")), file_index_t{-1});
+}
+
 // TODO: test file attributes
 // TODO: test symlinks

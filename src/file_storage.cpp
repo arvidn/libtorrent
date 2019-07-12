@@ -472,6 +472,16 @@ namespace {
 		return file_index_at_offset(static_cast<int>(piece) * std::int64_t(piece_length()));
 	}
 
+	file_index_t file_storage::file_index_for_root(sha256_hash const& root_hash) const
+	{
+		// TODO: maybe it would be nice to have a better index here
+		for (file_index_t const i : file_range())
+		{
+			if (root(i) == root_hash) return i;
+		}
+		return file_index_t{-1};
+	}
+
 	piece_index_t file_storage::piece_index_at_file(file_index_t f) const
 	{
 		return piece_index_t(aux::numeric_cast<int>(file_offset(f) / piece_length()));

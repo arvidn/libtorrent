@@ -547,6 +547,10 @@ namespace aux {
 		file_index_t file_index_at_offset(std::int64_t offset) const;
 		file_index_t file_index_at_piece(piece_index_t piece) const;
 
+		// finds the file with the given root hash and returns its index
+		// if there is no file with the root hash, file_index_t{-1} is returned
+		file_index_t file_index_for_root(sha256_hash const& root_hash) const;
+
 		// returns the piece index the given file starts at
 		piece_index_t piece_index_at_file(file_index_t f) const;
 

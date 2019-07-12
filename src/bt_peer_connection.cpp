@@ -1168,15 +1168,7 @@ namespace {
 		const char* ptr = recv_buffer.begin() + 1;
 
 		auto const file_root = sha256_hash(ptr);
-		file_index_t file_index{-1};
-		for (file_index_t i : files.file_range())
-		{
-			if (files.root(i) == file_root)
-			{
-				file_index = i;
-				break;
-			}
-		}
+		file_index_t const file_index = files.file_index_for_root(file_root);
 		ptr += sha256_hash::size();
 		int const base = detail::read_int32(ptr);
 		int const index = detail::read_int32(ptr);
@@ -1184,7 +1176,7 @@ namespace {
 		int const proof_layers = detail::read_int32(ptr);
 		hash_request hr(file_index, base, index, count, proof_layers);
 
-		if (!validate_hash_request(hr, t->torrent_file().files()))
+		if (!validate_hash_request(hr, files))
 		{
 			write_hash_reject(hr);
 			return;
@@ -1325,26 +1317,16 @@ namespace {
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		auto files = t->torrent_file().files();
-
 		span<char const> recv_buffer = m_recv_buffer.get();
 		const char* ptr = recv_buffer.begin() + 1;
 
-		auto file_root = sha256_hash(ptr);
-		file_index_t file_index{-1};
-		for (file_index_t i : files.file_range())
-		{
-			if (files.root(i) == file_root)
-			{
-				file_index = i;
-				break;
-			}
-		}
+		auto const file_root = sha256_hash(ptr);
+		file_index_t const file_index = t->torrent_file().files().file_index_for_root(file_root);
 		ptr += sha256_hash::size();
-		int base = detail::read_int32(ptr);
-		int index = detail::read_int32(ptr);
-		int count = detail::read_int32(ptr);
-		int proof_layers = detail::read_int32(ptr);
+		int const base = detail::read_int32(ptr);
+		int const index = detail::read_int32(ptr);
+		int const count = detail::read_int32(ptr);
+		int const proof_layers = detail::read_int32(ptr);
 		hash_request hr(file_index, base, index, count, proof_layers);
 
 #ifndef TORRENT_DISABLE_LOGGING
