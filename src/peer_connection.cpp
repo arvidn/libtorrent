@@ -5304,19 +5304,20 @@ namespace libtorrent {
 			return;
 		}
 
-		boost::tribool hash_failed[2] = { boost::indeterminate, boost::indeterminate };
+		aux::array<boost::tribool, int(protocol_version::NUM), protocol_version>
+			hash_failed{{ boost::indeterminate, boost::indeterminate }};
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
 			&& t->torrent_file().info_hash().has_v1())
 		{
-			hash_failed[0] = piece_hash != t->torrent_file().hash_for_piece(piece);
+			hash_failed[protocol_version::V1] = piece_hash != t->torrent_file().hash_for_piece(piece);
 		}
 
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
 			&& t->torrent_file().info_hash().has_v2())
 		{
-			hash_failed[1] = false;
+			hash_failed[protocol_version::V2] = false;
 
 			int const blocks_in_piece = t->torrent_file().files().blocks_in_piece2(piece);
 
@@ -5331,7 +5332,7 @@ namespace libtorrent {
 				if (result.status == set_block_hash_result::result::block_hash_failed
 					|| result.status == set_block_hash_result::result::piece_hash_failed)
 				{
-					hash_failed[1] = true;
+					hash_failed[protocol_version::V2] = true;
 				}
 			}
 
@@ -5339,17 +5340,18 @@ namespace libtorrent {
 			// it means we don't know the piece's root hash
 			// we must leave seed mode
 			if (result.status == set_block_hash_result::result::unknown)
-				hash_failed[0] = hash_failed[1] = true;
+				hash_failed[protocol_version::V1] = hash_failed[protocol_version::V2] = true;
 		}
 
-		if ((hash_failed[0] && !hash_failed[1]) || (!hash_failed[0] && hash_failed[1]))
+		if ((hash_failed[protocol_version::V1] && !hash_failed[protocol_version::V2])
+			|| (!hash_failed[protocol_version::V1] && hash_failed[protocol_version::V2]))
 		{
 			t->set_error(errors::torrent_inconsistent_hashes, torrent_status::error_file_none);
 			t->pause();
 			return;
 		}
 
-		if (hash_failed[0] || hash_failed[1])
+		if (hash_failed[protocol_version::V1] || hash_failed[protocol_version::V2])
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"

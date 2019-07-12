@@ -696,10 +696,10 @@ TORRENT_TEST(test_error)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[0].is_working(), false);
-				TEST_EQUAL(aep.info_hashes[0].message, "test");
-				TEST_EQUAL(aep.info_hashes[0].last_error, error_code(errors::tracker_failure));
-				TEST_EQUAL(aep.info_hashes[0].fails, 1);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), false);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "test");
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code(errors::tracker_failure));
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 1);
 			}
 		});
 }
@@ -722,10 +722,10 @@ TORRENT_TEST(test_warning)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[0].is_working(), true);
-				TEST_EQUAL(aep.info_hashes[0].message, "test2");
-				TEST_EQUAL(aep.info_hashes[0].last_error, error_code());
-				TEST_EQUAL(aep.info_hashes[0].fails, 0);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), true);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "test2");
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code());
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
 			}
 		});
 }
@@ -749,13 +749,13 @@ TORRENT_TEST(test_scrape_data_in_announce)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[0].is_working(), true);
-				TEST_EQUAL(aep.info_hashes[0].message, "");
-				TEST_EQUAL(aep.info_hashes[0].last_error, error_code());
-				TEST_EQUAL(aep.info_hashes[0].fails, 0);
-				TEST_EQUAL(aep.info_hashes[0].scrape_complete, 1);
-				TEST_EQUAL(aep.info_hashes[0].scrape_incomplete, 2);
-				TEST_EQUAL(aep.info_hashes[0].scrape_downloaded, 3);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), true);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "");
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code());
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].scrape_complete, 1);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].scrape_incomplete, 2);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].scrape_downloaded, 3);
 			}
 		});
 }
@@ -786,9 +786,9 @@ TORRENT_TEST(test_scrape)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[0].scrape_incomplete, 2);
-				TEST_EQUAL(aep.info_hashes[0].scrape_complete, 1);
-				TEST_EQUAL(aep.info_hashes[0].scrape_downloaded, 3);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].scrape_incomplete, 2);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].scrape_complete, 1);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].scrape_downloaded, 3);
 			}
 		}
 		, "/scrape");
@@ -809,10 +809,10 @@ TORRENT_TEST(test_http_status)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[0].is_working(), false);
-				TEST_EQUAL(aep.info_hashes[0].message, "Not A Tracker");
-				TEST_EQUAL(aep.info_hashes[0].last_error, error_code(410, http_category()));
-				TEST_EQUAL(aep.info_hashes[0].fails, 1);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), false);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "Not A Tracker");
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code(410, http_category()));
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 1);
 			}
 		});
 }
@@ -835,10 +835,10 @@ TORRENT_TEST(test_interval)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[0].is_working(), true);
-				TEST_EQUAL(aep.info_hashes[0].message, "");
-				TEST_EQUAL(aep.info_hashes[0].last_error, error_code());
-				TEST_EQUAL(aep.info_hashes[0].fails, 0);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), true);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "");
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code());
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
 			}
 
 			TEST_EQUAL(ae.trackerid, "testtest");
@@ -863,11 +863,11 @@ TORRENT_TEST(test_invalid_bencoding)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[0].is_working(), false);
-				TEST_EQUAL(aep.info_hashes[0].message, "");
-				TEST_EQUAL(aep.info_hashes[0].last_error, error_code(bdecode_errors::expected_value
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), false);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "");
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code(bdecode_errors::expected_value
 					, bdecode_category()));
-				TEST_EQUAL(aep.info_hashes[0].fails, 1);
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 1);
 			}
 		});
 }
@@ -916,7 +916,7 @@ TORRENT_TEST(try_next)
 				{
 					for (auto const& aep : tr[i].endpoints)
 					{
-						TEST_EQUAL(aep.info_hashes[0].fails, 0);
+						TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
 					}
 					TEST_EQUAL(tr[i].verified, true);
 				}
@@ -924,8 +924,8 @@ TORRENT_TEST(try_next)
 				{
 					for (auto const& aep : tr[i].endpoints)
 					{
-						TEST_CHECK(aep.info_hashes[0].fails >= 1);
-						TEST_EQUAL(aep.info_hashes[0].last_error
+						TEST_CHECK(aep.info_hashes[protocol_version::V1].fails >= 1);
+						TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error
 							, error_code(boost::asio::error::host_not_found));
 					}
 					TEST_EQUAL(tr[i].verified, false);
@@ -935,8 +935,8 @@ TORRENT_TEST(try_next)
 					TEST_EQUAL(tr[i].verified, false);
 					for (auto const& aep : tr[i].endpoints)
 					{
-						TEST_CHECK(aep.info_hashes[0].fails >= 1);
-						TEST_EQUAL(aep.info_hashes[0].last_error
+						TEST_CHECK(aep.info_hashes[protocol_version::V1].fails >= 1);
+						TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error
 							, error_code(boost::asio::error::host_not_found));
 					}
 				}
