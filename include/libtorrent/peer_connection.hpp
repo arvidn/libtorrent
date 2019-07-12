@@ -434,7 +434,7 @@ namespace aux {
 
 		// get the info hash associated with this peer
 		// this will be a sha1 hash or truncated sha256 hash depending
-		// on which protcol version this connection is using
+		// on which protocol version this connection is using
 		sha1_hash associated_info_hash() const;
 
 		stat const& statistics() const override { return m_statistics; }
