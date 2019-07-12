@@ -1132,7 +1132,7 @@ namespace {
 		return m_merkle_trees;
 	}
 
-	aux::vector<sha256_hash>& torrent_info::file_merkle_tree(file_index_t file) const
+	aux::vector<sha256_hash>& torrent_info::file_merkle_tree(file_index_t file)
 	{
 		TORRENT_ASSERT(m_merkle_trees.end_index() <= orig_files().end_file());
 		if (m_merkle_trees.empty())

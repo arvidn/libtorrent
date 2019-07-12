@@ -550,7 +550,7 @@ namespace libtorrent {
 		{ return m_info_section; }
 
 		aux::vector<aux::vector<sha256_hash>, file_index_t>& merkle_trees();
-		aux::vector<sha256_hash>& file_merkle_tree(file_index_t file) const;
+		aux::vector<sha256_hash>& file_merkle_tree(file_index_t file);
 
 #if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
@@ -653,7 +653,7 @@ namespace libtorrent {
 		// once in torrent), or they would have to be moved out of torrent_info as
 		// the torrent is added. Storing it twice can use a lot of memory. Moving
 		// it out leaves a "one-time-use" API on torrent_info class.
-		mutable aux::vector<aux::vector<sha256_hash>, file_index_t> m_merkle_trees;
+		aux::vector<aux::vector<sha256_hash>, file_index_t> m_merkle_trees;
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
