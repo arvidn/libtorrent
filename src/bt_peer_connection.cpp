@@ -1711,7 +1711,7 @@ namespace {
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 	}
 
-	void bt_peer_connection::write_hash_request(hash_request req)
+	void bt_peer_connection::write_hash_request(hash_request const& req)
 	{
 		INVARIANT_CHECK;
 
@@ -1805,7 +1805,7 @@ namespace {
 		send_buffer(buf);
 	}
 
-	void bt_peer_connection::write_hash_reject(hash_request req)
+	void bt_peer_connection::write_hash_reject(hash_request const& req)
 	{
 		INVARIANT_CHECK;
 
