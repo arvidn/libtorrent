@@ -1729,7 +1729,7 @@ COLUMN OPTIONS
 				for (lt::announce_entry const& ae : h.trackers())
 				{
 					auto best_ae = std::min_element(ae.endpoints.begin(), ae.endpoints.end()
-						, [](lt::announce_endpoint const& l, lt::announce_endpoint const& r)
+						, [=](lt::announce_endpoint const& l, lt::announce_endpoint const& r)
 						{ return l.info_hashes[version].fails < r.info_hashes[version].fails; } );
 
 					if (pos + 1 >= terminal_height) break;

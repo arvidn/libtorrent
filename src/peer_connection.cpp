@@ -5304,8 +5304,15 @@ namespace libtorrent {
 			return;
 		}
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
+#endif
 		aux::array<boost::tribool, int(protocol_version::NUM), protocol_version>
 			hash_failed{{ boost::indeterminate, boost::indeterminate }};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
