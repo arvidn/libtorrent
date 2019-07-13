@@ -1035,7 +1035,7 @@ namespace libtorrent {
 		std::swap(m_pieces[other_index], m_pieces[elem_index]);
 	}
 
-	void piece_picker::restore_piece(piece_index_t const index, std::vector<int> const& blocks)
+	void piece_picker::restore_piece(piece_index_t const index, span<int const> const blocks)
 	{
 		INVARIANT_CHECK;
 
@@ -1063,7 +1063,7 @@ namespace libtorrent {
 		if (!blocks.empty())
 		{
 			auto const binfo = mutable_blocks_for_piece(*i);
-			for (int block : blocks)
+			for (int const block : blocks)
 			{
 				block_info& info = binfo[block];
 				TORRENT_ASSERT(info.state >= block_info::state_writing);

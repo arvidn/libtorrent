@@ -370,7 +370,7 @@ namespace libtorrent {
 
 		// if a piece had a hash-failure, it must be restored and
 		// made available for redownloading
-		void restore_piece(piece_index_t index, std::vector<int> const& blocks);
+		void restore_piece(piece_index_t index, span<int const> blocks = {});
 
 		// clears the given piece's download flag
 		// this means that this piece-block can be picked again
