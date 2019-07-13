@@ -267,7 +267,7 @@ list trackers(torrent_handle& h)
         if (!i->endpoints.empty())
         {
             announce_endpoint const& aep = i->endpoints.front();
-            announce_infohash const& aih = aep.info_hashes[0];
+            announce_infohash const& aih = aep.info_hashes[protocol_version::V1];
             d["message"] = aih.message;
             dict last_error;
             last_error["value"] = aih.last_error.value();
@@ -351,7 +351,7 @@ list trackers(torrent_handle& h)
             e["info_hashes"] = aihs;
 
 #if TORRENT_ABI_VERSION <= 2
-            announce_infohash const& aih = aep.info_hashes[0];
+            announce_infohash const& aih = aep.info_hashes[protocol_version::V1];
             e["message"] = aih.message;
             dict last_error;
             last_error["value"] = aih.last_error.value();
