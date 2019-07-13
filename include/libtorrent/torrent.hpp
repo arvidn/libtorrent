@@ -926,7 +926,7 @@ namespace libtorrent {
 		// we wasn't finished anymore.
 		void resume_download();
 
-		void verify_piece(piece_index_t piece, bool check_v2 = true);
+		void verify_piece(piece_index_t piece);
 		void on_piece_verified(aux::vector<sha256_hash> block_hashes
 			, piece_index_t piece
 			, sha1_hash const& piece_hash, storage_error const& error);

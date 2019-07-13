@@ -10421,7 +10421,7 @@ bool is_downloading_state(int const st)
 
 	// verify piece is used when checking resume data or when the user
 	// adds a piece
-	void torrent::verify_piece(piece_index_t const piece, bool check_v2)
+	void torrent::verify_piece(piece_index_t const piece)
 	{
 //		picker().mark_as_checking(piece);
 
@@ -10431,7 +10431,7 @@ bool is_downloading_state(int const st)
 		if (torrent_file().info_hash().has_v1())
 			flags |= disk_interface::v1_hash;
 		aux::vector<sha256_hash> hashes;
-		if (check_v2 && torrent_file().info_hash().has_v2())
+		if (torrent_file().info_hash().has_v2())
 		{
 			hashes.resize(torrent_file().orig_files().blocks_in_piece2(piece));
 		}
