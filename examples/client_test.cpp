@@ -1725,19 +1725,21 @@ COLUMN OPTIONS
 				out += str;
 				pos += 1;
 				std::vector<lt::announce_entry> tr = h.trackers();
+				auto const version = lt::protocol_version::V2;
 				for (lt::announce_entry const& ae : h.trackers())
 				{
 					auto best_ae = std::min_element(ae.endpoints.begin(), ae.endpoints.end()
-						, [](lt::announce_endpoint const& l, lt::announce_endpoint const& r) { return l.info_hashes[1].fails < r.info_hashes[1].fails; } );
+						, [](lt::announce_endpoint const& l, lt::announce_endpoint const& r)
+						{ return l.info_hashes[version].fails < r.info_hashes[version].fails; } );
 
 					if (pos + 1 >= terminal_height) break;
 					std::snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
 						, ae.tier, ae.url.c_str()
-						, best_ae != ae.endpoints.end() ? best_ae->info_hashes[1].fails : 0, ae.fail_limit, ae.verified?"OK ":"-  "
-						, to_string(best_ae != ae.endpoints.end() ? int(total_seconds(best_ae->info_hashes[1].next_announce - now)) : 0, 8).c_str()
-						, best_ae != ae.endpoints.end() && best_ae->info_hashes[1].min_announce > now ? int(total_seconds(best_ae->info_hashes[1].min_announce - now)) : 0
-						, best_ae != ae.endpoints.end() && best_ae->info_hashes[1].last_error ? best_ae->info_hashes[1].last_error.message().c_str() : ""
-						, best_ae != ae.endpoints.end() ? best_ae->info_hashes[1].message.c_str() : "");
+						, best_ae != ae.endpoints.end() ? best_ae->info_hashes[version].fails : 0, ae.fail_limit, ae.verified?"OK ":"-  "
+						, to_string(best_ae != ae.endpoints.end() ? int(total_seconds(best_ae->info_hashes[version].next_announce - now)) : 0, 8).c_str()
+						, best_ae != ae.endpoints.end() && best_ae->info_hashes[version].min_announce > now ? int(total_seconds(best_ae->info_hashes[version].min_announce - now)) : 0
+						, best_ae != ae.endpoints.end() && best_ae->info_hashes[version].last_error ? best_ae->info_hashes[version].last_error.message().c_str() : ""
+						, best_ae != ae.endpoints.end() ? best_ae->info_hashes[version].message.c_str() : "");
 					out += str;
 					pos += 1;
 				}

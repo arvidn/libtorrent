@@ -45,6 +45,13 @@ namespace libtorrent
 		NUM
 	};
 
+namespace {
+	std::initializer_list<protocol_version> const all_versions{
+		protocol_version::V1,
+		protocol_version::V2
+	};
+}
+
 	// beware! If !has_v2() then the v1 hash might actually be a truncated v2 hash
 	struct TORRENT_EXPORT info_hash_t
 	{

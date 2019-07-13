@@ -2603,7 +2603,7 @@ bool is_downloading_state(int const st)
 
 			aux::listen_socket_handle socket;
 
-			aux::array<announce_protocol_state, int(protocol_version::NUM)> state;
+			aux::array<announce_protocol_state, int(protocol_version::NUM), protocol_version> state;
 		};
 	}
 
@@ -2742,7 +2742,7 @@ bool is_downloading_state(int const st)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
-		aux::array<bool const, 2> const supports_protocol
+		aux::array<bool const, int(protocol_version::NUM), protocol_version> const supports_protocol
 		{{
 			m_info_hash.has_v1(),
 			m_info_hash.has_v2()
@@ -2796,7 +2796,7 @@ bool is_downloading_state(int const st)
 				}
 				announce_state& ep_state = *aep_state_iter;
 
-				for (int ih = 0; ih < int(protocol_version::NUM); ++ih)
+				for (protocol_version const ih : all_versions)
 				{
 					if (!supports_protocol[ih]) continue;
 
@@ -2917,7 +2917,7 @@ bool is_downloading_state(int const st)
 
 			if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
 				, [supports_protocol](announce_state const& s) {
-					for (int ih = 0; ih < int(protocol_version::NUM); ++ih)
+					for (protocol_version const ih : all_versions)
 					{
 						if (supports_protocol[ih] && !s.state[ih].done)
 							return false;
@@ -2967,7 +2967,8 @@ bool is_downloading_state(int const st)
 
 		INVARIANT_CHECK;
 
-		int const hash_version = req.info_hash == m_info_hash.v1 ? 0 : 1;
+		protocol_version const hash_version = req.info_hash == m_info_hash.v1
+			? protocol_version::V1 : protocol_version::V2;
 
 		announce_entry* ae = find_tracker(req.url);
 		tcp::endpoint local_endpoint;
@@ -2995,7 +2996,8 @@ bool is_downloading_state(int const st)
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(0 != (req.kind & tracker_request::scrape_request));
 
-		int const hash_version = req.info_hash == m_info_hash.v1 ? 0 : 1;
+		protocol_version const hash_version = req.info_hash == m_info_hash.v1
+			? protocol_version::V1 : protocol_version::V2;
 
 		announce_entry* ae = find_tracker(req.url);
 		tcp::endpoint local_endpoint;
@@ -3035,7 +3037,7 @@ bool is_downloading_state(int const st)
 		{
 			for (auto const& aep : t.endpoints)
 			{
-				for (int ih = 0; ih < int(protocol_version::NUM); ++ih)
+				for (protocol_version const ih : all_versions)
 				{
 					auto& a = aep.info_hashes[ih];
 					complete = std::max(a.scrape_complete, complete);
@@ -3099,7 +3101,7 @@ bool is_downloading_state(int const st)
 			announce_endpoint* aep = ae->find_endpoint(r.outgoing_socket);
 			if (aep)
 			{
-				auto& a = aep->info_hashes[int(v)];
+				auto& a = aep->info_hashes[v];
 
 				local_endpoint = aep->local_endpoint;
 				if (resp.incomplete >= 0) a.scrape_incomplete = resp.incomplete;
@@ -8988,12 +8990,13 @@ bool is_downloading_state(int const st)
 
 			aux::listen_socket_handle socket;
 
-			struct
+			struct state_t
 			{
 				int tier = INT_MAX;
 				bool found_working = false;
 				bool done = false;
-			} state[int(protocol_version::NUM)];
+			};
+			aux::array<state_t, int(protocol_version::NUM), protocol_version> state;
 		};
 	}
 
@@ -9008,11 +9011,11 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		bool const supports_protocol[2] =
+		aux::array<bool const, int(protocol_version::NUM), protocol_version> supports_protocol{
 		{
 			m_info_hash.has_v1(),
 			m_info_hash.has_v2()
-		};
+		}};
 
 		time_point32 next_announce = time_point32::max();
 
@@ -9031,7 +9034,7 @@ bool is_downloading_state(int const st)
 				}
 				timer_state& ep_state = *aep_state_iter;
 
-				for (int ih = 0; ih < int(protocol_version::NUM); ++ih)
+				for (protocol_version const ih : all_versions)
 				{
 					if (!supports_protocol[ih]) continue;
 
@@ -9084,7 +9087,7 @@ bool is_downloading_state(int const st)
 
 			if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
 				, [supports_protocol](timer_state const& s) {
-					for (int ih = 0; ih < int(protocol_version::NUM); ++ih)
+					for (protocol_version const ih : all_versions)
 					{
 						if (supports_protocol[ih] && !s.state[ih].done)
 							return false;
@@ -10945,17 +10948,17 @@ bool is_downloading_state(int const st)
 		}
 		else
 		{
-			bool const supports_protocol[2] =
+			aux::array<bool const, int(protocol_version::NUM), protocol_version> supports_protocol{
 			{
 				m_info_hash.has_v1(),
 				m_info_hash.has_v2()
-			};
+			}};
 
 			for (auto const& t : m_trackers)
 			{
 				if (std::any_of(t.endpoints.begin(), t.endpoints.end()
 					, [supports_protocol](announce_endpoint const& aep) {
-						for (int ih = 0; ih < int(protocol_version::NUM); ++ih)
+						for (protocol_version const ih : all_versions)
 						{
 							if (supports_protocol[ih] && aep.info_hashes[ih].updating)
 								return false;
@@ -11179,7 +11182,8 @@ bool is_downloading_state(int const st)
 
 				if (aep != ae->endpoints.end())
 				{
-					int const hash_version = r.info_hash == m_info_hash.v1 ? 0 : 1;
+					protocol_version const hash_version = r.info_hash == m_info_hash.v1
+						? protocol_version::V1 : protocol_version::V2;
 					auto& a = aep->info_hashes[hash_version];
 					local_endpoint = aep->local_endpoint;
 					a.failed(settings().get_int(settings_pack::tracker_backoff)
