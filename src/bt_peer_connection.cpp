@@ -1710,20 +1710,6 @@ namespace {
 
 		ptr = std::copy(root.begin(), root.end(), ptr);
 
-#if 0
-		if (req.base == hash_request::base_layer::leaves)
-			detail::write_uint32(0, ptr);
-		else
-		{
-			// comput the number of layers between the piece layer
-			// and the leaves
-			int blocks_per_piece = ti.piece_length() / (16 * 1024);
-			int layer_index = 0;
-			while (blocks_per_piece >>= 1) ++layer_index;
-			detail::write_uint32(layer_index, ptr);
-		}
-#endif
-
 		TORRENT_ASSERT(validate_hash_request(req, t->torrent_file().files()));
 
 		detail::write_uint32(req.base, ptr);
