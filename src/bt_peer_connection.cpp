@@ -1176,12 +1176,6 @@ namespace {
 		int const proof_layers = detail::read_int32(ptr);
 		hash_request hr(file_index, base, index, count, proof_layers);
 
-		if (!validate_hash_request(hr, files))
-		{
-			write_hash_reject(hr);
-			return;
-		}
-
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
@@ -1189,6 +1183,12 @@ namespace {
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
 #endif
+
+		if (!validate_hash_request(hr, files))
+		{
+			write_hash_reject(hr);
+			return;
+		}
 
 		std::vector<sha256_hash> hashes = t->get_hashes(hr);
 
