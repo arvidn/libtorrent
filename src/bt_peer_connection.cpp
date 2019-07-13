@@ -3368,11 +3368,14 @@ namespace {
 				attach_to_torrent(info_hash_t(info_hash));
 				if (is_disconnecting()) return;
 
+				t = associated_torrent().lock();
+				TORRENT_ASSERT(t);
+
 				// this must go after the connection is attached to a torrent because that is what
 				// adds the peer info for incoming connections
 				if (recv_buffer[7] & 0x10)
 				{
-					if (!associated_torrent().lock()->info_hash().has_v2())
+					if (t->valid_metadata() && !t->info_hash().has_v2())
 					{
 						// the peer claims to support the v2 protocol with a non-v2 torrent
 						disconnect(errors::invalid_info_hash, operation_t::bittorrent);
@@ -3408,9 +3411,6 @@ namespace {
 				peer_log(peer_log_alert::incoming, "HANDSHAKE", "info_hash received");
 #endif
 			}
-
-			t = associated_torrent().lock();
-			TORRENT_ASSERT(t);
 
 			// if this is a local connection, we have already
 			// sent the handshake
