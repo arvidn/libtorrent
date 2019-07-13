@@ -374,7 +374,7 @@ namespace {
 	{
 		if (dict.type() != bdecode_node::dict_t) return false;
 
-		file_flags_t file_flags = get_file_attributes(dict);
+		file_flags_t const file_flags = get_file_attributes(dict);
 
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
@@ -1105,6 +1105,7 @@ namespace {
 		m_comment.swap(ti.m_comment);
 		m_created_by.swap(ti.m_created_by);
 		swap(m_info_section, ti.m_info_section);
+		m_merkle_trees.swap(ti.m_merkle_trees);
 		swap(m_piece_hashes, ti.m_piece_hashes);
 		m_info_dict.swap(ti.m_info_dict);
 		swap(m_info_section_size, ti.m_info_section_size);

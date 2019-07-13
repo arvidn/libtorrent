@@ -284,7 +284,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		// the end of a file is a special case, we may need to pad the leaf layer
 		if (req.base == m_piece_layer && count != req.count)
 		{
-			sha256_hash pad_hash = merkle_root(aux::vector<sha256_hash>(m_files.piece_length() / default_block_size));
+			sha256_hash const pad_hash = merkle_root(aux::vector<sha256_hash>(
+				m_files.piece_length() / default_block_size));
 			for (int i = req.count; i < count; ++i)
 				tree[tree.end_index() - count + i] = pad_hash;
 		}

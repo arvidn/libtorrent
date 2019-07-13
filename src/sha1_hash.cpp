@@ -53,7 +53,7 @@ namespace libtorrent {
 		return os << aux::to_hex(peer);
 	}
 
-	// read 40 hexadecimal digits from an istream into a sha1_hash
+	// read hexadecimal digits from an istream into a digest32
 	template <std::ptrdiff_t N>
 	std::istream& digest_isstream_impl(std::istream& is, digest32<N>& peer)
 	{

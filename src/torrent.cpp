@@ -2523,15 +2523,16 @@ bool is_downloading_state(int const st)
 		});
 	}
 
-	void torrent::on_dht_announce_response_disp(std::weak_ptr<torrent> t
-		, protocol_version v, std::vector<tcp::endpoint> const& peers)
+	void torrent::on_dht_announce_response_disp(std::weak_ptr<torrent> const t
+		, protocol_version const v, std::vector<tcp::endpoint> const& peers)
 	{
 		std::shared_ptr<torrent> tor = t.lock();
 		if (!tor) return;
 		tor->on_dht_announce_response(v, peers);
 	}
 
-	void torrent::on_dht_announce_response(protocol_version v, std::vector<tcp::endpoint> const& peers) try
+	void torrent::on_dht_announce_response(protocol_version const v
+		, std::vector<tcp::endpoint> const& peers) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -3997,7 +3998,7 @@ bool is_downloading_state(int const st)
 		m_predictive_pieces.insert(i, index);
 	}
 
-	void torrent::piece_failed(piece_index_t const index, std::vector<int> blocks)
+	void torrent::piece_failed(piece_index_t const index, std::vector<int> const blocks)
 	{
 		// if the last piece fails the peer connection will still
 		// think that it has received all of it until this function
@@ -4068,7 +4069,7 @@ bool is_downloading_state(int const st)
 		if (!blocks.empty() && !downloaders.empty())
 		{
 			auto begin = downloaders.begin();
-			for (int block : blocks)
+			for (int const block : blocks)
 			{
 				std::fill(begin, downloaders.begin() + block, nullptr);
 				begin = downloaders.begin() + block + 1;

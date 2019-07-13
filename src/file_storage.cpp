@@ -71,8 +71,7 @@ namespace libtorrent {
 	constexpr file_flags_t file_storage::attribute_symlink;
 #endif
 
-	file_storage::file_storage() {}
-
+	file_storage::file_storage() = default;
 	file_storage::~file_storage() = default;
 
 	// even though this copy constructor and the copy assignment
@@ -622,8 +621,8 @@ namespace {
 		return ret;
 	}
 
-	void file_storage::add_file(std::string const& path, std::int64_t file_size
-		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path
+	void file_storage::add_file(std::string const& path, std::int64_t const file_size
+		, file_flags_t const file_flags, std::time_t const mtime, string_view const symlink_path
 		, char const* root_hash)
 	{
 		error_code ec;
@@ -635,7 +634,7 @@ namespace {
 	void file_storage::add_file_borrow(string_view filename
 		, std::string const& path, std::int64_t const file_size
 		, file_flags_t const file_flags, char const* filehash
-		, std::int64_t const mtime, string_view symlink_path
+		, std::int64_t const mtime, string_view const symlink_path
 		, char const* root_hash)
 	{
 		error_code ec;
@@ -645,7 +644,7 @@ namespace {
 	}
 
 	void file_storage::add_file(error_code& ec, std::string const& path
-		, std::int64_t file_size, file_flags_t const file_flags, std::time_t mtime
+		, std::int64_t const file_size, file_flags_t const file_flags, std::time_t const mtime
 		, string_view symlink_path, char const* root_hash)
 	{
 		add_file_borrow(ec, {}, path, file_size, file_flags, nullptr, mtime
@@ -655,7 +654,7 @@ namespace {
 	void file_storage::add_file_borrow(error_code& ec, string_view filename
 		, std::string const& path, std::int64_t const file_size
 		, file_flags_t const file_flags, char const* filehash
-		, std::int64_t const mtime, string_view symlink_path
+		, std::int64_t const mtime, string_view const symlink_path
 		, char const* root_hash)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);

@@ -763,7 +763,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	}
 
 	void disk_io_thread::async_hash(storage_index_t const storage
-		, piece_index_t const piece, span<sha256_hash> v2, disk_job_flags_t const flags
+		, piece_index_t const piece, span<sha256_hash> const v2, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(job_action_t::hash);
@@ -776,7 +776,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	}
 
 	void disk_io_thread::async_hash2(storage_index_t const storage
-		, piece_index_t piece, int offset, disk_job_flags_t flags
+		, piece_index_t const piece, int const offset, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(job_action_t::hash2);
