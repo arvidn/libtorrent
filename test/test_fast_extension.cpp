@@ -249,14 +249,14 @@ void send_bitfield(tcp::socket& s, char const* bits)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void do_handshake(tcp::socket& s, sha1_hash const& ih, char* buffer)
+void do_handshake(tcp::socket& s, info_hash_t const& ih, char* buffer)
 {
 	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\x10\0\x04"
 		"                    " // space for info-hash
 		"aaaaaaaaaaaaaaaaaaaa"; // peer-id
 	log("==> handshake");
 	error_code ec;
-	std::memcpy(handshake + 28, ih.begin(), 20);
+	std::memcpy(handshake + 28, ih.v1.data(), 20);
 	boost::asio::write(s, boost::asio::buffer(handshake, sizeof(handshake) - 1)
 		, boost::asio::transfer_all(), ec);
 	if (ec)
@@ -294,7 +294,7 @@ void do_handshake(tcp::socket& s, sha1_hash const& ih, char* buffer)
 	TEST_CHECK(dht_support == false);
 #endif
 
-	TEST_CHECK(std::memcmp(buffer + 28, ih.begin(), 20) == 0);
+	TEST_CHECK(std::memcmp(buffer + 28, ih.v1.data(), 20) == 0);
 }
 
 void send_extension_handshake(tcp::socket& s, entry const& e)
@@ -417,13 +417,13 @@ entry read_ut_metadata_msg(tcp::socket& s, span<char> recv_buffer)
 #endif // TORRENT_DISABLE_EXTENSIONS
 
 std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
-	, sha1_hash& ih
+	, info_hash_t& ih
 	, std::shared_ptr<lt::session>& ses, bool incoming = true
 	, torrent_flags_t const flags = torrent_flags_t{}
 	, torrent_handle* th = nullptr)
 {
 	std::shared_ptr<torrent_info> t = ::create_torrent();
-	ih = t->info_hash().v1;
+	ih = t->info_hash();
 	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48900");
 	sett.set_bool(settings_pack::enable_upnp, false);
@@ -487,7 +487,7 @@ TORRENT_TEST(reject_fast)
 {
 	std::cout << "\n === test reject ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
@@ -557,7 +557,7 @@ TORRENT_TEST(invalid_suggest)
 {
 	std::cout << "\n === test suggest ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
@@ -599,7 +599,7 @@ TORRENT_TEST(reject_suggest)
 {
 	std::cout << "\n === test suggest ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
@@ -679,7 +679,7 @@ TORRENT_TEST(suggest_order)
 {
 	std::cout << "\n === test suggest ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
@@ -740,7 +740,7 @@ TORRENT_TEST(multiple_bitfields)
 {
 	std::cout << "\n === test multiple bitfields ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
@@ -774,7 +774,7 @@ TORRENT_TEST(multiple_have_all)
 {
 	std::cout << "\n === test multiple have_all ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
@@ -807,7 +807,7 @@ TORRENT_TEST(dont_have)
 
 	std::cout << "\n === test dont_have ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	torrent_handle th;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
@@ -906,7 +906,7 @@ TORRENT_TEST(extension_handshake)
 {
 	using namespace lt::detail;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
@@ -947,7 +947,7 @@ TORRENT_TEST(invalid_metadata_request)
 {
 	using namespace lt::detail;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
@@ -1000,7 +1000,7 @@ TORRENT_TEST(invalid_request)
 {
 	std::cout << "\n === test request ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
@@ -1022,7 +1022,7 @@ namespace {
 
 void have_all_test(bool const incoming)
 {
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
