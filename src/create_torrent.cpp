@@ -772,8 +772,7 @@ namespace {
 								// path conflict
 								// there is already a file with this name
 								// refuse to generate a torrent with such a conflict
-								// TODO: 3 report error
-								return entry();
+								aux::throw_ex<system_error>(errors::torrent_inconsistent_files);
 							}
 						}
 					}
@@ -783,8 +782,7 @@ namespace {
 						// path conflict
 						// there is already a directory with this name
 						// refuse to generate a torrent with such a conflict
-						// TODO: 3 report error
-						return entry();
+						aux::throw_ex<system_error>(errors::torrent_inconsistent_files);
 					}
 
 					entry& file_e = (*file_e_ptr)[{}];
