@@ -9011,11 +9011,18 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		aux::array<bool const, int(protocol_version::NUM), protocol_version> supports_protocol{
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
+#endif
+		aux::array<bool const, int(protocol_version::NUM), protocol_version> const supports_protocol{
 		{
 			m_info_hash.has_v1(),
 			m_info_hash.has_v2()
 		}};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 		time_point32 next_announce = time_point32::max();
 
@@ -10948,11 +10955,18 @@ bool is_downloading_state(int const st)
 		}
 		else
 		{
-			aux::array<bool const, int(protocol_version::NUM), protocol_version> supports_protocol{
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
+#endif
+			aux::array<bool const, int(protocol_version::NUM), protocol_version> const supports_protocol{
 			{
 				m_info_hash.has_v1(),
 				m_info_hash.has_v2()
 			}};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 			for (auto const& t : m_trackers)
 			{
