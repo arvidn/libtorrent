@@ -499,6 +499,7 @@ namespace aux {
 		// each file.
 		int file_num_pieces(file_index_t index) const;
 		int file_num_blocks(file_index_t index) const;
+		index_range<piece_index_t::diff_type> file_piece_range(file_index_t) const;
 
 		// index of first piece node in the merkle tree
 		int file_first_piece_node(file_index_t index) const;
