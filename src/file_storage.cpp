@@ -1017,6 +1017,11 @@ namespace {
 			(static_cast<std::int64_t>(f.size) + m_piece_length - 1) / m_piece_length);
 	}
 
+	index_range<piece_index_t::diff_type> file_storage::file_piece_range(file_index_t const file) const
+	{
+		return {piece_index_t::diff_type{0}, piece_index_t::diff_type{file_num_pieces(file)}};
+	}
+
 	int file_storage::file_num_blocks(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
