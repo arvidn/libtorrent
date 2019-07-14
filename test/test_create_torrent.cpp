@@ -147,7 +147,7 @@ TORRENT_TEST(path_conflict)
 		}
 
 		lt::create_torrent t(fs, 0x4000);
-		TEST_EQUAL(t.generate(), lt::entry());
+		TEST_THROW(t.generate());
 	}
 }
 
