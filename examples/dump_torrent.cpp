@@ -58,40 +58,37 @@ std::vector<char> load_file(std::string const& filename)
 
 int main(int argc, char* argv[]) try
 {
-	if (argc < 2 || argc > 4) {
-		std::cerr << "usage: dump_torrent torrent-file [total-items-limit] [recursion-limit]\n";
+	if (argc < 2 || argc > 5) {
+		std::cerr << "usage: dump_torrent torrent-file [total-items-limit] [recursion-limit] [piece-count-limit]\n";
 		return 1;
 	}
 
-	int item_limit = 1000000;
-	int depth_limit = 1000;
+	lt::load_torrent_limits cfg;
 
-	if (argc > 2) item_limit = atoi(argv[2]);
-	if (argc > 3) depth_limit = atoi(argv[3]);
+	if (argc > 2) cfg.max_decode_tokens = atoi(argv[2]);
+	if (argc > 3) cfg.max_decode_depth = atoi(argv[3]);
+	if (argc > 4) cfg.max_pieces = atoi(argv[4]);
 
 	std::vector<char> buf = load_file(argv[1]);
-	lt::bdecode_node e;
 	int pos = -1;
 	lt::error_code ec;
-	std::cout << "decoding. recursion limit: " << depth_limit
-		<< " total item count limit: " << item_limit << "\n";
-	int const ret = lt::bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
-		, depth_limit, item_limit);
+	std::cout << "decoding. recursion limit: " << cfg.max_decode_depth
+		<< " total item count limit: " << cfg.max_decode_tokens << "\n";
+	lt::bdecode_node const e = lt::bdecode(buf, ec, &pos, cfg.max_decode_depth
+		, cfg.max_decode_tokens);
 
 	std::printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
-	if (ret != 0) {
+	if (ec) {
 		std::cerr << "failed to decode: '" << ec.message() << "' at character: " << pos<< "\n";
 		return 1;
 	}
 
-	lt::torrent_info const t(e);
-	e.clear();
-	std::vector<char>().swap(buf);
+	lt::torrent_info const t(std::move(e), cfg);
+	buf.clear();
 
 	// print info about torrent
-	std::printf("\n\n----- torrent file info -----\n\n"
-		"nodes:\n");
+	std::printf("\n\n----- torrent file info -----\n\nnodes:\n");
 	for (auto const& i : t.nodes())
 		std::printf("%s: %d\n", i.first.c_str(), i.second);
 

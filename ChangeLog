@@ -1,3 +1,4 @@
+	* add torrent_info constructor overloads to control torrent file limits
 	* feature to disable DHT, PEX and LSD per torrent
 	* fix issue where trackers from magnet links were not included in create_torrent()
 	* make peer_info::client a byte array in python binding
