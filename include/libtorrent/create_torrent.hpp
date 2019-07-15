@@ -237,6 +237,9 @@ namespace libtorrent {
 		// This sets the sha1 hash for this file. This hash will end up under the key ``sha1``
 		// associated with this file (for multi-file torrents) or in the root info dictionary
 		// for single-file torrents.
+		// .. note::
+		//
+		// 	with bittorrent v2, this feature is obsolete
 		void set_file_hash(file_index_t index, sha1_hash const& h);
 
 		// This adds a url seed to the torrent. You can have any number of url seeds. For a

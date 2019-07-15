@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 
 std::unique_ptr<session> g_ses;
-sha1_hash g_info_hash;
+info_hash_t g_info_hash;
 int g_listen_port = 0;
 #if LIBTORRENT_VERSION_NUM >= 10300
 io_context g_ios;
@@ -107,12 +107,16 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 	for (piece_index_t i : fs.piece_range())
 		t.set_hash(i, sha1_hash("abababababababababab"));
 
+	for (file_index_t const f : fs.file_range())
+		for (piece_index_t::diff_type i : fs.file_piece_range(f))
+			t.set_hash2(f, i, sha256_hash("abababababababababababababababababababababababababababababababab"));
+
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, from_span);
 
 	// remember the info-hash to give the fuzzer a chance to connect to it
-	g_info_hash = ti->info_hash().v1;
+	g_info_hash = ti->info_hash();
 
 	// add the torrent to the session
 	add_torrent_params atp;
@@ -176,8 +180,8 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 	// bittorrent handshake
 
 	std::vector<char> handshake(1 + 19 + 8 + 20 + 20 + size);
-	std::memcpy(handshake.data(), "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04", 28);
-	std::memcpy(handshake.data() + 28, g_info_hash.data(), 20);
+	std::memcpy(handshake.data(), "\x13" "BitTorrent protocol\0\0\0\0\0\x10\0\x05", 28);
+	std::memcpy(handshake.data() + 28, g_info_hash.get_best().data(), 20);
 	lt::aux::random_bytes({handshake.data() + 48, 20});
 	std::memcpy(handshake.data() + 68, data, size);
 
