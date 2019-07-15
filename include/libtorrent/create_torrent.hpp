@@ -232,6 +232,13 @@ namespace libtorrent {
 		// See set_piece_hashes().
 		void set_hash(piece_index_t index, sha1_hash const& h);
 
+		// sets the bittorrent v2 hash for file `file` of the piece `piece`.
+		// `piece` is relative to the first piece of the file, starting at 0. The
+		// first piece in the file can be computed with
+		// file_storage::file_index_at_piece().
+		// The hash, `h`, is the root of the merkle tree formed by the piece's
+		// 16 kiB blocks. Note that piece sizes must be powers-of-2, so all
+		// per-piece merkle trees are complete.
 		void set_hash2(file_index_t file, piece_index_t::diff_type piece, sha256_hash const& h);
 
 		// This sets the sha1 hash for this file. This hash will end up under the key ``sha1``

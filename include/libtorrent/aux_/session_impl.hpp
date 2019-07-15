@@ -384,6 +384,10 @@ namespace aux {
 
 			void insert_torrent(info_hash_t const& ih, std::shared_ptr<torrent> const& t) override;
 
+			// when downloading metadata for a torrent, we may learn that it is a
+			// hybrid (supporting v1 and v2), which means it has two info-hashes.
+			// This function updates the index for the torrent, so we can find it
+			// using both the v1 and v2 info-hashes.
 			void update_torrent_info_hash(std::shared_ptr<torrent> const& t
 				, info_hash_t const& old_ih) override;
 
