@@ -130,8 +130,15 @@ TORRENT_VERSION_NAMESPACE_2
 
 	// announces are sent to each tracker using every listen socket
 	// this class holds information about one listen socket for one tracker
+#if TORRENT_ABI_VERSION <= 2
+	// this is to suppress deprecation warnings from implicit move constructor
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#endif
 	struct TORRENT_EXPORT announce_endpoint
 	{
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 		friend class lt::torrent;
 		friend struct announce_entry;
 
@@ -166,6 +173,19 @@ TORRENT_VERSION_NAMESPACE_2
 		// returns true if the last time we tried to announce to this
 		// tracker succeeded, or if we haven't tried yet.
 		TORRENT_DEPRECATED bool is_working() const;
+
+		// for backwards compatibility
+		time_point32 TORRENT_DEPRECATED_MEMBER next_announce = (time_point32::min)();
+		time_point32 TORRENT_DEPRECATED_MEMBER min_announce = (time_point32::min)();
+		std::string TORRENT_DEPRECATED_MEMBER message;
+		error_code TORRENT_DEPRECATED_MEMBER last_error;
+		int TORRENT_DEPRECATED_MEMBER scrape_incomplete = -1;
+		int TORRENT_DEPRECATED_MEMBER scrape_complete = -1;
+		int TORRENT_DEPRECATED_MEMBER scrape_downloaded = -1;
+		std::uint8_t TORRENT_DEPRECATED_MEMBER fails : 7;
+		bool TORRENT_DEPRECATED_MEMBER updating : 1;
+		bool TORRENT_DEPRECATED_MEMBER start_sent : 1;
+		bool TORRENT_DEPRECATED_MEMBER complete_sent : 1;
 #endif
 
 	private:

@@ -57,6 +57,12 @@ namespace libtorrent {
 
 	announce_endpoint::announce_endpoint(aux::listen_socket_handle const& s)
 		: local_endpoint(s ? s.get_local_endpoint() : tcp::endpoint())
+#if TORRENT_ABI_VERSION <= 2
+		, fails(0)
+		, updating(false)
+		, start_sent(false)
+		, complete_sent(false)
+#endif
 		, socket(s)
 	{}
 
@@ -131,6 +137,12 @@ namespace libtorrent {
 	{
 		for (auto& ih : info_hashes)
 			ih.reset();
+
+#if TORRENT_ABI_VERSION <= 2
+		start_sent = false;
+		next_announce = time_point32::min();
+		min_announce = time_point32::min();
+#endif
 	}
 
 	void announce_entry::reset()
