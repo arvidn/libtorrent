@@ -729,7 +729,8 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 
 std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	, char const* name, int piece_size
-	, int num_pieces, bool add_tracker, bool v1, std::string ssl_certificate)
+	, int num_pieces, bool add_tracker, lt::create_flags_t const flags
+	, std::string ssl_certificate)
 {
 	// exercise the path when encountering invalid urls
 	char const* invalid_tracker_url = "http:";
@@ -738,7 +739,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	file_storage fs;
 	int total_size = piece_size * num_pieces;
 	fs.add_file(name, total_size);
-	lt::create_torrent t(fs, piece_size, v1 ? lt::create_torrent::v1_only : create_flags_t{ 0 });
+	lt::create_torrent t(fs, piece_size, flags);
 	if (add_tracker)
 	{
 		t.add_tracker(invalid_tracker_url);
@@ -771,7 +772,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	for (auto const i : fs.piece_range())
 		t.set_hash(i, ph);
 
-	if (!v1)
+	if (!(flags & create_torrent::v1_only))
 	{
 		int const blocks_in_piece = piece_size / default_block_size;
 		aux::vector<sha256_hash> v2tree(merkle_num_nodes(merkle_num_leafs(blocks_in_piece)));
@@ -811,7 +812,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, std::string suffix, int piece_size
 	, std::shared_ptr<torrent_info>* torrent, bool super_seeding
 	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports
-	, std::shared_ptr<torrent_info>* torrent2, bool v1)
+	, std::shared_ptr<torrent_info>* torrent2, create_flags_t const flags)
 {
 	TORRENT_ASSERT(ses1);
 	TORRENT_ASSERT(ses2);
@@ -853,7 +854,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		create_directory("tmp1" + suffix, ec);
 		std::string const file_path = combine_path("tmp1" + suffix, "temporary");
 		std::ofstream file(file_path.c_str());
-		t = ::create_torrent(&file, "temporary", piece_size, 9, false, v1);
+		t = ::create_torrent(&file, "temporary", piece_size, 9, false, flags);
 		file.close();
 		if (clear_files)
 		{

@@ -160,7 +160,7 @@ namespace libtorrent
 
 		struct piece_hash_request
 		{
-			time_point last_request;
+			time_point last_request = min_time();
 			int num_requests = 0;
 			bool have = false;
 		};

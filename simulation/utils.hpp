@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/flags.hpp"
 #include "simulator/simulator.hpp"
 
 namespace libtorrent
@@ -51,10 +52,14 @@ void filter_ips(lt::session& ses);
 std::unique_ptr<sim::asio::io_context> make_io_context(
 	sim::simulation& sim, int i);
 
-enum flags_t
-{
-	ipv6 = 1,
-};
+using lt::operator""_bit;
+
+using test_transfer_flags_t = libtorrent::flags::bitfield_flag<std::uint32_t, struct test_transfer_flags_tag>;
+
+constexpr test_transfer_flags_t ipv6 = 0_bit;
+constexpr test_transfer_flags_t v1_only = 1_bit;
+constexpr test_transfer_flags_t v2_only = 2_bit;
+constexpr test_transfer_flags_t magnet_download = 3_bit;
 
 void set_proxy(lt::session& ses, int proxy_type, int flags = 0
 	, bool proxy_peer_connections = true);

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/create_torrent.hpp"
 #include "libtorrent/fwd.hpp"
 
 EXPORT std::shared_ptr<lt::torrent_info> generate_torrent(bool with_files = false);
@@ -92,7 +93,7 @@ EXPORT void create_random_files(std::string const& path, lt::span<const int> fil
 
 EXPORT std::shared_ptr<lt::torrent_info> create_torrent(std::ostream* file = nullptr
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13
-	, bool add_tracker = true, bool v1 = false, std::string ssl_certificate = "");
+	, bool add_tracker = true, lt::create_flags_t flags = {}, std::string ssl_certificate = "");
 
 EXPORT std::tuple<lt::torrent_handle
 	, lt::torrent_handle
@@ -105,7 +106,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2
 	, lt::add_torrent_params const* p = nullptr
 	, bool stop_lsd = true, bool use_ssl_ports = false
 	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr
-	, bool v1 = false);
+	, lt::create_flags_t flags = {});
 
 EXPORT int start_web_server(bool ssl = false, bool chunked = false
 	, bool keepalive = true, int min_interval = 30);

@@ -68,7 +68,7 @@ void run_test(
 	Setup const& setup
 	, HandleAlerts const& on_alert
 	, Test const& test
-	, int flags = 0)
+	, test_transfer_flags_t flags = {})
 {
 	using namespace lt;
 
@@ -130,15 +130,24 @@ void run_test(
 	print_alerts(*ses[1], [](lt::session&, lt::alert const*){}, 1);
 
 	// the first peer is a downloader, the second peer is a seed
-	lt::add_torrent_params params = ::create_torrent(1);
+	lt::add_torrent_params params = ::create_torrent(1, true, 9
+		, (flags & v2_only) ? create_torrent::v2_only
+		: (flags & v1_only) ? create_torrent::v1_only
+		: create_flags_t{});
 	params.flags &= ~lt::torrent_flags::auto_managed;
 	params.flags &= ~lt::torrent_flags::paused;
 
-	params.save_path = save_path(0);
-	ses[0]->async_add_torrent(params);
-
 	params.save_path = save_path(1);
 	ses[1]->async_add_torrent(params);
+
+	params.save_path = save_path(0);
+	if (flags & magnet_download)
+	{
+		params.info_hash = params.ti->info_hash();
+		params.ti.reset();
+	}
+	ses[0]->async_add_torrent(params);
+
 
 	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&)
 	{
@@ -337,3 +346,74 @@ TORRENT_TEST(no_proxy_utp_banned)
 	);
 }
 
+TORRENT_TEST(v2_only)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+		, v2_only
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
+
+TORRENT_TEST(v2_only_magnet)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+		, v2_only | magnet_download
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
+
+TORRENT_TEST(v1_only)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+		, v1_only
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
+
+TORRENT_TEST(v1_only_magnet)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+		, v1_only | magnet_download
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
