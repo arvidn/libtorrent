@@ -3656,7 +3656,11 @@ bool is_downloading_state(int const st)
 		if (should_log())
 		{
 			debug_log("*** PIECE_FINISHED [ p: %d | chk: %s | size: %d ]"
-				, static_cast<int>(piece), (passed || v2_passed) ? "passed" : disk_error ? "disk failed" : "failed"
+				, static_cast<int>(piece)
+				, (passed || v2_passed) ? "passed"
+				: disk_error ? "disk failed"
+				: (!passed || !v2_passed) ? "failed"
+				: "-"
 				, m_torrent_file->piece_size(piece));
 		}
 #endif

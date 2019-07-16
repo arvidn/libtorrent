@@ -54,12 +54,14 @@ void test_swarm(test_flags_t const flags)
 {
 	using namespace lt;
 
-	std::printf("\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
+	std::printf("\n\n ==== TEST SWARM === %s%s%s%s%s%s%s ===\n\n\n"
 		, (flags & test_flags::super_seeding) ? "super-seeding ": ""
 		, (flags & test_flags::strict_super_seeding) ? "strict-super-seeding ": ""
 		, (flags & test_flags::seed_mode) ? "seed-mode ": ""
 		, (flags & test_flags::time_critical) ? "time-critical ": ""
 		, (flags & test_flags::suggest) ? "suggest ": ""
+		, (flags & test_flags::v1_meta) ? "v1-meta ": ""
+		, (flags & test_flags::v2_meta) ? "v2-meta ": ""
 		);
 
 	// in case the previous run was terminated
@@ -123,7 +125,10 @@ void test_swarm(test_flags_t const flags)
 	int const piece_size = (flags & test_flags::v1_meta) ? 8 * 1024 : 16 * 1024;
 	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
 		, false, true, "_swarm", piece_size, nullptr, bool(flags & test_flags::super_seeding), &p
-		, true, false, nullptr, bool(flags & test_flags::v1_meta));
+		, true, false, nullptr
+		, (flags & test_flags::v1_meta) ? create_torrent::v1_only
+		: (flags & test_flags::v2_meta) ? create_torrent::v2_only
+		: create_flags_t{});
 
 	if (flags & test_flags::time_critical)
 	{
