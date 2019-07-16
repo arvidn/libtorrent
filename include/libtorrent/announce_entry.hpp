@@ -161,7 +161,7 @@ TORRENT_VERSION_NAMESPACE_2
 		void reset();
 
 #if TORRENT_ABI_VERSION <= 2
-		// deprecated in 1.3, use announce_infohash::can_announce
+		// deprecated in 2.0, use announce_infohash::can_announce
 		// returns true if we can announce to this tracker now.
 		// The current time is passed in as ``now``. The ``is_seed``
 		// argument is necessary because once we become a seed, we
@@ -169,7 +169,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// hasn't expired yet.
 		TORRENT_DEPRECATED bool can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const;
 
-		// deprecated in 1.3, use announce_infohash::is_working
+		// deprecated in 2.0, use announce_infohash::is_working
 		// returns true if the last time we tried to announce to this
 		// tracker succeeded, or if we haven't tried yet.
 		TORRENT_DEPRECATED bool is_working() const;
