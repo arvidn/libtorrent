@@ -2979,6 +2979,12 @@ bool is_downloading_state(int const st)
 				if (aep.socket != req.outgoing_socket) continue;
 				local_endpoint = aep.local_endpoint;
 				aep.info_hashes[hash_version].message = msg;
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+				if (hash_version == protocol_version::V1)
+					aep.message = msg;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 				break;
 			}
 		}
@@ -3011,6 +3017,16 @@ bool is_downloading_state(int const st)
 				if (complete >= 0) aep->info_hashes[hash_version].scrape_complete = complete;
 				if (downloaded >= 0) aep->info_hashes[hash_version].scrape_downloaded = downloaded;
 
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+				if (hash_version == protocol_version::V1)
+				{
+					if (incomplete >= 0) aep->scrape_incomplete = incomplete;
+					if (complete >= 0) aep->scrape_complete = complete;
+					if (downloaded >= 0) aep->scrape_downloaded = downloaded;
+				}
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 				update_scrape_state();
 			}
 		}
@@ -3368,6 +3384,14 @@ bool is_downloading_state(int const st)
 						a.min_announce = a.next_announce;
 						a.triggered_manually = true;
 					}
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+					aep.next_announce = (flags & torrent_handle::ignore_min_interval)
+						? time_point_cast<seconds32>(t) + seconds32(1)
+						: std::max(time_point_cast<seconds32>(t), aep.min_announce) + seconds32(1);
+					aep.min_announce = aep.next_announce;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 				}
 			}
 		}
@@ -3386,6 +3410,14 @@ bool is_downloading_state(int const st)
 					a.min_announce = a.next_announce;
 					a.triggered_manually = true;
 				}
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+				aep.next_announce = (flags & torrent_handle::ignore_min_interval)
+					? time_point_cast<seconds32>(t) + seconds32(1)
+					: std::max(time_point_cast<seconds32>(t), aep.min_announce) + seconds32(1);
+				aep.min_announce = aep.next_announce;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 			}
 		}
 		update_tracker_timer(aux::time_now32());
@@ -5249,8 +5281,15 @@ bool is_downloading_state(int const st)
 			t.endpoints.clear();
 			if (t.source == 0) t.source = announce_entry::source_client;
 			for (auto& aep : t.endpoints)
+			{
 				for (auto& a : aep.info_hashes)
 					a.complete_sent = is_seed();
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+				aep.complete_sent = is_seed();
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
+			}
 		}
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
@@ -7676,6 +7715,15 @@ bool is_downloading_state(int const st)
 					a.next_announce = now;
 					a.min_announce = now;
 				}
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+				if (!aep.complete_sent)
+				{
+					aep.next_announce = now;
+					aep.min_announce = now;
+				}
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 			}
 		}
 		announce_with_tracker();
@@ -7764,8 +7812,15 @@ bool is_downloading_state(int const st)
 		{
 			for (auto& t : m_trackers)
 				for (auto& aep : t.endpoints)
+				{
 					for (auto& a : aep.info_hashes)
 						a.complete_sent = true;
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+					aep.complete_sent = true;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
+				}
 
 			if (m_state != torrent_status::finished
 				&& m_state != torrent_status::seeding)
@@ -9198,6 +9253,12 @@ bool is_downloading_state(int const st)
 					a.next_announce = now;
 					a.min_announce = now;
 				}
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+				aep.next_announce = now;
+				aep.min_announce = now;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 			}
 		}
 		announce_with_tracker(tracker_request::stopped);
@@ -11207,6 +11268,20 @@ bool is_downloading_state(int const st)
 					a.last_error = ec;
 					a.message = msg;
 					fails = a.fails;
+
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+					if (hash_version == protocol_version::V1)
+					{
+						aep->fails = a.fails;
+						aep->next_announce = a.next_announce;
+						aep->updating = a.updating;
+						aep->last_error = ec;
+						aep->message = msg;
+					}
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
+
 #ifndef TORRENT_DISABLE_LOGGING
 					debug_log("*** increment tracker fail count [%d]", a.fails);
 #endif
