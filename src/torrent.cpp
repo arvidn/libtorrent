@@ -8438,9 +8438,7 @@ bool is_downloading_state(int const st)
 		if (file == torrent_status::error_file_ssl_ctx) return "SSL Context";
 		if (file == torrent_status::error_file_exception) return "exception";
 		if (file == torrent_status::error_file_partfile) return "partfile";
-#if TORRENT_ABI_VERSION == 1
-		if (file == torrent_status::error_file_metadata) return "metadata (from user load function)";
-#endif
+		if (file == torrent_status::error_file_metadata) return "metadata";
 
 		if (m_storage && file >= file_index_t(0))
 		{
