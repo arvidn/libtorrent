@@ -56,13 +56,15 @@ using lt::operator""_bit;
 
 using test_transfer_flags_t = libtorrent::flags::bitfield_flag<std::uint32_t, struct test_transfer_flags_tag>;
 
+namespace tx {
 constexpr test_transfer_flags_t ipv6 = 0_bit;
 constexpr test_transfer_flags_t v1_only = 1_bit;
 constexpr test_transfer_flags_t v2_only = 2_bit;
 constexpr test_transfer_flags_t magnet_download = 3_bit;
+constexpr test_transfer_flags_t proxy_peers = 4_bit;
+}
 
-void set_proxy(lt::session& ses, int proxy_type, int flags = 0
-	, bool proxy_peer_connections = true);
+void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t flags = tx::proxy_peers);
 
 void print_alerts(lt::session& ses
 	, std::function<void(lt::session&, lt::alert const*)> on_alert
