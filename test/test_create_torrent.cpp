@@ -74,7 +74,7 @@ TORRENT_TEST(create_verbatim_torrent)
 	TEST_CHECK(memcmp(dest_info, test_torrent + 1, sizeof(test_torrent)-3) == 0);
 }
 
-TORRENT_TEST(piece_size)
+TORRENT_TEST(auto_piece_size)
 {
 	std::int64_t const kiB = 1024;
 	std::int64_t const MiB = 1024 * 1024;
@@ -100,6 +100,33 @@ TORRENT_TEST(piece_size)
 		lt::create_torrent ct(fs, 0);
 		TEST_CHECK(ct.piece_length() == static_cast<int>(t.second));
 	}
+}
+
+namespace {
+int test_piece_size(int const piece_size, lt::create_flags_t const f = {})
+{
+	std::int64_t const MiB = 1024 * 1024;
+	lt::file_storage fs;
+	fs.add_file("a", 100 * MiB);
+	lt::create_torrent ct(fs, piece_size, f);
+	return ct.piece_length();
+}
+}
+
+TORRENT_TEST(piece_size_restriction_16kB)
+{
+	TEST_EQUAL(test_piece_size(15000), 16 * 1024);
+	TEST_THROW(test_piece_size(15000, lt::create_torrent::v1_only));
+}
+
+TORRENT_TEST(piece_size_quanta)
+{
+	TEST_EQUAL(test_piece_size(32 * 1024), 32 * 1024);
+	TEST_EQUAL(test_piece_size(32 * 1024, lt::create_torrent::v1_only), 32 * 1024);
+	TEST_THROW(test_piece_size(48 * 1024));
+	TEST_EQUAL(test_piece_size(48 * 1024, lt::create_torrent::v1_only), 48 * 1024);
+	TEST_THROW(test_piece_size(47 * 1024, lt::create_torrent::v1_only));
+	TEST_THROW(test_piece_size(47 * 1024));
 }
 
 TORRENT_TEST(create_torrent_round_trip)

@@ -440,11 +440,20 @@ namespace {
 		}
 
 		if (!m_v1_only)
+		{
+			// v2 torrents requires piece sizes to be at least 16 kiB
 			piece_size = std::max(piece_size, 16 * 1024);
 
-		// make sure the size is an even power of 2
-		// i.e. only a single bit is set
-		TORRENT_ASSERT((piece_size & (piece_size - 1)) == 0);
+			// make sure the size is an even power of 2
+			// i.e. only a single bit is set. This is required by v2 torrents
+			if ((piece_size & (piece_size - 1)) != 0)
+				aux::throw_ex<system_error>(errors::invalid_piece_size);
+		}
+		else if ((piece_size % (16 * 1024)) != 0)
+		{
+			// v1 torrents should have piece sizes divisible by 16 kiB
+			aux::throw_ex<system_error>(errors::invalid_piece_size);
+		}
 
 		m_files.set_piece_length(piece_size);
 		if (!m_v1_only)
