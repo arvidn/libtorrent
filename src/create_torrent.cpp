@@ -449,7 +449,8 @@ namespace {
 			if ((piece_size & (piece_size - 1)) != 0)
 				aux::throw_ex<system_error>(errors::invalid_piece_size);
 		}
-		else if ((piece_size % (16 * 1024)) != 0)
+		else if ((piece_size % (16 * 1024)) != 0
+			&& (piece_size & (piece_size - 1)) != 0)
 		{
 			// v1 torrents should have piece sizes divisible by 16 kiB
 			aux::throw_ex<system_error>(errors::invalid_piece_size);

@@ -116,7 +116,10 @@ int test_piece_size(int const piece_size, lt::create_flags_t const f = {})
 TORRENT_TEST(piece_size_restriction_16kB)
 {
 	TEST_EQUAL(test_piece_size(15000), 16 * 1024);
+	TEST_EQUAL(test_piece_size(500), 16 * 1024);
 	TEST_THROW(test_piece_size(15000, lt::create_torrent::v1_only));
+	TEST_THROW(test_piece_size(8000, lt::create_torrent::v1_only));
+	TEST_EQUAL(test_piece_size(8192, lt::create_torrent::v1_only), 8192);
 }
 
 TORRENT_TEST(piece_size_quanta)
