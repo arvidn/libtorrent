@@ -66,7 +66,7 @@ void filter_ips(lt::session& ses)
 	ses.set_ip_filter(filter);
 }
 
-void set_proxy(lt::session& ses, int proxy_type, int flags, bool proxy_peer_connections)
+void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t const flags)
 {
 	// apply the proxy settings to session 0
 	settings_pack p;
@@ -75,12 +75,12 @@ void set_proxy(lt::session& ses, int proxy_type, int flags, bool proxy_peer_conn
 		p.set_int(settings_pack::proxy_port, 4444);
 	else
 		p.set_int(settings_pack::proxy_port, 5555);
-	if (flags & ipv6)
+	if (flags & tx::ipv6)
 		p.set_str(settings_pack::proxy_hostname, "2001::2");
 	else
 		p.set_str(settings_pack::proxy_hostname, "50.50.50.50");
 	p.set_bool(settings_pack::proxy_hostnames, true);
-	p.set_bool(settings_pack::proxy_peer_connections, proxy_peer_connections);
+	p.set_bool(settings_pack::proxy_peer_connections, bool(flags & tx::proxy_peers));
 	p.set_bool(settings_pack::proxy_tracker_connections, true);
 
 	ses.apply_settings(p);
