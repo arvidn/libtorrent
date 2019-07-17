@@ -72,7 +72,7 @@ void run_test(
 {
 	using namespace lt;
 
-	const bool use_ipv6 = flags & tx::ipv6;
+	const bool use_ipv6 = bool(flags & tx::ipv6);
 
 	char const* peer0_ip[2] = { "50.0.0.1", "feed:face:baad:f00d::1" };
 	char const* peer1_ip[2] = { "50.0.0.2", "feed:face:baad:f00d::2" };
