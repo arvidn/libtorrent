@@ -253,7 +253,7 @@ bool is_absolute_path(std::string const& f)
 
 std::string trunc(std::string str, int const sz)
 {
-	if (str.size() > sz) str.resize(sz);
+	if (str.size() > std::size_t(sz)) str.resize(std::size_t(sz));
 	return str;
 }
 
@@ -1744,7 +1744,7 @@ COLUMN OPTIONS
 								, ae.url.c_str()
 								, aep.info_hashes[v].fails
 								, ae.fail_limit, ae.verified?"OK ":"-  "
-								, to_string(total_seconds(aep.info_hashes[v].next_announce - now), 8).c_str()
+								, to_string(int(total_seconds(aep.info_hashes[v].next_announce - now)), 8).c_str()
 								, aep.info_hashes[v].min_announce > now ? int(total_seconds(aep.info_hashes[v].min_announce - now)) : 0
 								, aep.info_hashes[v].last_error ? aep.info_hashes[v].last_error.message().c_str() : ""
 								, aep.info_hashes[v].message.c_str());
