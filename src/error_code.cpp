@@ -268,6 +268,8 @@ namespace libtorrent {
 			"",
 			"",
 			"",
+#else
+			"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
 #endif
 			"random number generator failed",
 			"",

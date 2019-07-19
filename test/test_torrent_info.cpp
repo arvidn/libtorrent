@@ -923,6 +923,13 @@ TORRENT_TEST(parse_torrents)
 			TEST_CHECK(std::all_of(pieces.begin() + 1, pieces.end(), [](sha256_hash const& c)
 			{ return c.is_all_zeros(); }));
 		}
+		else if (t.file == "v2_symlinks.torrent"_sv)
+		{
+			TEST_CHECK(ti->num_files() > 3);
+			TEST_EQUAL(ti->files().symlink(file_index_t(0)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
+			TEST_EQUAL(ti->files().symlink(file_index_t(1)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
+			TEST_EQUAL(ti->files().symlink(file_index_t(2)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
+		}
 
 		file_storage const& fs = ti->files();
 		for (file_index_t idx{0}; idx != file_index_t(fs.num_files()); ++idx)
