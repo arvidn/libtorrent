@@ -159,6 +159,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	{
 		auto now = aux::time_now();
 
+		// this is for a future per-block request feature
+#if 0
 		if (!m_priority_block_requests.empty())
 		{
 			auto& req = m_priority_block_requests.front();
@@ -168,10 +170,11 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				, req.block
 				, 2
 				, layers_to_verify(nidx) + 1);
-			m_priority_block_requests.front().num_requests++;
+			req.num_requests++;
 			std::sort(m_priority_block_requests.begin(), m_priority_block_requests.end());
 			return hash_req;
 		}
+#endif
 
 		if (!m_piece_block_requests.empty())
 		{
@@ -543,18 +546,20 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 	void hash_picker::hashes_rejected(hash_request const& req)
 	{
-		if (req.base == m_piece_layer && req.index % 512 == 0)
+		TORRENT_ASSERT(req.base == m_piece_layer && req.index % 512 == 0);
+
+		for (int i = req.index; i < req.index + req.count; i += 512)
 		{
-			for (int i = req.index; i < req.index + req.count; i += 512)
-			{
-				m_piece_hash_requested[req.file][i / 512].last_request = min_time();
-				--m_piece_hash_requested[req.file][i / 512].num_requests;
-			}
+			m_piece_hash_requested[req.file][i / 512].last_request = min_time();
+			--m_piece_hash_requested[req.file][i / 512].num_requests;
 		}
+
+		// this is for a future per-block request feature
+#if 0
 		else if (req.base == 0)
 		{
 			priority_block_request block_req(req.file, req.index);
-			auto existing_req = std::find(
+			auto const existing_req = std::find(
 				m_priority_block_requests.begin()
 				, m_priority_block_requests.end()
 				, block_req);
@@ -565,6 +570,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					, priority_block_request(req.file, req.index));
 			}
 		}
+#endif
 	}
 
 	void hash_picker::verify_block_hashes(piece_index_t index)

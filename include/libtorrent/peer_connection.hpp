@@ -763,6 +763,8 @@ namespace aux {
 		void on_seed_mode_hashed(piece_index_t piece
 			, sha1_hash const& piece_hash, aux::vector<sha256_hash> const& block_hashes
 			, storage_error const& error);
+
+		// this is for a future per-block request feature
 #if 0
 		void on_hash2_complete(storage_error const& error, peer_request const& r
 			, sha256_hash const& hash);
