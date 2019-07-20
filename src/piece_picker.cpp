@@ -1088,7 +1088,7 @@ namespace libtorrent {
 				info.peer = nullptr;
 				info.state = block_info::state_none;
 			}
-			update_piece_state(i);
+			i = update_piece_state(i);
 		}
 
 		if (blocks.empty() || i->requested + i->finished + i->writing == 0)

@@ -281,6 +281,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (req.base != m_piece_layer && req.base != 0)
 			return add_hashes_result(false);
 
+		TORRENT_ASSERT(validate_hash_request(req, m_files));
+
 		aux::vector<sha256_hash> tree(merkle_num_nodes(count));
 		std::copy(hashes.begin(), hashes.begin() + req.count, tree.end() - count);
 
