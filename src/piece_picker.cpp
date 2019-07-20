@@ -3278,7 +3278,14 @@ get_out:
 		{
 			auto i = find_dl_piece(p.download_queue(), piece);
 			TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
+#if 1
+			TORRENT_ASSERT(i->hashing == 0);
+			i->hashing = 1;
+
+			// this is for a future per-block request feature
+#else
 			++i->hashing;
+#endif
 		}
 	}
 
@@ -3293,8 +3300,16 @@ get_out:
 		{
 			auto i = find_dl_piece(p.download_queue(), piece);
 			TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
+
+#if 1
+			TORRENT_ASSERT(i->hashing == 1);
+			i->hashing = 0;
+
+			// this is for a future per-block request feature
+#else
 			TORRENT_ASSERT(i->hashing > 0);
 			--i->hashing;
+#endif
 		}
 	}
 

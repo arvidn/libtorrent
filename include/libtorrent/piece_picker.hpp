@@ -188,6 +188,12 @@ namespace libtorrent {
 			// the number of blocks in the requested state
 			std::uint16_t requested:15;
 
+#if 1
+			// set to 1 if there is an outstanding hash request for this piece
+			std::uint16_t hashing:1;
+
+		// this is for a future per-block request feature
+#else
 			// available for future use
 			std::uint16_t unused:1;
 
@@ -196,6 +202,7 @@ namespace libtorrent {
 
 			// available for future use
 			std::uint16_t unused2:1;
+#endif
 		};
 
 		piece_picker(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);

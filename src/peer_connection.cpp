@@ -2965,6 +2965,7 @@ namespace libtorrent {
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 
+		// this is for a future per-block request feature
 #if 0
 		if (t->info_hash().has_v2())
 		{
@@ -5388,6 +5389,7 @@ namespace libtorrent {
 		fill_send_buffer();
 	}
 
+		// this is for a future per-block request feature
 #if 0
 	void peer_connection::on_hash2_complete(storage_error const& error
 		, peer_request const& r, sha256_hash const& hash)

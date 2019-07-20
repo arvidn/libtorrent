@@ -200,7 +200,13 @@ namespace libtorrent
 		file_storage const& m_files;
 		aux::vector<aux::vector<sha256_hash>, file_index_t>& m_merkle_trees;
 		aux::vector<aux::vector<bool>, file_index_t> m_hash_verified;
+
+		// information about every 512-piece span of each file. We request hashes
+		// for 512 pieces at a time
 		aux::vector<aux::vector<piece_hash_request>, file_index_t> m_piece_hash_requested;
+
+		// this is for a future per-block request feature
+#if 0
 		// blocks are only added to this list if there is a time critial block which
 		// has been downloaded but we don't have its hash or if the initial request
 		// for the hash was rejected
@@ -208,10 +214,20 @@ namespace libtorrent
 		// is received
 		// the vector is sorted by the number of requests sent for each block
 		aux::vector<priority_block_request> m_priority_block_requests;
+#endif
+
 		// when a piece fails hash check a request is queued to download the piece's
 		// block hashes
 		aux::vector<piece_block_request> m_piece_block_requests;
+
+		// this is the number of tree levels in a piece. if the piece size is 16
+		// kiB, this is 0, since there is not tree per piece. If the piece size is
+		// 32 kiB, it's 1, and so on.
 		int const m_piece_layer;
+
+		// this is the number of tree layers for a 512-piece range, which is
+		// the granularity with which we send hash requests. The number of layers
+		// all the way down the the block level.
 		int const m_piece_tree_root_layer;
 	};
 } // namespace libtorrent

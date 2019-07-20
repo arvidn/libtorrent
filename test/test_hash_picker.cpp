@@ -186,14 +186,12 @@ TORRENT_TEST(reject_piece_request)
 
 	hash_picker picker(fs, trees);
 
-	typed_bitfield<piece_index_t> pieces;
-	pieces.resize(4 * 512);
-	pieces.set_all();
+	typed_bitfield<piece_index_t> const pieces(4 * 512, true);
 
-	auto picked = picker.pick_hashes(pieces);
+	auto const picked = picker.pick_hashes(pieces);
 	picker.hashes_rejected(picked);
 
-	auto picked2 = picker.pick_hashes(pieces);
+	auto const picked2 = picker.pick_hashes(pieces);
 	TEST_CHECK(picked == picked2);
 }
 
