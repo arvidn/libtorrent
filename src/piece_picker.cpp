@@ -1060,6 +1060,8 @@ namespace libtorrent {
 
 		piece_pos& p = m_piece_map[index];
 		int const prev_priority = p.priority(this);
+
+		// if we know which blocks failed, just restore those
 		if (!blocks.empty())
 		{
 			auto const binfo = mutable_blocks_for_piece(*i);
@@ -1068,13 +1070,24 @@ namespace libtorrent {
 				block_info& info = binfo[block];
 				TORRENT_ASSERT(info.state >= block_info::state_writing);
 				if (info.state == block_info::state_writing)
+				{
+					TORRENT_ASSERT(i->writing > 0);
 					--i->writing;
+				}
 				else if (info.state == block_info::state_finished)
+				{
+					TORRENT_ASSERT(i->finished > 0);
 					--i->finished;
+				}
+				else if (info.state == block_info::state_requested)
+				{
+					// this is not expected to happen, but if it does, leave the
+					// block state intact
+					continue;
+				}
 				info.peer = nullptr;
 				info.state = block_info::state_none;
 			}
-			//p.download_state = piece_pos::piece_downloading;
 			update_piece_state(i);
 		}
 
@@ -3596,7 +3609,7 @@ get_out:
 
 		if (state == piece_pos::piece_open)
 		{
-			for (int i = 0; i < num_blocks; ++i) d.push_back(nullptr);
+			d.resize(std::size_t(num_blocks), nullptr);
 			return;
 		}
 

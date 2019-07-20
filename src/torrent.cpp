@@ -4036,7 +4036,9 @@ bool is_downloading_state(int const st)
 		m_predictive_pieces.insert(i, index);
 	}
 
-	void torrent::piece_failed(piece_index_t const index, std::vector<int> const blocks)
+	// blocks may contain the block indices of the blocks that failed (if this is
+	// a v2 torrent).
+	void torrent::piece_failed(piece_index_t const index, std::vector<int> blocks)
 	{
 		// if the last piece fails the peer connection will still
 		// think that it has received all of it until this function
@@ -4102,24 +4104,20 @@ bool is_downloading_state(int const st)
 		if (m_picker)
 			m_picker->get_downloaders(downloaders, index);
 
-		// if we know which blocks failed null out all the non-failing
-		// downloaders
-		if (!blocks.empty() && !downloaders.empty())
-		{
-			auto begin = downloaders.begin();
-			for (int const block : blocks)
-			{
-				std::fill(begin, downloaders.begin() + block, nullptr);
-				begin = downloaders.begin() + block + 1;
-			}
-			std::fill(begin, downloaders.end(), nullptr);
-		}
-
 		// decrease the trust point of all peers that sent
 		// parts of this piece.
 		// first, build a set of all peers that participated
+		// if we know which blocks failed, just include the peer(s) sending those
+		// blocks
 		std::set<torrent_peer*> peers;
-		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
+		if (!blocks.empty() && !downloaders.empty())
+		{
+			for (auto const b : blocks) peers.insert(downloaders[std::size_t(b)]);
+		}
+		else
+		{
+			std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
+		}
 
 #if TORRENT_USE_ASSERTS
 		for (auto const& p : downloaders)
@@ -4133,7 +4131,8 @@ bool is_downloading_state(int const st)
 #endif
 
 		// did we receive this piece from a single peer?
-		// or do we know which blocks where bad?
+		// if we know exactly which blocks failed the hash, we can also be certain
+		// that all peers in the list sent us bad data
 		bool const known_bad_peer = peers.size() == 1 || !blocks.empty();
 
 		for (auto p : peers)
@@ -10497,9 +10496,8 @@ bool is_downloading_state(int const st)
 	// adds a piece
 	void torrent::verify_piece(piece_index_t const piece)
 	{
-//		picker().mark_as_checking(piece);
-
 		TORRENT_ASSERT(m_storage);
+		TORRENT_ASSERT(!m_picker->is_hashing(piece));
 
 		disk_job_flags_t flags;
 		if (torrent_file().info_hash().has_v1())
