@@ -438,6 +438,37 @@ TORRENT_TEST(make_magnet_uri2)
 	TEST_CHECK(magnet.find("&ws=http%3a%2f%2ffoo.com%2fbar") != std::string::npos);
 }
 
+TORRENT_TEST(make_magnet_uri_v2)
+{
+	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13
+		, true, lt::create_torrent::v2_only);
+
+	std::string magnet = make_magnet_uri(*ti);
+	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
+	TEST_CHECK(magnet.find("xt=urn:btmh:1220") != std::string::npos);
+	TEST_CHECK(magnet.find("xt=urn:btih:") == std::string::npos);
+}
+
+TORRENT_TEST(make_magnet_uri_hybrid)
+{
+	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13);
+
+	std::string magnet = make_magnet_uri(*ti);
+	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
+	TEST_CHECK(magnet.find("xt=urn:btih:") != std::string::npos);
+	TEST_CHECK(magnet.find("xt=urn:btmh:1220") != std::string::npos);
+}
+
+TORRENT_TEST(make_magnet_uri_v1)
+{
+	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13, true, lt::create_torrent::v1_only);
+
+	std::string magnet = make_magnet_uri(*ti);
+	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
+	TEST_CHECK(magnet.find("xt=urn:btih:") != std::string::npos);
+	TEST_CHECK(magnet.find("xt=urn:btmh:1220") == std::string::npos);
+}
+
 TORRENT_TEST(trailing_whitespace)
 {
 	session ses(settings());

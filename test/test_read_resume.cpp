@@ -297,6 +297,15 @@ TORRENT_TEST(round_trip_merkle_trees)
 	test_roundtrip(atp);
 }
 
+TORRENT_TEST(round_trip_info_hash)
+{
+	add_torrent_params atp;
+	atp.info_hash.v2 = sha256_hash{"21212121212121212121212121212121"};
+	test_roundtrip(atp);
+	entry e = write_resume_data(atp);
+	TEST_CHECK(e["info-hash2"] == "21212121212121212121212121212121");
+}
+
 TORRENT_TEST(round_trip_verified_leaf_hashes)
 {
 	add_torrent_params atp;
