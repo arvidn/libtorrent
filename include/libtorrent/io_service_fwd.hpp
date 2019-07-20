@@ -60,7 +60,7 @@ namespace libtorrent {
 	using io_service = boost::asio::io_service;
 #endif
 
-#if BOOST_VERSION >= 107000
+#if BOOST_VERSION >= 107000 && !defined TORRENT_BUILD_SIMULATOR
 template <typename T>
 io_service& get_io_service(T& o) { return static_cast<io_service&>(o.get_executor().context()); }
 #else
