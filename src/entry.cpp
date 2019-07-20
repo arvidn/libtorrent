@@ -357,6 +357,7 @@ namespace libtorrent
 	// convert a bdecode_node into an old skool entry
 	void entry::operator=(bdecode_node const& e)
 	{
+		destruct();
 		switch (e.type())
 		{
 			case bdecode_node::string_t:
@@ -386,7 +387,6 @@ namespace libtorrent
 				break;
 			}
 			case bdecode_node::none_t:
-				destruct();
 				break;
 		}
 	}
@@ -395,6 +395,7 @@ namespace libtorrent
 	// convert a lazy_entry into an old skool entry
 	void entry::operator=(lazy_entry const& e)
 	{
+		destruct();
 		switch (e.type())
 		{
 			case lazy_entry::string_t:
@@ -424,7 +425,6 @@ namespace libtorrent
 				break;
 			}
 			case lazy_entry::none_t:
-				destruct();
 				break;
 		}
 	}
