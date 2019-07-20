@@ -170,8 +170,8 @@ void test_swarm(int flags)
 	TEST_CHECK(tor2.status().is_seeding);
 	TEST_CHECK(tor3.status().is_seeding);
 
-	float average2 = sum_dl_rate2 / float(count_dl_rates2);
-	float average3 = sum_dl_rate3 / float(count_dl_rates3);
+	float average2 = count_dl_rates2 ? sum_dl_rate2 / float(count_dl_rates2) : 0.f;
+	float average3 = count_dl_rates3 ? sum_dl_rate3 / float(count_dl_rates3) : 0.f;
 
 	std::cerr << average2 << std::endl;
 	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
