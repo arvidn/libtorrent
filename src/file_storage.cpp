@@ -711,18 +711,25 @@ namespace {
 				m_name = lsplit_path(path).first.to_string();
 		}
 
-		bool const v2 = (root_hash != nullptr);
-		if (m_files.empty())
+		// files without a root_hash are assumed to be v1, except symlinks. They
+		// don't have a root hash and can be either v1 or v2
+		if (symlink_path.empty())
 		{
-			m_v2 = v2;
-		}
-		else if (m_v2 != v2)
-		{
-			// you cannot mix v1 and v2 files when building torrent_storage. Either
-			// all files are v1 or all files are v2
-			ec = m_v2 ? make_error_code(errors::torrent_missing_pieces_root)
-				: make_error_code(errors::torrent_inconsistent_files);
-			return;
+			bool const v2 = (root_hash != nullptr);
+			// This condition is true of all files we've added so far have been
+			// symlinks. i.e. this is the first "real" file we're adding.
+			if (m_files.size() == m_symlinks.size())
+			{
+				m_v2 = v2;
+			}
+			else if (m_v2 != v2)
+			{
+				// you cannot mix v1 and v2 files when building torrent_storage. Either
+				// all files are v1 or all files are v2
+					ec = m_v2 ? make_error_code(errors::torrent_missing_pieces_root)
+					: make_error_code(errors::torrent_inconsistent_files);
+				return;
+			}
 		}
 
 		// a root hash implies a v2 file tree

@@ -654,6 +654,35 @@ TORRENT_TEST(large_filename)
 	TEST_EQUAL(ec, make_error_code(boost::system::errc::filename_too_long));
 }
 
+TORRENT_TEST(v2_detection_1)
+{
+	file_storage fs;
+	fs.set_piece_length(0x8000);
+	// passing in a root hash (the last argument) makes it follow v2 rules, to
+	// add pad files
+	fs.add_file("test/0", 0x5000, {}, 0, "symlink-test-1");
+	fs.add_file("test/1", 0x5000, {}, 0, "symlink-test-2");
+
+	fs.add_file("test/2", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
+	// it's an error to add a v1 file to a v2 torrent
+	TEST_THROW(fs.add_file("test/3", 0x2000));
+}
+
+TORRENT_TEST(v2_detection_2)
+{
+	file_storage fs;
+	fs.set_piece_length(0x8000);
+	// passing in a root hash (the last argument) makes it follow v2 rules, to
+	// add pad files
+	fs.add_file("test/0", 0x5000, {}, 0, "symlink-test-1");
+	fs.add_file("test/1", 0x5000, {}, 0, "symlink-test-2");
+
+	fs.add_file("test/2", 0x2000);
+
+	// it's an error to add a v1 file to a v2 torrent
+	TEST_THROW(fs.add_file("test/3", 0x2000, {}, 0, {}, "01234567890123456789012345678901"));
+}
+
 TORRENT_TEST(piece_size2)
 {
 	file_storage fs;

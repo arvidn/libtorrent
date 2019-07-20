@@ -73,6 +73,8 @@ TORRENT_TEST(error_code)
 	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
 	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
 
+	TEST_CHECK(error_code(errors::torrent_inconsistent_hashes).message() == "v1 and v2 hashes do not describe the same data");
+
 	TEST_CHECK(error_code(errors::unauthorized, http_category()).message()
 		== "401 Unauthorized");
 	TEST_CHECK(error_code(errors::service_unavailable, http_category()).message()
