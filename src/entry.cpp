@@ -359,6 +359,7 @@ namespace {
 	// convert a bdecode_node into an old school entry
 	entry& entry::operator=(bdecode_node const& e) &
 	{
+		destruct();
 		switch (e.type())
 		{
 			case bdecode_node::string_t:
@@ -388,7 +389,6 @@ namespace {
 				break;
 			}
 			case bdecode_node::none_t:
-				destruct();
 				break;
 		}
 		return *this;
@@ -398,6 +398,7 @@ namespace {
 	// convert a lazy_entry into an old school entry
 	entry& entry::operator=(lazy_entry const& e) &
 	{
+		destruct();
 		switch (e.type())
 		{
 			case lazy_entry::string_t:
@@ -427,7 +428,6 @@ namespace {
 				break;
 			}
 			case lazy_entry::none_t:
-				destruct();
 				break;
 		}
 		return *this;
