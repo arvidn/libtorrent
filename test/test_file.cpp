@@ -317,6 +317,42 @@ TORRENT_TEST(split_path)
 	TEST_CHECK(rsplit_path("") == r("", ""));
 }
 
+TORRENT_TEST(split_path_pos)
+{
+	using r = std::pair<string_view, string_view>;
+
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(lsplit_path("\\b\\c\\d", 0) == r("b", "c\\d"));
+	TEST_CHECK(lsplit_path("\\b\\c\\d", 1) == r("b", "c\\d"));
+	TEST_CHECK(lsplit_path("\\b\\c\\d", 2) == r("b", "c\\d"));
+	TEST_CHECK(lsplit_path("\\b\\c\\d", 3) == r("b\\c", "d"));
+	TEST_CHECK(lsplit_path("\\b\\c\\d", 4) == r("b\\c", "d"));
+	TEST_CHECK(lsplit_path("\\b\\c\\d", 5) == r("b\\c\\d", ""));
+	TEST_CHECK(lsplit_path("\\b\\c\\d", 6) == r("b\\c\\d", ""));
+
+	TEST_CHECK(lsplit_path("b\\c\\d", 0) == r("b", "c\\d"));
+	TEST_CHECK(lsplit_path("b\\c\\d", 1) == r("b", "c\\d"));
+	TEST_CHECK(lsplit_path("b\\c\\d", 2) == r("b\\c", "d"));
+	TEST_CHECK(lsplit_path("b\\c\\d", 3) == r("b\\c", "d"));
+	TEST_CHECK(lsplit_path("b\\c\\d", 4) == r("b\\c\\d", ""));
+	TEST_CHECK(lsplit_path("b\\c\\d", 5) == r("b\\c\\d", ""));
+#endif
+	TEST_CHECK(lsplit_path("/b/c/d", 0) == r("b", "c/d"));
+	TEST_CHECK(lsplit_path("/b/c/d", 1) == r("b", "c/d"));
+	TEST_CHECK(lsplit_path("/b/c/d", 2) == r("b", "c/d"));
+	TEST_CHECK(lsplit_path("/b/c/d", 3) == r("b/c", "d"));
+	TEST_CHECK(lsplit_path("/b/c/d", 4) == r("b/c", "d"));
+	TEST_CHECK(lsplit_path("/b/c/d", 5) == r("b/c/d", ""));
+	TEST_CHECK(lsplit_path("/b/c/d", 6) == r("b/c/d", ""));
+
+	TEST_CHECK(lsplit_path("b/c/d", 0) == r("b", "c/d"));
+	TEST_CHECK(lsplit_path("b/c/d", 1) == r("b", "c/d"));
+	TEST_CHECK(lsplit_path("b/c/d", 2) == r("b/c", "d"));
+	TEST_CHECK(lsplit_path("b/c/d", 3) == r("b/c", "d"));
+	TEST_CHECK(lsplit_path("b/c/d", 4) == r("b/c/d", ""));
+	TEST_CHECK(lsplit_path("b/c/d", 5) == r("b/c/d", ""));
+}
+
 // file class
 TORRENT_TEST(file)
 {
