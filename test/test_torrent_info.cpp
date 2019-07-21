@@ -134,6 +134,7 @@ static test_torrent_t test_torrents[] =
 	{ "absolute_filename.torrent" },
 	{ "invalid_filename.torrent" },
 	{ "invalid_filename2.torrent" },
+	{ "overlapping_symlinks.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -845,6 +846,13 @@ TORRENT_TEST(parse_torrents)
 		else if (t.file == "invalid_filename2.torrent"_sv)
 		{
 			TEST_EQUAL(ti->num_files(), 3);
+		}
+		else if (t.file == "overlapping_symlinks.torrent"_sv)
+		{
+			TEST_CHECK(ti->num_files() > 3);
+			TEST_EQUAL(ti->files().symlink(file_index_t{0}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
+			TEST_EQUAL(ti->files().symlink(file_index_t{1}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
+			TEST_EQUAL(ti->files().symlink(file_index_t{2}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
 		}
 
 		file_storage const& fs = ti->files();

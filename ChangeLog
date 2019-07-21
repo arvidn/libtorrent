@@ -1,3 +1,4 @@
+	* improve sanitation of symlinks, to support more complex link targets
 	* add DHT routing table affinity for BEP 42 nodes
 	* add torrent_info constructor overloads to control torrent file limits
 	* feature to disable DHT, PEX and LSD per torrent

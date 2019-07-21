@@ -532,6 +532,7 @@ namespace libtorrent {
 
 	private:
 
+		std::string internal_file_path(file_index_t index) const;
 		file_index_t last_file() const noexcept;
 
 		int get_or_add_path(string_view path);

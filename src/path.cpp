@@ -910,6 +910,25 @@ namespace {
 		return { p.substr(0, sep), p.substr(sep + 1) };
 	}
 
+	std::pair<string_view, string_view> lsplit_path(string_view p, std::size_t pos)
+	{
+		if (p.empty()) return {{}, {}};
+		// for absolute paths, skip the initial "/"
+		if (p.front() == TORRENT_SEPARATOR_CHAR
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+			|| p.front() == '/'
+#endif
+		)
+		{ p.remove_prefix(1); if (pos > 0) --pos; }
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+		auto const sep = find_first_of(p, "/\\", std::string::size_type(pos));
+#else
+		auto const sep = find_first_of(p, TORRENT_SEPARATOR_CHAR, std::string::size_type(pos));
+#endif
+		if (sep == string_view::npos) return {p, {}};
+		return { p.substr(0, sep), p.substr(sep + 1) };
+	}
+
 	std::string complete(string_view f)
 	{
 		if (is_complete(f)) return f.to_string();

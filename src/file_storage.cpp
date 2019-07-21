@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 #include <algorithm>
 #include <functional>
+#include <set>
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR '\\'
@@ -657,7 +658,16 @@ namespace {
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
 		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
-		return m_symlinks[fe.symlink_index];
+
+		auto const& link = m_symlinks[fe.symlink_index];
+
+		// TODO: 3 this is a hack to retain ABI compatibility with 1.2.1
+		// in next major release, make this return by value
+		static std::string ret;
+		ret.reserve(m_name.size() + link.size() + 1);
+		ret.assign(m_name);
+		append_path(ret, link);
+		return ret;
 	}
 
 	std::time_t file_storage::mtime(file_index_t const index) const
@@ -816,6 +826,26 @@ namespace {
 
 		// a single return statement, just to make NRVO more likely to kick in
 		return ret;
+	}
+
+	std::string file_storage::internal_file_path(file_index_t const index) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		internal_file_entry const& fe = m_files[index];
+
+		if (fe.path_index >= 0)
+		{
+			std::string ret;
+			std::string const& p = m_paths[fe.path_index];
+			ret.reserve(p.size() + fe.filename().size() + 2);
+			append_path(ret, p);
+			append_path(ret, fe.filename());
+			return ret;
+		}
+		else
+		{
+			return fe.filename().to_string();
+		}
 	}
 
 	string_view file_storage::file_name(file_index_t const index) const
@@ -1112,13 +1142,26 @@ namespace {
 		std::unordered_map<std::string, file_index_t> file_map;
 		bool file_map_initialized = false;
 
+		// lazily instantiated set of all valid directories a symlink may point to
+		// TODO: in C++17 this could be string_view
+		std::unordered_set<std::string> dir_map;
+		bool dir_map_initialized = false;
+
+		// symbolic links that points to directories
+		std::unordered_map<std::string, std::string> dir_links;
+
+		// we validate symlinks in (potentially) 2 passes over the files.
+		// remaining symlinks to validate after the first pass
+		std::vector<file_index_t> symlinks_to_validate;
+
 		for (auto const i : file_range())
 		{
 			if (!(file_flags(i) & file_storage::flag_symlink)) continue;
 
 			if (!file_map_initialized)
 			{
-				for (auto const j : file_range()) file_map[file_path(j)] = j;
+				for (auto const j : file_range())
+					file_map.insert({internal_file_path(j), j});
 				file_map_initialized = true;
 			}
 
@@ -1128,54 +1171,145 @@ namespace {
 			// symlink targets are only allowed to point to files or directories in
 			// this torrent.
 			{
-				std::string target = symlink(i);
+				std::string target = m_symlinks[fe.symlink_index];
 
-				// if it points to a directory, that's OK
-				auto it = std::find(m_paths.begin(), m_paths.end(), target);
-				if (it != m_paths.end())
+				if (is_complete(target))
 				{
-					m_symlinks[fe.symlink_index] = combine_path(name(), *it);
+					// a symlink target is not allowed to be an absolute path, ever
+					// this symlink is invalid, make it point to itself
+					m_symlinks[fe.symlink_index] = internal_file_path(i);
 					continue;
 				}
 
-				target = combine_path(name(), target);
-
-				auto const idx = file_map.find(target);
-				if (idx != file_map.end())
+				auto const iter = file_map.find(target);
+				if (iter != file_map.end())
 				{
 					m_symlinks[fe.symlink_index] = target;
+					if (file_flags(iter->second) & file_storage::flag_symlink)
+					{
+						// we don't know whether this symlink is a file or a
+						// directory, so make the conservative assumption that it's a
+						// directory
+						dir_links[internal_file_path(i)] = target;
+					}
 					continue;
 				}
-			}
 
-			// this symlink target points to a file that's not part of this torrent
-			// file structure. That's not allowed by the spec.
+				// it may point to a directory that doesn't have any files (but only
+				// other directories), in which case it won't show up in m_paths
+				if (!dir_map_initialized)
+				{
+					for (auto const& p : m_paths)
+						for (string_view pv = p; !pv.empty(); pv = rsplit_path(pv).first)
+							dir_map.insert(pv.to_string());
+					dir_map_initialized = true;
+				}
+
+				if (dir_map.count(target))
+				{
+					// it points to a sub directory within the torrent, that's OK
+					m_symlinks[fe.symlink_index] = target;
+					dir_links[internal_file_path(i)] = target;
+					continue;
+				}
+
+			}
 
 			// for backwards compatibility, allow paths relative to the link as
 			// well
 			if (fe.path_index >= 0)
 			{
 				std::string target = m_paths[fe.path_index];
-				append_path(target, symlink(i));
+				append_path(target, m_symlinks[fe.symlink_index]);
 				// if it points to a directory, that's OK
-				auto it = std::find(m_paths.begin(), m_paths.end(), target);
+				auto const it = std::find(m_paths.begin(), m_paths.end(), target);
 				if (it != m_paths.end())
 				{
-					m_symlinks[fe.symlink_index] = combine_path(name(), *it);
+					m_symlinks[fe.symlink_index] = *it;
+					dir_links[internal_file_path(i)] = *it;
 					continue;
 				}
 
-				target = combine_path(name(), target);
-				auto const idx = file_map.find(target);
-				if (idx != file_map.end())
+				if (dir_map.count(target))
+				{
+					// it points to a sub directory within the torrent, that's OK
+					m_symlinks[fe.symlink_index] = target;
+					dir_links[internal_file_path(i)] = target;
+					continue;
+				}
+
+				auto const iter = file_map.find(target);
+				if (iter != file_map.end())
 				{
 					m_symlinks[fe.symlink_index] = target;
+					if (file_flags(iter->second) & file_storage::flag_symlink)
+					{
+						// we don't know whether this symlink is a file or a
+						// directory, so make the conservative assumption that it's a
+						// directory
+						dir_links[internal_file_path(i)] = target;
+					}
 					continue;
 				}
 			}
 
+			// we don't know whether this symlink is a file or a
+			// directory, so make the conservative assumption that it's a
+			// directory
+			dir_links[internal_file_path(i)] = m_symlinks[fe.symlink_index];
+			symlinks_to_validate.push_back(i);
+		}
+
+		// in case there were some "complex" symlinks, we nee a second pass to
+		// validate those. For example, symlinks whose target rely on other
+		// symlinks
+		for (auto const i : symlinks_to_validate)
+		{
+			internal_file_entry const& fe = m_files[i];
+			TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
+
+			std::string target = m_symlinks[fe.symlink_index];
+
+			// to avoid getting stuck in an infinite loop, we only allow traversing
+			// a symlink once
+			std::set<std::string> traversed;
+
+			// this is where we check every path element for existence. If it's not
+			// among the concrete paths, it may be a symlink, which is also OK
+			// note that we won't iterate through this for the last step, where the
+			// filename is included. The filename is validated after the loop
+			for (string_view branch = lsplit_path(target).first;
+				branch.size() < target.size();
+				branch = lsplit_path(target, branch.size() + 1).first)
+			{
+				// this is a concrete directory
+				if (dir_map.count(branch.to_string())) continue;
+
+				auto const iter = dir_links.find(branch.to_string());
+				if (iter == dir_links.end()) goto failed;
+				if (traversed.count(branch.to_string())) goto failed;
+				traversed.insert(branch.to_string());
+
+				// this path element is a symlink. substitute the branch so far by
+				// the link target
+				target = combine_path(iter->second, target.substr(branch.size() + 1));
+
+				// start over with the new (concrete) path
+				branch = {};
+			}
+
+			// the final (resolved) target must be a valid file
+			// or directory
+			if (file_map.count(target) == 0
+				&& dir_map.count(target) == 0) goto failed;
+
+			// this is OK
+			continue;
+
+failed:
+
 			// this symlink is invalid, make it point to itself
-			m_symlinks[fe.symlink_index] = file_path(i);
+			m_symlinks[fe.symlink_index] = internal_file_path(i);
 		}
 	}
 
