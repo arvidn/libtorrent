@@ -199,6 +199,13 @@ std::shared_ptr<torrent_info> file_constructor0(std::string const& filename)
    return ret;
 }
 
+#if TORRENT_ABI_VERSION == 1
+std::shared_ptr<torrent_info> sha1_constructor0(sha1_hash const& ih)
+{
+   return std::make_shared<torrent_info>(ih);
+}
+#endif
+
 std::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent)
 {
     std::vector<char> buf;
@@ -265,6 +272,7 @@ void bind_torrent_info()
         .def(init<torrent_info const&>((arg("ti"))))
 
 #if TORRENT_ABI_VERSION == 1
+        .def("__init__", make_constructor(&sha1_constructor0))
         .def(init<std::wstring>((arg("file"))))
 #endif
 

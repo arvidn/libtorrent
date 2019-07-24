@@ -312,6 +312,12 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(info.total_size(), 1234)
         self.assertEqual(info.creation_date(), 0)
 
+    def test_sha1_constructor(self):
+        if not HAVE_DEPRECATED_APIS:
+            return
+        info = lt.torrent_info(lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
+        self.assertEqual(info.info_hash().v1, lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
+
     def test_metadata(self):
         ti = lt.torrent_info('base.torrent')
 
