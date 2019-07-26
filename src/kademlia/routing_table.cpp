@@ -130,6 +130,12 @@ int routing_table::bucket_limit(int bucket) const
 
 void routing_table::status(std::vector<dht_routing_bucket>& s) const
 {
+	// TODO: This is temporary. For now, only report the largest routing table
+	// (of potentially multiple ones, for multi-homed systems)
+	// in next major version, break the ABI and support reporting all of them in
+	// the dht_stats_alert
+	if (s.size() > m_buckets.size()) return;
+	s.clear();
 	for (auto const& i : m_buckets)
 	{
 		dht_routing_bucket b;
