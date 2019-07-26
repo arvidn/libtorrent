@@ -384,6 +384,15 @@ void routing_table::fill_from_replacements(table_t::iterator bucket)
 	}
 }
 
+void routing_table::prune_empty_bucket()
+{
+	if (m_buckets.back().live_nodes.empty()
+		&& m_buckets.back().replacements.empty())
+	{
+		m_buckets.erase(m_buckets.end() - 1);
+	}
+}
+
 void routing_table::remove_node_internal(node_entry* n, bucket_t& b)
 {
 	if (!b.empty()
@@ -437,6 +446,17 @@ bool routing_table::add_node(node_entry const& e)
 			continue;
 
 		s = add_node_impl(e);
+
+		// we just split the last bucket and tried to insert a new node. If none
+		// of the nodes in the split bucket, nor the new node ended up in the new
+		// bucket, erase it
+		if (m_buckets.back().live_nodes.empty())
+		{
+			m_buckets.erase(m_buckets.end() - 1);
+			// we just split, trying to add the node again should not request
+			// another split
+			TORRENT_ASSERT(s != need_bucket_split);
+		}
 		if (s == failed_to_add) return false;
 		if (s == node_added) return true;
 	}
@@ -501,6 +521,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			// if this was a replacement node it may be elligible for
 			// promotion to the live bucket
 			fill_from_replacements(existing_bucket);
+			prune_empty_bucket();
 			return node_added;
 		}
 		else if (existing->id.is_all_zeros())
@@ -543,6 +564,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 					node.last_queried = min_time();
 			}
 
+			prune_empty_bucket();
 			return failed_to_add;
 		}
 	}
@@ -1013,6 +1035,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 	b.erase(j);
 
 	fill_from_replacements(i);
+	prune_empty_bucket();
 }
 
 void routing_table::add_router_node(udp::endpoint const& router)

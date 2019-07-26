@@ -264,6 +264,8 @@ private:
 	// replacement list
 	void fill_from_replacements(table_t::iterator bucket);
 
+	void prune_empty_bucket();
+
 	dht_settings const& m_settings;
 
 	// (k-bucket, replacement cache) pairs
