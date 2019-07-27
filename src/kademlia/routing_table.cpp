@@ -108,7 +108,139 @@ bool mostly_verified_nodes(bucket_t const& b)
 	return num_verified >= static_cast<int>(b.size()) * 2 / 3;
 }
 
-routing_table::routing_table(node_id const& id, udp proto, int bucket_size
+std::uint8_t classify_prefix(int const bucket_idx, bool const last_bucket
+	, int const bucket_size, node_id nid)
+{
+	TORRENT_ASSERT_VAL(bucket_size > 0, bucket_size);
+	TORRENT_ASSERT_VAL(bucket_size <= 256, bucket_size);
+
+	std::uint32_t mask = static_cast<std::uint32_t>(bucket_size) - 1;
+	// bucket sizes must be even powers of two.
+	TORRENT_ASSERT_VAL((mask & static_cast<std::uint32_t>(bucket_size)) == 0, bucket_size);
+
+	int const mask_shift = aux::count_leading_zeros(mask);
+	TORRENT_ASSERT_VAL(mask_shift >= 0, mask_shift);
+	TORRENT_ASSERT_VAL(mask_shift < 8, mask_shift);
+	mask <<= mask_shift;
+	TORRENT_ASSERT_VAL(mask > 0, mask);
+	TORRENT_ASSERT_VAL(bool((mask & 0x80) != 0), mask);
+
+	// the reason to shift one bit extra (except for the last bucket) is that the
+	// first bit *defines* the bucket. That bit will be the same for all entries.
+	// We're not interested in that one. However, the last bucket hasn't split
+	// yet, so it will contain entries from both "sides", so we need to include
+	// the top bit.
+	nid <<= bucket_idx + int(!last_bucket);
+	std::uint8_t const ret = (nid[0] & mask) >> mask_shift;
+	TORRENT_ASSERT_VAL(ret < bucket_size, ret);
+	return ret;
+}
+
+routing_table::add_node_status_t replace_node_impl(node_entry const& e
+	, bucket_t& b, ip_set& ips, int const bucket_index
+	, int const bucket_size_limit, bool const last_bucket
+#ifndef TORRENT_DISABLE_LOGGING
+	, dht_logger* log
+#endif
+	)
+{
+	// if the bucket isn't full, we're not replacing anything, and this function
+	// should not have been called
+	TORRENT_ASSERT(int(b.size()) >= bucket_size_limit);
+
+	bucket_t::iterator j = std::max_element(b.begin(), b.end()
+		, [](node_entry const& lhs, node_entry const& rhs)
+		{ return lhs.fail_count() < rhs.fail_count(); });
+	TORRENT_ASSERT(j != b.end());
+
+	if (j->fail_count() > 0)
+	{
+		// i points to a node that has been marked
+		// as stale. Replace it with this new one
+		ips.erase(j->addr());
+		*j = e;
+		ips.insert(e.addr());
+		return routing_table::node_added;
+	}
+
+	// then we look for nodes with the same 3 bit prefix (or however
+	// many bits prefix the bucket size warrants). If there is no other
+	// node with this prefix, remove the duplicate with the highest RTT.
+	// as the last replacement strategy, if the node we found matching our
+	// bit prefix has higher RTT than the new node, replace it.
+
+	// in order to provide as few lookups as possible before finding
+	// the data someone is looking for, make sure there is an affinity
+	// towards having a good spread of node IDs in each bucket
+	std::uint8_t const to_add_prefix = classify_prefix(bucket_index
+		, last_bucket, bucket_size_limit, e.id);
+
+	// nodes organized by their prefix
+	aux::array<std::vector<bucket_t::iterator>, 128> nodes_storage;
+	auto const nodes = span<std::vector<bucket_t::iterator>>{nodes_storage}.first(bucket_size_limit);
+
+	for (j = b.begin(); j != b.end(); ++j)
+	{
+		std::uint8_t const prefix = classify_prefix(
+			bucket_index, last_bucket, bucket_size_limit, j->id);
+		TORRENT_ASSERT(prefix < nodes.size());
+		nodes[prefix].push_back(j);
+	}
+
+	if (!nodes[to_add_prefix].empty())
+	{
+		j = *std::max_element(nodes[to_add_prefix].begin(), nodes[to_add_prefix].end()
+			, [](bucket_t::iterator lhs, bucket_t::iterator rhs)
+			{ return *lhs < *rhs; });
+
+		// only if e is better than the worst node in this prefix slot do we
+		// replace it. resetting j means we're not replacing it
+		if (!(e < *j)) j = b.end();
+	}
+	else
+	{
+		// there is no node in this prefix slot. We definitely want to add it.
+		// Now we just need to figure out which one to replace
+		std::vector<bucket_t::iterator> replace_candidates;
+		for (auto const& n : nodes)
+		{
+			if (n.size() > 1) replace_candidates.insert(replace_candidates.end(), n.begin(), n.end());
+		}
+
+		// since the bucket is full, and there's no node in the prefix-slot
+		// we're about to add to, there must be at least one prefix slot that
+		// has more than one node.
+		TORRENT_ASSERT(!replace_candidates.empty());
+
+		// from these nodes, pick the "worst" one and replace it
+		j = *std::max_element(replace_candidates.begin(), replace_candidates.end()
+			, [](bucket_t::iterator lhs, bucket_t::iterator rhs)
+			{ return *lhs < *rhs; });
+	}
+
+	if (j != b.end())
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		if (log != nullptr && log->should_log(dht_logger::routing_table))
+		{
+			log->log(dht_logger::routing_table, "replacing node with better one: %s %s [%s %dms %d] vs. [%s %dms %d]"
+				, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str()
+				, e.verified ? "verified" : "not-verified", e.rtt
+				, classify_prefix(bucket_index, last_bucket, bucket_size_limit, e.id)
+				, j->verified ? "verified" : "not-verified", j->rtt
+				, classify_prefix(bucket_index, last_bucket, bucket_size_limit, j->id)
+				);
+		}
+#endif
+		ips.erase(j->addr());
+		*j = e;
+		ips.insert(e.addr());
+		return routing_table::node_added;
+	}
+	return routing_table::need_bucket_split;
+}
+
+routing_table::routing_table(node_id const& id, udp const proto, int const bucket_size
 	, dht::settings const& settings
 	, dht_logger* log)
 	:
@@ -122,6 +254,8 @@ routing_table::routing_table(node_id const& id, udp proto, int bucket_size
 	, m_last_self_refresh(min_time())
 	, m_bucket_size(bucket_size)
 {
+	// bucket sizes must be a power of 2
+	TORRENT_ASSERT_VAL(((bucket_size - 1) & bucket_size) == 0, bucket_size);
 	TORRENT_UNUSED(log);
 	m_buckets.reserve(30);
 }
@@ -369,6 +503,8 @@ node_entry* routing_table::find_node(udp::endpoint const& ep
 	return nullptr;
 }
 
+// TODO: this need to take bucket "prefix" into account. It should be unified
+// with add_node_impl()
 void routing_table::fill_from_replacements(table_t::iterator bucket)
 {
 	bucket_t& b = bucket->live_nodes;
@@ -379,9 +515,7 @@ void routing_table::fill_from_replacements(table_t::iterator bucket)
 
 	// sort by RTT first, to find the node with the lowest
 	// RTT that is pinged
-	std::sort(rb.begin(), rb.end()
-		, [](node_entry const& lhs, node_entry const& rhs)
-			{ return lhs.rtt < rhs.rtt; });
+	std::sort(rb.begin(), rb.end());
 
 	while (int(b.size()) < bucket_size && !rb.empty())
 	{
@@ -588,7 +722,6 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	// long to split, and lose nodes (in the case where lower-numbered buckets
 	// are larger)
 	int const bucket_size_limit = bucket_limit(bucket_index);
-	int const next_bucket_size_limit = bucket_limit(bucket_index + 1);
 
 	bucket_t::iterator j;
 
@@ -672,7 +805,7 @@ ip_ok:
 	// bucket's size limit. This makes use split the low-numbered buckets split
 	// earlier when we have larger low buckets, to make it less likely that we
 	// lose nodes
-	if (e.pinged() && int(b.size()) < (can_split ? next_bucket_size_limit : bucket_size_limit))
+	if (e.pinged() && int(b.size()) < bucket_size_limit)
 	{
 		if (b.empty()) b.reserve(bucket_size_limit);
 		b.push_back(e);
@@ -682,154 +815,23 @@ ip_ok:
 
 	// if there is no room, we look for nodes marked as stale
 	// in the k-bucket. If we find one, we can replace it.
-	// then we look for nodes with the same 3 bit prefix (or however
-	// many bits prefix the bucket size warrants). If there is no other
-	// node with this prefix, remove the duplicate with the highest RTT.
-	// as the last replacement strategy, if the node we found matching our
-	// bit prefix has higher RTT than the new node, replace it.
+
+	// A node is considered stale if it has failed at least one
+	// time. Here we choose the node that has failed most times.
+	// If we don't find one, place this node in the replacement-
+	// cache and replace any nodes that will fail in the future
+	// with nodes from that cache.
+
+	bool const last_bucket = bucket_index + 1 == int(m_buckets.size());
 
 	if (e.confirmed())
 	{
-		// A node is considered stale if it has failed at least one
-		// time. Here we choose the node that has failed most times.
-		// If we don't find one, place this node in the replacement-
-		// cache and replace any nodes that will fail in the future
-		// with nodes from that cache.
-
-		j = std::max_element(b.begin(), b.end()
-			, [](node_entry const& lhs, node_entry const& rhs)
-			{ return lhs.fail_count() < rhs.fail_count(); });
-		TORRENT_ASSERT(j != b.end());
-
-		if (j->fail_count() > 0)
-		{
-			// i points to a node that has been marked
-			// as stale. Replace it with this new one
-			m_ips.erase(j->addr());
-			*j = e;
-			m_ips.insert(e.addr());
-			return node_added;
-		}
-
-		// in order to provide as few lookups as possible before finding
-		// the data someone is looking for, make sure there is an affinity
-		// towards having a good spread of node IDs in each bucket
-
-		int mask = bucket_size_limit - 1;
-		int mask_shift = 0;
-		TORRENT_ASSERT_VAL(mask > 0, mask);
-		while ((mask & 0x80) == 0)
-		{
-			mask <<= 1;
-			++mask_shift;
-		}
-
-		// in case bucket_size_limit is not an even power of 2
-		mask = (0xff << mask_shift) & 0xff;
-
-		// pick out all nodes that have the same prefix as the new node
-		std::vector<bucket_t::iterator> nodes;
-		bool force_replace = false;
-
-		// the last bucket is special, since it hasn't been split yet, it
-		// includes that top bit as well
-		int const prefix_offset =
-			bucket_index + 1 == int(m_buckets.size()) ? bucket_index : bucket_index + 1;
-
-		{
-			node_id id = e.id;
-			id <<= prefix_offset;
-			int const candidate_prefix = id[0] & mask;
-
-			for (j = b.begin(); j != b.end(); ++j)
-			{
-				if (!matching_prefix(j->id, mask, candidate_prefix, prefix_offset)) continue;
-				nodes.push_back(j);
-			}
-		}
-
-		if (!nodes.empty())
-		{
-			j = *std::max_element(nodes.begin(), nodes.end()
-				, [](bucket_t::iterator lhs, bucket_t::iterator rhs)
-				{ return *lhs < *rhs; });
-		}
-		else
-		{
-			// there is no node in this prefix-slot, there may be some
-			// nodes sharing a prefix. Find all nodes that do not
-			// have a unique prefix
-
-			// find node entries with duplicate prefixes in O(1)
-			aux::vector<bucket_t::iterator> prefix(aux::numeric_cast<std::size_t>(int(1 << (8 - mask_shift))), b.end());
-			TORRENT_ASSERT(int(prefix.size()) >= bucket_size_limit);
-
-			// the begin iterator from this object is used as a placeholder
-			// for an occupied slot whose node has already been added to the
-			// duplicate nodes list.
-			bucket_t placeholder;
-
-			nodes.reserve(b.size());
-			for (j = b.begin(); j != b.end(); ++j)
-			{
-				node_id id = j->id;
-				id <<= prefix_offset;
-				int this_prefix = (id[0] & mask) >> mask_shift;
-				TORRENT_ASSERT(this_prefix >= 0);
-				TORRENT_ASSERT(this_prefix < int(prefix.size()));
-				if (prefix[this_prefix] != b.end())
-				{
-					// there's already a node with this prefix. Remember both
-					// duplicates.
-					nodes.push_back(j);
-
-					if (prefix[this_prefix] != placeholder.begin())
-					{
-						nodes.push_back(prefix[this_prefix]);
-						prefix[this_prefix] = placeholder.begin();
-					}
-				}
-			}
-
-			if (!nodes.empty())
-			{
-				// from these nodes, pick the one with the highest RTT
-				// and replace it
-
-				auto k = std::max_element(nodes.begin(), nodes.end()
-					, [](bucket_t::iterator lhs, bucket_t::iterator rhs)
-					{ return *lhs < *rhs; });
-
-				// in this case, we would really rather replace the node even if
-				// the new node has higher RTT, because it fills a new prefix that we otherwise
-				// don't have.
-				force_replace = true;
-				j = *k;
-			}
-			else
-			{
-				j = std::max_element(b.begin(), b.end());
-			}
-		}
-
-		if (j != b.end() && (force_replace || e < *j))
-		{
+		auto const ret = replace_node_impl(e, b, m_ips, bucket_index, bucket_size_limit, last_bucket
 #ifndef TORRENT_DISABLE_LOGGING
-			if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
-			{
-				m_log->log(dht_logger::routing_table, "replacing node with better one: %s %s %s %dms vs. %s %dms"
-					, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str()
-					, e.verified ? "verified" : "not-verified", e.rtt
-					, j->verified ? "verified" : "not-verified", j->rtt);
-			}
+			, m_log
 #endif
-			m_ips.erase(j->addr());
-			*j = e;
-			m_ips.insert(e.addr());
-			return node_added;
-		}
-		// in order to keep lookup times small, prefer nodes with low RTTs
-
+			);
+		if (ret != need_bucket_split) return ret;
 	}
 
 	// if we can't split, try to insert into the replacement bucket
@@ -840,7 +842,6 @@ ip_ok:
 		// the bucket, and the bucket is full, we have to
 		// cache this node and wait until some node fails
 		// and then replace it.
-
 		j = std::find_if(rb.begin(), rb.end()
 			, [&e](node_entry const& ne) { return ne.id == e.id; });
 
@@ -861,7 +862,15 @@ ip_ok:
 			// less reliable than this one, that has been pinged
 			j = std::find_if(rb.begin(), rb.end()
 				, [] (node_entry const& ne) { return !ne.pinged(); });
-			if (j == rb.end()) j = rb.begin();
+			if (j == rb.end())
+			{
+				auto const ret = replace_node_impl(e, rb, m_ips, bucket_index, m_bucket_size, last_bucket
+#ifndef TORRENT_DISABLE_LOGGING
+					, nullptr
+#endif
+					);
+				return ret == node_added ? node_added : failed_to_add;
+			}
 			m_ips.erase(j->addr());
 			rb.erase(j);
 		}

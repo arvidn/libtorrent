@@ -80,7 +80,7 @@ struct ipv6_hash
 	}
 };
 
-struct ip_set
+struct TORRENT_EXTRA_EXPORT ip_set
 {
 	void insert(address const& addr);
 	bool exists(address const& addr) const;
@@ -97,11 +97,22 @@ struct ip_set
 		return m_ip4s == rh.m_ip4s && m_ip6s == rh.m_ip6s;
 	}
 
+	std::size_t size() const { return m_ip4s.size() + m_ip6s.size(); }
+
 	// these must be multisets because there can be multiple routing table
 	// entries for a single IP when restrict_routing_ips is set to false
 	std::unordered_multiset<address_v4::bytes_type, ipv4_hash> m_ip4s;
 	std::unordered_multiset<address_v6::bytes_type, ipv6_hash> m_ip6s;
 };
+
+// Each routing table bucket represents node IDs with a certain number of bits
+// of prefix in common with our own node ID. Each bucket fits 8 nodes (and
+// sometimes more, closer to the top). In order to minimize the number of hops
+// necessary to traverse the DHT, we want the nodes in our buckets to be spread
+// out across all possible "sub-branches". This is what the "classify" refers
+// to. The 3 (or more) bits following the shared bit prefix.
+TORRENT_EXTRA_EXPORT std::uint8_t  classify_prefix(int bucket_idx, bool last_bucket
+	, int bucket_size, node_id nid);
 
 // differences in the implementation from the description in
 // the paper:
@@ -307,6 +318,14 @@ private:
 	// constant called k in paper
 	int const m_bucket_size;
 };
+
+TORRENT_EXTRA_EXPORT routing_table::add_node_status_t
+replace_node_impl(node_entry const& e, bucket_t& b, ip_set& ips
+	, int bucket_index, int bucket_size_limit, bool last_bucket
+#ifndef TORRENT_DISABLE_LOGGING
+	, dht_logger* log
+#endif
+	);
 
 } } // namespace libtorrent::dht
 
