@@ -185,8 +185,10 @@ TORRENT_TEST(pointer_offset)
 		, 10);
 
 	// test filename_ptr and filename_len
+#ifndef TORRENT_NO_DEPRECATE
 	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
+#endif
 	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename, 5));
 
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test-torrent-1", "test1"));
@@ -203,8 +205,10 @@ TORRENT_TEST(pointer_offset)
 		, combine_path("test-torrent-1", "fooba")));
 
 	// test filename_ptr and filename_len
+#ifndef TORRENT_NO_DEPRECATE
 	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename + 5);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
+#endif
 }
 
 TORRENT_TEST(invalid_path1)
