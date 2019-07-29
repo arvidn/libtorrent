@@ -6455,10 +6455,9 @@ bool is_downloading_state(int const st)
 			return false;
 		}
 
-		bdecode_node metadata;
 		error_code ec;
-		int ret = bdecode(metadata_buf.begin(), metadata_buf.end(), metadata, ec);
-		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec))
+		bdecode_node const metadata = bdecode(metadata_buf, ec);
+		if (ec || !m_torrent_file->parse_info_section(metadata, ec))
 		{
 			update_gauge();
 			// this means the metadata is correct, since we
