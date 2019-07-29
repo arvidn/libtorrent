@@ -119,6 +119,7 @@ namespace {
 	int file_storage::piece_size2(piece_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= piece_index_t{} && index < end_piece());
+		TORRENT_ASSERT(max_file_offset / piece_length() > static_cast<int>(index));
 		// find the file iterator and file offset
 		internal_file_entry target;
 		target.offset = aux::numeric_cast<std::uint64_t>(std::int64_t(piece_length()) * static_cast<int>(index));
@@ -429,6 +430,7 @@ namespace {
 	{
 		// find the file iterator and file offset
 		internal_file_entry target;
+		TORRENT_ASSERT(offset <= max_file_offset);
 		target.offset = aux::numeric_cast<std::uint64_t>(offset);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
@@ -450,6 +452,7 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(offset >= 0);
 		TORRENT_ASSERT_PRECOND(offset < m_total_size);
+		TORRENT_ASSERT(offset <= max_file_offset);
 		// find the file iterator and file offset
 		internal_file_entry target;
 		target.offset = aux::numeric_cast<std::uint64_t>(offset);
@@ -499,12 +502,13 @@ namespace {
 
 		// find the file iterator and file offset
 		internal_file_entry target;
+		TORRENT_ASSERT(max_file_offset / m_piece_length > static_cast<int>(piece));
 		target.offset = aux::numeric_cast<std::uint64_t>(static_cast<int>(piece) * std::int64_t(m_piece_length) + offset);
-		TORRENT_ASSERT_PRECOND(std::int64_t(target.offset) + size <= m_total_size);
+		TORRENT_ASSERT_PRECOND(std::int64_t(target.offset) <= m_total_size - size);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		// in case the size is past the end, fix it up
-		if (std::int64_t(target.offset) + size > m_total_size)
+		if (std::int64_t(target.offset) > m_total_size - size)
 			size = aux::numeric_cast<int>(m_total_size - std::int64_t(target.offset));
 
 		auto file_iter = std::upper_bound(
@@ -726,11 +730,17 @@ namespace {
 			auto const pad_size = piece_length() - (m_total_size % piece_length());
 			TORRENT_ASSERT(int(pad_size) != piece_length());
 			TORRENT_ASSERT(int(pad_size) > 0);
+			if (m_total_size > max_file_offset - pad_size - file_size)
+			{
+				ec = make_error_code(errors::torrent_invalid_length);
+				return;
+			}
 
 			m_files.emplace_back();
 			// e is invalid from here down!
 			auto& pad = m_files.back();
 			pad.size = static_cast<std::uint64_t>(pad_size);
+			TORRENT_ASSERT(m_total_size <= max_file_offset);
 			TORRENT_ASSERT(m_total_size > 0);
 			pad.offset = static_cast<std::uint64_t>(m_total_size);
 			pad.path_index = get_or_add_path(".pad");
@@ -1210,6 +1220,7 @@ namespace {
 				new_mtime.push_back(0);
 
 			auto& file = new_files.back();
+			TORRENT_ASSERT(off < max_file_offset - static_cast<std::int64_t>(file.size));
 			file.offset = static_cast<std::uint64_t>(off);
 			off += file.size;
 		}

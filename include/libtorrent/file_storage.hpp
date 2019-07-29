@@ -230,6 +230,7 @@ namespace aux {
 
 		// internal limitations restrict file sizes to not be larger than this
 		static constexpr std::int64_t max_file_size = (std::int64_t(1) << 48) - 1;
+		static constexpr std::int64_t max_file_offset = (std::int64_t(1) << 48) - 1;
 
 		// returns true if the piece length has been initialized
 		// on the file_storage. This is typically taken as a proxy
