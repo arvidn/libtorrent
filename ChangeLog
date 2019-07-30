@@ -223,7 +223,7 @@
 	* fix IPv6 tracker support by performing the second announce in more cases
 	* fix utf-8 encoding check in torrent parser
 	* fix infinite loop when parsing maliciously crafted torrents
-	* fix invalid read in parse_int in bdecoder
+	* fix invalid read in parse_int in bdecoder (CVE-2017-9847)
 	* fix issue with very long tracker- and web seed URLs
 	* don't attempt to create empty files on startup, if they already exist
 	* fix force-recheck issue (new files would not be picked up)
@@ -312,7 +312,7 @@
 
 1.1.1 release
 
-	* update puff.c for gzip inflation
+	* update puff.c for gzip inflation (CVE-2016-7164)
 	* add dht_bootstrap_node a setting in settings_pack (and add default)
 	* make pad-file and symlink support conform to BEP47
 	* fix piece picker bug that could result in division by zero
