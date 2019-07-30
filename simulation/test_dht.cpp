@@ -54,6 +54,7 @@ void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 {
 	lt::dht::dht_settings sett;
 	sett.ignore_dark_internet = false;
+	sett.restrict_routing_ips = false;
 	ses.set_dht_settings(sett);
 
 	lt::entry state;
@@ -89,6 +90,7 @@ void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 	ses.load_state(e);
 	lt::settings_pack pack;
 	pack.set_bool(lt::settings_pack::enable_dht, true);
+	pack.set_int(lt::settings_pack::alert_mask, lt::alert::all_categories);
 	ses.apply_settings(pack);
 }
 #endif // TORRENT_DISABLE_DHT
