@@ -529,6 +529,24 @@ TORRENT_TEST(chunked_encoding)
 	TEST_CHECK(body == span<char const>("test12340123456789abcdef", 24));
 }
 
+TORRENT_TEST(chunked_encoding_overflow)
+{
+	char const chunked_input[] =
+		"HTTP/1.1 200 OK\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"\r\n"
+		"7FFFFFFFFFFFFFBF\r\n";
+
+	http_parser parser;
+	int payload;
+	int protocol;
+	bool error = false;
+	std::tie(payload, protocol) = parser.incoming(chunked_input, error);
+
+	// it should have encountered an error
+	TEST_CHECK(error == true);
+}
+
 TORRENT_TEST(invalid_content_length)
 {
 	char const chunked_input[] =
