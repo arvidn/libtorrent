@@ -165,7 +165,7 @@ namespace libtorrent { namespace dht {
 				, get_foreign_node_t get_foreign_node
 				, dht_storage_interface& storage);
 			tracker_node(tracker_node const&) = delete;
-			tracker_node(tracker_node&&) = default;
+			tracker_node(tracker_node&&) = delete;
 
 			node dht;
 			deadline_timer connection_timer;

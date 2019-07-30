@@ -101,8 +101,8 @@ public:
 
 	node(node const&) = delete;
 	node& operator=(node const&) = delete;
-	node(node&&) = default;
-	node& operator=(node&&) = default;
+	node(node&&) = delete;
+	node& operator=(node&&) = delete;
 
 	void update_node_id();
 
