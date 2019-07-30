@@ -72,7 +72,7 @@ namespace {
 	// this is the node ID assigned to node 'idx'
 	dht::node_id id_from_addr(lt::address const& addr)
 	{
-		return dht::generate_id(addr);
+		return dht::generate_id_impl(addr, 0);
 	}
 
 	std::shared_ptr<lt::aux::listen_socket_t> sim_listen_socket(tcp::endpoint ep)
@@ -174,7 +174,7 @@ struct dht_node final : lt::dht::socket_manager
 		// expensive. instead. pick a random subset of nodes proportionate to the
 		// bucket it would fall into
 
-		dht::node_id id = dht().nid();
+		dht::node_id const id = dht().nid();
 
 		// the number of slots left per bucket
 		std::array<int, 160> nodes_per_bucket;
@@ -186,8 +186,18 @@ struct dht_node final : lt::dht::socket_manager
 		nodes_per_bucket[2] = 32;
 		nodes_per_bucket[3] = 16;
 
-		for (auto const& n : nodes)
+		// pick nodes in random order to provide good connectivity
+		std::vector<std::size_t> order(nodes.size());
+		for (size_t i = 0; i < order.size(); ++i) order[i] = i;
+
+		while (!order.empty())
 		{
+			auto const idx = lt::random(static_cast<uint32_t>(order.size() - 1));
+			assert(idx >= 0 && idx < order.size());
+			auto const& n = nodes[order[idx]];
+			if (idx < order.size() - 1) order[idx] = order.back();
+			order.pop_back();
+
 			if (n.first == id) continue;
 			int const bucket = 159 - dht::distance_exp(id, n.first);
 
@@ -206,10 +216,10 @@ struct dht_node final : lt::dht::socket_manager
 			{
 				// generate a random node ID that would fall in `bucket`
 				dht::node_id const mask = dht::generate_prefix_mask(bucket + 1);
-				dht::node_id target = dht::generate_random_id() & ~mask;
+				udp::endpoint const ep = rand_udp_ep(m_ipv6 ? rand_v6 : rand_v4);
+				dht::node_id target = dht::generate_id_impl(ep.address(), 0) & ~mask;
 				target |= id & mask;
-				dht().m_table.node_seen(target, rand_udp_ep(m_ipv6 ? rand_v6 : rand_v4)
-					, lt::random(300) + 10);
+				dht().m_table.node_seen(target, ep, lt::random(300) + 10);
 			}
 		}
 /*
@@ -260,18 +270,7 @@ dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flag
 		all_nodes.push_back(m_nodes.back().node_info());
 	}
 
-	int cnt = 0;
-	for (auto& n : m_nodes)
-	{
-		n.bootstrap(all_nodes);
-		if (++cnt == 25)
-		{
-			// every now and then, shuffle all_nodes to make the
-			// routing tables more randomly distributed
-			lt::aux::random_shuffle(all_nodes);
-			cnt = 0;
-		}
-	}
+	for (auto& n : m_nodes) n.bootstrap(all_nodes);
 }
 
 dht_network::~dht_network() = default;

@@ -1656,7 +1656,7 @@ void test_routing_table(address(&rand_addr)())
 
 	{
 		auto const ep = rand_udp_ep(rand_addr);
-		auto const id = generate_id(ep.address());
+		auto const id = generate_id_impl(ep.address(), 2);
 		table.node_seen(id, ep, 10);
 	}
 
@@ -1664,7 +1664,7 @@ void test_routing_table(address(&rand_addr)())
 	for (int i = 0; i < 10000; ++i)
 	{
 		auto const ep = rand_udp_ep(rand_addr);
-		auto const id = generate_id(ep.address());
+		auto const id = generate_id_impl(ep.address(), 6);
 		table.node_seen(id, ep, 20 + (id[19] & 0xff));
 	}
 	std::printf("active buckets: %d\n", table.num_active_buckets());
