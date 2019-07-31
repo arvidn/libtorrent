@@ -1525,8 +1525,9 @@ namespace {
 			{ return lhs.tier < rhs.tier; });
 	}
 
-	void torrent_info::clear_trackers() {
-		m_urls.clear(); 
+	void torrent_info::clear_trackers()
+	{
+		m_urls.clear();
 	}
 
 #if TORRENT_ABI_VERSION == 1
