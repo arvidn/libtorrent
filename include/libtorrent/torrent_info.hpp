@@ -266,6 +266,10 @@ namespace libtorrent {
 		// priority. No matter which trackers that works or not, the ones with
 		// lower tier will always be tried before the one with higher tier
 		// number. For more information, see announce_entry_.
+		//
+		// ``trackers()`` returns all entries from announce-list.
+		//
+		// ``clear_trackers()`` removes all trackers from announce-list.
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 		void clear_trackers();

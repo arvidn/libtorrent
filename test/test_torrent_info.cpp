@@ -188,9 +188,23 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent with a comment
 // TODO: torrent with an SSL cert
 // TODO: torrent with attributes (executable and hidden)
-// TODO: torrent_info::add_tracker
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
 // TODO: verify_encoding with a string that triggers character replacement
+
+TORRENT_TEST(add_tracker)
+{
+	torrent_info ti(sha1_hash("                   "));
+	TEST_EQUAL(ti.trackers().size(), 0);
+
+	ti.add_tracker("http://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 1);
+
+	announce_entry ae = ti.trackers()[0];
+	TEST_EQUAL(ae.url, "http://test.com/announce");
+
+	ti.clear_trackers();
+	TEST_EQUAL(ti.trackers().size(), 0);
+}
 
 TORRENT_TEST(url_list_and_httpseeds)
 {
