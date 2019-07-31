@@ -211,6 +211,10 @@ rule warnings ( properties * )
 
 # enable these warnings again, once the other ones are dealt with
 		result += <cflags>-Wno-weak-vtables ;
+# prior to the resolution of a defect report against ISO C++11, local variable
+# would have been copied despite being returned by name, due to its not
+# matching the function return type
+		result += <cflags>-Wreturn-std-move-in-c++11 ;
 	}
 
 	if <toolset>gcc in $(properties)
