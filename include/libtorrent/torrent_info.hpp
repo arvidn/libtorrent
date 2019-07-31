@@ -268,6 +268,7 @@ namespace libtorrent {
 		// number. For more information, see announce_entry_.
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
+		void clear_trackers();
 
 		// These two functions are related to `BEP 38`_ (mutable torrents). The
 		// vectors returned from these correspond to the "similar" and
