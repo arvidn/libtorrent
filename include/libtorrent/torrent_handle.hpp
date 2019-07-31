@@ -1044,8 +1044,12 @@ namespace aux {
 		//
 		// ``force_dht_announce`` will announce the torrent to the DHT
 		// immediately.
+		//
+		// ``force_lsd_announce`` will announce the torrent on LSD
+		// immediately.
 		void force_reannounce(int seconds = 0, int tracker_index = -1, reannounce_flags_t = {}) const;
 		void force_dht_announce() const;
+		void force_lsd_announce() const;
 
 #if TORRENT_ABI_VERSION == 1
 		// forces a reannounce in the specified amount of time.
