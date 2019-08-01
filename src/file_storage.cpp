@@ -67,12 +67,7 @@ namespace libtorrent {
 	constexpr file_flags_t file_storage::attribute_symlink;
 #endif
 
-	file_storage::file_storage()
-		: m_piece_length(0)
-		, m_num_pieces(0)
-		, m_total_size(0)
-	{}
-
+	file_storage::file_storage() = default;
 	file_storage::~file_storage() = default;
 
 	// even though this copy constructor and the copy assignment
