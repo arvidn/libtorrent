@@ -749,6 +749,11 @@ namespace libtorrent {
 #endif
 	}
 
+	void torrent_handle::force_lsd_announce() const
+	{
+		async_call(&torrent::lsd_announce);
+	}
+
 	void torrent_handle::force_reannounce(int s, int idx, reannounce_flags_t const flags) const
 	{
 		async_call(&torrent::force_tracker_request, aux::time_now() + seconds(s), idx, flags);
