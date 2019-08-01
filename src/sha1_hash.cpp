@@ -48,7 +48,7 @@ namespace libtorrent {
 		return os << aux::to_hex(peer);
 	}
 
-	// read 40 hexadecimal digits from an istream into a sha1_hash
+	// read hexadecimal digits from an istream into a digest32
 	std::istream& operator>>(std::istream& is, sha1_hash& peer)
 	{
 		char hex[sha1_hash::size() * 2];

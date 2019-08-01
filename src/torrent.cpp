@@ -2443,7 +2443,7 @@ bool is_downloading_state(int const st)
 			, std::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
-	void torrent::on_dht_announce_response_disp(std::weak_ptr<torrent> t
+	void torrent::on_dht_announce_response_disp(std::weak_ptr<torrent> const t
 		, std::vector<tcp::endpoint> const& peers)
 	{
 		std::shared_ptr<torrent> tor = t.lock();
