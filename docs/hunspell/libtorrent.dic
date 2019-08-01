@@ -77,6 +77,7 @@ kB
 hostname
 indices
 dht
+lsd
 noseed
 BFpe
 BFsd
