@@ -573,8 +573,8 @@ namespace {
 		return ret;
 	}
 
-	void file_storage::add_file(std::string const& path, std::int64_t file_size
-		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path)
+	void file_storage::add_file(std::string const& path, std::int64_t const file_size
+		, file_flags_t const file_flags, std::time_t const mtime, string_view const symlink_path)
 	{
 		add_file_borrow({}, path, file_size, file_flags, nullptr, mtime
 			, symlink_path);
@@ -583,7 +583,7 @@ namespace {
 	void file_storage::add_file_borrow(string_view filename
 		, std::string const& path, std::int64_t const file_size
 		, file_flags_t const file_flags, char const* filehash
-		, std::int64_t const mtime, string_view symlink_path)
+		, std::int64_t const mtime, string_view const symlink_path)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
 		TORRENT_ASSERT_PRECOND(!is_complete(filename));
