@@ -60,7 +60,7 @@ namespace libtorrent { namespace aux {
 		if ((proc == nullptr) && !failed_proc)
 		{
 			HMODULE const handle = get_library_handle<Library>();
-			if (handle) proc = (Signature)GetProcAddress(handle, name);
+			if (handle) proc = reinterpret_cast<Signature>(reinterpret_cast<void*>(GetProcAddress(handle, name)));
 			failed_proc = (proc == nullptr);
 		}
 		return proc;
