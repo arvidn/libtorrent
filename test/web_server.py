@@ -43,6 +43,7 @@ class http_handler(BaseHTTPRequestHandler):
 
         print('INCOMING-REQUEST: ', s.requestline)
         print(s.headers)
+        sys.stdout.flush()
 
         global chunked_encoding
         global keepalive
@@ -55,6 +56,7 @@ class http_handler(BaseHTTPRequestHandler):
         file_path = os.path.normpath(s.path)
         print(file_path)
         print(s.path)
+        sys.stdout.flush()
 
         if s.path == '/password_protected':
             passed = False
@@ -111,6 +113,7 @@ class http_handler(BaseHTTPRequestHandler):
             try:
                 filename = os.path.normpath(s.path[1:s.path.find('seed?') + 4])
                 print('filename = %s' % filename)
+                sys.stdout.flush()
                 f = open(filename, 'rb')
                 f.seek(piece * 32 * 1024 + int(ranges[0]))
                 data = f.read(int(ranges[1]) - int(ranges[0]) + 1)
@@ -118,11 +121,13 @@ class http_handler(BaseHTTPRequestHandler):
 
                 s.send_response(200)
                 print('sending %d bytes' % len(data))
+                sys.stdout.flush()
                 s.send_header("Content-Length", "%d" % len(data))
                 s.end_headers()
                 s.wfile.write(data)
             except Exception as e:
                 print('FILE ERROR: ', filename, e)
+                sys.stdout.flush()
                 s.send_response(404)
                 s.send_header("Content-Length", "0")
                 s.end_headers()
@@ -164,6 +169,7 @@ class http_handler(BaseHTTPRequestHandler):
                         s.request.shutdown()
                     except Exception as e:
                         print('Failed to shutdown read-channel of socket: ', e)
+                        sys.stdout.flush()
 
                 s.end_headers()
 
@@ -175,15 +181,18 @@ class http_handler(BaseHTTPRequestHandler):
                         s.wfile.write('%x\r\n' % to_send)
                     data = f.read(to_send)
                     print('read %d bytes' % to_send)
+                    sys.stdout.flush()
                     s.wfile.write(data)
                     if chunked_encoding:
                         s.wfile.write('\r\n')
                     length -= to_send
                     print('sent %d bytes (%d bytes left)' % (len(data), length))
+                    sys.stdout.flush()
                 if chunked_encoding:
                     s.wfile.write('0\r\n\r\n')
             except Exception as e:
                 print('FILE ERROR: ', filename, e)
+                sys.stdout.flush()
                 s.send_response(404)
                 s.send_header("Content-Length", "0")
                 s.end_headers()

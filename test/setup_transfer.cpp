@@ -446,12 +446,12 @@ pid_type async_run(char const* cmdline)
 	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 	startup.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 	startup.hStdError = GetStdHandle(STD_OUTPUT_HANDLE);
-	int ret = CreateProcessA(NULL, buf, NULL, NULL, TRUE
-		, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startup, &pi);
+	int const ret = CreateProcessA(NULL, buf, NULL, NULL, TRUE
+		, 0, NULL, NULL, &startup, &pi);
 
 	if (ret == 0)
 	{
-		int error = GetLastError();
+		int const error = GetLastError();
 		std::printf("failed (%d) %s\n", error, error_code(error, system_category()).message().c_str());
 		return 0;
 	}
