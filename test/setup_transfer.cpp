@@ -442,9 +442,10 @@ pid_type async_run(char const* cmdline)
 	STARTUPINFOA startup;
 	memset(&startup, 0, sizeof(startup));
 	startup.cb = sizeof(startup);
+	startup.dwFlags = STARTF_USESTDHANDLES;
 	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 	startup.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-	startup.hStdError = GetStdHandle(STD_INPUT_HANDLE);
+	startup.hStdError = GetStdHandle(STD_OUTPUT_HANDLE);
 	int ret = CreateProcessA(NULL, buf, NULL, NULL, TRUE
 		, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startup, &pi);
 
