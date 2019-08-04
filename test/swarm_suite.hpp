@@ -44,6 +44,7 @@ namespace test_flags
 	constexpr test_flags_t time_critical = 4_bit;
 	constexpr test_flags_t suggest = 5_bit;
 	constexpr test_flags_t v1_meta = 6_bit;
+	constexpr test_flags_t v2_meta = 7_bit;
 }
 
 EXPORT void test_swarm(test_flags_t flags = test_flags_t{});

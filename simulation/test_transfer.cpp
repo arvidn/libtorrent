@@ -68,11 +68,11 @@ void run_test(
 	Setup const& setup
 	, HandleAlerts const& on_alert
 	, Test const& test
-	, int flags = 0)
+	, test_transfer_flags_t flags = {})
 {
 	using namespace lt;
 
-	const bool use_ipv6 = flags & ipv6;
+	const bool use_ipv6 = bool(flags & tx::ipv6);
 
 	char const* peer0_ip[2] = { "50.0.0.1", "feed:face:baad:f00d::1" };
 	char const* peer1_ip[2] = { "50.0.0.2", "feed:face:baad:f00d::2" };
@@ -80,7 +80,7 @@ void run_test(
 	using asio::ip::address;
 	address peer0 = addr(peer0_ip[use_ipv6]);
 	address peer1 = addr(peer1_ip[use_ipv6]);
-	address proxy = (flags & ipv6) ? addr("2001::2") : addr("50.50.50.50");
+	address proxy = (flags & tx::ipv6) ? addr("2001::2") : addr("50.50.50.50");
 
 	// setup the simulation
 	sim::default_config network_cfg;
@@ -130,15 +130,24 @@ void run_test(
 	print_alerts(*ses[1], [](lt::session&, lt::alert const*){}, 1);
 
 	// the first peer is a downloader, the second peer is a seed
-	lt::add_torrent_params params = ::create_torrent(1);
+	lt::add_torrent_params params = ::create_torrent(1, true, 9
+		, (flags & tx::v2_only) ? create_torrent::v2_only
+		: (flags & tx::v1_only) ? create_torrent::v1_only
+		: create_flags_t{});
 	params.flags &= ~lt::torrent_flags::auto_managed;
 	params.flags &= ~lt::torrent_flags::paused;
 
-	params.save_path = save_path(0);
-	ses[0]->async_add_torrent(params);
-
 	params.save_path = save_path(1);
 	ses[1]->async_add_torrent(params);
+
+	params.save_path = save_path(0);
+	if (flags & tx::magnet_download)
+	{
+		params.info_hash = params.ti->info_hash();
+		params.ti.reset();
+	}
+	ses[0]->async_add_torrent(params);
+
 
 	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&)
 	{
@@ -210,7 +219,7 @@ TORRENT_TEST(no_proxy_tcp_ipv6)
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), true);
 		},
-		ipv6
+		tx::ipv6
 	);
 }
 
@@ -224,7 +233,7 @@ TORRENT_TEST(no_proxy_utp_ipv6)
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), true);
 		},
-		ipv6
+		tx::ipv6
 	);
 }
 
@@ -243,7 +252,7 @@ TORRENT_TEST(socks5_tcp_ipv6)
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), true);
 		},
-		ipv6
+		tx::ipv6
 	);
 }
 */
@@ -337,3 +346,74 @@ TORRENT_TEST(no_proxy_utp_banned)
 	);
 }
 
+TORRENT_TEST(v2_only)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+		, tx::v2_only
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
+
+TORRENT_TEST(v2_only_magnet)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+		, tx::v2_only | tx::magnet_download
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
+
+TORRENT_TEST(v1_only)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+		, tx::v1_only
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
+
+TORRENT_TEST(v1_only_magnet)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+		, tx::v1_only | tx::magnet_download
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
