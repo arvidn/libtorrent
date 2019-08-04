@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp" // for ::create_torrent
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/create_torrent.hpp"
 #include <fstream>
 
 
@@ -47,7 +48,7 @@ std::string save_path(int idx)
 }
 
 lt::add_torrent_params create_torrent(int const idx, bool const seed
-	, int const num_pieces)
+	, int const num_pieces, lt::create_flags_t const flags)
 {
 	// TODO: if we want non-seeding torrents, that could be a bit cheaper to
 	// create
@@ -61,7 +62,7 @@ lt::add_torrent_params create_torrent(int const idx, bool const seed
 	if (ec) std::printf("failed to create directory: \"%s\": %s\n"
 		, path.c_str(), ec.message().c_str());
 	std::ofstream file(lt::combine_path(path, name).c_str());
-	params.ti = ::create_torrent(&file, name, 0x4000, num_pieces + idx, false);
+	params.ti = ::create_torrent(&file, name, 0x4000, num_pieces + idx, false, flags);
 	file.close();
 
 	// by setting the save path to a dummy path, it won't be seeding
