@@ -370,3 +370,21 @@ TORRENT_TEST(disable_disk_cache)
 	);
 }
 
+TORRENT_TEST(piece_extent_affinity)
+{
+	using namespace lt;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1)
+		{
+			settings_pack p;
+			p.set_bool(settings_pack::piece_extent_affinity, true);
+			ses0.apply_settings(p);
+			ses1.apply_settings(p);
+		},
+		[](lt::session&, lt::alert const*) {},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+	);
+}
+

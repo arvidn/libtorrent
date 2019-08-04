@@ -69,6 +69,7 @@ namespace libtorrent {
 	using prio_index_t = aux::strong_typedef<int, struct prio_index_tag_t>;
 	using picker_options_t = flags::bitfield_flag<std::uint16_t, struct picker_options_tag>;
 	using download_queue_t = aux::strong_typedef<std::uint8_t, struct dl_queue_tag>;
+	using piece_extent_t = aux::strong_typedef<int, struct piece_extent_tag>;
 
 	struct piece_count
 	{
@@ -140,6 +141,11 @@ namespace libtorrent {
 		// within properly aligned ranges, not the largest possible
 		// range of pieces.
 		static constexpr picker_options_t align_expanded_pieces = 6_bit;
+
+		// this will create an affinity to pick pieces in extents of 4 MiB, in an
+		// attempt to improve disk I/O by picking ranges of pieces (if pieces are
+		// small)
+		static constexpr picker_options_t piece_extent_affinity = 7_bit;
 
 		struct downloading_piece
 		{
@@ -469,6 +475,11 @@ namespace libtorrent {
 
 	private:
 
+		piece_extent_t extent_for(piece_index_t) const;
+		index_range<piece_index_t> extent_for(piece_extent_t) const;
+
+		void record_downloading_piece(piece_index_t const p);
+
 		int num_pad_blocks() const { return m_num_pad_blocks; }
 
 		span<block_info> mutable_blocks_for_piece(downloading_piece const& dp);
@@ -740,6 +751,13 @@ namespace libtorrent {
 
 		// tracks the number of blocks in a specific piece that are pad blocks
 		std::unordered_map<piece_index_t, int> m_pads_in_piece;
+
+		// when the adjecent_piece affinity is enabled, this contains the most
+		// recent "extents" of adjecent pieces that have been requested from
+		// this is mutable because it's updated by functions to pick pieces, which
+		// are const. That's an efficient place to update it, since it's being
+		// traversed already.
+		mutable std::vector<piece_extent_t> m_recent_extents;
 
 		// the number of bits set in the m_pad_blocks bitfield, i.e.
 		// the number of blocks marked as pads
