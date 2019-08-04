@@ -928,7 +928,12 @@ namespace libtorrent {
 				// request blocks from the same piece
 				ret |= piece_picker::reverse;
 			}
-
+			else
+			{
+				if (m_settings.get_bool(settings_pack::piece_extent_affinity)
+					&& t->num_time_critical_pieces() == 0)
+					ret |= piece_picker::piece_extent_affinity;
+			}
 		}
 
 		if (m_settings.get_bool(settings_pack::prioritize_partial_pieces))

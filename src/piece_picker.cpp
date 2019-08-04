@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_types.hpp" // for picker_log_alert
 #include "libtorrent/download_priority.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/peer_connection.hpp"
@@ -117,6 +118,7 @@ namespace libtorrent {
 	constexpr picker_options_t piece_picker::sequential;
 	constexpr picker_options_t piece_picker::time_critical_mode;
 	constexpr picker_options_t piece_picker::align_expanded_pieces;
+	constexpr picker_options_t piece_picker::piece_extent_affinity;
 
 	constexpr download_queue_t piece_picker::piece_pos::piece_downloading;
 	constexpr download_queue_t piece_picker::piece_pos::piece_full;
@@ -126,6 +128,9 @@ namespace libtorrent {
 	constexpr download_queue_t piece_picker::piece_pos::piece_open;
 	constexpr download_queue_t piece_picker::piece_pos::piece_downloading_reverse;
 	constexpr download_queue_t piece_picker::piece_pos::piece_full_reverse;
+
+	// the max number of blocks to create an affinity for
+	constexpr int max_piece_affinity_extent = 4 * 1024 * 1024 / default_block_size;
 
 	piece_picker::piece_picker(int const blocks_per_piece
 		, int const blocks_in_last_piece, int const total_num_pieces)
@@ -2129,6 +2134,41 @@ namespace {
 			}
 			else
 			{
+				// TODO: Is it a good idea that this affinity takes precedence over
+				// piece priority?
+				if (options & piece_extent_affinity)
+				{
+					int to_erase = -1;
+					int idx = -1;
+					for (piece_extent_t const e : m_recent_extents)
+					{
+						++idx;
+						bool have_all = true;
+						for (piece_index_t const p : extent_for(e))
+						{
+							if (!m_piece_map[p].have()) have_all = false;
+							if (!is_piece_free(p, pieces)) continue;
+
+							ret |= picker_log_alert::extent_affinity;
+
+							num_blocks = add_blocks(p, pieces
+								, interesting_blocks, backup_blocks
+								, backup_blocks2, num_blocks
+								, prefer_contiguous_blocks, peer, suggested_pieces
+								, options);
+							if (num_blocks <= 0)
+							{
+								// if we have all pieces belonging to this extent, remove it
+								if (to_erase != -1) m_recent_extents.erase(m_recent_extents.begin() + to_erase);
+								return ret;
+							}
+						}
+						// if we have all pieces belonging to this extent, remove it
+						if (have_all) to_erase = idx;
+					}
+					if (to_erase != -1) m_recent_extents.erase(m_recent_extents.begin() + to_erase);
+				}
+
 				for (piece_index_t i : m_pieces)
 				{
 					pc.inc_stats_counter(counters::piece_picker_rare_loops);
@@ -2987,6 +3027,68 @@ get_out:
 		return info[block.block_index].state == block_info::state_finished;
 	}
 
+	piece_extent_t piece_picker::extent_for(piece_index_t const p) const
+	{
+		int const extent_size = max_piece_affinity_extent / m_blocks_per_piece;
+		return piece_extent_t{static_cast<int>(p) / extent_size};
+	}
+
+	index_range<piece_index_t> piece_picker::extent_for(piece_extent_t const e) const
+	{
+		int const extent_size = max_piece_affinity_extent / m_blocks_per_piece;
+		int const begin = static_cast<int>(e) * extent_size;
+		int const end = std::min(begin + extent_size, num_pieces());
+		return { piece_index_t{begin}, piece_index_t{end}};
+	}
+
+	void piece_picker::record_downloading_piece(piece_index_t const p)
+	{
+		// if a single piece is large enough, don't bother with the affinity of
+		// adjecent pieces.
+		if (m_blocks_per_piece >= max_piece_affinity_extent) return;
+
+		piece_extent_t const this_extent = extent_for(p);
+
+		// if the extent is already in the list, nothing to do
+		if (std::find(m_recent_extents.begin()
+			, m_recent_extents.end(), this_extent) != m_recent_extents.end())
+			return;
+
+		download_priority_t const this_prio = piece_priority(p);
+
+		// figure out if it's worth recording this downloading piece
+		// if we already have all blocks in this extent, there's no point in
+		// adding it
+		bool have_all = true;
+
+		for (auto const piece : extent_for(this_extent))
+		{
+			if (piece == p) continue;
+
+			if (!m_piece_map[piece].have()) have_all = false;
+
+			// if at least one piece in this extent has a different priority than
+			// the one we just started downloading, don't create an affinity for
+			// adjecent pieces. This probably means the pieces belong to different
+			// files, or that some other mechanism determining the priority should
+			// take precedence.
+			if (piece_priority(piece) != this_prio) return;
+		}
+
+		// if we already have all the *other* pieces in this extent, there's no
+		// need to inflate their priorities
+		if (have_all) return;
+
+		// TODO: should 5 be configurable?
+		if (m_recent_extents.size() < 5)
+			m_recent_extents.push_back(this_extent);
+
+		// limit the number of extent affinities active at any given time to limit
+		// the cost of checking them. Also, don't replace them, commit to
+		// finishing them before starting another extent. This is analoguous to
+		// limiting the number of partial pieces.
+	}
+
 	// options may be 0 or piece_picker::reverse
 	// returns false if the block could not be marked as downloading
 	bool piece_picker::mark_as_downloading(piece_block const block
@@ -3019,6 +3121,17 @@ get_out:
 				: piece_pos::piece_downloading);
 
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
+
+			// if the piece extent affinity is enabled, (maybe) record downloading a
+			// block from this piece to make other peers prefer adjecent pieces
+			// if reverse is set, don't encourage other peers to pick nearby
+			// pieces, as that's assumed to be low priority.
+			// if time critical mode is enabled, we're likely to either download
+			// adjacent pieces anyway, but more importantly, we don't want to
+			// create artificially higher priority for adjecent pieces if they
+			// aren't important or urgent
+			if (options & piece_extent_affinity)
+				record_downloading_piece(block.piece_index);
 
 			auto const dp = add_download_piece(block.piece_index);
 			auto const binfo = mutable_blocks_for_piece(*dp);

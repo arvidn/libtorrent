@@ -2702,6 +2702,7 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr picker_flags_t backup1 = 13_bit;
 		static constexpr picker_flags_t backup2 = 14_bit;
 		static constexpr picker_flags_t end_game = 15_bit;
+		static constexpr picker_flags_t extent_affinity = 16_bit;
 
 		// this is a bitmask of which features were enabled for this particular
 		// pick. The bits are defined in the picker_flags_t enum.
