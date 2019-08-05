@@ -404,8 +404,7 @@ namespace {
 		if (flags & (optimize_alignment | mutable_torrent_support))
 			m_files.optimize(pad_file_limit, alignment, bool(flags & mutable_torrent_support));
 
-		m_files.set_num_pieces(static_cast<int>(
-			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
+		m_files.set_num_pieces(aux::calc_num_pieces(m_files));
 		m_piece_hash.resize(m_files.num_pieces());
 	}
 

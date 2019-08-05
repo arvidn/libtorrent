@@ -641,7 +641,7 @@ lt::file_storage make_file_storage(span<const int> const file_sizes
 	}
 
 	fs.set_piece_length(piece_size);
-	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
 	return fs;
 }

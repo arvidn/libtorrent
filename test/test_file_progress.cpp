@@ -52,7 +52,7 @@ TORRENT_TEST(init)
 	fs.add_file("torrent/6", 100000);
 	fs.add_file("torrent/7", 30);
 	fs.set_piece_length(piece_size);
-	fs.set_num_pieces((int(fs.total_size()) + piece_size - 1) / piece_size);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
 	for (auto const idx : fs.piece_range())
 	{
@@ -83,7 +83,7 @@ TORRENT_TEST(init2)
 	fs.add_file("torrent/1", 100000);
 	fs.add_file("torrent/2", 10);
 	fs.set_piece_length(piece_size);
-	fs.set_num_pieces((int(fs.total_size()) + piece_size - 1) / piece_size);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
 	for (auto const idx : fs.piece_range())
 	{
@@ -113,7 +113,7 @@ TORRENT_TEST(update_simple_sequential)
 	fs.add_file("torrent/2", 100);
 	fs.add_file("torrent/3", 45000);
 	fs.set_piece_length(piece_size);
-	fs.set_num_pieces((int(fs.total_size()) + piece_size - 1) / piece_size);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
 	piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
 
