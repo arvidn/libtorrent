@@ -605,6 +605,9 @@ namespace libtorrent {
 
 namespace aux {
 
+	TORRENT_EXTRA_EXPORT
+	int calc_num_pieces(file_storage const& fs);
+
 	// returns the piece range that entirely falls within the specified file. the
 	// end piece is one-past the last piece that entirely falls within the file.
 	// i.e. They can conveniently be used as loop boundaries. No edge partial

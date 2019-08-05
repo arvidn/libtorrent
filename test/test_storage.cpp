@@ -1139,7 +1139,7 @@ file_storage make_fs()
 	fs.add_file(combine_path("readwritev", "3"), 81);
 	fs.add_file(combine_path("readwritev", "4"), 6561);
 	fs.set_piece_length(0x1000);
-	fs.set_num_pieces(int((fs.total_size() + 0xfff) / 0x1000));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs;
 }
 
@@ -1373,7 +1373,7 @@ TORRENT_TEST(readwritev_zero_size_files)
 	fs.add_file(combine_path("readwritev", "4"), 0);
 	fs.add_file(combine_path("readwritev", "5"), 6561);
 	fs.set_piece_length(0x1000);
-	fs.set_num_pieces(int((fs.total_size() + 0xfff) / 0x1000));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	test_read_fileop fop(10000000);
 	storage_error ec;
 
