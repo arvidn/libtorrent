@@ -58,10 +58,7 @@ namespace libtorrent {
 	struct counters;
 	class alert_manager;
 
-namespace aux {
-
-		struct block_cache_reference;
-	}
+namespace aux { struct block_cache_reference; }
 
 	struct cached_piece_info
 	{

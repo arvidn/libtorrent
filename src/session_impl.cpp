@@ -594,6 +594,7 @@ namespace aux {
 #endif
 	}
 
+	// TODO: 2 the ip filter should probably be saved here too
 	void session_impl::save_state(entry* eptr, save_state_flags_t const flags) const
 	{
 		TORRENT_ASSERT(is_single_thread());
