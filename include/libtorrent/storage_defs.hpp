@@ -134,6 +134,8 @@ namespace libtorrent {
 	// it and return garbage for anything read from it.
 	TORRENT_EXPORT storage_interface* disabled_storage_constructor(storage_params const&, file_pool&);
 
+	// the constructor function for the "zero" storage. This will always read
+	// zeroes and ignore all writes.
 	TORRENT_EXPORT storage_interface* zero_storage_constructor(storage_params const&, file_pool&);
 }
 

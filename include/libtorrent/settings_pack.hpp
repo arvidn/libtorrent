@@ -1167,7 +1167,6 @@ namespace libtorrent {
 			// favour of a choked peer.
 			seeding_piece_quota,
 
-			// TODO: deprecate this
 			// ``max_rejects`` is the number of piece requests we will reject in a
 			// row while a peer is choked before the peer is considered abusive
 			// and is disconnected.

@@ -74,6 +74,7 @@ namespace aux {
 
 #if TORRENT_USE_ASSERTS || !defined TORRENT_DISABLE_LOGGING
 
+	// internal
 	struct piece_log_t
 	{
 		explicit piece_log_t(job_action_t j, int b = -1): job(j), block(b) {}
@@ -82,6 +83,7 @@ namespace aux {
 
 		// these are "jobs" thar cause piece_refcount
 		// to be incremented
+		// internal
 		enum artificial_jobs
 		{
 			flushing = static_cast<int>(job_action_t::num_job_ids), // 20

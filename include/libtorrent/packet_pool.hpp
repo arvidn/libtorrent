@@ -108,6 +108,7 @@ namespace libtorrent {
 
 	using packet_ptr = std::unique_ptr<packet, packet_deleter>;
 
+	// internal
 	inline packet_ptr create_packet(int const size)
 	{
 		packet* p = static_cast<packet*>(std::malloc(sizeof(packet) + aux::numeric_cast<std::uint16_t>(size)));

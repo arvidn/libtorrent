@@ -125,8 +125,6 @@ namespace libtorrent {
 		int max_decode_tokens = 2000000;
 	};
 
-	// TODO: there may be some opportunities to optimize the size if torrent_info.
-	// specifically to turn some std::string and std::vector into pointers
 	class TORRENT_EXPORT torrent_info
 	{
 	public:
@@ -573,6 +571,9 @@ namespace libtorrent {
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 	private:
+
+		// TODO: there may be some opportunities to optimize the size if torrent_info.
+		// specifically to turn some std::string and std::vector into pointers
 
 		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec);
 		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec, int piece_limit);

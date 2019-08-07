@@ -104,6 +104,7 @@ namespace libtorrent {
 		// default constructed.
 		void reset();
 
+		// hidden
 		~hasher();
 
 	private:

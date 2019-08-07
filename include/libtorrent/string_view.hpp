@@ -45,6 +45,7 @@ namespace libtorrent {
 using string_view = boost::string_ref;
 using wstring_view = boost::wstring_ref;
 
+// internal
 inline string_view::size_type find_first_of(string_view const v, char const c
 	, string_view::size_type pos)
 {
@@ -56,6 +57,7 @@ inline string_view::size_type find_first_of(string_view const v, char const c
 	return string_view::npos;
 }
 
+// internal
 inline string_view::size_type find_first_of(string_view const v, char const* c
 	, string_view::size_type pos)
 {
@@ -74,12 +76,14 @@ namespace libtorrent {
 using string_view = boost::string_view;
 using wstring_view = boost::wstring_view;
 
+// internal
 inline string_view::size_type find_first_of(string_view const v, char const c
 	, string_view::size_type pos)
 {
 	return v.find_first_of(c, pos);
 }
 
+// internal
 inline string_view::size_type find_first_of(string_view const v, char const* c
 	, string_view::size_type pos)
 {
