@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/utp_stream.hpp"
+#include "libtorrent/aux_/utp_stream.hpp"
 #include <tuple>
 #include <functional>
 
@@ -141,6 +141,8 @@ TORRENT_TEST(utp)
 
 TORRENT_TEST(compare_less_wrap)
 {
+	using lt::aux::compare_less_wrap;
+
 	TEST_CHECK(compare_less_wrap(1, 2, 0xffff));
 	TEST_CHECK(!compare_less_wrap(2, 1, 0xffff));
 	TEST_CHECK(compare_less_wrap(100, 200, 0xffff));

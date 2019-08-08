@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/packet_buffer.hpp"
+#include "libtorrent/aux_/packet_buffer.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/close_reason.hpp"
@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent {
+namespace aux {
 
 #ifndef TORRENT_UTP_LOG_ENABLE
 	#define TORRENT_UTP_LOG 0
@@ -463,6 +464,7 @@ private:
 	bool m_open;
 };
 
+}
 }
 
 #endif

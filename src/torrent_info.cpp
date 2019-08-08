@@ -115,6 +115,8 @@ namespace libtorrent {
 
 	} // anonymous namespace
 
+namespace aux {
+
 	// fixes invalid UTF-8 sequences
 	bool verify_encoding(std::string& target)
 	{
@@ -333,6 +335,7 @@ namespace libtorrent {
 
 		if (path.empty()) path = "_";
 	}
+}
 
 namespace {
 
@@ -421,7 +424,7 @@ namespace {
 				for (int i = 0, end(s_p.list_size()); i < end; ++i)
 				{
 					auto pe = s_p.list_at(i).string_value();
-					sanitize_append_path_element(symlink_path, pe);
+					aux::sanitize_append_path_element(symlink_path, pe);
 				}
 			}
 		}
@@ -495,7 +498,7 @@ namespace {
 			while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
 				filename.remove_prefix(1);
 
-			sanitize_append_path_element(path, p.string_value());
+			aux::sanitize_append_path_element(path, p.string_value());
 			if (path.empty())
 			{
 				ec = errors::torrent_missing_name;
@@ -524,7 +527,7 @@ namespace {
 						while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
 							filename.remove_prefix(1);
 					}
-					sanitize_append_path_element(path, e.string_value());
+					aux::sanitize_append_path_element(path, e.string_value());
 				}
 
 				// if all path elements were sanitized away, we need to use another
@@ -570,7 +573,7 @@ namespace {
 				for (int i = 0, end(s_p.list_size()); i < end; ++i)
 				{
 					auto pe = s_p.list_at(i).string_value();
-					sanitize_append_path_element(symlink_path, pe);
+					aux::sanitize_append_path_element(symlink_path, pe);
 				}
 			}
 			// symlink targets are validated later, as it may point to a file or
@@ -631,7 +634,7 @@ namespace {
 			bool const single_file = leaf_node && !has_files && tree.dict_size() == 1;
 
 			std::string path = single_file ? std::string() : root_dir;
-			sanitize_append_path_element(path, filename);
+			aux::sanitize_append_path_element(path, filename);
 
 			if (leaf_node)
 			{
@@ -1325,7 +1328,7 @@ namespace {
 		}
 
 		std::string name;
-		sanitize_append_path_element(name, name_ent.string_value());
+		aux::sanitize_append_path_element(name, name_ent.string_value());
 		if (name.empty())
 		{
 			if (m_info_hash.has_v1())
@@ -1813,11 +1816,11 @@ namespace {
 
 		m_comment = torrent_file.dict_find_string_value("comment.utf-8").to_string();
 		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment").to_string();
-		verify_encoding(m_comment);
+		aux::verify_encoding(m_comment);
 
 		m_created_by = torrent_file.dict_find_string_value("created by.utf-8").to_string();
 		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by").to_string();
-		verify_encoding(m_created_by);
+		aux::verify_encoding(m_created_by);
 
 		return true;
 	}

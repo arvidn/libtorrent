@@ -31,10 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/version.hpp"
-#include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/performance_counters.hpp"
-#include "libtorrent/utp_stream.hpp"
+#include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/udp_socket.hpp"
 
 using namespace lt;
@@ -48,8 +48,8 @@ lt::aux::session_settings sett;
 counters cnt;
 
 #if LIBTORRENT_VERSION_NUM >= 10200
-utp_socket_manager man(
-	[](std::weak_ptr<utp_socket_interface>, udp::endpoint const&, span<char const>, error_code&, udp_send_flags_t){}
+aux::utp_socket_manager man(
+	[](std::weak_ptr<aux::utp_socket_interface>, udp::endpoint const&, span<char const>, error_code&, udp_send_flags_t){}
 	, [](std::shared_ptr<aux::socket_type> const&){}
 	, ios
 	, sett
@@ -57,7 +57,7 @@ utp_socket_manager man(
 	, nullptr);
 #else
 udp_socket sock(ios);
-utp_socket_manager man(
+aux::utp_socket_manager man(
 	sett
 	, sock
 	, cnt
@@ -68,9 +68,9 @@ utp_socket_manager man(
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-	utp_socket_impl* sock = NULL;
+	aux::utp_socket_impl* sock = NULL;
 	{
-		utp_stream str(ios);
+		aux::utp_stream str(ios);
 #if LIBTORRENT_VERSION_NUM >= 10200
 		sock = construct_utp_impl(1, 0, &str, man);
 #else

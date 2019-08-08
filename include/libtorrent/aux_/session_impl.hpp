@@ -70,7 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/address.hpp"
-#include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
@@ -728,10 +728,10 @@ namespace aux {
 
 			std::vector<block_info>& block_info_storage() override { return m_block_info_storage; }
 
-			libtorrent::utp_socket_manager* utp_socket_manager() override
+			libtorrent::aux::utp_socket_manager* utp_socket_manager() override
 			{ return &m_utp_socket_manager; }
 #ifdef TORRENT_USE_OPENSSL
-			libtorrent::utp_socket_manager* ssl_utp_socket_manager() override
+			libtorrent::aux::utp_socket_manager* ssl_utp_socket_manager() override
 			{ return &m_ssl_utp_socket_manager; }
 #endif
 
@@ -1145,11 +1145,11 @@ namespace aux {
 				, std::weak_ptr<listen_socket_t> ls
 				, transport ssl, error_code const& ec);
 
-			libtorrent::utp_socket_manager m_utp_socket_manager;
+			libtorrent::aux::utp_socket_manager m_utp_socket_manager;
 
 #ifdef TORRENT_USE_OPENSSL
 			// used for uTP connections over SSL
-			libtorrent::utp_socket_manager m_ssl_utp_socket_manager;
+			libtorrent::aux::tp_socket_manager m_ssl_utp_socket_manager;
 #endif
 
 			// the number of torrent connection boosts

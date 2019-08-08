@@ -77,11 +77,12 @@ namespace libtorrent {
 	struct disk_interface;
 	struct tracker_request;
 	struct request_callback;
-	struct utp_socket_manager;
 	struct external_ip;
 	struct torrent_peer_allocator_interface;
 	struct counters;
 	struct resolver_interface;
+
+namespace aux { struct utp_socket_manager; }
 
 	// hidden
 	using queue_position_t = aux::strong_typedef<int, struct queue_position_tag>;
@@ -283,12 +284,12 @@ namespace aux {
 
 		virtual bool has_lsd() const = 0;
 		virtual void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) = 0;
-		virtual libtorrent::utp_socket_manager* utp_socket_manager() = 0;
+		virtual libtorrent::aux::utp_socket_manager* utp_socket_manager() = 0;
 		virtual void inc_boost_connections() = 0;
 		virtual std::vector<block_info>& block_info_storage() = 0;
 
 #ifdef TORRENT_USE_OPENSSL
-		virtual libtorrent::utp_socket_manager* ssl_utp_socket_manager() = 0;
+		virtual libtorrent::aux::utp_socket_manager* ssl_utp_socket_manager() = 0;
 		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
 #endif
 

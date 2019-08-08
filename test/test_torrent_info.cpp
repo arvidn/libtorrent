@@ -302,6 +302,8 @@ TORRENT_TEST(sanitize_long_path)
 {
 	// test sanitize_append_path_element
 
+	using lt::aux::sanitize_append_path_element;
+
 	std::string path;
 	sanitize_append_path_element(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
@@ -331,6 +333,7 @@ TORRENT_TEST(sanitize_long_path)
 TORRENT_TEST(sanitize_path_trailing_dots)
 {
 	std::string path;
+	using lt::aux::sanitize_append_path_element;
 	sanitize_append_path_element(path, "a");
 	sanitize_append_path_element(path, "abc...");
 	sanitize_append_path_element(path, "c");
@@ -368,6 +371,7 @@ TORRENT_TEST(sanitize_path_trailing_dots)
 
 TORRENT_TEST(sanitize_path_trailing_spaces)
 {
+	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "a");
 	sanitize_append_path_element(path, "abc   ");
@@ -397,6 +401,7 @@ TORRENT_TEST(sanitize_path_trailing_spaces)
 
 TORRENT_TEST(sanitize_path)
 {
+	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "\0\0\xed\0\x80");
 	TEST_EQUAL(path, "_");
@@ -584,6 +589,7 @@ TORRENT_TEST(sanitize_path)
 
 TORRENT_TEST(sanitize_path_zeroes)
 {
+	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "\0foo");
 	TEST_EQUAL(path, "_");
@@ -595,6 +601,7 @@ TORRENT_TEST(sanitize_path_zeroes)
 
 TORRENT_TEST(sanitize_path_colon)
 {
+	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "foo:bar");
 #ifdef TORRENT_WINDOWS
@@ -606,6 +613,8 @@ TORRENT_TEST(sanitize_path_colon)
 
 TORRENT_TEST(verify_encoding)
 {
+	using aux::verify_encoding;
+
 	// verify_encoding
 	std::string test = "\b?filename=4";
 	TEST_CHECK(verify_encoding(test));

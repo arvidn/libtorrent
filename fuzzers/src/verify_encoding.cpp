@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	std::string str{reinterpret_cast<char const*>(data), size};
-	lt::verify_encoding(str);
+	lt::aux::verify_encoding(str);
 	return 0;
 }
 

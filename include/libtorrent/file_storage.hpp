@@ -110,6 +110,9 @@ namespace libtorrent {
 
 #endif // TORRENT_ABI_VERSION
 
+class file_storage;
+class torrent_info;
+
 namespace aux {
 	struct path_index_tag;
 	using path_index_t = aux::strong_typedef<std::uint32_t, path_index_tag>;

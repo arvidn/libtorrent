@@ -6812,7 +6812,7 @@ bool is_downloading_state(int const st)
 			// this is where we determine if we open a regular TCP connection
 			// or a uTP connection. If the utp_socket_manager pointer is not passed in
 			// we'll instantiate a TCP connection
-			utp_socket_manager* sm = nullptr;
+			aux::utp_socket_manager* sm = nullptr;
 
 			if (settings().get_bool(settings_pack::enable_outgoing_utp)
 				&& (!settings().get_bool(settings_pack::enable_outgoing_tcp)
