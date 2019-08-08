@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_UDP_SOCKETS_HPP_INCLUDED
 #define TORRENT_SESSION_UDP_SOCKETS_HPP_INCLUDED
 
-#include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include <boost/asio/io_context.hpp>

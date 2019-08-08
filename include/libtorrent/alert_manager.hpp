@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
-#include "libtorrent/heterogeneous_queue.hpp"
+#include "libtorrent/aux_/heterogeneous_queue.hpp"
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/alert_types.hpp" // for num_alert_types
 #include "libtorrent/aux_/array.hpp"

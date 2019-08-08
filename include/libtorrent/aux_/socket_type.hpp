@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socks5_stream.hpp"
 #include "libtorrent/http_stream.hpp"
 #include "libtorrent/i2p_stream.hpp"
-#include "libtorrent/utp_stream.hpp"
+#include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/assert.hpp"
 

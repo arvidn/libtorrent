@@ -58,10 +58,13 @@ namespace libtorrent {
 
 	struct lazy_entry;
 
+namespace aux {
+
 	// internal, exposed for the unit test
 	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path
 		, string_view element);
 	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target);
+}
 
 	// the web_seed_entry holds information about a web seed (also known
 	// as URL seed or HTTP seed). It is essentially a URL with some state

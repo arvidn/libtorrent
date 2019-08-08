@@ -35,12 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/unique_ptr.hpp"
-#include "libtorrent/packet_pool.hpp" // for packet_ptr/packet_deleter
+#include "libtorrent/aux_/packet_pool.hpp" // for packet_ptr/packet_deleter
 #include <cstdint>
 #include <cstddef>
 #include <memory> // for unique_ptr
 
 namespace libtorrent {
+namespace aux {
 
 	struct packet;
 
@@ -113,6 +114,7 @@ namespace libtorrent {
 		index_type m_last{0};
 	};
 
+}
 }
 
 #endif // TORRENT_PACKET_BUFFER_HPP_INCLUDED

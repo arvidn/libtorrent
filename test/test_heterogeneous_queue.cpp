@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/heterogeneous_queue.hpp"
+#include "libtorrent/aux_/heterogeneous_queue.hpp"
 
 namespace {
 

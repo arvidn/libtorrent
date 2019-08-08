@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 
 namespace libtorrent {
+namespace aux {
 
 	// internal: some MTU and protocol header sizes constants
 	constexpr int TORRENT_IPV4_HEADER = 20;
@@ -217,6 +218,7 @@ namespace libtorrent {
 		packet_slab m_mtu_floor_slab;
 		packet_slab m_mtu_ceiling_slab;
 	};
+}
 }
 
 #endif // TORRENT_PACKET_POOL_HPP

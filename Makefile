@@ -462,7 +462,6 @@ HEADERS = \
   gzip.hpp                     \
   hash_picker.hpp              \
   hasher.hpp                   \
-  heterogeneous_queue.hpp      \
   hex.hpp                      \
   http_connection.hpp          \
   http_parser.hpp              \
@@ -487,8 +486,6 @@ HEADERS = \
   netlink.hpp                  \
   operations.hpp               \
   optional.hpp                 \
-  packet_buffer.hpp            \
-  packet_pool.hpp              \
   parse_url.hpp                \
   part_file.hpp                \
   pe_crypto.hpp                \
@@ -545,7 +542,6 @@ HEADERS = \
   string_view.hpp              \
   tailqueue.hpp                \
   time.hpp                     \
-  timestamp_history.hpp        \
   torrent.hpp                  \
   torrent_flags.hpp            \
   torrent_handle.hpp           \
@@ -560,8 +556,6 @@ HEADERS = \
   units.hpp                    \
   upnp.hpp                     \
   utf8.hpp                     \
-  utp_socket_manager.hpp       \
-  utp_stream.hpp               \
   vector_utils.hpp             \
   version.hpp                  \
   web_connection_base.hpp      \
@@ -594,6 +588,7 @@ HEADERS = \
   aux_/generate_peer_id.hpp         \
   aux_/has_block.hpp                \
   aux_/hasher512.hpp                \
+  aux_/heterogeneous_queue.hpp      \
   aux_/instantiate_connection.hpp   \
   aux_/io.hpp                       \
   aux_/ip_notifier.hpp              \
@@ -605,6 +600,8 @@ HEADERS = \
   aux_/numeric_cast.hpp             \
   aux_/open_mode.hpp                \
   aux_/openssl.hpp                  \
+  aux_/packet_buffer.hpp            \
+  aux_/packet_pool.hpp              \
   aux_/path.hpp                     \
   aux_/portmap.hpp                  \
   aux_/posix_storage.hpp            \
@@ -627,9 +624,12 @@ HEADERS = \
   aux_/suggest_piece.hpp            \
   aux_/throw.hpp                    \
   aux_/time.hpp                     \
+  aux_/timestamp_history.hpp        \
   aux_/torrent_impl.hpp             \
   aux_/torrent_list.hpp             \
   aux_/unique_ptr.hpp               \
+  aux_/utp_socket_manager.hpp       \
+  aux_/utp_stream.hpp               \
   aux_/vector.hpp                   \
   aux_/win_crypto_provider.hpp      \
   aux_/win_util.hpp                 \

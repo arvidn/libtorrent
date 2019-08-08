@@ -30,9 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/utp_stream.hpp"
+#include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/udp_socket.hpp"
-#include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/aux_/instantiate_connection.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/socket.hpp" // for TORRENT_HAS_DONT_FRAGMENT
@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // #define TORRENT_DEBUG_MTU 1135
 
 namespace libtorrent {
+namespace aux {
 
 	utp_socket_manager::utp_socket_manager(
 		send_fun_t const& send_fun
@@ -349,4 +350,5 @@ namespace libtorrent {
 		m_utp_sockets.emplace(recv_id, impl);
 		return impl;
 	}
+}
 }

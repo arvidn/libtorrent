@@ -31,11 +31,11 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/utp_stream.hpp"
+#include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/sliding_average.hpp"
-#include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/aux_/alloca.hpp"
-#include "libtorrent/timestamp_history.hpp"
+#include "libtorrent/aux_/timestamp_history.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent {
+namespace aux {
 
 #if TORRENT_UTP_LOG
 
@@ -3749,4 +3750,5 @@ void utp_socket_impl::check_invariant() const
 	}
 }
 #endif
+}
 }
