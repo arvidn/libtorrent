@@ -1149,7 +1149,7 @@ namespace aux {
 
 #ifdef TORRENT_USE_OPENSSL
 			// used for uTP connections over SSL
-			libtorrent::aux::tp_socket_manager m_ssl_utp_socket_manager;
+			libtorrent::aux::utp_socket_manager m_ssl_utp_socket_manager;
 #endif
 
 			// the number of torrent connection boosts

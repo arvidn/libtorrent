@@ -65,7 +65,6 @@ set(libtorrent_include_files
 	gzip
 	hash_picker
 	hasher
-	heterogeneous_queue
 	hex
 	http_connection
 	http_parser
@@ -88,8 +87,6 @@ set(libtorrent_include_files
 	netlink
 	operations
 	optional
-	packet_buffer
-	packet_pool
 	parse_url
 	part_file
 	pe_crypto
@@ -145,7 +142,6 @@ set(libtorrent_include_files
 	string_view
 	tailqueue
 	time
-	timestamp_history
 	torrent
 	torrent_flags
 	torrent_handle
@@ -160,8 +156,6 @@ set(libtorrent_include_files
 	units
 	upnp
 	utf8
-	utp_socket_manager
-	utp_stream
 	vector_utils
 	version
 	web_connection_base
@@ -225,6 +219,7 @@ set(libtorrent_aux_include_files
 	file_progress
 	file_view_pool
 	has_block
+	heterogeneous_queue
 	instantiate_connection
 	io
 	ip_notifier
@@ -234,6 +229,8 @@ set(libtorrent_aux_include_files
 	noexcept_movable
 	numeric_cast
 	openssl
+	packet_buffer
+	packet_pool
 	path
 	portmap
 	proxy_settings
@@ -253,9 +250,12 @@ set(libtorrent_aux_include_files
 	suggest_piece
 	throw
 	time
+	timestamp_history
 	torrent_impl
 	torrent_list
 	unique_ptr
+	utp_socket_manager
+	utp_stream
 	vector
 	win_crypto_provider
 	win_util)

@@ -116,23 +116,22 @@ class torrent_info;
 namespace aux {
 	struct path_index_tag;
 	using path_index_t = aux::strong_typedef<std::uint32_t, path_index_tag>;
-}
 
 	// internal
-	struct internal_file_entry
+	struct file_entry
 	{
-		friend class file_storage;
+		friend class ::lt::file_storage;
 #if TORRENT_USE_INVARIANT_CHECKS
 		// for torrent_info::invariant_check
-		friend class torrent_info;
+		friend class ::lt::torrent_info;
 #endif
 
-		internal_file_entry();
-		internal_file_entry(internal_file_entry const& fe);
-		internal_file_entry& operator=(internal_file_entry const& fe) &;
-		internal_file_entry(internal_file_entry&& fe) noexcept;
-		internal_file_entry& operator=(internal_file_entry&& fe) & noexcept;
-		~internal_file_entry();
+		file_entry();
+		file_entry(file_entry const& fe);
+		file_entry& operator=(file_entry const& fe) &;
+		file_entry(file_entry&& fe) noexcept;
+		file_entry& operator=(file_entry&& fe) & noexcept;
+		~file_entry();
 
 		void set_name(string_view n, bool borrow_string = false);
 		string_view filename() const;
@@ -189,9 +188,10 @@ namespace aux {
 		// path_is_absolute means the filename
 		// in this field contains the full, absolute path
 		// to the file
-		aux::path_index_t path_index = internal_file_entry::no_path;
+		aux::path_index_t path_index = file_entry::no_path;
 	};
 
+} // aux namespace
 
 	// represents a window of a file in a torrent.
 	//
@@ -362,11 +362,11 @@ namespace aux {
 		peer_request map_file(file_index_t file, std::int64_t offset, int size) const;
 
 #if TORRENT_ABI_VERSION == 1
-		// all functions depending on internal_file_entry
+		// all functions depending on aux::file_entry
 		// were deprecated in 1.0. Use the variants that take an
 		// index instead
-		using iterator = std::vector<internal_file_entry>::const_iterator;
-		using reverse_iterator = std::vector<internal_file_entry>::const_reverse_iterator;
+		using iterator = std::vector<aux::file_entry>::const_iterator;
+		using reverse_iterator = std::vector<aux::file_entry>::const_reverse_iterator;
 
 		TORRENT_DEPRECATED
 		iterator file_at_offset(std::int64_t offset) const;
@@ -379,7 +379,7 @@ namespace aux {
 		TORRENT_DEPRECATED
 		reverse_iterator rend() const { return m_files.rend(); }
 		TORRENT_DEPRECATED
-		internal_file_entry const& internal_at(int const index) const;
+		aux::file_entry const& internal_at(int const index) const;
 		TORRENT_DEPRECATED
 		file_entry at(iterator i) const;
 
@@ -561,7 +561,7 @@ namespace aux {
 #if TORRENT_USE_INVARIANT_CHECKS
 		// internal
 		bool owns_name(file_index_t const f) const
-		{ return m_files[f].name_len == internal_file_entry::name_is_owned; }
+		{ return m_files[f].name_len == aux::file_entry::name_is_owned; }
 #endif
 
 #if TORRENT_ABI_VERSION <= 2
@@ -578,23 +578,23 @@ namespace aux {
 #if TORRENT_ABI_VERSION == 1
 		// these were deprecated in 1.0. Use the versions that take an index instead
 		TORRENT_DEPRECATED
-		sha1_hash hash(internal_file_entry const& fe) const;
+		sha1_hash hash(aux::file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		std::string symlink(internal_file_entry const& fe) const;
+		std::string symlink(aux::file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		std::time_t mtime(internal_file_entry const& fe) const;
+		std::time_t mtime(aux::file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		int file_index(internal_file_entry const& fe) const;
+		int file_index(aux::file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const;
+		std::string file_path(aux::file_entry const& fe, std::string const& save_path = "") const;
 		TORRENT_DEPRECATED
-		std::string file_name(internal_file_entry const& fe) const;
+		std::string file_name(aux::file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		std::int64_t file_size(internal_file_entry const& fe) const;
+		std::int64_t file_size(aux::file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		bool pad_file_at(internal_file_entry const& fe) const;
+		bool pad_file_at(aux::file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		std::int64_t file_offset(internal_file_entry const& fe) const;
+		std::int64_t file_offset(aux::file_entry const& fe) const;
 #endif
 
 		// if the backing buffer changed for this storage, this is the pointer
@@ -624,11 +624,11 @@ namespace aux {
 		// v2 torrents
 		bool m_v2 = false;
 
-		void update_path_index(internal_file_entry& e, std::string const& path
+		void update_path_index(aux::file_entry& e, std::string const& path
 			, bool set_name = true);
 
 		// the list of files that this torrent consists of
-		aux::vector<internal_file_entry, file_index_t> m_files;
+		aux::vector<aux::file_entry, file_index_t> m_files;
 
 		// if there are sha1 hashes for each individual file there are as many
 		// entries in this array as the m_files array. Each entry in m_files has
@@ -642,7 +642,7 @@ namespace aux {
 		aux::vector<char const*, file_index_t> m_file_hashes;
 
 		// for files that are symlinks, the symlink
-		// path_index in the internal_file_entry indexes
+		// path_index in the aux::file_entry indexes
 		// this vector of strings
 		std::vector<std::string> m_symlinks;
 
@@ -652,7 +652,7 @@ namespace aux {
 		// index in m_files
 		aux::vector<std::time_t, file_index_t> m_mtime;
 
-		// all unique paths files have. The internal_file_entry::path_index
+		// all unique paths files have. The aux::file_entry::path_index
 		// points into this array. The paths don't include the root directory
 		// name for multi-file torrents. The m_name field need to be
 		// prepended to these paths, and the filename of a specific file
