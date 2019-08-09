@@ -104,13 +104,13 @@ namespace libtorrent {
 			return piece_length();
 	}
 
-constexpr aux::path_index_t internal_file_entry::no_path;
-constexpr aux::path_index_t internal_file_entry::path_is_absolute;
+constexpr aux::path_index_t aux::file_entry::no_path;
+constexpr aux::path_index_t aux::file_entry::path_is_absolute;
 
 namespace {
 
-	bool compare_file_offset(internal_file_entry const& lhs
-		, internal_file_entry const& rhs)
+	bool compare_file_offset(aux::file_entry const& lhs
+		, aux::file_entry const& rhs)
 	{
 		return lhs.offset < rhs.offset;
 	}
@@ -122,7 +122,8 @@ namespace {
 		TORRENT_ASSERT_PRECOND(index >= piece_index_t{} && index < end_piece());
 		TORRENT_ASSERT(max_file_offset / piece_length() > static_cast<int>(index));
 		// find the file iterator and file offset
-		internal_file_entry target;
+		aux::file_entry target;
+		TORRENT_ASSERT(max_file_offset / piece_length() > static_cast<int>(index));
 		target.offset = aux::numeric_cast<std::uint64_t>(std::int64_t(piece_length()) * static_cast<int>(index));
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
@@ -146,14 +147,14 @@ namespace {
 
 	// path is supposed to include the name of the torrent itself.
 	// or an absolute path, to move a file outside of the download directory
-	void file_storage::update_path_index(internal_file_entry& e
+	void file_storage::update_path_index(aux::file_entry& e
 		, std::string const& path, bool const set_name)
 	{
 		if (is_complete(path))
 		{
 			TORRENT_ASSERT(set_name);
 			e.set_name(path);
-			e.path_index = internal_file_entry::path_is_absolute;
+			e.path_index = aux::file_entry::path_is_absolute;
 			return;
 		}
 
@@ -168,7 +169,7 @@ namespace {
 		if (branch_path.empty())
 		{
 			if (set_name) e.set_name(leaf);
-			e.path_index = internal_file_entry::no_path;
+			e.path_index = aux::file_entry::no_path;
 			return;
 		}
 
@@ -226,7 +227,9 @@ namespace {
 	file_entry::~file_entry() = default;
 #endif // TORRENT_ABI_VERSION
 
-	internal_file_entry::internal_file_entry()
+namespace aux {
+
+	file_entry::file_entry()
 		: offset(0)
 		, symlink_index(not_a_symlink)
 		, no_root_dir(false)
@@ -238,12 +241,12 @@ namespace {
 		, symlink_attribute(false)
 	{}
 
-	internal_file_entry::~internal_file_entry()
+	file_entry::~file_entry()
 	{
 		if (name_len == name_is_owned) delete[] name;
 	}
 
-	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
+	file_entry::file_entry(file_entry const& fe)
 		: offset(fe.offset)
 		, symlink_index(fe.symlink_index)
 		, no_root_dir(fe.no_root_dir)
@@ -260,7 +263,7 @@ namespace {
 		set_name(fe.filename(), borrow);
 	}
 
-	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe) &
+	file_entry& file_entry::operator=(file_entry const& fe) &
 	{
 		if (&fe == this) return *this;
 		offset = fe.offset;
@@ -282,7 +285,7 @@ namespace {
 		return *this;
 	}
 
-	internal_file_entry::internal_file_entry(internal_file_entry&& fe) noexcept
+	file_entry::file_entry(file_entry&& fe) noexcept
 		: offset(fe.offset)
 		, symlink_index(fe.symlink_index)
 		, no_root_dir(fe.no_root_dir)
@@ -300,7 +303,7 @@ namespace {
 		fe.name = nullptr;
 	}
 
-	internal_file_entry& internal_file_entry::operator=(internal_file_entry&& fe) & noexcept
+	file_entry& file_entry::operator=(file_entry&& fe) & noexcept
 	{
 		if (&fe == this) return *this;
 		offset = fe.offset;
@@ -324,8 +327,8 @@ namespace {
 	// if borrow_string is true, don't take ownership over n, just
 	// point to it.
 	// if borrow_string is false, n will be copied and owned by the
-	// internal_file_entry.
-	void internal_file_entry::set_name(string_view n, bool const borrow_string)
+	// file_entry.
+	void file_entry::set_name(string_view n, bool const borrow_string)
 	{
 		// free the current string, before assigning the new one
 		if (name_len == name_is_owned) delete[] name;
@@ -350,17 +353,19 @@ namespace {
 		}
 	}
 
-	string_view internal_file_entry::filename() const
+	string_view file_entry::filename() const
 	{
 		if (name_len != name_is_owned) return {name, std::size_t(name_len)};
 		return name ? string_view(name) : string_view();
 	}
 
+} // aux namespace
+
 	void file_storage::rebase_pointers(char const* current_base, char const* new_base)
 	{
 		for (auto& f : m_files)
 		{
-			if (f.name_len != internal_file_entry::name_is_owned)
+			if (f.name_len != aux::file_entry::name_is_owned)
 				f.name = new_base + (f.name - current_base);
 			if (f.root != nullptr)
 				f.root = new_base + (f.root - current_base);
@@ -430,7 +435,7 @@ namespace {
 	file_storage::iterator file_storage::file_at_offset_deprecated(std::int64_t offset) const
 	{
 		// find the file iterator and file offset
-		internal_file_entry target;
+		aux::file_entry target;
 		TORRENT_ASSERT(offset <= max_file_offset);
 		target.offset = aux::numeric_cast<std::uint64_t>(offset);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
@@ -455,7 +460,7 @@ namespace {
 		TORRENT_ASSERT_PRECOND(offset < m_total_size);
 		TORRENT_ASSERT(offset <= max_file_offset);
 		// find the file iterator and file offset
-		internal_file_entry target;
+		aux::file_entry target;
 		target.offset = aux::numeric_cast<std::uint64_t>(offset);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
@@ -495,7 +500,7 @@ namespace {
 
 	int file_storage::file_name_len(file_index_t const index) const
 	{
-		if (m_files[index].name_len == internal_file_entry::name_is_owned)
+		if (m_files[index].name_len == aux::file_entry::name_is_owned)
 			return -1;
 		return m_files[index].name_len;
 	}
@@ -512,7 +517,7 @@ namespace {
 		if (m_files.empty()) return ret;
 
 		// find the file iterator and file offset
-		internal_file_entry target;
+		aux::file_entry target;
 		TORRENT_ASSERT(max_file_offset / m_piece_length > static_cast<int>(piece));
 		target.offset = aux::numeric_cast<std::uint64_t>(static_cast<int>(piece) * std::int64_t(m_piece_length) + offset);
 		TORRENT_ASSERT_PRECOND(std::int64_t(target.offset) <= m_total_size - size);
@@ -555,7 +560,7 @@ namespace {
 		return at_deprecated(index);
 	}
 
-	internal_file_entry const& file_storage::internal_at(int const index) const
+	aux::file_entry const& file_storage::internal_at(int const index) const
 	{
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < int(m_files.size()));
@@ -566,7 +571,7 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		file_entry ret;
-		internal_file_entry const& ife = m_files[index];
+		aux::file_entry const& ife = m_files[index];
 		ret.path = file_path(index);
 		ret.offset = ife.offset;
 		ret.size = ife.size;
@@ -575,7 +580,7 @@ namespace {
 		ret.hidden_attribute = ife.hidden_attribute;
 		ret.executable_attribute = ife.executable_attribute;
 		ret.symlink_attribute = ife.symlink_attribute;
-		if (ife.symlink_index != internal_file_entry::not_a_symlink)
+		if (ife.symlink_index != aux::file_entry::not_a_symlink)
 			ret.symlink_path = symlink(index);
 		ret.filehash = hash(index);
 		return ret;
@@ -764,7 +769,7 @@ namespace {
 		}
 
 		m_files.emplace_back();
-		internal_file_entry& e = m_files.back();
+		aux::file_entry& e = m_files.back();
 
 		// the last argument specified whether the function should also set
 		// the filename. If it does, it will copy the leaf filename from path.
@@ -791,7 +796,7 @@ namespace {
 			m_file_hashes[last_file()] = filehash;
 		}
 		if (!symlink_path.empty()
-			&& m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
+			&& m_symlinks.size() < aux::file_entry::not_a_symlink - 1)
 		{
 			e.symlink_index = m_symlinks.size();
 			m_symlinks.emplace_back(symlink_path.to_string());
@@ -826,7 +831,7 @@ namespace {
 	std::string file_storage::symlink(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
-		internal_file_entry const& fe = m_files[index];
+		aux::file_entry const& fe = m_files[index];
 		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
 
 		auto const& link = m_symlinks[fe.symlink_index];
@@ -890,15 +895,15 @@ namespace {
 		, std::string const& save_path) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		internal_file_entry const& fe = m_files[index];
+		aux::file_entry const& fe = m_files[index];
 
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 
-		if (fe.path_index == internal_file_entry::path_is_absolute)
+		if (fe.path_index == aux::file_entry::path_is_absolute)
 		{
 			process_string_lowercase(crc, fe.filename());
 		}
-		else if (fe.path_index == internal_file_entry::no_path)
+		else if (fe.path_index == aux::file_entry::no_path)
 		{
 			if (!save_path.empty())
 			{
@@ -955,15 +960,15 @@ namespace {
 	std::string file_storage::file_path(file_index_t const index, std::string const& save_path) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		internal_file_entry const& fe = m_files[index];
+		aux::file_entry const& fe = m_files[index];
 
 		std::string ret;
 
-		if (fe.path_index == internal_file_entry::path_is_absolute)
+		if (fe.path_index == aux::file_entry::path_is_absolute)
 		{
 			ret = fe.filename().to_string();
 		}
-		else if (fe.path_index == internal_file_entry::no_path)
+		else if (fe.path_index == aux::file_entry::no_path)
 		{
 			ret.reserve(save_path.size() + fe.filename().size() + 1);
 			ret.assign(save_path);
@@ -996,10 +1001,10 @@ namespace {
 	std::string file_storage::internal_file_path(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		internal_file_entry const& fe = m_files[index];
+		aux::file_entry const& fe = m_files[index];
 
-		if (fe.path_index != internal_file_entry::path_is_absolute
-		 && fe.path_index != internal_file_entry::no_path)
+		if (fe.path_index != aux::file_entry::path_is_absolute
+		 && fe.path_index != aux::file_entry::no_path)
 		{
 			std::string ret;
 			std::string const& p = m_paths[fe.path_index];
@@ -1017,7 +1022,7 @@ namespace {
 	string_view file_storage::file_name(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		internal_file_entry const& fe = m_files[index];
+		aux::file_entry const& fe = m_files[index];
 		return fe.filename();
 	}
 
@@ -1090,7 +1095,7 @@ namespace {
 	file_flags_t file_storage::file_flags(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		internal_file_entry const& fe = m_files[index];
+		aux::file_entry const& fe = m_files[index];
 		return (fe.pad_file ? file_storage::flag_pad_file : file_flags_t{})
 			| (fe.hidden_attribute ? file_storage::flag_hidden : file_flags_t{})
 			| (fe.executable_attribute ? file_storage::flag_executable : file_flags_t{})
@@ -1100,12 +1105,12 @@ namespace {
 	bool file_storage::file_absolute_path(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		internal_file_entry const& fe = m_files[index];
-		return fe.path_index == internal_file_entry::path_is_absolute;
+		aux::file_entry const& fe = m_files[index];
+		return fe.path_index == aux::file_entry::path_is_absolute;
 	}
 
 #if TORRENT_ABI_VERSION == 1
-	sha1_hash file_storage::hash(internal_file_entry const& fe) const
+	sha1_hash file_storage::hash(aux::file_entry const& fe) const
 	{
 		int const index = int(&fe - &m_files.front());
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
@@ -1113,13 +1118,13 @@ namespace {
 		return sha1_hash(m_file_hashes[index]);
 	}
 
-	std::string file_storage::symlink(internal_file_entry const& fe) const
+	std::string file_storage::symlink(aux::file_entry const& fe) const
 	{
 		TORRENT_ASSERT_PRECOND(fe.symlink_index < int(m_symlinks.size()));
 		return m_symlinks[fe.symlink_index];
 	}
 
-	std::time_t file_storage::mtime(internal_file_entry const& fe) const
+	std::time_t file_storage::mtime(aux::file_entry const& fe) const
 	{
 		int const index = int(&fe - &m_files.front());
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
@@ -1127,14 +1132,14 @@ namespace {
 		return m_mtime[index];
 	}
 
-	int file_storage::file_index(internal_file_entry const& fe) const
+	int file_storage::file_index(aux::file_entry const& fe) const
 	{
 		int const index = int(&fe - &m_files.front());
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		return index;
 	}
 
-	std::string file_storage::file_path(internal_file_entry const& fe
+	std::string file_storage::file_path(aux::file_entry const& fe
 		, std::string const& save_path) const
 	{
 		int const index = int(&fe - &m_files.front());
@@ -1142,22 +1147,22 @@ namespace {
 		return file_path(index, save_path);
 	}
 
-	std::string file_storage::file_name(internal_file_entry const& fe) const
+	std::string file_storage::file_name(aux::file_entry const& fe) const
 	{
 		return fe.filename().to_string();
 	}
 
-	std::int64_t file_storage::file_size(internal_file_entry const& fe) const
+	std::int64_t file_storage::file_size(aux::file_entry const& fe) const
 	{
 		return fe.size;
 	}
 
-	bool file_storage::pad_file_at(internal_file_entry const& fe) const
+	bool file_storage::pad_file_at(aux::file_entry const& fe) const
 	{
 		return fe.pad_file;
 	}
 
-	std::int64_t file_storage::file_offset(internal_file_entry const& fe) const
+	std::int64_t file_storage::file_offset(aux::file_entry const& fe) const
 	{
 		return fe.offset;
 	}
@@ -1217,7 +1222,7 @@ namespace {
 			return lf.filename() < rf.filename();
 		});
 
-		aux::vector<internal_file_entry, file_index_t> new_files;
+		aux::vector<aux::file_entry, file_index_t> new_files;
 		aux::vector<char const*, file_index_t> new_file_hashes;
 		aux::vector<std::time_t, file_index_t> new_mtime;
 
@@ -1312,7 +1317,7 @@ namespace {
 				file_map_initialized = true;
 			}
 
-			internal_file_entry const& fe = m_files[i];
+			aux::file_entry const& fe = m_files[i];
 			TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
 
 			// symlink targets are only allowed to point to files or directories in
@@ -1364,7 +1369,7 @@ namespace {
 
 			// for backwards compatibility, allow paths relative to the link as
 			// well
-			if (fe.path_index < internal_file_entry::path_is_absolute)
+			if (fe.path_index < aux::file_entry::path_is_absolute)
 			{
 				std::string target = m_paths[fe.path_index];
 				append_path(target, m_symlinks[fe.symlink_index]);
@@ -1412,7 +1417,7 @@ namespace {
 		// symlinks
 		for (auto const i : symlinks_to_validate)
 		{
-			internal_file_entry const& fe = m_files[i];
+			aux::file_entry const& fe = m_files[i];
 			TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
 
 			std::string target = m_symlinks[fe.symlink_index];
