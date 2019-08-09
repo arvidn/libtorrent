@@ -210,7 +210,7 @@ test_failing_torrent_t test_error_torrents[] =
 
 TORRENT_TEST(add_tracker)
 {
-	torrent_info ti(sha1_hash("                   "));
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
 	TEST_EQUAL(ti.trackers().size(), 0);
 
 	ti.add_tracker("http://test.com/announce");
