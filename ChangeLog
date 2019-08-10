@@ -16,6 +16,17 @@
 
 1.2.2 release
 
+	* fix integer overflow in http parser
+	* improve sanitation of symlinks, to support more complex link targets
+	* add DHT routing table affinity for BEP 42 nodes
+	* add torrent_info constructor overloads to control torrent file limits
+	* feature to disable DHT, PEX and LSD per torrent
+	* fix issue where trackers from magnet links were not included in create_torrent()
+	* make peer_info::client a byte array in python binding
+	* pick contiguous pieces from peers with high download rate
+	* fix error handling of moving storage to a drive letter that isn't mounted
+	* fix HTTP Host header when using proxy
+
 1.2.1 release
 
 	* add dht_pkt_alert and alerts_dropped_alert to python bindings
@@ -231,7 +242,7 @@
 	* fix IPv6 tracker support by performing the second announce in more cases
 	* fix utf-8 encoding check in torrent parser
 	* fix infinite loop when parsing maliciously crafted torrents
-	* fix invalid read in parse_int in bdecoder
+	* fix invalid read in parse_int in bdecoder (CVE-2017-9847)
 	* fix issue with very long tracker- and web seed URLs
 	* don't attempt to create empty files on startup, if they already exist
 	* fix force-recheck issue (new files would not be picked up)
@@ -320,7 +331,7 @@
 
 1.1.1 release
 
-	* update puff.c for gzip inflation
+	* update puff.c for gzip inflation (CVE-2016-7164)
 	* add dht_bootstrap_node a setting in settings_pack (and add default)
 	* make pad-file and symlink support conform to BEP47
 	* fix piece picker bug that could result in division by zero

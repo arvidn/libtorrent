@@ -139,6 +139,7 @@ namespace libtorrent {
 	// split out a path segment from the left side or right side
 	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> rsplit_path(string_view p);
 	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> lsplit_path(string_view p);
+	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> lsplit_path(string_view p, std::size_t pos);
 
 	TORRENT_EXTRA_EXPORT std::string extension(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string remove_extension(std::string const& f);

@@ -16,18 +16,20 @@ except Exception:
 
 
 def debug(s):
-    print('socks.py: ', s, file=sys.stderr)
+    print('socks.py: ', s)
+    sys.stdout.flush()
 
 
 def error(s):
-    print('socks.py, ERROR: ', s, file=sys.stderr)
+    print('socks.py, ERROR: ', s)
+    sys.stdout.flush()
 
 
 class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
 
     def handle_timeout(self):
-        raise Exception('timeout')
+        raise Exception('socks.py: timeout')
 
 
 CLOSE = object()
@@ -208,7 +210,7 @@ class SocksHandler(StreamRequestHandler):
         try:
             out_address = socket.getaddrinfo(dest_address, dest_port)[0][4]
         except Exception as e:
-            print(e)
+            error('%s' % e)
             return
 
         if cmd == UDP_ASSOCIATE:
@@ -220,7 +222,7 @@ class SocksHandler(StreamRequestHandler):
         try:
             outbound_sock.connect(out_address)
         except Exception as e:
-            print(e)
+            error('%s' % e)
             return
 
         if address_type == IPV6:
@@ -232,7 +234,7 @@ class SocksHandler(StreamRequestHandler):
         try:
             forward(self.request, outbound_sock, 'client')
         except Exception as e:
-            print(e)
+            error('%s' % e)
 
     def send_reply_v4(self, xxx_todo_changeme):
         (bind_addr, bind_port) = xxx_todo_changeme
@@ -274,6 +276,7 @@ class SocksHandler(StreamRequestHandler):
 
 if __name__ == '__main__':
 
+    debug('starting socks.py %s' % " ".join(sys.argv))
     listen_port = 8002
     i = 1
     while i < len(sys.argv):
@@ -292,6 +295,7 @@ if __name__ == '__main__':
             if sys.argv[i] != '--help':
                 debug('unknown option "%s"' % sys.argv[i])
             print('usage: socks.py [--username <user> --password <password>] [--port <listen-port>]')
+            sys.stdout.flush()
             sys.exit(1)
         i += 1
 

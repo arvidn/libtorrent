@@ -278,7 +278,14 @@ namespace {
 		if (ec != boost::system::errc::no_such_file_or_directory)
 			return;
 		ec.clear();
-		if (is_root_path(f)) return;
+		if (is_root_path(f))
+		{
+			// this is just to set ec correctly, in case this root path isn't
+			// mounted
+			file_status s;
+			stat_file(f, &s, ec);
+			return;
+		}
 		if (has_parent_path(f))
 		{
 			create_directories(parent_path(f), ec);
@@ -921,6 +928,25 @@ namespace {
 		auto const sep = p.find_first_of("/\\");
 #else
 		auto const sep = p.find_first_of(TORRENT_SEPARATOR_CHAR);
+#endif
+		if (sep == string_view::npos) return {p, {}};
+		return { p.substr(0, sep), p.substr(sep + 1) };
+	}
+
+	std::pair<string_view, string_view> lsplit_path(string_view p, std::size_t pos)
+	{
+		if (p.empty()) return {{}, {}};
+		// for absolute paths, skip the initial "/"
+		if (p.front() == TORRENT_SEPARATOR_CHAR
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+			|| p.front() == '/'
+#endif
+		)
+		{ p.remove_prefix(1); if (pos > 0) --pos; }
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+		auto const sep = find_first_of(p, "/\\", std::string::size_type(pos));
+#else
+		auto const sep = find_first_of(p, TORRENT_SEPARATOR_CHAR, std::string::size_type(pos));
 #endif
 		if (sep == string_view::npos) return {p, {}};
 		return { p.substr(0, sep), p.substr(sep + 1) };

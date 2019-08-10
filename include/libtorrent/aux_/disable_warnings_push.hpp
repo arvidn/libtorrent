@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #if __GNUC__ >= 6
 #pragma GCC diagnostic ignored "-Wshift-overflow"
 #pragma GCC diagnostic ignored "-Wshift-count-overflow"

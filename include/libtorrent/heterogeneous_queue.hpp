@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/throw.hpp"
 
 namespace libtorrent {
-
 namespace aux {
 
 	struct free_deleter

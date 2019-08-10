@@ -52,6 +52,7 @@ namespace libtorrent {
 namespace aux {
 	struct session_settings;
 }
+
 	struct disk_observer;
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool

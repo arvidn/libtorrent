@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TORRENT_FLAGS_HPP
 #define TORRENT_TORRENT_FLAGS_HPP
 
+#include <cstdint>
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/flags.hpp"
 
@@ -238,6 +240,18 @@ namespace torrent_flags {
 	// is passed in here as well as the .torrent file.
 	constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER merge_resume_http_seeds = 18_bit;
 #endif
+
+	// set this flag to disable DHT for this torrent. This lets you have the DHT
+	// enabled for the whole client, and still have specific torrents not
+	// participating in it. i.e. not announcing to the DHT nor picking up peers
+	// from it.
+	constexpr torrent_flags_t disable_dht = 19_bit;
+
+	// set this flag to disable local service discovery for this torrent.
+	constexpr torrent_flags_t disable_lsd = 20_bit;
+
+	// set this flag to disable peer exchange for this torrent.
+	constexpr torrent_flags_t disable_pex = 21_bit;
 
 	constexpr torrent_flags_t all = torrent_flags_t::all();
 

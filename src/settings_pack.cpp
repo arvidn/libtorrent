@@ -198,6 +198,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(auto_sequential, true, &session_impl::update_auto_sequential),
 		SET(proxy_tracker_connections, true, nullptr),
 		SET(enable_ip_notifier, true, &session_impl::update_ip_notifier),
+		SET(dht_prefer_verified_node_ids, true, &session_impl::update_dht_settings),
 	}});
 
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
@@ -260,6 +261,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(min_announce_interval, 5 * 60, nullptr),
 		SET(auto_manage_startup, 60, nullptr),
 		SET(seeding_piece_quota, 20, nullptr),
+		// TODO: deprecate this
 		SET(max_rejects, 50, nullptr),
 		SET(recv_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
 		SET(send_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),

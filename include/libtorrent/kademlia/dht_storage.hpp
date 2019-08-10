@@ -209,7 +209,7 @@ namespace dht {
 		// This function retrieves a sample info-hashes
 		//
 		// For implementers:
-		// The info-hashes should be stored in ["samples"] (N × 20 bytes).
+		// The info-hashes should be stored in ["samples"] (N x 20 bytes).
 		// the following keys should be filled
 		// item["interval"] - the subset refresh interval in seconds.
 		// item["num"] - number of info-hashes in storage.

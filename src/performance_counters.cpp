@@ -36,6 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	// TODO: move stats_counter_t out of counters
+
+	// TODO: It would be nice if this could be an internal type. default_disk_constructor depends on it now
 	counters::counters() TORRENT_COUNTER_NOEXCEPT
 	{
 #ifdef ATOMIC_LLONG_LOCK_FREE

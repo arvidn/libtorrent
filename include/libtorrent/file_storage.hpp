@@ -483,7 +483,7 @@ namespace aux {
 		// index (given the piece size).
 		sha1_hash hash(file_index_t index) const;
 		sha256_hash root(file_index_t index) const;
-		std::string const& symlink(file_index_t index) const;
+		std::string symlink(file_index_t index) const;
 		std::time_t mtime(file_index_t index) const;
 		std::string file_path(file_index_t index, std::string const& save_path = "") const;
 		string_view file_name(file_index_t index) const;
@@ -577,7 +577,7 @@ namespace aux {
 		TORRENT_DEPRECATED
 		sha1_hash hash(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		std::string const& symlink(internal_file_entry const& fe) const;
+		std::string symlink(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
 		std::time_t mtime(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
@@ -598,10 +598,14 @@ namespace aux {
 		// offset to add to any pointers to make them point into the new buffer
 		void rebase_pointers(char const* current_base, char const* new_base);
 
+		// validate any symlinks, to ensure they all point to
+		// other files or directories inside this storage. Any invalid symlinks
+		// are updated to point to themselves.
 		void sanitize_symlinks();
 
 	private:
 
+		std::string internal_file_path(file_index_t index) const;
 		file_index_t last_file() const noexcept;
 
 		aux::path_index_t get_or_add_path(string_view path);

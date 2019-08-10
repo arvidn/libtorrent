@@ -65,6 +65,8 @@ void print_usage()
                              in the torrent file.
     --depth-limit <count>    set the recursion limit in the bdecoder
     --show-padfiles          show pad files in file list
+    --max-pieces <count>     set the upper limit on the number of pieces to
+                             load in the torrent.
 )";
 	std::exit(1);
 }
@@ -76,8 +78,7 @@ int main(int argc, char const* argv[]) try
 	// strip executable name
 	args = args.subspan(1);
 
-	int item_limit = 1000000;
-	int depth_limit = 1000;
+	lt::load_torrent_limits cfg;
 	bool show_pad = false;
 
 	if (args.empty()) print_usage();
@@ -91,12 +92,17 @@ int main(int argc, char const* argv[]) try
 	{
 		if (args[0] == "--items-limit"_sv && args.size() > 1)
 		{
-			item_limit = atoi(args[1]);
+			cfg.max_decode_tokens = atoi(args[1]);
 			args = args.subspan(2);
 		}
 		else if (args[0] == "--depth-limit"_sv && args.size() > 1)
 		{
-			depth_limit = atoi(args[1]);
+			cfg.max_decode_depth = atoi(args[1]);
+			args = args.subspan(2);
+		}
+		else if (args[0] == "--max-pieces"_sv && args.size() > 1)
+		{
+			cfg.max_pieces = atoi(args[1]);
 			args = args.subspan(2);
 		}
 		else if (args[0] == "--show-padfiles"_sv)
@@ -112,28 +118,25 @@ int main(int argc, char const* argv[]) try
 	}
 
 	std::vector<char> buf = load_file(filename);
-	lt::bdecode_node e;
 	int pos = -1;
 	lt::error_code ec;
-	std::cout << "decoding. recursion limit: " << depth_limit
-		<< " total item count limit: " << item_limit << "\n";
-	int const ret = lt::bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
-		, depth_limit, item_limit);
+	std::cout << "decoding. recursion limit: " << cfg.max_decode_depth
+		<< " total item count limit: " << cfg.max_decode_tokens << "\n";
+	lt::bdecode_node const e = lt::bdecode(buf, ec, &pos, cfg.max_decode_depth
+		, cfg.max_decode_tokens);
 
 	std::printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
-	if (ret != 0) {
+	if (ec) {
 		std::cerr << "failed to decode: '" << ec.message() << "' at character: " << pos<< "\n";
 		return 1;
 	}
 
-	lt::torrent_info const t(e);
-	e.clear();
-	std::vector<char>().swap(buf);
+	lt::torrent_info const t(std::move(e), cfg);
+	buf.clear();
 
 	// print info about torrent
-	std::printf("\n\n----- torrent file info -----\n\n"
-		"nodes:\n");
+	std::printf("\n\n----- torrent file info -----\n\nnodes:\n");
 	for (auto const& i : t.nodes())
 		std::printf("%s: %d\n", i.first.c_str(), i.second);
 

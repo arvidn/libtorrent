@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "assert.hpp"
 
 namespace libtorrent {
-
 namespace detail {
 	template <class T> struct type {};
 
@@ -183,7 +182,7 @@ namespace detail {
 		for (auto const c : val) *out++ = c;
 		return int(val.length());
 	}
-}
+} // namespace detail
 }
 
 #endif // TORRENT_IO_HPP_INCLUDED

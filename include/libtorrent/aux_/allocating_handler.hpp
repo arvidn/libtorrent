@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/aligned_storage.hpp"
 
+#include "libtorrent/debug.hpp" // for TORRENT_ASSERT
+
 #include <type_traits>
 
 #ifdef TORRENT_ASIO_DEBUGGING

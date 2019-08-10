@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STRLESS_HPP_INCLUDED
 #define TORRENT_STRLESS_HPP_INCLUDED
 
+#include <type_traits>
+
 namespace libtorrent {
 namespace aux {
 	// this enables us to compare a string_view against the std::string that's

@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define LIBTORRENT_TYPES_HPP
 
 #include <cstdint>
+#include <algorithm>
+#include <array>
 
 namespace libtorrent {
 namespace dht {

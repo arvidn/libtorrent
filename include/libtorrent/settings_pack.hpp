@@ -741,6 +741,11 @@ namespace aux {
 			// changes are taken in consideration.
 			enable_ip_notifier,
 
+			// when this is true, nodes whose IDs are derived from their source IP
+			// according to BEP 42 (http://bittorrent.org/beps/bep_0042.html) are
+			// preferred in the routing table.
+			dht_prefer_verified_node_ids,
+
 			max_bool_setting_internal
 		};
 
@@ -1184,7 +1189,6 @@ namespace aux {
 			// favour of a choked peer.
 			seeding_piece_quota,
 
-			// TODO: deprecate this
 			// ``max_rejects`` is the number of piece requests we will reject in a
 			// row while a peer is choked before the peer is considered abusive
 			// and is disconnected.

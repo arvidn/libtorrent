@@ -223,6 +223,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_GETIPFORWARDTABLE 1
 #define TORRENT_USE_UNC_PATHS 1
 
+// mingw doesn't implement random_device.
+#define TORRENT_BROKEN_RANDOM_DEVICE 1
+
 # if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
 // unless some other crypto library has been specified, default to the native
 // windows CryptoAPI
@@ -341,6 +344,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FORMAT(fmt, ellipsis) __attribute__((__format__(__printf__, fmt, ellipsis)))
 #else
 #define TORRENT_FORMAT(fmt, ellipsis)
+#endif
+
+#ifndef TORRENT_BROKEN_RANDOM_DEVICE
+#define TORRENT_BROKEN_RANDOM_DEVICE 0
 #endif
 
 // libiconv presence detection is not implemented yet

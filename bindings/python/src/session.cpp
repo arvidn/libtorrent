@@ -827,6 +827,9 @@ void bind_session()
     s.attr("stop_when_ready") = torrent_flags::stop_when_ready;
     s.attr("override_trackers") = torrent_flags::override_trackers;
     s.attr("override_web_seeds") = torrent_flags::override_web_seeds;
+    s.attr("disable_dht") = torrent_flags::disable_dht;
+    s.attr("disable_lsd") = torrent_flags::disable_lsd;
+    s.attr("disable_pex") = torrent_flags::disable_pex;
     s.attr("default_flags") = torrent_flags::default_flags;
     }
 

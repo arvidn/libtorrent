@@ -494,6 +494,135 @@ TORRENT_TEST(map_block_mid)
 	}
 }
 
+#ifdef TORRENT_WINDOWS
+#define SEP "\\"
+#else
+#define SEP "/"
+#endif
+
+TORRENT_TEST(sanitize_symlinks)
+{
+	file_storage fs;
+	fs.set_piece_length(1024);
+
+	// invalid
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "C:\\invalid\\target\\path");
+#else
+	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "/invalid/target/path");
+#endif
+
+	// there is no file with this name, so this is invalid
+	fs.add_file("test/1", 0, file_storage::flag_symlink, 0, "ZZ");
+
+	// there is no file with this name, so this is invalid
+	fs.add_file("test/2", 0, file_storage::flag_symlink, 0, "B" SEP "B" SEP "ZZ");
+
+	// this should be OK
+	fs.add_file("test/3", 0, file_storage::flag_symlink, 0, "0");
+
+	// this should be OK
+	fs.add_file("test/4", 0, file_storage::flag_symlink, 0, "A");
+
+	// this is advanced, but OK
+	fs.add_file("test/5", 0, file_storage::flag_symlink, 0, "4" SEP "B");
+
+	// this is advanced, but OK
+	fs.add_file("test/6", 0, file_storage::flag_symlink, 0, "5" SEP "C");
+
+	// this is not OK
+	fs.add_file("test/7", 0, file_storage::flag_symlink, 0, "4" SEP "B" SEP "C" SEP "ZZ");
+
+	// this is the only actual content
+	fs.add_file("test/A" SEP "B" SEP "C", 10000);
+	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
+
+	fs.sanitize_symlinks();
+
+	// these were all invalid symlinks, so they're made to point to themselves
+	TEST_EQUAL(fs.symlink(file_index_t{0}), "test" SEP "0");
+	TEST_EQUAL(fs.symlink(file_index_t{1}), "test" SEP "1");
+	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "2");
+
+	// ok
+	TEST_EQUAL(fs.symlink(file_index_t{3}), "test" SEP "0");
+	TEST_EQUAL(fs.symlink(file_index_t{4}), "test" SEP "A");
+	TEST_EQUAL(fs.symlink(file_index_t{5}), "test" SEP "4" SEP "B");
+	TEST_EQUAL(fs.symlink(file_index_t{6}), "test" SEP "5" SEP "C");
+
+	// does not point to a valid file
+	TEST_EQUAL(fs.symlink(file_index_t{7}), "test" SEP "7");
+}
+
+TORRENT_TEST(sanitize_symlinks_single_file)
+{
+	file_storage fs;
+	fs.set_piece_length(1024);
+	fs.add_file("test", 1);
+	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
+
+	fs.sanitize_symlinks();
+
+	TEST_EQUAL(fs.file_path(file_index_t{0}), "test");
+}
+
+TORRENT_TEST(sanitize_symlinks_cascade)
+{
+	file_storage fs;
+	fs.set_piece_length(1024);
+
+	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "1" SEP "ZZ");
+	fs.add_file("test/1", 0, file_storage::flag_symlink, 0, "2");
+	fs.add_file("test/2", 0, file_storage::flag_symlink, 0, "3");
+	fs.add_file("test/3", 0, file_storage::flag_symlink, 0, "4");
+	fs.add_file("test/4", 0, file_storage::flag_symlink, 0, "5");
+	fs.add_file("test/5", 0, file_storage::flag_symlink, 0, "6");
+	fs.add_file("test/6", 0, file_storage::flag_symlink, 0, "7");
+	fs.add_file("test/7", 0, file_storage::flag_symlink, 0, "A");
+	fs.add_file("test/no-exist", 0, file_storage::flag_symlink, 0, "1" SEP "ZZZ");
+
+	// this is the only actual content
+	fs.add_file("test/A" SEP "ZZ", 10000);
+	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
+
+	fs.sanitize_symlinks();
+
+	TEST_EQUAL(fs.symlink(file_index_t{0}), "test" SEP "1" SEP "ZZ");
+	TEST_EQUAL(fs.symlink(file_index_t{1}), "test" SEP "2");
+	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "3");
+	TEST_EQUAL(fs.symlink(file_index_t{3}), "test" SEP "4");
+	TEST_EQUAL(fs.symlink(file_index_t{4}), "test" SEP "5");
+	TEST_EQUAL(fs.symlink(file_index_t{5}), "test" SEP "6");
+	TEST_EQUAL(fs.symlink(file_index_t{6}), "test" SEP "7");
+	TEST_EQUAL(fs.symlink(file_index_t{7}), "test" SEP "A");
+	TEST_EQUAL(fs.symlink(file_index_t{8}), "test" SEP "no-exist");
+}
+
+TORRENT_TEST(sanitize_symlinks_circular)
+{
+	file_storage fs;
+	fs.set_piece_length(1024);
+
+	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "1");
+	fs.add_file("test/1", 0, file_storage::flag_symlink, 0, "0");
+
+	// when this is resolved, we end up in an infinite loop. Make sure we can
+	// handle that
+	fs.add_file("test/2", 0, file_storage::flag_symlink, 0, "0/ZZ");
+
+	// this is the only actual content
+	fs.add_file("test/A" SEP "ZZ", 10000);
+	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
+
+	fs.sanitize_symlinks();
+
+	TEST_EQUAL(fs.symlink(file_index_t{0}), "test" SEP "1");
+	TEST_EQUAL(fs.symlink(file_index_t{1}), "test" SEP "0");
+
+	// this was invalid, so it points to itself
+	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "2");
+}
+
 TORRENT_TEST(files_equal)
 {
 	file_storage fs1;

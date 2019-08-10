@@ -376,7 +376,8 @@ restart_response:
 					int header_size;
 					if (parse_chunk_header(buf, &chunk_size, &header_size))
 					{
-						if (chunk_size < 0)
+						if (chunk_size < 0
+							|| chunk_size > std::numeric_limits<std::int64_t>::max() - m_cur_chunk_end - header_size)
 						{
 							m_state = error_state;
 							error = true;

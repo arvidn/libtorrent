@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/error_code.hpp" // for system_error
 #include "libtorrent/aux_/throw.hpp"
 
 #include <fcntl.h>

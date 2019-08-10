@@ -72,8 +72,8 @@ namespace aux {
 		strong_typedef& operator++() { ++m_val; return *this; }
 		strong_typedef& operator--() { --m_val; return *this; }
 
-		strong_typedef operator++(int) { return strong_typedef{m_val++}; }
-		strong_typedef operator--(int) { return strong_typedef{m_val--}; }
+		strong_typedef operator++(int) & { return strong_typedef{m_val++}; }
+		strong_typedef operator--(int) & { return strong_typedef{m_val--}; }
 
 		friend diff_type operator-(strong_typedef lhs, strong_typedef rhs)
 		{ return diff_type{lhs.m_val - rhs.m_val}; }
@@ -84,9 +84,9 @@ namespace aux {
 		friend strong_typedef operator-(strong_typedef lhs, diff_type rhs)
 		{ return strong_typedef{lhs.m_val - static_cast<UnderlyingType>(rhs)}; }
 
-		strong_typedef& operator+=(diff_type rhs)
+		strong_typedef& operator+=(diff_type rhs) &
 		{ m_val += static_cast<UnderlyingType>(rhs); return *this; }
-		strong_typedef& operator-=(diff_type rhs)
+		strong_typedef& operator-=(diff_type rhs) &
 		{ m_val -= static_cast<UnderlyingType>(rhs); return *this; }
 
 		strong_typedef& operator=(strong_typedef const& rhs) & noexcept = default;

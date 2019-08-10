@@ -106,7 +106,7 @@ void incoming_error(entry& e, char const* msg, int error_code = 203)
 } // anonymous namespace
 
 node::node(aux::listen_socket_handle const& sock, socket_manager* sock_man
-	, dht_settings const& settings
+	, dht::settings const& settings
 	, node_id const& nid
 	, dht_observer* observer
 	, counters& cnt
@@ -255,7 +255,7 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 {
 	// is this a reply?
 	bdecode_node const y_ent = m.message.dict_find_string("y");
-	if (!y_ent || y_ent.string_length() == 0)
+	if (!y_ent || y_ent.string_length() != 1)
 	{
 		// don't respond to this obviously broken messages. We don't
 		// want to open up a magnification opportunity
@@ -532,7 +532,7 @@ void node::put_item(sha1_hash const& target, entry const& data, std::function<vo
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
-		m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
+		m_observer->log(dht_logger::node, "starting put for [ hash: %s ]"
 			, aux::to_hex(target).c_str());
 	}
 #endif
@@ -556,7 +556,7 @@ void node::put_item(public_key const& pk, std::string const& salt
 	{
 		char hex_key[65];
 		aux::to_hex(pk.bytes, hex_key);
-		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
+		m_observer->log(dht_logger::node, "starting put for [ key: %s ]", hex_key);
 	}
 #endif
 

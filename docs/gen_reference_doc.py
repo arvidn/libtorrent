@@ -458,6 +458,9 @@ def parse_class(lno, lines, filename):
                     funs[-1]['signatures'].update(current_fun['signatures'])
                     funs[-1]['names'].update(current_fun['names'])
                 else:
+                    if 'TODO: ' in context:
+                        print('TODO comment in public documentation: %s:%d' % (filename, lno))
+                        sys.exit(1)
                     current_fun['desc'] = context
                     if context == '' and not suppress_warning(filename, first_item(current_fun['names'])):
                         print('WARNING: member function "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
@@ -498,6 +501,9 @@ def parse_class(lno, lines, filename):
             else:
                 enum, lno = parse_enum(lno - 1, lines, filename)
                 if enum is not None:
+                    if 'TODO: ' in context:
+                        print('TODO comment in public documentation: %s:%d' % (filename, lno))
+                        sys.exit(1)
                     enum['desc'] = context
                     if context == '' and not suppress_warning(filename, enum['name']):
                         print('WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
@@ -769,10 +775,18 @@ for filename in files:
             continue
 
         if (line == 'namespace detail {' or
-                line == 'namespace aux {') \
+                line == 'namespace aux {' or
+                line == 'namespace libtorrent { namespace aux {') \
                 and not internal:
-            lno = consume_block(lno, lines)
+            lno = consume_block(lno - 1, lines)
             continue
+
+        if ('namespace aux' in line or
+                'namespace detail' in line) and \
+                '//' not in line.split('namespace')[0] and \
+                '}' not in line.split('namespace')[1]:
+            print('ERROR: whitespace preceding namespace declaration: %s:%d' % (filename, lno))
+            sys.exit(1)
 
         if 'TORRENT_DEPRECATED' in line:
             if ('class ' in line or 'struct ' in line) and ';' not in line:
@@ -788,6 +802,9 @@ for filename in files:
                 if not line.endswith(';'):
                     current_class, lno = parse_class(lno - 1, lines, filename)
                     if current_class is not None and is_visible(context):
+                        if 'TODO: ' in context:
+                            print('TODO comment in public documentation: %s:%d' % (filename, lno))
+                            sys.exit(1)
                         current_class['desc'] = context
                         if context == '':
                             print('WARNING: class "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
@@ -804,6 +821,9 @@ for filename in files:
                         functions[-1]['signatures'].update(current_fun['signatures'])
                         functions[-1]['names'].update(current_fun['names'])
                     else:
+                        if 'TODO: ' in context:
+                            print('TODO comment in public documentation: %s:%d' % (filename, lno))
+                            sys.exit(1)
                         current_fun['desc'] = context
                         if context == '':
                             print('WARNING: function "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
@@ -825,6 +845,9 @@ for filename in files:
             else:
                 current_enum, lno = parse_enum(lno - 1, lines, filename)
                 if current_enum is not None and is_visible(context):
+                    if 'TODO: ' in context:
+                        print('TODO comment in public documentation: %s:%d' % (filename, lno))
+                        sys.exit(1)
                     current_enum['desc'] = context
                     if context == '':
                         print('WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m'

@@ -3,6 +3,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "boost_python.hpp"
+#include "bytes.hpp"
 #include <libtorrent/peer_info.hpp>
 #include <libtorrent/bitfield.hpp>
 #include <boost/python/iterator.hpp>
@@ -47,6 +48,11 @@ list get_pieces(peer_info const& pi)
     return ret;
 }
 
+bytes get_peer_info_client(peer_info const& pi)
+{
+	return pi.client;
+}
+
 using by_value = return_value_policy<return_by_value>;
 void bind_peer_info()
 {
@@ -87,7 +93,7 @@ void bind_peer_info()
         .add_property("downloading_block_index", make_getter(&peer_info::downloading_block_index, by_value()))
         .def_readonly("downloading_progress", &peer_info::downloading_progress)
         .def_readonly("downloading_total", &peer_info::downloading_total)
-        .def_readonly("client", &peer_info::client)
+        .add_property("client", get_peer_info_client)
         .def_readonly("connection_type", &peer_info::connection_type)
         .def_readonly("pending_disk_bytes", &peer_info::pending_disk_bytes)
         .def_readonly("send_quota", &peer_info::send_quota)

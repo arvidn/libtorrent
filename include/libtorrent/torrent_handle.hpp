@@ -829,8 +829,7 @@ namespace aux {
 		// If the torrent doesn't have metadata, the pointer will not be
 		// initialized (i.e. a nullptr). The torrent may be in a state
 		// without metadata only if it was started without a .torrent file, e.g.
-		// by using the libtorrent extension of just supplying a tracker and
-		// info-hash.
+		// by being added by magnet link
 		std::shared_ptr<const torrent_info> torrent_file() const;
 
 #if TORRENT_ABI_VERSION == 1

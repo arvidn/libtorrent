@@ -42,10 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	// TODO: It would be nice if this could be an internal type. default_disk_constructor depends on it now
 	struct TORRENT_EXPORT counters
 	{
-		// TODO: move this out of counters
 		enum stats_counter_t
 		{
 			// the number of peers that were disconnected this

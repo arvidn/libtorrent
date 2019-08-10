@@ -52,10 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/vector.hpp"
-
-#if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/announce_entry.hpp"
-#endif
 
 namespace libtorrent {
 
@@ -115,8 +112,20 @@ namespace libtorrent {
 	// used to disambiguate a bencoded buffer and a filename
 	extern TORRENT_EXPORT from_span_t from_span;
 
-	// TODO: there may be some opportunities to optimize the size if torrent_info.
-	// specifically to turn some std::string and std::vector into pointers
+	// this object holds configuration options for limits to use when loading
+	// torrents. They are meant to prevent loading potentially malicious torrents
+	// that cause excessive memory allocations.
+	struct load_torrent_limits
+	{
+		int max_buffer_size = 6000000;
+		// the max number of pieces allowed in the torrent
+		int max_pieces = 0x100000;
+		// the max recursion depth in the bdecoded structure
+		int max_decode_depth = 100;
+		// the max number of bdecode tokens
+		int max_decode_tokens = 2000000;
+	};
+
 	class TORRENT_EXPORT torrent_info
 	{
 	public:
@@ -161,6 +170,9 @@ namespace libtorrent {
 			: torrent_info(span<char const>{buffer, size}, from_span) {}
 		explicit torrent_info(span<char const> buffer, from_span_t);
 		explicit torrent_info(std::string const& filename);
+		torrent_info(std::string const& filename, load_torrent_limits const& cfg);
+		torrent_info(span<char const> buffer, load_torrent_limits const& cfg, from_span_t);
+		torrent_info(bdecode_node const& torrent_file, load_torrent_limits const& cfg);
 #endif // BOOST_NO_EXCEPTIONS
 		torrent_info(torrent_info const& t);
 		explicit torrent_info(info_hash_t const& info_hash);
@@ -279,6 +291,8 @@ namespace libtorrent {
 		//
 		// ``clear_trackers()`` removes all trackers from announce-list.
 		void add_tracker(std::string const& url, int tier = 0);
+		void add_tracker(std::string const& url, int tier
+			, announce_entry::tracker_source source);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 		void clear_trackers();
 
@@ -538,7 +552,11 @@ namespace libtorrent {
 		// where we only have the info-dict. The bdecode_node ``e`` points to a
 		// parsed info-dictionary. ``ec`` returns an error code if something
 		// fails (typically if the info dictionary is malformed).
+		// the `piece_limit` parameter allows limiting the amount of memory
+		// dedicated to loading the torrent, and fails for torrents that exceed
+		// the limit
 		bool parse_info_section(bdecode_node const& e, error_code& ec);
+		bool parse_info_section(bdecode_node const& e, error_code& ec, int piece_limit);
 
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
@@ -578,13 +596,13 @@ namespace libtorrent {
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 #endif
 
-		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec);
-
-		// if we're logging member offsets, we need access to them
 	private:
 
 		// populate the piece layers from the metadata
 		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
+
+		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec);
+		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec, int piece_limit);
 
 		void resolve_duplicate_filenames();
 

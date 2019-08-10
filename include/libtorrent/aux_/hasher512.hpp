@@ -103,6 +103,7 @@ namespace aux {
 		// default constructed.
 		void reset();
 
+		// hidden
 		~hasher512();
 
 	private:

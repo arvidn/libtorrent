@@ -106,6 +106,7 @@ TORRENT_CRYPTO_NAMESPACE
 		// default constructed.
 		void reset();
 
+		// hidden
 		~hasher();
 
 	private:

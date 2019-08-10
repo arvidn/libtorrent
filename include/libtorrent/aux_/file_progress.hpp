@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <cstdint>
+#include <functional>
 
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/units.hpp"

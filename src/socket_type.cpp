@@ -167,7 +167,7 @@ namespace aux {
 #define MAYBE_ASIO_DEBUGGING
 #endif
 
-	char const buffer[] = "";
+	static char const buffer[] = "";
 	// chasing the async_shutdown by a write is a trick to close the socket as
 	// soon as we've sent the close_notify, without having to wait to receive a
 	// response from the other end

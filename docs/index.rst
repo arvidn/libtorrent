@@ -123,7 +123,7 @@ The tutorial_ is an introduction to using libtorrent (C++). Also see the
 Contribute
 ==========
 
-If your organization use libtorrent, please consider supporting its development.
+If your organization uses libtorrent, please consider supporting its development.
 See the contribute_ page for other ways to help out.
 
 .. raw:: html

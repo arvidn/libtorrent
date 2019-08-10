@@ -39,10 +39,35 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if BOOST_VERSION < 106100
 #include <boost/utility/string_ref.hpp>
+#include <cstring> // for strchr
 namespace libtorrent {
 
 using string_view = boost::string_ref;
 using wstring_view = boost::wstring_ref;
+
+// internal
+inline string_view::size_type find_first_of(string_view const v, char const c
+	, string_view::size_type pos)
+{
+	while (pos < v.size())
+	{
+		if (v[pos] == c) return pos;
+		++pos;
+	}
+	return string_view::npos;
+}
+
+// internal
+inline string_view::size_type find_first_of(string_view const v, char const* c
+	, string_view::size_type pos)
+{
+	while (pos < v.size())
+	{
+		if (std::strchr(c, v[pos]) != nullptr) return pos;
+		++pos;
+	}
+	return string_view::npos;
+}
 }
 #else
 #include <boost/utility/string_view.hpp>
@@ -50,6 +75,20 @@ namespace libtorrent {
 
 using string_view = boost::string_view;
 using wstring_view = boost::wstring_view;
+
+// internal
+inline string_view::size_type find_first_of(string_view const v, char const c
+	, string_view::size_type pos)
+{
+	return v.find_first_of(c, pos);
+}
+
+// internal
+inline string_view::size_type find_first_of(string_view const v, char const* c
+	, string_view::size_type pos)
+{
+	return v.find_first_of(c, pos);
+}
 }
 #endif
 

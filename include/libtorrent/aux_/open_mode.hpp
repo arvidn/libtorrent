@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_OPEN_MODE_HPP
 #define TORRENT_OPEN_MODE_HPP
 
+#include <cstdint>
 #include "libtorrent/flags.hpp"
 
 namespace libtorrent {
