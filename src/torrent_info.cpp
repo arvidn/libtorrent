@@ -376,6 +376,12 @@ namespace {
 
 		file_flags_t file_flags = get_file_attributes(dict);
 
+		if (file_flags & file_storage::flag_pad_file)
+		{
+			ec = errors::torrent_invalid_pad_file;
+			return false;
+		}
+
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
 		std::int64_t const file_size = (file_flags & file_storage::flag_symlink)

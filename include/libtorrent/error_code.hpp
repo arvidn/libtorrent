@@ -467,6 +467,8 @@ namespace errors {
 		torrent_missing_pieces_root,
 		// the v1 and v2 hashes do not describe the same data
 		torrent_inconsistent_hashes,
+		// a file in the v2 metadata has the pad attribute set
+		torrent_invalid_pad_file,
 
 		// the number of error codes
 		error_code_max

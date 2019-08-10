@@ -289,7 +289,8 @@ namespace libtorrent {
 			"one or more files are missing piece layer hashes",
 			"a piece layer has the wrong size",
 			"a v2 file entry has no root hash",
-			"v1 and v2 hashes do not describe the same data"
+			"v1 and v2 hashes do not describe the same data",
+			"a file in the v2 metadata has the pad attribute set"
 		};
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";
