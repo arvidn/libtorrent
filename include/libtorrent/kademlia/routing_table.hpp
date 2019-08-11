@@ -111,8 +111,11 @@ struct TORRENT_EXTRA_EXPORT ip_set
 // necessary to traverse the DHT, we want the nodes in our buckets to be spread
 // out across all possible "sub-branches". This is what the "classify" refers
 // to. The 3 (or more) bits following the shared bit prefix.
-TORRENT_EXTRA_EXPORT std::uint8_t  classify_prefix(int bucket_idx, bool last_bucket
+TORRENT_EXTRA_EXPORT std::uint8_t classify_prefix(int bucket_idx, bool last_bucket
 	, int bucket_size, node_id nid);
+
+TORRENT_EXTRA_EXPORT bool all_in_same_bucket(span<node_entry const> b
+	, node_id const& id, int bucket_index);
 
 // differences in the implementation from the description in
 // the paper:
