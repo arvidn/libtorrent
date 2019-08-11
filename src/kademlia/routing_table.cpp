@@ -605,6 +605,22 @@ bool routing_table::add_node(node_entry const& e)
 	return false;
 }
 
+bool all_in_same_bucket(span<node_entry const> b, node_id const& id, int const bucket_index)
+{
+	int const byte_offset = bucket_index / 8;
+	int const bit_offset = bucket_index % 8;
+	std::uint8_t const mask = 0x80 >> bit_offset;
+	int counter[2] = {0, 0};
+	int const i =  (id[byte_offset] & mask) ? 1 : 0;
+	++counter[i];
+	for (auto const& e : b)
+	{
+		int const idx =  (e.id[byte_offset] & mask) ? 1 : 0;
+		++counter[idx];
+	}
+	return counter[0] == 0 || counter[1] == 0;
+}
+
 routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -790,16 +806,6 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	}
 ip_ok:
 
-	// can we split the bucket?
-	// only nodes that have been confirmed can split the bucket, and we can only
-	// split the last bucket
-	bool const can_split = (std::next(i) == m_buckets.end()
-		&& m_buckets.size() < 159)
-		&& (m_settings.prefer_verified_node_ids == false
-			|| (e.verified && mostly_verified_nodes(b)))
-		&& e.confirmed()
-		&& (i == m_buckets.begin() || std::prev(i)->live_nodes.size() > 1);
-
 	// if there's room in the main bucket, just insert it
 	// if we can split the bucket (i.e. it's the last bucket) use the next
 	// bucket's size limit. This makes use split the low-numbered buckets split
@@ -824,6 +830,20 @@ ip_ok:
 
 	bool const last_bucket = bucket_index + 1 == int(m_buckets.size());
 
+	// only nodes that have been confirmed can split the bucket, and we can only
+	// split the last bucket
+	// if all nodes in the bucket, including the new node id (e.id) fall in the
+	// same bucket, splitting isn't going to do anything.
+	bool const can_split = (std::next(i) == m_buckets.end()
+		&& m_buckets.size() < 159)
+		&& (m_settings.prefer_verified_node_ids == false
+			|| (e.verified && mostly_verified_nodes(b)))
+		&& e.confirmed()
+		&& (i == m_buckets.begin() || std::prev(i)->live_nodes.size() > 1)
+		&& !all_in_same_bucket(b, e.id, bucket_index);
+
+	if (can_split) return need_bucket_split;
+
 	if (e.confirmed())
 	{
 		auto const ret = replace_node_impl(e, b, m_ips, bucket_index, bucket_size_limit, last_bucket
@@ -834,54 +854,50 @@ ip_ok:
 		if (ret != need_bucket_split) return ret;
 	}
 
-	// if we can't split, try to insert into the replacement bucket
+	// if we can't split, nor replace anything in the live buckets try to insert
+	// into the replacement bucket
 
-	if (!can_split)
+	// if we don't have any identified stale nodes in
+	// the bucket, and the bucket is full, we have to
+	// cache this node and wait until some node fails
+	// and then replace it.
+	j = std::find_if(rb.begin(), rb.end()
+		, [&e](node_entry const& ne) { return ne.id == e.id; });
+
+	// if the node is already in the replacement bucket
+	// just return.
+	if (j != rb.end())
 	{
-		// if we don't have any identified stale nodes in
-		// the bucket, and the bucket is full, we have to
-		// cache this node and wait until some node fails
-		// and then replace it.
-		j = std::find_if(rb.begin(), rb.end()
-			, [&e](node_entry const& ne) { return ne.id == e.id; });
-
-		// if the node is already in the replacement bucket
-		// just return.
-		if (j != rb.end())
-		{
-			// if the IP address matches, it's the same node
-			// make sure it's marked as pinged
-			if (j->ep() == e.ep()) j->set_pinged();
-			return node_added;
-		}
-
-		if (int(rb.size()) >= m_bucket_size)
-		{
-			// if the replacement bucket is full, remove the oldest entry
-			// but prefer nodes that haven't been pinged, since they are
-			// less reliable than this one, that has been pinged
-			j = std::find_if(rb.begin(), rb.end()
-				, [] (node_entry const& ne) { return !ne.pinged(); });
-			if (j == rb.end())
-			{
-				auto const ret = replace_node_impl(e, rb, m_ips, bucket_index, m_bucket_size, last_bucket
-#ifndef TORRENT_DISABLE_LOGGING
-					, nullptr
-#endif
-					);
-				return ret == node_added ? node_added : failed_to_add;
-			}
-			m_ips.erase(j->addr());
-			rb.erase(j);
-		}
-
-		if (rb.empty()) rb.reserve(m_bucket_size);
-		rb.push_back(e);
-		m_ips.insert(e.addr());
+		// if the IP address matches, it's the same node
+		// make sure it's marked as pinged
+		if (j->ep() == e.ep()) j->set_pinged();
 		return node_added;
 	}
 
-	return need_bucket_split;
+	if (int(rb.size()) >= m_bucket_size)
+	{
+		// if the replacement bucket is full, remove the oldest entry
+		// but prefer nodes that haven't been pinged, since they are
+		// less reliable than this one, that has been pinged
+		j = std::find_if(rb.begin(), rb.end()
+			, [] (node_entry const& ne) { return !ne.pinged(); });
+		if (j == rb.end())
+		{
+			auto const ret = replace_node_impl(e, rb, m_ips, bucket_index, m_bucket_size, last_bucket
+#ifndef TORRENT_DISABLE_LOGGING
+				, nullptr
+#endif
+				);
+			return ret == node_added ? node_added : failed_to_add;
+		}
+		m_ips.erase(j->addr());
+		rb.erase(j);
+	}
+
+	if (rb.empty()) rb.reserve(m_bucket_size);
+	rb.push_back(e);
+	m_ips.insert(e.addr());
+	return node_added;
 }
 
 void routing_table::split_bucket()

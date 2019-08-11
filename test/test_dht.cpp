@@ -3019,7 +3019,7 @@ TORRENT_TEST(routing_table_balance)
 	// and make sure we don't end up with a table completely out of balance
 	for (int i = 0; i < 32; ++i)
 	{
-		id[4] = i & 0xff;
+		id[0] = (i << 3) & 0xff;
 		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
 	}
 	std::printf("num_active_buckets: %d\n", tbl.num_active_buckets());
@@ -3123,7 +3123,7 @@ TORRENT_TEST(routing_table_for_each)
 
 	for (int i = 0; i < 32; ++i)
 	{
-		id[4] = i & 0xff;
+		id[0] = (i << 3) & 0xff;
 		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
 	}
 
@@ -3136,20 +3136,20 @@ TORRENT_TEST(routing_table_for_each)
 	std::printf("replacements: %d\n", replacements);
 
 	TEST_EQUAL(tbl.num_active_buckets(), 2);
-	TEST_EQUAL(nodes, 2);
-	TEST_EQUAL(replacements, 2);
+	TEST_EQUAL(nodes, 4);
+	TEST_EQUAL(replacements, 4);
 
 	print_state(std::cout, tbl);
 
 	std::vector<node_entry> v;
-	tbl.for_each_node(std::bind(node_push_back, &v, _1), nullptr);
-	TEST_EQUAL(v.size(), 2);
-	v.clear();
-	tbl.for_each_node(nullptr, std::bind(node_push_back, &v, _1));
-	TEST_EQUAL(v.size(), 2);
-	v.clear();
-	tbl.for_each_node(std::bind(node_push_back, &v, _1));
+	tbl.for_each_node([&](node_entry const& e) { v.push_back(e); }, nullptr);
 	TEST_EQUAL(v.size(), 4);
+	v.clear();
+	tbl.for_each_node(nullptr, [&](node_entry const& e) { v.push_back(e); });
+	TEST_EQUAL(v.size(), 4);
+	v.clear();
+	tbl.for_each_node([&](node_entry const& e) { v.push_back(e); });
+	TEST_EQUAL(v.size(), 8);
 }
 
 TORRENT_TEST(node_set_id)
@@ -3989,6 +3989,58 @@ TORRENT_TEST(replace_node_impl)
 	, b, p, 0, 8, true LOGGER) == routing_table::node_added);
 	TEST_CHECK(b[7].id == to_hash("9fcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 	TEST_EQUAL(p.size(), 8);
+	}
+}
+
+TORRENT_TEST(all_in_same_bucket)
+{
+	TEST_CHECK(all_in_same_bucket({}, to_hash("8000000000000000000000000000000000000000"), 0) == true);
+	TEST_CHECK(all_in_same_bucket({}, to_hash("8000000000000000000000000000000000000001"), 1) == true);
+	TEST_CHECK(all_in_same_bucket({}, to_hash("8000000000000000000000000000000000000002"), 2) == true);
+	TEST_CHECK(all_in_same_bucket({}, to_hash("8000000000000000000000000000000000000003"), 3) == true);
+	{
+		dht::bucket_t b = {
+			n(nullptr, "0000000000000000000000000000000000000000"),
+		};
+		TEST_CHECK(all_in_same_bucket(b, to_hash("8000000000000000000000000000000000000000"), 0) == false);
+	}
+
+	{
+		dht::bucket_t b = {
+			n(nullptr, "8000000000000000000000000000000000000000"),
+			n(nullptr, "f000000000000000000000000000000000000000"),
+		};
+		TEST_CHECK(all_in_same_bucket(b, to_hash("8000000000000000000000000000000000000000"), 0) == true);
+	}
+	{
+		dht::bucket_t b = {
+			n(nullptr, "8000000000000000000000000000000000000000"),
+			n(nullptr, "0000000000000000000000000000000000000000"),
+		};
+		TEST_CHECK(all_in_same_bucket(b, to_hash("8000000000000000000000000000000000000000"), 0) == false);
+	}
+	{
+		dht::bucket_t b = {
+			n(nullptr, "0800000000000000000000000000000000000000"),
+			n(nullptr, "0000000000000000000000000000000000000000"),
+		};
+		TEST_CHECK(all_in_same_bucket(b, to_hash("0800000000000000000000000000000000000000"), 4) == false);
+	}
+	{
+		dht::bucket_t b = {
+			n(nullptr, "0800000000000000000000000000000000000000"),
+			n(nullptr, "0800000000000000000000000000000000000000"),
+		};
+
+		TEST_CHECK(all_in_same_bucket(b, to_hash("0800000000000000000000000000000000000000"), 4) == true);
+	}
+	{
+		dht::bucket_t b = {
+			n(nullptr, "0007000000000000000000000000000000000000"),
+			n(nullptr, "0004000000000000000000000000000000000000"),
+		};
+
+		TEST_CHECK(all_in_same_bucket(b, to_hash("0005000000000000000000000000000000000000"), 13) == true);
 	}
 }
 
