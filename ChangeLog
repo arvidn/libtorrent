@@ -13,6 +13,7 @@
 	* remove deprecated feature to download .torrent file from URL
 	* requires boost >= 1.66 to build
 	* update networking API to networking TS compatible boost.asio
+	* overhauled disk I/O subsystem to use memory mapped files (where available)
 
 1.2.2 release
 

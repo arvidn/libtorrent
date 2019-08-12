@@ -193,6 +193,12 @@ member.
 
 As a consequence of this, ``get_storage_impl()`` has been removed from torrent_handle.
 
+cache_size
+----------
+
+The ``cache_size`` setting is no longer used. The caching of disk I/O is handled
+by the perating system.
+
 get_cache_info() get_cache_status()
 -----------------------------------
 

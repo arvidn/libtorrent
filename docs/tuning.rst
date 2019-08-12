@@ -64,37 +64,13 @@ setting preset function.
 Keep in mind that lowering memory usage will affect performance, always profile
 and benchmark your settings to determine if it's worth the trade-off.
 
-The typical buffer usage of libtorrent, for a single download, with the cache
-size set to 256 blocks (256 * 16 kiB = 4 MiB) is::
+The bytes of receive buffers is proportional to the number of connections we
+make, and is limited by the total number of connections in the session (default
+is 200).
 
-	read cache:      128.6 (2058 kiB)
-	write cache:     103.5 (1656 kiB)
-	receive buffers: 7.3   (117 kiB)
-	send buffers:    4.8   (77 kiB)
-	hash temp:       0.001 (19 Bytes)
-
-The receive buffers is proportional to the number of connections we make, and is
-limited by the total number of connections in the session (default is 200).
-
-The send buffers is proportional to the number of upload slots that are allowed
-in the session. The default is auto configured based on the observed upload rate.
-
-The read and write cache can be controlled (see section below).
-
-The "hash temp" entry size depends on whether or not hashing is optimized for
-speed or memory usage. In this test run it was optimized for memory usage.
-
-disable disk cache
-------------------
-
-The bulk of the memory libtorrent will use is used for the disk cache. To save
-the absolute most amount of memory, you can disable the cache by setting
-``settings_pack::cache_size`` to 0. You might want to consider using the cache
-but just disable caching read operations. You do this by settings
-``settings_pack::use_read_cache`` to false. This is the main factor in how much
-memory will be used by the client. Keep in mind that you will degrade performance
-by disabling the cache. You should benchmark the disk access in order to make an
-informed trade-off.
+The bytes of send buffers is proportional to the number of upload slots that are
+allowed in the session. The default is auto configured based on the observed
+upload rate.
 
 remove torrents
 ---------------
@@ -210,40 +186,17 @@ This translates into high send rates, and low memory and CPU usage per peer conn
 file pool
 ---------
 
-libtorrent keeps an LRU file cache. Each file that is opened, is stuck in the cache. The main
-purpose of this is because of anti-virus software that hooks on file-open and file close to
-scan the file. Anti-virus software that does that will significantly increase the cost of
-opening and closing files. However, for a high performance seed, the file open/close might
-be so frequent that it becomes a significant cost. It might therefore be a good idea to allow
-a large file descriptor cache. Adjust this though ``settings_pack::file_pool_size``.
+libtorrent keeps an LRU cache for open file handles. Each file that is opened,
+is stuck in the cache. The main purpose of this is because of anti-virus
+software that hooks on file-open and file close to scan the file. Anti-virus
+software that does that will significantly increase the cost of opening and
+closing files. However, for a high performance seed, the file open/close might
+be so frequent that it becomes a significant cost. It might therefore be a good
+idea to allow a large file descriptor cache. Adjust this though
+``settings_pack::file_pool_size``.
 
 Don't forget to set a high rlimit for file descriptors in your process as well. This limit
 must be high enough to keep all connections and files open.
-
-disk cache
-----------
-
-You typically want to set the cache size to as high as possible. The
-``settings_pack::cache_size`` is specified in 16 kiB blocks. Since you're seeding,
-the cache would be useless unless you also set ``settings_pack::use_read_cache``
-to true.
-
-In order to increase the possibility of read cache hits, set the
-``settings_pack::cache_expiry`` to a large number. This won't degrade anything as
-long as the client is only seeding, and not downloading any torrents.
-
-There's a *guided cache* mode. This means the size of the read cache line that's
-stored in the cache is determined based on the upload rate to the peer that
-triggered the read operation. The idea being that slow peers don't use up a
-disproportional amount of space in the cache. This is enabled through
-``settings_pack::guided_read_cache``.
-
-In cases where the assumption is that the cache is only used as a read-ahead, and that no
-other peer will ever request the same block while it's still in the cache, the read
-cache can be set to be *volatile*. This means that every block that is requested out of
-the read cache is removed immediately. This saves a significant amount of cache space
-which can be used as read-ahead for other peers. To enable volatile read cache, set
-``settings_pack::volatile_read_cache`` to true.
 
 uTP-TCP mixed mode
 ------------------
