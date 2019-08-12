@@ -316,7 +316,7 @@ script:
   - cd $TRAVIS_BUILD_DIR;
   - if [[ "$dist" == "1" ]]; then
       make dist &&
-      cd libtorrent-rasterbar-1.3.0 &&
+      cd libtorrent-rasterbar-2.0.0 &&
       make &&
       make python-binding tools examples;
     fi
