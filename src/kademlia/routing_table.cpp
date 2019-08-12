@@ -1098,10 +1098,10 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint const& ep, int co
 
 // fills the vector with the k nodes from our buckets that
 // are nearest to the given id.
-void routing_table::find_node(node_id const& target
-	, std::vector<node_entry>& l, int const options, int count)
+std::vector<node_entry> routing_table::find_node(node_id const& target
+	, int const options, int count)
 {
-	l.clear();
+	std::vector<node_entry> l;
 	if (count == 0) count = m_bucket_size;
 
 	auto const i = find_bucket(target);
@@ -1126,7 +1126,7 @@ void routing_table::find_node(node_id const& target
 				, [](node_entry const& ne) { return !ne.confirmed(); });
 		}
 
-		if (int(l.size()) == count) return;
+		if (int(l.size()) == count) return l;
 
 		if (int(l.size()) > count)
 		{
@@ -1136,7 +1136,7 @@ void routing_table::find_node(node_id const& target
 				{ return compare_ref(lhs.id, rhs.id, target); });
 
 			l.resize(aux::numeric_cast<std::size_t>(count));
-			return;
+			return l;
 		}
 		unsorted_start_idx = int(l.size());
 	}
@@ -1145,7 +1145,7 @@ void routing_table::find_node(node_id const& target
 	// further away from us
 
 	if (i == m_buckets.begin())
-		return;
+		return l;
 
 	j = i;
 
@@ -1165,7 +1165,7 @@ void routing_table::find_node(node_id const& target
 				, [](node_entry const& ne) { return !ne.confirmed(); });
 		}
 
-		if (int(l.size()) == count) return;
+		if (int(l.size()) == count) return l;
 
 		if (int(l.size()) > count)
 		{
@@ -1175,13 +1175,14 @@ void routing_table::find_node(node_id const& target
 				{ return compare_ref(lhs.id, rhs.id, target); });
 
 			l.resize(aux::numeric_cast<std::size_t>(count));
-			return;
+			return l;
 		}
 		unsorted_start_idx = int(l.size());
 	}
 	while (j != m_buckets.begin() && int(l.size()) < count);
 
 	TORRENT_ASSERT(int(l.size()) <= count);
+	return l;
 }
 
 #if TORRENT_USE_INVARIANT_CHECKS
