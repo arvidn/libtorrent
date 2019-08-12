@@ -200,10 +200,8 @@ public:
 
 	// fills the vector with the count nodes from our buckets that
 	// are nearest to the given id.
-	void find_node(node_id const& id, std::vector<node_entry>& l
-		, int options, int count = 0);
-	void remove_node(node_entry* n
-		, table_t::iterator bucket) ;
+	std::vector<node_entry> find_node(node_id const& id, int options, int count = 0);
+	void remove_node(node_entry* n, table_t::iterator bucket);
 
 	int bucket_size(int bucket) const
 	{
