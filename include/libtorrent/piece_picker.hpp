@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/index_range.hpp"
 
 namespace libtorrent {
 
@@ -498,7 +499,7 @@ namespace libtorrent {
 
 		bool can_pick(piece_index_t piece, typed_bitfield<piece_index_t> const& bitmask) const;
 		bool is_piece_free(piece_index_t piece, typed_bitfield<piece_index_t> const& bitmask) const;
-		std::pair<piece_index_t, piece_index_t>
+		index_range<piece_index_t>
 		expand_piece(piece_index_t piece, int whole_pieces
 			, typed_bitfield<piece_index_t> const& have
 			, picker_options_t options) const;
