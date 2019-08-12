@@ -586,10 +586,14 @@ class test_session(unittest.TestCase):
         s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
         s.post_dht_stats()
         alerts = []
-        # first the stats headers log line. but not if logging is disabled
+        cnt = 0
         while len(alerts) == 0:
             s.wait_for_alert(1000)
             alerts = s.pop_alerts()
+            cnt += 1
+            if cnt > 60:
+                print('no dht_stats_alert in 1 minute!')
+                sys.exit(1)
         a = alerts.pop(0)
         self.assertTrue(isinstance(a, lt.dht_stats_alert))
         self.assertTrue(isinstance(a.active_requests, list))

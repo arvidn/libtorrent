@@ -2462,7 +2462,8 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		dht_stats_alert(aux::stack_allocator& alloc
 			, std::vector<dht_routing_bucket> table
-			, std::vector<dht_lookup> requests);
+			, std::vector<dht_lookup> requests
+			, sha1_hash id, udp::endpoint ep);
 
 		TORRENT_DEFINE_ALERT(dht_stats_alert, 83)
 
@@ -2475,6 +2476,12 @@ TORRENT_VERSION_NAMESPACE_2
 		// contains information about every bucket in the DHT routing
 		// table.
 		std::vector<dht_routing_bucket> routing_table;
+
+		// the node ID of the DHT node instance
+		sha1_hash nid;
+
+		// the local socket this DHT node is running on
+		aux::noexcept_movable<udp::endpoint> local_endpoint;
 	};
 
 	// posted every time an incoming request from a peer is accepted and queued

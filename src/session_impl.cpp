@@ -4602,15 +4602,28 @@ namespace aux {
 
 	void session_impl::post_dht_stats()
 	{
-		std::vector<dht_lookup> requests;
-		std::vector<dht_routing_bucket> table;
-
 #ifndef TORRENT_DISABLE_DHT
+		std::vector<dht::dht_status> dht_stats;
 		if (m_dht)
-			m_dht->dht_status(table, requests);
-#endif
+			dht_stats = m_dht->dht_status();
 
-		m_alerts.emplace_alert<dht_stats_alert>(std::move(table), std::move(requests));
+		if (dht_stats.empty())
+		{
+			// for backwards compatibility, still post an empty alert if we don't
+			// have any active DHT nodes
+			m_alerts.emplace_alert<dht_stats_alert>(std::vector<dht_routing_bucket>{}
+				, std::vector<dht_lookup>{}, dht::node_id{}, udp::endpoint{});
+		}
+		else
+		{
+			for (auto& s : dht_stats)
+			{
+				m_alerts.emplace_alert<dht_stats_alert>(
+					std::move(s.table), std::move(s.requests)
+					, s.our_id, s.local_endpoint);
+			}
+		}
+#endif
 	}
 
 	std::vector<torrent_handle> session_impl::get_torrents() const
