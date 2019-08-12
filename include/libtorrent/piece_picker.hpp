@@ -459,7 +459,7 @@ namespace libtorrent {
 		void check_piece_state() const;
 		// used in debug mode
 		void verify_priority(prio_index_t start, prio_index_t end, int prio) const;
-		void verify_pick(std::vector<piece_block> const& picked
+		void verify_pick(span<piece_block const> picked
 			, typed_bitfield<piece_index_t> const& bits) const;
 
 		void check_peer_invariant(typed_bitfield<piece_index_t> const& have
