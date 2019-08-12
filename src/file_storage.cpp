@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <functional>
 #include <set>
+#include <atomic>
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR '\\'
@@ -663,7 +664,9 @@ namespace {
 
 		// TODO: 3 this is a hack to retain ABI compatibility with 1.2.1
 		// in next major release, make this return by value
-		static std::string ret;
+		static std::string storage[4];
+		static std::atomic<size_t> counter{0};
+		std::string& ret = storage[(counter++) % 4];
 		ret.reserve(m_name.size() + link.size() + 1);
 		ret.assign(m_name);
 		append_path(ret, link);
