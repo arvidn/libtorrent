@@ -398,7 +398,7 @@ namespace libtorrent {
 		}
 	}
 
-	void piece_picker::verify_pick(std::vector<piece_block> const& picked
+	void piece_picker::verify_pick(span<piece_block const> const picked
 		, typed_bitfield<piece_index_t> const& bits) const
 	{
 		TORRENT_ASSERT(bits.size() == num_pieces());
@@ -422,9 +422,7 @@ namespace libtorrent {
 			TORRENT_ASSERT(p == prio);
 		}
 	}
-#endif // TORRENT_USE_INVARIANT_CHECKS
 
-#if TORRENT_USE_INVARIANT_CHECKS
 	void piece_picker::check_peer_invariant(typed_bitfield<piece_index_t> const& have
 		, torrent_peer const* p) const
 	{
