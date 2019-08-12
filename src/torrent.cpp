@@ -4087,7 +4087,7 @@ bool is_downloading_state(int const st)
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(is_single_thread());
 
-		TORRENT_ASSERT(m_picker.get());
+		TORRENT_ASSERT(has_picker());
 		TORRENT_ASSERT(index >= piece_index_t(0));
 		TORRENT_ASSERT(index < m_torrent_file->end_piece());
 		TORRENT_ASSERT(std::is_sorted(blocks.begin(), blocks.end()));
@@ -4140,8 +4140,7 @@ bool is_downloading_state(int const st)
 #endif
 
 		std::vector<torrent_peer*> downloaders;
-		if (m_picker)
-			m_picker->get_downloaders(downloaders, index);
+		m_picker->get_downloaders(downloaders, index);
 
 		// decrease the trust point of all peers that sent
 		// parts of this piece.
