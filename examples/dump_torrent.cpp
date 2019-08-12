@@ -32,17 +32,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
+#include <fstream>
+#include <iostream>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/span.hpp"
-
-#include <fstream>
-#include <iostream>
 
 std::vector<char> load_file(char const* filename)
 {
@@ -120,12 +118,8 @@ int main(int argc, char const* argv[]) try
 	std::vector<char> buf = load_file(filename);
 	int pos = -1;
 	lt::error_code ec;
-	std::cout << "decoding. recursion limit: " << cfg.max_decode_depth
-		<< " total item count limit: " << cfg.max_decode_tokens << "\n";
 	lt::bdecode_node const e = lt::bdecode(buf, ec, &pos, cfg.max_decode_depth
 		, cfg.max_decode_tokens);
-
-	std::printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
 	if (ec) {
 		std::cerr << "failed to decode: '" << ec.message() << "' at character: " << pos<< "\n";

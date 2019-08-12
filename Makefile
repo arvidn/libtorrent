@@ -231,6 +231,7 @@ EXAMPLE_FILES= \
   cmake/FindLibtorrentRasterbar.cmake \
   connection_tester.cpp \
   dump_torrent.cpp \
+  dump_bdecode.cpp \
   make_torrent.cpp \
   print.cpp \
   print.hpp \
