@@ -220,11 +220,12 @@ namespace libtorrent { namespace dht {
 	}
 #endif
 
-	void dht_tracker::dht_status(std::vector<dht_routing_bucket>& table
-		, std::vector<dht_lookup>& requests)
+	std::vector<lt::dht::dht_status> dht_tracker::dht_status() const
 	{
+		std::vector<lt::dht::dht_status> ret;
 		for (auto& n : m_nodes)
-			n.second.dht.status(table, requests);
+			ret.emplace_back(n.second.dht.status());
+		return ret;
 	}
 
 	void dht_tracker::update_stats_counters(counters& c) const

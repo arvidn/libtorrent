@@ -714,19 +714,22 @@ time_duration node::connection_timeout()
 	return d;
 }
 
-void node::status(std::vector<dht_routing_bucket>& table
-	, std::vector<dht_lookup>& requests)
+dht_status node::status() const
 {
 	std::lock_guard<std::mutex> l(m_mutex);
 
-	m_table.status(table);
+	dht_status ret;
+	ret.our_id = m_id;
+	ret.local_endpoint = make_udp(m_sock.get_local_endpoint());
+	m_table.status(ret.table);
 
 	for (auto const& r : m_running_requests)
 	{
-		requests.emplace_back();
-		dht_lookup& lookup = requests.back();
+		ret.requests.emplace_back();
+		dht_lookup& lookup = ret.requests.back();
 		r->status(lookup);
 	}
+	return ret;
 }
 
 std::tuple<int, int, int> node::get_stats_counters() const

@@ -116,14 +116,14 @@ TORRENT_TEST(dht_bootstrap)
 		{
 			if (lt::dht_stats_alert const* p = lt::alert_cast<lt::dht_stats_alert>(a))
 			{
-				routing_table_depth = int(p->routing_table.size());
+				routing_table_depth = std::max(int(p->routing_table.size()), routing_table_depth);
 				int c = 0;
 				for (auto const& b : p->routing_table)
 				{
 					c += b.num_nodes;
 					c += b.num_replacements;
 				}
-				num_nodes = c;
+				num_nodes = std::max(c, num_nodes);
 				print_routing_table(p->routing_table);
 			}
 			else if (lt::session_stats_alert const* sa = lt::alert_cast<lt::session_stats_alert>(a))

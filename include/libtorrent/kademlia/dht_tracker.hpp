@@ -145,8 +145,7 @@ namespace dht {
 #if TORRENT_ABI_VERSION == 1
 		void dht_status(session_status& s);
 #endif
-		void dht_status(std::vector<dht_routing_bucket>& table
-			, std::vector<dht_lookup>& requests);
+		std::vector<lt::dht::dht_status> dht_status() const;
 		void update_stats_counters(counters& c) const;
 
 		void incoming_error(error_code const& ec, udp::endpoint const& ep);

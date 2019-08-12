@@ -1925,16 +1925,20 @@ namespace {
 
 	dht_stats_alert::dht_stats_alert(aux::stack_allocator&
 		, std::vector<dht_routing_bucket> table
-		, std::vector<dht_lookup> requests)
+		, std::vector<dht_lookup> requests
+			, sha1_hash id, udp::endpoint ep)
 		: alert()
 		, active_requests(std::move(requests))
 		, routing_table(std::move(table))
+		, nid(id)
+		, local_endpoint(ep)
 	{}
 
 	std::string dht_stats_alert::message() const
 	{
 		char buf[2048];
-		std::snprintf(buf, sizeof(buf), "DHT stats: reqs: %d buckets: %d"
+		std::snprintf(buf, sizeof(buf), "DHT stats: (%s) reqs: %d buckets: %d"
+			, aux::to_hex(nid).c_str()
 			, int(active_requests.size())
 			, int(routing_table.size()));
 		return buf;

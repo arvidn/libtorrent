@@ -53,6 +53,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/string_view.hpp>
 #include <libtorrent/aux_/listen_socket_handle.hpp>
 
+// for dht_lookup and dht_routing_bucket
+#include <libtorrent/alert_types.hpp>
+
 namespace libtorrent {
 	struct counters;
 }
@@ -87,6 +90,14 @@ protected:
 
 // get the closest node to the id with the given family_name
 using get_foreign_node_t = std::function<node*(node_id const&, std::string const&)>;
+
+struct dht_status
+{
+	node_id our_id;
+	udp::endpoint local_endpoint;
+	std::vector<dht_routing_bucket> table;
+	std::vector<dht_lookup> requests;
+};
 
 class TORRENT_EXTRA_EXPORT node
 {
@@ -190,8 +201,7 @@ public:
 		m_running_requests.erase(a);
 	}
 
-	void status(std::vector<dht_routing_bucket>& table
-		, std::vector<dht_lookup>& requests);
+	dht_status status() const;
 
 	std::tuple<int, int, int> get_stats_counters() const;
 
@@ -227,7 +237,7 @@ private:
 
 	dht::settings const& m_settings;
 
-	std::mutex m_mutex;
+	mutable std::mutex m_mutex;
 
 	// this list must be destructed after the rpc manager
 	// since it might have references to it
