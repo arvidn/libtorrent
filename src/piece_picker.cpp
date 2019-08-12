@@ -2238,11 +2238,9 @@ namespace {
 					TORRENT_ASSERT(can_pick(piece, pieces));
 					TORRENT_ASSERT(m_piece_map[piece].downloading() == false);
 
-					piece_index_t start, end;
-					std::tie(start, end) = expand_piece(piece
+					auto const range = expand_piece(piece
 						, prefer_contiguous_blocks, pieces, options);
-					TORRENT_ASSERT(end > start);
-					for (piece_index_t k = start; k < end; ++k)
+					for (piece_index_t const k : range)
 					{
 						TORRENT_ASSERT(m_piece_map[k].downloading() == false);
 						TORRENT_ASSERT(m_piece_map[k].priority(this) >= 0);
@@ -2261,7 +2259,7 @@ namespace {
 								&& num_blocks <= 0) break;
 						}
 					}
-					piece = end;
+					piece = *range.end();
 				}
 				else
 				{
@@ -2642,10 +2640,9 @@ get_out:
 		}
 		else
 		{
-			piece_index_t start, end;
-			std::tie(start, end) = expand_piece(piece, prefer_contiguous_blocks
+			auto const range = expand_piece(piece, prefer_contiguous_blocks
 				, pieces, options);
-			for (piece_index_t k = start; k < end; ++k)
+			for (piece_index_t const k : range)
 			{
 				TORRENT_ASSERT(m_piece_map[k].priority(this) > 0);
 				num_blocks_in_piece = blocks_in_piece(k);
@@ -2762,11 +2759,11 @@ get_out:
 		return num_blocks;
 	}
 
-	std::pair<piece_index_t, piece_index_t>
+	index_range<piece_index_t>
 	piece_picker::expand_piece(piece_index_t const piece, int const contiguous_blocks
 		, typed_bitfield<piece_index_t> const& have, picker_options_t const options) const
 	{
-		if (contiguous_blocks == 0) return std::make_pair(piece, next(piece));
+		if (contiguous_blocks == 0) return {piece, next(piece)};
 
 		// round to even pieces and expand in order to get the number of
 		// contiguous pieces we want
@@ -2803,7 +2800,7 @@ get_out:
 		if (upper_limit > have.end_index()) upper_limit = have.end_index();
 		while (end < upper_limit && can_pick(end, have))
 			++end;
-		return std::make_pair(start, end);
+		return {start, end};
 	}
 
 	bool piece_picker::is_piece_finished(piece_index_t const index) const
