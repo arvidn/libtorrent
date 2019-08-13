@@ -184,7 +184,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			if (req != m_piece_block_requests.end())
 			{
 				int const blocks_per_piece = m_files.piece_length() / default_block_size;
-				int const first_block = req->piece * blocks_per_piece;
+
+				// number of blocks from the start of the file
+				int const first_block = static_cast<int>(req->piece) * blocks_per_piece;
 				node_index const nidx(req->file, m_files.file_first_block_node(req->file) + first_block);
 				hash_request hash_req(req->file
 					, 0
@@ -578,7 +580,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	void hash_picker::verify_block_hashes(piece_index_t index)
 	{
 		file_index_t const fidx = m_files.file_index_at_piece(index);
-		int const piece = int(int(index) - m_files.file_offset(fidx) / m_files.piece_length());
+		piece_index_t::diff_type const piece = index - m_files.piece_index_at_file(fidx);
 		piece_block_request req(fidx, piece);
 
 		if (std::find(m_piece_block_requests.begin(), m_piece_block_requests.end(), req)
