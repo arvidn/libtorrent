@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_CONNECTION_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
@@ -42,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/chained_buffer.hpp"
+#include "libtorrent/aux_/chained_buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
@@ -55,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/io_context.hpp"
-#include "libtorrent/receive_buffer.hpp"
+#include "libtorrent/aux_/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
@@ -807,7 +806,7 @@ namespace aux {
 		bandwidth_state_flags_t m_channel_state[2];
 
 	protected:
-		receive_buffer m_recv_buffer;
+		aux::receive_buffer m_recv_buffer;
 
 		// number of bytes this peer can send and receive
 		int m_quota[2];
@@ -830,7 +829,7 @@ namespace aux {
 		tcp::endpoint m_remote;
 
 	public:
-		chained_buffer m_send_buffer;
+		aux::chained_buffer m_send_buffer;
 	private:
 
 		// the disk thread to use to issue disk jobs to

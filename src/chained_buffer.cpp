@@ -30,12 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/chained_buffer.hpp"
+#include "libtorrent/aux_/chained_buffer.hpp"
 #include "libtorrent/assert.hpp"
 
 #include <algorithm> // for copy
 
 namespace libtorrent {
+namespace aux {
 
 	void chained_buffer::pop_front(int bytes_to_pop)
 	{
@@ -168,4 +169,5 @@ namespace libtorrent {
 #endif
 	}
 
+}
 }

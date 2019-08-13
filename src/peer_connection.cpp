@@ -68,7 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/aux_/time.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/aux_/buffer.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
 #include "libtorrent/aux_/merkle.hpp"
@@ -5909,7 +5909,7 @@ namespace libtorrent {
 		if (buf.empty()) return;
 
 		// allocate a buffer and initialize the beginning of it with 'buf'
-		buffer snd_buf(std::max(int(buf.size()), 128), buf);
+		aux::buffer snd_buf(std::max(int(buf.size()), 128), buf);
 		m_send_buffer.append_buffer(std::move(snd_buf), int(buf.size()));
 
 		setup_send();

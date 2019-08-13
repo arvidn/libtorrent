@@ -430,8 +430,6 @@ HEADERS = \
   bloom_filter.hpp             \
   broadcast_socket.hpp         \
   bt_peer_connection.hpp       \
-  buffer.hpp                   \
-  chained_buffer.hpp           \
   choker.hpp                   \
   close_reason.hpp             \
   config.hpp                   \
@@ -513,7 +511,6 @@ HEADERS = \
   puff.hpp                     \
   random.hpp                   \
   read_resume_data.hpp         \
-  receive_buffer.hpp           \
   request_blocks.hpp           \
   resolve_links.hpp            \
   resolver.hpp                 \
@@ -570,8 +567,10 @@ HEADERS = \
   aux_/allocating_handler.hpp       \
   aux_/array.hpp                    \
   aux_/bind_to_device.hpp           \
+  aux_/buffer.hpp                   \
   aux_/byteswap.hpp                 \
   aux_/container_wrapper.hpp        \
+  aux_/chained_buffer.hpp           \
   aux_/cppint_import_export.hpp     \
   aux_/cpuid.hpp                    \
   aux_/deferred_handler.hpp         \
@@ -608,6 +607,7 @@ HEADERS = \
   aux_/posix_storage.hpp            \
   aux_/proxy_settings.hpp           \
   aux_/range.hpp                    \
+  aux_/receive_buffer.hpp           \
   aux_/route.h                      \
   aux_/scope_end.hpp                \
   aux_/session_call.hpp             \
