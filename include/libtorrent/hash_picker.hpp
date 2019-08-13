@@ -184,9 +184,10 @@ namespace libtorrent
 
 		struct piece_block_request
 		{
-			piece_block_request(file_index_t const f, int const p) : file(f), piece(p) {}
+			piece_block_request(file_index_t const f, piece_index_t::diff_type const p) : file(f), piece(p) {}
 			file_index_t file;
-			int piece;
+			// the piece from the start of the file
+			piece_index_t::diff_type piece;
 			time_point last_request;
 			int num_requests = 0;
 			bool operator==(piece_block_request const& o) const
