@@ -1343,7 +1343,8 @@ namespace {
 		TORRENT_ASSERT(recv_buffer.front() == holepunch_msg);
 		recv_buffer = recv_buffer.subspan(1);
 
-		const char* ptr = recv_buffer.data();
+		char const* ptr = recv_buffer.data();
+		char const* const end = recv_buffer.data() + recv_buffer.size();
 
 		// ignore invalid messages
 		if (int(recv_buffer.size()) < 2) return;
@@ -1355,14 +1356,14 @@ namespace {
 
 		if (addr_type == 0)
 		{
-			if (int(recv_buffer.size()) != 2 + 4 + 2) return;
+			if (int(recv_buffer.size()) < 2 + 4 + 2) return;
 			// IPv4 address
 			ep = detail::read_v4_endpoint<tcp::endpoint>(ptr);
 		}
 		else if (addr_type == 1)
 		{
 			// IPv6 address
-			if (int(recv_buffer.size()) != 2 + 18 + 2) return;
+			if (int(recv_buffer.size()) < 2 + 16 + 2) return;
 			ep = detail::read_v6_endpoint<tcp::endpoint>(ptr);
 		}
 		else
@@ -1487,7 +1488,8 @@ namespace {
 			} break;
 			case hp_message::failed:
 			{
-				std::uint32_t error = detail::read_uint32(ptr);
+				if (end - ptr < 4) return;
+				std::uint32_t const error = detail::read_uint32(ptr);
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::incoming_message))
 				{
