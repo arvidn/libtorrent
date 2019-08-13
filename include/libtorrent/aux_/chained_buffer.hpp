@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/aligned_storage.hpp"
 #include "libtorrent/debug.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/aux_/buffer.hpp"
 
 #include <deque>
 #include <vector>
@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent {
+namespace aux {
 
 	// TODO: 2 this type should probably be renamed to send_buffer
 	struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded
@@ -227,6 +228,7 @@ namespace libtorrent {
 		bool m_destructed;
 #endif
 	};
+}
 }
 
 #endif

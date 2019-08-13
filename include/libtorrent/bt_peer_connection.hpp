@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 
 #include "libtorrent/debug.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/aux_/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -349,7 +349,7 @@ namespace libtorrent {
 			{
 				// if we're encrypting this buffer, we need to make a copy
 				// since we'll mutate it
-				buffer buf(size, {holder.data(), size});
+				aux::buffer buf(size, {holder.data(), size});
 				append_send_buffer(std::move(buf), size);
 			}
 			else
@@ -424,7 +424,7 @@ namespace libtorrent {
 #pragma clang diagnostic ignored "-Wunknown-warning-option"
 #pragma clang diagnostic ignored "-Wshadow-field"
 #endif
-		crypto_receive_buffer m_recv_buffer;
+		aux::crypto_receive_buffer m_recv_buffer;
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif

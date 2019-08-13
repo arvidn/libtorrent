@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent {
+namespace aux {
 
 // the buffer is allocated once and cannot be resized. The size() may be
 // larger than requested, in case the underlying allocator over allocated. In
@@ -160,6 +161,7 @@ private:
 	difference_type m_size = 0;
 };
 
+}
 }
 
 #endif // TORRENT_BUFFER_HPP_INCLUDED

@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RECEIVE_BUFFER_HPP_INCLUDED
 #define TORRENT_RECEIVE_BUFFER_HPP_INCLUDED
 
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/aux_/buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <climits>
 
 namespace libtorrent {
+namespace aux {
 
 struct TORRENT_EXTRA_EXPORT receive_buffer
 {
@@ -219,6 +220,7 @@ private:
 };
 #endif // TORRENT_DISABLE_ENCRYPTION
 
+} // namespace aux
 } // namespace libtorrent
 
 #endif // #ifndef TORRENT_RECEIVE_BUFFER_HPP_INCLUDED

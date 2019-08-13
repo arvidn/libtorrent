@@ -210,7 +210,7 @@ namespace libtorrent {
 		return std::make_tuple(next_barrier, out_iovec);
 	}
 
-	int encryption_handler::decrypt(crypto_receive_buffer& recv_buffer
+	int encryption_handler::decrypt(aux::crypto_receive_buffer& recv_buffer
 		, std::size_t& bytes_transferred)
 	{
 		TORRENT_ASSERT(!is_recv_plaintext());
@@ -255,7 +255,7 @@ namespace libtorrent {
 	}
 
 	void encryption_handler::switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto
-		, crypto_receive_buffer& recv_buffer)
+		, aux::crypto_receive_buffer& recv_buffer)
 	{
 		m_dec_handler = crypto;
 		int packet_size = 0;

@@ -35,13 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <set>
 
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/chained_buffer.hpp"
+#include "libtorrent/aux_/buffer.hpp"
+#include "libtorrent/aux_/chained_buffer.hpp"
 #include "libtorrent/socket.hpp"
 
 #include "test.hpp"
 
 using namespace lt;
+using lt::aux::buffer;
+using lt::aux::chained_buffer;
 
 // -- test buffer --
 

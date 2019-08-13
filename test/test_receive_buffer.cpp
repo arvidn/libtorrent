@@ -32,9 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "test.hpp"
-#include "libtorrent/receive_buffer.hpp"
+#include "libtorrent/aux_/receive_buffer.hpp"
 
 using namespace lt;
+using lt::aux::receive_buffer;
 
 TORRENT_TEST(recv_buffer_init)
 {

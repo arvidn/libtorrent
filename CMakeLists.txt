@@ -32,8 +32,6 @@ set(libtorrent_include_files
 	bloom_filter
 	broadcast_socket
 	bt_peer_connection
-	buffer
-	chained_buffer
 	choker
 	close_reason
 	config
@@ -112,7 +110,6 @@ set(libtorrent_include_files
 	puff
 	random
 	read_resume_data
-	receive_buffer
 	request_blocks
 	resolve_links
 	resolver
@@ -203,7 +200,9 @@ set(libtorrent_aux_include_files
 	allocating_handler
 	array
 	bind_to_device
+	buffer
 	byteswap
+	chained_buffer
 	cppint_import_export
 	cpuid
 	deferred_handler
@@ -235,6 +234,7 @@ set(libtorrent_aux_include_files
 	portmap
 	proxy_settings
 	range
+	receive_buffer
 	route
 	scope_end
 	session_call
