@@ -161,6 +161,8 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
+	if (size < 8) return 0;
+
 #ifdef DEBUG_LOGGING
 	time_point const start_time = clock_type::now();
 #endif
@@ -175,10 +177,13 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 
 	// bittorrent handshake
 
-	std::vector<char> handshake(1 + 19 + 8 + 20 + 20 + size);
-	std::memcpy(handshake.data(), "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04", 28);
+	std::vector<char> handshake(1 + 19 + 8 + 20 + 20 + size - 8);
+	std::memcpy(handshake.data(), "\x13" "BitTorrent protocol", 20);
+	std::memcpy(handshake.data() + 20, data, 8);
 	std::memcpy(handshake.data() + 28, g_info_hash.data(), 20);
 	lt::aux::random_bytes({handshake.data() + 48, 20});
+	data += 8;
+	size -= 8;
 	std::memcpy(handshake.data() + 68, data, size);
 
 	// we're likely to fail to write entire (garbage) messages, as libtorrent may
