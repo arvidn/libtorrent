@@ -129,6 +129,8 @@ namespace aux {
 		int max_decode_tokens = 2000000;
 	};
 
+	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;
+
 	class TORRENT_EXPORT torrent_info
 	{
 	public:
@@ -464,15 +466,15 @@ namespace aux {
 
 		// returns true if this torrent is private. i.e., the client should not
 		// advertise itself on the trackerless network (the Kademlia DHT) for this torrent.
-		bool priv() const { return (m_flags & private_torrent) != 0; }
+		bool priv() const { return bool(m_flags & private_torrent); }
 
 		// returns true if this is an i2p torrent. This is determined by whether
 		// or not it has a tracker whose URL domain name ends with ".i2p". i2p
 		// torrents disable the DHT and local peer discovery as well as talking
 		// to peers over anything other than the i2p network.
-		bool is_i2p() const { return (m_flags & i2p) != 0; }
+		bool is_i2p() const { return bool(m_flags & i2p); }
 
-		bool v2_piece_hashes_verified() const { return (m_flags & v2_has_piece_hashes) != 0; }
+		bool v2_piece_hashes_verified() const { return bool(m_flags & v2_has_piece_hashes); }
 
 		// returns the piece size of file with ``index``. This will be the same as piece_length(),
 		// except for the last piece, which may be shorter.
@@ -722,35 +724,31 @@ namespace aux {
 		std::int32_t deprecated2 = 0;
 #endif
 
-		enum flags_t : std::uint8_t
-		{
-			// this is used when creating a torrent. If there's
-			// only one file there are cases where it's impossible
-			// to know if it should be written as a multi file torrent
-			// or not. e.g. test/test  there's one file and one directory
-			// and they have the same name.
-			multifile = 1,
+		// this is used when creating a torrent. If there's
+		// only one file there are cases where it's impossible
+		// to know if it should be written as a multi file torrent
+		// or not. e.g. test/test  there's one file and one directory
+		// and they have the same name.
+		static constexpr torrent_info_flags_t multifile = 0_bit;
 
-			// this is true if the torrent is private. i.e., is should not
-			// be announced on the dht
-			private_torrent = 2,
+		// this is true if the torrent is private. i.e., is should not
+		// be announced on the dht
+		static constexpr torrent_info_flags_t private_torrent = 1_bit;
 
-			// this is true if one of the trackers has an .i2p top
-			// domain in its hostname. This means the DHT and LSD
-			// features are disabled for this torrent (unless the
-			// settings allows mixing i2p peers with regular peers)
-			i2p = 4,
+		// this is true if one of the trackers has an .i2p top
+		// domain in its hostname. This means the DHT and LSD
+		// features are disabled for this torrent (unless the
+		// settings allows mixing i2p peers with regular peers)
+		static constexpr torrent_info_flags_t i2p = 2_bit;
 
-			// this flag is set if we found an ssl-cert field in the info
-			// dictionary
-			ssl_torrent = 8,
+		// this flag is set if we found an ssl-cert field in the info
+		// dictionary
+		static constexpr torrent_info_flags_t ssl_torrent = 3_bit;
 
-			// v2 piece hashes were loaded from the torrent file and verified
-			v2_has_piece_hashes = 16,
-		};
+		// v2 piece hashes were loaded from the torrent file and verified
+		static constexpr torrent_info_flags_t v2_has_piece_hashes = 4_bit;
 
-		// any combination of values from flags_t enum
-		std::uint8_t m_flags = 0;
+		torrent_info_flags_t m_flags{};
 	};
 
 }

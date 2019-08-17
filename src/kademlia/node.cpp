@@ -1196,7 +1196,7 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 	// entry based on the protocol the request came in with
 	if (want.type() != bdecode_node::list_t)
 	{
-		std::vector<node_entry> const n = m_table.find_node(info_hash, 0);
+		std::vector<node_entry> const n = m_table.find_node(info_hash, {});
 		r[protocol_nodes_key()] = write_nodes_entry(n);
 		return;
 	}
@@ -1213,7 +1213,7 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 			continue;
 		node* wanted_node = m_get_foreign_node(info_hash, wanted.string_value().to_string());
 		if (!wanted_node) continue;
-		std::vector<node_entry> const n = wanted_node->m_table.find_node(info_hash, 0);
+		std::vector<node_entry> const n = wanted_node->m_table.find_node(info_hash, {});
 		r[wanted_node->protocol_nodes_key()] = write_nodes_entry(n);
 	}
 }
