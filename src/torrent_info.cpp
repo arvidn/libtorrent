@@ -78,6 +78,12 @@ namespace libtorrent {
 
 	TORRENT_EXPORT from_span_t from_span;
 
+	constexpr torrent_info_flags_t torrent_info::multifile;
+	constexpr torrent_info_flags_t torrent_info::private_torrent;
+	constexpr torrent_info_flags_t torrent_info::i2p;
+	constexpr torrent_info_flags_t torrent_info::ssl_torrent;
+	constexpr torrent_info_flags_t torrent_info::v2_has_piece_hashes;
+
 	namespace {
 
 	// this is an arbitrary limit to avoid malicious torrents causing
@@ -1215,7 +1221,7 @@ namespace {
 
 	string_view torrent_info::ssl_cert() const
 	{
-		if ((m_flags & ssl_torrent) == 0) return "";
+		if (!(m_flags & ssl_torrent)) return "";
 
 		// this is parsed lazily
 		if (!m_info_dict)
@@ -1488,7 +1494,7 @@ namespace {
 		}
 
 		m_flags |= (info.dict_find_int_value("private", 0) != 0)
-			? private_torrent : 0;
+			? private_torrent : torrent_info_flags_t{};
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		bdecode_node const similar = info.dict_find_list("similar");

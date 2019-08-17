@@ -58,6 +58,8 @@ using namespace std::placeholders;
 
 namespace libtorrent { namespace dht {
 
+constexpr find_nodes_flags_t routing_table::include_failed;
+
 namespace {
 
 	template <typename T, typename K>
@@ -1099,7 +1101,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint const& ep, int co
 // fills the vector with the k nodes from our buckets that
 // are nearest to the given id.
 std::vector<node_entry> routing_table::find_node(node_id const& target
-	, int const options, int count)
+	, find_nodes_flags_t const options, int count)
 {
 	std::vector<node_entry> l;
 	if (count == 0) count = m_bucket_size;

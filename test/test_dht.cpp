@@ -1579,7 +1579,7 @@ void test_routing_table(address(&rand_addr)())
 	node_id const tmp = generate_id_impl(node_addr, 1);
 	table.node_seen(tmp, udp::endpoint(node_addr, 4), 10);
 
-	std::vector<node_entry> nodes = table.find_node(nid, 0, 10);
+	std::vector<node_entry> nodes = table.find_node(nid, {}, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	TEST_EQUAL(std::get<0>(table.size()), 1);
 	TEST_EQUAL(nodes.size(), 1);
@@ -1620,7 +1620,7 @@ void test_routing_table(address(&rand_addr)())
 
 	// test adding the same node ID again with a different IP (should be ignored)
 	table.node_seen(tmp, udp::endpoint(node_addr, 5), 10);
-	nodes = table.find_node(nid, 0, 10);
+	nodes = table.find_node(nid, {}, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	if (!nodes.empty())
 	{
@@ -1633,7 +1633,7 @@ void test_routing_table(address(&rand_addr)())
 	// very close to the current one (should be ignored)
 	// if restrict_routing_ips == true
 	table.node_seen(tmp, udp::endpoint(node_near_addr, 5), 10);
-	nodes = table.find_node(nid, 0, 10);
+	nodes = table.find_node(nid, {}, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	if (!nodes.empty())
 	{
@@ -1646,7 +1646,7 @@ void test_routing_table(address(&rand_addr)())
 	{
 		auto const id = generate_id_impl(node_addr, 2);
 		table.node_seen(id, udp::endpoint(node_addr, 4), 10);
-		nodes = table.find_node(id, 0, 10);
+		nodes = table.find_node(id, {}, 10);
 	}
 	TEST_EQUAL(table.bucket_size(0), 0);
 	TEST_EQUAL(nodes.size(), 0);
@@ -1682,7 +1682,7 @@ void test_routing_table(address(&rand_addr)())
 
 	{
 		node_id const id = generate_random_id();
-		std::vector<node_entry> temp = table.find_node(id, 0, int(nodes.size()) * 2);
+		std::vector<node_entry> temp = table.find_node(id, {}, int(nodes.size()) * 2);
 		std::printf("returned-all: %d\n", int(temp.size()));
 		TEST_EQUAL(temp.size(), nodes.size());
 	}
@@ -1696,7 +1696,7 @@ void test_routing_table(address(&rand_addr)())
 	for (int r = 0; r < reps; ++r)
 	{
 		node_id const id = generate_random_id();
-		std::vector<node_entry> temp = table.find_node(id, 0, bucket_size * 2);
+		std::vector<node_entry> temp = table.find_node(id, {}, bucket_size * 2);
 		TEST_EQUAL(int(temp.size()), std::min(bucket_size * 2, int(nodes.size())));
 
 		std::sort(nodes.begin(), nodes.end(), std::bind(&compare_ref
@@ -3512,14 +3512,14 @@ TORRENT_TEST(dht_verify_node_address)
 
 	add_and_replace(tmp, diff);
 	table.node_seen(tmp, udp::endpoint(addr("4.4.4.4"), 4), 10);
-	nodes = table.find_node(id, 0, 10);
+	nodes = table.find_node(id, {}, 10);
 	TEST_EQUAL(std::get<0>(table.size()), 1);
 	TEST_EQUAL(nodes.size(), 1);
 
 	// incorrect data, wrong IP
 	table.node_seen(tmp
 		, udp::endpoint(addr("4.4.4.6"), 4), 10);
-	nodes = table.find_node(id, 0, 10);
+	nodes = table.find_node(id, {}, 10);
 
 	TEST_EQUAL(std::get<0>(table.size()), 1);
 	TEST_EQUAL(nodes.size(), 1);
@@ -3527,7 +3527,7 @@ TORRENT_TEST(dht_verify_node_address)
 	// incorrect data, wrong id, should cause node to be removed
 	table.node_seen(to_hash("0123456789abcdef01232456789abcdef0123456")
 		, udp::endpoint(addr("4.4.4.4"), 4), 10);
-	nodes = table.find_node(id, 0, 10);
+	nodes = table.find_node(id, {}, 10);
 
 	TEST_EQUAL(std::get<0>(table.size()), 0);
 	TEST_EQUAL(nodes.size(), 0);

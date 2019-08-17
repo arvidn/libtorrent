@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/assert.hpp>
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/vector.hpp>
+#include <libtorrent/flags.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -136,6 +137,8 @@ TORRENT_EXTRA_EXPORT bool all_in_same_bucket(span<node_entry const> b
 TORRENT_EXTRA_EXPORT bool mostly_verified_nodes(bucket_t const&);
 TORRENT_EXTRA_EXPORT bool compare_ip_cidr(address const& lhs, address const& rhs);
 
+using find_nodes_flags_t = flags::bitfield_flag<std::uint8_t, struct find_nodes_flags_tag>;
+
 class TORRENT_EXTRA_EXPORT routing_table
 {
 public:
@@ -195,15 +198,13 @@ public:
 
 	node_entry const* next_refresh();
 
-	enum
-	{
-		// nodes that have not been pinged are considered failed by this flag
-		include_failed = 1
-	};
+	// nodes that have not been pinged are considered failed by this flag
+	static constexpr find_nodes_flags_t include_failed = 0_bit;
 
 	// fills the vector with the count nodes from our buckets that
 	// are nearest to the given id.
-	std::vector<node_entry> find_node(node_id const& id, int options, int count = 0);
+	std::vector<node_entry> find_node(node_id const& id
+		, find_nodes_flags_t options, int count = 0);
 	void remove_node(node_entry* n, table_t::iterator bucket);
 
 	int bucket_size(int bucket) const
