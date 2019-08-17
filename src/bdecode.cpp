@@ -408,6 +408,14 @@ namespace detail {
 		return {m_buffer + t.offset, static_cast<std::ptrdiff_t>(next.offset - t.offset)};
 	}
 
+	std::ptrdiff_t bdecode_node::data_offset() const noexcept
+	{
+		TORRENT_ASSERT_PRECOND(m_token_idx != -1);
+		if (m_token_idx == -1) return -1;
+		bdecode_token const& t = m_root_tokens[m_token_idx];
+		return t.offset;
+	}
+
 	bdecode_node bdecode_node::list_at(int i) const
 	{
 		TORRENT_ASSERT(type() == list_t);
@@ -489,7 +497,7 @@ namespace detail {
 		return ret;
 	}
 
-	std::pair<string_view, bdecode_node> bdecode_node::dict_at(int i) const
+	std::pair<bdecode_node, bdecode_node> bdecode_node::dict_at_node(int i) const
 	{
 		TORRENT_ASSERT(type() == dict_t);
 		TORRENT_ASSERT(m_token_idx != -1);
@@ -535,8 +543,16 @@ namespace detail {
 		TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
 		return std::make_pair(
-			bdecode_node(tokens, m_buffer, m_buffer_size, token).string_value()
+			bdecode_node(tokens, m_buffer, m_buffer_size, token)
 			, bdecode_node(tokens, m_buffer, m_buffer_size, value_token));
+	}
+
+	std::pair<string_view, bdecode_node> bdecode_node::dict_at(int const i) const
+	{
+		bdecode_node key;
+		bdecode_node value;
+		std::tie(key, value) = dict_at_node(i);
+		return {key.string_value(), value};
 	}
 
 	int bdecode_node::dict_size() const
@@ -690,6 +706,14 @@ namespace detail {
 		TORRENT_ASSERT(t.type == bdecode_token::string);
 
 		return string_view(m_buffer + t.offset + t.start_offset(), size);
+	}
+
+	std::ptrdiff_t bdecode_node::string_offset() const
+	{
+		TORRENT_ASSERT(type() == string_t);
+		bdecode_token const& t = m_root_tokens[m_token_idx];
+		TORRENT_ASSERT(t.type == bdecode_token::string);
+		return t.offset + t.start_offset();
 	}
 
 	char const* bdecode_node::string_ptr() const

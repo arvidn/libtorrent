@@ -305,7 +305,10 @@ struct TORRENT_EXPORT bdecode_node
 	// buffer where this node is defined. For a dictionary for instance, this
 	// starts with ``d`` and ends with ``e``, and has all the content of the
 	// dictionary in between.
+	// the ``data_offset()`` function returns the byte-offset to this node in,
+	// starting from the beginning of the buffer that was parsed.
 	span<char const> data_section() const noexcept;
+	std::ptrdiff_t data_offset() const noexcept;
 
 	// functions with the ``list_`` prefix operate on lists. These functions are
 	// only valid if ``type()`` == ``list_t``. ``list_at()`` returns the item
@@ -321,15 +324,21 @@ struct TORRENT_EXPORT bdecode_node
 	// Functions with the ``dict_`` prefix operates on dictionaries. They are
 	// only valid if ``type()`` == ``dict_t``. In case a key you're looking up
 	// contains a 0 byte, you cannot use the 0-terminated string overloads,
-	// but have to use ``std::string`` instead. ``dict_find_list`` will return a
+	// but have to use ``string_view`` instead. ``dict_find_list`` will return a
 	// valid ``bdecode_node`` if the key is found _and_ it is a list. Otherwise
 	// it will return a default-constructed bdecode_node.
 	//
 	// Functions with the ``_value`` suffix return the value of the node
 	// directly, rather than the nodes. In case the node is not found, or it has
 	// a different type, a default value is returned (which can be specified).
+	//
+	// ``dict_at()`` returns the (key, value)-pair at the specified index in a
+	// dictionary. Keys are only allowed to be strings. ``dict_at_node()`` also
+	// returns the (key, value)-pair, but the key is returned as a
+	// ``bdecode_node`` (and it will always be a string).
 	bdecode_node dict_find(string_view key) const;
 	std::pair<string_view, bdecode_node> dict_at(int i) const;
+	std::pair<bdecode_node, bdecode_node> dict_at_node(int i) const;
 	bdecode_node dict_find_dict(string_view key) const;
 	bdecode_node dict_find_list(string_view key) const;
 	bdecode_node dict_find_string(string_view key) const;
@@ -347,9 +356,12 @@ struct TORRENT_EXPORT bdecode_node
 	// these functions are only valid if ``type()`` == ``string_t``. They return
 	// the string values. Note that ``string_ptr()`` is *not* 0-terminated.
 	// ``string_length()`` returns the number of bytes in the string.
+	// ``string_offset()`` returns the byte offset from the start of the parsed
+	// bencoded buffer this string can be found.
 	string_view string_value() const;
 	char const* string_ptr() const;
 	int string_length() const;
+	std::ptrdiff_t string_offset() const;
 
 	// resets the ``bdecoded_node`` to a default constructed state. If this is
 	// an owning node, the tree is freed and all child nodes are invalidated.
