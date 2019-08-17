@@ -252,9 +252,6 @@ struct session_status;
 // include/libtorrent/settings_pack.hpp
 struct settings_pack;
 
-// include/libtorrent/storage_defs.hpp
-struct storage_params;
-
 // include/libtorrent/torrent_handle.hpp
 struct block_info;
 struct partial_piece_info;
@@ -276,7 +273,6 @@ TORRENT_VERSION_NAMESPACE_2
 struct torrent_added_alert;
 struct anonymous_mode_alert;
 struct mmap_cache_alert;
-struct torrent_update_alert;
 TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/file_storage.hpp
