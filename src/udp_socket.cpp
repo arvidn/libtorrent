@@ -321,7 +321,7 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 	, error_code& ec, udp_send_flags_t const flags)
 {
 	TORRENT_UNUSED(flags);
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	std::array<char, max_header_size> header;
 	char* h = header.data();
@@ -345,7 +345,7 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	, error_code& ec, udp_send_flags_t const flags)
 {
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	std::array<char, max_header_size> header;
 	char* h = header.data();
@@ -376,7 +376,7 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 // forwarded packet
 bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 {
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	// the minimum socks5 header size
 	auto const size = aux::numeric_cast<int>(buf.size());
@@ -569,7 +569,7 @@ void socks5::on_connected(error_code const& e)
 	// we failed to connect to the proxy
 	if (e) return;
 
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	// send SOCKS5 authentication methods
 	char* p = m_tmp_buf.data();
@@ -611,7 +611,7 @@ void socks5::handshake2(error_code const& e)
 
 	if (e) return;
 
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	char* p = m_tmp_buf.data();
 	int const version = read_uint8(p);
@@ -677,7 +677,7 @@ void socks5::handshake4(error_code const& e)
 	if (m_abort) return;
 	if (e) return;
 
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	char* p = m_tmp_buf.data();
 	int const version = read_uint8(p);
@@ -690,7 +690,7 @@ void socks5::handshake4(error_code const& e)
 
 void socks5::socks_forward_udp()
 {
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	// send SOCKS5 UDP command
 	char* p = m_tmp_buf.data();
@@ -725,7 +725,7 @@ void socks5::connect2(error_code const& e)
 	if (m_abort) return;
 	if (e) return;
 
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	char* p = m_tmp_buf.data();
 	int const version = read_uint8(p); // VERSION

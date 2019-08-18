@@ -397,7 +397,7 @@ namespace libtorrent {
 		bool m_v1_only:1;
 	};
 
-namespace detail {
+namespace aux {
 	inline void nop(piece_index_t) {}
 }
 
@@ -436,13 +436,13 @@ namespace detail {
 		, std::function<void(piece_index_t)> const& f, error_code& ec);
 	inline void set_piece_hashes(create_torrent& t, std::string const& p, error_code& ec)
 	{
-		set_piece_hashes(t, p, detail::nop, ec);
+		set_piece_hashes(t, p, aux::nop, ec);
 	}
 #ifndef BOOST_NO_EXCEPTIONS
 	inline void set_piece_hashes(create_torrent& t, std::string const& p)
 	{
 		error_code ec;
-		set_piece_hashes(t, p, detail::nop, ec);
+		set_piece_hashes(t, p, aux::nop, ec);
 		if (ec) throw system_error(ec);
 	}
 	inline void set_piece_hashes(create_torrent& t, std::string const& p
@@ -489,7 +489,7 @@ namespace detail {
 	inline void set_piece_hashes(create_torrent& t, std::wstring const& p)
 	{
 		error_code ec;
-		set_piece_hashes_deprecated(t, p, detail::nop, ec);
+		set_piece_hashes_deprecated(t, p, aux::nop, ec);
 		if (ec) throw system_error(ec);
 	}
 #endif
@@ -498,7 +498,7 @@ namespace detail {
 	inline void set_piece_hashes(create_torrent& t
 		, std::wstring const& p, error_code& ec)
 	{
-		set_piece_hashes_deprecated(t, p, detail::nop, ec);
+		set_piece_hashes_deprecated(t, p, aux::nop, ec);
 	}
 #endif // TORRENT_ABI_VERSION
 

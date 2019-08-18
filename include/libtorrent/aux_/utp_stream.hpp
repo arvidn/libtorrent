@@ -87,13 +87,13 @@ namespace aux {
 		big_endian_int& operator=(T v)
 		{
 			char* p = m_storage;
-			detail::write_impl<T>(v, p);
+			aux::write_impl<T>(v, p);
 			return *this;
 		}
 		operator T() const
 		{
 			const char* p = m_storage;
-			return detail::read_impl(p, detail::type<T>());
+			return aux::read_impl(p, aux::type<T>());
 		}
 	private:
 		char m_storage[sizeof(T)];

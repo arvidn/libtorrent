@@ -191,7 +191,7 @@ TORRENT_TEST(udp_tracker)
 			udp_server tracker(sim, "2.2.2.2", 8080,
 			[&](char const* msg, int size)
 			{
-				using namespace lt::detail;
+				using namespace lt::aux;
 				std::vector<char> ret;
 				TEST_CHECK(size >= 16);
 

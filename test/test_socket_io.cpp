@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 using namespace lt;
-using namespace lt::detail;
+using namespace lt::aux;
 
 TORRENT_TEST(address_to_bytes)
 {

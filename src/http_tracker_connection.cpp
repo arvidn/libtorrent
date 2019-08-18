@@ -515,8 +515,8 @@ namespace libtorrent {
 					if (len - i < 6) break;
 
 					ipv4_peer_entry p;
-					p.ip = detail::read_v4_address(peers).to_bytes();
-					p.port = detail::read_uint16(peers);
+					p.ip = aux::read_v4_address(peers).to_bytes();
+					p.port = aux::read_uint16(peers);
 					resp.peers4.push_back(p);
 				}
 			}
@@ -557,8 +557,8 @@ namespace libtorrent {
 				if (len - i < 18) break;
 
 				ipv6_peer_entry p;
-				p.ip = detail::read_v6_address(peers).to_bytes();
-				p.port = detail::read_uint16(peers);
+				p.ip = aux::read_v6_address(peers).to_bytes();
+				p.port = aux::read_uint16(peers);
 				resp.peers6.push_back(p);
 			}
 		}
@@ -580,9 +580,9 @@ namespace libtorrent {
 		{
 			char const* p = ip_ent.string_ptr();
 			if (ip_ent.string_length() == std::tuple_size<address_v4::bytes_type>::value)
-				resp.external_ip = detail::read_v4_address(p);
+				resp.external_ip = aux::read_v4_address(p);
 			else if (ip_ent.string_length() == std::tuple_size<address_v6::bytes_type>::value)
-				resp.external_ip = detail::read_v6_address(p);
+				resp.external_ip = aux::read_v6_address(p);
 		}
 
 		return resp;

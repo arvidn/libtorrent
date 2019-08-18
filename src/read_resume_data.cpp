@@ -326,7 +326,7 @@ namespace {
 
 		int const v6_size = 18;
 		int const v4_size = 6;
-		using namespace libtorrent::detail; // for read_*_endpoint()
+		using namespace libtorrent::aux; // for read_*_endpoint()
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();

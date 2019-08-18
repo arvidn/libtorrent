@@ -101,8 +101,8 @@ struct fake_peer
 		m_send_buffer.resize(m_send_buffer.size() + 5);
 		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5;
 
-		lt::detail::write_uint32(1, ptr);
-		lt::detail::write_uint8(2, ptr);
+		lt::aux::write_uint32(1, ptr);
+		lt::aux::write_uint8(2, ptr);
 	}
 
 	void send_bitfield(std::vector<bool> const& pieces)
@@ -111,8 +111,8 @@ struct fake_peer
 		m_send_buffer.resize(m_send_buffer.size() + 5 + bytes);
 		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5 - bytes;
 
-		lt::detail::write_uint32(1 + bytes, ptr);
-		lt::detail::write_uint8(5, ptr);
+		lt::aux::write_uint32(1 + bytes, ptr);
+		lt::aux::write_uint8(5, ptr);
 
 		std::uint8_t b = 0;
 		int cnt = 7;
@@ -123,12 +123,12 @@ struct fake_peer
 			--cnt;
 			if (cnt < 0)
 			{
-				lt::detail::write_uint8(b, ptr);
+				lt::aux::write_uint8(b, ptr);
 				b = 0;
 				cnt = 7;
 			}
 		}
-		lt::detail::write_uint8(b, ptr);
+		lt::aux::write_uint8(b, ptr);
 	}
 
 private:

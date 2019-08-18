@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/span.hpp"
 
-using namespace lt::detail;
 using namespace lt::aux;
 using lt::span;
 

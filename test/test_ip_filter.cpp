@@ -83,7 +83,7 @@ void test_rules_invariant(std::vector<ip_range<T>> const& r, ip_filter const& f)
 	{
 		TEST_EQUAL(f.access(i->last), i->flags);
 		TEST_EQUAL(f.access(j->first), j->flags);
-		TEST_CHECK(detail::plus_one(i->last.to_bytes()) == j->first.to_bytes());
+		TEST_CHECK(aux::plus_one(i->last.to_bytes()) == j->first.to_bytes());
 	}
 }
 

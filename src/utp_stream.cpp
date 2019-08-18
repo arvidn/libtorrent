@@ -1438,7 +1438,7 @@ void utp_socket_impl::parse_close_reason(std::uint8_t const* ptr, int const size
 	if (size != 4) return;
 	// skip reserved bytes
 	ptr += 2;
-	close_reason_t incoming_close_reason = static_cast<close_reason_t>(detail::read_uint16(ptr));
+	close_reason_t incoming_close_reason = static_cast<close_reason_t>(aux::read_uint16(ptr));
 
 	UTP_LOGV("%8p: incoming close_reason: %d\n"
 		, static_cast<void*>(this), int(incoming_close_reason));
@@ -1954,7 +1954,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	{
 		*ptr++ = utp_no_extension;
 		*ptr++ = 4;
-		detail::write_uint32(close_reason, ptr);
+		aux::write_uint32(close_reason, ptr);
 	}
 
 	if (m_bytes_in_flight > 0

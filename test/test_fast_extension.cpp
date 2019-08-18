@@ -87,7 +87,7 @@ void print_session_log(lt::session& ses)
 
 int read_message(tcp::socket& s, span<char> buffer)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 	error_code ec;
 	boost::asio::read(s, boost::asio::buffer(buffer.data(), 4)
 		, boost::asio::transfer_all(), ec);
@@ -142,16 +142,16 @@ void print_message(span<char const> buffer)
 		{
 			peer_request r;
 			const char* ptr = buffer.data() + 1;
-			r.piece = piece_index_t(detail::read_int32(ptr));
-			r.start = detail::read_int32(ptr);
-			r.length = detail::read_int32(ptr);
+			r.piece = piece_index_t(aux::read_int32(ptr));
+			r.start = aux::read_int32(ptr);
+			r.length = aux::read_int32(ptr);
 			std::snprintf(extra, sizeof(extra), "p: %d s: %d l: %d"
 				, static_cast<int>(r.piece), r.start, r.length);
 		}
 		else if (msg == 0x11 && buffer.size() == 5)
 		{
 			const char* ptr = buffer.data() + 1;
-			int index = detail::read_int32(ptr);
+			int index = aux::read_int32(ptr);
 			std::snprintf(extra, sizeof(extra), "p: %d", index);
 		}
 		else if (msg == 20 && buffer.size() > 4 && buffer[1] == 0 )
@@ -167,7 +167,7 @@ void print_message(span<char const> buffer)
 void send_allow_fast(tcp::socket& s, int piece)
 {
 	log("==> allow fast: %d", piece);
-	using namespace lt::detail;
+	using namespace lt::aux;
 	char msg[] = "\0\0\0\x05\x11\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
@@ -180,7 +180,7 @@ void send_allow_fast(tcp::socket& s, int piece)
 void send_suggest_piece(tcp::socket& s, int piece)
 {
 	log("==> suggest piece: %d", piece);
-	using namespace lt::detail;
+	using namespace lt::aux;
 	char msg[] = "\0\0\0\x05\x0d\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
@@ -232,7 +232,7 @@ void send_have_none(tcp::socket& s)
 
 void send_bitfield(tcp::socket& s, char const* bits)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	int num_pieces = int(strlen(bits));
 	int packet_size = (num_pieces+7)/8 + 5;
@@ -312,7 +312,7 @@ void send_extension_handshake(tcp::socket& s, entry const& e)
 
 	bencode(std::back_inserter(buf), e);
 
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	char* ptr = &buf[0];
 	write_uint32(int(buf.size()) - 4, ptr);
@@ -327,7 +327,7 @@ void send_extension_handshake(tcp::socket& s, entry const& e)
 
 void send_request(tcp::socket& s, peer_request req)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	log("==> request %d (%d,%d)", static_cast<int>(req.piece), req.start, req.length);
 	char msg[] = "\0\0\0\x0d\x06            "; // have_none
@@ -380,7 +380,7 @@ void send_ut_metadata_msg(tcp::socket& s, int ut_metadata_msg, int type, int pie
 	e["piece"] = piece;
 	bencode(std::back_inserter(buf), e);
 
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	char* ptr = &buf[0];
 	write_uint32(int(buf.size()) - 4, ptr);
@@ -522,7 +522,7 @@ TORRENT_TEST(reject_fast)
 		int msg = buffer[0];
 		if (msg != 0x6) continue;
 
-		using namespace lt::detail;
+		using namespace lt::aux;
 		char const* ptr = buffer.data() + 1;
 		int const piece = read_int32(ptr);
 
@@ -587,7 +587,7 @@ TORRENT_TEST(invalid_suggest)
 		if (buffer[0] == 6)
 		{
 			char const* ptr = buffer.data() + 1;
-			idx = detail::read_int32(ptr);
+			idx = aux::read_int32(ptr);
 			break;
 		}
 		len = read_message(s, recv_buffer);
@@ -642,7 +642,7 @@ TORRENT_TEST(reject_suggest)
 		fail_counter--;
 		if (msg != 0x6) continue;
 
-		using namespace lt::detail;
+		using namespace lt::aux;
 		char const* ptr = buffer.data() + 1;
 		int const piece = read_int32(ptr);
 
@@ -721,7 +721,7 @@ TORRENT_TEST(suggest_order)
 		// we're just interested in requests
 		if (msg != 0x6) continue;
 
-		using namespace lt::detail;
+		using namespace lt::aux;
 		char const* ptr = buffer.data() + 1;
 		int const piece = read_int32(ptr);
 
@@ -806,7 +806,7 @@ TORRENT_TEST(multiple_have_all)
 // makes sure that pieces that are lost are not requested
 TORRENT_TEST(dont_have)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	std::cout << "\n === test dont_have ===\n" << std::endl;
 
@@ -907,7 +907,7 @@ TORRENT_TEST(dont_have)
 
 TORRENT_TEST(extension_handshake)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
@@ -948,7 +948,7 @@ TORRENT_TEST(extension_handshake)
 // pos
 TORRENT_TEST(invalid_metadata_request)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;

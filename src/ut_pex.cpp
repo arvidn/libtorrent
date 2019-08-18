@@ -181,13 +181,13 @@ namespace libtorrent { namespace {
 					// i->first was added since the last time
 					if (is_v4(remote))
 					{
-						detail::write_endpoint(remote, pla_out);
-						detail::write_uint8(static_cast<std::uint8_t>(flags), plf_out);
+						aux::write_endpoint(remote, pla_out);
+						aux::write_uint8(static_cast<std::uint8_t>(flags), plf_out);
 					}
 					else
 					{
-						detail::write_endpoint(remote, pla6_out);
-						detail::write_uint8(static_cast<std::uint8_t>(flags), plf6_out);
+						aux::write_endpoint(remote, pla6_out);
+						aux::write_uint8(static_cast<std::uint8_t>(flags), plf6_out);
 					}
 					++num_added;
 					++m_peers_in_message;
@@ -203,9 +203,9 @@ namespace libtorrent { namespace {
 			for (auto const& i : dropped)
 			{
 				if (is_v4(i))
-					detail::write_endpoint(i, pld_out);
+					aux::write_endpoint(i, pld_out);
 				else
-					detail::write_endpoint(i, pld6_out);
+					aux::write_endpoint(i, pld6_out);
 				++m_peers_in_message;
 			}
 
@@ -314,7 +314,7 @@ namespace libtorrent { namespace {
 
 				for (int i = 0; i < num_peers; ++i)
 				{
-					tcp::endpoint const adr = detail::read_v4_endpoint<tcp::endpoint>(in);
+					tcp::endpoint const adr = aux::read_v4_endpoint<tcp::endpoint>(in);
 					peers4_t::value_type const v(adr.address().to_v4().to_bytes(), adr.port());
 					auto const j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
 					if (j != m_peers.end() && *j == v) m_peers.erase(j);
@@ -336,7 +336,7 @@ namespace libtorrent { namespace {
 
 				for (int i = 0; i < num_peers; ++i)
 				{
-					tcp::endpoint const adr = detail::read_v4_endpoint<tcp::endpoint>(in);
+					tcp::endpoint const adr = aux::read_v4_endpoint<tcp::endpoint>(in);
 					pex_flags_t flags(static_cast<std::uint8_t>(*fin++));
 
 					if (m_pc.peer_info_struct()->protocol_v2)
@@ -369,7 +369,7 @@ namespace libtorrent { namespace {
 
 				for (int i = 0; i < num_peers; ++i)
 				{
-					tcp::endpoint const adr = detail::read_v6_endpoint<tcp::endpoint>(in);
+					tcp::endpoint const adr = aux::read_v6_endpoint<tcp::endpoint>(in);
 					peers6_t::value_type const v(adr.address().to_v6().to_bytes(), adr.port());
 					auto const j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 					if (j != m_peers6.end() && *j == v) m_peers6.erase(j);
@@ -391,7 +391,7 @@ namespace libtorrent { namespace {
 
 				for (int i = 0; i < num_peers; ++i)
 				{
-					tcp::endpoint const adr = detail::read_v6_endpoint<tcp::endpoint>(in);
+					tcp::endpoint const adr = aux::read_v6_endpoint<tcp::endpoint>(in);
 					pex_flags_t flags(static_cast<std::uint8_t>(*fin++));
 
 					if (m_pc.peer_info_struct()->protocol_v2)
@@ -489,9 +489,9 @@ namespace libtorrent { namespace {
 			char msg[6];
 			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
-			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
-			detail::write_uint8(m_message_index, ptr);
+			aux::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
+			aux::write_uint8(bt_peer_connection::msg_extended, ptr);
+			aux::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg);
 			m_pc.send_buffer(pex_msg);
 
@@ -584,13 +584,13 @@ namespace libtorrent { namespace {
 				// i->first was added since the last time
 				if (is_v4(remote))
 				{
-					detail::write_endpoint(remote, pla_out);
-					detail::write_uint8(flags, plf_out);
+					aux::write_endpoint(remote, pla_out);
+					aux::write_uint8(flags, plf_out);
 				}
 				else
 				{
-					detail::write_endpoint(remote, pla6_out);
-					detail::write_uint8(flags, plf6_out);
+					aux::write_endpoint(remote, pla6_out);
+					aux::write_uint8(flags, plf6_out);
 				}
 				++num_added;
 			}
@@ -600,9 +600,9 @@ namespace libtorrent { namespace {
 			char msg[6];
 			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
-			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
-			detail::write_uint8(m_message_index, ptr);
+			aux::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
+			aux::write_uint8(bt_peer_connection::msg_extended, ptr);
+			aux::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg);
 			m_pc.send_buffer(pex_msg);
 

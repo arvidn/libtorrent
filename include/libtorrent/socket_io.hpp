@@ -57,7 +57,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT sha1_hash hash_address(address const& ip);
 
-namespace detail {
+namespace aux {
 
 		template <class Proto>
 		std::size_t address_size(Proto p)
@@ -139,7 +139,7 @@ namespace detail {
 			}
 			return ret;
 		}
-} // namespace detail
+} // namespace aux
 
 }
 

@@ -1348,7 +1348,7 @@ namespace aux {
 		}
 		sha1_hash const hash = h.final();
 		unsigned char const* ptr = &hash[0];
-		return detail::read_uint32(ptr);
+		return aux::read_uint32(ptr);
 	}
 
 	std::shared_ptr<listen_socket_t> session_impl::setup_listener(

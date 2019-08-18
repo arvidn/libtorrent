@@ -134,7 +134,7 @@ std::once_flag once_flag;
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	ep.address(src);
-	src = lt::address_v4(detail::plus_one(src.to_bytes()));
+	src = lt::address_v4(aux::plus_one(src.to_bytes()));
 	std::call_once(once_flag, []{ dht_node.new_socket(s); });
 	dht_node.incoming_packet(s, ep, {reinterpret_cast<char const*>(data), int(size)});
 	return 0;

@@ -49,7 +49,7 @@ namespace libtorrent {
 	{
 		entry ret;
 
-		using namespace libtorrent::detail; // for write_*_endpoint()
+		using namespace libtorrent::aux; // for write_*_endpoint()
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
 		ret["libtorrent-version"] = LIBTORRENT_VERSION;

@@ -375,13 +375,13 @@ namespace {
 				auto it = mask.begin();
 				if (addr_msg->ifa_prefixlen > 64)
 				{
-					detail::write_uint64(0xffffffffffffffffULL, it);
+					aux::write_uint64(0xffffffffffffffffULL, it);
 					addr_msg->ifa_prefixlen -= 64;
 				}
 				if (addr_msg->ifa_prefixlen > 0)
 				{
 					std::uint64_t const m = ~((1ULL << (64 - addr_msg->ifa_prefixlen)) - 1);
-					detail::write_uint64(m, it);
+					aux::write_uint64(m, it);
 				}
 				ip_info->netmask = address_v6(mask);
 			}

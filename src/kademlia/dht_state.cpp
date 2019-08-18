@@ -62,9 +62,9 @@ namespace libtorrent { namespace dht {
 			in += id.size();
 			address addr;
 			if (nid.string_length() == 24)
-				addr = detail::read_v4_address(in);
+				addr = aux::read_v4_address(in);
 			else if (nid.string_length() == 36)
-				addr = detail::read_v6_address(in);
+				addr = aux::read_v6_address(in);
 			else
 				continue;
 			ret.emplace_back(addr, id);
@@ -82,7 +82,7 @@ namespace {
 		{
 			std::string node;
 			std::back_insert_iterator<std::string> out(node);
-			detail::write_endpoint(ep, out);
+			aux::write_endpoint(ep, out);
 			list.emplace_back(node);
 		}
 		return ret;
@@ -109,9 +109,9 @@ namespace {
 		ret.nids = extract_node_ids(e, "node-id");
 
 		if (bdecode_node const nodes = e.dict_find_list("nodes"))
-			ret.nodes = detail::read_endpoint_list<udp::endpoint>(nodes);
+			ret.nodes = aux::read_endpoint_list<udp::endpoint>(nodes);
 		if (bdecode_node const nodes = e.dict_find_list("nodes6"))
-			ret.nodes6 = detail::read_endpoint_list<udp::endpoint>(nodes);
+			ret.nodes6 = aux::read_endpoint_list<udp::endpoint>(nodes);
 		return ret;
 	}
 
@@ -123,7 +123,7 @@ namespace {
 		{
 			std::string nid;
 			std::copy(n.second.begin(), n.second.end(), std::back_inserter(nid));
-			detail::write_address(n.first, std::back_inserter(nid));
+			aux::write_address(n.first, std::back_inserter(nid));
 			nids.emplace_back(std::move(nid));
 		}
 		entry const nodes = save_nodes(state.nodes);

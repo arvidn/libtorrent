@@ -591,13 +591,13 @@ namespace {
 		}
 		if (single_line && len > 20)
 		{
-			detail::escape_string(ret, str, 9);
+			aux::escape_string(ret, str, 9);
 			ret += "...";
-			detail::escape_string(ret, str + len - 9, 9);
+			aux::escape_string(ret, str + len - 9, 9);
 		}
 		else
 		{
-			detail::escape_string(ret, str, len);
+			aux::escape_string(ret, str, len);
 		}
 		ret += "'";
 	}

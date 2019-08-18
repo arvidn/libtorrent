@@ -76,7 +76,7 @@ void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 		{
 			std::string node;
 			std::back_insert_iterator<std::string> out(node);
-			lt::detail::write_endpoint(n, out);
+			lt::aux::write_endpoint(n, out);
 			nodes.push_back(lt::entry(node));
 		}
 	}

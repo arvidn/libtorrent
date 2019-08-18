@@ -774,15 +774,13 @@ for filename in files:
             lno = consume_ifdef(lno - 1, lines)
             continue
 
-        if (line == 'namespace detail {' or
-                line == 'namespace aux {' or
+        if (line == 'namespace aux {' or
                 line == 'namespace libtorrent { namespace aux {') \
                 and not internal:
             lno = consume_block(lno - 1, lines)
             continue
 
-        if ('namespace aux' in line or
-                'namespace detail' in line) and \
+        if 'namespace aux' in line and \
                 '//' not in line.split('namespace')[0] and \
                 '}' not in line.split('namespace')[1]:
             print('ERROR: whitespace preceding namespace declaration: %s:%d' % (filename, lno))

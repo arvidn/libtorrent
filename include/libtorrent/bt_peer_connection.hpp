@@ -301,7 +301,7 @@ namespace libtorrent {
 			char* ptr = msg + 5;
 			TORRENT_UNUSED(ptr);
 
-			int tmp[] = {0, (detail::write_int32(args, ptr), 0)...};
+			int tmp[] = {0, (aux::write_int32(args, ptr), 0)...};
 			TORRENT_UNUSED(tmp);
 
 			send_buffer(msg);
