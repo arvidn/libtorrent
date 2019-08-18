@@ -4652,7 +4652,7 @@ bool is_downloading_state(int const st)
 			.update(reinterpret_cast<char const*>(&ses), sizeof(ses))
 			.final();
 		unsigned char const* ptr = &h[0];
-		return detail::read_uint32(ptr);
+		return aux::read_uint32(ptr);
 	}
 
 	void torrent::cancel_non_critical()

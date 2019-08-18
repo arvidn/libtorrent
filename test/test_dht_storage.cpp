@@ -359,7 +359,7 @@ TORRENT_TEST(get_peers_dist)
 		TEST_EQUAL(peers["values"].list().size(), 100);
 		for (auto const& p : peers["values"].list())
 		{
-			int port = detail::read_v4_endpoint<tcp::endpoint>(p.string().begin()).port();
+			int port = aux::read_v4_endpoint<tcp::endpoint>(p.string().begin()).port();
 			if (!peer_set.insert(port).second)
 				++duplicates;
 		}

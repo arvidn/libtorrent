@@ -188,7 +188,7 @@ void traversal_algorithm::add_entry(node_id const& id
 				{
 					address_v6::bytes_type addr_bytes = o->target_addr().to_v6().to_bytes();
 					auto prefix_it = addr_bytes.cbegin();
-					std::uint64_t const prefix6 = detail::read_uint64(prefix_it);
+					std::uint64_t const prefix6 = aux::read_uint64(prefix_it);
 
 					if (m_peer6_prefixes.insert(prefix6).second)
 						goto add_result;
@@ -608,7 +608,7 @@ void look_for_nodes(char const* nodes_key, udp const& protocol, bdecode_node con
 	{
 		char const* nodes = n.string_ptr();
 		char const* end = nodes + n.string_length();
-		int const protocol_size = int(detail::address_size(protocol));
+		int const protocol_size = int(aux::address_size(protocol));
 
 		while (end - nodes >= 20 + protocol_size + 2)
 		{

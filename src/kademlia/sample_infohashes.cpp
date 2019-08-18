@@ -82,7 +82,7 @@ void sample_infohashes_observer::reply(msg const& m)
 	// look for nodes
 	std::vector<std::pair<sha1_hash, udp::endpoint>> nodes;
 	udp const protocol = algorithm()->get_node().protocol();
-	int const protocol_size = int(detail::address_size(protocol));
+	int const protocol_size = int(aux::address_size(protocol));
 	char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
 	bdecode_node const n = r.dict_find_string(nodes_key);
 	if (n)

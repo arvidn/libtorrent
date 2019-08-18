@@ -337,7 +337,7 @@ namespace {
 #endif
 		char msg[] = {0,0,0,3, msg_dht_port, 0, 0};
 		char* ptr = msg + 5;
-		detail::write_uint16(listen_port, ptr);
+		aux::write_uint16(listen_port, ptr);
 		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
@@ -712,7 +712,7 @@ namespace {
 		char handshake[1 + string_len + 8 + 20 + 20];
 		char* ptr = handshake;
 		// length of version string
-		detail::write_uint8(string_len, ptr);
+		aux::write_uint8(string_len, ptr);
 		// protocol identifier
 		std::memcpy(ptr, version_string, string_len);
 		ptr += string_len;
@@ -794,8 +794,8 @@ namespace {
 
 		const char* ptr = recv_buffer.data() + 1;
 		peer_request r;
-		r.piece = piece_index_t(detail::read_int32(ptr));
-		r.start = detail::read_int32(ptr);
+		r.piece = piece_index_t(aux::read_int32(ptr));
+		r.start = aux::read_int32(ptr);
 		r.length = m_recv_buffer.packet_size() - 9;
 
 		// is any of the piece message header data invalid?
@@ -953,7 +953,7 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		const char* ptr = recv_buffer.data() + 1;
-		piece_index_t const index(detail::read_int32(ptr));
+		piece_index_t const index(aux::read_int32(ptr));
 
 		incoming_have(index);
 		maybe_send_hash_request();
@@ -1014,9 +1014,9 @@ namespace {
 
 		peer_request r;
 		const char* ptr = recv_buffer.data() + 1;
-		r.piece = piece_index_t(detail::read_int32(ptr));
-		r.start = detail::read_int32(ptr);
-		r.length = detail::read_int32(ptr);
+		r.piece = piece_index_t(aux::read_int32(ptr));
+		r.start = aux::read_int32(ptr);
+		r.length = aux::read_int32(ptr);
 
 		incoming_request(r);
 	}
@@ -1056,8 +1056,8 @@ namespace {
 		if (recv_pos >= header_size)
 		{
 			const char* ptr = recv_buffer.data() + 1;
-			p.piece = piece_index_t(detail::read_int32(ptr));
-			p.start = detail::read_int32(ptr);
+			p.piece = piece_index_t(aux::read_int32(ptr));
+			p.start = aux::read_int32(ptr);
 			p.length = m_recv_buffer.packet_size() - header_size;
 		}
 		else
@@ -1132,9 +1132,9 @@ namespace {
 
 		peer_request r;
 		const char* ptr = recv_buffer.data() + 1;
-		r.piece = piece_index_t(detail::read_int32(ptr));
-		r.start = detail::read_int32(ptr);
-		r.length = detail::read_int32(ptr);
+		r.piece = piece_index_t(aux::read_int32(ptr));
+		r.start = aux::read_int32(ptr);
+		r.length = aux::read_int32(ptr);
 
 		incoming_cancel(r);
 	}
@@ -1170,10 +1170,10 @@ namespace {
 		auto const file_root = sha256_hash(ptr);
 		file_index_t const file_index = files.file_index_for_root(file_root);
 		ptr += sha256_hash::size();
-		int const base = detail::read_int32(ptr);
-		int const index = detail::read_int32(ptr);
-		int const count = detail::read_int32(ptr);
-		int const proof_layers = detail::read_int32(ptr);
+		int const base = aux::read_int32(ptr);
+		int const index = aux::read_int32(ptr);
+		int const count = aux::read_int32(ptr);
+		int const proof_layers = aux::read_int32(ptr);
 		hash_request hr(file_index, base, index, count, proof_layers);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1241,10 +1241,10 @@ namespace {
 			}
 		}
 		ptr += sha256_hash::size();
-		int const base = detail::read_int32(ptr);
-		int const index = detail::read_int32(ptr);
-		int const count = detail::read_int32(ptr);
-		int const proof_layers = detail::read_int32(ptr);
+		int const base = aux::read_int32(ptr);
+		int const index = aux::read_int32(ptr);
+		int const count = aux::read_int32(ptr);
+		int const proof_layers = aux::read_int32(ptr);
 
 		hash_request const hr(file_index, base, index, count, proof_layers);
 
@@ -1323,10 +1323,10 @@ namespace {
 		auto const file_root = sha256_hash(ptr);
 		file_index_t const file_index = t->torrent_file().files().file_index_for_root(file_root);
 		ptr += sha256_hash::size();
-		int const base = detail::read_int32(ptr);
-		int const index = detail::read_int32(ptr);
-		int const count = detail::read_int32(ptr);
-		int const proof_layers = detail::read_int32(ptr);
+		int const base = aux::read_int32(ptr);
+		int const index = aux::read_int32(ptr);
+		int const count = aux::read_int32(ptr);
+		int const proof_layers = aux::read_int32(ptr);
 		hash_request hr(file_index, base, index, count, proof_layers);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1366,7 +1366,7 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		const char* ptr = recv_buffer.data() + 1;
-		int const listen_port = detail::read_uint16(ptr);
+		int const listen_port = aux::read_uint16(ptr);
 
 		incoming_dht_port(listen_port);
 
@@ -1396,7 +1396,7 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		const char* ptr = recv_buffer.data() + 1;
-		piece_index_t const piece(detail::read_int32(ptr));
+		piece_index_t const piece(aux::read_int32(ptr));
 		incoming_suggest(piece);
 	}
 
@@ -1444,9 +1444,9 @@ namespace {
 
 		peer_request r;
 		const char* ptr = recv_buffer.data() + 1;
-		r.piece = piece_index_t(detail::read_int32(ptr));
-		r.start = detail::read_int32(ptr);
-		r.length = detail::read_int32(ptr);
+		r.piece = piece_index_t(aux::read_int32(ptr));
+		r.start = aux::read_int32(ptr);
+		r.length = aux::read_int32(ptr);
 
 		incoming_reject_request(r);
 	}
@@ -1465,7 +1465,7 @@ namespace {
 		if (!m_recv_buffer.packet_finished()) return;
 		span<char const> recv_buffer = m_recv_buffer.get();
 		const char* ptr = recv_buffer.data() + 1;
-		piece_index_t const index(detail::read_int32(ptr));
+		piece_index_t const index(aux::read_int32(ptr));
 
 		incoming_allowed_fast(index);
 	}
@@ -1497,8 +1497,8 @@ namespace {
 		// ignore invalid messages
 		if (int(recv_buffer.size()) < 2) return;
 
-		auto const msg_type = static_cast<hp_message>(detail::read_uint8(ptr));
-		int const addr_type = detail::read_uint8(ptr);
+		auto const msg_type = static_cast<hp_message>(aux::read_uint8(ptr));
+		int const addr_type = aux::read_uint8(ptr);
 
 		tcp::endpoint ep;
 
@@ -1506,13 +1506,13 @@ namespace {
 		{
 			if (int(recv_buffer.size()) < 2 + 4 + 2) return;
 			// IPv4 address
-			ep = detail::read_v4_endpoint<tcp::endpoint>(ptr);
+			ep = aux::read_v4_endpoint<tcp::endpoint>(ptr);
 		}
 		else if (addr_type == 1)
 		{
 			// IPv6 address
 			if (int(recv_buffer.size()) < 2 + 16 + 2) return;
-			ep = detail::read_v6_endpoint<tcp::endpoint>(ptr);
+			ep = aux::read_v6_endpoint<tcp::endpoint>(ptr);
 		}
 		else
 		{
@@ -1637,7 +1637,7 @@ namespace {
 			case hp_message::failed:
 			{
 				if (end - ptr < 4) return;
-				std::uint32_t const error = detail::read_uint32(ptr);
+				std::uint32_t const error = aux::read_uint32(ptr);
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::incoming_message))
 				{
@@ -1658,10 +1658,10 @@ namespace {
 	{
 		char buf[35];
 		char* ptr = buf + 6;
-		detail::write_uint8(type, ptr);
-		if (is_v4(ep)) detail::write_uint8(0, ptr);
-		else detail::write_uint8(1, ptr);
-		detail::write_endpoint(ep, ptr);
+		aux::write_uint8(type, ptr);
+		if (is_v4(ep)) aux::write_uint8(0, ptr);
+		else aux::write_uint8(1, ptr);
+		aux::write_endpoint(ep, ptr);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
@@ -1679,14 +1679,14 @@ namespace {
 #endif
 		if (type == hp_message::failed)
 		{
-			detail::write_uint32(static_cast<int>(error), ptr);
+			aux::write_uint32(static_cast<int>(error), ptr);
 		}
 
 		// write the packet length and type
 		char* hdr = buf;
-		detail::write_uint32(ptr - buf - 4, hdr);
-		detail::write_uint8(msg_extended, hdr);
-		detail::write_uint8(m_holepunch_id, hdr);
+		aux::write_uint32(ptr - buf - 4, hdr);
+		aux::write_uint8(msg_extended, hdr);
+		aux::write_uint8(m_holepunch_id, hdr);
 
 		TORRENT_ASSERT(ptr <= buf + sizeof(buf));
 
@@ -1701,8 +1701,8 @@ namespace {
 
 		char buf[5 + sha256_hash::size() + 4 * 4];
 		char* ptr = buf;
-		detail::write_uint32(int(sizeof(buf) - 4), ptr);
-		detail::write_uint8(msg_hash_request, ptr);
+		aux::write_uint32(int(sizeof(buf) - 4), ptr);
+		aux::write_uint8(msg_hash_request, ptr);
 
 		auto t = associated_torrent().lock();
 		if (!t) return;
@@ -1714,10 +1714,10 @@ namespace {
 
 		TORRENT_ASSERT(validate_hash_request(req, t->torrent_file().files()));
 
-		detail::write_uint32(req.base, ptr);
-		detail::write_uint32(req.index, ptr);
-		detail::write_uint32(req.count, ptr);
-		detail::write_uint32(req.proof_layers, ptr);
+		aux::write_uint32(req.base, ptr);
+		aux::write_uint32(req.index, ptr);
+		aux::write_uint32(req.count, ptr);
+		aux::write_uint32(req.proof_layers, ptr);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_hash_request);
 
@@ -1743,8 +1743,8 @@ namespace {
 			+ sha256_hash::size() * hashes.size());
 		TORRENT_ALLOCA(buf, char, packet_size);
 		char* ptr = buf.data();
-		detail::write_uint32(packet_size - 4, ptr);
-		detail::write_uint8(msg_hashes, ptr);
+		aux::write_uint32(packet_size - 4, ptr);
+		aux::write_uint8(msg_hashes, ptr);
 
 		auto t = associated_torrent().lock();
 		if (!t) return;
@@ -1754,10 +1754,10 @@ namespace {
 
 		ptr = std::copy(root.begin(), root.end(), ptr);
 
-		detail::write_uint32(req.base, ptr);
-		detail::write_uint32(req.index, ptr);
-		detail::write_uint32(req.count, ptr);
-		detail::write_uint32(req.proof_layers, ptr);
+		aux::write_uint32(req.base, ptr);
+		aux::write_uint32(req.index, ptr);
+		aux::write_uint32(req.count, ptr);
+		aux::write_uint32(req.proof_layers, ptr);
 
 		for (auto const& h : hashes)
 			ptr = std::copy(h.begin(), h.end(), ptr);
@@ -1781,8 +1781,8 @@ namespace {
 
 		char buf[5 + sha256_hash::size() + 4 * 4];
 		char* ptr = buf;
-		detail::write_uint32(int(sizeof(buf) - 4), ptr);
-		detail::write_uint8(msg_hash_reject, ptr);
+		aux::write_uint32(int(sizeof(buf) - 4), ptr);
+		aux::write_uint8(msg_hash_reject, ptr);
 
 		auto t = associated_torrent().lock();
 		if (!t) return;
@@ -1792,10 +1792,10 @@ namespace {
 
 		ptr = std::copy(root.begin(), root.end(), ptr);
 
-		detail::write_uint32(req.base, ptr);
-		detail::write_uint32(req.index, ptr);
-		detail::write_uint32(req.count, ptr);
-		detail::write_uint32(req.proof_layers, ptr);
+		aux::write_uint32(req.base, ptr);
+		aux::write_uint32(req.index, ptr);
+		aux::write_uint32(req.count, ptr);
+		aux::write_uint32(req.proof_layers, ptr);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_hash_reject);
 
@@ -2175,8 +2175,8 @@ namespace {
 
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;
-		detail::write_uint8(m_upload_only_id, ptr);
-		detail::write_uint8(enabled, ptr);
+		aux::write_uint8(m_upload_only_id, ptr);
+		aux::write_uint8(enabled, ptr);
 		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
@@ -2191,8 +2191,8 @@ namespace {
 
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;
-		detail::write_uint8(m_share_mode_id, ptr);
-		detail::write_uint8(t->share_mode(), ptr);
+		aux::write_uint8(m_share_mode_id, ptr);
+		aux::write_uint8(t->share_mode(), ptr);
 		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
@@ -2303,8 +2303,8 @@ namespace {
 		if (msg.data() == nullptr) return; // out of memory
 		auto ptr = msg.begin();
 
-		detail::write_int32(packet_size - 4, ptr);
-		detail::write_uint8(msg_bitfield, ptr);
+		aux::write_int32(packet_size - 4, ptr);
+		aux::write_uint8(msg_bitfield, ptr);
 
 		if (t->is_seed())
 		{
@@ -2392,7 +2392,7 @@ namespace {
 
 		std::string remote_address;
 		std::back_insert_iterator<std::string> out(remote_address);
-		detail::write_address(remote().address(), out);
+		aux::write_address(remote().address(), out);
 #if TORRENT_USE_I2P
 		if (!is_i2p(*get_socket()))
 #endif
@@ -2459,10 +2459,10 @@ namespace {
 		char* ptr = msg;
 
 		// write the length of the message
-		detail::write_int32(int(dict_msg.size()) + 2, ptr);
-		detail::write_uint8(msg_extended, ptr);
+		aux::write_int32(int(dict_msg.size()) + 2, ptr);
+		aux::write_uint8(msg_extended, ptr);
 		// signal handshake message
-		detail::write_uint8(0, ptr);
+		aux::write_uint8(0, ptr);
 		send_buffer(msg);
 		send_buffer(dict_msg);
 
@@ -2557,7 +2557,7 @@ namespace {
 
 		char msg[] = {0,0,0,6,msg_extended,char(m_dont_have_id),0,0,0,0};
 		char* ptr = msg + 6;
-		detail::write_int32(static_cast<int>(index), ptr);
+		aux::write_int32(static_cast<int>(index), ptr);
 		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
@@ -2583,10 +2583,10 @@ namespace {
 		char msg[4 + 1 + 4 + 4 + 4];
 		char* ptr = msg;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
-		detail::write_int32(r.length + 1 + 4 + 4, ptr);
-		detail::write_uint8(msg_piece, ptr);
-		detail::write_int32(static_cast<int>(r.piece), ptr);
-		detail::write_int32(r.start, ptr);
+		aux::write_int32(r.length + 1 + 4 + 4, ptr);
+		aux::write_uint8(msg_piece, ptr);
+		aux::write_int32(static_cast<int>(r.piece), ptr);
+		aux::write_int32(r.start, ptr);
 
 		send_buffer({msg, 13});
 
@@ -3588,7 +3588,7 @@ namespace {
 			TORRENT_ASSERT(bytes_transferred <= 1);
 
 			const char* ptr = recv_buffer.data();
-			int const packet_size = detail::read_int32(ptr);
+			int const packet_size = aux::read_int32(ptr);
 
 			// don't accept packets larger than 1 MB
 			if (packet_size > 1024 * 1024 || packet_size < 0)

@@ -284,7 +284,7 @@ namespace libtorrent {namespace {
 			char* p = &msg[6];
 			int const len = bencode(p, e);
 			int const total_size = 2 + len + metadata_piece_size;
-			namespace io = detail;
+			namespace io = aux;
 			io::write_uint32(total_size, header);
 			io::write_uint8(bt_peer_connection::msg_extended, header);
 			io::write_uint8(m_message_index, header);

@@ -188,7 +188,7 @@ entry write_peers(std::set<tcp::endpoint> const& peers)
 	{
 		std::string endpoint(18, '\0');
 		std::string::iterator out = endpoint.begin();
-		lt::detail::write_endpoint(p, out);
+		lt::aux::write_endpoint(p, out);
 		endpoint.resize(std::size_t(out - endpoint.begin()));
 		pe.push_back(entry(endpoint));
 	}
@@ -2691,7 +2691,7 @@ TORRENT_TEST(dht_dual_stack)
 		char const* nodes_ptr = nodes6_keys[3].string_ptr();
 		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size()) == 0);
 		nodes_ptr += id.size();
-		udp::endpoint rep = detail::read_v6_endpoint<udp::endpoint>(nodes_ptr);
+		udp::endpoint rep = aux::read_v6_endpoint<udp::endpoint>(nodes_ptr);
 		TEST_EQUAL(rep, udp::endpoint(addr("4::4"), 4441));
 	}
 	else
@@ -2723,7 +2723,7 @@ TORRENT_TEST(dht_dual_stack)
 		char const* nodes_ptr = nodes_keys[3].string_ptr();
 		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size()) == 0);
 		nodes_ptr += id.size();
-		udp::endpoint rep = detail::read_v4_endpoint<udp::endpoint>(nodes_ptr);
+		udp::endpoint rep = aux::read_v4_endpoint<udp::endpoint>(nodes_ptr);
 		TEST_EQUAL(rep, udp::endpoint(addr("4.4.4.4"), 4440));
 	}
 	else
@@ -2756,13 +2756,13 @@ TORRENT_TEST(dht_dual_stack)
 		char const* nodes_ptr = nodes46_keys[3].string_ptr();
 		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size()) == 0);
 		nodes_ptr += id.size();
-		udp::endpoint rep = detail::read_v4_endpoint<udp::endpoint>(nodes_ptr);
+		udp::endpoint rep = aux::read_v4_endpoint<udp::endpoint>(nodes_ptr);
 		TEST_EQUAL(rep, udp::endpoint(addr("4.4.4.4"), 4440));
 
 		nodes_ptr = nodes46_keys[4].string_ptr();
 		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size()) == 0);
 		nodes_ptr += id.size();
-		rep = detail::read_v6_endpoint<udp::endpoint>(nodes_ptr);
+		rep = aux::read_v6_endpoint<udp::endpoint>(nodes_ptr);
 		TEST_EQUAL(rep, udp::endpoint(addr("4::4"), 4441));
 	}
 	else

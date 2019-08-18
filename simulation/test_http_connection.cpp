@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/resolver.hpp"
-#include "libtorrent/io.hpp"
 #include "libtorrent/random.hpp"
 
 #include "make_proxy_settings.hpp"
@@ -53,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 using namespace sim;
-namespace io = lt::detail;
 
 using chrono::duration_cast;
 

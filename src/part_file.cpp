@@ -103,7 +103,7 @@ namespace libtorrent {
 
 		// we don't have a full header. consider the file empty
 		if (n < m_header_size) return;
-		using namespace libtorrent::detail;
+		using namespace libtorrent::aux;
 
 		char* ptr = header.data();
 		// we have a header. Parse it
@@ -435,7 +435,7 @@ namespace libtorrent {
 
 		std::vector<char> header(static_cast<std::size_t>(m_header_size));
 
-		using namespace libtorrent::detail;
+		using namespace libtorrent::aux;
 
 		char* ptr = header.data();
 		write_uint32(m_max_pieces, ptr);

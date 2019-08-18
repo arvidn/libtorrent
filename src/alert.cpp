@@ -2115,9 +2115,9 @@ namespace {
 		for (auto const& endp : peers)
 		{
 			if (is_v4(endp))
-				detail::write_endpoint(endp, v4_ptr);
+				aux::write_endpoint(endp, v4_ptr);
 			else
-				detail::write_endpoint(endp, v6_ptr);
+				aux::write_endpoint(endp, v6_ptr);
 		}
 	}
 
@@ -2149,10 +2149,10 @@ namespace {
 
 		char const* v4_ptr = m_alloc.get().ptr(m_v4_peers_idx);
 		for (int i = 0; i < m_v4_num_peers; i++)
-			peers.push_back(detail::read_v4_endpoint<tcp::endpoint>(v4_ptr));
+			peers.push_back(aux::read_v4_endpoint<tcp::endpoint>(v4_ptr));
 		char const* v6_ptr = m_alloc.get().ptr(m_v6_peers_idx);
 		for (int i = 0; i < m_v6_num_peers; i++)
-			peers.push_back(detail::read_v6_endpoint<tcp::endpoint>(v6_ptr));
+			peers.push_back(aux::read_v6_endpoint<tcp::endpoint>(v6_ptr));
 
 		return std::move(peers);
 	}
@@ -2344,13 +2344,13 @@ namespace {
 			udp::endpoint const& endp = n.second;
 			if (is_v4(endp))
 			{
-				detail::write_string(n.first.to_string(), v4_ptr);
-				detail::write_endpoint(endp, v4_ptr);
+				aux::write_string(n.first.to_string(), v4_ptr);
+				aux::write_endpoint(endp, v4_ptr);
 			}
 			else
 			{
-				detail::write_string(n.first.to_string(), v6_ptr);
-				detail::write_endpoint(endp, v6_ptr);
+				aux::write_string(n.first.to_string(), v6_ptr);
+				aux::write_endpoint(endp, v6_ptr);
 			}
 		}
 
@@ -2371,7 +2371,7 @@ namespace {
 			sha1_hash ih;
 			std::memcpy(ih.data(), v4_ptr, 20);
 			v4_ptr += 20;
-			nodes.emplace_back(ih, detail::read_v4_endpoint<udp::endpoint>(v4_ptr));
+			nodes.emplace_back(ih, aux::read_v4_endpoint<udp::endpoint>(v4_ptr));
 		}
 		char const* v6_ptr = alloc.ptr(v6_nodes_idx);
 		for (int i = 0; i < v6_num_nodes; i++)
@@ -2379,7 +2379,7 @@ namespace {
 			sha1_hash ih;
 			std::memcpy(ih.data(), v6_ptr, 20);
 			v6_ptr += 20;
-			nodes.emplace_back(ih, detail::read_v6_endpoint<udp::endpoint>(v6_ptr));
+			nodes.emplace_back(ih, aux::read_v6_endpoint<udp::endpoint>(v6_ptr));
 		}
 
 		return std::move(nodes);

@@ -51,7 +51,7 @@ namespace libtorrent {
 	{
 		std::string ret;
 		std::back_insert_iterator<std::string> out(ret);
-		detail::write_address(a, out);
+		aux::write_address(a, out);
 		return ret;
 	}
 
@@ -59,7 +59,7 @@ namespace libtorrent {
 	{
 		std::string ret;
 		std::back_insert_iterator<std::string> out(ret);
-		detail::write_endpoint(ep, out);
+		aux::write_endpoint(ep, out);
 		return ret;
 	}
 

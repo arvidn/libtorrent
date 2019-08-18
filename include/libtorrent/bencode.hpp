@@ -67,7 +67,7 @@ namespace libtorrent {
 	using invalid_encoding = system_error;
 #endif
 
-namespace detail {
+namespace aux {
 
 	template <class OutIt, class In, typename Cond
 		= typename std::enable_if<std::is_integral<In>::value>::type>
@@ -371,7 +371,7 @@ namespace detail {
 	// .. _back_insert_iterator: https://en.cppreference.com/w/cpp/iterator/back_insert_iterator
 	template<class OutIt> int bencode(OutIt out, const entry& e)
 	{
-		return detail::bencode_recursive(out, e);
+		return aux::bencode_recursive(out, e);
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -381,7 +381,7 @@ namespace detail {
 	{
 		entry e;
 		bool err = false;
-		detail::bdecode_recursive(start, end, e, err, 0);
+		aux::bdecode_recursive(start, end, e, err, 0);
 		TORRENT_ASSERT(e.m_type_queried == false);
 		if (err) return entry();
 		return e;
@@ -394,7 +394,7 @@ namespace detail {
 		entry e;
 		bool err = false;
 		InIt s = start;
-		detail::bdecode_recursive(start, end, e, err, 0);
+		aux::bdecode_recursive(start, end, e, err, 0);
 		len = std::distance(s, start);
 		TORRENT_ASSERT(len >= 0);
 		if (err) return entry();

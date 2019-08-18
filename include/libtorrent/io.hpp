@@ -41,10 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 
 #include "assert.hpp"
+#include "libtorrent/aux_/io.hpp"
 
 namespace libtorrent {
-namespace detail {
-	template <class T> struct type {};
+namespace aux {
 
 	// reads an integer from a byte stream
 	// in big endian byte order and converts
@@ -182,7 +182,7 @@ namespace detail {
 		for (auto const c : val) *out++ = c;
 		return int(val.length());
 	}
-} // namespace detail
+} // namespace aux
 }
 
 #endif // TORRENT_IO_HPP_INCLUDED

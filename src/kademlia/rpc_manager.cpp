@@ -262,7 +262,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	if (transaction_id.empty()) return false;
 
 	auto ptr = transaction_id.begin();
-	int tid = transaction_id.size() != 2 ? -1 : detail::read_uint16(ptr);
+	int tid = transaction_id.size() != 2 ? -1 : aux::read_uint16(ptr);
 
 	observer_ptr o;
 	auto range = m_transactions.equal_range(tid);
@@ -466,7 +466,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 	transaction_id.resize(2);
 	char* out = &transaction_id[0];
 	std::uint16_t const tid = std::uint16_t(random(0x7fff));
-	detail::write_uint16(tid, out);
+	aux::write_uint16(tid, out);
 	e["t"] = transaction_id;
 
 	// When a DHT node enters the read-only state, in each outgoing query message,

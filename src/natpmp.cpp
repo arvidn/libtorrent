@@ -278,7 +278,7 @@ void natpmp::start(address local_address, std::string device)
 void natpmp::send_get_ip_address_request()
 {
 	TORRENT_ASSERT(is_single_thread());
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	// this opcode only exists in NAT-PMP
 	// PCP routers report the external IP in the response to a MAP operation
@@ -481,7 +481,7 @@ void natpmp::update_mapping(port_mapping_t const i)
 void natpmp::send_map_request(port_mapping_t const i)
 {
 	TORRENT_ASSERT(is_single_thread());
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 
 	TORRENT_ASSERT(m_currently_mapping == port_mapping_t{-1}
 		|| m_currently_mapping == i);
@@ -619,7 +619,7 @@ void natpmp::on_reply(error_code const& e
 
 	COMPLETE_ASYNC("natpmp::on_reply");
 
-	using namespace libtorrent::detail;
+	using namespace libtorrent::aux;
 	if (e)
 	{
 #ifndef TORRENT_DISABLE_LOGGING

@@ -226,7 +226,7 @@ TORRENT_TEST(print_deep_dict)
 
 TORRENT_TEST(integer_to_str)
 {
-	using lt::detail::integer_to_str;
+	using lt::aux::integer_to_str;
 
 	char buf[30];
 	TEST_CHECK(integer_to_str(buf, 0) == "0"_sv);

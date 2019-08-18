@@ -72,12 +72,12 @@ void get_peers_observer::reply(msg const& m)
 			log_peers(m, r, int((end - peers) / 6));
 #endif
 			while (end - peers >= 6)
-				peer_list.push_back(detail::read_v4_endpoint<tcp::endpoint>(peers));
+				peer_list.push_back(aux::read_v4_endpoint<tcp::endpoint>(peers));
 		}
 		else
 		{
 			// assume it's uTorrent/libtorrent format
-			peer_list = detail::read_endpoint_list<tcp::endpoint>(n);
+			peer_list = aux::read_endpoint_list<tcp::endpoint>(n);
 #ifndef TORRENT_DISABLE_LOGGING
 			log_peers(m, r, n.list_size());
 #endif

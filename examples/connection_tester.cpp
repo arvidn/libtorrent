@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 using namespace lt;
-using namespace lt::detail; // for write_* and read_*
+using namespace lt::aux; // for write_* and read_*
 using lt::make_address_v4;
 
 using namespace std::placeholders;
@@ -521,9 +521,9 @@ struct peer_conn
 					close("REQUEST packet has invalid size", error_code());
 					return;
 				}
-				piece_index_t const piece = piece_index_t(detail::read_int32(ptr));
-				int const start = detail::read_int32(ptr);
-				int const length = detail::read_int32(ptr);
+				piece_index_t const piece = piece_index_t(aux::read_int32(ptr));
+				int const start = aux::read_int32(ptr);
+				int const length = aux::read_int32(ptr);
 				write_piece(piece, start, length);
 			}
 			else if (msg == 3) // not-interested
@@ -550,7 +550,7 @@ struct peer_conn
 			}
 			else if (msg == 4) // have
 			{
-				piece_index_t const piece(detail::read_int32(ptr));
+				piece_index_t const piece(aux::read_int32(ptr));
 				if (pieces.empty()) pieces.push_back(piece);
 				else pieces.insert(pieces.begin() + (rand() % pieces.size()), piece);
 			}
@@ -583,8 +583,8 @@ struct peer_conn
 				}
 				++blocks_received;
 				--outstanding_requests;
-				piece_index_t const piece = piece_index_t(detail::read_int32(ptr));
-				int start = detail::read_int32(ptr);
+				piece_index_t const piece = piece_index_t(aux::read_int32(ptr));
+				int start = aux::read_int32(ptr);
 
 				if (churn && (blocks_received % churn) == 0) {
 					outstanding_requests = 0;
@@ -600,7 +600,7 @@ struct peer_conn
 			}
 			else if (msg == 13) // suggest
 			{
-				piece_index_t const piece(detail::read_int32(ptr));
+				piece_index_t const piece(aux::read_int32(ptr));
 				auto i = std::find(pieces.begin(), pieces.end(), piece);
 				if (i != pieces.end())
 				{
@@ -611,9 +611,9 @@ struct peer_conn
 			}
 			else if (msg == 16) // reject request
 			{
-				piece_index_t const piece(detail::read_int32(ptr));
-				int start = detail::read_int32(ptr);
-				int length = detail::read_int32(ptr);
+				piece_index_t const piece(aux::read_int32(ptr));
+				int start = aux::read_int32(ptr);
+				int length = aux::read_int32(ptr);
 
 				// put it back!
 				if (current_piece != piece)
@@ -645,7 +645,7 @@ struct peer_conn
 			}
 			else if (msg == 17) // allowed_fast
 			{
-				piece_index_t const piece = piece_index_t(detail::read_int32(ptr));
+				piece_index_t const piece = piece_index_t(aux::read_int32(ptr));
 				auto i = std::find(pieces.begin(), pieces.end(), piece);
 				if (i != pieces.end())
 				{

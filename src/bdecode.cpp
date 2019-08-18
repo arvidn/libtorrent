@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	using detail::bdecode_token;
+	using aux::bdecode_token;
 
 namespace {
 
@@ -121,7 +121,7 @@ namespace {
 
 } // anonymous namespace
 
-namespace detail {
+namespace aux {
 	void escape_string(std::string& ret, char const* str, int len)
 	{
 		for (int i = 0; i < len; ++i)
@@ -928,7 +928,7 @@ namespace detail {
 
 					// the bdecode_token only has 8 bits to keep the header size
 					// in. If it overflows, fail!
-					if (start - str_start - 2 > detail::bdecode_token::max_header)
+					if (start - str_start - 2 > aux::bdecode_token::max_header)
 						TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
 					ret.m_tokens.push_back({str_start - orig_start
@@ -1063,13 +1063,13 @@ done:
 		}
 		if (single_line && len > 20)
 		{
-			detail::escape_string(ret, str.data(), 9);
+			aux::escape_string(ret, str.data(), 9);
 			ret += "...";
-			detail::escape_string(ret, str.data() + len - 9, 9);
+			aux::escape_string(ret, str.data() + len - 9, 9);
 		}
 		else
 		{
-			detail::escape_string(ret, str.data(), len);
+			aux::escape_string(ret, str.data(), len);
 		}
 		ret += "'";
 	}

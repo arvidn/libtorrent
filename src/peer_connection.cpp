@@ -706,7 +706,7 @@ namespace libtorrent {
 			{
 				++loops;
 				TORRENT_ASSERT(num_pieces > 0);
-				piece_index_t const piece(int(detail::read_uint32(p) % std::uint32_t(num_pieces)));
+				piece_index_t const piece(int(aux::read_uint32(p) % std::uint32_t(num_pieces)));
 				if (std::find(m_accept_fast.begin(), m_accept_fast.end(), piece)
 					!= m_accept_fast.end())
 				{

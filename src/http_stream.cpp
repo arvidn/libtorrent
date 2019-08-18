@@ -54,7 +54,7 @@ namespace libtorrent {
 	{
 		if (handle_error(e, h)) return;
 
-		using namespace libtorrent::detail;
+		using namespace libtorrent::aux;
 
 		if (m_no_connect)
 		{

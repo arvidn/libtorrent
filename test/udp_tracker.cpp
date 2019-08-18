@@ -85,9 +85,9 @@ struct udp_tracker
 		std::printf("%s: UDP message %d bytes\n", time_now_string(), int(bytes_transferred));
 
 		char* ptr = buffer;
-		detail::read_uint64(ptr);
-		std::uint32_t const action = detail::read_uint32(ptr);
-		std::uint32_t const transaction_id = detail::read_uint32(ptr);
+		aux::read_uint64(ptr);
+		std::uint32_t const action = aux::read_uint32(ptr);
+		std::uint32_t const transaction_id = aux::read_uint32(ptr);
 
 		error_code e;
 
@@ -104,9 +104,9 @@ struct udp_tracker
 				std::printf("%s: UDP connect from %s\n", time_now_string()
 					, print_endpoint(*from).c_str());
 				ptr = buffer;
-				detail::write_uint32(0, ptr); // action = connect
-				detail::write_uint32(transaction_id, ptr); // transaction_id
-				detail::write_uint64(10, ptr); // connection_id
+				aux::write_uint32(0, ptr); // action = connect
+				aux::write_uint32(transaction_id, ptr); // transaction_id
+				aux::write_uint64(10, ptr); // connection_id
 				m_socket.send_to(boost::asio::buffer(buffer, 16), *from, 0, e);
 				if (e) std::printf("%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string(), e.message().c_str());
@@ -127,30 +127,30 @@ struct udp_tracker
 				std::printf("%s: UDP announce [%d]\n", time_now_string()
 					, int(m_udp_announces));
 				ptr = buffer;
-				detail::write_uint32(1, ptr); // action = announce
-				detail::write_uint32(transaction_id, ptr); // transaction_id
-				detail::write_uint32(1800, ptr); // interval
-				detail::write_uint32(1, ptr); // incomplete
-				detail::write_uint32(1, ptr); // complete
+				aux::write_uint32(1, ptr); // action = announce
+				aux::write_uint32(transaction_id, ptr); // transaction_id
+				aux::write_uint32(1800, ptr); // interval
+				aux::write_uint32(1, ptr); // incomplete
+				aux::write_uint32(1, ptr); // complete
 				// 1 peers
 				if (is_v6(*from))
 				{
-					detail::write_uint32(0, ptr);
-					detail::write_uint32(0, ptr);
-					detail::write_uint32(0, ptr);
-					detail::write_uint8(1, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(7, ptr);
-					detail::write_uint16(1337, ptr);
+					aux::write_uint32(0, ptr);
+					aux::write_uint32(0, ptr);
+					aux::write_uint32(0, ptr);
+					aux::write_uint8(1, ptr);
+					aux::write_uint8(3, ptr);
+					aux::write_uint8(3, ptr);
+					aux::write_uint8(7, ptr);
+					aux::write_uint16(1337, ptr);
 				}
 				else
 				{
-					detail::write_uint8(1, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(7, ptr);
-					detail::write_uint16(1337, ptr);
+					aux::write_uint8(1, ptr);
+					aux::write_uint8(3, ptr);
+					aux::write_uint8(3, ptr);
+					aux::write_uint8(7, ptr);
+					aux::write_uint16(1337, ptr);
 				}
 				m_socket.send_to(boost::asio::buffer(buffer
 					, static_cast<std::size_t>(ptr - buffer)), *from, 0, e);

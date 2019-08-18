@@ -52,9 +52,9 @@ namespace dht {
 		std::copy(in, in + 20, ep.id.begin());
 		in += 20;
 		if (protocol == udp::v6())
-			ep.ep = detail::read_v6_endpoint<udp::endpoint>(in);
+			ep.ep = aux::read_v6_endpoint<udp::endpoint>(in);
 		else
-			ep.ep = detail::read_v4_endpoint<udp::endpoint>(in);
+			ep.ep = aux::read_v4_endpoint<udp::endpoint>(in);
 		return ep;
 	}
 

@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-namespace detail {
+namespace aux {
 
 	string_view integer_to_str(span<char> buf
 		, entry::integer_type val)
@@ -66,7 +66,7 @@ namespace detail {
 		++ptr;
 		return {ptr, static_cast<std::size_t>(&buf.back() - ptr)};
 	}
-} // detail
+} // aux
 
 namespace {
 

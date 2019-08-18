@@ -158,7 +158,7 @@ TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 	, char const* end, char delimiter, std::int64_t& val
 	, bdecode_errors::error_code_enum& ec);
 
-namespace detail {
+namespace aux {
 
 // internal
 void escape_string(std::string& ret, char const* str, int len);
@@ -375,17 +375,17 @@ struct TORRENT_EXPORT bdecode_node
 	bool has_soft_error(span<char> error) const;
 
 private:
-	bdecode_node(detail::bdecode_token const* tokens, char const* buf
+	bdecode_node(aux::bdecode_token const* tokens, char const* buf
 		, int len, int idx);
 
 	// if this is the root node, that owns all the tokens, they live in this
 	// vector. If this is a sub-node, this field is not used, instead the
 	// m_root_tokens pointer points to the root node's token.
-	aux::noexcept_movable<std::vector<detail::bdecode_token>> m_tokens;
+	aux::noexcept_movable<std::vector<aux::bdecode_token>> m_tokens;
 
 	// this points to the root nodes token vector
 	// for the root node, this points to its own m_tokens member
-	detail::bdecode_token const* m_root_tokens = nullptr;
+	aux::bdecode_token const* m_root_tokens = nullptr;
 
 	// this points to the original buffer that was parsed
 	char const* m_buffer = nullptr;

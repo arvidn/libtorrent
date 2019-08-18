@@ -277,19 +277,19 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 			ext_ip = r.dict_find_string("ip");
 	}
 
-	if (ext_ip && ext_ip.string_length() >= int(detail::address_size(udp::v6())))
+	if (ext_ip && ext_ip.string_length() >= int(aux::address_size(udp::v6())))
 	{
 		// this node claims we use the wrong node-ID!
 		char const* ptr = ext_ip.string_ptr();
 		if (m_observer != nullptr)
-			m_observer->set_external_address(m_sock, detail::read_v6_address(ptr)
+			m_observer->set_external_address(m_sock, aux::read_v6_address(ptr)
 				, m.addr.address());
 	}
-	else if (ext_ip && ext_ip.string_length() >= int(detail::address_size(udp::v4())))
+	else if (ext_ip && ext_ip.string_length() >= int(aux::address_size(udp::v4())))
 	{
 		char const* ptr = ext_ip.string_ptr();
 		if (m_observer != nullptr)
-			m_observer->set_external_address(m_sock, detail::read_v4_address(ptr)
+			m_observer->set_external_address(m_sock, aux::read_v4_address(ptr)
 				, m.addr.address());
 	}
 
@@ -772,7 +772,7 @@ entry write_nodes_entry(std::vector<node_entry> const& nodes)
 	for (auto const& n : nodes)
 	{
 		std::copy(n.id.begin(), n.id.end(), out);
-		detail::write_endpoint(n.ep(), out);
+		aux::write_endpoint(n.ep(), out);
 	}
 	return r;
 }

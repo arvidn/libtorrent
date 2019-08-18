@@ -310,7 +310,7 @@ namespace libtorrent {
 	TORRENT_EXPORT bool operator==(entry const& lhs, entry const& rhs);
 	inline bool operator!=(entry const& lhs, entry const& rhs) { return !(lhs == rhs); }
 
-namespace detail {
+namespace aux {
 
 	// internal
 	TORRENT_EXPORT string_view integer_to_str(span<char> buf
