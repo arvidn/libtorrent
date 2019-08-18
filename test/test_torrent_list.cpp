@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2008-2012, Arvid Norberg
+Copyright (c) 2018, Steven Siloti
+Copyright (c) 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

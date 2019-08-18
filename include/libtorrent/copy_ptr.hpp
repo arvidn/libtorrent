@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2010-2018, Arvid Norberg
+Copyright (c) 2010, 2016-2019, Arvid Norberg
+Copyright (c) 2017, Matthew Fioravante
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

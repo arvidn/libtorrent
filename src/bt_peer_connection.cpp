@@ -1,7 +1,14 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
-Copyright (c) 2007-2018, Arvid Norberg, Un Shyam
+Copyright (c) 2006-2019, Arvid Norberg
+Copyright (c) 2007, Un Shyam
+Copyright (c) 2015, Mikhail Titov
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016-2018, Pavel Pimenov
+Copyright (c) 2016-2017, Andrei Kurushin
+Copyright (c) 2016-2019, Steven Siloti
+Copyright (c) 2017, Antoine Dahan
+Copyright (c) 2018, Greg Hazel
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

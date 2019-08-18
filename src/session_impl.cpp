@@ -1,6 +1,17 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2003, Magnus Jonsson
+Copyright (c) 2006-2019, Arvid Norberg
+Copyright (c) 2009, Andrew Resch
+Copyright (c) 2014-2019, Steven Siloti
+Copyright (c) 2015-2018, Alden Torres
+Copyright (c) 2015, Thomas
+Copyright (c) 2015, Mikhail Titov
+Copyright (c) 2016, Falcosc
+Copyright (c) 2016-2017, Pavel Pimenov
+Copyright (c) 2016-2017, Andrei Kurushin
+Copyright (c) 2017, sledgehammer_999
+Copyright (c) 2018, Xiyue Deng
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

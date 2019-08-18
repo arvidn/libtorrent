@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2008-2018, Arvid Norberg
+Copyright (c) 2008-2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Pavel Pimenov
+Copyright (c) 2018, Eugene Shalygin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

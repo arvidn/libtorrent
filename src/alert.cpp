@@ -1,6 +1,15 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003, Daniel Wallin
+Copyright (c) 2004, Magnus Jonsson
+Copyright (c) 2009-2019, Arvid Norberg
+Copyright (c) 2014-2018, Steven Siloti
+Copyright (c) 2015, Thomas
+Copyright (c) 2015-2018, Alden Torres
+Copyright (c) 2016, Pavel Pimenov
+Copyright (c) 2017, Andrei Kurushin
+Copyright (c) 2017, Antoine Dahan
+Copyright (c) 2019, Amir Abrams
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

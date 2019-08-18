@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2005-2018, Arvid Norberg
+Copyright (c) 2005-2007, 2009-2010, 2013, 2015-2017, 2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
