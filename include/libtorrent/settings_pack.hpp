@@ -746,6 +746,12 @@ namespace aux {
 			// preferred in the routing table.
 			dht_prefer_verified_node_ids,
 
+			// when this is true, create an affinity for downloading 4 MiB extents
+			// of adjecent pieces. This is an attempt to achieve better disk I/O
+			// throughput by downloading larger extents of bytes, for torrents with
+			// small piece sizes
+			piece_extent_affinity,
+
 			max_bool_setting_internal
 		};
 

@@ -623,6 +623,28 @@ TORRENT_TEST(sanitize_symlinks_circular)
 	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "2");
 }
 
+TORRENT_TEST(query_symlinks)
+{
+	file_storage fs;
+	fs.set_piece_length(1024);
+	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "0");
+	fs.add_file("test/1", 0, file_storage::flag_symlink, 0, "1");
+	fs.add_file("test/2", 0, file_storage::flag_symlink, 0, "2");
+	fs.add_file("test/3", 0, file_storage::flag_symlink, 0, "3");
+
+	auto const& ret1 = fs.symlink(file_index_t{0});
+	auto const& ret2 = fs.symlink(file_index_t{1});
+	auto const& ret3 = fs.symlink(file_index_t{2});
+	auto const& ret4 = fs.symlink(file_index_t{3});
+
+	TEST_CHECK(ret1 != ret2);
+	TEST_CHECK(ret1 != ret3);
+	TEST_CHECK(ret1 != ret4);
+	TEST_CHECK(ret2 != ret3);
+	TEST_CHECK(ret2 != ret4);
+	TEST_CHECK(ret3 != ret4);
+}
+
 TORRENT_TEST(files_equal)
 {
 	file_storage fs1;

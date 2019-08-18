@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <functional>
 #include <set>
+#include <atomic>
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR '\\'
