@@ -1,10 +1,11 @@
 /*
-	Copyright (c) 2003 - 2005, Arvid Norberg, Daniel Wallin
-	All rights reserved.
+Copyright (c) 2005, 2007-2008, 2014-2019, Arvid Norberg
+Copyright (c) 2018, Alden Torres
+All rights reserved.
 
-	Redistribution and use in source and binary forms, with or without
-	modification, are permitted provided that the following conditions
-	are met:
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
     * Redistributions of source code must retain the above copyright
       notice, this list of conditions and the following disclaimer.

@@ -1,6 +1,12 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2019, Arvid Norberg
+Copyright (c) 2015, Mikhail Titov
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2017, Jan Berkel
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2019, patch3proxyheaders915360
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

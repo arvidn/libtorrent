@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg
+Copyright (c) 2006, 2008-2011, 2013-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
+Copyright (c) 2017, Falcosc
+Copyright (c) 2017, Falco
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

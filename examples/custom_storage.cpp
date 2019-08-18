@@ -1,5 +1,6 @@
 /*
 
+Copyright (c) 2017-2018, Steven Siloti
 Copyright (c) 2019, Arvid Norberg
 All rights reserved.
 

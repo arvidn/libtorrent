@@ -1,6 +1,13 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2017, toinetoine
+Copyright (c) 2004-2019, Arvid Norberg
+Copyright (c) 2008, Andrew Resch
+Copyright (c) 2014-2018, Steven Siloti
+Copyright (c) 2015, Thomas
+Copyright (c) 2015-2018, Alden Torres
+Copyright (c) 2017, Antoine Dahan
+Copyright (c) 2018, d-komarov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

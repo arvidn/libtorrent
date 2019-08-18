@@ -1,6 +1,8 @@
 /*
 
 Copyright (c) 2017, BitTorrent Inc.
+Copyright (c) 2019, Steven Siloti
+Copyright (c) 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

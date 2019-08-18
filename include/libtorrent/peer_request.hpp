@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg
+Copyright (c) 2004, 2009, 2013-2014, 2016-2017, 2019, Arvid Norberg
+Copyright (c) 2004, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2004, 2006, 2010, 2012, 2015, 2017-2019, Arvid Norberg
+Copyright (c) 2016, Jan Berkel
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

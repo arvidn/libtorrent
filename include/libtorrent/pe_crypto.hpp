@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2007-2018, Un Shyam & Arvid Norberg
+Copyright (c) 2007, Un Shyam
+Copyright (c) 2007-2009, 2011-2012, 2014-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
