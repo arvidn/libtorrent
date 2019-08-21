@@ -37,7 +37,7 @@ using test_flags_t = libtorrent::flags::bitfield_flag<std::uint32_t, struct test
 
 namespace test_flags
 {
-	using libtorrent::operator ""_bit;
+	using libtorrent::operator "" _bit;
 	constexpr test_flags_t super_seeding = 1_bit;
 	constexpr test_flags_t strict_super_seeding = 2_bit;
 	constexpr test_flags_t seed_mode = 3_bit;
