@@ -138,7 +138,7 @@ for i in range(0, 1):
     messages.append(add_extended_handshake(add_length(struct.pack('BBB', 20, 3, i))))
 
 # bitfields
-bitfield_len = (100 + 7)/8
+bitfield_len = (100 + 7) // 8
 
 for i in range(256):
     messages.append(add_length(struct.pack('B', 5) + (chr(i) * bitfield_len)))
