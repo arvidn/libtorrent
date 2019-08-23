@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/direct_request.hpp"
 #include "libtorrent/kademlia/io.hpp"
+#include "libtorrent/kademlia/dht_settings.hpp"
 
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/get_peers.hpp"
@@ -136,6 +137,8 @@ node::node(aux::listen_socket_handle const& sock, socket_manager* sock_man
 }
 
 node::~node() = default;
+
+int node::branch_factor() const { return m_settings.search_branching; }
 
 void node::update_node_id()
 {

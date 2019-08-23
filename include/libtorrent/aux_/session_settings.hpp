@@ -48,24 +48,26 @@ namespace libtorrent {
 
 namespace libtorrent { namespace aux {
 
-	struct TORRENT_EXTRA_EXPORT session_settings
+	struct TORRENT_EXTRA_EXPORT session_settings final : settings_interface
 	{
 		friend TORRENT_EXTRA_EXPORT void libtorrent::save_settings_to_dict(
 			aux::session_settings const& s, entry::dictionary_type& sett);
 
-		void set_str(int name, std::string value)
+		void set_str(int name, std::string value) override
 		{ set<std::string>(m_strings, name, std::move(value), settings_pack::string_type_base); }
-		void set_int(int name, int value)
+		void set_int(int name, int value) override
 		{ set<int>(m_ints, name, value, settings_pack::int_type_base); }
-		void set_bool(int name, bool value)
+		void set_bool(int name, bool value) override
 		{ set<bool>(m_bools, name, value, settings_pack::bool_type_base); }
 
-		std::string const& get_str(int name) const
+		std::string const& get_str(int name) const override
 		{ return get<std::string const&>(m_strings, name, settings_pack::string_type_base); }
-		int get_int(int name) const
+		int get_int(int name) const override
 		{ return get<int>(m_ints, name, settings_pack::int_type_base); }
-		bool get_bool(int name) const
+		bool get_bool(int name) const override
 		{ return get<bool>(m_bools, name, settings_pack::bool_type_base); }
+
+		bool has_val(int) const override { return true; }
 
 		session_settings();
 		explicit session_settings(settings_pack const&);

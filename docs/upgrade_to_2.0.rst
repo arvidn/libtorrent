@@ -123,6 +123,21 @@ Since hybrid torrents have two info-hashes, the on_unknown_torrent() function
 on the plugin class now takes an info_hash_t instead of a sha1_hash.
 
 
+DHT settings
+============
+
+DHT configuration options have previously been set separately from the main client settings.
+In libtorrent 2.0 they have been unified into the main settings_pack.
+
+Hence, `lt::dht::dht_settings` is now deprecated, in favour of the new `dht_*`
+settings in settings_pack.
+
+Deprecating `dht_settings` also causes an API change to the dht custom storage
+constructor (see session_params). Instead of taking a `dht_settings` object, it
+is now passed the full `settings_pack`. This is considered a niche interface,
+so there is no backward compatibility option provided.
+
+
 Adding torrents by URL no longer supported
 ==========================================
 

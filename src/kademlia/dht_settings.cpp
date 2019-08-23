@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace dht {
 
+#if TORRENT_ABI_VERSION <= 2
 	dht_settings read_dht_settings(bdecode_node const& e)
 	{
 		dht_settings sett;
@@ -110,5 +111,6 @@ namespace dht {
 
 		return e;
 	}
+#endif
 }
 }

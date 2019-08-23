@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/settings_pack.hpp"
-#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -49,14 +48,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/item.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 
+using lt::settings_pack;
+
 #ifndef TORRENT_DISABLE_DHT
 void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 {
-	lt::dht::dht_settings sett;
-	sett.ignore_dark_internet = false;
-	sett.restrict_routing_ips = false;
-	ses.set_dht_settings(sett);
-
 	lt::entry state;
 
 	for (auto dht : networks)
@@ -91,6 +87,8 @@ void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 	lt::settings_pack pack;
 	pack.set_bool(lt::settings_pack::enable_dht, true);
 	pack.set_int(lt::settings_pack::alert_mask, lt::alert::all_categories);
+	pack.set_bool(settings_pack::dht_ignore_dark_internet, false);
+	pack.set_bool(settings_pack::dht_restrict_routing_ips, false);
 	ses.apply_settings(pack);
 }
 #endif // TORRENT_DISABLE_DHT

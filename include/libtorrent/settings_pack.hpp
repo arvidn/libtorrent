@@ -81,6 +81,32 @@ namespace aux {
 	// returns a settings_pack with every setting set to its default value
 	TORRENT_EXPORT settings_pack default_settings();
 
+	struct TORRENT_EXPORT settings_interface
+	{
+		virtual void set_str(int name, std::string val) = 0;
+		virtual void set_int(int name, int val) = 0;
+		virtual void set_bool(int name, bool val) = 0;
+		virtual bool has_val(int name) const = 0;
+
+		virtual std::string const& get_str(int name) const = 0;
+		virtual int get_int(int name) const = 0;
+		virtual bool get_bool(int name) const = 0;
+
+		template <typename Type, typename Tag>
+		void set_int(int name, flags::bitfield_flag<Type, Tag> const val)
+		{ set_int(name, static_cast<int>(static_cast<Type>(val))); }
+
+		// these are here just to suppress the warning about virtual destructors
+		// internal
+		settings_interface() = default;
+		settings_interface(settings_interface const&) = default;
+		settings_interface(settings_interface&&) = default;
+		settings_interface& operator=(settings_interface const&) = default;
+		settings_interface& operator=(settings_interface&&) = default;
+	protected:
+		~settings_interface() = default;
+	};
+
 	// The ``settings_pack`` struct, contains the names of all settings as
 	// enum values. These values are passed in to the ``set_str()``,
 	// ``set_int()``, ``set_bool()`` functions, to specify the setting to
@@ -90,7 +116,7 @@ namespace aux {
 	//
 	// .. include:: settings-ref.rst
 	//
-	struct TORRENT_EXPORT settings_pack
+	struct TORRENT_EXPORT settings_pack final : settings_interface
 	{
 		friend TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
 
@@ -100,10 +126,10 @@ namespace aux {
 		settings_pack& operator=(settings_pack const&) = default;
 		settings_pack& operator=(settings_pack&&) noexcept = default;
 
-		void set_str(int name, std::string val);
-		void set_int(int name, int val);
-		void set_bool(int name, bool val);
-		bool has_val(int name) const;
+		void set_str(int name, std::string val) override;
+		void set_int(int name, int val) override;
+		void set_bool(int name, bool val) override;
+		bool has_val(int name) const override;
 		template <typename Type, typename Tag>
 		void set_int(int name, flags::bitfield_flag<Type, Tag> const val)
 		{ set_int(name, static_cast<int>(static_cast<Type>(val))); }
@@ -114,9 +140,9 @@ namespace aux {
 		// clear a specific setting from the pack
 		void clear(int name);
 
-		std::string const& get_str(int name) const;
-		int get_int(int name) const;
-		bool get_bool(int name) const;
+		std::string const& get_str(int name) const override;
+		int get_int(int name) const override;
+		bool get_bool(int name) const override;
 
 		// setting names (indices) are 16 bits. The two most significant
 		// bits indicate what type the setting has. (string, int, bool)
@@ -751,6 +777,57 @@ namespace aux {
 			// preferred in the routing table.
 			dht_prefer_verified_node_ids,
 
+			// determines if the routing table entries should restrict entries to one
+			// per IP. This defaults to true, which helps mitigate some attacks on
+			// the DHT. It prevents adding multiple nodes with IPs with a very close
+			// CIDR distance.
+			//
+			// when set, nodes whose IP address that's in the same /24 (or /64 for
+			// IPv6) range in the same routing table bucket. This is an attempt to
+			// mitigate node ID spoofing attacks also restrict any IP to only have a
+			// single entry in the whole routing table
+			dht_restrict_routing_ips,
+
+			// determines if DHT searches should prevent adding nodes with IPs with
+			// very close CIDR distance. This also defaults to true and helps
+			// mitigate certain attacks on the DHT.
+			dht_restrict_search_ips,
+
+			// makes the first buckets in the DHT routing table fit 128, 64, 32 and
+			// 16 nodes respectively, as opposed to the standard size of 8. All other
+			// buckets have size 8 still.
+			dht_extended_routing_table,
+
+			// slightly changes the lookup behavior in terms of how many outstanding
+			// requests we keep. Instead of having branch factor be a hard limit, we
+			// always keep *branch factor* outstanding requests to the closest nodes.
+			// i.e. every time we get results back with closer nodes, we query them
+			// right away. It lowers the lookup times at the cost of more outstanding
+			// queries.
+			dht_aggressive_lookups,
+
+			// when set, perform lookups in a way that is slightly more expensive,
+			// but which minimizes the amount of information leaked about you.
+			dht_privacy_lookups,
+
+			// when set, node's whose IDs that are not correctly generated based on
+			// its external IP are ignored. When a query arrives from such node, an
+			// error message is returned with a message saying "invalid node ID".
+			dht_enforce_node_id,
+
+			// ignore DHT messages from parts of the internet we wouldn't expect to
+			// see any traffic from
+			dht_ignore_dark_internet,
+
+			// when set, the other nodes won't keep this node in their routing
+			// tables, it's meant for low-power and/or ephemeral devices that
+			// cannot support the DHT, it is also useful for mobile devices which
+			// are sensitive to network traffic and battery life.
+			// this node no longer responds to 'query' messages, and will place a
+			// 'ro' key (value = 1) in the top-level message dictionary of outgoing
+			// query messages.
+			dht_read_only,
+
 			// when this is true, create an affinity for downloading 4 MiB extents
 			// of adjecent pieces. This is an attempt to achieve better disk I/O
 			// throughput by downloading larger extents of bytes, for torrents with
@@ -1360,15 +1437,10 @@ namespace aux {
 			deprecated_local_download_rate_limit,
 #endif
 
-#if TORRENT_ABI_VERSION == 1
-			// ``dht_upload_rate_limit`` sets the rate limit on the DHT. This is
-			// specified in bytes per second and defaults to 4000. For busy boxes
-			// with lots of torrents that requires more DHT traffic, this should
-			// be raised.
-			dht_upload_rate_limit TORRENT_DEPRECATED_ENUM,
-#else
-			deprecated_dht_upload_rate_limit,
-#endif
+			// the number of bytes per second (on average) the DHT is allowed to send.
+			// If the incoming requests causes to many bytes to be sent in responses,
+			// incoming requests will be dropped until the quota has been replenished.
+			dht_upload_rate_limit,
 
 			// ``unchoke_slots_limit`` is the max number of unchoked peers in the
 			// session. The number of unchoke slots may be ignored depending on
@@ -1713,6 +1785,60 @@ namespace aux {
 			// considers a cache value timed out, negative values are interpreted
 			// as zero.
 			resolver_cache_timeout,
+
+			// the maximum number of peers to send in a reply to ``get_peers``
+			dht_max_peers_reply,
+
+			// the number of concurrent search request the node will send when
+			// announcing and refreshing the routing table. This parameter is called
+			// alpha in the kademlia paper
+			dht_search_branching,
+
+			// the maximum number of failed tries to contact a node before it is
+			// removed from the routing table. If there are known working nodes that
+			// are ready to replace a failing node, it will be replaced immediately,
+			// this limit is only used to clear out nodes that don't have any node
+			// that can replace them.
+			dht_max_fail_count,
+
+			// the total number of torrents to track from the DHT. This is simply an
+			// upper limit to make sure malicious DHT nodes cannot make us allocate
+			// an unbounded amount of memory.
+			dht_max_torrents,
+
+			// max number of items the DHT will store
+			dht_max_dht_items,
+
+			// the max number of peers to store per torrent (for the DHT)
+			dht_max_peers,
+
+			// the max number of torrents to return in a torrent search query to the
+			// DHT
+			dht_max_torrent_search_reply,
+
+			// the number of seconds a DHT node is banned if it exceeds the rate
+			// limit. The rate limit is averaged over 10 seconds to allow for bursts
+			// above the limit.
+			dht_block_timeout,
+
+			// the max number of packets per second a DHT node is allowed to send
+			// without getting banned.
+			dht_block_ratelimit,
+
+			// the number of seconds a immutable/mutable item will be expired.
+			// default is 0, means never expires.
+			dht_item_lifetime,
+
+			// the info-hashes sample recomputation interval (in seconds).
+			// The node will precompute a subset of the tracked info-hashes and return
+			// that instead of calculating it upon each request. The permissible range
+			// is between 0 and 21600 seconds (inclusive).
+			dht_sample_infohashes_interval,
+
+			// the maximum number of elements in the sampled subset of info-hashes.
+			// If this number is too big, expect the DHT storage implementations
+			// to clamp it in order to allow UDP packets go through
+			dht_max_infohashes_sample_count,
 
 			max_int_setting_internal
 		};

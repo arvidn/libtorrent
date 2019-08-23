@@ -324,28 +324,6 @@ TORRENT_TEST(save_restore_state_save_filter)
 		});
 }
 
-TORRENT_TEST(save_restore_state_load_filter)
-{
-	test_save_restore(
-		[](settings_pack& p) {
-			// set the cache size
-			p.set_int(settings_pack::request_queue_time, 1337);
-		},
-		[](lt::session& ses, entry& st) {
-			// save everything
-			ses.save_state(st);
-		},
-		[](settings_pack& p) {
-			p.set_int(settings_pack::request_queue_time, 90);
-		},
-		[](lt::session& ses, bdecode_node& st) {
-			// load everything _but_ the settings
-			ses.load_state(st, ~session::save_settings);
-			settings_pack sett = ses.get_settings();
-			TEST_EQUAL(sett.get_int(settings_pack::request_queue_time), 90);
-		});
-}
-
 TORRENT_TEST(session_shutdown)
 {
 	lt::settings_pack pack;

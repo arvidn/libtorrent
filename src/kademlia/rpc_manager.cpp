@@ -160,7 +160,7 @@ using observer_storage = aux::aligned_union<1
 	, traversal_observer>::type;
 
 rpc_manager::rpc_manager(node_id const& our_id
-	, dht_settings const& settings
+	, dht::settings const& settings
 	, routing_table& table
 	, aux::listen_socket_handle const& sock
 	, socket_manager* sock_man

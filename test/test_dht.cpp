@@ -566,21 +566,27 @@ struct obs : dht::dht_observer
 #endif
 };
 
-dht::settings test_settings()
+std::pair<dht::settings, settings_pack> test_settings()
 {
 	dht::settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
 	sett.enforce_node_id = false;
-	return sett;
+
+	settings_pack pack;
+	pack.set_int(settings_pack::dht_max_torrents, 4);
+	pack.set_int(settings_pack::dht_max_dht_items, 4);
+	pack.set_bool(settings_pack::dht_enforce_node_id, false);
+	return {sett, pack};
 }
 
 struct dht_test_setup
 {
 	explicit dht_test_setup(udp::endpoint src)
-		: sett(test_settings())
+		: sett(test_settings().first)
+		, pack(test_settings().second)
 		, ls(dummy_listen_socket(src))
-		, dht_storage(dht_default_storage_constructor(sett))
+		, dht_storage(dht_default_storage_constructor(pack))
 		, source(src)
 		, dht_node(ls, &s, sett
 			, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage)
@@ -589,6 +595,7 @@ struct dht_test_setup
 	}
 
 	dht::settings sett;
+	aux::session_settings pack;
 	mock_socket s;
 	std::shared_ptr<aux::listen_socket_t> ls;
 	obs observer;
@@ -2639,7 +2646,9 @@ TORRENT_TEST(traversal_done)
 TORRENT_TEST(dht_dual_stack)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::settings sett = test_settings();
+	dht::settings sett;
+	settings_pack pack;
+	std::tie(sett, pack) = test_settings();
 	mock_socket s;
 	auto sock4 = dummy_listen_socket4();
 	auto sock6 = dummy_listen_socket6();
@@ -2653,7 +2662,7 @@ TORRENT_TEST(dht_dual_stack)
 		TEST_CHECK(false);
 		return static_cast<node*>(nullptr);
 	};
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(pack));
 	dht_storage->update_node_ids({node_id(nullptr)});
 	dht::node node4(sock4, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
 	dht::node node6(sock6, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
@@ -2961,7 +2970,7 @@ TORRENT_TEST(verify_message)
 TORRENT_TEST(routing_table_uniform)
 {
 	// test routing table
-	dht::settings sett = test_settings();
+	dht::settings sett = test_settings().first;
 	obs observer;
 
 	sett.extended_routing_table = false;
@@ -3006,7 +3015,7 @@ TORRENT_TEST(routing_table_uniform)
 
 TORRENT_TEST(routing_table_balance)
 {
-	dht::settings sett = test_settings();
+	dht::settings sett = test_settings().first;
 	obs observer;
 
 	sett.extended_routing_table = false;
@@ -3030,7 +3039,7 @@ TORRENT_TEST(routing_table_balance)
 
 TORRENT_TEST(routing_table_extended)
 {
-	dht::settings sett = test_settings();
+	dht::settings sett = test_settings().first;
 	obs observer;
 	sett.extended_routing_table = true;
 	sett.prefer_verified_node_ids = false;
@@ -3065,7 +3074,7 @@ void inserter(std::set<node_id>* nodes, node_entry const& ne)
 
 TORRENT_TEST(routing_table_set_id)
 {
-	dht::settings sett = test_settings();
+	dht::settings sett = test_settings().first;
 	sett.enforce_node_id = false;
 	sett.extended_routing_table = false;
 	sett.prefer_verified_node_ids = false;
@@ -3112,7 +3121,7 @@ TORRENT_TEST(routing_table_set_id)
 
 TORRENT_TEST(routing_table_for_each)
 {
-	dht::settings sett = test_settings();
+	dht::settings sett = test_settings().first;
 	obs observer;
 
 	sett.extended_routing_table = false;
@@ -3184,14 +3193,16 @@ TORRENT_TEST(node_set_id)
 TORRENT_TEST(read_only_node)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::settings sett = test_settings();
+	dht::settings sett;
+	settings_pack pack;
+	std::tie(sett, pack) = test_settings();
 	sett.read_only = true;
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
 	counters cnt;
 
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(pack));
 	dht_storage->update_node_ids({node_id(nullptr)});
 	dht::node node(ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 	udp::endpoint source(addr("10.0.0.1"), 20);
@@ -3283,13 +3294,15 @@ TORRENT_TEST(read_only_node)
 TORRENT_TEST(invalid_error_msg)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::settings sett = test_settings();
+	dht::settings sett;
+	settings_pack pack;
+	std::tie(sett, pack) = test_settings();
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
 	counters cnt;
 
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(pack));
 	dht_storage->update_node_ids({node_id(nullptr)});
 	dht::node node(ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 	udp::endpoint source(addr("10.0.0.1"), 20);
@@ -3376,7 +3389,9 @@ TORRENT_TEST(unsorted_traversal_results)
 TORRENT_TEST(rpc_invalid_error_msg)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::settings sett = test_settings();
+	dht::settings sett;
+	settings_pack pack;
+	std::tie(sett, pack) = test_settings();
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
@@ -3384,7 +3399,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 
 	dht::routing_table table(node_id(), udp::v4(), 8, sett, &observer);
 	dht::rpc_manager rpc(node_id(), sett, table, ls, &s, &observer);
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(pack));
 	dht_storage->update_node_ids({node_id(nullptr)});
 	dht::node node(ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 

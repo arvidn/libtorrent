@@ -924,8 +924,10 @@ void bind_session()
         )
 #endif // TORRENT_ABI_VERSION
         .def("is_dht_running", allow_threads(&lt::session::is_dht_running))
+#if TORRENT_ABI_VERSION <= 2
         .def("set_dht_settings", allow_threads(&lt::session::set_dht_settings))
         .def("get_dht_settings", allow_threads(&lt::session::get_dht_settings))
+#endif
         .def("dht_get_immutable_item", allow_threads(dht_get_immutable_item))
         .def("dht_get_mutable_item", &dht_get_mutable_item)
         .def("dht_put_immutable_item", allow_threads(dht_put_immutable_item))
@@ -1061,7 +1063,9 @@ void bind_session()
     {
         scope s = class_<dummy9>("save_state_flags_t");
         s.attr("save_settings") = lt::session::save_settings;
+#if TORRENT_ABI_VERSION <= 2
         s.attr("save_dht_settings") = lt::session::save_dht_settings;
+#endif
         s.attr("save_dht_state") = lt::session::save_dht_state;
 #if TORRENT_ABI_VERSION == 1
         s.attr("save_encryption_settings") = lt::session:: save_encryption_settings;

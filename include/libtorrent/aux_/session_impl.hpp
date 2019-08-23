@@ -262,6 +262,8 @@ namespace aux {
 			std::vector<ip_interface> const& ifs
 			, std::vector<listen_endpoint_t>& eps);
 
+		void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s);
+
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
 		struct TORRENT_EXTRA_EXPORT session_impl final
@@ -409,8 +411,10 @@ namespace aux {
 			void add_dht_node_name(std::pair<std::string, int> const& node);
 			void add_dht_node(udp::endpoint const& n) override;
 			void add_dht_router(std::pair<std::string, int> const& node);
+#if TORRENT_ABI_VERSION <= 2
 			void set_dht_settings(dht::dht_settings const& s);
 			dht::dht_settings const& get_dht_settings() const { return m_dht_settings; }
+#endif
 
 			// you must give up ownership of the dht state
 			void set_dht_state(dht::dht_state&& state);
@@ -746,7 +750,6 @@ namespace aux {
 
 #if TORRENT_ABI_VERSION == 1
 			void update_ssl_listen();
-			void update_dht_upload_rate_limit();
 			void update_local_download_rate();
 			void update_local_upload_rate();
 			void update_rate_limit_utp();

@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 
@@ -121,7 +120,8 @@ TORRENT_TEST(dht_rate_limit)
 
 	counters cnt;
 	dht::dht_state state;
-	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(dhtsett));
+	lt::aux::session_settings pack;
+	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(pack));
 	auto dht = std::make_shared<lt::dht::dht_tracker>(
 		&o, dht_ios, std::bind(&send_packet, std::ref(sock), _1, _2, _3, _4, _5)
 		, dhtsett, cnt, *dht_storage, std::move(state));
@@ -242,7 +242,8 @@ TORRENT_TEST(dht_delete_socket)
 	dht::settings dhtsett;
 	counters cnt;
 	dht::dht_state state;
-	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(dhtsett));
+	lt::aux::session_settings pack;
+	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(pack));
 	auto dht = std::make_shared<lt::dht::dht_tracker>(
 		&o, dht_ios, std::bind(&send_packet, std::ref(sock), _1, _2, _3, _4, _5)
 		, dhtsett, cnt, *dht_storage, std::move(state));

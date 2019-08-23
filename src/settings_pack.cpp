@@ -203,6 +203,14 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(proxy_tracker_connections, true, nullptr),
 		SET(enable_ip_notifier, true, &session_impl::update_ip_notifier),
 		SET(dht_prefer_verified_node_ids, true, &session_impl::update_dht_settings),
+		SET(dht_restrict_routing_ips, true, &session_impl::update_dht_settings),
+		SET(dht_restrict_search_ips, true, &session_impl::update_dht_settings),
+		SET(dht_extended_routing_table, true, &session_impl::update_dht_settings),
+		SET(dht_aggressive_lookups, true, &session_impl::update_dht_settings),
+		SET(dht_privacy_lookups, false, &session_impl::update_dht_settings),
+		SET(dht_enforce_node_id, false, &session_impl::update_dht_settings),
+		SET(dht_ignore_dark_internet, true, &session_impl::update_dht_settings),
+		SET(dht_read_only, false, &session_impl::update_dht_settings),
 		SET(piece_extent_affinity, false, nullptr),
 	}});
 
@@ -291,7 +299,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(download_rate_limit, 0, &session_impl::update_download_rate),
 		DEPRECATED_SET(local_upload_rate_limit, 0, &session_impl::update_local_upload_rate),
 		DEPRECATED_SET(local_download_rate_limit, 0, &session_impl::update_local_download_rate),
-		DEPRECATED_SET(dht_upload_rate_limit, 4000, &session_impl::update_dht_upload_rate_limit),
+		SET(dht_upload_rate_limit, 8000, &session_impl::update_dht_settings),
 		SET(unchoke_slots_limit, 8, &session_impl::update_unchoke_limit),
 		DEPRECATED_SET(half_open_limit, 0, nullptr),
 		SET(connections_limit, 200, &session_impl::update_connections_limit),
@@ -342,6 +350,19 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(utp_cwnd_reduce_timer, 100, nullptr),
 		SET(max_web_seed_connections, 3, nullptr),
 		SET(resolver_cache_timeout, 1200, &session_impl::update_resolver_cache_timeout),
+		SET(dht_max_peers_reply, 100, &session_impl::update_dht_settings),
+		SET(dht_search_branching, 5, &session_impl::update_dht_settings),
+		SET(dht_max_fail_count, 20, &session_impl::update_dht_settings),
+		SET(dht_max_torrents, 2000, &session_impl::update_dht_settings),
+		SET(dht_max_dht_items, 700, &session_impl::update_dht_settings),
+		SET(dht_max_peers, 500, &session_impl::update_dht_settings),
+		SET(dht_max_torrent_search_reply, 20, &session_impl::update_dht_settings),
+		SET(dht_block_timeout, 5 * 60, &session_impl::update_dht_settings),
+		SET(dht_block_ratelimit, 5, &session_impl::update_dht_settings),
+		SET(dht_item_lifetime, 0, &session_impl::update_dht_settings),
+		SET(dht_sample_infohashes_interval, 21600, &session_impl::update_dht_settings),
+		SET(dht_max_infohashes_sample_count, 20, &session_impl::update_dht_settings),
+
 	}});
 
 #undef SET

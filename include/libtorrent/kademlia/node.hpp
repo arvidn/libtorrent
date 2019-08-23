@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/config.hpp>
 #include <libtorrent/kademlia/dht_storage.hpp>
-#include <libtorrent/kademlia/dht_settings.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
@@ -69,6 +68,7 @@ namespace dht {
 struct traversal_algorithm;
 struct dht_observer;
 struct msg;
+struct settings;
 
 TORRENT_EXTRA_EXPORT entry write_nodes_entry(std::vector<node_entry> const& nodes);
 
@@ -190,7 +190,7 @@ public:
 	// bucket is not full.
 	void add_node(udp::endpoint const& node);
 
-	int branch_factor() const { return m_settings.search_branching; }
+	int branch_factor() const;
 
 	void add_traversal_algorithm(traversal_algorithm* a)
 	{

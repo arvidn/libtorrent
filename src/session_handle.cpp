@@ -57,7 +57,9 @@ namespace libtorrent {
 	constexpr peer_class_t session_handle::local_peer_class_id;
 
 	constexpr save_state_flags_t session_handle::save_settings;
-	constexpr save_state_flags_t session_handle::save_dht_settings;
+#if TORRENT_ABI_VERSION <= 2
+	constexpr save_state_flags_t session_handle::save_dht_settings TORRENT_DEPRECATED;
+#endif
 	constexpr save_state_flags_t session_handle::save_dht_state;
 #if TORRENT_ABI_VERSION == 1
 	constexpr save_state_flags_t session_handle::save_encryption_settings;
@@ -521,6 +523,7 @@ namespace {
 	}
 #endif // TORRENT_ABI_VERSION
 
+#if TORRENT_ABI_VERSION <= 2
 	void session_handle::set_dht_settings(dht::dht_settings const& settings)
 	{
 #ifndef TORRENT_DISABLE_DHT
@@ -538,6 +541,7 @@ namespace {
 		return dht::dht_settings();
 #endif
 	}
+#endif
 
 	bool session_handle::is_dht_running() const
 	{

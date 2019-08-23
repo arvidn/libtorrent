@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
@@ -62,25 +61,26 @@ using namespace lt::dht;
 
 namespace
 {
-	dht::dht_settings test_settings() {
-		dht::dht_settings sett;
-		sett.max_torrents = 2;
-		sett.max_dht_items = 2;
-		sett.item_lifetime = int(seconds(120 * 60).count());
+	aux::session_settings test_settings()
+	{
+		aux::session_settings sett;
+		sett.set_int(settings_pack::dht_max_torrents, 2);
+		sett.set_int(settings_pack::dht_max_dht_items, 2);
+		sett.set_int(settings_pack::dht_item_lifetime, int(seconds(120 * 60).count()));
 		return sett;
 	}
 
 	bool g_storage_constructor_invoked = false;
 
 	std::unique_ptr<dht_storage_interface> dht_custom_storage_constructor(
-		dht::dht_settings const& settings)
+		settings_interface const& settings)
 	{
 		g_storage_constructor_invoked = true;
 		return dht_default_storage_constructor(settings);
 	}
 
 	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
-		dht::dht_settings const& sett)
+		settings_interface const& sett)
 	{
 		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 		TEST_CHECK(s != nullptr);
@@ -98,7 +98,7 @@ sha1_hash const n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 
 TORRENT_TEST(announce_peer)
 {
-	dht::dht_settings sett = test_settings();
+	auto const sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	entry peers;
@@ -128,7 +128,7 @@ TORRENT_TEST(announce_peer)
 
 TORRENT_TEST(dual_stack)
 {
-	dht::dht_settings sett = test_settings();
+	auto const sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	tcp::endpoint const p1 = ep("124.31.75.21", 1);
@@ -154,7 +154,7 @@ TORRENT_TEST(dual_stack)
 
 TORRENT_TEST(put_items)
 {
-	dht::dht_settings sett = test_settings();
+	auto const sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	entry item;
@@ -184,7 +184,7 @@ TORRENT_TEST(put_items)
 
 TORRENT_TEST(counters)
 {
-	dht::dht_settings sett = test_settings();
+	auto const sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	TEST_EQUAL(s->counters().peers, 0);
@@ -269,8 +269,8 @@ TORRENT_TEST(default_set_custom)
 
 TORRENT_TEST(peer_limit)
 {
-	dht::dht_settings sett = test_settings();
-	sett.max_peers = 42;
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_peers, 42);
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	for (int i = 0; i < 200; ++i)
@@ -286,8 +286,8 @@ TORRENT_TEST(peer_limit)
 
 TORRENT_TEST(torrent_limit)
 {
-	dht::dht_settings sett = test_settings();
-	sett.max_torrents = 42;
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_torrents, 42);
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	for (int i = 0; i < 200; ++i)
@@ -303,8 +303,8 @@ TORRENT_TEST(torrent_limit)
 
 TORRENT_TEST(immutable_item_limit)
 {
-	dht::dht_settings sett = test_settings();
-	sett.max_dht_items = 42;
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_dht_items, 42);
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	for (int i = 0; i < 200; ++i)
@@ -319,8 +319,8 @@ TORRENT_TEST(immutable_item_limit)
 
 TORRENT_TEST(mutable_item_limit)
 {
-	dht::dht_settings sett = test_settings();
-	sett.max_dht_items = 42;
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_dht_items, 42);
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	public_key pk;
@@ -341,9 +341,9 @@ TORRENT_TEST(get_peers_dist)
 	// test that get_peers returns reasonably disjoint sets of peers with each call
 	// take two samples of 100 peers from 1000 and make sure there aren't too many
 	// peers found in both lists
-	dht::dht_settings sett = test_settings();
-	sett.max_peers = 2000;
-	sett.max_peers_reply = 100;
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_peers, 2000);
+	sett.set_int(settings_pack::dht_max_peers_reply, 100);
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	address addr = rand_v4();
@@ -387,7 +387,7 @@ TORRENT_TEST(get_peers_dist)
 
 TORRENT_TEST(update_node_ids)
 {
-	dht::dht_settings sett = test_settings();
+	auto const sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s != nullptr);
 
@@ -437,10 +437,10 @@ TORRENT_TEST(update_node_ids)
 
 TORRENT_TEST(infohashes_sample)
 {
-	dht::dht_settings sett = test_settings();
-	sett.max_torrents = 5;
-	sett.sample_infohashes_interval = 10;
-	sett.max_infohashes_sample_count = 2;
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_torrents, 5);
+	sett.set_int(settings_pack::dht_sample_infohashes_interval, 10);
+	sett.set_int(settings_pack::dht_max_infohashes_sample_count, 2);
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	tcp::endpoint const p1 = ep("124.31.75.21", 1);
@@ -461,7 +461,7 @@ TORRENT_TEST(infohashes_sample)
 	TEST_EQUAL(item["samples"].string().size(), 2 * 20);
 
 	// get all of them
-	sett.max_infohashes_sample_count = 5;
+	sett.set_int(settings_pack::dht_max_infohashes_sample_count, 5);
 
 	item = entry();
 	r = s->get_infohashes_sample(item);
@@ -479,10 +479,10 @@ TORRENT_TEST(infohashes_sample)
 
 TORRENT_TEST(infohashes_sample_dist)
 {
-	dht::dht_settings sett = test_settings();
-	sett.max_torrents = 1000;
-	sett.sample_infohashes_interval = 0; // need this to force refresh every call
-	sett.max_infohashes_sample_count = 1;
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_torrents, 1000);
+	sett.set_int(settings_pack::dht_sample_infohashes_interval, 0); // need this to force refresh every call
+	sett.set_int(settings_pack::dht_max_infohashes_sample_count, 1);
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	for (int i = 0; i < 1000; ++i)

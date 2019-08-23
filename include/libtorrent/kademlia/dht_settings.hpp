@@ -40,13 +40,15 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace dht {
 
+#if TORRENT_ABI_VERSION <= 2
+	// this is deprecated. Use settings_pack and apply_settings on the session
+	// instead.
+
 	// structure used to hold configuration options for the DHT
-	//
-	// The ``dht_settings`` struct used to contain a ``service_port`` member to
-	// control which port the DHT would listen on and send messages from. This
-	// field is deprecated and ignored. libtorrent always tries to open the UDP
-	// socket on the same port as the TCP socket.
-	struct TORRENT_EXPORT dht_settings
+	struct TORRENT_DEPRECATED_EXPORT dht_settings
+#else
+	struct settings
+#endif
 	{
 		// the maximum number of peers to send in a reply to ``get_peers``
 		int max_peers_reply = 100;
@@ -158,25 +160,23 @@ namespace dht {
 		// to clamp it in order to allow UDP packets go through
 		int max_infohashes_sample_count = 20;
 
-#if TORRENT_ABI_VERSION == 1
-		// the listen port for the dht. This is a UDP port. zero means use the
-		// same as the tcp interface
-		int service_port = 0;
-#endif
+#if TORRENT_ABI_VERSION <= 2
 	};
 
 	// internal
 	struct settings : dht_settings
 	{
+#endif
 		// when this is true, nodes whose IDs are derived from their source IP
 		// according to BEP 42 (http://bittorrent.org/beps/bep_0042.html) are
 		// preferred in the routing table.
 		bool prefer_verified_node_ids = true;
 	};
 
-
+#if TORRENT_ABI_VERSION <= 2
 TORRENT_EXTRA_EXPORT dht_settings read_dht_settings(bdecode_node const& e);
 TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
+#endif
 
 }
 }
