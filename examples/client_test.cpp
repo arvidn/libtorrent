@@ -1077,7 +1077,7 @@ example alert_masks:
 	lt::session_params params;
 
 #ifndef TORRENT_DISABLE_DHT
-	params.dht_settings.privacy_lookups = true;
+	params.settings.set_bool(settings_pack::dht_privacy_lookups, true);
 
 	std::vector<char> in;
 	if (load_file(".ses_state", in))

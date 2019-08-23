@@ -49,11 +49,11 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	class entry;
+	struct settings_interface;
 }
 
 namespace libtorrent {
 namespace dht {
-	struct dht_settings;
 
 	// This structure hold the relevant counters for the storage
 	struct TORRENT_EXPORT dht_storage_counters
@@ -121,7 +121,7 @@ namespace dht {
 		// If the scrape parameter is false, you should fill the
 		// key peers["values"] with a list containing a subset of
 		// peers tracked by the given info_hash. Such a list should
-		// consider the value of dht_settings::max_peers_reply.
+		// consider the value of settings_pack::dht_max_peers_reply.
 		// If noseed is true only peers marked as no seed should be included.
 		//
 		// returns true if the maximum number of peers are stored
@@ -162,7 +162,7 @@ namespace dht {
 		// For implementers:
 		// This data can be stored only if the target is not already
 		// present. The implementation should consider the value of
-		// dht_settings::max_dht_items.
+		// settings_pack::dht_max_dht_items.
 		//
 		virtual void put_immutable_item(sha1_hash const& target
 			, span<char const> buf
@@ -199,7 +199,7 @@ namespace dht {
 		// For implementers:
 		// The sequence number should be checked if the item is already
 		// present. The implementation should consider the value of
-		// dht_settings::max_dht_items.
+		// settings_pack::dht_max_dht_items.
 		//
 		virtual void put_mutable_item(sha1_hash const& target
 			, span<char const> buf
@@ -238,10 +238,10 @@ namespace dht {
 	};
 
 	using dht_storage_constructor_type
-		= std::function<std::unique_ptr<dht_storage_interface>(dht_settings const& settings)>;
+		= std::function<std::unique_ptr<dht_storage_interface>(settings_interface const& settings)>;
 
 	TORRENT_EXPORT std::unique_ptr<dht_storage_interface> dht_default_storage_constructor(
-		dht_settings const& settings);
+		settings_interface const& settings);
 
 } // namespace dht
 } // namespace libtorrent

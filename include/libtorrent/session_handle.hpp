@@ -49,8 +49,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/portmap.hpp" // for portmap_protocol
 
 #include "libtorrent/kademlia/dht_storage.hpp"
-#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/kademlia/announce_flags.hpp"
+
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/kademlia/dht_settings.hpp"
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/session_settings.hpp"
@@ -84,8 +87,11 @@ namespace libtorrent {
 		// saves settings (i.e. the settings_pack)
 		static constexpr save_state_flags_t save_settings = 0_bit;
 
-		// saves dht_settings
-		static constexpr save_state_flags_t save_dht_settings = 1_bit;
+#if TORRENT_ABI_VERSION <= 2
+		// saves dht_settings. All DHT settings are now part of the main
+		// settings_pack, and saved by setting the save_settings flag
+		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_dht_settings = 1_bit;
+#endif
 
 		// saves dht state such as nodes and node-id, possibly accelerating
 		// joining the DHT if provided at next session startup.
@@ -317,17 +323,18 @@ namespace libtorrent {
 		void stop_dht();
 #endif
 
+#if TORRENT_ABI_VERSION <= 2
 		// ``set_dht_settings`` sets some parameters available to the dht node.
 		// See dht_settings for more information.
 		//
-		// ``is_dht_running()`` returns true if the DHT support has been started
-		// and false
-		// otherwise.
-		//
 		// ``get_dht_settings()`` returns the current settings
 		void set_dht_settings(dht::dht_settings const& settings);
-		bool is_dht_running() const;
 		dht::dht_settings get_dht_settings() const;
+#endif
+
+		// ``is_dht_running()`` returns true if the DHT support has been started
+		// and false otherwise.
+		bool is_dht_running() const;
 
 		// ``set_dht_storage`` set a dht custom storage constructor function
 		// to be used internally when the dht is created.

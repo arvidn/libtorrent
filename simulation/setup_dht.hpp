@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SETUP_DHT_HPP_INCLUDED
 
 #include <vector>
-#include "libtorrent/kademlia/dht_settings.hpp" // for dht_settings
+#include "libtorrent/kademlia/dht_settings.hpp" // for dht::settings
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
 

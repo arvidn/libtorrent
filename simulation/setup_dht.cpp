@@ -91,7 +91,7 @@ struct dht_node final : lt::dht::socket_manager
 	dht_node(sim::simulation& sim, lt::dht::settings const& sett, lt::counters& cnt
 		, int const idx, std::uint32_t const flags)
 		: m_io_context(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
-		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))
+		, m_dht_storage(lt::dht::dht_default_storage_constructor(m_settings))
 		, m_add_dead_nodes((flags & dht_network::add_dead_nodes) != 0)
 		, m_ipv6((flags & dht_network::bind_ipv6) != 0)
 		, m_socket(m_io_context)
@@ -241,6 +241,7 @@ struct dht_node final : lt::dht::socket_manager
 	lt::dht::node const& dht() const { return m_dht; }
 
 private:
+	lt::aux::session_settings m_settings;
 	asio::io_context m_io_context;
 	std::shared_ptr<dht::dht_storage_interface> m_dht_storage;
 	bool const m_add_dead_nodes;

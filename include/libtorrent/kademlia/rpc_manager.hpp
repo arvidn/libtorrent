@@ -56,7 +56,7 @@ class entry;
 namespace libtorrent {
 namespace dht {
 
-struct dht_settings;
+struct settings;
 struct dht_logger;
 struct socket_manager;
 
@@ -75,7 +75,7 @@ class TORRENT_EXTRA_EXPORT rpc_manager
 public:
 
 	rpc_manager(node_id const& our_id
-		, dht_settings const& settings
+		, dht::settings const& settings
 		, routing_table& table
 		, aux::listen_socket_handle const& sock
 		, socket_manager* sock_man
@@ -133,7 +133,7 @@ private:
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_logger* m_log;
 #endif
-	dht_settings const& m_settings;
+	dht::settings const& m_settings;
 	routing_table& m_table;
 	node_id m_our_id;
 	std::uint32_t m_allocated_observers:31;

@@ -269,7 +269,13 @@ namespace {
 		bdecode_node settings;
 		if (e.type() != bdecode_node::dict_t) return params;
 
-		if (flags & session_handle::save_settings)
+		if ((flags & session_handle::save_settings)
+#if TORRENT_ABI_VERSION <= 2
+			// just in case someone is saving *just* the dht_settings, save all
+			// settings, since the DHT settings are part of them now
+			|| (flags & session_handle::save_dht_settings)
+#endif
+			)
 		{
 			settings = e.dict_find_dict("settings");
 			if (settings)
@@ -279,14 +285,17 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_DHT
+#if TORRENT_ABI_VERSION <= 2
 		if (flags & session_handle::save_dht_settings)
 		{
 			settings = e.dict_find_dict("dht");
-			if (settings)
+			if (settings && settings.type() == bdecode_node::dict_t)
 			{
 				params.dht_settings = dht::read_dht_settings(settings);
+				aux::apply_deprecated_dht_settings(params.settings, settings);
 			}
 		}
+#endif
 
 		if (flags & session_handle::save_dht_state)
 		{
@@ -325,7 +334,9 @@ namespace {
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
+#if TORRENT_ABI_VERSION <= 2
 		m_impl->set_dht_settings(std::move(params.dht_settings));
+#endif
 		m_impl->set_dht_state(std::move(params.dht_state));
 
 		TORRENT_ASSERT(params.dht_storage_constructor);
@@ -417,6 +428,8 @@ namespace {
 		}
 	}
 
+TORRENT_VERSION_NAMESPACE_3
+
 	session_params::session_params(settings_pack&& sp)
 		: session_params(std::move(sp), default_plugins())
 	{}
@@ -449,6 +462,8 @@ namespace {
 		, dht_storage_constructor(dht::dht_default_storage_constructor)
 #endif
 	{}
+
+TORRENT_VERSION_NAMESPACE_3_END
 
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
 		io_context& ios, counters& cnt)

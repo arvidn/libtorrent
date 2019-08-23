@@ -196,11 +196,6 @@ struct info_hash_t;
 struct ip_filter;
 class port_filter;
 
-// include/libtorrent/kademlia/dht_settings.hpp
-namespace dht {
-struct dht_settings;
-}
-
 // include/libtorrent/kademlia/dht_state.hpp
 namespace dht {
 struct dht_state;
@@ -237,7 +232,9 @@ struct counters;
 
 // include/libtorrent/session.hpp
 class session_proxy;
+TORRENT_VERSION_NAMESPACE_3
 struct session_params;
+TORRENT_VERSION_NAMESPACE_3_END
 class session;
 
 // include/libtorrent/session_handle.hpp
@@ -281,6 +278,11 @@ struct file_entry;
 
 // include/libtorrent/fingerprint.hpp
 struct fingerprint;
+
+// include/libtorrent/kademlia/dht_settings.hpp
+namespace dht {
+struct dht_settings;
+}
 
 // include/libtorrent/lazy_entry.hpp
 struct pascal_string;
