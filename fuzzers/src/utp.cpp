@@ -68,7 +68,7 @@ aux::utp_socket_manager man(
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-	aux::utp_socket_impl* sock = NULL;
+	aux::utp_socket_impl* sock = nullptr;
 	{
 		aux::utp_stream str(ios);
 #if LIBTORRENT_VERSION_NUM >= 10200
