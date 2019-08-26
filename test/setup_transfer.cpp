@@ -456,8 +456,8 @@ pid_type async_run(char const* cmdline)
 	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 	startup.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 	startup.hStdError = GetStdHandle(STD_OUTPUT_HANDLE);
-	int const ret = CreateProcessA(NULL, buf, NULL, NULL, TRUE
-		, 0, NULL, NULL, &startup, &pi);
+	int const ret = CreateProcessA(nullptr, buf, nullptr, nullptr, TRUE
+		, 0, nullptr, nullptr, &startup, &pi);
 
 	if (ret == 0)
 	{
@@ -499,7 +499,7 @@ void stop_process(pid_type p)
 {
 #ifdef _WIN32
 	HANDLE proc = OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, p);
-	if (proc == NULL) return;
+	if (proc == nullptr) return;
 	TerminateProcess(proc, 138);
 	WaitForSingleObject(proc, 5000);
 	CloseHandle(proc);

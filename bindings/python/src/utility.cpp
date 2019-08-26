@@ -41,7 +41,7 @@ struct bytes_from_python
     static void* convertible(PyObject* x)
     {
 #if PY_MAJOR_VERSION >= 3
-        return PyBytes_Check(x) ? x : NULL;
+        return PyBytes_Check(x) ? x : nullptr;
 #else
         return PyString_Check(x) ? x : nullptr;
 #endif
