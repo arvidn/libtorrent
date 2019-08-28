@@ -708,9 +708,9 @@ namespace libtorrent {
 			if (p == nullptr) return false;
 
 			if (is_v6)
-				new (p) ipv6_peer(c.remote(), false, {});
+				p = new (p) ipv6_peer(c.remote(), false, {});
 			else
-				new (p) ipv4_peer(c.remote(), false, {});
+				p = new (p) ipv4_peer(c.remote(), false, {});
 
 			iter = m_peers.insert(iter, p);
 
@@ -979,7 +979,7 @@ namespace libtorrent {
 		torrent_peer* p = m_peer_allocator.allocate_peer_entry(
 			torrent_peer_allocator_interface::i2p_peer_type);
 		if (p == nullptr) return nullptr;
-		new (p) i2p_peer(destination, true, src);
+		p = new (p) i2p_peer(destination, true, src);
 
 		if (!insert_peer(p, iter, flags, state))
 		{
@@ -1041,9 +1041,9 @@ namespace libtorrent {
 			if (p == nullptr) return nullptr;
 
 			if (is_v6)
-				new (p) ipv6_peer(remote, true, src);
+				p = new (p) ipv6_peer(remote, true, src);
 			else
-				new (p) ipv4_peer(remote, true, src);
+				p = new (p) ipv4_peer(remote, true, src);
 
 			try
 			{
