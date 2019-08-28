@@ -56,11 +56,13 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 	struct session_status;
 #endif
+namespace aux {
+	struct session_settings;
+}
 }
 
 namespace libtorrent {
 namespace dht {
-	struct dht_settings;
 
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
 		: socket_manager
@@ -73,7 +75,7 @@ namespace dht {
 		dht_tracker(dht_observer* observer
 			, io_context& ios
 			, send_fun_t const& send_fun
-			, dht::settings const& settings
+			, aux::session_settings const& settings
 			, counters& cnt
 			, dht_storage_interface& storage
 			, dht_state&& state);
@@ -82,7 +84,7 @@ namespace dht {
 		dht_tracker(dht_observer* observer
 			, io_context& ios
 			, send_fun_t const& send_fun
-			, dht::settings const& settings
+			, aux::session_settings const& settings
 			, counters& cnt
 			, dht_storage_interface& storage
 			, dht_state const& state) = delete;
@@ -162,7 +164,7 @@ namespace dht {
 		{
 			tracker_node(io_context& ios
 				, aux::listen_socket_handle const& s, socket_manager* sock
-				, dht::settings const& settings
+				, aux::session_settings const& settings
 				, node_id const& nid
 				, dht_observer* observer, counters& cnt
 				, get_foreign_node_t get_foreign_node
@@ -205,7 +207,7 @@ namespace dht {
 
 		deadline_timer m_key_refresh_timer;
 		deadline_timer m_refresh_timer;
-		dht::settings const& m_settings;
+		aux::session_settings const& m_settings;
 
 		bool m_running;
 

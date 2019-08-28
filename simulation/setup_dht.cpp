@@ -88,7 +88,7 @@ namespace {
 
 struct dht_node final : lt::dht::socket_manager
 {
-	dht_node(sim::simulation& sim, lt::dht::settings const& sett, lt::counters& cnt
+	dht_node(sim::simulation& sim, lt::aux::session_settings const& sett, lt::counters& cnt
 		, int const idx, std::uint32_t const flags)
 		: m_io_context(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
 		, m_dht_storage(lt::dht::dht_default_storage_constructor(m_settings))
@@ -256,8 +256,8 @@ private:
 
 dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flags)
 {
-	m_sett.ignore_dark_internet = false;
-	m_sett.restrict_routing_ips = false;
+	m_sett.set_bool(settings_pack::dht_ignore_dark_internet, false);
+	m_sett.set_bool(settings_pack::dht_restrict_routing_ips, false);
 
 // TODO: how can we introduce churn among peers?
 

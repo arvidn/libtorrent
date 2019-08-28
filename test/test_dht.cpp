@@ -566,27 +566,21 @@ struct obs : dht::dht_observer
 #endif
 };
 
-std::pair<dht::settings, settings_pack> test_settings()
+aux::session_settings test_settings()
 {
-	dht::settings sett;
-	sett.max_torrents = 4;
-	sett.max_dht_items = 4;
-	sett.enforce_node_id = false;
-
-	settings_pack pack;
-	pack.set_int(settings_pack::dht_max_torrents, 4);
-	pack.set_int(settings_pack::dht_max_dht_items, 4);
-	pack.set_bool(settings_pack::dht_enforce_node_id, false);
-	return {sett, pack};
+	aux::session_settings sett;
+	sett.set_int(settings_pack::dht_max_torrents, 4);
+	sett.set_int(settings_pack::dht_max_dht_items, 4);
+	sett.set_bool(settings_pack::dht_enforce_node_id, false);
+	return sett;
 }
 
 struct dht_test_setup
 {
 	explicit dht_test_setup(udp::endpoint src)
-		: sett(test_settings().first)
-		, pack(test_settings().second)
+		: sett(test_settings())
 		, ls(dummy_listen_socket(src))
-		, dht_storage(dht_default_storage_constructor(pack))
+		, dht_storage(dht_default_storage_constructor(sett))
 		, source(src)
 		, dht_node(ls, &s, sett
 			, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage)
@@ -594,8 +588,7 @@ struct dht_test_setup
 		dht_storage->update_node_ids({node_id::min()});
 	}
 
-	dht::settings sett;
-	aux::session_settings pack;
+	aux::session_settings sett;
 	mock_socket s;
 	std::shared_ptr<aux::listen_socket_t> ls;
 	obs observer;
@@ -1026,7 +1019,7 @@ void test_id_enforcement(address(&rand_addr)())
 	bdecode_node response;
 
 	// enable node_id enforcement
-	t.sett.enforce_node_id = true;
+	t.sett.set_bool(settings_pack::dht_enforce_node_id, true);
 
 	node_id nid;
 	if (is_v4(t.source))
@@ -1564,9 +1557,9 @@ void test_routing_table(address(&rand_addr)())
 	bdecode_node response;
 
 	// test kademlia routing table
-	dht::settings s;
-	s.extended_routing_table = false;
-	//	s.restrict_routing_ips = false;
+	aux::session_settings s;
+	s.set_bool(settings_pack::dht_extended_routing_table, false);
+	//	s.set_bool(settings_pack::dht_restrict_routing_ips, false);
 	node_id const nid = to_hash("3123456789abcdef01232456789abcdef0123456");
 	const int bucket_size = 8;
 	dht::routing_table table(nid, t.source.protocol(), bucket_size, s, &t.observer);
@@ -1661,7 +1654,7 @@ void test_routing_table(address(&rand_addr)())
 	TEST_EQUAL(table.bucket_size(0), 0);
 	TEST_EQUAL(nodes.size(), 0);
 
-	s.restrict_routing_ips = false;
+	s.set_bool(settings_pack::dht_restrict_routing_ips, false);
 
 	{
 		auto const ep = rand_udp_ep(rand_addr);
@@ -2359,7 +2352,7 @@ TORRENT_TEST(immutable_put)
 		dht_test_setup t(udp::endpoint(rand_v4(), 20));
 
 		// set the branching factor to k to make this a little easier
-		t.sett.search_branching = 8;
+		t.sett.set_int(settings_pack::dht_search_branching, 8);
 
 		lt::aux::array<node_entry, 8> const nodes = build_nodes();
 
@@ -2465,7 +2458,7 @@ TORRENT_TEST(mutable_put)
 		dht_test_setup t(udp::endpoint(rand_v4(), 20));
 
 		// set the branching factor to k to make this a little easier
-		t.sett.search_branching = 8;
+		t.sett.set_int(settings_pack::dht_search_branching, 8);
 
 		enum { num_test_nodes = 8 };
 		lt::aux::array<node_entry, num_test_nodes> const nodes = build_nodes();
@@ -2561,7 +2554,7 @@ TORRENT_TEST(traversal_done)
 	dht_test_setup t(udp::endpoint(rand_v4(), 20));
 
 	// set the branching factor to k to make this a little easier
-	t.sett.search_branching = 8;
+	t.sett.set_int(settings_pack::dht_search_branching, 8);
 
 	public_key pk;
 	secret_key sk;
@@ -2646,9 +2639,7 @@ TORRENT_TEST(traversal_done)
 TORRENT_TEST(dht_dual_stack)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::settings sett;
-	settings_pack pack;
-	std::tie(sett, pack) = test_settings();
+	auto sett = test_settings();
 	mock_socket s;
 	auto sock4 = dummy_listen_socket4();
 	auto sock6 = dummy_listen_socket6();
@@ -2662,7 +2653,7 @@ TORRENT_TEST(dht_dual_stack)
 		TEST_CHECK(false);
 		return static_cast<node*>(nullptr);
 	};
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(pack));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
 	dht::node node4(sock4, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
 	dht::node node6(sock6, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
@@ -2970,13 +2961,13 @@ TORRENT_TEST(verify_message)
 TORRENT_TEST(routing_table_uniform)
 {
 	// test routing table
-	dht::settings sett = test_settings().first;
+	auto sett = test_settings();
 	obs observer;
 
-	sett.extended_routing_table = false;
+	sett.set_bool(settings_pack::dht_extended_routing_table, false);
 	// it's difficult to generate valid nodes with specific node IDs, so just
 	// turn off that check
-	sett.prefer_verified_node_ids = false;
+	sett.set_bool(settings_pack::dht_prefer_verified_node_ids, false);
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
@@ -3015,11 +3006,11 @@ TORRENT_TEST(routing_table_uniform)
 
 TORRENT_TEST(routing_table_balance)
 {
-	dht::settings sett = test_settings().first;
+	auto sett = test_settings();
 	obs observer;
 
-	sett.extended_routing_table = false;
-	sett.prefer_verified_node_ids = false;
+	sett.set_bool(settings_pack::dht_extended_routing_table, false);
+	sett.set_bool(settings_pack::dht_prefer_verified_node_ids, false);
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
@@ -3039,10 +3030,10 @@ TORRENT_TEST(routing_table_balance)
 
 TORRENT_TEST(routing_table_extended)
 {
-	dht::settings sett = test_settings().first;
+	auto sett = test_settings();
 	obs observer;
-	sett.extended_routing_table = true;
-	sett.prefer_verified_node_ids = false;
+	sett.set_bool(settings_pack::dht_extended_routing_table, true);
+	sett.set_bool(settings_pack::dht_prefer_verified_node_ids, false);
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
@@ -3074,10 +3065,10 @@ void inserter(std::set<node_id>* nodes, node_entry const& ne)
 
 TORRENT_TEST(routing_table_set_id)
 {
-	dht::settings sett = test_settings().first;
-	sett.enforce_node_id = false;
-	sett.extended_routing_table = false;
-	sett.prefer_verified_node_ids = false;
+	auto sett = test_settings();
+	sett.set_bool(settings_pack::dht_enforce_node_id, false);
+	sett.set_bool(settings_pack::dht_extended_routing_table, false);
+	sett.set_bool(settings_pack::dht_prefer_verified_node_ids, false);
 	obs observer;
 	node_id id = to_hash("0000000000000000000000000000000000000000");
 
@@ -3121,11 +3112,11 @@ TORRENT_TEST(routing_table_set_id)
 
 TORRENT_TEST(routing_table_for_each)
 {
-	dht::settings sett = test_settings().first;
+	auto sett = test_settings();
 	obs observer;
 
-	sett.extended_routing_table = false;
-	sett.prefer_verified_node_ids = false;
+	sett.set_bool(settings_pack::dht_extended_routing_table, false);
+	sett.set_bool(settings_pack::dht_prefer_verified_node_ids, false);
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 
 	routing_table tbl(id, udp::v4(), 2, sett, &observer);
@@ -3193,16 +3184,14 @@ TORRENT_TEST(node_set_id)
 TORRENT_TEST(read_only_node)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::settings sett;
-	settings_pack pack;
-	std::tie(sett, pack) = test_settings();
-	sett.read_only = true;
+	auto sett = test_settings();
+	sett.set_bool(settings_pack::dht_read_only, true);
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
 	counters cnt;
 
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(pack));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
 	dht::node node(ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 	udp::endpoint source(addr("10.0.0.1"), 20);
@@ -3257,7 +3246,7 @@ TORRENT_TEST(read_only_node)
 
 	// now, disable read_only, try again.
 	g_sent_packets.clear();
-	sett.read_only = false;
+	sett.set_bool(settings_pack::dht_read_only, false);
 
 	send_dht_request(node, "get", source, &response);
 	// sender should be added to repacement bucket
@@ -3294,15 +3283,13 @@ TORRENT_TEST(read_only_node)
 TORRENT_TEST(invalid_error_msg)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::settings sett;
-	settings_pack pack;
-	std::tie(sett, pack) = test_settings();
+	auto sett = test_settings();
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
 	counters cnt;
 
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(pack));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
 	dht::node node(ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 	udp::endpoint source(addr("10.0.0.1"), 20);
@@ -3389,9 +3376,7 @@ TORRENT_TEST(unsorted_traversal_results)
 TORRENT_TEST(rpc_invalid_error_msg)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
-	dht::settings sett;
-	settings_pack pack;
-	std::tie(sett, pack) = test_settings();
+	auto sett = test_settings();
 	mock_socket s;
 	auto ls = dummy_listen_socket4();
 	obs observer;
@@ -3399,7 +3384,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 
 	dht::routing_table table(node_id(), udp::v4(), 8, sett, &observer);
 	dht::rpc_manager rpc(node_id(), sett, table, ls, &s, &observer);
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(pack));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
 	dht::node node(ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 
@@ -3517,8 +3502,8 @@ TORRENT_TEST(dht_verify_node_address)
 {
 	obs observer;
 	// initial setup taken from dht test above
-	dht::settings s;
-	s.extended_routing_table = false;
+	aux::session_settings s;
+	s.set_bool(settings_pack::dht_extended_routing_table, false);
 	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 	const int bucket_size = 8;
 	dht::routing_table table(id, udp::v4(), bucket_size, s, &observer);

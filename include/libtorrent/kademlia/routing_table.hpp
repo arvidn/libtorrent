@@ -54,6 +54,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/flags.hpp>
 
 namespace libtorrent {
+namespace aux {
+	struct session_settings;
+}
 namespace dht {
 
 struct settings;
@@ -154,7 +157,7 @@ public:
 
 	routing_table(node_id const& id, udp proto
 		, int bucket_size
-		, dht::settings const& settings
+		, aux::session_settings const& settings
 		, dht_logger* log);
 
 	routing_table(routing_table const&) = delete;
@@ -291,7 +294,7 @@ private:
 
 	void prune_empty_bucket();
 
-	dht::settings const& m_settings;
+	aux::session_settings const& m_settings;
 
 	// (k-bucket, replacement cache) pairs
 	// the first entry is the bucket the furthest

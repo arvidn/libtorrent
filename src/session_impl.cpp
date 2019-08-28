@@ -671,7 +671,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #if TORRENT_ABI_VERSION <= 2
 		if (flags & session::save_dht_settings)
 		{
-			e["dht"] = dht::save_dht_settings(m_dht_settings);
+			e["dht"] = dht::save_dht_settings(get_dht_settings());
 		}
 #endif
 
@@ -5251,43 +5251,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 	}
 
-	void session_impl::update_dht_settings()
-	{
-#ifndef TORRENT_DISABLE_DHT
-#define SET_BOOL(name) \
-		m_dht_settings.name = m_settings.get_bool( \
-			settings_pack::dht_ ## name )
-#define SET_INT(name) \
-		m_dht_settings.name = m_settings.get_int( \
-			settings_pack::dht_ ## name )
-
-		SET_INT(max_peers_reply);
-		SET_INT(search_branching);
-		SET_INT(max_fail_count);
-		SET_INT(max_torrents);
-		SET_INT(max_dht_items);
-		SET_INT(max_peers);
-		SET_INT(max_torrent_search_reply);
-		SET_BOOL(restrict_routing_ips);
-		SET_BOOL(restrict_search_ips);
-		SET_BOOL(extended_routing_table);
-		SET_BOOL(aggressive_lookups);
-		SET_BOOL(privacy_lookups);
-		SET_BOOL(enforce_node_id);
-		SET_BOOL(ignore_dark_internet);
-		SET_INT(block_timeout) * 60;
-		SET_INT(block_ratelimit);
-		SET_BOOL(read_only);
-		SET_INT(item_lifetime);
-		SET_INT(upload_rate_limit);
-		SET_INT(sample_infohashes_interval);
-		SET_INT(max_infohashes_sample_count);
-		SET_BOOL(prefer_verified_node_ids);
-#undef SET_BOOL
-#undef SET_INT
-#endif
-	}
-
 	void session_impl::update_count_slow()
 	{
 		error_code ec;
@@ -5694,7 +5657,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				, error_code& ec
 				, udp_send_flags_t const flags)
 				{ send_udp_packet_listen(sock, ep, p, ec, flags); }
-			, m_dht_settings
+			, m_settings
 			, m_stats_counters
 			, *m_dht_storage
 			, std::move(m_dht_state));
@@ -5742,7 +5705,70 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #if TORRENT_ABI_VERSION <= 2
 	void session_impl::set_dht_settings(dht::dht_settings const& settings)
 	{
-		static_cast<dht::dht_settings&>(m_dht_settings) = settings;
+#ifndef TORRENT_DISABLE_DHT
+#define SET_BOOL(name) m_settings.set_bool(settings_pack::dht_ ## name, settings.name)
+#define SET_INT(name) m_settings.set_int(settings_pack::dht_ ## name, settings.name)
+
+		SET_INT(max_peers_reply);
+		SET_INT(search_branching);
+		SET_INT(max_fail_count);
+		SET_INT(max_torrents);
+		SET_INT(max_dht_items);
+		SET_INT(max_peers);
+		SET_INT(max_torrent_search_reply);
+		SET_BOOL(restrict_routing_ips);
+		SET_BOOL(restrict_search_ips);
+		SET_BOOL(extended_routing_table);
+		SET_BOOL(aggressive_lookups);
+		SET_BOOL(privacy_lookups);
+		SET_BOOL(enforce_node_id);
+		SET_BOOL(ignore_dark_internet);
+		SET_INT(block_timeout);
+		SET_INT(block_ratelimit);
+		SET_BOOL(read_only);
+		SET_INT(item_lifetime);
+		SET_INT(upload_rate_limit);
+		SET_INT(sample_infohashes_interval);
+		SET_INT(max_infohashes_sample_count);
+#undef SET_BOOL
+#undef SET_INT
+#endif
+	}
+
+	dht::dht_settings session_impl::get_dht_settings() const
+	{
+		dht::dht_settings sett;
+#ifndef TORRENT_DISABLE_DHT
+#define SET_BOOL(name) \
+		sett.name = m_settings.get_bool( settings_pack::dht_ ## name )
+#define SET_INT(name) \
+		sett.name = m_settings.get_int( settings_pack::dht_ ## name )
+
+		SET_INT(max_peers_reply);
+		SET_INT(search_branching);
+		SET_INT(max_fail_count);
+		SET_INT(max_torrents);
+		SET_INT(max_dht_items);
+		SET_INT(max_peers);
+		SET_INT(max_torrent_search_reply);
+		SET_BOOL(restrict_routing_ips);
+		SET_BOOL(restrict_search_ips);
+		SET_BOOL(extended_routing_table);
+		SET_BOOL(aggressive_lookups);
+		SET_BOOL(privacy_lookups);
+		SET_BOOL(enforce_node_id);
+		SET_BOOL(ignore_dark_internet);
+		SET_INT(block_timeout);
+		SET_INT(block_ratelimit);
+		SET_BOOL(read_only);
+		SET_INT(item_lifetime);
+		SET_INT(upload_rate_limit);
+		SET_INT(sample_infohashes_interval);
+		SET_INT(max_infohashes_sample_count);
+#undef SET_BOOL
+#undef SET_INT
+#endif
+		return sett;
 	}
 #endif
 

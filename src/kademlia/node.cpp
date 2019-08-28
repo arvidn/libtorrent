@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/assert.hpp>
 #include <libtorrent/aux_/time.hpp>
 #include "libtorrent/aux_/throw.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_lookup
 #include "libtorrent/performance_counters.hpp" // for counters
 
@@ -112,7 +113,7 @@ void incoming_error(entry& e, char const* msg, int error_code = 203)
 } // anonymous namespace
 
 node::node(aux::listen_socket_handle const& sock, socket_manager* sock_man
-	, dht::settings const& settings
+	, aux::session_settings const& settings
 	, node_id const& nid
 	, dht_observer* observer
 	, counters& cnt
@@ -138,7 +139,7 @@ node::node(aux::listen_socket_handle const& sock, socket_manager* sock_man
 
 node::~node() = default;
 
-int node::branch_factor() const { return m_settings.search_branching; }
+int node::branch_factor() const { return m_settings.get_int(settings_pack::dht_search_branching); }
 
 void node::update_node_id()
 {
@@ -314,7 +315,7 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 			TORRENT_ASSERT(m.message.dict_find_string_value("y") == "q");
 			// When a DHT node enters the read-only state, it no longer
 			// responds to 'query' messages that it receives.
-			if (m_settings.read_only) break;
+			if (m_settings.get_bool(settings_pack::dht_read_only)) break;
 
 			// only respond to requests if they're addressed to this node
 			if (s != m_sock) break;
@@ -434,7 +435,7 @@ void node::get_peers(sha1_hash const& info_hash
 	// for info-hash id. then send announce_peer to them.
 	bool const noseeds = bool(flags & announce::seed);
 
-	auto ta = m_settings.privacy_lookups
+	auto ta = m_settings.get_bool(settings_pack::dht_privacy_lookups)
 		? std::make_shared<dht::obfuscated_get_peers>(*this, info_hash, dcallback, ncallback, noseeds)
 		: std::make_shared<dht::get_peers>(*this, info_hash, dcallback, ncallback, noseeds);
 
@@ -816,7 +817,7 @@ void node::incoming_request(msg const& m, entry& e)
 	// if this nodes ID doesn't match its IP, tell it what
 	// its IP is with an error
 	// don't enforce this yet
-	if (m_settings.enforce_node_id && !verify_id(id, m.addr.address()))
+	if (m_settings.get_bool(settings_pack::dht_enforce_node_id) && !verify_id(id, m.addr.address()))
 	{
 		incoming_error(e, "invalid node ID");
 		return;

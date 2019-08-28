@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/direct_request.hpp>
 #include <libtorrent/kademlia/get_item.hpp>
 #include <libtorrent/kademlia/sample_infohashes.hpp>
-#include <libtorrent/kademlia/dht_settings.hpp>
+#include <libtorrent/aux_/session_settings.hpp>
 
 #include <libtorrent/socket_io.hpp> // for print_endpoint
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
@@ -160,7 +160,7 @@ using observer_storage = aux::aligned_union<1
 	, traversal_observer>::type;
 
 rpc_manager::rpc_manager(node_id const& our_id
-	, dht::settings const& settings
+	, aux::session_settings const& settings
 	, routing_table& table
 	, aux::listen_socket_handle const& sock
 	, socket_manager* sock_man
@@ -362,7 +362,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	}
 
 	node_id const nid = node_id(node_id_ent.string_ptr());
-	if (m_settings.enforce_node_id && !verify_id(nid, m.addr.address()))
+	if (m_settings.get_bool(settings_pack::dht_enforce_node_id) && !verify_id(nid, m.addr.address()))
 	{
 		o->timeout();
 		return false;
@@ -476,7 +476,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 
 	// When a DHT node enters the read-only state, in each outgoing query message,
 	// places a 'ro' key in the top-level message dictionary and sets its value to 1.
-	if (m_settings.read_only) e["ro"] = 1;
+	if (m_settings.get_bool(settings_pack::dht_read_only)) e["ro"] = 1;
 
 	node& n = o->algorithm()->get_node();
 	if (!n.native_address(o->target_addr()))

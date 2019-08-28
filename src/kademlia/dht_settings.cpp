@@ -40,7 +40,7 @@ namespace dht {
 #if TORRENT_ABI_VERSION <= 2
 	dht_settings read_dht_settings(bdecode_node const& e)
 	{
-		dht_settings sett;
+		dht_settings sett{};
 
 		if (e.type() != bdecode_node::dict_t) return sett;
 

@@ -46,9 +46,6 @@ namespace dht {
 
 	// structure used to hold configuration options for the DHT
 	struct TORRENT_DEPRECATED_EXPORT dht_settings
-#else
-	struct settings
-#endif
 	{
 		// the maximum number of peers to send in a reply to ``get_peers``
 		int max_peers_reply = 100;
@@ -159,21 +156,17 @@ namespace dht {
 		// If this number is too big, expect the DHT storage implementations
 		// to clamp it in order to allow UDP packets go through
 		int max_infohashes_sample_count = 20;
-
-#if TORRENT_ABI_VERSION <= 2
 	};
 
 	// internal
 	struct settings : dht_settings
 	{
-#endif
 		// when this is true, nodes whose IDs are derived from their source IP
 		// according to BEP 42 (http://bittorrent.org/beps/bep_0042.html) are
 		// preferred in the routing table.
 		bool prefer_verified_node_ids = true;
 	};
 
-#if TORRENT_ABI_VERSION <= 2
 TORRENT_EXTRA_EXPORT dht_settings read_dht_settings(bdecode_node const& e);
 TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
 #endif

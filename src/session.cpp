@@ -321,6 +321,47 @@ namespace {
 			ios = m_io_service.get();
 		}
 
+#if TORRENT_ABI_VERSION <= 2
+#ifndef TORRENT_DISABLE_DHT
+		// in case the session_params has its dht_settings in use, pick out the
+		// non-default settings from there and move them into the main settings.
+		// any conflicting options set in main settings take precedence
+		{
+		dht::dht_settings const def_sett{};
+#define SET_BOOL(name) if (!params.settings.has_val(settings_pack::dht_ ## name) && \
+	def_sett.name != params.dht_settings.name) \
+		params.settings.set_bool(settings_pack::dht_ ## name, params.dht_settings.name)
+#define SET_INT(name) if (!params.settings.has_val(settings_pack::dht_ ## name) && \
+	def_sett.name != params.dht_settings.name) \
+		params.settings.set_int(settings_pack::dht_ ## name, params.dht_settings.name)
+
+		SET_INT(max_peers_reply);
+		SET_INT(search_branching);
+		SET_INT(max_fail_count);
+		SET_INT(max_torrents);
+		SET_INT(max_dht_items);
+		SET_INT(max_peers);
+		SET_INT(max_torrent_search_reply);
+		SET_BOOL(restrict_routing_ips);
+		SET_BOOL(restrict_search_ips);
+		SET_BOOL(extended_routing_table);
+		SET_BOOL(aggressive_lookups);
+		SET_BOOL(privacy_lookups);
+		SET_BOOL(enforce_node_id);
+		SET_BOOL(ignore_dark_internet);
+		SET_INT(block_timeout);
+		SET_INT(block_ratelimit);
+		SET_BOOL(read_only);
+		SET_INT(item_lifetime);
+		SET_INT(upload_rate_limit);
+		SET_INT(sample_infohashes_interval);
+		SET_INT(max_infohashes_sample_count);
+#undef SET_BOOL
+#undef SET_INT
+		}
+#endif
+#endif
+
 		m_impl = std::make_shared<aux::session_impl>(std::ref(*ios)
 			, std::move(params.settings)
 			, std::move(params.disk_io_constructor));
@@ -334,9 +375,6 @@ namespace {
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
-#if TORRENT_ABI_VERSION <= 2
-		m_impl->set_dht_settings(std::move(params.dht_settings));
-#endif
 		m_impl->set_dht_state(std::move(params.dht_state));
 
 		TORRENT_ASSERT(params.dht_storage_constructor);

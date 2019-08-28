@@ -111,20 +111,19 @@ TORRENT_TEST(dht_rate_limit)
 	ls->local_endpoint = tcp::endpoint(make_address_v4("40.30.20.10"), 8888);
 	error_code ec;
 	sock.bind(udp::endpoint(make_address_v4("40.30.20.10"), 8888), ec);
-	dht::settings dhtsett;
-	dhtsett.block_ratelimit = 100000; // disable the DOS blocker
-	dhtsett.ignore_dark_internet = false;
-	dhtsett.upload_rate_limit = 400;
+	lt::aux::session_settings sett;
+	sett.set_int(settings_pack::dht_block_ratelimit, 100000); // disable the DOS blocker
+	sett.set_bool(settings_pack::dht_ignore_dark_internet, false);
+	sett.set_int(settings_pack::dht_upload_rate_limit, 400);
 	float const target_upload_rate = 400;
 	int const num_packets = 2000;
 
 	counters cnt;
 	dht::dht_state state;
-	lt::aux::session_settings pack;
-	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(pack));
+	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(sett));
 	auto dht = std::make_shared<lt::dht::dht_tracker>(
 		&o, dht_ios, std::bind(&send_packet, std::ref(sock), _1, _2, _3, _4, _5)
-		, dhtsett, cnt, *dht_storage, std::move(state));
+		, sett, cnt, *dht_storage, std::move(state));
 	dht->new_socket(ls);
 
 	bool stop = false;
@@ -239,14 +238,13 @@ TORRENT_TEST(dht_delete_socket)
 	ls->external_address.cast_vote(make_address_v4("40.30.20.10")
 		, lt::aux::session_interface::source_dht, lt::address());
 	ls->local_endpoint = tcp::endpoint(make_address_v4("40.30.20.10"), 8888);
-	dht::settings dhtsett;
+	lt::aux::session_settings sett;
 	counters cnt;
 	dht::dht_state state;
-	lt::aux::session_settings pack;
-	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(pack));
+	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(sett));
 	auto dht = std::make_shared<lt::dht::dht_tracker>(
 		&o, dht_ios, std::bind(&send_packet, std::ref(sock), _1, _2, _3, _4, _5)
-		, dhtsett, cnt, *dht_storage, std::move(state));
+		, sett, cnt, *dht_storage, std::move(state));
 
 	dht->start([](std::vector<std::pair<dht::node_entry, std::string>> const&){});
 	dht->new_socket(ls);

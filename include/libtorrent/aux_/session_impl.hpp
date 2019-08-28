@@ -413,7 +413,7 @@ namespace aux {
 			void add_dht_router(std::pair<std::string, int> const& node);
 #if TORRENT_ABI_VERSION <= 2
 			void set_dht_settings(dht::dht_settings const& s);
-			dht::dht_settings const& get_dht_settings() const { return m_dht_settings; }
+			dht::dht_settings get_dht_settings() const;
 #endif
 
 			// you must give up ownership of the dht state
@@ -779,7 +779,6 @@ namespace aux {
 			void update_dht();
 			void update_count_slow();
 			void update_dht_bootstrap_nodes();
-			void update_dht_settings();
 
 			void update_socket_buffer_size();
 			void update_dht_announce_interval();
@@ -1069,7 +1068,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 			std::unique_ptr<dht::dht_storage_interface> m_dht_storage;
 			std::shared_ptr<dht::dht_tracker> m_dht;
-			dht::settings m_dht_settings;
 			dht::dht_storage_constructor_type m_dht_storage_constructor
 				= dht::dht_default_storage_constructor;
 
