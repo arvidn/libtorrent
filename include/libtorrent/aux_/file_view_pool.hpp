@@ -102,6 +102,8 @@ namespace aux {
 
 		std::vector<open_file_state> get_status(storage_index_t st) const;
 
+		void close_oldest();
+
 	private:
 
 		std::shared_ptr<file_mapping> remove_oldest(std::unique_lock<std::mutex>&);

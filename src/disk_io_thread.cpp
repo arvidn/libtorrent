@@ -316,6 +316,10 @@ private:
 
 	settings_interface const& m_settings;
 
+	// we call close_oldest_file on the file_pool regularly. This is the next
+	// time we should call it
+	time_point m_next_close_oldest_file = min_time();
+
 	// LRU cache of open files
 	aux::file_view_pool m_file_pool;
 
@@ -1407,6 +1411,21 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 							st->tick();
 							l2.lock();
 						}
+					}
+				}
+
+				if (now > m_next_close_oldest_file)
+				{
+					seconds const interval(m_settings.get_int(settings_pack::close_file_interval));
+					if (interval <= seconds(0))
+					{
+						// check again in one minute, in case the setting changed
+						m_next_close_oldest_file = now + minutes(1);
+					}
+					else
+					{
+						m_next_close_oldest_file = now + interval;
+						m_file_pool.close_oldest();
 					}
 				}
 			}

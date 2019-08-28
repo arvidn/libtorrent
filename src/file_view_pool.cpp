@@ -113,7 +113,7 @@ namespace libtorrent { namespace aux {
 		{
 			// the file cache is at its maximum size, close
 			// the least recently used file
-			remove_oldest(l);
+			defer_destruction = remove_oldest(l);
 		}
 
 		l.unlock();
@@ -234,6 +234,9 @@ namespace {
 
 	void file_view_pool::resize(int const size)
 	{
+		// these are destructed _after_ the mutex is released
+		std::vector<std::shared_ptr<file_mapping>> defer_destruction;
+
 		std::unique_lock<std::mutex> l(m_mutex);
 
 		TORRENT_ASSERT(size > 0);
@@ -244,7 +247,17 @@ namespace {
 
 		// close the least recently used files
 		while (int(m_files.size()) > m_size)
-			remove_oldest(l);
+			defer_destruction.emplace_back(remove_oldest(l));
+	}
+
+	void file_view_pool::close_oldest()
+	{
+		// closing a file may be long running operation (mac os x)
+		// destruct it after the mutex is released
+		std::shared_ptr<file_mapping> deferred_destruction;
+
+		std::unique_lock<std::mutex> l(m_mutex);
+		deferred_destruction = remove_oldest(l);
 	}
 }
 }
