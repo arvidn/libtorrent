@@ -186,7 +186,7 @@ void traversal_algorithm::add_entry(node_id const& id
 		{
 			// this IP restriction does not apply to the nodes we loaded from out
 			// node cache
-			if (m_node.settings().restrict_search_ips
+			if (m_node.settings().get_bool(settings_pack::dht_restrict_search_ips)
 				&& !(flags & observer::flag_initial))
 			{
 				if (o->target_addr().is_v6())
@@ -484,7 +484,7 @@ bool traversal_algorithm::add_requests()
 	// if we're doing aggressive lookups, we keep branch-factor
 	// outstanding requests _at the tops_ of the result list. Otherwise
 	// we just keep any branch-factor outstanding requests
-	bool const agg = m_node.settings().aggressive_lookups;
+	bool const agg = m_node.settings().get_bool(settings_pack::dht_aggressive_lookups);
 
 	// Find the first node that hasn't already been queried.
 	// and make sure that the 'm_branch_factor' top nodes

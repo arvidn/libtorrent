@@ -76,11 +76,11 @@ namespace {
 		container.erase(i);
 	}
 
-	bool verify_node_address(dht::settings const& settings
+	bool verify_node_address(aux::session_settings const& settings
 		, node_id const& id, address const& addr)
 	{
 		// only when the node_id pass the verification, add it to routing table.
-		return !settings.enforce_node_id || verify_id(id, addr);
+		return !settings.get_bool(settings_pack::dht_enforce_node_id) || verify_id(id, addr);
 	}
 }
 
@@ -249,7 +249,7 @@ routing_table::add_node_status_t replace_node_impl(node_entry const& e
 }
 
 routing_table::routing_table(node_id const& id, udp const proto, int const bucket_size
-	, dht::settings const& settings
+	, aux::session_settings const& settings
 	, dht_logger* log)
 	:
 #ifndef TORRENT_DISABLE_LOGGING
@@ -270,7 +270,7 @@ routing_table::routing_table(node_id const& id, udp const proto, int const bucke
 
 int routing_table::bucket_limit(int bucket) const
 {
-	if (!m_settings.extended_routing_table) return m_bucket_size;
+	if (!m_settings.get_bool(settings_pack::dht_extended_routing_table)) return m_bucket_size;
 
 	static const aux::array<int, 4> size_exceptions{{{16, 8, 4, 2}}};
 	if (bucket < size_exceptions.end_index())
@@ -662,7 +662,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			// table. There could be a node with the same IP, but with a different
 			// port. m_ips just contain IP addresses, whereas the lookup we just
 			// performed was for full endpoints (address, port).
-			if (m_settings.restrict_routing_ips)
+			if (m_settings.get_bool(settings_pack::dht_restrict_routing_ips))
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
@@ -701,7 +701,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			// this may be a routing table poison attack. If we haven't confirmed
 			// that this peer actually exist with this new node ID yet, ignore it.
 			// we definitely don't want to replace the existing entry with this one
-			if (m_settings.restrict_routing_ips)
+			if (m_settings.get_bool(settings_pack::dht_restrict_routing_ips))
 				return failed_to_add;
 		}
 		else
@@ -788,7 +788,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		rb.erase(j);
 	}
 
-	if (m_settings.restrict_routing_ips)
+	if (m_settings.get_bool(settings_pack::dht_restrict_routing_ips))
 	{
 		// don't allow multiple entries from IPs very close to each other
 		address const& cmp = e.addr();
@@ -844,7 +844,7 @@ ip_ok:
 	// same bucket, splitting isn't going to do anything.
 	bool const can_split = (std::next(i) == m_buckets.end()
 		&& m_buckets.size() < 159)
-		&& (m_settings.prefer_verified_node_ids == false
+		&& (m_settings.get_bool(settings_pack::dht_prefer_verified_node_ids) == false
 			|| (e.verified && mostly_verified_nodes(b)))
 		&& e.confirmed()
 		&& (i == m_buckets.begin() || std::prev(i)->live_nodes.size() > 1)
@@ -1066,7 +1066,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 
 		// if this node has failed too many times, or if this node
 		// has never responded at all, remove it
-		if (j->fail_count() >= m_settings.max_fail_count || !j->pinged())
+		if (j->fail_count() >= m_settings.get_int(settings_pack::dht_max_fail_count) || !j->pinged())
 		{
 			m_ips.erase(j->addr());
 			b.erase(j);

@@ -90,7 +90,7 @@ namespace libtorrent { namespace dht {
 	dht_tracker::dht_tracker(dht_observer* observer
 		, io_context& ios
 		, send_fun_t const& send_fun
-		, dht::settings const& settings
+		, aux::session_settings const& settings
 		, counters& cnt
 		, dht_storage_interface& storage
 		, dht_state&& state)
@@ -104,12 +104,12 @@ namespace libtorrent { namespace dht {
 		, m_settings(settings)
 		, m_running(false)
 		, m_host_resolver(ios)
-		, m_send_quota(settings.upload_rate_limit)
+		, m_send_quota(settings.get_int(settings_pack::dht_upload_rate_limit))
 		, m_last_tick(aux::time_now())
 		, m_ioc(ios)
 	{
-		m_blocker.set_block_timer(m_settings.block_timeout);
-		m_blocker.set_rate_limit(m_settings.block_ratelimit);
+		m_blocker.set_block_timer(m_settings.get_int(settings_pack::dht_block_timeout));
+		m_blocker.set_rate_limit(m_settings.get_int(settings_pack::dht_block_ratelimit));
 	}
 
 	void dht_tracker::update_node_id(aux::listen_socket_handle const& s)
@@ -276,8 +276,8 @@ namespace libtorrent { namespace dht {
 			n.second.dht.tick();
 
 		// periodically update the DOS blocker's settings from the dht_settings
-		m_blocker.set_block_timer(m_settings.block_timeout);
-		m_blocker.set_rate_limit(m_settings.block_ratelimit);
+		m_blocker.set_block_timer(m_settings.get_int(settings_pack::dht_block_timeout));
+		m_blocker.set_rate_limit(m_settings.get_int(settings_pack::dht_block_ratelimit));
 
 		m_refresh_timer.expires_after(seconds(5));
 		ADD_OUTSTANDING_ASYNC("dht_tracker::refresh_timeout");
@@ -519,7 +519,7 @@ namespace libtorrent { namespace dht {
 			, is_v6(ep) ? 48 : 28);
 		m_counters.inc_stats_counter(counters::dht_messages_in);
 
-		if (m_settings.ignore_dark_internet && is_v4(ep))
+		if (m_settings.get_bool(settings_pack::dht_ignore_dark_internet) && is_v4(ep))
 		{
 			address_v4::bytes_type b = ep.address().to_v4().to_bytes();
 
@@ -577,7 +577,7 @@ namespace libtorrent { namespace dht {
 
 	dht_tracker::tracker_node::tracker_node(io_context& ios
 		, aux::listen_socket_handle const& s, socket_manager* sock
-		, dht::settings const& settings
+		, aux::session_settings const& settings
 		, node_id const& nid
 		, dht_observer* observer, counters& cnt
 		, get_foreign_node_t get_foreign_node
@@ -649,12 +649,12 @@ namespace libtorrent { namespace dht {
 		m_last_tick = now;
 
 		// add any new quota we've accrued since last time
-		m_send_quota += int(std::int64_t(m_settings.upload_rate_limit)
+		m_send_quota += int(std::int64_t(m_settings.get_int(settings_pack::dht_upload_rate_limit))
 			* total_microseconds(delta) / 1000000);
 
 		// allow 3 seconds worth of burst
-		if (m_send_quota > 3 * m_settings.upload_rate_limit)
-			m_send_quota = 3 * m_settings.upload_rate_limit;
+		if (m_send_quota > 3 * m_settings.get_int(settings_pack::dht_upload_rate_limit))
+			m_send_quota = 3 * m_settings.get_int(settings_pack::dht_upload_rate_limit);
 
 		return m_send_quota > 0;
 	}
