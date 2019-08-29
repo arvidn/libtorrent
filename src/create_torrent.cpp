@@ -294,7 +294,14 @@ namespace {
 		}
 
 		counters cnt;
-		disk_io_thread disk_thread(ios, cnt);
+		aux::session_settings sett;
+
+		sett.set_int(settings_pack::cache_size, 0);
+		int const num_threads = disk_io_thread::hasher_thread_divisor - 1;
+		int const jobs_per_thread = 4;
+		sett.set_int(settings_pack::aio_threads, num_threads);
+
+		disk_io_thread disk_thread(ios, sett, cnt);
 		disk_aborter da(disk_thread);
 
 		aux::vector<download_priority_t, file_index_t> priorities;
@@ -310,14 +317,6 @@ namespace {
 
 		storage_holder storage = disk_thread.new_torrent(default_storage_constructor
 			, params, std::shared_ptr<void>());
-
-		settings_pack sett;
-		sett.set_int(settings_pack::cache_size, 0);
-		int const num_threads = disk_io_thread::hasher_thread_divisor - 1;
-		int const jobs_per_thread = 4;
-		sett.set_int(settings_pack::aio_threads, num_threads);
-
-		disk_thread.set_settings(&sett);
 
 		int const piece_read_ahead = std::max(num_threads * jobs_per_thread
 			, default_block_size / t.piece_length());

@@ -279,7 +279,7 @@ namespace aux { struct block_cache_reference; }
 		, disk_interface
 		, buffer_allocator_interface
 	{
-		disk_io_thread(io_service& ios, counters& cnt);
+		disk_io_thread(io_service& ios, aux::session_settings const&, counters&);
 #if TORRENT_USE_ASSERTS
 		~disk_io_thread();
 #endif
@@ -290,7 +290,7 @@ namespace aux { struct block_cache_reference; }
 			hasher_thread_divisor = 4
 		};
 
-		void set_settings(settings_pack const* sett);
+		void settings_updated();
 
 		void abort(bool wait);
 
@@ -517,7 +517,7 @@ namespace aux { struct block_cache_reference; }
 		job_queue m_hash_io_jobs;
 		disk_io_thread_pool m_hash_threads;
 
-		aux::session_settings m_settings;
+		aux::session_settings const& m_settings;
 
 		// the last time we expired write blocks from the cache
 		time_point m_last_cache_expiry = min_time();

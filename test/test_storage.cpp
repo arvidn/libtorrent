@@ -487,10 +487,9 @@ void test_check_files(std::string const& test_path
 	boost::asio::io_service ios;
 	counters cnt;
 
-	disk_io_thread io(ios, cnt);
-	settings_pack sett;
+	aux::session_settings sett;
 	sett.set_int(settings_pack::aio_threads, 1);
-	io.set_settings(&sett);
+	disk_io_thread io(ios, sett, cnt);
 
 	disk_buffer_pool dp(ios, std::bind(&nop));
 
