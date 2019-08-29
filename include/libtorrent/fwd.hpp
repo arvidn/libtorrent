@@ -248,6 +248,7 @@ struct utp_status;
 struct session_status;
 
 // include/libtorrent/settings_pack.hpp
+struct settings_interface;
 struct settings_pack;
 
 // include/libtorrent/torrent_handle.hpp
@@ -264,7 +265,7 @@ TORRENT_VERSION_NAMESPACE_2
 struct torrent_status;
 TORRENT_VERSION_NAMESPACE_2_END
 
-#if TORRENT_ABI_VERSION == 1
+#if TORRENT_ABI_VERSION <= 2
 
 // include/libtorrent/alert_types.hpp
 TORRENT_VERSION_NAMESPACE_2

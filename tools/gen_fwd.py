@@ -129,7 +129,7 @@ with open('include/libtorrent/fwd.hpp', 'w+') as f:
 
     print_classes(f, classes, 'TORRENT_EXPORT')
 
-    f.write('\n#if TORRENT_ABI_VERSION == 1\n')
+    f.write('\n#if TORRENT_ABI_VERSION <= 2\n')
 
     print_classes(f, classes, 'TORRENT_DEPRECATED_EXPORT')
 
