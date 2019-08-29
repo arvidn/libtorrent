@@ -56,7 +56,11 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 namespace libtorrent {
 
-	namespace aux { struct session_impl; struct session_settings; }
+namespace aux {
+	struct session_impl;
+	struct session_settings;
+	struct session_settings_single_thread;
+}
 
 	struct settings_pack;
 	struct bdecode_node;
@@ -65,6 +69,9 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett);
 	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett
 		, aux::session_impl* ses = nullptr);
+	TORRENT_EXTRA_EXPORT void apply_pack_impl(settings_pack const* pack
+		, aux::session_settings_single_thread& sett
+		, std::vector<void(aux::session_impl::*)()>* callbacks = nullptr);
 	TORRENT_EXTRA_EXPORT void run_all_updates(aux::session_impl& ses);
 
 	TORRENT_EXPORT int setting_by_name(string_view name);
@@ -84,7 +91,9 @@ namespace libtorrent {
 	//
 	struct TORRENT_EXPORT settings_pack
 	{
-		friend TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
+		friend TORRENT_EXTRA_EXPORT void apply_pack_impl(settings_pack const*
+			, aux::session_settings_single_thread&
+			, std::vector<void(aux::session_impl::*)()>*);
 
 		settings_pack() = default;
 		settings_pack(settings_pack const&) = default;

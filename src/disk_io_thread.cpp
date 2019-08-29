@@ -207,16 +207,17 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 // ------- disk_io_thread ------
 
-	disk_io_thread::disk_io_thread(io_service& ios, counters& cnt)
+	disk_io_thread::disk_io_thread(io_service& ios, aux::session_settings const& sett, counters& cnt)
 		: m_generic_io_jobs(*this)
 		, m_generic_threads(m_generic_io_jobs, ios)
 		, m_hash_io_jobs(*this)
 		, m_hash_threads(m_hash_io_jobs, ios)
+		, m_settings(sett)
 		, m_disk_cache(ios, std::bind(&disk_io_thread::trigger_cache_trim, this))
 		, m_stats_counters(cnt)
 		, m_ios(ios)
 	{
-		m_disk_cache.set_settings(m_settings);
+		settings_updated();
 	}
 
 	storage_interface* disk_io_thread::get_torrent(storage_index_t const storage)
@@ -333,11 +334,10 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		}
 	}
 
-	void disk_io_thread::set_settings(settings_pack const* pack)
+	void disk_io_thread::settings_updated()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		std::unique_lock<std::mutex> l(m_cache_mutex);
-		apply_pack(pack, m_settings);
 		m_disk_cache.set_settings(m_settings);
 		m_file_pool.resize(m_settings.get_int(settings_pack::file_pool_size));
 
