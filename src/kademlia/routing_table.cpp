@@ -479,8 +479,8 @@ bool compare_ip_cidr(address const& lhs, address const& rhs)
 	}
 }
 
-node_entry* routing_table::find_node(udp::endpoint const& ep
-	, routing_table::table_t::iterator* bucket)
+std::tuple<node_entry*, routing_table::table_t::iterator, bucket_t*>
+routing_table::find_node(udp::endpoint const& ep)
 {
 	for (auto i = m_buckets.begin() , end(m_buckets.end()); i != end; ++i)
 	{
@@ -488,19 +488,17 @@ node_entry* routing_table::find_node(udp::endpoint const& ep
 		{
 			if (j->addr() != ep.address()) continue;
 			if (j->port() != ep.port()) continue;
-			*bucket = i;
-			return &*j;
+			return std::make_tuple(&*j, i, &i->replacements);
 		}
 		for (auto j = i->live_nodes.begin(); j != i->live_nodes.end(); ++j)
 		{
 			if (j->addr() != ep.address()) continue;
 			if (j->port() != ep.port()) continue;
-			*bucket = i;
-			return &*j;
+			return std::make_tuple(&*j, i, &i->live_nodes);
 		}
 	}
-	*bucket = m_buckets.end();
-	return nullptr;
+	return std::tuple<node_entry*, routing_table::table_t::iterator, bucket_t*>(
+		nullptr, m_buckets.end(), nullptr);
 }
 
 // TODO: this need to take bucket "prefix" into account. It should be unified
@@ -535,26 +533,14 @@ void routing_table::prune_empty_bucket()
 	}
 }
 
-void routing_table::remove_node_internal(node_entry* n, bucket_t& b)
+void routing_table::remove_node(node_entry* n, bucket_t* b)
 {
-	if (!b.empty()
-		&& n >= &b[0]
-		&& n < &b[0] + b.size())
-	{
-		std::ptrdiff_t const idx = n - &b[0];
-		TORRENT_ASSERT(m_ips.exists(n->addr()));
-		m_ips.erase(n->addr());
-		b.erase(b.begin() + idx);
-	}
-	}
-
-void routing_table::remove_node(node_entry* n
-	, routing_table::table_t::iterator bucket)
-{
-	INVARIANT_CHECK;
-
-	remove_node_internal(n, bucket->replacements);
-	remove_node_internal(n, bucket->live_nodes);
+	std::ptrdiff_t const idx = n - b->data();
+	TORRENT_ASSERT(idx >= 0);
+	TORRENT_ASSERT(idx < intptr_t(b->size()));
+	TORRENT_ASSERT(m_ips.exists(n->addr()));
+	m_ips.erase(n->addr());
+	b->erase(b->begin() + idx);
 }
 
 bool routing_table::add_node(node_entry const& e)
@@ -645,8 +631,10 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		// a response with a correct transaction ID, i.e. it is verified to not
 		// be the result of a poisoned routing table
 
-		table_t::iterator existing_bucket;
-		node_entry* existing = find_node(e.ep(), &existing_bucket);
+		node_entry * existing;
+		routing_table::table_t::iterator existing_bucket;
+		bucket_t* bucket;
+		std::tie(existing, existing_bucket, bucket) = find_node(e.ep());
 		if (existing == nullptr)
 		{
 			// the node we're trying to add is not a match with an existing node. we
@@ -686,7 +674,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		{
 			// this node's ID was unknown. remove the old entry and
 			// replace it with the node's real ID
-			remove_node(existing, existing_bucket);
+			remove_node(existing, bucket);
 		}
 		else if (!e.pinged())
 		{
@@ -709,7 +697,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			}
 #endif
 
-			remove_node(existing, existing_bucket);
+			remove_node(existing, bucket);
 			fill_from_replacements(existing_bucket);
 
 			// when we detect possible malicious activity in a bucket,
