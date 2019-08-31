@@ -17,6 +17,7 @@
 
 1.2.2 release
 
+	* fix regression in &left= reporting when adding a seeding torrent
 	* fix integer overflow in http parser
 	* improve sanitation of symlinks, to support more complex link targets
 	* add DHT routing table affinity for BEP 42 nodes

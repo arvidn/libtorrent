@@ -3565,7 +3565,7 @@ bool is_downloading_state(int const st)
 		if (!valid_metadata()) return {};
 		TORRENT_ASSERT(m_torrent_file->num_pieces() > 0);
 		if (m_seed_mode) return std::int64_t(0);
-		if (!has_picker()) return m_seed_mode ? std::int64_t(0) : m_torrent_file->total_size();
+		if (!has_picker()) return is_seed() ? std::int64_t(0) : m_torrent_file->total_size();
 
 		std::int64_t left
 			= m_torrent_file->total_size()

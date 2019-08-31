@@ -42,7 +42,7 @@ namespace libtorrent
 
 }
 
-inline lt::download_priority_t operator ""_pri(unsigned long long const p)
+inline lt::download_priority_t operator "" _pri(unsigned long long const p)
 {
 	return lt::download_priority_t(static_cast<std::uint8_t>(p));
 }

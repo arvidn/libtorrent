@@ -970,7 +970,8 @@ namespace aux {
 				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
 			{
 				// the next item we parse is the opposite
-				stack[current_frame - 1].state = ~stack[current_frame - 1].state;
+				// state is an unsigned 1-bit member. adding 1 will flip the bit
+				stack[current_frame - 1].state = (stack[current_frame - 1].state + 1) & 1;
 			}
 
 			// this terminates the top level node, we're done!

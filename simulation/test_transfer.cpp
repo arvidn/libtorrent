@@ -435,3 +435,4 @@ TORRENT_TEST(v1_only_magnet)
 	);
 	TEST_EQUAL(passed.size(), 10);
 }
+
