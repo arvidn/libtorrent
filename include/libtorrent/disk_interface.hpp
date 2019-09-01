@@ -211,7 +211,7 @@ namespace file_open_mode {
 
 		virtual void abort(bool wait) = 0;
 		virtual void submit_jobs() = 0;
-		virtual void set_settings(settings_pack const* sett) = 0;
+		virtual void settings_updated() = 0;
 
 		virtual ~disk_interface() {}
 	};

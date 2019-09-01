@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include <random>
 #include <cstring>
 #include <thread>
@@ -870,7 +871,8 @@ void generate_data(char const* path, torrent_info const& ti)
 {
 	io_context ios;
 	counters stats_counters;
-	std::unique_ptr<lt::disk_interface> disk = default_disk_io_constructor(ios, stats_counters);
+	settings_pack sett = default_settings();
+	std::unique_ptr<lt::disk_interface> disk = default_disk_io_constructor(ios, sett, stats_counters);
 
 	file_storage const& fs = ti.files();
 

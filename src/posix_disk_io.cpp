@@ -69,15 +69,17 @@ namespace {
 		: disk_interface
 		, buffer_allocator_interface
 	{
-		posix_disk_io(io_context& ios, counters& cnt)
-			: m_buffer_pool(ios)
+		posix_disk_io(io_context& ios, settings_interface const& sett, counters& cnt)
+			: m_settings(sett)
+			, m_buffer_pool(ios)
 			, m_stats_counters(cnt)
 			, m_ios(ios)
-		{}
-
-		void set_settings(settings_pack const* pack) override
 		{
-			apply_pack(pack, m_settings);
+			settings_updated();
+		}
+
+		void settings_updated() override
+		{
 			m_buffer_pool.set_settings(m_settings);
 		}
 
@@ -390,7 +392,7 @@ namespace {
 		// slots that are unused in the m_torrents vector
 		std::vector<storage_index_t> m_free_slots;
 
-		aux::session_settings m_settings;
+		settings_interface const& m_settings;
 
 		// disk cache
 		disk_buffer_pool m_buffer_pool;
@@ -402,9 +404,9 @@ namespace {
 	};
 
 	TORRENT_EXPORT std::unique_ptr<disk_interface> posix_disk_io_constructor(
-		io_context& ios, counters& cnt)
+		io_context& ios, settings_interface const& sett, counters& cnt)
 	{
-		return std::make_unique<posix_disk_io>(ios, cnt);
+		return std::make_unique<posix_disk_io>(ios, sett, cnt);
 	}
 }
 

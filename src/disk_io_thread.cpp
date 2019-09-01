@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
 
@@ -153,12 +153,12 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 	, disk_interface
 	, buffer_allocator_interface
 {
-	disk_io_thread(io_context& ios, counters& cnt);
+	disk_io_thread(io_context& ios, settings_interface const&, counters& cnt);
 #if TORRENT_USE_ASSERTS
 	~disk_io_thread() override;
 #endif
 
-	void set_settings(settings_pack const* sett) override;
+	void settings_updated() override;
 	storage_holder new_torrent(storage_params params
 		, std::shared_ptr<void> const& torrent) override;
 	void remove_torrent(storage_index_t) override;
@@ -314,10 +314,10 @@ private:
 	// synchronize with the writing thread(s)
 	aux::store_buffer m_store_buffer;
 
-	aux::session_settings m_settings;
+	settings_interface const& m_settings;
 
 	// LRU cache of open files
-	aux::file_view_pool m_file_pool{40};
+	aux::file_view_pool m_file_pool;
 
 	// disk cache
 	disk_buffer_pool m_buffer_pool;
@@ -371,23 +371,25 @@ private:
 };
 
 TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
-	io_context& ios, counters& cnt)
+	io_context& ios, settings_interface const& sett, counters& cnt)
 {
-	return std::make_unique<disk_io_thread>(ios, cnt);
+	return std::make_unique<disk_io_thread>(ios, sett, cnt);
 }
 
 // ------- disk_io_thread ------
 
-	disk_io_thread::disk_io_thread(io_context& ios, counters& cnt)
+	disk_io_thread::disk_io_thread(io_context& ios, settings_interface const& sett, counters& cnt)
 		: m_generic_io_jobs(*this)
 		, m_generic_threads(m_generic_io_jobs, ios)
 		, m_hash_io_jobs(*this)
 		, m_hash_threads(m_hash_io_jobs, ios)
+		, m_settings(sett)
+		, m_file_pool(sett.get_int(settings_pack::file_pool_size))
 		, m_buffer_pool(ios)
 		, m_stats_counters(cnt)
 		, m_ios(ios)
 	{
-		m_buffer_pool.set_settings(m_settings);
+		settings_updated();
 	}
 
 	std::vector<open_file_state> disk_io_thread::get_status(storage_index_t const st) const
@@ -468,10 +470,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		m_hash_threads.abort(wait);
 	}
 
-	void disk_io_thread::set_settings(settings_pack const* pack)
+	void disk_io_thread::settings_updated()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		apply_pack(pack, m_settings);
 		m_buffer_pool.set_settings(m_settings);
 		m_file_pool.resize(m_settings.get_int(settings_pack::file_pool_size));
 

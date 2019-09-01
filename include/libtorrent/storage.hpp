@@ -88,14 +88,14 @@ namespace aux {
 		~default_storage();
 
 		bool has_any_file(storage_error& ec);
-		void set_file_priority(aux::session_settings const&
+		void set_file_priority(settings_interface const&
 			, aux::vector<download_priority_t, file_index_t>& prio
 			, storage_error& ec);
 		void rename_file(file_index_t index, std::string const& new_filename
 			, storage_error& ec);
 		void release_files(storage_error& ec);
 		void delete_files(remove_flags_t options, storage_error& ec);
-		void initialize(aux::session_settings const&, storage_error& ec);
+		void initialize(settings_interface const&, storage_error& ec);
 		std::pair<status_t, std::string> move_storage(std::string save_path
 			, move_flags_t flags, storage_error& ec);
 		bool verify_resume_data(add_torrent_params const& rd
@@ -103,14 +103,14 @@ namespace aux {
 			, storage_error& error);
 		bool tick();
 
-		int readv(aux::session_settings const&, span<iovec_t const> bufs
+		int readv(settings_interface const&, span<iovec_t const> bufs
 			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error& ec);
-		int writev(aux::session_settings const&, span<iovec_t const> bufs
+		int writev(settings_interface const&, span<iovec_t const> bufs
 			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error& ec);
-		int hashv(aux::session_settings const&, hasher& ph, std::ptrdiff_t len
+		int hashv(settings_interface const&, hasher& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t flags
 			, storage_error& ec);
-		int hashv2(aux::session_settings const&, hasher256& ph, std::ptrdiff_t len
+		int hashv2(settings_interface const&, hasher256& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error& ec);
 
 		// if the files in this storage are mapped, returns the mapped
@@ -162,9 +162,9 @@ namespace aux {
 		mutable stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
-		boost::optional<aux::file_view> open_file(aux::session_settings const&, file_index_t
+		boost::optional<aux::file_view> open_file(settings_interface const&, file_index_t
 			, aux::open_mode_t, storage_error&) const;
-		boost::optional<aux::file_view> open_file_impl(aux::session_settings const&
+		boost::optional<aux::file_view> open_file_impl(settings_interface const&
 			, file_index_t, aux::open_mode_t, error_code&) const;
 
 		bool use_partfile(file_index_t index) const;

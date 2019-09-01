@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/settings_pack.hpp" // for settings_interface
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/platform_util.hpp" // for total_physical_ram
@@ -196,7 +196,7 @@ namespace libtorrent {
 		check_buffer_level(l);
 	}
 
-	void disk_buffer_pool::set_settings(aux::session_settings const& sett)
+	void disk_buffer_pool::set_settings(settings_interface const& sett)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 

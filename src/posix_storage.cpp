@@ -31,8 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/path.hpp" // for bufs_size
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
@@ -142,7 +142,7 @@ namespace aux {
 		}
 	}
 
-	int posix_storage::readv(session_settings const&
+	int posix_storage::readv(settings_interface const&
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
 		, storage_error& error)
@@ -215,7 +215,7 @@ namespace aux {
 		});
 	}
 
-	int posix_storage::writev(session_settings const&
+	int posix_storage::writev(settings_interface const&
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
 		, storage_error& error)
@@ -384,7 +384,7 @@ namespace aux {
 		m_mapped_files->rename_file(index, new_filename);
 	}
 
-	void posix_storage::initialize(aux::session_settings const&, storage_error& ec)
+	void posix_storage::initialize(settings_interface const&, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 

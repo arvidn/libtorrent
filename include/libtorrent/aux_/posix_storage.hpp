@@ -56,12 +56,12 @@ namespace aux {
 		file_storage const& orig_files() const { return m_files; }
 		~posix_storage();
 
-		int readv(aux::session_settings const& sett
+		int readv(settings_interface const& sett
 			, span<iovec_t const> bufs
 			, piece_index_t const piece, int const offset
 			, storage_error& error);
 
-		int writev(aux::session_settings const& sett
+		int writev(settings_interface const& sett
 			, span<iovec_t const> bufs
 			, piece_index_t const piece, int const offset
 			, storage_error& error);
@@ -82,7 +82,7 @@ namespace aux {
 
 		void rename_file(file_index_t const index, std::string const& new_filename, storage_error& ec);
 
-		void initialize(aux::session_settings const&, storage_error& ec);
+		void initialize(settings_interface const&, storage_error& ec);
 
 	private:
 

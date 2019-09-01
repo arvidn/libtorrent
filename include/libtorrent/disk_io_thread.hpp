@@ -44,10 +44,11 @@ namespace libtorrent {
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 	struct counters;
+	struct settings_interface;
 
 	// constructs a memory mapped file disk I/O object.
 	TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
-		io_context& ios, counters& cnt);
+		io_context& ios, settings_interface const&, counters& cnt);
 
 #endif // HAVE_MMAP || HAVE_MAP_VIEW_OF_FILE
 

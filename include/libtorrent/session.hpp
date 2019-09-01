@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_handle.hpp"
-#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/kademlia/dht_storage.hpp"
 
@@ -95,12 +94,13 @@ namespace aux {
 
 	struct disk_interface;
 	struct counters;
+	struct settings_interface;
 
 	// the constructor function for the default storage. On systems that support
 	// memory mapped files (and a 64 bit address space) the memory mapped storage
 	// will be constructed, otherwise the portable posix storage.
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
-		io_context& ios, counters& cnt);
+		io_context& ios, settings_interface const&, counters& cnt);
 
 	// this is a holder for the internal session implementation object. Once the
 	// session destruction is explicitly initiated, this holder is used to
@@ -132,7 +132,7 @@ namespace aux {
 	};
 
 	using disk_io_constructor_type = std::function<std::unique_ptr<disk_interface>(
-		io_context&, counters&)>;
+		io_context&, settings_interface const&, counters&)>;
 
 TORRENT_VERSION_NAMESPACE_3
 

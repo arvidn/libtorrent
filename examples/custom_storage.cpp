@@ -150,7 +150,7 @@ struct temp_disk_io final : lt::disk_interface
 {
 	explicit temp_disk_io(lt::io_context& ioc): m_ioc(ioc) {}
 
-	void set_settings(lt::settings_pack const*) override {}
+	void settings_updated() override {}
 
 	lt::storage_holder new_torrent(lt::storage_params params
 		, std::shared_ptr<void> const&) override
@@ -298,7 +298,7 @@ private:
 };
 
 std::unique_ptr<lt::disk_interface> temp_disk_constructor(
-	lt::io_context& ioc, lt::counters&)
+	lt::io_context& ioc, lt::settings_interface const&, lt::counters&)
 {
 	return std::make_unique<temp_disk_io>(ioc);
 }

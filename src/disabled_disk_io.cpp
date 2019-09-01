@@ -72,7 +72,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 
 	void abort(bool) override {}
 
-	void set_settings(settings_pack const*) override {}
+	void settings_updated() override {}
 
 	void async_read(storage_index_t, peer_request const& r
 		, std::function<void(disk_buffer_holder, storage_error const&)> handler
@@ -198,7 +198,7 @@ private:
 };
 
 std::unique_ptr<disk_interface> disabled_disk_io_constructor(
-	io_context& ios, counters& cnt)
+	io_context& ios, settings_interface const&, counters& cnt)
 {
 	return std::make_unique<disabled_disk_io>(ios, cnt);
 }

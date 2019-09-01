@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 #include <algorithm>
 
@@ -424,7 +425,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 					for (int k = 0; k < int_settings.end_index(); ++k)
 					{
 						if (key != int_settings[k].name) continue;
-						pack.set_int(settings_pack::int_type_base + k, int(val.int_value()));
+						pack.set_int(settings_pack::int_type_base | k, int(val.int_value()));
 						found = true;
 						break;
 					}
@@ -432,7 +433,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 					for (int k = 0; k < bool_settings.end_index(); ++k)
 					{
 						if (key != bool_settings[k].name) continue;
-						pack.set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
+						pack.set_bool(settings_pack::bool_type_base | k, val.int_value() != 0);
 						break;
 					}
 				}
@@ -452,26 +453,29 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		return pack;
 	}
 
-	void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett)
+	void save_settings_to_dict(aux::session_settings const& sett, entry::dictionary_type& out)
 	{
+		sett.bulk_get([&out](aux::session_settings_single_thread const& s)
+		{
 		// loop over all settings that differ from default
-		for (int i = 0; i < settings_pack::num_string_settings; ++i)
-		{
-			if (ensure_string(str_settings[i].default_value) == s.m_strings[std::size_t(i)]) continue;
-			sett[str_settings[i].name] = s.m_strings[std::size_t(i)];
-		}
+			for (int i = 0; i < settings_pack::num_string_settings; ++i)
+			{
+				if (ensure_string(str_settings[i].default_value) == s.get_str(i | settings_pack::string_type_base)) continue;
+				out[str_settings[i].name] = s.get_str(i | settings_pack::string_type_base);
+			}
 
-		for (int i = 0; i < settings_pack::num_int_settings; ++i)
-		{
-			if (int_settings[i].default_value == s.m_ints[std::size_t(i)]) continue;
-			sett[int_settings[i].name] = s.m_ints[std::size_t(i)];
-		}
+			for (int i = 0; i < settings_pack::num_int_settings; ++i)
+			{
+				if (int_settings[i].default_value == s.get_int(i | settings_pack::int_type_base)) continue;
+				out[int_settings[i].name] = s.get_int(i | settings_pack::int_type_base);
+			}
 
-		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
-		{
-			if (bool_settings[i].default_value == s.m_bools[std::size_t(i)]) continue;
-			sett[bool_settings[i].name] = s.m_bools[std::size_t(i)];
-		}
+			for (int i = 0; i < settings_pack::num_bool_settings; ++i)
+			{
+				if (bool_settings[i].default_value == s.get_bool(i | settings_pack::bool_type_base)) continue;
+				out[bool_settings[i].name] = s.get_bool(i | settings_pack::bool_type_base);
+			}
+		});
 	}
 
 	void run_all_updates(aux::session_impl& ses)
@@ -496,24 +500,24 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		}
 	}
 
-	void initialize_default_settings(aux::session_settings& s)
+	void initialize_default_settings(aux::session_settings_single_thread& s)
 	{
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
 			if (str_settings[i].default_value == nullptr) continue;
-			s.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
+			s.set_str(settings_pack::string_type_base | i, str_settings[i].default_value);
 			TORRENT_ASSERT(s.get_str(settings_pack::string_type_base + i) == str_settings[i].default_value);
 		}
 
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
 		{
-			s.set_int(settings_pack::int_type_base + i, int_settings[i].default_value);
+			s.set_int(settings_pack::int_type_base | i, int_settings[i].default_value);
 			TORRENT_ASSERT(s.get_int(settings_pack::int_type_base + i) == int_settings[i].default_value);
 		}
 
 		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
 		{
-			s.set_bool(settings_pack::bool_type_base + i, bool_settings[i].default_value);
+			s.set_bool(settings_pack::bool_type_base | i, bool_settings[i].default_value);
 			TORRENT_ASSERT(s.get_bool(settings_pack::bool_type_base + i) == bool_settings[i].default_value);
 		}
 	}
@@ -546,6 +550,22 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		using fun_t = void (aux::session_impl::*)();
 		std::vector<fun_t> callbacks;
 
+		sett.bulk_set([&](aux::session_settings_single_thread& s)
+		{
+			apply_pack_impl(pack, s, ses ? &callbacks : nullptr);
+		});
+
+		// call the callbacks once all the settings have been applied, and
+		// only once per callback
+		for (auto const& f : callbacks)
+		{
+			(ses->*f)();
+		}
+	}
+
+	void apply_pack_impl(settings_pack const* pack, aux::session_settings_single_thread& sett
+		, std::vector<void(aux::session_impl::*)()>* callbacks)
+	{
 		for (auto const& p : pack->m_strings)
 		{
 			// disregard setting indices that are not string types
@@ -564,9 +584,9 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 			sett.set_str(p.first, p.second);
 			str_setting_entry_t const& sa = str_settings[index];
 
-			if (sa.fun && ses
-				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
-				callbacks.push_back(sa.fun);
+			if (sa.fun && callbacks
+				&& std::find(callbacks->begin(), callbacks->end(), sa.fun) == callbacks->end())
+				callbacks->push_back(sa.fun);
 		}
 
 		for (auto const& p : pack->m_ints)
@@ -586,9 +606,9 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 
 			sett.set_int(p.first, p.second);
 			int_setting_entry_t const& sa = int_settings[index];
-			if (sa.fun && ses
-				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
-				callbacks.push_back(sa.fun);
+			if (sa.fun && callbacks
+				&& std::find(callbacks->begin(), callbacks->end(), sa.fun) == callbacks->end())
+				callbacks->push_back(sa.fun);
 		}
 
 		for (auto const& p : pack->m_bools)
@@ -608,16 +628,9 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 
 			sett.set_bool(p.first, p.second);
 			bool_setting_entry_t const& sa = bool_settings[index];
-			if (sa.fun && ses
-				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
-				callbacks.push_back(sa.fun);
-		}
-
-		// call the callbacks once all the settings have been applied, and
-		// only once per callback
-		for (auto const& f : callbacks)
-		{
-			(ses->*f)();
+			if (sa.fun && callbacks
+				&& std::find(callbacks->begin(), callbacks->end(), sa.fun) == callbacks->end())
+				callbacks->push_back(sa.fun);
 		}
 	}
 

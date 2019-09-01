@@ -462,9 +462,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
-		, m_disk_thread(disk_io_constructor
-			? disk_io_constructor(m_io_context, m_stats_counters)
-			: default_disk_io_constructor(m_io_context, m_stats_counters))
+		, m_disk_thread((disk_io_constructor ? disk_io_constructor : default_disk_io_constructor)
+			(m_io_context, m_settings, m_stats_counters))
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
 		, m_host_resolver(m_io_context)
@@ -507,7 +506,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		, m_lsd_announce_timer(m_io_context)
 		, m_close_file_timer(m_io_context)
 	{
-		m_disk_thread->set_settings(&pack);
 	}
 
 	template <typename Fun, typename... Args>
@@ -722,21 +720,24 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			settings = e->dict_find_dict("proxy");
 			if (settings)
 			{
-				bdecode_node val;
-				val = settings.dict_find_int("port");
-				if (val) m_settings.set_int(settings_pack::proxy_port, int(val.int_value()));
-				val = settings.dict_find_int("type");
-				if (val) m_settings.set_int(settings_pack::proxy_type, int(val.int_value()));
-				val = settings.dict_find_int("proxy_hostnames");
-				if (val) m_settings.set_bool(settings_pack::proxy_hostnames, val.int_value() != 0);
-				val = settings.dict_find_int("proxy_peer_connections");
-				if (val) m_settings.set_bool(settings_pack::proxy_peer_connections, val.int_value() != 0);
-				val = settings.dict_find_string("hostname");
-				if (val) m_settings.set_str(settings_pack::proxy_hostname, val.string_value().to_string());
-				val = settings.dict_find_string("password");
-				if (val) m_settings.set_str(settings_pack::proxy_password, val.string_value().to_string());
-				val = settings.dict_find_string("username");
-				if (val) m_settings.set_str(settings_pack::proxy_username, val.string_value().to_string());
+				m_settings.bulk_set([&settings](session_settings_single_thread& s)
+				{
+					bdecode_node val;
+					val = settings.dict_find_int("port");
+					if (val) s.set_int(settings_pack::proxy_port, int(val.int_value()));
+					val = settings.dict_find_int("type");
+					if (val) s.set_int(settings_pack::proxy_type, int(val.int_value()));
+					val = settings.dict_find_int("proxy_hostnames");
+					if (val) s.set_bool(settings_pack::proxy_hostnames, val.int_value() != 0);
+					val = settings.dict_find_int("proxy_peer_connections");
+					if (val) s.set_bool(settings_pack::proxy_peer_connections, val.int_value() != 0);
+					val = settings.dict_find_string("hostname");
+					if (val) s.set_str(settings_pack::proxy_hostname, val.string_value().to_string());
+					val = settings.dict_find_string("password");
+					if (val) s.set_str(settings_pack::proxy_password, val.string_value().to_string());
+					val = settings.dict_find_string("username");
+					if (val) s.set_str(settings_pack::proxy_username, val.string_value().to_string());
+				});
 				need_update_proxy = true;
 			}
 		}
@@ -744,15 +745,18 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		settings = e->dict_find_dict("encryption");
 		if (settings)
 		{
-			bdecode_node val;
-			val = settings.dict_find_int("prefer_rc4");
-			if (val) m_settings.set_bool(settings_pack::prefer_rc4, val.int_value() != 0);
-			val = settings.dict_find_int("out_enc_policy");
-			if (val) m_settings.set_int(settings_pack::out_enc_policy, int(val.int_value()));
-			val = settings.dict_find_int("in_enc_policy");
-			if (val) m_settings.set_int(settings_pack::in_enc_policy, int(val.int_value()));
-			val = settings.dict_find_int("allowed_enc_level");
-			if (val) m_settings.set_int(settings_pack::allowed_enc_level, int(val.int_value()));
+			m_settings.bulk_set([&settings](session_settings_single_thread& s)
+			{
+				bdecode_node val;
+				val = settings.dict_find_int("prefer_rc4");
+				if (val) s.set_bool(settings_pack::prefer_rc4, val.int_value() != 0);
+				val = settings.dict_find_int("out_enc_policy");
+				if (val) s.set_int(settings_pack::out_enc_policy, int(val.int_value()));
+				val = settings.dict_find_int("in_enc_policy");
+				if (val) s.set_int(settings_pack::in_enc_policy, int(val.int_value()));
+				val = settings.dict_find_int("allowed_enc_level");
+				if (val) s.set_int(settings_pack::allowed_enc_level, int(val.int_value()));
+			});
 		}
 #endif
 
@@ -1366,7 +1370,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 
 		apply_pack(&pack, m_settings, this);
-		m_disk_thread->set_settings(&pack);
+		m_disk_thread->settings_updated();
 
 		if (!reopen_listen_port)
 		{

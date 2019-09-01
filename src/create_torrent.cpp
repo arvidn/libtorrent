@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 
 #include <sys/types.h>
@@ -338,7 +339,11 @@ namespace {
 		}
 
 		counters cnt;
-		std::unique_ptr<disk_interface> disk_thread = default_disk_io_constructor(ios, cnt);
+		aux::session_settings sett;
+		int const num_threads = hasher_thread_divisor - 1;
+		int const jobs_per_thread = 4;
+		sett.set_int(settings_pack::aio_threads, num_threads);
+		std::unique_ptr<disk_interface> disk_thread = default_disk_io_constructor(ios, sett, cnt);
 		disk_aborter da(*disk_thread.get());
 
 		aux::vector<download_priority_t, file_index_t> priorities;
@@ -354,13 +359,6 @@ namespace {
 
 		storage_holder storage = disk_thread->new_torrent(std::move(params)
 			, std::shared_ptr<void>());
-
-		settings_pack sett;
-		int const num_threads = hasher_thread_divisor - 1;
-		int const jobs_per_thread = 4;
-		sett.set_int(settings_pack::aio_threads, num_threads);
-
-		disk_thread->set_settings(&sett);
 
 		int const piece_read_ahead = std::max(num_threads * jobs_per_thread
 			, default_block_size / t.piece_length());

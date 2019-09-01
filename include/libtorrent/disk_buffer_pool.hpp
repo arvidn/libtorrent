@@ -51,10 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-namespace aux {
-	struct session_settings;
-}
-
+	struct settings_interface;
 	struct disk_observer;
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool
@@ -76,7 +73,7 @@ namespace aux {
 			return m_in_use;
 		}
 
-		void set_settings(aux::session_settings const& sett);
+		void set_settings(settings_interface const& sett);
 
 	protected:
 

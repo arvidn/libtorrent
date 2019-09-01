@@ -110,7 +110,7 @@ namespace libtorrent {
 			, files().num_pieces(), files().piece_length());
 	}
 
-	void default_storage::set_file_priority(aux::session_settings const& sett
+	void default_storage::set_file_priority(settings_interface const& sett
 		, aux::vector<download_priority_t, file_index_t>& prio
 		, storage_error& ec)
 	{
@@ -228,7 +228,7 @@ namespace libtorrent {
 		m_use_partfile[index] = b;
 	}
 
-	void default_storage::initialize(aux::session_settings const& sett, storage_error& ec)
+	void default_storage::initialize(settings_interface const& sett, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -517,7 +517,7 @@ namespace libtorrent {
 		return { ret, m_save_path };
 	}
 
-	int default_storage::readv(aux::session_settings const& sett
+	int default_storage::readv(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
@@ -596,7 +596,7 @@ namespace libtorrent {
 		});
 	}
 
-	int default_storage::writev(aux::session_settings const& sett
+	int default_storage::writev(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
@@ -671,7 +671,7 @@ namespace libtorrent {
 		});
 	}
 
-	int default_storage::hashv(aux::session_settings const& sett
+	int default_storage::hashv(settings_interface const& sett
 		, hasher& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
@@ -741,7 +741,7 @@ namespace libtorrent {
 		});
 	}
 
-	int default_storage::hashv2(aux::session_settings const& sett
+	int default_storage::hashv2(settings_interface const& sett
 		, hasher256& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
@@ -786,7 +786,7 @@ namespace libtorrent {
 
 	// a wrapper around open_file_impl that, if it fails, makes sure the
 	// directories have been created and retries
-	boost::optional<aux::file_view> default_storage::open_file(aux::session_settings const& sett
+	boost::optional<aux::file_view> default_storage::open_file(settings_interface const& sett
 		, file_index_t const file
 		, aux::open_mode_t mode, storage_error& ec) const
 	{
@@ -844,7 +844,7 @@ namespace libtorrent {
 		return h;
 	}
 
-	boost::optional<aux::file_view> default_storage::open_file_impl(aux::session_settings const& sett
+	boost::optional<aux::file_view> default_storage::open_file_impl(settings_interface const& sett
 		, file_index_t file
 		, aux::open_mode_t mode
 		, error_code& ec) const

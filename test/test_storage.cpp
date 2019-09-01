@@ -547,10 +547,9 @@ void test_check_files(std::string const& test_path
 	boost::asio::io_context ios;
 	counters cnt;
 
-	std::unique_ptr<disk_interface> io = default_disk_io_constructor(ios, cnt);
-	settings_pack sett;
+	aux::session_settings sett;
 	sett.set_int(settings_pack::aio_threads, 1);
-	io->set_settings(&sett);
+	std::unique_ptr<disk_interface> io = default_disk_io_constructor(ios, sett, cnt);
 
 	aux::vector<download_priority_t, file_index_t> priorities(
 		std::size_t(info->num_files()), download_priority_t{});

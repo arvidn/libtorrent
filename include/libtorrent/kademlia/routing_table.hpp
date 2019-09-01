@@ -213,7 +213,7 @@ public:
 	// are nearest to the given id.
 	std::vector<node_entry> find_node(node_id const& id
 		, find_nodes_flags_t options, int count = 0);
-	void remove_node(node_entry* n, table_t::iterator bucket);
+	void remove_node(node_entry* n, bucket_t* b);
 
 	int bucket_size(int bucket) const
 	{
@@ -285,8 +285,8 @@ private:
 	// return a pointer the node_entry with the given endpoint
 	// or 0 if we don't have such a node. Both the address and the
 	// port has to match
-	node_entry* find_node(udp::endpoint const& ep
-		, routing_table::table_t::iterator* bucket);
+	std::tuple<node_entry*, routing_table::table_t::iterator, bucket_t*>
+	find_node(udp::endpoint const& ep);
 
 	// if the bucket is not full, try to fill it with nodes from the
 	// replacement list

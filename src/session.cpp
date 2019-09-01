@@ -504,12 +504,12 @@ TORRENT_VERSION_NAMESPACE_3
 TORRENT_VERSION_NAMESPACE_3_END
 
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
-		io_context& ios, counters& cnt)
+		io_context& ios, settings_interface const& sett, counters& cnt)
 	{
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-		return mmap_disk_io_constructor(ios, cnt);
+		return mmap_disk_io_constructor(ios, sett, cnt);
 #else
-		return posix_disk_io_constructor(ios, cnt);
+		return posix_disk_io_constructor(ios, sett, cnt);
 #endif
 	}
 
