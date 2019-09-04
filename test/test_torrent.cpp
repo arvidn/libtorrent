@@ -203,8 +203,7 @@ TORRENT_TEST(total_wanted)
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	error_code ec;
-	auto info = std::make_shared<torrent_info>(
-		tmp, std::ref(ec), from_span);
+	auto info = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
 
 	settings_pack pack = settings();
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
@@ -219,8 +218,6 @@ TORRENT_TEST(total_wanted)
 	// we just want 1 out of 4 files, 1024 out of 4096 bytes
 	p.file_priorities.resize(4, 0_pri);
 	p.file_priorities[1] = 1_pri;
-
-	p.ti = info;
 
 	torrent_handle h = ses.add_torrent(std::move(p));
 

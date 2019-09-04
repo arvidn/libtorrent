@@ -388,3 +388,24 @@ TORRENT_TEST(piece_extent_affinity)
 	);
 }
 
+TORRENT_TEST(is_finished)
+{
+	using namespace lt;
+	run_test(
+		[](lt::session&, lt::session&) {},
+		[](lt::session& ses, lt::alert const* a) {
+			if (alert_cast<piece_finished_alert>(a))
+			{
+				TEST_EQUAL(is_finished(ses), false);
+				std::vector<download_priority_t> prio(4, dont_download);
+				ses.get_torrents()[0].prioritize_files(prio);
+				TEST_EQUAL(is_finished(ses), true);
+			}
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+				TEST_EQUAL(is_finished(*ses[0]), true);
+				TEST_EQUAL(is_finished(*ses[1]), true);
+		}
+	);
+}
+
