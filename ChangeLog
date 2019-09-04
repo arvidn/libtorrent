@@ -1,5 +1,6 @@
 1.2.2 release
 
+	* fix updating of is_finished torrent status, when changing piece priorities
 	* fix regression in &left= reporting when adding a seeding torrent
 	* fix integer overflow in http parser
 	* improve sanitation of symlinks, to support more complex link targets

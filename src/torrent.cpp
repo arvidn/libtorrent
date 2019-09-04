@@ -7604,12 +7604,7 @@ bool is_downloading_state(int const st)
 	bool torrent::is_finished() const
 	{
 		if (is_seed()) return true;
-
-		// this is slightly different from m_picker->is_finished()
-		// because any piece that has *passed* is considered here,
-		// which may be more than the piece we *have* (i.e. written to disk)
-		return valid_metadata() && has_picker()
-			&& m_picker->want().num_pieces - m_picker->num_passed() == 0;
+		return valid_metadata() && has_picker() && m_picker->is_finished();
 	}
 
 	bool torrent::is_inactive() const
