@@ -116,7 +116,7 @@ namespace libtorrent { namespace aux {
 #endif
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
 	constexpr std::size_t deferred_handler_max_size = tracking + 80;
-	constexpr std::size_t tick_handler_max_size = tracking + 64;
+	constexpr std::size_t tick_handler_max_size = tracking + 80;
 #endif
 
 	enum HandlerName

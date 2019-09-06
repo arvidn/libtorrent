@@ -599,7 +599,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 #endif
 
-		post(m_io_context, [this] { this->wrap(&session_impl::init); });
+		post(m_io_context, [this] { wrap(&session_impl::init); });
 	}
 
 	void session_impl::init()
@@ -622,7 +622,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		async_inc_threads();
 		add_outstanding_async("session_impl::on_tick");
 #endif
-		post(m_io_context, [this]{ this->wrap(&session_impl::on_tick, error_code()); });
+		post(m_io_context, [this]{ wrap(&session_impl::on_tick, error_code()); });
 
 		int const lsd_announce_interval
 			= m_settings.get_int(settings_pack::local_service_announce_interval);
@@ -631,7 +631,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		m_lsd_announce_timer.expires_after(seconds(delay));
 		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
 		m_lsd_announce_timer.async_wait([this](error_code const& e) {
-			this->wrap(&session_impl::on_lsd_announce, e); } );
+			wrap(&session_impl::on_lsd_announce, e); } );
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" done starting session");
@@ -1257,7 +1257,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	{
 		if (m_deferred_submit_disk_jobs) return;
 		m_deferred_submit_disk_jobs = true;
-		post(m_io_context, [this] { this->wrap(&session_impl::submit_disk_jobs); } );
+		post(m_io_context, [this] { wrap(&session_impl::submit_disk_jobs); } );
 	}
 
 	void session_impl::submit_disk_jobs()
@@ -1789,7 +1789,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 		if (ec || m_abort || !m_ip_notifier) return;
 		m_ip_notifier->async_wait([this] (error_code const& e)
-			{ this->wrap(&session_impl::on_ip_change, e); });
+			{ wrap(&session_impl::on_ip_change, e); });
 		reopen_network_sockets({});
 	}
 
@@ -2624,7 +2624,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		std::weak_ptr<tcp::acceptor> ls(listener);
 		m_stats_counters.inc_stats_counter(counters::num_outstanding_accept);
 		listener->async_accept(*str, [this, c, ls, ssl] (error_code const& ec)
-			{ return this->wrap(&session_impl::on_accept_connection, c, ls, ec, ssl); });
+			{ return wrap(&session_impl::on_accept_connection, c, ls, ec, ssl); });
 	}
 
 	void session_impl::on_accept_connection(std::shared_ptr<socket_type> const& s
@@ -3286,7 +3286,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
 		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)));
 		m_timer.async_wait(aux::make_handler([this](error_code const& err)
-		{ this->wrap(&session_impl::on_tick, err); }, m_tick_handler_storage, *this));
+		{ wrap(&session_impl::on_tick, err); }, m_tick_handler_storage, *this));
 
 		m_download_rate.update_quotas(now - m_last_tick);
 		m_upload_rate.update_quotas(now - m_last_tick);
@@ -3643,7 +3643,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 			m_dht_announce_timer.expires_after(seconds(0));
 			m_dht_announce_timer.async_wait([this](error_code const& err) {
-				this->wrap(&session_impl::on_dht_announce, err); });
+				wrap(&session_impl::on_dht_announce, err); });
 		}
 	}
 
@@ -3694,7 +3694,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 		m_dht_announce_timer.expires_after(seconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& err)
-			{ this->wrap(&session_impl::on_dht_announce, err); });
+			{ wrap(&session_impl::on_dht_announce, err); });
 
 		if (!m_dht_torrents.empty())
 		{
@@ -3739,7 +3739,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			/ std::max(int(m_torrents.size()), 1), 1);
 		m_lsd_announce_timer.expires_after(seconds(delay));
 		m_lsd_announce_timer.async_wait([this](error_code const& err) {
-			this->wrap(&session_impl::on_lsd_announce, err); });
+			wrap(&session_impl::on_lsd_announce, err); });
 
 		if (m_torrents.empty()) return;
 
@@ -6278,7 +6278,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
 
-		post(m_io_context, [this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
+		post(m_io_context, [this]{ wrap(&session_impl::on_trigger_auto_manage); });
 	}
 
 	void session_impl::on_trigger_auto_manage()
@@ -6349,7 +6349,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			/ std::max(int(m_torrents.size()), 1), 1);
 		m_dht_announce_timer.expires_after(seconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& e) {
-			this->wrap(&session_impl::on_dht_announce, e); });
+			wrap(&session_impl::on_dht_announce, e); });
 #endif
 	}
 
@@ -6554,7 +6554,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		m_ip_notifier = create_ip_notifier(m_io_context);
 		m_ip_notifier->async_wait([this](error_code const& e)
-			{ this->wrap(&session_impl::on_ip_change, e); });
+			{ wrap(&session_impl::on_ip_change, e); });
 	}
 
 	void session_impl::start_lsd()
