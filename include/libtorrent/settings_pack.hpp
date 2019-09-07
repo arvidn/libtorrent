@@ -74,6 +74,8 @@ namespace aux {
 		, std::vector<void(aux::session_impl::*)()>* callbacks = nullptr);
 	TORRENT_EXTRA_EXPORT void run_all_updates(aux::session_impl& ses);
 
+	// converts a setting integer (from the enums string_types, int_types or
+	// bool_types) to a string, and vice versa.
 	TORRENT_EXPORT int setting_by_name(string_view name);
 	TORRENT_EXPORT char const* name_for_setting(int s);
 
@@ -95,19 +97,27 @@ namespace aux {
 			, aux::session_settings_single_thread&
 			, std::vector<void(aux::session_impl::*)()>*);
 
+		// hidden
 		settings_pack() = default;
 		settings_pack(settings_pack const&) = default;
 		settings_pack(settings_pack&&) noexcept = default;
 		settings_pack& operator=(settings_pack const&) = default;
 		settings_pack& operator=(settings_pack&&) noexcept = default;
 
+		// set a configuration option in the settings_pack. ``name`` is one of
+		// the enum values from string_types, int_types or bool_types. They must
+		// match the respective type of the set_* function.
 		void set_str(int name, std::string val);
 		void set_int(int name, int val);
 		void set_bool(int name, bool val);
-		bool has_val(int name) const;
 		template <typename Type, typename Tag>
 		void set_int(int name, flags::bitfield_flag<Type, Tag> const val)
 		{ set_int(name, static_cast<int>(static_cast<Type>(val))); }
+
+		// queries whether the specified configuration option has a value set in
+		// this pack. ``name`` can be any enumeration value from string_types,
+		// int_types or bool_types.
+		bool has_val(int name) const;
 
 		// clear the settings pack from all settings
 		void clear();
@@ -115,6 +125,10 @@ namespace aux {
 		// clear a specific setting from the pack
 		void clear(int name);
 
+		// queries the current configuration option from the settings_pack.
+		// ``name`` is one of the enumeration values from string_types, int_types
+		// or bool_types. The enum value must match the type of the get_*
+		// function.
 		std::string const& get_str(int name) const;
 		int get_int(int name) const;
 		bool get_bool(int name) const;
@@ -130,6 +144,8 @@ namespace aux {
 			index_mask =       0x3fff
 		};
 
+		// enumeration values naming string settings in the pack. To be used with
+		// get_str() and set_str().
 		enum string_types
 		{
 			// this is the client identification to the tracker. The recommended
@@ -250,6 +266,8 @@ namespace aux {
 			max_string_setting_internal
 		};
 
+		// enumeration values naming boolean settings in the pack. To be used with
+		// get_bool() and set_bool().
 		enum bool_types
 		{
 			// determines if connections from the same IP address as existing
@@ -752,6 +770,8 @@ namespace aux {
 			max_bool_setting_internal
 		};
 
+		// enumeration values naming integer settings in the pack. To be used with
+		// get_int() and set_int().
 		enum int_types
 		{
 			// ``tracker_completion_timeout`` is the number of seconds the tracker

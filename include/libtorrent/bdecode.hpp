@@ -261,6 +261,7 @@ struct TORRENT_EXPORT bdecode_node
 		, int token_limit);
 #endif
 
+	// hidden
 	TORRENT_EXPORT friend bdecode_node bdecode(span<char const> buffer
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit);
 

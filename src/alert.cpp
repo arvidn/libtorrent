@@ -2492,7 +2492,7 @@ namespace {
 		aux::vector<sha1_hash> samples;
 		samples.resize(m_num_samples);
 
-		const char *ptr = m_alloc.get().ptr(m_samples_idx);
+		char const* ptr = m_alloc.get().ptr(m_samples_idx);
 		std::memcpy(samples.data(), ptr, samples.size() * 20);
 
 		return std::move(samples);

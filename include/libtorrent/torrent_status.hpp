@@ -141,6 +141,12 @@ TORRENT_VERSION_NAMESPACE_2
 		// the index of that file in the .torrent file.
 		error_code errc;
 
+		// if the torrent is stopped because of an disk I/O error, this field
+		// contains the index of the file in the torrent that encountered the
+		// error. If the error did not originate in a file in the torrent, there
+		// are a few special values this can be set to: error_file_none,
+		// error_file_ssl_ctx, error_file_exception, error_file_partfile or
+		// error_file_metadata;
 		file_index_t error_file = torrent_status::error_file_none;
 
 		// special values for error_file to describe which file or component
@@ -151,11 +157,11 @@ TORRENT_VERSION_NAMESPACE_2
 		// the error occurred setting up the SSL context
 		static constexpr file_index_t error_file_ssl_ctx{-3};
 
-#if TORRENT_ABI_VERSION == 1
 		// the error occurred while loading the .torrent file via the user
 		// supplied load function
-		static constexpr file_index_t TORRENT_DEPRECATED error_file_metadata{-4};
+		static constexpr file_index_t error_file_metadata{-4};
 
+#if TORRENT_ABI_VERSION == 1
 		// the error occurred on m_url
 		static constexpr file_index_t TORRENT_DEPRECATED error_file_url{-2};
 #endif
@@ -559,9 +565,19 @@ TORRENT_VERSION_NAMESPACE_2
 		// the info-hash for this torrent
 		sha1_hash info_hash;
 
+		// the timestamps of the last time this torrent uploaded or downloaded
+		// payload to any peer.
 		time_point last_upload;
 		time_point last_download;
 
+		// these are cumulative counters of for how long the torrent has been in
+		// different states. active means not paused and added to session. Whether
+		// it has found any peers or not is not relevant.
+		// finished means all selected files/pieces were downloaded and available
+		// to other peers (this is always a subset of active time).
+		// seeding means all files/pieces were downloaded and available to
+		// peers. Being available to peers does not imply there are other peers
+		// asking for the payload.
 		seconds active_duration;
 		seconds finished_duration;
 		seconds seeding_duration;

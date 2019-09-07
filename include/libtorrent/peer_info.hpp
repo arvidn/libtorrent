@@ -232,6 +232,8 @@ TORRENT_VERSION_NAMESPACE_2
 		// which client the peer is using. See identify_client()_
 		peer_id pid;
 
+		// the number of bytes we have requested from this peer, but not yet
+		// received.
 		int queue_bytes;
 
 		// the number of seconds until the current front piece request will time

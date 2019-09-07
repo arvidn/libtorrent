@@ -383,6 +383,9 @@ namespace libtorrent {
 		piece_index_t end_piece() const
 		{ return piece_index_t(m_num_pieces); }
 
+		// returns the index of the last piece in the torrent. The last piece is
+		// special in that it may be smaller than the other pieces (and the other
+		// pieces are all the same size).
 		piece_index_t last_piece() const
 		{ return piece_index_t(m_num_pieces - 1); }
 
@@ -481,6 +484,10 @@ namespace libtorrent {
 		// target string associated with it.
 		static constexpr file_flags_t flag_symlink = 3_bit;
 
+		// returns all directories used in the torrent. Files in the torrent are
+		// located in one of these directories. This is not a tree, it's a flat
+		// list of all *leaf* directories. i.e. the union of the parent paths of
+		// all files.
 		std::vector<std::string> const& paths() const { return m_paths; }
 
 		// returns a bitmask of flags from file_flags_t that apply
