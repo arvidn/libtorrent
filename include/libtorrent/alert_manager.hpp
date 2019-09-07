@@ -77,7 +77,7 @@ namespace libtorrent {
 			// don't add more than this number of alerts, unless it's a
 			// high priority alert, in which case we try harder to deliver it
 			// for high priority alerts, double the upper limit
-			if (queue.size() / (1 + T::priority) >= m_queue_size_limit)
+			if (queue.size() / (1 + static_cast<int>(T::priority)) >= m_queue_size_limit)
 			{
 				// record that we dropped an alert of this type
 				m_dropped.set(T::alert_type);
