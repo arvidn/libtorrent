@@ -78,6 +78,7 @@ void setup_swarm(int num_nodes
 
 bool has_metadata(lt::session& ses);
 bool is_seed(lt::session& ses);
+bool is_finished(lt::session& ses);
 int completed_pieces(lt::session& ses);
 void add_extra_peers(lt::session& ses);
 lt::torrent_status get_status(lt::session& ses);

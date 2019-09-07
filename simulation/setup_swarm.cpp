@@ -146,6 +146,15 @@ bool is_seed(lt::session& ses)
 	return h.status().is_seeding;
 }
 
+bool is_finished(lt::session& ses)
+{
+	auto handles = ses.get_torrents();
+	TEST_EQUAL(handles.size(), 1);
+	if (handles.empty()) return false;
+	auto h = handles[0];
+	return h.status().is_finished;
+}
+
 int completed_pieces(lt::session& ses)
 {
 	auto handles = ses.get_torrents();

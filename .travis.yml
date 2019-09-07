@@ -99,6 +99,11 @@ before_install:
       travis_retry brew install boost-python python2;
       brew link --overwrite python@2;
     fi'
+  - 'if [[ $TRAVIS_OS_NAME != "osx" ]]; then
+      export B2=bjam;
+    else
+      export B2=b2;
+    fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
   # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
@@ -229,28 +234,28 @@ script:
       python3 -m flake8 --max-line-length=120;
     fi'
   - 'if [ "$sonar_scan" == "1" ]; then
-       build-wrapper-linux-x86-64 --out-dir bw-output bjam -a -j3 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
+       build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j3 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
        sonar-scanner -D sonar.login=$SONAR_TOKEN;
     fi'
   - 'if [[ $clang_tidy == "1" ]]; then
        which clang-tidy;
        clang-tidy --version;
-       bjam -a -j3 clang_tidy;
+       ${B2} -a -j3 clang_tidy;
     fi'
 
   - 'if [ "$check_headers" == "1" ]; then
-      bjam -j3 check-headers crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant;
+      ${B2} -j3 check-headers crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant;
     fi'
 
 # if we are building with code coverage, report it as soon as possible
 # libtorrent is the name of the test suite target
   - cd $TRAVIS_BUILD_DIR/test;
   - 'if [ "$tests" == "1" ]; then
-      bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
-      travis_retry bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
-      travis_retry bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
+      ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
+      travis_retry ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
+      travis_retry ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-        travis_retry bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
+        travis_retry ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
       fi &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
@@ -261,22 +266,22 @@ script:
   # rebuilding libtorrent itself.
   - cd $TRAVIS_BUILD_DIR/fuzzers;
   - 'if [ "$fuzzers" == "1" ]; then
-      bjam -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant sanitize=off fuzz=off link=shared stage;
+      ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant sanitize=off fuzz=off link=shared stage;
     fi'
 
   - cd $TRAVIS_BUILD_DIR/examples;
   - 'if [ "$examples" == "1" ]; then
-      bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
 
   - cd $TRAVIS_BUILD_DIR/tools;
   - 'if [ "$tools" == "1" ]; then
-      bjam -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
 
   - cd $TRAVIS_BUILD_DIR;
   - if [[ $ios == "1" ]]; then
-      bjam -q darwin-ios darwin-ios_sim -j2 link=static;
+      ${B2} -q darwin-ios darwin-ios_sim -j2 link=static;
     fi
 
 # a binary built with sanitizer does not interact well with python
@@ -284,7 +289,7 @@ script:
 # boost.python cannot be built with warnings-as-errors=on
   - cd $TRAVIS_BUILD_DIR/bindings/python;
   - 'if [[ "$python" == "1" ]]; then
-      bjam -j3 warnings=all sanitize=$sanitizer mmap-disk-io=$mmap crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
+      ${B2} -j3 warnings=all sanitize=$sanitizer mmap-disk-io=$mmap crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
         DYLD_LIBRARY_PATH=./dependencies python2 test.py -b;
       else
@@ -299,7 +304,7 @@ script:
 # simulation
   - cd $TRAVIS_BUILD_DIR/simulation;
   - 'if [[ "$sim" == "1" ]]; then
-      bjam -j2 crypto=built-in warnings-as-errors=on warnings=all debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset deprecated-functions=off;
+      ${B2} -j2 crypto=built-in warnings-as-errors=on warnings=all debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset deprecated-functions=off;
     fi'
 
 # minimal support for cmake build
@@ -326,5 +331,5 @@ script:
   - cd $TRAVIS_BUILD_DIR/test;
   - 'if [[ "$arch" == "arm" ]];
     then
-      bjam arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
+      ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'

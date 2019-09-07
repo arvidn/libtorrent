@@ -458,8 +458,24 @@ namespace libtorrent {
 		// been flushed to disk yet)
 		int num_passed() const { return m_num_passed; }
 
-		// return true if we have all the pieces we wanted
-		bool is_finished() const { return m_num_have - m_num_have_filtered == num_pieces() - m_num_filtered; }
+		// return true if all the pieces we want have passed the hash check (but
+		// may not have been written to disk yet)
+		bool is_finished() const
+		{
+			// this expression warrants some explanation:
+			// if the number of pieces we *want* to download
+			// is less than or (more likely) equal to the number of pieces that
+			// have passed the hash check (discounting the pieces that have passed
+			// the check but then had their priority set to 0). Then we're
+			// finished. Note that any piece we *have* implies it's both passed the
+			// hash check *and* been written to disk.
+			// num_pieces() - m_num_filtered - m_num_have_filtered
+			//   <= (num_passed() - m_num_have_filtered)
+			// this can be simplified. Note how m_num_have_filtered appears on both
+			// side of the equation.
+			//
+			return num_pieces() - m_num_filtered <= num_passed();
+		}
 
 		bool is_seeding() const { return m_num_have == num_pieces(); }
 
