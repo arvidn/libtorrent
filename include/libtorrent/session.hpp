@@ -142,6 +142,7 @@ namespace aux {
 		session_params(settings_pack const& sp
 			, std::vector<std::shared_ptr<plugin>> exts);
 
+		// hidden
 		session_params(session_params const&) = default;
 		session_params(session_params&&) = default;
 		session_params& operator=(session_params const&) = default;

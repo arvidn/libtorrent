@@ -74,6 +74,7 @@ namespace libtorrent {
 
 		using headers_t = std::vector<std::pair<std::string, std::string>>;
 
+		// hidden
 		web_seed_entry(std::string const& url_, type_t type_
 			, std::string const& auth_ = std::string()
 			, headers_t const& extra_headers_ = headers_t());
@@ -125,6 +126,7 @@ namespace libtorrent {
 		int max_decode_tokens = 2000000;
 	};
 
+	// the torrent_info class holds the information found in a .torrent file.
 	class TORRENT_EXPORT torrent_info
 	{
 	public:

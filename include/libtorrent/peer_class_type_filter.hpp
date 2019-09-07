@@ -46,6 +46,7 @@ namespace libtorrent {
 	// is based on the peer's IP address).
 	struct TORRENT_EXPORT peer_class_type_filter
 	{
+		// hidden
 		peer_class_type_filter()
 		{
 			m_peer_class_type_mask.fill(0xffffffff);
