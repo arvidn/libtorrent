@@ -548,8 +548,11 @@ namespace errors {
 		file_index_t file() const { return file_index_t(file_idx); }
 		void file(file_index_t f) { file_idx = static_cast<int>(f); }
 
-		// the file the error occurred on
+	private:
+		// internal
 		std::int32_t file_idx:24;
+
+	public:
 
 		// A code from file_operation_t enum, indicating what
 		// kind of operation failed.
