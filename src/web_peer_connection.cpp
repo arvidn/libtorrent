@@ -300,6 +300,11 @@ void web_peer_connection::write_request(peer_request const& r)
 	const int block_size = t->block_size();
 	const int piece_size = t->torrent_file().piece_length();
 	peer_request pr;
+
+#ifndef TORRENT_DISABLE_LOGGING
+	std::stringstream log_msg;
+#endif
+
 	while (size > 0)
 	{
 		int request_offset = r.start + r.length - size;
@@ -309,8 +314,8 @@ void web_peer_connection::write_request(peer_request const& r)
 		m_requests.push_back(pr);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "REQUESTING", "piece: %d start: %d len: %d"
-			, static_cast<int>(pr.piece), pr.start, pr.length);
+		if (should_log(peer_log_alert::info))
+			log_msg << " (" << pr.piece << ", " << pr.start << ", " << pr.length << ")";
 #endif
 
 		if (m_web->restart_request == m_requests.front())
@@ -322,9 +327,9 @@ void web_peer_connection::write_request(peer_request const& r)
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
-				peer_log(peer_log_alert::info, "RESTART_DATA", "data: %d req: (%d, %d) size: %d"
-					, int(m_piece.size()), static_cast<int>(front.piece), front.start
-					, front.start + front.length - 1);
+				log_msg << " (restart data: " << m_piece.size()
+					<< " req: (" << front.piece << ", " << front.start << ") size: "
+					<< (front.start + front.length - 1);
 			}
 #else
 			TORRENT_UNUSED(front);
@@ -344,6 +349,10 @@ void web_peer_connection::write_request(peer_request const& r)
 #endif
 		size -= pr.length;
 	}
+
+#ifndef TORRENT_DISABLE_LOGGING
+	peer_log(peer_log_alert::outgoing_message, "REQUESTING", "%s", log_msg.str().c_str());
+#endif
 
 	bool const single_file_request = t->torrent_file().num_files() == 1;
 	int const proxy_type = m_settings.get_int(settings_pack::proxy_type);
