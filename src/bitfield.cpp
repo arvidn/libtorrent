@@ -38,28 +38,41 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <intrin.h>
 #endif
 
+#include <algorithm>
+
 namespace libtorrent {
 
 	bool bitfield::all_set() const noexcept
 	{
+		INVARIANT_CHECK;
 		if(size() == 0) return false;
 
 		int const words = size() / 32;
 		for (int i = 1; i < words + 1; ++i)
 		{
-			if (m_buf[i] != 0xffffffff) return false;
+			if (m_buf[i] != 0xffffffff)
+			{
+				TORRENT_ASSERT(!std::all_of(begin(), end(), [](bool v){ return v; }));
+				return false;
+			}
 		}
 		int const rest = size() & 31;
 		if (rest > 0)
 		{
 			std::uint32_t const mask = aux::host_to_network(0xffffffff << (32 - rest));
-			if ((m_buf[words + 1] & mask) != mask) return false;
+			if ((m_buf[words + 1] & mask) != mask)
+			{
+				TORRENT_ASSERT(!std::all_of(begin(), end(), [](bool v){ return v; }));
+				return false;
+			}
 		}
+		TORRENT_ASSERT(std::all_of(begin(), end(), [](bool v){ return v; }));
 		return true;
 	}
 
 	int bitfield::count() const noexcept
 	{
+		INVARIANT_CHECK;
 		int ret = 0;
 		int const words = num_words();
 #if TORRENT_HAS_SSE
@@ -131,6 +144,7 @@ namespace libtorrent {
 
 	void bitfield::resize(int const bits, bool const val)
 	{
+		INVARIANT_CHECK;
 		if (bits == size()) return;
 
 		int const s = size();
@@ -158,6 +172,7 @@ namespace libtorrent {
 
 	void bitfield::resize(int const bits)
 	{
+		INVARIANT_CHECK;
 		if (bits == size()) return;
 
 		TORRENT_ASSERT(bits >= 0);
@@ -195,6 +210,7 @@ namespace libtorrent {
 
 	int bitfield::find_first_set() const noexcept
 	{
+		INVARIANT_CHECK;
 		int const num = num_words();
 		if (num == 0) return -1;
 		int const count = aux::count_leading_zeros({&m_buf[1], num});
@@ -203,6 +219,7 @@ namespace libtorrent {
 
 	int bitfield::find_last_clear() const noexcept
 	{
+		INVARIANT_CHECK;
 		int const num = num_words();
 		if (num == 0) return - 1;
 		int const size = this->size();
@@ -213,6 +230,17 @@ namespace libtorrent {
 			? (num - 1) * 32 + ext
 			: size - (aux::count_trailing_ones({&m_buf[1], num - 1}) + ext);
 	}
+
+#if TORRENT_USE_INVARIANT_CHECKS
+	void bitfield::check_invariant() const
+	{
+		// make sure the tail bits in the last word are cleared
+		if (size() & 31)
+		{
+			TORRENT_ASSERT((buf()[num_words() - 1] & aux::host_to_network(0xffffffff >> (size() & 31))) == 0);
+		}
+	}
+#endif
 
 	static_assert(std::is_nothrow_move_constructible<bitfield>::value
 		, "should be nothrow move constructible");

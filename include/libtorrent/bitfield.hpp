@@ -39,9 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/unique_ptr.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 #include <cstring> // for memset and memcpy
 #include <cstdint> // uint32_t
+#include <algorithm>
 
 namespace libtorrent {
 
@@ -68,6 +70,7 @@ namespace libtorrent {
 		// the nearest byte boundary.
 		void assign(char const* b, int const bits)
 		{
+			INVARIANT_CHECK;
 			resize(bits);
 			if (bits > 0)
 			{
@@ -89,12 +92,14 @@ namespace libtorrent {
 		// set bit at ``index`` to 0 (clear_bit) or 1 (set_bit).
 		void clear_bit(int index) noexcept
 		{
+			INVARIANT_CHECK;
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
 			buf()[index / 32] &= aux::host_to_network(~(0x80000000 >> (index & 31)));
 		}
 		void set_bit(int index) noexcept
 		{
+			INVARIANT_CHECK;
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
 			buf()[index / 32] |= aux::host_to_network(0x80000000 >> (index & 31));
@@ -106,21 +111,27 @@ namespace libtorrent {
 		// returns true if no bit in the bitfield is set
 		bool none_set() const noexcept
 		{
-			if(size() == 0) return true;
+			INVARIANT_CHECK;
+			if (size() == 0) return true;
 
 			const int words = num_words();
 			std::uint32_t const* b = buf();
 			for (int i = 0; i < words; ++i)
 			{
-				if (b[i] != 0) return false;
+				if (b[i] != 0)
+				{
+					TORRENT_ASSERT(!std::none_of(begin(), end(), [](bool v){ return v; }));
+					return false;
+				}
 			}
+			TORRENT_ASSERT(std::none_of(begin(), end(), [](bool v){ return v; }));
 			return true;
 		}
 
 		// returns the size of the bitfield in bits.
 		int size() const noexcept
 		{
-			int const bits = m_buf == nullptr ? 0 : int(m_buf[0]);
+			int const bits = m_buf.get() == nullptr ? 0 : int(m_buf[0]);
 			TORRENT_ASSERT(bits >= 0);
 			return bits;
 		}
@@ -246,12 +257,14 @@ namespace libtorrent {
 		// set all bits in the bitfield to 1 (set_all) or 0 (clear_all).
 		void set_all() noexcept
 		{
+			INVARIANT_CHECK;
 			if (size() == 0) return;
 			std::memset(buf(), 0xff, std::size_t(num_words() * 4));
 			clear_trailing_bits();
 		}
 		void clear_all() noexcept
 		{
+			INVARIANT_CHECK;
 			if (size() == 0) return;
 			std::memset(buf(), 0x00, std::size_t(num_words() * 4));
 		}
@@ -259,13 +272,17 @@ namespace libtorrent {
 		// make the bitfield empty, of zero size.
 		void clear() noexcept { m_buf.reset(); }
 
+#if TORRENT_USE_INVARIANT_CHECKS
+		void check_invariant() const;
+#endif
+
 	private:
 
 		std::uint32_t const* buf() const noexcept { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
 		std::uint32_t* buf() noexcept { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
 		void clear_trailing_bits() noexcept
 		{
-			// clear the tail bits in the last byte
+			// clear the tail bits in the last word
 			if (size() & 31) buf()[num_words() - 1] &= aux::host_to_network(0xffffffff << (32 - (size() & 31)));
 		}
 
