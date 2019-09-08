@@ -3979,6 +3979,9 @@ namespace libtorrent {
 			if (m_request_large_blocks)
 			{
 				int const blocks_per_piece = t->torrent_file().piece_length() / t->block_size();
+#ifndef TORRENT_DISABLE_LOGGING
+				std::stringstream log_msg;
+#endif
 
 				while (!m_request_queue.empty())
 				{
@@ -4000,10 +4003,11 @@ namespace libtorrent {
 					if (m_queued_time_critical) --m_queued_time_critical;
 
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "MERGING_REQUEST"
-						, "piece: %d block: %d"
-						, static_cast<int>(block.block.piece_index)
-						, block.block.block_index);
+					if (should_log(peer_log_alert::info))
+					{
+						log_msg << " (" << block.block.piece_index << ", "
+							<< block.block.block_index << ")";
+					}
 #endif
 
 					block_offset = block.block.block_index * t->block_size();
@@ -4018,6 +4022,12 @@ namespace libtorrent {
 					check_invariant();
 #endif
 				}
+
+#ifndef TORRENT_DISABLE_LOGGING
+				peer_log(peer_log_alert::info, "MERGING_REQUEST"
+					, "%s", log_msg.str().c_str());
+#endif
+
 			}
 
 			// the verification will fail for coalesced blocks
