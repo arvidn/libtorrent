@@ -139,6 +139,14 @@ void web_peer_connection::on_connected()
 	{
 		incoming_have_all();
 	}
+	else if (m_web->have_files.none_set())
+	{
+		incoming_have_none();
+		m_web->interesting = false;
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::info, "WEB-SEED", "have no files, not interesting. %s", m_url.c_str());
+#endif
+	}
 	else
 	{
 		std::shared_ptr<torrent> t = associated_torrent().lock();
@@ -162,7 +170,18 @@ void web_peer_connection::on_connected()
 			for (piece_index_t k = std::get<0>(range); k < std::get<1>(range); ++k)
 				have.clear_bit(k);
 		}
-		incoming_bitfield(have);
+		if (have.none_set())
+		{
+			incoming_have_none();
+			m_web->interesting = false;
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::info, "WEB-SEED", "have no pieces, not interesting. %s", m_url.c_str());
+#endif
+		}
+		else
+		{
+			incoming_bitfield(have);
+		}
 	}
 
 	// TODO: 3 this should be an optional<piece_index_t>, piece index -1 should
@@ -211,6 +230,22 @@ void web_peer_connection::disconnect(error_code const& ec
 		m_web->endpoints.erase(m_web->endpoints.begin());
 	}
 
+	if (ec == errors::uninteresting_upload_peer && m_web)
+	{
+		// if this is an "ephemeral" web seed, it means it was added by receiving
+		// an HTTP redirect. If we disconnect because we're not interested in any
+		// of its pieces, mark it as uninteresting, to avoid reconnecting to it
+		// repeatedly
+		if (m_web->ephemeral) m_web->interesting = false;
+
+		// if the web seed is not ephemeral, but we're still not interested. That
+		// implies that all files either have failed with 404 or with a
+		// redirection to a different web server.
+		m_web->retry = std::max(m_web->retry, aux::time_now32()
+			+ seconds32(m_settings.get_int(settings_pack::urlseed_wait_retry)));
+		TORRENT_ASSERT(m_web->retry > aux::time_now32());
+	}
+
 	std::shared_ptr<torrent> t = associated_torrent().lock();
 
 	if (!m_requests.empty() && !m_file_requests.empty()
@@ -248,6 +283,13 @@ void web_peer_connection::disconnect(error_code const& ec
 		if (t) get_io_service().post(
 			std::bind(&torrent::maybe_connect_web_seeds, t));
 	}
+
+	if (error >= failure)
+	{
+		m_web->retry = std::max(m_web->retry, aux::time_now32()
+			+ seconds32(m_settings.get_int(settings_pack::urlseed_wait_retry)));
+	}
+
 	peer_connection::disconnect(ec, op, error);
 	if (t) t->disconnect_web_seed(this);
 }
@@ -399,9 +441,6 @@ void web_peer_connection::write_request(peer_request const& r)
 				++num_pad_files;
 				continue;
 			}
-
-			TORRENT_ASSERT(m_web->have_files.empty()
-				|| m_web->have_files.get_bit(f.file_index));
 
 			request += "GET ";
 			if (using_proxy)
@@ -577,10 +616,9 @@ void web_peer_connection::handle_error(int const bytes_left)
 	// associated with the file we just requested. Only
 	// when it doesn't have any of the file do the following
 	// pad files will make it complicated
-	auto const retry_time = value_or(m_parser.header_duration("retry-after")
-		, seconds32(m_settings.get_int(settings_pack::urlseed_wait_retry)));
+
 	// temporarily unavailable, retry later
-	t->retry_web_seed(this, retry_time);
+	t->retry_web_seed(this, m_parser.header_duration("retry-after"));
 	if (t->alerts().should_post<url_seed_alert>())
 	{
 		std::string const error_msg = to_string(m_parser.status_code()).data()
@@ -668,10 +706,13 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 				// connected to it. Make it advertise that it has this file to the
 				// bittorrent engine
 				file_storage const& fs = t->torrent_file().files();
-				auto const range = aux::file_piece_range_exclusive(fs, file_index);
+				auto const range = aux::file_piece_range_inclusive(fs, file_index);
 				for (piece_index_t i = std::get<0>(range); i < std::get<1>(range); ++i)
 					pc->incoming_have(i);
 			}
+			// we just learned about another file this web server has, make sure
+			// it's marked interesting to enable connecting to it
+			web->interesting = true;
 		}
 
 		// we don't have this file on this server. Don't ask for it again
@@ -683,8 +724,8 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 			peer_log(peer_log_alert::info, "MISSING_FILE", "redirection | file: %d"
 				, static_cast<int>(file_index));
 #endif
-			disconnect(errors::redirecting, operation_t::bittorrent, peer_error);
 		}
+		disconnect(errors::redirecting, operation_t::bittorrent, normal);
 	}
 	else
 	{
@@ -698,7 +739,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// this web seed doesn't have any files. Don't try to request from it
 		// again this session
 		m_web->have_files.resize(t->torrent_file().num_files(), false);
-		disconnect(errors::redirecting, operation_t::bittorrent, peer_error);
+		disconnect(errors::redirecting, operation_t::bittorrent, normal);
 		m_web = nullptr;
 		TORRENT_ASSERT(is_disconnecting());
 	}
