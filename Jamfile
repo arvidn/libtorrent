@@ -311,17 +311,6 @@ rule building ( properties * )
 	return $(result) ;
 }
 
-rule default-build ( properties * )
-{
-	local result ;
-	if <variant>debug in $(properties)
-	{
-		result += <variant>debug:<invariant-checks>on
-			<variant>debug:<asserts>on ;
-	}
-	return $(result) ;
-}
-
 rule tag ( name : type ? : property-set )
 {
 	name = [ virtual-target.add-prefix-and-suffix $(name) : $(type) : $(property-set) ] ;
@@ -818,6 +807,9 @@ lib torrent
 	<dht>on:<source>src/hasher512.cpp
 	<dht>on:<source>src/sha512.cpp
 
+	<variant>debug:<invariant-checks>on
+	<variant>debug:<asserts>on
+
 	<conditional>@building
 	<conditional>@warnings
 	<cxxflags>$(CXXFLAGS)
@@ -829,11 +821,12 @@ lib torrent
 	: # default build
 	<threading>multi
 	<c++-template-depth>512
-	<conditional>@default-build
 
 	: # usage requirements
 	$(usage-requirements)
 	<link>shared:<define>TORRENT_LINKING_SHARED
+	<variant>debug:<invariant-checks>on
+	<variant>debug:<asserts>on
 
 	;
 
