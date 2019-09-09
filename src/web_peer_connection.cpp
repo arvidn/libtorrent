@@ -299,11 +299,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	int size = r.length;
 	const int block_size = t->block_size();
 	const int piece_size = t->torrent_file().piece_length();
-	peer_request pr;
-
-#ifndef TORRENT_DISABLE_LOGGING
-	std::stringstream log_msg;
-#endif
+	peer_request pr{};
 
 	while (size > 0)
 	{
@@ -313,11 +309,6 @@ void web_peer_connection::write_request(peer_request const& r)
 		pr.piece = piece_index_t(static_cast<int>(r.piece) + request_offset / piece_size);
 		m_requests.push_back(pr);
 
-#ifndef TORRENT_DISABLE_LOGGING
-		if (should_log(peer_log_alert::info))
-			log_msg << " (" << pr.piece << ", " << pr.start << ", " << pr.length << ")";
-#endif
-
 		if (m_web->restart_request == m_requests.front())
 		{
 			m_piece.swap(m_web->restart_piece);
@@ -325,12 +316,10 @@ void web_peer_connection::write_request(peer_request const& r)
 			TORRENT_ASSERT(front.length > int(m_piece.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (should_log(peer_log_alert::info))
-			{
-				log_msg << " (restart data: " << m_piece.size()
-					<< " req: (" << front.piece << ", " << front.start << ") size: "
-					<< (front.start + front.length - 1);
-			}
+			peer_log(peer_log_alert::info, "RESTART_DATA",
+				"data: %d req: (%d, %d) size: %d"
+					, int(m_piece.size()), static_cast<int>(front.piece), front.start
+					, front.start + front.length - 1);
 #else
 			TORRENT_UNUSED(front);
 #endif
@@ -351,7 +340,9 @@ void web_peer_connection::write_request(peer_request const& r)
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log(peer_log_alert::outgoing_message, "REQUESTING", "%s", log_msg.str().c_str());
+	peer_log(peer_log_alert::outgoing_message, "REQUESTING", "(piece: %d start: %d) - (piece: %d end: %d)"
+		, static_cast<int>(r.piece), r.start
+		, static_cast<int>(pr.piece), pr.start + pr.length);
 #endif
 
 	bool const single_file_request = t->torrent_file().num_files() == 1;
@@ -688,6 +679,10 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		if (m_web->have_files[file_index])
 		{
 			m_web->have_files.clear_bit(file_index);
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::info, "MISSING_FILE", "redirection | file: %d"
+				, static_cast<int>(file_index));
+#endif
 			disconnect(errors::redirecting, operation_t::bittorrent, peer_error);
 		}
 	}
@@ -813,6 +808,11 @@ void web_peer_connection::on_receive(error_code const& error
 					file_request_t const& file_req = m_file_requests.front();
 					m_web->have_files.resize(t->torrent_file().num_files(), true);
 					m_web->have_files.clear_bit(file_req.file_index);
+
+#ifndef TORRENT_DISABLE_LOGGING
+					peer_log(peer_log_alert::info, "MISSING_FILE", "http-code: %d | file: %d"
+						, m_parser.status_code(), static_cast<int>(file_req.file_index));
+#endif
 				}
 				handle_error(int(recv_buffer.size()));
 				return;
