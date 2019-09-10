@@ -57,6 +57,8 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_InitSha(&m_context);
 #else
 		SHA1_init(&m_context);
 #endif
@@ -112,6 +114,9 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_ShaUpdate(&m_context, reinterpret_cast<unsigned char const*>(data.data())
+			, static_cast<std::size_t>(data.size()));
 #else
 		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
@@ -133,6 +138,8 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_ShaFinal(&m_context, reinterpret_cast<unsigned char*>(digest.data()));
 #else
 		SHA1_final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #endif
@@ -151,6 +158,8 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_InitSha(&m_context);
 #else
 		SHA1_init(&m_context);
 #endif
@@ -173,6 +182,8 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Init(&m_context);
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_InitSha256(&m_context);
 #else
 		SHA256_init(m_context);
 #endif
@@ -228,6 +239,9 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_Sha256Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
+			, static_cast<std::size_t>(data.size()));
 #else
 		SHA256_update(m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
@@ -249,6 +263,8 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_Sha256Final(&m_context, reinterpret_cast<unsigned char*>(digest.data()));
 #else
 		SHA256_final(reinterpret_cast<unsigned char*>(digest.data()), m_context);
 #endif
@@ -267,6 +283,8 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Init(&m_context);
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_InitSha256(&m_context);
 #else
 		SHA256_init(m_context);
 #endif

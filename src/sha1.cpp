@@ -16,7 +16,8 @@ changelog at the end of the file.
 	&& !TORRENT_USE_COMMONCRYPTO \
 	&& !TORRENT_USE_CNG \
 	&& !TORRENT_USE_CRYPTOAPI \
-	&& !defined TORRENT_USE_LIBCRYPTO
+	&& !defined TORRENT_USE_LIBCRYPTO \
+	&& !defined TORRENT_USE_WOLFCRYPT
 
 #include <cstdio>
 #include <cstring>

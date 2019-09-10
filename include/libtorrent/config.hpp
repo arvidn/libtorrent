@@ -145,7 +145,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 // on OSX, use the built-in common crypto for built-in
-# if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
+# if !defined TORRENT_USE_LIBCRYPTO \
+	&& !defined TORRENT_USE_LIBGCRYPT \
+	&& !defined TORRENT_USE_WOLFCRYPT
 #  define TORRENT_USE_COMMONCRYPTO 1
 # endif // TORRENT_USE_OPENSSL
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED

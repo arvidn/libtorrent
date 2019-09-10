@@ -72,6 +72,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined TORRENT_USE_LIBCRYPTO
 # define TORRENT_CRYPTO_NAMESPACE inline namespace lcrypto {
 # define TORRENT_CRYPTO_NAMESPACE_END }
+#elif defined TORRENT_USE_WOLFCRYPT
+# define TORRENT_CRYPTO_NAMESPACE inline namespace wcrypto {
+# define TORRENT_CRYPTO_NAMESPACE_END }
 #else
 # define TORRENT_CRYPTO_NAMESPACE inline namespace builtin {
 # define TORRENT_CRYPTO_NAMESPACE_END }

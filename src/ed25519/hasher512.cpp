@@ -53,6 +53,8 @@ namespace aux {
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Init(&m_context);
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_InitSha512(&m_context);
 #else
 		SHA512_init(&m_context);
 #endif
@@ -96,6 +98,9 @@ namespace aux {
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_Sha512Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
+			, static_cast<std::size_t>(data.size()));
 #else
 		SHA512_update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
@@ -117,6 +122,8 @@ namespace aux {
 		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_Sha512Final(&m_context, reinterpret_cast<unsigned char*>(digest.data()));
 #else
 		SHA512_final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #endif
@@ -135,6 +142,8 @@ namespace aux {
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Init(&m_context);
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_InitSha512(&m_context);
 #else
 		SHA512_init(&m_context);
 #endif

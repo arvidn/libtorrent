@@ -83,6 +83,10 @@ rule linking ( properties * )
 	{
 		result += <library>crypto ;
 	}
+	else if <crypto>wolfssl in $(properties)
+	{
+		result += <library>wolfssl ;
+	}
 
 	if <target-os>windows in $(properties)
 		|| <target-os>cygwin in $(properties)
@@ -511,8 +515,9 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : built-in openssl libcrypto gcrypt : composite propagated ;
+feature crypto : built-in openssl libcrypto gcrypt wolfssl : composite propagated ;
 feature.compose <crypto>openssl : <define>TORRENT_USE_LIBCRYPTO <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
+feature.compose <crypto>wolfssl : <define>TORRENT_USE_WOLFCRYPT <define>TORRENT_USE_WOLFSSL <define>BOOST_ASIO_USE_WOLFSSL ;
 feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_LIBGCRYPT ;
 
@@ -600,6 +605,8 @@ lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : :
 	<conditional>@openssl-include-path ;
 lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : :
 	<conditional>@openssl-include-path ;
+
+lib wolfssl : : <name>wolfssl ;
 
 lib dbghelp : : <name>dbghelp ;
 
