@@ -59,6 +59,11 @@ extern "C" {
 #include <openssl/sha.h>
 }
 
+#elif defined TORRENT_USE_WOLFCRYPT
+
+#include <wolfssl/wolfcrypt/sha.h>
+#include <wolfssl/wolfcrypt/sha256.h>
+
 #else
 #include "libtorrent/sha1.hpp"
 #include "libtorrent/sha256.hpp"
@@ -123,6 +128,8 @@ TORRENT_CRYPTO_NAMESPACE
 		aux::crypt_hash<CALG_SHA1, PROV_RSA_FULL> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA_CTX m_context;
+#elif defined TORRENT_USE_WOLFCRYPT
+		Sha m_context;
 #else
 		sha1_ctx m_context;
 #endif
@@ -163,6 +170,8 @@ TORRENT_CRYPTO_NAMESPACE
 		aux::crypt_hash<CALG_SHA_256, PROV_RSA_AES> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_CTX m_context;
+#elif defined TORRENT_USE_WOLFCRYPT
+		Sha256 m_context;
 #else
 		sha256_ctx m_context;
 #endif

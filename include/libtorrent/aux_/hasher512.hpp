@@ -55,6 +55,13 @@ POSSIBILITY OF SUCH DAMAGE.
 	#include <openssl/sha.h>
 	}
 
+#elif defined TORRENT_USE_WOLFCRYPT
+
+// when using wolfcrypt, we need to enable the SHA-512 hasher
+#define WOLFSSL_SHA512 1
+
+#include <wolfssl/wolfcrypt/sha512.h>
+
 #else
 #include "libtorrent/aux_/sha512.hpp"
 #endif
@@ -116,6 +123,8 @@ namespace aux {
 		aux::crypt_hash<CALG_SHA_512, PROV_RSA_AES> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_CTX m_context;
+#elif defined TORRENT_USE_WOLFCRYPT
+		wc_Sha512 m_context;
 #else
 		sha512_ctx m_context;
 #endif

@@ -1,12 +1,14 @@
 #include <cstdio>
 #include <cstring>
+#include <cstdint>
 
 #include "libtorrent/aux_/sha512.hpp"
 
 #if !defined TORRENT_USE_LIBGCRYPT \
 	&& !TORRENT_USE_COMMONCRYPTO \
 	&& !TORRENT_USE_CRYPTOAPI_SHA_512 \
-	&& !defined TORRENT_USE_LIBCRYPTO
+	&& !defined TORRENT_USE_LIBCRYPTO \
+	&& !defined TORRENT_USE_WOLFCRYPT
 
 // ignore warnings in this file
 #include "libtorrent/aux_/disable_warnings_push.hpp"

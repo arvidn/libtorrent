@@ -6,7 +6,8 @@
 #if !defined TORRENT_USE_LIBGCRYPT \
 	&& !TORRENT_USE_COMMONCRYPTO \
 	&& !TORRENT_USE_CRYPTOAPI_SHA_512 \
-	&& !defined TORRENT_USE_LIBCRYPTO
+	&& !defined TORRENT_USE_LIBCRYPTO \
+	&& !defined TORRENT_USE_WOLFCRYPT
 
 #include <cstdint>
 

@@ -145,7 +145,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 // on OSX, use the built-in common crypto for built-in
-# if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
+# if !defined TORRENT_USE_LIBCRYPTO \
+	&& !defined TORRENT_USE_LIBGCRYPT \
+	&& !defined TORRENT_USE_WOLFCRYPT
 #  define TORRENT_USE_COMMONCRYPTO 1
 # endif // TORRENT_USE_OPENSSL
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED
@@ -232,7 +234,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // mingw doesn't implement random_device.
 #define TORRENT_BROKEN_RANDOM_DEVICE 1
 
-# if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
+# if !defined TORRENT_USE_LIBCRYPTO \
+	&& !defined TORRENT_USE_LIBGCRYPT \
+	&& !defined TORRENT_USE_WOLFCRYPT
 // unless some other crypto library has been specified, default to the native
 // windows CryptoAPI
 #define TORRENT_USE_CRYPTOAPI 1
@@ -263,7 +267,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAVE_MAP_VIEW_OF_FILE 1
 #endif
 
-# if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
+# if !defined TORRENT_USE_LIBCRYPTO \
+	&& !defined TORRENT_USE_LIBGCRYPT \
+	&& !defined TORRENT_USE_WOLFCRYPT
 // unless some other crypto library has been specified, default to the native
 // windows CryptoAPI
 #define TORRENT_USE_CRYPTOAPI 1
