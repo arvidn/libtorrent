@@ -145,7 +145,7 @@ static void nop() {}
 	wj.d.io.buffer_size = 0x4000; \
 	wj.piece = piece_index_t(p); \
 	wj.argument = disk_buffer_holder(alloc, bc.allocate_buffer("write-test"), 0x4000); \
-	pe = bc.add_dirty_block(&wj)
+	pe = bc.add_dirty_block(&wj, true)
 
 #define READ_BLOCK(p, b, r) \
 	rj.action = job_action_t::read; \
