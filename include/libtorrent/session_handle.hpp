@@ -66,6 +66,10 @@ namespace libtorrent {
 		, std::vector<char>&, error_code&)>;
 #endif
 
+	// this class provides a non-owning handle to a session and a subset of the
+	// interface of the session class. If the underlying session is destructed
+	// any handle to it will no longer be valid. is_valid() will return false and
+	// any operation on it will throw an invalid_session_handle.
 	struct TORRENT_EXPORT session_handle
 	{
 		friend class session;
@@ -452,6 +456,18 @@ namespace libtorrent {
 				, std::int64_t&, std::string const&)> cb
 			, std::string salt = std::string());
 
+		// ``dht_get_peers()`` will issue a DHT get_peer request to the DHT for the
+		// specified info-hash. The response (the peers) will be posted back in a
+		// dht_get_peers_reply_alert.
+		//
+		// ``dht_announce()`` will issue a DHT announce request to the DHT to the
+		// specified info-hash, advertising the specified port. If the port is
+		// left at its default, 0, the port will be implied by the DHT message's
+		// source port (which may improve connectivity through a NAT).
+		//
+		// Both these functions are exposed for advanced custom use of the DHT.
+		// All torrents eligible to be announce to the DHT will be automatically,
+		// by libtorrent.
 		void dht_get_peers(sha1_hash const& info_hash);
 		void dht_announce(sha1_hash const& info_hash, int port = 0, dht::announce_flags_t flags = {});
 
@@ -938,6 +954,13 @@ namespace libtorrent {
 		//
 		// To control which alerts are posted, set the alert_mask
 		// (settings_pack::alert_mask).
+		//
+		// If the alert queue fills up to the point where alerts are dropped, this
+		// will be indicated by a alerts_dropped_alert, which contains a bitmask
+		// of which types of alerts were dropped. Generally it is a good idea to
+		// make sure the alert queue is large enough, the alert_mask doesn't have
+		// unnecessary categories enabled and to call pop_alert() frequently, to
+		// avoid alerts being dropped.
 		//
 		// the ``set_alert_notify`` function lets the client set a function object
 		// to be invoked every time the alert queue goes from having 0 alerts to

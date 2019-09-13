@@ -45,6 +45,9 @@ namespace libtorrent {
 
 class bt_peer_connection;
 
+// the peer_connection_handle class provides a handle to the internal peer
+// connection object, to be used by plugins. This is a low level interface that
+// may not be stable across libtorrent versions
 struct TORRENT_EXPORT peer_connection_handle
 {
 	explicit peer_connection_handle(std::weak_ptr<peer_connection> impl)
@@ -128,6 +131,9 @@ private:
 	}
 };
 
+// The bt_peer_connection_handle provides a handle to the internal bittorrent
+// peer connection object to plugins. It's low level and may not be a stable API
+// across libtorrent versions.
 struct TORRENT_EXPORT bt_peer_connection_handle : peer_connection_handle
 {
 	explicit bt_peer_connection_handle(peer_connection_handle pc)

@@ -281,7 +281,6 @@ TORRENT_VERSION_NAMESPACE_2
 		// have not received any scrape data.
 		int num_complete = -1;
 		int num_incomplete = -1;
-
 		int num_downloaded = -1;
 
 		// URLs can be added to these two lists to specify additional web
