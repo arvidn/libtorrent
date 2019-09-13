@@ -695,7 +695,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, std::uint1
 	return p;
 }
 
-cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
+cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j, bool const add_hasher)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
@@ -755,7 +755,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 	pe->jobs.push_back(j);
 
-	if (block == 0 && !pe->hash && pe->hashing_done == false)
+	if (block == 0 && !pe->hash && pe->hashing_done == false && add_hasher)
 		pe->hash.reset(new partial_hash);
 
 	update_cache_state(pe);

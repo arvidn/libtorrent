@@ -450,7 +450,7 @@ namespace aux {
 		// adds a block to the cache, marks it as dirty and
 		// associates the job with it. When the block is
 		// flushed, the callback is posted
-		cached_piece_entry* add_dirty_block(disk_io_job* j);
+		cached_piece_entry* add_dirty_block(disk_io_job* j, bool add_hasher);
 
 		enum { blocks_inc_refcount = 1 };
 		void insert_blocks(cached_piece_entry* pe, int block, span<iovec_t const> iov
