@@ -9,6 +9,8 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
+variant debug-mode : debug : <asserts>on <debug-iterators>on <sanitize>on <invariant-checks>on ;
+
 project client_test
 	: requirements
 	<threading>multi <library>/torrent//torrent
@@ -21,6 +23,7 @@ project client_test
 	<toolset>msvc:<cflags>/wd4373
 	: default-build
 	<link>static
+	<variant>debug-mode
 	;
 
 exe client_test : client_test.cpp print.cpp torrent_view.cpp session_view.cpp ;
