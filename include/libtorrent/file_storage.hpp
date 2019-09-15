@@ -62,7 +62,7 @@ namespace libtorrent {
 		file_entry(file_entry const&) = default;
 		file_entry& operator=(file_entry const&) & = default;
 		file_entry(file_entry&&) noexcept = default;
-		file_entry& operator=(file_entry&&) & noexcept = default;
+		file_entry& operator=(file_entry&&) & = default;
 
 		// the full path of this file. The paths are unicode strings
 		// encoded in UTF-8.
