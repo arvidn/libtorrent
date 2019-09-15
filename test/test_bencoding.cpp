@@ -142,7 +142,6 @@ TORRENT_TEST(implicit_construct)
 	TEST_EQUAL(e.list().back().type(), entry::list_t);
 }
 
-#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(print_dict_single_line)
 {
 	entry e;
@@ -236,6 +235,7 @@ TORRENT_TEST(integer_to_str)
 	TEST_CHECK(integer_to_str(buf, -123456789012345678LL) == "-123456789012345678"_sv);
 }
 
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(lazy_entry)
 {
 	{
