@@ -267,14 +267,6 @@ rule building ( properties * )
 		result += <cflags>/bigobj ;
 	}
 
-	if ( <variant>debug in $(properties)
-		&& ( <toolset>clang in $(properties)
-			|| <toolset>gcc in $(properties)
-			|| <toolset>darwin in $(properties) ) )
-	{
-		result += <cflags>-ftrapv ;
-	}
-
 	if ( <asserts>production in $(properties)
 		|| <asserts>on in $(properties) )
 	{
@@ -388,13 +380,11 @@ rule sanitizer-options ( properties * )
 		local flags ;
    
 		# sanitize is a clang and GCC feature
-		# TODO: carve out specific sanitizers based on compiler version
-		# <toolset-gcc:version> <toolset-clang:version>
 		if <toolset>clang in $(properties)
 		{
 			local version = [ feature.get-values <toolset-clang:version> : $(properties) ] ;
 			# implicit-conversion sanitizer was added in clang-7
-			if $(version) >= 7 {
+			if $(version) >= 7.0 {
 				sanitizers += address,undefined,leak,implicit-conversion ;
 			}
 			else {
@@ -403,19 +393,21 @@ rule sanitizer-options ( properties * )
 			extra = <cflags>-fsanitize-blacklist=$(blacklist-file) ;
 			flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
 		}
-		else if <toolset>gcc in $(properties)
+		# sanitizers are not available on windows (mingw)
+		else if <toolset>gcc in $(properties) && ! <target-os>windows in $(properties)
 		{
 			local version = [ feature.get-values <toolset-gcc:version> : $(properties) ] ;
-			if $(version) >= 7 {
+			if $(version) >= 7.0 {
 				extra = <cflags>-fsanitize-address-use-after-scope ;
 			}
-			if $(version) >= 5 {
+			if $(version) >= 5.0 {
 				sanitizers = address,undefined,leak ;
 				flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
 			}
 		}
 		else if <toolset>darwin in $(properties)
 		{
+			# apple's compiler is typically an old version of clang
 			sanitizers = address,undefined ;
 			flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
 		}
@@ -502,8 +494,7 @@ feature boost-link : default static shared : propagated composite ;
 # constructors on some containers when enabling debug iterators, so it's
 # possible to turn them off
 feature debug-iterators : default off on : composite propagated link-incompatible ;
-feature.compose <debug-iterators>on : <define>_ITERATOR_DEBUG_LEVEL=2 <define>_GLIBCXX_DEBUG
-	<define>_GLIBCXX_DEBUG_PEDANTIC ;
+feature.compose <debug-iterators>on : <define>_GLIBCXX_DEBUG <define>_GLIBCXX_DEBUG_PEDANTIC ;
 feature.compose <debug-iterators>off : <define>_ITERATOR_DEBUG_LEVEL=0 ;
 
 feature fpic : off on : composite propagated link-incompatible ;
