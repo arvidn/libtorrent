@@ -384,7 +384,7 @@ rule sanitizer-options ( properties * )
 		{
 			local version = [ feature.get-values <toolset-clang:version> : $(properties) ] ;
 			# implicit-conversion sanitizer was added in clang-7
-			if $(version) >= 7 {
+			if $(version) >= 7.0 {
 				sanitizers += address,undefined,leak,implicit-conversion ;
 			}
 			else {

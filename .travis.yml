@@ -13,8 +13,8 @@ matrix:
           - python3-pip
           - libboost1.58-all-dev
           - libboost1.58-tools-dev
-    - env: variant=test_debug tests=1 toolset=gcc-sanitizer fuzzers=1
-    - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
+    - env: variant=test_debug tests=1 sanitizer=on fuzzers=1
+    - env: variant=test_debug sim=1 crypto=openssl sanitizer=on
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
     - env: cmake=1 toolset=gcc
@@ -59,6 +59,7 @@ before_install:
 
   - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
+  - 'if [[ $sanitizer == "" ]]; then export sanitizer=off; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" || "$check_headers" == "1" ) ]]; then
     travis_retry brew update > /dev/null && brew install ccache boost-build;
     fi'
@@ -95,17 +96,6 @@ install:
   - 'if [[ $toolset == "gcc" ]]; then
       g++-5 --version;
       echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
-    fi'
-  - 'if [[ $toolset == "gcc-sanitizer" ]]; then
-      echo "using gcc : sanitizer : ccache g++-5 :
-        <cxxflags>-std=c++11
-        <compileflags>-fstack-protector-all
-        <compileflags>-fstack-check
-        <compileflags>-fsanitize=address,undefined
-        <compileflags>-fno-sanitize-recover=address,undefined
-        <linkflags>-fsanitize=address,undefined
-        <linkflags>-fno-sanitize-recover=address,undefined
-        <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-coverage" ]]; then
       echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
@@ -213,18 +203,18 @@ script:
     fi'
 
   - 'if [ "$check_headers" == "1" ]; then
-      ${B2} -j3 check-headers crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant;
+      ${B2} -j3 check-headers sanitize=$sanitizer crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant;
     fi'
 
 # if we are building with code coverage, report it as soon as possible
 # libtorrent is the name of the test suite target
   - cd test
   - 'if [ "$tests" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
-      travis_retry ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
-      travis_retry ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
+      ${B2} -j3 warnings-as-errors=on warnings=all sanitize=$sanitizer crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
+      travis_retry ${B2} -j3 warnings-as-errors=on warnings=all sanitize=$sanitizer crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
+      travis_retry ${B2} -j3 warnings-as-errors=on warnings=all sanitize=$sanitizer crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-        travis_retry ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
+        travis_retry ${B2} -j3 warnings-as-errors=on warnings=all sanitize=$sanitizer crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
       fi &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
@@ -240,13 +230,13 @@ script:
 
   - cd ../examples
   - 'if [ "$examples" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      ${B2} -j3 warnings-as-errors=on warnings=all sanitize=$sanitizer crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
   - cd ..
 
   - cd tools
   - 'if [ "$tools" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      ${B2} -j3 warnings-as-errors=on warnings=all sanitize=$sanitizer crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
     fi'
   - cd ..
 
@@ -258,7 +248,7 @@ script:
 # on OSX we need to use the brew version of python, for reasons explained above
   - cd bindings/python
   - 'if [[ "$python" == "1" ]]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
+      ${B2} -j3 warnings-as-errors=on warnings=all sanitize=$sanitizer crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
         DYLD_LIBRARY_PATH=./dependencies python2 test.py -b;
       else
@@ -299,6 +289,6 @@ script:
   - cd test
   - 'if [[ "$arch" == "arm" ]];
     then
-      ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
+      ${B2} arm-tests warnings-as-errors=on warnings=all sanitize=$sanitizer crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'
   - cd ..
