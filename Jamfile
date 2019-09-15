@@ -798,9 +798,6 @@ lib torrent
 	<dht>on:<source>src/hasher512.cpp
 	<dht>on:<source>src/sha512.cpp
 
-	<variant>debug:<invariant-checks>on
-	<variant>debug:<asserts>on
-
 	<conditional>@building
 	<conditional>@warnings
 	<cxxflags>$(CXXFLAGS)
@@ -816,8 +813,6 @@ lib torrent
 	: # usage requirements
 	$(usage-requirements)
 	<link>shared:<define>TORRENT_LINKING_SHARED
-	<variant>debug:<invariant-checks>on
-	<variant>debug:<asserts>on
 
 	;
 

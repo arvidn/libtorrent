@@ -49,6 +49,7 @@ local default-build =
 	<invariant-checks>full
 	<picker-debugging>on
 	<logging>on
+	<debug-iterators>on
 	;
 
 project
