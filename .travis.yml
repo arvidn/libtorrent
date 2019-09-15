@@ -264,7 +264,7 @@ script:
 # simulation
   - cd simulation
   - 'if [[ "$sim" == "1" ]]; then
-      ${B2} -j2 crypto=built-in warnings-as-errors=on warnings=all debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset deprecated-functions=off;
+      ${B2} -j2 crypto=built-in warnings=all debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset deprecated-functions=off;
     fi'
   - cd ..
 
