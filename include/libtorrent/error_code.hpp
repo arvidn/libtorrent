@@ -537,14 +537,20 @@ namespace errors {
 	// error happened on
 	struct TORRENT_EXPORT storage_error
 	{
+		// hidden
 		storage_error(): file_idx(-1), operation(operation_t::unknown) {}
 		explicit storage_error(error_code e): ec(e), file_idx(-1), operation(operation_t::unknown) {}
 
+		// explicitly converts to true if this object represents an error, and
+		// false if it does not.
 		explicit operator bool() const { return ec.value() != 0; }
 
 		// the error that occurred
 		error_code ec;
 
+		// set and query the index (in the torrent) of the file this error
+		// occurred on. This may also have special values defined in
+		// torrent_status.
 		file_index_t file() const { return file_index_t(file_idx); }
 		void file(file_index_t f) { file_idx = static_cast<int>(f); }
 

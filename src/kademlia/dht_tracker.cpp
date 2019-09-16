@@ -602,7 +602,7 @@ namespace libtorrent { namespace dht {
 		return ret;
 	}
 
-	namespace {
+namespace {
 
 	std::vector<udp::endpoint> save_nodes(node const& dht)
 	{
@@ -614,7 +614,7 @@ namespace libtorrent { namespace dht {
 		return ret;
 	}
 
-	} // anonymous namespace
+} // anonymous namespace
 
 	dht_state dht_tracker::state() const
 	{

@@ -9553,14 +9553,14 @@ bool is_downloading_state(int const st)
 		int limit = zero_or(settings().get_int(settings_pack::max_web_seed_connections)
 			, 100);
 
-		auto const now = aux::time_now();
+		auto const now = aux::time_now32();
 
 		// keep trying web-seeds if there are any
 		// first find out which web seeds we are connected to
 		for (auto i = m_web_seeds.begin(); i != m_web_seeds.end() && limit > 0;)
 		{
 			auto const w = i++;
-			if (w->removed || w->retry > now)
+			if (w->removed || w->retry > now || !w->interesting)
 				continue;
 
 			--limit;

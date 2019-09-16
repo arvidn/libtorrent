@@ -308,6 +308,7 @@ namespace libtorrent {
 		mutable std::uint8_t m_type_queried:1;
 	};
 
+	// hidden
 	TORRENT_EXPORT bool operator==(entry const& lhs, entry const& rhs);
 	inline bool operator!=(entry const& lhs, entry const& rhs) { return !(lhs == rhs); }
 

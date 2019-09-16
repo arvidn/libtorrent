@@ -5998,13 +5998,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	void session_impl::dht_sample_infohashes(udp::endpoint const& ep, sha1_hash const& target)
 	{
 		if (!m_dht) return;
-		m_dht->sample_infohashes(ep, target, [this, &ep](time_duration interval
-			, int num, std::vector<sha1_hash> samples
+		m_dht->sample_infohashes(ep, target, [this, ep](time_duration const interval
+			, int const num, std::vector<sha1_hash> samples
 			, std::vector<std::pair<sha1_hash, udp::endpoint>> nodes)
 		{
-			if (m_alerts.should_post<dht_sample_infohashes_alert>())
-				m_alerts.emplace_alert<dht_sample_infohashes_alert>(ep
-					, interval, num, samples, nodes);
+			m_alerts.emplace_alert<dht_sample_infohashes_alert>(ep
+				, interval, num, std::move(samples), std::move(nodes));
 		});
 	}
 

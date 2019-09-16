@@ -85,6 +85,7 @@ namespace aux {
 
 		using headers_t = std::vector<std::pair<std::string, std::string>>;
 
+		// hidden
 		web_seed_entry(std::string const& url_, type_t type_
 			, std::string const& auth_ = std::string()
 			, headers_t const& extra_headers_ = headers_t());
@@ -138,6 +139,7 @@ namespace aux {
 
 	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;
 
+	// the torrent_info class holds the information found in a .torrent file.
 	class TORRENT_EXPORT torrent_info
 	{
 	public:

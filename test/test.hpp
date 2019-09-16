@@ -115,8 +115,9 @@ extern int _g_test_idx;
 
 #ifdef BOOST_NO_EXCEPTIONS
 #define TEST_CHECK(x) \
-	if (!(x)) \
-		TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__);
+	if (!(x)) { \
+		TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__) \
+	}
 #define TEST_EQUAL(x, y) \
 	if ((x) != (y)) { \
 		std::stringstream s__; \

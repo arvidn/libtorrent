@@ -185,6 +185,12 @@ namespace libtorrent {
 		// callback remove it
 		bool removed = false;
 
+		// this indicates whether this web seed has any files. A server that only
+		// redirects to other servers for instance, may not have any files and
+		// once we've seen all redirects, there's no point in connecting to it
+		// again.
+		bool interesting = true;
+
 		// if this is true, this URL was created by a redirect and should not be
 		// saved in the resume data
 		bool ephemeral = false;

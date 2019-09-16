@@ -89,6 +89,7 @@ namespace libtorrent {
 #endif
 	public:
 
+		// hidden
 		alert(alert const& rhs) = delete;
 		alert& operator=(alert const&) = delete;
 		alert(alert&& rhs) noexcept = default;

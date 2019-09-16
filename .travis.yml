@@ -243,19 +243,23 @@ script:
        ${B2} -a -j3 clang_tidy;
     fi'
 
+  # the common boost-build command line arguments. It's important they are all
+  # the same, in order for builds to be reused between invocations
+  - export B2_ARGS="crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant"
+
   - 'if [ "$check_headers" == "1" ]; then
-      ${B2} -j3 check-headers crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant;
+      ${B2} -j3 check-headers ${B2_ARGS};
     fi'
 
 # if we are building with code coverage, report it as soon as possible
 # libtorrent is the name of the test suite target
   - cd $TRAVIS_BUILD_DIR/test;
   - 'if [ "$tests" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant testing.execute=off &&
-      travis_retry ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant -l300 &&
-      travis_retry ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_natpmp enum_if -l300 &&
+      ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all ${B2_ARGS} testing.execute=off &&
+      travis_retry ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all ${B2_ARGS} -l300 &&
+      travis_retry ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all ${B2_ARGS} test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-        travis_retry ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant test_lsd -l300;
+        travis_retry ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all ${B2_ARGS} test_lsd -l300;
       fi &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
@@ -266,17 +270,17 @@ script:
   # rebuilding libtorrent itself.
   - cd $TRAVIS_BUILD_DIR/fuzzers;
   - 'if [ "$fuzzers" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant sanitize=off fuzz=off link=shared stage;
+      ${B2} -j3 warnings-as-errors=on warnings=all ${B2_ARGS} sanitize=off fuzz=off link=shared stage;
     fi'
 
   - cd $TRAVIS_BUILD_DIR/examples;
   - 'if [ "$examples" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all ${B2_ARGS} link=shared;
     fi'
 
   - cd $TRAVIS_BUILD_DIR/tools;
   - 'if [ "$tools" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant link=shared;
+      ${B2} -j3 warnings-as-errors=on sanitize=$sanitizer mmap-disk-io=$mmap warnings=all ${B2_ARGS} link=shared;
     fi'
 
   - cd $TRAVIS_BUILD_DIR;
@@ -289,7 +293,7 @@ script:
 # boost.python cannot be built with warnings-as-errors=on
   - cd $TRAVIS_BUILD_DIR/bindings/python;
   - 'if [[ "$python" == "1" ]]; then
-      ${B2} -j3 warnings=all sanitize=$sanitizer mmap-disk-io=$mmap crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
+      ${B2} -j3 warnings=all sanitize=$sanitizer mmap-disk-io=$mmap ${B2_ARGS} stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
         DYLD_LIBRARY_PATH=./dependencies python2 test.py -b;
       else

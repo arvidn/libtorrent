@@ -17,6 +17,7 @@
 
 1.2.2 release
 
+	* fix cases where the disable_hash_checks setting was not honored
 	* fix updating of is_finished torrent status, when changing piece priorities
 	* fix regression in &left= reporting when adding a seeding torrent
 	* fix integer overflow in http parser

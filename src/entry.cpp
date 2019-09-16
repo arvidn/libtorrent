@@ -87,7 +87,13 @@ namespace {
 
 	entry& entry::operator[](string_view key)
 	{
+		// at least GCC-5.4 for ARM (on travis) has a libstdc++ whose debug map$
+		// doesn't seem to support transparent comparators$
+#if ! defined _GLIBCXX_DEBUG
 		auto const i = dict().find(key);
+#else
+		auto const i = dict().find(std::string(key));
+#endif
 		if (i != dict().end()) return i->second;
 		auto const ret = dict().emplace(
 			std::piecewise_construct,
@@ -98,21 +104,35 @@ namespace {
 
 	const entry& entry::operator[](string_view key) const
 	{
+		// at least GCC-5.4 for ARM (on travis) has a libstdc++ whose debug map$
+		// doesn't seem to support transparent comparators$
+#if ! defined _GLIBCXX_DEBUG
 		auto const i = dict().find(key);
+#else
+		auto const i = dict().find(std::string(key));
+#endif
 		if (i == dict().end()) throw_error();
 		return i->second;
 	}
 
 	entry* entry::find_key(string_view key)
 	{
+#if ! defined _GLIBCXX_DEBUG
 		auto const i = dict().find(key);
+#else
+		auto const i = dict().find(std::string(key));
+#endif
 		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
 	entry const* entry::find_key(string_view key) const
 	{
+#if ! defined _GLIBCXX_DEBUG
 		auto const i = dict().find(key);
+#else
+		auto const i = dict().find(std::string(key));
+#endif
 		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}

@@ -129,7 +129,11 @@ for i in range(0, 6):
 
 
 def plot_fun(script):
-    ret = os.system('gnuplot "%s" 2>/dev/null' % script)
+    try:
+        ret = os.system('gnuplot "%s" 2>/dev/null' % script)
+    except Exception as e:
+        print('please install gnuplot: sudo apt install gnuplot')
+        raise e
     if ret != 0 and ret != 256:
         print('gnuplot failed: %d\n' % ret)
         raise Exception("abort")

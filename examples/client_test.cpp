@@ -1023,6 +1023,8 @@ CLIENT OPTIONS
                         previous command line options, so be sure to specify this first
   -G                    Add torrents in seed-mode (i.e. assume all pieces
                         are present and check hashes on-demand)
+  -e <loops>            exit client after the specified number of iterations
+                        through the main loop
   -O                    print session stats counters to the log)"
 #ifdef TORRENT_UTP_LOG_ENABLE
 R"(
@@ -1113,6 +1115,7 @@ example alert_masks:
 	bool rate_limit_locals = false;
 
 	std::deque<std::string> events;
+	int loop_limit = -1;
 
 	lt::time_point next_dir_scan = lt::clock_type::now();
 
@@ -1244,6 +1247,12 @@ example alert_masks:
 				{
 					params.disk_io_constructor = lt::disabled_disk_io_constructor;
 					--i;
+					break;
+				}
+			case 'e':
+				{
+					loop_limit = atoi(arg);
+					break;
 				}
 		}
 		++i; // skip the argument
@@ -1330,8 +1339,10 @@ example alert_masks:
 	signal(SIGINT, signal_handler);
 #endif
 
-	while (!quit)
+	while (!quit && loop_limit != 0)
 	{
+		if (loop_limit > 0) --loop_limit;
+
 		ses.post_torrent_updates();
 		ses.post_session_stats();
 		ses.post_dht_stats();

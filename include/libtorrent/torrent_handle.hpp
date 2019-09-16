@@ -256,6 +256,7 @@ namespace aux {
 		// i.e. is_valid() will return false.
 		torrent_handle() noexcept = default;
 
+		// hidden
 		torrent_handle(torrent_handle const& t) = default;
 		torrent_handle(torrent_handle&& t) noexcept = default;
 		torrent_handle& operator=(torrent_handle const&) = default;
@@ -1248,6 +1249,8 @@ namespace aux {
 		bool operator<(const torrent_handle& h) const
 		{ return m_torrent.owner_before(h.m_torrent); }
 
+		// returns a unique identifier for this torrent. It's not a dense index.
+		// It's not preserved across sessions.
 		std::uint32_t id() const
 		{
 			uintptr_t ret = reinterpret_cast<uintptr_t>(m_torrent.lock().get());

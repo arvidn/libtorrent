@@ -2515,6 +2515,8 @@ TORRENT_VERSION_NAMESPACE_2
 		peer_request req;
 	};
 
+	// debug logging of the DHT when dht_log_notification is set in the alert
+	// mask.
 	struct TORRENT_EXPORT dht_log_alert final : alert
 	{
 		enum dht_module_t
@@ -2585,6 +2587,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 	};
 
+	// Posted when we receive a response to a DHT get_peers request.
 	struct TORRENT_EXPORT dht_get_peers_reply_alert final : alert
 	{
 		dht_get_peers_reply_alert(aux::stack_allocator& alloc
@@ -2713,6 +2716,9 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::allocation_slot m_msg_idx;
 	};
 
+	// posted in response to a call to session::dht_live_nodes(). It contains the
+	// live nodes from the DHT routing table of one of the DHT nodes running
+	// locally.
 	struct TORRENT_EXPORT dht_live_nodes_alert final : alert
 	{
 		dht_live_nodes_alert(aux::stack_allocator& alloc
@@ -2724,8 +2730,10 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr alert_category_t static_category = alert::dht_notification;
 		std::string message() const override;
 
+		// the local DHT node's node-ID this routing table belongs to
 		sha1_hash node_id;
 
+		// the number of nodes in the routing table and the actual nodes.
 		int num_nodes() const;
 		std::vector<std::pair<sha1_hash, udp::endpoint>> nodes() const;
 
@@ -2755,6 +2763,8 @@ TORRENT_VERSION_NAMESPACE_2
 		std::string message() const override;
 	};
 
+	// posted as a response to a call to session::dht_sample_infohashes() with
+	// the information from the DHT response message.
 	struct TORRENT_EXPORT dht_sample_infohashes_alert final : alert
 	{
 		dht_sample_infohashes_alert(aux::stack_allocator& alloc
@@ -2769,8 +2779,10 @@ TORRENT_VERSION_NAMESPACE_2
 
 		std::string message() const override;
 
+		// the node the request was sent to (and this response was received from)
 		aux::noexcept_movable<udp::endpoint> endpoint;
 
+		// the interval to wait before making another request to this node
 		time_duration const interval;
 
 		// This field indicates how many info-hash keys are currently in the node's storage.
@@ -2778,6 +2790,9 @@ TORRENT_VERSION_NAMESPACE_2
 		// indexer may obtain additional samples after waiting out the interval.
 		int const num_infohashes;
 
+		// returns the number of info-hashes returned by the node, as well as the
+		// actual info-hashes. ``num_samples()`` is more efficient than
+		// ``samples().size()``.
 		int num_samples() const;
 		std::vector<sha1_hash> samples() const;
 

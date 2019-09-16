@@ -82,11 +82,12 @@ namespace libtorrent {
 		// view).
 
 		// if this tracker has returned scrape data, these fields are filled in
-		// with valid numbers. Otherwise they are set to -1. the number of
-		// current downloaders
+		// with valid numbers. Otherwise they are set to -1. ``incomplete`` counts
+		// the number of current downloaders. ``complete`` counts the number of
+		// current peers completed the download, or "seeds". ``downloaded`` is the
+		// cumulative number of completed downloads.
 		int scrape_incomplete = -1;
 		int scrape_complete = -1;
-
 		int scrape_downloaded = -1;
 
 		// the number of times in a row we have failed to announce to this
@@ -214,6 +215,8 @@ TORRENT_VERSION_NAMESPACE_2
 		// trackerid is sent).
 		std::string trackerid;
 
+		// each local listen socket (endpoint) will announce to the tracker. This
+		// list contains state per endpoint.
 		std::vector<announce_endpoint> endpoints;
 
 		// the tier this tracker belongs to
