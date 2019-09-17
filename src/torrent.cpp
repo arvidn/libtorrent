@@ -10556,6 +10556,14 @@ bool is_downloading_state(int const st)
 			hashes.resize(torrent_file().orig_files().blocks_in_piece2(piece));
 		}
 
+		if (settings().get_bool(settings_pack::disable_hash_checks))
+		{
+			// short-circuit the hash check if it's disabled
+			m_picker->started_hash_job(piece);
+			on_piece_verified(std::move(hashes), piece, sha1_hash(), storage_error{});
+			return;
+		}
+
 		span<sha256_hash> v2_span(hashes);
 		m_ses.disk_thread().async_hash(m_storage, piece, v2_span, flags
 			, [self = shared_from_this(), hashes = std::move(hashes)]
