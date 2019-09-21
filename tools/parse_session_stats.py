@@ -420,8 +420,8 @@ reports = [
      ['disk.disk_read_time', 'disk.disk_write_time', 'disk.disk_hash_time'], {'type': stacked}),
     ('disk_cache_hits', 'blocks (16kiB)', '', '', [
      'disk.num_blocks_read', 'disk.num_blocks_cache_hits'], {'type': stacked}),
-    ('disk_cache', 'blocks (16kiB)', '', 'disk cache size and usage', [
-     'disk.disk_blocks_in_use', 'disk.read_cache_blocks', 'disk.write_cache_blocks', 'disk.pinned_blocks']),
+    ('disk_cache', 'blocks (16kiB)', '', 'disk store-buffer size', [
+     'disk.disk_blocks_in_use']),
     ('disk_readback',
      '% of written blocks',
      '%%',
@@ -531,14 +531,6 @@ reports = [
         'sock_bufs.socket_recv_size19', \
         'sock_bufs.socket_recv_size20' \
     ], {'type': stacked, 'colors': 'gradient18'}),
-
-    ('ARC', 'num pieces', '', '', [ \
-        'disk.arc_mru_ghost_size', \
-        'disk.arc_mru_size', \
-        'disk.arc_volatile_size', \
-        'disk.arc_mfu_size', \
-        'disk.arc_mfu_ghost_size' \
-    ], {'allow-negative': True}),
 
     ('request latency', 'us', '', 'latency from receiving requests to sending response', ['disk.request_latency']),
     ('incoming messages', 'num', '', 'number of received bittorrent messages, by type', [ \
