@@ -241,11 +241,7 @@ namespace aux {
 		// For more information on the file_storage object, see the separate
 		// document on how to create torrents.
 		file_storage const& files() const { return m_files; }
-		file_storage const& orig_files() const
-		{
-			TORRENT_ASSERT(is_loaded());
-			return m_orig_files ? *m_orig_files : m_files;
-		}
+		file_storage const& orig_files() const;
 
 		// Renames a the file with the specified index to the new name. The new
 		// filename is reflected by the ``file_storage`` returned by ``files()``
@@ -261,13 +257,7 @@ namespace aux {
 		// == true``), then the file is detached from the ``save_path`` of the
 		// torrent. In this case the file is not moved when move_storage() is
 		// invoked.
-		void rename_file(file_index_t index, std::string const& new_filename)
-		{
-			TORRENT_ASSERT(is_loaded());
-			if (m_files.file_path(index) == new_filename) return;
-			copy_on_write();
-			m_files.rename_file(index, new_filename);
-		}
+		void rename_file(file_index_t index, std::string const& new_filename);
 #if TORRENT_ABI_VERSION == 1
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions

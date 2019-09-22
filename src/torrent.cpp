@@ -4632,7 +4632,7 @@ bool is_downloading_state(int const st)
 		{
 			if (alerts().should_post<file_renamed_alert>())
 				alerts().emplace_alert<file_renamed_alert>(get_handle()
-					, filename, file_idx);
+					, filename, m_torrent_file->files().file_path(file_idx), file_idx);
 			m_torrent_file->rename_file(file_idx, filename);
 		}
 	}

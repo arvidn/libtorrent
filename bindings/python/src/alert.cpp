@@ -723,6 +723,7 @@ void bind_alert()
         .def_readonly("name", &file_renamed_alert::name)
 #endif
         .def("new_name", &file_renamed_alert::new_name)
+        .def("old_name", &file_renamed_alert::old_name)
         ;
 
     class_<file_rename_failed_alert, bases<torrent_alert>, noncopyable>(
