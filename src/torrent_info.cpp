@@ -1103,6 +1103,20 @@ namespace {
 #endif // TORRENT_ABI_VERSION
 #endif
 
+	file_storage const& torrent_info::orig_files() const
+	{
+		TORRENT_ASSERT(is_loaded());
+		return m_orig_files ? *m_orig_files : m_files;
+	}
+
+	void torrent_info::rename_file(file_index_t index, std::string const& new_filename)
+	{
+		TORRENT_ASSERT(is_loaded());
+		if (m_files.file_path(index) == new_filename) return;
+		copy_on_write();
+		m_files.rename_file(index, new_filename);
+	}
+
 	torrent_info::torrent_info(bdecode_node const& torrent_file
 		, error_code& ec)
 	{
