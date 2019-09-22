@@ -156,11 +156,6 @@ namespace libtorrent {
 		std::shared_ptr<socks5> m_socks5_connection;
 
 		bool m_abort:1;
-
-#if TORRENT_USE_ASSERTS
-		bool m_started;
-		int m_magic;
-#endif
 	};
 }
 
