@@ -90,7 +90,7 @@ namespace libtorrent {
 	public:
 
 		// hidden
-		alert(alert const& rhs) = delete;
+		TORRENT_UNEXPORT alert(alert const& rhs) = delete;
 		alert& operator=(alert const&) = delete;
 		alert(alert&& rhs) noexcept = default;
 
@@ -214,7 +214,7 @@ namespace libtorrent {
 		static constexpr alert_category_t all_categories = alert_category_t::all();
 
 		// hidden
-		alert();
+		TORRENT_UNEXPORT alert();
 		// hidden
 		virtual ~alert();
 
