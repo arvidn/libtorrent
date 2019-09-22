@@ -117,9 +117,9 @@ namespace aux {
 		session_proxy();
 		~session_proxy();
 		session_proxy(session_proxy const&);
-		session_proxy& operator=(session_proxy const&);
+		session_proxy& operator=(session_proxy const&) &;
 		session_proxy(session_proxy&&) noexcept;
-		session_proxy& operator=(session_proxy&&) noexcept;
+		session_proxy& operator=(session_proxy&&) & noexcept;
 	private:
 		session_proxy(
 			std::shared_ptr<io_context> ios
@@ -156,10 +156,10 @@ TORRENT_VERSION_NAMESPACE_3
 			, std::vector<std::shared_ptr<plugin>> exts);
 
 		// hidden
-		session_params(session_params const&) = default;
-		session_params(session_params&&) = default;
-		session_params& operator=(session_params const&) = default;
-		session_params& operator=(session_params&&) = default;
+		session_params(session_params const&);
+		session_params(session_params&&);
+		session_params& operator=(session_params const&) &;
+		session_params& operator=(session_params&&) &;
 
 		settings_pack settings;
 
@@ -251,8 +251,8 @@ TORRENT_VERSION_NAMESPACE_3_END
 		{ start(flags, settings_pack(pack), nullptr); }
 
 		// movable
-		session(session&&) = default;
-		session& operator=(session&&) = default;
+		session(session&&);
+		session& operator=(session&&) &;
 
 		// non-copyable
 		session(session const&) = delete;

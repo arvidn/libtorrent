@@ -94,9 +94,9 @@ TORRENT_VERSION_NAMESPACE_2
 		// data for the torrent. For more information, see the ``storage`` field.
 		add_torrent_params();
 		add_torrent_params(add_torrent_params&&) noexcept;
-		add_torrent_params& operator=(add_torrent_params&&) = default;
+		add_torrent_params& operator=(add_torrent_params&&) & = default;
 		add_torrent_params(add_torrent_params const&);
-		add_torrent_params& operator=(add_torrent_params const&);
+		add_torrent_params& operator=(add_torrent_params const&) &;
 
 		// These are all deprecated. use torrent_flags_t instead (in
 		// libtorrent/torrent_flags.hpp)

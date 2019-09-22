@@ -84,7 +84,7 @@ namespace aux {
 	// and writing network packets
 	template <class T> struct big_endian_int
 	{
-		big_endian_int& operator=(T v)
+		big_endian_int& operator=(T v) &
 		{
 			char* p = m_storage;
 			aux::write_impl<T>(v, p);

@@ -278,7 +278,7 @@ void file_handle::close()
 
 file_handle::~file_handle() { close(); }
 
-file_handle& file_handle::operator=(file_handle&& rhs)
+file_handle& file_handle::operator=(file_handle&& rhs) &
 {
 	if (&rhs == this) return *this;
 	close();
@@ -339,7 +339,7 @@ file_mapping_handle::file_mapping_handle(file_handle file, open_mode_t const mod
 		fm.m_mapping = INVALID_HANDLE_VALUE;
 	}
 
-	file_mapping_handle& file_mapping_handle::operator=(file_mapping_handle&& fm)
+	file_mapping_handle& file_mapping_handle::operator=(file_mapping_handle&& fm) &
 	{
 		if (&fm == this) return *this;
 		close();
@@ -441,7 +441,7 @@ file_mapping::file_mapping(file_mapping&& rhs)
 		rhs.m_mapping = nullptr;
 	}
 
-	file_mapping& file_mapping::operator=(file_mapping&& rhs)
+	file_mapping& file_mapping::operator=(file_mapping&& rhs) &
 	{
 		if (&rhs == this) return *this;
 		close();

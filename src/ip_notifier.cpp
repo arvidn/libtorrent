@@ -131,7 +131,7 @@ struct CFRef
 	~CFRef() { release(); }
 
 	CFRef(CFRef&& rhs) : m_h(rhs.m_h) { rhs.m_h = nullptr; }
-	CFRef& operator=(CFRef&& rhs)
+	CFRef& operator=(CFRef&& rhs) &
 	{
 		if (m_h == rhs.m_h) return *this;
 		release();
@@ -141,7 +141,7 @@ struct CFRef
 	}
 
 	CFRef(CFRef const& rhs) : m_h(rhs.m_h) { retain(); }
-	CFRef& operator=(CFRef const& rhs)
+	CFRef& operator=(CFRef const& rhs) &
 	{
 		if (m_h == rhs.m_h) return *this;
 		release();
@@ -150,8 +150,8 @@ struct CFRef
 		return *this;
 	}
 
-	CFRef& operator=(T h) { m_h = h; return *this;}
-	CFRef& operator=(std::nullptr_t) { release(); return *this;}
+	CFRef& operator=(T h) & { m_h = h; return *this;}
+	CFRef& operator=(std::nullptr_t) & { release(); return *this;}
 
 	T get() const { return m_h; }
 	explicit operator bool() const { return m_h != nullptr; }

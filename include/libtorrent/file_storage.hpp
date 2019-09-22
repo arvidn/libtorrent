@@ -229,9 +229,9 @@ namespace aux {
 		// hidden
 		~file_storage();
 		file_storage(file_storage const&);
-		file_storage& operator=(file_storage const&);
+		file_storage& operator=(file_storage const&) &;
 		file_storage(file_storage&&) noexcept;
-		file_storage& operator=(file_storage&&) = default;
+		file_storage& operator=(file_storage&&) & = default;
 
 		// internal limitations restrict file sizes to not be larger than this
 		static constexpr std::int64_t max_file_size = (std::int64_t(1) << 48) - 1;

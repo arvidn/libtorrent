@@ -83,7 +83,7 @@ namespace dht {
 		{ return value < rhs.value; }
 		bool operator>(sequence_number rhs) const
 		{ return value > rhs.value; }
-		sequence_number& operator=(sequence_number rhs)
+		sequence_number& operator=(sequence_number rhs) &
 		{ value = rhs.value; return *this; }
 		bool operator<=(sequence_number rhs) const
 		{ return value <= rhs.value; }

@@ -94,9 +94,9 @@ upnp::rootdevice::~rootdevice()
 }
 
 upnp::rootdevice::rootdevice(rootdevice const&) = default;
-upnp::rootdevice& upnp::rootdevice::operator=(rootdevice const&) = default;
+upnp::rootdevice& upnp::rootdevice::operator=(rootdevice const&) & = default;
 upnp::rootdevice::rootdevice(rootdevice&&) = default;
-upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) = default;
+upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) & = default;
 
 // TODO: 3 bind the broadcast socket. it would probably have to be changed to a vector of interfaces to
 // bind to, since the broadcast socket opens one socket per local

@@ -233,7 +233,7 @@ namespace libtorrent {
 	}
 
 	ipv4_peer::ipv4_peer(ipv4_peer const&) = default;
-	ipv4_peer& ipv4_peer::operator=(ipv4_peer const& p) = default;
+	ipv4_peer& ipv4_peer::operator=(ipv4_peer const& p) & = default;
 
 #if TORRENT_USE_I2P
 	i2p_peer::i2p_peer(string_view dest, bool connectable_

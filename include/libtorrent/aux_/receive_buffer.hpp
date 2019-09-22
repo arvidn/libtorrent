@@ -47,6 +47,9 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 {
 	friend struct crypto_receive_buffer;
 
+	// explicitly disallow assignment, to silence msvc warning
+	receive_buffer& operator=(receive_buffer const&) = delete;
+
 	int packet_size() const { return m_packet_size; }
 	int packet_bytes_remaining() const
 	{
@@ -117,8 +120,6 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 #endif
 
 private:
-	// explicitly disallow assignment, to silence msvc warning
-	receive_buffer& operator=(receive_buffer const&);
 
 	// m_recv_buffer.data() (start of actual receive buffer)
 	// |
@@ -173,6 +174,9 @@ struct crypto_receive_buffer
 		: m_connection_buffer(next)
 	{}
 
+	// explicitly disallow assignment, to silence msvc warning
+	crypto_receive_buffer& operator=(crypto_receive_buffer const&) = delete;
+
 	span<char> mutable_buffer() { return m_connection_buffer.mutable_buffer(); }
 
 	bool packet_finished() const;
@@ -211,8 +215,6 @@ struct crypto_receive_buffer
 	span<char> mutable_buffer(int bytes);
 
 private:
-	// explicitly disallow assignment, to silence msvc warning
-	crypto_receive_buffer& operator=(crypto_receive_buffer const&);
 
 	int m_recv_pos = (std::numeric_limits<int>::max)();
 	int m_packet_size = 0;

@@ -83,8 +83,8 @@ namespace libtorrent {
 		session_handle() = default;
 		session_handle(session_handle const& t) = default;
 		session_handle(session_handle&& t) noexcept = default;
-		session_handle& operator=(session_handle const&) = default;
-		session_handle& operator=(session_handle&&) noexcept = default;
+		session_handle& operator=(session_handle const&) & = default;
+		session_handle& operator=(session_handle&&) & noexcept = default;
 
 		// returns true if this handle refers to a valid session object. If the
 		// session has been destroyed, all session_handle objects will expire and

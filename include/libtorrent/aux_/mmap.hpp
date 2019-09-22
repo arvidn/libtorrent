@@ -80,7 +80,7 @@ namespace aux {
 		file_handle& operator=(file_handle const& rhs) = delete;
 
 		file_handle(file_handle&& rhs) : m_fd(rhs.m_fd) { rhs.m_fd = invalid_handle; }
-		file_handle& operator=(file_handle&& rhs);
+		file_handle& operator=(file_handle&& rhs) &;
 
 		~file_handle();
 
@@ -106,7 +106,7 @@ namespace aux {
 		file_mapping_handle& operator=(file_mapping_handle const&) = delete;
 
 		file_mapping_handle(file_mapping_handle&& fm);
-		file_mapping_handle& operator=(file_mapping_handle&& fm);
+		file_mapping_handle& operator=(file_mapping_handle&& fm) &;
 
 		HANDLE handle() const { return m_mapping; }
 	private:
@@ -131,7 +131,7 @@ namespace aux {
 		file_mapping& operator=(file_mapping const&) = delete;
 
 		file_mapping(file_mapping&& rhs);
-		file_mapping& operator=(file_mapping&& rhs);
+		file_mapping& operator=(file_mapping&& rhs) &;
 		~file_mapping();
 
 		// ...

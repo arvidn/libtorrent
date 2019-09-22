@@ -88,6 +88,8 @@ public:
 #if TORRENT_USE_ASSERTS
 	~i2p_stream();
 #endif
+	// explicitly disallow assignment, to silence msvc warning
+	i2p_stream& operator=(i2p_stream const&) = delete;
 
 	enum command_t
 	{
@@ -129,8 +131,6 @@ public:
 	void send_name_lookup(handler_type h);
 
 private:
-	// explicitly disallow assignment, to silence msvc warning
-	i2p_stream& operator=(i2p_stream const&);
 
 	void do_connect(error_code const& e, tcp::resolver::results_type ips
 		, handler_type h);
@@ -168,6 +168,8 @@ class i2p_connection
 public:
 	explicit i2p_connection(io_context& ios);
 	~i2p_connection();
+	// explicitly disallow assignment, to silence msvc warning
+	i2p_connection& operator=(i2p_connection const&) = delete;
 
 	aux::proxy_settings proxy() const;
 
@@ -187,9 +189,6 @@ public:
 	void async_name_lookup(char const* name, name_lookup_handler handler);
 
 private:
-	// explicitly disallow assignment, to silence msvc warning
-	i2p_connection& operator=(i2p_connection const&);
-
 	void on_sam_connect(error_code const& ec, i2p_stream::handler_type& h
 		, std::shared_ptr<i2p_stream>);
 	void do_name_lookup(std::string const& name

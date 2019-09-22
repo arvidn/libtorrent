@@ -59,15 +59,14 @@ namespace libtorrent {
 		invariant_checker_impl(invariant_checker_impl const& rhs)
 			: self(rhs.self) {}
 
+		invariant_checker_impl& operator=(invariant_checker_impl const&) = delete;
+
 		~invariant_checker_impl()
 		{
 			check_invariant(self);
 		}
 
 		T const& self;
-
-	private:
-		invariant_checker_impl& operator=(invariant_checker_impl const&);
 	};
 
 	template<class T>
