@@ -91,6 +91,13 @@ POSSIBILITY OF SUCH DAMAGE.
 # endif
 #endif
 
+#if !defined TORRENT_EXPORT_EXTRA \
+  && ((defined __GNU__ && __GNU__ >= 4) || defined __clang__)
+# define TORRENT_UNEXPORT __attribute__((visibility("hidden")))
+#else
+# define TORRENT_UNEXPORT
+#endif
+
 #if defined TORRENT_BUILDING_SHARED
 # define TORRENT_EXPORT BOOST_SYMBOL_EXPORT
 #elif defined TORRENT_LINKING_SHARED
