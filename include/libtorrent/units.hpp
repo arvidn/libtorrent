@@ -93,6 +93,12 @@ namespace aux {
 
 		strong_typedef& operator=(strong_typedef const& rhs) & noexcept = default;
 		strong_typedef& operator=(strong_typedef&& rhs) & noexcept = default;
+
+#if TORRENT_USE_IOSTREAM
+		friend std::ostream& operator<<(std::ostream& os, strong_typedef val)
+		{ return os << static_cast<UnderlyingType>(val); }
+#endif
+
 	private:
 		UnderlyingType m_val;
 	};
@@ -123,12 +129,6 @@ namespace aux {
 	template <typename T, typename Tag>
 	strong_typedef<T, Tag> prev(strong_typedef<T, Tag> v)
 	{ return --v;}
-
-#if TORRENT_USE_IOSTREAM
-	template <typename T, typename Tag>
-	std::ostream& operator<<(std::ostream& os, strong_typedef<T, Tag> val)
-	{ return os << static_cast<T>(val); }
-#endif
 
 } // namespace libtorrent::aux
 

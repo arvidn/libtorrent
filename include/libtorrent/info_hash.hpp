@@ -123,16 +123,16 @@ namespace {
 			return std::tie(v1, v2) < std::tie(o.v1, o.v2);
 		}
 
+#if TORRENT_USE_IOSTREAM
+		friend std::ostream& operator<<(std::ostream& os, info_hash_t const& ih)
+		{
+			return os << '[' << ih.v1 << ',' << ih.v2 << ']';
+		}
+#endif // TORRENT_USE_IOSTREAM
+
 		sha1_hash v1;
 		sha256_hash v2;
 	};
-
-#if TORRENT_USE_IOSTREAM
-	inline std::ostream& operator<<(std::ostream& os, info_hash_t const& ih)
-	{
-		return os << '[' << ih.v1 << ',' << ih.v2 << ']';
-	}
-#endif // TORRENT_USE_IOSTREAM
 
 }
 
