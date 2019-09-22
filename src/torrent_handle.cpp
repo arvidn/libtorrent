@@ -82,6 +82,24 @@ namespace libtorrent {
 	constexpr status_flags_t torrent_handle::query_name;
 	constexpr status_flags_t torrent_handle::query_save_path;
 
+	void block_info::set_peer(tcp::endpoint const& ep)
+	{
+		is_v6_addr = is_v6(ep);
+		if (is_v6_addr)
+			addr.v6 = ep.address().to_v6().to_bytes();
+		else
+			addr.v4 = ep.address().to_v4().to_bytes();
+		port = ep.port();
+	}
+
+	tcp::endpoint block_info::peer() const
+	{
+		if (is_v6_addr)
+			return tcp::endpoint(address_v6(addr.v6), port);
+		else
+			return tcp::endpoint(address_v4(addr.v4), port);
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
 	[[noreturn]] void throw_invalid_handle()
 	{
