@@ -46,42 +46,34 @@ namespace libtorrent {
 #if TORRENT_USE_IOSTREAM
 
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
-	std::ostream& operator<<(std::ostream& os, sha1_hash const& peer)
+	template <std::ptrdiff_t N>
+	void digest32<N>::stream_out(std::ostream& os) const
 	{
-		return os << aux::to_hex(peer);
-	}
-
-	std::ostream& operator<<(std::ostream& os, sha256_hash const& peer)
-	{
-		return os << aux::to_hex(peer);
+		os << aux::to_hex(*this);
 	}
 
 	// read hexadecimal digits from an istream into a digest32
 	template <std::ptrdiff_t N>
-	std::istream& digest_isstream_impl(std::istream& is, digest32<N>& peer)
+	void digest32<N>::stream_in(std::istream& is)
 	{
-		char hex[digest32<N>::size() * 2];
-		is.read(hex, digest32<N>::size() * 2);
-		if (!aux::from_hex(hex, peer.data()))
+		char hex[size() * 2];
+		is.read(hex, size() * 2);
+		if (!aux::from_hex(hex, data()))
 			is.setstate(std::ios_base::failbit);
-		return is;
 	}
 
-	std::istream& operator>>(std::istream& is, sha1_hash& peer)
-	{
-		return digest_isstream_impl(is, peer);
-	}
+	// explicitly instantiate these template functions for sha1 and sha256
+	template TORRENT_EXPORT void digest32<160>::stream_out(std::ostream&) const;
+	template TORRENT_EXPORT void digest32<256>::stream_out(std::ostream&) const;
 
-	std::istream& operator>>(std::istream& is, sha256_hash& peer)
-	{
-		return digest_isstream_impl(is, peer);
-	}
+	template TORRENT_EXPORT void digest32<160>::stream_in(std::istream&);
+	template TORRENT_EXPORT void digest32<256>::stream_in(std::istream&);
 
 #endif // TORRENT_USE_IOSTREAM
 
-namespace aux {
+namespace {
 
-	void bits_shift_left(span<std::uint32_t> const number, int n)
+	void bits_shift_left(span<std::uint32_t> const number, int n) noexcept
 	{
 		TORRENT_ASSERT(n >= 0);
 		int const num_words = n / 32;
@@ -119,7 +111,7 @@ namespace aux {
 		}
 	}
 
-	void bits_shift_right(span<std::uint32_t> const number, int n)
+	void bits_shift_right(span<std::uint32_t> const number, int n) noexcept
 	{
 		TORRENT_ASSERT(n >= 0);
 		int const num_words = n / 32;
@@ -156,6 +148,27 @@ namespace aux {
 		}
 	}
 }
+
+		// shift left ``n`` bits.
+	template <std::ptrdiff_t N>
+	digest32<N>& digest32<N>::operator<<=(int const n) noexcept
+	{
+		bits_shift_left(m_number, n);
+		return *this;
+	}
+
+	// shift right ``n`` bits.
+	template <std::ptrdiff_t N>
+	digest32<N>& digest32<N>::operator>>=(int const n) noexcept
+	{
+		bits_shift_right(m_number, n);
+		return *this;
+	}
+
+	template TORRENT_EXPORT digest32<160>& digest32<160>::operator<<=(int) noexcept;
+	template TORRENT_EXPORT digest32<256>& digest32<256>::operator<<=(int) noexcept;
+	template TORRENT_EXPORT digest32<160>& digest32<160>::operator>>=(int) noexcept;
+	template TORRENT_EXPORT digest32<256>& digest32<256>::operator>>=(int) noexcept;
 
 	static_assert(std::is_nothrow_move_constructible<sha1_hash>::value
 		, "should be nothrow move constructible");
