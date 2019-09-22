@@ -264,6 +264,9 @@ namespace aux {
 	friend struct cork;
 	public:
 
+		// explicitly disallow assignment, to silence msvc warning
+		peer_connection& operator=(peer_connection const&) = delete;
+
 		void on_exception(std::exception const& e) override;
 		void on_error(error_code const& ec) override;
 
@@ -754,9 +757,6 @@ namespace aux {
 			, std::size_t bytes_transferred);
 
 		void account_received_bytes(int bytes_transferred);
-
-		// explicitly disallow assignment, to silence msvc warning
-		peer_connection& operator=(peer_connection const&);
 
 		void do_update_interest();
 		void fill_send_buffer();

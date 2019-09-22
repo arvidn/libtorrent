@@ -189,7 +189,7 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_copy(&m_context, h.m_context);
 	}
 
-	hasher256& hasher256::operator=(hasher256 const& h)
+	hasher256& hasher256::operator=(hasher256 const& h) &
 	{
 		if (this == &h) return;
 		gcry_md_close(m_context);
@@ -198,7 +198,7 @@ TORRENT_CRYPTO_NAMESPACE
 	}
 #else
 	hasher256::hasher256(hasher256 const&) = default;
-	hasher256& hasher256::operator=(hasher256 const&) = default;
+	hasher256& hasher256::operator=(hasher256 const&) & = default;
 #endif
 
 	hasher256& hasher256::update(char const* data, int len)

@@ -240,7 +240,7 @@ namespace aux {
 		(*this) = n;
 	}
 
-	bdecode_node& bdecode_node::operator=(bdecode_node const& n)
+	bdecode_node& bdecode_node::operator=(bdecode_node const& n) &
 	{
 		if (&n == this) return *this;
 		m_tokens = n.m_tokens;

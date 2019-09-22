@@ -84,7 +84,7 @@ namespace libtorrent {
 	// generated, they are put here to explicitly make them part
 	// of libtorrent and properly exported by the .dll.
 	file_storage::file_storage(file_storage const&) = default;
-	file_storage& file_storage::operator=(file_storage const&) = default;
+	file_storage& file_storage::operator=(file_storage const&) & = default;
 	file_storage::file_storage(file_storage&&) noexcept = default;
 
 	void file_storage::reserve(int num_files)

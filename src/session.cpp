@@ -417,6 +417,9 @@ namespace {
 			default_plugins(!(flags & add_default_plugins))}, ios);
 	}
 
+	session::session(session&&) = default;
+	session& session::operator=(session&&) & = default;
+
 	session::~session()
 	{
 		aux::dump_call_profile();
@@ -452,9 +455,9 @@ namespace {
 		, m_impl(std::move(impl))
 	{}
 	session_proxy::session_proxy(session_proxy const&) = default;
-	session_proxy& session_proxy::operator=(session_proxy const&) = default;
+	session_proxy& session_proxy::operator=(session_proxy const&) & = default;
 	session_proxy::session_proxy(session_proxy&&) noexcept = default;
-	session_proxy& session_proxy::operator=(session_proxy&&) noexcept = default;
+	session_proxy& session_proxy::operator=(session_proxy&&) & noexcept = default;
 	session_proxy::~session_proxy()
 	{
 		if (m_thread && m_thread.unique())
@@ -500,6 +503,11 @@ TORRENT_VERSION_NAMESPACE_3
 		, dht_storage_constructor(dht::dht_default_storage_constructor)
 #endif
 	{}
+
+	session_params::session_params(session_params const&) = default;
+	session_params::session_params(session_params&&) = default;
+	session_params& session_params::operator=(session_params const&) & = default;
+	session_params& session_params::operator=(session_params&&) & = default;
 
 TORRENT_VERSION_NAMESPACE_3_END
 

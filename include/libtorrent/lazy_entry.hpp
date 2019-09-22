@@ -357,7 +357,7 @@ namespace libtorrent {
 		}
 
 		lazy_entry(lazy_entry&&);
-		lazy_entry& operator=(lazy_entry&&);
+		lazy_entry& operator=(lazy_entry&&) &;
 
 	private:
 

@@ -59,7 +59,7 @@ namespace libtorrent {
 		torrent_peer(std::uint16_t port, bool connectable, peer_source_flags_t src);
 #if TORRENT_USE_ASSERTS
 		torrent_peer(torrent_peer const&) = default;
-		torrent_peer& operator=(torrent_peer const&) = default;
+		torrent_peer& operator=(torrent_peer const&) & = default;
 		~torrent_peer() { TORRENT_ASSERT(in_use); in_use = false; }
 #endif
 
@@ -217,7 +217,7 @@ namespace libtorrent {
 	{
 		ipv4_peer(tcp::endpoint const& ip, bool connectable, peer_source_flags_t src);
 		ipv4_peer(ipv4_peer const& p);
-		ipv4_peer& operator=(ipv4_peer const& p);
+		ipv4_peer& operator=(ipv4_peer const& p) &;
 
 		address_v4 addr;
 	};
@@ -229,7 +229,7 @@ namespace libtorrent {
 		i2p_peer(i2p_peer const&) = delete;
 		i2p_peer& operator=(i2p_peer const&) = delete;
 		i2p_peer(i2p_peer&&) = default;
-		i2p_peer& operator=(i2p_peer&&) = default;
+		i2p_peer& operator=(i2p_peer&&) & = default;
 
 		aux::string_ptr destination;
 	};

@@ -45,7 +45,7 @@ namespace libtorrent { namespace aux {
 
 		// movable
 		scope_end_impl(scope_end_impl&&) noexcept = default;
-		scope_end_impl& operator=(scope_end_impl&&) noexcept = default;
+		scope_end_impl& operator=(scope_end_impl&&) & noexcept = default;
 
 		// non-copyable
 		scope_end_impl(scope_end_impl const&) = delete;

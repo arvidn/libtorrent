@@ -126,6 +126,9 @@ struct F
 		constructed = false;
 	}
 
+	// non-copyable
+	F& operator=(F const& f) = delete;
+
 	void check_invariant()
 	{
 		TEST_EQUAL(constructed, true);
@@ -139,9 +142,6 @@ struct F
 	bool constructed;
 	bool destructed;
 	bool gutted;
-private:
-	// non-copyable
-	F& operator=(F const& f);
 };
 
 struct G : A

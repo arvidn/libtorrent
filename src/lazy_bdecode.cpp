@@ -506,7 +506,7 @@ namespace {
 		this->swap(other);
 	}
 
-	lazy_entry& lazy_entry::operator=(lazy_entry&& other)
+	lazy_entry& lazy_entry::operator=(lazy_entry&& other) &
 	{
 		this->swap(other);
 		return *this;

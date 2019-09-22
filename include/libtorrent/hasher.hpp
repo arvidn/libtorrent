@@ -138,7 +138,7 @@ TORRENT_CRYPTO_NAMESPACE
 		hasher256(char const* data, int len);
 		explicit hasher256(span<char const> data);
 		hasher256(hasher256 const&);
-		hasher256& operator=(hasher256 const&);
+		hasher256& operator=(hasher256 const&) &;
 
 		// append the following bytes to what is being hashed
 		hasher256& update(span<char const> data);

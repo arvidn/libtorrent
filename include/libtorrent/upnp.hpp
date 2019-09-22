@@ -264,9 +264,9 @@ private:
 		rootdevice();
 		~rootdevice();
 		rootdevice(rootdevice const&);
-		rootdevice& operator=(rootdevice const&);
+		rootdevice& operator=(rootdevice const&) &;
 		rootdevice(rootdevice&&);
-		rootdevice& operator=(rootdevice&&);
+		rootdevice& operator=(rootdevice&&) &;
 
 		// the interface url, through which the list of
 		// supported interfaces are fetched

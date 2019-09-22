@@ -38,7 +38,7 @@ namespace libtorrent {
 	add_torrent_params::add_torrent_params() = default;
 	add_torrent_params::add_torrent_params(add_torrent_params&&) noexcept = default;
 	add_torrent_params::add_torrent_params(add_torrent_params const&) = default;
-	add_torrent_params& add_torrent_params::operator=(add_torrent_params const&) = default;
+	add_torrent_params& add_torrent_params::operator=(add_torrent_params const&) & = default;
 
 #if TORRENT_ABI_VERSION == 1
 #define DECL_FLAG(name) \

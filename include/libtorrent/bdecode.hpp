@@ -275,9 +275,9 @@ struct TORRENT_EXPORT bdecode_node
 	// For owning nodes, the copy will create a copy of the tree, but the
 	// underlying buffer remains the same.
 	bdecode_node(bdecode_node const&);
-	bdecode_node& operator=(bdecode_node const&);
+	bdecode_node& operator=(bdecode_node const&) &;
 	bdecode_node(bdecode_node&&) noexcept;
-	bdecode_node& operator=(bdecode_node&&) = default;
+	bdecode_node& operator=(bdecode_node&&) & = default;
 
 	// the types of bdecoded nodes
 	enum type_t

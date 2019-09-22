@@ -472,7 +472,7 @@ namespace libtorrent {
 		counters() TORRENT_COUNTER_NOEXCEPT;
 
 		counters(counters const&) TORRENT_COUNTER_NOEXCEPT;
-		counters& operator=(counters const&) TORRENT_COUNTER_NOEXCEPT;
+		counters& operator=(counters const&) & TORRENT_COUNTER_NOEXCEPT;
 
 		// returns the new value
 		std::int64_t inc_stats_counter(int c, std::int64_t value = 1) TORRENT_COUNTER_NOEXCEPT;

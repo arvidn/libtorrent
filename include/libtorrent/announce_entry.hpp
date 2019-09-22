@@ -205,7 +205,7 @@ TORRENT_VERSION_NAMESPACE_2
 		announce_entry();
 		~announce_entry();
 		announce_entry(announce_entry const&);
-		announce_entry& operator=(announce_entry const&);
+		announce_entry& operator=(announce_entry const&) &;
 
 		// tracker URL as it appeared in the torrent file
 		std::string url;

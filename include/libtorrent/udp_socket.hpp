@@ -57,6 +57,10 @@ namespace libtorrent {
 	public:
 		explicit udp_socket(io_context& ios);
 
+		// non-copyable
+		udp_socket(udp_socket const&) = delete;
+		udp_socket& operator=(udp_socket const&) = delete;
+
 		static constexpr udp_send_flags_t peer_connection = 0_bit;
 		static constexpr udp_send_flags_t tracker_connection = 1_bit;
 		static constexpr udp_send_flags_t dont_queue = 2_bit;
@@ -133,10 +137,6 @@ namespace libtorrent {
 		}
 
 	private:
-
-		// non-copyable
-		udp_socket(udp_socket const&);
-		udp_socket& operator=(udp_socket const&);
 
 		void wrap(udp::endpoint const& ep, span<char const> p, error_code& ec, udp_send_flags_t flags);
 		void wrap(char const* hostname, int port, span<char const> p, error_code& ec, udp_send_flags_t flags);

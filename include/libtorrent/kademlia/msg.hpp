@@ -48,15 +48,15 @@ struct msg
 {
 	msg(bdecode_node const& m, udp::endpoint const& ep): message(m), addr(ep) {}
 
+	// explicitly disallow assignment, to silence msvc warning
+	msg& operator=(msg const&) = delete;
+
 	// the message
 	bdecode_node const& message;
 
 	// the address of the process sending or receiving
 	// the message.
 	udp::endpoint addr;
-private:
-	// explicitly disallow assignment, to silence msvc warning
-	msg& operator=(msg const&);
 };
 
 struct key_desc_t

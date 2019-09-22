@@ -151,8 +151,8 @@ namespace aux {
 		partial_piece_info() = default;
 		partial_piece_info(partial_piece_info&&) noexcept = default;
 		partial_piece_info(partial_piece_info const&) = default;
-		partial_piece_info& operator=(partial_piece_info const&) = default;
-		partial_piece_info& operator=(partial_piece_info&&) noexcept = default;
+		partial_piece_info& operator=(partial_piece_info const&) & = default;
+		partial_piece_info& operator=(partial_piece_info&&) & noexcept = default;
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 		// the index of the piece in question. ``blocks_in_piece`` is the number
@@ -245,8 +245,8 @@ namespace aux {
 		// hidden
 		torrent_handle(torrent_handle const& t) = default;
 		torrent_handle(torrent_handle&& t) noexcept = default;
-		torrent_handle& operator=(torrent_handle const&) = default;
-		torrent_handle& operator=(torrent_handle&&) noexcept = default;
+		torrent_handle& operator=(torrent_handle const&) & = default;
+		torrent_handle& operator=(torrent_handle&&) & noexcept = default;
 
 		// instruct libtorrent to overwrite any data that may already have been
 		// downloaded with the data of the new piece being added.

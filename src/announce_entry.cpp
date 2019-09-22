@@ -97,7 +97,7 @@ namespace libtorrent {
 
 	announce_entry::~announce_entry() = default;
 	announce_entry::announce_entry(announce_entry const&) = default;
-	announce_entry& announce_entry::operator=(announce_entry const&) = default;
+	announce_entry& announce_entry::operator=(announce_entry const&) & = default;
 
 	void announce_infohash::reset()
 	{

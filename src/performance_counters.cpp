@@ -63,7 +63,7 @@ namespace libtorrent {
 #endif
 	}
 
-	counters& counters::operator=(counters const& c) TORRENT_COUNTER_NOEXCEPT
+	counters& counters::operator=(counters const& c) & TORRENT_COUNTER_NOEXCEPT
 	{
 		if (&c == this) return *this;
 #ifdef ATOMIC_LLONG_LOCK_FREE

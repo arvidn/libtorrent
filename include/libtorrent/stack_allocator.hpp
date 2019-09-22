@@ -52,8 +52,8 @@ namespace aux {
 		allocation_slot() noexcept : m_idx(-1) {}
 		allocation_slot(allocation_slot const&) noexcept = default;
 		allocation_slot(allocation_slot&&) noexcept = default;
-		allocation_slot& operator=(allocation_slot const&) = default;
-		allocation_slot& operator=(allocation_slot&&) noexcept = default;
+		allocation_slot& operator=(allocation_slot const&) & = default;
+		allocation_slot& operator=(allocation_slot&&) & noexcept = default;
 		bool operator==(allocation_slot const& s) const { return m_idx == s.m_idx; }
 		bool operator!=(allocation_slot const& s) const { return m_idx != s.m_idx; }
 		friend struct stack_allocator;
@@ -71,7 +71,7 @@ namespace aux {
 		stack_allocator(stack_allocator const&) = delete;
 		stack_allocator& operator=(stack_allocator const&) = delete;
 		stack_allocator(stack_allocator&&) = default;
-		stack_allocator& operator=(stack_allocator&&) = default;
+		stack_allocator& operator=(stack_allocator&&) & = default;
 
 		allocation_slot copy_string(string_view str);
 		allocation_slot copy_string(char const* str);
