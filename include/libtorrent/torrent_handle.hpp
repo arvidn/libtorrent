@@ -121,22 +121,8 @@ namespace aux {
 	public:
 
 		// The peer is the ip address of the peer this block was downloaded from.
-		void set_peer(tcp::endpoint const& ep)
-		{
-			is_v6_addr = is_v6(ep);
-			if (is_v6_addr)
-				addr.v6 = ep.address().to_v6().to_bytes();
-			else
-				addr.v4 = ep.address().to_v4().to_bytes();
-			port = ep.port();
-		}
-		tcp::endpoint peer() const
-		{
-			if (is_v6_addr)
-				return tcp::endpoint(address_v6(addr.v6), port);
-			else
-				return tcp::endpoint(address_v4(addr.v4), port);
-		}
+		void set_peer(tcp::endpoint const& ep);
+		tcp::endpoint peer() const;
 
 		// the number of bytes that have been received for this block
 		unsigned bytes_progress:15;
