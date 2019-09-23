@@ -685,9 +685,10 @@ namespace libtorrent {
 	}
 
 	storage_moved_alert::storage_moved_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view p)
+		, torrent_handle const& h, string_view p, string_view old)
 		: torrent_alert(alloc, h)
 		, m_path_idx(alloc.copy_string(p))
+		, m_old_path_idx(alloc.copy_string(old))
 #if TORRENT_ABI_VERSION == 1
 		, path(p)
 #endif
@@ -695,13 +696,18 @@ namespace libtorrent {
 
 	std::string storage_moved_alert::message() const
 	{
-		return torrent_alert::message() + " moved storage to: "
-			+ storage_path();
+		return torrent_alert::message() + " moved storage from \""
+			+ old_path() + "\" to: \"" + storage_path() + "\"";
 	}
 
 	char const* storage_moved_alert::storage_path() const
 	{
 		return m_alloc.get().ptr(m_path_idx);
+	}
+
+	char const* storage_moved_alert::old_path() const
+	{
+		return m_alloc.get().ptr(m_old_path_idx);
 	}
 
 	storage_moved_failed_alert::storage_moved_failed_alert(

@@ -1026,18 +1026,20 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT storage_moved_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, string_view p);
+			, torrent_handle const& h, string_view p, string_view old);
 
 		TORRENT_DEFINE_ALERT_PRIO(storage_moved_alert, 33, alert_priority::critical)
 
 		static constexpr alert_category_t static_category = alert::storage_notification;
 		std::string message() const override;
 
-		// the path the torrent was moved to
+		// the path the torrent was moved to and from, respectively.
 		char const* storage_path() const;
+		char const* old_path() const;
 
 	private:
 		aux::allocation_slot m_path_idx;
+		aux::allocation_slot m_old_path_idx;
 #if TORRENT_ABI_VERSION == 1
 	public:
 		std::string TORRENT_DEPRECATED_MEMBER path;
