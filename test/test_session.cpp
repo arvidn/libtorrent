@@ -203,7 +203,7 @@ TORRENT_TEST(load_empty_file)
 	torrent_handle h = ses.add_torrent(std::move(atp), ec);
 
 	TEST_CHECK(!h.is_valid());
-	TEST_CHECK(ec == error_code(errors::no_metadata))
+	TEST_CHECK(ec == error_code(errors::no_metadata));
 }
 
 TORRENT_TEST(session_stats)

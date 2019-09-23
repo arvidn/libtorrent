@@ -104,7 +104,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	}
 
 	aux::vector<download_priority_t, file_index_t> ones(std::size_t(info->num_files()), 1_pri);
-	TEST_CHECK(prioritize_files(h, ones))
+	TEST_CHECK(prioritize_files(h, ones));
 
 	torrent_status st = h.status();
 
@@ -113,7 +113,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 
 	aux::vector<download_priority_t, file_index_t> prio(std::size_t(info->num_files()), 1_pri);
 	prio[file_index_t(0)] = 0_pri;
-	TEST_CHECK(prioritize_files(h, prio))
+	TEST_CHECK(prioritize_files(h, prio));
 	st = h.status();
 
 	st = h.status();
@@ -124,7 +124,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	if (info->num_files() > 1)
 	{
 		prio[file_index_t{1}] = 0_pri;
-		TEST_CHECK(prioritize_files(h, prio))
+		TEST_CHECK(prioritize_files(h, prio));
 
 		st = h.status();
 		TEST_EQUAL(st.total_wanted, file_size);

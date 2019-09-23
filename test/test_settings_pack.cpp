@@ -117,7 +117,7 @@ TORRENT_TEST(sparse_pack)
 TORRENT_TEST(test_name)
 {
 #define TEST_NAME(n) \
-	TEST_EQUAL(setting_by_name(#n), settings_pack:: n) \
+	TEST_EQUAL(setting_by_name(#n), settings_pack:: n); \
 	TEST_EQUAL(name_for_setting(settings_pack:: n), std::string(#n))
 
 #if TORRENT_ABI_VERSION == 1

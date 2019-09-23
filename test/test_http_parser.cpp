@@ -517,7 +517,7 @@ TORRENT_TEST(chunked_encoding)
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
-	TEST_EQUAL(strlen(chunked_input), 24 + 94)
+	TEST_EQUAL(strlen(chunked_input), 24 + 94);
 	TEST_CHECK(received == std::make_tuple(24, 94, false));
 	TEST_CHECK(parser.finished());
 
