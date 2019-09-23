@@ -615,7 +615,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	bool hash_picker::piece_verified(piece_index_t piece) const
 	{
 		file_index_t const f = m_files.file_index_at_piece(piece);
-		piece_index_t file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));;
+		piece_index_t file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));
 		int const block_offset = static_cast<int>(piece - file_first_piece) * (m_files.piece_length() / default_block_size);
 		int const blocks_in_piece = m_files.blocks_in_piece2(piece);
 		auto const& file_leafs = m_hash_verified[f];
