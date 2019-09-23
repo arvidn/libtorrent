@@ -142,7 +142,9 @@ namespace aux {
 		session_settings(session_settings const& lhs)
 			: session_settings(lhs, std::unique_lock<std::mutex>(lhs.m_mutex))
 		{}
-		session_settings(session_settings&& lhs) = default;
+		session_settings(session_settings&& lhs)
+			: session_settings(std::move(lhs), std::unique_lock<std::mutex>(lhs.m_mutex))
+		{}
 
 		session_settings& operator=(session_settings const& lhs)
 		{
@@ -164,6 +166,11 @@ namespace aux {
 		session_settings(session_settings const& lhs, std::unique_lock<std::mutex> const&)
 			: settings_interface(lhs)
 			, m_store(lhs.m_store)
+		{}
+
+		session_settings(session_settings&& lhs, std::unique_lock<std::mutex> const&)
+			: settings_interface(lhs)
+			, m_store(std::move(lhs.m_store))
 		{}
 
 		session_settings_single_thread m_store;
