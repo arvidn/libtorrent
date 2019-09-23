@@ -1341,7 +1341,7 @@ TORRENT_TEST(prefer_aligned_whole_pieces)
 
 	TEST_CHECK(picked_pieces.size() == 4);
 	piece_index_t expected_pieces[] = {piece_index_t(4),piece_index_t(5),piece_index_t(6),piece_index_t(7)};
-	TEST_CHECK(std::equal(picked_pieces.begin(), picked_pieces.end(), expected_pieces))
+	TEST_CHECK(std::equal(picked_pieces.begin(), picked_pieces.end(), expected_pieces));
 }
 
 TORRENT_TEST(parole_mode)
@@ -1645,20 +1645,20 @@ TORRENT_TEST(dont_have_but_passed_hash_check)
 
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(0)), true);
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(1)), false);
-	TEST_EQUAL(p->have_piece(piece_index_t(0)), true)
-	TEST_EQUAL(p->have_piece(piece_index_t(1)), false)
+	TEST_EQUAL(p->have_piece(piece_index_t(0)), true);
+	TEST_EQUAL(p->have_piece(piece_index_t(1)), false);
 
 	p->piece_passed(piece_index_t(1));
 
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(0)), true);
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(1)), true);
-	TEST_EQUAL(p->have_piece(piece_index_t(1)), false)
+	TEST_EQUAL(p->have_piece(piece_index_t(1)), false);
 
 	p->we_dont_have(piece_index_t(1));
 
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(0)), true);
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(1)), false);
-	TEST_EQUAL(p->have_piece(piece_index_t(1)), false)
+	TEST_EQUAL(p->have_piece(piece_index_t(1)), false);
 }
 
 TORRENT_TEST(write_failed)

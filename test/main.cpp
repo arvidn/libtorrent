@@ -197,7 +197,7 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 		SIG(SIGSYS);
 #endif
 #undef SIG
-	};
+	}
 	std::printf("signal: (%d) %s caught:\n%s\n"
 		, sig, name, stack_text);
 
@@ -246,7 +246,7 @@ void change_directory(std::string const& f, error_code& ec)
 
 struct unit_directory_guard
 {
-	std::string dir;
+	explicit unit_directory_guard(std::string d) : dir(std::move(d)) {}
 	unit_directory_guard(unit_directory_guard const&) = delete;
 	unit_directory_guard& operator=(unit_directory_guard const&) = delete;
 	~unit_directory_guard()
@@ -273,6 +273,8 @@ struct unit_directory_guard
 #endif
 		if (ec) std::cerr << "Failed to remove unit test directory: " << ec.message() << "\n";
 	}
+private:
+	std::string dir;
 };
 
 void EXPORT reset_output()

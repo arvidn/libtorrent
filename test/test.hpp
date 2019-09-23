@@ -114,23 +114,24 @@ extern int _g_test_idx;
 
 #ifdef BOOST_NO_EXCEPTIONS
 #define TEST_CHECK(x) \
-	if (!(x)) \
+	do if (!(x)) { \
 		TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__);
+	} while (false)
 #define TEST_EQUAL(x, y) \
-	if ((x) != (y)) { \
+	do if ((x) != (y)) { \
 		std::stringstream s__; \
 		s__ << "TEST_ERROR: equal check failed:\n" #x ": " << (x) << "\nexpected: " << (y); \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
-	}
+	} while (false)
 #define TEST_NE(x, y) \
-	if ((x) == (y)) { \
+	do if ((x) == (y)) { \
 		std::stringstream s__; \
 		s__ << "TEST_ERROR: not equal check failed:\n" #x ": " << (x) << "\nexpected not equal to: " << (y); \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
-	}
+	} while (false)
 #else
 #define TEST_CHECK(x) \
-	try \
+	do try \
 	{ \
 		if (!(x)) \
 			TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__); \
@@ -142,10 +143,10 @@ extern int _g_test_idx;
 	catch (...) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
-	}
+	} while (false)
 
 #define TEST_EQUAL(x, y) \
-	try { \
+	do try { \
 		if ((x) != (y)) { \
 			std::stringstream s__; \
 			s__ << "TEST_ERROR: " #x ": " << (x) << " expected: " << (y); \
@@ -159,9 +160,9 @@ extern int _g_test_idx;
 	catch (...) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
-	}
+	} while (false)
 #define TEST_NE(x, y) \
-	try { \
+	do try { \
 		if ((x) == (y)) { \
 			std::stringstream s__; \
 			s__ << "TEST_ERROR: " #x ": " << (x) << " expected not equal to: " << (y); \
@@ -175,29 +176,29 @@ extern int _g_test_idx;
 	catch (...) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
-	}
+	} while (false)
 #endif
 
 #define TEST_ERROR(x) \
 	TEST_REPORT_AUX((std::string("TEST_ERROR: \"") + (x) + "\"").c_str(), __FILE__, __LINE__)
 
 #define TEST_NOTHROW(x) \
-	try \
+	do try \
 	{ \
 		x; \
 	} \
 	catch (...) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
-	}
+	} while (false)
 
 #define TEST_THROW(x) \
-	try \
+	do try \
 	{ \
 		x; \
 		TEST_ERROR("No exception thrown: " #x); \
 	} \
-	catch (...) {}
+	catch (...) {} while (false)
 
 #endif // TEST_HPP
 
