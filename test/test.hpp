@@ -116,7 +116,7 @@ extern int _g_test_idx;
 #ifdef BOOST_NO_EXCEPTIONS
 #define TEST_CHECK(x) \
 	do if (!(x)) { \
-		TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__);
+		TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__); \
 	} while (false)
 #define TEST_EQUAL(x, y) \
 	do if ((x) != (y)) { \
