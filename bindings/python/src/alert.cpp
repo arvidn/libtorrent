@@ -501,6 +501,7 @@ void bind_alert()
         .def_readonly("path", &storage_moved_alert::path)
 #endif
         .def("storage_path", &storage_moved_alert::storage_path)
+        .def("old_path", &storage_moved_alert::old_path)
         ;
 
     class_<storage_moved_failed_alert, bases<torrent_alert>, noncopyable>(

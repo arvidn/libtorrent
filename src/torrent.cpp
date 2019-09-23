@@ -8015,7 +8015,7 @@ bool is_downloading_state(int const st)
 		if (!valid_metadata())
 		{
 			if (alerts().should_post<storage_moved_alert>())
-				alerts().emplace_alert<storage_moved_alert>(get_handle(), save_path);
+				alerts().emplace_alert<storage_moved_alert>(get_handle(), save_path, m_save_path);
 #if TORRENT_USE_UNC_PATHS
 			std::string path = canonicalize_path(save_path);
 #else
@@ -8039,6 +8039,9 @@ bool is_downloading_state(int const st)
 		}
 		else
 		{
+			if (alerts().should_post<storage_moved_alert>())
+				alerts().emplace_alert<storage_moved_alert>(get_handle(), save_path, m_save_path);
+
 #if TORRENT_USE_UNC_PATHS
 			m_save_path = canonicalize_path(save_path);
 #else
@@ -8046,11 +8049,6 @@ bool is_downloading_state(int const st)
 			m_save_path = save_path;
 #endif
 			set_need_save_resume();
-
-			if (alerts().should_post<storage_moved_alert>())
-			{
-				alerts().emplace_alert<storage_moved_alert>(get_handle(), m_save_path);
-			}
 		}
 	}
 
@@ -8064,7 +8062,7 @@ bool is_downloading_state(int const st)
 			|| status == status_t::need_full_check)
 		{
 			if (alerts().should_post<storage_moved_alert>())
-				alerts().emplace_alert<storage_moved_alert>(get_handle(), path);
+				alerts().emplace_alert<storage_moved_alert>(get_handle(), path, m_save_path);
 			m_save_path = path;
 			set_need_save_resume();
 			if (status == status_t::need_full_check)
