@@ -151,7 +151,7 @@ TORRENT_TEST(printf_int64)
 	char buffer[100];
 	std::int64_t val = 345678901234567ll;
 	std::snprintf(buffer, sizeof(buffer), "%" PRId64 " %s", val, "end");
-	TEST_EQUAL(buffer, std::string("345678901234567 end"))
+	TEST_EQUAL(buffer, std::string("345678901234567 end"));
 }
 
 TORRENT_TEST(printf_uint64)
@@ -159,7 +159,7 @@ TORRENT_TEST(printf_uint64)
 	char buffer[100];
 	std::uint64_t val = 18446744073709551615ull;
 	std::snprintf(buffer, sizeof(buffer), "%" PRIu64 " %s", val, "end");
-	TEST_EQUAL(buffer, std::string("18446744073709551615 end"))
+	TEST_EQUAL(buffer, std::string("18446744073709551615 end"));
 }
 
 #if defined __GNUC__ && __GNUC__ >= 7
@@ -172,7 +172,7 @@ TORRENT_TEST(printf_trunc)
 	char buffer[4];
 	int val = 184;
 	std::snprintf(buffer, sizeof(buffer), "%d %s", val, "end");
-	TEST_EQUAL(buffer, std::string("184"))
+	TEST_EQUAL(buffer, std::string("184"));
 }
 
 #if defined __GNUC__ && __GNUC__ >= 7

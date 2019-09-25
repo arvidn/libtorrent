@@ -171,7 +171,7 @@ TORRENT_TEST(add_extension_while_transfer)
 		});
 
 	TEST_CHECK(done);
-	TEST_CHECK(p->m_new_connection)
+	TEST_CHECK(p->m_new_connection);
 	TEST_CHECK(p->m_files_checked);
 }
 #endif // TORRENT_DISABLE_EXTENSIONS

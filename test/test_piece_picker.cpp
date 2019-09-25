@@ -1734,20 +1734,20 @@ TORRENT_TEST(dont_have_but_passed_hash_check)
 
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(0)), true);
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(1)), false);
-	TEST_EQUAL(p->have_piece(piece_index_t(0)), true)
-	TEST_EQUAL(p->have_piece(piece_index_t(1)), false)
+	TEST_EQUAL(p->have_piece(piece_index_t(0)), true);
+	TEST_EQUAL(p->have_piece(piece_index_t(1)), false);
 
 	p->piece_passed(piece_index_t(1));
 
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(0)), true);
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(1)), true);
-	TEST_EQUAL(p->have_piece(piece_index_t(1)), false)
+	TEST_EQUAL(p->have_piece(piece_index_t(1)), false);
 
 	p->we_dont_have(piece_index_t(1));
 
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(0)), true);
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(1)), false);
-	TEST_EQUAL(p->have_piece(piece_index_t(1)), false)
+	TEST_EQUAL(p->have_piece(piece_index_t(1)), false);
 }
 
 TORRENT_TEST(write_failed)

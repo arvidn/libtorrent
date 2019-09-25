@@ -61,7 +61,7 @@ TORRENT_TEST(alerts_types)
 	TEST_EQUAL(name::static_category, cat); \
 	TEST_EQUAL(count_alert_types, seq); \
 	TEST_EQUAL(std::string(alert_name(name::alert_type)) + "_alert", #name); \
-	count_alert_types++;
+	count_alert_types++
 
 #if TORRENT_ABI_VERSION == 1
 	TEST_ALERT_TYPE(torrent_added_alert, 3, alert_priority::normal, alert::status_notification);

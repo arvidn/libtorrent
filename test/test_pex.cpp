@@ -136,7 +136,7 @@ void test_pex()
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
-	TEST_CHECK(st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)
+	TEST_CHECK(st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2);
 
 	if (!tor2.status().is_seeding && tor3.status().is_seeding) std::cout << "done\n";
 

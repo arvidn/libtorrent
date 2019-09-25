@@ -104,7 +104,7 @@ TORRENT_TEST(announce_peer)
 	entry peers;
 	s->get_peers(n1, false, false, address(), peers);
 
-	TEST_CHECK(peers["n"].string().empty())
+	TEST_CHECK(peers["n"].string().empty());
 	TEST_CHECK(peers["values"].list().empty());
 
 	tcp::endpoint const p1 = ep("124.31.75.21", 1);
@@ -115,8 +115,8 @@ TORRENT_TEST(announce_peer)
 	s->announce_peer(n1, p1, "torrent_name", false);
 	peers = entry();
 	s->get_peers(n1, false, false, address(), peers);
-	TEST_EQUAL(peers["n"].string(), "torrent_name")
-	TEST_EQUAL(peers["values"].list().size(), 1)
+	TEST_EQUAL(peers["n"].string(), "torrent_name");
+	TEST_EQUAL(peers["values"].list().size(), 1);
 
 	s->announce_peer(n2, p2, "torrent_name1", false);
 	s->announce_peer(n2, p3, "torrent_name1", false);
@@ -456,7 +456,7 @@ TORRENT_TEST(infohashes_sample)
 	entry item;
 	int r = s->get_infohashes_sample(item);
 	TEST_EQUAL(r, 2);
-	TEST_EQUAL(item["interval"].integer(), 10)
+	TEST_EQUAL(item["interval"].integer(), 10);
 	TEST_EQUAL(item["num"].integer(), 4);
 	TEST_EQUAL(item["samples"].string().size(), 2 * 20);
 
@@ -466,7 +466,7 @@ TORRENT_TEST(infohashes_sample)
 	item = entry();
 	r = s->get_infohashes_sample(item);
 	TEST_EQUAL(r, 4);
-	TEST_EQUAL(item["interval"].integer(), 10)
+	TEST_EQUAL(item["interval"].integer(), 10);
 	TEST_EQUAL(item["num"].integer(), 4);
 	TEST_EQUAL(item["samples"].string().size(), 4 * 20);
 
@@ -497,7 +497,7 @@ TORRENT_TEST(infohashes_sample_dist)
 		entry item;
 		int r = s->get_infohashes_sample(item);
 		TEST_EQUAL(r, 1);
-		TEST_EQUAL(item["interval"].integer(), 0)
+		TEST_EQUAL(item["interval"].integer(), 0);
 		TEST_EQUAL(item["num"].integer(), 1000);
 		TEST_EQUAL(item["samples"].string().size(), 20);
 
