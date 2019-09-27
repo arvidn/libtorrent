@@ -200,7 +200,6 @@ void rpc_manager::free_observer(void* ptr)
 {
 	if (ptr == nullptr) return;
 	--m_allocated_observers;
-	TORRENT_ASSERT(reinterpret_cast<observer*>(ptr)->m_in_use == false);
 	m_pool_allocator.free(ptr);
 }
 
