@@ -263,7 +263,17 @@ public:
 
 protected:
 
-	bool handle_error(error_code const& e, handler_type const& h);
+	// The handler must be taken as lvalue reference here since we may not call
+	// it. But if we do, we want the call operator to own the function object.
+	template <typename Handler>
+	bool handle_error(error_code const& e, Handler&& h)
+	{
+		if (!e) return false;
+		std::forward<Handler>(h)(e);
+		error_code ec;
+		close(ec);
+		return true;
+	}
 
 	tcp::socket m_sock;
 	std::string m_hostname; // proxy host
@@ -274,6 +284,42 @@ protected:
 	// TODO: 2 use the resolver interface that has a built-in cache
 	tcp::resolver m_resolver;
 };
+
+template <typename Handler, typename UnderlyingHandler>
+struct wrap_allocator_t
+{
+	wrap_allocator_t(Handler h, UnderlyingHandler uh)
+		: m_handler(std::move(h))
+		, m_underlying_handler(std::move(uh))
+	{}
+
+	wrap_allocator_t(wrap_allocator_t const&) = default;
+	wrap_allocator_t(wrap_allocator_t&&) = default;
+
+	template <class... A>
+	void operator()(A&&... a)
+	{
+		m_handler(std::forward<A>(a)..., std::move(m_underlying_handler));
+	}
+
+	// rebind the underlying allocator to this wrapped type, since we need to use
+	// it to allocate a larger handler context/closure.
+	using allocator_type = typename boost::asio::associated_allocator<UnderlyingHandler>::type::template rebind<wrap_allocator_t>::other;
+
+	allocator_type get_allocator() const noexcept
+	{ return allocator_type{boost::asio::get_associated_allocator(m_underlying_handler)}; }
+
+private:
+	Handler m_handler;
+	UnderlyingHandler m_underlying_handler;
+};
+
+template <typename Handler, typename UnderlyingHandler>
+wrap_allocator_t<Handler, UnderlyingHandler> wrap_allocator(Handler h, UnderlyingHandler u)
+{
+	return wrap_allocator_t<Handler, UnderlyingHandler>{std::move(h), std::move(u)};
+}
+
 
 }
 

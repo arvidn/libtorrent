@@ -132,11 +132,11 @@ namespace libtorrent { namespace aux {
 	template <std::size_t Size, HandlerName Name>
 	struct handler_storage
 	{
+		handler_storage() = default;
+		typename aux::aligned_storage<Size, alignof(std::max_align_t)>::type bytes;
 #if TORRENT_USE_ASSERTS
 		bool used = false;
 #endif
-		handler_storage() = default;
-		typename aux::aligned_storage<Size>::type bytes;
 		handler_storage(handler_storage const&) = delete;
 	};
 
@@ -182,6 +182,7 @@ namespace libtorrent { namespace aux {
 			using other = handler_allocator<U
 				, assert_message<required_size<sizeof(U)>
 				, available_size<Size>, Name>::value, Name>;
+			static_assert(alignof(U) <= alignof(std::max_align_t), "handler storage is not correctly aligned");
 		};
 
 		explicit handler_allocator(handler_storage<Size, Name>* s) : m_storage(s) {}
