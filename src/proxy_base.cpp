@@ -41,13 +41,4 @@ namespace libtorrent {
 	{}
 
 	proxy_base::~proxy_base() = default;
-
-	bool proxy_base::handle_error(error_code const& e, handler_type const& h)
-	{
-		if (!e) return false;
-		h(e);
-		error_code ec;
-		close(ec);
-		return true;
-	}
 }
