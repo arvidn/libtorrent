@@ -654,7 +654,6 @@ SOURCES =
 	hash_picker
 	hex
 	http_connection
-	http_stream
 	http_parser
 	identify_client
 	ip_filter

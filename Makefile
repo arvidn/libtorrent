@@ -327,7 +327,6 @@ SOURCES = \
   http_connection.cpp             \
   http_parser.cpp                 \
   http_seed_connection.cpp        \
-  http_stream.cpp                 \
   http_tracker_connection.cpp     \
   i2p_stream.cpp                  \
   identify_client.cpp             \
