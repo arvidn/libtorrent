@@ -306,7 +306,6 @@ set(sources
 	hash_picker
 	hex
 	http_connection
-	http_stream
 	http_parser
 	i2p_stream
 	identify_client
