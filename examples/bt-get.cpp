@@ -58,6 +58,7 @@ int main(int argc, char const* argv[]) try
 	bool done = false;
 	
 	while (!done) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 		std::vector<lt::alert*> alerts;
 		ses.pop_alerts(&alerts);
 		for (lt::alert const* a : alerts) {
@@ -66,9 +67,9 @@ int main(int argc, char const* argv[]) try
 			if (lt::alert_cast<lt::torrent_finished_alert>(a) ||
 			    		lt::alert_cast<lt::torrent_error_alert>(a)) {
 				done = true;
+				break;
 			}
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
 	std::cout << "done, shutting down" << std::endl;
 }
