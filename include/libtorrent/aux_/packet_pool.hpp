@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp" // for single_threaded
 
 #include <cstdlib>
+#include <memory> // for unique_ptr
 
 namespace libtorrent {
 namespace aux {

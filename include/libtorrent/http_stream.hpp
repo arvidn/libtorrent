@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for base64encode
+#include "libtorrent/socket_io.hpp" // for print_endpoint
 
 namespace libtorrent {
 
