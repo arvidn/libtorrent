@@ -93,32 +93,28 @@ public:
 
 	SSL* native_handle() { return m_sock.native_handle(); }
 
-	using handler_type = std::function<void(error_code const&)>;
-
 	template <class Handler>
-	void async_connect(endpoint_type const& endpoint, Handler const& handler)
+	void async_connect(endpoint_type const& endpoint, Handler const& h)
 	{
 		// the connect is split up in the following steps:
 		// 1. connect to peer
 		// 2. perform SSL client handshake
 
-		// to avoid unnecessary copying of the handler,
-		// store it in a shared_ptr
-		auto h = std::make_shared<handler_type>(handler);
-
-		using std::placeholders::_1;
-		m_sock.next_layer().async_connect(endpoint
-			, std::bind(&ssl_stream::connected, this, _1, h));
+		m_sock.next_layer().async_connect(endpoint, wrap_allocator(
+			[this](error_code const& ec, Handler hn) {
+				connected(ec, std::move(hn));
+			}, std::move(h)));
 	}
 
 	template <class Handler>
-	void async_accept_handshake(Handler const& handler)
+	void async_accept_handshake(Handler const& h)
 	{
 		// this is used for accepting SSL connections
-		auto h = std::make_shared<handler_type>(handler);
 		using std::placeholders::_1;
-		m_sock.async_handshake(ssl::stream_base::server
-			, std::bind(&ssl_stream::handshake, this, _1, h));
+		m_sock.async_handshake(ssl::stream_base::server, wrap_allocator(
+			[this](error_code const& ec, Handler hn) {
+				handshake(ec, std::move(hn));
+			}, std::move(h)));
 	}
 
 	void accept_handshake(error_code& ec)
@@ -317,22 +313,25 @@ public:
 
 private:
 
-	void connected(error_code const& e, std::shared_ptr<handler_type> h)
+	template <typename Handler>
+	void connected(error_code const& e, Handler h)
 	{
 		if (e)
 		{
-			(*h)(e);
+			h(e);
 			return;
 		}
 
-		using std::placeholders::_1;
-		m_sock.async_handshake(ssl::stream_base::client
-			, std::bind(&ssl_stream::handshake, this, _1, h));
+		m_sock.async_handshake(ssl::stream_base::client, wrap_allocator(
+			[this](error_code const& ec, Handler hn) {
+				handshake(ec, std::move(hn));
+			}, std::move(h)));
 	}
 
-	void handshake(error_code const& e, std::shared_ptr<handler_type> h)
+	template <typename Handler>
+	void handshake(error_code const& e, Handler h)
 	{
-		(*h)(e);
+		h(e);
 	}
 
 	ssl::stream<Stream> m_sock;
