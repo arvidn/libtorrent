@@ -47,8 +47,6 @@ class proxy_base
 {
 public:
 
-	using handler_type = std::function<void(error_code const&)>;
-
 	using next_layer_type = tcp::socket;
 	using lowest_layer_type = tcp::socket::lowest_layer_type;
 	using endpoint_type = tcp::socket::endpoint_type;
@@ -306,8 +304,15 @@ struct wrap_allocator_t
 	// it to allocate a larger handler context/closure.
 	using allocator_type = typename boost::asio::associated_allocator<UnderlyingHandler>::type::template rebind<wrap_allocator_t>::other;
 
+	using executor_type = typename boost::asio::associated_executor<UnderlyingHandler>::type;
+
 	allocator_type get_allocator() const noexcept
 	{ return allocator_type{boost::asio::get_associated_allocator(m_underlying_handler)}; }
+
+	executor_type get_executor() const noexcept
+	{
+		return boost::asio::get_associated_executor(m_underlying_handler);
+	}
 
 private:
 	Handler m_handler;
