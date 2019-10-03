@@ -55,6 +55,8 @@ directory.
 See `building.html`__ for more details on how to build and which configuration
 options are available. For python bindings, see `the python docs`__.
 
+For further questions, please don't hesitate to contact me. 
+
 .. __: docs/building.rst
 .. __: docs/python_binding.rst
 
