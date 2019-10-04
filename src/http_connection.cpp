@@ -344,9 +344,8 @@ void http_connection::start(std::string const& hostname, int port
 		// assume this is not a tracker connection. Tracker connections that
 		// shouldn't be subject to the proxy should pass in nullptr as the proxy
 		// pointer.
-		m_sock.emplace();
-		instantiate_connection(m_ios
-			, proxy ? *proxy : null_proxy, *m_sock, userdata, nullptr, false, false);
+		m_sock.emplace(instantiate_connection(m_ios
+			, proxy ? *proxy : null_proxy, userdata, nullptr, false, false));
 
 		if (m_bind_addr)
 		{

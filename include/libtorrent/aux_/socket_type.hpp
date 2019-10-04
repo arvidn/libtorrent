@@ -34,100 +34,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SOCKET_TYPE
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/aux_/aligned_union.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socks5_stream.hpp"
 #include "libtorrent/http_stream.hpp"
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/aux_/utp_stream.hpp"
-#include "libtorrent/io_context.hpp"
-#include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/polymorphic_socket.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #endif
 
 #include "libtorrent/debug.hpp"
-
-#if defined TORRENT_OS2 && defined ioc
-#undef ioc
-#endif
-
-#if TORRENT_USE_I2P
-
-#define TORRENT_SOCKTYPE_I2P_FORWARD(x) \
-		case socket_type_int_impl<i2p_stream>::value: \
-			get<i2p_stream>()->x; break;
-
-#define TORRENT_SOCKTYPE_I2P_FORWARD_RET(x, def) \
-		case socket_type_int_impl<i2p_stream>::value: \
-			return get<i2p_stream>()->x;
-
-#else // TORRENT_USE_I2P
-
-#define TORRENT_SOCKTYPE_I2P_FORWARD(x)
-#define TORRENT_SOCKTYPE_I2P_FORWARD_RET(x, def)
-
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-
-#define TORRENT_SOCKTYPE_SSL_FORWARD(x) \
-		case socket_type_int_impl<ssl_stream<tcp::socket>>::value: \
-			get<ssl_stream<tcp::socket>>()->x; break; \
-		case socket_type_int_impl<ssl_stream<socks5_stream>>::value: \
-			get<ssl_stream<socks5_stream>>()->x; break; \
-		case socket_type_int_impl<ssl_stream<http_stream>>::value: \
-			get<ssl_stream<http_stream>>()->x; break; \
-		case socket_type_int_impl<ssl_stream<utp_stream>>::value: \
-			get<ssl_stream<utp_stream>>()->x; break;
-
-#define TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
-		case socket_type_int_impl<ssl_stream<tcp::socket>>::value: \
-			return get<ssl_stream<tcp::socket>>()->x; \
-		case socket_type_int_impl<ssl_stream<socks5_stream>>::value: \
-			return get<ssl_stream<socks5_stream>>()->x; \
-		case socket_type_int_impl<ssl_stream<http_stream>>::value: \
-			return get<ssl_stream<http_stream>>()->x; \
-		case socket_type_int_impl<ssl_stream<utp_stream>>::value: \
-			return get<ssl_stream<utp_stream>>()->x;
-
-#else
-
-#define TORRENT_SOCKTYPE_SSL_FORWARD(x)
-#define TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def)
-
-#endif
-
-#define TORRENT_SOCKTYPE_FORWARD(x) \
-	switch (m_type) { \
-		case socket_type_int_impl<tcp::socket>::value: \
-			get<tcp::socket>()->x; break; \
-		case socket_type_int_impl<socks5_stream>::value: \
-			get<socks5_stream>()->x; break; \
-		case socket_type_int_impl<http_stream>::value: \
-			get<http_stream>()->x; break; \
-		case socket_type_int_impl<utp_stream>::value: \
-			get<utp_stream>()->x; break; \
-		TORRENT_SOCKTYPE_I2P_FORWARD(x) \
-		TORRENT_SOCKTYPE_SSL_FORWARD(x) \
-		default: TORRENT_ASSERT_FAIL(); \
-	}
-
-#define TORRENT_SOCKTYPE_FORWARD_RET(x, def) \
-	switch (m_type) { \
-		case socket_type_int_impl<tcp::socket>::value: \
-			return get<tcp::socket>()->x; \
-		case socket_type_int_impl<socks5_stream>::value: \
-			return get<socks5_stream>()->x; \
-		case socket_type_int_impl<http_stream>::value: \
-			return get<http_stream>()->x; \
-		case socket_type_int_impl<utp_stream>::value: \
-			return get<utp_stream>()->x; \
-		TORRENT_SOCKTYPE_I2P_FORWARD_RET(x, def) \
-		TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
-		default: TORRENT_ASSERT_FAIL(); return def; \
-	}
 
 namespace libtorrent {
 namespace aux {
@@ -176,143 +94,21 @@ namespace aux {
 	{ static constexpr int value = 9; };
 #endif
 
-	struct TORRENT_EXTRA_EXPORT socket_type
-	{
-		using endpoint_type = tcp::socket::endpoint_type;
-		using protocol_type = tcp::socket::protocol_type;
-
-		using receive_buffer_size = tcp::socket::receive_buffer_size;
-		using send_buffer_size = tcp::socket::send_buffer_size;
-
-		socket_type(): m_type(0) {}
-		~socket_type();
-
-		bool is_open() const;
-
-#ifndef BOOST_NO_EXCEPTIONS
-		void open(protocol_type const& p);
-		void close();
-		endpoint_type local_endpoint() const;
-		endpoint_type remote_endpoint() const;
-		void bind(endpoint_type const& endpoint);
-		std::size_t available() const;
-#endif
-
-		void open(protocol_type const& p, error_code& ec);
-		void close(error_code& ec);
-
-		endpoint_type local_endpoint(error_code& ec) const;
-		endpoint_type remote_endpoint(error_code& ec) const;
-		void bind(endpoint_type const& endpoint, error_code& ec);
-		std::size_t available(error_code& ec) const;
-		int type_idx() const;
-
-		template <class Mutable_Buffers>
-		std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD_RET(read_some(buffers, ec), 0) }
-
-		template <class Mutable_Buffers, class Handler>
-		void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
-		{ TORRENT_SOCKTYPE_FORWARD(async_read_some(buffers, handler)) }
-
-		template <class Const_Buffers>
-		std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD_RET(write_some(buffers, ec), 0) }
-
-		template <class Const_Buffers, class Handler>
-		void async_write_some(Const_Buffers const& buffers, Handler const& handler)
-		{ TORRENT_SOCKTYPE_FORWARD(async_write_some(buffers, handler)) }
-
-		template <class Handler>
-		void async_connect(endpoint_type const& endpoint, Handler const& handler)
-		{ TORRENT_SOCKTYPE_FORWARD(async_connect(endpoint, handler)) }
-
-#ifndef BOOST_NO_EXCEPTIONS
-		template <class IO_Control_Command>
-		void io_control(IO_Control_Command& ioc)
-		{ TORRENT_SOCKTYPE_FORWARD(io_control(ioc)) }
-
-		template <class Mutable_Buffers>
-		std::size_t read_some(Mutable_Buffers const& buffers)
-		{ TORRENT_SOCKTYPE_FORWARD_RET(read_some(buffers), 0) }
-#endif
-
-		template <class IO_Control_Command>
-		void io_control(IO_Control_Command& ioc, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD(io_control(ioc, ec)) }
-
-#ifndef BOOST_NO_EXCEPTIONS
-		template <class SettableSocketOption>
-		void set_option(SettableSocketOption const& opt)
-		{ TORRENT_SOCKTYPE_FORWARD(set_option(opt)) }
-#endif
-
-		template <class SettableSocketOption>
-		void set_option(SettableSocketOption const& opt, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD(set_option(opt, ec)) }
-
-		void non_blocking(bool b, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD(non_blocking(b, ec)) }
-
-#ifndef BOOST_NO_EXCEPTIONS
-		void non_blocking(bool b)
-		{ TORRENT_SOCKTYPE_FORWARD(non_blocking(b)) }
-#endif
-
-#ifndef BOOST_NO_EXCEPTIONS
-		template <class GettableSocketOption>
-		void get_option(GettableSocketOption& opt)
-		{ TORRENT_SOCKTYPE_FORWARD(get_option(opt)) }
-#endif
-
-		template <class GettableSocketOption>
-		void get_option(GettableSocketOption& opt, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD(get_option(opt, ec)) }
-
-		template <class S>
-		void instantiate(io_context& ios, void* userdata = nullptr)
-		{
-			construct(ios, socket_type_int_impl<S>::value, userdata);
-		}
-
-		template <class S> S* get()
-		{
-			if (m_type != socket_type_int_impl<S>::value) return nullptr;
-			return reinterpret_cast<S*>(&m_data);
-		}
-
-		template <class S> S const* get() const
-		{
-			if (m_type != socket_type_int_impl<S>::value) return nullptr;
-			return reinterpret_cast<S const*>(&m_data);
-		}
-
-		// explicitly disallow assignment, to silence msvc warning
-		socket_type& operator=(socket_type const&) = delete;
-
-	private:
-
-		void destruct();
-		void construct(io_context& ios, int type, void* userdata);
-
-		int m_type;
-
-		aux::aligned_union<1
-			, tcp::socket
-			, socks5_stream
-			, http_stream
-			, utp_stream
+	using socket_type = polymorphic_socket<
+		tcp::socket
+		, socks5_stream
+		, http_stream
+		, utp_stream
 #if TORRENT_USE_I2P
-			, i2p_stream
+		, i2p_stream
 #endif
 #ifdef TORRENT_USE_OPENSSL
-			, ssl_stream<tcp::socket>
-			, ssl_stream<socks5_stream>
-			, ssl_stream<http_stream>
-			, ssl_stream<utp_stream>
+		, ssl_stream<tcp::socket>
+		, ssl_stream<socks5_stream>
+		, ssl_stream<http_stream>
+		, ssl_stream<utp_stream>
 #endif
-		>::type m_data;
-	};
+	>;
 
 	// returns true if this socket is an SSL socket
 	bool is_ssl(socket_type const& s);
@@ -341,24 +137,6 @@ namespace aux {
 	// properly shuts down SSL sockets. holder keeps s alive
 	void async_shutdown(socket_type& s, std::shared_ptr<void> holder);
 }
-}
-
-namespace boost {
-	template <typename T>
-	T& get(libtorrent::aux::socket_type& s)
-	{ return *s.get<T>(); }
-
-	template <typename T>
-	T const& get(libtorrent::aux::socket_type const& s)
-	{ return *s.get<T>(); }
-
-	template <typename T>
-	T* get(libtorrent::aux::socket_type* s)
-	{ return s->get<T>(); }
-
-	template <typename T>
-	T const* get(libtorrent::aux::socket_type const* s)
-	{ return s->get<T>(); }
 }
 
 #endif

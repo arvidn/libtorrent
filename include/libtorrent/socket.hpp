@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/noexcept_movable.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -82,13 +83,25 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 #if defined TORRENT_BUILD_SIMULATOR
-	using udp = sim::asio::ip::udp;
-	using tcp = sim::asio::ip::tcp;
+struct tcp : sim::asio::ip::tcp {
+	tcp(sim::asio::ip::tcp const& p) : sim::asio::ip::tcp(p) {} // NOLINT
+	using socket = aux::noexcept_move_only<sim::asio::ip::tcp::socket>;
+};
+struct udp : sim::asio::ip::udp {
+	udp(sim::asio::ip::udp const& p) : sim::asio::ip::udp(p) {} // NOLINT
+	using socket = aux::noexcept_move_only<sim::asio::ip::udp::socket>;
+};
 	using sim::asio::async_write;
 	using sim::asio::async_read;
 #else
-	using tcp = boost::asio::ip::tcp;
-	using udp = boost::asio::ip::udp;
+struct tcp : boost::asio::ip::tcp {
+	tcp(boost::asio::ip::tcp const& p) : boost::asio::ip::tcp(p) {} // NOLINT
+	using socket = aux::noexcept_move_only<boost::asio::ip::tcp::socket>;
+};
+struct udp : boost::asio::ip::udp {
+	udp(boost::asio::ip::udp const& p) : boost::asio::ip::udp(p) {} // NOLINT
+	using socket = aux::noexcept_move_only<boost::asio::ip::udp::socket>;
+};
 	using boost::asio::async_write;
 	using boost::asio::async_read;
 #endif

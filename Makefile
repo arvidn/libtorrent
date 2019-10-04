@@ -602,6 +602,7 @@ HEADERS = \
   aux_/packet_buffer.hpp            \
   aux_/packet_pool.hpp              \
   aux_/path.hpp                     \
+  aux_/polymorphic_socket.hpp       \
   aux_/portmap.hpp                  \
   aux_/posix_storage.hpp            \
   aux_/proxy_settings.hpp           \
