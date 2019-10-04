@@ -2311,12 +2311,9 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (!m_i2p_conn.is_open()) return;
 
 		if (m_i2p_listen_socket) return;
-
-		m_i2p_listen_socket = std::make_shared<socket_type>();
-		bool ret = instantiate_connection(m_io_context, m_i2p_conn.proxy()
-			, *m_i2p_listen_socket, nullptr, nullptr, true, false);
-		TORRENT_ASSERT_VAL(ret, ret);
-		TORRENT_UNUSED(ret);
+		m_i2p_listen_socket = std::make_shared<socket_type>(
+			instantiate_connection(m_io_context, m_i2p_conn.proxy()
+				, nullptr, nullptr, true, false));
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_i2p_accept");
 		i2p_stream& s = boost::get<i2p_stream>(*m_i2p_listen_socket);
@@ -2595,7 +2592,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		, transport const ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
-		std::shared_ptr<socket_type> c = std::make_shared<socket_type>();
+		std::shared_ptr<socket_type> c;
 		tcp::socket* str = nullptr;
 
 #ifdef TORRENT_USE_OPENSSL
@@ -2605,13 +2602,13 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// use the generic m_ssl_ctx context. However, since it has
 			// the servername callback set on it, we will switch away from
 			// this context into a specific torrent once we start handshaking
-			c->instantiate<ssl_stream<tcp::socket>>(m_io_context, &m_ssl_ctx);
+			c = std::make_shared<socket_type>(ssl_stream<tcp::socket>(m_io_context, m_ssl_ctx));
 			str = &boost::get<ssl_stream<tcp::socket>>(*c).next_layer();
 		}
 		else
 #endif
 		{
-			c->instantiate<tcp::socket>(m_io_context);
+			c = std::make_shared<socket_type>(tcp::socket(m_io_context));
 			str = boost::get<tcp::socket>(c.get());
 		}
 

@@ -101,7 +101,7 @@ namespace libtorrent {
 	{ return i2p_category(); }
 #endif
 
-struct i2p_stream : public proxy_base
+struct i2p_stream : proxy_base
 {
 	explicit i2p_stream(io_context& io_context);
 	i2p_stream(i2p_stream&&) noexcept = default;

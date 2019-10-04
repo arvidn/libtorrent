@@ -210,17 +210,16 @@ namespace aux {
 			if (int(m_utp_sockets.size()) > m_sett.get_int(settings_pack::connections_limit) * 2)
 				return false;
 
-//			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
-
-			std::shared_ptr<aux::socket_type> c(new (std::nothrow) aux::socket_type());
-			if (!c) return false;
-
 			TORRENT_ASSERT(m_new_connection == -1);
 			// create the new socket with this ID
 			m_new_connection = id;
 
-			aux::instantiate_connection(m_ios, aux::proxy_settings(), *c
-				, m_ssl_context, this, true, false);
+//			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
+
+			// TODO: this should not be heap allocated, sockets should be movable
+			std::shared_ptr<aux::socket_type> c(new (std::nothrow) aux::socket_type(
+				aux::instantiate_connection(m_ios, aux::proxy_settings(), m_ssl_context, this, true, false)));
+			if (!c) return false;
 
 			utp_stream* str = nullptr;
 #ifdef TORRENT_USE_OPENSSL

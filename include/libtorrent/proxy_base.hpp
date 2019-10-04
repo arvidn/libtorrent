@@ -68,9 +68,9 @@ struct proxy_base
 	executor_type get_executor() { return m_sock.get_executor(); }
 
 	template <class Mutable_Buffers, class Handler>
-	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
+	void async_read_some(Mutable_Buffers const& buffers, Handler handler)
 	{
-		m_sock.async_read_some(buffers, handler);
+		m_sock.async_read_some(buffers, std::move(handler));
 	}
 
 	template <class Mutable_Buffers>
@@ -118,9 +118,9 @@ struct proxy_base
 	}
 
 	template <class Const_Buffers, class Handler>
-	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
+	void async_write_some(Const_Buffers const& buffers, Handler handler)
 	{
-		m_sock.async_write_some(buffers, handler);
+		m_sock.async_write_some(buffers, std::move(handler));
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS

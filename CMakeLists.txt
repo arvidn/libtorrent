@@ -231,6 +231,7 @@ set(libtorrent_aux_include_files
 	packet_buffer
 	packet_pool
 	path
+	polymorphic_socket
 	portmap
 	proxy_settings
 	range
