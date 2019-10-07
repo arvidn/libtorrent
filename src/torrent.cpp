@@ -9203,7 +9203,7 @@ bool is_downloading_state(int const st)
 						if (supports_protocol[ih] && !s.state[ih].done)
 							return false;
 					}
-					return true;;
+					return true;
 				}))
 				break;
 		}
