@@ -14,6 +14,7 @@ changelog at the end of the file.
 
 #if !defined TORRENT_USE_LIBGCRYPT \
 	&& !TORRENT_USE_COMMONCRYPTO \
+	&& !TORRENT_USE_CNG \
 	&& !TORRENT_USE_CRYPTOAPI \
 	&& !defined TORRENT_USE_LIBCRYPTO
 

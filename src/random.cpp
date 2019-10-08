@@ -47,7 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #endif
 
-#if TORRENT_USE_CRYPTOAPI
+#if TORRENT_USE_CNG
+#include "libtorrent/aux_/win_cng.hpp"
+
+#elif TORRENT_USE_CRYPTOAPI
 #include "libtorrent/aux_/win_crypto_provider.hpp"
 
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -112,6 +115,8 @@ namespace aux {
 
 			for (auto& b : buffer) b = char(random(0xff));
 
+#elif TORRENT_USE_CNG
+			aux::cng_gen_random(buffer);
 #elif TORRENT_USE_CRYPTOAPI
 			// windows
 

@@ -53,6 +53,7 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
+#elif TORRENT_USE_CNG
 #elif TORRENT_USE_CRYPTOAPI
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
@@ -104,6 +105,8 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_write(m_context, data.data(), static_cast<std::size_t>(data.size()));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), CC_LONG(data.size()));
+#elif TORRENT_USE_CNG
+		m_context.update(data);
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.update(data);
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -124,6 +127,8 @@ TORRENT_CRYPTO_NAMESPACE
 		digest.assign(reinterpret_cast<char const*>(gcry_md_read(m_context, 0)));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+#elif TORRENT_USE_CNG
+		m_context.get_hash(digest.data(), digest.size());
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -140,6 +145,8 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_reset(m_context);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
+#elif TORRENT_USE_CNG
+		m_context.reset();
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -162,7 +169,8 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_open(&m_context, GCRY_MD_SHA256, 0);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA256_Init(&m_context);
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CNG
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Init(&m_context);
 #else
@@ -213,7 +221,9 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_write(m_context, data.data(), data.size());
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA256_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), CC_LONG(data.size()));
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CNG
+		m_context.update(data);
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.update(data);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
@@ -233,7 +243,9 @@ TORRENT_CRYPTO_NAMESPACE
 		digest.assign((char const*)gcry_md_read(m_context, 0));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA256_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CNG
+		m_context.get_hash(digest.data(), digest.size());
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
@@ -249,7 +261,9 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_reset(m_context);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA256_Init(&m_context);
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CNG
+		m_context.reset();
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Init(&m_context);

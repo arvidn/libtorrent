@@ -233,6 +233,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BROKEN_RANDOM_DEVICE 1
 
 # if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
+
+#ifdef NTDDI_VERSION
+# if (NTDDI_VERSION >= NTDDI_VISTA)
+#  define TORRENT_USE_CNG 1
+# endif
+#else // NTDDI_VERSION not defined so use simple _WIN32_WINNT check
+# if _WIN32_WINNT >= 0x0600
+#  define TORRENT_USE_CNG 1
+# endif
+#endif
+
+# if !defined TORRENT_USE_CNG
 // unless some other crypto library has been specified, default to the native
 // windows CryptoAPI
 #define TORRENT_USE_CRYPTOAPI 1
@@ -246,6 +258,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_USE_CRYPTOAPI_SHA_512 1
 # endif
 #endif
+
+#endif // !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
 
 #endif
 // ==== WINDOWS ===
@@ -264,6 +278,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 # if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
+
+#ifdef NTDDI_VERSION
+# if (NTDDI_VERSION >= NTDDI_VISTA)
+#  define TORRENT_USE_CNG 1
+# endif
+#else // NTDDI_VERSION not defined so use simple _WIN32_WINNT check
+# if _WIN32_WINNT >= 0x0600
+#  define TORRENT_USE_CNG 1
+# endif
+#endif
+
+# if !defined TORRENT_USE_CNG
 // unless some other crypto library has been specified, default to the native
 // windows CryptoAPI
 #define TORRENT_USE_CRYPTOAPI 1
@@ -277,6 +303,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_USE_CRYPTOAPI_SHA_512 1
 # endif
 #endif
+
+#endif // !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
 
 #endif
 
@@ -427,6 +455,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_CRYPTOAPI_SHA_512
 #define TORRENT_USE_CRYPTOAPI_SHA_512 0
+#endif
+
+#ifndef TORRENT_USE_CNG
+#define TORRENT_USE_CNG 0
 #endif
 
 #ifndef TORRENT_USE_DEV_RANDOM

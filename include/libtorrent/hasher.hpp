@@ -50,8 +50,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif TORRENT_USE_COMMONCRYPTO
 #include <CommonCrypto/CommonDigest.h>
 
+#elif TORRENT_USE_CNG
+#include "libtorrent/aux_/win_cng.hpp"
+
 #elif TORRENT_USE_CRYPTOAPI
 #include "libtorrent/aux_/win_crypto_provider.hpp"
+
+#if !TORRENT_USE_CRYPTOAPI_SHA_512
+#include "libtorrent/sha256.hpp"
+#endif
 
 #elif defined TORRENT_USE_LIBCRYPTO
 
@@ -119,6 +126,8 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_CTX m_context;
+#elif TORRENT_USE_CNG
+		aux::cng_hash<aux::cng_sha1_algorithm> m_context;
 #elif TORRENT_USE_CRYPTOAPI
 		aux::crypt_hash<CALG_SHA1, PROV_RSA_FULL> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -159,7 +168,9 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA256_CTX m_context;
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CNG
+		aux::cng_hash<aux::cng_sha256_algorithm> m_context;
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 		aux::crypt_hash<CALG_SHA_256, PROV_RSA_AES> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_CTX m_context;
