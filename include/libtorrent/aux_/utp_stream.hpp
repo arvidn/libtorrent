@@ -170,6 +170,7 @@ int utp_socket_state(utp_socket_impl const* s);
 void utp_send_ack(utp_socket_impl* s);
 void utp_socket_drained(utp_socket_impl* s);
 void utp_writable(utp_socket_impl* s);
+void utp_set_userdata(utp_socket_impl* s, void* userdata);
 
 // this is the user-level stream interface to utp sockets.
 // the reason why it's split up in a utp_stream class and
@@ -195,7 +196,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	utp_stream& operator=(utp_stream const&) = delete;
 	utp_stream(utp_stream const&) = delete;
 	utp_stream& operator=(utp_stream&&) noexcept = delete;
-	utp_stream(utp_stream&&) noexcept = delete;
+	utp_stream(utp_stream&&) noexcept;
 
 	lowest_layer_type& lowest_layer() { return *this; }
 	lowest_layer_type const& lowest_layer() const { return *this; }

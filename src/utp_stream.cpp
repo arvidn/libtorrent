@@ -711,6 +711,11 @@ void utp_writable(utp_socket_impl* s)
 	s->writable();
 }
 
+void utp_set_userdata(utp_socket_impl* s, void* userdata)
+{
+	s->m_userdata = userdata;
+}
+
 void utp_send_ack(utp_socket_impl* s)
 {
 	TORRENT_ASSERT(s->m_deferred_ack);
@@ -832,6 +837,17 @@ utp_stream::endpoint_type utp_stream::local_endpoint(error_code& ec) const
 	return {ep.address(), ep.port()};
 }
 
+utp_stream::utp_stream(utp_stream&& rhs) noexcept
+	: m_io_service(rhs.m_io_service)
+	, m_impl(rhs.m_impl)
+	, m_open(rhs.m_open)
+{
+	if (&rhs == this) return;
+	rhs.m_open = false;
+	rhs.m_impl = nullptr;
+	if (m_impl) utp_set_userdata(m_impl, this);
+}
+
 utp_stream::~utp_stream()
 {
 	if (m_impl)
@@ -839,9 +855,8 @@ utp_stream::~utp_stream()
 		UTP_LOGV("%8p: utp_stream destructed\n", static_cast<void*>(m_impl));
 		m_impl->destroy();
 		detach_utp_impl(m_impl);
+		m_impl = nullptr;
 	}
-
-	m_impl = nullptr;
 }
 
 void utp_stream::set_impl(utp_socket_impl* impl)

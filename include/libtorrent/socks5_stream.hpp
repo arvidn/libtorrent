@@ -102,6 +102,7 @@ public:
 		socks5_udp_associate = 3
 	};
 
+	socks5_stream(socks5_stream&&) = default;
 	explicit socks5_stream(io_context& io_context)
 		: proxy_base(io_context)
 		, m_version(5)
