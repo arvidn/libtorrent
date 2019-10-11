@@ -168,7 +168,7 @@ namespace libtorrent {
 		, m_exceeded_limit(false)
 		, m_slow_start(true)
 	{
-		m_counters.inc_stats_counter(counters::num_tcp_peers + m_socket->type() - 1);
+		m_counters.inc_stats_counter(counters::num_tcp_peers + socket_type_idx(*m_socket) - 1);
 		std::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (m_connected)
@@ -199,7 +199,7 @@ namespace libtorrent {
 				, m_outgoing ? "OUTGOING_CONNECTION" : "INCOMING_CONNECTION"
 				, "ep: %s type: %s seed: %d p: %p local: %s"
 				, print_endpoint(m_remote).c_str()
-				, m_socket->type_name()
+				, socket_type_name(*m_socket)
 				, m_peer_info ? m_peer_info->seed : 0
 				, static_cast<void*>(m_peer_info)
 				, print_endpoint(local_ep).c_str());
@@ -379,7 +379,7 @@ namespace libtorrent {
 		}
 #endif
 
-		m_ses.set_peer_classes(this, m_remote.address(), m_socket->type());
+		m_ses.set_peer_classes(this, m_remote.address(), socket_type_idx(*m_socket));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
@@ -482,7 +482,7 @@ namespace libtorrent {
 		if (t && t->alerts().should_post<peer_connect_alert>())
 		{
 			t->alerts().emplace_alert<peer_connect_alert>(
-				t->get_handle(), remote(), pid(), m_socket->type());
+				t->get_handle(), remote(), pid(), socket_type_idx(*m_socket));
 		}
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
@@ -841,7 +841,7 @@ namespace libtorrent {
 
 	peer_connection::~peer_connection()
 	{
-		m_counters.inc_stats_counter(counters::num_tcp_peers + m_socket->type() - 1, -1);
+		m_counters.inc_stats_counter(counters::num_tcp_peers + socket_type_idx(*m_socket) - 1, -1);
 
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(!m_in_constructor);
@@ -4198,8 +4198,8 @@ namespace libtorrent {
 
 		if (m_disconnecting) return;
 
-		m_socket->set_close_reason(error_to_close_reason(ec));
-		close_reason_t const close_reason = m_socket->get_close_reason();
+		set_close_reason(*m_socket, error_to_close_reason(ec));
+		close_reason_t const close_reason = get_close_reason(*m_socket);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (close_reason != close_reason_t::none)
 		{
@@ -4397,7 +4397,7 @@ namespace libtorrent {
 				if (error <= failure && t->alerts().should_post<peer_disconnected_alert>())
 				{
 					t->alerts().emplace_alert<peer_disconnected_alert>(handle
-						, remote(), pid(), op, m_socket->type(), ec, close_reason);
+						, remote(), pid(), op, socket_type_idx(*m_socket), ec, close_reason);
 				}
 			}
 

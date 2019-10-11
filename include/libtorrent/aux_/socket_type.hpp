@@ -189,8 +189,6 @@ namespace aux {
 
 		bool is_open() const;
 
-		char const* type_name() const;
-
 #ifndef BOOST_NO_EXCEPTIONS
 		void open(protocol_type const& p);
 		void close();
@@ -203,16 +201,11 @@ namespace aux {
 		void open(protocol_type const& p, error_code& ec);
 		void close(error_code& ec);
 
-		// this is only relevant for uTP connections
-		void set_close_reason(close_reason_t code);
-		close_reason_t get_close_reason();
-
 		endpoint_type local_endpoint(error_code& ec) const;
 		endpoint_type remote_endpoint(error_code& ec) const;
 		void bind(endpoint_type const& endpoint, error_code& ec);
 		std::size_t available(error_code& ec) const;
-		int type() const;
-
+		int type_idx() const;
 
 		template <class Mutable_Buffers>
 		std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
@@ -326,6 +319,15 @@ namespace aux {
 
 	// returns true if this is a uTP socket
 	bool is_utp(socket_type const& s);
+
+	// TODO: this should return a special enum class type?
+	int socket_type_idx(socket_type const& s);
+
+	char const* socket_type_name(socket_type const& s);
+
+	// this is only relevant for uTP connections
+	void set_close_reason(socket_type& s, close_reason_t code);
+	close_reason_t get_close_reason(socket_type const& s);
 
 #if TORRENT_USE_I2P
 	// returns true if this is an i2p socket

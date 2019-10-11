@@ -250,7 +250,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	void close(error_code const&) { close(); }
 
 	void set_close_reason(close_reason_t code);
-	close_reason_t get_close_reason();
+	close_reason_t get_close_reason() const;
 
 	bool is_open() const { return m_open; }
 

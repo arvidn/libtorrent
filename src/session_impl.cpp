@@ -2942,7 +2942,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// figure out which peer classes this is connections has,
 		// to get connection_limit_factor
 		peer_class_set pcs;
-		set_peer_classes(&pcs, endp.address(), s->type());
+		set_peer_classes(&pcs, endp.address(), socket_type_idx(*s));
 		int connection_limit_factor = 0;
 		for (int i = 0; i < pcs.num_classes(); ++i)
 		{
@@ -2965,7 +2965,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			if (m_alerts.should_post<peer_disconnected_alert>())
 			{
 				m_alerts.emplace_alert<peer_disconnected_alert>(torrent_handle(), endp, peer_id()
-						, operation_t::bittorrent, s->type()
+						, operation_t::bittorrent, socket_type_idx(*s)
 						, error_code(errors::too_many_connections)
 						, close_reason_t::none);
 			}
@@ -3002,7 +3002,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		m_stats_counters.inc_stats_counter(counters::incoming_connections);
 
 		if (m_alerts.should_post<incoming_connection_alert>())
-			m_alerts.emplace_alert<incoming_connection_alert>(s->type(), endp);
+			m_alerts.emplace_alert<incoming_connection_alert>(socket_type_idx(*s), endp);
 
 		peer_connection_args pack{
 			this
