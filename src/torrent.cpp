@@ -6092,7 +6092,7 @@ bool is_downloading_state(int const st)
 			&& web->have_files.none_set()) return;
 
 		std::shared_ptr<aux::socket_type> s
-			= std::make_shared<aux::socket_type>(m_ses.get_context());
+			= std::make_shared<aux::socket_type>();
 		if (!s) return;
 
 		void* userdata = nullptr;
@@ -6802,7 +6802,7 @@ bool is_downloading_state(int const st)
 			|| !m_ip_filter
 			|| (m_ip_filter->access(peerinfo->address()) & ip_filter::blocked) == 0);
 
-		std::shared_ptr<aux::socket_type> s = std::make_shared<aux::socket_type>(m_ses.get_context());
+		std::shared_ptr<aux::socket_type> s = std::make_shared<aux::socket_type>();
 
 #if TORRENT_USE_I2P
 		bool const i2p = peerinfo->is_i2p_addr;

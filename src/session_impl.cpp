@@ -2312,7 +2312,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		if (m_i2p_listen_socket) return;
 
-		m_i2p_listen_socket = std::make_shared<socket_type>(m_io_context);
+		m_i2p_listen_socket = std::make_shared<socket_type>();
 		bool ret = instantiate_connection(m_io_context, m_i2p_conn.proxy()
 			, *m_i2p_listen_socket, nullptr, nullptr, true, false);
 		TORRENT_ASSERT_VAL(ret, ret);
@@ -2595,7 +2595,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		, transport const ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
-		std::shared_ptr<socket_type> c = std::make_shared<socket_type>(m_io_context);
+		std::shared_ptr<socket_type> c = std::make_shared<socket_type>();
 		tcp::socket* str = nullptr;
 
 #ifdef TORRENT_USE_OPENSSL

@@ -184,10 +184,9 @@ namespace aux {
 		using receive_buffer_size = tcp::socket::receive_buffer_size;
 		using send_buffer_size = tcp::socket::send_buffer_size;
 
-		explicit socket_type(io_context& ios): m_io_context(ios), m_type(0) {}
+		socket_type(): m_type(0) {}
 		~socket_type();
 
-		io_context::executor_type get_executor();
 		bool is_open() const;
 
 		char const* type_name() const;
@@ -280,9 +279,7 @@ namespace aux {
 		template <class S>
 		void instantiate(io_context& ios, void* userdata = nullptr)
 		{
-			TORRENT_UNUSED(ios);
-			TORRENT_ASSERT(&ios == &m_io_context);
-			construct(socket_type_int_impl<S>::value, userdata);
+			construct(ios, socket_type_int_impl<S>::value, userdata);
 		}
 
 		template <class S> S* get()
@@ -303,9 +300,8 @@ namespace aux {
 	private:
 
 		void destruct();
-		void construct(int type, void* userdata);
+		void construct(io_context& ios, int type, void* userdata);
 
-		io_context& m_io_context;
 		int m_type;
 
 		aux::aligned_union<1
