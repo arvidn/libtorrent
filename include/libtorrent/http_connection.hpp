@@ -128,7 +128,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 
 	void close(bool force = false);
 
-	aux::socket_type const& socket() const { return m_sock; }
+	aux::socket_type const& socket() const { return *m_sock; }
 
 	std::vector<tcp::endpoint> const& endpoints() const { return m_endpoints; }
 
@@ -164,7 +164,7 @@ private:
 	// endpoint with this index (in m_endpoints) next
 	int m_next_ep;
 
-	aux::socket_type m_sock;
+	boost::optional<aux::socket_type> m_sock;
 
 #ifdef TORRENT_USE_OPENSSL
 	ssl::context* m_ssl_ctx;
