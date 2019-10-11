@@ -51,7 +51,7 @@ namespace aux {
 	{
 #ifdef TORRENT_USE_OPENSSL
 #define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value:
-		switch (s.type())
+		switch (s.type_idx())
 		{
 			CASE(tcp::socket)
 			CASE(socks5_stream)
@@ -87,6 +87,67 @@ namespace aux {
 	}
 #endif
 
+	int socket_type_idx(socket_type const& s)
+	{
+		return s.type_idx();
+	}
+
+	char const* socket_type_name(socket_type const& s)
+	{
+		static char const* const names[] =
+		{
+			"uninitialized",
+			"TCP",
+			"Socks5",
+			"HTTP",
+			"uTP",
+#if TORRENT_USE_I2P
+			"I2P",
+#else
+			"",
+#endif
+#ifdef TORRENT_USE_OPENSSL
+			"SSL/TCP",
+			"SSL/Socks5",
+			"SSL/HTTP",
+			"SSL/uTP"
+#else
+			"","","",""
+#endif
+		};
+		return names[socket_type_idx(s)];
+	}
+
+	void set_close_reason(socket_type& s, close_reason_t code)
+	{
+		switch (s.type_idx())
+		{
+			case socket_type_int_impl<utp_stream>::value:
+				s.get<utp_stream>()->set_close_reason(code);
+				break;
+#ifdef TORRENT_USE_OPENSSL
+			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
+				s.get<ssl_stream<utp_stream>>()->lowest_layer().set_close_reason(code);
+				break;
+#endif
+			default: break;
+		}
+	}
+
+	close_reason_t get_close_reason(socket_type const& s)
+	{
+		switch (s.type_idx())
+		{
+			case socket_type_int_impl<utp_stream>::value:
+				return s.get<utp_stream>()->get_close_reason();
+#ifdef TORRENT_USE_OPENSSL
+			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
+				return s.get<ssl_stream<utp_stream>>()->lowest_layer().get_close_reason();
+#endif
+			default: return close_reason_t::none;
+		}
+	}
+
 	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec)
 	{
 #if defined TORRENT_USE_OPENSSL
@@ -106,7 +167,7 @@ namespace aux {
 		SSL* ssl = nullptr;
 		SSL_CTX* ctx = nullptr;
 
-		switch(s.type())
+		switch(s.type_idx())
 		{
 			CASE(tcp::socket)
 			CASE(socks5_stream)
@@ -181,7 +242,7 @@ namespace aux {
 	s.get<ssl_stream<t>>()->async_write_some(boost::asio::buffer(buffer), std::bind(&on_close_socket, &s, holder)); \
 	break;
 
-		switch (s.type())
+		switch (s.type_idx())
 		{
 			CASE(tcp::socket)
 			CASE(socks5_stream)
@@ -293,32 +354,6 @@ namespace aux {
 		m_type = type;
 	}
 
-	char const* socket_type::type_name() const
-	{
-		static char const* const names[] =
-		{
-			"uninitialized",
-			"TCP",
-			"Socks5",
-			"HTTP",
-			"uTP",
-#if TORRENT_USE_I2P
-			"I2P",
-#else
-			"",
-#endif
-#ifdef TORRENT_USE_OPENSSL
-			"SSL/TCP",
-			"SSL/Socks5",
-			"SSL/HTTP",
-			"SSL/uTP"
-#else
-			"","","",""
-#endif
-		};
-		return names[m_type];
-	}
-
 	socket_type::~socket_type()
 	{ destruct(); }
 
@@ -337,36 +372,6 @@ namespace aux {
 		TORRENT_SOCKTYPE_FORWARD(close(ec))
 	}
 
-	void socket_type::set_close_reason(close_reason_t code)
-	{
-		switch (m_type)
-		{
-			case socket_type_int_impl<utp_stream>::value:
-				get<utp_stream>()->set_close_reason(code);
-				break;
-#ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
-				get<ssl_stream<utp_stream>>()->lowest_layer().set_close_reason(code);
-				break;
-#endif
-			default: break;
-		}
-	}
-
-	close_reason_t socket_type::get_close_reason()
-	{
-		switch (m_type)
-		{
-			case socket_type_int_impl<utp_stream>::value:
-				return get<utp_stream>()->get_close_reason();
-#ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
-				return get<ssl_stream<utp_stream>>()->lowest_layer().get_close_reason();
-#endif
-			default: return close_reason_t::none;
-		}
-	}
-
 	socket_type::endpoint_type socket_type::local_endpoint(error_code& ec) const
 	{ TORRENT_SOCKTYPE_FORWARD_RET(local_endpoint(ec), socket_type::endpoint_type()) }
 
@@ -379,7 +384,7 @@ namespace aux {
 	std::size_t socket_type::available(error_code& ec) const
 	{ TORRENT_SOCKTYPE_FORWARD_RET(available(ec), 0) }
 
-	int socket_type::type() const { return m_type; }
+	int socket_type::type_idx() const { return m_type; }
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void socket_type::open(protocol_type const& p)

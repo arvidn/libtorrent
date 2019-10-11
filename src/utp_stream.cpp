@@ -787,7 +787,7 @@ void utp_stream::set_close_reason(close_reason_t code)
 	m_impl->set_close_reason(code);
 }
 
-close_reason_t utp_stream::get_close_reason()
+close_reason_t utp_stream::get_close_reason() const
 {
 	return m_incoming_close_reason;
 }

@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/piece_picker.hpp" // for picker_options_t
 #include "libtorrent/units.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -92,7 +93,6 @@ namespace libtorrent {
 
 namespace aux {
 
-	struct socket_type;
 	struct session_interface;
 
 	class min_value_t {};

@@ -6147,7 +6147,7 @@ bool is_downloading_state(int const st)
 				ssl ? &s->get<ssl_stream<socks5_stream>>()->next_layer() :
 #endif
 				s->get<socks5_stream>();
-			TORRENT_ASSERT_VAL(str, s->type_name());
+			TORRENT_ASSERT_VAL(str, socket_type_name(*s));
 
 			str->set_dst_name(hostname);
 		}
