@@ -2319,7 +2319,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		TORRENT_UNUSED(ret);
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_i2p_accept");
-		i2p_stream& s = *m_i2p_listen_socket->get<i2p_stream>();
+		i2p_stream& s = boost::get<i2p_stream>(*m_i2p_listen_socket);
 		s.set_command(i2p_stream::cmd_accept);
 		s.set_session_id(m_i2p_conn.session_id());
 
@@ -2606,13 +2606,13 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// the servername callback set on it, we will switch away from
 			// this context into a specific torrent once we start handshaking
 			c->instantiate<ssl_stream<tcp::socket>>(m_io_context, &m_ssl_ctx);
-			str = &c->get<ssl_stream<tcp::socket>>()->next_layer();
+			str = &boost::get<ssl_stream<tcp::socket>>(*c).next_layer();
 		}
 		else
 #endif
 		{
 			c->instantiate<tcp::socket>(m_io_context);
-			str = c->get<tcp::socket>();
+			str = boost::get<tcp::socket>(c.get());
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_accept_connection");
@@ -2729,7 +2729,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
 			ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-			s->get<ssl_stream<tcp::socket>>()->async_accept_handshake(
+			boost::get<ssl_stream<tcp::socket>>(*s).async_accept_handshake(
 				std::bind(&session_impl::ssl_handshake, this, _1, s));
 			m_incoming_sockets.insert(s);
 		}
@@ -2749,7 +2749,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// for SSL connections, incoming_connection() is called
 		// after the handshake is done
 		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-		s->get<ssl_stream<utp_stream>>()->async_accept_handshake(
+		boost::get<ssl_stream<utp_stream>>(*s).async_accept_handshake(
 			std::bind(&session_impl::ssl_handshake, this, _1, s));
 		m_incoming_sockets.insert(s);
 	}
@@ -2775,7 +2775,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (should_log())
 		{
 			session_log(" *** peer SSL handshake done [ ip: %s ec: %s socket: %s ]"
-				, print_endpoint(endp).c_str(), ec.message().c_str(), s->type_name());
+				, print_endpoint(endp).c_str(), ec.message().c_str(), socket_type_name(*s));
 		}
 #endif
 
@@ -2836,7 +2836,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 
 		if (!m_settings.get_bool(settings_pack::enable_incoming_tcp)
-			&& s->get<tcp::socket>())
+			&& boost::get<tcp::socket>(s.get()))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("<== INCOMING CONNECTION [ rejected TCP connection ]");

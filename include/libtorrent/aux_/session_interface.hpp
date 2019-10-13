@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/flags.hpp"
 #include "libtorrent/link.hpp" // for torrent_list_index_t
 #include "libtorrent/info_hash.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 
 #include <functional>
 #include <memory>
@@ -103,7 +104,6 @@ namespace aux {
 
 	struct proxy_settings;
 	struct session_settings;
-	struct socket_type;
 
 	using ip_source_t = flags::bitfield_flag<std::uint8_t, struct ip_source_tag>;
 

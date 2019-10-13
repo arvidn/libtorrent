@@ -78,14 +78,14 @@ namespace libtorrent { namespace aux {
 		utp_socket_impl* impl = nullptr;
 		transport ssl = transport::plaintext;
 #ifdef TORRENT_USE_OPENSSL
-		if (s.get<ssl_stream<utp_stream>>() != nullptr)
+		if (boost::get<ssl_stream<utp_stream>>(&s) != nullptr)
 		{
-			impl = s.get<ssl_stream<utp_stream>>()->next_layer().get_impl();
+			impl = boost::get<ssl_stream<utp_stream>>(s).next_layer().get_impl();
 			ssl = transport::ssl;
 		}
 		else
 #endif
-			impl = s.get<utp_stream>()->get_impl();
+			impl = boost::get<utp_stream>(s).get_impl();
 
 		auto& idx = index[remote_address.is_v4() ? 0 : 1][ssl == transport::ssl ? 1 : 0];
 		auto const index_begin = idx;

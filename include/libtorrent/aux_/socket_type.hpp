@@ -343,4 +343,22 @@ namespace aux {
 }
 }
 
+namespace boost {
+	template <typename T>
+	T& get(libtorrent::aux::socket_type& s)
+	{ return *s.get<T>(); }
+
+	template <typename T>
+	T const& get(libtorrent::aux::socket_type const& s)
+	{ return *s.get<T>(); }
+
+	template <typename T>
+	T* get(libtorrent::aux::socket_type* s)
+	{ return s->get<T>(); }
+
+	template <typename T>
+	T const* get(libtorrent::aux::socket_type const* s)
+	{ return s->get<T>(); }
+}
+
 #endif
