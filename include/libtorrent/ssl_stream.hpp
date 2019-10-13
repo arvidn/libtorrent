@@ -256,7 +256,7 @@ public:
 
 	bool is_open() const
 	{
-		return const_cast<sock_type&>(m_sock).next_layer().is_open();
+		return m_sock.next_layer().is_open();
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -300,7 +300,17 @@ public:
 		return m_sock.lowest_layer();
 	}
 
+	lowest_layer_type const& lowest_layer() const
+	{
+		return m_sock.lowest_layer();
+	}
+
 	next_layer_type& next_layer()
+	{
+		return m_sock.next_layer();
+	}
+
+	next_layer_type const& next_layer() const
 	{
 		return m_sock.next_layer();
 	}

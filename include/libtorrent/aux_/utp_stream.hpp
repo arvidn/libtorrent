@@ -199,6 +199,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	utp_stream(utp_stream&&) noexcept = delete;
 
 	lowest_layer_type& lowest_layer() { return *this; }
+	lowest_layer_type const& lowest_layer() const { return *this; }
 
 	// used for incoming connections
 	void set_impl(utp_socket_impl* s);

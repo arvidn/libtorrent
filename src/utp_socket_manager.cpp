@@ -171,7 +171,7 @@ namespace aux {
 
 		// parse out connection ID and look for existing
 		// connections. If found, forward to the utp_stream.
-		std::uint16_t id = ph->connection_id;
+		std::uint16_t const id = ph->connection_id;
 
 		// first test to see if it's the same socket as last time
 		// in most cases it is
@@ -238,7 +238,7 @@ namespace aux {
 			bool ret = utp_incoming_packet(str->get_impl(), p, ep, receive_time);
 			if (!ret) return false;
 			m_last_socket = str->get_impl();
-			m_cb(c);
+			m_cb(std::move(c));
 			// the connection most likely changed its connection ID here
 			// we need to move it to the correct ID
 			return true;
