@@ -103,7 +103,9 @@ bool on_alert(alert const* a)
 	if (peer_disconnected_alert const* e = alert_cast<peer_disconnected_alert>(a))
 	{
 		++peer_disconnects;
-		if (strcmp(e->error.category().name(), boost::asio::error::get_ssl_category().name()) == 0)
+		string_view const cat = e->error.category().name();
+		if (cat == boost::asio::error::get_ssl_category().name()
+			|| cat == boost::asio::ssl::error::get_stream_category().name())
 			++ssl_peer_disconnects;
 
 		std::printf("--- peer_errors: %d ssl_disconnects: %d\n"
@@ -115,7 +117,9 @@ bool on_alert(alert const* a)
 		++peer_disconnects;
 		++peer_errors;
 
-		if (strcmp(e->error.category().name(), boost::asio::error::get_ssl_category().name()) == 0)
+		string_view const cat = e->error.category().name();
+		if (cat == boost::asio::error::get_ssl_category().name()
+			|| cat == boost::asio::ssl::error::get_stream_category().name())
 			++ssl_peer_disconnects;
 
 		std::printf("--- peer_errors: %d ssl_disconnects: %d\n"
