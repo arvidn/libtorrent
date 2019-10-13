@@ -6109,11 +6109,11 @@ bool is_downloading_state(int const st)
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
-		if (s->get<http_stream>())
+		if (boost::get<http_stream>(s.get()))
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			s->get<http_stream>()->set_no_connect(true);
+			boost::get<http_stream>(*s).set_no_connect(true);
 		}
 
 		std::string hostname;
@@ -6134,22 +6134,21 @@ bool is_downloading_state(int const st)
 			&& !is_ip;
 
 		if (proxy_hostnames
-			&& (s->get<socks5_stream>()
+			&& (boost::get<socks5_stream>(s.get())
 #ifdef TORRENT_USE_OPENSSL
-				|| s->get<ssl_stream<socks5_stream>>()
+				|| boost::get<ssl_stream<socks5_stream>>(s.get())
 #endif
 				))
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
-			socks5_stream* str =
+			socks5_stream& str =
 #ifdef TORRENT_USE_OPENSSL
-				ssl ? &s->get<ssl_stream<socks5_stream>>()->next_layer() :
+				ssl ? boost::get<ssl_stream<socks5_stream>>(*s).next_layer() :
 #endif
-				s->get<socks5_stream>();
-			TORRENT_ASSERT_VAL(str, socket_type_name(*s));
+			boost::get<socks5_stream>(*s);
 
-			str->set_dst_name(hostname);
+			str.set_dst_name(hostname);
 		}
 
 		setup_ssl_hostname(*s, hostname, ec);
@@ -6825,9 +6824,9 @@ bool is_downloading_state(int const st)
 				, m_ses.i2p_proxy(), *s, nullptr, nullptr, false, false);
 			(void)ret;
 			TORRENT_ASSERT(ret);
-			s->get<i2p_stream>()->set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
-			s->get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
-			s->get<i2p_stream>()->set_session_id(m_ses.i2p_session());
+			boost::get<i2p_stream>(*s).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
+			boost::get<i2p_stream>(*s).set_command(i2p_stream::cmd_connect);
+			boost::get<i2p_stream>(*s).set_session_id(m_ses.i2p_session());
 		}
 		else
 #endif
@@ -6883,9 +6882,9 @@ bool is_downloading_state(int const st)
 				std::string host_name = aux::to_hex(m_torrent_file->info_hash().get(peerinfo->protocol()));
 
 #define CASE(t) case aux::socket_type_int_impl<ssl_stream<t>>::value: \
-	s->get<ssl_stream<t>>()->set_host_name(host_name); break;
+		boost::get<ssl_stream<t>>(*s).set_host_name(host_name); break;
 
-				switch (s->type())
+				switch (socket_type_idx(*s))
 				{
 					CASE(tcp::socket)
 					CASE(socks5_stream)
@@ -7122,12 +7121,12 @@ bool is_downloading_state(int const st)
 
 			//
 #define SSL(t) aux::socket_type_int_impl<ssl_stream<t>>::value: \
-			ssl_conn = s->get<ssl_stream<t>>()->native_handle(); \
+			ssl_conn = boost::get<ssl_stream<t>>(*s).native_handle(); \
 			break;
 
 			SSL* ssl_conn = nullptr;
 
-			switch (s->type())
+			switch (socket_type_idx(*s))
 			{
 				case SSL(tcp::socket)
 				case SSL(socks5_stream)

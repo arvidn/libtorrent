@@ -69,9 +69,9 @@ namespace aux {
 
 	bool is_utp(socket_type const& s)
 	{
-		return s.get<utp_stream>() != nullptr
+		return boost::get<utp_stream>(&s) != nullptr
 #ifdef TORRENT_USE_OPENSSL
-			|| s.get<ssl_stream<utp_stream>>() != nullptr
+			|| boost::get<ssl_stream<utp_stream>>(&s) != nullptr
 #endif
 			;
 	}
@@ -79,9 +79,9 @@ namespace aux {
 #if TORRENT_USE_I2P
 	bool is_i2p(socket_type const& s)
 	{
-		return s.get<i2p_stream>() != nullptr
+		return boost::get<i2p_stream>(&s)
 #ifdef TORRENT_USE_OPENSSL
-			|| s.get<ssl_stream<i2p_stream>>() != nullptr
+			|| boost::get<ssl_stream<i2p_stream>>(&s)
 #endif
 			;
 	}

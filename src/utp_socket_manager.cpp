@@ -225,10 +225,10 @@ namespace aux {
 			utp_stream* str = nullptr;
 #ifdef TORRENT_USE_OPENSSL
 			if (is_ssl(*c))
-				str = &c->get<ssl_stream<utp_stream>>()->next_layer();
+				str = &boost::get<ssl_stream<utp_stream>>(*c).next_layer();
 			else
 #endif
-				str = c->get<utp_stream>();
+				str = boost::get<utp_stream>(c.get());
 
 			TORRENT_ASSERT(str);
 			int link_mtu, utp_mtu;
