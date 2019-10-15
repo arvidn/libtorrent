@@ -28,20 +28,21 @@ if $(BOOST_ROOT)
 else
 {
 	local boost-lib-search-path =
-		<search>/usr/local/lib
+		<search>/usr/local/opt/boost/lib
 		;
 
 	local boost-include-path =
-		<include>/usr/local/include
-		<include>/usr/sfw/include
+		<include>/usr/local/opt/boost/include
 	;
 
-	# the names are decorated in MacPorts
+	# the names are decorated in MacPorts.
 	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 
-	lib boost_system : : <name>boost_system $(boost-lib-search-path)
-		: : $(boost-include-path) ;
+	# we can't add /usr/local/lib to the search path on mac, as that will
+	# interfere with system libraries (specifically libjpeg)
+	lib boost_system : : <name>boost_system $(boost-lib-search-path) <search>/usr/local/lib
+		: : $(boost-include-path) <include>/usr/local/include ;
 }
 
 VERSION = 1.2.2 ;
@@ -211,6 +212,9 @@ rule warnings ( properties * )
 
 # enable these warnings again, once the other ones are dealt with
 		result += <cflags>-Wno-weak-vtables ;
+
+		result += <cflags>-Wno-return-std-move-in-c++11 ;
+		result += <cflags>-Wno-unknown-warning-option ;
 	}
 
 	if <toolset>gcc in $(properties)

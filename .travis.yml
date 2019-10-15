@@ -20,7 +20,7 @@ matrix:
     - env: cmake=1 toolset=gcc
     - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 python=1 toolset=darwin ios=1
       os: osx
-      osx_image: xcode9.2
+      osx_image: xcode11.2
     - env: arch=arm toolset=gcc-arm
 
 notifications:
@@ -215,6 +215,10 @@ script:
   # the common boost-build command line arguments. It's important they are all
   # the same, in order for builds to be reused between invocations
   - export B2_ARGS="crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant"
+
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$crypto" == "openssl" ]]; then
+    export B2_ARGS="${B2_ARGS} openssl-lib=/usr/local/opt/openssl@1.1/lib openssl-include=/usr/local/opt/openssl@1.1/include" ;
+    fi'
 
   - 'if [ "$check_headers" == "1" ]; then
       ${B2} -j3 check-headers ${B2_ARGS};
