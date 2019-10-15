@@ -5800,10 +5800,17 @@ namespace libtorrent {
 		m_socket_is_writing = true;
 #endif
 
-		auto conn = self();
-		m_socket->async_write_some(vec, make_handler(
-			[conn](error_code const& ec, std::size_t transferred) { conn->on_send_data(ec, transferred); }
-			, m_write_handler_storage, *this));
+		using write_handler_type = aux::handler<
+			peer_connection
+			, &peer_connection::on_send_data
+			, &peer_connection::on_error
+			, &peer_connection::on_exception
+			, decltype(m_write_handler_storage)
+			, &peer_connection::m_write_handler_storage
+			>;
+		static_assert(sizeof(write_handler_type) == sizeof(std::shared_ptr<peer_connection>)
+			, "write handler does not have the expected size");
+		m_socket->async_write_some(vec, write_handler_type(self()));
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
 		m_last_sent = aux::time_now();
@@ -5885,11 +5892,18 @@ namespace libtorrent {
 #endif
 
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
-		auto conn = self();
-		m_socket->async_read_some(
-			boost::asio::mutable_buffer(vec.data(), std::size_t(vec.size())), make_handler(
-				[conn](error_code const& ec, std::size_t transferred) { conn->on_receive_data(ec, transferred); }
-				, m_read_handler_storage, *this));
+
+		using read_handler_type = aux::handler<
+			peer_connection
+			, &peer_connection::on_receive_data
+			, &peer_connection::on_error
+			, &peer_connection::on_exception
+			, decltype(m_read_handler_storage)
+			, &peer_connection::m_read_handler_storage
+			>;
+		static_assert(sizeof(read_handler_type) == sizeof(std::shared_ptr<peer_connection>)
+			, "read handler does not have the expected size");
+		m_socket->async_read_some(boost::asio::buffer(vec.data(), std::size_t(vec.size())), read_handler_type(self()));
 	}
 
 	piece_block_progress peer_connection::downloading_piece_progress() const
@@ -5952,7 +5966,7 @@ namespace libtorrent {
 #endif
 	}
 
-	void peer_connection::on_receive_data(const error_code& error
+	void peer_connection::on_receive_data(error_code const& error
 		, std::size_t bytes_transferred)
 	{
 		TORRENT_ASSERT(is_single_thread());
