@@ -54,66 +54,58 @@ namespace libtorrent { namespace aux {
 #endif
 
 #ifdef _MSC_VER
+#ifndef NDEBUG
+	constexpr std::size_t debug_read_iter = 16 * sizeof(void*);
+	constexpr std::size_t debug_write_iter = 16 * sizeof(void*);
+#else
+	constexpr std::size_t debug_read_iter = 0;
+	constexpr std::size_t debug_write_iter = 0;
+#endif
 #ifdef TORRENT_USE_OPENSSL
-#ifdef NDEBUG
-	constexpr std::size_t write_handler_max_size = tracking + 240;
-	constexpr std::size_t read_handler_max_size = tracking + 240;
+	constexpr std::size_t openssl_read_cost = 94;
+	constexpr std::size_t openssl_write_cost = 94;
 #else
-	constexpr std::size_t write_handler_max_size = tracking + 352;
-	constexpr std::size_t read_handler_max_size = tracking + 416;
+	constexpr std::size_t openssl_read_cost = 0;
+	constexpr std::size_t openssl_write_cost = 0;
 #endif
-#else
-	constexpr std::size_t write_handler_max_size = tracking + 146;
-#ifdef NDEBUG
-	constexpr std::size_t read_handler_max_size = tracking + 152;
-#else
-	constexpr std::size_t read_handler_max_size = tracking + 208;
-#endif
-#endif
+
+	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + 130;
+	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + 130;
 	constexpr std::size_t udp_handler_max_size = tracking + 160;
 	constexpr std::size_t utp_handler_max_size = tracking + 184;
 	constexpr std::size_t tick_handler_max_size = tracking + 112;
 	constexpr std::size_t abort_handler_max_size = tracking + 104;
 	constexpr std::size_t deferred_handler_max_size = tracking + 112;
-#elif defined __clang__
-#ifdef _GLIBCXX_DEBUG
-	constexpr std::size_t debug_iter = 4 * sizeof(void*);
-#else
-	constexpr std::size_t debug_iter = 0;
-#endif
-#ifdef TORRENT_USE_OPENSSL
-	constexpr std::size_t write_handler_max_size = tracking + debug_iter + 352;
-	constexpr std::size_t read_handler_max_size = tracking + debug_iter + 400;
-	constexpr std::size_t utp_handler_max_size = tracking + 136;
-	constexpr std::size_t udp_handler_max_size = tracking + 136;
-#else
-	constexpr std::size_t write_handler_max_size = tracking + debug_iter + 136;
-	constexpr std::size_t read_handler_max_size = tracking + debug_iter + 160;
-	constexpr std::size_t utp_handler_max_size = tracking + 136;
-	constexpr std::size_t udp_handler_max_size = tracking + 112;
-#endif
-	constexpr std::size_t tick_handler_max_size = tracking + 80;
-	constexpr std::size_t deferred_handler_max_size = tracking + 80;
-	constexpr std::size_t abort_handler_max_size = tracking + 72;
 #else
 #ifdef _GLIBCXX_DEBUG
-	constexpr std::size_t debug_write_iter = 5 * sizeof(void*);
-	constexpr std::size_t debug_read_iter = 10 * sizeof(void*);
+#if defined __clang__
+	constexpr std::size_t debug_read_iter = 12 * sizeof(void*);
+	constexpr std::size_t debug_write_iter = 12 * sizeof(void*);
 #else
-	constexpr std::size_t debug_write_iter = 0;
+	constexpr std::size_t debug_write_iter = 8 * sizeof(void*);
+	constexpr std::size_t debug_read_iter = 12 * sizeof(void*);
+#endif
+#else
 	constexpr std::size_t debug_read_iter = 0;
+	constexpr std::size_t debug_write_iter = 0;
 #endif
+
 #ifdef TORRENT_USE_OPENSSL
-	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + 248;
-	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + 240;
-	constexpr std::size_t utp_handler_max_size = tracking + 136;
-	constexpr std::size_t udp_handler_max_size = tracking + 136;
+#ifdef __APPLE__
+	constexpr std::size_t openssl_read_cost = 264;
+	constexpr std::size_t openssl_write_cost = 216;
 #else
-	constexpr std::size_t write_handler_max_size = tracking + 136;
-	constexpr std::size_t read_handler_max_size = tracking + 152;
+	constexpr std::size_t openssl_read_cost = 72;
+	constexpr std::size_t openssl_write_cost = 72;
+#endif
+#else
+	constexpr std::size_t openssl_read_cost = 0;
+	constexpr std::size_t openssl_write_cost = 0;
+#endif
+	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + 136;
+	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + 136;
 	constexpr std::size_t utp_handler_max_size = tracking + 136;
 	constexpr std::size_t udp_handler_max_size = tracking + 112;
-#endif
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
 	constexpr std::size_t deferred_handler_max_size = tracking + 80;
 	constexpr std::size_t tick_handler_max_size = tracking + 80;
@@ -133,6 +125,9 @@ namespace libtorrent { namespace aux {
 	struct handler_storage
 	{
 		handler_storage() = default;
+		static constexpr std::size_t size = Size;
+		static constexpr HandlerName name = Name;
+
 		typename aux::aligned_storage<Size, alignof(std::max_align_t)>::type bytes;
 #if TORRENT_USE_ASSERTS
 		bool used = false;
@@ -289,6 +284,51 @@ namespace libtorrent { namespace aux {
 		return aux::allocating_handler<Handler, Size, Name>(
 			std::forward<Handler>(handler), &storage, &err_handler);
 	}
+
+	template <typename T, void (T::*Handler)(error_code const&, std::size_t)
+		, void (T::*ErrorHandler)(error_code const&)
+		, void (T::*ExceptHandler)(std::exception const&)
+		, typename StorageType
+		, StorageType T::* Storage>
+	struct handler
+	{
+		explicit handler(std::shared_ptr<T> p) : ptr_(std::move(p)) {}
+
+		std::shared_ptr<T> ptr_;
+
+		template <class... A>
+		void operator()(A&&... a)
+		{
+#ifdef BOOST_NO_EXCEPTIONS
+			(ptr_.get()->*Handler)(std::forward<A>(a)...);
+#else
+			try
+			{
+				(ptr_.get()->*Handler)(std::forward<A>(a)...);
+			}
+			catch (system_error const& e)
+			{
+				(ptr_.get()->*ErrorHandler)(e.code());
+			}
+			catch (std::exception const& e)
+			{
+				(ptr_.get()->*ExceptHandler)(e);
+			}
+			catch (...)
+			{
+				// this is pretty bad
+				TORRENT_ASSERT(false);
+				std::runtime_error e("unknown exception");
+				(ptr_.get()->*ExceptHandler)(e);
+			}
+		}
+#endif
+
+		using allocator_type = handler_allocator<handler, StorageType::size, StorageType::name>;
+
+		allocator_type get_allocator() const noexcept
+		{ return allocator_type{&(ptr_.get()->*Storage)}; }
+	};
 }
 }
 
