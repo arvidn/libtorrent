@@ -481,7 +481,7 @@ namespace {
 	{
 		for (int i = int(f.size()) - 1; i >= 0; --i)
 		{
-			std::size_t const idx = std::size_t(i);
+			auto const idx = static_cast<std::size_t>(i);
 			if (f[idx] == '/') break;
 #ifdef TORRENT_WINDOWS
 			if (f[idx] == '\\') break;

@@ -444,7 +444,7 @@ namespace {
 		else if (int(m_size) == this->capacity())
 		{
 			std::size_t const capacity = std::size_t(this->capacity()) * lazy_entry_grow_factor / 100;
-			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity + 1];
+			auto* const tmp = new (std::nothrow) lazy_entry[capacity + 1];
 			if (tmp == nullptr) return nullptr;
 			std::move(m_data.list, m_data.list + m_size + 1, tmp);
 

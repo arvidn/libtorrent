@@ -52,16 +52,16 @@ namespace libtorrent {
 	disk_io_job* disk_job_pool::allocate_job(job_action_t const type)
 	{
 		std::unique_lock<std::mutex> l(m_job_mutex);
-		disk_io_job* ptr = static_cast<disk_io_job*>(m_job_pool.malloc());
+		void* storage = m_job_pool.malloc();
 		m_job_pool.set_next_size(100);
-		if (ptr == nullptr) return nullptr;
+		if (storage == nullptr) return nullptr;
 		++m_jobs_in_use;
 		if (type == job_action_t::read) ++m_read_jobs;
 		else if (type == job_action_t::write) ++m_write_jobs;
 		l.unlock();
-		TORRENT_ASSERT(ptr);
+		TORRENT_ASSERT(storage);
 
-		new (ptr) disk_io_job;
+		auto ptr = new (storage) disk_io_job;
 		ptr->action = type;
 #if TORRENT_USE_ASSERTS
 		ptr->in_use = true;

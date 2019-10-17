@@ -129,7 +129,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		for (iterator i = m_peers.begin(); i != m_peers.end();)
+		for (auto i = m_peers.begin(); i != m_peers.end();)
 		{
 			if ((filter.access((*i)->address()) & ip_filter::blocked) == 0)
 			{
@@ -190,7 +190,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		for (iterator i = m_peers.begin(); i != m_peers.end();)
+		for (auto i = m_peers.begin(); i != m_peers.end();)
 		{
 			if ((filter.access((*i)->port) & port_filter::blocked) == 0)
 			{
@@ -273,7 +273,7 @@ namespace libtorrent {
 
 		// if this peer is in the connect candidate
 		// cache, erase it from there as well
-		std::vector<torrent_peer*>::iterator ci = std::find(m_candidate_cache.begin(), m_candidate_cache.end(), *i);
+		auto const ci = std::find(m_candidate_cache.begin(), m_candidate_cache.end(), *i);
 		if (ci != m_candidate_cache.end()) m_candidate_cache.erase(ci);
 
 		m_peer_allocator.free_peer_entry(*i);
@@ -975,7 +975,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		iterator iter = std::lower_bound(m_peers.begin(), m_peers.end()
+		auto iter = std::lower_bound(m_peers.begin(), m_peers.end()
 			, destination, peer_address_compare());
 
 		if (iter != m_peers.end() && (*iter)->dest() == destination)
@@ -1220,7 +1220,7 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(c);
 
-		iterator iter = std::lower_bound(m_peers.begin(), m_peers.end()
+		auto const iter = std::lower_bound(m_peers.begin(), m_peers.end()
 			, c->remote().address(), peer_address_compare());
 
 		if (iter != m_peers.end() && (*iter)->address() == c->remote().address())

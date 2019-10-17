@@ -149,7 +149,7 @@ namespace libtorrent { namespace {
 					if (peer->type() != connection_type::bittorrent)
 						continue;
 
-					bt_peer_connection* p = static_cast<bt_peer_connection*>(peer);
+					auto const* const p = static_cast<bt_peer_connection const*>(peer);
 
 					// if the peer has told us which port its listening on,
 					// use that port. But only if we didn't connect to the peer.
@@ -553,7 +553,7 @@ namespace libtorrent { namespace {
 				if (peer->type() != connection_type::bittorrent)
 					continue;
 
-				bt_peer_connection* p = static_cast<bt_peer_connection*>(peer);
+				auto const* const p = static_cast<bt_peer_connection const*>(peer);
 
 				// no supported flags to set yet
 				// 0x01 - peer supports encryption

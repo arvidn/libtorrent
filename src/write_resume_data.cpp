@@ -200,7 +200,7 @@ namespace libtorrent {
 			entry::list_type& fl = ret["mapped_files"].list();
 			for (auto const& ent : atp.renamed_files)
 			{
-				std::size_t const idx(static_cast<std::size_t>(static_cast<int>(ent.first)));
+				auto const idx = static_cast<std::size_t>(static_cast<int>(ent.first));
 				if (idx >= fl.size()) fl.resize(idx + 1);
 				fl[idx] = ent.second;
 			}

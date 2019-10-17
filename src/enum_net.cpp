@@ -256,7 +256,7 @@ namespace {
 
 	int nl_dump_request(int sock, std::uint16_t type, std::uint32_t seq, char family, span<char> msg, std::size_t msg_len)
 	{
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
+		auto* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
 		nl_msg->nlmsg_len = std::uint32_t(NLMSG_LENGTH(msg_len));
 		nl_msg->nlmsg_type = type;
 		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
@@ -286,7 +286,7 @@ namespace {
 
 	bool parse_route(int s, nlmsghdr* nl_hdr, ip_route* rt_info)
 	{
-		rtmsg* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
+		auto* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
 
 		if (!valid_addr_family(rt_msg->rtm_family) || (rt_msg->rtm_table != RT_TABLE_MAIN
 			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
@@ -306,7 +306,7 @@ namespace {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
 #endif
-		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(RTM_RTA(rt_msg));
+		for (auto* rt_attr = reinterpret_cast<rtattr*>(RTM_RTA(rt_msg));
 			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
 		{
 			switch(rt_attr->rta_type)
@@ -359,7 +359,7 @@ namespace {
 
 	bool parse_nl_address(nlmsghdr* nl_hdr, ip_interface* ip_info)
 	{
-		ifaddrmsg* addr_msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl_hdr));
+		auto* addr_msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl_hdr));
 
 		if (!valid_addr_family(addr_msg->ifa_family))
 			return false;
@@ -402,7 +402,7 @@ namespace {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
 #endif
-		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(IFA_RTA(addr_msg));
+		for (auto* rt_attr = reinterpret_cast<rtattr*>(IFA_RTA(addr_msg));
 			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
 		{
 			switch(rt_attr->rta_type)
@@ -573,7 +573,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 
 		char msg[NL_BUFSIZE] = {};
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
+		auto* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
 		int len = nl_dump_request(sock, RTM_GETADDR, 0, AF_PACKET, msg, sizeof(ifaddrmsg));
 		if (len < 0)
 		{
@@ -1207,7 +1207,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		std::uint32_t seq = 0;
 
 		char msg[NL_BUFSIZE] = {};
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
+		auto* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
 		int len = nl_dump_request(sock, RTM_GETROUTE, seq++, AF_UNSPEC, msg, sizeof(rtmsg));
 		if (len < 0)
 		{

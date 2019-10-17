@@ -1438,7 +1438,7 @@ void utp_socket_impl::parse_close_reason(std::uint8_t const* ptr, int const size
 	if (size != 4) return;
 	// skip reserved bytes
 	ptr += 2;
-	close_reason_t incoming_close_reason = static_cast<close_reason_t>(aux::read_uint16(ptr));
+	auto const incoming_close_reason = static_cast<close_reason_t>(aux::read_uint16(ptr));
 
 	UTP_LOGV("%8p: incoming close_reason: %d\n"
 		, static_cast<void*>(this), int(incoming_close_reason));
@@ -1770,7 +1770,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// for non MTU-probes, use the conservative packet size
 	int const effective_mtu = mtu_probe ? m_mtu : m_mtu_floor;
 
-	std::uint32_t const close_reason = static_cast<std::uint32_t>(m_close_reason);
+	auto const close_reason = static_cast<std::uint32_t>(m_close_reason);
 
 	int sack = 0;
 	if (m_inbuf.size())
