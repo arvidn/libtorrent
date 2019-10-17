@@ -246,7 +246,7 @@ private:
 	// since it might have references to it
 	std::set<traversal_algorithm*> m_running_requests;
 
-	void incoming_request(msg const& h, entry& e);
+	void incoming_request(msg const&, entry&);
 
 	void write_nodes_entries(sha1_hash const& info_hash
 		, bdecode_node const& want, entry& r);

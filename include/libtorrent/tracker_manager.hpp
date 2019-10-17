@@ -234,7 +234,7 @@ enum class event_t : std::uint8_t
 	struct TORRENT_EXTRA_EXPORT timeout_handler
 		: std::enable_shared_from_this<timeout_handler>
 	{
-		explicit timeout_handler(io_context& str);
+		explicit timeout_handler(io_context&);
 
 		timeout_handler(timeout_handler const&) = delete;
 		timeout_handler& operator=(timeout_handler const&) = delete;

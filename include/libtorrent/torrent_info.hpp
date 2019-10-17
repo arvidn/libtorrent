@@ -344,8 +344,8 @@ namespace aux {
 		//
 		// See http-seeding_ for more information.
 		void add_url_seed(std::string const& url
-			, std::string const& extern_auth = std::string()
-			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+			, std::string const& ext_auth = std::string()
+			, web_seed_entry::headers_t const& ext_headers = web_seed_entry::headers_t());
 		void add_http_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
@@ -559,8 +559,8 @@ namespace aux {
 		// the `piece_limit` parameter allows limiting the amount of memory
 		// dedicated to loading the torrent, and fails for torrents that exceed
 		// the limit
-		bool parse_info_section(bdecode_node const& e, error_code& ec);
-		bool parse_info_section(bdecode_node const& e, error_code& ec, int piece_limit);
+		bool parse_info_section(bdecode_node const& info, error_code& ec);
+		bool parse_info_section(bdecode_node const& info, error_code& ec, int max_pieces);
 
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
@@ -605,8 +605,8 @@ namespace aux {
 		// populate the piece layers from the metadata
 		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
 
-		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec);
-		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec, int piece_limit);
+		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec);
+		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec, int piece_limit);
 
 		void resolve_duplicate_filenames();
 

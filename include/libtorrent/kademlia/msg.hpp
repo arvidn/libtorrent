@@ -85,7 +85,7 @@ struct key_desc_t
 };
 
 // TODO: move this to its own .hpp/.cpp pair?
-TORRENT_EXTRA_EXPORT bool verify_message_impl(bdecode_node const& msg, span<key_desc_t const> desc
+TORRENT_EXTRA_EXPORT bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> desc
 	, span<bdecode_node> ret, span<char> error);
 
 // verifies that a message has all the required

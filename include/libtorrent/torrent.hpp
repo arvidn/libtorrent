@@ -449,9 +449,9 @@ namespace libtorrent {
 			bool fail;
 			error_code error;
 		};
-		void read_piece(piece_index_t piece);
-		void on_disk_read_complete(disk_buffer_holder block, storage_error const& se
-			, peer_request const& r, std::shared_ptr<read_piece_struct> rp);
+		void read_piece(piece_index_t);
+		void on_disk_read_complete(disk_buffer_holder, storage_error const&
+			, peer_request const&, std::shared_ptr<read_piece_struct>);
 
 		storage_mode_t storage_mode() const;
 
@@ -607,8 +607,8 @@ namespace libtorrent {
 		void use_interface(std::string net_interface);
 #endif
 
-		void connect_to_url_seed(std::list<web_seed_t>::iterator url);
-		bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false);
+		void connect_to_url_seed(std::list<web_seed_t>::iterator);
+		bool connect_to_peer(torrent_peer*, bool ignore_limit = false);
 
 		int priority() const;
 #if TORRENT_ABI_VERSION == 1
@@ -732,7 +732,7 @@ namespace libtorrent {
 		void tracker_response(
 			tracker_request const& r
 			, address const& tracker_ip
-			, std::list<address> const& ip_list
+			, std::list<address> const& tracker_ips
 			, struct tracker_response const& resp) override;
 		void tracker_request_error(tracker_request const& r
 			, error_code const& ec, const std::string& msg
@@ -896,17 +896,17 @@ namespace libtorrent {
 
 		// this is the asio callback that is called when a name
 		// lookup for a PEER is completed.
-		void on_peer_name_lookup(error_code const& e
-			, std::vector<address> const& addrs
+		void on_peer_name_lookup(error_code const&
+			, std::vector<address> const&
 			, int port
-			, protocol_version v);
+			, protocol_version);
 
 		// this is the asio callback that is called when a name
 		// lookup for a WEB SEED is completed.
-		void on_name_lookup(error_code const& e
-			, std::vector<address> const& addrs
+		void on_name_lookup(error_code const&
+			, std::vector<address> const&
 			, int port
-			, std::list<web_seed_t>::iterator web);
+			, std::list<web_seed_t>::iterator);
 
 		void connect_web_seed(std::list<web_seed_t>::iterator web, tcp::endpoint a);
 
@@ -1049,7 +1049,7 @@ namespace libtorrent {
 
 		torrent_handle get_handle();
 
-		void write_resume_data(add_torrent_params& atp) const;
+		void write_resume_data(add_torrent_params&) const;
 
 		void seen_complete() { m_last_seen_complete = ::time(nullptr); }
 		int time_since_complete() const { return int(::time(nullptr) - m_last_seen_complete); }

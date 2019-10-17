@@ -293,8 +293,7 @@ namespace aux {
 #endif
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 
-			session_impl(io_context& ios, settings_pack const& pack
-				, disk_io_constructor_type disk_io);
+			session_impl(io_context&, settings_pack const&, disk_io_constructor_type);
 			~session_impl() override;
 
 			void start_session();
@@ -363,13 +362,13 @@ namespace aux {
 			// need the initial push to connect peers
 			void prioritize_connections(std::weak_ptr<torrent> t) override;
 
-			void async_accept(std::shared_ptr<tcp::acceptor> const& listener, transport ssl);
-			void on_accept_connection(std::shared_ptr<socket_type> const& s
-				, std::weak_ptr<tcp::acceptor> listener, error_code const& e, transport ssl);
+			void async_accept(std::shared_ptr<tcp::acceptor> const&, transport);
+			void on_accept_connection(std::shared_ptr<socket_type> const&
+				, std::weak_ptr<tcp::acceptor>, error_code const&, transport);
 
-			void incoming_connection(std::shared_ptr<socket_type> const& s);
+			void incoming_connection(std::shared_ptr<socket_type> const&);
 
-			std::weak_ptr<torrent> find_torrent(info_hash_t const& info_hash) const override;
+			std::weak_ptr<torrent> find_torrent(info_hash_t const&) const override;
 #if TORRENT_ABI_VERSION == 1
 			//deprecated in 1.2
 
@@ -395,7 +394,7 @@ namespace aux {
 
 			std::shared_ptr<torrent> delay_load_torrent(info_hash_t const& info_hash
 				, peer_connection* pc) override;
-			void set_queue_position(torrent* t, queue_position_t p) override;
+			void set_queue_position(torrent*, queue_position_t) override;
 
 			void close_connection(peer_connection* p) noexcept override;
 
@@ -1293,7 +1292,7 @@ namespace aux {
 				, std::string const& str) override;
 			void tracker_response(tracker_request const&
 				, libtorrent::address const& tracker_ip
-				, std::list<address> const& ip_list
+				, std::list<address> const& tracker_ips
 				, struct tracker_response const& resp) override;
 			void tracker_request_error(tracker_request const& r
 				, error_code const& ec, const std::string& str

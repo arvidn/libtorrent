@@ -59,7 +59,7 @@ private:
 
 	void announce_impl(sha1_hash const& ih, int listen_port
 		, bool broadcast, int retry_count);
-	void resend_announce(error_code const& e, sha1_hash const& ih
+	void resend_announce(error_code const& e, sha1_hash const& info_hash
 		, int listen_port, int retry_count);
 	void on_announce(udp::endpoint const& from, span<char const> buffer);
 

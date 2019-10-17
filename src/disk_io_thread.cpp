@@ -160,7 +160,7 @@ struct TORRENT_EXTRA_EXPORT disk_io_thread final
 
 	void settings_updated() override;
 	storage_holder new_torrent(storage_params params
-		, std::shared_ptr<void> const& torrent) override;
+		, std::shared_ptr<void> const& owner) override;
 	void remove_torrent(storage_index_t) override;
 
 	void abort(bool wait) override;

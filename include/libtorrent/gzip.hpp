@@ -45,7 +45,7 @@ namespace libtorrent {
 		span<char const> in
 		, std::vector<char>& buffer
 		, int maximum_size
-		, error_code& error);
+		, error_code& ec);
 
 	// get the ``error_category`` for zip errors
 	TORRENT_EXPORT boost::system::error_category& gzip_category();

@@ -101,7 +101,7 @@ namespace aux {
 	TORRENT_EXTRA_EXPORT bool has_any_file(
 		file_storage const& fs
 		, std::string const& save_path
-		, stat_cache& stat
+		, stat_cache& cache
 		, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT int read_zeroes(span<iovec_t const> bufs);

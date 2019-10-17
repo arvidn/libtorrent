@@ -331,9 +331,9 @@ namespace aux {
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
 		TORRENT_DEPRECATED
-		void add_file(std::wstring const& p, std::int64_t size
+		void add_file(std::wstring const& file, std::int64_t size
 			, file_flags_t flags = {}
-			, std::time_t mtime = 0, string_view s_p = "");
+			, std::time_t mtime = 0, string_view symlink_path = "");
 		TORRENT_DEPRECATED
 		void rename_file(file_index_t index, std::wstring const& new_filename);
 		TORRENT_DEPRECATED

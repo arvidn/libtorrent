@@ -87,31 +87,31 @@ namespace aux {
 		// hidden
 		~default_storage();
 
-		bool has_any_file(storage_error& ec);
+		bool has_any_file(storage_error&);
 		void set_file_priority(settings_interface const&
 			, aux::vector<download_priority_t, file_index_t>& prio
-			, storage_error& ec);
+			, storage_error&);
 		void rename_file(file_index_t index, std::string const& new_filename
-			, storage_error& ec);
-		void release_files(storage_error& ec);
-		void delete_files(remove_flags_t options, storage_error& ec);
-		void initialize(settings_interface const&, storage_error& ec);
+			, storage_error&);
+		void release_files(storage_error&);
+		void delete_files(remove_flags_t options, storage_error&);
+		void initialize(settings_interface const&, storage_error&);
 		std::pair<status_t, std::string> move_storage(std::string save_path
-			, move_flags_t flags, storage_error& ec);
+			, move_flags_t, storage_error&);
 		bool verify_resume_data(add_torrent_params const& rd
 			, aux::vector<std::string, file_index_t> const& links
-			, storage_error& error);
+			, storage_error&);
 		bool tick();
 
 		int readv(settings_interface const&, span<iovec_t const> bufs
-			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error& ec);
+			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error&);
 		int writev(settings_interface const&, span<iovec_t const> bufs
-			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error& ec);
+			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error&);
 		int hashv(settings_interface const&, hasher& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t flags
-			, storage_error& ec);
+			, storage_error&);
 		int hashv2(settings_interface const&, hasher256& ph, std::ptrdiff_t len
-			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error& ec);
+			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error&);
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.

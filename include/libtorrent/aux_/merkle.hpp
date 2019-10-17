@@ -61,14 +61,14 @@ namespace libtorrent {
 
 	// given a tree and the number of leaves, expect all leaf hashes to be set and
 	// compute all other hashes starting with the leaves.
-	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs, int first_leaf);
+	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs, int level_start);
 	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs);
 
 	// given a merkle tree (`tree`), clears all hashes in the range of nodes:
-	// [ first_leaf, first_leaf + num_leafs), as well as all of their parents,
+	// [ level_start, level_start+ num_leafs), as well as all of their parents,
 	// within the sub-tree. It does not clear the root of the sub-tree.
 	// see unit test for examples.
-	TORRENT_EXTRA_EXPORT void merkle_clear_tree(span<sha256_hash> tree, int num_leafs, int first_leaf);
+	TORRENT_EXTRA_EXPORT void merkle_clear_tree(span<sha256_hash> tree, int num_leafs, int level_start);
 
 	// given the leaf hashes, computes the merkle root hash. The pad is the hash
 	// to use for the right-side padding, in case the number of leaves is not a

@@ -391,10 +391,10 @@ namespace aux {
 		bool is_seed() const;
 		int num_have_pieces() const { return m_num_pieces; }
 
-		void set_share_mode(bool m);
+		void set_share_mode(bool);
 		bool share_mode() const { return m_share_mode; }
 
-		void set_upload_only(bool u);
+		void set_upload_only(bool);
 		bool upload_only() const { return m_upload_only; }
 
 		void set_holepunch_mode() override;
@@ -760,10 +760,10 @@ namespace aux {
 
 		void do_update_interest();
 		void fill_send_buffer();
-		void on_disk_read_complete(disk_buffer_holder disk_block
-			, storage_error const& error, peer_request const& r, time_point issue_time);
+		void on_disk_read_complete(disk_buffer_holder buffer
+			, storage_error const& error, peer_request const&, time_point issue_time);
 		void on_disk_write_complete(storage_error const& error
-			, peer_request const &r, std::shared_ptr<torrent> t);
+			, peer_request const&, std::shared_ptr<torrent>);
 		void on_seed_mode_hashed(piece_index_t piece
 			, sha1_hash const& piece_hash, aux::vector<sha256_hash> const& block_hashes
 			, storage_error const& error);
