@@ -703,7 +703,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
-		std::size_t const size = aux::numeric_cast<std::size_t>(token_source_span(t) - t.start_offset());
+		auto const size = aux::numeric_cast<std::size_t>(token_source_span(t) - t.start_offset());
 		TORRENT_ASSERT(t.type == bdecode_token::string);
 
 		return string_view(m_buffer + t.offset + t.start_offset(), size);

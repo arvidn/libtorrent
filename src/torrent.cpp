@@ -1382,7 +1382,7 @@ bool is_downloading_state(int const st)
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;
 			auto const* torrent_name = reinterpret_cast<char const*>(domain->data);
-			std::size_t const name_length = aux::numeric_cast<std::size_t>(domain->length);
+			auto const name_length = aux::numeric_cast<std::size_t>(domain->length);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (i > 1) names += " | n: ";
@@ -1415,7 +1415,7 @@ bool is_downloading_state(int const st)
 		if (common_name && common_name->data && common_name->length)
 		{
 			auto const* torrent_name = reinterpret_cast<char const*>(common_name->data);
-			std::size_t const name_length = aux::numeric_cast<std::size_t>(common_name->length);
+			auto const name_length = aux::numeric_cast<std::size_t>(common_name->length);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
@@ -4657,8 +4657,8 @@ bool is_downloading_state(int const st)
 
 	std::uint32_t torrent::tracker_key() const
 	{
-		uintptr_t const self = reinterpret_cast<uintptr_t>(this);
-		uintptr_t const ses = reinterpret_cast<uintptr_t>(&m_ses);
+		auto const self = reinterpret_cast<uintptr_t>(this);
+		auto const ses = reinterpret_cast<uintptr_t>(&m_ses);
 		std::uint32_t const storage = m_storage
 			? static_cast<std::uint32_t>(static_cast<storage_index_t>(m_storage))
 			: 0;
@@ -6346,7 +6346,7 @@ bool is_downloading_state(int const st)
 		for (auto peer : m_connections)
 		{
 			if (peer->type() != connection_type::bittorrent) continue;
-			bt_peer_connection* btpeer = static_cast<bt_peer_connection*>(peer);
+			auto* const btpeer = static_cast<bt_peer_connection*>(peer);
 			btpeer->maybe_send_hash_request();
 		}
 	}

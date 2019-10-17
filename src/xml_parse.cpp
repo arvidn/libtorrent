@@ -132,7 +132,7 @@ namespace libtorrent {
 				start = i;
 				// find end of attribute name
 				while (i != tag_end && *i != '=' && !is_space(*i)) ++i;
-				std::size_t const name_len = std::size_t(i - start);
+				auto const name_len = static_cast<std::size_t>(i - start);
 
 				// look for equality sign
 				for (; i != tag_end && *i != '='; ++i);

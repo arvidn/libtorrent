@@ -429,7 +429,7 @@ namespace {
 		{
 			if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
 			{
-				std::size_t const preallocate = std::size_t(path_length(s_p, ec));
+				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
 				if (ec) return false;
 				symlink_path.reserve(preallocate);
 				for (int i = 0, end(s_p.list_size()); i < end; ++i)
@@ -578,7 +578,7 @@ namespace {
 		{
 			if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
 			{
-				std::size_t const preallocate = std::size_t(path_length(s_p, ec));
+				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
 				if (ec) return false;
 				symlink_path.reserve(preallocate);
 				for (int i = 0, end(s_p.list_size()); i < end; ++i)

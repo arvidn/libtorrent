@@ -220,7 +220,7 @@ namespace {
 				, default_priority);
 			for (int i = 0; i < num_files; ++i)
 			{
-				std::size_t const idx = std::size_t(i);
+				auto const idx = static_cast<std::size_t>(i);
 				ret.file_priorities[idx] = aux::clamp(
 					download_priority_t(static_cast<std::uint8_t>(
 						file_priority.list_int_value_at(i

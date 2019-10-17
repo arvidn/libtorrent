@@ -2242,7 +2242,7 @@ namespace {
 	{
 		// we need to copy this array to make sure the structures are properly
 		// aligned, not just to have a nice API
-		std::size_t const num_blocks = aux::numeric_cast<std::size_t>(m_num_blocks);
+		auto const num_blocks = aux::numeric_cast<std::size_t>(m_num_blocks);
 		std::vector<piece_block> ret(num_blocks);
 
 		char const* start = m_alloc.get().ptr(m_array_idx);

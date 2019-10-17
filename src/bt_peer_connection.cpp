@@ -215,7 +215,7 @@ namespace {
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 
-		std::uint8_t out_policy = std::uint8_t(m_settings.get_int(settings_pack::out_enc_policy));
+		auto out_policy = static_cast<std::uint8_t>(m_settings.get_int(settings_pack::out_enc_policy));
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
@@ -2345,7 +2345,7 @@ namespace {
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			std::string bitfield_string;
-			std::size_t const n_pieces = aux::numeric_cast<std::size_t>(num_pieces);
+			auto const n_pieces = aux::numeric_cast<std::size_t>(num_pieces);
 			bitfield_string.resize(n_pieces);
 			for (std::size_t k = 0; k < n_pieces; ++k)
 			{

@@ -156,7 +156,7 @@ routing_table::add_node_status_t replace_node_impl(node_entry const& e
 	// should not have been called
 	TORRENT_ASSERT(int(b.size()) >= bucket_size_limit);
 
-	bucket_t::iterator j = std::max_element(b.begin(), b.end()
+	auto j = std::max_element(b.begin(), b.end()
 		, [](node_entry const& lhs, node_entry const& rhs)
 		{ return lhs.fail_count() < rhs.fail_count(); });
 	TORRENT_ASSERT(j != b.end());

@@ -3993,7 +3993,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// would be O(1).
 		for (auto& i : m_connections)
 		{
-			peer_connection* p = i.get();
+			peer_connection* const p = i.get();
 			TORRENT_ASSERT(p);
 			torrent_peer* pi = p->peer_info_struct();
 			if (!pi) continue;
@@ -4051,7 +4051,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		for (auto i = opt_unchoke.begin(); i != opt_unchoke_end; ++i)
 		{
 			torrent_peer* pi = (*i->peer)->peer_info_struct();
-			peer_connection* p = static_cast<peer_connection*>(pi->connection);
+			auto* const p = static_cast<peer_connection*>(pi->connection);
 			if (pi->optimistically_unchoked)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -4091,7 +4091,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		for (torrent_peer* pi : prev_opt_unchoke)
 		{
 			TORRENT_ASSERT(pi->optimistically_unchoked);
-			auto* p = static_cast<peer_connection*>(pi->connection);
+			auto* const p = static_cast<peer_connection*>(pi->connection);
 			std::shared_ptr<torrent> t = p->associated_torrent().lock();
 			pi->optimistically_unchoked = false;
 			m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);

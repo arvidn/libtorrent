@@ -252,7 +252,7 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 
 	for (auto const& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(dev);
+		auto& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 
 		if (d.mapping.end_index() <= mapping_index)
@@ -291,7 +291,7 @@ void upnp::delete_mapping(port_mapping_t const mapping)
 
 	for (auto const& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(dev);
+		auto& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 
 		TORRENT_ASSERT(mapping < d.mapping.end_index());
@@ -1578,7 +1578,7 @@ void upnp::on_expire(error_code const& ec)
 
 	for (auto& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(dev);
+		auto& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 		for (port_mapping_t m{0}; m < m_mappings.end_index(); ++m)
 		{
@@ -1616,7 +1616,7 @@ void upnp::close()
 
 	for (auto& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(dev);
+		auto& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 		if (d.control_url.empty()) continue;
 		for (auto& m : d.mapping)
