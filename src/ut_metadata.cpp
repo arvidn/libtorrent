@@ -181,9 +181,9 @@ namespace libtorrent {namespace {
 
 		struct metadata_piece
 		{
-			metadata_piece(): num_requests(0), last_request(min_time()) {}
-			int num_requests;
-			time_point last_request;
+			metadata_piece() = default;
+			int num_requests = 0;
+			time_point last_request = min_time();
 			std::weak_ptr<ut_metadata_peer_plugin> source;
 			bool operator<(metadata_piece const& rhs) const
 			{ return num_requests < rhs.num_requests; }
