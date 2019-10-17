@@ -206,7 +206,7 @@ namespace {
 		}
 		else
 		{
-			return address();
+			return {};
 		}
 	}
 #endif

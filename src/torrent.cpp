@@ -4595,7 +4595,7 @@ bool is_downloading_state(int const st)
 			avail_vec.push_back(i);
 		}
 
-		if (avail_vec.empty()) return piece_index_t(-1);
+		if (avail_vec.empty()) return piece_index_t{-1};
 		return avail_vec[random(std::uint32_t(avail_vec.size() - 1))];
 	}
 

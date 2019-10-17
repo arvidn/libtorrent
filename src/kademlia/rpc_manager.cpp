@@ -110,7 +110,7 @@ address observer::target_addr() const
 
 udp::endpoint observer::target_ep() const
 {
-	return udp::endpoint(target_addr(), m_port);
+	return {target_addr(), m_port};
 }
 
 void observer::abort()

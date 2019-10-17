@@ -275,7 +275,7 @@ namespace libtorrent {
 				static_cast<ipv6_peer const*>(this)->addr);
 		else
 #if TORRENT_USE_I2P
-		if (is_i2p_addr) return libtorrent::address();
+		if (is_i2p_addr) return {};
 		else
 #endif
 		return static_cast<ipv4_peer const*>(this)->addr;

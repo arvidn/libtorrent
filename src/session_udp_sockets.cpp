@@ -72,7 +72,7 @@ namespace libtorrent { namespace aux {
 		if (sockets.empty())
 		{
 			ec.assign(boost::system::errc::not_supported, generic_category());
-			return tcp::endpoint();
+			return {};
 		}
 
 		utp_socket_impl* impl = nullptr;
@@ -104,10 +104,10 @@ namespace libtorrent { namespace aux {
 
 			utp_init_socket(impl, sockets[idx]);
 			auto udp_ep = sockets[idx]->local_endpoint();
-			return tcp::endpoint(udp_ep.address(), udp_ep.port());
+			return {udp_ep.address(), udp_ep.port()};
 		}
 
-		return tcp::endpoint();
+		return {};
 	}
 
 	void outgoing_sockets::update_proxy(proxy_settings const& settings)

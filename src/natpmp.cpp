@@ -94,7 +94,7 @@ struct pcp_error_category final : boost::system::error_category
 	}
 	boost::system::error_condition default_error_condition(
 		int ev) const BOOST_SYSTEM_NOEXCEPT override
-	{ return boost::system::error_condition(ev, *this); }
+	{ return {ev, *this}; }
 };
 
 boost::system::error_category& pcp_category()
@@ -108,7 +108,7 @@ namespace errors
 	// hidden
 	boost::system::error_code make_error_code(pcp_errors e)
 	{
-		return boost::system::error_code(e, pcp_category());
+		return {e, pcp_category()};
 	}
 }
 
