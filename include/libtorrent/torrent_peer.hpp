@@ -215,7 +215,7 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT ipv4_peer : torrent_peer
 	{
-		ipv4_peer(tcp::endpoint const& ip, bool connectable, peer_source_flags_t src);
+		ipv4_peer(tcp::endpoint const& ep, bool connectable, peer_source_flags_t src);
 		ipv4_peer(ipv4_peer const& p);
 		ipv4_peer& operator=(ipv4_peer const& p) &;
 
@@ -225,7 +225,7 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	struct TORRENT_EXTRA_EXPORT i2p_peer : torrent_peer
 	{
-		i2p_peer(string_view dst, bool connectable, peer_source_flags_t src);
+		i2p_peer(string_view dest, bool connectable, peer_source_flags_t src);
 		i2p_peer(i2p_peer const&) = delete;
 		i2p_peer& operator=(i2p_peer const&) = delete;
 		i2p_peer(i2p_peer&&) = default;
@@ -237,7 +237,7 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT ipv6_peer : torrent_peer
 	{
-		ipv6_peer(tcp::endpoint const& ip, bool connectable, peer_source_flags_t src);
+		ipv6_peer(tcp::endpoint const& ep, bool connectable, peer_source_flags_t src);
 		ipv6_peer(ipv6_peer const& p);
 
 		const address_v6::bytes_type addr;

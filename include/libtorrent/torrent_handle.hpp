@@ -1041,7 +1041,7 @@ namespace aux {
 		//
 		// ``force_lsd_announce`` will announce the torrent on LSD
 		// immediately.
-		void force_reannounce(int seconds = 0, int tracker_index = -1, reannounce_flags_t = {}) const;
+		void force_reannounce(int seconds = 0, int idx = -1, reannounce_flags_t = {}) const;
 		void force_dht_announce() const;
 		void force_lsd_announce() const;
 

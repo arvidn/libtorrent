@@ -283,7 +283,7 @@ namespace libtorrent {
 		//
 		// The string is not the path to the cert, it's the actual content of the
 		// certificate.
-		void set_root_cert(string_view pem);
+		void set_root_cert(string_view cert);
 
 		// Sets and queries the private flag of the torrent.
 		// Torrents with the private flag set ask the client to not use any other

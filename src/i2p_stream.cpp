@@ -118,16 +118,16 @@ namespace libtorrent {
 		return ret;
 	}
 
-	void i2p_connection::open(std::string const& s, int port
+	void i2p_connection::open(std::string const& hostname, int port
 		, i2p_stream::handler_type handler)
 	{
 		// we already seem to have a session to this SAM router
-		if (m_hostname == s
+		if (m_hostname == hostname
 			&& m_port == port
 			&& m_sam_socket
 			&& (is_open() || m_state == sam_connecting)) return;
 
-		m_hostname = s;
+		m_hostname = hostname;
 		m_port = port;
 
 		if (m_hostname.empty()) return;

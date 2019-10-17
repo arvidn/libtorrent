@@ -234,10 +234,10 @@ namespace {
 		return wide;
 	}
 
-	std::wstring utf8_wchar(string_view wide)
+	std::wstring utf8_wchar(string_view utf8)
 	{
 		error_code ec;
-		std::wstring ret = utf8_wchar(wide, ec);
+		std::wstring ret = utf8_wchar(utf8, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
 	}

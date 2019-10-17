@@ -202,7 +202,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	lowest_layer_type const& lowest_layer() const { return *this; }
 
 	// used for incoming connections
-	void set_impl(utp_socket_impl* s);
+	void set_impl(utp_socket_impl*);
 	utp_socket_impl* get_impl();
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -256,10 +256,10 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 
 	int read_buffer_size() const;
 	static void on_read(void* self, std::size_t bytes_transferred
-		, error_code const& ec, bool kill);
+		, error_code const& ec, bool shutdown);
 	static void on_write(void* self, std::size_t bytes_transferred
-		, error_code const& ec, bool kill);
-	static void on_connect(void* self, error_code const& ec, bool kill);
+		, error_code const& ec, bool shutdown);
+	static void on_connect(void* self, error_code const& ec, bool shutdown);
 	static void on_close_reason(void* self, close_reason_t reason);
 
 	void add_read_buffer(void* buf, std::size_t len);

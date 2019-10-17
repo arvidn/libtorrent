@@ -167,11 +167,11 @@ observer_ptr get_peers::new_observer(udp::endpoint const& ep
 
 obfuscated_get_peers::obfuscated_get_peers(
 	node& dht_node
-	, node_id const& info_hash
+	, node_id const& target
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)
-	: get_peers(dht_node, info_hash, dcallback, ncallback, noseeds)
+	: get_peers(dht_node, target, dcallback, ncallback, noseeds)
 	, m_obfuscated(true)
 {
 }

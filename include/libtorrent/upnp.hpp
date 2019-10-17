@@ -231,7 +231,7 @@ private:
 	void return_error(port_mapping_t mapping, int code);
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log() const;
-	void log(char const* msg, ...) const TORRENT_FORMAT(2,3);
+	void log(char const* fmt, ...) const TORRENT_FORMAT(2,3);
 #endif
 
 	void get_ip_address(rootdevice& d);

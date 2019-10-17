@@ -2602,7 +2602,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		TORRENT_UNEXPORT dht_get_peers_reply_alert(aux::stack_allocator& alloc
 			, sha1_hash const& ih
-			, std::vector<tcp::endpoint> const& v);
+			, std::vector<tcp::endpoint> const& peers);
 
 		static constexpr alert_category_t static_category = alert::dht_operation_notification;
 		TORRENT_DEFINE_ALERT(dht_get_peers_reply_alert, 87)

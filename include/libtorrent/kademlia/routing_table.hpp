@@ -211,7 +211,7 @@ public:
 
 	// fills the vector with the count nodes from our buckets that
 	// are nearest to the given id.
-	std::vector<node_entry> find_node(node_id const& id
+	std::vector<node_entry> find_node(node_id const& target
 		, find_nodes_flags_t options, int count = 0);
 	void remove_node(node_entry* n, bucket_t* b);
 

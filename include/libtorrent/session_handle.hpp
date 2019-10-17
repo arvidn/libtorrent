@@ -791,12 +791,12 @@ namespace libtorrent {
 		// large state_update to be posted. When removing all torrents, it is
 		// advised to remove them from the back of the queue, to minimize the
 		// shifting.
-		void remove_torrent(const torrent_handle& h, remove_flags_t options = {});
+		void remove_torrent(const torrent_handle&, remove_flags_t = {});
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in libtorrent 1.1. use settings_pack instead
 		TORRENT_DEPRECATED
-		void set_pe_settings(pe_settings const& settings);
+		void set_pe_settings(pe_settings const&);
 		TORRENT_DEPRECATED
 		pe_settings get_pe_settings() const;
 #endif
@@ -804,8 +804,8 @@ namespace libtorrent {
 		// Applies the settings specified by the settings_pack ``s``. This is an
 		// asynchronous operation that will return immediately and actually apply
 		// the settings to the main thread of libtorrent some time later.
-		void apply_settings(settings_pack const& s);
-		void apply_settings(settings_pack&& s);
+		void apply_settings(settings_pack const&);
+		void apply_settings(settings_pack&&);
 		settings_pack get_settings() const;
 
 #if TORRENT_ABI_VERSION == 1
@@ -818,7 +818,7 @@ namespace libtorrent {
 		// .. _i2p: http://www.i2p2.de
 
 		TORRENT_DEPRECATED
-		void set_i2p_proxy(proxy_settings const& s);
+		void set_i2p_proxy(proxy_settings const&);
 		TORRENT_DEPRECATED
 		proxy_settings i2p_proxy() const;
 

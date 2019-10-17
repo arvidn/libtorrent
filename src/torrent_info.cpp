@@ -1262,9 +1262,9 @@ namespace {
 		return m_info_dict.dict_find_string_value("ssl-cert");
 	}
 
-	bool torrent_info::parse_info_section(bdecode_node const& e, error_code& ec)
+	bool torrent_info::parse_info_section(bdecode_node const& info, error_code& ec)
 	{
-		return parse_info_section(e, ec, default_piece_limit);
+		return parse_info_section(info, ec, default_piece_limit);
 	}
 
 	bool torrent_info::parse_info_section(bdecode_node const& info
