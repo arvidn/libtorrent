@@ -797,7 +797,7 @@ namespace {
 		if (m_state != state_t::read_packet
 			|| int(recv_buffer.size()) <= 9
 			|| recv_buffer[0] != msg_piece)
-			return piece_block_progress();
+			return {};
 
 		const char* ptr = recv_buffer.data() + 1;
 		peer_request r;
@@ -806,8 +806,7 @@ namespace {
 		r.length = m_recv_buffer.packet_size() - 9;
 
 		// is any of the piece message header data invalid?
-		if (!verify_piece(r))
-			return piece_block_progress();
+		if (!verify_piece(r)) return {};
 
 		piece_block_progress p;
 

@@ -1851,7 +1851,7 @@ namespace libtorrent {
 
 	download_priority_t piece_picker::piece_priority(piece_index_t const index) const
 	{
-		return download_priority_t(m_piece_map[index].piece_priority);
+		return download_priority_t{static_cast<std::uint8_t>(m_piece_map[index].piece_priority)};
 	}
 
 	void piece_picker::piece_priorities(std::vector<download_priority_t>& pieces) const

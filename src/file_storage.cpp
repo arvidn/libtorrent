@@ -216,8 +216,8 @@ namespace {
 		else
 		{
 			// yes we do. use it
-			return aux::path_index_t(aux::numeric_cast<std::uint32_t>(
-				p.base() - m_paths.begin() - 1));
+			return aux::path_index_t{aux::numeric_cast<std::uint32_t>(
+				p.base() - m_paths.begin() - 1)};
 		}
 	}
 
@@ -473,7 +473,7 @@ namespace aux {
 
 		TORRENT_ASSERT(file_iter != m_files.begin());
 		--file_iter;
-		return file_index_t(int(file_iter - m_files.begin()));
+		return file_index_t{int(file_iter - m_files.begin())};
 	}
 
 	file_index_t file_storage::file_index_at_piece(piece_index_t const piece) const
@@ -493,7 +493,7 @@ namespace aux {
 
 	piece_index_t file_storage::piece_index_at_file(file_index_t f) const
 	{
-		return piece_index_t(aux::numeric_cast<int>(file_offset(f) / piece_length()));
+		return piece_index_t{aux::numeric_cast<int>(file_offset(f) / piece_length())};
 	}
 
 #if TORRENT_ABI_VERSION <= 2

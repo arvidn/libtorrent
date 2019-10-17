@@ -95,9 +95,9 @@ namespace libtorrent {
 	tcp::endpoint block_info::peer() const
 	{
 		if (is_v6_addr)
-			return tcp::endpoint(address_v6(addr.v6), port);
+			return {address_v6(addr.v6), port};
 		else
-			return tcp::endpoint(address_v4(addr.v4), port);
+			return {address_v4(addr.v4), port};
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS

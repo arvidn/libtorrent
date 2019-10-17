@@ -505,8 +505,8 @@ routing_table::find_node(udp::endpoint const& ep)
 			return std::make_tuple(&*j, i, &i->live_nodes);
 		}
 	}
-	return std::tuple<node_entry*, routing_table::table_t::iterator, bucket_t*>(
-		nullptr, m_buckets.end(), nullptr);
+	return std::tuple<node_entry*, routing_table::table_t::iterator, bucket_t*>
+	{nullptr, m_buckets.end(), nullptr};
 }
 
 // TODO: this need to take bucket "prefix" into account. It should be unified

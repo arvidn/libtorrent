@@ -250,7 +250,7 @@ struct utp_socket_impl
 			ec = boost::asio::error::not_connected;
 		else
 			TORRENT_ASSERT(m_remote_address != address_v4::any());
-		return tcp::endpoint(m_remote_address, m_port);
+		return {m_remote_address, m_port};
 	}
 	std::size_t available() const;
 	// returns true if there were handlers cancelled
@@ -696,7 +696,7 @@ bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, std::uint16_t const 
 
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
 {
-	return udp::endpoint(s->m_remote_address, s->m_port);
+	return {s->m_remote_address, s->m_port};
 }
 
 std::uint16_t utp_receive_id(utp_socket_impl* s)
@@ -808,7 +808,7 @@ utp_stream::endpoint_type utp_stream::remote_endpoint(error_code& ec) const
 	if (!m_impl)
 	{
 		ec = boost::asio::error::not_connected;
-		return endpoint_type();
+		return {};
 	}
 	return m_impl->remote_endpoint(ec);
 }
@@ -818,18 +818,18 @@ utp_stream::endpoint_type utp_stream::local_endpoint(error_code& ec) const
 	if (m_impl == nullptr)
 	{
 		ec = boost::asio::error::not_connected;
-		return endpoint_type();
+		return {};
 	}
 
 	auto s = m_impl->m_sock.lock();
 	if (!s)
 	{
 		ec = boost::asio::error::not_connected;
-		return endpoint_type();
+		return {};
 	}
 
 	udp::endpoint ep = s->local_endpoint();
-	return endpoint_type(ep.address(), ep.port());
+	return {ep.address(), ep.port()};
 }
 
 utp_stream::~utp_stream()
