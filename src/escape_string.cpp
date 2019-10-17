@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_ICONV
 #include <iconv.h>
-#include <locale.h>
+#include <clocale>
 #endif
 
 #include "libtorrent/assert.hpp"
@@ -579,7 +579,7 @@ namespace {
 		if (size == std::size_t(-1)) return s;
 		std::string ret;
 		ret.resize(size);
-		size = wcstombs(&ret[0], ws.c_str(), size + 1);
+		size = std::wcstombs(&ret[0], ws.c_str(), size + 1);
 		if (size == std::size_t(-1)) return s;
 		ret.resize(size);
 		return ret;
@@ -589,7 +589,7 @@ namespace {
 	{
 		std::wstring ws;
 		ws.resize(s.size());
-		std::size_t size = mbstowcs(&ws[0], s.c_str(), s.size());
+		std::size_t size = std::mbstowcs(&ws[0], s.c_str(), s.size());
 		if (size == std::size_t(-1)) return s;
 		return libtorrent::wchar_utf8(ws);
 	}
