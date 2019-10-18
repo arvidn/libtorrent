@@ -75,7 +75,7 @@ TORRENT_TEST(parse_hostname_peers)
 		"7:peer id20:bbbbabaababababababa2:ip12:another_host4:porti1001eeee";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response
-		, ec, false, sha1_hash());
+		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers.size(), 2);
@@ -99,7 +99,7 @@ TORRENT_TEST(parse_peers4)
 		"\x09\x08\x07\x06\x20\x10" "e";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response
-		, ec, false, sha1_hash());
+		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers4.size(), 2);
@@ -184,7 +184,7 @@ TORRENT_TEST(parse_interval)
 	char const response[] = "d8:intervali1042e12:min intervali10e5:peers0:e";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response
-		, ec, false, sha1_hash());
+		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers.size(), 0);
@@ -198,7 +198,7 @@ TORRENT_TEST(parse_warning)
 	char const response[] = "d5:peers0:15:warning message12:test messagee";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response
-		, ec, false, sha1_hash());
+		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers.size(), 0);
@@ -210,7 +210,7 @@ TORRENT_TEST(parse_failure_reason)
 	char const response[] = "d5:peers0:14:failure reason12:test messagee";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response
-		, ec, false, sha1_hash());
+		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, errors::tracker_failure);
 	TEST_EQUAL(resp.peers.size(), 0);
@@ -223,7 +223,7 @@ TORRENT_TEST(parse_scrape_response)
 		"8:completei1e10:incompletei2e10:downloadedi3e11:downloadersi6eeee";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response
-		, ec, true, sha1_hash("aaaaaaaaaaaaaaaaaaaa"));
+		, ec, tracker_request::scrape_request, sha1_hash("aaaaaaaaaaaaaaaaaaaa"));
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.complete, 1);
@@ -238,7 +238,7 @@ TORRENT_TEST(parse_scrape_response_with_zero)
 		"8:completei4e10:incompletei5e10:downloadedi6eeee";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response
-		, ec, true, sha1_hash("aaa\0aaaaaaaaaaaaaaaa"));
+		, ec, tracker_request::scrape_request, sha1_hash("aaa\0aaaaaaaaaaaaaaaa"));
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.complete, 4);
@@ -252,7 +252,7 @@ TORRENT_TEST(parse_external_ip)
 	char const response[] = "d5:peers0:11:external ip4:\x01\x02\x03\x04" "e";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response
-		, ec, false, sha1_hash());
+		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers.size(), 0);
@@ -265,7 +265,7 @@ TORRENT_TEST(parse_external_ip6)
 		"16:\xf1\x02\x03\x04\0\0\0\0\0\0\0\0\0\0\xff\xff" "e";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response
-		, ec, false, sha1_hash());
+		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers.size(), 0);

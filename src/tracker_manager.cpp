@@ -52,6 +52,9 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
+constexpr tracker_request_flags_t tracker_request::scrape_request;
+constexpr tracker_request_flags_t tracker_request::i2p;
+
 	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)
@@ -260,8 +263,8 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(req.num_want >= 0);
-		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
-		if (m_abort && req.event != tracker_request::stopped) return;
+		TORRENT_ASSERT(!m_abort || req.event == event_t::stopped);
+		if (m_abort && req.event != event_t::stopped) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		std::shared_ptr<request_callback> cb = c.lock();
@@ -411,7 +414,7 @@ namespace libtorrent {
 		for (auto const& c : m_http_conns)
 		{
 			tracker_request const& req = c->tracker_req();
-			if (req.event == tracker_request::stopped && !all)
+			if (req.event == event_t::stopped && !all)
 				continue;
 
 			close_http_connections.push_back(c);
@@ -425,7 +428,7 @@ namespace libtorrent {
 		{
 			auto const& c = p.second;
 			tracker_request const& req = c->tracker_req();
-			if (req.event == tracker_request::stopped && !all)
+			if (req.event == event_t::stopped && !all)
 				continue;
 
 			close_udp_connections.push_back(c);

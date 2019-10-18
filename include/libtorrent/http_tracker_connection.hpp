@@ -87,7 +87,7 @@ namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT tracker_response parse_tracker_response(
 		span<char const> data, error_code& ec
-		, int flags, sha1_hash const& scrape_ih);
+		, tracker_request_flags_t flags, sha1_hash const& scrape_ih);
 
 	TORRENT_EXTRA_EXPORT bool extract_peer_info(bdecode_node const& info
 		, peer_entry& ret, error_code& ec);

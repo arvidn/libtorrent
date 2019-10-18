@@ -475,7 +475,8 @@ namespace libtorrent {
 	}
 
 	tracker_announce_alert::tracker_announce_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, tcp::endpoint const& ep, string_view u, int e)
+		, torrent_handle const& h, tcp::endpoint const& ep, string_view u
+		, event_t const e)
 		: tracker_alert(alloc, h, ep, u)
 		, event(e)
 	{
@@ -485,8 +486,7 @@ namespace libtorrent {
 	std::string tracker_announce_alert::message() const
 	{
 		static const char* const event_str[] = {"none", "completed", "started", "stopped", "paused"};
-		TORRENT_ASSERT_VAL(event < int(sizeof(event_str) / sizeof(event_str[0])), event);
-		return tracker_alert::message() + " sending announce (" + event_str[event] + ")";
+		return tracker_alert::message() + " sending announce (" + event_str[static_cast<int>(event)] + ")";
 	}
 
 	hash_failed_alert::hash_failed_alert(

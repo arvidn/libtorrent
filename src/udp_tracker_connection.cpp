@@ -112,7 +112,7 @@ namespace libtorrent {
 			// when stopping, pass in the cache-only flag, because we
 			// don't want to get stuck on DNS lookups when shutting down
 			m_man.host_resolver().async_resolve(hostname
-				, (tracker_req().event == tracker_request::stopped
+				, (tracker_req().event == event_t::stopped
 					? resolver_interface::cache_only : resolver_flags{})
 					| resolver_interface::abort_on_shutdown
 				, std::bind(&udp_tracker_connection::name_lookup
@@ -125,7 +125,7 @@ namespace libtorrent {
 #endif
 		}
 
-		set_timeout(tracker_req().event == tracker_request::stopped
+		set_timeout(tracker_req().event == event_t::stopped
 			? settings.get_int(settings_pack::stop_tracker_timeout)
 			: settings.get_int(settings_pack::tracker_completion_timeout)
 			, settings.get_int(settings_pack::tracker_receive_timeout));
@@ -171,7 +171,7 @@ namespace libtorrent {
 			&udp_tracker_connection::start_announce, shared_from_this()));
 
 		aux::session_settings const& settings = m_man.settings();
-		set_timeout(tracker_req().event == tracker_request::stopped
+		set_timeout(tracker_req().event == event_t::stopped
 			? settings.get_int(settings_pack::stop_tracker_timeout)
 			: settings.get_int(settings_pack::tracker_completion_timeout)
 			, settings.get_int(settings_pack::tracker_receive_timeout));
@@ -454,9 +454,9 @@ namespace libtorrent {
 		cce.connection_id = connection_id;
 		cce.expires = aux::time_now() + seconds(m_man.settings().get_int(settings_pack::udp_tracker_token_expiry));
 
-		if (0 == (tracker_req().kind & tracker_request::scrape_request))
+		if (!(tracker_req().kind & tracker_request::scrape_request))
 			send_udp_announce();
-		else if (0 != (tracker_req().kind & tracker_request::scrape_request))
+		else if (tracker_req().kind & tracker_request::scrape_request)
 			send_udp_scrape();
 		return true;
 	}
