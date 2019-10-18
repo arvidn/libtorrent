@@ -2661,10 +2661,10 @@ bool is_downloading_state(int const st)
 		};
 	}
 
-	void torrent::announce_with_tracker(std::uint8_t e)
+	void torrent::announce_with_tracker(event_t e)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(e == tracker_request::stopped || state() != torrent_status::checking_files);
+		TORRENT_ASSERT(e == event_t::stopped || state() != torrent_status::checking_files);
 		INVARIANT_CHECK;
 
 		if (m_trackers.empty())
@@ -2675,12 +2675,12 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		if (m_abort) e = tracker_request::stopped;
+		if (m_abort) e = event_t::stopped;
 
 		// having stop_tracker_timeout <= 0 means that there is
 		// no need to send any request to trackers or trigger any
 		// related logic when the event is stopped
-		if (e == tracker_request::stopped
+		if (e == event_t::stopped
 			&& settings().get_int(settings_pack::stop_tracker_timeout) <= 0)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2691,7 +2691,7 @@ bool is_downloading_state(int const st)
 
 		// if we're not announcing to trackers, only allow
 		// stopping
-		if (e != tracker_request::stopped && !m_announce_to_trackers)
+		if (e != event_t::stopped && !m_announce_to_trackers)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("*** announce: event != stopped && !m_announce_to_trackers");
@@ -2700,7 +2700,7 @@ bool is_downloading_state(int const st)
 		}
 
 		// if we're not allowing peers, there's no point in announcing
-		if (e != tracker_request::stopped && m_paused)
+		if (e != event_t::stopped && m_paused)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("*** announce: event != stopped && m_paused");
@@ -2708,10 +2708,10 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		TORRENT_ASSERT(!m_paused || e == tracker_request::stopped);
+		TORRENT_ASSERT(!m_paused || e == event_t::stopped);
 
-		if (e == tracker_request::none && is_finished() && !is_seed())
-			e = tracker_request::paused;
+		if (e == event_t::none && is_finished() && !is_seed())
+			e = event_t::paused;
 
 		tracker_request req;
 		if (settings().get_bool(settings_pack::apply_ip_filter_to_trackers)
@@ -2788,7 +2788,7 @@ bool is_downloading_state(int const st)
 		}
 
 		// if we are aborting. we don't want any new peers
-		req.num_want = (req.event == tracker_request::stopped)
+		req.num_want = (req.event == event_t::stopped)
 			? 0 : settings().get_int(settings_pack::num_want);
 
 // some older versions of clang had a bug where it would fire this warning here
@@ -2892,10 +2892,10 @@ bool is_downloading_state(int const st)
 					}
 
 					req.event = e;
-					if (req.event == tracker_request::none)
+					if (req.event == event_t::none)
 					{
-						if (!a.start_sent) req.event = tracker_request::started;
-						else if (!a.complete_sent && is_seed()) req.event = tracker_request::completed;
+						if (!a.start_sent) req.event = event_t::started;
+						else if (!a.complete_sent && is_seed()) req.event = event_t::completed;
 					}
 
 					req.triggered_manually = a.triggered_manually;
@@ -2917,37 +2917,37 @@ bool is_downloading_state(int const st)
 					req.info_hash = m_torrent_file->info_hash().get(protocol_version(ih));
 
 #ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d ssl: %p "
-						"port: %d ssl-port: %d fails: %d upd: %d"
-						, req.url.c_str()
-						, (req.event == tracker_request::stopped ? "stopped"
-							: req.event == tracker_request::started ? "started" : "")
-						, m_abort
+					if (should_log())
+					{
+						debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d ssl: %p "
+							"port: %d ssl-port: %d fails: %d upd: %d"
+							, req.url.c_str()
+							, (req.event == event_t::stopped ? "stopped"
+								: req.event == event_t::started ? "started" : "")
+							, m_abort
 #ifdef TORRENT_USE_OPENSSL
-						, static_cast<void*>(req.ssl_ctx)
+							, static_cast<void*>(req.ssl_ctx)
 #else
-						, static_cast<void*>(nullptr)
+							, static_cast<void*>(nullptr)
 #endif
-						, m_ses.listen_port()
-						, m_ses.ssl_listen_port()
-						, a.fails
-						, a.updating);
-				}
+							, m_ses.listen_port()
+							, m_ses.ssl_listen_port()
+							, a.fails
+							, a.updating);
+					}
 
-				// if we're not logging session logs, don't bother creating an
-				// observer object just for logging
-				if (m_abort && m_ses.should_log())
-				{
-					auto tl = std::make_shared<aux::tracker_logger>(m_ses);
-					m_ses.queue_tracker_request(req, tl);
-				}
-				else
+					// if we're not logging session logs, don't bother creating an
+					// observer object just for logging
+					if (m_abort && m_ses.should_log())
+					{
+						auto tl = std::make_shared<aux::tracker_logger>(m_ses);
+						m_ses.queue_tracker_request(req, tl);
+					}
+					else
 #endif
-				{
-					m_ses.queue_tracker_request(req, shared_from_this());
-				}
+					{
+						m_ses.queue_tracker_request(req, shared_from_this());
+					}
 
 					a.updating = true;
 					a.next_announce = now;
@@ -3054,7 +3054,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(0 != (req.kind & tracker_request::scrape_request));
+		TORRENT_ASSERT(req.kind & tracker_request::scrape_request);
 
 		protocol_version const hash_version = req.info_hash == m_info_hash.v1
 			? protocol_version::V1 : protocol_version::V2;
@@ -3146,7 +3146,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(0 == (r.kind & tracker_request::scrape_request));
+		TORRENT_ASSERT(!(r.kind & tracker_request::scrape_request));
 
 		// if the tracker told us what our external IP address is, record it with
 		// out external IP counter (and pass along the IP of the tracker to know
@@ -3177,9 +3177,9 @@ bool is_downloading_state(int const st)
 				if (resp.incomplete >= 0) a.scrape_incomplete = resp.incomplete;
 				if (resp.complete >= 0) a.scrape_complete = resp.complete;
 				if (resp.downloaded >= 0) a.scrape_downloaded = resp.downloaded;
-				if (!a.start_sent && r.event == tracker_request::started)
+				if (!a.start_sent && r.event == event_t::started)
 					a.start_sent = true;
-				if (!a.complete_sent && r.event == tracker_request::completed)
+				if (!a.complete_sent && r.event == event_t::completed)
 					a.complete_sent = true;
 				ae->verified = true;
 				a.next_announce = now + interval;
@@ -9306,7 +9306,7 @@ bool is_downloading_state(int const st)
 #endif
 			}
 		}
-		announce_with_tracker(tracker_request::stopped);
+		announce_with_tracker(event_t::stopped);
 	}
 
 	seconds32 torrent::finished_time() const
@@ -11306,7 +11306,7 @@ bool is_downloading_state(int const st)
 				, ec.message().c_str(), msg.c_str());
 		}
 #endif
-		if (0 == (r.kind & tracker_request::scrape_request))
+		if (!(r.kind & tracker_request::scrape_request))
 		{
 			// announce request
 			announce_entry* ae = find_tracker(r.url);
@@ -11395,7 +11395,7 @@ bool is_downloading_state(int const st)
 			}
 		}
 		// announce to the next working tracker
-		if ((!m_abort && !is_paused()) || r.event == tracker_request::stopped)
+		if ((!m_abort && !is_paused()) || r.event == event_t::stopped)
 			announce_with_tracker(r.event);
 		update_tracker_timer(aux::time_now32());
 	}

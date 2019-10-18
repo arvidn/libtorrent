@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/portmap.hpp" // for portmap_transport
+#include "libtorrent/tracker_manager.hpp" // for event_t
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_array.hpp>
@@ -662,7 +663,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		TORRENT_UNEXPORT tracker_announce_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, string_view u, int e);
+			, string_view u, event_t e);
 
 		TORRENT_DEFINE_ALERT(tracker_announce_alert, 17)
 
@@ -675,7 +676,8 @@ TORRENT_VERSION_NAMESPACE_2
 		// 1. Completed
 		// 2. Started
 		// 3. Stopped
-		int const event;
+		// 4. Paused
+		event_t const event;
 	};
 
 	// This alert is generated when a finished piece fails its hash check. You can get the handle

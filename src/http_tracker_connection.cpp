@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent {
 
@@ -74,7 +75,7 @@ namespace libtorrent {
 	{
 		std::string url = tracker_req().url;
 
-		if (0 != (tracker_req().kind & tracker_request::scrape_request))
+		if (tracker_req().kind & tracker_request::scrape_request)
 		{
 			// find and replace "announce" with "scrape"
 			// in request
@@ -108,9 +109,9 @@ namespace libtorrent {
 		url += "info_hash=";
 		url += escape_string({tracker_req().info_hash.data(), 20});
 
-		if (0 == (tracker_req().kind & tracker_request::scrape_request))
+		if (!(tracker_req().kind & tracker_request::scrape_request))
 		{
-			static const char* event_string[] = {"completed", "started", "stopped", "paused"};
+			static aux::array<const char*, 4> const event_string{{"completed", "started", "stopped", "paused"}};
 
 			char str[1024];
 			std::snprintf(str, sizeof(str)
@@ -134,8 +135,8 @@ namespace libtorrent {
 				, tracker_req().left
 				, tracker_req().corrupt
 				, tracker_req().key
-				, (tracker_req().event != tracker_request::none) ? "&event=" : ""
-				, (tracker_req().event != tracker_request::none) ? event_string[tracker_req().event - 1] : ""
+				, (tracker_req().event != event_t::none) ? "&event=" : ""
+				, (tracker_req().event != event_t::none) ? event_string[static_cast<int>(tracker_req().event) - 1] : ""
 				, tracker_req().num_want);
 			url += str;
 #if !defined TORRENT_DISABLE_ENCRYPTION
@@ -215,7 +216,7 @@ namespace libtorrent {
 #endif
 			);
 
-		int const timeout = tracker_req().event == tracker_request::stopped
+		int const timeout = tracker_req().event == event_t::stopped
 			? settings.get_int(settings_pack::stop_tracker_timeout)
 			: settings.get_int(settings_pack::tracker_completion_timeout);
 
@@ -231,10 +232,10 @@ namespace libtorrent {
 		// attempt. It's not worth stalling shutdown.
 		aux::proxy_settings ps(settings);
 		m_tracker_connection->get(url, seconds(timeout)
-			, tracker_req().event == tracker_request::stopped ? 2 : 1
+			, tracker_req().event == event_t::stopped ? 2 : 1
 			, ps.proxy_tracker_connections ? &ps : nullptr
 			, 5, user_agent, bind_interface()
-			, (tracker_req().event == tracker_request::stopped
+			, (tracker_req().event == event_t::stopped
 				? resolver_interface::cache_only : resolver_flags{})
 				| resolver_interface::abort_on_shutdown
 #if TORRENT_ABI_VERSION == 1
@@ -357,7 +358,7 @@ namespace libtorrent {
 		}
 
 		// do slightly different things for scrape requests
-		if (0 != (tracker_req().kind & tracker_request::scrape_request))
+		if (tracker_req().kind & tracker_request::scrape_request)
 		{
 			cb->tracker_scrape_response(tracker_req(), resp.complete
 				, resp.incomplete, resp.downloaded, resp.downloaders);
@@ -421,7 +422,7 @@ namespace libtorrent {
 	}
 
 	tracker_response parse_tracker_response(span<char const> const data, error_code& ec
-		, int const flags, sha1_hash const& scrape_ih)
+		, tracker_request_flags_t const flags, sha1_hash const& scrape_ih)
 	{
 		tracker_response resp;
 
@@ -457,7 +458,7 @@ namespace libtorrent {
 		if (warning)
 			resp.warning_message = warning.string_value().to_string();
 
-		if (0 != (flags & tracker_request::scrape_request))
+		if (flags & tracker_request::scrape_request)
 		{
 			bdecode_node const files = e.dict_find_dict("files");
 			if (!files)
@@ -494,7 +495,7 @@ namespace libtorrent {
 			char const* peers = peers_ent.string_ptr();
 			int const len = peers_ent.string_length();
 #if TORRENT_USE_I2P
-			if (0 != (flags & tracker_request::i2p))
+			if (flags & tracker_request::i2p)
 			{
 				for (int i = 0; i < len; i += 32)
 				{
@@ -569,7 +570,7 @@ namespace libtorrent {
 /*
 		// if we didn't receive any peers. We don't care if we're stopping anyway
 		if (peers_ent == 0 && ipv6_peers == 0
-			&& tracker_req().event != tracker_request::stopped)
+			&& tracker_req().event != event_t::stopped)
 		{
 			ec = errors::invalid_peers_entry;
 			return resp;

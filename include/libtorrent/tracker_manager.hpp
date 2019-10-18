@@ -59,6 +59,7 @@ namespace ssl {
 }
 #endif
 
+#include "libtorrent/flags.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/address.hpp"
@@ -90,41 +91,26 @@ namespace aux {
 	struct session_settings;
 }
 
+using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracker_request_flags_tag>;
+
+enum class event_t : std::uint8_t
+{
+	none,
+	completed,
+	started,
+	stopped,
+	paused
+};
+
 	struct TORRENT_EXTRA_EXPORT tracker_request
 	{
-		tracker_request()
-			: downloaded(-1)
-			, uploaded(-1)
-			, left(-1)
-			, corrupt(0)
-			, redundant(0)
-			, listen_port(0)
-			, event(none)
-			, kind(announce_request)
-			, key(0)
-			, num_want(0)
-			, private_torrent(false)
-			, triggered_manually(false)
-		{}
+		tracker_request() = default;
 
-		enum event_t
-		{
-			none,
-			completed,
-			started,
-			stopped,
-			paused
-		};
+		static constexpr tracker_request_flags_t scrape_request = 0_bit;
 
-		enum kind_t
-		{
-			// do not compare against announce_request ! check if not scrape instead
-			announce_request = 0,
-			scrape_request = 1,
-			// affects interpretation of peers string in HTTP response
-			// see parse_tracker_response()
-			i2p = 2
-		};
+		// affects interpretation of peers string in HTTP response
+		// see parse_tracker_response()
+		static constexpr tracker_request_flags_t i2p = 1_bit;
 
 		std::string url;
 		std::string trackerid;
@@ -134,21 +120,17 @@ namespace aux {
 
 		std::shared_ptr<const ip_filter> filter;
 
-		std::int64_t downloaded;
-		std::int64_t uploaded;
-		std::int64_t left;
-		std::int64_t corrupt;
-		std::int64_t redundant;
-		std::uint16_t listen_port;
+		std::int64_t downloaded = -1;
+		std::int64_t uploaded = -1;
+		std::int64_t left = -1;
+		std::int64_t corrupt = 0;
+		std::int64_t redundant = 0;
+		std::uint16_t listen_port = 0;
+		event_t event = event_t::none;
+		tracker_request_flags_t kind = {};
 
-		// values from event_t
-		std::uint8_t event;
-
-		// values from kind_t
-		std::uint8_t kind;
-
-		std::uint32_t key;
-		int num_want;
+		std::uint32_t key = 0;
+		int num_want = 0;
 		std::vector<address_v6> ipv6;
 		std::vector<address_v4> ipv4;
 		sha1_hash info_hash;
@@ -158,11 +140,11 @@ namespace aux {
 
 		// set to true if the .torrent file this tracker announce is for is marked
 		// as private (i.e. has the "priv": 1 key)
-		bool private_torrent;
+		bool private_torrent = false;
 
 		// this is set to true if this request was triggered by a "manual" call to
 		// scrape_tracker() or force_reannounce()
-		bool triggered_manually;
+		bool triggered_manually = false;
 
 #ifdef TORRENT_USE_OPENSSL
 		boost::asio::ssl::context* ssl_ctx = nullptr;
