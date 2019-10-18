@@ -139,8 +139,8 @@ namespace {
 			// a bunch of read operations on it
 			if (m_torrent.is_aborted()) return;
 
-			std::vector<torrent_peer*> downloaders;
-			m_torrent.picker().get_downloaders(downloaders, p);
+			std::vector<torrent_peer*> const downloaders
+				= m_torrent.picker().get_downloaders(p);
 
 			int size = m_torrent.torrent_file().piece_size(p);
 			peer_request r = {p, 0, std::min(16*1024, size)};
