@@ -2031,7 +2031,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// filtering, since it's only manually posted anyway.
 	struct TORRENT_EXPORT state_update_alert final : alert
 	{
-		state_update_alert(aux::stack_allocator& alloc
+		// internal
+		TORRENT_UNEXPORT state_update_alert(aux::stack_allocator& alloc
 			, std::vector<torrent_status> st);
 
 		TORRENT_DEFINE_ALERT_PRIO(state_update_alert, 68, alert_priority::high)
@@ -2088,7 +2089,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// if this is changed, that parser should also be changed
 	struct TORRENT_EXPORT session_stats_alert final : alert
 	{
-		session_stats_alert(aux::stack_allocator& alloc, counters const& cnt);
+		// internal
+		TORRENT_UNEXPORT session_stats_alert(aux::stack_allocator& alloc, counters const& cnt);
 
 #if TORRENT_ABI_VERSION == 1
 #ifdef __GNUC__
@@ -2168,7 +2170,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// specifically the overload for looking up immutable items in the DHT.
 	struct TORRENT_EXPORT dht_immutable_item_alert final : alert
 	{
-		dht_immutable_item_alert(aux::stack_allocator& alloc, sha1_hash const& t
+		// internal
+		TORRENT_UNEXPORT dht_immutable_item_alert(aux::stack_allocator& alloc, sha1_hash const& t
 			, entry const& i);
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74, alert_priority::critical)
@@ -2189,7 +2192,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// specifically the overload for looking up mutable items in the DHT.
 	struct TORRENT_EXPORT dht_mutable_item_alert final : alert
 	{
-		dht_mutable_item_alert(aux::stack_allocator& alloc
+		// internal
+		TORRENT_UNEXPORT dht_mutable_item_alert(aux::stack_allocator& alloc
 			, std::array<char, 32> const& k, std::array<char, 64> const& sig
 			, std::int64_t sequence, string_view s, entry const& i, bool a);
 
@@ -2260,7 +2264,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// this alert is used to report errors in the i2p SAM connection
 	struct TORRENT_EXPORT i2p_alert final : alert
 	{
-		i2p_alert(aux::stack_allocator& alloc, error_code const& ec);
+		// internal
+		TORRENT_UNEXPORT i2p_alert(aux::stack_allocator& alloc, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT(i2p_alert, 77)
 
@@ -2530,7 +2535,8 @@ TORRENT_VERSION_NAMESPACE_2
 			traversal
 		};
 
-		dht_log_alert(aux::stack_allocator& alloc
+		// internal
+		TORRENT_UNEXPORT dht_log_alert(aux::stack_allocator& alloc
 			, dht_module_t m, char const* fmt, va_list v);
 
 		static constexpr alert_category_t static_category = alert::dht_log_notification;
@@ -2557,7 +2563,8 @@ TORRENT_VERSION_NAMESPACE_2
 		enum direction_t
 		{ incoming, outgoing };
 
-		dht_pkt_alert(aux::stack_allocator& alloc, span<char const> buf
+		// internal
+		TORRENT_UNEXPORT dht_pkt_alert(aux::stack_allocator& alloc, span<char const> buf
 			, dht_pkt_alert::direction_t d, udp::endpoint const& ep);
 
 		static constexpr alert_category_t static_category = alert::dht_log_notification;
@@ -2592,7 +2599,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// Posted when we receive a response to a DHT get_peers request.
 	struct TORRENT_EXPORT dht_get_peers_reply_alert final : alert
 	{
-		dht_get_peers_reply_alert(aux::stack_allocator& alloc
+		// internal
+		TORRENT_UNEXPORT dht_get_peers_reply_alert(aux::stack_allocator& alloc
 			, sha1_hash const& ih
 			, std::vector<tcp::endpoint> const& v);
 
@@ -2623,11 +2631,13 @@ TORRENT_VERSION_NAMESPACE_2
 	// If the request failed, response() will return a default constructed bdecode_node.
 	struct TORRENT_EXPORT dht_direct_response_alert final : alert
 	{
-		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
+		// internal
+		TORRENT_UNEXPORT dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
 			, udp::endpoint const& addr, bdecode_node const& response);
 
+		// internal
 		// for when there was a timeout so we don't have a response
-		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
+		TORRENT_UNEXPORT dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
 			, udp::endpoint const& addr);
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_direct_response_alert, 88, alert_priority::critical)
@@ -2723,7 +2733,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// locally.
 	struct TORRENT_EXPORT dht_live_nodes_alert final : alert
 	{
-		dht_live_nodes_alert(aux::stack_allocator& alloc
+		// internal
+		TORRENT_UNEXPORT dht_live_nodes_alert(aux::stack_allocator& alloc
 			, sha1_hash const& nid
 			, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes);
 
@@ -2758,7 +2769,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// if this is changed, that parser should also be changed
 	struct TORRENT_EXPORT session_stats_header_alert final : alert
 	{
-		explicit session_stats_header_alert(aux::stack_allocator& alloc);
+		// internal
+		explicit TORRENT_UNEXPORT session_stats_header_alert(aux::stack_allocator& alloc);
 		TORRENT_DEFINE_ALERT(session_stats_header_alert, 92)
 
 		static constexpr alert_category_t static_category = alert::stats_notification;
@@ -2769,7 +2781,8 @@ TORRENT_VERSION_NAMESPACE_2
 	// the information from the DHT response message.
 	struct TORRENT_EXPORT dht_sample_infohashes_alert final : alert
 	{
-		dht_sample_infohashes_alert(aux::stack_allocator& alloc
+		// internal
+		TORRENT_UNEXPORT dht_sample_infohashes_alert(aux::stack_allocator& alloc
 			, udp::endpoint const& endp
 			, time_duration interval
 			, int num
