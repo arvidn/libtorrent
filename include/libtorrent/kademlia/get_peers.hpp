@@ -48,8 +48,8 @@ struct get_peers : find_data
 	void got_peers(std::vector<tcp::endpoint> const& peers);
 
 	get_peers(node& dht_node, node_id const& target
-		, data_callback const& dcallback
-		, nodes_callback const& ncallback
+		, data_callback dcallback
+		, nodes_callback ncallback
 		, bool noseeds);
 
 	char const* name() const override;
@@ -66,8 +66,8 @@ protected:
 struct obfuscated_get_peers : get_peers
 {
 	obfuscated_get_peers(node& dht_node, node_id const& target
-		, data_callback const& dcallback
-		, nodes_callback const& ncallback
+		, data_callback dcallback
+		, nodes_callback ncallback
 		, bool noseeds);
 
 	char const* name() const override;

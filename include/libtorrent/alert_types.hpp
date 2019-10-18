@@ -2009,7 +2009,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, add_torrent_params const& p, error_code const& ec);
+			, add_torrent_params p, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67, alert_priority::critical)
 
@@ -2172,7 +2172,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT dht_immutable_item_alert(aux::stack_allocator& alloc, sha1_hash const& t
-			, entry const& i);
+			, entry i);
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74, alert_priority::critical)
 
@@ -2195,7 +2195,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		TORRENT_UNEXPORT dht_mutable_item_alert(aux::stack_allocator& alloc
 			, std::array<char, 32> const& k, std::array<char, 64> const& sig
-			, std::int64_t sequence, string_view s, entry const& i, bool a);
+			, std::int64_t sequence, string_view s, entry i, bool a);
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75, alert_priority::critical)
 

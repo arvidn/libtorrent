@@ -74,7 +74,7 @@ namespace dht {
 
 		dht_tracker(dht_observer* observer
 			, io_context& ios
-			, send_fun_t const& send_fun
+			, send_fun_t send_fun
 			, aux::session_settings const& settings
 			, counters& cnt
 			, dht_storage_interface& storage

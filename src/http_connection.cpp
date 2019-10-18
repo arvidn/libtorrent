@@ -68,11 +68,11 @@ namespace libtorrent {
 
 http_connection::http_connection(io_context& ios
 	, resolver_interface& resolver
-	, http_handler const& handler
+	, http_handler handler
 	, bool bottled
 	, int max_bottled_buffer_size
-	, http_connect_handler const& ch
-	, http_filter_handler const& fh
+	, http_connect_handler ch
+	, http_filter_handler fh
 #ifdef TORRENT_USE_OPENSSL
 	, ssl::context* ssl_ctx
 #endif
@@ -87,9 +87,9 @@ http_connection::http_connection(io_context& ios
 	, m_i2p_conn(nullptr)
 #endif
 	, m_resolver(resolver)
-	, m_handler(handler)
-	, m_connect_handler(ch)
-	, m_filter_handler(fh)
+	, m_handler(std::move(handler))
+	, m_connect_handler(std::move(ch))
+	, m_filter_handler(std::move(fh))
 	, m_timer(ios)
 	, m_read_timeout(seconds(5))
 	, m_completion_timeout(seconds(5))

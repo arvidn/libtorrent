@@ -84,9 +84,9 @@ void find_data_observer::reply(msg const& m)
 find_data::find_data(
 	node& dht_node
 	, node_id const& target
-	, nodes_callback const& ncallback)
+	, nodes_callback ncallback)
 	: traversal_algorithm(dht_node, target)
-	, m_nodes_callback(ncallback)
+	, m_nodes_callback(std::move(ncallback))
 	, m_done(false)
 {
 }

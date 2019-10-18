@@ -148,11 +148,11 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 
 	tracker_connection::tracker_connection(
 		tracker_manager& man
-		, tracker_request const& req
+		, tracker_request req
 		, io_context& ios
 		, std::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
-		, m_req(req)
+		, m_req(std::move(req))
 		, m_requester(std::move(r))
 		, m_man(man)
 	{}
@@ -194,8 +194,8 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 		m_man.received_bytes(bytes);
 	}
 
-	tracker_manager::tracker_manager(send_fun_t const& send_fun
-		, send_fun_hostname_t const& send_fun_hostname
+	tracker_manager::tracker_manager(send_fun_t send_fun
+		, send_fun_hostname_t send_fun_hostname
 		, counters& stats_counters
 		, resolver_interface& resolver
 		, aux::session_settings const& sett
@@ -203,8 +203,8 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 		, aux::session_logger& ses
 #endif
 		)
-		: m_send_fun(send_fun)
-		, m_send_fun_hostname(send_fun_hostname)
+		: m_send_fun(std::move(send_fun))
+		, m_send_fun_hostname(std::move(send_fun_hostname))
 		, m_host_resolver(resolver)
 		, m_settings(sett)
 		, m_stats_counters(stats_counters)

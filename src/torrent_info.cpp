@@ -723,12 +723,12 @@ namespace {
 
 } // anonymous namespace
 
-	web_seed_entry::web_seed_entry(std::string const& url_, type_t type_
-		, std::string const& auth_
-		, headers_t const& extra_headers_)
-		: url(url_)
-		, auth(auth_)
-		, extra_headers(extra_headers_)
+	web_seed_entry::web_seed_entry(std::string url_, type_t type_
+		, std::string auth_
+		, headers_t extra_headers_)
+		: url(std::move(url_))
+		, auth(std::move(auth_))
+		, extra_headers(std::move(extra_headers_))
 		, type(std::uint8_t(type_))
 	{
 	}
@@ -1808,7 +1808,7 @@ namespace {
 				, web_seed_entry::url_seed);
 			if ((m_flags & multifile) && num_files() > 1)
 				ensure_trailing_slash(ent.url);
-			m_web_seeds.push_back(ent);
+			m_web_seeds.push_back(std::move(ent));
 		}
 		else if (url_seeds && url_seeds.type() == bdecode_node::list_t)
 		{
@@ -1824,7 +1824,7 @@ namespace {
 				if ((m_flags & multifile) && num_files() > 1)
 					ensure_trailing_slash(ent.url);
 				if (!unique.insert(ent.url).second) continue;
-				m_web_seeds.push_back(ent);
+				m_web_seeds.push_back(std::move(ent));
 			}
 		}
 
@@ -1844,9 +1844,9 @@ namespace {
 			{
 				bdecode_node const url = http_seeds.list_at(i);
 				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
-				std::string const u = maybe_url_encode(url.string_value().to_string());
+				std::string u = maybe_url_encode(url.string_value().to_string());
 				if (!unique.insert(u).second) continue;
-				m_web_seeds.emplace_back(u, web_seed_entry::http_seed);
+				m_web_seeds.emplace_back(std::move(u), web_seed_entry::http_seed);
 			}
 		}
 

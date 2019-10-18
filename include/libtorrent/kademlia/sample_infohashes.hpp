@@ -52,7 +52,7 @@ public:
 
 	sample_infohashes(node& dht_node
 		, node_id const& target
-		, data_callback const& dcallback);
+		, data_callback dcallback);
 
 	char const* name() const override;
 

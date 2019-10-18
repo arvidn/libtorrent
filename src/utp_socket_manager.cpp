@@ -51,14 +51,14 @@ namespace libtorrent {
 namespace aux {
 
 	utp_socket_manager::utp_socket_manager(
-		send_fun_t const& send_fun
-		, incoming_utp_callback_t const& cb
+		send_fun_t send_fun
+		, incoming_utp_callback_t cb
 		, io_context& ios
 		, aux::session_settings const& sett
 		, counters& cnt
 		, void* ssl_context)
-		: m_send_fun(send_fun)
-		, m_cb(cb)
+		: m_send_fun(std::move(send_fun))
+		, m_cb(std::move(cb))
 		, m_sett(sett)
 		, m_counters(cnt)
 		, m_ios(ios)

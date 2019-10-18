@@ -436,8 +436,8 @@ void node::get_peers(sha1_hash const& info_hash
 	bool const noseeds = bool(flags & announce::seed);
 
 	auto ta = m_settings.get_bool(settings_pack::dht_privacy_lookups)
-		? std::make_shared<dht::obfuscated_get_peers>(*this, info_hash, dcallback, ncallback, noseeds)
-		: std::make_shared<dht::get_peers>(*this, info_hash, dcallback, ncallback, noseeds);
+		? std::make_shared<dht::obfuscated_get_peers>(*this, info_hash, std::move(dcallback), std::move(ncallback), noseeds)
+		: std::make_shared<dht::get_peers>(*this, info_hash, std::move(dcallback), std::move(ncallback), noseeds);
 
 	ta->start();
 }
@@ -479,8 +479,7 @@ void node::direct_request(udp::endpoint const& ep, entry& e
 	m_rpc.invoke(e, ep, o);
 }
 
-void node::get_item(sha1_hash const& target
-	, std::function<void(item const&)> f)
+void node::get_item(sha1_hash const& target, std::function<void(item const&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
@@ -507,7 +506,7 @@ void node::get_item(public_key const& pk, std::string const& salt
 	}
 #endif
 
-	auto ta = std::make_shared<dht::get_item>(*this, pk, salt, f
+	auto ta = std::make_shared<dht::get_item>(*this, pk, salt, std::move(f)
 		, find_data::nodes_callback());
 	ta->start();
 }

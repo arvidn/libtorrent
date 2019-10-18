@@ -1483,9 +1483,9 @@ namespace {
 	}
 
 	add_torrent_alert::add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, add_torrent_params const& p, error_code const& ec)
+		, add_torrent_params p, error_code const& ec)
 		: torrent_alert(alloc, h)
-		, params(p)
+		, params(std::move(p))
 		, error(ec)
 	{}
 
@@ -1671,8 +1671,8 @@ namespace {
 	}
 
 	dht_immutable_item_alert::dht_immutable_item_alert(aux::stack_allocator&
-		, sha1_hash const& t, entry const& i)
-		: target(t), item(i)
+		, sha1_hash const& t, entry i)
+		: target(t), item(std::move(i))
 	{}
 
 	std::string dht_immutable_item_alert::message() const
@@ -1691,9 +1691,9 @@ namespace {
 		, std::array<char, 64> const& sig
 		, std::int64_t sequence
 		, string_view s
-		, entry const& i
+		, entry i
 		, bool a)
-		: key(k), signature(sig), seq(sequence), salt(s), item(i), authoritative(a)
+		: key(k), signature(sig), seq(sequence), salt(s), item(std::move(i)), authoritative(a)
 	{}
 
 	std::string dht_mutable_item_alert::message() const
