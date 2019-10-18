@@ -495,7 +495,7 @@ TORRENT_VERSION_NAMESPACE_3
 #endif
 	{}
 
-	session_params::session_params(settings_pack const& sp
+	session_params::session_params(settings_pack const& sp // NOLINT
 		, std::vector<std::shared_ptr<plugin>> exts)
 		: settings(sp)
 		, extensions(std::move(exts))

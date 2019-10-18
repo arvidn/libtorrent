@@ -78,7 +78,7 @@ namespace libtorrent {
 	class TORRENT_EXTRA_EXPORT broadcast_socket
 	{
 	public:
-		explicit broadcast_socket(udp::endpoint const& multicast_endpoint);
+		explicit broadcast_socket(udp::endpoint multicast_endpoint);
 		~broadcast_socket() { close(); }
 
 		void open(receive_handler_t handler, io_context& ios

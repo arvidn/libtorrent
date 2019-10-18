@@ -86,9 +86,9 @@ namespace aux {
 		using headers_t = std::vector<std::pair<std::string, std::string>>;
 
 		// hidden
-		web_seed_entry(std::string const& url_, type_t type_
-			, std::string const& auth_ = std::string()
-			, headers_t const& extra_headers_ = headers_t());
+		web_seed_entry(std::string url_, type_t type_
+			, std::string auth_ = std::string()
+			, headers_t extra_headers_ = headers_t());
 
 		// URL and type comparison
 		bool operator==(web_seed_entry const& e) const

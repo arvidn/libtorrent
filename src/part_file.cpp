@@ -82,10 +82,10 @@ namespace {
 
 namespace libtorrent {
 
-	part_file::part_file(std::string const& path, std::string const& name
+	part_file::part_file(std::string path, std::string name
 		, int const num_pieces, int const piece_size)
-		: m_path(path)
-		, m_name(name)
+		: m_path(std::move(path))
+		, m_name(std::move(name))
 		, m_max_pieces(num_pieces)
 		, m_piece_size(piece_size)
 		, m_header_size(round_up((2 + num_pieces) * 4))

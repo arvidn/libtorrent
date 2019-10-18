@@ -89,7 +89,7 @@ namespace libtorrent { namespace dht {
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(dht_observer* observer
 		, io_context& ios
-		, send_fun_t const& send_fun
+		, send_fun_t send_fun
 		, aux::session_settings const& settings
 		, counters& cnt
 		, dht_storage_interface& storage
@@ -97,7 +97,7 @@ namespace libtorrent { namespace dht {
 		: m_counters(cnt)
 		, m_storage(storage)
 		, m_state(std::move(state))
-		, m_send_fun(send_fun)
+		, m_send_fun(std::move(send_fun))
 		, m_log(observer)
 		, m_key_refresh_timer(ios)
 		, m_refresh_timer(ios)

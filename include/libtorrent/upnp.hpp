@@ -150,7 +150,7 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	, single_threaded
 {
 	upnp(io_context& ios
-		, std::string const& user_agent
+		, std::string user_agent
 		, aux::portmap_callback& cb
 		, bool ignore_nonrouters);
 	~upnp();

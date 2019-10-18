@@ -143,7 +143,7 @@ install:
         <linkflags>-static-libgcc ;" >> ~/user-config.jam;
     fi;'
   - 'if [ $clang_tidy == "1" ]; then
-      echo "using clang_tidy : : clang-tidy "-checks=-clang-analyzer-core.*,modernize-use-auto,modernize-use-default-member-init,hicpp-deprecated-headers,readability-inconsistent-declaration-parameter-name,modernize-return-braced-init-list" : <cxxflags>-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW=1 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+      echo "using clang_tidy : : clang-tidy "-checks=-clang-analyzer-core.*,modernize-pass-by-value,modernize-use-auto,modernize-use-default-member-init,hicpp-deprecated-headers,readability-inconsistent-declaration-parameter-name,modernize-return-braced-init-list" : <cxxflags>-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW=1 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
        echo "using darwin : : ccache clang++ : ;" >> ~/user-config.jam;

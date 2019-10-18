@@ -144,8 +144,8 @@ namespace libtorrent {
 	}
 
 	broadcast_socket::broadcast_socket(
-		udp::endpoint const& multicast_endpoint)
-		: m_multicast_endpoint(multicast_endpoint)
+		udp::endpoint multicast_endpoint)
+		: m_multicast_endpoint(std::move(multicast_endpoint))
 		, m_outstanding_operations(0)
 		, m_abort(false)
 	{

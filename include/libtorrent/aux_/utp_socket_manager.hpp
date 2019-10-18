@@ -69,8 +69,8 @@ namespace aux {
 
 		using incoming_utp_callback_t =  std::function<void(std::shared_ptr<aux::socket_type> const&)>;
 
-		utp_socket_manager(send_fun_t const& send_fun
-			, incoming_utp_callback_t const& cb
+		utp_socket_manager(send_fun_t send_fun
+			, incoming_utp_callback_t cb
 			, io_context& ios
 			, aux::session_settings const& sett
 			, counters& cnt, void* ssl_context);

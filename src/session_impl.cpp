@@ -5655,7 +5655,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		m_dht = std::make_shared<dht::dht_tracker>(
 			static_cast<dht::dht_observer*>(this)
 			, m_io_context
-			, [=](aux::listen_socket_handle const& sock
+			, [this](aux::listen_socket_handle const& sock
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
@@ -6588,7 +6588,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// the upnp constructor may fail and call the callbacks
 		m_upnp = std::make_shared<upnp>(m_io_context
 			, m_settings.get_bool(settings_pack::anonymous_mode)
-				? "" : m_settings.get_str(settings_pack::user_agent)
+				? std::string{} : m_settings.get_str(settings_pack::user_agent)
 			, *this
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
 		m_upnp->start();

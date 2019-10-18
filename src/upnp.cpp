@@ -102,10 +102,10 @@ upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) & = default;
 // bind to, since the broadcast socket opens one socket per local
 // interface by default
 upnp::upnp(io_context& ios
-	, std::string const& user_agent
+	, std::string user_agent
 	, aux::portmap_callback& cb
 	, bool ignore_nonrouters)
-	: m_user_agent(user_agent)
+	: m_user_agent(std::move(user_agent))
 	, m_callback(cb)
 	, m_retry_count(0)
 	, m_io_service(ios)

@@ -102,10 +102,10 @@ void get_item::got_data(bdecode_node const& v,
 get_item::get_item(
 	node& dht_node
 	, node_id const& target
-	, data_callback const& dcallback
-	, nodes_callback const& ncallback)
-	: find_data(dht_node, target, ncallback)
-	, m_data_callback(dcallback)
+	, data_callback dcallback
+	, nodes_callback ncallback)
+	: find_data(dht_node, target, std::move(ncallback))
+	, m_data_callback(std::move(dcallback))
 	, m_immutable(true)
 {
 }
@@ -114,10 +114,10 @@ get_item::get_item(
 	node& dht_node
 	, public_key const& pk
 	, span<char const> salt
-	, data_callback const& dcallback
-	, nodes_callback const& ncallback)
-	: find_data(dht_node, item_target_id(salt, pk), ncallback)
-	, m_data_callback(dcallback)
+	, data_callback dcallback
+	, nodes_callback ncallback)
+	: find_data(dht_node, item_target_id(salt, pk), std::move(ncallback))
+	, m_data_callback(std::move(dcallback))
 	, m_data(pk, salt)
 	, m_immutable(false)
 {

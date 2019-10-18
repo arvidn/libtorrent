@@ -55,7 +55,7 @@ struct find_data : traversal_algorithm
 	using nodes_callback = std::function<void(std::vector<std::pair<node_entry, std::string>> const&)>;
 
 	find_data(node& dht_node, node_id const& target
-		, nodes_callback const& ncallback);
+		, nodes_callback ncallback);
 
 	void got_write_token(node_id const& n, std::string write_token);
 

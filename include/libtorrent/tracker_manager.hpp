@@ -277,7 +277,7 @@ enum class event_t : std::uint8_t
 		: timeout_handler
 	{
 		tracker_connection(tracker_manager& man
-			, tracker_request const& req
+			, tracker_request req
 			, io_context& ios
 			, std::weak_ptr<request_callback> r);
 
@@ -329,8 +329,8 @@ enum class event_t : std::uint8_t
 			, span<char const>
 			, error_code&, udp_send_flags_t)>;
 
-		tracker_manager(send_fun_t const& send_fun
-			, send_fun_hostname_t const& send_fun_hostname
+		tracker_manager(send_fun_t send_fun
+			, send_fun_hostname_t send_fun_hostname
 			, counters& stats_counters
 			, resolver_interface& resolver
 			, aux::session_settings const& sett
