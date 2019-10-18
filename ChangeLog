@@ -1,3 +1,5 @@
+	* fixed bug in torrent_info::swap
+
 1.2.2 release
 
 	* fix cases where the disable_hash_checks setting was not honored
