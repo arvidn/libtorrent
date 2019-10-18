@@ -411,7 +411,7 @@ namespace libtorrent {
 
 		// return the peer pointers to all peers that participated in
 		// this piece
-		void get_downloaders(std::vector<torrent_peer*>& d, piece_index_t index) const;
+		std::vector<torrent_peer*> get_downloaders(piece_index_t index) const;
 
 		std::vector<piece_picker::downloading_piece> get_download_queue() const;
 		int get_download_queue_size() const;

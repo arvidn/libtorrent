@@ -3003,13 +3003,12 @@ namespace libtorrent {
 			int const num_blocks = t->picker().blocks_in_piece(piece);
 			if (st.requested > 0 && st.writing + st.finished + st.requested == num_blocks)
 			{
-				std::vector<torrent_peer*> d;
-				t->picker().get_downloaders(d, piece);
+				std::vector<torrent_peer*> const d = t->picker().get_downloaders(piece);
 				if (d.size() == 1)
 				{
 					// only make predictions if all remaining
 					// blocks are requested from the same peer
-					torrent_peer* peer = d[0];
+					torrent_peer* const peer = d[0];
 					if (peer->connection)
 					{
 						// we have a connection. now, what is the current

@@ -3727,10 +3727,9 @@ get_out:
 		return it->second;
 	}
 
-	void piece_picker::get_downloaders(std::vector<torrent_peer*>& d
-		, piece_index_t const index) const
+	std::vector<torrent_peer*> piece_picker::get_downloaders(piece_index_t const index) const
 	{
-		d.clear();
+		std::vector<torrent_peer*> d;
 		auto const state = m_piece_map[index].download_queue();
 		int const num_blocks = blocks_in_piece(index);
 		d.reserve(aux::numeric_cast<std::size_t>(num_blocks));
@@ -3738,7 +3737,7 @@ get_out:
 		if (state == piece_pos::piece_open)
 		{
 			d.resize(std::size_t(num_blocks), nullptr);
-			return;
+			return d;
 		}
 
 		auto const i = find_dl_piece(state, index);
@@ -3750,6 +3749,7 @@ get_out:
 				|| binfo[j].peer->in_use);
 			d.push_back(binfo[j].peer);
 		}
+		return d;
 	}
 
 	torrent_peer* piece_picker::get_downloader(piece_block const block) const

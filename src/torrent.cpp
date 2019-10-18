@@ -4022,19 +4022,21 @@ bool is_downloading_state(int const st)
 			add_suggest_piece(index);
 		}
 
-		std::vector<torrent_peer*> downloaders;
-		m_picker->get_downloaders(downloaders, index);
-
 		// increase the trust point of all peers that sent
 		// parts of this piece.
-		std::set<torrent_peer*> peers;
+		std::set<torrent_peer*> const peers = [&]
+		{
+			std::vector<torrent_peer*> const downloaders = m_picker->get_downloaders(index);
 
-		// these torrent_peer pointers are owned by m_peer_list and they may be
-		// invalidated if a peer disconnects. We cannot keep them across any
-		// significant operations, but we should use them right away
-		// ignore nullptrs
-		std::remove_copy(downloaders.begin(), downloaders.end()
-			, std::inserter(peers, peers.begin()), static_cast<torrent_peer*>(nullptr));
+			std::set<torrent_peer*> ret;
+			// these torrent_peer pointers are owned by m_peer_list and they may be
+			// invalidated if a peer disconnects. We cannot keep them across any
+			// significant operations, but we should use them right away
+			// ignore nullptrs
+			std::remove_copy(downloaders.begin(), downloaders.end()
+				, std::inserter(ret, ret.begin()), static_cast<torrent_peer*>(nullptr));
+			return ret;
+		}();
 
 		for (auto p : peers)
 		{
@@ -4053,11 +4055,6 @@ bool is_downloading_state(int const st)
 				peer->received_valid_data(index);
 			}
 		}
-		// announcing a piece may invalidate the torrent_peer pointers
-		// so we can't use them anymore
-
-		downloaders.clear();
-		peers.clear();
 
 		m_picker->piece_passed(index);
 		update_gauge();
@@ -4154,33 +4151,36 @@ bool is_downloading_state(int const st)
 		}
 #endif
 
-		std::vector<torrent_peer*> downloaders;
-		m_picker->get_downloaders(downloaders, index);
+		std::vector<torrent_peer*> const downloaders = m_picker->get_downloaders(index);
 
 		// decrease the trust point of all peers that sent
 		// parts of this piece.
 		// first, build a set of all peers that participated
 		// if we know which blocks failed, just include the peer(s) sending those
 		// blocks
-		std::set<torrent_peer*> peers;
-		if (!blocks.empty() && !downloaders.empty())
+		std::set<torrent_peer*> const peers = [&]
 		{
-			for (auto const b : blocks) peers.insert(downloaders[std::size_t(b)]);
-		}
-		else
-		{
-			std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
-		}
+			std::set<torrent_peer*> ret;
+			if (!blocks.empty() && !downloaders.empty())
+			{
+				for (auto const b : blocks) ret.insert(downloaders[std::size_t(b)]);
+			}
+			else
+			{
+				std::copy(downloaders.begin(), downloaders.end(), std::inserter(ret, ret.begin()));
+			}
+			return ret;
+		}();
 
 #if TORRENT_USE_ASSERTS
-		for (auto const& p : downloaders)
-		{
-			if (p && p->connection)
+			for (auto const& p : downloaders)
 			{
-				auto* peer = static_cast<peer_connection*>(p->connection);
-				peer->piece_failed = true;
+				if (p && p->connection)
+				{
+					auto* peer = static_cast<peer_connection*>(p->connection);
+					peer->piece_failed = true;
+				}
 			}
-		}
 #endif
 
 		// did we receive this piece from a single peer?
@@ -4293,7 +4293,7 @@ bool is_downloading_state(int const st)
 		{
 			if (p && p->connection)
 			{
-				auto* peer = static_cast<peer_connection*>(p->connection);
+				auto* const peer = static_cast<peer_connection*>(p->connection);
 				peer->piece_failed = false;
 			}
 		}
@@ -4797,14 +4797,14 @@ bool is_downloading_state(int const st)
 		// this means we have outstanding requests (or queued
 		// up requests that haven't been sent yet). Promote them
 		// to deadline pieces immediately
-		std::vector<torrent_peer*> downloaders;
-		m_picker->get_downloaders(downloaders, piece);
+		std::vector<torrent_peer*> const downloaders
+			= m_picker->get_downloaders(piece);
 
 		int block = 0;
 		for (auto i = downloaders.begin()
 			, end(downloaders.end()); i != end; ++i, ++block)
 		{
-			torrent_peer* tp = *i;
+			torrent_peer* const tp = *i;
 			if (tp == nullptr || tp->connection == nullptr) continue;
 			auto* peer = static_cast<peer_connection*>(tp->connection);
 			peer->make_time_critical(piece_block(piece, block));

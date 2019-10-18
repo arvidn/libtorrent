@@ -411,36 +411,41 @@ TORRENT_TEST(get_downloaders)
 	p->mark_as_downloading({piece_index_t(0), 2}, &tmp2);
 	p->mark_as_writing({piece_index_t(0), 2}, &tmp2);
 
-	std::vector<torrent_peer*> d;
-	p->get_downloaders(d, piece_index_t(0));
-	TEST_EQUAL(d.size(), 4);
-	TEST_CHECK(d[0] == nullptr);
-	TEST_CHECK(d[1] == nullptr);
-	TEST_CHECK(d[2] == &tmp2);
-	TEST_CHECK(d[3] == nullptr);
+	{
+		std::vector<torrent_peer*> d = p->get_downloaders(piece_index_t(0));
+		TEST_EQUAL(d.size(), 4);
+		TEST_CHECK(d[0] == nullptr);
+		TEST_CHECK(d[1] == nullptr);
+		TEST_CHECK(d[2] == &tmp2);
+		TEST_CHECK(d[3] == nullptr);
+	}
 
 	p->mark_as_downloading({piece_index_t(0), 3}, &tmp1);
 	p->abort_download({piece_index_t(0), 3}, &tmp1);
 	p->mark_as_downloading({piece_index_t(0), 3}, &tmp2);
 	p->mark_as_writing({piece_index_t(0), 3}, &tmp2);
 
-	p->get_downloaders(d, piece_index_t(0));
+	{
+		std::vector<torrent_peer*> d = p->get_downloaders(piece_index_t(0));
 
-	TEST_EQUAL(d.size(), 4);
-	TEST_CHECK(d[0] == nullptr);
-	TEST_CHECK(d[1] == nullptr);
-	TEST_CHECK(d[2] == &tmp2);
-	TEST_CHECK(d[3] == &tmp2);
+		TEST_EQUAL(d.size(), 4);
+		TEST_CHECK(d[0] == nullptr);
+		TEST_CHECK(d[1] == nullptr);
+		TEST_CHECK(d[2] == &tmp2);
+		TEST_CHECK(d[3] == &tmp2);
+	}
 
 	// if we ask for downloaders for a piece that's not
 	// curently being downloaded, we get zeroes back
-	p->get_downloaders(d, piece_index_t(1));
+	{
+		std::vector<torrent_peer*> d = p->get_downloaders(piece_index_t(1));
 
-	TEST_EQUAL(d.size(), 4);
-	TEST_CHECK(d[0] == nullptr);
-	TEST_CHECK(d[1] == nullptr);
-	TEST_CHECK(d[2] == nullptr);
-	TEST_CHECK(d[3] == nullptr);
+		TEST_EQUAL(d.size(), 4);
+		TEST_CHECK(d[0] == nullptr);
+		TEST_CHECK(d[1] == nullptr);
+		TEST_CHECK(d[2] == nullptr);
+		TEST_CHECK(d[3] == nullptr);
+	}
 
 // ========================================================
 
@@ -1283,23 +1288,22 @@ TORRENT_TEST(clear_peer)
 	p->mark_as_downloading({piece_index_t(2), 1}, &tmp2);
 	p->mark_as_downloading({piece_index_t(3), 1}, &tmp3);
 
-	std::vector<torrent_peer*> dls;
 	std::vector<torrent_peer*> const expected_dls1{&tmp1, &tmp2, &tmp3, nullptr};
 	std::vector<torrent_peer*> const expected_dls2{nullptr, &tmp1, nullptr, nullptr};
 	std::vector<torrent_peer*> const expected_dls3{nullptr, &tmp2, nullptr, nullptr};
 	std::vector<torrent_peer*> const expected_dls4{nullptr, &tmp3, nullptr, nullptr};
 	std::vector<torrent_peer*> const expected_dls5{&tmp1, nullptr, &tmp3, nullptr};
-	p->get_downloaders(dls, piece_index_t(0));
+	std::vector<torrent_peer*> dls = p->get_downloaders(piece_index_t(0));
 	TEST_CHECK(dls == expected_dls1);
-	p->get_downloaders(dls, piece_index_t(1));
+	dls = p->get_downloaders(piece_index_t(1));
 	TEST_CHECK(dls == expected_dls2);
-	p->get_downloaders(dls, piece_index_t(2));
+	dls = p->get_downloaders(piece_index_t(2));
 	TEST_CHECK(dls == expected_dls3);
-	p->get_downloaders(dls, piece_index_t(3));
+	dls = p->get_downloaders(piece_index_t(3));
 	TEST_CHECK(dls == expected_dls4);
 
 	p->clear_peer(&tmp2);
-	p->get_downloaders(dls, piece_index_t(0));
+	dls = p->get_downloaders(piece_index_t(0));
 	TEST_CHECK(dls == expected_dls5);
 }
 
