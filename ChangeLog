@@ -1,3 +1,4 @@
+	* fixed division by zero in anti-leech choker
 	* fixed bug in torrent_info::swap
 
 1.2.2 release
