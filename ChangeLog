@@ -1,4 +1,10 @@
-	* fixed division by zero in anti-leech choker
+	* fix division by zero in anti-leech choker
+	* fix chunked http header validation
+	* fix use-after-free in SSL shutdown
+	* fix possible leak entry when assigning from bdecode_node or lazy_entry
+	* fix error handling of moving storage to a drive letter that isn't mounted
+	* fix bug in python binding parsing file_priorities from add_torrent_params
+	* fix target hostname in http connections using http proxy
 
 1.1.13 release
 
