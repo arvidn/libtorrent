@@ -76,13 +76,13 @@ unsigned long int helper_getauxval(unsigned long int type)
 #endif
 #endif // TORRENT_HAS_ARM && TORRENT_HAS_AUXV
 
-namespace libtorrent { namespace aux {
-
-	namespace {
+namespace libtorrent {
+namespace aux {
+namespace {
 
 #if TORRENT_HAS_SSE
 	// internal
-	void cpuid(std::uint32_t* info, int type)
+	void cpuid(std::uint32_t* info, int type) noexcept
 	{
 #if defined _MSC_VER
 		__cpuid((int*)info, type);
@@ -97,7 +97,7 @@ namespace libtorrent { namespace aux {
 	}
 #endif
 
-	bool supports_sse42()
+	bool supports_sse42() noexcept
 	{
 #if TORRENT_HAS_SSE
 		std::uint32_t cpui[4] = {0};
@@ -108,7 +108,7 @@ namespace libtorrent { namespace aux {
 #endif
 	}
 
-	bool supports_mmx()
+	bool supports_mmx() noexcept
 	{
 #if TORRENT_HAS_SSE
 		std::uint32_t cpui[4] = {0};
@@ -119,7 +119,7 @@ namespace libtorrent { namespace aux {
 #endif
 	}
 
-	bool supports_arm_neon()
+	bool supports_arm_neon() noexcept
 	{
 #if TORRENT_HAS_ARM_NEON && TORRENT_HAS_AUXV
 #if defined __arm__
@@ -136,7 +136,7 @@ namespace libtorrent { namespace aux {
 #endif
 	}
 
-	bool supports_arm_crc32c()
+	bool supports_arm_crc32c() noexcept
 	{
 #if TORRENT_HAS_ARM_CRC32 && TORRENT_HAS_AUXV
 #if defined TORRENT_FORCE_ARM_CRC32
@@ -153,7 +153,7 @@ namespace libtorrent { namespace aux {
 #endif
 	}
 
-	} // anonymous namespace
+} // anonymous namespace
 
 	bool const sse42_support = supports_sse42();
 	bool const mmx_support = supports_mmx();
