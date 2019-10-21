@@ -48,6 +48,7 @@ namespace libtorrent {
 		gcry_md_open(&m_context, GCRY_MD_SHA512, 0);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Init(&m_context);
+#elif TORRENT_USE_CNG
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Init(&m_context);
@@ -87,6 +88,8 @@ namespace libtorrent {
 		gcry_md_write(m_context, data.data(), static_cast<std::size_t>(data.size()));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), CC_LONG(data.size()));
+#elif TORRENT_USE_CNG
+		m_context.update(data);
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.update(data);
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -107,6 +110,8 @@ namespace libtorrent {
 		digest.assign(reinterpret_cast<char const*>(gcry_md_read(m_context, 0)));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+#elif TORRENT_USE_CNG
+		m_context.get_hash(digest.data(), digest.size());
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -123,6 +128,8 @@ namespace libtorrent {
 		gcry_md_reset(m_context);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Init(&m_context);
+#elif TORRENT_USE_CNG
+		m_context.reset();
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
