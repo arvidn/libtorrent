@@ -141,7 +141,9 @@ struct torrent_list
 			static char const req2[4] = { 'r', 'e', 'q', '2' };
 			hasher h(req2);
 			h.update(hash);
+#if !defined TORRENT_DISABLE_ENCRYPTION
 			m_obfuscated_index.erase(h.final());
+#endif
 		});
 		if (!found) return false;
 
