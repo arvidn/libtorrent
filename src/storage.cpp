@@ -1244,7 +1244,7 @@ namespace libtorrent
 		// check to see if any of the files exist
 		file_storage const& f = files();
 
-		if (flags == fail_if_exist)
+		if ((flags & 0x3) == fail_if_exist)
 		{
 			file_status s;
 			error_code err;
@@ -1314,7 +1314,7 @@ namespace libtorrent
 			std::string const old_path = combine_path(m_save_path, f.file_path(i));
 			std::string const new_path = combine_path(save_path, f.file_path(i));
 
-			if (flags == dont_replace && exists(new_path))
+			if ((flags & 0x3) == dont_replace && exists(new_path))
 			{
 				if (ret == piece_manager::no_error) ret = piece_manager::need_full_check;
 				// this is a new file, clear our cached version
