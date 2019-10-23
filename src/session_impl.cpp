@@ -5591,7 +5591,7 @@ namespace aux {
 			}
 
 			if (tcp) (*ls)->tcp_port_mapping[transport].port = port;
-			else (*ls)->tcp_port_mapping[transport].port = port;
+			else (*ls)->udp_port_mapping[transport].port = port;
 		}
 
 		if (!ec && m_alerts.should_post<portmap_alert>())
