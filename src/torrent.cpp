@@ -7617,7 +7617,7 @@ bool is_downloading_state(int const st)
 		to_disconnect.resize(num);
 		auto end = std::partial_sort_copy(m_connections.begin(), m_connections.end()
 			, to_disconnect.begin(), to_disconnect.end(), compare_disconnect_peer);
-		for (auto p : range(to_disconnect.begin(), end))
+		for (auto p : aux::range(to_disconnect.begin(), end))
 		{
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 			p->disconnect(ec, operation_t::bittorrent);
