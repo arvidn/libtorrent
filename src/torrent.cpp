@@ -5606,11 +5606,19 @@ bool is_downloading_state(int const st)
 			TORRENT_ASSERT_VAL(m_peers_to_disconnect.capacity() > m_peers_to_disconnect.size()
 				, m_peers_to_disconnect.capacity());
 			m_peers_to_disconnect.push_back(p);
-			m_deferred_disconnect.post_deferred(m_ses.get_context(), aux::make_handler([=]()
-			{
-				std::shared_ptr<torrent> t = weak_t.lock();
-				if (t) t->on_remove_peers();
-			}, m_deferred_handler_storage, *this));
+
+			using deferred_handler_type = aux::handler<
+				torrent
+				, decltype(&torrent::on_remove_peers)
+				, &torrent::on_remove_peers
+				, &torrent::on_error
+				, &torrent::on_exception
+				, decltype(m_deferred_handler_storage)
+				, &torrent::m_deferred_handler_storage
+				>;
+			static_assert(sizeof(deferred_handler_type) == sizeof(std::shared_ptr<peer_connection>)
+				, "deferred handler does not have the expected size");
+			m_deferred_disconnect.post_deferred(m_ses.get_context(), deferred_handler_type(shared_from_this()));
 		}
 		else
 		{

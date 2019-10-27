@@ -477,6 +477,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-Wvla
 		-Wc++11-compat
 		-Wno-format-zero-length
+		-Wno-noexcept-type
 		-ftemplate-depth=512)
 elseif(MSVC)
 	add_compile_options(
