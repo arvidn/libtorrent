@@ -257,7 +257,6 @@ namespace aux {
 		, public disk_observer
 		, public peer_connection_interface
 		, public std::enable_shared_from_this<peer_connection>
-		, public aux::error_handler_interface
 	{
 	friend class invariant_access;
 	friend class torrent;
@@ -267,8 +266,8 @@ namespace aux {
 		// explicitly disallow assignment, to silence msvc warning
 		peer_connection& operator=(peer_connection const&) = delete;
 
-		void on_exception(std::exception const& e) override;
-		void on_error(error_code const& ec) override;
+		void on_exception(std::exception const& e);
+		void on_error(error_code const& ec);
 
 		virtual connection_type type() const = 0;
 
