@@ -95,6 +95,25 @@ namespace aux {
 	struct socket_type;
 	struct session_interface;
 
+	class min_value_t {};
+	static const min_value_t min_value{};
+
+	struct relative_time
+	{
+		relative_time() : m_time_diff(0) {}
+		explicit relative_time(min_value_t) : m_time_diff(std::numeric_limits<std::int32_t>::min()) {}
+		void set(time_point const reference, time_point const new_value) noexcept
+		{
+			m_time_diff = duration_cast<milliseconds32>(new_value - reference);
+		}
+
+		time_point get(time_point reference) const noexcept
+		{
+			return reference + m_time_diff;
+		}
+	private:
+		milliseconds32 m_time_diff;
+	};
 }
 
 	struct pending_block
@@ -464,7 +483,7 @@ namespace aux {
 		std::vector<piece_index_t> const& suggested_pieces() const { return m_suggested_pieces; }
 
 		time_point connected_time() const { return m_connect; }
-		time_point last_received() const { return m_last_receive; }
+		time_point last_received() const { return m_last_receive.get(m_connect); }
 
 		// this will cause this peer_connection to be disconnected.
 		void disconnect(error_code const& ec
@@ -668,7 +687,7 @@ namespace aux {
 
 		// the time we last unchoked this peer
 		time_point time_of_last_unchoke() const
-		{ return m_last_unchoke; }
+		{ return m_last_unchoke.get(m_connect); }
 
 		// called when the disk write buffer is drained again, and we can
 		// start downloading payload again
@@ -861,33 +880,34 @@ namespace aux {
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		time_point m_last_piece = aux::time_now();
+		aux::relative_time m_last_piece;
 
 		// the time we sent a request to
 		// this peer the last time
-		time_point m_last_request = aux::time_now();
+		aux::relative_time m_last_request;
+
 		// the time we received the last
 		// piece request from the peer
-		time_point m_last_incoming_request = min_time();
+		aux::relative_time m_last_incoming_request{aux::min_value};
 
 		// the time when we unchoked this peer
-		time_point m_last_unchoke = aux::time_now();
+		aux::relative_time m_last_unchoke;
 
 		// if we're unchoked by this peer, this
 		// was the time
-		time_point m_last_unchoked = aux::time_now();
+		aux::relative_time m_last_unchoked;
 
 		// the time we last choked this peer. min_time() in
 		// case we never unchoked it
-		time_point m_last_choke = min_time();
+		aux::relative_time m_last_choke{aux::min_value};
 
 		// timeouts
-		time_point m_last_receive = aux::time_now();
-		time_point m_last_sent = aux::time_now();
+		aux::relative_time m_last_receive;
+		aux::relative_time m_last_sent;
 
 		// the last time we filled our send buffer with payload
 		// this is used for timeouts
-		time_point m_last_sent_payload = aux::time_now();
+		aux::relative_time m_last_sent_payload;
 
 		// the time when the first entry in the request queue was requested. Used
 		// for request timeout. it doesn't necessarily represent the time when a
@@ -896,19 +916,19 @@ namespace aux {
 		// Once we get that response, we set it to the current time.
 		// for more information, see the blog post at:
 		// http://blog.libtorrent.org/2011/11/block-request-time-outs/
-		time_point m_requested = aux::time_now();
+		aux::relative_time m_requested;
+
+		// the time when this peer sent us a not_interested message
+		// the last time.
+		aux::relative_time m_became_uninterested;
+
+		// the time when we sent a not_interested message to
+		// this peer the last time.
+		aux::relative_time m_became_uninteresting;
 
 		// the time when async_connect was called
 		// or when the incoming connection was established
 		time_point m_connect = aux::time_now();
-
-		// the time when this peer sent us a not_interested message
-		// the last time.
-		time_point m_became_uninterested = aux::time_now();
-
-		// the time when we sent a not_interested message to
-		// this peer the last time.
-		time_point m_became_uninteresting = aux::time_now();
 
 		// the total payload download bytes
 		// at the last unchoke round. This is used to
