@@ -5806,6 +5806,7 @@ namespace libtorrent {
 
 		using write_handler_type = aux::handler<
 			peer_connection
+			, decltype(&peer_connection::on_send_data)
 			, &peer_connection::on_send_data
 			, &peer_connection::on_error
 			, &peer_connection::on_exception
@@ -5899,6 +5900,7 @@ namespace libtorrent {
 
 		using read_handler_type = aux::handler<
 			peer_connection
+			, decltype(&peer_connection::on_receive_data)
 			, &peer_connection::on_receive_data
 			, &peer_connection::on_error
 			, &peer_connection::on_exception

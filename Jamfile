@@ -244,6 +244,7 @@ rule warnings ( properties * )
 		result += <cflags>-Wvla ;
 		result += <cxxflags>-Wc++11-compat ;
 		result += <cflags>-Wno-format-zero-length ;
+		result += <cflags>-Wno-noexcept-type ;
 	}
 
 	if <toolset>msvc in $(properties)

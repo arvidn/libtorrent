@@ -234,7 +234,7 @@ namespace libtorrent { namespace aux {
 		{}
 
 		template <class... A>
-		void operator()(A&&... a) const
+		void operator()(A&&... a)
 		{
 #ifdef BOOST_NO_EXCEPTIONS
 			handler(std::forward<A>(a)...);
@@ -285,7 +285,10 @@ namespace libtorrent { namespace aux {
 			std::forward<Handler>(handler), &storage, &err_handler);
 	}
 
-	template <typename T, void (T::*Handler)(error_code const&, std::size_t)
+	// TODO: in C++17, Handler and Storage could just use "auto"
+	template <typename T
+		, typename HandlerType
+		, HandlerType Handler
 		, void (T::*ErrorHandler)(error_code const&)
 		, void (T::*ExceptHandler)(std::exception const&)
 		, typename StorageType
@@ -321,8 +324,8 @@ namespace libtorrent { namespace aux {
 				std::runtime_error e("unknown exception");
 				(ptr_.get()->*ExceptHandler)(e);
 			}
-		}
 #endif
+		}
 
 		using allocator_type = handler_allocator<handler, StorageType::size, StorageType::name>;
 

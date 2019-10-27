@@ -335,7 +335,6 @@ namespace libtorrent {
 		, private torrent_hot_members
 		, public request_callback
 		, public peer_class_set
-		, public aux::error_handler_interface
 		, public std::enable_shared_from_this<torrent>
 	{
 	public:
@@ -1186,8 +1185,8 @@ namespace libtorrent {
 
 	private:
 
-		void on_exception(std::exception const& e) override;
-		void on_error(error_code const& ec) override;
+		void on_exception(std::exception const& e);
+		void on_error(error_code const& ec);
 
 		// trigger deferred disconnection of peers
 		void on_remove_peers() noexcept;
