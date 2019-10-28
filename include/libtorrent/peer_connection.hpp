@@ -114,6 +114,15 @@ namespace aux {
 	private:
 		milliseconds32 m_time_diff;
 	};
+
+	template <typename T>
+	T clamp_assign(int const v)
+	{
+		auto const limit = std::numeric_limits<T>::max();
+		if (v < 0) return 0;
+		if (v > int(limit)) return limit;
+		return static_cast<T>(v);
+	}
 }
 
 	struct pending_block
@@ -354,15 +363,17 @@ namespace aux {
 		int prefer_contiguous_blocks() const
 		{
 			if (on_parole()) return 1;
-			return m_prefer_contiguous_blocks;
+			return int(m_prefer_contiguous_blocks);
 		}
 
 		bool on_parole() const;
 
 		picker_options_t picker_options() const;
 
-		void prefer_contiguous_blocks(int num)
-		{ m_prefer_contiguous_blocks = num; }
+		void prefer_contiguous_blocks(int const num)
+		{
+			m_prefer_contiguous_blocks = aux::clamp_assign<std::uint16_t>(num);
+		}
 
 		bool request_large_blocks() const
 		{ return m_request_large_blocks; }
@@ -844,7 +855,7 @@ namespace aux {
 		// if the peer is known to require a smaller limit (like BitComet).
 		// or if the extended handshake sets a limit.
 		// web seeds also has a limit on the queue size.
-		int m_max_out_request_queue;
+		std::uint16_t m_max_out_request_queue;
 
 		// this is the peer we're actually talking to
 		// it may not necessarily be the peer we're
@@ -1027,7 +1038,7 @@ namespace aux {
 		// requests and take the previous requests
 		// into account without submitting it all
 		// immediately
-		int m_queued_time_critical = 0;
+		std::uint16_t m_queued_time_critical = 0;
 
 		// the number of bytes we are currently reading
 		// from disk, that will be added to the send
@@ -1047,7 +1058,7 @@ namespace aux {
 		// peer is waiting for those pieces.
 		// we can then clear its download queue
 		// by sending choke, unchoke.
-		int m_num_invalid_requests = 0;
+		std::uint16_t m_num_invalid_requests = 0;
 
 		// if [0] is -1, super-seeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
@@ -1084,7 +1095,7 @@ namespace aux {
 		// if it is 0, the download rate limit setting
 		// will be used to determine if whole pieces
 		// are preferred.
-		int m_prefer_contiguous_blocks = 0;
+		std::uint16_t m_prefer_contiguous_blocks = 0;
 
 		// this is the number of times this peer has had
 		// a request rejected because of a disk I/O failure.
