@@ -41,10 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <deque>
 #include <fstream>
-#include <regex>
 #include <algorithm> // for min()/max()
 
 #include "libtorrent/config.hpp"
+
+#include <regex>
 
 #ifdef TORRENT_WINDOWS
 #include <direct.h> // for _mkdir and _getcwd
@@ -96,6 +97,7 @@ using lt::make_address_v4;
 using lt::make_address;
 
 using std::chrono::duration_cast;
+using std::stoi;
 
 #ifdef _WIN32
 
