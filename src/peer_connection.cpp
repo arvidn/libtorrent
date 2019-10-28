@@ -143,7 +143,7 @@ namespace libtorrent {
 		, m_peer_info(pack.peerinfo)
 		, m_counters(*pack.stats_counters)
 		, m_num_pieces(0)
-		, m_max_out_request_queue(m_settings.get_int(settings_pack::max_out_request_queue))
+		, m_max_out_request_queue(aux::clamp_assign<std::uint16_t>(m_settings.get_int(settings_pack::max_out_request_queue)))
 		, m_remote(pack.endp)
 		, m_disk_thread(*pack.disk_thread)
 		, m_ios(*pack.ios)
@@ -2343,7 +2343,8 @@ namespace libtorrent {
 			&& !super_seeded_piece(r.piece))
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
-			++m_num_invalid_requests;
+			if (m_num_invalid_requests < std::numeric_limits<decltype(m_num_invalid_requests)>::max())
+				++m_num_invalid_requests;
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
@@ -2483,7 +2484,8 @@ namespace libtorrent {
 #endif
 
 			write_reject_request(r);
-			++m_num_invalid_requests;
+			if (m_num_invalid_requests < std::numeric_limits<decltype(m_num_invalid_requests)>::max())
+				++m_num_invalid_requests;
 
 			if (t->alerts().should_post<invalid_request_alert>())
 			{
@@ -3502,11 +3504,13 @@ namespace libtorrent {
 		TORRENT_ASSERT(t->picker().is_requested(block));
 #endif
 		// ignore it if it's already time critical
-		if (rit - m_request_queue.begin() < m_queued_time_critical) return false;
+		if (rit - m_request_queue.begin() < int(m_queued_time_critical)) return false;
 		pending_block b = *rit;
 		m_request_queue.erase(rit);
-		m_request_queue.insert(m_request_queue.begin() + m_queued_time_critical, b);
-		++m_queued_time_critical;
+		m_request_queue.insert(m_request_queue.begin() + int(m_queued_time_critical), b);
+
+		if (m_queued_time_critical < std::numeric_limits<decltype(m_queued_time_critical)>::max())
+			++m_queued_time_critical;
 		return true;
 	}
 
@@ -4688,12 +4692,12 @@ namespace libtorrent {
 		peer_log(peer_log_alert::info, "MAX_OUT_QUEUE_SIZE", "%d -> %d"
 			, m_max_out_request_queue, s);
 #endif
-		m_max_out_request_queue = s;
+		m_max_out_request_queue = aux::clamp_assign<std::uint16_t>(s);
 	}
 
 	int peer_connection::max_out_request_queue() const
 	{
-		return m_max_out_request_queue;
+		return int(m_max_out_request_queue);
 	}
 
 	void peer_connection::update_desired_queue_size()
@@ -4734,7 +4738,7 @@ namespace libtorrent {
 		}
 
 		if (m_desired_queue_size > m_max_out_request_queue)
-			m_desired_queue_size = std::uint16_t(m_max_out_request_queue);
+			m_desired_queue_size = m_max_out_request_queue;
 		if (m_desired_queue_size < min_request_queue)
 			m_desired_queue_size = min_request_queue;
 
@@ -4743,7 +4747,7 @@ namespace libtorrent {
 		{
 			peer_log(peer_log_alert::info, "UPDATE_QUEUE_SIZE"
 				, "dqs: %d max: %d dl: %d qt: %d snubbed: %d slow-start: %d"
-				, m_desired_queue_size, m_max_out_request_queue
+				, int(m_desired_queue_size), int(m_max_out_request_queue)
 				, download_rate, queue_time, int(m_snubbed), int(m_slow_start));
 		}
 #endif
