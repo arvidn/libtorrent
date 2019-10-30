@@ -88,6 +88,7 @@ using lt::address_v4;
 using lt::address_v6;
 
 using std::chrono::duration_cast;
+using std::stoi;
 
 #ifdef _WIN32
 
@@ -521,6 +522,20 @@ std::string resume_file(lt::sha1_hash const& info_hash)
 		, to_hex(info_hash) + ".resume"));
 }
 
+void set_torrent_params(lt::add_torrent_params& p)
+{
+	p.max_connections = max_connections_per_torrent;
+	p.max_uploads = -1;
+	p.upload_limit = torrent_upload_limit;
+	p.download_limit = torrent_download_limit;
+
+	if (seed_mode) p.flags |= lt::torrent_flags::seed_mode;
+	if (disable_storage) p.storage = lt::disabled_storage_constructor;
+	if (share_mode) p.flags |= lt::torrent_flags::share_mode;
+	p.save_path = save_path;
+	p.storage_mode = static_cast<lt::storage_mode_t>(allocation_mode);
+}
+
 void add_magnet(lt::session& ses, lt::string_view uri)
 {
 	lt::error_code ec;
@@ -539,18 +554,8 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
 	}
-	ec.clear();
 
-	p.max_connections = max_connections_per_torrent;
-	p.max_uploads = -1;
-	p.upload_limit = torrent_upload_limit;
-	p.download_limit = torrent_download_limit;
-
-	if (seed_mode) p.flags |= lt::torrent_flags::seed_mode;
-	if (disable_storage) p.storage = lt::disabled_storage_constructor;
-	if (share_mode) p.flags |= lt::torrent_flags::share_mode;
-	p.save_path = save_path;
-	p.storage_mode = static_cast<lt::storage_mode_t>(allocation_mode);
+	set_torrent_params(p);
 
 	std::printf("adding magnet: %s\n", uri.to_string().c_str());
 	ses.async_add_torrent(std::move(p));
@@ -583,21 +588,11 @@ bool add_torrent(lt::session& ses, std::string torrent)
 		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
 	}
-	ec.clear();
 
-	if (seed_mode) p.flags |= lt::torrent_flags::seed_mode;
-	if (disable_storage) p.storage = lt::disabled_storage_constructor;
-	if (share_mode) p.flags |= lt::torrent_flags::share_mode;
+	set_torrent_params(p);
 
-	p.max_connections = max_connections_per_torrent;
-	p.max_uploads = -1;
-	p.upload_limit = torrent_upload_limit;
-	p.download_limit = torrent_download_limit;
 	p.ti = ti;
-	p.save_path = save_path;
-	p.storage_mode = (storage_mode_t)allocation_mode;
 	p.flags &= ~lt::torrent_flags::duplicate_is_error;
-	p.userdata = static_cast<void*>(new std::string(torrent));
 	ses.async_add_torrent(std::move(p));
 	return true;
 }
