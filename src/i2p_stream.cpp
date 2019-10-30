@@ -134,6 +134,8 @@ namespace libtorrent {
 	}
 #endif
 
+	static_assert(std::is_nothrow_move_constructible<i2p_stream>::value
+		, "should be nothrow move constructible");
 }
 
 #endif

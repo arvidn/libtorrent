@@ -58,6 +58,21 @@ namespace aux {
 		using T::operator=;
 	};
 
+	template <typename T>
+	struct noexcept_move_only : T
+	{
+		noexcept_move_only() = default;
+		noexcept_move_only(noexcept_move_only<T>&& rhs) noexcept
+			: T(std::forward<T>(rhs))
+		{}
+		noexcept_move_only(noexcept_move_only<T> const& rhs) = default;
+		noexcept_move_only(T&& rhs) noexcept : T(std::forward<T>(rhs)) {} // NOLINT
+		noexcept_move_only(T const& rhs) : T(rhs) {} // NOLINT
+		noexcept_move_only& operator=(noexcept_move_only const& rhs) = default;
+		noexcept_move_only& operator=(noexcept_move_only&& rhs) = default;
+		using T::T;
+	};
+
 }
 }
 

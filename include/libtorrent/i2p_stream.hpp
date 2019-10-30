@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
+#include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/settings_pack.hpp"
@@ -100,18 +101,17 @@ namespace libtorrent {
 	{ return i2p_category(); }
 #endif
 
-class i2p_stream : public proxy_base
+struct i2p_stream : public proxy_base
 {
-public:
-
 	explicit i2p_stream(io_context& io_context);
+	i2p_stream(i2p_stream&&) noexcept = default;
 #if TORRENT_USE_ASSERTS
 	~i2p_stream();
 #endif
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_stream& operator=(i2p_stream const&) = delete;
 
-	enum command_t
+	enum command_t : std::uint8_t
 	{
 		cmd_none,
 		cmd_create_session,
@@ -442,13 +442,12 @@ private:
 	}
 
 	// send and receive buffer
-	aux::vector<char> m_buffer;
+	aux::noexcept_movable<aux::vector<char>> m_buffer;
 	char const* m_id;
-	command_t m_command;
 	std::string m_dest;
 	std::string m_name_lookup;
 
-	enum state_t
+	enum state_t : std::uint8_t
 	{
 		read_hello_response,
 		read_connect_response,
@@ -457,6 +456,7 @@ private:
 		read_name_lookup_response
 	};
 
+	command_t m_command;
 	state_t m_state;
 #if TORRENT_USE_ASSERTS
 	int m_magic;
