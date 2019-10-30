@@ -41,4 +41,7 @@ namespace libtorrent {
 	{}
 
 	proxy_base::~proxy_base() = default;
+
+	static_assert(std::is_nothrow_move_constructible<proxy_base>::value
+		, "should be nothrow move constructible");
 }

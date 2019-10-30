@@ -40,13 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/noexcept_movable.hpp"
 
 namespace libtorrent {
 
-class proxy_base
+struct proxy_base
 {
-public:
-
 	using next_layer_type = tcp::socket;
 	using lowest_layer_type = tcp::socket::lowest_layer_type;
 	using endpoint_type = tcp::socket::endpoint_type;
@@ -54,6 +53,8 @@ public:
 
 	explicit proxy_base(io_context& io_context);
 	~proxy_base();
+	proxy_base(proxy_base&&) noexcept = default;
+	proxy_base& operator=(proxy_base&&) = default;
 	proxy_base(proxy_base const&) = delete;
 	proxy_base& operator=(proxy_base const&) = delete;
 
@@ -273,14 +274,14 @@ protected:
 		return true;
 	}
 
-	tcp::socket m_sock;
+	aux::noexcept_movable<tcp::socket> m_sock;
 	std::string m_hostname; // proxy host
 	int m_port;             // proxy port
 
-	endpoint_type m_remote_endpoint;
+	aux::noexcept_movable<endpoint_type> m_remote_endpoint;
 
 	// TODO: 2 use the resolver interface that has a built-in cache
-	tcp::resolver m_resolver;
+	aux::noexcept_move_only<tcp::resolver> m_resolver;
 };
 
 template <typename Handler, typename UnderlyingHandler>
