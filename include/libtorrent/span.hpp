@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SPAN_HPP_INCLUDED
 #define TORRENT_SPAN_HPP_INCLUDED
 
+#include <string>
 #include <array>
 #include <type_traits>
 #include "libtorrent/assert.hpp"
