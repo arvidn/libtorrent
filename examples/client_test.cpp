@@ -480,7 +480,7 @@ int print_peer_info(std::string& out
 	return pos;
 }
 
-int allocation_mode = lt::storage_mode_sparse;
+lt::storage_mode_t allocation_mode = lt::storage_mode_sparse;
 std::string save_path(".");
 int torrent_upload_limit = 0;
 int torrent_download_limit = 0;
@@ -533,7 +533,7 @@ void set_torrent_params(lt::add_torrent_params& p)
 	if (disable_storage) p.storage = lt::disabled_storage_constructor;
 	if (share_mode) p.flags |= lt::torrent_flags::share_mode;
 	p.save_path = save_path;
-	p.storage_mode = static_cast<lt::storage_mode_t>(allocation_mode);
+	p.storage_mode = allocation_mode;
 }
 
 void add_magnet(lt::session& ses, lt::string_view uri)
