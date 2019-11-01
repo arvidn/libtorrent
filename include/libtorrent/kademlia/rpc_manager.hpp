@@ -112,6 +112,7 @@ public:
 
 		auto deleter = [this](observer* o)
 		{
+			TORRENT_ASSERT(o->m_in_use);
 			o->~observer();
 			free_observer(o);
 		};

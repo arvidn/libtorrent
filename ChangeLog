@@ -15,6 +15,9 @@
 	* update networking API to networking TS compatible boost.asio
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 
+	* fixed division by zero in anti-leech choker
+	* fixed bug in torrent_info::swap
+
 1.2.2 release
 
 	* fix cases where the disable_hash_checks setting was not honored

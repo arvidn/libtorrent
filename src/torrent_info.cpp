@@ -1195,6 +1195,10 @@ namespace {
 		m_files.swap(ti.m_files);
 		m_orig_files.swap(ti.m_orig_files);
 		m_nodes.swap(ti.m_nodes);
+		m_similar_torrents.swap(ti.m_similar_torrents);
+		m_owned_similar_torrents.swap(ti.m_owned_similar_torrents);
+		m_collections.swap(ti.m_collections);
+		m_owned_collections.swap(ti.m_owned_collections);
 		swap(m_info_hash, ti.m_info_hash);
 		swap(m_creation_date, ti.m_creation_date);
 		m_comment.swap(ti.m_comment);

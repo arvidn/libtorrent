@@ -186,11 +186,11 @@ install:
       python3 -m flake8 --version;
     fi'
   - 'if [ $sonar_scan == "1" ]; then
-      wget --quiet https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.2.0.1227-linux.zip
-      wget --quiet https://sonarqube.com/static/cpp/build-wrapper-linux-x86.zip;
-      unzip sonar-scanner-cli-3.2.0.1227-linux.zip;
+      wget --quiet https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.2.0.1873-linux.zip;
+      wget --quiet https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip;
+      unzip sonar-scanner-cli-4.2.0.1873-linux.zip;
       unzip build-wrapper-linux-x86.zip;
-      export PATH=$PWD/sonar-scanner-3.2.0.1227-linux/bin:$PWD/build-wrapper-linux-x86:$PATH;
+      export PATH=$PWD/sonar-scanner-4.2.0.1873-linux/bin:$PWD/build-wrapper-linux-x86:$PATH;
     fi'
 
   - ccache -V

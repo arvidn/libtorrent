@@ -61,8 +61,12 @@ for line in f2:
         continue
 
     line = line.split('(')[1].split(',')
-    def_map[line[0]] = line[1].strip()
-    print('%s = %s' % (line[0], line[1].strip()))
+    if line[1].strip()[0] == '"':
+        default = ','.join(line[1:]).strip()[1:].split('"')[0].strip()
+    else:
+        default = line[1].strip()
+    def_map[line[0]] = default
+    print('%s = %s' % (line[0], default))
 
 description = ''
 names = []

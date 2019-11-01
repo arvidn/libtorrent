@@ -166,6 +166,7 @@ namespace {
 		TORRENT_ASSERT(t);
 
 		std::int64_t const total_size = t->torrent_file().total_size();
+		if (total_size == 0) return 0;
 		std::int64_t const have_size = std::max(peer->statistics().total_payload_upload()
 			, std::int64_t(t->torrent_file().piece_length()) * peer->num_have_pieces());
 		return int(std::abs((have_size - total_size / 2) * 2000 / total_size));
@@ -238,10 +239,6 @@ namespace {
 		}
 #endif
 
-		int upload_slots = sett.get_int(settings_pack::unchoke_slots_limit);
-		if (upload_slots < 0)
-			upload_slots = std::numeric_limits<int>::max();
-
 		// ==== BitTyrant ====
 		//
 		// if we're using the bittyrant unchoker, go through all peers that
@@ -282,7 +279,7 @@ namespace {
 			// now, figure out how many peers should be unchoked. We deduct the
 			// estimated reciprocation rate from our upload_capacity estimate
 			// until there none left
-			upload_slots = 0;
+			int upload_slots = 0;
 
 			for (auto const p : peers)
 			{
@@ -296,6 +293,10 @@ namespace {
 
 			return upload_slots;
 		}
+
+		int upload_slots = sett.get_int(settings_pack::unchoke_slots_limit);
+		if (upload_slots < 0)
+			upload_slots = std::numeric_limits<int>::max();
 
 		// ==== rate-based ====
 		//
@@ -347,13 +348,15 @@ namespace {
 		// we use partial sort here, because we only care about the top
 		// upload_slots peers.
 
+		int const slots = std::min(upload_slots, int(peers.size()));
+
 		if (sett.get_int(settings_pack::seed_choking_algorithm)
 			== settings_pack::round_robin)
 		{
 			int const pieces = sett.get_int(settings_pack::seeding_piece_quota);
 
 			std::partial_sort(peers.begin(), peers.begin()
-				+ std::min(upload_slots, int(peers.size())), peers.end()
+				+ slots, peers.end()
 				, [pieces](peer_connection const* lhs, peer_connection const* rhs)
 				{ return unchoke_compare_rr(lhs, rhs, pieces); });
 		}
@@ -361,7 +364,7 @@ namespace {
 			== settings_pack::fastest_upload)
 		{
 			std::partial_sort(peers.begin(), peers.begin()
-				+ std::min(upload_slots, int(peers.size())), peers.end()
+				+ slots, peers.end()
 				, [](peer_connection const* lhs, peer_connection const* rhs)
 				{ return unchoke_compare_fastest_upload(lhs, rhs); });
 		}
@@ -369,7 +372,7 @@ namespace {
 			== settings_pack::anti_leech)
 		{
 			std::partial_sort(peers.begin(), peers.begin()
-				+ std::min(upload_slots, int(peers.size())), peers.end()
+				+ slots, peers.end()
 				, [](peer_connection const* lhs, peer_connection const* rhs)
 				{ return unchoke_compare_anti_leech(lhs, rhs); });
 		}
@@ -377,7 +380,7 @@ namespace {
 		{
 			int const pieces = sett.get_int(settings_pack::seeding_piece_quota);
 			std::partial_sort(peers.begin(), peers.begin()
-				+ std::min(upload_slots, int(peers.size())), peers.end()
+				+ slots, peers.end()
 				, [pieces](peer_connection const* lhs, peer_connection const* rhs)
 				{ return unchoke_compare_rr(lhs, rhs, pieces); } );
 
