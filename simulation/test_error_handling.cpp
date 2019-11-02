@@ -164,7 +164,8 @@ void* operator new(std::size_t sz)
 		// to make the heterogeneous queue support throwing moves, nor to replace all
 		// standard types with variants that can move noexcept.
 		if (std::strstr(stack, " libtorrent::entry::operator= ") != nullptr
-			|| std::strstr(stack, " libtorrent::aux::noexcept_movable<std::map<") != nullptr)
+			|| std::strstr(stack, " libtorrent::aux::noexcept_movable<") != nullptr
+			|| std::strstr(stack, " libtorrent::aux::noexcept_move_only<") != nullptr)
 		{
 			++g_alloc_counter;
 			return std::malloc(sz);
