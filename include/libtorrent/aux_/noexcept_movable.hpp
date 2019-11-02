@@ -61,7 +61,6 @@ namespace aux {
 	template <typename T>
 	struct noexcept_move_only : T
 	{
-		noexcept_move_only() = default;
 		noexcept_move_only(noexcept_move_only<T>&& rhs) noexcept
 			: T(std::forward<T>(rhs))
 		{}
