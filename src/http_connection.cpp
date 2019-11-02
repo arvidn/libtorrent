@@ -77,7 +77,8 @@ http_connection::http_connection(io_context& ios
 	, ssl::context* ssl_ctx
 #endif
 	)
-	: m_next_ep(0)
+	: m_ios(ios)
+	, m_next_ep(0)
 	, m_sock(ios)
 #ifdef TORRENT_USE_OPENSSL
 	, m_ssl_ctx(ssl_ctx)
@@ -155,7 +156,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	if (ec)
 	{
-		post(m_timer.get_executor(), std::bind(&http_connection::callback
+		post(m_ios, std::bind(&http_connection::callback
 			, me, ec, span<char>{}));
 		return;
 	}
@@ -167,7 +168,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		)
 	{
 		error_code err(errors::unsupported_url_protocol);
-		post(m_timer.get_executor(), std::bind(&http_connection::callback
+		post(m_ios, std::bind(&http_connection::callback
 			, me, err, span<char>{}));
 		return;
 	}
@@ -295,7 +296,7 @@ void http_connection::start(std::string const& hostname, int port
 #if TORRENT_USE_I2P
 			if (i2p_conn->proxy().type != settings_pack::i2p_proxy)
 			{
-				post(m_timer.get_executor(), std::bind(&http_connection::callback
+				post(m_ios, std::bind(&http_connection::callback
 					, me, error_code(errors::no_i2p_router), span<char>{}));
 				return;
 			}
@@ -331,7 +332,7 @@ void http_connection::start(std::string const& hostname, int port
 					m_ssl_ctx->set_verify_mode(ssl::context::verify_none, ec);
 					if (ec)
 					{
-						post(m_timer.get_executor(), std::bind(&http_connection::callback
+						post(m_ios, std::bind(&http_connection::callback
 							, me, ec, span<char>{}));
 						return;
 					}
@@ -343,7 +344,7 @@ void http_connection::start(std::string const& hostname, int port
 		// assume this is not a tracker connection. Tracker connections that
 		// shouldn't be subject to the proxy should pass in nullptr as the proxy
 		// pointer.
-		instantiate_connection(m_sock.get_executor().context()
+		instantiate_connection(m_ios
 			, proxy ? *proxy : null_proxy, m_sock, userdata, nullptr, false, false);
 
 		if (m_bind_addr)
@@ -353,7 +354,7 @@ void http_connection::start(std::string const& hostname, int port
 			m_sock.bind(tcp::endpoint(*m_bind_addr, 0), ec);
 			if (ec)
 			{
-				post(m_timer.get_executor(), std::bind(&http_connection::callback
+				post(m_ios, std::bind(&http_connection::callback
 					, me, ec, span<char>{}));
 				return;
 			}
@@ -363,7 +364,7 @@ void http_connection::start(std::string const& hostname, int port
 		setup_ssl_hostname(m_sock, hostname, ec);
 		if (ec)
 		{
-			post(m_timer.get_executor(), std::bind(&http_connection::callback
+			post(m_ios, std::bind(&http_connection::callback
 				, me, ec, span<char>{}));
 			return;
 		}
