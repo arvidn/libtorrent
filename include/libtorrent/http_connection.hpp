@@ -152,6 +152,7 @@ private:
 	void callback(error_code e, span<char> data = {});
 
 	aux::vector<char> m_recvbuffer;
+	io_context& m_ios;
 
 	std::string m_hostname;
 	std::string m_url;
