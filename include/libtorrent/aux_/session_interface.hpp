@@ -236,7 +236,7 @@ namespace aux {
 			, std::weak_ptr<request_callback> c) = 0;
 
 		// peer-classes
-		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;
+		virtual void set_peer_classes(peer_class_set* s, address const& a, socket_type_t st) = 0;
 		virtual peer_class_pool const& peer_classes() const = 0;
 		virtual peer_class_pool& peer_classes() = 0;
 		virtual bool ignore_unchoke_slots_set(peer_class_set const& set) const = 0;

@@ -606,10 +606,16 @@ void bind_alert()
 
     enum_<socket_type_t>("socket_type_t")
        .value("tcp", socket_type_t::tcp)
-       .value("tcp_ssl", socket_type_t::tcp_ssl)
-       .value("udp", socket_type_t::udp)
-       .value("i2p", socket_type_t::i2p)
        .value("socks5", socket_type_t::socks5)
+       .value("http", socket_type_t::http)
+       .value("utp", socket_type_t::utp)
+#if TORRENT_ABI_VERSION <= 2
+       .value("udp", socket_type_t::udp)
+#endif
+       .value("i2p", socket_type_t::i2p)
+       .value("tcp_ssl", socket_type_t::tcp_ssl)
+       .value("socks5_ssl", socket_type_t::socks5_ssl)
+       .value("http_ssl", socket_type_t::http_ssl)
        .value("utp_ssl", socket_type_t::utp_ssl)
        ;
 

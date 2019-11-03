@@ -168,7 +168,8 @@ namespace libtorrent {
 		, m_exceeded_limit(false)
 		, m_slow_start(true)
 	{
-		m_counters.inc_stats_counter(counters::num_tcp_peers + socket_type_idx(*m_socket) - 1);
+		m_counters.inc_stats_counter(counters::num_tcp_peers
+			+ static_cast<std::uint8_t>(socket_type_idx(*m_socket)));
 		std::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (m_connected)
@@ -841,7 +842,8 @@ namespace libtorrent {
 
 	peer_connection::~peer_connection()
 	{
-		m_counters.inc_stats_counter(counters::num_tcp_peers + socket_type_idx(*m_socket) - 1, -1);
+		m_counters.inc_stats_counter(counters::num_tcp_peers
+			+ static_cast<std::uint8_t>(socket_type_idx(*m_socket)), -1);
 
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(!m_in_constructor);

@@ -119,7 +119,7 @@ TORRENT_TEST(socks5_tcp_announce)
 		[&alert_port](lt::session&, lt::alert const* alert) {
 			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
 			{
-				if (a->socket_type == socket_type_t::udp)
+				if (a->socket_type == socket_type_t::utp)
 				{
 					alert_port = a->port;
 				}

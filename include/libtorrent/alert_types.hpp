@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/portmap.hpp" // for portmap_transport
 #include "libtorrent/tracker_manager.hpp" // for event_t
+#include "libtorrent/socket_type.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_array.hpp>
@@ -770,14 +771,14 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int type);
+			, tcp::endpoint const& ep, peer_id const& peer_id, socket_type_t type);
 
 		TORRENT_DEFINE_ALERT(peer_connect_alert, 23)
 
 		static constexpr alert_category_t static_category = alert::connect_notification;
 		std::string message() const override;
 
-		int const socket_type;
+		socket_type_t const socket_type;
 	};
 
 	// This alert is generated when a peer is disconnected for any reason (other than the ones
@@ -787,7 +788,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		TORRENT_UNEXPORT peer_disconnected_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, operation_t op, int type, error_code const& e
+			, peer_id const& peer_id, operation_t op, socket_type_t type, error_code const& e
 			, close_reason_t r);
 
 		TORRENT_DEFINE_ALERT(peer_disconnected_alert, 24)
@@ -796,7 +797,7 @@ TORRENT_VERSION_NAMESPACE_2
 		std::string message() const override;
 
 		// the kind of socket this peer was connected over
-		int const socket_type;
+		socket_type_t const socket_type;
 
 		// the operation or level where the error occurred. Specified as an
 		// value from the operation_t enum. Defined in operations.hpp.
@@ -1392,11 +1393,6 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::noexcept_movable<address> external_address;
 	};
 
-	enum class socket_type_t : std::uint8_t
-	{
-		tcp, tcp_ssl, udp, i2p, socks5, utp_ssl
-	};
-
 	// This alert is generated when none of the ports, given in the port range, to
 	// session can be opened for listening. The ``listen_interface`` member is the
 	// interface that failed, ``error`` is the error code describing the failure.
@@ -1968,8 +1964,8 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT incoming_connection_alert final : alert
 	{
 		// internal
-		TORRENT_UNEXPORT incoming_connection_alert(aux::stack_allocator& alloc, int t
-			, tcp::endpoint const& i);
+		TORRENT_UNEXPORT incoming_connection_alert(aux::stack_allocator& alloc
+			, socket_type_t t, tcp::endpoint const& i);
 
 		TORRENT_DEFINE_ALERT(incoming_connection_alert, 66)
 
@@ -1977,20 +1973,7 @@ TORRENT_VERSION_NAMESPACE_2
 		std::string message() const override;
 
 		// tells you what kind of socket the connection was accepted
-		// as:
-		//
-		// 0. none (no socket instantiated)
-		// 1. TCP
-		// 2. Socks5
-		// 3. HTTP
-		// 4. uTP
-		// 5. i2p
-		// 6. SSL/TCP
-		// 7. SSL/Socks5
-		// 8. HTTPS (SSL/HTTP)
-		// 9. SSL/uTP
-		//
-		int const socket_type;
+		socket_type_t socket_type;
 
 		// is the IP address and port the connection came from.
 		aux::noexcept_movable<tcp::endpoint> endpoint;
