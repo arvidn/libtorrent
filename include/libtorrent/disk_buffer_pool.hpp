@@ -75,7 +75,7 @@ namespace libtorrent {
 
 		void set_settings(settings_interface const& sett);
 
-	protected:
+	private:
 
 		void free_buffer_impl(char* buf, std::unique_lock<std::mutex>& l);
 		char* allocate_buffer_impl(std::unique_lock<std::mutex>& l, char const* category);
@@ -105,8 +105,6 @@ namespace libtorrent {
 		// the main thread.
 		io_context& m_ios;
 
-	private:
-
 		void check_buffer_level(std::unique_lock<std::mutex>& l);
 		void remove_buffer_in_use(char* buf);
 
@@ -119,8 +117,8 @@ namespace libtorrent {
 		std::set<char*> m_buffers_in_use;
 #endif
 #if TORRENT_USE_ASSERTS
-		int m_magic;
-		bool m_settings_set;
+		int m_magic = 0x1337;
+		bool m_settings_set = false;
 #endif
 	};
 

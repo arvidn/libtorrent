@@ -75,12 +75,7 @@ namespace libtorrent {
 		, m_low_watermark(std::max(m_max_use - 32, 0))
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
-	{
-#if TORRENT_USE_ASSERTS
-		m_magic = 0x1337;
-		m_settings_set = false;
-#endif
-	}
+	{}
 
 	disk_buffer_pool::~disk_buffer_pool()
 	{
