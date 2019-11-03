@@ -217,17 +217,15 @@ namespace aux {
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
 
 			// TODO: this should not be heap allocated, sockets should be movable
-			std::shared_ptr<aux::socket_type> c(new (std::nothrow) aux::socket_type(
-				aux::instantiate_connection(m_ios, aux::proxy_settings(), m_ssl_context, this, true, false)));
-			if (!c) return false;
+			aux::socket_type c(aux::instantiate_connection(m_ios, aux::proxy_settings(), m_ssl_context, this, true, false));
 
 			utp_stream* str = nullptr;
 #ifdef TORRENT_USE_OPENSSL
-			if (is_ssl(*c))
-				str = &boost::get<ssl_stream<utp_stream>>(*c).next_layer();
+			if (is_ssl(c))
+				str = &boost::get<ssl_stream<utp_stream>>(c).next_layer();
 			else
 #endif
-				str = boost::get<utp_stream>(c.get());
+				str = boost::get<utp_stream>(&c);
 
 			TORRENT_ASSERT(str);
 			int link_mtu, utp_mtu;

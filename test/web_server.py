@@ -100,6 +100,7 @@ class http_handler(BaseHTTPRequestHandler):
             s.send_header("Connection", "close")
             s.end_headers()
             s.wfile.write(response)
+            s.request.close()
         elif os.path.split(s.path)[1].startswith('seed?'):
             query = s.path[6:]
             args_raw = query.split('&')

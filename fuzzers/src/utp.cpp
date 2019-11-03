@@ -50,7 +50,7 @@ counters cnt;
 #if LIBTORRENT_VERSION_NUM >= 10200
 aux::utp_socket_manager man(
 	[](std::weak_ptr<aux::utp_socket_interface>, udp::endpoint const&, span<char const>, error_code&, udp_send_flags_t){}
-	, [](std::shared_ptr<aux::socket_type> const&){}
+	, [](aux::socket_type){}
 	, ios
 	, sett
 	, cnt

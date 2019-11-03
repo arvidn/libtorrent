@@ -93,7 +93,7 @@ namespace libtorrent {
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
-		explicit bt_peer_connection(peer_connection_args const& pack);
+		explicit bt_peer_connection(peer_connection_args& pack);
 
 		void start() override;
 

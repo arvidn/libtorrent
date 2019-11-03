@@ -57,7 +57,7 @@ namespace libtorrent {
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
-		http_seed_connection(peer_connection_args const& pack
+		http_seed_connection(peer_connection_args& pack
 			, web_seed_t& web);
 
 		connection_type type() const override

@@ -492,7 +492,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 		, m_utp_socket_manager(
 			std::bind(&session_impl::send_udp_packet, this, _1, _2, _3, _4, _5)
-			, std::bind(&session_impl::incoming_connection, this, _1)
+			, [this](socket_type s) { this->incoming_connection(std::move(s)); }
 			, m_io_context
 			, m_settings, m_stats_counters, nullptr)
 #ifdef TORRENT_USE_OPENSSL
@@ -926,12 +926,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 		m_lsd_announce_timer.cancel();
 
-		for (auto const& s : m_incoming_sockets)
+#ifdef TORRENT_USE_OPENSSL
+		for (auto& s : m_incoming_sockets)
 		{
 			s->close(ec);
 			TORRENT_ASSERT(!ec);
 		}
 		m_incoming_sockets.clear();
+#endif
 
 #if TORRENT_USE_I2P
 		if (m_i2p_listen_socket && m_i2p_listen_socket->is_open())
@@ -2314,7 +2316,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (!m_i2p_conn.is_open()) return;
 
 		if (m_i2p_listen_socket) return;
-		m_i2p_listen_socket = std::make_shared<socket_type>(
+		m_i2p_listen_socket.emplace(
 			instantiate_connection(m_io_context, m_i2p_conn.proxy()
 				, nullptr, nullptr, true, false));
 
@@ -2324,14 +2326,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		s.set_session_id(m_i2p_conn.session_id());
 
 		s.async_connect(tcp::endpoint()
-			, std::bind(&session_impl::on_i2p_accept, this, m_i2p_listen_socket, _1));
+			, std::bind(&session_impl::on_i2p_accept, this, _1));
 	}
 
-	void session_impl::on_i2p_accept(std::shared_ptr<socket_type> const& s
-		, error_code const& e)
+	void session_impl::on_i2p_accept(error_code const& e)
 	{
 		COMPLETE_ASYNC("session_impl::on_i2p_accept");
-		m_i2p_listen_socket.reset();
 		if (e == boost::asio::error::operation_aborted) return;
 		if (e)
 		{
@@ -2348,7 +2348,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			return;
 		}
 		open_new_incoming_i2p_connection();
-		incoming_connection(s);
+		incoming_connection(std::move(*m_i2p_listen_socket));
+		m_i2p_listen_socket.reset();
 	}
 #endif
 
@@ -2711,38 +2712,41 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (listen != m_listen_sockets.end())
 			(*listen)->incoming_connection = true;
 
-		std::shared_ptr<socket_type> c;
+		socket_type c = [&]{
+#ifdef TORRENT_USE_OPENSSL
+			if (ssl == transport::ssl)
+			{
+				// accept connections initializing the SSL connection to
+				// use the generic m_ssl_ctx context. However, since it has
+				// the servername callback set on it, we will switch away from
+				// this context into a specific torrent once we start handshaking
+				return socket_type(ssl_stream<tcp::socket>(tcp::socket(std::move(s)), m_ssl_ctx));
+			}
+			else
+#endif
+			{
+				return socket_type(tcp::socket(std::move(s)));
+			}
+		}();
+
+#ifdef TORRENT_USE_OPENSSL
+		TORRENT_ASSERT((ssl == transport::ssl) == is_ssl(c));
+#endif
 
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl == transport::ssl)
 		{
-			// accept connections initializing the SSL connection to
-			// use the generic m_ssl_ctx context. However, since it has
-			// the servername callback set on it, we will switch away from
-			// this context into a specific torrent once we start handshaking
-			c = std::make_shared<socket_type>(ssl_stream<tcp::socket>(tcp::socket(std::move(s)), m_ssl_ctx));
-		}
-		else
-#endif
-		{
-			c = std::make_shared<socket_type>(tcp::socket(std::move(s)));
-		}
+			TORRENT_ASSERT(is_ssl(c));
 
-#ifdef TORRENT_USE_OPENSSL
-		TORRENT_ASSERT((ssl == transport::ssl) == is_ssl(*c));
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-		if (ssl == transport::ssl)
-		{
-			TORRENT_ASSERT(is_ssl(*c));
+			// save the socket so we can cancel the handshake
+			// TODO: this size need to be capped
+			auto iter = m_incoming_sockets.emplace(std::make_unique<socket_type>(std::move(c))).first;
 
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
 			ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-			boost::get<ssl_stream<tcp::socket>>(*c).async_accept_handshake(
-				std::bind(&session_impl::ssl_handshake, this, _1, c));
-			m_incoming_sockets.insert(std::move(c));
+			boost::get<ssl_stream<tcp::socket>>(**iter).async_accept_handshake(
+				std::bind(&session_impl::ssl_handshake, this, _1, iter->get()));
 		}
 		else
 #endif
@@ -2753,16 +2757,20 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 #ifdef TORRENT_USE_OPENSSL
 
-	void session_impl::on_incoming_utp_ssl(std::shared_ptr<socket_type> const& s)
+	void session_impl::on_incoming_utp_ssl(socket_type s)
 	{
-		TORRENT_ASSERT(is_ssl(*s));
+		TORRENT_ASSERT(is_ssl(s));
+
+		// save the socket so we can cancel the handshake
+
+		// TODO: this size need to be capped
+		auto iter = m_incoming_sockets.emplace(std::make_unique<socket_type>(std::move(s))).first;
 
 		// for SSL connections, incoming_connection() is called
 		// after the handshake is done
 		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-		boost::get<ssl_stream<utp_stream>>(*s).async_accept_handshake(
-			std::bind(&session_impl::ssl_handshake, this, _1, s));
-		m_incoming_sockets.insert(s);
+		boost::get<ssl_stream<utp_stream>>(**iter).async_accept_handshake(
+			std::bind(&session_impl::ssl_handshake, this, _1, iter->get()));
 	}
 
 	// to test SSL connections, one can use this openssl command template:
@@ -2771,22 +2779,29 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	//   -CAfile <torrent-cert>.pem  -debug -connect 127.0.0.1:4433 -tls1
 	//   -servername <hex-encoded-info-hash>
 
-	void session_impl::ssl_handshake(error_code const& ec, std::shared_ptr<socket_type> s)
+	void session_impl::ssl_handshake(error_code const& ec, socket_type* sock)
 	{
 		COMPLETE_ASYNC("session_impl::ssl_handshake");
-		TORRENT_ASSERT(is_ssl(*s));
 
-		m_incoming_sockets.erase(s);
+		auto iter = m_incoming_sockets.find(sock);
+
+		// this happens if the SSL connection is aborted because we're shutting
+		// down
+		if (iter == m_incoming_sockets.end()) return;
+
+		socket_type s(std::move(**iter));
+		TORRENT_ASSERT(is_ssl(s));
+		m_incoming_sockets.erase(iter);
 
 		error_code e;
-		tcp::endpoint endp = s->remote_endpoint(e);
+		tcp::endpoint endp = s.remote_endpoint(e);
 		if (e) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
 			session_log(" *** peer SSL handshake done [ ip: %s ec: %s socket: %s ]"
-				, print_endpoint(endp).c_str(), ec.message().c_str(), socket_type_name(*s));
+				, print_endpoint(endp).c_str(), ec.message().c_str(), socket_type_name(s));
 		}
 #endif
 
@@ -2800,12 +2815,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			return;
 		}
 
-		incoming_connection(s);
+		incoming_connection(std::move(s));
 	}
 
 #endif // TORRENT_USE_OPENSSL
 
-	void session_impl::incoming_connection(std::shared_ptr<socket_type> const& s)
+	void session_impl::incoming_connection(socket_type s)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -2819,7 +2834,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		error_code ec;
 		// we got a connection request!
-		tcp::endpoint endp = s->remote_endpoint(ec);
+		tcp::endpoint endp = s.remote_endpoint(ec);
 
 		if (ec)
 		{
@@ -2835,7 +2850,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 
 		if (!m_settings.get_bool(settings_pack::enable_incoming_utp)
-			&& is_utp(*s))
+			&& is_utp(s))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("<== INCOMING CONNECTION [ rejected uTP connection ]");
@@ -2847,7 +2862,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 
 		if (!m_settings.get_bool(settings_pack::enable_incoming_tcp)
-			&& boost::get<tcp::socket>(s.get()))
+			&& boost::get<tcp::socket>(&s))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("<== INCOMING CONNECTION [ rejected TCP connection ]");
@@ -2862,7 +2877,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// peer is correctly bound to one of them
 		if (!m_settings.get_str(settings_pack::outgoing_interfaces).empty())
 		{
-			tcp::endpoint local = s->local_endpoint(ec);
+			tcp::endpoint local = s.local_endpoint(ec);
 			if (ec)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2889,7 +2904,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 						, endp, peer_blocked_alert::invalid_local_interface);
 				return;
 			}
-			if (!verify_bound_address(local.address(), is_utp(*s), ec))
+			if (!verify_bound_address(local.address(), is_utp(s), ec))
 			{
 				if (ec)
 				{
@@ -2953,7 +2968,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// figure out which peer classes this is connections has,
 		// to get connection_limit_factor
 		peer_class_set pcs;
-		set_peer_classes(&pcs, endp.address(), socket_type_idx(*s));
+		set_peer_classes(&pcs, endp.address(), socket_type_idx(s));
 		int connection_limit_factor = 0;
 		for (int i = 0; i < pcs.num_classes(); ++i)
 		{
@@ -2976,7 +2991,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			if (m_alerts.should_post<peer_disconnected_alert>())
 			{
 				m_alerts.emplace_alert<peer_disconnected_alert>(torrent_handle(), endp, peer_id()
-						, operation_t::bittorrent, socket_type_idx(*s)
+						, operation_t::bittorrent, socket_type_idx(s)
 						, error_code(errors::too_many_connections)
 						, close_reason_t::none);
 			}
@@ -3013,7 +3028,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		m_stats_counters.inc_stats_counter(counters::incoming_connections);
 
 		if (m_alerts.should_post<incoming_connection_alert>())
-			m_alerts.emplace_alert<incoming_connection_alert>(socket_type_idx(*s), endp);
+			m_alerts.emplace_alert<incoming_connection_alert>(socket_type_idx(s), endp);
 
 		peer_connection_args pack{
 			this
@@ -3022,14 +3037,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			, m_disk_thread.get()
 			, &m_io_context
 			, std::weak_ptr<torrent>()
-			, s
+			, std::move(s)
 			, endp
 			, nullptr
 			, aux::generate_peer_id(m_settings)
 		};
 
 		std::shared_ptr<peer_connection> c
-			= std::make_shared<bt_peer_connection>(std::move(pack));
+			= std::make_shared<bt_peer_connection>(pack);
 
 		if (!c->is_disconnecting())
 		{
@@ -3369,7 +3384,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 						peer_connection& p = *i;
 						if (p.in_handshake()) continue;
 						int protocol = 0;
-						if (is_utp(*p.get_socket())) protocol = 1;
+						if (is_utp(p.get_socket())) protocol = 1;
 
 						if (p.download_queue().size() + p.request_queue().size() > 0)
 							++num_peers[protocol][peer_connection::download_channel];
@@ -3429,7 +3444,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// TODO: have a separate list for these connections, instead of having to loop through all of them
 			int timeout = m_settings.get_int(settings_pack::handshake_timeout);
 #if TORRENT_USE_I2P
-			timeout *= is_i2p(*p->get_socket()) ? 4 : 1;
+			timeout *= is_i2p(p->get_socket()) ? 4 : 1;
 #endif
 			if (m_last_tick - p->connected_time () > seconds(timeout))
 				p->disconnect(errors::timed_out, operation_t::bittorrent);

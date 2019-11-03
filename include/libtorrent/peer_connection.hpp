@@ -176,7 +176,7 @@ namespace aux {
 		disk_interface* disk_thread;
 		io_context* ios;
 		std::weak_ptr<torrent> tor;
-		std::shared_ptr<aux::socket_type> s;
+		aux::socket_type s;
 		tcp::endpoint endp;
 		torrent_peer* peerinfo;
 		peer_id our_peer_id;
@@ -306,7 +306,7 @@ namespace aux {
 			num_channels
 		};
 
-		explicit peer_connection(peer_connection_args const& pack);
+		explicit peer_connection(peer_connection_args& pack);
 
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function
@@ -484,7 +484,8 @@ namespace aux {
 		// is called once every second by the main loop
 		void second_tick(int tick_interval_ms);
 
-		std::shared_ptr<aux::socket_type> get_socket() const { return m_socket; }
+		aux::socket_type const& get_socket() const { return m_socket; }
+		aux::socket_type& get_socket() { return m_socket; }
 		tcp::endpoint const& remote() const override { return m_remote; }
 		tcp::endpoint local_endpoint() const override { return m_local; }
 
@@ -808,7 +809,7 @@ namespace aux {
 		int wanted_transfer(int channel);
 		int request_bandwidth(int channel, int bytes = 0);
 
-		std::shared_ptr<aux::socket_type> m_socket;
+		aux::socket_type m_socket;
 
 		// the queue of blocks we have requested
 		// from this peer
@@ -832,7 +833,6 @@ namespace aux {
 		// std::count(m_have_piece.begin(),
 		// m_have_piece.end(), true)
 		int m_num_pieces;
-
 
 	public:
 		// upload and download channel state
