@@ -93,6 +93,7 @@ struct udp : sim::asio::ip::udp {
 };
 	using sim::asio::async_write;
 	using sim::asio::async_read;
+	using true_tcp_socket = sim::asio::ip::tcp::socket;
 #else
 struct tcp : boost::asio::ip::tcp {
 	tcp(boost::asio::ip::tcp const& p) : boost::asio::ip::tcp(p) {} // NOLINT
@@ -104,6 +105,7 @@ struct udp : boost::asio::ip::udp {
 };
 	using boost::asio::async_write;
 	using boost::asio::async_read;
+	using true_tcp_socket = boost::asio::ip::tcp::socket;
 #endif
 
 	// internal
