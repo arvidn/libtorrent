@@ -65,12 +65,15 @@ namespace ssl {
 }
 
 template <class Stream>
-class ssl_stream
+struct ssl_stream
 {
-public:
-
-	explicit ssl_stream(io_context& io_context, ssl::context& ctx)
+	ssl_stream(io_context& io_context, ssl::context& ctx)
 		: m_sock(new ssl::stream<Stream>(io_context, ctx))
+	{}
+
+	template <typename S>
+	ssl_stream(S&& s, ssl::context& ctx)
+		: m_sock(new ssl::stream<Stream>(std::forward<S>(s), ctx))
 	{}
 
 	ssl_stream(ssl_stream&&) = default;

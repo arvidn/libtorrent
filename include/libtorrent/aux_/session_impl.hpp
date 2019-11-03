@@ -363,8 +363,8 @@ namespace aux {
 			void prioritize_connections(std::weak_ptr<torrent> t) override;
 
 			void async_accept(std::shared_ptr<tcp::acceptor> const&, transport);
-			void on_accept_connection(std::shared_ptr<socket_type> const&
-				, std::weak_ptr<tcp::acceptor>, error_code const&, transport);
+			void on_accept_connection(true_tcp_socket s, error_code const&
+				, std::weak_ptr<tcp::acceptor>, transport);
 
 			void incoming_connection(std::shared_ptr<socket_type> const&);
 
