@@ -175,7 +175,7 @@ namespace libtorrent { namespace {
 #if !defined TORRENT_DISABLE_ENCRYPTION
 					flags |= p->supports_encryption() ? pex_encryption : pex_flags_t{};
 #endif
-					flags |= is_utp(*p->get_socket()) ? pex_utp : pex_flags_t{};
+					flags |= is_utp(p->get_socket()) ? pex_utp : pex_flags_t{};
 					flags |= p->supports_holepunch() ? pex_holepunch : pex_flags_t{};
 
 					// i->first was added since the last time
@@ -569,7 +569,7 @@ namespace libtorrent { namespace {
 #if !defined TORRENT_DISABLE_ENCRYPTION
 				flags |= p->supports_encryption() ? 1 : 0;
 #endif
-				flags |= is_utp(*p->get_socket()) ? 4 :  0;
+				flags |= is_utp(p->get_socket()) ? 4 :  0;
 				flags |= p->supports_holepunch() ? 8 : 0;
 
 				tcp::endpoint remote = peer->remote();

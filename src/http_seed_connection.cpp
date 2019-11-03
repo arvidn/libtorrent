@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	http_seed_connection::http_seed_connection(peer_connection_args const& pack
+	http_seed_connection::http_seed_connection(peer_connection_args& pack
 		, web_seed_t& web)
 		: web_connection_base(pack, web)
 		, m_url(web.url)

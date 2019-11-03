@@ -137,9 +137,9 @@ namespace libtorrent {
 	}
 #endif
 
-	peer_connection::peer_connection(peer_connection_args const& pack)
+	peer_connection::peer_connection(peer_connection_args& pack)
 		: peer_connection_hot_members(pack.tor, *pack.ses, *pack.sett)
-		, m_socket(pack.s)
+		, m_socket(std::move(pack.s))
 		, m_peer_info(pack.peerinfo)
 		, m_counters(*pack.stats_counters)
 		, m_num_pieces(0)
@@ -169,7 +169,7 @@ namespace libtorrent {
 		, m_slow_start(true)
 	{
 		m_counters.inc_stats_counter(counters::num_tcp_peers
-			+ static_cast<std::uint8_t>(socket_type_idx(*m_socket)));
+			+ static_cast<std::uint8_t>(socket_type_idx(m_socket)));
 		std::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (m_connected)
@@ -193,14 +193,14 @@ namespace libtorrent {
 		if (should_log(m_outgoing ? peer_log_alert::outgoing : peer_log_alert::incoming))
 		{
 			error_code ec;
-			TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
-			tcp::endpoint local_ep = m_socket->local_endpoint(ec);
+			TORRENT_ASSERT(m_socket.remote_endpoint(ec) == m_remote || ec);
+			tcp::endpoint local_ep = m_socket.local_endpoint(ec);
 
 			peer_log(m_outgoing ? peer_log_alert::outgoing : peer_log_alert::incoming
 				, m_outgoing ? "OUTGOING_CONNECTION" : "INCOMING_CONNECTION"
 				, "ep: %s type: %s seed: %d p: %p local: %s"
 				, print_endpoint(m_remote).c_str()
-				, socket_type_name(*m_socket)
+				, socket_type_name(m_socket)
 				, m_peer_info ? m_peer_info->seed : 0
 				, static_cast<void*>(m_peer_info)
 				, print_endpoint(local_ep).c_str());
@@ -335,19 +335,19 @@ namespace libtorrent {
 		if (!m_outgoing)
 		{
 			error_code ec;
-			m_socket->non_blocking(true, ec);
+			m_socket.non_blocking(true, ec);
 			if (ec)
 			{
 				disconnect(ec, operation_t::iocontrol);
 				return;
 			}
-			m_remote = m_socket->remote_endpoint(ec);
+			m_remote = m_socket.remote_endpoint(ec);
 			if (ec)
 			{
 				disconnect(ec, operation_t::getpeername);
 				return;
 			}
-			m_local = m_socket->local_endpoint(ec);
+			m_local = m_socket.local_endpoint(ec);
 			if (ec)
 			{
 				disconnect(ec, operation_t::getname);
@@ -355,7 +355,7 @@ namespace libtorrent {
 			}
 			if (is_v4(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 			{
-				m_socket->set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), ec);
+				m_socket.set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), ec);
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::outgoing))
 				{
@@ -367,7 +367,7 @@ namespace libtorrent {
 #if defined IPV6_TCLASS
 			else if (is_v6(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 			{
-				m_socket->set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), ec);
+				m_socket.set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), ec);
 			}
 #endif
 		}
@@ -380,7 +380,7 @@ namespace libtorrent {
 		}
 #endif
 
-		m_ses.set_peer_classes(this, m_remote.address(), socket_type_idx(*m_socket));
+		m_ses.set_peer_classes(this, m_remote.address(), socket_type_idx(m_socket));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
@@ -405,7 +405,7 @@ namespace libtorrent {
 		if (!m_connecting)
 		{
 			error_code err;
-			aux::set_socket_buffer_size(*m_socket, m_settings, err);
+			aux::set_socket_buffer_size(m_socket, m_settings, err);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (err && should_log(peer_log_alert::incoming))
 			{
@@ -426,14 +426,14 @@ namespace libtorrent {
 		}
 #endif
 		error_code ec;
-		m_socket->open(m_remote.protocol(), ec);
+		m_socket.open(m_remote.protocol(), ec);
 		if (ec)
 		{
 			disconnect(ec, operation_t::sock_open);
 			return;
 		}
 
-		tcp::endpoint const bound_ip = m_ses.bind_outgoing_socket(*m_socket
+		tcp::endpoint const bound_ip = m_ses.bind_outgoing_socket(m_socket
 			, m_remote.address(), ec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))
@@ -453,7 +453,7 @@ namespace libtorrent {
 
 		{
 			error_code err;
-			aux::set_socket_buffer_size(*m_socket, m_settings, err);
+			aux::set_socket_buffer_size(m_socket, m_settings, err);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (err && should_log(peer_log_alert::outgoing))
 			{
@@ -474,7 +474,7 @@ namespace libtorrent {
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_connection_complete");
 
 		auto conn = self();
-		m_socket->async_connect(m_remote
+		m_socket.async_connect(m_remote
 			, [conn](error_code const& e) { conn->wrap(&peer_connection::on_connection_complete, e); });
 		m_connect = aux::time_now();
 
@@ -483,13 +483,13 @@ namespace libtorrent {
 		if (t && t->alerts().should_post<peer_connect_alert>())
 		{
 			t->alerts().emplace_alert<peer_connect_alert>(
-				t->get_handle(), remote(), pid(), socket_type_idx(*m_socket));
+				t->get_handle(), remote(), pid(), socket_type_idx(m_socket));
 		}
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
 		{
 			peer_log(peer_log_alert::info, "LOCAL ENDPOINT", "e: %s"
-				, print_endpoint(m_socket->local_endpoint(ec)).c_str());
+				, print_endpoint(m_socket.local_endpoint(ec)).c_str());
 		}
 #endif
 	}
@@ -843,7 +843,7 @@ namespace libtorrent {
 	peer_connection::~peer_connection()
 	{
 		m_counters.inc_stats_counter(counters::num_tcp_peers
-			+ static_cast<std::uint8_t>(socket_type_idx(*m_socket)), -1);
+			+ static_cast<std::uint8_t>(socket_type_idx(m_socket)), -1);
 
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(!m_in_constructor);
@@ -1339,7 +1339,7 @@ namespace libtorrent {
 		}
 
 #if TORRENT_USE_I2P
-		auto* i2ps = boost::get<i2p_stream>(m_socket.get());
+		auto* i2ps = boost::get<i2p_stream>(&m_socket);
 		if (!i2ps && t->torrent_file().is_i2p()
 			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))
 		{
@@ -4136,7 +4136,7 @@ namespace libtorrent {
 		// a connection attempt using uTP just failed
 		// mark this peer as not supporting uTP
 		// we'll never try it again (unless we're trying holepunch)
-		if (is_utp(*m_socket)
+		if (is_utp(m_socket)
 			&& m_peer_info
 			&& m_peer_info->supports_utp
 			&& !m_holepunch_mode)
@@ -4171,7 +4171,7 @@ namespace libtorrent {
 			fast_reconnect(true);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if ((!is_utp(*m_socket)
+		if ((!is_utp(m_socket)
 				|| !m_settings.get_bool(settings_pack::enable_outgoing_tcp))
 			&& m_peer_info
 			&& m_peer_info->supports_holepunch
@@ -4200,8 +4200,8 @@ namespace libtorrent {
 
 		if (m_disconnecting) return;
 
-		set_close_reason(*m_socket, error_to_close_reason(ec));
-		close_reason_t const close_reason = get_close_reason(*m_socket);
+		set_close_reason(m_socket, error_to_close_reason(ec));
+		close_reason_t const close_reason = get_close_reason(m_socket);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (close_reason != close_reason_t::none)
 		{
@@ -4318,7 +4318,7 @@ namespace libtorrent {
 
 		if (error > normal)
 		{
-			if (is_utp(*m_socket)) m_counters.inc_stats_counter(counters::error_utp_peers);
+			if (is_utp(m_socket)) m_counters.inc_stats_counter(counters::error_utp_peers);
 			else m_counters.inc_stats_counter(counters::error_tcp_peers);
 
 			if (m_outgoing) m_counters.inc_stats_counter(counters::error_outgoing_peers);
@@ -4399,7 +4399,7 @@ namespace libtorrent {
 				if (error <= failure && t->alerts().should_post<peer_disconnected_alert>())
 				{
 					t->alerts().emplace_alert<peer_disconnected_alert>(handle
-						, remote(), pid(), op, socket_type_idx(*m_socket), ec, close_reason);
+						, remote(), pid(), op, socket_type_idx(m_socket), ec, close_reason);
 				}
 			}
 
@@ -4459,7 +4459,7 @@ namespace libtorrent {
 			m_ses.close_connection(this);
 		}
 
-		async_shutdown(*m_socket, m_socket);
+		async_shutdown(m_socket, self());
 	}
 
 	bool peer_connection::ignore_unchoke_slots() const
@@ -4636,7 +4636,7 @@ namespace libtorrent {
 		p.estimated_reciprocation_rate = m_est_reciprocation_rate;
 
 		error_code ec;
-		p.local_endpoint = get_socket()->local_endpoint(ec);
+		p.local_endpoint = get_socket().local_endpoint(ec);
 	}
 
 	// TODO: 3 new_piece should be an optional<piece_index_t>. piece index -1
@@ -4853,11 +4853,11 @@ namespace libtorrent {
 			if (m_peer_info) connect_timeout += 3 * m_peer_info->failcount;
 
 			// SSL and i2p handshakes are slow
-			if (is_ssl(*m_socket))
+			if (is_ssl(m_socket))
 				connect_timeout += 10;
 
 #if TORRENT_USE_I2P
-			if (is_i2p(*m_socket))
+			if (is_i2p(m_socket))
 				connect_timeout += 20;
 #endif
 
@@ -4896,7 +4896,7 @@ namespace libtorrent {
 		// do not stall waiting for a handshake
 		int timeout = m_settings.get_int (settings_pack::handshake_timeout);
 #if TORRENT_USE_I2P
-		timeout *= is_i2p(*m_socket) ? 4 : 1;
+		timeout *= is_i2p(m_socket) ? 4 : 1;
 #endif
 		if (may_timeout
 			&& !m_connecting
@@ -5817,7 +5817,7 @@ namespace libtorrent {
 			>;
 		static_assert(sizeof(write_handler_type) == sizeof(std::shared_ptr<peer_connection>)
 			, "write handler does not have the expected size");
-		m_socket->async_write_some(vec, write_handler_type(self()));
+		m_socket.async_write_some(vec, write_handler_type(self()));
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
 		m_last_sent.set(m_connect, aux::time_now());
@@ -5911,7 +5911,7 @@ namespace libtorrent {
 			>;
 		static_assert(sizeof(read_handler_type) == sizeof(std::shared_ptr<peer_connection>)
 			, "read handler does not have the expected size");
-		m_socket->async_read_some(boost::asio::buffer(vec.data(), std::size_t(vec.size())), read_handler_type(self()));
+		m_socket.async_read_some(boost::asio::buffer(vec.data(), std::size_t(vec.size())), read_handler_type(self()));
 	}
 
 	piece_block_progress peer_connection::downloading_piece_progress() const
@@ -6049,7 +6049,7 @@ namespace libtorrent {
 		if (grow_buffer)
 		{
 			error_code ec;
-			int buffer_size = int(m_socket->available(ec));
+			int buffer_size = int(m_socket.available(ec));
 			if (ec)
 			{
 				disconnect(ec, operation_t::available);
@@ -6068,7 +6068,7 @@ namespace libtorrent {
 			if (buffer_size > 0)
 			{
 				span<char> const vec = m_recv_buffer.reserve(buffer_size);
-				std::size_t const bytes = m_socket->read_some(
+				std::size_t const bytes = m_socket.read_some(
 					boost::asio::mutable_buffer(vec.data(), std::size_t(vec.size())), ec);
 
 				// this is weird. You would imagine read_some() would do this
@@ -6216,7 +6216,7 @@ namespace libtorrent {
 		m_last_receive.set(m_connect, aux::time_now());
 
 		error_code ec;
-		m_local = m_socket->local_endpoint(ec);
+		m_local = m_socket.local_endpoint(ec);
 		if (ec)
 		{
 			disconnect(ec, operation_t::getname);
@@ -6228,7 +6228,7 @@ namespace libtorrent {
 		if (!m_settings.get_str(settings_pack::outgoing_interfaces).empty())
 		{
 			if (!m_ses.verify_bound_address(m_local.address()
-				, is_utp(*m_socket), ec))
+				, is_utp(m_socket), ec))
 			{
 				if (ec)
 				{
@@ -6242,7 +6242,7 @@ namespace libtorrent {
 			}
 		}
 
-		if (is_utp(*m_socket) && m_peer_info)
+		if (is_utp(m_socket) && m_peer_info)
 		{
 			m_peer_info->confirmed_supports_utp = true;
 			m_peer_info->supports_utp = false;
@@ -6252,7 +6252,6 @@ namespace libtorrent {
 
 		received_synack(is_v6(m_remote));
 
-		TORRENT_ASSERT(m_socket);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))
 		{
@@ -6266,14 +6265,14 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "SET_NON_BLOCKING");
 #endif
-		m_socket->non_blocking(true, ec);
+		m_socket.non_blocking(true, ec);
 		if (ec)
 		{
 			disconnect(ec, operation_t::iocontrol);
 			return;
 		}
 
-		if (m_remote == m_socket->local_endpoint(ec))
+		if (m_remote == m_socket.local_endpoint(ec))
 		{
 			disconnect(errors::self_connection, operation_t::bittorrent, failure);
 			return;
@@ -6282,7 +6281,7 @@ namespace libtorrent {
 		if (is_v4(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
 			error_code err;
-			m_socket->set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), err);
+			m_socket.set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), err);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::outgoing))
 			{
@@ -6295,7 +6294,7 @@ namespace libtorrent {
 		else if (is_v6(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
 			error_code err;
-			m_socket->set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), err);
+			m_socket.set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), err);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::outgoing))
 			{

@@ -121,12 +121,26 @@ namespace dht {
 
 namespace aux {
 
-		struct session_impl;
-		struct session_settings;
+	struct session_impl;
+	struct session_settings;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		struct tracker_logger;
+	struct tracker_logger;
 #endif
+
+	struct unique_ptr_less
+	{
+		using is_transparent = std::true_type;
+		template <typename T>
+		bool operator()(std::unique_ptr<T> const& lhs, std::unique_ptr<T> const& rhs) const
+		{ return lhs < rhs; }
+		template <typename T>
+		bool operator()(std::unique_ptr<T> const& lhs, T* rhs) const
+		{ return lhs.get() < rhs; }
+		template <typename T>
+		bool operator()(T* lhs, std::unique_ptr<T> const& rhs) const
+		{ return lhs < rhs.get(); }
+	};
 
 	enum class duplex : std::uint8_t
 	{
@@ -366,7 +380,7 @@ namespace aux {
 			void on_accept_connection(true_tcp_socket s, error_code const&
 				, std::weak_ptr<tcp::acceptor>, transport);
 
-			void incoming_connection(std::shared_ptr<socket_type> const&);
+			void incoming_connection(socket_type);
 
 			std::weak_ptr<torrent> find_torrent(info_hash_t const&) const override;
 #if TORRENT_ABI_VERSION == 1
@@ -660,8 +674,7 @@ namespace aux {
 
 			void on_i2p_open(error_code const& ec);
 			void open_new_incoming_i2p_connection();
-			void on_i2p_accept(std::shared_ptr<socket_type> const& s
-				, error_code const& e);
+			void on_i2p_accept(error_code const& e);
 #endif
 
 			void start_ip_notifier();
@@ -912,11 +925,13 @@ namespace aux {
 			// peers.
 			connection_map m_connections;
 
+#ifdef TORRENT_USE_OPENSSL
 			// this list holds incoming connections while they
 			// are performing SSL handshake. When we shut down
 			// the session, all of these are disconnected, otherwise
 			// they would linger and stall or hang session shutdown
-			std::set<std::shared_ptr<socket_type>> m_incoming_sockets;
+			std::set<std::unique_ptr<socket_type>, unique_ptr_less> m_incoming_sockets;
+#endif
 
 			// maps IP ranges to bitfields representing peer class IDs
 			// to assign peers matching a specific IP range based on its
@@ -957,13 +972,13 @@ namespace aux {
 
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
-			std::shared_ptr<socket_type> m_i2p_listen_socket;
+			boost::optional<socket_type> m_i2p_listen_socket;
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
 			ssl::context* ssl_ctx() override { return &m_ssl_ctx; }
-			void on_incoming_utp_ssl(std::shared_ptr<socket_type> const& s);
-			void ssl_handshake(error_code const& ec, std::shared_ptr<socket_type> s);
+			void on_incoming_utp_ssl(socket_type s);
+			void ssl_handshake(error_code const& ec, socket_type* s);
 #endif
 
 			// round-robin index into m_outgoing_interfaces

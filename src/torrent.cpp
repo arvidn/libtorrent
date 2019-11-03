@@ -6101,15 +6101,14 @@ bool is_downloading_state(int const st)
 			if (!userdata) userdata = m_ses.ssl_ctx();
 		}
 #endif
-		std::shared_ptr<aux::socket_type> s = std::make_shared<aux::socket_type>(
-			instantiate_connection(m_ses.get_context()
-			, m_ses.proxy(), userdata, nullptr, true, false));
+		aux::socket_type s = instantiate_connection(m_ses.get_context()
+			, m_ses.proxy(), userdata, nullptr, true, false);
 
-		if (boost::get<http_stream>(s.get()))
+		if (boost::get<http_stream>(&s))
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			boost::get<http_stream>(*s).set_no_connect(true);
+			boost::get<http_stream>(s).set_no_connect(true);
 		}
 
 		std::string hostname;
@@ -6130,9 +6129,9 @@ bool is_downloading_state(int const st)
 			&& !is_ip;
 
 		if (proxy_hostnames
-			&& (boost::get<socks5_stream>(s.get())
+			&& (boost::get<socks5_stream>(&s)
 #ifdef TORRENT_USE_OPENSSL
-				|| boost::get<ssl_stream<socks5_stream>>(s.get())
+				|| boost::get<ssl_stream<socks5_stream>>(&s)
 #endif
 				))
 		{
@@ -6140,14 +6139,14 @@ bool is_downloading_state(int const st)
 			// hostnames through it
 			socks5_stream& str =
 #ifdef TORRENT_USE_OPENSSL
-				ssl ? boost::get<ssl_stream<socks5_stream>>(*s).next_layer() :
+				ssl ? boost::get<ssl_stream<socks5_stream>>(s).next_layer() :
 #endif
-			boost::get<socks5_stream>(*s);
+			boost::get<socks5_stream>(s);
 
 			str.set_dst_name(hostname);
 		}
 
-		setup_ssl_hostname(*s, hostname, ec);
+		setup_ssl_hostname(s, hostname, ec);
 		if (ec)
 		{
 			if (m_ses.alerts().should_post<url_seed_alert>())
@@ -6162,7 +6161,7 @@ bool is_downloading_state(int const st)
 			, &m_ses.disk_thread()
 			, &m_ses.get_context()
 			, shared_from_this()
-			, s
+			, std::move(s)
 			, a
 			, &web->peer_info
 			, aux::generate_peer_id(settings())
@@ -6171,11 +6170,11 @@ bool is_downloading_state(int const st)
 		std::shared_ptr<peer_connection> c;
 		if (web->type == web_seed_entry::url_seed)
 		{
-			c = std::make_shared<web_peer_connection>(std::move(pack), *web);
+			c = std::make_shared<web_peer_connection>(pack, *web);
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
-			c = std::make_shared<http_seed_connection>(std::move(pack), *web);
+			c = std::make_shared<http_seed_connection>(pack, *web);
 		}
 		if (!c) return;
 
@@ -6817,11 +6816,13 @@ bool is_downloading_state(int const st)
 			|| !m_ip_filter
 			|| (m_ip_filter->access(peerinfo->address()) & ip_filter::blocked) == 0);
 
-		std::shared_ptr<aux::socket_type> s;
+		// this is where we determine if we open a regular TCP connection
+		// or a uTP connection. If the utp_socket_manager pointer is not passed in
+		// we'll instantiate a TCP connection
+		aux::utp_socket_manager* sm = nullptr;
 
 #if TORRENT_USE_I2P
-		bool const i2p = peerinfo->is_i2p_addr;
-		if (i2p)
+		if (peerinfo->is_i2p_addr)
 		{
 			if (m_ses.i2p_proxy().hostname.empty())
 			{
@@ -6831,25 +6832,10 @@ bool is_downloading_state(int const st)
 					alerts().emplace_alert<i2p_alert>(errors::no_i2p_router);
 				return false;
 			}
-
-			// It's not entirely obvious why this peer connection is not marked as
-			// one. The main feature of a peer connection is that whether or not we
-			// proxy it is configurable. When we use i2p, we want to always prox
-			// everything via i2p.
-			s = std::make_shared<aux::socket_type>(instantiate_connection(m_ses.get_context()
-				, m_ses.i2p_proxy(), nullptr, nullptr, false, false));
-			boost::get<i2p_stream>(*s).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
-			boost::get<i2p_stream>(*s).set_command(i2p_stream::cmd_connect);
-			boost::get<i2p_stream>(*s).set_session_id(m_ses.i2p_session());
 		}
 		else
 #endif
 		{
-			// this is where we determine if we open a regular TCP connection
-			// or a uTP connection. If the utp_socket_manager pointer is not passed in
-			// we'll instantiate a TCP connection
-			aux::utp_socket_manager* sm = nullptr;
-
 			if (settings().get_bool(settings_pack::enable_outgoing_utp)
 				&& (!settings().get_bool(settings_pack::enable_outgoing_tcp)
 					|| peerinfo->supports_utp
@@ -6872,7 +6858,29 @@ bool is_downloading_state(int const st)
 #endif
 				return false;
 			}
+		}
 
+		// TODO: come up with a better way of doing this, instead of an
+		// immediately invoked lambda expression.
+		aux::socket_type s = [&] {
+
+#if TORRENT_USE_I2P
+		if (peerinfo->is_i2p_addr)
+		{
+			// It's not entirely obvious why this peer connection is not marked as
+			// one. The main feature of a peer connection is that whether or not we
+			// proxy it is configurable. When we use i2p, we want to always prox
+			// everything via i2p.
+			aux::socket_type ret = instantiate_connection(m_ses.get_context()
+				, m_ses.i2p_proxy(), nullptr, nullptr, false, false);
+			boost::get<i2p_stream>(ret).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
+			boost::get<i2p_stream>(ret).set_command(i2p_stream::cmd_connect);
+			boost::get<i2p_stream>(ret).set_session_id(m_ses.i2p_session());
+			return ret;
+		}
+		else
+#endif
+		{
 			void* userdata = nullptr;
 #ifdef TORRENT_USE_OPENSSL
 			if (is_ssl_torrent())
@@ -6884,8 +6892,8 @@ bool is_downloading_state(int const st)
 			}
 #endif
 
-			s = std::make_shared<aux::socket_type>(instantiate_connection(m_ses.get_context()
-				, m_ses.proxy(), userdata, sm, true, false));
+			aux::socket_type ret = instantiate_connection(m_ses.get_context()
+				, m_ses.proxy(), userdata, sm, true, false);
 
 #if defined TORRENT_USE_OPENSSL
 			if (is_ssl_torrent())
@@ -6894,10 +6902,12 @@ bool is_downloading_state(int const st)
 				std::string const host_name = aux::to_hex(
 					m_torrent_file->info_hash().get(peerinfo->protocol()));
 
-				boost::apply_visitor(hostname_visitor{host_name}, *s);
+				boost::apply_visitor(hostname_visitor{host_name}, ret);
 			}
 #endif
+			return ret;
 		}
+		}();
 
 		peer_id const our_pid = aux::generate_peer_id(settings());
 		peer_connection_args pack{
@@ -6907,13 +6917,13 @@ bool is_downloading_state(int const st)
 			, &m_ses.disk_thread()
 			, &m_ses.get_context()
 			, shared_from_this()
-			, s
+			, std::move(s)
 			, a
 			, peerinfo
 			, our_pid
 		};
 
-		auto c = std::make_shared<bt_peer_connection>(std::move(pack));
+		auto c = std::make_shared<bt_peer_connection>(pack);
 
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
@@ -7119,10 +7129,9 @@ bool is_downloading_state(int const st)
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
-			std::shared_ptr<aux::socket_type> s = p->get_socket();
+			aux::socket_type& s = p->get_socket();
 
-
-			SSL* const ssl_conn = boost::apply_visitor(ssl_native_handle_visitor{}, *s);
+			SSL* const ssl_conn = boost::apply_visitor(ssl_native_handle_visitor{}, s);
 
 			if (ssl_conn == nullptr)
 			{
@@ -7278,7 +7287,7 @@ bool is_downloading_state(int const st)
 
 #if TORRENT_USE_ASSERTS
 		error_code ec;
-		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint(ec) || ec);
+		TORRENT_ASSERT(p->remote() == p->get_socket().remote_endpoint(ec) || ec);
 #endif
 
 		TORRENT_ASSERT(p->peer_info_struct() != nullptr);

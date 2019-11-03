@@ -146,7 +146,7 @@ namespace {
 	}
 #endif // TORRENT_DISABLE_EXTENSIONS
 
-	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack)
+	bt_peer_connection::bt_peer_connection(peer_connection_args& pack)
 		: peer_connection(pack)
 		, m_supports_extensions(false)
 		, m_supports_dht_port(false)
@@ -219,7 +219,7 @@ namespace {
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
-		if (is_ssl(*get_socket()))
+		if (is_ssl(get_socket()))
 			out_policy = settings_pack::pe_disabled;
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
@@ -476,10 +476,10 @@ namespace {
 		if (support_extensions()) p.flags |= peer_info::supports_extensions;
 		if (is_outgoing()) p.flags |= peer_info::local_connection;
 #if TORRENT_USE_I2P
-		if (is_i2p(*get_socket())) p.flags |= peer_info::i2p_socket;
+		if (is_i2p(get_socket())) p.flags |= peer_info::i2p_socket;
 #endif
-		if (is_utp(*get_socket())) p.flags |= peer_info::utp_socket;
-		if (is_ssl(*get_socket())) p.flags |= peer_info::ssl_socket;
+		if (is_utp(get_socket())) p.flags |= peer_info::utp_socket;
+		if (is_ssl(get_socket())) p.flags |= peer_info::ssl_socket;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted)
@@ -2400,7 +2400,7 @@ namespace {
 		std::back_insert_iterator<std::string> out(remote_address);
 		aux::write_address(remote().address(), out);
 #if TORRENT_USE_I2P
-		if (!is_i2p(*get_socket()))
+		if (!is_i2p(get_socket()))
 #endif
 			handshake["yourip"] = remote_address;
 		handshake["reqq"] = m_settings.get_int(settings_pack::max_allowed_in_request_queue);
@@ -3257,7 +3257,7 @@ namespace {
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-				if (is_ssl(*get_socket()))
+				if (is_ssl(get_socket()))
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					peer_log(peer_log_alert::info, "ENCRYPTION"
@@ -3307,7 +3307,7 @@ namespace {
 					&& m_settings.get_int(settings_pack::in_enc_policy)
 						== settings_pack::pe_forced
 					&& !m_encrypted
-					&& !is_ssl(*get_socket()))
+					&& !is_ssl(get_socket()))
 				{
 					disconnect(errors::no_incoming_regular, operation_t::bittorrent);
 					return;
