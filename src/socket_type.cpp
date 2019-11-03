@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/openssl.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
@@ -45,6 +46,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 
 namespace libtorrent {
+
+	char const* socket_type_name(socket_type_t const s)
+	{
+		static aux::array<char const*, 9, socket_type_t> const names{{
+			"TCP",
+			"Socks5",
+			"HTTP",
+			"uTP",
+#if TORRENT_USE_I2P
+			"I2P",
+#else
+			"",
+#endif
+#ifdef TORRENT_USE_OPENSSL
+			"SSL/TCP",
+			"SSL/Socks5",
+			"SSL/HTTP",
+			"SSL/uTP"
+#else
+			"","","",""
+#endif
+		}};
+		return names[s];
+	}
+
 namespace aux {
 
 	struct is_ssl_visitor {
@@ -78,39 +104,29 @@ namespace aux {
 #endif
 
 	struct idx_visitor {
-		template <typename T>
-		int operator()(T const&) const { return socket_type_int_impl<T>::value; }
+		socket_type_t operator()(tcp::socket const&) { return socket_type_t::tcp; }
+		socket_type_t operator()(socks5_stream const&) { return socket_type_t::socks5; }
+		socket_type_t operator()(http_stream const&) { return socket_type_t::http; }
+		socket_type_t operator()(utp_stream const&) { return socket_type_t::utp; }
+#if TORRENT_USE_I2P
+		socket_type_t operator()(i2p_stream const&) { return socket_type_t::i2p; }
+#endif
+#ifdef TORRENT_USE_OPENSSL
+		socket_type_t operator()(ssl_stream<tcp::socket> const&) { return socket_type_t::tcp_ssl; }
+		socket_type_t operator()(ssl_stream<socks5_stream> const&) { return socket_type_t::socks5_ssl; }
+		socket_type_t operator()(ssl_stream<http_stream> const&) { return socket_type_t::http_ssl; }
+		socket_type_t operator()(ssl_stream<utp_stream> const&) { return socket_type_t::utp_ssl; }
+#endif
 	};
 
-	int socket_type_idx(socket_type const& s)
+	socket_type_t socket_type_idx(socket_type const& s)
 	{
 		return boost::apply_visitor(idx_visitor{}, s);
 	}
 
 	char const* socket_type_name(socket_type const& s)
 	{
-		static char const* const names[] =
-		{
-			"uninitialized",
-			"TCP",
-			"Socks5",
-			"HTTP",
-			"uTP",
-#if TORRENT_USE_I2P
-			"I2P",
-#else
-			"",
-#endif
-#ifdef TORRENT_USE_OPENSSL
-			"SSL/TCP",
-			"SSL/Socks5",
-			"SSL/HTTP",
-			"SSL/uTP"
-#else
-			"","","",""
-#endif
-		};
-		return names[socket_type_idx(s)];
+		return socket_type_name(socket_type_idx(s));
 	}
 
 	struct set_close_reason_visitor {

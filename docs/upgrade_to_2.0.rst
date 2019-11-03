@@ -122,6 +122,24 @@ on_unknown_torrent() plugin API
 Since hybrid torrents have two info-hashes, the on_unknown_torrent() function
 on the plugin class now takes an info_hash_t instead of a sha1_hash.
 
+socket_type_t
+-------------
+
+There is a new ``enum class`` called ``socket_type_t`` used to identify different
+kinds of sockets. In previous versions of libtorrent this was exposed as plain
+``int`` with subtly different sets of meanings.
+
+Previously there was an enum value ``udp``, which has been deprecated in favour of ``utp``.
+
+The socket type is exposed in the following alerts, which now use the ``socket_type_t``
+enum instead of ``int``:
+
+* ``peer_connect_alert``
+* ``peer_disconnected_alert``
+* ``incoming_connection_alert``
+* ``listen_failed_alert``
+* ``listen_succeeded_alert``
+
 
 DHT settings
 ============

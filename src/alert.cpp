@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/session_stats.hpp"
+#include "libtorrent/socket_type.hpp"
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/write_resume_data.hpp"
@@ -827,40 +828,28 @@ namespace libtorrent {
 
 namespace {
 
-	int sock_type_idx(socket_type_t type)
-	{
-		int idx =
-			static_cast<std::underlying_type<socket_type_t>::type>(type);
-		TORRENT_ASSERT(0 <= idx && idx < 6);
-		return idx;
-	}
-
-	char const* sock_type_str(socket_type_t type)
-	{
-		static char const* const type_str[] =
-			{ "TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL" };
-
-		return type_str[sock_type_idx(type)];
-	}
-
 	char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
 
 	char const* const protocol_str[] = {"none", "TCP", "UDP"};
 
-	char const* const socket_type_str[] = {
-		"null",
-		"TCP",
-		"Socks5/TCP",
-		"HTTP",
-		"uTP",
-		"i2p",
-		"SSL/TCP",
-		"SSL/Socks5",
-		"HTTPS",
-		"SSL/uTP"
-	};
-
 #if TORRENT_ABI_VERSION == 1
+	int sock_type_idx(socket_type_t type)
+	{
+		// these numbers are the deprecated enum values in
+		// listen_succeeded_alert and listen_failed_alert
+		static aux::array<int, 9, socket_type_t> const mapping{{
+			0, // tcp
+			4, // socks5,
+			0, // http,
+			2, // utp,
+			3, // i2p,
+			1, // tcp_ssl
+			4, // socks5_ssl,
+			1, // http_ssl,
+			5  // utp_ssl,
+		}};
+		return mapping[type];
+	}
 
 	int to_op_t(operation_t op)
 	{
@@ -1015,7 +1004,7 @@ namespace {
 			, print_endpoint(address, port).c_str()
 			, listen_interface()
 			, operation_name(op)
-			, sock_type_str(socket_type)
+			, socket_type_name(socket_type)
 			, convert_from_native(error.message()).c_str());
 		return ret;
 	}
@@ -1103,7 +1092,7 @@ namespace {
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
-			, sock_type_str(socket_type), print_endpoint(address, port).c_str());
+			, socket_type_name(socket_type), print_endpoint(address, port).c_str());
 		return ret;
 	}
 
@@ -1451,8 +1440,8 @@ namespace {
 		return torrent_alert::message() + " needs SSL certificate";
 	}
 
-	incoming_connection_alert::incoming_connection_alert(aux::stack_allocator&, int t
-		, tcp::endpoint const& i)
+	incoming_connection_alert::incoming_connection_alert(aux::stack_allocator&
+		, socket_type_t t, tcp::endpoint const& i)
 		: socket_type(t)
 		, endpoint(i)
 #if TORRENT_ABI_VERSION == 1
@@ -1464,12 +1453,12 @@ namespace {
 	{
 		char msg[600];
 		std::snprintf(msg, sizeof(msg), "incoming connection from %s (%s)"
-			, print_endpoint(endpoint).c_str(), socket_type_str[socket_type]);
+			, print_endpoint(endpoint).c_str(), socket_type_name(socket_type));
 		return msg;
 	}
 
 	peer_connect_alert::peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
-		, tcp::endpoint const& ep, peer_id const& peer_id, int type)
+		, tcp::endpoint const& ep, peer_id const& peer_id, socket_type_t const type)
 		: peer_alert(alloc, h, ep, peer_id)
 		, socket_type(type)
 	{}
@@ -1478,7 +1467,7 @@ namespace {
 	{
 		char msg[600];
 		std::snprintf(msg, sizeof(msg), "%s connecting to peer (%s)"
-			, peer_alert::message().c_str(), socket_type_str[socket_type]);
+			, peer_alert::message().c_str(), socket_type_name(socket_type));
 		return msg;
 	}
 
@@ -1624,7 +1613,7 @@ namespace {
 
 	peer_disconnected_alert::peer_disconnected_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, peer_id const& peer_id, operation_t op_, int type, error_code const& e
+		, peer_id const& peer_id, operation_t op_, socket_type_t const type, error_code const& e
 		, close_reason_t r)
 		: peer_alert(alloc, h, ep, peer_id)
 		, socket_type(type)
@@ -1642,7 +1631,7 @@ namespace {
 		char buf[600];
 		std::snprintf(buf, sizeof(buf), "%s disconnecting (%s) [%s] [%s]: %s (reason: %d)"
 			, peer_alert::message().c_str()
-			, socket_type_str[socket_type]
+			, socket_type_name(socket_type)
 			, operation_name(op), error.category().name()
 			, convert_from_native(error.message()).c_str()
 			, int(reason));

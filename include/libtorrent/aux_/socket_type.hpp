@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/aux_/polymorphic_socket.hpp"
+#include "libtorrent/socket_type.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -49,50 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 namespace aux {
-
-	template <class S>
-	struct socket_type_int_impl
-	{ static constexpr int value = 0; };
-
-	template <>
-	struct socket_type_int_impl<tcp::socket>
-	{ static constexpr int value = 1; };
-
-	template <>
-	struct socket_type_int_impl<socks5_stream>
-	{ static constexpr int value = 2; };
-
-	template <>
-	struct socket_type_int_impl<http_stream>
-	{ static constexpr int value = 3; };
-
-	template <>
-	struct socket_type_int_impl<utp_stream>
-	{ static constexpr int value = 4; };
-
-#if TORRENT_USE_I2P
-	template <>
-	struct socket_type_int_impl<i2p_stream>
-	{ static constexpr int value = 5; };
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-	template <>
-	struct socket_type_int_impl<ssl_stream<tcp::socket>>
-	{ static constexpr int value = 6; };
-
-	template <>
-	struct socket_type_int_impl<ssl_stream<socks5_stream>>
-	{ static constexpr int value = 7; };
-
-	template <>
-	struct socket_type_int_impl<ssl_stream<http_stream>>
-	{ static constexpr int value = 8; };
-
-	template <>
-	struct socket_type_int_impl<ssl_stream<utp_stream>>
-	{ static constexpr int value = 9; };
-#endif
 
 	using socket_type = polymorphic_socket<
 		tcp::socket
@@ -116,8 +73,7 @@ namespace aux {
 	// returns true if this is a uTP socket
 	bool is_utp(socket_type const& s);
 
-	// TODO: this should return a special enum class type?
-	int socket_type_idx(socket_type const& s);
+	socket_type_t socket_type_idx(socket_type const& s);
 
 	char const* socket_type_name(socket_type const& s);
 

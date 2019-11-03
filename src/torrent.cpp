@@ -6757,6 +6757,26 @@ bool is_downloading_state(int const st)
 
 	}
 
+#if defined TORRENT_USE_OPENSSL
+	struct hostname_visitor
+	{
+		explicit hostname_visitor(std::string const& h) : hostname_(h) {}
+		template <typename T>
+		void operator()(T&) {}
+		template <typename T>
+		void operator()(ssl_stream<T>& s) { s.set_host_name(hostname_); }
+		std::string const& hostname_;
+	};
+
+	struct ssl_native_handle_visitor
+	{
+		template <typename T>
+		SSL* operator()(T&) { return nullptr; }
+		template <typename T>
+		SSL* operator()(ssl_stream<T>& s) { return s.native_handle(); }
+	};
+#endif
+
 	bool torrent::connect_to_peer(torrent_peer* peerinfo, bool const ignore_limit)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -6870,21 +6890,11 @@ bool is_downloading_state(int const st)
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
-				std::string host_name = aux::to_hex(m_torrent_file->info_hash().get(peerinfo->protocol()));
+				std::string const host_name = aux::to_hex(
+					m_torrent_file->info_hash().get(peerinfo->protocol()));
 
-#define CASE(t) case aux::socket_type_int_impl<ssl_stream<t>>::value: \
-		boost::get<ssl_stream<t>>(*s).set_host_name(host_name); break;
-
-				switch (socket_type_idx(*s))
-				{
-					CASE(tcp::socket)
-					CASE(socks5_stream)
-					CASE(http_stream)
-					CASE(aux::utp_stream)
-					default: break;
-				}
+				boost::apply_visitor(hostname_visitor{host_name}, *s);
 			}
-#undef CASE
 #endif
 		}
 
@@ -7110,22 +7120,8 @@ bool is_downloading_state(int const st)
 			// if this is an SSL torrent, don't allow non SSL peers on it
 			std::shared_ptr<aux::socket_type> s = p->get_socket();
 
-			//
-#define SSL(t) aux::socket_type_int_impl<ssl_stream<t>>::value: \
-			ssl_conn = boost::get<ssl_stream<t>>(*s).native_handle(); \
-			break;
 
-			SSL* ssl_conn = nullptr;
-
-			switch (socket_type_idx(*s))
-			{
-				case SSL(tcp::socket)
-				case SSL(socks5_stream)
-				case SSL(http_stream)
-				case SSL(aux::utp_stream)
-			}
-
-#undef SSL
+			SSL* const ssl_conn = boost::apply_visitor(ssl_native_handle_visitor{}, *s);
 
 			if (ssl_conn == nullptr)
 			{

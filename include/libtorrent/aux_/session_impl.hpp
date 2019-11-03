@@ -499,7 +499,7 @@ namespace aux {
 			// ==== peer class operations ====
 
 			// implements session_interface
-			void set_peer_classes(peer_class_set* s, address const& a, int st) override;
+			void set_peer_classes(peer_class_set* s, address const& a, socket_type_t st) override;
 			peer_class_pool const& peer_classes() const override { return m_classes; }
 			peer_class_pool& peer_classes() override { return m_classes; }
 			bool ignore_unchoke_slots_set(peer_class_set const& set) const override;

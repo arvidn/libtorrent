@@ -103,6 +103,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/set_socket_buffer.hpp"
 #include "libtorrent/aux_/generate_peer_id.hpp"
 #include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -1205,19 +1206,23 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		return m_peer_class_type_filter;
 	}
 
-	void session_impl::set_peer_classes(peer_class_set* s, address const& a, int const st)
+	void session_impl::set_peer_classes(peer_class_set* s, address const& a, socket_type_t const st)
 	{
 		std::uint32_t peer_class_mask = m_peer_class_filter.access(a);
 
 		using sock_t = peer_class_type_filter::socket_type_t;
 		// assign peer class based on socket type
-		static const sock_t mapping[] = {
-			sock_t::tcp_socket, sock_t::tcp_socket
-			, sock_t::tcp_socket, sock_t::tcp_socket
-			, sock_t::utp_socket, sock_t::i2p_socket
-			, sock_t::ssl_tcp_socket, sock_t::ssl_tcp_socket
-			, sock_t::ssl_tcp_socket, sock_t::ssl_utp_socket
-		};
+		static aux::array<sock_t, 9, socket_type_t> const mapping{{
+			sock_t::tcp_socket
+			, sock_t::tcp_socket
+			, sock_t::tcp_socket
+			, sock_t::utp_socket
+			, sock_t::i2p_socket
+			, sock_t::ssl_tcp_socket
+			, sock_t::ssl_tcp_socket
+			, sock_t::ssl_tcp_socket
+			, sock_t::ssl_utp_socket
+		}};
 		sock_t const socket_type = mapping[st];
 		// filter peer classes based on type
 		peer_class_mask = m_peer_class_type_filter.apply(socket_type, peer_class_mask);
@@ -1631,7 +1636,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		socket_type_t const udp_sock_type
 			= (lep.ssl == transport::ssl)
 			? socket_type_t::utp_ssl
-			: socket_type_t::udp;
+			: socket_type_t::utp;
 		udp::endpoint udp_bind_ep(bind_ep.address(), bind_ep.port());
 
 		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_context);
@@ -2022,7 +2027,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 						socket_type_t const socket_type
 							= l->ssl == transport::ssl
 							? socket_type_t::utp_ssl
-							: socket_type_t::udp;
+							: socket_type_t::utp;
 
 						m_alerts.emplace_alert<listen_succeeded_alert>(
 							udp_ep, socket_type);

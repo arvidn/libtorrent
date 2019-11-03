@@ -127,6 +127,7 @@ set(libtorrent_include_files
 	sliding_average
 	socket
 	socket_io
+	socket_type
 	socks5_stream
 	span
 	ssl_stream

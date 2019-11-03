@@ -527,6 +527,7 @@ HEADERS = \
   sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
+  socket_type.hpp              \
   socks5_stream.hpp            \
   span.hpp                     \
   ssl_stream.hpp               \
