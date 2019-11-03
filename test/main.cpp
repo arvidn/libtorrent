@@ -170,7 +170,7 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 	exit(code);
 }
 
-#else
+#endif
 
 [[noreturn]] void sig_handler(int sig)
 {
@@ -204,15 +204,29 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 #endif
 #undef SIG
 	}
-	std::printf("signal: (%d) %s caught:\n%s\n"
-		, sig, name, stack_text);
+	std::printf("signal: (%d) %s caught:\n%s\n", sig, name, stack_text);
 
 	output_test_log_to_terminal();
 
-	exit(128 + sig);
+	std::exit(128 + sig);
 }
 
-#endif // _WIN32
+[[noreturn]] void term_handler()
+{
+	char stack_text[10000];
+#if TORRENT_USE_ASSERTS \
+	|| defined TORRENT_ASIO_DEBUGGING \
+	|| defined TORRENT_PROFILE_CALLS \
+	|| defined TORRENT_DEBUG_BUFFERS
+	print_backtrace(stack_text, sizeof(stack_text), 30);
+#elif defined __FUNCTION__
+	strcpy(stack_text, __FUNCTION__);
+#else
+	strcpy(stack_text, "<stack traces disabled>");
+#endif
+	std::printf("\n\nterminate called:\n%s\n\n\n", stack_text);
+	std::exit(-1);
+}
 
 void print_usage(char const* executable)
 {
@@ -378,7 +392,9 @@ int EXPORT main(int argc, char const* argv[])
 	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
 #endif
 
-#else
+#endif
+
+	std::set_terminate(term_handler);
 
 	signal(SIGSEGV, &sig_handler);
 #ifdef SIGBUS
@@ -391,8 +407,6 @@ int EXPORT main(int argc, char const* argv[])
 #ifdef SIGSYS
 	signal(SIGSYS, &sig_handler);
 #endif
-
-#endif // _WIN32
 
 	int process_id = -1;
 #ifdef _WIN32
