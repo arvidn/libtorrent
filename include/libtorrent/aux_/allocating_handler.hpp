@@ -55,8 +55,8 @@ namespace libtorrent { namespace aux {
 
 #ifdef _MSC_VER
 #ifndef NDEBUG
-	constexpr std::size_t debug_read_iter = 16 * sizeof(void*);
-	constexpr std::size_t debug_write_iter = 16 * sizeof(void*);
+	constexpr std::size_t debug_read_iter = 24 * sizeof(void*);
+	constexpr std::size_t debug_write_iter = 24 * sizeof(void*);
 #else
 	constexpr std::size_t debug_read_iter = 0;
 	constexpr std::size_t debug_write_iter = 0;
