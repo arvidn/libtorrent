@@ -71,7 +71,7 @@ namespace aux {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
-			int const ret = std::vsnprintf(m_storage.data() + pos, static_cast<std::size_t>(len + 1), fmt, args);
+			int const ret = std::vsnprintf(m_storage.data() + pos, static_cast<std::size_t>(len) + 1, fmt, args);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif

@@ -681,7 +681,7 @@ struct peer_conn
 			if (corruption_counter == 0)
 			{
 				corruption_counter = 1000;
-				memset(write_buffer, 0, 10);
+				std::memset(write_buffer, 0, 10);
 			}
 		}
 		char* ptr = write_buf_proto;
@@ -1009,7 +1009,7 @@ int main(int argc, char* argv[])
 					, torrent_name, std::strerror(errno));
 				return 1;
 			}
-			size_t ret = fwrite(&buf[0], 1, buf.size(), f);
+			size_t ret = fwrite(buf.data(), 1, buf.size(), f);
 			if (ret != buf.size())
 			{
 				std::fprintf(stderr, "write returned: %d (expected %d)\n", int(ret), int(buf.size()));
