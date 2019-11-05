@@ -36,10 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/info_hash.hpp"
-
-#if !defined TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/hasher.hpp"
-#endif
 
 #include <memory> // for shared_ptr
 #include <vector>
