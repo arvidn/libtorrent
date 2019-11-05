@@ -7,3 +7,9 @@
 [submodule "deps/asio-gnutls"]
 	path = deps/asio-gnutls
 	url = https://github.com/paullouisageneau/boost-asio-gnutls.git
+[submodule "deps/libdatachannel"]
+	path = deps/libdatachannel
+	url = https://github.com/paullouisageneau/libdatachannel.git
+[submodule "deps/json"]
+	path = deps/json
+	url = https://github.com/vinniefalco/json.git

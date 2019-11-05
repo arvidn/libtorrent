@@ -483,10 +483,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-Wpedantic
 		-Wparentheses
 		-Wvla
-		-Wc++11-compat
 		-Wno-format-zero-length
 		-Wno-noexcept-type
-		-ftemplate-depth=512)
+		$<$<COMPILE_LANGUAGE:CXX>:-ftemplate-depth=512>
+		$<$<COMPILE_LANGUAGE:CXX>:-Wc++11-compat>)
 elseif(MSVC)
 	add_compile_options(
 		/W4
@@ -809,6 +809,10 @@ endif()
 include(CheckCXXCompilerFlag)
 
 add_subdirectory(bindings)
+
+# TODO: Option
+add_subdirectory(deps/libdatachannel)
+target_link_libraries(torrent-rasterbar PRIVATE LibDataChannel::LibDataChannelStatic)
 
 install(TARGETS torrent-rasterbar EXPORT LibtorrentRasterbarTargets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
